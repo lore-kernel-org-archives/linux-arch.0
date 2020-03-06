@@ -1,61 +1,34 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
-Date: Fri, 06 Mar 2020 01:42:21 +0100
-Message-ID: <87y2seb9g2.fsf@nanos.tec.linutronix.de>
-References: <20200212210139.382424693@infradead.org> <20200212210749.971717428@infradead.org> <20200212232005.GC115917@google.com> <20200213082716.GI14897@hirez.programming.kicks-ass.net> <20200213135138.GB2935@paulmck-ThinkPad-P72> <20200213164031.GH14914@hirez.programming.kicks-ass.net> <20200213185612.GG2935@paulmck-ThinkPad-P72> <20200213204444.GA94647@google.com> <20200213205442.GK2935@paulmck-ThinkPad-P72> <20200213211930.GG170680@google.com> <20200213163800.5c51a5f1@gandalf.local.home>
+From: Sinan Kaya <okaya@kernel.org>
+Subject: Re: About commit "io: change inX() to have their own IO barrier
+ overrides"
+Date: Thu, 5 Mar 2020 22:44:08 -0500
+Message-ID: <90af535f-00ef-c1e3-ec20-aae2bd2a0d88@kernel.org>
+References: <2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com>
+ <c1489f55-369d-2cff-ff36-b10fb5d3ee79@kernel.org>
+ <8207cd51-5b94-2f15-de9f-d85c9c385bca@huawei.com>
+ <6115fa56-a471-1e9f-edbb-e643fa4e7e11@kernel.org>
+ <7c955142-1fcb-d99e-69e4-1e0d3d9eb8c3@huawei.com>
+ <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:51786 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726128AbgCFAmq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Mar 2020 19:42:46 -0500
-In-Reply-To: <20200213163800.5c51a5f1@gandalf.local.home>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>, Joel Fernandes <joel@joelfernandes.org>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, Masami Hiramatsu <mhiramat@kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, John Garry <john.garry@huawei.com>
+Cc: "xuwei (O)" <xuwei5@hisilicon.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Steven Rostedt <rostedt@goodmis.org> writes:
-> rcu_nmi_enter() was marked NOKPROBE or other reasons. See commit
+On 3/3/2020 11:40 AM, Arnd Bergmann wrote:
+>> -          ret = read##bw(PCI_IOBASE + addr);
+>> +          __io_pbr();
+>> +          ret = __raw_read##bw(PCI_IOBASE + addr);
+>> +          __io_pbr();
+> __io_par();
+> 
 
-Very well said: OR other reasons. I assume you meant 'for' but ...
+Why do we need to change read##bw above?
 
-> c13324a505c77 ("x86/kprobes: Prohibit probing on functions before
-> kprobe_int3_handler()")
->
-> The issue was that we must not allow anything in do_int3() call kprobe
-> code before kprobe_int3_handler() is called. Because ist_enter() (in
-> do_int3()) calls rcu_nmi_enter() it had to be marked NOKPROBE. It had
-> nothing to do with it being RCU nor NMI, but because it was simply
-> called in do_int3().
->
-> Thus, there's no reason to make rcu_nmi_exit() NOKPROBE. But a commont
-> to why rcu_nmi_enter() would probably be useful, like below:
-
-... this is really wrong.
-
-While the int3 issue was the reason why it was marked NOKPROBE, fact is
-that aside of int3 problem (which is probably true for any other
-architecture using breakpoints for patching) any probe _before_ RCU is
-watching and _after_ RCU stopped watching is broken. Same applies for
-BPF and tracepoints which call into BPF or other nonsense.
-
-Can we please stop claiming that instrumentation can touch anything it
-wants and just admit that anything outside RCU covered regions is
-off-limits for instrumentation? Same applies for entry code and critical
-exceptions/traps.
-
-There is a reason why the tracer can't trace itself and there are very
-valid reasons to limit the instrumentation ability in other places.
-
-It's nice to be able to see into 'everything' but for 99.9999% of the
-cases the coverage of these things is absolutely irrelevant.
-
-Yes I know, "Correctness first" is this old school thing for grumpy old
-greybeards who are still stuck in the 90's. "Features first" is the new
-mantra. I deal with that every day by mopping up the mess it creates.
-
-Thanks,
-
-        tglx
+read##bw already provides strong ordering guarantees across multiple
+architectures.
