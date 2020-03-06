@@ -1,29 +1,88 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
-Date: Fri, 6 Mar 2020 10:27:29 +0000
-Message-ID: <20200306102729.GC2503422@arrakis.emea.arm.com>
-References: <20200227174417.23722-1-broonie@kernel.org>
+From: John Garry <john.garry@huawei.com>
+Subject: Re: About commit "io: change inX() to have their own IO barrier
+ overrides"
+Date: Fri, 6 Mar 2020 10:39:59 +0000
+Message-ID: <ae0a1bf1-948f-7df0-9efb-cd1e94e27d2d@huawei.com>
+References: <2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com>
+ <c1489f55-369d-2cff-ff36-b10fb5d3ee79@kernel.org>
+ <8207cd51-5b94-2f15-de9f-d85c9c385bca@huawei.com>
+ <6115fa56-a471-1e9f-edbb-e643fa4e7e11@kernel.org>
+ <7c955142-1fcb-d99e-69e4-1e0d3d9eb8c3@huawei.com>
+ <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
+ <90af535f-00ef-c1e3-ec20-aae2bd2a0d88@kernel.org>
+ <CAK8P3a2Grd0JsBNsB19oAxrAFtOdpvjrpGcfeArKe7zD_jrUZw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:59102 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726026AbgCFK1f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Mar 2020 05:27:35 -0500
-Content-Disposition: inline
-In-Reply-To: <20200227174417.23722-1-broonie@kernel.org>
+Received: from lhrrgout.huawei.com ([185.176.76.210]:2513 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726079AbgCFKkC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 05:40:02 -0500
+In-Reply-To: <CAK8P3a2Grd0JsBNsB19oAxrAFtOdpvjrpGcfeArKe7zD_jrUZw@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina
+To: Arnd Bergmann <arnd@arndb.de>, Sinan Kaya <okaya@kernel.org>
+Cc: "xuwei (O)" <xuwei5@hisilicon.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>
 
-On Thu, Feb 27, 2020 at 05:44:06PM +0000, Mark Brown wrote:
-> This patch series implements support for ARMv8.5-A Branch Target
-> Identification (BTI), which is a control flow integrity protection
-> feature introduced as part of the ARMv8.5-A extensions.
+On 06/03/2020 07:54, Arnd Bergmann wrote:
+> On Fri, Mar 6, 2020 at 4:44 AM Sinan Kaya <okaya@kernel.org> wrote:
+>>
+>> On 3/3/2020 11:40 AM, Arnd Bergmann wrote:
+>>>> -          ret = read##bw(PCI_IOBASE + addr);
+>>>> +          __io_pbr();
+>>>> +          ret = __raw_read##bw(PCI_IOBASE + addr);
+>>>> +          __io_pbr();
+>>> __io_par();
+>>>
+>>
+>> Why do we need to change read##bw above?
+>>
+>> read##bw already provides strong ordering guarantees across multiple
+>> architectures.
+> 
+> The exact semantics of inl() and readl() are slightly different, so they
+> have distinct sets of barriers in the asm-generic/io.h implementation.
+> 
+> For instance, the arm64 architectures defines in_par() as '__iormb(v)',
+> but defines __io_ar() as a  '__rmb()'. Similarly, riscv defines them
+> as "fence i,ior" and "fence i,r".
+> 
+> You could argue that the definitions are wrong (I have not checked the
+> history of the definitions), but as long as the inb() in asm-generic/io.h
+> uses those, the implementation in lib/logic_pio.c uses the same ones
+> to make the two behave the same way.
+> 
 
-Does this series affect uprobes in any way? I.e. can you probe a landing
-pad?
+So the change would look like:
 
--- 
-Catalin
+-- a/lib/logic_pio.c
++++ b/lib/logic_pio.c
+@@ -229,13 +229,21 @@ unsigned long 
+logic_pio_trans_cpuaddr(resource_size_t addr)
+  }
+
+  #if defined(CONFIG_INDIRECT_PIO) && defined(PCI_IOBASE)
++
++#define logic_in_to_cpu_b(x) (x)
++#define logic_in_to_cpu_w(x) __le16_to_cpu(x)
++#define logic_in_to_cpu_l(x) __le32_to_cpu(x)
++
+  #define BUILD_LOGIC_IO(bw, type)                                      \
+  type logic_in##bw(unsigned long addr)                                 \
+  {                                                                     \
+         type ret = (type)~0;                                           \
+                                                                        \
+         if (addr < MMIO_UPPER_LIMIT) {                                 \
+-               ret = read##bw(PCI_IOBASE + addr);                     \
++               void __iomem *_addr = PCI_IOBASE + addr;               \
++               __io_pbr();                                            \
++               ret = logic_in_to_cpu_##bw(__raw_read##bw(_addr));     \
++               __io_par(ret);                                         \
+         } else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {\
+                 struct logic_pio_hwaddr *entry = find_io_rang
+
+We could prob combine the le_to_cpu and __raw_read into a single macro.
+
+John
