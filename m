@@ -1,97 +1,58 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 11/27] rcu,tracing: Create trace_rcu_{enter,exit}()
-Date: Fri, 6 Mar 2020 12:50:42 +0100
-Message-ID: <20200306115042.GG3348@worktop.programming.kicks-ass.net>
-References: <20200221133416.777099322@infradead.org>
- <20200221134215.673793889@infradead.org>
+From: Laurent Vivier <laurent-Rq8OgNgcdU6HXe+LvDLADg@public.gmane.org>
+Subject: Re: [PATCH] binfmt_misc: pass binfmt_misc P flag to the interpreter
+Date: Fri, 6 Mar 2020 13:07:35 +0100
+Message-ID: <fded1845-98db-f0fb-9320-842c9fdc30dc@vivier.eu>
+References: <20200306080905.173466-1-syq@debian.org>
+ <87r1y53npd.fsf@mid.deneb.enyo.de>
+ <8441f497-61eb-5c14-bf1e-c90a464105a7@vivier.eu>
+ <87mu8t3mlw.fsf@mid.deneb.enyo.de>
+ <40da389d-4e74-2644-2e7c-04d988fcc26f@vivier.eu>
+ <CAKcpw6WEO5Rmsv+WFkOMrkH+0jwtFKKy7b2n3U9xgv-xGC0UUQ@mail.gmail.com>
+ <87v9nhzp6w.fsf@mid.deneb.enyo.de>
+ <CAKcpw6VF1N2gTVXeWLU4aVOuARf5oN6yPg9O=RCzgkMrjXmxYQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:48516 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726054AbgCFLv2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 06:51:28 -0500
-Content-Disposition: inline
-In-Reply-To: <20200221134215.673793889@infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <CAKcpw6VF1N2gTVXeWLU4aVOuARf5oN6yPg9O=RCzgkMrjXmxYQ-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Content-Language: fr
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: YunQiang Su <syq-8fiUuRrzOP0dnm+yROfE0A@public.gmane.org>, Florian Weimer <fw-d32yF4oPJVt0XxTmqZlbVQ@public.gmane.org>
+Cc: torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Greg KH <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, James Bottomley <James.Bottomley-JuX6DAaQMKPCXq6kfMZ53/egYHeGw8Jk@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, libc-alpha-9JcytcrH/bA+uJoB2kUjGw@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 21, 2020 at 02:34:27PM +0100, Peter Zijlstra wrote:
-> To facilitate tracers that need RCU, add some helpers to wrap the
-> magic required.
+Le 06/03/2020 à 12:48, YunQiang Su a écrit :
+> Florian Weimer <fw-d32yF4oPJVt0XxTmqZlbVQ@public.gmane.org> 于2020年3月6日周五 下午7:42写道：
+>>
+>> * YunQiang Su:
+>>
+>>> AT_* only has 32 slot and now. I was afraid that maybe we shouldn't take one.
+>>>    /* AT_* values 18 through 22 are reserved */
+>>>    27,28,29,30 are not used now.
+>>> Which should we use?
+>>
+>> Where does this limit of 32 tags come from?  I don't see it from a
+>> userspace perspective.
 > 
-> The problem is that we can call into tracers (trace events and
-> function tracing) while RCU isn't watching and this can happen from
-> any context, including NMI.
+> Sorry it is my mistake: In linux/auxvec.h, I saw
 > 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> Reviewed-by: Paul E. McKenney <paulmck@kernel.org>
-> ---
->  include/linux/rcupdate.h |   29 +++++++++++++++++++++++++++++
->  1 file changed, 29 insertions(+)
+> #define AT_RANDOM 25    /* address of 16 random bytes */
+> #define AT_HWCAP2 26    /* extension of AT_HWCAP */
 > 
-> --- a/include/linux/rcupdate.h
-> +++ b/include/linux/rcupdate.h
-> @@ -175,6 +175,35 @@ do { \
->  #error "Unknown RCU implementation specified to kernel configuration"
->  #endif
->  
-> +/**
-> + * trace_rcu_enter - Force RCU to be active, for code that needs RCU readers
-> + *
-> + * Very similar to RCU_NONIDLE() above.
-> + *
-> + * Tracing can happen while RCU isn't active yet, for instance in the idle loop
-> + * between rcu_idle_enter() and rcu_idle_exit(), or early in exception entry.
-> + * RCU will happily ignore any read-side critical sections in this case.
-> + *
-> + * This function ensures that RCU is aware hereafter and the code can readily
-> + * rely on RCU read-side critical sections working as expected.
-> + *
-> + * This function is NMI safe -- provided in_nmi() is correct and will nest up-to
-> + * INT_MAX/2 times.
-> + */
-> +static inline int trace_rcu_enter(void)
-> +{
-> +	int state = !rcu_is_watching();
-> +	if (state)
-> +		rcu_irq_enter_irqsave();
-> +	return state;
-> +}
-> +
-> +static inline void trace_rcu_exit(int state)
-> +{
-> +	if (state)
-> +		rcu_irq_exit_irqsave();
-> +}
-> +
->  /*
->   * The init_rcu_head_on_stack() and destroy_rcu_head_on_stack() calls
->   * are needed for dynamic initialization and destruction of rcu_head
+> #define AT_EXECFN  31   /* filename of program */
+> 
+> The number jump to 31 from 26.
+> 
+> It is my fault: in x86_64-linux-gnu/bits/auxv.h, the max number is 47 now.
+> 
 
-Massmi; afaict we also need the below. That is, when you stick an
-optimized kprobe in a region RCU is not watching, nothing will make RCU
-go.
+Numbers starting from 32 are arch specific.
+18 to 22 are also reserved (and used by some archs).
+(linux/arch/*/include/uapi/asm/auxvec.h)
 
----
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index 9ad5e6b346f8..fa14918613da 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -370,6 +370,7 @@ static bool kprobes_allow_optimization;
-  */
- void opt_pre_handler(struct kprobe *p, struct pt_regs *regs)
- {
-+	int rcu_flags = trace_rcu_enter();
- 	struct kprobe *kp;
+So there is only 4 entries available (27 to 30)
+(linux/include/uapi/linux/auxvec.h)
+Do we want to waste one more entry whereas we can use an unused one?
 
- 	list_for_each_entry_rcu(kp, &p->list, list) {
-@@ -379,6 +380,7 @@ void opt_pre_handler(struct kprobe *p, struct pt_regs *regs)
- 		}
- 		reset_kprobe_instance();
- 	}
-+	trace_rcu_exit(rcu_flags);
- }
- NOKPROBE_SYMBOL(opt_pre_handler);
+Thanks,
+Laurent
