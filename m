@@ -1,43 +1,173 @@
-Return-Path: <SRS0=cph+=44=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v1 0/3] arm64: tlb: add support for TTL field
-Date: Wed, 11 Mar 2020 10:53:06 +0800
-Message-ID: <20200311025309.1743-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pl1-f195.google.com ([209.85.214.195]:33637 "EHLO
+        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725934AbgCFIJn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 03:09:43 -0500
+From: YunQiang Su <syq@debian.org>
+Subject: [PATCH] binfmt_misc: pass binfmt_misc P flag to the interpreter
+Date: Fri,  6 Mar 2020 16:09:05 +0800
+Message-ID: <20200306080905.173466-1-syq@debian.org>
 MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: mark.rutland@arm.com, catalin.marinas@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200311025306.0QcKZklu05ciJOcURSZdeOX3DFzpRz7z8-yjRz6TgxE@z>
+To: torvalds@linux-foundation.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, viro@zeniv.linux.org.uk, James.Bottomley@hansenpartnership.com
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org, Laurent Vivier <laurent@vivier.eu>, YunQiang Su <syq@debian.org>
+Message-ID: <20200306080905.VpDM1rZN5RxzZUVogly6l4SDaPUVVGYI2fasr5c37s4@z>
 
-ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
-the level of translation table walk holding the leaf entry for the
-address that is being invalidated. Hardware can use this information
-to determine if there was a risk of splintering.
+From: Laurent Vivier <laurent@vivier.eu>
 
-This set of patches adds TTL field to __TLBI_ADDR, and uses
-Architecture-specific MM context to pass the TTL value to tlb interface.
+It can be useful to the interpreter to know which flags are in use.
 
-The default value of TTL is 0, which will not have any impact on the
-TLB maintenance instructions. The last patch trys to use TTL field in
-some obviously tlb-flush interface.
+For instance, knowing if the preserve-argv[0] is in use would
+allow to skip the pathname argument.
 
-Zhenyu Ye (3):
-  arm64: tlb: add TTL field to __TLBI_ADDR
-  arm64: tlb: use mm_struct.context.flags to indicate TTL
-  arm64: tlb: add support for TTL in some functions
+This patch uses an unused auxiliary vector, AT_FLAGS, to add a
+flag to inform interpreter if the preserve-argv[0] is enabled.
 
- arch/arm64/include/asm/cpucaps.h  |  3 ++-
- arch/arm64/include/asm/mmu.h      | 11 ++++++++++
- arch/arm64/include/asm/sysreg.h   |  4 ++++
- arch/arm64/include/asm/tlb.h      |  3 +++
- arch/arm64/include/asm/tlbflush.h | 35 +++++++++++++++++++++++--------
- arch/arm64/kernel/cpufeature.c    | 10 +++++++++
- arch/arm64/kernel/sys_compat.c    |  2 +-
- arch/arm64/mm/hugetlbpage.c       |  2 ++
- 8 files changed, 59 insertions(+), 11 deletions(-)
+Signed-off-by: Laurent Vivier <laurent@vivier.eu>
+Signed-off-by: YunQiang Su <syq@debian.org>
+---
 
---=20
-2.19.1
+Notes:
+    This patch uses AT_FLAGS, which has never been used. We need to make a decision.
+    since it is about the fundmental API of userland.
+
+    This can be tested with QEMU from my branch:
+
+      https://github.com/vivier/qemu/commits/binfmt-argv0
+
+    With something like:
+
+      # cp ..../qemu-ppc /chroot/powerpc/jessie
+
+      # qemu-binfmt-conf.sh --qemu-path / --systemd ppc --credential yes \
+                            --persistent no --preserve-argv0 yes
+      # systemctl restart systemd-binfmt.service
+      # cat /proc/sys/fs/binfmt_misc/qemu-ppc
+      enabled
+      interpreter //qemu-ppc
+      flags: POC
+      offset 0
+      magic 7f454c4601020100000000000000000000020014
+      mask ffffffffffffff00fffffffffffffffffffeffff
+      # chroot /chroot/powerpc/jessie  sh -c 'echo $0'
+      sh
+
+      # qemu-binfmt-conf.sh --qemu-path / --systemd ppc --credential yes \
+                            --persistent no --preserve-argv0 no
+      # systemctl restart systemd-binfmt.service
+      # cat /proc/sys/fs/binfmt_misc/qemu-ppc
+      enabled
+      interpreter //qemu-ppc
+      flags: OC
+      offset 0
+      magic 7f454c4601020100000000000000000000020014
+      mask ffffffffffffff00fffffffffffffffffffeffff
+      # chroot /chroot/powerpc/jessie  sh -c 'echo $0'
+      /bin/sh
+
+    v4: Update to merge with linux-next: 20200305.
+    v3: mix my patch with one from YunQiang Su and my comments on it
+        introduce a new flag in the uabi for the AT_FLAGS
+    v2: only pass special flags (remove Magic and Enabled flags)
+---
+ fs/binfmt_elf.c              | 6 ++++--
+ fs/binfmt_elf_fdpic.c        | 5 ++++-
+ fs/binfmt_misc.c             | 4 +++-
+ include/linux/binfmts.h      | 4 ++++
+ include/uapi/linux/binfmts.h | 4 ++++
+ 5 files changed, 19 insertions(+), 4 deletions(-)
+
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 13f25e241ac4..e9f5d135b847 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -178,7 +178,7 @@ create_elf_tables(struct linux_binprm *bprm, const struct elfhdr *exec,
+ 	const char *k_base_platform = ELF_BASE_PLATFORM;
+ 	unsigned char k_rand_bytes[16];
+ 	int items;
+-	elf_addr_t *elf_info;
++	elf_addr_t *elf_info, flags = 0;
+ 	int ei_index;
+ 	const struct cred *cred = current_cred();
+ 	struct vm_area_struct *vma;
+@@ -253,7 +253,9 @@ create_elf_tables(struct linux_binprm *bprm, const struct elfhdr *exec,
+ 	NEW_AUX_ENT(AT_PHENT, sizeof(struct elf_phdr));
+ 	NEW_AUX_ENT(AT_PHNUM, exec->e_phnum);
+ 	NEW_AUX_ENT(AT_BASE, interp_load_addr);
+-	NEW_AUX_ENT(AT_FLAGS, 0);
++	if (bprm->interp_flags & BINPRM_FLAGS_PRESERVE_ARGV0)
++		flags |= AT_FLAGS_PRESERVE_ARGV0;
++	NEW_AUX_ENT(AT_FLAGS, flags);
+ 	NEW_AUX_ENT(AT_ENTRY, e_entry);
+ 	NEW_AUX_ENT(AT_UID, from_kuid_munged(cred->user_ns, cred->uid));
+ 	NEW_AUX_ENT(AT_EUID, from_kuid_munged(cred->user_ns, cred->euid));
+diff --git a/fs/binfmt_elf_fdpic.c b/fs/binfmt_elf_fdpic.c
+index 240f66663543..abb90d82aa58 100644
+--- a/fs/binfmt_elf_fdpic.c
++++ b/fs/binfmt_elf_fdpic.c
+@@ -507,6 +507,7 @@ static int create_elf_fdpic_tables(struct linux_binprm *bprm,
+ 	char __user *u_platform, *u_base_platform, *p;
+ 	int loop;
+ 	int nr;	/* reset for each csp adjustment */
++	unsigned long flags = 0;
+ 
+ #ifdef CONFIG_MMU
+ 	/* In some cases (e.g. Hyper-Threading), we want to avoid L1 evictions
+@@ -647,7 +648,9 @@ static int create_elf_fdpic_tables(struct linux_binprm *bprm,
+ 	NEW_AUX_ENT(AT_PHENT,	sizeof(struct elf_phdr));
+ 	NEW_AUX_ENT(AT_PHNUM,	exec_params->hdr.e_phnum);
+ 	NEW_AUX_ENT(AT_BASE,	interp_params->elfhdr_addr);
+-	NEW_AUX_ENT(AT_FLAGS,	0);
++	if (bprm->interp_flags & BINPRM_FLAGS_PRESERVE_ARGV0)
++		flags |= AT_FLAGS_PRESERVE_ARGV0;
++	NEW_AUX_ENT(AT_FLAGS,	flags);
+ 	NEW_AUX_ENT(AT_ENTRY,	exec_params->entry_addr);
+ 	NEW_AUX_ENT(AT_UID,	(elf_addr_t) from_kuid_munged(cred->user_ns, cred->uid));
+ 	NEW_AUX_ENT(AT_EUID,	(elf_addr_t) from_kuid_munged(cred->user_ns, cred->euid));
+diff --git a/fs/binfmt_misc.c b/fs/binfmt_misc.c
+index cdb45829354d..b9acdd26a654 100644
+--- a/fs/binfmt_misc.c
++++ b/fs/binfmt_misc.c
+@@ -154,7 +154,9 @@ static int load_misc_binary(struct linux_binprm *bprm)
+ 	if (bprm->interp_flags & BINPRM_FLAGS_PATH_INACCESSIBLE)
+ 		goto ret;
+ 
+-	if (!(fmt->flags & MISC_FMT_PRESERVE_ARGV0)) {
++	if (fmt->flags & MISC_FMT_PRESERVE_ARGV0) {
++		bprm->interp_flags |= BINPRM_FLAGS_PRESERVE_ARGV0;
++	} else {
+ 		retval = remove_arg_zero(bprm);
+ 		if (retval)
+ 			goto ret;
+diff --git a/include/linux/binfmts.h b/include/linux/binfmts.h
+index b40fc633f3be..265b80d5fd6f 100644
+--- a/include/linux/binfmts.h
++++ b/include/linux/binfmts.h
+@@ -78,6 +78,10 @@ struct linux_binprm {
+ #define BINPRM_FLAGS_PATH_INACCESSIBLE_BIT 2
+ #define BINPRM_FLAGS_PATH_INACCESSIBLE (1 << BINPRM_FLAGS_PATH_INACCESSIBLE_BIT)
+ 
++/* if preserve the argv0 for the interpreter  */
++#define BINPRM_FLAGS_PRESERVE_ARGV0_BIT 3
++#define BINPRM_FLAGS_PRESERVE_ARGV0 (1 << BINPRM_FLAGS_PRESERVE_ARGV0_BIT)
++
+ /* Function parameter for binfmt->coredump */
+ struct coredump_params {
+ 	const kernel_siginfo_t *siginfo;
+diff --git a/include/uapi/linux/binfmts.h b/include/uapi/linux/binfmts.h
+index 689025d9c185..a70747416130 100644
+--- a/include/uapi/linux/binfmts.h
++++ b/include/uapi/linux/binfmts.h
+@@ -18,4 +18,8 @@ struct pt_regs;
+ /* sizeof(linux_binprm->buf) */
+ #define BINPRM_BUF_SIZE 256
+ 
++/* if preserve the argv0 for the interpreter  */
++#define AT_FLAGS_PRESERVE_ARGV0_BIT 0
++#define AT_FLAGS_PRESERVE_ARGV0 (1 << AT_FLAGS_PRESERVE_ARGV0_BIT)
++
+ #endif /* _UAPI_LINUX_BINFMTS_H */
+-- 
+2.25.1
