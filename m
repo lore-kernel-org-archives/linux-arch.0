@@ -1,62 +1,54 @@
-Return-Path: <SRS0=PUSD=5Q=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 31 Mar 2020 17:13:31 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
- flush_pmd_tlb_range
-Message-ID: <20200331151331.GS20730@hirez.programming.kicks-ass.net>
-References: <20200331142927.1237-1-yezhenyu2@huawei.com>
- <20200331142927.1237-5-yezhenyu2@huawei.com>
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:33924 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727581AbgCFNdy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 08:33:54 -0500
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v2 20/20] arm64: vdso32: Enable Clang Compilation
+Date: Fri,  6 Mar 2020 13:32:42 +0000
+Message-ID: <20200306133242.26279-21-vincenzo.frascino@arm.com>
+In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
+References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200331142927.1237-5-yezhenyu2@huawei.com>
-Sender: owner-linux-mm@kvack.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200331151331.O6rkiG6kD7WZ7Y5owu2LVTYUFOGpPmbJh3yYxIfPL14@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200306133242.lVEBYKrkT0AmI34XPO2rDLiddNzfCAjlPGsGf71NadI@z>
 
-On Tue, Mar 31, 2020 at 10:29:23PM +0800, Zhenyu Ye wrote:
-> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-> index e2e2bef07dd2..32d4661e5a56 100644
-> --- a/include/asm-generic/pgtable.h
-> +++ b/include/asm-generic/pgtable.h
-> @@ -1160,10 +1160,10 @@ static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
->   * invalidate the entire TLB which is not desitable.
->   * e.g. see arch/arc: flush_pmd_tlb_range
->   */
-> -#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
-> +#define flush_pmd_tlb_range(tlb, vma, addr, end)	flush_tlb_range(vma, addr, end)
->  #define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
->  #else
-> -#define flush_pmd_tlb_range(vma, addr, end)	BUILD_BUG()
-> +#define flush_pmd_tlb_range(tlb, vma, addr, end)	BUILD_BUG()
->  #define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
->  #endif
->  #endif
-> diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
-> index 3d7c01e76efc..96c9cf77bfb5 100644
-> --- a/mm/pgtable-generic.c
-> +++ b/mm/pgtable-generic.c
-> @@ -109,8 +109,14 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,
->  	int changed = !pmd_same(*pmdp, entry);
->  	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
->  	if (changed) {
-> +		struct mmu_gather tlb;
-> +		unsigned long tlb_start = address;
-> +		unsigned long tlb_end = address + HPAGE_PMD_SIZE;
->  		set_pmd_at(vma->vm_mm, address, pmdp, entry);
-> -		flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
-> +		tlb_gather_mmu(&tlb, vma->vm_mm, tlb_start, tlb_end);
-> +		tlb.cleared_pmds = 1;
-> +		flush_pmd_tlb_range(&tlb, vma, tlb_start, tlb_end);
-> +		tlb_finish_mmu(&tlb, tlb_start, tlb_end);
->  	}
->  	return changed;
->  }
+Enable Clang Compilation for the vdso32 library.
 
-This is madness. Please, carefully consider what you just wrote and what
-it will do in the generic case.
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/arm64/kernel/vdso32/Makefile | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
 
-Instead of trying to retro-fit flush_*tlb_range() to take an mmu_gather
-parameter, please replace them out-right.
+diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
+index 04df57b43cb1..650cfc5757eb 100644
+--- a/arch/arm64/kernel/vdso32/Makefile
++++ b/arch/arm64/kernel/vdso32/Makefile
+@@ -10,7 +10,18 @@ include $(srctree)/lib/vdso/Makefile
+ 
+ # Same as cc-*option, but using CC_COMPAT instead of CC
+ ifeq ($(CONFIG_CC_IS_CLANG), y)
+-CC_COMPAT ?= $(CC)
++COMPAT_GCC_TOOLCHAIN_DIR := $(dir $(shell which $(CROSS_COMPILE_COMPAT)elfedit))
++COMPAT_GCC_TOOLCHAIN := $(realpath $(COMPAT_GCC_TOOLCHAIN_DIR)/..)
++
++CLANG_CC_COMPAT := $(CC)
++CLANG_CC_COMPAT += --target=$(notdir $(CROSS_COMPILE_COMPAT:%-=%))
++CLANG_CC_COMPAT += --prefix=$(COMPAT_GCC_TOOLCHAIN_DIR)
++CLANG_CC_COMPAT += -no-integrated-as -Qunused-arguments
++ifneq ($(COMPAT_GCC_TOOLCHAIN),)
++CLANG_CC_COMPAT += --gcc-toolchain=$(COMPAT_GCC_TOOLCHAIN)
++endif
++
++CC_COMPAT ?= $(CLANG_CC_COMPAT)
+ else
+ CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
+ endif
+-- 
+2.25.1
