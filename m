@@ -1,94 +1,152 @@
-Return-Path: <SRS0=mIjk=5D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:56601 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726310AbgCRJ6J (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 18 Mar 2020 05:58:09 -0400
-MIME-Version: 1.0
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <1584200119-18594-5-git-send-email-mikelley@microsoft.com>
- <CAK8P3a2Hnm74aUMNFHbjMr4HwHGZn1+xa4ERsxAJY6hMzhEOhQ@mail.gmail.com>
- <632eb459dbe53a9b69df2a4f030a755b@kernel.org> <CAK8P3a3aihZeriUWAhWJMsOtdiY4Lo29syrRbB4Po3v4dsLhvA@mail.gmail.com>
- <MW2PR2101MB1052D91D3A9CEEBD7E2EA82FD7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
-In-Reply-To: <MW2PR2101MB1052D91D3A9CEEBD7E2EA82FD7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 18 Mar 2020 10:57:49 +0100
-Message-ID: <CAK8P3a2AO4k3vJ7WuJQz7ick+XPgGY3Jfk8-ROqtwyNs0nWkDA@mail.gmail.com>
-Subject: Re: [PATCH v6 04/10] arm64: hyperv: Add memory alloc/free functions
- for Hyper-V size pages
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:45432 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725935AbgCFSBz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 13:01:55 -0500
+Date: Sat, 7 Mar 2020 03:01:49 +0900
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Subject: Re: [PATCH v2 3/9] rcu,tracing: Create trace_rcu_{enter,exit}()
+Message-ID: <20200307030149.1f70bdb019ad5ea896bce5a7@kernel.org>
+In-Reply-To: <20200219114510.6f942b56868a97e06352738c@kernel.org>
+References: <20200213163800.5c51a5f1@gandalf.local.home>
+        <20200213215004.GM2935@paulmck-ThinkPad-P72>
+        <20200213170451.690c4e5c@gandalf.local.home>
+        <20200213223918.GN2935@paulmck-ThinkPad-P72>
+        <20200214151906.b1354a7ed6b01fc3bf2de862@kernel.org>
+        <20200215145934.GD2935@paulmck-ThinkPad-P72>
+        <20200217175519.12a694a969c1a8fb2e49905e@kernel.org>
+        <20200217163112.GM2935@paulmck-ThinkPad-P72>
+        <20200218133335.c87d7b2399ee6532bf28b74a@kernel.org>
+        <20200218124609.1a33f868@gandalf.local.home>
+        <20200218201806.GI2935@paulmck-ThinkPad-P72>
+        <20200219114510.6f942b56868a97e06352738c@kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Kelley <mikelley@microsoft.com>
-Cc: Marc Zyngier <maz@kernel.org>, gregkh <gregkh@linuxfoundation.org>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>
-Message-ID: <20200318095749.XsCxSMPqXpHUyV6uETtIpPo96YmtaOmV58-ELfNlTMI@z>
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: paulmck@kernel.org, Steven Rostedt <rostedt@goodmis.org>, Joel Fernandes <joel@joelfernandes.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com
+Message-ID: <20200306180149.dXpArPRXunTQdZGDRsOqXJapqGVBiFz1m59t1cJtMI4@z>
 
-On Wed, Mar 18, 2020 at 1:15 AM Michael Kelley <mikelley@microsoft.com> wrote:
-> From: Arnd Bergmann <arnd@arndb.de> Sent: Monday, March 16, 2020 1:33 AM
-> >
-> > On Mon, Mar 16, 2020 at 9:30 AM Marc Zyngier <maz@kernel.org> wrote:
-> > > On 2020-03-16 08:22, Arnd Bergmann wrote:
-> > > > On Sat, Mar 14, 2020 at 4:36 PM Michael Kelley <mikelley@microsoft.com>
-> > > > wrote:
-> > > >>  /*
-> > > >> + * Functions for allocating and freeing memory with size and
-> > > >> + * alignment HV_HYP_PAGE_SIZE. These functions are needed because
-> > > >> + * the guest page size may not be the same as the Hyper-V page
-> > > >> + * size. We depend upon kmalloc() aligning power-of-two size
-> > > >> + * allocations to the allocation size boundary, so that the
-> > > >> + * allocated memory appears to Hyper-V as a page of the size
-> > > >> + * it expects.
-> > > >> + *
-> > > >> + * These functions are used by arm64 specific code as well as
-> > > >> + * arch independent Hyper-V drivers.
-> > > >> + */
-> > > >> +
-> > > >> +void *hv_alloc_hyperv_page(void)
-> > > >> +{
-> > > >> +       BUILD_BUG_ON(PAGE_SIZE <  HV_HYP_PAGE_SIZE);
-> > > >> +       return kmalloc(HV_HYP_PAGE_SIZE, GFP_KERNEL);
-> > > >> +}
-> > > >> +EXPORT_SYMBOL_GPL(hv_alloc_hyperv_page);
-> > > >
-> > > > I don't think there is any guarantee that kmalloc() returns
-> > > > page-aligned
-> > > > allocations in general.
-> > >
-> > > I believe that guarantee came with 59bb47985c1db ("mm, sl[aou]b:
-> > > guarantee
-> > > natural alignment for kmalloc(power-of-two)").
-> > >
-> > > > How about using get_free_pages() to implement this?
-> > >
-> > > This would certainly work, at the expense of a lot of wasted memory when
-> > > PAGE_SIZE isn't 4k.
-> >
-> > I'm sure this is the least of your problems when the guest runs with
-> > a large base page size, you've already wasted most of your memory
-> > otherwise then.
-> >
->
-> I think there's value in keeping these functions.  There are 8 uses in
-> architecture independent code at the moment, which admittedly saves
-> only ~1/2 Mbyte of memory with a 64K page size, but we will have
-> additional uses with more memory savings as we get all of the
-> Hyper-V synthetic drivers to work with 64K page size.  Furthermore,
-> there's coming work that will require additional steps to share a page
-> between a guest and the Hyper-V host.  These functions are the right
-> place to put the code for the additional sharing steps.  Removing them
-> now in favor of a bare kmalloc() and then adding them back doesn't
-> seem worthwhile.
+Hi,
 
-My point was to keep the functions but use alloc_pages() internally,
-so you can deal with the hypervisor having a larger page size than
-the guest, which seems to be a more important scenario if I correctly
-understand the differences between the way Windows and Linux
-deal with page cache.
+On Wed, 19 Feb 2020 11:45:10 +0900
+Masami Hiramatsu <mhiramat@kernel.org> wrote:
 
-As far as I understand, using 64kb pages on Windows is generally
-a win as the VFS code already deals with units of that size, while
-on Linux the 4kb page size is too deeply entrenched within the
-file system code to mess with it: Whatever you gain in terms of
-TLB pressure on workloads that cannot use huge pages is all lost
-again through extra I/O and wasted physical memory.
+> On Tue, 18 Feb 2020 12:18:06 -0800
+> "Paul E. McKenney" <paulmck@kernel.org> wrote:
+> 
+> > On Tue, Feb 18, 2020 at 12:46:09PM -0500, Steven Rostedt wrote:
+> > > On Tue, 18 Feb 2020 13:33:35 +0900
+> > > Masami Hiramatsu <mhiramat@kernel.org> wrote:
+> > > 
+> > > > On Mon, 17 Feb 2020 08:31:12 -0800
+> > > > "Paul E. McKenney" <paulmck@kernel.org> wrote:
+> > > > >   
+> > > > > > BTW, if you consider the x86 specific code is in the generic file,
+> > > > > > we can move NOKPROBE_SYMBOL() in arch/x86/kernel/traps.c.
+> > > > > > (Sorry, I've hit this idea right now)  
+> > > > > 
+> > > > > Might this affect other architectures with NMIs and probe-like things?
+> > > > > If so, it might make sense to leave it where it is.  
+> > > > 
+> > > > Yes, git grep shows that arm64 is using rcu_nmi_enter() in
+> > > > debug_exception_enter().
+> > > > OK, let's keep it, but maybe it is good to update the comment for
+> > > > arm64 too. What about following?
+> > > > 
+> > > > +/*
+> > > > + * All functions in do_int3() on x86, do_debug_exception() on arm64 must be
+> > > > + * marked NOKPROBE before kprobes handler is called.
+> > > > + * ist_enter() on x86 and debug_exception_enter() on arm64 which is called
+> > > > + * before kprobes handle happens to call rcu_nmi_enter() which means
+> > > > + * that rcu_nmi_enter() must be marked NOKRPOBE.
+> > > > + */
+> > > > 
+> > > 
+> > > Ah, why don't we just say...
+> > > 
+> > > /*
+> > >  * All functions called in the breakpoint trap handler (e.g. do_int3()
+> > >  * on x86), must not allow kprobes until the kprobe breakpoint handler
+> > >  * is called, otherwise it can cause an infinite recursion.
+> > >  * On some archs, rcu_nmi_enter() is called in the breakpoint handler
+> > >  * before the kprobe breakpoint handler is called, thus it must be
+> > >  * marked as NOKPROBE.
+> > >  */
+> > > 
+> > > And that way we don't make this an arch specific comment.
+> > 
+> > That looks good to me.  Masami, does this work for you?
+> 
+> Yes, that looks good to me too :)
 
-        Arnd
+Oops, I'm guilty!
+Sorry *rcu_nmi_exit()* also must be NOKPROBE, since even if we could catch
+a recursive kprobe call, we can only skip the kprobe handler, but we must
+exit from do_int3() and hit rcu_nmi_exit() again!
+
+[45235.497591] Unrecoverable kprobe detected.
+[45235.501400] Dumping kprobe:
+[45235.502433] Name: (null)
+[45235.502433] Offset: 0
+[45235.502433] Address: rcu_nmi_exit+0x0/0x290
+[45235.504044] ------------[ cut here ]------------
+[45235.504855] kernel BUG at arch/x86/kernel/kprobes/core.c:646!
+[45235.505816] invalid opcode: 0000 [#1] PREEMPT SMP PTI
+[45235.506615] CPU: 7 PID: 143 Comm: sh Not tainted 5.6.0-rc3+ #143
+[45235.507662] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS rel-1.12.1-0-ga5cab58e9a3f-prebuilt.qemu.org 04/01/2014
+[45235.509764] RIP: 0010:reenter_kprobe.cold+0x14/0x16
+[45235.510630] Code: 48 8b 75 10 48 c7 c7 f0 70 0e 82 48 8b 56 28 e8 22 91 08 00 0f 0b 48 c7 c7 20 71 0e 82 e8 14 91 08 00 48 89 ef e8 23 ee 0f 00 <0f> 0b 48 89 ee 48 c7 c7 48 71 0e 82 e8 fb 90 08 00 e9 c3 fc ff ff
+[45235.513948] RSP: 0018:ffffc90000347bf8 EFLAGS: 00010046
+[45235.514906] RAX: 0000000000000036 RBX: 0000000000017f20 RCX: 0000000000000000
+[45235.516109] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000001
+[45235.517278] RBP: ffff88807c9820c0 R08: 0000000000000000 R09: 0000000000000001
+[45235.518415] R10: 0000000000000000 R11: ffff88807c9d1f18 R12: ffff88807d9d7f20
+[45235.519609] R13: ffffc90000347c68 R14: ffffffff810e8a60 R15: ffffffff810e8a61
+[45235.520787] FS:  0000000001d9a8c0(0000) GS:ffff88807d9c0000(0000) knlGS:0000000000000000
+[45235.522198] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[45235.523172] CR2: 0000000001da9000 CR3: 000000007a880000 CR4: 00000000000006a0
+[45235.524288] Call Trace:
+[45235.524825]  kprobe_int3_handler+0x74/0x150
+[45235.525627]  do_int3+0x36/0xf0
+[45235.526244]  int3+0x42/0x50
+[45235.526767] RIP: 0010:rcu_nmi_exit+0x1/0x290
+[45235.527551] Code: a2 0d 82 be c2 01 00 00 48 c7 c7 d5 44 0f 82 c6 05 e7 ac 24 01 01 e8 1f ba fd ff eb b8 66 66 2e 0f 1f 84 00 00 00 00 00 90 cc <57> 41 56 41 55 41 54 55 48 c7 c5 40 c2 02 00 53 48 89 eb e8 77 75
+[45235.530898] RSP: 0018:ffffc90000347d40 EFLAGS: 00000046
+[45235.531816] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
+[45235.533001] RDX: 0000000000000001 RSI: ffffffff8101e1fe RDI: ffffffff8101e1fe
+[45235.534252] RBP: 0000000000000000 R08: 0000000000000001 R09: 0000000000000000
+[45235.535516] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[45235.536759] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[45235.537945]  ? ist_exit+0xe/0x20
+[45235.538593]  ? ist_exit+0xe/0x20
+[45235.539239]  ? rcu_nmi_exit+0x1/0x290
+[45235.541182]  int3+0x42/0x50
+[45235.541687] RIP: 0010:0xffffffffa000005a
+[45235.542363] Code: 2e 16 13 e1 00 00 00 00 00 00 00 00 89 f8 e9 1f 16 13 e1 00 00 00 00 00 00 00 00 89 f8 e9 20 16 13 e1 00 00 00 00 00 00 00 00 <41> 57 e9 01 8a 0e e1 00 00 00 00 00 00 00 00 41 57 e9 f2 22 26 e1
+[45235.545628] RSP: 0018:ffffc90000347e20 EFLAGS: 00000146
+[45235.546596] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
+[45235.547989] RDX: 0000000000000001 RSI: ffffffff8101e1fe RDI: ffffffff8101e1fe
+[45235.550183] RBP: 0000000000000000 R08: 0000000000000001 R09: ffff88807d2aa000
+[45235.551591] R10: 0000000000000a4c R11: ffff88807bfec600 R12: 0000000000000000
+[45235.552893] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[45235.554633]  ? ist_exit+0xe/0x20
+[45235.555537]  ? ist_exit+0xe/0x20
+[45235.556565]  ? rcu_nmi_exit+0x1/0x290
+[45235.557909]  ? int3+0x42/0x50
+[45235.559156]  ? 0xffffffffa0000069
+[45235.560547]  ? vfs_read+0x1/0x150
+[45235.561522]  ? ksys_read+0x60/0xe0
+[45235.562458]  ? do_syscall_64+0x4b/0x1e0
+[45235.563404]  ? entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[45235.564705] Modules linked in:
+[45235.565556] ---[ end trace 870af8724dba9ac8 ]---
+
+So all functions called from do_int3() must be NOKPROBE.
+
+Thank you,
+
+-- 
+Masami Hiramatsu <mhiramat@kernel.org>
