@@ -1,13 +1,13 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 05/20] linux/time.h: Extract common header for vDSO
-Date: Fri,  6 Mar 2020 13:32:27 +0000
-Message-ID: <20200306133242.26279-6-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 03/20] linux/limits.h: Extract common header for vDSO
+Date: Fri,  6 Mar 2020 13:32:25 +0000
+Message-ID: <20200306133242.26279-4-vincenzo.frascino@arm.com>
 References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-mips-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
-Sender: linux-mips-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
 Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
 List-Id: linux-arch.vger.kernel.org
@@ -17,48 +17,64 @@ a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Split time.h into linux and common headers to make the latter suitable
+Split limits.h into linux and common headers to make the latter suitable
 for inclusion in the vDSO library.
 
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/common/time.h | 12 ++++++++++++
- include/linux/time.h  |  5 +----
- 2 files changed, 13 insertions(+), 4 deletions(-)
- create mode 100644 include/common/time.h
+ include/common/limits.h | 18 ++++++++++++++++++
+ include/linux/limits.h  | 13 +------------
+ 2 files changed, 19 insertions(+), 12 deletions(-)
+ create mode 100644 include/common/limits.h
 
-diff --git a/include/common/time.h b/include/common/time.h
+diff --git a/include/common/limits.h b/include/common/limits.h
 new file mode 100644
-index 000000000000..90eb9bdb40ec
+index 000000000000..587269010add
 --- /dev/null
-+++ b/include/common/time.h
-@@ -0,0 +1,12 @@
++++ b/include/common/limits.h
+@@ -0,0 +1,18 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_TIME_H
-+#define __COMMON_TIME_H
++#ifndef __COMMON_LIMITS_H
++#define __COMMON_LIMITS_H
 +
-+#include <uapi/linux/types.h>
++#define USHRT_MAX	((unsigned short)~0U)
++#define SHRT_MAX	((short)(USHRT_MAX >> 1))
++#define SHRT_MIN	((short)(-SHRT_MAX - 1))
++#define INT_MAX		((int)(~0U >> 1))
++#define INT_MIN		(-INT_MAX - 1)
++#define UINT_MAX	(~0U)
++#define LONG_MAX	((long)(~0UL >> 1))
++#define LONG_MIN	(-LONG_MAX - 1)
++#define ULONG_MAX	(~0UL)
++#define LLONG_MAX	((long long)(~0ULL >> 1))
++#define LLONG_MIN	(-LLONG_MAX - 1)
++#define ULLONG_MAX	(~0ULL)
 +
-+struct timens_offset {
-+	s64	sec;
-+	u64	nsec;
-+};
-+
-+#endif /* __COMMON_TIME_H */
-diff --git a/include/linux/time.h b/include/linux/time.h
-index 8ef5e5cc9f57..617a01e2c8bb 100644
---- a/include/linux/time.h
-+++ b/include/linux/time.h
-@@ -111,9 +111,6 @@ static inline bool itimerspec64_valid(const struct itimerspec64 *its)
-  */
- #define time_between32(t, l, h) ((u32)(h) - (u32)(l) >= (u32)(t) - (u32)(l))
++#endif /* __COMMON_LIMITS_H */
+diff --git a/include/linux/limits.h b/include/linux/limits.h
+index 76afcd24ff8c..ac20d2b2edd9 100644
+--- a/include/linux/limits.h
++++ b/include/linux/limits.h
+@@ -4,19 +4,8 @@
  
--struct timens_offset {
--	s64	sec;
--	u64	nsec;
--};
-+# include <common/time.h>
+ #include <uapi/linux/limits.h>
+ #include <linux/types.h>
++#include <common/limits.h>
  
- #endif
+-#define USHRT_MAX	((unsigned short)~0U)
+-#define SHRT_MAX	((short)(USHRT_MAX >> 1))
+-#define SHRT_MIN	((short)(-SHRT_MAX - 1))
+-#define INT_MAX		((int)(~0U >> 1))
+-#define INT_MIN		(-INT_MAX - 1)
+-#define UINT_MAX	(~0U)
+-#define LONG_MAX	((long)(~0UL >> 1))
+-#define LONG_MIN	(-LONG_MAX - 1)
+-#define ULONG_MAX	(~0UL)
+-#define LLONG_MAX	((long long)(~0ULL >> 1))
+-#define LLONG_MIN	(-LLONG_MAX - 1)
+-#define ULLONG_MAX	(~0ULL)
+ #define SIZE_MAX	(~(size_t)0)
+ #define PHYS_ADDR_MAX	(~(phys_addr_t)0)
+ 
 -- 
 2.25.1
