@@ -1,224 +1,36 @@
-Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58204 "EHLO foss.arm.com"
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:59036 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726420AbgCMPoH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Mar 2020 11:44:07 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 00/26] Introduce common headers for vDSO
-Date: Fri, 13 Mar 2020 15:43:19 +0000
-Message-ID: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+        id S1726251AbgCFKVR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 05:21:17 -0500
+Date: Fri, 6 Mar 2020 10:21:11 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
+Message-ID: <20200306102111.GB2503422@arrakis.emea.arm.com>
+References: <20200227174417.23722-1-broonie@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200227174417.23722-1-broonie@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200313154319.ZFMo9sg6GCjDmBWtQ9xoUoI6OiCIOMblcC9X7xwSr-0@z>
+To: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Mark Brown <broonie@kernel.org>, Will Deacon <will@kernel.org>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200306102111.2CUFI6AvQyb7KwOc9oHykkEMWXNIsDDqBecyGAqkoK0@z>
 
-Back in July last year we started having a problem in building compat
-vDSOs on arm64 [1] [2] that was not present when the arm64 porting to
-the Unified vDSO was done. In particular when the compat vDSO on such
-architecture is built with gcc it generates the warning below:
+On Thu, Feb 27, 2020 at 05:44:06PM +0000, Mark Brown wrote:
+> Dave Martin (10):
+>   ELF: UAPI and Kconfig additions for ELF program properties
+>   ELF: Add ELF program property parsing support
+>   arm64: Basic Branch Target Identification support
+>   elf: Allow arch to tweak initial mmap prot flags
 
-In file included from ./arch/arm64/include/asm/thread_info.h:17:0,
-                 from ./include/linux/thread_info.h:38,
-                 from ./arch/arm64/include/asm/preempt.h:5,
-                 from ./include/linux/preempt.h:78,
-                 from ./include/linux/spinlock.h:51,
-                 from ./include/linux/seqlock.h:36,
-                 from ./include/linux/time.h:6,
-                 from ./lib/vdso/gettimeofday.c:7,
-                 from <command-line>:0:
-./arch/arm64/include/asm/memory.h: In function ‘__tag_set’:
-./arch/arm64/include/asm/memory.h:233:15: warning: cast from pointer
-                to integer of different size [-Wpointer-to-int-cast]
-  u64 __addr = (u64)addr & ~__tag_shifted(0xff);
-               ^
-In file included from ./arch/arm64/include/asm/pgtable-hwdef.h:8:0,
-                 from ./arch/arm64/include/asm/processor.h:34,
-                 from ./arch/arm64/include/asm/elf.h:118,
-                 from ./include/linux/elf.h:5,
-                 from ./include/linux/elfnote.h:62,
-                 from arch/arm64/kernel/vdso32/note.c:11:
-./arch/arm64/include/asm/memory.h: In function ‘__tag_set’:
-./arch/arm64/include/asm/memory.h:233:15: warning: cast from pointer
-                to integer of different size [-Wpointer-to-int-cast]
-  u64 __addr = (u64)addr & ~__tag_shifted(0xff);
+Al, are you ok for patches 1, 2 and 4 in this series to be merged via
+the arm64 tree? The full series is here:
 
-The same porting does not build at all when the selected compiler is
-clang.
+https://lore.kernel.org/linux-arm-kernel/20200227174417.23722-1-broonie@kernel.org/
 
-I started an investigation to try to understand better the problem and
-after various discussions at Plumbers and Recipes last year the
-conclusion was that the vDSO library as it stands it is including more
-headers that it needs. In particular, being a user-space library, it
-should require only the UAPI and a minimal vDSO kernel interface instead
-of all the kernel-related inline functions which are not directly used
-and in some cases can have side effects.
-
-To solve the problem, I decided to use the approach below:
-  * Extract from include/linux/ the vDSO required kernel interface
-    and place it in include/vdso/
-  * Make sure that where meaningful the kernel includes "vdso" headers.
-  * Limit the vDSO library to include headers coming only from UAPI
-    and "vdso" (with 2 exceptions compiler.h for barriers and param.h
-    for HZ).
-  * Adapt all the architectures that support the unified vDSO library
-    to use "vdso" headers.
-
-According to me this approach allows up to exercise a better control on
-what the vDSO library can include and to prevent potential issues in
-future.
-
-This patch series contains the implementation of the described approach.
-
-The "vdso" headers have been verified on all the architectures that support
-unified vDSO using the vdsotest [3] testsuite for what concerns the vDSO part
-and randconfig to verify that they are included in the correct places.
-
-To simplify the testing, a copy of the patchset on top of a recent linux
-tree can be found at [4].
-
-[1] https://github.com/ClangBuiltLinux/linux/issues/595
-[2] https://lore.kernel.org/lkml/20190926151704.GH9689@arrakis.emea.arm.com
-[3] https://github.com/nathanlynch/vdsotest
-[4] git://linux-arm.org/linux-vf.git common-headers/v3
-
-Changes:
---------
-v3:
-  - Changed the namespace from common to vdso.
-  - Addressed an issue involving parisc modules compilation.
-  - Added vdso header for clocksource.h.
-  - Addressed review comments.
-  - Rebased on tip/timers/core.
-v2:
-  - Addressed review comments for clang support.
-  - Rebased on 5.6-rc4.
-
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Paul Burton <paul.burton@mips.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Stephen Boyd <sboyd@kernel.org>
-Cc: Mark Salyzyn <salyzyn@android.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Peter Collingbourne <pcc@google.com>
-Cc: Dmitry Safonov <0x7f454c46@gmail.com>
-Cc: Andrei Vagin <avagin@openvz.org>
-Cc: Nick Desaulniers <ndesaulniers@google.com>
-Cc: Marc Zyngier <maz@kernel.org>
-Cc: Mark Rutland <Mark.Rutland@arm.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-
-Vincenzo Frascino (26):
-  linux/const.h: Extract common header for vDSO
-  linux/bits.h: Extract common header for vDSO
-  linux/limits.h: Extract common header for vDSO
-  x86:Introduce asm/vdso/clocksource.h
-  arm: Introduce asm/vdso/clocksource.h
-  arm64: Introduce asm/vdso/clocksource.h
-  mips: Introduce asm/vdso/clocksource.h
-  linux/clocksource.h: Extract common header for vDSO
-  linux/math64.h: Extract common header for vDSO
-  linux/time.h: Extract common header for vDSO
-  linux/time32.h: Extract common header for vDSO
-  linux/time64.h: Extract common header for vDSO
-  linux/jiffies.h: Extract common header for vDSO
-  linux/ktime.h: Extract common header for vDSO
-  common: Introduce processor.h
-  scripts: Fix the inclusion order in modpost
-  linux/elfnote.h: Replace elf.h with UAPI equivalent
-  arm64: Introduce asm/vdso/processor.h
-  arm64: vdso: Include common headers in the vdso library
-  arm64: vdso32: Include common headers in the vdso library
-  arm64: Introduce asm/vdso/arch_timer.h
-  mips: vdso: Enable mips to use common headers
-  x86: vdso: Enable x86 to use common headers
-  arm: vdso: Enable arm to use common headers
-  lib: vdso: Enable common headers
-  arm64: vdso32: Enable Clang Compilation
-
- arch/arm/include/asm/clocksource.h            |  6 +--
- arch/arm/include/asm/cp15.h                   | 20 +---------
- arch/arm/include/asm/processor.h              | 11 +-----
- arch/arm/include/asm/vdso/clocksource.h       |  8 ++++
- arch/arm/include/asm/vdso/cp15.h              | 38 +++++++++++++++++++
- arch/arm/include/asm/vdso/gettimeofday.h      |  4 +-
- arch/arm/include/asm/vdso/processor.h         | 22 +++++++++++
- arch/arm64/include/asm/arch_timer.h           | 29 +++-----------
- arch/arm64/include/asm/clocksource.h          |  3 +-
- arch/arm64/include/asm/processor.h            | 16 +-------
- arch/arm64/include/asm/vdso/arch_timer.h      | 33 ++++++++++++++++
- arch/arm64/include/asm/vdso/clocksource.h     |  8 ++++
- .../include/asm/vdso/compat_gettimeofday.h    |  2 +-
- arch/arm64/include/asm/vdso/gettimeofday.h    |  8 ++--
- arch/arm64/include/asm/vdso/processor.h       | 31 +++++++++++++++
- arch/arm64/kernel/vdso/vgettimeofday.c        |  2 -
- arch/arm64/kernel/vdso32/Makefile             | 11 ++++++
- arch/arm64/kernel/vdso32/vgettimeofday.c      |  3 --
- arch/mips/include/asm/clocksource.h           |  4 +-
- arch/mips/include/asm/processor.h             | 16 +-------
- arch/mips/include/asm/vdso/clocksource.h      |  9 +++++
- arch/mips/include/asm/vdso/gettimeofday.h     |  4 --
- arch/mips/include/asm/vdso/processor.h        | 27 +++++++++++++
- arch/x86/include/asm/clocksource.h            |  5 +--
- arch/x86/include/asm/processor.h              | 12 +-----
- arch/x86/include/asm/vdso/clocksource.h       | 10 +++++
- arch/x86/include/asm/vdso/processor.h         | 23 +++++++++++
- include/linux/bits.h                          |  2 +-
- include/linux/clocksource.h                   | 11 +-----
- include/linux/const.h                         |  5 +--
- include/linux/elfnote.h                       |  2 +-
- include/linux/jiffies.h                       |  4 +-
- include/linux/ktime.h                         |  9 +----
- include/linux/limits.h                        | 13 +------
- include/linux/math64.h                        | 20 +---------
- include/linux/time.h                          |  5 +--
- include/linux/time32.h                        | 14 +------
- include/linux/time64.h                        | 10 +----
- include/vdso/bits.h                           |  9 +++++
- include/vdso/clocksource.h                    | 23 +++++++++++
- include/vdso/const.h                          | 10 +++++
- include/vdso/datapage.h                       | 33 ++++++++++++++--
- include/vdso/jiffies.h                        | 11 ++++++
- include/vdso/ktime.h                          | 16 ++++++++
- include/vdso/limits.h                         | 18 +++++++++
- include/vdso/math64.h                         | 24 ++++++++++++
- include/vdso/processor.h                      | 14 +++++++
- include/vdso/time.h                           | 12 ++++++
- include/vdso/time32.h                         | 17 +++++++++
- include/vdso/time64.h                         | 14 +++++++
- lib/vdso/gettimeofday.c                       | 22 -----------
- scripts/mod/modpost.c                         |  6 ++-
- 52 files changed, 459 insertions(+), 230 deletions(-)
- create mode 100644 arch/arm/include/asm/vdso/clocksource.h
- create mode 100644 arch/arm/include/asm/vdso/cp15.h
- create mode 100644 arch/arm/include/asm/vdso/processor.h
- create mode 100644 arch/arm64/include/asm/vdso/arch_timer.h
- create mode 100644 arch/arm64/include/asm/vdso/clocksource.h
- create mode 100644 arch/arm64/include/asm/vdso/processor.h
- create mode 100644 arch/mips/include/asm/vdso/clocksource.h
- create mode 100644 arch/mips/include/asm/vdso/processor.h
- create mode 100644 arch/x86/include/asm/vdso/clocksource.h
- create mode 100644 arch/x86/include/asm/vdso/processor.h
- create mode 100644 include/vdso/bits.h
- create mode 100644 include/vdso/clocksource.h
- create mode 100644 include/vdso/const.h
- create mode 100644 include/vdso/jiffies.h
- create mode 100644 include/vdso/ktime.h
- create mode 100644 include/vdso/limits.h
- create mode 100644 include/vdso/math64.h
- create mode 100644 include/vdso/processor.h
- create mode 100644 include/vdso/time.h
- create mode 100644 include/vdso/time32.h
- create mode 100644 include/vdso/time64.h
+Thanks.
 
 -- 
-2.25.1
+Catalin
