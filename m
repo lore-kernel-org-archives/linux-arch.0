@@ -1,64 +1,85 @@
-From: Frederic Weisbecker <frederic-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: Re: [PATCH 11/12] task_isolation: kick_all_cpus_sync: don't kick
- isolated cpus
-Date: Fri, 6 Mar 2020 16:34:47 +0100
-Message-ID: <20200306153446.GC8590@lenoir>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
- <dfa5e0e9f34e6ff0ef048c81bc70496354f31300.camel@marvell.com>
+From: Alexei Starovoitov <alexei.starovoitov@gmail.com>
+Subject: Re: [PATCH v4 16/27] tracing: Remove regular RCU context for _rcuidle
+ tracepoints (again)
+Date: Fri, 6 Mar 2020 07:51:18 -0800
+Message-ID: <CAADnVQKp=UKg8HAuMOFknhmXtfm_LVu_ynTNJuedHqKdA6zh1g@mail.gmail.com>
+References: <20200221133416.777099322@infradead.org> <20200221134216.051596115@infradead.org>
+ <20200306104335.GF3348@worktop.programming.kicks-ass.net> <20200306113135.GA8787@worktop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <dfa5e0e9f34e6ff0ef048c81bc70496354f31300.camel-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Alex Belits <abelits-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>
-Cc: "rostedt-nx8X9YLhiw1AfugRpC6u6w@public.gmane.org" <rostedt-nx8X9YLhiw1AfugRpC6u6w@public.gmane.org>, "mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org" <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Prasun Kapoor <pkapoor-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>, "tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org" <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-mm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-mm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lf1-f66.google.com ([209.85.167.66]:33655 "EHLO
+        mail-lf1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726231AbgCFPvd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 10:51:33 -0500
+In-Reply-To: <20200306113135.GA8787@worktop.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Joel Fernandes <joel@joelfernandes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@kernel.org>, Josh Triplett <josh@joshtriplett.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, jiangshanlai@gmail.com, Andy Lutomirski <luto@kernel.org>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, Dan Carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
 
-On Wed, Mar 04, 2020 at 04:15:24PM +0000, Alex Belits wrote:
-> From: Yuri Norov <ynorov-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>
-> 
-> Make sure that kick_all_cpus_sync() does not call CPUs that are running
-> isolated tasks.
-> 
-> Signed-off-by: Alex Belits <abelits-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>
-> ---
->  kernel/smp.c | 14 +++++++++++++-
->  1 file changed, 13 insertions(+), 1 deletion(-)
-> 
-> diff --git a/kernel/smp.c b/kernel/smp.c
-> index 3a8bcbdd4ce6..d9b4b2fedfed 100644
-> --- a/kernel/smp.c
-> +++ b/kernel/smp.c
-> @@ -731,9 +731,21 @@ static void do_nothing(void *unused)
->   */
->  void kick_all_cpus_sync(void)
+On Fri, Mar 6, 2020 at 3:31 AM Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> On Fri, Mar 06, 2020 at 11:43:35AM +0100, Peter Zijlstra wrote:
+> > On Fri, Feb 21, 2020 at 02:34:32PM +0100, Peter Zijlstra wrote:
+> > > Effectively revert commit 865e63b04e9b2 ("tracing: Add back in
+> > > rcu_irq_enter/exit_irqson() for rcuidle tracepoints") now that we've
+> > > taught perf how to deal with not having an RCU context provided.
+> > >
+> > > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > > Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+> > > ---
+> > >  include/linux/tracepoint.h |    8 ++------
+> > >  1 file changed, 2 insertions(+), 6 deletions(-)
+> > >
+> > > --- a/include/linux/tracepoint.h
+> > > +++ b/include/linux/tracepoint.h
+> > > @@ -179,10 +179,8 @@ static inline struct tracepoint *tracepo
+> > >              * For rcuidle callers, use srcu since sched-rcu        \
+> > >              * doesn't work from the idle path.                     \
+> > >              */                                                     \
+> > > -           if (rcuidle) {                                          \
+> > > +           if (rcuidle)                                            \
+> > >                     __idx = srcu_read_lock_notrace(&tracepoint_srcu);\
+> > > -                   rcu_irq_enter_irqsave();                        \
+> > > -           }                                                       \
+> > >                                                                     \
+> > >             it_func_ptr = rcu_dereference_raw((tp)->funcs);         \
+> > >                                                                     \
+> > > @@ -194,10 +192,8 @@ static inline struct tracepoint *tracepo
+> > >                     } while ((++it_func_ptr)->func);                \
+> > >             }                                                       \
+> > >                                                                     \
+> > > -           if (rcuidle) {                                          \
+> > > -                   rcu_irq_exit_irqsave();                         \
+> > > +           if (rcuidle)                                            \
+> > >                     srcu_read_unlock_notrace(&tracepoint_srcu, __idx);\
+> > > -           }                                                       \
+> > >                                                                     \
+> > >             preempt_enable_notrace();                               \
+> > >     } while (0)
+> >
+> > So what happens when BPF registers for these tracepoints? BPF very much
+> > wants RCU on AFAIU.
+>
+> I suspect we needs something like this...
+>
+> diff --git a/kernel/trace/bpf_trace.c b/kernel/trace/bpf_trace.c
+> index a2f15222f205..67a39dbce0ce 100644
+> --- a/kernel/trace/bpf_trace.c
+> +++ b/kernel/trace/bpf_trace.c
+> @@ -1475,11 +1475,13 @@ void bpf_put_raw_tracepoint(struct bpf_raw_event_map *btp)
+>  static __always_inline
+>  void __bpf_trace_run(struct bpf_prog *prog, u64 *args)
 >  {
-> +	struct cpumask mask;
-> +
->  	/* Make sure the change is visible before we kick the cpus */
->  	smp_mb();
-> -	smp_call_function(do_nothing, NULL, 1);
-> +
-> +	preempt_disable();
-> +#ifdef CONFIG_TASK_ISOLATION
-> +	cpumask_clear(&mask);
-> +	task_isolation_cpumask(&mask);
-> +	cpumask_complement(&mask, &mask);
-> +#else
-> +	cpumask_setall(&mask);
-> +#endif
-> +	smp_call_function_many(&mask, do_nothing, NULL, 1);
-> +	preempt_enable();
->  }
+> +       int rcu_flags = trace_rcu_enter();
+>         rcu_read_lock();
+>         preempt_disable();
+>         (void) BPF_PROG_RUN(prog, args);
+>         preempt_enable();
+>         rcu_read_unlock();
+> +       trace_rcu_exit(rcu_flags);
 
-That looks very dangerous, the callers of kick_all_cpus_sync() want to
-sync all CPUs for a reason. You will rather need to fix the callers.
-
-Thanks.
-
->  EXPORT_SYMBOL_GPL(kick_all_cpus_sync);
->  
-> -- 
-> 2.20.1
-> 
+One big NACK.
+I will not slowdown 99% of cases because of one dumb user.
+Absolutely no way.
