@@ -1,82 +1,54 @@
-Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45626 "EHLO foss.arm.com"
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from albireo.enyo.de ([37.24.231.21]:58366 "EHLO albireo.enyo.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730550AbgCPK3l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Mar 2020 06:29:41 -0400
-Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
- <20200313154345.56760-19-vincenzo.frascino@arm.com>
- <20200315182950.GB32205@mbp> <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
- <20200316102214.GA5746@lakrids.cambridge.arm.com> <20200316102621.GC3005@mbp>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <b27428fd-5cd9-ac5b-f11c-894985512f23@arm.com>
-Date: Mon, 16 Mar 2020 10:30:04 +0000
+        id S1726300AbgCFMJW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 07:09:22 -0500
+From: Florian Weimer <fw@deneb.enyo.de>
+Subject: Re: [PATCH] binfmt_misc: pass binfmt_misc P flag to the interpreter
+References: <20200306080905.173466-1-syq@debian.org>
+        <87r1y53npd.fsf@mid.deneb.enyo.de>
+        <8441f497-61eb-5c14-bf1e-c90a464105a7@vivier.eu>
+        <87mu8t3mlw.fsf@mid.deneb.enyo.de>
+        <40da389d-4e74-2644-2e7c-04d988fcc26f@vivier.eu>
+        <CAKcpw6WEO5Rmsv+WFkOMrkH+0jwtFKKy7b2n3U9xgv-xGC0UUQ@mail.gmail.com>
+        <87v9nhzp6w.fsf@mid.deneb.enyo.de>
+        <CAKcpw6VF1N2gTVXeWLU4aVOuARf5oN6yPg9O=RCzgkMrjXmxYQ@mail.gmail.com>
+Date: Fri, 06 Mar 2020 13:07:33 +0100
+In-Reply-To: <CAKcpw6VF1N2gTVXeWLU4aVOuARf5oN6yPg9O=RCzgkMrjXmxYQ@mail.gmail.com>
+        (YunQiang Su's message of "Fri, 6 Mar 2020 19:48:35 +0800")
+Message-ID: <87r1y5zny2.fsf@mid.deneb.enyo.de>
 MIME-Version: 1.0
-In-Reply-To: <20200316102621.GC3005@mbp>
 Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Will Deacon <will@kernel.org>
-Message-ID: <20200316103004.qmq7bdH9KoRYsC_QVQqraGow3uYbCNwCKoE0mWODZXQ@z>
+To: YunQiang Su <syq@debian.org>
+Cc: Laurent Vivier <laurent@vivier.eu>, torvalds@linux-foundation.org, Greg KH <gregkh@linuxfoundation.org>, akpm@linux-foundation.org, Al Viro <viro@zeniv.linux.org.uk>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org
+Message-ID: <20200306120733.moS6wptxoACfVGm2AOrF9BctTaHOON1zNjoFzFJISV8@z>
 
-On 3/16/20 10:26 AM, Catalin Marinas wrote:
-> On Mon, Mar 16, 2020 at 10:22:15AM +0000, Mark Rutland wrote:
->> On Mon, Mar 16, 2020 at 09:42:32AM +0000, Vincenzo Frascino wrote:
->>> On 3/15/20 6:30 PM, Catalin Marinas wrote:
->>>> On Fri, Mar 13, 2020 at 03:43:37PM +0000, Vincenzo Frascino wrote:
->>>>> --- /dev/null
->>>>> +++ b/arch/arm64/include/asm/vdso/processor.h
->>>>> @@ -0,0 +1,31 @@
->>>>> +/* SPDX-License-Identifier: GPL-2.0-only */
->>>>> +/*
->>>>> + * Copyright (C) 2020 ARM Ltd.
->>>>> + */
->>>>> +#ifndef __ASM_VDSO_PROCESSOR_H
->>>>> +#define __ASM_VDSO_PROCESSOR_H
->>>>> +
->>>>> +#ifndef __ASSEMBLY__
->>>>> +
->>>>> +#include <asm/page-def.h>
->>>>> +
->>>>> +#ifdef CONFIG_COMPAT
->>>>> +#if defined(CONFIG_ARM64_64K_PAGES) && defined(CONFIG_KUSER_HELPERS)
->>>>> +/*
->>>>> + * With CONFIG_ARM64_64K_PAGES enabled, the last page is occupied
->>>>> + * by the compat vectors page.
->>>>> + */
->>>>> +#define TASK_SIZE_32		UL(0x100000000)
->>>>> +#else
->>>>> +#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
->>>>> +#endif /* CONFIG_ARM64_64K_PAGES */
->>>>> +#endif /* CONFIG_COMPAT */
->>>>
->>>> Just curious, what's TASK_SIZE_32 used for in the vDSO code? You don't
->>>> seem to move TASK_SIZE.
->>>>
->>>
->>> I tried to fine grain the headers as much as I could in order to avoid
->>> unneeded/unwanted inclusions:
->>>  * TASK_SIZE_32 is used to verify ABI consistency on vdso32 (please refer to
->>>    arch/arm64/kernel/vdso32/vgettimeofday.c).
->>>  * TASK_SIZE is not required by the vdso library hence it is not present in
->>>    these headers.
+* YunQiang Su:
+
+> Florian Weimer <fw@deneb.enyo.de> 于2020年3月6日周五 下午7:42写道：
 >>
->> It would be worth noting the former point in the commit message, since
->> it can be surprising.
+>> * YunQiang Su:
 >>
->> I also think it's worth keeping the definitions together if that's easy,
->> as it makes it easier to navigate the codebase, even if TASK_SIZE isn't
->> necessary for the VDSO itself.
-> 
-> It won't work as TASK_SIZE requires (on arm64) test_thread_flag() which
-> can't be made available to the vDSO.
-> 
+>> > AT_* only has 32 slot and now. I was afraid that maybe we shouldn't take one.
+>> >    /* AT_* values 18 through 22 are reserved */
+>> >    27,28,29,30 are not used now.
+>> > Which should we use?
+>>
+>> Where does this limit of 32 tags come from?  I don't see it from a
+>> userspace perspective.
+>
+> Sorry it is my mistake: In linux/auxvec.h, I saw
+>
+> #define AT_RANDOM 25    /* address of 16 random bytes */
+> #define AT_HWCAP2 26    /* extension of AT_HWCAP */
+>
+> #define AT_EXECFN  31   /* filename of program */
+>
+> The number jump to 31 from 26.
+>
+> It is my fault: in x86_64-linux-gnu/bits/auxv.h, the max number is 47 now.
 
-Ups, I did not see this :) luckily I agree ;)
-
--- 
-Regards,
-Vincenzo
+So AT_* tags aren't a scarce resource after all?
