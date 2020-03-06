@@ -1,170 +1,69 @@
-Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:54348 "EHLO foss.arm.com"
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:47714 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731307AbgCKTdQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Mar 2020 15:33:16 -0400
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v9 08/13] arm64: traps: Shuffle code to eliminate forward declarations
-Date: Wed, 11 Mar 2020 19:26:03 +0000
-Message-ID: <20200311192608.40095-9-broonie@kernel.org>
-In-Reply-To: <20200311192608.40095-1-broonie@kernel.org>
-References: <20200311192608.40095-1-broonie@kernel.org>
+        id S1726973AbgCFPeu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 10:34:50 -0500
+Date: Fri, 6 Mar 2020 16:34:47 +0100
+From: Frederic Weisbecker <frederic@kernel.org>
+Subject: Re: [PATCH 11/12] task_isolation: kick_all_cpus_sync: don't kick
+ isolated cpus
+Message-ID: <20200306153446.GC8590@lenoir>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+ <dfa5e0e9f34e6ff0ef048c81bc70496354f31300.camel@marvell.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <dfa5e0e9f34e6ff0ef048c81bc70496354f31300.camel@marvell.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200311192603.ofoEMlO_id8yy04Op2Gw5X3sE1QQFKzxFfN1bL_n8Wg@z>
+To: Alex Belits <abelits@marvell.com>
+Cc: "rostedt@goodmis.org" <rostedt@goodmis.org>, "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-mm@vger.kernel.org" <linux-mm@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20200306153447.NZkvVMTsIB8ukxGfKxUox7jPx9H9LH4WDqK_XT5F14M@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+On Wed, Mar 04, 2020 at 04:15:24PM +0000, Alex Belits wrote:
+> From: Yuri Norov <ynorov@marvell.com>
+> 
+> Make sure that kick_all_cpus_sync() does not call CPUs that are running
+> isolated tasks.
+> 
+> Signed-off-by: Alex Belits <abelits@marvell.com>
+> ---
+>  kernel/smp.c | 14 +++++++++++++-
+>  1 file changed, 13 insertions(+), 1 deletion(-)
+> 
+> diff --git a/kernel/smp.c b/kernel/smp.c
+> index 3a8bcbdd4ce6..d9b4b2fedfed 100644
+> --- a/kernel/smp.c
+> +++ b/kernel/smp.c
+> @@ -731,9 +731,21 @@ static void do_nothing(void *unused)
+>   */
+>  void kick_all_cpus_sync(void)
+>  {
+> +	struct cpumask mask;
+> +
+>  	/* Make sure the change is visible before we kick the cpus */
+>  	smp_mb();
+> -	smp_call_function(do_nothing, NULL, 1);
+> +
+> +	preempt_disable();
+> +#ifdef CONFIG_TASK_ISOLATION
+> +	cpumask_clear(&mask);
+> +	task_isolation_cpumask(&mask);
+> +	cpumask_complement(&mask, &mask);
+> +#else
+> +	cpumask_setall(&mask);
+> +#endif
+> +	smp_call_function_many(&mask, do_nothing, NULL, 1);
+> +	preempt_enable();
+>  }
 
-Hoist the IT state handling code earlier in traps.c, to avoid
-accumulating forward declarations.
+That looks very dangerous, the callers of kick_all_cpus_sync() want to
+sync all CPUs for a reason. You will rather need to fix the callers.
 
-No functional change.
+Thanks.
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- arch/arm64/kernel/traps.c | 103 ++++++++++++++++++--------------------
- 1 file changed, 50 insertions(+), 53 deletions(-)
-
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index bc9f4292bfc3..3c07a7074145 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -272,7 +272,55 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
- 	}
- }
- 
--static void advance_itstate(struct pt_regs *regs);
-+#ifdef CONFIG_COMPAT
-+#define PSTATE_IT_1_0_SHIFT	25
-+#define PSTATE_IT_1_0_MASK	(0x3 << PSTATE_IT_1_0_SHIFT)
-+#define PSTATE_IT_7_2_SHIFT	10
-+#define PSTATE_IT_7_2_MASK	(0x3f << PSTATE_IT_7_2_SHIFT)
-+
-+static u32 compat_get_it_state(struct pt_regs *regs)
-+{
-+	u32 it, pstate = regs->pstate;
-+
-+	it  = (pstate & PSTATE_IT_1_0_MASK) >> PSTATE_IT_1_0_SHIFT;
-+	it |= ((pstate & PSTATE_IT_7_2_MASK) >> PSTATE_IT_7_2_SHIFT) << 2;
-+
-+	return it;
-+}
-+
-+static void compat_set_it_state(struct pt_regs *regs, u32 it)
-+{
-+	u32 pstate_it;
-+
-+	pstate_it  = (it << PSTATE_IT_1_0_SHIFT) & PSTATE_IT_1_0_MASK;
-+	pstate_it |= ((it >> 2) << PSTATE_IT_7_2_SHIFT) & PSTATE_IT_7_2_MASK;
-+
-+	regs->pstate &= ~PSR_AA32_IT_MASK;
-+	regs->pstate |= pstate_it;
-+}
-+
-+static void advance_itstate(struct pt_regs *regs)
-+{
-+	u32 it;
-+
-+	/* ARM mode */
-+	if (!(regs->pstate & PSR_AA32_T_BIT) ||
-+	    !(regs->pstate & PSR_AA32_IT_MASK))
-+		return;
-+
-+	it  = compat_get_it_state(regs);
-+
-+	/*
-+	 * If this is the last instruction of the block, wipe the IT
-+	 * state. Otherwise advance it.
-+	 */
-+	if (!(it & 7))
-+		it = 0;
-+	else
-+		it = (it & 0xe0) | ((it << 1) & 0x1f);
-+
-+	compat_set_it_state(regs, it);
-+}
- 
- void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- {
-@@ -285,7 +333,7 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- 	if (user_mode(regs))
- 		user_fastforward_single_step(current);
- 
--	if (regs->pstate & PSR_MODE32_BIT)
-+	if (compat_user_mode(regs))
- 		advance_itstate(regs);
- }
- 
-@@ -578,34 +626,6 @@ static const struct sys64_hook sys64_hooks[] = {
- 	{},
- };
- 
--
--#ifdef CONFIG_COMPAT
--#define PSTATE_IT_1_0_SHIFT	25
--#define PSTATE_IT_1_0_MASK	(0x3 << PSTATE_IT_1_0_SHIFT)
--#define PSTATE_IT_7_2_SHIFT	10
--#define PSTATE_IT_7_2_MASK	(0x3f << PSTATE_IT_7_2_SHIFT)
--
--static u32 compat_get_it_state(struct pt_regs *regs)
--{
--	u32 it, pstate = regs->pstate;
--
--	it  = (pstate & PSTATE_IT_1_0_MASK) >> PSTATE_IT_1_0_SHIFT;
--	it |= ((pstate & PSTATE_IT_7_2_MASK) >> PSTATE_IT_7_2_SHIFT) << 2;
--
--	return it;
--}
--
--static void compat_set_it_state(struct pt_regs *regs, u32 it)
--{
--	u32 pstate_it;
--
--	pstate_it  = (it << PSTATE_IT_1_0_SHIFT) & PSTATE_IT_1_0_MASK;
--	pstate_it |= ((it >> 2) << PSTATE_IT_7_2_SHIFT) & PSTATE_IT_7_2_MASK;
--
--	regs->pstate &= ~PSR_AA32_IT_MASK;
--	regs->pstate |= pstate_it;
--}
--
- static bool cp15_cond_valid(unsigned int esr, struct pt_regs *regs)
- {
- 	int cond;
-@@ -626,29 +646,6 @@ static bool cp15_cond_valid(unsigned int esr, struct pt_regs *regs)
- 	return aarch32_opcode_cond_checks[cond](regs->pstate);
- }
- 
--static void advance_itstate(struct pt_regs *regs)
--{
--	u32 it;
--
--	/* ARM mode */
--	if (!(regs->pstate & PSR_AA32_T_BIT) ||
--	    !(regs->pstate & PSR_AA32_IT_MASK))
--		return;
--
--	it  = compat_get_it_state(regs);
--
--	/*
--	 * If this is the last instruction of the block, wipe the IT
--	 * state. Otherwise advance it.
--	 */
--	if (!(it & 7))
--		it = 0;
--	else
--		it = (it & 0xe0) | ((it << 1) & 0x1f);
--
--	compat_set_it_state(regs, it);
--}
--
- static void compat_cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
- {
- 	int reg = (esr & ESR_ELx_CP15_32_ISS_RT_MASK) >> ESR_ELx_CP15_32_ISS_RT_SHIFT;
--- 
-2.20.1
+>  EXPORT_SYMBOL_GPL(kick_all_cpus_sync);
+>  
+> -- 
+> 2.20.1
+> 
