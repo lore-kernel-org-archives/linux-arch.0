@@ -1,45 +1,51 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
- user-mode Shadow Stack protection
-Date: Fri, 06 Mar 2020 13:16:55 -0800
-Message-ID: <d1e483574f496d16aa2ff92562debfdacaff0f36.camel@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-         <20200205181935.3712-6-yu-cheng.yu@intel.com>
-         <d4dabb84-5636-2657-c45e-795f3f2dcbbc@intel.com>
-         <070d9d78981f0aad2baf740233e8dfc32ecd29d7.camel@intel.com>
-         <d4e09cf8-4237-d168-7e46-929f2b536332@intel.com>
+From: Alexei Starovoitov <alexei.starovoitov@gmail.com>
+Subject: Re: [PATCH v4 16/27] tracing: Remove regular RCU context for _rcuidle
+ tracepoints (again)
+Date: Fri, 6 Mar 2020 15:10:17 -0800
+Message-ID: <CAADnVQKot7kEYsEQrEszGeTuug4fpWGkc4GKA_yNeFi6OHe3uw@mail.gmail.com>
+References: <20200221133416.777099322@infradead.org> <20200306104335.GF3348@worktop.programming.kicks-ass.net>
+ <20200306113135.GA8787@worktop.programming.kicks-ass.net> <CAADnVQKp=UKg8HAuMOFknhmXtfm_LVu_ynTNJuedHqKdA6zh1g@mail.gmail.com>
+ <1896740806.20220.1583510668164.JavaMail.zimbra@efficios.com>
+ <20200306125500.6aa75c0d@gandalf.local.home> <609624365.20355.1583526166349.JavaMail.zimbra@efficios.com>
+ <20200306154556.6a829484@gandalf.local.home> <65796626.20397.1583528124078.JavaMail.zimbra@efficios.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <d4e09cf8-4237-d168-7e46-929f2b536332@intel.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lf1-f66.google.com ([209.85.167.66]:33045 "EHLO
+        mail-lf1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726237AbgCFXKc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 18:10:32 -0500
+In-Reply-To: <65796626.20397.1583528124078.JavaMail.zimbra@efficios.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: rostedt <rostedt@goodmis.org>, Peter Zijlstra <peterz@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, "Joel Fernandes, Google" <joel@joelfernandes.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Gustavo A. R. Silva" <gustavo@embeddedor.com>, Thomas Gleixner <tglx@linutronix.de>, paulmck <paulmck@kernel.org>, Josh Triplett <josh@joshtriplett.org>, Lai Jiangshan <jiangshanlai@gmail.com>, Andy Lutomirski <luto@kernel.org>, Tony Luck <tony.luck@intel.com>, Frederic Weisbecker <frederic@kernel.org>, dan carpenter <dan.carpenter@oracle.com>, Masami Hiramatsu <mhiramat@kernel.org>
 
-On Fri, 2020-03-06 at 11:02 -0800, Dave Hansen wrote:
-> On 3/6/20 10:37 AM, Yu-cheng Yu wrote:
-> > We used to do this for CET instructions, but after adding kernel-mode
-> > instructions and inserting ENDBR's, the code becomes cluttered.  I also
-> > found an earlier discussion on the ENDBR:
-> > 
-> > https://lore.kernel.org/lkml/CALCETrVRH8LeYoo7V1VBPqg4WS0Enxtizt=T7dPvgoeWfJrdzA@mail.gmail.com/
-> > 
-> > It makes sense to let the user know early on that the system cannot support
-> > CET and cannot build a CET-enabled kernel.
-> > 
-> > One thing we can do is to disable CET in Kconfig and not in kernel
-> > build, which I will do in the next version.
-> 
-> I'll go on the record and say I think we should allow building
-> CET-enabled kernels on old toolchains.  We need it for build test
-> coverage.  We can spit out a warning, but we need to allow building it.
+On Fri, Mar 6, 2020 at 12:55 PM Mathieu Desnoyers
+<mathieu.desnoyers@efficios.com> wrote:
+>
+> ----- On Mar 6, 2020, at 3:45 PM, rostedt rostedt@goodmis.org wrote:
+>
+> > On Fri, 6 Mar 2020 15:22:46 -0500 (EST)
+> > Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
+> >
+> >> I agree with the overall approach. Just a bit of nitpicking on the API:
+> >>
+> >> I understand that the "prio" argument is a separate argument because it can take
+> >> many values. However, "rcu" is just a boolean, so I wonder if we should not
+> >> rather
+> >> introduce a "int flags" with a bitmask enum, e.g.
+> >
+> > I thought about this approach, but thought it was a bit overkill. As the
+> > kernel doesn't have an internal API, I figured we can switch this over to
+> > flags when we get another flag to add. Unless you can think of one in the
+> > near future.
+>
+> The additional feature I have in mind for near future would be to register
+> a probe which can take a page fault to a "sleepable" tracepoint. This would
+> require preemption to be enabled and use of SRCU.
 
-The build test will go through (assembler or .byte), once the opcode patch
-is applied [1].  Also, when we enable kernel-mode CET, it is difficult to
-build IBT code without the right tool chain.
-
-Yu-cheng
-
-[1] opcode patch: 
-https://lore.kernel.org/lkml/20200204171425.28073-1-yu-cheng.yu@intel.com/
+I'm working on sleepable bpf as well and this extra flag for tracepoints
+would come very handy, so I would go with flags approach right away.
+We wouldn't need to touch the same protos multiple times,
+less conflicts for us all, etc.
