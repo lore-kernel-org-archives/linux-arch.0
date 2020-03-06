@@ -1,37 +1,45 @@
-From: Sinan Kaya <okaya@kernel.org>
-Subject: Re: About commit "io: change inX() to have their own IO barrier
- overrides"
-Date: Fri, 6 Mar 2020 16:15:48 -0500
-Message-ID: <e6ef4f8f-2fd6-5a1c-8539-abd7a9fcc5d1@kernel.org>
-References: <2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com>
- <c1489f55-369d-2cff-ff36-b10fb5d3ee79@kernel.org>
- <8207cd51-5b94-2f15-de9f-d85c9c385bca@huawei.com>
- <6115fa56-a471-1e9f-edbb-e643fa4e7e11@kernel.org>
- <7c955142-1fcb-d99e-69e4-1e0d3d9eb8c3@huawei.com>
- <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
- <90af535f-00ef-c1e3-ec20-aae2bd2a0d88@kernel.org>
- <CAK8P3a2Grd0JsBNsB19oAxrAFtOdpvjrpGcfeArKe7zD_jrUZw@mail.gmail.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
+ user-mode Shadow Stack protection
+Date: Fri, 06 Mar 2020 13:16:55 -0800
+Message-ID: <d1e483574f496d16aa2ff92562debfdacaff0f36.camel@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+         <20200205181935.3712-6-yu-cheng.yu@intel.com>
+         <d4dabb84-5636-2657-c45e-795f3f2dcbbc@intel.com>
+         <070d9d78981f0aad2baf740233e8dfc32ecd29d7.camel@intel.com>
+         <d4e09cf8-4237-d168-7e46-929f2b536332@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:36800 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726185AbgCFVPv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Mar 2020 16:15:51 -0500
-In-Reply-To: <CAK8P3a2Grd0JsBNsB19oAxrAFtOdpvjrpGcfeArKe7zD_jrUZw@mail.gmail.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: John Garry <john.garry@huawei.com>, "xuwei (O)" <xuwei5@hisilicon.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <d4e09cf8-4237-d168-7e46-929f2b536332@intel.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 3/6/2020 2:54 AM, Arnd Bergmann wrote:
-> The exact semantics of inl() and readl() are slightly different, so they
-> have distinct sets of barriers in the asm-generic/io.h implementation.
+On Fri, 2020-03-06 at 11:02 -0800, Dave Hansen wrote:
+> On 3/6/20 10:37 AM, Yu-cheng Yu wrote:
+> > We used to do this for CET instructions, but after adding kernel-mode
+> > instructions and inserting ENDBR's, the code becomes cluttered.  I also
+> > found an earlier discussion on the ENDBR:
+> > 
+> > https://lore.kernel.org/lkml/CALCETrVRH8LeYoo7V1VBPqg4WS0Enxtizt=T7dPvgoeWfJrdzA@mail.gmail.com/
+> > 
+> > It makes sense to let the user know early on that the system cannot support
+> > CET and cannot build a CET-enabled kernel.
+> > 
+> > One thing we can do is to disable CET in Kconfig and not in kernel
+> > build, which I will do in the next version.
 > 
-> For instance, the arm64 architectures defines in_par() as '__iormb(v)',
-> but defines __io_ar() as a  '__rmb()'. Similarly, riscv defines them
-> as "fence i,ior" and "fence i,r".
+> I'll go on the record and say I think we should allow building
+> CET-enabled kernels on old toolchains.  We need it for build test
+> coverage.  We can spit out a warning, but we need to allow building it.
 
-makes sense
+The build test will go through (assembler or .byte), once the opcode patch
+is applied [1].  Also, when we enable kernel-mode CET, it is difficult to
+build IBT code without the right tool chain.
+
+Yu-cheng
+
+[1] opcode patch: 
+https://lore.kernel.org/lkml/20200204171425.28073-1-yu-cheng.yu@intel.com/
