@@ -1,78 +1,39 @@
-Return-Path: <SRS0=UTne=45=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:39884 "EHLO foss.arm.com"
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:34388 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726194AbgCLSmR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 12 Mar 2020 14:42:17 -0400
-Date: Thu, 12 Mar 2020 18:42:11 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
-Message-ID: <20200312184211.GA3849205@arrakis.emea.arm.com>
-References: <20200227174417.23722-1-broonie@kernel.org>
- <20200306102729.GC2503422@arrakis.emea.arm.com>
- <20200309210505.GM4101@sirena.org.uk>
- <20200310124226.GC4106@sirena.org.uk>
- <20200311162858.GK3216816@arrakis.emea.arm.com>
- <20200311172556.GJ5411@sirena.org.uk>
+        id S1726317AbgCFDoL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 5 Mar 2020 22:44:11 -0500
+Subject: Re: About commit "io: change inX() to have their own IO barrier
+ overrides"
+References: <2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com>
+ <c1489f55-369d-2cff-ff36-b10fb5d3ee79@kernel.org>
+ <8207cd51-5b94-2f15-de9f-d85c9c385bca@huawei.com>
+ <6115fa56-a471-1e9f-edbb-e643fa4e7e11@kernel.org>
+ <7c955142-1fcb-d99e-69e4-1e0d3d9eb8c3@huawei.com>
+ <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
+From: Sinan Kaya <okaya@kernel.org>
+Message-ID: <90af535f-00ef-c1e3-ec20-aae2bd2a0d88@kernel.org>
+Date: Thu, 5 Mar 2020 22:44:08 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200311172556.GJ5411@sirena.org.uk>
+In-Reply-To: <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200312184211.xZbWmNBrQsEzYloyyEAQ5kN35YgPcEipcFLYrCc4FmA@z>
+To: Arnd Bergmann <arnd@arndb.de>, John Garry <john.garry@huawei.com>
+Cc: "xuwei (O)" <xuwei5@hisilicon.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>
+Message-ID: <20200306034408.pUaSj6Rm_Nons_V6LqEAC8NXMU8IW4eaZ3IB-Jz5ydg@z>
 
-On Wed, Mar 11, 2020 at 05:25:56PM +0000, Mark Brown wrote:
-> On Wed, Mar 11, 2020 at 04:28:58PM +0000, Catalin Marinas wrote:
-> > On Tue, Mar 10, 2020 at 12:42:26PM +0000, Mark Brown wrote:
-> > > Sorry, I realized thanks to Amit's off-list prompting that I was testing
-> > > that I was verifying with the wrong kernel binary here (user error since
-> > > it took me a while to sort out uprobes) so this isn't quite right - you
-> > > can probe the landing pads with or without this series.
+On 3/3/2020 11:40 AM, Arnd Bergmann wrote:
+>> -          ret = read##bw(PCI_IOBASE + addr);
+>> +          __io_pbr();
+>> +          ret = __raw_read##bw(PCI_IOBASE + addr);
+>> +          __io_pbr();
+> __io_par();
 > 
-> > Can we not change aarch64_insn_is_nop() to actually return true only for
-> > NOP and ignore everything else in the hint space? We tend to re-use the
-> > hint instructions for new things in the architecture, so I'd rather
-> > white-list what we know we can safely probe than black-listing only some
-> > of the hint instructions.
-[...]
-> > I haven't assessed the effort of doing the above (probably not a lot)
-> > but as a short-term workaround we could add the BTI and PAC hint
-> > instructions to the aarch64_insn_is_nop() (though my preferred option is
-> > the white-list one).
-> 
-> The only thing I've seen in testing with just NOPs whitelisted is an
-> inability to probe the PAC instructions which isn't the best user
-> experience, especially since the effect is that the probes get silently
-> ignored. This isn't extensive userspace testing though.  Adding
-> whitelisting of the BTI and PAC hints would definitely be a safer as a
-> first step though.  I can post either version?
 
-I thought BTI and PAC are already whitelisted in mainline as they fall
-into the hint space (by whitelisting I mean you can probe them).
+Why do we need to change read##bw above?
 
-I'm trying to understand how the BTI patches affect the current uprobes
-support and what is needed. Executing BTI or PCI?SP out of line should
-be fine as they don't generate a BTI exception (the BRK doesn't either,
-just the normal debug exception).
-
-I think (it needs checking) that BRK preserves the PSTATE.BTYPE in SPSR.
-If we probe an instruction in a guarded page and then we single-step it
-in a non-guarded page, we'll miss a potential BTI fault. Is this an
-issue?
-
-If we are to keep the BTI faulting behaviour, we'd need an additional
-xol page, guarded, and to find a way to report the original probed
-address of the fault rather than the xol page.
-
-So, IIUC, we don't have an issue with the actual BTI or PACI?SP
-instructions but rather the other instructions that would not fault with
-the BTI support. While we should try to address this, I think the
-important bit now is not to break the existing uprobes support when
-running a binary with BTI enabled.
-
-Have I missed anything?
-
--- 
-Catalin
+read##bw already provides strong ordering guarantees across multiple
+architectures.
