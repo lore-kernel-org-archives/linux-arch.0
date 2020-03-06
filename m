@@ -1,49 +1,168 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: About commit "io: change inX() to have their own IO barrier overrides"
-Date: Fri, 6 Mar 2020 08:54:26 +0100
-Message-ID: <CAK8P3a2Grd0JsBNsB19oAxrAFtOdpvjrpGcfeArKe7zD_jrUZw@mail.gmail.com>
-References: <2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com>
- <c1489f55-369d-2cff-ff36-b10fb5d3ee79@kernel.org> <8207cd51-5b94-2f15-de9f-d85c9c385bca@huawei.com>
- <6115fa56-a471-1e9f-edbb-e643fa4e7e11@kernel.org> <7c955142-1fcb-d99e-69e4-1e0d3d9eb8c3@huawei.com>
- <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com> <90af535f-00ef-c1e3-ec20-aae2bd2a0d88@kernel.org>
+From: YunQiang Su <syq@debian.org>
+Subject: [PATCH] binfmt_misc: pass binfmt_misc P flag to the interpreter
+Date: Fri,  6 Mar 2020 16:09:05 +0800
+Message-ID: <20200306080905.173466-1-syq@debian.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:39107 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725923AbgCFHyq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 02:54:46 -0500
-In-Reply-To: <90af535f-00ef-c1e3-ec20-aae2bd2a0d88@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sinan Kaya <okaya@kernel.org>
-Cc: John Garry <john.garry@huawei.com>, "xuwei (O)" <xuwei5@hisilicon.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: torvalds@linux-foundation.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, viro@zeniv.linux.org.uk, James.Bottomley@hansenpartnership.com
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org, Laurent Vivier <laurent@vivier.eu>, YunQiang Su <syq@debian.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 6, 2020 at 4:44 AM Sinan Kaya <okaya@kernel.org> wrote:
->
-> On 3/3/2020 11:40 AM, Arnd Bergmann wrote:
-> >> -          ret = read##bw(PCI_IOBASE + addr);
-> >> +          __io_pbr();
-> >> +          ret = __raw_read##bw(PCI_IOBASE + addr);
-> >> +          __io_pbr();
-> > __io_par();
-> >
->
-> Why do we need to change read##bw above?
->
-> read##bw already provides strong ordering guarantees across multiple
-> architectures.
+From: Laurent Vivier <laurent@vivier.eu>
 
-The exact semantics of inl() and readl() are slightly different, so they
-have distinct sets of barriers in the asm-generic/io.h implementation.
+It can be useful to the interpreter to know which flags are in use.
 
-For instance, the arm64 architectures defines in_par() as '__iormb(v)',
-but defines __io_ar() as a  '__rmb()'. Similarly, riscv defines them
-as "fence i,ior" and "fence i,r".
+For instance, knowing if the preserve-argv[0] is in use would
+allow to skip the pathname argument.
 
-You could argue that the definitions are wrong (I have not checked the
-history of the definitions), but as long as the inb() in asm-generic/io.h
-uses those, the implementation in lib/logic_pio.c uses the same ones
-to make the two behave the same way.
+This patch uses an unused auxiliary vector, AT_FLAGS, to add a
+flag to inform interpreter if the preserve-argv[0] is enabled.
 
-       Arnd
+Signed-off-by: Laurent Vivier <laurent@vivier.eu>
+Signed-off-by: YunQiang Su <syq@debian.org>
+---
+
+Notes:
+    This patch uses AT_FLAGS, which has never been used. We need to make a decision.
+    since it is about the fundmental API of userland.
+
+    This can be tested with QEMU from my branch:
+
+      https://github.com/vivier/qemu/commits/binfmt-argv0
+
+    With something like:
+
+      # cp ..../qemu-ppc /chroot/powerpc/jessie
+
+      # qemu-binfmt-conf.sh --qemu-path / --systemd ppc --credential yes \
+                            --persistent no --preserve-argv0 yes
+      # systemctl restart systemd-binfmt.service
+      # cat /proc/sys/fs/binfmt_misc/qemu-ppc
+      enabled
+      interpreter //qemu-ppc
+      flags: POC
+      offset 0
+      magic 7f454c4601020100000000000000000000020014
+      mask ffffffffffffff00fffffffffffffffffffeffff
+      # chroot /chroot/powerpc/jessie  sh -c 'echo $0'
+      sh
+
+      # qemu-binfmt-conf.sh --qemu-path / --systemd ppc --credential yes \
+                            --persistent no --preserve-argv0 no
+      # systemctl restart systemd-binfmt.service
+      # cat /proc/sys/fs/binfmt_misc/qemu-ppc
+      enabled
+      interpreter //qemu-ppc
+      flags: OC
+      offset 0
+      magic 7f454c4601020100000000000000000000020014
+      mask ffffffffffffff00fffffffffffffffffffeffff
+      # chroot /chroot/powerpc/jessie  sh -c 'echo $0'
+      /bin/sh
+
+    v4: Update to merge with linux-next: 20200305.
+    v3: mix my patch with one from YunQiang Su and my comments on it
+        introduce a new flag in the uabi for the AT_FLAGS
+    v2: only pass special flags (remove Magic and Enabled flags)
+---
+ fs/binfmt_elf.c              | 6 ++++--
+ fs/binfmt_elf_fdpic.c        | 5 ++++-
+ fs/binfmt_misc.c             | 4 +++-
+ include/linux/binfmts.h      | 4 ++++
+ include/uapi/linux/binfmts.h | 4 ++++
+ 5 files changed, 19 insertions(+), 4 deletions(-)
+
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 13f25e241ac4..e9f5d135b847 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -178,7 +178,7 @@ create_elf_tables(struct linux_binprm *bprm, const struct elfhdr *exec,
+ 	const char *k_base_platform = ELF_BASE_PLATFORM;
+ 	unsigned char k_rand_bytes[16];
+ 	int items;
+-	elf_addr_t *elf_info;
++	elf_addr_t *elf_info, flags = 0;
+ 	int ei_index;
+ 	const struct cred *cred = current_cred();
+ 	struct vm_area_struct *vma;
+@@ -253,7 +253,9 @@ create_elf_tables(struct linux_binprm *bprm, const struct elfhdr *exec,
+ 	NEW_AUX_ENT(AT_PHENT, sizeof(struct elf_phdr));
+ 	NEW_AUX_ENT(AT_PHNUM, exec->e_phnum);
+ 	NEW_AUX_ENT(AT_BASE, interp_load_addr);
+-	NEW_AUX_ENT(AT_FLAGS, 0);
++	if (bprm->interp_flags & BINPRM_FLAGS_PRESERVE_ARGV0)
++		flags |= AT_FLAGS_PRESERVE_ARGV0;
++	NEW_AUX_ENT(AT_FLAGS, flags);
+ 	NEW_AUX_ENT(AT_ENTRY, e_entry);
+ 	NEW_AUX_ENT(AT_UID, from_kuid_munged(cred->user_ns, cred->uid));
+ 	NEW_AUX_ENT(AT_EUID, from_kuid_munged(cred->user_ns, cred->euid));
+diff --git a/fs/binfmt_elf_fdpic.c b/fs/binfmt_elf_fdpic.c
+index 240f66663543..abb90d82aa58 100644
+--- a/fs/binfmt_elf_fdpic.c
++++ b/fs/binfmt_elf_fdpic.c
+@@ -507,6 +507,7 @@ static int create_elf_fdpic_tables(struct linux_binprm *bprm,
+ 	char __user *u_platform, *u_base_platform, *p;
+ 	int loop;
+ 	int nr;	/* reset for each csp adjustment */
++	unsigned long flags = 0;
+ 
+ #ifdef CONFIG_MMU
+ 	/* In some cases (e.g. Hyper-Threading), we want to avoid L1 evictions
+@@ -647,7 +648,9 @@ static int create_elf_fdpic_tables(struct linux_binprm *bprm,
+ 	NEW_AUX_ENT(AT_PHENT,	sizeof(struct elf_phdr));
+ 	NEW_AUX_ENT(AT_PHNUM,	exec_params->hdr.e_phnum);
+ 	NEW_AUX_ENT(AT_BASE,	interp_params->elfhdr_addr);
+-	NEW_AUX_ENT(AT_FLAGS,	0);
++	if (bprm->interp_flags & BINPRM_FLAGS_PRESERVE_ARGV0)
++		flags |= AT_FLAGS_PRESERVE_ARGV0;
++	NEW_AUX_ENT(AT_FLAGS,	flags);
+ 	NEW_AUX_ENT(AT_ENTRY,	exec_params->entry_addr);
+ 	NEW_AUX_ENT(AT_UID,	(elf_addr_t) from_kuid_munged(cred->user_ns, cred->uid));
+ 	NEW_AUX_ENT(AT_EUID,	(elf_addr_t) from_kuid_munged(cred->user_ns, cred->euid));
+diff --git a/fs/binfmt_misc.c b/fs/binfmt_misc.c
+index cdb45829354d..b9acdd26a654 100644
+--- a/fs/binfmt_misc.c
++++ b/fs/binfmt_misc.c
+@@ -154,7 +154,9 @@ static int load_misc_binary(struct linux_binprm *bprm)
+ 	if (bprm->interp_flags & BINPRM_FLAGS_PATH_INACCESSIBLE)
+ 		goto ret;
+ 
+-	if (!(fmt->flags & MISC_FMT_PRESERVE_ARGV0)) {
++	if (fmt->flags & MISC_FMT_PRESERVE_ARGV0) {
++		bprm->interp_flags |= BINPRM_FLAGS_PRESERVE_ARGV0;
++	} else {
+ 		retval = remove_arg_zero(bprm);
+ 		if (retval)
+ 			goto ret;
+diff --git a/include/linux/binfmts.h b/include/linux/binfmts.h
+index b40fc633f3be..265b80d5fd6f 100644
+--- a/include/linux/binfmts.h
++++ b/include/linux/binfmts.h
+@@ -78,6 +78,10 @@ struct linux_binprm {
+ #define BINPRM_FLAGS_PATH_INACCESSIBLE_BIT 2
+ #define BINPRM_FLAGS_PATH_INACCESSIBLE (1 << BINPRM_FLAGS_PATH_INACCESSIBLE_BIT)
+ 
++/* if preserve the argv0 for the interpreter  */
++#define BINPRM_FLAGS_PRESERVE_ARGV0_BIT 3
++#define BINPRM_FLAGS_PRESERVE_ARGV0 (1 << BINPRM_FLAGS_PRESERVE_ARGV0_BIT)
++
+ /* Function parameter for binfmt->coredump */
+ struct coredump_params {
+ 	const kernel_siginfo_t *siginfo;
+diff --git a/include/uapi/linux/binfmts.h b/include/uapi/linux/binfmts.h
+index 689025d9c185..a70747416130 100644
+--- a/include/uapi/linux/binfmts.h
++++ b/include/uapi/linux/binfmts.h
+@@ -18,4 +18,8 @@ struct pt_regs;
+ /* sizeof(linux_binprm->buf) */
+ #define BINPRM_BUF_SIZE 256
+ 
++/* if preserve the argv0 for the interpreter  */
++#define AT_FLAGS_PRESERVE_ARGV0_BIT 0
++#define AT_FLAGS_PRESERVE_ARGV0 (1 << AT_FLAGS_PRESERVE_ARGV0_BIT)
++
+ #endif /* _UAPI_LINUX_BINFMTS_H */
+-- 
+2.25.1
