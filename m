@@ -1,49 +1,42 @@
-From: Florian Weimer <fw@deneb.enyo.de>
-Subject: Re: [PATCH] binfmt_misc: pass binfmt_misc P flag to the interpreter
-Date: Fri, 06 Mar 2020 13:07:33 +0100
-Message-ID: <87r1y5zny2.fsf@mid.deneb.enyo.de>
-References: <20200306080905.173466-1-syq@debian.org>
-        <87r1y53npd.fsf@mid.deneb.enyo.de>
-        <8441f497-61eb-5c14-bf1e-c90a464105a7@vivier.eu>
-        <87mu8t3mlw.fsf@mid.deneb.enyo.de>
-        <40da389d-4e74-2644-2e7c-04d988fcc26f@vivier.eu>
-        <CAKcpw6WEO5Rmsv+WFkOMrkH+0jwtFKKy7b2n3U9xgv-xGC0UUQ@mail.gmail.com>
-        <87v9nhzp6w.fsf@mid.deneb.enyo.de>
-        <CAKcpw6VF1N2gTVXeWLU4aVOuARf5oN6yPg9O=RCzgkMrjXmxYQ@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v4 11/27] rcu,tracing: Create trace_rcu_{enter,exit}()
+Date: Fri, 6 Mar 2020 13:40:23 +0100
+Message-ID: <20200306124023.GA12584@hirez.programming.kicks-ass.net>
+References: <20200221133416.777099322@infradead.org>
+ <20200221134215.673793889@infradead.org>
+ <20200306115042.GG3348@worktop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAKcpw6VF1N2gTVXeWLU4aVOuARf5oN6yPg9O=RCzgkMrjXmxYQ@mail.gmail.com>
-        (YunQiang Su's message of "Fri, 6 Mar 2020 19:48:35 +0800")
-Sender: linux-kernel-owner@vger.kernel.org
-To: YunQiang Su <syq@debian.org>
-Cc: Laurent Vivier <laurent@vivier.eu>, torvalds@linux-foundation.org, Greg KH <gregkh@linuxfoundation.org>, akpm@linux-foundation.org, Al Viro <viro@zeniv.linux.org.uk>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:51358 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726108AbgCFMk7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 07:40:59 -0500
+Content-Disposition: inline
+In-Reply-To: <20200306115042.GG3348@worktop.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
+Cc: mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org
 
-* YunQiang Su:
+On Fri, Mar 06, 2020 at 12:50:42PM +0100, Peter Zijlstra wrote:
+> > +static inline int trace_rcu_enter(void)
+> > +{
+> > +	int state = !rcu_is_watching();
+> > +	if (state)
+> > +		rcu_irq_enter_irqsave();
+> > +	return state;
+> > +}
+> > +
+> > +static inline void trace_rcu_exit(int state)
+> > +{
+> > +	if (state)
+> > +		rcu_irq_exit_irqsave();
+> > +}
+> > +
+> >  /*
+> >   * The init_rcu_head_on_stack() and destroy_rcu_head_on_stack() calls
+> >   * are needed for dynamic initialization and destruction of rcu_head
 
-> Florian Weimer <fw@deneb.enyo.de> 于2020年3月6日周五 下午7:42写道：
->>
->> * YunQiang Su:
->>
->> > AT_* only has 32 slot and now. I was afraid that maybe we shouldn't take one.
->> >    /* AT_* values 18 through 22 are reserved */
->> >    27,28,29,30 are not used now.
->> > Which should we use?
->>
->> Where does this limit of 32 tags come from?  I don't see it from a
->> userspace perspective.
->
-> Sorry it is my mistake: In linux/auxvec.h, I saw
->
-> #define AT_RANDOM 25    /* address of 16 random bytes */
-> #define AT_HWCAP2 26    /* extension of AT_HWCAP */
->
-> #define AT_EXECFN  31   /* filename of program */
->
-> The number jump to 31 from 26.
->
-> It is my fault: in x86_64-linux-gnu/bits/auxv.h, the max number is 47 now.
-
-So AT_* tags aren't a scarce resource after all?
+Also, I just noticed these read like tracepoints, so I'm going to rename
+them: rcu_trace_{enter,exit}().
