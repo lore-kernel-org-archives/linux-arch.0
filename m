@@ -1,15 +1,15 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 02/20] linux/bits.h: Extract common header for vDSO
-Date: Fri,  6 Mar 2020 13:32:24 +0000
-Message-ID: <20200306133242.26279-3-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 01/20] linux/const.h: Extract common header for vDSO
+Date: Fri,  6 Mar 2020 13:32:23 +0000
+Message-ID: <20200306133242.26279-2-vincenzo.frascino@arm.com>
 References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:33324 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:33294 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726054AbgCFNdA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Mar 2020 08:33:00 -0500
+        id S1726054AbgCFNc5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 08:32:57 -0500
 In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -21,45 +21,46 @@ a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Split bits.h into linux and common headers to make the latter suitable
+Split const.h into linux and common headers to make the latter suitable
 for inclusion in the vDSO library.
 
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/common/bits.h | 9 +++++++++
- include/linux/bits.h  | 2 +-
- 2 files changed, 10 insertions(+), 1 deletion(-)
- create mode 100644 include/common/bits.h
+ include/common/const.h | 10 ++++++++++
+ include/linux/const.h  |  5 +----
+ 2 files changed, 11 insertions(+), 4 deletions(-)
+ create mode 100644 include/common/const.h
 
-diff --git a/include/common/bits.h b/include/common/bits.h
+diff --git a/include/common/const.h b/include/common/const.h
 new file mode 100644
-index 000000000000..6da493992e52
+index 000000000000..cc209eec47a1
 --- /dev/null
-+++ b/include/common/bits.h
-@@ -0,0 +1,9 @@
++++ b/include/common/const.h
+@@ -0,0 +1,10 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_BITS_H
-+#define __COMMON_BITS_H
++#ifndef __COMMON_CONST_H
++#define __COMMON_CONST_H
 +
++#include <uapi/linux/const.h>
++
++#define UL(x)		(_UL(x))
++#define ULL(x)		(_ULL(x))
++
++#endif /* __COMMON_CONST_H */
+diff --git a/include/linux/const.h b/include/linux/const.h
+index 7b55a55f5911..447a5b98d5a3 100644
+--- a/include/linux/const.h
++++ b/include/linux/const.h
+@@ -1,9 +1,6 @@
+ #ifndef _LINUX_CONST_H
+ #define _LINUX_CONST_H
+ 
+-#include <uapi/linux/const.h>
+-
+-#define UL(x)		(_UL(x))
+-#define ULL(x)		(_ULL(x))
 +#include <common/const.h>
-+
-+#define BIT(nr)			(UL(1) << (nr))
-+
-+#endif	/* __COMMON_BITS_H */
-diff --git a/include/linux/bits.h b/include/linux/bits.h
-index 669d69441a62..aeb76fede77a 100644
---- a/include/linux/bits.h
-+++ b/include/linux/bits.h
-@@ -3,9 +3,9 @@
- #define __LINUX_BITS_H
  
- #include <linux/const.h>
-+#include <common/bits.h>
- #include <asm/bitsperlong.h>
- 
--#define BIT(nr)			(UL(1) << (nr))
- #define BIT_ULL(nr)		(ULL(1) << (nr))
- #define BIT_MASK(nr)		(UL(1) << ((nr) % BITS_PER_LONG))
- #define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
+ #endif /* _LINUX_CONST_H */
 -- 
 2.25.1
