@@ -1,13 +1,13 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 06/20] linux/time32.h: Extract common header for vDSO
-Date: Fri,  6 Mar 2020 13:32:28 +0000
-Message-ID: <20200306133242.26279-7-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 07/20] linux/time64.h: Extract common header for vDSO
+Date: Fri,  6 Mar 2020 13:32:29 +0000
+Message-ID: <20200306133242.26279-8-vincenzo.frascino@arm.com>
 References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-mips-owner@vger.kernel.org>
 In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-mips-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
 Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
 List-Id: linux-arch.vger.kernel.org
@@ -17,62 +17,57 @@ a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Split time32.h into linux and common headers to make the latter suitable
+Split time64.h into linux and common headers to make the latter suitable
 for inclusion in the vDSO library.
 
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/common/time32.h | 17 +++++++++++++++++
- include/linux/time32.h  | 13 +------------
- 2 files changed, 18 insertions(+), 12 deletions(-)
- create mode 100644 include/common/time32.h
+ include/common/time64.h | 14 ++++++++++++++
+ include/linux/time64.h  | 10 +---------
+ 2 files changed, 15 insertions(+), 9 deletions(-)
+ create mode 100644 include/common/time64.h
 
-diff --git a/include/common/time32.h b/include/common/time32.h
+diff --git a/include/common/time64.h b/include/common/time64.h
 new file mode 100644
-index 000000000000..d5b85abdfaf1
+index 000000000000..ff5a72fafb30
 --- /dev/null
-+++ b/include/common/time32.h
-@@ -0,0 +1,17 @@
++++ b/include/common/time64.h
+@@ -0,0 +1,14 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_TIME32_H
-+#define __COMMON_TIME32_H
++#ifndef __COMMON_TIME64_H
++#define __COMMON_TIME64_H
 +
-+typedef s32		old_time32_t;
++/* Parameters used to convert the timespec values: */
++#define MSEC_PER_SEC	1000L
++#define USEC_PER_MSEC	1000L
++#define NSEC_PER_USEC	1000L
++#define NSEC_PER_MSEC	1000000L
++#define USEC_PER_SEC	1000000L
++#define NSEC_PER_SEC	1000000000L
++#define FSEC_PER_SEC	1000000000000000LL
 +
-+struct old_timespec32 {
-+	old_time32_t	tv_sec;
-+	s32		tv_nsec;
-+};
-+
-+struct old_timeval32 {
-+	old_time32_t	tv_sec;
-+	s32		tv_usec;
-+};
-+
-+#endif /* __COMMON_TIME32_H */
-diff --git a/include/linux/time32.h b/include/linux/time32.h
-index cf9320cd2d0b..e75dd5f9df8f 100644
---- a/include/linux/time32.h
-+++ b/include/linux/time32.h
-@@ -11,18 +11,7 @@
++#endif /* __COMMON_TIME64_H */
+diff --git a/include/linux/time64.h b/include/linux/time64.h
+index 19125489ae94..3d8b3739e885 100644
+--- a/include/linux/time64.h
++++ b/include/linux/time64.h
+@@ -3,6 +3,7 @@
+ #define _LINUX_TIME64_H
  
- #include <linux/time64.h>
- #include <linux/timex.h>
--
--typedef s32		old_time32_t;
--
--struct old_timespec32 {
--	old_time32_t	tv_sec;
--	s32		tv_nsec;
--};
--
--struct old_timeval32 {
--	old_time32_t	tv_sec;
--	s32		tv_usec;
--};
-+#include <common/time32.h>
+ #include <linux/math64.h>
++#include <common/time64.h>
  
- struct old_itimerspec32 {
- 	struct old_timespec32 it_interval;
--- 
-2.25.1
+ typedef __s64 time64_t;
+ typedef __u64 timeu64_t;
+@@ -19,15 +20,6 @@ struct itimerspec64 {
+ 	struct timespec64 it_value;
+ };
+ 
+-/* Parameters used to convert the timespec values: */
+-#define MSEC_PER_SEC	1000L
+-#define USEC_PER_MSEC	1000L
+-#define NSEC_PER_USEC	1000L
+-#define NSEC_PER_MSEC	1000000L
+-#define USEC_PER_SEC	1000000L
+-#define NSEC_PER_SEC	1000000000L
+-#define FSEC_PER_SEC	1000000000000000LL
