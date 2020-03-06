@@ -1,184 +1,28 @@
-Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50808 "EHLO foss.arm.com"
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from albireo.enyo.de ([37.24.231.21]:54568 "EHLO albireo.enyo.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727879AbgCTO4B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Mar 2020 10:56:01 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 24/26] arm: vdso: Enable arm to use common headers
-Date: Fri, 20 Mar 2020 14:53:49 +0000
-Message-ID: <20200320145351.32292-25-vincenzo.frascino@arm.com>
-In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
-References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+        id S1725934AbgCFIVh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 03:21:37 -0500
+From: Florian Weimer <fw@deneb.enyo.de>
+Subject: Re: [PATCH] binfmt_misc: pass binfmt_misc P flag to the interpreter
+References: <20200306080905.173466-1-syq@debian.org>
+Date: Fri, 06 Mar 2020 09:13:50 +0100
+In-Reply-To: <20200306080905.173466-1-syq@debian.org> (YunQiang Su's message
+        of "Fri, 6 Mar 2020 16:09:05 +0800")
+Message-ID: <87r1y53npd.fsf@mid.deneb.enyo.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200320145349.k7i-WIJjlY2A52zS18N4e7wqT4E_onw_v28Y3mvjChU@z>
+To: YunQiang Su <syq@debian.org>
+Cc: torvalds@linux-foundation.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, viro@zeniv.linux.org.uk, James.Bottomley@hansenpartnership.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org, Laurent Vivier <laurent@vivier.eu>
+Message-ID: <20200306081350.0EwGMW6ir34d-pv2ssYyCHuLHAJcFWRaFYS9c6VE5IU@z>
 
-Enable arm to use only the common headers in the implementation
-of the vDSO library.
+* YunQiang Su:
 
-Cc: Russell King <linux@armlinux.org.uk>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- arch/arm/include/asm/cp15.h              | 20 +------------
- arch/arm/include/asm/processor.h         | 11 +------
- arch/arm/include/asm/vdso/cp15.h         | 38 ++++++++++++++++++++++++
- arch/arm/include/asm/vdso/gettimeofday.h |  4 +--
- arch/arm/include/asm/vdso/processor.h    | 22 ++++++++++++++
- 5 files changed, 64 insertions(+), 31 deletions(-)
- create mode 100644 arch/arm/include/asm/vdso/cp15.h
- create mode 100644 arch/arm/include/asm/vdso/processor.h
+> +	if (bprm->interp_flags & BINPRM_FLAGS_PRESERVE_ARGV0)
+> +		flags |= AT_FLAGS_PRESERVE_ARGV0;
+> +	NEW_AUX_ENT(AT_FLAGS, flags);
 
-diff --git a/arch/arm/include/asm/cp15.h b/arch/arm/include/asm/cp15.h
-index d2453e2d3f1f..a54230e65647 100644
---- a/arch/arm/include/asm/cp15.h
-+++ b/arch/arm/include/asm/cp15.h
-@@ -50,25 +50,7 @@
- 
- #ifdef CONFIG_CPU_CP15
- 
--#define __ACCESS_CP15(CRn, Op1, CRm, Op2)	\
--	"mrc", "mcr", __stringify(p15, Op1, %0, CRn, CRm, Op2), u32
--#define __ACCESS_CP15_64(Op1, CRm)		\
--	"mrrc", "mcrr", __stringify(p15, Op1, %Q0, %R0, CRm), u64
--
--#define __read_sysreg(r, w, c, t) ({				\
--	t __val;						\
--	asm volatile(r " " c : "=r" (__val));			\
--	__val;							\
--})
--#define read_sysreg(...)		__read_sysreg(__VA_ARGS__)
--
--#define __write_sysreg(v, r, w, c, t)	asm volatile(w " " c : : "r" ((t)(v)))
--#define write_sysreg(v, ...)		__write_sysreg(v, __VA_ARGS__)
--
--#define BPIALL				__ACCESS_CP15(c7, 0, c5, 6)
--#define ICIALLU				__ACCESS_CP15(c7, 0, c5, 0)
--
--#define CNTVCT				__ACCESS_CP15_64(1, c14)
-+#include <asm/vdso/cp15.h>
- 
- extern unsigned long cr_alignment;	/* defined in entry-armv.S */
- 
-diff --git a/arch/arm/include/asm/processor.h b/arch/arm/include/asm/processor.h
-index 614bf829e454..b9241051e5cb 100644
---- a/arch/arm/include/asm/processor.h
-+++ b/arch/arm/include/asm/processor.h
-@@ -14,6 +14,7 @@
- #include <asm/ptrace.h>
- #include <asm/types.h>
- #include <asm/unified.h>
-+#include <asm/vdso/processor.h>
- 
- #ifdef __KERNEL__
- #define STACK_TOP	((current->personality & ADDR_LIMIT_32BIT) ? \
-@@ -85,16 +86,6 @@ extern void release_thread(struct task_struct *);
- 
- unsigned long get_wchan(struct task_struct *p);
- 
--#if __LINUX_ARM_ARCH__ == 6 || defined(CONFIG_ARM_ERRATA_754327)
--#define cpu_relax()						\
--	do {							\
--		smp_mb();					\
--		__asm__ __volatile__("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");	\
--	} while (0)
--#else
--#define cpu_relax()			barrier()
--#endif
--
- #define task_pt_regs(p) \
- 	((struct pt_regs *)(THREAD_START_SP + task_stack_page(p)) - 1)
- 
-diff --git a/arch/arm/include/asm/vdso/cp15.h b/arch/arm/include/asm/vdso/cp15.h
-new file mode 100644
-index 000000000000..bed16fa1865e
---- /dev/null
-+++ b/arch/arm/include/asm/vdso/cp15.h
-@@ -0,0 +1,38 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Copyright (C) 2020 ARM Ltd.
-+ */
-+#ifndef __ASM_VDSO_CP15_H
-+#define __ASM_VDSO_CP15_H
-+
-+#ifndef __ASSEMBLY__
-+
-+#ifdef CONFIG_CPU_CP15
-+
-+#include <linux/stringify.h>
-+
-+#define __ACCESS_CP15(CRn, Op1, CRm, Op2)	\
-+	"mrc", "mcr", __stringify(p15, Op1, %0, CRn, CRm, Op2), u32
-+#define __ACCESS_CP15_64(Op1, CRm)		\
-+	"mrrc", "mcrr", __stringify(p15, Op1, %Q0, %R0, CRm), u64
-+
-+#define __read_sysreg(r, w, c, t) ({				\
-+	t __val;						\
-+	asm volatile(r " " c : "=r" (__val));			\
-+	__val;							\
-+})
-+#define read_sysreg(...)		__read_sysreg(__VA_ARGS__)
-+
-+#define __write_sysreg(v, r, w, c, t)	asm volatile(w " " c : : "r" ((t)(v)))
-+#define write_sysreg(v, ...)		__write_sysreg(v, __VA_ARGS__)
-+
-+#define BPIALL				__ACCESS_CP15(c7, 0, c5, 6)
-+#define ICIALLU				__ACCESS_CP15(c7, 0, c5, 0)
-+
-+#define CNTVCT				__ACCESS_CP15_64(1, c14)
-+
-+#endif /* CONFIG_CPU_CP15 */
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __ASM_VDSO_CP15_H */
-diff --git a/arch/arm/include/asm/vdso/gettimeofday.h b/arch/arm/include/asm/vdso/gettimeofday.h
-index 07d791c65cf7..36dc18553ed8 100644
---- a/arch/arm/include/asm/vdso/gettimeofday.h
-+++ b/arch/arm/include/asm/vdso/gettimeofday.h
-@@ -7,9 +7,9 @@
- 
- #ifndef __ASSEMBLY__
- 
--#include <asm/barrier.h>
--#include <asm/cp15.h>
-+#include <asm/errno.h>
- #include <asm/unistd.h>
-+#include <asm/vdso/cp15.h>
- #include <uapi/linux/time.h>
- 
- #define VDSO_HAS_CLOCK_GETRES		1
-diff --git a/arch/arm/include/asm/vdso/processor.h b/arch/arm/include/asm/vdso/processor.h
-new file mode 100644
-index 000000000000..45efb3ff511c
---- /dev/null
-+++ b/arch/arm/include/asm/vdso/processor.h
-@@ -0,0 +1,22 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Copyright (C) 2020 ARM Ltd.
-+ */
-+#ifndef __ASM_VDSO_PROCESSOR_H
-+#define __ASM_VDSO_PROCESSOR_H
-+
-+#ifndef __ASSEMBLY__
-+
-+#if __LINUX_ARM_ARCH__ == 6 || defined(CONFIG_ARM_ERRATA_754327)
-+#define cpu_relax()						\
-+	do {							\
-+		smp_mb();					\
-+		__asm__ __volatile__("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");	\
-+	} while (0)
-+#else
-+#define cpu_relax()			barrier()
-+#endif
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __ASM_VDSO_PROCESSOR_H */
--- 
-2.25.1
+Is it necessary to reuse AT_FLAGS?  I think it's cleaner to define a
+separate AT_ tag dedicated to binfmt_misc.
