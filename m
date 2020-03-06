@@ -1,85 +1,121 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:36800 "EHLO foss.arm.com"
+Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:33892 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726916AbgCQMX1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 08:23:27 -0400
+        id S1727581AbgCFNdv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 08:33:51 -0500
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 11/26] linux/time32.h: Extract common header for vDSO
-Date: Tue, 17 Mar 2020 12:22:05 +0000
-Message-ID: <20200317122220.30393-12-vincenzo.frascino@arm.com>
-In-Reply-To: <20200317122220.30393-1-vincenzo.frascino@arm.com>
-References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 19/20] lib: vdso: Enable common headers
+Date: Fri,  6 Mar 2020 13:32:41 +0000
+Message-ID: <20200306133242.26279-20-vincenzo.frascino@arm.com>
+In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
+References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200317122205.csMZyV4Yp3mvs7UO6ljf8T1hf-Sqg0bVeR2hv6tqZsQ@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200306133241.Tm7iJu_cWsk_ctDImINtljMhZNvynaPvMtf8EQULTCY@z>
 
 The vDSO library should only include the necessary headers required for
 a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Split time32.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
+Refactor the unified vdso code to use the common headers.
 
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/linux/time32.h | 14 ++------------
- include/vdso/time32.h  | 17 +++++++++++++++++
- 2 files changed, 19 insertions(+), 12 deletions(-)
- create mode 100644 include/vdso/time32.h
+ include/vdso/datapage.h | 32 +++++++++++++++++++++++++++++---
+ lib/vdso/gettimeofday.c | 21 ---------------------
+ 2 files changed, 29 insertions(+), 24 deletions(-)
 
-diff --git a/include/linux/time32.h b/include/linux/time32.h
-index cad4c3186002..0933f28214c0 100644
---- a/include/linux/time32.h
-+++ b/include/linux/time32.h
-@@ -12,19 +12,9 @@
- #include <linux/time64.h>
- #include <linux/timex.h>
+diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
+index c5f347cc5e55..21842a73cbcf 100644
+--- a/include/vdso/datapage.h
++++ b/include/vdso/datapage.h
+@@ -4,9 +4,19 @@
  
--#define TIME_T_MAX	(__kernel_old_time_t)((1UL << ((sizeof(__kernel_old_time_t) << 3) - 1)) - 1)
+ #ifndef __ASSEMBLY__
+ 
+-#include <linux/bits.h>
+-#include <linux/time.h>
+-#include <linux/types.h>
++#include <linux/compiler.h>
++#include <uapi/linux/time.h>
++#include <uapi/linux/types.h>
++#include <uapi/asm-generic/errno-base.h>
++
++#include <common/bits.h>
++#include <common/ktime.h>
++#include <common/limits.h>
++#include <common/math64.h>
++#include <common/processor.h>
++#include <common/time.h>
++#include <common/time32.h>
++#include <common/time64.h>
+ 
+ #define VDSO_BASES	(CLOCK_TAI + 1)
+ #define VDSO_HRES	(BIT(CLOCK_REALTIME)		| \
+@@ -101,6 +111,22 @@ struct vdso_data {
+  */
+ extern struct vdso_data _vdso_data[CS_BASES] __attribute__((visibility("hidden")));
+ 
++/*
++ * The generic vDSO implementation requires that gettimeofday.h
++ * provides:
++ * - __arch_get_vdso_data(): to get the vdso datapage.
++ * - __arch_get_hw_counter(): to get the hw counter based on the
++ *   clock_mode.
++ * - gettimeofday_fallback(): fallback for gettimeofday.
++ * - clock_gettime_fallback(): fallback for clock_gettime.
++ * - clock_getres_fallback(): fallback for clock_getres.
++ */
++#ifdef ENABLE_COMPAT_VDSO
++#include <asm/vdso/compat_gettimeofday.h>
++#else
++#include <asm/vdso/gettimeofday.h>
++#endif /* ENABLE_COMPAT_VDSO */
++
+ #endif /* !__ASSEMBLY__ */
+ 
+ #endif /* __VDSO_DATAPAGE_H */
+diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
+index f8b8ec5e63ac..e3244f74feea 100644
+--- a/lib/vdso/gettimeofday.c
++++ b/lib/vdso/gettimeofday.c
+@@ -2,30 +2,9 @@
+ /*
+  * Generic userspace implementations of gettimeofday() and similar.
+  */
+-#include <linux/compiler.h>
+-#include <linux/math64.h>
+-#include <linux/time.h>
+-#include <linux/kernel.h>
+-#include <linux/hrtimer_defs.h>
+ #include <vdso/datapage.h>
+ #include <vdso/helpers.h>
+ 
+-/*
+- * The generic vDSO implementation requires that gettimeofday.h
+- * provides:
+- * - __arch_get_vdso_data(): to get the vdso datapage.
+- * - __arch_get_hw_counter(): to get the hw counter based on the
+- *   clock_mode.
+- * - gettimeofday_fallback(): fallback for gettimeofday.
+- * - clock_gettime_fallback(): fallback for clock_gettime.
+- * - clock_getres_fallback(): fallback for clock_getres.
+- */
+-#ifdef ENABLE_COMPAT_VDSO
+-#include <asm/vdso/compat_gettimeofday.h>
+-#else
+-#include <asm/vdso/gettimeofday.h>
+-#endif /* ENABLE_COMPAT_VDSO */
 -
--typedef s32		old_time32_t;
--
--struct old_timespec32 {
--	old_time32_t	tv_sec;
--	s32		tv_nsec;
--};
-+#include <vdso/time32.h>
- 
--struct old_timeval32 {
--	old_time32_t	tv_sec;
--	s32		tv_usec;
--};
-+#define TIME_T_MAX	(__kernel_old_time_t)((1UL << ((sizeof(__kernel_old_time_t) << 3) - 1)) - 1)
- 
- struct old_itimerspec32 {
- 	struct old_timespec32 it_interval;
-diff --git a/include/vdso/time32.h b/include/vdso/time32.h
-new file mode 100644
-index 000000000000..fdf56f932f67
---- /dev/null
-+++ b/include/vdso/time32.h
-@@ -0,0 +1,17 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_TIME32_H
-+#define __VDSO_TIME32_H
-+
-+typedef s32		old_time32_t;
-+
-+struct old_timespec32 {
-+	old_time32_t	tv_sec;
-+	s32		tv_nsec;
-+};
-+
-+struct old_timeval32 {
-+	old_time32_t	tv_sec;
-+	s32		tv_usec;
-+};
-+
-+#endif /* __VDSO_TIME32_H */
+ #ifndef vdso_calc_delta
+ /*
+  * Default implementation which works for all sane clocksources. That
 -- 
 2.25.1
