@@ -1,74 +1,99 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 08/20] linux/jiffies.h: Extract common header for vDSO
-Date: Fri,  6 Mar 2020 13:32:30 +0000
-Message-ID: <20200306133242.26279-9-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 04/20] linux/math64.h: Extract common header for vDSO
+Date: Fri,  6 Mar 2020 13:32:26 +0000
+Message-ID: <20200306133242.26279-5-vincenzo.frascino@arm.com>
 References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:33530 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726733AbgCFNdS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Mar 2020 08:33:18 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
 Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
+List-Id: linux-arch.vger.kernel.org
 
 The vDSO library should only include the necessary headers required for
 a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Split jiffies.h into linux and common headers to make the latter suitable
+Split math64.h into linux and common headers to make the latter suitable
 for inclusion in the vDSO library.
 
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/common/jiffies.h | 11 +++++++++++
- include/linux/jiffies.h  |  4 +---
- 2 files changed, 12 insertions(+), 3 deletions(-)
- create mode 100644 include/common/jiffies.h
+ include/common/math64.h | 24 ++++++++++++++++++++++++
+ include/linux/math64.h  | 20 +-------------------
+ 2 files changed, 25 insertions(+), 19 deletions(-)
+ create mode 100644 include/common/math64.h
 
-diff --git a/include/common/jiffies.h b/include/common/jiffies.h
+diff --git a/include/common/math64.h b/include/common/math64.h
 new file mode 100644
-index 000000000000..ff0207f00550
+index 000000000000..4e1870e40182
 --- /dev/null
-+++ b/include/common/jiffies.h
-@@ -0,0 +1,11 @@
++++ b/include/common/math64.h
+@@ -0,0 +1,24 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_JIFFIES_H
-+#define __COMMON_JIFFIES_H
++#ifndef __COMMON_MATH64_H
++#define __COMMON_MATH64_H
 +
-+#include <asm/param.h>			/* for HZ */
-+#include <common/time64.h>
++static __always_inline u32
++__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
++{
++	u32 ret = 0;
 +
-+/* TICK_NSEC is the time between ticks in nsec assuming SHIFTED_HZ */
-+#define TICK_NSEC ((NSEC_PER_SEC+HZ/2)/HZ)
++	while (dividend >= divisor) {
++		/* The following asm() prevents the compiler from
++		   optimising this loop into a modulo operation.  */
++		asm("" : "+rm"(dividend));
 +
-+#endif /* __COMMON_JIFFIES_H */
-diff --git a/include/linux/jiffies.h b/include/linux/jiffies.h
-index e3279ef24d28..710539d1e39b 100644
---- a/include/linux/jiffies.h
-+++ b/include/linux/jiffies.h
-@@ -8,6 +8,7 @@
++		dividend -= divisor;
++		ret++;
++	}
++
++	*remainder = dividend;
++
++	return ret;
++}
++
++#endif /* __COMMON_MATH64_H */
+diff --git a/include/linux/math64.h b/include/linux/math64.h
+index 65bef21cdddb..54eb486b5d1a 100644
+--- a/include/linux/math64.h
++++ b/include/linux/math64.h
+@@ -3,6 +3,7 @@
+ #define _LINUX_MATH64_H
+ 
  #include <linux/types.h>
- #include <linux/time.h>
- #include <linux/timex.h>
-+#include <common/jiffies.h>
- #include <asm/param.h>			/* for HZ */
- #include <generated/timeconst.h>
++#include <common/math64.h>
+ #include <asm/div64.h>
  
-@@ -59,9 +60,6 @@
+ #if BITS_PER_LONG == 64
+@@ -142,25 +143,6 @@ static inline s64 div_s64(s64 dividend, s32 divisor)
  
- extern int register_refined_jiffies(long clock_tick_rate);
+ u32 iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder);
  
--/* TICK_NSEC is the time between ticks in nsec assuming SHIFTED_HZ */
--#define TICK_NSEC ((NSEC_PER_SEC+HZ/2)/HZ)
+-static __always_inline u32
+-__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
+-{
+-	u32 ret = 0;
 -
- /* TICK_USEC is the time between ticks in usec assuming SHIFTED_HZ */
- #define TICK_USEC ((USEC_PER_SEC + HZ/2) / HZ)
- 
+-	while (dividend >= divisor) {
+-		/* The following asm() prevents the compiler from
+-		   optimising this loop into a modulo operation.  */
+-		asm("" : "+rm"(dividend));
+-
+-		dividend -= divisor;
+-		ret++;
+-	}
+-
+-	*remainder = dividend;
+-
+-	return ret;
+-}
+-
+ #ifndef mul_u32_u32
+ /*
+  * Many a GCC version messes this up and generates a 64x64 mult :-(
 -- 
 2.25.1
