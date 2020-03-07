@@ -1,77 +1,37 @@
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH] x86/kprobes: Prohibit probing on rcu_nmi_exit() and
- ist_exit()
-Date: Fri, 6 Mar 2020 19:28:31 -0800
-Message-ID: <20200307032831.GL2935@paulmck-ThinkPad-P72>
-References: <158355013189.14191.9105069890402942867.stgit@devnote2>
-Reply-To: paulmck@kernel.org
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v3 07/14] powerpc/32: drop get_pteptr()
+Date: Fri, 6 Mar 2020 20:00:16 -0800
+Message-ID: <20200306200016.6f3865ada0daa68b645fe5d7@linux-foundation.org>
+References: <20200227084608.18223-1-rppt@kernel.org>
+        <20200227084608.18223-8-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <158355013189.14191.9105069890402942867.stgit@devnote2>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, stable@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-hexagon-owner@vger.kernel.org>
+In-Reply-To: <20200227084608.18223-8-rppt@kernel.org>
+Sender: linux-hexagon-owner@vger.kernel.org
+To: Mike Rapoport <rppt@kernel.org>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@sa>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Mar 07, 2020 at 12:02:12PM +0900, Masami Hiramatsu wrote:
-> Prohibit probing on rcu_nmi_exit() and ist_exit() which
-> are called from do_int3()'s kprobe path after kprobe_int3_handler().
-> 
-> The commit c13324a505c7 ("x86/kprobes: Prohibit probing on
-> functions before kprobe_int3_handler()") tried to fix similar
-> issue, but it only marks the functions before kprobe_int3_handler()
-> in do_int3().
-> 
-> If we put a kprobe on rcu_nmi_exit() or ist_exit(), the kprobes
-> will detect reentrance. However, it only skips the kprobe handler,
-> exits from do_int3() and hits ist_exit() and rcu_nmi_exit() again.
-> Thus, it causes another int3 exception and finally we will get
-> the kernel panic with "Unrecoverable kprobe detected." error message.
-> 
-> This is reproducible by the following commands.
-> 
-> / # echo 0 > /proc/sys/debug/kprobes-optimization
-> / # echo p vfs_read > /sys/kernel/debug/tracing/kprobe_events
-> / # echo p rcu_nmi_exit >> /sys/kernel/debug/tracing/kprobe_events
-> / # echo 1 > /sys/kernel/debug/tracing/events/kprobes/enable
-> 
-> Fixes: c13324a505c7 ("x86/kprobes: Prohibit probing on functions before kprobe_int3_handler()")
-> Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-> Cc: stable@vger.kernel.org
+On Thu, 27 Feb 2020 10:46:01 +0200 Mike Rapoport <rppt@kernel.org> wrote:
 
-From an RCU perspective:
-
-Reviewed-by: Paul E. McKenney <paulmck@kernel.org>
-
-> ---
->  arch/x86/kernel/traps.c |    1 +
->  kernel/rcu/tree.c       |    1 +
->  2 files changed, 2 insertions(+)
+> Commit 8d30c14cab30 ("powerpc/mm: Rework I$/D$ coherency (v3)") and
+> commit 90ac19a8b21b ("[POWERPC] Abolish iopa(), mm_ptov(),
+> io_block_mapping() from arch/powerpc") removed the use of get_pteptr()
+> outside of mm/pgtable_32.c
 > 
-> diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-> index 6ef00eb6fbb9..c63fb7697794 100644
-> --- a/arch/x86/kernel/traps.c
-> +++ b/arch/x86/kernel/traps.c
-> @@ -115,6 +115,7 @@ void ist_exit(struct pt_regs *regs)
->  	if (!user_mode(regs))
->  		rcu_nmi_exit();
->  }
-> +NOKPROBE_SYMBOL(ist_exit);
->  
->  /**
->   * ist_begin_non_atomic() - begin a non-atomic section in an IST exception
-> diff --git a/kernel/rcu/tree.c b/kernel/rcu/tree.c
-> index d91c9156fab2..c49ea0e919f9 100644
-> --- a/kernel/rcu/tree.c
-> +++ b/kernel/rcu/tree.c
-> @@ -670,6 +670,7 @@ void rcu_nmi_exit(void)
->  {
->  	rcu_nmi_exit_common(false);
->  }
-> +NOKPROBE_SYMBOL(rcu_nmi_exit);
->  
->  /**
->   * rcu_irq_exit - inform RCU that current CPU is exiting irq towards idle
+> In mm/pgtable_32.c, the only user of get_pteptr() is __change_page_attr()
+> which operates on kernel context and on lowmem pages only.
 > 
+> Move page table traversal to __change_page_attr() and drop get_pteptr().
+
+People have been changing things in linux-next and the powerpc patches
+are hurting.
+
+I'll disable this patch series for now.  Can you please redo
+powerpc-32-drop-get_pteptr.patch and
+powerpc-add-support-for-folded-p4d-page-tables.patch (and
+powerpc-add-support-for-folded-p4d-page-tables-fix.patch)?
+
+Thanks.
