@@ -1,37 +1,85 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v3 07/14] powerpc/32: drop get_pteptr()
-Date: Fri, 6 Mar 2020 20:00:16 -0800
-Message-ID: <20200306200016.6f3865ada0daa68b645fe5d7@linux-foundation.org>
-References: <20200227084608.18223-1-rppt@kernel.org>
-        <20200227084608.18223-8-rppt@kernel.org>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: Re: [PATCH V15] mm/debug: Add tests validating architecture page
+ table helpers
+Date: Sat, 7 Mar 2020 08:05:09 +0100
+Message-ID: <c40d907a-b64b-ae0d-e58f-33dddf0e8edc@c-s.fr>
+References: <61250cdc-f80b-2e50-5168-2ec67ec6f1e6@arm.com>
+ <CEEAD95E-D468-4C58-A65B-7E8AED91168A@lca.pw>
+ <a45834bc-e6f2-ac21-de9e-1aff67d12797@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <20200227084608.18223-8-rppt@kernel.org>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: Mike Rapoport <rppt@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@sa>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:2841 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725907AbgCGHFO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 7 Mar 2020 02:05:14 -0500
+In-Reply-To: <a45834bc-e6f2-ac21-de9e-1aff67d12797@arm.com>
+Content-Language: fr
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Anshuman Khandual <anshuman.khandual@arm.com>, Qian Cai <cai@lca.pw>
+Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org
 
-On Thu, 27 Feb 2020 10:46:01 +0200 Mike Rapoport <rppt@kernel.org> wrote:
 
-> Commit 8d30c14cab30 ("powerpc/mm: Rework I$/D$ coherency (v3)") and
-> commit 90ac19a8b21b ("[POWERPC] Abolish iopa(), mm_ptov(),
-> io_block_mapping() from arch/powerpc") removed the use of get_pteptr()
-> outside of mm/pgtable_32.c
+
+Le 07/03/2020 à 01:56, Anshuman Khandual a écrit :
 > 
-> In mm/pgtable_32.c, the only user of get_pteptr() is __change_page_attr()
-> which operates on kernel context and on lowmem pages only.
 > 
-> Move page table traversal to __change_page_attr() and drop get_pteptr().
+> On 03/07/2020 06:04 AM, Qian Cai wrote:
+>>
+>>
+>>> On Mar 6, 2020, at 7:03 PM, Anshuman Khandual <Anshuman.Khandual@arm.com> wrote:
+>>>
+>>> Hmm, set_pte_at() function is not preferred here for these tests. The idea
+>>> is to avoid or atleast minimize TLB/cache flushes triggered from these sort
+>>> of 'static' tests. set_pte_at() is platform provided and could/might trigger
+>>> these flushes or some other platform specific synchronization stuff. Just
+>>
+>> Why is that important for this debugging option?
+> 
+> Primarily reason is to avoid TLB/cache flush instructions on the system
+> during these tests that only involve transforming different page table
+> level entries through helpers. Unless really necessary, why should it
+> emit any TLB/cache flush instructions ?
 
-People have been changing things in linux-next and the powerpc patches
-are hurting.
+What's the problem with thoses flushes ?
 
-I'll disable this patch series for now.  Can you please redo
-powerpc-32-drop-get_pteptr.patch and
-powerpc-add-support-for-folded-p4d-page-tables.patch (and
-powerpc-add-support-for-folded-p4d-page-tables-fix.patch)?
+> 
+>>
+>>> wondering is there specific reason with respect to the soft lock up problem
+>>> making it necessary to use set_pte_at() rather than a simple WRITE_ONCE() ?
+>>
+>> Looks at the s390 version of set_pte_at(), it has this comment,
+>> vmaddr);
+>>
+>> /*
+>>   * Certain architectures need to do special things when PTEs
+>>   * within a page table are directly modified.  Thus, the following
+>>   * hook is made available.
+>>   */
+>>
+>> I can only guess that powerpc  could be the same here.
+> 
+> This comment is present in multiple platforms while defining set_pte_at().
+> Is not 'barrier()' here alone good enough ? Else what exactly set_pte_at()
+> does as compared to WRITE_ONCE() that avoids the soft lock up, just trying
+> to understand.
+> 
 
-Thanks.
+
+Argh ! I didn't realise that you were writing directly into the page 
+tables. When it works, that's only by chance I guess.
+
+To properly set the page table entries, set_pte_at() has to be used:
+- On powerpc 8xx, with 16k pages, the page table entry must be copied 
+four times. set_pte_at() does it, WRITE_ONCE() doesn't.
+- On powerpc book3s/32 (hash MMU), the flag _PAGE_HASHPTE must be 
+preserved among writes. set_pte_at() preserves it, WRITE_ONCE() doesn't.
+
+set_pte_at() also does a few other mandatory things, like calling 
+pte_mkpte()
+
+So, the WRITE_ONCE() must definitely become a set_pte_at()
+
+Christophe
