@@ -1,104 +1,82 @@
-Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:33392 "EHLO foss.arm.com"
+Return-Path: <SRS0=E3Lo=4Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:41616 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727152AbgCFNdG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Mar 2020 08:33:06 -0500
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 04/20] linux/math64.h: Extract common header for vDSO
-Date: Fri,  6 Mar 2020 13:32:26 +0000
-Message-ID: <20200306133242.26279-5-vincenzo.frascino@arm.com>
-In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
-References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
+        id S1726237AbgCGD2c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Mar 2020 22:28:32 -0500
+Date: Fri, 6 Mar 2020 19:28:31 -0800
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH] x86/kprobes: Prohibit probing on rcu_nmi_exit() and
+ ist_exit()
+Message-ID: <20200307032831.GL2935@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <158355013189.14191.9105069890402942867.stgit@devnote2>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <158355013189.14191.9105069890402942867.stgit@devnote2>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200306133226.4Rh3cBOTg9gB8SJnP_AhN79N1nyTE0kslOprGzfyggg@z>
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Joel Fernandes <joel@joelfernandes.org>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, stable@vger.kernel.org
+Message-ID: <20200307032831.zxLfRT0I_ImBbQ9I_0THy8mNpEhB6dUiSLVg5eY5F2s@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+On Sat, Mar 07, 2020 at 12:02:12PM +0900, Masami Hiramatsu wrote:
+> Prohibit probing on rcu_nmi_exit() and ist_exit() which
+> are called from do_int3()'s kprobe path after kprobe_int3_handler().
+> 
+> The commit c13324a505c7 ("x86/kprobes: Prohibit probing on
+> functions before kprobe_int3_handler()") tried to fix similar
+> issue, but it only marks the functions before kprobe_int3_handler()
+> in do_int3().
+> 
+> If we put a kprobe on rcu_nmi_exit() or ist_exit(), the kprobes
+> will detect reentrance. However, it only skips the kprobe handler,
+> exits from do_int3() and hits ist_exit() and rcu_nmi_exit() again.
+> Thus, it causes another int3 exception and finally we will get
+> the kernel panic with "Unrecoverable kprobe detected." error message.
+> 
+> This is reproducible by the following commands.
+> 
+> / # echo 0 > /proc/sys/debug/kprobes-optimization
+> / # echo p vfs_read > /sys/kernel/debug/tracing/kprobe_events
+> / # echo p rcu_nmi_exit >> /sys/kernel/debug/tracing/kprobe_events
+> / # echo 1 > /sys/kernel/debug/tracing/events/kprobes/enable
+> 
+> Fixes: c13324a505c7 ("x86/kprobes: Prohibit probing on functions before kprobe_int3_handler()")
+> Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
+> Cc: stable@vger.kernel.org
 
-Split math64.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
+From an RCU perspective:
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- include/common/math64.h | 24 ++++++++++++++++++++++++
- include/linux/math64.h  | 20 +-------------------
- 2 files changed, 25 insertions(+), 19 deletions(-)
- create mode 100644 include/common/math64.h
+Reviewed-by: Paul E. McKenney <paulmck@kernel.org>
 
-diff --git a/include/common/math64.h b/include/common/math64.h
-new file mode 100644
-index 000000000000..4e1870e40182
---- /dev/null
-+++ b/include/common/math64.h
-@@ -0,0 +1,24 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_MATH64_H
-+#define __COMMON_MATH64_H
-+
-+static __always_inline u32
-+__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
-+{
-+	u32 ret = 0;
-+
-+	while (dividend >= divisor) {
-+		/* The following asm() prevents the compiler from
-+		   optimising this loop into a modulo operation.  */
-+		asm("" : "+rm"(dividend));
-+
-+		dividend -= divisor;
-+		ret++;
-+	}
-+
-+	*remainder = dividend;
-+
-+	return ret;
-+}
-+
-+#endif /* __COMMON_MATH64_H */
-diff --git a/include/linux/math64.h b/include/linux/math64.h
-index 65bef21cdddb..54eb486b5d1a 100644
---- a/include/linux/math64.h
-+++ b/include/linux/math64.h
-@@ -3,6 +3,7 @@
- #define _LINUX_MATH64_H
- 
- #include <linux/types.h>
-+#include <common/math64.h>
- #include <asm/div64.h>
- 
- #if BITS_PER_LONG == 64
-@@ -142,25 +143,6 @@ static inline s64 div_s64(s64 dividend, s32 divisor)
- 
- u32 iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder);
- 
--static __always_inline u32
--__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
--{
--	u32 ret = 0;
--
--	while (dividend >= divisor) {
--		/* The following asm() prevents the compiler from
--		   optimising this loop into a modulo operation.  */
--		asm("" : "+rm"(dividend));
--
--		dividend -= divisor;
--		ret++;
--	}
--
--	*remainder = dividend;
--
--	return ret;
--}
--
- #ifndef mul_u32_u32
- /*
-  * Many a GCC version messes this up and generates a 64x64 mult :-(
--- 
-2.25.1
+> ---
+>  arch/x86/kernel/traps.c |    1 +
+>  kernel/rcu/tree.c       |    1 +
+>  2 files changed, 2 insertions(+)
+> 
+> diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
+> index 6ef00eb6fbb9..c63fb7697794 100644
+> --- a/arch/x86/kernel/traps.c
+> +++ b/arch/x86/kernel/traps.c
+> @@ -115,6 +115,7 @@ void ist_exit(struct pt_regs *regs)
+>  	if (!user_mode(regs))
+>  		rcu_nmi_exit();
+>  }
+> +NOKPROBE_SYMBOL(ist_exit);
+>  
+>  /**
+>   * ist_begin_non_atomic() - begin a non-atomic section in an IST exception
+> diff --git a/kernel/rcu/tree.c b/kernel/rcu/tree.c
+> index d91c9156fab2..c49ea0e919f9 100644
+> --- a/kernel/rcu/tree.c
+> +++ b/kernel/rcu/tree.c
+> @@ -670,6 +670,7 @@ void rcu_nmi_exit(void)
+>  {
+>  	rcu_nmi_exit_common(false);
+>  }
+> +NOKPROBE_SYMBOL(rcu_nmi_exit);
+>  
+>  /**
+>   * rcu_irq_exit - inform RCU that current CPU is exiting irq towards idle
+> 
