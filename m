@@ -1,44 +1,78 @@
-From: Alex Belits <abelits@marvell.com>
-Subject: Re: [EXT] Re: [PATCH v2 03/12] task_isolation: userspace hard
- isolation from kernel
-Date: Sun, 8 Mar 2020 07:33:26 +0000
-Message-ID: <f0b4a621cf3b49d649ea0b23d93721cf7ca24d6e.camel@marvell.com>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
- <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
- <105f17f25e90a9a58299a7ed644bdd0f36434c87.camel@marvell.com>
- <20200307214254.7a8f6c22@hermes.lan>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <20200307214254.7a8f6c22@hermes.lan>
-Content-Language: en-US
-Content-ID: <964184D5A0236941AA1717025730F649@namprd18.prod.outlook.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: "stephen@networkplumber.org" <stephen@networkplumber.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "peterz@infradead.org" <peterz@infradead.org>, Prasun Kapoor <pkapoor@marvell.com>, "frederic@kernel.org" <frederic@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "davem@davemloft.net" <davem@davemloft.net>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+From: guoren@kernel.org
+Subject: [RFC PATCH V3 00/11] riscv: Add vector ISA support
+Date: Sun,  8 Mar 2020 17:49:43 +0800
+Message-ID: <20200308094954.13258-1-guoren@kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: paul.walmsley@sifive.com, palmer@dabbelt.com, Anup.Patel@wdc.com, greentime.hu@sifive.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-csky@vger.kernel.org, linux-riscv@lists.infradead.org, Guo Ren <guoren@linux.alibaba.com>, Dave Martin <Dave.Martin@arm.com>, Liu Zhiwei <zhiwei_liu@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, 2020-03-07 at 21:42 -0800, Stephen Hemminger wrote:
-> On Sun, 8 Mar 2020 03:47:08 +0000
-> Alex Belits <abelits@marvell.com> wrote:
-> 
-> > +int task_isolation_message(int cpu, int level, bool supp, const
-> > char *fmt, ...);
-> 
-> Since you are doing printf/printk var args you should use the GCC
-> format attributes
-> like printk.
+From: Guo Ren <guoren@linux.alibaba.com>
 
-Agreed.
+The implementation follow the RISC-V "V" Vector Extension draft v0.8 with
+128bit-vlen and it's based on linux-5.6-rc3 and tested with qemu [1].
+
+The patch implement basic context switch, sigcontext save/restore and
+ptrace interface with a new regset NT_RISCV_VECTOR. Only fixed 128bit-vlen
+is implemented. We need to discuss about vlen-size for libc sigcontext and
+ptrace (the maximum size of vlen is unlimited in spec).
+
+Puzzle:
+Dave Martin has talked "Growing CPU register state without breaking ABI" [2]
+before, and riscv also met vlen size problem. Let's discuss the common issue
+for all architectures and we need a better solution for unlimited vlen.
+
+Any help are welcomed :)
+
+ 1: https://github.com/romanheros/qemu.git branch:vector-upstream-v3
+ 2: https://blog.linuxplumbersconf.org/2017/ocw/sessions/4671.html
+
+---
+Changelog V3
+ - Rebase linux-5.6-rc3 and tested with qemu
+ - Seperate patches with Anup's advice
+ - Give out a ABI puzzle with unlimited vlen
+
+Changelog V2
+ - Fixup typo "vecotr, fstate_save->vstate_save".
+ - Fixup wrong saved registers' length in vector.S.
+ - Seperate unrelated patches from this one.
+
+Guo Ren (11):
+  riscv: Separate patch for cflags and aflags
+  riscv: Rename __switch_to_aux -> fpu
+  riscv: Extending cpufeature.c to detect V-extension
+  riscv: Add CSR defines related to VECTOR extension
+  riscv: Add vector feature to compile
+  riscv: Add has_vector detect
+  riscv: Reset vector register
+  riscv: Add vector struct and assembler definitions
+  riscv: Add task switch support for VECTOR
+  riscv: Add ptrace support
+  riscv: Add sigcontext save/restore
+
+ arch/riscv/Kconfig                       |   9 ++
+ arch/riscv/Makefile                      |  19 ++-
+ arch/riscv/include/asm/csr.h             |  17 ++-
+ arch/riscv/include/asm/processor.h       |   1 +
+ arch/riscv/include/asm/switch_to.h       |  54 ++++++-
+ arch/riscv/include/uapi/asm/elf.h        |   1 +
+ arch/riscv/include/uapi/asm/hwcap.h      |   1 +
+ arch/riscv/include/uapi/asm/ptrace.h     |   9 ++
+ arch/riscv/include/uapi/asm/sigcontext.h |   1 +
+ arch/riscv/kernel/Makefile               |   1 +
+ arch/riscv/kernel/asm-offsets.c          | 187 +++++++++++++++++++++++
+ arch/riscv/kernel/cpufeature.c           |  12 +-
+ arch/riscv/kernel/entry.S                |   2 +-
+ arch/riscv/kernel/head.S                 |  49 +++++-
+ arch/riscv/kernel/process.c              |  10 ++
+ arch/riscv/kernel/ptrace.c               |  41 +++++
+ arch/riscv/kernel/signal.c               |  40 +++++
+ arch/riscv/kernel/vector.S               |  84 ++++++++++
+ include/uapi/linux/elf.h                 |   1 +
+ 19 files changed, 524 insertions(+), 15 deletions(-)
+ create mode 100644 arch/riscv/kernel/vector.S
 
 -- 
-Alex
+2.17.0
