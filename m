@@ -1,45 +1,64 @@
-Return-Path: <SRS0=qMZt=5K=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 25 Mar 2020 14:32:01 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: Re: [RFC PATCH v4 0/6] arm64: tlb: add support for TTL feature
-Message-ID: <20200325133201.GI20713@hirez.programming.kicks-ass.net>
-References: <20200324134534.1570-1-yezhenyu2@huawei.com>
- <20200324150155.GH20713@hirez.programming.kicks-ass.net>
- <fb06ba92-a3ce-6925-e914-167a85837f27@huawei.com>
+Return-Path: <SRS0=iRyw=4Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:55176 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1725904AbgCHHQv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 8 Mar 2020 03:16:51 -0400
+From: Alex Belits <abelits@marvell.com>
+Subject: Re: [EXT] Re: [PATCH 03/12] task_isolation: userspace hard isolation
+ from kernel
+Date: Sun, 8 Mar 2020 07:16:06 +0000
+Message-ID: <3dc31856d82141e6600946d2227033a305f7a2b6.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+         <36d84b8dd168a38e6a56549dedc15dd6ebf8c09e.camel@marvell.com>
+         <20200306160035.GD8590@lenoir>
+In-Reply-To: <20200306160035.GD8590@lenoir>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <EA5F4171FE118B469D0E2E1BA562D3E1@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <fb06ba92-a3ce-6925-e914-167a85837f27@huawei.com>
-Sender: owner-linux-mm@kvack.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: mark.rutland@arm.com, catalin.marinas@arm.com, linux-mm@kvack.org, guohanjun@huawei.com, will@kernel.org, linux-arch@vger.kernel.org, yuzhao@google.com, maz@kernel.org, steven.price@arm.com, arm@kernel.org, Dave.Martin@arm.com, arnd@arndb.de, suzuki.poulose@arm.com, npiggin@gmail.com, zhangshaokun@hisilicon.com, broonie@kernel.org, rostedt@goodmis.org, prime.zeng@hisilicon.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, xiexiangyou@huawei.com, linux-kernel@vger.kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200325133201.th2k7M87pfM9OkvXS3qZehcWFthExKgikiJta45gWls@z>
+To: "frederic@kernel.org" <frederic@kernel.org>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-mm@vger.kernel.org" <linux-mm@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20200308071606.LE5VqfueAP4ugXm3Aii1x0ae_U2lOuafKqdSTFWuhgU@z>
 
-On Wed, Mar 25, 2020 at 12:49:45PM +0800, Zhenyu Ye wrote:
-> Hi Peter,
-> 
-> On 2020/3/24 23:01, Peter Zijlstra wrote:
-> > On Tue, Mar 24, 2020 at 09:45:28PM +0800, Zhenyu Ye wrote:
-> >> In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
-> >> feature allows TLBs to be issued with a level allowing for quicker
-> >> invalidation.  This series provide support for this feature. 
-> >>
-> >> Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
-> >> which detect the TTL feature and add __tlbi_level interface.
-> > 
-> > I realy hate how it makes vma->vm_flags more important for tlbi.
-> > 
-> 
-> Thanks for your review.
-> 
-> The tlbi interfaces only have two parameters: vma and addr. If we
-> try to not use vma->vm_flags, we may should have to add a parameter
-> to some of these interfaces(such as flush_tlb_range), which are
-> common to all architectures.
-> 
-> I'm not sure if this is feasible, because this feature is only
-> supported by ARM64 currently.
-
-Power (p9-radix) also has level dependent invalidation instructions, so
-at the very least you can hook them up as well.
+T24gRnJpLCAyMDIwLTAzLTA2IGF0IDE3OjAwICswMTAwLCBGcmVkZXJpYyBXZWlzYmVja2VyIHdy
+b3RlOg0KPiBPbiBXZWQsIE1hciAwNCwgMjAyMCBhdCAwNDowNzoxMlBNICswMDAwLCBBbGV4IEJl
+bGl0cyB3cm90ZToNCj4gPiArI2lmZGVmIENPTkZJR19UQVNLX0lTT0xBVElPTg0KPiA+ICtpbnQg
+dHJ5X3N0b3BfZnVsbF90aWNrKHZvaWQpDQo+ID4gK3sNCj4gPiArCWludCBjcHUgPSBzbXBfcHJv
+Y2Vzc29yX2lkKCk7DQo+ID4gKwlzdHJ1Y3QgdGlja19zY2hlZCAqdHMgPSB0aGlzX2NwdV9wdHIo
+JnRpY2tfY3B1X3NjaGVkKTsNCj4gPiArDQo+ID4gKwkvKiBGb3IgYW4gdW5zdGFibGUgY2xvY2ss
+IHdlIHNob3VsZCByZXR1cm4gYSBwZXJtYW5lbnQgZXJyb3INCj4gPiBjb2RlLiAqLw0KPiA+ICsJ
+aWYgKGF0b21pY19yZWFkKCZ0aWNrX2RlcF9tYXNrKSAmIFRJQ0tfREVQX01BU0tfQ0xPQ0tfVU5T
+VEFCTEUpDQo+ID4gKwkJcmV0dXJuIC1FSU5WQUw7DQo+ID4gKw0KPiA+ICsJaWYgKCFjYW5fc3Rv
+cF9mdWxsX3RpY2soY3B1LCB0cykpDQo+ID4gKwkJcmV0dXJuIC1FQUdBSU47DQo+IA0KPiBOb3Rl
+IHRoYXQgdGhlIHN0b3BfdGljayBuYW1pbmcgaW4gbm9oeiBjYW4gYmUgbWlzbGVhZGluZy4gSXQg
+bWVhbnMNCj4gd2UgYWN0dWFsbHkgbGVhdmUgdGhlIHBlcmlvZGljIG1vZGUgYW5kIHdlIGVudGVy
+IGluIGR5bmFtaWMgdGljaw0KPiBtb2RlLg0KPiANCj4gSW4gcHJhY3RpY2UgaXQgbWVhbnMgdGhh
+dCB0aGUgdGljayBpcyBkZWxheWVkIHVudGlsIHRoZSBuZXh0IGV2ZW50LA0KPiB3aGljaA0KPiBp
+biB0aGUgd29yc3QgY2FzZSBtYXkgd2VsbCBiZSBpbiAxIG1zIGFuZCBpbiB0aGUgYmVzdCBjYXNl
+IG5ldmVyLiBTbw0KPiB3aGF0DQo+IHlvdSBwcm9iYWJseSB3YW50IHRvIGNoZWNrIGluc3RlYWQg
+aXMgd2hldGhlciB0aGUgdGljayBoYXMgYmVlbg0KPiBlbnRpcmVseQ0KPiBzdG9wcGVkIChpZTog
+d2UgY2FsbGVkIGhydGltZXJfY2FuY2VsKCZ0cy0+c2NoZWRfdGltZXIpKS4NCg0KVGhpcyBpcyBh
+IHBhcnQgb2Ygc29sdXRpb24gd2hlcmUgbGlidG1jIGluIHVzZXJzcGFjZSBjaGVja3MgZm9yIHRp
+bWVycw0KZnJvbSBhbm90aGVyIGNvcmUgYmVmb3JlIGl0IGNvbmZpcm1zIHRoYXQgdGhlIGNvcmUg
+dGhhdCBpcyBlbnRlcmluZw0KaXNvbGF0aW9uIGNhbiBjb250aW51ZS4gU2luY2UsIGluZGVlZCwg
+aXQgaXMgcG9zc2libGUgdGhhdCBzb21lIGV2ZW50cw0KYXJlIHBlbmRpbmcsIGl0IGlzIHVwIHRv
+IHVzZXJzcGFjZSB0byB0ZWxsIHRoZSB0YXNrIHRoYXQgaXQncyBub3QNCnJlYWxseSBpc29sYXRl
+ZCB5ZXQsIHNob3VsZCBleGl0IGFuZCByZS1lbnRlciBpc29sYXRpb24gd2hlbiBldmVyeXRoaW5n
+DQppcyBkb25lLiBPciB0aGF0IGl0IHdpbGwgYmUgdG9vIG11Y2ggb2YgdGhlIHdhaXQsIGFuZCBp
+dCBzaG91bGQgYmUgc2Vlbg0KYXMgYW4gZXJyb3IsIHJlcG9ydGVkLCBldGMuDQoNCk1heWJlIGl0
+IHdvdWxkIGJlIGJldHRlciBpZiB3ZSBjaGVja2VkIGZvciB0aW1lciBzdGF0ZSBhbmQgcmV0dXJu
+ZWQNCi1FQUdBSU4gd2hlbiBpdCBpcyBydW5uaW5nIGF0IHRoaXMgcG9pbnQsIGFuZCBsZWZ0IHVz
+ZXJzcGFjZSBjaGVjayBmb3INCnRob3NlIGNhc2VzIHdoZW4gdGhpcyBkaWQgbm90IHdvcmsgZHVl
+IHRvIHNvbWUgcmFjZSBhbmQgcHJlZW1wdGlvbi4NCkhvd2V2ZXIgSSBzdGlsbCB3YW50IHRvIGFz
+c3VtZSB0aGF0IGFzIGxvbmcgYXMgdGhlcmUgaXMgbm8gY29tcGxldGUNCnByb2hpYml0aW9uIG9m
+IHNjaGVkdWxpbmcgdGhpbmdzIG9uIGlzb2xhdGVkIENQVXMsIHRoZXJlIG1pZ2h0IGJlDQp0aGlu
+Z3MgdGhhdCB3aWxsIGVuYWJsZSB0aGlzIHRpbWVyIGF0IHVuZXhwZWN0ZWQgdGltZXMgd2hpbGUg
+d2UgYXJlDQpyZXR1cm5pbmcgdG8gdXNlcnNwYWNlIG9yIGV2ZW4gaW1tZWRpYXRlbHkgYWZ0ZXIg
+d2UgZ290IGludG8gdXNlcnNwYWNlLg0KDQo+IA0KPiBUaGFua3MuDQo+IA0KPiA+ICsNCj4gPiAr
+CXRpY2tfbm9oel9zdG9wX3NjaGVkX3RpY2sodHMsIGNwdSk7DQo+ID4gKwlyZXR1cm4gMDsNCj4g
+PiArfQ0KPiA+ICsjZW5kaWYNCj4gPiArDQo+ID4gIHN0YXRpYyBib29sIGNhbl9zdG9wX2lkbGVf
+dGljayhpbnQgY3B1LCBzdHJ1Y3QgdGlja19zY2hlZCAqdHMpDQo+ID4gIHsNCj4gPiAgCS8qDQo+
+ID4gLS0gDQo+ID4gMi4yMC4xDQo+ID4gDQo=
