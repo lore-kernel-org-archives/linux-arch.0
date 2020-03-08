@@ -1,94 +1,59 @@
-From: Alex Belits <abelits@marvell.com>
-Subject: Re: [EXT] Re: [PATCH 11/12] task_isolation: kick_all_cpus_sync: don't
- kick isolated cpus
-Date: Sun, 8 Mar 2020 06:48:43 +0000
-Message-ID: <7e0ce8988f4811e7453859e22654d2618557d9ab.camel@marvell.com>
+From: Alex Belits <abelits-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>
+Subject: Re: [EXT] Re: [PATCH 03/12] task_isolation: userspace hard isolation
+ from kernel
+Date: Sun, 8 Mar 2020 07:16:06 +0000
+Message-ID: <3dc31856d82141e6600946d2227033a305f7a2b6.camel@marvell.com>
 References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
- <dfa5e0e9f34e6ff0ef048c81bc70496354f31300.camel@marvell.com>
- <20200306153446.GC8590@lenoir>
+         <36d84b8dd168a38e6a56549dedc15dd6ebf8c09e.camel@marvell.com>
+         <20200306160035.GD8590@lenoir>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <20200306153446.GC8590@lenoir>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20200306160035.GD8590@lenoir>
 Content-Language: en-US
-Content-ID: <22B91EB6759F5E429B9A26A5E13F7A1A@namprd18.prod.outlook.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: "frederic@kernel.org" <frederic@kernel.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "peterz@infradead.org" <peterz@infradead.org>, Prasun Kapoor <pkapoor@marvell.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "davem@davemloft.net" <davem@davemloft.net>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Content-ID: <EA5F4171FE118B469D0E2E1BA562D3E1-WIijndS0fTycE4WynfumptQqCkab/8FMAL8bYrjMMd8@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "frederic-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <frederic-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: "mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org" <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, "rostedt-nx8X9YLhiw1AfugRpC6u6w@public.gmane.org" <rostedt-nx8X9YLhiw1AfugRpC6u6w@public.gmane.org>, Prasun Kapoor <pkapoor-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>, "tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org" <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-mm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-mm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2020-03-06 at 16:34 +0100, Frederic Weisbecker wrote:
-> On Wed, Mar 04, 2020 at 04:15:24PM +0000, Alex Belits wrote:
-> > From: Yuri Norov <ynorov@marvell.com>
-> > 
-> > Make sure that kick_all_cpus_sync() does not call CPUs that are
-> > running
-> > isolated tasks.
-> > 
-> > Signed-off-by: Alex Belits <abelits@marvell.com>
-> > ---
-> >  kernel/smp.c | 14 +++++++++++++-
-> >  1 file changed, 13 insertions(+), 1 deletion(-)
-> > 
-> > diff --git a/kernel/smp.c b/kernel/smp.c
-> > index 3a8bcbdd4ce6..d9b4b2fedfed 100644
-> > --- a/kernel/smp.c
-> > +++ b/kernel/smp.c
-> > @@ -731,9 +731,21 @@ static void do_nothing(void *unused)
-> >   */
-> >  void kick_all_cpus_sync(void)
-> >  {
-> > +	struct cpumask mask;
-> > +
-> >  	/* Make sure the change is visible before we kick the cpus */
-> >  	smp_mb();
-> > -	smp_call_function(do_nothing, NULL, 1);
-> > +
-> > +	preempt_disable();
-> > +#ifdef CONFIG_TASK_ISOLATION
-> > +	cpumask_clear(&mask);
-> > +	task_isolation_cpumask(&mask);
-> > +	cpumask_complement(&mask, &mask);
-> > +#else
-> > +	cpumask_setall(&mask);
-> > +#endif
-> > +	smp_call_function_many(&mask, do_nothing, NULL, 1);
-> > +	preempt_enable();
-> >  }
-> 
-> That looks very dangerous, the callers of kick_all_cpus_sync() want
-> to
-> sync all CPUs for a reason. You will rather need to fix the callers.
-
-All callers of this use this function to synchronize IPIs and icache,
-and they have no idea if there is anything special about the state of
-CPUs. If a task is isolated, this call would not be necessary because
-the task is in userspace, and it would have to enter kernel for any of
-that to become relevant but then it will have to switch from userspace
-to kernel. At worst it is returning to userspace after entering
-isolation or back in kernel running cleanup after isolation is broken
-but before tsk_thread_flags_cache is updated. There will be nothing to
-run on the same CPU because we have just left isolation, so task will
-either exit or go back to userspace.
-
-Is there any reason for a race at that point?
-
-> Thanks.
-> 
-> >  EXPORT_SYMBOL_GPL(kick_all_cpus_sync);
-> >  
-> > -- 
-> > 2.20.1
-> > 
-
--- 
-Alex
+T24gRnJpLCAyMDIwLTAzLTA2IGF0IDE3OjAwICswMTAwLCBGcmVkZXJpYyBXZWlzYmVja2VyIHdy
+b3RlOg0KPiBPbiBXZWQsIE1hciAwNCwgMjAyMCBhdCAwNDowNzoxMlBNICswMDAwLCBBbGV4IEJl
+bGl0cyB3cm90ZToNCj4gPiArI2lmZGVmIENPTkZJR19UQVNLX0lTT0xBVElPTg0KPiA+ICtpbnQg
+dHJ5X3N0b3BfZnVsbF90aWNrKHZvaWQpDQo+ID4gK3sNCj4gPiArCWludCBjcHUgPSBzbXBfcHJv
+Y2Vzc29yX2lkKCk7DQo+ID4gKwlzdHJ1Y3QgdGlja19zY2hlZCAqdHMgPSB0aGlzX2NwdV9wdHIo
+JnRpY2tfY3B1X3NjaGVkKTsNCj4gPiArDQo+ID4gKwkvKiBGb3IgYW4gdW5zdGFibGUgY2xvY2ss
+IHdlIHNob3VsZCByZXR1cm4gYSBwZXJtYW5lbnQgZXJyb3INCj4gPiBjb2RlLiAqLw0KPiA+ICsJ
+aWYgKGF0b21pY19yZWFkKCZ0aWNrX2RlcF9tYXNrKSAmIFRJQ0tfREVQX01BU0tfQ0xPQ0tfVU5T
+VEFCTEUpDQo+ID4gKwkJcmV0dXJuIC1FSU5WQUw7DQo+ID4gKw0KPiA+ICsJaWYgKCFjYW5fc3Rv
+cF9mdWxsX3RpY2soY3B1LCB0cykpDQo+ID4gKwkJcmV0dXJuIC1FQUdBSU47DQo+IA0KPiBOb3Rl
+IHRoYXQgdGhlIHN0b3BfdGljayBuYW1pbmcgaW4gbm9oeiBjYW4gYmUgbWlzbGVhZGluZy4gSXQg
+bWVhbnMNCj4gd2UgYWN0dWFsbHkgbGVhdmUgdGhlIHBlcmlvZGljIG1vZGUgYW5kIHdlIGVudGVy
+IGluIGR5bmFtaWMgdGljaw0KPiBtb2RlLg0KPiANCj4gSW4gcHJhY3RpY2UgaXQgbWVhbnMgdGhh
+dCB0aGUgdGljayBpcyBkZWxheWVkIHVudGlsIHRoZSBuZXh0IGV2ZW50LA0KPiB3aGljaA0KPiBp
+biB0aGUgd29yc3QgY2FzZSBtYXkgd2VsbCBiZSBpbiAxIG1zIGFuZCBpbiB0aGUgYmVzdCBjYXNl
+IG5ldmVyLiBTbw0KPiB3aGF0DQo+IHlvdSBwcm9iYWJseSB3YW50IHRvIGNoZWNrIGluc3RlYWQg
+aXMgd2hldGhlciB0aGUgdGljayBoYXMgYmVlbg0KPiBlbnRpcmVseQ0KPiBzdG9wcGVkIChpZTog
+d2UgY2FsbGVkIGhydGltZXJfY2FuY2VsKCZ0cy0+c2NoZWRfdGltZXIpKS4NCg0KVGhpcyBpcyBh
+IHBhcnQgb2Ygc29sdXRpb24gd2hlcmUgbGlidG1jIGluIHVzZXJzcGFjZSBjaGVja3MgZm9yIHRp
+bWVycw0KZnJvbSBhbm90aGVyIGNvcmUgYmVmb3JlIGl0IGNvbmZpcm1zIHRoYXQgdGhlIGNvcmUg
+dGhhdCBpcyBlbnRlcmluZw0KaXNvbGF0aW9uIGNhbiBjb250aW51ZS4gU2luY2UsIGluZGVlZCwg
+aXQgaXMgcG9zc2libGUgdGhhdCBzb21lIGV2ZW50cw0KYXJlIHBlbmRpbmcsIGl0IGlzIHVwIHRv
+IHVzZXJzcGFjZSB0byB0ZWxsIHRoZSB0YXNrIHRoYXQgaXQncyBub3QNCnJlYWxseSBpc29sYXRl
+ZCB5ZXQsIHNob3VsZCBleGl0IGFuZCByZS1lbnRlciBpc29sYXRpb24gd2hlbiBldmVyeXRoaW5n
+DQppcyBkb25lLiBPciB0aGF0IGl0IHdpbGwgYmUgdG9vIG11Y2ggb2YgdGhlIHdhaXQsIGFuZCBp
+dCBzaG91bGQgYmUgc2Vlbg0KYXMgYW4gZXJyb3IsIHJlcG9ydGVkLCBldGMuDQoNCk1heWJlIGl0
+IHdvdWxkIGJlIGJldHRlciBpZiB3ZSBjaGVja2VkIGZvciB0aW1lciBzdGF0ZSBhbmQgcmV0dXJu
+ZWQNCi1FQUdBSU4gd2hlbiBpdCBpcyBydW5uaW5nIGF0IHRoaXMgcG9pbnQsIGFuZCBsZWZ0IHVz
+ZXJzcGFjZSBjaGVjayBmb3INCnRob3NlIGNhc2VzIHdoZW4gdGhpcyBkaWQgbm90IHdvcmsgZHVl
+IHRvIHNvbWUgcmFjZSBhbmQgcHJlZW1wdGlvbi4NCkhvd2V2ZXIgSSBzdGlsbCB3YW50IHRvIGFz
+c3VtZSB0aGF0IGFzIGxvbmcgYXMgdGhlcmUgaXMgbm8gY29tcGxldGUNCnByb2hpYml0aW9uIG9m
+IHNjaGVkdWxpbmcgdGhpbmdzIG9uIGlzb2xhdGVkIENQVXMsIHRoZXJlIG1pZ2h0IGJlDQp0aGlu
+Z3MgdGhhdCB3aWxsIGVuYWJsZSB0aGlzIHRpbWVyIGF0IHVuZXhwZWN0ZWQgdGltZXMgd2hpbGUg
+d2UgYXJlDQpyZXR1cm5pbmcgdG8gdXNlcnNwYWNlIG9yIGV2ZW4gaW1tZWRpYXRlbHkgYWZ0ZXIg
+d2UgZ290IGludG8gdXNlcnNwYWNlLg0KDQo+IA0KPiBUaGFua3MuDQo+IA0KPiA+ICsNCj4gPiAr
+CXRpY2tfbm9oel9zdG9wX3NjaGVkX3RpY2sodHMsIGNwdSk7DQo+ID4gKwlyZXR1cm4gMDsNCj4g
+PiArfQ0KPiA+ICsjZW5kaWYNCj4gPiArDQo+ID4gIHN0YXRpYyBib29sIGNhbl9zdG9wX2lkbGVf
+dGljayhpbnQgY3B1LCBzdHJ1Y3QgdGlja19zY2hlZCAqdHMpDQo+ID4gIHsNCj4gPiAgCS8qDQo+
+ID4gLS0gDQo+ID4gMi4yMC4xDQo+ID4gDQo=
