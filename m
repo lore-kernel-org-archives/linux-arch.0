@@ -1,7 +1,7 @@
 From: guoren@kernel.org
-Subject: [RFC PATCH V3 09/11] riscv: Add task switch support for VECTOR
-Date: Sun,  8 Mar 2020 17:49:52 +0800
-Message-ID: <20200308094954.13258-10-guoren@kernel.org>
+Subject: [RFC PATCH V3 10/11] riscv: Add ptrace support
+Date: Sun,  8 Mar 2020 17:49:53 +0800
+Message-ID: <20200308094954.13258-11-guoren@kernel.org>
 References: <20200308094954.13258-1-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200308094954.13258-1-guoren@kernel.org>
@@ -12,207 +12,105 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-This patch add task switch and task create for VECTOR, and now
-the applications with vector instructions wouldn't be broken by
-linux task switch.
+Add new regset for vector and the implementation is similar to
+fpu.
 
 Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
 ---
- arch/riscv/include/asm/switch_to.h | 48 +++++++++++++++++
- arch/riscv/kernel/Makefile         |  1 +
- arch/riscv/kernel/process.c        | 10 ++++
- arch/riscv/kernel/vector.S         | 84 ++++++++++++++++++++++++++++++
- 4 files changed, 143 insertions(+)
- create mode 100644 arch/riscv/kernel/vector.S
+ arch/riscv/include/uapi/asm/elf.h |  1 +
+ arch/riscv/kernel/ptrace.c        | 41 +++++++++++++++++++++++++++++++
+ include/uapi/linux/elf.h          |  1 +
+ 3 files changed, 43 insertions(+)
 
-diff --git a/arch/riscv/include/asm/switch_to.h b/arch/riscv/include/asm/switch_to.h
-index b9234e7178d0..6e1c7fa599be 100644
---- a/arch/riscv/include/asm/switch_to.h
-+++ b/arch/riscv/include/asm/switch_to.h
-@@ -63,6 +63,52 @@ extern bool has_fpu;
- #define __switch_to_fpu(__prev, __next) do { } while (0)
+diff --git a/arch/riscv/include/uapi/asm/elf.h b/arch/riscv/include/uapi/asm/elf.h
+index d696d6610231..099434d075a7 100644
+--- a/arch/riscv/include/uapi/asm/elf.h
++++ b/arch/riscv/include/uapi/asm/elf.h
+@@ -23,6 +23,7 @@ typedef struct user_regs_struct elf_gregset_t;
+ typedef __u64 elf_fpreg_t;
+ typedef union __riscv_fp_state elf_fpregset_t;
+ #define ELF_NFPREG (sizeof(struct __riscv_d_ext_state) / sizeof(elf_fpreg_t))
++#define ELF_NVREG  (sizeof(struct __riscv_v_state) / sizeof(elf_greg_t))
+ 
+ #if __riscv_xlen == 64
+ #define ELF_RISCV_R_SYM(r_info)		ELF64_R_SYM(r_info)
+diff --git a/arch/riscv/kernel/ptrace.c b/arch/riscv/kernel/ptrace.c
+index 407464201b91..0e3c3543476c 100644
+--- a/arch/riscv/kernel/ptrace.c
++++ b/arch/riscv/kernel/ptrace.c
+@@ -26,6 +26,9 @@ enum riscv_regset {
+ #ifdef CONFIG_FPU
+ 	REGSET_F,
+ #endif
++#ifdef CONFIG_VECTOR
++	REGSET_V,
++#endif
+ };
+ 
+ static int riscv_gpr_get(struct task_struct *target,
+@@ -92,6 +95,34 @@ static int riscv_fpr_set(struct task_struct *target,
+ }
  #endif
  
 +#ifdef CONFIG_VECTOR
-+extern void __vstate_save(struct task_struct *save_to);
-+extern void __vstate_restore(struct task_struct *restore_from);
-+
-+static inline void __vstate_clean(struct pt_regs *regs)
++static int riscv_vr_get(struct task_struct *target,
++			 const struct user_regset *regset,
++			 unsigned int pos, unsigned int count,
++			 void *kbuf, void __user *ubuf)
 +{
-+	regs->status |= (regs->status & ~(SR_VS)) | SR_VS_CLEAN;
++	int ret;
++	struct __riscv_v_state *vstate = &target->thread.vstate;
++
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, vstate, 0,
++				  offsetof(struct __riscv_v_state, vtype));
++	return ret;
 +}
 +
-+static inline void vstate_save(struct task_struct *task,
-+			       struct pt_regs *regs)
++static int riscv_vr_set(struct task_struct *target,
++			 const struct user_regset *regset,
++			 unsigned int pos, unsigned int count,
++			 const void *kbuf, const void __user *ubuf)
 +{
-+	if ((regs->status & SR_VS) == SR_VS_DIRTY) {
-+		__vstate_save(task);
-+		__vstate_clean(regs);
-+	}
++	int ret;
++	struct __riscv_v_state *vstate = &target->thread.vstate;
++
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, vstate, 0,
++				 offsetof(struct __riscv_v_state, vtype));
++	return ret;
 +}
-+
-+static inline void vstate_restore(struct task_struct *task,
-+				  struct pt_regs *regs)
-+{
-+	if ((regs->status & SR_VS) != SR_VS_OFF) {
-+		__vstate_restore(task);
-+		__vstate_clean(regs);
-+	}
-+}
-+
-+static inline void __switch_to_vector(struct task_struct *prev,
-+				   struct task_struct *next)
-+{
-+	struct pt_regs *regs;
-+
-+	regs = task_pt_regs(prev);
-+	if (unlikely(regs->status & SR_SD))
-+		vstate_save(prev, regs);
-+	vstate_restore(next, task_pt_regs(next));
-+}
-+
-+extern bool has_vector;
-+#else
-+#define has_vector false
-+#define vstate_save(task, regs) do { } while (0)
-+#define vstate_restore(task, regs) do { } while (0)
-+#define __switch_to_vector(__prev, __next) do { } while (0)
 +#endif
 +
- extern struct task_struct *__switch_to(struct task_struct *,
- 				       struct task_struct *);
+ static const struct user_regset riscv_user_regset[] = {
+ 	[REGSET_X] = {
+ 		.core_note_type = NT_PRSTATUS,
+@@ -111,6 +142,16 @@ static const struct user_regset riscv_user_regset[] = {
+ 		.set = &riscv_fpr_set,
+ 	},
+ #endif
++#ifdef CONFIG_VECTOR
++	[REGSET_V] = {
++		.core_note_type = NT_RISCV_VECTOR,
++		.n = ELF_NVREG,
++		.size = sizeof(elf_greg_t),
++		.align = sizeof(elf_greg_t),
++		.get = &riscv_vr_get,
++		.set = &riscv_vr_set,
++	},
++#endif
+ };
  
-@@ -72,6 +118,8 @@ do {							\
- 	struct task_struct *__next = (next);		\
- 	if (has_fpu)					\
- 		__switch_to_fpu(__prev, __next);	\
-+	if (has_vector)					\
-+		__switch_to_vector(__prev, __next);	\
- 	((last) = __switch_to(__prev, __next));		\
- } while (0)
+ static const struct user_regset_view riscv_user_native_view = {
+diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+index 34c02e4290fe..e428f9e8710a 100644
+--- a/include/uapi/linux/elf.h
++++ b/include/uapi/linux/elf.h
+@@ -428,6 +428,7 @@ typedef struct elf64_shdr {
+ #define NT_MIPS_DSP	0x800		/* MIPS DSP ASE registers */
+ #define NT_MIPS_FP_MODE	0x801		/* MIPS floating-point mode */
+ #define NT_MIPS_MSA	0x802		/* MIPS SIMD registers */
++#define NT_RISCV_VECTOR	0x900		/* RISC-V vector registers */
  
-diff --git a/arch/riscv/kernel/Makefile b/arch/riscv/kernel/Makefile
-index f40205cb9a22..e5276c3bdffc 100644
---- a/arch/riscv/kernel/Makefile
-+++ b/arch/riscv/kernel/Makefile
-@@ -30,6 +30,7 @@ obj-$(CONFIG_MMU) += vdso.o vdso/
- 
- obj-$(CONFIG_RISCV_M_MODE)	+= clint.o
- obj-$(CONFIG_FPU)		+= fpu.o
-+obj-$(CONFIG_VECTOR)		+= vector.o
- obj-$(CONFIG_SMP)		+= smpboot.o
- obj-$(CONFIG_SMP)		+= smp.o
- obj-$(CONFIG_MODULES)		+= module.o
-diff --git a/arch/riscv/kernel/process.c b/arch/riscv/kernel/process.c
-index 817cf7b0974c..c572557701b4 100644
---- a/arch/riscv/kernel/process.c
-+++ b/arch/riscv/kernel/process.c
-@@ -74,6 +74,16 @@ void start_thread(struct pt_regs *regs, unsigned long pc,
- 		 */
- 		fstate_restore(current, regs);
- 	}
-+
-+	if (has_vector) {
-+		regs->status |= SR_VS_INITIAL;
-+		/*
-+		 * Restore the initial value to the vector register
-+		 * before starting the user program.
-+		 */
-+		vstate_restore(current, regs);
-+	}
-+
- 	regs->epc = pc;
- 	regs->sp = sp;
- 	set_fs(USER_DS);
-diff --git a/arch/riscv/kernel/vector.S b/arch/riscv/kernel/vector.S
-new file mode 100644
-index 000000000000..dbe1989fa9d7
---- /dev/null
-+++ b/arch/riscv/kernel/vector.S
-@@ -0,0 +1,84 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2012 Regents of the University of California
-+ * Copyright (C) 2017 SiFive
-+ * Copyright (C) 2019 Alibaba Group Holding Limited
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful,
-+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *   GNU General Public License for more details.
-+ */
-+
-+#include <linux/linkage.h>
-+
-+#include <asm/asm.h>
-+#include <asm/csr.h>
-+#include <asm/asm-offsets.h>
-+
-+ENTRY(__vstate_save)
-+	li	a2,  TASK_THREAD_V0
-+	add	a0,  a0, a2
-+
-+	li	t1, (SR_VS | SR_FS)
-+	csrs	sstatus, t1
-+
-+	csrr	t0,  CSR_VSTART
-+	sd	t0,  TASK_THREAD_VSTART_V0(a0)
-+	csrr	t0,  CSR_VXSAT
-+	sd	t0,  TASK_THREAD_VXSAT_V0(a0)
-+	csrr	t0,  CSR_VXRM
-+	sd	t0,  TASK_THREAD_VXRM_V0(a0)
-+	csrr	t0,  CSR_VL
-+	sd	t0,  TASK_THREAD_VL_V0(a0)
-+	csrr	t0,  CSR_VTYPE
-+	sd	t0,  TASK_THREAD_VTYPE_V0(a0)
-+
-+	vsetvli	t0, x0, e8,m8
-+	vsb.v	v0,  (a0)
-+	addi	a0, a0, 128*8
-+	vsb.v	v8,  (a0)
-+	addi	a0, a0, 128*8
-+	vsb.v	v16, (a0)
-+	addi	a0, a0, 128*8
-+	vsb.v	v24, (a0)
-+
-+	csrc	sstatus, t1
-+	ret
-+ENDPROC(__vstate_save)
-+
-+ENTRY(__vstate_restore)
-+	li	a2,  TASK_THREAD_V0
-+	add	a0,  a0, a2
-+	mv	t2,  a0
-+
-+	li	t1, (SR_VS | SR_FS)
-+	csrs	sstatus, t1
-+
-+	vsetvli	t0, x0, e8,m8
-+	vlb.v	v0,  (a0)
-+	addi	a0, a0, 128*8
-+	vlb.v	v8,  (a0)
-+	addi	a0, a0, 128*8
-+	vlb.v	v16, (a0)
-+	addi	a0, a0, 128*8
-+	vlb.v	v24, (a0)
-+
-+	mv	a0,  t2
-+	ld	t0,  TASK_THREAD_VSTART_V0(a0)
-+	csrw	CSR_VSTART, t0
-+	ld	t0,  TASK_THREAD_VXSAT_V0(a0)
-+	csrw	CSR_VXSAT, t0
-+	ld	t0,  TASK_THREAD_VXRM_V0(a0)
-+	csrw	CSR_VXRM, t0
-+	ld	t0,  TASK_THREAD_VL_V0(a0)
-+	ld	t2,  TASK_THREAD_VTYPE_V0(a0)
-+	vsetvl	t0, t0, t2
-+
-+	csrc	sstatus, t1
-+	ret
-+ENDPROC(__vstate_restore)
+ /* Note header in a PT_NOTE section */
+ typedef struct elf32_note {
 -- 
 2.17.0
