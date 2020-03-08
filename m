@@ -1,35 +1,46 @@
-Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from userp2130.oracle.com ([156.151.31.86]:49724 "EHLO
-        userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726772AbgCMAit (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2020 20:38:49 -0400
-Subject: Re: [PATCH v1] asm-generic: Provide generic {get, put}_unaligned_{l, b}e24()
-From: "Martin K. Petersen" <martin.petersen@oracle.com>
-References: <20200312113941.81162-1-andriy.shevchenko@linux.intel.com>
-        <efe5daa3-8e37-101a-9203-676be33eb934@acm.org>
-        <20200312162507.GF1922688@smile.fi.intel.com>
-        <6d932620-3255-fbd8-7fc8-22e4b3068043@acm.org>
-        <CAO+b5-rXUU9r-SrCWq2cYbBr5xFqyx4CUMb8xHZv2xYzEP6CyA@mail.gmail.com>
-Date: Thu, 12 Mar 2020 20:38:10 -0400
-In-Reply-To: <CAO+b5-rXUU9r-SrCWq2cYbBr5xFqyx4CUMb8xHZv2xYzEP6CyA@mail.gmail.com>
-        (Bart Van Assche's message of "Thu, 12 Mar 2020 17:29:37 -0700")
-Message-ID: <yq1v9n9nl71.fsf@oracle.com>
+Return-Path: <SRS0=iRyw=4Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:55008 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726138AbgCHDyF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 7 Mar 2020 22:54:05 -0500
+From: Alex Belits <abelits@marvell.com>
+Subject: [PATCH v2 08/12] task_isolation: don't interrupt CPUs with
+ tick_nohz_full_kick_cpu()
+Date: Sun, 8 Mar 2020 03:53:35 +0000
+Message-ID: <0b4615be96008d1031efd3ed309437c05d564019.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+In-Reply-To: <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <12BFA578C199064E880E6064C4B51C83@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bart Van Assche <bvanassche@acm.org>
-Cc: "Martin K. Petersen" <martin.petersen@oracle.com>, Keith Busch <kbusch@kernel.org>, Jens Axboe <axboe@fb.com>, Christoph Hellwig <hch@lst.de>, Sagi Grimberg <sagi@grimberg.me>, Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>, "linux-nvme @ lists . infradead . org" <linux-nvme@lists.infradead.org>, Felipe Balbi <balbi@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, USB list <linux-usb@vger.kernel.org>, Linux SCSI Mailinglist <linux-scsi@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Message-ID: <20200313003810.YH_-zkWWPG6CkCT1SU7Lyo11D0oqN4F41YZSm1onGvM@z>
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will@kernel.org" <will@kernel.org>
+Message-ID: <20200308035335.KeJC_jQoUwqxJaGl-GHGJP6kprgCRksFqQWfwkolZuM@z>
 
-
-Bart,
-
-> Martin, can I send the second version of my patch series to you or do
-> you perhaps prefer that I send it to another kernel maintainer? I'm
-> considering to include the following patches:
-
-Happy to take it.
-
--- 
-Martin K. Petersen	Oracle Linux Engineering
+RnJvbTogWXVyaSBOb3JvdiA8eW5vcm92QG1hcnZlbGwuY29tPg0KDQpGb3Igbm9oel9mdWxsIENQ
+VXMgdGhlIGRlc2lyYWJsZSBiZWhhdmlvciBpcyB0byByZWNlaXZlIGludGVycnVwdHMNCmdlbmVy
+YXRlZCBieSB0aWNrX25vaHpfZnVsbF9raWNrX2NwdSgpLiBCdXQgZm9yIGhhcmQgaXNvbGF0aW9u
+IGl0J3MNCm9idmlvdXNseSBub3QgZGVzaXJhYmxlIGJlY2F1c2UgaXQgYnJlYWtzIGlzb2xhdGlv
+bi4NCg0KVGhpcyBwYXRjaCBhZGRzIGNoZWNrIGZvciBpdC4NCg0KU2lnbmVkLW9mZi1ieTogWXVy
+aSBOb3JvdiA8eW5vcm92QG1hcnZlbGwuY29tPg0KW2FiZWxpdHNAbWFydmVsbC5jb206IHVwZGF0
+ZWQsIG9ubHkgZXhjbHVkZSBDUFVzIHJ1bm5pbmcgaXNvbGF0ZWQgdGFza3NdDQpTaWduZWQtb2Zm
+LWJ5OiBBbGV4IEJlbGl0cyA8YWJlbGl0c0BtYXJ2ZWxsLmNvbT4NCi0tLQ0KIGtlcm5lbC90aW1l
+L3RpY2stc2NoZWQuYyB8IDMgKystDQogMSBmaWxlIGNoYW5nZWQsIDIgaW5zZXJ0aW9ucygrKSwg
+MSBkZWxldGlvbigtKQ0KDQpkaWZmIC0tZ2l0IGEva2VybmVsL3RpbWUvdGljay1zY2hlZC5jIGIv
+a2VybmVsL3RpbWUvdGljay1zY2hlZC5jDQppbmRleCAxZDRkZWM5ZDNlZTcuLmZlNDUwM2JhMTMx
+NiAxMDA2NDQNCi0tLSBhL2tlcm5lbC90aW1lL3RpY2stc2NoZWQuYw0KKysrIGIva2VybmVsL3Rp
+bWUvdGljay1zY2hlZC5jDQpAQCAtMjAsNiArMjAsNyBAQA0KICNpbmNsdWRlIDxsaW51eC9zY2hl
+ZC9jbG9jay5oPg0KICNpbmNsdWRlIDxsaW51eC9zY2hlZC9zdGF0Lmg+DQogI2luY2x1ZGUgPGxp
+bnV4L3NjaGVkL25vaHouaD4NCisjaW5jbHVkZSA8bGludXgvaXNvbGF0aW9uLmg+DQogI2luY2x1
+ZGUgPGxpbnV4L21vZHVsZS5oPg0KICNpbmNsdWRlIDxsaW51eC9pcnFfd29yay5oPg0KICNpbmNs
+dWRlIDxsaW51eC9wb3NpeC10aW1lcnMuaD4NCkBAIC0yNjIsNyArMjYzLDcgQEAgc3RhdGljIHZv
+aWQgdGlja19ub2h6X2Z1bGxfa2ljayh2b2lkKQ0KICAqLw0KIHZvaWQgdGlja19ub2h6X2Z1bGxf
+a2lja19jcHUoaW50IGNwdSkNCiB7DQotCWlmICghdGlja19ub2h6X2Z1bGxfY3B1KGNwdSkpDQor
+CWlmICghdGlja19ub2h6X2Z1bGxfY3B1KGNwdSkgfHwgdGFza19pc29sYXRpb25fb25fY3B1KGNw
+dSkpDQogCQlyZXR1cm47DQogDQogCWlycV93b3JrX3F1ZXVlX29uKCZwZXJfY3B1KG5vaHpfZnVs
+bF9raWNrX3dvcmssIGNwdSksIGNwdSk7DQotLSANCjIuMjAuMQ0KDQo=
