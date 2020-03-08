@@ -1,94 +1,54 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37226 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726452AbgCQMYG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 08:24:06 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 23/26] x86: vdso: Enable x86 to use common headers
-Date: Tue, 17 Mar 2020 12:22:17 +0000
-Message-ID: <20200317122220.30393-24-vincenzo.frascino@arm.com>
-In-Reply-To: <20200317122220.30393-1-vincenzo.frascino@arm.com>
-References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=iRyw=4Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:60290 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726346AbgCHVHy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 8 Mar 2020 17:07:54 -0400
+Subject: Re: [PATCH 3/3] docs: atomic_ops: Steer readers towards using
+ refcount_t for reference counts
+References: <20200308195618.22768-1-j.neuschaefer@gmx.net>
+ <20200308200007.23314-1-j.neuschaefer@gmx.net>
+From: Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <7ff7dc4e-d606-e2a1-edce-a0485e948e48@infradead.org>
+Date: Sun, 8 Mar 2020 14:07:46 -0700
 MIME-Version: 1.0
+In-Reply-To: <20200308200007.23314-1-j.neuschaefer@gmx.net>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200317122217.fXf8WmYUOv_ynr3Kj9awpeIV6ypBL_9bYr1ENiLDGfc@z>
+To: =?UTF-8?Q?Jonathan_Neusch=c3=a4fer?= <j.neuschaefer@gmx.net>, linux-doc@vger.kernel.org
+Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200308210746.-1hDJ3HyFhYbT-cibb25TpUZnZjuxaY9WPQ92oruX7o@z>
 
-Enable x86 to use only the common headers in the implementation
-of the vDSO library.
+On 3/8/20 1:00 PM, Jonathan Neuschäfer wrote:
+> Signed-off-by: Jonathan Neuschäfer <j.neuschaefer@gmx.net>
+> ---
+>  Documentation/core-api/atomic_ops.rst         | 6 ++++++
+>  Documentation/core-api/refcount-vs-atomic.rst | 2 ++
+>  2 files changed, 8 insertions(+)
+> 
+> diff --git a/Documentation/core-api/atomic_ops.rst b/Documentation/core-api/atomic_ops.rst
+> index 73033fc954ad..37a0ffe1a9f1 100644
+> --- a/Documentation/core-api/atomic_ops.rst
+> +++ b/Documentation/core-api/atomic_ops.rst
+> @@ -392,6 +392,12 @@ be guaranteed that no other entity can be accessing the object::
+>  	memory barriers in kfree_skb() that exposed the atomic_t memory barrier
+>  	requirements quite clearly.
+> 
+> +.. note::
+> +
+> +        More recently, reference counts are implement using the
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- arch/x86/include/asm/processor.h      | 12 +-----------
- arch/x86/include/asm/vdso/processor.h | 23 +++++++++++++++++++++++
- 2 files changed, 24 insertions(+), 11 deletions(-)
- create mode 100644 arch/x86/include/asm/vdso/processor.h
+                                               implemented
 
-diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
-index 09705ccc393c..94789db550df 100644
---- a/arch/x86/include/asm/processor.h
-+++ b/arch/x86/include/asm/processor.h
-@@ -26,6 +26,7 @@ struct vm86;
- #include <asm/fpu/types.h>
- #include <asm/unwind_hints.h>
- #include <asm/vmxfeatures.h>
-+#include <asm/vdso/processor.h>
- 
- #include <linux/personality.h>
- #include <linux/cache.h>
-@@ -677,17 +678,6 @@ static inline unsigned int cpuid_edx(unsigned int op)
- 	return edx;
- }
- 
--/* REP NOP (PAUSE) is a good thing to insert into busy-wait loops. */
--static __always_inline void rep_nop(void)
--{
--	asm volatile("rep; nop" ::: "memory");
--}
--
--static __always_inline void cpu_relax(void)
--{
--	rep_nop();
--}
--
- /*
-  * This function forces the icache and prefetched instruction stream to
-  * catch up with reality in two very specific cases:
-diff --git a/arch/x86/include/asm/vdso/processor.h b/arch/x86/include/asm/vdso/processor.h
-new file mode 100644
-index 000000000000..57b1a7034c64
---- /dev/null
-+++ b/arch/x86/include/asm/vdso/processor.h
-@@ -0,0 +1,23 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Copyright (C) 2020 ARM Ltd.
-+ */
-+#ifndef __ASM_VDSO_PROCESSOR_H
-+#define __ASM_VDSO_PROCESSOR_H
-+
-+#ifndef __ASSEMBLY__
-+
-+/* REP NOP (PAUSE) is a good thing to insert into busy-wait loops. */
-+static __always_inline void rep_nop(void)
-+{
-+	asm volatile("rep; nop" ::: "memory");
-+}
-+
-+static __always_inline void cpu_relax(void)
-+{
-+	rep_nop();
-+}
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __ASM_VDSO_PROCESSOR_H */
+> +        :ref:`refcount_t <refcount_t_vs_atomic_t>` type, which works like
+> +        atomic_t but protects against wraparound.
+> +
+>  Given the above scheme, it must be the case that the obj->active
+>  update done by the obj list deletion be visible to other processors
+>  before the atomic counter decrement is performed.
+
+
 -- 
-2.25.1
+~Randy
