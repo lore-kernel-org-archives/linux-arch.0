@@ -1,86 +1,121 @@
-Return-Path: <SRS0=SxwR=5E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-bn8nam11on2123.outbound.protection.outlook.com ([40.107.236.123]:34400
-        "EHLO NAM11-BN8-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725747AbgCSVFC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Mar 2020 17:05:02 -0400
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH v6 03/10] arm64: hyperv: Add hypercall and register access
- functions
-Date: Thu, 19 Mar 2020 21:04:58 +0000
-Message-ID: <MW2PR2101MB1052AAC1EE6AC082C9ED6779D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <20200318031130.5476-1-hdanton@sina.com>
-In-Reply-To: <20200318031130.5476-1-hdanton@sina.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-MIME-Version: 1.0
+Return-Path: <SRS0=iRyw=4Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:38076 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726645AbgCHJxq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 8 Mar 2020 05:53:46 -0400
+From: guoren@kernel.org
+Subject: [RFC PATCH V3 10/11] riscv: Add ptrace support
+Date: Sun,  8 Mar 2020 17:49:53 +0800
+Message-ID: <20200308094954.13258-11-guoren@kernel.org>
+In-Reply-To: <20200308094954.13258-1-guoren@kernel.org>
+References: <20200308094954.13258-1-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hillf Danton <hdanton@sina.com>
-Cc: "will@kernel.org" <will@kernel.org>, "ardb@kernel.org" <ardb@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "maz@kernel.org" <maz@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, "apw@canonical.com" <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, "jasowang@redhat.com" <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, "boqun.feng@gmail.com" <boqun.feng@gmail.com>
-Message-ID: <20200319210458.QCXImayUqT0M4o5MoEG7QXgo_VAediEVK8I1xBy151M@z>
+To: paul.walmsley@sifive.com, palmer@dabbelt.com, Anup.Patel@wdc.com, greentime.hu@sifive.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-csky@vger.kernel.org, linux-riscv@lists.infradead.org, Guo Ren <guoren@linux.alibaba.com>, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20200308094953.pdnCTVAI46_ufUGkxjSjHbp5IavPtdNluUliLHCezM0@z>
 
-From: Hillf Danton <hdanton@sina.com> Sent: Tuesday, March 17, 2020 8:12 PM
->=20
-> On Sat, 14 Mar 2020 08:35:12 -0700 Michael Kelley wrote:
-> > +/*
-> > + * Get the value of a single VP register.  One version
-> > + * returns just 64 bits and another returns the full 128 bits.
-> > + * The two versions are separate to avoid complicating the
-> > + * calling sequence for the more frequently used 64 bit version.
-> > + */
-> > +
-> > +/*
-> > + * Input and output memory allocation sizes are rounded up to a power
-> > + * of 2 so kmalloc() will guarantee alignment. In turn, the alignment
-> > + * ensures that the allocations don't cross a page boundary, which is
->=20
-> Better to specify kmalloc's current alignment and why it fails to ensure
-> (4 * sizeof(u64))-sized allocations wont cross page boundary.
->=20
+From: Guo Ren <guoren@linux.alibaba.com>
 
-Is your comment referring to ARCH_KMALLOC_MINALIGN?  If so, I see
-how that makes sense.  BUILD_BUG_ON (sizeof (*input) >
-ARCH_KMALLOC_MINALIGN) would be a cleaner solution.=20
+Add new regset for vector and the implementation is similar to
+fpu.
 
-Thanks,
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+---
+ arch/riscv/include/uapi/asm/elf.h |  1 +
+ arch/riscv/kernel/ptrace.c        | 41 +++++++++++++++++++++++++++++++
+ include/uapi/linux/elf.h          |  1 +
+ 3 files changed, 43 insertions(+)
 
-Michael
-
-> > + * required by the hypercall interface.
-> > + */
-> > +#define INPUTSIZE (4 * sizeof(u64))
-> > +#define OUTPUTSIZE (2 * sizeof(u64))
-> > +
-> > +static void __hv_get_vpreg_128(u32 msr, struct hv_get_vp_register_outp=
-ut *res)
-> > +{
-> > +	union hv_hypercall_status		status;
-> > +	struct hv_get_vp_register_input		*input;
-> > +
-> > +	BUILD_BUG_ON(sizeof(*input) > INPUTSIZE);
-> > +
-> > +	input =3D kzalloc(INPUTSIZE, GFP_ATOMIC);
-> > +
-> > +	input->partitionid =3D HV_PARTITION_ID_SELF;
-> > +	input->vpindex =3D HV_VP_INDEX_SELF;
-> > +	input->inputvtl =3D 0;
-> > +	input->name0 =3D msr;
-> > +	input->name1 =3D 0;
-> > +
-> > +
-> > +	status.as_uint64 =3D hv_do_hypercall(
-> > +		HVCALL_GET_VP_REGISTERS | HV_HYPERCALL_REP_COUNT_1,
-> > +		input, res);
-> > +
-> > +	/*
-> > +	 * Something is fundamentally broken in the hypervisor if
-> > +	 * getting a VP register fails. There's really no way to
-> > +	 * continue as a guest VM, so panic.
-> > +	 */
-> > +	BUG_ON(status.status !=3D HV_STATUS_SUCCESS);
-> > +
-> > +	kfree(input);
-> > +}
+diff --git a/arch/riscv/include/uapi/asm/elf.h b/arch/riscv/include/uapi/asm/elf.h
+index d696d6610231..099434d075a7 100644
+--- a/arch/riscv/include/uapi/asm/elf.h
++++ b/arch/riscv/include/uapi/asm/elf.h
+@@ -23,6 +23,7 @@ typedef struct user_regs_struct elf_gregset_t;
+ typedef __u64 elf_fpreg_t;
+ typedef union __riscv_fp_state elf_fpregset_t;
+ #define ELF_NFPREG (sizeof(struct __riscv_d_ext_state) / sizeof(elf_fpreg_t))
++#define ELF_NVREG  (sizeof(struct __riscv_v_state) / sizeof(elf_greg_t))
+ 
+ #if __riscv_xlen == 64
+ #define ELF_RISCV_R_SYM(r_info)		ELF64_R_SYM(r_info)
+diff --git a/arch/riscv/kernel/ptrace.c b/arch/riscv/kernel/ptrace.c
+index 407464201b91..0e3c3543476c 100644
+--- a/arch/riscv/kernel/ptrace.c
++++ b/arch/riscv/kernel/ptrace.c
+@@ -26,6 +26,9 @@ enum riscv_regset {
+ #ifdef CONFIG_FPU
+ 	REGSET_F,
+ #endif
++#ifdef CONFIG_VECTOR
++	REGSET_V,
++#endif
+ };
+ 
+ static int riscv_gpr_get(struct task_struct *target,
+@@ -92,6 +95,34 @@ static int riscv_fpr_set(struct task_struct *target,
+ }
+ #endif
+ 
++#ifdef CONFIG_VECTOR
++static int riscv_vr_get(struct task_struct *target,
++			 const struct user_regset *regset,
++			 unsigned int pos, unsigned int count,
++			 void *kbuf, void __user *ubuf)
++{
++	int ret;
++	struct __riscv_v_state *vstate = &target->thread.vstate;
++
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, vstate, 0,
++				  offsetof(struct __riscv_v_state, vtype));
++	return ret;
++}
++
++static int riscv_vr_set(struct task_struct *target,
++			 const struct user_regset *regset,
++			 unsigned int pos, unsigned int count,
++			 const void *kbuf, const void __user *ubuf)
++{
++	int ret;
++	struct __riscv_v_state *vstate = &target->thread.vstate;
++
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, vstate, 0,
++				 offsetof(struct __riscv_v_state, vtype));
++	return ret;
++}
++#endif
++
+ static const struct user_regset riscv_user_regset[] = {
+ 	[REGSET_X] = {
+ 		.core_note_type = NT_PRSTATUS,
+@@ -111,6 +142,16 @@ static const struct user_regset riscv_user_regset[] = {
+ 		.set = &riscv_fpr_set,
+ 	},
+ #endif
++#ifdef CONFIG_VECTOR
++	[REGSET_V] = {
++		.core_note_type = NT_RISCV_VECTOR,
++		.n = ELF_NVREG,
++		.size = sizeof(elf_greg_t),
++		.align = sizeof(elf_greg_t),
++		.get = &riscv_vr_get,
++		.set = &riscv_vr_set,
++	},
++#endif
+ };
+ 
+ static const struct user_regset_view riscv_user_native_view = {
+diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+index 34c02e4290fe..e428f9e8710a 100644
+--- a/include/uapi/linux/elf.h
++++ b/include/uapi/linux/elf.h
+@@ -428,6 +428,7 @@ typedef struct elf64_shdr {
+ #define NT_MIPS_DSP	0x800		/* MIPS DSP ASE registers */
+ #define NT_MIPS_FP_MODE	0x801		/* MIPS floating-point mode */
+ #define NT_MIPS_MSA	0x802		/* MIPS SIMD registers */
++#define NT_RISCV_VECTOR	0x900		/* RISC-V vector registers */
+ 
+ /* Note header in a PT_NOTE section */
+ typedef struct elf32_note {
+-- 
+2.17.0
