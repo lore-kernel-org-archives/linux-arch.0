@@ -1,49 +1,103 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:41546 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726452AbgCQSt0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 14:49:26 -0400
-Date: Tue, 17 Mar 2020 18:49:20 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
-Message-ID: <20200317184920.GI632169@arrakis.emea.arm.com>
-References: <20200316165055.31179-1-broonie@kernel.org>
+Return-Path: <SRS0=iRyw=4Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:9712 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726174AbgCHDsn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 7 Mar 2020 22:48:43 -0500
+From: Alex Belits <abelits@marvell.com>
+Subject: [PATCH v2 04/12] task_isolation: Add task isolation hooks to
+ arch-independent code
+Date: Sun, 8 Mar 2020 03:48:14 +0000
+Message-ID: <fe04f7ef54cac1ea4abb1a01963b27796261fef6.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+In-Reply-To: <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <E26DEC7E7D52154398780542E04450B8@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200317184920.r_m2HZMjbd8ixqfOyv5-FaDW3V0JyhgSdvDz04e4Cpc@z>
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will@kernel.org" <will@kernel.org>
+Message-ID: <20200308034814.6BS3AkAMCh3lhxunDkz-QuRk83-T_54HuYzih_Fj_QQ@z>
 
-On Mon, Mar 16, 2020 at 04:50:42PM +0000, Mark Brown wrote:
-> Daniel Kiss (1):
->   mm: smaps: Report arm64 guarded pages in smaps
-> 
-> Dave Martin (11):
->   ELF: UAPI and Kconfig additions for ELF program properties
->   ELF: Add ELF program property parsing support
->   arm64: Basic Branch Target Identification support
->   elf: Allow arch to tweak initial mmap prot flags
->   arm64: elf: Enable BTI at exec based on ELF program properties
->   arm64: BTI: Decode BYTPE bits when printing PSTATE
->   arm64: unify native/compat instruction skipping
->   arm64: traps: Shuffle code to eliminate forward declarations
->   arm64: BTI: Reset BTYPE when skipping emulated instructions
->   KVM: arm64: BTI: Reset BTYPE when skipping emulated instructions
->   arm64: BTI: Add Kconfig entry for userspace BTI
-> 
-> Mark Brown (1):
->   arm64: mm: Display guarded pages in ptdump
-
-I provisionally pushed this patches to linux-next (and arm64
-for-next/bti).
-
-I'm not sure whether they'll make it into 5.7 yet (still missing acks on
-the fs/* changes) but at least they'll get some wider exposure,
-especially as they go outside arch/arm64/.
-
--- 
-Catalin
+RnJvbTogQ2hyaXMgTWV0Y2FsZiA8Y21ldGNhbGZAbWVsbGFub3guY29tPg0KDQpUaGlzIGNvbW1p
+dCBhZGRzIHRhc2sgaXNvbGF0aW9uIGhvb2tzIGFzIGZvbGxvd3M6DQoNCi0gX19oYW5kbGVfZG9t
+YWluX2lycSgpIGdlbmVyYXRlcyBhbiBpc29sYXRpb24gd2FybmluZyBmb3IgdGhlDQogIGxvY2Fs
+IHRhc2sNCg0KLSBpcnFfd29ya19xdWV1ZV9vbigpIGdlbmVyYXRlcyBhbiBpc29sYXRpb24gd2Fy
+bmluZyBmb3IgdGhlIHJlbW90ZQ0KICB0YXNrIGJlaW5nIGludGVycnVwdGVkIGZvciBpcnFfd29y
+aw0KDQotIGdlbmVyaWNfZXhlY19zaW5nbGUoKSBnZW5lcmF0ZXMgYSByZW1vdGUgaXNvbGF0aW9u
+IHdhcm5pbmcgZm9yDQogIHRoZSByZW1vdGUgY3B1IGJlaW5nIElQSSdkDQoNCi0gc21wX2NhbGxf
+ZnVuY3Rpb25fbWFueSgpIGdlbmVyYXRlcyBhIHJlbW90ZSBpc29sYXRpb24gd2FybmluZyBmb3IN
+CiAgdGhlIHNldCBvZiByZW1vdGUgY3B1cyBiZWluZyBJUEknZA0KDQpDYWxscyB0byB0YXNrX2lz
+b2xhdGlvbl9yZW1vdGUoKSBvciB0YXNrX2lzb2xhdGlvbl9pbnRlcnJ1cHQoKSBjYW4NCmJlIHBs
+YWNlZCBpbiB0aGUgcGxhdGZvcm0taW5kZXBlbmRlbnQgY29kZSBsaWtlIHRoaXMgd2hlbiBkb2lu
+ZyBzbw0KcmVzdWx0cyBpbiBmZXdlciBsaW5lcyBvZiBjb2RlIGNoYW5nZXMsIGFzIGZvciBleGFt
+cGxlIGlzIHRydWUgb2YNCnRoZSB1c2VycyBvZiB0aGUgYXJjaF9zZW5kX2NhbGxfZnVuY3Rpb25f
+KigpIEFQSXMuIE9yLCB0aGV5IGNhbiBiZQ0KcGxhY2VkIGluIHRoZSBwZXItYXJjaGl0ZWN0dXJl
+IGNvZGUgd2hlbiB0aGVyZSBhcmUgbWFueSBjYWxsZXJzLA0KYXMgZm9yIGV4YW1wbGUgaXMgdHJ1
+ZSBvZiB0aGUgc21wX3NlbmRfcmVzY2hlZHVsZSgpIGNhbGwuDQoNCkEgZnVydGhlciBjbGVhbnVw
+IG1pZ2h0IGJlIHRvIGNyZWF0ZSBhbiBpbnRlcm1lZGlhdGUgbGF5ZXIsIHNvIHRoYXQNCmZvciBl
+eGFtcGxlIHNtcF9zZW5kX3Jlc2NoZWR1bGUoKSBpcyBhIHNpbmdsZSBnZW5lcmljIGZ1bmN0aW9u
+IHRoYXQNCmp1c3QgY2FsbHMgYXJjaF9zbXBfc2VuZF9yZXNjaGVkdWxlKCksIGFsbG93aW5nIGdl
+bmVyaWMgY29kZSB0byBiZQ0KY2FsbGVkIGV2ZXJ5IHRpbWUgc21wX3NlbmRfcmVzY2hlZHVsZSgp
+IGlzIGludm9rZWQuIEJ1dCBmb3Igbm93LCB3ZQ0KanVzdCB1cGRhdGUgZWl0aGVyIGNhbGxlcnMg
+b3IgY2FsbGVlcyBhcyBtYWtlcyBtb3N0IHNlbnNlLg0KDQpTaWduZWQtb2ZmLWJ5OiBDaHJpcyBN
+ZXRjYWxmIDxjbWV0Y2FsZkBtZWxsYW5veC5jb20+DQpbYWJlbGl0c0BtYXJ2ZWxsLmNvbTogYWRh
+cHRlZCBmb3Iga2VybmVsIDUuNl0NClNpZ25lZC1vZmYtYnk6IEFsZXggQmVsaXRzIDxhYmVsaXRz
+QG1hcnZlbGwuY29tPg0KLS0tDQoga2VybmVsL2lycS9pcnFkZXNjLmMgfCA5ICsrKysrKysrKw0K
+IGtlcm5lbC9pcnFfd29yay5jICAgIHwgNSArKysrLQ0KIGtlcm5lbC9zbXAuYyAgICAgICAgIHwg
+NiArKysrKy0NCiAzIGZpbGVzIGNoYW5nZWQsIDE4IGluc2VydGlvbnMoKyksIDIgZGVsZXRpb25z
+KC0pDQoNCmRpZmYgLS1naXQgYS9rZXJuZWwvaXJxL2lycWRlc2MuYyBiL2tlcm5lbC9pcnEvaXJx
+ZGVzYy5jDQppbmRleCA5OGE1ZjEwZDE5MDAuLmUyYjgxZDAzNWZhMSAxMDA2NDQNCi0tLSBhL2tl
+cm5lbC9pcnEvaXJxZGVzYy5jDQorKysgYi9rZXJuZWwvaXJxL2lycWRlc2MuYw0KQEAgLTE2LDYg
+KzE2LDcgQEANCiAjaW5jbHVkZSA8bGludXgvYml0bWFwLmg+DQogI2luY2x1ZGUgPGxpbnV4L2ly
+cWRvbWFpbi5oPg0KICNpbmNsdWRlIDxsaW51eC9zeXNmcy5oPg0KKyNpbmNsdWRlIDxsaW51eC9p
+c29sYXRpb24uaD4NCiANCiAjaW5jbHVkZSAiaW50ZXJuYWxzLmgiDQogDQpAQCAtNjcwLDYgKzY3
+MSwxMCBAQCBpbnQgX19oYW5kbGVfZG9tYWluX2lycShzdHJ1Y3QgaXJxX2RvbWFpbiAqZG9tYWlu
+LCB1bnNpZ25lZCBpbnQgaHdpcnEsDQogCQlpcnEgPSBpcnFfZmluZF9tYXBwaW5nKGRvbWFpbiwg
+aHdpcnEpOw0KICNlbmRpZg0KIA0KKwl0YXNrX2lzb2xhdGlvbl9pbnRlcnJ1cHQoKGlycSA9PSBo
+d2lycSkgPw0KKwkJCQkgImlycSAlZCAoJXMpIiA6ICJpcnEgJWQgKCVzIGh3aXJxICVkKSIsDQor
+CQkJCSBpcnEsIGRvbWFpbiA/IGRvbWFpbi0+bmFtZSA6ICIiLCBod2lycSk7DQorDQogCS8qDQog
+CSAqIFNvbWUgaGFyZHdhcmUgZ2l2ZXMgcmFuZG9tbHkgd3JvbmcgaW50ZXJydXB0cy4gIFJhdGhl
+cg0KIAkgKiB0aGFuIGNyYXNoaW5nLCBkbyBzb21ldGhpbmcgc2Vuc2libGUuDQpAQCAtNzExLDYg
+KzcxNiwxMCBAQCBpbnQgaGFuZGxlX2RvbWFpbl9ubWkoc3RydWN0IGlycV9kb21haW4gKmRvbWFp
+biwgdW5zaWduZWQgaW50IGh3aXJxLA0KIA0KIAlpcnEgPSBpcnFfZmluZF9tYXBwaW5nKGRvbWFp
+biwgaHdpcnEpOw0KIA0KKwl0YXNrX2lzb2xhdGlvbl9pbnRlcnJ1cHQoKGlycSA9PSBod2lycSkg
+Pw0KKwkJCQkgIk5NSSBpcnEgJWQgKCVzKSIgOiAiTk1JIGlycSAlZCAoJXMgaHdpcnEgJWQpIiwN
+CisJCQkJIGlycSwgZG9tYWluID8gZG9tYWluLT5uYW1lIDogIiIsIGh3aXJxKTsNCisNCiAJLyoN
+CiAJICogYWNrX2JhZF9pcnEgaXMgbm90IE5NSS1zYWZlLCBqdXN0IHJlcG9ydA0KIAkgKiBhbiBp
+bnZhbGlkIGludGVycnVwdC4NCmRpZmYgLS1naXQgYS9rZXJuZWwvaXJxX3dvcmsuYyBiL2tlcm5l
+bC9pcnFfd29yay5jDQppbmRleCA4MjhjYzMwNzc0YmMuLjhmZDRlY2U0M2RkOCAxMDA2NDQNCi0t
+LSBhL2tlcm5lbC9pcnFfd29yay5jDQorKysgYi9rZXJuZWwvaXJxX3dvcmsuYw0KQEAgLTE4LDYg
+KzE4LDcgQEANCiAjaW5jbHVkZSA8bGludXgvY3B1Lmg+DQogI2luY2x1ZGUgPGxpbnV4L25vdGlm
+aWVyLmg+DQogI2luY2x1ZGUgPGxpbnV4L3NtcC5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29sYXRp
+b24uaD4NCiAjaW5jbHVkZSA8YXNtL3Byb2Nlc3Nvci5oPg0KIA0KIA0KQEAgLTEwMiw4ICsxMDMs
+MTAgQEAgYm9vbCBpcnFfd29ya19xdWV1ZV9vbihzdHJ1Y3QgaXJxX3dvcmsgKndvcmssIGludCBj
+cHUpDQogCWlmIChjcHUgIT0gc21wX3Byb2Nlc3Nvcl9pZCgpKSB7DQogCQkvKiBBcmNoIHJlbW90
+ZSBJUEkgc2VuZC9yZWNlaXZlIGJhY2tlbmQgYXJlbid0IE5NSSBzYWZlICovDQogCQlXQVJOX09O
+X09OQ0UoaW5fbm1pKCkpOw0KLQkJaWYgKGxsaXN0X2FkZCgmd29yay0+bGxub2RlLCAmcGVyX2Nw
+dShyYWlzZWRfbGlzdCwgY3B1KSkpDQorCQlpZiAobGxpc3RfYWRkKCZ3b3JrLT5sbG5vZGUsICZw
+ZXJfY3B1KHJhaXNlZF9saXN0LCBjcHUpKSkgew0KKwkJCXRhc2tfaXNvbGF0aW9uX3JlbW90ZShj
+cHUsICJpcnFfd29yayIpOw0KIAkJCWFyY2hfc2VuZF9jYWxsX2Z1bmN0aW9uX3NpbmdsZV9pcGko
+Y3B1KTsNCisJCX0NCiAJfSBlbHNlIHsNCiAJCV9faXJxX3dvcmtfcXVldWVfbG9jYWwod29yayk7
+DQogCX0NCmRpZmYgLS1naXQgYS9rZXJuZWwvc21wLmMgYi9rZXJuZWwvc21wLmMNCmluZGV4IGQw
+YWRhMzllYjRkNC4uM2E4YmNiZGQ0Y2U2IDEwMDY0NA0KLS0tIGEva2VybmVsL3NtcC5jDQorKysg
+Yi9rZXJuZWwvc21wLmMNCkBAIC0yMCw2ICsyMCw3IEBADQogI2luY2x1ZGUgPGxpbnV4L3NjaGVk
+Lmg+DQogI2luY2x1ZGUgPGxpbnV4L3NjaGVkL2lkbGUuaD4NCiAjaW5jbHVkZSA8bGludXgvaHlw
+ZXJ2aXNvci5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29sYXRpb24uaD4NCiANCiAjaW5jbHVkZSAi
+c21wYm9vdC5oIg0KIA0KQEAgLTE3Niw4ICsxNzcsMTAgQEAgc3RhdGljIGludCBnZW5lcmljX2V4
+ZWNfc2luZ2xlKGludCBjcHUsIGNhbGxfc2luZ2xlX2RhdGFfdCAqY3NkLA0KIAkgKiBsb2NraW5n
+IGFuZCBiYXJyaWVyIHByaW1pdGl2ZXMuIEdlbmVyaWMgY29kZSBpc24ndCByZWFsbHkNCiAJICog
+ZXF1aXBwZWQgdG8gZG8gdGhlIHJpZ2h0IHRoaW5nLi4uDQogCSAqLw0KLQlpZiAobGxpc3RfYWRk
+KCZjc2QtPmxsaXN0LCAmcGVyX2NwdShjYWxsX3NpbmdsZV9xdWV1ZSwgY3B1KSkpDQorCWlmIChs
+bGlzdF9hZGQoJmNzZC0+bGxpc3QsICZwZXJfY3B1KGNhbGxfc2luZ2xlX3F1ZXVlLCBjcHUpKSkg
+ew0KKwkJdGFza19pc29sYXRpb25fcmVtb3RlKGNwdSwgIklQSSBmdW5jdGlvbiIpOw0KIAkJYXJj
+aF9zZW5kX2NhbGxfZnVuY3Rpb25fc2luZ2xlX2lwaShjcHUpOw0KKwl9DQogDQogCXJldHVybiAw
+Ow0KIH0NCkBAIC00NjYsNiArNDY5LDcgQEAgc3RhdGljIHZvaWQgc21wX2NhbGxfZnVuY3Rpb25f
+bWFueV9jb25kKGNvbnN0IHN0cnVjdCBjcHVtYXNrICptYXNrLA0KIAl9DQogDQogCS8qIFNlbmQg
+YSBtZXNzYWdlIHRvIGFsbCBDUFVzIGluIHRoZSBtYXAgKi8NCisJdGFza19pc29sYXRpb25fcmVt
+b3RlX2NwdW1hc2soY2ZkLT5jcHVtYXNrX2lwaSwgIklQSSBmdW5jdGlvbiIpOw0KIAlhcmNoX3Nl
+bmRfY2FsbF9mdW5jdGlvbl9pcGlfbWFzayhjZmQtPmNwdW1hc2tfaXBpKTsNCiANCiAJaWYgKHdh
+aXQpIHsNCi0tIA0KMi4yMC4xDQoNCg==
