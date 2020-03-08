@@ -1,75 +1,83 @@
-Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58354 "EHLO foss.arm.com"
+Return-Path: <SRS0=iRyw=4Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:34876 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727066AbgCMPoS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Mar 2020 11:44:18 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 04/26] x86:Introduce asm/vdso/clocksource.h
-Date: Fri, 13 Mar 2020 15:43:23 +0000
-Message-ID: <20200313154345.56760-5-vincenzo.frascino@arm.com>
-In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        id S1726038AbgCHJub (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 8 Mar 2020 05:50:31 -0400
+From: guoren@kernel.org
+Subject: [RFC PATCH V3 00/11] riscv: Add vector ISA support
+Date: Sun,  8 Mar 2020 17:49:43 +0800
+Message-ID: <20200308094954.13258-1-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200313154323.omg9qRsONIXtR1UvQwfaF0OG-oB6BI8qfmT02ELW-ow@z>
+To: paul.walmsley@sifive.com, palmer@dabbelt.com, Anup.Patel@wdc.com, greentime.hu@sifive.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-csky@vger.kernel.org, linux-riscv@lists.infradead.org, Guo Ren <guoren@linux.alibaba.com>, Dave Martin <Dave.Martin@arm.com>, Liu Zhiwei <zhiwei_liu@c-sky.com>
+Message-ID: <20200308094943.QtXyseEPFBHGMmBdCZ26Fc2TCuB3d_k_gtoSlbP_Ej8@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+From: Guo Ren <guoren@linux.alibaba.com>
 
-Introduce asm/vdso/clocksource.h to contain all the arm64 specific
-functions that are suitable for vDSO inclusion.
+The implementation follow the RISC-V "V" Vector Extension draft v0.8 with
+128bit-vlen and it's based on linux-5.6-rc3 and tested with qemu [1].
 
-This header will be required by a future patch that will generalize
-vdso/clocksource.h.
+The patch implement basic context switch, sigcontext save/restore and
+ptrace interface with a new regset NT_RISCV_VECTOR. Only fixed 128bit-vlen
+is implemented. We need to discuss about vlen-size for libc sigcontext and
+ptrace (the maximum size of vlen is unlimited in spec).
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Puzzle:
+Dave Martin has talked "Growing CPU register state without breaking ABI" [2]
+before, and riscv also met vlen size problem. Let's discuss the common issue
+for all architectures and we need a better solution for unlimited vlen.
+
+Any help are welcomed :)
+
+ 1: https://github.com/romanheros/qemu.git branch:vector-upstream-v3
+ 2: https://blog.linuxplumbersconf.org/2017/ocw/sessions/4671.html
+
 ---
- arch/x86/include/asm/clocksource.h      |  5 +----
- arch/x86/include/asm/vdso/clocksource.h | 10 ++++++++++
- 2 files changed, 11 insertions(+), 4 deletions(-)
- create mode 100644 arch/x86/include/asm/vdso/clocksource.h
+Changelog V3
+ - Rebase linux-5.6-rc3 and tested with qemu
+ - Seperate patches with Anup's advice
+ - Give out a ABI puzzle with unlimited vlen
 
-diff --git a/arch/x86/include/asm/clocksource.h b/arch/x86/include/asm/clocksource.h
-index d561db67f96d..dc9dc7b3911a 100644
---- a/arch/x86/include/asm/clocksource.h
-+++ b/arch/x86/include/asm/clocksource.h
-@@ -4,10 +4,7 @@
- #ifndef _ASM_X86_CLOCKSOURCE_H
- #define _ASM_X86_CLOCKSOURCE_H
- 
--#define VDSO_ARCH_CLOCKMODES	\
--	VDSO_CLOCKMODE_TSC,	\
--	VDSO_CLOCKMODE_PVCLOCK,	\
--	VDSO_CLOCKMODE_HVCLOCK
-+#include <asm/vdso/clocksource.h>
- 
- extern unsigned int vclocks_used;
- 
-diff --git a/arch/x86/include/asm/vdso/clocksource.h b/arch/x86/include/asm/vdso/clocksource.h
-new file mode 100644
-index 000000000000..119ac8612d89
---- /dev/null
-+++ b/arch/x86/include/asm/vdso/clocksource.h
-@@ -0,0 +1,10 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __ASM_VDSO_CLOCKSOURCE_H
-+#define __ASM_VDSO_CLOCKSOURCE_H
-+
-+#define VDSO_ARCH_CLOCKMODES	\
-+	VDSO_CLOCKMODE_TSC,	\
-+	VDSO_CLOCKMODE_PVCLOCK,	\
-+	VDSO_CLOCKMODE_HVCLOCK
-+
-+#endif /* __ASM_VDSO_CLOCKSOURCE_H */
+Changelog V2
+ - Fixup typo "vecotr, fstate_save->vstate_save".
+ - Fixup wrong saved registers' length in vector.S.
+ - Seperate unrelated patches from this one.
+
+Guo Ren (11):
+  riscv: Separate patch for cflags and aflags
+  riscv: Rename __switch_to_aux -> fpu
+  riscv: Extending cpufeature.c to detect V-extension
+  riscv: Add CSR defines related to VECTOR extension
+  riscv: Add vector feature to compile
+  riscv: Add has_vector detect
+  riscv: Reset vector register
+  riscv: Add vector struct and assembler definitions
+  riscv: Add task switch support for VECTOR
+  riscv: Add ptrace support
+  riscv: Add sigcontext save/restore
+
+ arch/riscv/Kconfig                       |   9 ++
+ arch/riscv/Makefile                      |  19 ++-
+ arch/riscv/include/asm/csr.h             |  17 ++-
+ arch/riscv/include/asm/processor.h       |   1 +
+ arch/riscv/include/asm/switch_to.h       |  54 ++++++-
+ arch/riscv/include/uapi/asm/elf.h        |   1 +
+ arch/riscv/include/uapi/asm/hwcap.h      |   1 +
+ arch/riscv/include/uapi/asm/ptrace.h     |   9 ++
+ arch/riscv/include/uapi/asm/sigcontext.h |   1 +
+ arch/riscv/kernel/Makefile               |   1 +
+ arch/riscv/kernel/asm-offsets.c          | 187 +++++++++++++++++++++++
+ arch/riscv/kernel/cpufeature.c           |  12 +-
+ arch/riscv/kernel/entry.S                |   2 +-
+ arch/riscv/kernel/head.S                 |  49 +++++-
+ arch/riscv/kernel/process.c              |  10 ++
+ arch/riscv/kernel/ptrace.c               |  41 +++++
+ arch/riscv/kernel/signal.c               |  40 +++++
+ arch/riscv/kernel/vector.S               |  84 ++++++++++
+ include/uapi/linux/elf.h                 |   1 +
+ 19 files changed, 524 insertions(+), 15 deletions(-)
+ create mode 100644 arch/riscv/kernel/vector.S
+
 -- 
-2.25.1
+2.17.0
