@@ -1,65 +1,267 @@
 From: guoren@kernel.org
-Subject: [RFC PATCH V3 05/11] riscv: Add vector feature to compile
-Date: Sun,  8 Mar 2020 17:49:48 +0800
-Message-ID: <20200308094954.13258-6-guoren@kernel.org>
+Subject: [RFC PATCH V3 08/11] riscv: Add vector struct and assembler definitions
+Date: Sun,  8 Mar 2020 17:49:51 +0800
+Message-ID: <20200308094954.13258-9-guoren@kernel.org>
 References: <20200308094954.13258-1-guoren@kernel.org>
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:37840 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726567AbgCHJxl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 8 Mar 2020 05:53:41 -0400
 In-Reply-To: <20200308094954.13258-1-guoren@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: paul.walmsley@sifive.com, palmer@dabbelt.com, Anup.Patel@wdc.com, greentime.hu@sifive.com
-Cc: linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-riscv@lists.infradead.org, Dave Martin <Dave.Martin@arm.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-csky@vger.kernel.org, linux-riscv@lists.infradead.org, Guo Ren <guoren@linux.alibaba.com>, Dave Martin <Dave.Martin@arm.com>
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-This patch add a config option which could enable assembler's
-vector feature.
+Add vector state context struct in struct thread and asm-offsets.c
+definitions.
 
 Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
 ---
- arch/riscv/Kconfig  | 9 +++++++++
- arch/riscv/Makefile | 1 +
- 2 files changed, 10 insertions(+)
+ arch/riscv/include/asm/processor.h   |   1 +
+ arch/riscv/include/uapi/asm/ptrace.h |   9 ++
+ arch/riscv/kernel/asm-offsets.c      | 187 +++++++++++++++++++++++++++
+ 3 files changed, 197 insertions(+)
 
-diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 73f029eae0cc..c36589c85700 100644
---- a/arch/riscv/Kconfig
-+++ b/arch/riscv/Kconfig
-@@ -288,6 +288,15 @@ config FPU
+diff --git a/arch/riscv/include/asm/processor.h b/arch/riscv/include/asm/processor.h
+index 3ddb798264f1..217273375cfb 100644
+--- a/arch/riscv/include/asm/processor.h
++++ b/arch/riscv/include/asm/processor.h
+@@ -32,6 +32,7 @@ struct thread_struct {
+ 	unsigned long sp;	/* Kernel mode stack */
+ 	unsigned long s[12];	/* s[0]: frame pointer */
+ 	struct __riscv_d_ext_state fstate;
++	struct __riscv_v_state vstate;
+ };
  
- 	  If you don't know what to do here, say Y.
+ #define INIT_THREAD {					\
+diff --git a/arch/riscv/include/uapi/asm/ptrace.h b/arch/riscv/include/uapi/asm/ptrace.h
+index 882547f6bd5c..d913e8949b87 100644
+--- a/arch/riscv/include/uapi/asm/ptrace.h
++++ b/arch/riscv/include/uapi/asm/ptrace.h
+@@ -71,6 +71,15 @@ struct __riscv_q_ext_state {
+ 	__u32 reserved[3];
+ };
  
-+config VECTOR
-+	bool "VECTOR support"
-+	default n
-+	help
-+	  Say N here if you want to disable all vector related procedure
-+	  in the kernel.
++struct __riscv_v_state {
++	__uint128_t v[32];
++	unsigned long vstart;
++	unsigned long vxsat;
++	unsigned long vxrm;
++	unsigned long vl;
++	unsigned long vtype;
++};
 +
-+	  If you don't know what to do here, say Y.
+ union __riscv_fp_state {
+ 	struct __riscv_f_ext_state f;
+ 	struct __riscv_d_ext_state d;
+diff --git a/arch/riscv/kernel/asm-offsets.c b/arch/riscv/kernel/asm-offsets.c
+index 07cb9c10de4e..ab6eae41c2ad 100644
+--- a/arch/riscv/kernel/asm-offsets.c
++++ b/arch/riscv/kernel/asm-offsets.c
+@@ -70,6 +70,44 @@ void asm_offsets(void)
+ 	OFFSET(TASK_THREAD_F31, task_struct, thread.fstate.f[31]);
+ 	OFFSET(TASK_THREAD_FCSR, task_struct, thread.fstate.fcsr);
+ 
++	OFFSET(TASK_THREAD_V0,  task_struct, thread.vstate.v[0]);
++	OFFSET(TASK_THREAD_V1,  task_struct, thread.vstate.v[1]);
++	OFFSET(TASK_THREAD_V2,  task_struct, thread.vstate.v[2]);
++	OFFSET(TASK_THREAD_V3,  task_struct, thread.vstate.v[3]);
++	OFFSET(TASK_THREAD_V4,  task_struct, thread.vstate.v[4]);
++	OFFSET(TASK_THREAD_V5,  task_struct, thread.vstate.v[5]);
++	OFFSET(TASK_THREAD_V6,  task_struct, thread.vstate.v[6]);
++	OFFSET(TASK_THREAD_V7,  task_struct, thread.vstate.v[7]);
++	OFFSET(TASK_THREAD_V8,  task_struct, thread.vstate.v[8]);
++	OFFSET(TASK_THREAD_V9,  task_struct, thread.vstate.v[9]);
++	OFFSET(TASK_THREAD_V10, task_struct, thread.vstate.v[10]);
++	OFFSET(TASK_THREAD_V11, task_struct, thread.vstate.v[11]);
++	OFFSET(TASK_THREAD_V12, task_struct, thread.vstate.v[12]);
++	OFFSET(TASK_THREAD_V13, task_struct, thread.vstate.v[13]);
++	OFFSET(TASK_THREAD_V14, task_struct, thread.vstate.v[14]);
++	OFFSET(TASK_THREAD_V15, task_struct, thread.vstate.v[15]);
++	OFFSET(TASK_THREAD_V16, task_struct, thread.vstate.v[16]);
++	OFFSET(TASK_THREAD_V17, task_struct, thread.vstate.v[17]);
++	OFFSET(TASK_THREAD_V18, task_struct, thread.vstate.v[18]);
++	OFFSET(TASK_THREAD_V19, task_struct, thread.vstate.v[19]);
++	OFFSET(TASK_THREAD_V20, task_struct, thread.vstate.v[20]);
++	OFFSET(TASK_THREAD_V21, task_struct, thread.vstate.v[21]);
++	OFFSET(TASK_THREAD_V22, task_struct, thread.vstate.v[22]);
++	OFFSET(TASK_THREAD_V23, task_struct, thread.vstate.v[23]);
++	OFFSET(TASK_THREAD_V24, task_struct, thread.vstate.v[24]);
++	OFFSET(TASK_THREAD_V25, task_struct, thread.vstate.v[25]);
++	OFFSET(TASK_THREAD_V26, task_struct, thread.vstate.v[26]);
++	OFFSET(TASK_THREAD_V27, task_struct, thread.vstate.v[27]);
++	OFFSET(TASK_THREAD_V28, task_struct, thread.vstate.v[28]);
++	OFFSET(TASK_THREAD_V29, task_struct, thread.vstate.v[29]);
++	OFFSET(TASK_THREAD_V30, task_struct, thread.vstate.v[30]);
++	OFFSET(TASK_THREAD_V31, task_struct, thread.vstate.v[31]);
++	OFFSET(TASK_THREAD_VSTART, task_struct, thread.vstate.vstart);
++	OFFSET(TASK_THREAD_VXSAT, task_struct, thread.vstate.vxsat);
++	OFFSET(TASK_THREAD_VXRM, task_struct, thread.vstate.vxrm);
++	OFFSET(TASK_THREAD_VL, task_struct, thread.vstate.vl);
++	OFFSET(TASK_THREAD_VTYPE, task_struct, thread.vstate.vtype);
 +
- endmenu
+ 	DEFINE(PT_SIZE, sizeof(struct pt_regs));
+ 	OFFSET(PT_EPC, pt_regs, epc);
+ 	OFFSET(PT_RA, pt_regs, ra);
+@@ -304,6 +342,155 @@ void asm_offsets(void)
+ 		- offsetof(struct task_struct, thread.fstate.f[0])
+ 	);
  
- menu "Kernel features"
-diff --git a/arch/riscv/Makefile b/arch/riscv/Makefile
-index 6d09b53cf106..071eb1148e01 100644
---- a/arch/riscv/Makefile
-+++ b/arch/riscv/Makefile
-@@ -44,6 +44,7 @@ riscv-march-aflags-$(CONFIG_ARCH_RV32I)		:= rv32ima
- riscv-march-aflags-$(CONFIG_ARCH_RV64I)		:= rv64ima
- riscv-march-aflags-$(CONFIG_FPU)		:= $(riscv-march-aflags-y)fd
- riscv-march-aflags-$(CONFIG_RISCV_ISA_C)	:= $(riscv-march-aflags-y)c
-+riscv-march-aflags-$(CONFIG_VECTOR)		:= $(riscv-march-aflags-y)v
- 
- KBUILD_CFLAGS += -march=$(riscv-march-cflags-y)
- KBUILD_AFLAGS += -march=$(riscv-march-aflags-y)
++	DEFINE(TASK_THREAD_V0_V0,
++		  offsetof(struct task_struct, thread.vstate.v[0])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V1_V0,
++		  offsetof(struct task_struct, thread.vstate.v[1])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V2_V0,
++		  offsetof(struct task_struct, thread.vstate.v[2])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V3_V0,
++		  offsetof(struct task_struct, thread.vstate.v[3])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V4_V0,
++		  offsetof(struct task_struct, thread.vstate.v[4])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V5_V0,
++		  offsetof(struct task_struct, thread.vstate.v[5])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V6_V0,
++		  offsetof(struct task_struct, thread.vstate.v[6])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V7_V0,
++		  offsetof(struct task_struct, thread.vstate.v[7])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V8_V0,
++		  offsetof(struct task_struct, thread.vstate.v[8])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V9_V0,
++		  offsetof(struct task_struct, thread.vstate.v[9])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V10_V0,
++		  offsetof(struct task_struct, thread.vstate.v[10])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V11_V0,
++		  offsetof(struct task_struct, thread.vstate.v[11])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V12_V0,
++		  offsetof(struct task_struct, thread.vstate.v[12])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V13_V0,
++		  offsetof(struct task_struct, thread.vstate.v[13])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V14_V0,
++		  offsetof(struct task_struct, thread.vstate.v[14])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V15_V0,
++		  offsetof(struct task_struct, thread.vstate.v[15])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V16_V0,
++		  offsetof(struct task_struct, thread.vstate.v[16])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V17_V0,
++		  offsetof(struct task_struct, thread.vstate.v[17])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V18_V0,
++		  offsetof(struct task_struct, thread.vstate.v[18])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V19_V0,
++		  offsetof(struct task_struct, thread.vstate.v[19])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V20_V0,
++		  offsetof(struct task_struct, thread.vstate.v[20])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V21_V0,
++		  offsetof(struct task_struct, thread.vstate.v[21])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V22_V0,
++		  offsetof(struct task_struct, thread.vstate.v[22])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V23_V0,
++		  offsetof(struct task_struct, thread.vstate.v[23])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V24_V0,
++		  offsetof(struct task_struct, thread.vstate.v[24])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V25_V0,
++		  offsetof(struct task_struct, thread.vstate.v[25])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V26_V0,
++		  offsetof(struct task_struct, thread.vstate.v[26])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V27_V0,
++		  offsetof(struct task_struct, thread.vstate.v[27])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V28_V0,
++		  offsetof(struct task_struct, thread.vstate.v[28])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V29_V0,
++		  offsetof(struct task_struct, thread.vstate.v[29])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V30_V0,
++		  offsetof(struct task_struct, thread.vstate.v[30])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_V31_V0,
++		  offsetof(struct task_struct, thread.vstate.v[31])
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_VSTART_V0,
++		  offsetof(struct task_struct, thread.vstate.vstart)
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_VXSAT_V0,
++		  offsetof(struct task_struct, thread.vstate.vxsat)
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_VXRM_V0,
++		  offsetof(struct task_struct, thread.vstate.vxrm)
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_VL_V0,
++		  offsetof(struct task_struct, thread.vstate.vl)
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++	DEFINE(TASK_THREAD_VTYPE_V0,
++		  offsetof(struct task_struct, thread.vstate.vtype)
++		- offsetof(struct task_struct, thread.vstate.v[0])
++	);
++
+ 	/*
+ 	 * We allocate a pt_regs on the stack when entering the kernel.  This
+ 	 * ensures the alignment is sane.
 -- 
 2.17.0
