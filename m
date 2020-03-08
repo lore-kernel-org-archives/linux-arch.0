@@ -1,66 +1,61 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:36482 "EHLO foss.arm.com"
+Return-Path: <SRS0=iRyw=4Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:37156 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726651AbgCQMW6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 08:22:58 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 02/26] linux/bits.h: Extract common header for vDSO
-Date: Tue, 17 Mar 2020 12:21:56 +0000
-Message-ID: <20200317122220.30393-3-vincenzo.frascino@arm.com>
-In-Reply-To: <20200317122220.30393-1-vincenzo.frascino@arm.com>
-References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        id S1725306AbgCHJxW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 8 Mar 2020 05:53:22 -0400
+From: guoren@kernel.org
+Subject: [RFC PATCH V3 01/11] riscv: Separate patch for cflags and aflags
+Date: Sun,  8 Mar 2020 17:49:44 +0800
+Message-ID: <20200308094954.13258-2-guoren@kernel.org>
+In-Reply-To: <20200308094954.13258-1-guoren@kernel.org>
+References: <20200308094954.13258-1-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200317122156.p8VkKUR3k9SdP9wYa2ih6fxQIA7uxlPhWuknLNpdSKg@z>
+To: paul.walmsley@sifive.com, palmer@dabbelt.com, Anup.Patel@wdc.com, greentime.hu@sifive.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-csky@vger.kernel.org, linux-riscv@lists.infradead.org, Guo Ren <guoren@linux.alibaba.com>, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20200308094944.eGsdbyLrzO5Iq7iqbVVS7wK6DGsi8D6rEvFQP9Dnjmw@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+From: Guo Ren <guoren@linux.alibaba.com>
 
-Split bits.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
+From: Guo Ren <ren_guo@c-sky.com>
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Use "subst fd" in Makefile is a hack way and it's not convenient
+to add new ISA feature. Just separate them into riscv-march-cflags
+and riscv-march-aflags.
+
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
 ---
- include/linux/bits.h | 2 +-
- include/vdso/bits.h  | 9 +++++++++
- 2 files changed, 10 insertions(+), 1 deletion(-)
- create mode 100644 include/vdso/bits.h
+ arch/riscv/Makefile | 18 ++++++++++++------
+ 1 file changed, 12 insertions(+), 6 deletions(-)
 
-diff --git a/include/linux/bits.h b/include/linux/bits.h
-index 669d69441a62..a740bbcf3cd2 100644
---- a/include/linux/bits.h
-+++ b/include/linux/bits.h
-@@ -3,9 +3,9 @@
- #define __LINUX_BITS_H
+diff --git a/arch/riscv/Makefile b/arch/riscv/Makefile
+index b9009a2fbaf5..6d09b53cf106 100644
+--- a/arch/riscv/Makefile
++++ b/arch/riscv/Makefile
+@@ -35,12 +35,18 @@ else
+ endif
  
- #include <linux/const.h>
-+#include <vdso/bits.h>
- #include <asm/bitsperlong.h>
+ # ISA string setting
+-riscv-march-$(CONFIG_ARCH_RV32I)	:= rv32ima
+-riscv-march-$(CONFIG_ARCH_RV64I)	:= rv64ima
+-riscv-march-$(CONFIG_FPU)		:= $(riscv-march-y)fd
+-riscv-march-$(CONFIG_RISCV_ISA_C)	:= $(riscv-march-y)c
+-KBUILD_CFLAGS += -march=$(subst fd,,$(riscv-march-y))
+-KBUILD_AFLAGS += -march=$(riscv-march-y)
++riscv-march-cflags-$(CONFIG_ARCH_RV32I)		:= rv32ima
++riscv-march-cflags-$(CONFIG_ARCH_RV64I)		:= rv64ima
++riscv-march-$(CONFIG_FPU)			:= $(riscv-march-y)fd
++riscv-march-cflags-$(CONFIG_RISCV_ISA_C)	:= $(riscv-march-cflags-y)c
++
++riscv-march-aflags-$(CONFIG_ARCH_RV32I)		:= rv32ima
++riscv-march-aflags-$(CONFIG_ARCH_RV64I)		:= rv64ima
++riscv-march-aflags-$(CONFIG_FPU)		:= $(riscv-march-aflags-y)fd
++riscv-march-aflags-$(CONFIG_RISCV_ISA_C)	:= $(riscv-march-aflags-y)c
++
++KBUILD_CFLAGS += -march=$(riscv-march-cflags-y)
++KBUILD_AFLAGS += -march=$(riscv-march-aflags-y)
  
--#define BIT(nr)			(UL(1) << (nr))
- #define BIT_ULL(nr)		(ULL(1) << (nr))
- #define BIT_MASK(nr)		(UL(1) << ((nr) % BITS_PER_LONG))
- #define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
-diff --git a/include/vdso/bits.h b/include/vdso/bits.h
-new file mode 100644
-index 000000000000..6d005a1f5d94
---- /dev/null
-+++ b/include/vdso/bits.h
-@@ -0,0 +1,9 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_BITS_H
-+#define __VDSO_BITS_H
-+
-+#include <vdso/const.h>
-+
-+#define BIT(nr)			(UL(1) << (nr))
-+
-+#endif	/* __VDSO_BITS_H */
+ KBUILD_CFLAGS += -mno-save-restore
+ KBUILD_CFLAGS += -DCONFIG_PAGE_OFFSET=$(CONFIG_PAGE_OFFSET)
 -- 
-2.25.1
+2.17.0
