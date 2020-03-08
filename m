@@ -1,120 +1,61 @@
-Return-Path: <SRS0=PUSD=5Q=kvack.org=owner-linux-mm@kernel.org>
-From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v19 20/24] selftests/vm/pkeys: Introduce a sub-page allocator
-Date: Tue, 31 Mar 2020 15:28:21 +0530
-In-Reply-To: <cover.1585646528.git.sandipan@linux.ibm.com>
-References: <cover.1585646528.git.sandipan@linux.ibm.com>
-In-Reply-To: <cover.1585646528.git.sandipan@linux.ibm.com>
-References: <cover.1585646528.git.sandipan@linux.ibm.com>
-Message-ID: <c4a82fa962ec71015b994fab1aaf83bdfd091553.1585646528.git.sandipan@linux.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: akpm@linux-foundation.org
-Cc: linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, shuah@kernel.org, Dave Hansen <dave.hansen@intel.com>
+Return-Path: <SRS0=iRyw=4Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:40790 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726259AbgCHDom (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 7 Mar 2020 22:44:42 -0500
+From: Alex Belits <abelits@marvell.com>
+Subject: [PATCH v2 01/12] task_isolation: vmstat: add quiet_vmstat_sync
+ function
+Date: Sun, 8 Mar 2020 03:44:11 +0000
+Message-ID: <3118206b99e862d4c163eefd086af14dd12fe305.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+In-Reply-To: <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <34D5BF63C3F7774795D2B302FE3EC1E3@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200331095821.lKewZagi9qjwzWsInm0gldOLA1Nvf4m7SE2v0aUQhUE@z>
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will@kernel.org" <will@kernel.org>
+Message-ID: <20200308034411.G_DwnIKeLnKgLZrnWhjtGRMHdUrQBtFo43yk35SUyr4@z>
 
-From: Ram Pai <linuxram@us.ibm.com>
-
-This introduces a new allocator that allocates 4K hardware
-pages to back 64K linux pages. This allocator is available
-only on powerpc.
-
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
-Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
-Acked-by: Dave Hansen <dave.hansen@intel.com>
----
- tools/testing/selftests/vm/pkey-helpers.h    |  6 +++++
- tools/testing/selftests/vm/pkey-powerpc.h    | 25 ++++++++++++++++++++
- tools/testing/selftests/vm/pkey-x86.h        |  5 ++++
- tools/testing/selftests/vm/protection_keys.c |  1 +
- 4 files changed, 37 insertions(+)
-
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index 59ccdff18214f..622a85848f61b 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -28,6 +28,9 @@
- extern int dprint_in_signal;
- extern char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
- 
-+extern int test_nr;
-+extern int iteration_nr;
-+
- #ifdef __GNUC__
- __attribute__((format(printf, 1, 2)))
- #endif
-@@ -78,6 +81,9 @@ __attribute__((noinline)) int read_ptr(int *ptr);
- void expected_pkey_fault(int pkey);
- int sys_pkey_alloc(unsigned long flags, unsigned long init_val);
- int sys_pkey_free(unsigned long pkey);
-+int mprotect_pkey(void *ptr, size_t size, unsigned long orig_prot,
-+		unsigned long pkey);
-+void record_pkey_malloc(void *ptr, long size, int prot);
- 
- #if defined(__i386__) || defined(__x86_64__) /* arch */
- #include "pkey-x86.h"
-diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
-index 7d7c3ffafdd99..d31665c48f5ed 100644
---- a/tools/testing/selftests/vm/pkey-powerpc.h
-+++ b/tools/testing/selftests/vm/pkey-powerpc.h
-@@ -106,4 +106,29 @@ void expect_fault_on_read_execonly_key(void *p1, int pkey)
- /* 4-byte instructions * 16384 = 64K page */
- #define __page_o_noops() asm(".rept 16384 ; nop; .endr")
- 
-+void *malloc_pkey_with_mprotect_subpage(long size, int prot, u16 pkey)
-+{
-+	void *ptr;
-+	int ret;
-+
-+	dprintf1("doing %s(size=%ld, prot=0x%x, pkey=%d)\n", __func__,
-+			size, prot, pkey);
-+	pkey_assert(pkey < NR_PKEYS);
-+	ptr = mmap(NULL, size, prot, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
-+	pkey_assert(ptr != (void *)-1);
-+
-+	ret = syscall(__NR_subpage_prot, ptr, size, NULL);
-+	if (ret) {
-+		perror("subpage_perm");
-+		return PTR_ERR_ENOTSUP;
-+	}
-+
-+	ret = mprotect_pkey((void *)ptr, PAGE_SIZE, prot, pkey);
-+	pkey_assert(!ret);
-+	record_pkey_malloc(ptr, size, prot);
-+
-+	dprintf1("%s() for pkey %d @ %p\n", __func__, pkey, ptr);
-+	return ptr;
-+}
-+
- #endif /* _PKEYS_POWERPC_H */
-diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
-index 6421b846aa169..3be20f5d52752 100644
---- a/tools/testing/selftests/vm/pkey-x86.h
-+++ b/tools/testing/selftests/vm/pkey-x86.h
-@@ -173,4 +173,9 @@ void expect_fault_on_read_execonly_key(void *p1, int pkey)
- 	expected_pkey_fault(pkey);
- }
- 
-+void *malloc_pkey_with_mprotect_subpage(long size, int prot, u16 pkey)
-+{
-+	return PTR_ERR_ENOTSUP;
-+}
-+
- #endif /* _PKEYS_X86_H */
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 8bb4de1038743..d4952b57cc909 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -845,6 +845,7 @@ void *malloc_pkey_mmap_dax(long size, int prot, u16 pkey)
- void *(*pkey_malloc[])(long size, int prot, u16 pkey) = {
- 
- 	malloc_pkey_with_mprotect,
-+	malloc_pkey_with_mprotect_subpage,
- 	malloc_pkey_anon_huge,
- 	malloc_pkey_hugetlb
- /* can not do direct with the pkey_mprotect() API:
--- 
-2.17.1
+RnJvbTogQ2hyaXMgTWV0Y2FsZiA8Y21ldGNhbGZAbWVsbGFub3guY29tPg0KDQpJbiBjb21taXQg
+ZjAxZjE3ZDM3MDViICgibW0sIHZtc3RhdDogbWFrZSBxdWlldF92bXN0YXQgbGlnaHRlciIpDQp0
+aGUgcXVpZXRfdm1zdGF0KCkgZnVuY3Rpb24gYmVjYW1lIGFzeW5jaHJvbm91cywgaW4gdGhlIHNl
+bnNlIHRoYXQNCnRoZSB2bXN0YXQgd29yayB3YXMgc3RpbGwgc2NoZWR1bGVkIHRvIHJ1biBvbiB0
+aGUgY29yZSB3aGVuIHRoZQ0KZnVuY3Rpb24gcmV0dXJuZWQuICBGb3IgdGFzayBpc29sYXRpb24s
+IHdlIG5lZWQgYSBzeW5jaHJvbm91cw0KdmVyc2lvbiBvZiB0aGUgZnVuY3Rpb24gdGhhdCBndWFy
+YW50ZWVzIHRoYXQgdGhlIHZtc3RhdCB3b3JrZXINCndpbGwgbm90IHJ1biBvbiB0aGUgY29yZSBv
+biByZXR1cm4gZnJvbSB0aGUgZnVuY3Rpb24uICBBZGQgYQ0KcXVpZXRfdm1zdGF0X3N5bmMoKSBm
+dW5jdGlvbiB3aXRoIHRoYXQgc2VtYW50aWMuDQoNClNpZ25lZC1vZmYtYnk6IENocmlzIE1ldGNh
+bGYgPGNtZXRjYWxmQG1lbGxhbm94LmNvbT4NClNpZ25lZC1vZmYtYnk6IEFsZXggQmVsaXRzIDxh
+YmVsaXRzQG1hcnZlbGwuY29tPg0KLS0tDQogaW5jbHVkZS9saW51eC92bXN0YXQuaCB8IDIgKysN
+CiBtbS92bXN0YXQuYyAgICAgICAgICAgIHwgOSArKysrKysrKysNCiAyIGZpbGVzIGNoYW5nZWQs
+IDExIGluc2VydGlvbnMoKykNCg0KZGlmZiAtLWdpdCBhL2luY2x1ZGUvbGludXgvdm1zdGF0Lmgg
+Yi9pbmNsdWRlL2xpbnV4L3Ztc3RhdC5oDQppbmRleCAyOTI0ODVmM2QyNGQuLjJiYzVlODVmMjUx
+NCAxMDA2NDQNCi0tLSBhL2luY2x1ZGUvbGludXgvdm1zdGF0LmgNCisrKyBiL2luY2x1ZGUvbGlu
+dXgvdm1zdGF0LmgNCkBAIC0yNzAsNiArMjcwLDcgQEAgZXh0ZXJuIHZvaWQgX19kZWNfem9uZV9z
+dGF0ZShzdHJ1Y3Qgem9uZSAqLCBlbnVtIHpvbmVfc3RhdF9pdGVtKTsNCiBleHRlcm4gdm9pZCBf
+X2RlY19ub2RlX3N0YXRlKHN0cnVjdCBwZ2xpc3RfZGF0YSAqLCBlbnVtIG5vZGVfc3RhdF9pdGVt
+KTsNCiANCiB2b2lkIHF1aWV0X3Ztc3RhdCh2b2lkKTsNCit2b2lkIHF1aWV0X3Ztc3RhdF9zeW5j
+KHZvaWQpOw0KIHZvaWQgY3B1X3ZtX3N0YXRzX2ZvbGQoaW50IGNwdSk7DQogdm9pZCByZWZyZXNo
+X3pvbmVfc3RhdF90aHJlc2hvbGRzKHZvaWQpOw0KIA0KQEAgLTM3Miw2ICszNzMsNyBAQCBzdGF0
+aWMgaW5saW5lIHZvaWQgX19kZWNfbm9kZV9wYWdlX3N0YXRlKHN0cnVjdCBwYWdlICpwYWdlLA0K
+IHN0YXRpYyBpbmxpbmUgdm9pZCByZWZyZXNoX3pvbmVfc3RhdF90aHJlc2hvbGRzKHZvaWQpIHsg
+fQ0KIHN0YXRpYyBpbmxpbmUgdm9pZCBjcHVfdm1fc3RhdHNfZm9sZChpbnQgY3B1KSB7IH0NCiBz
+dGF0aWMgaW5saW5lIHZvaWQgcXVpZXRfdm1zdGF0KHZvaWQpIHsgfQ0KK3N0YXRpYyBpbmxpbmUg
+dm9pZCBxdWlldF92bXN0YXRfc3luYyh2b2lkKSB7IH0NCiANCiBzdGF0aWMgaW5saW5lIHZvaWQg
+ZHJhaW5fem9uZXN0YXQoc3RydWN0IHpvbmUgKnpvbmUsDQogCQkJc3RydWN0IHBlcl9jcHVfcGFn
+ZXNldCAqcHNldCkgeyB9DQpkaWZmIC0tZ2l0IGEvbW0vdm1zdGF0LmMgYi9tbS92bXN0YXQuYw0K
+aW5kZXggNzhkNTMzNzhkYjk5Li4xZmEwYjJkMDRhZmEgMTAwNjQ0DQotLS0gYS9tbS92bXN0YXQu
+Yw0KKysrIGIvbW0vdm1zdGF0LmMNCkBAIC0xODcwLDYgKzE4NzAsMTUgQEAgdm9pZCBxdWlldF92
+bXN0YXQodm9pZCkNCiAJcmVmcmVzaF9jcHVfdm1fc3RhdHMoZmFsc2UpOw0KIH0NCiANCisvKg0K
+KyAqIFN5bmNocm9ub3VzbHkgcXVpZXQgdm1zdGF0IHNvIHRoZSB3b3JrIGlzIGd1YXJhbnRlZWQg
+bm90IHRvIHJ1biBvbiByZXR1cm4uDQorICovDQordm9pZCBxdWlldF92bXN0YXRfc3luYyh2b2lk
+KQ0KK3sNCisJY2FuY2VsX2RlbGF5ZWRfd29ya19zeW5jKHRoaXNfY3B1X3B0cigmdm1zdGF0X3dv
+cmspKTsNCisJcmVmcmVzaF9jcHVfdm1fc3RhdHMoZmFsc2UpOw0KK30NCisNCiAvKg0KICAqIFNo
+ZXBoZXJkIHdvcmtlciB0aHJlYWQgdGhhdCBjaGVja3MgdGhlDQogICogZGlmZmVyZW50aWFscyBv
+ZiBwcm9jZXNzb3JzIHRoYXQgaGF2ZSB0aGVpciB3b3JrZXINCi0tIA0KMi4yMC4xDQoNCg==
