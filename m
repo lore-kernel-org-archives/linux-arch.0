@@ -1,344 +1,92 @@
 From: Alex Belits <abelits@marvell.com>
-Subject: Re: [EXT] Re: [PATCH 06/12] task_isolation: arch/arm64: enable task
- isolation functionality
-Date: Sun, 8 Mar 2020 04:48:01 +0000
-Message-ID: <3726a1fd89b12970d1bc79600d8fd6a9145bf5bc.camel@marvell.com>
+Subject: Re: [EXT] Re: [PATCH 03/12] task_isolation: userspace hard isolation
+ from kernel
+Date: Sun, 8 Mar 2020 05:32:19 +0000
+Message-ID: <92135de5e710c3fddb7256259a759b20460e9052.camel@marvell.com>
 References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
- <ef365b5754ffc07980ed1df6ac8531a8ff590a17.camel@marvell.com>
- <20200304163103.GJ3575@lakrids.cambridge.arm.com>
+         <36d84b8dd168a38e6a56549dedc15dd6ebf8c09e.camel@marvell.com>
+         <20200305183313.GA29033@lenoir>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <20200304163103.GJ3575@lakrids.cambridge.arm.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:31190 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1725775AbgCHFdP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 8 Mar 2020 00:33:15 -0500
+In-Reply-To: <20200305183313.GA29033@lenoir>
 Content-Language: en-US
-Content-ID: <F929E96D1F1D924089188C6399953F29@namprd18.prod.outlook.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: "mark.rutland@arm.com" <mark.rutland@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "peterz@infradead.org" <peterz@infradead.org>, Prasun Kapoor <pkapoor@marvell.com>, "frederic@kernel.org" <frederic@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "davem@davemloft.net" <davem@davemloft.net>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Content-ID: <128976CACCE956469B6E5F7E2D72E66E@namprd18.prod.outlook.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "frederic@kernel.org" <frederic@kernel.org>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will@kernel.org" <will@kernel.org>
 
-On Wed, 2020-03-04 at 16:31 +0000, Mark Rutland wrote:
-> Hi Alex,
-> 
-> For patches affecting arm64, please CC LAKML and the arm64
-> maintainers
-> (Will and Catalin). I've Cc'd the maintainers here.
-
-Thanks. Added them to Cc:.
-
-> 
-> On Wed, Mar 04, 2020 at 04:10:28PM +0000, Alex Belits wrote:
-> > From: Chris Metcalf <cmetcalf@mellanox.com>
-> > 
-> > In do_notify_resume(), call task_isolation_start() for
-> > TIF_TASK_ISOLATION tasks. Add _TIF_TASK_ISOLATION to
-> > _TIF_WORK_MASK,
-> > and define a local NOTIFY_RESUME_LOOP_FLAGS to check in the loop,
-> > since we don't clear _TIF_TASK_ISOLATION in the loop.
-> > 
-> > We tweak syscall_trace_enter() slightly to carry the "flags"
-> > value from current_thread_info()->flags for each of the tests,
-> > rather than doing a volatile read from memory for each one. This
-> > avoids a small overhead for each test, and in particular avoids
-> > that overhead for TIF_NOHZ when TASK_ISOLATION is not enabled.
-> 
-> Stale commit message?
-> 
-> Looking at the patch below, this doesn't seem to be the case; it just
-> calls test_thread_flag(TIF_TASK_ISOLATION).
-
-Right. I had to revert to a simple check to match the current
-implementation of this function.
-
-> 
-We instrument the smp_send_reschedule() routine so that
-itchecks for
-> > isolated tasks and generates a suitable warning if needed.
-> > 
-> > Finally, report on page faults in task-isolation processes in
-> > do_page_faults().
-> > 
-> > Signed-off-by: Alex Belits <abelits@marvell.com>
-> 
-> The From line says this was from Chris Metcalf, but he's missing from
-> the Sign-off chain here, which isn't right.
-
-I have posted updated patches with properly preserved sign-off lines
-and descriptions of updates.
-
-> >  arch/arm64/include/asm/thread_info.h |  5 ++++-
-> >  arch/arm64/kernel/ptrace.c           | 10 ++++++++++
-> >  arch/arm64/kernel/signal.c           | 13 ++++++++++++-
-> >  arch/arm64/kernel/smp.c              |  7 +++++++
-> >  arch/arm64/mm/fault.c                |  5 +++++
-> >  6 files changed, 39 insertions(+), 2 deletions(-)
-> > 
-> > diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> > index 0b30e884e088..93b6aabc8be9 100644
-> > --- a/arch/arm64/Kconfig
-> > +++ b/arch/arm64/Kconfig
-> > @@ -129,6 +129,7 @@ config ARM64
-> >  	select HAVE_ARCH_PREL32_RELOCATIONS
-> >  	select HAVE_ARCH_SECCOMP_FILTER
-> >  	select HAVE_ARCH_STACKLEAK
-> > +	select HAVE_ARCH_TASK_ISOLATION
-> >  	select HAVE_ARCH_THREAD_STRUCT_WHITELIST
-> >  	select HAVE_ARCH_TRACEHOOK
-> >  	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
-> > diff --git a/arch/arm64/include/asm/thread_info.h
-> > b/arch/arm64/include/asm/thread_info.h
-> > index f0cec4160136..7563098eb5b2 100644
-> > --- a/arch/arm64/include/asm/thread_info.h
-> > +++ b/arch/arm64/include/asm/thread_info.h
-> > @@ -63,6 +63,7 @@ void arch_release_task_struct(struct task_struct
-> > *tsk);
-> >  #define TIF_FOREIGN_FPSTATE	3	/* CPU's FP state is not
-> > current's */
-> >  #define TIF_UPROBE		4	/* uprobe breakpoint or singlestep
-> > */
-> >  #define TIF_FSCHECK		5	/* Check FS is USER_DS on
-> > return */
-> > +#define TIF_TASK_ISOLATION	6
-> >  #define TIF_NOHZ		7
-> >  #define TIF_SYSCALL_TRACE	8	/* syscall trace active */
-> >  #define TIF_SYSCALL_AUDIT	9	/* syscall auditing */
-> > @@ -83,6 +84,7 @@ void arch_release_task_struct(struct task_struct
-> > *tsk);
-> >  #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
-> >  #define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
-> >  #define _TIF_FOREIGN_FPSTATE	(1 << TIF_FOREIGN_FPSTATE)
-> > +#define _TIF_TASK_ISOLATION	(1 << TIF_TASK_ISOLATION)
-> >  #define _TIF_NOHZ		(1 << TIF_NOHZ)
-> >  #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
-> >  #define _TIF_SYSCALL_AUDIT	(1 << TIF_SYSCALL_AUDIT)
-> > @@ -96,7 +98,8 @@ void arch_release_task_struct(struct task_struct
-> > *tsk);
-> >  
-> >  #define _TIF_WORK_MASK		(_TIF_NEED_RESCHED |
-> > _TIF_SIGPENDING | \
-> >  				 _TIF_NOTIFY_RESUME |
-> > _TIF_FOREIGN_FPSTATE | \
-> > -				 _TIF_UPROBE | _TIF_FSCHECK)
-> > +				 _TIF_UPROBE | _TIF_FSCHECK | \
-> > +				 _TIF_TASK_ISOLATION)
-> >  
-> >  #define _TIF_SYSCALL_WORK	(_TIF_SYSCALL_TRACE |
-> > _TIF_SYSCALL_AUDIT | \
-> >  				 _TIF_SYSCALL_TRACEPOINT | _TIF_SECCOMP
-> > | \
-> > diff --git a/arch/arm64/kernel/ptrace.c
-> > b/arch/arm64/kernel/ptrace.c
-> > index cd6e5fa48b9c..b35b9b0c594c 100644
-> > --- a/arch/arm64/kernel/ptrace.c
-> > +++ b/arch/arm64/kernel/ptrace.c
-> > @@ -29,6 +29,7 @@
-> >  #include <linux/regset.h>
-> >  #include <linux/tracehook.h>
-> >  #include <linux/elf.h>
-> > +#include <linux/isolation.h>
-> >  
-> >  #include <asm/compat.h>
-> >  #include <asm/cpufeature.h>
-> > @@ -1836,6 +1837,15 @@ int syscall_trace_enter(struct pt_regs
-> > *regs)
-> >  			return -1;
-> >  	}
-> >  
-> > +	/*
-> > +	 * In task isolation mode, we may prevent the syscall from
-> > +	 * running, and if so we also deliver a signal to the process.
-> > +	 */
-> > +	if (test_thread_flag(TIF_TASK_ISOLATION)) {
-> > +		if (task_isolation_syscall(regs->syscallno) == -1)
-> > +			return -1;
-> > +	}
-> 
-> As above, this doesn't match the commit message.
-> 
-> AFAICT, task_isolation_syscall() always returns either 0 or -1, which
-> isn't great as an API. I see secure_computing() seems to do the same,
-> and it'd be nice to clean that up to either be a real erro code or a
-> boolean.
-
-Boolean may make more sense considering that we are not dealing with
-errors returned by some operation the fact that calls were made from
-the wrong state.
-
-> 
-
-> > > > +
-> >  	/* Do the secure computing after ptrace; failures should be
-> > fast. */
-> >  	if (secure_computing() == -1)
-> >  		return -1;
-> > diff --git a/arch/arm64/kernel/signal.c
-> > b/arch/arm64/kernel/signal.c
-> > index 339882db5a91..d488c91a4877 100644
-> > --- a/arch/arm64/kernel/signal.c
-> > +++ b/arch/arm64/kernel/signal.c
-> > @@ -20,6 +20,7 @@
-> >  #include <linux/tracehook.h>
-> >  #include <linux/ratelimit.h>
-> >  #include <linux/syscalls.h>
-> > +#include <linux/isolation.h>
-> >  
-> >  #include <asm/daifflags.h>
-> >  #include <asm/debug-monitors.h>
-> > @@ -898,6 +899,11 @@ static void do_signal(struct pt_regs *regs)
-> >  	restore_saved_sigmask();
-> >  }
-> >  
-> > +#define NOTIFY_RESUME_LOOP_FLAGS \
-> > +	(_TIF_NEED_RESCHED | _TIF_SIGPENDING | \
-> > +	_TIF_NOTIFY_RESUME | _TIF_FOREIGN_FPSTATE | \
-> > +	_TIF_UPROBE | _TIF_FSCHECK)
-> > +
-> >  asmlinkage void do_notify_resume(struct pt_regs *regs,
-> >  				 unsigned long thread_flags)
-> >  {
-> > @@ -908,6 +914,8 @@ asmlinkage void do_notify_resume(struct pt_regs
-> > *regs,
-> >  	 */
-> >  	trace_hardirqs_off();
-> >  
-> > +	task_isolation_check_run_cleanup();
-> > +
-> >  	do {
-> >  		/* Check valid user FS if needed */
-> >  		addr_limit_user_check();
-> > @@ -938,7 +946,10 @@ asmlinkage void do_notify_resume(struct
-> > pt_regs *regs,
-> >  
-> >  		local_daif_mask();
-> >  		thread_flags = READ_ONCE(current_thread_info()->flags);
-> > -	} while (thread_flags & _TIF_WORK_MASK);
-> > +	} while (thread_flags & NOTIFY_RESUME_LOOP_FLAGS);
-> > +
-> > +	if (thread_flags & _TIF_TASK_ISOLATION)
-> > +		task_isolation_start();
-> >  }
-> >  
-> >  unsigned long __ro_after_init signal_minsigstksz;
-> > diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
-> > index d4ed9a19d8fe..00f0f77adea0 100644
-> > --- a/arch/arm64/kernel/smp.c
-> > +++ b/arch/arm64/kernel/smp.c
-> > @@ -32,6 +32,7 @@
-> >  #include <linux/irq_work.h>
-> >  #include <linux/kexec.h>
-> >  #include <linux/kvm_host.h>
-> > +#include <linux/isolation.h>
-> >  
-> >  #include <asm/alternative.h>
-> >  #include <asm/atomic.h>
-> > @@ -818,6 +819,7 @@ void arch_send_call_function_single_ipi(int
-> > cpu)
-> >  #ifdef CONFIG_ARM64_ACPI_PARKING_PROTOCOL
-> >  void arch_send_wakeup_ipi_mask(const struct cpumask *mask)
-> >  {
-> > +	task_isolation_remote_cpumask(mask, "wakeup IPI");
-> >  	smp_cross_call(mask, IPI_WAKEUP);
-> >  }
-> >  #endif
-> > @@ -886,6 +888,9 @@ void handle_IPI(int ipinr, struct pt_regs
-> > *regs)
-> >  		__inc_irq_stat(cpu, ipi_irqs[ipinr]);
-> >  	}
-> >  
-> > +	task_isolation_interrupt("IPI type %d (%s)", ipinr,
-> > +				 ipinr < NR_IPI ? ipi_types[ipinr] :
-> > "unknown");
-> > +
-> 
-> Are these tracing hooks?
-> 
-> Surely they aren't necessary for functional correctness?
-
-This is necessary to properly break isolation and send a signal when
-something disturbed the isolated task, and to tell the user (likely a
-developer), why this happened. There are some legitimate reasons for
-breaking isolation (for example, a signal that terminates the process)
-and very large number of possible things that should not happen to an
-isolated task -- page fault caused by access to unmapped addresses,
-syscall issued by the task in isolated state, interrupt directed to the
-core running isolated task, timer remaining there, or kernel trying to
-run something on that core. It was very helpful to know what exactly
-happened, and if not this reporting, I would have hard time debugging
-the drivers and subsystems that called their functions and scheduled
-their threads all over the place. So both reliable breaking of
-isolation and reporting the cause is important.
-
-> 
-> >  	switch (ipinr) {
-> >  	case IPI_RESCHEDULE:
-> >  		scheduler_ipi();
-> > @@ -948,12 +953,14 @@ void handle_IPI(int ipinr, struct pt_regs
-> > *regs)
-> >  
-> >  void smp_send_reschedule(int cpu)
-> >  {
-> > +	task_isolation_remote(cpu, "reschedule IPI");
-> >  	smp_cross_call(cpumask_of(cpu), IPI_RESCHEDULE);
-> >  }
-> >  
-> >  #ifdef CONFIG_GENERIC_CLOCKEVENTS_BROADCAST
-> >  void tick_broadcast(const struct cpumask *mask)
-> >  {
-> > +	task_isolation_remote_cpumask(mask, "timer IPI");
-> >  	smp_cross_call(mask, IPI_TIMER);
-> >  }
-> >  #endif
-> > diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
-> > index 85566d32958f..fc4b42c81c4f 100644
-> > --- a/arch/arm64/mm/fault.c
-> > +++ b/arch/arm64/mm/fault.c
-> > @@ -23,6 +23,7 @@
-> >  #include <linux/perf_event.h>
-> >  #include <linux/preempt.h>
-> >  #include <linux/hugetlb.h>
-> > +#include <linux/isolation.h>
-> >  
-> >  #include <asm/acpi.h>
-> >  #include <asm/bug.h>
-> > @@ -543,6 +544,10 @@ static int __kprobes do_page_fault(unsigned
-> > long addr, unsigned int esr,
-> >  	 */
-> >  	if (likely(!(fault & (VM_FAULT_ERROR | VM_FAULT_BADMAP |
-> >  			      VM_FAULT_BADACCESS)))) {
-> > +		/* No signal was generated, but notify task-isolation
-> > tasks. */
-> > +		if (user_mode(regs))
-> > +			task_isolation_interrupt("page fault at %#lx",
-> > addr);
-> > +
-> 
-> We check user_mode(regs) much earlier in this function to set
-> FAULT_FLAG_USER. Is there some reason this cannot live there?
-> 
-> Also, this seems to be a tracing hook -- is this necessary?
-
-This is another point where task isolation state is broken, task
-receives a signal and the reason is logged. If not isolation, task
-would not know that anything happened, but it is important for
-isolation.
-
-In general if isolated task is supposed to be running on a CPU core, it
-has to stay in userspace. So if for some reason a kernel code is
-running on that CPU core, this is either a task leaving isolation on
-its own or isolation is broken and the task should be notified about
-it. The only problem is how to properly and reliably explain why this
-happened.
-
-Thanks!
-
--- 
-Alex
+T24gVGh1LCAyMDIwLTAzLTA1IGF0IDE5OjMzICswMTAwLCBGcmVkZXJpYyBXZWlzYmVja2VyIHdy
+b3RlOg0KPiBPbiBXZWQsIE1hciAwNCwgMjAyMCBhdCAwNDowNzoxMlBNICswMDAwLCBBbGV4IEJl
+bGl0cyB3cm90ZToNCj4gPiANCj4gDQo+IEhpIEFsZXcsDQo+IA0KPiBJJ20gZ2xhZCB0aGlzIHBh
+dGNoc2V0IGlzIGJlaW5nIHJlc3VyZWN0ZWQuDQo+IFJlYWRpbmcgdGhhdCBjaGFuZ2Vsb2csIEkg
+bGlrZSB0aGUgZ2VuZXJhbCBpZGVhIGFuZCB0aGUgZGlyZWN0aW9uLg0KPiBUaGUgZGlmZiBpcyBh
+IGJpdCBzY2FyeSB0aG91Z2ggYnV0IEknbGwgY2hlY2sgdGhlIHBhdGNoZXMgaW4gZGV0YWlsDQo+
+IGluIHRoZSB1cGNvbWluZyBkYXlzLg0KPiANCg0KSSBtYWRlIHNvbWUgdXBkYXRlcyAtLSBhZGRl
+ZCBtaXNzaW5nIGNvZGUgZm9yIGFybSBhbmQgeDg2LCByZXN0b3JlZA0Kc2lnbi1vZmYgbGluZXMg
+YW5kIHVwZGF0ZWQgY29tbWl0IG1lc3NhZ2VzLg0KDQpUaGlzIGlzIHRoZSByZXN1bHQgb2Ygc29t
+ZSB3b3JrIHRoYXQgbW9zdGx5IGhhcHBlbmVkIG9uIGVhcmxpZXINCnZlcnNpb25zIGFuZCBoYWQg
+dG8gZGVhbCB3aXRoIHRoZSBmYWN0IHRoYXQgdGltZXJzIGFuZCBob3VzZWtlZXBpbmcNCndvcmsg
+b2Z0ZW4gYXBwZWFyZWQgb24gYWxsIENQVXMsIHNvIHNvbWUgc29sdXRpb25zIG1heSBsb29rIGxp
+a2UgYW4NCm92ZXJraWxsLiBOZXZlcnRoZWxlc3MgaXQgd2FzIHZlcnkgaGVscGZ1bCBmb3IgZmlu
+ZGluZyB0aGUgc291cmNlcyBvZg0KdW5leHBlY3RlZCBkaXN0dXJiYW5jZXMuDQoNCkFsc28gb3Jp
+Z2luYWxseSBzb21lIG9mIHRoZSByYWNlIGNvbmRpdGlvbnMgYW5kIHBvdGVudGlhbCBkZWxheWVk
+IHdvcmsNCmF0IHRoZSB0aW1lIHdoZW4gYSB0YXNrIGlzIGVudGVyaW5nIGlzb2xhdGVkIHN0YXRl
+IHdlcmUgY29uc2lkZXJlZA0KdW5hdm9pZGFibGUuIFNvIHRoZSBwYXJ0IGluIGtlcm5lbCB3YXMg
+Zm9jdXNlZCBvbiBjb3JyZWN0bmVzcyBvZg0KaGFuZGxpbmcgdGhvc2UgY29uZGl0aW9ucywgd2hp
+bGUgZGV0ZWN0aW9uIGFuZCBkZWFsaW5nIHdpdGggdGhlaXINCmNvbnNlcXVlbmNlcyB3YXMgZG9u
+ZSBpbiB1c2Vyc3BhY2UgKGluIGxpYnRtYykuIE5vdyBpdCBsb29rcyBsaWtlIHRoZXJlDQptYXkg
+YmUgbXVjaCBmZXdlciBzdWNoIHNpdHVhdGlvbnMsIGhvd2V2ZXIgSSBhbSBzdGlsbCBub3QgdmVy
+eSB0aHJpbGxlZA0Kd2l0aCB0aGUgaWRlYSBvZiBjb21wbGljYXRpbmcgdGhlIGtlcm5lbCBtb3Jl
+IHRoYW4gd2UgaGF2ZSB0by4NCkVzcGVjaWFsbHkgd2hlbiBpdCBjb21lcyB0byBjb2RlIHRoYXQg
+aXMgcmVsZXZhbnQgb25seSBvdmVyIGZldyBzZWNvbmRzDQp3aGVuIHRoZSB0YXNrIGlzIHN0YXJ0
+aW5nIGFuZCBlbnRlcmluZyBpc29sYXRlZCBtb2RlLiBTbyBJIGhhdmUgdG8NCmFkbWl0IHRoYXQg
+c29tZSBzb2x1dGlvbnMgbG9vayBsaWtlICJtb3JlIEVJTlRSIHRoYW4gRUlOVFIiLCBhbmQgSQ0K
+c3RpbGwgbGlrZSB0aGVtIG1vcmUgdGhhbiBtYWtpbmcga2VybmVsIHNpZGUgb2YgZW50ZXJpbmcv
+ZXhpdGluZw0KaXNvbGF0aW9uIGV2ZW4gbW9yZSBjb21wbGV4IHRoYW4gaXQgaXMgbm93Lg0KDQpJ
+IG1heSBiZSB3cm9uZywgYW5kIHRoZXJlIG1heSBiZSBzb21lIG1vcmUgZWxlZ2FudCBzb2x1dGlv
+biwgaG93ZXZlciBJDQpkb24ndCBzZWUgaXQgbm93LiBVc2Vyc3BhY2UtYXNzaXN0ZWQgaXNvbGF0
+aW9uIGVudGVyaW5nL2V4aXRpbmcNCnByb2NlZHVyZSB3b3JrZWQgdmVyeSB3ZWxsIGluIGEgc3lz
+dGVtIHdpdGggYSBodWdlIG51bWJlciBvZiBjb3JlcywNCnRocmVhZHMsIGRyaXZlcnMgd2l0aCB1
+bnVzdWFsIGZlYXR1cmVzLCBldGMuLCBzbyBhdCB2ZXJ5IGxlYXN0IHdlIGhhdmUNCnNvbWUgdXNh
+YmxlIHJlZmVyZW5jZSBwb2ludC4NCg0KPiA+IEluIGEgbnVtYmVyIG9mIGNhc2VzIHdlIGNhbiB0
+ZWxsIG9uIGEgcmVtb3RlIGNwdSB0aGF0IHdlIGFyZQ0KPiA+IGdvaW5nIHRvIGJlIGludGVycnVw
+dGluZyB0aGUgY3B1LCBlLmcuIHZpYSBhbiBJUEkgb3IgYSBUTEIgZmx1c2guDQo+ID4gSW4gdGhh
+dCBjYXNlIHdlIGdlbmVyYXRlIHRoZSBkaWFnbm9zdGljIChhbmQgb3B0aW9uYWwgc3RhY2sgZHVt
+cCkNCj4gPiBvbiB0aGUgcmVtb3RlIGNvcmUgdG8gYmUgYWJsZSB0byBkZWxpdmVyIGJldHRlciBk
+aWFnbm9zdGljcy4NCj4gPiBJZiB0aGUgaW50ZXJydXB0IGlzIG5vdCBzb21ldGhpbmcgY2F1Z2h0
+IGJ5IExpbnV4IChlLmcuIGENCj4gPiBoeXBlcnZpc29yIGludGVycnVwdCkgd2UgY2FuIGFsc28g
+cmVxdWVzdCBhIHJlc2NoZWR1bGUgSVBJIHRvDQo+ID4gYmUgc2VudCB0byB0aGUgcmVtb3RlIGNv
+cmUgc28gaXQgY2FuIGJlIHN1cmUgdG8gZ2VuZXJhdGUgYQ0KPiA+IHNpZ25hbCB0byBub3RpZnkg
+dGhlIHByb2Nlc3MuDQo+IA0KPiBJJ20gd29uZGVyaW5nIGlmIGl0J3Mgd2lzZSB0byBydW4gdGhh
+dCBvbiBhIGd1ZXN0IGF0IGFsbCA6LSkNCj4gT3Igd2Ugc2hvdWxkIGNvbnNpZGVyIGFueSBndWVz
+dCBleGl0IHRvIHRoZSBob3N0IGFzIGENCj4gZGlzdHVyYmFuY2UsIHdlIHdvdWxkIHRoZW4gbmVl
+ZCBzb21lIHNvcnQgb2YgcGFyYXZpcnQNCj4gZHJpdmVyIHRvIG5vdGlmeSB0aGF0LCBldGMuLi4g
+VGhhdCBkb2Vzbid0IHNvdW5kIGFwcGVhbGluZy4NCg0KV2h5IG5vdD8gSSBhbSBub3QgYSBiaWcg
+ZmFuIG9mIHZpcnR1YWxpemF0aW9uLCBob3dldmVyIHBlb3BsZSBzZWVtIHRvDQp1c2UgaXQgZm9y
+IGFsbCBraW5kcyBvZiBwdXJwb3NlcyBub3csIGFuZCB3ZSBvbmx5IGhhdmUgdG8gcHJvcGFnYXRl
+IChvcg0KcmVqZWN0KSBpc29sYXRpb24gcmVxdWVzdHMgZnJvbSBndWVzdCB0byBob3N0IChhcyBs
+b25nIGFzIHJlc291cmNlIGFuZA0KcGVybWlzc2lvbnMgcG9saWN5IGFsbG93IHRoYXQpLiBGb3Ig
+S1ZNIGl0IHdvdWxkIGJlIGxpdGVyYWxseQ0KcmVwbGljYXRpbmcgZ3Vlc3QgdGFzayBpc29sYXRp
+b24gc3RhdGUgb24gdGhlIGhvc3QsIGFuZCBhcyBsb25nIGFzIENQVQ0KY29yZSBpcyBpc29sYXRl
+ZCwgZG9lcyBpdCByZWFsbHkgbWF0dGVyIGlmIHRoZSB0YXNrIHdhcyBjcmVhdGVkIHdpdGgNCnR3
+byBsYXllcnMgb2YgdmlydHVhbGl6YXRpb24gaW5zdGVhZCBvZiBvbmU/DQoNCkZvciBpc29sYXRp
+b24gdG8gbWFrZSBzZW5zZSwgaXQncyBzdGlsbCBjb2RlIHJ1bm5pbmcgb24gYSBDUFUgd2l0aA0K
+Zml4ZWQgYWRkcmVzcyBtYXBwaW5nLiBJZiB0aGlzIGlzIHN0aWxsIHRoZSBjYXNlLCB2aXJ0dWFs
+aXphdGlvbiBvbmx5DQpkZXRlcm1pbmVzIHdoYXQgY2FuIGJlIGluIHRoYXQgc3BhY2UsIG5vdCBo
+b3cgaXQgYmVoYXZlcy4gSWYgdGhpcyBpcw0Kbm90IHRoZSBjYXNlLCBhbmQgdGFzayBjYXVzZXMg
+a2VybmVsIGNvZGUgdG8gcnVuLCBiZSBpdCBndWVzdCBvciBob3N0DQprZXJuZWwsIHRoZW4gc29t
+ZXRoaW5nIGlzIHdyb25nLCBhbmQgaXNvbGF0aW9uIGlzIGJyb2tlbi4gTm90IHZlcnkNCmRpZmZl
+cmVudCBmcm9tIGJlaGF2aW9yIHdpdGhvdXQgdmlydHVhbGl6YXRpb24uDQoNClRoaXMgd291bGQg
+YmUgdmVyeSBiYWQgZm9yIGVhcmx5IGRheXMgb2YgdmlydHVhbGl6YXRpb24gd2hlbiB2ZXJ5DQps
+aXR0bGUgY291bGQgYmUgZG9uZSBieSBhIGd1ZXN0IHdpdGhvdXQgaG9zdCBtZXNzaW5nIHdpdGgg
+aXQuIE5vdywgd2hlbg0KcGllY2VzIG9mIGhhcmR3YXJlIGNhbiBiZSAocmVsYXRpdmVseSkgc2Fm
+ZWx5IGdpdmVuIHRvIHRoZSBndWVzdA0KdXNlcnNwYWNlIHRvIHdvcmsgb24sIHdlIGNhbiBqdXN0
+IGFzIHdlbGwgbGV0IGl0IHJ1biBpc29sYXRlZC4NCg0KPiANCj4gVGhhbmtzLg0KDQpUaGFua3Mh
+DQoNCi0tIA0KQWxleA0K
