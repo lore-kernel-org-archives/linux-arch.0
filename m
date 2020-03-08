@@ -1,83 +1,33 @@
-Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:33462 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727186AbgCFNdM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Mar 2020 08:33:12 -0500
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 06/20] linux/time32.h: Extract common header for vDSO
-Date: Fri,  6 Mar 2020 13:32:28 +0000
-Message-ID: <20200306133242.26279-7-vincenzo.frascino@arm.com>
-In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
-References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=iRyw=4Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:4012 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1725854AbgCHHed (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 8 Mar 2020 03:34:33 -0400
+From: Alex Belits <abelits@marvell.com>
+Subject: Re: [EXT] Re: [PATCH v2 03/12] task_isolation: userspace hard
+ isolation from kernel
+Date: Sun, 8 Mar 2020 07:33:26 +0000
+Message-ID: <f0b4a621cf3b49d649ea0b23d93721cf7ca24d6e.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+         <105f17f25e90a9a58299a7ed644bdd0f36434c87.camel@marvell.com>
+         <20200307214254.7a8f6c22@hermes.lan>
+In-Reply-To: <20200307214254.7a8f6c22@hermes.lan>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <964184D5A0236941AA1717025730F649@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200306133228.B_LSNJR5qA7mlxbE3Pe1BX_muktSeZY-QPtq4SeTJ4M@z>
+To: "stephen@networkplumber.org" <stephen@networkplumber.org>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "frederic@kernel.org" <frederic@kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will@kernel.org" <will@kernel.org>
+Message-ID: <20200308073326.yoGNCmjrYtYVz6sUoKLKseVoJYob9yYzLYbgSW8r7UI@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
-
-Split time32.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
-
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- include/common/time32.h | 17 +++++++++++++++++
- include/linux/time32.h  | 13 +------------
- 2 files changed, 18 insertions(+), 12 deletions(-)
- create mode 100644 include/common/time32.h
-
-diff --git a/include/common/time32.h b/include/common/time32.h
-new file mode 100644
-index 000000000000..d5b85abdfaf1
---- /dev/null
-+++ b/include/common/time32.h
-@@ -0,0 +1,17 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_TIME32_H
-+#define __COMMON_TIME32_H
-+
-+typedef s32		old_time32_t;
-+
-+struct old_timespec32 {
-+	old_time32_t	tv_sec;
-+	s32		tv_nsec;
-+};
-+
-+struct old_timeval32 {
-+	old_time32_t	tv_sec;
-+	s32		tv_usec;
-+};
-+
-+#endif /* __COMMON_TIME32_H */
-diff --git a/include/linux/time32.h b/include/linux/time32.h
-index cf9320cd2d0b..e75dd5f9df8f 100644
---- a/include/linux/time32.h
-+++ b/include/linux/time32.h
-@@ -11,18 +11,7 @@
- 
- #include <linux/time64.h>
- #include <linux/timex.h>
--
--typedef s32		old_time32_t;
--
--struct old_timespec32 {
--	old_time32_t	tv_sec;
--	s32		tv_nsec;
--};
--
--struct old_timeval32 {
--	old_time32_t	tv_sec;
--	s32		tv_usec;
--};
-+#include <common/time32.h>
- 
- struct old_itimerspec32 {
- 	struct old_timespec32 it_interval;
--- 
-2.25.1
+T24gU2F0LCAyMDIwLTAzLTA3IGF0IDIxOjQyIC0wODAwLCBTdGVwaGVuIEhlbW1pbmdlciB3cm90
+ZToNCj4gT24gU3VuLCA4IE1hciAyMDIwIDAzOjQ3OjA4ICswMDAwDQo+IEFsZXggQmVsaXRzIDxh
+YmVsaXRzQG1hcnZlbGwuY29tPiB3cm90ZToNCj4gDQo+ID4gK2ludCB0YXNrX2lzb2xhdGlvbl9t
+ZXNzYWdlKGludCBjcHUsIGludCBsZXZlbCwgYm9vbCBzdXBwLCBjb25zdA0KPiA+IGNoYXIgKmZt
+dCwgLi4uKTsNCj4gDQo+IFNpbmNlIHlvdSBhcmUgZG9pbmcgcHJpbnRmL3ByaW50ayB2YXIgYXJn
+cyB5b3Ugc2hvdWxkIHVzZSB0aGUgR0NDDQo+IGZvcm1hdCBhdHRyaWJ1dGVzDQo+IGxpa2UgcHJp
+bnRrLg0KDQpBZ3JlZWQuDQoNCi0tIA0KQWxleA0K
