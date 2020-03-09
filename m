@@ -1,37 +1,60 @@
-Return-Path: <akpm@linux-foundation.org>
-Date: Fri, 6 Mar 2020 20:00:16 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v3 07/14] powerpc/32: drop get_pteptr()
-Message-ID: <20200306200016.6f3865ada0daa68b645fe5d7@linux-foundation.org>
-In-Reply-To: <20200227084608.18223-8-rppt@kernel.org>
-References: <20200227084608.18223-1-rppt@kernel.org>
-	<20200227084608.18223-8-rppt@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-To: Mike Rapoport <rppt@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki K Poulose <suzuki.poulose@arm.com>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, kvmarm@lists.cs.columbia.edu, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
+Return-Path: <SRS0=m5K7=42=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:57536 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726157AbgCIVFH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 9 Mar 2020 17:05:07 -0400
+Date: Mon, 9 Mar 2020 21:05:05 +0000
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
+Message-ID: <20200309210505.GM4101@sirena.org.uk>
+References: <20200227174417.23722-1-broonie@kernel.org>
+ <20200306102729.GC2503422@arrakis.emea.arm.com>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="qySB1iFW++5nzUxH"
+Content-Disposition: inline
+In-Reply-To: <20200306102729.GC2503422@arrakis.emea.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200307040016.xzuPaf61mhLfwZeveLLK8tie3PF4rvsJhUoNE0dO6BY@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200309210505.KlflFh-TQbLW0E_7UnSsBiHuBKjbM4gcYbjYy-CqDGg@z>
 
-On Thu, 27 Feb 2020 10:46:01 +0200 Mike Rapoport <rppt@kernel.org> wrote:
 
-> Commit 8d30c14cab30 ("powerpc/mm: Rework I$/D$ coherency (v3)") and
-> commit 90ac19a8b21b ("[POWERPC] Abolish iopa(), mm_ptov(),
-> io_block_mapping() from arch/powerpc") removed the use of get_pteptr()
-> outside of mm/pgtable_32.c
-> 
-> In mm/pgtable_32.c, the only user of get_pteptr() is __change_page_attr()
-> which operates on kernel context and on lowmem pages only.
-> 
-> Move page table traversal to __change_page_attr() and drop get_pteptr().
+--qySB1iFW++5nzUxH
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-People have been changing things in linux-next and the powerpc patches
-are hurting.
+On Fri, Mar 06, 2020 at 10:27:29AM +0000, Catalin Marinas wrote:
+> On Thu, Feb 27, 2020 at 05:44:06PM +0000, Mark Brown wrote:
 
-I'll disable this patch series for now.  Can you please redo
-powerpc-32-drop-get_pteptr.patch and
-powerpc-add-support-for-folded-p4d-page-tables.patch (and
-powerpc-add-support-for-folded-p4d-page-tables-fix.patch)?
+> > This patch series implements support for ARMv8.5-A Branch Target
+> > Identification (BTI), which is a control flow integrity protection
+> > feature introduced as part of the ARMv8.5-A extensions.
 
-Thanks.
+> Does this series affect uprobes in any way? I.e. can you probe a landing
+> pad?
+
+You can't probe a landing pad, uprobes on landing pads will be silently
+ignored so the program isn't disrupted, you just don't get the expected
+trace from those uprobes.  This isn't new with the BTI support since
+the landing pads are generally pointer auth instructions, these already
+can't be probed regardless of what's going on with this series.  It's
+already on the list to get sorted.
+
+--qySB1iFW++5nzUxH
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5mr4AACgkQJNaLcl1U
+h9Blwwf8CR8zwN1uUuwJWSzyItw8ZiSf2fLHJ6Smgao/rc/O876dKM+ZZQqzuQ3B
+kG8nQyocUyEa7jghPeuTnqveuK4hpSDe/++EG1Ncl+7gMe8pmbTLVfOCYZzs1TPc
+3QiBL54YSDsAtYFT/Q+2Q27pv4vP3Xm7vsyhvWHYujG6HuFVt3Oco0Nnh8ipL6Eo
+XPOS5rfxJTLe2vcwFfj6Nf03zK+DoS2gU4LAXCjQeXGuwGep9BYzoEQhXk8srTA7
+ZJSrDH0XTMYRRmkmHTcppBRfqbKwES2xZYt6GDRWKqG7yvnEcq+v1MFR2Mgw87ZA
+eQr2xNhLMxU8o5zqjJiwHMI5S3jMoQ==
+=TGul
+-----END PGP SIGNATURE-----
+
+--qySB1iFW++5nzUxH--
