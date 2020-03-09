@@ -1,47 +1,90 @@
-Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:33638 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726733AbgCFNd1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Mar 2020 08:33:27 -0500
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 11/20] linux/elfnote.h: Replace elf.h with UAPI equivalent
-Date: Fri,  6 Mar 2020 13:32:33 +0000
-Message-ID: <20200306133242.26279-12-vincenzo.frascino@arm.com>
-In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
-References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=aoLA=42=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-2-yu-cheng.yu@intel.com>
+ <9ae1cf84-1d84-1d34-c0ce-48b0d70b8f3f@intel.com>
+ <0f43463e02d1be2af6bcf8ff6917e751ba7676a0.camel@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <968af1c2-a5b4-fb48-dfa9-499ec37f677c@intel.com>
+Date: Mon, 9 Mar 2020 10:21:41 -0700
 MIME-Version: 1.0
+In-Reply-To: <0f43463e02d1be2af6bcf8ff6917e751ba7676a0.camel@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200306133233.oY6lK2ON2AFTnpKcvmpytNIaGYRP1sfTVI435NnWGH8@z>
+Message-ID: <20200309172141.7J5cLX-UwFlpqvRl5sMrLrthlnvaLvsUenmPIZlJs9g@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+On 3/9/20 10:00 AM, Yu-cheng Yu wrote:
+> On Wed, 2020-02-26 at 09:57 -0800, Dave Hansen wrote:
+>>> index ade4e6ec23e0..8b69ebf0baed 100644
+>>> --- a/Documentation/admin-guide/kernel-parameters.txt
+>>> +++ b/Documentation/admin-guide/kernel-parameters.txt
+>>> @@ -3001,6 +3001,12 @@
+>>>  			noexec=on: enable non-executable mappings (default)
+>>>  			noexec=off: disable non-executable mappings
+>>>  
+>>> +	no_cet_shstk	[X86-64] Disable Shadow Stack for user-mode
+>>> +			applications
+>>
+>> If we ever add kernel support, "no_cet_shstk" will mean "no cet shstk
+>> for userspace"?
+> 
+> What about no_user_shstk, no_kernel_shstk?
 
-Replace linux/elf.h with UAPI equivalent in elfnote.h to make the header
-suitable for vDSO inclusion.
+Those are better.
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- include/linux/elfnote.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+>>> +	no_cet_ibt	[X86-64] Disable Indirect Branch Tracking for user-mode
+>>> +			applications
+>>> +
+>>>  	nosmap		[X86,PPC]
+>>>  			Disable SMAP (Supervisor Mode Access Prevention)
+>>>  			even if it is supported by processor.
+>>
+>> BTW, this documentation is misplaced.  It needs to go to the spot where
+>> you introduce the code for these options.
+> 
+> We used to introduce the document later in the series.  The feedback was to
+> introduce it first so that readers know what to expect.
 
-diff --git a/include/linux/elfnote.h b/include/linux/elfnote.h
-index f236f5b931b2..594d4e78654f 100644
---- a/include/linux/elfnote.h
-+++ b/include/linux/elfnote.h
-@@ -59,7 +59,7 @@
- 	ELFNOTE_END
- 
- #else	/* !__ASSEMBLER__ */
--#include <linux/elf.h>
-+#include <uapi/linux/elf.h>
- /*
-  * Use an anonymous structure which matches the shape of
-  * Elf{32,64}_Nhdr, but includes the name and desc data.  The size and
--- 
-2.25.1
+To me, that doesn't apply for things that are implemented in this
+specific of a spot in the code and *ALSO* might not even make the final
+series.
+
+
+>>> +Note:
+>>> +  There is no CET-enabling arch_prctl function.  By design, CET is
+>>> +  enabled automatically if the binary and the system can support it.
+>>
+>> This is kinda interesting.  It means that a JIT couldn't choose to
+>> protect the code it generates and have different rules from itself?
+> 
+> JIT needs to be updated for CET first.  Once that is done, it runs with CET
+> enabled.  It can use the NOTRACK prefix, for example.
+
+Am I missing something?
+
+What's the direct connection between shadow stacks and Indirect Branch
+Tracking other than Intel marketing umbrellas?
+
+>>> +  The parameters passed are always unsigned 64-bit.  When an IA32
+>>> +  application passing pointers, it should only use the lower 32 bits.
+>>
+>> Won't a 32-bit app calling prctl() use the 32-bit ABI?  How would it
+>> even know it's running on a 64-bit kernel?
+> 
+> The 32-bit app is passing only a pointer to an array of 64-bit numbers.
+
+Well, the documentation just talked about pointers and I naively assume
+it means the "unsigned long *" you had in there.
+
+Rather than make suggestions, just say that the ABI is universally
+64-bit.  Saying that the pointers must be valid is just kinda silly.
+It's also not 100% clear what an "IA32 application" *MEANS* given fun
+things like x32.
+
+Also, I went to go find this implementation in your series.  I couldn't
+find it.  Did I miss a patch?  Or are you documenting things you didn't
+even implement?
