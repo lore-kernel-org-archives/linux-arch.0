@@ -1,164 +1,64 @@
-Return-Path: <SRS0=twat=5M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga05-in.huawei.com ([45.249.212.191]:12204 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727780AbgC0QKg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Mar 2020 12:10:36 -0400
-From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v2 1/3] io: Provide _inX() and _outX()
-Date: Sat, 28 Mar 2020 00:06:12 +0800
-Message-ID: <1585325174-195915-2-git-send-email-john.garry@huawei.com>
-In-Reply-To: <1585325174-195915-1-git-send-email-john.garry@huawei.com>
-References: <1585325174-195915-1-git-send-email-john.garry@huawei.com>
+Return-Path: <SRS0=V5mr=42=kvack.org=owner-linux-mm@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain
-Sender: linux-arch-owner@vger.kernel.org
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com> <20200205181935.3712-2-yu-cheng.yu@intel.com>
+ <9ae1cf84-1d84-1d34-c0ce-48b0d70b8f3f@intel.com> <0f43463e02d1be2af6bcf8ff6917e751ba7676a0.camel@intel.com>
+ <968af1c2-a5b4-fb48-dfa9-499ec37f677c@intel.com> <fed72ecc917373669ac546d4e8214793d78bd513.camel@intel.com>
+ <9b7ff325-d7cd-9309-d060-ad641486d106@intel.com>
+In-Reply-To: <9b7ff325-d7cd-9309-d060-ad641486d106@intel.com>
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Date: Mon, 9 Mar 2020 12:50:15 -0700
+Message-ID: <CAMe9rOoRTVUzNC88Ho2XTTNJCymrd3L=XdB9xFcgxPVwAZ0FWA@mail.gmail.com>
+Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
+Content-Type: text/plain; charset="UTF-8"
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: xuwei5@huawei.com, arnd@arndb.de
-Cc: okaya@kernel.org, bhelgaas@google.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxarm@huawei.com, olof@lixom.net, jiaxun.yang@flygoat.com, John Garry <john.garry@huawei.com>
-Message-ID: <20200327160612.aMaOMzC74e6sRfhyJQty9RyGgApz8GrZ41PzYX5ypGs@z>
+Message-ID: <20200309195015.udWZ_wpZzExSPwyvQPSeH8e5dlrSTqoZ4FLCmuUJdyc@z>
 
-Since commit a7851aa54c0c ("io: change outX() to have their own IO barrier
-overrides") and commit 87fe2d543f81 ("io: change inX() to have their own
-IO barrier overrides"), the outX and inX functions have memory barriers
-which can be overridden.
+On Mon, Mar 9, 2020 at 12:35 PM Dave Hansen <dave.hansen@intel.com> wrote:
+>
+> On 3/9/20 12:27 PM, Yu-cheng Yu wrote:
+> > On Mon, 2020-03-09 at 10:21 -0700, Dave Hansen wrote:
+> >> On 3/9/20 10:00 AM, Yu-cheng Yu wrote:
+> >>> On Wed, 2020-02-26 at 09:57 -0800, Dave Hansen wrote>>>>> +Note:
+> >>>>> +  There is no CET-enabling arch_prctl function.  By design, CET is
+> >>>>> +  enabled automatically if the binary and the system can support it.
+> >>>>
+> >>>> This is kinda interesting.  It means that a JIT couldn't choose to
+> >>>> protect the code it generates and have different rules from itself?
+> >>>
+> >>> JIT needs to be updated for CET first.  Once that is done, it runs with CET
+> >>> enabled.  It can use the NOTRACK prefix, for example.
+> >>
+> >> Am I missing something?
+> >>
+> >> What's the direct connection between shadow stacks and Indirect Branch
+> >> Tracking other than Intel marketing umbrellas?
+> >
+> > What I meant is that JIT code needs to be updated first; if it skips RETs,
+> > it needs to unwind the stack, and if it does indirect JMPs somewhere it
+> > needs to fix up the branch target or use NOTRACK.
+>
+> I'm totally lost.  I think we have very different models of how a JIT
+> might generate and run code.
+>
+> I can totally see a scenario where a JIT goes and generates a bunch of
+> code, then forks a new thread to go run that code.  The control flow of
+> the JIT thread itself *NEVER* interacts with the control flow of the
+> program it writes.  They never share a stack and nothing ever jumps or
+> rets between the two worlds.
+>
+> Does anything actually do that?  I've got no idea.  But, I can clearly
+> see a world where the entirety of Chrome and Firefox and the entire rust
+> runtime might not be fully recompiled and CET-enabled for a while.  But,
+> we still want the JIT-generated code to be CET-protected since it has
+> the most exposed attack surface.
+>
+> I don't think that's too far-fetched.
 
-However, the generic logic_pio lib has continued to use readl/writel et al
-for IO port accesses, which has weaker barriers on arm64.
+CET support is all or nothing.   You can mix and match, but you will get
+no CET protection, similar to NX feature.
 
-Provide generic _inX() and _outX(), which can be used by logic pio.
-
-For consistency, we check for !defined({in,out}X) && !defined(_{in,out}X),
-for defining _{in,out}X, while a check for just !defined({in,out}X) should
-suffice.
-
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: John Garry <john.garry@huawei.com>
----
- include/asm-generic/io.h | 64 +++++++++++++++++++++++++++++++++---------------
- 1 file changed, 44 insertions(+), 20 deletions(-)
-
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index d39ac997dda8..3a7871130112 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -448,17 +448,15 @@ static inline void writesq(volatile void __iomem *addr, const void *buffer,
- #define IO_SPACE_LIMIT 0xffff
- #endif
- 
--#include <linux/logic_pio.h>
--
- /*
-  * {in,out}{b,w,l}() access little endian I/O. {in,out}{b,w,l}_p() can be
-  * implemented on hardware that needs an additional delay for I/O accesses to
-  * take effect.
-  */
- 
--#ifndef inb
--#define inb inb
--static inline u8 inb(unsigned long addr)
-+#if !defined(inb) && !defined(_inb)
-+#define _inb _inb
-+static inline u16 _inb(unsigned long addr)
- {
- 	u8 val;
- 
-@@ -469,9 +467,9 @@ static inline u8 inb(unsigned long addr)
- }
- #endif
- 
--#ifndef inw
--#define inw inw
--static inline u16 inw(unsigned long addr)
-+#if !defined(inw) && !defined(_inw)
-+#define _inw _inw
-+static inline u16 _inw(unsigned long addr)
- {
- 	u16 val;
- 
-@@ -482,9 +480,9 @@ static inline u16 inw(unsigned long addr)
- }
- #endif
- 
--#ifndef inl
--#define inl inl
--static inline u32 inl(unsigned long addr)
-+#if !defined(inl) && !defined(_inl)
-+#define _inl _inl
-+static inline u16 _inl(unsigned long addr)
- {
- 	u32 val;
- 
-@@ -495,9 +493,9 @@ static inline u32 inl(unsigned long addr)
- }
- #endif
- 
--#ifndef outb
--#define outb outb
--static inline void outb(u8 value, unsigned long addr)
-+#if !defined(outb) && !defined(_outb)
-+#define _outb _outb
-+static inline void _outb(u8 value, unsigned long addr)
- {
- 	__io_pbw();
- 	__raw_writeb(value, PCI_IOBASE + addr);
-@@ -505,9 +503,9 @@ static inline void outb(u8 value, unsigned long addr)
- }
- #endif
- 
--#ifndef outw
--#define outw outw
--static inline void outw(u16 value, unsigned long addr)
-+#if !defined(outw) && !defined(_outw)
-+#define _outw _outw
-+static inline void _outw(u16 value, unsigned long addr)
- {
- 	__io_pbw();
- 	__raw_writew(cpu_to_le16(value), PCI_IOBASE + addr);
-@@ -515,9 +513,9 @@ static inline void outw(u16 value, unsigned long addr)
- }
- #endif
- 
--#ifndef outl
--#define outl outl
--static inline void outl(u32 value, unsigned long addr)
-+#if !defined(outl) && !defined(_outl)
-+#define _outl _outl
-+static inline void _outl(u32 value, unsigned long addr)
- {
- 	__io_pbw();
- 	__raw_writel(cpu_to_le32(value), PCI_IOBASE + addr);
-@@ -525,6 +523,32 @@ static inline void outl(u32 value, unsigned long addr)
- }
- #endif
- 
-+#include <linux/logic_pio.h>
-+
-+#ifndef inb
-+#define inb _inb
-+#endif
-+
-+#ifndef inw
-+#define inw _inw
-+#endif
-+
-+#ifndef inl
-+#define inl _inl
-+#endif
-+
-+#ifndef outb
-+#define outb _outb
-+#endif
-+
-+#ifndef outw
-+#define outw _outw
-+#endif
-+
-+#ifndef outl
-+#define outl _outl
-+#endif
-+
- #ifndef inb_p
- #define inb_p inb_p
- static inline u8 inb_p(unsigned long addr)
 -- 
-2.16.4
+H.J.
