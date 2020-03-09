@@ -1,38 +1,53 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 0/3] docs: a few improvements for atomic_ops.rst
-Date: Mon, 9 Mar 2020 10:06:50 +0100
-Message-ID: <20200309090650.GF12561@hirez.programming.kicks-ass.net>
-References: <20200308195618.22768-1-j.neuschaefer@gmx.net>
+From: LIU Zhiwei <zhiwei_liu@c-sky.com>
+Subject: Re: [RFC PATCH V3 00/11] riscv: Add vector ISA support
+Date: Mon, 9 Mar 2020 18:27:08 +0800
+Message-ID: <95e3bba4-65c0-8991-9523-c16977f6350f@c-sky.com>
+References: <20200308094954.13258-1-guoren@kernel.org>
+ <CAHCEeh+XYD3uVmaQRGpY=VGxpO9hzMeKasNmAojhkZe9PJ9Lug@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:45998 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726215AbgCIJHH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2020 05:07:07 -0400
-Content-Disposition: inline
-In-Reply-To: <20200308195618.22768-1-j.neuschaefer@gmx.net>
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:42580 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1725956AbgCIK1N (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2020 06:27:13 -0400
+In-Reply-To: <CAHCEeh+XYD3uVmaQRGpY=VGxpO9hzMeKasNmAojhkZe9PJ9Lug@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonathan =?iso-8859-1?Q?Neusch=E4fer?= <j.neuschaefer@gmx.net>
-Cc: linux-doc@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Greentime Hu <greentime.hu@sifive.com>, guoren@kernel.org
+Cc: Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Anup.Patel@wdc.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, arnd@arndb.de, linux-csky@vger.kernel.org, linux-riscv <linux-riscv@lists.infradead.org>, Guo Ren <guoren@linux.alibaba.com>, Dave Martin <Dave.Martin@arm.com>
 
-On Sun, Mar 08, 2020 at 08:56:15PM +0100, Jonathan Neuschäfer wrote:
-> Hi,
-> 
-> this is a short series of unrelated fixes that make the atomic
-> operations documentation look and read a bit better.
-> 
-> Jonathan Neuschäfer (3):
->   docs: atomic_ops: Remove colons where they don't make sense
->   docs: atomic_ops: Move two paragraphs into the warning block above
->   docs: atomic_ops: Steer readers towards using refcount_t for reference
->     counts
-> 
->  Documentation/core-api/atomic_ops.rst         | 24 ++++++++++++-------
 
-FWIW, I consider this a dead document. I've written
-Documentation/atomic_t.txt and Documentation/atomic_bitops.txt as a
-replacement. If there is anything in atomic_ops you feel is missing from
-those two, please tell as I'm planing to delete atomic_ops soon.
+
+On 2020/3/9 11:41, Greentime Hu wrote:
+> On Sun, Mar 8, 2020 at 5:50 PM <guoren@kernel.org> wrote:
+>> From: Guo Ren <guoren@linux.alibaba.com>
+>>
+>> The implementation follow the RISC-V "V" Vector Extension draft v0.8 with
+>> 128bit-vlen and it's based on linux-5.6-rc3 and tested with qemu [1].
+>>
+>> The patch implement basic context switch, sigcontext save/restore and
+>> ptrace interface with a new regset NT_RISCV_VECTOR. Only fixed 128bit-vlen
+>> is implemented. We need to discuss about vlen-size for libc sigcontext and
+>> ptrace (the maximum size of vlen is unlimited in spec).
+>>
+>> Puzzle:
+>> Dave Martin has talked "Growing CPU register state without breaking ABI" [2]
+>> before, and riscv also met vlen size problem. Let's discuss the common issue
+>> for all architectures and we need a better solution for unlimited vlen.
+>>
+>> Any help are welcomed :)
+>>
+>>   1: https://github.com/romanheros/qemu.git branch:vector-upstream-v3
+> Hi Guo,
+>
+> Thanks for your patch.
+> It seems the qemu repo doesn't have this branch?
+Hi Greentime,
+
+It's a promise from me. Now it's ready.Â  You can turn on vector by 
+"qemu-system-riscv64 -cpu rv64,v=true,vext_spec=v0.7.1".
+
+Zhiwei
