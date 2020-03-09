@@ -1,39 +1,47 @@
-Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:34388 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726317AbgCFDoL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 5 Mar 2020 22:44:11 -0500
-Subject: Re: About commit "io: change inX() to have their own IO barrier
- overrides"
-References: <2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com>
- <c1489f55-369d-2cff-ff36-b10fb5d3ee79@kernel.org>
- <8207cd51-5b94-2f15-de9f-d85c9c385bca@huawei.com>
- <6115fa56-a471-1e9f-edbb-e643fa4e7e11@kernel.org>
- <7c955142-1fcb-d99e-69e4-1e0d3d9eb8c3@huawei.com>
- <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
-From: Sinan Kaya <okaya@kernel.org>
-Message-ID: <90af535f-00ef-c1e3-ec20-aae2bd2a0d88@kernel.org>
-Date: Thu, 5 Mar 2020 22:44:08 -0500
+Return-Path: <SRS0=m5K7=42=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from Galois.linutronix.de ([193.142.43.55]:60073 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726384AbgCITXy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2020 15:23:54 -0400
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2 00/20] Introduce common headers
+In-Reply-To: <20200309122429.GB26309@lakrids.cambridge.arm.com>
+References: <20200306133242.26279-1-vincenzo.frascino@arm.com> <3278D604-28F1-47A1-BAB8-D8EB439995E8@amacapital.net> <b18c7ce1-0948-a9e2-2d7e-d019669a71e1@arm.com> <20200309122429.GB26309@lakrids.cambridge.arm.com>
+Date: Mon, 09 Mar 2020 20:23:32 +0100
+Message-ID: <877dzt72ob.fsf@nanos.tec.linutronix.de>
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
 Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, John Garry <john.garry@huawei.com>
-Cc: "xuwei (O)" <xuwei5@hisilicon.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>
-Message-ID: <20200306034408.pUaSj6Rm_Nons_V6LqEAC8NXMU8IW4eaZ3IB-Jz5ydg@z>
+To: Mark Rutland <mark.rutland@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200309192332.sRXkVndunVRxU9PiGKXWReTlO-HiFunGFEUo3qYsZfA@z>
 
-On 3/3/2020 11:40 AM, Arnd Bergmann wrote:
->> -          ret = read##bw(PCI_IOBASE + addr);
->> +          __io_pbr();
->> +          ret = __raw_read##bw(PCI_IOBASE + addr);
->> +          __io_pbr();
-> __io_par();
-> 
+Mark Rutland <mark.rutland@arm.com> writes:
+> On Mon, Mar 09, 2020 at 11:07:08AM +0000, Vincenzo Frascino wrote:
+>> On 3/6/20 4:04 PM, Andy Lutomirski wrote:
+>> >> To solve the problem, I decided to use the approach below:
+>> >>  * Extract from include/linux/ the vDSO required kernel interface
+>> >>    and place it in include/common/
+>> > 
+>> > I really like the approach, but I’m wondering if “common” is the
+>> > right name. This directory is headers that aren’t stable ABI like
+>> > uapi but are shared between the kernel and the vDSO. Regular user
+>> > code should *not* include these, right?
+>> > 
+>> > Would “vdso” or perhaps “private-abi” be clearer?
+>> 
+>> Thanks! These headers are definitely not "uapi" like and they are meant to
+>> evolve in future like any other kernel header. We have just to make sure that
+>> the evolution does not break what we are trying to achieve with this series.
+>
+> Given we already include uapi/* headers in kernel code, I think placing
+> these in a vdso/* namespace would be fine. I think that more clearly
+> expresses the constraints on the headers than private-abi/* would.
 
-Why do we need to change read##bw above?
+Yes, that makes most sense.
 
-read##bw already provides strong ordering guarantees across multiple
-architectures.
+Thanks,
+
+        tglx
