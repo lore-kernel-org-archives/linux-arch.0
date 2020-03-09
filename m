@@ -1,25 +1,38 @@
-From: "Michael J. Weirsky" <mikhailov@paleo.ru>
-Subject: (unknown)
-Date: Mon, 09 Mar 2020 10:43:33 +0200
-Message-ID: <b49abeef61f9247d0a0f1b2f9bde1d81@paleo.ru>
-Reply-To: micjsky@aol.com
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 0/3] docs: a few improvements for atomic_ops.rst
+Date: Mon, 9 Mar 2020 10:06:50 +0100
+Message-ID: <20200309090650.GF12561@hirez.programming.kicks-ass.net>
+References: <20200308195618.22768-1-j.neuschaefer@gmx.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII;
- format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from paleo.ru ([195.178.204.132]:48697 "EHLO mail.paleo.ru"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726027AbgCIJBs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 9 Mar 2020 05:01:48 -0400
+Received: from bombadil.infradead.org ([198.137.202.133]:45998 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726215AbgCIJHH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2020 05:07:07 -0400
+Content-Disposition: inline
+In-Reply-To: <20200308195618.22768-1-j.neuschaefer@gmx.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Jonathan =?iso-8859-1?Q?Neusch=E4fer?= <j.neuschaefer@gmx.net>
+Cc: linux-doc@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
+On Sun, Mar 08, 2020 at 08:56:15PM +0100, Jonathan Neuschäfer wrote:
+> Hi,
+> 
+> this is a short series of unrelated fixes that make the atomic
+> operations documentation look and read a bit better.
+> 
+> Jonathan Neuschäfer (3):
+>   docs: atomic_ops: Remove colons where they don't make sense
+>   docs: atomic_ops: Move two paragraphs into the warning block above
+>   docs: atomic_ops: Steer readers towards using refcount_t for reference
+>     counts
+> 
+>  Documentation/core-api/atomic_ops.rst         | 24 ++++++++++++-------
 
-
--- 
-My name is Michael J. Weirsky, I'm an unemployed Handy man , winner of 
-$273million Jackpot in March 8, 2019. I donate $1.000.000,00 to you. 
-Contact me via email: micjsky@aol.com for info / claim.
-Continue reading: 
-https://abcnews.go.com/WNT/video/jersey-handyman-forward-273m-lottery-winner-61544244
+FWIW, I consider this a dead document. I've written
+Documentation/atomic_t.txt and Documentation/atomic_bitops.txt as a
+replacement. If there is anything in atomic_ops you feel is missing from
+those two, please tell as I'm planing to delete atomic_ops soon.
