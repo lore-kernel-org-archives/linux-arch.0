@@ -1,38 +1,59 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
-Date: Mon, 9 Mar 2020 13:59:52 -0700
-Message-ID: <0088001c-0b12-a7dc-ff2a-9d5c282fa36b@intel.com>
-References: <CAMe9rOoRTVUzNC88Ho2XTTNJCymrd3L=XdB9xFcgxPVwAZ0FWA@mail.gmail.com>
- <AE81FEF5-ECC5-46AA-804D-9D64E656D16E@amacapital.net>
- <CAMe9rOoDMenvD9XRL1szR5yLQEwv9Q6f4O7CtwbdZ-cJqzezKA@mail.gmail.com>
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
+Date: Mon, 9 Mar 2020 21:05:05 +0000
+Message-ID: <20200309210505.GM4101@sirena.org.uk>
+References: <20200227174417.23722-1-broonie@kernel.org>
+ <20200306102729.GC2503422@arrakis.emea.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMe9rOoDMenvD9XRL1szR5yLQEwv9Q6f4O7CtwbdZ-cJqzezKA@mail.gmail.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: "H.J. Lu" <hjl.tools@gmail.com>, Andy Lutomirski <luto@amacapital.net>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="qySB1iFW++5nzUxH"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:57536 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726157AbgCIVFH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 9 Mar 2020 17:05:07 -0400
+Content-Disposition: inline
+In-Reply-To: <20200306102729.GC2503422@arrakis.emea.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina
 
-On 3/9/20 1:54 PM, H.J. Lu wrote:
->> If a program with the magic ELF CET flags missing can’t make a
->> thread with IBT and/or SHSTK enabled, then I think we’ve made an
->> error and should fix it.
->> 
-> A non-CET program can start a CET program and vice versa.
 
-Could we be specific here, please?
+--qySB1iFW++5nzUxH
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-HJ are you saying that:
-* CET program can execve() a non-CET program, and
-* a non-CET program can execve() a CET program
+On Fri, Mar 06, 2020 at 10:27:29AM +0000, Catalin Marinas wrote:
+> On Thu, Feb 27, 2020 at 05:44:06PM +0000, Mark Brown wrote:
 
-?
+> > This patch series implements support for ARMv8.5-A Branch Target
+> > Identification (BTI), which is a control flow integrity protection
+> > feature introduced as part of the ARMv8.5-A extensions.
 
-That's obvious.
+> Does this series affect uprobes in any way? I.e. can you probe a landing
+> pad?
 
-But what are the rules for clone()?  Should there be rules for
-mismatches for CET enabling between threads if a process (not child
-processes)?
+You can't probe a landing pad, uprobes on landing pads will be silently
+ignored so the program isn't disrupted, you just don't get the expected
+trace from those uprobes.  This isn't new with the BTI support since
+the landing pads are generally pointer auth instructions, these already
+can't be probed regardless of what's going on with this series.  It's
+already on the list to get sorted.
+
+--qySB1iFW++5nzUxH
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5mr4AACgkQJNaLcl1U
+h9Blwwf8CR8zwN1uUuwJWSzyItw8ZiSf2fLHJ6Smgao/rc/O876dKM+ZZQqzuQ3B
+kG8nQyocUyEa7jghPeuTnqveuK4hpSDe/++EG1Ncl+7gMe8pmbTLVfOCYZzs1TPc
+3QiBL54YSDsAtYFT/Q+2Q27pv4vP3Xm7vsyhvWHYujG6HuFVt3Oco0Nnh8ipL6Eo
+XPOS5rfxJTLe2vcwFfj6Nf03zK+DoS2gU4LAXCjQeXGuwGep9BYzoEQhXk8srTA7
+ZJSrDH0XTMYRRmkmHTcppBRfqbKwES2xZYt6GDRWKqG7yvnEcq+v1MFR2Mgw87ZA
+eQr2xNhLMxU8o5zqjJiwHMI5S3jMoQ==
+=TGul
+-----END PGP SIGNATURE-----
+
+--qySB1iFW++5nzUxH--
