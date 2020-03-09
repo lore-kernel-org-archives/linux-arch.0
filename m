@@ -1,82 +1,118 @@
-Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pj1-f66.google.com ([209.85.216.66]:55916 "EHLO
-        mail-pj1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726882AbgCMABv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2020 20:01:51 -0400
-Received: by mail-pj1-f66.google.com with SMTP id mj6so3081321pjb.5
-        for <linux-arch@vger.kernel.org>; Thu, 12 Mar 2020 17:01:50 -0700 (PDT)
-Date: Thu, 12 Mar 2020 17:01:47 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v9 13/13] arm64: BTI: Add Kconfig entry for userspace BTI
-Message-ID: <202003121700.9260E027@keescook>
-References: <20200311192608.40095-1-broonie@kernel.org>
- <20200311192608.40095-14-broonie@kernel.org>
+Return-Path: <SRS0=m5K7=42=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:46504 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726363AbgCIC2c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 8 Mar 2020 22:28:32 -0400
+Date: Mon, 9 Mar 2020 03:28:30 +0100
+From: Frederic Weisbecker <frederic@kernel.org>
+Subject: Re: [EXT] Re: [PATCH 11/12] task_isolation: kick_all_cpus_sync:
+ don't kick isolated cpus
+Message-ID: <20200309022829.GB9615@lenoir>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+ <dfa5e0e9f34e6ff0ef048c81bc70496354f31300.camel@marvell.com>
+ <20200306153446.GC8590@lenoir>
+ <7e0ce8988f4811e7453859e22654d2618557d9ab.camel@marvell.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200311192608.40095-14-broonie@kernel.org>
+In-Reply-To: <7e0ce8988f4811e7453859e22654d2618557d9ab.camel@marvell.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20200313000147.SSqEmbEuqXUzBsJyCocM6D3LhZi0s0UWdTLk0qWKS0Y@z>
+To: Alex Belits <abelits@marvell.com>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will@kernel.org" <will@kernel.org>
+Message-ID: <20200309022830.vtFPwLIpm3pApfl0hDkWsgOkZhQY5YVJWiZqZL4-UHw@z>
 
-On Wed, Mar 11, 2020 at 07:26:08PM +0000, Mark Brown wrote:
-> From: Dave Martin <Dave.Martin@arm.com>
+On Sun, Mar 08, 2020 at 06:48:43AM +0000, Alex Belits wrote:
+> On Fri, 2020-03-06 at 16:34 +0100, Frederic Weisbecker wrote:
+> > On Wed, Mar 04, 2020 at 04:15:24PM +0000, Alex Belits wrote:
+> > > From: Yuri Norov <ynorov@marvell.com>
+> > > 
+> > > Make sure that kick_all_cpus_sync() does not call CPUs that are
+> > > running
+> > > isolated tasks.
+> > > 
+> > > Signed-off-by: Alex Belits <abelits@marvell.com>
+> > > ---
+> > >  kernel/smp.c | 14 +++++++++++++-
+> > >  1 file changed, 13 insertions(+), 1 deletion(-)
+> > > 
+> > > diff --git a/kernel/smp.c b/kernel/smp.c
+> > > index 3a8bcbdd4ce6..d9b4b2fedfed 100644
+> > > --- a/kernel/smp.c
+> > > +++ b/kernel/smp.c
+> > > @@ -731,9 +731,21 @@ static void do_nothing(void *unused)
+> > >   */
+> > >  void kick_all_cpus_sync(void)
+> > >  {
+> > > +	struct cpumask mask;
+> > > +
+> > >  	/* Make sure the change is visible before we kick the cpus */
+> > >  	smp_mb();
+> > > -	smp_call_function(do_nothing, NULL, 1);
+> > > +
+> > > +	preempt_disable();
+> > > +#ifdef CONFIG_TASK_ISOLATION
+> > > +	cpumask_clear(&mask);
+> > > +	task_isolation_cpumask(&mask);
+> > > +	cpumask_complement(&mask, &mask);
+> > > +#else
+> > > +	cpumask_setall(&mask);
+> > > +#endif
+> > > +	smp_call_function_many(&mask, do_nothing, NULL, 1);
+> > > +	preempt_enable();
+> > >  }
+> > 
+> > That looks very dangerous, the callers of kick_all_cpus_sync() want
+> > to
+> > sync all CPUs for a reason. You will rather need to fix the callers.
 > 
-> Now that the code for userspace BTI support is in the kernel add the
-> Kconfig entry so that it can be built and used.
+> All callers of this use this function to synchronize IPIs and icache,
+> and they have no idea if there is anything special about the state of
+> CPUs. If a task is isolated, this call would not be necessary because
+> the task is in userspace, and it would have to enter kernel for any of
+> that to become relevant but then it will have to switch from userspace
+> to kernel. At worst it is returning to userspace after entering
+> isolation or back in kernel running cleanup after isolation is broken
+> but before tsk_thread_flags_cache is updated. There will be nothing to
+> run on the same CPU because we have just left isolation, so task will
+> either exit or go back to userspace.
 > 
-> [Split out of "arm64: Basic Branch Target Identification support" --
-> broonie]
-> 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Is there any reason for a race at that point?
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
 
--Kees
+I can imagine several races:
 
-> Signed-off-by: Mark Brown <broonie@kernel.org>
-> ---
->  arch/arm64/Kconfig | 22 ++++++++++++++++++++++
->  1 file changed, 22 insertions(+)
+1) The isolated task has set the cpumask but hasn't exited the kernel
+yet. If it still runs kernel code while kick_all_cpus_sync() has completed,
+we fail.
+
+2) The isolated task is running do_exit() but the caller of kick_all_cpus_sync()
+still sees the target as part of the isolated mask.
+
+3) The isolated task has just set the isolated cpumask and entered userspace
+but the caller still don't see the new value in the isolated cpumask, so it sends
+the IPI to the isolated CPU.
+
+Besides, any caller of kick_all_cpus_sync() is in its right to expect that
+everything preceding the call to that function is visible to all CPUs
+after that call. If you spare that IPI to an isolated CPU, what ensures
+it will see what it is supposed to once it calls do_exit() or prctl()?
+
+Is there a way we could fix the callers instead? For example synchronize_rcu()
+could be a replacement (it handles very well nohz_full CPUs), provided the
+callsites can sleep. It seems to be the case for __do_tune_cpucache() at least.
+
+flush_icache_range() is scarier I have to admit, doesn't look like it can
+sleep.
+
+
+> > Thanks.
+> > 
+> > >  EXPORT_SYMBOL_GPL(kick_all_cpus_sync);
+> > >  
+> > > -- 
+> > > 2.20.1
+> > > 
 > 
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index 8a15bc68dadd..d65d226a77ec 100644
-> --- a/arch/arm64/Kconfig
-> +++ b/arch/arm64/Kconfig
-> @@ -1522,6 +1522,28 @@ endmenu
->  
->  menu "ARMv8.5 architectural features"
->  
-> +config ARM64_BTI
-> +	bool "Branch Target Identification support"
-> +	default y
-> +	help
-> +	  Branch Target Identification (part of the ARMv8.5 Extensions)
-> +	  provides a mechanism to limit the set of locations to which computed
-> +	  branch instructions such as BR or BLR can jump.
-> +
-> +	  To make use of BTI on CPUs that support it, say Y.
-> +
-> +	  BTI is intended to provide complementary protection to other control
-> +	  flow integrity protection mechanisms, such as the Pointer
-> +	  authentication mechanism provided as part of the ARMv8.3 Extensions.
-> +	  For this reason, it does not make sense to enable this option without
-> +	  also enabling support for pointer authentication.  Thus, when
-> +	  enabling this option you should also select ARM64_PTR_AUTH=y.
-> +
-> +	  Userspace binaries must also be specifically compiled to make use of
-> +	  this mechanism.  If you say N here or the hardware does not support
-> +	  BTI, such binaries can still run, but you get no additional
-> +	  enforcement of branch destinations.
-> +
->  config ARM64_E0PD
->  	bool "Enable support for E0PD"
->  	default y
 > -- 
-> 2.20.1
-> 
-
--- 
-Kees Cook
+> Alex
