@@ -1,68 +1,52 @@
-Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:54476 "EHLO foss.arm.com"
+Return-Path: <SRS0=m5K7=42=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:51506 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731057AbgCKTdb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Mar 2020 15:33:31 -0400
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v9 13/13] arm64: BTI: Add Kconfig entry for userspace BTI
-Date: Wed, 11 Mar 2020 19:26:08 +0000
-Message-ID: <20200311192608.40095-14-broonie@kernel.org>
-In-Reply-To: <20200311192608.40095-1-broonie@kernel.org>
-References: <20200311192608.40095-1-broonie@kernel.org>
+        id S1726368AbgCIMYg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 9 Mar 2020 08:24:36 -0400
+Date: Mon, 9 Mar 2020 12:24:30 +0000
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH v2 00/20] Introduce common headers
+Message-ID: <20200309122429.GB26309@lakrids.cambridge.arm.com>
+References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
+ <3278D604-28F1-47A1-BAB8-D8EB439995E8@amacapital.net>
+ <b18c7ce1-0948-a9e2-2d7e-d019669a71e1@arm.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <b18c7ce1-0948-a9e2-2d7e-d019669a71e1@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200311192608.9kaOpwBFnAQCYMzkNQ380ThES_gm_ucz5Iu8jmeYHnE@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200309122430.wetpzBRk1VtYt0rycw7uYT1w1jmy5MBgbSNGHYJPN5M@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+On Mon, Mar 09, 2020 at 11:07:08AM +0000, Vincenzo Frascino wrote:
+> Hi Andy,
+> 
+> On 3/6/20 4:04 PM, Andy Lutomirski wrote:
+> 
+> [...]
+> 
+> >>
+> >> To solve the problem, I decided to use the approach below:
+> >>  * Extract from include/linux/ the vDSO required kernel interface
+> >>    and place it in include/common/
+> > 
+> > I really like the approach, but I’m wondering if “common” is the
+> > right name. This directory is headers that aren’t stable ABI like
+> > uapi but are shared between the kernel and the vDSO. Regular user
+> > code should *not* include these, right?
+> > 
+> > Would “vdso” or perhaps “private-abi” be clearer?
+> 
+> Thanks! These headers are definitely not "uapi" like and they are meant to
+> evolve in future like any other kernel header. We have just to make sure that
+> the evolution does not break what we are trying to achieve with this series.
 
-Now that the code for userspace BTI support is in the kernel add the
-Kconfig entry so that it can be built and used.
+Given we already include uapi/* headers in kernel code, I think placing
+these in a vdso/* namespace would be fine. I think that more clearly
+expresses the constraints on the headers than private-abi/* would.
 
-[Split out of "arm64: Basic Branch Target Identification support" --
-broonie]
-
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- arch/arm64/Kconfig | 22 ++++++++++++++++++++++
- 1 file changed, 22 insertions(+)
-
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 8a15bc68dadd..d65d226a77ec 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -1522,6 +1522,28 @@ endmenu
- 
- menu "ARMv8.5 architectural features"
- 
-+config ARM64_BTI
-+	bool "Branch Target Identification support"
-+	default y
-+	help
-+	  Branch Target Identification (part of the ARMv8.5 Extensions)
-+	  provides a mechanism to limit the set of locations to which computed
-+	  branch instructions such as BR or BLR can jump.
-+
-+	  To make use of BTI on CPUs that support it, say Y.
-+
-+	  BTI is intended to provide complementary protection to other control
-+	  flow integrity protection mechanisms, such as the Pointer
-+	  authentication mechanism provided as part of the ARMv8.3 Extensions.
-+	  For this reason, it does not make sense to enable this option without
-+	  also enabling support for pointer authentication.  Thus, when
-+	  enabling this option you should also select ARM64_PTR_AUTH=y.
-+
-+	  Userspace binaries must also be specifically compiled to make use of
-+	  this mechanism.  If you say N here or the hardware does not support
-+	  BTI, such binaries can still run, but you get no additional
-+	  enforcement of branch destinations.
-+
- config ARM64_E0PD
- 	bool "Enable support for E0PD"
- 	default y
--- 
-2.20.1
+Thanks,
+Mark.
