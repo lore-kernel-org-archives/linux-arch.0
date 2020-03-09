@@ -1,106 +1,42 @@
-Return-Path: <linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org>
-Subject: Re: [PATCH V15] mm/debug: Add tests validating architecture page
- table helpers
-References: <61250cdc-f80b-2e50-5168-2ec67ec6f1e6@arm.com>
- <CEEAD95E-D468-4C58-A65B-7E8AED91168A@lca.pw>
- <a45834bc-e6f2-ac21-de9e-1aff67d12797@arm.com>
- <c40d907a-b64b-ae0d-e58f-33dddf0e8edc@c-s.fr>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Message-ID: <2d950d8c-4b23-741e-591f-e22e857c0755@arm.com>
-Date: Tue, 10 Mar 2020 08:01:51 +0530
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mailgw.unisannio.it ([193.206.108.11]:33468 "EHLO
+ mailgw.unisannio.it" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+ id S1725796AbgCIFLb (ORCPT <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar
+ 2020 01:11:31 -0400
 MIME-Version: 1.0
-In-Reply-To: <c40d907a-b64b-ae0d-e58f-33dddf0e8edc@c-s.fr>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org
-To: Christophe Leroy <christophe.leroy@c-s.fr>, Qian Cai <cai@lca.pw>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-snps-arc@lists.infradead.org, Vasily Gorbik <gor@linux.ibm.com>, Borislav Petkov <bp@alien8.de>, Paul Walmsley <paul.walmsley@sifive.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Vineet Gupta <vgupta@synopsys.com>, linux-kernel@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org
+Date: Mon, 09 Mar 2020 03:15:04 +0300
+From: "Banca IMI S.P.A" <ppavone@unisannio.it>
+Subject: Finanzielles Angebot @1,3%
+Reply-To: infobancaimi@financier.com
+Message-ID: <571063737e0c5a49691b35e33a87ae32@unisannio.it>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200310023151.jsii634TBDTmgJlOdMeJNJXdE6wjAzViqMWsxOxdUI0@z>
 
 
 
-On 03/07/2020 12:35 PM, Christophe Leroy wrote:
-> 
-> 
-> Le 07/03/2020 à 01:56, Anshuman Khandual a écrit :
->>
->>
->> On 03/07/2020 06:04 AM, Qian Cai wrote:
->>>
->>>
->>>> On Mar 6, 2020, at 7:03 PM, Anshuman Khandual <Anshuman.Khandual@arm.com> wrote:
->>>>
->>>> Hmm, set_pte_at() function is not preferred here for these tests. The idea
->>>> is to avoid or atleast minimize TLB/cache flushes triggered from these sort
->>>> of 'static' tests. set_pte_at() is platform provided and could/might trigger
->>>> these flushes or some other platform specific synchronization stuff. Just
->>>
->>> Why is that important for this debugging option?
->>
->> Primarily reason is to avoid TLB/cache flush instructions on the system
->> during these tests that only involve transforming different page table
->> level entries through helpers. Unless really necessary, why should it
->> emit any TLB/cache flush instructions ?
-> 
-> What's the problem with thoses flushes ?
-> 
->>
->>>
->>>> wondering is there specific reason with respect to the soft lock up problem
->>>> making it necessary to use set_pte_at() rather than a simple WRITE_ONCE() ?
->>>
->>> Looks at the s390 version of set_pte_at(), it has this comment,
->>> vmaddr);
->>>
->>> /*
->>>   * Certain architectures need to do special things when PTEs
->>>   * within a page table are directly modified.  Thus, the following
->>>   * hook is made available.
->>>   */
->>>
->>> I can only guess that powerpc  could be the same here.
->>
->> This comment is present in multiple platforms while defining set_pte_at().
->> Is not 'barrier()' here alone good enough ? Else what exactly set_pte_at()
->> does as compared to WRITE_ONCE() that avoids the soft lock up, just trying
->> to understand.
->>
-> 
-> 
-> Argh ! I didn't realise that you were writing directly into the page tables. When it works, that's only by chance I guess.
-> 
-> To properly set the page table entries, set_pte_at() has to be used:
-> - On powerpc 8xx, with 16k pages, the page table entry must be copied four times. set_pte_at() does it, WRITE_ONCE() doesn't.
-> - On powerpc book3s/32 (hash MMU), the flag _PAGE_HASHPTE must be preserved among writes. set_pte_at() preserves it, WRITE_ONCE() doesn't.
-> 
-> set_pte_at() also does a few other mandatory things, like calling pte_mkpte()
-> 
-> So, the WRITE_ONCE() must definitely become a set_pte_at()
+-- 
+Grüße Herr / Frau,
 
-Sure, will do. These are part of the clear tests that populates a given
-entry with a non zero value before clearing and testing it with pxx_none().
-In that context, WRITE_ONCE() seemed sufficient. But pte_clear() might be
-closely tied with proper page table entry update and hence a preceding
-set_pte_at() will be better.
+Benötigen Sie finanzielle Unterstützung (Darlehen)?
+Sprechen Sie mit uns bei Banca IMI S.P.A, wir lösen Ihre finanziellen
+Probleme.
 
-There are still more WRITE_ONCE() for other page table levels during these
-clear tests. set_pmd_at() and set_pud_at() are defined on platforms that
-support (and enable) THP and PUD based THP respectively. Hence they could
-not be used for clear tests as remaining helpers pmd_clear(), pud_clear(),
-p4d_clear() and pgd_clear() still need to be validated with or without
-THP support and enablement. We should just leave all other WRITE_ONCE()
-instances unchanged. Please correct me if I am missing something here.
+Unser Zinssatz beträgt 1,3% jährlich. Bitte bewerben Sie sich jetzt und
+geben Sie folgende Bewerbungsdetails ein:
 
-> 
-> Christophe
-> 
+Vollständiger Name:____________________
+Darlehensbetrag: _______________________
+Leihdauer: ___________________
+Darlehen Zweck: _________________
+Telefon:____________________
+
+Wir warten auf Ihren Antrag, damit Ihr Kreditantrag bearbeitet werden 
+kann.
+
+
+Herzliche Grüße
+
+BANCA IMI S.P.A
+Email: infobancaimi@financier.com
