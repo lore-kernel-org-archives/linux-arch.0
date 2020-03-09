@@ -1,48 +1,62 @@
-Return-Path: <SRS0=iRyw=4Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:16808 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726138AbgCHDzD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 7 Mar 2020 22:55:03 -0500
-From: Alex Belits <abelits@marvell.com>
-Subject: [PATCH v2 09/12] task_isolation: net: don't flush backlog on CPUs
- running isolated tasks
-Date: Sun, 8 Mar 2020 03:54:32 +0000
-Message-ID: <541d4f371541b5085fb3519ae749d9ed8f056aeb.camel@marvell.com>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
-         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
-In-Reply-To: <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <4C9919D0E1E70145A8395AD0A6D070D1@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=V5mr=42=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-2-yu-cheng.yu@intel.com>
+ <9ae1cf84-1d84-1d34-c0ce-48b0d70b8f3f@intel.com>
+ <0f43463e02d1be2af6bcf8ff6917e751ba7676a0.camel@intel.com>
+ <968af1c2-a5b4-fb48-dfa9-499ec37f677c@intel.com>
+ <fed72ecc917373669ac546d4e8214793d78bd513.camel@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <9b7ff325-d7cd-9309-d060-ad641486d106@intel.com>
+Date: Mon, 9 Mar 2020 12:35:22 -0700
 MIME-Version: 1.0
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <fed72ecc917373669ac546d4e8214793d78bd513.camel@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will@kernel.org" <will@kernel.org>
-Message-ID: <20200308035432.mAw82M-tO2nZ1W6xGcWuTgQ5sVbQhXJvskhuzhmXB4s@z>
+Message-ID: <20200309193522.O2Q1sRRVdSGb-bO5Hb5Dt5XQ3LkPwuuRuingq6BsFB4@z>
 
-RnJvbTogWXVyaSBOb3JvdiA8eW5vcm92QG1hcnZlbGwuY29tPg0KDQpJZiBDUFUgcnVucyBpc29s
-YXRlZCB0YXNrLCB0aGVyZSdzIG5vIGFueSBiYWNrbG9nIG9uIGl0LCBhbmQNCnNvIHdlIGRvbid0
-IG5lZWQgdG8gZmx1c2ggaXQuIEN1cnJlbnRseSBmbHVzaF9hbGxfYmFja2xvZ3MoKQ0KZW5xdWV1
-ZXMgY29ycmVzcG9uZGluZyB3b3JrIG9uIGFsbCBDUFVzIGluY2x1ZGluZyBvbmVzIHRoYXQgcnVu
-DQppc29sYXRlZCB0YXNrcy4gSXQgbGVhZHMgdG8gYnJlYWtpbmcgdGFzayBpc29sYXRpb24gZm9y
-IG5vdGhpbmcuDQoNCkluIHRoaXMgcGF0Y2gsIGJhY2tsb2cgZmx1c2hpbmcgaXMgZW5xdWV1ZWQg
-b25seSBvbiBub24taXNvbGF0ZWQgQ1BVcy4NCg0KU2lnbmVkLW9mZi1ieTogWXVyaSBOb3JvdiA8
-eW5vcm92QG1hcnZlbGwuY29tPg0KW2FiZWxpdHNAbWFydmVsbC5jb206IHVzZSBzYWZlIHRhc2tf
-aXNvbGF0aW9uX29uX2NwdSgpIGltcGxlbWVudGF0aW9uXQ0KU2lnbmVkLW9mZi1ieTogQWxleCBC
-ZWxpdHMgPGFiZWxpdHNAbWFydmVsbC5jb20+DQotLS0NCiBuZXQvY29yZS9kZXYuYyB8IDYgKysr
-KystDQogMSBmaWxlIGNoYW5nZWQsIDUgaW5zZXJ0aW9ucygrKSwgMSBkZWxldGlvbigtKQ0KDQpk
-aWZmIC0tZ2l0IGEvbmV0L2NvcmUvZGV2LmMgYi9uZXQvY29yZS9kZXYuYw0KaW5kZXggYzZjOTg1
-ZmU3YjFiLi42ZDMyYWJiMWYwNmQgMTAwNjQ0DQotLS0gYS9uZXQvY29yZS9kZXYuYw0KKysrIGIv
-bmV0L2NvcmUvZGV2LmMNCkBAIC03NCw2ICs3NCw3IEBADQogI2luY2x1ZGUgPGxpbnV4L2NwdS5o
-Pg0KICNpbmNsdWRlIDxsaW51eC90eXBlcy5oPg0KICNpbmNsdWRlIDxsaW51eC9rZXJuZWwuaD4N
-CisjaW5jbHVkZSA8bGludXgvaXNvbGF0aW9uLmg+DQogI2luY2x1ZGUgPGxpbnV4L2hhc2guaD4N
-CiAjaW5jbHVkZSA8bGludXgvc2xhYi5oPg0KICNpbmNsdWRlIDxsaW51eC9zY2hlZC5oPg0KQEAg
-LTU1MTgsOSArNTUxOSwxMiBAQCBzdGF0aWMgdm9pZCBmbHVzaF9hbGxfYmFja2xvZ3Modm9pZCkN
-CiANCiAJZ2V0X29ubGluZV9jcHVzKCk7DQogDQotCWZvcl9lYWNoX29ubGluZV9jcHUoY3B1KQ0K
-Kwlmb3JfZWFjaF9vbmxpbmVfY3B1KGNwdSkgew0KKwkJaWYgKHRhc2tfaXNvbGF0aW9uX29uX2Nw
-dShjcHUpKQ0KKwkJCWNvbnRpbnVlOw0KIAkJcXVldWVfd29ya19vbihjcHUsIHN5c3RlbV9oaWdo
-cHJpX3dxLA0KIAkJCSAgICAgIHBlcl9jcHVfcHRyKCZmbHVzaF93b3JrcywgY3B1KSk7DQorCX0N
-CiANCiAJZm9yX2VhY2hfb25saW5lX2NwdShjcHUpDQogCQlmbHVzaF93b3JrKHBlcl9jcHVfcHRy
-KCZmbHVzaF93b3JrcywgY3B1KSk7DQotLSANCjIuMjAuMQ0KDQo=
+On 3/9/20 12:27 PM, Yu-cheng Yu wrote:
+> On Mon, 2020-03-09 at 10:21 -0700, Dave Hansen wrote:
+>> On 3/9/20 10:00 AM, Yu-cheng Yu wrote:
+>>> On Wed, 2020-02-26 at 09:57 -0800, Dave Hansen wrote>>>>> +Note:
+>>>>> +  There is no CET-enabling arch_prctl function.  By design, CET is
+>>>>> +  enabled automatically if the binary and the system can support i=
+t.
+>>>>
+>>>> This is kinda interesting.  It means that a JIT couldn't choose to
+>>>> protect the code it generates and have different rules from itself?
+>>>
+>>> JIT needs to be updated for CET first.  Once that is done, it runs wi=
+th CET
+>>> enabled.  It can use the NOTRACK prefix, for example.
+>>
+>> Am I missing something?
+>>
+>> What's the direct connection between shadow stacks and Indirect Branch
+>> Tracking other than Intel marketing umbrellas?
+>=20
+> What I meant is that JIT code needs to be updated first; if it skips RE=
+Ts,
+> it needs to unwind the stack, and if it does indirect JMPs somewhere it
+> needs to fix up the branch target or use NOTRACK.
+
+I'm totally lost.  I think we have very different models of how a JIT
+might generate and run code.
+
+I can totally see a scenario where a JIT goes and generates a bunch of
+code, then forks a new thread to go run that code.  The control flow of
+the JIT thread itself *NEVER* interacts with the control flow of the
+program it writes.  They never share a stack and nothing ever jumps or
+rets between the two worlds.
+
+Does anything actually do that?  I've got no idea.  But, I can clearly
+see a world where the entirety of Chrome and Firefox and the entire rust
+runtime might not be fully recompiled and CET-enabled for a while.  But,
+we still want the JIT-generated code to be CET-protected since it has
+the most exposed attack surface.
+
+I don't think that's too far-fetched.
