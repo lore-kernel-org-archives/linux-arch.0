@@ -1,34 +1,43 @@
-Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pf1-f193.google.com ([209.85.210.193]:39471 "EHLO
-        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726773AbgCTXPi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2020 19:15:38 -0400
-Received: by mail-pf1-f193.google.com with SMTP id d25so4062989pfn.6
-        for <linux-arch@vger.kernel.org>; Fri, 20 Mar 2020 16:15:38 -0700 (PDT)
-Content-Type: text/plain; charset="utf-8"
+Return-Path: <SRS0=aoLA=42=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
+References: <CAMe9rOoRTVUzNC88Ho2XTTNJCymrd3L=XdB9xFcgxPVwAZ0FWA@mail.gmail.com>
+ <AE81FEF5-ECC5-46AA-804D-9D64E656D16E@amacapital.net>
+ <CAMe9rOoDMenvD9XRL1szR5yLQEwv9Q6f4O7CtwbdZ-cJqzezKA@mail.gmail.com>
+ <0088001c-0b12-a7dc-ff2a-9d5c282fa36b@intel.com>
+ <CAMe9rOqf0OHL9397Vikgb=UWhRMf+FmGq-9VAJNmfmzNMMDkCw@mail.gmail.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <56ab33ac-865b-b37e-75f2-a489424566c3@intel.com>
+Date: Mon, 9 Mar 2020 15:19:13 -0700
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-In-Reply-To: <20200320145351.32292-27-vincenzo.frascino@arm.com>
-References: <20200320145351.32292-1-vincenzo.frascino@arm.com> <20200320145351.32292-27-vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v5 26/26] arm64: vdso32: Enable Clang Compilation
-From: Stephen Boyd <swboyd@chromium.org>
-Date: Fri, 20 Mar 2020 16:15:35 -0700
-Message-ID: <158474613590.125146.6442368806113128893@swboyd.mtv.corp.google.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <CAMe9rOqf0OHL9397Vikgb=UWhRMf+FmGq-9VAJNmfmzNMMDkCw@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: "H.J. Lu" <hjl.tools@gmail.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Nathan Chancellor <natechancellor@gmail.com>
-Message-ID: <20200320231535.tPt0u51uGSIk5uEefTlSaH_Srrea9m6F1c05l-H87Iw@z>
+Message-ID: <20200309221913.5lBpbIy1HyDUY3Ub8WqdQlDmb3mRIaQWDZjW2WfLEEo@z>
 
-Quoting Vincenzo Frascino (2020-03-20 07:53:51)
-> Enable Clang Compilation for the vdso32 library.
->=20
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
-> Tested-by: Nathan Chancellor <natechancellor@gmail.com> # build
-> Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> ---
+On 3/9/20 2:12 PM, H.J. Lu wrote:
+>> But what are the rules for clone()?  Should there be rules for
+>> mismatches for CET enabling between threads if a process (not child
+>> processes)?
+> What did you mean? A threaded application is either CET enabled or not
+> CET enabled.   A new thread from clone makes no difference.
 
-Tested-by: Stephen Boyd <swboyd@chromium.org>
+Stacks are fundamentally thread-local resources.  The registers that
+point to them and MSRs that manage shadow stacks are all CPU-thread
+local.  Nothing is fundamentally tied to the address space shared across
+the process.
+
+A thread might also share *no* control flow with its child.  It might
+ask the thread to start in code that the parent can never even reach.
+
+It sounds like you've picked a Linux implementation that has
+restrictions on top of the fundamentals.  That's not wrong per se, but
+it does deserve explanation and deliberate, not experimental design.
+
+Could you go back to the folks at Intel and try to figure out what this
+was designed to *do*?  Yes, I'm probably one of those folks.  You know
+where to find me. :)
