@@ -1,120 +1,85 @@
-Return-Path: <SRS0=SxwR=5E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:39886 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725787AbgCSSKL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Mar 2020 14:10:11 -0400
-Date: Thu, 19 Mar 2020 18:10:04 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
- vgettimeofday
-Message-ID: <20200319181004.GA29214@mbp>
-References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
- <20200317122220.30393-19-vincenzo.frascino@arm.com>
- <20200317143834.GC632169@arrakis.emea.arm.com>
- <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
- <20200317155031.GD632169@arrakis.emea.arm.com>
- <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
- <20200317174806.GE632169@arrakis.emea.arm.com>
- <93cfe94a-c2a3-1025-bc9c-e7c3fd891100@arm.com>
- <20200318183603.GF94111@arrakis.emea.arm.com>
- <1bc25a53-7a59-0f60-ecf2-a3cace46b823@arm.com>
+Return-Path: <SRS0=qj00=43=kvack.org=owner-linux-mm@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1bc25a53-7a59-0f60-ecf2-a3cace46b823@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
+References: <CAMe9rOoRTVUzNC88Ho2XTTNJCymrd3L=XdB9xFcgxPVwAZ0FWA@mail.gmail.com>
+ <AE81FEF5-ECC5-46AA-804D-9D64E656D16E@amacapital.net> <CAMe9rOoDMenvD9XRL1szR5yLQEwv9Q6f4O7CtwbdZ-cJqzezKA@mail.gmail.com>
+ <0088001c-0b12-a7dc-ff2a-9d5c282fa36b@intel.com> <CAMe9rOqf0OHL9397Vikgb=UWhRMf+FmGq-9VAJNmfmzNMMDkCw@mail.gmail.com>
+ <56ab33ac-865b-b37e-75f2-a489424566c3@intel.com> <CAMe9rOrzrXORQgcAwzGn+=PBvxCEgc5Km_TQq+P7uoqwiacJSA@mail.gmail.com>
+ <c06073a2-6858-d5dc-d74b-ef2568bd9423@intel.com> <CAMe9rOrxM=RefftngNXhP906mrW1SMy7vp+O=yOj_WwcdQpGcg@mail.gmail.com>
+ <CALCETrWF1NQeGXy0GXRwW71Bc3oSN=vsXMsBqnaqs7Us7RYebQ@mail.gmail.com>
+In-Reply-To: <CALCETrWF1NQeGXy0GXRwW71Bc3oSN=vsXMsBqnaqs7Us7RYebQ@mail.gmail.com>
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Date: Mon, 9 Mar 2020 17:08:29 -0700
+Message-ID: <CAMe9rOpJjaro_qK6kghGNuSHDaP_MjVaZMbok2kbuBD48VmvXg@mail.gmail.com>
+Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
+Content-Type: text/plain; charset="UTF-8"
+Sender: owner-linux-mm@kvack.org
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Dave Hansen <dave.hansen@intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200319181004.2DM3oCh7TqWRYnYDEzU3qA5QBhhHuGRFIjoY-z67lAQ@z>
+Message-ID: <20200310000829.__kRTWKU0-YxuK2JdEQGwWzV1qLdlILeaW1PCh0KiFw@z>
 
-Hi Vincenzo,
+On Mon, Mar 9, 2020 at 4:59 PM Andy Lutomirski <luto@amacapital.net> wrote:
+>
+> On Mon, Mar 9, 2020 at 4:52 PM H.J. Lu <hjl.tools@gmail.com> wrote:
+> >
+> > On Mon, Mar 9, 2020 at 4:21 PM Dave Hansen <dave.hansen@intel.com> wrote:
+> > >
+> > > On 3/9/20 4:11 PM, H.J. Lu wrote:
+> > > > A threaded application is loaded from disk.  The object file on disk is
+> > > > either CET enabled or not CET enabled.
+> > >
+> > > Huh.  Are you saying that all instructions executed on userspace on
+> > > Linux come off of object files on the disk?  That's an interesting
+> > > assertion.  You might want to go take a look at the processes on your
+> > > systems.  Here's my browser for example:
+> > >
+> > > # for p in $(ps aux | grep chromium | awk '{print $2}' ); do cat
+> > > /proc/$p/maps; done | grep ' r-xp 00000000 00:00 0'
+> > > ...
+> > > 202f00082000-202f000bf000 r-xp 00000000 00:00 0
+> > > 202f000c2000-202f000c3000 r-xp 00000000 00:00 0
+> > > 202f00102000-202f00103000 r-xp 00000000 00:00 0
+> > > 202f00142000-202f00143000 r-xp 00000000 00:00 0
+> > > 202f00182000-202f001bf000 r-xp 00000000 00:00 0
+> > >
+> > > Lots of funny looking memory areas which are anonymous and executable!
+> > > Those didn't come off the disk.  Same thing in firefox.  Weird.  Any
+> > > idea what those are?
+> > >
+> > > One guess: https://en.wikipedia.org/wiki/Just-in-time_compilation
+> >
+> > jitted code belongs to a process loaded from disk.  Enable CET in
+> > an application which uses JIT engine means to also enable CET in
+> > JIT engine.  Take git as an example, "git grep" crashed for me on Tiger
+> > Lake.   It turned out that git itself was compiled with -fcf-protection and
+> > git was linked against libpcre2-8.so.0 also compiled with -fcf-protection,
+> > which has a JIT, sljit, which was not CET enabled.  git crashed in the
+> > jitted codes due to missing ENDBR.  I had to enable CET in sljit to make
+> > git working on CET enabled Tiger Lake.  So we need to enable CET in
+> > JIT engine before enabling CET in applications which use JIT engine.
+>
+> This could presumably have been fixed by having libpcre or sljit
+> disable IBT before calling into JIT code or by running the JIT code in
+> another thread.  In the other direction, a non-CET libpcre build could
+> build IBT-capable JITted code and enable JIT (by syscall if we allow
+> that or by creating a thread?) when calling it.  And IBT has this
 
-On Thu, Mar 19, 2020 at 12:38:42PM +0000, Vincenzo Frascino wrote:
-> On 3/18/20 6:36 PM, Catalin Marinas wrote:
-> > On Wed, Mar 18, 2020 at 04:14:26PM +0000, Vincenzo Frascino wrote:
-> >> On 3/17/20 5:48 PM, Catalin Marinas wrote:
-> >>> So clock_gettime() on arm32 always falls back to the syscall?
-> >>
-> >> This seems not what you asked, and I think I answered accordingly. Anyway, in
-> >> the case of arm32 the error code path is handled via syscall fallback.
-> >>
-> >> Look at the code below as an example (I am using getres because I know this
-> >> email will be already too long, and I do not want to add pointless code, but the
-> >> concept is the same for gettime and the others):
-> >>
-> >> static __maybe_unused
-> >> int __cvdso_clock_getres(clockid_t clock, struct __kernel_timespec *res)
-> >> {
-> >> 	int ret = __cvdso_clock_getres_common(clock, res);
-> >>
-> >> 	if (unlikely(ret))
-> >> 		return clock_getres_fallback(clock, res);
-> >> 	return 0;
-> >> }
-> >>
-> >> When the return code of the "vdso" internal function returns an error the system
-> >> call is triggered.
-> > 
-> > But when __cvdso_clock_getres_common() does *not* return an error, it
-> > means that it handled the clock_getres() call without a fallback to the
-> > syscall. I assume this is possible on arm32. When the clock_getres() is
-> > handled directly (not as a syscall), why doesn't arm32 need the same
-> > (res >= TASK_SIZE) check?
-> 
-> Ok, I see what you mean.
+This is not how thread in user space works.
 
-I'm not sure.
+> fancy legacy bitmap to allow non-instrumented code to run with IBT on,
+> although SHSTK doesn't have hardware support for a similar feature.
 
-> It does not need to differ when __cvdso_clock_getres_common() does *not* return
-> an error, we can move the checks in the fallback and leave the vdso code the
-> same. The reason why I put the checks at the beginning of vdso code is because
-> since I know such a condition it is going to fail I prefer to bailout
-> immediately when it is detected instead of going through a bus error and a
-> syscall before I can bailout.
+All these changes are called CET enabing.
 
-I don't dispute your choice of choosing to bail out early, that's fine
-by me. What I'm asking above, and you haven't answered, is why we don't
-need exactly the same check on arm32. I.e.:
+> So, sure, the glibc-linked ELF ecosystem needs some degree of CET
+> coordination, but it is absolutely not the case that a process MUST
+> have all CET or no CET.  Let's please support the complicated cases in
+> the kernel and the ABI too.  If glibc wants to make it annoying to do
+> complicated things, so be it.  People work behind glibc's back all the
+> time.
 
-diff --git a/arch/arm/vdso/vgettimeofday.c b/arch/arm/vdso/vgettimeofday.c
-index 1976c6f325a4..17ee5d211228 100644
---- a/arch/arm/vdso/vgettimeofday.c
-+++ b/arch/arm/vdso/vgettimeofday.c
-@@ -28,6 +28,9 @@ int __vdso_gettimeofday(struct __kernel_old_timeval *tv,
- int __vdso_clock_getres(clockid_t clock_id,
- 			struct old_timespec32 *res)
- {
-+	if ((u32)res >= TASK_SIZE)
-+		return -EFAULT;
-+
- 	return __cvdso_clock_getres_time32(clock_id, res);
- }
- 
+CET is no different from NX in this regard.
 
-(where arch/arm means arm32 ;)).
-
-If the arm32 vdsotest passes, I'd like to know why.
-
-> It is mainly a design choice based on what I explained above but I am open to
-> suggestions if you have a better way to proceed.
-
-I suggest just drop the TASK_SIZE_32 test altogether in this series to
-get it merged for 5.7-rc1. We'll fix the ABI issues in -rc2/-rc3 once
-you confirm that the test fully passes on arm32 when it doesn't fall
-back to the syscall handling and we understood why.
-
-> > Furthermore, my assumption is that __cvdso_clock_getres_common() should
-> > handle this case already and we don't need it in the arch vdso code.
-> > 
-> 
-> This is not the point I was trying to make, what I was trying to analyze here
-> was the check compared to why the test verifies it, not the correctness of the
-> check itself.
-
-You should implement it based on what the man page defines, not some
-specific test. Tests are rarely exhaustive (unless you do formal
-modelling).
 
 -- 
-Catalin
+H.J.
