@@ -1,40 +1,50 @@
-From: ''Michael weirsky'' <ronald.pena@11d01.mspz7.gob.ec>
-Subject: =?utf-8?q?Wohlt=C3=A4tigkeitsspende_von_2=2E000=2E000_Millionen_Euro?=
-Date: Tue, 10 Mar 2020 10:46:17 +0200
-Message-ID: <20200310081649.104402F6B58F@mail.11d01.mspz7.gob.ec>
-Reply-To: mikeweirskyspende@gmail.com
+From: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+Subject: Re: [PATCH V2] mm/special: Create generic fallbacks for
+ pte_special() and pte_mkspecial()
+Date: Tue, 10 Mar 2020 14:27:47 +0100
+Message-ID: <20200310132747.GA12601@alpha.franken.de>
+References: <1583802551-15406-1-git-send-email-anshuman.khandual@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.11d01.mspz7.gob.ec ([190.152.145.91]:38658 "EHLO
-        mail.11d01.mspz7.gob.ec" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726598AbgCJNGA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 Mar 2020 09:06:00 -0400
-Content-Description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <ronald.pena@11d01.mspz7.gob.ec>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-hexagon-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1583802551-15406-1-git-send-email-anshuman.khandual@arm.com>
+Sender: linux-hexagon-owner@vger.kernel.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>
+Cc: linux-mm@kvack.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Guo Ren <guoren@kernel.org>, Brian Cain <bcain@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Sam Creasey <sammy@sammy.net>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paulburton@kernel.org>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-Lieber Freund,
+On Tue, Mar 10, 2020 at 06:39:11AM +0530, Anshuman Khandual wrote:
+> diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
+> index aef5378f909c..8e4e4be1ca00 100644
+> --- a/arch/mips/include/asm/pgtable.h
+> +++ b/arch/mips/include/asm/pgtable.h
+> @@ -269,6 +269,36 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
+>   */
+>  extern pgd_t swapper_pg_dir[];
+>  
+> +/*
+> + * Platform specific pte_special() and pte_mkspecial() definitions
+> + * are required only when ARCH_HAS_PTE_SPECIAL is enabled.
+> + */
+> +#if !defined(CONFIG_32BIT) && !defined(CONFIG_CPU_HAS_RIXI)
 
-Ich bin Herr Mike Weirsky, New Jersey, Vereinigte Staaten von Amerika, der =
-Mega-Gewinner von $ 273million In Mega Millions Jackpot, spende ich an 5 zu=
-f=C3=A4llige Personen, wenn Sie diese E-Mail erhalten, dann wurde Ihre E-Ma=
-il nach einem Spinball ausgew=C3=A4hlt.Ich habe den gr=C3=B6=C3=9Ften Teil =
-meines Verm=C3=B6gens auf eine Reihe von Wohlt=C3=A4tigkeitsorganisationen =
-und Organisationen verteilt.Ich habe mich freiwillig dazu entschieden, die =
-Summe von =E2=82=AC 2.000.000,00 an Sie als eine der ausgew=C3=A4hlten 5 zu=
- spenden, um meine Gewinne zu =C3=BCberpr=C3=BCfen.
-Das ist dein Spendencode: [MW530342019]
-www.youtube.com/watch?v=3Dun8yRTmrYMY
+this looks wrong.
 
-Antworten Sie mit dem SPENDE-CODE an diese =
+current Kconfig statement is
 
+select ARCH_HAS_PTE_SPECIAL if !(32BIT && CPU_HAS_RIXI)
 
-E-Mail:mikeweirskyspende@gmail.com
+so we can't use PTE_SPECIAL on 32bit _and_ CPUs with RIXI support.
 
-Ich hoffe, Sie und Ihre Familie gl=C3=BCcklich zu machen.
+Why can't we use
 
-Gr=C3=BC=C3=9Fe
-Herr Mike Weirsky
+#if defined(CONFIG_ARCH_HAS_PTE_SPECIAL)
+
+here as the comment already suggests ?
+
+Thomas.
+
+-- 
+Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
+good idea.                                                [ RFC1925, 2.3 ]
