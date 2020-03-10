@@ -1,41 +1,62 @@
-Return-Path: <SRS0=wGQB=4T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pj1-f66.google.com ([209.85.216.66]:51163 "EHLO
-        mail-pj1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726654AbgCBJQl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2020 04:16:41 -0500
-Date: Mon, 2 Mar 2020 18:16:35 +0900
-From: Stafford Horne <shorne@gmail.com>
-Subject: Re: [PATCH] mm/special: Create generic fallbacks for pte_special()
- and pte_mkspecial()
-Message-ID: <20200302091635.GK7926@lianli.shorne-pla.net>
-References: <1583114190-7678-1-git-send-email-anshuman.khandual@arm.com>
+Return-Path: <SRS0=rKsc=43=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:35116 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727333AbgCJMm2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Mar 2020 08:42:28 -0400
+Date: Tue, 10 Mar 2020 12:42:26 +0000
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
+Message-ID: <20200310124226.GC4106@sirena.org.uk>
+References: <20200227174417.23722-1-broonie@kernel.org>
+ <20200306102729.GC2503422@arrakis.emea.arm.com>
+ <20200309210505.GM4101@sirena.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="XMCwj5IQnwKtuyBG"
 Content-Disposition: inline
-In-Reply-To: <1583114190-7678-1-git-send-email-anshuman.khandual@arm.com>
+In-Reply-To: <20200309210505.GM4101@sirena.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: linux-mm@kvack.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Guo Ren <guoren@kernel.org>, Brian Cain <bcain@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Sam Creasey <sammy@sammy.net>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paulburton@kernel.org>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200302091635.doj4rb89s5Oj2S-yspNrnL9nx5aq0FH0LibEVsNejWg@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200310124226.327HSxveTZwSc6Sz9DBhKAnXcNGILRFtx95OfSp5sXs@z>
 
-On Mon, Mar 02, 2020 at 07:26:30AM +0530, Anshuman Khandual wrote:
 
-> diff --git a/arch/openrisc/include/asm/pgtable.h b/arch/openrisc/include/asm/pgtable.h
-> index 248d22d8faa7..7f3fb9ceb083 100644
-> --- a/arch/openrisc/include/asm/pgtable.h
-> +++ b/arch/openrisc/include/asm/pgtable.h
-> @@ -236,8 +236,6 @@ static inline int pte_write(pte_t pte) { return pte_val(pte) & _PAGE_WRITE; }
->  static inline int pte_exec(pte_t pte)  { return pte_val(pte) & _PAGE_EXEC; }
->  static inline int pte_dirty(pte_t pte) { return pte_val(pte) & _PAGE_DIRTY; }
->  static inline int pte_young(pte_t pte) { return pte_val(pte) & _PAGE_ACCESSED; }
-> -static inline int pte_special(pte_t pte) { return 0; }
-> -static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
->  
->  static inline pte_t pte_wrprotect(pte_t pte)
->  {
+--XMCwj5IQnwKtuyBG
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-For openrisc bits:
+On Mon, Mar 09, 2020 at 09:05:05PM +0000, Mark Brown wrote:
+> On Fri, Mar 06, 2020 at 10:27:29AM +0000, Catalin Marinas wrote:
 
-Acked-by: Stafford Horne <shorne@gmail.com>
- 
+> > Does this series affect uprobes in any way? I.e. can you probe a landing
+> > pad?
+
+> You can't probe a landing pad, uprobes on landing pads will be silently
+> ignored so the program isn't disrupted, you just don't get the expected
+> trace from those uprobes.  This isn't new with the BTI support since
+> the landing pads are generally pointer auth instructions, these already
+> can't be probed regardless of what's going on with this series.  It's
+> already on the list to get sorted.
+
+Sorry, I realized thanks to Amit's off-list prompting that I was testing
+that I was verifying with the wrong kernel binary here (user error since
+it took me a while to sort out uprobes) so this isn't quite right - you
+can probe the landing pads with or without this series.
+
+--XMCwj5IQnwKtuyBG
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5nizEACgkQJNaLcl1U
+h9CwvAf/ZRKRyzQ70X79x8NhEkUSVp2jprVe6r4y/8/g449xGTTicMDIWQKGeikg
+Z2v/GrsJ7+EAW4fiTl3dz+srzmuQCLS+67Dk/PwL4G4l8eJKQlBVj8BpiAASUml6
+mx3mbdZSIfcRKgz3BbzAsmW6p186TYm1Eh0MAQJhN11goYRuZjs0MNTDwZ0RuvSZ
+76rUJVdjbiFhjam1Et05p4G8HDQFKU0QArmyibQtCz1kU9+7affCfVyXFj3bnXx4
+qepGxIs1ld2UGb4lZ1BdlDxDpQoaQ+nVPxPRic0loZbovKlASlaSyKuRFl49jYg1
+8wHzzFxXeERLY2RJGZxzvae6Fq1zzA==
+=fbe8
+-----END PGP SIGNATURE-----
+
+--XMCwj5IQnwKtuyBG--
