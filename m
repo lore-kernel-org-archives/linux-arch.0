@@ -1,53 +1,55 @@
-Return-Path: <SRS0=ObY3=4W=vger.kernel.org=linux-doc-owner@kernel.org>
-Message-ID: <6e9214021448a04bfad823535eaa2320496fdabf.camel@intel.com>
-Subject: Re: [RFC PATCH v9 04/27] x86/cet: Add control-protection fault
- handler
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Thu, 05 Mar 2020 12:44:19 -0800
-In-Reply-To: <0bc74a85-7058-0cca-62b8-949c8a881c62@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-         <20200205181935.3712-5-yu-cheng.yu@intel.com>
-         <0bc74a85-7058-0cca-62b8-949c8a881c62@intel.com>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=rKsc=43=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from elvis.franken.de ([193.175.24.41]:60394 "EHLO elvis.franken.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728887AbgCJN2d (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Mar 2020 09:28:33 -0400
+Date: Tue, 10 Mar 2020 14:27:47 +0100
+From: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+Subject: Re: [PATCH V2] mm/special: Create generic fallbacks for
+ pte_special() and pte_mkspecial()
+Message-ID: <20200310132747.GA12601@alpha.franken.de>
+References: <1583802551-15406-1-git-send-email-anshuman.khandual@arm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1583802551-15406-1-git-send-email-anshuman.khandual@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200305204419.aqkzsai-i2bwVY6J3vtgELzjMGjizGtZLQxHuKbxhmo@z>
+To: Anshuman Khandual <anshuman.khandual@arm.com>
+Cc: linux-mm@kvack.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Guo Ren <guoren@kernel.org>, Brian Cain <bcain@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Sam Creasey <sammy@sammy.net>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paulburton@kernel.org>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200310132747.9Mt9gRToJQmDCgQA55558kZ2nGXVjaXC0mgnMvMkEyU@z>
 
-On Wed, 2020-02-26 at 09:10 -0800, Dave Hansen wrote:
-> On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
-> > diff --git a/arch/x86/kernel/idt.c b/arch/x86/kernel/idt.c
-> > index 87ef69a72c52..8ed406f469e7 100644
-> > --- a/arch/x86/kernel/idt.c
-> > +++ b/arch/x86/kernel/idt.c
-> > @@ -102,6 +102,10 @@ static const __initconst struct idt_data def_idts[] = {
-> >  #elif defined(CONFIG_X86_32)
-> >  	SYSG(IA32_SYSCALL_VECTOR,	entry_INT80_32),
-> >  #endif
-> > +
-> > +#ifdef CONFIG_X86_64
-> > +	INTG(X86_TRAP_CP,		control_protection),
-> > +#endif
-> >  };
-> 
-> This patch in particular appears to have all of its code unconditionally
-> compiled in.  That's in contrast to things that have Kconfig options, like:
-> 
-> #ifdef CONFIG_X86_MCE
->         INTG(X86_TRAP_MC,               &machine_check),
-> #endif
-> 
-> or:
-> 
-> #ifdef CONFIG_X86_THERMAL_VECTOR
->         INTG(THERMAL_APIC_VECTOR,       thermal_interrupt),
-> #endif
-> 
-> Is there a reason this code is always compiled in on 64-bit even when
-> the config option is off?
+On Tue, Mar 10, 2020 at 06:39:11AM +0530, Anshuman Khandual wrote:
+> diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
+> index aef5378f909c..8e4e4be1ca00 100644
+> --- a/arch/mips/include/asm/pgtable.h
+> +++ b/arch/mips/include/asm/pgtable.h
+> @@ -269,6 +269,36 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
+>   */
+>  extern pgd_t swapper_pg_dir[];
+>  
+> +/*
+> + * Platform specific pte_special() and pte_mkspecial() definitions
+> + * are required only when ARCH_HAS_PTE_SPECIAL is enabled.
+> + */
+> +#if !defined(CONFIG_32BIT) && !defined(CONFIG_CPU_HAS_RIXI)
 
-I will change it to CONFIG_X86_INTEL_CET.
+this looks wrong.
 
-Yu-cheng
+current Kconfig statement is
+
+select ARCH_HAS_PTE_SPECIAL if !(32BIT && CPU_HAS_RIXI)
+
+so we can't use PTE_SPECIAL on 32bit _and_ CPUs with RIXI support.
+
+Why can't we use
+
+#if defined(CONFIG_ARCH_HAS_PTE_SPECIAL)
+
+here as the comment already suggests ?
+
+Thomas.
+
+-- 
+Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
+good idea.                                                [ RFC1925, 2.3 ]
