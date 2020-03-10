@@ -1,101 +1,53 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH V15] mm/debug: Add tests validating architecture page
- table helpers
-Date: Tue, 10 Mar 2020 08:01:51 +0530
-Message-ID: <2d950d8c-4b23-741e-591f-e22e857c0755@arm.com>
-References: <61250cdc-f80b-2e50-5168-2ec67ec6f1e6@arm.com>
- <CEEAD95E-D468-4C58-A65B-7E8AED91168A@lca.pw>
- <a45834bc-e6f2-ac21-de9e-1aff67d12797@arm.com>
- <c40d907a-b64b-ae0d-e58f-33dddf0e8edc@c-s.fr>
+From: Greentime Hu <greentime.hu@sifive.com>
+Subject: Re: [RFC PATCH V3 00/11] riscv: Add vector ISA support
+Date: Tue, 10 Mar 2020 16:54:19 +0800
+Message-ID: <CAHCEehK0rgBpEzrWar1UTWJoOz=OQi18iw4Y+v3z5Hi=7JCEWw@mail.gmail.com>
+References: <20200308094954.13258-1-guoren@kernel.org> <CAHCEeh+XYD3uVmaQRGpY=VGxpO9hzMeKasNmAojhkZe9PJ9Lug@mail.gmail.com>
+ <95e3bba4-65c0-8991-9523-c16977f6350f@c-sky.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:59254 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726464AbgCJCcD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 9 Mar 2020 22:32:03 -0400
-In-Reply-To: <c40d907a-b64b-ae0d-e58f-33dddf0e8edc@c-s.fr>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christophe Leroy <christophe.leroy@c-s.fr>, Qian Cai <cai@lca.pw>
-Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <95e3bba4-65c0-8991-9523-c16977f6350f@c-sky.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: LIU Zhiwei <zhiwei_liu@c-sky.com>
+Cc: guoren@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Anup.Patel@wdc.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, arnd@arndb.de, linux-csky@vger.kernel.org, linux-riscv <linux-riscv@lists.infradead.org>, Guo Ren <guoren@linux.alibaba.com>, Dave Martin <Dave.Martin@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
+On Mon, Mar 9, 2020 at 6:27 PM LIU Zhiwei <zhiwei_liu@c-sky.com> wrote:
+> On 2020/3/9 11:41, Greentime Hu wrote:
+> > On Sun, Mar 8, 2020 at 5:50 PM <guoren@kernel.org> wrote:
+> >> From: Guo Ren <guoren@linux.alibaba.com>
+> >>
+> >> The implementation follow the RISC-V "V" Vector Extension draft v0.8 with
+> >> 128bit-vlen and it's based on linux-5.6-rc3 and tested with qemu [1].
+> >>
+> >> The patch implement basic context switch, sigcontext save/restore and
+> >> ptrace interface with a new regset NT_RISCV_VECTOR. Only fixed 128bit-vlen
+> >> is implemented. We need to discuss about vlen-size for libc sigcontext and
+> >> ptrace (the maximum size of vlen is unlimited in spec).
+> >>
+> >> Puzzle:
+> >> Dave Martin has talked "Growing CPU register state without breaking ABI" [2]
+> >> before, and riscv also met vlen size problem. Let's discuss the common issue
+> >> for all architectures and we need a better solution for unlimited vlen.
+> >>
+> >> Any help are welcomed :)
+> >>
+> >>   1: https://github.com/romanheros/qemu.git branch:vector-upstream-v3
+> > Hi Guo,
+> >
+> > Thanks for your patch.
+> > It seems the qemu repo doesn't have this branch?
+> Hi Greentime,
+>
+> It's a promise from me. Now it's ready.  You can turn on vector by
+> "qemu-system-riscv64 -cpu rv64,v=true,vext_spec=v0.7.1".
+>
+> Zhiwei
+>
+>
 
+Hi Zhiwei,
 
-On 03/07/2020 12:35 PM, Christophe Leroy wrote:
-> 
-> 
-> Le 07/03/2020 à 01:56, Anshuman Khandual a écrit :
->>
->>
->> On 03/07/2020 06:04 AM, Qian Cai wrote:
->>>
->>>
->>>> On Mar 6, 2020, at 7:03 PM, Anshuman Khandual <Anshuman.Khandual@arm.com> wrote:
->>>>
->>>> Hmm, set_pte_at() function is not preferred here for these tests. The idea
->>>> is to avoid or atleast minimize TLB/cache flushes triggered from these sort
->>>> of 'static' tests. set_pte_at() is platform provided and could/might trigger
->>>> these flushes or some other platform specific synchronization stuff. Just
->>>
->>> Why is that important for this debugging option?
->>
->> Primarily reason is to avoid TLB/cache flush instructions on the system
->> during these tests that only involve transforming different page table
->> level entries through helpers. Unless really necessary, why should it
->> emit any TLB/cache flush instructions ?
-> 
-> What's the problem with thoses flushes ?
-> 
->>
->>>
->>>> wondering is there specific reason with respect to the soft lock up problem
->>>> making it necessary to use set_pte_at() rather than a simple WRITE_ONCE() ?
->>>
->>> Looks at the s390 version of set_pte_at(), it has this comment,
->>> vmaddr);
->>>
->>> /*
->>>   * Certain architectures need to do special things when PTEs
->>>   * within a page table are directly modified.  Thus, the following
->>>   * hook is made available.
->>>   */
->>>
->>> I can only guess that powerpc  could be the same here.
->>
->> This comment is present in multiple platforms while defining set_pte_at().
->> Is not 'barrier()' here alone good enough ? Else what exactly set_pte_at()
->> does as compared to WRITE_ONCE() that avoids the soft lock up, just trying
->> to understand.
->>
-> 
-> 
-> Argh ! I didn't realise that you were writing directly into the page tables. When it works, that's only by chance I guess.
-> 
-> To properly set the page table entries, set_pte_at() has to be used:
-> - On powerpc 8xx, with 16k pages, the page table entry must be copied four times. set_pte_at() does it, WRITE_ONCE() doesn't.
-> - On powerpc book3s/32 (hash MMU), the flag _PAGE_HASHPTE must be preserved among writes. set_pte_at() preserves it, WRITE_ONCE() doesn't.
-> 
-> set_pte_at() also does a few other mandatory things, like calling pte_mkpte()
-> 
-> So, the WRITE_ONCE() must definitely become a set_pte_at()
-
-Sure, will do. These are part of the clear tests that populates a given
-entry with a non zero value before clearing and testing it with pxx_none().
-In that context, WRITE_ONCE() seemed sufficient. But pte_clear() might be
-closely tied with proper page table entry update and hence a preceding
-set_pte_at() will be better.
-
-There are still more WRITE_ONCE() for other page table levels during these
-clear tests. set_pmd_at() and set_pud_at() are defined on platforms that
-support (and enable) THP and PUD based THP respectively. Hence they could
-not be used for clear tests as remaining helpers pmd_clear(), pud_clear(),
-p4d_clear() and pgd_clear() still need to be validated with or without
-THP support and enablement. We should just leave all other WRITE_ONCE()
-instances unchanged. Please correct me if I am missing something here.
-
-> 
-> Christophe
-> 
+Thank you, I see the branch in the repo now. I will give it a try and
+let you know if I have any problem. :)
