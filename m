@@ -1,316 +1,65 @@
-Return-Path: <SRS0=twat=5M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:35942 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726330AbgC0XbV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2020 19:31:21 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [RFC][PATCH 14/14] take the dummy csum_and_copy_from_user() into net/checksum.h
-Date: Fri, 27 Mar 2020 23:31:17 +0000
-Message-ID: <20200327233117.1031393-14-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
-References: <20200327233006.GW23230@ZenIV.linux.org.uk>
- <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
+Return-Path: <SRS0=rKsc=43=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-ot1-f66.google.com ([209.85.210.66]:40452 "EHLO
+        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726156AbgCJCOL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2020 22:14:11 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <CAMe9rOpJjaro_qK6kghGNuSHDaP_MjVaZMbok2kbuBD48VmvXg@mail.gmail.com>
+ <E7E7A2AE-500A-4817-B00A-BE419E89C6F9@amacapital.net>
+In-Reply-To: <E7E7A2AE-500A-4817-B00A-BE419E89C6F9@amacapital.net>
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Date: Mon, 9 Mar 2020 19:13:34 -0700
+Message-ID: <CAMe9rOoZazTpWcK1hr4d25z8Gv3yGbpn_48R1RHGfq-aDOJ0Eg@mail.gmail.com>
+Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200327233117.-Mk1aho34KfnnCqliXnN_155YQ3iAt-y-W806-jMBjk@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Dave Hansen <dave.hansen@intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Message-ID: <20200310021334.7Sg1S9EHgTTddjTgj3xkw7Z1OBmWWxHWZl-ftpApyhA@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+On Mon, Mar 9, 2020 at 6:21 PM Andy Lutomirski <luto@amacapital.net> wrote:
+>
+> I am baffled by this discussion.
+>
+> >> On Mar 9, 2020, at 5:09 PM, H.J. Lu <hjl.tools@gmail.com> wrote:
+> >>
+> >> =EF=BB=BFOn Mon, Mar 9, 2020 at 4:59 PM Andy Lutomirski <luto@amacapit=
+al.net> wrote:
+> >
+> >>>> .
+> >> This could presumably have been fixed by having libpcre or sljit
+> >> disable IBT before calling into JIT code or by running the JIT code in
+> >> another thread.  In the other direction, a non-CET libpcre build could
+> >> build IBT-capable JITted code and enable JIT (by syscall if we allow
+> >> that or by creating a thread?) when calling it.  And IBT has this
+> >
+> > This is not how thread in user space works.
+>
+> void create_cet_thread(void (*func)(), unsigned int cet_flags);
+>
+> I could implement this using clone() if the kernel provides the requisite=
+ support. Sure, creating threads behind libc=E2=80=99s back like this is pe=
+rilous, but it can be done.
 
-now that can be done conveniently - all non-trivial cases have
-_HAVE_ARCH_COPY_AND_CSUM_FROM_USER defined, so the fallback in
-net/checksum.h is used only for dummy (copy_from_user, then
-csum_partial) implementation.  Allowing us to get rid of all
-dummy instances, both of csum_and_copy_from_user() and
-csum_partial_copy_from_user().
+Sure, this can live outside of libc with kernel support.
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/c6x/lib/checksum.c            | 22 ----------------------
- arch/ia64/include/asm/checksum.h   | 11 -----------
- arch/ia64/lib/csum_partial_copy.c  | 18 ------------------
- arch/nios2/include/asm/checksum.h  |  2 --
- arch/parisc/include/asm/checksum.h |  8 --------
- arch/parisc/lib/checksum.c         | 14 --------------
- arch/s390/include/asm/checksum.h   | 19 -------------------
- arch/x86/um/asm/checksum.h         | 20 --------------------
- include/asm-generic/checksum.h     |  9 ---------
- include/net/checksum.h             |  8 ++------
- lib/checksum.c                     | 20 --------------------
- 11 files changed, 2 insertions(+), 149 deletions(-)
+> >
+> >> fancy legacy bitmap to allow non-instrumented code to run with IBT on,
+> >> although SHSTK doesn't have hardware support for a similar feature.
+> >
+> > All these changes are called CET enabing.
+>
+> What does that mean?  If program A loads library B, and library B very ca=
+refully loads CET-mismatched code, program A may be blissfully unaware.
 
-diff --git a/arch/c6x/lib/checksum.c b/arch/c6x/lib/checksum.c
-index 46940844c553..335ca4900808 100644
---- a/arch/c6x/lib/checksum.c
-+++ b/arch/c6x/lib/checksum.c
-@@ -4,28 +4,6 @@
- #include <linux/module.h>
- #include <net/checksum.h>
- 
--#include <asm/byteorder.h>
--
--/*
-- * copy from fs while checksumming, otherwise like csum_partial
-- */
--__wsum
--csum_partial_copy_from_user(const void __user *src, void *dst, int len,
--			    __wsum sum, int *csum_err)
--{
--	int missing;
--
--	missing = __copy_from_user(dst, src, len);
--	if (missing) {
--		memset(dst + len - missing, 0, missing);
--		*csum_err = -EFAULT;
--	} else
--		*csum_err = 0;
--
--	return csum_partial(dst, len, sum);
--}
--EXPORT_SYMBOL(csum_partial_copy_from_user);
--
- /* These are from csum_64plus.S */
- EXPORT_SYMBOL(csum_partial);
- EXPORT_SYMBOL(csum_partial_copy);
-diff --git a/arch/ia64/include/asm/checksum.h b/arch/ia64/include/asm/checksum.h
-index 279ea4dcee79..2a1c64629cdc 100644
---- a/arch/ia64/include/asm/checksum.h
-+++ b/arch/ia64/include/asm/checksum.h
-@@ -37,17 +37,6 @@ extern __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
-  */
- extern __wsum csum_partial(const void *buff, int len, __wsum sum);
- 
--#define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
--/*
-- * Same as csum_partial, but copies from src while it checksums.
-- *
-- * Here it is even more important to align src and dst on a 32-bit (or
-- * even better 64-bit) boundary.
-- */
--extern __wsum csum_and_copy_from_user(const void __user *src, void *dst,
--						 int len, __wsum sum,
--						 int *errp);
--
- extern __wsum csum_partial_copy_nocheck(const void *src, void *dst,
- 					       int len, __wsum sum);
- 
-diff --git a/arch/ia64/lib/csum_partial_copy.c b/arch/ia64/lib/csum_partial_copy.c
-index ab59eb399900..5d147a33d648 100644
---- a/arch/ia64/lib/csum_partial_copy.c
-+++ b/arch/ia64/lib/csum_partial_copy.c
-@@ -104,24 +104,6 @@ unsigned long do_csum_c(const unsigned char * buff, int len, unsigned int psum)
-  * But it's very tricky to get right even in C.
-  */
- __wsum
--csum_and_copy_from_user(const void __user *src, void *dst,
--				int len, __wsum psum, int *errp)
--{
--	/* XXX Fixme
--	 * for now we separate the copy from checksum for obvious
--	 * alignment difficulties. Look at the Alpha code and you'll be
--	 * scared.
--	 */
--
--	if (copy_from_user(dst, src, len))
--		*errp = -EFAULT;
--
--	return csum_partial(dst, len, psum);
--}
--
--EXPORT_SYMBOL(csum_and_copy_from_user);
--
--__wsum
- csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum)
- {
- 	memcpy(dst, src, len);
-diff --git a/arch/nios2/include/asm/checksum.h b/arch/nios2/include/asm/checksum.h
-index 703c5ee63421..ec39698d3bea 100644
---- a/arch/nios2/include/asm/checksum.h
-+++ b/arch/nios2/include/asm/checksum.h
-@@ -14,8 +14,6 @@
- extern __wsum csum_partial(const void *buff, int len, __wsum sum);
- extern __wsum csum_partial_copy(const void *src, void *dst, int len,
- 				__wsum sum);
--extern __wsum csum_partial_copy_from_user(const void __user *src, void *dst,
--					int len, __wsum sum, int *csum_err);
- #define csum_partial_copy_nocheck(src, dst, len, sum)	\
- 	csum_partial_copy((src), (dst), (len), (sum))
- 
-diff --git a/arch/parisc/include/asm/checksum.h b/arch/parisc/include/asm/checksum.h
-index 7c69ce9634c7..fe8c63b2d2c3 100644
---- a/arch/parisc/include/asm/checksum.h
-+++ b/arch/parisc/include/asm/checksum.h
-@@ -26,14 +26,6 @@ extern __wsum csum_partial(const void *, int, __wsum);
-  */
- extern __wsum csum_partial_copy_nocheck(const void *, void *, int, __wsum);
- 
--#define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
--/*
-- * this is a new version of the above that records errors it finds in *errp,
-- * but continues and zeros the rest of the buffer.
-- */
--extern __wsum csum_and_copy_from_user(const void __user *src,
--		void *dst, int len, __wsum sum, int *errp);
--
- /*
-  *	Optimized for IP headers, which always checksum on 4 octet boundaries.
-  *
-diff --git a/arch/parisc/lib/checksum.c b/arch/parisc/lib/checksum.c
-index 4e47c2ff2bcd..c6f161583549 100644
---- a/arch/parisc/lib/checksum.c
-+++ b/arch/parisc/lib/checksum.c
-@@ -123,17 +123,3 @@ __wsum csum_partial_copy_nocheck(const void *src, void *dst,
- 	return sum;
- }
- EXPORT_SYMBOL(csum_partial_copy_nocheck);
--
--/*
-- * Copy from userspace and compute checksum.  If we catch an exception
-- * then zero the rest of the buffer.
-- */
--__wsum csum_and_copy_from_user(const void __user *src,
--					void *dst, int len,
--					__wsum sum, int *err_ptr)
--{
--	if (copy_from_user(dst, src, len))
--		*err_ptr = -EFAULT;
--	return csum_partial(dst, len, sum);
--}
--EXPORT_SYMBOL(csum_and_copy_from_user);
-diff --git a/arch/s390/include/asm/checksum.h b/arch/s390/include/asm/checksum.h
-index 91e376b0d28c..6d01c96aeb5c 100644
---- a/arch/s390/include/asm/checksum.h
-+++ b/arch/s390/include/asm/checksum.h
-@@ -39,25 +39,6 @@ csum_partial(const void *buff, int len, __wsum sum)
- 	return sum;
- }
- 
--/*
-- * the same as csum_partial_copy, but copies from user space.
-- *
-- * here even more important to align src and dst on a 32-bit (or even
-- * better 64-bit) boundary
-- *
-- * Copy from userspace and compute checksum.
-- */
--static inline __wsum
--csum_partial_copy_from_user(const void __user *src, void *dst,
--                                          int len, __wsum sum,
--                                          int *err_ptr)
--{
--	if (unlikely(copy_from_user(dst, src, len)))
--		*err_ptr = -EFAULT;
--	return csum_partial(dst, len, sum);
--}
--
--
- static inline __wsum
- csum_partial_copy_nocheck (const void *src, void *dst, int len, __wsum sum)
- {
-diff --git a/arch/x86/um/asm/checksum.h b/arch/x86/um/asm/checksum.h
-index 2a56cac64687..ff6bba2c8ab6 100644
---- a/arch/x86/um/asm/checksum.h
-+++ b/arch/x86/um/asm/checksum.h
-@@ -36,26 +36,6 @@ __wsum csum_partial_copy_nocheck(const void *src, void *dst,
- 	return csum_partial(dst, len, sum);
- }
- 
--/*
-- * the same as csum_partial, but copies from src while it
-- * checksums, and handles user-space pointer exceptions correctly, when needed.
-- *
-- * here even more important to align src and dst on a 32-bit (or even
-- * better 64-bit) boundary
-- */
--
--static __inline__
--__wsum csum_partial_copy_from_user(const void __user *src, void *dst,
--					 int len, __wsum sum, int *err_ptr)
--{
--	if (copy_from_user(dst, src, len)) {
--		*err_ptr = -EFAULT;
--		return (__force __wsum)-1;
--	}
--
--	return csum_partial(dst, len, sum);
--}
--
- /**
-  * csum_fold - Fold and invert a 32bit checksum.
-  * sum: 32bit unfolded sum
-diff --git a/include/asm-generic/checksum.h b/include/asm-generic/checksum.h
-index 34785c0f57b0..5a80f8e54300 100644
---- a/include/asm-generic/checksum.h
-+++ b/include/asm-generic/checksum.h
-@@ -25,15 +25,6 @@ extern __wsum csum_partial(const void *buff, int len, __wsum sum);
-  */
- extern __wsum csum_partial_copy(const void *src, void *dst, int len, __wsum sum);
- 
--/*
-- * the same as csum_partial_copy, but copies from user space.
-- *
-- * here even more important to align src and dst on a 32-bit (or even
-- * better 64-bit) boundary
-- */
--extern __wsum csum_partial_copy_from_user(const void __user *src, void *dst,
--					int len, __wsum sum, int *csum_err);
--
- #ifndef csum_partial_copy_nocheck
- #define csum_partial_copy_nocheck(src, dst, len, sum)	\
- 	csum_partial_copy((src), (dst), (len), (sum))
-diff --git a/include/net/checksum.h b/include/net/checksum.h
-index 97bf4885a962..5f9c73c0eeb9 100644
---- a/include/net/checksum.h
-+++ b/include/net/checksum.h
-@@ -26,13 +26,9 @@ static inline
- __wsum csum_and_copy_from_user (const void __user *src, void *dst,
- 				      int len, __wsum sum, int *err_ptr)
- {
--	if (access_ok(src, len))
--		return csum_partial_copy_from_user(src, dst, len, sum, err_ptr);
--
--	if (len)
-+	if (copy_from_user(dst, src, len))
- 		*err_ptr = -EFAULT;
--
--	return sum;
-+	return csum_partial(dst, len, sum);
- }
- #endif
- 
-diff --git a/lib/checksum.c b/lib/checksum.c
-index de032ad96f4a..7ac65a0000ff 100644
---- a/lib/checksum.c
-+++ b/lib/checksum.c
-@@ -146,26 +146,6 @@ __sum16 ip_compute_csum(const void *buff, int len)
- EXPORT_SYMBOL(ip_compute_csum);
- 
- /*
-- * copy from fs while checksumming, otherwise like csum_partial
-- */
--__wsum
--csum_partial_copy_from_user(const void __user *src, void *dst, int len,
--						__wsum sum, int *csum_err)
--{
--	int missing;
--
--	missing = __copy_from_user(dst, src, len);
--	if (missing) {
--		memset(dst + len - missing, 0, missing);
--		*csum_err = -EFAULT;
--	} else
--		*csum_err = 0;
--
--	return csum_partial(dst, len, sum);
--}
--EXPORT_SYMBOL(csum_partial_copy_from_user);
--
--/*
-  * copy from ds while checksumming, otherwise like csum_partial
-  */
- __wsum
--- 
-2.11.0
+Any source changes to make codes CET compatible is to enable CET.
+
+Shadow stack can't be turned on or off arbitrarily.  ld.so checks it and
+makes sure that everything is consistent.  But this is entirely done in
+user space.  In the first phase, we want to make CET simple, not too
+complicated.
+
+
+H.J.
