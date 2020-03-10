@@ -1,64 +1,101 @@
-From: "H.J. Lu" <hjl.tools@gmail.com>
-Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
-Date: Mon, 9 Mar 2020 19:13:34 -0700
-Message-ID: <CAMe9rOoZazTpWcK1hr4d25z8Gv3yGbpn_48R1RHGfq-aDOJ0Eg@mail.gmail.com>
-References: <CAMe9rOpJjaro_qK6kghGNuSHDaP_MjVaZMbok2kbuBD48VmvXg@mail.gmail.com>
- <E7E7A2AE-500A-4817-B00A-BE419E89C6F9@amacapital.net>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: Re: [PATCH V15] mm/debug: Add tests validating architecture page
+ table helpers
+Date: Tue, 10 Mar 2020 08:01:51 +0530
+Message-ID: <2d950d8c-4b23-741e-591f-e22e857c0755@arm.com>
+References: <61250cdc-f80b-2e50-5168-2ec67ec6f1e6@arm.com>
+ <CEEAD95E-D468-4C58-A65B-7E8AED91168A@lca.pw>
+ <a45834bc-e6f2-ac21-de9e-1aff67d12797@arm.com>
+ <c40d907a-b64b-ae0d-e58f-33dddf0e8edc@c-s.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f66.google.com ([209.85.210.66]:40452 "EHLO
-        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726156AbgCJCOL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2020 22:14:11 -0400
-In-Reply-To: <E7E7A2AE-500A-4817-B00A-BE419E89C6F9@amacapital.net>
+Received: from foss.arm.com ([217.140.110.172]:59254 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726464AbgCJCcD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 9 Mar 2020 22:32:03 -0400
+In-Reply-To: <c40d907a-b64b-ae0d-e58f-33dddf0e8edc@c-s.fr>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Dave Hansen <dave.hansen@intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.>
-
-On Mon, Mar 9, 2020 at 6:21 PM Andy Lutomirski <luto@amacapital.net> wrote:
->
-> I am baffled by this discussion.
->
-> >> On Mar 9, 2020, at 5:09 PM, H.J. Lu <hjl.tools@gmail.com> wrote:
-> >>
-> >> =EF=BB=BFOn Mon, Mar 9, 2020 at 4:59 PM Andy Lutomirski <luto@amacapit=
-al.net> wrote:
-> >
-> >>>> .
-> >> This could presumably have been fixed by having libpcre or sljit
-> >> disable IBT before calling into JIT code or by running the JIT code in
-> >> another thread.  In the other direction, a non-CET libpcre build could
-> >> build IBT-capable JITted code and enable JIT (by syscall if we allow
-> >> that or by creating a thread?) when calling it.  And IBT has this
-> >
-> > This is not how thread in user space works.
->
-> void create_cet_thread(void (*func)(), unsigned int cet_flags);
->
-> I could implement this using clone() if the kernel provides the requisite=
- support. Sure, creating threads behind libc=E2=80=99s back like this is pe=
-rilous, but it can be done.
-
-Sure, this can live outside of libc with kernel support.
-
-> >
-> >> fancy legacy bitmap to allow non-instrumented code to run with IBT on,
-> >> although SHSTK doesn't have hardware support for a similar feature.
-> >
-> > All these changes are called CET enabing.
->
-> What does that mean?  If program A loads library B, and library B very ca=
-refully loads CET-mismatched code, program A may be blissfully unaware.
-
-Any source changes to make codes CET compatible is to enable CET.
-
-Shadow stack can't be turned on or off arbitrarily.  ld.so checks it and
-makes sure that everything is consistent.  But this is entirely done in
-user space.  In the first phase, we want to make CET simple, not too
-complicated.
+To: Christophe Leroy <christophe.leroy@c-s.fr>, Qian Cai <cai@lca.pw>
+Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org
 
 
-H.J.
+
+On 03/07/2020 12:35 PM, Christophe Leroy wrote:
+> 
+> 
+> Le 07/03/2020 à 01:56, Anshuman Khandual a écrit :
+>>
+>>
+>> On 03/07/2020 06:04 AM, Qian Cai wrote:
+>>>
+>>>
+>>>> On Mar 6, 2020, at 7:03 PM, Anshuman Khandual <Anshuman.Khandual@arm.com> wrote:
+>>>>
+>>>> Hmm, set_pte_at() function is not preferred here for these tests. The idea
+>>>> is to avoid or atleast minimize TLB/cache flushes triggered from these sort
+>>>> of 'static' tests. set_pte_at() is platform provided and could/might trigger
+>>>> these flushes or some other platform specific synchronization stuff. Just
+>>>
+>>> Why is that important for this debugging option?
+>>
+>> Primarily reason is to avoid TLB/cache flush instructions on the system
+>> during these tests that only involve transforming different page table
+>> level entries through helpers. Unless really necessary, why should it
+>> emit any TLB/cache flush instructions ?
+> 
+> What's the problem with thoses flushes ?
+> 
+>>
+>>>
+>>>> wondering is there specific reason with respect to the soft lock up problem
+>>>> making it necessary to use set_pte_at() rather than a simple WRITE_ONCE() ?
+>>>
+>>> Looks at the s390 version of set_pte_at(), it has this comment,
+>>> vmaddr);
+>>>
+>>> /*
+>>>   * Certain architectures need to do special things when PTEs
+>>>   * within a page table are directly modified.  Thus, the following
+>>>   * hook is made available.
+>>>   */
+>>>
+>>> I can only guess that powerpc  could be the same here.
+>>
+>> This comment is present in multiple platforms while defining set_pte_at().
+>> Is not 'barrier()' here alone good enough ? Else what exactly set_pte_at()
+>> does as compared to WRITE_ONCE() that avoids the soft lock up, just trying
+>> to understand.
+>>
+> 
+> 
+> Argh ! I didn't realise that you were writing directly into the page tables. When it works, that's only by chance I guess.
+> 
+> To properly set the page table entries, set_pte_at() has to be used:
+> - On powerpc 8xx, with 16k pages, the page table entry must be copied four times. set_pte_at() does it, WRITE_ONCE() doesn't.
+> - On powerpc book3s/32 (hash MMU), the flag _PAGE_HASHPTE must be preserved among writes. set_pte_at() preserves it, WRITE_ONCE() doesn't.
+> 
+> set_pte_at() also does a few other mandatory things, like calling pte_mkpte()
+> 
+> So, the WRITE_ONCE() must definitely become a set_pte_at()
+
+Sure, will do. These are part of the clear tests that populates a given
+entry with a non zero value before clearing and testing it with pxx_none().
+In that context, WRITE_ONCE() seemed sufficient. But pte_clear() might be
+closely tied with proper page table entry update and hence a preceding
+set_pte_at() will be better.
+
+There are still more WRITE_ONCE() for other page table levels during these
+clear tests. set_pmd_at() and set_pud_at() are defined on platforms that
+support (and enable) THP and PUD based THP respectively. Hence they could
+not be used for clear tests as remaining helpers pmd_clear(), pud_clear(),
+p4d_clear() and pgd_clear() still need to be validated with or without
+THP support and enablement. We should just leave all other WRITE_ONCE()
+instances unchanged. Please correct me if I am missing something here.
+
+> 
+> Christophe
+> 
