@@ -1,84 +1,64 @@
-Return-Path: <SRS0=twat=5M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:35902 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726781AbgC0XbT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2020 19:31:19 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [RFC][PATCH 04/14] x86: switch 32bit csum_and_copy_to_user() to user_access_{begin,end}()
-Date: Fri, 27 Mar 2020 23:31:07 +0000
-Message-ID: <20200327233117.1031393-4-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
-References: <20200327233006.GW23230@ZenIV.linux.org.uk>
- <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
+Return-Path: <SRS0=rKsc=43=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:37284 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726444AbgCJNrA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Mar 2020 09:47:00 -0400
+Subject: Re: [PATCH V2] mm/special: Create generic fallbacks for pte_special()
+ and pte_mkspecial()
+References: <1583802551-15406-1-git-send-email-anshuman.khandual@arm.com>
+ <20200310132747.GA12601@alpha.franken.de>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Message-ID: <a8341dde-aa59-b425-ac23-b6005e0a67ec@arm.com>
+Date: Tue, 10 Mar 2020 19:16:42 +0530
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20200310132747.GA12601@alpha.franken.de>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200327233107.x8ksY_rKYGY9n5-It0kLVQkpd7MNC1GC23FlUenGygI@z>
+To: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+Cc: linux-mm@kvack.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Guo Ren <guoren@kernel.org>, Brian Cain <bcain@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Sam Creasey <sammy@sammy.net>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paulburton@kernel.org>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200310134642.OlrSzvCIm4gN392sJP8TZUgGZPM5PEzPoyFhx5w_ZMc@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
 
-consolidate HAVE_CSUM_COPY_USER for 32bit and 64bit, while are at it
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/x86/include/asm/checksum.h    | 1 +
- arch/x86/include/asm/checksum_32.h | 6 ++----
- arch/x86/include/asm/checksum_64.h | 3 ---
- 3 files changed, 3 insertions(+), 7 deletions(-)
+On 03/10/2020 06:57 PM, Thomas Bogendoerfer wrote:
+> On Tue, Mar 10, 2020 at 06:39:11AM +0530, Anshuman Khandual wrote:
+>> diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
+>> index aef5378f909c..8e4e4be1ca00 100644
+>> --- a/arch/mips/include/asm/pgtable.h
+>> +++ b/arch/mips/include/asm/pgtable.h
+>> @@ -269,6 +269,36 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
+>>   */
+>>  extern pgd_t swapper_pg_dir[];
+>>  
+>> +/*
+>> + * Platform specific pte_special() and pte_mkspecial() definitions
+>> + * are required only when ARCH_HAS_PTE_SPECIAL is enabled.
+>> + */
+>> +#if !defined(CONFIG_32BIT) && !defined(CONFIG_CPU_HAS_RIXI)
+> 
+> this looks wrong.
+> 
+> current Kconfig statement is
+> 
+> select ARCH_HAS_PTE_SPECIAL if !(32BIT && CPU_HAS_RIXI)
+> 
+> so we can't use PTE_SPECIAL on 32bit _and_ CPUs with RIXI support.
 
-diff --git a/arch/x86/include/asm/checksum.h b/arch/x86/include/asm/checksum.h
-index 1ab9572ae4c2..0ada98d5d09f 100644
---- a/arch/x86/include/asm/checksum.h
-+++ b/arch/x86/include/asm/checksum.h
-@@ -1,5 +1,6 @@
- /* SPDX-License-Identifier: GPL-2.0 */
- #define  _HAVE_ARCH_COPY_AND_CSUM_FROM_USER 1
-+#define HAVE_CSUM_COPY_USER
- #ifdef CONFIG_X86_32
- # include <asm/checksum_32.h>
- #else
-diff --git a/arch/x86/include/asm/checksum_32.h b/arch/x86/include/asm/checksum_32.h
-index 2487b7fc2d24..11624c8a9d8d 100644
---- a/arch/x86/include/asm/checksum_32.h
-+++ b/arch/x86/include/asm/checksum_32.h
-@@ -176,7 +176,6 @@ static inline __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
- /*
-  *	Copy and checksum to user
-  */
--#define HAVE_CSUM_COPY_USER
- static inline __wsum csum_and_copy_to_user(const void *src,
- 					   void __user *dst,
- 					   int len, __wsum sum,
-@@ -185,11 +184,10 @@ static inline __wsum csum_and_copy_to_user(const void *src,
- 	__wsum ret;
- 
- 	might_sleep();
--	if (access_ok(dst, len)) {
--		stac();
-+	if (user_access_begin(dst, len)) {
- 		ret = csum_partial_copy_generic(src, (__force void *)dst,
- 						len, sum, NULL, err_ptr);
--		clac();
-+		user_access_end();
- 		return ret;
- 	}
- 
-diff --git a/arch/x86/include/asm/checksum_64.h b/arch/x86/include/asm/checksum_64.h
-index 2f8435542376..0a289b87e872 100644
---- a/arch/x86/include/asm/checksum_64.h
-+++ b/arch/x86/include/asm/checksum_64.h
-@@ -129,9 +129,6 @@ static inline __sum16 csum_tcpudp_magic(__be32 saddr, __be32 daddr,
-  */
- extern __wsum csum_partial(const void *buff, int len, __wsum sum);
- 
--#define HAVE_CSUM_COPY_USER 1
--
--
- /* Do not call this directly. Use the wrappers below */
- extern __visible __wsum csum_partial_copy_generic(const void *src, const void *dst,
- 					int len, __wsum sum,
--- 
-2.11.0
+I already had asked for clarification on this.
+
+> 
+> Why can't we use
+> 
+> #if defined(CONFIG_ARCH_HAS_PTE_SPECIAL)
+> 
+> here as the comment already suggests ?
+
+Yes, that will be easier and will automatically adjust in case
+ARCH_HAS_PTE_SPECIAL scope changes later. Will respin the patch.
+
+> 
+> Thomas.
+> 
