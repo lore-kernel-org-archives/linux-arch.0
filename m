@@ -1,193 +1,73 @@
-Return-Path: <SRS0=M4aj=5P=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtp-42ab.mail.infomaniak.ch ([84.16.66.171]:49537 "EHLO
-        smtp-42ab.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727370AbgC3S0W (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 30 Mar 2020 14:26:22 -0400
-Subject: Re: [RFC PATCH v14 00/10] Landlock LSM
-References: <20200224160215.4136-1-mic@digikod.net>
- <CAG48ez21bEn0wL1bbmTiiu8j9jP5iEWtHOwz4tURUJ+ki0ydYw@mail.gmail.com>
- <873d7419-bdd9-8a52-0a9b-dddbe31df4f9@digikod.net>
- <CAG48ez0=0W5Ok-8nASqZrZ28JboXRRi3gDxV5u6mdcOtzwuRVA@mail.gmail.com>
- <688dda0f-0907-34eb-c19e-3e9e5f613a74@digikod.net>
- <CAG48ez16yT+zbK1WPxr2TnxrifW5c2DnpFLbWRRLUT_WpuFNmw@mail.gmail.com>
- <e8530226-f295-a897-1132-7e6970dad49f@digikod.net>
- <CAG48ez1K-7Lq2Ep_p9fOvXQ-fwj_8dA1CFd5SVDbT4ccqejDzA@mail.gmail.com>
- <2d48e3e3-e7b2-ec33-91c5-be6a308a12d4@digikod.net>
- <CAG48ez18LrDVLdp3agTwHNYxOBJyEb5PZ1dkwbNjpPVQoTsLcA@mail.gmail.com>
-From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
-Message-ID: <e07fe473-1801-01cc-12ae-b3167f95250e@digikod.net>
-Date: Mon, 30 Mar 2020 20:26:03 +0200
-MIME-Version: 1.0
-In-Reply-To: <CAG48ez18LrDVLdp3agTwHNYxOBJyEb5PZ1dkwbNjpPVQoTsLcA@mail.gmail.com>
+Return-Path: <SRS0=rKsc=43=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pj1-f66.google.com ([209.85.216.66]:54285 "EHLO
+        mail-pj1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726134AbgCJBVF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2020 21:21:05 -0400
+Received: by mail-pj1-f66.google.com with SMTP id np16so666416pjb.4
+        for <linux-arch@vger.kernel.org>; Mon, 09 Mar 2020 18:21:04 -0700 (PDT)
 Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0 (1.0)
+Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
+From: Andy Lutomirski <luto@amacapital.net>
+In-Reply-To: <CAMe9rOpJjaro_qK6kghGNuSHDaP_MjVaZMbok2kbuBD48VmvXg@mail.gmail.com>
+Date: Mon, 9 Mar 2020 18:21:01 -0700
+Message-ID: <E7E7A2AE-500A-4817-B00A-BE419E89C6F9@amacapital.net>
+References: <CAMe9rOpJjaro_qK6kghGNuSHDaP_MjVaZMbok2kbuBD48VmvXg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>
-Cc: kernel list <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-doc@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20200330182603.HSfuzLUs5vjqSk09Qo8WtdSrga2AYx06hzMl5lXgUdo@z>
+To: "H.J. Lu" <hjl.tools@gmail.com>
+Cc: Dave Hansen <dave.hansen@intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Message-ID: <20200310012101.BjlbaEt7GJw6bbHFLv4q3fAyjE8lf9DSa6Kb4KjBUQc@z>
 
+I am baffled by this discussion.
 
-On 19/03/2020 22:17, Jann Horn wrote:
-> On Thu, Mar 19, 2020 at 5:58 PM Mickaël Salaün <mic@digikod.net> wrote:
->> On 19/03/2020 00:33, Jann Horn wrote:
->>> On Wed, Mar 18, 2020 at 1:06 PM Mickaël Salaün <mic@digikod.net> wrote:
-> [...]
->>>> As I understand your proposition, we need to build the required_bits
->>>> when adding a rule or enforcing/merging a ruleset with a domain. The
->>>> issue is that a rule only refers to a struct inode, not a struct path.
->>>> For your proposition to work, we would need to walk through the file
->>>> path when adding a rule to a ruleset, which means that we need to depend
->>>> of the current view of the process (i.e. its mount namespace), and its
->>>> Landlock domain.
->>>
->>> I don't see why that is necessary. Why would we have to walk the file
->>> path when adding a rule?
->>>
->>>> If the required_bits field is set when the ruleset is
->>>> merged with the domain, it is not possible anymore to walk through the
->>>> corresponding initial file path, which makes the enforcement step too
->>>> late to check for such consistency. The important point is that a
->>>> ruleset/domain doesn't have a notion of file hierarchy, a ruleset is
->>>> only a set of tagged inodes.
->>>>
->>>> I'm not sure I got your proposition right, though. When and how would
->>>> you generate the required_bits?
->>>
->>> Using your terminology:
->>> A domain is a collection of N layers, which are assigned indices 0..N-1.
->>> For each possible access type, a domain has a bitmask containing N
->>> bits that stores which layers control that access type. (Basically a
->>> per-layer version of fs_access_mask.)
->>
->> OK, so there is a bit for each domain, which means that you get a limit
->> of, let's say 64 layers? Knowing that each layer can be created by a
->> standalone application, potentially nested in a bunch of layers, this
->> seems artificially limiting.
-> 
-> Yes, that is a downside of my approach.
-> 
->>> To validate an access, you start by ORing together the bitmasks for
->>> the requested access types; that gives you the required_bits mask,
->>> which lists all layers that want to control the access.
->>> Then you set seen_policy_bits=0, then do the
->>> check_access_path_continue() loop while keeping track of which layers
->>> you've seen with "seen_policy_bits |= access->contributing_policies",
->>> or something like that.
->>> And in the end, you check that seen_policy_bits is a superset of
->>> required_bits - something like `(~seen_policy_bits) & required_bits ==
->>> 0`.
->>>
->>> AFAICS to create a new domain from a bunch of layers, you wouldn't
->>> have to do any path walking.
->>
->> Right, I misunderstood your previous email.
->>
->>>
->>>> Here is my updated proposition: add a layer level and a depth to each
->>>> rule (once enforced/merged with a domain), and a top layer level for a
->>>> domain. When enforcing a ruleset (i.e. merging a ruleset into the
->>>> current domain), the layer level of a new rule would be the incremented
->>>> top layer level.
->>>> If there is no rule (from this domain) tied to the same
->>>> inode, then the depth of the new rule is 1. However, if there is already
->>>> a rule tied to the same inode and if this rule's layer level is the
->>>> previous top layer level, then the depth and the layer level are both
->>>> incremented and the rule is updated with the new access rights (boolean
->>>> AND).
->>>>
->>>> The policy looks like this:
->>>> domain top_layer=2
->>>> /a RW policy_bitmask=0x00000003 layer=1 depth=1
->>>> /a/b R policy_bitmask=0x00000002 layer=2 depth=1
->>>>
->>>> The path walk access check walks through all inodes and start with a
->>>> layer counter equal to the top layer of the current domain. For each
->>>> encountered inode tied to a rule, the access rights are checked and a
->>>> new check ensures that the layer of the matching rule is the same as the
->>>> counter (this may be a merged ruleset containing rules pertaining to the
->>>> same hierarchy, which is fine) or equal to the decremented counter (i.e.
->>>> the path walk just reached the underlying layer). If the path walk
->>>> encounter a rule with a layer strictly less than the counter minus one,
->>>> there is a whole in the layers which means that the ruleset
->>>> hierarchy/subset does not match, and the access must be denied.
->>>>
->>>> When accessing a file at /private/b/foo for a read access:
->>>> /private/b/foo <no rules>
->>>>   allowed_access=unknown layer_counter=2
->>>> /private/b <access: R, policy_bitmask=0x00000002, layer=2, depth=1>
->>>>   allowed_access=allowed layer_counter=2
->>>> /private <no rules>
->>>>   allowed_access=allowed layer_counter=2
->>>> / <no rules>
->>>>   allowed_access=allowed layer_counter=2
->>>>
->>>> Because the layer_counter didn't reach 1, the access request is then denied.
->>>>
->>>> This proposition enables not to rely on a parent ruleset at first, only
->>>> when enforcing/merging a ruleset with a domain. This also solves the
->>>> issue with multiple inherited/nested rules on the same inode (in which
->>>> case the depth just grows). Moreover, this enables to safely stop the
->>>> path walk as soon as we reach the layer 1.
->>>
->>> (FWIW, you could do the same optimization with the seen_policy_bits approach.)
->>>
->>> I guess the difference between your proposal and mine is that in my
->>> proposal, the following would work, in effect permitting W access to
->>> /foo/bar/baz (and nothing else)?
->>>
->>> first ruleset:
->>>   /foo W
->>> second ruleset:
->>>   /foo/bar/baz W
->>> third ruleset:
->>>   /foo/bar W
->>>
->>> whereas in your proposal, IIUC it wouldn't be valid for a new ruleset
->>> to whitelist a superset of what was whitelisted in a previous ruleset?
->>>
->>
->> This behavior seems dangerous because a process which sandbox itself to
->> only access /foo/bar W can bypass the restrictions from one of its
->> parent domains (i.e. only access /foo/bar/baz W). Indeed, each layer is
->> (most of the time) a different and standalone security policy.
-> 
-> It isn't actually bypassing the restriction: You still can't actually
-> access files like /foo/bar/blah, because a path walk from there
-> doesn't encounter any rules from the second ruleset.
+>> On Mar 9, 2020, at 5:09 PM, H.J. Lu <hjl.tools@gmail.com> wrote:
+>>=20
+>> =EF=BB=BFOn Mon, Mar 9, 2020 at 4:59 PM Andy Lutomirski <luto@amacapital.=
+net> wrote:
+>=20
+>>>> .
+>> This could presumably have been fixed by having libpcre or sljit
+>> disable IBT before calling into JIT code or by running the JIT code in
+>> another thread.  In the other direction, a non-CET libpcre build could
+>> build IBT-capable JITted code and enable JIT (by syscall if we allow
+>> that or by creating a thread?) when calling it.  And IBT has this
+>=20
+> This is not how thread in user space works.
 
-Right, this use case is legitimate, e.g. first giving access to
-~/Downloads and then another layer giving access to ~/ (because it
-doesn't know about the current restriction).
+void create_cet_thread(void (*func)(), unsigned int cet_flags);
 
-I think that neither my initial approach nor yours fit well, but I found
-a new one inspired from both approaches. The first solution I gave, and
-since implemented in the v15 [1], can manage 2^31-1 layers but it only
-works when refining a security policy *knowing the parent one* (i.e.
-refining an access tied to an inode, not a full file hierarchy). Instead
-of having a layer level and a layer depth, my new implementation (for
-v16) use a layer bitfield for each rule (and ruleset). We still AND
-access rights when merging rulesets, but instead of storing the last
-layer lever and depth, we set the corresponding bit in the layer
-bitfield of the rule. This way we don't consume more memory than the v15
-implementation (for 64 layers top, which would be 64 bits * number of
-access types with your approach, i.e. between 1KB and 2KB) and Landlock
-can properly manage supersets of access rights in nested hierarchies,
-whatever their stacking order. However, I don't see another solution to
-better handle more than 64 layers than a VLA, but that could come later.
+I could implement this using clone() if the kernel provides the requisite su=
+pport. Sure, creating threads behind libc=E2=80=99s back like this is perilo=
+us, but it can be done.
 
-[1] https://lore.kernel.org/lkml/20200326202731.693608-6-mic@digikod.net/
+>=20
+>> fancy legacy bitmap to allow non-instrumented code to run with IBT on,
+>> although SHSTK doesn't have hardware support for a similar feature.
+>=20
+> All these changes are called CET enabing.
 
-> 
->> To sum up, the bitmask approach doesn't have the notion of layers
->> ordering. It is then not possible to check that a rule comes from a
->> domain which is the direct ancestor of a child's domain. I want each
->> policy/layer to be really nested in the sense that a process sandboxing
->> itself can only add more restriction to itself with regard to its parent
->> domain (and the whole hierarchy). This is a similar approach to
->> seccomp-bpf (with chained filters), except there is almost no overhead
->> to nest several policies/layers together because they are flattened.
->> Using the layer level and depth approach enables to implement this.
-> 
+What does that mean?  If program A loads library B, and library B very caref=
+ully loads CET-mismatched code, program A may be blissfully unaware.
+
+>=20
+>> So, sure, the glibc-linked ELF ecosystem needs some degree of CET
+>> coordination, but it is absolutely not the case that a process MUST
+>> have all CET or no CET.  Let's please support the complicated cases in
+>> the kernel and the ABI too.  If glibc wants to make it annoying to do
+>> complicated things, so be it.  People work behind glibc's back all the
+>> time.
+>=20
+> CET is no different from NX in this regard.
+
+NX is in the page tables, and CET, mostly, is not.  Also, we seriously flubb=
+ed READ_IMPLIES_EXEC and made it affect far more mappings than ever should h=
+ave been affected.
+
+If a legacy program (non-NX-aware) loads a newer library, and the library op=
+ens a device node and mmaps it PROT_READ, it gets RX.  This is not a good de=
+sign. In fact, it=E2=80=99s actively problematic.
+
+Let us please not take Linux=E2=80=99s NX legacy support as an example of go=
+od design.=
