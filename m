@@ -1,85 +1,60 @@
-Return-Path: <SRS0=UTne=45=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:59454 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1730931AbgCLEKj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 12 Mar 2020 00:10:39 -0400
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v2 3/3] arm64: tlb: add support for TTL in some functions
-Date: Thu, 12 Mar 2020 12:10:18 +0800
-Message-ID: <20200312041018.1927-4-yezhenyu2@huawei.com>
-In-Reply-To: <20200312041018.1927-1-yezhenyu2@huawei.com>
-References: <20200312041018.1927-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=rKsc=43=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qk1-f195.google.com ([209.85.222.195]:36055 "EHLO
+        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726466AbgCJIye (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 Mar 2020 04:54:34 -0400
+Received: by mail-qk1-f195.google.com with SMTP id u25so11989151qkk.3
+        for <linux-arch@vger.kernel.org>; Tue, 10 Mar 2020 01:54:31 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Content-Type: text/plain; charset=US-ASCII
+References: <20200308094954.13258-1-guoren@kernel.org> <CAHCEeh+XYD3uVmaQRGpY=VGxpO9hzMeKasNmAojhkZe9PJ9Lug@mail.gmail.com>
+ <95e3bba4-65c0-8991-9523-c16977f6350f@c-sky.com>
+In-Reply-To: <95e3bba4-65c0-8991-9523-c16977f6350f@c-sky.com>
+From: Greentime Hu <greentime.hu@sifive.com>
+Date: Tue, 10 Mar 2020 16:54:19 +0800
+Message-ID: <CAHCEehK0rgBpEzrWar1UTWJoOz=OQi18iw4Y+v3z5Hi=7JCEWw@mail.gmail.com>
+Subject: Re: [RFC PATCH V3 00/11] riscv: Add vector ISA support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mark.rutland@arm.com, catalin.marinas@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
-Message-ID: <20200312041018.63kgjV4GvNOtsqoaNvJzt92qcDVNjxHYTp7CevYdey4@z>
+To: LIU Zhiwei <zhiwei_liu@c-sky.com>
+Cc: guoren@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Anup.Patel@wdc.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, arnd@arndb.de, linux-csky@vger.kernel.org, linux-riscv <linux-riscv@lists.infradead.org>, Guo Ren <guoren@linux.alibaba.com>, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20200310085419.e3CNPuDvmDAwUzQAMvdnlI2Lk9OQBIyaWXtULrIuV8g@z>
 
-Add support for TTL in some ARM64-Architecture functions. The
-relevant functions are:
+On Mon, Mar 9, 2020 at 6:27 PM LIU Zhiwei <zhiwei_liu@c-sky.com> wrote:
+> On 2020/3/9 11:41, Greentime Hu wrote:
+> > On Sun, Mar 8, 2020 at 5:50 PM <guoren@kernel.org> wrote:
+> >> From: Guo Ren <guoren@linux.alibaba.com>
+> >>
+> >> The implementation follow the RISC-V "V" Vector Extension draft v0.8 with
+> >> 128bit-vlen and it's based on linux-5.6-rc3 and tested with qemu [1].
+> >>
+> >> The patch implement basic context switch, sigcontext save/restore and
+> >> ptrace interface with a new regset NT_RISCV_VECTOR. Only fixed 128bit-vlen
+> >> is implemented. We need to discuss about vlen-size for libc sigcontext and
+> >> ptrace (the maximum size of vlen is unlimited in spec).
+> >>
+> >> Puzzle:
+> >> Dave Martin has talked "Growing CPU register state without breaking ABI" [2]
+> >> before, and riscv also met vlen size problem. Let's discuss the common issue
+> >> for all architectures and we need a better solution for unlimited vlen.
+> >>
+> >> Any help are welcomed :)
+> >>
+> >>   1: https://github.com/romanheros/qemu.git branch:vector-upstream-v3
+> > Hi Guo,
+> >
+> > Thanks for your patch.
+> > It seems the qemu repo doesn't have this branch?
+> Hi Greentime,
+>
+> It's a promise from me. Now it's ready.  You can turn on vector by
+> "qemu-system-riscv64 -cpu rv64,v=true,vext_spec=v0.7.1".
+>
+> Zhiwei
+>
+>
 
-	__pte_free_tlb
-	__pmd_free_tlb
-	__pud_free_tlb
-	clear_flush
-	get_clear_flush
+Hi Zhiwei,
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/tlb.h | 3 +++
- arch/arm64/mm/hugetlbpage.c  | 2 ++
- 2 files changed, 5 insertions(+)
-
-diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-index b76df828e6b7..5ab686e300e9 100644
---- a/arch/arm64/include/asm/tlb.h
-+++ b/arch/arm64/include/asm/tlb.h
-@@ -44,6 +44,7 @@ static inline void tlb_flush(struct mmu_gather *tlb)
- static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
- 				  unsigned long addr)
- {
-+	tlb->mm->context.flags |= S1_PTE_LEVEL;
- 	pgtable_pte_page_dtor(pte);
- 	tlb_remove_table(tlb, pte);
- }
-@@ -53,6 +54,7 @@ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
- 				  unsigned long addr)
- {
- 	struct page *page = virt_to_page(pmdp);
-+	tlb->mm->context.flags |= S1_PMD_LEVEL;
- 
- 	pgtable_pmd_page_dtor(page);
- 	tlb_remove_table(tlb, page);
-@@ -63,6 +65,7 @@ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
- static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pudp,
- 				  unsigned long addr)
- {
-+	tlb->mm->context.flags |= S1_PUD_LEVEL;
- 	tlb_remove_table(tlb, virt_to_page(pudp));
- }
- #endif
-diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
-index bbeb6a5a6ba6..a69248aa6e1f 100644
---- a/arch/arm64/mm/hugetlbpage.c
-+++ b/arch/arm64/mm/hugetlbpage.c
-@@ -141,6 +141,7 @@ static pte_t get_clear_flush(struct mm_struct *mm,
- 
- 	if (valid) {
- 		struct vm_area_struct vma = TLB_FLUSH_VMA(mm, 0);
-+		mm->context.flags |= S1_PTE_LEVEL;
- 		flush_tlb_range(&vma, saddr, addr);
- 	}
- 	return orig_pte;
-@@ -163,6 +164,7 @@ static void clear_flush(struct mm_struct *mm,
- {
- 	struct vm_area_struct vma = TLB_FLUSH_VMA(mm, 0);
- 	unsigned long i, saddr = addr;
-+	mm->context.flags |= S1_PTE_LEVEL;
- 
- 	for (i = 0; i < ncontig; i++, addr += pgsize, ptep++)
- 		pte_clear(mm, addr, ptep);
--- 
-2.19.1
+Thank you, I see the branch in the repo now. I will give it a try and
+let you know if I have any problem. :)
