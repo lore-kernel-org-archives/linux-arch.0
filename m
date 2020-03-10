@@ -1,76 +1,83 @@
-From: Greentime Hu <greentime.hu@sifive.com>
-Subject: Re: [RFC PATCH V3 00/11] riscv: Add vector ISA support
-Date: Tue, 10 Mar 2020 17:19:36 +0800
-Message-ID: <CAHCEehLq5f+DGusL0T4ZUuJ2hTRhSyLSGRpKHhq5b4J3nXfBHg@mail.gmail.com>
-References: <20200308094954.13258-1-guoren@kernel.org> <CAHCEeh+XYD3uVmaQRGpY=VGxpO9hzMeKasNmAojhkZe9PJ9Lug@mail.gmail.com>
- <95e3bba4-65c0-8991-9523-c16977f6350f@c-sky.com> <CAHCEehK0rgBpEzrWar1UTWJoOz=OQi18iw4Y+v3z5Hi=7JCEWw@mail.gmail.com>
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
+Date: Tue, 10 Mar 2020 12:42:26 +0000
+Message-ID: <20200310124226.GC4106@sirena.org.uk>
+References: <20200227174417.23722-1-broonie@kernel.org>
+ <20200306102729.GC2503422@arrakis.emea.arm.com>
+ <20200309210505.GM4101@sirena.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAHCEehK0rgBpEzrWar1UTWJoOz=OQi18iw4Y+v3z5Hi=7JCEWw@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: LIU Zhiwei <zhiwei_liu@c-sky.com>
-Cc: guoren@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Anup.Patel@wdc.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, arnd@arndb.de, linux-csky@vger.kernel.org, linux-riscv <linux-riscv@lists.infradead.org>, Guo Ren <guoren@linux.alibaba.com>, Dave Martin <Dave.Martin@arm.com>
+Content-Type: multipart/mixed; boundary="===============7862888218451467479=="
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <20200309210505.GM4101@sirena.org.uk>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Jones <drjones@redhat.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Florian Weimer <fweimer@redhat.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, Sudakshina Das <su>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 10, 2020 at 4:54 PM Greentime Hu <greentime.hu@sifive.com> wrote:
->
-> On Mon, Mar 9, 2020 at 6:27 PM LIU Zhiwei <zhiwei_liu@c-sky.com> wrote:
-> > On 2020/3/9 11:41, Greentime Hu wrote:
-> > > On Sun, Mar 8, 2020 at 5:50 PM <guoren@kernel.org> wrote:
-> > >> From: Guo Ren <guoren@linux.alibaba.com>
-> > >>
-> > >> The implementation follow the RISC-V "V" Vector Extension draft v0.8 with
-> > >> 128bit-vlen and it's based on linux-5.6-rc3 and tested with qemu [1].
-> > >>
-> > >> The patch implement basic context switch, sigcontext save/restore and
-> > >> ptrace interface with a new regset NT_RISCV_VECTOR. Only fixed 128bit-vlen
-> > >> is implemented. We need to discuss about vlen-size for libc sigcontext and
-> > >> ptrace (the maximum size of vlen is unlimited in spec).
-> > >>
-> > >> Puzzle:
-> > >> Dave Martin has talked "Growing CPU register state without breaking ABI" [2]
-> > >> before, and riscv also met vlen size problem. Let's discuss the common issue
-> > >> for all architectures and we need a better solution for unlimited vlen.
-> > >>
-> > >> Any help are welcomed :)
-> > >>
-> > >>   1: https://github.com/romanheros/qemu.git branch:vector-upstream-v3
-> > > Hi Guo,
-> > >
-> > > Thanks for your patch.
-> > > It seems the qemu repo doesn't have this branch?
-> > Hi Greentime,
-> >
-> > It's a promise from me. Now it's ready.  You can turn on vector by
-> > "qemu-system-riscv64 -cpu rv64,v=true,vext_spec=v0.7.1".
-> >
-> > Zhiwei
-> >
-> >
->
-> Hi Zhiwei,
->
-> Thank you, I see the branch in the repo now. I will give it a try and
-> let you know if I have any problem. :)
 
-Hi Zhiwei & Guo,
+--===============7862888218451467479==
+Content-Type: multipart/signed; micalg=pgp-sha512;
+	protocol="application/pgp-signature"; boundary="XMCwj5IQnwKtuyBG"
+Content-Disposition: inline
 
-It seems current version only support v0.7.1 in qemu but this patchset
-is verified in qemu too and it is based on 0.8.
-Would you please provide the qemu with 0.8 vector spec supported? or
-Did I miss something?
 
-489             if (cpu->cfg.vext_spec) {
-490                 if (!g_strcmp0(cpu->cfg.vext_spec, "v0.7.1")) {
-491                     vext_version = VEXT_VERSION_0_07_1;
-492                 } else {
-493                     error_setg(errp,
-494                            "Unsupported vector spec version '%s'",
-495                            cpu->cfg.vext_spec);
-496                     return;
-497                 }
-498             }
+--XMCwj5IQnwKtuyBG
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-By the way, can I specify vlen in Qemu?
-Thank you. :)
+On Mon, Mar 09, 2020 at 09:05:05PM +0000, Mark Brown wrote:
+> On Fri, Mar 06, 2020 at 10:27:29AM +0000, Catalin Marinas wrote:
+
+> > Does this series affect uprobes in any way? I.e. can you probe a landing
+> > pad?
+
+> You can't probe a landing pad, uprobes on landing pads will be silently
+> ignored so the program isn't disrupted, you just don't get the expected
+> trace from those uprobes.  This isn't new with the BTI support since
+> the landing pads are generally pointer auth instructions, these already
+> can't be probed regardless of what's going on with this series.  It's
+> already on the list to get sorted.
+
+Sorry, I realized thanks to Amit's off-list prompting that I was testing
+that I was verifying with the wrong kernel binary here (user error since
+it took me a while to sort out uprobes) so this isn't quite right - you
+can probe the landing pads with or without this series.
+
+--XMCwj5IQnwKtuyBG
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5nizEACgkQJNaLcl1U
+h9CwvAf/ZRKRyzQ70X79x8NhEkUSVp2jprVe6r4y/8/g449xGTTicMDIWQKGeikg
+Z2v/GrsJ7+EAW4fiTl3dz+srzmuQCLS+67Dk/PwL4G4l8eJKQlBVj8BpiAASUml6
+mx3mbdZSIfcRKgz3BbzAsmW6p186TYm1Eh0MAQJhN11goYRuZjs0MNTDwZ0RuvSZ
+76rUJVdjbiFhjam1Et05p4G8HDQFKU0QArmyibQtCz1kU9+7affCfVyXFj3bnXx4
+qepGxIs1ld2UGb4lZ1BdlDxDpQoaQ+nVPxPRic0loZbovKlASlaSyKuRFl49jYg1
+8wHzzFxXeERLY2RJGZxzvae6Fq1zzA==
+=fbe8
+-----END PGP SIGNATURE-----
+
+--XMCwj5IQnwKtuyBG--
+
+
+--===============7862888218451467479==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+_______________________________________________
+linux-arm-kernel mailing list
+linux-arm-kernel@lists.infradead.org
+http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+
+--===============7862888218451467479==--
