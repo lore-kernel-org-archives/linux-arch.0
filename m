@@ -1,89 +1,54 @@
-Return-Path: <SRS0=kSGY=5J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-am6eur05on2072.outbound.protection.outlook.com ([40.107.22.72]:6067
-        "EHLO EUR05-AM6-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727216AbgCXPnU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 24 Mar 2020 11:43:20 -0400
-Date: Tue, 24 Mar 2020 15:43:03 +0000
-From: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
-Message-ID: <20200324154302.GE27072@arm.com>
-References: <20200316165055.31179-1-broonie@kernel.org>
- <20200320173945.GC27072@arm.com>
- <20200323122143.GB4892@mbp>
- <20200323132412.GD4948@sirena.org.uk>
- <20200323135722.GA3959@C02TD0UTHF1T.local>
- <20200323143954.GC4892@mbp>
- <20200323145546.GB3959@C02TD0UTHF1T.local>
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20200323145546.GB3959@C02TD0UTHF1T.local>
+Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:53884 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1731297AbgCKTPW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Mar 2020 15:15:22 -0400
+Date: Wed, 11 Mar 2020 19:15:19 +0000
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
+Message-ID: <20200311191519.GK5411@sirena.org.uk>
+References: <20200227174417.23722-1-broonie@kernel.org>
+ <562edd23-9d86-800e-aae3-e54c92601929@linaro.org>
 MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="mGCtrYeZ202LI9ZG"
+Content-Disposition: inline
+In-Reply-To: <562edd23-9d86-800e-aae3-e54c92601929@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Mark Brown <broonie@kernel.org>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200324154303.trFo_bKU-21bJoO8s1ew1QvOwlBJilvNcQlO_3O23OU@z>
+To: Richard Henderson <richard.henderson@linaro.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200311191519.D7kNNGOPpThQPGEPzmJfcdkVnHZXWyFQj3O0LcKHL_I@z>
 
-The 03/23/2020 14:55, Mark Rutland wrote:
-> On Mon, Mar 23, 2020 at 02:39:55PM +0000, Catalin Marinas wrote:
-> > On Mon, Mar 23, 2020 at 01:57:22PM +0000, Mark Rutland wrote:
-> > > On Mon, Mar 23, 2020 at 01:24:12PM +0000, Mark Brown wrote:
-> > > > On Mon, Mar 23, 2020 at 12:21:44PM +0000, Catalin Marinas wrote:
-> > > > > On Fri, Mar 20, 2020 at 05:39:46PM +0000, Szabolcs Nagy wrote:
-> > > > 
-> > > > > +int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
-> > > > > +                        bool has_interp, bool is_interp)
-> > > > > +{
-> > > > > +       if (is_interp != has_interp)
-> > > > > +               return prot;
-> > > > > +
-> > > > > +       if (!(state->flags & ARM64_ELF_BTI))
-> > > > > +               return prot;
-> > > > > +
-> > > > > +       if (prot & PROT_EXEC)
-> > > > > +               prot |= PROT_BTI;
-> > > > > +
-> > > > > +       return prot;
-> > > > > +}
-> > > > 
-> > > > > At a quick look, for dynamic binaries we have has_interp == true and
-> > > > > is_interp == false. I don't know why but, either way, the above code
-> > > > > needs a comment with some justification.
-> > > > 
-> > > > I don't really know for certain either, I inherited this code as is with
-> > > > the understanding that this was all agreed with the toolchain and libc
-> > > > people - the actual discussion that lead to the decisions being made
-> > > > happened before I was involved.  My understanding is that the idea was
-> > > > that the dynamic linker would be responsible for mapping everything in
-> > > > dynamic applications other than itself but other than consistency I
-> > > > don't know why.  I guess it defers more decision making to userspace but
-> > > > I'm having a hard time thinking of sensible cases where one might wish
-> > > > to make a decision other than enabling PROT_BTI.
-> > > 
-> > > My understanding was this had been agreed with the toolchain folk a
-> > > while back -- anything static loaded by the kernel (i.e. a static
-> > > executable or the dynamic linker) would get GP set. In other cases the
-> > > linker will mess with the permissions on the pages anyhow, and needs to
-> > > be aware of BTI in order to do the right thing, so it was better to
-> > > leave it to userspace consistently (e.g. as that had the least risk of
-> > > subtle changes in behaviour leading to ABI difficulties).
-> > 
-> > So this means that the interpreter will have to mprotect(PROT_BTI) the
-> > text section of the primary executable.
-> 
-> Yes, but after fixing up any relocations in that section it's going to
-> have to call mprotect() on it anyhow (e.g. in order to make it
-> read-only), and in doing so would throw away BTI unless it was BTI
-> aware.
 
-note: on the main exe only one mprotect is used in case
-there is PT_GNU_RELRO (or DF_BIND_NOW) to mark part of
-the rw data segment read only. so if PROT_BTI on main
-exe is ld.so responsibility that adds one more syscall
-to the program startup (not a huge cost).
+--mGCtrYeZ202LI9ZG
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-(currently executable segment can be mprotected by libc
-in case of text relocations but those are not fully
-supported and won't work under various kernel hardening
-schemes that disallow exec+write mappings)
+On Thu, Feb 27, 2020 at 05:35:39PM -0800, Richard Henderson wrote:
+> On 2/27/20 9:44 AM, Mark Brown wrote:
+> >  * Binutils trunk supports the new ELF note, but this wasn't in a release
+> >    the last time I posted this series.  (The situation _might_ have changed
+> >    in the meantime...)
+
+> I believe this support is in binutils 2.32.
+
+It looks like it's actually 2.33 but either way it's in a release,
+thanks for prompting me to check.  I've updated this for v9.
+
+--mGCtrYeZ202LI9ZG
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5pOMYACgkQJNaLcl1U
+h9AOkgf/SY/gSI7QW/Lbe29z6/u9w1lrepP1itRV8ICgiWASwxjzBxEUDfHMgTsV
+Ng7Lx+w79lkeoWKj1id3jmu9SXG8pAmKiBpnc/iGNpkUs1evKFp2XyaqMLl5w1mO
+DaNzX4HwWOKK6mjLXS1ferTsYgP0h0SnrJpODS/3HbvD6Txoi8b/m+XvAqiKrJi9
+UiPK06ESXjNibgAx2JUDWtuKumjSFWEEGXDx2q6lCI06ZEvBIdkSK5aB0yJwYJqc
+k60lhGcyCoMK6T9zNOCutbhZbQpGMlr+GInkEjkuuf/xo6SLfmuZx5hiFJHAumim
+NrgBSedG1UXpaC5rINKAgEc2IacPkQ==
+=4P3c
+-----END PGP SIGNATURE-----
+
+--mGCtrYeZ202LI9ZG--
