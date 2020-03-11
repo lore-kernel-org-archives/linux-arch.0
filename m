@@ -1,141 +1,75 @@
-Return-Path: <SRS0=PUSD=5Q=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v5 8/8] arm64: tlb: Set the TTL field in flush_tlb_range
-Date: Tue, 31 Mar 2020 22:29:27 +0800
-Message-ID: <20200331142927.1237-9-yezhenyu2@huawei.com>
-In-Reply-To: <20200331142927.1237-1-yezhenyu2@huawei.com>
-References: <20200331142927.1237-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:52444 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730363AbgCKRZ7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Mar 2020 13:25:59 -0400
+Date: Wed, 11 Mar 2020 17:25:56 +0000
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
+Message-ID: <20200311172556.GJ5411@sirena.org.uk>
+References: <20200227174417.23722-1-broonie@kernel.org>
+ <20200306102729.GC2503422@arrakis.emea.arm.com>
+ <20200309210505.GM4101@sirena.org.uk>
+ <20200310124226.GC4106@sirena.org.uk>
+ <20200311162858.GK3216816@arrakis.emea.arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="Xssso5lpTBgMxDfe"
+Content-Disposition: inline
+In-Reply-To: <20200311162858.GK3216816@arrakis.emea.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200331142927.6NWulgRSDsj45rn40z_pl4ILdehegkoHfXSS_kJaJMc@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200311172556.d5ureBvI7mxpM9RBnzRO2_d2kBmAzcp-NYRQYVmmDQ0@z>
 
-This patch uses the cleared_* in struct mmu_gather to set the
-TTL field in flush_tlb_range().
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/tlb.h      | 39 ++++++++++++++++++++++++++++++-
- arch/arm64/include/asm/tlbflush.h | 22 +++++------------
- 2 files changed, 44 insertions(+), 17 deletions(-)
+--Xssso5lpTBgMxDfe
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-index b76df828e6b7..72b6e3763df2 100644
---- a/arch/arm64/include/asm/tlb.h
-+++ b/arch/arm64/include/asm/tlb.h
-@@ -21,11 +21,34 @@ static void tlb_flush(struct mmu_gather *tlb);
-=20
- #include <asm-generic/tlb.h>
-=20
-+/*
-+ * get the tlbi levels in arm64.  Default value is 0 if more than one
-+ * of cleared_* is set or neither is set.
-+ * Arm64 doesn't support p4ds now.
-+ */
-+static inline int tlb_get_level(struct mmu_gather *tlb)
-+{
-+	int sum =3D tlb->cleared_ptes + tlb->cleared_pmds +
-+		  tlb->cleared_puds + tlb->cleared_p4ds;
-+
-+	if (sum !=3D 1)
-+		return 0;
-+	else if (tlb->cleared_ptes)
-+		return 3;
-+	else if (tlb->cleared_pmds)
-+		return 2;
-+	else if (tlb->cleared_puds)
-+		return 1;
-+
-+	return 0;
-+}
-+
- static inline void tlb_flush(struct mmu_gather *tlb)
- {
- 	struct vm_area_struct vma =3D TLB_FLUSH_VMA(tlb->mm, 0);
- 	bool last_level =3D !tlb->freed_tables;
- 	unsigned long stride =3D tlb_get_unmap_size(tlb);
-+	int tlb_level =3D tlb_get_level(tlb);
-=20
- 	/*
- 	 * If we're tearing down the address space then we only care about
-@@ -38,7 +61,21 @@ static inline void tlb_flush(struct mmu_gather *tlb)
- 		return;
- 	}
-=20
--	__flush_tlb_range(&vma, tlb->start, tlb->end, stride, last_level);
-+	__flush_tlb_range(&vma, tlb->start, tlb->end, stride,
-+			  last_level, tlb_level);
-+}
-+
-+static inline void flush_tlb_range(struct mmu_gather *tlb,
-+				   struct vm_area_struct *vma,
-+				   unsigned long start, unsigned long end)
-+{
-+	/*
-+	 * We cannot use leaf-only invalidation here, since we may be invalidat=
-ing
-+	 * table entries as part of collapsing hugepages or moving page tables.
-+	 */
-+	unsigned long stride =3D tlb_get_unmap_size(tlb);
-+	int tlb_level =3D tlb_get_level(tlb);
-+	__flush_tlb_range(vma, start, end, stride, false, tlb_level);
- }
-=20
- static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
-lbflush.h
-index 0b4d75a2270b..dc8e803692f8 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -215,7 +215,8 @@ static inline void flush_tlb_page(struct vm_area_stru=
-ct *vma,
-=20
- static inline void __flush_tlb_range(struct vm_area_struct *vma,
- 				     unsigned long start, unsigned long end,
--				     unsigned long stride, bool last_level)
-+				     unsigned long stride, bool last_level,
-+				     int tlb_level)
- {
- 	unsigned long asid =3D ASID(vma->vm_mm);
- 	unsigned long addr;
-@@ -237,27 +238,16 @@ static inline void __flush_tlb_range(struct vm_area=
-_struct *vma,
- 	dsb(ishst);
- 	for (addr =3D start; addr < end; addr +=3D stride) {
- 		if (last_level) {
--			__tlbi_level(vale1is, addr, 0);
--			__tlbi_user_level(vale1is, addr, 0);
-+			__tlbi_level(vale1is, addr, tlb_level);
-+			__tlbi_user_level(vale1is, addr, tlb_level);
- 		} else {
--			__tlbi_level(vae1is, addr, 0);
--			__tlbi_user_level(vae1is, addr, 0);
-+			__tlbi_level(vae1is, addr, tlb_level);
-+			__tlbi_user_level(vae1is, addr, tlb_level);
- 		}
- 	}
- 	dsb(ish);
- }
-=20
--static inline void flush_tlb_range(struct mmu_gather *tlb,
--				   struct vm_area_struct *vma,
--				   unsigned long start, unsigned long end)
--{
--	/*
--	 * We cannot use leaf-only invalidation here, since we may be invalidat=
-ing
--	 * table entries as part of collapsing hugepages or moving page tables.
--	 */
--	__flush_tlb_range(vma, start, end, PAGE_SIZE, false);
--}
--
- static inline void flush_tlb_kernel_range(unsigned long start, unsigned =
-long end)
- {
- 	unsigned long addr;
---=20
-2.19.1
+On Wed, Mar 11, 2020 at 04:28:58PM +0000, Catalin Marinas wrote:
+> On Tue, Mar 10, 2020 at 12:42:26PM +0000, Mark Brown wrote:
+
+> > Sorry, I realized thanks to Amit's off-list prompting that I was testing
+> > that I was verifying with the wrong kernel binary here (user error since
+> > it took me a while to sort out uprobes) so this isn't quite right - you
+> > can probe the landing pads with or without this series.
+
+> Can we not change aarch64_insn_is_nop() to actually return true only for
+> NOP and ignore everything else in the hint space? We tend to re-use the
+> hint instructions for new things in the architecture, so I'd rather
+> white-list what we know we can safely probe than black-listing only some
+> of the hint instructions.
+
+That's literally the patch I am sitting on which made the difference
+with the testing on the wrong binary.
+
+> I haven't assessed the effort of doing the above (probably not a lot)
+> but as a short-term workaround we could add the BTI and PAC hint
+> instructions to the aarch64_insn_is_nop() (though my preferred option is
+> the white-list one).
+
+The only thing I've seen in testing with just NOPs whitelisted is an
+inability to probe the PAC instructions which isn't the best user
+experience, especially since the effect is that the probes get silently
+ignored.  This isn't extensive userspace testing though.  Adding
+whitelisting of the BTI and PAC hints would definitely be a safer as a
+first step though.  I can post either version?
+
+--Xssso5lpTBgMxDfe
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5pHyMACgkQJNaLcl1U
+h9DzqAf+N5eQpuCTzUhAIY7PldVhZpWztsdMphseLhvdpMuxuYytqZg+qcir93sK
+xhkpSByIe6/jwCgyGKMTcBSb4B3d0P+0Ag1Xt0MHNvMNmGYqgHbsdAlVcQVY/Aog
+cDRqEVNOu1JUpxOJzB7fU8alfxrcw1lv30oJ/35I0tb6KYPOYm5ZjiLy9BA8bfhA
+gaCPy6o6J2jAa7Ps0RGWz5hHAWcs66gVPb83kcKf233tIFuUdC3QQm249riue23f
+mQnmjz5T7fu8WKI4vC9YwX91jUtHvOr/cJrw3B6UMJlCCzQS+Kl4OtwNm+gK6v55
+Q0temUNAKiyce6V2f8Akx5iUtQ3hjQ==
+=WXTz
+-----END PGP SIGNATURE-----
+
+--Xssso5lpTBgMxDfe--
