@@ -1,57 +1,53 @@
-Return-Path: <SRS0=aoLA=42=vger.kernel.org=linux-doc-owner@kernel.org>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-From: Andy Lutomirski <luto@amacapital.net>
-Mime-Version: 1.0 (1.0)
-Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
-Date: Mon, 9 Mar 2020 15:02:47 -0700
-Message-ID: <2F4A39C5-34EF-4D41-A178-08C34FFA9762@amacapital.net>
-References: <CAMe9rOqf0OHL9397Vikgb=UWhRMf+FmGq-9VAJNmfmzNMMDkCw@mail.gmail.com>
-In-Reply-To: <CAMe9rOqf0OHL9397Vikgb=UWhRMf+FmGq-9VAJNmfmzNMMDkCw@mail.gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: "H.J. Lu" <hjl.tools@gmail.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:50740 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728512AbgCKJM5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Mar 2020 05:12:57 -0400
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII;
+ format=flowed
+Content-Transfer-Encoding: 7bit
+Date: Wed, 11 Mar 2020 09:12:54 +0000
+From: Marc Zyngier <maz@kernel.org>
+Subject: Re: [RFC PATCH v1 0/3] arm64: tlb: add support for TTL field
+In-Reply-To: <20200311025309.1743-1-yezhenyu2@huawei.com>
+References: <20200311025309.1743-1-yezhenyu2@huawei.com>
+Message-ID: <247ad619edf17eb266f856d937dac826@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200309220247.w-kozLX9-XMfLLqU2xCLEM5QuuJrN5zg37KfIKydo-o@z>
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: mark.rutland@arm.com, catalin.marinas@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com
+Message-ID: <20200311091254.o5o9Xs1YOVDEI4COfUQ9ErAx4YzRQmtKY_V6xCI21OE@z>
 
+Zhenyu,
 
-> On Mar 9, 2020, at 2:13 PM, H.J. Lu <hjl.tools@gmail.com> wrote:
->=20
-> =EF=BB=BFOn Mon, Mar 9, 2020 at 1:59 PM Dave Hansen <dave.hansen@intel.com=
-> wrote:
->>=20
->> On 3/9/20 1:54 PM, H.J. Lu wrote:
->>>> If a program with the magic ELF CET flags missing can=E2=80=99t make a
->>>> thread with IBT and/or SHSTK enabled, then I think we=E2=80=99ve made a=
-n
->>>> error and should fix it.
->>>>=20
->>> A non-CET program can start a CET program and vice versa.
->>=20
->> Could we be specific here, please?
->>=20
->> HJ are you saying that:
->> * CET program can execve() a non-CET program, and
->> * a non-CET program can execve() a CET program
->>=20
->> ?
->=20
-> Yes.
->=20
->> That's obvious.
->>=20
->> But what are the rules for clone()?  Should there be rules for
->> mismatches for CET enabling between threads if a process (not child
->> processes)?
->=20
-> What did you mean? A threaded application is either CET enabled or not
-> CET enabled.   A new thread from clone makes no difference.
+On 2020-03-11 02:53, Zhenyu Ye wrote:
+> ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
+> the level of translation table walk holding the leaf entry for the
+> address that is being invalidated. Hardware can use this information
+> to determine if there was a risk of splintering.
+> 
+> This set of patches adds TTL field to __TLBI_ADDR, and uses
+> Architecture-specific MM context to pass the TTL value to tlb 
+> interface.
+> 
+> The default value of TTL is 0, which will not have any impact on the
+> TLB maintenance instructions. The last patch trys to use TTL field in
+> some obviously tlb-flush interface.
 
-Why?  Dave=E2=80=99s example seems like a good reason to allow per-thread co=
-ntrol.
+I have already posted some support for ARMv8.4-TTL as part of my NV 
+series [1],
+patches 62, 67, 68 and 69. This only deals with Stage-2 translation so 
+far.
+If you intend to add Stage-1, please build on top of what I have already 
+posted
+(I can extract the patches on a separate branch if you want).
 
+Thanks,
 
+         M.
 
->=20
-> --=20
-> H.J.
+[1] 
+https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-1-maz@kernel.org/
+-- 
+Jazz is not dead. It just smells funny...
