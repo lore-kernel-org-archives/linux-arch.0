@@ -1,227 +1,87 @@
-Return-Path: <SRS0=Irbl=4Z=lists.infradead.org=linux-riscv-bounces+rppt=kernel.org@kernel.org>
-From: guoren@kernel.org
-Subject: [RFC PATCH V3 09/11] riscv: Add task switch support for VECTOR
-Date: Sun,  8 Mar 2020 17:49:52 +0800
-Message-ID: <20200308094954.13258-10-guoren@kernel.org>
-In-Reply-To: <20200308094954.13258-1-guoren@kernel.org>
-References: <20200308094954.13258-1-guoren@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+rppt=kernel.org@lists.infradead.org
-To: paul.walmsley@sifive.com, palmer@dabbelt.com, Anup.Patel@wdc.com, greentime.hu@sifive.com
-Cc: linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-riscv@lists.infradead.org, Dave Martin <Dave.Martin@arm.com>
+Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:54292 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1731289AbgCKTdM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Mar 2020 15:33:12 -0400
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v9 06/13] arm64: BTI: Decode BYTPE bits when printing PSTATE
+Date: Wed, 11 Mar 2020 19:26:01 +0000
+Message-ID: <20200311192608.40095-7-broonie@kernel.org>
+In-Reply-To: <20200311192608.40095-1-broonie@kernel.org>
+References: <20200311192608.40095-1-broonie@kernel.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200308094952.QEU4bPQDjjBSYTL5LWm4UumdLzU13ahzWWdKMjBUMZk@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200311192601.yAxo3U5oNrQbumsp3Tc-ha40mdpN1yHFSw8Le52CGv4@z>
 
-From: Guo Ren <guoren@linux.alibaba.com>
+From: Dave Martin <Dave.Martin@arm.com>
 
-This patch add task switch and task create for VECTOR, and now
-the applications with vector instructions wouldn't be broken by
-linux task switch.
+The current code to print PSTATE symbolically when generating
+backtraces etc., does not include the BYTPE field used by Branch
+Target Identification.
 
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+So, decode BYTPE and print it too.
+
+In the interests of human-readability, print the classes of BTI
+matched.  The symbolic notation, BYTPE (PSTATE[11:10]) and
+permitted classes of subsequent instruction are:
+
+    -- (BTYPE=0b00): any insn
+    jc (BTYPE=0b01): BTI jc, BTI j, BTI c, PACIxSP
+    -c (BYTPE=0b10): BTI jc, BTI c, PACIxSP
+    j- (BTYPE=0b11): BTI jc, BTI j
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/riscv/include/asm/switch_to.h | 48 +++++++++++++++++
- arch/riscv/kernel/Makefile         |  1 +
- arch/riscv/kernel/process.c        | 10 ++++
- arch/riscv/kernel/vector.S         | 84 ++++++++++++++++++++++++++++++
- 4 files changed, 143 insertions(+)
- create mode 100644 arch/riscv/kernel/vector.S
+ arch/arm64/kernel/process.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
 
-diff --git a/arch/riscv/include/asm/switch_to.h b/arch/riscv/include/asm/switch_to.h
-index b9234e7178d0..6e1c7fa599be 100644
---- a/arch/riscv/include/asm/switch_to.h
-+++ b/arch/riscv/include/asm/switch_to.h
-@@ -63,6 +63,52 @@ extern bool has_fpu;
- #define __switch_to_fpu(__prev, __next) do { } while (0)
- #endif
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index b8e3faa8d406..24af13d7bde6 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -211,6 +211,15 @@ void machine_restart(char *cmd)
+ 	while (1);
+ }
  
-+#ifdef CONFIG_VECTOR
-+extern void __vstate_save(struct task_struct *save_to);
-+extern void __vstate_restore(struct task_struct *restore_from);
++#define bstr(suffix, str) [PSR_BTYPE_ ## suffix >> PSR_BTYPE_SHIFT] = str
++static const char *const btypes[] = {
++	bstr(NONE, "--"),
++	bstr(  JC, "jc"),
++	bstr(   C, "-c"),
++	bstr(  J , "j-")
++};
++#undef bstr
 +
-+static inline void __vstate_clean(struct pt_regs *regs)
-+{
-+	regs->status |= (regs->status & ~(SR_VS)) | SR_VS_CLEAN;
-+}
+ static void print_pstate(struct pt_regs *regs)
+ {
+ 	u64 pstate = regs->pstate;
+@@ -229,7 +238,10 @@ static void print_pstate(struct pt_regs *regs)
+ 			pstate & PSR_AA32_I_BIT ? 'I' : 'i',
+ 			pstate & PSR_AA32_F_BIT ? 'F' : 'f');
+ 	} else {
+-		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO)\n",
++		const char *btype_str = btypes[(pstate & PSR_BTYPE_MASK) >>
++					       PSR_BTYPE_SHIFT];
 +
-+static inline void vstate_save(struct task_struct *task,
-+			       struct pt_regs *regs)
-+{
-+	if ((regs->status & SR_VS) == SR_VS_DIRTY) {
-+		__vstate_save(task);
-+		__vstate_clean(regs);
-+	}
-+}
-+
-+static inline void vstate_restore(struct task_struct *task,
-+				  struct pt_regs *regs)
-+{
-+	if ((regs->status & SR_VS) != SR_VS_OFF) {
-+		__vstate_restore(task);
-+		__vstate_clean(regs);
-+	}
-+}
-+
-+static inline void __switch_to_vector(struct task_struct *prev,
-+				   struct task_struct *next)
-+{
-+	struct pt_regs *regs;
-+
-+	regs = task_pt_regs(prev);
-+	if (unlikely(regs->status & SR_SD))
-+		vstate_save(prev, regs);
-+	vstate_restore(next, task_pt_regs(next));
-+}
-+
-+extern bool has_vector;
-+#else
-+#define has_vector false
-+#define vstate_save(task, regs) do { } while (0)
-+#define vstate_restore(task, regs) do { } while (0)
-+#define __switch_to_vector(__prev, __next) do { } while (0)
-+#endif
-+
- extern struct task_struct *__switch_to(struct task_struct *,
- 				       struct task_struct *);
- 
-@@ -72,6 +118,8 @@ do {							\
- 	struct task_struct *__next = (next);		\
- 	if (has_fpu)					\
- 		__switch_to_fpu(__prev, __next);	\
-+	if (has_vector)					\
-+		__switch_to_vector(__prev, __next);	\
- 	((last) = __switch_to(__prev, __next));		\
- } while (0)
- 
-diff --git a/arch/riscv/kernel/Makefile b/arch/riscv/kernel/Makefile
-index f40205cb9a22..e5276c3bdffc 100644
---- a/arch/riscv/kernel/Makefile
-+++ b/arch/riscv/kernel/Makefile
-@@ -30,6 +30,7 @@ obj-$(CONFIG_MMU) += vdso.o vdso/
- 
- obj-$(CONFIG_RISCV_M_MODE)	+= clint.o
- obj-$(CONFIG_FPU)		+= fpu.o
-+obj-$(CONFIG_VECTOR)		+= vector.o
- obj-$(CONFIG_SMP)		+= smpboot.o
- obj-$(CONFIG_SMP)		+= smp.o
- obj-$(CONFIG_MODULES)		+= module.o
-diff --git a/arch/riscv/kernel/process.c b/arch/riscv/kernel/process.c
-index 817cf7b0974c..c572557701b4 100644
---- a/arch/riscv/kernel/process.c
-+++ b/arch/riscv/kernel/process.c
-@@ -74,6 +74,16 @@ void start_thread(struct pt_regs *regs, unsigned long pc,
- 		 */
- 		fstate_restore(current, regs);
++		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO BTYPE=%s)\n",
+ 			pstate,
+ 			pstate & PSR_N_BIT ? 'N' : 'n',
+ 			pstate & PSR_Z_BIT ? 'Z' : 'z',
+@@ -240,7 +252,8 @@ static void print_pstate(struct pt_regs *regs)
+ 			pstate & PSR_I_BIT ? 'I' : 'i',
+ 			pstate & PSR_F_BIT ? 'F' : 'f',
+ 			pstate & PSR_PAN_BIT ? '+' : '-',
+-			pstate & PSR_UAO_BIT ? '+' : '-');
++			pstate & PSR_UAO_BIT ? '+' : '-',
++			btype_str);
  	}
-+
-+	if (has_vector) {
-+		regs->status |= SR_VS_INITIAL;
-+		/*
-+		 * Restore the initial value to the vector register
-+		 * before starting the user program.
-+		 */
-+		vstate_restore(current, regs);
-+	}
-+
- 	regs->epc = pc;
- 	regs->sp = sp;
- 	set_fs(USER_DS);
-diff --git a/arch/riscv/kernel/vector.S b/arch/riscv/kernel/vector.S
-new file mode 100644
-index 000000000000..dbe1989fa9d7
---- /dev/null
-+++ b/arch/riscv/kernel/vector.S
-@@ -0,0 +1,84 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2012 Regents of the University of California
-+ * Copyright (C) 2017 SiFive
-+ * Copyright (C) 2019 Alibaba Group Holding Limited
-+ *
-+ *   This program is free software; you can redistribute it and/or
-+ *   modify it under the terms of the GNU General Public License
-+ *   as published by the Free Software Foundation, version 2.
-+ *
-+ *   This program is distributed in the hope that it will be useful,
-+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ *   GNU General Public License for more details.
-+ */
-+
-+#include <linux/linkage.h>
-+
-+#include <asm/asm.h>
-+#include <asm/csr.h>
-+#include <asm/asm-offsets.h>
-+
-+ENTRY(__vstate_save)
-+	li	a2,  TASK_THREAD_V0
-+	add	a0,  a0, a2
-+
-+	li	t1, (SR_VS | SR_FS)
-+	csrs	sstatus, t1
-+
-+	csrr	t0,  CSR_VSTART
-+	sd	t0,  TASK_THREAD_VSTART_V0(a0)
-+	csrr	t0,  CSR_VXSAT
-+	sd	t0,  TASK_THREAD_VXSAT_V0(a0)
-+	csrr	t0,  CSR_VXRM
-+	sd	t0,  TASK_THREAD_VXRM_V0(a0)
-+	csrr	t0,  CSR_VL
-+	sd	t0,  TASK_THREAD_VL_V0(a0)
-+	csrr	t0,  CSR_VTYPE
-+	sd	t0,  TASK_THREAD_VTYPE_V0(a0)
-+
-+	vsetvli	t0, x0, e8,m8
-+	vsb.v	v0,  (a0)
-+	addi	a0, a0, 128*8
-+	vsb.v	v8,  (a0)
-+	addi	a0, a0, 128*8
-+	vsb.v	v16, (a0)
-+	addi	a0, a0, 128*8
-+	vsb.v	v24, (a0)
-+
-+	csrc	sstatus, t1
-+	ret
-+ENDPROC(__vstate_save)
-+
-+ENTRY(__vstate_restore)
-+	li	a2,  TASK_THREAD_V0
-+	add	a0,  a0, a2
-+	mv	t2,  a0
-+
-+	li	t1, (SR_VS | SR_FS)
-+	csrs	sstatus, t1
-+
-+	vsetvli	t0, x0, e8,m8
-+	vlb.v	v0,  (a0)
-+	addi	a0, a0, 128*8
-+	vlb.v	v8,  (a0)
-+	addi	a0, a0, 128*8
-+	vlb.v	v16, (a0)
-+	addi	a0, a0, 128*8
-+	vlb.v	v24, (a0)
-+
-+	mv	a0,  t2
-+	ld	t0,  TASK_THREAD_VSTART_V0(a0)
-+	csrw	CSR_VSTART, t0
-+	ld	t0,  TASK_THREAD_VXSAT_V0(a0)
-+	csrw	CSR_VXSAT, t0
-+	ld	t0,  TASK_THREAD_VXRM_V0(a0)
-+	csrw	CSR_VXRM, t0
-+	ld	t0,  TASK_THREAD_VL_V0(a0)
-+	ld	t2,  TASK_THREAD_VTYPE_V0(a0)
-+	vsetvl	t0, t0, t2
-+
-+	csrc	sstatus, t1
-+	ret
-+ENDPROC(__vstate_restore)
+ }
+ 
 -- 
-2.17.0
+2.20.1
