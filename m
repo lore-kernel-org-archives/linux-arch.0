@@ -1,99 +1,59 @@
-Return-Path: <SRS0=m5K7=42=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-ot1-f65.google.com ([209.85.210.65]:40088 "EHLO
-        mail-ot1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726169AbgCIUyv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2020 16:54:51 -0400
+Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:51686 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730052AbgCKQbJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Mar 2020 12:31:09 -0400
+Date: Wed, 11 Mar 2020 16:31:03 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v8 03/11] arm64: Basic Branch Target Identification
+ support
+Message-ID: <20200311163103.GL3216816@arrakis.emea.arm.com>
+References: <20200227174417.23722-1-broonie@kernel.org>
+ <20200227174417.23722-4-broonie@kernel.org>
 MIME-Version: 1.0
-References: <CAMe9rOoRTVUzNC88Ho2XTTNJCymrd3L=XdB9xFcgxPVwAZ0FWA@mail.gmail.com>
- <AE81FEF5-ECC5-46AA-804D-9D64E656D16E@amacapital.net>
-In-Reply-To: <AE81FEF5-ECC5-46AA-804D-9D64E656D16E@amacapital.net>
-From: "H.J. Lu" <hjl.tools@gmail.com>
-Date: Mon, 9 Mar 2020 13:54:14 -0700
-Message-ID: <CAMe9rOoDMenvD9XRL1szR5yLQEwv9Q6f4O7CtwbdZ-cJqzezKA@mail.gmail.com>
-Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200227174417.23722-4-broonie@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Dave Hansen <dave.hansen@intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Message-ID: <20200309205414.AzbIipnVLqkMVOHbIinUYfE1kpeKkqa6XbUQTbfnF7g@z>
+To: Mark Brown <broonie@kernel.org>
+Cc: Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20200311163103._G_QtRfbNyKlmum6M8TaFK1ydOU8_vn90LFq1KnxcCs@z>
 
-On Mon, Mar 9, 2020 at 1:16 PM Andy Lutomirski <luto@amacapital.net> wrote:
->
->
->
-> > On Mar 9, 2020, at 12:50 PM, H.J. Lu <hjl.tools@gmail.com> wrote:
-> >
-> > =EF=BB=BFOn Mon, Mar 9, 2020 at 12:35 PM Dave Hansen <dave.hansen@intel=
-.com> wrote:
-> >>
-> >>> On 3/9/20 12:27 PM, Yu-cheng Yu wrote:
-> >>> On Mon, 2020-03-09 at 10:21 -0700, Dave Hansen wrote:
-> >>>> On 3/9/20 10:00 AM, Yu-cheng Yu wrote:
-> >>>>> On Wed, 2020-02-26 at 09:57 -0800, Dave Hansen wrote>>>>> +Note:
-> >>>>>>> +  There is no CET-enabling arch_prctl function.  By design, CET =
-is
-> >>>>>>> +  enabled automatically if the binary and the system can support=
- it.
-> >>>>>>
-> >>>>>> This is kinda interesting.  It means that a JIT couldn't choose to
-> >>>>>> protect the code it generates and have different rules from itself=
-?
-> >>>>>
-> >>>>> JIT needs to be updated for CET first.  Once that is done, it runs =
-with CET
-> >>>>> enabled.  It can use the NOTRACK prefix, for example.
-> >>>>
-> >>>> Am I missing something?
-> >>>>
-> >>>> What's the direct connection between shadow stacks and Indirect Bran=
-ch
-> >>>> Tracking other than Intel marketing umbrellas?
-> >>>
-> >>> What I meant is that JIT code needs to be updated first; if it skips =
-RETs,
-> >>> it needs to unwind the stack, and if it does indirect JMPs somewhere =
-it
-> >>> needs to fix up the branch target or use NOTRACK.
-> >>
-> >> I'm totally lost.  I think we have very different models of how a JIT
-> >> might generate and run code.
-> >>
-> >> I can totally see a scenario where a JIT goes and generates a bunch of
-> >> code, then forks a new thread to go run that code.  The control flow o=
-f
-> >> the JIT thread itself *NEVER* interacts with the control flow of the
-> >> program it writes.  They never share a stack and nothing ever jumps or
-> >> rets between the two worlds.
-> >>
-> >> Does anything actually do that?  I've got no idea.  But, I can clearly
-> >> see a world where the entirety of Chrome and Firefox and the entire ru=
-st
-> >> runtime might not be fully recompiled and CET-enabled for a while.  Bu=
-t,
-> >> we still want the JIT-generated code to be CET-protected since it has
-> >> the most exposed attack surface.
-> >>
-> >> I don't think that's too far-fetched.
-> >
-> > CET support is all or nothing.   You can mix and match, but you will ge=
-t
-> > no CET protection, similar to NX feature.
-> >
->
-> Can you explain?
+On Thu, Feb 27, 2020 at 05:44:09PM +0000, Mark Brown wrote:
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index 0b30e884e088..e37f4f07b990 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -1519,6 +1519,28 @@ endmenu
+>  
+>  menu "ARMv8.5 architectural features"
+>  
+> +config ARM64_BTI
+> +	bool "Branch Target Identification support"
+> +	default y
+> +	help
+> +	  Branch Target Identification (part of the ARMv8.5 Extensions)
+> +	  provides a mechanism to limit the set of locations to which computed
+> +	  branch instructions such as BR or BLR can jump.
+> +
+> +	  To make use of BTI on CPUs that support it, say Y.
+> +
+> +	  BTI is intended to provide complementary protection to other control
+> +	  flow integrity protection mechanisms, such as the Pointer
+> +	  authentication mechanism provided as part of the ARMv8.3 Extensions.
+> +	  For this reason, it does not make sense to enable this option without
+> +	  also enabling support for pointer authentication.  Thus, when
+> +	  enabling this option you should also select ARM64_PTR_AUTH=y.
+> +
+> +	  Userspace binaries must also be specifically compiled to make use of
+> +	  this mechanism.  If you say N here or the hardware does not support
+> +	  BTI, such binaries can still run, but you get no additional
+> +	  enforcement of branch destinations.
 
-I was talking about creating a program from mixed object files with and wit=
-hout
-CET marker.
+To keep the series bisectable, I'd move the Kconfig into a separate
+patch towards the end. It looks like the feature is only partially
+supported after patch 3, so let's not advertise it here.
 
-> If a program with the magic ELF CET flags missing can=E2=80=99t make a th=
-read with IBT and/or SHSTK enabled, then I think we=E2=80=99ve made an erro=
-r and should fix it.
->
-
-A non-CET program can start a CET program and vice versa.
-
---=20
-H.J.
+-- 
+Catalin
