@@ -1,7 +1,7 @@
 From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v9 04/13] elf: Allow arch to tweak initial mmap prot flags
-Date: Wed, 11 Mar 2020 19:25:59 +0000
-Message-ID: <20200311192608.40095-5-broonie@kernel.org>
+Subject: [PATCH v9 07/13] arm64: unify native/compat instruction skipping
+Date: Wed, 11 Mar 2020 19:26:02 +0000
+Message-ID: <20200311192608.40095-8-broonie@kernel.org>
 References: <20200311192608.40095-1-broonie@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -14,127 +14,89 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Dave Martin <Dave.Martin@arm.com>
 
-An arch may want to tweak the mmap prot flags for an
-ELFexecutable's initial mappings.  For example, arm64 is going to
-need to add PROT_BTI for executable pages in an ELF process whose
-executable is marked as using Branch Target Identification (an
-ARMv8.5-A control flow integrity feature).
+Skipping of an instruction on AArch32 works a bit differently from
+AArch64, mainly due to the different CPSR/PSTATE semantics.
 
-So that this can be done in a generic way, add a hook
-arch_elf_adjust_prot() to modify the prot flags as desired: arches
-can select CONFIG_HAVE_ELF_PROT and implement their own backend
-where necessary.
+Currently arm64_skip_faulting_instruction() is only suitable for
+AArch64, and arm64_compat_skip_faulting_instruction() handles the IT
+state machine but is local to traps.c.
 
-By default, leave the prot flags unchanged.
+Since manual instruction skipping implies a trap, it's a relatively
+slow path.
+
+So, make arm64_skip_faulting_instruction() handle both compat and
+native, and get rid of the arm64_compat_skip_faulting_instruction()
+special case.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Reviewed-by: Mark Rutland <mark.rutland@arm.com>
 Reviewed-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- fs/Kconfig.binfmt   |  3 +++
- fs/binfmt_elf.c     | 18 ++++++++++++------
- include/linux/elf.h | 12 ++++++++++++
- 3 files changed, 27 insertions(+), 6 deletions(-)
+ arch/arm64/kernel/traps.c | 18 ++++++++----------
+ 1 file changed, 8 insertions(+), 10 deletions(-)
 
-diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
-index d2cfe0729a73..2358368319b8 100644
---- a/fs/Kconfig.binfmt
-+++ b/fs/Kconfig.binfmt
-@@ -36,6 +36,9 @@ config COMPAT_BINFMT_ELF
- config ARCH_BINFMT_ELF_STATE
- 	bool
- 
-+config ARCH_HAVE_ELF_PROT
-+	bool
-+
- config ARCH_USE_GNU_PROPERTY
- 	bool
- 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 1fb67e506b68..cceb29d6ef1d 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -544,7 +544,8 @@ static inline int arch_check_elf(struct elfhdr *ehdr, bool has_interp,
- 
- #endif /* !CONFIG_ARCH_BINFMT_ELF_STATE */
- 
--static inline int make_prot(u32 p_flags)
-+static inline int make_prot(u32 p_flags, struct arch_elf_state *arch_state,
-+			    bool has_interp, bool is_interp)
- {
- 	int prot = 0;
- 
-@@ -554,7 +555,8 @@ static inline int make_prot(u32 p_flags)
- 		prot |= PROT_WRITE;
- 	if (p_flags & PF_X)
- 		prot |= PROT_EXEC;
--	return prot;
-+
-+	return arch_elf_adjust_prot(prot, arch_state, has_interp, is_interp);
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index b8c714dda851..bc9f4292bfc3 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -272,6 +272,8 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
+ 	}
  }
  
- /* This is much more generalized than the library routine read function,
-@@ -564,7 +566,8 @@ static inline int make_prot(u32 p_flags)
- 
- static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
- 		struct file *interpreter,
--		unsigned long no_base, struct elf_phdr *interp_elf_phdata)
-+		unsigned long no_base, struct elf_phdr *interp_elf_phdata,
-+		struct arch_elf_state *arch_state)
- {
- 	struct elf_phdr *eppnt;
- 	unsigned long load_addr = 0;
-@@ -596,7 +599,8 @@ static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
- 	for (i = 0; i < interp_elf_ex->e_phnum; i++, eppnt++) {
- 		if (eppnt->p_type == PT_LOAD) {
- 			int elf_type = MAP_PRIVATE | MAP_DENYWRITE;
--			int elf_prot = make_prot(eppnt->p_flags);
-+			int elf_prot = make_prot(eppnt->p_flags, arch_state,
-+						 true, true);
- 			unsigned long vaddr = 0;
- 			unsigned long k, map_addr;
- 
-@@ -1041,7 +1045,8 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 			}
- 		}
- 
--		elf_prot = make_prot(elf_ppnt->p_flags);
-+		elf_prot = make_prot(elf_ppnt->p_flags, &arch_state,
-+				     !!interpreter, false);
- 
- 		elf_flags = MAP_PRIVATE | MAP_DENYWRITE | MAP_EXECUTABLE;
- 
-@@ -1184,7 +1189,8 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 	if (interpreter) {
- 		elf_entry = load_elf_interp(&loc->interp_elf_ex,
- 					    interpreter,
--					    load_bias, interp_elf_phdata);
-+					    load_bias, interp_elf_phdata,
-+					    &arch_state);
- 		if (!IS_ERR((void *)elf_entry)) {
- 			/*
- 			 * load_elf_interp() returns relocation
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index db5113479f5e..5d5b0321da0b 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -87,4 +87,16 @@ extern int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
- 				   bool compat, struct arch_elf_state *arch);
- #endif
- 
-+#ifdef CONFIG_ARCH_HAVE_ELF_PROT
-+int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
-+			 bool has_interp, bool is_interp);
-+#else
-+static inline int arch_elf_adjust_prot(int prot,
-+				       const struct arch_elf_state *state,
-+				       bool has_interp, bool is_interp)
-+{
-+	return prot;
-+}
-+#endif
++static void advance_itstate(struct pt_regs *regs);
 +
- #endif /* _LINUX_ELF_H */
+ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
+ {
+ 	regs->pc += size;
+@@ -282,6 +284,9 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
+ 	 */
+ 	if (user_mode(regs))
+ 		user_fastforward_single_step(current);
++
++	if (regs->pstate & PSR_MODE32_BIT)
++		advance_itstate(regs);
+ }
+ 
+ static LIST_HEAD(undef_hook);
+@@ -644,19 +649,12 @@ static void advance_itstate(struct pt_regs *regs)
+ 	compat_set_it_state(regs, it);
+ }
+ 
+-static void arm64_compat_skip_faulting_instruction(struct pt_regs *regs,
+-						   unsigned int sz)
+-{
+-	advance_itstate(regs);
+-	arm64_skip_faulting_instruction(regs, sz);
+-}
+-
+ static void compat_cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
+ {
+ 	int reg = (esr & ESR_ELx_CP15_32_ISS_RT_MASK) >> ESR_ELx_CP15_32_ISS_RT_SHIFT;
+ 
+ 	pt_regs_write_reg(regs, reg, arch_timer_get_rate());
+-	arm64_compat_skip_faulting_instruction(regs, 4);
++	arm64_skip_faulting_instruction(regs, 4);
+ }
+ 
+ static const struct sys64_hook cp15_32_hooks[] = {
+@@ -676,7 +674,7 @@ static void compat_cntvct_read_handler(unsigned int esr, struct pt_regs *regs)
+ 
+ 	pt_regs_write_reg(regs, rt, lower_32_bits(val));
+ 	pt_regs_write_reg(regs, rt2, upper_32_bits(val));
+-	arm64_compat_skip_faulting_instruction(regs, 4);
++	arm64_skip_faulting_instruction(regs, 4);
+ }
+ 
+ static const struct sys64_hook cp15_64_hooks[] = {
+@@ -697,7 +695,7 @@ void do_cp15instr(unsigned int esr, struct pt_regs *regs)
+ 		 * There is no T16 variant of a CP access, so we
+ 		 * always advance PC by 4 bytes.
+ 		 */
+-		arm64_compat_skip_faulting_instruction(regs, 4);
++		arm64_skip_faulting_instruction(regs, 4);
+ 		return;
+ 	}
+ 
 -- 
 2.20.1
