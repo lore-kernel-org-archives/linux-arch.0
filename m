@@ -1,47 +1,43 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:42480 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726564AbgCQXBU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2020 19:01:20 -0400
-Received: by mail-pg1-f193.google.com with SMTP id h8so12539973pgs.9
-        for <linux-arch@vger.kernel.org>; Tue, 17 Mar 2020 16:01:19 -0700 (PDT)
-Date: Tue, 17 Mar 2020 16:01:16 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 7/9] arm64/build: Warn on orphan section placement
-Message-ID: <202003171558.7E1D46AED6@keescook>
-References: <20200228002244.15240-1-keescook@chromium.org>
- <20200228002244.15240-8-keescook@chromium.org>
- <20200317215614.GB20788@willie-the-truck>
+Return-Path: <SRS0=cph+=44=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RFC PATCH v1 0/3] arm64: tlb: add support for TTL field
+Date: Wed, 11 Mar 2020 10:53:06 +0800
+Message-ID: <20200311025309.1743-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200317215614.GB20788@willie-the-truck>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: mark.rutland@arm.com, catalin.marinas@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
-Message-ID: <20200317230116.BBoB3_J3b2SXaLYHuZSOyAcLJPyqUZmNlEhmXbOaNwI@z>
+Message-ID: <20200311025306.0QcKZklu05ciJOcURSZdeOX3DFzpRz7z8-yjRz6TgxE@z>
 
-On Tue, Mar 17, 2020 at 09:56:14PM +0000, Will Deacon wrote:
-> On Thu, Feb 27, 2020 at 04:22:42PM -0800, Kees Cook wrote:
-> > We don't want to depend on the linker's orphan section placement
-> > heuristics as these can vary between linkers, and may change between
-> > versions. All sections need to be explicitly named in the linker
-> > script.
-> > 
-> > Explicitly include debug sections when they're present. Add .eh_frame*
-> > to discard as it seems that these are still generated even though
-> > -fno-asynchronous-unwind-tables is being specified. Add .plt and
-> > .data.rel.ro to discards as they are not actually used. Add .got.plt
-> > to the image as it does appear to be mapped near .data. Finally enable
-> > orphan section warnings.
-> 
-> Hmm, I don't understand what .got.plt is doing here. Please can you
-> elaborate?
+ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
+the level of translation table walk holding the leaf entry for the
+address that is being invalidated. Hardware can use this information
+to determine if there was a risk of splintering.
 
-I didn't track it down, but it seems to have been present (and merged
-into the kernel .data) for a while now. I can try to track this down if
-you want?
+This set of patches adds TTL field to __TLBI_ADDR, and uses
+Architecture-specific MM context to pass the TTL value to tlb interface.
 
--- 
-Kees Cook
+The default value of TTL is 0, which will not have any impact on the
+TLB maintenance instructions. The last patch trys to use TTL field in
+some obviously tlb-flush interface.
+
+Zhenyu Ye (3):
+  arm64: tlb: add TTL field to __TLBI_ADDR
+  arm64: tlb: use mm_struct.context.flags to indicate TTL
+  arm64: tlb: add support for TTL in some functions
+
+ arch/arm64/include/asm/cpucaps.h  |  3 ++-
+ arch/arm64/include/asm/mmu.h      | 11 ++++++++++
+ arch/arm64/include/asm/sysreg.h   |  4 ++++
+ arch/arm64/include/asm/tlb.h      |  3 +++
+ arch/arm64/include/asm/tlbflush.h | 35 +++++++++++++++++++++++--------
+ arch/arm64/kernel/cpufeature.c    | 10 +++++++++
+ arch/arm64/kernel/sys_compat.c    |  2 +-
+ arch/arm64/mm/hugetlbpage.c       |  2 ++
+ 8 files changed, 59 insertions(+), 11 deletions(-)
+
+--=20
+2.19.1
