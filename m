@@ -1,37 +1,73 @@
-Return-Path: <SRS0=hUYu=46=vger.kernel.org=linux-doc-owner@kernel.org>
-Message-ID: <c8c394fba4b64c9151201952752647d61324c0a8.camel@intel.com>
-Subject: Re: [RFC PATCH v9 15/27] mm: Handle THP/HugeTLB Shadow Stack page
- fault
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Fri, 13 Mar 2020 15:00:20 -0700
-In-Reply-To: <202002251258.7D6DA92@keescook>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-         <20200205181935.3712-16-yu-cheng.yu@intel.com>
-         <202002251258.7D6DA92@keescook>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lhrrgout.huawei.com ([185.176.76.210]:2550 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1730192AbgCKQNB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Mar 2020 12:13:01 -0400
+Subject: Re: About commit "io: change inX() to have their own IO barrier
+ overrides"
+From: John Garry <john.garry@huawei.com>
+References: <2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com>
+ <c1489f55-369d-2cff-ff36-b10fb5d3ee79@kernel.org>
+ <8207cd51-5b94-2f15-de9f-d85c9c385bca@huawei.com>
+ <6115fa56-a471-1e9f-edbb-e643fa4e7e11@kernel.org>
+ <7c955142-1fcb-d99e-69e4-1e0d3d9eb8c3@huawei.com>
+ <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
+ <90af535f-00ef-c1e3-ec20-aae2bd2a0d88@kernel.org>
+ <CAK8P3a2Grd0JsBNsB19oAxrAFtOdpvjrpGcfeArKe7zD_jrUZw@mail.gmail.com>
+ <ae0a1bf1-948f-7df0-9efb-cd1e94e27d2d@huawei.com>
+ <CAK8P3a2wdCrBP=a8ZypWoC=HyCU3oYYNeCddWM7oT+xM9gTPhw@mail.gmail.com>
+ <182a37c2-7437-b1bd-8b86-5c9ce2e29f00@huawei.com>
+ <CAK8P3a22fEGdVKVVs_40Rc_vs9SQ2ikejwMtFpyR_o+74utWaA@mail.gmail.com>
+ <15e7158d-184d-9591-89a6-cd6b10ef054d@huawei.com>
+Message-ID: <96b407eb-f9cd-960c-02e5-5e2a4ece33d8@huawei.com>
+Date: Wed, 11 Mar 2020 16:12:58 +0000
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+In-Reply-To: <15e7158d-184d-9591-89a6-cd6b10ef054d@huawei.com>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200313220020.lbkb-A-V1nRFhfy9bPgXakeqBmumRbOR3cD_MeP3qLA@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Sinan Kaya <okaya@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, "xuwei (O)" <xuwei5@hisilicon.com>, Bjorn Helgaas <bhelgaas@google.com>, Will Deacon <will@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20200311161258.IPdJOTM4_pb7IJlC7IWqtKiIHvqRU1Sgl_5ogv01XEU@z>
 
-On Tue, 2020-02-25 at 12:59 -0800, Kees Cook wrote:
-> On Wed, Feb 05, 2020 at 10:19:23AM -0800, Yu-cheng Yu wrote:
-> > This patch implements THP Shadow Stack (SHSTK) copying in the same way as
-> > in the previous patch for regular PTE.
-> > 
-> > In copy_huge_pmd(), clear the dirty bit from the PMD to cause a page fault
-> > upon the next SHSTK access to the PMD.  At that time, fix the PMD and
-> > copy/re-use the page.
+On 06/03/2020 16:43, John Garry wrote:
+> On 06/03/2020 16:29, Arnd Bergmann wrote:
+>>> The idea is good, but it would be nice if we just somehow use a common
+>>> asm-generic io.h definition directly in logic_pio.c, like:
+>>>
+>>> asm-generic io.h:
+>>>
+>>> #ifndef __raw_inw // name?
+>>> #define __raw_inw __raw_inw
+>>> static inline u16 __raw_inw(unsigned long addr)
+>>> {
+>>>          u16 val;
+>>>
+>>>          __io_pbr();
+>>>          val = __le16_to_cpu(__raw_readw(addr));
+>>>          __io_par(val);
+>>>          return val;
+>>> }
+>>> #endif
+>>>
+>>> #include <linux/logic_pio.h>
+>>>
+>>> #ifndef inw
+>>> #define inw __raw_inw
+>>> #endif
+>> Yes, makes sense. Maybe __arch_inw() then? Not great either, but I think
+>> that's better than __raw_inw() because __raw_* would sound like it
+>> mirrors __raw_readl() that lacks the barriers and byteswaps.
 > 
-> Now is as good a time as any to ask: do you have selftests for all this?
-> It seems like it would be really nice to have a way to verify SHSTK is
-> working correctly.
+> Right, I had the same concern. And maybe the "arch" prefix is 
+> misleading. Just __inw could be ok, and hopefully not conflict with the 
+> arch/arm/mach-* definitions.
+> 
 
-Yes, I have some simple tests at https://github.com/yyu168/cet-smoke-test.
-I also run Linux/tools/testing/selftests/x86 and GLIBC tests with CET and THP
-combinations.
+I think that it hasn't been mentioned already, but it looks like the 
+outX methods also need the same treatment, from a7851aa54c.
 
-Yu-cheng
+thanks,
+John
