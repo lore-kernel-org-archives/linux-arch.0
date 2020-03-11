@@ -1,42 +1,84 @@
 From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v1 0/3] arm64: tlb: add support for TTL field
-Date: Wed, 11 Mar 2020 10:53:06 +0800
-Message-ID: <20200311025309.1743-1-yezhenyu2@huawei.com>
+Subject: [RFC PATCH v1 3/3] arm64: tlb: add support for TTL in some functions
+Date: Wed, 11 Mar 2020 10:53:09 +0800
+Message-ID: <20200311025309.1743-4-yezhenyu2@huawei.com>
+References: <20200311025309.1743-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga04-in.huawei.com ([45.249.212.190]:11624 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727648AbgCKC43 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 10 Mar 2020 22:56:29 -0400
+In-Reply-To: <20200311025309.1743-1-yezhenyu2@huawei.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: mark.rutland@arm.com, catalin.marinas@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
 Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com
-List-Id: linux-arch.vger.kernel.org
 
-ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
-the level of translation table walk holding the leaf entry for the
-address that is being invalidated. Hardware can use this information
-to determine if there was a risk of splintering.
+Add support for TTL in some ARM64-Architecture functions. The
+relevant functions are:
 
-This set of patches adds TTL field to __TLBI_ADDR, and uses
-Architecture-specific MM context to pass the TTL value to tlb interface.
+	__pte_free_tlb
+	__pmd_free_tlb
+	__pud_free_tlb
+	clear_flush
+	get_clear_flush
 
-The default value of TTL is 0, which will not have any impact on the
-TLB maintenance instructions. The last patch trys to use TTL field in
-some obviously tlb-flush interface.
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+---
+ arch/arm64/include/asm/tlb.h | 3 +++
+ arch/arm64/mm/hugetlbpage.c  | 2 ++
+ 2 files changed, 5 insertions(+)
 
-Zhenyu Ye (3):
-  arm64: tlb: add TTL field to __TLBI_ADDR
-  arm64: tlb: use mm_struct.context.flags to indicate TTL
-  arm64: tlb: add support for TTL in some functions
-
- arch/arm64/include/asm/cpucaps.h  |  3 ++-
- arch/arm64/include/asm/mmu.h      | 11 ++++++++++
- arch/arm64/include/asm/sysreg.h   |  4 ++++
- arch/arm64/include/asm/tlb.h      |  3 +++
- arch/arm64/include/asm/tlbflush.h | 35 +++++++++++++++++++++++--------
- arch/arm64/kernel/cpufeature.c    | 10 +++++++++
- arch/arm64/kernel/sys_compat.c    |  2 +-
- arch/arm64/mm/hugetlbpage.c       |  2 ++
- 8 files changed, 59 insertions(+), 11 deletions(-)
-
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index b76df828e6b7..36428ce53185 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -44,6 +44,7 @@ static inline void tlb_flush(struct mmu_gather *tlb)
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+ 				  unsigned long addr)
+ {
++	tlb->mm->context.flags = TLBI_LEVEL_3;
+ 	pgtable_pte_page_dtor(pte);
+ 	tlb_remove_table(tlb, pte);
+ }
+@@ -53,6 +54,7 @@ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
+ 				  unsigned long addr)
+ {
+ 	struct page *page = virt_to_page(pmdp);
++	tlb->mm->context.flags = TLBI_LEVEL_2;
+ 
+ 	pgtable_pmd_page_dtor(page);
+ 	tlb_remove_table(tlb, page);
+@@ -63,6 +65,7 @@ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
+ static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pudp,
+ 				  unsigned long addr)
+ {
++	tlb->mm->context.flags = TLBI_LEVEL_1;
+ 	tlb_remove_table(tlb, virt_to_page(pudp));
+ }
+ #endif
+diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
+index bbeb6a5a6ba6..4c2f1b802cb8 100644
+--- a/arch/arm64/mm/hugetlbpage.c
++++ b/arch/arm64/mm/hugetlbpage.c
+@@ -141,6 +141,7 @@ static pte_t get_clear_flush(struct mm_struct *mm,
+ 
+ 	if (valid) {
+ 		struct vm_area_struct vma = TLB_FLUSH_VMA(mm, 0);
++		mm->context.flags = TLBI_LEVEL_3;
+ 		flush_tlb_range(&vma, saddr, addr);
+ 	}
+ 	return orig_pte;
+@@ -163,6 +164,7 @@ static void clear_flush(struct mm_struct *mm,
+ {
+ 	struct vm_area_struct vma = TLB_FLUSH_VMA(mm, 0);
+ 	unsigned long i, saddr = addr;
++	mm->context.flags = TLBI_LEVEL_3;
+ 
+ 	for (i = 0; i < ncontig; i++, addr += pgsize, ptep++)
+ 		pte_clear(mm, addr, ptep);
 -- 
 2.19.1
