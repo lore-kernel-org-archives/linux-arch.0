@@ -1,25 +1,56 @@
-Return-Path: <SRS0=1/KV=5J=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 24 Mar 2020 16:01:55 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH v4 0/6] arm64: tlb: add support for TTL feature
-Message-ID: <20200324150155.GH20713@hirez.programming.kicks-ass.net>
-References: <20200324134534.1570-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:54394 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1731348AbgCKTdV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Mar 2020 15:33:21 -0400
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v9 10/13] KVM: arm64: BTI: Reset BTYPE when skipping emulated instructions
+Date: Wed, 11 Mar 2020 19:26:05 +0000
+Message-ID: <20200311192608.40095-11-broonie@kernel.org>
+In-Reply-To: <20200311192608.40095-1-broonie@kernel.org>
+References: <20200311192608.40095-1-broonie@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200324134534.1570-1-yezhenyu2@huawei.com>
-Sender: owner-linux-mm@kvack.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200324150155.LxC1_vVu2UKJkDrc4x3zbgMPYIRzYX-Ylbh3G7o7v58@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200311192605.iqWernDWAdVasRCA_GSXgdE8RdfrlsCHtO3ocI-Zz_w@z>
 
-On Tue, Mar 24, 2020 at 09:45:28PM +0800, Zhenyu Ye wrote:
-> In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
-> feature allows TLBs to be issued with a level allowing for quicker
-> invalidation.  This series provide support for this feature. 
-> 
-> Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
-> which detect the TTL feature and add __tlbi_level interface.
+From: Dave Martin <Dave.Martin@arm.com>
 
-I realy hate how it makes vma->vm_flags more important for tlbi.
+Since normal execution of any non-branch instruction resets the
+PSTATE BTYPE field to 0, so do the same thing when emulating a
+trapped instruction.
+
+Branches don't trap directly, so we should never need to assign a
+non-zero value to BTYPE here.
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Acked-by: Marc Zyngier <maz@kernel.org>
+Signed-off-by: Mark Brown <broonie@kernel.org>
+---
+ arch/arm64/include/asm/kvm_emulate.h | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/include/asm/kvm_emulate.h b/arch/arm64/include/asm/kvm_emulate.h
+index 688c63412cc2..dee51c1dcb93 100644
+--- a/arch/arm64/include/asm/kvm_emulate.h
++++ b/arch/arm64/include/asm/kvm_emulate.h
+@@ -506,10 +506,12 @@ static inline unsigned long vcpu_data_host_to_guest(struct kvm_vcpu *vcpu,
+ 
+ static inline void kvm_skip_instr(struct kvm_vcpu *vcpu, bool is_wide_instr)
+ {
+-	if (vcpu_mode_is_32bit(vcpu))
++	if (vcpu_mode_is_32bit(vcpu)) {
+ 		kvm_skip_instr32(vcpu, is_wide_instr);
+-	else
++	} else {
+ 		*vcpu_pc(vcpu) += 4;
++		*vcpu_cpsr(vcpu) &= ~PSR_BTYPE_MASK;
++	}
+ 
+ 	/* advance the singlestep state machine */
+ 	*vcpu_cpsr(vcpu) &= ~DBG_SPSR_SS;
+-- 
+2.20.1
