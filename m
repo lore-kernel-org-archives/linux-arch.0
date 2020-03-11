@@ -1,106 +1,136 @@
-Return-Path: <SRS0=mIjk=5D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-eopbgr770107.outbound.protection.outlook.com ([40.107.77.107]:28133
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726735AbgCRAMZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 20:12:25 -0400
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH v6 01/10] arm64: hyperv: Add core Hyper-V include files
-Date: Wed, 18 Mar 2020 00:12:18 +0000
-Message-ID: <MW2PR2101MB10524879CD685710A51AB740D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <1584200119-18594-2-git-send-email-mikelley@microsoft.com>
- <CAK8P3a1GFDUY4mXzst4Ds+S-4SGXso6-jfpsYyy-eHyceAC1Zg@mail.gmail.com>
-In-Reply-To: <CAK8P3a1GFDUY4mXzst4Ds+S-4SGXso6-jfpsYyy-eHyceAC1Zg@mail.gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:54118 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1731048AbgCKTc7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Mar 2020 15:32:59 -0400
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v9 00/13] arm64: Branch Target Identification support
+Date: Wed, 11 Mar 2020 19:25:55 +0000
+Message-ID: <20200311192608.40095-1-broonie@kernel.org>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>
-Message-ID: <20200318001218.kXfMStNrJvHgbzXV3cR175mfl358haNvS7VobqJFTCw@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Mark Brown <broonie@kernel.org>
+Message-ID: <20200311192555.-dDhk24cTFA7W15MxfxCow_EtUUMmyU4h-rCdVMtEXs@z>
 
-RnJvbTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4gU2VudDogTW9uZGF5LCBNYXJjaCAx
-NiwgMjAyMCAxOjQ4IEFNDQo+IA0KPiBPbiBTYXQsIE1hciAxNCwgMjAyMCBhdCA0OjM2IFBNIE1p
-Y2hhZWwgS2VsbGV5IDxtaWtlbGxleUBtaWNyb3NvZnQuY29tPiB3cm90ZToNCj4gDQo+ID4gKw0K
-PiA+ICsvKiBEZWZpbmUgaW5wdXQgYW5kIG91dHB1dCBsYXlvdXQgZm9yIEdldCBWUCBSZWdpc3Rl
-ciBoeXBlcmNhbGwgKi8NCj4gPiArc3RydWN0IGh2X2dldF92cF9yZWdpc3Rlcl9pbnB1dCB7DQo+
-ID4gKyAgICAgICB1NjQgcGFydGl0aW9uaWQ7DQo+ID4gKyAgICAgICB1MzIgdnBpbmRleDsNCj4g
-PiArICAgICAgIHU4ICBpbnB1dHZ0bDsNCj4gPiArICAgICAgIHU4ICBwYWRkaW5nWzNdOw0KPiA+
-ICsgICAgICAgdTMyIG5hbWUwOw0KPiA+ICsgICAgICAgdTMyIG5hbWUxOw0KPiA+ICt9IF9fcGFj
-a2VkOw0KPiANCj4gQXJlIHlvdSBzdXJlIHRoZXNlIG5lZWQgdG8gYmUgbWFkZSBieXRlLWFsaWdu
-ZWQgYWNjb3JkaW5nIHRvIHRoZQ0KPiBzcGVjaWZpY2F0aW9uPyBJZiB0aGUgc3RydWN0dXJlIGl0
-c2VsZiBpcyBhbGlnbmVkIHRvIDY0IGJpdCwgYmV0dGVyIG1hcmsgb25seQ0KPiB0aGUgaW5kaXZp
-ZHVhbCBmaWVsZHMgdGhhdCBhcmUgbWlzYWxpZ25lZCBhcyBfX3BhY2tlZC4NCj4gDQo+IElmIHRo
-ZSBzdHJ1Y3R1cmUgaXMgYWxpZ25lZCB0byBvbmx5IDMyLWJpdCBhZGRyZXNzZXMgaW5zdGVhZCBv
-Zg0KPiA2NC1iaXQsIG1hcmsgaXQgYXMgIl9fcGFja2VkIF9fYWxpZ25lZCg0KSIgdG8gbGV0IHRo
-ZSBjb21waWxlcg0KPiBnZW5lcmF0ZSBiZXR0ZXIgY29kZSBmb3IgYWNjZXNzaW5nIGl0Lg0KDQpO
-b25lIG9mIHRoZSBmaWVsZHMgYXJlIG1pc2FsaWduZWQgYW5kIGl0IHdpbGwgYWx3YXlzIGJlIGFs
-aWduZWQgdG8gNjQtYml0DQphZGRyZXNzZXMsIHNvIHRoZXJlIHNob3VsZCBiZSBubyBwYWRkaW5n
-IG5lZWRlZCBvciBhZGRlZC4gIFRoZXJlIHdhcw0KYSBkaXNjdXNzaW9uIG9mIF9fcGFja2VkIGFu
-ZCB0aGUgSHlwZXItViBkYXRhIHN0cnVjdHVyZXMgaW4gZ2VuZXJhbCBvbg0KTEtNTCBoZXJlOiAg
-aHR0cHM6Ly9sa21sLm9yZy9sa21sLzIwMTgvMTEvMzAvODQ4LiAgQWRkaW5nIF9fcGFja2VkIHdh
-cw0KZG9uZSBhcyBhIHByZXZlbnRhdGl2ZSBtZWFzdXJlLCBub3QgYmVjYXVzZSBhbnl0aGluZyB3
-YXMgYWN0dWFsbHkNCmJyb2tlbi4gIE1hcmtpbmcgYXMgX19hbGlnbmVkKDgpIGhlcmUgd291bGQg
-aW5kaWNhdGUgdGhlIGNvcnJlY3QgaW50ZW50LA0KdGhvdWdoIHRoZSB1c2Ugb2YgdGhlIHN0cnVj
-dHVyZSBhbHdheXMgZW5zdXJlcyA2NC1iaXQgYWxpZ25tZW50Lg0KDQo+IA0KPiBBbHNvLCBpbiBv
-cmRlciB0byB3cml0ZSBwb3J0YWJsZSBjb2RlLCBpdCB3b3VsZCBiZSBoZWxwZnVsIHRvIG1hcmsN
-Cj4gYWxsIHRoZSBmaWVsZHMgYXMgZXhwbGljaXRseSBsaXR0bGUtZW5kaWFuLCBhbmQgdXNlIF9f
-bGUzMl90b19jcHUoKQ0KPiBldGMgZm9yIGFjY2Vzc2luZyB0aGVtLg0KDQpUaGVyZSdzIGFuIG9w
-ZW5pbmcgY29tbWVudCBpbiB0aGlzIGZpbGUgc3RhdGluZyB0aGF0IGFsbCBkYXRhDQpzdHJ1Y3R1
-cmVzIHNoYXJlZCBiZXR3ZWVuIEh5cGVyLVYgYW5kIGEgZ3Vlc3QgVk0gYXJlIGxpdHRsZQ0KZW5k
-aWFuLiAgSXMgdGhlcmUgc29tZSBvdGhlciBtYXJraW5nIHRvIGNvbnNpZGVyIHVzaW5nPw0KDQpX
-ZSBoYXZlIGRlZmluaXRlbHkgbm90IGFsbG93ZWQgZm9yIHRoZSBjYXNlIG9mIEh5cGVyLVYgcnVu
-bmluZyBvbg0KYSBiaWcgZW5kaWFuIGFyY2hpdGVjdHVyZS4gIFRoZXJlIGFyZSBhICpsb3QqIG9m
-IG1lc3NhZ2VzIGFuZCBkYXRhDQpzdHJ1Y3R1cmVzIHBhc3NlZCBiZXR3ZWVuIHRoZSBndWVzdCBh
-bmQgSHlwZXItViwgYW5kIGNvZGluZw0KdG8gaGFuZGxlIGVpdGhlciBlbmRpYW5uZXNzIGlzIGEg
-YmlnIHByb2plY3QuICBJJ20gZG91YnRmdWwNCm9mIHRoZSB2YWx1ZSB1bnRpbCBhbmQgdW5sZXNz
-IHdlIGFjdHVhbGx5IGhhdmUgYSBuZWVkIGZvciBpdC4NCg0KPiANCj4gPiArLyogRGVmaW5lIHN5
-bnRoZXRpYyBpbnRlcnJ1cHQgY29udHJvbGxlciBtZXNzYWdlIGZsYWdzLiAqLw0KPiA+ICt1bmlv
-biBodl9tZXNzYWdlX2ZsYWdzIHsNCj4gPiArICAgICAgIF9fdTggYXN1ODsNCj4gPiArICAgICAg
-IHN0cnVjdCB7DQo+ID4gKyAgICAgICAgICAgICAgIF9fdTggbXNnX3BlbmRpbmc6MTsNCj4gPiAr
-ICAgICAgICAgICAgICAgX191OCByZXNlcnZlZDo3Ow0KPiA+ICsgICAgICAgfSBfX3BhY2tlZDsN
-Cj4gPiArfTsNCj4gDQo+IEZvciBzaW1pbGFyIHJlYXNvbnMsIHBsZWFzZSBhdm9pZCBiaXQgZmll
-bGRzIGFuZCBqdXN0IHVzZSBhDQo+IGJpdCBtYXNrIG9uIHRoZSBmaXJzdCBtZW1iZXIgb2YgdGhl
-IHVuaW9uLg0KDQpVbmZvcnR1bmF0ZWx5LCBjaGFuZ2luZyB0byBhIGJpdCBtYXNrIHJpcHBsZXMg
-aW50bw0KYXJjaGl0ZWN0dXJlIGluZGVwZW5kZW50IGNvZGUgYW5kIGludG8gdGhlIHg4Ng0KaW1w
-bGVtZW50YXRpb24uICBJJ2QgcHJlZmVyIG5vdCB0byBkcmFnIHRoYXQgY29tcGxleGl0eQ0KaW50
-byB0aGlzIHBhdGNoIHNldC4NCg0KPiANCj4gVGhlIF9fcGFja2VkIGFubm90YXRpb24gaGVyZSBp
-cyBub3QgbWVhbmluZ2Z1bCwNCj4gYXMgdGhlIHRvdGFsIHNpemUgaXMgYWxyZWFkeSBvbmx5IGEg
-c2luZ2xlIGJ5dGUuDQoNCkFncmVlZC4NCg0KPiANCj4gPiArLyogRGVmaW5lIHBvcnQgaWRlbnRp
-ZmllciB0eXBlLiAqLw0KPiA+ICt1bmlvbiBodl9wb3J0X2lkIHsNCj4gPiArICAgICAgIF9fdTMy
-IGFzdTMyOw0KPiA+ICsgICAgICAgc3RydWN0IHsNCj4gPiArICAgICAgICAgICAgICAgX191MzIg
-aWQ6MjQ7DQo+ID4gKyAgICAgICAgICAgICAgIF9fdTMyIHJlc2VydmVkOjg7DQo+ID4gKyAgICAg
-ICB9ICBfX3BhY2tlZCB1Ow0KPiA+ICt9Ow0KPiANCj4gSGVyZSwgdGhlIF9fcGFja2VkIGFubm90
-YXRpb24gaXMgaW5jb25zaXN0ZW50IHdpdGggdGhlIHVzZQ0KPiBpbiB0aGUgcmVzdCBvZiB0aGUg
-ZmlsZTogbWFya2luZyBvbmx5IG9uZSBtZW1iZXIgb2YgdGhlIHVuaW9uDQo+IGFzIF9fcGFja2Vk
-IG1lYW5zIHRoYXQgdGhlIHVuaW9uIGl0c2VsZiBpcyBzdGlsbCBleHBlY3RlZCB0bw0KPiBiZSA0
-IGJ5dGUgYWxpZ25lZC4gSSB3b3VsZCBleHBlY3QgdGhhdCBlaXRoZXIgYWxsIG9mIHRoZXNlDQo+
-IHN0cnVjdHVyZXMgaGF2ZSBhIHNlbnNpYmxlIGFsaWdubWVudCwgb3IgdGhleSBhcmUgYWxsDQo+
-IGNvbXBsZXRlbHkgdW5hbGlnbmVkLg0KDQpBZ3JlZWQuICBMb29rcyBsaWtlIGl0IGlzIHdyb25n
-IG9uIHRoZSB4ODYgc2lkZSB0b28uICANCg0KPiANCj4gPiArICogVXNlIHRoZSBIeXBlci1WIHBy
-b3ZpZGVkIHN0aW1lcjAgYXMgdGhlIHRpbWVyIHRoYXQgaXMgbWFkZQ0KPiA+ICsgKiBhdmFpbGFi
-bGUgdG8gdGhlIGFyY2hpdGVjdHVyZSBpbmRlcGVuZGVudCBIeXBlci1WIGRyaXZlcnMuDQo+ID4g
-KyAqLw0KPiA+ICsjZGVmaW5lIGh2X2luaXRfdGltZXIodGltZXIsIHRpY2spIFwNCj4gPiArICAg
-ICAgICAgICAgICAgaHZfc2V0X3ZwcmVnKEhWX1JFR0lTVEVSX1NUSU1FUjBfQ09VTlQgKyAoMip0
-aW1lciksIHRpY2spDQo+ID4gKyNkZWZpbmUgaHZfaW5pdF90aW1lcl9jb25maWcodGltZXIsIHZh
-bCkgXA0KPiA+ICsgICAgICAgICAgICAgICBodl9zZXRfdnByZWcoSFZfUkVHSVNURVJfU1RJTUVS
-MF9DT05GSUcgKyAoMip0aW1lciksIHZhbCkNCj4gPiArI2RlZmluZSBodl9nZXRfY3VycmVudF90
-aWNrKHRpY2spIFwNCj4gPiArICAgICAgICAgICAgICAgKHRpY2sgPSBodl9nZXRfdnByZWcoSFZf
-UkVHSVNURVJfVElNRV9SRUZDT1VOVCkpDQo+IA0KPiBJbiBnZW5lcmFsLCB3ZSBwcmVmZXIgaW5s
-aW5lIGZ1bmN0aW9ucyBvdmVyIG1hY3JvcyBpbiBoZWFkZXIgZmlsZXMuDQoNCkkgY2FuIGNoYW5n
-ZSB0aGUgInNldCIgY2FsbHMgdG8gaW5saW5lIGZ1bmN0aW9ucy4gIEFzIHlvdSBjYW4gc2VlLCB0
-aGUgImdldCINCmZ1bmN0aW9ucyBhcmUgY29kZWQgYW5kIHVzZWQgaW4gYXJjaGl0ZWN0dXJlIGlu
-ZGVwZW5kZW50IGNvZGUgYW5kIG9uDQp0aGUgeDg2IHNpZGUgaW4gYSB3YXkgdGhhdCB3b24ndCBj
-b252ZXJ0IHRvIGlubGluZSBmdW5jdGlvbnMuDQoNCj4gDQo+ID4gKyNpZiBJU19FTkFCTEVEKENP
-TkZJR19IWVBFUlYpDQo+ID4gKyNkZWZpbmUgaHZfZW5hYmxlX3N0aW1lcjBfcGVyY3B1X2lycShp
-cnEpICAgICAgZW5hYmxlX3BlcmNwdV9pcnEoaXJxLCAwKQ0KPiA+ICsjZGVmaW5lIGh2X2Rpc2Fi
-bGVfc3RpbWVyMF9wZXJjcHVfaXJxKGlycSkgICAgIGRpc2FibGVfcGVyY3B1X2lycShpcnEpDQo+
-ID4gKyNlbmRpZg0KPiANCj4gU2hvdWxkIHRoZXJlIGJlIGFuICNlbHNlIGRlZmluaXRpb24gaGVy
-ZT8gSXQgaGVscHMgcmVhZGFiaWxpdHkNCj4gdG8gaGF2ZSB0aGUgdHdvIHZlcnNpb25zICh3aXRo
-IGFuZCB3aXRob3V0IGh5cGVydiBzdXBwb3J0KSBjbG9zZQ0KPiB0b2dldGhlciByYXRoZXIgdGhh
-biBpbiBkaWZmZXJlbnQgZmlsZXMuIElmIHRoZXJlIGlzIG5vIG90aGVyDQo+IGRlZmluaXRpb24s
-IGp1c3QgZHJvcCB0aGUgI2lmLg0KDQpBZ3JlZWQuICBJJ2xsIGZpZ3VyZSBvdXQgYSB3YXkgdG8g
-aGFuZGxlIHRoaXMgYmV0dGVyLg0KDQo+IA0KPiAgICAgIEFybmQNCg==
+This patch series implements support for ARMv8.5-A Branch Target
+Identification (BTI), which is a control flow integrity protection
+feature introduced as part of the ARMv8.5-A extensions.
+
+Changes:
+
+v9:
+ - Move Kconfig addition to final patch in series.
+ - Add patch from Daniel Kiss adding BTI information to smaps, this has
+   a trivial conflict with a .rst conversion in -next.
+v8:
+ - Remove a redundant IS_ENABLED(CONFIG_ARM64_BTI) check.
+v7:
+ - Rebase onto v5.6-rc3.
+ - Move comment about keeping NT_GNU_PROPERTY_TYPE_0 internal into first
+   patch.
+ - Add an explicit check for system_supports_bti() when parsing BTI ELF
+   property for improved robustness.
+v6:
+ - Rebase onto v5.6-rc1.
+ - Fix typos s/BYTPE/BTYPE/ in commit log for "arm64: BTI: Decode BYTPE
+   bits when printing PSTATE".
+v5:
+ - Changed a bunch of -EIO to -ENOEXEC in the ELF parsing code.
+ - Move PSR_BTYPE defines to UAPI.
+ - Use compat_user_mode() rather than open coding.
+ - Fix a typo s/BYTPE/BTYPE/ in syscall.c
+v4:
+ - Dropped patch fixing existing documentation as it has already been merged.
+ - Convert WARN_ON() to WARN_ON_ONCE() in "ELF: Add ELF program property
+   parsing support".
+ - Added display of guarded pages to ptdump.
+ - Updated for conversion of exception handling from assembler to C.
+
+Notes:
+
+ * GCC 9 can compile backwards-compatible BTI-enabled code with
+   -mbranch-protection=bti or -mbranch-protection=standard.
+
+ * Binutils 2.33 and later support the new ELF note.
+
+   Creation of a BTI-enabled binary requires _everything_ linked in to
+   be BTI-enabled.  For now ld --force-bti can be used to override this,
+   but some things may break until the required C library support is in
+   place.
+
+   There is no straightforward way to mark a .s file as BTI-enabled:
+   scraping the output from gcc -S works as a quick hack for now.
+
+   readelf -n can be used to examing the program properties in an ELF
+   file.
+
+ * Runtime mmap() and mprotect() can be used to enable BTI on a
+   page-by-page basis using the new PROT_BTI, but the code in the
+   affected pages still needs to be written or compiled to contain the
+   appopriate BTI landing pads.
+
+Daniel Kiss (1):
+  mm: smaps: Report arm64 guarded pages in smaps
+
+Dave Martin (11):
+  ELF: UAPI and Kconfig additions for ELF program properties
+  ELF: Add ELF program property parsing support
+  arm64: Basic Branch Target Identification support
+  elf: Allow arch to tweak initial mmap prot flags
+  arm64: elf: Enable BTI at exec based on ELF program properties
+  arm64: BTI: Decode BYTPE bits when printing PSTATE
+  arm64: unify native/compat instruction skipping
+  arm64: traps: Shuffle code to eliminate forward declarations
+  arm64: BTI: Reset BTYPE when skipping emulated instructions
+  KVM: arm64: BTI: Reset BTYPE when skipping emulated instructions
+  arm64: BTI: Add Kconfig entry for userspace BTI
+
+Mark Brown (1):
+  arm64: mm: Display guarded pages in ptdump
+
+ Documentation/arm64/cpu-feature-registers.rst |   2 +
+ Documentation/arm64/elf_hwcaps.rst            |   5 +
+ Documentation/filesystems/proc.txt            |   1 +
+ arch/arm64/Kconfig                            |  25 +++
+ arch/arm64/include/asm/cpucaps.h              |   3 +-
+ arch/arm64/include/asm/cpufeature.h           |   6 +
+ arch/arm64/include/asm/elf.h                  |  50 ++++++
+ arch/arm64/include/asm/esr.h                  |   2 +-
+ arch/arm64/include/asm/exception.h            |   1 +
+ arch/arm64/include/asm/hwcap.h                |   1 +
+ arch/arm64/include/asm/kvm_emulate.h          |   6 +-
+ arch/arm64/include/asm/mman.h                 |  37 +++++
+ arch/arm64/include/asm/pgtable-hwdef.h        |   1 +
+ arch/arm64/include/asm/pgtable.h              |   2 +-
+ arch/arm64/include/asm/ptrace.h               |   1 +
+ arch/arm64/include/asm/sysreg.h               |   4 +
+ arch/arm64/include/uapi/asm/hwcap.h           |   1 +
+ arch/arm64/include/uapi/asm/mman.h            |   9 ++
+ arch/arm64/include/uapi/asm/ptrace.h          |   9 ++
+ arch/arm64/kernel/cpufeature.c                |  33 ++++
+ arch/arm64/kernel/cpuinfo.c                   |   1 +
+ arch/arm64/kernel/entry-common.c              |  11 ++
+ arch/arm64/kernel/process.c                   |  36 ++++-
+ arch/arm64/kernel/ptrace.c                    |   2 +-
+ arch/arm64/kernel/signal.c                    |  16 ++
+ arch/arm64/kernel/syscall.c                   |  18 +++
+ arch/arm64/kernel/traps.c                     | 127 +++++++--------
+ arch/arm64/mm/dump.c                          |   5 +
+ fs/Kconfig.binfmt                             |   6 +
+ fs/binfmt_elf.c                               | 145 +++++++++++++++++-
+ fs/compat_binfmt_elf.c                        |   4 +
+ fs/proc/task_mmu.c                            |   3 +
+ include/linux/elf.h                           |  43 ++++++
+ include/linux/mm.h                            |   3 +
+ include/uapi/linux/elf.h                      |  11 ++
+ 35 files changed, 555 insertions(+), 75 deletions(-)
+ create mode 100644 arch/arm64/include/asm/mman.h
+ create mode 100644 arch/arm64/include/uapi/asm/mman.h
+
+
+base-commit: f8788d86ab28f61f7b46eb6be375f8a726783636
+-- 
+2.20.1
