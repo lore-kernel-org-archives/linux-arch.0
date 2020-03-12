@@ -1,34 +1,26 @@
-From: Bart Van Assche <bvanassche@acm.org>
+From: Bart Van Assche <bvanassche-HInyCGIudOg@public.gmane.org>
 Subject: Re: [PATCH v1] asm-generic: Provide generic {get, put}_unaligned_{l,
  b}e24()
-Date: Thu, 12 Mar 2020 08:18:07 -0700
-Message-ID: <efe5daa3-8e37-101a-9203-676be33eb934@acm.org>
+Date: Thu, 12 Mar 2020 08:21:10 -0700
+Message-ID: <4c81594e-6b30-d1ff-31f6-0d8cfbf5ba3c@acm.org>
 References: <20200312113941.81162-1-andriy.shevchenko@linux.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f195.google.com ([209.85.215.195]:40466 "EHLO
-        mail-pg1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727549AbgCLPSL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2020 11:18:11 -0400
-In-Reply-To: <20200312113941.81162-1-andriy.shevchenko@linux.intel.com>
+Return-path: <linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20200312113941.81162-1-andriy.shevchenko-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
 Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Keith Busch <kbusch@kernel.org>, Jens Axboe <axboe@fb.com>, Christoph Hellwig <hch@lst.de>, Sagi Grimberg <sagi@grimberg.me>, Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>, linux-nvme@lists.infradead.org, Felipe Balbi <balbi@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-usb@vger.kernel.org, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-scsi@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Sender: linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Andy Shevchenko <andriy.shevchenko-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Keith Busch <kbusch-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Jens Axboe <axboe-b10kYP2dOMg@public.gmane.org>, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, Sagi Grimberg <sagi-NQWnxTmZq1alnMjI0IkVqw@public.gmane.org>, Chaitanya Kulkarni <chaitanya.kulkarni-Sjgp3cTcYWE@public.gmane.org>, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Felipe Balbi <balbi-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "Martin K. Petersen" <martin.petersen-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
 On 2020-03-12 04:39, Andy Shevchenko wrote:
-> There are users in kernel that duplicate {get,put}_unaligned_{l,b}e24()
-> implementation. Provide generic helpers once for all.
+> +static inline u32 get_unaligned_be24(const u8 *buf)
+> +{
+> +	return (u32)p[0] << 16 | (u32)p[1] << 8 | (u32)p[2];
+> +}
 
-Hi Andy,
-
-Thanks for having done this work. In case you would not yet have noticed
-the patch series that I posted some time ago but for which I did not
-have the time to continue working on it, please take a look at
-https://lore.kernel.org/lkml/20191028200700.213753-1-bvanassche@acm.org/.
-
-Thanks,
+The argument is called 'buf' and the function body dereferences a
+pointer called 'p'. Does this even compile?
 
 Bart.
