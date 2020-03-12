@@ -1,101 +1,56 @@
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v2 2/3] arm64: tlb: use mm_struct.context.flags to indicate TTL value
-Date: Thu, 12 Mar 2020 12:10:17 +0800
-Message-ID: <20200312041018.1927-3-yezhenyu2@huawei.com>
-References: <20200312041018.1927-1-yezhenyu2@huawei.com>
+From: Hans Verkuil <hverkuil@xs4all.nl>
+Subject: Re: [RESEND PATCH v2 8/9] media: fsl-viu: Constify ioreadX() iomem
+ argument (as in generic implementation)
+Date: Thu, 12 Mar 2020 09:01:22 +0100
+Message-ID: <1c4a11b5-5ca6-7555-de3c-ff30f707fac7@xs4all.nl>
+References: <20200219175007.13627-1-krzk@kernel.org>
+ <20200219175007.13627-9-krzk@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200312041018.1927-1-yezhenyu2@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: mark.rutland@arm.com, catalin.marinas@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lb1-smtp-cloud9.xs4all.net ([194.109.24.22]:55477 "EHLO
+        lb1-smtp-cloud9.xs4all.net" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S2387999AbgCLIBl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 12 Mar 2020 04:01:41 -0400
+In-Reply-To: <20200219175007.13627-9-krzk@kernel.org>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Krzysztof Kozlowski <krzk@kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick
 
-Use Architecture-specific MM context to indicate the level of page
-table walk.  This avoids lots of changes to common-interface.
+On 2/19/20 6:50 PM, Krzysztof Kozlowski wrote:
+> The ioreadX() helpers have inconsistent interface.  On some architectures
+> void *__iomem address argument is a pointer to const, on some not.
+> 
+> Implementations of ioreadX() do not modify the memory under the address
+> so they can be converted to a "const" version for const-safety and
+> consistency among architectures.
+> 
+> Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/mmu.h      | 11 +++++++++++
- arch/arm64/include/asm/tlbflush.h |  6 +++---
- arch/arm64/kernel/process.c       |  2 +-
- 3 files changed, 15 insertions(+), 4 deletions(-)
+Acked-by: Hans Verkuil <hverkuil-cisco@xs4all.nl>
 
-diff --git a/arch/arm64/include/asm/mmu.h b/arch/arm64/include/asm/mmu.h
-index e4d862420bb4..f86a38ab3632 100644
---- a/arch/arm64/include/asm/mmu.h
-+++ b/arch/arm64/include/asm/mmu.h
-@@ -8,6 +8,10 @@
- #include <asm/cputype.h>
- 
- #define MMCF_AARCH32	0x1	/* mm context flag for AArch32 executables */
-+#define S1_PUD_LEVEL	0x10	/* mm context flag for the level of ptw */
-+#define S1_PMD_LEVEL	0x20
-+#define S1_PTE_LEVEL	0x30
-+
- #define USER_ASID_BIT	48
- #define USER_ASID_FLAG	(UL(1) << USER_ASID_BIT)
- #define TTBR_ASID_MASK	(UL(0xffff) << 48)
-@@ -19,6 +23,10 @@
- typedef struct {
- 	atomic64_t	id;
- 	void		*vdso;
-+	/*
-+	 * flags[3:0]: AArch32 executables
-+	 * flags[7:4]: the level of page table walk
-+	 */
- 	unsigned long	flags;
- } mm_context_t;
- 
-@@ -29,6 +37,9 @@ typedef struct {
-  */
- #define ASID(mm)	((mm)->context.id.counter & 0xffff)
- 
-+/* This macro is only used by TLBI TTL */
-+#define TLBI_LEVEL(mm)	((mm)->context.flags >> 4 & 0xf)
-+
- extern bool arm64_use_ng_mappings;
- 
- static inline bool arm64_kernel_unmapped_at_el0(void)
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-index dda693f32099..312b9edb281b 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -186,7 +186,7 @@ static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
- 	unsigned long addr = __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
- 
- 	dsb(ishst);
--	__tlbi_level(vale1is, addr, 0);
-+	__tlbi_level(vale1is, addr, TLBI_LEVEL(vma->vm_mm));
- }
- 
- static inline void flush_tlb_page(struct vm_area_struct *vma,
-@@ -226,9 +226,9 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
- 	dsb(ishst);
- 	for (addr = start; addr < end; addr += stride) {
- 		if (last_level) {
--			__tlbi_level(vale1is, addr, 0);
-+			__tlbi_level(vale1is, addr, TLBI_LEVEL(vma->vm_mm));
- 		} else {
--			__tlbi_level(vae1is, addr, 0);
-+			__tlbi_level(vae1is, addr, TLBI_LEVEL(vma->vm_mm));
- 		}
- 	}
- 	dsb(ish);
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index bbb0f0c145f6..bf835755d9ed 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -562,7 +562,7 @@ unsigned long arch_align_stack(unsigned long sp)
-  */
- void arch_setup_new_exec(void)
- {
--	current->mm->context.flags = is_compat_task() ? MMCF_AARCH32 : 0;
-+	current->mm->context.flags |= is_compat_task() ? MMCF_AARCH32 : 0;
- 
- 	ptrauth_thread_init_user(current);
- }
--- 
-2.19.1
+Regards,
+
+	Hans
+
+> ---
+>  drivers/media/platform/fsl-viu.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/drivers/media/platform/fsl-viu.c b/drivers/media/platform/fsl-viu.c
+> index 81a8faedbba6..991d9dc82749 100644
+> --- a/drivers/media/platform/fsl-viu.c
+> +++ b/drivers/media/platform/fsl-viu.c
+> @@ -34,7 +34,7 @@
+>  /* Allow building this driver with COMPILE_TEST */
+>  #if !defined(CONFIG_PPC) && !defined(CONFIG_MICROBLAZE)
+>  #define out_be32(v, a)	iowrite32be(a, (void __iomem *)v)
+> -#define in_be32(a)	ioread32be((void __iomem *)a)
+> +#define in_be32(a)	ioread32be((const void __iomem *)a)
+>  #endif
+>  
+>  #define BUFFER_TIMEOUT		msecs_to_jiffies(500)  /* 0.5 seconds */
+> 
