@@ -1,94 +1,106 @@
-Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50772 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727876AbgCTOz5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Mar 2020 10:55:57 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 23/26] x86: vdso: Enable x86 to use common headers
-Date: Fri, 20 Mar 2020 14:53:48 +0000
-Message-ID: <20200320145351.32292-24-vincenzo.frascino@arm.com>
-In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
-References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=UTne=45=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga07-in.huawei.com ([45.249.212.35]:59450 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726023AbgCLEKj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 12 Mar 2020 00:10:39 -0400
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RFC PATCH v2 2/3] arm64: tlb: use mm_struct.context.flags to indicate TTL value
+Date: Thu, 12 Mar 2020 12:10:17 +0800
+Message-ID: <20200312041018.1927-3-yezhenyu2@huawei.com>
+In-Reply-To: <20200312041018.1927-1-yezhenyu2@huawei.com>
+References: <20200312041018.1927-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200320145348.zJFNuzoEq-roxH_zvl_iH5Ohn7aMnh3QSfdDYmLXngE@z>
+To: mark.rutland@arm.com, catalin.marinas@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
+Message-ID: <20200312041017.0rJ2gT6az29F7hpzE4d1qf3xDMQ2TcLTf3QFTnYSLJc@z>
 
-Enable x86 to use only the common headers in the implementation
-of the vDSO library.
+Use Architecture-specific MM context to indicate the level of page
+table walk.  This avoids lots of changes to common-interface.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 ---
- arch/x86/include/asm/processor.h      | 12 +-----------
- arch/x86/include/asm/vdso/processor.h | 23 +++++++++++++++++++++++
- 2 files changed, 24 insertions(+), 11 deletions(-)
- create mode 100644 arch/x86/include/asm/vdso/processor.h
+ arch/arm64/include/asm/mmu.h      | 11 +++++++++++
+ arch/arm64/include/asm/tlbflush.h |  6 +++---
+ arch/arm64/kernel/process.c       |  2 +-
+ 3 files changed, 15 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
-index 09705ccc393c..94789db550df 100644
---- a/arch/x86/include/asm/processor.h
-+++ b/arch/x86/include/asm/processor.h
-@@ -26,6 +26,7 @@ struct vm86;
- #include <asm/fpu/types.h>
- #include <asm/unwind_hints.h>
- #include <asm/vmxfeatures.h>
-+#include <asm/vdso/processor.h>
+diff --git a/arch/arm64/include/asm/mmu.h b/arch/arm64/include/asm/mmu.h
+index e4d862420bb4..f86a38ab3632 100644
+--- a/arch/arm64/include/asm/mmu.h
++++ b/arch/arm64/include/asm/mmu.h
+@@ -8,6 +8,10 @@
+ #include <asm/cputype.h>
  
- #include <linux/personality.h>
- #include <linux/cache.h>
-@@ -677,17 +678,6 @@ static inline unsigned int cpuid_edx(unsigned int op)
- 	return edx;
+ #define MMCF_AARCH32	0x1	/* mm context flag for AArch32 executables */
++#define S1_PUD_LEVEL	0x10	/* mm context flag for the level of ptw */
++#define S1_PMD_LEVEL	0x20
++#define S1_PTE_LEVEL	0x30
++
+ #define USER_ASID_BIT	48
+ #define USER_ASID_FLAG	(UL(1) << USER_ASID_BIT)
+ #define TTBR_ASID_MASK	(UL(0xffff) << 48)
+@@ -19,6 +23,10 @@
+ typedef struct {
+ 	atomic64_t	id;
+ 	void		*vdso;
++	/*
++	 * flags[3:0]: AArch32 executables
++	 * flags[7:4]: the level of page table walk
++	 */
+ 	unsigned long	flags;
+ } mm_context_t;
+ 
+@@ -29,6 +37,9 @@ typedef struct {
+  */
+ #define ASID(mm)	((mm)->context.id.counter & 0xffff)
+ 
++/* This macro is only used by TLBI TTL */
++#define TLBI_LEVEL(mm)	((mm)->context.flags >> 4 & 0xf)
++
+ extern bool arm64_use_ng_mappings;
+ 
+ static inline bool arm64_kernel_unmapped_at_el0(void)
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
+index dda693f32099..312b9edb281b 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -186,7 +186,7 @@ static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
+ 	unsigned long addr = __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
+ 
+ 	dsb(ishst);
+-	__tlbi_level(vale1is, addr, 0);
++	__tlbi_level(vale1is, addr, TLBI_LEVEL(vma->vm_mm));
  }
  
--/* REP NOP (PAUSE) is a good thing to insert into busy-wait loops. */
--static __always_inline void rep_nop(void)
--{
--	asm volatile("rep; nop" ::: "memory");
--}
--
--static __always_inline void cpu_relax(void)
--{
--	rep_nop();
--}
--
- /*
-  * This function forces the icache and prefetched instruction stream to
-  * catch up with reality in two very specific cases:
-diff --git a/arch/x86/include/asm/vdso/processor.h b/arch/x86/include/asm/vdso/processor.h
-new file mode 100644
-index 000000000000..57b1a7034c64
---- /dev/null
-+++ b/arch/x86/include/asm/vdso/processor.h
-@@ -0,0 +1,23 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Copyright (C) 2020 ARM Ltd.
-+ */
-+#ifndef __ASM_VDSO_PROCESSOR_H
-+#define __ASM_VDSO_PROCESSOR_H
-+
-+#ifndef __ASSEMBLY__
-+
-+/* REP NOP (PAUSE) is a good thing to insert into busy-wait loops. */
-+static __always_inline void rep_nop(void)
-+{
-+	asm volatile("rep; nop" ::: "memory");
-+}
-+
-+static __always_inline void cpu_relax(void)
-+{
-+	rep_nop();
-+}
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __ASM_VDSO_PROCESSOR_H */
+ static inline void flush_tlb_page(struct vm_area_struct *vma,
+@@ -226,9 +226,9 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
+ 	dsb(ishst);
+ 	for (addr = start; addr < end; addr += stride) {
+ 		if (last_level) {
+-			__tlbi_level(vale1is, addr, 0);
++			__tlbi_level(vale1is, addr, TLBI_LEVEL(vma->vm_mm));
+ 		} else {
+-			__tlbi_level(vae1is, addr, 0);
++			__tlbi_level(vae1is, addr, TLBI_LEVEL(vma->vm_mm));
+ 		}
+ 	}
+ 	dsb(ish);
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index bbb0f0c145f6..bf835755d9ed 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -562,7 +562,7 @@ unsigned long arch_align_stack(unsigned long sp)
+  */
+ void arch_setup_new_exec(void)
+ {
+-	current->mm->context.flags = is_compat_task() ? MMCF_AARCH32 : 0;
++	current->mm->context.flags |= is_compat_task() ? MMCF_AARCH32 : 0;
+ 
+ 	ptrauth_thread_init_user(current);
+ }
 -- 
-2.25.1
+2.19.1
