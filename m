@@ -1,26 +1,47 @@
-From: Bart Van Assche <bvanassche-HInyCGIudOg@public.gmane.org>
-Subject: Re: [PATCH v1] asm-generic: Provide generic {get, put}_unaligned_{l,
- b}e24()
-Date: Thu, 12 Mar 2020 08:21:10 -0700
-Message-ID: <4c81594e-6b30-d1ff-31f6-0d8cfbf5ba3c@acm.org>
-References: <20200312113941.81162-1-andriy.shevchenko@linux.intel.com>
+From: Guo Ren <guoren@kernel.org>
+Subject: Re: [PATCH]arch/csky:Enable the gcov function in csky achitecture
+Date: Fri, 13 Mar 2020 00:03:36 +0800
+Message-ID: <CAJF2gTRFj=aQYHgM6KV7GYM22Nti8D2q_QNi+5WhOHS9-86Wew@mail.gmail.com>
+References: <1583854376-15598-1-git-send-email-majun258@linux.alibaba.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20200312113941.81162-1-andriy.shevchenko-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
-Content-Language: en-US
-Sender: linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Andy Shevchenko <andriy.shevchenko-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Keith Busch <kbusch-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Jens Axboe <axboe-b10kYP2dOMg@public.gmane.org>, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, Sagi Grimberg <sagi-NQWnxTmZq1alnMjI0IkVqw@public.gmane.org>, Chaitanya Kulkarni <chaitanya.kulkarni-Sjgp3cTcYWE@public.gmane.org>, linux-nvme-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Felipe Balbi <balbi-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "Martin K. Petersen" <martin.petersen-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1583854376-15598-1-git-send-email-majun258@linux.alibaba.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ma Jun <majun258@linux.alibaba.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-csky@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2020-03-12 04:39, Andy Shevchenko wrote:
-> +static inline u32 get_unaligned_be24(const u8 *buf)
-> +{
-> +	return (u32)p[0] << 16 | (u32)p[1] << 8 | (u32)p[2];
-> +}
+Acked-by: Guo Ren <guoren@kernel.org>
 
-The argument is called 'buf' and the function body dereferences a
-pointer called 'p'. Does this even compile?
+On Thu, Mar 12, 2020 at 4:59 PM Ma Jun <majun258@linux.alibaba.com> wrote:
+>
+> Support the gcov function in csky architecture
+>
+> Signed-off-by: Ma Jun <majun258@linux.alibaba.com>
+> ---
+>  arch/csky/Kconfig | 1 +
+>  1 file changed, 1 insertion(+)
+>
+> diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
+> index 047427f..9c4749d 100644
+> --- a/arch/csky/Kconfig
+> +++ b/arch/csky/Kconfig
+> @@ -64,6 +64,7 @@ config CSKY
+>         select PCI_DOMAINS_GENERIC if PCI
+>         select PCI_SYSCALL if PCI
+>         select PCI_MSI if PCI
+> +       select ARCH_HAS_GCOV_PROFILE_ALL
+>
+>  config CPU_HAS_CACHEV2
+>         bool
+> --
+> 1.8.3.1
+>
 
-Bart.
+
+-- 
+Best Regards
+ Guo Ren
+
+ML: https://lore.kernel.org/linux-csky/
