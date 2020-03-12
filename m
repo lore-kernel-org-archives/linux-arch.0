@@ -1,47 +1,42 @@
-From: Guo Ren <guoren@kernel.org>
-Subject: Re: [PATCH]arch/csky:Enable the gcov function in csky achitecture
-Date: Fri, 13 Mar 2020 00:03:36 +0800
-Message-ID: <CAJF2gTRFj=aQYHgM6KV7GYM22Nti8D2q_QNi+5WhOHS9-86Wew@mail.gmail.com>
-References: <1583854376-15598-1-git-send-email-majun258@linux.alibaba.com>
+From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Subject: Re: [PATCH v1] asm-generic: Provide generic {get, put}_unaligned_{l,
+ b}e24()
+Date: Thu, 12 Mar 2020 18:25:07 +0200
+Message-ID: <20200312162507.GF1922688@smile.fi.intel.com>
+References: <20200312113941.81162-1-andriy.shevchenko@linux.intel.com>
+ <efe5daa3-8e37-101a-9203-676be33eb934@acm.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1583854376-15598-1-git-send-email-majun258@linux.alibaba.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ma Jun <majun258@linux.alibaba.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-csky@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga04.intel.com ([192.55.52.120]:7804 "EHLO mga04.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727228AbgCLQZJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 12 Mar 2020 12:25:09 -0400
+Content-Disposition: inline
+In-Reply-To: <efe5daa3-8e37-101a-9203-676be33eb934@acm.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Bart Van Assche <bvanassche@acm.org>
+Cc: Keith Busch <kbusch@kernel.org>, Jens Axboe <axboe@fb.com>, Christoph Hellwig <hch@lst.de>, Sagi Grimberg <sagi@grimberg.me>, Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>, linux-nvme@lists.infradead.org, Felipe Balbi <balbi@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-usb@vger.kernel.org, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-scsi@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 
-Acked-by: Guo Ren <guoren@kernel.org>
+On Thu, Mar 12, 2020 at 08:18:07AM -0700, Bart Van Assche wrote:
+> On 2020-03-12 04:39, Andy Shevchenko wrote:
+> > There are users in kernel that duplicate {get,put}_unaligned_{l,b}e24()
+> > implementation. Provide generic helpers once for all.
+> 
+> Hi Andy,
+> 
+> Thanks for having done this work. In case you would not yet have noticed
+> the patch series that I posted some time ago but for which I did not
+> have the time to continue working on it, please take a look at
+> https://lore.kernel.org/lkml/20191028200700.213753-1-bvanassche@acm.org/.
 
-On Thu, Mar 12, 2020 at 4:59 PM Ma Jun <majun258@linux.alibaba.com> wrote:
->
-> Support the gcov function in csky architecture
->
-> Signed-off-by: Ma Jun <majun258@linux.alibaba.com>
-> ---
->  arch/csky/Kconfig | 1 +
->  1 file changed, 1 insertion(+)
->
-> diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-> index 047427f..9c4749d 100644
-> --- a/arch/csky/Kconfig
-> +++ b/arch/csky/Kconfig
-> @@ -64,6 +64,7 @@ config CSKY
->         select PCI_DOMAINS_GENERIC if PCI
->         select PCI_SYSCALL if PCI
->         select PCI_MSI if PCI
-> +       select ARCH_HAS_GCOV_PROFILE_ALL
->
->  config CPU_HAS_CACHEV2
->         bool
-> --
-> 1.8.3.1
->
+Can you send a new version?
+
+Also, consider to use byteshift to avoid this limitation:
+"Only use get_unaligned_be24() if reading p - 1 is allowed."
 
 
 -- 
-Best Regards
- Guo Ren
-
-ML: https://lore.kernel.org/linux-csky/
+With Best Regards,
+Andy Shevchenko
