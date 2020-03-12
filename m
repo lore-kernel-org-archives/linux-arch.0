@@ -1,84 +1,92 @@
-Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58652 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726851AbgCMPoo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Mar 2020 11:44:44 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 12/26] linux/time64.h: Extract common header for vDSO
-Date: Fri, 13 Mar 2020 15:43:31 +0000
-Message-ID: <20200313154345.56760-13-vincenzo.frascino@arm.com>
-In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=xy4g=45=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RFC PATCH v2 1/3] arm64: tlb: use __tlbi_level replace __tlbi in Stage-1
+Date: Thu, 12 Mar 2020 12:10:16 +0800
+Message-ID: <20200312041018.1927-2-yezhenyu2@huawei.com>
+In-Reply-To: <20200312041018.1927-1-yezhenyu2@huawei.com>
+References: <20200312041018.1927-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: mark.rutland@arm.com, catalin.marinas@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200313154331.mPoUPZas7zIQQ8i-NxYiaoWJ2k7ZPhBY3j_jB87WHEU@z>
+Message-ID: <20200312041016.voxwC5R_sPa4jRwITTXr9PeY9YCqMEuzjzh3_9hHjNs@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
+the level of translation table walk holding the leaf entry for the
+address that is being invalidated.
 
-Split time64.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
+This patch use __tlbi_level replace __tlbi and __tlbi_user in
+Stage-1, and set the default value of level to 0.
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 ---
- include/linux/time64.h | 10 +---------
- include/vdso/time64.h  | 14 ++++++++++++++
- 2 files changed, 15 insertions(+), 9 deletions(-)
- create mode 100644 include/vdso/time64.h
+ arch/arm64/include/asm/tlbflush.h | 19 ++++++-------------
+ 1 file changed, 6 insertions(+), 13 deletions(-)
 
-diff --git a/include/linux/time64.h b/include/linux/time64.h
-index 19125489ae94..c9dcb3e5781f 100644
---- a/include/linux/time64.h
-+++ b/include/linux/time64.h
-@@ -3,6 +3,7 @@
- #define _LINUX_TIME64_H
- 
- #include <linux/math64.h>
-+#include <vdso/time64.h>
- 
- typedef __s64 time64_t;
- typedef __u64 timeu64_t;
-@@ -19,15 +20,6 @@ struct itimerspec64 {
- 	struct timespec64 it_value;
- };
- 
--/* Parameters used to convert the timespec values: */
--#define MSEC_PER_SEC	1000L
--#define USEC_PER_MSEC	1000L
--#define NSEC_PER_USEC	1000L
--#define NSEC_PER_MSEC	1000000L
--#define USEC_PER_SEC	1000000L
--#define NSEC_PER_SEC	1000000000L
--#define FSEC_PER_SEC	1000000000000000LL
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
+lbflush.h
+index a3f70778a325..dda693f32099 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -46,11 +46,6 @@
+=20
+ #define __tlbi(op, ...)		__TLBI_N(op, ##__VA_ARGS__, 1, 0)
+=20
+-#define __tlbi_user(op, arg) do {						\
+-	if (arm64_kernel_unmapped_at_el0())					\
+-		__tlbi(op, (arg) | USER_ASID_FLAG);				\
+-} while (0)
 -
- /* Located here for timespec[64]_valid_strict */
- #define TIME64_MAX			((s64)~((u64)1 << 63))
- #define TIME64_MIN			(-TIME64_MAX - 1)
-diff --git a/include/vdso/time64.h b/include/vdso/time64.h
-new file mode 100644
-index 000000000000..9d43c3f5e89d
---- /dev/null
-+++ b/include/vdso/time64.h
-@@ -0,0 +1,14 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_TIME64_H
-+#define __VDSO_TIME64_H
-+
-+/* Parameters used to convert the timespec values: */
-+#define MSEC_PER_SEC	1000L
-+#define USEC_PER_MSEC	1000L
-+#define NSEC_PER_USEC	1000L
-+#define NSEC_PER_MSEC	1000000L
-+#define USEC_PER_SEC	1000000L
-+#define NSEC_PER_SEC	1000000000L
-+#define FSEC_PER_SEC	1000000000000000LL
-+
-+#endif /* __VDSO_TIME64_H */
--- 
-2.25.1
+ /* This macro creates a properly formatted VA operand for the TLBI */
+ #define __TLBI_VADDR(addr, asid)				\
+ 	({							\
+@@ -87,6 +82,8 @@
+ 		}							\
+ 									\
+ 		__tlbi(op,  arg);					\
++		if (arm64_kernel_unmapped_at_el0())			\
++			__tlbi(op, (arg) | USER_ASID_FLAG);		\
+ 	} while(0)
+=20
+ /*
+@@ -179,8 +176,7 @@ static inline void flush_tlb_mm(struct mm_struct *mm)
+ 	unsigned long asid =3D __TLBI_VADDR(0, ASID(mm));
+=20
+ 	dsb(ishst);
+-	__tlbi(aside1is, asid);
+-	__tlbi_user(aside1is, asid);
++	__tlbi_level(aside1is, asid, 0);
+ 	dsb(ish);
+ }
+=20
+@@ -190,8 +186,7 @@ static inline void flush_tlb_page_nosync(struct vm_ar=
+ea_struct *vma,
+ 	unsigned long addr =3D __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
+=20
+ 	dsb(ishst);
+-	__tlbi(vale1is, addr);
+-	__tlbi_user(vale1is, addr);
++	__tlbi_level(vale1is, addr, 0);
+ }
+=20
+ static inline void flush_tlb_page(struct vm_area_struct *vma,
+@@ -231,11 +226,9 @@ static inline void __flush_tlb_range(struct vm_area_=
+struct *vma,
+ 	dsb(ishst);
+ 	for (addr =3D start; addr < end; addr +=3D stride) {
+ 		if (last_level) {
+-			__tlbi(vale1is, addr);
+-			__tlbi_user(vale1is, addr);
++			__tlbi_level(vale1is, addr, 0);
+ 		} else {
+-			__tlbi(vae1is, addr);
+-			__tlbi_user(vae1is, addr);
++			__tlbi_level(vae1is, addr, 0);
+ 		}
+ 	}
+ 	dsb(ish);
+--=20
+2.19.1
