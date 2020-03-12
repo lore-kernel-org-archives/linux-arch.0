@@ -1,67 +1,147 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 19/19] arm64: mte: Add Memory Tagging Extension
- documentation
-Date: Thu, 12 Mar 2020 09:50:22 +0000
-Message-ID: <20200312095022.GA5801@mbp>
-References: <20200226180526.3272848-1-catalin.marinas@arm.com>
- <20200226180526.3272848-20-catalin.marinas@arm.com>
- <0857cca0-9f75-398d-e755-f645d2d8a594@linaro.org>
+From: Thomas Zimmermann <tzimmermann@suse.de>
+Subject: Re: [RESEND PATCH v2 6/9] drm/mgag200: Constify ioreadX() iomem
+ argument (as in generic implementation)
+Date: Thu, 12 Mar 2020 11:49:05 +0100
+Message-ID: <90baef2d-25fe-fac4-6a7e-b103b4b6721e__45928.1001518079$1584010164$gmane$org@suse.de>
+References: <20200219175007.13627-1-krzk@kernel.org>
+ <20200219175007.13627-7-krzk@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha256;
+ protocol="application/pgp-signature";
+ boundary="8zb502i0uNK5UHJJl43MN65Z2VSqAtFfM"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:59726 "EHLO foss.arm.com"
+Received: from mx2.suse.de ([195.135.220.15]:42226 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726044AbgCLJu0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 12 Mar 2020 05:50:26 -0400
-Content-Disposition: inline
-In-Reply-To: <0857cca0-9f75-398d-e755-f645d2d8a594@linaro.org>
+        id S1726023AbgCLKtR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 12 Mar 2020 06:49:17 -0400
+In-Reply-To: <20200219175007.13627-7-krzk@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <richard.henderson@linaro.org>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
+To: Krzysztof Kozlowski <krzk@kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick
 
-On Wed, Mar 11, 2020 at 03:17:54PM -0700, Richard Henderson wrote:
-> On 2/26/20 10:05 AM, Catalin Marinas wrote:
-> > +    /*
-> > +     * From include/uapi/linux/prctl.h
-> > +     */
-> > +    #define PR_SET_TAGGED_ADDR_CTRL 55
-> > +    #define PR_GET_TAGGED_ADDR_CTRL 56
-> > +    # define PR_TAGGED_ADDR_ENABLE  (1UL << 0)
-> > +    # define PR_MTE_TCF_SHIFT       1
-> > +    # define PR_MTE_TCF_NONE        (0UL << PR_MTE_TCF_SHIFT)
-> > +    # define PR_MTE_TCF_SYNC        (1UL << PR_MTE_TCF_SHIFT)
-> > +    # define PR_MTE_TCF_ASYNC       (2UL << PR_MTE_TCF_SHIFT)
-> > +    # define PR_MTE_TCF_MASK        (3UL << PR_MTE_TCF_SHIFT)
-> > +    # define PR_MTE_TAG_SHIFT       3
-> > +    # define PR_MTE_TAG_MASK        (0xffffUL << PR_MTE_TAG_SHIFT)
-> 
-> Is there a reason not to include TCMA into the set of bits that userland can
-> control with this prcrl?
-> 
-> I know that ordinarily TCR_ELx requires expensive syncing, but for this
-> particular field there is a note about "software may change this control bit on
-> a context switch".  Which I take to mean that the usual TLB-related syncing may
-> be omitted.
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--8zb502i0uNK5UHJJl43MN65Z2VSqAtFfM
+Content-Type: multipart/mixed; boundary="UnbV06xuRFGsh6csSeVcRA5al48ja8xJK";
+ protected-headers="v1"
+From: Thomas Zimmermann <tzimmermann@suse.de>
+To: Krzysztof Kozlowski <krzk@kernel.org>, Richard Henderson
+ <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+ Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>,
+ Vineet Gupta <vgupta@synopsys.com>,
+ "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+ Helge Deller <deller@gmx.de>,
+ Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+ Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>,
+ Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>,
+ Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>,
+ Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>,
+ Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby
+ <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>,
+ Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>,
+ "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>,
+ Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>,
+ "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>,
+ Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>,
+ Andrew Morton <akpm@linux-foundation.org>,
+ Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org,
+ linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+ linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org,
+ nouveau@lists.freedesktop.org, linux-media@vger.kernel.org,
+ linux-wireless@vger.kernel.org, netdev@vger.kernel.org,
+ linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org,
+ linux-arch@vger.kernel.org
+Message-ID: <90baef2d-25fe-fac4-6a7e-b103b4b6721e@suse.de>
+Subject: Re: [RESEND PATCH v2 6/9] drm/mgag200: Constify ioreadX() iomem
+ argument (as in generic implementation)
+References: <20200219175007.13627-1-krzk@kernel.org>
+ <20200219175007.13627-7-krzk@kernel.org>
+In-Reply-To: <20200219175007.13627-7-krzk@kernel.org>
 
-TCMA (unlike TCF) is allowed to be cached in the TLB. If we are to allow
-the user to configure this field, there are two approaches, each with
-its own problems:
+--UnbV06xuRFGsh6csSeVcRA5al48ja8xJK
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
 
-1. per-thread TCMA (as we do with TCF). Since the field is cached in the
-   TLB (ASID-tagged), we'd have to invalidate the TLB for that ASID
-   every time we switch between threads of the same process on a CPU.
+Hi Krzysztof,
 
-2. per-process TCMA. This solves the problem of TLB invalidation,
-   however you'd have to synchronise all the threads that may run on
-   other CPUs. A simple IPI (as in sys_membarrier() for example) is not
-   sufficient since with CnP (CPU threads sharing the TLB) we'd need a
-   synchronous update. This leaves us with a stop_machine() call and I'm
-   not keen on exposing this to user via a syscall.
+I just received a resend email from 3 weeks ago :/
 
-If you have a strong need for TCMA in user space, please raise it and we
-can discuss about always allowing match-all tags for user tasks. Note
-that the kernel will have match-all enabled for kernel addresses.
+Do you want me to merge the mgag200 patch into drm-misc-next?
 
--- 
-Catalin
+Best regards
+Thomas
+
+Am 19.02.20 um 18:50 schrieb Krzysztof Kozlowski:
+> The ioreadX() helpers have inconsistent interface.  On some architectur=
+es
+> void *__iomem address argument is a pointer to const, on some not.
+>=20
+> Implementations of ioreadX() do not modify the memory under the address=
+
+> so they can be converted to a "const" version for const-safety and
+> consistency among architectures.
+>=20
+> Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
+> Reviewed-by: Thomas Zimmermann <tzimmermann@suse.de>
+>=20
+> ---
+>=20
+> Changes since v1:
+> 1. Add Thomas' review.
+> ---
+>  drivers/gpu/drm/mgag200/mgag200_drv.h | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+>=20
+> diff --git a/drivers/gpu/drm/mgag200/mgag200_drv.h b/drivers/gpu/drm/mg=
+ag200/mgag200_drv.h
+> index aa32aad222c2..6512b3af4fb7 100644
+> --- a/drivers/gpu/drm/mgag200/mgag200_drv.h
+> +++ b/drivers/gpu/drm/mgag200/mgag200_drv.h
+> @@ -34,9 +34,9 @@
+> =20
+>  #define MGAG200FB_CONN_LIMIT 1
+> =20
+> -#define RREG8(reg) ioread8(((void __iomem *)mdev->rmmio) + (reg))
+> +#define RREG8(reg) ioread8(((const void __iomem *)mdev->rmmio) + (reg)=
+)
+>  #define WREG8(reg, v) iowrite8(v, ((void __iomem *)mdev->rmmio) + (reg=
+))
+> -#define RREG32(reg) ioread32(((void __iomem *)mdev->rmmio) + (reg))
+> +#define RREG32(reg) ioread32(((const void __iomem *)mdev->rmmio) + (re=
+g))
+>  #define WREG32(reg, v) iowrite32(v, ((void __iomem *)mdev->rmmio) + (r=
+eg))
+> =20
+>  #define ATTR_INDEX 0x1fc0
+>=20
+
+--=20
+Thomas Zimmermann
+Graphics Driver Developer
+SUSE Software Solutions Germany GmbH
+Maxfeldstr. 5, 90409 N=C3=BCrnberg, Germany
+(HRB 36809, AG N=C3=BCrnberg)
+Gesch=C3=A4ftsf=C3=BChrer: Felix Imend=C3=B6rffer
+
+
+--UnbV06xuRFGsh6csSeVcRA5al48ja8xJK--
+
+--8zb502i0uNK5UHJJl43MN65Z2VSqAtFfM
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAEBCAAdFiEEchf7rIzpz2NEoWjlaA3BHVMLeiMFAl5qE6QACgkQaA3BHVML
+eiOp7Af/Z24gM/vp7wuoDOu1s9VJhDHNRqfYcrpjv+SeE5E7jsj4gBCwwLJxuyKf
+5DIzeOH97Mrv5fgfIx97Af8C372d1sRW46TwvSXFm8ywyTvigM4cWdRapf9cXozZ
+AiQUCqkrkGEL6FhofMuHqZ2arL+6NooRluvXmoeX9bXA+itrwOhU4YhoIUwTJnUc
+7UrcNFXhCKIZrEGfkHGZrnbC/Lr9g+tBLcEcQJf69SUMc56aboUZf47aOcpw67lj
+3TpHOqEJwqnxnQlKSO0cL4BgwEzZWt3ahVqFdDlM+QfSlJO65N7Y6s8CismBxubN
+bGiOW37w7Bmi4mVHO5RWa3uelcwjoA==
+=D9Sa
+-----END PGP SIGNATURE-----
+
+--8zb502i0uNK5UHJJl43MN65Z2VSqAtFfM--
