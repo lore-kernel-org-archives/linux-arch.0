@@ -1,77 +1,47 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
-Date: Thu, 12 Mar 2020 18:42:11 +0000
-Message-ID: <20200312184211.GA3849205@arrakis.emea.arm.com>
-References: <20200227174417.23722-1-broonie@kernel.org>
- <20200306102729.GC2503422@arrakis.emea.arm.com>
- <20200309210505.GM4101@sirena.org.uk>
- <20200310124226.GC4106@sirena.org.uk>
- <20200311162858.GK3216816@arrakis.emea.arm.com>
- <20200311172556.GJ5411@sirena.org.uk>
+From: Bart Van Assche <bvanassche@acm.org>
+Subject: Re: [PATCH v1] asm-generic: Provide generic {get, put}_unaligned_{l,
+ b}e24()
+Date: Thu, 12 Mar 2020 11:50:07 -0700
+Message-ID: <6d932620-3255-fbd8-7fc8-22e4b3068043@acm.org>
+References: <20200312113941.81162-1-andriy.shevchenko@linux.intel.com>
+ <efe5daa3-8e37-101a-9203-676be33eb934@acm.org>
+ <20200312162507.GF1922688@smile.fi.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:39884 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726194AbgCLSmR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 12 Mar 2020 14:42:17 -0400
-Content-Disposition: inline
-In-Reply-To: <20200311172556.GJ5411@sirena.org.uk>
+Received: from mail-pf1-f193.google.com ([209.85.210.193]:36374 "EHLO
+        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725268AbgCLSuN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2020 14:50:13 -0400
+In-Reply-To: <20200312162507.GF1922688@smile.fi.intel.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina
+To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Cc: Keith Busch <kbusch@kernel.org>, Jens Axboe <axboe@fb.com>, Christoph Hellwig <hch@lst.de>, Sagi Grimberg <sagi@grimberg.me>, Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>, linux-nvme@lists.infradead.org, Felipe Balbi <balbi@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-usb@vger.kernel.org, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-scsi@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 
-On Wed, Mar 11, 2020 at 05:25:56PM +0000, Mark Brown wrote:
-> On Wed, Mar 11, 2020 at 04:28:58PM +0000, Catalin Marinas wrote:
-> > On Tue, Mar 10, 2020 at 12:42:26PM +0000, Mark Brown wrote:
-> > > Sorry, I realized thanks to Amit's off-list prompting that I was testing
-> > > that I was verifying with the wrong kernel binary here (user error since
-> > > it took me a while to sort out uprobes) so this isn't quite right - you
-> > > can probe the landing pads with or without this series.
+On 3/12/20 9:25 AM, Andy Shevchenko wrote:
+> On Thu, Mar 12, 2020 at 08:18:07AM -0700, Bart Van Assche wrote:
+>> On 2020-03-12 04:39, Andy Shevchenko wrote:
+>>> There are users in kernel that duplicate {get,put}_unaligned_{l,b}e24()
+>>> implementation. Provide generic helpers once for all.
+>>
+>> Hi Andy,
+>>
+>> Thanks for having done this work. In case you would not yet have noticed
+>> the patch series that I posted some time ago but for which I did not
+>> have the time to continue working on it, please take a look at
+>> https://lore.kernel.org/lkml/20191028200700.213753-1-bvanassche@acm.org/.
 > 
-> > Can we not change aarch64_insn_is_nop() to actually return true only for
-> > NOP and ignore everything else in the hint space? We tend to re-use the
-> > hint instructions for new things in the architecture, so I'd rather
-> > white-list what we know we can safely probe than black-listing only some
-> > of the hint instructions.
-[...]
-> > I haven't assessed the effort of doing the above (probably not a lot)
-> > but as a short-term workaround we could add the BTI and PAC hint
-> > instructions to the aarch64_insn_is_nop() (though my preferred option is
-> > the white-list one).
+> Can you send a new version?
 > 
-> The only thing I've seen in testing with just NOPs whitelisted is an
-> inability to probe the PAC instructions which isn't the best user
-> experience, especially since the effect is that the probes get silently
-> ignored. This isn't extensive userspace testing though.  Adding
-> whitelisting of the BTI and PAC hints would definitely be a safer as a
-> first step though.  I can post either version?
+> Also, consider to use byteshift to avoid this limitation:
+> "Only use get_unaligned_be24() if reading p - 1 is allowed."
 
-I thought BTI and PAC are already whitelisted in mainline as they fall
-into the hint space (by whitelisting I mean you can probe them).
+Sure, I will do that and I will also add you to the Cc-list of the patch 
+series.
 
-I'm trying to understand how the BTI patches affect the current uprobes
-support and what is needed. Executing BTI or PCI?SP out of line should
-be fine as they don't generate a BTI exception (the BRK doesn't either,
-just the normal debug exception).
+Thanks,
 
-I think (it needs checking) that BRK preserves the PSTATE.BTYPE in SPSR.
-If we probe an instruction in a guarded page and then we single-step it
-in a non-guarded page, we'll miss a potential BTI fault. Is this an
-issue?
-
-If we are to keep the BTI faulting behaviour, we'd need an additional
-xol page, guarded, and to find a way to report the original probed
-address of the fault rather than the xol page.
-
-So, IIUC, we don't have an issue with the actual BTI or PACI?SP
-instructions but rather the other instructions that would not fault with
-the BTI support. While we should try to address this, I think the
-important bit now is not to break the existing uprobes support when
-running a binary with BTI enabled.
-
-Have I missed anything?
-
--- 
-Catalin
+Bart.
