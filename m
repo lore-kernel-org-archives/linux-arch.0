@@ -1,128 +1,78 @@
-Return-Path: <SRS0=M4aj=5P=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-wm1-f65.google.com ([209.85.128.65]:52026 "EHLO
-        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729139AbgC3WMw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2020 18:12:52 -0400
-Received: by mail-wm1-f65.google.com with SMTP id c187so497795wme.1
-        for <linux-arch@vger.kernel.org>; Mon, 30 Mar 2020 15:12:51 -0700 (PDT)
+Return-Path: <SRS0=UTne=45=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:39884 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726194AbgCLSmR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 12 Mar 2020 14:42:17 -0400
+Date: Thu, 12 Mar 2020 18:42:11 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
+Message-ID: <20200312184211.GA3849205@arrakis.emea.arm.com>
+References: <20200227174417.23722-1-broonie@kernel.org>
+ <20200306102729.GC2503422@arrakis.emea.arm.com>
+ <20200309210505.GM4101@sirena.org.uk>
+ <20200310124226.GC4106@sirena.org.uk>
+ <20200311162858.GK3216816@arrakis.emea.arm.com>
+ <20200311172556.GJ5411@sirena.org.uk>
 MIME-Version: 1.0
-References: <cover.1585579244.git.thehajime@gmail.com> <dca6ea7260830a03c060f57e6ab9961f16ad55ed.1585579244.git.thehajime@gmail.com>
- <a84f3d7bcddbaa6125349c4bcdec6e3e07d6b783.camel@sipsolutions.net>
-In-Reply-To: <a84f3d7bcddbaa6125349c4bcdec6e3e07d6b783.camel@sipsolutions.net>
-From: Richard Weinberger <richard.weinberger@gmail.com>
-Date: Tue, 31 Mar 2020 00:12:38 +0200
-Message-ID: <CAFLxGvyFqXZSmMcD_=o81AHLzdM_u2iH8h412w7VZrxON7Ohig@mail.gmail.com>
-Subject: Re: [RFC v4 02/25] um lkl: architecture skeleton for Linux kernel library
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200311172556.GJ5411@sirena.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Johannes Berg <johannes@sipsolutions.net>
-Cc: Hajime Tazaki <thehajime@gmail.com>, linux-um <linux-um@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Levente Kurusa <levex@linux.com>, Matthieu Coudron <mattator@gmail.com>, Conrad Meyer <cem@freebsd.org>, Octavian Purdila <tavi.purdila@gmail.com>, Jens Staal <staal1978@gmail.com>, Motomu Utsumi <motomuman@gmail.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Akira Moroo <retrage01@gmail.com>, Petros Angelatos <petrosagg@gmail.com>, "Edison M . Castro" <edisonmcastro@hotmail.com>, Xiao Jia <xiaoj@google.com>, Mark Stillwell <mark@stillwell.me>, linux-kernel-library@freelists.org, Patrick Collins <pscollins@google.com>, Pierre-Hugues Husson <phh@phh.me>, Michael Zimmermann <sigmaepsilon92@gmail.com>, Luca Dariz <luca.dariz@gmail.com>, Yuan Liu <liuyuan@google.com>
-Message-ID: <20200330221238.L7VG2axO2UQBs5cs2BSaYt9skQMjFjIjJaCyt2Bf06s@z>
+To: Mark Brown <broonie@kernel.org>
+Cc: Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200312184211.xZbWmNBrQsEzYloyyEAQ5kN35YgPcEipcFLYrCc4FmA@z>
 
-Johannes, Hajime,
+On Wed, Mar 11, 2020 at 05:25:56PM +0000, Mark Brown wrote:
+> On Wed, Mar 11, 2020 at 04:28:58PM +0000, Catalin Marinas wrote:
+> > On Tue, Mar 10, 2020 at 12:42:26PM +0000, Mark Brown wrote:
+> > > Sorry, I realized thanks to Amit's off-list prompting that I was testing
+> > > that I was verifying with the wrong kernel binary here (user error since
+> > > it took me a while to sort out uprobes) so this isn't quite right - you
+> > > can probe the landing pads with or without this series.
+> 
+> > Can we not change aarch64_insn_is_nop() to actually return true only for
+> > NOP and ignore everything else in the hint space? We tend to re-use the
+> > hint instructions for new things in the architecture, so I'd rather
+> > white-list what we know we can safely probe than black-listing only some
+> > of the hint instructions.
+[...]
+> > I haven't assessed the effort of doing the above (probably not a lot)
+> > but as a short-term workaround we could add the BTI and PAC hint
+> > instructions to the aarch64_insn_is_nop() (though my preferred option is
+> > the white-list one).
+> 
+> The only thing I've seen in testing with just NOPs whitelisted is an
+> inability to probe the PAC instructions which isn't the best user
+> experience, especially since the effect is that the probes get silently
+> ignored. This isn't extensive userspace testing though.  Adding
+> whitelisting of the BTI and PAC hints would definitely be a safer as a
+> first step though.  I can post either version?
 
-On Mon, Mar 30, 2020 at 11:53 PM Johannes Berg
-<johannes@sipsolutions.net> wrote:
->
-> On Mon, 2020-03-30 at 23:45 +0900, Hajime Tazaki wrote:
-> > From: Octavian Purdila <tavi.purdila@gmail.com>
-> >
-> > Adds the LKL Kconfig, vmlinux linker script, basic architecture
-> > headers and miscellaneous basic functions or stubs such as
-> > dump_stack(), show_regs() and cpuinfo proc ops.
-> >
-> > The headers we introduce in this patch are simple wrappers to the
-> > asm-generic headers or stubs for things we don't support, such as
-> > ptrace, DMA, signals, ELF handling and low level processor operations.
-> >
-> > The kernel configuration is automatically updated to reflect the
-> > endianness of the host, 64bit support or the output format for
-> > vmlinux's linker script. We do this by looking at the ld's default
-> > output format.
->
-> Can you elaborate what the plan is here?
->
-> I mean, you're not actually "unifying" anything with ARCH=um, you're
-> just basically splitting ARCH=um into ARCH=um-um and ARCH=um-lkl or
-> something. Is there much point?
->
-> Even the basic underlying building blocks are _very_ different, e.g. in
-> UML the host interface is just a bunch of functions that must be
-> implemented (os_*()), while you have a "struct lkl_host_operations". If
-> we can't even unify at that trivial level, is there any point in it at
-> all? I'm not even really sure what those ops are used for - are all of
-> those things that the *application* using LKL necessarily must provide?
->
-> Similarly with the IRQ routing mechanism - two completely different
-> concepts. Where's the "unifying"?
->
-> Ultimately, I can see two ways this goes:
->
-> 1) We give up, and get ARCH=lkl, sharing just (some of) the drivers
->    while moving them into the right drivers/somewhere/ place. Even that
->    looks somewhat awkward looking at the later patches in this set, but
->    seems like that at *least* should be done.
+I thought BTI and PAC are already whitelisted in mainline as they fall
+into the hint space (by whitelisting I mean you can probe them).
 
-Yeah, this would be a goal.
-UML and LKL are quite different but they should share at least their userspace
-drivers.
-I also don't mind if we don't share every driver at the beginning but
-it should be
-a feasible goal for the future.
+I'm trying to understand how the BTI patches affect the current uprobes
+support and what is needed. Executing BTI or PCI?SP out of line should
+be fine as they don't generate a BTI exception (the BRK doesn't either,
+just the normal debug exception).
 
-> 2) Ideally, instead, we actually unify: LKL grows support for userspace
->    processes using UML infrastructure, the "in-kernel" IRQ mechanisms
->    are unified, UML stuff moves into lkl-ops, and the UML binary
->    basically becomes a user of the LKL library to start everything up.
->    There may be some bits remaining that are just not interesting (e.g.
->    some drivers you don't care about would continue to make direct calls
->    to the user side instead of lkl-ops, and then they're just not
->    compatible with lkl, only with the uml special case of lkl), but then
->    things are clean.
+I think (it needs checking) that BRK preserves the PSTATE.BTYPE in SPSR.
+If we probe an instruction in a guarded page and then we single-step it
+in a non-guarded page, we'll miss a potential BTI fault. Is this an
+issue?
 
-A few months ago I though this is doable but now I'm not so sure anymore.
+If we are to keep the BTI faulting behaviour, we'd need an additional
+xol page, guarded, and to find a way to report the original probed
+address of the fault rather than the xol page.
 
->
-> Now, of course it seems like (2) would actually be better - LKL would
-> actually get support for userspace processes using UML's tricks, most of
-> the code is unified, and even LKL's users can take advantage of new
-> things. At the same time, all of the duplication is avoided.
->
-> However, I just don't know if it's actually _possible_ to do that
-> though. Conceptually, it seems like it should be - why shouldn't a
-> library be able to spawn other userspace processes - I mean, it's not
-> really in the model that LKL really _wants_ since it's supposed to offer
-> the syscall API, but you could make a "bool run_normal_init" or
-> something in the lkl-ops for the user of the library to determine what
-> should happen, right?
->
-> However, there clearly are huge differences between LKL and UML in all
-> respects, and I don't know if this wouldn't conflict with the library
-> model, e.g. there may be linker issues etc. Or maybe the specific UML
-> interrupt handling is required in UML and cannot be done in LKL (but
-> then perhaps it could be put into the hypothetical UML-application vs.
-> UML-the-LKL-library?)
->
->
-> Ultimately, personally I think it's going to have to be one or the other
-> of those two options though, I don't really see much value in what
-> you're doing here in the patchset now. This way just messes up
-> everything, it's not clear what's UML and what's LKL, and they're
-> intertwined with ifdefs everywhere; just look at where you have to add
-> ifdefs in patch 23 - how would anyone later understand which part gets
-> compiled for which of them?
->
-> johannes
->
-> PS: actually having something like lkl-ops in UML would've been nice
-> also for my "time-travel" work, since it neatly abstracts the timers
-> out. I do wonder a bit about the overhead of jumping through function
-> pointers all the time though, it may be worth rethinking that overall
-> anyway!
+So, IIUC, we don't have an issue with the actual BTI or PACI?SP
+instructions but rather the other instructions that would not fault with
+the BTI support. While we should try to address this, I think the
+important bit now is not to break the existing uprobes support when
+running a binary with BTI enabled.
 
-Agreed. UML can also learn from LKL. :-)
+Have I missed anything?
 
 -- 
-Thanks,
-//richard
+Catalin
