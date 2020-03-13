@@ -1,13 +1,13 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 09/26] linux/math64.h: Extract common header for vDSO
-Date: Fri, 13 Mar 2020 15:43:28 +0000
-Message-ID: <20200313154345.56760-10-vincenzo.frascino@arm.com>
+Subject: [PATCH v3 10/26] linux/time.h: Extract common header for vDSO
+Date: Fri, 13 Mar 2020 15:43:29 +0000
+Message-ID: <20200313154345.56760-11-vincenzo.frascino@arm.com>
 References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-mips-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-Sender: linux-mips-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
 Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
 List-Id: linux-arch.vger.kernel.org
@@ -17,83 +17,48 @@ a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Split math64.h into linux and common headers to make the latter suitable
+Split time.h into linux and common headers to make the latter suitable
 for inclusion in the vDSO library.
 
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/linux/math64.h | 20 +-------------------
- include/vdso/math64.h  | 24 ++++++++++++++++++++++++
- 2 files changed, 25 insertions(+), 19 deletions(-)
- create mode 100644 include/vdso/math64.h
+ include/linux/time.h |  5 +----
+ include/vdso/time.h  | 12 ++++++++++++
+ 2 files changed, 13 insertions(+), 4 deletions(-)
+ create mode 100644 include/vdso/time.h
 
-diff --git a/include/linux/math64.h b/include/linux/math64.h
-index 65bef21cdddb..11a267413e8e 100644
---- a/include/linux/math64.h
-+++ b/include/linux/math64.h
-@@ -3,6 +3,7 @@
- #define _LINUX_MATH64_H
+diff --git a/include/linux/time.h b/include/linux/time.h
+index 8ef5e5cc9f57..4c325bf44ce0 100644
+--- a/include/linux/time.h
++++ b/include/linux/time.h
+@@ -111,9 +111,6 @@ static inline bool itimerspec64_valid(const struct itimerspec64 *its)
+  */
+ #define time_between32(t, l, h) ((u32)(h) - (u32)(l) >= (u32)(t) - (u32)(l))
  
- #include <linux/types.h>
-+#include <vdso/math64.h>
- #include <asm/div64.h>
+-struct timens_offset {
+-	s64	sec;
+-	u64	nsec;
+-};
++# include <vdso/time.h>
  
- #if BITS_PER_LONG == 64
-@@ -142,25 +143,6 @@ static inline s64 div_s64(s64 dividend, s32 divisor)
- 
- u32 iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder);
- 
--static __always_inline u32
--__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
--{
--	u32 ret = 0;
--
--	while (dividend >= divisor) {
--		/* The following asm() prevents the compiler from
--		   optimising this loop into a modulo operation.  */
--		asm("" : "+rm"(dividend));
--
--		dividend -= divisor;
--		ret++;
--	}
--
--	*remainder = dividend;
--
--	return ret;
--}
--
- #ifndef mul_u32_u32
- /*
-  * Many a GCC version messes this up and generates a 64x64 mult :-(
-diff --git a/include/vdso/math64.h b/include/vdso/math64.h
+ #endif
+diff --git a/include/vdso/time.h b/include/vdso/time.h
 new file mode 100644
-index 000000000000..7da703ee5561
+index 000000000000..739f53cd2949
 --- /dev/null
-+++ b/include/vdso/math64.h
-@@ -0,0 +1,24 @@
++++ b/include/vdso/time.h
+@@ -0,0 +1,12 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_MATH64_H
-+#define __VDSO_MATH64_H
++#ifndef __VDSO_TIME_H
++#define __VDSO_TIME_H
 +
-+static __always_inline u32
-+__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
-+{
-+	u32 ret = 0;
++#include <uapi/linux/types.h>
 +
-+	while (dividend >= divisor) {
-+		/* The following asm() prevents the compiler from
-+		   optimising this loop into a modulo operation.  */
-+		asm("" : "+rm"(dividend));
++struct timens_offset {
++	s64	sec;
++	u64	nsec;
++};
 +
-+		dividend -= divisor;
-+		ret++;
-+	}
-+
-+	*remainder = dividend;
-+
-+	return ret;
-+}
-+
-+#endif /* __VDSO_MATH64_H */
++#endif /* __VDSO_TIME_H */
 -- 
 2.25.1
