@@ -1,51 +1,111 @@
-From: Mark Brown <broonie@kernel.org>
-Subject: Re: [PATCH v9 02/13] ELF: Add ELF program property parsing support
-Date: Fri, 13 Mar 2020 11:55:58 +0000
-Message-ID: <20200313115558.GC5528@sirena.org.uk>
-References: <20200311192608.40095-1-broonie@kernel.org>
- <20200311192608.40095-3-broonie@kernel.org>
- <202003121658.39A47CE098@keescook>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: Re: [PATCH v2 20/20] arm64: vdso32: Enable Clang Compilation
+Date: Fri, 13 Mar 2020 12:01:57 +0000
+Message-ID: <ce62f238-eea9-a0eb-6f72-a3ef5c4a275a@arm.com>
+References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
+ <20200306133242.26279-21-vincenzo.frascino@arm.com>
+ <20200310014039.GA12211@ubuntu-m2-xlarge-x86>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="gr/z0/N6AeWAPJVB"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:53580 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:53730 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726216AbgCML4B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Mar 2020 07:56:01 -0400
-Content-Disposition: inline
-In-Reply-To: <202003121658.39A47CE098@keescook>
+        id S1726636AbgCMMBg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Mar 2020 08:01:36 -0400
+In-Reply-To: <20200310014039.GA12211@ubuntu-m2-xlarge-x86>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudak
+To: Nathan Chancellor <natechancellor@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
 
+On 3/10/20 1:40 AM, Nathan Chancellor wrote:
+> On Fri, Mar 06, 2020 at 01:32:42PM +0000, Vincenzo Frascino wrote:
+>> Enable Clang Compilation for the vdso32 library.
+>>
+>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> Cc: Will Deacon <will@kernel.org>
+>> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+>> ---
+>>  arch/arm64/kernel/vdso32/Makefile | 13 ++++++++++++-
+>>  1 file changed, 12 insertions(+), 1 deletion(-)
+>>
+>> diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
+>> index 04df57b43cb1..650cfc5757eb 100644
+>> --- a/arch/arm64/kernel/vdso32/Makefile
+>> +++ b/arch/arm64/kernel/vdso32/Makefile
+>> @@ -10,7 +10,18 @@ include $(srctree)/lib/vdso/Makefile
+>>  
+>>  # Same as cc-*option, but using CC_COMPAT instead of CC
+>>  ifeq ($(CONFIG_CC_IS_CLANG), y)
+>> -CC_COMPAT ?= $(CC)
+>> +COMPAT_GCC_TOOLCHAIN_DIR := $(dir $(shell which $(CROSS_COMPILE_COMPAT)elfedit))
+>> +COMPAT_GCC_TOOLCHAIN := $(realpath $(COMPAT_GCC_TOOLCHAIN_DIR)/..)
+>> +
+>> +CLANG_CC_COMPAT := $(CC)
+>> +CLANG_CC_COMPAT += --target=$(notdir $(CROSS_COMPILE_COMPAT:%-=%))
+>> +CLANG_CC_COMPAT += --prefix=$(COMPAT_GCC_TOOLCHAIN_DIR)
+>> +CLANG_CC_COMPAT += -no-integrated-as -Qunused-arguments
+>> +ifneq ($(COMPAT_GCC_TOOLCHAIN),)
+>> +CLANG_CC_COMPAT += --gcc-toolchain=$(COMPAT_GCC_TOOLCHAIN)
+>> +endif
+>> +
+>> +CC_COMPAT ?= $(CLANG_CC_COMPAT)
+>>  else
+>>  CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
+>>  endif
+>> -- 
+>> 2.25.1
+>>
+> If CC_COMPAT is ever specified on the command line as clang (maybe by
+> some unsuspecting user), we'd loose all of the above flags. Maybe it
+> would be better to build a set of COMPAT_CLANG_FLAGS and append them to
+> CC_COMPAT, maybe like below?
+>
 
---gr/z0/N6AeWAPJVB
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Fine by me.
 
-On Thu, Mar 12, 2020 at 04:59:21PM -0700, Kees Cook wrote:
+> Regardless, the current approach works in my testing with clang 9.0.1
+> and master (clang 11.0.0). This patch specifically is:
+> 
 
-> I think my review got lost along the way. Please consider this:
+Good to hear. I will add your tags to the patch.
 
-> Reviewed-by: Kees Cook <keescook@chromium.org>
+> Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
+> Tested-by: Nathan Chancellor <natechancellor@gmail.com> # build
+> 
+> ==================================================================================
+> 
+> diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
+> index 650cfc5757eb..df5145fab287 100644
+> --- a/arch/arm64/kernel/vdso32/Makefile
+> +++ b/arch/arm64/kernel/vdso32/Makefile
+> @@ -13,15 +13,16 @@ ifeq ($(CONFIG_CC_IS_CLANG), y)
+>  COMPAT_GCC_TOOLCHAIN_DIR := $(dir $(shell which $(CROSS_COMPILE_COMPAT)elfedit))
+>  COMPAT_GCC_TOOLCHAIN := $(realpath $(COMPAT_GCC_TOOLCHAIN_DIR)/..)
+>  
+> -CLANG_CC_COMPAT := $(CC)
+> -CLANG_CC_COMPAT += --target=$(notdir $(CROSS_COMPILE_COMPAT:%-=%))
+> -CLANG_CC_COMPAT += --prefix=$(COMPAT_GCC_TOOLCHAIN_DIR)
+> -CLANG_CC_COMPAT += -no-integrated-as -Qunused-arguments
+> +COMPAT_CLANG_FLAGS := --target=$(notdir $(CROSS_COMPILE_COMPAT:%-=%))
+> +COMPAT_CLANG_FLAGS += --prefix=$(COMPAT_GCC_TOOLCHAIN_DIR)
+> +COMPAT_CLANG_FLAGS += -no-integrated-as -Qunused-arguments
+>  ifneq ($(COMPAT_GCC_TOOLCHAIN),)
+> -CLANG_CC_COMPAT += --gcc-toolchain=$(COMPAT_GCC_TOOLCHAIN)
+> +COMPAT_CLANG_FLAGS += --gcc-toolchain=$(COMPAT_GCC_TOOLCHAIN)
+>  endif
+>  
+> -CC_COMPAT ?= $(CLANG_CC_COMPAT)
+> +CC_COMPAT ?= $(CC)
+> +CC_COMPAT += $(COMPAT_CLANG_FLAGS)
+> +
+>  else
+>  CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
+>  endif
+> 
 
-Yes, sorry - I've added it locally (and the other two you sent just now).
-
---gr/z0/N6AeWAPJVB
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5rdM0ACgkQJNaLcl1U
-h9Ct3wf+MPz1HrOXhlGATJUUi/83pv08oTCCzRaHqlsusA4dPg41W77Sgpj37/Yr
-9LGONneWZqrufnFxx7ZEMJpqwJU1ROce8kl59OqNPAvVm25jQSBFMoboDrWHPCXB
-GbTThVC6FmnF/QboOwdYKGH5/PVXLyxlH5widr4tjataNyWfaxVfk9RUmm8zCZHI
-EqNJbvFejd2e6+g32ZxnnqAl8/nWswnuorlm884nKrqdAN69dyJIcDb19NaP9ZDc
-8WJd4HoiMr+vT1a/JnkZCB/LwJU3nBlbOFWm7CNuHntRErsTZ5vZJ9m6ORz9v0oY
-wU2OLaDYGXBG21NDPFxxWbEEBW2zFg==
-=f6yG
------END PGP SIGNATURE-----
-
---gr/z0/N6AeWAPJVB--
+-- 
+Regards,
+Vincenzo
