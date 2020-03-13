@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 26/26] arm64: vdso32: Enable Clang Compilation
-Date: Fri, 13 Mar 2020 15:43:45 +0000
-Message-ID: <20200313154345.56760-27-vincenzo.frascino@arm.com>
+Subject: [PATCH v3 24/26] arm: vdso: Enable arm to use common headers
+Date: Fri, 13 Mar 2020 15:43:43 +0000
+Message-ID: <20200313154345.56760-25-vincenzo.frascino@arm.com>
 References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,42 +9,171 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Enable Clang Compilation for the vdso32 library.
+Enable arm to use only the common headers in the implementation
+of the vDSO library.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
-Tested-by: Nathan Chancellor <natechancellor@gmail.com> # build
+Cc: Russell King <linux@armlinux.org.uk>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/kernel/vdso32/Makefile | 11 +++++++++++
- 1 file changed, 11 insertions(+)
+ arch/arm/include/asm/cp15.h              | 20 +------------
+ arch/arm/include/asm/processor.h         | 11 +------
+ arch/arm/include/asm/vdso/cp15.h         | 38 ++++++++++++++++++++++++
+ arch/arm/include/asm/vdso/gettimeofday.h |  4 +--
+ arch/arm/include/asm/vdso/processor.h    | 22 ++++++++++++++
+ 5 files changed, 64 insertions(+), 31 deletions(-)
+ create mode 100644 arch/arm/include/asm/vdso/cp15.h
+ create mode 100644 arch/arm/include/asm/vdso/processor.h
 
-diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
-index 04df57b43cb1..3964738ebbde 100644
---- a/arch/arm64/kernel/vdso32/Makefile
-+++ b/arch/arm64/kernel/vdso32/Makefile
-@@ -10,7 +10,18 @@ include $(srctree)/lib/vdso/Makefile
+diff --git a/arch/arm/include/asm/cp15.h b/arch/arm/include/asm/cp15.h
+index d2453e2d3f1f..a54230e65647 100644
+--- a/arch/arm/include/asm/cp15.h
++++ b/arch/arm/include/asm/cp15.h
+@@ -50,25 +50,7 @@
  
- # Same as cc-*option, but using CC_COMPAT instead of CC
- ifeq ($(CONFIG_CC_IS_CLANG), y)
-+COMPAT_GCC_TOOLCHAIN_DIR := $(dir $(shell which $(CROSS_COMPILE_COMPAT)elfedit))
-+COMPAT_GCC_TOOLCHAIN := $(realpath $(COMPAT_GCC_TOOLCHAIN_DIR)/..)
+ #ifdef CONFIG_CPU_CP15
+ 
+-#define __ACCESS_CP15(CRn, Op1, CRm, Op2)	\
+-	"mrc", "mcr", __stringify(p15, Op1, %0, CRn, CRm, Op2), u32
+-#define __ACCESS_CP15_64(Op1, CRm)		\
+-	"mrrc", "mcrr", __stringify(p15, Op1, %Q0, %R0, CRm), u64
+-
+-#define __read_sysreg(r, w, c, t) ({				\
+-	t __val;						\
+-	asm volatile(r " " c : "=r" (__val));			\
+-	__val;							\
+-})
+-#define read_sysreg(...)		__read_sysreg(__VA_ARGS__)
+-
+-#define __write_sysreg(v, r, w, c, t)	asm volatile(w " " c : : "r" ((t)(v)))
+-#define write_sysreg(v, ...)		__write_sysreg(v, __VA_ARGS__)
+-
+-#define BPIALL				__ACCESS_CP15(c7, 0, c5, 6)
+-#define ICIALLU				__ACCESS_CP15(c7, 0, c5, 0)
+-
+-#define CNTVCT				__ACCESS_CP15_64(1, c14)
++#include <asm/vdso/cp15.h>
+ 
+ extern unsigned long cr_alignment;	/* defined in entry-armv.S */
+ 
+diff --git a/arch/arm/include/asm/processor.h b/arch/arm/include/asm/processor.h
+index 614bf829e454..b9241051e5cb 100644
+--- a/arch/arm/include/asm/processor.h
++++ b/arch/arm/include/asm/processor.h
+@@ -14,6 +14,7 @@
+ #include <asm/ptrace.h>
+ #include <asm/types.h>
+ #include <asm/unified.h>
++#include <asm/vdso/processor.h>
+ 
+ #ifdef __KERNEL__
+ #define STACK_TOP	((current->personality & ADDR_LIMIT_32BIT) ? \
+@@ -85,16 +86,6 @@ extern void release_thread(struct task_struct *);
+ 
+ unsigned long get_wchan(struct task_struct *p);
+ 
+-#if __LINUX_ARM_ARCH__ == 6 || defined(CONFIG_ARM_ERRATA_754327)
+-#define cpu_relax()						\
+-	do {							\
+-		smp_mb();					\
+-		__asm__ __volatile__("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");	\
+-	} while (0)
+-#else
+-#define cpu_relax()			barrier()
+-#endif
+-
+ #define task_pt_regs(p) \
+ 	((struct pt_regs *)(THREAD_START_SP + task_stack_page(p)) - 1)
+ 
+diff --git a/arch/arm/include/asm/vdso/cp15.h b/arch/arm/include/asm/vdso/cp15.h
+new file mode 100644
+index 000000000000..bed16fa1865e
+--- /dev/null
++++ b/arch/arm/include/asm/vdso/cp15.h
+@@ -0,0 +1,38 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_VDSO_CP15_H
++#define __ASM_VDSO_CP15_H
 +
-+CC_COMPAT_CLANG_FLAGS := --target=$(notdir $(CROSS_COMPILE_COMPAT:%-=%))
-+CC_COMPAT_CLANG_FLAGS += --prefix=$(COMPAT_GCC_TOOLCHAIN_DIR)
-+CC_COMPAT_CLANG_FLAGS += -no-integrated-as -Qunused-arguments
-+ifneq ($(COMPAT_GCC_TOOLCHAIN),)
-+CC_COMPAT_CLANG_FLAGS += --gcc-toolchain=$(COMPAT_GCC_TOOLCHAIN)
-+endif
++#ifndef __ASSEMBLY__
 +
- CC_COMPAT ?= $(CC)
-+CC_COMPAT += $(CC_COMPAT_CLANG_FLAGS)
- else
- CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
- endif
++#ifdef CONFIG_CPU_CP15
++
++#include <linux/stringify.h>
++
++#define __ACCESS_CP15(CRn, Op1, CRm, Op2)	\
++	"mrc", "mcr", __stringify(p15, Op1, %0, CRn, CRm, Op2), u32
++#define __ACCESS_CP15_64(Op1, CRm)		\
++	"mrrc", "mcrr", __stringify(p15, Op1, %Q0, %R0, CRm), u64
++
++#define __read_sysreg(r, w, c, t) ({				\
++	t __val;						\
++	asm volatile(r " " c : "=r" (__val));			\
++	__val;							\
++})
++#define read_sysreg(...)		__read_sysreg(__VA_ARGS__)
++
++#define __write_sysreg(v, r, w, c, t)	asm volatile(w " " c : : "r" ((t)(v)))
++#define write_sysreg(v, ...)		__write_sysreg(v, __VA_ARGS__)
++
++#define BPIALL				__ACCESS_CP15(c7, 0, c5, 6)
++#define ICIALLU				__ACCESS_CP15(c7, 0, c5, 0)
++
++#define CNTVCT				__ACCESS_CP15_64(1, c14)
++
++#endif /* CONFIG_CPU_CP15 */
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_CP15_H */
+diff --git a/arch/arm/include/asm/vdso/gettimeofday.h b/arch/arm/include/asm/vdso/gettimeofday.h
+index 07d791c65cf7..36dc18553ed8 100644
+--- a/arch/arm/include/asm/vdso/gettimeofday.h
++++ b/arch/arm/include/asm/vdso/gettimeofday.h
+@@ -7,9 +7,9 @@
+ 
+ #ifndef __ASSEMBLY__
+ 
+-#include <asm/barrier.h>
+-#include <asm/cp15.h>
++#include <asm/errno.h>
+ #include <asm/unistd.h>
++#include <asm/vdso/cp15.h>
+ #include <uapi/linux/time.h>
+ 
+ #define VDSO_HAS_CLOCK_GETRES		1
+diff --git a/arch/arm/include/asm/vdso/processor.h b/arch/arm/include/asm/vdso/processor.h
+new file mode 100644
+index 000000000000..45efb3ff511c
+--- /dev/null
++++ b/arch/arm/include/asm/vdso/processor.h
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_VDSO_PROCESSOR_H
++#define __ASM_VDSO_PROCESSOR_H
++
++#ifndef __ASSEMBLY__
++
++#if __LINUX_ARM_ARCH__ == 6 || defined(CONFIG_ARM_ERRATA_754327)
++#define cpu_relax()						\
++	do {							\
++		smp_mb();					\
++		__asm__ __volatile__("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");	\
++	} while (0)
++#else
++#define cpu_relax()			barrier()
++#endif
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_PROCESSOR_H */
 -- 
 2.25.1
