@@ -1,100 +1,116 @@
-Return-Path: <SRS0=Zkb6=4V=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:46234 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1728278AbgCDQIl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Mar 2020 11:08:41 -0500
-From: Alex Belits <abelits@marvell.com>
-Subject: [PATCH 04/12] task_isolation: Add task isolation hooks to
- arch-independent code
-Date: Wed, 4 Mar 2020 16:08:16 +0000
-Message-ID: <f2b414a445d4ffa343d6e074310b9f08301f8cc1.camel@marvell.com>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
-In-Reply-To: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <D1A3992A7D59F34FB63E47FFAC8380BA@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:58874 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727369AbgCMPpE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Mar 2020 11:45:04 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
+Date: Fri, 13 Mar 2020 15:43:37 +0000
+Message-ID: <20200313154345.56760-19-vincenzo.frascino@arm.com>
+In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-mm@vger.kernel.org" <linux-mm@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20200304160816.QKEvMITQ6kQMckFRcbodItPI-m7WMXyIoI591qcfWI8@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200313154337.Rlm6XoRS6cEykXuv-V-RJa9uchG5IolR_szG91pV5WM@z>
 
-RnJvbTogQ2hyaXMgTWV0Y2FsZiA8Y21ldGNhbGZAbWVsbGFub3guY29tPg0KDQpUaGlzIGNvbW1p
-dCBhZGRzIHRhc2sgaXNvbGF0aW9uIGhvb2tzIGFzIGZvbGxvd3M6DQoNCi0gX19oYW5kbGVfZG9t
-YWluX2lycSgpIGdlbmVyYXRlcyBhbiBpc29sYXRpb24gd2FybmluZyBmb3IgdGhlDQogIGxvY2Fs
-IHRhc2sNCg0KLSBpcnFfd29ya19xdWV1ZV9vbigpIGdlbmVyYXRlcyBhbiBpc29sYXRpb24gd2Fy
-bmluZyBmb3IgdGhlIHJlbW90ZQ0KICB0YXNrIGJlaW5nIGludGVycnVwdGVkIGZvciBpcnFfd29y
-aw0KDQotIGdlbmVyaWNfZXhlY19zaW5nbGUoKSBnZW5lcmF0ZXMgYSByZW1vdGUgaXNvbGF0aW9u
-IHdhcm5pbmcgZm9yDQogIHRoZSByZW1vdGUgY3B1IGJlaW5nIElQSSdkDQoNCi0gc21wX2NhbGxf
-ZnVuY3Rpb25fbWFueSgpIGdlbmVyYXRlcyBhIHJlbW90ZSBpc29sYXRpb24gd2FybmluZyBmb3IN
-CiAgdGhlIHNldCBvZiByZW1vdGUgY3B1cyBiZWluZyBJUEknZA0KDQpDYWxscyB0byB0YXNrX2lz
-b2xhdGlvbl9yZW1vdGUoKSBvciB0YXNrX2lzb2xhdGlvbl9pbnRlcnJ1cHQoKSBjYW4NCmJlIHBs
-YWNlZCBpbiB0aGUgcGxhdGZvcm0taW5kZXBlbmRlbnQgY29kZSBsaWtlIHRoaXMgd2hlbiBkb2lu
-ZyBzbw0KcmVzdWx0cyBpbiBmZXdlciBsaW5lcyBvZiBjb2RlIGNoYW5nZXMsIGFzIGZvciBleGFt
-cGxlIGlzIHRydWUgb2YNCnRoZSB1c2VycyBvZiB0aGUgYXJjaF9zZW5kX2NhbGxfZnVuY3Rpb25f
-KigpIEFQSXMuIE9yLCB0aGV5IGNhbiBiZQ0KcGxhY2VkIGluIHRoZSBwZXItYXJjaGl0ZWN0dXJl
-IGNvZGUgd2hlbiB0aGVyZSBhcmUgbWFueSBjYWxsZXJzLA0KYXMgZm9yIGV4YW1wbGUgaXMgdHJ1
-ZSBvZiB0aGUgc21wX3NlbmRfcmVzY2hlZHVsZSgpIGNhbGwuDQoNCkEgZnVydGhlciBjbGVhbnVw
-IG1pZ2h0IGJlIHRvIGNyZWF0ZSBhbiBpbnRlcm1lZGlhdGUgbGF5ZXIsIHNvIHRoYXQNCmZvciBl
-eGFtcGxlIHNtcF9zZW5kX3Jlc2NoZWR1bGUoKSBpcyBhIHNpbmdsZSBnZW5lcmljIGZ1bmN0aW9u
-IHRoYXQNCmp1c3QgY2FsbHMgYXJjaF9zbXBfc2VuZF9yZXNjaGVkdWxlKCksIGFsbG93aW5nIGdl
-bmVyaWMgY29kZSB0byBiZQ0KY2FsbGVkIGV2ZXJ5IHRpbWUgc21wX3NlbmRfcmVzY2hlZHVsZSgp
-IGlzIGludm9rZWQuIEJ1dCBmb3Igbm93LCB3ZQ0KanVzdCB1cGRhdGUgZWl0aGVyIGNhbGxlcnMg
-b3IgY2FsbGVlcyBhcyBtYWtlcyBtb3N0IHNlbnNlLg0KDQpTaWduZWQtb2ZmLWJ5OiBBbGV4IEJl
-bGl0cyA8YWJlbGl0c0BtYXJ2ZWxsLmNvbT4NCi0tLQ0KIGtlcm5lbC9pcnEvaXJxZGVzYy5jIHwg
-OSArKysrKysrKysNCiBrZXJuZWwvaXJxX3dvcmsuYyAgICB8IDUgKysrKy0NCiBrZXJuZWwvc21w
-LmMgICAgICAgICB8IDYgKysrKystDQogMyBmaWxlcyBjaGFuZ2VkLCAxOCBpbnNlcnRpb25zKCsp
-LCAyIGRlbGV0aW9ucygtKQ0KDQpkaWZmIC0tZ2l0IGEva2VybmVsL2lycS9pcnFkZXNjLmMgYi9r
-ZXJuZWwvaXJxL2lycWRlc2MuYw0KaW5kZXggOThhNWYxMGQxOTAwLi5lMmI4MWQwMzVmYTEgMTAw
-NjQ0DQotLS0gYS9rZXJuZWwvaXJxL2lycWRlc2MuYw0KKysrIGIva2VybmVsL2lycS9pcnFkZXNj
-LmMNCkBAIC0xNiw2ICsxNiw3IEBADQogI2luY2x1ZGUgPGxpbnV4L2JpdG1hcC5oPg0KICNpbmNs
-dWRlIDxsaW51eC9pcnFkb21haW4uaD4NCiAjaW5jbHVkZSA8bGludXgvc3lzZnMuaD4NCisjaW5j
-bHVkZSA8bGludXgvaXNvbGF0aW9uLmg+DQogDQogI2luY2x1ZGUgImludGVybmFscy5oIg0KIA0K
-QEAgLTY3MCw2ICs2NzEsMTAgQEAgaW50IF9faGFuZGxlX2RvbWFpbl9pcnEoc3RydWN0IGlycV9k
-b21haW4gKmRvbWFpbiwgdW5zaWduZWQgaW50IGh3aXJxLA0KIAkJaXJxID0gaXJxX2ZpbmRfbWFw
-cGluZyhkb21haW4sIGh3aXJxKTsNCiAjZW5kaWYNCiANCisJdGFza19pc29sYXRpb25faW50ZXJy
-dXB0KChpcnEgPT0gaHdpcnEpID8NCisJCQkJICJpcnEgJWQgKCVzKSIgOiAiaXJxICVkICglcyBo
-d2lycSAlZCkiLA0KKwkJCQkgaXJxLCBkb21haW4gPyBkb21haW4tPm5hbWUgOiAiIiwgaHdpcnEp
-Ow0KKw0KIAkvKg0KIAkgKiBTb21lIGhhcmR3YXJlIGdpdmVzIHJhbmRvbWx5IHdyb25nIGludGVy
-cnVwdHMuICBSYXRoZXINCiAJICogdGhhbiBjcmFzaGluZywgZG8gc29tZXRoaW5nIHNlbnNpYmxl
-Lg0KQEAgLTcxMSw2ICs3MTYsMTAgQEAgaW50IGhhbmRsZV9kb21haW5fbm1pKHN0cnVjdCBpcnFf
-ZG9tYWluICpkb21haW4sIHVuc2lnbmVkIGludCBod2lycSwNCiANCiAJaXJxID0gaXJxX2ZpbmRf
-bWFwcGluZyhkb21haW4sIGh3aXJxKTsNCiANCisJdGFza19pc29sYXRpb25faW50ZXJydXB0KChp
-cnEgPT0gaHdpcnEpID8NCisJCQkJICJOTUkgaXJxICVkICglcykiIDogIk5NSSBpcnEgJWQgKCVz
-IGh3aXJxICVkKSIsDQorCQkJCSBpcnEsIGRvbWFpbiA/IGRvbWFpbi0+bmFtZSA6ICIiLCBod2ly
-cSk7DQorDQogCS8qDQogCSAqIGFja19iYWRfaXJxIGlzIG5vdCBOTUktc2FmZSwganVzdCByZXBv
-cnQNCiAJICogYW4gaW52YWxpZCBpbnRlcnJ1cHQuDQpkaWZmIC0tZ2l0IGEva2VybmVsL2lycV93
-b3JrLmMgYi9rZXJuZWwvaXJxX3dvcmsuYw0KaW5kZXggODI4Y2MzMDc3NGJjLi44ZmQ0ZWNlNDNk
-ZDggMTAwNjQ0DQotLS0gYS9rZXJuZWwvaXJxX3dvcmsuYw0KKysrIGIva2VybmVsL2lycV93b3Jr
-LmMNCkBAIC0xOCw2ICsxOCw3IEBADQogI2luY2x1ZGUgPGxpbnV4L2NwdS5oPg0KICNpbmNsdWRl
-IDxsaW51eC9ub3RpZmllci5oPg0KICNpbmNsdWRlIDxsaW51eC9zbXAuaD4NCisjaW5jbHVkZSA8
-bGludXgvaXNvbGF0aW9uLmg+DQogI2luY2x1ZGUgPGFzbS9wcm9jZXNzb3IuaD4NCiANCiANCkBA
-IC0xMDIsOCArMTAzLDEwIEBAIGJvb2wgaXJxX3dvcmtfcXVldWVfb24oc3RydWN0IGlycV93b3Jr
-ICp3b3JrLCBpbnQgY3B1KQ0KIAlpZiAoY3B1ICE9IHNtcF9wcm9jZXNzb3JfaWQoKSkgew0KIAkJ
-LyogQXJjaCByZW1vdGUgSVBJIHNlbmQvcmVjZWl2ZSBiYWNrZW5kIGFyZW4ndCBOTUkgc2FmZSAq
-Lw0KIAkJV0FSTl9PTl9PTkNFKGluX25taSgpKTsNCi0JCWlmIChsbGlzdF9hZGQoJndvcmstPmxs
-bm9kZSwgJnBlcl9jcHUocmFpc2VkX2xpc3QsIGNwdSkpKQ0KKwkJaWYgKGxsaXN0X2FkZCgmd29y
-ay0+bGxub2RlLCAmcGVyX2NwdShyYWlzZWRfbGlzdCwgY3B1KSkpIHsNCisJCQl0YXNrX2lzb2xh
-dGlvbl9yZW1vdGUoY3B1LCAiaXJxX3dvcmsiKTsNCiAJCQlhcmNoX3NlbmRfY2FsbF9mdW5jdGlv
-bl9zaW5nbGVfaXBpKGNwdSk7DQorCQl9DQogCX0gZWxzZSB7DQogCQlfX2lycV93b3JrX3F1ZXVl
-X2xvY2FsKHdvcmspOw0KIAl9DQpkaWZmIC0tZ2l0IGEva2VybmVsL3NtcC5jIGIva2VybmVsL3Nt
-cC5jDQppbmRleCBkMGFkYTM5ZWI0ZDQuLjNhOGJjYmRkNGNlNiAxMDA2NDQNCi0tLSBhL2tlcm5l
-bC9zbXAuYw0KKysrIGIva2VybmVsL3NtcC5jDQpAQCAtMjAsNiArMjAsNyBAQA0KICNpbmNsdWRl
-IDxsaW51eC9zY2hlZC5oPg0KICNpbmNsdWRlIDxsaW51eC9zY2hlZC9pZGxlLmg+DQogI2luY2x1
-ZGUgPGxpbnV4L2h5cGVydmlzb3IuaD4NCisjaW5jbHVkZSA8bGludXgvaXNvbGF0aW9uLmg+DQog
-DQogI2luY2x1ZGUgInNtcGJvb3QuaCINCiANCkBAIC0xNzYsOCArMTc3LDEwIEBAIHN0YXRpYyBp
-bnQgZ2VuZXJpY19leGVjX3NpbmdsZShpbnQgY3B1LCBjYWxsX3NpbmdsZV9kYXRhX3QgKmNzZCwN
-CiAJICogbG9ja2luZyBhbmQgYmFycmllciBwcmltaXRpdmVzLiBHZW5lcmljIGNvZGUgaXNuJ3Qg
-cmVhbGx5DQogCSAqIGVxdWlwcGVkIHRvIGRvIHRoZSByaWdodCB0aGluZy4uLg0KIAkgKi8NCi0J
-aWYgKGxsaXN0X2FkZCgmY3NkLT5sbGlzdCwgJnBlcl9jcHUoY2FsbF9zaW5nbGVfcXVldWUsIGNw
-dSkpKQ0KKwlpZiAobGxpc3RfYWRkKCZjc2QtPmxsaXN0LCAmcGVyX2NwdShjYWxsX3NpbmdsZV9x
-dWV1ZSwgY3B1KSkpIHsNCisJCXRhc2tfaXNvbGF0aW9uX3JlbW90ZShjcHUsICJJUEkgZnVuY3Rp
-b24iKTsNCiAJCWFyY2hfc2VuZF9jYWxsX2Z1bmN0aW9uX3NpbmdsZV9pcGkoY3B1KTsNCisJfQ0K
-IA0KIAlyZXR1cm4gMDsNCiB9DQpAQCAtNDY2LDYgKzQ2OSw3IEBAIHN0YXRpYyB2b2lkIHNtcF9j
-YWxsX2Z1bmN0aW9uX21hbnlfY29uZChjb25zdCBzdHJ1Y3QgY3B1bWFzayAqbWFzaywNCiAJfQ0K
-IA0KIAkvKiBTZW5kIGEgbWVzc2FnZSB0byBhbGwgQ1BVcyBpbiB0aGUgbWFwICovDQorCXRhc2tf
-aXNvbGF0aW9uX3JlbW90ZV9jcHVtYXNrKGNmZC0+Y3B1bWFza19pcGksICJJUEkgZnVuY3Rpb24i
-KTsNCiAJYXJjaF9zZW5kX2NhbGxfZnVuY3Rpb25faXBpX21hc2soY2ZkLT5jcHVtYXNrX2lwaSk7
-DQogDQogCWlmICh3YWl0KSB7DQotLSANCjIuMjAuMQ0KDQo=
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
+
+Introduce asm/vdso/processor.h to contain all the arm64 specific
+functions that are suitable for vDSO inclusion.
+
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/arm64/include/asm/processor.h      | 16 ++-----------
+ arch/arm64/include/asm/vdso/processor.h | 31 +++++++++++++++++++++++++
+ 2 files changed, 33 insertions(+), 14 deletions(-)
+ create mode 100644 arch/arm64/include/asm/vdso/processor.h
+
+diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+index 5ba63204d078..89ba2c5be504 100644
+--- a/arch/arm64/include/asm/processor.h
++++ b/arch/arm64/include/asm/processor.h
+@@ -28,6 +28,8 @@
+ #include <linux/string.h>
+ #include <linux/thread_info.h>
+ 
++#include <vdso/processor.h>
++
+ #include <asm/alternative.h>
+ #include <asm/cpufeature.h>
+ #include <asm/hw_breakpoint.h>
+@@ -47,15 +49,6 @@
+ #define TASK_SIZE_64		(UL(1) << vabits_actual)
+ 
+ #ifdef CONFIG_COMPAT
+-#if defined(CONFIG_ARM64_64K_PAGES) && defined(CONFIG_KUSER_HELPERS)
+-/*
+- * With CONFIG_ARM64_64K_PAGES enabled, the last page is occupied
+- * by the compat vectors page.
+- */
+-#define TASK_SIZE_32		UL(0x100000000)
+-#else
+-#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
+-#endif /* CONFIG_ARM64_64K_PAGES */
+ #define TASK_SIZE		(test_thread_flag(TIF_32BIT) ? \
+ 				TASK_SIZE_32 : TASK_SIZE_64)
+ #define TASK_SIZE_OF(tsk)	(test_tsk_thread_flag(tsk, TIF_32BIT) ? \
+@@ -256,11 +249,6 @@ extern void release_thread(struct task_struct *);
+ 
+ unsigned long get_wchan(struct task_struct *p);
+ 
+-static inline void cpu_relax(void)
+-{
+-	asm volatile("yield" ::: "memory");
+-}
+-
+ /* Thread switching */
+ extern struct task_struct *cpu_switch_to(struct task_struct *prev,
+ 					 struct task_struct *next);
+diff --git a/arch/arm64/include/asm/vdso/processor.h b/arch/arm64/include/asm/vdso/processor.h
+new file mode 100644
+index 000000000000..fb4883212a2d
+--- /dev/null
++++ b/arch/arm64/include/asm/vdso/processor.h
+@@ -0,0 +1,31 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_VDSO_PROCESSOR_H
++#define __ASM_VDSO_PROCESSOR_H
++
++#ifndef __ASSEMBLY__
++
++#include <asm/page-def.h>
++
++#ifdef CONFIG_COMPAT
++#if defined(CONFIG_ARM64_64K_PAGES) && defined(CONFIG_KUSER_HELPERS)
++/*
++ * With CONFIG_ARM64_64K_PAGES enabled, the last page is occupied
++ * by the compat vectors page.
++ */
++#define TASK_SIZE_32		UL(0x100000000)
++#else
++#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
++#endif /* CONFIG_ARM64_64K_PAGES */
++#endif /* CONFIG_COMPAT */
++
++static inline void cpu_relax(void)
++{
++	asm volatile("yield" ::: "memory");
++}
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_PROCESSOR_H */
+-- 
+2.25.1
