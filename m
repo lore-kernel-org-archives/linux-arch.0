@@ -1,56 +1,36 @@
-From: Dmitry Safonov <0x7f454c46@gmail.com>
-Subject: Re: [PATCH v3 00/26] Introduce common headers for vDSO
-Date: Fri, 13 Mar 2020 16:19:23 +0000
-Message-ID: <693b6a61-b5f6-2744-1579-b356e6510547@gmail.com>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [RFC PATCH v9 15/27] mm: Handle THP/HugeTLB Shadow Stack page
+ fault
+Date: Fri, 13 Mar 2020 15:00:20 -0700
+Message-ID: <c8c394fba4b64c9151201952752647d61324c0a8.camel@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+         <20200205181935.3712-16-yu-cheng.yu@intel.com>
+         <202002251258.7D6DA92@keescook>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-mips-owner@vger.kernel.org>
-In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-Content-Language: en-US
-Sender: linux-mips-owner@vger.kernel.org
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <202002251258.7D6DA92@keescook>
+Sender: linux-doc-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel
 List-Id: linux-arch.vger.kernel.org
 
-Hi Vincenzo, all
+On Tue, 2020-02-25 at 12:59 -0800, Kees Cook wrote:
+> On Wed, Feb 05, 2020 at 10:19:23AM -0800, Yu-cheng Yu wrote:
+> > This patch implements THP Shadow Stack (SHSTK) copying in the same way as
+> > in the previous patch for regular PTE.
+> > 
+> > In copy_huge_pmd(), clear the dirty bit from the PMD to cause a page fault
+> > upon the next SHSTK access to the PMD.  At that time, fix the PMD and
+> > copy/re-use the page.
+> 
+> Now is as good a time as any to ask: do you have selftests for all this?
+> It seems like it would be really nice to have a way to verify SHSTK is
+> working correctly.
 
-I like the idea, but I'm wondering if we could have less-grained
-headers? Like, AFAICS the patches create headers < 10 lines and even
-mostly < 5 lines.. I like that header's names perfectly describe what's
-inside, but I'm not sure how effective to have a lot of extra-small
-includes.
+Yes, I have some simple tests at https://github.com/yyu168/cet-smoke-test.
+I also run Linux/tools/testing/selftests/x86 and GLIBC tests with CET and THP
+combinations.
 
-Or maybe there's a plan to grow the code in them?
-
-On 3/13/20 3:43 PM, Vincenzo Frascino wrote:
-[..]
->  create mode 100644 arch/arm/include/asm/vdso/clocksource.h
->  create mode 100644 arch/arm/include/asm/vdso/cp15.h
->  create mode 100644 arch/arm/include/asm/vdso/processor.h
->  create mode 100644 arch/arm64/include/asm/vdso/arch_timer.h
->  create mode 100644 arch/arm64/include/asm/vdso/clocksource.h
->  create mode 100644 arch/arm64/include/asm/vdso/processor.h
->  create mode 100644 arch/mips/include/asm/vdso/clocksource.h
->  create mode 100644 arch/mips/include/asm/vdso/processor.h
->  create mode 100644 arch/x86/include/asm/vdso/clocksource.h
->  create mode 100644 arch/x86/include/asm/vdso/processor.h
->  create mode 100644 include/vdso/bits.h
->  create mode 100644 include/vdso/clocksource.h
->  create mode 100644 include/vdso/const.h
->  create mode 100644 include/vdso/jiffies.h
->  create mode 100644 include/vdso/ktime.h
->  create mode 100644 include/vdso/limits.h
->  create mode 100644 include/vdso/math64.h
->  create mode 100644 include/vdso/processor.h
->  create mode 100644 include/vdso/time.h
->  create mode 100644 include/vdso/time32.h
->  create mode 100644 include/vdso/time64.h
-
-Maybe we could made them less-grained?
-
-I.e, time32 + time64 + time.h => time.h?
-
-Thanks for Cc,
-          Dmitry
+Yu-cheng
