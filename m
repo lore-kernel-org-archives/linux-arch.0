@@ -1,92 +1,71 @@
-Return-Path: <SRS0=E3Lo=4Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qt1-f195.google.com ([209.85.160.195]:44329 "EHLO
-        mail-qt1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725878AbgCGHrE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 7 Mar 2020 02:47:04 -0500
-Received: by mail-qt1-f195.google.com with SMTP id h16so3488419qtr.11
-        for <linux-arch@vger.kernel.org>; Fri, 06 Mar 2020 23:47:03 -0800 (PST)
-Date: Sat, 7 Mar 2020 02:47:02 -0500
-From: Joel Fernandes <joel@joelfernandes.org>
-Subject: Re: [PATCH] x86/kprobes: Prohibit probing on rcu_nmi_exit() and
- ist_exit()
-Message-ID: <20200307074702.GA231616@google.com>
-References: <158355013189.14191.9105069890402942867.stgit@devnote2>
- <20200307032831.GL2935@paulmck-ThinkPad-P72>
+Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:58798 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727281AbgCMPo5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Mar 2020 11:44:57 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v3 16/26] scripts: Fix the inclusion order in modpost
+Date: Fri, 13 Mar 2020 15:43:35 +0000
+Message-ID: <20200313154345.56760-17-vincenzo.frascino@arm.com>
+In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200307032831.GL2935@paulmck-ThinkPad-P72>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, stable@vger.kernel.org
-Message-ID: <20200307074702.EPJRem7sVoYF1uI4V2eKHzM9Rf2YOUo5dfge4rh3Ilc@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, kbuild test robot <lkp@intel.com>, Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>
+Message-ID: <20200313154335.e6I8cR7f-t4fvGnu5JR40pDxI-ho-fPjSuVG0B_4NPw@z>
 
-On Fri, Mar 06, 2020 at 07:28:31PM -0800, Paul E. McKenney wrote:
-> On Sat, Mar 07, 2020 at 12:02:12PM +0900, Masami Hiramatsu wrote:
-> > Prohibit probing on rcu_nmi_exit() and ist_exit() which
-> > are called from do_int3()'s kprobe path after kprobe_int3_handler().
-> > 
-> > The commit c13324a505c7 ("x86/kprobes: Prohibit probing on
-> > functions before kprobe_int3_handler()") tried to fix similar
-> > issue, but it only marks the functions before kprobe_int3_handler()
-> > in do_int3().
-> > 
-> > If we put a kprobe on rcu_nmi_exit() or ist_exit(), the kprobes
-> > will detect reentrance. However, it only skips the kprobe handler,
-> > exits from do_int3() and hits ist_exit() and rcu_nmi_exit() again.
-> > Thus, it causes another int3 exception and finally we will get
-> > the kernel panic with "Unrecoverable kprobe detected." error message.
-> > 
-> > This is reproducible by the following commands.
-> > 
-> > / # echo 0 > /proc/sys/debug/kprobes-optimization
-> > / # echo p vfs_read > /sys/kernel/debug/tracing/kprobe_events
-> > / # echo p rcu_nmi_exit >> /sys/kernel/debug/tracing/kprobe_events
-> > / # echo 1 > /sys/kernel/debug/tracing/events/kprobes/enable
-> > 
-> > Fixes: c13324a505c7 ("x86/kprobes: Prohibit probing on functions before kprobe_int3_handler()")
-> > Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-> > Cc: stable@vger.kernel.org
-> 
-> From an RCU perspective:
-> 
-> Reviewed-by: Paul E. McKenney <paulmck@kernel.org>
-> 
+In the process of creating the source file of a module modpost injects a
+set of includes that are not required if the compilation unit is
+statically built into the kernel.
 
-Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+The order of inclusion of the headers can cause redefinition problems
+(e.g.):
 
-thanks,
+   In file included from include/linux/elf.h:5:0,
+                    from include/linux/module.h:18,
+                    from crypto/arc4.mod.c:2:
+>> arch/parisc/include/asm/elf.h:324:0: warning: "ELF_OSABI" redefined
+    #define ELF_OSABI  ELFOSABI_LINUX
 
- - Joel
+   In file included from include/linux/elfnote.h:62:0,
+                    from include/linux/build-salt.h:4,
+                    from crypto/arc4.mod.c:1:
+   include/uapi/linux/elf.h:363:0: note: this is the location of
+   the previous definition
+    #define ELF_OSABI ELFOSABI_NONE
 
-> > ---
-> >  arch/x86/kernel/traps.c |    1 +
-> >  kernel/rcu/tree.c       |    1 +
-> >  2 files changed, 2 insertions(+)
-> > 
-> > diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-> > index 6ef00eb6fbb9..c63fb7697794 100644
-> > --- a/arch/x86/kernel/traps.c
-> > +++ b/arch/x86/kernel/traps.c
-> > @@ -115,6 +115,7 @@ void ist_exit(struct pt_regs *regs)
-> >  	if (!user_mode(regs))
-> >  		rcu_nmi_exit();
-> >  }
-> > +NOKPROBE_SYMBOL(ist_exit);
-> >  
-> >  /**
-> >   * ist_begin_non_atomic() - begin a non-atomic section in an IST exception
-> > diff --git a/kernel/rcu/tree.c b/kernel/rcu/tree.c
-> > index d91c9156fab2..c49ea0e919f9 100644
-> > --- a/kernel/rcu/tree.c
-> > +++ b/kernel/rcu/tree.c
-> > @@ -670,6 +670,7 @@ void rcu_nmi_exit(void)
-> >  {
-> >  	rcu_nmi_exit_common(false);
-> >  }
-> > +NOKPROBE_SYMBOL(rcu_nmi_exit);
-> >  
-> >  /**
-> >   * rcu_irq_exit - inform RCU that current CPU is exiting irq towards idle
-> > 
+The issue was exposed during the development of the series [1].
+
+[1] https://lore.kernel.org/lkml/20200306133242.26279-1-vincenzo.frascino@arm.com/
+
+Reported-by: kbuild test robot <lkp@intel.com>
+Cc: Masahiro Yamada <masahiroy@kernel.org>
+Cc: Michal Marek <michal.lkml@markovi.net>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ scripts/mod/modpost.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index 7edfdb2f4497..0f354b1ee2aa 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -2251,8 +2251,12 @@ static int check_modname_len(struct module *mod)
+  **/
+ static void add_header(struct buffer *b, struct module *mod)
+ {
+-	buf_printf(b, "#include <linux/build-salt.h>\n");
+ 	buf_printf(b, "#include <linux/module.h>\n");
++	/*
++	 * Include build-salt.h after module.h in order to
++	 * inherit the definitions.
++	 */
++	buf_printf(b, "#include <linux/build-salt.h>\n");
+ 	buf_printf(b, "#include <linux/vermagic.h>\n");
+ 	buf_printf(b, "#include <linux/compiler.h>\n");
+ 	buf_printf(b, "\n");
+-- 
+2.25.1
