@@ -1,63 +1,52 @@
-Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50710 "EHLO foss.arm.com"
+Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:53580 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727822AbgCTOzv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Mar 2020 10:55:51 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 21/26] arm64: vdso32: Include common headers in the vdso library
-Date: Fri, 20 Mar 2020 14:53:46 +0000
-Message-ID: <20200320145351.32292-22-vincenzo.frascino@arm.com>
-In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
-References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+        id S1726216AbgCML4B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Mar 2020 07:56:01 -0400
+Date: Fri, 13 Mar 2020 11:55:58 +0000
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v9 02/13] ELF: Add ELF program property parsing support
+Message-ID: <20200313115558.GC5528@sirena.org.uk>
+References: <20200311192608.40095-1-broonie@kernel.org>
+ <20200311192608.40095-3-broonie@kernel.org>
+ <202003121658.39A47CE098@keescook>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="gr/z0/N6AeWAPJVB"
+Content-Disposition: inline
+In-Reply-To: <202003121658.39A47CE098@keescook>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200320145346.4Kx5XKROR6a4AKGFhFUpjk2o_zlbyiWRkgWl5WtdR4Q@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>
+Message-ID: <20200313115558.UuhqKrzcVqS6ZbZcqSz9y4J6It2aVZbXyH1e8Mfdey4@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
 
-Refactor the vdso32 implementation to include common headers.
+--gr/z0/N6AeWAPJVB
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- arch/arm64/include/asm/vdso/compat_gettimeofday.h | 2 +-
- arch/arm64/kernel/vdso32/vgettimeofday.c          | 2 --
- 2 files changed, 1 insertion(+), 3 deletions(-)
+On Thu, Mar 12, 2020 at 04:59:21PM -0700, Kees Cook wrote:
 
-diff --git a/arch/arm64/include/asm/vdso/compat_gettimeofday.h b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-index 401df2bcd741..b6907ae78e53 100644
---- a/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-+++ b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-@@ -8,7 +8,7 @@
- #ifndef __ASSEMBLY__
- 
- #include <asm/unistd.h>
--#include <uapi/linux/time.h>
-+#include <asm/errno.h>
- 
- #include <asm/vdso/compat_barrier.h>
- 
-diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
-index ddbad47efaa4..5acff29c5991 100644
---- a/arch/arm64/kernel/vdso32/vgettimeofday.c
-+++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
-@@ -5,8 +5,6 @@
-  * Copyright (C) 2018 ARM Limited
-  *
-  */
--#include <linux/time.h>
--#include <linux/types.h>
- 
- int __vdso_clock_gettime(clockid_t clock,
- 			 struct old_timespec32 *ts)
--- 
-2.25.1
+> I think my review got lost along the way. Please consider this:
+
+> Reviewed-by: Kees Cook <keescook@chromium.org>
+
+Yes, sorry - I've added it locally (and the other two you sent just now).
+
+--gr/z0/N6AeWAPJVB
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5rdM0ACgkQJNaLcl1U
+h9Ct3wf+MPz1HrOXhlGATJUUi/83pv08oTCCzRaHqlsusA4dPg41W77Sgpj37/Yr
+9LGONneWZqrufnFxx7ZEMJpqwJU1ROce8kl59OqNPAvVm25jQSBFMoboDrWHPCXB
+GbTThVC6FmnF/QboOwdYKGH5/PVXLyxlH5widr4tjataNyWfaxVfk9RUmm8zCZHI
+EqNJbvFejd2e6+g32ZxnnqAl8/nWswnuorlm884nKrqdAN69dyJIcDb19NaP9ZDc
+8WJd4HoiMr+vT1a/JnkZCB/LwJU3nBlbOFWm7CNuHntRErsTZ5vZJ9m6ORz9v0oY
+wU2OLaDYGXBG21NDPFxxWbEEBW2zFg==
+=f6yG
+-----END PGP SIGNATURE-----
+
+--gr/z0/N6AeWAPJVB--
