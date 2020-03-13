@@ -1,99 +1,202 @@
-Return-Path: <SRS0=Zkb6=4V=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:48278 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726561AbgCDQQq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Mar 2020 11:16:46 -0500
-From: Alex Belits <abelits@marvell.com>
-Subject: [PATCH 12/12] task_isolation: CONFIG_TASK_ISOLATION prevents
- distribution of jobs to non-housekeeping CPUs
-Date: Wed, 4 Mar 2020 16:16:19 +0000
-Message-ID: <3500c34366f3857329709e155b44d5a7d9af6e05.camel@marvell.com>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
-In-Reply-To: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <442E99C77B4B724185C9969BC3397046@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:58978 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727401AbgCMPpO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Mar 2020 11:45:14 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v3 21/26] arm64: Introduce asm/vdso/arch_timer.h
+Date: Fri, 13 Mar 2020 15:43:40 +0000
+Message-ID: <20200313154345.56760-22-vincenzo.frascino@arm.com>
+In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-mm@vger.kernel.org" <linux-mm@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20200304161619.ubmnG3xxt1c4d3QtbMKJbNelUva6gqeGYPZbEfM_sUc@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200313154340.wgawg9YtK8TaJsIeRZKLNXNBYR6Ohm9GrKxs6h2nE6g@z>
 
-VGhlcmUgYXJlIHZhcmlvdXMgbWVjaGFuaXNtcyB0aGF0IHNlbGVjdCBDUFVzIGZvciBqb2JzIG90
-aGVyIHRoYW4NCnJlZ3VsYXIgd29ya3F1ZXVlIHNlbGVjdGlvbi4gQ1BVIGlzb2xhdGlvbiBub3Jt
-YWxseSBkb2VzIG5vdA0KcHJldmVudCB0aG9zZSBqb2JzIGZyb20gcnVubmluZyBvbiBpc29sYXRl
-ZCBDUFVzLiBXaGVuIHRhc2sNCmlzb2xhdGlvbiBpcyBlbmFibGVkIHRob3NlIGpvYnMgc2hvdWxk
-IGJlIGxpbWl0ZWQgdG8gaG91c2VrZWVwaW5nDQpDUFVzLg0KDQpTaWduZWQtb2ZmLWJ5OiBBbGV4
-IEJlbGl0cyA8YWJlbGl0c0BtYXJ2ZWxsLmNvbT4NCi0tLQ0KIGRyaXZlcnMvcGNpL3BjaS1kcml2
-ZXIuYyB8ICA5ICsrKysrKysNCiBsaWIvY3B1bWFzay5jICAgICAgICAgICAgfCA1MyArKysrKysr
-KysrKysrKysrKysrKysrKysrLS0tLS0tLS0tLS0tLS0tDQogbmV0L2NvcmUvbmV0LXN5c2ZzLmMg
-ICAgIHwgIDkgKysrKysrKw0KIDMgZmlsZXMgY2hhbmdlZCwgNTEgaW5zZXJ0aW9ucygrKSwgMjAg
-ZGVsZXRpb25zKC0pDQoNCmRpZmYgLS1naXQgYS9kcml2ZXJzL3BjaS9wY2ktZHJpdmVyLmMgYi9k
-cml2ZXJzL3BjaS9wY2ktZHJpdmVyLmMNCmluZGV4IDA0NTRjYTBlNGUzZi4uY2I4NzJjZGQxNzgy
-IDEwMDY0NA0KLS0tIGEvZHJpdmVycy9wY2kvcGNpLWRyaXZlci5jDQorKysgYi9kcml2ZXJzL3Bj
-aS9wY2ktZHJpdmVyLmMNCkBAIC0xMiw2ICsxMiw3IEBADQogI2luY2x1ZGUgPGxpbnV4L3N0cmlu
-Zy5oPg0KICNpbmNsdWRlIDxsaW51eC9zbGFiLmg+DQogI2luY2x1ZGUgPGxpbnV4L3NjaGVkLmg+
-DQorI2luY2x1ZGUgPGxpbnV4L3NjaGVkL2lzb2xhdGlvbi5oPg0KICNpbmNsdWRlIDxsaW51eC9j
-cHUuaD4NCiAjaW5jbHVkZSA8bGludXgvcG1fcnVudGltZS5oPg0KICNpbmNsdWRlIDxsaW51eC9z
-dXNwZW5kLmg+DQpAQCAtMzMyLDYgKzMzMyw5IEBAIHN0YXRpYyBib29sIHBjaV9waHlzZm5faXNf
-cHJvYmVkKHN0cnVjdCBwY2lfZGV2ICpkZXYpDQogc3RhdGljIGludCBwY2lfY2FsbF9wcm9iZShz
-dHJ1Y3QgcGNpX2RyaXZlciAqZHJ2LCBzdHJ1Y3QgcGNpX2RldiAqZGV2LA0KIAkJCSAgY29uc3Qg
-c3RydWN0IHBjaV9kZXZpY2VfaWQgKmlkKQ0KIHsNCisjaWZkZWYgQ09ORklHX1RBU0tfSVNPTEFU
-SU9ODQorCWludCBoa19mbGFncyA9IEhLX0ZMQUdfRE9NQUlOIHwgSEtfRkxBR19XUTsNCisjZW5k
-aWYNCiAJaW50IGVycm9yLCBub2RlLCBjcHU7DQogCXN0cnVjdCBkcnZfZGV2X2FuZF9pZCBkZGkg
-PSB7IGRydiwgZGV2LCBpZCB9Ow0KIA0KQEAgLTM1Myw3ICszNTcsMTIgQEAgc3RhdGljIGludCBw
-Y2lfY2FsbF9wcm9iZShzdHJ1Y3QgcGNpX2RyaXZlciAqZHJ2LCBzdHJ1Y3QgcGNpX2RldiAqZGV2
-LA0KIAkgICAgcGNpX3BoeXNmbl9pc19wcm9iZWQoZGV2KSkNCiAJCWNwdSA9IG5yX2NwdV9pZHM7
-DQogCWVsc2UNCisjaWZkZWYgQ09ORklHX1RBU0tfSVNPTEFUSU9ODQorCQljcHUgPSBjcHVtYXNr
-X2FueV9hbmQoY3B1bWFza19vZl9ub2RlKG5vZGUpLA0KKwkJCQkgICAgICBob3VzZWtlZXBpbmdf
-Y3B1bWFzayhoa19mbGFncykpOw0KKyNlbHNlDQogCQljcHUgPSBjcHVtYXNrX2FueV9hbmQoY3B1
-bWFza19vZl9ub2RlKG5vZGUpLCBjcHVfb25saW5lX21hc2spOw0KKyNlbmRpZg0KIA0KIAlpZiAo
-Y3B1IDwgbnJfY3B1X2lkcykNCiAJCWVycm9yID0gd29ya19vbl9jcHUoY3B1LCBsb2NhbF9wY2lf
-cHJvYmUsICZkZGkpOw0KZGlmZiAtLWdpdCBhL2xpYi9jcHVtYXNrLmMgYi9saWIvY3B1bWFzay5j
-DQppbmRleCAwY2I2NzJlYjEwN2MuLmRjYmMzMGE0NzYwMCAxMDA2NDQNCi0tLSBhL2xpYi9jcHVt
-YXNrLmMNCisrKyBiL2xpYi9jcHVtYXNrLmMNCkBAIC02LDYgKzYsNyBAQA0KICNpbmNsdWRlIDxs
-aW51eC9leHBvcnQuaD4NCiAjaW5jbHVkZSA8bGludXgvbWVtYmxvY2suaD4NCiAjaW5jbHVkZSA8
-bGludXgvbnVtYS5oPg0KKyNpbmNsdWRlIDxsaW51eC9zY2hlZC9pc29sYXRpb24uaD4NCiANCiAv
-KioNCiAgKiBjcHVtYXNrX25leHQgLSBnZXQgdGhlIG5leHQgY3B1IGluIGEgY3B1bWFzaw0KQEAg
-LTIwNSwyOCArMjA2LDQwIEBAIHZvaWQgX19pbml0IGZyZWVfYm9vdG1lbV9jcHVtYXNrX3Zhcihj
-cHVtYXNrX3Zhcl90IG1hc2spDQogICovDQogdW5zaWduZWQgaW50IGNwdW1hc2tfbG9jYWxfc3By
-ZWFkKHVuc2lnbmVkIGludCBpLCBpbnQgbm9kZSkNCiB7DQotCWludCBjcHU7DQorCWNvbnN0IHN0
-cnVjdCBjcHVtYXNrICptYXNrOw0KKwlpbnQgY3B1LCBtLCBuOw0KKw0KKyNpZmRlZiBDT05GSUdf
-VEFTS19JU09MQVRJT04NCisJbWFzayA9IGhvdXNla2VlcGluZ19jcHVtYXNrKEhLX0ZMQUdfRE9N
-QUlOKTsNCisJbSA9IGNwdW1hc2tfd2VpZ2h0KG1hc2spOw0KKyNlbHNlDQorCW1hc2sgPSBjcHVf
-b25saW5lX21hc2s7DQorCW0gPSBudW1fb25saW5lX2NwdXMoKTsNCisjZW5kaWYNCiANCiAJLyog
-V3JhcDogd2UgYWx3YXlzIHdhbnQgYSBjcHUuICovDQotCWkgJT0gbnVtX29ubGluZV9jcHVzKCk7
-DQotDQotCWlmIChub2RlID09IE5VTUFfTk9fTk9ERSkgew0KLQkJZm9yX2VhY2hfY3B1KGNwdSwg
-Y3B1X29ubGluZV9tYXNrKQ0KLQkJCWlmIChpLS0gPT0gMCkNCi0JCQkJcmV0dXJuIGNwdTsNCi0J
-fSBlbHNlIHsNCi0JCS8qIE5VTUEgZmlyc3QuICovDQotCQlmb3JfZWFjaF9jcHVfYW5kKGNwdSwg
-Y3B1bWFza19vZl9ub2RlKG5vZGUpLCBjcHVfb25saW5lX21hc2spDQotCQkJaWYgKGktLSA9PSAw
-KQ0KLQkJCQlyZXR1cm4gY3B1Ow0KLQ0KLQkJZm9yX2VhY2hfY3B1KGNwdSwgY3B1X29ubGluZV9t
-YXNrKSB7DQotCQkJLyogU2tpcCBOVU1BIG5vZGVzLCBkb25lIGFib3ZlLiAqLw0KLQkJCWlmIChj
-cHVtYXNrX3Rlc3RfY3B1KGNwdSwgY3B1bWFza19vZl9ub2RlKG5vZGUpKSkNCi0JCQkJY29udGlu
-dWU7DQotDQotCQkJaWYgKGktLSA9PSAwKQ0KLQkJCQlyZXR1cm4gY3B1Ow0KKwluID0gaSAlIG07
-DQorDQorCXdoaWxlIChtLS0gPiAwKSB7DQorCQlpZiAobm9kZSA9PSBOVU1BX05PX05PREUpIHsN
-CisJCQlmb3JfZWFjaF9jcHUoY3B1LCBtYXNrKQ0KKwkJCQlpZiAobi0tID09IDApDQorCQkJCQly
-ZXR1cm4gY3B1Ow0KKwkJfSBlbHNlIHsNCisJCQkvKiBOVU1BIGZpcnN0LiAqLw0KKwkJCWZvcl9l
-YWNoX2NwdV9hbmQoY3B1LCBjcHVtYXNrX29mX25vZGUobm9kZSksIG1hc2spDQorCQkJCWlmIChu
-LS0gPT0gMCkNCisJCQkJCXJldHVybiBjcHU7DQorDQorCQkJZm9yX2VhY2hfY3B1KGNwdSwgbWFz
-aykgew0KKwkJCQkvKiBTa2lwIE5VTUEgbm9kZXMsIGRvbmUgYWJvdmUuICovDQorCQkJCWlmIChj
-cHVtYXNrX3Rlc3RfY3B1KGNwdSwNCisJCQkJCQkgICAgIGNwdW1hc2tfb2Zfbm9kZShub2RlKSkp
-DQorCQkJCQljb250aW51ZTsNCisNCisJCQkJaWYgKG4tLSA9PSAwKQ0KKwkJCQkJcmV0dXJuIGNw
-dTsNCisJCQl9DQogCQl9DQogCX0NCiAJQlVHKCk7DQpkaWZmIC0tZ2l0IGEvbmV0L2NvcmUvbmV0
-LXN5c2ZzLmMgYi9uZXQvY29yZS9uZXQtc3lzZnMuYw0KaW5kZXggNGM4MjZiOGJmOWIxLi4yNTM3
-NThmMTAyZDkgMTAwNjQ0DQotLS0gYS9uZXQvY29yZS9uZXQtc3lzZnMuYw0KKysrIGIvbmV0L2Nv
-cmUvbmV0LXN5c2ZzLmMNCkBAIC0xMSw2ICsxMSw3IEBADQogI2luY2x1ZGUgPGxpbnV4L2lmX2Fy
-cC5oPg0KICNpbmNsdWRlIDxsaW51eC9zbGFiLmg+DQogI2luY2x1ZGUgPGxpbnV4L3NjaGVkL3Np
-Z25hbC5oPg0KKyNpbmNsdWRlIDxsaW51eC9zY2hlZC9pc29sYXRpb24uaD4NCiAjaW5jbHVkZSA8
-bGludXgvbnNwcm94eS5oPg0KICNpbmNsdWRlIDxuZXQvc29jay5oPg0KICNpbmNsdWRlIDxuZXQv
-bmV0X25hbWVzcGFjZS5oPg0KQEAgLTcyNSw2ICs3MjYsMTQgQEAgc3RhdGljIHNzaXplX3Qgc3Rv
-cmVfcnBzX21hcChzdHJ1Y3QgbmV0ZGV2X3J4X3F1ZXVlICpxdWV1ZSwNCiAJCXJldHVybiBlcnI7
-DQogCX0NCiANCisjaWZkZWYgQ09ORklHX1RBU0tfSVNPTEFUSU9ODQorCWNwdW1hc2tfYW5kKG1h
-c2ssIG1hc2ssIGhvdXNla2VlcGluZ19jcHVtYXNrKEhLX0ZMQUdfRE9NQUlOKSk7DQorCWlmIChj
-cHVtYXNrX3dlaWdodChtYXNrKSA9PSAwKSB7DQorCQlmcmVlX2NwdW1hc2tfdmFyKG1hc2spOw0K
-KwkJcmV0dXJuIC1FSU5WQUw7DQorCX0NCisjZW5kaWYNCisNCiAJbWFwID0ga3phbGxvYyhtYXhf
-dCh1bnNpZ25lZCBpbnQsDQogCQkJICAgIFJQU19NQVBfU0laRShjcHVtYXNrX3dlaWdodChtYXNr
-KSksIEwxX0NBQ0hFX0JZVEVTKSwNCiAJCSAgICAgIEdGUF9LRVJORUwpOw0KLS0gDQoyLjIwLjEN
-Cg0K
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
+
+Introduce asm/vdso/arch_timer.h to contain all the arm64 specific
+code. This allows to replace the second isb() in __arch_get_hw_counter()
+with a fake dependent stack read of the counter which improves the vdso
+library peformances of ~4.5%. Below the results of vdsotest [1] ran for
+100 iterations.
+
+Before the patch:
+=================
+clock-gettime-monotonic: syscall: 771 nsec/call
+clock-gettime-monotonic:    libc: 130 nsec/call
+clock-gettime-monotonic:    vdso: 111 nsec/call
+...
+clock-gettime-realtime: syscall: 762 nsec/call
+clock-gettime-realtime:    libc: 130 nsec/call
+clock-gettime-realtime:    vdso: 111 nsec/call
+
+After the patch:
+================
+clock-gettime-monotonic: syscall: 792 nsec/call
+clock-gettime-monotonic:    libc: 124 nsec/call
+clock-gettime-monotonic:    vdso: 106 nsec/call
+...
+clock-gettime-realtime: syscall: 776 nsec/call
+clock-gettime-realtime:    libc: 124 nsec/call
+clock-gettime-realtime:    vdso: 106 nsec/call
+
+[1] https://github.com/nathanlynch/vdsotest
+
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Cc: Marc Zyngier <maz@kernel.org>
+Cc: Mark Rutland <Mark.Rutland@arm.com>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/arm64/include/asm/arch_timer.h        | 29 ++++---------------
+ arch/arm64/include/asm/vdso/arch_timer.h   | 33 ++++++++++++++++++++++
+ arch/arm64/include/asm/vdso/gettimeofday.h |  7 +++--
+ 3 files changed, 42 insertions(+), 27 deletions(-)
+ create mode 100644 arch/arm64/include/asm/vdso/arch_timer.h
+
+diff --git a/arch/arm64/include/asm/arch_timer.h b/arch/arm64/include/asm/arch_timer.h
+index 7ae54d7d333a..7f22cd00ad45 100644
+--- a/arch/arm64/include/asm/arch_timer.h
++++ b/arch/arm64/include/asm/arch_timer.h
+@@ -164,24 +164,7 @@ static inline void arch_timer_set_cntkctl(u32 cntkctl)
+ 	isb();
+ }
+ 
+-/*
+- * Ensure that reads of the counter are treated the same as memory reads
+- * for the purposes of ordering by subsequent memory barriers.
+- *
+- * This insanity brought to you by speculative system register reads,
+- * out-of-order memory accesses, sequence locks and Thomas Gleixner.
+- *
+- * http://lists.infradead.org/pipermail/linux-arm-kernel/2019-February/631195.html
+- */
+-#define arch_counter_enforce_ordering(val) do {				\
+-	u64 tmp, _val = (val);						\
+-									\
+-	asm volatile(							\
+-	"	eor	%0, %1, %1\n"					\
+-	"	add	%0, sp, %0\n"					\
+-	"	ldr	xzr, [%0]"					\
+-	: "=r" (tmp) : "r" (_val));					\
+-} while (0)
++#include <asm/vdso/arch_timer.h>
+ 
+ static __always_inline u64 __arch_counter_get_cntpct_stable(void)
+ {
+@@ -189,7 +172,7 @@ static __always_inline u64 __arch_counter_get_cntpct_stable(void)
+ 
+ 	isb();
+ 	cnt = arch_timer_reg_read_stable(cntpct_el0);
+-	arch_counter_enforce_ordering(cnt);
++	cnt = arch_counter_enforce_ordering(cnt);
+ 	return cnt;
+ }
+ 
+@@ -199,7 +182,7 @@ static __always_inline u64 __arch_counter_get_cntpct(void)
+ 
+ 	isb();
+ 	cnt = read_sysreg(cntpct_el0);
+-	arch_counter_enforce_ordering(cnt);
++	cnt = arch_counter_enforce_ordering(cnt);
+ 	return cnt;
+ }
+ 
+@@ -209,7 +192,7 @@ static __always_inline u64 __arch_counter_get_cntvct_stable(void)
+ 
+ 	isb();
+ 	cnt = arch_timer_reg_read_stable(cntvct_el0);
+-	arch_counter_enforce_ordering(cnt);
++	cnt = arch_counter_enforce_ordering(cnt);
+ 	return cnt;
+ }
+ 
+@@ -219,12 +202,10 @@ static __always_inline u64 __arch_counter_get_cntvct(void)
+ 
+ 	isb();
+ 	cnt = read_sysreg(cntvct_el0);
+-	arch_counter_enforce_ordering(cnt);
++	cnt = arch_counter_enforce_ordering(cnt);
+ 	return cnt;
+ }
+ 
+-#undef arch_counter_enforce_ordering
+-
+ static inline int arch_timer_arch_init(void)
+ {
+ 	return 0;
+diff --git a/arch/arm64/include/asm/vdso/arch_timer.h b/arch/arm64/include/asm/vdso/arch_timer.h
+new file mode 100644
+index 000000000000..a71bc83232f5
+--- /dev/null
++++ b/arch/arm64/include/asm/vdso/arch_timer.h
+@@ -0,0 +1,33 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_VDSO_ARCH_TIMER_H
++#define __ASM_VDSO_ARCH_TIMER_H
++
++#include <uapi/linux/types.h>
++
++/*
++ * Ensure that reads of the counter are treated the same as memory reads
++ * for the purposes of ordering by subsequent memory barriers.
++ *
++ * This insanity brought to you by speculative system register reads,
++ * out-of-order memory accesses, sequence locks and Thomas Gleixner.
++ *
++ * http://lists.infradead.org/pipermail/linux-arm-kernel/2019-February/631195.html
++ *
++ */
++static u64 arch_counter_enforce_ordering(u64 val)
++{
++	u64 tmp, _val = (val);
++
++	asm volatile(
++	"	eor	%0, %1, %1\n"
++	"	add	%0, sp, %0\n"
++	"	ldr	xzr, [%0]"
++	: "=r" (tmp) : "r" (_val));
++
++	return _val;
++}
++
++#endif /* __ASM_VDSO_ARCH_TIMER_H */
+diff --git a/arch/arm64/include/asm/vdso/gettimeofday.h b/arch/arm64/include/asm/vdso/gettimeofday.h
+index afba6ba332f8..319808106625 100644
+--- a/arch/arm64/include/asm/vdso/gettimeofday.h
++++ b/arch/arm64/include/asm/vdso/gettimeofday.h
+@@ -8,6 +8,7 @@
+ #ifndef __ASSEMBLY__
+ 
+ #include <asm/unistd.h>
++#include <asm/vdso/arch_timer.h>
+ 
+ #define VDSO_HAS_CLOCK_GETRES		1
+ 
+@@ -82,10 +83,10 @@ static __always_inline u64 __arch_get_hw_counter(s32 clock_mode)
+ 	isb();
+ 	asm volatile("mrs %0, cntvct_el0" : "=r" (res) :: "memory");
+ 	/*
+-	 * This isb() is required to prevent that the seq lock is
+-	 * speculated.#
++	 * arch_counter_enforce_ordering() is required to prevent that
++	 * the seq lock is speculated.
+ 	 */
+-	isb();
++	res = arch_counter_enforce_ordering(res);
+ 
+ 	return res;
+ }
+-- 
+2.25.1
