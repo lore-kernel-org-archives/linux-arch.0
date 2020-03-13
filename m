@@ -1,159 +1,94 @@
-Return-Path: <SRS0=mIjk=5D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:52544 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726817AbgCRQBH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Mar 2020 12:01:07 -0400
-From: John Garry <john.garry@huawei.com>
-Subject: [PATCH 1/3] io: Provide _inX() and _outX()
-Date: Wed, 18 Mar 2020 23:55:33 +0800
-Message-ID: <1584546935-75393-2-git-send-email-john.garry@huawei.com>
-In-Reply-To: <1584546935-75393-1-git-send-email-john.garry@huawei.com>
-References: <1584546935-75393-1-git-send-email-john.garry@huawei.com>
+Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:59048 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727448AbgCMPpU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Mar 2020 11:45:20 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v3 23/26] x86: vdso: Enable x86 to use common headers
+Date: Fri, 13 Mar 2020 15:43:42 +0000
+Message-ID: <20200313154345.56760-24-vincenzo.frascino@arm.com>
+In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: xuwei5@huawei.com, arnd@arndb.de
-Cc: okaya@kernel.org, bhelgaas@google.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxarm@huawei.com, olof@lixom.net, jiaxun.yang@flygoat.com, John Garry <john.garry@huawei.com>
-Message-ID: <20200318155533.Xs9K683cOFHKDtn1rOQdaNG2-OB04WaGYIyhSBk3TEY@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200313154342.IjXWP5Rf5P6RG8VkBc1ebkLUVVgtBAE-tGaxEGCodOc@z>
 
-Since commit a7851aa54c0c ("io: change outX() to have their own IO
-barrier overrides") and commit 87fe2d543f81 ("io: change inX() to have
-their own IO barrier overrides"), the outX and inX functions have memory
-barriers which can be overridden.
+Enable x86 to use only the common headers in the implementation
+of the vDSO library.
 
-However, the generic logic_pio lib has continued to use readl/writel et al
-for IO port accesses, which has weaker barriers on arm64.
-
-Provide generic _inX() and _outX(), which can be used by logic pio.
-
-Signed-off-by: John Garry <john.garry@huawei.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/asm-generic/io.h | 64 +++++++++++++++++++++++++++++++++---------------
- 1 file changed, 44 insertions(+), 20 deletions(-)
+ arch/x86/include/asm/processor.h      | 12 +-----------
+ arch/x86/include/asm/vdso/processor.h | 23 +++++++++++++++++++++++
+ 2 files changed, 24 insertions(+), 11 deletions(-)
+ create mode 100644 arch/x86/include/asm/vdso/processor.h
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index d39ac997dda8..31f647389c84 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -448,17 +448,15 @@ static inline void writesq(volatile void __iomem *addr, const void *buffer,
- #define IO_SPACE_LIMIT 0xffff
- #endif
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index 09705ccc393c..94789db550df 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -26,6 +26,7 @@ struct vm86;
+ #include <asm/fpu/types.h>
+ #include <asm/unwind_hints.h>
+ #include <asm/vmxfeatures.h>
++#include <asm/vdso/processor.h>
  
--#include <linux/logic_pio.h>
+ #include <linux/personality.h>
+ #include <linux/cache.h>
+@@ -677,17 +678,6 @@ static inline unsigned int cpuid_edx(unsigned int op)
+ 	return edx;
+ }
+ 
+-/* REP NOP (PAUSE) is a good thing to insert into busy-wait loops. */
+-static __always_inline void rep_nop(void)
+-{
+-	asm volatile("rep; nop" ::: "memory");
+-}
+-
+-static __always_inline void cpu_relax(void)
+-{
+-	rep_nop();
+-}
 -
  /*
-  * {in,out}{b,w,l}() access little endian I/O. {in,out}{b,w,l}_p() can be
-  * implemented on hardware that needs an additional delay for I/O accesses to
-  * take effect.
-  */
- 
--#ifndef inb
--#define inb inb
--static inline u8 inb(unsigned long addr)
-+#ifndef _inb
-+#define _inb _inb
-+static inline u16 _inb(unsigned long addr)
- {
- 	u8 val;
- 
-@@ -469,9 +467,9 @@ static inline u8 inb(unsigned long addr)
- }
- #endif
- 
--#ifndef inw
--#define inw inw
--static inline u16 inw(unsigned long addr)
-+#ifndef _inw
-+#define _inw _inw
-+static inline u16 _inw(unsigned long addr)
- {
- 	u16 val;
- 
-@@ -482,9 +480,9 @@ static inline u16 inw(unsigned long addr)
- }
- #endif
- 
--#ifndef inl
--#define inl inl
--static inline u32 inl(unsigned long addr)
-+#ifndef _inl
-+#define _inl _inl
-+static inline u16 _inl(unsigned long addr)
- {
- 	u32 val;
- 
-@@ -495,9 +493,9 @@ static inline u32 inl(unsigned long addr)
- }
- #endif
- 
--#ifndef outb
--#define outb outb
--static inline void outb(u8 value, unsigned long addr)
-+#ifndef _outb
-+#define _outb _outb
-+static inline void _outb(u8 value, unsigned long addr)
- {
- 	__io_pbw();
- 	__raw_writeb(value, PCI_IOBASE + addr);
-@@ -505,9 +503,9 @@ static inline void outb(u8 value, unsigned long addr)
- }
- #endif
- 
--#ifndef outw
--#define outw outw
--static inline void outw(u16 value, unsigned long addr)
-+#ifndef _outw
-+#define _outw _outw
-+static inline void _outw(u16 value, unsigned long addr)
- {
- 	__io_pbw();
- 	__raw_writew(cpu_to_le16(value), PCI_IOBASE + addr);
-@@ -515,9 +513,9 @@ static inline void outw(u16 value, unsigned long addr)
- }
- #endif
- 
--#ifndef outl
--#define outl outl
--static inline void outl(u32 value, unsigned long addr)
-+#ifndef _outl
-+#define _outl _outl
-+static inline void _outl(u32 value, unsigned long addr)
- {
- 	__io_pbw();
- 	__raw_writel(cpu_to_le32(value), PCI_IOBASE + addr);
-@@ -525,6 +523,32 @@ static inline void outl(u32 value, unsigned long addr)
- }
- #endif
- 
-+#include <linux/logic_pio.h>
+  * This function forces the icache and prefetched instruction stream to
+  * catch up with reality in two very specific cases:
+diff --git a/arch/x86/include/asm/vdso/processor.h b/arch/x86/include/asm/vdso/processor.h
+new file mode 100644
+index 000000000000..57b1a7034c64
+--- /dev/null
++++ b/arch/x86/include/asm/vdso/processor.h
+@@ -0,0 +1,23 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_VDSO_PROCESSOR_H
++#define __ASM_VDSO_PROCESSOR_H
 +
-+#ifndef inb
-+#define inb _inb
-+#endif
++#ifndef __ASSEMBLY__
 +
-+#ifndef inw
-+#define inw _inw
-+#endif
++/* REP NOP (PAUSE) is a good thing to insert into busy-wait loops. */
++static __always_inline void rep_nop(void)
++{
++	asm volatile("rep; nop" ::: "memory");
++}
 +
-+#ifndef inl
-+#define inl _inl
-+#endif
++static __always_inline void cpu_relax(void)
++{
++	rep_nop();
++}
 +
-+#ifndef outb
-+#define outb _outb
-+#endif
++#endif /* __ASSEMBLY__ */
 +
-+#ifndef outw
-+#define outw _outw
-+#endif
-+
-+#ifndef outl
-+#define outl _outl
-+#endif
-+
- #ifndef inb_p
- #define inb_p inb_p
- static inline u8 inb_p(unsigned long addr)
++#endif /* __ASM_VDSO_PROCESSOR_H */
 -- 
-2.12.3
+2.25.1
