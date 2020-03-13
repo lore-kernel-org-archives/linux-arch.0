@@ -1,15 +1,15 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 05/26] arm: Introduce asm/vdso/clocksource.h
-Date: Fri, 13 Mar 2020 15:43:24 +0000
-Message-ID: <20200313154345.56760-6-vincenzo.frascino@arm.com>
+Subject: [PATCH v3 06/26] arm64: Introduce asm/vdso/clocksource.h
+Date: Fri, 13 Mar 2020 15:43:25 +0000
+Message-ID: <20200313154345.56760-7-vincenzo.frascino@arm.com>
 References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-mips-owner@vger.kernel.org>
 In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-mips-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
 The vDSO library should only include the necessary headers required for
@@ -23,20 +23,20 @@ functions that are suitable for vDSO inclusion.
 This header will be required by a future patch that will generalize
 vdso/clocksource.h.
 
-Cc: Russell King <linux@armlinux.org.uk>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm/include/asm/clocksource.h      | 6 +++---
- arch/arm/include/asm/vdso/clocksource.h | 8 ++++++++
- 2 files changed, 11 insertions(+), 3 deletions(-)
- create mode 100644 arch/arm/include/asm/vdso/clocksource.h
+ arch/arm64/include/asm/clocksource.h      | 3 +--
+ arch/arm64/include/asm/vdso/clocksource.h | 8 ++++++++
+ 2 files changed, 9 insertions(+), 2 deletions(-)
+ create mode 100644 arch/arm64/include/asm/vdso/clocksource.h
 
-diff --git a/arch/arm/include/asm/clocksource.h b/arch/arm/include/asm/clocksource.h
-index 73beb7f131de..13651c731a81 100644
---- a/arch/arm/include/asm/clocksource.h
-+++ b/arch/arm/include/asm/clocksource.h
-@@ -1,7 +1,7 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
+diff --git a/arch/arm64/include/asm/clocksource.h b/arch/arm64/include/asm/clocksource.h
+index eb82e9d95c5d..482185566b0c 100644
+--- a/arch/arm64/include/asm/clocksource.h
++++ b/arch/arm64/include/asm/clocksource.h
+@@ -2,7 +2,6 @@
  #ifndef _ASM_CLOCKSOURCE_H
  #define _ASM_CLOCKSOURCE_H
  
@@ -44,13 +44,12 @@ index 73beb7f131de..13651c731a81 100644
 -	VDSO_CLOCKMODE_ARCHTIMER
 +#include <asm/vdso/clocksource.h>
  
--#endif
-+#endif /* _ASM_CLOCKSOURCE_H */
-diff --git a/arch/arm/include/asm/vdso/clocksource.h b/arch/arm/include/asm/vdso/clocksource.h
+ #endif
+diff --git a/arch/arm64/include/asm/vdso/clocksource.h b/arch/arm64/include/asm/vdso/clocksource.h
 new file mode 100644
-index 000000000000..50c0b19fb755
+index 000000000000..df6ea65c1dec
 --- /dev/null
-+++ b/arch/arm/include/asm/vdso/clocksource.h
++++ b/arch/arm64/include/asm/vdso/clocksource.h
 @@ -0,0 +1,8 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef __ASM_VDSOCLOCKSOURCE_H
@@ -59,6 +58,6 @@ index 000000000000..50c0b19fb755
 +#define VDSO_ARCH_CLOCKMODES	\
 +	VDSO_CLOCKMODE_ARCHTIMER
 +
-+#endif /* __ASM_VDSOCLOCKSOURCE_H */
++#endif
 -- 
 2.25.1
