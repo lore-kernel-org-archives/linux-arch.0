@@ -1,76 +1,35 @@
-Return-Path: <SRS0=Irbl=4Z=lists.infradead.org=linux-riscv-bounces+rppt=kernel.org@kernel.org>
-From: guoren@kernel.org
-Subject: [RFC PATCH V3 04/11] riscv: Add CSR defines related to VECTOR
- extension
-Date: Sun,  8 Mar 2020 17:49:47 +0800
-Message-ID: <20200308094954.13258-5-guoren@kernel.org>
-In-Reply-To: <20200308094954.13258-1-guoren@kernel.org>
-References: <20200308094954.13258-1-guoren@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+rppt=kernel.org@lists.infradead.org
-To: paul.walmsley@sifive.com, palmer@dabbelt.com, Anup.Patel@wdc.com, greentime.hu@sifive.com
-Cc: linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-csky@vger.kernel.org, linux-riscv@lists.infradead.org, Dave Martin <Dave.Martin@arm.com>
+Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from userp2130.oracle.com ([156.151.31.86]:49724 "EHLO
+        userp2130.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726772AbgCMAit (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2020 20:38:49 -0400
+Subject: Re: [PATCH v1] asm-generic: Provide generic {get, put}_unaligned_{l, b}e24()
+From: "Martin K. Petersen" <martin.petersen@oracle.com>
+References: <20200312113941.81162-1-andriy.shevchenko@linux.intel.com>
+        <efe5daa3-8e37-101a-9203-676be33eb934@acm.org>
+        <20200312162507.GF1922688@smile.fi.intel.com>
+        <6d932620-3255-fbd8-7fc8-22e4b3068043@acm.org>
+        <CAO+b5-rXUU9r-SrCWq2cYbBr5xFqyx4CUMb8xHZv2xYzEP6CyA@mail.gmail.com>
+Date: Thu, 12 Mar 2020 20:38:10 -0400
+In-Reply-To: <CAO+b5-rXUU9r-SrCWq2cYbBr5xFqyx4CUMb8xHZv2xYzEP6CyA@mail.gmail.com>
+        (Bart Van Assche's message of "Thu, 12 Mar 2020 17:29:37 -0700")
+Message-ID: <yq1v9n9nl71.fsf@oracle.com>
+MIME-Version: 1.0
+Content-Type: text/plain
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200308094947.-ue7kFRlD5sCzo3vYt5WbeIIU1j55ZpDDj1SRtxATWQ@z>
+To: Bart Van Assche <bvanassche@acm.org>
+Cc: "Martin K. Petersen" <martin.petersen@oracle.com>, Keith Busch <kbusch@kernel.org>, Jens Axboe <axboe@fb.com>, Christoph Hellwig <hch@lst.de>, Sagi Grimberg <sagi@grimberg.me>, Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>, "linux-nvme @ lists . infradead . org" <linux-nvme@lists.infradead.org>, Felipe Balbi <balbi@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, USB list <linux-usb@vger.kernel.org>, Linux SCSI Mailinglist <linux-scsi@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Message-ID: <20200313003810.YH_-zkWWPG6CkCT1SU7Lyo11D0oqN4F41YZSm1onGvM@z>
 
-From: Guo Ren <guoren@linux.alibaba.com>
 
-Follow the spec to define the regs' bits and regs' number.
+Bart,
 
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
----
- arch/riscv/include/asm/csr.h | 17 +++++++++++++++--
- 1 file changed, 15 insertions(+), 2 deletions(-)
+> Martin, can I send the second version of my patch series to you or do
+> you perhaps prefer that I send it to another kernel maintainer? I'm
+> considering to include the following patches:
 
-diff --git a/arch/riscv/include/asm/csr.h b/arch/riscv/include/asm/csr.h
-index 435b65532e29..49b93b638680 100644
---- a/arch/riscv/include/asm/csr.h
-+++ b/arch/riscv/include/asm/csr.h
-@@ -24,6 +24,12 @@
- #define SR_FS_CLEAN	_AC(0x00004000, UL)
- #define SR_FS_DIRTY	_AC(0x00006000, UL)
- 
-+#define SR_VS           _AC(0x01800000, UL) /* Vector Status */
-+#define SR_VS_OFF       _AC(0x00000000, UL)
-+#define SR_VS_INITIAL   _AC(0x00800000, UL)
-+#define SR_VS_CLEAN     _AC(0x01000000, UL)
-+#define SR_VS_DIRTY     _AC(0x01800000, UL)
-+
- #define SR_XS		_AC(0x00018000, UL) /* Extension Status */
- #define SR_XS_OFF	_AC(0x00000000, UL)
- #define SR_XS_INITIAL	_AC(0x00008000, UL)
-@@ -31,9 +37,9 @@
- #define SR_XS_DIRTY	_AC(0x00018000, UL)
- 
- #ifndef CONFIG_64BIT
--#define SR_SD		_AC(0x80000000, UL) /* FS/XS dirty */
-+#define SR_SD		_AC(0x80000000, UL) /* FS/VS/XS dirty */
- #else
--#define SR_SD		_AC(0x8000000000000000, UL) /* FS/XS dirty */
-+#define SR_SD		_AC(0x8000000000000000, UL) /* FS/VS/XS dirty */
- #endif
- 
- /* SATP flags */
-@@ -102,6 +108,13 @@
- #define CSR_MIP			0x344
- #define CSR_MHARTID		0xf14
- 
-+#define CSR_VSTART		0x8
-+#define CSR_VXSAT		0x9
-+#define CSR_VXRM		0xa
-+#define CSR_VL			0xc20
-+#define CSR_VTYPE		0xc21
-+#define CSR_VLENB		0xc22
-+
- #ifdef CONFIG_RISCV_M_MODE
- # define CSR_STATUS	CSR_MSTATUS
- # define CSR_IE		CSR_MIE
+Happy to take it.
+
 -- 
-2.17.0
+Martin K. Petersen	Oracle Linux Engineering
