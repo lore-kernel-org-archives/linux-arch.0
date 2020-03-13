@@ -1,138 +1,75 @@
-Return-Path: <SRS0=wNVN=5G=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v3 4/4] mm: Set VM_LEVEL flags in some tlb_flush functions
-Date: Sat, 21 Mar 2020 20:16:21 +0800
-Message-ID: <20200321121621.1600-5-yezhenyu2@huawei.com>
-In-Reply-To: <20200321121621.1600-1-yezhenyu2@huawei.com>
-References: <20200321121621.1600-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:58354 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727066AbgCMPoS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Mar 2020 11:44:18 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v3 04/26] x86:Introduce asm/vdso/clocksource.h
+Date: Fri, 13 Mar 2020 15:43:23 +0000
+Message-ID: <20200313154345.56760-5-vincenzo.frascino@arm.com>
+In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200321121621.MzQmYZ28lhQoooSVKQYf8nWSgyZ94P3Tpvzi0AE1oRY@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200313154323.omg9qRsONIXtR1UvQwfaF0OG-oB6BI8qfmT02ELW-ow@z>
 
-The relevant functions are:
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-	tlb_flush in asm/tlb.h
-	get_clear_flush and clear_flush in mm/hugetlbpage.c
-	flush_pmd|pud_tlb_range in asm-generic/patable.h
-	do_huge_pmd_numa_page and move_huge_pmd in mm/huge_memory.c
+Introduce asm/vdso/clocksource.h to contain all the arm64 specific
+functions that are suitable for vDSO inclusion.
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+This header will be required by a future patch that will generalize
+vdso/clocksource.h.
+
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/include/asm/tlb.h  | 12 ++++++++++++
- arch/arm64/mm/hugetlbpage.c   |  4 ++--
- include/asm-generic/pgtable.h | 16 ++++++++++++++--
- mm/huge_memory.c              |  8 +++++++-
- 4 files changed, 35 insertions(+), 5 deletions(-)
+ arch/x86/include/asm/clocksource.h      |  5 +----
+ arch/x86/include/asm/vdso/clocksource.h | 10 ++++++++++
+ 2 files changed, 11 insertions(+), 4 deletions(-)
+ create mode 100644 arch/x86/include/asm/vdso/clocksource.h
 
-diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-index b76df828e6b7..77fe942b30b6 100644
---- a/arch/arm64/include/asm/tlb.h
-+++ b/arch/arm64/include/asm/tlb.h
-@@ -27,6 +27,18 @@ static inline void tlb_flush(struct mmu_gather *tlb)
- 	bool last_level =3D !tlb->freed_tables;
- 	unsigned long stride =3D tlb_get_unmap_size(tlb);
-=20
-+	/*
-+	 * mm_gather tracked which levels of the page tables
-+	 * have been cleared, we can use this info to set
-+	 * vm->vm_flags.
-+	 */
-+	if (tlb->cleared_ptes)
-+		vma.vm_flags |=3D VM_LEVEL_PTE;
-+	else if (tlb->cleared_pmds)
-+		vma.vm_flags |=3D VM_LEVEL_PMD;
-+	else if (tlb->cleared_puds)
-+		vma.vm_flags |=3D VM_LEVEL_PUD;
+diff --git a/arch/x86/include/asm/clocksource.h b/arch/x86/include/asm/clocksource.h
+index d561db67f96d..dc9dc7b3911a 100644
+--- a/arch/x86/include/asm/clocksource.h
++++ b/arch/x86/include/asm/clocksource.h
+@@ -4,10 +4,7 @@
+ #ifndef _ASM_X86_CLOCKSOURCE_H
+ #define _ASM_X86_CLOCKSOURCE_H
+ 
+-#define VDSO_ARCH_CLOCKMODES	\
+-	VDSO_CLOCKMODE_TSC,	\
+-	VDSO_CLOCKMODE_PVCLOCK,	\
+-	VDSO_CLOCKMODE_HVCLOCK
++#include <asm/vdso/clocksource.h>
+ 
+ extern unsigned int vclocks_used;
+ 
+diff --git a/arch/x86/include/asm/vdso/clocksource.h b/arch/x86/include/asm/vdso/clocksource.h
+new file mode 100644
+index 000000000000..119ac8612d89
+--- /dev/null
++++ b/arch/x86/include/asm/vdso/clocksource.h
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_VDSO_CLOCKSOURCE_H
++#define __ASM_VDSO_CLOCKSOURCE_H
 +
- 	/*
- 	 * If we're tearing down the address space then we only care about
- 	 * invalidating the walk-cache, since the ASID allocator won't
-diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
-index bbeb6a5a6ba6..c35a1bd06bd0 100644
---- a/arch/arm64/mm/hugetlbpage.c
-+++ b/arch/arm64/mm/hugetlbpage.c
-@@ -140,7 +140,7 @@ static pte_t get_clear_flush(struct mm_struct *mm,
- 	}
-=20
- 	if (valid) {
--		struct vm_area_struct vma =3D TLB_FLUSH_VMA(mm, 0);
-+		struct vm_area_struct vma =3D TLB_FLUSH_VMA(mm, VM_LEVEL_PTE);
- 		flush_tlb_range(&vma, saddr, addr);
- 	}
- 	return orig_pte;
-@@ -161,7 +161,7 @@ static void clear_flush(struct mm_struct *mm,
- 			     unsigned long pgsize,
- 			     unsigned long ncontig)
- {
--	struct vm_area_struct vma =3D TLB_FLUSH_VMA(mm, 0);
-+	struct vm_area_struct vma =3D TLB_FLUSH_VMA(mm, VM_LEVEL_PTE);
- 	unsigned long i, saddr =3D addr;
-=20
- 	for (i =3D 0; i < ncontig; i++, addr +=3D pgsize, ptep++)
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.=
-h
-index e2e2bef07dd2..391e704faf7a 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1160,8 +1160,20 @@ static inline int pmd_free_pte_page(pmd_t *pmd, un=
-signed long addr)
-  * invalidate the entire TLB which is not desitable.
-  * e.g. see arch/arc: flush_pmd_tlb_range
-  */
--#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, e=
-nd)
--#define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, e=
-nd)
-+#define flush_pmd_tlb_range(vma, addr, end)				\
-+	do {								\
-+		vma->vm_flags &=3D ~(VM_LEVEL_PUD | VM_LEVEL_PTE);	\
-+		vma->vm_flags |=3D VM_LEVEL_PMD;				\
-+		flush_tlb_range(vma, addr, end);			\
-+	} while (0)
++#define VDSO_ARCH_CLOCKMODES	\
++	VDSO_CLOCKMODE_TSC,	\
++	VDSO_CLOCKMODE_PVCLOCK,	\
++	VDSO_CLOCKMODE_HVCLOCK
 +
-+#define flush_pud_tlb_range(vma, addr, end)				\
-+	do {								\
-+		vma->vm_flags &=3D ~(VM_LEVEL_PMD | VM_LEVEL_PTE);	\
-+		vma->vm_flags |=3D VM_LEVEL_PUD;				\
-+		flush_tlb_range(vma, addr, end);			\
-+	} while (0)
-+
- #else
- #define flush_pmd_tlb_range(vma, addr, end)	BUILD_BUG()
- #define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index b08b199f9a11..f28ced8d298e 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -1646,6 +1646,8 @@ vm_fault_t do_huge_pmd_numa_page(struct vm_fault *v=
-mf, pmd_t pmd)
- 	 * mapping or not. Hence use the tlb range variant
- 	 */
- 	if (mm_tlb_flush_pending(vma->vm_mm)) {
-+		vma->vm_flags &=3D ~(VM_LEVEL_PUD | VM_LEVEL_PTE);
-+		vma->vm_flags |=3D VM_LEVEL_PMD;
- 		flush_tlb_range(vma, haddr, haddr + HPAGE_PMD_SIZE);
- 		/*
- 		 * change_huge_pmd() released the pmd lock before
-@@ -1917,8 +1919,12 @@ bool move_huge_pmd(struct vm_area_struct *vma, uns=
-igned long old_addr,
- 		}
- 		pmd =3D move_soft_dirty_pmd(pmd);
- 		set_pmd_at(mm, new_addr, new_pmd, pmd);
--		if (force_flush)
-+		if (force_flush) {
-+			vma->vm_flags &=3D ~(VM_LEVEL_PUD | VM_LEVEL_PTE);
-+			vma->vm_flags |=3D VM_LEVEL_PMD;
- 			flush_tlb_range(vma, old_addr, old_addr + PMD_SIZE);
-+		}
-+
- 		if (new_ptl !=3D old_ptl)
- 			spin_unlock(new_ptl);
- 		spin_unlock(old_ptl);
---=20
-2.19.1
++#endif /* __ASM_VDSO_CLOCKSOURCE_H */
+-- 
+2.25.1
