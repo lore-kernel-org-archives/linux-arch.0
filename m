@@ -1,30 +1,51 @@
-From: "Martin K. Petersen" <martin.petersen@oracle.com>
-Subject: Re: [PATCH v1] asm-generic: Provide generic {get, put}_unaligned_{l, b}e24()
-Date: Thu, 12 Mar 2020 20:38:10 -0400
-Message-ID: <yq1v9n9nl71.fsf@oracle.com>
-References: <20200312113941.81162-1-andriy.shevchenko@linux.intel.com>
-        <efe5daa3-8e37-101a-9203-676be33eb934@acm.org>
-        <20200312162507.GF1922688@smile.fi.intel.com>
-        <6d932620-3255-fbd8-7fc8-22e4b3068043@acm.org>
-        <CAO+b5-rXUU9r-SrCWq2cYbBr5xFqyx4CUMb8xHZv2xYzEP6CyA@mail.gmail.com>
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v9 02/13] ELF: Add ELF program property parsing support
+Date: Fri, 13 Mar 2020 11:55:58 +0000
+Message-ID: <20200313115558.GC5528@sirena.org.uk>
+References: <20200311192608.40095-1-broonie@kernel.org>
+ <20200311192608.40095-3-broonie@kernel.org>
+ <202003121658.39A47CE098@keescook>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-scsi-owner@vger.kernel.org>
-In-Reply-To: <CAO+b5-rXUU9r-SrCWq2cYbBr5xFqyx4CUMb8xHZv2xYzEP6CyA@mail.gmail.com>
-        (Bart Van Assche's message of "Thu, 12 Mar 2020 17:29:37 -0700")
-Sender: linux-scsi-owner@vger.kernel.org
-To: Bart Van Assche <bvanassche@acm.org>
-Cc: "Martin K. Petersen" <martin.petersen@oracle.com>, Keith Busch <kbusch@kernel.org>, Jens Axboe <axboe@fb.com>, Christoph Hellwig <hch@lst.de>, Sagi Grimberg <sagi@grimberg.me>, Chaitanya Kulkarni <chaitanya.kulkarni@wdc.com>, "linux-nvme @ lists . infradead . org" <linux-nvme@lists.infradead.org>, Felipe Balbi <balbi@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, USB list <linux-usb@vger.kernel.org>, Linux SCSI Mailinglist <linux-scsi@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="gr/z0/N6AeWAPJVB"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:53580 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726216AbgCML4B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Mar 2020 07:56:01 -0400
+Content-Disposition: inline
+In-Reply-To: <202003121658.39A47CE098@keescook>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudak
 
 
-Bart,
+--gr/z0/N6AeWAPJVB
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-> Martin, can I send the second version of my patch series to you or do
-> you perhaps prefer that I send it to another kernel maintainer? I'm
-> considering to include the following patches:
+On Thu, Mar 12, 2020 at 04:59:21PM -0700, Kees Cook wrote:
 
-Happy to take it.
+> I think my review got lost along the way. Please consider this:
 
--- 
-Martin K. Petersen	Oracle Linux Engineering
+> Reviewed-by: Kees Cook <keescook@chromium.org>
+
+Yes, sorry - I've added it locally (and the other two you sent just now).
+
+--gr/z0/N6AeWAPJVB
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5rdM0ACgkQJNaLcl1U
+h9Ct3wf+MPz1HrOXhlGATJUUi/83pv08oTCCzRaHqlsusA4dPg41W77Sgpj37/Yr
+9LGONneWZqrufnFxx7ZEMJpqwJU1ROce8kl59OqNPAvVm25jQSBFMoboDrWHPCXB
+GbTThVC6FmnF/QboOwdYKGH5/PVXLyxlH5widr4tjataNyWfaxVfk9RUmm8zCZHI
+EqNJbvFejd2e6+g32ZxnnqAl8/nWswnuorlm884nKrqdAN69dyJIcDb19NaP9ZDc
+8WJd4HoiMr+vT1a/JnkZCB/LwJU3nBlbOFWm7CNuHntRErsTZ5vZJ9m6ORz9v0oY
+wU2OLaDYGXBG21NDPFxxWbEEBW2zFg==
+=f6yG
+-----END PGP SIGNATURE-----
+
+--gr/z0/N6AeWAPJVB--
