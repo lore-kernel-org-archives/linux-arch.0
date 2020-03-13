@@ -1,110 +1,87 @@
-Return-Path: <SRS0=SHIp=5Q=vger.kernel.org=linux-doc-owner@kernel.org>
-Date: Tue, 31 Mar 2020 09:40:37 +0800
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [PATCH v4 0/4] Documentation/litmus-tests: Add litmus tests for
- atomic APIs
-Message-ID: <20200331014037.GB59159@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
-References: <20200326024022.7566-1-boqun.feng@gmail.com>
- <20200327221843.GA226939@google.com>
+Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:58502 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727144AbgCMPob (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Mar 2020 11:44:31 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v3 08/26] linux/clocksource.h: Extract common header for vDSO
+Date: Fri, 13 Mar 2020 15:43:27 +0000
+Message-ID: <20200313154345.56760-9-vincenzo.frascino@arm.com>
+In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200327221843.GA226939@google.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Joel Fernandes <joel@joelfernandes.org>
-Cc: linux-kernel@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200331014037.kKZlqI9sJYFXYceuDl0oQJ5P7q9QPnu_gILXr8stmi8@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200313154327.H6Jgs1qL0v6ptqo5je76UrhvlgvyKDX3ueXbI0RaYe8@z>
 
-On Fri, Mar 27, 2020 at 06:18:43PM -0400, Joel Fernandes wrote:
-> On Thu, Mar 26, 2020 at 10:40:18AM +0800, Boqun Feng wrote:
-> > A recent discussion raises up the requirement for having test cases for
-> > atomic APIs:
-> > 
-> > 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
-> > 
-> > , and since we already have a way to generate a test module from a
-> > litmus test with klitmus[1]. It makes sense that we add more litmus
-> > tests for atomic APIs. And based on the previous discussion, I create a
-> > new directory Documentation/atomic-tests and put these litmus tests
-> > here.
-> > 
-> > This patchset starts the work by adding the litmus tests which are
-> > already used in atomic_t.txt, and also improve the atomic_t.txt to make
-> > it consistent with the litmus tests.
-> > 
-> > Previous version:
-> > v1: https://lore.kernel.org/linux-doc/20200214040132.91934-1-boqun.feng@gmail.com/
-> > v2: https://lore.kernel.org/lkml/20200219062627.104736-1-boqun.feng@gmail.com/
-> > v3: https://lore.kernel.org/linux-doc/20200227004049.6853-1-boqun.feng@gmail.com/
-> 
-> For full series:
-> 
-> Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-> 
-> One question I had was in the existing atomic_set() documentation, it talks
-> about atomic_add_unless() implementation based on locking could have issues.
-> It says the way to fix such cases is:
-> 
-> Quote:
->     the typical solution is to then implement atomic_set{}() with
->     atomic_xchg().
-> 
-> I didn't get how using atomic_xchg() fixes it. Is the assumption there that
-> atomic_xchg() would be implemented using locking to avoid atomic_set() having
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-Right, I think that's the intent of the sentence.
+Split clocksource.h into linux and common headers to make the latter
+suitable for inclusion in the vDSO library.
 
-> issues? If so, we could clarify that in the document.
-> 
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ include/linux/clocksource.h | 11 +----------
+ include/vdso/clocksource.h  | 23 +++++++++++++++++++++++
+ 2 files changed, 24 insertions(+), 10 deletions(-)
+ create mode 100644 include/vdso/clocksource.h
 
-Patches are welcome ;-)
-
-Regards,
-Boqun
-
-> thanks,
-> 
->  - Joel
-> 
-> > 
-> > Changes since v3:
-> > 
-> > *	Merge two patches on atomic-set litmus test into one as per
-> > 	Alan. (Alan, you have acked only one of the two patches, so I
-> > 	don't add you acked-by for the combined patch).
-> > 
-> > *	Move the atomic litmus tests into litmus-tests/atomic to align
-> > 	with Joel's recent patches on RCU litmus tests.
-> > 
-> > I think we still haven't reach to a conclusion for the difference of
-> > atomic_add_unless() in herdtools, and I'm currently reading the source
-> > code of herd to resovle this. This is just an updated version to resolve
-> > ealier comments and react on Joel's RCU litmus tests.
-> > 
-> > Regards,
-> > Boqun
-> > 
-> > [1]: http://diy.inria.fr/doc/litmus.html#klitmus
-> > 
-> > Boqun Feng (4):
-> >   tools/memory-model: Add an exception for limitations on _unless()
-> >     family
-> >   Documentation/litmus-tests: Introduce atomic directory
-> >   Documentation/litmus-tests/atomic: Add a test for atomic_set()
-> >   Documentation/litmus-tests/atomic: Add a test for
-> >     smp_mb__after_atomic()
-> > 
-> >  Documentation/atomic_t.txt                    | 24 +++++++-------
-> >  ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
-> >  ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 ++++++++++++++
-> >  Documentation/litmus-tests/atomic/README      | 16 ++++++++++
-> >  tools/memory-model/README                     | 10 ++++--
-> >  5 files changed, 91 insertions(+), 15 deletions(-)
-> >  create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
-> >  create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
-> >  create mode 100644 Documentation/litmus-tests/atomic/README
-> > 
-> > -- 
-> > 2.25.1
-> > 
+diff --git a/include/linux/clocksource.h b/include/linux/clocksource.h
+index 02e3282719bd..86d143db6523 100644
+--- a/include/linux/clocksource.h
++++ b/include/linux/clocksource.h
+@@ -28,16 +28,7 @@ struct module;
+ #include <asm/clocksource.h>
+ #endif
+ 
+-enum vdso_clock_mode {
+-	VDSO_CLOCKMODE_NONE,
+-#ifdef CONFIG_GENERIC_GETTIMEOFDAY
+-	VDSO_ARCH_CLOCKMODES,
+-#endif
+-	VDSO_CLOCKMODE_MAX,
+-
+-	/* Indicator for time namespace VDSO */
+-	VDSO_CLOCKMODE_TIMENS = INT_MAX
+-};
++#include <vdso/clocksource.h>
+ 
+ /**
+  * struct clocksource - hardware abstraction for a free running counter
+diff --git a/include/vdso/clocksource.h b/include/vdso/clocksource.h
+new file mode 100644
+index 000000000000..ab58330e4e5d
+--- /dev/null
++++ b/include/vdso/clocksource.h
+@@ -0,0 +1,23 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __VDSO_CLOCKSOURCE_H
++#define __VDSO_CLOCKSOURCE_H
++
++#include <vdso/limits.h>
++
++#if defined(CONFIG_ARCH_CLOCKSOURCE_DATA) || \
++	defined(CONFIG_GENERIC_GETTIMEOFDAY)
++#include <asm/vdso/clocksource.h>
++#endif /* CONFIG_ARCH_CLOCKSOURCE_DATA || CONFIG_GENERIC_GETTIMEOFDAY */
++
++enum vdso_clock_mode {
++	VDSO_CLOCKMODE_NONE,
++#ifdef CONFIG_GENERIC_GETTIMEOFDAY
++	VDSO_ARCH_CLOCKMODES,
++#endif
++	VDSO_CLOCKMODE_MAX,
++
++	/* Indicator for time namespace VDSO */
++	VDSO_CLOCKMODE_TIMENS = INT_MAX
++};
++
++#endif /* __VDSO_CLOCKSOURCE_H */
+-- 
+2.25.1
