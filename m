@@ -1,92 +1,55 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:41012 "EHLO foss.arm.com"
+Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:59164 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726066AbgCQRsM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 13:48:12 -0400
-Date: Tue, 17 Mar 2020 17:48:06 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
- vgettimeofday
-Message-ID: <20200317174806.GE632169@arrakis.emea.arm.com>
-References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
- <20200317122220.30393-19-vincenzo.frascino@arm.com>
- <20200317143834.GC632169@arrakis.emea.arm.com>
- <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
- <20200317155031.GD632169@arrakis.emea.arm.com>
- <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
+        id S1726902AbgCMPpa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Mar 2020 11:45:30 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v3 26/26] arm64: vdso32: Enable Clang Compilation
+Date: Fri, 13 Mar 2020 15:43:45 +0000
+Message-ID: <20200313154345.56760-27-vincenzo.frascino@arm.com>
+In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200317174806.dVARCcR-7QhjEvqEq_toNUM03PCTXpwpbjRWteW_zHw@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>
+Message-ID: <20200313154345.sgyKbwQhxHiBUGPlNvRWceV813dwJQTa0ccD_4-ek1U@z>
 
-On Tue, Mar 17, 2020 at 04:40:48PM +0000, Vincenzo Frascino wrote:
-> On 3/17/20 3:50 PM, Catalin Marinas wrote:
-> > On Tue, Mar 17, 2020 at 03:04:01PM +0000, Vincenzo Frascino wrote:
-> >> On 3/17/20 2:38 PM, Catalin Marinas wrote:
-> >>> On Tue, Mar 17, 2020 at 12:22:12PM +0000, Vincenzo Frascino wrote:
-> >>
-> >> Can TASK_SIZE > UINTPTR_MAX on an arm64 system?
-> > 
-> > TASK_SIZE yes on arm64 but not TASK_SIZE_32. I was asking about the
-> > arm32 check where TASK_SIZE < UINTPTR_MAX. How does the vdsotest return
-> > -EFAULT on arm32? Which code path causes this in the user vdso code?
-> 
-> Sorry I got confused because you referred to arch/arm/vdso/vgettimeofday.c which
-> is the arm64 implementation, not the compat one :)
+Enable Clang Compilation for the vdso32 library.
 
-You figured out (in your subsequent reply) that I was indeed talking
-about arm32 ;).
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
+Tested-by: Nathan Chancellor <natechancellor@gmail.com> # build
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/arm64/kernel/vdso32/Makefile | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
-> In the case of arm32 everything is handled via syscall fallback.
-
-So clock_gettime() on arm32 always falls back to the syscall?
-
-> > My guess is that on arm32 it only fails with -EFAULT in the syscall
-> > fallback path since a copy_to_user() would fail the access_ok() check.
-> > Does it always take the fallback path if ts > TASK_SIZE?
-> 
-> Correct, it goes via fallback. The return codes for these syscalls are specified
-> by the ABI [1]. Then I agree with you the way on which arm32 achieves it should
-> be via access_ok() check.
-
-"it should be" or "it is" on arm32?
-
-If, on arm32, clock_gettime() is (would be?) handled in the vdso
-entirely, who checks for the pointer outside the accessible address
-space (as per the clock_gettime man page)?
-
-I'm fine with such check as long as it is consistent across arm32 and
-arm64 compat. Or even on arm64 native between syscall fallback and vdso
-execution. I haven't figured out yet whether this is the case.
-
-> >>> This last check needs an explanation. If the clock_id is invalid but res
-> >>> is not NULL, we allow it. I don't see where the compatibility issue is,
-> >>> arm32 doesn't have such check.
-> >>
-> >> The case that you are describing has to return -EPERM per ABI spec. This case
-> >> has to return -EINVAL.
-> >>
-> >> The first case is taken care from the generic code. But if we don't do this
-> >> check before on arm64 compat we end up returning the wrong error code.
-> > 
-> > I guess I have the same question as above. Where does the arm32 code
-> > return -EINVAL for that case? Did it work correctly before you removed
-> > the TASK_SIZE_32 check?
-> 
-> I repeated the test and seems that it was failing even before I removed
-> TASK_SIZE_32. For reasons I can't explain I did not catch it before.
-> 
-> The getres syscall should return -EINVAL in the cases specified in [1].
-
-It states 'clk_id specified is not supported on this system'. Fair
-enough but it doesn't say that it returns -EINVAL only if res == NULL.
-You also don't explain why __cvdso_clock_getres_time32() doesn't already
-detect an invalid clk_id on arm64 compat (but does it on arm32).
-
+diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
+index 04df57b43cb1..3964738ebbde 100644
+--- a/arch/arm64/kernel/vdso32/Makefile
++++ b/arch/arm64/kernel/vdso32/Makefile
+@@ -10,7 +10,18 @@ include $(srctree)/lib/vdso/Makefile
+ 
+ # Same as cc-*option, but using CC_COMPAT instead of CC
+ ifeq ($(CONFIG_CC_IS_CLANG), y)
++COMPAT_GCC_TOOLCHAIN_DIR := $(dir $(shell which $(CROSS_COMPILE_COMPAT)elfedit))
++COMPAT_GCC_TOOLCHAIN := $(realpath $(COMPAT_GCC_TOOLCHAIN_DIR)/..)
++
++CC_COMPAT_CLANG_FLAGS := --target=$(notdir $(CROSS_COMPILE_COMPAT:%-=%))
++CC_COMPAT_CLANG_FLAGS += --prefix=$(COMPAT_GCC_TOOLCHAIN_DIR)
++CC_COMPAT_CLANG_FLAGS += -no-integrated-as -Qunused-arguments
++ifneq ($(COMPAT_GCC_TOOLCHAIN),)
++CC_COMPAT_CLANG_FLAGS += --gcc-toolchain=$(COMPAT_GCC_TOOLCHAIN)
++endif
++
+ CC_COMPAT ?= $(CC)
++CC_COMPAT += $(CC_COMPAT_CLANG_FLAGS)
+ else
+ CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
+ endif
 -- 
-Catalin
+2.25.1
