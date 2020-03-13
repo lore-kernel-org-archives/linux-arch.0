@@ -1,111 +1,99 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: Re: [PATCH v2 20/20] arm64: vdso32: Enable Clang Compilation
-Date: Fri, 13 Mar 2020 12:01:57 +0000
-Message-ID: <ce62f238-eea9-a0eb-6f72-a3ef5c4a275a@arm.com>
-References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
- <20200306133242.26279-21-vincenzo.frascino@arm.com>
- <20200310014039.GA12211@ubuntu-m2-xlarge-x86>
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
+Date: Fri, 13 Mar 2020 12:59:27 +0000
+Message-ID: <20200313125927.GE5528@sirena.org.uk>
+References: <20200227174417.23722-1-broonie@kernel.org>
+ <20200306102729.GC2503422@arrakis.emea.arm.com>
+ <20200309210505.GM4101@sirena.org.uk>
+ <20200310124226.GC4106@sirena.org.uk>
+ <20200311162858.GK3216816@arrakis.emea.arm.com>
+ <20200311172556.GJ5411@sirena.org.uk>
+ <20200312184211.GA3849205@arrakis.emea.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:53730 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726636AbgCMMBg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Mar 2020 08:01:36 -0400
-In-Reply-To: <20200310014039.GA12211@ubuntu-m2-xlarge-x86>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nathan Chancellor <natechancellor@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="u5E4XgoOPWr4PD9E"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200312184211.GA3849205@arrakis.emea.arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina
+List-Id: linux-arch.vger.kernel.org
 
-On 3/10/20 1:40 AM, Nathan Chancellor wrote:
-> On Fri, Mar 06, 2020 at 01:32:42PM +0000, Vincenzo Frascino wrote:
->> Enable Clang Compilation for the vdso32 library.
->>
->> Cc: Catalin Marinas <catalin.marinas@arm.com>
->> Cc: Will Deacon <will@kernel.org>
->> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
->> ---
->>  arch/arm64/kernel/vdso32/Makefile | 13 ++++++++++++-
->>  1 file changed, 12 insertions(+), 1 deletion(-)
->>
->> diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
->> index 04df57b43cb1..650cfc5757eb 100644
->> --- a/arch/arm64/kernel/vdso32/Makefile
->> +++ b/arch/arm64/kernel/vdso32/Makefile
->> @@ -10,7 +10,18 @@ include $(srctree)/lib/vdso/Makefile
->>  
->>  # Same as cc-*option, but using CC_COMPAT instead of CC
->>  ifeq ($(CONFIG_CC_IS_CLANG), y)
->> -CC_COMPAT ?= $(CC)
->> +COMPAT_GCC_TOOLCHAIN_DIR := $(dir $(shell which $(CROSS_COMPILE_COMPAT)elfedit))
->> +COMPAT_GCC_TOOLCHAIN := $(realpath $(COMPAT_GCC_TOOLCHAIN_DIR)/..)
->> +
->> +CLANG_CC_COMPAT := $(CC)
->> +CLANG_CC_COMPAT += --target=$(notdir $(CROSS_COMPILE_COMPAT:%-=%))
->> +CLANG_CC_COMPAT += --prefix=$(COMPAT_GCC_TOOLCHAIN_DIR)
->> +CLANG_CC_COMPAT += -no-integrated-as -Qunused-arguments
->> +ifneq ($(COMPAT_GCC_TOOLCHAIN),)
->> +CLANG_CC_COMPAT += --gcc-toolchain=$(COMPAT_GCC_TOOLCHAIN)
->> +endif
->> +
->> +CC_COMPAT ?= $(CLANG_CC_COMPAT)
->>  else
->>  CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
->>  endif
->> -- 
->> 2.25.1
->>
-> If CC_COMPAT is ever specified on the command line as clang (maybe by
-> some unsuspecting user), we'd loose all of the above flags. Maybe it
-> would be better to build a set of COMPAT_CLANG_FLAGS and append them to
-> CC_COMPAT, maybe like below?
->
 
-Fine by me.
+--u5E4XgoOPWr4PD9E
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-> Regardless, the current approach works in my testing with clang 9.0.1
-> and master (clang 11.0.0). This patch specifically is:
-> 
+On Thu, Mar 12, 2020 at 06:42:11PM +0000, Catalin Marinas wrote:
+> On Wed, Mar 11, 2020 at 05:25:56PM +0000, Mark Brown wrote:
+> > On Wed, Mar 11, 2020 at 04:28:58PM +0000, Catalin Marinas wrote:
 
-Good to hear. I will add your tags to the patch.
+> > > Can we not change aarch64_insn_is_nop() to actually return true only for
+> > > NOP and ignore everything else in the hint space? We tend to re-use the
 
-> Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
-> Tested-by: Nathan Chancellor <natechancellor@gmail.com> # build
-> 
-> ==================================================================================
-> 
-> diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
-> index 650cfc5757eb..df5145fab287 100644
-> --- a/arch/arm64/kernel/vdso32/Makefile
-> +++ b/arch/arm64/kernel/vdso32/Makefile
-> @@ -13,15 +13,16 @@ ifeq ($(CONFIG_CC_IS_CLANG), y)
->  COMPAT_GCC_TOOLCHAIN_DIR := $(dir $(shell which $(CROSS_COMPILE_COMPAT)elfedit))
->  COMPAT_GCC_TOOLCHAIN := $(realpath $(COMPAT_GCC_TOOLCHAIN_DIR)/..)
->  
-> -CLANG_CC_COMPAT := $(CC)
-> -CLANG_CC_COMPAT += --target=$(notdir $(CROSS_COMPILE_COMPAT:%-=%))
-> -CLANG_CC_COMPAT += --prefix=$(COMPAT_GCC_TOOLCHAIN_DIR)
-> -CLANG_CC_COMPAT += -no-integrated-as -Qunused-arguments
-> +COMPAT_CLANG_FLAGS := --target=$(notdir $(CROSS_COMPILE_COMPAT:%-=%))
-> +COMPAT_CLANG_FLAGS += --prefix=$(COMPAT_GCC_TOOLCHAIN_DIR)
-> +COMPAT_CLANG_FLAGS += -no-integrated-as -Qunused-arguments
->  ifneq ($(COMPAT_GCC_TOOLCHAIN),)
-> -CLANG_CC_COMPAT += --gcc-toolchain=$(COMPAT_GCC_TOOLCHAIN)
-> +COMPAT_CLANG_FLAGS += --gcc-toolchain=$(COMPAT_GCC_TOOLCHAIN)
->  endif
->  
-> -CC_COMPAT ?= $(CLANG_CC_COMPAT)
-> +CC_COMPAT ?= $(CC)
-> +CC_COMPAT += $(COMPAT_CLANG_FLAGS)
-> +
->  else
->  CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
->  endif
-> 
+> > ignored. This isn't extensive userspace testing though.  Adding
+> > whitelisting of the BTI and PAC hints would definitely be a safer as a
+> > first step though.  I can post either version?
 
--- 
-Regards,
-Vincenzo
+> I thought BTI and PAC are already whitelisted in mainline as they fall
+> into the hint space (by whitelisting I mean you can probe them).
+
+This was in the context of your comment above about modifying
+aarch64_insn_is_nop() - if we do that and nothing else then we'd remove
+the current whitelisting.
+
+> I'm trying to understand how the BTI patches affect the current uprobes
+> support and what is needed. Executing BTI or PCI?SP out of line should
+> be fine as they don't generate a BTI exception (the BRK doesn't either,
+> just the normal debug exception).
+
+Right.
+
+> I think (it needs checking) that BRK preserves the PSTATE.BTYPE in SPSR.
+
+Yes, Exception_SoftwareBreakpoint preserves PSTATE.BTYPE.
+
+> If we probe an instruction in a guarded page and then we single-step it
+> in a non-guarded page, we'll miss a potential BTI fault. Is this an
+> issue?
+
+Obviously the main thing here is that if we miss faults then that's
+potentially opening something that could be used as part of an exploit
+chain.  I'm not aware of any sensible applications that would generate
+the exceptions in normal operation.
+
+> If we are to keep the BTI faulting behaviour, we'd need an additional
+> xol page, guarded, and to find a way to report the original probed
+> address of the fault rather than the xol page.
+
+Yes, or just accept the inaccurate fault address which isn't good but
+might be the least worst thing if there's issues with reporting the
+original address.
+
+> So, IIUC, we don't have an issue with the actual BTI or PACI?SP
+> instructions but rather the other instructions that would not fault with
+> the BTI support. While we should try to address this, I think the
+> important bit now is not to break the existing uprobes support when
+> running a binary with BTI enabled.
+
+I think so, and as far as my ability to tell goes the worst consequence
+would be missing exceptions like you say.  That's not great but it's at
+least an extra hoop people have to jump through.
+
+--u5E4XgoOPWr4PD9E
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5rg64ACgkQJNaLcl1U
+h9DWnQgAhUxlaicd2a+MBwTWiCVEJTRRFVsRGhEykHrb5hzLpkJjryEGiVCRyRQu
+oVmbnqJvqq7rPvgU9m5hjzCRHisdgwfusfAHEeh5wb2Mj4PDLjy5eZqVDiA070Qk
+kTw4qZuayRbkD/k3axQ3/DT8+Etp7R7diCsLNp9VXMuc8E54XYtUv7lEreciqiJR
+MSagKFj37vUFHTJIXAzynd1W+b4QyPA3FGKi1U90CijwuWGRu5HY8XKguW/7jLIp
+5FsUaW+Qz45aPeQF9g5Ka85iNrTKuaj49BpvK4vsM7TjjKJ2Br7k1fmxqceWessd
+5gP9y4bcPEjW+7sf40ALa+SsaPmVTw==
+=g2Tj
+-----END PGP SIGNATURE-----
+
+--u5E4XgoOPWr4PD9E--
