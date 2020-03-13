@@ -1,84 +1,66 @@
-Return-Path: <SRS0=13L8=5I=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50308 "EHLO foss.arm.com"
+Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:58280 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725830AbgCWOkC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 23 Mar 2020 10:40:02 -0400
-Date: Mon, 23 Mar 2020 14:39:55 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
-Message-ID: <20200323143954.GC4892@mbp>
-References: <20200316165055.31179-1-broonie@kernel.org>
- <20200320173945.GC27072@arm.com>
- <20200323122143.GB4892@mbp>
- <20200323132412.GD4948@sirena.org.uk>
- <20200323135722.GA3959@C02TD0UTHF1T.local>
+        id S1726420AbgCMPoM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Mar 2020 11:44:12 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v3 02/26] linux/bits.h: Extract common header for vDSO
+Date: Fri, 13 Mar 2020 15:43:21 +0000
+Message-ID: <20200313154345.56760-3-vincenzo.frascino@arm.com>
+In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200323135722.GA3959@C02TD0UTHF1T.local>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Mark Brown <broonie@kernel.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200323143955.1-PZvtNdDH7ClOz1fgIsm9zXG-j78bTrywp_65kxUEY@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200313154321.8Z6fTze3aW7Wy7w9bEXYDzJAeZpnb6vPenu5iTzfcnY@z>
 
-On Mon, Mar 23, 2020 at 01:57:22PM +0000, Mark Rutland wrote:
-> On Mon, Mar 23, 2020 at 01:24:12PM +0000, Mark Brown wrote:
-> > On Mon, Mar 23, 2020 at 12:21:44PM +0000, Catalin Marinas wrote:
-> > > On Fri, Mar 20, 2020 at 05:39:46PM +0000, Szabolcs Nagy wrote:
-> > 
-> > > +int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
-> > > +                        bool has_interp, bool is_interp)
-> > > +{
-> > > +       if (is_interp != has_interp)
-> > > +               return prot;
-> > > +
-> > > +       if (!(state->flags & ARM64_ELF_BTI))
-> > > +               return prot;
-> > > +
-> > > +       if (prot & PROT_EXEC)
-> > > +               prot |= PROT_BTI;
-> > > +
-> > > +       return prot;
-> > > +}
-> > 
-> > > At a quick look, for dynamic binaries we have has_interp == true and
-> > > is_interp == false. I don't know why but, either way, the above code
-> > > needs a comment with some justification.
-> > 
-> > I don't really know for certain either, I inherited this code as is with
-> > the understanding that this was all agreed with the toolchain and libc
-> > people - the actual discussion that lead to the decisions being made
-> > happened before I was involved.  My understanding is that the idea was
-> > that the dynamic linker would be responsible for mapping everything in
-> > dynamic applications other than itself but other than consistency I
-> > don't know why.  I guess it defers more decision making to userspace but
-> > I'm having a hard time thinking of sensible cases where one might wish
-> > to make a decision other than enabling PROT_BTI.
-> 
-> My understanding was this had been agreed with the toolchain folk a
-> while back -- anything static loaded by the kernel (i.e. a static
-> executable or the dynamic linker) would get GP set. In other cases the
-> linker will mess with the permissions on the pages anyhow, and needs to
-> be aware of BTI in order to do the right thing, so it was better to
-> leave it to userspace consistently (e.g. as that had the least risk of
-> subtle changes in behaviour leading to ABI difficulties).
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-So this means that the interpreter will have to mprotect(PROT_BTI) the
-text section of the primary executable. For subsequent libraries, it
-calls mmap() explicitly anyway but not for the main executable (IIUC).
+Split bits.h into linux and common headers to make the latter suitable
+for inclusion in the vDSO library.
 
-> > I'd be perfectly happy to drop the check if that makes more sense to
-> > people, otherwise I can send a patch adding a comment explaining the
-> > situation.
-> 
-> I think it would be best to document the current behaviour, as it's a
-> simple ABI that we can guarantee, and the dynamic linker will have to be
-> aware of BTI in order to do the right thing anyhow.
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ include/linux/bits.h | 2 +-
+ include/vdso/bits.h  | 9 +++++++++
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+ create mode 100644 include/vdso/bits.h
 
-That's a valid point. If we have an old dynamic linker and the kernel
-enabled BTI automatically for the main executable, could things go wrong
-(e.g. does the PLT need to be BTI-aware)?
-
+diff --git a/include/linux/bits.h b/include/linux/bits.h
+index 669d69441a62..a740bbcf3cd2 100644
+--- a/include/linux/bits.h
++++ b/include/linux/bits.h
+@@ -3,9 +3,9 @@
+ #define __LINUX_BITS_H
+ 
+ #include <linux/const.h>
++#include <vdso/bits.h>
+ #include <asm/bitsperlong.h>
+ 
+-#define BIT(nr)			(UL(1) << (nr))
+ #define BIT_ULL(nr)		(ULL(1) << (nr))
+ #define BIT_MASK(nr)		(UL(1) << ((nr) % BITS_PER_LONG))
+ #define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
+diff --git a/include/vdso/bits.h b/include/vdso/bits.h
+new file mode 100644
+index 000000000000..6d005a1f5d94
+--- /dev/null
++++ b/include/vdso/bits.h
+@@ -0,0 +1,9 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __VDSO_BITS_H
++#define __VDSO_BITS_H
++
++#include <vdso/const.h>
++
++#define BIT(nr)			(UL(1) << (nr))
++
++#endif	/* __VDSO_BITS_H */
 -- 
-Catalin
+2.25.1
