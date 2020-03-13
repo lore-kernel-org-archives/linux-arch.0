@@ -1,69 +1,184 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:57516 "EHLO mail.kernel.org"
+Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:59086 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726476AbgCQVxF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 17:53:05 -0400
-Date: Tue, 17 Mar 2020 21:52:57 +0000
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH 6/9] arm64/build: Use common DISCARDS in linker script
-Message-ID: <20200317215256.GA20788@willie-the-truck>
-References: <20200228002244.15240-1-keescook@chromium.org>
- <20200228002244.15240-7-keescook@chromium.org>
+        id S1726965AbgCMPpX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Mar 2020 11:45:23 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v3 24/26] arm: vdso: Enable arm to use common headers
+Date: Fri, 13 Mar 2020 15:43:43 +0000
+Message-ID: <20200313154345.56760-25-vincenzo.frascino@arm.com>
+In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200228002244.15240-7-keescook@chromium.org>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
-Message-ID: <20200317215257.7sbS50Q0mydB0Ixhn6mylJhuByWAcPbOLcujDTuPc1M@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200313154343.pqBZ0awV9rfzoNvyE4QMUbJTD4fhoNyn2b6V1F1LJKA@z>
 
-On Thu, Feb 27, 2020 at 04:22:41PM -0800, Kees Cook wrote:
-> Use the common DISCARDS rule for the linker script in an effort to
-> regularize the linker script to prepare for warning on orphaned
-> sections.
-> 
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  arch/arm64/kernel/vmlinux.lds.S | 8 ++------
->  1 file changed, 2 insertions(+), 6 deletions(-)
-> 
-> diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-> index 497f9675071d..c61d9ab3211c 100644
-> --- a/arch/arm64/kernel/vmlinux.lds.S
-> +++ b/arch/arm64/kernel/vmlinux.lds.S
-> @@ -6,6 +6,7 @@
->   */
->  
->  #define RO_EXCEPTION_TABLE_ALIGN	8
-> +#define RUNTIME_DISCARD_EXIT
->  
->  #include <asm-generic/vmlinux.lds.h>
->  #include <asm/cache.h>
-> @@ -19,7 +20,6 @@
->  
->  /* .exit.text needed in case of alternative patching */
->  #define ARM_EXIT_KEEP(x)	x
-> -#define ARM_EXIT_DISCARD(x)
->  
->  OUTPUT_ARCH(aarch64)
->  ENTRY(_text)
-> @@ -94,12 +94,8 @@ SECTIONS
->  	 * matching the same input section name.  There is no documented
->  	 * order of matching.
->  	 */
-> +	DISCARDS
->  	/DISCARD/ : {
-> -		ARM_EXIT_DISCARD(EXIT_TEXT)
-> -		ARM_EXIT_DISCARD(EXIT_DATA)
-> -		EXIT_CALL
-> -		*(.discard)
-> -		*(.discard.*)
->  		*(.interp .dynamic)
->  		*(.dynsym .dynstr .hash .gnu.hash)
->  		*(.eh_frame)
+Enable arm to use only the common headers in the implementation
+of the vDSO library.
 
-Acked-by: Will Deacon <will@kernel.org>
+Cc: Russell King <linux@armlinux.org.uk>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/arm/include/asm/cp15.h              | 20 +------------
+ arch/arm/include/asm/processor.h         | 11 +------
+ arch/arm/include/asm/vdso/cp15.h         | 38 ++++++++++++++++++++++++
+ arch/arm/include/asm/vdso/gettimeofday.h |  4 +--
+ arch/arm/include/asm/vdso/processor.h    | 22 ++++++++++++++
+ 5 files changed, 64 insertions(+), 31 deletions(-)
+ create mode 100644 arch/arm/include/asm/vdso/cp15.h
+ create mode 100644 arch/arm/include/asm/vdso/processor.h
 
-Will
+diff --git a/arch/arm/include/asm/cp15.h b/arch/arm/include/asm/cp15.h
+index d2453e2d3f1f..a54230e65647 100644
+--- a/arch/arm/include/asm/cp15.h
++++ b/arch/arm/include/asm/cp15.h
+@@ -50,25 +50,7 @@
+ 
+ #ifdef CONFIG_CPU_CP15
+ 
+-#define __ACCESS_CP15(CRn, Op1, CRm, Op2)	\
+-	"mrc", "mcr", __stringify(p15, Op1, %0, CRn, CRm, Op2), u32
+-#define __ACCESS_CP15_64(Op1, CRm)		\
+-	"mrrc", "mcrr", __stringify(p15, Op1, %Q0, %R0, CRm), u64
+-
+-#define __read_sysreg(r, w, c, t) ({				\
+-	t __val;						\
+-	asm volatile(r " " c : "=r" (__val));			\
+-	__val;							\
+-})
+-#define read_sysreg(...)		__read_sysreg(__VA_ARGS__)
+-
+-#define __write_sysreg(v, r, w, c, t)	asm volatile(w " " c : : "r" ((t)(v)))
+-#define write_sysreg(v, ...)		__write_sysreg(v, __VA_ARGS__)
+-
+-#define BPIALL				__ACCESS_CP15(c7, 0, c5, 6)
+-#define ICIALLU				__ACCESS_CP15(c7, 0, c5, 0)
+-
+-#define CNTVCT				__ACCESS_CP15_64(1, c14)
++#include <asm/vdso/cp15.h>
+ 
+ extern unsigned long cr_alignment;	/* defined in entry-armv.S */
+ 
+diff --git a/arch/arm/include/asm/processor.h b/arch/arm/include/asm/processor.h
+index 614bf829e454..b9241051e5cb 100644
+--- a/arch/arm/include/asm/processor.h
++++ b/arch/arm/include/asm/processor.h
+@@ -14,6 +14,7 @@
+ #include <asm/ptrace.h>
+ #include <asm/types.h>
+ #include <asm/unified.h>
++#include <asm/vdso/processor.h>
+ 
+ #ifdef __KERNEL__
+ #define STACK_TOP	((current->personality & ADDR_LIMIT_32BIT) ? \
+@@ -85,16 +86,6 @@ extern void release_thread(struct task_struct *);
+ 
+ unsigned long get_wchan(struct task_struct *p);
+ 
+-#if __LINUX_ARM_ARCH__ == 6 || defined(CONFIG_ARM_ERRATA_754327)
+-#define cpu_relax()						\
+-	do {							\
+-		smp_mb();					\
+-		__asm__ __volatile__("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");	\
+-	} while (0)
+-#else
+-#define cpu_relax()			barrier()
+-#endif
+-
+ #define task_pt_regs(p) \
+ 	((struct pt_regs *)(THREAD_START_SP + task_stack_page(p)) - 1)
+ 
+diff --git a/arch/arm/include/asm/vdso/cp15.h b/arch/arm/include/asm/vdso/cp15.h
+new file mode 100644
+index 000000000000..bed16fa1865e
+--- /dev/null
++++ b/arch/arm/include/asm/vdso/cp15.h
+@@ -0,0 +1,38 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_VDSO_CP15_H
++#define __ASM_VDSO_CP15_H
++
++#ifndef __ASSEMBLY__
++
++#ifdef CONFIG_CPU_CP15
++
++#include <linux/stringify.h>
++
++#define __ACCESS_CP15(CRn, Op1, CRm, Op2)	\
++	"mrc", "mcr", __stringify(p15, Op1, %0, CRn, CRm, Op2), u32
++#define __ACCESS_CP15_64(Op1, CRm)		\
++	"mrrc", "mcrr", __stringify(p15, Op1, %Q0, %R0, CRm), u64
++
++#define __read_sysreg(r, w, c, t) ({				\
++	t __val;						\
++	asm volatile(r " " c : "=r" (__val));			\
++	__val;							\
++})
++#define read_sysreg(...)		__read_sysreg(__VA_ARGS__)
++
++#define __write_sysreg(v, r, w, c, t)	asm volatile(w " " c : : "r" ((t)(v)))
++#define write_sysreg(v, ...)		__write_sysreg(v, __VA_ARGS__)
++
++#define BPIALL				__ACCESS_CP15(c7, 0, c5, 6)
++#define ICIALLU				__ACCESS_CP15(c7, 0, c5, 0)
++
++#define CNTVCT				__ACCESS_CP15_64(1, c14)
++
++#endif /* CONFIG_CPU_CP15 */
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_CP15_H */
+diff --git a/arch/arm/include/asm/vdso/gettimeofday.h b/arch/arm/include/asm/vdso/gettimeofday.h
+index 07d791c65cf7..36dc18553ed8 100644
+--- a/arch/arm/include/asm/vdso/gettimeofday.h
++++ b/arch/arm/include/asm/vdso/gettimeofday.h
+@@ -7,9 +7,9 @@
+ 
+ #ifndef __ASSEMBLY__
+ 
+-#include <asm/barrier.h>
+-#include <asm/cp15.h>
++#include <asm/errno.h>
+ #include <asm/unistd.h>
++#include <asm/vdso/cp15.h>
+ #include <uapi/linux/time.h>
+ 
+ #define VDSO_HAS_CLOCK_GETRES		1
+diff --git a/arch/arm/include/asm/vdso/processor.h b/arch/arm/include/asm/vdso/processor.h
+new file mode 100644
+index 000000000000..45efb3ff511c
+--- /dev/null
++++ b/arch/arm/include/asm/vdso/processor.h
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_VDSO_PROCESSOR_H
++#define __ASM_VDSO_PROCESSOR_H
++
++#ifndef __ASSEMBLY__
++
++#if __LINUX_ARM_ARCH__ == 6 || defined(CONFIG_ARM_ERRATA_754327)
++#define cpu_relax()						\
++	do {							\
++		smp_mb();					\
++		__asm__ __volatile__("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");	\
++	} while (0)
++#else
++#define cpu_relax()			barrier()
++#endif
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_PROCESSOR_H */
+-- 
+2.25.1
