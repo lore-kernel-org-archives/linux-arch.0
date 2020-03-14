@@ -1,101 +1,37 @@
-Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:51048 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731924AbgCPPtp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Mar 2020 11:49:45 -0400
-Date: Mon, 16 Mar 2020 15:49:31 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
-Message-ID: <20200316154930.GG3005@mbp>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
- <20200313154345.56760-19-vincenzo.frascino@arm.com>
- <20200315182950.GB32205@mbp>
- <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
- <20200316103437.GD3005@mbp>
- <77a2e91a-58f4-3ba3-9eef-42d6a8faf859@arm.com>
- <20200316112205.GE3005@mbp>
- <9a0a9285-8a45-4f65-3a83-813cabd0f0d3@arm.com>
- <20200316144346.GF3005@mbp>
- <427064ee-45df-233c-0281-69e3d62ba784@arm.com>
+Return-Path: <SRS0=06hN=5A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-ed1-f65.google.com ([209.85.208.65]:35269 "EHLO
+        mail-ed1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726838AbgCOCr0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 14 Mar 2020 22:47:26 -0400
+Date: Sat, 14 Mar 2020 11:59:44 +0100
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: Re: [RESEND PATCH v2 6/9] drm/mgag200: Constify ioreadX() iomem
+ argument (as in generic implementation)
+Message-ID: <20200314105944.GA16044@kozik-lap>
+References: <20200219175007.13627-1-krzk@kernel.org>
+ <20200219175007.13627-7-krzk@kernel.org>
+ <90baef2d-25fe-fac4-6a7e-b103b4b6721e@suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <427064ee-45df-233c-0281-69e3d62ba784@arm.com>
+In-Reply-To: <90baef2d-25fe-fac4-6a7e-b103b4b6721e@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200316154931.uNhfEHGgCqfEuVysaWWrkl3xJkVOJ68oghkllyut3Ww@z>
+To: Thomas Zimmermann <tzimmermann@suse.de>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
+Message-ID: <20200314105944.Q8s_mEaLp8yPmk7NHHfghe1xSljDe3Tjnm-N4-RYEeY@z>
 
-On Mon, Mar 16, 2020 at 03:33:30PM +0000, Vincenzo Frascino wrote:
-> On 3/16/20 2:43 PM, Catalin Marinas wrote[...]
-> >> To me does not seem optimized out. Which version of the compiler are you using?
-> > 
-> > I misread the #ifdef'ery in asm/processor.h. So with 4K pages,
-> > TASK_SIZE_32 is (1UL<<32)-PAGE_SIZE. However, with 64K pages _and_
-> > CONFIG_KUSER_HELPERS, TASK_SIZE_32 is 1UL<<32 and the check is removed
-> > by the compiler.
-> > 
-> > With the 4K build, __vdso_clock_gettime starts as:
-> > 
-> > 00000194 <__vdso_clock_gettime>:
-> >  194:   f511 5f80       cmn.w   r1, #4096       ; 0x1000
-> >  198:   d214            bcs.n   1c4 <__vdso_clock_gettime+0x30>
-> >  19a:   b5b0            push    {r4, r5, r7, lr}
-> >  ...
-> >  1c4:   f06f 000d       mvn.w   r0, #13
-> >  1c8:   4770            bx      lr
-> > 
-> > With 64K pages:
-> > 
-> > 00000194 <__vdso_clock_gettime>:
-> >  194:   b5b0            push    {r4, r5, r7, lr}
-> >  ...
-> >  1be:   bdb0            pop     {r4, r5, r7, pc}
-> > 
-> > I haven't tried but it's likely that the vdsotest fails with 64K pages
-> > and compat enabled (requires EXPERT).
+On Thu, Mar 12, 2020 at 11:49:05AM +0100, Thomas Zimmermann wrote:
+> Hi Krzysztof,
 > 
-> This makes more sense. Thanks for the clarification.
+> I just received a resend email from 3 weeks ago :/
 > 
-> I agree on the behavior of 64K pages and I think as well that the
-> "compatibility" issue is still there. However as you correctly stated in your
-> first email arm32 never supported 16K or 64K pages, hence I think we should not
-> be concerned about compatibility in this cases.
+> Do you want me to merge the mgag200 patch into drm-misc-next?
 
-My point is that even with 4K pages it's not really compatibility. The
-test uses UINTPTR_MAX but on arm32 it would also fail with 0xc0000000.
-On arm64 compat, however, this value would pass just fine.
+Thanks but it depends on the first patch in the series so either it
+could go with your ack through other tree or I will send it later (once
+1st patch gets to mainline).
 
-> To make it more explicit we could make COMPAT_VDSO on arm64 depend on
-> ARM64_4K_PAGES. What do you think?
 
-No, I don't see why we should add this limitation.
-
-> >> Please find below the list of errors for clock_gettime (similar for the other):
-> >>
-> >> passing UINTPTR_MAX to clock_gettime (VDSO): terminated by unexpected signal 7
-> >> clock-gettime-monotonic/abi: 1 failures/inconsistencies encountered
-> > 
-> > Ah, so it uses UINTPTR_MAX in the test. Fair enough but I don't think
-> > the arm64 check is entirely useful. On arm32, the check was meant to
-> > return -EFAULT for addresses beyond TASK_SIZE that may enter into the
-> > kernel or module space. On arm64 compat, the kernel space is well above
-> > the reach of the 32-bit code.
-> > 
-> > If you want to preserve some compatibility for this specific test, what
-> > about checking for wrapping around 0, I think it would make more sense.
-> > Something like:
-> > 
-> > 	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
-> 
-> Ok, sounds good to me. But it is something that this patch series inherited,
-> hence I would prefer to send a separate patch that introduces what you are
-> proposing and removes TASK_SIZE_32 from the headers. How does it sound?
-
-I'd rather avoid moving TASK_SIZE_32 unnecessarily. Just add a
-preparatory patch to your series for arm64 compat vdso and follow with
-the rest without moving TASK_SIZE_32 around.
-
--- 
-Catalin
+Best regards,
+Krzysztof
