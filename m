@@ -1,203 +1,145 @@
-Return-Path: <SRS0=cph+=44=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v1 1/3] arm64: tlb: add TTL field to __TLBI_ADDR
-Date: Wed, 11 Mar 2020 10:53:07 +0800
-Message-ID: <20200311025309.1743-2-yezhenyu2@huawei.com>
-In-Reply-To: <20200311025309.1743-1-yezhenyu2@huawei.com>
-References: <20200311025309.1743-1-yezhenyu2@huawei.com>
-MIME-Version: 1.0
+Return-Path: <SRS0=06hN=5A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-mw2nam10on2123.outbound.protection.outlook.com ([40.107.94.123]:18974
+        "EHLO NAM10-MW2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727435AbgCOBcB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 14 Mar 2020 21:32:01 -0400
+From: Michael Kelley <mikelley@microsoft.com>
+Subject: [PATCH v6 06/10] arm64: hyperv: Add kexec and panic handlers
+Date: Sat, 14 Mar 2020 08:35:15 -0700
+Message-ID: <1584200119-18594-7-git-send-email-mikelley@microsoft.com>
+In-Reply-To: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
+References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
 Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: mark.rutland@arm.com, catalin.marinas@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com
+MIME-Version: 1.0
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200311025307.L3FkFC2XuyAC3SwWMDoVtYNqpurOp9Uh4vjVpMgMbOE@z>
+To: will@kernel.org, ardb@kernel.org, arnd@arndb.de, catalin.marinas@arm.com, mark.rutland@arm.com, maz@kernel.org, linux-arm-kernel@lists.infradead.org, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, linux-efi@vger.kernel.org, linux-arch@vger.kernel.org, olaf@aepfle.de, apw@canonical.com, vkuznets@redhat.com, jasowang@redhat.com, marcelo.cerri@canonical.com, kys@microsoft.com
+Cc: mikelley@microsoft.com, sunilmut@microsoft.com, boqun.feng@gmail.com
+Message-ID: <20200314153515.zpNnLYzu3-Z1blAjECbGVZiZOGpR4gCfC3l6eKQodyI@z>
 
-ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
-the level of translation table walk holding the leaf entry for the
-address that is being invalidated.
+Add functions to set up and remove kexec and panic
+handlers, and to inform Hyper-V about a guest panic.
+These functions are called from architecture independent
+code in the VMbus driver.
 
-This patch add support for TTL feature and set the default value 0
-where __TLBI_ADDR is called.
+This code is built only when CONFIG_HYPERV is enabled.
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Signed-off-by: Michael Kelley <mikelley@microsoft.com>
 ---
- arch/arm64/include/asm/cpucaps.h  |  3 ++-
- arch/arm64/include/asm/sysreg.h   |  4 ++++
- arch/arm64/include/asm/tlbflush.h | 33 ++++++++++++++++++++++---------
- arch/arm64/kernel/cpufeature.c    | 10 ++++++++++
- arch/arm64/kernel/sys_compat.c    |  2 +-
- 5 files changed, 41 insertions(+), 11 deletions(-)
+ arch/arm64/hyperv/hv_core.c  | 61 ++++++++++++++++++++++++++++++++++++++++++++
+ arch/arm64/hyperv/mshyperv.c | 26 +++++++++++++++++++
+ 2 files changed, 87 insertions(+)
 
-diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cp=
-ucaps.h
-index 865e0253fc1e..60f3b090ea9a 100644
---- a/arch/arm64/include/asm/cpucaps.h
-+++ b/arch/arm64/include/asm/cpucaps.h
-@@ -58,7 +58,8 @@
- #define ARM64_WORKAROUND_SPECULATIVE_AT_NVHE	48
- #define ARM64_HAS_E0PD				49
- #define ARM64_HAS_RNG				50
-+#define ARM64_HAS_TLBI_TTL			51
-=20
--#define ARM64_NCAPS				51
-+#define ARM64_NCAPS				52
-=20
- #endif /* __ASM_CPUCAPS_H */
-diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sys=
-reg.h
-index b91570ff9db1..7caa3c9facfe 100644
---- a/arch/arm64/include/asm/sysreg.h
-+++ b/arch/arm64/include/asm/sysreg.h
-@@ -685,6 +685,7 @@
-=20
- /* id_aa64mmfr2 */
- #define ID_AA64MMFR2_E0PD_SHIFT		60
-+#define ID_AA64MMFR2_TTL_SHIFT		48
- #define ID_AA64MMFR2_FWB_SHIFT		40
- #define ID_AA64MMFR2_AT_SHIFT		32
- #define ID_AA64MMFR2_LVA_SHIFT		16
-@@ -693,6 +694,9 @@
- #define ID_AA64MMFR2_UAO_SHIFT		4
- #define ID_AA64MMFR2_CNP_SHIFT		0
-=20
-+#define ID_AA64MMFR2_TTL_NI		0x0
-+#define ID_AA64MMFR2_TTL_SUPPORTED	0x1
+diff --git a/arch/arm64/hyperv/hv_core.c b/arch/arm64/hyperv/hv_core.c
+index 4aa6b8f..8d6de9f 100644
+--- a/arch/arm64/hyperv/hv_core.c
++++ b/arch/arm64/hyperv/hv_core.c
+@@ -199,3 +199,64 @@ void hv_get_vpreg_128(u32 msr, struct hv_get_vp_register_output *res)
+ 	kfree(output);
+ }
+ EXPORT_SYMBOL_GPL(hv_get_vpreg_128);
 +
- /* id_aa64dfr0 */
- #define ID_AA64DFR0_PMSVER_SHIFT	32
- #define ID_AA64DFR0_CTX_CMPS_SHIFT	28
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
-lbflush.h
-index bc3949064725..10b12710b7cc 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -50,15 +50,30 @@
- 		__tlbi(op, (arg) | USER_ASID_FLAG);				\
- } while (0)
-=20
--/* This macro creates a properly formatted VA operand for the TLBI */
--#define __TLBI_VADDR(addr, asid)				\
-+/* This macro creates a properly formatted VA operand for the TLBI.
-+ * The TTL field is introduced since ARMv8.4. ARMv8.4-TTL provides the T=
-TL
-+ * field to indicate the level of translation table walk holding the lea=
-f entry
-+ * for the address that is being invalidated.
-+ */
-+#define __TLBI_VADDR(addr, asid, ttl)				\
- 	({							\
- 		unsigned long __ta =3D (addr) >> 12;		\
- 		__ta &=3D GENMASK_ULL(43, 0);			\
-+		if (cpus_have_const_cap(ARM64_HAS_TLBI_TTL))	\
-+			__ta |=3D (unsigned long)(ttl) << 44;	\
- 		__ta |=3D (unsigned long)(asid) << 48;		\
- 		__ta;						\
- 	})
-=20
++void hyperv_report_panic(struct pt_regs *regs, long err)
++{
++	static bool panic_reported;
++	u64 guest_id;
++
++	/*
++	 * We prefer to report panic on 'die' chain as we have proper
++	 * registers to report, but if we miss it (e.g. on BUG()) we need
++	 * to report it on 'panic'.
++	 */
++	if (panic_reported)
++		return;
++	panic_reported = true;
++
++	guest_id = hv_get_vpreg(HV_REGISTER_GUEST_OSID);
++
++	/*
++	 * Hyper-V provides the ability to store only 5 values.
++	 * Pick the passed in error value, the guest_id, and the PC.
++	 * The first two general registers are added arbitrarily.
++	 */
++	hv_set_vpreg(HV_REGISTER_CRASH_P0, err);
++	hv_set_vpreg(HV_REGISTER_CRASH_P1, guest_id);
++	hv_set_vpreg(HV_REGISTER_CRASH_P2, regs->pc);
++	hv_set_vpreg(HV_REGISTER_CRASH_P3, regs->regs[0]);
++	hv_set_vpreg(HV_REGISTER_CRASH_P4, regs->regs[1]);
++
++	/*
++	 * Let Hyper-V know there is crash data available
++	 */
++	hv_set_vpreg(HV_REGISTER_CRASH_CTL, HV_CRASH_CTL_CRASH_NOTIFY);
++}
++EXPORT_SYMBOL_GPL(hyperv_report_panic);
++
 +/*
-+ * __TLB_TG defines translation granule of the system, which is defined =
-by
-+ * PAGE_SHIFT.  Used by TTL.
-+ *  - 4KB	: 1
-+ *  - 16KB	: 2
-+ *  - 64KB	: 3
++ * hyperv_report_panic_msg - report panic message to Hyper-V
++ * @pa: physical address of the panic page containing the message
++ * @size: size of the message in the page
 + */
-+#define __TLB_TG	((PAGE_SHIFT - 12) / 2 + 1)
++void hyperv_report_panic_msg(phys_addr_t pa, size_t size)
++{
++	/*
++	 * P3 to contain the physical address of the panic page & P4 to
++	 * contain the size of the panic data in that page. Rest of the
++	 * registers are no-op when the NOTIFY_MSG flag is set.
++	 */
++	hv_set_vpreg(HV_REGISTER_CRASH_P0, 0);
++	hv_set_vpreg(HV_REGISTER_CRASH_P1, 0);
++	hv_set_vpreg(HV_REGISTER_CRASH_P2, 0);
++	hv_set_vpreg(HV_REGISTER_CRASH_P3, pa);
++	hv_set_vpreg(HV_REGISTER_CRASH_P4, size);
 +
- /*
-  *	TLB Invalidation
-  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-@@ -146,7 +161,7 @@ static inline void flush_tlb_all(void)
-=20
- static inline void flush_tlb_mm(struct mm_struct *mm)
- {
--	unsigned long asid =3D __TLBI_VADDR(0, ASID(mm));
-+	unsigned long asid =3D __TLBI_VADDR(0, ASID(mm), 0);
-=20
- 	dsb(ishst);
- 	__tlbi(aside1is, asid);
-@@ -157,7 +172,7 @@ static inline void flush_tlb_mm(struct mm_struct *mm)
- static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
- 					 unsigned long uaddr)
- {
--	unsigned long addr =3D __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
-+	unsigned long addr =3D __TLBI_VADDR(uaddr, ASID(vma->vm_mm), 0);
-=20
- 	dsb(ishst);
- 	__tlbi(vale1is, addr);
-@@ -195,8 +210,8 @@ static inline void __flush_tlb_range(struct vm_area_s=
-truct *vma,
- 	/* Convert the stride into units of 4k */
- 	stride >>=3D 12;
-=20
--	start =3D __TLBI_VADDR(start, asid);
--	end =3D __TLBI_VADDR(end, asid);
-+	start =3D __TLBI_VADDR(start, asid, 0);
-+	end =3D __TLBI_VADDR(end, asid, 0);
-=20
- 	dsb(ishst);
- 	for (addr =3D start; addr < end; addr +=3D stride) {
-@@ -230,8 +245,8 @@ static inline void flush_tlb_kernel_range(unsigned lo=
-ng start, unsigned long end
- 		return;
++	/*
++	 * Let Hyper-V know there is crash data available along with
++	 * the panic message.
++	 */
++	hv_set_vpreg(HV_REGISTER_CRASH_CTL,
++	       (HV_CRASH_CTL_CRASH_NOTIFY | HV_CRASH_CTL_CRASH_NOTIFY_MSG));
++}
++EXPORT_SYMBOL_GPL(hyperv_report_panic_msg);
+diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
+index ae6ece6..c58940d 100644
+--- a/arch/arm64/hyperv/mshyperv.c
++++ b/arch/arm64/hyperv/mshyperv.c
+@@ -23,6 +23,8 @@
+ 
+ static void (*vmbus_handler)(void);
+ static void (*hv_stimer0_handler)(void);
++static void (*hv_kexec_handler)(void);
++static void (*hv_crash_handler)(struct pt_regs *regs);
+ 
+ static int vmbus_irq;
+ static long __percpu *vmbus_evt;
+@@ -137,3 +139,27 @@ void hv_remove_stimer0_irq(int irq)
  	}
-=20
--	start =3D __TLBI_VADDR(start, 0);
--	end =3D __TLBI_VADDR(end, 0);
-+	start =3D __TLBI_VADDR(start, 0, 0);
-+	end =3D __TLBI_VADDR(end, 0, 0);
-=20
- 	dsb(ishst);
- 	for (addr =3D start; addr < end; addr +=3D 1 << (PAGE_SHIFT - 12))
-@@ -246,7 +261,7 @@ static inline void flush_tlb_kernel_range(unsigned lo=
-ng start, unsigned long end
-  */
- static inline void __flush_tlb_kernel_pgtable(unsigned long kaddr)
- {
--	unsigned long addr =3D __TLBI_VADDR(kaddr, 0);
-+	unsigned long addr =3D __TLBI_VADDR(kaddr, 0, 0);
-=20
- 	dsb(ishst);
- 	__tlbi(vaae1is, addr);
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeatur=
-e.c
-index 0b6715625cf6..9a84c59e1482 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -1672,6 +1672,16 @@ static const struct arm64_cpu_capabilities arm64_f=
-eatures[] =3D {
- 		.min_field_value =3D 1,
- 	},
- #endif
-+	{
-+		.desc =3D "TTL field in TLBI operation",
-+		.capability =3D ARM64_HAS_TLBI_TTL,
-+		.type =3D ARM64_CPUCAP_SYSTEM_FEATURE,
-+		.matches =3D has_cpuid_feature,
-+		.sys_reg =3D SYS_ID_AA64MMFR2_EL1,
-+		.field_pos =3D ID_AA64MMFR2_TTL_SHIFT,
-+		.sign =3D FTR_UNSIGNED,
-+		.min_field_value =3D ID_AA64MMFR2_TTL_SUPPORTED,
-+	},
- 	{},
- };
-=20
-diff --git a/arch/arm64/kernel/sys_compat.c b/arch/arm64/kernel/sys_compa=
-t.c
-index 3c18c2454089..5d1570354d29 100644
---- a/arch/arm64/kernel/sys_compat.c
-+++ b/arch/arm64/kernel/sys_compat.c
-@@ -37,7 +37,7 @@ __do_compat_cache_op(unsigned long start, unsigned long=
- end)
- 			 * The workaround requires an inner-shareable tlbi.
- 			 * We pick the reserved-ASID to minimise the impact.
- 			 */
--			__tlbi(aside1is, __TLBI_VADDR(0, 0));
-+			__tlbi(aside1is, __TLBI_VADDR(0, 0, 0));
- 			dsb(ish);
- 		}
-=20
---=20
-2.19.1
+ }
+ EXPORT_SYMBOL_GPL(hv_remove_stimer0_irq);
++
++void hv_setup_kexec_handler(void (*handler)(void))
++{
++	hv_kexec_handler = handler;
++}
++EXPORT_SYMBOL_GPL(hv_setup_kexec_handler);
++
++void hv_remove_kexec_handler(void)
++{
++	hv_kexec_handler = NULL;
++}
++EXPORT_SYMBOL_GPL(hv_remove_kexec_handler);
++
++void hv_setup_crash_handler(void (*handler)(struct pt_regs *regs))
++{
++	hv_crash_handler = handler;
++}
++EXPORT_SYMBOL_GPL(hv_setup_crash_handler);
++
++void hv_remove_crash_handler(void)
++{
++	hv_crash_handler = NULL;
++}
++EXPORT_SYMBOL_GPL(hv_remove_crash_handler);
+-- 
+1.8.3.1
