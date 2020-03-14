@@ -1,54 +1,70 @@
-Return-Path: <SRS0=jv2Y=5L=vger.kernel.org=linux-doc-owner@kernel.org>
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: [PATCH v4 2/4] Documentation/litmus-tests: Introduce atomic directory
-Date: Thu, 26 Mar 2020 10:40:20 +0800
-Message-ID: <20200326024022.7566-3-boqun.feng@gmail.com>
-In-Reply-To: <20200326024022.7566-1-boqun.feng@gmail.com>
-References: <20200326024022.7566-1-boqun.feng@gmail.com>
+Return-Path: <SRS0=06hN=5A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-mw2nam10on2123.outbound.protection.outlook.com ([40.107.94.123]:18974
+        "EHLO NAM10-MW2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726130AbgCOBcD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 14 Mar 2020 21:32:03 -0400
+From: Michael Kelley <mikelley@microsoft.com>
+Subject: [PATCH v6 08/10] Drivers: hv: vmbus: Add hooks for per-CPU IRQ
+Date: Sat, 14 Mar 2020 08:35:17 -0700
+Message-ID: <1584200119-18594-9-git-send-email-mikelley@microsoft.com>
+In-Reply-To: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
+References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
+Content-Type: text/plain
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, Joel Fernandes <joel@joelfernandes.org>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200326024020.spbq9yTVZQE26JRgK8KgvjTMzmAs5pR6mLBv3UaFZ9w@z>
+To: will@kernel.org, ardb@kernel.org, arnd@arndb.de, catalin.marinas@arm.com, mark.rutland@arm.com, maz@kernel.org, linux-arm-kernel@lists.infradead.org, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, linux-efi@vger.kernel.org, linux-arch@vger.kernel.org, olaf@aepfle.de, apw@canonical.com, vkuznets@redhat.com, jasowang@redhat.com, marcelo.cerri@canonical.com, kys@microsoft.com
+Cc: mikelley@microsoft.com, sunilmut@microsoft.com, boqun.feng@gmail.com
+Message-ID: <20200314153517.0tsSaTakynsYzet5S5NZCBD6zU0kiXz-Y0uCEQ_TXjQ@z>
 
-Although we have atomic_t.txt and its friends to describe the semantics
-of atomic APIs and lib/atomic64_test.c for build testing and testing in
-UP mode, the tests for our atomic APIs in real SMP mode are still
-missing. Since now we have the LKMM tool in kernel and litmus tests can
-be used to generate kernel modules for testing purpose with "klitmus" (a
-tool from the LKMM toolset), it makes sense to put a few typical litmus
-tests into kernel so that
+Add hooks to enable/disable a per-CPU IRQ for VMbus. These hooks
+are in the architecture independent setup and shutdown paths for
+Hyper-V, and are needed by Linux guests on Hyper-V on ARM64.  The
+x86/x64 implementation is null because VMbus interrupts on x86/x64
+don't use an IRQ.
 
-1)	they are the examples to describe the conceptual mode of the
-	semantics of atomic APIs, and
-
-2)	they can be used to generate kernel test modules for anyone
-	who is interested to test the atomic APIs implementation (in
-	most cases, is the one who implements the APIs for a new arch)
-
-Therefore, introduce the atomic directory for this purpose. The
-directory is maintained by the LKMM group to make sure the litmus tests
-are always aligned with our memory model.
-
-Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
-Acked-by: Alan Stern <stern@rowland.harvard.edu>
-Acked-by: Andrea Parri <parri.andrea@gmail.com>
+Signed-off-by: Michael Kelley <mikelley@microsoft.com>
 ---
- Documentation/litmus-tests/atomic/README | 4 ++++
- 1 file changed, 4 insertions(+)
- create mode 100644 Documentation/litmus-tests/atomic/README
+ arch/x86/include/asm/mshyperv.h | 4 ++++
+ drivers/hv/hv.c                 | 3 +++
+ 2 files changed, 7 insertions(+)
 
-diff --git a/Documentation/litmus-tests/atomic/README b/Documentation/litmus-tests/atomic/README
-new file mode 100644
-index 000000000000..ae61201a4271
---- /dev/null
-+++ b/Documentation/litmus-tests/atomic/README
-@@ -0,0 +1,4 @@
-+This directory contains litmus tests that are typical to describe the semantics
-+of our atomic APIs. For more information about how to "run" a litmus test or
-+how to generate a kernel test module based on a litmus test, please see
-+tools/memory-model/README.
+diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
+index 1c42ecb..0e5db78 100644
+--- a/arch/x86/include/asm/mshyperv.h
++++ b/arch/x86/include/asm/mshyperv.h
+@@ -59,6 +59,10 @@ typedef int (*hyperv_fill_flush_list_func)(
+ #endif
+ void hyperv_vector_handler(struct pt_regs *regs);
+ 
++/* On x86/x64, there isn't a real IRQ to be enabled/disable */
++static inline void hv_enable_vmbus_irq(void) {}
++static inline void hv_disable_vmbus_irq(void) {}
++
+ /*
+  * Routines for stimer0 Direct Mode handling.
+  * On x86/x64, there are no percpu actions to take.
+diff --git a/drivers/hv/hv.c b/drivers/hv/hv.c
+index 6098e0c..035d3df 100644
+--- a/drivers/hv/hv.c
++++ b/drivers/hv/hv.c
+@@ -180,6 +180,7 @@ void hv_synic_enable_regs(unsigned int cpu)
+ 	hv_set_siefp(siefp.as_uint64);
+ 
+ 	/* Setup the shared SINT. */
++	hv_enable_vmbus_irq();
+ 	hv_get_synint_state(VMBUS_MESSAGE_SINT, shared_sint.as_uint64);
+ 
+ 	shared_sint.vector = HYPERVISOR_CALLBACK_VECTOR;
+@@ -241,6 +242,8 @@ void hv_synic_disable_regs(unsigned int cpu)
+ 	hv_get_synic_state(sctrl.as_uint64);
+ 	sctrl.enable = 0;
+ 	hv_set_synic_state(sctrl.as_uint64);
++
++	hv_disable_vmbus_irq();
+ }
+ 
+ int hv_synic_cleanup(unsigned int cpu)
 -- 
-2.25.1
+1.8.3.1
