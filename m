@@ -1,36 +1,41 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [RFC PATCH v9 15/27] mm: Handle THP/HugeTLB Shadow Stack page
- fault
-Date: Fri, 13 Mar 2020 15:00:20 -0700
-Message-ID: <c8c394fba4b64c9151201952752647d61324c0a8.camel@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-         <20200205181935.3712-16-yu-cheng.yu@intel.com>
-         <202002251258.7D6DA92@keescook>
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: Re: [RESEND PATCH v2 6/9] drm/mgag200: Constify ioreadX() iomem
+ argument (as in generic implementation)
+Date: Sat, 14 Mar 2020 11:59:44 +0100
+Message-ID: <20200314105944.GA16044@kozik-lap>
+References: <20200219175007.13627-1-krzk@kernel.org>
+ <20200219175007.13627-7-krzk@kernel.org>
+ <90baef2d-25fe-fac4-6a7e-b103b4b6721e@suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <202002251258.7D6DA92@keescook>
-Sender: linux-doc-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <90baef2d-25fe-fac4-6a7e-b103b4b6721e@suse.de>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+ <mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+ <mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+Sender: "Virtualization" <virtualization-bounces@lists.linux-foundation.org>
+To: Thomas Zimmermann <tzimmermann@suse.de>
+Cc: Rich Felker <dalias@libc.org>, Jiri Slaby <jirislaby@gmail.com>, Geert Uytterhoeven <geert+renesas@glider.be>, "Michael S. Tsirkin" <mst@redhat.com>, David Airlie <airlied@linux.ie>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, dri-devel@lists.freedesktop.org, virtualization@lists.linux-foundation.org, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, netdev@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, Dave Jiang <dave.jiang@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, linux-sh@vger.kernel.org, Alexey Brodkin <abrodkin@synopsys.com>, Ben Skeggs <bskeggs@redhat.com>, nouveau@lists.freedesktop.org, Dave Airlie <airlied@redhat.com>, Matt Turner <mattst88@gmail.com>, linux-snps-arc@lists.infradead.org, Nick Kossifidis <mickflemm@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2020-02-25 at 12:59 -0800, Kees Cook wrote:
-> On Wed, Feb 05, 2020 at 10:19:23AM -0800, Yu-cheng Yu wrote:
-> > This patch implements THP Shadow Stack (SHSTK) copying in the same way as
-> > in the previous patch for regular PTE.
-> > 
-> > In copy_huge_pmd(), clear the dirty bit from the PMD to cause a page fault
-> > upon the next SHSTK access to the PMD.  At that time, fix the PMD and
-> > copy/re-use the page.
+On Thu, Mar 12, 2020 at 11:49:05AM +0100, Thomas Zimmermann wrote:
+> Hi Krzysztof,
 > 
-> Now is as good a time as any to ask: do you have selftests for all this?
-> It seems like it would be really nice to have a way to verify SHSTK is
-> working correctly.
+> I just received a resend email from 3 weeks ago :/
+> 
+> Do you want me to merge the mgag200 patch into drm-misc-next?
 
-Yes, I have some simple tests at https://github.com/yyu168/cet-smoke-test.
-I also run Linux/tools/testing/selftests/x86 and GLIBC tests with CET and THP
-combinations.
+Thanks but it depends on the first patch in the series so either it
+could go with your ack through other tree or I will send it later (once
+1st patch gets to mainline).
 
-Yu-cheng
+
+Best regards,
+Krzysztof
