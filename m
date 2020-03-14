@@ -1,7 +1,7 @@
 From: Michael Kelley <mikelley@microsoft.com>
-Subject: [PATCH v6 09/10] arm64: efi: Export screen_info
-Date: Sat, 14 Mar 2020 08:35:18 -0700
-Message-ID: <1584200119-18594-10-git-send-email-mikelley@microsoft.com>
+Subject: [PATCH v6 10/10] Drivers: hv: Enable Hyper-V code to be built on ARM64
+Date: Sat, 14 Mar 2020 08:35:19 -0700
+Message-ID: <1584200119-18594-11-git-send-email-mikelley@microsoft.com>
 References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,25 +21,27 @@ To: will@kernel.org, ardb@kernel.org, arnd@arndb.de, catalin.marinas@arm.com, ma
 Cc: sunilmut@microsoft.com, boqun.feng@gmail.com, mikelley@microsoft.com
 List-Id: linux-arch.vger.kernel.org
 
-The Hyper-V frame buffer driver may be built as a module, and
-it needs access to screen_info. So export screen_info.
+Update drivers/hv/Kconfig so CONFIG_HYPERV can be selected on
+ARM64, causing the Hyper-V specific code to be built.
 
 Signed-off-by: Michael Kelley <mikelley@microsoft.com>
 ---
- arch/arm64/kernel/efi.c | 1 +
- 1 file changed, 1 insertion(+)
+ drivers/hv/Kconfig | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/kernel/efi.c b/arch/arm64/kernel/efi.c
-index d0cf596..8ff557a 100644
---- a/arch/arm64/kernel/efi.c
-+++ b/arch/arm64/kernel/efi.c
-@@ -55,6 +55,7 @@ static __init pteval_t create_mapping_protection(efi_memory_desc_t *md)
+diff --git a/drivers/hv/Kconfig b/drivers/hv/Kconfig
+index 79e5356..1113e49 100644
+--- a/drivers/hv/Kconfig
++++ b/drivers/hv/Kconfig
+@@ -4,7 +4,8 @@ menu "Microsoft Hyper-V guest support"
  
- /* we will fill this structure from the stub, so don't put it in .bss */
- struct screen_info screen_info __section(.data);
-+EXPORT_SYMBOL(screen_info);
- 
- int __init efi_create_mapping(struct mm_struct *mm, efi_memory_desc_t *md)
- {
+ config HYPERV
+ 	tristate "Microsoft Hyper-V client drivers"
+-	depends on X86 && ACPI && X86_LOCAL_APIC && HYPERVISOR_GUEST
++	depends on ACPI && \
++			((X86 && X86_LOCAL_APIC && HYPERVISOR_GUEST) || ARM64)
+ 	select PARAVIRT
+ 	select X86_HV_CALLBACK_VECTOR
+ 	help
 -- 
 1.8.3.1
