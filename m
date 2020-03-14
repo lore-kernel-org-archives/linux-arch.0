@@ -1,7 +1,7 @@
 From: Michael Kelley <mikelley@microsoft.com>
-Subject: [PATCH v6 06/10] arm64: hyperv: Add kexec and panic handlers
-Date: Sat, 14 Mar 2020 08:35:15 -0700
-Message-ID: <1584200119-18594-7-git-send-email-mikelley@microsoft.com>
+Subject: [PATCH v6 07/10] arm64: hyperv: Initialize hypervisor on boot
+Date: Sat, 14 Mar 2020 08:35:16 -0700
+Message-ID: <1584200119-18594-8-git-send-email-mikelley@microsoft.com>
 References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,128 +21,203 @@ To: will@kernel.org, ardb@kernel.org, arnd@arndb.de, catalin.marinas@arm.com, ma
 Cc: sunilmut@microsoft.com, boqun.feng@gmail.com, mikelley@microsoft.com
 List-Id: linux-arch.vger.kernel.org
 
-Add functions to set up and remove kexec and panic
-handlers, and to inform Hyper-V about a guest panic.
-These functions are called from architecture independent
-code in the VMbus driver.
+Add ARM64-specific code to initialize the Hyper-V
+hypervisor when booting as a guest VM. Provide functions
+and data structures indicating hypervisor status that
+are needed by VMbus driver.
 
 This code is built only when CONFIG_HYPERV is enabled.
 
 Signed-off-by: Michael Kelley <mikelley@microsoft.com>
 ---
- arch/arm64/hyperv/hv_core.c  | 61 ++++++++++++++++++++++++++++++++++++++++++++
- arch/arm64/hyperv/mshyperv.c | 26 +++++++++++++++++++
- 2 files changed, 87 insertions(+)
+ arch/arm64/hyperv/hv_core.c | 156 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 156 insertions(+)
 
 diff --git a/arch/arm64/hyperv/hv_core.c b/arch/arm64/hyperv/hv_core.c
-index 4aa6b8f..8d6de9f 100644
+index 8d6de9f..b496f59 100644
 --- a/arch/arm64/hyperv/hv_core.c
 +++ b/arch/arm64/hyperv/hv_core.c
-@@ -199,3 +199,64 @@ void hv_get_vpreg_128(u32 msr, struct hv_get_vp_register_output *res)
- 	kfree(output);
- }
- EXPORT_SYMBOL_GPL(hv_get_vpreg_128);
+@@ -13,14 +13,47 @@
+ #include <linux/types.h>
+ #include <linux/version.h>
+ #include <linux/export.h>
++#include <linux/vmalloc.h>
+ #include <linux/mm.h>
++#include <linux/acpi.h>
++#include <linux/module.h>
+ #include <linux/slab.h>
+ #include <linux/hyperv.h>
+ #include <linux/arm-smccc.h>
+ #include <linux/string.h>
++#include <linux/cpuhotplug.h>
++#include <linux/psci.h>
++#include <linux/sched_clock.h>
+ #include <asm-generic/bug.h>
+ #include <asm/hyperv-tlfs.h>
+ #include <asm/mshyperv.h>
++#include <asm/sysreg.h>
++#include <clocksource/hyperv_timer.h>
 +
-+void hyperv_report_panic(struct pt_regs *regs, long err)
++static bool    hyperv_initialized;
++
++struct         ms_hyperv_info ms_hyperv __ro_after_init;
++EXPORT_SYMBOL_GPL(ms_hyperv);
++
++u32            *hv_vp_index;
++EXPORT_SYMBOL_GPL(hv_vp_index);
++
++u32            hv_max_vp_index;
++EXPORT_SYMBOL_GPL(hv_max_vp_index);
++
++static int hv_cpu_init(unsigned int cpu)
 +{
-+	static bool panic_reported;
-+	u64 guest_id;
++	u64 msr_vp_index;
 +
-+	/*
-+	 * We prefer to report panic on 'die' chain as we have proper
-+	 * registers to report, but if we miss it (e.g. on BUG()) we need
-+	 * to report it on 'panic'.
-+	 */
-+	if (panic_reported)
-+		return;
-+	panic_reported = true;
++	hv_get_vp_index(msr_vp_index);
 +
-+	guest_id = hv_get_vpreg(HV_REGISTER_GUEST_OSID);
++	hv_vp_index[smp_processor_id()] = msr_vp_index;
 +
-+	/*
-+	 * Hyper-V provides the ability to store only 5 values.
-+	 * Pick the passed in error value, the guest_id, and the PC.
-+	 * The first two general registers are added arbitrarily.
-+	 */
-+	hv_set_vpreg(HV_REGISTER_CRASH_P0, err);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P1, guest_id);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P2, regs->pc);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P3, regs->regs[0]);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P4, regs->regs[1]);
++	if (msr_vp_index > hv_max_vp_index)
++		hv_max_vp_index = msr_vp_index;
 +
-+	/*
-+	 * Let Hyper-V know there is crash data available
-+	 */
-+	hv_set_vpreg(HV_REGISTER_CRASH_CTL, HV_CRASH_CTL_CRASH_NOTIFY);
++	return 0;
 +}
-+EXPORT_SYMBOL_GPL(hyperv_report_panic);
+ 
+ 
+ /*
+@@ -57,6 +90,117 @@ void hv_free_hyperv_page(unsigned long addr)
+ 
+ 
+ /*
++ * This function is invoked via the ACPI clocksource probe mechanism. We
++ * don't actually use any values from the ACPI GTDT table, but we set up
++ * the Hyper-V synthetic clocksource and do other initialization for
++ * interacting with Hyper-V the first time.  Using early_initcall to invoke
++ * this function is too late because interrupts are already enabled at that
++ * point, and hv_init_clocksource() must run before interrupts are enabled.
++ *
++ * 1. Setup the guest ID.
++ * 2. Get features and hints info from Hyper-V
++ * 3. Setup per-cpu VP indices.
++ * 4. Initialize the Hyper-V clocksource.
++ */
++
++static int __init hyperv_init(struct acpi_table_header *table)
++{
++	struct hv_get_vp_register_output result;
++	u32	a, b, c, d;
++	u64	guest_id;
++	int	i, cpuhp;
++
++	/*
++	 * If we're in a VM on Hyper-V, the ACPI hypervisor_id field will
++	 * have the string "MsHyperV".
++	 */
++	if (strncmp((char *)&acpi_gbl_FADT.hypervisor_id, "MsHyperV", 8))
++		return -EINVAL;
++
++	/* Setup the guest ID */
++	guest_id = generate_guest_id(0, LINUX_VERSION_CODE, 0);
++	hv_set_vpreg(HV_REGISTER_GUEST_OSID, guest_id);
++
++	/* Get the features and hints from Hyper-V */
++	hv_get_vpreg_128(HV_REGISTER_PRIVILEGES_AND_FEATURES, &result);
++	ms_hyperv.features = lower_32_bits(result.registervaluelow);
++	ms_hyperv.misc_features = lower_32_bits(result.registervaluehigh);
++
++	hv_get_vpreg_128(HV_REGISTER_FEATURES, &result);
++	ms_hyperv.hints = lower_32_bits(result.registervaluelow);
++
++	pr_info("Hyper-V: Features 0x%x, misc features 0x%x, hints 0x%x\n",
++		ms_hyperv.features, ms_hyperv.misc_features, ms_hyperv.hints);
++
++	/*
++	 * Hyper-V on ARM64 doesn't support AutoEOI.  Add the hint
++	 * that tells architecture independent code not to use this
++	 * feature.
++	 */
++	ms_hyperv.hints |= HV_DEPRECATING_AEOI_RECOMMENDED;
++
++	/* Get information about the Hyper-V host version */
++	hv_get_vpreg_128(HV_REGISTER_HYPERVISOR_VERSION, &result);
++	a = lower_32_bits(result.registervaluelow);
++	b = upper_32_bits(result.registervaluelow);
++	c = lower_32_bits(result.registervaluehigh);
++	d = upper_32_bits(result.registervaluehigh);
++	pr_info("Hyper-V: Host Build %d.%d.%d.%d-%d-%d\n",
++		b >> 16, b & 0xFFFF, a, d & 0xFFFFFF, c, d >> 24);
++
++	/* Allocate and initialize percpu VP index array */
++	hv_vp_index = kmalloc_array(num_possible_cpus(), sizeof(*hv_vp_index),
++				    GFP_KERNEL);
++	if (!hv_vp_index)
++		return -ENOMEM;
++
++	for (i = 0; i < num_possible_cpus(); i++)
++		hv_vp_index[i] = VP_INVAL;
++
++	cpuhp = cpuhp_setup_state(CPUHP_AP_ONLINE_DYN,
++			"arm64/hyperv_init:online", hv_cpu_init, NULL);
++	if (cpuhp < 0)
++		goto free_vp_index;
++
++	hv_init_clocksource();
++	if (hv_stimer_alloc())
++		goto remove_cpuhp_state;
++
++	hyperv_initialized = true;
++	return 0;
++
++remove_cpuhp_state:
++	cpuhp_remove_state(cpuhp);
++free_vp_index:
++	kfree(hv_vp_index);
++	hv_vp_index = NULL;
++	return -EINVAL;
++}
++TIMER_ACPI_DECLARE(hyperv, ACPI_SIG_GTDT, hyperv_init);
++
 +
 +/*
-+ * hyperv_report_panic_msg - report panic message to Hyper-V
-+ * @pa: physical address of the panic page containing the message
-+ * @size: size of the message in the page
++ * Called from hv_init_clocksource() to do ARM64
++ * specific initialization of the sched clock
 + */
-+void hyperv_report_panic_msg(phys_addr_t pa, size_t size)
++void __init hv_setup_sched_clock(void *sched_clock)
 +{
-+	/*
-+	 * P3 to contain the physical address of the panic page & P4 to
-+	 * contain the size of the panic data in that page. Rest of the
-+	 * registers are no-op when the NOTIFY_MSG flag is set.
-+	 */
-+	hv_set_vpreg(HV_REGISTER_CRASH_P0, 0);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P1, 0);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P2, 0);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P3, pa);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P4, size);
-+
-+	/*
-+	 * Let Hyper-V know there is crash data available along with
-+	 * the panic message.
-+	 */
-+	hv_set_vpreg(HV_REGISTER_CRASH_CTL,
-+	       (HV_CRASH_CTL_CRASH_NOTIFY | HV_CRASH_CTL_CRASH_NOTIFY_MSG));
++	sched_clock_register(sched_clock, 64, HV_CLOCK_HZ);
 +}
-+EXPORT_SYMBOL_GPL(hyperv_report_panic_msg);
-diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
-index ae6ece6..c58940d 100644
---- a/arch/arm64/hyperv/mshyperv.c
-+++ b/arch/arm64/hyperv/mshyperv.c
-@@ -23,6 +23,8 @@
- 
- static void (*vmbus_handler)(void);
- static void (*hv_stimer0_handler)(void);
-+static void (*hv_kexec_handler)(void);
-+static void (*hv_crash_handler)(struct pt_regs *regs);
- 
- static int vmbus_irq;
- static long __percpu *vmbus_evt;
-@@ -137,3 +139,27 @@ void hv_remove_stimer0_irq(int irq)
- 	}
++
++/*
++ * This routine is called before kexec/kdump, it does the required cleanup.
++ */
++void hyperv_cleanup(void)
++{
++	/* Reset our OS id */
++	hv_set_vpreg(HV_REGISTER_GUEST_OSID, 0);
++
++}
++EXPORT_SYMBOL_GPL(hyperv_cleanup);
++
++
++/*
+  * hv_do_hypercall- Invoke the specified hypercall
+  */
+ u64 hv_do_hypercall(u64 control, void *input, void *output)
+@@ -260,3 +404,15 @@ void hyperv_report_panic_msg(phys_addr_t pa, size_t size)
+ 	       (HV_CRASH_CTL_CRASH_NOTIFY | HV_CRASH_CTL_CRASH_NOTIFY_MSG));
  }
- EXPORT_SYMBOL_GPL(hv_remove_stimer0_irq);
+ EXPORT_SYMBOL_GPL(hyperv_report_panic_msg);
 +
-+void hv_setup_kexec_handler(void (*handler)(void))
++bool hv_is_hyperv_initialized(void)
 +{
-+	hv_kexec_handler = handler;
++	return hyperv_initialized;
 +}
-+EXPORT_SYMBOL_GPL(hv_setup_kexec_handler);
++EXPORT_SYMBOL_GPL(hv_is_hyperv_initialized);
 +
-+void hv_remove_kexec_handler(void)
++bool hv_is_hibernation_supported(void)
 +{
-+	hv_kexec_handler = NULL;
++	return false;
 +}
-+EXPORT_SYMBOL_GPL(hv_remove_kexec_handler);
-+
-+void hv_setup_crash_handler(void (*handler)(struct pt_regs *regs))
-+{
-+	hv_crash_handler = handler;
-+}
-+EXPORT_SYMBOL_GPL(hv_setup_crash_handler);
-+
-+void hv_remove_crash_handler(void)
-+{
-+	hv_crash_handler = NULL;
-+}
-+EXPORT_SYMBOL_GPL(hv_remove_crash_handler);
++EXPORT_SYMBOL_GPL(hv_is_hibernation_supported);
 -- 
 1.8.3.1
