@@ -1,72 +1,44 @@
-Return-Path: <SRS0=jv2Y=5L=vger.kernel.org=linux-doc-owner@kernel.org>
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: [PATCH v4 0/4] Documentation/litmus-tests: Add litmus tests for atomic APIs
-Date: Thu, 26 Mar 2020 10:40:18 +0800
-Message-ID: <20200326024022.7566-1-boqun.feng@gmail.com>
+Return-Path: <SRS0=06hN=5A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-mw2nam10on2123.outbound.protection.outlook.com ([40.107.94.123]:18974
+        "EHLO NAM10-MW2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726571AbgCOBbv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 14 Mar 2020 21:31:51 -0400
+From: Michael Kelley <mikelley@microsoft.com>
+Subject: [PATCH v6 10/10] Drivers: hv: Enable Hyper-V code to be built on ARM64
+Date: Sat, 14 Mar 2020 08:35:19 -0700
+Message-ID: <1584200119-18594-11-git-send-email-mikelley@microsoft.com>
+In-Reply-To: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
+References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
+Content-Type: text/plain
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, Joel Fernandes <joel@joelfernandes.org>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200326024018.fRGkuG5WeboBKmThwJ581IrS88Boenez6Ft9H_-iV4o@z>
+To: will@kernel.org, ardb@kernel.org, arnd@arndb.de, catalin.marinas@arm.com, mark.rutland@arm.com, maz@kernel.org, linux-arm-kernel@lists.infradead.org, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, linux-efi@vger.kernel.org, linux-arch@vger.kernel.org, olaf@aepfle.de, apw@canonical.com, vkuznets@redhat.com, jasowang@redhat.com, marcelo.cerri@canonical.com, kys@microsoft.com
+Cc: mikelley@microsoft.com, sunilmut@microsoft.com, boqun.feng@gmail.com
+Message-ID: <20200314153519.cvG-phkiuFr6I04MkY8fBA3p55JttdK7qhcVdtLP0_k@z>
 
-A recent discussion raises up the requirement for having test cases for
-atomic APIs:
+Update drivers/hv/Kconfig so CONFIG_HYPERV can be selected on
+ARM64, causing the Hyper-V specific code to be built.
 
-	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
+Signed-off-by: Michael Kelley <mikelley@microsoft.com>
+---
+ drivers/hv/Kconfig | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-, and since we already have a way to generate a test module from a
-litmus test with klitmus[1]. It makes sense that we add more litmus
-tests for atomic APIs. And based on the previous discussion, I create a
-new directory Documentation/atomic-tests and put these litmus tests
-here.
-
-This patchset starts the work by adding the litmus tests which are
-already used in atomic_t.txt, and also improve the atomic_t.txt to make
-it consistent with the litmus tests.
-
-Previous version:
-v1: https://lore.kernel.org/linux-doc/20200214040132.91934-1-boqun.feng@gmail.com/
-v2: https://lore.kernel.org/lkml/20200219062627.104736-1-boqun.feng@gmail.com/
-v3: https://lore.kernel.org/linux-doc/20200227004049.6853-1-boqun.feng@gmail.com/
-
-Changes since v3:
-
-*	Merge two patches on atomic-set litmus test into one as per
-	Alan. (Alan, you have acked only one of the two patches, so I
-	don't add you acked-by for the combined patch).
-
-*	Move the atomic litmus tests into litmus-tests/atomic to align
-	with Joel's recent patches on RCU litmus tests.
-
-I think we still haven't reach to a conclusion for the difference of
-atomic_add_unless() in herdtools, and I'm currently reading the source
-code of herd to resovle this. This is just an updated version to resolve
-ealier comments and react on Joel's RCU litmus tests.
-
-Regards,
-Boqun
-
-[1]: http://diy.inria.fr/doc/litmus.html#klitmus
-
-Boqun Feng (4):
-  tools/memory-model: Add an exception for limitations on _unless()
-    family
-  Documentation/litmus-tests: Introduce atomic directory
-  Documentation/litmus-tests/atomic: Add a test for atomic_set()
-  Documentation/litmus-tests/atomic: Add a test for
-    smp_mb__after_atomic()
-
- Documentation/atomic_t.txt                    | 24 +++++++-------
- ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
- ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 ++++++++++++++
- Documentation/litmus-tests/atomic/README      | 16 ++++++++++
- tools/memory-model/README                     | 10 ++++--
- 5 files changed, 91 insertions(+), 15 deletions(-)
- create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
- create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
- create mode 100644 Documentation/litmus-tests/atomic/README
-
+diff --git a/drivers/hv/Kconfig b/drivers/hv/Kconfig
+index 79e5356..1113e49 100644
+--- a/drivers/hv/Kconfig
++++ b/drivers/hv/Kconfig
+@@ -4,7 +4,8 @@ menu "Microsoft Hyper-V guest support"
+ 
+ config HYPERV
+ 	tristate "Microsoft Hyper-V client drivers"
+-	depends on X86 && ACPI && X86_LOCAL_APIC && HYPERVISOR_GUEST
++	depends on ACPI && \
++			((X86 && X86_LOCAL_APIC && HYPERVISOR_GUEST) || ARM64)
+ 	select PARAVIRT
+ 	select X86_HV_CALLBACK_VECTOR
+ 	help
 -- 
-2.25.1
+1.8.3.1
