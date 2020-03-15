@@ -1,47 +1,38 @@
-From: Acaceres <acaceres@santafe.edu.ar>
-Subject: AW:
-Date: Sun, 15 Mar 2020 07:20:05 +0100
-Message-ID: <bb374eef35f2c8375dc6469e3303486e@santafe.edu.ar>
-Reply-To: niklaszennstromcare@gmail.com
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v3 00/26] Introduce common headers for vDSO
+Date: Sun, 15 Mar 2020 11:02:45 +0100
+Message-ID: <87fteadjga.fsf@nanos.tec.linutronix.de>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com> <693b6a61-b5f6-2744-1579-b356e6510547@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8;
- format=flowed
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from correo.santafe.edu.ar ([200.12.192.40]:51288 "EHLO
-        correo.santafe.edu.ar" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726963AbgCOGoX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 15 Mar 2020 02:44:23 -0400
-Received: from correo.santafe.edu.ar (localhost [127.0.0.1])
-        by correo.santafe.edu.ar (Postfix) with ESMTP id 48g8jQ4ysszG5nX
-        for <linux-arch@vger.kernel.org>; Sun, 15 Mar 2020 03:31:54 -0300 (-03)
-Received: from correo.santafe.edu.ar ([127.0.0.1])
-        by correo.santafe.edu.ar (correo.santafe.edu.ar [127.0.0.1]) (amavisd-new, port 10026)
-        with ESMTP id 2gM2Ilmt3ZXt for <linux-arch@vger.kernel.org>;
-        Sun, 15 Mar 2020 03:31:54 -0300 (-03)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <693b6a61-b5f6-2744-1579-b356e6510547@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dmitry Safonov <0x7f454c46@gmail.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
+Dmitry Safonov <0x7f454c46@gmail.com> writes:
+> I like the idea, but I'm wondering if we could have less-grained
+> headers? Like, AFAICS the patches create headers < 10 lines and even
+> mostly < 5 lines.. I like that header's names perfectly describe what's
+> inside, but I'm not sure how effective to have a lot of extra-small
+> includes.
 
+If that goes all into a big header then the headers from where the bits and
+pieces are split out would have all to include this big header which
+might result in other include dependency nightmares.
 
---=20
-Sch=C3=B6nen Tag,
+>>  create mode 100644 include/vdso/time.h
+>>  create mode 100644 include/vdso/time32.h
+>>  create mode 100644 include/vdso/time64.h
+>
+> Maybe we could made them less-grained?
+>
+> I.e, time32 + time64 + time.h => time.h?
 
-Herr Niklas Zennstr=C3=B6m, ein schwedischer Wirtschaftsmagnat, Investor =
-und=20
-Philanthrop, der weltweit rund =C2=A3208.3 Millionen Pfund an=20
-Menschenrechtsorganisationen / Wohlt=C3=A4tigkeitsorganisationen gespende=
-t=20
-hat, hat sich ebenfalls verpflichtet, den Rest von 25% in diesem Jahr=20
-2020 zu verschenken, und Ihre E-Mail erfolgte nach dem Zufallsprinzip=20
-Das Team von Google Inc. wurde als aktiver Web-Nutzer ausgew=C3=A4hlt, um=
-=20
-eine Spende in H=C3=B6he von $1 Million USD im Rahmen des=20
-Wohlt=C3=A4tigkeitsprojekts Zennstr=C3=B6m Philanthropies zu erhalten. Bi=
-tte=20
-best=C3=A4tigen Sie den Besitz Ihrer E-Mail-Adresse, indem Sie sich per=20
-E-Mail an Niklas Zennstr=C3=B6m wenden: niklaszennstromcare@gmail.com =C2=
-=A0F=C3=BCr=20
-den Anspruch
+Then you end up with ifdeffery. I like the clear separation.
 
-Name des Ansprechpartners: Herr Niklas Zennstr=C3=B6m
+Thanks,
+
+        tglx
