@@ -1,42 +1,96 @@
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH 0/3] docs: a few improvements for atomic_ops.rst
-Date: Mon, 16 Mar 2020 15:48:35 +0000
-Message-ID: <20200316154835.GA13004@willie-the-truck>
-References: <20200308195618.22768-1-j.neuschaefer@gmx.net>
- <20200309090650.GF12561@hirez.programming.kicks-ass.net>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
+Date: Mon, 16 Mar 2020 15:49:31 +0000
+Message-ID: <20200316154930.GG3005@mbp>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+ <20200313154345.56760-19-vincenzo.frascino@arm.com>
+ <20200315182950.GB32205@mbp>
+ <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
+ <20200316103437.GD3005@mbp>
+ <77a2e91a-58f4-3ba3-9eef-42d6a8faf859@arm.com>
+ <20200316112205.GE3005@mbp>
+ <9a0a9285-8a45-4f65-3a83-813cabd0f0d3@arm.com>
+ <20200316144346.GF3005@mbp>
+ <427064ee-45df-233c-0281-69e3d62ba784@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200309090650.GF12561@hirez.programming.kicks-ass.net>
-Sender: linux-doc-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Jonathan =?iso-8859-1?Q?Neusch=E4fer?= <j.neuschaefer@gmx.net>, linux-doc@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+In-Reply-To: <427064ee-45df-233c-0281-69e3d62ba784@arm.com>
+Sender: linux-mips-owner@vger.kernel.org
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>Mark
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 09, 2020 at 10:06:50AM +0100, Peter Zijlstra wrote:
-> On Sun, Mar 08, 2020 at 08:56:15PM +0100, Jonathan Neuschäfer wrote:
-> > Hi,
+On Mon, Mar 16, 2020 at 03:33:30PM +0000, Vincenzo Frascino wrote:
+> On 3/16/20 2:43 PM, Catalin Marinas wrote[...]
+> >> To me does not seem optimized out. Which version of the compiler are you using?
 > > 
-> > this is a short series of unrelated fixes that make the atomic
-> > operations documentation look and read a bit better.
+> > I misread the #ifdef'ery in asm/processor.h. So with 4K pages,
+> > TASK_SIZE_32 is (1UL<<32)-PAGE_SIZE. However, with 64K pages _and_
+> > CONFIG_KUSER_HELPERS, TASK_SIZE_32 is 1UL<<32 and the check is removed
+> > by the compiler.
 > > 
-> > Jonathan Neuschäfer (3):
-> >   docs: atomic_ops: Remove colons where they don't make sense
-> >   docs: atomic_ops: Move two paragraphs into the warning block above
-> >   docs: atomic_ops: Steer readers towards using refcount_t for reference
-> >     counts
+> > With the 4K build, __vdso_clock_gettime starts as:
 > > 
-> >  Documentation/core-api/atomic_ops.rst         | 24 ++++++++++++-------
+> > 00000194 <__vdso_clock_gettime>:
+> >  194:   f511 5f80       cmn.w   r1, #4096       ; 0x1000
+> >  198:   d214            bcs.n   1c4 <__vdso_clock_gettime+0x30>
+> >  19a:   b5b0            push    {r4, r5, r7, lr}
+> >  ...
+> >  1c4:   f06f 000d       mvn.w   r0, #13
+> >  1c8:   4770            bx      lr
+> > 
+> > With 64K pages:
+> > 
+> > 00000194 <__vdso_clock_gettime>:
+> >  194:   b5b0            push    {r4, r5, r7, lr}
+> >  ...
+> >  1be:   bdb0            pop     {r4, r5, r7, pc}
+> > 
+> > I haven't tried but it's likely that the vdsotest fails with 64K pages
+> > and compat enabled (requires EXPERT).
 > 
-> FWIW, I consider this a dead document. I've written
-> Documentation/atomic_t.txt and Documentation/atomic_bitops.txt as a
-> replacement. If there is anything in atomic_ops you feel is missing from
-> those two, please tell as I'm planing to delete atomic_ops soon.
+> This makes more sense. Thanks for the clarification.
+> 
+> I agree on the behavior of 64K pages and I think as well that the
+> "compatibility" issue is still there. However as you correctly stated in your
+> first email arm32 never supported 16K or 64K pages, hence I think we should not
+> be concerned about compatibility in this cases.
 
-For the deletion:
+My point is that even with 4K pages it's not really compatibility. The
+test uses UINTPTR_MAX but on arm32 it would also fail with 0xc0000000.
+On arm64 compat, however, this value would pass just fine.
 
-Acked-by: Will Deacon <will@kernel.org>
+> To make it more explicit we could make COMPAT_VDSO on arm64 depend on
+> ARM64_4K_PAGES. What do you think?
 
-Will
+No, I don't see why we should add this limitation.
+
+> >> Please find below the list of errors for clock_gettime (similar for the other):
+> >>
+> >> passing UINTPTR_MAX to clock_gettime (VDSO): terminated by unexpected signal 7
+> >> clock-gettime-monotonic/abi: 1 failures/inconsistencies encountered
+> > 
+> > Ah, so it uses UINTPTR_MAX in the test. Fair enough but I don't think
+> > the arm64 check is entirely useful. On arm32, the check was meant to
+> > return -EFAULT for addresses beyond TASK_SIZE that may enter into the
+> > kernel or module space. On arm64 compat, the kernel space is well above
+> > the reach of the 32-bit code.
+> > 
+> > If you want to preserve some compatibility for this specific test, what
+> > about checking for wrapping around 0, I think it would make more sense.
+> > Something like:
+> > 
+> > 	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
+> 
+> Ok, sounds good to me. But it is something that this patch series inherited,
+> hence I would prefer to send a separate patch that introduces what you are
+> proposing and removes TASK_SIZE_32 from the headers. How does it sound?
+
+I'd rather avoid moving TASK_SIZE_32 unnecessarily. Just add a
+preparatory patch to your series for arm64 compat vdso and follow with
+the rest without moving TASK_SIZE_32 around.
+
+-- 
+Catalin
