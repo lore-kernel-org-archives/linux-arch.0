@@ -1,48 +1,58 @@
-Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:54420 "EHLO foss.arm.com"
+Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:46096 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731365AbgCKTdX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Mar 2020 15:33:23 -0400
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v9 11/13] arm64: mm: Display guarded pages in ptdump
-Date: Wed, 11 Mar 2020 19:26:06 +0000
-Message-ID: <20200311192608.40095-12-broonie@kernel.org>
-In-Reply-To: <20200311192608.40095-1-broonie@kernel.org>
-References: <20200311192608.40095-1-broonie@kernel.org>
+        id S1730529AbgCPKyj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 06:54:39 -0400
+Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+ <20200313154345.56760-19-vincenzo.frascino@arm.com>
+ <20200315182950.GB32205@mbp> <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
+ <20200316103437.GD3005@mbp>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <77a2e91a-58f4-3ba3-9eef-42d6a8faf859@arm.com>
+Date: Mon, 16 Mar 2020 10:55:00 +0000
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20200316103437.GD3005@mbp>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Mark Brown <broonie@kernel.org>
-Message-ID: <20200311192606.0Hl18JikdmNKFozOjIbreSB0v3UlfDNXUYernKtbgcM@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200316105500.qqHbySBYoMrdEzNHHmViBscBBoxLtnFX26v_tpGdCbk@z>
 
-v8.5-BTI introduces the GP field in stage 1 translation tables which
-indicates that blocks and pages with it set are guarded pages for which
-branch target identification checks should be performed. Decode this
-when dumping the page tables to aid debugging.
+Hi Catalin,
 
-Signed-off-by: Mark Brown <broonie@kernel.org>
-Reviewed-by: Kees Cook <keescook@chromium.org>
----
- arch/arm64/mm/dump.c | 5 +++++
- 1 file changed, 5 insertions(+)
+On 3/16/20 10:34 AM, Catalin Marinas wrote:
+[...]
 
-diff --git a/arch/arm64/mm/dump.c b/arch/arm64/mm/dump.c
-index 860c00ec8bd3..78163b7a7dde 100644
---- a/arch/arm64/mm/dump.c
-+++ b/arch/arm64/mm/dump.c
-@@ -145,6 +145,11 @@ static const struct prot_bits pte_bits[] = {
- 		.val	= PTE_UXN,
- 		.set	= "UXN",
- 		.clear	= "   ",
-+	}, {
-+		.mask	= PTE_GP,
-+		.val	= PTE_GP,
-+		.set	= "GP",
-+		.clear	= "  ",
- 	}, {
- 		.mask	= PTE_ATTRINDX_MASK,
- 		.val	= PTE_ATTRINDX(MT_DEVICE_nGnRnE),
+
+>>
+>> I tried to fine grain the headers as much as I could in order to avoid
+>> unneeded/unwanted inclusions:
+>>  * TASK_SIZE_32 is used to verify ABI consistency on vdso32 (please refer to
+>>    arch/arm64/kernel/vdso32/vgettimeofday.c).
+> 
+> I see. But the test is probably useless. With 4K pages, TASK_SIZE_32 is
+> 1UL << 32, so you can't have a u32 greater than this. So I'd argue that
+> the ABI compatibility here doesn't matter.
+> 
+> With 16K or 64K pages, TASK_SIZE_32 is slightly smaller but arm32 never
+> supported it.
+> 
+> What's the side-effect of dropping this check altogether?
+> 
+
+The main side-effect is that arm32 and arm64 compat have a different behavior,
+that it is what we want to avoid.
+
+The vdsotest [1] I am using, verifies all the side conditions with respect to
+the ABI, which we are now compatible with. Removing those checks would break
+this condition.
+
+[1] https://github.com/nlynch-mentor/vdsotest
+
 -- 
-2.20.1
+Regards,
+Vincenzo
