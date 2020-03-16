@@ -1,99 +1,69 @@
-Return-Path: <SRS0=ObY3=4W=vger.kernel.org=linux-doc-owner@kernel.org>
-Message-ID: <607b3094a06dd62dfabb0fd6991429f464355a0c.camel@intel.com>
-Subject: Re: [RFC PATCH v9 05/27] x86/cet/shstk: Add Kconfig option for
- user-mode Shadow Stack protection
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Thu, 05 Mar 2020 12:38:14 -0800
-In-Reply-To: <597fb45a-cb94-e8e7-8e80-45a26766d32a@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-         <20200205181935.3712-6-yu-cheng.yu@intel.com>
-         <597fb45a-cb94-e8e7-8e80-45a26766d32a@intel.com>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:44804 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730088AbgCPJmK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 05:42:10 -0400
+Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+ <20200313154345.56760-19-vincenzo.frascino@arm.com>
+ <20200315182950.GB32205@mbp>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
+Date: Mon, 16 Mar 2020 09:42:32 +0000
 MIME-Version: 1.0
+In-Reply-To: <20200315182950.GB32205@mbp>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200305203814.5FXunLwbRJBfj3FWmgWQEi80pG2sibln-MbJzDKZJL0@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200316094232.vlWcnnJH_XscE7EqSOn2Xdsgefy0x6-V-YRETw3IqZ0@z>
 
-On Wed, 2020-02-26 at 09:03 -0800, Dave Hansen wrote:
-> On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
-> > Introduce Kconfig option: X86_INTEL_SHADOW_STACK_USER.
-> > 
-> > Shadow Stack (SHSTK) provides protection against function return address
-> > corruption.  It is active when the kernel has this feature enabled, and
-> > both the processor and the application support it.  When this feature is
-> > enabled, legacy non-SHSTK applications continue to work, but without SHSTK
-> > protection.
-> > 
-> > The user-mode SHSTK protection is only implemented for the 64-bit kernel.
-> > IA32 applications are supported under the compatibility mode.
-> 
-> I think what you're trying to say here is that the hardware supports
-> shadow stacks with 32-bit kernels.  However, this series does not
-> include that support and we have no plans to add it.
-> 
-> Right?
+Hi Catalin,
 
-Yes.
+you should not really work on Sunday ;-) Joking, thanks for reviewing my patches.
 
+On 3/15/20 6:30 PM, Catalin Marinas wrote:
+> On Fri, Mar 13, 2020 at 03:43:37PM +0000, Vincenzo Frascino wrote:
+>> --- /dev/null
+>> +++ b/arch/arm64/include/asm/vdso/processor.h
+>> @@ -0,0 +1,31 @@
+>> +/* SPDX-License-Identifier: GPL-2.0-only */
+>> +/*
+>> + * Copyright (C) 2020 ARM Ltd.
+>> + */
+>> +#ifndef __ASM_VDSO_PROCESSOR_H
+>> +#define __ASM_VDSO_PROCESSOR_H
+>> +
+>> +#ifndef __ASSEMBLY__
+>> +
+>> +#include <asm/page-def.h>
+>> +
+>> +#ifdef CONFIG_COMPAT
+>> +#if defined(CONFIG_ARM64_64K_PAGES) && defined(CONFIG_KUSER_HELPERS)
+>> +/*
+>> + * With CONFIG_ARM64_64K_PAGES enabled, the last page is occupied
+>> + * by the compat vectors page.
+>> + */
+>> +#define TASK_SIZE_32		UL(0x100000000)
+>> +#else
+>> +#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
+>> +#endif /* CONFIG_ARM64_64K_PAGES */
+>> +#endif /* CONFIG_COMPAT */
 > 
-> I'll let others weigh in, but I rather dislike the use of acronyms here.
->  I'd much rather see the english "shadow stack" everywhere than SHSTK.
+> Just curious, what's TASK_SIZE_32 used for in the vDSO code? You don't
+> seem to move TASK_SIZE.
+> 
 
-I will change to shadow stack.
+I tried to fine grain the headers as much as I could in order to avoid
+unneeded/unwanted inclusions:
+ * TASK_SIZE_32 is used to verify ABI consistency on vdso32 (please refer to
+   arch/arm64/kernel/vdso32/vgettimeofday.c).
+ * TASK_SIZE is not required by the vdso library hence it is not present in
+   these headers.
 
-> 
-> > diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> > index 5e8949953660..6c34b701c588 100644
-> > --- a/arch/x86/Kconfig
-> > +++ b/arch/x86/Kconfig
-> > @@ -1974,6 +1974,28 @@ config X86_INTEL_TSX_MODE_AUTO
-> >  	  side channel attacks- equals the tsx=auto command line parameter.
-> >  endchoice
-> >  
-> > +config X86_INTEL_CET
-> > +	def_bool n
-> > +
-> > +config ARCH_HAS_SHSTK
-> > +	def_bool n
-> > +
-> > +config X86_INTEL_SHADOW_STACK_USER
-> > +	prompt "Intel Shadow Stack for user-mode"
-> 
-> Nit: this whole thing is to support more than a single stack.  I'd make
-> this plural at least in the text: "shadow stacks".
-
-OK.
-
-> 
-> > +	def_bool n
-> > +	depends on CPU_SUP_INTEL && X86_64
-> > +	select ARCH_USES_HIGH_VMA_FLAGS
-> > +	select X86_INTEL_CET
-> > +	select ARCH_HAS_SHSTK
-> > +	---help---
-> > +	  Shadow Stack (SHSTK) provides protection against program
-> > +	  stack corruption.  It is active when the kernel has this
-> > +	  feature enabled, and the processor and the application
-> > +	  support it.  When this feature is enabled, legacy non-SHSTK
-> > +	  applications continue to work, but without SHSTK protection.
-> > +
-> > +	  If unsure, say y.
-> 
-> This is missing a *lot* of information.
-> 
-> What matters to someone turning this on?
-> 
-> 1. It's a hardware feature.  This only matters if you have the right
->    hardware
-> 2. It's a security hardening feature.  You dance around this, but need
->    to come out and say it.
-> 3. Apps must be enabled to use it.  You get no protection "for free" on
->    old userspace.
-> 4. The hardware supports user and kernel, but this option is for
->    userspace only.
-
-I will update the help text.
-
-Yu-cheng
+-- 
+Regards,
+Vincenzo
