@@ -1,45 +1,69 @@
-Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qk1-f193.google.com ([209.85.222.193]:35648 "EHLO
-        mail-qk1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726185AbgCFLss (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 06:48:48 -0500
+Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:52372 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1732296AbgCPQv1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 12:51:27 -0400
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v10 13/13] arm64: BTI: Add Kconfig entry for userspace BTI
+Date: Mon, 16 Mar 2020 16:50:55 +0000
+Message-ID: <20200316165055.31179-14-broonie@kernel.org>
+In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
+References: <20200316165055.31179-1-broonie@kernel.org>
 MIME-Version: 1.0
-References: <20200306080905.173466-1-syq@debian.org> <87r1y53npd.fsf@mid.deneb.enyo.de>
- <8441f497-61eb-5c14-bf1e-c90a464105a7@vivier.eu> <87mu8t3mlw.fsf@mid.deneb.enyo.de>
- <40da389d-4e74-2644-2e7c-04d988fcc26f@vivier.eu> <CAKcpw6WEO5Rmsv+WFkOMrkH+0jwtFKKy7b2n3U9xgv-xGC0UUQ@mail.gmail.com>
- <87v9nhzp6w.fsf@mid.deneb.enyo.de>
-In-Reply-To: <87v9nhzp6w.fsf@mid.deneb.enyo.de>
-From: YunQiang Su <syq@debian.org>
-Date: Fri, 6 Mar 2020 19:48:35 +0800
-Message-ID: <CAKcpw6VF1N2gTVXeWLU4aVOuARf5oN6yPg9O=RCzgkMrjXmxYQ@mail.gmail.com>
-Subject: Re: [PATCH] binfmt_misc: pass binfmt_misc P flag to the interpreter
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Florian Weimer <fw@deneb.enyo.de>
-Cc: Laurent Vivier <laurent@vivier.eu>, torvalds@linux-foundation.org, Greg KH <gregkh@linuxfoundation.org>, akpm@linux-foundation.org, Al Viro <viro@zeniv.linux.org.uk>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org
-Message-ID: <20200306114835.5pzkhyrpATGjCUWf9H5KGap8oNFFJdAHPd-Auko5ltA@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200316165055.QAgLE14Zm8stobCV0Rqvttx9Hp6tgBc4R5q4V1jjH_8@z>
 
-Florian Weimer <fw@deneb.enyo.de> 于2020年3月6日周五 下午7:42写道：
->
-> * YunQiang Su:
->
-> > AT_* only has 32 slot and now. I was afraid that maybe we shouldn't take one.
-> >    /* AT_* values 18 through 22 are reserved */
-> >    27,28,29,30 are not used now.
-> > Which should we use?
->
-> Where does this limit of 32 tags come from?  I don't see it from a
-> userspace perspective.
+From: Dave Martin <Dave.Martin@arm.com>
 
-Sorry it is my mistake: In linux/auxvec.h, I saw
+Now that the code for userspace BTI support is in the kernel add the
+Kconfig entry so that it can be built and used.
 
-#define AT_RANDOM 25    /* address of 16 random bytes */
-#define AT_HWCAP2 26    /* extension of AT_HWCAP */
+[Split out of "arm64: Basic Branch Target Identification support"
+    -- broonie]
 
-#define AT_EXECFN  31   /* filename of program */
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Mark Brown <broonie@kernel.org>
+---
+ arch/arm64/Kconfig | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
 
-The number jump to 31 from 26.
-
-It is my fault: in x86_64-linux-gnu/bits/auxv.h, the max number is 47 now.
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 8a15bc68dadd..d65d226a77ec 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -1522,6 +1522,28 @@ endmenu
+ 
+ menu "ARMv8.5 architectural features"
+ 
++config ARM64_BTI
++	bool "Branch Target Identification support"
++	default y
++	help
++	  Branch Target Identification (part of the ARMv8.5 Extensions)
++	  provides a mechanism to limit the set of locations to which computed
++	  branch instructions such as BR or BLR can jump.
++
++	  To make use of BTI on CPUs that support it, say Y.
++
++	  BTI is intended to provide complementary protection to other control
++	  flow integrity protection mechanisms, such as the Pointer
++	  authentication mechanism provided as part of the ARMv8.3 Extensions.
++	  For this reason, it does not make sense to enable this option without
++	  also enabling support for pointer authentication.  Thus, when
++	  enabling this option you should also select ARM64_PTR_AUTH=y.
++
++	  Userspace binaries must also be specifically compiled to make use of
++	  this mechanism.  If you say N here or the hardware does not support
++	  BTI, such binaries can still run, but you get no additional
++	  enforcement of branch destinations.
++
+ config ARM64_E0PD
+ 	bool "Enable support for E0PD"
+ 	default y
+-- 
+2.20.1
