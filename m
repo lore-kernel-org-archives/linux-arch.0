@@ -1,107 +1,45 @@
 Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:52220 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731414AbgCPQvO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Mar 2020 12:51:14 -0400
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v10 07/13] arm64: unify native/compat instruction skipping
-Date: Mon, 16 Mar 2020 16:50:49 +0000
-Message-ID: <20200316165055.31179-8-broonie@kernel.org>
-In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
-References: <20200316165055.31179-1-broonie@kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.131]:46351 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730039AbgCPIaK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 16 Mar 2020 04:30:10 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com> <1584200119-18594-8-git-send-email-mikelley@microsoft.com>
+In-Reply-To: <1584200119-18594-8-git-send-email-mikelley@microsoft.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 16 Mar 2020 09:29:50 +0100
+Message-ID: <CAK8P3a0+uBsurfQ4smjPDGkJQSkMe-TxJ4cWR_EZXgDR4-bAWQ@mail.gmail.com>
+Subject: Re: [PATCH v6 07/10] arm64: hyperv: Initialize hypervisor on boot
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Rutland <mark.rutland@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200316165049.BX_kuXQJY_dXMNXZ160jdcY1-lSnCllAudPsa9NqPco@z>
+To: Michael Kelley <mikelley@microsoft.com>
+Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-hyperv@vger.kernel.org, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, olaf@aepfle.de, Andy Whitcroft <apw@canonical.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, marcelo.cerri@canonical.com, "K. Y. Srinivasan" <kys@microsoft.com>, sunilmut@microsoft.com, Boqun Feng <boqun.feng@gmail.com>, John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Stephen Boyd <sboyd@kernel.org>
+Message-ID: <20200316082950.8noGr8RspKzvkSof04XDWyKhHLhda_94zhvMP3jVR9s@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+On Sat, Mar 14, 2020 at 4:36 PM Michael Kelley <mikelley@microsoft.com> wrote:
+>
+> Add ARM64-specific code to initialize the Hyper-V
+> hypervisor when booting as a guest VM. Provide functions
+> and data structures indicating hypervisor status that
+> are needed by VMbus driver.
+>
+> This code is built only when CONFIG_HYPERV is enabled.
+>
+> Signed-off-by: Michael Kelley <mikelley@microsoft.com>
+> ---
+>  arch/arm64/hyperv/hv_core.c | 156 ++++++++++++++++++++++++++++++++++++++++++++
 
-Skipping of an instruction on AArch32 works a bit differently from
-AArch64, mainly due to the different CPSR/PSTATE semantics.
+As you are effectively adding a new clocksource driver here, please move the
+code to drivers/clocksource and send the patch to the respective maintainers
+(added to Cc here), splitting it out from the rest of the patch.
 
-Currently arm64_skip_faulting_instruction() is only suitable for
-AArch64, and arm64_compat_skip_faulting_instruction() handles the IT
-state machine but is local to traps.c.
+You should also describe why your platform doesn't just use the normal
+architected timer interface.
 
-Since manual instruction skipping implies a trap, it's a relatively
-slow path.
+> +TIMER_ACPI_DECLARE(hyperv, ACPI_SIG_GTDT, hyperv_init);
 
-So, make arm64_skip_faulting_instruction() handle both compat and
-native, and get rid of the arm64_compat_skip_faulting_instruction()
-special case.
+This looks like it registers a driver for the same device as the normal
+arch timer. Won't that clash?
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Mark Rutland <mark.rutland@arm.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- arch/arm64/kernel/traps.c | 18 ++++++++----------
- 1 file changed, 8 insertions(+), 10 deletions(-)
-
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index b8c714dda851..bc9f4292bfc3 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -272,6 +272,8 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
- 	}
- }
- 
-+static void advance_itstate(struct pt_regs *regs);
-+
- void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- {
- 	regs->pc += size;
-@@ -282,6 +284,9 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
- 	 */
- 	if (user_mode(regs))
- 		user_fastforward_single_step(current);
-+
-+	if (regs->pstate & PSR_MODE32_BIT)
-+		advance_itstate(regs);
- }
- 
- static LIST_HEAD(undef_hook);
-@@ -644,19 +649,12 @@ static void advance_itstate(struct pt_regs *regs)
- 	compat_set_it_state(regs, it);
- }
- 
--static void arm64_compat_skip_faulting_instruction(struct pt_regs *regs,
--						   unsigned int sz)
--{
--	advance_itstate(regs);
--	arm64_skip_faulting_instruction(regs, sz);
--}
--
- static void compat_cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
- {
- 	int reg = (esr & ESR_ELx_CP15_32_ISS_RT_MASK) >> ESR_ELx_CP15_32_ISS_RT_SHIFT;
- 
- 	pt_regs_write_reg(regs, reg, arch_timer_get_rate());
--	arm64_compat_skip_faulting_instruction(regs, 4);
-+	arm64_skip_faulting_instruction(regs, 4);
- }
- 
- static const struct sys64_hook cp15_32_hooks[] = {
-@@ -676,7 +674,7 @@ static void compat_cntvct_read_handler(unsigned int esr, struct pt_regs *regs)
- 
- 	pt_regs_write_reg(regs, rt, lower_32_bits(val));
- 	pt_regs_write_reg(regs, rt2, upper_32_bits(val));
--	arm64_compat_skip_faulting_instruction(regs, 4);
-+	arm64_skip_faulting_instruction(regs, 4);
- }
- 
- static const struct sys64_hook cp15_64_hooks[] = {
-@@ -697,7 +695,7 @@ void do_cp15instr(unsigned int esr, struct pt_regs *regs)
- 		 * There is no T16 variant of a CP access, so we
- 		 * always advance PC by 4 bytes.
- 		 */
--		arm64_compat_skip_faulting_instruction(regs, 4);
-+		arm64_skip_faulting_instruction(regs, 4);
- 		return;
- 	}
- 
--- 
-2.20.1
+     Arnd
