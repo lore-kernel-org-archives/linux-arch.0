@@ -1,105 +1,55 @@
-Return-Path: <SRS0=twat=5M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qk1-f194.google.com ([209.85.222.194]:37623 "EHLO
-        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727685AbgC0WSp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2020 18:18:45 -0400
-Received: by mail-qk1-f194.google.com with SMTP id x3so12586609qki.4
-        for <linux-arch@vger.kernel.org>; Fri, 27 Mar 2020 15:18:45 -0700 (PDT)
-Date: Fri, 27 Mar 2020 18:18:43 -0400
-From: Joel Fernandes <joel@joelfernandes.org>
-Subject: Re: [PATCH v4 0/4] Documentation/litmus-tests: Add litmus tests for
- atomic APIs
-Message-ID: <20200327221843.GA226939@google.com>
-References: <20200326024022.7566-1-boqun.feng@gmail.com>
+Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:53400 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730016AbgCPIa2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 04:30:28 -0400
+Date: Mon, 16 Mar 2020 09:30:24 +0100
+From: gregkh <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH v6 04/10] arm64: hyperv: Add memory alloc/free functions
+ for Hyper-V size pages
+Message-ID: <20200316083024.GA3204377@kroah.com>
+References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
+ <1584200119-18594-5-git-send-email-mikelley@microsoft.com>
+ <CAK8P3a2Hnm74aUMNFHbjMr4HwHGZn1+xa4ERsxAJY6hMzhEOhQ@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200326024022.7566-1-boqun.feng@gmail.com>
+In-Reply-To: <CAK8P3a2Hnm74aUMNFHbjMr4HwHGZn1+xa4ERsxAJY6hMzhEOhQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: linux-kernel@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
-Message-ID: <20200327221843.e4FtAr3Fx_9VWJbjSs_UcAyL8WWzC0GXs5vB28qCX6g@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Michael Kelley <mikelley@microsoft.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-hyperv@vger.kernel.org, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, olaf@aepfle.de, Andy Whitcroft <apw@canonical.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, marcelo.cerri@canonical.com, "K. Y. Srinivasan" <kys@microsoft.com>, sunilmut@microsoft.com, Boqun Feng <boqun.feng@gmail.com>
+Message-ID: <20200316083024.jBizwS2SyqAS5qNmIYbRrI-F75pQ4OzkCdRUMMNKpSE@z>
 
-On Thu, Mar 26, 2020 at 10:40:18AM +0800, Boqun Feng wrote:
-> A recent discussion raises up the requirement for having test cases for
-> atomic APIs:
+On Mon, Mar 16, 2020 at 09:22:43AM +0100, Arnd Bergmann wrote:
+> On Sat, Mar 14, 2020 at 4:36 PM Michael Kelley <mikelley@microsoft.com> wrote:
+> >  /*
+> > + * Functions for allocating and freeing memory with size and
+> > + * alignment HV_HYP_PAGE_SIZE. These functions are needed because
+> > + * the guest page size may not be the same as the Hyper-V page
+> > + * size. We depend upon kmalloc() aligning power-of-two size
+> > + * allocations to the allocation size boundary, so that the
+> > + * allocated memory appears to Hyper-V as a page of the size
+> > + * it expects.
+> > + *
+> > + * These functions are used by arm64 specific code as well as
+> > + * arch independent Hyper-V drivers.
+> > + */
+> > +
+> > +void *hv_alloc_hyperv_page(void)
+> > +{
+> > +       BUILD_BUG_ON(PAGE_SIZE <  HV_HYP_PAGE_SIZE);
+> > +       return kmalloc(HV_HYP_PAGE_SIZE, GFP_KERNEL);
+> > +}
+> > +EXPORT_SYMBOL_GPL(hv_alloc_hyperv_page);
 > 
-> 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
-> 
-> , and since we already have a way to generate a test module from a
-> litmus test with klitmus[1]. It makes sense that we add more litmus
-> tests for atomic APIs. And based on the previous discussion, I create a
-> new directory Documentation/atomic-tests and put these litmus tests
-> here.
-> 
-> This patchset starts the work by adding the litmus tests which are
-> already used in atomic_t.txt, and also improve the atomic_t.txt to make
-> it consistent with the litmus tests.
-> 
-> Previous version:
-> v1: https://lore.kernel.org/linux-doc/20200214040132.91934-1-boqun.feng@gmail.com/
-> v2: https://lore.kernel.org/lkml/20200219062627.104736-1-boqun.feng@gmail.com/
-> v3: https://lore.kernel.org/linux-doc/20200227004049.6853-1-boqun.feng@gmail.com/
+> I don't think there is any guarantee that kmalloc() returns page-aligned
+> allocations in general. How about using get_free_pages()
+> to implement this?
 
-For full series:
-
-Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-
-One question I had was in the existing atomic_set() documentation, it talks
-about atomic_add_unless() implementation based on locking could have issues.
-It says the way to fix such cases is:
-
-Quote:
-    the typical solution is to then implement atomic_set{}() with
-    atomic_xchg().
-
-I didn't get how using atomic_xchg() fixes it. Is the assumption there that
-atomic_xchg() would be implemented using locking to avoid atomic_set() having
-issues? If so, we could clarify that in the document.
+Even if it was guaranteed, a pointless wrapper like this is not needed
+or ok, and shouldn't be created, just use kmalloc.
 
 thanks,
 
- - Joel
-
-> 
-> Changes since v3:
-> 
-> *	Merge two patches on atomic-set litmus test into one as per
-> 	Alan. (Alan, you have acked only one of the two patches, so I
-> 	don't add you acked-by for the combined patch).
-> 
-> *	Move the atomic litmus tests into litmus-tests/atomic to align
-> 	with Joel's recent patches on RCU litmus tests.
-> 
-> I think we still haven't reach to a conclusion for the difference of
-> atomic_add_unless() in herdtools, and I'm currently reading the source
-> code of herd to resovle this. This is just an updated version to resolve
-> ealier comments and react on Joel's RCU litmus tests.
-> 
-> Regards,
-> Boqun
-> 
-> [1]: http://diy.inria.fr/doc/litmus.html#klitmus
-> 
-> Boqun Feng (4):
->   tools/memory-model: Add an exception for limitations on _unless()
->     family
->   Documentation/litmus-tests: Introduce atomic directory
->   Documentation/litmus-tests/atomic: Add a test for atomic_set()
->   Documentation/litmus-tests/atomic: Add a test for
->     smp_mb__after_atomic()
-> 
->  Documentation/atomic_t.txt                    | 24 +++++++-------
->  ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
->  ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 ++++++++++++++
->  Documentation/litmus-tests/atomic/README      | 16 ++++++++++
->  tools/memory-model/README                     | 10 ++++--
->  5 files changed, 91 insertions(+), 15 deletions(-)
->  create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
->  create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
->  create mode 100644 Documentation/litmus-tests/atomic/README
-> 
-> -- 
-> 2.25.1
-> 
+greg k-h
