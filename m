@@ -1,92 +1,101 @@
 Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:52052 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:51048 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731414AbgCPQvB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Mar 2020 12:51:01 -0400
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v10 01/13] ELF: UAPI and Kconfig additions for ELF program properties
-Date: Mon, 16 Mar 2020 16:50:43 +0000
-Message-ID: <20200316165055.31179-2-broonie@kernel.org>
-In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
-References: <20200316165055.31179-1-broonie@kernel.org>
+        id S1731924AbgCPPtp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 11:49:45 -0400
+Date: Mon, 16 Mar 2020 15:49:31 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
+Message-ID: <20200316154930.GG3005@mbp>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+ <20200313154345.56760-19-vincenzo.frascino@arm.com>
+ <20200315182950.GB32205@mbp>
+ <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
+ <20200316103437.GD3005@mbp>
+ <77a2e91a-58f4-3ba3-9eef-42d6a8faf859@arm.com>
+ <20200316112205.GE3005@mbp>
+ <9a0a9285-8a45-4f65-3a83-813cabd0f0d3@arm.com>
+ <20200316144346.GF3005@mbp>
+ <427064ee-45df-233c-0281-69e3d62ba784@arm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <427064ee-45df-233c-0281-69e3d62ba784@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200316165043.14BFwCpiabvsHwCiNnpwiggD7-FBp1n5PqUKeaFbaw4@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200316154931.uNhfEHGgCqfEuVysaWWrkl3xJkVOJ68oghkllyut3Ww@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+On Mon, Mar 16, 2020 at 03:33:30PM +0000, Vincenzo Frascino wrote:
+> On 3/16/20 2:43 PM, Catalin Marinas wrote[...]
+> >> To me does not seem optimized out. Which version of the compiler are you using?
+> > 
+> > I misread the #ifdef'ery in asm/processor.h. So with 4K pages,
+> > TASK_SIZE_32 is (1UL<<32)-PAGE_SIZE. However, with 64K pages _and_
+> > CONFIG_KUSER_HELPERS, TASK_SIZE_32 is 1UL<<32 and the check is removed
+> > by the compiler.
+> > 
+> > With the 4K build, __vdso_clock_gettime starts as:
+> > 
+> > 00000194 <__vdso_clock_gettime>:
+> >  194:   f511 5f80       cmn.w   r1, #4096       ; 0x1000
+> >  198:   d214            bcs.n   1c4 <__vdso_clock_gettime+0x30>
+> >  19a:   b5b0            push    {r4, r5, r7, lr}
+> >  ...
+> >  1c4:   f06f 000d       mvn.w   r0, #13
+> >  1c8:   4770            bx      lr
+> > 
+> > With 64K pages:
+> > 
+> > 00000194 <__vdso_clock_gettime>:
+> >  194:   b5b0            push    {r4, r5, r7, lr}
+> >  ...
+> >  1be:   bdb0            pop     {r4, r5, r7, pc}
+> > 
+> > I haven't tried but it's likely that the vdsotest fails with 64K pages
+> > and compat enabled (requires EXPERT).
+> 
+> This makes more sense. Thanks for the clarification.
+> 
+> I agree on the behavior of 64K pages and I think as well that the
+> "compatibility" issue is still there. However as you correctly stated in your
+> first email arm32 never supported 16K or 64K pages, hence I think we should not
+> be concerned about compatibility in this cases.
 
-Pull the basic ELF definitions relating to the
-NT_GNU_PROPERTY_TYPE_0 note from Yu-Cheng Yu's earlier x86 shstk
-series.
+My point is that even with 4K pages it's not really compatibility. The
+test uses UINTPTR_MAX but on arm32 it would also fail with 0xc0000000.
+On arm64 compat, however, this value would pass just fine.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- fs/Kconfig.binfmt        |  3 +++
- include/linux/elf.h      | 12 ++++++++++++
- include/uapi/linux/elf.h |  1 +
- 3 files changed, 16 insertions(+)
+> To make it more explicit we could make COMPAT_VDSO on arm64 depend on
+> ARM64_4K_PAGES. What do you think?
 
-diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
-index 62dc4f577ba1..d2cfe0729a73 100644
---- a/fs/Kconfig.binfmt
-+++ b/fs/Kconfig.binfmt
-@@ -36,6 +36,9 @@ config COMPAT_BINFMT_ELF
- config ARCH_BINFMT_ELF_STATE
- 	bool
- 
-+config ARCH_USE_GNU_PROPERTY
-+	bool
-+
- config BINFMT_ELF_FDPIC
- 	bool "Kernel support for FDPIC ELF binaries"
- 	default y if !BINFMT_ELF
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index e3649b3e970e..f7b24c5fcfb6 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -2,6 +2,7 @@
- #ifndef _LINUX_ELF_H
- #define _LINUX_ELF_H
- 
-+#include <linux/types.h>
- #include <asm/elf.h>
- #include <uapi/linux/elf.h>
- 
-@@ -56,4 +57,15 @@ static inline int elf_coredump_extra_notes_write(struct coredump_params *cprm) {
- extern int elf_coredump_extra_notes_size(void);
- extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
- #endif
-+
-+/*
-+ * NT_GNU_PROPERTY_TYPE_0 header:
-+ * Keep this internal until/unless there is an agreed UAPI definition.
-+ * pr_type values (GNU_PROPERTY_*) are public and defined in the UAPI header.
-+ */
-+struct gnu_property {
-+	u32 pr_type;
-+	u32 pr_datasz;
-+};
-+
- #endif /* _LINUX_ELF_H */
-diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index 34c02e4290fe..c37731407074 100644
---- a/include/uapi/linux/elf.h
-+++ b/include/uapi/linux/elf.h
-@@ -36,6 +36,7 @@ typedef __s64	Elf64_Sxword;
- #define PT_LOPROC  0x70000000
- #define PT_HIPROC  0x7fffffff
- #define PT_GNU_EH_FRAME		0x6474e550
-+#define PT_GNU_PROPERTY		0x6474e553
- 
- #define PT_GNU_STACK	(PT_LOOS + 0x474e551)
- 
+No, I don't see why we should add this limitation.
+
+> >> Please find below the list of errors for clock_gettime (similar for the other):
+> >>
+> >> passing UINTPTR_MAX to clock_gettime (VDSO): terminated by unexpected signal 7
+> >> clock-gettime-monotonic/abi: 1 failures/inconsistencies encountered
+> > 
+> > Ah, so it uses UINTPTR_MAX in the test. Fair enough but I don't think
+> > the arm64 check is entirely useful. On arm32, the check was meant to
+> > return -EFAULT for addresses beyond TASK_SIZE that may enter into the
+> > kernel or module space. On arm64 compat, the kernel space is well above
+> > the reach of the 32-bit code.
+> > 
+> > If you want to preserve some compatibility for this specific test, what
+> > about checking for wrapping around 0, I think it would make more sense.
+> > Something like:
+> > 
+> > 	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
+> 
+> Ok, sounds good to me. But it is something that this patch series inherited,
+> hence I would prefer to send a separate patch that introduces what you are
+> proposing and removes TASK_SIZE_32 from the headers. How does it sound?
+
+I'd rather avoid moving TASK_SIZE_32 unnecessarily. Just add a
+preparatory patch to your series for arm64 compat vdso and follow with
+the rest without moving TASK_SIZE_32 around.
+
 -- 
-2.20.1
+Catalin
