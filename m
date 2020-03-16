@@ -1,70 +1,92 @@
-Return-Path: <SRS0=06hN=5A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-mw2nam10on2123.outbound.protection.outlook.com ([40.107.94.123]:18974
-        "EHLO NAM10-MW2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726130AbgCOBcD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 14 Mar 2020 21:32:03 -0400
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: [PATCH v6 08/10] Drivers: hv: vmbus: Add hooks for per-CPU IRQ
-Date: Sat, 14 Mar 2020 08:35:17 -0700
-Message-ID: <1584200119-18594-9-git-send-email-mikelley@microsoft.com>
-In-Reply-To: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
-Content-Type: text/plain
+Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:52052 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1731414AbgCPQvB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 12:51:01 -0400
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v10 01/13] ELF: UAPI and Kconfig additions for ELF program properties
+Date: Mon, 16 Mar 2020 16:50:43 +0000
+Message-ID: <20200316165055.31179-2-broonie@kernel.org>
+In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
+References: <20200316165055.31179-1-broonie@kernel.org>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: will@kernel.org, ardb@kernel.org, arnd@arndb.de, catalin.marinas@arm.com, mark.rutland@arm.com, maz@kernel.org, linux-arm-kernel@lists.infradead.org, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, linux-efi@vger.kernel.org, linux-arch@vger.kernel.org, olaf@aepfle.de, apw@canonical.com, vkuznets@redhat.com, jasowang@redhat.com, marcelo.cerri@canonical.com, kys@microsoft.com
-Cc: mikelley@microsoft.com, sunilmut@microsoft.com, boqun.feng@gmail.com
-Message-ID: <20200314153517.0tsSaTakynsYzet5S5NZCBD6zU0kiXz-Y0uCEQ_TXjQ@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200316165043.14BFwCpiabvsHwCiNnpwiggD7-FBp1n5PqUKeaFbaw4@z>
 
-Add hooks to enable/disable a per-CPU IRQ for VMbus. These hooks
-are in the architecture independent setup and shutdown paths for
-Hyper-V, and are needed by Linux guests on Hyper-V on ARM64.  The
-x86/x64 implementation is null because VMbus interrupts on x86/x64
-don't use an IRQ.
+From: Dave Martin <Dave.Martin@arm.com>
 
-Signed-off-by: Michael Kelley <mikelley@microsoft.com>
+Pull the basic ELF definitions relating to the
+NT_GNU_PROPERTY_TYPE_0 note from Yu-Cheng Yu's earlier x86 shstk
+series.
+
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/x86/include/asm/mshyperv.h | 4 ++++
- drivers/hv/hv.c                 | 3 +++
- 2 files changed, 7 insertions(+)
+ fs/Kconfig.binfmt        |  3 +++
+ include/linux/elf.h      | 12 ++++++++++++
+ include/uapi/linux/elf.h |  1 +
+ 3 files changed, 16 insertions(+)
 
-diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
-index 1c42ecb..0e5db78 100644
---- a/arch/x86/include/asm/mshyperv.h
-+++ b/arch/x86/include/asm/mshyperv.h
-@@ -59,6 +59,10 @@ typedef int (*hyperv_fill_flush_list_func)(
+diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
+index 62dc4f577ba1..d2cfe0729a73 100644
+--- a/fs/Kconfig.binfmt
++++ b/fs/Kconfig.binfmt
+@@ -36,6 +36,9 @@ config COMPAT_BINFMT_ELF
+ config ARCH_BINFMT_ELF_STATE
+ 	bool
+ 
++config ARCH_USE_GNU_PROPERTY
++	bool
++
+ config BINFMT_ELF_FDPIC
+ 	bool "Kernel support for FDPIC ELF binaries"
+ 	default y if !BINFMT_ELF
+diff --git a/include/linux/elf.h b/include/linux/elf.h
+index e3649b3e970e..f7b24c5fcfb6 100644
+--- a/include/linux/elf.h
++++ b/include/linux/elf.h
+@@ -2,6 +2,7 @@
+ #ifndef _LINUX_ELF_H
+ #define _LINUX_ELF_H
+ 
++#include <linux/types.h>
+ #include <asm/elf.h>
+ #include <uapi/linux/elf.h>
+ 
+@@ -56,4 +57,15 @@ static inline int elf_coredump_extra_notes_write(struct coredump_params *cprm) {
+ extern int elf_coredump_extra_notes_size(void);
+ extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
  #endif
- void hyperv_vector_handler(struct pt_regs *regs);
- 
-+/* On x86/x64, there isn't a real IRQ to be enabled/disable */
-+static inline void hv_enable_vmbus_irq(void) {}
-+static inline void hv_disable_vmbus_irq(void) {}
 +
- /*
-  * Routines for stimer0 Direct Mode handling.
-  * On x86/x64, there are no percpu actions to take.
-diff --git a/drivers/hv/hv.c b/drivers/hv/hv.c
-index 6098e0c..035d3df 100644
---- a/drivers/hv/hv.c
-+++ b/drivers/hv/hv.c
-@@ -180,6 +180,7 @@ void hv_synic_enable_regs(unsigned int cpu)
- 	hv_set_siefp(siefp.as_uint64);
- 
- 	/* Setup the shared SINT. */
-+	hv_enable_vmbus_irq();
- 	hv_get_synint_state(VMBUS_MESSAGE_SINT, shared_sint.as_uint64);
- 
- 	shared_sint.vector = HYPERVISOR_CALLBACK_VECTOR;
-@@ -241,6 +242,8 @@ void hv_synic_disable_regs(unsigned int cpu)
- 	hv_get_synic_state(sctrl.as_uint64);
- 	sctrl.enable = 0;
- 	hv_set_synic_state(sctrl.as_uint64);
++/*
++ * NT_GNU_PROPERTY_TYPE_0 header:
++ * Keep this internal until/unless there is an agreed UAPI definition.
++ * pr_type values (GNU_PROPERTY_*) are public and defined in the UAPI header.
++ */
++struct gnu_property {
++	u32 pr_type;
++	u32 pr_datasz;
++};
 +
-+	hv_disable_vmbus_irq();
- }
+ #endif /* _LINUX_ELF_H */
+diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+index 34c02e4290fe..c37731407074 100644
+--- a/include/uapi/linux/elf.h
++++ b/include/uapi/linux/elf.h
+@@ -36,6 +36,7 @@ typedef __s64	Elf64_Sxword;
+ #define PT_LOPROC  0x70000000
+ #define PT_HIPROC  0x7fffffff
+ #define PT_GNU_EH_FRAME		0x6474e550
++#define PT_GNU_PROPERTY		0x6474e553
  
- int hv_synic_cleanup(unsigned int cpu)
+ #define PT_GNU_STACK	(PT_LOOS + 0x474e551)
+ 
 -- 
-1.8.3.1
+2.20.1
