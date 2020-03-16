@@ -1,61 +1,82 @@
-Return-Path: <SRS0=iRyw=4Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:40790 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726259AbgCHDom (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 7 Mar 2020 22:44:42 -0500
-From: Alex Belits <abelits@marvell.com>
-Subject: [PATCH v2 01/12] task_isolation: vmstat: add quiet_vmstat_sync
- function
-Date: Sun, 8 Mar 2020 03:44:11 +0000
-Message-ID: <3118206b99e862d4c163eefd086af14dd12fe305.camel@marvell.com>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
-         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
-In-Reply-To: <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <34D5BF63C3F7774795D2B302FE3EC1E3@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:45626 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730550AbgCPK3l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 06:29:41 -0400
+Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+ <20200313154345.56760-19-vincenzo.frascino@arm.com>
+ <20200315182950.GB32205@mbp> <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
+ <20200316102214.GA5746@lakrids.cambridge.arm.com> <20200316102621.GC3005@mbp>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <b27428fd-5cd9-ac5b-f11c-894985512f23@arm.com>
+Date: Mon, 16 Mar 2020 10:30:04 +0000
 MIME-Version: 1.0
+In-Reply-To: <20200316102621.GC3005@mbp>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will@kernel.org" <will@kernel.org>
-Message-ID: <20200308034411.G_DwnIKeLnKgLZrnWhjtGRMHdUrQBtFo43yk35SUyr4@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Will Deacon <will@kernel.org>
+Message-ID: <20200316103004.qmq7bdH9KoRYsC_QVQqraGow3uYbCNwCKoE0mWODZXQ@z>
 
-RnJvbTogQ2hyaXMgTWV0Y2FsZiA8Y21ldGNhbGZAbWVsbGFub3guY29tPg0KDQpJbiBjb21taXQg
-ZjAxZjE3ZDM3MDViICgibW0sIHZtc3RhdDogbWFrZSBxdWlldF92bXN0YXQgbGlnaHRlciIpDQp0
-aGUgcXVpZXRfdm1zdGF0KCkgZnVuY3Rpb24gYmVjYW1lIGFzeW5jaHJvbm91cywgaW4gdGhlIHNl
-bnNlIHRoYXQNCnRoZSB2bXN0YXQgd29yayB3YXMgc3RpbGwgc2NoZWR1bGVkIHRvIHJ1biBvbiB0
-aGUgY29yZSB3aGVuIHRoZQ0KZnVuY3Rpb24gcmV0dXJuZWQuICBGb3IgdGFzayBpc29sYXRpb24s
-IHdlIG5lZWQgYSBzeW5jaHJvbm91cw0KdmVyc2lvbiBvZiB0aGUgZnVuY3Rpb24gdGhhdCBndWFy
-YW50ZWVzIHRoYXQgdGhlIHZtc3RhdCB3b3JrZXINCndpbGwgbm90IHJ1biBvbiB0aGUgY29yZSBv
-biByZXR1cm4gZnJvbSB0aGUgZnVuY3Rpb24uICBBZGQgYQ0KcXVpZXRfdm1zdGF0X3N5bmMoKSBm
-dW5jdGlvbiB3aXRoIHRoYXQgc2VtYW50aWMuDQoNClNpZ25lZC1vZmYtYnk6IENocmlzIE1ldGNh
-bGYgPGNtZXRjYWxmQG1lbGxhbm94LmNvbT4NClNpZ25lZC1vZmYtYnk6IEFsZXggQmVsaXRzIDxh
-YmVsaXRzQG1hcnZlbGwuY29tPg0KLS0tDQogaW5jbHVkZS9saW51eC92bXN0YXQuaCB8IDIgKysN
-CiBtbS92bXN0YXQuYyAgICAgICAgICAgIHwgOSArKysrKysrKysNCiAyIGZpbGVzIGNoYW5nZWQs
-IDExIGluc2VydGlvbnMoKykNCg0KZGlmZiAtLWdpdCBhL2luY2x1ZGUvbGludXgvdm1zdGF0Lmgg
-Yi9pbmNsdWRlL2xpbnV4L3Ztc3RhdC5oDQppbmRleCAyOTI0ODVmM2QyNGQuLjJiYzVlODVmMjUx
-NCAxMDA2NDQNCi0tLSBhL2luY2x1ZGUvbGludXgvdm1zdGF0LmgNCisrKyBiL2luY2x1ZGUvbGlu
-dXgvdm1zdGF0LmgNCkBAIC0yNzAsNiArMjcwLDcgQEAgZXh0ZXJuIHZvaWQgX19kZWNfem9uZV9z
-dGF0ZShzdHJ1Y3Qgem9uZSAqLCBlbnVtIHpvbmVfc3RhdF9pdGVtKTsNCiBleHRlcm4gdm9pZCBf
-X2RlY19ub2RlX3N0YXRlKHN0cnVjdCBwZ2xpc3RfZGF0YSAqLCBlbnVtIG5vZGVfc3RhdF9pdGVt
-KTsNCiANCiB2b2lkIHF1aWV0X3Ztc3RhdCh2b2lkKTsNCit2b2lkIHF1aWV0X3Ztc3RhdF9zeW5j
-KHZvaWQpOw0KIHZvaWQgY3B1X3ZtX3N0YXRzX2ZvbGQoaW50IGNwdSk7DQogdm9pZCByZWZyZXNo
-X3pvbmVfc3RhdF90aHJlc2hvbGRzKHZvaWQpOw0KIA0KQEAgLTM3Miw2ICszNzMsNyBAQCBzdGF0
-aWMgaW5saW5lIHZvaWQgX19kZWNfbm9kZV9wYWdlX3N0YXRlKHN0cnVjdCBwYWdlICpwYWdlLA0K
-IHN0YXRpYyBpbmxpbmUgdm9pZCByZWZyZXNoX3pvbmVfc3RhdF90aHJlc2hvbGRzKHZvaWQpIHsg
-fQ0KIHN0YXRpYyBpbmxpbmUgdm9pZCBjcHVfdm1fc3RhdHNfZm9sZChpbnQgY3B1KSB7IH0NCiBz
-dGF0aWMgaW5saW5lIHZvaWQgcXVpZXRfdm1zdGF0KHZvaWQpIHsgfQ0KK3N0YXRpYyBpbmxpbmUg
-dm9pZCBxdWlldF92bXN0YXRfc3luYyh2b2lkKSB7IH0NCiANCiBzdGF0aWMgaW5saW5lIHZvaWQg
-ZHJhaW5fem9uZXN0YXQoc3RydWN0IHpvbmUgKnpvbmUsDQogCQkJc3RydWN0IHBlcl9jcHVfcGFn
-ZXNldCAqcHNldCkgeyB9DQpkaWZmIC0tZ2l0IGEvbW0vdm1zdGF0LmMgYi9tbS92bXN0YXQuYw0K
-aW5kZXggNzhkNTMzNzhkYjk5Li4xZmEwYjJkMDRhZmEgMTAwNjQ0DQotLS0gYS9tbS92bXN0YXQu
-Yw0KKysrIGIvbW0vdm1zdGF0LmMNCkBAIC0xODcwLDYgKzE4NzAsMTUgQEAgdm9pZCBxdWlldF92
-bXN0YXQodm9pZCkNCiAJcmVmcmVzaF9jcHVfdm1fc3RhdHMoZmFsc2UpOw0KIH0NCiANCisvKg0K
-KyAqIFN5bmNocm9ub3VzbHkgcXVpZXQgdm1zdGF0IHNvIHRoZSB3b3JrIGlzIGd1YXJhbnRlZWQg
-bm90IHRvIHJ1biBvbiByZXR1cm4uDQorICovDQordm9pZCBxdWlldF92bXN0YXRfc3luYyh2b2lk
-KQ0KK3sNCisJY2FuY2VsX2RlbGF5ZWRfd29ya19zeW5jKHRoaXNfY3B1X3B0cigmdm1zdGF0X3dv
-cmspKTsNCisJcmVmcmVzaF9jcHVfdm1fc3RhdHMoZmFsc2UpOw0KK30NCisNCiAvKg0KICAqIFNo
-ZXBoZXJkIHdvcmtlciB0aHJlYWQgdGhhdCBjaGVja3MgdGhlDQogICogZGlmZmVyZW50aWFscyBv
-ZiBwcm9jZXNzb3JzIHRoYXQgaGF2ZSB0aGVpciB3b3JrZXINCi0tIA0KMi4yMC4xDQoNCg==
+On 3/16/20 10:26 AM, Catalin Marinas wrote:
+> On Mon, Mar 16, 2020 at 10:22:15AM +0000, Mark Rutland wrote:
+>> On Mon, Mar 16, 2020 at 09:42:32AM +0000, Vincenzo Frascino wrote:
+>>> On 3/15/20 6:30 PM, Catalin Marinas wrote:
+>>>> On Fri, Mar 13, 2020 at 03:43:37PM +0000, Vincenzo Frascino wrote:
+>>>>> --- /dev/null
+>>>>> +++ b/arch/arm64/include/asm/vdso/processor.h
+>>>>> @@ -0,0 +1,31 @@
+>>>>> +/* SPDX-License-Identifier: GPL-2.0-only */
+>>>>> +/*
+>>>>> + * Copyright (C) 2020 ARM Ltd.
+>>>>> + */
+>>>>> +#ifndef __ASM_VDSO_PROCESSOR_H
+>>>>> +#define __ASM_VDSO_PROCESSOR_H
+>>>>> +
+>>>>> +#ifndef __ASSEMBLY__
+>>>>> +
+>>>>> +#include <asm/page-def.h>
+>>>>> +
+>>>>> +#ifdef CONFIG_COMPAT
+>>>>> +#if defined(CONFIG_ARM64_64K_PAGES) && defined(CONFIG_KUSER_HELPERS)
+>>>>> +/*
+>>>>> + * With CONFIG_ARM64_64K_PAGES enabled, the last page is occupied
+>>>>> + * by the compat vectors page.
+>>>>> + */
+>>>>> +#define TASK_SIZE_32		UL(0x100000000)
+>>>>> +#else
+>>>>> +#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
+>>>>> +#endif /* CONFIG_ARM64_64K_PAGES */
+>>>>> +#endif /* CONFIG_COMPAT */
+>>>>
+>>>> Just curious, what's TASK_SIZE_32 used for in the vDSO code? You don't
+>>>> seem to move TASK_SIZE.
+>>>>
+>>>
+>>> I tried to fine grain the headers as much as I could in order to avoid
+>>> unneeded/unwanted inclusions:
+>>>  * TASK_SIZE_32 is used to verify ABI consistency on vdso32 (please refer to
+>>>    arch/arm64/kernel/vdso32/vgettimeofday.c).
+>>>  * TASK_SIZE is not required by the vdso library hence it is not present in
+>>>    these headers.
+>>
+>> It would be worth noting the former point in the commit message, since
+>> it can be surprising.
+>>
+>> I also think it's worth keeping the definitions together if that's easy,
+>> as it makes it easier to navigate the codebase, even if TASK_SIZE isn't
+>> necessary for the VDSO itself.
+> 
+> It won't work as TASK_SIZE requires (on arm64) test_thread_flag() which
+> can't be made available to the vDSO.
+> 
+
+Ups, I did not see this :) luckily I agree ;)
+
+-- 
+Regards,
+Vincenzo
