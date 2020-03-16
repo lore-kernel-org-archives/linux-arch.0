@@ -1,48 +1,48 @@
-Return-Path: <SRS0=qMZt=5K=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 25 Mar 2020 17:41:44 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH v4 0/6] arm64: tlb: add support for TTL feature
-Message-ID: <20200325164144.GB20696@hirez.programming.kicks-ass.net>
-References: <20200324134534.1570-1-yezhenyu2@huawei.com>
- <aaf017a8-3658-fe4d-c0cf-2f45656020af@arm.com>
+Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:52324 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1732273AbgCPQvX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 12:51:23 -0400
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v10 11/13] arm64: mm: Display guarded pages in ptdump
+Date: Mon, 16 Mar 2020 16:50:53 +0000
+Message-ID: <20200316165055.31179-12-broonie@kernel.org>
+In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
+References: <20200316165055.31179-1-broonie@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <aaf017a8-3658-fe4d-c0cf-2f45656020af@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: James Morse <james.morse@arm.com>
-Cc: Zhenyu Ye <yezhenyu2@huawei.com>, will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200325164144.cpsUjBVGFx3YBrydwWWbsSI8I51LqI2oaFD7vVcsBoQ@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Mark Brown <broonie@kernel.org>
+Message-ID: <20200316165053.plUHJJB1Nwp-1NxJ27j5YYoEaQzNTn-8s4bl8dtIysQ@z>
 
-On Wed, Mar 25, 2020 at 04:15:58PM +0000, James Morse wrote:
-> Hi Zhenyu,
-> 
-> On 3/24/20 1:45 PM, Zhenyu Ye wrote:
-> > In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
-> > feature allows TLBs to be issued with a level allowing for quicker
-> > invalidation.  This series provide support for this feature. 
-> > 
-> > Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
-> > which detect the TTL feature and add __tlbi_level interface.
-> 
-> How does this interact with THP?
-> (I don't see anything on that in the series.)
-> 
-> With THP, there is no one answer to the size of mapping in a VMA.
-> This is a problem because the arm-arm has in "Translation table level
-> hints" in D5.10.2 of DDI0487E.a:
-> | If an incorrect value for the entry being invalidated by the
-> | instruction is specified in the TTL field, then no entries are
-> | required by the architecture to be invalidated from the TLB.
-> 
-> If we get it wrong, not TLB maintenance occurs!
-> 
-> Unless THP leaves its fingerprints on the vma, I think you can only do
-> this for VMA types that THP can't mess with. (see
-> transparent_hugepage_enabled())
+v8.5-BTI introduces the GP field in stage 1 translation tables which
+indicates that blocks and pages with it set are guarded pages for which
+branch target identification checks should be performed. Decode this
+when dumping the page tables to aid debugging.
 
-The convention way to deal with that is to issue the TBLI for all
-possible sizes.
+Signed-off-by: Mark Brown <broonie@kernel.org>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm64/mm/dump.c | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-Power9 has all this, please look there.
+diff --git a/arch/arm64/mm/dump.c b/arch/arm64/mm/dump.c
+index 860c00ec8bd3..78163b7a7dde 100644
+--- a/arch/arm64/mm/dump.c
++++ b/arch/arm64/mm/dump.c
+@@ -145,6 +145,11 @@ static const struct prot_bits pte_bits[] = {
+ 		.val	= PTE_UXN,
+ 		.set	= "UXN",
+ 		.clear	= "   ",
++	}, {
++		.mask	= PTE_GP,
++		.val	= PTE_GP,
++		.set	= "GP",
++		.clear	= "  ",
+ 	}, {
+ 		.mask	= PTE_ATTRINDX_MASK,
+ 		.val	= PTE_ATTRINDX(MT_DEVICE_nGnRnE),
+-- 
+2.20.1
