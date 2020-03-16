@@ -1,73 +1,31 @@
-Return-Path: <SRS0=rKsc=43=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pj1-f66.google.com ([209.85.216.66]:54285 "EHLO
-        mail-pj1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726134AbgCJBVF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2020 21:21:05 -0400
-Received: by mail-pj1-f66.google.com with SMTP id np16so666416pjb.4
-        for <linux-arch@vger.kernel.org>; Mon, 09 Mar 2020 18:21:04 -0700 (PDT)
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Mime-Version: 1.0 (1.0)
-Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
-From: Andy Lutomirski <luto@amacapital.net>
-In-Reply-To: <CAMe9rOpJjaro_qK6kghGNuSHDaP_MjVaZMbok2kbuBD48VmvXg@mail.gmail.com>
-Date: Mon, 9 Mar 2020 18:21:01 -0700
-Message-ID: <E7E7A2AE-500A-4817-B00A-BE419E89C6F9@amacapital.net>
-References: <CAMe9rOpJjaro_qK6kghGNuSHDaP_MjVaZMbok2kbuBD48VmvXg@mail.gmail.com>
+Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:44470 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730025AbgCPJR6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 05:17:58 -0400
+Date: Mon, 16 Mar 2020 09:17:47 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 26/26] arm64: vdso32: Enable Clang Compilation
+Message-ID: <20200316091730.GB3005@mbp>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+ <20200313154345.56760-27-vincenzo.frascino@arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200313154345.56760-27-vincenzo.frascino@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H.J. Lu" <hjl.tools@gmail.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Message-ID: <20200310012101.BjlbaEt7GJw6bbHFLv4q3fAyjE8lf9DSa6Kb4KjBUQc@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>
+Message-ID: <20200316091747.J_IK4fBy7AF34XmZ3ITM76CSQFIgaa0Dnt33y6ZKnJg@z>
 
-I am baffled by this discussion.
+On Fri, Mar 13, 2020 at 03:43:45PM +0000, Vincenzo Frascino wrote:
+> Enable Clang Compilation for the vdso32 library.
+> 
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
+> Tested-by: Nathan Chancellor <natechancellor@gmail.com> # build
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
->> On Mar 9, 2020, at 5:09 PM, H.J. Lu <hjl.tools@gmail.com> wrote:
->>=20
->> =EF=BB=BFOn Mon, Mar 9, 2020 at 4:59 PM Andy Lutomirski <luto@amacapital.=
-net> wrote:
->=20
->>>> .
->> This could presumably have been fixed by having libpcre or sljit
->> disable IBT before calling into JIT code or by running the JIT code in
->> another thread.  In the other direction, a non-CET libpcre build could
->> build IBT-capable JITted code and enable JIT (by syscall if we allow
->> that or by creating a thread?) when calling it.  And IBT has this
->=20
-> This is not how thread in user space works.
-
-void create_cet_thread(void (*func)(), unsigned int cet_flags);
-
-I could implement this using clone() if the kernel provides the requisite su=
-pport. Sure, creating threads behind libc=E2=80=99s back like this is perilo=
-us, but it can be done.
-
->=20
->> fancy legacy bitmap to allow non-instrumented code to run with IBT on,
->> although SHSTK doesn't have hardware support for a similar feature.
->=20
-> All these changes are called CET enabing.
-
-What does that mean?  If program A loads library B, and library B very caref=
-ully loads CET-mismatched code, program A may be blissfully unaware.
-
->=20
->> So, sure, the glibc-linked ELF ecosystem needs some degree of CET
->> coordination, but it is absolutely not the case that a process MUST
->> have all CET or no CET.  Let's please support the complicated cases in
->> the kernel and the ABI too.  If glibc wants to make it annoying to do
->> complicated things, so be it.  People work behind glibc's back all the
->> time.
->=20
-> CET is no different from NX in this regard.
-
-NX is in the page tables, and CET, mostly, is not.  Also, we seriously flubb=
-ed READ_IMPLIES_EXEC and made it affect far more mappings than ever should h=
-ave been affected.
-
-If a legacy program (non-NX-aware) loads a newer library, and the library op=
-ens a device node and mmaps it PROT_READ, it gets RX.  This is not a good de=
-sign. In fact, it=E2=80=99s actively problematic.
-
-Let us please not take Linux=E2=80=99s NX legacy support as an example of go=
-od design.=
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
