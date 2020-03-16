@@ -1,71 +1,92 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:36980 "EHLO foss.arm.com"
+Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50670 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726452AbgCQMXn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 08:23:43 -0400
+        id S1731505AbgCPPdJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 11:33:09 -0400
+Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+ <20200313154345.56760-19-vincenzo.frascino@arm.com>
+ <20200315182950.GB32205@mbp> <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
+ <20200316103437.GD3005@mbp> <77a2e91a-58f4-3ba3-9eef-42d6a8faf859@arm.com>
+ <20200316112205.GE3005@mbp> <9a0a9285-8a45-4f65-3a83-813cabd0f0d3@arm.com>
+ <20200316144346.GF3005@mbp>
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 16/26] scripts: Fix the inclusion order in modpost
-Date: Tue, 17 Mar 2020 12:22:10 +0000
-Message-ID: <20200317122220.30393-17-vincenzo.frascino@arm.com>
-In-Reply-To: <20200317122220.30393-1-vincenzo.frascino@arm.com>
-References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+Message-ID: <427064ee-45df-233c-0281-69e3d62ba784@arm.com>
+Date: Mon, 16 Mar 2020 15:33:30 +0000
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20200316144346.GF3005@mbp>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, kbuild test robot <lkp@intel.com>, Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>
-Message-ID: <20200317122210.JGV6hXBHesUw-Ej_-dd7GPBukPVFD6evaAyajwMNzoY@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200316153330.Vk8mfhfebarxe6ni8Z23mwpVfOEIxYr_xjE0EspqDig@z>
 
-In the process of creating the source file of a module modpost injects a
-set of includes that are not required if the compilation unit is
-statically built into the kernel.
 
-The order of inclusion of the headers can cause redefinition problems
-(e.g.):
+On 3/16/20 2:43 PM, Catalin Marinas wrote[...]
 
-   In file included from include/linux/elf.h:5:0,
-                    from include/linux/module.h:18,
-                    from crypto/arc4.mod.c:2:
->> arch/parisc/include/asm/elf.h:324:0: warning: "ELF_OSABI" redefined
-    #define ELF_OSABI  ELFOSABI_LINUX
+>> To me does not seem optimized out. Which version of the compiler are you using?
+> 
+> I misread the #ifdef'ery in asm/processor.h. So with 4K pages,
+> TASK_SIZE_32 is (1UL<<32)-PAGE_SIZE. However, with 64K pages _and_
+> CONFIG_KUSER_HELPERS, TASK_SIZE_32 is 1UL<<32 and the check is removed
+> by the compiler.
+> 
+> With the 4K build, __vdso_clock_gettime starts as:
+> 
+> 00000194 <__vdso_clock_gettime>:
+>  194:   f511 5f80       cmn.w   r1, #4096       ; 0x1000
+>  198:   d214            bcs.n   1c4 <__vdso_clock_gettime+0x30>
+>  19a:   b5b0            push    {r4, r5, r7, lr}
+>  ...
+>  1c4:   f06f 000d       mvn.w   r0, #13
+>  1c8:   4770            bx      lr
+> 
+> With 64K pages:
+> 
+> 00000194 <__vdso_clock_gettime>:
+>  194:   b5b0            push    {r4, r5, r7, lr}
+>  ...
+>  1be:   bdb0            pop     {r4, r5, r7, pc}
+> 
+> I haven't tried but it's likely that the vdsotest fails with 64K pages
+> and compat enabled (requires EXPERT).
+>
 
-   In file included from include/linux/elfnote.h:62:0,
-                    from include/linux/build-salt.h:4,
-                    from crypto/arc4.mod.c:1:
-   include/uapi/linux/elf.h:363:0: note: this is the location of
-   the previous definition
-    #define ELF_OSABI ELFOSABI_NONE
+This makes more sense. Thanks for the clarification.
 
-The issue was exposed during the development of the series [1].
+I agree on the behavior of 64K pages and I think as well that the
+"compatibility" issue is still there. However as you correctly stated in your
+first email arm32 never supported 16K or 64K pages, hence I think we should not
+be concerned about compatibility in this cases.
 
-[1] https://lore.kernel.org/lkml/20200306133242.26279-1-vincenzo.frascino@arm.com/
+To make it more explicit we could make COMPAT_VDSO on arm64 depend on
+ARM64_4K_PAGES. What do you think?
 
-Reported-by: kbuild test robot <lkp@intel.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>
-Cc: Michal Marek <michal.lkml@markovi.net>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- scripts/mod/modpost.c | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+>> Please find below the list of errors for clock_gettime (similar for the other):
+>>
+>> passing UINTPTR_MAX to clock_gettime (VDSO): terminated by unexpected signal 7
+>> clock-gettime-monotonic/abi: 1 failures/inconsistencies encountered
+> 
+> Ah, so it uses UINTPTR_MAX in the test. Fair enough but I don't think
+> the arm64 check is entirely useful. On arm32, the check was meant to
+> return -EFAULT for addresses beyond TASK_SIZE that may enter into the
+> kernel or module space. On arm64 compat, the kernel space is well above
+> the reach of the 32-bit code.
+> 
+> If you want to preserve some compatibility for this specific test, what
+> about checking for wrapping around 0, I think it would make more sense.
+> Something like:
+> 
+> 	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
+> 
 
-diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 7edfdb2f4497..0f354b1ee2aa 100644
---- a/scripts/mod/modpost.c
-+++ b/scripts/mod/modpost.c
-@@ -2251,8 +2251,12 @@ static int check_modname_len(struct module *mod)
-  **/
- static void add_header(struct buffer *b, struct module *mod)
- {
--	buf_printf(b, "#include <linux/build-salt.h>\n");
- 	buf_printf(b, "#include <linux/module.h>\n");
-+	/*
-+	 * Include build-salt.h after module.h in order to
-+	 * inherit the definitions.
-+	 */
-+	buf_printf(b, "#include <linux/build-salt.h>\n");
- 	buf_printf(b, "#include <linux/vermagic.h>\n");
- 	buf_printf(b, "#include <linux/compiler.h>\n");
- 	buf_printf(b, "\n");
+Ok, sounds good to me. But it is something that this patch series inherited,
+hence I would prefer to send a separate patch that introduces what you are
+proposing and removes TASK_SIZE_32 from the headers. How does it sound?
+
 -- 
-2.25.1
+Regards,
+Vincenzo
