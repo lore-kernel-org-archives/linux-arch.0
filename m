@@ -1,136 +1,61 @@
-Return-Path: <SRS0=LUpl=5Q=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:12153 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1731053AbgCaOaD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 31 Mar 2020 10:30:03 -0400
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v5 0/8] arm64: tlb: add support for TTL feature
-Date: Tue, 31 Mar 2020 22:29:19 +0800
-Message-ID: <20200331142927.1237-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:52350 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1732287AbgCPQvZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 12:51:25 -0400
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v10 12/13] mm: smaps: Report arm64 guarded pages in smaps
+Date: Mon, 16 Mar 2020 16:50:54 +0000
+Message-ID: <20200316165055.31179-13-broonie@kernel.org>
+In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
+References: <20200316165055.31179-1-broonie@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200331142919.kPgWgLDyIe3KE-wMfODWjGex3XaJqfOtbufIQl675t8@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Daniel Kiss <daniel.kiss@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200316165054.fLVN5g0gaJDGcxj3tKkN_zzQKfGeTsdXTczVnpXY2xk@z>
 
-In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
-feature allows TLBs to be issued with a level allowing for quicker
-invalidation.  This series provide support for this feature.
+From: Daniel Kiss <daniel.kiss@arm.com>
 
-Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
-which detect the TTL feature and add __tlbi_level interface.
-Patch 4-7 passes struct mmu_gather to flush_tlb_range, which can pass
-the level of tlbi invalidations.  Arm64 and power9 can benefit from this.
-Patch 8 set the TTL field in arm64 by using the cleared_* values in
-struct mmu_gather.
+The arm64 Branch Target Identification support is activated by marking
+executable pages as guarded pages.  Report pages mapped this way in
+smaps to aid diagnostics.
 
-See patches for details, Thanks.
+Signed-off-by: Daniel Kiss <daniel.kiss@arm.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Mark Brown <broonie@kernel.org>
+---
+ Documentation/filesystems/proc.txt | 1 +
+ fs/proc/task_mmu.c                 | 3 +++
+ 2 files changed, 4 insertions(+)
 
-[1] https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-1-maz@kernel.org/
-[2] https://lore.kernel.org/linux-arm-kernel/7859561b-78b4-4a12-2642-3741d7d3e7b8@huawei.com/
-
---
-ChangeList:
-v1:
-add support for TTL feature in arm64.
-
-v2:
-build the patch on Marc's NV series[1].
-
-v3:
-use vma->vm_flags to replace mm->context.flags.
-
-v4:
-add Marc's patches into my series.
-
-v5:
-pass struct mmu_gather to flush_tlb_range, then set the
-TTL field by using infos in struct mmu_gather.
-
-
-Marc Zyngier (2):
-  arm64: Detect the ARMv8.4 TTL feature
-  arm64: Add level-hinted TLB invalidation helper
-
-Zhenyu Ye (6):
-  arm64: Add tlbi_user_level TLB invalidation helper
-  mm: tlb: Pass struct mmu_gather to flush_pmd_tlb_range
-  mm: tlb: Pass struct mmu_gather to flush_pud_tlb_range
-  mm: tlb: Pass struct mmu_gather to flush_hugetlb_tlb_range
-  mm: tlb: Pass struct mmu_gather to flush_tlb_range
-  arm64: tlb: Set the TTL field in flush_tlb_range
-
- Documentation/core-api/cachetlb.rst           |  8 ++-
- arch/alpha/include/asm/tlbflush.h             |  8 +--
- arch/alpha/kernel/smp.c                       |  3 +-
- arch/arc/include/asm/hugepage.h               |  4 +-
- arch/arc/include/asm/tlbflush.h               | 11 ++--
- arch/arc/mm/tlb.c                             |  8 +--
- arch/arm/include/asm/tlbflush.h               | 12 ++--
- arch/arm/kernel/smp_tlb.c                     |  4 +-
- arch/arm/mach-rpc/ecard.c                     |  8 ++-
- arch/arm64/crypto/aes-glue.c                  |  1 -
- arch/arm64/include/asm/cpucaps.h              |  3 +-
- arch/arm64/include/asm/sysreg.h               |  1 +
- arch/arm64/include/asm/tlb.h                  | 39 +++++++++++-
- arch/arm64/include/asm/tlbflush.h             | 63 +++++++++++++------
- arch/arm64/kernel/cpufeature.c                | 11 ++++
- arch/arm64/mm/hugetlbpage.c                   | 10 ++-
- arch/csky/include/asm/tlb.h                   |  2 +-
- arch/csky/include/asm/tlbflush.h              |  6 +-
- arch/csky/mm/tlb.c                            |  4 +-
- arch/hexagon/include/asm/tlbflush.h           |  2 +-
- arch/hexagon/mm/vm_tlb.c                      |  4 +-
- arch/ia64/include/asm/tlbflush.h              |  6 +-
- arch/ia64/mm/tlb.c                            |  5 +-
- arch/m68k/include/asm/tlbflush.h              | 10 +--
- arch/microblaze/include/asm/tlbflush.h        |  5 +-
- arch/mips/include/asm/hugetlb.h               |  6 +-
- arch/mips/include/asm/tlbflush.h              |  9 +--
- arch/mips/kernel/smp.c                        |  3 +-
- arch/nds32/include/asm/tlbflush.h             |  3 +-
- arch/nios2/include/asm/tlbflush.h             |  9 +--
- arch/nios2/mm/tlb.c                           |  8 ++-
- arch/openrisc/include/asm/tlbflush.h          | 10 +--
- arch/openrisc/kernel/smp.c                    |  2 +-
- arch/parisc/include/asm/tlbflush.h            |  2 +-
- arch/parisc/kernel/cache.c                    | 13 +++-
- arch/powerpc/include/asm/book3s/32/tlbflush.h |  4 +-
- arch/powerpc/include/asm/book3s/64/tlbflush.h |  9 ++-
- arch/powerpc/include/asm/nohash/tlbflush.h    |  7 ++-
- arch/powerpc/mm/book3s32/tlb.c                |  6 +-
- arch/powerpc/mm/book3s64/pgtable.c            |  8 ++-
- arch/powerpc/mm/book3s64/radix_tlb.c          |  2 +-
- arch/powerpc/mm/nohash/tlb.c                  |  6 +-
- arch/riscv/include/asm/tlbflush.h             |  7 ++-
- arch/riscv/mm/tlbflush.c                      |  4 +-
- arch/s390/include/asm/tlbflush.h              |  5 +-
- arch/sh/include/asm/tlbflush.h                |  8 +--
- arch/sh/kernel/smp.c                          |  2 +-
- arch/sparc/include/asm/tlbflush_32.h          |  2 +-
- arch/sparc/include/asm/tlbflush_64.h          |  3 +-
- arch/sparc/mm/tlb.c                           |  5 +-
- arch/um/include/asm/tlbflush.h                |  6 +-
- arch/um/kernel/tlb.c                          |  4 +-
- arch/unicore32/include/asm/tlbflush.h         |  5 +-
- arch/x86/include/asm/tlbflush.h               |  4 +-
- arch/x86/mm/pgtable.c                         | 10 ++-
- arch/xtensa/include/asm/tlbflush.h            | 10 +--
- arch/xtensa/kernel/smp.c                      |  2 +-
- include/asm-generic/pgtable.h                 | 10 +--
- include/asm-generic/tlb.h                     |  2 +-
- mm/huge_memory.c                              | 19 +++++-
- mm/hugetlb.c                                  | 17 +++--
- mm/mapping_dirty_helpers.c                    | 23 ++++---
- mm/migrate.c                                  |  8 ++-
- mm/mprotect.c                                 |  8 ++-
- mm/mremap.c                                   | 17 ++++-
- mm/pgtable-generic.c                          | 51 ++++++++++++---
- mm/rmap.c                                     |  6 +-
- 67 files changed, 409 insertions(+), 174 deletions(-)
-
+diff --git a/Documentation/filesystems/proc.txt b/Documentation/filesystems/proc.txt
+index 99ca040e3f90..ed5465d0f435 100644
+--- a/Documentation/filesystems/proc.txt
++++ b/Documentation/filesystems/proc.txt
+@@ -519,6 +519,7 @@ manner. The codes are the following:
+     hg  - huge page advise flag
+     nh  - no-huge page advise flag
+     mg  - mergable advise flag
++    bt  - arm64 BTI guarded page
+ 
+ Note that there is no guarantee that every flag and associated mnemonic will
+ be present in all further kernel releases. Things get changed, the flags may
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index 3ba9ae83bff5..1e3409c484d1 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -668,6 +668,9 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+ 		[ilog2(VM_ARCH_1)]	= "ar",
+ 		[ilog2(VM_WIPEONFORK)]	= "wf",
+ 		[ilog2(VM_DONTDUMP)]	= "dd",
++#ifdef CONFIG_ARM64_BTI
++		[ilog2(VM_ARM64_BTI)]	= "bt",
++#endif
+ #ifdef CONFIG_MEM_SOFT_DIRTY
+ 		[ilog2(VM_SOFTDIRTY)]	= "sd",
+ #endif
 -- 
-2.19.1
+2.20.1
