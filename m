@@ -1,104 +1,107 @@
-Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58542 "EHLO foss.arm.com"
+Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:52220 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727144AbgCMPoe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Mar 2020 11:44:34 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 09/26] linux/math64.h: Extract common header for vDSO
-Date: Fri, 13 Mar 2020 15:43:28 +0000
-Message-ID: <20200313154345.56760-10-vincenzo.frascino@arm.com>
-In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+        id S1731414AbgCPQvO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 12:51:14 -0400
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v10 07/13] arm64: unify native/compat instruction skipping
+Date: Mon, 16 Mar 2020 16:50:49 +0000
+Message-ID: <20200316165055.31179-8-broonie@kernel.org>
+In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
+References: <20200316165055.31179-1-broonie@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200313154328.0hKdX4x_KmIVnOTSnlNrv6Rg5LX9bIwvuPcGvSUOX44@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Rutland <mark.rutland@arm.com>, Mark Brown <broonie@kernel.org>
+Message-ID: <20200316165049.BX_kuXQJY_dXMNXZ160jdcY1-lSnCllAudPsa9NqPco@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+From: Dave Martin <Dave.Martin@arm.com>
 
-Split math64.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
+Skipping of an instruction on AArch32 works a bit differently from
+AArch64, mainly due to the different CPSR/PSTATE semantics.
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Currently arm64_skip_faulting_instruction() is only suitable for
+AArch64, and arm64_compat_skip_faulting_instruction() handles the IT
+state machine but is local to traps.c.
+
+Since manual instruction skipping implies a trap, it's a relatively
+slow path.
+
+So, make arm64_skip_faulting_instruction() handle both compat and
+native, and get rid of the arm64_compat_skip_faulting_instruction()
+special case.
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Reviewed-by: Mark Rutland <mark.rutland@arm.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- include/linux/math64.h | 20 +-------------------
- include/vdso/math64.h  | 24 ++++++++++++++++++++++++
- 2 files changed, 25 insertions(+), 19 deletions(-)
- create mode 100644 include/vdso/math64.h
+ arch/arm64/kernel/traps.c | 18 ++++++++----------
+ 1 file changed, 8 insertions(+), 10 deletions(-)
 
-diff --git a/include/linux/math64.h b/include/linux/math64.h
-index 65bef21cdddb..11a267413e8e 100644
---- a/include/linux/math64.h
-+++ b/include/linux/math64.h
-@@ -3,6 +3,7 @@
- #define _LINUX_MATH64_H
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index b8c714dda851..bc9f4292bfc3 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -272,6 +272,8 @@ void arm64_notify_die(const char *str, struct pt_regs *regs,
+ 	}
+ }
  
- #include <linux/types.h>
-+#include <vdso/math64.h>
- #include <asm/div64.h>
++static void advance_itstate(struct pt_regs *regs);
++
+ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
+ {
+ 	regs->pc += size;
+@@ -282,6 +284,9 @@ void arm64_skip_faulting_instruction(struct pt_regs *regs, unsigned long size)
+ 	 */
+ 	if (user_mode(regs))
+ 		user_fastforward_single_step(current);
++
++	if (regs->pstate & PSR_MODE32_BIT)
++		advance_itstate(regs);
+ }
  
- #if BITS_PER_LONG == 64
-@@ -142,25 +143,6 @@ static inline s64 div_s64(s64 dividend, s32 divisor)
+ static LIST_HEAD(undef_hook);
+@@ -644,19 +649,12 @@ static void advance_itstate(struct pt_regs *regs)
+ 	compat_set_it_state(regs, it);
+ }
  
- u32 iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder);
- 
--static __always_inline u32
--__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
+-static void arm64_compat_skip_faulting_instruction(struct pt_regs *regs,
+-						   unsigned int sz)
 -{
--	u32 ret = 0;
--
--	while (dividend >= divisor) {
--		/* The following asm() prevents the compiler from
--		   optimising this loop into a modulo operation.  */
--		asm("" : "+rm"(dividend));
--
--		dividend -= divisor;
--		ret++;
--	}
--
--	*remainder = dividend;
--
--	return ret;
+-	advance_itstate(regs);
+-	arm64_skip_faulting_instruction(regs, sz);
 -}
 -
- #ifndef mul_u32_u32
- /*
-  * Many a GCC version messes this up and generates a 64x64 mult :-(
-diff --git a/include/vdso/math64.h b/include/vdso/math64.h
-new file mode 100644
-index 000000000000..7da703ee5561
---- /dev/null
-+++ b/include/vdso/math64.h
-@@ -0,0 +1,24 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_MATH64_H
-+#define __VDSO_MATH64_H
-+
-+static __always_inline u32
-+__iter_div_u64_rem(u64 dividend, u32 divisor, u64 *remainder)
-+{
-+	u32 ret = 0;
-+
-+	while (dividend >= divisor) {
-+		/* The following asm() prevents the compiler from
-+		   optimising this loop into a modulo operation.  */
-+		asm("" : "+rm"(dividend));
-+
-+		dividend -= divisor;
-+		ret++;
-+	}
-+
-+	*remainder = dividend;
-+
-+	return ret;
-+}
-+
-+#endif /* __VDSO_MATH64_H */
+ static void compat_cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
+ {
+ 	int reg = (esr & ESR_ELx_CP15_32_ISS_RT_MASK) >> ESR_ELx_CP15_32_ISS_RT_SHIFT;
+ 
+ 	pt_regs_write_reg(regs, reg, arch_timer_get_rate());
+-	arm64_compat_skip_faulting_instruction(regs, 4);
++	arm64_skip_faulting_instruction(regs, 4);
+ }
+ 
+ static const struct sys64_hook cp15_32_hooks[] = {
+@@ -676,7 +674,7 @@ static void compat_cntvct_read_handler(unsigned int esr, struct pt_regs *regs)
+ 
+ 	pt_regs_write_reg(regs, rt, lower_32_bits(val));
+ 	pt_regs_write_reg(regs, rt2, upper_32_bits(val));
+-	arm64_compat_skip_faulting_instruction(regs, 4);
++	arm64_skip_faulting_instruction(regs, 4);
+ }
+ 
+ static const struct sys64_hook cp15_64_hooks[] = {
+@@ -697,7 +695,7 @@ void do_cp15instr(unsigned int esr, struct pt_regs *regs)
+ 		 * There is no T16 variant of a CP access, so we
+ 		 * always advance PC by 4 bytes.
+ 		 */
+-		arm64_compat_skip_faulting_instruction(regs, 4);
++		arm64_skip_faulting_instruction(regs, 4);
+ 		return;
+ 	}
+ 
 -- 
-2.25.1
+2.20.1
