@@ -1,42 +1,76 @@
-Return-Path: <SRS0=06hN=5A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-mw2nam10on2123.outbound.protection.outlook.com ([40.107.94.123]:18974
-        "EHLO NAM10-MW2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727356AbgCOBbt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 14 Mar 2020 21:31:49 -0400
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: [PATCH v6 09/10] arm64: efi: Export screen_info
-Date: Sat, 14 Mar 2020 08:35:18 -0700
-Message-ID: <1584200119-18594-10-git-send-email-mikelley@microsoft.com>
-In-Reply-To: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
-Content-Type: text/plain
+Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:45780 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730582AbgCPKfE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 06:35:04 -0400
+Date: Mon, 16 Mar 2020 10:34:54 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
+Message-ID: <20200316103437.GD3005@mbp>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+ <20200313154345.56760-19-vincenzo.frascino@arm.com>
+ <20200315182950.GB32205@mbp>
+ <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: will@kernel.org, ardb@kernel.org, arnd@arndb.de, catalin.marinas@arm.com, mark.rutland@arm.com, maz@kernel.org, linux-arm-kernel@lists.infradead.org, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, linux-efi@vger.kernel.org, linux-arch@vger.kernel.org, olaf@aepfle.de, apw@canonical.com, vkuznets@redhat.com, jasowang@redhat.com, marcelo.cerri@canonical.com, kys@microsoft.com
-Cc: mikelley@microsoft.com, sunilmut@microsoft.com, boqun.feng@gmail.com
-Message-ID: <20200314153518.YH6yCCqyH2H30qB66KIt3XIrnzJuEvml6_QIFyOCBkw@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200316103454.CbdvsVLvHR-OYCcrII9X2NlmLIJQEvD929Svq1YL6pA@z>
 
-The Hyper-V frame buffer driver may be built as a module, and
-it needs access to screen_info. So export screen_info.
+On Mon, Mar 16, 2020 at 09:42:32AM +0000, Vincenzo Frascino wrote:
+> you should not really work on Sunday ;-)
 
-Signed-off-by: Michael Kelley <mikelley@microsoft.com>
----
- arch/arm64/kernel/efi.c | 1 +
- 1 file changed, 1 insertion(+)
+I was getting bored ;).
 
-diff --git a/arch/arm64/kernel/efi.c b/arch/arm64/kernel/efi.c
-index d0cf596..8ff557a 100644
---- a/arch/arm64/kernel/efi.c
-+++ b/arch/arm64/kernel/efi.c
-@@ -55,6 +55,7 @@ static __init pteval_t create_mapping_protection(efi_memory_desc_t *md)
- 
- /* we will fill this structure from the stub, so don't put it in .bss */
- struct screen_info screen_info __section(.data);
-+EXPORT_SYMBOL(screen_info);
- 
- int __init efi_create_mapping(struct mm_struct *mm, efi_memory_desc_t *md)
- {
+> On 3/15/20 6:30 PM, Catalin Marinas wrote:
+> > On Fri, Mar 13, 2020 at 03:43:37PM +0000, Vincenzo Frascino wrote:
+> >> --- /dev/null
+> >> +++ b/arch/arm64/include/asm/vdso/processor.h
+> >> @@ -0,0 +1,31 @@
+> >> +/* SPDX-License-Identifier: GPL-2.0-only */
+> >> +/*
+> >> + * Copyright (C) 2020 ARM Ltd.
+> >> + */
+> >> +#ifndef __ASM_VDSO_PROCESSOR_H
+> >> +#define __ASM_VDSO_PROCESSOR_H
+> >> +
+> >> +#ifndef __ASSEMBLY__
+> >> +
+> >> +#include <asm/page-def.h>
+> >> +
+> >> +#ifdef CONFIG_COMPAT
+> >> +#if defined(CONFIG_ARM64_64K_PAGES) && defined(CONFIG_KUSER_HELPERS)
+> >> +/*
+> >> + * With CONFIG_ARM64_64K_PAGES enabled, the last page is occupied
+> >> + * by the compat vectors page.
+> >> + */
+> >> +#define TASK_SIZE_32		UL(0x100000000)
+> >> +#else
+> >> +#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
+> >> +#endif /* CONFIG_ARM64_64K_PAGES */
+> >> +#endif /* CONFIG_COMPAT */
+> > 
+> > Just curious, what's TASK_SIZE_32 used for in the vDSO code? You don't
+> > seem to move TASK_SIZE.
+> > 
+> 
+> I tried to fine grain the headers as much as I could in order to avoid
+> unneeded/unwanted inclusions:
+>  * TASK_SIZE_32 is used to verify ABI consistency on vdso32 (please refer to
+>    arch/arm64/kernel/vdso32/vgettimeofday.c).
+
+I see. But the test is probably useless. With 4K pages, TASK_SIZE_32 is
+1UL << 32, so you can't have a u32 greater than this. So I'd argue that
+the ABI compatibility here doesn't matter.
+
+With 16K or 64K pages, TASK_SIZE_32 is slightly smaller but arm32 never
+supported it.
+
+What's the side-effect of dropping this check altogether?
+
 -- 
-1.8.3.1
+Catalin
