@@ -1,66 +1,74 @@
-Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-dm6nam12on2134.outbound.protection.outlook.com ([40.107.243.134]:18817
-        "EHLO NAM12-DM6-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726801AbgCTRWU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Mar 2020 13:22:20 -0400
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH v6 04/10] arm64: hyperv: Add memory alloc/free functions
- for Hyper-V size pages
-Date: Fri, 20 Mar 2020 17:22:16 +0000
-Message-ID: <MW2PR2101MB10521A71057BDEEDF2BB4F23D7F50@MW2PR2101MB1052.namprd21.prod.outlook.com>
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <1584200119-18594-5-git-send-email-mikelley@microsoft.com>
- <CAK8P3a2Hnm74aUMNFHbjMr4HwHGZn1+xa4ERsxAJY6hMzhEOhQ@mail.gmail.com>
- <632eb459dbe53a9b69df2a4f030a755b@kernel.org>
- <CAK8P3a3aihZeriUWAhWJMsOtdiY4Lo29syrRbB4Po3v4dsLhvA@mail.gmail.com>
- <MW2PR2101MB1052D91D3A9CEEBD7E2EA82FD7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
- <CAK8P3a2AO4k3vJ7WuJQz7ick+XPgGY3Jfk8-ROqtwyNs0nWkDA@mail.gmail.com>
- <MW2PR2101MB10520CEF065A41EEBC17FFC2D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
- <CAK8P3a1MfYDTiQ9j0o3tnd=ymZukPoSmuExLhEMRR+GRwVD7xA@mail.gmail.com>
-In-Reply-To: <CAK8P3a1MfYDTiQ9j0o3tnd=ymZukPoSmuExLhEMRR+GRwVD7xA@mail.gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:45350 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730599AbgCPKW2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 16 Mar 2020 06:22:28 -0400
+Date: Mon, 16 Mar 2020 10:22:15 +0000
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
+Message-ID: <20200316102214.GA5746@lakrids.cambridge.arm.com>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+ <20200313154345.56760-19-vincenzo.frascino@arm.com>
+ <20200315182950.GB32205@mbp>
+ <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Marc Zyngier <maz@kernel.org>, gregkh <gregkh@linuxfoundation.org>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>
-Message-ID: <20200320172216.0zlPh1R1QURcU0Xq4ia33WJvRsu_Jhk73Gg3L3IVeAs@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Will Deacon <will@kernel.org>
+Message-ID: <20200316102215.AvhFaVJaFyTNBFwDkirQVoU7T-ZPohY5jpXHx153rYg@z>
 
-RnJvbTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4gU2VudDogRnJpZGF5LCBNYXJjaCAy
-MCwgMjAyMCA5OjI4IEFNDQo+IA0KPiBPbiBUaHUsIE1hciAxOSwgMjAyMCBhdCAxMDo0MyBQTSBN
-aWNoYWVsIEtlbGxleSA8bWlrZWxsZXlAbWljcm9zb2Z0LmNvbT4gd3JvdGU6DQo+ID4gRnJvbTog
-QXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4gU2VudDogV2VkbmVzZGF5LCBNYXJjaCAxOCwg
-MjAyMCAyOjU4IEFNDQo+ID4gPiBPbiBXZWQsIE1hciAxOCwgMjAyMCBhdCAxOjE1IEFNIE1pY2hh
-ZWwgS2VsbGV5IDxtaWtlbGxleUBtaWNyb3NvZnQuY29tPiB3cm90ZToNCj4gPiA+IE15IHBvaW50
-IHdhcyB0byBrZWVwIHRoZSBmdW5jdGlvbnMgYnV0IHVzZSBhbGxvY19wYWdlcygpIGludGVybmFs
-bHksDQo+ID4gPiBzbyB5b3UgY2FuIGRlYWwgd2l0aCB0aGUgaHlwZXJ2aXNvciBoYXZpbmcgYSBs
-YXJnZXIgcGFnZSBzaXplIHRoYW4NCj4gPiA+IHRoZSBndWVzdCwgd2hpY2ggc2VlbXMgdG8gYmUg
-YSBtb3JlIGltcG9ydGFudCBzY2VuYXJpbyBpZiBJIGNvcnJlY3RseQ0KPiA+ID4gdW5kZXJzdGFu
-ZCB0aGUgZGlmZmVyZW5jZXMgYmV0d2VlbiB0aGUgd2F5IFdpbmRvd3MgYW5kIExpbnV4DQo+ID4g
-PiBkZWFsIHdpdGggcGFnZSBjYWNoZS4NCj4gPg0KPiA+IE9LLCBJIHNlZSBub3cgd2hhdCB5b3Ug
-YXJlIGdldHRpbmcgYXQuICBJIHNob3VsZCBzcGVsbCBvdXQgbXkNCj4gPiBhc3N1bXB0aW9uLCB3
-aGljaCBpcyB0aGUgb3Bwb3NpdGUuICBIeXBlci1WIHdvbid0IGhhdmUgYSBwYWdlDQo+ID4gc2l6
-ZSBvdGhlciB0aGFuIDRLIGFueXRpbWUgaW4gdGhlIGZvcmVzZWVhYmxlIGZ1dHVyZS4gIFRoZQ0K
-PiA+IGNvZGUgaXMgdG9vIHdlZGRlZCB0byB0aGUgeDg2IDRLIHBhZ2Ugc2l6ZSwgYW5kIHRoZSBo
-b3N0LWd1ZXN0DQo+ID4gaW50ZXJmYWNlcyBoYXZlIGEgbG90IG9mIGltcGxpY2l0IGFzc3VtcHRp
-b25zIHRoYXQgdGhlIHBhZ2Ugc2l6ZSBpcw0KPiA+IDRLICh1bmZvcnR1bmF0ZWx5KS4gIEJ1dCB0
-aGUgbGFzdCB0aW1lIEkgbG9va2VkLCBSSEVMIGZvciBBUk02NCBpcw0KPiA+IGRlbGl2ZXJlZCB3
-aXRoIGEgNjRLIHBhZ2Ugc2l6ZS4gIFNvIG15IGFzc3VtcHRpb24gaXMgdGhhdCB0aGUgb25seQ0K
-PiA+IGNvbWJpbmF0aW9uIHRoYXQgcmVhbGx5IG1hdHRlcnMgaXMgdGhlIGd1ZXN0IHBhZ2Ugc2l6
-ZSBiZWluZyBsYXJnZXINCj4gPiB0aGFuIHRoZSBIeXBlci1WIHBhZ2Ugc2l6ZS4gIFRoZSBvdGhl
-ciB3YXkgYXJvdW5kIGp1c3Qgd29uJ3QNCj4gPiBoYXBwZW4gd2l0aG91dCBhIG1ham9yIG92ZXJo
-YXVsIHRvIEh5cGVyLVYsIGluY2x1ZGluZyBhIHJld29yaw0KPiA+IG9mIHRoZSBndWVzdC1ob3N0
-IGludGVyZmFjZS4NCj4gDQo+IE9rLCBnb3QgaXQuIFdlIHNob3VsZCByZWFsbHkgYXNrIFJlZCBI
-YXQgdG8gY2hhbmdlIHRoZSBwYWdlIHNpemUsDQo+IGJ1dCBhcyBsb25nIGFzIHlvdSBjYXJlIGV4
-aXN0aW5nIHN5c3RlbXMsIGFuZCB5b3UgZXhwZWN0IHRoaXMgdG8NCj4gcmVzdWx0IGluIGdpZ2Fi
-eXRlcyBvZiBhbGxvY2F0aW9uIG9uIGZ1dHVyZSBzeXN0ZW1zLCBoYXZpbmcgdGhlDQo+IHdyYXBw
-ZXIgc2VlbXMgcmVhc29uYWJsZS4NCj4gDQo+IE1heWJlIHlvdSBjb3VsZCBmYWxsIGJhY2sgdG8g
-YWxsb2NfcGFnZSB3aGVuIFBBR0VfU0laRSBlcXVhbHMNCj4gSFZfSFlQX1BBR0VfU0laRSB0aG91
-Z2g/IEknbSBub3Qgc3VyZSB3aGF0IHRoZSB0cmFkZW9mZg0KPiBiZXR3ZWVuIGttYWxsb2MgYW5k
-IGFsbG9jX3BhZ2UgaXMgdGhlc2UgZGF5cywgb3RoZXIgdGhhbiB0aGUNCj4gZmVlbGluZyB0aGF0
-IGFsbG9jX3BhZ2UgaXMgdGhlIG1vcmUgb2J2aW91cyBjaG9pY2Ugd2hlbiB5b3Uga25vdw0KPiB5
-b3UgYWx3YXlzIHdhbnQgZXhhY3RseSBhIHBhZ2UgaGVyZS4NCj4gDQoNClllcywgdGhhdCB3b3Jr
-cyBmb3IgbWUuDQoNCk1pY2hhZWwNCg0KDQo=
+Hi Vincenzo,
+
+On Mon, Mar 16, 2020 at 09:42:32AM +0000, Vincenzo Frascino wrote:
+> On 3/15/20 6:30 PM, Catalin Marinas wrote:
+> > On Fri, Mar 13, 2020 at 03:43:37PM +0000, Vincenzo Frascino wrote:
+> >> --- /dev/null
+> >> +++ b/arch/arm64/include/asm/vdso/processor.h
+> >> @@ -0,0 +1,31 @@
+> >> +/* SPDX-License-Identifier: GPL-2.0-only */
+> >> +/*
+> >> + * Copyright (C) 2020 ARM Ltd.
+> >> + */
+> >> +#ifndef __ASM_VDSO_PROCESSOR_H
+> >> +#define __ASM_VDSO_PROCESSOR_H
+> >> +
+> >> +#ifndef __ASSEMBLY__
+> >> +
+> >> +#include <asm/page-def.h>
+> >> +
+> >> +#ifdef CONFIG_COMPAT
+> >> +#if defined(CONFIG_ARM64_64K_PAGES) && defined(CONFIG_KUSER_HELPERS)
+> >> +/*
+> >> + * With CONFIG_ARM64_64K_PAGES enabled, the last page is occupied
+> >> + * by the compat vectors page.
+> >> + */
+> >> +#define TASK_SIZE_32		UL(0x100000000)
+> >> +#else
+> >> +#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
+> >> +#endif /* CONFIG_ARM64_64K_PAGES */
+> >> +#endif /* CONFIG_COMPAT */
+> > 
+> > Just curious, what's TASK_SIZE_32 used for in the vDSO code? You don't
+> > seem to move TASK_SIZE.
+> > 
+> 
+> I tried to fine grain the headers as much as I could in order to avoid
+> unneeded/unwanted inclusions:
+>  * TASK_SIZE_32 is used to verify ABI consistency on vdso32 (please refer to
+>    arch/arm64/kernel/vdso32/vgettimeofday.c).
+>  * TASK_SIZE is not required by the vdso library hence it is not present in
+>    these headers.
+
+It would be worth noting the former point in the commit message, since
+it can be surprising.
+
+I also think it's worth keeping the definitions together if that's easy,
+as it makes it easier to navigate the codebase, even if TASK_SIZE isn't
+necessary for the VDSO itself.
+
+Thanks,
+Mark.
