@@ -1,60 +1,69 @@
-Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:54442 "EHLO foss.arm.com"
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:57516 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731376AbgCKTdZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Mar 2020 15:33:25 -0400
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v9 12/13] mm: smaps: Report arm64 guarded pages in smaps
-Date: Wed, 11 Mar 2020 19:26:07 +0000
-Message-ID: <20200311192608.40095-13-broonie@kernel.org>
-In-Reply-To: <20200311192608.40095-1-broonie@kernel.org>
-References: <20200311192608.40095-1-broonie@kernel.org>
+        id S1726476AbgCQVxF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 17:53:05 -0400
+Date: Tue, 17 Mar 2020 21:52:57 +0000
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH 6/9] arm64/build: Use common DISCARDS in linker script
+Message-ID: <20200317215256.GA20788@willie-the-truck>
+References: <20200228002244.15240-1-keescook@chromium.org>
+ <20200228002244.15240-7-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200228002244.15240-7-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Daniel Kiss <daniel.kiss@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200311192607.NYXfB9qZQUQHezKsfHQd5WqQeyGCwWe_sJ4kdlwHc3o@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
+Message-ID: <20200317215257.7sbS50Q0mydB0Ixhn6mylJhuByWAcPbOLcujDTuPc1M@z>
 
-From: Daniel Kiss <daniel.kiss@arm.com>
+On Thu, Feb 27, 2020 at 04:22:41PM -0800, Kees Cook wrote:
+> Use the common DISCARDS rule for the linker script in an effort to
+> regularize the linker script to prepare for warning on orphaned
+> sections.
+> 
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  arch/arm64/kernel/vmlinux.lds.S | 8 ++------
+>  1 file changed, 2 insertions(+), 6 deletions(-)
+> 
+> diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+> index 497f9675071d..c61d9ab3211c 100644
+> --- a/arch/arm64/kernel/vmlinux.lds.S
+> +++ b/arch/arm64/kernel/vmlinux.lds.S
+> @@ -6,6 +6,7 @@
+>   */
+>  
+>  #define RO_EXCEPTION_TABLE_ALIGN	8
+> +#define RUNTIME_DISCARD_EXIT
+>  
+>  #include <asm-generic/vmlinux.lds.h>
+>  #include <asm/cache.h>
+> @@ -19,7 +20,6 @@
+>  
+>  /* .exit.text needed in case of alternative patching */
+>  #define ARM_EXIT_KEEP(x)	x
+> -#define ARM_EXIT_DISCARD(x)
+>  
+>  OUTPUT_ARCH(aarch64)
+>  ENTRY(_text)
+> @@ -94,12 +94,8 @@ SECTIONS
+>  	 * matching the same input section name.  There is no documented
+>  	 * order of matching.
+>  	 */
+> +	DISCARDS
+>  	/DISCARD/ : {
+> -		ARM_EXIT_DISCARD(EXIT_TEXT)
+> -		ARM_EXIT_DISCARD(EXIT_DATA)
+> -		EXIT_CALL
+> -		*(.discard)
+> -		*(.discard.*)
+>  		*(.interp .dynamic)
+>  		*(.dynsym .dynstr .hash .gnu.hash)
+>  		*(.eh_frame)
 
-The arm64 Branch Target Identification support is activated by marking
-executable pages as guarded pages.  Report pages mapped this way in
-smaps to aid diagnostics.
+Acked-by: Will Deacon <will@kernel.org>
 
-Signed-off-by: Daniel Kiss <daniel.kiss@arm.com>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- Documentation/filesystems/proc.txt | 1 +
- fs/proc/task_mmu.c                 | 3 +++
- 2 files changed, 4 insertions(+)
-
-diff --git a/Documentation/filesystems/proc.txt b/Documentation/filesystems/proc.txt
-index 99ca040e3f90..ed5465d0f435 100644
---- a/Documentation/filesystems/proc.txt
-+++ b/Documentation/filesystems/proc.txt
-@@ -519,6 +519,7 @@ manner. The codes are the following:
-     hg  - huge page advise flag
-     nh  - no-huge page advise flag
-     mg  - mergable advise flag
-+    bt  - arm64 BTI guarded page
- 
- Note that there is no guarantee that every flag and associated mnemonic will
- be present in all further kernel releases. Things get changed, the flags may
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 3ba9ae83bff5..1e3409c484d1 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -668,6 +668,9 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
- 		[ilog2(VM_ARCH_1)]	= "ar",
- 		[ilog2(VM_WIPEONFORK)]	= "wf",
- 		[ilog2(VM_DONTDUMP)]	= "dd",
-+#ifdef CONFIG_ARM64_BTI
-+		[ilog2(VM_ARM64_BTI)]	= "bt",
-+#endif
- #ifdef CONFIG_MEM_SOFT_DIRTY
- 		[ilog2(VM_SOFTDIRTY)]	= "sd",
- #endif
--- 
-2.20.1
+Will
