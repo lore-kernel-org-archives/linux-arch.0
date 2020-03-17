@@ -1,33 +1,81 @@
-Return-Path: <SRS0=ObY3=4W=vger.kernel.org=linux-doc-owner@kernel.org>
-Message-ID: <5dcc9da2caff92a9af16846cbe1f168f61368c51.camel@intel.com>
-Subject: Re: [RFC PATCH v9 18/27] x86/cet/shstk: Introduce WRUSS instruction
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Thu, 05 Mar 2020 10:39:08 -0800
-In-Reply-To: <202002251309.E238DFEEB4@keescook>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-         <20200205181935.3712-19-yu-cheng.yu@intel.com>
-         <202002251309.E238DFEEB4@keescook>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:37060 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726452AbgCQMXt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 08:23:49 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in vgettimeofday
+Date: Tue, 17 Mar 2020 12:22:12 +0000
+Message-ID: <20200317122220.30393-19-vincenzo.frascino@arm.com>
+In-Reply-To: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200305183908.se7gspHfn87tzjvSzQdprAJHAwwKnt5Wrm59-MQ-1YY@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200317122212.zCOrm2VTBrv9-W-hl1h96pFLuosKXIemaa99HpR_C2I@z>
 
-On Tue, 2020-02-25 at 13:10 -0800, Kees Cook wrote:
-> On Wed, Feb 05, 2020 at 10:19:26AM -0800, Yu-cheng Yu wrote:
-> > WRUSS is a new kernel-mode instruction but writes directly to user Shadow
-> > Stack (SHSTK) memory.  This is used to construct a return address on SHSTK
-> > for the signal handler.
-> > 
-> > This instruction can fault if the user SHSTK is not valid SHSTK memory.
-> > In that case, the kernel does a fixup.
-> 
-> Since these functions aren't used in this patch, should this get merged
-> with patch 19?
+For ABI compatibility with arm32, the compat vDSO layer on arm64 needs
+to return -EINVAL when UINTPTR_MAX is passed as argument to the
+clock_get* functions.
 
-Yes, I can do that.
+Replace TASK_SIZE_32 with a more semantically correct formula that checks
+for wrapping around 0.
 
-Yu-cheng
+Note: This will allow to not define TASK_SIZE_32 for the vdso headers in a
+future patch that will introduce asm/vdso/processor.h on arm64.
+
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/arm64/kernel/vdso32/vgettimeofday.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
+index 54fc1c2ce93f..91138077b073 100644
+--- a/arch/arm64/kernel/vdso32/vgettimeofday.c
++++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
+@@ -8,11 +8,14 @@
+ #include <linux/time.h>
+ #include <linux/types.h>
+ 
++#define VALID_CLOCK_ID(x) \
++	((x >= 0) && (x < VDSO_BASES))
++
+ int __vdso_clock_gettime(clockid_t clock,
+ 			 struct old_timespec32 *ts)
+ {
+ 	/* The checks below are required for ABI consistency with arm */
+-	if ((u32)ts >= TASK_SIZE_32)
++	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
+ 		return -EFAULT;
+ 
+ 	return __cvdso_clock_gettime32(clock, ts);
+@@ -22,7 +25,7 @@ int __vdso_clock_gettime64(clockid_t clock,
+ 			   struct __kernel_timespec *ts)
+ {
+ 	/* The checks below are required for ABI consistency with arm */
+-	if ((u32)ts >= TASK_SIZE_32)
++	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
+ 		return -EFAULT;
+ 
+ 	return __cvdso_clock_gettime(clock, ts);
+@@ -38,9 +41,12 @@ int __vdso_clock_getres(clockid_t clock_id,
+ 			struct old_timespec32 *res)
+ {
+ 	/* The checks below are required for ABI consistency with arm */
+-	if ((u32)res >= TASK_SIZE_32)
++	if ((u32)res > UINTPTR_MAX - sizeof(res) + 1)
+ 		return -EFAULT;
+ 
++	if (!VALID_CLOCK_ID(clock_id) && res == NULL)
++		return -EINVAL;
++
+ 	return __cvdso_clock_getres_time32(clock_id, res);
+ }
+ 
+-- 
+2.25.1
