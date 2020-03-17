@@ -1,44 +1,33 @@
-From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
-Subject: Re: [RFC PATCH v14 06/10] landlock: Add syscall implementation
-Date: Tue, 17 Mar 2020 18:51:44 +0100
-Message-ID: <a0f52aed-7234-59d3-35ea-98ae9d8a23ae@digikod.net>
-References: <20200224160215.4136-1-mic@digikod.net>
- <20200224160215.4136-7-mic@digikod.net>
- <20200317164709.GA23230@ZenIV.linux.org.uk>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v4 19/26] arm64: Introduce asm/vdso/processor.h
+Date: Tue, 17 Mar 2020 17:52:27 +0000
+Message-ID: <20200317175227.GF632169@arrakis.emea.arm.com>
+References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+ <20200317122220.30393-20-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-42aa.mail.infomaniak.ch ([84.16.66.170]:59141 "EHLO
-        smtp-42aa.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726586AbgCQRvs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 13:51:48 -0400
-In-Reply-To: <20200317164709.GA23230@ZenIV.linux.org.uk>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200317122220.30393-20-vincenzo.frascino@arm.com>
+Sender: linux-mips-owner@vger.kernel.org
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>Mark
+List-Id: linux-arch.vger.kernel.org
 
+On Tue, Mar 17, 2020 at 12:22:13PM +0000, Vincenzo Frascino wrote:
+> The vDSO library should only include the necessary headers required for
+> a userspace library (UAPI and a minimal set of kernel headers). To make
+> this possible it is necessary to isolate from the kernel headers the
+> common parts that are strictly necessary to build the library.
+> 
+> Introduce asm/vdso/processor.h to contain all the arm64 specific
+> functions that are suitable for vDSO inclusion.
+> 
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-On 17/03/2020 17:47, Al Viro wrote:
-> On Mon, Feb 24, 2020 at 05:02:11PM +0100, Mickaël Salaün wrote:
-> 
->> +static int get_path_from_fd(u64 fd, struct path *path)
-> 
->> +	/*
->> +	 * Only allows O_PATH FD: enable to restrict ambiant (FS) accesses
->> +	 * without requiring to open and risk leaking or misuing a FD.  Accept
->> +	 * removed, but still open directory (S_DEAD).
->> +	 */
->> +	if (!(f.file->f_mode & FMODE_PATH) || !f.file->f_path.mnt ||
-> 					      ^^^^^^^^^^^^^^^^^^^
-> Could you explain what that one had been be about?  The underlined
-> subexpression is always false; was that supposed to check some
-> condition and if so, which one?
-> 
+This patch looks fine, though it depends on the previous discussion on
+compat ABI compatibility.
 
-This was just to be sure that the next assignment "path->mnt =
-f.file->f_path.mnt;" always creates a valid path. If this is always
-true, I will remove it.
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
