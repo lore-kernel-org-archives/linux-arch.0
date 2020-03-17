@@ -1,64 +1,52 @@
-Return-Path: <SRS0=rKsc=43=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37284 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726444AbgCJNrA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Mar 2020 09:47:00 -0400
-Subject: Re: [PATCH V2] mm/special: Create generic fallbacks for pte_special()
- and pte_mkspecial()
-References: <1583802551-15406-1-git-send-email-anshuman.khandual@arm.com>
- <20200310132747.GA12601@alpha.franken.de>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Message-ID: <a8341dde-aa59-b425-ac23-b6005e0a67ec@arm.com>
-Date: Tue, 10 Mar 2020 19:16:42 +0530
+Return-Path: <SRS0=UE5v=5C=kvack.org=owner-linux-mm@kernel.org>
+Date: Tue, 17 Mar 2020 10:25:57 -0300
+From: Jason Gunthorpe <jgg@ziepe.ca>
+Subject: Re: [PATCH 08/12] docs: fix broken references to text files
+Message-ID: <20200317132557.GS20941@ziepe.ca>
+References: <cover.1584450500.git.mchehab+huawei@kernel.org>
+ <35dcbefd50875b92aaf5b7671d4c57c50b4274fe.1584450500.git.mchehab+huawei@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20200310132747.GA12601@alpha.franken.de>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <35dcbefd50875b92aaf5b7671d4c57c50b4274fe.1584450500.git.mchehab+huawei@kernel.org>
+Sender: owner-linux-mm@kvack.org
+To: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+Cc: Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Federico Vaga <federico.vaga@vaga.pv.it>, Harry Wei <harryxiyou@gmail.com>, Alex Shi <alex.shi@linux.alibaba.com>, Paolo Bonzini <pbonzini@redhat.com>, Paul Mackerras <paulus@ozlabs.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Mathieu Poirier <mathieu.poirier@linaro.org>, Suzuki K Poulose <suzuki.poulose@arm.com>, Mike Leach <mike.leach@linaro.org>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Miklos Szeredi <miklos@szeredi.hu>, Andrew Morton <akpm@linux-foundation.org>, Doug Ledford <dledford@redhat.com>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, dri-devel@lists.freedesktop.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-unionfs@vger.kernel.org, linux-mm@kvack.org, linux-rdma@vger.kernel.org, kvmarm@lists.cs.columbia.edu
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-Cc: linux-mm@kvack.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Guo Ren <guoren@kernel.org>, Brian Cain <bcain@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Sam Creasey <sammy@sammy.net>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paulburton@kernel.org>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200310134642.OlrSzvCIm4gN392sJP8TZUgGZPM5PEzPoyFhx5w_ZMc@z>
+Message-ID: <20200317132557.2jOwnuGP_7vd0hKnx9XBHKHndvVjro9A_xtL7dIGmas@z>
 
+On Tue, Mar 17, 2020 at 02:10:47PM +0100, Mauro Carvalho Chehab wrote:
+> Several references got broken due to txt to ReST conversion.
+> 
+> Several of them can be automatically fixed with:
+> 
+> 	scripts/documentation-file-ref-check --fix
+> 
+> Signed-off-by: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+>  Documentation/admin-guide/kernel-parameters.txt      |  2 +-
+>  Documentation/memory-barriers.txt                    |  2 +-
+>  Documentation/process/submit-checklist.rst           |  2 +-
+>  .../translations/it_IT/process/submit-checklist.rst  |  2 +-
+>  Documentation/translations/ko_KR/memory-barriers.txt |  2 +-
+>  .../translations/zh_CN/filesystems/sysfs.txt         |  2 +-
+>  .../translations/zh_CN/process/submit-checklist.rst  |  2 +-
+>  Documentation/virt/kvm/arm/pvtime.rst                |  2 +-
+>  Documentation/virt/kvm/devices/vcpu.rst              |  2 +-
+>  Documentation/virt/kvm/hypercalls.rst                |  4 ++--
+>  arch/powerpc/include/uapi/asm/kvm_para.h             |  2 +-
+>  drivers/gpu/drm/Kconfig                              |  2 +-
+>  drivers/gpu/drm/drm_ioctl.c                          |  2 +-
+>  drivers/hwtracing/coresight/Kconfig                  |  2 +-
+>  fs/fat/Kconfig                                       |  8 ++++----
+>  fs/fuse/Kconfig                                      |  2 +-
+>  fs/fuse/dev.c                                        |  2 +-
+>  fs/overlayfs/Kconfig                                 |  6 +++---
+>  include/linux/mm.h                                   |  4 ++--
+>  include/uapi/linux/ethtool_netlink.h                 |  2 +-
+>  include/uapi/rdma/rdma_user_ioctl_cmds.h             |  2 +-
 
+For the rdma files
 
-On 03/10/2020 06:57 PM, Thomas Bogendoerfer wrote:
-> On Tue, Mar 10, 2020 at 06:39:11AM +0530, Anshuman Khandual wrote:
->> diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
->> index aef5378f909c..8e4e4be1ca00 100644
->> --- a/arch/mips/include/asm/pgtable.h
->> +++ b/arch/mips/include/asm/pgtable.h
->> @@ -269,6 +269,36 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
->>   */
->>  extern pgd_t swapper_pg_dir[];
->>  
->> +/*
->> + * Platform specific pte_special() and pte_mkspecial() definitions
->> + * are required only when ARCH_HAS_PTE_SPECIAL is enabled.
->> + */
->> +#if !defined(CONFIG_32BIT) && !defined(CONFIG_CPU_HAS_RIXI)
-> 
-> this looks wrong.
-> 
-> current Kconfig statement is
-> 
-> select ARCH_HAS_PTE_SPECIAL if !(32BIT && CPU_HAS_RIXI)
-> 
-> so we can't use PTE_SPECIAL on 32bit _and_ CPUs with RIXI support.
+Acked-by: Jason Gunthorpe <jgg@mellanox.com>
 
-I already had asked for clarification on this.
-
-> 
-> Why can't we use
-> 
-> #if defined(CONFIG_ARCH_HAS_PTE_SPECIAL)
-> 
-> here as the comment already suggests ?
-
-Yes, that will be easier and will automatically adjust in case
-ARCH_HAS_PTE_SPECIAL scope changes later. Will respin the patch.
-
-> 
-> Thomas.
-> 
+Jason
