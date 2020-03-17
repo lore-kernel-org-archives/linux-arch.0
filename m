@@ -1,86 +1,45 @@
-Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50082 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726814AbgCTOyx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Mar 2020 10:54:53 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 03/26] linux/limits.h: Extract common header for vDSO
-Date: Fri, 20 Mar 2020 14:53:28 +0000
-Message-ID: <20200320145351.32292-4-vincenzo.frascino@arm.com>
-In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
-References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from smtp-42aa.mail.infomaniak.ch ([84.16.66.170]:59141 "EHLO
+        smtp-42aa.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726586AbgCQRvs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 13:51:48 -0400
+Subject: Re: [RFC PATCH v14 06/10] landlock: Add syscall implementation
+References: <20200224160215.4136-1-mic@digikod.net>
+ <20200224160215.4136-7-mic@digikod.net>
+ <20200317164709.GA23230@ZenIV.linux.org.uk>
+From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
+Message-ID: <a0f52aed-7234-59d3-35ea-98ae9d8a23ae@digikod.net>
+Date: Tue, 17 Mar 2020 18:51:44 +0100
 MIME-Version: 1.0
+In-Reply-To: <20200317164709.GA23230@ZenIV.linux.org.uk>
+Content-Type: text/plain; charset=iso-8859-15
+Content-Language: en-US
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200320145328.wa6IE7pLqiVwQgh2WM-6MWfMvqVtlSjSw7gISV5HIjU@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Message-ID: <20200317175144.F9sG3wffYeov_IrOWQ24s3taeJp9790eTNlN65lYvgI@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
 
-Split limits.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
+On 17/03/2020 17:47, Al Viro wrote:
+> On Mon, Feb 24, 2020 at 05:02:11PM +0100, Mickaël Salaün wrote:
+> 
+>> +static int get_path_from_fd(u64 fd, struct path *path)
+> 
+>> +	/*
+>> +	 * Only allows O_PATH FD: enable to restrict ambiant (FS) accesses
+>> +	 * without requiring to open and risk leaking or misuing a FD.  Accept
+>> +	 * removed, but still open directory (S_DEAD).
+>> +	 */
+>> +	if (!(f.file->f_mode & FMODE_PATH) || !f.file->f_path.mnt ||
+> 					      ^^^^^^^^^^^^^^^^^^^
+> Could you explain what that one had been be about?  The underlined
+> subexpression is always false; was that supposed to check some
+> condition and if so, which one?
+> 
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- include/linux/limits.h | 13 +------------
- include/vdso/limits.h  | 19 +++++++++++++++++++
- 2 files changed, 20 insertions(+), 12 deletions(-)
- create mode 100644 include/vdso/limits.h
-
-diff --git a/include/linux/limits.h b/include/linux/limits.h
-index 76afcd24ff8c..7fc497ee1393 100644
---- a/include/linux/limits.h
-+++ b/include/linux/limits.h
-@@ -4,19 +4,8 @@
- 
- #include <uapi/linux/limits.h>
- #include <linux/types.h>
-+#include <vdso/limits.h>
- 
--#define USHRT_MAX	((unsigned short)~0U)
--#define SHRT_MAX	((short)(USHRT_MAX >> 1))
--#define SHRT_MIN	((short)(-SHRT_MAX - 1))
--#define INT_MAX		((int)(~0U >> 1))
--#define INT_MIN		(-INT_MAX - 1)
--#define UINT_MAX	(~0U)
--#define LONG_MAX	((long)(~0UL >> 1))
--#define LONG_MIN	(-LONG_MAX - 1)
--#define ULONG_MAX	(~0UL)
--#define LLONG_MAX	((long long)(~0ULL >> 1))
--#define LLONG_MIN	(-LLONG_MAX - 1)
--#define ULLONG_MAX	(~0ULL)
- #define SIZE_MAX	(~(size_t)0)
- #define PHYS_ADDR_MAX	(~(phys_addr_t)0)
- 
-diff --git a/include/vdso/limits.h b/include/vdso/limits.h
-new file mode 100644
-index 000000000000..0197888ad0e0
---- /dev/null
-+++ b/include/vdso/limits.h
-@@ -0,0 +1,19 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_LIMITS_H
-+#define __VDSO_LIMITS_H
-+
-+#define USHRT_MAX	((unsigned short)~0U)
-+#define SHRT_MAX	((short)(USHRT_MAX >> 1))
-+#define SHRT_MIN	((short)(-SHRT_MAX - 1))
-+#define INT_MAX		((int)(~0U >> 1))
-+#define INT_MIN		(-INT_MAX - 1)
-+#define UINT_MAX	(~0U)
-+#define LONG_MAX	((long)(~0UL >> 1))
-+#define LONG_MIN	(-LONG_MAX - 1)
-+#define ULONG_MAX	(~0UL)
-+#define LLONG_MAX	((long long)(~0ULL >> 1))
-+#define LLONG_MIN	(-LLONG_MAX - 1)
-+#define ULLONG_MAX	(~0ULL)
-+#define UINTPTR_MAX	ULONG_MAX
-+
-+#endif /* __VDSO_LIMITS_H */
--- 
-2.25.1
+This was just to be sure that the next assignment "path->mnt =
+f.file->f_path.mnt;" always creates a valid path. If this is always
+true, I will remove it.
