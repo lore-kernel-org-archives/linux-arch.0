@@ -1,102 +1,38 @@
-Return-Path: <SRS0=06hN=5A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-mw2nam10on2123.outbound.protection.outlook.com ([40.107.94.123]:18974
-        "EHLO NAM10-MW2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727401AbgCOBbx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 14 Mar 2020 21:31:53 -0400
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: [PATCH v6 04/10] arm64: hyperv: Add memory alloc/free functions for Hyper-V size pages
-Date: Sat, 14 Mar 2020 08:35:13 -0700
-Message-ID: <1584200119-18594-5-git-send-email-mikelley@microsoft.com>
-In-Reply-To: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
-Content-Type: text/plain
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:58620 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726530AbgCQV4V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 17:56:21 -0400
+Date: Tue, 17 Mar 2020 21:56:14 +0000
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH 7/9] arm64/build: Warn on orphan section placement
+Message-ID: <20200317215614.GB20788@willie-the-truck>
+References: <20200228002244.15240-1-keescook@chromium.org>
+ <20200228002244.15240-8-keescook@chromium.org>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200228002244.15240-8-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: will@kernel.org, ardb@kernel.org, arnd@arndb.de, catalin.marinas@arm.com, mark.rutland@arm.com, maz@kernel.org, linux-arm-kernel@lists.infradead.org, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, linux-efi@vger.kernel.org, linux-arch@vger.kernel.org, olaf@aepfle.de, apw@canonical.com, vkuznets@redhat.com, jasowang@redhat.com, marcelo.cerri@canonical.com, kys@microsoft.com
-Cc: mikelley@microsoft.com, sunilmut@microsoft.com, boqun.feng@gmail.com
-Message-ID: <20200314153513.BtCjuIfLjECjPDcCJha5BXyM5mxxV_BL7ip_hSWswLc@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
+Message-ID: <20200317215614.dbG1397WttcyZM7HK8HTAC41alZ7iHZqqxE9wJz-K4E@z>
 
-Add ARM64-specific code to allocate memory with HV_HYP_PAGE_SIZE
-size and alignment. These are for use when pages need to be shared
-with Hyper-V. Separate functions are needed as the page size used
-by Hyper-V may not be the same as the guest page size.
+On Thu, Feb 27, 2020 at 04:22:42PM -0800, Kees Cook wrote:
+> We don't want to depend on the linker's orphan section placement
+> heuristics as these can vary between linkers, and may change between
+> versions. All sections need to be explicitly named in the linker
+> script.
+> 
+> Explicitly include debug sections when they're present. Add .eh_frame*
+> to discard as it seems that these are still generated even though
+> -fno-asynchronous-unwind-tables is being specified. Add .plt and
+> .data.rel.ro to discards as they are not actually used. Add .got.plt
+> to the image as it does appear to be mapped near .data. Finally enable
+> orphan section warnings.
 
-This code is built only when CONFIG_HYPERV is enabled.
+Hmm, I don't understand what .got.plt is doing here. Please can you
+elaborate?
 
-Signed-off-by: Michael Kelley <mikelley@microsoft.com>
----
- arch/arm64/hyperv/hv_core.c    | 34 ++++++++++++++++++++++++++++++++++
- include/asm-generic/mshyperv.h |  5 +++++
- 2 files changed, 39 insertions(+)
-
-diff --git a/arch/arm64/hyperv/hv_core.c b/arch/arm64/hyperv/hv_core.c
-index 272c348..4aa6b8f 100644
---- a/arch/arm64/hyperv/hv_core.c
-+++ b/arch/arm64/hyperv/hv_core.c
-@@ -17,12 +17,46 @@
- #include <linux/slab.h>
- #include <linux/hyperv.h>
- #include <linux/arm-smccc.h>
-+#include <linux/string.h>
- #include <asm-generic/bug.h>
- #include <asm/hyperv-tlfs.h>
- #include <asm/mshyperv.h>
- 
- 
- /*
-+ * Functions for allocating and freeing memory with size and
-+ * alignment HV_HYP_PAGE_SIZE. These functions are needed because
-+ * the guest page size may not be the same as the Hyper-V page
-+ * size. We depend upon kmalloc() aligning power-of-two size
-+ * allocations to the allocation size boundary, so that the
-+ * allocated memory appears to Hyper-V as a page of the size
-+ * it expects.
-+ *
-+ * These functions are used by arm64 specific code as well as
-+ * arch independent Hyper-V drivers.
-+ */
-+
-+void *hv_alloc_hyperv_page(void)
-+{
-+	BUILD_BUG_ON(PAGE_SIZE <  HV_HYP_PAGE_SIZE);
-+	return kmalloc(HV_HYP_PAGE_SIZE, GFP_KERNEL);
-+}
-+EXPORT_SYMBOL_GPL(hv_alloc_hyperv_page);
-+
-+void *hv_alloc_hyperv_zeroed_page(void)
-+{
-+	return kzalloc(HV_HYP_PAGE_SIZE, GFP_KERNEL);
-+}
-+EXPORT_SYMBOL_GPL(hv_alloc_hyperv_zeroed_page);
-+
-+void hv_free_hyperv_page(unsigned long addr)
-+{
-+	kfree((void *)addr);
-+}
-+EXPORT_SYMBOL_GPL(hv_free_hyperv_page);
-+
-+
-+/*
-  * hv_do_hypercall- Invoke the specified hypercall
-  */
- u64 hv_do_hypercall(u64 control, void *input, void *output)
-diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-index b3f1082..1a7c4c5 100644
---- a/include/asm-generic/mshyperv.h
-+++ b/include/asm-generic/mshyperv.h
-@@ -99,6 +99,11 @@ static inline void vmbus_signal_eom(struct hv_message *msg, u32 old_msg_type)
- void hv_setup_crash_handler(void (*handler)(struct pt_regs *regs));
- void hv_remove_crash_handler(void);
- 
-+void *hv_alloc_hyperv_page(void);
-+void *hv_alloc_hyperv_zeroed_page(void);
-+void hv_free_hyperv_page(unsigned long addr);
-+
-+
- #if IS_ENABLED(CONFIG_HYPERV)
- /*
-  * Hypervisor's notion of virtual processor ID is different from
--- 
-1.8.3.1
+Will
