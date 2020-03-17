@@ -1,13 +1,13 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 13/26] linux/jiffies.h: Extract common header for vDSO
-Date: Tue, 17 Mar 2020 12:22:07 +0000
-Message-ID: <20200317122220.30393-14-vincenzo.frascino@arm.com>
+Subject: [PATCH v4 15/26] common: Introduce processor.h
+Date: Tue, 17 Mar 2020 12:22:09 +0000
+Message-ID: <20200317122220.30393-16-vincenzo.frascino@arm.com>
 References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-mips-owner@vger.kernel.org>
 In-Reply-To: <20200317122220.30393-1-vincenzo.frascino@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-mips-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
 Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
 List-Id: linux-arch.vger.kernel.org
@@ -17,54 +17,34 @@ a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Split jiffies.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
+Introduce processor.h to contain all the processor specific functions
+that are suitable for vDSO inclusion.
 
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/linux/jiffies.h |  4 +---
- include/vdso/jiffies.h  | 11 +++++++++++
- 2 files changed, 12 insertions(+), 3 deletions(-)
- create mode 100644 include/vdso/jiffies.h
+ include/vdso/processor.h | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+ create mode 100644 include/vdso/processor.h
 
-diff --git a/include/linux/jiffies.h b/include/linux/jiffies.h
-index e3279ef24d28..fed6ba96c527 100644
---- a/include/linux/jiffies.h
-+++ b/include/linux/jiffies.h
-@@ -8,6 +8,7 @@
- #include <linux/types.h>
- #include <linux/time.h>
- #include <linux/timex.h>
-+#include <vdso/jiffies.h>
- #include <asm/param.h>			/* for HZ */
- #include <generated/timeconst.h>
- 
-@@ -59,9 +60,6 @@
- 
- extern int register_refined_jiffies(long clock_tick_rate);
- 
--/* TICK_NSEC is the time between ticks in nsec assuming SHIFTED_HZ */
--#define TICK_NSEC ((NSEC_PER_SEC+HZ/2)/HZ)
--
- /* TICK_USEC is the time between ticks in usec assuming SHIFTED_HZ */
- #define TICK_USEC ((USEC_PER_SEC + HZ/2) / HZ)
- 
-diff --git a/include/vdso/jiffies.h b/include/vdso/jiffies.h
+diff --git a/include/vdso/processor.h b/include/vdso/processor.h
 new file mode 100644
-index 000000000000..2f9d596c8b29
+index 000000000000..fbe8265ea3c4
 --- /dev/null
-+++ b/include/vdso/jiffies.h
-@@ -0,0 +1,11 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_JIFFIES_H
-+#define __VDSO_JIFFIES_H
++++ b/include/vdso/processor.h
+@@ -0,0 +1,14 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __VDSO_PROCESSOR_H
++#define __VDSO_PROCESSOR_H
 +
-+#include <asm/param.h>			/* for HZ */
-+#include <vdso/time64.h>
++#ifndef __ASSEMBLY__
 +
-+/* TICK_NSEC is the time between ticks in nsec assuming SHIFTED_HZ */
-+#define TICK_NSEC ((NSEC_PER_SEC+HZ/2)/HZ)
++#include <asm/vdso/processor.h>
 +
-+#endif /* __VDSO_JIFFIES_H */
++#endif /* __ASSEMBLY__ */
++
++#endif /* __VDSO_PROCESSOR_H */
 -- 
 2.25.1
