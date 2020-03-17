@@ -1,54 +1,57 @@
-Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from albireo.enyo.de ([37.24.231.21]:58366 "EHLO albireo.enyo.de"
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:40394 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726300AbgCFMJW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Mar 2020 07:09:22 -0500
-From: Florian Weimer <fw@deneb.enyo.de>
-Subject: Re: [PATCH] binfmt_misc: pass binfmt_misc P flag to the interpreter
-References: <20200306080905.173466-1-syq@debian.org>
-        <87r1y53npd.fsf@mid.deneb.enyo.de>
-        <8441f497-61eb-5c14-bf1e-c90a464105a7@vivier.eu>
-        <87mu8t3mlw.fsf@mid.deneb.enyo.de>
-        <40da389d-4e74-2644-2e7c-04d988fcc26f@vivier.eu>
-        <CAKcpw6WEO5Rmsv+WFkOMrkH+0jwtFKKy7b2n3U9xgv-xGC0UUQ@mail.gmail.com>
-        <87v9nhzp6w.fsf@mid.deneb.enyo.de>
-        <CAKcpw6VF1N2gTVXeWLU4aVOuARf5oN6yPg9O=RCzgkMrjXmxYQ@mail.gmail.com>
-Date: Fri, 06 Mar 2020 13:07:33 +0100
-In-Reply-To: <CAKcpw6VF1N2gTVXeWLU4aVOuARf5oN6yPg9O=RCzgkMrjXmxYQ@mail.gmail.com>
-        (YunQiang Su's message of "Fri, 6 Mar 2020 19:48:35 +0800")
-Message-ID: <87r1y5zny2.fsf@mid.deneb.enyo.de>
+        id S1726157AbgCQQnJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 12:43:09 -0400
+Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
+ vgettimeofday
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+ <20200317122220.30393-19-vincenzo.frascino@arm.com>
+ <20200317143834.GC632169@arrakis.emea.arm.com>
+ <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
+ <20200317155031.GD632169@arrakis.emea.arm.com>
+ <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
+Message-ID: <4eaa8717-78b4-0f28-6e14-9a0765e179c5@arm.com>
+Date: Tue, 17 Mar 2020 16:43:32 +0000
 MIME-Version: 1.0
+In-Reply-To: <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: YunQiang Su <syq@debian.org>
-Cc: Laurent Vivier <laurent@vivier.eu>, torvalds@linux-foundation.org, Greg KH <gregkh@linuxfoundation.org>, akpm@linux-foundation.org, Al Viro <viro@zeniv.linux.org.uk>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org
-Message-ID: <20200306120733.moS6wptxoACfVGm2AOrF9BctTaHOON1zNjoFzFJISV8@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200317164332.HuNxUBHYdv9omql85rn6OQBzt5J4TGmaRS6QSfbfpyY@z>
 
-* YunQiang Su:
 
-> Florian Weimer <fw@deneb.enyo.de> 于2020年3月6日周五 下午7:42写道：
->>
->> * YunQiang Su:
->>
->> > AT_* only has 32 slot and now. I was afraid that maybe we shouldn't take one.
->> >    /* AT_* values 18 through 22 are reserved */
->> >    27,28,29,30 are not used now.
->> > Which should we use?
->>
->> Where does this limit of 32 tags come from?  I don't see it from a
->> userspace perspective.
->
-> Sorry it is my mistake: In linux/auxvec.h, I saw
->
-> #define AT_RANDOM 25    /* address of 16 random bytes */
-> #define AT_HWCAP2 26    /* extension of AT_HWCAP */
->
-> #define AT_EXECFN  31   /* filename of program */
->
-> The number jump to 31 from 26.
->
-> It is my fault: in x86_64-linux-gnu/bits/auxv.h, the max number is 47 now.
 
-So AT_* tags aren't a scarce resource after all?
+On 3/17/20 4:40 PM, Vincenzo Frascino wrote:
+> Hi Catalin,
+> 
+> On 3/17/20 3:50 PM, Catalin Marinas wrote:
+>> On Tue, Mar 17, 2020 at 03:04:01PM +0000, Vincenzo Frascino wrote:
+>>> On 3/17/20 2:38 PM, Catalin Marinas wrote:
+>>>> On Tue, Mar 17, 2020 at 12:22:12PM +0000, Vincenzo Frascino wrote:
+> 
+> [...]
+> 
+>>>
+>>> Can TASK_SIZE > UINTPTR_MAX on an arm64 system?
+>>
+>> TASK_SIZE yes on arm64 but not TASK_SIZE_32. I was asking about the
+>> arm32 check where TASK_SIZE < UINTPTR_MAX. How does the vdsotest return
+>> -EFAULT on arm32? Which code path causes this in the user vdso code?
+>>
+> 
+> Sorry I got confused because you referred to arch/arm/vdso/vgettimeofday.c which
+> is the arm64 implementation, not the compat one :)
+> 
+
+I stand corrected arch/*arm*/vdso/vgettimeofday.c is definitely the arm32
+implemetation... I got completely confused here :)
+
+-- 
+Regards,
+Vincenzo
