@@ -1,176 +1,36 @@
-Return-Path: <SRS0=aoLA=42=vger.kernel.org=linux-doc-owner@kernel.org>
-Message-ID: <0f43463e02d1be2af6bcf8ff6917e751ba7676a0.camel@intel.com>
-Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Mon, 09 Mar 2020 10:00:56 -0700
-In-Reply-To: <9ae1cf84-1d84-1d34-c0ce-48b0d70b8f3f@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-         <20200205181935.3712-2-yu-cheng.yu@intel.com>
-         <9ae1cf84-1d84-1d34-c0ce-48b0d70b8f3f@intel.com>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:58538 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726016AbgCQQrc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2020 12:47:32 -0400
+Date: Tue, 17 Mar 2020 16:47:09 +0000
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: [RFC PATCH v14 06/10] landlock: Add syscall implementation
+Message-ID: <20200317164709.GA23230@ZenIV.linux.org.uk>
+References: <20200224160215.4136-1-mic@digikod.net>
+ <20200224160215.4136-7-mic@digikod.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20200224160215.4136-7-mic@digikod.net>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200309170056.ZCepa_S3dpX7l8knI2CRhI0a9WfS8cU4fZlplUm5VkU@z>
+To: =?iso-8859-1?Q?Micka=EBl_Sala=FCn?= <mic@digikod.net>
+Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?iso-8859-1?Q?Micka=EBl_Sala=FCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Message-ID: <20200317164709.YTtf8tNJIx5W0M7wvbRgjxM8y7pJZUhy4i3ku3-fsqk@z>
 
-On Wed, 2020-02-26 at 09:57 -0800, Dave Hansen wrote:
-> > index ade4e6ec23e0..8b69ebf0baed 100644
-> > --- a/Documentation/admin-guide/kernel-parameters.txt
-> > +++ b/Documentation/admin-guide/kernel-parameters.txt
-> > @@ -3001,6 +3001,12 @@
-> >  			noexec=on: enable non-executable mappings (default)
-> >  			noexec=off: disable non-executable mappings
-> >  
-> > +	no_cet_shstk	[X86-64] Disable Shadow Stack for user-mode
-> > +			applications
-> 
-> If we ever add kernel support, "no_cet_shstk" will mean "no cet shstk
-> for userspace"?
+On Mon, Feb 24, 2020 at 05:02:11PM +0100, Mickaël Salaün wrote:
 
-What about no_user_shstk, no_kernel_shstk?
+> +static int get_path_from_fd(u64 fd, struct path *path)
 
-> 
-> > +	no_cet_ibt	[X86-64] Disable Indirect Branch Tracking for user-mode
-> > +			applications
-> > +
-> >  	nosmap		[X86,PPC]
-> >  			Disable SMAP (Supervisor Mode Access Prevention)
-> >  			even if it is supported by processor.
-> 
-> BTW, this documentation is misplaced.  It needs to go to the spot where
-> you introduce the code for these options.
-
-We used to introduce the document later in the series.  The feedback was to
-introduce it first so that readers know what to expect.
-
-[...]
-
-> > diff --git a/Documentation/x86/intel_cet.rst b/Documentation/x86/intel_cet.rst
-> > new file mode 100644
-> > index 000000000000..71e2462fea5c
-> > --- /dev/null
-> > +++ b/Documentation/x86/intel_cet.rst
-> > @@ -0,0 +1,294 @@
-> > +.. SPDX-License-Identifier: GPL-2.0
-> > +
-> > +=========================================
-> > +Control-flow Enforcement Technology (CET)
-> > +=========================================
-> > +
-> > +[1] Overview
-> > +============
-> > +
-> > +Control-flow Enforcement Technology (CET) provides protection against
-> > +return/jump-oriented programming (ROP) attacks.  It can be setup to
-
-[...]
-
-> > +
-> > +There are two kernel configuration options:
-> > +
-> > +    X86_INTEL_SHADOW_STACK_USER, and
-> > +    X86_INTEL_BRANCH_TRACKING_USER.
-> > +
-> > +To build a CET-enabled kernel, Binutils v2.31 and GCC v8.1 or later
-> > +are required.
-> 
-> Why are these needed to build a CET-enabled kernel?
-
-We could (and used to) allow legacy toolchains, but after considering
-practical purposes, dropped the support.  We can continue the discussion,
-and if those are desired, bring them back.
-
-[...]
-
-> > +[2] CET assembly instructions
-> > +=============================
-> 
-> Why do we need this in the kernel?  What is specific to Linux or the
-> kernel?  Why wouldn't I just go read the SDM if I want to know how the
-> instructions work?
-
-Now the SDM has this.  I will drop this section.
-
-> > +[3] Application Enabling
-> > +========================
-> > +
-> > +An application's CET capability is marked in its ELF header and can
-> > +be verified from the following command output, in the
-> > +NT_GNU_PROPERTY_TYPE_0 field:
-> > +
-> > +    readelf -n <application>
-> > +
-> > +If an application supports CET and is statically linked, it will run
-> > +with CET protection.  If the application needs any shared libraries,
-> > +the loader checks all dependencies and enables CET only when all
-> > +requirements are met.
-> 
-> What about shared libraries loaded after the program starts?
-
-The loader does the check for dlopen().
-
-
-> > +[4] Legacy Libraries
-> > +====================
-> > +
-> > +GLIBC provides a few tunables for backward compatibility.
-> > +
-> > +GLIBC_TUNABLES=glibc.tune.hwcaps=-SHSTK,-IBT
-> > +    Turn off SHSTK/IBT for the current shell.
-> > +
-> > +GLIBC_TUNABLES=glibc.tune.x86_shstk=<on, permissive>
-> > +    This controls how dlopen() handles SHSTK legacy libraries::
-> > +
-> > +        on         - continue with SHSTK enabled;
-> > +        permissive - continue with SHSTK off.
-> 
-> This seems like manpage fodder more than kernel documentation to me.
-
-Yes, we can drop this as well.
-
-[...]
-
-> > +Note:
-> > +  There is no CET-enabling arch_prctl function.  By design, CET is
-> > +  enabled automatically if the binary and the system can support it.
-> 
-> This is kinda interesting.  It means that a JIT couldn't choose to
-> protect the code it generates and have different rules from itself?
-
-JIT needs to be updated for CET first.  Once that is done, it runs with CET
-enabled.  It can use the NOTRACK prefix, for example.
-
-> > +  The parameters passed are always unsigned 64-bit.  When an IA32
-> > +  application passing pointers, it should only use the lower 32 bits.
-> 
-> Won't a 32-bit app calling prctl() use the 32-bit ABI?  How would it
-> even know it's running on a 64-bit kernel?
-
-The 32-bit app is passing only a pointer to an array of 64-bit numbers.
-
-> 
-> > +[6] The implementation of the SHSTK
-> > +===================================
-> > +
-> > +SHSTK size
-> > +----------
-> > +
-> > +A task's SHSTK is allocated from memory to a fixed size of
-> > +RLIMIT_STACK.
-> 
-> I can't really parse that sentence.  Is this saying that shadow stacks
-> are limited by and share space with normal stacks via RLIMIT_STACK?
-> 
-> >  A compat-mode thread's SHSTK size is 1/4 of
-> > +RLIMIT_STACK.  The smaller 32-bit thread SHSTK allows more threads to
-> > +share a 32-bit address space.
-> 
-> I thought the size was passed in from userspace?  Where does this sizing
-> take place?  Is this a convention or is it being enforced?
-
-I will make this (and other things you pointed out) clear in the next
-version.
-
-Yu-cheng
+> +	/*
+> +	 * Only allows O_PATH FD: enable to restrict ambiant (FS) accesses
+> +	 * without requiring to open and risk leaking or misuing a FD.  Accept
+> +	 * removed, but still open directory (S_DEAD).
+> +	 */
+> +	if (!(f.file->f_mode & FMODE_PATH) || !f.file->f_path.mnt ||
+					      ^^^^^^^^^^^^^^^^^^^
+Could you explain what that one had been be about?  The underlined
+subexpression is always false; was that supposed to check some
+condition and if so, which one?
