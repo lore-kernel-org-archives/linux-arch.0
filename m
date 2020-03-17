@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in vgettimeofday
-Date: Tue, 17 Mar 2020 12:22:12 +0000
-Message-ID: <20200317122220.30393-19-vincenzo.frascino@arm.com>
+Subject: [PATCH v4 23/26] x86: vdso: Enable x86 to use common headers
+Date: Tue, 17 Mar 2020 12:22:17 +0000
+Message-ID: <20200317122220.30393-24-vincenzo.frascino@arm.com>
 References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,68 +9,81 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200317122220.30393-1-vincenzo.frascino@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-For ABI compatibility with arm32, the compat vDSO layer on arm64 needs
-to return -EINVAL when UINTPTR_MAX is passed as argument to the
-clock_get* functions.
+Enable x86 to use only the common headers in the implementation
+of the vDSO library.
 
-Replace TASK_SIZE_32 with a more semantically correct formula that checks
-for wrapping around 0.
-
-Note: This will allow to not define TASK_SIZE_32 for the vdso headers in a
-future patch that will introduce asm/vdso/processor.h on arm64.
-
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/kernel/vdso32/vgettimeofday.c | 12 +++++++++---
- 1 file changed, 9 insertions(+), 3 deletions(-)
+ arch/x86/include/asm/processor.h      | 12 +-----------
+ arch/x86/include/asm/vdso/processor.h | 23 +++++++++++++++++++++++
+ 2 files changed, 24 insertions(+), 11 deletions(-)
+ create mode 100644 arch/x86/include/asm/vdso/processor.h
 
-diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
-index 54fc1c2ce93f..91138077b073 100644
---- a/arch/arm64/kernel/vdso32/vgettimeofday.c
-+++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
-@@ -8,11 +8,14 @@
- #include <linux/time.h>
- #include <linux/types.h>
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index 09705ccc393c..94789db550df 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -26,6 +26,7 @@ struct vm86;
+ #include <asm/fpu/types.h>
+ #include <asm/unwind_hints.h>
+ #include <asm/vmxfeatures.h>
++#include <asm/vdso/processor.h>
  
-+#define VALID_CLOCK_ID(x) \
-+	((x >= 0) && (x < VDSO_BASES))
-+
- int __vdso_clock_gettime(clockid_t clock,
- 			 struct old_timespec32 *ts)
- {
- 	/* The checks below are required for ABI consistency with arm */
--	if ((u32)ts >= TASK_SIZE_32)
-+	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
- 		return -EFAULT;
- 
- 	return __cvdso_clock_gettime32(clock, ts);
-@@ -22,7 +25,7 @@ int __vdso_clock_gettime64(clockid_t clock,
- 			   struct __kernel_timespec *ts)
- {
- 	/* The checks below are required for ABI consistency with arm */
--	if ((u32)ts >= TASK_SIZE_32)
-+	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
- 		return -EFAULT;
- 
- 	return __cvdso_clock_gettime(clock, ts);
-@@ -38,9 +41,12 @@ int __vdso_clock_getres(clockid_t clock_id,
- 			struct old_timespec32 *res)
- {
- 	/* The checks below are required for ABI consistency with arm */
--	if ((u32)res >= TASK_SIZE_32)
-+	if ((u32)res > UINTPTR_MAX - sizeof(res) + 1)
- 		return -EFAULT;
- 
-+	if (!VALID_CLOCK_ID(clock_id) && res == NULL)
-+		return -EINVAL;
-+
- 	return __cvdso_clock_getres_time32(clock_id, res);
+ #include <linux/personality.h>
+ #include <linux/cache.h>
+@@ -677,17 +678,6 @@ static inline unsigned int cpuid_edx(unsigned int op)
+ 	return edx;
  }
  
+-/* REP NOP (PAUSE) is a good thing to insert into busy-wait loops. */
+-static __always_inline void rep_nop(void)
+-{
+-	asm volatile("rep; nop" ::: "memory");
+-}
+-
+-static __always_inline void cpu_relax(void)
+-{
+-	rep_nop();
+-}
+-
+ /*
+  * This function forces the icache and prefetched instruction stream to
+  * catch up with reality in two very specific cases:
+diff --git a/arch/x86/include/asm/vdso/processor.h b/arch/x86/include/asm/vdso/processor.h
+new file mode 100644
+index 000000000000..57b1a7034c64
+--- /dev/null
++++ b/arch/x86/include/asm/vdso/processor.h
+@@ -0,0 +1,23 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_VDSO_PROCESSOR_H
++#define __ASM_VDSO_PROCESSOR_H
++
++#ifndef __ASSEMBLY__
++
++/* REP NOP (PAUSE) is a good thing to insert into busy-wait loops. */
++static __always_inline void rep_nop(void)
++{
++	asm volatile("rep; nop" ::: "memory");
++}
++
++static __always_inline void cpu_relax(void)
++{
++	rep_nop();
++}
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_PROCESSOR_H */
 -- 
 2.25.1
