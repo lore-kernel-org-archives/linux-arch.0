@@ -1,90 +1,69 @@
-Return-Path: <SRS0=1/KV=5J=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v4 4/6] mm: Add page table level flags to vm_flags
-Date: Tue, 24 Mar 2020 21:45:32 +0800
-Message-ID: <20200324134534.1570-5-yezhenyu2@huawei.com>
-In-Reply-To: <20200324134534.1570-1-yezhenyu2@huawei.com>
-References: <20200324134534.1570-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:36626 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726916AbgCQMXL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 08:23:11 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v4 06/26] arm64: Introduce asm/vdso/clocksource.h
+Date: Tue, 17 Mar 2020 12:22:00 +0000
+Message-ID: <20200317122220.30393-7-vincenzo.frascino@arm.com>
+In-Reply-To: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, peterz@infradead.org, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200324134532.YuwQoMcqoIuh0lFUrY6huL0o3mtHNSU4LrZRbNtlolM@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200317122200.jfnpy5Cmfcv6hMsHRykqfyvsghoNd6101k3yfPT1srY@z>
 
-Add VM_LEVEL_[PUD|PMD|PTE] to vm_flags to indicate which level of
-the page tables the vma is in. Those flags can be used to reduce
-the cost of TLB invalidation.
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-These should be common flags for all architectures, however, those
-flags are only available in 64-bits system currently, because the
-lower-order flags are fully used.
+Introduce asm/vdso/clocksource.h to contain all the arm64 specific
+functions that are suitable for vDSO inclusion.
 
-These flags are only used by ARM64 architecture now. See in next
-patch.
+This header will be required by a future patch that will generalize
+vdso/clocksource.h.
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/linux/mm.h             | 10 ++++++++++
- include/trace/events/mmflags.h | 15 ++++++++++++++-
- 2 files changed, 24 insertions(+), 1 deletion(-)
+ arch/arm64/include/asm/clocksource.h      | 3 +--
+ arch/arm64/include/asm/vdso/clocksource.h | 8 ++++++++
+ 2 files changed, 9 insertions(+), 2 deletions(-)
+ create mode 100644 arch/arm64/include/asm/vdso/clocksource.h
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index c54fb96cb1e6..3ff16ffa5e83 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -313,6 +313,16 @@ extern unsigned int kobjsize(const void *objp);
+diff --git a/arch/arm64/include/asm/clocksource.h b/arch/arm64/include/asm/clocksource.h
+index eb82e9d95c5d..482185566b0c 100644
+--- a/arch/arm64/include/asm/clocksource.h
++++ b/arch/arm64/include/asm/clocksource.h
+@@ -2,7 +2,6 @@
+ #ifndef _ASM_CLOCKSOURCE_H
+ #define _ASM_CLOCKSOURCE_H
+ 
+-#define VDSO_ARCH_CLOCKMODES	\
+-	VDSO_CLOCKMODE_ARCHTIMER
++#include <asm/vdso/clocksource.h>
+ 
  #endif
- #endif /* CONFIG_ARCH_HAS_PKEYS */
-=20
-+#ifdef CONFIG_64BIT
-+# define VM_LEVEL_PUD	BIT(37)		/* vma is in pud-level of page table */
-+# define VM_LEVEL_PMD	BIT(38)		/* vma is in pmd-level of page table */
-+# define VM_LEVEL_PTE	BIT(39)		/* vma is in pte-level of page table */
-+#else
-+# define VM_LEVEL_PUD	0
-+# define VM_LEVEL_PMD	0
-+# define VM_LEVEL_PTE	0
-+#endif /* CONFIG_64BIT */
+diff --git a/arch/arm64/include/asm/vdso/clocksource.h b/arch/arm64/include/asm/vdso/clocksource.h
+new file mode 100644
+index 000000000000..df6ea65c1dec
+--- /dev/null
++++ b/arch/arm64/include/asm/vdso/clocksource.h
+@@ -0,0 +1,8 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_VDSOCLOCKSOURCE_H
++#define __ASM_VDSOCLOCKSOURCE_H
 +
- #if defined(CONFIG_X86)
- # define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
- #elif defined(CONFIG_PPC)
-diff --git a/include/trace/events/mmflags.h b/include/trace/events/mmflag=
-s.h
-index a1675d43777e..9f13cfa96f9f 100644
---- a/include/trace/events/mmflags.h
-+++ b/include/trace/events/mmflags.h
-@@ -130,6 +130,16 @@ IF_HAVE_PG_IDLE(PG_idle,		"idle"		)
- #define IF_HAVE_VM_SOFTDIRTY(flag,name)
- #endif
-=20
-+#ifdef CONFIG_64BIT
-+#define IF_HAVE_VM_LEVEL_PUD(flag,name)	{flag, name}
-+#define IF_HAVE_VM_LEVEL_PMD(flag,name)	{flag, name}
-+#define IF_HAVE_VM_LEVEL_PTE(flag,name)	{flag, name}
-+#else
-+#define IF_HAVE_VM_LEVEL_PUD(flag,name)
-+#define IF_HAVE_VM_LEVEL_PMD(flag,name)
-+#define IF_HAVE_VM_LEVEL_PTE(flag,name)
++#define VDSO_ARCH_CLOCKMODES	\
++	VDSO_CLOCKMODE_ARCHTIMER
++
 +#endif
-+
- #define __def_vmaflag_names						\
- 	{VM_READ,			"read"		},		\
- 	{VM_WRITE,			"write"		},		\
-@@ -161,7 +171,10 @@ IF_HAVE_VM_SOFTDIRTY(VM_SOFTDIRTY,	"softdirty"	)		\
- 	{VM_MIXEDMAP,			"mixedmap"	},		\
- 	{VM_HUGEPAGE,			"hugepage"	},		\
- 	{VM_NOHUGEPAGE,			"nohugepage"	},		\
--	{VM_MERGEABLE,			"mergeable"	}		\
-+	{VM_MERGEABLE,			"mergeable"	},		\
-+IF_HAVE_VM_LEVEL_PUD(VM_LEVEL_PUD,	"pud-level"	),		\
-+IF_HAVE_VM_LEVEL_PMD(VM_LEVEL_PMD,	"pmd-level"	),		\
-+IF_HAVE_VM_LEVEL_PTE(VM_LEVEL_PTE,	"pte-level"	)		\
-=20
- #define show_vma_flags(flags)						\
- 	(flags) ? __print_flags(flags, "|",				\
---=20
-2.19.1
+-- 
+2.25.1
