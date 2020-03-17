@@ -1,56 +1,66 @@
-Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qk1-f194.google.com ([209.85.222.194]:38111 "EHLO
-        mail-qk1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726953AbgCTQ7x (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2020 12:59:53 -0400
-Received: by mail-qk1-f194.google.com with SMTP id h14so7589139qke.5
-        for <linux-arch@vger.kernel.org>; Fri, 20 Mar 2020 09:59:50 -0700 (PDT)
-Date: Fri, 20 Mar 2020 12:59:48 -0400
-From: Joel Fernandes <joel@joelfernandes.org>
-Subject: Re: [PATCH 2/3] LKMM: Add litmus test for RCU GP guarantee where
- reader stores
-Message-ID: <20200320165948.GB155212@google.com>
-References: <20200320065552.253696-2-joel@joelfernandes.org>
- <Pine.LNX.4.44L0.2003201101060.27303-100000@netrider.rowland.org>
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:36482 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726651AbgCQMW6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 08:22:58 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v4 02/26] linux/bits.h: Extract common header for vDSO
+Date: Tue, 17 Mar 2020 12:21:56 +0000
+Message-ID: <20200317122220.30393-3-vincenzo.frascino@arm.com>
+In-Reply-To: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.2003201101060.27303-100000@netrider.rowland.org>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: linux-kernel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, linux-arch@vger.kernel.org, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
-Message-ID: <20200320165948.UXzdIkpZxc3Tx5Wbcsp6IfildMzaaTRgNAEuP1X_lJE@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200317122156.p8VkKUR3k9SdP9wYa2ih6fxQIA7uxlPhWuknLNpdSKg@z>
 
-On Fri, Mar 20, 2020 at 11:03:30AM -0400, Alan Stern wrote:
-> On Fri, 20 Mar 2020, Joel Fernandes (Google) wrote:
-> 
-> > This adds an example for the important RCU grace period guarantee, which
-> > shows an RCU reader can never span a grace period.
-> > 
-> > Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-> > ---
-> >  .../litmus-tests/RCU+sync+read.litmus         | 37 +++++++++++++++++++
-> >  1 file changed, 37 insertions(+)
-> >  create mode 100644 tools/memory-model/litmus-tests/RCU+sync+read.litmus
-> > 
-> > diff --git a/tools/memory-model/litmus-tests/RCU+sync+read.litmus b/tools/memory-model/litmus-tests/RCU+sync+read.litmus
-> > new file mode 100644
-> > index 0000000000000..73557772e2a32
-> > --- /dev/null
-> > +++ b/tools/memory-model/litmus-tests/RCU+sync+read.litmus
-> 
-> Do these new tests really belong here?  I thought we were adding a new 
-> directory under Documentation/ for litmus tests that illustrate parts 
-> of the LKMM or memory-barriers.txt.
-> 
-> By contrast, the tests under tools/memory-model are merely to show 
-> people what litmus tests look like and how they should be written.
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-I could add it to tools/memory-model/Documentation/ under a new
-'examples' directory there. We could also create an 'rcu' directory in
-tools/memory-model/litmus-tests/ and add these there. Thoughts?
+Split bits.h into linux and common headers to make the latter suitable
+for inclusion in the vDSO library.
 
-thanks,
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ include/linux/bits.h | 2 +-
+ include/vdso/bits.h  | 9 +++++++++
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+ create mode 100644 include/vdso/bits.h
 
- - Joel
+diff --git a/include/linux/bits.h b/include/linux/bits.h
+index 669d69441a62..a740bbcf3cd2 100644
+--- a/include/linux/bits.h
++++ b/include/linux/bits.h
+@@ -3,9 +3,9 @@
+ #define __LINUX_BITS_H
+ 
+ #include <linux/const.h>
++#include <vdso/bits.h>
+ #include <asm/bitsperlong.h>
+ 
+-#define BIT(nr)			(UL(1) << (nr))
+ #define BIT_ULL(nr)		(ULL(1) << (nr))
+ #define BIT_MASK(nr)		(UL(1) << ((nr) % BITS_PER_LONG))
+ #define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
+diff --git a/include/vdso/bits.h b/include/vdso/bits.h
+new file mode 100644
+index 000000000000..6d005a1f5d94
+--- /dev/null
++++ b/include/vdso/bits.h
+@@ -0,0 +1,9 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __VDSO_BITS_H
++#define __VDSO_BITS_H
++
++#include <vdso/const.h>
++
++#define BIT(nr)			(UL(1) << (nr))
++
++#endif	/* __VDSO_BITS_H */
+-- 
+2.25.1
