@@ -1,115 +1,148 @@
-Return-Path: <SRS0=wNVN=5G=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v3 3/4] arm64: tlb: Use translation level hint in vm_flags
-Date: Sat, 21 Mar 2020 20:16:20 +0800
-Message-ID: <20200321121621.1600-4-yezhenyu2@huawei.com>
-In-Reply-To: <20200321121621.1600-1-yezhenyu2@huawei.com>
-References: <20200321121621.1600-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from smtp-42a9.mail.infomaniak.ch ([84.16.66.169]:55443 "EHLO
+        smtp-42a9.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726157AbgCQRuN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 13:50:13 -0400
+Subject: Re: [RFC PATCH v14 00/10] Landlock LSM
+References: <20200224160215.4136-1-mic@digikod.net>
+ <CAG48ez21bEn0wL1bbmTiiu8j9jP5iEWtHOwz4tURUJ+ki0ydYw@mail.gmail.com>
+ <873d7419-bdd9-8a52-0a9b-dddbe31df4f9@digikod.net>
+ <CAG48ez0=0W5Ok-8nASqZrZ28JboXRRi3gDxV5u6mdcOtzwuRVA@mail.gmail.com>
+From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
+Message-ID: <688dda0f-0907-34eb-c19e-3e9e5f613a74@digikod.net>
+Date: Tue, 17 Mar 2020 18:50:07 +0100
 MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
+In-Reply-To: <CAG48ez0=0W5Ok-8nASqZrZ28JboXRRi3gDxV5u6mdcOtzwuRVA@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200321121620.5aXSs_kV5flh5PI4SddamVQK7Aj80FNc8IOw76PDaEk@z>
+To: Jann Horn <jannh@google.com>
+Cc: kernel list <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-doc@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
+Message-ID: <20200317175007.gnNDGb5_y7EiKkWJXOs313QfbwF9Ilecr1jj2ov0WTs@z>
 
-This patch used the VM_LEVEL flags in vma->vm_flags to set the
-TTL field in tlbi instruction.
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/mmu.h      |  2 ++
- arch/arm64/include/asm/tlbflush.h | 14 ++++++++------
- arch/arm64/mm/mmu.c               | 14 ++++++++++++++
- 3 files changed, 24 insertions(+), 6 deletions(-)
+On 17/03/2020 17:19, Jann Horn wrote:
+> On Thu, Mar 12, 2020 at 12:38 AM Mickaël Salaün <mic@digikod.net> wrote:
+>> On 10/03/2020 00:44, Jann Horn wrote:
+>>> On Mon, Feb 24, 2020 at 5:03 PM Mickaël Salaün <mic@digikod.net> wrote:
 
-diff --git a/arch/arm64/include/asm/mmu.h b/arch/arm64/include/asm/mmu.h
-index e4d862420bb4..b3f410fee512 100644
---- a/arch/arm64/include/asm/mmu.h
-+++ b/arch/arm64/include/asm/mmu.h
-@@ -88,6 +88,8 @@ extern void create_pgd_mapping(struct mm_struct *mm, ph=
-ys_addr_t phys,
- extern void *fixmap_remap_fdt(phys_addr_t dt_phys, int *size, pgprot_t p=
-rot);
- extern void mark_linear_text_alias_ro(void);
- extern bool kaslr_requires_kpti(void);
-+extern unsigned int get_vma_level(struct vm_area_struct *vma);
-+
-=20
- #define INIT_MM_CONTEXT(name)	\
- 	.pgd =3D init_pg_dir,
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
-lbflush.h
-index d141c080e494..93bb09fdfafd 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -218,10 +218,11 @@ static inline void flush_tlb_page_nosync(struct vm_=
-area_struct *vma,
- 					 unsigned long uaddr)
- {
- 	unsigned long addr =3D __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
-+	unsigned int level =3D get_vma_level(vma);
-=20
- 	dsb(ishst);
--	__tlbi_level(vale1is, addr, 0);
--	__tlbi_user_level(vale1is, addr, 0);
-+	__tlbi_level(vale1is, addr, level);
-+	__tlbi_user_level(vale1is, addr, level);
- }
-=20
- static inline void flush_tlb_page(struct vm_area_struct *vma,
-@@ -242,6 +243,7 @@ static inline void __flush_tlb_range(struct vm_area_s=
-truct *vma,
- 				     unsigned long stride, bool last_level)
- {
- 	unsigned long asid =3D ASID(vma->vm_mm);
-+	unsigned int level =3D get_vma_level(vma);
- 	unsigned long addr;
-=20
- 	start =3D round_down(start, stride);
-@@ -261,11 +263,11 @@ static inline void __flush_tlb_range(struct vm_area=
-_struct *vma,
- 	dsb(ishst);
- 	for (addr =3D start; addr < end; addr +=3D stride) {
- 		if (last_level) {
--			__tlbi_level(vale1is, addr, 0);
--			__tlbi_user_level(vale1is, addr, 0);
-+			__tlbi_level(vale1is, addr, level);
-+			__tlbi_user_level(vale1is, addr, level);
- 		} else {
--			__tlbi_level(vae1is, addr, 0);
--			__tlbi_user_level(vae1is, addr, 0);
-+			__tlbi_level(vae1is, addr, level);
-+			__tlbi_user_level(vae1is, addr, level);
- 		}
- 	}
- 	dsb(ish);
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index 128f70852bf3..e6a1221cd86b 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -60,6 +60,20 @@ static pud_t bm_pud[PTRS_PER_PUD] __page_aligned_bss _=
-_maybe_unused;
-=20
- static DEFINE_SPINLOCK(swapper_pgdir_lock);
-=20
-+inline unsigned int get_vma_level(struct vm_area_struct *vma)
-+{
-+	unsigned int level =3D 0;
-+	if (vma->vm_flags & VM_LEVEL_PUD)
-+		level =3D 1;
-+	else if (vma->vm_flags & VM_LEVEL_PMD)
-+		level =3D 2;
-+	else if (vma->vm_flags & VM_LEVEL_PTE)
-+		level =3D 3;
-+
-+	vma->vm_flags &=3D ~(VM_LEVEL_PUD | VM_LEVEL_PMD | VM_LEVEL_PTE);
-+	return level;
-+}
-+
- void set_swapper_pgd(pgd_t *pgdp, pgd_t pgd)
- {
- 	pgd_t *fixmap_pgdp;
---=20
-2.19.1
+[...]
+
+>>> Aside from those things, there is also a major correctness issue where
+>>> I'm not sure how to solve it properly:
+>>>
+>>> Let's say a process installs a filter on itself like this:
+>>>
+>>> struct landlock_attr_ruleset ruleset = { .handled_access_fs =
+>>> ACCESS_FS_ROUGHLY_WRITE};
+>>> int ruleset_fd = landlock(LANDLOCK_CMD_CREATE_RULESET,
+>>> LANDLOCK_OPT_CREATE_RULESET, sizeof(ruleset), &ruleset);
+>>> struct landlock_attr_path_beneath path_beneath = {
+>>>   .ruleset_fd = ruleset_fd,
+>>>   .allowed_access = ACCESS_FS_ROUGHLY_WRITE,
+>>>   .parent_fd = open("/tmp/foobar", O_PATH),
+>>> };
+>>> landlock(LANDLOCK_CMD_ADD_RULE, LANDLOCK_OPT_ADD_RULE_PATH_BENEATH,
+>>> sizeof(path_beneath), &path_beneath);
+>>> prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
+>>> struct landlock_attr_enforce attr_enforce = { .ruleset_fd = ruleset_fd };
+>>> landlock(LANDLOCK_CMD_ENFORCE_RULESET, LANDLOCK_OPT_ENFORCE_RULESET,
+>>> sizeof(attr_enforce), &attr_enforce);
+>>>
+>>> At this point, the process is not supposed to be able to write to
+>>> anything outside /tmp/foobar, right? But what happens if the process
+>>> does the following next?
+>>>
+>>> struct landlock_attr_ruleset ruleset = { .handled_access_fs =
+>>> ACCESS_FS_ROUGHLY_WRITE};
+>>> int ruleset_fd = landlock(LANDLOCK_CMD_CREATE_RULESET,
+>>> LANDLOCK_OPT_CREATE_RULESET, sizeof(ruleset), &ruleset);
+>>> struct landlock_attr_path_beneath path_beneath = {
+>>>   .ruleset_fd = ruleset_fd,
+>>>   .allowed_access = ACCESS_FS_ROUGHLY_WRITE,
+>>>   .parent_fd = open("/", O_PATH),
+>>> };
+>>> landlock(LANDLOCK_CMD_ADD_RULE, LANDLOCK_OPT_ADD_RULE_PATH_BENEATH,
+>>> sizeof(path_beneath), &path_beneath);
+>>> prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
+>>> struct landlock_attr_enforce attr_enforce = { .ruleset_fd = ruleset_fd };
+>>> landlock(LANDLOCK_CMD_ENFORCE_RULESET, LANDLOCK_OPT_ENFORCE_RULESET,
+>>> sizeof(attr_enforce), &attr_enforce);
+>>>
+>>> As far as I can tell from looking at the source, after this, you will
+>>> have write access to the entire filesystem again. I think the idea is
+>>> that LANDLOCK_CMD_ENFORCE_RULESET should only let you drop privileges,
+>>> not increase them, right?
+>>
+>> There is an additionnal check in syscall.c:get_path_from_fd(): it is
+>> forbidden to add a rule with a path which is not accessible (according
+>> to LANDLOCK_ACCESS_FS_OPEN) thanks to a call to security_file_open(),
+>> but this is definitely not perfect.
+> 
+> Ah, I missed that.
+> 
+>>> I think the easy way to fix this would be to add a bitmask to each
+>>> rule that says from which ruleset it originally comes, and then let
+>>> check_access_path() collect these bitmasks from each rule with OR, and
+>>> check at the end whether the resulting bitmask is full - if not, at
+>>> least one of the rulesets did not permit the access, and it should be
+>>> denied.
+>>>
+>>> But maybe it would make more sense to change how the API works
+>>> instead, and get rid of the concept of "merging" two rulesets
+>>> together? Instead, we could make the API work like this:
+>>>
+>>>  - LANDLOCK_CMD_CREATE_RULESET gives you a file descriptor whose
+>>> ->private_data contains a pointer to the old ruleset of the process,
+>>> as well as a pointer to a new empty ruleset.
+>>>  - LANDLOCK_CMD_ADD_RULE fails if the specified rule would not be
+>>> permitted by the old ruleset, then adds the rule to the new ruleset
+>>>  - LANDLOCK_CMD_ENFORCE_RULESET fails if the old ruleset pointer in
+>>> ->private_data doesn't match the current ruleset of the process, then
+>>> replaces the old ruleset with the new ruleset.
+>>>
+>>> With this, the new ruleset is guaranteed to be a subset of the old
+>>> ruleset because each of the new ruleset's rules is permitted by the
+>>> old ruleset. (Unless the directory hierarchy rotates, but in that case
+>>> the inaccuracy isn't much worse than what would've been possible
+>>> through RCU path walk anyway AFAIK.)
+>>>
+>>> What do you think?
+>>>
+>>
+>> I would prefer to add the same checks you described at first (with
+>> check_access_path), but only when creating a new ruleset with
+>> merge_ruleset() (which should probably be renamed). This enables not to
+>> rely on a parent ruleset/domain until the enforcement, which is the case
+>> anyway.
+>> Unfortunately this doesn't work for some cases with bind mounts. Because
+>> check_access_path() goes through one path, another (bind mounted) path
+>> could be illegitimately allowed.
+> 
+> Hmm... I'm not sure what you mean. At the moment, landlock doesn't
+> allow any sandboxed process to change the mount hierarchy, right? Can
+> you give an example where this would go wrong?
+
+Indeed, a Landlocked process must no be able to change its mount
+namespace layout. However, bind mounts may already exist.
+Let's say a process sandbox itself to only access /a in a read-write
+way. Then, this process (or one of its children) add a new restriction
+on /a/b to only be able to read this hierarchy. The check at insertion
+time would allow this because this access right is a subset of the
+access right allowed with the parent directory. However, If /a/b is bind
+mounted somewhere else, let's say in /private/b, then the second
+enforcement just gave new access rights to this hierarchy too. This is
+why it seems risky to rely on a check about the legitimacy of a new
+access right when adding it to a ruleset or when enforcing it.
+
+
+> 
+>> That makes the problem a bit more complicated. A solution may be to keep
+>> track of the hierarchy of each rule (e.g. with a layer/depth number),
+>> and only allow an access request if at least a rule of each layer allow
+>> this access. In this case we also need to correctly handle the case when
+>> rules from different layers are tied to the same object.
+> 
