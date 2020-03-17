@@ -1,105 +1,94 @@
-Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from netrider.rowland.org ([192.131.102.5]:49679 "HELO
-        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with SMTP id S1726843AbgCTPHL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2020 11:07:11 -0400
-Date: Fri, 20 Mar 2020 11:07:10 -0400 (EDT)
-From: Alan Stern <stern@rowland.harvard.edu>
-Subject: Re: [PATCH 1/3] LKMM: Add litmus test for RCU GP guarantee where
- updater frees object
-In-Reply-To: <20200320102603.GA22784@andrea>
-Message-ID: <Pine.LNX.4.44L0.2003201104220.27303-100000@netrider.rowland.org>
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:37226 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726452AbgCQMYG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 08:24:06 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v4 23/26] x86: vdso: Enable x86 to use common headers
+Date: Tue, 17 Mar 2020 12:22:17 +0000
+Message-ID: <20200317122220.30393-24-vincenzo.frascino@arm.com>
+In-Reply-To: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Parri <parri.andrea@gmail.com>
-Cc: "Joel Fernandes (Google)" <joel@joelfernandes.org>, linux-kernel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, linux-arch@vger.kernel.org, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
-Message-ID: <20200320150710.7oEEgvYAgHKOo4jesZEF0evl5HJ0fWOZPjzPqlB3vXc@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200317122217.fXf8WmYUOv_ynr3Kj9awpeIV6ypBL_9bYr1ENiLDGfc@z>
 
-On Fri, 20 Mar 2020, Andrea Parri wrote:
+Enable x86 to use only the common headers in the implementation
+of the vDSO library.
 
-> On Fri, Mar 20, 2020 at 02:55:50AM -0400, Joel Fernandes (Google) wrote:
-> > This adds an example for the important RCU grace period guarantee, which
-> > shows an RCU reader can never span a grace period.
-> > 
-> > Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-> > ---
-> >  .../litmus-tests/RCU+sync+free.litmus         | 40 +++++++++++++++++++
-> >  1 file changed, 40 insertions(+)
-> >  create mode 100644 tools/memory-model/litmus-tests/RCU+sync+free.litmus
-> > 
-> > diff --git a/tools/memory-model/litmus-tests/RCU+sync+free.litmus b/tools/memory-model/litmus-tests/RCU+sync+free.litmus
-> > new file mode 100644
-> > index 0000000000000..c4682502dd296
-> > --- /dev/null
-> > +++ b/tools/memory-model/litmus-tests/RCU+sync+free.litmus
-> > @@ -0,0 +1,40 @@
-> > +C RCU+sync+free
-> > +
-> > +(*
-> > + * Result: Never
-> > + *
-> > + * This litmus test demonstrates that an RCU reader can never see a write after
-> > + * the grace period, if it saw writes that happen before the grace period. This
-> > + * is a typical pattern of RCU usage, where the write before the grace period
-> > + * assigns a pointer, and the writes after destroy the object that the pointer
-> > + * points to.
-> > + *
-> > + * This guarantee also implies, an RCU reader can never span a grace period and
-> > + * is an important RCU grace period memory ordering guarantee.
-> > + *)
-> > +
-> > +{
-> > +x = 1;
-> > +y = x;
-> > +z = 1;
-> 
-> FYI, this could become a little more readable if we wrote it as follows:
-> 
-> int x = 1;
-> int *y = &x;
-> int z = 1;
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/x86/include/asm/processor.h      | 12 +-----------
+ arch/x86/include/asm/vdso/processor.h | 23 +++++++++++++++++++++++
+ 2 files changed, 24 insertions(+), 11 deletions(-)
+ create mode 100644 arch/x86/include/asm/vdso/processor.h
 
-Also, the test won't work with klitmus7 unless you do this.
-
-> The LKMM tools are happy either way, just a matter of style/preference;
-> and yes, MP+onceassign+derefonce isn't currently following mine...  ;-/
-> 
-> 
-> > +}
-> > +
-> > +P0(int *x, int *z, int **y)
-> > +{
-> > +	int r0;
-> 
-> This would need to be "int *r0;" in order to make klitmus7(+gcc) happy.
-> 
-> 
-> > +	int r1;
-> > +
-> > +	rcu_read_lock();
-> > +	r0 = rcu_dereference(*y);
-> > +	r1 = READ_ONCE(*r0);
-> > +	rcu_read_unlock();
-> > +}
-> > +
-> > +P1(int *x, int *z, int **y)
-> > +{
-> > +	rcu_assign_pointer(*y, z);
-> 
-> AFAICT, you don't need this "RELEASE"; e.g., compare this test with the
-> example in:
-> 
->   https://www.kernel.org/doc/Documentation/RCU/Design/Requirements/Requirements.html#Grace-Period%20Guarantee
-> 
-> What am I missing?
-
-If z were not a simple variable but a more complicated structure, the
-RELEASE would be necessary to ensure that all P1's prior changes to z
-became visible before the write to y.
-
-Besides, it's good form always to match rcu_dereference() with 
-rcu_assign_pointer(), for code documentation if nothing else.
-
-Alan
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index 09705ccc393c..94789db550df 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -26,6 +26,7 @@ struct vm86;
+ #include <asm/fpu/types.h>
+ #include <asm/unwind_hints.h>
+ #include <asm/vmxfeatures.h>
++#include <asm/vdso/processor.h>
+ 
+ #include <linux/personality.h>
+ #include <linux/cache.h>
+@@ -677,17 +678,6 @@ static inline unsigned int cpuid_edx(unsigned int op)
+ 	return edx;
+ }
+ 
+-/* REP NOP (PAUSE) is a good thing to insert into busy-wait loops. */
+-static __always_inline void rep_nop(void)
+-{
+-	asm volatile("rep; nop" ::: "memory");
+-}
+-
+-static __always_inline void cpu_relax(void)
+-{
+-	rep_nop();
+-}
+-
+ /*
+  * This function forces the icache and prefetched instruction stream to
+  * catch up with reality in two very specific cases:
+diff --git a/arch/x86/include/asm/vdso/processor.h b/arch/x86/include/asm/vdso/processor.h
+new file mode 100644
+index 000000000000..57b1a7034c64
+--- /dev/null
++++ b/arch/x86/include/asm/vdso/processor.h
+@@ -0,0 +1,23 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_VDSO_PROCESSOR_H
++#define __ASM_VDSO_PROCESSOR_H
++
++#ifndef __ASSEMBLY__
++
++/* REP NOP (PAUSE) is a good thing to insert into busy-wait loops. */
++static __always_inline void rep_nop(void)
++{
++	asm volatile("rep; nop" ::: "memory");
++}
++
++static __always_inline void cpu_relax(void)
++{
++	rep_nop();
++}
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_PROCESSOR_H */
+-- 
+2.25.1
