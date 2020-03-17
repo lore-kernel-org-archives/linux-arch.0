@@ -1,98 +1,92 @@
-Return-Path: <SRS0=twat=5M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:15166 "EHLO mga04.intel.com"
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:41012 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726515AbgC0MLH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Mar 2020 08:11:07 -0400
-From: "H.J. Lu" <hjl.tools@gmail.com>
-Subject: [PATCH] Discard .note.gnu.property sections in generic NOTES
-Date: Fri, 27 Mar 2020 05:11:01 -0700
-Message-ID: <20200327121101.948934-1-hjl.tools@gmail.com>
+        id S1726066AbgCQRsM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 13:48:12 -0400
+Date: Tue, 17 Mar 2020 17:48:06 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
+ vgettimeofday
+Message-ID: <20200317174806.GE632169@arrakis.emea.arm.com>
+References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+ <20200317122220.30393-19-vincenzo.frascino@arm.com>
+ <20200317143834.GC632169@arrakis.emea.arm.com>
+ <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
+ <20200317155031.GD632169@arrakis.emea.arm.com>
+ <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Kees Cook <keescook@chromium.org>, Thomas Lendacky <Thomas.Lendacky@amd.com>, Sami Tolvanen <samitolvanen@google.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20200327121101.MPvtDEF03rg4KkkxAvwSrX9oqJrdEpd6ZEc53Nn8OSM@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200317174806.dVARCcR-7QhjEvqEq_toNUM03PCTXpwpbjRWteW_zHw@z>
 
-**"this patch depends on patch Add RUNTIME_DISCARD_EXIT to generic DISCARDS"**
+On Tue, Mar 17, 2020 at 04:40:48PM +0000, Vincenzo Frascino wrote:
+> On 3/17/20 3:50 PM, Catalin Marinas wrote:
+> > On Tue, Mar 17, 2020 at 03:04:01PM +0000, Vincenzo Frascino wrote:
+> >> On 3/17/20 2:38 PM, Catalin Marinas wrote:
+> >>> On Tue, Mar 17, 2020 at 12:22:12PM +0000, Vincenzo Frascino wrote:
+> >>
+> >> Can TASK_SIZE > UINTPTR_MAX on an arm64 system?
+> > 
+> > TASK_SIZE yes on arm64 but not TASK_SIZE_32. I was asking about the
+> > arm32 check where TASK_SIZE < UINTPTR_MAX. How does the vdsotest return
+> > -EFAULT on arm32? Which code path causes this in the user vdso code?
+> 
+> Sorry I got confused because you referred to arch/arm/vdso/vgettimeofday.c which
+> is the arm64 implementation, not the compat one :)
 
-With the command-line option, -mx86-used-note=yes, which can also be
-enabled at binutils build time with
+You figured out (in your subsequent reply) that I was indeed talking
+about arm32 ;).
 
-  --enable-x86-used-note  generate GNU x86 used ISA and feature properties
+> In the case of arm32 everything is handled via syscall fallback.
 
-the x86 assembler in binutils 2.32 and above generates a program property
-note in a note section, .note.gnu.property, to encode used x86 ISAs and
-features.  But kernel linker script only contains a single NOTE segment:
+So clock_gettime() on arm32 always falls back to the syscall?
 
-PHDRS {
- text PT_LOAD FLAGS(5);
- data PT_LOAD FLAGS(6);
- percpu PT_LOAD FLAGS(6);
- init PT_LOAD FLAGS(7);
- note PT_NOTE FLAGS(0);
-}
-SECTIONS
-{
-...
- .notes : AT(ADDR(.notes) - 0xffffffff80000000) { __start_notes = .; KEEP(*(.not
-e.*)) __stop_notes = .; } :text :note
-...
-}
+> > My guess is that on arm32 it only fails with -EFAULT in the syscall
+> > fallback path since a copy_to_user() would fail the access_ok() check.
+> > Does it always take the fallback path if ts > TASK_SIZE?
+> 
+> Correct, it goes via fallback. The return codes for these syscalls are specified
+> by the ABI [1]. Then I agree with you the way on which arm32 achieves it should
+> be via access_ok() check.
 
-The NOTE segment generated by kernel linker script is aligned to 4 bytes.
-But .note.gnu.property section must be aligned to 8 bytes on x86-64 and
-we get
+"it should be" or "it is" on arm32?
 
-[hjl@gnu-skx-1 linux]$ readelf -n vmlinux
+If, on arm32, clock_gettime() is (would be?) handled in the vdso
+entirely, who checks for the pointer outside the accessible address
+space (as per the clock_gettime man page)?
 
-Displaying notes found in: .notes
-  Owner                Data size Description
-  Xen                  0x00000006 Unknown note type: (0x00000006)
-   description data: 6c 69 6e 75 78 00
-  Xen                  0x00000004 Unknown note type: (0x00000007)
-   description data: 32 2e 36 00
-  xen-3.0              0x00000005 Unknown note type: (0x006e6558)
-   description data: 08 00 00 00 03
-readelf: Warning: note with invalid namesz and/or descsz found at offset 0x50
-readelf: Warning:  type: 0xffffffff, namesize: 0x006e6558, descsize:
-0x80000000, alignment: 8
-[hjl@gnu-skx-1 linux]$
+I'm fine with such check as long as it is consistent across arm32 and
+arm64 compat. Or even on arm64 native between syscall fallback and vdso
+execution. I haven't figured out yet whether this is the case.
 
-Since note.gnu.property section in kernel image is never used, discard
-.note.gnu.property sections in kernel linker script by adding
+> >>> This last check needs an explanation. If the clock_id is invalid but res
+> >>> is not NULL, we allow it. I don't see where the compatibility issue is,
+> >>> arm32 doesn't have such check.
+> >>
+> >> The case that you are describing has to return -EPERM per ABI spec. This case
+> >> has to return -EINVAL.
+> >>
+> >> The first case is taken care from the generic code. But if we don't do this
+> >> check before on arm64 compat we end up returning the wrong error code.
+> > 
+> > I guess I have the same question as above. Where does the arm32 code
+> > return -EINVAL for that case? Did it work correctly before you removed
+> > the TASK_SIZE_32 check?
+> 
+> I repeated the test and seems that it was failing even before I removed
+> TASK_SIZE_32. For reasons I can't explain I did not catch it before.
+> 
+> The getres syscall should return -EINVAL in the cases specified in [1].
 
-/DISCARD/ : {
-  *(.note.gnu.property)
-}
+It states 'clk_id specified is not supported on this system'. Fair
+enough but it doesn't say that it returns -EINVAL only if res == NULL.
+You also don't explain why __cvdso_clock_getres_time32() doesn't already
+detect an invalid clk_id on arm64 compat (but does it on arm32).
 
-before kernel NOTE segment in generic NOTES.
-
-Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
----
- include/asm-generic/vmlinux.lds.h | 7 +++++++
- 1 file changed, 7 insertions(+)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 6b943fb8c5fd..6659a7c07c84 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -818,7 +818,14 @@
- #define TRACEDATA
- #endif
- 
-+/*
-+ * Discard .note.gnu.property sections which are unused and have
-+ * different alignment requirement from kernel note sections.
-+ */
- #define NOTES								\
-+	/DISCARD/ : {							\
-+		*(.note.gnu.property)					\
-+	}								\
- 	.notes : AT(ADDR(.notes) - LOAD_OFFSET) {			\
- 		__start_notes = .;					\
- 		KEEP(*(.note.*))					\
 -- 
-2.25.1
+Catalin
