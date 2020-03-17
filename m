@@ -1,49 +1,85 @@
-Return-Path: <SRS0=06hN=5A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-ot1-f68.google.com ([209.85.210.68]:35553 "EHLO
-        mail-ot1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728999AbgCOSNF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 15 Mar 2020 14:13:05 -0400
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:36800 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726916AbgCQMX1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 08:23:27 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v4 11/26] linux/time32.h: Extract common header for vDSO
+Date: Tue, 17 Mar 2020 12:22:05 +0000
+Message-ID: <20200317122220.30393-12-vincenzo.frascino@arm.com>
+In-Reply-To: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-References: <20200315175108.9694-1-romain.naour@gmail.com> <20200315175108.9694-2-romain.naour@gmail.com>
-In-Reply-To: <20200315175108.9694-2-romain.naour@gmail.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Sun, 15 Mar 2020 19:12:51 +0100
-Message-ID: <CAMuHMdV7N4cxCmyv-eXa1Cnx9pnQLr-cuwAbNwwG-4YyKodgeA@mail.gmail.com>
-Subject: Re: [PATCH 2/2] include/asm-generic: vmlinux.lds.h
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Romain Naour <romain.naour@gmail.com>
-Cc: Linux-sh list <linux-sh@vger.kernel.org>, Alan Modra <amodra@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20200315181251.w9khtIg0f_VLwpCj6B8HJI1V_TkxmCyvmnf9z4dZY9c@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200317122205.csMZyV4Yp3mvs7UO6ljf8T1hf-Sqg0bVeR2hv6tqZsQ@z>
 
-CC arnd, linux-arch
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-On Sun, Mar 15, 2020 at 6:51 PM Romain Naour <romain.naour@gmail.com> wrote:
-> Since the patch [1], building the kernel using a toolchain built with
-> Binutils 2.33.1 prevent booting a sh4 system under Qemu.
-> Apply the patch provided by Alan Modra [2] that fix alignment of rodata.
->
-> [1] https://sourceware.org/git/gitweb.cgi?p=binutils-gdb.git;h=ebd2263ba9a9124d93bbc0ece63d7e0fae89b40e
-> [2] https://www.sourceware.org/ml/binutils/2019-12/msg00112.html
->
-> Signed-off-by: Romain Naour <romain.naour@gmail.com>
-> Cc: Alan Modra <amodra@gmail.com>
-> ---
->  include/asm-generic/vmlinux.lds.h | 1 +
->  1 file changed, 1 insertion(+)
->
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index e00f41aa8ec4..d46d34b58c96 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -374,6 +374,7 @@
->   */
->  #ifndef RO_AFTER_INIT_DATA
->  #define RO_AFTER_INIT_DATA                                             \
-> +       . = ALIGN(8);                                                   \
->         __start_ro_after_init = .;                                      \
->         *(.data..ro_after_init)                                         \
->         JUMP_TABLE_DATA                                                 \
-> --
-> 2.24.1
+Split time32.h into linux and common headers to make the latter suitable
+for inclusion in the vDSO library.
+
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ include/linux/time32.h | 14 ++------------
+ include/vdso/time32.h  | 17 +++++++++++++++++
+ 2 files changed, 19 insertions(+), 12 deletions(-)
+ create mode 100644 include/vdso/time32.h
+
+diff --git a/include/linux/time32.h b/include/linux/time32.h
+index cad4c3186002..0933f28214c0 100644
+--- a/include/linux/time32.h
++++ b/include/linux/time32.h
+@@ -12,19 +12,9 @@
+ #include <linux/time64.h>
+ #include <linux/timex.h>
+ 
+-#define TIME_T_MAX	(__kernel_old_time_t)((1UL << ((sizeof(__kernel_old_time_t) << 3) - 1)) - 1)
+-
+-typedef s32		old_time32_t;
+-
+-struct old_timespec32 {
+-	old_time32_t	tv_sec;
+-	s32		tv_nsec;
+-};
++#include <vdso/time32.h>
+ 
+-struct old_timeval32 {
+-	old_time32_t	tv_sec;
+-	s32		tv_usec;
+-};
++#define TIME_T_MAX	(__kernel_old_time_t)((1UL << ((sizeof(__kernel_old_time_t) << 3) - 1)) - 1)
+ 
+ struct old_itimerspec32 {
+ 	struct old_timespec32 it_interval;
+diff --git a/include/vdso/time32.h b/include/vdso/time32.h
+new file mode 100644
+index 000000000000..fdf56f932f67
+--- /dev/null
++++ b/include/vdso/time32.h
+@@ -0,0 +1,17 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __VDSO_TIME32_H
++#define __VDSO_TIME32_H
++
++typedef s32		old_time32_t;
++
++struct old_timespec32 {
++	old_time32_t	tv_sec;
++	s32		tv_nsec;
++};
++
++struct old_timeval32 {
++	old_time32_t	tv_sec;
++	s32		tv_usec;
++};
++
++#endif /* __VDSO_TIME32_H */
+-- 
+2.25.1
