@@ -1,92 +1,49 @@
-Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50670 "EHLO foss.arm.com"
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:41546 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731505AbgCPPdJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Mar 2020 11:33:09 -0400
-Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
- <20200313154345.56760-19-vincenzo.frascino@arm.com>
- <20200315182950.GB32205@mbp> <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
- <20200316103437.GD3005@mbp> <77a2e91a-58f4-3ba3-9eef-42d6a8faf859@arm.com>
- <20200316112205.GE3005@mbp> <9a0a9285-8a45-4f65-3a83-813cabd0f0d3@arm.com>
- <20200316144346.GF3005@mbp>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <427064ee-45df-233c-0281-69e3d62ba784@arm.com>
-Date: Mon, 16 Mar 2020 15:33:30 +0000
+        id S1726452AbgCQSt0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 14:49:26 -0400
+Date: Tue, 17 Mar 2020 18:49:20 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
+Message-ID: <20200317184920.GI632169@arrakis.emea.arm.com>
+References: <20200316165055.31179-1-broonie@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20200316144346.GF3005@mbp>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200316153330.Vk8mfhfebarxe6ni8Z23mwpVfOEIxYr_xjE0EspqDig@z>
+To: Mark Brown <broonie@kernel.org>
+Cc: Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200317184920.r_m2HZMjbd8ixqfOyv5-FaDW3V0JyhgSdvDz04e4Cpc@z>
 
+On Mon, Mar 16, 2020 at 04:50:42PM +0000, Mark Brown wrote:
+> Daniel Kiss (1):
+>   mm: smaps: Report arm64 guarded pages in smaps
+> 
+> Dave Martin (11):
+>   ELF: UAPI and Kconfig additions for ELF program properties
+>   ELF: Add ELF program property parsing support
+>   arm64: Basic Branch Target Identification support
+>   elf: Allow arch to tweak initial mmap prot flags
+>   arm64: elf: Enable BTI at exec based on ELF program properties
+>   arm64: BTI: Decode BYTPE bits when printing PSTATE
+>   arm64: unify native/compat instruction skipping
+>   arm64: traps: Shuffle code to eliminate forward declarations
+>   arm64: BTI: Reset BTYPE when skipping emulated instructions
+>   KVM: arm64: BTI: Reset BTYPE when skipping emulated instructions
+>   arm64: BTI: Add Kconfig entry for userspace BTI
+> 
+> Mark Brown (1):
+>   arm64: mm: Display guarded pages in ptdump
 
-On 3/16/20 2:43 PM, Catalin Marinas wrote[...]
+I provisionally pushed this patches to linux-next (and arm64
+for-next/bti).
 
->> To me does not seem optimized out. Which version of the compiler are you using?
-> 
-> I misread the #ifdef'ery in asm/processor.h. So with 4K pages,
-> TASK_SIZE_32 is (1UL<<32)-PAGE_SIZE. However, with 64K pages _and_
-> CONFIG_KUSER_HELPERS, TASK_SIZE_32 is 1UL<<32 and the check is removed
-> by the compiler.
-> 
-> With the 4K build, __vdso_clock_gettime starts as:
-> 
-> 00000194 <__vdso_clock_gettime>:
->  194:   f511 5f80       cmn.w   r1, #4096       ; 0x1000
->  198:   d214            bcs.n   1c4 <__vdso_clock_gettime+0x30>
->  19a:   b5b0            push    {r4, r5, r7, lr}
->  ...
->  1c4:   f06f 000d       mvn.w   r0, #13
->  1c8:   4770            bx      lr
-> 
-> With 64K pages:
-> 
-> 00000194 <__vdso_clock_gettime>:
->  194:   b5b0            push    {r4, r5, r7, lr}
->  ...
->  1be:   bdb0            pop     {r4, r5, r7, pc}
-> 
-> I haven't tried but it's likely that the vdsotest fails with 64K pages
-> and compat enabled (requires EXPERT).
->
-
-This makes more sense. Thanks for the clarification.
-
-I agree on the behavior of 64K pages and I think as well that the
-"compatibility" issue is still there. However as you correctly stated in your
-first email arm32 never supported 16K or 64K pages, hence I think we should not
-be concerned about compatibility in this cases.
-
-To make it more explicit we could make COMPAT_VDSO on arm64 depend on
-ARM64_4K_PAGES. What do you think?
-
->> Please find below the list of errors for clock_gettime (similar for the other):
->>
->> passing UINTPTR_MAX to clock_gettime (VDSO): terminated by unexpected signal 7
->> clock-gettime-monotonic/abi: 1 failures/inconsistencies encountered
-> 
-> Ah, so it uses UINTPTR_MAX in the test. Fair enough but I don't think
-> the arm64 check is entirely useful. On arm32, the check was meant to
-> return -EFAULT for addresses beyond TASK_SIZE that may enter into the
-> kernel or module space. On arm64 compat, the kernel space is well above
-> the reach of the 32-bit code.
-> 
-> If you want to preserve some compatibility for this specific test, what
-> about checking for wrapping around 0, I think it would make more sense.
-> Something like:
-> 
-> 	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
-> 
-
-Ok, sounds good to me. But it is something that this patch series inherited,
-hence I would prefer to send a separate patch that introduces what you are
-proposing and removes TASK_SIZE_32 from the headers. How does it sound?
+I'm not sure whether they'll make it into 5.7 yet (still missing acks on
+the fs/* changes) but at least they'll get some wider exposure,
+especially as they go outside arch/arm64/.
 
 -- 
-Regards,
-Vincenzo
+Catalin
