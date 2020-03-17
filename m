@@ -1,31 +1,87 @@
-From: Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>
-Subject: Re: [RFC PATCH v14 06/10] landlock: Add syscall implementation
-Date: Tue, 17 Mar 2020 16:47:09 +0000
-Message-ID: <20200317164709.GA23230@ZenIV.linux.org.uk>
-References: <20200224160215.4136-1-mic@digikod.net>
- <20200224160215.4136-7-mic@digikod.net>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
+ vgettimeofday
+Date: Tue, 17 Mar 2020 17:48:06 +0000
+Message-ID: <20200317174806.GE632169@arrakis.emea.arm.com>
+References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+ <20200317122220.30393-19-vincenzo.frascino@arm.com>
+ <20200317143834.GC632169@arrakis.emea.arm.com>
+ <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
+ <20200317155031.GD632169@arrakis.emea.arm.com>
+ <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200224160215.4136-7-mic-WFhQfpSGs3bR7s880joybQ@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: =?iso-8859-1?Q?Micka=EBl_Sala=FCn?= <mic-WFhQfpSGs3bR7s880joybQ@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Casey Schaufler <casey-iSGtlc1asvQWG2LlvL+J4A@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>, Jann Horn <jann-XZ1E9jl8jIdeoWH0uzbU5w@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, =?iso-8859-1?Q?Micka=EBl_Sala=FCn?= <mickael.salaun-D9rjmswh09VWj0EZb7rXcA@public.gmane.org>, "Serge E . Hallyn" <serge-A9i7LUbDfNHQT0dZR+AlfA@public.gmane.org>, Shuah Khan <shuah-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Vincent Dagonneau <vincent.dagonneau-D9rjmswh09VWj0EZb7rXcA@public.gmane.org>, kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-security-module-u79uwXL29TasMV2rI37PzA@public.gmane.org
+In-Reply-To: <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
+Sender: linux-mips-owner@vger.kernel.org
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>Mark
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Feb 24, 2020 at 05:02:11PM +0100, Mickaël Salaün wrote:
+On Tue, Mar 17, 2020 at 04:40:48PM +0000, Vincenzo Frascino wrote:
+> On 3/17/20 3:50 PM, Catalin Marinas wrote:
+> > On Tue, Mar 17, 2020 at 03:04:01PM +0000, Vincenzo Frascino wrote:
+> >> On 3/17/20 2:38 PM, Catalin Marinas wrote:
+> >>> On Tue, Mar 17, 2020 at 12:22:12PM +0000, Vincenzo Frascino wrote:
+> >>
+> >> Can TASK_SIZE > UINTPTR_MAX on an arm64 system?
+> > 
+> > TASK_SIZE yes on arm64 but not TASK_SIZE_32. I was asking about the
+> > arm32 check where TASK_SIZE < UINTPTR_MAX. How does the vdsotest return
+> > -EFAULT on arm32? Which code path causes this in the user vdso code?
+> 
+> Sorry I got confused because you referred to arch/arm/vdso/vgettimeofday.c which
+> is the arm64 implementation, not the compat one :)
 
-> +static int get_path_from_fd(u64 fd, struct path *path)
+You figured out (in your subsequent reply) that I was indeed talking
+about arm32 ;).
 
-> +	/*
-> +	 * Only allows O_PATH FD: enable to restrict ambiant (FS) accesses
-> +	 * without requiring to open and risk leaking or misuing a FD.  Accept
-> +	 * removed, but still open directory (S_DEAD).
-> +	 */
-> +	if (!(f.file->f_mode & FMODE_PATH) || !f.file->f_path.mnt ||
-					      ^^^^^^^^^^^^^^^^^^^
-Could you explain what that one had been be about?  The underlined
-subexpression is always false; was that supposed to check some
-condition and if so, which one?
+> In the case of arm32 everything is handled via syscall fallback.
+
+So clock_gettime() on arm32 always falls back to the syscall?
+
+> > My guess is that on arm32 it only fails with -EFAULT in the syscall
+> > fallback path since a copy_to_user() would fail the access_ok() check.
+> > Does it always take the fallback path if ts > TASK_SIZE?
+> 
+> Correct, it goes via fallback. The return codes for these syscalls are specified
+> by the ABI [1]. Then I agree with you the way on which arm32 achieves it should
+> be via access_ok() check.
+
+"it should be" or "it is" on arm32?
+
+If, on arm32, clock_gettime() is (would be?) handled in the vdso
+entirely, who checks for the pointer outside the accessible address
+space (as per the clock_gettime man page)?
+
+I'm fine with such check as long as it is consistent across arm32 and
+arm64 compat. Or even on arm64 native between syscall fallback and vdso
+execution. I haven't figured out yet whether this is the case.
+
+> >>> This last check needs an explanation. If the clock_id is invalid but res
+> >>> is not NULL, we allow it. I don't see where the compatibility issue is,
+> >>> arm32 doesn't have such check.
+> >>
+> >> The case that you are describing has to return -EPERM per ABI spec. This case
+> >> has to return -EINVAL.
+> >>
+> >> The first case is taken care from the generic code. But if we don't do this
+> >> check before on arm64 compat we end up returning the wrong error code.
+> > 
+> > I guess I have the same question as above. Where does the arm32 code
+> > return -EINVAL for that case? Did it work correctly before you removed
+> > the TASK_SIZE_32 check?
+> 
+> I repeated the test and seems that it was failing even before I removed
+> TASK_SIZE_32. For reasons I can't explain I did not catch it before.
+> 
+> The getres syscall should return -EINVAL in the cases specified in [1].
+
+It states 'clk_id specified is not supported on this system'. Fair
+enough but it doesn't say that it returns -EINVAL only if res == NULL.
+You also don't explain why __cvdso_clock_getres_time32() doesn't already
+detect an invalid clk_id on arm64 compat (but does it on arm32).
+
+-- 
+Catalin
