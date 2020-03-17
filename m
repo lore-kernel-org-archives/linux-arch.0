@@ -1,60 +1,47 @@
-Return-Path: <SRS0=rKsc=43=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qk1-f195.google.com ([209.85.222.195]:36055 "EHLO
-        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726466AbgCJIye (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 Mar 2020 04:54:34 -0400
-Received: by mail-qk1-f195.google.com with SMTP id u25so11989151qkk.3
-        for <linux-arch@vger.kernel.org>; Tue, 10 Mar 2020 01:54:31 -0700 (PDT)
+Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pg1-f193.google.com ([209.85.215.193]:42480 "EHLO
+        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726564AbgCQXBU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2020 19:01:20 -0400
+Received: by mail-pg1-f193.google.com with SMTP id h8so12539973pgs.9
+        for <linux-arch@vger.kernel.org>; Tue, 17 Mar 2020 16:01:19 -0700 (PDT)
+Date: Tue, 17 Mar 2020 16:01:16 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 7/9] arm64/build: Warn on orphan section placement
+Message-ID: <202003171558.7E1D46AED6@keescook>
+References: <20200228002244.15240-1-keescook@chromium.org>
+ <20200228002244.15240-8-keescook@chromium.org>
+ <20200317215614.GB20788@willie-the-truck>
 MIME-Version: 1.0
-References: <20200308094954.13258-1-guoren@kernel.org> <CAHCEeh+XYD3uVmaQRGpY=VGxpO9hzMeKasNmAojhkZe9PJ9Lug@mail.gmail.com>
- <95e3bba4-65c0-8991-9523-c16977f6350f@c-sky.com>
-In-Reply-To: <95e3bba4-65c0-8991-9523-c16977f6350f@c-sky.com>
-From: Greentime Hu <greentime.hu@sifive.com>
-Date: Tue, 10 Mar 2020 16:54:19 +0800
-Message-ID: <CAHCEehK0rgBpEzrWar1UTWJoOz=OQi18iw4Y+v3z5Hi=7JCEWw@mail.gmail.com>
-Subject: Re: [RFC PATCH V3 00/11] riscv: Add vector ISA support
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200317215614.GB20788@willie-the-truck>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LIU Zhiwei <zhiwei_liu@c-sky.com>
-Cc: guoren@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Anup.Patel@wdc.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, arnd@arndb.de, linux-csky@vger.kernel.org, linux-riscv <linux-riscv@lists.infradead.org>, Guo Ren <guoren@linux.alibaba.com>, Dave Martin <Dave.Martin@arm.com>
-Message-ID: <20200310085419.e3CNPuDvmDAwUzQAMvdnlI2Lk9OQBIyaWXtULrIuV8g@z>
+To: Will Deacon <will@kernel.org>
+Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, clang-built-linux@googlegroups.com, linux-kernel@vger.kernel.org
+Message-ID: <20200317230116.BBoB3_J3b2SXaLYHuZSOyAcLJPyqUZmNlEhmXbOaNwI@z>
 
-On Mon, Mar 9, 2020 at 6:27 PM LIU Zhiwei <zhiwei_liu@c-sky.com> wrote:
-> On 2020/3/9 11:41, Greentime Hu wrote:
-> > On Sun, Mar 8, 2020 at 5:50 PM <guoren@kernel.org> wrote:
-> >> From: Guo Ren <guoren@linux.alibaba.com>
-> >>
-> >> The implementation follow the RISC-V "V" Vector Extension draft v0.8 with
-> >> 128bit-vlen and it's based on linux-5.6-rc3 and tested with qemu [1].
-> >>
-> >> The patch implement basic context switch, sigcontext save/restore and
-> >> ptrace interface with a new regset NT_RISCV_VECTOR. Only fixed 128bit-vlen
-> >> is implemented. We need to discuss about vlen-size for libc sigcontext and
-> >> ptrace (the maximum size of vlen is unlimited in spec).
-> >>
-> >> Puzzle:
-> >> Dave Martin has talked "Growing CPU register state without breaking ABI" [2]
-> >> before, and riscv also met vlen size problem. Let's discuss the common issue
-> >> for all architectures and we need a better solution for unlimited vlen.
-> >>
-> >> Any help are welcomed :)
-> >>
-> >>   1: https://github.com/romanheros/qemu.git branch:vector-upstream-v3
-> > Hi Guo,
-> >
-> > Thanks for your patch.
-> > It seems the qemu repo doesn't have this branch?
-> Hi Greentime,
->
-> It's a promise from me. Now it's ready.  You can turn on vector by
-> "qemu-system-riscv64 -cpu rv64,v=true,vext_spec=v0.7.1".
->
-> Zhiwei
->
->
+On Tue, Mar 17, 2020 at 09:56:14PM +0000, Will Deacon wrote:
+> On Thu, Feb 27, 2020 at 04:22:42PM -0800, Kees Cook wrote:
+> > We don't want to depend on the linker's orphan section placement
+> > heuristics as these can vary between linkers, and may change between
+> > versions. All sections need to be explicitly named in the linker
+> > script.
+> > 
+> > Explicitly include debug sections when they're present. Add .eh_frame*
+> > to discard as it seems that these are still generated even though
+> > -fno-asynchronous-unwind-tables is being specified. Add .plt and
+> > .data.rel.ro to discards as they are not actually used. Add .got.plt
+> > to the image as it does appear to be mapped near .data. Finally enable
+> > orphan section warnings.
+> 
+> Hmm, I don't understand what .got.plt is doing here. Please can you
+> elaborate?
 
-Hi Zhiwei,
+I didn't track it down, but it seems to have been present (and merged
+into the kernel .data) for a while now. I can try to track this down if
+you want?
 
-Thank you, I see the branch in the repo now. I will give it a try and
-let you know if I have any problem. :)
+-- 
+Kees Cook
