@@ -1,71 +1,52 @@
-Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:51308 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731674AbgCPQEz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Mar 2020 12:04:55 -0400
-Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
- <20200313154345.56760-19-vincenzo.frascino@arm.com>
- <20200315182950.GB32205@mbp> <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
- <20200316103437.GD3005@mbp> <77a2e91a-58f4-3ba3-9eef-42d6a8faf859@arm.com>
- <20200316112205.GE3005@mbp> <9a0a9285-8a45-4f65-3a83-813cabd0f0d3@arm.com>
- <20200316144346.GF3005@mbp> <427064ee-45df-233c-0281-69e3d62ba784@arm.com>
- <20200316154930.GG3005@mbp>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <53eb7809-9da8-33e5-540f-7546de51b53d@arm.com>
-Date: Mon, 16 Mar 2020 16:05:17 +0000
-MIME-Version: 1.0
-In-Reply-To: <20200316154930.GG3005@mbp>
-Content-Type: text/plain; charset=utf-8
+Return-Path: <SRS0=mIjk=5D=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-eopbgr770100.outbound.protection.outlook.com ([40.107.77.100]:38157
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727114AbgCRAQ2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 20:16:28 -0400
+From: Michael Kelley <mikelley@microsoft.com>
+Subject: RE: [PATCH v6 05/10] arm64: hyperv: Add interrupt handlers for VMbus
+ and stimer
+Date: Wed, 18 Mar 2020 00:16:24 +0000
+Message-ID: <MW2PR2101MB1052B9C24DAB19FBBD818347D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
+References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
+ <1584200119-18594-6-git-send-email-mikelley@microsoft.com>
+ <CAK8P3a2yve3R1w5igBYMy3HSFJ8Xt4BHhXQcaTAkNCdZXZ1v-w@mail.gmail.com>
+In-Reply-To: <CAK8P3a2yve3R1w5igBYMy3HSFJ8Xt4BHhXQcaTAkNCdZXZ1v-w@mail.gmail.com>
 Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200316160517.q1AekDSaIzWa2MTjfJJKufsASbpBgdMe4YUL_QB2_Uc@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>
+Message-ID: <20200318001624.H_8aYpNcGlmVLW3KBhmI-eSt1Wfg0EPk8EHxFengbvg@z>
 
-On 3/16/20 3:49 PM, Catalin Marinas wrote:
-> On Mon, Mar 16, 2020 at 03:33:30PM +0000, Vincenzo Frascino wrote:
->> On 3/16/20 2:43 PM, Catalin Marinas wrote[...]
-[...]
-> 
->> To make it more explicit we could make COMPAT_VDSO on arm64 depend on
->> ARM64_4K_PAGES. What do you think?
-> 
-> No, I don't see why we should add this limitation.
-> 
-
-Fine by me.
-
->>>> Please find below the list of errors for clock_gettime (similar for the other):
->>>>
->>>> passing UINTPTR_MAX to clock_gettime (VDSO): terminated by unexpected signal 7
->>>> clock-gettime-monotonic/abi: 1 failures/inconsistencies encountered
->>>
->>> Ah, so it uses UINTPTR_MAX in the test. Fair enough but I don't think
->>> the arm64 check is entirely useful. On arm32, the check was meant to
->>> return -EFAULT for addresses beyond TASK_SIZE that may enter into the
->>> kernel or module space. On arm64 compat, the kernel space is well above
->>> the reach of the 32-bit code.
->>>
->>> If you want to preserve some compatibility for this specific test, what
->>> about checking for wrapping around 0, I think it would make more sense.
->>> Something like:
->>>
->>> 	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
->>
->> Ok, sounds good to me. But it is something that this patch series inherited,
->> hence I would prefer to send a separate patch that introduces what you are
->> proposing and removes TASK_SIZE_32 from the headers. How does it sound?
-> 
-> I'd rather avoid moving TASK_SIZE_32 unnecessarily. Just add a
-> preparatory patch to your series for arm64 compat vdso and follow with
-> the rest without moving TASK_SIZE_32 around.
-> 
-
-Ok, sounds good. I will test it and repost.
-
--- 
-Regards,
-Vincenzo
+RnJvbTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4NCj4gDQo+IE9uIFNhdCwgTWFyIDE0
+LCAyMDIwIGF0IDQ6MzYgUE0gTWljaGFlbCBLZWxsZXkgPG1pa2VsbGV5QG1pY3Jvc29mdC5jb20+
+IHdyb3RlOg0KPiA+DQo+ID4gQWRkIEFSTTY0LXNwZWNpZmljIGNvZGUgdG8gc2V0IHVwIGFuZCBo
+YW5kbGUgdGhlIGludGVycnVwdHMNCj4gPiBnZW5lcmF0ZWQgYnkgSHlwZXItViBmb3IgVk1idXMg
+bWVzc2FnZXMgYW5kIGZvciBzdGltZXIgZXhwaXJhdGlvbi4NCj4gPg0KPiA+IFRoaXMgY29kZSBp
+cyBhcmNoaXRlY3R1cmUgZGVwZW5kZW50IGFuZCBpcyBtb3N0bHkgZHJpdmVuIGJ5DQo+ID4gYXJj
+aGl0ZWN0dXJlIGluZGVwZW5kZW50IGNvZGUgaW4gdGhlIFZNYnVzIGRyaXZlciBhbmQgdGhlDQo+
+ID4gSHlwZXItViB0aW1lciBjbG9ja3NvdXJjZSBkcml2ZXIuDQo+ID4NCj4gPiBUaGlzIGNvZGUg
+aXMgYnVpbHQgb25seSB3aGVuIENPTkZJR19IWVBFUlYgaXMgZW5hYmxlZC4NCj4gPg0KPiA+IFNp
+Z25lZC1vZmYtYnk6IE1pY2hhZWwgS2VsbGV5IDxtaWtlbGxleUBtaWNyb3NvZnQuY29tPg0KPiAN
+Cj4gVGhpcyBsb29rcyBsaWtlIGl0IHNob3VsZCBiZSBhIG5lc3RlZCBpcnFjaGlwIGRyaXZlciBp
+bnN0ZWFkLCBzbyB5b3VyDQo+IGRldmljZSBkcml2ZXJzIGNhbiB1c2UgdGhlIG5vcm1hbCByZXF1
+ZXN0X2lycSgpIGZ1bmN0aW9ucyBldGMuDQo+IA0KPiBJcyBhbnl0aGluZyBwcmV2ZW50aW5nIHlv
+dSBmcm9tIGRvaW5nIHRoYXQ/IElmIHNvLCBwbGVhc2UgZGVzY3JpYmUNCj4gdGhhdCBpbiB0aGUg
+Y2hhbmdlbG9nIGFuZCBpbiBhIGNvbW1lbnQgaW4gdGhlIGRyaXZlci4NCj4gDQoNCkFzIG1lbnRp
+b25lZCBpbiBteSByZXBseSBvbiBQYXRjaCAxLCBIeXBlci1WIG9mZmVycyBhIGxpbWl0ZWQgc3lu
+dGhldGljDQppbnRlcnJ1cHQgY29udHJvbGxlciBtYW5hZ2VkIGJ5IExpbnV4IGNvZGUgdGhhdCdz
+IGJlZW4gYXJvdW5kIHRoZSBsYXN0DQoxMCB5ZWFycyBvbiB0aGUgeDg2IHNpZGUuICAgRm9yIHJl
+YXNvbnMgdGhhdCBwcmUtZGF0ZSBtZSwgaXQgd2FzIG5vdCB3cml0dGVuDQphcyBhbiBpcnFjaGlw
+IGRyaXZlci4NCg0KTW9kdWxvIHRoZSBzbWFsbCByb3V0aW5lcyB5b3Ugc2VlIGluIHRoaXMgcGF0
+Y2gsIHRoZSBjb2RlIGlzIGFyY2hpdGVjdHVyZQ0KaW5kZXBlbmRlbnQsIGFuZCBpdCBzZWVtcyB3
+ZSBvdWdodCB0byBrZWVwIHRoZSBoaWdoIGRlZ3JlZSBvZiBjb21tb25hbGl0eS4NClJlLWFyY2hp
+dGVjdGluZyB0aGUgYXJjaCBpbmRlcGVuZGVudCBjb2RlIHRvIG1vZGVsIGFzIGFuIGlycWNoaXAg
+ZHJpdmVyIHNlZW1zDQp0byBjYXJyeSBzb21lIHJpc2sgdG8gdGhlIHg4NiBzaWRlIHRoYXQgaGFz
+IGEgbG90IG9mIHJlYWwtd29ybGQgdXNhZ2UgdG9kYXksIGJ1dA0KSSdsbCB0YWtlIGEgbG9vayBh
+bmQgc2VlIHdoYXQgdGhlIHJpc2tzIGxvb2sgbGlrZSBhbmQgaWYgaXQgYWRkcyBhbnkgY2xhcml0
+eS4NCg==
