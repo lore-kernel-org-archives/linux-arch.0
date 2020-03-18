@@ -1,46 +1,159 @@
-Return-Path: <SRS0=8zp0=4W=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:28704 "EHLO mga14.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725944AbgCESaX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 5 Mar 2020 13:30:23 -0500
-Message-ID: <dca80473b585c9491fa2f9410806b10aee4594f7.camel@intel.com>
-Subject: Re: [RFC PATCH v9 14/27] mm: Handle Shadow Stack page fault
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Thu, 05 Mar 2020 10:30:22 -0800
-In-Reply-To: <202002251218.F919026@keescook>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-         <20200205181935.3712-15-yu-cheng.yu@intel.com>
-         <202002251218.F919026@keescook>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=mIjk=5D=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga07-in.huawei.com ([45.249.212.35]:52544 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726817AbgCRQBH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Mar 2020 12:01:07 -0400
+From: John Garry <john.garry@huawei.com>
+Subject: [PATCH 1/3] io: Provide _inX() and _outX()
+Date: Wed, 18 Mar 2020 23:55:33 +0800
+Message-ID: <1584546935-75393-2-git-send-email-john.garry@huawei.com>
+In-Reply-To: <1584546935-75393-1-git-send-email-john.garry@huawei.com>
+References: <1584546935-75393-1-git-send-email-john.garry@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Message-ID: <20200305183022.jsVo3wF9dsuGXJjsHRb3BNaUeVJOdNo7fcn5t-E7d6E@z>
+To: xuwei5@huawei.com, arnd@arndb.de
+Cc: okaya@kernel.org, bhelgaas@google.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxarm@huawei.com, olof@lixom.net, jiaxun.yang@flygoat.com, John Garry <john.garry@huawei.com>
+Message-ID: <20200318155533.Xs9K683cOFHKDtn1rOQdaNG2-OB04WaGYIyhSBk3TEY@z>
 
-On Tue, 2020-02-25 at 12:20 -0800, Kees Cook wrote:
-> On Wed, Feb 05, 2020 at 10:19:22AM -0800, Yu-cheng Yu wrote:
-> > When a task does fork(), its Shadow Stack (SHSTK) must be duplicated for
-> > the child.  This patch implements a flow similar to copy-on-write of an
-> > anonymous page, but for SHSTK.
-> > 
-> > A SHSTK PTE must be RO and Dirty.  This Dirty bit requirement is used to
-> > effect the copying.  In copy_one_pte(), clear the Dirty bit from a SHSTK
-> > PTE to cause a page fault upon the next SHSTK access.  At that time, fix
-> > the PTE and copy/re-use the page.
-> 
-> Just to confirm, during the fork, it's really not a SHSTK for a moment
-> (it's still RO, but not dirty). Can other racing threads muck this up,
-> or is this bit removed only on the copied side?
+Since commit a7851aa54c0c ("io: change outX() to have their own IO
+barrier overrides") and commit 87fe2d543f81 ("io: change inX() to have
+their own IO barrier overrides"), the outX and inX functions have memory
+barriers which can be overridden.
 
-In [RFC PATCH v9 12/27] x86/mm: Modify ptep_set_wrprotect and
-pmdp_set_wrprotect for _PAGE_DIRTY_SW, _PAGE_DIRTY_HW is changed to
-_PAGE_DIRTY_SW with cmpxchg.  That prevents racing.
+However, the generic logic_pio lib has continued to use readl/writel et al
+for IO port accesses, which has weaker barriers on arm64.
 
-The hw dirty bit is removed from the original copy first.  The next shadow
-stack access to the page causes copying.  The copied page gets the hw dirty
-bit again.
+Provide generic _inX() and _outX(), which can be used by logic pio.
 
-Yu-cheng
+Signed-off-by: John Garry <john.garry@huawei.com>
+---
+ include/asm-generic/io.h | 64 +++++++++++++++++++++++++++++++++---------------
+ 1 file changed, 44 insertions(+), 20 deletions(-)
+
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index d39ac997dda8..31f647389c84 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -448,17 +448,15 @@ static inline void writesq(volatile void __iomem *addr, const void *buffer,
+ #define IO_SPACE_LIMIT 0xffff
+ #endif
+ 
+-#include <linux/logic_pio.h>
+-
+ /*
+  * {in,out}{b,w,l}() access little endian I/O. {in,out}{b,w,l}_p() can be
+  * implemented on hardware that needs an additional delay for I/O accesses to
+  * take effect.
+  */
+ 
+-#ifndef inb
+-#define inb inb
+-static inline u8 inb(unsigned long addr)
++#ifndef _inb
++#define _inb _inb
++static inline u16 _inb(unsigned long addr)
+ {
+ 	u8 val;
+ 
+@@ -469,9 +467,9 @@ static inline u8 inb(unsigned long addr)
+ }
+ #endif
+ 
+-#ifndef inw
+-#define inw inw
+-static inline u16 inw(unsigned long addr)
++#ifndef _inw
++#define _inw _inw
++static inline u16 _inw(unsigned long addr)
+ {
+ 	u16 val;
+ 
+@@ -482,9 +480,9 @@ static inline u16 inw(unsigned long addr)
+ }
+ #endif
+ 
+-#ifndef inl
+-#define inl inl
+-static inline u32 inl(unsigned long addr)
++#ifndef _inl
++#define _inl _inl
++static inline u16 _inl(unsigned long addr)
+ {
+ 	u32 val;
+ 
+@@ -495,9 +493,9 @@ static inline u32 inl(unsigned long addr)
+ }
+ #endif
+ 
+-#ifndef outb
+-#define outb outb
+-static inline void outb(u8 value, unsigned long addr)
++#ifndef _outb
++#define _outb _outb
++static inline void _outb(u8 value, unsigned long addr)
+ {
+ 	__io_pbw();
+ 	__raw_writeb(value, PCI_IOBASE + addr);
+@@ -505,9 +503,9 @@ static inline void outb(u8 value, unsigned long addr)
+ }
+ #endif
+ 
+-#ifndef outw
+-#define outw outw
+-static inline void outw(u16 value, unsigned long addr)
++#ifndef _outw
++#define _outw _outw
++static inline void _outw(u16 value, unsigned long addr)
+ {
+ 	__io_pbw();
+ 	__raw_writew(cpu_to_le16(value), PCI_IOBASE + addr);
+@@ -515,9 +513,9 @@ static inline void outw(u16 value, unsigned long addr)
+ }
+ #endif
+ 
+-#ifndef outl
+-#define outl outl
+-static inline void outl(u32 value, unsigned long addr)
++#ifndef _outl
++#define _outl _outl
++static inline void _outl(u32 value, unsigned long addr)
+ {
+ 	__io_pbw();
+ 	__raw_writel(cpu_to_le32(value), PCI_IOBASE + addr);
+@@ -525,6 +523,32 @@ static inline void outl(u32 value, unsigned long addr)
+ }
+ #endif
+ 
++#include <linux/logic_pio.h>
++
++#ifndef inb
++#define inb _inb
++#endif
++
++#ifndef inw
++#define inw _inw
++#endif
++
++#ifndef inl
++#define inl _inl
++#endif
++
++#ifndef outb
++#define outb _outb
++#endif
++
++#ifndef outw
++#define outw _outw
++#endif
++
++#ifndef outl
++#define outl _outl
++#endif
++
+ #ifndef inb_p
+ #define inb_p inb_p
+ static inline u8 inb_p(unsigned long addr)
+-- 
+2.12.3
