@@ -1,85 +1,106 @@
-Return-Path: <SRS0=qj00=43=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=mIjk=5D=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-eopbgr770107.outbound.protection.outlook.com ([40.107.77.107]:28133
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726735AbgCRAMZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Mar 2020 20:12:25 -0400
+From: Michael Kelley <mikelley@microsoft.com>
+Subject: RE: [PATCH v6 01/10] arm64: hyperv: Add core Hyper-V include files
+Date: Wed, 18 Mar 2020 00:12:18 +0000
+Message-ID: <MW2PR2101MB10524879CD685710A51AB740D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
+References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
+ <1584200119-18594-2-git-send-email-mikelley@microsoft.com>
+ <CAK8P3a1GFDUY4mXzst4Ds+S-4SGXso6-jfpsYyy-eHyceAC1Zg@mail.gmail.com>
+In-Reply-To: <CAK8P3a1GFDUY4mXzst4Ds+S-4SGXso6-jfpsYyy-eHyceAC1Zg@mail.gmail.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-References: <CAMe9rOoRTVUzNC88Ho2XTTNJCymrd3L=XdB9xFcgxPVwAZ0FWA@mail.gmail.com>
- <AE81FEF5-ECC5-46AA-804D-9D64E656D16E@amacapital.net> <CAMe9rOoDMenvD9XRL1szR5yLQEwv9Q6f4O7CtwbdZ-cJqzezKA@mail.gmail.com>
- <0088001c-0b12-a7dc-ff2a-9d5c282fa36b@intel.com> <CAMe9rOqf0OHL9397Vikgb=UWhRMf+FmGq-9VAJNmfmzNMMDkCw@mail.gmail.com>
- <56ab33ac-865b-b37e-75f2-a489424566c3@intel.com> <CAMe9rOrzrXORQgcAwzGn+=PBvxCEgc5Km_TQq+P7uoqwiacJSA@mail.gmail.com>
- <c06073a2-6858-d5dc-d74b-ef2568bd9423@intel.com> <CAMe9rOrxM=RefftngNXhP906mrW1SMy7vp+O=yOj_WwcdQpGcg@mail.gmail.com>
- <CALCETrWF1NQeGXy0GXRwW71Bc3oSN=vsXMsBqnaqs7Us7RYebQ@mail.gmail.com>
-In-Reply-To: <CALCETrWF1NQeGXy0GXRwW71Bc3oSN=vsXMsBqnaqs7Us7RYebQ@mail.gmail.com>
-From: "H.J. Lu" <hjl.tools@gmail.com>
-Date: Mon, 9 Mar 2020 17:08:29 -0700
-Message-ID: <CAMe9rOpJjaro_qK6kghGNuSHDaP_MjVaZMbok2kbuBD48VmvXg@mail.gmail.com>
-Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
-Content-Type: text/plain; charset="UTF-8"
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Dave Hansen <dave.hansen@intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200310000829.__kRTWKU0-YxuK2JdEQGwWzV1qLdlILeaW1PCh0KiFw@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>
+Message-ID: <20200318001218.kXfMStNrJvHgbzXV3cR175mfl358haNvS7VobqJFTCw@z>
 
-On Mon, Mar 9, 2020 at 4:59 PM Andy Lutomirski <luto@amacapital.net> wrote:
->
-> On Mon, Mar 9, 2020 at 4:52 PM H.J. Lu <hjl.tools@gmail.com> wrote:
-> >
-> > On Mon, Mar 9, 2020 at 4:21 PM Dave Hansen <dave.hansen@intel.com> wrote:
-> > >
-> > > On 3/9/20 4:11 PM, H.J. Lu wrote:
-> > > > A threaded application is loaded from disk.  The object file on disk is
-> > > > either CET enabled or not CET enabled.
-> > >
-> > > Huh.  Are you saying that all instructions executed on userspace on
-> > > Linux come off of object files on the disk?  That's an interesting
-> > > assertion.  You might want to go take a look at the processes on your
-> > > systems.  Here's my browser for example:
-> > >
-> > > # for p in $(ps aux | grep chromium | awk '{print $2}' ); do cat
-> > > /proc/$p/maps; done | grep ' r-xp 00000000 00:00 0'
-> > > ...
-> > > 202f00082000-202f000bf000 r-xp 00000000 00:00 0
-> > > 202f000c2000-202f000c3000 r-xp 00000000 00:00 0
-> > > 202f00102000-202f00103000 r-xp 00000000 00:00 0
-> > > 202f00142000-202f00143000 r-xp 00000000 00:00 0
-> > > 202f00182000-202f001bf000 r-xp 00000000 00:00 0
-> > >
-> > > Lots of funny looking memory areas which are anonymous and executable!
-> > > Those didn't come off the disk.  Same thing in firefox.  Weird.  Any
-> > > idea what those are?
-> > >
-> > > One guess: https://en.wikipedia.org/wiki/Just-in-time_compilation
-> >
-> > jitted code belongs to a process loaded from disk.  Enable CET in
-> > an application which uses JIT engine means to also enable CET in
-> > JIT engine.  Take git as an example, "git grep" crashed for me on Tiger
-> > Lake.   It turned out that git itself was compiled with -fcf-protection and
-> > git was linked against libpcre2-8.so.0 also compiled with -fcf-protection,
-> > which has a JIT, sljit, which was not CET enabled.  git crashed in the
-> > jitted codes due to missing ENDBR.  I had to enable CET in sljit to make
-> > git working on CET enabled Tiger Lake.  So we need to enable CET in
-> > JIT engine before enabling CET in applications which use JIT engine.
->
-> This could presumably have been fixed by having libpcre or sljit
-> disable IBT before calling into JIT code or by running the JIT code in
-> another thread.  In the other direction, a non-CET libpcre build could
-> build IBT-capable JITted code and enable JIT (by syscall if we allow
-> that or by creating a thread?) when calling it.  And IBT has this
-
-This is not how thread in user space works.
-
-> fancy legacy bitmap to allow non-instrumented code to run with IBT on,
-> although SHSTK doesn't have hardware support for a similar feature.
-
-All these changes are called CET enabing.
-
-> So, sure, the glibc-linked ELF ecosystem needs some degree of CET
-> coordination, but it is absolutely not the case that a process MUST
-> have all CET or no CET.  Let's please support the complicated cases in
-> the kernel and the ABI too.  If glibc wants to make it annoying to do
-> complicated things, so be it.  People work behind glibc's back all the
-> time.
-
-CET is no different from NX in this regard.
-
-
--- 
-H.J.
+RnJvbTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4gU2VudDogTW9uZGF5LCBNYXJjaCAx
+NiwgMjAyMCAxOjQ4IEFNDQo+IA0KPiBPbiBTYXQsIE1hciAxNCwgMjAyMCBhdCA0OjM2IFBNIE1p
+Y2hhZWwgS2VsbGV5IDxtaWtlbGxleUBtaWNyb3NvZnQuY29tPiB3cm90ZToNCj4gDQo+ID4gKw0K
+PiA+ICsvKiBEZWZpbmUgaW5wdXQgYW5kIG91dHB1dCBsYXlvdXQgZm9yIEdldCBWUCBSZWdpc3Rl
+ciBoeXBlcmNhbGwgKi8NCj4gPiArc3RydWN0IGh2X2dldF92cF9yZWdpc3Rlcl9pbnB1dCB7DQo+
+ID4gKyAgICAgICB1NjQgcGFydGl0aW9uaWQ7DQo+ID4gKyAgICAgICB1MzIgdnBpbmRleDsNCj4g
+PiArICAgICAgIHU4ICBpbnB1dHZ0bDsNCj4gPiArICAgICAgIHU4ICBwYWRkaW5nWzNdOw0KPiA+
+ICsgICAgICAgdTMyIG5hbWUwOw0KPiA+ICsgICAgICAgdTMyIG5hbWUxOw0KPiA+ICt9IF9fcGFj
+a2VkOw0KPiANCj4gQXJlIHlvdSBzdXJlIHRoZXNlIG5lZWQgdG8gYmUgbWFkZSBieXRlLWFsaWdu
+ZWQgYWNjb3JkaW5nIHRvIHRoZQ0KPiBzcGVjaWZpY2F0aW9uPyBJZiB0aGUgc3RydWN0dXJlIGl0
+c2VsZiBpcyBhbGlnbmVkIHRvIDY0IGJpdCwgYmV0dGVyIG1hcmsgb25seQ0KPiB0aGUgaW5kaXZp
+ZHVhbCBmaWVsZHMgdGhhdCBhcmUgbWlzYWxpZ25lZCBhcyBfX3BhY2tlZC4NCj4gDQo+IElmIHRo
+ZSBzdHJ1Y3R1cmUgaXMgYWxpZ25lZCB0byBvbmx5IDMyLWJpdCBhZGRyZXNzZXMgaW5zdGVhZCBv
+Zg0KPiA2NC1iaXQsIG1hcmsgaXQgYXMgIl9fcGFja2VkIF9fYWxpZ25lZCg0KSIgdG8gbGV0IHRo
+ZSBjb21waWxlcg0KPiBnZW5lcmF0ZSBiZXR0ZXIgY29kZSBmb3IgYWNjZXNzaW5nIGl0Lg0KDQpO
+b25lIG9mIHRoZSBmaWVsZHMgYXJlIG1pc2FsaWduZWQgYW5kIGl0IHdpbGwgYWx3YXlzIGJlIGFs
+aWduZWQgdG8gNjQtYml0DQphZGRyZXNzZXMsIHNvIHRoZXJlIHNob3VsZCBiZSBubyBwYWRkaW5n
+IG5lZWRlZCBvciBhZGRlZC4gIFRoZXJlIHdhcw0KYSBkaXNjdXNzaW9uIG9mIF9fcGFja2VkIGFu
+ZCB0aGUgSHlwZXItViBkYXRhIHN0cnVjdHVyZXMgaW4gZ2VuZXJhbCBvbg0KTEtNTCBoZXJlOiAg
+aHR0cHM6Ly9sa21sLm9yZy9sa21sLzIwMTgvMTEvMzAvODQ4LiAgQWRkaW5nIF9fcGFja2VkIHdh
+cw0KZG9uZSBhcyBhIHByZXZlbnRhdGl2ZSBtZWFzdXJlLCBub3QgYmVjYXVzZSBhbnl0aGluZyB3
+YXMgYWN0dWFsbHkNCmJyb2tlbi4gIE1hcmtpbmcgYXMgX19hbGlnbmVkKDgpIGhlcmUgd291bGQg
+aW5kaWNhdGUgdGhlIGNvcnJlY3QgaW50ZW50LA0KdGhvdWdoIHRoZSB1c2Ugb2YgdGhlIHN0cnVj
+dHVyZSBhbHdheXMgZW5zdXJlcyA2NC1iaXQgYWxpZ25tZW50Lg0KDQo+IA0KPiBBbHNvLCBpbiBv
+cmRlciB0byB3cml0ZSBwb3J0YWJsZSBjb2RlLCBpdCB3b3VsZCBiZSBoZWxwZnVsIHRvIG1hcmsN
+Cj4gYWxsIHRoZSBmaWVsZHMgYXMgZXhwbGljaXRseSBsaXR0bGUtZW5kaWFuLCBhbmQgdXNlIF9f
+bGUzMl90b19jcHUoKQ0KPiBldGMgZm9yIGFjY2Vzc2luZyB0aGVtLg0KDQpUaGVyZSdzIGFuIG9w
+ZW5pbmcgY29tbWVudCBpbiB0aGlzIGZpbGUgc3RhdGluZyB0aGF0IGFsbCBkYXRhDQpzdHJ1Y3R1
+cmVzIHNoYXJlZCBiZXR3ZWVuIEh5cGVyLVYgYW5kIGEgZ3Vlc3QgVk0gYXJlIGxpdHRsZQ0KZW5k
+aWFuLiAgSXMgdGhlcmUgc29tZSBvdGhlciBtYXJraW5nIHRvIGNvbnNpZGVyIHVzaW5nPw0KDQpX
+ZSBoYXZlIGRlZmluaXRlbHkgbm90IGFsbG93ZWQgZm9yIHRoZSBjYXNlIG9mIEh5cGVyLVYgcnVu
+bmluZyBvbg0KYSBiaWcgZW5kaWFuIGFyY2hpdGVjdHVyZS4gIFRoZXJlIGFyZSBhICpsb3QqIG9m
+IG1lc3NhZ2VzIGFuZCBkYXRhDQpzdHJ1Y3R1cmVzIHBhc3NlZCBiZXR3ZWVuIHRoZSBndWVzdCBh
+bmQgSHlwZXItViwgYW5kIGNvZGluZw0KdG8gaGFuZGxlIGVpdGhlciBlbmRpYW5uZXNzIGlzIGEg
+YmlnIHByb2plY3QuICBJJ20gZG91YnRmdWwNCm9mIHRoZSB2YWx1ZSB1bnRpbCBhbmQgdW5sZXNz
+IHdlIGFjdHVhbGx5IGhhdmUgYSBuZWVkIGZvciBpdC4NCg0KPiANCj4gPiArLyogRGVmaW5lIHN5
+bnRoZXRpYyBpbnRlcnJ1cHQgY29udHJvbGxlciBtZXNzYWdlIGZsYWdzLiAqLw0KPiA+ICt1bmlv
+biBodl9tZXNzYWdlX2ZsYWdzIHsNCj4gPiArICAgICAgIF9fdTggYXN1ODsNCj4gPiArICAgICAg
+IHN0cnVjdCB7DQo+ID4gKyAgICAgICAgICAgICAgIF9fdTggbXNnX3BlbmRpbmc6MTsNCj4gPiAr
+ICAgICAgICAgICAgICAgX191OCByZXNlcnZlZDo3Ow0KPiA+ICsgICAgICAgfSBfX3BhY2tlZDsN
+Cj4gPiArfTsNCj4gDQo+IEZvciBzaW1pbGFyIHJlYXNvbnMsIHBsZWFzZSBhdm9pZCBiaXQgZmll
+bGRzIGFuZCBqdXN0IHVzZSBhDQo+IGJpdCBtYXNrIG9uIHRoZSBmaXJzdCBtZW1iZXIgb2YgdGhl
+IHVuaW9uLg0KDQpVbmZvcnR1bmF0ZWx5LCBjaGFuZ2luZyB0byBhIGJpdCBtYXNrIHJpcHBsZXMg
+aW50bw0KYXJjaGl0ZWN0dXJlIGluZGVwZW5kZW50IGNvZGUgYW5kIGludG8gdGhlIHg4Ng0KaW1w
+bGVtZW50YXRpb24uICBJJ2QgcHJlZmVyIG5vdCB0byBkcmFnIHRoYXQgY29tcGxleGl0eQ0KaW50
+byB0aGlzIHBhdGNoIHNldC4NCg0KPiANCj4gVGhlIF9fcGFja2VkIGFubm90YXRpb24gaGVyZSBp
+cyBub3QgbWVhbmluZ2Z1bCwNCj4gYXMgdGhlIHRvdGFsIHNpemUgaXMgYWxyZWFkeSBvbmx5IGEg
+c2luZ2xlIGJ5dGUuDQoNCkFncmVlZC4NCg0KPiANCj4gPiArLyogRGVmaW5lIHBvcnQgaWRlbnRp
+ZmllciB0eXBlLiAqLw0KPiA+ICt1bmlvbiBodl9wb3J0X2lkIHsNCj4gPiArICAgICAgIF9fdTMy
+IGFzdTMyOw0KPiA+ICsgICAgICAgc3RydWN0IHsNCj4gPiArICAgICAgICAgICAgICAgX191MzIg
+aWQ6MjQ7DQo+ID4gKyAgICAgICAgICAgICAgIF9fdTMyIHJlc2VydmVkOjg7DQo+ID4gKyAgICAg
+ICB9ICBfX3BhY2tlZCB1Ow0KPiA+ICt9Ow0KPiANCj4gSGVyZSwgdGhlIF9fcGFja2VkIGFubm90
+YXRpb24gaXMgaW5jb25zaXN0ZW50IHdpdGggdGhlIHVzZQ0KPiBpbiB0aGUgcmVzdCBvZiB0aGUg
+ZmlsZTogbWFya2luZyBvbmx5IG9uZSBtZW1iZXIgb2YgdGhlIHVuaW9uDQo+IGFzIF9fcGFja2Vk
+IG1lYW5zIHRoYXQgdGhlIHVuaW9uIGl0c2VsZiBpcyBzdGlsbCBleHBlY3RlZCB0bw0KPiBiZSA0
+IGJ5dGUgYWxpZ25lZC4gSSB3b3VsZCBleHBlY3QgdGhhdCBlaXRoZXIgYWxsIG9mIHRoZXNlDQo+
+IHN0cnVjdHVyZXMgaGF2ZSBhIHNlbnNpYmxlIGFsaWdubWVudCwgb3IgdGhleSBhcmUgYWxsDQo+
+IGNvbXBsZXRlbHkgdW5hbGlnbmVkLg0KDQpBZ3JlZWQuICBMb29rcyBsaWtlIGl0IGlzIHdyb25n
+IG9uIHRoZSB4ODYgc2lkZSB0b28uICANCg0KPiANCj4gPiArICogVXNlIHRoZSBIeXBlci1WIHBy
+b3ZpZGVkIHN0aW1lcjAgYXMgdGhlIHRpbWVyIHRoYXQgaXMgbWFkZQ0KPiA+ICsgKiBhdmFpbGFi
+bGUgdG8gdGhlIGFyY2hpdGVjdHVyZSBpbmRlcGVuZGVudCBIeXBlci1WIGRyaXZlcnMuDQo+ID4g
+KyAqLw0KPiA+ICsjZGVmaW5lIGh2X2luaXRfdGltZXIodGltZXIsIHRpY2spIFwNCj4gPiArICAg
+ICAgICAgICAgICAgaHZfc2V0X3ZwcmVnKEhWX1JFR0lTVEVSX1NUSU1FUjBfQ09VTlQgKyAoMip0
+aW1lciksIHRpY2spDQo+ID4gKyNkZWZpbmUgaHZfaW5pdF90aW1lcl9jb25maWcodGltZXIsIHZh
+bCkgXA0KPiA+ICsgICAgICAgICAgICAgICBodl9zZXRfdnByZWcoSFZfUkVHSVNURVJfU1RJTUVS
+MF9DT05GSUcgKyAoMip0aW1lciksIHZhbCkNCj4gPiArI2RlZmluZSBodl9nZXRfY3VycmVudF90
+aWNrKHRpY2spIFwNCj4gPiArICAgICAgICAgICAgICAgKHRpY2sgPSBodl9nZXRfdnByZWcoSFZf
+UkVHSVNURVJfVElNRV9SRUZDT1VOVCkpDQo+IA0KPiBJbiBnZW5lcmFsLCB3ZSBwcmVmZXIgaW5s
+aW5lIGZ1bmN0aW9ucyBvdmVyIG1hY3JvcyBpbiBoZWFkZXIgZmlsZXMuDQoNCkkgY2FuIGNoYW5n
+ZSB0aGUgInNldCIgY2FsbHMgdG8gaW5saW5lIGZ1bmN0aW9ucy4gIEFzIHlvdSBjYW4gc2VlLCB0
+aGUgImdldCINCmZ1bmN0aW9ucyBhcmUgY29kZWQgYW5kIHVzZWQgaW4gYXJjaGl0ZWN0dXJlIGlu
+ZGVwZW5kZW50IGNvZGUgYW5kIG9uDQp0aGUgeDg2IHNpZGUgaW4gYSB3YXkgdGhhdCB3b24ndCBj
+b252ZXJ0IHRvIGlubGluZSBmdW5jdGlvbnMuDQoNCj4gDQo+ID4gKyNpZiBJU19FTkFCTEVEKENP
+TkZJR19IWVBFUlYpDQo+ID4gKyNkZWZpbmUgaHZfZW5hYmxlX3N0aW1lcjBfcGVyY3B1X2lycShp
+cnEpICAgICAgZW5hYmxlX3BlcmNwdV9pcnEoaXJxLCAwKQ0KPiA+ICsjZGVmaW5lIGh2X2Rpc2Fi
+bGVfc3RpbWVyMF9wZXJjcHVfaXJxKGlycSkgICAgIGRpc2FibGVfcGVyY3B1X2lycShpcnEpDQo+
+ID4gKyNlbmRpZg0KPiANCj4gU2hvdWxkIHRoZXJlIGJlIGFuICNlbHNlIGRlZmluaXRpb24gaGVy
+ZT8gSXQgaGVscHMgcmVhZGFiaWxpdHkNCj4gdG8gaGF2ZSB0aGUgdHdvIHZlcnNpb25zICh3aXRo
+IGFuZCB3aXRob3V0IGh5cGVydiBzdXBwb3J0KSBjbG9zZQ0KPiB0b2dldGhlciByYXRoZXIgdGhh
+biBpbiBkaWZmZXJlbnQgZmlsZXMuIElmIHRoZXJlIGlzIG5vIG90aGVyDQo+IGRlZmluaXRpb24s
+IGp1c3QgZHJvcCB0aGUgI2lmLg0KDQpBZ3JlZWQuICBJJ2xsIGZpZ3VyZSBvdXQgYSB3YXkgdG8g
+aGFuZGxlIHRoaXMgYmV0dGVyLg0KDQo+IA0KPiAgICAgIEFybmQNCg==
