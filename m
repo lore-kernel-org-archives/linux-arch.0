@@ -1,106 +1,69 @@
-Return-Path: <SRS0=UTne=45=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:59450 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726023AbgCLEKj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 12 Mar 2020 00:10:39 -0400
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v2 2/3] arm64: tlb: use mm_struct.context.flags to indicate TTL value
-Date: Thu, 12 Mar 2020 12:10:17 +0800
-Message-ID: <20200312041018.1927-3-yezhenyu2@huawei.com>
-In-Reply-To: <20200312041018.1927-1-yezhenyu2@huawei.com>
-References: <20200312041018.1927-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=mIjk=5D=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.134]:50683 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727733AbgCRJof (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 18 Mar 2020 05:44:35 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Content-Type: text/plain; charset=US-ASCII
+References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
+ <1584200119-18594-8-git-send-email-mikelley@microsoft.com>
+ <CAK8P3a0+uBsurfQ4smjPDGkJQSkMe-TxJ4cWR_EZXgDR4-bAWQ@mail.gmail.com> <MW2PR2101MB1052281E5B197F2AA8E4D622D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
+In-Reply-To: <MW2PR2101MB1052281E5B197F2AA8E4D622D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 18 Mar 2020 10:44:16 +0100
+Message-ID: <CAK8P3a2fzFdXoMKz_-Bryq0HUar=Tgs7SwJL4JFw2_KjzpOPdg@mail.gmail.com>
+Subject: Re: [PATCH v6 07/10] arm64: hyperv: Initialize hypervisor on boot
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mark.rutland@arm.com, catalin.marinas@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
-Message-ID: <20200312041017.0rJ2gT6az29F7hpzE4d1qf3xDMQ2TcLTf3QFTnYSLJc@z>
+To: Michael Kelley <mikelley@microsoft.com>
+Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>, John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Stephen Boyd <sboyd@kernel.org>
+Message-ID: <20200318094416.ZoguJBDz5Ckw6dAqP4pIMLTbi1rFh6yTItZR5sSpfj8@z>
 
-Use Architecture-specific MM context to indicate the level of page
-table walk.  This avoids lots of changes to common-interface.
+On Wed, Mar 18, 2020 at 1:18 AM Michael Kelley <mikelley@microsoft.com> wrote:
+>
+> From: Arnd Bergmann <arnd@arndb.de> Sent: Monday, March 16, 2020 1:30 AM
+> >
+> > As you are effectively adding a new clocksource driver here, please move the
+> > code to drivers/clocksource and send the patch to the respective maintainers
+> > (added to Cc here), splitting it out from the rest of the patch.
+> >
+> > You should also describe why your platform doesn't just use the normal
+> > architected timer interface.
+> >
+> > > +TIMER_ACPI_DECLARE(hyperv, ACPI_SIG_GTDT, hyperv_init);
+> >
+> > This looks like it registers a driver for the same device as the normal
+> > arch timer. Won't that clash?
+>
+> There is a Hyper-V clocksource driver in drivers/clocksource/hyperv_timer.c.
+> It is architecture independent and works for both x86 and ARM64.
+>
+> The requirement here is really for a place to hang the general Hyper-V
+> initialization code.   On the x86 side, there's infrastructure already in place
+> to do hypervisor initialization, but nothing corresponding on the ARM64 side.
+> The TIMER_ACPI_DECLARE hook is admittedly a temporary approach, and I'm
+> happy to hear if someone has a better way to handle this.
+>
+> FWIW, Hyper-V doesn't currently virtualize the ARM arch counter/timer for
+> guest VMs.  The Hyper-V synthetic counter/timer in the Hyper-V clocksource
+> driver is used on both ARM64 and x86.  But this Hyper-V init code doesn't actually
+> touch the GTDT device, so it won't interfere with the ARM arch counter/timer
+> when a future Hyper-V version does virtualize it.
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/mmu.h      | 11 +++++++++++
- arch/arm64/include/asm/tlbflush.h |  6 +++---
- arch/arm64/kernel/process.c       |  2 +-
- 3 files changed, 15 insertions(+), 4 deletions(-)
+I don't have a good idea to solve it, just a few more thoughts:
 
-diff --git a/arch/arm64/include/asm/mmu.h b/arch/arm64/include/asm/mmu.h
-index e4d862420bb4..f86a38ab3632 100644
---- a/arch/arm64/include/asm/mmu.h
-+++ b/arch/arm64/include/asm/mmu.h
-@@ -8,6 +8,10 @@
- #include <asm/cputype.h>
- 
- #define MMCF_AARCH32	0x1	/* mm context flag for AArch32 executables */
-+#define S1_PUD_LEVEL	0x10	/* mm context flag for the level of ptw */
-+#define S1_PMD_LEVEL	0x20
-+#define S1_PTE_LEVEL	0x30
-+
- #define USER_ASID_BIT	48
- #define USER_ASID_FLAG	(UL(1) << USER_ASID_BIT)
- #define TTBR_ASID_MASK	(UL(0xffff) << 48)
-@@ -19,6 +23,10 @@
- typedef struct {
- 	atomic64_t	id;
- 	void		*vdso;
-+	/*
-+	 * flags[3:0]: AArch32 executables
-+	 * flags[7:4]: the level of page table walk
-+	 */
- 	unsigned long	flags;
- } mm_context_t;
- 
-@@ -29,6 +37,9 @@ typedef struct {
-  */
- #define ASID(mm)	((mm)->context.id.counter & 0xffff)
- 
-+/* This macro is only used by TLBI TTL */
-+#define TLBI_LEVEL(mm)	((mm)->context.flags >> 4 & 0xf)
-+
- extern bool arm64_use_ng_mappings;
- 
- static inline bool arm64_kernel_unmapped_at_el0(void)
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-index dda693f32099..312b9edb281b 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -186,7 +186,7 @@ static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
- 	unsigned long addr = __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
- 
- 	dsb(ishst);
--	__tlbi_level(vale1is, addr, 0);
-+	__tlbi_level(vale1is, addr, TLBI_LEVEL(vma->vm_mm));
- }
- 
- static inline void flush_tlb_page(struct vm_area_struct *vma,
-@@ -226,9 +226,9 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
- 	dsb(ishst);
- 	for (addr = start; addr < end; addr += stride) {
- 		if (last_level) {
--			__tlbi_level(vale1is, addr, 0);
-+			__tlbi_level(vale1is, addr, TLBI_LEVEL(vma->vm_mm));
- 		} else {
--			__tlbi_level(vae1is, addr, 0);
-+			__tlbi_level(vae1is, addr, TLBI_LEVEL(vma->vm_mm));
- 		}
- 	}
- 	dsb(ish);
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index bbb0f0c145f6..bf835755d9ed 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -562,7 +562,7 @@ unsigned long arch_align_stack(unsigned long sp)
-  */
- void arch_setup_new_exec(void)
- {
--	current->mm->context.flags = is_compat_task() ? MMCF_AARCH32 : 0;
-+	current->mm->context.flags |= is_compat_task() ? MMCF_AARCH32 : 0;
- 
- 	ptrauth_thread_init_user(current);
- }
--- 
-2.19.1
+- if your platform does not actually provide the generic timer, then the
+  ACPI tables should not list one either. Instead, create a separate
+  description for your custom timer, and have that added to the ACPI
+  spec.
+
+- To treat the timer more like a normal driver, better have the
+   TIMER_ACPI_DECLARE() function live only in the driver itself,
+   and use an early initcall (arch_initcall, subsys_initcall, etc)
+   it initialize the rest as late as you can.
+
+- Some of the other code added to arch/arm64/ might be able to
+  live in drivers/virt/hyperv in order to be shared between x86 and
+  arm64. (No idea how much of it there is).
+
+       Arnd
