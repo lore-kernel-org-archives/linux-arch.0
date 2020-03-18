@@ -1,42 +1,51 @@
-Return-Path: <SRS0=2lSW=4T=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [PATCH] mm/special: Create generic fallbacks for pte_special()
- and pte_mkspecial()
-References: <1583114190-7678-1-git-send-email-anshuman.khandual@arm.com>
- <CAMuHMdXnUeYib2dMALyzrW8LKhTjsnGFsqALoTxVHzPGc+OUTg@mail.gmail.com>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Message-ID: <02997860-9374-28b9-8703-dc9b62b3f8ff@arm.com>
-Date: Mon, 2 Mar 2020 16:07:27 +0530
+Return-Path: <SRS0=mIjk=5D=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga07-in.huawei.com ([45.249.212.35]:52542 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726765AbgCRP74 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Mar 2020 11:59:56 -0400
+From: John Garry <john.garry@huawei.com>
+Subject: [PATCH 3/3] logic_pio: Use _inX() and _outX()
+Date: Wed, 18 Mar 2020 23:55:35 +0800
+Message-ID: <1584546935-75393-4-git-send-email-john.garry@huawei.com>
+In-Reply-To: <1584546935-75393-1-git-send-email-john.garry@huawei.com>
+References: <1584546935-75393-1-git-send-email-john.garry@huawei.com>
 MIME-Version: 1.0
-In-Reply-To: <CAMuHMdXnUeYib2dMALyzrW8LKhTjsnGFsqALoTxVHzPGc+OUTg@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linux MM <linux-mm@kvack.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Guo Ren <guoren@kernel.org>, Brian Cain <bcain@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Sam Creasey <sammy@sammy.net>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paulburton@kernel.org>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, alpha <linux-alpha@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-csky@vger.kernel.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, Openrisc <openrisc@lists.librecores.org>, Parisc List <linux-parisc@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, linux-um <linux-um@lists.infradead.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Type: text/plain
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200302103727.gq2WOZFr81EVAP8D-6Ps52gM2-ChHmaWXekFq7Mj9oo@z>
+To: xuwei5@huawei.com, arnd@arndb.de
+Cc: okaya@kernel.org, bhelgaas@google.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxarm@huawei.com, olof@lixom.net, jiaxun.yang@flygoat.com, John Garry <john.garry@huawei.com>
+Message-ID: <20200318155535.LfNYxDvkqLFc1c81qhp1nzlGYarS9bWf4vc_37WLp84@z>
 
+Use _inX() and _outX(), which include memory barriers which may be
+overridden per arch.
 
-On 03/02/2020 01:49 PM, Geert Uytterhoeven wrote:
-> Hi Anshuman,
-> 
-> Thanks for your patch!
-> 
-> On Mon, Mar 2, 2020 at 2:56 AM Anshuman Khandual
-> <anshuman.khandual@arm.com> wrote:
->> Currently there are many platforms that dont enable HAVE_ARCH_PTE_SPECIAL
-> ARCH_HAS_PTE_SPECIAL
-> 
->> but required to define quite similar fallback stubs for special page table
->> entry helpers such as pte_special() and pte_mkspecial(), as they get build
->> in generic MM without a config check. This creates two generic fallback
->> stub definitions for these helpers, eliminating much code duplication.
->>
->> mips platform has a special case where pte_special() and pte_mkspecial()
->> visibility is wider than what HAVE_ARCH_PTE_SPECIAL enablement requires.
-> ARCH_HAS_PTE_SPECIAL
-> 
+Signed-off-by: John Garry <john.garry@huawei.com>
+---
+ lib/logic_pio.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-Oops, will fix it. I have been juggling between too many HAVE_ARCH_* and
-ARCH_HAS_* lately :)
+diff --git a/lib/logic_pio.c b/lib/logic_pio.c
+index 21dc731bec88..f32fe481b492 100644
+--- a/lib/logic_pio.c
++++ b/lib/logic_pio.c
+@@ -235,7 +235,7 @@ type logic_in##bwl(unsigned long addr)					\
+ 	type ret = (type)~0;						\
+ 									\
+ 	if (addr < MMIO_UPPER_LIMIT) {					\
+-		ret = read##bwl(PCI_IOBASE + addr);			\
++		ret = _in##bwl(addr);					\
+ 	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) { \
+ 		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
+ 									\
+@@ -251,7 +251,7 @@ type logic_in##bwl(unsigned long addr)					\
+ void logic_out##bwl(type value, unsigned long addr)			\
+ {									\
+ 	if (addr < MMIO_UPPER_LIMIT) {					\
+-		write##bwl(value, PCI_IOBASE + addr);			\
++		_out##bwl(value, addr);				\
+ 	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
+ 		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
+ 									\
+-- 
+2.12.3
