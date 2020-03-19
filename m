@@ -1,118 +1,58 @@
 From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH v6 04/10] arm64: hyperv: Add memory alloc/free functions
- for Hyper-V size pages
-Date: Thu, 19 Mar 2020 21:43:53 +0000
-Message-ID: <MW2PR2101MB10520CEF065A41EEBC17FFC2D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
+Subject: RE: [PATCH v6 09/10] arm64: efi: Export screen_info
+Date: Thu, 19 Mar 2020 21:46:30 +0000
+Message-ID: <MW2PR2101MB1052E413218D295EF24E5E05D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
 References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <1584200119-18594-5-git-send-email-mikelley@microsoft.com>
- <CAK8P3a2Hnm74aUMNFHbjMr4HwHGZn1+xa4ERsxAJY6hMzhEOhQ@mail.gmail.com>
- <632eb459dbe53a9b69df2a4f030a755b@kernel.org>
- <CAK8P3a3aihZeriUWAhWJMsOtdiY4Lo29syrRbB4Po3v4dsLhvA@mail.gmail.com>
- <MW2PR2101MB1052D91D3A9CEEBD7E2EA82FD7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
- <CAK8P3a2AO4k3vJ7WuJQz7ick+XPgGY3Jfk8-ROqtwyNs0nWkDA@mail.gmail.com>
+ <1584200119-18594-10-git-send-email-mikelley@microsoft.com>
+ <CAK8P3a1YUjhaVUmjVC2pCoTTBTU408iN44Q=QZ0RDz8rmzJisQ@mail.gmail.com>
+ <MW2PR2101MB10524254D2FE3EFC72329465D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
+ <CAK8P3a1YCtc3LJ-_3iT90_Srehb96gLHvTXsbJ0wT6NFYCG=TQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <CAK8P3a2AO4k3vJ7WuJQz7ick+XPgGY3Jfk8-ROqtwyNs0nWkDA@mail.gmail.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-dm6nam11on2123.outbound.protection.outlook.com ([40.107.223.123]:46176
+        "EHLO NAM11-DM6-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726619AbgCSVqf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Mar 2020 17:46:35 -0400
+In-Reply-To: <CAK8P3a1YCtc3LJ-_3iT90_Srehb96gLHvTXsbJ0wT6NFYCG=TQ@mail.gmail.com>
 Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Boqun Feng <boqun.feng@gmail.com>, gregkh <gregkh@linuxfoundation.org>, Marc Zyngier <maz@kernel.org>, Jason Wang <jasowang@redhat.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, "olaf@aepfle.de" <olaf@aepfle.de>, Catalin Marinas <catalin.marinas@arm.com>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, KY Srinivasan <kys@microsoft.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@>
 
-From: Arnd Bergmann <arnd@arndb.de> Sent: Wednesday, March 18, 2020 2:58 AM
-> 
-> On Wed, Mar 18, 2020 at 1:15 AM Michael Kelley <mikelley@microsoft.com> wrote:
-> > From: Arnd Bergmann <arnd@arndb.de> Sent: Monday, March 16, 2020 1:33 AM
-> > >
-> > > On Mon, Mar 16, 2020 at 9:30 AM Marc Zyngier <maz@kernel.org> wrote:
-> > > > On 2020-03-16 08:22, Arnd Bergmann wrote:
-> > > > > On Sat, Mar 14, 2020 at 4:36 PM Michael Kelley <mikelley@microsoft.com>
-> > > > > wrote:
-> > > > >>  /*
-> > > > >> + * Functions for allocating and freeing memory with size and
-> > > > >> + * alignment HV_HYP_PAGE_SIZE. These functions are needed because
-> > > > >> + * the guest page size may not be the same as the Hyper-V page
-> > > > >> + * size. We depend upon kmalloc() aligning power-of-two size
-> > > > >> + * allocations to the allocation size boundary, so that the
-> > > > >> + * allocated memory appears to Hyper-V as a page of the size
-> > > > >> + * it expects.
-> > > > >> + *
-> > > > >> + * These functions are used by arm64 specific code as well as
-> > > > >> + * arch independent Hyper-V drivers.
-> > > > >> + */
-> > > > >> +
-> > > > >> +void *hv_alloc_hyperv_page(void)
-> > > > >> +{
-> > > > >> +       BUILD_BUG_ON(PAGE_SIZE <  HV_HYP_PAGE_SIZE);
-> > > > >> +       return kmalloc(HV_HYP_PAGE_SIZE, GFP_KERNEL);
-> > > > >> +}
-> > > > >> +EXPORT_SYMBOL_GPL(hv_alloc_hyperv_page);
-> > > > >
-> > > > > I don't think there is any guarantee that kmalloc() returns
-> > > > > page-aligned
-> > > > > allocations in general.
-> > > >
-> > > > I believe that guarantee came with 59bb47985c1db ("mm, sl[aou]b:
-> > > > guarantee
-> > > > natural alignment for kmalloc(power-of-two)").
-> > > >
-> > > > > How about using get_free_pages() to implement this?
-> > > >
-> > > > This would certainly work, at the expense of a lot of wasted memory when
-> > > > PAGE_SIZE isn't 4k.
-> > >
-> > > I'm sure this is the least of your problems when the guest runs with
-> > > a large base page size, you've already wasted most of your memory
-> > > otherwise then.
-> > >
-> >
-> > I think there's value in keeping these functions.  There are 8 uses in
-> > architecture independent code at the moment, which admittedly saves
-> > only ~1/2 Mbyte of memory with a 64K page size, but we will have
-> > additional uses with more memory savings as we get all of the
-> > Hyper-V synthetic drivers to work with 64K page size.  Furthermore,
-> > there's coming work that will require additional steps to share a page
-> > between a guest and the Hyper-V host.  These functions are the right
-> > place to put the code for the additional sharing steps.  Removing them
-> > now in favor of a bare kmalloc() and then adding them back doesn't
-> > seem worthwhile.
-> 
-> My point was to keep the functions but use alloc_pages() internally,
-> so you can deal with the hypervisor having a larger page size than
-> the guest, which seems to be a more important scenario if I correctly
-> understand the differences between the way Windows and Linux
-> deal with page cache.
-
-OK, I see now what you are getting at.  I should spell out my
-assumption, which is the opposite.  Hyper-V won't have a page
-size other than 4K anytime in the foreseeable future.  The
-code is too wedded to the x86 4K page size, and the host-guest
-interfaces have a lot of implicit assumptions that the page size is
-4K (unfortunately).  But the last time I looked, RHEL for ARM64 is
-delivered with a 64K page size.  So my assumption is that the only
-combination that really matters is the guest page size being larger
-than the Hyper-V page size.  The other way around just won't
-happen without a major overhaul to Hyper-V, including a rework
-of the guest-host interface.
-
-Michael
-
-> 
-> As far as I understand, using 64kb pages on Windows is generally
-> a win as the VFS code already deals with units of that size, while
-> on Linux the 4kb page size is too deeply entrenched within the
-> file system code to mess with it: Whatever you gain in terms of
-> TLB pressure on workloads that cannot use huge pages is all lost
-> again through extra I/O and wasted physical memory.
-> 
->         Arnd
+RnJvbTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4gU2VudDogV2VkbmVzZGF5LCBNYXJj
+aCAxOCwgMjAyMCAyOjI3IEFNDQo+IA0KPiBPbiBXZWQsIE1hciAxOCwgMjAyMCBhdCAxOjE4IEFN
+IE1pY2hhZWwgS2VsbGV5IDxtaWtlbGxleUBtaWNyb3NvZnQuY29tPiB3cm90ZToNCj4gPiBGcm9t
+OiBBcm5kIEJlcmdtYW5uIDxhcm5kQGFybmRiLmRlPg0KPiA+ID4gT24gU2F0LCBNYXIgMTQsIDIw
+MjAgYXQgNDozNiBQTSBNaWNoYWVsIEtlbGxleSA8bWlrZWxsZXlAbWljcm9zb2Z0LmNvbT4gd3Jv
+dGU6DQo+ID4gPiA+DQo+ID4gPiA+IFRoZSBIeXBlci1WIGZyYW1lIGJ1ZmZlciBkcml2ZXIgbWF5
+IGJlIGJ1aWx0IGFzIGEgbW9kdWxlLCBhbmQNCj4gPiA+ID4gaXQgbmVlZHMgYWNjZXNzIHRvIHNj
+cmVlbl9pbmZvLiBTbyBleHBvcnQgc2NyZWVuX2luZm8uDQo+ID4gPiA+DQo+ID4gPiA+IFNpZ25l
+ZC1vZmYtYnk6IE1pY2hhZWwgS2VsbGV5IDxtaWtlbGxleUBtaWNyb3NvZnQuY29tPg0KPiA+ID4N
+Cj4gPiA+IElzIHRoZXJlIGFueSBjaGFuY2Ugb2YgdXNpbmcgYSBtb3JlIG1vZGVybiBLTVMgYmFz
+ZWQgZHJpdmVyIGZvciB0aGUgc2NyZWVuDQo+ID4gPiB0aGFuIHRoZSBvbGQgZmJkZXYgc3Vic3lz
+dGVtPyBJIGhhZCBob3BlZCB0byBvbmUgZGF5IGNvbXBsZXRlbHkgcmVtb3ZlDQo+ID4gPiBzdXBw
+b3J0IGZvciB0aGUgb2xkIENPTkZJR19WSURFT19GQkRFViBhbmQgc2NyZWVuX2luZm8gZnJvbSBt
+b2Rlcm4NCj4gPiA+IGFyY2hpdGVjdHVyZXMuDQo+ID4gPg0KPiA+DQo+ID4gVGhlIGN1cnJlbnQg
+aHlwZXJ2X2ZiLmMgZHJpdmVyIGlzIGFsbCB3ZSBoYXZlIHRvZGF5IGZvciB0aGUgc3ludGhldGlj
+IEh5cGVyLVYNCj4gPiBmcmFtZSBidWZmZXIgZGV2aWNlLiAgVGhhdCBkcml2ZXIgYnVpbGRzIGFu
+ZCBydW5zIG9uIGJvdGggQVJNNjQgYW5kIHg4Ni4NCj4gPg0KPiA+IEknbSBub3Qga25vd2xlZGdl
+YWJsZSBhYm91dCB2aWRlby9ncmFwaGljcyBkcml2ZXJzLCBidXQgd2hlbiB5b3UNCj4gPiBzYXkg
+ImEgbW9yZSBtb2Rlcm4gS01TIGJhc2VkIGRyaXZlciIsIGFyZSB5b3UgbWVhbmluZyBvbmUgYmFz
+ZWQgb24NCj4gPiBEUk0gJiBLTVM/ICBEb2VzIERSTSBtYWtlIHNlbnNlIGZvciBhICJkdW1iIiBm
+cmFtZSBidWZmZXIgZGV2aWNlPw0KPiA+IEFyZSB0aGVyZSBhbnkgZHJpdmVycyB0aGF0IHdvdWxk
+IGJlIGEgZ29vZCBwYXR0ZXJuIHRvIGxvb2sgYXQ/DQo+IA0KPiBJdCB1c2VkIHRvIGJlIGEgbG90
+IGhhcmRlciB0byB3cml0ZSBhIERSTSBkcml2ZXIgY29tcGFyZWQgdG8gYW4gZmJkZXYNCj4gZHJp
+dmVyLCBidXQgdGhpcyBoYXMgY2hhbmdlZCB0byB0aGUgb3Bwb3NpdGUgb3ZlciB0aGUgeWVhcnMu
+DQo+IA0KPiBBIGZhaXJseSBtaW5pbWFsIGV4YW1wbGUgd291bGQgYmUgZHJpdmVycy9ncHUvZHJt
+L3BsMTExL3BsMTExX2Rydi5jDQo+IG9yIGFueXRoaW5nIGluIGRyaXZlcnMvZ3B1L2RybS90aW55
+LywgYnV0IHlvdSBtYXkgd2FudCB0byBsb29rIGF0IHRoZQ0KPiBvdGhlciBoeXBlcnZpc29yIHBs
+YXRmb3JtcyBmaXJzdCwgaS5lIGRyaXZlcnMvZ3B1L2RybS92aXJ0aW8vdmlydGdwdV9kcnYuYywN
+Cj4gZHJpdmVycy9ncHUvZHJtL3Ztd2dmeC92bXdnZnhfZHJ2LmMsIGRyaXZlcnMvZ3B1L2RybS94
+ZW4veGVuX2RybV9mcm9udC5jLA0KPiBkcml2ZXJzL2dwdS9kcm0vcXhsL3F4bF9kcnYuYywgYW5k
+IGRyaXZlcnMvZ3B1L2RybS9ib2Nocy9ib2Noc19kcnYuYy4NCj4gDQoNClRoYW5rcyBmb3IgdGhl
+IHBvaW50ZXJzLCBlc3BlY2lhbGx5IGZvciB0aGUgb3RoZXIgaHlwZXJ2aXNvcnMuDQoNCk1pY2hh
+ZWwNCg==
