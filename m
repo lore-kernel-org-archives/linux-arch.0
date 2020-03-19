@@ -1,91 +1,86 @@
-Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:49536 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726893AbgCTOWP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Mar 2020 10:22:15 -0400
-Date: Fri, 20 Mar 2020 14:22:08 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
- vgettimeofday
-Message-ID: <20200320142208.GC29214@mbp>
-References: <20200317143834.GC632169@arrakis.emea.arm.com>
- <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
- <20200317155031.GD632169@arrakis.emea.arm.com>
- <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
- <20200317174806.GE632169@arrakis.emea.arm.com>
- <93cfe94a-c2a3-1025-bc9c-e7c3fd891100@arm.com>
- <20200318183603.GF94111@arrakis.emea.arm.com>
- <1bc25a53-7a59-0f60-ecf2-a3cace46b823@arm.com>
- <20200319181004.GA29214@mbp>
- <b937d1eb-c7fd-e903-fa36-b261662bf40b@arm.com>
+Return-Path: <SRS0=SxwR=5E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-bn8nam11on2123.outbound.protection.outlook.com ([40.107.236.123]:34400
+        "EHLO NAM11-BN8-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725747AbgCSVFC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Mar 2020 17:05:02 -0400
+From: Michael Kelley <mikelley@microsoft.com>
+Subject: RE: [PATCH v6 03/10] arm64: hyperv: Add hypercall and register access
+ functions
+Date: Thu, 19 Mar 2020 21:04:58 +0000
+Message-ID: <MW2PR2101MB1052AAC1EE6AC082C9ED6779D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
+References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
+ <20200318031130.5476-1-hdanton@sina.com>
+In-Reply-To: <20200318031130.5476-1-hdanton@sina.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <b937d1eb-c7fd-e903-fa36-b261662bf40b@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200320142208.zZocGtkNuQ_DgX0gd3hnSfgdnZLIYOdn0stHA8eY-NE@z>
+To: Hillf Danton <hdanton@sina.com>
+Cc: "will@kernel.org" <will@kernel.org>, "ardb@kernel.org" <ardb@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "maz@kernel.org" <maz@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, "apw@canonical.com" <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, "jasowang@redhat.com" <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, "boqun.feng@gmail.com" <boqun.feng@gmail.com>
+Message-ID: <20200319210458.QCXImayUqT0M4o5MoEG7QXgo_VAediEVK8I1xBy151M@z>
 
-On Fri, Mar 20, 2020 at 01:05:14PM +0000, Vincenzo Frascino wrote:
-> On 3/19/20 6:10 PM, Catalin Marinas wrote:
-> > On Thu, Mar 19, 2020 at 12:38:42PM +0000, Vincenzo Frascino wrote:
-> >> On 3/18/20 6:36 PM, Catalin Marinas wrote:
-> >>> On Wed, Mar 18, 2020 at 04:14:26PM +0000, Vincenzo Frascino wrote:
-> >>>> On 3/17/20 5:48 PM, Catalin Marinas wrote:
-> >>>>> So clock_gettime() on arm32 always falls back to the syscall?
-> >>>>
-> >>>> This seems not what you asked, and I think I answered accordingly. Anyway, in
-> >>>> the case of arm32 the error code path is handled via syscall fallback.
-> >>>>
-> >>>> Look at the code below as an example (I am using getres because I know this
-> >>>> email will be already too long, and I do not want to add pointless code, but the
-> >>>> concept is the same for gettime and the others):
-> >>>>
-> >>>> static __maybe_unused
-> >>>> int __cvdso_clock_getres(clockid_t clock, struct __kernel_timespec *res)
-> >>>> {
-> >>>> 	int ret = __cvdso_clock_getres_common(clock, res);
-> >>>>
-> >>>> 	if (unlikely(ret))
-> >>>> 		return clock_getres_fallback(clock, res);
-> >>>> 	return 0;
-> >>>> }
-> >>>>
-> >>>> When the return code of the "vdso" internal function returns an error the system
-> >>>> call is triggered.
-> >>>
-> >>> But when __cvdso_clock_getres_common() does *not* return an error, it
-> >>> means that it handled the clock_getres() call without a fallback to the
-> >>> syscall. I assume this is possible on arm32. When the clock_getres() is
-> >>> handled directly (not as a syscall), why doesn't arm32 need the same
-> >>> (res >= TASK_SIZE) check?
-> >>
-> >> Ok, I see what you mean.
-> > 
-> > I'm not sure.
-> 
-> Thank you for the long chat this morning. As we agreed I am going to repost the
-> patches removing the checks discussed in this thread
+From: Hillf Danton <hdanton@sina.com> Sent: Tuesday, March 17, 2020 8:12 PM
+>=20
+> On Sat, 14 Mar 2020 08:35:12 -0700 Michael Kelley wrote:
+> > +/*
+> > + * Get the value of a single VP register.  One version
+> > + * returns just 64 bits and another returns the full 128 bits.
+> > + * The two versions are separate to avoid complicating the
+> > + * calling sequence for the more frequently used 64 bit version.
+> > + */
+> > +
+> > +/*
+> > + * Input and output memory allocation sizes are rounded up to a power
+> > + * of 2 so kmalloc() will guarantee alignment. In turn, the alignment
+> > + * ensures that the allocations don't cross a page boundary, which is
+>=20
+> Better to specify kmalloc's current alignment and why it fails to ensure
+> (4 * sizeof(u64))-sized allocations wont cross page boundary.
+>=20
 
-Great, thanks.
+Is your comment referring to ARCH_KMALLOC_MINALIGN?  If so, I see
+how that makes sense.  BUILD_BUG_ON (sizeof (*input) >
+ARCH_KMALLOC_MINALIGN) would be a cleaner solution.=20
 
-> and we will address the syscall ABI difference subsequently with a
-> different series.
+Thanks,
 
-Now I'm even less convinced we need any additional patches. The arm64
-compat syscall would still return -EFAULT for res >= TASK_SIZE_32
-because copy_to_user() will fail. So it would be entirely consistent
-with the arm32 syscall. In the vdso-only case, both arm32 and arm64
-compat would generate a signal.
+Michael
 
-As Will said, arguably, the syscall semantics may not be applicable to
-the vdso implementation. But if you do want to get down this route (tp =
-UINTPTR_MAX - sizeof(*tp) returning -EFAULT), please do it for all
-architectures, not just arm64 compat. However, I'm not sure anyone
-relies on this functionality, other than the vdsotest, so no real
-application broken.
-
--- 
-Catalin
+> > + * required by the hypercall interface.
+> > + */
+> > +#define INPUTSIZE (4 * sizeof(u64))
+> > +#define OUTPUTSIZE (2 * sizeof(u64))
+> > +
+> > +static void __hv_get_vpreg_128(u32 msr, struct hv_get_vp_register_outp=
+ut *res)
+> > +{
+> > +	union hv_hypercall_status		status;
+> > +	struct hv_get_vp_register_input		*input;
+> > +
+> > +	BUILD_BUG_ON(sizeof(*input) > INPUTSIZE);
+> > +
+> > +	input =3D kzalloc(INPUTSIZE, GFP_ATOMIC);
+> > +
+> > +	input->partitionid =3D HV_PARTITION_ID_SELF;
+> > +	input->vpindex =3D HV_VP_INDEX_SELF;
+> > +	input->inputvtl =3D 0;
+> > +	input->name0 =3D msr;
+> > +	input->name1 =3D 0;
+> > +
+> > +
+> > +	status.as_uint64 =3D hv_do_hypercall(
+> > +		HVCALL_GET_VP_REGISTERS | HV_HYPERCALL_REP_COUNT_1,
+> > +		input, res);
+> > +
+> > +	/*
+> > +	 * Something is fundamentally broken in the hypervisor if
+> > +	 * getting a VP register fails. There's really no way to
+> > +	 * continue as a guest VM, so panic.
+> > +	 */
+> > +	BUG_ON(status.status !=3D HV_STATUS_SUCCESS);
+> > +
+> > +	kfree(input);
+> > +}
