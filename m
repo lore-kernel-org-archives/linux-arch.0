@@ -1,80 +1,58 @@
-Return-Path: <SRS0=LUpl=5Q=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:12588 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1731121AbgCaOaH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 31 Mar 2020 10:30:07 -0400
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v5 3/8] arm64: Add tlbi_user_level TLB invalidation helper
-Date: Tue, 31 Mar 2020 22:29:22 +0800
-Message-ID: <20200331142927.1237-4-yezhenyu2@huawei.com>
-In-Reply-To: <20200331142927.1237-1-yezhenyu2@huawei.com>
-References: <20200331142927.1237-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=SxwR=5E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:58428 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727936AbgCSPt6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Mar 2020 11:49:58 -0400
+Received: from mail-wr1-f52.google.com (mail-wr1-f52.google.com [209.85.221.52])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id B284521841
+        for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2020 15:49:57 +0000 (UTC)
+Received: by mail-wr1-f52.google.com with SMTP id f3so3654874wrw.7
+        for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2020 08:49:57 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Content-Type: text/plain; charset=US-ASCII
+References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+ <20200317122220.30393-19-vincenzo.frascino@arm.com> <20200317143834.GC632169@arrakis.emea.arm.com>
+In-Reply-To: <20200317143834.GC632169@arrakis.emea.arm.com>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Thu, 19 Mar 2020 08:49:44 -0700
+Message-ID: <CALCETrVWPNaJMbYoXbnWsALXKrhHMaePOUvY0DmXpvte8Zz9Zw@mail.gmail.com>
+Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in vgettimeofday
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200331142922.QErPFYG0P_EpDJos4KweHHxNFpkh4JnjKGrrrdaQ7Kk@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, "open list:MIPS" <linux-mips@vger.kernel.org>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200319154944.YilD3f7DGCosHoxwmaCjVnINblWIkTkgqi05L2UAD7M@z>
 
-Add a level-hinted parameter to __tlbi_user, which only gets used
-if ARMv8.4-TTL gets detected.
+On Tue, Mar 17, 2020 at 7:38 AM Catalin Marinas <catalin.marinas@arm.com> wrote:
+>
+> On Tue, Mar 17, 2020 at 12:22:12PM +0000, Vincenzo Frascino wrote:
+> > diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
+> > index 54fc1c2ce93f..91138077b073 100644
+> > --- a/arch/arm64/kernel/vdso32/vgettimeofday.c
+> > +++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
+> > @@ -8,11 +8,14 @@
+> >  #include <linux/time.h>
+> >  #include <linux/types.h>
+> >
+> > +#define VALID_CLOCK_ID(x) \
+> > +     ((x >= 0) && (x < VDSO_BASES))
+> > +
+> >  int __vdso_clock_gettime(clockid_t clock,
+> >                        struct old_timespec32 *ts)
+> >  {
+> >       /* The checks below are required for ABI consistency with arm */
+> > -     if ((u32)ts >= TASK_SIZE_32)
+> > +     if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
+> >               return -EFAULT;
+> >
+> >       return __cvdso_clock_gettime32(clock, ts);
+>
+> I probably miss something but I can't find the TASK_SIZE check in the
+> arch/arm/vdso/vgettimeofday.c code. Is this done elsewhere?
+>
 
-ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
-the level of translation table walk holding the leaf entry for the
-address that is being invalidated.
-
-This patch set the default level value to 0.
-
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/tlbflush.h | 18 ++++++++++++------
- 1 file changed, 12 insertions(+), 6 deletions(-)
-
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-index 5f9f189bc6d2..892f33235dc7 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -89,6 +89,12 @@
- 		__tlbi(op,  arg);					\
- 	} while (0)
- 
-+#define __tlbi_user_level(op, arg, level) do {				\
-+	if (arm64_kernel_unmapped_at_el0())				\
-+		__tlbi_level(op, (arg | USER_ASID_FLAG), level);	\
-+} while (0)
-+
-+
- /*
-  *	TLB Invalidation
-  *	================
-@@ -190,8 +196,8 @@ static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
- 	unsigned long addr = __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
- 
- 	dsb(ishst);
--	__tlbi(vale1is, addr);
--	__tlbi_user(vale1is, addr);
-+	__tlbi_level(vale1is, addr, 0);
-+	__tlbi_user_level(vale1is, addr, 0);
- }
- 
- static inline void flush_tlb_page(struct vm_area_struct *vma,
-@@ -231,11 +237,11 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
- 	dsb(ishst);
- 	for (addr = start; addr < end; addr += stride) {
- 		if (last_level) {
--			__tlbi(vale1is, addr);
--			__tlbi_user(vale1is, addr);
-+			__tlbi_level(vale1is, addr, 0);
-+			__tlbi_user_level(vale1is, addr, 0);
- 		} else {
--			__tlbi(vae1is, addr);
--			__tlbi_user(vae1is, addr);
-+			__tlbi_level(vae1is, addr, 0);
-+			__tlbi_user_level(vae1is, addr, 0);
- 		}
- 	}
- 	dsb(ish);
--- 
-2.19.1
+Can you not just remove the TASK_SIZE_32 check entirely?  If you pass
+a garbage address to the vDSO, you are quite likely to get SIGSEGV.
+Why does this particular type of error need special handling?
