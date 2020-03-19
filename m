@@ -1,87 +1,150 @@
-Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:49640 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731551AbgCPOnx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Mar 2020 10:43:53 -0400
-Date: Mon, 16 Mar 2020 14:43:47 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
-Message-ID: <20200316144346.GF3005@mbp>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
- <20200313154345.56760-19-vincenzo.frascino@arm.com>
- <20200315182950.GB32205@mbp>
- <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
- <20200316103437.GD3005@mbp>
- <77a2e91a-58f4-3ba3-9eef-42d6a8faf859@arm.com>
- <20200316112205.GE3005@mbp>
- <9a0a9285-8a45-4f65-3a83-813cabd0f0d3@arm.com>
+Return-Path: <SRS0=SxwR=5E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-eopbgr690092.outbound.protection.outlook.com ([40.107.69.92]:42912
+        "EHLO NAM04-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725895AbgCSVbo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 19 Mar 2020 17:31:44 -0400
+From: Michael Kelley <mikelley@microsoft.com>
+Subject: RE: [PATCH v6 01/10] arm64: hyperv: Add core Hyper-V include files
+Date: Thu, 19 Mar 2020 21:31:39 +0000
+Message-ID: <MW2PR2101MB1052686237C57955148F173ED7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
+References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
+ <1584200119-18594-2-git-send-email-mikelley@microsoft.com>
+ <CAK8P3a1GFDUY4mXzst4Ds+S-4SGXso6-jfpsYyy-eHyceAC1Zg@mail.gmail.com>
+ <MW2PR2101MB10524879CD685710A51AB740D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
+ <CAK8P3a02EULGxyuKFq8YnbG8BQ_m-RKciaNEc9ZbdP2yz9dt+Q@mail.gmail.com>
+In-Reply-To: <CAK8P3a02EULGxyuKFq8YnbG8BQ_m-RKciaNEc9ZbdP2yz9dt+Q@mail.gmail.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <9a0a9285-8a45-4f65-3a83-813cabd0f0d3@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200316144347.8NeXEECrA2VJIdf9J6j1fE-vRRnuUyIrx1e8FeXttgA@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>
+Message-ID: <20200319213139.aRJ8Hrd2HVRQuUIJjTVVIL4ATKt8DavTQuTZgHYADJA@z>
 
-On Mon, Mar 16, 2020 at 01:35:17PM +0000, Vincenzo Frascino wrote:
-> On 3/16/20 11:22 AM, Catalin Marinas wrote:
-> > As I said above, I don't see how removing 'if ((u32)ts >= (1UL << 32))'
-> > makes any difference. This check was likely removed by the compiler
-> > already.
-> > 
-> > Also, userspace doesn't have a trivial way to figure out TASK_SIZE and I
-> > can't see anything that tests this in the vdsotest (though I haven't
-> > spent that much time looking). If it's hard-coded, note that arm32
-> > TASK_SIZE is different from TASK_SIZE_32 on arm64.
-> > 
-> > Can you tell what actually is failing in vdsotest if you remove the
-> > TASK_SIZE_32 checks in the arm64 compat vdso?
-> 
-> To me does not seem optimized out. Which version of the compiler are you using?
-
-I misread the #ifdef'ery in asm/processor.h. So with 4K pages,
-TASK_SIZE_32 is (1UL<<32)-PAGE_SIZE. However, with 64K pages _and_
-CONFIG_KUSER_HELPERS, TASK_SIZE_32 is 1UL<<32 and the check is removed
-by the compiler.
-
-With the 4K build, __vdso_clock_gettime starts as:
-
-00000194 <__vdso_clock_gettime>:
- 194:   f511 5f80       cmn.w   r1, #4096       ; 0x1000
- 198:   d214            bcs.n   1c4 <__vdso_clock_gettime+0x30>
- 19a:   b5b0            push    {r4, r5, r7, lr}
- ...
- 1c4:   f06f 000d       mvn.w   r0, #13
- 1c8:   4770            bx      lr
-
-With 64K pages:
-
-00000194 <__vdso_clock_gettime>:
- 194:   b5b0            push    {r4, r5, r7, lr}
- ...
- 1be:   bdb0            pop     {r4, r5, r7, pc}
-
-I haven't tried but it's likely that the vdsotest fails with 64K pages
-and compat enabled (requires EXPERT).
-
-> Please find below the list of errors for clock_gettime (similar for the other):
-> 
-> passing UINTPTR_MAX to clock_gettime (VDSO): terminated by unexpected signal 7
-> clock-gettime-monotonic/abi: 1 failures/inconsistencies encountered
-
-Ah, so it uses UINTPTR_MAX in the test. Fair enough but I don't think
-the arm64 check is entirely useful. On arm32, the check was meant to
-return -EFAULT for addresses beyond TASK_SIZE that may enter into the
-kernel or module space. On arm64 compat, the kernel space is well above
-the reach of the 32-bit code.
-
-If you want to preserve some compatibility for this specific test, what
-about checking for wrapping around 0, I think it would make more sense.
-Something like:
-
-	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
-
--- 
-Catalin
+RnJvbTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4gU2VudDogV2VkbmVzZGF5LCBNYXJj
+aCAxOCwgMjAyMCAzOjEwIEFNDQo+IA0KPiBPbiBXZWQsIE1hciAxOCwgMjAyMCBhdCAxOjEyIEFN
+IE1pY2hhZWwgS2VsbGV5IDxtaWtlbGxleUBtaWNyb3NvZnQuY29tPiB3cm90ZToNCj4gPiBGcm9t
+OiBBcm5kIEJlcmdtYW5uIDxhcm5kQGFybmRiLmRlPiBTZW50OiBNb25kYXksIE1hcmNoIDE2LCAy
+MDIwIDE6NDggQU0NCj4gPiA+IE9uIFNhdCwgTWFyIDE0LCAyMDIwIGF0IDQ6MzYgUE0gTWljaGFl
+bCBLZWxsZXkgPG1pa2VsbGV5QG1pY3Jvc29mdC5jb20+IHdyb3RlOg0KPiA+ID4NCj4gPiA+ID4g
+Kw0KPiA+ID4gPiArLyogRGVmaW5lIGlucHV0IGFuZCBvdXRwdXQgbGF5b3V0IGZvciBHZXQgVlAg
+UmVnaXN0ZXIgaHlwZXJjYWxsICovDQo+ID4gPiA+ICtzdHJ1Y3QgaHZfZ2V0X3ZwX3JlZ2lzdGVy
+X2lucHV0IHsNCj4gPiA+ID4gKyAgICAgICB1NjQgcGFydGl0aW9uaWQ7DQo+ID4gPiA+ICsgICAg
+ICAgdTMyIHZwaW5kZXg7DQo+ID4gPiA+ICsgICAgICAgdTggIGlucHV0dnRsOw0KPiA+ID4gPiAr
+ICAgICAgIHU4ICBwYWRkaW5nWzNdOw0KPiA+ID4gPiArICAgICAgIHUzMiBuYW1lMDsNCj4gPiA+
+ID4gKyAgICAgICB1MzIgbmFtZTE7DQo+ID4gPiA+ICt9IF9fcGFja2VkOw0KPiA+ID4NCj4gPiA+
+IEFyZSB5b3Ugc3VyZSB0aGVzZSBuZWVkIHRvIGJlIG1hZGUgYnl0ZS1hbGlnbmVkIGFjY29yZGlu
+ZyB0byB0aGUNCj4gPiA+IHNwZWNpZmljYXRpb24/IElmIHRoZSBzdHJ1Y3R1cmUgaXRzZWxmIGlz
+IGFsaWduZWQgdG8gNjQgYml0LCBiZXR0ZXIgbWFyayBvbmx5DQo+ID4gPiB0aGUgaW5kaXZpZHVh
+bCBmaWVsZHMgdGhhdCBhcmUgbWlzYWxpZ25lZCBhcyBfX3BhY2tlZC4NCj4gPiA+DQo+ID4gPiBJ
+ZiB0aGUgc3RydWN0dXJlIGlzIGFsaWduZWQgdG8gb25seSAzMi1iaXQgYWRkcmVzc2VzIGluc3Rl
+YWQgb2YNCj4gPiA+IDY0LWJpdCwgbWFyayBpdCBhcyAiX19wYWNrZWQgX19hbGlnbmVkKDQpIiB0
+byBsZXQgdGhlIGNvbXBpbGVyDQo+ID4gPiBnZW5lcmF0ZSBiZXR0ZXIgY29kZSBmb3IgYWNjZXNz
+aW5nIGl0Lg0KPiA+DQo+ID4gTm9uZSBvZiB0aGUgZmllbGRzIGFyZSBtaXNhbGlnbmVkIGFuZCBp
+dCB3aWxsIGFsd2F5cyBiZSBhbGlnbmVkIHRvIDY0LWJpdA0KPiA+IGFkZHJlc3Nlcywgc28gdGhl
+cmUgc2hvdWxkIGJlIG5vIHBhZGRpbmcgbmVlZGVkIG9yIGFkZGVkLiAgVGhlcmUgd2FzDQo+ID4g
+YSBkaXNjdXNzaW9uIG9mIF9fcGFja2VkIGFuZCB0aGUgSHlwZXItViBkYXRhIHN0cnVjdHVyZXMg
+aW4gZ2VuZXJhbCBvbg0KPiA+IExLTUwgaGVyZTogIGh0dHBzOi8vbGttbC5vcmcvbGttbC8yMDE4
+LzExLzMwLzg0OCAgQWRkaW5nIF9fcGFja2VkIHdhcw0KPiA+IGRvbmUgYXMgYSBwcmV2ZW50YXRp
+dmUgbWVhc3VyZSwgbm90IGJlY2F1c2UgYW55dGhpbmcgd2FzIGFjdHVhbGx5DQo+ID4gYnJva2Vu
+LiAgTWFya2luZyBhcyBfX2FsaWduZWQoOCkgaGVyZSB3b3VsZCBpbmRpY2F0ZSB0aGUgY29ycmVj
+dCBpbnRlbnQsDQo+ID4gdGhvdWdoIHRoZSB1c2Ugb2YgdGhlIHN0cnVjdHVyZSBhbHdheXMgZW5z
+dXJlcyA2NC1iaXQgYWxpZ25tZW50Lg0KPiANCj4gSnVzdCBkcm9wIHRoZSBfX3BhY2tlZCBhbm5v
+dGF0aW9ucyB0aGVuLCB0aGV5IGp1c3QgY29uZnVzZSB0aGUgY29tcGlsZXINCj4gaW4gdGhpcyBj
+YXNlLiBJbiBwYXJ0aWN1bGFyLCB3aGVuIHRoZSBjb21waWxlciB0aGlua3MgdGhhdCBhIHN0cnVj
+dHVyZSBpcw0KPiBtaXNhbGlnbmVkLCBpdCB0cmllcyB0byBhdm9pZCB1c2luZyBsb2FkL3N0b3Jl
+IGluc3RydWN0aW9ucyBvbiBpdCB0aGF0IGFyZQ0KPiBpbmVmZmljaWVudCBvciB0cmFwIHdpdGgg
+bWlzYWxpZ25lZCBjb2RlLCBzbyBoYXZpbmcgZGVmYXVsdCBhbGlnbm1lbnQNCj4gcHJvZHVjZXMg
+YmV0dGVyIG9iamVjdCBjb2RlLg0KDQpTbyBJJ20gY29uZnVzZWQgYSBiaXQuICBXZXJlIHRoZSBv
+cmlnaW5hbCBjb25jZXJucyBpbiB0aGUgYWJvdmUgTEtNTA0KZGlzY3Vzc2lvbiBib2d1cz8gIElz
+IGl0IGxlZ2FsIGZvciB0aGUgY29tcGlsZXIgdG8gcmVvcmRlciBmaWVsZHMgb3IgYWRkDQpwYWRk
+aW5nLCBldmVuIGlmIHRoZSBsYXlvdXQgb2YgZmllbGRzIGluIHRoZSBzdHJ1Y3R1cmUgZG9lc24n
+dCByZXF1aXJlIGl0Pw0KSWYgdGhlIGNvbXBpbGVyICpjb3VsZCogZG8gc3VjaCwgdGhlbiBpdCBz
+ZWVtcyBsaWtlIGtlZXBpbmcgdGhlIF9fcGFja2VkDQp3b3VsZCBiZSBhcHByb3ByaWF0ZSBwZXIg
+dGhlIExLTUwgZGlzY3Vzc2lvbi4NCg0KPiANCj4gPiA+IEFsc28sIGluIG9yZGVyIHRvIHdyaXRl
+IHBvcnRhYmxlIGNvZGUsIGl0IHdvdWxkIGJlIGhlbHBmdWwgdG8gbWFyaw0KPiA+ID4gYWxsIHRo
+ZSBmaWVsZHMgYXMgZXhwbGljaXRseSBsaXR0bGUtZW5kaWFuLCBhbmQgdXNlIF9fbGUzMl90b19j
+cHUoKQ0KPiA+ID4gZXRjIGZvciBhY2Nlc3NpbmcgdGhlbS4NCj4gPg0KPiA+IFRoZXJlJ3MgYW4g
+b3BlbmluZyBjb21tZW50IGluIHRoaXMgZmlsZSBzdGF0aW5nIHRoYXQgYWxsIGRhdGENCj4gPiBz
+dHJ1Y3R1cmVzIHNoYXJlZCBiZXR3ZWVuIEh5cGVyLVYgYW5kIGEgZ3Vlc3QgVk0gYXJlIGxpdHRs
+ZQ0KPiA+IGVuZGlhbi4gIElzIHRoZXJlIHNvbWUgb3RoZXIgbWFya2luZyB0byBjb25zaWRlciB1
+c2luZz8NCj4gDQo+IFllcywgZGV2aWNlIGRyaXZlcnMgc2hvdWxkIGdlbmVyYWxseSBkZWZpbmUg
+ZGF0YSBzdHJ1Y3R1cmVzIHVzaW5nDQo+IHRoZSBfX2xlMzIsIF9fbGU2NCBldGMgdHlwZXMsIGFu
+ZCB1c2UgdGhlIGNvbnZlcnNpb24gZnVuY3Rpb25zDQo+IHRvIGFjY2VzcyB0aGVtLiBCdWlsZGlu
+ZyB3aXRoICdtYWtlIEM9MScgdXN1YWxseSB0ZWxscyB5b3Ugd2hlbg0KPiB5b3UgaGF2ZSBtaXNt
+YXRjaGVkIGFubm90YXRpb25zLg0KPiANCj4gPiBXZSBoYXZlIGRlZmluaXRlbHkgbm90IGFsbG93
+ZWQgZm9yIHRoZSBjYXNlIG9mIEh5cGVyLVYgcnVubmluZyBvbg0KPiA+IGEgYmlnIGVuZGlhbiBh
+cmNoaXRlY3R1cmUuICBUaGVyZSBhcmUgYSAqbG90KiBvZiBtZXNzYWdlcyBhbmQgZGF0YQ0KPiA+
+IHN0cnVjdHVyZXMgcGFzc2VkIGJldHdlZW4gdGhlIGd1ZXN0IGFuZCBIeXBlci1WLCBhbmQgY29k
+aW5nDQo+ID4gdG8gaGFuZGxlIGVpdGhlciBlbmRpYW5uZXNzIGlzIGEgYmlnIHByb2plY3QuICBJ
+J20gZG91YnRmdWwNCj4gPiBvZiB0aGUgdmFsdWUgdW50aWwgYW5kIHVubGVzcyB3ZSBhY3R1YWxs
+eSBoYXZlIGEgbmVlZCBmb3IgaXQuDQo+IA0KPiBJbiBnZW5lcmFsLCB0aGUgdXNlIG9mIGJpZy1l
+bmRpYW4gc29mdHdhcmUgb24gTGludXggaXMgZGVjbGluaW5nLCBob3dldmVyDQo+IA0KPiAtIGFy
+bTY0IGFzIGFuIGFyY2hpdGVjdHVyZSBpcyBtZWFudCB0byBzdXBwb3J0IGJvdGggZW5kaWFuIHR5
+cGVzLA0KPiAgIGFuZCB3ZSBzdGlsbCB0cnkgdG8gZW5zdXJlIGl0IHdvcmtzIGVpdGhlciB3YXkg
+YXMgbG9uZyBhcyB0aGVyZSBhcmUNCj4gICB1c2VycyB0aGF0IGRlcGVuZCBvbiBpdC4NCj4gDQo+
+IC0gVGhlIHJlbWFpbmluZyB1c2VycyBvZiBiaWctZW5kaWFuIHNvZnR3YXJlIGFyZSBwcm9iYWJs
+eQ0KPiAgIG1vcmUgbGlrZWx5IHRvIHJ1biBvbiB2aXJ0dWFsIG1hY2hpbmVzIHRoYW4gb24gcmVh
+bCBoYXJkd2FyZQ0KPiANCj4gLSBBbnkgZGV2aWNlIGRyaXZlciBzaG91bGQgZ2VuZXJhbGx5IGJl
+IHdyaXR0ZW4gYWdhaW5zdCBwb3J0YWJsZQ0KPiAgIGludGVyZmFjZXMsIGV2ZW4gaWYgeW91IHRo
+aW5rIHlvdSBrbm93IGhvdyBpdCB3aWxsIGJlIHVzZWQuIEFzDQo+ICAgZHJpdmVyIHdyaXRlcnMg
+dGVuZCB0byBsb29rIGF0IGV4aXN0aW5nIGNvZGUgZm9yIG5ldyBkcml2ZXJzLCBpdCdzDQo+ICAg
+YmV0dGVyIHRvIGhhdmUgdGhlbSBhbGwgYmUgcG9ydGFibGUuIChUaGlzIGlzIGEgc2ltaWxhciBh
+cmd1bWVudA0KPiAgIHRvIHRoZSBpcnFjaGlwIGludGVyZmFjZSkuDQo+IA0KPiBFdmVuIGlmIHlv
+dSBkb24ndCBjb252ZXJ0IGFueSBvZiB0aGUgZXhpc3RpbmcgYXJjaGl0ZWN0dXJlIGluZGVwZW5k
+ZW50DQo+IGNvZGUgdG8gcnVuIGJvdGggd2F5cywgSSBzZWUgbm8gcmVhc29uIHRvIG5vdCBkbyBp
+dCBmb3IgbmV3IGRyaXZlcnMuDQoNCk9LLCBsZXQgbWUgbG9vayBpbnRvIHRoaXMuICBHaXZlbiBo
+b3cgdGhlIG1ham9yIExpbnV4IGRpc3Ryb3Mgb24NCkFSTTY0IGhhdmUgYWxsIGdvbmUgbGl0dGxl
+LWVuZGlhbiwgSSdtIGEgYml0IHNrZXB0aWNhbCBvZiB0aGUgdmFsdWUNCmZvciB0aGUgYmlnIHNl
+cnZlciBlbnZpcm9ubWVudHMgaW4gd2hpY2ggSHlwZXItViB3b3VsZCBiZSB1c2VkLg0KDQo+IA0K
+PiA+ID4gPiArLyogRGVmaW5lIHN5bnRoZXRpYyBpbnRlcnJ1cHQgY29udHJvbGxlciBtZXNzYWdl
+IGZsYWdzLiAqLw0KPiA+ID4gPiArdW5pb24gaHZfbWVzc2FnZV9mbGFncyB7DQo+ID4gPiA+ICsg
+ICAgICAgX191OCBhc3U4Ow0KPiA+ID4gPiArICAgICAgIHN0cnVjdCB7DQo+ID4gPiA+ICsgICAg
+ICAgICAgICAgICBfX3U4IG1zZ19wZW5kaW5nOjE7DQo+ID4gPiA+ICsgICAgICAgICAgICAgICBf
+X3U4IHJlc2VydmVkOjc7DQo+ID4gPiA+ICsgICAgICAgfSBfX3BhY2tlZDsNCj4gPiA+ID4gK307
+DQo+ID4gPg0KPiA+ID4gRm9yIHNpbWlsYXIgcmVhc29ucywgcGxlYXNlIGF2b2lkIGJpdCBmaWVs
+ZHMgYW5kIGp1c3QgdXNlIGENCj4gPiA+IGJpdCBtYXNrIG9uIHRoZSBmaXJzdCBtZW1iZXIgb2Yg
+dGhlIHVuaW9uLg0KPiA+DQo+ID4gVW5mb3J0dW5hdGVseSwgY2hhbmdpbmcgdG8gYSBiaXQgbWFz
+ayByaXBwbGVzIGludG8NCj4gPiBhcmNoaXRlY3R1cmUgaW5kZXBlbmRlbnQgY29kZSBhbmQgaW50
+byB0aGUgeDg2DQo+ID4gaW1wbGVtZW50YXRpb24uICBJJ2QgcHJlZmVyIG5vdCB0byBkcmFnIHRo
+YXQgY29tcGxleGl0eQ0KPiA+IGludG8gdGhpcyBwYXRjaCBzZXQuDQo+IA0KPiBIb3cgc28/IElm
+IHRoaXMgZmlsZSBpcyBhcm02NCBzcGVjaWZpYywgdGhlcmUgc2hvdWxkIGJlIG5vIG5lZWQgdG8g
+bWFrZQ0KPiB4ODYgZG8gdGhlIHNhbWUgY2hhbmdlLg0KDQpUaGlzIGZpbGUsIGh5cGVydi10bGZz
+LmgsIGlzIGR1cGxpY2F0aW5nIHNvbWUgZGVmaW5pdGlvbnMgb24gdGhlIHg4NiBhbmQNCkFSTTY0
+IHNpZGVzIHRoYXQgYXJlIHVzZWQgYnkgYXJjaCBpbmRlcGVuZGVudCBjb2RlLCBhbmQgdGhpcyBp
+cyBvbmUNCm9mIHRob3NlIGRlZmluaXRpb25zLiAgSSBoYWQgaGVsZCBvZmYgb24gYnJlYWtpbmcg
+dGhlIGZpbGUgaW50byBhcmNoDQppbmRlcGVuZGVudCBhbmQgYXJjaCBzcGVjaWZpYyBwb3J0aW9u
+cyBiZWNhdXNlIHRoZSBIeXBlci1WIHRlYW0gaGFzDQpsZWZ0IHNvbWUgZ3JheSBhcmVhcyBmb3Ig
+ZnVuY3Rpb25hbGl0eSB0aGF0IGlzbid0IHlldCB1c2VkIG9uIHRoZSBBUk02NA0Kc2lkZS4gIFNv
+IGluIHNvbWUgY2FzZXMsIGl0J3MgaGFyZCB0byBrbm93IHdoYXQgZnVuY3Rpb25hbGl0eSB0byBw
+dXQNCmludG8gdGhlIGFyY2ggaW5kZXBlbmRlbnQgcG9ydGlvbi4NCg0KQnV0IEkgdGhpbmsgSSds
+bCBnbyBhaGVhZCBhbmQgbWFrZSB0aGUgc2VwYXJhdGlvbiB3aXRoIHJlYXNvbmFibHkgZ29vZA0K
+YWNjdXJhY3ksIGFuZCB1cGRhdGUgdGhlIHg4NiBzaWRlIGFjY29yZGluZ2x5LiAgVGhhdCB3aWxs
+IHJlZHVjZSB0aGUgc2l6ZQ0Kb2YgdGhpcyBwYXRjaCBzZXQgdG8gY29udGFpbiBvbmx5IHRoZSB0
+aGluZ3MgdGhhdCB3ZSBrbm93IGFyZSBBUk02NA0Kc3BlY2lmaWMgYW5kIHdoaWNoIGFyZSBhY3R1
+YWxseSB1c2VkIGJ5IHRoZSBBUk02NCBjb2RlLiAgVGhpbmdzIGxpa2UgdGhlDQpodl9tZXNzYWdl
+X2ZsYWdzIHdpbGwgZ28gaW50byB0aGUgYXJjaCBpbmRlcGVuZGVudCBwb3J0aW9uIHNvIHRoYXQN
+CnRoZXkgY2FuIGJlIHVzZWQgYnkgdGhlIGFyY2ggaW5kZXBlbmRlbnQgY29kZSB3aXRob3V0IGNs
+dXR0ZXJpbmcgdXANCnRoZSBhcmNoIHNwZWNpZmljIGNvZGUuICBNYWtpbmcgdGhlIGNoYW5nZSB3
+aWxsIGhlbHAgcmVkdWNlIGFueQ0KY29uZnVzaW9uIGFib3V0IHdoYXQgaXMgQVJNNjQtc3BlY2lm
+aWMuIFRoZSBvdGhlciBjb3JlICNpbmNsdWRlIGZpbGUsDQptc2h5cGVydi5oLCBoYXMgYWxyZWFk
+eSBiZWVuIGRvbmUgdGhpcyB3YXkuDQoNCk1pY2hhZWwNCg0KPiANCj4gPiA+ID4gKyAqIFVzZSB0
+aGUgSHlwZXItViBwcm92aWRlZCBzdGltZXIwIGFzIHRoZSB0aW1lciB0aGF0IGlzIG1hZGUNCj4g
+PiA+ID4gKyAqIGF2YWlsYWJsZSB0byB0aGUgYXJjaGl0ZWN0dXJlIGluZGVwZW5kZW50IEh5cGVy
+LVYgZHJpdmVycy4NCj4gPiA+ID4gKyAqLw0KPiA+ID4gPiArI2RlZmluZSBodl9pbml0X3RpbWVy
+KHRpbWVyLCB0aWNrKSBcDQo+ID4gPiA+ICsgICAgICAgICAgICAgICBodl9zZXRfdnByZWcoSFZf
+UkVHSVNURVJfU1RJTUVSMF9DT1VOVCArICgyKnRpbWVyKSwgdGljaykNCj4gPiA+ID4gKyNkZWZp
+bmUgaHZfaW5pdF90aW1lcl9jb25maWcodGltZXIsIHZhbCkgXA0KPiA+ID4gPiArICAgICAgICAg
+ICAgICAgaHZfc2V0X3ZwcmVnKEhWX1JFR0lTVEVSX1NUSU1FUjBfQ09ORklHICsgKDIqdGltZXIp
+LCB2YWwpDQo+ID4gPiA+ICsjZGVmaW5lIGh2X2dldF9jdXJyZW50X3RpY2sodGljaykgXA0KPiA+
+ID4gPiArICAgICAgICAgICAgICAgKHRpY2sgPSBodl9nZXRfdnByZWcoSFZfUkVHSVNURVJfVElN
+RV9SRUZDT1VOVCkpDQo+ID4gPg0KPiA+ID4gSW4gZ2VuZXJhbCwgd2UgcHJlZmVyIGlubGluZSBm
+dW5jdGlvbnMgb3ZlciBtYWNyb3MgaW4gaGVhZGVyIGZpbGVzLg0KPiA+DQo+ID4gSSBjYW4gY2hh
+bmdlIHRoZSAic2V0IiBjYWxscyB0byBpbmxpbmUgZnVuY3Rpb25zLiAgQXMgeW91IGNhbiBzZWUs
+IHRoZSAiZ2V0Ig0KPiA+IGZ1bmN0aW9ucyBhcmUgY29kZWQgYW5kIHVzZWQgaW4gYXJjaGl0ZWN0
+dXJlIGluZGVwZW5kZW50IGNvZGUgYW5kIG9uDQo+ID4gdGhlIHg4NiBzaWRlIGluIGEgd2F5IHRo
+YXQgd29uJ3QgY29udmVydCB0byBpbmxpbmUgZnVuY3Rpb25zLg0KPiANCj4gT2suDQo+IA0KPiAg
+ICAgICAgIEFybmQNCg==
