@@ -1,47 +1,172 @@
-Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58836 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727356AbgCMPpA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Mar 2020 11:45:00 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 17/26] linux/elfnote.h: Replace elf.h with UAPI equivalent
-Date: Fri, 13 Mar 2020 15:43:36 +0000
-Message-ID: <20200313154345.56760-18-vincenzo.frascino@arm.com>
-In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=tpYU=5E=vger.kernel.org=linux-doc-owner@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+References: <20200224160215.4136-1-mic@digikod.net> <CAG48ez21bEn0wL1bbmTiiu8j9jP5iEWtHOwz4tURUJ+ki0ydYw@mail.gmail.com>
+ <873d7419-bdd9-8a52-0a9b-dddbe31df4f9@digikod.net> <CAG48ez0=0W5Ok-8nASqZrZ28JboXRRi3gDxV5u6mdcOtzwuRVA@mail.gmail.com>
+ <688dda0f-0907-34eb-c19e-3e9e5f613a74@digikod.net> <CAG48ez16yT+zbK1WPxr2TnxrifW5c2DnpFLbWRRLUT_WpuFNmw@mail.gmail.com>
+ <e8530226-f295-a897-1132-7e6970dad49f@digikod.net> <CAG48ez1K-7Lq2Ep_p9fOvXQ-fwj_8dA1CFd5SVDbT4ccqejDzA@mail.gmail.com>
+ <2d48e3e3-e7b2-ec33-91c5-be6a308a12d4@digikod.net>
+In-Reply-To: <2d48e3e3-e7b2-ec33-91c5-be6a308a12d4@digikod.net>
+From: Jann Horn <jannh@google.com>
+Date: Thu, 19 Mar 2020 22:17:37 +0100
+Message-ID: <CAG48ez18LrDVLdp3agTwHNYxOBJyEb5PZ1dkwbNjpPVQoTsLcA@mail.gmail.com>
+Subject: Re: [RFC PATCH v14 00/10] Landlock LSM
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Sender: linux-doc-owner@vger.kernel.org
+To: =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
+Cc: kernel list <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-doc@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200313154336.ZkHUrrRl_vldt7BBxbWxTmKU17h1NGvICqjcs_ZIo8E@z>
+Message-ID: <20200319211737.MpZo3GdeM0GEjPnQj8hY-yQsmzuWH5rGcGpgfeO-GVk@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+On Thu, Mar 19, 2020 at 5:58 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.net> =
+wrote:
+> On 19/03/2020 00:33, Jann Horn wrote:
+> > On Wed, Mar 18, 2020 at 1:06 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.n=
+et> wrote:
+[...]
+> >> As I understand your proposition, we need to build the required_bits
+> >> when adding a rule or enforcing/merging a ruleset with a domain. The
+> >> issue is that a rule only refers to a struct inode, not a struct path.
+> >> For your proposition to work, we would need to walk through the file
+> >> path when adding a rule to a ruleset, which means that we need to depe=
+nd
+> >> of the current view of the process (i.e. its mount namespace), and its
+> >> Landlock domain.
+> >
+> > I don't see why that is necessary. Why would we have to walk the file
+> > path when adding a rule?
+> >
+> >> If the required_bits field is set when the ruleset is
+> >> merged with the domain, it is not possible anymore to walk through the
+> >> corresponding initial file path, which makes the enforcement step too
+> >> late to check for such consistency. The important point is that a
+> >> ruleset/domain doesn't have a notion of file hierarchy, a ruleset is
+> >> only a set of tagged inodes.
+> >>
+> >> I'm not sure I got your proposition right, though. When and how would
+> >> you generate the required_bits?
+> >
+> > Using your terminology:
+> > A domain is a collection of N layers, which are assigned indices 0..N-1=
+.
+> > For each possible access type, a domain has a bitmask containing N
+> > bits that stores which layers control that access type. (Basically a
+> > per-layer version of fs_access_mask.)
+>
+> OK, so there is a bit for each domain, which means that you get a limit
+> of, let's say 64 layers? Knowing that each layer can be created by a
+> standalone application, potentially nested in a bunch of layers, this
+> seems artificially limiting.
 
-Replace linux/elf.h with UAPI equivalent in elfnote.h to make the header
-suitable for vDSO inclusion.
+Yes, that is a downside of my approach.
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- include/linux/elfnote.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+> > To validate an access, you start by ORing together the bitmasks for
+> > the requested access types; that gives you the required_bits mask,
+> > which lists all layers that want to control the access.
+> > Then you set seen_policy_bits=3D0, then do the
+> > check_access_path_continue() loop while keeping track of which layers
+> > you've seen with "seen_policy_bits |=3D access->contributing_policies",
+> > or something like that.
+> > And in the end, you check that seen_policy_bits is a superset of
+> > required_bits - something like `(~seen_policy_bits) & required_bits =3D=
+=3D
+> > 0`.
+> >
+> > AFAICS to create a new domain from a bunch of layers, you wouldn't
+> > have to do any path walking.
+>
+> Right, I misunderstood your previous email.
+>
+> >
+> >> Here is my updated proposition: add a layer level and a depth to each
+> >> rule (once enforced/merged with a domain), and a top layer level for a
+> >> domain. When enforcing a ruleset (i.e. merging a ruleset into the
+> >> current domain), the layer level of a new rule would be the incremente=
+d
+> >> top layer level.
+> >> If there is no rule (from this domain) tied to the same
+> >> inode, then the depth of the new rule is 1. However, if there is alrea=
+dy
+> >> a rule tied to the same inode and if this rule's layer level is the
+> >> previous top layer level, then the depth and the layer level are both
+> >> incremented and the rule is updated with the new access rights (boolea=
+n
+> >> AND).
+> >>
+> >> The policy looks like this:
+> >> domain top_layer=3D2
+> >> /a RW policy_bitmask=3D0x00000003 layer=3D1 depth=3D1
+> >> /a/b R policy_bitmask=3D0x00000002 layer=3D2 depth=3D1
+> >>
+> >> The path walk access check walks through all inodes and start with a
+> >> layer counter equal to the top layer of the current domain. For each
+> >> encountered inode tied to a rule, the access rights are checked and a
+> >> new check ensures that the layer of the matching rule is the same as t=
+he
+> >> counter (this may be a merged ruleset containing rules pertaining to t=
+he
+> >> same hierarchy, which is fine) or equal to the decremented counter (i.=
+e.
+> >> the path walk just reached the underlying layer). If the path walk
+> >> encounter a rule with a layer strictly less than the counter minus one=
+,
+> >> there is a whole in the layers which means that the ruleset
+> >> hierarchy/subset does not match, and the access must be denied.
+> >>
+> >> When accessing a file at /private/b/foo for a read access:
+> >> /private/b/foo <no rules>
+> >>   allowed_access=3Dunknown layer_counter=3D2
+> >> /private/b <access: R, policy_bitmask=3D0x00000002, layer=3D2, depth=
+=3D1>
+> >>   allowed_access=3Dallowed layer_counter=3D2
+> >> /private <no rules>
+> >>   allowed_access=3Dallowed layer_counter=3D2
+> >> / <no rules>
+> >>   allowed_access=3Dallowed layer_counter=3D2
+> >>
+> >> Because the layer_counter didn't reach 1, the access request is then d=
+enied.
+> >>
+> >> This proposition enables not to rely on a parent ruleset at first, onl=
+y
+> >> when enforcing/merging a ruleset with a domain. This also solves the
+> >> issue with multiple inherited/nested rules on the same inode (in which
+> >> case the depth just grows). Moreover, this enables to safely stop the
+> >> path walk as soon as we reach the layer 1.
+> >
+> > (FWIW, you could do the same optimization with the seen_policy_bits app=
+roach.)
+> >
+> > I guess the difference between your proposal and mine is that in my
+> > proposal, the following would work, in effect permitting W access to
+> > /foo/bar/baz (and nothing else)?
+> >
+> > first ruleset:
+> >   /foo W
+> > second ruleset:
+> >   /foo/bar/baz W
+> > third ruleset:
+> >   /foo/bar W
+> >
+> > whereas in your proposal, IIUC it wouldn't be valid for a new ruleset
+> > to whitelist a superset of what was whitelisted in a previous ruleset?
+> >
+>
+> This behavior seems dangerous because a process which sandbox itself to
+> only access /foo/bar W can bypass the restrictions from one of its
+> parent domains (i.e. only access /foo/bar/baz W). Indeed, each layer is
+> (most of the time) a different and standalone security policy.
 
-diff --git a/include/linux/elfnote.h b/include/linux/elfnote.h
-index f236f5b931b2..594d4e78654f 100644
---- a/include/linux/elfnote.h
-+++ b/include/linux/elfnote.h
-@@ -59,7 +59,7 @@
- 	ELFNOTE_END
- 
- #else	/* !__ASSEMBLER__ */
--#include <linux/elf.h>
-+#include <uapi/linux/elf.h>
- /*
-  * Use an anonymous structure which matches the shape of
-  * Elf{32,64}_Nhdr, but includes the name and desc data.  The size and
--- 
-2.25.1
+It isn't actually bypassing the restriction: You still can't actually
+access files like /foo/bar/blah, because a path walk from there
+doesn't encounter any rules from the second ruleset.
+
+> To sum up, the bitmask approach doesn't have the notion of layers
+> ordering. It is then not possible to check that a rule comes from a
+> domain which is the direct ancestor of a child's domain. I want each
+> policy/layer to be really nested in the sense that a process sandboxing
+> itself can only add more restriction to itself with regard to its parent
+> domain (and the whole hierarchy). This is a similar approach to
+> seccomp-bpf (with chained filters), except there is almost no overhead
+> to nest several policies/layers together because they are flattened.
+> Using the layer level and depth approach enables to implement this.
