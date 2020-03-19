@@ -1,115 +1,79 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
+From: Will Deacon <will@kernel.org>
 Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
  vgettimeofday
-Date: Thu, 19 Mar 2020 18:10:04 +0000
-Message-ID: <20200319181004.GA29214@mbp>
+Date: Thu, 19 Mar 2020 18:32:52 +0000
+Message-ID: <20200319183251.GA27141@willie-the-truck>
 References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
  <20200317122220.30393-19-vincenzo.frascino@arm.com>
  <20200317143834.GC632169@arrakis.emea.arm.com>
- <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
- <20200317155031.GD632169@arrakis.emea.arm.com>
- <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
- <20200317174806.GE632169@arrakis.emea.arm.com>
- <93cfe94a-c2a3-1025-bc9c-e7c3fd891100@arm.com>
- <20200318183603.GF94111@arrakis.emea.arm.com>
- <1bc25a53-7a59-0f60-ecf2-a3cace46b823@arm.com>
+ <CALCETrVWPNaJMbYoXbnWsALXKrhHMaePOUvY0DmXpvte8Zz9Zw@mail.gmail.com>
+ <78109f4e-c9c7-57b6-079b-c911b6090aa0@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-mips-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1bc25a53-7a59-0f60-ecf2-a3cace46b823@arm.com>
-Sender: linux-mips-owner@vger.kernel.org
+In-Reply-To: <78109f4e-c9c7-57b6-079b-c911b6090aa0@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>Mark
+Cc: Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, "open list:MIPS" <linux-mips@vger.kernel.org>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.co>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Vincenzo,
-
-On Thu, Mar 19, 2020 at 12:38:42PM +0000, Vincenzo Frascino wrote:
-> On 3/18/20 6:36 PM, Catalin Marinas wrote:
-> > On Wed, Mar 18, 2020 at 04:14:26PM +0000, Vincenzo Frascino wrote:
-> >> On 3/17/20 5:48 PM, Catalin Marinas wrote:
-> >>> So clock_gettime() on arm32 always falls back to the syscall?
+On Thu, Mar 19, 2020 at 04:58:00PM +0000, Vincenzo Frascino wrote:
+> On 3/19/20 3:49 PM, Andy Lutomirski wrote:
+> > On Tue, Mar 17, 2020 at 7:38 AM Catalin Marinas <catalin.marinas@arm.com> wrote:
 > >>
-> >> This seems not what you asked, and I think I answered accordingly. Anyway, in
-> >> the case of arm32 the error code path is handled via syscall fallback.
+> >> On Tue, Mar 17, 2020 at 12:22:12PM +0000, Vincenzo Frascino wrote:
+> >>> diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
+> >>> index 54fc1c2ce93f..91138077b073 100644
+> >>> --- a/arch/arm64/kernel/vdso32/vgettimeofday.c
+> >>> +++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
+> >>> @@ -8,11 +8,14 @@
+> >>>  #include <linux/time.h>
+> >>>  #include <linux/types.h>
+> >>>
+> >>> +#define VALID_CLOCK_ID(x) \
+> >>> +     ((x >= 0) && (x < VDSO_BASES))
+> >>> +
+> >>>  int __vdso_clock_gettime(clockid_t clock,
+> >>>                        struct old_timespec32 *ts)
+> >>>  {
+> >>>       /* The checks below are required for ABI consistency with arm */
+> >>> -     if ((u32)ts >= TASK_SIZE_32)
+> >>> +     if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
+> >>>               return -EFAULT;
+> >>>
+> >>>       return __cvdso_clock_gettime32(clock, ts);
 > >>
-> >> Look at the code below as an example (I am using getres because I know this
-> >> email will be already too long, and I do not want to add pointless code, but the
-> >> concept is the same for gettime and the others):
+> >> I probably miss something but I can't find the TASK_SIZE check in the
+> >> arch/arm/vdso/vgettimeofday.c code. Is this done elsewhere?
 > >>
-> >> static __maybe_unused
-> >> int __cvdso_clock_getres(clockid_t clock, struct __kernel_timespec *res)
-> >> {
-> >> 	int ret = __cvdso_clock_getres_common(clock, res);
-> >>
-> >> 	if (unlikely(ret))
-> >> 		return clock_getres_fallback(clock, res);
-> >> 	return 0;
-> >> }
-> >>
-> >> When the return code of the "vdso" internal function returns an error the system
-> >> call is triggered.
 > > 
-> > But when __cvdso_clock_getres_common() does *not* return an error, it
-> > means that it handled the clock_getres() call without a fallback to the
-> > syscall. I assume this is possible on arm32. When the clock_getres() is
-> > handled directly (not as a syscall), why doesn't arm32 need the same
-> > (res >= TASK_SIZE) check?
-> 
-> Ok, I see what you mean.
-
-I'm not sure.
-
-> It does not need to differ when __cvdso_clock_getres_common() does *not* return
-> an error, we can move the checks in the fallback and leave the vdso code the
-> same. The reason why I put the checks at the beginning of vdso code is because
-> since I know such a condition it is going to fail I prefer to bailout
-> immediately when it is detected instead of going through a bus error and a
-> syscall before I can bailout.
-
-I don't dispute your choice of choosing to bail out early, that's fine
-by me. What I'm asking above, and you haven't answered, is why we don't
-need exactly the same check on arm32. I.e.:
-
-diff --git a/arch/arm/vdso/vgettimeofday.c b/arch/arm/vdso/vgettimeofday.c
-index 1976c6f325a4..17ee5d211228 100644
---- a/arch/arm/vdso/vgettimeofday.c
-+++ b/arch/arm/vdso/vgettimeofday.c
-@@ -28,6 +28,9 @@ int __vdso_gettimeofday(struct __kernel_old_timeval *tv,
- int __vdso_clock_getres(clockid_t clock_id,
- 			struct old_timespec32 *res)
- {
-+	if ((u32)res >= TASK_SIZE)
-+		return -EFAULT;
-+
- 	return __cvdso_clock_getres_time32(clock_id, res);
- }
- 
-
-(where arch/arm means arm32 ;)).
-
-If the arm32 vdsotest passes, I'd like to know why.
-
-> It is mainly a design choice based on what I explained above but I am open to
-> suggestions if you have a better way to proceed.
-
-I suggest just drop the TASK_SIZE_32 test altogether in this series to
-get it merged for 5.7-rc1. We'll fix the ABI issues in -rc2/-rc3 once
-you confirm that the test fully passes on arm32 when it doesn't fall
-back to the syscall handling and we understood why.
-
-> > Furthermore, my assumption is that __cvdso_clock_getres_common() should
-> > handle this case already and we don't need it in the arch vdso code.
+> > Can you not just remove the TASK_SIZE_32 check entirely?  If you pass
+> > a garbage address to the vDSO, you are quite likely to get SIGSEGV.
+> > Why does this particular type of error need special handling?
 > > 
 > 
-> This is not the point I was trying to make, what I was trying to analyze here
-> was the check compared to why the test verifies it, not the correctness of the
-> check itself.
+> In this particular case the system call and the vDSO library as it stands
+> returns -EFAULT on all the architectures that support the vdso library except on
+> arm64 compat. The reason why it does not return the correct error code, as I was
+> discussing with Catalin, it is because arm64 uses USER_DS (addr_limit set
+> happens in arch/arm64/kernel/entry.S), which is defined as (1 << VA_BITS), as
+> access_ok() validation even on compat tasks and since arm64 supports up to 52bit
+> VA, this does not detect the end of the user address space for a 32 bit task.
+> Hence when we fall back on the system call we get the wrong error code out of it.
+> 
+> According to me to have ABI consistency we need this check, but if we say that
+> we can make an ABI exception in this case, I am fine with that either if it has
+> enough consensus.
+> 
+> Please let me know your thoughts.
 
-You should implement it based on what the man page defines, not some
-specific test. Tests are rarely exhaustive (unless you do formal
-modelling).
+I don't agree with your reasoning -- letting the thing SEGV is perfectly
+fine and we don't need to perform additional checking in userspace here.
+If you treat the vDSO more as being part of libc then part of the kernel
+then I think it makes perfect sense.
 
--- 
-Catalin
+There are other system calls that will SEGV in libc if they are passed dodgy
+pointers before the kernel has a chance to return -EFAULT.
+
+Will
