@@ -1,149 +1,118 @@
 From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH v6 01/10] arm64: hyperv: Add core Hyper-V include files
-Date: Thu, 19 Mar 2020 21:31:39 +0000
-Message-ID: <MW2PR2101MB1052686237C57955148F173ED7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
+Subject: RE: [PATCH v6 04/10] arm64: hyperv: Add memory alloc/free functions
+ for Hyper-V size pages
+Date: Thu, 19 Mar 2020 21:43:53 +0000
+Message-ID: <MW2PR2101MB10520CEF065A41EEBC17FFC2D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
 References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <1584200119-18594-2-git-send-email-mikelley@microsoft.com>
- <CAK8P3a1GFDUY4mXzst4Ds+S-4SGXso6-jfpsYyy-eHyceAC1Zg@mail.gmail.com>
- <MW2PR2101MB10524879CD685710A51AB740D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
- <CAK8P3a02EULGxyuKFq8YnbG8BQ_m-RKciaNEc9ZbdP2yz9dt+Q@mail.gmail.com>
+ <1584200119-18594-5-git-send-email-mikelley@microsoft.com>
+ <CAK8P3a2Hnm74aUMNFHbjMr4HwHGZn1+xa4ERsxAJY6hMzhEOhQ@mail.gmail.com>
+ <632eb459dbe53a9b69df2a4f030a755b@kernel.org>
+ <CAK8P3a3aihZeriUWAhWJMsOtdiY4Lo29syrRbB4Po3v4dsLhvA@mail.gmail.com>
+ <MW2PR2101MB1052D91D3A9CEEBD7E2EA82FD7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
+ <CAK8P3a2AO4k3vJ7WuJQz7ick+XPgGY3Jfk8-ROqtwyNs0nWkDA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr690092.outbound.protection.outlook.com ([40.107.69.92]:42912
-        "EHLO NAM04-CO1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725895AbgCSVbo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Mar 2020 17:31:44 -0400
-In-Reply-To: <CAK8P3a02EULGxyuKFq8YnbG8BQ_m-RKciaNEc9ZbdP2yz9dt+Q@mail.gmail.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <CAK8P3a2AO4k3vJ7WuJQz7ick+XPgGY3Jfk8-ROqtwyNs0nWkDA@mail.gmail.com>
 Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@>
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Boqun Feng <boqun.feng@gmail.com>, gregkh <gregkh@linuxfoundation.org>, Marc Zyngier <maz@kernel.org>, Jason Wang <jasowang@redhat.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, "olaf@aepfle.de" <olaf@aepfle.de>, Catalin Marinas <catalin.marinas@arm.com>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, KY Srinivasan <kys@microsoft.com>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-RnJvbTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4gU2VudDogV2VkbmVzZGF5LCBNYXJj
-aCAxOCwgMjAyMCAzOjEwIEFNDQo+IA0KPiBPbiBXZWQsIE1hciAxOCwgMjAyMCBhdCAxOjEyIEFN
-IE1pY2hhZWwgS2VsbGV5IDxtaWtlbGxleUBtaWNyb3NvZnQuY29tPiB3cm90ZToNCj4gPiBGcm9t
-OiBBcm5kIEJlcmdtYW5uIDxhcm5kQGFybmRiLmRlPiBTZW50OiBNb25kYXksIE1hcmNoIDE2LCAy
-MDIwIDE6NDggQU0NCj4gPiA+IE9uIFNhdCwgTWFyIDE0LCAyMDIwIGF0IDQ6MzYgUE0gTWljaGFl
-bCBLZWxsZXkgPG1pa2VsbGV5QG1pY3Jvc29mdC5jb20+IHdyb3RlOg0KPiA+ID4NCj4gPiA+ID4g
-Kw0KPiA+ID4gPiArLyogRGVmaW5lIGlucHV0IGFuZCBvdXRwdXQgbGF5b3V0IGZvciBHZXQgVlAg
-UmVnaXN0ZXIgaHlwZXJjYWxsICovDQo+ID4gPiA+ICtzdHJ1Y3QgaHZfZ2V0X3ZwX3JlZ2lzdGVy
-X2lucHV0IHsNCj4gPiA+ID4gKyAgICAgICB1NjQgcGFydGl0aW9uaWQ7DQo+ID4gPiA+ICsgICAg
-ICAgdTMyIHZwaW5kZXg7DQo+ID4gPiA+ICsgICAgICAgdTggIGlucHV0dnRsOw0KPiA+ID4gPiAr
-ICAgICAgIHU4ICBwYWRkaW5nWzNdOw0KPiA+ID4gPiArICAgICAgIHUzMiBuYW1lMDsNCj4gPiA+
-ID4gKyAgICAgICB1MzIgbmFtZTE7DQo+ID4gPiA+ICt9IF9fcGFja2VkOw0KPiA+ID4NCj4gPiA+
-IEFyZSB5b3Ugc3VyZSB0aGVzZSBuZWVkIHRvIGJlIG1hZGUgYnl0ZS1hbGlnbmVkIGFjY29yZGlu
-ZyB0byB0aGUNCj4gPiA+IHNwZWNpZmljYXRpb24/IElmIHRoZSBzdHJ1Y3R1cmUgaXRzZWxmIGlz
-IGFsaWduZWQgdG8gNjQgYml0LCBiZXR0ZXIgbWFyayBvbmx5DQo+ID4gPiB0aGUgaW5kaXZpZHVh
-bCBmaWVsZHMgdGhhdCBhcmUgbWlzYWxpZ25lZCBhcyBfX3BhY2tlZC4NCj4gPiA+DQo+ID4gPiBJ
-ZiB0aGUgc3RydWN0dXJlIGlzIGFsaWduZWQgdG8gb25seSAzMi1iaXQgYWRkcmVzc2VzIGluc3Rl
-YWQgb2YNCj4gPiA+IDY0LWJpdCwgbWFyayBpdCBhcyAiX19wYWNrZWQgX19hbGlnbmVkKDQpIiB0
-byBsZXQgdGhlIGNvbXBpbGVyDQo+ID4gPiBnZW5lcmF0ZSBiZXR0ZXIgY29kZSBmb3IgYWNjZXNz
-aW5nIGl0Lg0KPiA+DQo+ID4gTm9uZSBvZiB0aGUgZmllbGRzIGFyZSBtaXNhbGlnbmVkIGFuZCBp
-dCB3aWxsIGFsd2F5cyBiZSBhbGlnbmVkIHRvIDY0LWJpdA0KPiA+IGFkZHJlc3Nlcywgc28gdGhl
-cmUgc2hvdWxkIGJlIG5vIHBhZGRpbmcgbmVlZGVkIG9yIGFkZGVkLiAgVGhlcmUgd2FzDQo+ID4g
-YSBkaXNjdXNzaW9uIG9mIF9fcGFja2VkIGFuZCB0aGUgSHlwZXItViBkYXRhIHN0cnVjdHVyZXMg
-aW4gZ2VuZXJhbCBvbg0KPiA+IExLTUwgaGVyZTogIGh0dHBzOi8vbGttbC5vcmcvbGttbC8yMDE4
-LzExLzMwLzg0OCAgQWRkaW5nIF9fcGFja2VkIHdhcw0KPiA+IGRvbmUgYXMgYSBwcmV2ZW50YXRp
-dmUgbWVhc3VyZSwgbm90IGJlY2F1c2UgYW55dGhpbmcgd2FzIGFjdHVhbGx5DQo+ID4gYnJva2Vu
-LiAgTWFya2luZyBhcyBfX2FsaWduZWQoOCkgaGVyZSB3b3VsZCBpbmRpY2F0ZSB0aGUgY29ycmVj
-dCBpbnRlbnQsDQo+ID4gdGhvdWdoIHRoZSB1c2Ugb2YgdGhlIHN0cnVjdHVyZSBhbHdheXMgZW5z
-dXJlcyA2NC1iaXQgYWxpZ25tZW50Lg0KPiANCj4gSnVzdCBkcm9wIHRoZSBfX3BhY2tlZCBhbm5v
-dGF0aW9ucyB0aGVuLCB0aGV5IGp1c3QgY29uZnVzZSB0aGUgY29tcGlsZXINCj4gaW4gdGhpcyBj
-YXNlLiBJbiBwYXJ0aWN1bGFyLCB3aGVuIHRoZSBjb21waWxlciB0aGlua3MgdGhhdCBhIHN0cnVj
-dHVyZSBpcw0KPiBtaXNhbGlnbmVkLCBpdCB0cmllcyB0byBhdm9pZCB1c2luZyBsb2FkL3N0b3Jl
-IGluc3RydWN0aW9ucyBvbiBpdCB0aGF0IGFyZQ0KPiBpbmVmZmljaWVudCBvciB0cmFwIHdpdGgg
-bWlzYWxpZ25lZCBjb2RlLCBzbyBoYXZpbmcgZGVmYXVsdCBhbGlnbm1lbnQNCj4gcHJvZHVjZXMg
-YmV0dGVyIG9iamVjdCBjb2RlLg0KDQpTbyBJJ20gY29uZnVzZWQgYSBiaXQuICBXZXJlIHRoZSBv
-cmlnaW5hbCBjb25jZXJucyBpbiB0aGUgYWJvdmUgTEtNTA0KZGlzY3Vzc2lvbiBib2d1cz8gIElz
-IGl0IGxlZ2FsIGZvciB0aGUgY29tcGlsZXIgdG8gcmVvcmRlciBmaWVsZHMgb3IgYWRkDQpwYWRk
-aW5nLCBldmVuIGlmIHRoZSBsYXlvdXQgb2YgZmllbGRzIGluIHRoZSBzdHJ1Y3R1cmUgZG9lc24n
-dCByZXF1aXJlIGl0Pw0KSWYgdGhlIGNvbXBpbGVyICpjb3VsZCogZG8gc3VjaCwgdGhlbiBpdCBz
-ZWVtcyBsaWtlIGtlZXBpbmcgdGhlIF9fcGFja2VkDQp3b3VsZCBiZSBhcHByb3ByaWF0ZSBwZXIg
-dGhlIExLTUwgZGlzY3Vzc2lvbi4NCg0KPiANCj4gPiA+IEFsc28sIGluIG9yZGVyIHRvIHdyaXRl
-IHBvcnRhYmxlIGNvZGUsIGl0IHdvdWxkIGJlIGhlbHBmdWwgdG8gbWFyaw0KPiA+ID4gYWxsIHRo
-ZSBmaWVsZHMgYXMgZXhwbGljaXRseSBsaXR0bGUtZW5kaWFuLCBhbmQgdXNlIF9fbGUzMl90b19j
-cHUoKQ0KPiA+ID4gZXRjIGZvciBhY2Nlc3NpbmcgdGhlbS4NCj4gPg0KPiA+IFRoZXJlJ3MgYW4g
-b3BlbmluZyBjb21tZW50IGluIHRoaXMgZmlsZSBzdGF0aW5nIHRoYXQgYWxsIGRhdGENCj4gPiBz
-dHJ1Y3R1cmVzIHNoYXJlZCBiZXR3ZWVuIEh5cGVyLVYgYW5kIGEgZ3Vlc3QgVk0gYXJlIGxpdHRs
-ZQ0KPiA+IGVuZGlhbi4gIElzIHRoZXJlIHNvbWUgb3RoZXIgbWFya2luZyB0byBjb25zaWRlciB1
-c2luZz8NCj4gDQo+IFllcywgZGV2aWNlIGRyaXZlcnMgc2hvdWxkIGdlbmVyYWxseSBkZWZpbmUg
-ZGF0YSBzdHJ1Y3R1cmVzIHVzaW5nDQo+IHRoZSBfX2xlMzIsIF9fbGU2NCBldGMgdHlwZXMsIGFu
-ZCB1c2UgdGhlIGNvbnZlcnNpb24gZnVuY3Rpb25zDQo+IHRvIGFjY2VzcyB0aGVtLiBCdWlsZGlu
-ZyB3aXRoICdtYWtlIEM9MScgdXN1YWxseSB0ZWxscyB5b3Ugd2hlbg0KPiB5b3UgaGF2ZSBtaXNt
-YXRjaGVkIGFubm90YXRpb25zLg0KPiANCj4gPiBXZSBoYXZlIGRlZmluaXRlbHkgbm90IGFsbG93
-ZWQgZm9yIHRoZSBjYXNlIG9mIEh5cGVyLVYgcnVubmluZyBvbg0KPiA+IGEgYmlnIGVuZGlhbiBh
-cmNoaXRlY3R1cmUuICBUaGVyZSBhcmUgYSAqbG90KiBvZiBtZXNzYWdlcyBhbmQgZGF0YQ0KPiA+
-IHN0cnVjdHVyZXMgcGFzc2VkIGJldHdlZW4gdGhlIGd1ZXN0IGFuZCBIeXBlci1WLCBhbmQgY29k
-aW5nDQo+ID4gdG8gaGFuZGxlIGVpdGhlciBlbmRpYW5uZXNzIGlzIGEgYmlnIHByb2plY3QuICBJ
-J20gZG91YnRmdWwNCj4gPiBvZiB0aGUgdmFsdWUgdW50aWwgYW5kIHVubGVzcyB3ZSBhY3R1YWxs
-eSBoYXZlIGEgbmVlZCBmb3IgaXQuDQo+IA0KPiBJbiBnZW5lcmFsLCB0aGUgdXNlIG9mIGJpZy1l
-bmRpYW4gc29mdHdhcmUgb24gTGludXggaXMgZGVjbGluaW5nLCBob3dldmVyDQo+IA0KPiAtIGFy
-bTY0IGFzIGFuIGFyY2hpdGVjdHVyZSBpcyBtZWFudCB0byBzdXBwb3J0IGJvdGggZW5kaWFuIHR5
-cGVzLA0KPiAgIGFuZCB3ZSBzdGlsbCB0cnkgdG8gZW5zdXJlIGl0IHdvcmtzIGVpdGhlciB3YXkg
-YXMgbG9uZyBhcyB0aGVyZSBhcmUNCj4gICB1c2VycyB0aGF0IGRlcGVuZCBvbiBpdC4NCj4gDQo+
-IC0gVGhlIHJlbWFpbmluZyB1c2VycyBvZiBiaWctZW5kaWFuIHNvZnR3YXJlIGFyZSBwcm9iYWJs
-eQ0KPiAgIG1vcmUgbGlrZWx5IHRvIHJ1biBvbiB2aXJ0dWFsIG1hY2hpbmVzIHRoYW4gb24gcmVh
-bCBoYXJkd2FyZQ0KPiANCj4gLSBBbnkgZGV2aWNlIGRyaXZlciBzaG91bGQgZ2VuZXJhbGx5IGJl
-IHdyaXR0ZW4gYWdhaW5zdCBwb3J0YWJsZQ0KPiAgIGludGVyZmFjZXMsIGV2ZW4gaWYgeW91IHRo
-aW5rIHlvdSBrbm93IGhvdyBpdCB3aWxsIGJlIHVzZWQuIEFzDQo+ICAgZHJpdmVyIHdyaXRlcnMg
-dGVuZCB0byBsb29rIGF0IGV4aXN0aW5nIGNvZGUgZm9yIG5ldyBkcml2ZXJzLCBpdCdzDQo+ICAg
-YmV0dGVyIHRvIGhhdmUgdGhlbSBhbGwgYmUgcG9ydGFibGUuIChUaGlzIGlzIGEgc2ltaWxhciBh
-cmd1bWVudA0KPiAgIHRvIHRoZSBpcnFjaGlwIGludGVyZmFjZSkuDQo+IA0KPiBFdmVuIGlmIHlv
-dSBkb24ndCBjb252ZXJ0IGFueSBvZiB0aGUgZXhpc3RpbmcgYXJjaGl0ZWN0dXJlIGluZGVwZW5k
-ZW50DQo+IGNvZGUgdG8gcnVuIGJvdGggd2F5cywgSSBzZWUgbm8gcmVhc29uIHRvIG5vdCBkbyBp
-dCBmb3IgbmV3IGRyaXZlcnMuDQoNCk9LLCBsZXQgbWUgbG9vayBpbnRvIHRoaXMuICBHaXZlbiBo
-b3cgdGhlIG1ham9yIExpbnV4IGRpc3Ryb3Mgb24NCkFSTTY0IGhhdmUgYWxsIGdvbmUgbGl0dGxl
-LWVuZGlhbiwgSSdtIGEgYml0IHNrZXB0aWNhbCBvZiB0aGUgdmFsdWUNCmZvciB0aGUgYmlnIHNl
-cnZlciBlbnZpcm9ubWVudHMgaW4gd2hpY2ggSHlwZXItViB3b3VsZCBiZSB1c2VkLg0KDQo+IA0K
-PiA+ID4gPiArLyogRGVmaW5lIHN5bnRoZXRpYyBpbnRlcnJ1cHQgY29udHJvbGxlciBtZXNzYWdl
-IGZsYWdzLiAqLw0KPiA+ID4gPiArdW5pb24gaHZfbWVzc2FnZV9mbGFncyB7DQo+ID4gPiA+ICsg
-ICAgICAgX191OCBhc3U4Ow0KPiA+ID4gPiArICAgICAgIHN0cnVjdCB7DQo+ID4gPiA+ICsgICAg
-ICAgICAgICAgICBfX3U4IG1zZ19wZW5kaW5nOjE7DQo+ID4gPiA+ICsgICAgICAgICAgICAgICBf
-X3U4IHJlc2VydmVkOjc7DQo+ID4gPiA+ICsgICAgICAgfSBfX3BhY2tlZDsNCj4gPiA+ID4gK307
-DQo+ID4gPg0KPiA+ID4gRm9yIHNpbWlsYXIgcmVhc29ucywgcGxlYXNlIGF2b2lkIGJpdCBmaWVs
-ZHMgYW5kIGp1c3QgdXNlIGENCj4gPiA+IGJpdCBtYXNrIG9uIHRoZSBmaXJzdCBtZW1iZXIgb2Yg
-dGhlIHVuaW9uLg0KPiA+DQo+ID4gVW5mb3J0dW5hdGVseSwgY2hhbmdpbmcgdG8gYSBiaXQgbWFz
-ayByaXBwbGVzIGludG8NCj4gPiBhcmNoaXRlY3R1cmUgaW5kZXBlbmRlbnQgY29kZSBhbmQgaW50
-byB0aGUgeDg2DQo+ID4gaW1wbGVtZW50YXRpb24uICBJJ2QgcHJlZmVyIG5vdCB0byBkcmFnIHRo
-YXQgY29tcGxleGl0eQ0KPiA+IGludG8gdGhpcyBwYXRjaCBzZXQuDQo+IA0KPiBIb3cgc28/IElm
-IHRoaXMgZmlsZSBpcyBhcm02NCBzcGVjaWZpYywgdGhlcmUgc2hvdWxkIGJlIG5vIG5lZWQgdG8g
-bWFrZQ0KPiB4ODYgZG8gdGhlIHNhbWUgY2hhbmdlLg0KDQpUaGlzIGZpbGUsIGh5cGVydi10bGZz
-LmgsIGlzIGR1cGxpY2F0aW5nIHNvbWUgZGVmaW5pdGlvbnMgb24gdGhlIHg4NiBhbmQNCkFSTTY0
-IHNpZGVzIHRoYXQgYXJlIHVzZWQgYnkgYXJjaCBpbmRlcGVuZGVudCBjb2RlLCBhbmQgdGhpcyBp
-cyBvbmUNCm9mIHRob3NlIGRlZmluaXRpb25zLiAgSSBoYWQgaGVsZCBvZmYgb24gYnJlYWtpbmcg
-dGhlIGZpbGUgaW50byBhcmNoDQppbmRlcGVuZGVudCBhbmQgYXJjaCBzcGVjaWZpYyBwb3J0aW9u
-cyBiZWNhdXNlIHRoZSBIeXBlci1WIHRlYW0gaGFzDQpsZWZ0IHNvbWUgZ3JheSBhcmVhcyBmb3Ig
-ZnVuY3Rpb25hbGl0eSB0aGF0IGlzbid0IHlldCB1c2VkIG9uIHRoZSBBUk02NA0Kc2lkZS4gIFNv
-IGluIHNvbWUgY2FzZXMsIGl0J3MgaGFyZCB0byBrbm93IHdoYXQgZnVuY3Rpb25hbGl0eSB0byBw
-dXQNCmludG8gdGhlIGFyY2ggaW5kZXBlbmRlbnQgcG9ydGlvbi4NCg0KQnV0IEkgdGhpbmsgSSds
-bCBnbyBhaGVhZCBhbmQgbWFrZSB0aGUgc2VwYXJhdGlvbiB3aXRoIHJlYXNvbmFibHkgZ29vZA0K
-YWNjdXJhY3ksIGFuZCB1cGRhdGUgdGhlIHg4NiBzaWRlIGFjY29yZGluZ2x5LiAgVGhhdCB3aWxs
-IHJlZHVjZSB0aGUgc2l6ZQ0Kb2YgdGhpcyBwYXRjaCBzZXQgdG8gY29udGFpbiBvbmx5IHRoZSB0
-aGluZ3MgdGhhdCB3ZSBrbm93IGFyZSBBUk02NA0Kc3BlY2lmaWMgYW5kIHdoaWNoIGFyZSBhY3R1
-YWxseSB1c2VkIGJ5IHRoZSBBUk02NCBjb2RlLiAgVGhpbmdzIGxpa2UgdGhlDQpodl9tZXNzYWdl
-X2ZsYWdzIHdpbGwgZ28gaW50byB0aGUgYXJjaCBpbmRlcGVuZGVudCBwb3J0aW9uIHNvIHRoYXQN
-CnRoZXkgY2FuIGJlIHVzZWQgYnkgdGhlIGFyY2ggaW5kZXBlbmRlbnQgY29kZSB3aXRob3V0IGNs
-dXR0ZXJpbmcgdXANCnRoZSBhcmNoIHNwZWNpZmljIGNvZGUuICBNYWtpbmcgdGhlIGNoYW5nZSB3
-aWxsIGhlbHAgcmVkdWNlIGFueQ0KY29uZnVzaW9uIGFib3V0IHdoYXQgaXMgQVJNNjQtc3BlY2lm
-aWMuIFRoZSBvdGhlciBjb3JlICNpbmNsdWRlIGZpbGUsDQptc2h5cGVydi5oLCBoYXMgYWxyZWFk
-eSBiZWVuIGRvbmUgdGhpcyB3YXkuDQoNCk1pY2hhZWwNCg0KPiANCj4gPiA+ID4gKyAqIFVzZSB0
-aGUgSHlwZXItViBwcm92aWRlZCBzdGltZXIwIGFzIHRoZSB0aW1lciB0aGF0IGlzIG1hZGUNCj4g
-PiA+ID4gKyAqIGF2YWlsYWJsZSB0byB0aGUgYXJjaGl0ZWN0dXJlIGluZGVwZW5kZW50IEh5cGVy
-LVYgZHJpdmVycy4NCj4gPiA+ID4gKyAqLw0KPiA+ID4gPiArI2RlZmluZSBodl9pbml0X3RpbWVy
-KHRpbWVyLCB0aWNrKSBcDQo+ID4gPiA+ICsgICAgICAgICAgICAgICBodl9zZXRfdnByZWcoSFZf
-UkVHSVNURVJfU1RJTUVSMF9DT1VOVCArICgyKnRpbWVyKSwgdGljaykNCj4gPiA+ID4gKyNkZWZp
-bmUgaHZfaW5pdF90aW1lcl9jb25maWcodGltZXIsIHZhbCkgXA0KPiA+ID4gPiArICAgICAgICAg
-ICAgICAgaHZfc2V0X3ZwcmVnKEhWX1JFR0lTVEVSX1NUSU1FUjBfQ09ORklHICsgKDIqdGltZXIp
-LCB2YWwpDQo+ID4gPiA+ICsjZGVmaW5lIGh2X2dldF9jdXJyZW50X3RpY2sodGljaykgXA0KPiA+
-ID4gPiArICAgICAgICAgICAgICAgKHRpY2sgPSBodl9nZXRfdnByZWcoSFZfUkVHSVNURVJfVElN
-RV9SRUZDT1VOVCkpDQo+ID4gPg0KPiA+ID4gSW4gZ2VuZXJhbCwgd2UgcHJlZmVyIGlubGluZSBm
-dW5jdGlvbnMgb3ZlciBtYWNyb3MgaW4gaGVhZGVyIGZpbGVzLg0KPiA+DQo+ID4gSSBjYW4gY2hh
-bmdlIHRoZSAic2V0IiBjYWxscyB0byBpbmxpbmUgZnVuY3Rpb25zLiAgQXMgeW91IGNhbiBzZWUs
-IHRoZSAiZ2V0Ig0KPiA+IGZ1bmN0aW9ucyBhcmUgY29kZWQgYW5kIHVzZWQgaW4gYXJjaGl0ZWN0
-dXJlIGluZGVwZW5kZW50IGNvZGUgYW5kIG9uDQo+ID4gdGhlIHg4NiBzaWRlIGluIGEgd2F5IHRo
-YXQgd29uJ3QgY29udmVydCB0byBpbmxpbmUgZnVuY3Rpb25zLg0KPiANCj4gT2suDQo+IA0KPiAg
-ICAgICAgIEFybmQNCg==
+From: Arnd Bergmann <arnd@arndb.de> Sent: Wednesday, March 18, 2020 2:58 AM
+> 
+> On Wed, Mar 18, 2020 at 1:15 AM Michael Kelley <mikelley@microsoft.com> wrote:
+> > From: Arnd Bergmann <arnd@arndb.de> Sent: Monday, March 16, 2020 1:33 AM
+> > >
+> > > On Mon, Mar 16, 2020 at 9:30 AM Marc Zyngier <maz@kernel.org> wrote:
+> > > > On 2020-03-16 08:22, Arnd Bergmann wrote:
+> > > > > On Sat, Mar 14, 2020 at 4:36 PM Michael Kelley <mikelley@microsoft.com>
+> > > > > wrote:
+> > > > >>  /*
+> > > > >> + * Functions for allocating and freeing memory with size and
+> > > > >> + * alignment HV_HYP_PAGE_SIZE. These functions are needed because
+> > > > >> + * the guest page size may not be the same as the Hyper-V page
+> > > > >> + * size. We depend upon kmalloc() aligning power-of-two size
+> > > > >> + * allocations to the allocation size boundary, so that the
+> > > > >> + * allocated memory appears to Hyper-V as a page of the size
+> > > > >> + * it expects.
+> > > > >> + *
+> > > > >> + * These functions are used by arm64 specific code as well as
+> > > > >> + * arch independent Hyper-V drivers.
+> > > > >> + */
+> > > > >> +
+> > > > >> +void *hv_alloc_hyperv_page(void)
+> > > > >> +{
+> > > > >> +       BUILD_BUG_ON(PAGE_SIZE <  HV_HYP_PAGE_SIZE);
+> > > > >> +       return kmalloc(HV_HYP_PAGE_SIZE, GFP_KERNEL);
+> > > > >> +}
+> > > > >> +EXPORT_SYMBOL_GPL(hv_alloc_hyperv_page);
+> > > > >
+> > > > > I don't think there is any guarantee that kmalloc() returns
+> > > > > page-aligned
+> > > > > allocations in general.
+> > > >
+> > > > I believe that guarantee came with 59bb47985c1db ("mm, sl[aou]b:
+> > > > guarantee
+> > > > natural alignment for kmalloc(power-of-two)").
+> > > >
+> > > > > How about using get_free_pages() to implement this?
+> > > >
+> > > > This would certainly work, at the expense of a lot of wasted memory when
+> > > > PAGE_SIZE isn't 4k.
+> > >
+> > > I'm sure this is the least of your problems when the guest runs with
+> > > a large base page size, you've already wasted most of your memory
+> > > otherwise then.
+> > >
+> >
+> > I think there's value in keeping these functions.  There are 8 uses in
+> > architecture independent code at the moment, which admittedly saves
+> > only ~1/2 Mbyte of memory with a 64K page size, but we will have
+> > additional uses with more memory savings as we get all of the
+> > Hyper-V synthetic drivers to work with 64K page size.  Furthermore,
+> > there's coming work that will require additional steps to share a page
+> > between a guest and the Hyper-V host.  These functions are the right
+> > place to put the code for the additional sharing steps.  Removing them
+> > now in favor of a bare kmalloc() and then adding them back doesn't
+> > seem worthwhile.
+> 
+> My point was to keep the functions but use alloc_pages() internally,
+> so you can deal with the hypervisor having a larger page size than
+> the guest, which seems to be a more important scenario if I correctly
+> understand the differences between the way Windows and Linux
+> deal with page cache.
+
+OK, I see now what you are getting at.  I should spell out my
+assumption, which is the opposite.  Hyper-V won't have a page
+size other than 4K anytime in the foreseeable future.  The
+code is too wedded to the x86 4K page size, and the host-guest
+interfaces have a lot of implicit assumptions that the page size is
+4K (unfortunately).  But the last time I looked, RHEL for ARM64 is
+delivered with a 64K page size.  So my assumption is that the only
+combination that really matters is the guest page size being larger
+than the Hyper-V page size.  The other way around just won't
+happen without a major overhaul to Hyper-V, including a rework
+of the guest-host interface.
+
+Michael
+
+> 
+> As far as I understand, using 64kb pages on Windows is generally
+> a win as the VFS code already deals with units of that size, while
+> on Linux the 4kb page size is too deeply entrenched within the
+> file system code to mess with it: Whatever you gain in terms of
+> TLB pressure on workloads that cannot use huge pages is all lost
+> again through extra I/O and wasted physical memory.
+> 
+>         Arnd
