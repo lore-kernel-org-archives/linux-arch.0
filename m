@@ -1,85 +1,171 @@
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH v6 03/10] arm64: hyperv: Add hypercall and register access
- functions
-Date: Thu, 19 Mar 2020 21:04:58 +0000
-Message-ID: <MW2PR2101MB1052AAC1EE6AC082C9ED6779D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <20200318031130.5476-1-hdanton@sina.com>
+From: Jann Horn <jannh@google.com>
+Subject: Re: [RFC PATCH v14 00/10] Landlock LSM
+Date: Thu, 19 Mar 2020 22:17:37 +0100
+Message-ID: <CAG48ez18LrDVLdp3agTwHNYxOBJyEb5PZ1dkwbNjpPVQoTsLcA@mail.gmail.com>
+References: <20200224160215.4136-1-mic@digikod.net> <CAG48ez21bEn0wL1bbmTiiu8j9jP5iEWtHOwz4tURUJ+ki0ydYw@mail.gmail.com>
+ <873d7419-bdd9-8a52-0a9b-dddbe31df4f9@digikod.net> <CAG48ez0=0W5Ok-8nASqZrZ28JboXRRi3gDxV5u6mdcOtzwuRVA@mail.gmail.com>
+ <688dda0f-0907-34eb-c19e-3e9e5f613a74@digikod.net> <CAG48ez16yT+zbK1WPxr2TnxrifW5c2DnpFLbWRRLUT_WpuFNmw@mail.gmail.com>
+ <e8530226-f295-a897-1132-7e6970dad49f@digikod.net> <CAG48ez1K-7Lq2Ep_p9fOvXQ-fwj_8dA1CFd5SVDbT4ccqejDzA@mail.gmail.com>
+ <2d48e3e3-e7b2-ec33-91c5-be6a308a12d4@digikod.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn8nam11on2123.outbound.protection.outlook.com ([40.107.236.123]:34400
-        "EHLO NAM11-BN8-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725747AbgCSVFC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Mar 2020 17:05:02 -0400
-In-Reply-To: <20200318031130.5476-1-hdanton@sina.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Hillf Danton <hdanton@sina.com>
-Cc: "will@kernel.org" <will@kernel.org>, "ardb@kernel.org" <ardb@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "maz@kernel.org" <maz@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, "apw@canonical.com" <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, "jasowang@redhat.com" <jasowang@redha>
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <2d48e3e3-e7b2-ec33-91c5-be6a308a12d4@digikod.net>
+Sender: linux-doc-owner@vger.kernel.org
+To: =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
+Cc: kernel list <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-doc@vger.kernel.o
+List-Id: linux-arch.vger.kernel.org
 
-From: Hillf Danton <hdanton@sina.com> Sent: Tuesday, March 17, 2020 8:12 PM
->=20
-> On Sat, 14 Mar 2020 08:35:12 -0700 Michael Kelley wrote:
-> > +/*
-> > + * Get the value of a single VP register.  One version
-> > + * returns just 64 bits and another returns the full 128 bits.
-> > + * The two versions are separate to avoid complicating the
-> > + * calling sequence for the more frequently used 64 bit version.
-> > + */
-> > +
-> > +/*
-> > + * Input and output memory allocation sizes are rounded up to a power
-> > + * of 2 so kmalloc() will guarantee alignment. In turn, the alignment
-> > + * ensures that the allocations don't cross a page boundary, which is
->=20
-> Better to specify kmalloc's current alignment and why it fails to ensure
-> (4 * sizeof(u64))-sized allocations wont cross page boundary.
->=20
+On Thu, Mar 19, 2020 at 5:58 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.net> =
+wrote:
+> On 19/03/2020 00:33, Jann Horn wrote:
+> > On Wed, Mar 18, 2020 at 1:06 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.n=
+et> wrote:
+[...]
+> >> As I understand your proposition, we need to build the required_bits
+> >> when adding a rule or enforcing/merging a ruleset with a domain. The
+> >> issue is that a rule only refers to a struct inode, not a struct path.
+> >> For your proposition to work, we would need to walk through the file
+> >> path when adding a rule to a ruleset, which means that we need to depe=
+nd
+> >> of the current view of the process (i.e. its mount namespace), and its
+> >> Landlock domain.
+> >
+> > I don't see why that is necessary. Why would we have to walk the file
+> > path when adding a rule?
+> >
+> >> If the required_bits field is set when the ruleset is
+> >> merged with the domain, it is not possible anymore to walk through the
+> >> corresponding initial file path, which makes the enforcement step too
+> >> late to check for such consistency. The important point is that a
+> >> ruleset/domain doesn't have a notion of file hierarchy, a ruleset is
+> >> only a set of tagged inodes.
+> >>
+> >> I'm not sure I got your proposition right, though. When and how would
+> >> you generate the required_bits?
+> >
+> > Using your terminology:
+> > A domain is a collection of N layers, which are assigned indices 0..N-1=
+.
+> > For each possible access type, a domain has a bitmask containing N
+> > bits that stores which layers control that access type. (Basically a
+> > per-layer version of fs_access_mask.)
+>
+> OK, so there is a bit for each domain, which means that you get a limit
+> of, let's say 64 layers? Knowing that each layer can be created by a
+> standalone application, potentially nested in a bunch of layers, this
+> seems artificially limiting.
 
-Is your comment referring to ARCH_KMALLOC_MINALIGN?  If so, I see
-how that makes sense.  BUILD_BUG_ON (sizeof (*input) >
-ARCH_KMALLOC_MINALIGN) would be a cleaner solution.=20
+Yes, that is a downside of my approach.
 
-Thanks,
+> > To validate an access, you start by ORing together the bitmasks for
+> > the requested access types; that gives you the required_bits mask,
+> > which lists all layers that want to control the access.
+> > Then you set seen_policy_bits=3D0, then do the
+> > check_access_path_continue() loop while keeping track of which layers
+> > you've seen with "seen_policy_bits |=3D access->contributing_policies",
+> > or something like that.
+> > And in the end, you check that seen_policy_bits is a superset of
+> > required_bits - something like `(~seen_policy_bits) & required_bits =3D=
+=3D
+> > 0`.
+> >
+> > AFAICS to create a new domain from a bunch of layers, you wouldn't
+> > have to do any path walking.
+>
+> Right, I misunderstood your previous email.
+>
+> >
+> >> Here is my updated proposition: add a layer level and a depth to each
+> >> rule (once enforced/merged with a domain), and a top layer level for a
+> >> domain. When enforcing a ruleset (i.e. merging a ruleset into the
+> >> current domain), the layer level of a new rule would be the incremente=
+d
+> >> top layer level.
+> >> If there is no rule (from this domain) tied to the same
+> >> inode, then the depth of the new rule is 1. However, if there is alrea=
+dy
+> >> a rule tied to the same inode and if this rule's layer level is the
+> >> previous top layer level, then the depth and the layer level are both
+> >> incremented and the rule is updated with the new access rights (boolea=
+n
+> >> AND).
+> >>
+> >> The policy looks like this:
+> >> domain top_layer=3D2
+> >> /a RW policy_bitmask=3D0x00000003 layer=3D1 depth=3D1
+> >> /a/b R policy_bitmask=3D0x00000002 layer=3D2 depth=3D1
+> >>
+> >> The path walk access check walks through all inodes and start with a
+> >> layer counter equal to the top layer of the current domain. For each
+> >> encountered inode tied to a rule, the access rights are checked and a
+> >> new check ensures that the layer of the matching rule is the same as t=
+he
+> >> counter (this may be a merged ruleset containing rules pertaining to t=
+he
+> >> same hierarchy, which is fine) or equal to the decremented counter (i.=
+e.
+> >> the path walk just reached the underlying layer). If the path walk
+> >> encounter a rule with a layer strictly less than the counter minus one=
+,
+> >> there is a whole in the layers which means that the ruleset
+> >> hierarchy/subset does not match, and the access must be denied.
+> >>
+> >> When accessing a file at /private/b/foo for a read access:
+> >> /private/b/foo <no rules>
+> >>   allowed_access=3Dunknown layer_counter=3D2
+> >> /private/b <access: R, policy_bitmask=3D0x00000002, layer=3D2, depth=
+=3D1>
+> >>   allowed_access=3Dallowed layer_counter=3D2
+> >> /private <no rules>
+> >>   allowed_access=3Dallowed layer_counter=3D2
+> >> / <no rules>
+> >>   allowed_access=3Dallowed layer_counter=3D2
+> >>
+> >> Because the layer_counter didn't reach 1, the access request is then d=
+enied.
+> >>
+> >> This proposition enables not to rely on a parent ruleset at first, onl=
+y
+> >> when enforcing/merging a ruleset with a domain. This also solves the
+> >> issue with multiple inherited/nested rules on the same inode (in which
+> >> case the depth just grows). Moreover, this enables to safely stop the
+> >> path walk as soon as we reach the layer 1.
+> >
+> > (FWIW, you could do the same optimization with the seen_policy_bits app=
+roach.)
+> >
+> > I guess the difference between your proposal and mine is that in my
+> > proposal, the following would work, in effect permitting W access to
+> > /foo/bar/baz (and nothing else)?
+> >
+> > first ruleset:
+> >   /foo W
+> > second ruleset:
+> >   /foo/bar/baz W
+> > third ruleset:
+> >   /foo/bar W
+> >
+> > whereas in your proposal, IIUC it wouldn't be valid for a new ruleset
+> > to whitelist a superset of what was whitelisted in a previous ruleset?
+> >
+>
+> This behavior seems dangerous because a process which sandbox itself to
+> only access /foo/bar W can bypass the restrictions from one of its
+> parent domains (i.e. only access /foo/bar/baz W). Indeed, each layer is
+> (most of the time) a different and standalone security policy.
 
-Michael
+It isn't actually bypassing the restriction: You still can't actually
+access files like /foo/bar/blah, because a path walk from there
+doesn't encounter any rules from the second ruleset.
 
-> > + * required by the hypercall interface.
-> > + */
-> > +#define INPUTSIZE (4 * sizeof(u64))
-> > +#define OUTPUTSIZE (2 * sizeof(u64))
-> > +
-> > +static void __hv_get_vpreg_128(u32 msr, struct hv_get_vp_register_outp=
-ut *res)
-> > +{
-> > +	union hv_hypercall_status		status;
-> > +	struct hv_get_vp_register_input		*input;
-> > +
-> > +	BUILD_BUG_ON(sizeof(*input) > INPUTSIZE);
-> > +
-> > +	input =3D kzalloc(INPUTSIZE, GFP_ATOMIC);
-> > +
-> > +	input->partitionid =3D HV_PARTITION_ID_SELF;
-> > +	input->vpindex =3D HV_VP_INDEX_SELF;
-> > +	input->inputvtl =3D 0;
-> > +	input->name0 =3D msr;
-> > +	input->name1 =3D 0;
-> > +
-> > +
-> > +	status.as_uint64 =3D hv_do_hypercall(
-> > +		HVCALL_GET_VP_REGISTERS | HV_HYPERCALL_REP_COUNT_1,
-> > +		input, res);
-> > +
-> > +	/*
-> > +	 * Something is fundamentally broken in the hypervisor if
-> > +	 * getting a VP register fails. There's really no way to
-> > +	 * continue as a guest VM, so panic.
-> > +	 */
-> > +	BUG_ON(status.status !=3D HV_STATUS_SUCCESS);
-> > +
-> > +	kfree(input);
-> > +}
+> To sum up, the bitmask approach doesn't have the notion of layers
+> ordering. It is then not possible to check that a rule comes from a
+> domain which is the direct ancestor of a child's domain. I want each
+> policy/layer to be really nested in the sense that a process sandboxing
+> itself can only add more restriction to itself with regard to its parent
+> domain (and the whole hierarchy). This is a similar approach to
+> seccomp-bpf (with chained filters), except there is almost no overhead
+> to nest several policies/layers together because they are flattened.
+> Using the layer level and depth approach enables to implement this.
