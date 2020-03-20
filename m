@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 20/26] arm64: vdso: Include common headers in the vdso library
-Date: Fri, 20 Mar 2020 14:53:45 +0000
-Message-ID: <20200320145351.32292-21-vincenzo.frascino@arm.com>
+Subject: [PATCH v5 21/26] arm64: vdso32: Include common headers in the vdso library
+Date: Fri, 20 Mar 2020 14:53:46 +0000
+Message-ID: <20200320145351.32292-22-vincenzo.frascino@arm.com>
 References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -17,33 +17,34 @@ a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Refactor the vdso implementation to include common headers.
+Refactor the vdso32 implementation to include common headers.
 
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will@kernel.org>
 Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/include/asm/vdso/gettimeofday.h | 1 -
- arch/arm64/kernel/vdso/vgettimeofday.c     | 2 --
- 2 files changed, 3 deletions(-)
+ arch/arm64/include/asm/vdso/compat_gettimeofday.h | 2 +-
+ arch/arm64/kernel/vdso32/vgettimeofday.c          | 2 --
+ 2 files changed, 1 insertion(+), 3 deletions(-)
 
-diff --git a/arch/arm64/include/asm/vdso/gettimeofday.h b/arch/arm64/include/asm/vdso/gettimeofday.h
-index 5a534432aa5d..afba6ba332f8 100644
---- a/arch/arm64/include/asm/vdso/gettimeofday.h
-+++ b/arch/arm64/include/asm/vdso/gettimeofday.h
-@@ -8,7 +8,6 @@
+diff --git a/arch/arm64/include/asm/vdso/compat_gettimeofday.h b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+index 401df2bcd741..b6907ae78e53 100644
+--- a/arch/arm64/include/asm/vdso/compat_gettimeofday.h
++++ b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+@@ -8,7 +8,7 @@
  #ifndef __ASSEMBLY__
  
  #include <asm/unistd.h>
 -#include <uapi/linux/time.h>
++#include <asm/errno.h>
  
- #define VDSO_HAS_CLOCK_GETRES		1
+ #include <asm/vdso/compat_barrier.h>
  
-diff --git a/arch/arm64/kernel/vdso/vgettimeofday.c b/arch/arm64/kernel/vdso/vgettimeofday.c
-index 747635501a14..4236cf34d7d9 100644
---- a/arch/arm64/kernel/vdso/vgettimeofday.c
-+++ b/arch/arm64/kernel/vdso/vgettimeofday.c
+diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
+index ddbad47efaa4..5acff29c5991 100644
+--- a/arch/arm64/kernel/vdso32/vgettimeofday.c
++++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
 @@ -5,8 +5,6 @@
   * Copyright (C) 2018 ARM Limited
   *
@@ -51,7 +52,7 @@ index 747635501a14..4236cf34d7d9 100644
 -#include <linux/time.h>
 -#include <linux/types.h>
  
- int __kernel_clock_gettime(clockid_t clock,
- 			   struct __kernel_timespec *ts)
+ int __vdso_clock_gettime(clockid_t clock,
+ 			 struct old_timespec32 *ts)
 -- 
 2.25.1
