@@ -1,58 +1,65 @@
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH v6 09/10] arm64: efi: Export screen_info
-Date: Thu, 19 Mar 2020 21:46:30 +0000
-Message-ID: <MW2PR2101MB1052E413218D295EF24E5E05D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <1584200119-18594-10-git-send-email-mikelley@microsoft.com>
- <CAK8P3a1YUjhaVUmjVC2pCoTTBTU408iN44Q=QZ0RDz8rmzJisQ@mail.gmail.com>
- <MW2PR2101MB10524254D2FE3EFC72329465D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
- <CAK8P3a1YCtc3LJ-_3iT90_Srehb96gLHvTXsbJ0wT6NFYCG=TQ@mail.gmail.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 1/9] scripts/link-vmlinux.sh: Delay orphan handling
+ warnings until final link
+Date: Fri, 20 Mar 2020 12:47:54 +1000
+Message-ID: <1584672297.mudnpz3ir9.astroid@bobo.none>
+References: <20200228002244.15240-1-keescook@chromium.org>
+        <20200228002244.15240-2-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm6nam11on2123.outbound.protection.outlook.com ([40.107.223.123]:46176
-        "EHLO NAM11-DM6-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726619AbgCSVqf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Mar 2020 17:46:35 -0400
-In-Reply-To: <CAK8P3a1YCtc3LJ-_3iT90_Srehb96gLHvTXsbJ0wT6NFYCG=TQ@mail.gmail.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200228002244.15240-2-keescook@chromium.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Borislav Petkov <bp@suse.de>, Kees Cook <keescook@chromium.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, clang-built-linux@googlegroups.com, "H.J. Lu" <hjl.tools@gmail.com>, James Morse <james.morse@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@armlinux.org.uk>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Masahiro Yamada <masahiroy@kernel.org>, Peter Collingbourne <pcc@google.com>, Will Deacon <will@kernel.org>, x86@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-RnJvbTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4gU2VudDogV2VkbmVzZGF5LCBNYXJj
-aCAxOCwgMjAyMCAyOjI3IEFNDQo+IA0KPiBPbiBXZWQsIE1hciAxOCwgMjAyMCBhdCAxOjE4IEFN
-IE1pY2hhZWwgS2VsbGV5IDxtaWtlbGxleUBtaWNyb3NvZnQuY29tPiB3cm90ZToNCj4gPiBGcm9t
-OiBBcm5kIEJlcmdtYW5uIDxhcm5kQGFybmRiLmRlPg0KPiA+ID4gT24gU2F0LCBNYXIgMTQsIDIw
-MjAgYXQgNDozNiBQTSBNaWNoYWVsIEtlbGxleSA8bWlrZWxsZXlAbWljcm9zb2Z0LmNvbT4gd3Jv
-dGU6DQo+ID4gPiA+DQo+ID4gPiA+IFRoZSBIeXBlci1WIGZyYW1lIGJ1ZmZlciBkcml2ZXIgbWF5
-IGJlIGJ1aWx0IGFzIGEgbW9kdWxlLCBhbmQNCj4gPiA+ID4gaXQgbmVlZHMgYWNjZXNzIHRvIHNj
-cmVlbl9pbmZvLiBTbyBleHBvcnQgc2NyZWVuX2luZm8uDQo+ID4gPiA+DQo+ID4gPiA+IFNpZ25l
-ZC1vZmYtYnk6IE1pY2hhZWwgS2VsbGV5IDxtaWtlbGxleUBtaWNyb3NvZnQuY29tPg0KPiA+ID4N
-Cj4gPiA+IElzIHRoZXJlIGFueSBjaGFuY2Ugb2YgdXNpbmcgYSBtb3JlIG1vZGVybiBLTVMgYmFz
-ZWQgZHJpdmVyIGZvciB0aGUgc2NyZWVuDQo+ID4gPiB0aGFuIHRoZSBvbGQgZmJkZXYgc3Vic3lz
-dGVtPyBJIGhhZCBob3BlZCB0byBvbmUgZGF5IGNvbXBsZXRlbHkgcmVtb3ZlDQo+ID4gPiBzdXBw
-b3J0IGZvciB0aGUgb2xkIENPTkZJR19WSURFT19GQkRFViBhbmQgc2NyZWVuX2luZm8gZnJvbSBt
-b2Rlcm4NCj4gPiA+IGFyY2hpdGVjdHVyZXMuDQo+ID4gPg0KPiA+DQo+ID4gVGhlIGN1cnJlbnQg
-aHlwZXJ2X2ZiLmMgZHJpdmVyIGlzIGFsbCB3ZSBoYXZlIHRvZGF5IGZvciB0aGUgc3ludGhldGlj
-IEh5cGVyLVYNCj4gPiBmcmFtZSBidWZmZXIgZGV2aWNlLiAgVGhhdCBkcml2ZXIgYnVpbGRzIGFu
-ZCBydW5zIG9uIGJvdGggQVJNNjQgYW5kIHg4Ni4NCj4gPg0KPiA+IEknbSBub3Qga25vd2xlZGdl
-YWJsZSBhYm91dCB2aWRlby9ncmFwaGljcyBkcml2ZXJzLCBidXQgd2hlbiB5b3UNCj4gPiBzYXkg
-ImEgbW9yZSBtb2Rlcm4gS01TIGJhc2VkIGRyaXZlciIsIGFyZSB5b3UgbWVhbmluZyBvbmUgYmFz
-ZWQgb24NCj4gPiBEUk0gJiBLTVM/ICBEb2VzIERSTSBtYWtlIHNlbnNlIGZvciBhICJkdW1iIiBm
-cmFtZSBidWZmZXIgZGV2aWNlPw0KPiA+IEFyZSB0aGVyZSBhbnkgZHJpdmVycyB0aGF0IHdvdWxk
-IGJlIGEgZ29vZCBwYXR0ZXJuIHRvIGxvb2sgYXQ/DQo+IA0KPiBJdCB1c2VkIHRvIGJlIGEgbG90
-IGhhcmRlciB0byB3cml0ZSBhIERSTSBkcml2ZXIgY29tcGFyZWQgdG8gYW4gZmJkZXYNCj4gZHJp
-dmVyLCBidXQgdGhpcyBoYXMgY2hhbmdlZCB0byB0aGUgb3Bwb3NpdGUgb3ZlciB0aGUgeWVhcnMu
-DQo+IA0KPiBBIGZhaXJseSBtaW5pbWFsIGV4YW1wbGUgd291bGQgYmUgZHJpdmVycy9ncHUvZHJt
-L3BsMTExL3BsMTExX2Rydi5jDQo+IG9yIGFueXRoaW5nIGluIGRyaXZlcnMvZ3B1L2RybS90aW55
-LywgYnV0IHlvdSBtYXkgd2FudCB0byBsb29rIGF0IHRoZQ0KPiBvdGhlciBoeXBlcnZpc29yIHBs
-YXRmb3JtcyBmaXJzdCwgaS5lIGRyaXZlcnMvZ3B1L2RybS92aXJ0aW8vdmlydGdwdV9kcnYuYywN
-Cj4gZHJpdmVycy9ncHUvZHJtL3Ztd2dmeC92bXdnZnhfZHJ2LmMsIGRyaXZlcnMvZ3B1L2RybS94
-ZW4veGVuX2RybV9mcm9udC5jLA0KPiBkcml2ZXJzL2dwdS9kcm0vcXhsL3F4bF9kcnYuYywgYW5k
-IGRyaXZlcnMvZ3B1L2RybS9ib2Nocy9ib2Noc19kcnYuYy4NCj4gDQoNClRoYW5rcyBmb3IgdGhl
-IHBvaW50ZXJzLCBlc3BlY2lhbGx5IGZvciB0aGUgb3RoZXIgaHlwZXJ2aXNvcnMuDQoNCk1pY2hh
-ZWwNCg==
+Kees Cook's on February 28, 2020 10:22 am:
+> Right now, powerpc adds "--orphan-handling=3Dwarn" to LD_FLAGS_vmlinux
+> to detect when there are unexpected sections getting added to the kernel
+> image. There is no need to report these warnings more than once, so it
+> can be removed until the final link stage.
+>=20
+> This helps pave the way for other architectures to enable this, with the
+> end goal of enabling this warning by default for vmlinux for all
+> architectures.
+>=20
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  scripts/link-vmlinux.sh | 6 ++++++
+>  1 file changed, 6 insertions(+)
+>=20
+> diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+> index 1919c311c149..416968fea685 100755
+> --- a/scripts/link-vmlinux.sh
+> +++ b/scripts/link-vmlinux.sh
+> @@ -255,6 +255,11 @@ info GEN modules.builtin
+>  tr '\0' '\n' < modules.builtin.modinfo | sed -n 's/^[[:alnum:]:_]*\.file=
+=3D//p' |
+>  	tr ' ' '\n' | uniq | sed -e 's:^:kernel/:' -e 's/$/.ko/' > modules.buil=
+tin
+> =20
+> +
+> +# Do not warn about orphan sections until the final link stage.
+> +saved_LDFLAGS_vmlinux=3D"${LDFLAGS_vmlinux}"
+> +LDFLAGS_vmlinux=3D"$(echo "${LDFLAGS_vmlinux}" | sed -E 's/ --orphan-han=
+dling=3Dwarn( |$)/ /g')"
+> +
+>  btf_vmlinux_bin_o=3D""
+>  if [ -n "${CONFIG_DEBUG_INFO_BTF}" ]; then
+>  	if gen_btf .tmp_vmlinux.btf .btf.vmlinux.bin.o ; then
+> @@ -306,6 +311,7 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
+>  	fi
+>  fi
+> =20
+> +LDFLAGS_vmlinux=3D"${saved_LDFLAGS_vmlinux}"
+>  vmlinux_link vmlinux "${kallsymso}" ${btf_vmlinux_bin_o}
+> =20
+>  if [ -n "${CONFIG_BUILDTIME_TABLE_SORT}" ]; then
+
+That's ugly. Why not just enable it for all archs?
+
+Thanks,
+Nick
+=
