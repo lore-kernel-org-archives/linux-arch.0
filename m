@@ -1,111 +1,184 @@
-Return-Path: <SRS0=/o7P=4U=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pj1-f66.google.com ([209.85.216.66]:52432 "EHLO
-        mail-pj1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726998AbgCCEcy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2020 23:32:54 -0500
-Received: by mail-pj1-f66.google.com with SMTP id lt1so770221pjb.2
-        for <linux-arch@vger.kernel.org>; Mon, 02 Mar 2020 20:32:53 -0800 (PST)
-Date: Mon, 2 Mar 2020 20:32:51 -0800
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 0/9] Enable orphan section warning
-Message-ID: <202003022029.B549AA3@keescook>
-References: <20200228002244.15240-1-keescook@chromium.org>
- <CA+icZUVRnjOWKZynAGDniXD_H9KRccONmeKHs25DPPU1c8ZcGg@mail.gmail.com>
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50808 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727879AbgCTO4B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 10:56:01 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v5 24/26] arm: vdso: Enable arm to use common headers
+Date: Fri, 20 Mar 2020 14:53:49 +0000
+Message-ID: <20200320145351.32292-25-vincenzo.frascino@arm.com>
+In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+icZUVRnjOWKZynAGDniXD_H9KRccONmeKHs25DPPU1c8ZcGg@mail.gmail.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sedat Dilek <sedat.dilek@gmail.com>
-Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Clang-Built-Linux ML <clang-built-linux@googlegroups.com>, linux-kernel@vger.kernel.org
-Message-ID: <20200303043251.qYcZtE8wYIYYjJSmSXhxWp7dxtLEvRuIUEIyzBE7pW8@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200320145349.k7i-WIJjlY2A52zS18N4e7wqT4E_onw_v28Y3mvjChU@z>
 
-On Fri, Feb 28, 2020 at 07:51:21AM +0100, Sedat Dilek wrote:
-> On Fri, Feb 28, 2020 at 1:22 AM Kees Cook <keescook@chromium.org> wrote:
-> > This series depends on tip/x86/boot (where recent .eh_frame fixes[3]
-> > landed), and has a minor conflict[4] with the ARM tree (related to
-> > the earlier mentioned bug). As it uses refactorings in the asm-generic
-> > linker script, and makes changes to kbuild, I think the cleanest place
-> > for this series to land would also be through -tip. Once again (like
-> > my READ_IMPLIES_EXEC series), I'm looking to get maintainer Acks so
-> > this can go all together with the least disruption. Splitting it up by
-> > architecture seems needlessly difficult.
-> 
-> Hi Kees,
-> 
-> is this an updated version of what you have in your
-> kees/linux.git#linker/orphans/x86-arm Git branch?
+Enable arm to use only the common headers in the implementation
+of the vDSO library.
 
-Hi; yes indeed.
+Cc: Russell King <linux@armlinux.org.uk>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/arm/include/asm/cp15.h              | 20 +------------
+ arch/arm/include/asm/processor.h         | 11 +------
+ arch/arm/include/asm/vdso/cp15.h         | 38 ++++++++++++++++++++++++
+ arch/arm/include/asm/vdso/gettimeofday.h |  4 +--
+ arch/arm/include/asm/vdso/processor.h    | 22 ++++++++++++++
+ 5 files changed, 64 insertions(+), 31 deletions(-)
+ create mode 100644 arch/arm/include/asm/vdso/cp15.h
+ create mode 100644 arch/arm/include/asm/vdso/processor.h
 
-> Especially, I saw a difference in [2] and "[PATCH 4/9] x86/boot: Warn
-> on orphan section placement"
-> 
-> [ arch/x86/boot/compressed/Makefile ]
-> 
-> +KBUILD_LDFLAGS += --no-ld-generated-unwind-info
-> 
-> Can you comment on why this KBUILD_LDFLAGS was added/needed?
-
-It looks like the linker decided to add .eh_frame sections even when all
-the .o files lacked it. Adding this flag solved it (which I prefer over
-adding it to DISCARD).
-
-> I like when people offer their work in a Git branch.
-> Do you plan to do that?
-
-Since it was based on a -tip sub-branch I didn't push a
-copy, but since you asked here it is:
-https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/log/?h=orphans/tip/x86/boot
-
-And this email can serve as a "ping" to the arch maintainers too...
-does this all look okay to you? I think it'd be a nice improvement. :)
-
-Thanks!
-
--Kees
-
-> Thanks.
-> 
-> Regards,
-> - Sedat -
-> 
-> [1] https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/log/?h=linker/orphans/x86-arm
-> [2] https://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git/commit/?h=linker/orphans/x86-arm&id=e43aa77956c40b9b6db0b37b3780423aa2e661ad
-> 
-> 
-> 
-> > H.J. Lu (1):
-> >   Add RUNTIME_DISCARD_EXIT to generic DISCARDS
-> >
-> > Kees Cook (8):
-> >   scripts/link-vmlinux.sh: Delay orphan handling warnings until final
-> >     link
-> >   vmlinux.lds.h: Add .gnu.version* to DISCARDS
-> >   x86/build: Warn on orphan section placement
-> >   x86/boot: Warn on orphan section placement
-> >   arm64/build: Use common DISCARDS in linker script
-> >   arm64/build: Warn on orphan section placement
-> >   arm/build: Warn on orphan section placement
-> >   arm/boot: Warn on orphan section placement
-> >
-> >  arch/arm/Makefile                             |  4 ++++
-> >  arch/arm/boot/compressed/Makefile             |  2 ++
-> >  arch/arm/boot/compressed/vmlinux.lds.S        | 17 ++++++--------
-> >  .../arm/{kernel => include/asm}/vmlinux.lds.h | 22 ++++++++++++++-----
-> >  arch/arm/kernel/vmlinux-xip.lds.S             |  5 ++---
-> >  arch/arm/kernel/vmlinux.lds.S                 |  5 ++---
-> >  arch/arm64/Makefile                           |  4 ++++
-> >  arch/arm64/kernel/vmlinux.lds.S               | 13 +++++------
-> >  arch/x86/Makefile                             |  4 ++++
-> >  arch/x86/boot/compressed/Makefile             |  3 ++-
-> >  arch/x86/boot/compressed/vmlinux.lds.S        | 13 +++++++++++
-> >  arch/x86/kernel/vmlinux.lds.S                 |  7 ++++++
-> >  include/asm-generic/vmlinux.lds.h             | 11 ++++++++--
-> >  scripts/link-vmlinux.sh                       |  6 +++++
-> >  14 files changed, 85 insertions(+), 31 deletions(-)
-> >  rename arch/arm/{kernel => include/asm}/vmlinux.lds.h (92%)
-
+diff --git a/arch/arm/include/asm/cp15.h b/arch/arm/include/asm/cp15.h
+index d2453e2d3f1f..a54230e65647 100644
+--- a/arch/arm/include/asm/cp15.h
++++ b/arch/arm/include/asm/cp15.h
+@@ -50,25 +50,7 @@
+ 
+ #ifdef CONFIG_CPU_CP15
+ 
+-#define __ACCESS_CP15(CRn, Op1, CRm, Op2)	\
+-	"mrc", "mcr", __stringify(p15, Op1, %0, CRn, CRm, Op2), u32
+-#define __ACCESS_CP15_64(Op1, CRm)		\
+-	"mrrc", "mcrr", __stringify(p15, Op1, %Q0, %R0, CRm), u64
+-
+-#define __read_sysreg(r, w, c, t) ({				\
+-	t __val;						\
+-	asm volatile(r " " c : "=r" (__val));			\
+-	__val;							\
+-})
+-#define read_sysreg(...)		__read_sysreg(__VA_ARGS__)
+-
+-#define __write_sysreg(v, r, w, c, t)	asm volatile(w " " c : : "r" ((t)(v)))
+-#define write_sysreg(v, ...)		__write_sysreg(v, __VA_ARGS__)
+-
+-#define BPIALL				__ACCESS_CP15(c7, 0, c5, 6)
+-#define ICIALLU				__ACCESS_CP15(c7, 0, c5, 0)
+-
+-#define CNTVCT				__ACCESS_CP15_64(1, c14)
++#include <asm/vdso/cp15.h>
+ 
+ extern unsigned long cr_alignment;	/* defined in entry-armv.S */
+ 
+diff --git a/arch/arm/include/asm/processor.h b/arch/arm/include/asm/processor.h
+index 614bf829e454..b9241051e5cb 100644
+--- a/arch/arm/include/asm/processor.h
++++ b/arch/arm/include/asm/processor.h
+@@ -14,6 +14,7 @@
+ #include <asm/ptrace.h>
+ #include <asm/types.h>
+ #include <asm/unified.h>
++#include <asm/vdso/processor.h>
+ 
+ #ifdef __KERNEL__
+ #define STACK_TOP	((current->personality & ADDR_LIMIT_32BIT) ? \
+@@ -85,16 +86,6 @@ extern void release_thread(struct task_struct *);
+ 
+ unsigned long get_wchan(struct task_struct *p);
+ 
+-#if __LINUX_ARM_ARCH__ == 6 || defined(CONFIG_ARM_ERRATA_754327)
+-#define cpu_relax()						\
+-	do {							\
+-		smp_mb();					\
+-		__asm__ __volatile__("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");	\
+-	} while (0)
+-#else
+-#define cpu_relax()			barrier()
+-#endif
+-
+ #define task_pt_regs(p) \
+ 	((struct pt_regs *)(THREAD_START_SP + task_stack_page(p)) - 1)
+ 
+diff --git a/arch/arm/include/asm/vdso/cp15.h b/arch/arm/include/asm/vdso/cp15.h
+new file mode 100644
+index 000000000000..bed16fa1865e
+--- /dev/null
++++ b/arch/arm/include/asm/vdso/cp15.h
+@@ -0,0 +1,38 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_VDSO_CP15_H
++#define __ASM_VDSO_CP15_H
++
++#ifndef __ASSEMBLY__
++
++#ifdef CONFIG_CPU_CP15
++
++#include <linux/stringify.h>
++
++#define __ACCESS_CP15(CRn, Op1, CRm, Op2)	\
++	"mrc", "mcr", __stringify(p15, Op1, %0, CRn, CRm, Op2), u32
++#define __ACCESS_CP15_64(Op1, CRm)		\
++	"mrrc", "mcrr", __stringify(p15, Op1, %Q0, %R0, CRm), u64
++
++#define __read_sysreg(r, w, c, t) ({				\
++	t __val;						\
++	asm volatile(r " " c : "=r" (__val));			\
++	__val;							\
++})
++#define read_sysreg(...)		__read_sysreg(__VA_ARGS__)
++
++#define __write_sysreg(v, r, w, c, t)	asm volatile(w " " c : : "r" ((t)(v)))
++#define write_sysreg(v, ...)		__write_sysreg(v, __VA_ARGS__)
++
++#define BPIALL				__ACCESS_CP15(c7, 0, c5, 6)
++#define ICIALLU				__ACCESS_CP15(c7, 0, c5, 0)
++
++#define CNTVCT				__ACCESS_CP15_64(1, c14)
++
++#endif /* CONFIG_CPU_CP15 */
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_CP15_H */
+diff --git a/arch/arm/include/asm/vdso/gettimeofday.h b/arch/arm/include/asm/vdso/gettimeofday.h
+index 07d791c65cf7..36dc18553ed8 100644
+--- a/arch/arm/include/asm/vdso/gettimeofday.h
++++ b/arch/arm/include/asm/vdso/gettimeofday.h
+@@ -7,9 +7,9 @@
+ 
+ #ifndef __ASSEMBLY__
+ 
+-#include <asm/barrier.h>
+-#include <asm/cp15.h>
++#include <asm/errno.h>
+ #include <asm/unistd.h>
++#include <asm/vdso/cp15.h>
+ #include <uapi/linux/time.h>
+ 
+ #define VDSO_HAS_CLOCK_GETRES		1
+diff --git a/arch/arm/include/asm/vdso/processor.h b/arch/arm/include/asm/vdso/processor.h
+new file mode 100644
+index 000000000000..45efb3ff511c
+--- /dev/null
++++ b/arch/arm/include/asm/vdso/processor.h
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_VDSO_PROCESSOR_H
++#define __ASM_VDSO_PROCESSOR_H
++
++#ifndef __ASSEMBLY__
++
++#if __LINUX_ARM_ARCH__ == 6 || defined(CONFIG_ARM_ERRATA_754327)
++#define cpu_relax()						\
++	do {							\
++		smp_mb();					\
++		__asm__ __volatile__("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");	\
++	} while (0)
++#else
++#define cpu_relax()			barrier()
++#endif
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_PROCESSOR_H */
 -- 
-Kees Cook
+2.25.1
