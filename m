@@ -1,87 +1,69 @@
-Return-Path: <SRS0=13L8=5I=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qk1-f196.google.com ([209.85.222.196]:36844 "EHLO
-        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726974AbgCWBbC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 22 Mar 2020 21:31:02 -0400
-Received: by mail-qk1-f196.google.com with SMTP id d11so13763919qko.3
-        for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2020 18:31:02 -0700 (PDT)
-Date: Sun, 22 Mar 2020 21:31:00 -0400
-From: Joel Fernandes <joel@joelfernandes.org>
-Subject: Re: [PATCH 2/3] LKMM: Add litmus test for RCU GP guarantee where
- reader stores
-Message-ID: <20200323013100.GA207949@google.com>
-References: <20200320165948.GB155212@google.com>
- <Pine.LNX.4.44L0.2003201643370.31761-100000@netrider.rowland.org>
- <20200320214432.GB129293@google.com>
- <20200321020501.GF105953@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50230 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727504AbgCTOzG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 10:55:06 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v5 07/26] mips: Introduce asm/vdso/clocksource.h
+Date: Fri, 20 Mar 2020 14:53:32 +0000
+Message-ID: <20200320145351.32292-8-vincenzo.frascino@arm.com>
+In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200321020501.GF105953@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: Alan Stern <stern@rowland.harvard.edu>, linux-kernel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, linux-arch@vger.kernel.org, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
-Message-ID: <20200323013100.WpJ-RUjWaTl1EM9a67XHoupQ1MwXjhFvOiKByFyCRH8@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Paul Burton <paulburton@kernel.org>
+Message-ID: <20200320145332.8NZdHUmftWdfTSBkQKDtBafdv9o1A8cE55pZ6vU_zfE@z>
 
-On Sat, Mar 21, 2020 at 10:05:01AM +0800, Boqun Feng wrote:
-> On Fri, Mar 20, 2020 at 05:44:32PM -0400, Joel Fernandes wrote:
-> > On Fri, Mar 20, 2020 at 04:56:59PM -0400, Alan Stern wrote:
-> > > On Fri, 20 Mar 2020, Joel Fernandes wrote:
-> > > 
-> > > > On Fri, Mar 20, 2020 at 11:03:30AM -0400, Alan Stern wrote:
-> > > > > On Fri, 20 Mar 2020, Joel Fernandes (Google) wrote:
-> > > > > 
-> > > > > > This adds an example for the important RCU grace period guarantee, which
-> > > > > > shows an RCU reader can never span a grace period.
-> > > > > > 
-> > > > > > Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-> > > > > > ---
-> > > > > >  .../litmus-tests/RCU+sync+read.litmus         | 37 +++++++++++++++++++
-> > > > > >  1 file changed, 37 insertions(+)
-> > > > > >  create mode 100644 tools/memory-model/litmus-tests/RCU+sync+read.litmus
-> > > > > > 
-> > > > > > diff --git a/tools/memory-model/litmus-tests/RCU+sync+read.litmus b/tools/memory-model/litmus-tests/RCU+sync+read.litmus
-> > > > > > new file mode 100644
-> > > > > > index 0000000000000..73557772e2a32
-> > > > > > --- /dev/null
-> > > > > > +++ b/tools/memory-model/litmus-tests/RCU+sync+read.litmus
-> > > > > 
-> > > > > Do these new tests really belong here?  I thought we were adding a new 
-> > > > > directory under Documentation/ for litmus tests that illustrate parts 
-> > > > > of the LKMM or memory-barriers.txt.
-> > > > > 
-> > > > > By contrast, the tests under tools/memory-model are merely to show 
-> > > > > people what litmus tests look like and how they should be written.
-> > > > 
-> > > > I could add it to tools/memory-model/Documentation/ under a new
-> > > > 'examples' directory there. We could also create an 'rcu' directory in
-> > > > tools/memory-model/litmus-tests/ and add these there. Thoughts?
-> > > 
-> > > What happened was that about a month ago, Boqun Feng added
-> > > Documentation/atomic-tests for litmus tests related to handling of
-> > > atomic_t types (see
-> > > <https://marc.info/?l=linux-kernel&m=158276408609029&w=2>.)  Should we
-> > > interpose an extra directory level, making it
-> > > Documentation/litmus-tests/atomic?  Or
-> > > Documentation/LKMM-litmus-tests/atomic?
-> > > 
-> > > Then the new tests added here could go into
-> > > Documentation/litmus-tests/rcu, or whatever.
-> > 
-> > That's fine with me. Unless anyone objects, I will add to
-> > Documentation/litmus-tests/rcu and resend.
-> > 
-> 
-> Seems good to me, I will resend my patchset with the new directory. And
-> I assume in your patchset you will include the MAINTAINERS part for
-> adding Documentation/litmus-tests/ as a diretory watched by LKMM group?
-> In that case, I won't need to add any change to MAINTAINERS file in mine
-> and we won't have any conflict. ;-)
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-Yes, will add to MAINTAINERS so that you don't have to :) About to send my
-queue now.
+Introduce asm/vdso/clocksource.h to contain all the arm64 specific
+functions that are suitable for vDSO inclusion.
 
-thanks,
+This header will be required by a future patch that will generalize
+vdso/clocksource.h.
 
- - Joel
+Cc: Paul Burton <paulburton@kernel.org>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/mips/include/asm/clocksource.h      | 4 +---
+ arch/mips/include/asm/vdso/clocksource.h | 9 +++++++++
+ 2 files changed, 10 insertions(+), 3 deletions(-)
+ create mode 100644 arch/mips/include/asm/vdso/clocksource.h
+
+diff --git a/arch/mips/include/asm/clocksource.h b/arch/mips/include/asm/clocksource.h
+index de659cae0d4e..2f1ebbea3d72 100644
+--- a/arch/mips/include/asm/clocksource.h
++++ b/arch/mips/include/asm/clocksource.h
+@@ -6,8 +6,6 @@
+ #ifndef __ASM_CLOCKSOURCE_H
+ #define __ASM_CLOCKSOURCE_H
+ 
+-#define VDSO_ARCH_CLOCKMODES	\
+-	VDSO_CLOCKMODE_R4K,	\
+-	VDSO_CLOCKMODE_GIC
++#include <asm/vdso/clocksource.h>
+ 
+ #endif /* __ASM_CLOCKSOURCE_H */
+diff --git a/arch/mips/include/asm/vdso/clocksource.h b/arch/mips/include/asm/vdso/clocksource.h
+new file mode 100644
+index 000000000000..510e1671d898
+--- /dev/null
++++ b/arch/mips/include/asm/vdso/clocksource.h
+@@ -0,0 +1,9 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++#ifndef __ASM_VDSOCLOCKSOURCE_H
++#define __ASM_VDSOCLOCKSOURCE_H
++
++#define VDSO_ARCH_CLOCKMODES	\
++	VDSO_CLOCKMODE_R4K,	\
++	VDSO_CLOCKMODE_GIC
++
++#endif /* __ASM_VDSOCLOCKSOURCE_H */
+-- 
+2.25.1
