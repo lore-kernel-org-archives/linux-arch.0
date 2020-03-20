@@ -1,69 +1,117 @@
-Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:33426 "EHLO foss.arm.com"
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50738 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727186AbgCFNdJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Mar 2020 08:33:09 -0500
+        id S1727856AbgCTOzy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 10:55:54 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 05/20] linux/time.h: Extract common header for vDSO
-Date: Fri,  6 Mar 2020 13:32:27 +0000
-Message-ID: <20200306133242.26279-6-vincenzo.frascino@arm.com>
-In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
-References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
+Subject: [PATCH v5 22/26] mips: vdso: Enable mips to use common headers
+Date: Fri, 20 Mar 2020 14:53:47 +0000
+Message-ID: <20200320145351.32292-23-vincenzo.frascino@arm.com>
+In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200306133227.iUwT9qj93E9j1w5f2N3XuRj8L6MeXeAy0XpwJLnMiWI@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Paul Burton <paulburton@kernel.org>
+Message-ID: <20200320145347._fL68aboeH8t9AvAREwJBEqKwRgh0ZJnVCu1XHbPM7U@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+Enable mips to use only the common headers in the implementation of
+the vDSO library.
 
-Split time.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
-
+Cc: Paul Burton <paulburton@kernel.org>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/common/time.h | 12 ++++++++++++
- include/linux/time.h  |  5 +----
- 2 files changed, 13 insertions(+), 4 deletions(-)
- create mode 100644 include/common/time.h
+ arch/mips/include/asm/processor.h         | 16 +-------------
+ arch/mips/include/asm/vdso/gettimeofday.h |  4 ----
+ arch/mips/include/asm/vdso/processor.h    | 27 +++++++++++++++++++++++
+ 3 files changed, 28 insertions(+), 19 deletions(-)
+ create mode 100644 arch/mips/include/asm/vdso/processor.h
 
-diff --git a/include/common/time.h b/include/common/time.h
+diff --git a/arch/mips/include/asm/processor.h b/arch/mips/include/asm/processor.h
+index 7619ad319400..4c9cc667f3ed 100644
+--- a/arch/mips/include/asm/processor.h
++++ b/arch/mips/include/asm/processor.h
+@@ -22,6 +22,7 @@
+ #include <asm/dsemul.h>
+ #include <asm/mipsregs.h>
+ #include <asm/prefetch.h>
++#include <asm/vdso/processor.h>
+ 
+ /*
+  * System setup and hardware flags..
+@@ -385,21 +386,6 @@ unsigned long get_wchan(struct task_struct *p);
+ #define KSTK_ESP(tsk) (task_pt_regs(tsk)->regs[29])
+ #define KSTK_STATUS(tsk) (task_pt_regs(tsk)->cp0_status)
+ 
+-#ifdef CONFIG_CPU_LOONGSON64
+-/*
+- * Loongson-3's SFB (Store-Fill-Buffer) may buffer writes indefinitely when a
+- * tight read loop is executed, because reads take priority over writes & the
+- * hardware (incorrectly) doesn't ensure that writes will eventually occur.
+- *
+- * Since spin loops of any kind should have a cpu_relax() in them, force an SFB
+- * flush from cpu_relax() such that any pending writes will become visible as
+- * expected.
+- */
+-#define cpu_relax()	smp_mb()
+-#else
+-#define cpu_relax()	barrier()
+-#endif
+-
+ /*
+  * Return_address is a replacement for __builtin_return_address(count)
+  * which on certain architectures cannot reasonably be implemented in GCC
+diff --git a/arch/mips/include/asm/vdso/gettimeofday.h b/arch/mips/include/asm/vdso/gettimeofday.h
+index 88c3de1bdf22..c63ddcaea54c 100644
+--- a/arch/mips/include/asm/vdso/gettimeofday.h
++++ b/arch/mips/include/asm/vdso/gettimeofday.h
+@@ -13,12 +13,8 @@
+ 
+ #ifndef __ASSEMBLY__
+ 
+-#include <linux/compiler.h>
+-#include <linux/time.h>
+-
+ #include <asm/vdso/vdso.h>
+ #include <asm/clocksource.h>
+-#include <asm/io.h>
+ #include <asm/unistd.h>
+ #include <asm/vdso.h>
+ 
+diff --git a/arch/mips/include/asm/vdso/processor.h b/arch/mips/include/asm/vdso/processor.h
 new file mode 100644
-index 000000000000..90eb9bdb40ec
+index 000000000000..511c95d735e6
 --- /dev/null
-+++ b/include/common/time.h
-@@ -0,0 +1,12 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_TIME_H
-+#define __COMMON_TIME_H
++++ b/arch/mips/include/asm/vdso/processor.h
+@@ -0,0 +1,27 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_VDSO_PROCESSOR_H
++#define __ASM_VDSO_PROCESSOR_H
 +
-+#include <uapi/linux/types.h>
++#ifndef __ASSEMBLY__
 +
-+struct timens_offset {
-+	s64	sec;
-+	u64	nsec;
-+};
++#ifdef CONFIG_CPU_LOONGSON64
++/*
++ * Loongson-3's SFB (Store-Fill-Buffer) may buffer writes indefinitely when a
++ * tight read loop is executed, because reads take priority over writes & the
++ * hardware (incorrectly) doesn't ensure that writes will eventually occur.
++ *
++ * Since spin loops of any kind should have a cpu_relax() in them, force an SFB
++ * flush from cpu_relax() such that any pending writes will become visible as
++ * expected.
++ */
++#define cpu_relax()	smp_mb()
++#else
++#define cpu_relax()	barrier()
++#endif
 +
-+#endif /* __COMMON_TIME_H */
-diff --git a/include/linux/time.h b/include/linux/time.h
-index 8ef5e5cc9f57..617a01e2c8bb 100644
---- a/include/linux/time.h
-+++ b/include/linux/time.h
-@@ -111,9 +111,6 @@ static inline bool itimerspec64_valid(const struct itimerspec64 *its)
-  */
- #define time_between32(t, l, h) ((u32)(h) - (u32)(l) >= (u32)(t) - (u32)(l))
- 
--struct timens_offset {
--	s64	sec;
--	u64	nsec;
--};
-+# include <common/time.h>
- 
- #endif
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_PROCESSOR_H */
 -- 
 2.25.1
