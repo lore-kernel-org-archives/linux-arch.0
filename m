@@ -1,33 +1,78 @@
-From: federa bureau of inteligence <federabureauofinteligence@gmail.com>
-Subject: HAPPY SURVIVAL OF CORONAVIRUS
-Date: Fri, 20 Mar 2020 11:08:37 +0000
-Message-ID: <CAE9o6LCGFPECwgnUVOcmqSfCfL3EKC6Wt_=AvLUS5Qp+03q4JA__38337.5946826831$1584702525$gmane$org@mail.gmail.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
+ vgettimeofday
+Date: Fri, 20 Mar 2020 13:05:14 +0000
+Message-ID: <b937d1eb-c7fd-e903-fa36-b261662bf40b@arm.com>
+References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+ <20200317122220.30393-19-vincenzo.frascino@arm.com>
+ <20200317143834.GC632169@arrakis.emea.arm.com>
+ <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
+ <20200317155031.GD632169@arrakis.emea.arm.com>
+ <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
+ <20200317174806.GE632169@arrakis.emea.arm.com>
+ <93cfe94a-c2a3-1025-bc9c-e7c3fd891100@arm.com>
+ <20200318183603.GF94111@arrakis.emea.arm.com>
+ <1bc25a53-7a59-0f60-ecf2-a3cace46b823@arm.com> <20200319181004.GA29214@mbp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f66.google.com ([209.85.210.66]:44549 "EHLO
-        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726912AbgCTLIk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2020 07:08:40 -0400
-Received: by mail-ot1-f66.google.com with SMTP id a49so5521933otc.11
-        for <linux-arch@vger.kernel.org>; Fri, 20 Mar 2020 04:08:38 -0700 (PDT)
+Received: from foss.arm.com ([217.140.110.172]:48652 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727015AbgCTNEt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 09:04:49 -0400
+In-Reply-To: <20200319181004.GA29214@mbp>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>Mark
 
-Dear Sir,
+Hi Catalin,
 
-HAPPY SURVIVAL OF CORONAVIRUS
+On 3/19/20 6:10 PM, Catalin Marinas wrote:
+> Hi Vincenzo,
+> 
+> On Thu, Mar 19, 2020 at 12:38:42PM +0000, Vincenzo Frascino wrote:
+>> On 3/18/20 6:36 PM, Catalin Marinas wrote:
+>>> On Wed, Mar 18, 2020 at 04:14:26PM +0000, Vincenzo Frascino wrote:
+>>>> On 3/17/20 5:48 PM, Catalin Marinas wrote:
+>>>>> So clock_gettime() on arm32 always falls back to the syscall?
+>>>>
+>>>> This seems not what you asked, and I think I answered accordingly. Anyway, in
+>>>> the case of arm32 the error code path is handled via syscall fallback.
+>>>>
+>>>> Look at the code below as an example (I am using getres because I know this
+>>>> email will be already too long, and I do not want to add pointless code, but the
+>>>> concept is the same for gettime and the others):
+>>>>
+>>>> static __maybe_unused
+>>>> int __cvdso_clock_getres(clockid_t clock, struct __kernel_timespec *res)
+>>>> {
+>>>> 	int ret = __cvdso_clock_getres_common(clock, res);
+>>>>
+>>>> 	if (unlikely(ret))
+>>>> 		return clock_getres_fallback(clock, res);
+>>>> 	return 0;
+>>>> }
+>>>>
+>>>> When the return code of the "vdso" internal function returns an error the system
+>>>> call is triggered.
+>>>
+>>> But when __cvdso_clock_getres_common() does *not* return an error, it
+>>> means that it handled the clock_getres() call without a fallback to the
+>>> syscall. I assume this is possible on arm32. When the clock_getres() is
+>>> handled directly (not as a syscall), why doesn't arm32 need the same
+>>> (res >= TASK_SIZE) check?
+>>
+>> Ok, I see what you mean.
+> 
+> I'm not sure.
+> 
+Thank you for the long chat this morning. As we agreed I am going to repost the
+patches removing the checks discussed in this thread and we will address the
+syscall ABI difference subsequently with a different series.
 
-We are reaching for a very interesting business transaction which we
-feel will of great benefit.We the FBI unit in the western subregion of
-Africa have a fund which we confiscated and lodge it in a bank
-
-This fund is worth of $12.5 million dollars.We will need your
-assistance to recieve this fund into your account for investment in
-your country.
-
-We will need your urgent response for details
-
-Inspector Greg Adams,
-For and on behalf of Cote D'Ivoire FBI
-Tel 00225 6716 6756
+-- 
+Regards,
+Vincenzo
