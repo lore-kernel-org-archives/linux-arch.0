@@ -1,182 +1,91 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-ot1-f65.google.com ([209.85.210.65]:43329 "EHLO
-        mail-ot1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726549AbgCQTq0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2020 15:46:26 -0400
-Received: by mail-ot1-f65.google.com with SMTP id a6so22935606otb.10
-        for <linux-arch@vger.kernel.org>; Tue, 17 Mar 2020 12:46:25 -0700 (PDT)
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:49536 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726893AbgCTOWP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 10:22:15 -0400
+Date: Fri, 20 Mar 2020 14:22:08 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
+ vgettimeofday
+Message-ID: <20200320142208.GC29214@mbp>
+References: <20200317143834.GC632169@arrakis.emea.arm.com>
+ <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
+ <20200317155031.GD632169@arrakis.emea.arm.com>
+ <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
+ <20200317174806.GE632169@arrakis.emea.arm.com>
+ <93cfe94a-c2a3-1025-bc9c-e7c3fd891100@arm.com>
+ <20200318183603.GF94111@arrakis.emea.arm.com>
+ <1bc25a53-7a59-0f60-ecf2-a3cace46b823@arm.com>
+ <20200319181004.GA29214@mbp>
+ <b937d1eb-c7fd-e903-fa36-b261662bf40b@arm.com>
 MIME-Version: 1.0
-References: <20200224160215.4136-1-mic@digikod.net> <CAG48ez21bEn0wL1bbmTiiu8j9jP5iEWtHOwz4tURUJ+ki0ydYw@mail.gmail.com>
- <873d7419-bdd9-8a52-0a9b-dddbe31df4f9@digikod.net> <CAG48ez0=0W5Ok-8nASqZrZ28JboXRRi3gDxV5u6mdcOtzwuRVA@mail.gmail.com>
- <688dda0f-0907-34eb-c19e-3e9e5f613a74@digikod.net>
-In-Reply-To: <688dda0f-0907-34eb-c19e-3e9e5f613a74@digikod.net>
-From: Jann Horn <jannh@google.com>
-Date: Tue, 17 Mar 2020 20:45:57 +0100
-Message-ID: <CAG48ez16yT+zbK1WPxr2TnxrifW5c2DnpFLbWRRLUT_WpuFNmw@mail.gmail.com>
-Subject: Re: [RFC PATCH v14 00/10] Landlock LSM
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <b937d1eb-c7fd-e903-fa36-b261662bf40b@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
-Cc: kernel list <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-doc@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20200317194557.oEhVljIulwCcyvGWYgZLXe8ene6LxuRvmblusFgxfxc@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200320142208.zZocGtkNuQ_DgX0gd3hnSfgdnZLIYOdn0stHA8eY-NE@z>
 
-On Tue, Mar 17, 2020 at 6:50 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.net> =
-wrote:
-> On 17/03/2020 17:19, Jann Horn wrote:
-> > On Thu, Mar 12, 2020 at 12:38 AM Micka=C3=ABl Sala=C3=BCn <mic@digikod.=
-net> wrote:
-> >> On 10/03/2020 00:44, Jann Horn wrote:
-> >>> On Mon, Feb 24, 2020 at 5:03 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod=
-.net> wrote:
->
-> [...]
->
-> >>> Aside from those things, there is also a major correctness issue wher=
-e
-> >>> I'm not sure how to solve it properly:
+On Fri, Mar 20, 2020 at 01:05:14PM +0000, Vincenzo Frascino wrote:
+> On 3/19/20 6:10 PM, Catalin Marinas wrote:
+> > On Thu, Mar 19, 2020 at 12:38:42PM +0000, Vincenzo Frascino wrote:
+> >> On 3/18/20 6:36 PM, Catalin Marinas wrote:
+> >>> On Wed, Mar 18, 2020 at 04:14:26PM +0000, Vincenzo Frascino wrote:
+> >>>> On 3/17/20 5:48 PM, Catalin Marinas wrote:
+> >>>>> So clock_gettime() on arm32 always falls back to the syscall?
+> >>>>
+> >>>> This seems not what you asked, and I think I answered accordingly. Anyway, in
+> >>>> the case of arm32 the error code path is handled via syscall fallback.
+> >>>>
+> >>>> Look at the code below as an example (I am using getres because I know this
+> >>>> email will be already too long, and I do not want to add pointless code, but the
+> >>>> concept is the same for gettime and the others):
+> >>>>
+> >>>> static __maybe_unused
+> >>>> int __cvdso_clock_getres(clockid_t clock, struct __kernel_timespec *res)
+> >>>> {
+> >>>> 	int ret = __cvdso_clock_getres_common(clock, res);
+> >>>>
+> >>>> 	if (unlikely(ret))
+> >>>> 		return clock_getres_fallback(clock, res);
+> >>>> 	return 0;
+> >>>> }
+> >>>>
+> >>>> When the return code of the "vdso" internal function returns an error the system
+> >>>> call is triggered.
 > >>>
-> >>> Let's say a process installs a filter on itself like this:
-> >>>
-> >>> struct landlock_attr_ruleset ruleset =3D { .handled_access_fs =3D
-> >>> ACCESS_FS_ROUGHLY_WRITE};
-> >>> int ruleset_fd =3D landlock(LANDLOCK_CMD_CREATE_RULESET,
-> >>> LANDLOCK_OPT_CREATE_RULESET, sizeof(ruleset), &ruleset);
-> >>> struct landlock_attr_path_beneath path_beneath =3D {
-> >>>   .ruleset_fd =3D ruleset_fd,
-> >>>   .allowed_access =3D ACCESS_FS_ROUGHLY_WRITE,
-> >>>   .parent_fd =3D open("/tmp/foobar", O_PATH),
-> >>> };
-> >>> landlock(LANDLOCK_CMD_ADD_RULE, LANDLOCK_OPT_ADD_RULE_PATH_BENEATH,
-> >>> sizeof(path_beneath), &path_beneath);
-> >>> prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
-> >>> struct landlock_attr_enforce attr_enforce =3D { .ruleset_fd =3D rules=
-et_fd };
-> >>> landlock(LANDLOCK_CMD_ENFORCE_RULESET, LANDLOCK_OPT_ENFORCE_RULESET,
-> >>> sizeof(attr_enforce), &attr_enforce);
-> >>>
-> >>> At this point, the process is not supposed to be able to write to
-> >>> anything outside /tmp/foobar, right? But what happens if the process
-> >>> does the following next?
-> >>>
-> >>> struct landlock_attr_ruleset ruleset =3D { .handled_access_fs =3D
-> >>> ACCESS_FS_ROUGHLY_WRITE};
-> >>> int ruleset_fd =3D landlock(LANDLOCK_CMD_CREATE_RULESET,
-> >>> LANDLOCK_OPT_CREATE_RULESET, sizeof(ruleset), &ruleset);
-> >>> struct landlock_attr_path_beneath path_beneath =3D {
-> >>>   .ruleset_fd =3D ruleset_fd,
-> >>>   .allowed_access =3D ACCESS_FS_ROUGHLY_WRITE,
-> >>>   .parent_fd =3D open("/", O_PATH),
-> >>> };
-> >>> landlock(LANDLOCK_CMD_ADD_RULE, LANDLOCK_OPT_ADD_RULE_PATH_BENEATH,
-> >>> sizeof(path_beneath), &path_beneath);
-> >>> prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
-> >>> struct landlock_attr_enforce attr_enforce =3D { .ruleset_fd =3D rules=
-et_fd };
-> >>> landlock(LANDLOCK_CMD_ENFORCE_RULESET, LANDLOCK_OPT_ENFORCE_RULESET,
-> >>> sizeof(attr_enforce), &attr_enforce);
-> >>>
-> >>> As far as I can tell from looking at the source, after this, you will
-> >>> have write access to the entire filesystem again. I think the idea is
-> >>> that LANDLOCK_CMD_ENFORCE_RULESET should only let you drop privileges=
-,
-> >>> not increase them, right?
+> >>> But when __cvdso_clock_getres_common() does *not* return an error, it
+> >>> means that it handled the clock_getres() call without a fallback to the
+> >>> syscall. I assume this is possible on arm32. When the clock_getres() is
+> >>> handled directly (not as a syscall), why doesn't arm32 need the same
+> >>> (res >= TASK_SIZE) check?
 > >>
-> >> There is an additionnal check in syscall.c:get_path_from_fd(): it is
-> >> forbidden to add a rule with a path which is not accessible (according
-> >> to LANDLOCK_ACCESS_FS_OPEN) thanks to a call to security_file_open(),
-> >> but this is definitely not perfect.
-> >
-> > Ah, I missed that.
-> >
-> >>> I think the easy way to fix this would be to add a bitmask to each
-> >>> rule that says from which ruleset it originally comes, and then let
-> >>> check_access_path() collect these bitmasks from each rule with OR, an=
-d
-> >>> check at the end whether the resulting bitmask is full - if not, at
-> >>> least one of the rulesets did not permit the access, and it should be
-> >>> denied.
-> >>>
-> >>> But maybe it would make more sense to change how the API works
-> >>> instead, and get rid of the concept of "merging" two rulesets
-> >>> together? Instead, we could make the API work like this:
-> >>>
-> >>>  - LANDLOCK_CMD_CREATE_RULESET gives you a file descriptor whose
-> >>> ->private_data contains a pointer to the old ruleset of the process,
-> >>> as well as a pointer to a new empty ruleset.
-> >>>  - LANDLOCK_CMD_ADD_RULE fails if the specified rule would not be
-> >>> permitted by the old ruleset, then adds the rule to the new ruleset
-> >>>  - LANDLOCK_CMD_ENFORCE_RULESET fails if the old ruleset pointer in
-> >>> ->private_data doesn't match the current ruleset of the process, then
-> >>> replaces the old ruleset with the new ruleset.
-> >>>
-> >>> With this, the new ruleset is guaranteed to be a subset of the old
-> >>> ruleset because each of the new ruleset's rules is permitted by the
-> >>> old ruleset. (Unless the directory hierarchy rotates, but in that cas=
-e
-> >>> the inaccuracy isn't much worse than what would've been possible
-> >>> through RCU path walk anyway AFAIK.)
-> >>>
-> >>> What do you think?
-> >>>
-> >>
-> >> I would prefer to add the same checks you described at first (with
-> >> check_access_path), but only when creating a new ruleset with
-> >> merge_ruleset() (which should probably be renamed). This enables not t=
-o
-> >> rely on a parent ruleset/domain until the enforcement, which is the ca=
-se
-> >> anyway.
-> >> Unfortunately this doesn't work for some cases with bind mounts. Becau=
-se
-> >> check_access_path() goes through one path, another (bind mounted) path
-> >> could be illegitimately allowed.
-> >
-> > Hmm... I'm not sure what you mean. At the moment, landlock doesn't
-> > allow any sandboxed process to change the mount hierarchy, right? Can
-> > you give an example where this would go wrong?
->
-> Indeed, a Landlocked process must no be able to change its mount
-> namespace layout. However, bind mounts may already exist.
-> Let's say a process sandbox itself to only access /a in a read-write
-> way.
+> >> Ok, I see what you mean.
+> > 
+> > I'm not sure.
+> 
+> Thank you for the long chat this morning. As we agreed I am going to repost the
+> patches removing the checks discussed in this thread
 
-So, first policy:
+Great, thanks.
 
-/a RW
+> and we will address the syscall ABI difference subsequently with a
+> different series.
 
-> Then, this process (or one of its children) add a new restriction
-> on /a/b to only be able to read this hierarchy.
+Now I'm even less convinced we need any additional patches. The arm64
+compat syscall would still return -EFAULT for res >= TASK_SIZE_32
+because copy_to_user() will fail. So it would be entirely consistent
+with the arm32 syscall. In the vdso-only case, both arm32 and arm64
+compat would generate a signal.
 
-You mean with the second policy looking like this?
+As Will said, arguably, the syscall semantics may not be applicable to
+the vdso implementation. But if you do want to get down this route (tp =
+UINTPTR_MAX - sizeof(*tp) returning -EFAULT), please do it for all
+architectures, not just arm64 compat. However, I'm not sure anyone
+relies on this functionality, other than the vdsotest, so no real
+application broken.
 
-/a RW
-/a/b R
-
-Then the resulting policy would be:
-
-/a RW policy_bitmask=3D0x00000003 (bits 0 and 1 set)
-/a/b R policy_bitmask=3D0x00000002 (bit 1 set)
-required_bits=3D0x00000003 (bits 0 and 1 set)
-
-> The check at insertion
-> time would allow this because this access right is a subset of the
-> access right allowed with the parent directory. However, If /a/b is bind
-> mounted somewhere else, let's say in /private/b, then the second
-> enforcement just gave new access rights to this hierarchy too.
-
-But with the solution I proposed, landlock's path walk would see
-something like this when accessing a file at /private/b/foo:
-/private/b/foo <no rules>
-  policies seen until now: 0x00000000
-/private/b <access: R, policy_bitmask=3D0x00000002>
-  policies seen until now: 0x00000002
-/private <no rules>
-  policies seen until now: 0x00000002
-/ <no rules>
-  policies seen until now: 0x00000002
-
-It wouldn't encounter any rule from the first policy, so the OR of the
-seen policy bitmasks would be 0x00000002, which is not the required
-value 0x00000003, and so the access would be denied.
+-- 
+Catalin
