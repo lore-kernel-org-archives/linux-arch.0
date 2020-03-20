@@ -1,79 +1,79 @@
-Return-Path: <SRS0=1/KV=5J=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH v3 0/4] arm64: tlb: add support for TTL field
-References: <20200321121621.1600-1-yezhenyu2@huawei.com>
-From: Zenghui Yu <yuzenghui@huawei.com>
-Message-ID: <4e3d42d9-7c57-3659-edbe-1e59ca5b04ea@huawei.com>
-Date: Tue, 24 Mar 2020 19:31:57 +0800
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:48652 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727015AbgCTNEt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 09:04:49 -0400
+Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
+ vgettimeofday
+References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
+ <20200317122220.30393-19-vincenzo.frascino@arm.com>
+ <20200317143834.GC632169@arrakis.emea.arm.com>
+ <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
+ <20200317155031.GD632169@arrakis.emea.arm.com>
+ <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
+ <20200317174806.GE632169@arrakis.emea.arm.com>
+ <93cfe94a-c2a3-1025-bc9c-e7c3fd891100@arm.com>
+ <20200318183603.GF94111@arrakis.emea.arm.com>
+ <1bc25a53-7a59-0f60-ecf2-a3cace46b823@arm.com> <20200319181004.GA29214@mbp>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <b937d1eb-c7fd-e903-fa36-b261662bf40b@arm.com>
+Date: Fri, 20 Mar 2020 13:05:14 +0000
 MIME-Version: 1.0
-In-Reply-To: <20200321121621.1600-1-yezhenyu2@huawei.com>
-Content-Type: text/plain; charset="utf-8"; format=flowed
+In-Reply-To: <20200319181004.GA29214@mbp>
+Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>, will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, xiexiangyou@huawei.com, zhangshaokun@hisilicon.com, linux-mm@kvack.org, arm@kernel.org, prime.zeng@hisilicon.com, linux-arm-kernel@lists.infradead.org
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200324113157.nQ7OlCLlyFbeLSn1LHU_WjGfujPhN2pfuFymIUXW6u4@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200320130514.D6q5JkphjvItroWEwxB7TotV6taCBJgYfXmlZ95EsWc@z>
 
-Hi Zhenyu,
+Hi Catalin,
 
-On 2020/3/21 20:16, Zhenyu Ye wrote:
-> --
-> ChangeList:
-> v3:
-> use vma->vm_flags to replace mm->context.flags.
+On 3/19/20 6:10 PM, Catalin Marinas wrote:
+> Hi Vincenzo,
 > 
-> v2:
-> build the patch on Marc's NV series[1].
+> On Thu, Mar 19, 2020 at 12:38:42PM +0000, Vincenzo Frascino wrote:
+>> On 3/18/20 6:36 PM, Catalin Marinas wrote:
+>>> On Wed, Mar 18, 2020 at 04:14:26PM +0000, Vincenzo Frascino wrote:
+>>>> On 3/17/20 5:48 PM, Catalin Marinas wrote:
+>>>>> So clock_gettime() on arm32 always falls back to the syscall?
+>>>>
+>>>> This seems not what you asked, and I think I answered accordingly. Anyway, in
+>>>> the case of arm32 the error code path is handled via syscall fallback.
+>>>>
+>>>> Look at the code below as an example (I am using getres because I know this
+>>>> email will be already too long, and I do not want to add pointless code, but the
+>>>> concept is the same for gettime and the others):
+>>>>
+>>>> static __maybe_unused
+>>>> int __cvdso_clock_getres(clockid_t clock, struct __kernel_timespec *res)
+>>>> {
+>>>> 	int ret = __cvdso_clock_getres_common(clock, res);
+>>>>
+>>>> 	if (unlikely(ret))
+>>>> 		return clock_getres_fallback(clock, res);
+>>>> 	return 0;
+>>>> }
+>>>>
+>>>> When the return code of the "vdso" internal function returns an error the system
+>>>> call is triggered.
+>>>
+>>> But when __cvdso_clock_getres_common() does *not* return an error, it
+>>> means that it handled the clock_getres() call without a fallback to the
+>>> syscall. I assume this is possible on arm32. When the clock_getres() is
+>>> handled directly (not as a syscall), why doesn't arm32 need the same
+>>> (res >= TASK_SIZE) check?
+>>
+>> Ok, I see what you mean.
 > 
-> v1:
-> add support for TTL field in arm64.
+> I'm not sure.
 > 
-> --
-> ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
-> the level of translation table walk holding the leaf entry for the
-> address that is being invalidated. Hardware can use this information
-> to determine if there was a risk of splintering.
-> 
-> Marc has provided basic support for ARM64-TTL features on his
-> NV series[1] patches. NV is a large feature, however, only
-> patches 62[2] and 67[3] are need by this patch set.
-> ** You only need read those two patches before review this patch. **
+Thank you for the long chat this morning. As we agreed I am going to repost the
+patches removing the checks discussed in this thread and we will address the
+syscall ABI difference subsequently with a different series.
 
-It'd be good if you can put the whole thing into a series, otherwise
-people will have difficulty when reviewing and testing it...
-
-I haven't tracked the previous versions. If Marc is OK to share the
-two patches below [2][3], I'd suggest you to pick them up, add them
-in your series, rebase on top of mainline and resend it.
-
-
-Thanks,
-Zenghui
-
-> 
-> Some of this patch depends on a feature powered by @Will Deacon
-> two years ago, which tracking the level of page tables in mm_gather.
-> See more in commit a6d60245.
-> 
-> [1] git://git.kernel.org/pub/scm/linux/kernel/git/maz/arm-platforms.git kvm-arm64/nv-5.6-rc1
-> [2] https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-63-maz@kernel.org/
-> [3] https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-68-maz@kernel.org/
-> 
-> Zhenyu Ye (4):
->    arm64: Add level-hinted TLB invalidation helper to tlbi_user
->    mm: Add page table level flags to vm_flags
->    arm64: tlb: Use translation level hint in vm_flags
->    mm: Set VM_LEVEL flags in some tlb_flush functions
-> 
->   arch/arm64/include/asm/mmu.h      |  2 ++
->   arch/arm64/include/asm/tlb.h      | 12 +++++++++
->   arch/arm64/include/asm/tlbflush.h | 44 ++++++++++++++++++++++++++-----
->   arch/arm64/mm/hugetlbpage.c       |  4 +--
->   arch/arm64/mm/mmu.c               | 14 ++++++++++
->   include/asm-generic/pgtable.h     | 16 +++++++++--
->   include/linux/mm.h                | 10 +++++++
->   include/trace/events/mmflags.h    | 15 ++++++++++-
->   mm/huge_memory.c                  |  8 +++++-
->   9 files changed, 113 insertions(+), 12 deletions(-)
-> 
+-- 
+Regards,
+Vincenzo
