@@ -1,12 +1,12 @@
 Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50230 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:50710 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727504AbgCTOzG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Mar 2020 10:55:06 -0400
+        id S1727822AbgCTOzv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 10:55:51 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 07/26] mips: Introduce asm/vdso/clocksource.h
-Date: Fri, 20 Mar 2020 14:53:32 +0000
-Message-ID: <20200320145351.32292-8-vincenzo.frascino@arm.com>
+Subject: [PATCH v5 21/26] arm64: vdso32: Include common headers in the vdso library
+Date: Fri, 20 Mar 2020 14:53:46 +0000
+Message-ID: <20200320145351.32292-22-vincenzo.frascino@arm.com>
 In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
@@ -14,56 +14,50 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Paul Burton <paulburton@kernel.org>
-Message-ID: <20200320145332.8NZdHUmftWdfTSBkQKDtBafdv9o1A8cE55pZ6vU_zfE@z>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200320145346.4Kx5XKROR6a4AKGFhFUpjk2o_zlbyiWRkgWl5WtdR4Q@z>
 
 The vDSO library should only include the necessary headers required for
 a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Introduce asm/vdso/clocksource.h to contain all the arm64 specific
-functions that are suitable for vDSO inclusion.
+Refactor the vdso32 implementation to include common headers.
 
-This header will be required by a future patch that will generalize
-vdso/clocksource.h.
-
-Cc: Paul Burton <paulburton@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/mips/include/asm/clocksource.h      | 4 +---
- arch/mips/include/asm/vdso/clocksource.h | 9 +++++++++
- 2 files changed, 10 insertions(+), 3 deletions(-)
- create mode 100644 arch/mips/include/asm/vdso/clocksource.h
+ arch/arm64/include/asm/vdso/compat_gettimeofday.h | 2 +-
+ arch/arm64/kernel/vdso32/vgettimeofday.c          | 2 --
+ 2 files changed, 1 insertion(+), 3 deletions(-)
 
-diff --git a/arch/mips/include/asm/clocksource.h b/arch/mips/include/asm/clocksource.h
-index de659cae0d4e..2f1ebbea3d72 100644
---- a/arch/mips/include/asm/clocksource.h
-+++ b/arch/mips/include/asm/clocksource.h
-@@ -6,8 +6,6 @@
- #ifndef __ASM_CLOCKSOURCE_H
- #define __ASM_CLOCKSOURCE_H
+diff --git a/arch/arm64/include/asm/vdso/compat_gettimeofday.h b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+index 401df2bcd741..b6907ae78e53 100644
+--- a/arch/arm64/include/asm/vdso/compat_gettimeofday.h
++++ b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+@@ -8,7 +8,7 @@
+ #ifndef __ASSEMBLY__
  
--#define VDSO_ARCH_CLOCKMODES	\
--	VDSO_CLOCKMODE_R4K,	\
--	VDSO_CLOCKMODE_GIC
-+#include <asm/vdso/clocksource.h>
+ #include <asm/unistd.h>
+-#include <uapi/linux/time.h>
++#include <asm/errno.h>
  
- #endif /* __ASM_CLOCKSOURCE_H */
-diff --git a/arch/mips/include/asm/vdso/clocksource.h b/arch/mips/include/asm/vdso/clocksource.h
-new file mode 100644
-index 000000000000..510e1671d898
---- /dev/null
-+++ b/arch/mips/include/asm/vdso/clocksource.h
-@@ -0,0 +1,9 @@
-+/* SPDX-License-Identifier: GPL-2.0-or-later */
-+#ifndef __ASM_VDSOCLOCKSOURCE_H
-+#define __ASM_VDSOCLOCKSOURCE_H
-+
-+#define VDSO_ARCH_CLOCKMODES	\
-+	VDSO_CLOCKMODE_R4K,	\
-+	VDSO_CLOCKMODE_GIC
-+
-+#endif /* __ASM_VDSOCLOCKSOURCE_H */
+ #include <asm/vdso/compat_barrier.h>
+ 
+diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
+index ddbad47efaa4..5acff29c5991 100644
+--- a/arch/arm64/kernel/vdso32/vgettimeofday.c
++++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
+@@ -5,8 +5,6 @@
+  * Copyright (C) 2018 ARM Limited
+  *
+  */
+-#include <linux/time.h>
+-#include <linux/types.h>
+ 
+ int __vdso_clock_gettime(clockid_t clock,
+ 			 struct old_timespec32 *ts)
 -- 
 2.25.1
