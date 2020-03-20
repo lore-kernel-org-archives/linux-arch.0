@@ -1,15 +1,15 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 12/26] linux/time64.h: Extract common header for vDSO
-Date: Fri, 20 Mar 2020 14:53:37 +0000
-Message-ID: <20200320145351.32292-13-vincenzo.frascino@arm.com>
+Subject: [PATCH v5 14/26] linux/ktime.h: Extract common header for vDSO
+Date: Fri, 20 Mar 2020 14:53:39 +0000
+Message-ID: <20200320145351.32292-15-vincenzo.frascino@arm.com>
 References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50392 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:50466 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727049AbgCTOzW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Mar 2020 10:55:22 -0400
+        id S1727664AbgCTOz2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 10:55:28 -0400
 In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -21,63 +21,57 @@ a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Split time64.h into linux and common headers to make the latter suitable
+Split ktime.h into linux and common headers to make the latter suitable
 for inclusion in the vDSO library.
 
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/linux/time64.h | 10 +---------
- include/vdso/time64.h  | 14 ++++++++++++++
- 2 files changed, 15 insertions(+), 9 deletions(-)
- create mode 100644 include/vdso/time64.h
+ include/linux/ktime.h |  9 +--------
+ include/vdso/ktime.h  | 16 ++++++++++++++++
+ 2 files changed, 17 insertions(+), 8 deletions(-)
+ create mode 100644 include/vdso/ktime.h
 
-diff --git a/include/linux/time64.h b/include/linux/time64.h
-index 19125489ae94..c9dcb3e5781f 100644
---- a/include/linux/time64.h
-+++ b/include/linux/time64.h
-@@ -3,6 +3,7 @@
- #define _LINUX_TIME64_H
+diff --git a/include/linux/ktime.h b/include/linux/ktime.h
+index b2bb44f87f5a..1fcfce97a020 100644
+--- a/include/linux/ktime.h
++++ b/include/linux/ktime.h
+@@ -253,14 +253,7 @@ static inline __must_check bool ktime_to_timespec64_cond(const ktime_t kt,
+ 	}
+ }
  
- #include <linux/math64.h>
-+#include <vdso/time64.h>
+-/*
+- * The resolution of the clocks. The resolution value is returned in
+- * the clock_getres() system call to give application programmers an
+- * idea of the (in)accuracy of timers. Timer values are rounded up to
+- * this resolution values.
+- */
+-#define LOW_RES_NSEC		TICK_NSEC
+-#define KTIME_LOW_RES		(LOW_RES_NSEC)
++#include <vdso/ktime.h>
  
- typedef __s64 time64_t;
- typedef __u64 timeu64_t;
-@@ -19,15 +20,6 @@ struct itimerspec64 {
- 	struct timespec64 it_value;
- };
- 
--/* Parameters used to convert the timespec values: */
--#define MSEC_PER_SEC	1000L
--#define USEC_PER_MSEC	1000L
--#define NSEC_PER_USEC	1000L
--#define NSEC_PER_MSEC	1000000L
--#define USEC_PER_SEC	1000000L
--#define NSEC_PER_SEC	1000000000L
--#define FSEC_PER_SEC	1000000000000000LL
--
- /* Located here for timespec[64]_valid_strict */
- #define TIME64_MAX			((s64)~((u64)1 << 63))
- #define TIME64_MIN			(-TIME64_MAX - 1)
-diff --git a/include/vdso/time64.h b/include/vdso/time64.h
+ static inline ktime_t ns_to_ktime(u64 ns)
+ {
+diff --git a/include/vdso/ktime.h b/include/vdso/ktime.h
 new file mode 100644
-index 000000000000..9d43c3f5e89d
+index 000000000000..a0fd07239e0e
 --- /dev/null
-+++ b/include/vdso/time64.h
-@@ -0,0 +1,14 @@
++++ b/include/vdso/ktime.h
+@@ -0,0 +1,16 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_TIME64_H
-+#define __VDSO_TIME64_H
++#ifndef __VDSO_KTIME_H
++#define __VDSO_KTIME_H
 +
-+/* Parameters used to convert the timespec values: */
-+#define MSEC_PER_SEC	1000L
-+#define USEC_PER_MSEC	1000L
-+#define NSEC_PER_USEC	1000L
-+#define NSEC_PER_MSEC	1000000L
-+#define USEC_PER_SEC	1000000L
-+#define NSEC_PER_SEC	1000000000L
-+#define FSEC_PER_SEC	1000000000000000LL
++#include <vdso/jiffies.h>
 +
-+#endif /* __VDSO_TIME64_H */
++/*
++ * The resolution of the clocks. The resolution value is returned in
++ * the clock_getres() system call to give application programmers an
++ * idea of the (in)accuracy of timers. Timer values are rounded up to
++ * this resolution values.
++ */
++#define LOW_RES_NSEC		TICK_NSEC
++#define KTIME_LOW_RES		(LOW_RES_NSEC)
++
++#endif /* __VDSO_KTIME_H */
 -- 
 2.25.1
