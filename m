@@ -1,66 +1,88 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 16/26] scripts: Fix the inclusion order in modpost
-Date: Fri, 20 Mar 2020 14:53:41 +0000
-Message-ID: <20200320145351.32292-17-vincenzo.frascino@arm.com>
+Subject: [PATCH v5 18/26] arm64: vdso32: Code clean up
+Date: Fri, 20 Mar 2020 14:53:43 +0000
+Message-ID: <20200320145351.32292-19-vincenzo.frascino@arm.com>
 References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-mips-owner@vger.kernel.org>
 In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-mips-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, kbuild test robot <lkp@intel.com>, Masahiro Yamada <masahiroy@>
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-In the process of creating the source file of a module modpost injects a
-set of includes that are not required if the compilation unit is
-statically built into the kernel.
+The compat vdso library had some checks that are not anymore relevant.
 
-The order of inclusion of the headers can cause redefinition problems
-(e.g.):
+Remove the unused code from the compat vDSO library.
 
-   In file included from include/linux/elf.h:5:0,
-                    from include/linux/module.h:18,
-                    from crypto/arc4.mod.c:2:
->> arch/parisc/include/asm/elf.h:324:0: warning: "ELF_OSABI" redefined
-    #define ELF_OSABI  ELFOSABI_LINUX
+Note: This patch is preparatory for a future one that will introduce
+asm/vdso/processor.h on arm64.
 
-   In file included from include/linux/elfnote.h:62:0,
-                    from include/linux/build-salt.h:4,
-                    from crypto/arc4.mod.c:1:
-   include/uapi/linux/elf.h:363:0: note: this is the location of
-   the previous definition
-    #define ELF_OSABI ELFOSABI_NONE
-
-The issue was exposed during the development of the series [1].
-
-[1] https://lore.kernel.org/lkml/20200306133242.26279-1-vincenzo.frascino@arm.com/
-
-Reported-by: kbuild test robot <lkp@intel.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>
-Cc: Michal Marek <michal.lkml@markovi.net>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Link: https://lore.kernel.org/lkml/20200317122220.30393-19-vincenzo.frascino@arm.com
 ---
- scripts/mod/modpost.c | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+ arch/arm64/include/asm/vdso/compat_gettimeofday.h |  8 --------
+ arch/arm64/kernel/vdso32/vgettimeofday.c          | 12 ------------
+ 2 files changed, 20 deletions(-)
 
-diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 7edfdb2f4497..0f354b1ee2aa 100644
---- a/scripts/mod/modpost.c
-+++ b/scripts/mod/modpost.c
-@@ -2251,8 +2251,12 @@ static int check_modname_len(struct module *mod)
-  **/
- static void add_header(struct buffer *b, struct module *mod)
+diff --git a/arch/arm64/include/asm/vdso/compat_gettimeofday.h b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+index 81b0c394f1d8..401df2bcd741 100644
+--- a/arch/arm64/include/asm/vdso/compat_gettimeofday.h
++++ b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
+@@ -76,10 +76,6 @@ int clock_getres_fallback(clockid_t _clkid, struct __kernel_timespec *_ts)
+ 	register long ret asm ("r0");
+ 	register long nr asm("r7") = __NR_compat_clock_getres_time64;
+ 
+-	/* The checks below are required for ABI consistency with arm */
+-	if ((_clkid >= MAX_CLOCKS) && (_ts == NULL))
+-		return -EINVAL;
+-
+ 	asm volatile(
+ 	"       swi #0\n"
+ 	: "=r" (ret)
+@@ -97,10 +93,6 @@ int clock_getres32_fallback(clockid_t _clkid, struct old_timespec32 *_ts)
+ 	register long ret asm ("r0");
+ 	register long nr asm("r7") = __NR_compat_clock_getres;
+ 
+-	/* The checks below are required for ABI consistency with arm */
+-	if ((_clkid >= MAX_CLOCKS) && (_ts == NULL))
+-		return -EINVAL;
+-
+ 	asm volatile(
+ 	"       swi #0\n"
+ 	: "=r" (ret)
+diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
+index 54fc1c2ce93f..ddbad47efaa4 100644
+--- a/arch/arm64/kernel/vdso32/vgettimeofday.c
++++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
+@@ -11,20 +11,12 @@
+ int __vdso_clock_gettime(clockid_t clock,
+ 			 struct old_timespec32 *ts)
  {
--	buf_printf(b, "#include <linux/build-salt.h>\n");
- 	buf_printf(b, "#include <linux/module.h>\n");
-+	/*
-+	 * Include build-salt.h after module.h in order to
-+	 * inherit the definitions.
-+	 */
-+	buf_printf(b, "#include <linux/build-salt.h>\n");
- 	buf_printf(b, "#include <linux/vermagic.h>\n");
- 	buf_printf(b, "#include <linux/compiler.h>\n");
- 	buf_printf(b, "\n");
--- 
-2.25.1
+-	/* The checks below are required for ABI consistency with arm */
+-	if ((u32)ts >= TASK_SIZE_32)
+-		return -EFAULT;
+-
+ 	return __cvdso_clock_gettime32(clock, ts);
+ }
+ 
+ int __vdso_clock_gettime64(clockid_t clock,
+ 			   struct __kernel_timespec *ts)
+ {
+-	/* The checks below are required for ABI consistency with arm */
+-	if ((u32)ts >= TASK_SIZE_32)
+-		return -EFAULT;
+-
+ 	return __cvdso_clock_gettime(clock, ts);
+ }
+ 
+@@ -37,10 +29,6 @@ int __vdso_gettimeofday(struct __kernel_old_timeval *tv,
+ int __vdso_clock_getres(clockid_t clock_id,
+ 			struct old_timespec32 *res)
+ {
+-	/* The checks below are required for ABI consistency with arm */
+-	if ((u32)res >= TASK_SIZE_32)
+-		return -EFAULT;
