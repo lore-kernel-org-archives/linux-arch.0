@@ -1,47 +1,71 @@
-Return-Path: <SRS0=jv2Y=5L=vger.kernel.org=linux-doc-owner@kernel.org>
-Subject: Re: [PATCH v15 09/10] samples/landlock: Add a sandbox manager example
-References: <20200326202731.693608-1-mic@digikod.net>
- <20200326202731.693608-10-mic@digikod.net>
-From: Randy Dunlap <rdunlap@infradead.org>
-Message-ID: <11634607-2fdb-1868-03d0-94096763766f@infradead.org>
-Date: Thu, 26 Mar 2020 16:54:21 -0700
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50530 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727046AbgCTOzf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 10:55:35 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v5 16/26] scripts: Fix the inclusion order in modpost
+Date: Fri, 20 Mar 2020 14:53:41 +0000
+Message-ID: <20200320145351.32292-17-vincenzo.frascino@arm.com>
+In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <20200326202731.693608-10-mic@digikod.net>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
 Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>, linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200326235421.ogKX9sPQELNLKKe46MlFO3NnGsgeDxFdWjxkQTCUuUs@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, kbuild test robot <lkp@intel.com>, Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>
+Message-ID: <20200320145341.xWQiX-4Vqs-aXyR0WXfcVql-dxdJQWh5hQylBM7y7oI@z>
 
-Hi,
+In the process of creating the source file of a module modpost injects a
+set of includes that are not required if the compilation unit is
+statically built into the kernel.
 
-On 3/26/20 1:27 PM, Mickaël Salaün wrote:
-> diff --git a/samples/Kconfig b/samples/Kconfig
-> index 9d236c346de5..b54408c5bd86 100644
-> --- a/samples/Kconfig
-> +++ b/samples/Kconfig
-> @@ -120,6 +120,13 @@ config SAMPLE_HIDRAW
->  	bool "hidraw sample"
->  	depends on HEADERS_INSTALL
->  
-> +config SAMPLE_LANDLOCK
-> +	bool "Build Landlock sample code"
-> +	select HEADERS_INSTALL
+The order of inclusion of the headers can cause redefinition problems
+(e.g.):
 
-I think that this should be like all of the other users of HEADERS_INSTALL
-and depend on that instead of select-ing it.
+   In file included from include/linux/elf.h:5:0,
+                    from include/linux/module.h:18,
+                    from crypto/arc4.mod.c:2:
+>> arch/parisc/include/asm/elf.h:324:0: warning: "ELF_OSABI" redefined
+    #define ELF_OSABI  ELFOSABI_LINUX
 
-> +	help
-> +	  Build a simple Landlock sandbox manager able to launch a process
-> +	  restricted by a user-defined filesystem access-control security policy.
-> +
->  config SAMPLE_PIDFD
->  	bool "pidfd sample"
->  	depends on HEADERS_INSTALL
+   In file included from include/linux/elfnote.h:62:0,
+                    from include/linux/build-salt.h:4,
+                    from crypto/arc4.mod.c:1:
+   include/uapi/linux/elf.h:363:0: note: this is the location of
+   the previous definition
+    #define ELF_OSABI ELFOSABI_NONE
 
-thanks.
+The issue was exposed during the development of the series [1].
+
+[1] https://lore.kernel.org/lkml/20200306133242.26279-1-vincenzo.frascino@arm.com/
+
+Reported-by: kbuild test robot <lkp@intel.com>
+Cc: Masahiro Yamada <masahiroy@kernel.org>
+Cc: Michal Marek <michal.lkml@markovi.net>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ scripts/mod/modpost.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index 7edfdb2f4497..0f354b1ee2aa 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -2251,8 +2251,12 @@ static int check_modname_len(struct module *mod)
+  **/
+ static void add_header(struct buffer *b, struct module *mod)
+ {
+-	buf_printf(b, "#include <linux/build-salt.h>\n");
+ 	buf_printf(b, "#include <linux/module.h>\n");
++	/*
++	 * Include build-salt.h after module.h in order to
++	 * inherit the definitions.
++	 */
++	buf_printf(b, "#include <linux/build-salt.h>\n");
+ 	buf_printf(b, "#include <linux/vermagic.h>\n");
+ 	buf_printf(b, "#include <linux/compiler.h>\n");
+ 	buf_printf(b, "\n");
 -- 
-~Randy
+2.25.1
