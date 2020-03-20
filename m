@@ -1,93 +1,35 @@
-Return-Path: <SRS0=mIjk=5D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:52540 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726473AbgCRQAH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 18 Mar 2020 12:00:07 -0400
-From: John Garry <john.garry@huawei.com>
-Subject: [PATCH 2/3] logic_pio: Improve macro argument name
-Date: Wed, 18 Mar 2020 23:55:34 +0800
-Message-ID: <1584546935-75393-3-git-send-email-john.garry@huawei.com>
-In-Reply-To: <1584546935-75393-1-git-send-email-john.garry@huawei.com>
-References: <1584546935-75393-1-git-send-email-john.garry@huawei.com>
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:51478 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726847AbgCTP0J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 11:26:09 -0400
+Date: Fri, 20 Mar 2020 15:26:02 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v5 18/26] arm64: vdso32: Code clean up
+Message-ID: <20200320152602.GA7448@mbp>
+References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+ <20200320145351.32292-19-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200320145351.32292-19-vincenzo.frascino@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: xuwei5@huawei.com, arnd@arndb.de
-Cc: okaya@kernel.org, bhelgaas@google.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxarm@huawei.com, olof@lixom.net, jiaxun.yang@flygoat.com, John Garry <john.garry@huawei.com>
-Message-ID: <20200318155534.11O0_VyV7eWrZZat8Od_JA3RrlJP4OGDk2jSA3SKg9k@z>
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200320152602.-6pxU3fa0-pS5rZ-2SmDfkMrim1JD0melLkAn5GcWOo@z>
 
-Macro argument "bw" is used for building byte, word, and long-based
-functions. Use "bwl" instead, to include long.
+On Fri, Mar 20, 2020 at 02:53:43PM +0000, Vincenzo Frascino wrote:
+> The compat vdso library had some checks that are not anymore relevant.
+> 
+> Remove the unused code from the compat vDSO library.
+> 
+> Note: This patch is preparatory for a future one that will introduce
+> asm/vdso/processor.h on arm64.
+> 
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> Link: https://lore.kernel.org/lkml/20200317122220.30393-19-vincenzo.frascino@arm.com
 
-Signed-off-by: John Garry <john.garry@huawei.com>
----
- lib/logic_pio.c | 22 +++++++++++-----------
- 1 file changed, 11 insertions(+), 11 deletions(-)
-
-diff --git a/lib/logic_pio.c b/lib/logic_pio.c
-index f511a99bb389..21dc731bec88 100644
---- a/lib/logic_pio.c
-+++ b/lib/logic_pio.c
-@@ -229,13 +229,13 @@ unsigned long logic_pio_trans_cpuaddr(resource_size_t addr)
- }
- 
- #if defined(CONFIG_INDIRECT_PIO) && defined(PCI_IOBASE)
--#define BUILD_LOGIC_IO(bw, type)					\
--type logic_in##bw(unsigned long addr)					\
-+#define BUILD_LOGIC_IO(bwl, type)					\
-+type logic_in##bwl(unsigned long addr)					\
- {									\
- 	type ret = (type)~0;						\
- 									\
- 	if (addr < MMIO_UPPER_LIMIT) {					\
--		ret = read##bw(PCI_IOBASE + addr);			\
-+		ret = read##bwl(PCI_IOBASE + addr);			\
- 	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) { \
- 		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
- 									\
-@@ -248,10 +248,10 @@ type logic_in##bw(unsigned long addr)					\
- 	return ret;							\
- }									\
- 									\
--void logic_out##bw(type value, unsigned long addr)			\
-+void logic_out##bwl(type value, unsigned long addr)			\
- {									\
- 	if (addr < MMIO_UPPER_LIMIT) {					\
--		write##bw(value, PCI_IOBASE + addr);			\
-+		write##bwl(value, PCI_IOBASE + addr);			\
- 	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
- 		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
- 									\
-@@ -263,11 +263,11 @@ void logic_out##bw(type value, unsigned long addr)			\
- 	}								\
- }									\
- 									\
--void logic_ins##bw(unsigned long addr, void *buffer,			\
--		   unsigned int count)					\
-+void logic_ins##bwl(unsigned long addr, void *buffer,			\
-+		    unsigned int count)					\
- {									\
- 	if (addr < MMIO_UPPER_LIMIT) {					\
--		reads##bw(PCI_IOBASE + addr, buffer, count);		\
-+		reads##bwl(PCI_IOBASE + addr, buffer, count);		\
- 	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
- 		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
- 									\
-@@ -280,11 +280,11 @@ void logic_ins##bw(unsigned long addr, void *buffer,			\
- 									\
- }									\
- 									\
--void logic_outs##bw(unsigned long addr, const void *buffer,		\
--		    unsigned int count)					\
-+void logic_outs##bwl(unsigned long addr, const void *buffer,		\
-+		     unsigned int count)				\
- {									\
- 	if (addr < MMIO_UPPER_LIMIT) {					\
--		writes##bw(PCI_IOBASE + addr, buffer, count);		\
-+		writes##bwl(PCI_IOBASE + addr, buffer, count);		\
- 	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
- 		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
- 									\
--- 
-2.12.3
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
