@@ -1,66 +1,86 @@
-Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45672 "EHLO foss.arm.com"
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50082 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730550AbgCPKaD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Mar 2020 06:30:03 -0400
-Date: Mon, 16 Mar 2020 10:29:58 +0000
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v3 18/26] arm64: Introduce asm/vdso/processor.h
-Message-ID: <20200316102958.GC5746@lakrids.cambridge.arm.com>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
- <20200313154345.56760-19-vincenzo.frascino@arm.com>
- <20200315182950.GB32205@mbp>
- <c2c0157a-107a-debf-100f-0d97781add7c@arm.com>
- <20200316102214.GA5746@lakrids.cambridge.arm.com>
- <20200316102621.GC3005@mbp>
+        id S1726814AbgCTOyx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 10:54:53 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v5 03/26] linux/limits.h: Extract common header for vDSO
+Date: Fri, 20 Mar 2020 14:53:28 +0000
+Message-ID: <20200320145351.32292-4-vincenzo.frascino@arm.com>
+In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200316102621.GC3005@mbp>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Will Deacon <will@kernel.org>
-Message-ID: <20200316102958.kAxhd7LWgk8ndGC4VFDibVLsFa4dA4IQRdAZccH6Fw8@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200320145328.wa6IE7pLqiVwQgh2WM-6MWfMvqVtlSjSw7gISV5HIjU@z>
 
-On Mon, Mar 16, 2020 at 10:26:22AM +0000, Catalin Marinas wrote:
-> On Mon, Mar 16, 2020 at 10:22:15AM +0000, Mark Rutland wrote:
-> > On Mon, Mar 16, 2020 at 09:42:32AM +0000, Vincenzo Frascino wrote:
-> > > On 3/15/20 6:30 PM, Catalin Marinas wrote:
-> > > > On Fri, Mar 13, 2020 at 03:43:37PM +0000, Vincenzo Frascino wrote:
-> > > >> +#ifdef CONFIG_COMPAT
-> > > >> +#if defined(CONFIG_ARM64_64K_PAGES) && defined(CONFIG_KUSER_HELPERS)
-> > > >> +/*
-> > > >> + * With CONFIG_ARM64_64K_PAGES enabled, the last page is occupied
-> > > >> + * by the compat vectors page.
-> > > >> + */
-> > > >> +#define TASK_SIZE_32		UL(0x100000000)
-> > > >> +#else
-> > > >> +#define TASK_SIZE_32		(UL(0x100000000) - PAGE_SIZE)
-> > > >> +#endif /* CONFIG_ARM64_64K_PAGES */
-> > > >> +#endif /* CONFIG_COMPAT */
-> > > > 
-> > > > Just curious, what's TASK_SIZE_32 used for in the vDSO code? You don't
-> > > > seem to move TASK_SIZE.
-> > > 
-> > > I tried to fine grain the headers as much as I could in order to avoid
-> > > unneeded/unwanted inclusions:
-> > >  * TASK_SIZE_32 is used to verify ABI consistency on vdso32 (please refer to
-> > >    arch/arm64/kernel/vdso32/vgettimeofday.c).
-> > >  * TASK_SIZE is not required by the vdso library hence it is not present in
-> > >    these headers.
-> > 
-> > It would be worth noting the former point in the commit message, since
-> > it can be surprising.
-> > 
-> > I also think it's worth keeping the definitions together if that's easy,
-> > as it makes it easier to navigate the codebase, even if TASK_SIZE isn't
-> > necessary for the VDSO itself.
-> 
-> It won't work as TASK_SIZE requires (on arm64) test_thread_flag() which
-> can't be made available to the vDSO.
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-Ah; fair enough.
+Split limits.h into linux and common headers to make the latter suitable
+for inclusion in the vDSO library.
 
-Thanks,
-Mark.
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ include/linux/limits.h | 13 +------------
+ include/vdso/limits.h  | 19 +++++++++++++++++++
+ 2 files changed, 20 insertions(+), 12 deletions(-)
+ create mode 100644 include/vdso/limits.h
+
+diff --git a/include/linux/limits.h b/include/linux/limits.h
+index 76afcd24ff8c..7fc497ee1393 100644
+--- a/include/linux/limits.h
++++ b/include/linux/limits.h
+@@ -4,19 +4,8 @@
+ 
+ #include <uapi/linux/limits.h>
+ #include <linux/types.h>
++#include <vdso/limits.h>
+ 
+-#define USHRT_MAX	((unsigned short)~0U)
+-#define SHRT_MAX	((short)(USHRT_MAX >> 1))
+-#define SHRT_MIN	((short)(-SHRT_MAX - 1))
+-#define INT_MAX		((int)(~0U >> 1))
+-#define INT_MIN		(-INT_MAX - 1)
+-#define UINT_MAX	(~0U)
+-#define LONG_MAX	((long)(~0UL >> 1))
+-#define LONG_MIN	(-LONG_MAX - 1)
+-#define ULONG_MAX	(~0UL)
+-#define LLONG_MAX	((long long)(~0ULL >> 1))
+-#define LLONG_MIN	(-LLONG_MAX - 1)
+-#define ULLONG_MAX	(~0ULL)
+ #define SIZE_MAX	(~(size_t)0)
+ #define PHYS_ADDR_MAX	(~(phys_addr_t)0)
+ 
+diff --git a/include/vdso/limits.h b/include/vdso/limits.h
+new file mode 100644
+index 000000000000..0197888ad0e0
+--- /dev/null
++++ b/include/vdso/limits.h
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __VDSO_LIMITS_H
++#define __VDSO_LIMITS_H
++
++#define USHRT_MAX	((unsigned short)~0U)
++#define SHRT_MAX	((short)(USHRT_MAX >> 1))
++#define SHRT_MIN	((short)(-SHRT_MAX - 1))
++#define INT_MAX		((int)(~0U >> 1))
++#define INT_MIN		(-INT_MAX - 1)
++#define UINT_MAX	(~0U)
++#define LONG_MAX	((long)(~0UL >> 1))
++#define LONG_MIN	(-LONG_MAX - 1)
++#define ULONG_MAX	(~0UL)
++#define LLONG_MAX	((long long)(~0ULL >> 1))
++#define LLONG_MIN	(-LLONG_MAX - 1)
++#define ULLONG_MAX	(~0ULL)
++#define UINTPTR_MAX	ULONG_MAX
++
++#endif /* __VDSO_LIMITS_H */
+-- 
+2.25.1
