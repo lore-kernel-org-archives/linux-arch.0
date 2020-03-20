@@ -1,68 +1,94 @@
-Return-Path: <SRS0=rENu=5N=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga05-in.huawei.com ([45.249.212.191]:12209 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725372AbgC1EbE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 28 Mar 2020 00:31:04 -0400
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC][Qusetion] the value of cleared_(ptes|pmds|puds|p4ds) in struct
- mmu_gather
-Message-ID: <fbb00ac0-9104-8d25-f225-7b3d1b17a01f@huawei.com>
-Date: Sat, 28 Mar 2020 12:30:50 +0800
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50772 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727876AbgCTOz5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 10:55:57 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v5 23/26] x86: vdso: Enable x86 to use common headers
+Date: Fri, 20 Mar 2020 14:53:48 +0000
+Message-ID: <20200320145351.32292-24-vincenzo.frascino@arm.com>
+In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="gbk"
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, npiggin@gmail.com, will.deacon@arm.com, mingo@kernel.org, torvalds@linux-foundation.org, schwidefsky@de.ibm.com, akpm@linux-foundation.org, luto@kernel.org, bp@alien8.de, Marc Zyngier <maz@kernel.org>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arm@kernel.org, xiexiangyou@huawei.com, yezhenyu2@huawei.com
-Message-ID: <20200328043050.aBHNNaDWNQuvbiRzMK8pNWlJYfxYvbdx0_CB6fZ0HdA@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200320145348.zJFNuzoEq-roxH_zvl_iH5Ohn7aMnh3QSfdDYmLXngE@z>
 
-Hi all,
+Enable x86 to use only the common headers in the implementation
+of the vDSO library.
 
-commit a6d60245 "Track which levels of the page tables have been cleared"
-added cleared_(ptes|pmds|puds|p4ds) in struct mmu_gather, and the values
-of them are set in some places. For example:
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ arch/x86/include/asm/processor.h      | 12 +-----------
+ arch/x86/include/asm/vdso/processor.h | 23 +++++++++++++++++++++++
+ 2 files changed, 24 insertions(+), 11 deletions(-)
+ create mode 100644 arch/x86/include/asm/vdso/processor.h
 
-In include/asm-generic/tlb.h, pte_free_tlb() set the tlb->cleared_pmds:
----8<---
-#ifndef pte_free_tlb
-#define pte_free_tlb(tlb, ptep, address)			\
-	do {							\
-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
-		tlb->freed_tables = 1;				\
-		tlb->cleared_pmds = 1;				\
-		__pte_free_tlb(tlb, ptep, address);		\
-	} while (0)
-#endif
----8<---
-
-
-However, in arch/s390/include/asm/tlb.h, pte_free_tlb() set the tlb->cleared_ptes:
----8<---
-static inline void pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
-                                unsigned long address)
-{
-	__tlb_adjust_range(tlb, address, PAGE_SIZE);
-	tlb->mm->context.flush_mm = 1;
-	tlb->freed_tables = 1;
-	tlb->cleared_ptes = 1;
-	/*
-	 * page_table_free_rcu takes care of the allocation bit masks
-	 * of the 2K table fragments in the 4K page table page,
-	 * then calls tlb_remove_table.
-	 */
-	page_table_free_rcu(tlb, (unsigned long *) pte, address);
-}
----8<---
-
-
-In my view, the cleared_(ptes|pmds|puds) and (pte|pmd|pud)_free_tlb
-correspond one-to-one.  So we should set cleared_ptes in pte_free_tlb(),
-then use it when needed.
-
-I'm very confused about this. Which is wrong? Or is there something
-I understand wrong?
-
-
-Thanks,
-Zhenyu
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index 09705ccc393c..94789db550df 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -26,6 +26,7 @@ struct vm86;
+ #include <asm/fpu/types.h>
+ #include <asm/unwind_hints.h>
+ #include <asm/vmxfeatures.h>
++#include <asm/vdso/processor.h>
+ 
+ #include <linux/personality.h>
+ #include <linux/cache.h>
+@@ -677,17 +678,6 @@ static inline unsigned int cpuid_edx(unsigned int op)
+ 	return edx;
+ }
+ 
+-/* REP NOP (PAUSE) is a good thing to insert into busy-wait loops. */
+-static __always_inline void rep_nop(void)
+-{
+-	asm volatile("rep; nop" ::: "memory");
+-}
+-
+-static __always_inline void cpu_relax(void)
+-{
+-	rep_nop();
+-}
+-
+ /*
+  * This function forces the icache and prefetched instruction stream to
+  * catch up with reality in two very specific cases:
+diff --git a/arch/x86/include/asm/vdso/processor.h b/arch/x86/include/asm/vdso/processor.h
+new file mode 100644
+index 000000000000..57b1a7034c64
+--- /dev/null
++++ b/arch/x86/include/asm/vdso/processor.h
+@@ -0,0 +1,23 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_VDSO_PROCESSOR_H
++#define __ASM_VDSO_PROCESSOR_H
++
++#ifndef __ASSEMBLY__
++
++/* REP NOP (PAUSE) is a good thing to insert into busy-wait loops. */
++static __always_inline void rep_nop(void)
++{
++	asm volatile("rep; nop" ::: "memory");
++}
++
++static __always_inline void cpu_relax(void)
++{
++	rep_nop();
++}
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_PROCESSOR_H */
+-- 
+2.25.1
