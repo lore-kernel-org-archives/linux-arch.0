@@ -1,158 +1,76 @@
-From: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
-Date: Fri, 20 Mar 2020 17:39:46 +0000
-Message-ID: <20200320173945.GC27072@arm.com>
-References: <20200316165055.31179-1-broonie@kernel.org>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 1/9] scripts/link-vmlinux.sh: Delay orphan handling
+ warnings until final link
+Date: Fri, 20 Mar 2020 11:24:22 -0700
+Message-ID: <202003201121.8CBD96451B@keescook>
+References: <20200228002244.15240-1-keescook@chromium.org>
+ <20200228002244.15240-2-keescook@chromium.org>
+ <1584672297.mudnpz3ir9.astroid@bobo.none>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf1-f195.google.com ([209.85.210.195]:38087 "EHLO
+        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726851AbgCTSYZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2020 14:24:25 -0400
+Received: by mail-pf1-f195.google.com with SMTP id z5so3722813pfn.5
+        for <linux-arch@vger.kernel.org>; Fri, 20 Mar 2020 11:24:25 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Brown <broonie@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshin
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1584672297.mudnpz3ir9.astroid@bobo.none>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Borislav Petkov <bp@suse.de>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, clang-built-linux@googlegroups.com, "H.J. Lu" <hjl.tools@gmail.com>, James Morse <james.morse@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@armlinux.org.uk>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Masahiro Yamada <masahiroy@kernel.org>, Peter Collingbourne <pcc@google.com>, Will Deacon <will@kernel.org>, x86@kernel.org
 
-The 03/16/2020 16:50, Mark Brown wrote:
-> This patch series implements support for ARMv8.5-A Branch Target
-> Identification (BTI), which is a control flow integrity protection
-> feature introduced as part of the ARMv8.5-A extensions.
+On Fri, Mar 20, 2020 at 12:47:54PM +1000, Nicholas Piggin wrote:
+> Kees Cook's on February 28, 2020 10:22 am:
+> > Right now, powerpc adds "--orphan-handling=warn" to LD_FLAGS_vmlinux
+> > to detect when there are unexpected sections getting added to the kernel
+> > image. There is no need to report these warnings more than once, so it
+> > can be removed until the final link stage.
+> > 
+> > This helps pave the way for other architectures to enable this, with the
+> > end goal of enabling this warning by default for vmlinux for all
+> > architectures.
+> > 
+> > Signed-off-by: Kees Cook <keescook@chromium.org>
+> > ---
+> >  scripts/link-vmlinux.sh | 6 ++++++
+> >  1 file changed, 6 insertions(+)
+> > 
+> > diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+> > index 1919c311c149..416968fea685 100755
+> > --- a/scripts/link-vmlinux.sh
+> > +++ b/scripts/link-vmlinux.sh
+> > @@ -255,6 +255,11 @@ info GEN modules.builtin
+> >  tr '\0' '\n' < modules.builtin.modinfo | sed -n 's/^[[:alnum:]:_]*\.file=//p' |
+> >  	tr ' ' '\n' | uniq | sed -e 's:^:kernel/:' -e 's/$/.ko/' > modules.builtin
+> >  
+> > +
+> > +# Do not warn about orphan sections until the final link stage.
+> > +saved_LDFLAGS_vmlinux="${LDFLAGS_vmlinux}"
+> > +LDFLAGS_vmlinux="$(echo "${LDFLAGS_vmlinux}" | sed -E 's/ --orphan-handling=warn( |$)/ /g')"
+> > +
+> >  btf_vmlinux_bin_o=""
+> >  if [ -n "${CONFIG_DEBUG_INFO_BTF}" ]; then
+> >  	if gen_btf .tmp_vmlinux.btf .btf.vmlinux.bin.o ; then
+> > @@ -306,6 +311,7 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
+> >  	fi
+> >  fi
+> >  
+> > +LDFLAGS_vmlinux="${saved_LDFLAGS_vmlinux}"
+> >  vmlinux_link vmlinux "${kallsymso}" ${btf_vmlinux_bin_o}
+> >  
+> >  if [ -n "${CONFIG_BUILDTIME_TABLE_SORT}" ]; then
+> 
+> That's ugly. Why not just enable it for all archs?
 
-i was playing with this and it seems the kernel does not add
-PROT_BTI to non-static executables (i.e. there is an interpreter).
+It is ugly; I agree.
 
-i thought any elf that the kernel maps would get PROT_BTI from the
-kernel. (i want to remove the mprotect in glibc when not necessary)
+I can try to do this for all architectures, but I worry there are a
+bunch I can't test. But I guess it would stand out. ;)
 
-i tested by linking a hello world exe with -Wl,-z,force-bti (and
-verified that the property note is there) and expected it to crash
-(with SIGILL) when the dynamic linker jumps to _start in the exe,
-but it executed without errors (if i do the mprotect in glibc then
-i get SIGILL as expected).
-
-is this deliberate? does the kernel map static exe and dynamic
-linked exe differently?
-
-i cant tell looking at the patches where this logic comes from.
-
-> 
-> Changes:
-> 
-> v10:
->  - Fix build for !COMPAT configurations.
-> v9:
->  - Move Kconfig addition to final patch in series.
->  - Add patch from Daniel Kiss adding BTI information to smaps, this has
->    a trivial conflict with a .rst conversion in -next.
-> v8:
->  - Remove a redundant IS_ENABLED(CONFIG_ARM64_BTI) check.
-> v7:
->  - Rebase onto v5.6-rc3.
->  - Move comment about keeping NT_GNU_PROPERTY_TYPE_0 internal into first
->    patch.
->  - Add an explicit check for system_supports_bti() when parsing BTI ELF
->    property for improved robustness.
-> v6:
->  - Rebase onto v5.6-rc1.
->  - Fix typos s/BYTPE/BTYPE/ in commit log for "arm64: BTI: Decode BYTPE
->    bits when printing PSTATE".
-> v5:
->  - Changed a bunch of -EIO to -ENOEXEC in the ELF parsing code.
->  - Move PSR_BTYPE defines to UAPI.
->  - Use compat_user_mode() rather than open coding.
->  - Fix a typo s/BYTPE/BTYPE/ in syscall.c
-> v4:
->  - Dropped patch fixing existing documentation as it has already been merged.
->  - Convert WARN_ON() to WARN_ON_ONCE() in "ELF: Add ELF program property
->    parsing support".
->  - Added display of guarded pages to ptdump.
->  - Updated for conversion of exception handling from assembler to C.
-> 
-> Notes:
-> 
->  * GCC 9 can compile backwards-compatible BTI-enabled code with
->    -mbranch-protection=bti or -mbranch-protection=standard.
-> 
->  * Binutils 2.33 and later support the new ELF note.
-> 
->    Creation of a BTI-enabled binary requires _everything_ linked in to
->    be BTI-enabled.  For now ld --force-bti can be used to override this,
->    but some things may break until the required C library support is in
->    place.
-> 
->    There is no straightforward way to mark a .s file as BTI-enabled:
->    scraping the output from gcc -S works as a quick hack for now.
-> 
->    readelf -n can be used to examing the program properties in an ELF
->    file.
-> 
->  * Runtime mmap() and mprotect() can be used to enable BTI on a
->    page-by-page basis using the new PROT_BTI, but the code in the
->    affected pages still needs to be written or compiled to contain the
->    appropriate BTI landing pads.
-> 
-> Daniel Kiss (1):
->   mm: smaps: Report arm64 guarded pages in smaps
-> 
-> Dave Martin (11):
->   ELF: UAPI and Kconfig additions for ELF program properties
->   ELF: Add ELF program property parsing support
->   arm64: Basic Branch Target Identification support
->   elf: Allow arch to tweak initial mmap prot flags
->   arm64: elf: Enable BTI at exec based on ELF program properties
->   arm64: BTI: Decode BYTPE bits when printing PSTATE
->   arm64: unify native/compat instruction skipping
->   arm64: traps: Shuffle code to eliminate forward declarations
->   arm64: BTI: Reset BTYPE when skipping emulated instructions
->   KVM: arm64: BTI: Reset BTYPE when skipping emulated instructions
->   arm64: BTI: Add Kconfig entry for userspace BTI
-> 
-> Mark Brown (1):
->   arm64: mm: Display guarded pages in ptdump
-> 
->  Documentation/arm64/cpu-feature-registers.rst |   2 +
->  Documentation/arm64/elf_hwcaps.rst            |   5 +
->  Documentation/filesystems/proc.txt            |   1 +
->  arch/arm64/Kconfig                            |  25 +++
->  arch/arm64/include/asm/cpucaps.h              |   3 +-
->  arch/arm64/include/asm/cpufeature.h           |   6 +
->  arch/arm64/include/asm/elf.h                  |  50 ++++++
->  arch/arm64/include/asm/esr.h                  |   2 +-
->  arch/arm64/include/asm/exception.h            |   1 +
->  arch/arm64/include/asm/hwcap.h                |   1 +
->  arch/arm64/include/asm/kvm_emulate.h          |   6 +-
->  arch/arm64/include/asm/mman.h                 |  37 +++++
->  arch/arm64/include/asm/pgtable-hwdef.h        |   1 +
->  arch/arm64/include/asm/pgtable.h              |   2 +-
->  arch/arm64/include/asm/ptrace.h               |   1 +
->  arch/arm64/include/asm/sysreg.h               |   4 +
->  arch/arm64/include/uapi/asm/hwcap.h           |   1 +
->  arch/arm64/include/uapi/asm/mman.h            |   9 ++
->  arch/arm64/include/uapi/asm/ptrace.h          |   9 ++
->  arch/arm64/kernel/cpufeature.c                |  33 ++++
->  arch/arm64/kernel/cpuinfo.c                   |   1 +
->  arch/arm64/kernel/entry-common.c              |  11 ++
->  arch/arm64/kernel/process.c                   |  36 ++++-
->  arch/arm64/kernel/ptrace.c                    |   2 +-
->  arch/arm64/kernel/signal.c                    |  16 ++
->  arch/arm64/kernel/syscall.c                   |  18 +++
->  arch/arm64/kernel/traps.c                     | 131 ++++++++--------
->  arch/arm64/mm/dump.c                          |   5 +
->  fs/Kconfig.binfmt                             |   6 +
->  fs/binfmt_elf.c                               | 145 +++++++++++++++++-
->  fs/compat_binfmt_elf.c                        |   4 +
->  fs/proc/task_mmu.c                            |   3 +
->  include/linux/elf.h                           |  43 ++++++
->  include/linux/mm.h                            |   3 +
->  include/uapi/linux/elf.h                      |  11 ++
->  35 files changed, 560 insertions(+), 74 deletions(-)
->  create mode 100644 arch/arm64/include/asm/mman.h
->  create mode 100644 arch/arm64/include/uapi/asm/mman.h
-> 
-> 
-> base-commit: f8788d86ab28f61f7b46eb6be375f8a726783636
-> -- 
-> 2.20.1
-> 
+-Kees
 
 -- 
+Kees Cook
