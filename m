@@ -1,76 +1,84 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 1/9] scripts/link-vmlinux.sh: Delay orphan handling
- warnings until final link
-Date: Fri, 20 Mar 2020 11:24:22 -0700
-Message-ID: <202003201121.8CBD96451B@keescook>
-References: <20200228002244.15240-1-keescook@chromium.org>
- <20200228002244.15240-2-keescook@chromium.org>
- <1584672297.mudnpz3ir9.astroid@bobo.none>
+From: Joel Fernandes <joel@joelfernandes.org>
+Subject: Re: [PATCH 1/3] LKMM: Add litmus test for RCU GP guarantee where
+ updater frees object
+Date: Fri, 20 Mar 2020 16:15:16 -0400
+Message-ID: <20200320201516.GA129293@google.com>
+References: <20200320065552.253696-1-joel@joelfernandes.org>
+ <Pine.LNX.4.44L0.2003201049230.27303-100000@netrider.rowland.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf1-f195.google.com ([209.85.210.195]:38087 "EHLO
-        mail-pf1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726851AbgCTSYZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2020 14:24:25 -0400
-Received: by mail-pf1-f195.google.com with SMTP id z5so3722813pfn.5
-        for <linux-arch@vger.kernel.org>; Fri, 20 Mar 2020 11:24:25 -0700 (PDT)
+Received: from mail-qt1-f196.google.com ([209.85.160.196]:41794 "EHLO
+        mail-qt1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726666AbgCTUPS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2020 16:15:18 -0400
+Received: by mail-qt1-f196.google.com with SMTP id i3so2296332qtv.8
+        for <linux-arch@vger.kernel.org>; Fri, 20 Mar 2020 13:15:18 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <1584672297.mudnpz3ir9.astroid@bobo.none>
+In-Reply-To: <Pine.LNX.4.44L0.2003201049230.27303-100000@netrider.rowland.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Borislav Petkov <bp@suse.de>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, clang-built-linux@googlegroups.com, "H.J. Lu" <hjl.tools@gmail.com>, James Morse <james.morse@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@armlinux.org.uk>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Masahiro Yamada <masahiroy@kernel.org>, Peter Collingbourne <pcc@google.com>, Will Deacon <will@kernel.org>, x86@kernel.org
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: linux-kernel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, linux-arch@vger.kernel.org, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
 
-On Fri, Mar 20, 2020 at 12:47:54PM +1000, Nicholas Piggin wrote:
-> Kees Cook's on February 28, 2020 10:22 am:
-> > Right now, powerpc adds "--orphan-handling=warn" to LD_FLAGS_vmlinux
-> > to detect when there are unexpected sections getting added to the kernel
-> > image. There is no need to report these warnings more than once, so it
-> > can be removed until the final link stage.
-> > 
-> > This helps pave the way for other architectures to enable this, with the
-> > end goal of enabling this warning by default for vmlinux for all
-> > architectures.
-> > 
-> > Signed-off-by: Kees Cook <keescook@chromium.org>
-> > ---
-> >  scripts/link-vmlinux.sh | 6 ++++++
-> >  1 file changed, 6 insertions(+)
-> > 
-> > diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-> > index 1919c311c149..416968fea685 100755
-> > --- a/scripts/link-vmlinux.sh
-> > +++ b/scripts/link-vmlinux.sh
-> > @@ -255,6 +255,11 @@ info GEN modules.builtin
-> >  tr '\0' '\n' < modules.builtin.modinfo | sed -n 's/^[[:alnum:]:_]*\.file=//p' |
-> >  	tr ' ' '\n' | uniq | sed -e 's:^:kernel/:' -e 's/$/.ko/' > modules.builtin
-> >  
-> > +
-> > +# Do not warn about orphan sections until the final link stage.
-> > +saved_LDFLAGS_vmlinux="${LDFLAGS_vmlinux}"
-> > +LDFLAGS_vmlinux="$(echo "${LDFLAGS_vmlinux}" | sed -E 's/ --orphan-handling=warn( |$)/ /g')"
-> > +
-> >  btf_vmlinux_bin_o=""
-> >  if [ -n "${CONFIG_DEBUG_INFO_BTF}" ]; then
-> >  	if gen_btf .tmp_vmlinux.btf .btf.vmlinux.bin.o ; then
-> > @@ -306,6 +311,7 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
-> >  	fi
-> >  fi
-> >  
-> > +LDFLAGS_vmlinux="${saved_LDFLAGS_vmlinux}"
-> >  vmlinux_link vmlinux "${kallsymso}" ${btf_vmlinux_bin_o}
-> >  
-> >  if [ -n "${CONFIG_BUILDTIME_TABLE_SORT}" ]; then
+On Fri, Mar 20, 2020 at 10:59:55AM -0400, Alan Stern wrote:
+> On Fri, 20 Mar 2020, Joel Fernandes (Google) wrote:
 > 
-> That's ugly. Why not just enable it for all archs?
+> > This adds an example for the important RCU grace period guarantee, which
+> > shows an RCU reader can never span a grace period.
+> > 
+> > Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+> > ---
+> >  .../litmus-tests/RCU+sync+free.litmus         | 40 +++++++++++++++++++
+> >  1 file changed, 40 insertions(+)
+> >  create mode 100644 tools/memory-model/litmus-tests/RCU+sync+free.litmus
+> > 
+> > diff --git a/tools/memory-model/litmus-tests/RCU+sync+free.litmus b/tools/memory-model/litmus-tests/RCU+sync+free.litmus
+> > new file mode 100644
+> > index 0000000000000..c4682502dd296
+> > --- /dev/null
+> > +++ b/tools/memory-model/litmus-tests/RCU+sync+free.litmus
+> > @@ -0,0 +1,40 @@
+> > +C RCU+sync+free
+> > +
+> > +(*
+> > + * Result: Never
+> > + *
+> 
+> The following comment needs some rewriting.  The grammar is somewhat
+> awkward and a very important "not" is missing.
+> 
+> > + * This litmus test demonstrates that an RCU reader can never see a write after
+> > + * the grace period, if it saw writes that happen before the grace period.
+> 
+> An RCU reader can never see a write that follows a grace period if it
+> did _not_ see writes that precede the grace period.
 
-It is ugly; I agree.
+Yes, you are right. I will change your wording to 'did not see *all* writes
+that precede'.
 
-I can try to do this for all architectures, but I worry there are a
-bunch I can't test. But I guess it would stand out. ;)
+> >  This
+> > + * is a typical pattern of RCU usage, where the write before the grace period
+> > + * assigns a pointer, and the writes after destroy the object that the pointer
+> > + * points to.
+> 
+> ... that the pointer used to point to.
 
--Kees
+Will fix.
 
--- 
-Kees Cook
+> > + *
+> > + * This guarantee also implies, an RCU reader can never span a grace period and
+> > + * is an important RCU grace period memory ordering guarantee.
+> 
+> Unnecessary comma, and it is not clear what "This" refers to.  The 
+> whole sentence should be phrased differently:
+> 
+> 	This is one implication of the RCU grace-period guarantee,
+> 	which says (among other things) that an RCU reader cannot span 
+> 	a grace period.
+
+Your wording is better, will use that.
+
+thanks,
+
+ - Joel
