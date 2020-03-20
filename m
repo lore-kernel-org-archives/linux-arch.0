@@ -1,65 +1,75 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 1/9] scripts/link-vmlinux.sh: Delay orphan handling
- warnings until final link
-Date: Fri, 20 Mar 2020 12:47:54 +1000
-Message-ID: <1584672297.mudnpz3ir9.astroid@bobo.none>
-References: <20200228002244.15240-1-keescook@chromium.org>
-        <20200228002244.15240-2-keescook@chromium.org>
+From: "Joel Fernandes (Google)" <joel@joelfernandes.org>
+Subject: [PATCH 1/3] LKMM: Add litmus test for RCU GP guarantee where updater frees object
+Date: Fri, 20 Mar 2020 02:55:50 -0400
+Message-ID: <20200320065552.253696-1-joel@joelfernandes.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200228002244.15240-2-keescook@chromium.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@suse.de>, Kees Cook <keescook@chromium.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, clang-built-linux@googlegroups.com, "H.J. Lu" <hjl.tools@gmail.com>, James Morse <james.morse@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@armlinux.org.uk>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Masahiro Yamada <masahiroy@kernel.org>, Peter Collingbourne <pcc@google.com>, Will Deacon <will@kernel.org>, x86@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qk1-f195.google.com ([209.85.222.195]:37770 "EHLO
+        mail-qk1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726232AbgCTG4B (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2020 02:56:01 -0400
+Received: by mail-qk1-f195.google.com with SMTP id z25so5865150qkj.4
+        for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2020 23:56:01 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: "Joel Fernandes (Google)" <joel@joelfernandes.org>, Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, linux-arch@vger.kernel.org, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
 
-Kees Cook's on February 28, 2020 10:22 am:
-> Right now, powerpc adds "--orphan-handling=3Dwarn" to LD_FLAGS_vmlinux
-> to detect when there are unexpected sections getting added to the kernel
-> image. There is no need to report these warnings more than once, so it
-> can be removed until the final link stage.
->=20
-> This helps pave the way for other architectures to enable this, with the
-> end goal of enabling this warning by default for vmlinux for all
-> architectures.
->=20
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  scripts/link-vmlinux.sh | 6 ++++++
->  1 file changed, 6 insertions(+)
->=20
-> diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-> index 1919c311c149..416968fea685 100755
-> --- a/scripts/link-vmlinux.sh
-> +++ b/scripts/link-vmlinux.sh
-> @@ -255,6 +255,11 @@ info GEN modules.builtin
->  tr '\0' '\n' < modules.builtin.modinfo | sed -n 's/^[[:alnum:]:_]*\.file=
-=3D//p' |
->  	tr ' ' '\n' | uniq | sed -e 's:^:kernel/:' -e 's/$/.ko/' > modules.buil=
-tin
-> =20
-> +
-> +# Do not warn about orphan sections until the final link stage.
-> +saved_LDFLAGS_vmlinux=3D"${LDFLAGS_vmlinux}"
-> +LDFLAGS_vmlinux=3D"$(echo "${LDFLAGS_vmlinux}" | sed -E 's/ --orphan-han=
-dling=3Dwarn( |$)/ /g')"
-> +
->  btf_vmlinux_bin_o=3D""
->  if [ -n "${CONFIG_DEBUG_INFO_BTF}" ]; then
->  	if gen_btf .tmp_vmlinux.btf .btf.vmlinux.bin.o ; then
-> @@ -306,6 +311,7 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
->  	fi
->  fi
-> =20
-> +LDFLAGS_vmlinux=3D"${saved_LDFLAGS_vmlinux}"
->  vmlinux_link vmlinux "${kallsymso}" ${btf_vmlinux_bin_o}
-> =20
->  if [ -n "${CONFIG_BUILDTIME_TABLE_SORT}" ]; then
+This adds an example for the important RCU grace period guarantee, which
+shows an RCU reader can never span a grace period.
 
-That's ugly. Why not just enable it for all archs?
+Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+---
+ .../litmus-tests/RCU+sync+free.litmus         | 40 +++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+ create mode 100644 tools/memory-model/litmus-tests/RCU+sync+free.litmus
 
-Thanks,
-Nick
-=
+diff --git a/tools/memory-model/litmus-tests/RCU+sync+free.litmus b/tools/memory-model/litmus-tests/RCU+sync+free.litmus
+new file mode 100644
+index 0000000000000..c4682502dd296
+--- /dev/null
++++ b/tools/memory-model/litmus-tests/RCU+sync+free.litmus
+@@ -0,0 +1,40 @@
++C RCU+sync+free
++
++(*
++ * Result: Never
++ *
++ * This litmus test demonstrates that an RCU reader can never see a write after
++ * the grace period, if it saw writes that happen before the grace period. This
++ * is a typical pattern of RCU usage, where the write before the grace period
++ * assigns a pointer, and the writes after destroy the object that the pointer
++ * points to.
++ *
++ * This guarantee also implies, an RCU reader can never span a grace period and
++ * is an important RCU grace period memory ordering guarantee.
++ *)
++
++{
++x = 1;
++y = x;
++z = 1;
++}
++
++P0(int *x, int *z, int **y)
++{
++	int r0;
++	int r1;
++
++	rcu_read_lock();
++	r0 = rcu_dereference(*y);
++	r1 = READ_ONCE(*r0);
++	rcu_read_unlock();
++}
++
++P1(int *x, int *z, int **y)
++{
++	rcu_assign_pointer(*y, z);
++	synchronize_rcu();
++	WRITE_ONCE(*x, 0);
++}
++
++exists (0:r0=x /\ 0:r1=0)
+-- 
+2.25.1.696.g5e7596f4ac-goog
