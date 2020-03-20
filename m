@@ -1,93 +1,81 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:39424 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726388AbgCQPDj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 11:03:39 -0400
-Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
- vgettimeofday
-References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
- <20200317122220.30393-19-vincenzo.frascino@arm.com>
- <20200317143834.GC632169@arrakis.emea.arm.com>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
-Date: Tue, 17 Mar 2020 15:04:01 +0000
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.187]:34089 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727414AbgCTQi3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2020 12:38:29 -0400
 MIME-Version: 1.0
-In-Reply-To: <20200317143834.GC632169@arrakis.emea.arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
+ <1584200119-18594-2-git-send-email-mikelley@microsoft.com>
+ <CAK8P3a1GFDUY4mXzst4Ds+S-4SGXso6-jfpsYyy-eHyceAC1Zg@mail.gmail.com>
+ <MW2PR2101MB10524879CD685710A51AB740D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
+ <CAK8P3a02EULGxyuKFq8YnbG8BQ_m-RKciaNEc9ZbdP2yz9dt+Q@mail.gmail.com> <MW2PR2101MB1052686237C57955148F173ED7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
+In-Reply-To: <MW2PR2101MB1052686237C57955148F173ED7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 20 Mar 2020 17:38:09 +0100
+Message-ID: <CAK8P3a0y==1RsoMOnME9bgP5V_mts4rbaUW08Tt7mS9csXBqDw@mail.gmail.com>
+Subject: Re: [PATCH v6 01/10] arm64: hyperv: Add core Hyper-V include files
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200317150401.Wfw60H-dC15adfldgEVpuZXUZzg3Ma0cLmr5q6yknP0@z>
+To: Michael Kelley <mikelley@microsoft.com>
+Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>
+Message-ID: <20200320163809.b5V6QHNXoTDMI5Hje1cgy7BQpaQRy9dX_3k_yS1Wcpo@z>
 
-Hi Catalin,
+On Thu, Mar 19, 2020 at 10:31 PM Michael Kelley <mikelley@microsoft.com> wrote:
+> From: Arnd Bergmann <arnd@arndb.de> Sent: Wednesday, March 18, 2020 3:10 AM
+> > Just drop the __packed annotations then, they just confuse the compiler
+> > in this case. In particular, when the compiler thinks that a structure is
+> > misaligned, it tries to avoid using load/store instructions on it that are
+> > inefficient or trap with misaligned code, so having default alignment
+> > produces better object code.
+>
+> So I'm confused a bit.  Were the original concerns in the above LKML
+> discussion bogus?  Is it legal for the compiler to reorder fields or add
+> padding, even if the layout of fields in the structure doesn't require it?
+> If the compiler *could* do such, then it seems like keeping the __packed
+> would be appropriate per the LKML discussion.
 
-On 3/17/20 2:38 PM, Catalin Marinas wrote:
-> On Tue, Mar 17, 2020 at 12:22:12PM +0000, Vincenzo Frascino wrote:
->> diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
->> index 54fc1c2ce93f..91138077b073 100644
->> --- a/arch/arm64/kernel/vdso32/vgettimeofday.c
->> +++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
->> @@ -8,11 +8,14 @@
->>  #include <linux/time.h>
->>  #include <linux/types.h>
->>  
->> +#define VALID_CLOCK_ID(x) \
->> +	((x >= 0) && (x < VDSO_BASES))
->> +
->>  int __vdso_clock_gettime(clockid_t clock,
->>  			 struct old_timespec32 *ts)
->>  {
->>  	/* The checks below are required for ABI consistency with arm */
->> -	if ((u32)ts >= TASK_SIZE_32)
->> +	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
->>  		return -EFAULT;
->>  
->>  	return __cvdso_clock_gettime32(clock, ts);
-> 
-> I probably miss something but I can't find the TASK_SIZE check in the
-> arch/arm/vdso/vgettimeofday.c code. Is this done elsewhere?
+The padding is defined in the ELF psABI document for a particular
+architecture. In theory an architecture might require padding around
+smaller members, but they generally don't when you look at the ones
+that Linux runs on. The few odd ones are those that require less
+padding, only aligning members to 16 or 32 bit rather than natural
+alignment, or padding the size of the structure to 32 bit even if it
+only contains 8-bit or 16-bit members. When you have structures
+in which every member is naturally aligned and the size it a multiple
+of 32 bit, better leave out the __packed.
 
-Can TASK_SIZE > UINTPTR_MAX on an arm64 system?
+Aside from generating sub-optimal code, the __packed annotation
+can also lead to undefined behavior, if you pass a pointer to
+an unaligned member into a function call that takes an aligned
+pointer. Newer compilers warn about this.
 
-> 
->> @@ -22,7 +25,7 @@ int __vdso_clock_gettime64(clockid_t clock,
->>  			   struct __kernel_timespec *ts)
->>  {
->>  	/* The checks below are required for ABI consistency with arm */
->> -	if ((u32)ts >= TASK_SIZE_32)
->> +	if ((u32)ts > UINTPTR_MAX - sizeof(*ts) + 1)
->>  		return -EFAULT;
->>  
->>  	return __cvdso_clock_gettime(clock, ts);
->> @@ -38,9 +41,12 @@ int __vdso_clock_getres(clockid_t clock_id,
->>  			struct old_timespec32 *res)
->>  {
->>  	/* The checks below are required for ABI consistency with arm */
->> -	if ((u32)res >= TASK_SIZE_32)
->> +	if ((u32)res > UINTPTR_MAX - sizeof(res) + 1)
->>  		return -EFAULT;
->>  
->> +	if (!VALID_CLOCK_ID(clock_id) && res == NULL)
->> +		return -EINVAL;
-> 
-> This last check needs an explanation. If the clock_id is invalid but res
-> is not NULL, we allow it. I don't see where the compatibility issue is,
-> arm32 doesn't have such check.
-> 
+> > > Unfortunately, changing to a bit mask ripples into
+> > > architecture independent code and into the x86
+> > > implementation.  I'd prefer not to drag that complexity
+> > > into this patch set.
+> >
+> > How so? If this file is arm64 specific, there should be no need to make
+> > x86 do the same change.
+>
+> This file, hyperv-tlfs.h, is duplicating some definitions on the x86 and
+> ARM64 sides that are used by arch independent code, and this is one
+> of those definitions.  I had held off on breaking the file into arch
+> independent and arch specific portions because the Hyper-V team has
+> left some gray areas for functionality that isn't yet used on the ARM64
+> side.  So in some cases, it's hard to know what functionality to put
+> into the arch independent portion.
+>
+> But I think I'll go ahead and make the separation with reasonably good
+> accuracy, and update the x86 side accordingly.  That will reduce the size
+> of this patch set to contain only the things that we know are ARM64
+> specific and which are actually used by the ARM64 code.  Things like the
+> hv_message_flags will go into the arch independent portion so that
+> they can be used by the arch independent code without cluttering up
+> the arch specific code.  Making the change will help reduce any
+> confusion about what is ARM64-specific. The other core #include file,
+> mshyperv.h, has already been done this way.
 
-The case that you are describing has to return -EPERM per ABI spec. This case
-has to return -EINVAL.
+Ok, sounds good.
 
-The first case is taken care from the generic code. But if we don't do this
-check before on arm64 compat we end up returning the wrong error code.
-
-For the non compat case the same is taken care from the syscall fallback [1].
-
-[1] lib/vdso/gettimeofday.c
-
--- 
-Regards,
-Vincenzo
+     Arnd
