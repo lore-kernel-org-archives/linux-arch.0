@@ -1,74 +1,66 @@
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 13/26] linux/jiffies.h: Extract common header for vDSO
-Date: Fri, 20 Mar 2020 14:53:38 +0000
-Message-ID: <20200320145351.32292-14-vincenzo.frascino@arm.com>
-References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH 1/3] LKMM: Add litmus test for RCU GP guarantee where
+ updater frees object
+Date: Fri, 20 Mar 2020 10:59:55 -0400 (EDT)
+Message-ID: <Pine.LNX.4.44L0.2003201049230.27303-100000@netrider.rowland.org>
+References: <20200320065552.253696-1-joel@joelfernandes.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50430 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727049AbgCTOzZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Mar 2020 10:55:25 -0400
-In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200320065552.253696-1-joel@joelfernandes.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Joel Fernandes (Google)" <joel@joelfernandes.org>
+Cc: linux-kernel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, linux-arch@vger.kernel.org, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+On Fri, 20 Mar 2020, Joel Fernandes (Google) wrote:
 
-Split jiffies.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
+> This adds an example for the important RCU grace period guarantee, which
+> shows an RCU reader can never span a grace period.
+> 
+> Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+> ---
+>  .../litmus-tests/RCU+sync+free.litmus         | 40 +++++++++++++++++++
+>  1 file changed, 40 insertions(+)
+>  create mode 100644 tools/memory-model/litmus-tests/RCU+sync+free.litmus
+> 
+> diff --git a/tools/memory-model/litmus-tests/RCU+sync+free.litmus b/tools/memory-model/litmus-tests/RCU+sync+free.litmus
+> new file mode 100644
+> index 0000000000000..c4682502dd296
+> --- /dev/null
+> +++ b/tools/memory-model/litmus-tests/RCU+sync+free.litmus
+> @@ -0,0 +1,40 @@
+> +C RCU+sync+free
+> +
+> +(*
+> + * Result: Never
+> + *
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- include/linux/jiffies.h |  4 +---
- include/vdso/jiffies.h  | 11 +++++++++++
- 2 files changed, 12 insertions(+), 3 deletions(-)
- create mode 100644 include/vdso/jiffies.h
+The following comment needs some rewriting.  The grammar is somewhat
+awkward and a very important "not" is missing.
 
-diff --git a/include/linux/jiffies.h b/include/linux/jiffies.h
-index e3279ef24d28..fed6ba96c527 100644
---- a/include/linux/jiffies.h
-+++ b/include/linux/jiffies.h
-@@ -8,6 +8,7 @@
- #include <linux/types.h>
- #include <linux/time.h>
- #include <linux/timex.h>
-+#include <vdso/jiffies.h>
- #include <asm/param.h>			/* for HZ */
- #include <generated/timeconst.h>
- 
-@@ -59,9 +60,6 @@
- 
- extern int register_refined_jiffies(long clock_tick_rate);
- 
--/* TICK_NSEC is the time between ticks in nsec assuming SHIFTED_HZ */
--#define TICK_NSEC ((NSEC_PER_SEC+HZ/2)/HZ)
--
- /* TICK_USEC is the time between ticks in usec assuming SHIFTED_HZ */
- #define TICK_USEC ((USEC_PER_SEC + HZ/2) / HZ)
- 
-diff --git a/include/vdso/jiffies.h b/include/vdso/jiffies.h
-new file mode 100644
-index 000000000000..2f9d596c8b29
---- /dev/null
-+++ b/include/vdso/jiffies.h
-@@ -0,0 +1,11 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_JIFFIES_H
-+#define __VDSO_JIFFIES_H
-+
-+#include <asm/param.h>			/* for HZ */
-+#include <vdso/time64.h>
-+
-+/* TICK_NSEC is the time between ticks in nsec assuming SHIFTED_HZ */
-+#define TICK_NSEC ((NSEC_PER_SEC+HZ/2)/HZ)
-+
-+#endif /* __VDSO_JIFFIES_H */
--- 
-2.25.1
+> + * This litmus test demonstrates that an RCU reader can never see a write after
+> + * the grace period, if it saw writes that happen before the grace period.
+
+An RCU reader can never see a write that follows a grace period if it
+did _not_ see writes that precede the grace period.
+
+>  This
+> + * is a typical pattern of RCU usage, where the write before the grace period
+> + * assigns a pointer, and the writes after destroy the object that the pointer
+> + * points to.
+
+... that the pointer used to point to.
+
+> + *
+> + * This guarantee also implies, an RCU reader can never span a grace period and
+> + * is an important RCU grace period memory ordering guarantee.
+
+Unnecessary comma, and it is not clear what "This" refers to.  The 
+whole sentence should be phrased differently:
+
+	This is one implication of the RCU grace-period guarantee,
+	which says (among other things) that an RCU reader cannot span 
+	a grace period.
+
+Alan
