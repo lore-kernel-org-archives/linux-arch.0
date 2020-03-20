@@ -1,87 +1,69 @@
-Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58502 "EHLO foss.arm.com"
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50334 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727144AbgCMPob (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Mar 2020 11:44:31 -0400
+        id S1727580AbgCTOzQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 10:55:16 -0400
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 08/26] linux/clocksource.h: Extract common header for vDSO
-Date: Fri, 13 Mar 2020 15:43:27 +0000
-Message-ID: <20200313154345.56760-9-vincenzo.frascino@arm.com>
-In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+Subject: [PATCH v5 10/26] linux/time.h: Extract common header for vDSO
+Date: Fri, 20 Mar 2020 14:53:35 +0000
+Message-ID: <20200320145351.32292-11-vincenzo.frascino@arm.com>
+In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200313154327.H6Jgs1qL0v6ptqo5je76UrhvlgvyKDX3ueXbI0RaYe8@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200320145335.siFpqWO4IdGqmCP-u19Zy8XUzXf5Bk0gERXWJ5Eh9EU@z>
 
 The vDSO library should only include the necessary headers required for
 a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Split clocksource.h into linux and common headers to make the latter
-suitable for inclusion in the vDSO library.
+Split time.h into linux and common headers to make the latter suitable
+for inclusion in the vDSO library.
 
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/linux/clocksource.h | 11 +----------
- include/vdso/clocksource.h  | 23 +++++++++++++++++++++++
- 2 files changed, 24 insertions(+), 10 deletions(-)
- create mode 100644 include/vdso/clocksource.h
+ include/linux/time.h |  5 +----
+ include/vdso/time.h  | 12 ++++++++++++
+ 2 files changed, 13 insertions(+), 4 deletions(-)
+ create mode 100644 include/vdso/time.h
 
-diff --git a/include/linux/clocksource.h b/include/linux/clocksource.h
-index 02e3282719bd..86d143db6523 100644
---- a/include/linux/clocksource.h
-+++ b/include/linux/clocksource.h
-@@ -28,16 +28,7 @@ struct module;
- #include <asm/clocksource.h>
- #endif
+diff --git a/include/linux/time.h b/include/linux/time.h
+index 8ef5e5cc9f57..4c325bf44ce0 100644
+--- a/include/linux/time.h
++++ b/include/linux/time.h
+@@ -111,9 +111,6 @@ static inline bool itimerspec64_valid(const struct itimerspec64 *its)
+  */
+ #define time_between32(t, l, h) ((u32)(h) - (u32)(l) >= (u32)(t) - (u32)(l))
  
--enum vdso_clock_mode {
--	VDSO_CLOCKMODE_NONE,
--#ifdef CONFIG_GENERIC_GETTIMEOFDAY
--	VDSO_ARCH_CLOCKMODES,
--#endif
--	VDSO_CLOCKMODE_MAX,
--
--	/* Indicator for time namespace VDSO */
--	VDSO_CLOCKMODE_TIMENS = INT_MAX
+-struct timens_offset {
+-	s64	sec;
+-	u64	nsec;
 -};
-+#include <vdso/clocksource.h>
++# include <vdso/time.h>
  
- /**
-  * struct clocksource - hardware abstraction for a free running counter
-diff --git a/include/vdso/clocksource.h b/include/vdso/clocksource.h
+ #endif
+diff --git a/include/vdso/time.h b/include/vdso/time.h
 new file mode 100644
-index 000000000000..ab58330e4e5d
+index 000000000000..739f53cd2949
 --- /dev/null
-+++ b/include/vdso/clocksource.h
-@@ -0,0 +1,23 @@
++++ b/include/vdso/time.h
+@@ -0,0 +1,12 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_CLOCKSOURCE_H
-+#define __VDSO_CLOCKSOURCE_H
++#ifndef __VDSO_TIME_H
++#define __VDSO_TIME_H
 +
-+#include <vdso/limits.h>
++#include <uapi/linux/types.h>
 +
-+#if defined(CONFIG_ARCH_CLOCKSOURCE_DATA) || \
-+	defined(CONFIG_GENERIC_GETTIMEOFDAY)
-+#include <asm/vdso/clocksource.h>
-+#endif /* CONFIG_ARCH_CLOCKSOURCE_DATA || CONFIG_GENERIC_GETTIMEOFDAY */
-+
-+enum vdso_clock_mode {
-+	VDSO_CLOCKMODE_NONE,
-+#ifdef CONFIG_GENERIC_GETTIMEOFDAY
-+	VDSO_ARCH_CLOCKMODES,
-+#endif
-+	VDSO_CLOCKMODE_MAX,
-+
-+	/* Indicator for time namespace VDSO */
-+	VDSO_CLOCKMODE_TIMENS = INT_MAX
++struct timens_offset {
++	s64	sec;
++	u64	nsec;
 +};
 +
-+#endif /* __VDSO_CLOCKSOURCE_H */
++#endif /* __VDSO_TIME_H */
 -- 
 2.25.1
