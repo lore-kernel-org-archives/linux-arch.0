@@ -1,7 +1,7 @@
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 01/26] linux/const.h: Extract common header for vDSO
-Date: Fri, 20 Mar 2020 14:53:26 +0000
-Message-ID: <20200320145351.32292-2-vincenzo.frascino@arm.com>
+Subject: [PATCH v5 02/26] linux/bits.h: Extract common header for vDSO
+Date: Fri, 20 Mar 2020 14:53:27 +0000
+Message-ID: <20200320145351.32292-3-vincenzo.frascino@arm.com>
 References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -17,46 +17,45 @@ a userspace library (UAPI and a minimal set of kernel headers). To make
 this possible it is necessary to isolate from the kernel headers the
 common parts that are strictly necessary to build the library.
 
-Split const.h into linux and common headers to make the latter suitable
+Split bits.h into linux and common headers to make the latter suitable
 for inclusion in the vDSO library.
 
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- include/linux/const.h |  5 +----
- include/vdso/const.h  | 10 ++++++++++
- 2 files changed, 11 insertions(+), 4 deletions(-)
- create mode 100644 include/vdso/const.h
+ include/linux/bits.h | 2 +-
+ include/vdso/bits.h  | 9 +++++++++
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+ create mode 100644 include/vdso/bits.h
 
-diff --git a/include/linux/const.h b/include/linux/const.h
-index 7b55a55f5911..81b8aae5a855 100644
---- a/include/linux/const.h
-+++ b/include/linux/const.h
-@@ -1,9 +1,6 @@
- #ifndef _LINUX_CONST_H
- #define _LINUX_CONST_H
+diff --git a/include/linux/bits.h b/include/linux/bits.h
+index 669d69441a62..a740bbcf3cd2 100644
+--- a/include/linux/bits.h
++++ b/include/linux/bits.h
+@@ -3,9 +3,9 @@
+ #define __LINUX_BITS_H
  
--#include <uapi/linux/const.h>
--
--#define UL(x)		(_UL(x))
--#define ULL(x)		(_ULL(x))
-+#include <vdso/const.h>
+ #include <linux/const.h>
++#include <vdso/bits.h>
+ #include <asm/bitsperlong.h>
  
- #endif /* _LINUX_CONST_H */
-diff --git a/include/vdso/const.h b/include/vdso/const.h
+-#define BIT(nr)			(UL(1) << (nr))
+ #define BIT_ULL(nr)		(ULL(1) << (nr))
+ #define BIT_MASK(nr)		(UL(1) << ((nr) % BITS_PER_LONG))
+ #define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
+diff --git a/include/vdso/bits.h b/include/vdso/bits.h
 new file mode 100644
-index 000000000000..94b385ad438d
+index 000000000000..6d005a1f5d94
 --- /dev/null
-+++ b/include/vdso/const.h
-@@ -0,0 +1,10 @@
++++ b/include/vdso/bits.h
+@@ -0,0 +1,9 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_CONST_H
-+#define __VDSO_CONST_H
++#ifndef __VDSO_BITS_H
++#define __VDSO_BITS_H
 +
-+#include <uapi/linux/const.h>
++#include <vdso/const.h>
 +
-+#define UL(x)		(_UL(x))
-+#define ULL(x)		(_ULL(x))
++#define BIT(nr)			(UL(1) << (nr))
 +
-+#endif /* __VDSO_CONST_H */
++#endif	/* __VDSO_BITS_H */
 -- 
 2.25.1
