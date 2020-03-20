@@ -1,91 +1,123 @@
-Return-Path: <SRS0=6E0l=5H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pf1-f196.google.com ([209.85.210.196]:39881 "EHLO
-        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726538AbgCVQAZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 22 Mar 2020 12:00:25 -0400
-Received: by mail-pf1-f196.google.com with SMTP id d25so6179578pfn.6
-        for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2020 09:00:24 -0700 (PDT)
-Date: Sun, 22 Mar 2020 09:00:22 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 1/9] scripts/link-vmlinux.sh: Delay orphan handling
- warnings until final link
-Message-ID: <202003220859.E54327D98C@keescook>
-References: <20200228002244.15240-1-keescook@chromium.org>
- <20200228002244.15240-2-keescook@chromium.org>
- <1584672297.mudnpz3ir9.astroid@bobo.none>
- <202003201121.8CBD96451B@keescook>
- <1584868418.o62lxee8k1.astroid@bobo.none>
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50846 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727885AbgCTO4E (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 10:56:04 -0400
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Subject: [PATCH v5 25/26] lib: vdso: Enable common headers
+Date: Fri, 20 Mar 2020 14:53:50 +0000
+Message-ID: <20200320145351.32292-26-vincenzo.frascino@arm.com>
+In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1584868418.o62lxee8k1.astroid@bobo.none>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, clang-built-linux@googlegroups.com, "H.J. Lu" <hjl.tools@gmail.com>, James Morse <james.morse@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@armlinux.org.uk>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Masahiro Yamada <masahiroy@kernel.org>, Peter Collingbourne <pcc@google.com>, Will Deacon <will@kernel.org>, x86@kernel.org
-Message-ID: <20200322160022.4VwDbEMl6SvDe81KXB-0-_FC8y65E7vKzjrHJYFCgxc@z>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
+Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
+Message-ID: <20200320145350.79KJ02IW8wZnjlzYDPn9cVoByf4WfgBXQKYD4Wh0f3g@z>
 
-On Sun, Mar 22, 2020 at 07:16:29PM +1000, Nicholas Piggin wrote:
-> Kees Cook's on March 21, 2020 4:24 am:
-> > On Fri, Mar 20, 2020 at 12:47:54PM +1000, Nicholas Piggin wrote:
-> >> Kees Cook's on February 28, 2020 10:22 am:
-> >> > Right now, powerpc adds "--orphan-handling=warn" to LD_FLAGS_vmlinux
-> >> > to detect when there are unexpected sections getting added to the kernel
-> >> > image. There is no need to report these warnings more than once, so it
-> >> > can be removed until the final link stage.
-> >> > 
-> >> > This helps pave the way for other architectures to enable this, with the
-> >> > end goal of enabling this warning by default for vmlinux for all
-> >> > architectures.
-> >> > 
-> >> > Signed-off-by: Kees Cook <keescook@chromium.org>
-> >> > ---
-> >> >  scripts/link-vmlinux.sh | 6 ++++++
-> >> >  1 file changed, 6 insertions(+)
-> >> > 
-> >> > diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-> >> > index 1919c311c149..416968fea685 100755
-> >> > --- a/scripts/link-vmlinux.sh
-> >> > +++ b/scripts/link-vmlinux.sh
-> >> > @@ -255,6 +255,11 @@ info GEN modules.builtin
-> >> >  tr '\0' '\n' < modules.builtin.modinfo | sed -n 's/^[[:alnum:]:_]*\.file=//p' |
-> >> >  	tr ' ' '\n' | uniq | sed -e 's:^:kernel/:' -e 's/$/.ko/' > modules.builtin
-> >> >  
-> >> > +
-> >> > +# Do not warn about orphan sections until the final link stage.
-> >> > +saved_LDFLAGS_vmlinux="${LDFLAGS_vmlinux}"
-> >> > +LDFLAGS_vmlinux="$(echo "${LDFLAGS_vmlinux}" | sed -E 's/ --orphan-handling=warn( |$)/ /g')"
-> >> > +
-> >> >  btf_vmlinux_bin_o=""
-> >> >  if [ -n "${CONFIG_DEBUG_INFO_BTF}" ]; then
-> >> >  	if gen_btf .tmp_vmlinux.btf .btf.vmlinux.bin.o ; then
-> >> > @@ -306,6 +311,7 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
-> >> >  	fi
-> >> >  fi
-> >> >  
-> >> > +LDFLAGS_vmlinux="${saved_LDFLAGS_vmlinux}"
-> >> >  vmlinux_link vmlinux "${kallsymso}" ${btf_vmlinux_bin_o}
-> >> >  
-> >> >  if [ -n "${CONFIG_BUILDTIME_TABLE_SORT}" ]; then
-> >> 
-> >> That's ugly. Why not just enable it for all archs?
-> > 
-> > It is ugly; I agree.
-> > 
-> > I can try to do this for all architectures, but I worry there are a
-> > bunch I can't test. But I guess it would stand out. ;)
-> 
-> It's only warn, so it doesn't break their builds (unless there's a 
-> linker error on warn option I don't know about?). We had a powerpc bug 
-> that would have been caught with it as well, so it's not a bad idea to
-> get everyone using it.
+The vDSO library should only include the necessary headers required for
+a userspace library (UAPI and a minimal set of kernel headers). To make
+this possible it is necessary to isolate from the kernel headers the
+common parts that are strictly necessary to build the library.
 
-Well, it's bad form to add warnings to a build. I am expected to fix any
-warnings before I enable a warning flag.
+Refactor the unified vdso code to use the common headers.
 
-> I would just do it. Doesn't take much to fix.
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+---
+ include/vdso/datapage.h | 33 ++++++++++++++++++++++++++++++---
+ lib/vdso/gettimeofday.c | 22 ----------------------
+ 2 files changed, 30 insertions(+), 25 deletions(-)
 
-I will do my best on the archs I can't test. :)
-
+diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
+index 30c4cb0428d1..5cbc9fcbfd45 100644
+--- a/include/vdso/datapage.h
++++ b/include/vdso/datapage.h
+@@ -4,9 +4,20 @@
+ 
+ #ifndef __ASSEMBLY__
+ 
+-#include <linux/bits.h>
+-#include <linux/time.h>
+-#include <linux/types.h>
++#include <linux/compiler.h>
++#include <uapi/linux/time.h>
++#include <uapi/linux/types.h>
++#include <uapi/asm-generic/errno-base.h>
++
++#include <vdso/bits.h>
++#include <vdso/clocksource.h>
++#include <vdso/ktime.h>
++#include <vdso/limits.h>
++#include <vdso/math64.h>
++#include <vdso/processor.h>
++#include <vdso/time.h>
++#include <vdso/time32.h>
++#include <vdso/time64.h>
+ 
+ #define VDSO_BASES	(CLOCK_TAI + 1)
+ #define VDSO_HRES	(BIT(CLOCK_REALTIME)		| \
+@@ -99,6 +110,22 @@ struct vdso_data {
+  */
+ extern struct vdso_data _vdso_data[CS_BASES] __attribute__((visibility("hidden")));
+ 
++/*
++ * The generic vDSO implementation requires that gettimeofday.h
++ * provides:
++ * - __arch_get_vdso_data(): to get the vdso datapage.
++ * - __arch_get_hw_counter(): to get the hw counter based on the
++ *   clock_mode.
++ * - gettimeofday_fallback(): fallback for gettimeofday.
++ * - clock_gettime_fallback(): fallback for clock_gettime.
++ * - clock_getres_fallback(): fallback for clock_getres.
++ */
++#ifdef ENABLE_COMPAT_VDSO
++#include <asm/vdso/compat_gettimeofday.h>
++#else
++#include <asm/vdso/gettimeofday.h>
++#endif /* ENABLE_COMPAT_VDSO */
++
+ #endif /* !__ASSEMBLY__ */
+ 
+ #endif /* __VDSO_DATAPAGE_H */
+diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
+index 72d282ffd156..a2909af4b924 100644
+--- a/lib/vdso/gettimeofday.c
++++ b/lib/vdso/gettimeofday.c
+@@ -2,31 +2,9 @@
+ /*
+  * Generic userspace implementations of gettimeofday() and similar.
+  */
+-#include <linux/compiler.h>
+-#include <linux/math64.h>
+-#include <linux/time.h>
+-#include <linux/kernel.h>
+-#include <linux/hrtimer_defs.h>
+-#include <linux/clocksource.h>
+ #include <vdso/datapage.h>
+ #include <vdso/helpers.h>
+ 
+-/*
+- * The generic vDSO implementation requires that gettimeofday.h
+- * provides:
+- * - __arch_get_vdso_data(): to get the vdso datapage.
+- * - __arch_get_hw_counter(): to get the hw counter based on the
+- *   clock_mode.
+- * - gettimeofday_fallback(): fallback for gettimeofday.
+- * - clock_gettime_fallback(): fallback for clock_gettime.
+- * - clock_getres_fallback(): fallback for clock_getres.
+- */
+-#ifdef ENABLE_COMPAT_VDSO
+-#include <asm/vdso/compat_gettimeofday.h>
+-#else
+-#include <asm/vdso/gettimeofday.h>
+-#endif /* ENABLE_COMPAT_VDSO */
+-
+ #ifndef vdso_calc_delta
+ /*
+  * Default implementation which works for all sane clocksources. That
 -- 
-Kees Cook
+2.25.1
