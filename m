@@ -1,63 +1,75 @@
-Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.133]:60345 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726185AbgCFMHt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 07:07:49 -0500
-References: <20200306080905.173466-1-syq@debian.org>
- <87r1y53npd.fsf@mid.deneb.enyo.de>
- <8441f497-61eb-5c14-bf1e-c90a464105a7@vivier.eu>
- <87mu8t3mlw.fsf@mid.deneb.enyo.de>
- <40da389d-4e74-2644-2e7c-04d988fcc26f@vivier.eu>
- <CAKcpw6WEO5Rmsv+WFkOMrkH+0jwtFKKy7b2n3U9xgv-xGC0UUQ@mail.gmail.com>
- <87v9nhzp6w.fsf@mid.deneb.enyo.de>
- <CAKcpw6VF1N2gTVXeWLU4aVOuARf5oN6yPg9O=RCzgkMrjXmxYQ@mail.gmail.com>
-From: Laurent Vivier <laurent@vivier.eu>
-Subject: Re: [PATCH] binfmt_misc: pass binfmt_misc P flag to the interpreter
-Message-ID: <fded1845-98db-f0fb-9320-842c9fdc30dc@vivier.eu>
-Date: Fri, 6 Mar 2020 13:07:35 +0100
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:49790 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726970AbgCTOld (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 20 Mar 2020 10:41:33 -0400
+Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
+ vgettimeofday
+References: <20200317143834.GC632169@arrakis.emea.arm.com>
+ <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
+ <20200317155031.GD632169@arrakis.emea.arm.com>
+ <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
+ <20200317174806.GE632169@arrakis.emea.arm.com>
+ <93cfe94a-c2a3-1025-bc9c-e7c3fd891100@arm.com>
+ <20200318183603.GF94111@arrakis.emea.arm.com>
+ <1bc25a53-7a59-0f60-ecf2-a3cace46b823@arm.com> <20200319181004.GA29214@mbp>
+ <b937d1eb-c7fd-e903-fa36-b261662bf40b@arm.com> <20200320142208.GC29214@mbp>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <46add8e3-dd04-9194-4196-4d8e5cd4c70f@arm.com>
+Date: Fri, 20 Mar 2020 14:41:57 +0000
 MIME-Version: 1.0
-In-Reply-To: <CAKcpw6VF1N2gTVXeWLU4aVOuARf5oN6yPg9O=RCzgkMrjXmxYQ@mail.gmail.com>
+In-Reply-To: <20200320142208.GC29214@mbp>
 Content-Type: text/plain; charset=utf-8
-Content-Language: fr
-Content-Transfer-Encoding: 8bit
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: YunQiang Su <syq@debian.org>, Florian Weimer <fw@deneb.enyo.de>
-Cc: torvalds@linux-foundation.org, Greg KH <gregkh@linuxfoundation.org>, akpm@linux-foundation.org, Al Viro <viro@zeniv.linux.org.uk>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, libc-alpha@sourceware.org
-Message-ID: <20200306120735.PGIueqv3rbm7N_hB7ex4JGkey50kajTKQpgSUC0YAUs@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Mark Rutland <Mark.Rutland@arm.com>, Dmitry Safonov <0x7f454c46@gmail.com>, linux-mips@vger.kernel.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, Marc Zyngier <maz@kernel.org>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, clang-built-linux@googlegroups.com, Ingo Molnar <mingo@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>, linux-arm-kernel@lists.infradead.org, Andrei Vagin <avagin@openvz.org>, Stephen Boyd <sboyd@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, linux-kernel@vger.kernel.org, Mark Salyzyn <salyzyn@android.com>, Paul Burton <paul.burton@mips.com>
+Message-ID: <20200320144157.6-MaFB30NGmU-bLd8NyT9IFxVsaxS3YDSAAp2ID-lOw@z>
 
-Le 06/03/2020 à 12:48, YunQiang Su a écrit :
-> Florian Weimer <fw@deneb.enyo.de> 于2020年3月6日周五 下午7:42写道：
+Hi Catalin,
+
+On 3/20/20 2:22 PM, Catalin Marinas wrote:
+> On Fri, Mar 20, 2020 at 01:05:14PM +0000, Vincenzo Frascino wrote:
+>> On 3/19/20 6:10 PM, Catalin Marinas wrote:
+>>> On Thu, Mar 19, 2020 at 12:38:42PM +0000, Vincenzo Frascino wrote:
+>>>> On 3/18/20 6:36 PM, Catalin Marinas wrote:
+>>>>> On Wed, Mar 18, 2020 at 04:14:26PM +0000, Vincenzo Frascino wrote:
+>>>>>> On 3/17/20 5:48 PM, Catalin Marinas wrote:
+[...]
+
 >>
->> * YunQiang Su:
->>
->>> AT_* only has 32 slot and now. I was afraid that maybe we shouldn't take one.
->>>    /* AT_* values 18 through 22 are reserved */
->>>    27,28,29,30 are not used now.
->>> Which should we use?
->>
->> Where does this limit of 32 tags come from?  I don't see it from a
->> userspace perspective.
+>> Thank you for the long chat this morning. As we agreed I am going to repost the
+>> patches removing the checks discussed in this thread
 > 
-> Sorry it is my mistake: In linux/auxvec.h, I saw
+> Great, thanks.
 > 
-> #define AT_RANDOM 25    /* address of 16 random bytes */
-> #define AT_HWCAP2 26    /* extension of AT_HWCAP */
+>> and we will address the syscall ABI difference subsequently with a
+>> different series.
 > 
-> #define AT_EXECFN  31   /* filename of program */
+> Now I'm even less convinced we need any additional patches. The arm64
+> compat syscall would still return -EFAULT for res >= TASK_SIZE_32
+> because copy_to_user() will fail. So it would be entirely consistent
+> with the arm32 syscall. In the vdso-only case, both arm32 and arm64
+> compat would generate a signal.
 > 
-> The number jump to 31 from 26.
-> 
-> It is my fault: in x86_64-linux-gnu/bits/auxv.h, the max number is 47 now.
+> As Will said, arguably, the syscall semantics may not be applicable to
+> the vdso implementation. But if you do want to get down this route (tp =
+> UINTPTR_MAX - sizeof(*tp) returning -EFAULT), please do it for all
+> architectures, not just arm64 compat. However, I'm not sure anyone
+> relies on this functionality, other than the vdsotest, so no real
+> application broken.
 > 
 
-Numbers starting from 32 are arch specific.
-18 to 22 are also reserved (and used by some archs).
-(linux/arch/*/include/uapi/asm/auxvec.h)
+It is ok, we will discuss the topic once we cross that bridge. I am already
+happy that I managed to explain finally my reasons ;)
 
-So there is only 4 entries available (27 to 30)
-(linux/include/uapi/linux/auxvec.h)
-Do we want to waste one more entry whereas we can use an unused one?
+Anyway, I think that if there is an application that relies on this behavior (or
+similar) and uses compat we will discover it as soon as these patches will be
+out in the wild. For this reason I am putting a link to this discussion in the
+commit message of the relevant patch so that we can take it from there.
 
-Thanks,
-Laurent
+-- 
+Regards,
+Vincenzo
