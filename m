@@ -1,60 +1,70 @@
-Return-Path: <SRS0=mIjk=5D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-bn8nam12on2136.outbound.protection.outlook.com ([40.107.237.136]:2010
-        "EHLO NAM12-BN8-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727298AbgCRASD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 20:18:03 -0400
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH v6 07/10] arm64: hyperv: Initialize hypervisor on boot
-Date: Wed, 18 Mar 2020 00:17:52 +0000
-Message-ID: <MW2PR2101MB1052281E5B197F2AA8E4D622D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <1584200119-18594-8-git-send-email-mikelley@microsoft.com>
- <CAK8P3a0+uBsurfQ4smjPDGkJQSkMe-TxJ4cWR_EZXgDR4-bAWQ@mail.gmail.com>
-In-Reply-To: <CAK8P3a0+uBsurfQ4smjPDGkJQSkMe-TxJ4cWR_EZXgDR4-bAWQ@mail.gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from netrider.rowland.org ([192.131.102.5]:45961 "HELO
+        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1725446AbgCTO74 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2020 10:59:56 -0400
+Date: Fri, 20 Mar 2020 10:59:55 -0400 (EDT)
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH 1/3] LKMM: Add litmus test for RCU GP guarantee where
+ updater frees object
+In-Reply-To: <20200320065552.253696-1-joel@joelfernandes.org>
+Message-ID: <Pine.LNX.4.44L0.2003201049230.27303-100000@netrider.rowland.org>
 MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>, John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Stephen Boyd <sboyd@kernel.org>
-Message-ID: <20200318001752.caVyMuocxS7481PgYrFPoVb5YEkZhEREMZNsa_98nC0@z>
+To: "Joel Fernandes (Google)" <joel@joelfernandes.org>
+Cc: linux-kernel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, linux-arch@vger.kernel.org, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+Message-ID: <20200320145955.qd8kvRVjEqGNU2V2W5o7Jt3A1UEQxUXRsiNFhy0_Zjk@z>
 
-RnJvbTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4gU2VudDogTW9uZGF5LCBNYXJjaCAx
-NiwgMjAyMCAxOjMwIEFNDQo+IA0KPiBPbiBTYXQsIE1hciAxNCwgMjAyMCBhdCA0OjM2IFBNIE1p
-Y2hhZWwgS2VsbGV5IDxtaWtlbGxleUBtaWNyb3NvZnQuY29tPiB3cm90ZToNCj4gPg0KPiA+IEFk
-ZCBBUk02NC1zcGVjaWZpYyBjb2RlIHRvIGluaXRpYWxpemUgdGhlIEh5cGVyLVYNCj4gPiBoeXBl
-cnZpc29yIHdoZW4gYm9vdGluZyBhcyBhIGd1ZXN0IFZNLiBQcm92aWRlIGZ1bmN0aW9ucw0KPiA+
-IGFuZCBkYXRhIHN0cnVjdHVyZXMgaW5kaWNhdGluZyBoeXBlcnZpc29yIHN0YXR1cyB0aGF0DQo+
-ID4gYXJlIG5lZWRlZCBieSBWTWJ1cyBkcml2ZXIuDQo+ID4NCj4gPiBUaGlzIGNvZGUgaXMgYnVp
-bHQgb25seSB3aGVuIENPTkZJR19IWVBFUlYgaXMgZW5hYmxlZC4NCj4gPg0KPiA+IFNpZ25lZC1v
-ZmYtYnk6IE1pY2hhZWwgS2VsbGV5IDxtaWtlbGxleUBtaWNyb3NvZnQuY29tPg0KPiA+IC0tLQ0K
-PiA+ICBhcmNoL2FybTY0L2h5cGVydi9odl9jb3JlLmMgfCAxNTYNCj4gKysrKysrKysrKysrKysr
-KysrKysrKysrKysrKysrKysrKysrKysrKysrKysNCj4gDQo+IEFzIHlvdSBhcmUgZWZmZWN0aXZl
-bHkgYWRkaW5nIGEgbmV3IGNsb2Nrc291cmNlIGRyaXZlciBoZXJlLCBwbGVhc2UgbW92ZSB0aGUN
-Cj4gY29kZSB0byBkcml2ZXJzL2Nsb2Nrc291cmNlIGFuZCBzZW5kIHRoZSBwYXRjaCB0byB0aGUg
-cmVzcGVjdGl2ZSBtYWludGFpbmVycw0KPiAoYWRkZWQgdG8gQ2MgaGVyZSksIHNwbGl0dGluZyBp
-dCBvdXQgZnJvbSB0aGUgcmVzdCBvZiB0aGUgcGF0Y2guDQo+IA0KPiBZb3Ugc2hvdWxkIGFsc28g
-ZGVzY3JpYmUgd2h5IHlvdXIgcGxhdGZvcm0gZG9lc24ndCBqdXN0IHVzZSB0aGUgbm9ybWFsDQo+
-IGFyY2hpdGVjdGVkIHRpbWVyIGludGVyZmFjZS4NCj4gDQo+ID4gK1RJTUVSX0FDUElfREVDTEFS
-RShoeXBlcnYsIEFDUElfU0lHX0dURFQsIGh5cGVydl9pbml0KTsNCj4gDQo+IFRoaXMgbG9va3Mg
-bGlrZSBpdCByZWdpc3RlcnMgYSBkcml2ZXIgZm9yIHRoZSBzYW1lIGRldmljZSBhcyB0aGUgbm9y
-bWFsDQo+IGFyY2ggdGltZXIuIFdvbid0IHRoYXQgY2xhc2g/DQo+IA0KPiAgICAgIEFybmQNCg0K
-VGhlcmUgaXMgYSBIeXBlci1WIGNsb2Nrc291cmNlIGRyaXZlciBpbiBkcml2ZXJzL2Nsb2Nrc291
-cmNlL2h5cGVydl90aW1lci5jLg0KSXQgaXMgYXJjaGl0ZWN0dXJlIGluZGVwZW5kZW50IGFuZCB3
-b3JrcyBmb3IgYm90aCB4ODYgYW5kIEFSTTY0Lg0KDQpUaGUgcmVxdWlyZW1lbnQgaGVyZSBpcyBy
-ZWFsbHkgZm9yIGEgcGxhY2UgdG8gaGFuZyB0aGUgZ2VuZXJhbCBIeXBlci1WDQppbml0aWFsaXph
-dGlvbiBjb2RlLiAgIE9uIHRoZSB4ODYgc2lkZSwgdGhlcmUncyBpbmZyYXN0cnVjdHVyZSBhbHJl
-YWR5IGluIHBsYWNlDQp0byBkbyBoeXBlcnZpc29yIGluaXRpYWxpemF0aW9uLCBidXQgbm90aGlu
-ZyBjb3JyZXNwb25kaW5nIG9uIHRoZSBBUk02NCBzaWRlLg0KVGhlIFRJTUVSX0FDUElfREVDTEFS
-RSBob29rIGlzIGFkbWl0dGVkbHkgYSB0ZW1wb3JhcnkgYXBwcm9hY2gsIGFuZCBJJ20NCmhhcHB5
-IHRvIGhlYXIgaWYgc29tZW9uZSBoYXMgYSBiZXR0ZXIgd2F5IHRvIGhhbmRsZSB0aGlzLg0KDQpG
-V0lXLCBIeXBlci1WIGRvZXNuJ3QgY3VycmVudGx5IHZpcnR1YWxpemUgdGhlIEFSTSBhcmNoIGNv
-dW50ZXIvdGltZXIgZm9yDQpndWVzdCBWTXMuICBUaGUgSHlwZXItViBzeW50aGV0aWMgY291bnRl
-ci90aW1lciBpbiB0aGUgSHlwZXItViBjbG9ja3NvdXJjZQ0KZHJpdmVyIGlzIHVzZWQgb24gYm90
-aCBBUk02NCBhbmQgeDg2LiAgQnV0IHRoaXMgSHlwZXItViBpbml0IGNvZGUgZG9lc24ndCBhY3R1
-YWxseQ0KdG91Y2ggdGhlIEdURFQgZGV2aWNlLCBzbyBpdCB3b24ndCBpbnRlcmZlcmUgd2l0aCB0
-aGUgQVJNIGFyY2ggY291bnRlci90aW1lcg0Kd2hlbiBhIGZ1dHVyZSBIeXBlci1WIHZlcnNpb24g
-ZG9lcyB2aXJ0dWFsaXplIGl0Lg0KDQpNaWNoYWVsDQo=
+On Fri, 20 Mar 2020, Joel Fernandes (Google) wrote:
+
+> This adds an example for the important RCU grace period guarantee, which
+> shows an RCU reader can never span a grace period.
+> 
+> Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+> ---
+>  .../litmus-tests/RCU+sync+free.litmus         | 40 +++++++++++++++++++
+>  1 file changed, 40 insertions(+)
+>  create mode 100644 tools/memory-model/litmus-tests/RCU+sync+free.litmus
+> 
+> diff --git a/tools/memory-model/litmus-tests/RCU+sync+free.litmus b/tools/memory-model/litmus-tests/RCU+sync+free.litmus
+> new file mode 100644
+> index 0000000000000..c4682502dd296
+> --- /dev/null
+> +++ b/tools/memory-model/litmus-tests/RCU+sync+free.litmus
+> @@ -0,0 +1,40 @@
+> +C RCU+sync+free
+> +
+> +(*
+> + * Result: Never
+> + *
+
+The following comment needs some rewriting.  The grammar is somewhat
+awkward and a very important "not" is missing.
+
+> + * This litmus test demonstrates that an RCU reader can never see a write after
+> + * the grace period, if it saw writes that happen before the grace period.
+
+An RCU reader can never see a write that follows a grace period if it
+did _not_ see writes that precede the grace period.
+
+>  This
+> + * is a typical pattern of RCU usage, where the write before the grace period
+> + * assigns a pointer, and the writes after destroy the object that the pointer
+> + * points to.
+
+... that the pointer used to point to.
+
+> + *
+> + * This guarantee also implies, an RCU reader can never span a grace period and
+> + * is an important RCU grace period memory ordering guarantee.
+
+Unnecessary comma, and it is not clear what "This" refers to.  The 
+whole sentence should be phrased differently:
+
+	This is one implication of the RCU grace-period guarantee,
+	which says (among other things) that an RCU reader cannot span 
+	a grace period.
+
+Alan
