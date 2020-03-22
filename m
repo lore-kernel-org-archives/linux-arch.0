@@ -1,103 +1,87 @@
-Return-Path: <SRS0=SxwR=5E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-bn7nam10on2121.outbound.protection.outlook.com ([40.107.92.121]:38135
-        "EHLO NAM10-BN7-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726930AbgCSVpg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 19 Mar 2020 17:45:36 -0400
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH v6 04/10] arm64: hyperv: Add memory alloc/free functions
- for Hyper-V size pages
-Date: Thu, 19 Mar 2020 21:43:53 +0000
-Message-ID: <MW2PR2101MB10520CEF065A41EEBC17FFC2D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <1584200119-18594-5-git-send-email-mikelley@microsoft.com>
- <CAK8P3a2Hnm74aUMNFHbjMr4HwHGZn1+xa4ERsxAJY6hMzhEOhQ@mail.gmail.com>
- <632eb459dbe53a9b69df2a4f030a755b@kernel.org>
- <CAK8P3a3aihZeriUWAhWJMsOtdiY4Lo29syrRbB4Po3v4dsLhvA@mail.gmail.com>
- <MW2PR2101MB1052D91D3A9CEEBD7E2EA82FD7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
- <CAK8P3a2AO4k3vJ7WuJQz7ick+XPgGY3Jfk8-ROqtwyNs0nWkDA@mail.gmail.com>
-In-Reply-To: <CAK8P3a2AO4k3vJ7WuJQz7ick+XPgGY3Jfk8-ROqtwyNs0nWkDA@mail.gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=6E0l=5H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pj1-f66.google.com ([209.85.216.66]:40183 "EHLO
+        mail-pj1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726797AbgCVJTh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 22 Mar 2020 05:19:37 -0400
+Date: Sun, 22 Mar 2020 19:16:29 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 1/9] scripts/link-vmlinux.sh: Delay orphan handling
+ warnings until final link
+References: <20200228002244.15240-1-keescook@chromium.org>
+        <20200228002244.15240-2-keescook@chromium.org>
+        <1584672297.mudnpz3ir9.astroid@bobo.none> <202003201121.8CBD96451B@keescook>
+In-Reply-To: <202003201121.8CBD96451B@keescook>
 MIME-Version: 1.0
+Message-ID: <1584868418.o62lxee8k1.astroid@bobo.none>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Marc Zyngier <maz@kernel.org>, gregkh <gregkh@linuxfoundation.org>, Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>
-Message-ID: <20200319214353.Wqq6OH50w9sfZx6SdP7uUI2rm8iR7VQX5BZthnGoL5c@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, clang-built-linux@googlegroups.com, "H.J. Lu" <hjl.tools@gmail.com>, James Morse <james.morse@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@armlinux.org.uk>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Masahiro Yamada <masahiroy@kernel.org>, Peter Collingbourne <pcc@google.com>, Will Deacon <will@kernel.org>, x86@kernel.org
+Message-ID: <20200322091629.C3ZmBhnMJz_W07Bg0lXwC3XCi8Suepi8yrmuGpCalMM@z>
 
-RnJvbTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4gU2VudDogV2VkbmVzZGF5LCBNYXJj
-aCAxOCwgMjAyMCAyOjU4IEFNDQo+IA0KPiBPbiBXZWQsIE1hciAxOCwgMjAyMCBhdCAxOjE1IEFN
-IE1pY2hhZWwgS2VsbGV5IDxtaWtlbGxleUBtaWNyb3NvZnQuY29tPiB3cm90ZToNCj4gPiBGcm9t
-OiBBcm5kIEJlcmdtYW5uIDxhcm5kQGFybmRiLmRlPiBTZW50OiBNb25kYXksIE1hcmNoIDE2LCAy
-MDIwIDE6MzMgQU0NCj4gPiA+DQo+ID4gPiBPbiBNb24sIE1hciAxNiwgMjAyMCBhdCA5OjMwIEFN
-IE1hcmMgWnluZ2llciA8bWF6QGtlcm5lbC5vcmc+IHdyb3RlOg0KPiA+ID4gPiBPbiAyMDIwLTAz
-LTE2IDA4OjIyLCBBcm5kIEJlcmdtYW5uIHdyb3RlOg0KPiA+ID4gPiA+IE9uIFNhdCwgTWFyIDE0
-LCAyMDIwIGF0IDQ6MzYgUE0gTWljaGFlbCBLZWxsZXkgPG1pa2VsbGV5QG1pY3Jvc29mdC5jb20+
-DQo+ID4gPiA+ID4gd3JvdGU6DQo+ID4gPiA+ID4+ICAvKg0KPiA+ID4gPiA+PiArICogRnVuY3Rp
-b25zIGZvciBhbGxvY2F0aW5nIGFuZCBmcmVlaW5nIG1lbW9yeSB3aXRoIHNpemUgYW5kDQo+ID4g
-PiA+ID4+ICsgKiBhbGlnbm1lbnQgSFZfSFlQX1BBR0VfU0laRS4gVGhlc2UgZnVuY3Rpb25zIGFy
-ZSBuZWVkZWQgYmVjYXVzZQ0KPiA+ID4gPiA+PiArICogdGhlIGd1ZXN0IHBhZ2Ugc2l6ZSBtYXkg
-bm90IGJlIHRoZSBzYW1lIGFzIHRoZSBIeXBlci1WIHBhZ2UNCj4gPiA+ID4gPj4gKyAqIHNpemUu
-IFdlIGRlcGVuZCB1cG9uIGttYWxsb2MoKSBhbGlnbmluZyBwb3dlci1vZi10d28gc2l6ZQ0KPiA+
-ID4gPiA+PiArICogYWxsb2NhdGlvbnMgdG8gdGhlIGFsbG9jYXRpb24gc2l6ZSBib3VuZGFyeSwg
-c28gdGhhdCB0aGUNCj4gPiA+ID4gPj4gKyAqIGFsbG9jYXRlZCBtZW1vcnkgYXBwZWFycyB0byBI
-eXBlci1WIGFzIGEgcGFnZSBvZiB0aGUgc2l6ZQ0KPiA+ID4gPiA+PiArICogaXQgZXhwZWN0cy4N
-Cj4gPiA+ID4gPj4gKyAqDQo+ID4gPiA+ID4+ICsgKiBUaGVzZSBmdW5jdGlvbnMgYXJlIHVzZWQg
-YnkgYXJtNjQgc3BlY2lmaWMgY29kZSBhcyB3ZWxsIGFzDQo+ID4gPiA+ID4+ICsgKiBhcmNoIGlu
-ZGVwZW5kZW50IEh5cGVyLVYgZHJpdmVycy4NCj4gPiA+ID4gPj4gKyAqLw0KPiA+ID4gPiA+PiAr
-DQo+ID4gPiA+ID4+ICt2b2lkICpodl9hbGxvY19oeXBlcnZfcGFnZSh2b2lkKQ0KPiA+ID4gPiA+
-PiArew0KPiA+ID4gPiA+PiArICAgICAgIEJVSUxEX0JVR19PTihQQUdFX1NJWkUgPCAgSFZfSFlQ
-X1BBR0VfU0laRSk7DQo+ID4gPiA+ID4+ICsgICAgICAgcmV0dXJuIGttYWxsb2MoSFZfSFlQX1BB
-R0VfU0laRSwgR0ZQX0tFUk5FTCk7DQo+ID4gPiA+ID4+ICt9DQo+ID4gPiA+ID4+ICtFWFBPUlRf
-U1lNQk9MX0dQTChodl9hbGxvY19oeXBlcnZfcGFnZSk7DQo+ID4gPiA+ID4NCj4gPiA+ID4gPiBJ
-IGRvbid0IHRoaW5rIHRoZXJlIGlzIGFueSBndWFyYW50ZWUgdGhhdCBrbWFsbG9jKCkgcmV0dXJu
-cw0KPiA+ID4gPiA+IHBhZ2UtYWxpZ25lZA0KPiA+ID4gPiA+IGFsbG9jYXRpb25zIGluIGdlbmVy
-YWwuDQo+ID4gPiA+DQo+ID4gPiA+IEkgYmVsaWV2ZSB0aGF0IGd1YXJhbnRlZSBjYW1lIHdpdGgg
-NTliYjQ3OTg1YzFkYiAoIm1tLCBzbFthb3VdYjoNCj4gPiA+ID4gZ3VhcmFudGVlDQo+ID4gPiA+
-IG5hdHVyYWwgYWxpZ25tZW50IGZvciBrbWFsbG9jKHBvd2VyLW9mLXR3bykiKS4NCj4gPiA+ID4N
-Cj4gPiA+ID4gPiBIb3cgYWJvdXQgdXNpbmcgZ2V0X2ZyZWVfcGFnZXMoKSB0byBpbXBsZW1lbnQg
-dGhpcz8NCj4gPiA+ID4NCj4gPiA+ID4gVGhpcyB3b3VsZCBjZXJ0YWlubHkgd29yaywgYXQgdGhl
-IGV4cGVuc2Ugb2YgYSBsb3Qgb2Ygd2FzdGVkIG1lbW9yeSB3aGVuDQo+ID4gPiA+IFBBR0VfU0la
-RSBpc24ndCA0ay4NCj4gPiA+DQo+ID4gPiBJJ20gc3VyZSB0aGlzIGlzIHRoZSBsZWFzdCBvZiB5
-b3VyIHByb2JsZW1zIHdoZW4gdGhlIGd1ZXN0IHJ1bnMgd2l0aA0KPiA+ID4gYSBsYXJnZSBiYXNl
-IHBhZ2Ugc2l6ZSwgeW91J3ZlIGFscmVhZHkgd2FzdGVkIG1vc3Qgb2YgeW91ciBtZW1vcnkNCj4g
-PiA+IG90aGVyd2lzZSB0aGVuLg0KPiA+ID4NCj4gPg0KPiA+IEkgdGhpbmsgdGhlcmUncyB2YWx1
-ZSBpbiBrZWVwaW5nIHRoZXNlIGZ1bmN0aW9ucy4gIFRoZXJlIGFyZSA4IHVzZXMgaW4NCj4gPiBh
-cmNoaXRlY3R1cmUgaW5kZXBlbmRlbnQgY29kZSBhdCB0aGUgbW9tZW50LCB3aGljaCBhZG1pdHRl
-ZGx5IHNhdmVzDQo+ID4gb25seSB+MS8yIE1ieXRlIG9mIG1lbW9yeSB3aXRoIGEgNjRLIHBhZ2Ug
-c2l6ZSwgYnV0IHdlIHdpbGwgaGF2ZQ0KPiA+IGFkZGl0aW9uYWwgdXNlcyB3aXRoIG1vcmUgbWVt
-b3J5IHNhdmluZ3MgYXMgd2UgZ2V0IGFsbCBvZiB0aGUNCj4gPiBIeXBlci1WIHN5bnRoZXRpYyBk
-cml2ZXJzIHRvIHdvcmsgd2l0aCA2NEsgcGFnZSBzaXplLiAgRnVydGhlcm1vcmUsDQo+ID4gdGhl
-cmUncyBjb21pbmcgd29yayB0aGF0IHdpbGwgcmVxdWlyZSBhZGRpdGlvbmFsIHN0ZXBzIHRvIHNo
-YXJlIGEgcGFnZQ0KPiA+IGJldHdlZW4gYSBndWVzdCBhbmQgdGhlIEh5cGVyLVYgaG9zdC4gIFRo
-ZXNlIGZ1bmN0aW9ucyBhcmUgdGhlIHJpZ2h0DQo+ID4gcGxhY2UgdG8gcHV0IHRoZSBjb2RlIGZv
-ciB0aGUgYWRkaXRpb25hbCBzaGFyaW5nIHN0ZXBzLiAgUmVtb3ZpbmcgdGhlbQ0KPiA+IG5vdyBp
-biBmYXZvciBvZiBhIGJhcmUga21hbGxvYygpIGFuZCB0aGVuIGFkZGluZyB0aGVtIGJhY2sgZG9l
-c24ndA0KPiA+IHNlZW0gd29ydGh3aGlsZS4NCj4gDQo+IE15IHBvaW50IHdhcyB0byBrZWVwIHRo
-ZSBmdW5jdGlvbnMgYnV0IHVzZSBhbGxvY19wYWdlcygpIGludGVybmFsbHksDQo+IHNvIHlvdSBj
-YW4gZGVhbCB3aXRoIHRoZSBoeXBlcnZpc29yIGhhdmluZyBhIGxhcmdlciBwYWdlIHNpemUgdGhh
-bg0KPiB0aGUgZ3Vlc3QsIHdoaWNoIHNlZW1zIHRvIGJlIGEgbW9yZSBpbXBvcnRhbnQgc2NlbmFy
-aW8gaWYgSSBjb3JyZWN0bHkNCj4gdW5kZXJzdGFuZCB0aGUgZGlmZmVyZW5jZXMgYmV0d2VlbiB0
-aGUgd2F5IFdpbmRvd3MgYW5kIExpbnV4DQo+IGRlYWwgd2l0aCBwYWdlIGNhY2hlLg0KDQpPSywg
-SSBzZWUgbm93IHdoYXQgeW91IGFyZSBnZXR0aW5nIGF0LiAgSSBzaG91bGQgc3BlbGwgb3V0IG15
-DQphc3N1bXB0aW9uLCB3aGljaCBpcyB0aGUgb3Bwb3NpdGUuICBIeXBlci1WIHdvbid0IGhhdmUg
-YSBwYWdlDQpzaXplIG90aGVyIHRoYW4gNEsgYW55dGltZSBpbiB0aGUgZm9yZXNlZWFibGUgZnV0
-dXJlLiAgVGhlDQpjb2RlIGlzIHRvbyB3ZWRkZWQgdG8gdGhlIHg4NiA0SyBwYWdlIHNpemUsIGFu
-ZCB0aGUgaG9zdC1ndWVzdA0KaW50ZXJmYWNlcyBoYXZlIGEgbG90IG9mIGltcGxpY2l0IGFzc3Vt
-cHRpb25zIHRoYXQgdGhlIHBhZ2Ugc2l6ZSBpcw0KNEsgKHVuZm9ydHVuYXRlbHkpLiAgQnV0IHRo
-ZSBsYXN0IHRpbWUgSSBsb29rZWQsIFJIRUwgZm9yIEFSTTY0IGlzDQpkZWxpdmVyZWQgd2l0aCBh
-IDY0SyBwYWdlIHNpemUuICBTbyBteSBhc3N1bXB0aW9uIGlzIHRoYXQgdGhlIG9ubHkNCmNvbWJp
-bmF0aW9uIHRoYXQgcmVhbGx5IG1hdHRlcnMgaXMgdGhlIGd1ZXN0IHBhZ2Ugc2l6ZSBiZWluZyBs
-YXJnZXINCnRoYW4gdGhlIEh5cGVyLVYgcGFnZSBzaXplLiAgVGhlIG90aGVyIHdheSBhcm91bmQg
-anVzdCB3b24ndA0KaGFwcGVuIHdpdGhvdXQgYSBtYWpvciBvdmVyaGF1bCB0byBIeXBlci1WLCBp
-bmNsdWRpbmcgYSByZXdvcmsNCm9mIHRoZSBndWVzdC1ob3N0IGludGVyZmFjZS4NCg0KTWljaGFl
-bA0KDQo+IA0KPiBBcyBmYXIgYXMgSSB1bmRlcnN0YW5kLCB1c2luZyA2NGtiIHBhZ2VzIG9uIFdp
-bmRvd3MgaXMgZ2VuZXJhbGx5DQo+IGEgd2luIGFzIHRoZSBWRlMgY29kZSBhbHJlYWR5IGRlYWxz
-IHdpdGggdW5pdHMgb2YgdGhhdCBzaXplLCB3aGlsZQ0KPiBvbiBMaW51eCB0aGUgNGtiIHBhZ2Ug
-c2l6ZSBpcyB0b28gZGVlcGx5IGVudHJlbmNoZWQgd2l0aGluIHRoZQ0KPiBmaWxlIHN5c3RlbSBj
-b2RlIHRvIG1lc3Mgd2l0aCBpdDogV2hhdGV2ZXIgeW91IGdhaW4gaW4gdGVybXMgb2YNCj4gVExC
-IHByZXNzdXJlIG9uIHdvcmtsb2FkcyB0aGF0IGNhbm5vdCB1c2UgaHVnZSBwYWdlcyBpcyBhbGwg
-bG9zdA0KPiBhZ2FpbiB0aHJvdWdoIGV4dHJhIEkvTyBhbmQgd2FzdGVkIHBoeXNpY2FsIG1lbW9y
-eS4NCj4gDQo+ICAgICAgICAgQXJuZA0K
+Kees Cook's on March 21, 2020 4:24 am:
+> On Fri, Mar 20, 2020 at 12:47:54PM +1000, Nicholas Piggin wrote:
+>> Kees Cook's on February 28, 2020 10:22 am:
+>> > Right now, powerpc adds "--orphan-handling=3Dwarn" to LD_FLAGS_vmlinux
+>> > to detect when there are unexpected sections getting added to the kern=
+el
+>> > image. There is no need to report these warnings more than once, so it
+>> > can be removed until the final link stage.
+>> >=20
+>> > This helps pave the way for other architectures to enable this, with t=
+he
+>> > end goal of enabling this warning by default for vmlinux for all
+>> > architectures.
+>> >=20
+>> > Signed-off-by: Kees Cook <keescook@chromium.org>
+>> > ---
+>> >  scripts/link-vmlinux.sh | 6 ++++++
+>> >  1 file changed, 6 insertions(+)
+>> >=20
+>> > diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+>> > index 1919c311c149..416968fea685 100755
+>> > --- a/scripts/link-vmlinux.sh
+>> > +++ b/scripts/link-vmlinux.sh
+>> > @@ -255,6 +255,11 @@ info GEN modules.builtin
+>> >  tr '\0' '\n' < modules.builtin.modinfo | sed -n 's/^[[:alnum:]:_]*\.f=
+ile=3D//p' |
+>> >  	tr ' ' '\n' | uniq | sed -e 's:^:kernel/:' -e 's/$/.ko/' > modules.b=
+uiltin
+>> > =20
+>> > +
+>> > +# Do not warn about orphan sections until the final link stage.
+>> > +saved_LDFLAGS_vmlinux=3D"${LDFLAGS_vmlinux}"
+>> > +LDFLAGS_vmlinux=3D"$(echo "${LDFLAGS_vmlinux}" | sed -E 's/ --orphan-=
+handling=3Dwarn( |$)/ /g')"
+>> > +
+>> >  btf_vmlinux_bin_o=3D""
+>> >  if [ -n "${CONFIG_DEBUG_INFO_BTF}" ]; then
+>> >  	if gen_btf .tmp_vmlinux.btf .btf.vmlinux.bin.o ; then
+>> > @@ -306,6 +311,7 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
+>> >  	fi
+>> >  fi
+>> > =20
+>> > +LDFLAGS_vmlinux=3D"${saved_LDFLAGS_vmlinux}"
+>> >  vmlinux_link vmlinux "${kallsymso}" ${btf_vmlinux_bin_o}
+>> > =20
+>> >  if [ -n "${CONFIG_BUILDTIME_TABLE_SORT}" ]; then
+>>=20
+>> That's ugly. Why not just enable it for all archs?
+>=20
+> It is ugly; I agree.
+>=20
+> I can try to do this for all architectures, but I worry there are a
+> bunch I can't test. But I guess it would stand out. ;)
+
+It's only warn, so it doesn't break their builds (unless there's a=20
+linker error on warn option I don't know about?). We had a powerpc bug=20
+that would have been caught with it as well, so it's not a bad idea to
+get everyone using it.
+
+I would just do it. Doesn't take much to fix.
+
+Thanks,
+Nick
+=
