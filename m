@@ -1,82 +1,84 @@
-From: Nicholas Piggin <npiggin@gmail.com>
+From: Kees Cook <keescook@chromium.org>
 Subject: Re: [PATCH 1/9] scripts/link-vmlinux.sh: Delay orphan handling
  warnings until final link
-Date: Sun, 22 Mar 2020 19:16:29 +1000
-Message-ID: <1584868418.o62lxee8k1.astroid@bobo.none>
+Date: Sun, 22 Mar 2020 09:00:22 -0700
+Message-ID: <202003220859.E54327D98C@keescook>
 References: <20200228002244.15240-1-keescook@chromium.org>
-        <20200228002244.15240-2-keescook@chromium.org>
-        <1584672297.mudnpz3ir9.astroid@bobo.none> <202003201121.8CBD96451B@keescook>
+ <20200228002244.15240-2-keescook@chromium.org>
+ <1584672297.mudnpz3ir9.astroid@bobo.none>
+ <202003201121.8CBD96451B@keescook>
+ <1584868418.o62lxee8k1.astroid@bobo.none>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <202003201121.8CBD96451B@keescook>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1584868418.o62lxee8k1.astroid@bobo.none>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Nicholas Piggin <npiggin@gmail.com>
 Cc: Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, clang-built-linux@googlegroups.com, "H.J. Lu" <hjl.tools@gmail.com>, James Morse <james.morse@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@armlinux.org.uk>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Masahiro Yamada <masahiroy@kernel.org>, Peter Collingbourne <pcc@google.com>, Will Deacon <will@kernel.org>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Kees Cook's on March 21, 2020 4:24 am:
-> On Fri, Mar 20, 2020 at 12:47:54PM +1000, Nicholas Piggin wrote:
->> Kees Cook's on February 28, 2020 10:22 am:
->> > Right now, powerpc adds "--orphan-handling=3Dwarn" to LD_FLAGS_vmlinux
->> > to detect when there are unexpected sections getting added to the kern=
-el
->> > image. There is no need to report these warnings more than once, so it
->> > can be removed until the final link stage.
->> >=20
->> > This helps pave the way for other architectures to enable this, with t=
-he
->> > end goal of enabling this warning by default for vmlinux for all
->> > architectures.
->> >=20
->> > Signed-off-by: Kees Cook <keescook@chromium.org>
->> > ---
->> >  scripts/link-vmlinux.sh | 6 ++++++
->> >  1 file changed, 6 insertions(+)
->> >=20
->> > diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
->> > index 1919c311c149..416968fea685 100755
->> > --- a/scripts/link-vmlinux.sh
->> > +++ b/scripts/link-vmlinux.sh
->> > @@ -255,6 +255,11 @@ info GEN modules.builtin
->> >  tr '\0' '\n' < modules.builtin.modinfo | sed -n 's/^[[:alnum:]:_]*\.f=
-ile=3D//p' |
->> >  	tr ' ' '\n' | uniq | sed -e 's:^:kernel/:' -e 's/$/.ko/' > modules.b=
-uiltin
->> > =20
->> > +
->> > +# Do not warn about orphan sections until the final link stage.
->> > +saved_LDFLAGS_vmlinux=3D"${LDFLAGS_vmlinux}"
->> > +LDFLAGS_vmlinux=3D"$(echo "${LDFLAGS_vmlinux}" | sed -E 's/ --orphan-=
-handling=3Dwarn( |$)/ /g')"
->> > +
->> >  btf_vmlinux_bin_o=3D""
->> >  if [ -n "${CONFIG_DEBUG_INFO_BTF}" ]; then
->> >  	if gen_btf .tmp_vmlinux.btf .btf.vmlinux.bin.o ; then
->> > @@ -306,6 +311,7 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
->> >  	fi
->> >  fi
->> > =20
->> > +LDFLAGS_vmlinux=3D"${saved_LDFLAGS_vmlinux}"
->> >  vmlinux_link vmlinux "${kallsymso}" ${btf_vmlinux_bin_o}
->> > =20
->> >  if [ -n "${CONFIG_BUILDTIME_TABLE_SORT}" ]; then
->>=20
->> That's ugly. Why not just enable it for all archs?
->=20
-> It is ugly; I agree.
->=20
-> I can try to do this for all architectures, but I worry there are a
-> bunch I can't test. But I guess it would stand out. ;)
+On Sun, Mar 22, 2020 at 07:16:29PM +1000, Nicholas Piggin wrote:
+> Kees Cook's on March 21, 2020 4:24 am:
+> > On Fri, Mar 20, 2020 at 12:47:54PM +1000, Nicholas Piggin wrote:
+> >> Kees Cook's on February 28, 2020 10:22 am:
+> >> > Right now, powerpc adds "--orphan-handling=warn" to LD_FLAGS_vmlinux
+> >> > to detect when there are unexpected sections getting added to the kernel
+> >> > image. There is no need to report these warnings more than once, so it
+> >> > can be removed until the final link stage.
+> >> > 
+> >> > This helps pave the way for other architectures to enable this, with the
+> >> > end goal of enabling this warning by default for vmlinux for all
+> >> > architectures.
+> >> > 
+> >> > Signed-off-by: Kees Cook <keescook@chromium.org>
+> >> > ---
+> >> >  scripts/link-vmlinux.sh | 6 ++++++
+> >> >  1 file changed, 6 insertions(+)
+> >> > 
+> >> > diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+> >> > index 1919c311c149..416968fea685 100755
+> >> > --- a/scripts/link-vmlinux.sh
+> >> > +++ b/scripts/link-vmlinux.sh
+> >> > @@ -255,6 +255,11 @@ info GEN modules.builtin
+> >> >  tr '\0' '\n' < modules.builtin.modinfo | sed -n 's/^[[:alnum:]:_]*\.file=//p' |
+> >> >  	tr ' ' '\n' | uniq | sed -e 's:^:kernel/:' -e 's/$/.ko/' > modules.builtin
+> >> >  
+> >> > +
+> >> > +# Do not warn about orphan sections until the final link stage.
+> >> > +saved_LDFLAGS_vmlinux="${LDFLAGS_vmlinux}"
+> >> > +LDFLAGS_vmlinux="$(echo "${LDFLAGS_vmlinux}" | sed -E 's/ --orphan-handling=warn( |$)/ /g')"
+> >> > +
+> >> >  btf_vmlinux_bin_o=""
+> >> >  if [ -n "${CONFIG_DEBUG_INFO_BTF}" ]; then
+> >> >  	if gen_btf .tmp_vmlinux.btf .btf.vmlinux.bin.o ; then
+> >> > @@ -306,6 +311,7 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
+> >> >  	fi
+> >> >  fi
+> >> >  
+> >> > +LDFLAGS_vmlinux="${saved_LDFLAGS_vmlinux}"
+> >> >  vmlinux_link vmlinux "${kallsymso}" ${btf_vmlinux_bin_o}
+> >> >  
+> >> >  if [ -n "${CONFIG_BUILDTIME_TABLE_SORT}" ]; then
+> >> 
+> >> That's ugly. Why not just enable it for all archs?
+> > 
+> > It is ugly; I agree.
+> > 
+> > I can try to do this for all architectures, but I worry there are a
+> > bunch I can't test. But I guess it would stand out. ;)
+> 
+> It's only warn, so it doesn't break their builds (unless there's a 
+> linker error on warn option I don't know about?). We had a powerpc bug 
+> that would have been caught with it as well, so it's not a bad idea to
+> get everyone using it.
 
-It's only warn, so it doesn't break their builds (unless there's a=20
-linker error on warn option I don't know about?). We had a powerpc bug=20
-that would have been caught with it as well, so it's not a bad idea to
-get everyone using it.
+Well, it's bad form to add warnings to a build. I am expected to fix any
+warnings before I enable a warning flag.
 
-I would just do it. Doesn't take much to fix.
+> I would just do it. Doesn't take much to fix.
 
-Thanks,
-Nick
-=
+I will do my best on the archs I can't test. :)
+
+-- 
+Kees Cook
