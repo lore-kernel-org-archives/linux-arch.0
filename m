@@ -1,43 +1,74 @@
-Return-Path: <SRS0=06hN=5A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-mw2nam10on2097.outbound.protection.outlook.com ([40.107.94.97]:13053
-        "EHLO NAM10-MW2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727320AbgCOBbj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 14 Mar 2020 21:31:39 -0400
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: [PATCH v6 02/10] arm/arm64: smccc-1.1: Add vendor specific owner definition
-Date: Sat, 14 Mar 2020 08:35:11 -0700
-Message-ID: <1584200119-18594-3-git-send-email-mikelley@microsoft.com>
-In-Reply-To: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
-Content-Type: text/plain
+Return-Path: <SRS0=13L8=5I=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:49884 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728354AbgCWN5f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 23 Mar 2020 09:57:35 -0400
+Date: Mon, 23 Mar 2020 13:57:22 +0000
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
+Message-ID: <20200323135722.GA3959@C02TD0UTHF1T.local>
+References: <20200316165055.31179-1-broonie@kernel.org>
+ <20200320173945.GC27072@arm.com>
+ <20200323122143.GB4892@mbp>
+ <20200323132412.GD4948@sirena.org.uk>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200323132412.GD4948@sirena.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: will@kernel.org, ardb@kernel.org, arnd@arndb.de, catalin.marinas@arm.com, mark.rutland@arm.com, maz@kernel.org, linux-arm-kernel@lists.infradead.org, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, linux-efi@vger.kernel.org, linux-arch@vger.kernel.org, olaf@aepfle.de, apw@canonical.com, vkuznets@redhat.com, jasowang@redhat.com, marcelo.cerri@canonical.com, kys@microsoft.com
-Cc: mikelley@microsoft.com, sunilmut@microsoft.com, boqun.feng@gmail.com
-Message-ID: <20200314153511.AfsgMa9UBtK_WiPRdeHBJDIFVs8eNA6z2_00ImLd6eQ@z>
+To: Mark Brown <broonie@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, nd@arm.com
+Message-ID: <20200323135722.bP5DHVLQzwaqkOKojrTqdlsLtJ7JvGCNfSXGD0SU7Xk@z>
 
-In the SMCCC v1.1 spec, the Owning Entity Number in the Function
-Identifier may have a value of 6 for a vendor specific hypervisor
-service call. Add this #define.
+On Mon, Mar 23, 2020 at 01:24:12PM +0000, Mark Brown wrote:
+> On Mon, Mar 23, 2020 at 12:21:44PM +0000, Catalin Marinas wrote:
+> > On Fri, Mar 20, 2020 at 05:39:46PM +0000, Szabolcs Nagy wrote:
+> 
+> > +int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
+> > +                        bool has_interp, bool is_interp)
+> > +{
+> > +       if (is_interp != has_interp)
+> > +               return prot;
+> > +
+> > +       if (!(state->flags & ARM64_ELF_BTI))
+> > +               return prot;
+> > +
+> > +       if (prot & PROT_EXEC)
+> > +               prot |= PROT_BTI;
+> > +
+> > +       return prot;
+> > +}
+> 
+> > At a quick look, for dynamic binaries we have has_interp == true and
+> > is_interp == false. I don't know why but, either way, the above code
+> > needs a comment with some justification.
+> 
+> I don't really know for certain either, I inherited this code as is with
+> the understanding that this was all agreed with the toolchain and libc
+> people - the actual discussion that lead to the decisions being made
+> happened before I was involved.  My understanding is that the idea was
+> that the dynamic linker would be responsible for mapping everything in
+> dynamic applications other than itself but other than consistency I
+> don't know why.  I guess it defers more decision making to userspace but
+> I'm having a hard time thinking of sensible cases where one might wish
+> to make a decision other than enabling PROT_BTI.
 
-Signed-off-by: Michael Kelley <mikelley@microsoft.com>
----
- include/linux/arm-smccc.h | 1 +
- 1 file changed, 1 insertion(+)
+My understanding was this had been agreed with the toolchain folk a
+while back -- anything static loaded by the kernel (i.e. a static
+executable or the dynamic linker) would get GP set. In other cases the
+linker will mess with the permissions on the pages anyhow, and needs to
+be aware of BTI in order to do the right thing, so it was better to
+leave it to userspace consistently (e.g. as that had the least risk of
+subtle changes in behaviour leading to ABI difficulties).
 
-diff --git a/include/linux/arm-smccc.h b/include/linux/arm-smccc.h
-index 59494df..8229203 100644
---- a/include/linux/arm-smccc.h
-+++ b/include/linux/arm-smccc.h
-@@ -46,6 +46,7 @@
- #define ARM_SMCCC_OWNER_OEM		3
- #define ARM_SMCCC_OWNER_STANDARD	4
- #define ARM_SMCCC_OWNER_STANDARD_HYP	5
-+#define ARM_SMCCC_OWNER_VENDOR_HYP	6
- #define ARM_SMCCC_OWNER_TRUSTED_APP	48
- #define ARM_SMCCC_OWNER_TRUSTED_APP_END	49
- #define ARM_SMCCC_OWNER_TRUSTED_OS	50
--- 
-1.8.3.1
+> I'd be perfectly happy to drop the check if that makes more sense to
+> people, otherwise I can send a patch adding a comment explaining the
+> situation.
+
+I think it would be best to document the current behaviour, as it's a
+simple ABI that we can guarantee, and the dynamic linker will have to be
+aware of BTI in order to do the right thing anyhow.
+
+Thanks,
+Mark.
