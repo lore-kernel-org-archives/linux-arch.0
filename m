@@ -1,48 +1,87 @@
-Return-Path: <SRS0=wGQB=4T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:34664 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727170AbgCBQFS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 2 Mar 2020 11:05:18 -0500
-Subject: Re: provide in-place uncached remapping for dma-direct v2
-References: <20200224194446.690816-1-hch@lst.de>
-From: Robin Murphy <robin.murphy@arm.com>
-Message-ID: <4fe14c57-78d4-6590-a4c4-14fbe061238e@arm.com>
-Date: Mon, 2 Mar 2020 16:05:12 +0000
+Return-Path: <SRS0=13L8=5I=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qk1-f196.google.com ([209.85.222.196]:36844 "EHLO
+        mail-qk1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726974AbgCWBbC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 22 Mar 2020 21:31:02 -0400
+Received: by mail-qk1-f196.google.com with SMTP id d11so13763919qko.3
+        for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2020 18:31:02 -0700 (PDT)
+Date: Sun, 22 Mar 2020 21:31:00 -0400
+From: Joel Fernandes <joel@joelfernandes.org>
+Subject: Re: [PATCH 2/3] LKMM: Add litmus test for RCU GP guarantee where
+ reader stores
+Message-ID: <20200323013100.GA207949@google.com>
+References: <20200320165948.GB155212@google.com>
+ <Pine.LNX.4.44L0.2003201643370.31761-100000@netrider.rowland.org>
+ <20200320214432.GB129293@google.com>
+ <20200321020501.GF105953@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
 MIME-Version: 1.0
-In-Reply-To: <20200224194446.690816-1-hch@lst.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-GB
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200321020501.GF105953@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, openrisc@lists.librecores.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200302160512.PsQ8vFLSPWEBz_4PCGNr5Uuz6NgV8Gk2xfaKcr-4xA0@z>
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: Alan Stern <stern@rowland.harvard.edu>, linux-kernel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, linux-arch@vger.kernel.org, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, "Paul E. McKenney" <paulmck@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+Message-ID: <20200323013100.WpJ-RUjWaTl1EM9a67XHoupQ1MwXjhFvOiKByFyCRH8@z>
 
-On 24/02/2020 7:44 pm, Christoph Hellwig wrote:
-> Hi all,
+On Sat, Mar 21, 2020 at 10:05:01AM +0800, Boqun Feng wrote:
+> On Fri, Mar 20, 2020 at 05:44:32PM -0400, Joel Fernandes wrote:
+> > On Fri, Mar 20, 2020 at 04:56:59PM -0400, Alan Stern wrote:
+> > > On Fri, 20 Mar 2020, Joel Fernandes wrote:
+> > > 
+> > > > On Fri, Mar 20, 2020 at 11:03:30AM -0400, Alan Stern wrote:
+> > > > > On Fri, 20 Mar 2020, Joel Fernandes (Google) wrote:
+> > > > > 
+> > > > > > This adds an example for the important RCU grace period guarantee, which
+> > > > > > shows an RCU reader can never span a grace period.
+> > > > > > 
+> > > > > > Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+> > > > > > ---
+> > > > > >  .../litmus-tests/RCU+sync+read.litmus         | 37 +++++++++++++++++++
+> > > > > >  1 file changed, 37 insertions(+)
+> > > > > >  create mode 100644 tools/memory-model/litmus-tests/RCU+sync+read.litmus
+> > > > > > 
+> > > > > > diff --git a/tools/memory-model/litmus-tests/RCU+sync+read.litmus b/tools/memory-model/litmus-tests/RCU+sync+read.litmus
+> > > > > > new file mode 100644
+> > > > > > index 0000000000000..73557772e2a32
+> > > > > > --- /dev/null
+> > > > > > +++ b/tools/memory-model/litmus-tests/RCU+sync+read.litmus
+> > > > > 
+> > > > > Do these new tests really belong here?  I thought we were adding a new 
+> > > > > directory under Documentation/ for litmus tests that illustrate parts 
+> > > > > of the LKMM or memory-barriers.txt.
+> > > > > 
+> > > > > By contrast, the tests under tools/memory-model are merely to show 
+> > > > > people what litmus tests look like and how they should be written.
+> > > > 
+> > > > I could add it to tools/memory-model/Documentation/ under a new
+> > > > 'examples' directory there. We could also create an 'rcu' directory in
+> > > > tools/memory-model/litmus-tests/ and add these there. Thoughts?
+> > > 
+> > > What happened was that about a month ago, Boqun Feng added
+> > > Documentation/atomic-tests for litmus tests related to handling of
+> > > atomic_t types (see
+> > > <https://marc.info/?l=linux-kernel&m=158276408609029&w=2>.)  Should we
+> > > interpose an extra directory level, making it
+> > > Documentation/litmus-tests/atomic?  Or
+> > > Documentation/LKMM-litmus-tests/atomic?
+> > > 
+> > > Then the new tests added here could go into
+> > > Documentation/litmus-tests/rcu, or whatever.
+> > 
+> > That's fine with me. Unless anyone objects, I will add to
+> > Documentation/litmus-tests/rcu and resend.
+> > 
 > 
-> this series provides support for remapping places uncached in-place in
-> the generic dma-direct code, and moves openrisc over from its own
-> in-place remapping scheme.  The arm64 folks also had interest in such
-> a scheme to avoid problems with speculating into cache aliases.
-> 
-> Also all architectures that always use small page mappings for the
-> kernel and have non-coherent DMA should look into enabling this
-> scheme, as it is much more efficient than the vmap remapping.
-> 
-> Changes since v1:
->   - share the arch hook for inline remap and uncached segment support
-> 
+> Seems good to me, I will resend my patchset with the new directory. And
+> I assume in your patchset you will include the MAINTAINERS part for
+> adding Documentation/litmus-tests/ as a diretory watched by LKMM group?
+> In that case, I won't need to add any change to MAINTAINERS file in mine
+> and we won't have any conflict. ;-)
 
-For the whole series:
+Yes, will add to MAINTAINERS so that you don't have to :) About to send my
+queue now.
 
-Reviewed-by: Robin Murphy <robin.murphy@arm.com>
+thanks,
 
-I think we might ultimately want to fiddle around a bit more in 
-dma_direct_alloc_pages() to give ARCH_HAS_DMA_SET_UNCACHED clear 
-precedence over DMA_DIRECT_REMAP if they have to coexist, but let's land 
-these patches first as a solid foundation.
-
-Thanks,
-Robin.
+ - Joel
