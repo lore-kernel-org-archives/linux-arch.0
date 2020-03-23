@@ -1,99 +1,58 @@
-Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50598 "EHLO foss.arm.com"
+Return-Path: <SRS0=13L8=5I=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50762 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727744AbgCTOzm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Mar 2020 10:55:42 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 18/26] arm64: vdso32: Code clean up
-Date: Fri, 20 Mar 2020 14:53:43 +0000
-Message-ID: <20200320145351.32292-19-vincenzo.frascino@arm.com>
-In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
-References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+        id S1726962AbgCWPCQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 23 Mar 2020 11:02:16 -0400
+Date: Mon, 23 Mar 2020 15:02:09 +0000
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
+Message-ID: <20200323150209.GC3959@C02TD0UTHF1T.local>
+References: <20200316165055.31179-1-broonie@kernel.org>
+ <20200320173945.GC27072@arm.com>
+ <20200323122143.GB4892@mbp>
+ <20200323132412.GD4948@sirena.org.uk>
+ <20200323135722.GA3959@C02TD0UTHF1T.local>
+ <20200323143954.GC4892@mbp>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200323143954.GC4892@mbp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200320145343.usFoFbFSLqerWbqgO3GDklycVrkzM-QbwryNHDH1N3g@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Mark Brown <broonie@kernel.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, nd@arm.com
+Message-ID: <20200323150209.StxvDlp7bOGM4Ie3zh-ZZufWwn8_F-W2pDnNadtCr8g@z>
 
-The compat vdso library had some checks that are not anymore relevant.
+On Mon, Mar 23, 2020 at 02:39:55PM +0000, Catalin Marinas wrote:
+> On Mon, Mar 23, 2020 at 01:57:22PM +0000, Mark Rutland wrote:
+> > On Mon, Mar 23, 2020 at 01:24:12PM +0000, Mark Brown wrote:
+> > > On Mon, Mar 23, 2020 at 12:21:44PM +0000, Catalin Marinas wrote:
+> > > > On Fri, Mar 20, 2020 at 05:39:46PM +0000, Szabolcs Nagy wrote:
+> > > 
+> > > > +int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
+> > > > +                        bool has_interp, bool is_interp)
+> > > > +{
+> > > > +       if (is_interp != has_interp)
+> > > > +               return prot;
+> > > > +
+> > > > +       if (!(state->flags & ARM64_ELF_BTI))
+> > > > +               return prot;
+> > > > +
+> > > > +       if (prot & PROT_EXEC)
+> > > > +               prot |= PROT_BTI;
+> > > > +
+> > > > +       return prot;
+> > > > +}
 
-Remove the unused code from the compat vDSO library.
+> > I think it would be best to document the current behaviour, as it's a
+> > simple ABI that we can guarantee, and the dynamic linker will have to be
+> > aware of BTI in order to do the right thing anyhow.
+> 
+> That's a valid point. If we have an old dynamic linker and the kernel
+> enabled BTI automatically for the main executable, could things go wrong
+> (e.g. does the PLT need to be BTI-aware)?
 
-Note: This patch is preparatory for a future one that will introduce
-asm/vdso/processor.h on arm64.
+Also worth noting that an old dynamic linker won't have ARM64_ELF_BTI
+set, so the kernel will not enable BTI for this.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Link: https://lore.kernel.org/lkml/20200317122220.30393-19-vincenzo.frascino@arm.com
----
- arch/arm64/include/asm/vdso/compat_gettimeofday.h |  8 --------
- arch/arm64/kernel/vdso32/vgettimeofday.c          | 12 ------------
- 2 files changed, 20 deletions(-)
-
-diff --git a/arch/arm64/include/asm/vdso/compat_gettimeofday.h b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-index 81b0c394f1d8..401df2bcd741 100644
---- a/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-+++ b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-@@ -76,10 +76,6 @@ int clock_getres_fallback(clockid_t _clkid, struct __kernel_timespec *_ts)
- 	register long ret asm ("r0");
- 	register long nr asm("r7") = __NR_compat_clock_getres_time64;
- 
--	/* The checks below are required for ABI consistency with arm */
--	if ((_clkid >= MAX_CLOCKS) && (_ts == NULL))
--		return -EINVAL;
--
- 	asm volatile(
- 	"       swi #0\n"
- 	: "=r" (ret)
-@@ -97,10 +93,6 @@ int clock_getres32_fallback(clockid_t _clkid, struct old_timespec32 *_ts)
- 	register long ret asm ("r0");
- 	register long nr asm("r7") = __NR_compat_clock_getres;
- 
--	/* The checks below are required for ABI consistency with arm */
--	if ((_clkid >= MAX_CLOCKS) && (_ts == NULL))
--		return -EINVAL;
--
- 	asm volatile(
- 	"       swi #0\n"
- 	: "=r" (ret)
-diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
-index 54fc1c2ce93f..ddbad47efaa4 100644
---- a/arch/arm64/kernel/vdso32/vgettimeofday.c
-+++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
-@@ -11,20 +11,12 @@
- int __vdso_clock_gettime(clockid_t clock,
- 			 struct old_timespec32 *ts)
- {
--	/* The checks below are required for ABI consistency with arm */
--	if ((u32)ts >= TASK_SIZE_32)
--		return -EFAULT;
--
- 	return __cvdso_clock_gettime32(clock, ts);
- }
- 
- int __vdso_clock_gettime64(clockid_t clock,
- 			   struct __kernel_timespec *ts)
- {
--	/* The checks below are required for ABI consistency with arm */
--	if ((u32)ts >= TASK_SIZE_32)
--		return -EFAULT;
--
- 	return __cvdso_clock_gettime(clock, ts);
- }
- 
-@@ -37,10 +29,6 @@ int __vdso_gettimeofday(struct __kernel_old_timeval *tv,
- int __vdso_clock_getres(clockid_t clock_id,
- 			struct old_timespec32 *res)
- {
--	/* The checks below are required for ABI consistency with arm */
--	if ((u32)res >= TASK_SIZE_32)
--		return -EFAULT;
--
- 	return __cvdso_clock_getres_time32(clock_id, res);
- }
- 
--- 
-2.25.1
+Mark.
