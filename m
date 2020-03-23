@@ -1,35 +1,80 @@
-Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:51478 "EHLO foss.arm.com"
+Return-Path: <SRS0=13L8=5I=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:48924 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726847AbgCTP0J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Mar 2020 11:26:09 -0400
-Date: Fri, 20 Mar 2020 15:26:02 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v5 18/26] arm64: vdso32: Code clean up
-Message-ID: <20200320152602.GA7448@mbp>
-References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
- <20200320145351.32292-19-vincenzo.frascino@arm.com>
+        id S1728344AbgCWNYP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 23 Mar 2020 09:24:15 -0400
+Date: Mon, 23 Mar 2020 13:24:12 +0000
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
+Message-ID: <20200323132412.GD4948@sirena.org.uk>
+References: <20200316165055.31179-1-broonie@kernel.org>
+ <20200320173945.GC27072@arm.com>
+ <20200323122143.GB4892@mbp>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="n2Pv11Ogg/Ox8ay5"
 Content-Disposition: inline
-In-Reply-To: <20200320145351.32292-19-vincenzo.frascino@arm.com>
+In-Reply-To: <20200323122143.GB4892@mbp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200320152602.-6pxU3fa0-pS5rZ-2SmDfkMrim1JD0melLkAn5GcWOo@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, nd@arm.com
+Message-ID: <20200323132412.bLYxPquHk2DNDQSf3uCZ548CxlDoiUECQMV-wfuGdYg@z>
 
-On Fri, Mar 20, 2020 at 02:53:43PM +0000, Vincenzo Frascino wrote:
-> The compat vdso library had some checks that are not anymore relevant.
-> 
-> Remove the unused code from the compat vDSO library.
-> 
-> Note: This patch is preparatory for a future one that will introduce
-> asm/vdso/processor.h on arm64.
-> 
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> Link: https://lore.kernel.org/lkml/20200317122220.30393-19-vincenzo.frascino@arm.com
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+--n2Pv11Ogg/Ox8ay5
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+
+On Mon, Mar 23, 2020 at 12:21:44PM +0000, Catalin Marinas wrote:
+> On Fri, Mar 20, 2020 at 05:39:46PM +0000, Szabolcs Nagy wrote:
+
+> +int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
+> +                        bool has_interp, bool is_interp)
+> +{
+> +       if (is_interp != has_interp)
+> +               return prot;
+> +
+> +       if (!(state->flags & ARM64_ELF_BTI))
+> +               return prot;
+> +
+> +       if (prot & PROT_EXEC)
+> +               prot |= PROT_BTI;
+> +
+> +       return prot;
+> +}
+
+> At a quick look, for dynamic binaries we have has_interp == true and
+> is_interp == false. I don't know why but, either way, the above code
+> needs a comment with some justification.
+
+I don't really know for certain either, I inherited this code as is with
+the understanding that this was all agreed with the toolchain and libc
+people - the actual discussion that lead to the decisions being made
+happened before I was involved.  My understanding is that the idea was
+that the dynamic linker would be responsible for mapping everything in
+dynamic applications other than itself but other than consistency I
+don't know why.  I guess it defers more decision making to userspace but
+I'm having a hard time thinking of sensible cases where one might wish
+to make a decision other than enabling PROT_BTI.
+
+I'd be perfectly happy to drop the check if that makes more sense to
+people, otherwise I can send a patch adding a comment explaining the
+situation.
+
+--n2Pv11Ogg/Ox8ay5
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl54uHwACgkQJNaLcl1U
+h9DAYQf+PC+yaMtvYW9mN4nKAz7ncHVrReSbAGM8vzqPWdFAlq9YUOWrM19ZtwX3
+Reos273yUIeierbiwvJMNq+eDPFo9bF3mqTxkQr5uA4+RDAqXedTNeS637lX1tG3
+/uzSb0uqwvff1A9+IZsavz2GuhK8WNmybN7xbOPD1SLHZd4ouEiMlBoE3Ze+nMqm
+gClUEz9TTAmK6m9sL7rchJgnSFoG5OU4F/6sWpCoip4mFa5QnBAkeWh6RssDImFg
+hIm9njv6a9aeNHTw1YnM1heqRe86GkmGk3LsgGrHETzDNFOwlBNek95tXIVl7W7I
+f99IlRUisKUN9wu9VYAtNzRSGiDGLQ==
+=70MP
+-----END PGP SIGNATURE-----
+
+--n2Pv11Ogg/Ox8ay5--
