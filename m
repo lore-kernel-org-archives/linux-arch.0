@@ -1,119 +1,292 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:40334 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726222AbgCQQkZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 12:40:25 -0400
-Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
- vgettimeofday
-References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
- <20200317122220.30393-19-vincenzo.frascino@arm.com>
- <20200317143834.GC632169@arrakis.emea.arm.com>
- <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
- <20200317155031.GD632169@arrakis.emea.arm.com>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
-Date: Tue, 17 Mar 2020 16:40:48 +0000
+Return-Path: <SRS0=t4Rs=5I=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH] mm/debug: Add tests validating arch page table helpers
+ for core features
+References: <1582799637-11786-1-git-send-email-anshuman.khandual@arm.com>
+ <2be41c29-500c-50af-f915-1493846ae9e5@c-s.fr>
+ <4343eda9-7df2-a13c-0125-cf784c81ce14@arm.com>
+ <20200302222443.Horde.3Vn7_PzcWbAADKFWloR-kw8@messagerie.si.c-s.fr>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Message-ID: <cd80e950-1185-bc12-f844-295b854d429a@arm.com>
+Date: Mon, 23 Mar 2020 18:56:47 +0530
 MIME-Version: 1.0
-In-Reply-To: <20200317155031.GD632169@arrakis.emea.arm.com>
+In-Reply-To: <20200302222443.Horde.3Vn7_PzcWbAADKFWloR-kw8@messagerie.si.c-s.fr>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Christophe Leroy <christophe.leroy@c-s.fr>
+Cc: linuxppc-dev@lists.ozlabs.org, Andrew Morton <akpm@linux-foundation.org>, Palmer Dabbelt <palmer@dabbelt.com>, linux-kernel@vger.kernel.org, Vineet Gupta <vgupta@synopsys.com>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Borislav Petkov <bp@alien8.de>, Vasily Gorbik <gor@linux.ibm.com>, linux-snps-arc@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Mike Rapoport <rppt@linux.ibm.com>, x86@kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, linux-riscv@lists.infradead.org, "H. Peter Anvin" <hpa@zytor.com>, Paul Mackerras <paulus@samba.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200317164048.bEgmRSkjFnbUvSwdLH-V68owtEisrRgquMGJtH-wTLA@z>
+Message-ID: <20200323132647.MT0VPWsaakZG4t4AbQjqo3_V2uKIDAwqSelfx2g8TWk@z>
 
-Hi Catalin,
 
-On 3/17/20 3:50 PM, Catalin Marinas wrote:
-> On Tue, Mar 17, 2020 at 03:04:01PM +0000, Vincenzo Frascino wrote:
->> On 3/17/20 2:38 PM, Catalin Marinas wrote:
->>> On Tue, Mar 17, 2020 at 12:22:12PM +0000, Vincenzo Frascino wrote:
 
-[...]
-
->>
->> Can TASK_SIZE > UINTPTR_MAX on an arm64 system?
-> 
-> TASK_SIZE yes on arm64 but not TASK_SIZE_32. I was asking about the
-> arm32 check where TASK_SIZE < UINTPTR_MAX. How does the vdsotest return
-> -EFAULT on arm32? Which code path causes this in the user vdso code?
->
-
-Sorry I got confused because you referred to arch/arm/vdso/vgettimeofday.c which
-is the arm64 implementation, not the compat one :)
-
-In the case of arm32 everything is handled via syscall fallback.
-
-> My guess is that on arm32 it only fails with -EFAULT in the syscall
-> fallback path since a copy_to_user() would fail the access_ok() check.
-> Does it always take the fallback path if ts > TASK_SIZE?
-> 
-
-Correct, it goes via fallback. The return codes for these syscalls are specified
-by the ABI [1]. Then I agree with you the way on which arm32 achieves it should
-be via access_ok() check.
-
-> On arm64, while we have a similar access_ok() check, USER_DS is (1 <<
-> VA_BITS) even for compat tasks (52-bit maximum), so it doesn't detect
-> the end of the user address space for 32-bit tasks.
-> 
-
-I agree on this as well, if you remember we discussed it in past.
-
-> Is this an issue for other syscalls expecting EFAULT at UINTPTR_MAX and
-> instead getting a signal? The vdsotest seems to be the only one assuming
-> this. I don't have a simple solution here since USER_DS currently needs
-> to be a constant (used in entry.S).
-> 
-> I could as well argue that this is not a valid ABI test, no real-world
-> program relying on this behaviour ;).
-> 
-
-Ok, but I could argue that unless you manage to prove to me that there is no
-software out there relying on this behavior, I guess that the safest way to go
-is to have a check here ;)
-
-More than that, being a simple check, it has no performance impact.
-
-[...]
-
+On 03/03/2020 02:54 AM, Christophe Leroy wrote:
+> Anshuman Khandual <anshuman.khandual@arm.com> a =C3=A9crit=C2=A0:
+>=20
+>> On 02/27/2020 04:59 PM, Christophe Leroy wrote:
 >>>
->>> This last check needs an explanation. If the clock_id is invalid but res
->>> is not NULL, we allow it. I don't see where the compatibility issue is,
->>> arm32 doesn't have such check.
+>>>
+>>> Le 27/02/2020 =C3=A0 11:33, Anshuman Khandual a =C3=A9crit=C2=A0:
+>>>> This adds new tests validating arch page table helpers for these fol=
+lowing
+>>>> core memory features. These tests create and test specific mapping t=
+ypes at
+>>>> various page table levels.
+>>>>
+>>>> * SPECIAL mapping
+>>>> * PROTNONE mapping
+>>>> * DEVMAP mapping
+>>>> * SOFTDIRTY mapping
+>>>> * SWAP mapping
+>>>> * MIGRATION mapping
+>>>> * HUGETLB mapping
+>>>> * THP mapping
+>>>>
+>>>> Cc: Andrew Morton <akpm@linux-foundation.org>
+>>>> Cc: Mike Rapoport <rppt@linux.ibm.com>
+>>>> Cc: Vineet Gupta <vgupta@synopsys.com>
+>>>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>>>> Cc: Will Deacon <will@kernel.org>
+>>>> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+>>>> Cc: Paul Mackerras <paulus@samba.org>
+>>>> Cc: Michael Ellerman <mpe@ellerman.id.au>
+>>>> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+>>>> Cc: Vasily Gorbik <gor@linux.ibm.com>
+>>>> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+>>>> Cc: Thomas Gleixner <tglx@linutronix.de>
+>>>> Cc: Ingo Molnar <mingo@redhat.com>
+>>>> Cc: Borislav Petkov <bp@alien8.de>
+>>>> Cc: "H. Peter Anvin" <hpa@zytor.com>
+>>>> Cc: Kirill A. Shutemov <kirill@shutemov.name>
+>>>> Cc: Paul Walmsley <paul.walmsley@sifive.com>
+>>>> Cc: Palmer Dabbelt <palmer@dabbelt.com>
+>>>> Cc: linux-snps-arc@lists.infradead.org
+>>>> Cc: linux-arm-kernel@lists.infradead.org
+>>>> Cc: linuxppc-dev@lists.ozlabs.org
+>>>> Cc: linux-s390@vger.kernel.org
+>>>> Cc: linux-riscv@lists.infradead.org
+>>>> Cc: x86@kernel.org
+>>>> Cc: linux-arch@vger.kernel.org
+>>>> Cc: linux-kernel@vger.kernel.org
+>>>> Suggested-by: Catalin Marinas <catalin.marinas@arm.com>
+>>>> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
+>>>> ---
+>>>> Tested on arm64 and x86 platforms without any test failures. But thi=
+s has
+>>>> only been built tested on several other platforms. Individual tests =
+need
+>>>> to be verified on all current enabling platforms for the test i.e s3=
+90,
+>>>> ppc32, arc etc.
+>>>>
+>>>> This patch must be applied on v5.6-rc3 after these patches
+>>>>
+>>>> 1. https://patchwork.kernel.org/patch/11385057/
+>>>> 2. https://patchwork.kernel.org/patch/11407715/
+>>>>
+>>>> OR
+>>>>
+>>>> This patch must be applied on linux-next (next-20200227) after this =
+patch
+>>>>
+>>>> 2. https://patchwork.kernel.org/patch/11407715/
+>>>>
+>>>> =C2=A0 mm/debug_vm_pgtable.c | 310 +++++++++++++++++++++++++++++++++=
+++++++++-
+>>>> =C2=A0 1 file changed, 309 insertions(+), 1 deletion(-)
+>>>>
+>>>> diff --git a/mm/debug_vm_pgtable.c b/mm/debug_vm_pgtable.c
+>>>> index 96dd7d574cef..3fb90d5b604e 100644
+>>>> --- a/mm/debug_vm_pgtable.c
+>>>> +++ b/mm/debug_vm_pgtable.c
+>>>> @@ -41,6 +41,44 @@
+>>>> =C2=A0=C2=A0 * wrprotect(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
+=A0 =3D A write protected and not a write entry
+>>>> =C2=A0=C2=A0 * pxx_bad(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
+=A0 =3D A mapped and non-table entry
+>>>> =C2=A0=C2=A0 * pxx_same(entry1, entry2)=C2=A0=C2=A0=C2=A0 =3D Both e=
+ntries hold the exact same value
+>>>> + *
+>>>> + * Specific feature operations
+>>>> + *
+>>>> + * pte_mkspecial(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D=
+ Creates a special entry at PTE level
+>>>> + * pte_special(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D=
+ Tests a special entry at PTE level
+>>>> + *
+>>>> + * pte_protnone(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D=
+ Tests a no access entry at PTE level
+>>>> + * pmd_protnone(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D=
+ Tests a no access entry at PMD level
+>>>> + *
+>>>> + * pte_mkdevmap(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D=
+ Creates a device entry at PTE level
+>>>> + * pmd_mkdevmap(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D=
+ Creates a device entry at PMD level
+>>>> + * pud_mkdevmap(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D=
+ Creates a device entry at PUD level
+>>>> + * pte_devmap(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D =
+Tests a device entry at PTE level
+>>>> + * pmd_devmap(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D =
+Tests a device entry at PMD level
+>>>> + * pud_devmap(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D =
+Tests a device entry at PUD level
+>>>> + *
+>>>> + * pte_mksoft_dirty(entry)=C2=A0=C2=A0=C2=A0 =3D Creates a soft dir=
+ty entry at PTE level
+>>>> + * pmd_mksoft_dirty(entry)=C2=A0=C2=A0=C2=A0 =3D Creates a soft dir=
+ty entry at PMD level
+>>>> + * pte_swp_mksoft_dirty(entry)=C2=A0=C2=A0=C2=A0 =3D Creates a soft=
+ dirty swap entry at PTE level
+>>>> + * pmd_swp_mksoft_dirty(entry)=C2=A0=C2=A0=C2=A0 =3D Creates a soft=
+ dirty swap entry at PMD level
+>>>> + * pte_soft_dirty(entry)=C2=A0=C2=A0=C2=A0 =3D Tests a soft dirty e=
+ntry at PTE level
+>>>> + * pmd_soft_dirty(entry)=C2=A0=C2=A0=C2=A0 =3D Tests a soft dirty e=
+ntry at PMD level
+>>>> + * pte_swp_soft_dirty(entry)=C2=A0=C2=A0=C2=A0 =3D Tests a soft dir=
+ty swap entry at PTE level
+>>>> + * pmd_swp_soft_dirty(entry)=C2=A0=C2=A0=C2=A0 =3D Tests a soft dir=
+ty swap entry at PMD level
+>>>> + * pte_clear_soft_dirty(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =
+=3D Clears a soft dirty entry at PTE level
+>>>> + * pmd_clear_soft_dirty(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =
+=3D Clears a soft dirty entry at PMD level
+>>>> + * pte_swp_clear_soft_dirty(entry) =3D Clears a soft dirty swap ent=
+ry at PTE level
+>>>> + * pmd_swp_clear_soft_dirty(entry) =3D Clears a soft dirty swap ent=
+ry at PMD level
+>>>> + *
+>>>> + * pte_mkhuge(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D =
+Creates a HugeTLB entry at given level
+>>>> + * pte_huge(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D Te=
+sts a HugeTLB entry at given level
+>>>> + *
+>>>> + * pmd_trans_huge(entry)=C2=A0=C2=A0=C2=A0 =3D Tests a trans huge p=
+age at PMD level
+>>>> + * pud_trans_huge(entry)=C2=A0=C2=A0=C2=A0 =3D Tests a trans huge p=
+age at PUD level
+>>>> + * pmd_present(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D=
+ Tests an entry points to memory at PMD level
+>>>> + * pud_present(entry)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 =3D=
+ Tests an entry points to memory at PUD level
+>>>> + * pmd_mknotpresent(entry)=C2=A0=C2=A0=C2=A0 =3D Invalidates an PMD=
+ entry for MMU
+>>>> + * pud_mknotpresent(entry)=C2=A0=C2=A0=C2=A0 =3D Invalidates an PUD=
+ entry for MMU
+>>>> =C2=A0=C2=A0 */
+>>>> =C2=A0 #define VMFLAGS=C2=A0=C2=A0=C2=A0 (VM_READ|VM_WRITE|VM_EXEC)
+>>>> =C2=A0 @@ -287,6 +325,233 @@ static void __init pmd_populate_tests(s=
+truct mm_struct *mm, pmd_t *pmdp,
+>>>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 WARN_ON(pmd_bad(pmd));
+>>>> =C2=A0 }
+>>>> =C2=A0 +#ifdef CONFIG_ARCH_HAS_PTE_SPECIAL
+>>>
+>>> Can we avoid ifdefs unless necessary ?
+>>>
+>>> In mm/memory.c I see things like the following, it means pte_special(=
+) always exist and a #ifdef is not necessary.
 >>
->> The case that you are describing has to return -EPERM per ABI spec. This case
->> has to return -EINVAL.
+>> True, #ifdef here can be dropped here, done.
 >>
->> The first case is taken care from the generic code. But if we don't do this
->> check before on arm64 compat we end up returning the wrong error code.
-> 
-> I guess I have the same question as above. Where does the arm32 code
-> return -EINVAL for that case? Did it work correctly before you removed
-> the TASK_SIZE_32 check?
->
+>>>
+>>> =C2=A0=C2=A0=C2=A0=C2=A0if (IS_ENABLED(CONFIG_ARCH_HAS_PTE_SPECIAL)) =
+{
+>>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 if (likely(!pte_special(pt=
+e)))
+>>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 go=
+to check_pfn;
+>>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 if (vma->vm_ops && vma->vm=
+_ops->find_special_page)
+>>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 re=
+turn vma->vm_ops->find_special_page(vma, addr);
+>>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 if (vma->vm_flags & (VM_PF=
+NMAP | VM_MIXEDMAP))
+>>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 re=
+turn NULL;
+>>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 if (is_zero_pfn(pfn))
+>>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 re=
+turn NULL;
+>>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 if (pte_devmap(pte))
+>>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 re=
+turn NULL;
+>>>
+>>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 print_bad_pte(vma, addr, p=
+te, NULL);
+>>> =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 return NULL;
+>>> =C2=A0=C2=A0=C2=A0=C2=A0}
+>>>
+>>>> +static void __init pte_special_tests(unsigned long pfn, pgprot_t pr=
+ot)
+>>>> +{
+>>>> +=C2=A0=C2=A0=C2=A0 pte_t pte =3D pfn_pte(pfn, prot);
+>>>> +
+>>>> +=C2=A0=C2=A0=C2=A0 WARN_ON(!pte_special(pte_mkspecial(pte)));
+>>>> +}
+>>>> +#else
+>>>> +static void __init pte_special_tests(unsigned long pfn, pgprot_t pr=
+ot) { }
+>>>> +#endif
+>>>> +
+>>>> +#ifdef CONFIG_NUMA_BALANCING
+>>>
+>>> Same here, this ifdef shouldn't be necessary because in /include/asm-=
+generic/pgtable.h we have the following, so a if (IS_ENABLED()) should be=
+ enough.
+>>>
+>>> #ifndef CONFIG_NUMA_BALANCING
+>>> /*
+>>> =C2=A0* Technically a PTE can be PROTNONE even when not doing NUMA ba=
+lancing but
+>>> =C2=A0* the only case the kernel cares is for NUMA balancing and is o=
+nly ever set
+>>> =C2=A0* when the VMA is accessible. For PROT_NONE VMAs, the PTEs are =
+not marked
+>>> =C2=A0* _PAGE_PROTNONE so by by default, implement the helper as "alw=
+ays no". It
+>>> =C2=A0* is the responsibility of the caller to distinguish between PR=
+OT_NONE
+>>> =C2=A0* protections and NUMA hinting fault protections.
+>>> =C2=A0*/
+>>> static inline int pte_protnone(pte_t pte)
+>>> {
+>>> =C2=A0=C2=A0=C2=A0=C2=A0return 0;
+>>> }
+>>>
+>>> static inline int pmd_protnone(pmd_t pmd)
+>>> {
+>>> =C2=A0=C2=A0=C2=A0=C2=A0return 0;
+>>> }
+>>> #endif /* CONFIG_NUMA_BALANCING */
+>>
+>> True,=C2=A0 #ifdef here can be dropped, done. There is something I had=
+ missed
+>> before, pfn_pmd() requires #ifdef CONFIG_TRANSPARENT_HUGEPAGE instead.=
+ We
+>> need a pmd_t here with given prot. We cannot go via pfn_pte() followed=
+ by
+>> pte_pmd(), as the later is platform specific and not available in gene=
+ral.
+>=20
+> As many things require CONFIG_TRANSPARENT_HUGEPAGE,=C2=A0 maybe it woul=
+d be worth creating an additional C file with the related functions and b=
+uild it conditionnaly to CONFIG_TRANSPARENT_HUGEPAGE
+>=20
 
-I repeated the test and seems that it was failing even before I removed
-TASK_SIZE_32. For reasons I can't explain I did not catch it before.
+Apologies for the delayed response here. Any split in the test will break=
+ it's
+monolithic structure which is not desirable. Also lack of an explicit dep=
+endency
+between HAVE_ARCH_TRANSPARENT_HUGEPAGE and HAVE_ARCH_TRANSPARENT_HUGEPAGE=
+_PUD
+makes it difficult to group together fallback dummy stubs from various TH=
+P
+related test functions here. I am planning to re-spin this patch sooner w=
+ith
+some more tests while also accommodating other previous comments. Hence, =
+will
+probably note down this aspect which can then be discussed further if req=
+uired.
 
-The getres syscall should return -EINVAL in the cases specified in [1].
-
-
-> Sorry, just trying to figure out where the compatibility aspect is and
-> that we don't add some artificial checks only to satisfy a vdsotest case
-> that may or may not have relevance to any other user program.
-> 
-
-No issue Catalin. I understand the implications of the change that I am
-proposing with this series and I am the first one who wants to get it right.
-
-Said that vdsotest follows "pedantically" the ABI spec and I chose it at the
-beginning of this journey to have as less surprises as I could in the long run.
-
-[1] http://man7.org/linux/man-pages/man2/clock_getres.2.html
-
--- 
-Regards,
-Vincenzo
+> Christophe
