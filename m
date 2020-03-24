@@ -1,96 +1,132 @@
 From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v4 4/6] mm: Add page table level flags to vm_flags
-Date: Tue, 24 Mar 2020 21:45:32 +0800
-Message-ID: <20200324134534.1570-5-yezhenyu2@huawei.com>
+Subject: [RFC PATCH v4 6/6] mm: Set VM_LEVEL flags in some tlb_flush functions
+Date: Tue, 24 Mar 2020 21:45:34 +0800
+Message-ID: <20200324134534.1570-7-yezhenyu2@huawei.com>
 References: <20200324134534.1570-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200324134534.1570-1-yezhenyu2@huawei.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, peterz@infradead.org, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: linux-arch@vger.kernel.org, yezhenyu2@huawei.com, linux-kernel@vger.kernel.org, xiexiangyou@huawei.com, zhangshaokun@hisilicon.com, linux-mm@kvack.org, arm@kernel.org, prime.zeng@hisilicon.com, linux-arm-kernel@lists.infradead.org
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
 List-Id: linux-arch.vger.kernel.org
 
-Add VM_LEVEL_[PUD|PMD|PTE] to vm_flags to indicate which level of
-the page tables the vma is in. Those flags can be used to reduce
-the cost of TLB invalidation.
+Set VM_LEVEL flags in some tlb_flush functions.
+The relevant functions are:
 
-These should be common flags for all architectures, however, those
-flags are only available in 64-bits system currently, because the
-lower-order flags are fully used.
-
-These flags are only used by ARM64 architecture now. See in next
-patch.
+	tlb_flush in asm/tlb.h
+	get_clear_flush and clear_flush in mm/hugetlbpage.c
+	flush_pmd|pud_tlb_range in asm-generic/patable.h
+	do_huge_pmd_numa_page and move_huge_pmd in mm/huge_memory.c
 
 Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 ---
- include/linux/mm.h             | 10 ++++++++++
- include/trace/events/mmflags.h | 15 ++++++++++++++-
- 2 files changed, 24 insertions(+), 1 deletion(-)
+ arch/arm64/include/asm/tlb.h  | 12 ++++++++++++
+ arch/arm64/mm/hugetlbpage.c   |  4 ++--
+ include/asm-generic/pgtable.h | 16 ++++++++++++++--
+ mm/huge_memory.c              |  8 +++++++-
+ 4 files changed, 35 insertions(+), 5 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index c54fb96cb1e6..3ff16ffa5e83 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -313,6 +313,16 @@ extern unsigned int kobjsize(const void *objp);
- #endif
- #endif /* CONFIG_ARCH_HAS_PKEYS */
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index b76df828e6b7..77fe942b30b6 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -27,6 +27,18 @@ static inline void tlb_flush(struct mmu_gather *tlb)
+ 	bool last_level = !tlb->freed_tables;
+ 	unsigned long stride = tlb_get_unmap_size(tlb);
  
-+#ifdef CONFIG_64BIT
-+# define VM_LEVEL_PUD	BIT(37)		/* vma is in pud-level of page table */
-+# define VM_LEVEL_PMD	BIT(38)		/* vma is in pmd-level of page table */
-+# define VM_LEVEL_PTE	BIT(39)		/* vma is in pte-level of page table */
-+#else
-+# define VM_LEVEL_PUD	0
-+# define VM_LEVEL_PMD	0
-+# define VM_LEVEL_PTE	0
-+#endif /* CONFIG_64BIT */
++	/*
++	 * mm_gather tracked which levels of the page tables
++	 * have been cleared, we can use this info to set
++	 * vm->vm_flags.
++	 */
++	if (tlb->cleared_ptes)
++		vma.vm_flags |= VM_LEVEL_PTE;
++	else if (tlb->cleared_pmds)
++		vma.vm_flags |= VM_LEVEL_PMD;
++	else if (tlb->cleared_puds)
++		vma.vm_flags |= VM_LEVEL_PUD;
 +
- #if defined(CONFIG_X86)
- # define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
- #elif defined(CONFIG_PPC)
-diff --git a/include/trace/events/mmflags.h b/include/trace/events/mmflags.h
-index a1675d43777e..9f13cfa96f9f 100644
---- a/include/trace/events/mmflags.h
-+++ b/include/trace/events/mmflags.h
-@@ -130,6 +130,16 @@ IF_HAVE_PG_IDLE(PG_idle,		"idle"		)
- #define IF_HAVE_VM_SOFTDIRTY(flag,name)
- #endif
+ 	/*
+ 	 * If we're tearing down the address space then we only care about
+ 	 * invalidating the walk-cache, since the ASID allocator won't
+diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
+index bbeb6a5a6ba6..c35a1bd06bd0 100644
+--- a/arch/arm64/mm/hugetlbpage.c
++++ b/arch/arm64/mm/hugetlbpage.c
+@@ -140,7 +140,7 @@ static pte_t get_clear_flush(struct mm_struct *mm,
+ 	}
  
-+#ifdef CONFIG_64BIT
-+#define IF_HAVE_VM_LEVEL_PUD(flag,name)	{flag, name}
-+#define IF_HAVE_VM_LEVEL_PMD(flag,name)	{flag, name}
-+#define IF_HAVE_VM_LEVEL_PTE(flag,name)	{flag, name}
-+#else
-+#define IF_HAVE_VM_LEVEL_PUD(flag,name)
-+#define IF_HAVE_VM_LEVEL_PMD(flag,name)
-+#define IF_HAVE_VM_LEVEL_PTE(flag,name)
-+#endif
+ 	if (valid) {
+-		struct vm_area_struct vma = TLB_FLUSH_VMA(mm, 0);
++		struct vm_area_struct vma = TLB_FLUSH_VMA(mm, VM_LEVEL_PTE);
+ 		flush_tlb_range(&vma, saddr, addr);
+ 	}
+ 	return orig_pte;
+@@ -161,7 +161,7 @@ static void clear_flush(struct mm_struct *mm,
+ 			     unsigned long pgsize,
+ 			     unsigned long ncontig)
+ {
+-	struct vm_area_struct vma = TLB_FLUSH_VMA(mm, 0);
++	struct vm_area_struct vma = TLB_FLUSH_VMA(mm, VM_LEVEL_PTE);
+ 	unsigned long i, saddr = addr;
+ 
+ 	for (i = 0; i < ncontig; i++, addr += pgsize, ptep++)
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index e2e2bef07dd2..391e704faf7a 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1160,8 +1160,20 @@ static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+  * invalidate the entire TLB which is not desitable.
+  * e.g. see arch/arc: flush_pmd_tlb_range
+  */
+-#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
+-#define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
++#define flush_pmd_tlb_range(vma, addr, end)				\
++	do {								\
++		vma->vm_flags &= ~(VM_LEVEL_PUD | VM_LEVEL_PTE);	\
++		vma->vm_flags |= VM_LEVEL_PMD;				\
++		flush_tlb_range(vma, addr, end);			\
++	} while (0)
 +
- #define __def_vmaflag_names						\
- 	{VM_READ,			"read"		},		\
- 	{VM_WRITE,			"write"		},		\
-@@ -161,7 +171,10 @@ IF_HAVE_VM_SOFTDIRTY(VM_SOFTDIRTY,	"softdirty"	)		\
- 	{VM_MIXEDMAP,			"mixedmap"	},		\
- 	{VM_HUGEPAGE,			"hugepage"	},		\
- 	{VM_NOHUGEPAGE,			"nohugepage"	},		\
--	{VM_MERGEABLE,			"mergeable"	}		\
-+	{VM_MERGEABLE,			"mergeable"	},		\
-+IF_HAVE_VM_LEVEL_PUD(VM_LEVEL_PUD,	"pud-level"	),		\
-+IF_HAVE_VM_LEVEL_PMD(VM_LEVEL_PMD,	"pmd-level"	),		\
-+IF_HAVE_VM_LEVEL_PTE(VM_LEVEL_PTE,	"pte-level"	)		\
- 
- #define show_vma_flags(flags)						\
- 	(flags) ? __print_flags(flags, "|",				\
++#define flush_pud_tlb_range(vma, addr, end)				\
++	do {								\
++		vma->vm_flags &= ~(VM_LEVEL_PMD | VM_LEVEL_PTE);	\
++		vma->vm_flags |= VM_LEVEL_PUD;				\
++		flush_tlb_range(vma, addr, end);			\
++	} while (0)
++
+ #else
+ #define flush_pmd_tlb_range(vma, addr, end)	BUILD_BUG()
+ #define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 24ad53b4dfc0..9a78b8d865f0 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1646,6 +1646,8 @@ vm_fault_t do_huge_pmd_numa_page(struct vm_fault *vmf, pmd_t pmd)
+ 	 * mapping or not. Hence use the tlb range variant
+ 	 */
+ 	if (mm_tlb_flush_pending(vma->vm_mm)) {
++		vma->vm_flags &= ~(VM_LEVEL_PUD | VM_LEVEL_PTE);
++		vma->vm_flags |= VM_LEVEL_PMD;
+ 		flush_tlb_range(vma, haddr, haddr + HPAGE_PMD_SIZE);
+ 		/*
+ 		 * change_huge_pmd() released the pmd lock before
+@@ -1917,8 +1919,12 @@ bool move_huge_pmd(struct vm_area_struct *vma, unsigned long old_addr,
+ 		}
+ 		pmd = move_soft_dirty_pmd(pmd);
+ 		set_pmd_at(mm, new_addr, new_pmd, pmd);
+-		if (force_flush)
++		if (force_flush) {
++			vma->vm_flags &= ~(VM_LEVEL_PUD | VM_LEVEL_PTE);
++			vma->vm_flags |= VM_LEVEL_PMD;
+ 			flush_tlb_range(vma, old_addr, old_addr + PMD_SIZE);
++		}
++
+ 		if (new_ptl != old_ptl)
+ 			spin_unlock(new_ptl);
+ 		spin_unlock(old_ptl);
 -- 
 2.19.1
