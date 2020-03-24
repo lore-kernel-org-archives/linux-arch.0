@@ -1,74 +1,94 @@
-Return-Path: <SRS0=M4aj=5P=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:51342 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729705AbgC3MRM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2020 08:17:12 -0400
-Date: Mon, 30 Mar 2020 14:16:54 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][Qusetion] the value of cleared_(ptes|pmds|puds|p4ds) in
- struct mmu_gather
-Message-ID: <20200330121654.GL20696@hirez.programming.kicks-ass.net>
-References: <fbb00ac0-9104-8d25-f225-7b3d1b17a01f@huawei.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <fbb00ac0-9104-8d25-f225-7b3d1b17a01f@huawei.com>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=1/KV=5J=kvack.org=owner-linux-mm@kernel.org>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: [PATCH V2 0/3] mm/debug: Add more arch page table helper tests
+Date: Tue, 24 Mar 2020 10:52:52 +0530
+Message-ID: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
+Sender: owner-linux-mm@kvack.org
+To: linux-mm@kvack.org
+Cc: christophe.leroy@c-s.fr, Anshuman Khandual <anshuman.khandual@arm.com>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: npiggin@gmail.com, will.deacon@arm.com, mingo@kernel.org, torvalds@linux-foundation.org, schwidefsky@de.ibm.com, akpm@linux-foundation.org, luto@kernel.org, bp@alien8.de, Marc Zyngier <maz@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arm@kernel.org, xiexiangyou@huawei.com
-Message-ID: <20200330121654.wJbb_TPDZQXoWuz2V0HqLRuxJ6pYItlc9bTCgd53er4@z>
+Message-ID: <20200324052252.Wypd_urC-Fbv8T4PcsJsiovqo99sKFB2D9LF1141a1s@z>
 
-On Sat, Mar 28, 2020 at 12:30:50PM +0800, Zhenyu Ye wrote:
-> Hi all,
-> 
-> commit a6d60245 "Track which levels of the page tables have been cleared"
-> added cleared_(ptes|pmds|puds|p4ds) in struct mmu_gather, and the values
-> of them are set in some places. For example:
-> 
-> In include/asm-generic/tlb.h, pte_free_tlb() set the tlb->cleared_pmds:
-> ---8<---
-> #ifndef pte_free_tlb
-> #define pte_free_tlb(tlb, ptep, address)			\
-> 	do {							\
-> 		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
-> 		tlb->freed_tables = 1;				\
-> 		tlb->cleared_pmds = 1;				\
-> 		__pte_free_tlb(tlb, ptep, address);		\
-> 	} while (0)
-> #endif
-> ---8<---
-> 
-> 
-> However, in arch/s390/include/asm/tlb.h, pte_free_tlb() set the tlb->cleared_ptes:
-> ---8<---
-> static inline void pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
->                                 unsigned long address)
-> {
-> 	__tlb_adjust_range(tlb, address, PAGE_SIZE);
-> 	tlb->mm->context.flush_mm = 1;
-> 	tlb->freed_tables = 1;
-> 	tlb->cleared_ptes = 1;
-> 	/*
-> 	 * page_table_free_rcu takes care of the allocation bit masks
-> 	 * of the 2K table fragments in the 4K page table page,
-> 	 * then calls tlb_remove_table.
-> 	 */
-> 	page_table_free_rcu(tlb, (unsigned long *) pte, address);
-> }
-> ---8<---
-> 
-> 
-> In my view, the cleared_(ptes|pmds|puds) and (pte|pmd|pud)_free_tlb
-> correspond one-to-one.  So we should set cleared_ptes in pte_free_tlb(),
-> then use it when needed.
+This series adds more arch page table helper tests. The new tests here are
+either related to core memory functions and advanced arch pgtable helpers.
+This also creates a documentation file enlisting all expected semantics as
+suggested by Mike Rapoport (https://lkml.org/lkml/2020/1/30/40).
 
-So pte_free_tlb() clears a table of PTE entries, or a PMD level entity,
-also see free_pte_range(). So the generic code makes sense to me. The
-PTE level invalidations will have happened on tlb_remove_tlb_entry().
+This series has been tested on arm64 and x86 platforms. There is just one
+expected failure on arm64 that will be fixed when we enable THP migration.
 
-> I'm very confused about this. Which is wrong? Or is there something
-> I understand wrong?
+[   21.741634] WARNING: CPU: 0 PID: 1 at mm/debug_vm_pgtable.c:782
 
-I agree the s390 case is puzzling, Martin does s390 need a PTE level
-invalidate for removing a PTE table or was this a mistake?
+which corresponds to
+
+WARN_ON(!pmd_present(pmd_mknotpresent(pmd_mkhuge(pmd))))
+
+There are many TRANSPARENT_HUGEPAGE and ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD
+ifdefs scattered across the test. But consolidating all the fallback stubs
+is not very straight forward because ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD is
+not explicitly dependent on ARCH_HAS_TRANSPARENT_HUGEPAGE.
+
+This series has been build tested on many platforms including the ones that
+subscribe the test through ARCH_HAS_DEBUG_VM_PGTABLE.
+
+This series is based on v5.6-rc7 after applying these following patches.
+
+1. https://patchwork.kernel.org/patch/11431277/
+2. https://patchwork.kernel.org/patch/11452185/
+
+Changes in V2:
+
+- Dropped CONFIG_ARCH_HAS_PTE_SPECIAL per Christophe
+- Dropped CONFIG_NUMA_BALANCING per Christophe
+- Dropped CONFIG_HAVE_ARCH_SOFT_DIRTY per Christophe
+- Dropped CONFIG_MIGRATION per Christophe
+- Replaced CONFIG_S390 with __HAVE_ARCH_PMDP_INVALIDATE
+- Moved page allocation & free inside swap_migration_tests() per Christophe
+- Added CONFIG_TRANSPARENT_HUGEPAGE to protect pfn_pmd()
+- Added CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD to protect pfn_pud()
+- Added a patch for other arch advanced page table helper tests
+- Added a patch creating a documentation for page table helper semantics
+
+Changes in V1: (https://patchwork.kernel.org/patch/11408253/)
+
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Vasily Gorbik <gor@linux.ibm.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Kirill A. Shutemov <kirill@shutemov.name>
+Cc: Paul Walmsley <paul.walmsley@sifive.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: linux-snps-arc@lists.infradead.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-riscv@lists.infradead.org
+Cc: x86@kernel.org
+Cc: linux-doc@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+
+Anshuman Khandual (3):
+  mm/debug: Add tests validating arch page table helpers for core features
+  mm/debug: Add tests validating arch advanced page table helpers
+  Documentation/mm: Add descriptions for arch page table helpers
+
+ Documentation/vm/arch_pgtable_helpers.rst | 256 ++++++++++
+ mm/debug_vm_pgtable.c                     | 594 +++++++++++++++++++++-
+ 2 files changed, 839 insertions(+), 11 deletions(-)
+ create mode 100644 Documentation/vm/arch_pgtable_helpers.rst
+
+-- 
+2.20.1
