@@ -1,73 +1,100 @@
-Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lhrrgout.huawei.com ([185.176.76.210]:2550 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1730192AbgCKQNB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Mar 2020 12:13:01 -0400
-Subject: Re: About commit "io: change inX() to have their own IO barrier
- overrides"
-From: John Garry <john.garry@huawei.com>
-References: <2e80d7bc-32a0-cc40-00a9-8a383a1966c2@huawei.com>
- <c1489f55-369d-2cff-ff36-b10fb5d3ee79@kernel.org>
- <8207cd51-5b94-2f15-de9f-d85c9c385bca@huawei.com>
- <6115fa56-a471-1e9f-edbb-e643fa4e7e11@kernel.org>
- <7c955142-1fcb-d99e-69e4-1e0d3d9eb8c3@huawei.com>
- <CAK8P3a0f9hnKGd6GJ8qFZSu+J-n4fY23TCGxQkmgJaxbpre50Q@mail.gmail.com>
- <90af535f-00ef-c1e3-ec20-aae2bd2a0d88@kernel.org>
- <CAK8P3a2Grd0JsBNsB19oAxrAFtOdpvjrpGcfeArKe7zD_jrUZw@mail.gmail.com>
- <ae0a1bf1-948f-7df0-9efb-cd1e94e27d2d@huawei.com>
- <CAK8P3a2wdCrBP=a8ZypWoC=HyCU3oYYNeCddWM7oT+xM9gTPhw@mail.gmail.com>
- <182a37c2-7437-b1bd-8b86-5c9ce2e29f00@huawei.com>
- <CAK8P3a22fEGdVKVVs_40Rc_vs9SQ2ikejwMtFpyR_o+74utWaA@mail.gmail.com>
- <15e7158d-184d-9591-89a6-cd6b10ef054d@huawei.com>
-Message-ID: <96b407eb-f9cd-960c-02e5-5e2a4ece33d8@huawei.com>
-Date: Wed, 11 Mar 2020 16:12:58 +0000
+Return-Path: <SRS0=1/KV=5J=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RFC PATCH v4 1/6] arm64: Detect the ARMv8.4 TTL feature
+Date: Tue, 24 Mar 2020 21:45:29 +0800
+Message-ID: <20200324134534.1570-2-yezhenyu2@huawei.com>
+In-Reply-To: <20200324134534.1570-1-yezhenyu2@huawei.com>
+References: <20200324134534.1570-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-In-Reply-To: <15e7158d-184d-9591-89a6-cd6b10ef054d@huawei.com>
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, peterz@infradead.org, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Sinan Kaya <okaya@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>, "xuwei (O)" <xuwei5@hisilicon.com>, Bjorn Helgaas <bhelgaas@google.com>, Will Deacon <will@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20200311161258.IPdJOTM4_pb7IJlC7IWqtKiIHvqRU1Sgl_5ogv01XEU@z>
+Message-ID: <20200324134529.1QQqYk-_Hp09d2Ll8HQakO7lDW0dr-V_8iMBz4xDJE4@z>
 
-On 06/03/2020 16:43, John Garry wrote:
-> On 06/03/2020 16:29, Arnd Bergmann wrote:
->>> The idea is good, but it would be nice if we just somehow use a common
->>> asm-generic io.h definition directly in logic_pio.c, like:
->>>
->>> asm-generic io.h:
->>>
->>> #ifndef __raw_inw // name?
->>> #define __raw_inw __raw_inw
->>> static inline u16 __raw_inw(unsigned long addr)
->>> {
->>>          u16 val;
->>>
->>>          __io_pbr();
->>>          val = __le16_to_cpu(__raw_readw(addr));
->>>          __io_par(val);
->>>          return val;
->>> }
->>> #endif
->>>
->>> #include <linux/logic_pio.h>
->>>
->>> #ifndef inw
->>> #define inw __raw_inw
->>> #endif
->> Yes, makes sense. Maybe __arch_inw() then? Not great either, but I think
->> that's better than __raw_inw() because __raw_* would sound like it
->> mirrors __raw_readl() that lacks the barriers and byteswaps.
-> 
-> Right, I had the same concern. And maybe the "arch" prefix is 
-> misleading. Just __inw could be ok, and hopefully not conflict with the 
-> arch/arm/mach-* definitions.
-> 
+From: Marc Zyngier <maz@kernel.org>
 
-I think that it hasn't been mentioned already, but it looks like the 
-outX methods also need the same treatment, from a7851aa54c.
+In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+feature allows TLBs to be issued with a level allowing for quicker
+invalidation.
 
-thanks,
-John
+Let's detect the feature for now. Further patches will implement
+its actual usage.
+
+Signed-off-by: Marc Zyngier <maz@kernel.org>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+---
+ arch/arm64/include/asm/cpucaps.h |  3 ++-
+ arch/arm64/include/asm/sysreg.h  |  1 +
+ arch/arm64/kernel/cpufeature.c   | 11 +++++++++++
+ 3 files changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cp=
+ucaps.h
+index 865e0253fc1e..8b3b4dd612b3 100644
+--- a/arch/arm64/include/asm/cpucaps.h
++++ b/arch/arm64/include/asm/cpucaps.h
+@@ -58,7 +58,8 @@
+ #define ARM64_WORKAROUND_SPECULATIVE_AT_NVHE	48
+ #define ARM64_HAS_E0PD				49
+ #define ARM64_HAS_RNG				50
++#define ARM64_HAS_ARMv8_4_TTL			51
+=20
+-#define ARM64_NCAPS				51
++#define ARM64_NCAPS				52
+=20
+ #endif /* __ASM_CPUCAPS_H */
+diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sys=
+reg.h
+index b91570ff9db1..a28b76f32ba7 100644
+--- a/arch/arm64/include/asm/sysreg.h
++++ b/arch/arm64/include/asm/sysreg.h
+@@ -685,6 +685,7 @@
+=20
+ /* id_aa64mmfr2 */
+ #define ID_AA64MMFR2_E0PD_SHIFT		60
++#define ID_AA64MMFR2_TTL_SHIFT		48
+ #define ID_AA64MMFR2_FWB_SHIFT		40
+ #define ID_AA64MMFR2_AT_SHIFT		32
+ #define ID_AA64MMFR2_LVA_SHIFT		16
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeatur=
+e.c
+index 0b6715625cf6..cbe46ad2900a 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -241,6 +241,7 @@ static const struct arm64_ftr_bits ftr_id_aa64mmfr1[]=
+ =3D {
+=20
+ static const struct arm64_ftr_bits ftr_id_aa64mmfr2[] =3D {
+ 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_NONSTRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_=
+E0PD_SHIFT, 4, 0),
++	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_TTL=
+_SHIFT, 4, 0),
+ 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_FWB=
+_SHIFT, 4, 0),
+ 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_AT=
+_SHIFT, 4, 0),
+ 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_LVA=
+_SHIFT, 4, 0),
+@@ -1523,6 +1524,16 @@ static const struct arm64_cpu_capabilities arm64_f=
+eatures[] =3D {
+ 		.matches =3D has_cpuid_feature,
+ 		.cpu_enable =3D cpu_has_fwb,
+ 	},
++	{
++		.desc =3D "ARMv8.4 Translation Table Level",
++		.type =3D ARM64_CPUCAP_SYSTEM_FEATURE,
++		.capability =3D ARM64_HAS_ARMv8_4_TTL,
++		.sys_reg =3D SYS_ID_AA64MMFR2_EL1,
++		.sign =3D FTR_UNSIGNED,
++		.field_pos =3D ID_AA64MMFR2_TTL_SHIFT,
++		.min_field_value =3D 1,
++		.matches =3D has_cpuid_feature,
++	},
+ #ifdef CONFIG_ARM64_HW_AFDBM
+ 	{
+ 		/*
+--=20
+2.19.1
