@@ -1,220 +1,387 @@
-Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pj1-f67.google.com ([209.85.216.67]:50378 "EHLO
-        mail-pj1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726368AbgCFQEs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 11:04:48 -0500
-Received: by mail-pj1-f67.google.com with SMTP id nm6so1242310pjb.0
-        for <linux-arch@vger.kernel.org>; Fri, 06 Mar 2020 08:04:48 -0800 (PST)
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-From: Andy Lutomirski <luto@amacapital.net>
-Mime-Version: 1.0 (1.0)
-Subject: Re: [PATCH v2 00/20] Introduce common headers
-Date: Fri, 6 Mar 2020 08:04:44 -0800
-Message-ID: <3278D604-28F1-47A1-BAB8-D8EB439995E8@amacapital.net>
-References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
-In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=kSGY=5J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:57498 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725923AbgCXFX2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 24 Mar 2020 01:23:28 -0400
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: [PATCH V2 1/3] mm/debug: Add tests validating arch page table helpers for core features
+Date: Tue, 24 Mar 2020 10:52:53 +0530
+Message-ID: <1585027375-9997-2-git-send-email-anshuman.khandual@arm.com>
+In-Reply-To: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
+References: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200306160444.Jmp0PB4YBJbMk_boIzGhH2UV6inBrqddBC5mab4y4oo@z>
+To: linux-mm@kvack.org
+Cc: christophe.leroy@c-s.fr, Anshuman Khandual <anshuman.khandual@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200324052253.am5Tw1TNEZIzuevG4G7KuQyEKpr969fkN2MmLxnjK0U@z>
 
+This adds new tests validating arch page table helpers for these following
+core memory features. These tests create and test specific mapping types at
+various page table levels.
 
+1. SPECIAL mapping
+2. PROTNONE mapping
+3. DEVMAP mapping
+4. SOFTDIRTY mapping
+5. SWAP mapping
+6. MIGRATION mapping
+7. HUGETLB mapping
+8. THP mapping
 
-> On Mar 6, 2020, at 5:32 AM, Vincenzo Frascino <vincenzo.frascino@arm.com> w=
-rote:
->=20
-> =EF=BB=BFBack in July last year we started having a problem in building co=
-mpat
-> vDSOs on arm64 [1] [2] that was not present when the arm64 porting to
-> the Unified vDSO was done. In particular when the compat vDSO on such
-> architecture is built with gcc it generates the warning below:
->=20
-> In file included from ./arch/arm64/include/asm/thread_info.h:17:0,
->                 from ./include/linux/thread_info.h:38,
->                 from ./arch/arm64/include/asm/preempt.h:5,
->                 from ./include/linux/preempt.h:78,
->                 from ./include/linux/spinlock.h:51,
->                 from ./include/linux/seqlock.h:36,
->                 from ./include/linux/time.h:6,
->                 from ./lib/vdso/gettimeofday.c:7,
->                 from <command-line>:0:
-> ./arch/arm64/include/asm/memory.h: In function =E2=80=98__tag_set=E2=80=99=
-:
-> ./arch/arm64/include/asm/memory.h:233:15: warning: cast from pointer
->                to integer of different size [-Wpointer-to-int-cast]
->  u64 __addr =3D (u64)addr & ~__tag_shifted(0xff);
->               ^
-> In file included from ./arch/arm64/include/asm/pgtable-hwdef.h:8:0,
->                 from ./arch/arm64/include/asm/processor.h:34,
->                 from ./arch/arm64/include/asm/elf.h:118,
->                 from ./include/linux/elf.h:5,
->                 from ./include/linux/elfnote.h:62,
->                 from arch/arm64/kernel/vdso32/note.c:11:
-> ./arch/arm64/include/asm/memory.h: In function =E2=80=98__tag_set=E2=80=99=
-:
-> ./arch/arm64/include/asm/memory.h:233:15: warning: cast from pointer
->                to integer of different size [-Wpointer-to-int-cast]
->  u64 __addr =3D (u64)addr & ~__tag_shifted(0xff);
->=20
-> The same porting does not build at all when the selected compiler is
-> clang.
->=20
-> I started an investigation to try to understand better the problem and
-> after various discussions at Plumbers and Recipes last year the
-> conclusion was that the vDSO library as it stands it is including more
-> headers that it needs. In particular, being a user-space library, it
-> should require only the UAPI and a minimal vDSO kernel interface instead
-> of all the kernel-related inline functions which are not directly used
-> and in some cases can have side effects.
->=20
-> To solve the problem, I decided to use the approach below:
->  * Extract from include/linux/ the vDSO required kernel interface
->    and place it in include/common/
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Vasily Gorbik <gor@linux.ibm.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Kirill A. Shutemov <kirill@shutemov.name>
+Cc: Paul Walmsley <paul.walmsley@sifive.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: linux-snps-arc@lists.infradead.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-riscv@lists.infradead.org
+Cc: x86@kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Suggested-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
+---
+ mm/debug_vm_pgtable.c | 291 +++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 290 insertions(+), 1 deletion(-)
 
-I really like the approach, but I=E2=80=99m wondering if =E2=80=9Ccommon=E2=80=
-=9D is the right name. This directory is headers that aren=E2=80=99t stable A=
-BI like uapi but are shared between the kernel and the vDSO. Regular user co=
-de should *not* include these, right?
-
-Would =E2=80=9Cvdso=E2=80=9D or perhaps =E2=80=9Cprivate-abi=E2=80=9D be cle=
-arer?
-
->  * Make sure that where meaningful the kernel includes "common"
->  * Limit the vDSO library to include headers coming only from UAPI
->    and "common" (with 2 exceptions compiler.h for barriers and
->    param.h for HZ).
->  * Adapt all the architectures that support the unified vDSO library
->    to use "common" headers.
-
->=20
-> According to me this approach allows up to exercise a better control on
-> what the vDSO library can include and to prevent potential issues in
-> future.
->=20
-> This patch series contains the implementation of the described approach.
->=20
-> The "common" headers have been verified on all the architectures that supp=
-ort
-> unified vDSO using the vdsotest [3] testsuite for what concerns the vDSO p=
-art
-> and randconfig to verify that they are included in the correct places.
->=20
-> To simplify the testing, a copy of the patchset on top of a recent linux
-> tree can be found at [4].
->=20
-> [1] https://github.com/ClangBuiltLinux/linux/issues/595
-> [2] https://lore.kernel.org/lkml/20190926151704.GH9689@arrakis.emea.arm.co=
-m
-> [3] https://github.com/nathanlynch/vdsotest
-> [4] git://linux-arm.org/linux-vf.git common-headers/v2
->=20
-> Changes:
-> --------
-> v2:
->  - Addressed review comments for clang support.
->  - Rebased on 5.6-rc4.
->=20
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Russell King <linux@armlinux.org.uk>
-> Cc: Paul Burton <paul.burton@mips.com>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Andy Lutomirski <luto@kernel.org>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Borislav Petkov <bp@alien8.de>
-> Cc: Stephen Boyd <sboyd@kernel.org>
-> Cc: Mark Salyzyn <salyzyn@android.com>
-> Cc: Kees Cook <keescook@chromium.org>
-> Cc: Peter Collingbourne <pcc@google.com>
-> Cc: Dmitry Safonov <0x7f454c46@gmail.com>
-> Cc: Andrei Vagin <avagin@openvz.org>
-> Cc: Nick Desaulniers <ndesaulniers@google.com>
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
->=20
-> Vincenzo Frascino (20):
->  linux/const.h: Extract common header for vDSO
->  linux/bits.h: Extract common header for vDSO
->  linux/limits.h: Extract common header for vDSO
->  linux/math64.h: Extract common header for vDSO
->  linux/time.h: Extract common header for vDSO
->  linux/time32.h: Extract common header for vDSO
->  linux/time64.h: Extract common header for vDSO
->  linux/jiffies.h: Extract common header for vDSO
->  linux/ktime.h: Extract common header for vDSO
->  common: Introduce processor.h
->  linux/elfnote.h: Replace elf.h with UAPI equivalent
->  arm64: Introduce asm/common/processor.h
->  arm64: vdso: Include common headers in the vdso library
->  arm64: vdso32: Include common headers in the vdso library
->  arm64: Introduce asm/common/arch_timer.h
->  mips: vdso: Enable mips to use common headers
->  x86: vdso: Enable x86 to use common headers
->  arm: vdso: Enable arm to use common headers
->  lib: vdso: Enable common headers
->  arm64: vdso32: Enable Clang Compilation
->=20
-> arch/arm/include/asm/common/cp15.h            | 38 +++++++++++++++++++
-> arch/arm/include/asm/common/processor.h       | 22 +++++++++++
-> arch/arm/include/asm/cp15.h                   | 20 +---------
-> arch/arm/include/asm/processor.h              | 11 +-----
-> arch/arm/include/asm/vdso/gettimeofday.h      |  4 +-
-> arch/arm64/include/asm/arch_timer.h           | 29 +++-----------
-> arch/arm64/include/asm/common/arch_timer.h    | 33 ++++++++++++++++
-> arch/arm64/include/asm/common/processor.h     | 31 +++++++++++++++
-> arch/arm64/include/asm/processor.h            | 16 +-------
-> .../include/asm/vdso/compat_gettimeofday.h    |  2 +-
-> arch/arm64/include/asm/vdso/gettimeofday.h    |  8 ++--
-> arch/arm64/kernel/vdso/vgettimeofday.c        |  2 -
-> arch/arm64/kernel/vdso32/Makefile             | 13 ++++++-
-> arch/arm64/kernel/vdso32/vgettimeofday.c      |  3 --
-> arch/mips/include/asm/common/processor.h      | 27 +++++++++++++
-> arch/mips/include/asm/processor.h             | 16 +-------
-> arch/mips/include/asm/vdso/gettimeofday.h     |  4 --
-> arch/x86/include/asm/common/processor.h       | 23 +++++++++++
-> arch/x86/include/asm/processor.h              | 12 +-----
-> include/common/bits.h                         |  9 +++++
-> include/common/const.h                        | 10 +++++
-> include/common/jiffies.h                      | 11 ++++++
-> include/common/ktime.h                        | 16 ++++++++
-> include/common/limits.h                       | 18 +++++++++
-> include/common/math64.h                       | 24 ++++++++++++
-> include/common/processor.h                    | 14 +++++++
-> include/common/time.h                         | 12 ++++++
-> include/common/time32.h                       | 17 +++++++++
-> include/common/time64.h                       | 14 +++++++
-> include/linux/bits.h                          |  2 +-
-> include/linux/const.h                         |  5 +--
-> include/linux/elfnote.h                       |  2 +-
-> include/linux/jiffies.h                       |  4 +-
-> include/linux/ktime.h                         |  9 +----
-> include/linux/limits.h                        | 13 +------
-> include/linux/math64.h                        | 20 +---------
-> include/linux/time.h                          |  5 +--
-> include/linux/time32.h                        | 13 +------
-> include/linux/time64.h                        | 10 +----
-> include/vdso/datapage.h                       | 32 ++++++++++++++--
-> lib/vdso/gettimeofday.c                       | 21 ----------
-> 41 files changed, 388 insertions(+), 207 deletions(-)
-> create mode 100644 arch/arm/include/asm/common/cp15.h
-> create mode 100644 arch/arm/include/asm/common/processor.h
-> create mode 100644 arch/arm64/include/asm/common/arch_timer.h
-> create mode 100644 arch/arm64/include/asm/common/processor.h
-> create mode 100644 arch/mips/include/asm/common/processor.h
-> create mode 100644 arch/x86/include/asm/common/processor.h
-> create mode 100644 include/common/bits.h
-> create mode 100644 include/common/const.h
-> create mode 100644 include/common/jiffies.h
-> create mode 100644 include/common/ktime.h
-> create mode 100644 include/common/limits.h
-> create mode 100644 include/common/math64.h
-> create mode 100644 include/common/processor.h
-> create mode 100644 include/common/time.h
-> create mode 100644 include/common/time32.h
-> create mode 100644 include/common/time64.h
->=20
-> --=20
-> 2.25.1
->=20
+diff --git a/mm/debug_vm_pgtable.c b/mm/debug_vm_pgtable.c
+index 98990a515268..15055a8f6478 100644
+--- a/mm/debug_vm_pgtable.c
++++ b/mm/debug_vm_pgtable.c
+@@ -289,6 +289,267 @@ static void __init pmd_populate_tests(struct mm_struct *mm, pmd_t *pmdp,
+ 	WARN_ON(pmd_bad(pmd));
+ }
+ 
++static void __init pte_special_tests(unsigned long pfn, pgprot_t prot)
++{
++	pte_t pte = pfn_pte(pfn, prot);
++
++	if (!IS_ENABLED(CONFIG_ARCH_HAS_PTE_SPECIAL))
++		return;
++
++	WARN_ON(!pte_special(pte_mkspecial(pte)));
++}
++
++static void __init pte_protnone_tests(unsigned long pfn, pgprot_t prot)
++{
++	pte_t pte = pfn_pte(pfn, prot);
++
++	if (!IS_ENABLED(CONFIG_NUMA_BALANCING))
++		return;
++
++	WARN_ON(!pte_protnone(pte));
++	WARN_ON(!pte_present(pte));
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++static void __init pmd_protnone_tests(unsigned long pfn, pgprot_t prot)
++{
++	pmd_t pmd = pfn_pmd(pfn, prot);
++
++	if (!IS_ENABLED(CONFIG_NUMA_BALANCING))
++		return;
++
++	WARN_ON(!pmd_protnone(pmd));
++	WARN_ON(!pmd_present(pmd));
++}
++#else
++static void __init pmd_protnone_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++
++#ifdef CONFIG_ARCH_HAS_PTE_DEVMAP
++static void __init pte_devmap_tests(unsigned long pfn, pgprot_t prot)
++{
++	pte_t pte = pfn_pte(pfn, prot);
++
++	WARN_ON(!pte_devmap(pte_mkdevmap(pte)));
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++static void __init pmd_devmap_tests(unsigned long pfn, pgprot_t prot)
++{
++	pmd_t pmd = pfn_pmd(pfn, prot);
++
++	WARN_ON(!pmd_devmap(pmd_mkdevmap(pmd)));
++}
++
++#ifdef CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
++static void __init pud_devmap_tests(unsigned long pfn, pgprot_t prot)
++{
++	pud_t pud = pfn_pud(pfn, prot);
++
++	WARN_ON(!pud_devmap(pud_mkdevmap(pud)));
++}
++#else
++static void __init pud_devmap_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++#else
++static void __init pmd_devmap_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pud_devmap_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++#else
++static void __init pte_devmap_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pmd_devmap_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pud_devmap_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++
++static void __init pte_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
++{
++	pte_t pte = pfn_pte(pfn, prot);
++
++	if (!IS_ENABLED(CONFIG_HAVE_ARCH_SOFT_DIRTY))
++		return;
++
++	WARN_ON(!pte_soft_dirty(pte_mksoft_dirty(pte)));
++	WARN_ON(pte_soft_dirty(pte_clear_soft_dirty(pte)));
++}
++
++static void __init pte_swap_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
++{
++	pte_t pte = pfn_pte(pfn, prot);
++
++	if (!IS_ENABLED(CONFIG_HAVE_ARCH_SOFT_DIRTY))
++		return;
++
++	WARN_ON(!pte_swp_soft_dirty(pte_swp_mksoft_dirty(pte)));
++	WARN_ON(pte_swp_soft_dirty(pte_swp_clear_soft_dirty(pte)));
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++static void __init pmd_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
++{
++	pmd_t pmd = pfn_pmd(pfn, prot);
++
++	if (!IS_ENABLED(CONFIG_HAVE_ARCH_SOFT_DIRTY))
++		return;
++
++	WARN_ON(!pmd_soft_dirty(pmd_mksoft_dirty(pmd)));
++	WARN_ON(pmd_soft_dirty(pmd_clear_soft_dirty(pmd)));
++}
++
++static void __init pmd_swap_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
++{
++	pmd_t pmd = pfn_pmd(pfn, prot);
++
++	if (!IS_ENABLED(CONFIG_HAVE_ARCH_SOFT_DIRTY) ||
++		!IS_ENABLED(CONFIG_ARCH_ENABLE_THP_MIGRATION))
++		return;
++
++	WARN_ON(!pmd_swp_soft_dirty(pmd_swp_mksoft_dirty(pmd)));
++	WARN_ON(pmd_swp_soft_dirty(pmd_swp_clear_soft_dirty(pmd)));
++}
++#else
++static void __init pmd_soft_dirty_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pmd_swap_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
++{
++}
++#endif
++
++static void __init pte_swap_tests(unsigned long pfn, pgprot_t prot)
++{
++	swp_entry_t swp;
++	pte_t pte;
++
++	pte = pfn_pte(pfn, prot);
++	swp = __pte_to_swp_entry(pte);
++	WARN_ON(!pte_same(pte, __swp_entry_to_pte(swp)));
++}
++
++#ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
++static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot)
++{
++	swp_entry_t swp;
++	pmd_t pmd;
++
++	pmd = pfn_pmd(pfn, prot);
++	swp = __pmd_to_swp_entry(pmd);
++	WARN_ON(!pmd_same(pmd, __swp_entry_to_pmd(swp)));
++}
++#else
++static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++
++static void __init swap_migration_tests(void)
++{
++	struct page *page;
++	swp_entry_t swp;
++
++	if (!IS_ENABLED(CONFIG_MIGRATION))
++		return;
++	/*
++	 * swap_migration_tests() requires a dedicated page as it needs to
++	 * be locked before creating a migration entry from it. Locking the
++	 * page that actually maps kernel text ('start_kernel') can be real
++	 * problematic. Lets allocate a dedicated page explicitly for this
++	 * purpose that will be freed subsequently.
++	 */
++	page = alloc_page(GFP_KERNEL);
++	if (!page) {
++		pr_err("page allocation failed\n");
++		return;
++	}
++
++	/*
++	 * make_migration_entry() expects given page to be
++	 * locked, otherwise it stumbles upon a BUG_ON().
++	 */
++	__SetPageLocked(page);
++	swp = make_migration_entry(page, 1);
++	WARN_ON(!is_migration_entry(swp));
++	WARN_ON(!is_write_migration_entry(swp));
++
++	make_migration_entry_read(&swp);
++	WARN_ON(!is_migration_entry(swp));
++	WARN_ON(is_write_migration_entry(swp));
++
++	swp = make_migration_entry(page, 0);
++	WARN_ON(!is_migration_entry(swp));
++	WARN_ON(is_write_migration_entry(swp));
++	__ClearPageLocked(page);
++	__free_page(page);
++}
++
++#ifdef CONFIG_HUGETLB_PAGE
++static void __init hugetlb_basic_tests(unsigned long pfn, pgprot_t prot)
++{
++	struct page *page;
++	pte_t pte;
++
++	/*
++	 * Accessing the page associated with the pfn is safe here,
++	 * as it was previously derived from a real kernel symbol.
++	 */
++	page = pfn_to_page(pfn);
++	pte = mk_huge_pte(page, prot);
++
++	WARN_ON(!huge_pte_dirty(huge_pte_mkdirty(pte)));
++	WARN_ON(!huge_pte_write(huge_pte_mkwrite(huge_pte_wrprotect(pte))));
++	WARN_ON(huge_pte_write(huge_pte_wrprotect(huge_pte_mkwrite(pte))));
++
++#ifdef CONFIG_ARCH_WANT_GENERAL_HUGETLB
++	pte = pfn_pte(pfn, prot);
++
++	WARN_ON(!pte_huge(pte_mkhuge(pte)));
++#endif
++}
++#else
++static void __init hugetlb_basic_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++static void __init pmd_thp_tests(unsigned long pfn, pgprot_t prot)
++{
++	pmd_t pmd;
++
++	/*
++	 * pmd_trans_huge() and pmd_present() must return positive
++	 * after MMU invalidation with pmd_mknotpresent().
++	 */
++	pmd = pfn_pmd(pfn, prot);
++	WARN_ON(!pmd_trans_huge(pmd_mkhuge(pmd)));
++
++#ifndef __HAVE_ARCH_PMDP_INVALIDATE
++	WARN_ON(!pmd_trans_huge(pmd_mknotpresent(pmd_mkhuge(pmd))));
++	WARN_ON(!pmd_present(pmd_mknotpresent(pmd_mkhuge(pmd))));
++#endif
++}
++
++#ifdef CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
++static void __init pud_thp_tests(unsigned long pfn, pgprot_t prot)
++{
++	pud_t pud;
++
++	/*
++	 * pud_trans_huge() and pud_present() must return positive
++	 * after MMU invalidation with pud_mknotpresent().
++	 */
++	pud = pfn_pud(pfn, prot);
++	WARN_ON(!pud_trans_huge(pud_mkhuge(pud)));
++
++	/*
++	 * pud_mknotpresent() has been dropped for now. Enable back
++	 * these tests when it comes back with a modified pud_present().
++	 *
++	 * WARN_ON(!pud_trans_huge(pud_mknotpresent(pud_mkhuge(pud))));
++	 * WARN_ON(!pud_present(pud_mknotpresent(pud_mkhuge(pud))));
++	 */
++}
++#else
++static void __init pud_thp_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++#else
++static void __init pmd_thp_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pud_thp_tests(unsigned long pfn, pgprot_t prot) { }
++#endif
++
+ static unsigned long __init get_random_vaddr(void)
+ {
+ 	unsigned long random_vaddr, random_pages, total_user_pages;
+@@ -310,7 +571,7 @@ void __init debug_vm_pgtable(void)
+ 	pmd_t *pmdp, *saved_pmdp, pmd;
+ 	pte_t *ptep;
+ 	pgtable_t saved_ptep;
+-	pgprot_t prot;
++	pgprot_t prot, protnone;
+ 	phys_addr_t paddr;
+ 	unsigned long vaddr, pte_aligned, pmd_aligned;
+ 	unsigned long pud_aligned, p4d_aligned, pgd_aligned;
+@@ -325,6 +586,12 @@ void __init debug_vm_pgtable(void)
+ 		return;
+ 	}
+ 
++	/*
++	 * __P000 (or even __S000) will help create page table entries with
++	 * PROT_NONE permission as required for pxx_protnone_tests().
++	 */
++	protnone = __P000;
++
+ 	/*
+ 	 * PFN for mapping at PTE level is determined from a standard kernel
+ 	 * text symbol. But pfns for higher page table levels are derived by
+@@ -380,6 +647,28 @@ void __init debug_vm_pgtable(void)
+ 	p4d_populate_tests(mm, p4dp, saved_pudp);
+ 	pgd_populate_tests(mm, pgdp, saved_p4dp);
+ 
++	pte_special_tests(pte_aligned, prot);
++	pte_protnone_tests(pte_aligned, protnone);
++	pmd_protnone_tests(pmd_aligned, protnone);
++
++	pte_devmap_tests(pte_aligned, prot);
++	pmd_devmap_tests(pmd_aligned, prot);
++	pud_devmap_tests(pud_aligned, prot);
++
++	pte_soft_dirty_tests(pte_aligned, prot);
++	pmd_soft_dirty_tests(pmd_aligned, prot);
++	pte_swap_soft_dirty_tests(pte_aligned, prot);
++	pmd_swap_soft_dirty_tests(pmd_aligned, prot);
++
++	pte_swap_tests(pte_aligned, prot);
++	pmd_swap_tests(pmd_aligned, prot);
++
++	swap_migration_tests();
++	hugetlb_basic_tests(pte_aligned, prot);
++
++	pmd_thp_tests(pmd_aligned, prot);
++	pud_thp_tests(pud_aligned, prot);
++
+ 	p4d_free(mm, saved_p4dp);
+ 	pud_free(mm, saved_pudp);
+ 	pmd_free(mm, saved_pmdp);
+-- 
+2.20.1
