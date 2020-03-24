@@ -1,100 +1,385 @@
-Return-Path: <SRS0=6TNM=5M=vger.kernel.org=linux-doc-owner@kernel.org>
-Subject: Re: [PATCH V2 0/3] mm/debug: Add more arch page table helper tests
+Return-Path: <SRS0=1/KV=5J=kvack.org=owner-linux-mm@kernel.org>
+From: Zi Yan <ziy@nvidia.com>
+Subject: Re: [PATCH V2 1/3] mm/debug: Add tests validating arch page table
+ helpers for core features
+Date: Tue, 24 Mar 2020 09:29:42 -0400
+Message-ID: <89E72C74-A32F-4A5B-B5F3-8A63428507A5@nvidia.com>
+In-Reply-To: <1585027375-9997-2-git-send-email-anshuman.khandual@arm.com>
 References: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
- <2bb4badc-2b7a-e15d-a99b-b1bd38c9d9bf@arm.com>
- <a46d18ed-8911-1ec3-c32f-58b6e0d959d7@c-s.fr>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Message-ID: <9675882f-0ec5-5e46-551f-dd3aa38bf8d8@arm.com>
-Date: Fri, 27 Mar 2020 12:16:34 +0530
+ <1585027375-9997-2-git-send-email-anshuman.khandual@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <a46d18ed-8911-1ec3-c32f-58b6e0d959d7@c-s.fr>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Christophe Leroy <christophe.leroy@c-s.fr>, linux-mm@kvack.org
-Cc: Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: multipart/signed;
+	boundary="=_MailMate_046CEE80-FCB0-4D68-A105-63926BAC0137_=";
+	micalg=pgp-sha512; protocol="application/pgp-signature"
+Sender: owner-linux-mm@kvack.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>
+Cc: linux-mm@kvack.org, christophe.leroy@c-s.fr, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200327064634.DGn3yyD3pdhZrMljVDZcxt6MBHn4eDWzVqoDUOJYbUA@z>
+Message-ID: <20200324132942.o8VFYl9dF4U-09zx4vEVgvFGAWjKUJ9GmyN6VJ2okV8@z>
 
+--=_MailMate_046CEE80-FCB0-4D68-A105-63926BAC0137_=
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On 03/26/2020 08:53 PM, Christophe Leroy wrote:
-> 
-> 
-> Le 26/03/2020 à 03:23, Anshuman Khandual a écrit :
->>
->>
->> On 03/24/2020 10:52 AM, Anshuman Khandual wrote:
->>> This series adds more arch page table helper tests. The new tests here are
->>> either related to core memory functions and advanced arch pgtable helpers.
->>> This also creates a documentation file enlisting all expected semantics as
->>> suggested by Mike Rapoport (https://lkml.org/lkml/2020/1/30/40).
->>>
->>> This series has been tested on arm64 and x86 platforms.
->>
->> If folks can test these patches out on remaining ARCH_HAS_DEBUG_VM_PGTABLE
->> enabled platforms i.e s390, arc, powerpc (32 and 64), that will be really
->> appreciated. Thank you.
->>
-> 
-> On powerpc 8xx (PPC32), I get:
-> 
-> [   53.338368] debug_vm_pgtable: debug_vm_pgtable: Validating architecture page table helpers
-> [   53.347403] ------------[ cut here ]------------
-> [   53.351832] WARNING: CPU: 0 PID: 1 at mm/debug_vm_pgtable.c:647 debug_vm_pgtable+0x280/0x3f4
+On 24 Mar 2020, at 1:22, Anshuman Khandual wrote:
 
-mm/debug_vm_pgtable.c:647 ?
+> This adds new tests validating arch page table helpers for these follow=
+ing
+> core memory features. These tests create and test specific mapping type=
+s at
+> various page table levels.
+>
+> 1. SPECIAL mapping
+> 2. PROTNONE mapping
+> 3. DEVMAP mapping
+> 4. SOFTDIRTY mapping
+> 5. SWAP mapping
+> 6. MIGRATION mapping
+> 7. HUGETLB mapping
+> 8. THP mapping
+>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Mike Rapoport <rppt@linux.ibm.com>
+> Cc: Vineet Gupta <vgupta@synopsys.com>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> Cc: Vasily Gorbik <gor@linux.ibm.com>
+> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Borislav Petkov <bp@alien8.de>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: Kirill A. Shutemov <kirill@shutemov.name>
+> Cc: Paul Walmsley <paul.walmsley@sifive.com>
+> Cc: Palmer Dabbelt <palmer@dabbelt.com>
+> Cc: linux-snps-arc@lists.infradead.org
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: linux-s390@vger.kernel.org
+> Cc: linux-riscv@lists.infradead.org
+> Cc: x86@kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> Suggested-by: Catalin Marinas <catalin.marinas@arm.com>
+> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
+> ---
+>  mm/debug_vm_pgtable.c | 291 +++++++++++++++++++++++++++++++++++++++++-=
 
-With the following commits in place
+>  1 file changed, 290 insertions(+), 1 deletion(-)
+>
+> diff --git a/mm/debug_vm_pgtable.c b/mm/debug_vm_pgtable.c
+> index 98990a515268..15055a8f6478 100644
+> --- a/mm/debug_vm_pgtable.c
+> +++ b/mm/debug_vm_pgtable.c
+> @@ -289,6 +289,267 @@ static void __init pmd_populate_tests(struct mm_s=
+truct *mm, pmd_t *pmdp,
+>  	WARN_ON(pmd_bad(pmd));
+>  }
+>
+> +static void __init pte_special_tests(unsigned long pfn, pgprot_t prot)=
 
-53a8338ce (HEAD) Documentation/mm: Add descriptions for arch page table helper
-5d4913fc1 mm/debug: Add tests validating arch advanced page table helpers
-bcaf120a7 mm/debug: Add tests validating arch page table helpers for core features
-d6ed5a4a5 x86/memory: Drop pud_mknotpresent()
-0739d1f8d mm/debug: Add tests validating architecture page table helpers
-16fbf79b0 (tag: v5.6-rc7) Linux 5.6-rc7
-
-mm/debug_vm_pgtable.c:647 is here.
-
-#ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
-static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot)
-{
-        swp_entry_t swp;
-        pmd_t pmd;  -----------------------------> Line #647
-
-        pmd = pfn_pmd(pfn, prot);
-        swp = __pmd_to_swp_entry(pmd);
-        WARN_ON(!pmd_same(pmd, __swp_entry_to_pmd(swp)));
+> +{
+> +	pte_t pte =3D pfn_pte(pfn, prot);
+> +
+> +	if (!IS_ENABLED(CONFIG_ARCH_HAS_PTE_SPECIAL))
+> +		return;
+> +
+> +	WARN_ON(!pte_special(pte_mkspecial(pte)));
+> +}
+> +
+> +static void __init pte_protnone_tests(unsigned long pfn, pgprot_t prot=
+)
+> +{
+> +	pte_t pte =3D pfn_pte(pfn, prot);
+> +
+> +	if (!IS_ENABLED(CONFIG_NUMA_BALANCING))
+> +		return;
+> +
+> +	WARN_ON(!pte_protnone(pte));
+> +	WARN_ON(!pte_present(pte));
+> +}
+> +
+> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+> +static void __init pmd_protnone_tests(unsigned long pfn, pgprot_t prot=
+)
+> +{
+> +	pmd_t pmd =3D pfn_pmd(pfn, prot);
+> +
+> +	if (!IS_ENABLED(CONFIG_NUMA_BALANCING))
+> +		return;
+> +
+> +	WARN_ON(!pmd_protnone(pmd));
+> +	WARN_ON(!pmd_present(pmd));
+> +}
+> +#else
+> +static void __init pmd_protnone_tests(unsigned long pfn, pgprot_t prot=
+) { }
+> +#endif
+> +
+> +#ifdef CONFIG_ARCH_HAS_PTE_DEVMAP
+> +static void __init pte_devmap_tests(unsigned long pfn, pgprot_t prot)
+> +{
+> +	pte_t pte =3D pfn_pte(pfn, prot);
+> +
+> +	WARN_ON(!pte_devmap(pte_mkdevmap(pte)));
+> +}
+> +
+> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+> +static void __init pmd_devmap_tests(unsigned long pfn, pgprot_t prot)
+> +{
+> +	pmd_t pmd =3D pfn_pmd(pfn, prot);
+> +
+> +	WARN_ON(!pmd_devmap(pmd_mkdevmap(pmd)));
+> +}
+> +
+> +#ifdef CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
+> +static void __init pud_devmap_tests(unsigned long pfn, pgprot_t prot)
+> +{
+> +	pud_t pud =3D pfn_pud(pfn, prot);
+> +
+> +	WARN_ON(!pud_devmap(pud_mkdevmap(pud)));
+> +}
+> +#else
+> +static void __init pud_devmap_tests(unsigned long pfn, pgprot_t prot) =
+{ }
+> +#endif
+> +#else
+> +static void __init pmd_devmap_tests(unsigned long pfn, pgprot_t prot) =
+{ }
+> +static void __init pud_devmap_tests(unsigned long pfn, pgprot_t prot) =
+{ }
+> +#endif
+> +#else
+> +static void __init pte_devmap_tests(unsigned long pfn, pgprot_t prot) =
+{ }
+> +static void __init pmd_devmap_tests(unsigned long pfn, pgprot_t prot) =
+{ }
+> +static void __init pud_devmap_tests(unsigned long pfn, pgprot_t prot) =
+{ }
+> +#endif
+> +
+> +static void __init pte_soft_dirty_tests(unsigned long pfn, pgprot_t pr=
+ot)
+> +{
+> +	pte_t pte =3D pfn_pte(pfn, prot);
+> +
+> +	if (!IS_ENABLED(CONFIG_HAVE_ARCH_SOFT_DIRTY))
+> +		return;
+> +
+> +	WARN_ON(!pte_soft_dirty(pte_mksoft_dirty(pte)));
+> +	WARN_ON(pte_soft_dirty(pte_clear_soft_dirty(pte)));
+> +}
+> +
+> +static void __init pte_swap_soft_dirty_tests(unsigned long pfn, pgprot=
+_t prot)
+> +{
+> +	pte_t pte =3D pfn_pte(pfn, prot);
+> +
+> +	if (!IS_ENABLED(CONFIG_HAVE_ARCH_SOFT_DIRTY))
+> +		return;
+> +
+> +	WARN_ON(!pte_swp_soft_dirty(pte_swp_mksoft_dirty(pte)));
+> +	WARN_ON(pte_swp_soft_dirty(pte_swp_clear_soft_dirty(pte)));
+> +}
+> +
+> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+> +static void __init pmd_soft_dirty_tests(unsigned long pfn, pgprot_t pr=
+ot)
+> +{
+> +	pmd_t pmd =3D pfn_pmd(pfn, prot);
+> +
+> +	if (!IS_ENABLED(CONFIG_HAVE_ARCH_SOFT_DIRTY))
+> +		return;
+> +
+> +	WARN_ON(!pmd_soft_dirty(pmd_mksoft_dirty(pmd)));
+> +	WARN_ON(pmd_soft_dirty(pmd_clear_soft_dirty(pmd)));
+> +}
+> +
+> +static void __init pmd_swap_soft_dirty_tests(unsigned long pfn, pgprot=
+_t prot)
+> +{
+> +	pmd_t pmd =3D pfn_pmd(pfn, prot);
+> +
+> +	if (!IS_ENABLED(CONFIG_HAVE_ARCH_SOFT_DIRTY) ||
+> +		!IS_ENABLED(CONFIG_ARCH_ENABLE_THP_MIGRATION))
+> +		return;
+> +
+> +	WARN_ON(!pmd_swp_soft_dirty(pmd_swp_mksoft_dirty(pmd)));
+> +	WARN_ON(pmd_swp_soft_dirty(pmd_swp_clear_soft_dirty(pmd)));
+> +}
+> +#else
+> +static void __init pmd_soft_dirty_tests(unsigned long pfn, pgprot_t pr=
+ot) { }
+> +static void __init pmd_swap_soft_dirty_tests(unsigned long pfn, pgprot=
+_t prot)
+> +{
+> +}
+> +#endif
+> +
+> +static void __init pte_swap_tests(unsigned long pfn, pgprot_t prot)
+> +{
+> +	swp_entry_t swp;
+> +	pte_t pte;
+> +
+> +	pte =3D pfn_pte(pfn, prot);
+> +	swp =3D __pte_to_swp_entry(pte);
+> +	WARN_ON(!pte_same(pte, __swp_entry_to_pte(swp)));
+> +}
+> +
+> +#ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
+> +static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot)
+> +{
+> +	swp_entry_t swp;
+> +	pmd_t pmd;
+> +
+> +	pmd =3D pfn_pmd(pfn, prot);
+> +	swp =3D __pmd_to_swp_entry(pmd);
+> +	WARN_ON(!pmd_same(pmd, __swp_entry_to_pmd(swp)));
+> +}
+> +#else
+> +static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot) { =
 }
-#else
-static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot) { }
-#end
+> +#endif
+> +
+> +static void __init swap_migration_tests(void)
+> +{
+> +	struct page *page;
+> +	swp_entry_t swp;
+> +
+> +	if (!IS_ENABLED(CONFIG_MIGRATION))
+> +		return;
+> +	/*
+> +	 * swap_migration_tests() requires a dedicated page as it needs to
+> +	 * be locked before creating a migration entry from it. Locking the
+> +	 * page that actually maps kernel text ('start_kernel') can be real
+> +	 * problematic. Lets allocate a dedicated page explicitly for this
+> +	 * purpose that will be freed subsequently.
+> +	 */
+> +	page =3D alloc_page(GFP_KERNEL);
+> +	if (!page) {
+> +		pr_err("page allocation failed\n");
+> +		return;
+> +	}
+> +
+> +	/*
+> +	 * make_migration_entry() expects given page to be
+> +	 * locked, otherwise it stumbles upon a BUG_ON().
+> +	 */
+> +	__SetPageLocked(page);
+> +	swp =3D make_migration_entry(page, 1);
+> +	WARN_ON(!is_migration_entry(swp));
+> +	WARN_ON(!is_write_migration_entry(swp));
+> +
+> +	make_migration_entry_read(&swp);
+> +	WARN_ON(!is_migration_entry(swp));
+> +	WARN_ON(is_write_migration_entry(swp));
+> +
+> +	swp =3D make_migration_entry(page, 0);
+> +	WARN_ON(!is_migration_entry(swp));
+> +	WARN_ON(is_write_migration_entry(swp));
+> +	__ClearPageLocked(page);
+> +	__free_page(page);
+> +}
+> +
+> +#ifdef CONFIG_HUGETLB_PAGE
+> +static void __init hugetlb_basic_tests(unsigned long pfn, pgprot_t pro=
+t)
+> +{
+> +	struct page *page;
+> +	pte_t pte;
+> +
+> +	/*
+> +	 * Accessing the page associated with the pfn is safe here,
+> +	 * as it was previously derived from a real kernel symbol.
+> +	 */
+> +	page =3D pfn_to_page(pfn);
+> +	pte =3D mk_huge_pte(page, prot);
+> +
+> +	WARN_ON(!huge_pte_dirty(huge_pte_mkdirty(pte)));
+> +	WARN_ON(!huge_pte_write(huge_pte_mkwrite(huge_pte_wrprotect(pte))));
+> +	WARN_ON(huge_pte_write(huge_pte_wrprotect(huge_pte_mkwrite(pte))));
+> +
+> +#ifdef CONFIG_ARCH_WANT_GENERAL_HUGETLB
+> +	pte =3D pfn_pte(pfn, prot);
+> +
+> +	WARN_ON(!pte_huge(pte_mkhuge(pte)));
+> +#endif
+> +}
+> +#else
+> +static void __init hugetlb_basic_tests(unsigned long pfn, pgprot_t pro=
+t) { }
+> +#endif
+> +
+> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+> +static void __init pmd_thp_tests(unsigned long pfn, pgprot_t prot)
+> +{
+> +	pmd_t pmd;
+> +
+> +	/*
+> +	 * pmd_trans_huge() and pmd_present() must return positive
+> +	 * after MMU invalidation with pmd_mknotpresent().
+> +	 */
+> +	pmd =3D pfn_pmd(pfn, prot);
+> +	WARN_ON(!pmd_trans_huge(pmd_mkhuge(pmd)));
+> +
+> +#ifndef __HAVE_ARCH_PMDP_INVALIDATE
+> +	WARN_ON(!pmd_trans_huge(pmd_mknotpresent(pmd_mkhuge(pmd))));
+> +	WARN_ON(!pmd_present(pmd_mknotpresent(pmd_mkhuge(pmd))));
+> +#endif
 
-Did I miss something ?
+I think we need a better comment here, because requiring pmd_trans_huge()=
+ and
+pmd_present() returning true after pmd_mknotpresent() is not straightforw=
+ard.
 
-> [   53.360140] CPU: 0 PID: 1 Comm: swapper Not tainted 5.6.0-rc7-s3k-dev-01090-g92710e99881f #3544
-> [   53.368718] NIP:  c0777c04 LR: c0777bb8 CTR: 00000000
-> [   53.373720] REGS: c9023df0 TRAP: 0700   Not tainted (5.6.0-rc7-s3k-dev-01090-g92710e99881f)
-> [   53.382042] MSR:  00029032 <EE,ME,IR,DR,RI>  CR: 22000222  XER: 20000000
-> [   53.388667]
-> [   53.388667] GPR00: c0777bb8 c9023ea8 c6120000 00000001 1e410000 00000000 00000000 007641c9
-> [   53.388667] GPR08: 00000000 00000001 00000000 ffffffff 82000222 00000000 c00039b8 00000000
-> [   53.388667] GPR16: 00000000 00000000 00000000 fffffff0 065fc000 1e410000 c6600000 000001e4
-> [   53.388667] GPR24: 000001d9 c062d14c c65fc000 c642d448 000006c9 00000000 c65f8000 c65fc040
-> [   53.423400] NIP [c0777c04] debug_vm_pgtable+0x280/0x3f4
-> [   53.428559] LR [c0777bb8] debug_vm_pgtable+0x234/0x3f4
-> [   53.433593] Call Trace:
-> [   53.436048] [c9023ea8] [c0777bb8] debug_vm_pgtable+0x234/0x3f4 (unreliable)
-> [   53.442936] [c9023f28] [c00039e0] kernel_init+0x28/0x124
-> [   53.448184] [c9023f38] [c000f174] ret_from_kernel_thread+0x14/0x1c
-> [   53.454245] Instruction dump:
-> [   53.457180] 41a20008 4bea3ed9 62890021 7d36b92e 7d36b82e 71290fd0 3149ffff 7d2a4910
-> [   53.464838] 0f090000 5789077e 3149ffff 7d2a4910 <0f090000> 38c00000 38a00000 38800000
-> [   53.472671] ---[ end trace fd5dd92744dc0065 ]---
-Could you please point me to the exact test which is failing ?
+According to Andrea Arcangeli=E2=80=99s email (https://lore.kernel.org/li=
+nux-mm/20181017020930.GN30832@redhat.com/),
+This behavior is an optimization for transparent huge page.
+pmd_trans_huge() must be true if pmd_page() returns you a valid THP to av=
+oid
+taking the pmd_lock when others walk over non transhuge pmds (i.e. there =
+are no
+THP allocated). Especially when we split a THP, removing the present bit =
+from
+the pmd, pmd_trans_huge() still needs to return true. pmd_present() shoul=
+d
+be true whenever pmd_trans_huge() returns true.
 
-> [   53.519778] Freeing unused kernel memory: 608K
-> 
-> 
-So I assume that the system should have come till runtime just fine apart from
-the above warning message because.
+I think it is also worth either putting Andres=E2=80=99s email or the lin=
+k to it
+in the rst file in your 3rd patch. It is a good documentation for this sp=
+ecial
+case.
+
+=E2=80=94
+Best Regards,
+Yan Zi
+
+--=_MailMate_046CEE80-FCB0-4D68-A105-63926BAC0137_=
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQJDBAEBCgAtFiEEh7yFAW3gwjwQ4C9anbJR82th+ooFAl56C0YPHHppeUBudmlk
+aWEuY29tAAoJEJ2yUfNrYfqKW00P/iN1ZY08hQbVe4FKHPJo1Zbcvcn3uCy8z7CF
+/Fm9KlppaM+oRtB9H57botPd2+3+zwCPLHc0lZfHDICSbrrunnTTimytEXs/wh4C
+d08kXSEQD8bJPmFgNq/DWNkXe1YNuInKUmIVvi4nblXCFphhfHQfxY6PsxDrB/Zh
+BadAUxxtrn9e5DvCiNaVkvN4BGuFV8rLfE7StLVmkH0E5cv2ogEogkvklP4UWEip
+I1PSOmxsldp45EGMVPJ0RrVxGfh+jDXRz3YyfiT+1uv4zaZUhg+wPcJvzYVd+M7N
+zNVYBQcyByQrQCkmIDqzMCmEkxd5Uu4BX37zTA7sEb7CnY/9lBNU8e+WbG6Mobcp
+bQP3ln/664NVejeSQIGYMN+GtntwcrxJLPxNybmcZgAcDBEd6xnueNLexlI5TvrP
+u/pVo/MyKeAoPyf2behwcaLVmvfr9x+7rI+8LyQ7NIrusQySczhsmeUcZ2es5QiN
+cH09sDzAon0zei0ExCfqJS4g2i2SnKZW+sU7t53AD+XkxJ+9A2mybWVFLkknxvr9
+bunUy0+43b4H88j4EIuzsosFmCiQadUGaxxyfBA6pdnVkbxQFWIf5L+qOjFVgZYs
+u1TcgS2BPI3/f24ogKamrk3EOGphnS/+AUVpQD3P6WMAg8mL8hhTTCo9Hll0hP9Q
++ljdSslj
+=pDdF
+-----END PGP SIGNATURE-----
+
+--=_MailMate_046CEE80-FCB0-4D68-A105-63926BAC0137_=--
