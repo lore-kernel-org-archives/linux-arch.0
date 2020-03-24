@@ -1,93 +1,42 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: [PATCH V2 0/3] mm/debug: Add more arch page table helper tests
-Date: Tue, 24 Mar 2020 10:52:52 +0530
-Message-ID: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
-Return-path: <linux-doc-owner@vger.kernel.org>
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-mm@kvack.org
-Cc: christophe.leroy@c-s.fr, Anshuman Khandual <anshuman.khandual@arm.com>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.wal>
-List-Id: linux-arch.vger.kernel.org
+From: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Subject: Re: [PATCH] fix __percpu annotation in asm-generic
+Date: Tue, 24 Mar 2020 07:44:52 +0100
+Message-ID: <20200324064452.zsnpcvihgeyegtmu@ltop.local>
+References: <20191126200619.63348-1-luc.vanoostenryck@gmail.com>
+ <alpine.DEB.2.21.1911271553560.16980@www.lameter.com>
+ <20191127175350.GA52308@dennisz-mbp.dhcp.thefacebook.com>
+ <20191127225432.ttwxm3hxtg5utfaz@ltop.local>
+ <alpine.DEB.2.21.1911291808530.1365@www.lameter.com>
+ <20191130000037.zsendu5pk7p75xqf@ltop.local>
+ <20200324041347.GA186169@zx2c4.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wr1-f68.google.com ([209.85.221.68]:46560 "EHLO
+        mail-wr1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725869AbgCXGo4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Mar 2020 02:44:56 -0400
+Content-Disposition: inline
+In-Reply-To: <20200324041347.GA186169@zx2c4.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Cc: Christopher Lameter <cl@linux.com>, Dennis Zhou <dennis@kernel.org>, Ben Dooks <ben.dooks@codethink.co.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tejun Heo <tj@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>
 
-This series adds more arch page table helper tests. The new tests here are
-either related to core memory functions and advanced arch pgtable helpers.
-This also creates a documentation file enlisting all expected semantics as
-suggested by Mike Rapoport (https://lkml.org/lkml/2020/1/30/40).
+On Mon, Mar 23, 2020 at 10:13:47PM -0600, Jason A. Donenfeld wrote:
+> On Sat, Nov 30, 2019 at 01:00:37AM +0100, Luc Van Oostenryck wrote:
+> > Note: it would be much much nicer to do all these type generic
+> >       macros with '__auto_type' (only supported in GCC 4.9 IIUC
+> >       and supported in sparse but it shouldn't be very hard to do)..
+> 
+> I'm curious to know if you know why we're not using __auto_type. Because
+> we're stuck on gcc 4.6, or is there a more subtle reason?
 
-This series has been tested on arm64 and x86 platforms. There is just one
-expected failure on arm64 that will be fixed when we enable THP migration.
+I suppose. I don't remember having ever seen a discussion on the
+subject (other than a simple remark like "it would be simpler
+with __auto_type").
 
-[   21.741634] WARNING: CPU: 0 PID: 1 at mm/debug_vm_pgtable.c:782
+Mainline Sparse doesn't support it but I've a pending series for it
+that seems to work well. 
 
-which corresponds to
-
-WARN_ON(!pmd_present(pmd_mknotpresent(pmd_mkhuge(pmd))))
-
-There are many TRANSPARENT_HUGEPAGE and ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD
-ifdefs scattered across the test. But consolidating all the fallback stubs
-is not very straight forward because ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD is
-not explicitly dependent on ARCH_HAS_TRANSPARENT_HUGEPAGE.
-
-This series has been build tested on many platforms including the ones that
-subscribe the test through ARCH_HAS_DEBUG_VM_PGTABLE.
-
-This series is based on v5.6-rc7 after applying these following patches.
-
-1. https://patchwork.kernel.org/patch/11431277/
-2. https://patchwork.kernel.org/patch/11452185/
-
-Changes in V2:
-
-- Dropped CONFIG_ARCH_HAS_PTE_SPECIAL per Christophe
-- Dropped CONFIG_NUMA_BALANCING per Christophe
-- Dropped CONFIG_HAVE_ARCH_SOFT_DIRTY per Christophe
-- Dropped CONFIG_MIGRATION per Christophe
-- Replaced CONFIG_S390 with __HAVE_ARCH_PMDP_INVALIDATE
-- Moved page allocation & free inside swap_migration_tests() per Christophe
-- Added CONFIG_TRANSPARENT_HUGEPAGE to protect pfn_pmd()
-- Added CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD to protect pfn_pud()
-- Added a patch for other arch advanced page table helper tests
-- Added a patch creating a documentation for page table helper semantics
-
-Changes in V1: (https://patchwork.kernel.org/patch/11408253/)
-
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Vineet Gupta <vgupta@synopsys.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Vasily Gorbik <gor@linux.ibm.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Kirill A. Shutemov <kirill@shutemov.name>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: linux-snps-arc@lists.infradead.org
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-s390@vger.kernel.org
-Cc: linux-riscv@lists.infradead.org
-Cc: x86@kernel.org
-Cc: linux-doc@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-
-Anshuman Khandual (3):
-  mm/debug: Add tests validating arch page table helpers for core features
-  mm/debug: Add tests validating arch advanced page table helpers
-  Documentation/mm: Add descriptions for arch page table helpers
-
- Documentation/vm/arch_pgtable_helpers.rst | 256 ++++++++++
- mm/debug_vm_pgtable.c                     | 594 +++++++++++++++++++++-
- 2 files changed, 839 insertions(+), 11 deletions(-)
- create mode 100644 Documentation/vm/arch_pgtable_helpers.rst
-
--- 
-2.20.1
+-- Luc
