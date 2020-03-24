@@ -1,124 +1,82 @@
-From: Thomas Zimmermann <tzimmermann@suse.de>
-Subject: Re: [RESEND PATCH v2 6/9] drm/mgag200: Constify ioreadX() iomem
- argument (as in generic implementation)
-Date: Tue, 24 Mar 2020 09:39:18 +0100
-Message-ID: <b19bd919-3af5-855f-65a7-fa6f16b07b31@suse.de>
-References: <20200219175007.13627-1-krzk@kernel.org>
- <20200219175007.13627-7-krzk@kernel.org>
- <90baef2d-25fe-fac4-6a7e-b103b4b6721e@suse.de>
- <20200314105944.GA16044@kozik-lap>
+From: Zenghui Yu <yuzenghui@huawei.com>
+Subject: Re: [RFC PATCH v3 0/4] arm64: tlb: add support for TTL field
+Date: Tue, 24 Mar 2020 19:31:57 +0800
+Message-ID: <4e3d42d9-7c57-3659-edbe-1e59ca5b04ea@huawei.com>
+References: <20200321121621.1600-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- protocol="application/pgp-signature";
- boundary="5JHKoPMDjFIljnahlEBkrPhFBMFaUgU8x"
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <20200314105944.GA16044@kozik-lap>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Krzysztof Kozlowski <krzk@kernel.org>
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis
-List-Id: linux-arch.vger.kernel.org
-
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---5JHKoPMDjFIljnahlEBkrPhFBMFaUgU8x
-Content-Type: multipart/mixed; boundary="hhPGeJseFbtGrgGh6f1kgq7y0jySVSvgE";
- protected-headers="v1"
-From: Thomas Zimmermann <tzimmermann@suse.de>
-To: Krzysztof Kozlowski <krzk@kernel.org>
-Cc: Richard Henderson <rth@twiddle.net>,
- Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner
- <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>,
- Vineet Gupta <vgupta@synopsys.com>,
- "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
- Helge Deller <deller@gmx.de>,
- Benjamin Herrenschmidt <benh@kernel.crashing.org>,
- Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>,
- Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>,
- Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>,
- Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>,
- Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby
- <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>,
- Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>,
- "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>,
- Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>,
- "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>,
- Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>,
- Andrew Morton <akpm@linux-foundation.org>,
- Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org,
- linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
- linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org,
- nouveau@lists.freedesktop.org, linux-media@vger.kernel.org,
- linux-wireless@vger.kernel.org, netdev@vger.kernel.org,
- linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org,
- linux-arch@vger.kernel.org
-Message-ID: <b19bd919-3af5-855f-65a7-fa6f16b07b31@suse.de>
-Subject: Re: [RESEND PATCH v2 6/9] drm/mgag200: Constify ioreadX() iomem
- argument (as in generic implementation)
-References: <20200219175007.13627-1-krzk@kernel.org>
- <20200219175007.13627-7-krzk@kernel.org>
- <90baef2d-25fe-fac4-6a7e-b103b4b6721e@suse.de>
- <20200314105944.GA16044@kozik-lap>
-In-Reply-To: <20200314105944.GA16044@kozik-lap>
-
---hhPGeJseFbtGrgGh6f1kgq7y0jySVSvgE
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga06-in.huawei.com ([45.249.212.32]:34120 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727233AbgCXLcM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 24 Mar 2020 07:32:12 -0400
+In-Reply-To: <20200321121621.1600-1-yezhenyu2@huawei.com>
 Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Zhenyu Ye <yezhenyu2@huawei.com>, will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, xiexiangyou@huawei.com, zhangshaokun@hisilicon.com, linux-mm@kvack.org, arm@kernel.org, prime.zeng@hisilicon.com, linux-arm-kernel@lists.infradead.org
 
-Hi
+Hi Zhenyu,
 
-Am 14.03.20 um 11:59 schrieb Krzysztof Kozlowski:
-> On Thu, Mar 12, 2020 at 11:49:05AM +0100, Thomas Zimmermann wrote:
->> Hi Krzysztof,
->>
->> I just received a resend email from 3 weeks ago :/
->>
->> Do you want me to merge the mgag200 patch into drm-misc-next?
->=20
-> Thanks but it depends on the first patch in the series so either it
-> could go with your ack through other tree or I will send it later (once=
+On 2020/3/21 20:16, Zhenyu Ye wrote:
+> --
+> ChangeList:
+> v3:
+> use vma->vm_flags to replace mm->context.flags.
+> 
+> v2:
+> build the patch on Marc's NV series[1].
+> 
+> v1:
+> add support for TTL field in arm64.
+> 
+> --
+> ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
+> the level of translation table walk holding the leaf entry for the
+> address that is being invalidated. Hardware can use this information
+> to determine if there was a risk of splintering.
+> 
+> Marc has provided basic support for ARM64-TTL features on his
+> NV series[1] patches. NV is a large feature, however, only
+> patches 62[2] and 67[3] are need by this patch set.
+> ** You only need read those two patches before review this patch. **
 
-> 1st patch gets to mainline).
+It'd be good if you can put the whole thing into a series, otherwise
+people will have difficulty when reviewing and testing it...
 
-Ok. You're welcome to send it through any tree that works best for you.
-mgag200 sees only little change. I wouldn't expect major merge
-conflicts, if any.
-
-Best regards
-Thomas
-
->=20
->=20
-> Best regards,
-> Krzysztof
->=20
-
---=20
-Thomas Zimmermann
-Graphics Driver Developer
-SUSE Software Solutions Germany GmbH
-Maxfeldstr. 5, 90409 N=C3=BCrnberg, Germany
-(HRB 36809, AG N=C3=BCrnberg)
-Gesch=C3=A4ftsf=C3=BChrer: Felix Imend=C3=B6rffer
+I haven't tracked the previous versions. If Marc is OK to share the
+two patches below [2][3], I'd suggest you to pick them up, add them
+in your series, rebase on top of mainline and resend it.
 
 
---hhPGeJseFbtGrgGh6f1kgq7y0jySVSvgE--
+Thanks,
+Zenghui
 
---5JHKoPMDjFIljnahlEBkrPhFBMFaUgU8x
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAEBCAAdFiEEchf7rIzpz2NEoWjlaA3BHVMLeiMFAl55xzYACgkQaA3BHVML
-eiNG1wgAnt3qyju9VoZCaXPbgeTj4gxLN24UZYPowzBMiEUgsJRz8b2iRuEoEKGb
-X+o80inBpVTWe/a+HI6wAQWEwidrIXUquQe1fSSpn2+h69aSApCBWBuxTuKZOLWq
-z9ZpyDKo+VD0/zWGgOZttJXPQJYEfckuCoLN9qcVf+CmgXQNC0m6ZVg6kf59xrca
-KEMDM4x2XhouIaoAtLYLQpt3U9YKgTphMMisTdha7xJt4h7CVx1uztnUyD2triFq
-meU3vxWwePFuQF/1reT0Vr5FU18Z88+wOLZyu3oa+GMA5lp/DKlJJmTGH+VsQA9l
-T/IiW9kxcWlBxT0ylEqlmHr82hqCAQ==
-=iz+q
------END PGP SIGNATURE-----
-
---5JHKoPMDjFIljnahlEBkrPhFBMFaUgU8x--
+> 
+> Some of this patch depends on a feature powered by @Will Deacon
+> two years ago, which tracking the level of page tables in mm_gather.
+> See more in commit a6d60245.
+> 
+> [1] git://git.kernel.org/pub/scm/linux/kernel/git/maz/arm-platforms.git kvm-arm64/nv-5.6-rc1
+> [2] https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-63-maz@kernel.org/
+> [3] https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-68-maz@kernel.org/
+> 
+> Zhenyu Ye (4):
+>    arm64: Add level-hinted TLB invalidation helper to tlbi_user
+>    mm: Add page table level flags to vm_flags
+>    arm64: tlb: Use translation level hint in vm_flags
+>    mm: Set VM_LEVEL flags in some tlb_flush functions
+> 
+>   arch/arm64/include/asm/mmu.h      |  2 ++
+>   arch/arm64/include/asm/tlb.h      | 12 +++++++++
+>   arch/arm64/include/asm/tlbflush.h | 44 ++++++++++++++++++++++++++-----
+>   arch/arm64/mm/hugetlbpage.c       |  4 +--
+>   arch/arm64/mm/mmu.c               | 14 ++++++++++
+>   include/asm-generic/pgtable.h     | 16 +++++++++--
+>   include/linux/mm.h                | 10 +++++++
+>   include/trace/events/mmflags.h    | 15 ++++++++++-
+>   mm/huge_memory.c                  |  8 +++++-
+>   9 files changed, 113 insertions(+), 12 deletions(-)
+> 
