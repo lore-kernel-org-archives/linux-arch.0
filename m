@@ -1,48 +1,103 @@
-Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:52324 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732273AbgCPQvX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Mar 2020 12:51:23 -0400
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v10 11/13] arm64: mm: Display guarded pages in ptdump
-Date: Mon, 16 Mar 2020 16:50:53 +0000
-Message-ID: <20200316165055.31179-12-broonie@kernel.org>
-In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
-References: <20200316165055.31179-1-broonie@kernel.org>
+Return-Path: <SRS0=1/KV=5J=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RFC PATCH v4 3/6] arm64: Add level-hinted TLB invalidation helper to tlbi_user
+Date: Tue, 24 Mar 2020 21:45:31 +0800
+Message-ID: <20200324134534.1570-4-yezhenyu2@huawei.com>
+In-Reply-To: <20200324134534.1570-1-yezhenyu2@huawei.com>
+References: <20200324134534.1570-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, peterz@infradead.org, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Mark Brown <broonie@kernel.org>
-Message-ID: <20200316165053.plUHJJB1Nwp-1NxJ27j5YYoEaQzNTn-8s4bl8dtIysQ@z>
+Message-ID: <20200324134531.taW9AFoA8WLSmjMexIzoNi0_PlcMUSQq_5CMvNp5x_Y@z>
 
-v8.5-BTI introduces the GP field in stage 1 translation tables which
-indicates that blocks and pages with it set are guarded pages for which
-branch target identification checks should be performed. Decode this
-when dumping the page tables to aid debugging.
+Add a level-hinted parameter to __tlbi_user, which only gets used
+if ARMv8.4-TTL gets detected.
 
-Signed-off-by: Mark Brown <broonie@kernel.org>
-Reviewed-by: Kees Cook <keescook@chromium.org>
+ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
+the level of translation table walk holding the leaf entry for the
+address that is being invalidated.
+
+This patch set the default level value to 0.
+
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 ---
- arch/arm64/mm/dump.c | 5 +++++
- 1 file changed, 5 insertions(+)
+ arch/arm64/include/asm/tlbflush.h | 42 ++++++++++++++++++++++++++-----
+ 1 file changed, 36 insertions(+), 6 deletions(-)
 
-diff --git a/arch/arm64/mm/dump.c b/arch/arm64/mm/dump.c
-index 860c00ec8bd3..78163b7a7dde 100644
---- a/arch/arm64/mm/dump.c
-+++ b/arch/arm64/mm/dump.c
-@@ -145,6 +145,11 @@ static const struct prot_bits pte_bits[] = {
- 		.val	= PTE_UXN,
- 		.set	= "UXN",
- 		.clear	= "   ",
-+	}, {
-+		.mask	= PTE_GP,
-+		.val	= PTE_GP,
-+		.set	= "GP",
-+		.clear	= "  ",
- 	}, {
- 		.mask	= PTE_ATTRINDX_MASK,
- 		.val	= PTE_ATTRINDX(MT_DEVICE_nGnRnE),
--- 
-2.20.1
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
+lbflush.h
+index a3f70778a325..d141c080e494 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -89,6 +89,36 @@
+ 		__tlbi(op,  arg);					\
+ 	} while(0)
+=20
++#define __tlbi_user_level(op, addr, level)				\
++	do {								\
++		u64 arg =3D addr;						\
++									\
++		if (!arm64_kernel_unmapped_at_el0())			\
++			break;						\
++									\
++		if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
++		    level) {						\
++			u64 ttl =3D level;				\
++									\
++			switch (PAGE_SIZE) {				\
++			case SZ_4K:					\
++				ttl |=3D 1 << 2;				\
++				break;					\
++			case SZ_16K:					\
++				ttl |=3D 2 << 2;				\
++				break;					\
++			case SZ_64K:					\
++				ttl |=3D 3 << 2;				\
++				break;					\
++			}						\
++									\
++			arg &=3D ~TLBI_TTL_MASK;				\
++			arg |=3D FIELD_PREP(TLBI_TTL_MASK, ttl);		\
++		}							\
++									\
++		__tlbi(op,  (arg) | USER_ASID_FLAG);			\
++	} while (0)
++
+ /*
+  *	TLB Invalidation
+  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+@@ -190,8 +220,8 @@ static inline void flush_tlb_page_nosync(struct vm_ar=
+ea_struct *vma,
+ 	unsigned long addr =3D __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
+=20
+ 	dsb(ishst);
+-	__tlbi(vale1is, addr);
+-	__tlbi_user(vale1is, addr);
++	__tlbi_level(vale1is, addr, 0);
++	__tlbi_user_level(vale1is, addr, 0);
+ }
+=20
+ static inline void flush_tlb_page(struct vm_area_struct *vma,
+@@ -231,11 +261,11 @@ static inline void __flush_tlb_range(struct vm_area=
+_struct *vma,
+ 	dsb(ishst);
+ 	for (addr =3D start; addr < end; addr +=3D stride) {
+ 		if (last_level) {
+-			__tlbi(vale1is, addr);
+-			__tlbi_user(vale1is, addr);
++			__tlbi_level(vale1is, addr, 0);
++			__tlbi_user_level(vale1is, addr, 0);
+ 		} else {
+-			__tlbi(vae1is, addr);
+-			__tlbi_user(vae1is, addr);
++			__tlbi_level(vae1is, addr, 0);
++			__tlbi_user_level(vae1is, addr, 0);
+ 		}
+ 	}
+ 	dsb(ish);
+--=20
+2.19.1
