@@ -1,53 +1,139 @@
-Return-Path: <SRS0=m5K7=42=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-oi1-f195.google.com ([209.85.167.195]:36337 "EHLO
-        mail-oi1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726118AbgCIVNK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2020 17:13:10 -0400
+Return-Path: <SRS0=1/KV=5J=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RFC PATCH v4 6/6] mm: Set VM_LEVEL flags in some tlb_flush functions
+Date: Tue, 24 Mar 2020 21:45:34 +0800
+Message-ID: <20200324134534.1570-7-yezhenyu2@huawei.com>
+In-Reply-To: <20200324134534.1570-1-yezhenyu2@huawei.com>
+References: <20200324134534.1570-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-References: <CAMe9rOoRTVUzNC88Ho2XTTNJCymrd3L=XdB9xFcgxPVwAZ0FWA@mail.gmail.com>
- <AE81FEF5-ECC5-46AA-804D-9D64E656D16E@amacapital.net> <CAMe9rOoDMenvD9XRL1szR5yLQEwv9Q6f4O7CtwbdZ-cJqzezKA@mail.gmail.com>
- <0088001c-0b12-a7dc-ff2a-9d5c282fa36b@intel.com>
-In-Reply-To: <0088001c-0b12-a7dc-ff2a-9d5c282fa36b@intel.com>
-From: "H.J. Lu" <hjl.tools@gmail.com>
-Date: Mon, 9 Mar 2020 14:12:31 -0700
-Message-ID: <CAMe9rOqf0OHL9397Vikgb=UWhRMf+FmGq-9VAJNmfmzNMMDkCw@mail.gmail.com>
-Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Content-Transfer-Encoding: quoted-printable
-Sender: linux-arch-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
+To: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, peterz@infradead.org, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Message-ID: <20200309211231.u5k5rs-YKnxtRETWgiK-8bnkreRb2FlBZPPg6H5cPUQ@z>
+Message-ID: <20200324134534.NXycQBk-G3Ldu3b3FLrpN_Yft4kbTic-NOK3JIvb4_Y@z>
 
-On Mon, Mar 9, 2020 at 1:59 PM Dave Hansen <dave.hansen@intel.com> wrote:
->
-> On 3/9/20 1:54 PM, H.J. Lu wrote:
-> >> If a program with the magic ELF CET flags missing can=E2=80=99t make a
-> >> thread with IBT and/or SHSTK enabled, then I think we=E2=80=99ve made =
-an
-> >> error and should fix it.
-> >>
-> > A non-CET program can start a CET program and vice versa.
->
-> Could we be specific here, please?
->
-> HJ are you saying that:
-> * CET program can execve() a non-CET program, and
-> * a non-CET program can execve() a CET program
->
-> ?
+Set VM_LEVEL flags in some tlb_flush functions.
+The relevant functions are:
 
-Yes.
+	tlb_flush in asm/tlb.h
+	get_clear_flush and clear_flush in mm/hugetlbpage.c
+	flush_pmd|pud_tlb_range in asm-generic/patable.h
+	do_huge_pmd_numa_page and move_huge_pmd in mm/huge_memory.c
 
-> That's obvious.
->
-> But what are the rules for clone()?  Should there be rules for
-> mismatches for CET enabling between threads if a process (not child
-> processes)?
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+---
+ arch/arm64/include/asm/tlb.h  | 12 ++++++++++++
+ arch/arm64/mm/hugetlbpage.c   |  4 ++--
+ include/asm-generic/pgtable.h | 16 ++++++++++++++--
+ mm/huge_memory.c              |  8 +++++++-
+ 4 files changed, 35 insertions(+), 5 deletions(-)
 
-What did you mean? A threaded application is either CET enabled or not
-CET enabled.   A new thread from clone makes no difference.
-
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index b76df828e6b7..77fe942b30b6 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -27,6 +27,18 @@ static inline void tlb_flush(struct mmu_gather *tlb)
+ 	bool last_level =3D !tlb->freed_tables;
+ 	unsigned long stride =3D tlb_get_unmap_size(tlb);
+=20
++	/*
++	 * mm_gather tracked which levels of the page tables
++	 * have been cleared, we can use this info to set
++	 * vm->vm_flags.
++	 */
++	if (tlb->cleared_ptes)
++		vma.vm_flags |=3D VM_LEVEL_PTE;
++	else if (tlb->cleared_pmds)
++		vma.vm_flags |=3D VM_LEVEL_PMD;
++	else if (tlb->cleared_puds)
++		vma.vm_flags |=3D VM_LEVEL_PUD;
++
+ 	/*
+ 	 * If we're tearing down the address space then we only care about
+ 	 * invalidating the walk-cache, since the ASID allocator won't
+diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
+index bbeb6a5a6ba6..c35a1bd06bd0 100644
+--- a/arch/arm64/mm/hugetlbpage.c
++++ b/arch/arm64/mm/hugetlbpage.c
+@@ -140,7 +140,7 @@ static pte_t get_clear_flush(struct mm_struct *mm,
+ 	}
+=20
+ 	if (valid) {
+-		struct vm_area_struct vma =3D TLB_FLUSH_VMA(mm, 0);
++		struct vm_area_struct vma =3D TLB_FLUSH_VMA(mm, VM_LEVEL_PTE);
+ 		flush_tlb_range(&vma, saddr, addr);
+ 	}
+ 	return orig_pte;
+@@ -161,7 +161,7 @@ static void clear_flush(struct mm_struct *mm,
+ 			     unsigned long pgsize,
+ 			     unsigned long ncontig)
+ {
+-	struct vm_area_struct vma =3D TLB_FLUSH_VMA(mm, 0);
++	struct vm_area_struct vma =3D TLB_FLUSH_VMA(mm, VM_LEVEL_PTE);
+ 	unsigned long i, saddr =3D addr;
+=20
+ 	for (i =3D 0; i < ncontig; i++, addr +=3D pgsize, ptep++)
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.=
+h
+index e2e2bef07dd2..391e704faf7a 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1160,8 +1160,20 @@ static inline int pmd_free_pte_page(pmd_t *pmd, un=
+signed long addr)
+  * invalidate the entire TLB which is not desitable.
+  * e.g. see arch/arc: flush_pmd_tlb_range
+  */
+-#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, e=
+nd)
+-#define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, e=
+nd)
++#define flush_pmd_tlb_range(vma, addr, end)				\
++	do {								\
++		vma->vm_flags &=3D ~(VM_LEVEL_PUD | VM_LEVEL_PTE);	\
++		vma->vm_flags |=3D VM_LEVEL_PMD;				\
++		flush_tlb_range(vma, addr, end);			\
++	} while (0)
++
++#define flush_pud_tlb_range(vma, addr, end)				\
++	do {								\
++		vma->vm_flags &=3D ~(VM_LEVEL_PMD | VM_LEVEL_PTE);	\
++		vma->vm_flags |=3D VM_LEVEL_PUD;				\
++		flush_tlb_range(vma, addr, end);			\
++	} while (0)
++
+ #else
+ #define flush_pmd_tlb_range(vma, addr, end)	BUILD_BUG()
+ #define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 24ad53b4dfc0..9a78b8d865f0 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1646,6 +1646,8 @@ vm_fault_t do_huge_pmd_numa_page(struct vm_fault *v=
+mf, pmd_t pmd)
+ 	 * mapping or not. Hence use the tlb range variant
+ 	 */
+ 	if (mm_tlb_flush_pending(vma->vm_mm)) {
++		vma->vm_flags &=3D ~(VM_LEVEL_PUD | VM_LEVEL_PTE);
++		vma->vm_flags |=3D VM_LEVEL_PMD;
+ 		flush_tlb_range(vma, haddr, haddr + HPAGE_PMD_SIZE);
+ 		/*
+ 		 * change_huge_pmd() released the pmd lock before
+@@ -1917,8 +1919,12 @@ bool move_huge_pmd(struct vm_area_struct *vma, uns=
+igned long old_addr,
+ 		}
+ 		pmd =3D move_soft_dirty_pmd(pmd);
+ 		set_pmd_at(mm, new_addr, new_pmd, pmd);
+-		if (force_flush)
++		if (force_flush) {
++			vma->vm_flags &=3D ~(VM_LEVEL_PUD | VM_LEVEL_PTE);
++			vma->vm_flags |=3D VM_LEVEL_PMD;
+ 			flush_tlb_range(vma, old_addr, old_addr + PMD_SIZE);
++		}
++
+ 		if (new_ptl !=3D old_ptl)
+ 			spin_unlock(new_ptl);
+ 		spin_unlock(old_ptl);
 --=20
-H.J.
+2.19.1
