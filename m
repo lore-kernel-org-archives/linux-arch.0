@@ -1,145 +1,93 @@
-Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:52136 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732198AbgCPQvI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Mar 2020 12:51:08 -0400
-From: Mark Brown <broonie@kernel.org>
-Subject: [PATCH v10 04/13] elf: Allow arch to tweak initial mmap prot flags
-Date: Mon, 16 Mar 2020 16:50:46 +0000
-Message-ID: <20200316165055.31179-5-broonie@kernel.org>
-In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
-References: <20200316165055.31179-1-broonie@kernel.org>
+Return-Path: <SRS0=kSGY=5J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga07-in.huawei.com ([45.249.212.35]:57140 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727130AbgCXMmm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 24 Mar 2020 08:42:42 -0400
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: Re: [RFC PATCH v3 0/4] arm64: tlb: add support for TTL field
+Date: Tue, 24 Mar 2020 20:41:44 +0800
+Message-ID: <20200324124144.1492-1-yezhenyu2@huawei.com>
+In-Reply-To: <4e3d42d9-7c57-3659-edbe-1e59ca5b04ea@huawei.com>
+References: <4e3d42d9-7c57-3659-edbe-1e59ca5b04ea@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, =?UTF-8?q?Kristina=20Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dave Martin <Dave.Martin@arm.com>, Mark Brown <broonie@kernel.org>
-Message-ID: <20200316165046.DNdtvYtz2f2mvKgACqJVznqZEU8OD7HoRz9B4QcDCu0@z>
+To: yuzenghui@huawei.com
+Cc: aneesh.kumar@linux.ibm.com, arm@kernel.org, broonie@kernel.org, catalin.marinas@arm.com, guohanjun@huawei.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, mark.rutland@arm.com, maz@kernel.org, prime.zeng@hisilicon.com, steven.price@arm.com, will@kernel.org, xiexiangyou@huawei.com, yezhenyu2@huawei.com, zhangshaokun@hisilicon.com
+Message-ID: <20200324124144.lFlC7tmhVpyEh0-laEHCHI2w8HP4KvThUxK0PqkoE3w@z>
 
-From: Dave Martin <Dave.Martin@arm.com>
+Hi Zenghui,
 
-An arch may want to tweak the mmap prot flags for an
-ELFexecutable's initial mappings.  For example, arm64 is going to
-need to add PROT_BTI for executable pages in an ELF process whose
-executable is marked as using Branch Target Identification (an
-ARMv8.5-A control flow integrity feature).
+On 2020/3/24 19:31, Zenghui Yu wrote:
+>Hi Zhenyu,
+>
+>On 2020/3/21 20:16, Zhenyu Ye wrote:
+>> --
+>> ChangeList:
+>> v3:
+>> use vma->vm_flags to replace mm->context.flags.
+>> 
+>> v2:
+>> build the patch on Marc's NV series[1].
+>> 
+>> v1:
+>> add support for TTL field in arm64.
+>> 
+>> --
+>> ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
+>> the level of translation table walk holding the leaf entry for the
+>> address that is being invalidated. Hardware can use this information
+>> to determine if there was a risk of splintering.
+>> 
+>> Marc has provided basic support for ARM64-TTL features on his
+>> NV series[1] patches. NV is a large feature, however, only
+>> patches 62[2] and 67[3] are need by this patch set.
+>> ** You only need read those two patches before review this patch. **
+>
+>It'd be good if you can put the whole thing into a series, otherwise
+>people will have difficulty when reviewing and testing it...
+>
+>I haven't tracked the previous versions. If Marc is OK to share the
+>two patches below [2][3], I'd suggest you to pick them up, add them
+>in your series, rebase on top of mainline and resend it.
+>
+>
+>Thanks,
+>Zenghui
+>
 
-So that this can be done in a generic way, add a hook
-arch_elf_adjust_prot() to modify the prot flags as desired: arches
-can select CONFIG_HAVE_ELF_PROT and implement their own backend
-where necessary.
+Thanks for your review.  I'd take your suggestion and resend a new set
+right now.
 
-By default, leave the prot flags unchanged.
+Thanks,
+Zhenyu
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- fs/Kconfig.binfmt   |  3 +++
- fs/binfmt_elf.c     | 18 ++++++++++++------
- include/linux/elf.h | 12 ++++++++++++
- 3 files changed, 27 insertions(+), 6 deletions(-)
-
-diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
-index d2cfe0729a73..2358368319b8 100644
---- a/fs/Kconfig.binfmt
-+++ b/fs/Kconfig.binfmt
-@@ -36,6 +36,9 @@ config COMPAT_BINFMT_ELF
- config ARCH_BINFMT_ELF_STATE
- 	bool
- 
-+config ARCH_HAVE_ELF_PROT
-+	bool
-+
- config ARCH_USE_GNU_PROPERTY
- 	bool
- 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 1fb67e506b68..cceb29d6ef1d 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -544,7 +544,8 @@ static inline int arch_check_elf(struct elfhdr *ehdr, bool has_interp,
- 
- #endif /* !CONFIG_ARCH_BINFMT_ELF_STATE */
- 
--static inline int make_prot(u32 p_flags)
-+static inline int make_prot(u32 p_flags, struct arch_elf_state *arch_state,
-+			    bool has_interp, bool is_interp)
- {
- 	int prot = 0;
- 
-@@ -554,7 +555,8 @@ static inline int make_prot(u32 p_flags)
- 		prot |= PROT_WRITE;
- 	if (p_flags & PF_X)
- 		prot |= PROT_EXEC;
--	return prot;
-+
-+	return arch_elf_adjust_prot(prot, arch_state, has_interp, is_interp);
- }
- 
- /* This is much more generalized than the library routine read function,
-@@ -564,7 +566,8 @@ static inline int make_prot(u32 p_flags)
- 
- static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
- 		struct file *interpreter,
--		unsigned long no_base, struct elf_phdr *interp_elf_phdata)
-+		unsigned long no_base, struct elf_phdr *interp_elf_phdata,
-+		struct arch_elf_state *arch_state)
- {
- 	struct elf_phdr *eppnt;
- 	unsigned long load_addr = 0;
-@@ -596,7 +599,8 @@ static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
- 	for (i = 0; i < interp_elf_ex->e_phnum; i++, eppnt++) {
- 		if (eppnt->p_type == PT_LOAD) {
- 			int elf_type = MAP_PRIVATE | MAP_DENYWRITE;
--			int elf_prot = make_prot(eppnt->p_flags);
-+			int elf_prot = make_prot(eppnt->p_flags, arch_state,
-+						 true, true);
- 			unsigned long vaddr = 0;
- 			unsigned long k, map_addr;
- 
-@@ -1041,7 +1045,8 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 			}
- 		}
- 
--		elf_prot = make_prot(elf_ppnt->p_flags);
-+		elf_prot = make_prot(elf_ppnt->p_flags, &arch_state,
-+				     !!interpreter, false);
- 
- 		elf_flags = MAP_PRIVATE | MAP_DENYWRITE | MAP_EXECUTABLE;
- 
-@@ -1184,7 +1189,8 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 	if (interpreter) {
- 		elf_entry = load_elf_interp(&loc->interp_elf_ex,
- 					    interpreter,
--					    load_bias, interp_elf_phdata);
-+					    load_bias, interp_elf_phdata,
-+					    &arch_state);
- 		if (!IS_ERR((void *)elf_entry)) {
- 			/*
- 			 * load_elf_interp() returns relocation
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index db5113479f5e..5d5b0321da0b 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -87,4 +87,16 @@ extern int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
- 				   bool compat, struct arch_elf_state *arch);
- #endif
- 
-+#ifdef CONFIG_ARCH_HAVE_ELF_PROT
-+int arch_elf_adjust_prot(int prot, const struct arch_elf_state *state,
-+			 bool has_interp, bool is_interp);
-+#else
-+static inline int arch_elf_adjust_prot(int prot,
-+				       const struct arch_elf_state *state,
-+				       bool has_interp, bool is_interp)
-+{
-+	return prot;
-+}
-+#endif
-+
- #endif /* _LINUX_ELF_H */
--- 
-2.20.1
+>> 
+>> Some of this patch depends on a feature powered by @Will Deacon
+>> two years ago, which tracking the level of page tables in mm_gather.
+>> See more in commit a6d60245.
+>> 
+>> [1] git://git.kernel.org/pub/scm/linux/kernel/git/maz/arm-platforms.git kvm-arm64/nv-5.6-rc1
+>> [2] https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-63-maz@kernel.org/
+>> [3] https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-68-maz@kernel.org/
+>> 
+>> Zhenyu Ye (4):
+>>    arm64: Add level-hinted TLB invalidation helper to tlbi_user
+>>    mm: Add page table level flags to vm_flags
+>>    arm64: tlb: Use translation level hint in vm_flags
+>>    mm: Set VM_LEVEL flags in some tlb_flush functions
+>> 
+>>   arch/arm64/include/asm/mmu.h      |  2 ++
+>>   arch/arm64/include/asm/tlb.h      | 12 +++++++++
+>>   arch/arm64/include/asm/tlbflush.h | 44 ++++++++++++++++++++++++++-----
+>>   arch/arm64/mm/hugetlbpage.c       |  4 +--
+>>   arch/arm64/mm/mmu.c               | 14 ++++++++++
+>>   include/asm-generic/pgtable.h     | 16 +++++++++--
+>>   include/linux/mm.h                | 10 +++++++
+>>   include/trace/events/mmflags.h    | 15 ++++++++++-
+>>   mm/huge_memory.c                  |  8 +++++-
+>>   9 files changed, 113 insertions(+), 12 deletions(-)
+>> 
+>
