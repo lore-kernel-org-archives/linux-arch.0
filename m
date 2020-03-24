@@ -1,132 +1,33 @@
-From: Marc Zyngier <maz@kernel.org>
-Subject: Re: [RFC PATCH v4 5/6] arm64: tlb: Use translation level hint in
- vm_flags
-Date: Tue, 24 Mar 2020 14:45:14 +0000
-Message-ID: <20200324144514.340c78d9@why>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH v4 0/6] arm64: tlb: add support for TTL feature
+Date: Tue, 24 Mar 2020 16:01:55 +0100
+Message-ID: <20200324150155.GH20713@hirez.programming.kicks-ass.net>
 References: <20200324134534.1570-1-yezhenyu2@huawei.com>
-        <20200324134534.1570-6-yezhenyu2@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:45020 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727065AbgCXOpT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 24 Mar 2020 10:45:19 -0400
-In-Reply-To: <20200324134534.1570-6-yezhenyu2@huawei.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20200324134534.1570-1-yezhenyu2@huawei.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
 To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, peterz@infradead.org, arnd@arndb.de, rostedt@goodmis.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
+Cc: mark.rutland@arm.com, catalin.marinas@arm.com, linux-mm@kvack.org, guohanjun@huawei.com, will@kernel.org, linux-arch@vger.kernel.org, yuzhao@google.com, maz@kernel.org, steven.price@arm.com, arm@kernel.org, Dave.Martin@arm.com, arnd@arndb.de, suzuki.poulose@arm.com, npiggin@gmail.com, zhangshaokun@hisilicon.com, broonie@kernel.org, rostedt@goodmis.org, prime.zeng@hisilicon.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, xiexiangyou@huawei.com, linux-kernel@vger.kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 24 Mar 2020 21:45:33 +0800
-Zhenyu Ye <yezhenyu2@huawei.com> wrote:
-
-> This patch used the VM_LEVEL flags in vma->vm_flags to set the
-> TTL field in tlbi instruction.
+On Tue, Mar 24, 2020 at 09:45:28PM +0800, Zhenyu Ye wrote:
+> In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+> feature allows TLBs to be issued with a level allowing for quicker
+> invalidation.  This series provide support for this feature. 
 > 
-> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-> ---
->  arch/arm64/include/asm/mmu.h      |  2 ++
->  arch/arm64/include/asm/tlbflush.h | 14 ++++++++------
->  arch/arm64/mm/mmu.c               | 14 ++++++++++++++
->  3 files changed, 24 insertions(+), 6 deletions(-)
-> 
-> diff --git a/arch/arm64/include/asm/mmu.h b/arch/arm64/include/asm/mmu.h
-> index d79ce6df9e12..a8b8824a7405 100644
-> --- a/arch/arm64/include/asm/mmu.h
-> +++ b/arch/arm64/include/asm/mmu.h
-> @@ -86,6 +86,8 @@ extern void create_pgd_mapping(struct mm_struct *mm, phys_addr_t phys,
->  extern void *fixmap_remap_fdt(phys_addr_t dt_phys, int *size, pgprot_t prot);
->  extern void mark_linear_text_alias_ro(void);
->  extern bool kaslr_requires_kpti(void);
-> +extern unsigned int get_vma_level(struct vm_area_struct *vma);
-> +
->  
->  #define INIT_MM_CONTEXT(name)	\
->  	.pgd = init_pg_dir,
-> diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-> index d141c080e494..93bb09fdfafd 100644
-> --- a/arch/arm64/include/asm/tlbflush.h
-> +++ b/arch/arm64/include/asm/tlbflush.h
-> @@ -218,10 +218,11 @@ static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
->  					 unsigned long uaddr)
->  {
->  	unsigned long addr = __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
-> +	unsigned int level = get_vma_level(vma);
->  
->  	dsb(ishst);
-> -	__tlbi_level(vale1is, addr, 0);
-> -	__tlbi_user_level(vale1is, addr, 0);
-> +	__tlbi_level(vale1is, addr, level);
-> +	__tlbi_user_level(vale1is, addr, level);
->  }
->  
->  static inline void flush_tlb_page(struct vm_area_struct *vma,
-> @@ -242,6 +243,7 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
->  				     unsigned long stride, bool last_level)
->  {
->  	unsigned long asid = ASID(vma->vm_mm);
-> +	unsigned int level = get_vma_level(vma);
->  	unsigned long addr;
->  
->  	start = round_down(start, stride);
-> @@ -261,11 +263,11 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
->  	dsb(ishst);
->  	for (addr = start; addr < end; addr += stride) {
->  		if (last_level) {
-> -			__tlbi_level(vale1is, addr, 0);
-> -			__tlbi_user_level(vale1is, addr, 0);
-> +			__tlbi_level(vale1is, addr, level);
-> +			__tlbi_user_level(vale1is, addr, level);
->  		} else {
-> -			__tlbi_level(vae1is, addr, 0);
-> -			__tlbi_user_level(vae1is, addr, 0);
-> +			__tlbi_level(vae1is, addr, level);
-> +			__tlbi_user_level(vae1is, addr, level);
->  		}
->  	}
->  	dsb(ish);
-> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-> index 128f70852bf3..e6a1221cd86b 100644
-> --- a/arch/arm64/mm/mmu.c
-> +++ b/arch/arm64/mm/mmu.c
-> @@ -60,6 +60,20 @@ static pud_t bm_pud[PTRS_PER_PUD] __page_aligned_bss __maybe_unused;
->  
->  static DEFINE_SPINLOCK(swapper_pgdir_lock);
->  
-> +inline unsigned int get_vma_level(struct vm_area_struct *vma)
-> +{
-> +	unsigned int level = 0;
-> +	if (vma->vm_flags & VM_LEVEL_PUD)
-> +		level = 1;
-> +	else if (vma->vm_flags & VM_LEVEL_PMD)
-> +		level = 2;
-> +	else if (vma->vm_flags & VM_LEVEL_PTE)
-> +		level = 3;
-> +
-> +	vma->vm_flags &= ~(VM_LEVEL_PUD | VM_LEVEL_PMD | VM_LEVEL_PTE);
-> +	return level;
-> +}
-> +
->  void set_swapper_pgd(pgd_t *pgdp, pgd_t pgd)
->  {
->  	pgd_t *fixmap_pgdp;
+> Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
+> which detect the TTL feature and add __tlbi_level interface.
 
-
-If feels bizarre a TLBI is now a destructive operation: you've lost the
-flags by having cleared them. Even if that's not really a problem in
-practice (you issue TLBI because you've unmapped the VMA), it remains
-that the act of invalidating TLBs isn't expected to change a kernel
-structure (and I'm not even thinking about potential races here).
-
-If anything, I feel this should be based around the mmu_gather
-structure, which already tracks the right level of information and
-additionally knows about the P4D level which is missing in your patches
-(even if arm64 is so far limited to 4 levels).
-
-Thanks,
-
-	M.
--- 
-Jazz is not dead. It just smells funny...
+I realy hate how it makes vma->vm_flags more important for tlbi.
