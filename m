@@ -1,42 +1,124 @@
-From: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Subject: Re: [PATCH] fix __percpu annotation in asm-generic
-Date: Tue, 24 Mar 2020 07:44:52 +0100
-Message-ID: <20200324064452.zsnpcvihgeyegtmu@ltop.local>
-References: <20191126200619.63348-1-luc.vanoostenryck@gmail.com>
- <alpine.DEB.2.21.1911271553560.16980@www.lameter.com>
- <20191127175350.GA52308@dennisz-mbp.dhcp.thefacebook.com>
- <20191127225432.ttwxm3hxtg5utfaz@ltop.local>
- <alpine.DEB.2.21.1911291808530.1365@www.lameter.com>
- <20191130000037.zsendu5pk7p75xqf@ltop.local>
- <20200324041347.GA186169@zx2c4.com>
+From: Thomas Zimmermann <tzimmermann@suse.de>
+Subject: Re: [RESEND PATCH v2 6/9] drm/mgag200: Constify ioreadX() iomem
+ argument (as in generic implementation)
+Date: Tue, 24 Mar 2020 09:39:18 +0100
+Message-ID: <b19bd919-3af5-855f-65a7-fa6f16b07b31@suse.de>
+References: <20200219175007.13627-1-krzk@kernel.org>
+ <20200219175007.13627-7-krzk@kernel.org>
+ <90baef2d-25fe-fac4-6a7e-b103b4b6721e@suse.de>
+ <20200314105944.GA16044@kozik-lap>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr1-f68.google.com ([209.85.221.68]:46560 "EHLO
-        mail-wr1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725869AbgCXGo4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Mar 2020 02:44:56 -0400
-Content-Disposition: inline
-In-Reply-To: <20200324041347.GA186169@zx2c4.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Jason A. Donenfeld" <Jason@zx2c4.com>
-Cc: Christopher Lameter <cl@linux.com>, Dennis Zhou <dennis@kernel.org>, Ben Dooks <ben.dooks@codethink.co.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tejun Heo <tj@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Content-Type: multipart/signed; micalg=pgp-sha256;
+ protocol="application/pgp-signature";
+ boundary="5JHKoPMDjFIljnahlEBkrPhFBMFaUgU8x"
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <20200314105944.GA16044@kozik-lap>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Krzysztof Kozlowski <krzk@kernel.org>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 23, 2020 at 10:13:47PM -0600, Jason A. Donenfeld wrote:
-> On Sat, Nov 30, 2019 at 01:00:37AM +0100, Luc Van Oostenryck wrote:
-> > Note: it would be much much nicer to do all these type generic
-> >       macros with '__auto_type' (only supported in GCC 4.9 IIUC
-> >       and supported in sparse but it shouldn't be very hard to do)..
-> 
-> I'm curious to know if you know why we're not using __auto_type. Because
-> we're stuck on gcc 4.6, or is there a more subtle reason?
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--5JHKoPMDjFIljnahlEBkrPhFBMFaUgU8x
+Content-Type: multipart/mixed; boundary="hhPGeJseFbtGrgGh6f1kgq7y0jySVSvgE";
+ protected-headers="v1"
+From: Thomas Zimmermann <tzimmermann@suse.de>
+To: Krzysztof Kozlowski <krzk@kernel.org>
+Cc: Richard Henderson <rth@twiddle.net>,
+ Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner
+ <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>,
+ Vineet Gupta <vgupta@synopsys.com>,
+ "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+ Helge Deller <deller@gmx.de>,
+ Benjamin Herrenschmidt <benh@kernel.crashing.org>,
+ Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>,
+ Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>,
+ Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>,
+ Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>,
+ Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby
+ <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>,
+ Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>,
+ "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>,
+ Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>,
+ "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>,
+ Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>,
+ Andrew Morton <akpm@linux-foundation.org>,
+ Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org,
+ linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+ linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org,
+ nouveau@lists.freedesktop.org, linux-media@vger.kernel.org,
+ linux-wireless@vger.kernel.org, netdev@vger.kernel.org,
+ linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org,
+ linux-arch@vger.kernel.org
+Message-ID: <b19bd919-3af5-855f-65a7-fa6f16b07b31@suse.de>
+Subject: Re: [RESEND PATCH v2 6/9] drm/mgag200: Constify ioreadX() iomem
+ argument (as in generic implementation)
+References: <20200219175007.13627-1-krzk@kernel.org>
+ <20200219175007.13627-7-krzk@kernel.org>
+ <90baef2d-25fe-fac4-6a7e-b103b4b6721e@suse.de>
+ <20200314105944.GA16044@kozik-lap>
+In-Reply-To: <20200314105944.GA16044@kozik-lap>
 
-I suppose. I don't remember having ever seen a discussion on the
-subject (other than a simple remark like "it would be simpler
-with __auto_type").
+--hhPGeJseFbtGrgGh6f1kgq7y0jySVSvgE
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
 
-Mainline Sparse doesn't support it but I've a pending series for it
-that seems to work well. 
+Hi
 
--- Luc
+Am 14.03.20 um 11:59 schrieb Krzysztof Kozlowski:
+> On Thu, Mar 12, 2020 at 11:49:05AM +0100, Thomas Zimmermann wrote:
+>> Hi Krzysztof,
+>>
+>> I just received a resend email from 3 weeks ago :/
+>>
+>> Do you want me to merge the mgag200 patch into drm-misc-next?
+>=20
+> Thanks but it depends on the first patch in the series so either it
+> could go with your ack through other tree or I will send it later (once=
+
+> 1st patch gets to mainline).
+
+Ok. You're welcome to send it through any tree that works best for you.
+mgag200 sees only little change. I wouldn't expect major merge
+conflicts, if any.
+
+Best regards
+Thomas
+
+>=20
+>=20
+> Best regards,
+> Krzysztof
+>=20
+
+--=20
+Thomas Zimmermann
+Graphics Driver Developer
+SUSE Software Solutions Germany GmbH
+Maxfeldstr. 5, 90409 N=C3=BCrnberg, Germany
+(HRB 36809, AG N=C3=BCrnberg)
+Gesch=C3=A4ftsf=C3=BChrer: Felix Imend=C3=B6rffer
+
+
+--hhPGeJseFbtGrgGh6f1kgq7y0jySVSvgE--
+
+--5JHKoPMDjFIljnahlEBkrPhFBMFaUgU8x
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAEBCAAdFiEEchf7rIzpz2NEoWjlaA3BHVMLeiMFAl55xzYACgkQaA3BHVML
+eiNG1wgAnt3qyju9VoZCaXPbgeTj4gxLN24UZYPowzBMiEUgsJRz8b2iRuEoEKGb
+X+o80inBpVTWe/a+HI6wAQWEwidrIXUquQe1fSSpn2+h69aSApCBWBuxTuKZOLWq
+z9ZpyDKo+VD0/zWGgOZttJXPQJYEfckuCoLN9qcVf+CmgXQNC0m6ZVg6kf59xrca
+KEMDM4x2XhouIaoAtLYLQpt3U9YKgTphMMisTdha7xJt4h7CVx1uztnUyD2triFq
+meU3vxWwePFuQF/1reT0Vr5FU18Z88+wOLZyu3oa+GMA5lp/DKlJJmTGH+VsQA9l
+T/IiW9kxcWlBxT0ylEqlmHr82hqCAQ==
+=iz+q
+-----END PGP SIGNATURE-----
+
+--5JHKoPMDjFIljnahlEBkrPhFBMFaUgU8x--
