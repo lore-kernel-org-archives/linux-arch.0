@@ -1,94 +1,79 @@
 Return-Path: <SRS0=1/KV=5J=kvack.org=owner-linux-mm@kernel.org>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: [PATCH V2 0/3] mm/debug: Add more arch page table helper tests
-Date: Tue, 24 Mar 2020 10:52:52 +0530
-Message-ID: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
+Subject: Re: [RFC PATCH v3 0/4] arm64: tlb: add support for TTL field
+References: <20200321121621.1600-1-yezhenyu2@huawei.com>
+From: Zenghui Yu <yuzenghui@huawei.com>
+Message-ID: <4e3d42d9-7c57-3659-edbe-1e59ca5b04ea@huawei.com>
+Date: Tue, 24 Mar 2020 19:31:57 +0800
+MIME-Version: 1.0
+In-Reply-To: <20200321121621.1600-1-yezhenyu2@huawei.com>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: owner-linux-mm@kvack.org
-To: linux-mm@kvack.org
-Cc: christophe.leroy@c-s.fr, Anshuman Khandual <anshuman.khandual@arm.com>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>, will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, maz@kernel.org, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, xiexiangyou@huawei.com, zhangshaokun@hisilicon.com, linux-mm@kvack.org, arm@kernel.org, prime.zeng@hisilicon.com, linux-arm-kernel@lists.infradead.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200324052252.Wypd_urC-Fbv8T4PcsJsiovqo99sKFB2D9LF1141a1s@z>
+Message-ID: <20200324113157.nQ7OlCLlyFbeLSn1LHU_WjGfujPhN2pfuFymIUXW6u4@z>
 
-This series adds more arch page table helper tests. The new tests here are
-either related to core memory functions and advanced arch pgtable helpers.
-This also creates a documentation file enlisting all expected semantics as
-suggested by Mike Rapoport (https://lkml.org/lkml/2020/1/30/40).
+Hi Zhenyu,
 
-This series has been tested on arm64 and x86 platforms. There is just one
-expected failure on arm64 that will be fixed when we enable THP migration.
+On 2020/3/21 20:16, Zhenyu Ye wrote:
+> --
+> ChangeList:
+> v3:
+> use vma->vm_flags to replace mm->context.flags.
+> 
+> v2:
+> build the patch on Marc's NV series[1].
+> 
+> v1:
+> add support for TTL field in arm64.
+> 
+> --
+> ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
+> the level of translation table walk holding the leaf entry for the
+> address that is being invalidated. Hardware can use this information
+> to determine if there was a risk of splintering.
+> 
+> Marc has provided basic support for ARM64-TTL features on his
+> NV series[1] patches. NV is a large feature, however, only
+> patches 62[2] and 67[3] are need by this patch set.
+> ** You only need read those two patches before review this patch. **
 
-[   21.741634] WARNING: CPU: 0 PID: 1 at mm/debug_vm_pgtable.c:782
+It'd be good if you can put the whole thing into a series, otherwise
+people will have difficulty when reviewing and testing it...
 
-which corresponds to
+I haven't tracked the previous versions. If Marc is OK to share the
+two patches below [2][3], I'd suggest you to pick them up, add them
+in your series, rebase on top of mainline and resend it.
 
-WARN_ON(!pmd_present(pmd_mknotpresent(pmd_mkhuge(pmd))))
 
-There are many TRANSPARENT_HUGEPAGE and ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD
-ifdefs scattered across the test. But consolidating all the fallback stubs
-is not very straight forward because ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD is
-not explicitly dependent on ARCH_HAS_TRANSPARENT_HUGEPAGE.
+Thanks,
+Zenghui
 
-This series has been build tested on many platforms including the ones that
-subscribe the test through ARCH_HAS_DEBUG_VM_PGTABLE.
-
-This series is based on v5.6-rc7 after applying these following patches.
-
-1. https://patchwork.kernel.org/patch/11431277/
-2. https://patchwork.kernel.org/patch/11452185/
-
-Changes in V2:
-
-- Dropped CONFIG_ARCH_HAS_PTE_SPECIAL per Christophe
-- Dropped CONFIG_NUMA_BALANCING per Christophe
-- Dropped CONFIG_HAVE_ARCH_SOFT_DIRTY per Christophe
-- Dropped CONFIG_MIGRATION per Christophe
-- Replaced CONFIG_S390 with __HAVE_ARCH_PMDP_INVALIDATE
-- Moved page allocation & free inside swap_migration_tests() per Christophe
-- Added CONFIG_TRANSPARENT_HUGEPAGE to protect pfn_pmd()
-- Added CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD to protect pfn_pud()
-- Added a patch for other arch advanced page table helper tests
-- Added a patch creating a documentation for page table helper semantics
-
-Changes in V1: (https://patchwork.kernel.org/patch/11408253/)
-
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Vineet Gupta <vgupta@synopsys.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Vasily Gorbik <gor@linux.ibm.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Kirill A. Shutemov <kirill@shutemov.name>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: linux-snps-arc@lists.infradead.org
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-s390@vger.kernel.org
-Cc: linux-riscv@lists.infradead.org
-Cc: x86@kernel.org
-Cc: linux-doc@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-
-Anshuman Khandual (3):
-  mm/debug: Add tests validating arch page table helpers for core features
-  mm/debug: Add tests validating arch advanced page table helpers
-  Documentation/mm: Add descriptions for arch page table helpers
-
- Documentation/vm/arch_pgtable_helpers.rst | 256 ++++++++++
- mm/debug_vm_pgtable.c                     | 594 +++++++++++++++++++++-
- 2 files changed, 839 insertions(+), 11 deletions(-)
- create mode 100644 Documentation/vm/arch_pgtable_helpers.rst
-
--- 
-2.20.1
+> 
+> Some of this patch depends on a feature powered by @Will Deacon
+> two years ago, which tracking the level of page tables in mm_gather.
+> See more in commit a6d60245.
+> 
+> [1] git://git.kernel.org/pub/scm/linux/kernel/git/maz/arm-platforms.git kvm-arm64/nv-5.6-rc1
+> [2] https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-63-maz@kernel.org/
+> [3] https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-68-maz@kernel.org/
+> 
+> Zhenyu Ye (4):
+>    arm64: Add level-hinted TLB invalidation helper to tlbi_user
+>    mm: Add page table level flags to vm_flags
+>    arm64: tlb: Use translation level hint in vm_flags
+>    mm: Set VM_LEVEL flags in some tlb_flush functions
+> 
+>   arch/arm64/include/asm/mmu.h      |  2 ++
+>   arch/arm64/include/asm/tlb.h      | 12 +++++++++
+>   arch/arm64/include/asm/tlbflush.h | 44 ++++++++++++++++++++++++++-----
+>   arch/arm64/mm/hugetlbpage.c       |  4 +--
+>   arch/arm64/mm/mmu.c               | 14 ++++++++++
+>   include/asm-generic/pgtable.h     | 16 +++++++++--
+>   include/linux/mm.h                | 10 +++++++
+>   include/trace/events/mmflags.h    | 15 ++++++++++-
+>   mm/huge_memory.c                  |  8 +++++-
+>   9 files changed, 113 insertions(+), 12 deletions(-)
+> 
