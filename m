@@ -1,56 +1,87 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH v4 0/6] arm64: tlb: add support for TTL feature
-Date: Wed, 25 Mar 2020 17:41:44 +0100
-Message-ID: <20200325164144.GB20696@hirez.programming.kicks-ass.net>
-References: <20200324134534.1570-1-yezhenyu2@huawei.com>
- <aaf017a8-3658-fe4d-c0cf-2f45656020af@arm.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [RFC PATCH v9 25/27] x86/cet/shstk: Handle thread Shadow Stack
+Date: Wed, 25 Mar 2020 14:51:13 -0700
+Message-ID: <e1122e1d77dec0d5f0a698c855833050c740a4bc.camel@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+         <20200205181935.3712-26-yu-cheng.yu@intel.com>
+         <202002251324.5D515260@keescook>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <aaf017a8-3658-fe4d-c0cf-2f45656020af@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: James Morse <james.morse@arm.com>
-Cc: mark.rutland@arm.com, catalin.marinas@arm.com, linux-mm@kvack.org, guohanjun@huawei.com, will@kernel.org, linux-arch@vger.kernel.org, yuzhao@google.com, maz@kernel.org, suzuki.poulose@arm.com, steven.price@arm.com, arm@kernel.org, Dave.Martin@arm.com, arnd@arndb.de, Zhenyu Ye <yezhenyu2@huawei.com>, npiggin@gmail.com, zhangshaokun@hisilicon.com, broonie@kernel.org, rostedt@goodmis.org, prime.zeng@hisilicon.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, xiexiangyou@huawei.com, linux-kernel@vger.kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga14.intel.com ([192.55.52.115]:65091 "EHLO mga14.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726081AbgCYVvO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 25 Mar 2020 17:51:14 -0400
+In-Reply-To: <202002251324.5D515260@keescook>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel
 
-On Wed, Mar 25, 2020 at 04:15:58PM +0000, James Morse wrote:
-> Hi Zhenyu,
+On Tue, 2020-02-25 at 13:29 -0800, Kees Cook wrote:
+> On Wed, Feb 05, 2020 at 10:19:33AM -0800, Yu-cheng Yu wrote:
+> > [...]
+> > A 64-bit SHSTK has a fixed size of RLIMIT_STACK. A compat-mode thread SHSTK
+> > has a fixed size of 1/4 RLIMIT_STACK.  This allows more threads to share a
+> > 32-bit address space.
 > 
-> On 3/24/20 1:45 PM, Zhenyu Ye wrote:
-> > In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
-> > feature allows TLBs to be issued with a level allowing for quicker
-> > invalidation.  This series provide support for this feature. 
-> > 
-> > Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
-> > which detect the TTL feature and add __tlbi_level interface.
-> 
-> How does this interact with THP?
-> (I don't see anything on that in the series.)
-> 
-> With THP, there is no one answer to the size of mapping in a VMA.
-> This is a problem because the arm-arm has in "Translation table level
-> hints" in D5.10.2 of DDI0487E.a:
-> | If an incorrect value for the entry being invalidated by the
-> | instruction is specified in the TTL field, then no entries are
-> | required by the architecture to be invalidated from the TLB.
-> 
-> If we get it wrong, not TLB maintenance occurs!
-> 
-> Unless THP leaves its fingerprints on the vma, I think you can only do
-> this for VMA types that THP can't mess with. (see
-> transparent_hugepage_enabled())
+> I am not understanding this part. :) Entries are sizeof(unsigned long),
+> yes? A 1/2 RLIMIT_STACK would cover 32-bit, but 1/4 is less, so why does
+> that provide for more threads?
 
-The convention way to deal with that is to issue the TBLI for all
-possible sizes.
+Each thread has a separate shadow stack.  If each shadow stack is smaller, the
+address space can accommodate more shadow stack allocations.
 
-Power9 has all this, please look there.
+> >[...]
+> > diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+> > index cba5c7656aab..5b45abda80a1 100644
+> > --- a/arch/x86/kernel/cet.c
+> > +++ b/arch/x86/kernel/cet.c
+> > @@ -170,6 +170,47 @@ int cet_setup_shstk(void)
+> >  	return 0;
+> >  }
+> >  
+> > +int cet_setup_thread_shstk(struct task_struct *tsk)
+> > +{
+> > +	unsigned long addr, size;
+> > +	struct cet_user_state *state;
+> > +	struct cet_status *cet = &tsk->thread.cet;
+> > +
+> > +	if (!cet->shstk_enabled)
+> > +		return 0;
+> > +
+> > +	state = get_xsave_addr(&tsk->thread.fpu.state.xsave,
+> > +			       XFEATURE_CET_USER);
+> > +
+> > +	if (!state)
+> > +		return -EINVAL;
+> > +
+> > +	size = rlimit(RLIMIT_STACK);
+> 
+> Is SHSTK incompatible with RLIM_INFINITY stack rlimits?
+
+I will change it to:
+
+	size = min(rlimit(RLIMIT_STACK), 4 GB);
+
+> 
+> > +
+> > +	/*
+> > +	 * Compat-mode pthreads share a limited address space.
+> > +	 * If each function call takes an average of four slots
+> > +	 * stack space, we need 1/4 of stack size for shadow stack.
+> > +	 */
+> > +	if (in_compat_syscall())
+> > +		size /= 4;
+> > +
+> > +	addr = alloc_shstk(size);
+> 
+> I assume it'd fail here, but I worry about Stack Clash style attacks.
+> I'd like to see test cases that make sure the SHSTK gap is working
+> correctly.
+
+I will work on some tests.
+
+Thanks,
+Yu-cheng
