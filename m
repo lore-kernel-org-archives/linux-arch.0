@@ -1,55 +1,58 @@
-Return-Path: <SRS0=rKsc=43=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from elvis.franken.de ([193.175.24.41]:60394 "EHLO elvis.franken.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728887AbgCJN2d (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 10 Mar 2020 09:28:33 -0400
-Date: Tue, 10 Mar 2020 14:27:47 +0100
-From: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-Subject: Re: [PATCH V2] mm/special: Create generic fallbacks for
- pte_special() and pte_mkspecial()
-Message-ID: <20200310132747.GA12601@alpha.franken.de>
-References: <1583802551-15406-1-git-send-email-anshuman.khandual@arm.com>
+Return-Path: <SRS0=LVrk=5K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga03-in.huawei.com ([45.249.212.189]:3045 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727212AbgCYCKu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 24 Mar 2020 22:10:50 -0400
+From: "yezhenyu (A)" <yezhenyu2@huawei.com>
+Subject: RE: [RFC PATCH v4 4/6] mm: Add page table level flags to vm_flags
+Date: Wed, 25 Mar 2020 02:10:40 +0000
+Message-ID: <10338CF38D9A684EA38E1CF7D8D3411B045BA207@dggeml533-mbs.china.huawei.com>
+References: <20200324134534.1570-1-yezhenyu2@huawei.com>
+        <20200324134534.1570-5-yezhenyu2@huawei.com>
+ <20200324144436.043659c2@gandalf.local.home>
+In-Reply-To: <20200324144436.043659c2@gandalf.local.home>
+Content-Language: zh-CN
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1583802551-15406-1-git-send-email-anshuman.khandual@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: linux-mm@kvack.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Guo Ren <guoren@kernel.org>, Brian Cain <bcain@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Sam Creasey <sammy@sammy.net>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paulburton@kernel.org>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Guan Xuetao <gxt@pku.edu.cn>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200310132747.9Mt9gRToJQmDCgQA55558kZ2nGXVjaXC0mgnMvMkEyU@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: "will@kernel.org" <will@kernel.org>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "aneesh.kumar@linux.ibm.com" <aneesh.kumar@linux.ibm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "npiggin@gmail.com" <npiggin@gmail.com>, "peterz@infradead.org" <peterz@infradead.org>, "arnd@arndb.de" <arnd@arndb.de>, "maz@kernel.org" <maz@kernel.org>, "suzuki.poulose@arm.com" <suzuki.poulose@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "yuzhao@google.com" <yuzhao@google.com>, "Dave.Martin@arm.com" <Dave.Martin@arm.com>, "steven.price@arm.com" <steven.price@arm.com>, "broonie@kernel.org" <broonie@kernel.org>, "Guohanjun (Hanjun Guo)" <guohanjun@huawei.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "arm@kernel.org" <arm@kernel.org>, Xiexiangyou <xiexiangyou@huawei.com>, "Zengtao (B)" <prime.zeng@hisilicon.com>, Zhangshaokun <zhangshaokun@hisilicon.com>
+Message-ID: <20200325021040.2RlmQi6Fb62atlxF79GASd4upiY5RKusHb1OtIp2id4@z>
 
-On Tue, Mar 10, 2020 at 06:39:11AM +0530, Anshuman Khandual wrote:
-> diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
-> index aef5378f909c..8e4e4be1ca00 100644
-> --- a/arch/mips/include/asm/pgtable.h
-> +++ b/arch/mips/include/asm/pgtable.h
-> @@ -269,6 +269,36 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
->   */
->  extern pgd_t swapper_pg_dir[];
->  
-> +/*
-> + * Platform specific pte_special() and pte_mkspecial() definitions
-> + * are required only when ARCH_HAS_PTE_SPECIAL is enabled.
-> + */
-> +#if !defined(CONFIG_32BIT) && !defined(CONFIG_CPU_HAS_RIXI)
-
-this looks wrong.
-
-current Kconfig statement is
-
-select ARCH_HAS_PTE_SPECIAL if !(32BIT && CPU_HAS_RIXI)
-
-so we can't use PTE_SPECIAL on 32bit _and_ CPUs with RIXI support.
-
-Why can't we use
-
-#if defined(CONFIG_ARCH_HAS_PTE_SPECIAL)
-
-here as the comment already suggests ?
-
-Thomas.
-
--- 
-Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
-good idea.                                                [ RFC1925, 2.3 ]
+SGkgU3RldmUsDQoNCk9uIFdlZCwgMjUgTWFyIDIwMjAgMjo0NSwgU3RldmUgd3JvdGU6DQo+IE9u
+IFR1ZSwgMjQgTWFyIDIwMjAgMjE6NDU6MzIgKzA4MDANCj4gWmhlbnl1IFllIDx5ZXpoZW55dTJA
+aHVhd2VpLmNvbT4gd3JvdGU6DQo+IA0KPiA+IC0tLSBhL2luY2x1ZGUvdHJhY2UvZXZlbnRzL21t
+ZmxhZ3MuaA0KPiA+ICsrKyBiL2luY2x1ZGUvdHJhY2UvZXZlbnRzL21tZmxhZ3MuaA0KPiA+IEBA
+IC0xMzAsNiArMTMwLDE2IEBAIElGX0hBVkVfUEdfSURMRShQR19pZGxlLAkJImlkbGUiCQkpDQo+
+ID4gICNkZWZpbmUgSUZfSEFWRV9WTV9TT0ZURElSVFkoZmxhZyxuYW1lKQ0KPiA+ICAjZW5kaWYN
+Cj4gPg0KPiA+ICsjaWZkZWYgQ09ORklHXzY0QklUDQo+ID4gKyNkZWZpbmUgSUZfSEFWRV9WTV9M
+RVZFTF9QVUQoZmxhZyxuYW1lKQl7ZmxhZywgbmFtZX0NCj4gPiArI2RlZmluZSBJRl9IQVZFX1ZN
+X0xFVkVMX1BNRChmbGFnLG5hbWUpCXtmbGFnLCBuYW1lfQ0KPiA+ICsjZGVmaW5lIElGX0hBVkVf
+Vk1fTEVWRUxfUFRFKGZsYWcsbmFtZSkJe2ZsYWcsIG5hbWV9DQo+ID4gKyNlbHNlDQo+ID4gKyNk
+ZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QVUQoZmxhZyxuYW1lKQ0KPiA+ICsjZGVmaW5lIElGX0hB
+VkVfVk1fTEVWRUxfUE1EKGZsYWcsbmFtZSkNCj4gPiArI2RlZmluZSBJRl9IQVZFX1ZNX0xFVkVM
+X1BURShmbGFnLG5hbWUpDQo+ID4gKyNlbmRpZg0KPiA+ICsNCj4gPiAgI2RlZmluZSBfX2RlZl92
+bWFmbGFnX25hbWVzCQkJCQkJXA0KPiA+ICAJe1ZNX1JFQUQsCQkJInJlYWQiCQl9LAkJXA0KPiA+
+ICAJe1ZNX1dSSVRFLAkJCSJ3cml0ZSIJCX0sCQlcDQo+ID4gQEAgLTE2MSw3ICsxNzEsMTAgQEAg
+SUZfSEFWRV9WTV9TT0ZURElSVFkoVk1fU09GVERJUlRZLA0KPiAJInNvZnRkaXJ0eSIJKQkJXA0K
+PiA+ICAJe1ZNX01JWEVETUFQLAkJCSJtaXhlZG1hcCIJfSwJCVwNCj4gPiAgCXtWTV9IVUdFUEFH
+RSwJCQkiaHVnZXBhZ2UiCX0sCQlcDQo+ID4gIAl7Vk1fTk9IVUdFUEFHRSwJCQkibm9odWdlcGFn
+ZSIJfSwJCVwNCj4gPiAtCXtWTV9NRVJHRUFCTEUsCQkJIm1lcmdlYWJsZSIJfQkJXA0KPiA+ICsJ
+e1ZNX01FUkdFQUJMRSwJCQkibWVyZ2VhYmxlIgl9LAkJXA0KPiA+ICtJRl9IQVZFX1ZNX0xFVkVM
+X1BVRChWTV9MRVZFTF9QVUQsCSJwdWQtbGV2ZWwiCSksCQlcDQo+ID4gK0lGX0hBVkVfVk1fTEVW
+RUxfUE1EKFZNX0xFVkVMX1BNRCwJInBtZC1sZXZlbCIJKSwJCVwNCj4gPiArSUZfSEFWRV9WTV9M
+RVZFTF9QVEUoVk1fTEVWRUxfUFRFLAkicHRlLWxldmVsIgkpCQlcDQo+ID4NCj4gDQo+IEhhdmUg
+eW91IHRlc3RlZCB0aGlzIG9uIDMyYml0PyBJdCBsb29rcyBsaWtlIHlvdSdsbCBnZXQgZW1wdHkg
+Y29tbWFzIHRoZXJlLg0KPiBQZXJoYXBzIHRoZSBkZWZpbmVzIG5lZWQgdG8gYmU6DQo+IA0KPiAj
+aWZkZWYgQ09ORklHXzY0QklUDQo+ICNkZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QVUQoZmxhZyxu
+YW1lKQl7ZmxhZywgbmFtZX0sDQo+ICNkZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QTUQoZmxhZyxu
+YW1lKQl7ZmxhZywgbmFtZX0sDQo+ICNkZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QVEUoZmxhZyxu
+YW1lKQl7ZmxhZywgbmFtZX0NCj4gI2Vsc2UNCj4gI2RlZmluZSBJRl9IQVZFX1ZNX0xFVkVMX1BV
+RChmbGFnLG5hbWUpDQo+ICNkZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QTUQoZmxhZyxuYW1lKQ0K
+PiAjZGVmaW5lIElGX0hBVkVfVk1fTEVWRUxfUFRFKGZsYWcsbmFtZSkNCj4gI2VuZGlmDQo+IA0K
+PiBBbmQgbGVhdmUgb3V0IHRoZSBjb21tYXMgaW4gdGhlIGxpc3QuDQo+IA0KPiAtLSBTdGV2ZQ0K
+DQpUaGFua3MgZm9yIHlvdXIgcmV2aWV3LiBJIHdpbGwgZml4IHRoaXMgaW4gbmV4dCB2ZXJzaW9u
+LCBpZiBJIGNvdWxkIHN0aWxsIHVzZSB2bV9mbGFncw0KYXQgdGhhdCB0aW1lIDopLg0KDQpaaGVu
+eXUNCg0K
