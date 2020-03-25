@@ -1,57 +1,47 @@
-From: "yezhenyu (A)" <yezhenyu2@huawei.com>
-Subject: RE: [RFC PATCH v4 4/6] mm: Add page table level flags to vm_flags
-Date: Wed, 25 Mar 2020 02:10:40 +0000
-Message-ID: <10338CF38D9A684EA38E1CF7D8D3411B045BA207@dggeml533-mbs.china.huawei.com>
-References: <20200324134534.1570-1-yezhenyu2@huawei.com>
-        <20200324134534.1570-5-yezhenyu2@huawei.com>
- <20200324144436.043659c2@gandalf.local.home>
+From: Stephen Boyd <swboyd@chromium.org>
+Subject: Re: [PATCH 3/7] docs: fix broken references to text files
+Date: Tue, 24 Mar 2020 19:42:24 -0700
+Message-ID: <158510414428.125146.17397141028775937874@swboyd.mtv.corp.google.com>
+References: <cover.1582361737.git.mchehab+huawei@kernel.org> <5cfeed6df208b74913312a1c97235ee615180f91.1582361737.git.mchehab+huawei@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([45.249.212.189]:3045 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727212AbgCYCKu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 24 Mar 2020 22:10:50 -0400
-In-Reply-To: <20200324144436.043659c2@gandalf.local.home>
-Content-Language: zh-CN
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: "will@kernel.org" <will@kernel.org>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "aneesh.kumar@linux.ibm.com" <aneesh.kumar@linux.ibm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "npiggin@gmail.com" <npiggin@gmail.com>, "peterz@infradead.org" <peterz@infradead.org>, "arnd@arndb.de" <arnd@arndb.de>, "maz@kernel.org" <maz@kernel.org>, "suzuki.poulose@arm.com" <suzuki.poulose@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "yuzhao@google.com" <yuzhao@google.com>, "Dave.Martin@arm.com" <Dave.Martin@arm.com>, "steven.price@arm.com" <steven.price@arm.com>, "broonie@kernel.org" <broonie@kernel.org>, "Guohanjun (Hanjun Guo)" <guohanjun@huawei.com>, linux-arm-kernel@lists.infradead.org
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-unionfs-owner@vger.kernel.org>
+In-Reply-To: <5cfeed6df208b74913312a1c97235ee615180f91.1582361737.git.mchehab+huawei@kernel.org>
+Sender: linux-unionfs-owner@vger.kernel.org
+To: Linux Doc Mailing List <linux-doc@vger.kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-nfs@vger.kernel.org, kvm@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+huawei@kernel.org>, netdev@vger.kernel.org, linux-unionfs@vger.kernel.org, kvm-ppc@vger.kernel.org, linux-mm@kvack.org, dri-devel@lists.freedesktop.org, linux-fsdevel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org, linux-rdma@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-SGkgU3RldmUsDQoNCk9uIFdlZCwgMjUgTWFyIDIwMjAgMjo0NSwgU3RldmUgd3JvdGU6DQo+IE9u
-IFR1ZSwgMjQgTWFyIDIwMjAgMjE6NDU6MzIgKzA4MDANCj4gWmhlbnl1IFllIDx5ZXpoZW55dTJA
-aHVhd2VpLmNvbT4gd3JvdGU6DQo+IA0KPiA+IC0tLSBhL2luY2x1ZGUvdHJhY2UvZXZlbnRzL21t
-ZmxhZ3MuaA0KPiA+ICsrKyBiL2luY2x1ZGUvdHJhY2UvZXZlbnRzL21tZmxhZ3MuaA0KPiA+IEBA
-IC0xMzAsNiArMTMwLDE2IEBAIElGX0hBVkVfUEdfSURMRShQR19pZGxlLAkJImlkbGUiCQkpDQo+
-ID4gICNkZWZpbmUgSUZfSEFWRV9WTV9TT0ZURElSVFkoZmxhZyxuYW1lKQ0KPiA+ICAjZW5kaWYN
-Cj4gPg0KPiA+ICsjaWZkZWYgQ09ORklHXzY0QklUDQo+ID4gKyNkZWZpbmUgSUZfSEFWRV9WTV9M
-RVZFTF9QVUQoZmxhZyxuYW1lKQl7ZmxhZywgbmFtZX0NCj4gPiArI2RlZmluZSBJRl9IQVZFX1ZN
-X0xFVkVMX1BNRChmbGFnLG5hbWUpCXtmbGFnLCBuYW1lfQ0KPiA+ICsjZGVmaW5lIElGX0hBVkVf
-Vk1fTEVWRUxfUFRFKGZsYWcsbmFtZSkJe2ZsYWcsIG5hbWV9DQo+ID4gKyNlbHNlDQo+ID4gKyNk
-ZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QVUQoZmxhZyxuYW1lKQ0KPiA+ICsjZGVmaW5lIElGX0hB
-VkVfVk1fTEVWRUxfUE1EKGZsYWcsbmFtZSkNCj4gPiArI2RlZmluZSBJRl9IQVZFX1ZNX0xFVkVM
-X1BURShmbGFnLG5hbWUpDQo+ID4gKyNlbmRpZg0KPiA+ICsNCj4gPiAgI2RlZmluZSBfX2RlZl92
-bWFmbGFnX25hbWVzCQkJCQkJXA0KPiA+ICAJe1ZNX1JFQUQsCQkJInJlYWQiCQl9LAkJXA0KPiA+
-ICAJe1ZNX1dSSVRFLAkJCSJ3cml0ZSIJCX0sCQlcDQo+ID4gQEAgLTE2MSw3ICsxNzEsMTAgQEAg
-SUZfSEFWRV9WTV9TT0ZURElSVFkoVk1fU09GVERJUlRZLA0KPiAJInNvZnRkaXJ0eSIJKQkJXA0K
-PiA+ICAJe1ZNX01JWEVETUFQLAkJCSJtaXhlZG1hcCIJfSwJCVwNCj4gPiAgCXtWTV9IVUdFUEFH
-RSwJCQkiaHVnZXBhZ2UiCX0sCQlcDQo+ID4gIAl7Vk1fTk9IVUdFUEFHRSwJCQkibm9odWdlcGFn
-ZSIJfSwJCVwNCj4gPiAtCXtWTV9NRVJHRUFCTEUsCQkJIm1lcmdlYWJsZSIJfQkJXA0KPiA+ICsJ
-e1ZNX01FUkdFQUJMRSwJCQkibWVyZ2VhYmxlIgl9LAkJXA0KPiA+ICtJRl9IQVZFX1ZNX0xFVkVM
-X1BVRChWTV9MRVZFTF9QVUQsCSJwdWQtbGV2ZWwiCSksCQlcDQo+ID4gK0lGX0hBVkVfVk1fTEVW
-RUxfUE1EKFZNX0xFVkVMX1BNRCwJInBtZC1sZXZlbCIJKSwJCVwNCj4gPiArSUZfSEFWRV9WTV9M
-RVZFTF9QVEUoVk1fTEVWRUxfUFRFLAkicHRlLWxldmVsIgkpCQlcDQo+ID4NCj4gDQo+IEhhdmUg
-eW91IHRlc3RlZCB0aGlzIG9uIDMyYml0PyBJdCBsb29rcyBsaWtlIHlvdSdsbCBnZXQgZW1wdHkg
-Y29tbWFzIHRoZXJlLg0KPiBQZXJoYXBzIHRoZSBkZWZpbmVzIG5lZWQgdG8gYmU6DQo+IA0KPiAj
-aWZkZWYgQ09ORklHXzY0QklUDQo+ICNkZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QVUQoZmxhZyxu
-YW1lKQl7ZmxhZywgbmFtZX0sDQo+ICNkZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QTUQoZmxhZyxu
-YW1lKQl7ZmxhZywgbmFtZX0sDQo+ICNkZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QVEUoZmxhZyxu
-YW1lKQl7ZmxhZywgbmFtZX0NCj4gI2Vsc2UNCj4gI2RlZmluZSBJRl9IQVZFX1ZNX0xFVkVMX1BV
-RChmbGFnLG5hbWUpDQo+ICNkZWZpbmUgSUZfSEFWRV9WTV9MRVZFTF9QTUQoZmxhZyxuYW1lKQ0K
-PiAjZGVmaW5lIElGX0hBVkVfVk1fTEVWRUxfUFRFKGZsYWcsbmFtZSkNCj4gI2VuZGlmDQo+IA0K
-PiBBbmQgbGVhdmUgb3V0IHRoZSBjb21tYXMgaW4gdGhlIGxpc3QuDQo+IA0KPiAtLSBTdGV2ZQ0K
-DQpUaGFua3MgZm9yIHlvdXIgcmV2aWV3LiBJIHdpbGwgZml4IHRoaXMgaW4gbmV4dCB2ZXJzaW9u
-LCBpZiBJIGNvdWxkIHN0aWxsIHVzZSB2bV9mbGFncw0KYXQgdGhhdCB0aW1lIDopLg0KDQpaaGVu
-eXUNCg0K
+Quoting Mauro Carvalho Chehab (2020-02-22 01:00:03)
+> Several references got broken due to txt to ReST conversion.
+>=20
+> Several of them can be automatically fixed with:
+>=20
+>         scripts/documentation-file-ref-check --fix
+>=20
+> Signed-off-by: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+> ---
+>  drivers/hwtracing/coresight/Kconfig                  |  2 +-
+>=20
+> diff --git a/drivers/hwtracing/coresight/Kconfig b/drivers/hwtracing/core=
+sight/Kconfig
+> index 6ff30e25af55..6d42a6d3766f 100644
+> --- a/drivers/hwtracing/coresight/Kconfig
+> +++ b/drivers/hwtracing/coresight/Kconfig
+> @@ -107,7 +107,7 @@ config CORESIGHT_CPU_DEBUG
+>           can quickly get to know program counter (PC), secure state,
+>           exception level, etc. Before use debugging functionality, platf=
+orm
+>           needs to ensure the clock domain and power domain are enabled
+> -         properly, please refer Documentation/trace/coresight-cpu-debug.=
+rst
+> +         properly, please refer Documentation/trace/coresight/coresight-=
+cpu-debug.rst
+>           for detailed description and the example for usage.
+> =20
+>  endif
+
+I ran into this today and almost sent a patch. Can you split this patch
+up into more pieces and send it off to the respective subsystem
+maintainers?
