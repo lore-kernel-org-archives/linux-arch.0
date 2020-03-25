@@ -1,31 +1,88 @@
-Return-Path: <SRS0=yjua=5B=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:44470 "EHLO foss.arm.com"
+Return-Path: <SRS0=LVrk=5K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga14.intel.com ([192.55.52.115]:65091 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730025AbgCPJR6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 16 Mar 2020 05:17:58 -0400
-Date: Mon, 16 Mar 2020 09:17:47 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 26/26] arm64: vdso32: Enable Clang Compilation
-Message-ID: <20200316091730.GB3005@mbp>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
- <20200313154345.56760-27-vincenzo.frascino@arm.com>
+        id S1726081AbgCYVvO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 25 Mar 2020 17:51:14 -0400
+Message-ID: <e1122e1d77dec0d5f0a698c855833050c740a4bc.camel@intel.com>
+Subject: Re: [RFC PATCH v9 25/27] x86/cet/shstk: Handle thread Shadow Stack
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Wed, 25 Mar 2020 14:51:13 -0700
+In-Reply-To: <202002251324.5D515260@keescook>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+         <20200205181935.3712-26-yu-cheng.yu@intel.com>
+         <202002251324.5D515260@keescook>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200313154345.56760-27-vincenzo.frascino@arm.com>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>
-Message-ID: <20200316091747.J_IK4fBy7AF34XmZ3ITM76CSQFIgaa0Dnt33y6ZKnJg@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Message-ID: <20200325215113.uN7dxckDnkHAd2pKf7362VkQr2BLJfvSLgIV8UKeB7I@z>
 
-On Fri, Mar 13, 2020 at 03:43:45PM +0000, Vincenzo Frascino wrote:
-> Enable Clang Compilation for the vdso32 library.
+On Tue, 2020-02-25 at 13:29 -0800, Kees Cook wrote:
+> On Wed, Feb 05, 2020 at 10:19:33AM -0800, Yu-cheng Yu wrote:
+> > [...]
+> > A 64-bit SHSTK has a fixed size of RLIMIT_STACK. A compat-mode thread SHSTK
+> > has a fixed size of 1/4 RLIMIT_STACK.  This allows more threads to share a
+> > 32-bit address space.
 > 
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
-> Tested-by: Nathan Chancellor <natechancellor@gmail.com> # build
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> I am not understanding this part. :) Entries are sizeof(unsigned long),
+> yes? A 1/2 RLIMIT_STACK would cover 32-bit, but 1/4 is less, so why does
+> that provide for more threads?
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Each thread has a separate shadow stack.  If each shadow stack is smaller, the
+address space can accommodate more shadow stack allocations.
+
+> >[...]
+> > diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+> > index cba5c7656aab..5b45abda80a1 100644
+> > --- a/arch/x86/kernel/cet.c
+> > +++ b/arch/x86/kernel/cet.c
+> > @@ -170,6 +170,47 @@ int cet_setup_shstk(void)
+> >  	return 0;
+> >  }
+> >  
+> > +int cet_setup_thread_shstk(struct task_struct *tsk)
+> > +{
+> > +	unsigned long addr, size;
+> > +	struct cet_user_state *state;
+> > +	struct cet_status *cet = &tsk->thread.cet;
+> > +
+> > +	if (!cet->shstk_enabled)
+> > +		return 0;
+> > +
+> > +	state = get_xsave_addr(&tsk->thread.fpu.state.xsave,
+> > +			       XFEATURE_CET_USER);
+> > +
+> > +	if (!state)
+> > +		return -EINVAL;
+> > +
+> > +	size = rlimit(RLIMIT_STACK);
+> 
+> Is SHSTK incompatible with RLIM_INFINITY stack rlimits?
+
+I will change it to:
+
+	size = min(rlimit(RLIMIT_STACK), 4 GB);
+
+> 
+> > +
+> > +	/*
+> > +	 * Compat-mode pthreads share a limited address space.
+> > +	 * If each function call takes an average of four slots
+> > +	 * stack space, we need 1/4 of stack size for shadow stack.
+> > +	 */
+> > +	if (in_compat_syscall())
+> > +		size /= 4;
+> > +
+> > +	addr = alloc_shstk(size);
+> 
+> I assume it'd fail here, but I worry about Stack Clash style attacks.
+> I'd like to see test cases that make sure the SHSTK gap is working
+> correctly.
+
+I will work on some tests.
+
+Thanks,
+Yu-cheng
