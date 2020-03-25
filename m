@@ -1,54 +1,44 @@
-Return-Path: <SRS0=RUJ7=44=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:53884 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731297AbgCKTPW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 11 Mar 2020 15:15:22 -0400
-Date: Wed, 11 Mar 2020 19:15:19 +0000
-From: Mark Brown <broonie@kernel.org>
-Subject: Re: [PATCH v8 00/11] arm64: Branch Target Identification support
-Message-ID: <20200311191519.GK5411@sirena.org.uk>
-References: <20200227174417.23722-1-broonie@kernel.org>
- <562edd23-9d86-800e-aae3-e54c92601929@linaro.org>
+Return-Path: <SRS0=qMZt=5K=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: Re: [RFC PATCH v4 0/6] arm64: tlb: add support for TTL feature
+References: <20200324134534.1570-1-yezhenyu2@huawei.com>
+ <20200324150155.GH20713@hirez.programming.kicks-ass.net>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Message-ID: <fb06ba92-a3ce-6925-e914-167a85837f27@huawei.com>
+Date: Wed, 25 Mar 2020 12:49:45 +0800
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="mGCtrYeZ202LI9ZG"
-Content-Disposition: inline
-In-Reply-To: <562edd23-9d86-800e-aae3-e54c92601929@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200324150155.GH20713@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: mark.rutland@arm.com, catalin.marinas@arm.com, linux-mm@kvack.org, guohanjun@huawei.com, will@kernel.org, linux-arch@vger.kernel.org, yuzhao@google.com, maz@kernel.org, steven.price@arm.com, arm@kernel.org, Dave.Martin@arm.com, arnd@arndb.de, suzuki.poulose@arm.com, npiggin@gmail.com, zhangshaokun@hisilicon.com, broonie@kernel.org, rostedt@goodmis.org, prime.zeng@hisilicon.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, xiexiangyou@huawei.com, linux-kernel@vger.kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <richard.henderson@linaro.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu" <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200311191519.D7kNNGOPpThQPGEPzmJfcdkVnHZXWyFQj3O0LcKHL_I@z>
+Message-ID: <20200325044945.-qtz1_QJJGpIPZ3vpdD8tUmHNZ8S4tTJx9gYb3wi780@z>
+
+Hi Peter,
+
+On 2020/3/24 23:01, Peter Zijlstra wrote:
+> On Tue, Mar 24, 2020 at 09:45:28PM +0800, Zhenyu Ye wrote:
+>> In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+>> feature allows TLBs to be issued with a level allowing for quicker
+>> invalidation.  This series provide support for this feature. 
+>>
+>> Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
+>> which detect the TTL feature and add __tlbi_level interface.
+> 
+> I realy hate how it makes vma->vm_flags more important for tlbi.
+> 
+
+Thanks for your review.
+
+The tlbi interfaces only have two parameters: vma and addr. If we
+try to not use vma->vm_flags, we may should have to add a parameter
+to some of these interfaces(such as flush_tlb_range), which are
+common to all architectures.
+
+I'm not sure if this is feasible, because this feature is only
+supported by ARM64 currently.
 
 
---mGCtrYeZ202LI9ZG
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-
-On Thu, Feb 27, 2020 at 05:35:39PM -0800, Richard Henderson wrote:
-> On 2/27/20 9:44 AM, Mark Brown wrote:
-> >  * Binutils trunk supports the new ELF note, but this wasn't in a release
-> >    the last time I posted this series.  (The situation _might_ have changed
-> >    in the meantime...)
-
-> I believe this support is in binutils 2.32.
-
-It looks like it's actually 2.33 but either way it's in a release,
-thanks for prompting me to check.  I've updated this for v9.
-
---mGCtrYeZ202LI9ZG
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl5pOMYACgkQJNaLcl1U
-h9AOkgf/SY/gSI7QW/Lbe29z6/u9w1lrepP1itRV8ICgiWASwxjzBxEUDfHMgTsV
-Ng7Lx+w79lkeoWKj1id3jmu9SXG8pAmKiBpnc/iGNpkUs1evKFp2XyaqMLl5w1mO
-DaNzX4HwWOKK6mjLXS1ferTsYgP0h0SnrJpODS/3HbvD6Txoi8b/m+XvAqiKrJi9
-UiPK06ESXjNibgAx2JUDWtuKumjSFWEEGXDx2q6lCI06ZEvBIdkSK5aB0yJwYJqc
-k60lhGcyCoMK6T9zNOCutbhZbQpGMlr+GInkEjkuuf/xo6SLfmuZx5hiFJHAumim
-NrgBSedG1UXpaC5rINKAgEc2IacPkQ==
-=4P3c
------END PGP SIGNATURE-----
-
---mGCtrYeZ202LI9ZG--
+Thanks,
+Zhenyu
