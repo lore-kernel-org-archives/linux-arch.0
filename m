@@ -1,86 +1,72 @@
-Return-Path: <SRS0=xxT4=5L=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:57510 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726363AbgCZULu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 26 Mar 2020 16:11:50 -0400
-Date: Thu, 26 Mar 2020 21:11:42 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH 1/2] Add RUNTIME_DISCARD_EXIT to generic DISCARDS
-Message-ID: <20200326201142.GJ11398@zn.tnic>
-References: <20200326193021.255002-1-hjl.tools@gmail.com>
+Return-Path: <SRS0=jv2Y=5L=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [PATCH V2 0/3] mm/debug: Add more arch page table helper tests
+References: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
+ <2bb4badc-2b7a-e15d-a99b-b1bd38c9d9bf@arm.com>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Message-ID: <a46d18ed-8911-1ec3-c32f-58b6e0d959d7@c-s.fr>
+Date: Thu, 26 Mar 2020 16:23:58 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20200326193021.255002-1-hjl.tools@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <2bb4badc-2b7a-e15d-a99b-b1bd38c9d9bf@arm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
+Cc: Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: "H.J. Lu" <hjl.tools@gmail.com>, linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Thomas Lendacky <Thomas.Lendacky@amd.com>, Sami Tolvanen <samitolvanen@google.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20200326201142.bQ-rmGqc8xXyzHyvi6YRQyzOMzMkuasBHsV3boQ8R4c@z>
+Message-ID: <20200326152358.kaPlCAExizqazb3cPmhB-TxNb1UaskjPiuKGSW2soPc@z>
 
-On Thu, Mar 26, 2020 at 12:30:20PM -0700, H.J. Lu wrote:
-> In x86 kernel, .exit.text and .exit.data sections are discarded at
-> runtime, not by linker.  Add RUNTIME_DISCARD_EXIT to generic DISCARDS
-> and define it in x86 kernel linker script to keep them.
+
+
+Le 26/03/2020 à 03:23, Anshuman Khandual a écrit :
 > 
-> Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
-> Reviewed-by: Kees Cook <keescook@chromium.org>
-> ---
->  arch/x86/kernel/vmlinux.lds.S     |  1 +
->  include/asm-generic/vmlinux.lds.h | 10 ++++++++--
->  2 files changed, 9 insertions(+), 2 deletions(-)
 > 
-> diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
-> index e3296aa028fe..7206e1ac23dd 100644
-> --- a/arch/x86/kernel/vmlinux.lds.S
-> +++ b/arch/x86/kernel/vmlinux.lds.S
-> @@ -21,6 +21,7 @@
->  #define LOAD_OFFSET __START_KERNEL_map
->  #endif
->  
-> +#define RUNTIME_DISCARD_EXIT
->  #define EMITS_PT_NOTE
->  #define RO_EXCEPTION_TABLE_ALIGN	16
->  
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index e00f41aa8ec4..6b943fb8c5fd 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -894,10 +894,16 @@
->   * section definitions so that such archs put those in earlier section
->   * definitions.
->   */
-> +#ifdef RUNTIME_DISCARD_EXIT
-> +#define EXIT_DISCARDS
-> +#else
-> +#define EXIT_DISCARDS							\
-> +	EXIT_TEXT							\
-> +	EXIT_DATA
-> +#endif
+> On 03/24/2020 10:52 AM, Anshuman Khandual wrote:
+>> This series adds more arch page table helper tests. The new tests here are
+>> either related to core memory functions and advanced arch pgtable helpers.
+>> This also creates a documentation file enlisting all expected semantics as
+>> suggested by Mike Rapoport (https://lkml.org/lkml/2020/1/30/40).
+>>
+>> This series has been tested on arm64 and x86 platforms.
+> 
+> If folks can test these patches out on remaining ARCH_HAS_DEBUG_VM_PGTABLE
+> enabled platforms i.e s390, arc, powerpc (32 and 64), that will be really
+> appreciated. Thank you.
+> 
 
-/me goes back and reads the old thread on this...
+On powerpc 8xx (PPC32), I get:
 
-Kees, do you expect other arches to actually need this
-RUNTIME_DISCARD_EXIT thing or was that a hypothetical thing?
-
-/me searches more...
-
-oh, there's a patchset from you
-
-https://lkml.kernel.org/r/20200228002244.15240-1-keescook@chromium.org
-
-which already contains this patch *and* an ARM64 patch which defines
-RUNTIME_DISCARD_EXIT so I'm guessing ARM64 wants to discard at runtime
-too.
-
-Which leaves the question why is H.J. sending that patch separate and
-you carry it in a patchset about orphan section warning? Seems like it
-wants to be in your patchset?
-
-Thx.
-
--- 
-Regards/Gruss,
-    Boris.
-
-https://people.kernel.org/tglx/notes-about-netiquette
+[   53.338368] debug_vm_pgtable: debug_vm_pgtable: Validating 
+architecture page table helpers
+[   53.347403] ------------[ cut here ]------------
+[   53.351832] WARNING: CPU: 0 PID: 1 at mm/debug_vm_pgtable.c:647 
+debug_vm_pgtable+0x280/0x3f4
+[   53.360140] CPU: 0 PID: 1 Comm: swapper Not tainted 
+5.6.0-rc7-s3k-dev-01090-g92710e99881f #3544
+[   53.368718] NIP:  c0777c04 LR: c0777bb8 CTR: 00000000
+[   53.373720] REGS: c9023df0 TRAP: 0700   Not tainted 
+(5.6.0-rc7-s3k-dev-01090-g92710e99881f)
+[   53.382042] MSR:  00029032 <EE,ME,IR,DR,RI>  CR: 22000222  XER: 20000000
+[   53.388667]
+[   53.388667] GPR00: c0777bb8 c9023ea8 c6120000 00000001 1e410000 
+00000000 00000000 007641c9
+[   53.388667] GPR08: 00000000 00000001 00000000 ffffffff 82000222 
+00000000 c00039b8 00000000
+[   53.388667] GPR16: 00000000 00000000 00000000 fffffff0 065fc000 
+1e410000 c6600000 000001e4
+[   53.388667] GPR24: 000001d9 c062d14c c65fc000 c642d448 000006c9 
+00000000 c65f8000 c65fc040
+[   53.423400] NIP [c0777c04] debug_vm_pgtable+0x280/0x3f4
+[   53.428559] LR [c0777bb8] debug_vm_pgtable+0x234/0x3f4
+[   53.433593] Call Trace:
+[   53.436048] [c9023ea8] [c0777bb8] debug_vm_pgtable+0x234/0x3f4 
+(unreliable)
+[   53.442936] [c9023f28] [c00039e0] kernel_init+0x28/0x124
+[   53.448184] [c9023f38] [c000f174] ret_from_kernel_thread+0x14/0x1c
+[   53.454245] Instruction dump:
+[   53.457180] 41a20008 4bea3ed9 62890021 7d36b92e 7d36b82e 71290fd0 
+3149ffff 7d2a4910
+[   53.464838] 0f090000 5789077e 3149ffff 7d2a4910 <0f090000> 38c00000 
+38a00000 38800000
+[   53.472671] ---[ end trace fd5dd92744dc0065 ]---
+[   53.519778] Freeing unused kernel memory: 608K
