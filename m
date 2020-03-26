@@ -1,35 +1,132 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH V2 0/3] mm/debug: Add more arch page table helper tests
-Date: Thu, 26 Mar 2020 07:53:22 +0530
-Message-ID: <2bb4badc-2b7a-e15d-a99b-b1bd38c9d9bf@arm.com>
-References: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: [PATCH v4 4/4] Documentation/litmus-tests/atomic: Add a test for smp_mb__after_atomic()
+Date: Thu, 26 Mar 2020 10:40:22 +0800
+Message-ID: <20200326024022.7566-5-boqun.feng@gmail.com>
+References: <20200326024022.7566-1-boqun.feng@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:55386 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727644AbgCZCXh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 25 Mar 2020 22:23:37 -0400
-In-Reply-To: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: christophe.leroy@c-s.fr, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200326024022.7566-1-boqun.feng@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, Joel Fernandes <joel@joelfernandes.org>linu
+List-Id: linux-arch.vger.kernel.org
 
+We already use a litmus test in atomic_t.txt to describe atomic RMW +
+smp_mb__after_atomic() is stronger than acquire (both the read and the
+write parts are ordered). So make it a litmus test in atomic-tests
+directory, so that people can access the litmus easily.
 
+Additionally, change the processor numbers "P1, P2" to "P0, P1" in
+atomic_t.txt for the consistency with the processor numbers in the
+litmus test, which herd can handle.
 
-On 03/24/2020 10:52 AM, Anshuman Khandual wrote:
-> This series adds more arch page table helper tests. The new tests here are
-> either related to core memory functions and advanced arch pgtable helpers.
-> This also creates a documentation file enlisting all expected semantics as
-> suggested by Mike Rapoport (https://lkml.org/lkml/2020/1/30/40).
-> 
-> This series has been tested on arm64 and x86 platforms.
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+Acked-by: Alan Stern <stern@rowland.harvard.edu>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
+---
+ Documentation/atomic_t.txt                    | 10 +++---
+ ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
+ Documentation/litmus-tests/atomic/README      |  5 +++
+ 3 files changed, 42 insertions(+), 5 deletions(-)
+ create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
 
-If folks can test these patches out on remaining ARCH_HAS_DEBUG_VM_PGTABLE
-enabled platforms i.e s390, arc, powerpc (32 and 64), that will be really
-appreciated. Thank you.
-
-- Anshuman
+diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
+index 67d1d99f8589..0f1fdedf36bb 100644
+--- a/Documentation/atomic_t.txt
++++ b/Documentation/atomic_t.txt
+@@ -233,19 +233,19 @@ as well. Similarly, something like:
+ is an ACQUIRE pattern (though very much not typical), but again the barrier is
+ strictly stronger than ACQUIRE. As illustrated:
+ 
+-  C strong-acquire
++  C Atomic-RMW+mb__after_atomic-is-stronger-than-acquire
+ 
+   {
+   }
+ 
+-  P1(int *x, atomic_t *y)
++  P0(int *x, atomic_t *y)
+   {
+     r0 = READ_ONCE(*x);
+     smp_rmb();
+     r1 = atomic_read(y);
+   }
+ 
+-  P2(int *x, atomic_t *y)
++  P1(int *x, atomic_t *y)
+   {
+     atomic_inc(y);
+     smp_mb__after_atomic();
+@@ -253,14 +253,14 @@ strictly stronger than ACQUIRE. As illustrated:
+   }
+ 
+   exists
+-  (r0=1 /\ r1=0)
++  (0:r0=1 /\ 0:r1=0)
+ 
+ This should not happen; but a hypothetical atomic_inc_acquire() --
+ (void)atomic_fetch_inc_acquire() for instance -- would allow the outcome,
+ because it would not order the W part of the RMW against the following
+ WRITE_ONCE.  Thus:
+ 
+-  P1			P2
++  P0			P1
+ 
+ 			t = LL.acq *y (0)
+ 			t++;
+diff --git a/Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus b/Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
+new file mode 100644
+index 000000000000..9a8e31a44b28
+--- /dev/null
++++ b/Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
+@@ -0,0 +1,32 @@
++C Atomic-RMW+mb__after_atomic-is-stronger-than-acquire
++
++(*
++ * Result: Never
++ *
++ * Test that an atomic RMW followed by a smp_mb__after_atomic() is
++ * stronger than a normal acquire: both the read and write parts of
++ * the RMW are ordered before the subsequential memory accesses.
++ *)
++
++{
++}
++
++P0(int *x, atomic_t *y)
++{
++	int r0;
++	int r1;
++
++	r0 = READ_ONCE(*x);
++	smp_rmb();
++	r1 = atomic_read(y);
++}
++
++P1(int *x, atomic_t *y)
++{
++	atomic_inc(y);
++	smp_mb__after_atomic();
++	WRITE_ONCE(*x, 1);
++}
++
++exists
++(0:r0=1 /\ 0:r1=0)
+diff --git a/Documentation/litmus-tests/atomic/README b/Documentation/litmus-tests/atomic/README
+index a1b72410b539..714cf93816ea 100644
+--- a/Documentation/litmus-tests/atomic/README
++++ b/Documentation/litmus-tests/atomic/README
+@@ -7,5 +7,10 @@ tools/memory-model/README.
+ LITMUS TESTS
+ ============
+ 
++Atomic-RMW+mb__after_atomic-is-stronger-than-acquire
++	Test that an atomic RMW followed by a smp_mb__after_atomic() is
++	stronger than a normal acquire: both the read and write parts of
++	the RMW are ordered before the subsequential memory accesses.
++
+ Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+ 	Test that atomic_set() cannot break the atomicity of atomic RMWs.
+-- 
+2.25.1
