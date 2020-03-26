@@ -1,298 +1,65 @@
-Return-Path: <SRS0=afVm=5D=vger.kernel.org=linux-doc-owner@kernel.org>
+Return-Path: <SRS0=3EsF=5L=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH v4 0/6] arm64: tlb: add support for TTL feature
+References: <20200324134534.1570-1-yezhenyu2@huawei.com>
+ <aaf017a8-3658-fe4d-c0cf-2f45656020af@arm.com>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Message-ID: <7859561b-78b4-4a12-2642-3741d7d3e7b8@huawei.com>
+Date: Thu, 26 Mar 2020 14:45:46 +0800
 MIME-Version: 1.0
-References: <20200224160215.4136-1-mic@digikod.net> <CAG48ez21bEn0wL1bbmTiiu8j9jP5iEWtHOwz4tURUJ+ki0ydYw@mail.gmail.com>
- <873d7419-bdd9-8a52-0a9b-dddbe31df4f9@digikod.net> <CAG48ez0=0W5Ok-8nASqZrZ28JboXRRi3gDxV5u6mdcOtzwuRVA@mail.gmail.com>
- <688dda0f-0907-34eb-c19e-3e9e5f613a74@digikod.net> <CAG48ez16yT+zbK1WPxr2TnxrifW5c2DnpFLbWRRLUT_WpuFNmw@mail.gmail.com>
- <e8530226-f295-a897-1132-7e6970dad49f@digikod.net>
-In-Reply-To: <e8530226-f295-a897-1132-7e6970dad49f@digikod.net>
-From: Jann Horn <jannh@google.com>
-Date: Thu, 19 Mar 2020 00:33:44 +0100
-Message-ID: <CAG48ez1K-7Lq2Ep_p9fOvXQ-fwj_8dA1CFd5SVDbT4ccqejDzA@mail.gmail.com>
-Subject: Re: [RFC PATCH v14 00/10] Landlock LSM
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Sender: linux-doc-owner@vger.kernel.org
-To: =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
-Cc: kernel list <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-doc@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
+In-Reply-To: <aaf017a8-3658-fe4d-c0cf-2f45656020af@arm.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: James Morse <james.morse@arm.com>
+Cc: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, peterz@infradead.org, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200318233344.ydNHxcG70t9C10MZB__EzlnQVCwFJFysz2wIfMm4MCU@z>
+Message-ID: <20200326064546.lwA-sz-2fS2S_ppJTkBC5Rw02QvjpctDlzz4TPA4E1Q@z>
 
-On Wed, Mar 18, 2020 at 1:06 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.net> =
-wrote:
-> On 17/03/2020 20:45, Jann Horn wrote:
-> > On Tue, Mar 17, 2020 at 6:50 PM Micka=C3=ABl Sala=C3=BCn <mic@digikod.n=
-et> wrote:
-> >> On 17/03/2020 17:19, Jann Horn wrote:
-> >>> On Thu, Mar 12, 2020 at 12:38 AM Micka=C3=ABl Sala=C3=BCn <mic@digiko=
-d.net> wrote:
-> >>>> On 10/03/2020 00:44, Jann Horn wrote:
-> >>>>> On Mon, Feb 24, 2020 at 5:03 PM Micka=C3=ABl Sala=C3=BCn <mic@digik=
-od.net> wrote:
-> >>
-> >> [...]
-> >>
-> >>>>> Aside from those things, there is also a major correctness issue wh=
-ere
-> >>>>> I'm not sure how to solve it properly:
-> >>>>>
-> >>>>> Let's say a process installs a filter on itself like this:
-> >>>>>
-> >>>>> struct landlock_attr_ruleset ruleset =3D { .handled_access_fs =3D
-> >>>>> ACCESS_FS_ROUGHLY_WRITE};
-> >>>>> int ruleset_fd =3D landlock(LANDLOCK_CMD_CREATE_RULESET,
-> >>>>> LANDLOCK_OPT_CREATE_RULESET, sizeof(ruleset), &ruleset);
-> >>>>> struct landlock_attr_path_beneath path_beneath =3D {
-> >>>>>   .ruleset_fd =3D ruleset_fd,
-> >>>>>   .allowed_access =3D ACCESS_FS_ROUGHLY_WRITE,
-> >>>>>   .parent_fd =3D open("/tmp/foobar", O_PATH),
-> >>>>> };
-> >>>>> landlock(LANDLOCK_CMD_ADD_RULE, LANDLOCK_OPT_ADD_RULE_PATH_BENEATH,
-> >>>>> sizeof(path_beneath), &path_beneath);
-> >>>>> prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
-> >>>>> struct landlock_attr_enforce attr_enforce =3D { .ruleset_fd =3D rul=
-eset_fd };
-> >>>>> landlock(LANDLOCK_CMD_ENFORCE_RULESET, LANDLOCK_OPT_ENFORCE_RULESET=
-,
-> >>>>> sizeof(attr_enforce), &attr_enforce);
-> >>>>>
-> >>>>> At this point, the process is not supposed to be able to write to
-> >>>>> anything outside /tmp/foobar, right? But what happens if the proces=
-s
-> >>>>> does the following next?
-> >>>>>
-> >>>>> struct landlock_attr_ruleset ruleset =3D { .handled_access_fs =3D
-> >>>>> ACCESS_FS_ROUGHLY_WRITE};
-> >>>>> int ruleset_fd =3D landlock(LANDLOCK_CMD_CREATE_RULESET,
-> >>>>> LANDLOCK_OPT_CREATE_RULESET, sizeof(ruleset), &ruleset);
-> >>>>> struct landlock_attr_path_beneath path_beneath =3D {
-> >>>>>   .ruleset_fd =3D ruleset_fd,
-> >>>>>   .allowed_access =3D ACCESS_FS_ROUGHLY_WRITE,
-> >>>>>   .parent_fd =3D open("/", O_PATH),
-> >>>>> };
-> >>>>> landlock(LANDLOCK_CMD_ADD_RULE, LANDLOCK_OPT_ADD_RULE_PATH_BENEATH,
-> >>>>> sizeof(path_beneath), &path_beneath);
-> >>>>> prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
-> >>>>> struct landlock_attr_enforce attr_enforce =3D { .ruleset_fd =3D rul=
-eset_fd };
-> >>>>> landlock(LANDLOCK_CMD_ENFORCE_RULESET, LANDLOCK_OPT_ENFORCE_RULESET=
-,
-> >>>>> sizeof(attr_enforce), &attr_enforce);
-> >>>>>
-> >>>>> As far as I can tell from looking at the source, after this, you wi=
-ll
-> >>>>> have write access to the entire filesystem again. I think the idea =
-is
-> >>>>> that LANDLOCK_CMD_ENFORCE_RULESET should only let you drop privileg=
-es,
-> >>>>> not increase them, right?
-> >>>>
-> >>>> There is an additionnal check in syscall.c:get_path_from_fd(): it is
-> >>>> forbidden to add a rule with a path which is not accessible (accordi=
-ng
-> >>>> to LANDLOCK_ACCESS_FS_OPEN) thanks to a call to security_file_open()=
-,
-> >>>> but this is definitely not perfect.
-> >>>
-> >>> Ah, I missed that.
-> >>>
-> >>>>> I think the easy way to fix this would be to add a bitmask to each
-> >>>>> rule that says from which ruleset it originally comes, and then let
-> >>>>> check_access_path() collect these bitmasks from each rule with OR, =
-and
-> >>>>> check at the end whether the resulting bitmask is full - if not, at
-> >>>>> least one of the rulesets did not permit the access, and it should =
-be
-> >>>>> denied.
-> >>>>>
-> >>>>> But maybe it would make more sense to change how the API works
-> >>>>> instead, and get rid of the concept of "merging" two rulesets
-> >>>>> together? Instead, we could make the API work like this:
-> >>>>>
-> >>>>>  - LANDLOCK_CMD_CREATE_RULESET gives you a file descriptor whose
-> >>>>> ->private_data contains a pointer to the old ruleset of the process=
-,
-> >>>>> as well as a pointer to a new empty ruleset.
-> >>>>>  - LANDLOCK_CMD_ADD_RULE fails if the specified rule would not be
-> >>>>> permitted by the old ruleset, then adds the rule to the new ruleset
-> >>>>>  - LANDLOCK_CMD_ENFORCE_RULESET fails if the old ruleset pointer in
-> >>>>> ->private_data doesn't match the current ruleset of the process, th=
-en
-> >>>>> replaces the old ruleset with the new ruleset.
-> >>>>>
-> >>>>> With this, the new ruleset is guaranteed to be a subset of the old
-> >>>>> ruleset because each of the new ruleset's rules is permitted by the
-> >>>>> old ruleset. (Unless the directory hierarchy rotates, but in that c=
-ase
-> >>>>> the inaccuracy isn't much worse than what would've been possible
-> >>>>> through RCU path walk anyway AFAIK.)
-> >>>>>
-> >>>>> What do you think?
-> >>>>>
-> >>>>
-> >>>> I would prefer to add the same checks you described at first (with
-> >>>> check_access_path), but only when creating a new ruleset with
-> >>>> merge_ruleset() (which should probably be renamed). This enables not=
- to
-> >>>> rely on a parent ruleset/domain until the enforcement, which is the =
-case
-> >>>> anyway.
-> >>>> Unfortunately this doesn't work for some cases with bind mounts. Bec=
-ause
-> >>>> check_access_path() goes through one path, another (bind mounted) pa=
-th
-> >>>> could be illegitimately allowed.
-> >>>
-> >>> Hmm... I'm not sure what you mean. At the moment, landlock doesn't
-> >>> allow any sandboxed process to change the mount hierarchy, right? Can
-> >>> you give an example where this would go wrong?
-> >>
-> >> Indeed, a Landlocked process must no be able to change its mount
-> >> namespace layout. However, bind mounts may already exist.
-> >> Let's say a process sandbox itself to only access /a in a read-write
-> >> way.
-> >
-> > So, first policy:
-> >
-> > /a RW
-> >
-> >> Then, this process (or one of its children) add a new restriction
-> >> on /a/b to only be able to read this hierarchy.
-> >
-> > You mean with the second policy looking like this?
->
-> Right.
->
-> >
-> > /a RW
-> > /a/b R
-> >
-> > Then the resulting policy would be:
-> >
-> > /a RW policy_bitmask=3D0x00000003 (bits 0 and 1 set)
-> > /a/b R policy_bitmask=3D0x00000002 (bit 1 set)
-> > required_bits=3D0x00000003 (bits 0 and 1 set)
-> >
-> >> The check at insertion
-> >> time would allow this because this access right is a subset of the
-> >> access right allowed with the parent directory. However, If /a/b is bi=
-nd
-> >> mounted somewhere else, let's say in /private/b, then the second
-> >> enforcement just gave new access rights to this hierarchy too.
-> >
-> > But with the solution I proposed, landlock's path walk would see
-> > something like this when accessing a file at /private/b/foo:
-> > /private/b/foo <no rules>
-> >   policies seen until now: 0x00000000
-> > /private/b <access: R, policy_bitmask=3D0x00000002>
-> >   policies seen until now: 0x00000002
-> > /private <no rules>
-> >   policies seen until now: 0x00000002
-> > / <no rules>
-> >   policies seen until now: 0x00000002
-> >
-> > It wouldn't encounter any rule from the first policy, so the OR of the
-> > seen policy bitmasks would be 0x00000002, which is not the required
-> > value 0x00000003, and so the access would be denied.
-> As I understand your proposition, we need to build the required_bits
-> when adding a rule or enforcing/merging a ruleset with a domain. The
-> issue is that a rule only refers to a struct inode, not a struct path.
-> For your proposition to work, we would need to walk through the file
-> path when adding a rule to a ruleset, which means that we need to depend
-> of the current view of the process (i.e. its mount namespace), and its
-> Landlock domain.
+Hi James,
 
-I don't see why that is necessary. Why would we have to walk the file
-path when adding a rule?
+On 2020/3/26 0:15, James Morse wrote:
+> Hi Zhenyu,
+> 
+> On 3/24/20 1:45 PM, Zhenyu Ye wrote:
+>> In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+>> feature allows TLBs to be issued with a level allowing for quicker
+>> invalidation.  This series provide support for this feature. 
+>>
+>> Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
+>> which detect the TTL feature and add __tlbi_level interface.
+> 
+> How does this interact with THP?
+> (I don't see anything on that in the series.)
+> 
+> With THP, there is no one answer to the size of mapping in a VMA.
+> This is a problem because the arm-arm has in "Translation table level
+> hints" in D5.10.2 of DDI0487E.a:
+> | If an incorrect value for the entry being invalidated by the
+> | instruction is specified in the TTL field, then no entries are
+> | required by the architecture to be invalidated from the TLB.
+> 
+> If we get it wrong, not TLB maintenance occurs!
+> 
 
-> If the required_bits field is set when the ruleset is
-> merged with the domain, it is not possible anymore to walk through the
-> corresponding initial file path, which makes the enforcement step too
-> late to check for such consistency. The important point is that a
-> ruleset/domain doesn't have a notion of file hierarchy, a ruleset is
-> only a set of tagged inodes.
->
-> I'm not sure I got your proposition right, though. When and how would
-> you generate the required_bits?
+Thanks for your review.  With THP, we should update the TTL value
+after the page collapse and merge.  If not sure what it should be,
+we can set it to 0 to avoid "no TLB maintenance occur" problem.
+The Table D5-53 in DDI0487E.a says:
+| when TTL[1:0] is 0b00:
+|   This value is reserved, and hardware should treat this as if TTL[3:2] is 0b00
+| when TTL[3:2] is 0b00:
+|   Hardware must assume that the entry can be from any level.
 
-Using your terminology:
-A domain is a collection of N layers, which are assigned indices 0..N-1.
-For each possible access type, a domain has a bitmask containing N
-bits that stores which layers control that access type. (Basically a
-per-layer version of fs_access_mask.)
-To validate an access, you start by ORing together the bitmasks for
-the requested access types; that gives you the required_bits mask,
-which lists all layers that want to control the access.
-Then you set seen_policy_bits=3D0, then do the
-check_access_path_continue() loop while keeping track of which layers
-you've seen with "seen_policy_bits |=3D access->contributing_policies",
-or something like that.
-And in the end, you check that seen_policy_bits is a superset of
-required_bits - something like `(~seen_policy_bits) & required_bits =3D=3D
-0`.
+> Unless THP leaves its fingerprints on the vma, I think you can only do
+> this for VMA types that THP can't mess with. (see
+> transparent_hugepage_enabled())
+> 
 
-AFAICS to create a new domain from a bunch of layers, you wouldn't
-have to do any path walking.
+I will try to add struct mmu_gather to TLBI interfaces, which has enough
+info to track tlb's level.  See in next patch version!
 
-> Here is my updated proposition: add a layer level and a depth to each
-> rule (once enforced/merged with a domain), and a top layer level for a
-> domain. When enforcing a ruleset (i.e. merging a ruleset into the
-> current domain), the layer level of a new rule would be the incremented
-> top layer level.
-> If there is no rule (from this domain) tied to the same
-> inode, then the depth of the new rule is 1. However, if there is already
-> a rule tied to the same inode and if this rule's layer level is the
-> previous top layer level, then the depth and the layer level are both
-> incremented and the rule is updated with the new access rights (boolean
-> AND).
->
-> The policy looks like this:
-> domain top_layer=3D2
-> /a RW policy_bitmask=3D0x00000003 layer=3D1 depth=3D1
-> /a/b R policy_bitmask=3D0x00000002 layer=3D2 depth=3D1
->
-> The path walk access check walks through all inodes and start with a
-> layer counter equal to the top layer of the current domain. For each
-> encountered inode tied to a rule, the access rights are checked and a
-> new check ensures that the layer of the matching rule is the same as the
-> counter (this may be a merged ruleset containing rules pertaining to the
-> same hierarchy, which is fine) or equal to the decremented counter (i.e.
-> the path walk just reached the underlying layer). If the path walk
-> encounter a rule with a layer strictly less than the counter minus one,
-> there is a whole in the layers which means that the ruleset
-> hierarchy/subset does not match, and the access must be denied.
->
-> When accessing a file at /private/b/foo for a read access:
-> /private/b/foo <no rules>
->   allowed_access=3Dunknown layer_counter=3D2
-> /private/b <access: R, policy_bitmask=3D0x00000002, layer=3D2, depth=3D1>
->   allowed_access=3Dallowed layer_counter=3D2
-> /private <no rules>
->   allowed_access=3Dallowed layer_counter=3D2
-> / <no rules>
->   allowed_access=3Dallowed layer_counter=3D2
->
-> Because the layer_counter didn't reach 1, the access request is then deni=
-ed.
->
-> This proposition enables not to rely on a parent ruleset at first, only
-> when enforcing/merging a ruleset with a domain. This also solves the
-> issue with multiple inherited/nested rules on the same inode (in which
-> case the depth just grows). Moreover, this enables to safely stop the
-> path walk as soon as we reach the layer 1.
 
-(FWIW, you could do the same optimization with the seen_policy_bits approac=
-h.)
+Thanks,
+Zhenyu
 
-I guess the difference between your proposal and mine is that in my
-proposal, the following would work, in effect permitting W access to
-/foo/bar/baz (and nothing else)?
-
-first ruleset:
-  /foo W
-second ruleset:
-  /foo/bar/baz W
-third ruleset:
-  /foo/bar W
-
-whereas in your proposal, IIUC it wouldn't be valid for a new ruleset
-to whitelist a superset of what was whitelisted in a previous ruleset?
+.
