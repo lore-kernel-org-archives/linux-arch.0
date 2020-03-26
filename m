@@ -1,53 +1,68 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: [PATCH v4 2/4] Documentation/litmus-tests: Introduce atomic directory
-Date: Thu, 26 Mar 2020 10:40:20 +0800
-Message-ID: <20200326024022.7566-3-boqun.feng@gmail.com>
-References: <20200326024022.7566-1-boqun.feng@gmail.com>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: Re: [RFC PATCH v4 0/6] arm64: tlb: add support for TTL feature
+Date: Thu, 26 Mar 2020 14:45:46 +0800
+Message-ID: <7859561b-78b4-4a12-2642-3741d7d3e7b8@huawei.com>
+References: <20200324134534.1570-1-yezhenyu2@huawei.com>
+ <aaf017a8-3658-fe4d-c0cf-2f45656020af@arm.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20200326024022.7566-1-boqun.feng@gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, Joel Fernandes <joel@joelfernandes.org>linu
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga05-in.huawei.com ([45.249.212.191]:12196 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726298AbgCZGqH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 26 Mar 2020 02:46:07 -0400
+In-Reply-To: <aaf017a8-3658-fe4d-c0cf-2f45656020af@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: James Morse <james.morse@arm.com>
+Cc: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, peterz@infradead.org, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
 
-Although we have atomic_t.txt and its friends to describe the semantics
-of atomic APIs and lib/atomic64_test.c for build testing and testing in
-UP mode, the tests for our atomic APIs in real SMP mode are still
-missing. Since now we have the LKMM tool in kernel and litmus tests can
-be used to generate kernel modules for testing purpose with "klitmus" (a
-tool from the LKMM toolset), it makes sense to put a few typical litmus
-tests into kernel so that
+Hi James,
 
-1)	they are the examples to describe the conceptual mode of the
-	semantics of atomic APIs, and
+On 2020/3/26 0:15, James Morse wrote:
+> Hi Zhenyu,
+> 
+> On 3/24/20 1:45 PM, Zhenyu Ye wrote:
+>> In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+>> feature allows TLBs to be issued with a level allowing for quicker
+>> invalidation.  This series provide support for this feature. 
+>>
+>> Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
+>> which detect the TTL feature and add __tlbi_level interface.
+> 
+> How does this interact with THP?
+> (I don't see anything on that in the series.)
+> 
+> With THP, there is no one answer to the size of mapping in a VMA.
+> This is a problem because the arm-arm has in "Translation table level
+> hints" in D5.10.2 of DDI0487E.a:
+> | If an incorrect value for the entry being invalidated by the
+> | instruction is specified in the TTL field, then no entries are
+> | required by the architecture to be invalidated from the TLB.
+> 
+> If we get it wrong, not TLB maintenance occurs!
+> 
 
-2)	they can be used to generate kernel test modules for anyone
-	who is interested to test the atomic APIs implementation (in
-	most cases, is the one who implements the APIs for a new arch)
+Thanks for your review.  With THP, we should update the TTL value
+after the page collapse and merge.  If not sure what it should be,
+we can set it to 0 to avoid "no TLB maintenance occur" problem.
+The Table D5-53 in DDI0487E.a says:
+| when TTL[1:0] is 0b00:
+|   This value is reserved, and hardware should treat this as if TTL[3:2] is 0b00
+| when TTL[3:2] is 0b00:
+|   Hardware must assume that the entry can be from any level.
 
-Therefore, introduce the atomic directory for this purpose. The
-directory is maintained by the LKMM group to make sure the litmus tests
-are always aligned with our memory model.
+> Unless THP leaves its fingerprints on the vma, I think you can only do
+> this for VMA types that THP can't mess with. (see
+> transparent_hugepage_enabled())
+> 
 
-Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
-Acked-by: Alan Stern <stern@rowland.harvard.edu>
-Acked-by: Andrea Parri <parri.andrea@gmail.com>
----
- Documentation/litmus-tests/atomic/README | 4 ++++
- 1 file changed, 4 insertions(+)
- create mode 100644 Documentation/litmus-tests/atomic/README
+I will try to add struct mmu_gather to TLBI interfaces, which has enough
+info to track tlb's level.  See in next patch version!
 
-diff --git a/Documentation/litmus-tests/atomic/README b/Documentation/litmus-tests/atomic/README
-new file mode 100644
-index 000000000000..ae61201a4271
---- /dev/null
-+++ b/Documentation/litmus-tests/atomic/README
-@@ -0,0 +1,4 @@
-+This directory contains litmus tests that are typical to describe the semantics
-+of our atomic APIs. For more information about how to "run" a litmus test or
-+how to generate a kernel test module based on a litmus test, please see
-+tools/memory-model/README.
--- 
-2.25.1
+
+Thanks,
+Zhenyu
+
+.
