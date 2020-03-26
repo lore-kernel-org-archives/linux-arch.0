@@ -1,96 +1,46 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 1/2] Add RUNTIME_DISCARD_EXIT to generic DISCARDS
-Date: Thu, 26 Mar 2020 13:39:03 -0700
-Message-ID: <202003261335.CC263EF@keescook>
-References: <20200326193021.255002-1-hjl.tools@gmail.com>
- <20200326201142.GJ11398@zn.tnic>
+From: Randy Dunlap <rdunlap-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Subject: Re: [PATCH v15 09/10] samples/landlock: Add a sandbox manager example
+Date: Thu, 26 Mar 2020 16:54:21 -0700
+Message-ID: <11634607-2fdb-1868-03d0-94096763766f@infradead.org>
+References: <20200326202731.693608-1-mic@digikod.net>
+ <20200326202731.693608-10-mic@digikod.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pj1-f68.google.com ([209.85.216.68]:50360 "EHLO
-        mail-pj1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726281AbgCZUjH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Mar 2020 16:39:07 -0400
-Received: by mail-pj1-f68.google.com with SMTP id v13so2971324pjb.0
-        for <linux-arch@vger.kernel.org>; Thu, 26 Mar 2020 13:39:06 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <20200326201142.GJ11398@zn.tnic>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: "H.J. Lu" <hjl.tools@gmail.com>, linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Thomas Lendacky <Thomas.Lendacky@amd.com>, Sami Tolvanen <samitolvanen@google.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Yu-cheng Yu <yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20200326202731.693608-10-mic-WFhQfpSGs3bR7s880joybQ@public.gmane.org>
+Content-Language: en-US
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic-WFhQfpSGs3bR7s880joybQ@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Casey Schaufler <casey-iSGtlc1asvQWG2LlvL+J4A@public.gmane.org>, James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>, Jann Horn <jann-XZ1E9jl8jIdeoWH0uzbU5w@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun-D9rjmswh09VWj0EZb7rXcA@public.gmane.org>, "Serge E . Hallyn" <serge-A9i7LUbDfNHQT0dZR+AlfA@public.gmane.org>, Shuah Khan <shuah-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Vincent Dagonneau <vincent.dagonneau-D9rjmswh09VWj0EZb7rXcA@public.gmane.org>, kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-security-module-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 26, 2020 at 09:11:42PM +0100, Borislav Petkov wrote:
-> On Thu, Mar 26, 2020 at 12:30:20PM -0700, H.J. Lu wrote:
-> > In x86 kernel, .exit.text and .exit.data sections are discarded at
-> > runtime, not by linker.  Add RUNTIME_DISCARD_EXIT to generic DISCARDS
-> > and define it in x86 kernel linker script to keep them.
-> > 
-> > Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
-> > Reviewed-by: Kees Cook <keescook@chromium.org>
-> > ---
-> >  arch/x86/kernel/vmlinux.lds.S     |  1 +
-> >  include/asm-generic/vmlinux.lds.h | 10 ++++++++--
-> >  2 files changed, 9 insertions(+), 2 deletions(-)
-> > 
-> > diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
-> > index e3296aa028fe..7206e1ac23dd 100644
-> > --- a/arch/x86/kernel/vmlinux.lds.S
-> > +++ b/arch/x86/kernel/vmlinux.lds.S
-> > @@ -21,6 +21,7 @@
-> >  #define LOAD_OFFSET __START_KERNEL_map
-> >  #endif
-> >  
-> > +#define RUNTIME_DISCARD_EXIT
-> >  #define EMITS_PT_NOTE
-> >  #define RO_EXCEPTION_TABLE_ALIGN	16
-> >  
-> > diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> > index e00f41aa8ec4..6b943fb8c5fd 100644
-> > --- a/include/asm-generic/vmlinux.lds.h
-> > +++ b/include/asm-generic/vmlinux.lds.h
-> > @@ -894,10 +894,16 @@
-> >   * section definitions so that such archs put those in earlier section
-> >   * definitions.
-> >   */
-> > +#ifdef RUNTIME_DISCARD_EXIT
-> > +#define EXIT_DISCARDS
-> > +#else
-> > +#define EXIT_DISCARDS							\
-> > +	EXIT_TEXT							\
-> > +	EXIT_DATA
-> > +#endif
-> 
-> /me goes back and reads the old thread on this...
-> 
-> Kees, do you expect other arches to actually need this
-> RUNTIME_DISCARD_EXIT thing or was that a hypothetical thing?
-> 
-> /me searches more...
-> 
-> oh, there's a patchset from you
-> 
-> https://lkml.kernel.org/r/20200228002244.15240-1-keescook@chromium.org
-> 
-> which already contains this patch *and* an ARM64 patch which defines
-> RUNTIME_DISCARD_EXIT so I'm guessing ARM64 wants to discard at runtime
-> too.
+Hi,
 
-Correct.
+On 3/26/20 1:27 PM, Mickaël Salaün wrote:
+> diff --git a/samples/Kconfig b/samples/Kconfig
+> index 9d236c346de5..b54408c5bd86 100644
+> --- a/samples/Kconfig
+> +++ b/samples/Kconfig
+> @@ -120,6 +120,13 @@ config SAMPLE_HIDRAW
+>  	bool "hidraw sample"
+>  	depends on HEADERS_INSTALL
+>  
+> +config SAMPLE_LANDLOCK
+> +	bool "Build Landlock sample code"
+> +	select HEADERS_INSTALL
 
-> Which leaves the question why is H.J. sending that patch separate and
-> you carry it in a patchset about orphan section warning? Seems like it
-> wants to be in your patchset?
+I think that this should be like all of the other users of HEADERS_INSTALL
+and depend on that instead of select-ing it.
 
-I had needed the same clean up for the orphan section handling, and
-since it hadn't been picked up yet, I included it in my series. I'm
-still stuck addressing several review comments, so there's no reason to
-wait for me: I can easily rebase once these patches land somewhere. I'd
-be happy to see them in -tip.
+> +	help
+> +	  Build a simple Landlock sandbox manager able to launch a process
+> +	  restricted by a user-defined filesystem access-control security policy.
+> +
+>  config SAMPLE_PIDFD
+>  	bool "pidfd sample"
+>  	depends on HEADERS_INSTALL
 
-Thanks!
-
--Kees
-
+thanks.
 -- 
-Kees Cook
+~Randy
