@@ -1,85 +1,133 @@
-Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:33358 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727234AbgCFNdD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Mar 2020 08:33:03 -0500
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v2 03/20] linux/limits.h: Extract common header for vDSO
-Date: Fri,  6 Mar 2020 13:32:25 +0000
-Message-ID: <20200306133242.26279-4-vincenzo.frascino@arm.com>
-In-Reply-To: <20200306133242.26279-1-vincenzo.frascino@arm.com>
-References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=jv2Y=5L=vger.kernel.org=linux-doc-owner@kernel.org>
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: [PATCH v4 4/4] Documentation/litmus-tests/atomic: Add a test for smp_mb__after_atomic()
+Date: Thu, 26 Mar 2020 10:40:22 +0800
+Message-ID: <20200326024022.7566-5-boqun.feng@gmail.com>
+In-Reply-To: <20200326024022.7566-1-boqun.feng@gmail.com>
+References: <20200326024022.7566-1-boqun.feng@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Sender: linux-doc-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, Joel Fernandes <joel@joelfernandes.org>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200306133225.dDUD5Q6zENJa_UGTMc_6OSLo-NQnVnDoxLpGISv2RNc@z>
+Message-ID: <20200326024022.Sd_ZPXd1kZicVkgNraCf72rNug1U-ZTo6biYwMnD5Og@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+We already use a litmus test in atomic_t.txt to describe atomic RMW +
+smp_mb__after_atomic() is stronger than acquire (both the read and the
+write parts are ordered). So make it a litmus test in atomic-tests
+directory, so that people can access the litmus easily.
 
-Split limits.h into linux and common headers to make the latter suitable
-for inclusion in the vDSO library.
+Additionally, change the processor numbers "P1, P2" to "P0, P1" in
+atomic_t.txt for the consistency with the processor numbers in the
+litmus test, which herd can handle.
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+Acked-by: Alan Stern <stern@rowland.harvard.edu>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
 ---
- include/common/limits.h | 18 ++++++++++++++++++
- include/linux/limits.h  | 13 +------------
- 2 files changed, 19 insertions(+), 12 deletions(-)
- create mode 100644 include/common/limits.h
+ Documentation/atomic_t.txt                    | 10 +++---
+ ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
+ Documentation/litmus-tests/atomic/README      |  5 +++
+ 3 files changed, 42 insertions(+), 5 deletions(-)
+ create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
 
-diff --git a/include/common/limits.h b/include/common/limits.h
+diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
+index 67d1d99f8589..0f1fdedf36bb 100644
+--- a/Documentation/atomic_t.txt
++++ b/Documentation/atomic_t.txt
+@@ -233,19 +233,19 @@ as well. Similarly, something like:
+ is an ACQUIRE pattern (though very much not typical), but again the barrier is
+ strictly stronger than ACQUIRE. As illustrated:
+ 
+-  C strong-acquire
++  C Atomic-RMW+mb__after_atomic-is-stronger-than-acquire
+ 
+   {
+   }
+ 
+-  P1(int *x, atomic_t *y)
++  P0(int *x, atomic_t *y)
+   {
+     r0 = READ_ONCE(*x);
+     smp_rmb();
+     r1 = atomic_read(y);
+   }
+ 
+-  P2(int *x, atomic_t *y)
++  P1(int *x, atomic_t *y)
+   {
+     atomic_inc(y);
+     smp_mb__after_atomic();
+@@ -253,14 +253,14 @@ strictly stronger than ACQUIRE. As illustrated:
+   }
+ 
+   exists
+-  (r0=1 /\ r1=0)
++  (0:r0=1 /\ 0:r1=0)
+ 
+ This should not happen; but a hypothetical atomic_inc_acquire() --
+ (void)atomic_fetch_inc_acquire() for instance -- would allow the outcome,
+ because it would not order the W part of the RMW against the following
+ WRITE_ONCE.  Thus:
+ 
+-  P1			P2
++  P0			P1
+ 
+ 			t = LL.acq *y (0)
+ 			t++;
+diff --git a/Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus b/Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
 new file mode 100644
-index 000000000000..587269010add
+index 000000000000..9a8e31a44b28
 --- /dev/null
-+++ b/include/common/limits.h
-@@ -0,0 +1,18 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __COMMON_LIMITS_H
-+#define __COMMON_LIMITS_H
++++ b/Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
+@@ -0,0 +1,32 @@
++C Atomic-RMW+mb__after_atomic-is-stronger-than-acquire
 +
-+#define USHRT_MAX	((unsigned short)~0U)
-+#define SHRT_MAX	((short)(USHRT_MAX >> 1))
-+#define SHRT_MIN	((short)(-SHRT_MAX - 1))
-+#define INT_MAX		((int)(~0U >> 1))
-+#define INT_MIN		(-INT_MAX - 1)
-+#define UINT_MAX	(~0U)
-+#define LONG_MAX	((long)(~0UL >> 1))
-+#define LONG_MIN	(-LONG_MAX - 1)
-+#define ULONG_MAX	(~0UL)
-+#define LLONG_MAX	((long long)(~0ULL >> 1))
-+#define LLONG_MIN	(-LLONG_MAX - 1)
-+#define ULLONG_MAX	(~0ULL)
++(*
++ * Result: Never
++ *
++ * Test that an atomic RMW followed by a smp_mb__after_atomic() is
++ * stronger than a normal acquire: both the read and write parts of
++ * the RMW are ordered before the subsequential memory accesses.
++ *)
 +
-+#endif /* __COMMON_LIMITS_H */
-diff --git a/include/linux/limits.h b/include/linux/limits.h
-index 76afcd24ff8c..ac20d2b2edd9 100644
---- a/include/linux/limits.h
-+++ b/include/linux/limits.h
-@@ -4,19 +4,8 @@
++{
++}
++
++P0(int *x, atomic_t *y)
++{
++	int r0;
++	int r1;
++
++	r0 = READ_ONCE(*x);
++	smp_rmb();
++	r1 = atomic_read(y);
++}
++
++P1(int *x, atomic_t *y)
++{
++	atomic_inc(y);
++	smp_mb__after_atomic();
++	WRITE_ONCE(*x, 1);
++}
++
++exists
++(0:r0=1 /\ 0:r1=0)
+diff --git a/Documentation/litmus-tests/atomic/README b/Documentation/litmus-tests/atomic/README
+index a1b72410b539..714cf93816ea 100644
+--- a/Documentation/litmus-tests/atomic/README
++++ b/Documentation/litmus-tests/atomic/README
+@@ -7,5 +7,10 @@ tools/memory-model/README.
+ LITMUS TESTS
+ ============
  
- #include <uapi/linux/limits.h>
- #include <linux/types.h>
-+#include <common/limits.h>
- 
--#define USHRT_MAX	((unsigned short)~0U)
--#define SHRT_MAX	((short)(USHRT_MAX >> 1))
--#define SHRT_MIN	((short)(-SHRT_MAX - 1))
--#define INT_MAX		((int)(~0U >> 1))
--#define INT_MIN		(-INT_MAX - 1)
--#define UINT_MAX	(~0U)
--#define LONG_MAX	((long)(~0UL >> 1))
--#define LONG_MIN	(-LONG_MAX - 1)
--#define ULONG_MAX	(~0UL)
--#define LLONG_MAX	((long long)(~0ULL >> 1))
--#define LLONG_MIN	(-LLONG_MAX - 1)
--#define ULLONG_MAX	(~0ULL)
- #define SIZE_MAX	(~(size_t)0)
- #define PHYS_ADDR_MAX	(~(phys_addr_t)0)
- 
++Atomic-RMW+mb__after_atomic-is-stronger-than-acquire
++	Test that an atomic RMW followed by a smp_mb__after_atomic() is
++	stronger than a normal acquire: both the read and write parts of
++	the RMW are ordered before the subsequential memory accesses.
++
+ Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+ 	Test that atomic_set() cannot break the atomicity of atomic RMWs.
 -- 
 2.25.1
