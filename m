@@ -1,132 +1,62 @@
 From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: Re: [RFC PATCH v4 5/6] arm64: tlb: Use translation level hint in
- vm_flags
-Date: Thu, 26 Mar 2020 15:11:23 +0800
-Message-ID: <6e2fece0-a7d7-a470-6911-5891fd09a140@huawei.com>
+Subject: Re: [RFC PATCH v4 0/6] arm64: tlb: add support for TTL feature
+Date: Thu, 26 Mar 2020 15:15:27 +0800
+Message-ID: <43164360-8204-89c6-0d4d-c38b1aa09642@huawei.com>
 References: <20200324134534.1570-1-yezhenyu2@huawei.com>
- <20200324134534.1570-6-yezhenyu2@huawei.com> <20200324144514.340c78d9@why>
- <986be927-02c6-3cc2-ca39-30ccad60eae0@huawei.com>
- <2f4cb3ef52c5589b388225e487651a2b@kernel.org>
+ <20200324150155.GH20713@hirez.programming.kicks-ass.net>
+ <fb06ba92-a3ce-6925-e914-167a85837f27@huawei.com>
+ <20200325133201.GI20713@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:33160 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726014AbgCZHLm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 26 Mar 2020 03:11:42 -0400
-In-Reply-To: <2f4cb3ef52c5589b388225e487651a2b@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>
-Cc: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, peterz@infradead.org, arnd@arndb.de, rostedt@goodmis.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <20200325133201.GI20713@hirez.programming.kicks-ass.net>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: mark.rutland@arm.com, catalin.marinas@arm.com, linux-mm@kvack.org, guohanjun@huawei.com, will@kernel.org, linux-arch@vger.kernel.org, yuzhao@google.com, maz@kernel.org, steven.price@arm.com, arm@kernel.org, Dave.Martin@arm.com, arnd@arndb.de, suzuki.poulose@arm.com, npiggin@gmail.com, zhangshaokun@hisilicon.com, broonie@kernel.org, rostedt@goodmis.org, prime.zeng@hisilicon.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, xiexiangyou@huawei.com, linux-kernel@vger.kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi Marc,
-
-On 2020/3/25 22:13, Marc Zyngier wrote:
+On 2020/3/25 21:32, Peter Zijlstra wrote:
+> On Wed, Mar 25, 2020 at 12:49:45PM +0800, Zhenyu Ye wrote:
+>> Hi Peter,
+>>
+>> On 2020/3/24 23:01, Peter Zijlstra wrote:
+>>> On Tue, Mar 24, 2020 at 09:45:28PM +0800, Zhenyu Ye wrote:
+>>>> In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+>>>> feature allows TLBs to be issued with a level allowing for quicker
+>>>> invalidation.  This series provide support for this feature. 
 >>>>
->>>> +inline unsigned int get_vma_level(struct vm_area_struct *vma)
->>>> +{
->>>> +    unsigned int level = 0;
->>>> +    if (vma->vm_flags & VM_LEVEL_PUD)
->>>> +        level = 1;
->>>> +    else if (vma->vm_flags & VM_LEVEL_PMD)
->>>> +        level = 2;
->>>> +    else if (vma->vm_flags & VM_LEVEL_PTE)
->>>> +        level = 3;
->>>> +
->>>> +    vma->vm_flags &= ~(VM_LEVEL_PUD | VM_LEVEL_PMD | VM_LEVEL_PTE);
->>>> +    return level;
->>>> +}
->>>> +
->>>>  void set_swapper_pgd(pgd_t *pgdp, pgd_t pgd)
->>>>  {
->>>>      pgd_t *fixmap_pgdp;
+>>>> Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
+>>>> which detect the TTL feature and add __tlbi_level interface.
 >>>
+>>> I realy hate how it makes vma->vm_flags more important for tlbi.
 >>>
->>> If feels bizarre a TLBI is now a destructive operation: you've lost the
->>> flags by having cleared them. Even if that's not really a problem in
->>> practice (you issue TLBI because you've unmapped the VMA), it remains
->>> that the act of invalidating TLBs isn't expected to change a kernel
->>> structure (and I'm not even thinking about potential races here).
 >>
->> I cleared vm_flags here just out of caution, because every TLBI flush
->> action should set vm_flags themself. As I know, the TLB_LEVEL of an vma
->> will only be changed by transparent hugepage collapse and merge when
->> the page is not mapped, so there may not have potential races.
+>> Thanks for your review.
 >>
->> But you are right that TLBI should't change a kernel structure.
->> I will remove the clear action and add some notices here.
+>> The tlbi interfaces only have two parameters: vma and addr. If we
+>> try to not use vma->vm_flags, we may should have to add a parameter
+>> to some of these interfaces(such as flush_tlb_range), which are
+>> common to all architectures.
+>>
+>> I'm not sure if this is feasible, because this feature is only
+>> supported by ARM64 currently.
 > 
-> More than that. You are changing the VMA flags at TLBI time already,
-> when calling get_vma_level(). That is already unacceptable -- I don't
-> think (and Peter will certainly correct me if I'm wrong) that you
-> are allowed to change the flags on that code path, as you probably
-> don't hold the write_lock.
+> Power (p9-radix) also has level dependent invalidation instructions, so
+> at the very least you can hook them up as well.
+> 
+> .
 >
 
-Thanks for your review.  I will avoid this problem in next version.
+Thanks, I will push my next version soon.
 
->>> If anything, I feel this should be based around the mmu_gather
->>> structure, which already tracks the right level of information and
->>> additionally knows about the P4D level which is missing in your patches
->>> (even if arm64 is so far limited to 4 levels).
->>>
->>> Thanks,
->>>
->>>     M.
->>>
->>
->> mmu_gather structure has tracked the level information, but we can only
->> use the info in the tlb_flush interface. If we want to use the info in
->> flush_tlb_range, we may should have to add a parameter to this interface,
->> such as:
->>
->>     flush_tlb_range(vma, start, end, flags);
->>
->> However, the flush_tlb_range is a common interface to all architectures,
->> I'm not sure if this is feasible because this feature is only supported
->> by ARM64 currently.
-> 
-> You could always build an on-stack mmu_gather structure and pass it down
-> to the TLB invalidation helpers.
-> 
-> And frankly, you are not going to be able to fit such a change in the
-> way Linux deals with TLBs by adding hacks at the periphery. You'll need
-> to change some of the core abstractions.
-> 
-> Finally, as Peter mentioned separately, there is Power9 which has similar
-> instructions, and could make use of it too. So that's yet another reason
-> to stop hacking at the arch level.
-> 
-
-OK, I will try to add struct mmu_gather to flush_tlb_range, such as:
-
-	void flush_tlb_range(struct mmu_gather *tlb,
-			     struct vm_area_struct *vma,
-			     unsigned long start, unsigned long end);
-
-This will involve all architectures, I will do it carefully.
-
->>
->> Or can we ignore the flush_tlb_range and only set the TTL field in
->> tlb_flush?  Waiting for your suggestion...
-> 
-> You could, but you could also ignore TTL altogether (what's the point
-> in only having half of it?). See my suggestion above.
-> 
->> For P4D level, the TTL field is limited to 4 bit(2 for translation granule
->> and 2 for page table level), so we can no longer afford more levels :).
-> 
-> You clearly didn't read the bit that said "even if arm64 is so far limited
-> to 4 levels". But again, this is Linux, a multi-architecture kernel, and
-> not an arm64-special. Changes you make have to work for all architectures,
-> and be extensible enough for future changes.
-> 
-
-Using the struct mmu_gather to pass the TTL value will not have
-this problem :).
-
-
-Thanks,
 Zhenyu
+.
