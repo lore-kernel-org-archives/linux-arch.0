@@ -1,69 +1,36 @@
-Return-Path: <SRS0=mIjk=5D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.134]:50683 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727733AbgCRJof (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 18 Mar 2020 05:44:35 -0400
+Return-Path: <SRS0=xxT4=5L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:55386 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727644AbgCZCXh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 25 Mar 2020 22:23:37 -0400
+Subject: Re: [PATCH V2 0/3] mm/debug: Add more arch page table helper tests
+References: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Message-ID: <2bb4badc-2b7a-e15d-a99b-b1bd38c9d9bf@arm.com>
+Date: Thu, 26 Mar 2020 07:53:22 +0530
 MIME-Version: 1.0
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <1584200119-18594-8-git-send-email-mikelley@microsoft.com>
- <CAK8P3a0+uBsurfQ4smjPDGkJQSkMe-TxJ4cWR_EZXgDR4-bAWQ@mail.gmail.com> <MW2PR2101MB1052281E5B197F2AA8E4D622D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
-In-Reply-To: <MW2PR2101MB1052281E5B197F2AA8E4D622D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 18 Mar 2020 10:44:16 +0100
-Message-ID: <CAK8P3a2fzFdXoMKz_-Bryq0HUar=Tgs7SwJL4JFw2_KjzpOPdg@mail.gmail.com>
-Subject: Re: [PATCH v6 07/10] arm64: hyperv: Initialize hypervisor on boot
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Kelley <mikelley@microsoft.com>
-Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>, John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Stephen Boyd <sboyd@kernel.org>
-Message-ID: <20200318094416.ZoguJBDz5Ckw6dAqP4pIMLTbi1rFh6yTItZR5sSpfj8@z>
+To: linux-mm@kvack.org
+Cc: christophe.leroy@c-s.fr, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200326022322.itp6A6KtUWw7A_OjPOHTbdR_ynFUljudnbIYKQayi34@z>
 
-On Wed, Mar 18, 2020 at 1:18 AM Michael Kelley <mikelley@microsoft.com> wrote:
->
-> From: Arnd Bergmann <arnd@arndb.de> Sent: Monday, March 16, 2020 1:30 AM
-> >
-> > As you are effectively adding a new clocksource driver here, please move the
-> > code to drivers/clocksource and send the patch to the respective maintainers
-> > (added to Cc here), splitting it out from the rest of the patch.
-> >
-> > You should also describe why your platform doesn't just use the normal
-> > architected timer interface.
-> >
-> > > +TIMER_ACPI_DECLARE(hyperv, ACPI_SIG_GTDT, hyperv_init);
-> >
-> > This looks like it registers a driver for the same device as the normal
-> > arch timer. Won't that clash?
->
-> There is a Hyper-V clocksource driver in drivers/clocksource/hyperv_timer.c.
-> It is architecture independent and works for both x86 and ARM64.
->
-> The requirement here is really for a place to hang the general Hyper-V
-> initialization code.   On the x86 side, there's infrastructure already in place
-> to do hypervisor initialization, but nothing corresponding on the ARM64 side.
-> The TIMER_ACPI_DECLARE hook is admittedly a temporary approach, and I'm
-> happy to hear if someone has a better way to handle this.
->
-> FWIW, Hyper-V doesn't currently virtualize the ARM arch counter/timer for
-> guest VMs.  The Hyper-V synthetic counter/timer in the Hyper-V clocksource
-> driver is used on both ARM64 and x86.  But this Hyper-V init code doesn't actually
-> touch the GTDT device, so it won't interfere with the ARM arch counter/timer
-> when a future Hyper-V version does virtualize it.
 
-I don't have a good idea to solve it, just a few more thoughts:
 
-- if your platform does not actually provide the generic timer, then the
-  ACPI tables should not list one either. Instead, create a separate
-  description for your custom timer, and have that added to the ACPI
-  spec.
+On 03/24/2020 10:52 AM, Anshuman Khandual wrote:
+> This series adds more arch page table helper tests. The new tests here are
+> either related to core memory functions and advanced arch pgtable helpers.
+> This also creates a documentation file enlisting all expected semantics as
+> suggested by Mike Rapoport (https://lkml.org/lkml/2020/1/30/40).
+> 
+> This series has been tested on arm64 and x86 platforms.
 
-- To treat the timer more like a normal driver, better have the
-   TIMER_ACPI_DECLARE() function live only in the driver itself,
-   and use an early initcall (arch_initcall, subsys_initcall, etc)
-   it initialize the rest as late as you can.
+If folks can test these patches out on remaining ARCH_HAS_DEBUG_VM_PGTABLE
+enabled platforms i.e s390, arc, powerpc (32 and 64), that will be really
+appreciated. Thank you.
 
-- Some of the other code added to arch/arm64/ might be able to
-  live in drivers/virt/hyperv in order to be shared between x86 and
-  arm64. (No idea how much of it there is).
-
-       Arnd
+- Anshuman
