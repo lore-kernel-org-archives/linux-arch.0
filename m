@@ -1,110 +1,59 @@
-Return-Path: <SRS0=UTne=45=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:35749 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725978AbgCLK4D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 12 Mar 2020 06:56:03 -0400
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [RESEND PATCH v2 1/9] iomap: Constify ioreadX() iomem argument (as in generic implementation)
-In-Reply-To: <20200219175007.13627-2-krzk@kernel.org>
-References: <20200219175007.13627-1-krzk@kernel.org> <20200219175007.13627-2-krzk@kernel.org>
-Date: Thu, 12 Mar 2020 21:55:44 +1100
-Message-ID: <87ftedj0zz.fsf@mpe.ellerman.id.au>
+Return-Path: <SRS0=xxT4=5L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga07-in.huawei.com ([45.249.212.35]:36782 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726014AbgCZHPt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 26 Mar 2020 03:15:49 -0400
+Subject: Re: [RFC PATCH v4 0/6] arm64: tlb: add support for TTL feature
+References: <20200324134534.1570-1-yezhenyu2@huawei.com>
+ <20200324150155.GH20713@hirez.programming.kicks-ass.net>
+ <fb06ba92-a3ce-6925-e914-167a85837f27@huawei.com>
+ <20200325133201.GI20713@hirez.programming.kicks-ass.net>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Message-ID: <43164360-8204-89c6-0d4d-c38b1aa09642@huawei.com>
+Date: Thu, 26 Mar 2020 15:15:27 +0800
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <20200325133201.GI20713@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Krzysztof Kozlowski <krzk@kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Alexey Brodkin <abrodkin@synopsys.com>, Vineet Gupta <vgupta@synopsys.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Dave Airlie <airlied@redhat.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Ben Skeggs <bskeggs@redhat.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Jiri Slaby <jirislaby@gmail.com>, Nick Kossifidis <mickflemm@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, dri-devel@lists.freedesktop.org, nouveau@lists.freedesktop.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: mark.rutland@arm.com, catalin.marinas@arm.com, linux-mm@kvack.org, guohanjun@huawei.com, will@kernel.org, linux-arch@vger.kernel.org, yuzhao@google.com, maz@kernel.org, steven.price@arm.com, arm@kernel.org, Dave.Martin@arm.com, arnd@arndb.de, suzuki.poulose@arm.com, npiggin@gmail.com, zhangshaokun@hisilicon.com, broonie@kernel.org, rostedt@goodmis.org, prime.zeng@hisilicon.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, xiexiangyou@huawei.com, linux-kernel@vger.kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org
+Message-ID: <20200326071527.D8KIMHGHnL5N1ls56ko8tbdcWS6JzKSwNe9IyAjTyP4@z>
 
-Krzysztof Kozlowski <krzk@kernel.org> writes:
-> diff --git a/arch/powerpc/kernel/iomap.c b/arch/powerpc/kernel/iomap.c
-> index 5ac84efc6ede..9fe4fb3b08aa 100644
-> --- a/arch/powerpc/kernel/iomap.c
-> +++ b/arch/powerpc/kernel/iomap.c
-> @@ -15,23 +15,23 @@
->   * Here comes the ppc64 implementation of the IOMAP 
->   * interfaces.
->   */
-> -unsigned int ioread8(void __iomem *addr)
-> +unsigned int ioread8(const void __iomem *addr)
->  {
->  	return readb(addr);
->  }
-> -unsigned int ioread16(void __iomem *addr)
-> +unsigned int ioread16(const void __iomem *addr)
->  {
->  	return readw(addr);
->  }
-> -unsigned int ioread16be(void __iomem *addr)
-> +unsigned int ioread16be(const void __iomem *addr)
->  {
->  	return readw_be(addr);
->  }
-> -unsigned int ioread32(void __iomem *addr)
-> +unsigned int ioread32(const void __iomem *addr)
->  {
->  	return readl(addr);
->  }
-> -unsigned int ioread32be(void __iomem *addr)
-> +unsigned int ioread32be(const void __iomem *addr)
->  {
->  	return readl_be(addr);
->  }
-> @@ -41,27 +41,27 @@ EXPORT_SYMBOL(ioread16be);
->  EXPORT_SYMBOL(ioread32);
->  EXPORT_SYMBOL(ioread32be);
->  #ifdef __powerpc64__
-> -u64 ioread64(void __iomem *addr)
-> +u64 ioread64(const void __iomem *addr)
->  {
->  	return readq(addr);
->  }
-> -u64 ioread64_lo_hi(void __iomem *addr)
-> +u64 ioread64_lo_hi(const void __iomem *addr)
->  {
->  	return readq(addr);
->  }
-> -u64 ioread64_hi_lo(void __iomem *addr)
-> +u64 ioread64_hi_lo(const void __iomem *addr)
->  {
->  	return readq(addr);
->  }
-> -u64 ioread64be(void __iomem *addr)
-> +u64 ioread64be(const void __iomem *addr)
->  {
->  	return readq_be(addr);
->  }
-> -u64 ioread64be_lo_hi(void __iomem *addr)
-> +u64 ioread64be_lo_hi(const void __iomem *addr)
->  {
->  	return readq_be(addr);
->  }
-> -u64 ioread64be_hi_lo(void __iomem *addr)
-> +u64 ioread64be_hi_lo(const void __iomem *addr)
->  {
->  	return readq_be(addr);
->  }
-> @@ -139,15 +139,15 @@ EXPORT_SYMBOL(iowrite64be_hi_lo);
->   * FIXME! We could make these do EEH handling if we really
->   * wanted. Not clear if we do.
->   */
-> -void ioread8_rep(void __iomem *addr, void *dst, unsigned long count)
-> +void ioread8_rep(const void __iomem *addr, void *dst, unsigned long count)
->  {
->  	readsb(addr, dst, count);
->  }
-> -void ioread16_rep(void __iomem *addr, void *dst, unsigned long count)
-> +void ioread16_rep(const void __iomem *addr, void *dst, unsigned long count)
->  {
->  	readsw(addr, dst, count);
->  }
-> -void ioread32_rep(void __iomem *addr, void *dst, unsigned long count)
-> +void ioread32_rep(const void __iomem *addr, void *dst, unsigned long count)
->  {
->  	readsl(addr, dst, count);
->  }
+On 2020/3/25 21:32, Peter Zijlstra wrote:
+> On Wed, Mar 25, 2020 at 12:49:45PM +0800, Zhenyu Ye wrote:
+>> Hi Peter,
+>>
+>> On 2020/3/24 23:01, Peter Zijlstra wrote:
+>>> On Tue, Mar 24, 2020 at 09:45:28PM +0800, Zhenyu Ye wrote:
+>>>> In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+>>>> feature allows TLBs to be issued with a level allowing for quicker
+>>>> invalidation.  This series provide support for this feature. 
+>>>>
+>>>> Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
+>>>> which detect the TTL feature and add __tlbi_level interface.
+>>>
+>>> I realy hate how it makes vma->vm_flags more important for tlbi.
+>>>
+>>
+>> Thanks for your review.
+>>
+>> The tlbi interfaces only have two parameters: vma and addr. If we
+>> try to not use vma->vm_flags, we may should have to add a parameter
+>> to some of these interfaces(such as flush_tlb_range), which are
+>> common to all architectures.
+>>
+>> I'm not sure if this is feasible, because this feature is only
+>> supported by ARM64 currently.
+> 
+> Power (p9-radix) also has level dependent invalidation instructions, so
+> at the very least you can hook them up as well.
+> 
+> .
+>
 
-This looks OK to me.
+Thanks, I will push my next version soon.
 
-Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
-
-cheers
+Zhenyu
+.
