@@ -1,145 +1,135 @@
-Return-Path: <SRS0=06hN=5A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-mw2nam10on2123.outbound.protection.outlook.com ([40.107.94.123]:18974
-        "EHLO NAM10-MW2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727435AbgCOBcB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 14 Mar 2020 21:32:01 -0400
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: [PATCH v6 06/10] arm64: hyperv: Add kexec and panic handlers
-Date: Sat, 14 Mar 2020 08:35:15 -0700
-Message-ID: <1584200119-18594-7-git-send-email-mikelley@microsoft.com>
-In-Reply-To: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
-Content-Type: text/plain
+Return-Path: <SRS0=xxT4=5L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-qt1-f193.google.com ([209.85.160.193]:36034 "EHLO
+        mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727805AbgCZCkw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Mar 2020 22:40:52 -0400
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: [PATCH v4 3/4] Documentation/litmus-tests/atomic: Add a test for atomic_set()
+Date: Thu, 26 Mar 2020 10:40:21 +0800
+Message-ID: <20200326024022.7566-4-boqun.feng@gmail.com>
+In-Reply-To: <20200326024022.7566-1-boqun.feng@gmail.com>
+References: <20200326024022.7566-1-boqun.feng@gmail.com>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: will@kernel.org, ardb@kernel.org, arnd@arndb.de, catalin.marinas@arm.com, mark.rutland@arm.com, maz@kernel.org, linux-arm-kernel@lists.infradead.org, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, linux-efi@vger.kernel.org, linux-arch@vger.kernel.org, olaf@aepfle.de, apw@canonical.com, vkuznets@redhat.com, jasowang@redhat.com, marcelo.cerri@canonical.com, kys@microsoft.com
-Cc: mikelley@microsoft.com, sunilmut@microsoft.com, boqun.feng@gmail.com
-Message-ID: <20200314153515.zpNnLYzu3-Z1blAjECbGVZiZOGpR4gCfC3l6eKQodyI@z>
+To: linux-kernel@vger.kernel.org
+Cc: Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, Joel Fernandes <joel@joelfernandes.org>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Message-ID: <20200326024021.TH5VYQkx-YrFybwQUlvWYru6ToA440uZi0-X8p46flE@z>
 
-Add functions to set up and remove kexec and panic
-handlers, and to inform Hyper-V about a guest panic.
-These functions are called from architecture independent
-code in the VMbus driver.
+We already use a litmus test in atomic_t.txt to describe the behavior of
+an atomic_set() with the an atomic RMW, so add it into atomic-tests
+directory to make it easily accessible for anyone who cares about the
+semantics of our atomic APIs.
 
-This code is built only when CONFIG_HYPERV is enabled.
+Besides currently the litmus test "atomic-set" in atomic_t.txt has a few
+things to be improved:
 
-Signed-off-by: Michael Kelley <mikelley@microsoft.com>
+1)	The CPU/Processor numbers "P1,P2" are not only inconsistent with
+	the rest of the document, which uses "CPU0" and "CPU1", but also
+	unacceptable by the herd tool, which requires processors start
+	at "P0".
+
+2)	The initialization block uses a "atomic_set()", which is OK, but
+	it's better to use ATOMIC_INIT() to make clear this is an
+	initialization.
+
+3)	The return value of atomic_add_unless() is discarded
+	inexplicitly, which is OK for C language, but it will be helpful
+	to the herd tool if we use a void cast to make the discard
+	explicit.
+
+4)	The name and the paragraph describing the test need to be more
+	accurate and aligned with our wording in LKMM.
+
+Therefore fix these in both atomic_t.txt and the new added litmus test.
+
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
 ---
- arch/arm64/hyperv/hv_core.c  | 61 ++++++++++++++++++++++++++++++++++++++++++++
- arch/arm64/hyperv/mshyperv.c | 26 +++++++++++++++++++
- 2 files changed, 87 insertions(+)
+ Documentation/atomic_t.txt                    | 14 +++++------
+ ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 +++++++++++++++++++
+ Documentation/litmus-tests/atomic/README      |  7 ++++++
+ 3 files changed, 38 insertions(+), 7 deletions(-)
+ create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
 
-diff --git a/arch/arm64/hyperv/hv_core.c b/arch/arm64/hyperv/hv_core.c
-index 4aa6b8f..8d6de9f 100644
---- a/arch/arm64/hyperv/hv_core.c
-+++ b/arch/arm64/hyperv/hv_core.c
-@@ -199,3 +199,64 @@ void hv_get_vpreg_128(u32 msr, struct hv_get_vp_register_output *res)
- 	kfree(output);
- }
- EXPORT_SYMBOL_GPL(hv_get_vpreg_128);
-+
-+void hyperv_report_panic(struct pt_regs *regs, long err)
-+{
-+	static bool panic_reported;
-+	u64 guest_id;
-+
-+	/*
-+	 * We prefer to report panic on 'die' chain as we have proper
-+	 * registers to report, but if we miss it (e.g. on BUG()) we need
-+	 * to report it on 'panic'.
-+	 */
-+	if (panic_reported)
-+		return;
-+	panic_reported = true;
-+
-+	guest_id = hv_get_vpreg(HV_REGISTER_GUEST_OSID);
-+
-+	/*
-+	 * Hyper-V provides the ability to store only 5 values.
-+	 * Pick the passed in error value, the guest_id, and the PC.
-+	 * The first two general registers are added arbitrarily.
-+	 */
-+	hv_set_vpreg(HV_REGISTER_CRASH_P0, err);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P1, guest_id);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P2, regs->pc);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P3, regs->regs[0]);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P4, regs->regs[1]);
-+
-+	/*
-+	 * Let Hyper-V know there is crash data available
-+	 */
-+	hv_set_vpreg(HV_REGISTER_CRASH_CTL, HV_CRASH_CTL_CRASH_NOTIFY);
-+}
-+EXPORT_SYMBOL_GPL(hyperv_report_panic);
-+
-+/*
-+ * hyperv_report_panic_msg - report panic message to Hyper-V
-+ * @pa: physical address of the panic page containing the message
-+ * @size: size of the message in the page
-+ */
-+void hyperv_report_panic_msg(phys_addr_t pa, size_t size)
-+{
-+	/*
-+	 * P3 to contain the physical address of the panic page & P4 to
-+	 * contain the size of the panic data in that page. Rest of the
-+	 * registers are no-op when the NOTIFY_MSG flag is set.
-+	 */
-+	hv_set_vpreg(HV_REGISTER_CRASH_P0, 0);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P1, 0);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P2, 0);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P3, pa);
-+	hv_set_vpreg(HV_REGISTER_CRASH_P4, size);
-+
-+	/*
-+	 * Let Hyper-V know there is crash data available along with
-+	 * the panic message.
-+	 */
-+	hv_set_vpreg(HV_REGISTER_CRASH_CTL,
-+	       (HV_CRASH_CTL_CRASH_NOTIFY | HV_CRASH_CTL_CRASH_NOTIFY_MSG));
-+}
-+EXPORT_SYMBOL_GPL(hyperv_report_panic_msg);
-diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
-index ae6ece6..c58940d 100644
---- a/arch/arm64/hyperv/mshyperv.c
-+++ b/arch/arm64/hyperv/mshyperv.c
-@@ -23,6 +23,8 @@
+diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
+index 0ab747e0d5ac..67d1d99f8589 100644
+--- a/Documentation/atomic_t.txt
++++ b/Documentation/atomic_t.txt
+@@ -85,21 +85,21 @@ smp_store_release() respectively. Therefore, if you find yourself only using
+ the Non-RMW operations of atomic_t, you do not in fact need atomic_t at all
+ and are doing it wrong.
  
- static void (*vmbus_handler)(void);
- static void (*hv_stimer0_handler)(void);
-+static void (*hv_kexec_handler)(void);
-+static void (*hv_crash_handler)(struct pt_regs *regs);
+-A subtle detail of atomic_set{}() is that it should be observable to the RMW
+-ops. That is:
++A note for the implementation of atomic_set{}() is that it must not break the
++atomicity of the RMW ops. That is:
  
- static int vmbus_irq;
- static long __percpu *vmbus_evt;
-@@ -137,3 +139,27 @@ void hv_remove_stimer0_irq(int irq)
- 	}
- }
- EXPORT_SYMBOL_GPL(hv_remove_stimer0_irq);
+-  C atomic-set
++  C Atomic-RMW-ops-are-atomic-WRT-atomic_set
+ 
+   {
+-    atomic_set(v, 1);
++    atomic_t v = ATOMIC_INIT(1);
+   }
+ 
+-  P1(atomic_t *v)
++  P0(atomic_t *v)
+   {
+-    atomic_add_unless(v, 1, 0);
++    (void)atomic_add_unless(v, 1, 0);
+   }
+ 
+-  P2(atomic_t *v)
++  P1(atomic_t *v)
+   {
+     atomic_set(v, 0);
+   }
+diff --git a/Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus b/Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+new file mode 100644
+index 000000000000..49385314d911
+--- /dev/null
++++ b/Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+@@ -0,0 +1,24 @@
++C Atomic-RMW-ops-are-atomic-WRT-atomic_set
 +
-+void hv_setup_kexec_handler(void (*handler)(void))
-+{
-+	hv_kexec_handler = handler;
-+}
-+EXPORT_SYMBOL_GPL(hv_setup_kexec_handler);
++(*
++ * Result: Never
++ *
++ * Test that atomic_set() cannot break the atomicity of atomic RMWs.
++ *)
 +
-+void hv_remove_kexec_handler(void)
 +{
-+	hv_kexec_handler = NULL;
++	atomic_t v = ATOMIC_INIT(1);
 +}
-+EXPORT_SYMBOL_GPL(hv_remove_kexec_handler);
 +
-+void hv_setup_crash_handler(void (*handler)(struct pt_regs *regs))
++P0(atomic_t *v)
 +{
-+	hv_crash_handler = handler;
++	(void)atomic_add_unless(v, 1, 0);
 +}
-+EXPORT_SYMBOL_GPL(hv_setup_crash_handler);
 +
-+void hv_remove_crash_handler(void)
++P1(atomic_t *v)
 +{
-+	hv_crash_handler = NULL;
++	atomic_set(v, 0);
 +}
-+EXPORT_SYMBOL_GPL(hv_remove_crash_handler);
++
++exists
++(v=2)
+diff --git a/Documentation/litmus-tests/atomic/README b/Documentation/litmus-tests/atomic/README
+index ae61201a4271..a1b72410b539 100644
+--- a/Documentation/litmus-tests/atomic/README
++++ b/Documentation/litmus-tests/atomic/README
+@@ -2,3 +2,10 @@ This directory contains litmus tests that are typical to describe the semantics
+ of our atomic APIs. For more information about how to "run" a litmus test or
+ how to generate a kernel test module based on a litmus test, please see
+ tools/memory-model/README.
++
++============
++LITMUS TESTS
++============
++
++Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
++	Test that atomic_set() cannot break the atomicity of atomic RMWs.
 -- 
-1.8.3.1
+2.25.1
