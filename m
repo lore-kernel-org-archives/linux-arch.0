@@ -1,84 +1,113 @@
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: [RFC][PATCHSET] uaccess: getting csum_and_copy_..._user() into saner
- shape
-Date: Fri, 27 Mar 2020 23:30:06 +0000
-Message-ID: <20200327233006.GW23230@ZenIV.linux.org.uk>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [RFC][PATCH 02/14] x86_64: csum_..._copy_..._user(): switch to unsafe_..._user()
+Date: Fri, 27 Mar 2020 23:31:05 +0000
+Message-ID: <20200327233117.1031393-2-viro@ZenIV.linux.org.uk>
+References: <20200327233006.GW23230@ZenIV.linux.org.uk>
+ <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:35894 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726212AbgC0XbT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2020 19:31:19 -0400
+In-Reply-To: <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-        In that area uaccess primitives actually used by the rest of the kernel
-are csum_and_copy_{to,from}_user().  Currently we have a strange mix;
-        * some architectures supply csum_and_copy_from_user().  That's
-indicated by defining _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
-        * the rest end up using the wrapper from net/checksum.h instead;
-that (fairly thin) wrapper expects to find csum_partial_copy_from_user().
-Some among those have csum_partial_copy_from_user() that tries to be smart,
-some end up picking a dumb one from lib/checksum.c, some have a literal
-copy of that dumb version...
-        * some architectures supply csum_and_copy_to_user().  Those define
-HAVE_CSUM_COPY_USER.
-        * the rest pick the dumb (inlined) implementation from net/checksum.h
-        * to confuse the situation even more, there's a couple of architectures
-that call their csum_and_copy_to_user() "csum_partial_copy_to_user" instead...
-and have a macro defining csum_and_copy_to_user as csum_partial_copy_to_user.
-        The rules for access_ok() location are also messy - in principle,
-csum_partial_copy_from_user() expects to have access_ok() done in the wrapper,
-but e.g. i386 one does that on its own.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-        A saner approach would be to turn the csum_partial_copy_from_user()
-instances into csum_and_copy_from_user() ones, getting rid of the wrapper
-for those, then move the dumb one (also converted) into net/checksum.h.
-The series below does that; it lives in
-	git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git #next.uaccess-4
-based at #next.uaccess-3.  Individual patches in followups; please review.
-Not sure which tree would that best go through, TBH...
+We already have stac/clac pair around the calls of csum_partial_copy_generic().
+Stretch that area back, so that it covers the preceding loop (and convert
+the loop body from __{get,put}_user() to unsafe_{get,put}_user()).
+That brings the beginning of the areas to the earlier access_ok(),
+which allows to convert them into user_access_{begin,end}() ones.
 
-Diffstat:
- arch/alpha/include/asm/checksum.h    |  3 ++-
- arch/alpha/lib/csum_partial_copy.c   |  6 +++---
- arch/arm/include/asm/checksum.h      | 14 ++++++++++++++
- arch/c6x/lib/checksum.c              | 22 ----------------------
- arch/ia64/include/asm/checksum.h     | 10 ----------
- arch/ia64/lib/csum_partial_copy.c    | 32 ++------------------------------
- arch/m68k/include/asm/checksum.h     |  3 ++-
- arch/m68k/lib/checksum.c             |  4 ++--
- arch/nios2/include/asm/checksum.h    |  2 --
- arch/parisc/include/asm/checksum.h   |  7 -------
- arch/parisc/lib/checksum.c           | 20 --------------------
- arch/s390/include/asm/checksum.h     | 19 -------------------
- arch/sh/include/asm/checksum_32.h    |  9 +++++++--
- arch/sparc/include/asm/checksum.h    |  1 +
- arch/sparc/include/asm/checksum_32.h | 15 ++++++++++-----
- arch/sparc/include/asm/checksum_64.h |  2 +-
- arch/x86/include/asm/checksum.h      |  2 ++
- arch/x86/include/asm/checksum_32.h   | 21 +++++++++++----------
- arch/x86/include/asm/checksum_64.h   | 12 ++----------
- arch/x86/lib/csum-wrappers_64.c      | 35 ++++++++++++++++++-----------------
- arch/x86/um/asm/checksum.h           | 20 --------------------
- arch/xtensa/include/asm/checksum.h   | 11 +++++++----
- include/asm-generic/checksum.h       |  9 ---------
- include/net/checksum.h               |  8 ++------
- lib/checksum.c                       | 20 --------------------
- 25 files changed, 86 insertions(+), 221 deletions(-)
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/x86/lib/csum-wrappers_64.c | 23 ++++++++++++-----------
+ 1 file changed, 12 insertions(+), 11 deletions(-)
 
-Shortlog:
-      get rid of csum_partial_copy_to_user()
-      x86_64: csum_..._copy_..._user(): switch to unsafe_..._user()
-      x86: switch both 32bit and 64bit to providing csum_and_copy_from_user()
-      x86: switch 32bit csum_and_copy_to_user() to user_access_{begin,end}()
-      ia64: csum_partial_copy_nocheck(): don't abuse csum_partial_copy_from_user()
-      ia64: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
-      alpha: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
-      parisc: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
-      sparc: switch to providing csum_and_copy_from_user()
-      xtensa: switch to providing csum_and_copy_from_user()
-      m68k: convert to csum_and_copy_from_user()
-      sh32: convert to csum_and_copy_from_user()
-      arm: switch to csum_and_copy_from_user()
-      take the dummy csum_and_copy_from_user() into net/checksum.h
+diff --git a/arch/x86/lib/csum-wrappers_64.c b/arch/x86/lib/csum-wrappers_64.c
+index 875c2f5968a0..90d02c82bb7a 100644
+--- a/arch/x86/lib/csum-wrappers_64.c
++++ b/arch/x86/lib/csum-wrappers_64.c
+@@ -27,7 +27,7 @@ csum_partial_copy_from_user(const void __user *src, void *dst,
+ 	might_sleep();
+ 	*errp = 0;
+ 
+-	if (!likely(access_ok(src, len)))
++	if (!likely(user_access_begin(src, len)))
+ 		goto out_err;
+ 
+ 	/*
+@@ -42,8 +42,7 @@ csum_partial_copy_from_user(const void __user *src, void *dst,
+ 		while (((unsigned long)src & 6) && len >= 2) {
+ 			__u16 val16;
+ 
+-			if (__get_user(val16, (const __u16 __user *)src))
+-				goto out_err;
++			unsafe_get_user(val16, (const __u16 __user *)src, out);
+ 
+ 			*(__u16 *)dst = val16;
+ 			isum = (__force __wsum)add32_with_carry(
+@@ -53,15 +52,16 @@ csum_partial_copy_from_user(const void __user *src, void *dst,
+ 			len -= 2;
+ 		}
+ 	}
+-	stac();
+ 	isum = csum_partial_copy_generic((__force const void *)src,
+ 				dst, len, isum, errp, NULL);
+-	clac();
++	user_access_end();
+ 	if (unlikely(*errp))
+ 		goto out_err;
+ 
+ 	return isum;
+ 
++out:
++	user_access_end();
+ out_err:
+ 	*errp = -EFAULT;
+ 	memset(dst, 0, len);
+@@ -89,7 +89,7 @@ csum_and_copy_to_user(const void *src, void __user *dst,
+ 
+ 	might_sleep();
+ 
+-	if (unlikely(!access_ok(dst, len))) {
++	if (unlikely(!user_access_begin(dst, len))) {
+ 		*errp = -EFAULT;
+ 		return 0;
+ 	}
+@@ -100,9 +100,7 @@ csum_and_copy_to_user(const void *src, void __user *dst,
+ 
+ 			isum = (__force __wsum)add32_with_carry(
+ 					(__force unsigned)isum, val16);
+-			*errp = __put_user(val16, (__u16 __user *)dst);
+-			if (*errp)
+-				return isum;
++			unsafe_put_user(val16, (__u16 __user *)dst, out);
+ 			src += 2;
+ 			dst += 2;
+ 			len -= 2;
+@@ -110,11 +108,14 @@ csum_and_copy_to_user(const void *src, void __user *dst,
+ 	}
+ 
+ 	*errp = 0;
+-	stac();
+ 	ret = csum_partial_copy_generic(src, (void __force *)dst,
+ 					len, isum, NULL, errp);
+-	clac();
++	user_access_end();
+ 	return ret;
++out:
++	user_access_end();
++	*errp = -EFAULT;
++	return isum;
+ }
+ EXPORT_SYMBOL(csum_and_copy_to_user);
+ 
+-- 
+2.11.0
