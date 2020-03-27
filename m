@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [RFC][PATCH 11/14] m68k: convert to csum_and_copy_from_user()
-Date: Fri, 27 Mar 2020 23:31:14 +0000
-Message-ID: <20200327233117.1031393-11-viro@ZenIV.linux.org.uk>
+Subject: [RFC][PATCH 09/14] sparc: switch to providing csum_and_copy_from_user()
+Date: Fri, 27 Mar 2020 23:31:12 +0000
+Message-ID: <20200327233117.1031393-9-viro@ZenIV.linux.org.uk>
 References: <20200327233006.GW23230@ZenIV.linux.org.uk>
  <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
@@ -15,49 +15,67 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-trivial access_ok() there...
+sparc64 already is equivalent to that (trivial access_ok());
+add it into sparc32 csum_partial_copy_from_user() and we can
+rename both to csum_and_copy_fromUser() and be done with that.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/m68k/include/asm/checksum.h | 3 ++-
- arch/m68k/lib/checksum.c         | 4 ++--
- 2 files changed, 4 insertions(+), 3 deletions(-)
+ arch/sparc/include/asm/checksum.h    | 1 +
+ arch/sparc/include/asm/checksum_32.h | 8 +++++++-
+ arch/sparc/include/asm/checksum_64.h | 2 +-
+ 3 files changed, 9 insertions(+), 2 deletions(-)
 
-diff --git a/arch/m68k/include/asm/checksum.h b/arch/m68k/include/asm/checksum.h
-index f9b94e4b94f9..3f2c15d6f18c 100644
---- a/arch/m68k/include/asm/checksum.h
-+++ b/arch/m68k/include/asm/checksum.h
-@@ -30,7 +30,8 @@ __wsum csum_partial(const void *buff, int len, __wsum sum);
-  * better 64-bit) boundary
-  */
- 
--extern __wsum csum_partial_copy_from_user(const void __user *src,
+diff --git a/arch/sparc/include/asm/checksum.h b/arch/sparc/include/asm/checksum.h
+index c3be56e2e768..a6256cb6fc5c 100644
+--- a/arch/sparc/include/asm/checksum.h
++++ b/arch/sparc/include/asm/checksum.h
+@@ -1,6 +1,7 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ #ifndef ___ASM_SPARC_CHECKSUM_H
+ #define ___ASM_SPARC_CHECKSUM_H
 +#define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
-+extern __wsum csum_and_copy_from_user(const void __user *src,
- 						void *dst,
- 						int len, __wsum sum,
- 						int *csum_err);
-diff --git a/arch/m68k/lib/checksum.c b/arch/m68k/lib/checksum.c
-index 5fa3d392e181..31797be9a3dc 100644
---- a/arch/m68k/lib/checksum.c
-+++ b/arch/m68k/lib/checksum.c
-@@ -129,7 +129,7 @@ EXPORT_SYMBOL(csum_partial);
-  */
- 
- __wsum
--csum_partial_copy_from_user(const void __user *src, void *dst,
-+csum_and_copy_from_user(const void __user *src, void *dst,
- 			    int len, __wsum sum, int *csum_err)
- {
- 	/*
-@@ -316,7 +316,7 @@ csum_partial_copy_from_user(const void __user *src, void *dst,
- 	return(sum);
+ #if defined(__sparc__) && defined(__arch64__)
+ #include <asm/checksum_64.h>
+ #else
+diff --git a/arch/sparc/include/asm/checksum_32.h b/arch/sparc/include/asm/checksum_32.h
+index 450ddfb444c8..479a0b812af5 100644
+--- a/arch/sparc/include/asm/checksum_32.h
++++ b/arch/sparc/include/asm/checksum_32.h
+@@ -60,7 +60,7 @@ csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum)
  }
  
--EXPORT_SYMBOL(csum_partial_copy_from_user);
-+EXPORT_SYMBOL(csum_and_copy_from_user);
+ static inline __wsum
+-csum_partial_copy_from_user(const void __user *src, void *dst, int len,
++csum_and_copy_from_user(const void __user *src, void *dst, int len,
+ 			    __wsum sum, int *err)
+   {
+ 	register unsigned long ret asm("o0") = (unsigned long)src;
+@@ -68,6 +68,12 @@ csum_partial_copy_from_user(const void __user *src, void *dst, int len,
+ 	register int l asm("g1") = len;
+ 	register __wsum s asm("g7") = sum;
  
++	if (unlikely(!access_ok(src, len))) {
++		if (len)
++			*err = -EFAULT;
++		return sum;
++	}
++
+ 	__asm__ __volatile__ (
+ 	".section __ex_table,#alloc\n\t"
+ 	".align 4\n\t"
+diff --git a/arch/sparc/include/asm/checksum_64.h b/arch/sparc/include/asm/checksum_64.h
+index e52450930e4e..0fa4433f5662 100644
+--- a/arch/sparc/include/asm/checksum_64.h
++++ b/arch/sparc/include/asm/checksum_64.h
+@@ -46,7 +46,7 @@ long __csum_partial_copy_from_user(const void __user *src,
+ 				   __wsum sum);
  
- /*
+ static inline __wsum
+-csum_partial_copy_from_user(const void __user *src,
++csum_and_copy_from_user(const void __user *src,
+ 			    void *dst, int len,
+ 			    __wsum sum, int *err)
+ {
 -- 
 2.11.0
