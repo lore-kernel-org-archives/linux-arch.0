@@ -1,98 +1,84 @@
-From: Joel Fernandes <joel@joelfernandes.org>
-Subject: Re: [PATCH v4 0/4] Documentation/litmus-tests: Add litmus tests for
- atomic APIs
-Date: Fri, 27 Mar 2020 18:18:43 -0400
-Message-ID: <20200327221843.GA226939@google.com>
-References: <20200326024022.7566-1-boqun.feng@gmail.com>
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: [RFC][PATCHSET] uaccess: getting csum_and_copy_..._user() into saner
+ shape
+Date: Fri, 27 Mar 2020 23:30:06 +0000
+Message-ID: <20200327233006.GW23230@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200326024022.7566-1-boqun.feng@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: linux-kernel@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 26, 2020 at 10:40:18AM +0800, Boqun Feng wrote:
-> A recent discussion raises up the requirement for having test cases for
-> atomic APIs:
-> 
-> 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
-> 
-> , and since we already have a way to generate a test module from a
-> litmus test with klitmus[1]. It makes sense that we add more litmus
-> tests for atomic APIs. And based on the previous discussion, I create a
-> new directory Documentation/atomic-tests and put these litmus tests
-> here.
-> 
-> This patchset starts the work by adding the litmus tests which are
-> already used in atomic_t.txt, and also improve the atomic_t.txt to make
-> it consistent with the litmus tests.
-> 
-> Previous version:
-> v1: https://lore.kernel.org/linux-doc/20200214040132.91934-1-boqun.feng@gmail.com/
-> v2: https://lore.kernel.org/lkml/20200219062627.104736-1-boqun.feng@gmail.com/
-> v3: https://lore.kernel.org/linux-doc/20200227004049.6853-1-boqun.feng@gmail.com/
+        In that area uaccess primitives actually used by the rest of the kernel
+are csum_and_copy_{to,from}_user().  Currently we have a strange mix;
+        * some architectures supply csum_and_copy_from_user().  That's
+indicated by defining _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
+        * the rest end up using the wrapper from net/checksum.h instead;
+that (fairly thin) wrapper expects to find csum_partial_copy_from_user().
+Some among those have csum_partial_copy_from_user() that tries to be smart,
+some end up picking a dumb one from lib/checksum.c, some have a literal
+copy of that dumb version...
+        * some architectures supply csum_and_copy_to_user().  Those define
+HAVE_CSUM_COPY_USER.
+        * the rest pick the dumb (inlined) implementation from net/checksum.h
+        * to confuse the situation even more, there's a couple of architectures
+that call their csum_and_copy_to_user() "csum_partial_copy_to_user" instead...
+and have a macro defining csum_and_copy_to_user as csum_partial_copy_to_user.
+        The rules for access_ok() location are also messy - in principle,
+csum_partial_copy_from_user() expects to have access_ok() done in the wrapper,
+but e.g. i386 one does that on its own.
 
-For full series:
+        A saner approach would be to turn the csum_partial_copy_from_user()
+instances into csum_and_copy_from_user() ones, getting rid of the wrapper
+for those, then move the dumb one (also converted) into net/checksum.h.
+The series below does that; it lives in
+	git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git #next.uaccess-4
+based at #next.uaccess-3.  Individual patches in followups; please review.
+Not sure which tree would that best go through, TBH...
 
-Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Diffstat:
+ arch/alpha/include/asm/checksum.h    |  3 ++-
+ arch/alpha/lib/csum_partial_copy.c   |  6 +++---
+ arch/arm/include/asm/checksum.h      | 14 ++++++++++++++
+ arch/c6x/lib/checksum.c              | 22 ----------------------
+ arch/ia64/include/asm/checksum.h     | 10 ----------
+ arch/ia64/lib/csum_partial_copy.c    | 32 ++------------------------------
+ arch/m68k/include/asm/checksum.h     |  3 ++-
+ arch/m68k/lib/checksum.c             |  4 ++--
+ arch/nios2/include/asm/checksum.h    |  2 --
+ arch/parisc/include/asm/checksum.h   |  7 -------
+ arch/parisc/lib/checksum.c           | 20 --------------------
+ arch/s390/include/asm/checksum.h     | 19 -------------------
+ arch/sh/include/asm/checksum_32.h    |  9 +++++++--
+ arch/sparc/include/asm/checksum.h    |  1 +
+ arch/sparc/include/asm/checksum_32.h | 15 ++++++++++-----
+ arch/sparc/include/asm/checksum_64.h |  2 +-
+ arch/x86/include/asm/checksum.h      |  2 ++
+ arch/x86/include/asm/checksum_32.h   | 21 +++++++++++----------
+ arch/x86/include/asm/checksum_64.h   | 12 ++----------
+ arch/x86/lib/csum-wrappers_64.c      | 35 ++++++++++++++++++-----------------
+ arch/x86/um/asm/checksum.h           | 20 --------------------
+ arch/xtensa/include/asm/checksum.h   | 11 +++++++----
+ include/asm-generic/checksum.h       |  9 ---------
+ include/net/checksum.h               |  8 ++------
+ lib/checksum.c                       | 20 --------------------
+ 25 files changed, 86 insertions(+), 221 deletions(-)
 
-One question I had was in the existing atomic_set() documentation, it talks
-about atomic_add_unless() implementation based on locking could have issues.
-It says the way to fix such cases is:
-
-Quote:
-    the typical solution is to then implement atomic_set{}() with
-    atomic_xchg().
-
-I didn't get how using atomic_xchg() fixes it. Is the assumption there that
-atomic_xchg() would be implemented using locking to avoid atomic_set() having
-issues? If so, we could clarify that in the document.
-
-thanks,
-
- - Joel
-
-> 
-> Changes since v3:
-> 
-> *	Merge two patches on atomic-set litmus test into one as per
-> 	Alan. (Alan, you have acked only one of the two patches, so I
-> 	don't add you acked-by for the combined patch).
-> 
-> *	Move the atomic litmus tests into litmus-tests/atomic to align
-> 	with Joel's recent patches on RCU litmus tests.
-> 
-> I think we still haven't reach to a conclusion for the difference of
-> atomic_add_unless() in herdtools, and I'm currently reading the source
-> code of herd to resovle this. This is just an updated version to resolve
-> ealier comments and react on Joel's RCU litmus tests.
-> 
-> Regards,
-> Boqun
-> 
-> [1]: http://diy.inria.fr/doc/litmus.html#klitmus
-> 
-> Boqun Feng (4):
->   tools/memory-model: Add an exception for limitations on _unless()
->     family
->   Documentation/litmus-tests: Introduce atomic directory
->   Documentation/litmus-tests/atomic: Add a test for atomic_set()
->   Documentation/litmus-tests/atomic: Add a test for
->     smp_mb__after_atomic()
-> 
->  Documentation/atomic_t.txt                    | 24 +++++++-------
->  ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
->  ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 ++++++++++++++
->  Documentation/litmus-tests/atomic/README      | 16 ++++++++++
->  tools/memory-model/README                     | 10 ++++--
->  5 files changed, 91 insertions(+), 15 deletions(-)
->  create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
->  create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
->  create mode 100644 Documentation/litmus-tests/atomic/README
-> 
-> -- 
-> 2.25.1
-> 
+Shortlog:
+      get rid of csum_partial_copy_to_user()
+      x86_64: csum_..._copy_..._user(): switch to unsafe_..._user()
+      x86: switch both 32bit and 64bit to providing csum_and_copy_from_user()
+      x86: switch 32bit csum_and_copy_to_user() to user_access_{begin,end}()
+      ia64: csum_partial_copy_nocheck(): don't abuse csum_partial_copy_from_user()
+      ia64: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
+      alpha: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
+      parisc: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
+      sparc: switch to providing csum_and_copy_from_user()
+      xtensa: switch to providing csum_and_copy_from_user()
+      m68k: convert to csum_and_copy_from_user()
+      sh32: convert to csum_and_copy_from_user()
+      arm: switch to csum_and_copy_from_user()
+      take the dummy csum_and_copy_from_user() into net/checksum.h
