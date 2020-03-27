@@ -1,123 +1,95 @@
-Return-Path: <SRS0=zDlA=5F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50846 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727885AbgCTO4E (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Mar 2020 10:56:04 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v5 25/26] lib: vdso: Enable common headers
-Date: Fri, 20 Mar 2020 14:53:50 +0000
-Message-ID: <20200320145351.32292-26-vincenzo.frascino@arm.com>
-In-Reply-To: <20200320145351.32292-1-vincenzo.frascino@arm.com>
-References: <20200320145351.32292-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=twat=5M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:35910 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727020AbgC0XbT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2020 19:31:19 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [RFC][PATCH 06/14] ia64: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
+Date: Fri, 27 Mar 2020 23:31:09 +0000
+Message-ID: <20200327233117.1031393-6-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
+References: <20200327233006.GW23230@ZenIV.linux.org.uk>
+ <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200320145350.79KJ02IW8wZnjlzYDPn9cVoByf4WfgBXQKYD4Wh0f3g@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200327233109.FCRGM7SH96rtfgSx_pNEbNhO9b7GceEuPfBcUoF7ydw@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-Refactor the unified vdso code to use the common headers.
+Just use copy_from_user() there, rather than relying upon the wrapper
+to have done access_ok()
 
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- include/vdso/datapage.h | 33 ++++++++++++++++++++++++++++++---
- lib/vdso/gettimeofday.c | 22 ----------------------
- 2 files changed, 30 insertions(+), 25 deletions(-)
+ arch/ia64/include/asm/checksum.h  |  3 ++-
+ arch/ia64/lib/csum_partial_copy.c | 18 ++++--------------
+ 2 files changed, 6 insertions(+), 15 deletions(-)
 
-diff --git a/include/vdso/datapage.h b/include/vdso/datapage.h
-index 30c4cb0428d1..5cbc9fcbfd45 100644
---- a/include/vdso/datapage.h
-+++ b/include/vdso/datapage.h
-@@ -4,9 +4,20 @@
- 
- #ifndef __ASSEMBLY__
- 
--#include <linux/bits.h>
--#include <linux/time.h>
--#include <linux/types.h>
-+#include <linux/compiler.h>
-+#include <uapi/linux/time.h>
-+#include <uapi/linux/types.h>
-+#include <uapi/asm-generic/errno-base.h>
-+
-+#include <vdso/bits.h>
-+#include <vdso/clocksource.h>
-+#include <vdso/ktime.h>
-+#include <vdso/limits.h>
-+#include <vdso/math64.h>
-+#include <vdso/processor.h>
-+#include <vdso/time.h>
-+#include <vdso/time32.h>
-+#include <vdso/time64.h>
- 
- #define VDSO_BASES	(CLOCK_TAI + 1)
- #define VDSO_HRES	(BIT(CLOCK_REALTIME)		| \
-@@ -99,6 +110,22 @@ struct vdso_data {
+diff --git a/arch/ia64/include/asm/checksum.h b/arch/ia64/include/asm/checksum.h
+index 0ed18bc3f6cf..279ea4dcee79 100644
+--- a/arch/ia64/include/asm/checksum.h
++++ b/arch/ia64/include/asm/checksum.h
+@@ -37,13 +37,14 @@ extern __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
   */
- extern struct vdso_data _vdso_data[CS_BASES] __attribute__((visibility("hidden")));
+ extern __wsum csum_partial(const void *buff, int len, __wsum sum);
  
-+/*
-+ * The generic vDSO implementation requires that gettimeofday.h
-+ * provides:
-+ * - __arch_get_vdso_data(): to get the vdso datapage.
-+ * - __arch_get_hw_counter(): to get the hw counter based on the
-+ *   clock_mode.
-+ * - gettimeofday_fallback(): fallback for gettimeofday.
-+ * - clock_gettime_fallback(): fallback for clock_gettime.
-+ * - clock_getres_fallback(): fallback for clock_getres.
-+ */
-+#ifdef ENABLE_COMPAT_VDSO
-+#include <asm/vdso/compat_gettimeofday.h>
-+#else
-+#include <asm/vdso/gettimeofday.h>
-+#endif /* ENABLE_COMPAT_VDSO */
-+
- #endif /* !__ASSEMBLY__ */
- 
- #endif /* __VDSO_DATAPAGE_H */
-diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
-index 72d282ffd156..a2909af4b924 100644
---- a/lib/vdso/gettimeofday.c
-+++ b/lib/vdso/gettimeofday.c
-@@ -2,31 +2,9 @@
++#define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
  /*
-  * Generic userspace implementations of gettimeofday() and similar.
+  * Same as csum_partial, but copies from src while it checksums.
+  *
+  * Here it is even more important to align src and dst on a 32-bit (or
+  * even better 64-bit) boundary.
   */
--#include <linux/compiler.h>
--#include <linux/math64.h>
--#include <linux/time.h>
--#include <linux/kernel.h>
--#include <linux/hrtimer_defs.h>
--#include <linux/clocksource.h>
- #include <vdso/datapage.h>
- #include <vdso/helpers.h>
+-extern __wsum csum_partial_copy_from_user(const void __user *src, void *dst,
++extern __wsum csum_and_copy_from_user(const void __user *src, void *dst,
+ 						 int len, __wsum sum,
+ 						 int *errp);
  
--/*
-- * The generic vDSO implementation requires that gettimeofday.h
-- * provides:
-- * - __arch_get_vdso_data(): to get the vdso datapage.
-- * - __arch_get_hw_counter(): to get the hw counter based on the
-- *   clock_mode.
-- * - gettimeofday_fallback(): fallback for gettimeofday.
-- * - clock_gettime_fallback(): fallback for clock_gettime.
-- * - clock_getres_fallback(): fallback for clock_getres.
-- */
--#ifdef ENABLE_COMPAT_VDSO
--#include <asm/vdso/compat_gettimeofday.h>
--#else
--#include <asm/vdso/gettimeofday.h>
--#endif /* ENABLE_COMPAT_VDSO */
+diff --git a/arch/ia64/lib/csum_partial_copy.c b/arch/ia64/lib/csum_partial_copy.c
+index 9ab570d0f756..ab59eb399900 100644
+--- a/arch/ia64/lib/csum_partial_copy.c
++++ b/arch/ia64/lib/csum_partial_copy.c
+@@ -103,33 +103,23 @@ unsigned long do_csum_c(const unsigned char * buff, int len, unsigned int psum)
+  * This is very ugly but temporary. THIS NEEDS SERIOUS ENHANCEMENTS.
+  * But it's very tricky to get right even in C.
+  */
+-extern unsigned long do_csum(const unsigned char *, long);
 -
- #ifndef vdso_calc_delta
- /*
-  * Default implementation which works for all sane clocksources. That
+ __wsum
+-csum_partial_copy_from_user(const void __user *src, void *dst,
++csum_and_copy_from_user(const void __user *src, void *dst,
+ 				int len, __wsum psum, int *errp)
+ {
+-	unsigned long result;
+-
+ 	/* XXX Fixme
+ 	 * for now we separate the copy from checksum for obvious
+ 	 * alignment difficulties. Look at the Alpha code and you'll be
+ 	 * scared.
+ 	 */
+ 
+-	if (__copy_from_user(dst, src, len) != 0 && errp)
++	if (copy_from_user(dst, src, len))
+ 		*errp = -EFAULT;
+ 
+-	result = do_csum(dst, len);
+-
+-	/* add in old sum, and carry.. */
+-	result += (__force u32)psum;
+-	/* 32+c bits -> 32 bits */
+-	result = (result & 0xffffffff) + (result >> 32);
+-	return (__force __wsum)result;
++	return csum_partial(dst, len, psum);
+ }
+ 
+-EXPORT_SYMBOL(csum_partial_copy_from_user);
++EXPORT_SYMBOL(csum_and_copy_from_user);
+ 
+ __wsum
+ csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum)
 -- 
-2.25.1
+2.11.0
