@@ -1,89 +1,55 @@
-Return-Path: <SRS0=twat=5M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:35876 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726065AbgC0XaK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2020 19:30:10 -0400
-Date: Fri, 27 Mar 2020 23:30:06 +0000
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: [RFC][PATCHSET] uaccess: getting csum_and_copy_..._user() into saner
- shape
-Message-ID: <20200327233006.GW23230@ZenIV.linux.org.uk>
+Return-Path: <SRS0=6TNM=5M=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [PATCH v15 09/10] samples/landlock: Add a sandbox manager example
+References: <20200326202731.693608-1-mic@digikod.net>
+ <20200326202731.693608-10-mic@digikod.net>
+ <11634607-2fdb-1868-03d0-94096763766f@infradead.org>
+From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
+Message-ID: <4285db52-e7ce-6a0f-3791-fd39c892489e@digikod.net>
+Date: Fri, 27 Mar 2020 15:59:00 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <11634607-2fdb-1868-03d0-94096763766f@infradead.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Randy Dunlap <rdunlap@infradead.org>, linux-kernel@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200327233006.uu8ymOVqkpzXoTXQA6jiipmYpELFvUtSnNdpiP5yYDE@z>
+Message-ID: <20200327145900.WlepNSUXOwJ7SylNHJ9jbjLoVhBLdtzEsyXFms7848M@z>
 
-        In that area uaccess primitives actually used by the rest of the kernel
-are csum_and_copy_{to,from}_user().  Currently we have a strange mix;
-        * some architectures supply csum_and_copy_from_user().  That's
-indicated by defining _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
-        * the rest end up using the wrapper from net/checksum.h instead;
-that (fairly thin) wrapper expects to find csum_partial_copy_from_user().
-Some among those have csum_partial_copy_from_user() that tries to be smart,
-some end up picking a dumb one from lib/checksum.c, some have a literal
-copy of that dumb version...
-        * some architectures supply csum_and_copy_to_user().  Those define
-HAVE_CSUM_COPY_USER.
-        * the rest pick the dumb (inlined) implementation from net/checksum.h
-        * to confuse the situation even more, there's a couple of architectures
-that call their csum_and_copy_to_user() "csum_partial_copy_to_user" instead...
-and have a macro defining csum_and_copy_to_user as csum_partial_copy_to_user.
-        The rules for access_ok() location are also messy - in principle,
-csum_partial_copy_from_user() expects to have access_ok() done in the wrapper,
-but e.g. i386 one does that on its own.
 
-        A saner approach would be to turn the csum_partial_copy_from_user()
-instances into csum_and_copy_from_user() ones, getting rid of the wrapper
-for those, then move the dumb one (also converted) into net/checksum.h.
-The series below does that; it lives in
-	git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git #next.uaccess-4
-based at #next.uaccess-3.  Individual patches in followups; please review.
-Not sure which tree would that best go through, TBH...
+On 27/03/2020 00:54, Randy Dunlap wrote:
+> Hi,
+> 
+> On 3/26/20 1:27 PM, Mickaël Salaün wrote:
+>> diff --git a/samples/Kconfig b/samples/Kconfig
+>> index 9d236c346de5..b54408c5bd86 100644
+>> --- a/samples/Kconfig
+>> +++ b/samples/Kconfig
+>> @@ -120,6 +120,13 @@ config SAMPLE_HIDRAW
+>>  	bool "hidraw sample"
+>>  	depends on HEADERS_INSTALL
+>>  
+>> +config SAMPLE_LANDLOCK
+>> +	bool "Build Landlock sample code"
+>> +	select HEADERS_INSTALL
+> 
+> I think that this should be like all of the other users of HEADERS_INSTALL
+> and depend on that instead of select-ing it.
 
-Diffstat:
- arch/alpha/include/asm/checksum.h    |  3 ++-
- arch/alpha/lib/csum_partial_copy.c   |  6 +++---
- arch/arm/include/asm/checksum.h      | 14 ++++++++++++++
- arch/c6x/lib/checksum.c              | 22 ----------------------
- arch/ia64/include/asm/checksum.h     | 10 ----------
- arch/ia64/lib/csum_partial_copy.c    | 32 ++------------------------------
- arch/m68k/include/asm/checksum.h     |  3 ++-
- arch/m68k/lib/checksum.c             |  4 ++--
- arch/nios2/include/asm/checksum.h    |  2 --
- arch/parisc/include/asm/checksum.h   |  7 -------
- arch/parisc/lib/checksum.c           | 20 --------------------
- arch/s390/include/asm/checksum.h     | 19 -------------------
- arch/sh/include/asm/checksum_32.h    |  9 +++++++--
- arch/sparc/include/asm/checksum.h    |  1 +
- arch/sparc/include/asm/checksum_32.h | 15 ++++++++++-----
- arch/sparc/include/asm/checksum_64.h |  2 +-
- arch/x86/include/asm/checksum.h      |  2 ++
- arch/x86/include/asm/checksum_32.h   | 21 +++++++++++----------
- arch/x86/include/asm/checksum_64.h   | 12 ++----------
- arch/x86/lib/csum-wrappers_64.c      | 35 ++++++++++++++++++-----------------
- arch/x86/um/asm/checksum.h           | 20 --------------------
- arch/xtensa/include/asm/checksum.h   | 11 +++++++----
- include/asm-generic/checksum.h       |  9 ---------
- include/net/checksum.h               |  8 ++------
- lib/checksum.c                       | 20 --------------------
- 25 files changed, 86 insertions(+), 221 deletions(-)
+Ok, I though it made sense to select it automatically, but I'll get back
+the "depends on".
 
-Shortlog:
-      get rid of csum_partial_copy_to_user()
-      x86_64: csum_..._copy_..._user(): switch to unsafe_..._user()
-      x86: switch both 32bit and 64bit to providing csum_and_copy_from_user()
-      x86: switch 32bit csum_and_copy_to_user() to user_access_{begin,end}()
-      ia64: csum_partial_copy_nocheck(): don't abuse csum_partial_copy_from_user()
-      ia64: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
-      alpha: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
-      parisc: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
-      sparc: switch to providing csum_and_copy_from_user()
-      xtensa: switch to providing csum_and_copy_from_user()
-      m68k: convert to csum_and_copy_from_user()
-      sh32: convert to csum_and_copy_from_user()
-      arm: switch to csum_and_copy_from_user()
-      take the dummy csum_and_copy_from_user() into net/checksum.h
+Thanks.
+
+> 
+>> +	help
+>> +	  Build a simple Landlock sandbox manager able to launch a process
+>> +	  restricted by a user-defined filesystem access-control security policy.
+>> +
+>>  config SAMPLE_PIDFD
+>>  	bool "pidfd sample"
+>>  	depends on HEADERS_INSTALL
+> 
+> thanks.
+> 
