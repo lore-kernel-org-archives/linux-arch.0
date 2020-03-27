@@ -1,50 +1,54 @@
-From: Andrew Ede <consumingfirechurch4@gmail.com>
-Subject: HOW ARE YOU?
-Date: Fri, 27 Mar 2020 15:47:25 +0200
-Message-ID: <CAK6CGFdfAHiTXnHEgj3KBcXeX4HucGBtY-Bu86Av4EZxnVHM-w@mail.gmail.com>
-Reply-To: officework_progress@yahoo.com
+From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
+Subject: Re: [PATCH v15 09/10] samples/landlock: Add a sandbox manager example
+Date: Fri, 27 Mar 2020 15:59:00 +0100
+Message-ID: <4285db52-e7ce-6a0f-3791-fd39c892489e@digikod.net>
+References: <20200326202731.693608-1-mic@digikod.net>
+ <20200326202731.693608-10-mic@digikod.net>
+ <11634607-2fdb-1868-03d0-94096763766f@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-il1-f196.google.com ([209.85.166.196]:43622 "EHLO
-        mail-il1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726275AbgC0Nr0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2020 09:47:26 -0400
-Received: by mail-il1-f196.google.com with SMTP id g15so8750047ilj.10
-        for <linux-arch@vger.kernel.org>; Fri, 27 Mar 2020 06:47:25 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-security-module-owner@vger.kernel.org>
+In-Reply-To: <11634607-2fdb-1868-03d0-94096763766f@infradead.org>
+Content-Language: en-US
+Sender: owner-linux-security-module@vger.kernel.org
+To: Randy Dunlap <rdunlap@infradead.org>, linux-kernel@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Good day.
 
-My reason of contacting you is that I and my colleagues working in our
-country=E2=80=99s National Petroleum Corporation want to buy any existing
-modern crude oil refinery in any part of the world.
+On 27/03/2020 00:54, Randy Dunlap wrote:
+> Hi,
+> 
+> On 3/26/20 1:27 PM, Mickaël Salaün wrote:
+>> diff --git a/samples/Kconfig b/samples/Kconfig
+>> index 9d236c346de5..b54408c5bd86 100644
+>> --- a/samples/Kconfig
+>> +++ b/samples/Kconfig
+>> @@ -120,6 +120,13 @@ config SAMPLE_HIDRAW
+>>  	bool "hidraw sample"
+>>  	depends on HEADERS_INSTALL
+>>  
+>> +config SAMPLE_LANDLOCK
+>> +	bool "Build Landlock sample code"
+>> +	select HEADERS_INSTALL
+> 
+> I think that this should be like all of the other users of HEADERS_INSTALL
+> and depend on that instead of select-ing it.
 
-We are ready to buy any available land to build the Refinery or buy
-the existing one anywhere outside Africa. We will make you our foreign
-partner abroad with some percentage shareholding if you will be
-interested to work with us on this project.
+Ok, I though it made sense to select it automatically, but I'll get back
+the "depends on".
 
-We have the sum of ($600 Million Dollars) Six Hundred Million Dollars
-for this project.
+Thanks.
 
-Meanwhile, this amount of ($600 Million Dollars) will be accessible
-through Foreign Contract Purchase Fund. We are going to clarify what
-we meant by Foreign Contract Purchase Fund as soon as we hear from you
-for better understanding and the way forward.
-
-However, in case you are not capable to handle this project with us,
-please kindly connect us to any capable person or company that would
-handle the project with us in order to enable us proceed at once.
-
-We hope to hear you in no distance time through this e-mail address
-at: officework_progress@yahoo.com, for immediate communication and
-more facts on how to go on.
-
-With respect
-
-Best Regards
-
-Andrew Ede and Co,,
+> 
+>> +	help
+>> +	  Build a simple Landlock sandbox manager able to launch a process
+>> +	  restricted by a user-defined filesystem access-control security policy.
+>> +
+>>  config SAMPLE_PIDFD
+>>  	bool "pidfd sample"
+>>  	depends on HEADERS_INSTALL
+> 
+> thanks.
+> 
