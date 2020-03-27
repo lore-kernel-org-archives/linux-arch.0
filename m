@@ -1,46 +1,99 @@
-From: Randy Dunlap <rdunlap-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Subject: Re: [PATCH v15 09/10] samples/landlock: Add a sandbox manager example
-Date: Thu, 26 Mar 2020 16:54:21 -0700
-Message-ID: <11634607-2fdb-1868-03d0-94096763766f@infradead.org>
-References: <20200326202731.693608-1-mic@digikod.net>
- <20200326202731.693608-10-mic@digikod.net>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: Re: [PATCH V2 0/3] mm/debug: Add more arch page table helper tests
+Date: Fri, 27 Mar 2020 12:16:34 +0530
+Message-ID: <9675882f-0ec5-5e46-551f-dd3aa38bf8d8@arm.com>
+References: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
+ <2bb4badc-2b7a-e15d-a99b-b1bd38c9d9bf@arm.com>
+ <a46d18ed-8911-1ec3-c32f-58b6e0d959d7@c-s.fr>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20200326202731.693608-10-mic-WFhQfpSGs3bR7s880joybQ@public.gmane.org>
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <a46d18ed-8911-1ec3-c32f-58b6e0d959d7@c-s.fr>
 Content-Language: en-US
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic-WFhQfpSGs3bR7s880joybQ@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Casey Schaufler <casey-iSGtlc1asvQWG2LlvL+J4A@public.gmane.org>, James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>, Jann Horn <jann-XZ1E9jl8jIdeoWH0uzbU5w@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun-D9rjmswh09VWj0EZb7rXcA@public.gmane.org>, "Serge E . Hallyn" <serge-A9i7LUbDfNHQT0dZR+AlfA@public.gmane.org>, Shuah Khan <shuah-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Vincent Dagonneau <vincent.dagonneau-D9rjmswh09VWj0EZb7rXcA@public.gmane.org>, kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-security-module-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org
+Sender: linux-doc-owner@vger.kernel.org
+To: Christophe Leroy <christophe.leroy@c-s.fr>, linux-mm@kvack.org
+Cc: Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@l
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
 
-On 3/26/20 1:27 PM, Mickaël Salaün wrote:
-> diff --git a/samples/Kconfig b/samples/Kconfig
-> index 9d236c346de5..b54408c5bd86 100644
-> --- a/samples/Kconfig
-> +++ b/samples/Kconfig
-> @@ -120,6 +120,13 @@ config SAMPLE_HIDRAW
->  	bool "hidraw sample"
->  	depends on HEADERS_INSTALL
->  
-> +config SAMPLE_LANDLOCK
-> +	bool "Build Landlock sample code"
-> +	select HEADERS_INSTALL
+On 03/26/2020 08:53 PM, Christophe Leroy wrote:
+> 
+> 
+> Le 26/03/2020 à 03:23, Anshuman Khandual a écrit :
+>>
+>>
+>> On 03/24/2020 10:52 AM, Anshuman Khandual wrote:
+>>> This series adds more arch page table helper tests. The new tests here are
+>>> either related to core memory functions and advanced arch pgtable helpers.
+>>> This also creates a documentation file enlisting all expected semantics as
+>>> suggested by Mike Rapoport (https://lkml.org/lkml/2020/1/30/40).
+>>>
+>>> This series has been tested on arm64 and x86 platforms.
+>>
+>> If folks can test these patches out on remaining ARCH_HAS_DEBUG_VM_PGTABLE
+>> enabled platforms i.e s390, arc, powerpc (32 and 64), that will be really
+>> appreciated. Thank you.
+>>
+> 
+> On powerpc 8xx (PPC32), I get:
+> 
+> [   53.338368] debug_vm_pgtable: debug_vm_pgtable: Validating architecture page table helpers
+> [   53.347403] ------------[ cut here ]------------
+> [   53.351832] WARNING: CPU: 0 PID: 1 at mm/debug_vm_pgtable.c:647 debug_vm_pgtable+0x280/0x3f4
 
-I think that this should be like all of the other users of HEADERS_INSTALL
-and depend on that instead of select-ing it.
+mm/debug_vm_pgtable.c:647 ?
 
-> +	help
-> +	  Build a simple Landlock sandbox manager able to launch a process
-> +	  restricted by a user-defined filesystem access-control security policy.
-> +
->  config SAMPLE_PIDFD
->  	bool "pidfd sample"
->  	depends on HEADERS_INSTALL
+With the following commits in place
 
-thanks.
--- 
-~Randy
+53a8338ce (HEAD) Documentation/mm: Add descriptions for arch page table helper
+5d4913fc1 mm/debug: Add tests validating arch advanced page table helpers
+bcaf120a7 mm/debug: Add tests validating arch page table helpers for core features
+d6ed5a4a5 x86/memory: Drop pud_mknotpresent()
+0739d1f8d mm/debug: Add tests validating architecture page table helpers
+16fbf79b0 (tag: v5.6-rc7) Linux 5.6-rc7
+
+mm/debug_vm_pgtable.c:647 is here.
+
+#ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
+static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot)
+{
+        swp_entry_t swp;
+        pmd_t pmd;  -----------------------------> Line #647
+
+        pmd = pfn_pmd(pfn, prot);
+        swp = __pmd_to_swp_entry(pmd);
+        WARN_ON(!pmd_same(pmd, __swp_entry_to_pmd(swp)));
+}
+#else
+static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot) { }
+#end
+
+Did I miss something ?
+
+> [   53.360140] CPU: 0 PID: 1 Comm: swapper Not tainted 5.6.0-rc7-s3k-dev-01090-g92710e99881f #3544
+> [   53.368718] NIP:  c0777c04 LR: c0777bb8 CTR: 00000000
+> [   53.373720] REGS: c9023df0 TRAP: 0700   Not tainted (5.6.0-rc7-s3k-dev-01090-g92710e99881f)
+> [   53.382042] MSR:  00029032 <EE,ME,IR,DR,RI>  CR: 22000222  XER: 20000000
+> [   53.388667]
+> [   53.388667] GPR00: c0777bb8 c9023ea8 c6120000 00000001 1e410000 00000000 00000000 007641c9
+> [   53.388667] GPR08: 00000000 00000001 00000000 ffffffff 82000222 00000000 c00039b8 00000000
+> [   53.388667] GPR16: 00000000 00000000 00000000 fffffff0 065fc000 1e410000 c6600000 000001e4
+> [   53.388667] GPR24: 000001d9 c062d14c c65fc000 c642d448 000006c9 00000000 c65f8000 c65fc040
+> [   53.423400] NIP [c0777c04] debug_vm_pgtable+0x280/0x3f4
+> [   53.428559] LR [c0777bb8] debug_vm_pgtable+0x234/0x3f4
+> [   53.433593] Call Trace:
+> [   53.436048] [c9023ea8] [c0777bb8] debug_vm_pgtable+0x234/0x3f4 (unreliable)
+> [   53.442936] [c9023f28] [c00039e0] kernel_init+0x28/0x124
+> [   53.448184] [c9023f38] [c000f174] ret_from_kernel_thread+0x14/0x1c
+> [   53.454245] Instruction dump:
+> [   53.457180] 41a20008 4bea3ed9 62890021 7d36b92e 7d36b82e 71290fd0 3149ffff 7d2a4910
+> [   53.464838] 0f090000 5789077e 3149ffff 7d2a4910 <0f090000> 38c00000 38a00000 38800000
+> [   53.472671] ---[ end trace fd5dd92744dc0065 ]---
+Could you please point me to the exact test which is failing ?
+
+> [   53.519778] Freeing unused kernel memory: 608K
+> 
+> 
+So I assume that the system should have come till runtime just fine apart from
+the above warning message because.
