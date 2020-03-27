@@ -1,103 +1,84 @@
-Return-Path: <SRS0=1/KV=5J=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v4 3/6] arm64: Add level-hinted TLB invalidation helper to tlbi_user
-Date: Tue, 24 Mar 2020 21:45:31 +0800
-Message-ID: <20200324134534.1570-4-yezhenyu2@huawei.com>
-In-Reply-To: <20200324134534.1570-1-yezhenyu2@huawei.com>
-References: <20200324134534.1570-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=twat=5M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:35902 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726781AbgC0XbT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2020 19:31:19 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [RFC][PATCH 04/14] x86: switch 32bit csum_and_copy_to_user() to user_access_{begin,end}()
+Date: Fri, 27 Mar 2020 23:31:07 +0000
+Message-ID: <20200327233117.1031393-4-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
+References: <20200327233006.GW23230@ZenIV.linux.org.uk>
+ <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: will@kernel.org, mark.rutland@arm.com, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, peterz@infradead.org, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200324134531.taW9AFoA8WLSmjMexIzoNi0_PlcMUSQq_5CMvNp5x_Y@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200327233107.x8ksY_rKYGY9n5-It0kLVQkpd7MNC1GC23FlUenGygI@z>
 
-Add a level-hinted parameter to __tlbi_user, which only gets used
-if ARMv8.4-TTL gets detected.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
-the level of translation table walk holding the leaf entry for the
-address that is being invalidated.
+consolidate HAVE_CSUM_COPY_USER for 32bit and 64bit, while are at it
 
-This patch set the default level value to 0.
-
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/arm64/include/asm/tlbflush.h | 42 ++++++++++++++++++++++++++-----
- 1 file changed, 36 insertions(+), 6 deletions(-)
+ arch/x86/include/asm/checksum.h    | 1 +
+ arch/x86/include/asm/checksum_32.h | 6 ++----
+ arch/x86/include/asm/checksum_64.h | 3 ---
+ 3 files changed, 3 insertions(+), 7 deletions(-)
 
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
-lbflush.h
-index a3f70778a325..d141c080e494 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -89,6 +89,36 @@
- 		__tlbi(op,  arg);					\
- 	} while(0)
-=20
-+#define __tlbi_user_level(op, addr, level)				\
-+	do {								\
-+		u64 arg =3D addr;						\
-+									\
-+		if (!arm64_kernel_unmapped_at_el0())			\
-+			break;						\
-+									\
-+		if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
-+		    level) {						\
-+			u64 ttl =3D level;				\
-+									\
-+			switch (PAGE_SIZE) {				\
-+			case SZ_4K:					\
-+				ttl |=3D 1 << 2;				\
-+				break;					\
-+			case SZ_16K:					\
-+				ttl |=3D 2 << 2;				\
-+				break;					\
-+			case SZ_64K:					\
-+				ttl |=3D 3 << 2;				\
-+				break;					\
-+			}						\
-+									\
-+			arg &=3D ~TLBI_TTL_MASK;				\
-+			arg |=3D FIELD_PREP(TLBI_TTL_MASK, ttl);		\
-+		}							\
-+									\
-+		__tlbi(op,  (arg) | USER_ASID_FLAG);			\
-+	} while (0)
-+
+diff --git a/arch/x86/include/asm/checksum.h b/arch/x86/include/asm/checksum.h
+index 1ab9572ae4c2..0ada98d5d09f 100644
+--- a/arch/x86/include/asm/checksum.h
++++ b/arch/x86/include/asm/checksum.h
+@@ -1,5 +1,6 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ #define  _HAVE_ARCH_COPY_AND_CSUM_FROM_USER 1
++#define HAVE_CSUM_COPY_USER
+ #ifdef CONFIG_X86_32
+ # include <asm/checksum_32.h>
+ #else
+diff --git a/arch/x86/include/asm/checksum_32.h b/arch/x86/include/asm/checksum_32.h
+index 2487b7fc2d24..11624c8a9d8d 100644
+--- a/arch/x86/include/asm/checksum_32.h
++++ b/arch/x86/include/asm/checksum_32.h
+@@ -176,7 +176,6 @@ static inline __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
  /*
-  *	TLB Invalidation
-  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-@@ -190,8 +220,8 @@ static inline void flush_tlb_page_nosync(struct vm_ar=
-ea_struct *vma,
- 	unsigned long addr =3D __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
-=20
- 	dsb(ishst);
--	__tlbi(vale1is, addr);
--	__tlbi_user(vale1is, addr);
-+	__tlbi_level(vale1is, addr, 0);
-+	__tlbi_user_level(vale1is, addr, 0);
- }
-=20
- static inline void flush_tlb_page(struct vm_area_struct *vma,
-@@ -231,11 +261,11 @@ static inline void __flush_tlb_range(struct vm_area=
-_struct *vma,
- 	dsb(ishst);
- 	for (addr =3D start; addr < end; addr +=3D stride) {
- 		if (last_level) {
--			__tlbi(vale1is, addr);
--			__tlbi_user(vale1is, addr);
-+			__tlbi_level(vale1is, addr, 0);
-+			__tlbi_user_level(vale1is, addr, 0);
- 		} else {
--			__tlbi(vae1is, addr);
--			__tlbi_user(vae1is, addr);
-+			__tlbi_level(vae1is, addr, 0);
-+			__tlbi_user_level(vae1is, addr, 0);
- 		}
+  *	Copy and checksum to user
+  */
+-#define HAVE_CSUM_COPY_USER
+ static inline __wsum csum_and_copy_to_user(const void *src,
+ 					   void __user *dst,
+ 					   int len, __wsum sum,
+@@ -185,11 +184,10 @@ static inline __wsum csum_and_copy_to_user(const void *src,
+ 	__wsum ret;
+ 
+ 	might_sleep();
+-	if (access_ok(dst, len)) {
+-		stac();
++	if (user_access_begin(dst, len)) {
+ 		ret = csum_partial_copy_generic(src, (__force void *)dst,
+ 						len, sum, NULL, err_ptr);
+-		clac();
++		user_access_end();
+ 		return ret;
  	}
- 	dsb(ish);
---=20
-2.19.1
+ 
+diff --git a/arch/x86/include/asm/checksum_64.h b/arch/x86/include/asm/checksum_64.h
+index 2f8435542376..0a289b87e872 100644
+--- a/arch/x86/include/asm/checksum_64.h
++++ b/arch/x86/include/asm/checksum_64.h
+@@ -129,9 +129,6 @@ static inline __sum16 csum_tcpudp_magic(__be32 saddr, __be32 daddr,
+  */
+ extern __wsum csum_partial(const void *buff, int len, __wsum sum);
+ 
+-#define HAVE_CSUM_COPY_USER 1
+-
+-
+ /* Do not call this directly. Use the wrappers below */
+ extern __visible __wsum csum_partial_copy_generic(const void *src, const void *dst,
+ 					int len, __wsum sum,
+-- 
+2.11.0
