@@ -1,98 +1,77 @@
-Return-Path: <SRS0=rKsc=43=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-ot1-f65.google.com ([209.85.210.65]:46673 "EHLO
-        mail-ot1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726134AbgCJBkm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2020 21:40:42 -0400
-Date: Mon, 9 Mar 2020 18:40:39 -0700
-From: Nathan Chancellor <natechancellor@gmail.com>
-Subject: Re: [PATCH v2 20/20] arm64: vdso32: Enable Clang Compilation
-Message-ID: <20200310014039.GA12211@ubuntu-m2-xlarge-x86>
-References: <20200306133242.26279-1-vincenzo.frascino@arm.com>
- <20200306133242.26279-21-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=twat=5M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:35918 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727028AbgC0XbU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2020 19:31:20 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [RFC][PATCH 08/14] parisc: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
+Date: Fri, 27 Mar 2020 23:31:11 +0000
+Message-ID: <20200327233117.1031393-8-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
+References: <20200327233006.GW23230@ZenIV.linux.org.uk>
+ <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200306133242.26279-21-vincenzo.frascino@arm.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200310014039.2knTMYuFYkBRiseTY1EnJftiNp4IpOgTrNK3fy4qobA@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200327233111.UMA3xmJYzQ8sb4qvLQr03Pz91fGFIKxt0QsSwruNbRc@z>
 
-On Fri, Mar 06, 2020 at 01:32:42PM +0000, Vincenzo Frascino wrote:
-> Enable Clang Compilation for the vdso32 library.
-> 
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> ---
->  arch/arm64/kernel/vdso32/Makefile | 13 ++++++++++++-
->  1 file changed, 12 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
-> index 04df57b43cb1..650cfc5757eb 100644
-> --- a/arch/arm64/kernel/vdso32/Makefile
-> +++ b/arch/arm64/kernel/vdso32/Makefile
-> @@ -10,7 +10,18 @@ include $(srctree)/lib/vdso/Makefile
->  
->  # Same as cc-*option, but using CC_COMPAT instead of CC
->  ifeq ($(CONFIG_CC_IS_CLANG), y)
-> -CC_COMPAT ?= $(CC)
-> +COMPAT_GCC_TOOLCHAIN_DIR := $(dir $(shell which $(CROSS_COMPILE_COMPAT)elfedit))
-> +COMPAT_GCC_TOOLCHAIN := $(realpath $(COMPAT_GCC_TOOLCHAIN_DIR)/..)
-> +
-> +CLANG_CC_COMPAT := $(CC)
-> +CLANG_CC_COMPAT += --target=$(notdir $(CROSS_COMPILE_COMPAT:%-=%))
-> +CLANG_CC_COMPAT += --prefix=$(COMPAT_GCC_TOOLCHAIN_DIR)
-> +CLANG_CC_COMPAT += -no-integrated-as -Qunused-arguments
-> +ifneq ($(COMPAT_GCC_TOOLCHAIN),)
-> +CLANG_CC_COMPAT += --gcc-toolchain=$(COMPAT_GCC_TOOLCHAIN)
-> +endif
-> +
-> +CC_COMPAT ?= $(CLANG_CC_COMPAT)
->  else
->  CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
->  endif
-> -- 
-> 2.25.1
-> 
-If CC_COMPAT is ever specified on the command line as clang (maybe by
-some unsuspecting user), we'd loose all of the above flags. Maybe it
-would be better to build a set of COMPAT_CLANG_FLAGS and append them to
-CC_COMPAT, maybe like below?
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-Regardless, the current approach works in my testing with clang 9.0.1
-and master (clang 11.0.0). This patch specifically is:
+Already has the right semantics.  Incidentally. failing copy_from_user()
+zeroes the tail of destination - no need to repeat that manually
 
-Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
-Tested-by: Nathan Chancellor <natechancellor@gmail.com> # build
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/parisc/include/asm/checksum.h |  3 ++-
+ arch/parisc/lib/checksum.c         | 12 +++---------
+ 2 files changed, 5 insertions(+), 10 deletions(-)
 
-==================================================================================
-
-diff --git a/arch/arm64/kernel/vdso32/Makefile b/arch/arm64/kernel/vdso32/Makefile
-index 650cfc5757eb..df5145fab287 100644
---- a/arch/arm64/kernel/vdso32/Makefile
-+++ b/arch/arm64/kernel/vdso32/Makefile
-@@ -13,15 +13,16 @@ ifeq ($(CONFIG_CC_IS_CLANG), y)
- COMPAT_GCC_TOOLCHAIN_DIR := $(dir $(shell which $(CROSS_COMPILE_COMPAT)elfedit))
- COMPAT_GCC_TOOLCHAIN := $(realpath $(COMPAT_GCC_TOOLCHAIN_DIR)/..)
+diff --git a/arch/parisc/include/asm/checksum.h b/arch/parisc/include/asm/checksum.h
+index c1c22819a04d..7c69ce9634c7 100644
+--- a/arch/parisc/include/asm/checksum.h
++++ b/arch/parisc/include/asm/checksum.h
+@@ -26,11 +26,12 @@ extern __wsum csum_partial(const void *, int, __wsum);
+  */
+ extern __wsum csum_partial_copy_nocheck(const void *, void *, int, __wsum);
  
--CLANG_CC_COMPAT := $(CC)
--CLANG_CC_COMPAT += --target=$(notdir $(CROSS_COMPILE_COMPAT:%-=%))
--CLANG_CC_COMPAT += --prefix=$(COMPAT_GCC_TOOLCHAIN_DIR)
--CLANG_CC_COMPAT += -no-integrated-as -Qunused-arguments
-+COMPAT_CLANG_FLAGS := --target=$(notdir $(CROSS_COMPILE_COMPAT:%-=%))
-+COMPAT_CLANG_FLAGS += --prefix=$(COMPAT_GCC_TOOLCHAIN_DIR)
-+COMPAT_CLANG_FLAGS += -no-integrated-as -Qunused-arguments
- ifneq ($(COMPAT_GCC_TOOLCHAIN),)
--CLANG_CC_COMPAT += --gcc-toolchain=$(COMPAT_GCC_TOOLCHAIN)
-+COMPAT_CLANG_FLAGS += --gcc-toolchain=$(COMPAT_GCC_TOOLCHAIN)
- endif
++#define _HAVE_ARCH_COPY_AND_CSUM_FROM_USER
+ /*
+  * this is a new version of the above that records errors it finds in *errp,
+  * but continues and zeros the rest of the buffer.
+  */
+-extern __wsum csum_partial_copy_from_user(const void __user *src,
++extern __wsum csum_and_copy_from_user(const void __user *src,
+ 		void *dst, int len, __wsum sum, int *errp);
  
--CC_COMPAT ?= $(CLANG_CC_COMPAT)
-+CC_COMPAT ?= $(CC)
-+CC_COMPAT += $(COMPAT_CLANG_FLAGS)
-+
- else
- CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
- endif
+ /*
+diff --git a/arch/parisc/lib/checksum.c b/arch/parisc/lib/checksum.c
+index 256322c7b648..4e47c2ff2bcd 100644
+--- a/arch/parisc/lib/checksum.c
++++ b/arch/parisc/lib/checksum.c
+@@ -128,18 +128,12 @@ EXPORT_SYMBOL(csum_partial_copy_nocheck);
+  * Copy from userspace and compute checksum.  If we catch an exception
+  * then zero the rest of the buffer.
+  */
+-__wsum csum_partial_copy_from_user(const void __user *src,
++__wsum csum_and_copy_from_user(const void __user *src,
+ 					void *dst, int len,
+ 					__wsum sum, int *err_ptr)
+ {
+-	int missing;
+-
+-	missing = copy_from_user(dst, src, len);
+-	if (missing) {
+-		memset(dst + len - missing, 0, missing);
++	if (copy_from_user(dst, src, len))
+ 		*err_ptr = -EFAULT;
+-	}
+-		
+ 	return csum_partial(dst, len, sum);
+ }
+-EXPORT_SYMBOL(csum_partial_copy_from_user);
++EXPORT_SYMBOL(csum_and_copy_from_user);
+-- 
+2.11.0
