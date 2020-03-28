@@ -1,79 +1,63 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [RFC][PATCH 04/14] x86: switch 32bit csum_and_copy_to_user() to user_access_{begin,end}()
-Date: Fri, 27 Mar 2020 23:31:07 +0000
-Message-ID: <20200327233117.1031393-4-viro@ZenIV.linux.org.uk>
-References: <20200327233006.GW23230@ZenIV.linux.org.uk>
- <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RFC][Qusetion] the value of cleared_(ptes|pmds|puds|p4ds) in struct
+ mmu_gather
+Date: Sat, 28 Mar 2020 12:30:50 +0800
+Message-ID: <fbb00ac0-9104-8d25-f225-7b3d1b17a01f@huawei.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>, npiggin@gmail.com, will.deacon@arm.com, mingo@kernel.org, torvalds@linux-foundation.org, schwidefsky@de.ibm.com, akpm@linux-foundation.org, luto@kernel.org, bp@alien8.de, Marc Zyngier <maz@kernel.org>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arm@kernel.org, xiexiangyou@huawei.com, yezhenyu2@huawei.com
 List-Id: linux-arch.vger.kernel.org
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+Hi all,
 
-consolidate HAVE_CSUM_COPY_USER for 32bit and 64bit, while are at it
+commit a6d60245 "Track which levels of the page tables have been cleared"
+added cleared_(ptes|pmds|puds|p4ds) in struct mmu_gather, and the values
+of them are set in some places. For example:
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/x86/include/asm/checksum.h    | 1 +
- arch/x86/include/asm/checksum_32.h | 6 ++----
- arch/x86/include/asm/checksum_64.h | 3 ---
- 3 files changed, 3 insertions(+), 7 deletions(-)
+In include/asm-generic/tlb.h, pte_free_tlb() set the tlb->cleared_pmds:
+---8<---
+#ifndef pte_free_tlb
+#define pte_free_tlb(tlb, ptep, address)			\
+	do {							\
+		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+		tlb->freed_tables = 1;				\
+		tlb->cleared_pmds = 1;				\
+		__pte_free_tlb(tlb, ptep, address);		\
+	} while (0)
+#endif
+---8<---
 
-diff --git a/arch/x86/include/asm/checksum.h b/arch/x86/include/asm/checksum.h
-index 1ab9572ae4c2..0ada98d5d09f 100644
---- a/arch/x86/include/asm/checksum.h
-+++ b/arch/x86/include/asm/checksum.h
-@@ -1,5 +1,6 @@
- /* SPDX-License-Identifier: GPL-2.0 */
- #define  _HAVE_ARCH_COPY_AND_CSUM_FROM_USER 1
-+#define HAVE_CSUM_COPY_USER
- #ifdef CONFIG_X86_32
- # include <asm/checksum_32.h>
- #else
-diff --git a/arch/x86/include/asm/checksum_32.h b/arch/x86/include/asm/checksum_32.h
-index 2487b7fc2d24..11624c8a9d8d 100644
---- a/arch/x86/include/asm/checksum_32.h
-+++ b/arch/x86/include/asm/checksum_32.h
-@@ -176,7 +176,6 @@ static inline __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
- /*
-  *	Copy and checksum to user
-  */
--#define HAVE_CSUM_COPY_USER
- static inline __wsum csum_and_copy_to_user(const void *src,
- 					   void __user *dst,
- 					   int len, __wsum sum,
-@@ -185,11 +184,10 @@ static inline __wsum csum_and_copy_to_user(const void *src,
- 	__wsum ret;
- 
- 	might_sleep();
--	if (access_ok(dst, len)) {
--		stac();
-+	if (user_access_begin(dst, len)) {
- 		ret = csum_partial_copy_generic(src, (__force void *)dst,
- 						len, sum, NULL, err_ptr);
--		clac();
-+		user_access_end();
- 		return ret;
- 	}
- 
-diff --git a/arch/x86/include/asm/checksum_64.h b/arch/x86/include/asm/checksum_64.h
-index 2f8435542376..0a289b87e872 100644
---- a/arch/x86/include/asm/checksum_64.h
-+++ b/arch/x86/include/asm/checksum_64.h
-@@ -129,9 +129,6 @@ static inline __sum16 csum_tcpudp_magic(__be32 saddr, __be32 daddr,
-  */
- extern __wsum csum_partial(const void *buff, int len, __wsum sum);
- 
--#define HAVE_CSUM_COPY_USER 1
--
--
- /* Do not call this directly. Use the wrappers below */
- extern __visible __wsum csum_partial_copy_generic(const void *src, const void *dst,
- 					int len, __wsum sum,
--- 
-2.11.0
+
+However, in arch/s390/include/asm/tlb.h, pte_free_tlb() set the tlb->cleared_ptes:
+---8<---
+static inline void pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+                                unsigned long address)
+{
+	__tlb_adjust_range(tlb, address, PAGE_SIZE);
+	tlb->mm->context.flush_mm = 1;
+	tlb->freed_tables = 1;
+	tlb->cleared_ptes = 1;
+	/*
+	 * page_table_free_rcu takes care of the allocation bit masks
+	 * of the 2K table fragments in the 4K page table page,
+	 * then calls tlb_remove_table.
+	 */
+	page_table_free_rcu(tlb, (unsigned long *) pte, address);
+}
+---8<---
+
+
+In my view, the cleared_(ptes|pmds|puds) and (pte|pmd|pud)_free_tlb
+correspond one-to-one.  So we should set cleared_ptes in pte_free_tlb(),
+then use it when needed.
+
+I'm very confused about this. Which is wrong? Or is there something
+I understand wrong?
+
+
+Thanks,
+Zhenyu
