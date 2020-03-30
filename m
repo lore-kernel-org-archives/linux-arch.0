@@ -1,74 +1,128 @@
-Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:38807 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726830AbgCMAAc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2020 20:00:32 -0400
-Received: by mail-pl1-f194.google.com with SMTP id w3so3335757plz.5
-        for <linux-arch@vger.kernel.org>; Thu, 12 Mar 2020 17:00:31 -0700 (PDT)
-Date: Thu, 12 Mar 2020 17:00:29 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v9 12/13] mm: smaps: Report arm64 guarded pages in smaps
-Message-ID: <202003121700.C10E9E5@keescook>
-References: <20200311192608.40095-1-broonie@kernel.org>
- <20200311192608.40095-13-broonie@kernel.org>
+Return-Path: <SRS0=M4aj=5P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-wm1-f65.google.com ([209.85.128.65]:52026 "EHLO
+        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729139AbgC3WMw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2020 18:12:52 -0400
+Received: by mail-wm1-f65.google.com with SMTP id c187so497795wme.1
+        for <linux-arch@vger.kernel.org>; Mon, 30 Mar 2020 15:12:51 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200311192608.40095-13-broonie@kernel.org>
+References: <cover.1585579244.git.thehajime@gmail.com> <dca6ea7260830a03c060f57e6ab9961f16ad55ed.1585579244.git.thehajime@gmail.com>
+ <a84f3d7bcddbaa6125349c4bcdec6e3e07d6b783.camel@sipsolutions.net>
+In-Reply-To: <a84f3d7bcddbaa6125349c4bcdec6e3e07d6b783.camel@sipsolutions.net>
+From: Richard Weinberger <richard.weinberger@gmail.com>
+Date: Tue, 31 Mar 2020 00:12:38 +0200
+Message-ID: <CAFLxGvyFqXZSmMcD_=o81AHLzdM_u2iH8h412w7VZrxON7Ohig@mail.gmail.com>
+Subject: Re: [RFC v4 02/25] um lkl: architecture skeleton for Linux kernel library
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Daniel Kiss <daniel.kiss@arm.com>
-Message-ID: <20200313000029.O7W7gB-JSu0LDWaczur7bMopI9ClaRwpXP1awiCZr_0@z>
+To: Johannes Berg <johannes@sipsolutions.net>
+Cc: Hajime Tazaki <thehajime@gmail.com>, linux-um <linux-um@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Levente Kurusa <levex@linux.com>, Matthieu Coudron <mattator@gmail.com>, Conrad Meyer <cem@freebsd.org>, Octavian Purdila <tavi.purdila@gmail.com>, Jens Staal <staal1978@gmail.com>, Motomu Utsumi <motomuman@gmail.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Akira Moroo <retrage01@gmail.com>, Petros Angelatos <petrosagg@gmail.com>, "Edison M . Castro" <edisonmcastro@hotmail.com>, Xiao Jia <xiaoj@google.com>, Mark Stillwell <mark@stillwell.me>, linux-kernel-library@freelists.org, Patrick Collins <pscollins@google.com>, Pierre-Hugues Husson <phh@phh.me>, Michael Zimmermann <sigmaepsilon92@gmail.com>, Luca Dariz <luca.dariz@gmail.com>, Yuan Liu <liuyuan@google.com>
+Message-ID: <20200330221238.L7VG2axO2UQBs5cs2BSaYt9skQMjFjIjJaCyt2Bf06s@z>
 
-On Wed, Mar 11, 2020 at 07:26:07PM +0000, Mark Brown wrote:
-> From: Daniel Kiss <daniel.kiss@arm.com>
-> 
-> The arm64 Branch Target Identification support is activated by marking
-> executable pages as guarded pages.  Report pages mapped this way in
-> smaps to aid diagnostics.
-> 
-> Signed-off-by: Daniel Kiss <daniel.kiss@arm.com>
+Johannes, Hajime,
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
+On Mon, Mar 30, 2020 at 11:53 PM Johannes Berg
+<johannes@sipsolutions.net> wrote:
+>
+> On Mon, 2020-03-30 at 23:45 +0900, Hajime Tazaki wrote:
+> > From: Octavian Purdila <tavi.purdila@gmail.com>
+> >
+> > Adds the LKL Kconfig, vmlinux linker script, basic architecture
+> > headers and miscellaneous basic functions or stubs such as
+> > dump_stack(), show_regs() and cpuinfo proc ops.
+> >
+> > The headers we introduce in this patch are simple wrappers to the
+> > asm-generic headers or stubs for things we don't support, such as
+> > ptrace, DMA, signals, ELF handling and low level processor operations.
+> >
+> > The kernel configuration is automatically updated to reflect the
+> > endianness of the host, 64bit support or the output format for
+> > vmlinux's linker script. We do this by looking at the ld's default
+> > output format.
+>
+> Can you elaborate what the plan is here?
+>
+> I mean, you're not actually "unifying" anything with ARCH=um, you're
+> just basically splitting ARCH=um into ARCH=um-um and ARCH=um-lkl or
+> something. Is there much point?
+>
+> Even the basic underlying building blocks are _very_ different, e.g. in
+> UML the host interface is just a bunch of functions that must be
+> implemented (os_*()), while you have a "struct lkl_host_operations". If
+> we can't even unify at that trivial level, is there any point in it at
+> all? I'm not even really sure what those ops are used for - are all of
+> those things that the *application* using LKL necessarily must provide?
+>
+> Similarly with the IRQ routing mechanism - two completely different
+> concepts. Where's the "unifying"?
+>
+> Ultimately, I can see two ways this goes:
+>
+> 1) We give up, and get ARCH=lkl, sharing just (some of) the drivers
+>    while moving them into the right drivers/somewhere/ place. Even that
+>    looks somewhat awkward looking at the later patches in this set, but
+>    seems like that at *least* should be done.
 
--Kees
+Yeah, this would be a goal.
+UML and LKL are quite different but they should share at least their userspace
+drivers.
+I also don't mind if we don't share every driver at the beginning but
+it should be
+a feasible goal for the future.
 
-> Signed-off-by: Mark Brown <broonie@kernel.org>
-> ---
->  Documentation/filesystems/proc.txt | 1 +
->  fs/proc/task_mmu.c                 | 3 +++
->  2 files changed, 4 insertions(+)
-> 
-> diff --git a/Documentation/filesystems/proc.txt b/Documentation/filesystems/proc.txt
-> index 99ca040e3f90..ed5465d0f435 100644
-> --- a/Documentation/filesystems/proc.txt
-> +++ b/Documentation/filesystems/proc.txt
-> @@ -519,6 +519,7 @@ manner. The codes are the following:
->      hg  - huge page advise flag
->      nh  - no-huge page advise flag
->      mg  - mergable advise flag
-> +    bt  - arm64 BTI guarded page
->  
->  Note that there is no guarantee that every flag and associated mnemonic will
->  be present in all further kernel releases. Things get changed, the flags may
-> diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-> index 3ba9ae83bff5..1e3409c484d1 100644
-> --- a/fs/proc/task_mmu.c
-> +++ b/fs/proc/task_mmu.c
-> @@ -668,6 +668,9 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
->  		[ilog2(VM_ARCH_1)]	= "ar",
->  		[ilog2(VM_WIPEONFORK)]	= "wf",
->  		[ilog2(VM_DONTDUMP)]	= "dd",
-> +#ifdef CONFIG_ARM64_BTI
-> +		[ilog2(VM_ARM64_BTI)]	= "bt",
-> +#endif
->  #ifdef CONFIG_MEM_SOFT_DIRTY
->  		[ilog2(VM_SOFTDIRTY)]	= "sd",
->  #endif
-> -- 
-> 2.20.1
-> 
+> 2) Ideally, instead, we actually unify: LKL grows support for userspace
+>    processes using UML infrastructure, the "in-kernel" IRQ mechanisms
+>    are unified, UML stuff moves into lkl-ops, and the UML binary
+>    basically becomes a user of the LKL library to start everything up.
+>    There may be some bits remaining that are just not interesting (e.g.
+>    some drivers you don't care about would continue to make direct calls
+>    to the user side instead of lkl-ops, and then they're just not
+>    compatible with lkl, only with the uml special case of lkl), but then
+>    things are clean.
+
+A few months ago I though this is doable but now I'm not so sure anymore.
+
+>
+> Now, of course it seems like (2) would actually be better - LKL would
+> actually get support for userspace processes using UML's tricks, most of
+> the code is unified, and even LKL's users can take advantage of new
+> things. At the same time, all of the duplication is avoided.
+>
+> However, I just don't know if it's actually _possible_ to do that
+> though. Conceptually, it seems like it should be - why shouldn't a
+> library be able to spawn other userspace processes - I mean, it's not
+> really in the model that LKL really _wants_ since it's supposed to offer
+> the syscall API, but you could make a "bool run_normal_init" or
+> something in the lkl-ops for the user of the library to determine what
+> should happen, right?
+>
+> However, there clearly are huge differences between LKL and UML in all
+> respects, and I don't know if this wouldn't conflict with the library
+> model, e.g. there may be linker issues etc. Or maybe the specific UML
+> interrupt handling is required in UML and cannot be done in LKL (but
+> then perhaps it could be put into the hypothetical UML-application vs.
+> UML-the-LKL-library?)
+>
+>
+> Ultimately, personally I think it's going to have to be one or the other
+> of those two options though, I don't really see much value in what
+> you're doing here in the patchset now. This way just messes up
+> everything, it's not clear what's UML and what's LKL, and they're
+> intertwined with ifdefs everywhere; just look at where you have to add
+> ifdefs in patch 23 - how would anyone later understand which part gets
+> compiled for which of them?
+>
+> johannes
+>
+> PS: actually having something like lkl-ops in UML would've been nice
+> also for my "time-travel" work, since it neatly abstracts the timers
+> out. I do wonder a bit about the overhead of jumping through function
+> pointers all the time though, it may be worth rethinking that overall
+> anyway!
+
+Agreed. UML can also learn from LKL. :-)
 
 -- 
-Kees Cook
+Thanks,
+//richard
