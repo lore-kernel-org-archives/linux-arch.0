@@ -1,415 +1,486 @@
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v4 16/25] lkl tools: host lib: posix host operations
-Date: Mon, 30 Mar 2020 23:45:48 +0900
-Message-ID: <3fabf7fce74f62cfdace9dbdc26d6e787ba618b8.1585579244.git.thehajime@gmail.com>
+Subject: [RFC v4 19/25] lkl tools: fs2tar that converts a filesystem image to tar
+Date: Mon, 30 Mar 2020 23:45:51 +0900
+Message-ID: <2f324a9e2aa88b994df169b34a0069e9c0525ace.1585579244.git.thehajime@gmail.com>
 References: <cover.1585579244.git.thehajime@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl1-f194.google.com ([209.85.214.194]:32909 "EHLO
-        mail-pl1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726099AbgC3Osn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2020 10:48:43 -0400
-Received: by mail-pl1-f194.google.com with SMTP id g18so6828737plq.0
-        for <linux-arch@vger.kernel.org>; Mon, 30 Mar 2020 07:48:42 -0700 (PDT)
+Received: from mail-pj1-f68.google.com ([209.85.216.68]:36999 "EHLO
+        mail-pj1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726099AbgC3Osu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2020 10:48:50 -0400
+Received: by mail-pj1-f68.google.com with SMTP id o12so7424869pjs.2
+        for <linux-arch@vger.kernel.org>; Mon, 30 Mar 2020 07:48:48 -0700 (PDT)
 In-Reply-To: <cover.1585579244.git.thehajime@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Conrad Meyer <cem@FreeBSD.org>, Mark Stillwell <mark@stillwell.me>, Patrick Collins <pscollins@google.com>, Pierre-Hugues Husson <phh@phh.me>, Thomas Liebetraut <thomas@tommie-lie.de>, Yuan Liu <liuyuan@google.com>, Hajime Tazaki <thehajime@gmail.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Conrad Meyer <cem@FreeBSD.org>, Petros Angelatos <petrosagg@gmail.com>, Hajime Tazaki <thehajime@gmail.com>
 
 From: Octavian Purdila <tavi.purdila@gmail.com>
 
-This commit implements LKL host operations for POSIX hosts.  The
-operations are implemented to be portable in various POSIX OSs.
+Simple utility that converts a filesystem image to a tar file,
+preserving file rights and extended attributes.
 
 Cc: Conrad Meyer <cem@FreeBSD.org>
-Cc: Mark Stillwell <mark@stillwell.me>
-Cc: Patrick Collins <pscollins@google.com>
-Cc: Pierre-Hugues Husson <phh@phh.me>
-Cc: Thomas Liebetraut <thomas@tommie-lie.de>
-Cc: Yuan Liu <liuyuan@google.com>
+Cc: Petros Angelatos <petrosagg@gmail.com>
 Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
 Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- tools/lkl/lib/Build        |   2 +
- tools/lkl/lib/posix-host.c | 353 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 355 insertions(+)
- create mode 100644 tools/lkl/lib/posix-host.c
+ tools/lkl/.gitignore |   1 +
+ tools/lkl/Build      |   1 +
+ tools/lkl/Targets    |   4 +
+ tools/lkl/fs2tar.c   | 412 +++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 418 insertions(+)
+ create mode 100644 tools/lkl/fs2tar.c
 
-diff --git a/tools/lkl/lib/Build b/tools/lkl/lib/Build
-index dba530424e4a..0e711e260a3a 100644
---- a/tools/lkl/lib/Build
-+++ b/tools/lkl/lib/Build
-@@ -1,8 +1,10 @@
- CFLAGS_config.o += -I$(srctree)/tools/perf/pmu-events
-+CFLAGS_posix-host.o += -D_FILE_OFFSET_BITS=64
+diff --git a/tools/lkl/.gitignore b/tools/lkl/.gitignore
+index 1a8210f4d9c4..138e65efcad2 100644
+--- a/tools/lkl/.gitignore
++++ b/tools/lkl/.gitignore
+@@ -9,3 +9,4 @@ tests/valgrind*.xml
+ *.pyc
+ cptofs
+ cpfromfs
++fs2tar
+diff --git a/tools/lkl/Build b/tools/lkl/Build
+index a9d12c5ca260..73b37363a6de 100644
+--- a/tools/lkl/Build
++++ b/tools/lkl/Build
+@@ -1,2 +1,3 @@
+ cptofs-$(LKL_HOST_CONFIG_ARCHIVE) += cptofs.o
++fs2tar-$(LKL_HOST_CONFIG_ARCHIVE) += fs2tar.o
  
- liblkl-y += fs.o
- liblkl-y += net.o
- liblkl-y += jmp_buf.o
-+liblkl-$(LKL_HOST_CONFIG_POSIX) += posix-host.o
- liblkl-y += utils.o
- liblkl-y += dbg.o
- liblkl-y += dbg_handler.o
-diff --git a/tools/lkl/lib/posix-host.c b/tools/lkl/lib/posix-host.c
+diff --git a/tools/lkl/Targets b/tools/lkl/Targets
+index 17de965f92b3..3451a1856955 100644
+--- a/tools/lkl/Targets
++++ b/tools/lkl/Targets
+@@ -8,3 +8,7 @@ progs-$(LKL_HOST_CONFIG_ARCHIVE) += cptofs
+ progs-$(LKL_HOST_CONFIG_ARCHIVE) += cpfromfs
+ LDLIBS_cptofs-y := -larchive
+ LDLIBS_cptofs-$(LKL_HOST_CONFIG_NEEDS_LARGP) += -largp
++
++progs-$(LKL_HOST_CONFIG_ARCHIVE) += fs2tar
++LDLIBS_fs2tar-y := -larchive
++LDLIBS_fs2tar-$(LKL_HOST_CONFIG_NEEDS_LARGP) += -largp
+diff --git a/tools/lkl/fs2tar.c b/tools/lkl/fs2tar.c
 new file mode 100644
-index 000000000000..4be1611a8942
+index 000000000000..b7dbcf2028a3
 --- /dev/null
-+++ b/tools/lkl/lib/posix-host.c
-@@ -0,0 +1,353 @@
++++ b/tools/lkl/fs2tar.c
+@@ -0,0 +1,412 @@
 +// SPDX-License-Identifier: GPL-2.0
-+#include <pthread.h>
-+#include <stdlib.h>
-+#include <sys/time.h>
++#ifdef __FreeBSD__
++#include <sys/param.h>
++#endif
++
++#include <stdio.h>
 +#include <time.h>
-+#include <signal.h>
-+#include <assert.h>
++#include <argp.h>
 +#include <unistd.h>
-+#include <errno.h>
 +#include <string.h>
-+#include <time.h>
-+#include <stdint.h>
-+#include <sys/uio.h>
-+#include <sys/types.h>
-+#include <sys/socket.h>
-+#include <sys/syscall.h>
-+#include <poll.h>
++#include <stdlib.h>
++#include <libgen.h>
++#include <sys/stat.h>
++#include <fcntl.h>
++#include <archive.h>
++#include <archive_entry.h>
++#include <lkl.h>
 +#include <lkl_host.h>
-+#include "jmp_buf.h"
 +
-+/* Let's see if the host has semaphore.h */
-+#include <unistd.h>
-+
-+#ifdef _POSIX_SEMAPHORES
-+#include <semaphore.h>
-+/* TODO(pscollins): We don't support fork() for now, but maybe one day
-+ * we will?
-+ */
-+#define SHARE_SEM 0
-+#endif /* _POSIX_SEMAPHORES */
-+
-+static void print(const char *str, int len)
-+{
-+	int ret __attribute__((unused));
-+
-+	ret = write(STDOUT_FILENO, str, len);
-+}
-+
-+struct lkl_mutex {
-+	pthread_mutex_t mutex;
++char doc[] = "";
++char args_doc[] = "-t fstype fsimage_path tar_path";
++static struct argp_option options[] = {
++	{"enable-printk", 'p', 0, 0, "show Linux printks"},
++	{"partition", 'P', "int", 0, "partition number"},
++	{"filesystem-type", 't', "string", 0,
++	 "select filesystem type - mandatory"},
++	{"selinux-contexts", 's', "file", 0,
++	 "export selinux contexts to file"},
++	{0},
 +};
 +
-+struct lkl_sem {
-+#ifdef _POSIX_SEMAPHORES
-+	sem_t sem;
-+#else
-+	pthread_mutex_t lock;
-+	int count;
-+	pthread_cond_t cond;
-+#endif /* _POSIX_SEMAPHORES */
-+};
++static struct cl_args {
++	int printk;
++	int part;
++	const char *fsimg_type;
++	const char *fsimg_path;
++	const char *tar_path;
++	FILE *selinux;
++} cla;
 +
-+struct lkl_tls_key {
-+	pthread_key_t key;
-+};
-+
-+#define WARN_UNLESS(exp) do {						\
-+		if (exp < 0)						\
-+			lkl_printf("%s: %s\n", #exp, strerror(errno));	\
-+	} while (0)
-+
-+static int _warn_pthread(int ret, char *str_exp)
++static error_t parse_opt(int key, char *arg, struct argp_state *state)
 +{
-+	if (ret > 0)
-+		lkl_printf("%s: %s\n", str_exp, strerror(ret));
++	struct cl_args *cla = state->input;
 +
-+	return ret;
-+}
-+
-+
-+/* pthread_* functions use the reverse convention */
-+#define WARN_PTHREAD(exp) _warn_pthread(exp, #exp)
-+
-+static struct lkl_sem *sem_alloc(int count)
-+{
-+	struct lkl_sem *sem;
-+
-+	sem = malloc(sizeof(*sem));
-+	if (!sem)
-+		return NULL;
-+
-+#ifdef _POSIX_SEMAPHORES
-+	if (sem_init(&sem->sem, SHARE_SEM, count) < 0) {
-+		lkl_printf("sem_init: %s\n", strerror(errno));
-+		free(sem);
-+		return NULL;
++	switch (key) {
++	case 'p':
++		cla->printk = 1;
++		break;
++	case 'P':
++		cla->part = atoi(arg);
++		break;
++	case 't':
++		cla->fsimg_type = arg;
++		break;
++	case 's':
++		cla->selinux = fopen(arg, "w");
++		if (!cla->selinux) {
++			fprintf(stderr,
++				"failed to open selinux contexts file: %s\n",
++				strerror(errno));
++			return -1;
++		}
++		break;
++	case ARGP_KEY_ARG:
++		if (!cla->fsimg_path)
++			cla->fsimg_path = arg;
++		else if (!cla->tar_path)
++			cla->tar_path = arg;
++		else
++			return -1;
++		break;
++	case ARGP_KEY_END:
++		if (state->arg_num < 2 || !cla->fsimg_type)
++			argp_usage(state);
++		break;
++	default:
++		return ARGP_ERR_UNKNOWN;
 +	}
-+#else
-+	pthread_mutex_init(&sem->lock, NULL);
-+	sem->count = count;
-+	WARN_PTHREAD(pthread_cond_init(&sem->cond, NULL));
-+#endif /* _POSIX_SEMAPHORES */
 +
-+	return sem;
-+}
-+
-+static void sem_free(struct lkl_sem *sem)
-+{
-+#ifdef _POSIX_SEMAPHORES
-+	WARN_UNLESS(sem_destroy(&sem->sem));
-+#else
-+	WARN_PTHREAD(pthread_cond_destroy(&sem->cond));
-+	WARN_PTHREAD(pthread_mutex_destroy(&sem->lock));
-+#endif /* _POSIX_SEMAPHORES */
-+	free(sem);
-+}
-+
-+static void sem_up(struct lkl_sem *sem)
-+{
-+#ifdef _POSIX_SEMAPHORES
-+	WARN_UNLESS(sem_post(&sem->sem));
-+#else
-+	WARN_PTHREAD(pthread_mutex_lock(&sem->lock));
-+	sem->count++;
-+	if (sem->count > 0)
-+		WARN_PTHREAD(pthread_cond_signal(&sem->cond));
-+	WARN_PTHREAD(pthread_mutex_unlock(&sem->lock));
-+#endif /* _POSIX_SEMAPHORES */
-+
-+}
-+
-+static void sem_down(struct lkl_sem *sem)
-+{
-+#ifdef _POSIX_SEMAPHORES
-+	int err;
-+
-+	do {
-+		err = sem_wait(&sem->sem);
-+	} while (err < 0 && errno == EINTR);
-+	if (err < 0 && errno != EINTR)
-+		lkl_printf("sem_wait: %s\n", strerror(errno));
-+#else
-+	WARN_PTHREAD(pthread_mutex_lock(&sem->lock));
-+	while (sem->count <= 0)
-+		WARN_PTHREAD(pthread_cond_wait(&sem->cond, &sem->lock));
-+	sem->count--;
-+	WARN_PTHREAD(pthread_mutex_unlock(&sem->lock));
-+#endif /* _POSIX_SEMAPHORES */
-+}
-+
-+static struct lkl_mutex *mutex_alloc(int recursive)
-+{
-+	struct lkl_mutex *_mutex = malloc(sizeof(struct lkl_mutex));
-+	pthread_mutex_t *mutex = NULL;
-+	pthread_mutexattr_t attr;
-+
-+	if (!_mutex)
-+		return NULL;
-+
-+	mutex = &_mutex->mutex;
-+	WARN_PTHREAD(pthread_mutexattr_init(&attr));
-+
-+	/* PTHREAD_MUTEX_ERRORCHECK is *very* useful for debugging,
-+	 * but has some overhead, so we provide an option to turn it
-+	 * off.
-+	 */
-+#ifdef DEBUG
-+	if (!recursive)
-+		WARN_PTHREAD(pthread_mutexattr_settype(
-+				     &attr, PTHREAD_MUTEX_ERRORCHECK));
-+#endif /* DEBUG */
-+
-+	if (recursive)
-+		WARN_PTHREAD(pthread_mutexattr_settype(
-+				     &attr, PTHREAD_MUTEX_RECURSIVE));
-+
-+	WARN_PTHREAD(pthread_mutex_init(mutex, &attr));
-+
-+	return _mutex;
-+}
-+
-+static void mutex_lock(struct lkl_mutex *mutex)
-+{
-+	WARN_PTHREAD(pthread_mutex_lock(&mutex->mutex));
-+}
-+
-+static void mutex_unlock(struct lkl_mutex *_mutex)
-+{
-+	pthread_mutex_t *mutex = &_mutex->mutex;
-+
-+	WARN_PTHREAD(pthread_mutex_unlock(mutex));
-+}
-+
-+static void mutex_free(struct lkl_mutex *_mutex)
-+{
-+	pthread_mutex_t *mutex = &_mutex->mutex;
-+
-+	WARN_PTHREAD(pthread_mutex_destroy(mutex));
-+	free(_mutex);
-+}
-+
-+static lkl_thread_t thread_create(void (*fn)(void *), void *arg)
-+{
-+	pthread_t thread;
-+
-+	if (WARN_PTHREAD(pthread_create(&thread, NULL, (void *)fn,
-+					arg)))
-+		return 0;
-+	else
-+		return (lkl_thread_t) thread;
-+}
-+
-+static void thread_detach(void)
-+{
-+	WARN_PTHREAD(pthread_detach(pthread_self()));
-+}
-+
-+static void thread_exit(void)
-+{
-+	pthread_exit(NULL);
-+}
-+
-+static int thread_join(lkl_thread_t tid)
-+{
-+	if (WARN_PTHREAD(pthread_join((pthread_t)tid, NULL)))
-+		return (-1);
-+	else
-+		return 0;
-+}
-+
-+static lkl_thread_t thread_self(void)
-+{
-+	return (lkl_thread_t)pthread_self();
-+}
-+
-+static int thread_equal(lkl_thread_t a, lkl_thread_t b)
-+{
-+	return pthread_equal((pthread_t)a, (pthread_t)b);
-+}
-+
-+static struct lkl_tls_key *tls_alloc(void (*destructor)(void *))
-+{
-+	struct lkl_tls_key *ret = malloc(sizeof(struct lkl_tls_key));
-+
-+	if (WARN_PTHREAD(pthread_key_create(&ret->key, destructor))) {
-+		free(ret);
-+		return NULL;
-+	}
-+	return ret;
-+}
-+
-+static void tls_free(struct lkl_tls_key *key)
-+{
-+	WARN_PTHREAD(pthread_key_delete(key->key));
-+	free(key);
-+}
-+
-+static int tls_set(struct lkl_tls_key *key, void *data)
-+{
-+	if (WARN_PTHREAD(pthread_setspecific(key->key, data)))
-+		return (-1);
 +	return 0;
 +}
 +
-+static void *tls_get(struct lkl_tls_key *key)
++static struct argp argp = { options, parse_opt, args_doc, doc };
++
++static struct archive *tar;
++
++static int searchdir(const char *fsimg_path, const char *path);
++
++static int copy_file(const char *fsimg_path, const char *path)
 +{
-+	return pthread_getspecific(key->key);
++	long fsimg_fd;
++	char buff[4096];
++	long len, wrote;
++	int ret = 0;
++
++	fsimg_fd = lkl_sys_open(fsimg_path, LKL_O_RDONLY, 0);
++	if (fsimg_fd < 0) {
++		fprintf(stderr, "fsimg error opening %s: %s\n", fsimg_path,
++			lkl_strerror(fsimg_fd));
++		return fsimg_fd;
++	}
++
++	do {
++		len = lkl_sys_read(fsimg_fd, buff, sizeof(buff));
++		if (len > 0) {
++			wrote = archive_write_data(tar, buff, len);
++			if (wrote != len) {
++				fprintf(stderr,
++					"error writing file %s to archive: %s [%d %ld]\n",
++					path, archive_error_string(tar), ret,
++					len);
++				ret = -archive_errno(tar);
++				break;
++			}
++		}
++
++		if (len < 0) {
++			fprintf(stderr, "error reading fsimg file %s: %s\n",
++				fsimg_path, lkl_strerror(len));
++			ret = len;
++		}
++
++	} while (len > 0);
++
++	lkl_sys_close(fsimg_fd);
++
++	return ret;
 +}
 +
-+static unsigned long long time_ns(void)
++static int add_link(const char *fsimg_path, const char *path,
++		    struct archive_entry *entry)
 +{
-+	struct timespec ts;
++	char buf[4096] = { 0, };
++	long len;
 +
-+	clock_gettime(CLOCK_MONOTONIC, &ts);
++	len = lkl_sys_readlink(fsimg_path, buf, sizeof(buf));
++	if (len < 0) {
++		fprintf(stderr, "fsimg readlink error %s: %s\n",
++			fsimg_path, lkl_strerror(len));
++		return len;
++	}
 +
-+	return 1e9*ts.tv_sec + ts.tv_nsec;
++	archive_entry_set_symlink(entry, buf);
++
++	return 0;
 +}
 +
-+static void *timer_alloc(void (*fn)(void *), void *arg)
++static inline void fsimg_copy_stat(struct stat *st, struct lkl_stat *fst)
 +{
-+	int err;
-+	timer_t timer;
-+	struct sigevent se =  {
-+		.sigev_notify = SIGEV_THREAD,
-+		.sigev_value = {
-+			.sival_ptr = arg,
-+		},
-+		.sigev_notify_function = (void *)fn,
-+	};
-+
-+	err = timer_create(CLOCK_REALTIME, &se, &timer);
-+	if (err)
-+		return NULL;
-+
-+	return (void *)(long)timer;
++	st->st_dev = fst->st_dev;
++	st->st_ino = fst->st_ino;
++	st->st_mode = fst->st_mode;
++	st->st_nlink = fst->st_nlink;
++	st->st_uid = fst->st_uid;
++	st->st_gid = fst->st_gid;
++	st->st_rdev = fst->st_rdev;
++	st->st_size = fst->st_size;
++	st->st_blksize = fst->st_blksize;
++	st->st_blocks = fst->st_blocks;
++	st->st_atim.tv_sec = fst->lkl_st_atime;
++	st->st_atim.tv_nsec = fst->st_atime_nsec;
++	st->st_mtim.tv_sec = fst->lkl_st_mtime;
++	st->st_mtim.tv_nsec = fst->st_mtime_nsec;
++	st->st_ctim.tv_sec = fst->lkl_st_ctime;
++	st->st_ctim.tv_nsec = fst->st_ctime_nsec;
 +}
 +
-+static int timer_set_oneshot(void *_timer, unsigned long ns)
++static int copy_xattr(const char *fsimg_path, const char *path,
++		      struct archive_entry *entry)
 +{
-+	timer_t timer = (timer_t)(long)_timer;
-+	struct itimerspec ts = {
-+		.it_value = {
-+			.tv_sec = ns / 1000000000,
-+			.tv_nsec = ns % 1000000000,
-+		},
-+	};
++	long ret;
++	char *xattr_list, *i;
++	long xattr_list_size;
 +
-+	return timer_settime(timer, 0, &ts, NULL);
++	ret = lkl_sys_llistxattr(fsimg_path, NULL, 0);
++	if (ret < 0) {
++		fprintf(stderr, "fsimg llistxattr(%s) error: %s\n",
++			path, lkl_strerror(ret));
++		return ret;
++	}
++
++	if (!ret)
++		return 0;
++
++	xattr_list = malloc(ret);
++
++	ret = lkl_sys_llistxattr(fsimg_path, xattr_list, ret);
++	if (ret < 0) {
++		fprintf(stderr, "fsimg llistxattr(%s) error: %s\n", path,
++			lkl_strerror(ret));
++		free(xattr_list);
++		return ret;
++	}
++
++	xattr_list_size = ret;
++
++	for (i = xattr_list; i - xattr_list < xattr_list_size;
++	     i += strlen(i) + 1) {
++		void *xattr_buf;
++
++		ret = lkl_sys_lgetxattr(fsimg_path, i, NULL, 0);
++		if (ret < 0) {
++			fprintf(stderr, "fsimg lgetxattr(%s) error: %s\n", path,
++				lkl_strerror(ret));
++			free(xattr_list);
++			return ret;
++		}
++
++		xattr_buf = malloc(ret);
++
++		ret = lkl_sys_lgetxattr(fsimg_path, i, xattr_buf, ret);
++		if (ret < 0) {
++			fprintf(stderr, "fsimg lgetxattr2(%s) error: %s\n",
++				path, lkl_strerror(ret));
++			free(xattr_list);
++			free(xattr_buf);
++			return ret;
++		}
++
++		if (cla.selinux && strcmp(i, "security.selinux") == 0)
++			fprintf(cla.selinux, "%s %s\n", path,
++				(char *)xattr_buf);
++
++		archive_entry_xattr_clear(entry);
++		archive_entry_xattr_add_entry(entry, i, xattr_buf, ret);
++
++		free(xattr_buf);
++	}
++
++	free(xattr_list);
++
++	return 0;
 +}
 +
-+static void timer_free(void *_timer)
++static int do_entry(const char *fsimg_path, const char *path,
++		    const struct lkl_linux_dirent64 *de)
 +{
-+	timer_t timer = (timer_t)(long)_timer;
++	char fsimg_new_path[PATH_MAX], new_path[PATH_MAX];
++	struct lkl_stat fsimg_stat;
++	struct stat stat;
++	struct archive_entry *entry;
++	int ftype;
++	long ret;
 +
-+	timer_delete(timer);
++	snprintf(new_path, sizeof(new_path), "%s/%s", path, de->d_name);
++	snprintf(fsimg_new_path, sizeof(fsimg_new_path), "%s/%s", fsimg_path,
++		 de->d_name);
++
++	ret = lkl_sys_lstat(fsimg_new_path, &fsimg_stat);
++	if (ret) {
++		fprintf(stderr, "fsimg lstat(%s) error: %s\n",
++			path, lkl_strerror(ret));
++		return ret;
++	}
++
++	entry = archive_entry_new();
++
++	archive_entry_set_pathname(entry, new_path);
++	fsimg_copy_stat(&stat, &fsimg_stat);
++	archive_entry_copy_stat(entry, &stat);
++	ret = copy_xattr(fsimg_new_path, new_path, entry);
++	if (ret)
++		return ret;
++	/* TODO: ACLs */
++
++	ftype = stat.st_mode & S_IFMT;
++
++	switch (ftype) {
++	case S_IFREG:
++		archive_write_header(tar, entry);
++		ret = copy_file(fsimg_new_path, new_path);
++		break;
++	case S_IFDIR:
++		archive_write_header(tar, entry);
++		ret = searchdir(fsimg_new_path, new_path);
++		break;
++	case S_IFLNK:
++		ret = add_link(fsimg_new_path, new_path, entry);
++		/* fall through */
++	case S_IFSOCK:
++	case S_IFBLK:
++	case S_IFCHR:
++	case S_IFIFO:
++		if (ret)
++			break;
++		archive_write_header(tar, entry);
++		break;
++	default:
++		printf("skipping %s: unsupported entry type %d\n", new_path,
++		       ftype);
++	}
++
++	archive_entry_free(entry);
++
++	if (ret)
++		printf("error processing entry %s, aborting\n", new_path);
++
++	return ret;
 +}
 +
-+static void panic(void)
++static int searchdir(const char *fsimg_path, const char *path)
 +{
-+	assert(0);
++	long ret, fd;
++	char buf[1024], *pos;
++	long buf_len;
++
++	fd = lkl_sys_open(fsimg_path, LKL_O_RDONLY | LKL_O_DIRECTORY, 0);
++	if (fd < 0) {
++		fprintf(stderr, "failed to open dir %s: %s", fsimg_path,
++			lkl_strerror(fd));
++		return fd;
++	}
++
++	do {
++		struct lkl_linux_dirent64 *de;
++
++		de = (struct lkl_linux_dirent64 *) buf;
++		buf_len = lkl_sys_getdents64(fd, de, sizeof(buf));
++		if (buf_len < 0) {
++			fprintf(stderr, "gentdents64 error: %s\n",
++				lkl_strerror(buf_len));
++			break;
++		}
++
++		for (pos = buf; pos - buf < buf_len; pos += de->d_reclen) {
++			de = (struct lkl_linux_dirent64 *)pos;
++
++			if (!strcmp(de->d_name, ".") ||
++			    !strcmp(de->d_name, ".."))
++				continue;
++
++			ret = do_entry(fsimg_path, path, de);
++			if (ret)
++				goto out;
++		}
++
++	} while (buf_len > 0);
++
++out:
++	lkl_sys_close(fd);
++	return ret;
 +}
 +
-+static long _gettid(void)
++int main(int argc, char **argv)
 +{
-+#ifdef	__FreeBSD__
-+	return (long)pthread_self();
-+#else
-+	return syscall(SYS_gettid);
-+#endif
++	struct lkl_disk disk;
++	long ret;
++	char mpoint[32];
++	unsigned int disk_id;
++
++	if (argp_parse(&argp, argc, argv, 0, 0, &cla) < 0)
++		return -1;
++
++	if (!cla.printk)
++		lkl_host_ops.print = NULL;
++
++	disk.fd = open(cla.fsimg_path, O_RDONLY);
++	if (disk.fd < 0) {
++		fprintf(stderr, "can't open fsimg %s: %s\n", cla.fsimg_path,
++			strerror(errno));
++		ret = 1;
++		goto out;
++	}
++
++	disk.ops = NULL;
++	disk.dev = (char *)cla.fsimg_path;
++
++	ret = lkl_disk_add(&disk);
++	if (ret < 0) {
++		fprintf(stderr, "can't add disk: %s\n", lkl_strerror(ret));
++		goto out_close;
++	}
++	disk_id = ret;
++
++	lkl_start_kernel(&lkl_host_ops, "mem=10M");
++
++	ret = lkl_mount_dev(disk_id, cla.part, cla.fsimg_type, LKL_MS_RDONLY,
++			    NULL, mpoint, sizeof(mpoint));
++	if (ret) {
++		fprintf(stderr, "can't mount disk: %s\n", lkl_strerror(ret));
++		goto out_close;
++	}
++
++	ret = lkl_sys_chdir(mpoint);
++	if (ret) {
++		fprintf(stderr, "can't chdir to %s: %s\n", mpoint,
++			lkl_strerror(ret));
++		goto out_umount;
++	}
++
++	tar = archive_write_new();
++	archive_write_set_format_pax_restricted(tar);
++	archive_write_open_filename(tar, cla.tar_path);
++
++	ret = searchdir(mpoint, "");
++
++	archive_write_free(tar);
++
++	if (cla.selinux)
++		fclose(cla.selinux);
++
++out_umount:
++	lkl_umount_dev(disk_id, cla.part, 0, 1000);
++
++out_close:
++	close(disk.fd);
++
++out:
++	lkl_sys_halt();
++
++	return ret;
 +}
-+
-+struct lkl_host_operations lkl_host_ops = {
-+	.panic = panic,
-+	.thread_create = thread_create,
-+	.thread_detach = thread_detach,
-+	.thread_exit = thread_exit,
-+	.thread_join = thread_join,
-+	.thread_self = thread_self,
-+	.thread_equal = thread_equal,
-+	.sem_alloc = sem_alloc,
-+	.sem_free = sem_free,
-+	.sem_up = sem_up,
-+	.sem_down = sem_down,
-+	.mutex_alloc = mutex_alloc,
-+	.mutex_free = mutex_free,
-+	.mutex_lock = mutex_lock,
-+	.mutex_unlock = mutex_unlock,
-+	.tls_alloc = tls_alloc,
-+	.tls_free = tls_free,
-+	.tls_set = tls_set,
-+	.tls_get = tls_get,
-+	.time = time_ns,
-+	.timer_alloc = timer_alloc,
-+	.timer_set_oneshot = timer_set_oneshot,
-+	.timer_free = timer_free,
-+	.print = print,
-+	.mem_alloc = (void *)malloc,
-+	.mem_free = free,
-+	.gettid = _gettid,
-+	.jmp_buf_set = jmp_buf_set,
-+	.jmp_buf_longjmp = jmp_buf_longjmp,
-+};
-+
 -- 
 2.21.0 (Apple Git-122.2)
