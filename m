@@ -1,729 +1,192 @@
-From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v4 18/25] lkl tools: cptofs that reads/writes to/from a filesystem image
-Date: Mon, 30 Mar 2020 23:45:50 +0900
-Message-ID: <bda19c88862079d6e6175b342748231b6a662641.1585579244.git.thehajime@gmail.com>
-References: <cover.1585579244.git.thehajime@gmail.com>
+From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
+Subject: Re: [RFC PATCH v14 00/10] Landlock LSM
+Date: Mon, 30 Mar 2020 20:26:03 +0200
+Message-ID: <e07fe473-1801-01cc-12ae-b3167f95250e@digikod.net>
+References: <20200224160215.4136-1-mic@digikod.net>
+ <CAG48ez21bEn0wL1bbmTiiu8j9jP5iEWtHOwz4tURUJ+ki0ydYw@mail.gmail.com>
+ <873d7419-bdd9-8a52-0a9b-dddbe31df4f9@digikod.net>
+ <CAG48ez0=0W5Ok-8nASqZrZ28JboXRRi3gDxV5u6mdcOtzwuRVA@mail.gmail.com>
+ <688dda0f-0907-34eb-c19e-3e9e5f613a74@digikod.net>
+ <CAG48ez16yT+zbK1WPxr2TnxrifW5c2DnpFLbWRRLUT_WpuFNmw@mail.gmail.com>
+ <e8530226-f295-a897-1132-7e6970dad49f@digikod.net>
+ <CAG48ez1K-7Lq2Ep_p9fOvXQ-fwj_8dA1CFd5SVDbT4ccqejDzA@mail.gmail.com>
+ <2d48e3e3-e7b2-ec33-91c5-be6a308a12d4@digikod.net>
+ <CAG48ez18LrDVLdp3agTwHNYxOBJyEb5PZ1dkwbNjpPVQoTsLcA@mail.gmail.com>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vs1-f65.google.com ([209.85.217.65]:43170 "EHLO
-        mail-vs1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727929AbgC3O5L (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2020 10:57:11 -0400
-Received: by mail-vs1-f65.google.com with SMTP id w185so11184547vsw.10
-        for <linux-arch@vger.kernel.org>; Mon, 30 Mar 2020 07:57:10 -0700 (PDT)
-In-Reply-To: <cover.1585579244.git.thehajime@gmail.com>
+Received: from smtp-42ab.mail.infomaniak.ch ([84.16.66.171]:49537 "EHLO
+        smtp-42ab.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727370AbgC3S0W (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 30 Mar 2020 14:26:22 -0400
+In-Reply-To: <CAG48ez18LrDVLdp3agTwHNYxOBJyEb5PZ1dkwbNjpPVQoTsLcA@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Conrad Meyer <cem@FreeBSD.org>, Dan Peebles <pumpkin@me.com>, Petros Angelatos <petrosagg@gmail.com>, Tuomas Tynkkynen <tuomas.tynkkynen@iki.fi>, Yuriy Taraday <yorik.sar@gmail.com>, Hajime Tazaki <thehajime@gmail.com>
+To: Jann Horn <jannh@google.com>
+Cc: kernel list <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-doc@vger.kernel.o
 
-From: Octavian Purdila <tavi.purdila@gmail.com>
 
-A tool to read/write to/from a filesystem image without mounting the
-file to host filesystem.  Thus there is no root privilege to modify the
-contents.
+On 19/03/2020 22:17, Jann Horn wrote:
+> On Thu, Mar 19, 2020 at 5:58 PM Mickaël Salaün <mic@digikod.net> wrote:
+>> On 19/03/2020 00:33, Jann Horn wrote:
+>>> On Wed, Mar 18, 2020 at 1:06 PM Mickaël Salaün <mic@digikod.net> wrote:
+> [...]
+>>>> As I understand your proposition, we need to build the required_bits
+>>>> when adding a rule or enforcing/merging a ruleset with a domain. The
+>>>> issue is that a rule only refers to a struct inode, not a struct path.
+>>>> For your proposition to work, we would need to walk through the file
+>>>> path when adding a rule to a ruleset, which means that we need to depend
+>>>> of the current view of the process (i.e. its mount namespace), and its
+>>>> Landlock domain.
+>>>
+>>> I don't see why that is necessary. Why would we have to walk the file
+>>> path when adding a rule?
+>>>
+>>>> If the required_bits field is set when the ruleset is
+>>>> merged with the domain, it is not possible anymore to walk through the
+>>>> corresponding initial file path, which makes the enforcement step too
+>>>> late to check for such consistency. The important point is that a
+>>>> ruleset/domain doesn't have a notion of file hierarchy, a ruleset is
+>>>> only a set of tagged inodes.
+>>>>
+>>>> I'm not sure I got your proposition right, though. When and how would
+>>>> you generate the required_bits?
+>>>
+>>> Using your terminology:
+>>> A domain is a collection of N layers, which are assigned indices 0..N-1.
+>>> For each possible access type, a domain has a bitmask containing N
+>>> bits that stores which layers control that access type. (Basically a
+>>> per-layer version of fs_access_mask.)
+>>
+>> OK, so there is a bit for each domain, which means that you get a limit
+>> of, let's say 64 layers? Knowing that each layer can be created by a
+>> standalone application, potentially nested in a bunch of layers, this
+>> seems artificially limiting.
+> 
+> Yes, that is a downside of my approach.
+> 
+>>> To validate an access, you start by ORing together the bitmasks for
+>>> the requested access types; that gives you the required_bits mask,
+>>> which lists all layers that want to control the access.
+>>> Then you set seen_policy_bits=0, then do the
+>>> check_access_path_continue() loop while keeping track of which layers
+>>> you've seen with "seen_policy_bits |= access->contributing_policies",
+>>> or something like that.
+>>> And in the end, you check that seen_policy_bits is a superset of
+>>> required_bits - something like `(~seen_policy_bits) & required_bits ==
+>>> 0`.
+>>>
+>>> AFAICS to create a new domain from a bunch of layers, you wouldn't
+>>> have to do any path walking.
+>>
+>> Right, I misunderstood your previous email.
+>>
+>>>
+>>>> Here is my updated proposition: add a layer level and a depth to each
+>>>> rule (once enforced/merged with a domain), and a top layer level for a
+>>>> domain. When enforcing a ruleset (i.e. merging a ruleset into the
+>>>> current domain), the layer level of a new rule would be the incremented
+>>>> top layer level.
+>>>> If there is no rule (from this domain) tied to the same
+>>>> inode, then the depth of the new rule is 1. However, if there is already
+>>>> a rule tied to the same inode and if this rule's layer level is the
+>>>> previous top layer level, then the depth and the layer level are both
+>>>> incremented and the rule is updated with the new access rights (boolean
+>>>> AND).
+>>>>
+>>>> The policy looks like this:
+>>>> domain top_layer=2
+>>>> /a RW policy_bitmask=0x00000003 layer=1 depth=1
+>>>> /a/b R policy_bitmask=0x00000002 layer=2 depth=1
+>>>>
+>>>> The path walk access check walks through all inodes and start with a
+>>>> layer counter equal to the top layer of the current domain. For each
+>>>> encountered inode tied to a rule, the access rights are checked and a
+>>>> new check ensures that the layer of the matching rule is the same as the
+>>>> counter (this may be a merged ruleset containing rules pertaining to the
+>>>> same hierarchy, which is fine) or equal to the decremented counter (i.e.
+>>>> the path walk just reached the underlying layer). If the path walk
+>>>> encounter a rule with a layer strictly less than the counter minus one,
+>>>> there is a whole in the layers which means that the ruleset
+>>>> hierarchy/subset does not match, and the access must be denied.
+>>>>
+>>>> When accessing a file at /private/b/foo for a read access:
+>>>> /private/b/foo <no rules>
+>>>>   allowed_access=unknown layer_counter=2
+>>>> /private/b <access: R, policy_bitmask=0x00000002, layer=2, depth=1>
+>>>>   allowed_access=allowed layer_counter=2
+>>>> /private <no rules>
+>>>>   allowed_access=allowed layer_counter=2
+>>>> / <no rules>
+>>>>   allowed_access=allowed layer_counter=2
+>>>>
+>>>> Because the layer_counter didn't reach 1, the access request is then denied.
+>>>>
+>>>> This proposition enables not to rely on a parent ruleset at first, only
+>>>> when enforcing/merging a ruleset with a domain. This also solves the
+>>>> issue with multiple inherited/nested rules on the same inode (in which
+>>>> case the depth just grows). Moreover, this enables to safely stop the
+>>>> path walk as soon as we reach the layer 1.
+>>>
+>>> (FWIW, you could do the same optimization with the seen_policy_bits approach.)
+>>>
+>>> I guess the difference between your proposal and mine is that in my
+>>> proposal, the following would work, in effect permitting W access to
+>>> /foo/bar/baz (and nothing else)?
+>>>
+>>> first ruleset:
+>>>   /foo W
+>>> second ruleset:
+>>>   /foo/bar/baz W
+>>> third ruleset:
+>>>   /foo/bar W
+>>>
+>>> whereas in your proposal, IIUC it wouldn't be valid for a new ruleset
+>>> to whitelist a superset of what was whitelisted in a previous ruleset?
+>>>
+>>
+>> This behavior seems dangerous because a process which sandbox itself to
+>> only access /foo/bar W can bypass the restrictions from one of its
+>> parent domains (i.e. only access /foo/bar/baz W). Indeed, each layer is
+>> (most of the time) a different and standalone security policy.
+> 
+> It isn't actually bypassing the restriction: You still can't actually
+> access files like /foo/bar/blah, because a path walk from there
+> doesn't encounter any rules from the second ruleset.
 
-Cc: Conrad Meyer <cem@FreeBSD.org>
-Cc: Dan Peebles <pumpkin@me.com>
-Cc: Petros Angelatos <petrosagg@gmail.com>
-Cc: Tuomas Tynkkynen <tuomas.tynkkynen@iki.fi>
-Cc: Yuriy Taraday <yorik.sar@gmail.com>
-Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
-Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
----
- tools/lkl/.gitignore |   2 +
- tools/lkl/Build      |   2 +
- tools/lkl/Makefile   |   3 +
- tools/lkl/Targets    |   4 +
- tools/lkl/cptofs.c   | 636 +++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 647 insertions(+)
- create mode 100644 tools/lkl/cptofs.c
+Right, this use case is legitimate, e.g. first giving access to
+~/Downloads and then another layer giving access to ~/ (because it
+doesn't know about the current restriction).
 
-diff --git a/tools/lkl/.gitignore b/tools/lkl/.gitignore
-index 4e08254dbd46..1a8210f4d9c4 100644
---- a/tools/lkl/.gitignore
-+++ b/tools/lkl/.gitignore
-@@ -7,3 +7,5 @@ tests/disk
- tests/boot
- tests/valgrind*.xml
- *.pyc
-+cptofs
-+cpfromfs
-diff --git a/tools/lkl/Build b/tools/lkl/Build
-index e69de29bb2d1..a9d12c5ca260 100644
---- a/tools/lkl/Build
-+++ b/tools/lkl/Build
-@@ -0,0 +1,2 @@
-+cptofs-$(LKL_HOST_CONFIG_ARCHIVE) += cptofs.o
-+
-diff --git a/tools/lkl/Makefile b/tools/lkl/Makefile
-index 0abccb9d86b6..03750aab98d8 100644
---- a/tools/lkl/Makefile
-+++ b/tools/lkl/Makefile
-@@ -86,6 +86,9 @@ $(OUTPUT)%$(EXESUF): $(OUTPUT)%-in.o $(OUTPUT)liblkl.a
- $(OUTPUT)%-in.o: $(OUTPUT)lib/lkl.o FORCE
- 	$(Q)$(MAKE) -f $(srctree)/tools/build/Makefile.build dir=$(patsubst %/,%,$(dir $*)) obj=$(notdir $*)
- 
-+$(OUTPUT)cpfromfs$(EXESUF): $(OUTPUT)cptofs$(EXESUF)
-+	$(Q)if ! [ -e $@ ]; then ln -s $< $@; fi
-+
- 
- clean:
- 	$(call QUIET_CLEAN, objects)find $(OUTPUT) -name '*.o' -delete -o -name '\.*.cmd'\
-diff --git a/tools/lkl/Targets b/tools/lkl/Targets
-index a9f74c3cc8fb..17de965f92b3 100644
---- a/tools/lkl/Targets
-+++ b/tools/lkl/Targets
-@@ -4,3 +4,7 @@ progs-y += tests/boot
- progs-y += tests/disk
- progs-y += tests/net-test
- 
-+progs-$(LKL_HOST_CONFIG_ARCHIVE) += cptofs
-+progs-$(LKL_HOST_CONFIG_ARCHIVE) += cpfromfs
-+LDLIBS_cptofs-y := -larchive
-+LDLIBS_cptofs-$(LKL_HOST_CONFIG_NEEDS_LARGP) += -largp
-diff --git a/tools/lkl/cptofs.c b/tools/lkl/cptofs.c
-new file mode 100644
-index 000000000000..fb34f570fa1e
---- /dev/null
-+++ b/tools/lkl/cptofs.c
-@@ -0,0 +1,636 @@
-+// SPDX-License-Identifier: GPL-2.0
-+#ifdef __FreeBSD__
-+#include <sys/param.h>
-+#endif
-+
-+#include <stdio.h>
-+#include <time.h>
-+#include <argp.h>
-+#include <unistd.h>
-+#include <string.h>
-+#include <stdlib.h>
-+#include <libgen.h>
-+#include <sys/stat.h>
-+#include <fcntl.h>
-+#include <fnmatch.h>
-+#include <dirent.h>
-+#include <lkl.h>
-+#include <lkl_host.h>
-+
-+static const char doc_cptofs[] = "Copy files to a filesystem image";
-+static const char doc_cpfromfs[] = "Copy files from a filesystem image";
-+static const char args_doc_cptofs[] = "-t fstype -i fsimage path... fs_path";
-+static const char args_doc_cpfromfs[] = "-t fstype -i fsimage fs_path... path";
-+
-+static struct argp_option options[] = {
-+	{"enable-printk", 'p', 0, 0, "show Linux printks"},
-+	{"partition", 'P', "int", 0, "partition number"},
-+	{"filesystem-type", 't', "string", 0,
-+	 "select filesystem type - mandatory"},
-+	{"filesystem-image", 'i', "string", 0,
-+	 "path to the filesystem image - mandatory"},
-+	{"selinux", 's', "string", 0, "selinux attributes for destination"},
-+	{0},
-+};
-+
-+static struct cl_args {
-+	int printk;
-+	int part;
-+	const char *fsimg_type;
-+	const char *fsimg_path;
-+	int npaths;
-+	char **paths;
-+	const char *selinux;
-+} cla;
-+
-+static int cptofs;
-+
-+static error_t parse_opt(int key, char *arg, struct argp_state *state)
-+{
-+	struct cl_args *cla = state->input;
-+
-+	switch (key) {
-+	case 'p':
-+		cla->printk = 1;
-+		break;
-+	case 'P':
-+		cla->part = atoi(arg);
-+		break;
-+	case 't':
-+		cla->fsimg_type = arg;
-+		break;
-+	case 'i':
-+		cla->fsimg_path = arg;
-+		break;
-+	case 's':
-+		cla->selinux = arg;
-+		break;
-+	case ARGP_KEY_ARG:
-+		// Capture all remaining arguments in our paths array and stop
-+		// parsing here. We treat the last one as the destination and
-+		// everything before it as sources, just like cp does.
-+		cla->paths = &state->argv[state->next - 1];
-+		cla->npaths = state->argc - state->next + 1;
-+		state->next = state->argc;
-+		break;
-+	default:
-+		return ARGP_ERR_UNKNOWN;
-+	}
-+
-+	return 0;
-+}
-+
-+static struct argp argp_cptofs = {
-+	.options = options,
-+	.parser = parse_opt,
-+	.args_doc = args_doc_cptofs,
-+	.doc = doc_cptofs,
-+};
-+
-+static struct argp argp_cpfromfs = {
-+	.options = options,
-+	.parser = parse_opt,
-+	.args_doc = args_doc_cpfromfs,
-+	.doc = doc_cpfromfs,
-+};
-+
-+static int searchdir(const char *fs_path, const char *path, const char *match);
-+
-+static int open_src(const char *path)
-+{
-+	int fd;
-+
-+	if (cptofs)
-+		fd = open(path, O_RDONLY, 0);
-+	else
-+		fd = lkl_sys_open(path, LKL_O_RDONLY, 0);
-+
-+	if (fd < 0)
-+		fprintf(stderr, "unable to open file %s for reading: %s\n",
-+			path, cptofs ? strerror(errno) : lkl_strerror(fd));
-+
-+	return fd;
-+}
-+
-+static int open_dst(const char *path, int mode)
-+{
-+	int fd;
-+
-+	if (cptofs)
-+		fd = lkl_sys_open(path, LKL_O_RDWR | LKL_O_TRUNC | LKL_O_CREAT,
-+				  mode);
-+	else
-+		fd = open(path, O_RDWR | O_TRUNC | O_CREAT, mode);
-+
-+	if (fd < 0)
-+		fprintf(stderr, "unable to open file %s for writing: %s\n",
-+			path, cptofs ? lkl_strerror(fd) : strerror(errno));
-+
-+	if (cla.selinux && cptofs) {
-+		int ret = lkl_sys_fsetxattr(fd, "security.selinux", cla.selinux,
-+					    strlen(cla.selinux), 0);
-+		if (ret)
-+			fprintf(stderr,
-+				"unable to set selinux attribute on %s: %s\n",
-+				path, lkl_strerror(ret));
-+	}
-+
-+	return fd;
-+}
-+
-+static int read_src(int fd, char *buf, int len)
-+{
-+	int ret;
-+
-+	if (cptofs)
-+		ret = read(fd, buf, len);
-+	else
-+		ret = lkl_sys_read(fd, buf, len);
-+
-+	if (ret < 0)
-+		fprintf(stderr, "error reading file: %s\n",
-+			cptofs ? strerror(errno) : lkl_strerror(ret));
-+
-+	return ret;
-+}
-+
-+static int write_dst(int fd, char *buf, int len)
-+{
-+	int ret;
-+
-+	if (cptofs)
-+		ret = lkl_sys_write(fd, buf, len);
-+	else
-+		ret = write(fd, buf, len);
-+
-+	if (ret < 0)
-+		fprintf(stderr, "error writing file: %s\n",
-+			cptofs ? lkl_strerror(ret) : strerror(errno));
-+
-+	return ret;
-+}
-+
-+static void close_src(int fd)
-+{
-+	if (cptofs)
-+		close(fd);
-+	else
-+		lkl_sys_close(fd);
-+}
-+
-+static void close_dst(int fd)
-+{
-+	if (cptofs)
-+		lkl_sys_close(fd);
-+	else
-+		close(fd);
-+}
-+
-+static int copy_file(const char *src, const char *dst, int mode)
-+{
-+	long len, to_write, wrote;
-+	char buf[4096], *ptr;
-+	int ret = 0;
-+	int fd_src, fd_dst;
-+
-+	fd_src = open_src(src);
-+	if (fd_src < 0)
-+		return fd_src;
-+
-+	fd_dst = open_dst(dst, mode);
-+	if (fd_dst < 0)
-+		return fd_dst;
-+
-+	do {
-+		len = read_src(fd_src, buf, sizeof(buf));
-+
-+		if (len > 0) {
-+			ptr = buf;
-+			to_write = len;
-+			do {
-+				wrote = write_dst(fd_dst, ptr, to_write);
-+
-+				if (wrote < 0) {
-+					ret = wrote;
-+					goto out;
-+				}
-+
-+				to_write -= wrote;
-+				ptr += len;
-+
-+			} while (to_write > 0);
-+		}
-+
-+		if (len < 0)
-+			ret = len;
-+
-+	} while (len > 0);
-+
-+out:
-+	close_src(fd_src);
-+	close_dst(fd_dst);
-+
-+	return ret;
-+}
-+
-+static int stat_src(const char *path, unsigned int *type, unsigned int *mode,
-+		    long long *size, struct lkl_timespec *mtime,
-+		    struct lkl_timespec *atime)
-+{
-+	struct stat stat;
-+	struct lkl_stat lkl_stat;
-+	int ret;
-+
-+	if (cptofs) {
-+		ret = lstat(path, &stat);
-+		if (type)
-+			*type = stat.st_mode & S_IFMT;
-+		if (mode)
-+			*mode = stat.st_mode & ~S_IFMT;
-+		if (size)
-+			*size = stat.st_size;
-+		if (mtime) {
-+			mtime->tv_sec = stat.st_mtim.tv_sec;
-+			mtime->tv_nsec = stat.st_mtim.tv_nsec;
-+		}
-+		if (atime) {
-+			atime->tv_sec = stat.st_atim.tv_sec;
-+			atime->tv_nsec = stat.st_atim.tv_nsec;
-+		}
-+	} else {
-+		ret = lkl_sys_lstat(path, &lkl_stat);
-+		if (type)
-+			*type = lkl_stat.st_mode & S_IFMT;
-+		if (mode)
-+			*mode = lkl_stat.st_mode & ~S_IFMT;
-+		if (size)
-+			*size = lkl_stat.st_size;
-+		if (mtime) {
-+			mtime->tv_sec = lkl_stat.lkl_st_mtime;
-+			mtime->tv_nsec = lkl_stat.st_mtime_nsec;
-+		}
-+		if (atime) {
-+			atime->tv_sec = lkl_stat.lkl_st_atime;
-+			atime->tv_nsec = lkl_stat.st_atime_nsec;
-+		}
-+	}
-+
-+	if (ret)
-+		fprintf(stderr, "fsimg lstat(%s) error: %s\n",
-+			path, cptofs ? strerror(errno) : lkl_strerror(ret));
-+
-+	return ret;
-+}
-+
-+static int mkdir_dst(const char *path, unsigned int mode)
-+{
-+	int ret;
-+
-+	if (cptofs) {
-+		ret = lkl_sys_mkdir(path, mode);
-+		if (ret == -LKL_EEXIST)
-+			ret = 0;
-+	} else {
-+		ret = mkdir(path, mode);
-+		if (ret < 0 && errno == EEXIST)
-+			ret = 0;
-+	}
-+
-+	if (ret)
-+		fprintf(stderr, "unable to create directory %s: %s\n",
-+			path, cptofs ? strerror(errno) : lkl_strerror(ret));
-+
-+	return ret;
-+}
-+
-+static int readlink_src(const char *src, char *out, int outsize)
-+{
-+	int ret;
-+
-+	if (cptofs)
-+		ret = readlink(src, out, outsize);
-+	else
-+		ret = lkl_sys_readlink(src, out, outsize);
-+
-+	if (ret < 0)
-+		fprintf(stderr, "unable to readlink '%s': %s\n", src,
-+			cptofs ? strerror(errno) : lkl_strerror(ret));
-+
-+	return ret;
-+}
-+
-+static int symlink_dst(const char *path, const char *target)
-+{
-+	int ret;
-+
-+	if (cptofs)
-+		ret = lkl_sys_symlink(target, path);
-+	else
-+		ret = symlink(target, path);
-+
-+	if (ret)
-+		fprintf(stderr, "unable to symlink '%s' with target '%s': %s\n",
-+			path, target, cptofs ? lkl_strerror(ret) :
-+			strerror(errno));
-+
-+	return ret;
-+}
-+
-+static int copy_symlink(const char *src, const char *dst)
-+{
-+	int ret;
-+	long long size, actual_size;
-+	char *target = NULL;
-+
-+	ret = stat_src(src, NULL, NULL, &size, NULL, NULL);
-+	if (ret) {
-+		ret = -1;
-+		goto out;
-+	}
-+
-+	target = malloc(size + 1);
-+	if (!target) {
-+		fprintf(stderr, "Unable to allocate memory (%lld bytes)\n",
-+			size + 1);
-+		ret = -1;
-+		goto out;
-+	}
-+
-+	actual_size = readlink_src(src, target, size);
-+	if (actual_size != size) {
-+		fprintf(stderr,
-+			"readlink(%s) bad size: got %lld, expected %lld\n",
-+			src, actual_size, size);
-+		ret = -1;
-+		goto out;
-+	}
-+	target[size] = 0; // readlink doesn't append the trailing null byte
-+
-+	ret = symlink_dst(dst, target);
-+	if (ret)
-+		ret = -1;
-+
-+out:
-+	if (target)
-+		free(target);
-+
-+	return ret;
-+}
-+
-+static int do_entry(const char *_src, const char *_dst, const char *name)
-+{
-+	char src[PATH_MAX], dst[PATH_MAX];
-+	struct lkl_timespec mtime, atime;
-+	unsigned int type, mode;
-+	int ret;
-+
-+	snprintf(src, sizeof(src), "%s/%s", _src, name);
-+	snprintf(dst, sizeof(dst), "%s/%s", _dst, name);
-+
-+	ret = stat_src(src, &type, &mode, NULL, &mtime, &atime);
-+
-+	switch (type) {
-+	case S_IFREG:
-+	{
-+		ret = copy_file(src, dst, mode);
-+		break;
-+	}
-+	case S_IFDIR:
-+		ret = mkdir_dst(dst, mode);
-+		if (ret)
-+			break;
-+		ret = searchdir(src, dst, NULL);
-+		break;
-+	case S_IFLNK:
-+		ret = copy_symlink(src, dst);
-+		break;
-+	case S_IFSOCK:
-+	case S_IFBLK:
-+	case S_IFCHR:
-+	case S_IFIFO:
-+	default:
-+		printf("skipping %s: unsupported entry type %d\n", src, type);
-+	}
-+
-+	if (!ret) {
-+		if (cptofs) {
-+			struct lkl_timespec lkl_ts[] = { atime, mtime };
-+
-+			ret = lkl_sys_utimensat(-1, dst,
-+						(struct __lkl__kernel_timespec
-+						 *)lkl_ts,
-+						LKL_AT_SYMLINK_NOFOLLOW);
-+		} else {
-+			struct timespec ts[] = {
-+				{ .tv_sec = atime.tv_sec,
-+				  .tv_nsec = atime.tv_nsec, },
-+				{ .tv_sec = mtime.tv_sec,
-+				  .tv_nsec = mtime.tv_nsec, },
-+			};
-+
-+			ret = utimensat(-1, dst, ts, AT_SYMLINK_NOFOLLOW);
-+		}
-+	}
-+
-+	if (ret)
-+		printf("error processing entry %s, aborting\n", src);
-+
-+	return ret;
-+}
-+
-+static DIR *open_dir(const char *path)
-+{
-+	DIR *dir;
-+	int err;
-+
-+	if (cptofs)
-+		dir = opendir(path);
-+	else
-+		dir = (DIR *)lkl_opendir(path, &err);
-+
-+	if (!dir)
-+		fprintf(stderr, "unable to open directory %s: %s\n",
-+			path, cptofs ? strerror(errno) : lkl_strerror(err));
-+	return dir;
-+}
-+
-+static const char *read_dir(DIR *dir, const char *path)
-+{
-+	struct lkl_dir *lkl_dir = (struct lkl_dir *)dir;
-+	const char *name = NULL;
-+	const char *err = NULL;
-+
-+	if (cptofs) {
-+		struct dirent *de = readdir(dir);
-+
-+		if (de)
-+			name = de->d_name;
-+	} else {
-+		struct lkl_linux_dirent64 *de = lkl_readdir(lkl_dir);
-+
-+		if (de)
-+			name = de->d_name;
-+	}
-+
-+	if (!name) {
-+		if (cptofs) {
-+			if (errno)
-+				err = strerror(errno);
-+		} else {
-+			if (lkl_errdir(lkl_dir))
-+				err = lkl_strerror(lkl_errdir(lkl_dir));
-+		}
-+	}
-+
-+	if (err)
-+		fprintf(stderr, "error while reading directory %s: %s\n",
-+			path, err);
-+	return name;
-+}
-+
-+static void close_dir(DIR *dir)
-+{
-+	if (cptofs)
-+		closedir(dir);
-+	else
-+		lkl_closedir((struct lkl_dir *)dir);
-+}
-+
-+static int searchdir(const char *src, const char *dst, const char *match)
-+{
-+	DIR *dir;
-+	const char *name;
-+	int ret = 0;
-+
-+	dir = open_dir(src);
-+	if (!dir)
-+		return -1;
-+
-+	while ((name = read_dir(dir, src))) {
-+		if (!strcmp(name, ".") || !strcmp(name, "..") ||
-+		    (match && fnmatch(match, name, 0) != 0))
-+			continue;
-+
-+		ret = do_entry(src, dst, name);
-+		if (ret)
-+			goto out;
-+	}
-+
-+out:
-+	close_dir(dir);
-+
-+	return ret;
-+}
-+
-+static int match_root(const char *src)
-+{
-+	const char *c = src;
-+
-+	while (*c) {
-+		switch (*c) {
-+		case '.':
-+			if (c > src && c[-1] == '.')
-+				return 0;
-+			break;
-+		case '/':
-+			break;
-+		default:
-+			return 0;
-+		}
-+		c++;
-+	}
-+
-+	return 1;
-+}
-+
-+int copy_one(const char *src, const char *mpoint, const char *dst)
-+{
-+	char *src_path_dir, *src_path_base;
-+	char src_path[PATH_MAX], dst_path[PATH_MAX];
-+
-+	if (cptofs) {
-+		snprintf(src_path, sizeof(src_path),  "%s", src);
-+		snprintf(dst_path, sizeof(dst_path),  "%s/%s", mpoint, dst);
-+	} else {
-+		snprintf(src_path, sizeof(src_path),  "%s/%s", mpoint, src);
-+		snprintf(dst_path, sizeof(dst_path),  "%s", dst);
-+	}
-+
-+	if (match_root(src))
-+		return searchdir(src_path, dst, NULL);
-+
-+	src_path_dir = dirname(strdup(src_path));
-+	src_path_base = basename(strdup(src_path));
-+
-+	return searchdir(src_path_dir, dst_path, src_path_base);
-+}
-+
-+int main(int argc, char **argv)
-+{
-+	struct lkl_disk disk;
-+	long ret, umount_ret;
-+	int i;
-+	char mpoint[32];
-+	unsigned int disk_id;
-+
-+	if (strstr(argv[0], "cptofs")) {
-+		cptofs = 1;
-+		ret = argp_parse(&argp_cptofs, argc, argv, 0, 0, &cla);
-+	} else {
-+		ret = argp_parse(&argp_cpfromfs, argc, argv, 0, 0, &cla);
-+	}
-+
-+	if (ret < 0)
-+		return -1;
-+
-+	if (!cla.printk)
-+		lkl_host_ops.print = NULL;
-+
-+	disk.fd = open(cla.fsimg_path, cptofs ? O_RDWR : O_RDONLY);
-+	if (disk.fd < 0) {
-+		fprintf(stderr, "can't open fsimg %s: %s\n", cla.fsimg_path,
-+			strerror(errno));
-+		ret = 1;
-+		goto out;
-+	}
-+
-+	disk.ops = NULL;
-+	disk.dev = (char *)cla.fsimg_path;
-+
-+	ret = lkl_disk_add(&disk);
-+	if (ret < 0) {
-+		fprintf(stderr, "can't add disk: %s\n", lkl_strerror(ret));
-+		goto out_close;
-+	}
-+	disk_id = ret;
-+
-+	lkl_start_kernel(&lkl_host_ops, "mem=100M");
-+
-+	ret = lkl_mount_dev(disk_id, cla.part, cla.fsimg_type,
-+			    cptofs ? 0 : LKL_MS_RDONLY,
-+			    NULL, mpoint, sizeof(mpoint));
-+	if (ret) {
-+		fprintf(stderr, "can't mount disk: %s\n", lkl_strerror(ret));
-+		goto out_close;
-+	}
-+
-+	lkl_sys_umask(0);
-+
-+	for (i = 0; i < cla.npaths - 1; i++) {
-+		ret = copy_one(cla.paths[i], mpoint, cla.paths[cla.npaths - 1]);
-+		if (ret)
-+			break;
-+	}
-+
-+	umount_ret = lkl_umount_dev(disk_id, cla.part, 0, 1000);
-+	if (ret == 0)
-+		ret = umount_ret;
-+
-+out_close:
-+	close(disk.fd);
-+
-+out:
-+	lkl_sys_halt();
-+
-+	return ret;
-+}
--- 
-2.21.0 (Apple Git-122.2)
+I think that neither my initial approach nor yours fit well, but I found
+a new one inspired from both approaches. The first solution I gave, and
+since implemented in the v15 [1], can manage 2^31-1 layers but it only
+works when refining a security policy *knowing the parent one* (i.e.
+refining an access tied to an inode, not a full file hierarchy). Instead
+of having a layer level and a layer depth, my new implementation (for
+v16) use a layer bitfield for each rule (and ruleset). We still AND
+access rights when merging rulesets, but instead of storing the last
+layer lever and depth, we set the corresponding bit in the layer
+bitfield of the rule. This way we don't consume more memory than the v15
+implementation (for 64 layers top, which would be 64 bits * number of
+access types with your approach, i.e. between 1KB and 2KB) and Landlock
+can properly manage supersets of access rights in nested hierarchies,
+whatever their stacking order. However, I don't see another solution to
+better handle more than 64 layers than a VLA, but that could come later.
+
+[1] https://lore.kernel.org/lkml/20200326202731.693608-6-mic@digikod.net/
+
+> 
+>> To sum up, the bitmask approach doesn't have the notion of layers
+>> ordering. It is then not possible to check that a rule comes from a
+>> domain which is the direct ancestor of a child's domain. I want each
+>> policy/layer to be really nested in the sense that a process sandboxing
+>> itself can only add more restriction to itself with regard to its parent
+>> domain (and the whole hierarchy). This is a similar approach to
+>> seccomp-bpf (with chained filters), except there is almost no overhead
+>> to nest several policies/layers together because they are flattened.
+>> Using the layer level and depth approach enables to implement this.
+> 
