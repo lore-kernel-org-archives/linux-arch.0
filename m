@@ -1,57 +1,74 @@
-Return-Path: <SRS0=zClU=5C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:40394 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726157AbgCQQnJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Mar 2020 12:43:09 -0400
-Subject: Re: [PATCH v4 18/26] arm64: vdso32: Replace TASK_SIZE_32 check in
- vgettimeofday
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-References: <20200317122220.30393-1-vincenzo.frascino@arm.com>
- <20200317122220.30393-19-vincenzo.frascino@arm.com>
- <20200317143834.GC632169@arrakis.emea.arm.com>
- <f03a9493-c8c2-e981-f560-b2f437a208e4@arm.com>
- <20200317155031.GD632169@arrakis.emea.arm.com>
- <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
-Message-ID: <4eaa8717-78b4-0f28-6e14-9a0765e179c5@arm.com>
-Date: Tue, 17 Mar 2020 16:43:32 +0000
+Return-Path: <SRS0=M4aj=5P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:51342 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729705AbgC3MRM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2020 08:17:12 -0400
+Date: Mon, 30 Mar 2020 14:16:54 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][Qusetion] the value of cleared_(ptes|pmds|puds|p4ds) in
+ struct mmu_gather
+Message-ID: <20200330121654.GL20696@hirez.programming.kicks-ass.net>
+References: <fbb00ac0-9104-8d25-f225-7b3d1b17a01f@huawei.com>
 MIME-Version: 1.0
-In-Reply-To: <83aaf9e1-0a8f-4908-577a-23766541b2ba@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <fbb00ac0-9104-8d25-f225-7b3d1b17a01f@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, linux-mips@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200317164332.HuNxUBHYdv9omql85rn6OQBzt5J4TGmaRS6QSfbfpyY@z>
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: npiggin@gmail.com, will.deacon@arm.com, mingo@kernel.org, torvalds@linux-foundation.org, schwidefsky@de.ibm.com, akpm@linux-foundation.org, luto@kernel.org, bp@alien8.de, Marc Zyngier <maz@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arm@kernel.org, xiexiangyou@huawei.com
+Message-ID: <20200330121654.wJbb_TPDZQXoWuz2V0HqLRuxJ6pYItlc9bTCgd53er4@z>
 
+On Sat, Mar 28, 2020 at 12:30:50PM +0800, Zhenyu Ye wrote:
+> Hi all,
+> 
+> commit a6d60245 "Track which levels of the page tables have been cleared"
+> added cleared_(ptes|pmds|puds|p4ds) in struct mmu_gather, and the values
+> of them are set in some places. For example:
+> 
+> In include/asm-generic/tlb.h, pte_free_tlb() set the tlb->cleared_pmds:
+> ---8<---
+> #ifndef pte_free_tlb
+> #define pte_free_tlb(tlb, ptep, address)			\
+> 	do {							\
+> 		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+> 		tlb->freed_tables = 1;				\
+> 		tlb->cleared_pmds = 1;				\
+> 		__pte_free_tlb(tlb, ptep, address);		\
+> 	} while (0)
+> #endif
+> ---8<---
+> 
+> 
+> However, in arch/s390/include/asm/tlb.h, pte_free_tlb() set the tlb->cleared_ptes:
+> ---8<---
+> static inline void pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+>                                 unsigned long address)
+> {
+> 	__tlb_adjust_range(tlb, address, PAGE_SIZE);
+> 	tlb->mm->context.flush_mm = 1;
+> 	tlb->freed_tables = 1;
+> 	tlb->cleared_ptes = 1;
+> 	/*
+> 	 * page_table_free_rcu takes care of the allocation bit masks
+> 	 * of the 2K table fragments in the 4K page table page,
+> 	 * then calls tlb_remove_table.
+> 	 */
+> 	page_table_free_rcu(tlb, (unsigned long *) pte, address);
+> }
+> ---8<---
+> 
+> 
+> In my view, the cleared_(ptes|pmds|puds) and (pte|pmd|pud)_free_tlb
+> correspond one-to-one.  So we should set cleared_ptes in pte_free_tlb(),
+> then use it when needed.
 
+So pte_free_tlb() clears a table of PTE entries, or a PMD level entity,
+also see free_pte_range(). So the generic code makes sense to me. The
+PTE level invalidations will have happened on tlb_remove_tlb_entry().
 
-On 3/17/20 4:40 PM, Vincenzo Frascino wrote:
-> Hi Catalin,
-> 
-> On 3/17/20 3:50 PM, Catalin Marinas wrote:
->> On Tue, Mar 17, 2020 at 03:04:01PM +0000, Vincenzo Frascino wrote:
->>> On 3/17/20 2:38 PM, Catalin Marinas wrote:
->>>> On Tue, Mar 17, 2020 at 12:22:12PM +0000, Vincenzo Frascino wrote:
-> 
-> [...]
-> 
->>>
->>> Can TASK_SIZE > UINTPTR_MAX on an arm64 system?
->>
->> TASK_SIZE yes on arm64 but not TASK_SIZE_32. I was asking about the
->> arm32 check where TASK_SIZE < UINTPTR_MAX. How does the vdsotest return
->> -EFAULT on arm32? Which code path causes this in the user vdso code?
->>
-> 
-> Sorry I got confused because you referred to arch/arm/vdso/vgettimeofday.c which
-> is the arm64 implementation, not the compat one :)
-> 
+> I'm very confused about this. Which is wrong? Or is there something
+> I understand wrong?
 
-I stand corrected arch/*arm*/vdso/vgettimeofday.c is definitely the arm32
-implemetation... I got completely confused here :)
-
--- 
-Regards,
-Vincenzo
+I agree the s390 case is puzzling, Martin does s390 need a PTE level
+invalidate for removing a PTE table or was this a mistake?
