@@ -1,306 +1,218 @@
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [RFC v4 11/25] um lkl: plug in the build system
-Date: Mon, 30 Mar 2020 23:45:43 +0900
-Message-ID: <ba2722dbe1536cdebcdc85e101de2212c1544947.1585579244.git.thehajime@gmail.com>
+Subject: [RFC v4 08/25] um lkl: timers, time and delay support
+Date: Mon, 30 Mar 2020 23:45:40 +0900
+Message-ID: <ead59efd915614ffa75d2d72a2ae442f2019c75b.1585579244.git.thehajime@gmail.com>
 References: <cover.1585579244.git.thehajime@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pj1-f65.google.com ([209.85.216.65]:38194 "EHLO
-        mail-pj1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726769AbgC3Or5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2020 10:47:57 -0400
-Received: by mail-pj1-f65.google.com with SMTP id m15so7421054pje.3
-        for <linux-arch@vger.kernel.org>; Mon, 30 Mar 2020 07:47:56 -0700 (PDT)
+Received: from mail-pl1-f195.google.com ([209.85.214.195]:33949 "EHLO
+        mail-pl1-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727877AbgC3OsD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2020 10:48:03 -0400
+Received: by mail-pl1-f195.google.com with SMTP id a23so6819544plm.1
+        for <linux-arch@vger.kernel.org>; Mon, 30 Mar 2020 07:48:01 -0700 (PDT)
 In-Reply-To: <cover.1585579244.git.thehajime@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-um@lists.infradead.org
-Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Hajime Tazaki <thehajime@gmail.com>
+Cc: Octavian Purdila <tavi.purdila@gmail.com>, Akira Moroo <retrage01@gmail.com>, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, Michael Zimmermann <sigmaepsilon92@gmail.com>, Hajime Tazaki <thehajime@gmail.com>
 
 From: Octavian Purdila <tavi.purdila@gmail.com>
 
-Basic Makefiles for building LKL. Add a new architecture specific
-target for installing the resulting library files and headers.
+Clockevent driver based on host timer operations and clocksource
+driver and udelay support based on host time operations.
 
-To make LKL binaries build, UML introduced an additional option, UMMODE
-variable, to switch the output file of build: kernel (default), or
-library (LKL).  Those modes are not able to be ON at the same time.
-
-To build on library mode, users do the following:
-
-  make defconfig ARCH=um UMMODE=library
-  make ARCH=um UMMODE=library
-
-Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
-Signed-off-by: Akira Moroo <retrage01@gmail.com>
+Cc: Michael Zimmermann <sigmaepsilon92@gmail.com>
 Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
+Signed-off-by: Octavian Purdila <tavi.purdila@gmail.com>
 ---
- arch/um/Kconfig             | 13 +++++++
- arch/um/Makefile            | 19 ++++++++++-
- arch/um/Makefile.um         | 10 ++++++
- arch/um/lkl/Kconfig         | 31 +++++++++++++++--
- arch/um/lkl/Makefile        | 67 +++++++++++++++++++++++++++++++++++++
- arch/um/lkl/auto.conf       |  1 +
- arch/um/lkl/kernel/Makefile |  4 +++
- arch/um/lkl/mm/Makefile     |  1 +
- 8 files changed, 143 insertions(+), 3 deletions(-)
- create mode 100644 arch/um/Makefile.um
- create mode 100644 arch/um/lkl/Makefile
- create mode 100644 arch/um/lkl/auto.conf
- create mode 100644 arch/um/lkl/kernel/Makefile
- create mode 100644 arch/um/lkl/mm/Makefile
+ arch/um/lkl/include/uapi/asm/host_ops.h |  13 +++
+ arch/um/lkl/kernel/time.c               | 145 ++++++++++++++++++++++++
+ 2 files changed, 158 insertions(+)
+ create mode 100644 arch/um/lkl/kernel/time.c
 
-diff --git a/arch/um/Kconfig b/arch/um/Kconfig
-index 96ab7026b037..17a6bc25b615 100644
---- a/arch/um/Kconfig
-+++ b/arch/um/Kconfig
-@@ -5,6 +5,10 @@ menu "UML-specific options"
- config UML
- 	bool
- 	default y
-+
-+config UMMODE_KERN
-+	bool "UML mode: kernel mode"
-+	default y if "$(UMMODE)" = "kernel"
- 	select ARCH_HAS_KCOV
- 	select ARCH_NO_PREEMPT
- 	select HAVE_ARCH_AUDITSYSCALL
-@@ -20,7 +24,12 @@ config UML
- 	select GENERIC_CLOCKEVENTS
- 	select HAVE_GCC_PLUGINS
- 	select TTY # Needed for line.c
-+        help
-+	  This mode switches a mode to build a regular kernel executable
-+          of UML.
-+
+diff --git a/arch/um/lkl/include/uapi/asm/host_ops.h b/arch/um/lkl/include/uapi/asm/host_ops.h
+index 1c839d7139f8..c9f77dd7fbe7 100644
+--- a/arch/um/lkl/include/uapi/asm/host_ops.h
++++ b/arch/um/lkl/include/uapi/asm/host_ops.h
+@@ -48,6 +48,13 @@ struct lkl_jmp_buf {
+  * @mem_alloc - allocate memory
+  * @mem_free - free memory
+  *
++ * @timer_create - allocate a host timer that runs fn(arg) when the timer
++ * fires.
++ * @timer_free - disarms and free the timer
++ * @timer_set_oneshot - arm the timer to fire once, after delta ns.
++ * @timer_set_periodic - arm the timer to fire periodically, with a period of
++ * delta ns.
++ *
+  * @gettid - returns the host thread id of the caller, which need not
+  * be the same as the handle returned by thread_create
+  *
+@@ -88,6 +95,12 @@ struct lkl_host_operations {
+ 	void *(*mem_alloc)(unsigned long mem);
+ 	void (*mem_free)(void *mem);
  
-+if UMMODE_KERN
- config MMU
- 	bool
- 	default y
-@@ -207,6 +216,10 @@ config UML_TIME_TRAVEL_SUPPORT
++	unsigned long long (*time)(void);
++
++	void *(*timer_alloc)(void (*fn)(void *), void *arg);
++	int (*timer_set_oneshot)(void *timer, unsigned long delta);
++	void (*timer_free)(void *timer);
++
+ 	long (*gettid)(void);
  
- 	  It is safe to say Y, but you probably don't need this.
- 
-+endif #UMMODE_KERN
-+
- endmenu
- 
- source "arch/um/drivers/Kconfig"
-+
-+source "arch/um/lkl/Kconfig"
-diff --git a/arch/um/Makefile b/arch/um/Makefile
-index d2daa206872d..f2a537f700c2 100644
---- a/arch/um/Makefile
-+++ b/arch/um/Makefile
-@@ -1,3 +1,4 @@
-+# SPDX-License-Identifier: GPL-2.0
- #
- # This file is included by the global makefile so that you can add your own
- # architecture-specific flags and dependencies.
-@@ -44,7 +45,7 @@ HOST_DIR := arch/$(HEADER_ARCH)
- include $(ARCH_DIR)/Makefile-skas
- include $(HOST_DIR)/Makefile.um
- 
--core-y += $(HOST_DIR)/um/
-+
- 
- SHARED_HEADERS	:= $(ARCH_DIR)/include/shared
- ARCH_INCLUDE	:= -I$(srctree)/$(SHARED_HEADERS)
-@@ -144,5 +145,21 @@ CLEAN_FILES += linux x.i gmon.out
- archclean:
- 	@find . \( -name '*.bb' -o -name '*.bbg' -o -name '*.da' \
- 		-o -name '*.gcov' \) -type f -print | xargs rm -f
-+	$(Q)rm -rf $(srctree)/$(LKL_DIR)/include/generated
- 
- export HEADER_ARCH SUBARCH USER_CFLAGS CFLAGS_NO_HARDENING OS DEV_NULL_PATH
-+
-+
-+
-+# SPDX-License-Identifier: GPL-2.0
-+# select mode of UML build
-+UMMODE ?= kernel
-+LKL_DIR := $(ARCH_DIR)/lkl
-+
-+ifeq ($(UMMODE),kernel)
-+	include $(ARCH_DIR)/Makefile.um
-+else ifeq ($(UMMODE),library)
-+	include $(ARCH_DIR)/lkl/Makefile
-+endif
-+
-+export UMMODE LKL_DIR
-diff --git a/arch/um/Makefile.um b/arch/um/Makefile.um
+ 	void (*jmp_buf_set)(struct lkl_jmp_buf *jmpb, void (*f)(void));
+diff --git a/arch/um/lkl/kernel/time.c b/arch/um/lkl/kernel/time.c
 new file mode 100644
-index 000000000000..be7ee4d1adde
+index 000000000000..dade9717a986
 --- /dev/null
-+++ b/arch/um/Makefile.um
-@@ -0,0 +1,10 @@
-+# SPDX-License-Identifier: GPL-2.0
-+#
-+# This file is included by the global makefile so that you can add your own
-+# architecture-specific flags and dependencies.
-+#
-+# Copyright (C) 2002 - 2007 Jeff Dike (jdike@{addtoit,linux.intel}.com)
-+# Licensed under the GPL
-+#
++++ b/arch/um/lkl/kernel/time.c
+@@ -0,0 +1,145 @@
++// SPDX-License-Identifier: GPL-2.0
++#include <linux/clocksource.h>
++#include <linux/clockchips.h>
++#include <linux/jiffies.h>
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/irq.h>
++#include <asm/host_ops.h>
 +
-+core-y += $(HOST_DIR)/um/
-diff --git a/arch/um/lkl/Kconfig b/arch/um/lkl/Kconfig
-index f7e8d707a12b..c72c40226509 100644
---- a/arch/um/lkl/Kconfig
-+++ b/arch/um/lkl/Kconfig
-@@ -1,6 +1,25 @@
- # SPDX-License-Identifier: GPL-2.0
- 
--config UML_LKL
-+menu "LKL-specific options"
++static unsigned long long boot_time;
 +
-+config UML
-+	bool
-+	default y
++void __ndelay(unsigned long nsecs)
++{
++	unsigned long long start = lkl_ops->time();
 +
-+config UMMODE_LIB
-+	bool "UML mode: library mode"
-+	depends on !UMMODE_KERN
-+	select LKL
-+	default y if "$(UMMODE)" = "library"
-+	help
-+	  This mode switches a mode to build a library of UML (Linux
-+	  Kernel Library/LKL).  This switch is exclusive to "kernel mode"
-+	  of UML, which is traditional mode of UML.
++	while (lkl_ops->time() < start + nsecs)
++		;
++}
 +
-+	  For more detail about LKL, see
-+	  <file:Documentation/virt/uml/lkl.txt>.
++void __udelay(unsigned long usecs)
++{
++	__ndelay(usecs * NSEC_PER_USEC);
++}
 +
-+config LKL
-        def_bool y
-        depends on !SMP && !MMU && !COREDUMP && !SECCOMP && !UPROBES && !COMPAT && !USER_RETURN_NOTIFIER
-        select ARCH_THREAD_STACK_ALLOCATOR
-@@ -29,6 +48,12 @@ config OUTPUT_FORMAT
- config ARCH_DMA_ADDR_T_64BIT
-        def_bool 64BIT
- 
-+config X86_64
-+       def_bool y if "$(OUTPUT_FORMAT)" = "elf64-x86-64"
++void __const_udelay(unsigned long xloops)
++{
++	__udelay(xloops / 0x10c7ul);
++}
 +
-+config X86_32
-+       def_bool y if "$(OUTPUT_FORMAT)" = "elf32-i386"
++void calibrate_delay(void)
++{
++}
 +
- config 64BIT
-        def_bool n
- 
-@@ -39,7 +64,7 @@ config BIG_ENDIAN
-        def_bool n
- 
- config GENERIC_CSUM
--       def_bool y
-+       def_bool LKL
- 
- config GENERIC_HWEIGHT
-        def_bool y
-@@ -54,3 +79,5 @@ config RWSEM_GENERIC_SPINLOCK
- config HZ
-         int
-         default 100
++void read_persistent_clock(struct timespec64 *ts)
++{
++	*ts = ns_to_timespec64(lkl_ops->time());
++}
 +
-+endmenu
-diff --git a/arch/um/lkl/Makefile b/arch/um/lkl/Makefile
-new file mode 100644
-index 000000000000..e1161fa3fb63
---- /dev/null
-+++ b/arch/um/lkl/Makefile
-@@ -0,0 +1,67 @@
-+# SPDX-License-Identifier: GPL-2.0
++/*
++ * Scheduler clock - returns current time in nanosec units.
++ *
++ */
++unsigned long long sched_clock(void)
++{
++	if (!boot_time)
++		return 0;
 +
-+include $(LKL_DIR)/auto.conf
++	return lkl_ops->time() - boot_time;
++}
 +
-+# fixup CFLAGS of um build
-+KBUILD_CFLAGS := $(subst $(CFLAGS),,$(KBUILD_CFLAGS))
++static u64 clock_read(struct clocksource *cs)
++{
++	return lkl_ops->time();
++}
 +
-+SRCARCH := um/lkl
-+ARCH_INCLUDE += -I$(srctree)/$(LKL_DIR)/um/include
-+LINUXINCLUDE := $(subst $(ARCH_DIR),$(LKL_DIR),$(LINUXINCLUDE)) $(ARCH_INCLUDE)
-+KBUILD_CFLAGS += -fno-builtin
-+KBUILD_DEFCONFIG := lkl_defconfig
++static struct clocksource clocksource = {
++	.name	= "lkl",
++	.rating = 499,
++	.read	= clock_read,
++	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
++	.mask	= CLOCKSOURCE_MASK(64),
++};
 +
-+ifneq (,$(filter $(OUTPUT_FORMAT),elf64-x86-64 elf32-i386 elf64-x86-64-freebsd elf32-littlearm elf64-littleaarch64))
-+KBUILD_CFLAGS += -fPIC
-+else ifneq (,$(filter $(OUTPUT_FORMAT),pe-i386 pe-x86-64 ))
-+ifneq ($(OUTPUT_FORMAT),pe-x86-64)
-+prefix=_
-+endif
-+# workaround for #include_next<stdarg.h> errors
-+LINUXINCLUDE := -isystem $(LKL_DIR)/include/system $(LINUXINCLUDE)
-+# workaround for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=52991
-+KBUILD_CFLAGS += -mno-ms-bitfields
-+else
-+$(error Unrecognized platform: $(OUTPUT_FORMAT))
-+endif
++static void *timer;
 +
-+ifeq ($(shell uname -s), Linux)
-+NPROC=$(shell nproc)
-+else # e.g., FreeBSD
-+NPROC=$(shell sysctl -n hw.ncpu)
-+endif
++static int timer_irq;
 +
-+LDFLAGS_vmlinux += -r
-+LKL_ENTRY_POINTS := lkl_start_kernel lkl_sys_halt lkl_syscall lkl_trigger_irq \
-+	lkl_get_free_irq lkl_put_irq lkl_is_running lkl_bug lkl_printf
++static void timer_fn(void *arg)
++{
++	lkl_trigger_irq(timer_irq);
++}
 +
-+ifeq ($(OUTPUT_FORMAT),elf32-i386)
-+LKL_ENTRY_POINTS += \
-+	__x86.get_pc_thunk.bx __x86.get_pc_thunk.dx __x86.get_pc_thunk.ax \
-+	__x86.get_pc_thunk.cx __x86.get_pc_thunk.si __x86.get_pc_thunk.di
-+endif
++static int clockevent_set_state_shutdown(struct clock_event_device *evt)
++{
++	if (timer) {
++		lkl_ops->timer_free(timer);
++		timer = NULL;
++	}
 +
-+core-y += $(LKL_DIR)/kernel/
-+core-y += $(LKL_DIR)/mm/
++	return 0;
++}
 +
-+all: lkl.o
++static int clockevent_set_state_oneshot(struct clock_event_device *evt)
++{
++	timer = lkl_ops->timer_alloc(timer_fn, NULL);
++	if (!timer)
++		return -ENOMEM;
 +
-+lkl.o: vmlinux
-+	$(OBJCOPY) -R .eh_frame -R .syscall_defs $(foreach sym,$(LKL_ENTRY_POINTS),-G$(prefix)$(sym)) vmlinux lkl.o
++	return 0;
++}
 +
-+$(LKL_DIR)/include/generated/uapi/asm/syscall_defs.h: vmlinux
-+	$(OBJCOPY) -j .syscall_defs -O binary --set-section-flags .syscall_defs=alloc $< $@
-+	$(Q) export tmpfile=$(shell mktemp); \
-+	sed 's/\x0//g' $@ > $$tmpfile; mv $$tmpfile $@ ; rm -f $$tmpfile
++static irqreturn_t timer_irq_handler(int irq, void *dev_id)
++{
++	struct clock_event_device *dev = (struct clock_event_device *)dev_id;
 +
-+install: lkl.o headers $(LKL_DIR)/include/generated/uapi/asm/syscall_defs.h
-+	@echo "  INSTALL	$(INSTALL_PATH)/lib/lkl.o"
-+	@mkdir -p $(INSTALL_PATH)/lib/
-+	@cp lkl.o $(INSTALL_PATH)/lib/
-+	$(Q)$(srctree)/$(LKL_DIR)/scripts/headers_install.py \
-+		$(subst -j,-j$(NPROC),$(findstring -j,$(MAKEFLAGS))) \
-+		$(INSTALL_PATH)/include
++	dev->event_handler(dev);
 +
-+define archhelp
-+  echo '  install	- Install library and headers to INSTALL_PATH/{lib,include}'
-+endef
-diff --git a/arch/um/lkl/auto.conf b/arch/um/lkl/auto.conf
-new file mode 100644
-index 000000000000..4bfd65a02d73
---- /dev/null
-+++ b/arch/um/lkl/auto.conf
-@@ -0,0 +1 @@
-+export OUTPUT_FORMAT=$(shell $(LD) -r -print-output-format)
-diff --git a/arch/um/lkl/kernel/Makefile b/arch/um/lkl/kernel/Makefile
-new file mode 100644
-index 000000000000..ef489f2f7176
---- /dev/null
-+++ b/arch/um/lkl/kernel/Makefile
-@@ -0,0 +1,4 @@
-+extra-y := vmlinux.lds
++	return IRQ_HANDLED;
++}
 +
-+obj-y = setup.o threads.o irq.o time.o syscalls.o misc.o console.o \
-+	syscalls_32.o cpu.o
-diff --git a/arch/um/lkl/mm/Makefile b/arch/um/lkl/mm/Makefile
-new file mode 100644
-index 000000000000..2af6e3051897
---- /dev/null
-+++ b/arch/um/lkl/mm/Makefile
-@@ -0,0 +1 @@
-+obj-y = bootmem.o
++static int clockevent_next_event(unsigned long ns,
++				 struct clock_event_device *evt)
++{
++	return lkl_ops->timer_set_oneshot(timer, ns);
++}
++
++static struct clock_event_device clockevent = {
++	.name			= "lkl",
++	.features		= CLOCK_EVT_FEAT_ONESHOT,
++	.set_state_oneshot	= clockevent_set_state_oneshot,
++	.set_next_event		= clockevent_next_event,
++	.set_state_shutdown	= clockevent_set_state_shutdown,
++};
++
++static struct irqaction irq0  = {
++	.handler	= timer_irq_handler,
++	.flags		= IRQF_NOBALANCING | IRQF_TIMER,
++	.dev_id		= &clockevent,
++	.name		= "timer"
++};
++
++void __init time_init(void)
++{
++	int ret;
++
++	if (!lkl_ops->timer_alloc || !lkl_ops->timer_free ||
++	    !lkl_ops->timer_set_oneshot || !lkl_ops->time) {
++		pr_err("lkl: no time or timer support provided by host\n");
++		return;
++	}
++
++	timer_irq = lkl_get_free_irq("timer");
++	setup_irq(timer_irq, &irq0);
++
++	ret = clocksource_register_khz(&clocksource, 1000000);
++	if (ret)
++		pr_err("lkl: unable to register clocksource\n");
++
++	clockevents_config_and_register(&clockevent, NSEC_PER_SEC, 1,
++					ULONG_MAX);
++
++	boot_time = lkl_ops->time();
++	pr_info("lkl: time and timers initialized (irq%d)\n", timer_irq);
++}
 -- 
 2.21.0 (Apple Git-122.2)
