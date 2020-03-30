@@ -1,23 +1,78 @@
-From: "Manuel Franco" <luis.sanchez@11d01.mspz7.gob.ec>
-Subject: spende von 2.000.000,00 Euro
-Date: Mon, 30 Mar 2020 11:47:33 +0200
-Message-ID: <20200330091620.5FC382F6F56A__25375.0108693325$1585566106$gmane$org@mail.11d01.mspz7.gob.ec>
-Reply-To: manuelfrancospende11@gmail.com
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][Qusetion] the value of cleared_(ptes|pmds|puds|p4ds) in
+ struct mmu_gather
+Date: Mon, 30 Mar 2020 14:16:54 +0200
+Message-ID: <20200330121654.GL20696@hirez.programming.kicks-ass.net>
+References: <fbb00ac0-9104-8d25-f225-7b3d1b17a01f@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.11d01.mspz7.gob.ec ([190.152.145.91]:53490 "EHLO
-        mail.11d01.mspz7.gob.ec" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729553AbgC3LBJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2020 07:01:09 -0400
-Content-Description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <luis.sanchez@11d01.mspz7.gob.ec>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <fbb00ac0-9104-8d25-f225-7b3d1b17a01f@huawei.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: linux-arch@vger.kernel.org, Marc Zyngier <maz@kernel.org>, will.deacon@arm.com, linux-kernel@vger.kernel.org, npiggin@gmail.com, arm@kernel.org, bp@alien8.de, xiexiangyou@huawei.com, luto@kernel.org, schwidefsky@de.ibm.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, mingo@kernel.org, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-Ich bin Manuel Franco, ich spende Ihnen 2.000.000,00 Euro. Kontaktieren Sie=
- mich jetzt, damit wir fortfahren k=F6nnen.
+On Sat, Mar 28, 2020 at 12:30:50PM +0800, Zhenyu Ye wrote:
+> Hi all,
+> 
+> commit a6d60245 "Track which levels of the page tables have been cleared"
+> added cleared_(ptes|pmds|puds|p4ds) in struct mmu_gather, and the values
+> of them are set in some places. For example:
+> 
+> In include/asm-generic/tlb.h, pte_free_tlb() set the tlb->cleared_pmds:
+> ---8<---
+> #ifndef pte_free_tlb
+> #define pte_free_tlb(tlb, ptep, address)			\
+> 	do {							\
+> 		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+> 		tlb->freed_tables = 1;				\
+> 		tlb->cleared_pmds = 1;				\
+> 		__pte_free_tlb(tlb, ptep, address);		\
+> 	} while (0)
+> #endif
+> ---8<---
+> 
+> 
+> However, in arch/s390/include/asm/tlb.h, pte_free_tlb() set the tlb->cleared_ptes:
+> ---8<---
+> static inline void pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+>                                 unsigned long address)
+> {
+> 	__tlb_adjust_range(tlb, address, PAGE_SIZE);
+> 	tlb->mm->context.flush_mm = 1;
+> 	tlb->freed_tables = 1;
+> 	tlb->cleared_ptes = 1;
+> 	/*
+> 	 * page_table_free_rcu takes care of the allocation bit masks
+> 	 * of the 2K table fragments in the 4K page table page,
+> 	 * then calls tlb_remove_table.
+> 	 */
+> 	page_table_free_rcu(tlb, (unsigned long *) pte, address);
+> }
+> ---8<---
+> 
+> 
+> In my view, the cleared_(ptes|pmds|puds) and (pte|pmd|pud)_free_tlb
+> correspond one-to-one.  So we should set cleared_ptes in pte_free_tlb(),
+> then use it when needed.
 
-I am Manuel Franco, I donate to you 2,000,000.00 euros. Contact me now so w=
-e can proceed.
+So pte_free_tlb() clears a table of PTE entries, or a PMD level entity,
+also see free_pte_range(). So the generic code makes sense to me. The
+PTE level invalidations will have happened on tlb_remove_tlb_entry().
+
+> I'm very confused about this. Which is wrong? Or is there something
+> I understand wrong?
+
+I agree the s390 case is puzzling, Martin does s390 need a PTE level
+invalidate for removing a PTE table or was this a mistake?
