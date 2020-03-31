@@ -1,16 +1,16 @@
 From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v5 6/8] mm: tlb: Pass struct mmu_gather to flush_hugetlb_tlb_range
-Date: Tue, 31 Mar 2020 22:29:25 +0800
-Message-ID: <20200331142927.1237-7-yezhenyu2@huawei.com>
+Subject: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to flush_pmd_tlb_range
+Date: Tue, 31 Mar 2020 22:29:23 +0800
+Message-ID: <20200331142927.1237-5-yezhenyu2@huawei.com>
 References: <20200331142927.1237-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:12593 "EHLO huawei.com"
+Received: from szxga04-in.huawei.com ([45.249.212.190]:12591 "EHLO huawei.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1731138AbgCaOaL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 31 Mar 2020 10:30:11 -0400
+        id S1731130AbgCaOaU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 31 Mar 2020 10:30:20 -0400
 In-Reply-To: <20200331142927.1237-1-yezhenyu2@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -22,65 +22,191 @@ flush_tlb_range.  See in future patches.
 
 Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 ---
- arch/powerpc/include/asm/book3s/64/tlbflush.h |  3 ++-
- mm/hugetlb.c                                  | 17 ++++++++++++-----
- 2 files changed, 14 insertions(+), 6 deletions(-)
+ arch/arc/include/asm/hugepage.h               |  4 +--
+ arch/arc/include/asm/tlbflush.h               |  5 +--
+ arch/arc/mm/tlb.c                             |  4 +--
+ arch/powerpc/include/asm/book3s/64/tlbflush.h |  3 +-
+ arch/powerpc/mm/book3s64/pgtable.c            |  8 ++++-
+ include/asm-generic/pgtable.h                 |  4 +--
+ mm/pgtable-generic.c                          | 35 ++++++++++++++++---
+ 7 files changed, 48 insertions(+), 15 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/tlbflush.h b/arch/powerpc/include/asm/book3s/64/tlbflush.h
-index 6445d179ac15..968f10ef3d51 100644
---- a/arch/powerpc/include/asm/book3s/64/tlbflush.h
-+++ b/arch/powerpc/include/asm/book3s/64/tlbflush.h
-@@ -57,7 +57,8 @@ static inline void flush_pmd_tlb_range(struct mmu_gather *tlb,
+diff --git a/arch/arc/include/asm/hugepage.h b/arch/arc/include/asm/hugepage.h
+index 30ac40fed2c5..c2b325dd47f2 100644
+--- a/arch/arc/include/asm/hugepage.h
++++ b/arch/arc/include/asm/hugepage.h
+@@ -67,8 +67,8 @@ extern void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
+ extern pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp);
+ 
+ #define __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
+-extern void flush_pmd_tlb_range(struct vm_area_struct *vma, unsigned long start,
+-				unsigned long end);
++extern void flush_pmd_tlb_range(struct mmu_gather *tlb, struct vm_area_struct *vma,
++				unsigned long start, unsigned long end);
+ 
+ /* We don't have hardware dirty/accessed bits, generic_pmdp_establish is fine.*/
+ #define pmdp_establish generic_pmdp_establish
+diff --git a/arch/arc/include/asm/tlbflush.h b/arch/arc/include/asm/tlbflush.h
+index 992a2837a53f..49e4e5b59bb2 100644
+--- a/arch/arc/include/asm/tlbflush.h
++++ b/arch/arc/include/asm/tlbflush.h
+@@ -26,7 +26,7 @@ void local_flush_pmd_tlb_range(struct vm_area_struct *vma, unsigned long start,
+ #define flush_tlb_all()			local_flush_tlb_all()
+ #define flush_tlb_mm(mm)		local_flush_tlb_mm(mm)
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+-#define flush_pmd_tlb_range(vma, s, e)	local_flush_pmd_tlb_range(vma, s, e)
++#define flush_pmd_tlb_range(tlb, vma, s, e)	local_flush_pmd_tlb_range(vma, s, e)
+ #endif
+ #else
+ extern void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
+@@ -36,7 +36,8 @@ extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
+ extern void flush_tlb_all(void);
+ extern void flush_tlb_mm(struct mm_struct *mm);
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+-extern void flush_pmd_tlb_range(struct vm_area_struct *vma, unsigned long start, unsigned long end);
++extern void flush_pmd_tlb_range(struct mmu_gather *tlb, struct vm_area_struct *vma,
++				unsigned long start, unsigned long end);
+ #endif
+ #endif /* CONFIG_SMP */
+ #endif
+diff --git a/arch/arc/mm/tlb.c b/arch/arc/mm/tlb.c
+index c340acd989a0..10b2a2373dc0 100644
+--- a/arch/arc/mm/tlb.c
++++ b/arch/arc/mm/tlb.c
+@@ -464,8 +464,8 @@ void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
  }
  
- #define __HAVE_ARCH_FLUSH_HUGETLB_TLB_RANGE
--static inline void flush_hugetlb_tlb_range(struct vm_area_struct *vma,
-+static inline void flush_hugetlb_tlb_range(struct mmu_gather *tlb,
-+					   struct vm_area_struct *vma,
- 					   unsigned long start,
- 					   unsigned long end)
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+-void flush_pmd_tlb_range(struct vm_area_struct *vma, unsigned long start,
+-			 unsigned long end)
++void flush_pmd_tlb_range(struct mmu_gather *tlb, struct vm_area_struct *vma,
++			 unsigned long start, unsigned long end)
  {
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index dd8737a94bec..f913ce0b4831 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -4441,7 +4441,8 @@ long follow_hugetlb_page(struct mm_struct *mm, struct vm_area_struct *vma,
-  * ARCHes with special requirements for evicting HUGETLB backing TLB entries can
-  * implement this.
-  */
--#define flush_hugetlb_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
-+#define flush_hugetlb_tlb_range(tlb, vma, addr, end)	\
-+	flush_tlb_range(vma, addr, end)
- #endif
+ 	struct tlb_args ta = {
+ 		.ta_vma = vma,
+diff --git a/arch/powerpc/include/asm/book3s/64/tlbflush.h b/arch/powerpc/include/asm/book3s/64/tlbflush.h
+index dcb5c3839d2f..6445d179ac15 100644
+--- a/arch/powerpc/include/asm/book3s/64/tlbflush.h
++++ b/arch/powerpc/include/asm/book3s/64/tlbflush.h
+@@ -47,7 +47,8 @@ static inline void tlbiel_all_lpid(bool radix)
  
- unsigned long hugetlb_change_protection(struct vm_area_struct *vma,
-@@ -4455,6 +4456,7 @@ unsigned long hugetlb_change_protection(struct vm_area_struct *vma,
- 	unsigned long pages = 0;
- 	bool shared_pmd = false;
- 	struct mmu_notifier_range range;
+ 
+ #define __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
+-static inline void flush_pmd_tlb_range(struct vm_area_struct *vma,
++static inline void flush_pmd_tlb_range(struct mmu_gather *tlb,
++				       struct vm_area_struct *vma,
+ 				       unsigned long start, unsigned long end)
+ {
+ 	if (radix_enabled())
+diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s64/pgtable.c
+index 2bf7e1b4fd82..0a9c7ad7ee81 100644
+--- a/arch/powerpc/mm/book3s64/pgtable.c
++++ b/arch/powerpc/mm/book3s64/pgtable.c
+@@ -106,9 +106,15 @@ pmd_t pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
+ 		     pmd_t *pmdp)
+ {
+ 	unsigned long old_pmd;
 +	struct mmu_gather tlb;
++	unsigned long tlb_start = address;
++	unsigned long tlb_end = address + HPAGE_PMD_SIZE;
  
+ 	old_pmd = pmd_hugepage_update(vma->vm_mm, address, pmdp, _PAGE_PRESENT, _PAGE_INVALID);
+-	flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
++	tlb_gather_mmu(&tlb, vma->vm_mm, tlb_start, tlb_end);
++	tlb.cleared_pmds = 1;
++	flush_pmd_tlb_range(&tlb, vma, tlb_start, tlb_end);
++	tlb_finish_mmu(&tlb, tlb_start, tlb_end);
  	/*
- 	 * In the case of shared PMDs, the area to flush could be beyond
-@@ -4520,10 +4522,15 @@ unsigned long hugetlb_change_protection(struct vm_area_struct *vma,
- 	 * and that page table be reused and filled with junk.  If we actually
- 	 * did unshare a page of pmds, flush the range corresponding to the pud.
- 	 */
--	if (shared_pmd)
--		flush_hugetlb_tlb_range(vma, range.start, range.end);
--	else
--		flush_hugetlb_tlb_range(vma, start, end);
-+	if (shared_pmd) {
-+		tlb_gather_mmu(&tlb, mm, range.start, range.end);
-+		flush_hugetlb_tlb_range(&tlb, vma, range.start, range.end);
-+		tlb_finish_mmu(&tlb, range.start, range.end);
-+	} else {
-+		tlb_gather_mmu(&tlb, mm, start, end);
-+		flush_hugetlb_tlb_range(&tlb, vma, start, end);
-+		tlb_finish_mmu(&tlb, start, end);
+ 	 * This ensures that generic code that rely on IRQ disabling
+ 	 * to prevent a parallel THP split work as expected.
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index e2e2bef07dd2..32d4661e5a56 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1160,10 +1160,10 @@ static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+  * invalidate the entire TLB which is not desitable.
+  * e.g. see arch/arc: flush_pmd_tlb_range
+  */
+-#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
++#define flush_pmd_tlb_range(tlb, vma, addr, end)	flush_tlb_range(vma, addr, end)
+ #define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
+ #else
+-#define flush_pmd_tlb_range(vma, addr, end)	BUILD_BUG()
++#define flush_pmd_tlb_range(tlb, vma, addr, end)	BUILD_BUG()
+ #define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
+ #endif
+ #endif
+diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
+index 3d7c01e76efc..96c9cf77bfb5 100644
+--- a/mm/pgtable-generic.c
++++ b/mm/pgtable-generic.c
+@@ -109,8 +109,14 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,
+ 	int changed = !pmd_same(*pmdp, entry);
+ 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
+ 	if (changed) {
++		struct mmu_gather tlb;
++		unsigned long tlb_start = address;
++		unsigned long tlb_end = address + HPAGE_PMD_SIZE;
+ 		set_pmd_at(vma->vm_mm, address, pmdp, entry);
+-		flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
++		tlb_gather_mmu(&tlb, vma->vm_mm, tlb_start, tlb_end);
++		tlb.cleared_pmds = 1;
++		flush_pmd_tlb_range(&tlb, vma, tlb_start, tlb_end);
++		tlb_finish_mmu(&tlb, tlb_start, tlb_end);
+ 	}
+ 	return changed;
+ }
+@@ -123,8 +129,15 @@ int pmdp_clear_flush_young(struct vm_area_struct *vma,
+ 	int young;
+ 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
+ 	young = pmdp_test_and_clear_young(vma, address, pmdp);
+-	if (young)
+-		flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
++	if (young) {
++		struct mmu_gather tlb;
++		unsigned long tlb_start = address;
++		unsigned long tlb_end = address + HPAGE_PMD_SIZE;
++		tlb_gather_mmu(&tlb, vma->vm_mm, tlb_start, tlb_end);
++		tlb.cleared_pmds = 1;
++		flush_pmd_tlb_range(&tlb, vma, tlb_start, tlb_end);
++		tlb_finish_mmu(&tlb, tlb_start, tlb_end);
 +	}
- 	/*
- 	 * No need to call mmu_notifier_invalidate_range() we are downgrading
- 	 * page table protection not changing it to point to a new page.
+ 	return young;
+ }
+ #endif
+@@ -134,11 +147,17 @@ pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma, unsigned long address,
+ 			    pmd_t *pmdp)
+ {
+ 	pmd_t pmd;
++	struct mmu_gather tlb;
++	unsigned long tlb_start = address;
++	unsigned long tlb_end = address + HPAGE_PMD_SIZE;
+ 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
+ 	VM_BUG_ON((pmd_present(*pmdp) && !pmd_trans_huge(*pmdp) &&
+ 			   !pmd_devmap(*pmdp)) || !pmd_present(*pmdp));
+ 	pmd = pmdp_huge_get_and_clear(vma->vm_mm, address, pmdp);
+-	flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
++	tlb_gather_mmu(&tlb, vma->vm_mm, tlb_start, tlb_end);
++	tlb.cleared_pmds = 1;
++	flush_pmd_tlb_range(&tlb, vma, tlb_start, tlb_end);
++	tlb_finish_mmu(&tlb, tlb_start, tlb_end);
+ 	return pmd;
+ }
+ 
+@@ -195,7 +214,13 @@ pmd_t pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
+ 		     pmd_t *pmdp)
+ {
+ 	pmd_t old = pmdp_establish(vma, address, pmdp, pmd_mknotpresent(*pmdp));
+-	flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
++	struct mmu_gather tlb;
++	unsigned long tlb_start = address;
++	unsigned long tlb_end = address + HPAGE_PMD_SIZE;
++	tlb_gather_mmu(&tlb, vma->vm_mm, tlb_start, tlb_end);
++	tlb.cleared_pmds = 1;
++	flush_pmd_tlb_range(&tlb, vma, tlb_start, tlb_end);
++	tlb_finish_mmu(&tlb, tlb_start, tlb_end);
+ 	return old;
+ }
+ #endif
 -- 
 2.19.1
