@@ -1,202 +1,68 @@
-Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58978 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727401AbgCMPpO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Mar 2020 11:45:14 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 21/26] arm64: Introduce asm/vdso/arch_timer.h
-Date: Fri, 13 Mar 2020 15:43:40 +0000
-Message-ID: <20200313154345.56760-22-vincenzo.frascino@arm.com>
-In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=PUSD=5Q=kvack.org=owner-linux-mm@kernel.org>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v19 17/24] selftests/vm/pkeys: Associate key on a mapped page and detect access violation
+Date: Tue, 31 Mar 2020 15:28:18 +0530
+In-Reply-To: <cover.1585646528.git.sandipan@linux.ibm.com>
+References: <cover.1585646528.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1585646528.git.sandipan@linux.ibm.com>
+References: <cover.1585646528.git.sandipan@linux.ibm.com>
+Message-ID: <4a19cf9252c03dd883887e9002881599e6900d06.1585646528.git.sandipan@linux.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: akpm@linux-foundation.org
+Cc: linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, shuah@kernel.org, Dave Hansen <dave.hansen@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200313154340.wgawg9YtK8TaJsIeRZKLNXNBYR6Ohm9GrKxs6h2nE6g@z>
+Message-ID: <20200331095818.FO6zLJkcuu_RC6UV-e2tTTmUZvWTpTuj-_9fXto6TJ4@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+From: Ram Pai <linuxram@us.ibm.com>
 
-Introduce asm/vdso/arch_timer.h to contain all the arm64 specific
-code. This allows to replace the second isb() in __arch_get_hw_counter()
-with a fake dependent stack read of the counter which improves the vdso
-library peformances of ~4.5%. Below the results of vdsotest [1] ran for
-100 iterations.
+Detect access-violation on a page to which access-disabled
+key is associated much after the page is mapped.
 
-Before the patch:
-=================
-clock-gettime-monotonic: syscall: 771 nsec/call
-clock-gettime-monotonic:    libc: 130 nsec/call
-clock-gettime-monotonic:    vdso: 111 nsec/call
-...
-clock-gettime-realtime: syscall: 762 nsec/call
-clock-gettime-realtime:    libc: 130 nsec/call
-clock-gettime-realtime:    vdso: 111 nsec/call
-
-After the patch:
-================
-clock-gettime-monotonic: syscall: 792 nsec/call
-clock-gettime-monotonic:    libc: 124 nsec/call
-clock-gettime-monotonic:    vdso: 106 nsec/call
-...
-clock-gettime-realtime: syscall: 776 nsec/call
-clock-gettime-realtime:    libc: 124 nsec/call
-clock-gettime-realtime:    vdso: 106 nsec/call
-
-[1] https://github.com/nathanlynch/vdsotest
-
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: Marc Zyngier <maz@kernel.org>
-Cc: Mark Rutland <Mark.Rutland@arm.com>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Acked-by: Dave Hansen <dave.hansen@intel.com>
+Signed-off: Sandipan Das <sandipan@linux.ibm.com>
 ---
- arch/arm64/include/asm/arch_timer.h        | 29 ++++---------------
- arch/arm64/include/asm/vdso/arch_timer.h   | 33 ++++++++++++++++++++++
- arch/arm64/include/asm/vdso/gettimeofday.h |  7 +++--
- 3 files changed, 42 insertions(+), 27 deletions(-)
- create mode 100644 arch/arm64/include/asm/vdso/arch_timer.h
+ tools/testing/selftests/vm/protection_keys.c | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
 
-diff --git a/arch/arm64/include/asm/arch_timer.h b/arch/arm64/include/asm/arch_timer.h
-index 7ae54d7d333a..7f22cd00ad45 100644
---- a/arch/arm64/include/asm/arch_timer.h
-+++ b/arch/arm64/include/asm/arch_timer.h
-@@ -164,24 +164,7 @@ static inline void arch_timer_set_cntkctl(u32 cntkctl)
- 	isb();
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 95f173049f43f..f65d384ef6a0d 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -984,6 +984,24 @@ void test_read_of_access_disabled_region(int *ptr, u16 pkey)
+ 	dprintf1("*ptr: %d\n", ptr_contents);
+ 	expected_pkey_fault(pkey);
  }
- 
--/*
-- * Ensure that reads of the counter are treated the same as memory reads
-- * for the purposes of ordering by subsequent memory barriers.
-- *
-- * This insanity brought to you by speculative system register reads,
-- * out-of-order memory accesses, sequence locks and Thomas Gleixner.
-- *
-- * http://lists.infradead.org/pipermail/linux-arm-kernel/2019-February/631195.html
-- */
--#define arch_counter_enforce_ordering(val) do {				\
--	u64 tmp, _val = (val);						\
--									\
--	asm volatile(							\
--	"	eor	%0, %1, %1\n"					\
--	"	add	%0, sp, %0\n"					\
--	"	ldr	xzr, [%0]"					\
--	: "=r" (tmp) : "r" (_val));					\
--} while (0)
-+#include <asm/vdso/arch_timer.h>
- 
- static __always_inline u64 __arch_counter_get_cntpct_stable(void)
- {
-@@ -189,7 +172,7 @@ static __always_inline u64 __arch_counter_get_cntpct_stable(void)
- 
- 	isb();
- 	cnt = arch_timer_reg_read_stable(cntpct_el0);
--	arch_counter_enforce_ordering(cnt);
-+	cnt = arch_counter_enforce_ordering(cnt);
- 	return cnt;
- }
- 
-@@ -199,7 +182,7 @@ static __always_inline u64 __arch_counter_get_cntpct(void)
- 
- 	isb();
- 	cnt = read_sysreg(cntpct_el0);
--	arch_counter_enforce_ordering(cnt);
-+	cnt = arch_counter_enforce_ordering(cnt);
- 	return cnt;
- }
- 
-@@ -209,7 +192,7 @@ static __always_inline u64 __arch_counter_get_cntvct_stable(void)
- 
- 	isb();
- 	cnt = arch_timer_reg_read_stable(cntvct_el0);
--	arch_counter_enforce_ordering(cnt);
-+	cnt = arch_counter_enforce_ordering(cnt);
- 	return cnt;
- }
- 
-@@ -219,12 +202,10 @@ static __always_inline u64 __arch_counter_get_cntvct(void)
- 
- 	isb();
- 	cnt = read_sysreg(cntvct_el0);
--	arch_counter_enforce_ordering(cnt);
-+	cnt = arch_counter_enforce_ordering(cnt);
- 	return cnt;
- }
- 
--#undef arch_counter_enforce_ordering
--
- static inline int arch_timer_arch_init(void)
- {
- 	return 0;
-diff --git a/arch/arm64/include/asm/vdso/arch_timer.h b/arch/arm64/include/asm/vdso/arch_timer.h
-new file mode 100644
-index 000000000000..a71bc83232f5
---- /dev/null
-+++ b/arch/arm64/include/asm/vdso/arch_timer.h
-@@ -0,0 +1,33 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Copyright (C) 2020 ARM Ltd.
-+ */
-+#ifndef __ASM_VDSO_ARCH_TIMER_H
-+#define __ASM_VDSO_ARCH_TIMER_H
 +
-+#include <uapi/linux/types.h>
-+
-+/*
-+ * Ensure that reads of the counter are treated the same as memory reads
-+ * for the purposes of ordering by subsequent memory barriers.
-+ *
-+ * This insanity brought to you by speculative system register reads,
-+ * out-of-order memory accesses, sequence locks and Thomas Gleixner.
-+ *
-+ * http://lists.infradead.org/pipermail/linux-arm-kernel/2019-February/631195.html
-+ *
-+ */
-+static u64 arch_counter_enforce_ordering(u64 val)
++void test_read_of_access_disabled_region_with_page_already_mapped(int *ptr,
++		u16 pkey)
 +{
-+	u64 tmp, _val = (val);
++	int ptr_contents;
 +
-+	asm volatile(
-+	"	eor	%0, %1, %1\n"
-+	"	add	%0, sp, %0\n"
-+	"	ldr	xzr, [%0]"
-+	: "=r" (tmp) : "r" (_val));
-+
-+	return _val;
++	dprintf1("disabling access to PKEY[%02d], doing read @ %p\n",
++				pkey, ptr);
++	ptr_contents = read_ptr(ptr);
++	dprintf1("reading ptr before disabling the read : %d\n",
++			ptr_contents);
++	read_pkey_reg();
++	pkey_access_deny(pkey);
++	ptr_contents = read_ptr(ptr);
++	dprintf1("*ptr: %d\n", ptr_contents);
++	expected_pkey_fault(pkey);
 +}
 +
-+#endif /* __ASM_VDSO_ARCH_TIMER_H */
-diff --git a/arch/arm64/include/asm/vdso/gettimeofday.h b/arch/arm64/include/asm/vdso/gettimeofday.h
-index afba6ba332f8..319808106625 100644
---- a/arch/arm64/include/asm/vdso/gettimeofday.h
-+++ b/arch/arm64/include/asm/vdso/gettimeofday.h
-@@ -8,6 +8,7 @@
- #ifndef __ASSEMBLY__
- 
- #include <asm/unistd.h>
-+#include <asm/vdso/arch_timer.h>
- 
- #define VDSO_HAS_CLOCK_GETRES		1
- 
-@@ -82,10 +83,10 @@ static __always_inline u64 __arch_get_hw_counter(s32 clock_mode)
- 	isb();
- 	asm volatile("mrs %0, cntvct_el0" : "=r" (res) :: "memory");
- 	/*
--	 * This isb() is required to prevent that the seq lock is
--	 * speculated.#
-+	 * arch_counter_enforce_ordering() is required to prevent that
-+	 * the seq lock is speculated.
- 	 */
--	isb();
-+	res = arch_counter_enforce_ordering(res);
- 
- 	return res;
- }
+ void test_write_of_write_disabled_region(int *ptr, u16 pkey)
+ {
+ 	dprintf1("disabling write access to PKEY[%02d], doing write\n", pkey);
+@@ -1390,6 +1408,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
+ void (*pkey_tests[])(int *ptr, u16 pkey) = {
+ 	test_read_of_write_disabled_region,
+ 	test_read_of_access_disabled_region,
++	test_read_of_access_disabled_region_with_page_already_mapped,
+ 	test_write_of_write_disabled_region,
+ 	test_write_of_access_disabled_region,
+ 	test_kernel_write_of_access_disabled_region,
 -- 
-2.25.1
+2.17.1
