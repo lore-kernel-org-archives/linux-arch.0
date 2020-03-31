@@ -1,89 +1,70 @@
 From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v5 1/8] arm64: Detect the ARMv8.4 TTL feature
-Date: Tue, 31 Mar 2020 22:29:20 +0800
-Message-ID: <20200331142927.1237-2-yezhenyu2@huawei.com>
+Subject: [RFC PATCH v5 5/8] mm: tlb: Pass struct mmu_gather to flush_pud_tlb_range
+Date: Tue, 31 Mar 2020 22:29:24 +0800
+Message-ID: <20200331142927.1237-6-yezhenyu2@huawei.com>
 References: <20200331142927.1237-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga04-in.huawei.com ([45.249.212.190]:12589 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1730896AbgCaOaH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 31 Mar 2020 10:30:07 -0400
 In-Reply-To: <20200331142927.1237-1-yezhenyu2@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com
 Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-List-Id: linux-arch.vger.kernel.org
 
-From: Marc Zyngier <maz@kernel.org>
+Preparations to support for passing struct mmu_gather to
+flush_tlb_range.  See in future patches.
 
-In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
-feature allows TLBs to be issued with a level allowing for quicker
-invalidation.
-
-Let's detect the feature for now. Further patches will implement
-its actual usage.
-
-Signed-off-by: Marc Zyngier <maz@kernel.org>
 Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 ---
- arch/arm64/include/asm/cpucaps.h |  3 ++-
- arch/arm64/include/asm/sysreg.h  |  1 +
- arch/arm64/kernel/cpufeature.c   | 11 +++++++++++
- 3 files changed, 14 insertions(+), 1 deletion(-)
+ include/asm-generic/pgtable.h | 4 ++--
+ mm/pgtable-generic.c          | 8 +++++++-
+ 2 files changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cpucaps.h
-index 865e0253fc1e..8b3b4dd612b3 100644
---- a/arch/arm64/include/asm/cpucaps.h
-+++ b/arch/arm64/include/asm/cpucaps.h
-@@ -58,7 +58,8 @@
- #define ARM64_WORKAROUND_SPECULATIVE_AT_NVHE	48
- #define ARM64_HAS_E0PD				49
- #define ARM64_HAS_RNG				50
-+#define ARM64_HAS_ARMv8_4_TTL			51
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 32d4661e5a56..1c67a744877e 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1161,10 +1161,10 @@ static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+  * e.g. see arch/arc: flush_pmd_tlb_range
+  */
+ #define flush_pmd_tlb_range(tlb, vma, addr, end)	flush_tlb_range(vma, addr, end)
+-#define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
++#define flush_pud_tlb_range(tlb, vma, addr, end)	flush_tlb_range(vma, addr, end)
+ #else
+ #define flush_pmd_tlb_range(tlb, vma, addr, end)	BUILD_BUG()
+-#define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
++#define flush_pud_tlb_range(tlb, vma, addr, end)	BUILD_BUG()
+ #endif
+ #endif
  
--#define ARM64_NCAPS				51
-+#define ARM64_NCAPS				52
+diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
+index 96c9cf77bfb5..9ab9d8f698ea 100644
+--- a/mm/pgtable-generic.c
++++ b/mm/pgtable-generic.c
+@@ -166,11 +166,17 @@ pud_t pudp_huge_clear_flush(struct vm_area_struct *vma, unsigned long address,
+ 			    pud_t *pudp)
+ {
+ 	pud_t pud;
++	struct mmu_gather tlb;
++	unsigned long tlb_start = address;
++	unsigned long tlb_end = address + HPAGE_PUD_SIZE;
  
- #endif /* __ASM_CPUCAPS_H */
-diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
-index b91570ff9db1..a28b76f32ba7 100644
---- a/arch/arm64/include/asm/sysreg.h
-+++ b/arch/arm64/include/asm/sysreg.h
-@@ -685,6 +685,7 @@
- 
- /* id_aa64mmfr2 */
- #define ID_AA64MMFR2_E0PD_SHIFT		60
-+#define ID_AA64MMFR2_TTL_SHIFT		48
- #define ID_AA64MMFR2_FWB_SHIFT		40
- #define ID_AA64MMFR2_AT_SHIFT		32
- #define ID_AA64MMFR2_LVA_SHIFT		16
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-index 0b6715625cf6..cbe46ad2900a 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -241,6 +241,7 @@ static const struct arm64_ftr_bits ftr_id_aa64mmfr1[] = {
- 
- static const struct arm64_ftr_bits ftr_id_aa64mmfr2[] = {
- 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_NONSTRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_E0PD_SHIFT, 4, 0),
-+	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_TTL_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_FWB_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_AT_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_LVA_SHIFT, 4, 0),
-@@ -1523,6 +1524,16 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
- 		.matches = has_cpuid_feature,
- 		.cpu_enable = cpu_has_fwb,
- 	},
-+	{
-+		.desc = "ARMv8.4 Translation Table Level",
-+		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
-+		.capability = ARM64_HAS_ARMv8_4_TTL,
-+		.sys_reg = SYS_ID_AA64MMFR2_EL1,
-+		.sign = FTR_UNSIGNED,
-+		.field_pos = ID_AA64MMFR2_TTL_SHIFT,
-+		.min_field_value = 1,
-+		.matches = has_cpuid_feature,
-+	},
- #ifdef CONFIG_ARM64_HW_AFDBM
- 	{
- 		/*
+ 	VM_BUG_ON(address & ~HPAGE_PUD_MASK);
+ 	VM_BUG_ON(!pud_trans_huge(*pudp) && !pud_devmap(*pudp));
+ 	pud = pudp_huge_get_and_clear(vma->vm_mm, address, pudp);
+-	flush_pud_tlb_range(vma, address, address + HPAGE_PUD_SIZE);
++	tlb_gather_mmu(&tlb, vma->vm_mm, tlb_start, tlb_end);
++	tlb.cleared_puds = 1;
++	flush_pud_tlb_range(&tlb, vma, tlb_start, tlb_end);
++	tlb_finish_mmu(&tlb, tlb_start, tlb_end);
+ 	return pud;
+ }
+ #endif
 -- 
 2.19.1
