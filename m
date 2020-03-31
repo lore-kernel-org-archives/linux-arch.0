@@ -1,71 +1,141 @@
-Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58798 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727281AbgCMPo5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Mar 2020 11:44:57 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 16/26] scripts: Fix the inclusion order in modpost
-Date: Fri, 13 Mar 2020 15:43:35 +0000
-Message-ID: <20200313154345.56760-17-vincenzo.frascino@arm.com>
-In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=PUSD=5Q=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RFC PATCH v5 8/8] arm64: tlb: Set the TTL field in flush_tlb_range
+Date: Tue, 31 Mar 2020 22:29:27 +0800
+Message-ID: <20200331142927.1237-9-yezhenyu2@huawei.com>
+In-Reply-To: <20200331142927.1237-1-yezhenyu2@huawei.com>
+References: <20200331142927.1237-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, kbuild test robot <lkp@intel.com>, Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>
-Message-ID: <20200313154335.e6I8cR7f-t4fvGnu5JR40pDxI-ho-fPjSuVG0B_4NPw@z>
+Message-ID: <20200331142927.6NWulgRSDsj45rn40z_pl4ILdehegkoHfXSS_kJaJMc@z>
 
-In the process of creating the source file of a module modpost injects a
-set of includes that are not required if the compilation unit is
-statically built into the kernel.
+This patch uses the cleared_* in struct mmu_gather to set the
+TTL field in flush_tlb_range().
 
-The order of inclusion of the headers can cause redefinition problems
-(e.g.):
-
-   In file included from include/linux/elf.h:5:0,
-                    from include/linux/module.h:18,
-                    from crypto/arc4.mod.c:2:
->> arch/parisc/include/asm/elf.h:324:0: warning: "ELF_OSABI" redefined
-    #define ELF_OSABI  ELFOSABI_LINUX
-
-   In file included from include/linux/elfnote.h:62:0,
-                    from include/linux/build-salt.h:4,
-                    from crypto/arc4.mod.c:1:
-   include/uapi/linux/elf.h:363:0: note: this is the location of
-   the previous definition
-    #define ELF_OSABI ELFOSABI_NONE
-
-The issue was exposed during the development of the series [1].
-
-[1] https://lore.kernel.org/lkml/20200306133242.26279-1-vincenzo.frascino@arm.com/
-
-Reported-by: kbuild test robot <lkp@intel.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>
-Cc: Michal Marek <michal.lkml@markovi.net>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 ---
- scripts/mod/modpost.c | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+ arch/arm64/include/asm/tlb.h      | 39 ++++++++++++++++++++++++++++++-
+ arch/arm64/include/asm/tlbflush.h | 22 +++++------------
+ 2 files changed, 44 insertions(+), 17 deletions(-)
 
-diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 7edfdb2f4497..0f354b1ee2aa 100644
---- a/scripts/mod/modpost.c
-+++ b/scripts/mod/modpost.c
-@@ -2251,8 +2251,12 @@ static int check_modname_len(struct module *mod)
-  **/
- static void add_header(struct buffer *b, struct module *mod)
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index b76df828e6b7..72b6e3763df2 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -21,11 +21,34 @@ static void tlb_flush(struct mmu_gather *tlb);
+=20
+ #include <asm-generic/tlb.h>
+=20
++/*
++ * get the tlbi levels in arm64.  Default value is 0 if more than one
++ * of cleared_* is set or neither is set.
++ * Arm64 doesn't support p4ds now.
++ */
++static inline int tlb_get_level(struct mmu_gather *tlb)
++{
++	int sum =3D tlb->cleared_ptes + tlb->cleared_pmds +
++		  tlb->cleared_puds + tlb->cleared_p4ds;
++
++	if (sum !=3D 1)
++		return 0;
++	else if (tlb->cleared_ptes)
++		return 3;
++	else if (tlb->cleared_pmds)
++		return 2;
++	else if (tlb->cleared_puds)
++		return 1;
++
++	return 0;
++}
++
+ static inline void tlb_flush(struct mmu_gather *tlb)
  {
--	buf_printf(b, "#include <linux/build-salt.h>\n");
- 	buf_printf(b, "#include <linux/module.h>\n");
+ 	struct vm_area_struct vma =3D TLB_FLUSH_VMA(tlb->mm, 0);
+ 	bool last_level =3D !tlb->freed_tables;
+ 	unsigned long stride =3D tlb_get_unmap_size(tlb);
++	int tlb_level =3D tlb_get_level(tlb);
+=20
+ 	/*
+ 	 * If we're tearing down the address space then we only care about
+@@ -38,7 +61,21 @@ static inline void tlb_flush(struct mmu_gather *tlb)
+ 		return;
+ 	}
+=20
+-	__flush_tlb_range(&vma, tlb->start, tlb->end, stride, last_level);
++	__flush_tlb_range(&vma, tlb->start, tlb->end, stride,
++			  last_level, tlb_level);
++}
++
++static inline void flush_tlb_range(struct mmu_gather *tlb,
++				   struct vm_area_struct *vma,
++				   unsigned long start, unsigned long end)
++{
 +	/*
-+	 * Include build-salt.h after module.h in order to
-+	 * inherit the definitions.
++	 * We cannot use leaf-only invalidation here, since we may be invalidat=
+ing
++	 * table entries as part of collapsing hugepages or moving page tables.
 +	 */
-+	buf_printf(b, "#include <linux/build-salt.h>\n");
- 	buf_printf(b, "#include <linux/vermagic.h>\n");
- 	buf_printf(b, "#include <linux/compiler.h>\n");
- 	buf_printf(b, "\n");
--- 
-2.25.1
++	unsigned long stride =3D tlb_get_unmap_size(tlb);
++	int tlb_level =3D tlb_get_level(tlb);
++	__flush_tlb_range(vma, start, end, stride, false, tlb_level);
+ }
+=20
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
+lbflush.h
+index 0b4d75a2270b..dc8e803692f8 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -215,7 +215,8 @@ static inline void flush_tlb_page(struct vm_area_stru=
+ct *vma,
+=20
+ static inline void __flush_tlb_range(struct vm_area_struct *vma,
+ 				     unsigned long start, unsigned long end,
+-				     unsigned long stride, bool last_level)
++				     unsigned long stride, bool last_level,
++				     int tlb_level)
+ {
+ 	unsigned long asid =3D ASID(vma->vm_mm);
+ 	unsigned long addr;
+@@ -237,27 +238,16 @@ static inline void __flush_tlb_range(struct vm_area=
+_struct *vma,
+ 	dsb(ishst);
+ 	for (addr =3D start; addr < end; addr +=3D stride) {
+ 		if (last_level) {
+-			__tlbi_level(vale1is, addr, 0);
+-			__tlbi_user_level(vale1is, addr, 0);
++			__tlbi_level(vale1is, addr, tlb_level);
++			__tlbi_user_level(vale1is, addr, tlb_level);
+ 		} else {
+-			__tlbi_level(vae1is, addr, 0);
+-			__tlbi_user_level(vae1is, addr, 0);
++			__tlbi_level(vae1is, addr, tlb_level);
++			__tlbi_user_level(vae1is, addr, tlb_level);
+ 		}
+ 	}
+ 	dsb(ish);
+ }
+=20
+-static inline void flush_tlb_range(struct mmu_gather *tlb,
+-				   struct vm_area_struct *vma,
+-				   unsigned long start, unsigned long end)
+-{
+-	/*
+-	 * We cannot use leaf-only invalidation here, since we may be invalidat=
+ing
+-	 * table entries as part of collapsing hugepages or moving page tables.
+-	 */
+-	__flush_tlb_range(vma, start, end, PAGE_SIZE, false);
+-}
+-
+ static inline void flush_tlb_kernel_range(unsigned long start, unsigned =
+long end)
+ {
+ 	unsigned long addr;
+--=20
+2.19.1
