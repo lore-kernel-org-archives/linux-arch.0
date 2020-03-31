@@ -1,64 +1,80 @@
-Return-Path: <SRS0=iRyw=4Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:55176 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725904AbgCHHQv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 8 Mar 2020 03:16:51 -0400
-From: Alex Belits <abelits@marvell.com>
-Subject: Re: [EXT] Re: [PATCH 03/12] task_isolation: userspace hard isolation
- from kernel
-Date: Sun, 8 Mar 2020 07:16:06 +0000
-Message-ID: <3dc31856d82141e6600946d2227033a305f7a2b6.camel@marvell.com>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
-         <36d84b8dd168a38e6a56549dedc15dd6ebf8c09e.camel@marvell.com>
-         <20200306160035.GD8590@lenoir>
-In-Reply-To: <20200306160035.GD8590@lenoir>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <EA5F4171FE118B469D0E2E1BA562D3E1@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=LUpl=5Q=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga04-in.huawei.com ([45.249.212.190]:12588 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1731121AbgCaOaH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 31 Mar 2020 10:30:07 -0400
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RFC PATCH v5 3/8] arm64: Add tlbi_user_level TLB invalidation helper
+Date: Tue, 31 Mar 2020 22:29:22 +0800
+Message-ID: <20200331142927.1237-4-yezhenyu2@huawei.com>
+In-Reply-To: <20200331142927.1237-1-yezhenyu2@huawei.com>
+References: <20200331142927.1237-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "frederic@kernel.org" <frederic@kernel.org>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-mm@vger.kernel.org" <linux-mm@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20200308071606.LE5VqfueAP4ugXm3Aii1x0ae_U2lOuafKqdSTFWuhgU@z>
+To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Message-ID: <20200331142922.QErPFYG0P_EpDJos4KweHHxNFpkh4JnjKGrrrdaQ7Kk@z>
 
-T24gRnJpLCAyMDIwLTAzLTA2IGF0IDE3OjAwICswMTAwLCBGcmVkZXJpYyBXZWlzYmVja2VyIHdy
-b3RlOg0KPiBPbiBXZWQsIE1hciAwNCwgMjAyMCBhdCAwNDowNzoxMlBNICswMDAwLCBBbGV4IEJl
-bGl0cyB3cm90ZToNCj4gPiArI2lmZGVmIENPTkZJR19UQVNLX0lTT0xBVElPTg0KPiA+ICtpbnQg
-dHJ5X3N0b3BfZnVsbF90aWNrKHZvaWQpDQo+ID4gK3sNCj4gPiArCWludCBjcHUgPSBzbXBfcHJv
-Y2Vzc29yX2lkKCk7DQo+ID4gKwlzdHJ1Y3QgdGlja19zY2hlZCAqdHMgPSB0aGlzX2NwdV9wdHIo
-JnRpY2tfY3B1X3NjaGVkKTsNCj4gPiArDQo+ID4gKwkvKiBGb3IgYW4gdW5zdGFibGUgY2xvY2ss
-IHdlIHNob3VsZCByZXR1cm4gYSBwZXJtYW5lbnQgZXJyb3INCj4gPiBjb2RlLiAqLw0KPiA+ICsJ
-aWYgKGF0b21pY19yZWFkKCZ0aWNrX2RlcF9tYXNrKSAmIFRJQ0tfREVQX01BU0tfQ0xPQ0tfVU5T
-VEFCTEUpDQo+ID4gKwkJcmV0dXJuIC1FSU5WQUw7DQo+ID4gKw0KPiA+ICsJaWYgKCFjYW5fc3Rv
-cF9mdWxsX3RpY2soY3B1LCB0cykpDQo+ID4gKwkJcmV0dXJuIC1FQUdBSU47DQo+IA0KPiBOb3Rl
-IHRoYXQgdGhlIHN0b3BfdGljayBuYW1pbmcgaW4gbm9oeiBjYW4gYmUgbWlzbGVhZGluZy4gSXQg
-bWVhbnMNCj4gd2UgYWN0dWFsbHkgbGVhdmUgdGhlIHBlcmlvZGljIG1vZGUgYW5kIHdlIGVudGVy
-IGluIGR5bmFtaWMgdGljaw0KPiBtb2RlLg0KPiANCj4gSW4gcHJhY3RpY2UgaXQgbWVhbnMgdGhh
-dCB0aGUgdGljayBpcyBkZWxheWVkIHVudGlsIHRoZSBuZXh0IGV2ZW50LA0KPiB3aGljaA0KPiBp
-biB0aGUgd29yc3QgY2FzZSBtYXkgd2VsbCBiZSBpbiAxIG1zIGFuZCBpbiB0aGUgYmVzdCBjYXNl
-IG5ldmVyLiBTbw0KPiB3aGF0DQo+IHlvdSBwcm9iYWJseSB3YW50IHRvIGNoZWNrIGluc3RlYWQg
-aXMgd2hldGhlciB0aGUgdGljayBoYXMgYmVlbg0KPiBlbnRpcmVseQ0KPiBzdG9wcGVkIChpZTog
-d2UgY2FsbGVkIGhydGltZXJfY2FuY2VsKCZ0cy0+c2NoZWRfdGltZXIpKS4NCg0KVGhpcyBpcyBh
-IHBhcnQgb2Ygc29sdXRpb24gd2hlcmUgbGlidG1jIGluIHVzZXJzcGFjZSBjaGVja3MgZm9yIHRp
-bWVycw0KZnJvbSBhbm90aGVyIGNvcmUgYmVmb3JlIGl0IGNvbmZpcm1zIHRoYXQgdGhlIGNvcmUg
-dGhhdCBpcyBlbnRlcmluZw0KaXNvbGF0aW9uIGNhbiBjb250aW51ZS4gU2luY2UsIGluZGVlZCwg
-aXQgaXMgcG9zc2libGUgdGhhdCBzb21lIGV2ZW50cw0KYXJlIHBlbmRpbmcsIGl0IGlzIHVwIHRv
-IHVzZXJzcGFjZSB0byB0ZWxsIHRoZSB0YXNrIHRoYXQgaXQncyBub3QNCnJlYWxseSBpc29sYXRl
-ZCB5ZXQsIHNob3VsZCBleGl0IGFuZCByZS1lbnRlciBpc29sYXRpb24gd2hlbiBldmVyeXRoaW5n
-DQppcyBkb25lLiBPciB0aGF0IGl0IHdpbGwgYmUgdG9vIG11Y2ggb2YgdGhlIHdhaXQsIGFuZCBp
-dCBzaG91bGQgYmUgc2Vlbg0KYXMgYW4gZXJyb3IsIHJlcG9ydGVkLCBldGMuDQoNCk1heWJlIGl0
-IHdvdWxkIGJlIGJldHRlciBpZiB3ZSBjaGVja2VkIGZvciB0aW1lciBzdGF0ZSBhbmQgcmV0dXJu
-ZWQNCi1FQUdBSU4gd2hlbiBpdCBpcyBydW5uaW5nIGF0IHRoaXMgcG9pbnQsIGFuZCBsZWZ0IHVz
-ZXJzcGFjZSBjaGVjayBmb3INCnRob3NlIGNhc2VzIHdoZW4gdGhpcyBkaWQgbm90IHdvcmsgZHVl
-IHRvIHNvbWUgcmFjZSBhbmQgcHJlZW1wdGlvbi4NCkhvd2V2ZXIgSSBzdGlsbCB3YW50IHRvIGFz
-c3VtZSB0aGF0IGFzIGxvbmcgYXMgdGhlcmUgaXMgbm8gY29tcGxldGUNCnByb2hpYml0aW9uIG9m
-IHNjaGVkdWxpbmcgdGhpbmdzIG9uIGlzb2xhdGVkIENQVXMsIHRoZXJlIG1pZ2h0IGJlDQp0aGlu
-Z3MgdGhhdCB3aWxsIGVuYWJsZSB0aGlzIHRpbWVyIGF0IHVuZXhwZWN0ZWQgdGltZXMgd2hpbGUg
-d2UgYXJlDQpyZXR1cm5pbmcgdG8gdXNlcnNwYWNlIG9yIGV2ZW4gaW1tZWRpYXRlbHkgYWZ0ZXIg
-d2UgZ290IGludG8gdXNlcnNwYWNlLg0KDQo+IA0KPiBUaGFua3MuDQo+IA0KPiA+ICsNCj4gPiAr
-CXRpY2tfbm9oel9zdG9wX3NjaGVkX3RpY2sodHMsIGNwdSk7DQo+ID4gKwlyZXR1cm4gMDsNCj4g
-PiArfQ0KPiA+ICsjZW5kaWYNCj4gPiArDQo+ID4gIHN0YXRpYyBib29sIGNhbl9zdG9wX2lkbGVf
-dGljayhpbnQgY3B1LCBzdHJ1Y3QgdGlja19zY2hlZCAqdHMpDQo+ID4gIHsNCj4gPiAgCS8qDQo+
-ID4gLS0gDQo+ID4gMi4yMC4xDQo+ID4gDQo=
+Add a level-hinted parameter to __tlbi_user, which only gets used
+if ARMv8.4-TTL gets detected.
+
+ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
+the level of translation table walk holding the leaf entry for the
+address that is being invalidated.
+
+This patch set the default level value to 0.
+
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+---
+ arch/arm64/include/asm/tlbflush.h | 18 ++++++++++++------
+ 1 file changed, 12 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
+index 5f9f189bc6d2..892f33235dc7 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -89,6 +89,12 @@
+ 		__tlbi(op,  arg);					\
+ 	} while (0)
+ 
++#define __tlbi_user_level(op, arg, level) do {				\
++	if (arm64_kernel_unmapped_at_el0())				\
++		__tlbi_level(op, (arg | USER_ASID_FLAG), level);	\
++} while (0)
++
++
+ /*
+  *	TLB Invalidation
+  *	================
+@@ -190,8 +196,8 @@ static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
+ 	unsigned long addr = __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
+ 
+ 	dsb(ishst);
+-	__tlbi(vale1is, addr);
+-	__tlbi_user(vale1is, addr);
++	__tlbi_level(vale1is, addr, 0);
++	__tlbi_user_level(vale1is, addr, 0);
+ }
+ 
+ static inline void flush_tlb_page(struct vm_area_struct *vma,
+@@ -231,11 +237,11 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
+ 	dsb(ishst);
+ 	for (addr = start; addr < end; addr += stride) {
+ 		if (last_level) {
+-			__tlbi(vale1is, addr);
+-			__tlbi_user(vale1is, addr);
++			__tlbi_level(vale1is, addr, 0);
++			__tlbi_user_level(vale1is, addr, 0);
+ 		} else {
+-			__tlbi(vae1is, addr);
+-			__tlbi_user(vae1is, addr);
++			__tlbi_level(vae1is, addr, 0);
++			__tlbi_user_level(vae1is, addr, 0);
+ 		}
+ 	}
+ 	dsb(ish);
+-- 
+2.19.1
