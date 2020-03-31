@@ -1,65 +1,73 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
- flush_pmd_tlb_range
-Date: Tue, 31 Mar 2020 17:13:31 +0200
-Message-ID: <20200331151331.GS20730@hirez.programming.kicks-ass.net>
-References: <20200331142927.1237-1-yezhenyu2@huawei.com>
- <20200331142927.1237-5-yezhenyu2@huawei.com>
+From: Johannes Berg <johannes@sipsolutions.net>
+Subject: Re: [RFC v4 23/25] um lkl: add UML network driver for lkl
+Date: Tue, 31 Mar 2020 21:52:46 +0200
+Message-ID: <3fca96c19ca1e56fa36ee0c428c95ab82883a4fd.camel@sipsolutions.net>
+References: <cover.1585579244.git.thehajime@gmail.com>
+         <0f087b36ad579eeb8062b12e9e61566d9b5b18ac.1585579244.git.thehajime@gmail.com>
+         <b2a730a4bcafb13cb1b29a637f8f8449cf3521d6.camel@sipsolutions.net>
+         <m25zelxn8w.wl-thehajime@gmail.com> (sfid-20200331_043814_756678_0201C8CF)
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:48556 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730466AbgCaPO1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 31 Mar 2020 11:14:27 -0400
-Content-Disposition: inline
-In-Reply-To: <20200331142927.1237-5-yezhenyu2@huawei.com>
+Received: from s3.sipsolutions.net ([144.76.43.62]:42676 "EHLO
+        sipsolutions.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726548AbgCaTww (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 31 Mar 2020 15:52:52 -0400
+In-Reply-To: <m25zelxn8w.wl-thehajime@gmail.com> (sfid-20200331_043814_756678_0201C8CF)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+To: Hajime Tazaki <thehajime@gmail.com>
+Cc: linux-um@lists.infradead.org, tavi.purdila@gmail.com, linux-kernel-library@freelists.org, linux-arch@vger.kernel.org, retrage01@gmail.com
 
-On Tue, Mar 31, 2020 at 10:29:23PM +0800, Zhenyu Ye wrote:
-> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-> index e2e2bef07dd2..32d4661e5a56 100644
-> --- a/include/asm-generic/pgtable.h
-> +++ b/include/asm-generic/pgtable.h
-> @@ -1160,10 +1160,10 @@ static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
->   * invalidate the entire TLB which is not desitable.
->   * e.g. see arch/arc: flush_pmd_tlb_range
->   */
-> -#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
-> +#define flush_pmd_tlb_range(tlb, vma, addr, end)	flush_tlb_range(vma, addr, end)
->  #define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
->  #else
-> -#define flush_pmd_tlb_range(vma, addr, end)	BUILD_BUG()
-> +#define flush_pmd_tlb_range(tlb, vma, addr, end)	BUILD_BUG()
->  #define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
->  #endif
->  #endif
-> diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
-> index 3d7c01e76efc..96c9cf77bfb5 100644
-> --- a/mm/pgtable-generic.c
-> +++ b/mm/pgtable-generic.c
-> @@ -109,8 +109,14 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,
->  	int changed = !pmd_same(*pmdp, entry);
->  	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
->  	if (changed) {
-> +		struct mmu_gather tlb;
-> +		unsigned long tlb_start = address;
-> +		unsigned long tlb_end = address + HPAGE_PMD_SIZE;
->  		set_pmd_at(vma->vm_mm, address, pmdp, entry);
-> -		flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
-> +		tlb_gather_mmu(&tlb, vma->vm_mm, tlb_start, tlb_end);
-> +		tlb.cleared_pmds = 1;
-> +		flush_pmd_tlb_range(&tlb, vma, tlb_start, tlb_end);
-> +		tlb_finish_mmu(&tlb, tlb_start, tlb_end);
->  	}
->  	return changed;
->  }
+On Tue, 2020-03-31 at 11:38 +0900, Hajime Tazaki wrote:
+> Thanks for the comments, Johannes.
+> 
+> On Tue, 31 Mar 2020 06:31:15 +0900,
+> Johannes Berg wrote:
+> > 
+> > > +++ b/arch/um/lkl/include/asm/irq.h
+> > > @@ -2,6 +2,9 @@
+> > >  #ifndef _ASM_LKL_IRQ_H
+> > >  #define _ASM_LKL_IRQ_H
+> > >  
+> > > +/* pull UML's definitions */
+> > > +#include "../../../include/asm/irq.h"
+> > 
+> > This is _really_ ugly.
+> 
+> Hmm, in previous patchset (until v3), I was using the worse approach
+> (I thought) to avoid this include.
+> 
+> +KBUILD_CFLAGS  += -DTIMER_IRQ=0 -DUBD_IRQ=4 -DUM_ETH_IRQ=5 -DLAST_IRQ=15
+> 
+> And I thought the current way is better than before.
 
-This is madness. Please, carefully consider what you just wrote and what
-it will do in the generic case.
+Yeah, ok, that's worse :)
 
-Instead of trying to retro-fit flush_*tlb_range() to take an mmu_gather
-parameter, please replace them out-right.
+But why is it even needed? It kinda seems to me that this means we're
+not splitting the code well.
+
+IMHO, if we even want to treat LKL/UML as sub-arches, then we should
+still split the driver code off in a cleaner way, rather than linking
+half here half there?
+
+And maybe reorg the code... but I'll reply over in your other email
+more.
+
+> > > @@ -181,6 +196,11 @@ void init_IRQ(void)
+> > >  	for (i = 0; i < NR_IRQS; i++)
+> > >  		irq_set_chip_and_handler(i, &dummy_irq_chip, handle_simple_irq);
+> > >  
+> > > +#if defined(__linux) && (defined(__i386) || defined(__x86_64))
+> > 
+> > What's with all those ifdefs with this condition?
+> 
+> Same as above.
+> but I agree that the ifdefs are cryptic; I'll try to make it more
+> understandable if I use ifdefs.
+
+I'm also generally not convinced that it's a good idea to sprinkle these
+kinds of ifdefs over the place.
+
+johannes
