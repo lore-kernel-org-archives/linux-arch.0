@@ -1,25 +1,25 @@
 From: Sandipan Das <sandipan@linux.ibm.com>
-Subject: [PATCH v19 01/24] selftests/x86/pkeys: Move selftests to arch-neutral directory
-Date: Tue, 31 Mar 2020 15:28:02 +0530
-Message-ID: <14d25194c3e2e652e0047feec4487e269e76e8c9.1585646528.git.sandipan@linux.ibm.com>
+Subject: [PATCH v19 03/24] selftests/vm/pkeys: Move generic definitions to header file
+Date: Tue, 31 Mar 2020 15:28:04 +0530
+Message-ID: <57177f99e92a51295956715d5f2d5688a4d13927.1585646528.git.sandipan@linux.ibm.com>
 References: <cover.1585646528.git.sandipan@linux.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:61414 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:21606 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1730182AbgCaJ6l (ORCPT
+        by vger.kernel.org with ESMTP id S1730381AbgCaJ6q (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 31 Mar 2020 05:58:41 -0400
-Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 02V9YKft093363
-        for <linux-arch@vger.kernel.org>; Tue, 31 Mar 2020 05:58:40 -0400
-Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 303vfh2wvb-1
+        Tue, 31 Mar 2020 05:58:46 -0400
+Received: from pps.filterd (m0098396.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 02V9YDRs053273
+        for <linux-arch@vger.kernel.org>; Tue, 31 Mar 2020 05:58:45 -0400
+Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 3020wdhe3k-1
         (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 31 Mar 2020 05:58:40 -0400
+        for <linux-arch@vger.kernel.org>; Tue, 31 Mar 2020 05:58:45 -0400
 Received: from localhost
-        by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <sandipan@linux.ibm.com>;
-        Tue, 31 Mar 2020 10:58:24 +0100
+        Tue, 31 Mar 2020 10:58:30 +0100
 In-Reply-To: <cover.1585646528.git.sandipan@linux.ibm.com>
 In-Reply-To: <cover.1585646528.git.sandipan@linux.ibm.com>
 References: <cover.1585646528.git.sandipan@linux.ibm.com>
@@ -30,75 +30,133 @@ Cc: linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@li
 
 From: Ram Pai <linuxram@us.ibm.com>
 
+Moved all the generic definition and helper functions to the
+header file.
+
 cc: Dave Hansen <dave.hansen@intel.com>
 cc: Florian Weimer <fweimer@redhat.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
-Acked-by: Ingo Molnar <mingo@kernel.org>
 Acked-by: Dave Hansen <dave.hansen@intel.com>
 Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
 ---
- tools/testing/selftests/vm/.gitignore                 | 1 +
- tools/testing/selftests/vm/Makefile                   | 1 +
- tools/testing/selftests/{x86 => vm}/pkey-helpers.h    | 0
- tools/testing/selftests/{x86 => vm}/protection_keys.c | 0
- tools/testing/selftests/x86/.gitignore                | 1 -
- tools/testing/selftests/x86/Makefile                  | 2 +-
- 6 files changed, 3 insertions(+), 2 deletions(-)
- rename tools/testing/selftests/{x86 => vm}/pkey-helpers.h (100%)
- rename tools/testing/selftests/{x86 => vm}/protection_keys.c (100%)
+ tools/testing/selftests/vm/pkey-helpers.h    | 35 +++++++++++++++++---
+ tools/testing/selftests/vm/protection_keys.c | 27 ---------------
+ 2 files changed, 30 insertions(+), 32 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/.gitignore b/tools/testing/selftests/vm/.gitignore
-index 31b3c98b6d34d..c55837bf39fa4 100644
---- a/tools/testing/selftests/vm/.gitignore
-+++ b/tools/testing/selftests/vm/.gitignore
-@@ -14,3 +14,4 @@ virtual_address_range
- gup_benchmark
- va_128TBswitch
- map_fixed_noreplace
-+protection_keys
-diff --git a/tools/testing/selftests/vm/Makefile b/tools/testing/selftests/vm/Makefile
-index 7f9a8a8c31da9..4e9c741be6af2 100644
---- a/tools/testing/selftests/vm/Makefile
-+++ b/tools/testing/selftests/vm/Makefile
-@@ -18,6 +18,7 @@ TEST_GEN_FILES += on-fault-limit
- TEST_GEN_FILES += thuge-gen
- TEST_GEN_FILES += transhuge-stress
- TEST_GEN_FILES += userfaultfd
-+TEST_GEN_FILES += protection_keys
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index d5779be4793f8..6ad1bd54ef946 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -13,6 +13,14 @@
+ #include <ucontext.h>
+ #include <sys/mman.h>
  
- ifneq (,$(filter $(ARCH),arm64 ia64 mips64 parisc64 ppc64 riscv64 s390x sh64 sparc64 x86_64))
- TEST_GEN_FILES += va_128TBswitch
-diff --git a/tools/testing/selftests/x86/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-similarity index 100%
-rename from tools/testing/selftests/x86/pkey-helpers.h
-rename to tools/testing/selftests/vm/pkey-helpers.h
-diff --git a/tools/testing/selftests/x86/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-similarity index 100%
-rename from tools/testing/selftests/x86/protection_keys.c
-rename to tools/testing/selftests/vm/protection_keys.c
-diff --git a/tools/testing/selftests/x86/.gitignore b/tools/testing/selftests/x86/.gitignore
-index 7757f73ff9a32..eb30ffd838768 100644
---- a/tools/testing/selftests/x86/.gitignore
-+++ b/tools/testing/selftests/x86/.gitignore
-@@ -11,5 +11,4 @@ ldt_gdt
- iopl
- mpx-mini-test
- ioperm
--protection_keys
- test_vdso
-diff --git a/tools/testing/selftests/x86/Makefile b/tools/testing/selftests/x86/Makefile
-index 5d49bfec1e9ae..5f16821c7f63a 100644
---- a/tools/testing/selftests/x86/Makefile
-+++ b/tools/testing/selftests/x86/Makefile
-@@ -12,7 +12,7 @@ CAN_BUILD_WITH_NOPIE := $(shell ./check_cc.sh $(CC) trivial_program.c -no-pie)
++/* Define some kernel-like types */
++#define  u8 uint8_t
++#define u16 uint16_t
++#define u32 uint32_t
++#define u64 uint64_t
++
++#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
++
+ #define NR_PKEYS 16
+ #define PKEY_BITS_PER_PKEY 2
  
- TARGETS_C_BOTHBITS := single_step_syscall sysret_ss_attrs syscall_nt test_mremap_vdso \
- 			check_initial_reg_state sigreturn iopl ioperm \
--			protection_keys test_vdso test_vsyscall mov_ss_trap \
-+			test_vdso test_vsyscall mov_ss_trap \
- 			syscall_arg_fault
- TARGETS_C_32BIT_ONLY := entry_from_vm86 test_syscall_vdso unwind_vdso \
- 			test_FCMOV test_FCOMI test_FISTTP \
+@@ -53,6 +61,18 @@ static inline void sigsafe_printf(const char *format, ...)
+ #define dprintf3(args...) dprintf_level(3, args)
+ #define dprintf4(args...) dprintf_level(4, args)
+ 
++extern void abort_hooks(void);
++#define pkey_assert(condition) do {		\
++	if (!(condition)) {			\
++		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
++				__FILE__, __LINE__,	\
++				test_nr, iteration_nr);	\
++		dprintf0("errno at assert: %d", errno);	\
++		abort_hooks();			\
++		exit(__LINE__);			\
++	}					\
++} while (0)
++
+ extern unsigned int shadow_pkey_reg;
+ static inline unsigned int __read_pkey_reg(void)
+ {
+@@ -137,11 +157,6 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
+ 	dprintf4("pkey_reg now: %08x\n", read_pkey_reg());
+ }
+ 
+-#define PROT_PKEY0     0x10            /* protection key value (bit 0) */
+-#define PROT_PKEY1     0x20            /* protection key value (bit 1) */
+-#define PROT_PKEY2     0x40            /* protection key value (bit 2) */
+-#define PROT_PKEY3     0x80            /* protection key value (bit 3) */
+-
+ #define PAGE_SIZE 4096
+ #define MB	(1<<20)
+ 
+@@ -219,4 +234,14 @@ int pkey_reg_xstate_offset(void)
+ 	return xstate_offset;
+ }
+ 
++#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
++#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
++#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
++#define ALIGN_PTR_UP(p, ptr_align_to)	\
++	((typeof(p))ALIGN_UP((unsigned long)(p), ptr_align_to))
++#define ALIGN_PTR_DOWN(p, ptr_align_to)	\
++	((typeof(p))ALIGN_DOWN((unsigned long)(p), ptr_align_to))
++#define __stringify_1(x...)     #x
++#define __stringify(x...)       __stringify_1(x)
++
+ #endif /* _PKEYS_HELPER_H */
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 2f4ab81c570db..42ffb58810f29 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -51,31 +51,10 @@ int test_nr;
+ unsigned int shadow_pkey_reg;
+ 
+ #define HPAGE_SIZE	(1UL<<21)
+-#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
+-#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
+-#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
+-#define ALIGN_PTR_UP(p, ptr_align_to)	((typeof(p))ALIGN_UP((unsigned long)(p),	ptr_align_to))
+-#define ALIGN_PTR_DOWN(p, ptr_align_to)	((typeof(p))ALIGN_DOWN((unsigned long)(p),	ptr_align_to))
+-#define __stringify_1(x...)     #x
+-#define __stringify(x...)       __stringify_1(x)
+-
+-#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
+ 
+ int dprint_in_signal;
+ char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
+ 
+-extern void abort_hooks(void);
+-#define pkey_assert(condition) do {		\
+-	if (!(condition)) {			\
+-		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
+-				__FILE__, __LINE__,	\
+-				test_nr, iteration_nr);	\
+-		dprintf0("errno at assert: %d", errno);	\
+-		abort_hooks();			\
+-		exit(__LINE__);			\
+-	}					\
+-} while (0)
+-
+ void cat_into_file(char *str, char *file)
+ {
+ 	int fd = open(file, O_RDWR);
+@@ -186,12 +165,6 @@ void lots_o_noops_around_write(int *write_to_me)
+ 	dprintf3("%s() done\n", __func__);
+ }
+ 
+-/* Define some kernel-like types */
+-#define  u8 uint8_t
+-#define u16 uint16_t
+-#define u32 uint32_t
+-#define u64 uint64_t
+-
+ #ifdef __i386__
+ 
+ #ifndef SYS_mprotect_key
 -- 
 2.17.1
