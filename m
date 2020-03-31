@@ -1,46 +1,120 @@
-Return-Path: <SRS0=aoLA=42=vger.kernel.org=linux-doc-owner@kernel.org>
-Subject: Re: [RFC PATCH v9 01/27] Documentation/x86: Add CET description
-References: <CAMe9rOoRTVUzNC88Ho2XTTNJCymrd3L=XdB9xFcgxPVwAZ0FWA@mail.gmail.com>
- <AE81FEF5-ECC5-46AA-804D-9D64E656D16E@amacapital.net>
- <CAMe9rOoDMenvD9XRL1szR5yLQEwv9Q6f4O7CtwbdZ-cJqzezKA@mail.gmail.com>
- <0088001c-0b12-a7dc-ff2a-9d5c282fa36b@intel.com>
- <CAMe9rOqf0OHL9397Vikgb=UWhRMf+FmGq-9VAJNmfmzNMMDkCw@mail.gmail.com>
- <56ab33ac-865b-b37e-75f2-a489424566c3@intel.com>
- <CAMe9rOrzrXORQgcAwzGn+=PBvxCEgc5Km_TQq+P7uoqwiacJSA@mail.gmail.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <c06073a2-6858-d5dc-d74b-ef2568bd9423@intel.com>
-Date: Mon, 9 Mar 2020 16:20:57 -0700
-MIME-Version: 1.0
-In-Reply-To: <CAMe9rOrzrXORQgcAwzGn+=PBvxCEgc5Km_TQq+P7uoqwiacJSA@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: "H.J. Lu" <hjl.tools@gmail.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Return-Path: <SRS0=PUSD=5Q=kvack.org=owner-linux-mm@kernel.org>
+From: Sandipan Das <sandipan@linux.ibm.com>
+Subject: [PATCH v19 20/24] selftests/vm/pkeys: Introduce a sub-page allocator
+Date: Tue, 31 Mar 2020 15:28:21 +0530
+In-Reply-To: <cover.1585646528.git.sandipan@linux.ibm.com>
+References: <cover.1585646528.git.sandipan@linux.ibm.com>
+In-Reply-To: <cover.1585646528.git.sandipan@linux.ibm.com>
+References: <cover.1585646528.git.sandipan@linux.ibm.com>
+Message-ID: <c4a82fa962ec71015b994fab1aaf83bdfd091553.1585646528.git.sandipan@linux.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: akpm@linux-foundation.org
+Cc: linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-mm@kvack.org, fweimer@redhat.com, linuxram@us.ibm.com, mhocko@kernel.org, mingo@redhat.com, aneesh.kumar@linux.ibm.com, bauerman@linux.ibm.com, msuchanek@suse.de, mpe@ellerman.id.au, shuah@kernel.org, Dave Hansen <dave.hansen@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200309232057.mzsIyOtEdSog1hhnzhh1FLNQvvPrx-GiyA5W6khokUo@z>
+Message-ID: <20200331095821.lKewZagi9qjwzWsInm0gldOLA1Nvf4m7SE2v0aUQhUE@z>
 
-On 3/9/20 4:11 PM, H.J. Lu wrote:
-> A threaded application is loaded from disk.  The object file on disk is
-> either CET enabled or not CET enabled.
+From: Ram Pai <linuxram@us.ibm.com>
 
-Huh.  Are you saying that all instructions executed on userspace on
-Linux come off of object files on the disk?  That's an interesting
-assertion.  You might want to go take a look at the processes on your
-systems.  Here's my browser for example:
+This introduces a new allocator that allocates 4K hardware
+pages to back 64K linux pages. This allocator is available
+only on powerpc.
 
-# for p in $(ps aux | grep chromium | awk '{print $2}' ); do cat
-/proc/$p/maps; done | grep ' r-xp 00000000 00:00 0'
-...
-202f00082000-202f000bf000 r-xp 00000000 00:00 0
-202f000c2000-202f000c3000 r-xp 00000000 00:00 0
-202f00102000-202f00103000 r-xp 00000000 00:00 0
-202f00142000-202f00143000 r-xp 00000000 00:00 0
-202f00182000-202f001bf000 r-xp 00000000 00:00 0
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.ibm.com>
+Signed-off-by: Sandipan Das <sandipan@linux.ibm.com>
+Acked-by: Dave Hansen <dave.hansen@intel.com>
+---
+ tools/testing/selftests/vm/pkey-helpers.h    |  6 +++++
+ tools/testing/selftests/vm/pkey-powerpc.h    | 25 ++++++++++++++++++++
+ tools/testing/selftests/vm/pkey-x86.h        |  5 ++++
+ tools/testing/selftests/vm/protection_keys.c |  1 +
+ 4 files changed, 37 insertions(+)
 
-Lots of funny looking memory areas which are anonymous and executable!
-Those didn't come off the disk.  Same thing in firefox.  Weird.  Any
-idea what those are?
-
-One guess: https://en.wikipedia.org/wiki/Just-in-time_compilation
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index 59ccdff18214f..622a85848f61b 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -28,6 +28,9 @@
+ extern int dprint_in_signal;
+ extern char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
+ 
++extern int test_nr;
++extern int iteration_nr;
++
+ #ifdef __GNUC__
+ __attribute__((format(printf, 1, 2)))
+ #endif
+@@ -78,6 +81,9 @@ __attribute__((noinline)) int read_ptr(int *ptr);
+ void expected_pkey_fault(int pkey);
+ int sys_pkey_alloc(unsigned long flags, unsigned long init_val);
+ int sys_pkey_free(unsigned long pkey);
++int mprotect_pkey(void *ptr, size_t size, unsigned long orig_prot,
++		unsigned long pkey);
++void record_pkey_malloc(void *ptr, long size, int prot);
+ 
+ #if defined(__i386__) || defined(__x86_64__) /* arch */
+ #include "pkey-x86.h"
+diff --git a/tools/testing/selftests/vm/pkey-powerpc.h b/tools/testing/selftests/vm/pkey-powerpc.h
+index 7d7c3ffafdd99..d31665c48f5ed 100644
+--- a/tools/testing/selftests/vm/pkey-powerpc.h
++++ b/tools/testing/selftests/vm/pkey-powerpc.h
+@@ -106,4 +106,29 @@ void expect_fault_on_read_execonly_key(void *p1, int pkey)
+ /* 4-byte instructions * 16384 = 64K page */
+ #define __page_o_noops() asm(".rept 16384 ; nop; .endr")
+ 
++void *malloc_pkey_with_mprotect_subpage(long size, int prot, u16 pkey)
++{
++	void *ptr;
++	int ret;
++
++	dprintf1("doing %s(size=%ld, prot=0x%x, pkey=%d)\n", __func__,
++			size, prot, pkey);
++	pkey_assert(pkey < NR_PKEYS);
++	ptr = mmap(NULL, size, prot, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
++	pkey_assert(ptr != (void *)-1);
++
++	ret = syscall(__NR_subpage_prot, ptr, size, NULL);
++	if (ret) {
++		perror("subpage_perm");
++		return PTR_ERR_ENOTSUP;
++	}
++
++	ret = mprotect_pkey((void *)ptr, PAGE_SIZE, prot, pkey);
++	pkey_assert(!ret);
++	record_pkey_malloc(ptr, size, prot);
++
++	dprintf1("%s() for pkey %d @ %p\n", __func__, pkey, ptr);
++	return ptr;
++}
++
+ #endif /* _PKEYS_POWERPC_H */
+diff --git a/tools/testing/selftests/vm/pkey-x86.h b/tools/testing/selftests/vm/pkey-x86.h
+index 6421b846aa169..3be20f5d52752 100644
+--- a/tools/testing/selftests/vm/pkey-x86.h
++++ b/tools/testing/selftests/vm/pkey-x86.h
+@@ -173,4 +173,9 @@ void expect_fault_on_read_execonly_key(void *p1, int pkey)
+ 	expected_pkey_fault(pkey);
+ }
+ 
++void *malloc_pkey_with_mprotect_subpage(long size, int prot, u16 pkey)
++{
++	return PTR_ERR_ENOTSUP;
++}
++
+ #endif /* _PKEYS_X86_H */
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 8bb4de1038743..d4952b57cc909 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -845,6 +845,7 @@ void *malloc_pkey_mmap_dax(long size, int prot, u16 pkey)
+ void *(*pkey_malloc[])(long size, int prot, u16 pkey) = {
+ 
+ 	malloc_pkey_with_mprotect,
++	malloc_pkey_with_mprotect_subpage,
+ 	malloc_pkey_anon_huge,
+ 	malloc_pkey_hugetlb
+ /* can not do direct with the pkey_mprotect() API:
+-- 
+2.17.1
