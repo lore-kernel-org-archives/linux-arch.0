@@ -1,93 +1,78 @@
-Return-Path: <SRS0=kSGY=5J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:57140 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727130AbgCXMmm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 24 Mar 2020 08:42:42 -0400
+Return-Path: <SRS0=PUSD=5Q=kvack.org=owner-linux-mm@kernel.org>
 From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: Re: [RFC PATCH v3 0/4] arm64: tlb: add support for TTL field
-Date: Tue, 24 Mar 2020 20:41:44 +0800
-Message-ID: <20200324124144.1492-1-yezhenyu2@huawei.com>
-In-Reply-To: <4e3d42d9-7c57-3659-edbe-1e59ca5b04ea@huawei.com>
-References: <4e3d42d9-7c57-3659-edbe-1e59ca5b04ea@huawei.com>
+Subject: [RFC PATCH v5 2/8] arm64: Add level-hinted TLB invalidation helper
+Date: Tue, 31 Mar 2020 22:29:21 +0800
+Message-ID: <20200331142927.1237-3-yezhenyu2@huawei.com>
+In-Reply-To: <20200331142927.1237-1-yezhenyu2@huawei.com>
+References: <20200331142927.1237-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8BIT
 Content-Type: text/plain
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: yuzenghui@huawei.com
-Cc: aneesh.kumar@linux.ibm.com, arm@kernel.org, broonie@kernel.org, catalin.marinas@arm.com, guohanjun@huawei.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, mark.rutland@arm.com, maz@kernel.org, prime.zeng@hisilicon.com, steven.price@arm.com, will@kernel.org, xiexiangyou@huawei.com, yezhenyu2@huawei.com, zhangshaokun@hisilicon.com
-Message-ID: <20200324124144.lFlC7tmhVpyEh0-laEHCHI2w8HP4KvThUxK0PqkoE3w@z>
+Message-ID: <20200331142921.UPM_PVEeH0yBZZ11K-iyhMUEQI3fxAr3JtabSaVZkWE@z>
 
-Hi Zenghui,
+From: Marc Zyngier <maz@kernel.org>
 
-On 2020/3/24 19:31, Zenghui Yu wrote:
->Hi Zhenyu,
->
->On 2020/3/21 20:16, Zhenyu Ye wrote:
->> --
->> ChangeList:
->> v3:
->> use vma->vm_flags to replace mm->context.flags.
->> 
->> v2:
->> build the patch on Marc's NV series[1].
->> 
->> v1:
->> add support for TTL field in arm64.
->> 
->> --
->> ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
->> the level of translation table walk holding the leaf entry for the
->> address that is being invalidated. Hardware can use this information
->> to determine if there was a risk of splintering.
->> 
->> Marc has provided basic support for ARM64-TTL features on his
->> NV series[1] patches. NV is a large feature, however, only
->> patches 62[2] and 67[3] are need by this patch set.
->> ** You only need read those two patches before review this patch. **
->
->It'd be good if you can put the whole thing into a series, otherwise
->people will have difficulty when reviewing and testing it...
->
->I haven't tracked the previous versions. If Marc is OK to share the
->two patches below [2][3], I'd suggest you to pick them up, add them
->in your series, rebase on top of mainline and resend it.
->
->
->Thanks,
->Zenghui
->
+Add a level-hinted TLB invalidation helper that only gets used if
+ARMv8.4-TTL gets detected.
 
-Thanks for your review.  I'd take your suggestion and resend a new set
-right now.
+Signed-off-by: Marc Zyngier <maz@kernel.org>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+---
+ arch/arm64/include/asm/tlbflush.h | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
 
-Thanks,
-Zhenyu
-
->> 
->> Some of this patch depends on a feature powered by @Will Deacon
->> two years ago, which tracking the level of page tables in mm_gather.
->> See more in commit a6d60245.
->> 
->> [1] git://git.kernel.org/pub/scm/linux/kernel/git/maz/arm-platforms.git kvm-arm64/nv-5.6-rc1
->> [2] https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-63-maz@kernel.org/
->> [3] https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-68-maz@kernel.org/
->> 
->> Zhenyu Ye (4):
->>    arm64: Add level-hinted TLB invalidation helper to tlbi_user
->>    mm: Add page table level flags to vm_flags
->>    arm64: tlb: Use translation level hint in vm_flags
->>    mm: Set VM_LEVEL flags in some tlb_flush functions
->> 
->>   arch/arm64/include/asm/mmu.h      |  2 ++
->>   arch/arm64/include/asm/tlb.h      | 12 +++++++++
->>   arch/arm64/include/asm/tlbflush.h | 44 ++++++++++++++++++++++++++-----
->>   arch/arm64/mm/hugetlbpage.c       |  4 +--
->>   arch/arm64/mm/mmu.c               | 14 ++++++++++
->>   include/asm-generic/pgtable.h     | 16 +++++++++--
->>   include/linux/mm.h                | 10 +++++++
->>   include/trace/events/mmflags.h    | 15 ++++++++++-
->>   mm/huge_memory.c                  |  8 +++++-
->>   9 files changed, 113 insertions(+), 12 deletions(-)
->> 
->
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
+lbflush.h
+index bc3949064725..5f9f189bc6d2 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -10,6 +10,7 @@
+=20
+ #ifndef __ASSEMBLY__
+=20
++#include <linux/bitfield.h>
+ #include <linux/mm_types.h>
+ #include <linux/sched.h>
+ #include <asm/cputype.h>
+@@ -59,6 +60,35 @@
+ 		__ta;						\
+ 	})
+=20
++#define TLBI_TTL_MASK	GENMASK_ULL(47, 44)
++
++#define __tlbi_level(op, addr, level)					\
++	do {								\
++		u64 arg =3D addr;						\
++									\
++		if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
++		    level) {						\
++			u64 ttl =3D level;				\
++									\
++			switch (PAGE_SIZE) {				\
++			case SZ_4K:					\
++				ttl |=3D 1 << 2;				\
++				break;					\
++			case SZ_16K:					\
++				ttl |=3D 2 << 2;				\
++				break;					\
++			case SZ_64K:					\
++				ttl |=3D 3 << 2;				\
++				break;					\
++			}						\
++									\
++			arg &=3D ~TLBI_TTL_MASK;				\
++			arg |=3D FIELD_PREP(TLBI_TTL_MASK, ttl);		\
++		}							\
++									\
++		__tlbi(op,  arg);					\
++	} while (0)
++
+ /*
+  *	TLB Invalidation
+  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+--=20
+2.19.1
