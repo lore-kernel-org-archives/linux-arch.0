@@ -1,85 +1,100 @@
-Return-Path: <SRS0=ZCnS=4X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:51814 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726090AbgCFLcC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2020 06:32:02 -0500
-Date: Fri, 6 Mar 2020 12:31:35 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 16/27] tracing: Remove regular RCU context for
- _rcuidle tracepoints (again)
-Message-ID: <20200306113135.GA8787@worktop.programming.kicks-ass.net>
-References: <20200221133416.777099322@infradead.org>
- <20200221134216.051596115@infradead.org>
- <20200306104335.GF3348@worktop.programming.kicks-ass.net>
+Return-Path: <SRS0=PUSD=5Q=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RFC PATCH v5 1/8] arm64: Detect the ARMv8.4 TTL feature
+Date: Tue, 31 Mar 2020 22:29:20 +0800
+Message-ID: <20200331142927.1237-2-yezhenyu2@huawei.com>
+In-Reply-To: <20200331142927.1237-1-yezhenyu2@huawei.com>
+References: <20200331142927.1237-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200306104335.GF3348@worktop.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org
-Cc: mingo@kernel.org, joel@joelfernandes.org, gregkh@linuxfoundation.org, gustavo@embeddedor.com, tglx@linutronix.de, paulmck@kernel.org, josh@joshtriplett.org, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com, luto@kernel.org, tony.luck@intel.com, frederic@kernel.org, dan.carpenter@oracle.com, mhiramat@kernel.org, alexei.starovoitov@gmail.com
-Message-ID: <20200306113135.1CbwIFYi0PV54LBblybqoyugNIgMNhl1ibQ4PoQjeBY@z>
+Message-ID: <20200331142920.9l50jhmh15eg_c0uOyBXLRGvo4HekA3Fg_Q10WZuEaQ@z>
 
-On Fri, Mar 06, 2020 at 11:43:35AM +0100, Peter Zijlstra wrote:
-> On Fri, Feb 21, 2020 at 02:34:32PM +0100, Peter Zijlstra wrote:
-> > Effectively revert commit 865e63b04e9b2 ("tracing: Add back in
-> > rcu_irq_enter/exit_irqson() for rcuidle tracepoints") now that we've
-> > taught perf how to deal with not having an RCU context provided.
-> > 
-> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
-> > ---
-> >  include/linux/tracepoint.h |    8 ++------
-> >  1 file changed, 2 insertions(+), 6 deletions(-)
-> > 
-> > --- a/include/linux/tracepoint.h
-> > +++ b/include/linux/tracepoint.h
-> > @@ -179,10 +179,8 @@ static inline struct tracepoint *tracepo
-> >  		 * For rcuidle callers, use srcu since sched-rcu	\
-> >  		 * doesn't work from the idle path.			\
-> >  		 */							\
-> > -		if (rcuidle) {						\
-> > +		if (rcuidle)						\
-> >  			__idx = srcu_read_lock_notrace(&tracepoint_srcu);\
-> > -			rcu_irq_enter_irqsave();			\
-> > -		}							\
-> >  									\
-> >  		it_func_ptr = rcu_dereference_raw((tp)->funcs);		\
-> >  									\
-> > @@ -194,10 +192,8 @@ static inline struct tracepoint *tracepo
-> >  			} while ((++it_func_ptr)->func);		\
-> >  		}							\
-> >  									\
-> > -		if (rcuidle) {						\
-> > -			rcu_irq_exit_irqsave();				\
-> > +		if (rcuidle)						\
-> >  			srcu_read_unlock_notrace(&tracepoint_srcu, __idx);\
-> > -		}							\
-> >  									\
-> >  		preempt_enable_notrace();				\
-> >  	} while (0)
-> 
-> So what happens when BPF registers for these tracepoints? BPF very much
-> wants RCU on AFAIU.
+From: Marc Zyngier <maz@kernel.org>
 
-I suspect we needs something like this...
+In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+feature allows TLBs to be issued with a level allowing for quicker
+invalidation.
 
-diff --git a/kernel/trace/bpf_trace.c b/kernel/trace/bpf_trace.c
-index a2f15222f205..67a39dbce0ce 100644
---- a/kernel/trace/bpf_trace.c
-+++ b/kernel/trace/bpf_trace.c
-@@ -1475,11 +1475,13 @@ void bpf_put_raw_tracepoint(struct bpf_raw_event_map *btp)
- static __always_inline
- void __bpf_trace_run(struct bpf_prog *prog, u64 *args)
- {
-+	int rcu_flags = trace_rcu_enter();
- 	rcu_read_lock();
- 	preempt_disable();
- 	(void) BPF_PROG_RUN(prog, args);
- 	preempt_enable();
- 	rcu_read_unlock();
-+	trace_rcu_exit(rcu_flags);
- }
- 
- #define UNPACK(...)			__VA_ARGS__
+Let's detect the feature for now. Further patches will implement
+its actual usage.
+
+Signed-off-by: Marc Zyngier <maz@kernel.org>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+---
+ arch/arm64/include/asm/cpucaps.h |  3 ++-
+ arch/arm64/include/asm/sysreg.h  |  1 +
+ arch/arm64/kernel/cpufeature.c   | 11 +++++++++++
+ 3 files changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cp=
+ucaps.h
+index 865e0253fc1e..8b3b4dd612b3 100644
+--- a/arch/arm64/include/asm/cpucaps.h
++++ b/arch/arm64/include/asm/cpucaps.h
+@@ -58,7 +58,8 @@
+ #define ARM64_WORKAROUND_SPECULATIVE_AT_NVHE	48
+ #define ARM64_HAS_E0PD				49
+ #define ARM64_HAS_RNG				50
++#define ARM64_HAS_ARMv8_4_TTL			51
+=20
+-#define ARM64_NCAPS				51
++#define ARM64_NCAPS				52
+=20
+ #endif /* __ASM_CPUCAPS_H */
+diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sys=
+reg.h
+index b91570ff9db1..a28b76f32ba7 100644
+--- a/arch/arm64/include/asm/sysreg.h
++++ b/arch/arm64/include/asm/sysreg.h
+@@ -685,6 +685,7 @@
+=20
+ /* id_aa64mmfr2 */
+ #define ID_AA64MMFR2_E0PD_SHIFT		60
++#define ID_AA64MMFR2_TTL_SHIFT		48
+ #define ID_AA64MMFR2_FWB_SHIFT		40
+ #define ID_AA64MMFR2_AT_SHIFT		32
+ #define ID_AA64MMFR2_LVA_SHIFT		16
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeatur=
+e.c
+index 0b6715625cf6..cbe46ad2900a 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -241,6 +241,7 @@ static const struct arm64_ftr_bits ftr_id_aa64mmfr1[]=
+ =3D {
+=20
+ static const struct arm64_ftr_bits ftr_id_aa64mmfr2[] =3D {
+ 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_NONSTRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_=
+E0PD_SHIFT, 4, 0),
++	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_TTL=
+_SHIFT, 4, 0),
+ 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_FWB=
+_SHIFT, 4, 0),
+ 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_AT=
+_SHIFT, 4, 0),
+ 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_LVA=
+_SHIFT, 4, 0),
+@@ -1523,6 +1524,16 @@ static const struct arm64_cpu_capabilities arm64_f=
+eatures[] =3D {
+ 		.matches =3D has_cpuid_feature,
+ 		.cpu_enable =3D cpu_has_fwb,
+ 	},
++	{
++		.desc =3D "ARMv8.4 Translation Table Level",
++		.type =3D ARM64_CPUCAP_SYSTEM_FEATURE,
++		.capability =3D ARM64_HAS_ARMv8_4_TTL,
++		.sys_reg =3D SYS_ID_AA64MMFR2_EL1,
++		.sign =3D FTR_UNSIGNED,
++		.field_pos =3D ID_AA64MMFR2_TTL_SHIFT,
++		.min_field_value =3D 1,
++		.matches =3D has_cpuid_feature,
++	},
+ #ifdef CONFIG_ARM64_HW_AFDBM
+ 	{
+ 		/*
+--=20
+2.19.1
