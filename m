@@ -1,127 +1,113 @@
-From: Richard Weinberger <richard.weinberger@gmail.com>
-Subject: Re: [RFC v4 02/25] um lkl: architecture skeleton for Linux kernel library
-Date: Tue, 31 Mar 2020 00:12:38 +0200
-Message-ID: <CAFLxGvyFqXZSmMcD_=o81AHLzdM_u2iH8h412w7VZrxON7Ohig@mail.gmail.com>
-References: <cover.1585579244.git.thehajime@gmail.com> <dca6ea7260830a03c060f57e6ab9961f16ad55ed.1585579244.git.thehajime@gmail.com>
- <a84f3d7bcddbaa6125349c4bcdec6e3e07d6b783.camel@sipsolutions.net>
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [PATCH v4 0/4] Documentation/litmus-tests: Add litmus tests for
+ atomic APIs
+Date: Tue, 31 Mar 2020 09:40:37 +0800
+Message-ID: <20200331014037.GB59159@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
+References: <20200326024022.7566-1-boqun.feng@gmail.com>
+ <20200327221843.GA226939@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm1-f65.google.com ([209.85.128.65]:52026 "EHLO
-        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729139AbgC3WMw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2020 18:12:52 -0400
-Received: by mail-wm1-f65.google.com with SMTP id c187so497795wme.1
-        for <linux-arch@vger.kernel.org>; Mon, 30 Mar 2020 15:12:51 -0700 (PDT)
-In-Reply-To: <a84f3d7bcddbaa6125349c4bcdec6e3e07d6b783.camel@sipsolutions.net>
+Received: from mail-qt1-f193.google.com ([209.85.160.193]:40605 "EHLO
+        mail-qt1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729358AbgCaBkp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2020 21:40:45 -0400
+Content-Disposition: inline
+In-Reply-To: <20200327221843.GA226939@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Johannes Berg <johannes@sipsolutions.net>
-Cc: Hajime Tazaki <thehajime@gmail.com>, linux-um <linux-um@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Levente Kurusa <levex@linux.com>, Matthieu Coudron <mattator@gmail.com>, Conrad Meyer <cem@freebsd.org>, Octavian Purdila <tavi.purdila@gmail.com>, Jens Staal <staal1978@gmail.com>, Motomu Utsumi <motomuman@gmail.com>, Lai Jiangshan <jiangshanlai@gmail.com>, Akira Moroo <retrage01@gmail.com>, Petros Angelatos <petrosagg@gmail.com>, "Edison M . Castro" <edisonmcastro@hotmail.com>, Xiao Jia <xiaoj@google.com>, Mark Stillwell <mark@stillwell.me>, linux-kernel-library@freelists.org, Patrick Collins <pscollins@google.com>, Pierre-Hugues Husson <phh@phh.me>, Michael Zimmermann <sigmaepsilon92@gmail.com>, Luca Dariz <luca.da>
+To: Joel Fernandes <joel@joelfernandes.org>
+Cc: linux-kernel@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 
-Johannes, Hajime,
+On Fri, Mar 27, 2020 at 06:18:43PM -0400, Joel Fernandes wrote:
+> On Thu, Mar 26, 2020 at 10:40:18AM +0800, Boqun Feng wrote:
+> > A recent discussion raises up the requirement for having test cases for
+> > atomic APIs:
+> > 
+> > 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
+> > 
+> > , and since we already have a way to generate a test module from a
+> > litmus test with klitmus[1]. It makes sense that we add more litmus
+> > tests for atomic APIs. And based on the previous discussion, I create a
+> > new directory Documentation/atomic-tests and put these litmus tests
+> > here.
+> > 
+> > This patchset starts the work by adding the litmus tests which are
+> > already used in atomic_t.txt, and also improve the atomic_t.txt to make
+> > it consistent with the litmus tests.
+> > 
+> > Previous version:
+> > v1: https://lore.kernel.org/linux-doc/20200214040132.91934-1-boqun.feng@gmail.com/
+> > v2: https://lore.kernel.org/lkml/20200219062627.104736-1-boqun.feng@gmail.com/
+> > v3: https://lore.kernel.org/linux-doc/20200227004049.6853-1-boqun.feng@gmail.com/
+> 
+> For full series:
+> 
+> Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+> 
+> One question I had was in the existing atomic_set() documentation, it talks
+> about atomic_add_unless() implementation based on locking could have issues.
+> It says the way to fix such cases is:
+> 
+> Quote:
+>     the typical solution is to then implement atomic_set{}() with
+>     atomic_xchg().
+> 
+> I didn't get how using atomic_xchg() fixes it. Is the assumption there that
+> atomic_xchg() would be implemented using locking to avoid atomic_set() having
 
-On Mon, Mar 30, 2020 at 11:53 PM Johannes Berg
-<johannes@sipsolutions.net> wrote:
->
-> On Mon, 2020-03-30 at 23:45 +0900, Hajime Tazaki wrote:
-> > From: Octavian Purdila <tavi.purdila@gmail.com>
-> >
-> > Adds the LKL Kconfig, vmlinux linker script, basic architecture
-> > headers and miscellaneous basic functions or stubs such as
-> > dump_stack(), show_regs() and cpuinfo proc ops.
-> >
-> > The headers we introduce in this patch are simple wrappers to the
-> > asm-generic headers or stubs for things we don't support, such as
-> > ptrace, DMA, signals, ELF handling and low level processor operations.
-> >
-> > The kernel configuration is automatically updated to reflect the
-> > endianness of the host, 64bit support or the output format for
-> > vmlinux's linker script. We do this by looking at the ld's default
-> > output format.
->
-> Can you elaborate what the plan is here?
->
-> I mean, you're not actually "unifying" anything with ARCH=um, you're
-> just basically splitting ARCH=um into ARCH=um-um and ARCH=um-lkl or
-> something. Is there much point?
->
-> Even the basic underlying building blocks are _very_ different, e.g. in
-> UML the host interface is just a bunch of functions that must be
-> implemented (os_*()), while you have a "struct lkl_host_operations". If
-> we can't even unify at that trivial level, is there any point in it at
-> all? I'm not even really sure what those ops are used for - are all of
-> those things that the *application* using LKL necessarily must provide?
->
-> Similarly with the IRQ routing mechanism - two completely different
-> concepts. Where's the "unifying"?
->
-> Ultimately, I can see two ways this goes:
->
-> 1) We give up, and get ARCH=lkl, sharing just (some of) the drivers
->    while moving them into the right drivers/somewhere/ place. Even that
->    looks somewhat awkward looking at the later patches in this set, but
->    seems like that at *least* should be done.
+Right, I think that's the intent of the sentence.
 
-Yeah, this would be a goal.
-UML and LKL are quite different but they should share at least their userspace
-drivers.
-I also don't mind if we don't share every driver at the beginning but
-it should be
-a feasible goal for the future.
+> issues? If so, we could clarify that in the document.
+> 
 
-> 2) Ideally, instead, we actually unify: LKL grows support for userspace
->    processes using UML infrastructure, the "in-kernel" IRQ mechanisms
->    are unified, UML stuff moves into lkl-ops, and the UML binary
->    basically becomes a user of the LKL library to start everything up.
->    There may be some bits remaining that are just not interesting (e.g.
->    some drivers you don't care about would continue to make direct calls
->    to the user side instead of lkl-ops, and then they're just not
->    compatible with lkl, only with the uml special case of lkl), but then
->    things are clean.
+Patches are welcome ;-)
 
-A few months ago I though this is doable but now I'm not so sure anymore.
+Regards,
+Boqun
 
->
-> Now, of course it seems like (2) would actually be better - LKL would
-> actually get support for userspace processes using UML's tricks, most of
-> the code is unified, and even LKL's users can take advantage of new
-> things. At the same time, all of the duplication is avoided.
->
-> However, I just don't know if it's actually _possible_ to do that
-> though. Conceptually, it seems like it should be - why shouldn't a
-> library be able to spawn other userspace processes - I mean, it's not
-> really in the model that LKL really _wants_ since it's supposed to offer
-> the syscall API, but you could make a "bool run_normal_init" or
-> something in the lkl-ops for the user of the library to determine what
-> should happen, right?
->
-> However, there clearly are huge differences between LKL and UML in all
-> respects, and I don't know if this wouldn't conflict with the library
-> model, e.g. there may be linker issues etc. Or maybe the specific UML
-> interrupt handling is required in UML and cannot be done in LKL (but
-> then perhaps it could be put into the hypothetical UML-application vs.
-> UML-the-LKL-library?)
->
->
-> Ultimately, personally I think it's going to have to be one or the other
-> of those two options though, I don't really see much value in what
-> you're doing here in the patchset now. This way just messes up
-> everything, it's not clear what's UML and what's LKL, and they're
-> intertwined with ifdefs everywhere; just look at where you have to add
-> ifdefs in patch 23 - how would anyone later understand which part gets
-> compiled for which of them?
->
-> johannes
->
-> PS: actually having something like lkl-ops in UML would've been nice
-> also for my "time-travel" work, since it neatly abstracts the timers
-> out. I do wonder a bit about the overhead of jumping through function
-> pointers all the time though, it may be worth rethinking that overall
-> anyway!
-
-Agreed. UML can also learn from LKL. :-)
-
--- 
-Thanks,
-//richard
+> thanks,
+> 
+>  - Joel
+> 
+> > 
+> > Changes since v3:
+> > 
+> > *	Merge two patches on atomic-set litmus test into one as per
+> > 	Alan. (Alan, you have acked only one of the two patches, so I
+> > 	don't add you acked-by for the combined patch).
+> > 
+> > *	Move the atomic litmus tests into litmus-tests/atomic to align
+> > 	with Joel's recent patches on RCU litmus tests.
+> > 
+> > I think we still haven't reach to a conclusion for the difference of
+> > atomic_add_unless() in herdtools, and I'm currently reading the source
+> > code of herd to resovle this. This is just an updated version to resolve
+> > ealier comments and react on Joel's RCU litmus tests.
+> > 
+> > Regards,
+> > Boqun
+> > 
+> > [1]: http://diy.inria.fr/doc/litmus.html#klitmus
+> > 
+> > Boqun Feng (4):
+> >   tools/memory-model: Add an exception for limitations on _unless()
+> >     family
+> >   Documentation/litmus-tests: Introduce atomic directory
+> >   Documentation/litmus-tests/atomic: Add a test for atomic_set()
+> >   Documentation/litmus-tests/atomic: Add a test for
+> >     smp_mb__after_atomic()
+> > 
+> >  Documentation/atomic_t.txt                    | 24 +++++++-------
+> >  ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
+> >  ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 ++++++++++++++
+> >  Documentation/litmus-tests/atomic/README      | 16 ++++++++++
+> >  tools/memory-model/README                     | 10 ++++--
+> >  5 files changed, 91 insertions(+), 15 deletions(-)
+> >  create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
+> >  create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+> >  create mode 100644 Documentation/litmus-tests/atomic/README
+> > 
+> > -- 
+> > 2.25.1
+> > 
