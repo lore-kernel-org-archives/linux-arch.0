@@ -1,164 +1,131 @@
-From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Subject: Re: [PATCH V2 0/3] mm/debug: Add more arch page table helper tests
-Date: Tue, 31 Mar 2020 14:30:59 +0200
-Message-ID: <20200331143059.29fca8fa@thinkpad>
-References: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RFC PATCH v5 0/8] arm64: tlb: add support for TTL feature
+Date: Tue, 31 Mar 2020 22:29:19 +0800
+Message-ID: <20200331142927.1237-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:4136 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1730357AbgCaMbN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 31 Mar 2020 08:31:13 -0400
-Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 02VC485c035090
-        for <linux-arch@vger.kernel.org>; Tue, 31 Mar 2020 08:31:12 -0400
-Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 303v2sqegx-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 31 Mar 2020 08:31:12 -0400
-Received: from localhost
-        by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <gerald.schaefer@de.ibm.com>;
-        Tue, 31 Mar 2020 13:30:55 +0100
-In-Reply-To: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: linux-mm@kvack.org, christophe.leroy@c-s.fr, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 24 Mar 2020 10:52:52 +0530
-Anshuman Khandual <anshuman.khandual@arm.com> wrote:
+In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+feature allows TLBs to be issued with a level allowing for quicker
+invalidation.  This series provide support for this feature.
 
-> This series adds more arch page table helper tests. The new tests here are
-> either related to core memory functions and advanced arch pgtable helpers.
-> This also creates a documentation file enlisting all expected semantics as
-> suggested by Mike Rapoport (https://lkml.org/lkml/2020/1/30/40).
-> 
-> This series has been tested on arm64 and x86 platforms. There is just one
-> expected failure on arm64 that will be fixed when we enable THP migration.
-> 
-> [   21.741634] WARNING: CPU: 0 PID: 1 at mm/debug_vm_pgtable.c:782
-> 
-> which corresponds to
-> 
-> WARN_ON(!pmd_present(pmd_mknotpresent(pmd_mkhuge(pmd))))
-> 
-> There are many TRANSPARENT_HUGEPAGE and ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD
-> ifdefs scattered across the test. But consolidating all the fallback stubs
-> is not very straight forward because ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD is
-> not explicitly dependent on ARCH_HAS_TRANSPARENT_HUGEPAGE.
-> 
-> This series has been build tested on many platforms including the ones that
-> subscribe the test through ARCH_HAS_DEBUG_VM_PGTABLE.
-> 
+Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
+which detect the TTL feature and add __tlbi_level interface.
+Patch 4-7 passes struct mmu_gather to flush_tlb_range, which can pass
+the level of tlbi invalidations.  Arm64 and power9 can benefit from this.
+Patch 8 set the TTL field in arm64 by using the cleared_* values in
+struct mmu_gather.
 
-Hi Anshuman,
+See patches for details, Thanks.
 
-thanks for the update. There are a couple of issues on s390, some might
-also affect other archs.
+[1] https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-1-maz@kernel.org/
+[2] https://lore.kernel.org/linux-arm-kernel/7859561b-78b4-4a12-2642-3741d7d3e7b8@huawei.com/
 
-1) The pxd_huge_tests are using pxd_set/clear_huge, which defaults to
-returning 0 if !CONFIG_HAVE_ARCH_HUGE_VMAP. As result, the checks for
-!pxd_test/clear_huge in the pxd_huge_tests will always trigger the
-warning. This should affect all archs w/o CONFIG_HAVE_ARCH_HUGE_VMAP.
-Could be fixed like this:
+--
+ChangeList:
+v1:
+add support for TTL feature in arm64.
 
-@@ -923,8 +923,10 @@ void __init debug_vm_pgtable(void)
-        pmd_leaf_tests(pmd_aligned, prot);
-        pud_leaf_tests(pud_aligned, prot);
- 
--       pmd_huge_tests(pmdp, pmd_aligned, prot);
--       pud_huge_tests(pudp, pud_aligned, prot);
-+       if (IS_ENABLED(CONFIG_HAVE_ARCH_HUGE_VMAP)) {
-+               pmd_huge_tests(pmdp, pmd_aligned, prot);
-+               pud_huge_tests(pudp, pud_aligned, prot);
-+       }
- 
-        pte_savedwrite_tests(pte_aligned, prot);
-        pmd_savedwrite_tests(pmd_aligned, prot);
+v2:
+build the patch on Marc's NV series[1].
 
-BTW, please add some comments to the various #ifdef/#else stuff, especially
-when the different parts are far away and/or nested.
+v3:
+use vma->vm_flags to replace mm->context.flags.
 
-2) The hugetlb_advanced_test will fail because it directly de-references
-huge *ptep pointers instead of using huge_ptep_get() for this. We have
-very different pagetable entry layout for pte and (large) pmd on s390,
-and unfortunately the whole hugetlbfs code is using pte_t instead of pmd_t
-like THP. For this reason, huge_ptep_get() was introduced, which will
-return a "converted" pte, because directly reading from a *ptep (pointing
-to a large pmd) will not return a proper pte. Only ARM has also an
-implementation of huge_ptep_get(), so they could be affected, depending
-on what exactly they need it for.
+v4:
+add Marc's patches into my series.
 
-Could be fixed like this (the first de-reference is a bit special,
-because at that point *ptep does not really point to a large (pmd) entry
-yet, it is initially an invalid pte entry, which breaks our huge_ptep_get()
-conversion logic. I also added PMD_MASK alignment for RANDOM_ORVALUE,
-because we do have some special bits there in our large pmds. It seems
-to also work w/o that alignment, but it feels a bit wrong):
+v5:
+pass struct mmu_gather to flush_tlb_range, then set the
+TTL field by using infos in struct mmu_gather.
 
-@@ -731,26 +731,26 @@ static void __init hugetlb_advanced_test
-                                          unsigned long vaddr, pgprot_t prot)
- {
-        struct page *page = pfn_to_page(pfn);
--       pte_t pte = READ_ONCE(*ptep);
-+       pte_t pte;
 
--       pte = __pte(pte_val(pte) | RANDOM_ORVALUE);
-+       pte = pte_mkhuge(mk_pte_phys(RANDOM_ORVALUE & PMD_MASK, prot));
-        set_huge_pte_at(mm, vaddr, ptep, pte);
-        barrier();
-        WARN_ON(!pte_same(pte, huge_ptep_get(ptep)));
-        huge_pte_clear(mm, vaddr, ptep, PMD_SIZE);
--       pte = READ_ONCE(*ptep);
-+       pte = huge_ptep_get(ptep);
-        WARN_ON(!huge_pte_none(pte));
- 
-        pte = mk_huge_pte(page, prot);
-        set_huge_pte_at(mm, vaddr, ptep, pte);
-        huge_ptep_set_wrprotect(mm, vaddr, ptep);
--       pte = READ_ONCE(*ptep);
-+       pte = huge_ptep_get(ptep);
-        WARN_ON(huge_pte_write(pte));
- 
-        pte = mk_huge_pte(page, prot);
-        set_huge_pte_at(mm, vaddr, ptep, pte);
-        huge_ptep_get_and_clear(mm, vaddr, ptep);
--       pte = READ_ONCE(*ptep);
-+       pte = huge_ptep_get(ptep);
-        WARN_ON(!huge_pte_none(pte));
- 
-        pte = mk_huge_pte(page, prot);
-@@ -759,7 +759,7 @@ static void __init hugetlb_advanced_test
-        pte = huge_pte_mkwrite(pte);
-        pte = huge_pte_mkdirty(pte);
-        huge_ptep_set_access_flags(vma, vaddr, ptep, pte, 1);
--       pte = READ_ONCE(*ptep);
-+       pte = huge_ptep_get(ptep);
-        WARN_ON(!(huge_pte_write(pte) && huge_pte_dirty(pte)));
- }
- #else
+Marc Zyngier (2):
+  arm64: Detect the ARMv8.4 TTL feature
+  arm64: Add level-hinted TLB invalidation helper
 
-3) The pmd_protnone_tests() has an issue, because it passes a pmd to
-pmd_protnone() which has not been marked as large. We check for large
-pmd in the s390 implementation of pmd_protnone(), and will fail if a
-pmd is not large. We had similar issues before, in other helpers, where
-I changed the logic on s390 to not require the pmd large check, but I'm
-not so sure in this case. Is there a valid use case for doing
-pmd_protnone() on "normal" pmds? Or could this be changed like this:
+Zhenyu Ye (6):
+  arm64: Add tlbi_user_level TLB invalidation helper
+  mm: tlb: Pass struct mmu_gather to flush_pmd_tlb_range
+  mm: tlb: Pass struct mmu_gather to flush_pud_tlb_range
+  mm: tlb: Pass struct mmu_gather to flush_hugetlb_tlb_range
+  mm: tlb: Pass struct mmu_gather to flush_tlb_range
+  arm64: tlb: Set the TTL field in flush_tlb_range
 
-@@ -537,7 +537,7 @@ static void __init pte_protnone_tests(un
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- static void __init pmd_protnone_tests(unsigned long pfn, pgprot_t prot)
- {
--       pmd_t pmd = pfn_pmd(pfn, prot);
-+       pmd_t pmd = mk_huge_pmd(pfn_to_page(pfn), prot);
+ Documentation/core-api/cachetlb.rst           |  8 ++-
+ arch/alpha/include/asm/tlbflush.h             |  8 +--
+ arch/alpha/kernel/smp.c                       |  3 +-
+ arch/arc/include/asm/hugepage.h               |  4 +-
+ arch/arc/include/asm/tlbflush.h               | 11 ++--
+ arch/arc/mm/tlb.c                             |  8 +--
+ arch/arm/include/asm/tlbflush.h               | 12 ++--
+ arch/arm/kernel/smp_tlb.c                     |  4 +-
+ arch/arm/mach-rpc/ecard.c                     |  8 ++-
+ arch/arm64/crypto/aes-glue.c                  |  1 -
+ arch/arm64/include/asm/cpucaps.h              |  3 +-
+ arch/arm64/include/asm/sysreg.h               |  1 +
+ arch/arm64/include/asm/tlb.h                  | 39 +++++++++++-
+ arch/arm64/include/asm/tlbflush.h             | 63 +++++++++++++------
+ arch/arm64/kernel/cpufeature.c                | 11 ++++
+ arch/arm64/mm/hugetlbpage.c                   | 10 ++-
+ arch/csky/include/asm/tlb.h                   |  2 +-
+ arch/csky/include/asm/tlbflush.h              |  6 +-
+ arch/csky/mm/tlb.c                            |  4 +-
+ arch/hexagon/include/asm/tlbflush.h           |  2 +-
+ arch/hexagon/mm/vm_tlb.c                      |  4 +-
+ arch/ia64/include/asm/tlbflush.h              |  6 +-
+ arch/ia64/mm/tlb.c                            |  5 +-
+ arch/m68k/include/asm/tlbflush.h              | 10 +--
+ arch/microblaze/include/asm/tlbflush.h        |  5 +-
+ arch/mips/include/asm/hugetlb.h               |  6 +-
+ arch/mips/include/asm/tlbflush.h              |  9 +--
+ arch/mips/kernel/smp.c                        |  3 +-
+ arch/nds32/include/asm/tlbflush.h             |  3 +-
+ arch/nios2/include/asm/tlbflush.h             |  9 +--
+ arch/nios2/mm/tlb.c                           |  8 ++-
+ arch/openrisc/include/asm/tlbflush.h          | 10 +--
+ arch/openrisc/kernel/smp.c                    |  2 +-
+ arch/parisc/include/asm/tlbflush.h            |  2 +-
+ arch/parisc/kernel/cache.c                    | 13 +++-
+ arch/powerpc/include/asm/book3s/32/tlbflush.h |  4 +-
+ arch/powerpc/include/asm/book3s/64/tlbflush.h |  9 ++-
+ arch/powerpc/include/asm/nohash/tlbflush.h    |  7 ++-
+ arch/powerpc/mm/book3s32/tlb.c                |  6 +-
+ arch/powerpc/mm/book3s64/pgtable.c            |  8 ++-
+ arch/powerpc/mm/book3s64/radix_tlb.c          |  2 +-
+ arch/powerpc/mm/nohash/tlb.c                  |  6 +-
+ arch/riscv/include/asm/tlbflush.h             |  7 ++-
+ arch/riscv/mm/tlbflush.c                      |  4 +-
+ arch/s390/include/asm/tlbflush.h              |  5 +-
+ arch/sh/include/asm/tlbflush.h                |  8 +--
+ arch/sh/kernel/smp.c                          |  2 +-
+ arch/sparc/include/asm/tlbflush_32.h          |  2 +-
+ arch/sparc/include/asm/tlbflush_64.h          |  3 +-
+ arch/sparc/mm/tlb.c                           |  5 +-
+ arch/um/include/asm/tlbflush.h                |  6 +-
+ arch/um/kernel/tlb.c                          |  4 +-
+ arch/unicore32/include/asm/tlbflush.h         |  5 +-
+ arch/x86/include/asm/tlbflush.h               |  4 +-
+ arch/x86/mm/pgtable.c                         | 10 ++-
+ arch/xtensa/include/asm/tlbflush.h            | 10 +--
+ arch/xtensa/kernel/smp.c                      |  2 +-
+ include/asm-generic/pgtable.h                 | 10 +--
+ include/asm-generic/tlb.h                     |  2 +-
+ mm/huge_memory.c                              | 19 +++++-
+ mm/hugetlb.c                                  | 17 +++--
+ mm/mapping_dirty_helpers.c                    | 23 ++++---
+ mm/migrate.c                                  |  8 ++-
+ mm/mprotect.c                                 |  8 ++-
+ mm/mremap.c                                   | 17 ++++-
+ mm/pgtable-generic.c                          | 51 ++++++++++++---
+ mm/rmap.c                                     |  6 +-
+ 67 files changed, 409 insertions(+), 174 deletions(-)
 
-        if (!IS_ENABLED(CONFIG_NUMA_BALANCING))
-                return;
-
-Regards,
-Gerald
+-- 
+2.19.1
