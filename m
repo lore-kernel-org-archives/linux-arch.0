@@ -1,63 +1,62 @@
-Return-Path: <SRS0=WjNt=46=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58940 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727401AbgCMPpK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Mar 2020 11:45:10 -0400
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Subject: [PATCH v3 20/26] arm64: vdso32: Include common headers in the vdso library
-Date: Fri, 13 Mar 2020 15:43:39 +0000
-Message-ID: <20200313154345.56760-21-vincenzo.frascino@arm.com>
-In-Reply-To: <20200313154345.56760-1-vincenzo.frascino@arm.com>
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+Return-Path: <SRS0=PUSD=5Q=kvack.org=owner-linux-mm@kernel.org>
+Date: Tue, 31 Mar 2020 17:13:31 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
+ flush_pmd_tlb_range
+Message-ID: <20200331151331.GS20730@hirez.programming.kicks-ass.net>
+References: <20200331142927.1237-1-yezhenyu2@huawei.com>
+ <20200331142927.1237-5-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200331142927.1237-5-yezhenyu2@huawei.com>
+Sender: owner-linux-mm@kvack.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200313154339.7jWQUEl6qwZZOOk2NVyKun4LDkBphIIukt74vNkbI9s@z>
+Message-ID: <20200331151331.O6rkiG6kD7WZ7Y5owu2LVTYUFOGpPmbJh3yYxIfPL14@z>
 
-The vDSO library should only include the necessary headers required for
-a userspace library (UAPI and a minimal set of kernel headers). To make
-this possible it is necessary to isolate from the kernel headers the
-common parts that are strictly necessary to build the library.
+On Tue, Mar 31, 2020 at 10:29:23PM +0800, Zhenyu Ye wrote:
+> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+> index e2e2bef07dd2..32d4661e5a56 100644
+> --- a/include/asm-generic/pgtable.h
+> +++ b/include/asm-generic/pgtable.h
+> @@ -1160,10 +1160,10 @@ static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+>   * invalidate the entire TLB which is not desitable.
+>   * e.g. see arch/arc: flush_pmd_tlb_range
+>   */
+> -#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
+> +#define flush_pmd_tlb_range(tlb, vma, addr, end)	flush_tlb_range(vma, addr, end)
+>  #define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
+>  #else
+> -#define flush_pmd_tlb_range(vma, addr, end)	BUILD_BUG()
+> +#define flush_pmd_tlb_range(tlb, vma, addr, end)	BUILD_BUG()
+>  #define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
+>  #endif
+>  #endif
+> diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
+> index 3d7c01e76efc..96c9cf77bfb5 100644
+> --- a/mm/pgtable-generic.c
+> +++ b/mm/pgtable-generic.c
+> @@ -109,8 +109,14 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,
+>  	int changed = !pmd_same(*pmdp, entry);
+>  	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
+>  	if (changed) {
+> +		struct mmu_gather tlb;
+> +		unsigned long tlb_start = address;
+> +		unsigned long tlb_end = address + HPAGE_PMD_SIZE;
+>  		set_pmd_at(vma->vm_mm, address, pmdp, entry);
+> -		flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
+> +		tlb_gather_mmu(&tlb, vma->vm_mm, tlb_start, tlb_end);
+> +		tlb.cleared_pmds = 1;
+> +		flush_pmd_tlb_range(&tlb, vma, tlb_start, tlb_end);
+> +		tlb_finish_mmu(&tlb, tlb_start, tlb_end);
+>  	}
+>  	return changed;
+>  }
 
-Refactor the vdso32 implementation to include common headers.
+This is madness. Please, carefully consider what you just wrote and what
+it will do in the generic case.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
----
- arch/arm64/include/asm/vdso/compat_gettimeofday.h | 2 +-
- arch/arm64/kernel/vdso32/vgettimeofday.c          | 3 ---
- 2 files changed, 1 insertion(+), 4 deletions(-)
-
-diff --git a/arch/arm64/include/asm/vdso/compat_gettimeofday.h b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-index 81b0c394f1d8..8d8d1c006a68 100644
---- a/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-+++ b/arch/arm64/include/asm/vdso/compat_gettimeofday.h
-@@ -8,7 +8,7 @@
- #ifndef __ASSEMBLY__
- 
- #include <asm/unistd.h>
--#include <uapi/linux/time.h>
-+#include <asm/errno.h>
- 
- #include <asm/vdso/compat_barrier.h>
- 
-diff --git a/arch/arm64/kernel/vdso32/vgettimeofday.c b/arch/arm64/kernel/vdso32/vgettimeofday.c
-index 54fc1c2ce93f..9366ceb635a1 100644
---- a/arch/arm64/kernel/vdso32/vgettimeofday.c
-+++ b/arch/arm64/kernel/vdso32/vgettimeofday.c
-@@ -5,9 +5,6 @@
-  * Copyright (C) 2018 ARM Limited
-  *
-  */
--#include <linux/time.h>
--#include <linux/types.h>
--
- int __vdso_clock_gettime(clockid_t clock,
- 			 struct old_timespec32 *ts)
- {
--- 
-2.25.1
+Instead of trying to retro-fit flush_*tlb_range() to take an mmu_gather
+parameter, please replace them out-right.
