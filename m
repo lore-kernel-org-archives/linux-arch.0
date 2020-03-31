@@ -1,146 +1,136 @@
-Return-Path: <SRS0=LZsR=5O=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58914 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727488AbgC2OWL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 29 Mar 2020 10:22:11 -0400
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH V2 0/3] mm/debug: Add more arch page table helper tests
-References: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
- <2bb4badc-2b7a-e15d-a99b-b1bd38c9d9bf@arm.com>
- <a46d18ed-8911-1ec3-c32f-58b6e0d959d7@c-s.fr>
- <9675882f-0ec5-5e46-551f-dd3aa38bf8d8@arm.com>
- <ef28cb75-40b8-5ab5-83ba-84fd4384c7c5@c-s.fr>
-Message-ID: <bf4558b2-1fe9-f0cc-3e6f-34bdf3734056@arm.com>
-Date: Sun, 29 Mar 2020 19:51:54 +0530
+Return-Path: <SRS0=LUpl=5Q=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga04-in.huawei.com ([45.249.212.190]:12153 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1731053AbgCaOaD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 31 Mar 2020 10:30:03 -0400
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RFC PATCH v5 0/8] arm64: tlb: add support for TTL feature
+Date: Tue, 31 Mar 2020 22:29:19 +0800
+Message-ID: <20200331142927.1237-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-In-Reply-To: <ef28cb75-40b8-5ab5-83ba-84fd4384c7c5@c-s.fr>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christophe Leroy <christophe.leroy@c-s.fr>, linux-mm@kvack.org
-Cc: Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200329142154.3byGpvK_AHsCCROFe-Js1BBVGHYMhnJhtRq0dk9pxuI@z>
+To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Message-ID: <20200331142919.kPgWgLDyIe3KE-wMfODWjGex3XaJqfOtbufIQl675t8@z>
+
+In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+feature allows TLBs to be issued with a level allowing for quicker
+invalidation.  This series provide support for this feature.
+
+Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
+which detect the TTL feature and add __tlbi_level interface.
+Patch 4-7 passes struct mmu_gather to flush_tlb_range, which can pass
+the level of tlbi invalidations.  Arm64 and power9 can benefit from this.
+Patch 8 set the TTL field in arm64 by using the cleared_* values in
+struct mmu_gather.
+
+See patches for details, Thanks.
+
+[1] https://lore.kernel.org/linux-arm-kernel/20200211174938.27809-1-maz@kernel.org/
+[2] https://lore.kernel.org/linux-arm-kernel/7859561b-78b4-4a12-2642-3741d7d3e7b8@huawei.com/
+
+--
+ChangeList:
+v1:
+add support for TTL feature in arm64.
+
+v2:
+build the patch on Marc's NV series[1].
+
+v3:
+use vma->vm_flags to replace mm->context.flags.
+
+v4:
+add Marc's patches into my series.
+
+v5:
+pass struct mmu_gather to flush_tlb_range, then set the
+TTL field by using infos in struct mmu_gather.
 
 
-On 03/27/2020 12:30 PM, Christophe Leroy wrote:
-> 
-> 
-> On 03/27/2020 06:46 AM, Anshuman Khandual wrote:
->>
->> On 03/26/2020 08:53 PM, Christophe Leroy wrote:
->>>
->>>
->>> Le 26/03/2020 à 03:23, Anshuman Khandual a écrit :
->>>>
->>>>
->>>> On 03/24/2020 10:52 AM, Anshuman Khandual wrote:
->>>>> This series adds more arch page table helper tests. The new tests here are
->>>>> either related to core memory functions and advanced arch pgtable helpers.
->>>>> This also creates a documentation file enlisting all expected semantics as
->>>>> suggested by Mike Rapoport (https://lkml.org/lkml/2020/1/30/40).
->>>>>
->>>>> This series has been tested on arm64 and x86 platforms.
->>>>
->>>> If folks can test these patches out on remaining ARCH_HAS_DEBUG_VM_PGTABLE
->>>> enabled platforms i.e s390, arc, powerpc (32 and 64), that will be really
->>>> appreciated. Thank you.
->>>>
->>>
->>> On powerpc 8xx (PPC32), I get:
->>>
->>> [   53.338368] debug_vm_pgtable: debug_vm_pgtable: Validating architecture page table helpers
->>> [   53.347403] ------------[ cut here ]------------
->>> [   53.351832] WARNING: CPU: 0 PID: 1 at mm/debug_vm_pgtable.c:647 debug_vm_pgtable+0x280/0x3f4
->>
->> mm/debug_vm_pgtable.c:647 ?
->>
->> With the following commits in place
->>
->> 53a8338ce (HEAD) Documentation/mm: Add descriptions for arch page table helper
->> 5d4913fc1 mm/debug: Add tests validating arch advanced page table helpers
->> bcaf120a7 mm/debug: Add tests validating arch page table helpers for core features
->> d6ed5a4a5 x86/memory: Drop pud_mknotpresent()
->> 0739d1f8d mm/debug: Add tests validating architecture page table helpers
->> 16fbf79b0 (tag: v5.6-rc7) Linux 5.6-rc7
-> 
-> I have:
-> 
-> facaa5eb5909 (HEAD -> helpers0) mm/debug: Add tests validating arch advanced page table helpers
-> 6389fed515fc mm/debug: Add tests validating arch page table helpers for core features
-> dc14ecc8b94e mm/debug: add tests validating architecture page table helpers
-> c6624071c338 (origin/merge, merge) Automatic merge of branches 'master', 'next' and 'fixes' into merge
-> 58e05c5508e6 Automatic merge of branches 'master', 'next' and 'fixes' into merge
-> 1b649e0bcae7 (origin/master, origin/HEAD) Merge git://git.kernel.org/pub/scm/linux/kernel/git/netdev/net
-> 
-> origin is https://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux.git
-> 
-> I can't see your last patch in powerpc mailing list (https://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=166237)
+Marc Zyngier (2):
+  arm64: Detect the ARMv8.4 TTL feature
+  arm64: Add level-hinted TLB invalidation helper
 
-My bad, did not update the last patch with required lists (will fix).
+Zhenyu Ye (6):
+  arm64: Add tlbi_user_level TLB invalidation helper
+  mm: tlb: Pass struct mmu_gather to flush_pmd_tlb_range
+  mm: tlb: Pass struct mmu_gather to flush_pud_tlb_range
+  mm: tlb: Pass struct mmu_gather to flush_hugetlb_tlb_range
+  mm: tlb: Pass struct mmu_gather to flush_tlb_range
+  arm64: tlb: Set the TTL field in flush_tlb_range
 
-> 
->>
->> mm/debug_vm_pgtable.c:647 is here.
-> 
-> Line 647 is:
-> 
->     WARN_ON(!pte_same(pte, __swp_entry_to_pte(swp)));
+ Documentation/core-api/cachetlb.rst           |  8 ++-
+ arch/alpha/include/asm/tlbflush.h             |  8 +--
+ arch/alpha/kernel/smp.c                       |  3 +-
+ arch/arc/include/asm/hugepage.h               |  4 +-
+ arch/arc/include/asm/tlbflush.h               | 11 ++--
+ arch/arc/mm/tlb.c                             |  8 +--
+ arch/arm/include/asm/tlbflush.h               | 12 ++--
+ arch/arm/kernel/smp_tlb.c                     |  4 +-
+ arch/arm/mach-rpc/ecard.c                     |  8 ++-
+ arch/arm64/crypto/aes-glue.c                  |  1 -
+ arch/arm64/include/asm/cpucaps.h              |  3 +-
+ arch/arm64/include/asm/sysreg.h               |  1 +
+ arch/arm64/include/asm/tlb.h                  | 39 +++++++++++-
+ arch/arm64/include/asm/tlbflush.h             | 63 +++++++++++++------
+ arch/arm64/kernel/cpufeature.c                | 11 ++++
+ arch/arm64/mm/hugetlbpage.c                   | 10 ++-
+ arch/csky/include/asm/tlb.h                   |  2 +-
+ arch/csky/include/asm/tlbflush.h              |  6 +-
+ arch/csky/mm/tlb.c                            |  4 +-
+ arch/hexagon/include/asm/tlbflush.h           |  2 +-
+ arch/hexagon/mm/vm_tlb.c                      |  4 +-
+ arch/ia64/include/asm/tlbflush.h              |  6 +-
+ arch/ia64/mm/tlb.c                            |  5 +-
+ arch/m68k/include/asm/tlbflush.h              | 10 +--
+ arch/microblaze/include/asm/tlbflush.h        |  5 +-
+ arch/mips/include/asm/hugetlb.h               |  6 +-
+ arch/mips/include/asm/tlbflush.h              |  9 +--
+ arch/mips/kernel/smp.c                        |  3 +-
+ arch/nds32/include/asm/tlbflush.h             |  3 +-
+ arch/nios2/include/asm/tlbflush.h             |  9 +--
+ arch/nios2/mm/tlb.c                           |  8 ++-
+ arch/openrisc/include/asm/tlbflush.h          | 10 +--
+ arch/openrisc/kernel/smp.c                    |  2 +-
+ arch/parisc/include/asm/tlbflush.h            |  2 +-
+ arch/parisc/kernel/cache.c                    | 13 +++-
+ arch/powerpc/include/asm/book3s/32/tlbflush.h |  4 +-
+ arch/powerpc/include/asm/book3s/64/tlbflush.h |  9 ++-
+ arch/powerpc/include/asm/nohash/tlbflush.h    |  7 ++-
+ arch/powerpc/mm/book3s32/tlb.c                |  6 +-
+ arch/powerpc/mm/book3s64/pgtable.c            |  8 ++-
+ arch/powerpc/mm/book3s64/radix_tlb.c          |  2 +-
+ arch/powerpc/mm/nohash/tlb.c                  |  6 +-
+ arch/riscv/include/asm/tlbflush.h             |  7 ++-
+ arch/riscv/mm/tlbflush.c                      |  4 +-
+ arch/s390/include/asm/tlbflush.h              |  5 +-
+ arch/sh/include/asm/tlbflush.h                |  8 +--
+ arch/sh/kernel/smp.c                          |  2 +-
+ arch/sparc/include/asm/tlbflush_32.h          |  2 +-
+ arch/sparc/include/asm/tlbflush_64.h          |  3 +-
+ arch/sparc/mm/tlb.c                           |  5 +-
+ arch/um/include/asm/tlbflush.h                |  6 +-
+ arch/um/kernel/tlb.c                          |  4 +-
+ arch/unicore32/include/asm/tlbflush.h         |  5 +-
+ arch/x86/include/asm/tlbflush.h               |  4 +-
+ arch/x86/mm/pgtable.c                         | 10 ++-
+ arch/xtensa/include/asm/tlbflush.h            | 10 +--
+ arch/xtensa/kernel/smp.c                      |  2 +-
+ include/asm-generic/pgtable.h                 | 10 +--
+ include/asm-generic/tlb.h                     |  2 +-
+ mm/huge_memory.c                              | 19 +++++-
+ mm/hugetlb.c                                  | 17 +++--
+ mm/mapping_dirty_helpers.c                    | 23 ++++---
+ mm/migrate.c                                  |  8 ++-
+ mm/mprotect.c                                 |  8 ++-
+ mm/mremap.c                                   | 17 ++++-
+ mm/pgtable-generic.c                          | 51 ++++++++++++---
+ mm/rmap.c                                     |  6 +-
+ 67 files changed, 409 insertions(+), 174 deletions(-)
 
-Both set of definitions suggest that the last three bits (if present)
-on the PTE will be discarded during PTE->SWP->PTE conversion which
-might be leading to this mismatch and subsequent failure.
-
-arch/powerpc/include/asm/nohash/32/pgtable.h
-arch/powerpc/include/asm/book3s/32/pgtable.h
-
-#define __pte_to_swp_entry(pte)         ((swp_entry_t) { pte_val(pte) >> 3 })
-#define __swp_entry_to_pte(x)           ((pte_t) { (x).val << 3 })
-
-Also there are some more architectures (microblaze, sh, etc) where these
-conversions are not always preserving. On powerpc64, it sets back _PAGE_PTE
-irrespective of whether the bit was originally set or not.
-
-Probably it is wrong to expect that PTE->SWP->PTE conversion will be always
-preserving. So wondering if it is worth changing this test to accommodate
-all such architectures or just drop it instead.
-
-> 
-> 
->>
->> #ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
->> static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot)
->> {
->>          swp_entry_t swp;
->>          pmd_t pmd;  -----------------------------> Line #647
->>
->>          pmd = pfn_pmd(pfn, prot);
->>          swp = __pmd_to_swp_entry(pmd);
->>          WARN_ON(!pmd_same(pmd, __swp_entry_to_pmd(swp)));
->> }
->> #else
->> static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot) { }
->> #end
->>
->> Did I miss something ?
->>
-> 
-> [...]
-> 
->> Could you please point me to the exact test which is failing ?
->>
->>> [   53.519778] Freeing unused kernel memory: 608K
->>>
->>>
->> So I assume that the system should have come till runtime just fine apart from
->> the above warning message because.
->>
-> 
-> Yes it boots fine otherwise.
-
-Cool, that is good to know.
-
-> 
-> Christophe
-> 
+-- 
+2.19.1
