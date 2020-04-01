@@ -1,177 +1,113 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 16/29] mm: remove map_vm_range
-Date: Tue, 14 Apr 2020 15:13:35 +0200
-Message-ID: <20200414131348.444715-17-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+Return-Path: <SRS0=yfWO=5R=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Wed, 1 Apr 2020 09:34:09 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v4 0/4] Documentation/litmus-tests: Add litmus tests for
+ atomic APIs
+Message-ID: <20200401163409.GZ19865@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200326024022.7566-1-boqun.feng@gmail.com>
+ <20200327221843.GA226939@google.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200327221843.GA226939@google.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Joel Fernandes <joel@joelfernandes.org>
+Cc: Boqun Feng <boqun.feng@gmail.com>, linux-kernel@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414131335.VUjT0WS8cY6I-ZQOKL3_0a6U6VfcNtfrBWbzr4ul2P4@z>
+Message-ID: <20200401163409.P6tFQfQrtoFcdrrADnNjwpzDCVe9wO0m0_orMPjXdVA@z>
 
-Switch all callers to map_kernel_range, which symmetric to the unmap
-side (as well as the _noflush versions).
+On Fri, Mar 27, 2020 at 06:18:43PM -0400, Joel Fernandes wrote:
+> On Thu, Mar 26, 2020 at 10:40:18AM +0800, Boqun Feng wrote:
+> > A recent discussion raises up the requirement for having test cases for
+> > atomic APIs:
+> > 
+> > 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
+> > 
+> > , and since we already have a way to generate a test module from a
+> > litmus test with klitmus[1]. It makes sense that we add more litmus
+> > tests for atomic APIs. And based on the previous discussion, I create a
+> > new directory Documentation/atomic-tests and put these litmus tests
+> > here.
+> > 
+> > This patchset starts the work by adding the litmus tests which are
+> > already used in atomic_t.txt, and also improve the atomic_t.txt to make
+> > it consistent with the litmus tests.
+> > 
+> > Previous version:
+> > v1: https://lore.kernel.org/linux-doc/20200214040132.91934-1-boqun.feng@gmail.com/
+> > v2: https://lore.kernel.org/lkml/20200219062627.104736-1-boqun.feng@gmail.com/
+> > v3: https://lore.kernel.org/linux-doc/20200227004049.6853-1-boqun.feng@gmail.com/
+> 
+> For full series:
+> 
+> Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- Documentation/core-api/cachetlb.rst |  2 +-
- include/linux/vmalloc.h             | 10 ++++------
- mm/vmalloc.c                        | 21 +++++++--------------
- mm/zsmalloc.c                       |  4 +++-
- net/ceph/ceph_common.c              |  3 +--
- 5 files changed, 16 insertions(+), 24 deletions(-)
+Queued in place of the following commits, with Joel's and Alan's tags
+added, thank you all!
 
-diff --git a/Documentation/core-api/cachetlb.rst b/Documentation/core-api=
-/cachetlb.rst
-index 93cb65d52720..a1582cc79f0f 100644
---- a/Documentation/core-api/cachetlb.rst
-+++ b/Documentation/core-api/cachetlb.rst
-@@ -213,7 +213,7 @@ Here are the routines, one by one:
- 	there will be no entries in the cache for the kernel address
- 	space for virtual addresses in the range 'start' to 'end-1'.
-=20
--	The first of these two routines is invoked after map_vm_area()
-+	The first of these two routines is invoked after map_kernel_range()
- 	has installed the page table entries.  The second is invoked
- 	before unmap_kernel_range() deletes the page table entries.
-=20
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 3070b4dbc2d9..15ffbd8e8e65 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -168,11 +168,11 @@ extern struct vm_struct *__get_vm_area_caller(unsig=
-ned long size,
- extern struct vm_struct *remove_vm_area(const void *addr);
- extern struct vm_struct *find_vm_area(const void *addr);
-=20
--extern int map_vm_area(struct vm_struct *area, pgprot_t prot,
--			struct page **pages);
- #ifdef CONFIG_MMU
- extern int map_kernel_range_noflush(unsigned long start, unsigned long s=
-ize,
- 				    pgprot_t prot, struct page **pages);
-+int map_kernel_range(unsigned long start, unsigned long size, pgprot_t p=
-rot,
-+		struct page **pages);
- extern void unmap_kernel_range_noflush(unsigned long addr, unsigned long=
- size);
- extern void unmap_kernel_range(unsigned long addr, unsigned long size);
- static inline void set_vm_flush_reset_perms(void *addr)
-@@ -189,14 +189,12 @@ map_kernel_range_noflush(unsigned long start, unsig=
-ned long size,
- {
- 	return size >> PAGE_SHIFT;
- }
-+#define map_kernel_range map_kernel_range_noflush
- static inline void
- unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
- {
- }
--static inline void
--unmap_kernel_range(unsigned long addr, unsigned long size)
--{
--}
-+#define unmap_kernel_range unmap_kernel_range_noflush
- static inline void set_vm_flush_reset_perms(void *addr)
- {
- }
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index ca8dc5d42580..b0c7cdc8701a 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -272,8 +272,8 @@ int map_kernel_range_noflush(unsigned long addr, unsi=
-gned long size,
- 	return 0;
- }
-=20
--static int map_kernel_range(unsigned long start, unsigned long size,
--			   pgprot_t prot, struct page **pages)
-+int map_kernel_range(unsigned long start, unsigned long size, pgprot_t p=
-rot,
-+		struct page **pages)
- {
- 	int ret;
-=20
-@@ -2027,16 +2027,6 @@ void unmap_kernel_range(unsigned long addr, unsign=
-ed long size)
- 	flush_tlb_kernel_range(addr, end);
- }
-=20
--int map_vm_area(struct vm_struct *area, pgprot_t prot, struct page **pag=
-es)
--{
--	unsigned long addr =3D (unsigned long)area->addr;
--	int err;
--
--	err =3D map_kernel_range(addr, get_vm_area_size(area), prot, pages);
--
--	return err > 0 ? 0 : err;
--}
--
- static inline void setup_vmalloc_vm_locked(struct vm_struct *vm,
- 	struct vmap_area *va, unsigned long flags, const void *caller)
- {
-@@ -2408,7 +2398,8 @@ void *vmap(struct page **pages, unsigned int count,
- 	if (!area)
- 		return NULL;
-=20
--	if (map_vm_area(area, prot, pages)) {
-+	if (map_kernel_range((unsigned long)area->addr, size, prot,
-+			pages) < 0) {
- 		vunmap(area->addr);
- 		return NULL;
- 	}
-@@ -2471,8 +2462,10 @@ static void *__vmalloc_area_node(struct vm_struct =
-*area, gfp_t gfp_mask,
- 	}
- 	atomic_long_add(area->nr_pages, &nr_vmalloc_pages);
-=20
--	if (map_vm_area(area, prot, pages))
-+	if (map_kernel_range((unsigned long)area->addr, get_vm_area_size(area),
-+			prot, pages) < 0)
- 		goto fail;
-+
- 	return area->addr;
-=20
- fail:
-diff --git a/mm/zsmalloc.c b/mm/zsmalloc.c
-index ac0524330b9b..f6dc0673e62c 100644
---- a/mm/zsmalloc.c
-+++ b/mm/zsmalloc.c
-@@ -1138,7 +1138,9 @@ static inline void __zs_cpu_down(struct mapping_are=
-a *area)
- static inline void *__zs_map_object(struct mapping_area *area,
- 				struct page *pages[2], int off, int size)
- {
--	BUG_ON(map_vm_area(area->vm, PAGE_KERNEL, pages));
-+	unsigned long addr =3D (unsigned long)area->vm->addr;
-+
-+	BUG_ON(map_kernel_range(addr, PAGE_SIZE * 2, PAGE_KERNEL, pages) < 0);
- 	area->vm_addr =3D area->vm->addr;
- 	return area->vm_addr + off;
- }
-diff --git a/net/ceph/ceph_common.c b/net/ceph/ceph_common.c
-index a0e97f6c1072..66f22e8aa529 100644
---- a/net/ceph/ceph_common.c
-+++ b/net/ceph/ceph_common.c
-@@ -190,8 +190,7 @@ EXPORT_SYMBOL(ceph_compare_options);
-  * kvmalloc() doesn't fall back to the vmalloc allocator unless flags ar=
-e
-  * compatible with (a superset of) GFP_KERNEL.  This is because while th=
-e
-  * actual pages are allocated with the specified flags, the page table p=
-ages
-- * are always allocated with GFP_KERNEL.  map_vm_area() doesn't even tak=
-e
-- * flags because GFP_KERNEL is hard-coded in {p4d,pud,pmd,pte}_alloc().
-+ * are always allocated with GFP_KERNEL.
-  *
-  * ceph_kvmalloc() may be called with GFP_KERNEL, GFP_NOFS or GFP_NOIO.
-  */
---=20
-2.25.1
+							Thanx, Paul
+
+c13c55d4 tools/memory-model: Add an exception for limitations on _unless() family
+59ffd85 Documentation/locking/atomic: Fix atomic-set litmus test
+23c19c8 Documentation/locking/atomic: Introduce atomic-tests directory
+3bd201c Documentation/locking/atomic: Add a litmus test for atomic_set()
+833f53b Documentation/locking/atomic: Add a litmus test smp_mb__after_atomic()
+
+> One question I had was in the existing atomic_set() documentation, it talks
+> about atomic_add_unless() implementation based on locking could have issues.
+> It says the way to fix such cases is:
+> 
+> Quote:
+>     the typical solution is to then implement atomic_set{}() with
+>     atomic_xchg().
+> 
+> I didn't get how using atomic_xchg() fixes it. Is the assumption there that
+> atomic_xchg() would be implemented using locking to avoid atomic_set() having
+> issues? If so, we could clarify that in the document.
+> 
+> thanks,
+> 
+>  - Joel
+> 
+> > 
+> > Changes since v3:
+> > 
+> > *	Merge two patches on atomic-set litmus test into one as per
+> > 	Alan. (Alan, you have acked only one of the two patches, so I
+> > 	don't add you acked-by for the combined patch).
+> > 
+> > *	Move the atomic litmus tests into litmus-tests/atomic to align
+> > 	with Joel's recent patches on RCU litmus tests.
+> > 
+> > I think we still haven't reach to a conclusion for the difference of
+> > atomic_add_unless() in herdtools, and I'm currently reading the source
+> > code of herd to resovle this. This is just an updated version to resolve
+> > ealier comments and react on Joel's RCU litmus tests.
+> > 
+> > Regards,
+> > Boqun
+> > 
+> > [1]: http://diy.inria.fr/doc/litmus.html#klitmus
+> > 
+> > Boqun Feng (4):
+> >   tools/memory-model: Add an exception for limitations on _unless()
+> >     family
+> >   Documentation/litmus-tests: Introduce atomic directory
+> >   Documentation/litmus-tests/atomic: Add a test for atomic_set()
+> >   Documentation/litmus-tests/atomic: Add a test for
+> >     smp_mb__after_atomic()
+> > 
+> >  Documentation/atomic_t.txt                    | 24 +++++++-------
+> >  ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
+> >  ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 ++++++++++++++
+> >  Documentation/litmus-tests/atomic/README      | 16 ++++++++++
+> >  tools/memory-model/README                     | 10 ++++--
+> >  5 files changed, 91 insertions(+), 15 deletions(-)
+> >  create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
+> >  create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+> >  create mode 100644 Documentation/litmus-tests/atomic/README
+> > 
+> > -- 
+> > 2.25.1
+> > 
