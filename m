@@ -1,167 +1,116 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
- flush_pmd_tlb_range
-Date: Wed, 1 Apr 2020 14:20:04 +0200
-Message-ID: <20200401122004.GE20713@hirez.programming.kicks-ass.net>
-References: <20200331142927.1237-1-yezhenyu2@huawei.com>
- <20200331142927.1237-5-yezhenyu2@huawei.com>
- <20200331151331.GS20730@hirez.programming.kicks-ass.net>
- <fe12101e-8efe-22ad-0258-e6aeafc798cc@huawei.com>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH v4 0/4] Documentation/litmus-tests: Add litmus tests for
+ atomic APIs
+Date: Wed, 1 Apr 2020 09:34:09 -0700
+Message-ID: <20200401163409.GZ19865@paulmck-ThinkPad-P72>
+References: <20200326024022.7566-1-boqun.feng@gmail.com>
+ <20200327221843.GA226939@google.com>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:60808 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2387696AbgDAQeL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 1 Apr 2020 12:34:11 -0400
 Content-Disposition: inline
-In-Reply-To: <fe12101e-8efe-22ad-0258-e6aeafc798cc@huawei.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: mark.rutland@arm.com, catalin.marinas@arm.com, linux-mm@kvack.org, guohanjun@huawei.com, will@kernel.org, linux-arch@vger.kernel.org, yuzhao@google.com, corbet@lwn.net, maz@kernel.org, steven.price@arm.com, arm@kernel.org, Dave.Martin@arm.com, arnd@arndb.de, suzuki.poulose@arm.com, npiggin@gmail.com, zhangshaokun@hisilicon.com, broonie@kernel.org, rostedt@goodmis.org, prime.zeng@hisilicon.com, kuhn.chenqun@huawei.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, xiexiangyou@huawei.com, tony.luck@intel.com, vgupta@synopsys.com, linux-kernel@vger.kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20200327221843.GA226939@google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Joel Fernandes <joel@joelfernandes.org>
+Cc: Boqun Feng <boqun.feng@gmail.com>, linux-kernel@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
 
-On Wed, Apr 01, 2020 at 04:51:15PM +0800, Zhenyu Ye wrote:
-> On 2020/3/31 23:13, Peter Zijlstra wrote:
-
-> > Instead of trying to retro-fit flush_*tlb_range() to take an mmu_gather
-> > parameter, please replace them out-right.
+On Fri, Mar 27, 2020 at 06:18:43PM -0400, Joel Fernandes wrote:
+> On Thu, Mar 26, 2020 at 10:40:18AM +0800, Boqun Feng wrote:
+> > A recent discussion raises up the requirement for having test cases for
+> > atomic APIs:
 > > 
+> > 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
+> > 
+> > , and since we already have a way to generate a test module from a
+> > litmus test with klitmus[1]. It makes sense that we add more litmus
+> > tests for atomic APIs. And based on the previous discussion, I create a
+> > new directory Documentation/atomic-tests and put these litmus tests
+> > here.
+> > 
+> > This patchset starts the work by adding the litmus tests which are
+> > already used in atomic_t.txt, and also improve the atomic_t.txt to make
+> > it consistent with the litmus tests.
+> > 
+> > Previous version:
+> > v1: https://lore.kernel.org/linux-doc/20200214040132.91934-1-boqun.feng@gmail.com/
+> > v2: https://lore.kernel.org/lkml/20200219062627.104736-1-boqun.feng@gmail.com/
+> > v3: https://lore.kernel.org/linux-doc/20200227004049.6853-1-boqun.feng@gmail.com/
 > 
-> I'm sorry that I'm not sure what "replace them out-right" means.  Do you
-> mean that I should define flush_*_tlb_range like this?
+> For full series:
 > 
-> #define flush_pmd_tlb_range(vma, addr, end)				\
-> 	do {								\
-> 		struct mmu_gather tlb;					\
-> 		tlb_gather_mmu(&tlb, (vma)->vm_mm, addr, end);		\
-> 		tlba.cleared_pmds = 1;					\
-> 		flush_tlb_range(&tlb, vma, addr, end);			\
-> 		tlb_finish_mmu(&tlb, addr, end);			\
-> 	} while (0)
+> Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+
+Queued in place of the following commits, with Joel's and Alan's tags
+added, thank you all!
+
+							Thanx, Paul
+
+c13c55d4 tools/memory-model: Add an exception for limitations on _unless() family
+59ffd85 Documentation/locking/atomic: Fix atomic-set litmus test
+23c19c8 Documentation/locking/atomic: Introduce atomic-tests directory
+3bd201c Documentation/locking/atomic: Add a litmus test for atomic_set()
+833f53b Documentation/locking/atomic: Add a litmus test smp_mb__after_atomic()
+
+> One question I had was in the existing atomic_set() documentation, it talks
+> about atomic_add_unless() implementation based on locking could have issues.
+> It says the way to fix such cases is:
 > 
-
-I was thinking to remove flush_*tlb_range() entirely (from generic
-code).
-
-And specifically to not use them like the above; instead extend the
-mmu_gather API.
-
-Specifically, if you wanted to express flush_pmd_tlb_range() in mmu
-gather, you'd write it like:
-
-static inline void flush_pmd_tlb_range(struct vm_area_struct *vma, unsigned long addr, unsigned long end)
-{
-	struct mmu_gather tlb;
-
-	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
-	tlb_start_vma(&tlb, vma);
-	tlb.cleared_pmds = 1;
-	__tlb_adjust_range(addr, end - addr);
-	tlb_end_vma(&tlb, vma);
-	tlb_finish_mmu(&tlb, addr, end);
-}
-
-Except of course, that the code between start_vma and end_vma is not a
-proper mmu_gather API.
-
-So maybe add:
-
-  tlb_flush_{pte,pmd,pud,p4d}_range()
-
-Then we can write:
-
-static inline void flush_XXX_tlb_range(struct vm_area_struct *vma, unsigned long addr, unsigned long end)
-{
-	struct mmu_gather tlb;
-
-	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
-	tlb_start_vma(&tlb, vma);
-	tlb_flush_XXX_range(&tlb, addr, end - addr);
-	tlb_end_vma(&tlb, vma);
-	tlb_finish_mmu(&tlb, addr, end);
-}
-
-But when I look at the output of:
-
-  git grep flush_.*tlb_range -- :^arch/
-
-I doubt it makes sense to provide wrappers like the above.
-
-( Also, we should probably remove the (addr, end) arguments from
-tlb_finish_mmu(), Will? )
-
----
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index f391f6b500b4..be5452a8efaa 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -511,6 +511,34 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- }
- #endif
- 
-+static inline void tlb_flush_pte_range(struct mmu_gather *tlb,
-+				       unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_ptes = 1;
-+}
-+
-+static inline void tlb_flush_pmd_range(struct mmu_gather *tlb,
-+				       unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_pmds = 1;
-+}
-+
-+static inline void tlb_flush_pud_range(struct mmu_gather *tlb,
-+				       unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_puds = 1;
-+}
-+
-+static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
-+				       unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_p4ds = 1;
-+}
-+
- #ifndef __tlb_remove_tlb_entry
- #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
- #endif
-@@ -524,8 +552,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
-  */
- #define tlb_remove_tlb_entry(tlb, ptep, address)		\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
--		tlb->cleared_ptes = 1;				\
-+		tlb_flush_pte_range(tlb, address, PAGE_SIZE);	\
- 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
- 	} while (0)
- 
-@@ -550,8 +577,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 
- #define tlb_remove_pmd_tlb_entry(tlb, pmdp, address)			\
- 	do {								\
--		__tlb_adjust_range(tlb, address, HPAGE_PMD_SIZE);	\
--		tlb->cleared_pmds = 1;					\
-+		tlb_flush_pmd_range(tlb, address, HPAGE_PMD_SIZE);	\
- 		__tlb_remove_pmd_tlb_entry(tlb, pmdp, address);		\
- 	} while (0)
- 
-@@ -565,8 +591,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 
- #define tlb_remove_pud_tlb_entry(tlb, pudp, address)			\
- 	do {								\
--		__tlb_adjust_range(tlb, address, HPAGE_PUD_SIZE);	\
--		tlb->cleared_puds = 1;					\
-+		tlb_flush_pud_range(tlb, address, HPAGE_PUD_SIZE);	\
- 		__tlb_remove_pud_tlb_entry(tlb, pudp, address);		\
- 	} while (0)
+> Quote:
+>     the typical solution is to then implement atomic_set{}() with
+>     atomic_xchg().
+> 
+> I didn't get how using atomic_xchg() fixes it. Is the assumption there that
+> atomic_xchg() would be implemented using locking to avoid atomic_set() having
+> issues? If so, we could clarify that in the document.
+> 
+> thanks,
+> 
+>  - Joel
+> 
+> > 
+> > Changes since v3:
+> > 
+> > *	Merge two patches on atomic-set litmus test into one as per
+> > 	Alan. (Alan, you have acked only one of the two patches, so I
+> > 	don't add you acked-by for the combined patch).
+> > 
+> > *	Move the atomic litmus tests into litmus-tests/atomic to align
+> > 	with Joel's recent patches on RCU litmus tests.
+> > 
+> > I think we still haven't reach to a conclusion for the difference of
+> > atomic_add_unless() in herdtools, and I'm currently reading the source
+> > code of herd to resovle this. This is just an updated version to resolve
+> > ealier comments and react on Joel's RCU litmus tests.
+> > 
+> > Regards,
+> > Boqun
+> > 
+> > [1]: http://diy.inria.fr/doc/litmus.html#klitmus
+> > 
+> > Boqun Feng (4):
+> >   tools/memory-model: Add an exception for limitations on _unless()
+> >     family
+> >   Documentation/litmus-tests: Introduce atomic directory
+> >   Documentation/litmus-tests/atomic: Add a test for atomic_set()
+> >   Documentation/litmus-tests/atomic: Add a test for
+> >     smp_mb__after_atomic()
+> > 
+> >  Documentation/atomic_t.txt                    | 24 +++++++-------
+> >  ...ter_atomic-is-stronger-than-acquire.litmus | 32 +++++++++++++++++++
+> >  ...c-RMW-ops-are-atomic-WRT-atomic_set.litmus | 24 ++++++++++++++
+> >  Documentation/litmus-tests/atomic/README      | 16 ++++++++++
+> >  tools/memory-model/README                     | 10 ++++--
+> >  5 files changed, 91 insertions(+), 15 deletions(-)
+> >  create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
+> >  create mode 100644 Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
+> >  create mode 100644 Documentation/litmus-tests/atomic/README
+> > 
+> > -- 
+> > 2.25.1
+> > 
