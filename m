@@ -1,38 +1,62 @@
-Return-Path: <SRS0=odmD=53=kvack.org=owner-linux-mm@kernel.org>
-Date: Sat, 11 Apr 2020 09:20:52 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
- zsmalloc
-Message-ID: <20200411072052.GA31242@lst.de>
-References: <20200408115926.1467567-1-hch@lst.de> <20200408115926.1467567-11-hch@lst.de> <20200409160826.GC247701@google.com> <20200409165030.GG20713@hirez.programming.kicks-ass.net> <20200409170813.GD247701@google.com> <20200410023845.GA2354@jagdpanzerIV.localdomain> <20200410231136.GA101325@google.com>
+Return-Path: <SRS0=KXl1=5R=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga07.intel.com ([134.134.136.100]:29382 "EHLO mga07.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726785AbgDATIT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 1 Apr 2020 15:08:19 -0400
+Message-ID: <6f68d7af6a618c087a85d2db6ad40b346e055452.camel@intel.com>
+Subject: Re: [RFC PATCH v9 09/27] x86/mm: Introduce _PAGE_DIRTY_SW
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Wed, 01 Apr 2020 12:08:16 -0700
+In-Reply-To: <325d3a25-0016-ea19-c0c9-7958066fc94e@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+         <20200205181935.3712-10-yu-cheng.yu@intel.com>
+         <325d3a25-0016-ea19-c0c9-7958066fc94e@intel.com>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200410231136.GA101325@google.com>
-Sender: owner-linux-mm@kvack.org
-To: Minchan Kim <minchan@kernel.org>
-Cc: Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200411072052.O4oDXm6m6sSZ6xFCBbcpCMvqj1w4lMGhpdtS82qbI8s@z>
+To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Message-ID: <20200401190816.u-sppJa1BvPyHBMGG_u32chndxC34rD_8x6-tkE463M@z>
 
-Hi Minchan,
+On Wed, 2020-02-26 at 13:35 -0800, Dave Hansen wrote:
+> On 2/5/20 10:19 AM, Yu-cheng Yu wrote:
+> > When Shadow Stack (SHSTK) is introduced, a R/O and Dirty PTE exists in the
+> > following cases:
+> > 
+> > (a) A modified, copy-on-write (COW) page;
+> > (b) A R/O page that has been COW'ed;
+> > (c) A SHSTK page.
+[...]
 
-On Fri, Apr 10, 2020 at 04:11:36PM -0700, Minchan Kim wrote:
-> It doesn't mean we couldn't use zsmalloc as module any longer. It means
-> we couldn't use zsmalloc as module with pgtable mapping whcih was little
-> bit faster on microbenchmark in some architecutre(However, I usually temped
-> to remove it since it had several problems). However, we could still use
-> zsmalloc as module as copy way instead of pgtable mapping. Thus, if someone
-> really want to rollback the feature, they should provide reasonable reason
-> why it doesn't work for them. "A little fast" wouldn't be enough to exports
-> deep internal to the module.
+> > diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+> > index e647e3c75578..826823df917f 100644
+> > --- a/arch/x86/include/asm/pgtable_types.h
+> > +++ b/arch/x86/include/asm/pgtable_types.h
+> > @@ -23,7 +23,8 @@
+> >  #define _PAGE_BIT_SOFTW2	10	/* " */
+> >  #define _PAGE_BIT_SOFTW3	11	/* " */
+> >  #define _PAGE_BIT_PAT_LARGE	12	/* On 2MB or 1GB pages */
+> > -#define _PAGE_BIT_SOFTW4	58	/* available for programmer */
+> > +#define _PAGE_BIT_SOFTW4	57	/* available for programmer */
+> > +#define _PAGE_BIT_SOFTW5	58	/* available for programmer */
+> >  #define _PAGE_BIT_PKEY_BIT0	59	/* Protection Keys, bit 1/4 */
+> >  #define _PAGE_BIT_PKEY_BIT1	60	/* Protection Keys, bit 2/4 */
+> >  #define _PAGE_BIT_PKEY_BIT2	61	/* Protection Keys, bit 3/4 */
+> > @@ -35,6 +36,12 @@
+> >  #define _PAGE_BIT_SOFT_DIRTY	_PAGE_BIT_SOFTW3 /* software dirty tracking */
+> >  #define _PAGE_BIT_DEVMAP	_PAGE_BIT_SOFTW4
+> >  
+> > +/*
+> > + * This bit indicates a copy-on-write page, and is different from
+> > + * _PAGE_BIT_SOFT_DIRTY, which tracks which pages a task writes to.
+> > + */
+> > +#define _PAGE_BIT_DIRTY_SW	_PAGE_BIT_SOFTW5 /* was written to */
+> 
+> Does it *only* indicate a copy-on-write (or copy-on-access) page?  If
+> so, haven't we misnamed it?
 
-do you have any data how much faster it is on arm (and does that include
-arm64 as well)?  Besides the exports which were my prime concern,
-zsmalloc with pgtable mappings also is the only user of map_kernel_range
-outside of vmalloc.c, if it really is another code base for tiny
-improvements we could mark map_kernel_range or in fact remove it entirely
-and open code it in the remaining callers.
+It indicates either a copy-on-write page or a read-only page that has been
+cow'ed.  What about _PAGE_BIT_COW?
 
-(unmap_kernel_range is a different story, it has a bunch of callers,
-and most look odd)
+Yu-cheng
