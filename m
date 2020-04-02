@@ -1,81 +1,73 @@
 From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH RESEND 1/4] uaccess: Add user_read_access_begin/end and
- user_write_access_begin/end
-Date: Thu,  2 Apr 2020 07:34:16 +0000 (UTC)
-Message-ID: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
+Subject: [PATCH RESEND 3/4] drm/i915/gem: Replace user_access_begin by
+ user_write_access_begin
+Date: Thu,  2 Apr 2020 07:34:18 +0000 (UTC)
+Message-ID: <6da6fa391c0d6344cc9ff99a69fcaa65666f3947.1585811416.git.christophe.leroy@c-s.fr>
+References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
 Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Some architectures like powerpc64 have the capability to separate
-read access and write access protection.
-For get_user() and copy_from_user(), powerpc64 only open read access.
-For put_user() and copy_to_user(), powerpc64 only open write access.
-But when using unsafe_get_user() or unsafe_put_user(),
-user_access_begin open both read and write.
-
-Other architectures like powerpc book3s 32 bits only allow write
-access protection. And on this architecture protection is an heavy
-operation as it requires locking/unlocking per segment of 256Mbytes.
-On those architecture it is therefore desirable to do the unlocking
-only for write access. (Note that book3s/32 ranges from very old
-powermac from the 90's with powerpc 601 processor, till modern
-ADSL boxes with PowerQuicc II modern processors for instance so it
-is still worth considering)
-
-In order to avoid any risk based of hacking some variable parameters
-passed to user_access_begin/end that would allow hacking and
-leaving user access open or opening too much, it is preferable to
-use dedicated static functions that can't be overridden.
-
-Add a user_read_access_begin and user_read_access_end to only open
-read access.
-
-Add a user_write_access_begin and user_write_access_end to only open
-write access.
-
-By default, when undefined, those new access helpers default on the
-existing user_access_begin and user_access_end.
+When i915_gem_execbuffer2_ioctl() is using user_access_begin(),
+that's only to perform unsafe_put_user() so use
+user_write_access_begin() in order to only open write access.
 
 Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
-Link: https://patchwork.ozlabs.org/patch/1227926/
 ---
-Resending this series as I mistakenly only sent it to powerpc list
-begining of February (https://patchwork.ozlabs.org/patch/1233172/)
+ drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
 
-This series is based on the discussion we had in January, see
-https://patchwork.ozlabs.org/patch/1227926/ . I tried to
-take into account all remarks, especially @hpa 's remark to use
-a fixed API on not base the relocking on a magic id returned at
-unlocking.
-
-This series is awaited for implementing selective lkdtm test to
-test powerpc64 independant read and write protection, see
-https://patchwork.ozlabs.org/patch/1231765/
-
- include/linux/uaccess.h | 8 ++++++++
- 1 file changed, 8 insertions(+)
-
-diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
-index 67f016010aad..9861c89f93be 100644
---- a/include/linux/uaccess.h
-+++ b/include/linux/uaccess.h
-@@ -378,6 +378,14 @@ extern long strnlen_unsafe_user(const void __user *unsafe_addr, long count);
- static inline unsigned long user_access_save(void) { return 0UL; }
- static inline void user_access_restore(unsigned long flags) { }
- #endif
-+#ifndef user_write_access_begin
-+#define user_write_access_begin user_access_begin
-+#define user_write_access_end user_access_end
-+#endif
-+#ifndef user_read_access_begin
-+#define user_read_access_begin user_access_begin
-+#define user_read_access_end user_access_end
-+#endif
+diff --git a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
+index 7643a30ba4cd..4be8205a70b6 100644
+--- a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
++++ b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
+@@ -1611,14 +1611,14 @@ static int eb_copy_relocations(const struct i915_execbuffer *eb)
+ 		 * happened we would make the mistake of assuming that the
+ 		 * relocations were valid.
+ 		 */
+-		if (!user_access_begin(urelocs, size))
++		if (!user_write_access_begin(urelocs, size))
+ 			goto end;
  
- #ifdef CONFIG_HARDENED_USERCOPY
- void usercopy_warn(const char *name, const char *detail, bool to_user,
+ 		for (copied = 0; copied < nreloc; copied++)
+ 			unsafe_put_user(-1,
+ 					&urelocs[copied].presumed_offset,
+ 					end_user);
+-		user_access_end();
++		user_write_access_end();
+ 
+ 		eb->exec[i].relocs_ptr = (uintptr_t)relocs;
+ 	}
+@@ -1626,7 +1626,7 @@ static int eb_copy_relocations(const struct i915_execbuffer *eb)
+ 	return 0;
+ 
+ end_user:
+-	user_access_end();
++	user_write_access_end();
+ end:
+ 	kvfree(relocs);
+ 	err = -EFAULT;
+@@ -2991,7 +2991,8 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
+ 		 * And this range already got effectively checked earlier
+ 		 * when we did the "copy_from_user()" above.
+ 		 */
+-		if (!user_access_begin(user_exec_list, count * sizeof(*user_exec_list)))
++		if (!user_write_access_begin(user_exec_list,
++					     count * sizeof(*user_exec_list)))
+ 			goto end;
+ 
+ 		for (i = 0; i < args->buffer_count; i++) {
+@@ -3005,7 +3006,7 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
+ 					end_user);
+ 		}
+ end_user:
+-		user_access_end();
++		user_write_access_end();
+ end:;
+ 	}
+ 
 -- 
 2.25.0
