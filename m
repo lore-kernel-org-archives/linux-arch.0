@@ -1,36 +1,69 @@
-Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from eu-smtp-delivery-151.mimecast.com ([207.82.80.151]:52818 "EHLO
-        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726421AbgDVQ4F (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Apr 2020 12:56:05 -0400
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH 1/4] fs: Implement close-on-fork
-Date: Wed, 22 Apr 2020 16:55:58 +0000
-Message-ID: <337320db094d4426a621858fa0f6d7fd@AcuMS.aculab.com>
-References: <20200420071548.62112-1-nate.karstens@garmin.com>
- <20200420071548.62112-2-nate.karstens@garmin.com>
- <fa6c5c9c7c434f878c94a7c984cd43ba@garmin.com>
- <20200422154356.GU5820@bombadil.infradead.org>
- <6ed7bd08892b4311b70636658321904f@garmin.com>
- <97f05204-a27c-7cc8-429a-edcf6eebaa11@petrovitsch.priv.at>
-In-Reply-To: <97f05204-a27c-7cc8-429a-edcf6eebaa11@petrovitsch.priv.at>
-Content-Language: en-US
+Return-Path: <SRS0=8Oio=5S=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:39072 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388815AbgDBR0l (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2020 13:26:41 -0400
+Received: by mail-pg1-f194.google.com with SMTP id g32so2149326pgb.6
+        for <linux-arch@vger.kernel.org>; Thu, 02 Apr 2020 10:26:40 -0700 (PDT)
+Date: Thu, 2 Apr 2020 10:26:38 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 0/9] Enable orphan section warning
+Message-ID: <202004021023.D3D8AA3BE@keescook>
+References: <20200228002244.15240-1-keescook@chromium.org>
+ <CA+icZUWTnP8DYfbaMwKtJbG30v7bB4w6=ywo8gn8fvwr731mUQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CA+icZUWTnP8DYfbaMwKtJbG30v7bB4w6=ywo8gn8fvwr731mUQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Bernd Petrovitsch' <bernd@petrovitsch.priv.at>, "Karstens, Nate" <Nate.Karstens@garmin.com>, Matthew Wilcox <willy@infradead.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Changli Gao <xiaosuo@gmail.com>
-Message-ID: <20200422165558.kU764Hf3zW9ihJZC7d58mcFiZHV4H7K5CERRl5tiXx4@z>
+To: Sedat Dilek <sedat.dilek@gmail.com>
+Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Clang-Built-Linux ML <clang-built-linux@googlegroups.com>, linux-kernel@vger.kernel.org
+Message-ID: <20200402172638.2EOK0j1KkO_fLOvAW36Gndqio9cG-Z98KeSWv5o6jtY@z>
 
-RnJvbTogQmVybmQgUGV0cm92aXRzY2gNCj4gU2VudDogMjIgQXByaWwgMjAyMCAxNzozMg0KLi4u
-DQo+IEFwYXJ0IGZyb20gdGhhdCwgc3lzdGVtKCkgaXMgYSBQSVRBIGV2ZW4gb24NCj4gc2luZ2xl
-L25vbi10aHJlYWRlZCBhcHBzLg0KDQpOb3Qgb25seSB0aGF0LCBpdCBpcyBibG9vZHkgZGFuZ2Vy
-b3VzIGJlY2F1c2UgKHR5cGljYWxseSkNCnNoZWxsIGlzIGRvaW5nIHBvc3Qgc3Vic3RpdHV0aW9u
-IHN5bnRheCBhbmFseXNpcy4NCg0KSWYgeW91IG5lZWQgdG8gcnVuIGFuIGV4dGVybmFsIHByb2Nl
-c3MgeW91IG5lZWQgdG8gZ2VuZXJhdGUNCmFuIGFydltdIGFycmF5IGNvbnRhaW5pbmcgdGhlIHBh
-cmFtZXRlcnMuDQoNCglEYXZpZA0KDQotDQpSZWdpc3RlcmVkIEFkZHJlc3MgTGFrZXNpZGUsIEJy
-YW1sZXkgUm9hZCwgTW91bnQgRmFybSwgTWlsdG9uIEtleW5lcywgTUsxIDFQVCwgVUsNClJlZ2lz
-dHJhdGlvbiBObzogMTM5NzM4NiAoV2FsZXMpDQo=
+On Thu, Apr 02, 2020 at 06:20:57PM +0200, Sedat Dilek wrote:
+> On Fri, Feb 28, 2020 at 1:22 AM Kees Cook <keescook@chromium.org> wrote:
+> >
+> > Hi!
+> >
+> > A recent bug was solved for builds linked with ld.lld, and tracking
+> > it down took way longer than it needed to (a year). Ultimately, it
+> > boiled down to differences between ld.bfd and ld.lld's handling of
+> > orphan sections. Similarly, the recent FGKASLR series brough up orphan
+> > section handling too[2]. In both cases, it would have been nice if the
+> > linker was running with --orphan-handling=warn so that surprise sections
+> > wouldn't silently get mapped into the kernel image at locations up to
+> > the whim of the linker's orphan handling logic. Instead, all desired
+> > sections should be explicitly identified in the linker script (to be
+> > either kept or discarded) with any orphans throwing a warning. The
+> > powerpc architecture actually already does this, so this series seeks
+> > to extend this coverage to x86, arm64, and arm.
+> >
+> > This series depends on tip/x86/boot (where recent .eh_frame fixes[3]
+> > landed), and has a minor conflict[4] with the ARM tree (related to
+> > the earlier mentioned bug). As it uses refactorings in the asm-generic
+> > linker script, and makes changes to kbuild, I think the cleanest place
+> > for this series to land would also be through -tip. Once again (like
+> > my READ_IMPLIES_EXEC series), I'm looking to get maintainer Acks so
+> > this can go all together with the least disruption. Splitting it up by
+> > architecture seems needlessly difficult.
+> >
+> > Thanks!
+> >
+> 
+> Hi Kees,
+> 
+> what is the status of this patchset?
+> Looks like it is not in tip or linux-next Git.
+
+Based on the feedback, I have 3 TODO items:
+
+- track down and eliminate (or explain) the source of the .got.plt on arm64
+- enable orphan warnings for _all_ architectures
+- refactor final link logic to perform the orphan warning in a clean way
+
+I'm working through these (and other work) still. I'm hoping to have
+another version up some time next week.
+
+-- 
+Kees Cook
