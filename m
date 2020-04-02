@@ -1,23 +1,49 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH RESEND 4/4] powerpc/uaccess: Implement
- user_read_access_begin and user_write_access_begin
-Date: Thu, 2 Apr 2020 00:52:41 -0700
-Message-ID: <202004020052.47DB88E3C@keescook>
+Subject: Re: [PATCH RESEND 1/4] uaccess: Add user_read_access_begin/end and
+ user_write_access_begin/end
+Date: Thu, 2 Apr 2020 00:46:56 -0700
+Message-ID: <202004020046.96A2D21F@keescook>
 References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
- <ebcf8256e02a7dffb292f3d800e264dce263cac5.1585811416.git.christophe.leroy@c-s.fr>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <ebcf8256e02a7dffb292f3d800e264dce263cac5.1585811416.git.christophe.leroy@c-s.fr>
+In-Reply-To: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Christophe Leroy <christophe.leroy@c-s.fr>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, hpa@zytor.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 02, 2020 at 07:34:19AM +0000, Christophe Leroy wrote:
-> Add support for selective read or write user access with
-> user_read_access_begin/end and user_write_access_begin/end.
+On Thu, Apr 02, 2020 at 07:34:16AM +0000, Christophe Leroy wrote:
+> Some architectures like powerpc64 have the capability to separate
+> read access and write access protection.
+> For get_user() and copy_from_user(), powerpc64 only open read access.
+> For put_user() and copy_to_user(), powerpc64 only open write access.
+> But when using unsafe_get_user() or unsafe_put_user(),
+> user_access_begin open both read and write.
+> 
+> Other architectures like powerpc book3s 32 bits only allow write
+> access protection. And on this architecture protection is an heavy
+> operation as it requires locking/unlocking per segment of 256Mbytes.
+> On those architecture it is therefore desirable to do the unlocking
+> only for write access. (Note that book3s/32 ranges from very old
+> powermac from the 90's with powerpc 601 processor, till modern
+> ADSL boxes with PowerQuicc II modern processors for instance so it
+> is still worth considering)
+> 
+> In order to avoid any risk based of hacking some variable parameters
+> passed to user_access_begin/end that would allow hacking and
+> leaving user access open or opening too much, it is preferable to
+> use dedicated static functions that can't be overridden.
+> 
+> Add a user_read_access_begin and user_read_access_end to only open
+> read access.
+> 
+> Add a user_write_access_begin and user_write_access_end to only open
+> write access.
+> 
+> By default, when undefined, those new access helpers default on the
+> existing user_access_begin and user_access_end.
 > 
 > Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 
@@ -25,99 +51,43 @@ Reviewed-by: Kees Cook <keescook@chromium.org>
 
 -Kees
 
+> Link: https://patchwork.ozlabs.org/patch/1227926/
 > ---
->  arch/powerpc/include/asm/book3s/32/kup.h |  4 ++--
->  arch/powerpc/include/asm/kup.h           | 14 +++++++++++++-
->  arch/powerpc/include/asm/uaccess.h       | 22 ++++++++++++++++++++++
->  3 files changed, 37 insertions(+), 3 deletions(-)
+> Resending this series as I mistakenly only sent it to powerpc list
+> begining of February (https://patchwork.ozlabs.org/patch/1233172/)
 > 
-> diff --git a/arch/powerpc/include/asm/book3s/32/kup.h b/arch/powerpc/include/asm/book3s/32/kup.h
-> index 3c0ba22dc360..1617e73bee30 100644
-> --- a/arch/powerpc/include/asm/book3s/32/kup.h
-> +++ b/arch/powerpc/include/asm/book3s/32/kup.h
-> @@ -108,7 +108,7 @@ static __always_inline void allow_user_access(void __user *to, const void __user
->  	u32 addr, end;
+> This series is based on the discussion we had in January, see
+> https://patchwork.ozlabs.org/patch/1227926/ . I tried to
+> take into account all remarks, especially @hpa 's remark to use
+> a fixed API on not base the relocking on a magic id returned at
+> unlocking.
+> 
+> This series is awaited for implementing selective lkdtm test to
+> test powerpc64 independant read and write protection, see
+> https://patchwork.ozlabs.org/patch/1231765/
+> 
+>  include/linux/uaccess.h | 8 ++++++++
+>  1 file changed, 8 insertions(+)
+> 
+> diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+> index 67f016010aad..9861c89f93be 100644
+> --- a/include/linux/uaccess.h
+> +++ b/include/linux/uaccess.h
+> @@ -378,6 +378,14 @@ extern long strnlen_unsafe_user(const void __user *unsafe_addr, long count);
+>  static inline unsigned long user_access_save(void) { return 0UL; }
+>  static inline void user_access_restore(unsigned long flags) { }
+>  #endif
+> +#ifndef user_write_access_begin
+> +#define user_write_access_begin user_access_begin
+> +#define user_write_access_end user_access_end
+> +#endif
+> +#ifndef user_read_access_begin
+> +#define user_read_access_begin user_access_begin
+> +#define user_read_access_end user_access_end
+> +#endif
 >  
->  	BUILD_BUG_ON(!__builtin_constant_p(dir));
-> -	BUILD_BUG_ON(dir == KUAP_CURRENT);
-> +	BUILD_BUG_ON(dir & ~KUAP_READ_WRITE);
->  
->  	if (!(dir & KUAP_WRITE))
->  		return;
-> @@ -131,7 +131,7 @@ static __always_inline void prevent_user_access(void __user *to, const void __us
->  
->  	BUILD_BUG_ON(!__builtin_constant_p(dir));
->  
-> -	if (dir == KUAP_CURRENT) {
-> +	if (dir & KUAP_CURRENT_WRITE) {
->  		u32 kuap = current->thread.kuap;
->  
->  		if (unlikely(!kuap))
-> diff --git a/arch/powerpc/include/asm/kup.h b/arch/powerpc/include/asm/kup.h
-> index 92bcd1a26d73..c745ee41ad66 100644
-> --- a/arch/powerpc/include/asm/kup.h
-> +++ b/arch/powerpc/include/asm/kup.h
-> @@ -10,7 +10,9 @@
->   * Use the current saved situation instead of the to/from/size params.
->   * Used on book3s/32
->   */
-> -#define KUAP_CURRENT	4
-> +#define KUAP_CURRENT_READ	4
-> +#define KUAP_CURRENT_WRITE	8
-> +#define KUAP_CURRENT		(KUAP_CURRENT_READ | KUAP_CURRENT_WRITE)
->  
->  #ifdef CONFIG_PPC64
->  #include <asm/book3s/64/kup-radix.h>
-> @@ -101,6 +103,16 @@ static inline void prevent_current_access_user(void)
->  	prevent_user_access(NULL, NULL, ~0UL, KUAP_CURRENT);
->  }
->  
-> +static inline void prevent_current_read_from_user(void)
-> +{
-> +	prevent_user_access(NULL, NULL, ~0UL, KUAP_CURRENT_READ);
-> +}
-> +
-> +static inline void prevent_current_write_to_user(void)
-> +{
-> +	prevent_user_access(NULL, NULL, ~0UL, KUAP_CURRENT_WRITE);
-> +}
-> +
->  #endif /* !__ASSEMBLY__ */
->  
->  #endif /* _ASM_POWERPC_KUAP_H_ */
-> diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
-> index 2f500debae21..4427d419eb1d 100644
-> --- a/arch/powerpc/include/asm/uaccess.h
-> +++ b/arch/powerpc/include/asm/uaccess.h
-> @@ -468,6 +468,28 @@ static __must_check inline bool user_access_begin(const void __user *ptr, size_t
->  #define user_access_save	prevent_user_access_return
->  #define user_access_restore	restore_user_access
->  
-> +static __must_check inline bool
-> +user_read_access_begin(const void __user *ptr, size_t len)
-> +{
-> +	if (unlikely(!access_ok(ptr, len)))
-> +		return false;
-> +	allow_read_from_user(ptr, len);
-> +	return true;
-> +}
-> +#define user_read_access_begin	user_read_access_begin
-> +#define user_read_access_end		prevent_current_read_from_user
-> +
-> +static __must_check inline bool
-> +user_write_access_begin(const void __user *ptr, size_t len)
-> +{
-> +	if (unlikely(!access_ok(ptr, len)))
-> +		return false;
-> +	allow_write_to_user((void __user *)ptr, len);
-> +	return true;
-> +}
-> +#define user_write_access_begin	user_write_access_begin
-> +#define user_write_access_end		prevent_current_write_to_user
-> +
->  #define unsafe_op_wrap(op, err) do { if (unlikely(op)) goto err; } while (0)
->  #define unsafe_get_user(x, p, e) unsafe_op_wrap(__get_user_allowed(x, p), e)
->  #define unsafe_put_user(x, p, e) unsafe_op_wrap(__put_user_allowed(x, p), e)
+>  #ifdef CONFIG_HARDENED_USERCOPY
+>  void usercopy_warn(const char *name, const char *detail, bool to_user,
 > -- 
 > 2.25.0
 > 
