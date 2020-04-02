@@ -1,100 +1,95 @@
-Return-Path: <SRS0=jgxL=6L=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:43909 "EHLO
-        youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726832AbgD0UNN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2020 16:13:13 -0400
-Date: Mon, 27 Apr 2020 22:13:03 +0200
-From: Christian Brauner <christian.brauner@ubuntu.com>
-Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
-Message-ID: <20200427201303.tbiipopeapxofn6h@wittgenstein>
-References: <20200426130100.306246-1-hagen@jauu.net>
- <20200426163430.22743-1-hagen@jauu.net>
- <20200427170826.mdklazcrn4xaeafm@wittgenstein>
- <CAG48ez0hskhN7OkxwHX-Bo5HGboJaVEk8udFukkTgiC=43ixcw@mail.gmail.com>
- <87zhawdc6w.fsf@x220.int.ebiederm.org>
- <20200427185929.GA1768@laniakea>
- <CAK8P3a2Ux1pDZEBjgRSPMJXvwUAvbPastX2ynVVC2iPTTDK_ow@mail.gmail.com>
+Return-Path: <SRS0=8Oio=5S=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pf1-f196.google.com ([209.85.210.196]:34485 "EHLO
+        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2389618AbgDBSgA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2020 14:36:00 -0400
+Received: by mail-pf1-f196.google.com with SMTP id 23so2177258pfj.1
+        for <linux-arch@vger.kernel.org>; Thu, 02 Apr 2020 11:36:00 -0700 (PDT)
+Date: Thu, 2 Apr 2020 11:35:57 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH RESEND 1/4] uaccess: Add user_read_access_begin/end and
+ user_write_access_begin/end
+Message-ID: <202004021132.813F8E88@keescook>
+References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
+ <20200402162942.GG23230@ZenIV.linux.org.uk>
+ <67e21b65-0e2d-7ca5-7518-cec1b7abc46c@c-s.fr>
+ <20200402175032.GH23230@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAK8P3a2Ux1pDZEBjgRSPMJXvwUAvbPastX2ynVVC2iPTTDK_ow@mail.gmail.com>
+In-Reply-To: <20200402175032.GH23230@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Hagen Paul Pfeifer <hagen@jauu.net>, "Eric W. Biederman" <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, kernel list <linux-kernel@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Message-ID: <20200427201303.SuDhZdYL3KYhYuUHrJTFhxh9JR9wuJAHYMWLe8RtVa8@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, akpm@linux-foundation.org, hpa@zytor.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20200402183557.uR4YFSP8zRB3OA06YqgWqFhZ8n4WUtA0ipcMJwNApkM@z>
 
-On Mon, Apr 27, 2020 at 10:08:03PM +0200, Arnd Bergmann wrote:
-> On Mon, Apr 27, 2020 at 8:59 PM Hagen Paul Pfeifer <hagen@jauu.net> wrote:
-> >
-> > * Eric W. Biederman | 2020-04-27 13:18:47 [-0500]:
-> >
-> > >I am conflicted about that but I have to agree.    Instead of
-> > >duplicating everything it would be good enough to duplicate the once
-> > >that cause the process to be attached to use.  Then there would be no
-> > >more pid races to worry about.
-> >
-> > >How does this differ using the tracing related infrastructure we have
-> > >for the kernel on a userspace process?  I suspect augmenting the tracing
-> > >infrastructure with the ability to set breakpoints and watchpoints (aka
-> > >stopping userspace threads and processes might be a more fertile
-> > >direction to go).
-> > >
-> > >But I agree either we want to just address the races in PTRACE_ATTACH
-> > >and PTRACE_SIEZE or we want to take a good hard look at things.
-> > >
-> > >There is a good case for minimal changes because one of the cases that
-> > >comes up is how much work will it take to change existing programs.  But
-> > >ultimately ptrace pretty much sucks so a very good set of test cases and
-> > >documentation for what we want to implement would be a very good idea.
-> >
-> > Hey Eric, Jann, Christian, Arnd,
-> >
-> > thank you for your valuable input! IMHO I think we have exactly two choices
-> > here:
-> >
-> > a) we go with my patchset that is 100% ptrace feature compatible - except the
-> >    pidfd thing - now and in the future. If ptrace is extended pidfd_ptrace is
-> >    automatically extended and vice versa. Both APIs are feature identical
-> >    without any headaches.
-> > b) leave ptrace completely behind us and design ptrace that we have always
-> >    dreamed of! eBPF filters, ftrace kernel architecture, k/uprobe goodness,
-> >    a speedy API to copy & modify large chunks of data, io_uring/epoll support
-> >    and of course: pidfd based (missed likely thousands of other dreams)
-> >
-> > I think a solution in between is not worth the effort! It will not be
-> > compatible in any way for the userspace and the benefit will be negligible.
-> > Ptrace is horrible API - everybody knows that but developers get comfy with
-> > it. You find examples everywhere, why should we make it harder for the user for
-> > no or little benefit (except that stable handle with pidfd and some cleanups)?
-> >
-> > Any thoughts on this?
+On Thu, Apr 02, 2020 at 06:50:32PM +0100, Al Viro wrote:
+> On Thu, Apr 02, 2020 at 07:03:28PM +0200, Christophe Leroy wrote:
 > 
-> The way I understood Jann was that instead of a new syscall that duplicates
-> everything in ptrace(), there would only need to be a new ptrace request
-> such as PTRACE_ATTACH_PIDFD that behaves like PTRACE_ATTACH
-> but takes a pidfd as the second argument, perhaps setting the return value
-> to the pid on success. Same for PTRACE_SEIZE.
-
-That was my initial suggestion, yes. Any enum that identifies a target
-by a pid will get a new _PIDFD version and the pidfd is passed as pid_t
-argument. That should work and is similar to what I did for waitid()
-P_PIDFD. Realistically, there shouldn't be any system where pid_t is
-smaller than an int that we care about.
-
+> > user_access_begin() grants both read and write.
+> > 
+> > This patch adds user_read_access_begin() and user_write_access_begin() but
+> > it doesn't remove user_access_begin()
 > 
-> In effect this is not much different from your a), just a variation on the
-> calling conventions. The main upside is that it avoids adding another
-> ugly interface, the flip side is that it makes the existing one slightly worse
-> by adding complexity.
+> Ouch...  So the most generic name is for the rarest case?
+>  
+> > > What should we do about that?  Do we prohibit such blocks outside
+> > > of arch?
+> > > 
+> > > What should we do about arm and s390?  There we want a cookie passed
+> > > from beginning of block to its end; should that be a return value?
+> > 
+> > That was the way I implemented it in January, see
+> > https://patchwork.ozlabs.org/patch/1227926/
+> > 
+> > There was some discussion around that and most noticeable was:
+> > 
+> > H. Peter (hpa) said about it: "I have *deep* concern with carrying state in
+> > a "key" variable: it's a direct attack vector for a crowbar attack,
+> > especially since it is by definition live inside a user access region."
+> 
+> > This patch minimises the change by just adding user_read_access_begin() and
+> > user_write_access_begin() keeping the same parameters as the existing
+> > user_access_begin().
+> 
+> Umm...  What about the arm situation?  The same concerns would apply there,
+> wouldn't they?  Currently we have
+> static __always_inline unsigned int uaccess_save_and_enable(void)
+> {
+> #ifdef CONFIG_CPU_SW_DOMAIN_PAN
+>         unsigned int old_domain = get_domain();
+> 
+>         /* Set the current domain access to permit user accesses */
+>         set_domain((old_domain & ~domain_mask(DOMAIN_USER)) |
+>                    domain_val(DOMAIN_USER, DOMAIN_CLIENT));
+> 
+>         return old_domain;
+> #else
+>         return 0;
+> #endif
+> }
+> and
+> static __always_inline void uaccess_restore(unsigned int flags)
+> {
+> #ifdef CONFIG_CPU_SW_DOMAIN_PAN
+>         /* Restore the user access mask */
+>         set_domain(flags);
+> #endif
+> }
+> 
+> How much do we need nesting on those, anyway?  rmk?
 
-Basically, if a new syscall than please a proper re-design with real
-benefits.
+Yup, I think it's a weakness of the ARM implementation and I'd like to
+not extend it further. AFAIK we should never nest, but I would not be
+surprised at all if we did.
 
-In the meantime we could make due with the _PIDFD variant. And then if
-someone wants to do the nitty gritty work of adding a ptrace variant
-purely based on pidfds and with a better api and features that e.g. Jann
-pointed out then by all means, please do so. I'm sure we would all
-welcome this as well.
+If we were looking at a design goal for all architectures, I'd like
+to be doing what the public PaX patchset did for their memory access
+switching, which is to alarm if calling into "enable" found the access
+already enabled, etc. Such a condition would show an unexpected nesting
+(like we've seen with similar constructs with set_fs() not getting reset
+during an exception handler, etc etc).
 
-Christian
+-- 
+Kees Cook
