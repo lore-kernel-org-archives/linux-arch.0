@@ -1,172 +1,104 @@
-Return-Path: <SRS0=lzY1=6F=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 21 Apr 2020 11:49:35 +0300
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH 02/21] mm: make early_pfn_to_nid() and related defintions
- close to each other
-Message-ID: <20200421084935.GB14260@kernel.org>
-References: <20200412194859.12663-1-rppt@kernel.org>
- <20200412194859.12663-3-rppt@kernel.org>
- <20200421022435.GP4247@MiWiFi-R3L-srv>
+Return-Path: <SRS0=8Oio=5S=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-wm1-f68.google.com ([209.85.128.68]:38137 "EHLO
+        mail-wm1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2389689AbgDBQUx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2020 12:20:53 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200421022435.GP4247@MiWiFi-R3L-srv>
-Sender: owner-linux-mm@kvack.org
-To: Baoquan He <bhe@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
+References: <20200228002244.15240-1-keescook@chromium.org>
+In-Reply-To: <20200228002244.15240-1-keescook@chromium.org>
+Reply-To: sedat.dilek@gmail.com
+From: Sedat Dilek <sedat.dilek@gmail.com>
+Date: Thu, 2 Apr 2020 18:20:57 +0200
+Message-ID: <CA+icZUWTnP8DYfbaMwKtJbG30v7bB4w6=ywo8gn8fvwr731mUQ@mail.gmail.com>
+Subject: Re: [PATCH 0/9] Enable orphan section warning
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200421084935.nLOhN0hbaUC_0E_P-QlD7J1mad02qef3CxRiC8vRzXY@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Clang-Built-Linux ML <clang-built-linux@googlegroups.com>, linux-kernel@vger.kernel.org
+Message-ID: <20200402162057.MOJH-lns10Ug2GhgdFqnyqPq9-EIh1o1KNcjMLfxfxI@z>
 
-On Tue, Apr 21, 2020 at 10:24:35AM +0800, Baoquan He wrote:
-> On 04/12/20 at 10:48pm, Mike Rapoport wrote:
-> > From: Mike Rapoport <rppt@linux.ibm.com>
-> > 
-> > The early_pfn_to_nid() and it's helper __early_pfn_to_nid() are spread
-> > around include/linux/mm.h, include/linux/mmzone.h and mm/page_alloc.c.
-> > 
-> > Drop unused stub for __early_pfn_to_nid() and move its actual generic
-> > implementation close to its users.
-> > 
-> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> > ---
-> >  include/linux/mm.h     |  4 ++--
-> >  include/linux/mmzone.h |  9 --------
-> >  mm/page_alloc.c        | 51 +++++++++++++++++++++---------------------
-> >  3 files changed, 27 insertions(+), 37 deletions(-)
-> > 
-> > diff --git a/include/linux/mm.h b/include/linux/mm.h
-> > index 5a323422d783..a404026d14d4 100644
-> > --- a/include/linux/mm.h
-> > +++ b/include/linux/mm.h
-> > @@ -2388,9 +2388,9 @@ extern void sparse_memory_present_with_active_regions(int nid);
-> >  
-> >  #if !defined(CONFIG_HAVE_MEMBLOCK_NODE_MAP) && \
-> >      !defined(CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID)
-> > -static inline int __early_pfn_to_nid(unsigned long pfn,
-> > -					struct mminit_pfnnid_cache *state)
-> > +static inline int early_pfn_to_nid(unsigned long pfn)
-> >  {
-> > +	BUILD_BUG_ON(IS_ENABLED(CONFIG_NUMA));
-> >  	return 0;
-> >  }
-> 
-> It's better to make a separate patch to drop __early_pfn_to_nid() here.
+On Fri, Feb 28, 2020 at 1:22 AM Kees Cook <keescook@chromium.org> wrote:
+>
+> Hi!
+>
+> A recent bug was solved for builds linked with ld.lld, and tracking
+> it down took way longer than it needed to (a year). Ultimately, it
+> boiled down to differences between ld.bfd and ld.lld's handling of
+> orphan sections. Similarly, the recent FGKASLR series brough up orphan
+> section handling too[2]. In both cases, it would have been nice if the
+> linker was running with --orphan-handling=warn so that surprise sections
+> wouldn't silently get mapped into the kernel image at locations up to
+> the whim of the linker's orphan handling logic. Instead, all desired
+> sections should be explicitly identified in the linker script (to be
+> either kept or discarded) with any orphans throwing a warning. The
+> powerpc architecture actually already does this, so this series seeks
+> to extend this coverage to x86, arm64, and arm.
+>
+> This series depends on tip/x86/boot (where recent .eh_frame fixes[3]
+> landed), and has a minor conflict[4] with the ARM tree (related to
+> the earlier mentioned bug). As it uses refactorings in the asm-generic
+> linker script, and makes changes to kbuild, I think the cleanest place
+> for this series to land would also be through -tip. Once again (like
+> my READ_IMPLIES_EXEC series), I'm looking to get maintainer Acks so
+> this can go all together with the least disruption. Splitting it up by
+> architecture seems needlessly difficult.
+>
+> Thanks!
+>
 
-Not sure it's really worth it.
-This patch anyway only moves the code around without any actual changes.
+Hi Kees,
 
-> >  #else
-> > diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
-> > index 1b9de7d220fb..7b5b6eba402f 100644
-> > --- a/include/linux/mmzone.h
-> > +++ b/include/linux/mmzone.h
-> > @@ -1078,15 +1078,6 @@ static inline struct zoneref *first_zones_zonelist(struct zonelist *zonelist,
-> >  #include <asm/sparsemem.h>
-> >  #endif
-> >  
-> > -#if !defined(CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID) && \
-> > -	!defined(CONFIG_HAVE_MEMBLOCK_NODE_MAP)
-> > -static inline unsigned long early_pfn_to_nid(unsigned long pfn)
-> > -{
-> > -	BUILD_BUG_ON(IS_ENABLED(CONFIG_NUMA));
-> > -	return 0;
-> > -}
-> > -#endif
-> > -
-> >  #ifdef CONFIG_FLATMEM
-> >  #define pfn_to_nid(pfn)		(0)
-> >  #endif
-> > diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-> > index 0d012eda1694..1ac775bfc9cf 100644
-> > --- a/mm/page_alloc.c
-> > +++ b/mm/page_alloc.c
-> > @@ -1504,6 +1504,31 @@ void __free_pages_core(struct page *page, unsigned int order)
-> 
-> #if defined(CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID) || \
->         defined(CONFIG_HAVE_MEMBLOCK_NODE_MAP)
-> 
-> This is the upper layer of ifdeffery scope.
-> >  
-> >  static struct mminit_pfnnid_cache early_pfnnid_cache __meminitdata;
-> >  
-> > +#ifndef CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID
-> 
-> Moving __early_pfn_to_nid() here makes the upper layer of ifdeferry
-> scope a little werid. But seems no better way to optimize it.
+what is the status of this patchset?
+Looks like it is not in tip or linux-next Git.
 
-It gets a bit better after patch 3 :)
+Thanks.
 
-> Otherwise, this patch looks good to me.
-> 
-> Reviewed-by: Baoquan He <bhe@redhat.com>
+Regards,
+- Sedat -
 
-Thanks!
-
-> > +
-> > +/*
-> > + * Required by SPARSEMEM. Given a PFN, return what node the PFN is on.
-> > + */
-> > +int __meminit __early_pfn_to_nid(unsigned long pfn,
-> > +					struct mminit_pfnnid_cache *state)
-> > +{
-> > +	unsigned long start_pfn, end_pfn;
-> > +	int nid;
-> > +
-> > +	if (state->last_start <= pfn && pfn < state->last_end)
-> > +		return state->last_nid;
-> > +
-> > +	nid = memblock_search_pfn_nid(pfn, &start_pfn, &end_pfn);
-> > +	if (nid != NUMA_NO_NODE) {
-> > +		state->last_start = start_pfn;
-> > +		state->last_end = end_pfn;
-> > +		state->last_nid = nid;
-> > +	}
-> > +
-> > +	return nid;
-> > +}
-> > +#endif /* CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID */
-> > +
-> >  int __meminit early_pfn_to_nid(unsigned long pfn)
-> >  {
-> >  	static DEFINE_SPINLOCK(early_pfn_lock);
-> > @@ -6298,32 +6323,6 @@ void __meminit init_currently_empty_zone(struct zone *zone,
-> >  	zone->initialized = 1;
-> >  }
-> >  
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> > -#ifndef CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID
-> > -
-> > -/*
-> > - * Required by SPARSEMEM. Given a PFN, return what node the PFN is on.
-> > - */
-> > -int __meminit __early_pfn_to_nid(unsigned long pfn,
-> > -					struct mminit_pfnnid_cache *state)
-> > -{
-> > -	unsigned long start_pfn, end_pfn;
-> > -	int nid;
-> > -
-> > -	if (state->last_start <= pfn && pfn < state->last_end)
-> > -		return state->last_nid;
-> > -
-> > -	nid = memblock_search_pfn_nid(pfn, &start_pfn, &end_pfn);
-> > -	if (nid != NUMA_NO_NODE) {
-> > -		state->last_start = start_pfn;
-> > -		state->last_end = end_pfn;
-> > -		state->last_nid = nid;
-> > -	}
-> > -
-> > -	return nid;
-> > -}
-> > -#endif /* CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID */
-> > -
-> >  /**
-> >   * free_bootmem_with_active_regions - Call memblock_free_early_nid for each active range
-> >   * @nid: The node to free memory on. If MAX_NUMNODES, all nodes are freed.
-> > -- 
-> > 2.25.1
-> > 
-> 
-
--- 
-Sincerely yours,
-Mike.
+> -Kees
+>
+> [1] https://github.com/ClangBuiltLinux/linux/issues/282
+> [2] https://lore.kernel.org/lkml/202002242122.AA4D1B8@keescook/
+> [3] https://lore.kernel.org/lkml/158264960194.28353.10560165361470246192.tip-bot2@tip-bot2/
+> [4] https://www.arm.linux.org.uk/developer/patches/viewpatch.php?id=8959/1
+>
+> H.J. Lu (1):
+>   Add RUNTIME_DISCARD_EXIT to generic DISCARDS
+>
+> Kees Cook (8):
+>   scripts/link-vmlinux.sh: Delay orphan handling warnings until final
+>     link
+>   vmlinux.lds.h: Add .gnu.version* to DISCARDS
+>   x86/build: Warn on orphan section placement
+>   x86/boot: Warn on orphan section placement
+>   arm64/build: Use common DISCARDS in linker script
+>   arm64/build: Warn on orphan section placement
+>   arm/build: Warn on orphan section placement
+>   arm/boot: Warn on orphan section placement
+>
+>  arch/arm/Makefile                             |  4 ++++
+>  arch/arm/boot/compressed/Makefile             |  2 ++
+>  arch/arm/boot/compressed/vmlinux.lds.S        | 17 ++++++--------
+>  .../arm/{kernel => include/asm}/vmlinux.lds.h | 22 ++++++++++++++-----
+>  arch/arm/kernel/vmlinux-xip.lds.S             |  5 ++---
+>  arch/arm/kernel/vmlinux.lds.S                 |  5 ++---
+>  arch/arm64/Makefile                           |  4 ++++
+>  arch/arm64/kernel/vmlinux.lds.S               | 13 +++++------
+>  arch/x86/Makefile                             |  4 ++++
+>  arch/x86/boot/compressed/Makefile             |  3 ++-
+>  arch/x86/boot/compressed/vmlinux.lds.S        | 13 +++++++++++
+>  arch/x86/kernel/vmlinux.lds.S                 |  7 ++++++
+>  include/asm-generic/vmlinux.lds.h             | 11 ++++++++--
+>  scripts/link-vmlinux.sh                       |  6 +++++
+>  14 files changed, 85 insertions(+), 31 deletions(-)
+>  rename arch/arm/{kernel => include/asm}/vmlinux.lds.h (92%)
+>
+> --
+> 2.20.1
+>
+> --
+> You received this message because you are subscribed to the Google Groups "Clang Built Linux" group.
+> To unsubscribe from this group and stop receiving emails from it, send an email to clang-built-linux+unsubscribe@googlegroups.com.
+> To view this discussion on the web visit https://groups.google.com/d/msgid/clang-built-linux/20200228002244.15240-1-keescook%40chromium.org.
