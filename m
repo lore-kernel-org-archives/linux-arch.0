@@ -1,91 +1,123 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH RESEND 3/4] drm/i915/gem: Replace user_access_begin by
- user_write_access_begin
-Date: Thu, 2 Apr 2020 00:52:15 -0700
-Message-ID: <202004020051.649C6B8@keescook>
+Subject: Re: [PATCH RESEND 4/4] powerpc/uaccess: Implement
+ user_read_access_begin and user_write_access_begin
+Date: Thu, 2 Apr 2020 00:52:41 -0700
+Message-ID: <202004020052.47DB88E3C@keescook>
 References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
- <6da6fa391c0d6344cc9ff99a69fcaa65666f3947.1585811416.git.christophe.leroy@c-s.fr>
+ <ebcf8256e02a7dffb292f3d800e264dce263cac5.1585811416.git.christophe.leroy@c-s.fr>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:41166 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387403AbgDBHwS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2020 03:52:18 -0400
-Received: by mail-pg1-f193.google.com with SMTP id b1so1471461pgm.8
-        for <linux-arch@vger.kernel.org>; Thu, 02 Apr 2020 00:52:17 -0700 (PDT)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <6da6fa391c0d6344cc9ff99a69fcaa65666f3947.1585811416.git.christophe.leroy@c-s.fr>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <ebcf8256e02a7dffb292f3d800e264dce263cac5.1585811416.git.christophe.leroy@c-s.fr>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Christophe Leroy <christophe.leroy@c-s.fr>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, hpa@zytor.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 02, 2020 at 07:34:18AM +0000, Christophe Leroy wrote:
-> When i915_gem_execbuffer2_ioctl() is using user_access_begin(),
-> that's only to perform unsafe_put_user() so use
-> user_write_access_begin() in order to only open write access.
+On Thu, Apr 02, 2020 at 07:34:19AM +0000, Christophe Leroy wrote:
+> Add support for selective read or write user access with
+> user_read_access_begin/end and user_write_access_begin/end.
 > 
 > Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 
-Why is this split from the other conversions?
-
 Reviewed-by: Kees Cook <keescook@chromium.org>
 
+-Kees
 
 > ---
->  drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c | 11 ++++++-----
->  1 file changed, 6 insertions(+), 5 deletions(-)
+>  arch/powerpc/include/asm/book3s/32/kup.h |  4 ++--
+>  arch/powerpc/include/asm/kup.h           | 14 +++++++++++++-
+>  arch/powerpc/include/asm/uaccess.h       | 22 ++++++++++++++++++++++
+>  3 files changed, 37 insertions(+), 3 deletions(-)
 > 
-> diff --git a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
-> index 7643a30ba4cd..4be8205a70b6 100644
-> --- a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
-> +++ b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
-> @@ -1611,14 +1611,14 @@ static int eb_copy_relocations(const struct i915_execbuffer *eb)
->  		 * happened we would make the mistake of assuming that the
->  		 * relocations were valid.
->  		 */
-> -		if (!user_access_begin(urelocs, size))
-> +		if (!user_write_access_begin(urelocs, size))
->  			goto end;
+> diff --git a/arch/powerpc/include/asm/book3s/32/kup.h b/arch/powerpc/include/asm/book3s/32/kup.h
+> index 3c0ba22dc360..1617e73bee30 100644
+> --- a/arch/powerpc/include/asm/book3s/32/kup.h
+> +++ b/arch/powerpc/include/asm/book3s/32/kup.h
+> @@ -108,7 +108,7 @@ static __always_inline void allow_user_access(void __user *to, const void __user
+>  	u32 addr, end;
 >  
->  		for (copied = 0; copied < nreloc; copied++)
->  			unsafe_put_user(-1,
->  					&urelocs[copied].presumed_offset,
->  					end_user);
-> -		user_access_end();
-> +		user_write_access_end();
+>  	BUILD_BUG_ON(!__builtin_constant_p(dir));
+> -	BUILD_BUG_ON(dir == KUAP_CURRENT);
+> +	BUILD_BUG_ON(dir & ~KUAP_READ_WRITE);
 >  
->  		eb->exec[i].relocs_ptr = (uintptr_t)relocs;
->  	}
-> @@ -1626,7 +1626,7 @@ static int eb_copy_relocations(const struct i915_execbuffer *eb)
->  	return 0;
+>  	if (!(dir & KUAP_WRITE))
+>  		return;
+> @@ -131,7 +131,7 @@ static __always_inline void prevent_user_access(void __user *to, const void __us
 >  
->  end_user:
-> -	user_access_end();
-> +	user_write_access_end();
->  end:
->  	kvfree(relocs);
->  	err = -EFAULT;
-> @@ -2991,7 +2991,8 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
->  		 * And this range already got effectively checked earlier
->  		 * when we did the "copy_from_user()" above.
->  		 */
-> -		if (!user_access_begin(user_exec_list, count * sizeof(*user_exec_list)))
-> +		if (!user_write_access_begin(user_exec_list,
-> +					     count * sizeof(*user_exec_list)))
->  			goto end;
+>  	BUILD_BUG_ON(!__builtin_constant_p(dir));
 >  
->  		for (i = 0; i < args->buffer_count; i++) {
-> @@ -3005,7 +3006,7 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
->  					end_user);
->  		}
->  end_user:
-> -		user_access_end();
-> +		user_write_access_end();
->  end:;
->  	}
+> -	if (dir == KUAP_CURRENT) {
+> +	if (dir & KUAP_CURRENT_WRITE) {
+>  		u32 kuap = current->thread.kuap;
 >  
+>  		if (unlikely(!kuap))
+> diff --git a/arch/powerpc/include/asm/kup.h b/arch/powerpc/include/asm/kup.h
+> index 92bcd1a26d73..c745ee41ad66 100644
+> --- a/arch/powerpc/include/asm/kup.h
+> +++ b/arch/powerpc/include/asm/kup.h
+> @@ -10,7 +10,9 @@
+>   * Use the current saved situation instead of the to/from/size params.
+>   * Used on book3s/32
+>   */
+> -#define KUAP_CURRENT	4
+> +#define KUAP_CURRENT_READ	4
+> +#define KUAP_CURRENT_WRITE	8
+> +#define KUAP_CURRENT		(KUAP_CURRENT_READ | KUAP_CURRENT_WRITE)
+>  
+>  #ifdef CONFIG_PPC64
+>  #include <asm/book3s/64/kup-radix.h>
+> @@ -101,6 +103,16 @@ static inline void prevent_current_access_user(void)
+>  	prevent_user_access(NULL, NULL, ~0UL, KUAP_CURRENT);
+>  }
+>  
+> +static inline void prevent_current_read_from_user(void)
+> +{
+> +	prevent_user_access(NULL, NULL, ~0UL, KUAP_CURRENT_READ);
+> +}
+> +
+> +static inline void prevent_current_write_to_user(void)
+> +{
+> +	prevent_user_access(NULL, NULL, ~0UL, KUAP_CURRENT_WRITE);
+> +}
+> +
+>  #endif /* !__ASSEMBLY__ */
+>  
+>  #endif /* _ASM_POWERPC_KUAP_H_ */
+> diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
+> index 2f500debae21..4427d419eb1d 100644
+> --- a/arch/powerpc/include/asm/uaccess.h
+> +++ b/arch/powerpc/include/asm/uaccess.h
+> @@ -468,6 +468,28 @@ static __must_check inline bool user_access_begin(const void __user *ptr, size_t
+>  #define user_access_save	prevent_user_access_return
+>  #define user_access_restore	restore_user_access
+>  
+> +static __must_check inline bool
+> +user_read_access_begin(const void __user *ptr, size_t len)
+> +{
+> +	if (unlikely(!access_ok(ptr, len)))
+> +		return false;
+> +	allow_read_from_user(ptr, len);
+> +	return true;
+> +}
+> +#define user_read_access_begin	user_read_access_begin
+> +#define user_read_access_end		prevent_current_read_from_user
+> +
+> +static __must_check inline bool
+> +user_write_access_begin(const void __user *ptr, size_t len)
+> +{
+> +	if (unlikely(!access_ok(ptr, len)))
+> +		return false;
+> +	allow_write_to_user((void __user *)ptr, len);
+> +	return true;
+> +}
+> +#define user_write_access_begin	user_write_access_begin
+> +#define user_write_access_end		prevent_current_write_to_user
+> +
+>  #define unsafe_op_wrap(op, err) do { if (unlikely(op)) goto err; } while (0)
+>  #define unsafe_get_user(x, p, e) unsafe_op_wrap(__get_user_allowed(x, p), e)
+>  #define unsafe_put_user(x, p, e) unsafe_op_wrap(__put_user_allowed(x, p), e)
 > -- 
 > 2.25.0
 > 
