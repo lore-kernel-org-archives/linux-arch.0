@@ -1,38 +1,127 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 14 Apr 2020 00:23:16 -0700
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
-Message-ID: <20200414072316.GA5503@infradead.org>
-References: <20200413125303.423864-1-npiggin@gmail.com>
- <20200413125303.423864-5-npiggin@gmail.com>
+Return-Path: <SRS0=V2YN=5S=kvack.org=owner-linux-mm@kernel.org>
+Date: Thu, 2 Apr 2020 00:52:41 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH RESEND 4/4] powerpc/uaccess: Implement
+ user_read_access_begin and user_write_access_begin
+Message-ID: <202004020052.47DB88E3C@keescook>
+References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
+ <ebcf8256e02a7dffb292f3d800e264dce263cac5.1585811416.git.christophe.leroy@c-s.fr>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200413125303.423864-5-npiggin@gmail.com>
+In-Reply-To: <ebcf8256e02a7dffb292f3d800e264dce263cac5.1585811416.git.christophe.leroy@c-s.fr>
 Sender: owner-linux-mm@kvack.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org
+To: Christophe Leroy <christophe.leroy@c-s.fr>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, hpa@zytor.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414072316.f3bOkFQ0g5hyGI3XIDBumhq-O8D4ol5oStKnlaxgmj8@z>
+Message-ID: <20200402075241.XGOg3obUHlDwb41gSrQ2Mc8vOllp5BdS8kxJSFrciOU@z>
 
-On Mon, Apr 13, 2020 at 10:53:03PM +1000, Nicholas Piggin wrote:
-> For platforms that define HAVE_ARCH_HUGE_VMAP and support PMD vmap mappings,
-> have vmalloc attempt to allocate PMD-sized pages first, before falling back
-> to small pages. Allocations which use something other than PAGE_KERNEL
-> protections are not permitted to use huge pages yet, not all callers expect
-> this (e.g., module allocations vs strict module rwx).
+On Thu, Apr 02, 2020 at 07:34:19AM +0000, Christophe Leroy wrote:
+> Add support for selective read or write user access with
+> user_read_access_begin/end and user_write_access_begin/end.
 > 
-> This gives a 6x reduction in dTLB misses for a `git diff` (of linux), from
-> 45600 to 6500 and a 2.2% reduction in cycles on a 2-node POWER9.
-> 
-> This can result in more internal fragmentation and memory overhead for a
-> given allocation. It can also cause greater NUMA unbalance on hashdist
-> allocations.
-> 
-> There may be other callers that expect small pages under vmalloc but use
-> PAGE_KERNEL, I'm not sure if it's feasible to catch them all. An
-> alternative would be a new function or flag which enables large mappings,
-> and use that in callers.
+> Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 
-Why do we even use vmalloc in this case rather than just doing a huge
-page allocation?  What callers are you intersted in?
+Reviewed-by: Kees Cook <keescook@chromium.org>
+
+-Kees
+
+> ---
+>  arch/powerpc/include/asm/book3s/32/kup.h |  4 ++--
+>  arch/powerpc/include/asm/kup.h           | 14 +++++++++++++-
+>  arch/powerpc/include/asm/uaccess.h       | 22 ++++++++++++++++++++++
+>  3 files changed, 37 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/powerpc/include/asm/book3s/32/kup.h b/arch/powerpc/include/asm/book3s/32/kup.h
+> index 3c0ba22dc360..1617e73bee30 100644
+> --- a/arch/powerpc/include/asm/book3s/32/kup.h
+> +++ b/arch/powerpc/include/asm/book3s/32/kup.h
+> @@ -108,7 +108,7 @@ static __always_inline void allow_user_access(void __user *to, const void __user
+>  	u32 addr, end;
+>  
+>  	BUILD_BUG_ON(!__builtin_constant_p(dir));
+> -	BUILD_BUG_ON(dir == KUAP_CURRENT);
+> +	BUILD_BUG_ON(dir & ~KUAP_READ_WRITE);
+>  
+>  	if (!(dir & KUAP_WRITE))
+>  		return;
+> @@ -131,7 +131,7 @@ static __always_inline void prevent_user_access(void __user *to, const void __us
+>  
+>  	BUILD_BUG_ON(!__builtin_constant_p(dir));
+>  
+> -	if (dir == KUAP_CURRENT) {
+> +	if (dir & KUAP_CURRENT_WRITE) {
+>  		u32 kuap = current->thread.kuap;
+>  
+>  		if (unlikely(!kuap))
+> diff --git a/arch/powerpc/include/asm/kup.h b/arch/powerpc/include/asm/kup.h
+> index 92bcd1a26d73..c745ee41ad66 100644
+> --- a/arch/powerpc/include/asm/kup.h
+> +++ b/arch/powerpc/include/asm/kup.h
+> @@ -10,7 +10,9 @@
+>   * Use the current saved situation instead of the to/from/size params.
+>   * Used on book3s/32
+>   */
+> -#define KUAP_CURRENT	4
+> +#define KUAP_CURRENT_READ	4
+> +#define KUAP_CURRENT_WRITE	8
+> +#define KUAP_CURRENT		(KUAP_CURRENT_READ | KUAP_CURRENT_WRITE)
+>  
+>  #ifdef CONFIG_PPC64
+>  #include <asm/book3s/64/kup-radix.h>
+> @@ -101,6 +103,16 @@ static inline void prevent_current_access_user(void)
+>  	prevent_user_access(NULL, NULL, ~0UL, KUAP_CURRENT);
+>  }
+>  
+> +static inline void prevent_current_read_from_user(void)
+> +{
+> +	prevent_user_access(NULL, NULL, ~0UL, KUAP_CURRENT_READ);
+> +}
+> +
+> +static inline void prevent_current_write_to_user(void)
+> +{
+> +	prevent_user_access(NULL, NULL, ~0UL, KUAP_CURRENT_WRITE);
+> +}
+> +
+>  #endif /* !__ASSEMBLY__ */
+>  
+>  #endif /* _ASM_POWERPC_KUAP_H_ */
+> diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
+> index 2f500debae21..4427d419eb1d 100644
+> --- a/arch/powerpc/include/asm/uaccess.h
+> +++ b/arch/powerpc/include/asm/uaccess.h
+> @@ -468,6 +468,28 @@ static __must_check inline bool user_access_begin(const void __user *ptr, size_t
+>  #define user_access_save	prevent_user_access_return
+>  #define user_access_restore	restore_user_access
+>  
+> +static __must_check inline bool
+> +user_read_access_begin(const void __user *ptr, size_t len)
+> +{
+> +	if (unlikely(!access_ok(ptr, len)))
+> +		return false;
+> +	allow_read_from_user(ptr, len);
+> +	return true;
+> +}
+> +#define user_read_access_begin	user_read_access_begin
+> +#define user_read_access_end		prevent_current_read_from_user
+> +
+> +static __must_check inline bool
+> +user_write_access_begin(const void __user *ptr, size_t len)
+> +{
+> +	if (unlikely(!access_ok(ptr, len)))
+> +		return false;
+> +	allow_write_to_user((void __user *)ptr, len);
+> +	return true;
+> +}
+> +#define user_write_access_begin	user_write_access_begin
+> +#define user_write_access_end		prevent_current_write_to_user
+> +
+>  #define unsafe_op_wrap(op, err) do { if (unlikely(op)) goto err; } while (0)
+>  #define unsafe_get_user(x, p, e) unsafe_op_wrap(__get_user_allowed(x, p), e)
+>  #define unsafe_put_user(x, p, e) unsafe_op_wrap(__put_user_allowed(x, p), e)
+> -- 
+> 2.25.0
+> 
+
+-- 
+Kees Cook
