@@ -1,120 +1,78 @@
-Return-Path: <SRS0=/SNT=6G=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [PATCH 3/4] arm64: mte: Enable swap of tagged pages
-References: <20200422142530.32619-1-steven.price@arm.com>
- <20200422142530.32619-4-steven.price@arm.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <6ebff138-a6ad-75c9-bfe5-b7174098e878@intel.com>
-Date: Wed, 22 Apr 2020 11:34:22 -0700
-MIME-Version: 1.0
-In-Reply-To: <20200422142530.32619-4-steven.price@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Steven Price <steven.price@arm.com>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Hugh Dickins <hughd@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
+Return-Path: <SRS0=8Oio=5S=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:21271 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2387562AbgDBHeV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Apr 2020 03:34:21 -0400
+Message-ID: <6da6fa391c0d6344cc9ff99a69fcaa65666f3947.1585811416.git.christophe.leroy@c-s.fr>
+In-Reply-To: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
+References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: [PATCH RESEND 3/4] drm/i915/gem: Replace user_access_begin by
+ user_write_access_begin
+Date: Thu,  2 Apr 2020 07:34:18 +0000 (UTC)
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200422183422.BzlN3A1ZwUgaZ4zwufGNsbF7Ey14G-W_zC23rLfqj0Q@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Message-ID: <20200402073418.i8K76T8uW3PfoTQu_pug_kX0N60-Jw500C2bw8T4Nw0@z>
 
-On 4/22/20 7:25 AM, Steven Price wrote:
-> Because shmem can swap pages back in without restoring
-> the userspace PTE it is also necessary to add a hook for shmem.
+When i915_gem_execbuffer2_ioctl() is using user_access_begin(),
+that's only to perform unsafe_put_user() so use
+user_write_access_begin() in order to only open write access.
 
-I think the swap readahead code does this as well.  It pulls the page
-into the swap cache, but doesn't map it in.
+Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
+---
+ drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
 
-...
-> +static DEFINE_XARRAY(mte_pages);
-> +
-> +void *mte_allocate_tag_storage(void)
-> +{
-> +	/* tags granule is 16 bytes, 2 tags stored per byte */
-> +	return kmalloc(PAGE_SIZE / 16 / 2, GFP_KERNEL);
-> +}
-
-Yikes, so this eats 2k of unmovable kernel memory per 64k of swap?  This
-is *probably* worth having its own slab just so the memory that's used
-for it is less opaque.  It could be pretty large.  But, I guess if
-you're worried about how much kernel memory this can eat, there's always
-the swap cgroup controller to enforce limits.
-
-This also *increases* the footprint of a page while it's in the swap
-cache.  That's at least temporarily a _bit_ counterproductive.
-
-I guess there aren't any nice alternatives, though.  I would imagine
-that it would be substantially more complicated to rig the swap code up
-to write the tag along with the data.  Or, to store the tag data
-somewhere *it* can be reclaimed, like in a kernel-internal shmem file or
-something.
-
-> +void mte_free_tag_storage(char *storage)
-> +{
-> +	kfree(storage);
-> +}
-> +
-> +int mte_save_tags(struct page *page)
-> +{
-> +	void *tag_storage, *ret;
-> +
-> +	if (!test_bit(PG_mte_tagged, &page->flags))
-> +		return 0;
-> +
-> +	tag_storage =3D mte_allocate_tag_storage();
-> +	if (!tag_storage)
-> +		return -ENOMEM;
-> +
-> +	mte_save_page_tags(page_address(page), tag_storage);
-> +
-> +	ret =3D xa_store(&mte_pages, page_private(page), tag_storage, GFP_KER=
-NEL);
-
-This is indexing into the xarray with the swap entry.val established in
-do_swap_page()?  Might be nice to make a note where it came from.
-
-> +	if (WARN(xa_is_err(ret), "Failed to store MTE tags")) {
-> +		mte_free_tag_storage(tag_storage);
-> +		return xa_err(ret);
-> +	} else if (ret) {
-> +		mte_free_tag_storage(ret);
-
-Is there a missing "return ret;" here?  Otherwise, it seems like this
-might silently fail to save the page's tags.  I'm not sure what
-non-xa_is_err() codes get returned, but if there is one, it could end up
-here.
-
-> +	}
-> +
-> +	return 0;
-> +}
-...
-
-> +void mte_sync_tags(pte_t *ptep, pte_t pte)
-> +{
-> +	struct page *page =3D pte_page(pte);
-> +	pte_t old_pte =3D READ_ONCE(*ptep);
-> +	swp_entry_t entry;
-> +
-> +	set_bit(PG_mte_tagged, &page->flags);
-> +
-> +	if (!is_swap_pte(old_pte))
-> +		return;
-> +
-> +	entry =3D pte_to_swp_entry(old_pte);
-> +	if (non_swap_entry(entry))
-> +		return;
-> +
-> +	mte_restore_tags(entry, page);
-> +}
-
-Oh, here it is!  This gets called when replacing a swap PTE with a
-present PTE and restores the tags on swap-in.
-
-Does this work for swap PTEs which were copied at fork()?  I *think*
-those might end up in here twice, once for the parent and another for
-the child.  If both read the page, both will fault and both will do a
-set_pte() and end up in here.  I don't think it will do any harm since
-it will just set_bit(PG_mte_tagged) twice and restore the same tags
-twice.  But, it might be nice to call that out.
-
-This function is a bit light on comments.  It might make sense, for
-instance to note that 'pte' is always a tagged PTE at this point.
+diff --git a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
+index 7643a30ba4cd..4be8205a70b6 100644
+--- a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
++++ b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
+@@ -1611,14 +1611,14 @@ static int eb_copy_relocations(const struct i915_execbuffer *eb)
+ 		 * happened we would make the mistake of assuming that the
+ 		 * relocations were valid.
+ 		 */
+-		if (!user_access_begin(urelocs, size))
++		if (!user_write_access_begin(urelocs, size))
+ 			goto end;
+ 
+ 		for (copied = 0; copied < nreloc; copied++)
+ 			unsafe_put_user(-1,
+ 					&urelocs[copied].presumed_offset,
+ 					end_user);
+-		user_access_end();
++		user_write_access_end();
+ 
+ 		eb->exec[i].relocs_ptr = (uintptr_t)relocs;
+ 	}
+@@ -1626,7 +1626,7 @@ static int eb_copy_relocations(const struct i915_execbuffer *eb)
+ 	return 0;
+ 
+ end_user:
+-	user_access_end();
++	user_write_access_end();
+ end:
+ 	kvfree(relocs);
+ 	err = -EFAULT;
+@@ -2991,7 +2991,8 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
+ 		 * And this range already got effectively checked earlier
+ 		 * when we did the "copy_from_user()" above.
+ 		 */
+-		if (!user_access_begin(user_exec_list, count * sizeof(*user_exec_list)))
++		if (!user_write_access_begin(user_exec_list,
++					     count * sizeof(*user_exec_list)))
+ 			goto end;
+ 
+ 		for (i = 0; i < args->buffer_count; i++) {
+@@ -3005,7 +3006,7 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
+ 					end_user);
+ 		}
+ end_user:
+-		user_access_end();
++		user_write_access_end();
+ end:;
+ 	}
+ 
+-- 
+2.25.0
