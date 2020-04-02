@@ -1,100 +1,97 @@
-Return-Path: <SRS0=iE4N=6I=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35578 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726698AbgDXQmP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Apr 2020 12:42:15 -0400
-Date: Fri, 24 Apr 2020 12:42:00 -0400
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [PATCH 1/6] bitops: Introduce the the for_each_set_clump macro
-Message-ID: <20200424163904.GA7742@icarus>
-References: <20200424122521.GA5552@syed>
- <20200424141037.ersebbfe7xls37be@wunner.de>
- <CACG_h5prcXVdk6ecn2WoT1jas3K6UF+KCrxAM9u4_ZLSyPKCEA@mail.gmail.com>
- <20200424150058.xadjxaga3csh3br6@wunner.de>
- <20200424150828.GA5034@icarus>
- <20200424163410.GD185537@smile.fi.intel.com>
+Return-Path: <SRS0=V2YN=5S=kvack.org=owner-linux-mm@kernel.org>
+Date: Thu, 2 Apr 2020 00:46:56 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH RESEND 1/4] uaccess: Add user_read_access_begin/end and
+ user_write_access_begin/end
+Message-ID: <202004020046.96A2D21F@keescook>
+References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="7ZAtKRhVyVSsbBD2"
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200424163410.GD185537@smile.fi.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
+Sender: owner-linux-mm@kvack.org
+To: Christophe Leroy <christophe.leroy@c-s.fr>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, hpa@zytor.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Cc: Lukas Wunner <lukas@wunner.de>, Syed Nayyar Waris <syednwaris@gmail.com>, akpm@linux-foundation.org, arnd@arndb.de, Linus Walleij <linus.walleij@linaro.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200424164200.tWlKX9v_Qj71nJUevm4CS1pPCLlZ_5eK2XK1YrR8Jc0@z>
+Message-ID: <20200402074656.Cel0Yfli5_VkiktTYa1Tv32AaHuiWo7faUKlYbK7yNY@z>
 
+On Thu, Apr 02, 2020 at 07:34:16AM +0000, Christophe Leroy wrote:
+> Some architectures like powerpc64 have the capability to separate
+> read access and write access protection.
+> For get_user() and copy_from_user(), powerpc64 only open read access.
+> For put_user() and copy_to_user(), powerpc64 only open write access.
+> But when using unsafe_get_user() or unsafe_put_user(),
+> user_access_begin open both read and write.
+> 
+> Other architectures like powerpc book3s 32 bits only allow write
+> access protection. And on this architecture protection is an heavy
+> operation as it requires locking/unlocking per segment of 256Mbytes.
+> On those architecture it is therefore desirable to do the unlocking
+> only for write access. (Note that book3s/32 ranges from very old
+> powermac from the 90's with powerpc 601 processor, till modern
+> ADSL boxes with PowerQuicc II modern processors for instance so it
+> is still worth considering)
+> 
+> In order to avoid any risk based of hacking some variable parameters
+> passed to user_access_begin/end that would allow hacking and
+> leaving user access open or opening too much, it is preferable to
+> use dedicated static functions that can't be overridden.
+> 
+> Add a user_read_access_begin and user_read_access_end to only open
+> read access.
+> 
+> Add a user_write_access_begin and user_write_access_end to only open
+> write access.
+> 
+> By default, when undefined, those new access helpers default on the
+> existing user_access_begin and user_access_end.
+> 
+> Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 
---7ZAtKRhVyVSsbBD2
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
-On Fri, Apr 24, 2020 at 07:34:10PM +0300, Andy Shevchenko wrote:
-> On Fri, Apr 24, 2020 at 11:09:26AM -0400, William Breathitt Gray wrote:
-> > On Fri, Apr 24, 2020 at 05:00:58PM +0200, Lukas Wunner wrote:
-> > > On Fri, Apr 24, 2020 at 08:22:38PM +0530, Syed Nayyar Waris wrote:
-> > > > On Fri, Apr 24, 2020 at 7:40 PM Lukas Wunner <lukas@wunner.de> wrot=
-e:
-> > > > > On Fri, Apr 24, 2020 at 05:55:21PM +0530, Syed Nayyar Waris wrote:
->=20
-> ...
->=20
-> > > > So, this function preserves the behaviour of earlier
-> > > > bitmap_set_value8() function and also adds extra functionality to
-> > > > that.
-> > >=20
-> > > Please leave drivers as is which use exclusively 8-bit accesses,
-> > > e.g. gpio-max3191x.c and gpio-74x164.c.  I'm fearing a performance
-> > > regression if your new generic variant is used.  They work perfectly
-> > > fine the way they are and I don't see any benefit this series may have
-> > > for them.
-> > >=20
-> > > If there are other drivers which benefit from the flexibility of your
-> > > generic variant then I'm not opposed to changing those.
->=20
-> > We can leave of course bitmap_set_value8 alone, but for 8-bit values the
-> > difference in latency I suspect is primarily due to the conditional test
-> > for the word boundaries. This latency is surely overshadowed by the I/O
-> > latency of the GPIO drivers, so I don't think there's much harm in
-> > changing those to use the generic function when the bottleneck will not
-> > be due to the bitmap_set_value/bitmap_get_value operations.
->=20
-> Okay, how many new (non-8-bit) users this will target?
->=20
-> --=20
-> With Best Regards,
-> Andy Shevchenko
+-Kees
 
-Within this patchset the only non-8-bit users are gpio-thunderx and
-gpio-xilinix. The gpio-xilinx has configurable port widths so in some
-instances it can behave like the 8-bit users, but not always.
+> Link: https://patchwork.ozlabs.org/patch/1227926/
+> ---
+> Resending this series as I mistakenly only sent it to powerpc list
+> begining of February (https://patchwork.ozlabs.org/patch/1233172/)
+> 
+> This series is based on the discussion we had in January, see
+> https://patchwork.ozlabs.org/patch/1227926/ . I tried to
+> take into account all remarks, especially @hpa 's remark to use
+> a fixed API on not base the relocking on a magic id returned at
+> unlocking.
+> 
+> This series is awaited for implementing selective lkdtm test to
+> test powerpc64 independant read and write protection, see
+> https://patchwork.ozlabs.org/patch/1231765/
+> 
+>  include/linux/uaccess.h | 8 ++++++++
+>  1 file changed, 8 insertions(+)
+> 
+> diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+> index 67f016010aad..9861c89f93be 100644
+> --- a/include/linux/uaccess.h
+> +++ b/include/linux/uaccess.h
+> @@ -378,6 +378,14 @@ extern long strnlen_unsafe_user(const void __user *unsafe_addr, long count);
+>  static inline unsigned long user_access_save(void) { return 0UL; }
+>  static inline void user_access_restore(unsigned long flags) { }
+>  #endif
+> +#ifndef user_write_access_begin
+> +#define user_write_access_begin user_access_begin
+> +#define user_write_access_end user_access_end
+> +#endif
+> +#ifndef user_read_access_begin
+> +#define user_read_access_begin user_access_begin
+> +#define user_read_access_end user_access_end
+> +#endif
+>  
+>  #ifdef CONFIG_HARDENED_USERCOPY
+>  void usercopy_warn(const char *name, const char *detail, bool to_user,
+> -- 
+> 2.25.0
+> 
 
-If you want to keep the existing for_each_set_clump8 and related
-functions, ignore [PATCH 3/6] and [PATCH 4/6]. That should allow this
-patchset to be just an introduction of the new generic functions without
-affecting the existing 8-bit users.
-
-William Breathitt Gray
-
---7ZAtKRhVyVSsbBD2
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCgAdFiEEk5I4PDJ2w1cDf/bghvpINdm7VJIFAl6jFtgACgkQhvpINdm7
-VJJDLQ//dC8JJyJuTyByjULnK5tnjcifhON861BfrOYqbQu20etmMZFIFYkAnre4
-7fBxjh7tSk05AecOKxEG6va+XybbFoDuMEVftcIJ/FGf69Gw4ml6lD2PPP/HFiJJ
-jh0BnBIwP1B+gbJYtGnW5aFWZWPYkBRbSmN4QEn5TQ5x06mCCxdlSIAh2jPpnlZD
-9P67mVq1m59i8/ZcEG2YD8oNwK6WVYB0wYvbO42ixVAJfAmfjD4o0/V+8Lt2K4Gs
-sPEVpwJMfxBbLJDYFaQh+CY+32Acujkfo+CwqorKgMghNciLrrH3jwfGPv1vUvL4
-/7v26sjRraruBlHMAakvzeV2o5BCyIaUxEX/zXMm7OgLOes7unLpFtrf1PkDBEP0
-H/QUQUWomI5Qq2HTjFzMl2zj2ohVQjFdMpLyFZpssgpbOjdO3DXWuLqDMs5Amzp3
-4ATQvbwdNwHRMoZp1fs1aCcE0UGXDKH+lc4+yLH0tmVHX+uC0x91D0Pdl2epR+k6
-JD86YfHcN9TAG1x35KiA2V3F/2MaPwydqjaGLi7TaGYxjFEV+kLWcT1qjhUrVlCL
-ifgrvaI1TfPpYDi0CgsxQFiD6NXGH8CUIK3Y9fB8vMn/qSwuSCCGQSeDfsVRTk9k
-YHS7FpJYHJ81HVj3N3UI7XoM+wCvkgrp5X3bVeePTbykiA8EruQ=
-=6E0z
------END PGP SIGNATURE-----
-
---7ZAtKRhVyVSsbBD2--
+-- 
+Kees Cook
