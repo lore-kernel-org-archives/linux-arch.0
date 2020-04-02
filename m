@@ -1,62 +1,46 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 0/9] Enable orphan section warning
-Date: Thu, 2 Apr 2020 10:26:38 -0700
-Message-ID: <202004021023.D3D8AA3BE@keescook>
-References: <20200228002244.15240-1-keescook@chromium.org>
- <CA+icZUWTnP8DYfbaMwKtJbG30v7bB4w6=ywo8gn8fvwr731mUQ@mail.gmail.com>
+Subject: Re: [PATCH RESEND 1/4] uaccess: Add user_read_access_begin/end and
+ user_write_access_begin/end
+Date: Thu, 2 Apr 2020 10:38:32 -0700
+Message-ID: <202004021035.573BBBE9AA@keescook>
+References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
+ <20200402162942.GG23230@ZenIV.linux.org.uk>
+ <67e21b65-0e2d-7ca5-7518-cec1b7abc46c@c-s.fr>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kbuild-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pj1-f66.google.com ([209.85.216.66]:36332 "EHLO
+        mail-pj1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2389561AbgDBRig (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2020 13:38:36 -0400
+Received: by mail-pj1-f66.google.com with SMTP id nu11so1786568pjb.1
+        for <linux-arch@vger.kernel.org>; Thu, 02 Apr 2020 10:38:35 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <CA+icZUWTnP8DYfbaMwKtJbG30v7bB4w6=ywo8gn8fvwr731mUQ@mail.gmail.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Sedat Dilek <sedat.dilek@gmail.com>
-Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Clang-Built-Linux ML <clang-built-linux@googlegroups.com>, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <67e21b65-0e2d-7ca5-7518-cec1b7abc46c@c-s.fr>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christophe Leroy <christophe.leroy@c-s.fr>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, akpm@linux-foundation.org, hpa@zytor.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>
 
-On Thu, Apr 02, 2020 at 06:20:57PM +0200, Sedat Dilek wrote:
-> On Fri, Feb 28, 2020 at 1:22 AM Kees Cook <keescook@chromium.org> wrote:
-> >
-> > Hi!
-> >
-> > A recent bug was solved for builds linked with ld.lld, and tracking
-> > it down took way longer than it needed to (a year). Ultimately, it
-> > boiled down to differences between ld.bfd and ld.lld's handling of
-> > orphan sections. Similarly, the recent FGKASLR series brough up orphan
-> > section handling too[2]. In both cases, it would have been nice if the
-> > linker was running with --orphan-handling=warn so that surprise sections
-> > wouldn't silently get mapped into the kernel image at locations up to
-> > the whim of the linker's orphan handling logic. Instead, all desired
-> > sections should be explicitly identified in the linker script (to be
-> > either kept or discarded) with any orphans throwing a warning. The
-> > powerpc architecture actually already does this, so this series seeks
-> > to extend this coverage to x86, arm64, and arm.
-> >
-> > This series depends on tip/x86/boot (where recent .eh_frame fixes[3]
-> > landed), and has a minor conflict[4] with the ARM tree (related to
-> > the earlier mentioned bug). As it uses refactorings in the asm-generic
-> > linker script, and makes changes to kbuild, I think the cleanest place
-> > for this series to land would also be through -tip. Once again (like
-> > my READ_IMPLIES_EXEC series), I'm looking to get maintainer Acks so
-> > this can go all together with the least disruption. Splitting it up by
-> > architecture seems needlessly difficult.
-> >
-> > Thanks!
-> >
+On Thu, Apr 02, 2020 at 07:03:28PM +0200, Christophe Leroy wrote:
+> > What should we do about arm and s390?  There we want a cookie passed
+> > from beginning of block to its end; should that be a return value?
 > 
-> Hi Kees,
+> That was the way I implemented it in January, see
+> https://patchwork.ozlabs.org/patch/1227926/
 > 
-> what is the status of this patchset?
-> Looks like it is not in tip or linux-next Git.
+> There was some discussion around that and most noticeable was:
+> 
+> H. Peter (hpa) said about it: "I have *deep* concern with carrying state in
+> a "key" variable: it's a direct attack vector for a crowbar attack,
+> especially since it is by definition live inside a user access region."
 
-Based on the feedback, I have 3 TODO items:
+I share this concern -- we want to keep user/kernel access as static as
+possible. It should be provable with static analysis, etc (e.g. objtool
+does this already for x86).
 
-- track down and eliminate (or explain) the source of the .got.plt on arm64
-- enable orphan warnings for _all_ architectures
-- refactor final link logic to perform the orphan warning in a clean way
-
-I'm working through these (and other work) still. I'm hoping to have
-another version up some time next week.
+Since this doesn't disrupt existing R+W access, I'd prefer the design of
+this series as-is.
 
 -- 
 Kees Cook
