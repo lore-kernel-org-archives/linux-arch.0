@@ -1,156 +1,229 @@
-Return-Path: <SRS0=ftPA=6H=kvack.org=owner-linux-mm@kernel.org>
-Date: Thu, 23 Apr 2020 08:50:22 +0300
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH 16/21] mm: remove early_pfn_in_nid() and
- CONFIG_NODES_SPAN_OTHER_NODES
-Message-ID: <20200423055022.GE14260@kernel.org>
-References: <20200412194859.12663-1-rppt@kernel.org>
- <20200412194859.12663-17-rppt@kernel.org>
- <20200423011312.GY4247@MiWiFi-R3L-srv>
+Return-Path: <SRS0=V2YN=5S=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
+ flush_pmd_tlb_range
+References: <20200331142927.1237-1-yezhenyu2@huawei.com>
+ <20200331142927.1237-5-yezhenyu2@huawei.com>
+ <20200331151331.GS20730@hirez.programming.kicks-ass.net>
+ <fe12101e-8efe-22ad-0258-e6aeafc798cc@huawei.com>
+ <20200401122004.GE20713@hirez.programming.kicks-ass.net>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Message-ID: <53675fb9-21c7-5309-07b8-1bbc1e775f9b@huawei.com>
+Date: Thu, 2 Apr 2020 19:24:04 +0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200423011312.GY4247@MiWiFi-R3L-srv>
+In-Reply-To: <20200401122004.GE20713@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
 Sender: owner-linux-mm@kvack.org
-To: Baoquan He <bhe@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200423055022.fqdpp1cunGzl7Qwho6ahCOfx-E_mD6Omm4U6a-HAxgs@z>
+Message-ID: <20200402112404.DOg36dHjW0rx-I9kb_6RqUsnDpLTTo0mgEal6s8ceEc@z>
 
-On Thu, Apr 23, 2020 at 09:13:12AM +0800, Baoquan He wrote:
-> On 04/12/20 at 10:48pm, Mike Rapoport wrote:
-> > From: Mike Rapoport <rppt@linux.ibm.com>
-> > 
-> > The commit f47ac088c406 ("mm: memmap_init: iterate over memblock regions
-> 
-> This commit id should be a temporary one, will be changed when merged
-> into maintainer's tree and linus's tree. Only saying last patch plus the
-> patch subject is OK?
+Hi Peter,
 
-Right, the commit id here is not stable. I'll update the changelog.
- 
-> > rather that check each PFN") made early_pfn_in_nid() obsolete and since
-> > CONFIG_NODES_SPAN_OTHER_NODES is only used to pick a stub or a real
-> > implementation of early_pfn_in_nid() it is also not needed anymore.
-> > 
-> > Remove both early_pfn_in_nid() and the CONFIG_NODES_SPAN_OTHER_NODES.
-> > 
-> > Co-developed-by: Hoan Tran <Hoan@os.amperecomputing.com>
-> > Signed-off-by: Hoan Tran <Hoan@os.amperecomputing.com>
-> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> > ---
-> >  arch/powerpc/Kconfig |  9 ---------
-> >  arch/sparc/Kconfig   |  9 ---------
-> >  arch/x86/Kconfig     |  9 ---------
-> >  mm/page_alloc.c      | 20 --------------------
-> >  4 files changed, 47 deletions(-)
-> > 
-> > diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-> > index 5f86b22b7d2c..74f316deeae1 100644
-> > --- a/arch/powerpc/Kconfig
-> > +++ b/arch/powerpc/Kconfig
-> > @@ -685,15 +685,6 @@ config ARCH_MEMORY_PROBE
-> >  	def_bool y
-> >  	depends on MEMORY_HOTPLUG
-> >  
-> > -# Some NUMA nodes have memory ranges that span
-> > -# other nodes.  Even though a pfn is valid and
-> > -# between a node's start and end pfns, it may not
-> > -# reside on that node.  See memmap_init_zone()
-> > -# for details.
-> > -config NODES_SPAN_OTHER_NODES
-> > -	def_bool y
-> > -	depends on NEED_MULTIPLE_NODES
-> > -
-> >  config STDBINUTILS
-> >  	bool "Using standard binutils settings"
-> >  	depends on 44x
-> > diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-> > index 795206b7b552..0e4f3891b904 100644
-> > --- a/arch/sparc/Kconfig
-> > +++ b/arch/sparc/Kconfig
-> > @@ -286,15 +286,6 @@ config NODES_SHIFT
-> >  	  Specify the maximum number of NUMA Nodes available on the target
-> >  	  system.  Increases memory reserved to accommodate various tables.
-> >  
-> > -# Some NUMA nodes have memory ranges that span
-> > -# other nodes.  Even though a pfn is valid and
-> > -# between a node's start and end pfns, it may not
-> > -# reside on that node.  See memmap_init_zone()
-> > -# for details.
-> > -config NODES_SPAN_OTHER_NODES
-> > -	def_bool y
-> > -	depends on NEED_MULTIPLE_NODES
-> > -
-> >  config ARCH_SPARSEMEM_ENABLE
-> >  	def_bool y if SPARC64
-> >  	select SPARSEMEM_VMEMMAP_ENABLE
-> > diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> > index 9d3e95b4fb85..37dac095659e 100644
-> > --- a/arch/x86/Kconfig
-> > +++ b/arch/x86/Kconfig
-> > @@ -1581,15 +1581,6 @@ config X86_64_ACPI_NUMA
-> >  	---help---
-> >  	  Enable ACPI SRAT based node topology detection.
-> >  
-> > -# Some NUMA nodes have memory ranges that span
-> > -# other nodes.  Even though a pfn is valid and
-> > -# between a node's start and end pfns, it may not
-> > -# reside on that node.  See memmap_init_zone()
-> > -# for details.
-> > -config NODES_SPAN_OTHER_NODES
-> > -	def_bool y
-> > -	depends on X86_64_ACPI_NUMA
-> > -
-> >  config NUMA_EMU
-> >  	bool "NUMA emulation"
-> >  	depends on NUMA
-> > diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-> > index c43ce8709457..343d87b8697d 100644
-> > --- a/mm/page_alloc.c
-> > +++ b/mm/page_alloc.c
-> > @@ -1541,26 +1541,6 @@ int __meminit early_pfn_to_nid(unsigned long pfn)
-> >  }
-> >  #endif /* CONFIG_NEED_MULTIPLE_NODES */
-> >  
-> > -#ifdef CONFIG_NODES_SPAN_OTHER_NODES
-> > -/* Only safe to use early in boot when initialisation is single-threaded */
-> > -static inline bool __meminit early_pfn_in_nid(unsigned long pfn, int node)
-> > -{
-> > -	int nid;
-> > -
-> > -	nid = __early_pfn_to_nid(pfn, &early_pfnnid_cache);
-> > -	if (nid >= 0 && nid != node)
-> > -		return false;
-> > -	return true;
-> > -}
-> > -
-> > -#else
-> > -static inline bool __meminit early_pfn_in_nid(unsigned long pfn, int node)
-> > -{
-> > -	return true;
-> > -}
-> > -#endif
+On 2020/4/1 20:20, Peter Zijlstra wrote:
+> On Wed, Apr 01, 2020 at 04:51:15PM +0800, Zhenyu Ye wrote:
+>> On 2020/3/31 23:13, Peter Zijlstra wrote:
 > 
-> And macro early_pfn_valid() is not needed either, we may need remove it
-> too. 
-
-Ok.
-
-> Otherwise, removing NODES_SPAN_OTHER_NODES in this patch looks good.
+>>> Instead of trying to retro-fit flush_*tlb_range() to take an mmu_gather
+>>> parameter, please replace them out-right.
+>>>
+>>
+>> I'm sorry that I'm not sure what "replace them out-right" means.  Do you
+>> mean that I should define flush_*_tlb_range like this?
+>>
+>> #define flush_pmd_tlb_range(vma, addr, end)				\
+>> 	do {								\
+>> 		struct mmu_gather tlb;					\
+>> 		tlb_gather_mmu(&tlb, (vma)->vm_mm, addr, end);		\
+>> 		tlba.cleared_pmds = 1;					\
+>> 		flush_tlb_range(&tlb, vma, addr, end);			\
+>> 		tlb_finish_mmu(&tlb, addr, end);			\
+>> 	} while (0)
+>>
 > 
-> Reviewed-by: Baoquan He <bhe@redhat.com>
+> I was thinking to remove flush_*tlb_range() entirely (from generic
+> code).
 > 
-> > -
-> > -
-> >  void __init memblock_free_pages(struct page *page, unsigned long pfn,
-> >  							unsigned int order)
-> >  {
-> > -- 
-> > 2.25.1
-> > 
+> And specifically to not use them like the above; instead extend the
+> mmu_gather API.
+> 
+> Specifically, if you wanted to express flush_pmd_tlb_range() in mmu
+> gather, you'd write it like:
+> 
+> static inline void flush_pmd_tlb_range(struct vm_area_struct *vma, unsigned long addr, unsigned long end)
+> {
+> 	struct mmu_gather tlb;
+> 
+> 	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
+> 	tlb_start_vma(&tlb, vma);
+> 	tlb.cleared_pmds = 1;
+> 	__tlb_adjust_range(addr, end - addr);
+> 	tlb_end_vma(&tlb, vma);
+> 	tlb_finish_mmu(&tlb, addr, end);
+> }
+> 
+> Except of course, that the code between start_vma and end_vma is not a
+> proper mmu_gather API.
+> 
+> So maybe add:
+> 
+>   tlb_flush_{pte,pmd,pud,p4d}_range()
+> 
+> Then we can write:
+> 
+> static inline void flush_XXX_tlb_range(struct vm_area_struct *vma, unsigned long addr, unsigned long end)
+> {
+> 	struct mmu_gather tlb;
+> 
+> 	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
+> 	tlb_start_vma(&tlb, vma);
+> 	tlb_flush_XXX_range(&tlb, addr, end - addr);
+> 	tlb_end_vma(&tlb, vma);
+> 	tlb_finish_mmu(&tlb, addr, end);
+> }
+> 
+> But when I look at the output of:
+> 
+>   git grep flush_.*tlb_range -- :^arch/
+> 
+> I doubt it makes sense to provide wrappers like the above.
 > 
 
--- 
-Sincerely yours,
-Mike.
+Thanks for your detailed explanation.  I notice that you used
+`tlb_end_vma` replace `flush_tlb_range`, which will call `tlb_flush`,
+then finally call `flush_tlb_range` in generic code.  However, some
+architectures define tlb_end_vma|tlb_flush|flush_tlb_range themselves,
+so this may cause problems.
+
+For example, in s390, it defines:
+
+#define tlb_end_vma(tlb, vma)			do { } while (0)
+
+And it doesn't define it's own flush_pmd_tlb_range().  So there will be
+a mistake if we changed flush_pmd_tlb_range() using tlb_end_vma().
+
+Is this really a problem or something I understand wrong ?
+
+
+
+If true, I think there are three ways to solve this problem:
+
+1. use `flush_tlb_range` rather than `tlb_end_vma` in flush_XXX_tlb_range;
+   In this way, we still need retro-fit `flush_tlb_range` to take an mmu_gather
+parameter.
+
+2. use `tlb_flush` rather than `tlb_end_vma`.
+   There is a constraint such like:
+
+	#ifndef tlb_flush
+	#if defined(tlb_start_vma) || defined(tlb_end_vma)
+	#error Default tlb_flush() relies on default tlb_start_vma() and tlb_end_vma()
+	#endif
+
+   So all architectures that define tlb_{start|end}_vma have defined tlb_flush.
+Also, we can add a constraint to flush_XXX_tlb_range such like:
+
+	#ifndef flush_XXX_tlb_range
+	#if defined(tlb_start_vma) || defined(tlb_end_vma)
+	#error Default flush_XXX_tlb_range() relies on default tlb_start/end_vma()
+	#endif
+
+3. Define flush_XXX_tlb_range() architecture-self, and keep original define in
+generic code, such as:
+
+In arm64:
+	#define flush_XXX_tlb_range flush_XXX_tlb_range
+
+In generic:
+	#ifndef flush_XXX_tlb_range
+	#define flush_XXX_tlb_range flush_tlb_range
+
+
+Which do you think is more appropriate?
+
+
+> ( Also, we should probably remove the (addr, end) arguments from
+> tlb_finish_mmu(), Will? )
+> 
+
+This can be changed quickly. If you want I can do this with a
+separate patch.
+
+> ---
+> diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+> index f391f6b500b4..be5452a8efaa 100644
+> --- a/include/asm-generic/tlb.h
+> +++ b/include/asm-generic/tlb.h
+> @@ -511,6 +511,34 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+>  }
+>  #endif
+>  
+> +static inline void tlb_flush_pte_range(struct mmu_gather *tlb,
+> +				       unsigned long address, unsigned long size)
+> +{
+> +	__tlb_adjust_range(tlb, address, size);
+> +	tlb->cleared_ptes = 1;
+> +}
+> +
+> +static inline void tlb_flush_pmd_range(struct mmu_gather *tlb,
+> +				       unsigned long address, unsigned long size)
+> +{
+> +	__tlb_adjust_range(tlb, address, size);
+> +	tlb->cleared_pmds = 1;
+> +}
+> +
+> +static inline void tlb_flush_pud_range(struct mmu_gather *tlb,
+> +				       unsigned long address, unsigned long size)
+> +{
+> +	__tlb_adjust_range(tlb, address, size);
+> +	tlb->cleared_puds = 1;
+> +}
+> +
+> +static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
+> +				       unsigned long address, unsigned long size)
+> +{
+> +	__tlb_adjust_range(tlb, address, size);
+> +	tlb->cleared_p4ds = 1;
+> +}
+> +
+
+By the way, I think the name of tlb_set_XXX_range() is more suitable, because
+we don't do actual flush there.
+
+>  #ifndef __tlb_remove_tlb_entry
+>  #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+>  #endif
+> @@ -524,8 +552,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+>   */
+>  #define tlb_remove_tlb_entry(tlb, ptep, address)		\
+>  	do {							\
+> -		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+> -		tlb->cleared_ptes = 1;				\
+> +		tlb_flush_pte_range(tlb, address, PAGE_SIZE);	\
+>  		__tlb_remove_tlb_entry(tlb, ptep, address);	\
+>  	} while (0)
+>  
+> @@ -550,8 +577,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+>  
+>  #define tlb_remove_pmd_tlb_entry(tlb, pmdp, address)			\
+>  	do {								\
+> -		__tlb_adjust_range(tlb, address, HPAGE_PMD_SIZE);	\
+> -		tlb->cleared_pmds = 1;					\
+> +		tlb_flush_pmd_range(tlb, address, HPAGE_PMD_SIZE);	\
+>  		__tlb_remove_pmd_tlb_entry(tlb, pmdp, address);		\
+>  	} while (0)
+>  
+> @@ -565,8 +591,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+>  
+>  #define tlb_remove_pud_tlb_entry(tlb, pudp, address)			\
+>  	do {								\
+> -		__tlb_adjust_range(tlb, address, HPAGE_PUD_SIZE);	\
+> -		tlb->cleared_puds = 1;					\
+> +		tlb_flush_pud_range(tlb, address, HPAGE_PUD_SIZE);	\
+>  		__tlb_remove_pud_tlb_entry(tlb, pudp, address);		\
+>  	} while (0)
+>  
+> 
+> .
+> 
