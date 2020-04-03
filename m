@@ -1,69 +1,135 @@
-Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 12/20] sparc32: simplify detection of memory zone boundaries
-Date: Wed, 29 Apr 2020 15:11:18 +0300
-Message-ID: <20200429121126.17989-13-rppt@kernel.org>
-In-Reply-To: <20200429121126.17989-1-rppt@kernel.org>
-References: <20200429121126.17989-1-rppt@kernel.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
+Return-Path: <SRS0=8f/M=5T=kvack.org=owner-linux-mm@kernel.org>
+Message-ID: <42da416106d5c1cf92bda1e058434fe240b35f44.1585898438.git.christophe.leroy@c-s.fr>
+In-Reply-To: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
+References: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: [PATCH v2 5/5] uaccess: Rename user_access_begin/end() to
+ user_full_access_begin/end()
+Date: Fri,  3 Apr 2020 07:20:54 +0000 (UTC)
 Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Baoquan He <bhe@redhat.com>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Qian Cai <cai@lca.pw>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, intel-gfx@lists.freedesktop.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429121118.n4ODcfN6dZfb_Pbkn_HaF0_S9C4tHKQzc-17xutUfiw@z>
+Message-ID: <20200403072054.T9Tqj4xI6Q9nDytKVFSOcREVY7voxpGlJL6K4MxzKCY@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+Now we have user_read_access_begin() and user_write_access_begin()
+in addition to user_access_begin().
 
-The free_area_init() function only requires the definition of maximal PFN
-for each of the supported zone rater than calculation of actual zone size=
-s
-and the sizes of the holes between the zones.
+Make it explicit that user_access_begin() provides both read and
+write by renaming it user_full_access_begin(). And the same for
+user_access_end() which becomes user_full_access_end().
 
-After removal of CONFIG_HAVE_MEMBLOCK_NODE_MAP the free_area_init() is
-available to all architectures.
+Done with following command, then hand splitted two too long lines.
 
-Using this function instead of free_area_init_node() simplifies the zone
-detection.
+sed -i s/user_access_begin/user_full_access_begin/g `git grep -l user_access_begin`
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 ---
- arch/sparc/mm/srmmu.c | 21 +++++----------------
- 1 file changed, 5 insertions(+), 16 deletions(-)
+v2: New, based on remark from Al Viro.
+---
+ arch/powerpc/include/asm/uaccess.h | 5 +++--
+ arch/x86/include/asm/futex.h       | 4 ++--
+ arch/x86/include/asm/uaccess.h     | 7 ++++---
+ include/linux/uaccess.h            | 8 ++++----
+ 4 files changed, 13 insertions(+), 11 deletions(-)
 
-diff --git a/arch/sparc/mm/srmmu.c b/arch/sparc/mm/srmmu.c
-index b7c94de70cca..cc071dd7d8da 100644
---- a/arch/sparc/mm/srmmu.c
-+++ b/arch/sparc/mm/srmmu.c
-@@ -1008,24 +1008,13 @@ void __init srmmu_paging_init(void)
- 	kmap_init();
-=20
- 	{
--		unsigned long zones_size[MAX_NR_ZONES];
--		unsigned long zholes_size[MAX_NR_ZONES];
--		unsigned long npages;
--		int znum;
-+		unsigned long max_zone_pfn[MAX_NR_ZONES] =3D { 0 };
-=20
--		for (znum =3D 0; znum < MAX_NR_ZONES; znum++)
--			zones_size[znum] =3D zholes_size[znum] =3D 0;
-+		max_zone_pfn[ZONE_DMA] =3D max_low_pfn;
-+		max_zone_pfn[ZONE_NORMAL] =3D max_low_pfn;
-+		max_zone_pfn[ZONE_HIGHMEM] =3D highend_pfn;
-=20
--		npages =3D max_low_pfn - pfn_base;
--
--		zones_size[ZONE_DMA] =3D npages;
--		zholes_size[ZONE_DMA] =3D npages - pages_avail;
--
--		npages =3D highend_pfn - max_low_pfn;
--		zones_size[ZONE_HIGHMEM] =3D npages;
--		zholes_size[ZONE_HIGHMEM] =3D npages - calc_highpages();
--
--		free_area_init_node(0, zones_size, pfn_base, zholes_size);
-+		free_area_init(max_zone_pfn);
- 	}
+diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
+index 4427d419eb1d..7fe799e081f2 100644
+--- a/arch/powerpc/include/asm/uaccess.h
++++ b/arch/powerpc/include/asm/uaccess.h
+@@ -456,14 +456,15 @@ extern long __copy_from_user_flushcache(void *dst, const void __user *src,
+ extern void memcpy_page_flushcache(char *to, struct page *page, size_t offset,
+ 			   size_t len);
+ 
+-static __must_check inline bool user_access_begin(const void __user *ptr, size_t len)
++static __must_check inline bool
++user_full_access_begin(const void __user *ptr, size_t len)
+ {
+ 	if (unlikely(!access_ok(ptr, len)))
+ 		return false;
+ 	allow_read_write_user((void __user *)ptr, ptr, len);
+ 	return true;
  }
-=20
---=20
-2.26.1
+-#define user_access_begin	user_access_begin
++#define user_full_access_begin	user_full_access_begin
+ #define user_access_end		prevent_current_access_user
+ #define user_access_save	prevent_user_access_return
+ #define user_access_restore	restore_user_access
+diff --git a/arch/x86/include/asm/futex.h b/arch/x86/include/asm/futex.h
+index f9c00110a69a..9eefea374bd4 100644
+--- a/arch/x86/include/asm/futex.h
++++ b/arch/x86/include/asm/futex.h
+@@ -56,7 +56,7 @@ do {								\
+ static __always_inline int arch_futex_atomic_op_inuser(int op, int oparg, int *oval,
+ 		u32 __user *uaddr)
+ {
+-	if (!user_access_begin(uaddr, sizeof(u32)))
++	if (!user_full_access_begin(uaddr, sizeof(u32)))
+ 		return -EFAULT;
+ 
+ 	switch (op) {
+@@ -92,7 +92,7 @@ static inline int futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
+ {
+ 	int ret = 0;
+ 
+-	if (!user_access_begin(uaddr, sizeof(u32)))
++	if (!user_full_access_begin(uaddr, sizeof(u32)))
+ 		return -EFAULT;
+ 	asm volatile("\n"
+ 		"1:\t" LOCK_PREFIX "cmpxchgl %4, %2\n"
+diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
+index d8f283b9a569..8776e815f215 100644
+--- a/arch/x86/include/asm/uaccess.h
++++ b/arch/x86/include/asm/uaccess.h
+@@ -473,16 +473,17 @@ extern struct movsl_mask {
+  * The "unsafe" user accesses aren't really "unsafe", but the naming
+  * is a big fat warning: you have to not only do the access_ok()
+  * checking before using them, but you have to surround them with the
+- * user_access_begin/end() pair.
++ * user_full_access_begin/end() pair.
+  */
+-static __must_check __always_inline bool user_access_begin(const void __user *ptr, size_t len)
++static __must_check __always_inline bool
++user_full_access_begin(const void __user *ptr, size_t len)
+ {
+ 	if (unlikely(!access_ok(ptr,len)))
+ 		return 0;
+ 	__uaccess_begin_nospec();
+ 	return 1;
+ }
+-#define user_access_begin(a,b)	user_access_begin(a,b)
++#define user_full_access_begin(a,b)	user_full_access_begin(a,b)
+ #define user_access_end()	__uaccess_end()
+ 
+ #define user_access_save()	smap_save()
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index 9861c89f93be..5be9bc930342 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -368,8 +368,8 @@ extern long strnlen_unsafe_user(const void __user *unsafe_addr, long count);
+ #define probe_kernel_address(addr, retval)		\
+ 	probe_kernel_read(&retval, addr, sizeof(retval))
+ 
+-#ifndef user_access_begin
+-#define user_access_begin(ptr,len) access_ok(ptr, len)
++#ifndef user_full_access_begin
++#define user_full_access_begin(ptr,len) access_ok(ptr, len)
+ #define user_access_end() do { } while (0)
+ #define unsafe_op_wrap(op, err) do { if (unlikely(op)) goto err; } while (0)
+ #define unsafe_get_user(x,p,e) unsafe_op_wrap(__get_user(x,p),e)
+@@ -379,11 +379,11 @@ static inline unsigned long user_access_save(void) { return 0UL; }
+ static inline void user_access_restore(unsigned long flags) { }
+ #endif
+ #ifndef user_write_access_begin
+-#define user_write_access_begin user_access_begin
++#define user_write_access_begin user_full_access_begin
+ #define user_write_access_end user_access_end
+ #endif
+ #ifndef user_read_access_begin
+-#define user_read_access_begin user_access_begin
++#define user_read_access_begin user_full_access_begin
+ #define user_read_access_end user_access_end
+ #endif
+ 
+-- 
+2.25.0
