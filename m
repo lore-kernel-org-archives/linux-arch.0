@@ -1,87 +1,106 @@
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [PATCH v2 5/5] uaccess: Rename user_access_begin/end() to
- user_full_access_begin/end()
-Date: Fri, 3 Apr 2020 21:52:05 +0100
-Message-ID: <20200403205205.GK23230@ZenIV.linux.org.uk>
-References: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
- <42da416106d5c1cf92bda1e058434fe240b35f44.1585898438.git.christophe.leroy@c-s.fr>
- <CAHk-=wh_DY_dysMX0NuvJmMFr3+QDKOZPZqWKwLkkjgZTuyQ+A@mail.gmail.com>
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: [PATCH v10 2/5] locking/qspinlock: Refactor the qspinlock slow path
+Date: Fri,  3 Apr 2020 16:59:27 -0400
+Message-ID: <20200403205930.1707-3-alex.kogan@oracle.com>
+References: <20200403205930.1707-1-alex.kogan@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:41138 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726368AbgDCUwb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2020 16:52:31 -0400
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wh_DY_dysMX0NuvJmMFr3+QDKOZPZqWKwLkkjgZTuyQ+A@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Peter Anvin <hpa@zytor.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, intel-gfx@lists.freedesktop.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <20200403205930.1707-1-alex.kogan@oracle.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: alex.kogan@oracle.com, dave.dice@oracle.com, steven.sistare@oracle.com, daniel.m.jordan@oracle.com
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 03, 2020 at 11:01:10AM -0700, Linus Torvalds wrote:
-> On Fri, Apr 3, 2020 at 12:21 AM Christophe Leroy
-> <christophe.leroy@c-s.fr> wrote:
-> >
-> > Now we have user_read_access_begin() and user_write_access_begin()
-> > in addition to user_access_begin().
-> 
-> I realize Al asked for this, but I don't think it really adds anything
-> to the series.
-> 
-> The "full" makes the names longer, but not really any more legible.
-> 
-> So I like 1-4, but am unconvinced about 5 and would prefer that to be
-> dropped. Sorry for the bikeshedding.
-> 
-> And I like this series much better without the cookie that was
-> discussed, and just making the hard rule be that they can't nest.
-> 
-> Some architecture may obviously use a cookie internally if they have
-> some nesting behavior of their own, but it doesn't look like we have
-> any major reason to expose that as the actual interface.
-> 
-> The only other question is how to synchronize this? I'm ok with it
-> going through the ppc tree, for example, and just let others build on
-> that.  Maybe using a shared immutable branch with 5.6 as a base?
+Move some of the code manipulating the spin lock into separate functions.
+This would allow easier integration of alternative ways to manipulate
+that lock.
 
-I can do a 5.7-rc1-based branch with that; depending upon what we end
-up doing for arm and s390 we can always change the calling conventions
-come next cycle ;-/
+Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+Reviewed-by: Waiman Long <longman@redhat.com>
+---
+ kernel/locking/qspinlock.c | 38 ++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 36 insertions(+), 2 deletions(-)
 
-My impressions after digging through arm side of things:
-
-1) the only instance of nesting I'd found there (so far) is a mistake.
-The rule should be "no fucking nesting, TYVM".
-
-2) I'm really unhappy about the uaccess_with_memcpy thing.  Besides
-being fucking ugly, it kills any hope of lifting user_access_begin/end
-out of raw_copy_to_user() - the things done in that bastard are
-obviously *NOT* fit for uaccess block.  Including the wonders like
-        /* the mmap semaphore is taken only if not in an atomic context */
-        atomic = faulthandler_disabled();
-
-        if (!atomic)
-                down_read(&current->mm->mmap_sem);
-which, IMO, deserves to be taken out and shot.  Not that pin_page_for_write()
-in the same file (arch/arm/lib/uaccess_with_memcpy.c) did not deserve the
-same treatment...  As far as I can tell, the whole point of that thing
-is that well, memcpy() is optimized better than raw_copy_to_user()...
-So what's wrong with taking the damn optimized memcpy and using it for
-raw_copy_to_user() instead?
-
-Is that the lack of STRT analogue that would store several registers?
-Because AFAICS commit f441882a5229ffaef61a47bccd4518f7e2749cbc
-Author: Vincent Whitchurch <vincent.whitchurch@axis.com>
-Date:   Fri Nov 9 10:09:48 2018 +0100
-    ARM: 8812/1: Optimise copy_{from/to}_user for !CPU_USE_DOMAINS
-makes for much saner solution...  I realize that it's v6+ and this
-thing is specifically for a v5 variant, but...
-
-3) how much do we need to keep the old DACR value in a register for
-uaccess_restore()?  AFAICS, if we prohibit nesting it becomes
-a function of USER_DS/KERNEL_DS setting (and that - only for
-CPU_USE_DOMAINS), doesn't it?  And we had to have fetched it
-recently, back when access_ok() had been done, so shouldn't
-it be in cache?
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index ac1dedbe0237..6e63c72e3fbd 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -289,6 +289,34 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
+ #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
+ #endif
+ 
++/*
++ * __try_clear_tail - try to clear tail by setting the lock value to
++ * _Q_LOCKED_VAL.
++ * @lock: Pointer to the queued spinlock structure
++ * @val: Current value of the lock
++ * @node: Pointer to the MCS node of the lock holder
++ */
++static __always_inline bool __try_clear_tail(struct qspinlock *lock,
++						   u32 val,
++						   struct mcs_spinlock *node)
++{
++	return atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL);
++}
++
++/*
++ * __mcs_lock_handoff - pass the MCS lock to the next waiter
++ * @node: Pointer to the MCS node of the lock holder
++ * @next: Pointer to the MCS node of the first waiter in the MCS queue
++ */
++static __always_inline void __mcs_lock_handoff(struct mcs_spinlock *node,
++					    struct mcs_spinlock *next)
++{
++	arch_mcs_lock_handoff(&next->locked, 1);
++}
++
++#define try_clear_tail		__try_clear_tail
++#define mcs_lock_handoff	__mcs_lock_handoff
++
+ #endif /* _GEN_PV_LOCK_SLOWPATH */
+ 
+ /**
+@@ -533,7 +561,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	 *       PENDING will make the uncontended transition fail.
+ 	 */
+ 	if ((val & _Q_TAIL_MASK) == tail) {
+-		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL))
++		if (try_clear_tail(lock, val, node))
+ 			goto release; /* No contention */
+ 	}
+ 
+@@ -550,7 +578,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	if (!next)
+ 		next = smp_cond_load_relaxed(&node->next, (VAL));
+ 
+-	arch_mcs_lock_handoff(&next->locked, 1);
++	mcs_lock_handoff(node, next);
+ 	pv_kick_node(lock, next);
+ 
+ release:
+@@ -575,6 +603,12 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
+ #undef pv_kick_node
+ #undef pv_wait_head_or_lock
+ 
++#undef try_clear_tail
++#define try_clear_tail		__try_clear_tail
++
++#undef mcs_lock_handoff
++#define mcs_lock_handoff			__mcs_lock_handoff
++
+ #undef  queued_spin_lock_slowpath
+ #define queued_spin_lock_slowpath	__pv_queued_spin_lock_slowpath
+ 
+-- 
+2.21.1 (Apple Git-122.3)
