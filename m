@@ -1,65 +1,51 @@
-Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:44196 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726764AbgD1NQz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Apr 2020 09:16:55 -0400
-Message-ID: <1ab6a62c356c3bec35d1623563ef9c636205bcda.1588079622.git.christophe.leroy@c-s.fr>
-In-Reply-To: <cover.1588079622.git.christophe.leroy@c-s.fr>
-References: <cover.1588079622.git.christophe.leroy@c-s.fr>
+Return-Path: <SRS0=8f/M=5T=kvack.org=owner-linux-mm@kernel.org>
+Message-ID: <ebf1250b6d4f351469fb339e5399d8b92aa8a1c1.1585898438.git.christophe.leroy@c-s.fr>
+In-Reply-To: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
+References: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
 From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH v8 7/8] lib/vdso: force inlining of
- __cvdso_clock_gettime_common()
-Date: Tue, 28 Apr 2020 13:16:53 +0000 (UTC)
-Sender: linux-arch-owner@vger.kernel.org
+Subject: [PATCH v2 3/5] drm/i915/gem: Replace user_access_begin by
+ user_write_access_begin
+Date: Fri,  3 Apr 2020 07:20:52 +0000 (UTC)
+Sender: owner-linux-mm@kvack.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, intel-gfx@lists.freedesktop.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200428131653.M7L1KXmk6bdDrbSW98Cw9YjK4f63a6Zulh8DMKJcMZo@z>
+Message-ID: <20200403072052.blzaA94MV2Br9dTAjmmKuD-TxkHBVDt4zYNrzCG4lro@z>
 
-When adding gettime64() to a 32 bit architecture (namely powerpc/32)
-it has been noticed that GCC doesn't inline anymore
-__cvdso_clock_gettime_common() because it is called twice
-(Once by __cvdso_clock_gettime() and once by
-__cvdso_clock_gettime32).
-
-This has the effect of seriously degrading the performance:
-
-Before the implementation of gettime64(), gettime() runs in:
-
-	clock-gettime-monotonic-raw:    vdso: 1003 nsec/call
-	clock-gettime-monotonic-coarse:    vdso: 592 nsec/call
-	clock-gettime-monotonic:    vdso: 942 nsec/call
-
-When adding a gettime64() entry point, the standard gettime()
-performance is degraded by 30% to 50%:
-
-	clock-gettime-monotonic-raw:    vdso: 1300 nsec/call
-	clock-gettime-monotonic-coarse:    vdso: 900 nsec/call
-	clock-gettime-monotonic:    vdso: 1232 nsec/call
-
-Adding __always_inline() to __cvdso_clock_gettime_common()
-regains the original performance.
-
-In terms of code size, the inlining increases the code size
-by only 176 bytes. This is in the noise for a kernel image.
+When i915_gem_execbuffer2_ioctl() is using user_access_begin(),
+that's only to perform unsafe_put_user() so use
+user_write_access_begin() in order to only open write access.
 
 Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- lib/vdso/gettimeofday.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+v2: Rebased (one part of the patch flies away)
+---
+ drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
-index a2909af4b924..7938d3c4901d 100644
---- a/lib/vdso/gettimeofday.c
-+++ b/lib/vdso/gettimeofday.c
-@@ -210,7 +210,7 @@ static __always_inline int do_coarse(const struct vdso_data *vd, clockid_t clk,
- 	return 0;
- }
+diff --git a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
+index 36d069504836..b4c903308590 100644
+--- a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
++++ b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
+@@ -2794,7 +2794,8 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
+ 		 * And this range already got effectively checked earlier
+ 		 * when we did the "copy_from_user()" above.
+ 		 */
+-		if (!user_access_begin(user_exec_list, count * sizeof(*user_exec_list)))
++		if (!user_write_access_begin(user_exec_list,
++					     count * sizeof(*user_exec_list)))
+ 			goto end;
  
--static __maybe_unused int
-+static __always_inline int
- __cvdso_clock_gettime_common(const struct vdso_data *vd, clockid_t clock,
- 			     struct __kernel_timespec *ts)
- {
+ 		for (i = 0; i < args->buffer_count; i++) {
+@@ -2808,7 +2809,7 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
+ 					end_user);
+ 		}
+ end_user:
+-		user_access_end();
++		user_write_access_end();
+ end:;
+ 	}
+ 
 -- 
 2.25.0
