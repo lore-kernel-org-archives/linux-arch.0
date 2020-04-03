@@ -1,44 +1,116 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 27/29] arm64: use __vmalloc_node in arch_alloc_vmap_stack
-Date: Tue, 14 Apr 2020 15:13:46 +0200
-Message-ID: <20200414131348.444715-28-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
-MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
+Return-Path: <SRS0=8f/M=5T=kvack.org=owner-linux-mm@kernel.org>
+Message-ID: <6c83af0f0809ef2a955c39ac622767f6cbede035.1585898438.git.christophe.leroy@c-s.fr>
+In-Reply-To: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
+References: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: [PATCH v2 4/5] powerpc/uaccess: Implement user_read_access_begin and
+ user_write_access_begin
+Date: Fri,  3 Apr 2020 07:20:53 +0000 (UTC)
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, intel-gfx@lists.freedesktop.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414131346.PX78lWkv8mNlMBdGG77o0V0U1sFn_qsjqJIvHhqktHY@z>
+Message-ID: <20200403072053.RnlqZg3QgzEeGObB1mSanq0O4WcNAQq3b7GSnJD4_ao@z>
 
-arch_alloc_vmap_stack can use a slightly higher level vmalloc function.
+Add support for selective read or write user access with
+user_read_access_begin/end and user_write_access_begin/end.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm64/include/asm/vmap_stack.h | 6 ++----
- 1 file changed, 2 insertions(+), 4 deletions(-)
+v2: no change
+---
+ arch/powerpc/include/asm/book3s/32/kup.h |  4 ++--
+ arch/powerpc/include/asm/kup.h           | 14 +++++++++++++-
+ arch/powerpc/include/asm/uaccess.h       | 22 ++++++++++++++++++++++
+ 3 files changed, 37 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arm64/include/asm/vmap_stack.h b/arch/arm64/include/asm=
-/vmap_stack.h
-index 0a12115d9638..0cc6636e3f15 100644
---- a/arch/arm64/include/asm/vmap_stack.h
-+++ b/arch/arm64/include/asm/vmap_stack.h
-@@ -19,10 +19,8 @@ static inline unsigned long *arch_alloc_vmap_stack(siz=
-e_t stack_size, int node)
- {
- 	BUILD_BUG_ON(!IS_ENABLED(CONFIG_VMAP_STACK));
-=20
--	return __vmalloc_node_range(stack_size, THREAD_ALIGN,
--				    VMALLOC_START, VMALLOC_END,
--				    THREADINFO_GFP, PAGE_KERNEL, 0, node,
--				    __builtin_return_address(0));
-+	return __vmalloc_node(stack_size, THREAD_ALIGN, THREADINFO_GFP, node,
-+			__builtin_return_address(0));
+diff --git a/arch/powerpc/include/asm/book3s/32/kup.h b/arch/powerpc/include/asm/book3s/32/kup.h
+index 3c0ba22dc360..1617e73bee30 100644
+--- a/arch/powerpc/include/asm/book3s/32/kup.h
++++ b/arch/powerpc/include/asm/book3s/32/kup.h
+@@ -108,7 +108,7 @@ static __always_inline void allow_user_access(void __user *to, const void __user
+ 	u32 addr, end;
+ 
+ 	BUILD_BUG_ON(!__builtin_constant_p(dir));
+-	BUILD_BUG_ON(dir == KUAP_CURRENT);
++	BUILD_BUG_ON(dir & ~KUAP_READ_WRITE);
+ 
+ 	if (!(dir & KUAP_WRITE))
+ 		return;
+@@ -131,7 +131,7 @@ static __always_inline void prevent_user_access(void __user *to, const void __us
+ 
+ 	BUILD_BUG_ON(!__builtin_constant_p(dir));
+ 
+-	if (dir == KUAP_CURRENT) {
++	if (dir & KUAP_CURRENT_WRITE) {
+ 		u32 kuap = current->thread.kuap;
+ 
+ 		if (unlikely(!kuap))
+diff --git a/arch/powerpc/include/asm/kup.h b/arch/powerpc/include/asm/kup.h
+index 92bcd1a26d73..c745ee41ad66 100644
+--- a/arch/powerpc/include/asm/kup.h
++++ b/arch/powerpc/include/asm/kup.h
+@@ -10,7 +10,9 @@
+  * Use the current saved situation instead of the to/from/size params.
+  * Used on book3s/32
+  */
+-#define KUAP_CURRENT	4
++#define KUAP_CURRENT_READ	4
++#define KUAP_CURRENT_WRITE	8
++#define KUAP_CURRENT		(KUAP_CURRENT_READ | KUAP_CURRENT_WRITE)
+ 
+ #ifdef CONFIG_PPC64
+ #include <asm/book3s/64/kup-radix.h>
+@@ -101,6 +103,16 @@ static inline void prevent_current_access_user(void)
+ 	prevent_user_access(NULL, NULL, ~0UL, KUAP_CURRENT);
  }
-=20
- #endif /* __ASM_VMAP_STACK_H */
---=20
-2.25.1
+ 
++static inline void prevent_current_read_from_user(void)
++{
++	prevent_user_access(NULL, NULL, ~0UL, KUAP_CURRENT_READ);
++}
++
++static inline void prevent_current_write_to_user(void)
++{
++	prevent_user_access(NULL, NULL, ~0UL, KUAP_CURRENT_WRITE);
++}
++
+ #endif /* !__ASSEMBLY__ */
+ 
+ #endif /* _ASM_POWERPC_KUAP_H_ */
+diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
+index 2f500debae21..4427d419eb1d 100644
+--- a/arch/powerpc/include/asm/uaccess.h
++++ b/arch/powerpc/include/asm/uaccess.h
+@@ -468,6 +468,28 @@ static __must_check inline bool user_access_begin(const void __user *ptr, size_t
+ #define user_access_save	prevent_user_access_return
+ #define user_access_restore	restore_user_access
+ 
++static __must_check inline bool
++user_read_access_begin(const void __user *ptr, size_t len)
++{
++	if (unlikely(!access_ok(ptr, len)))
++		return false;
++	allow_read_from_user(ptr, len);
++	return true;
++}
++#define user_read_access_begin	user_read_access_begin
++#define user_read_access_end		prevent_current_read_from_user
++
++static __must_check inline bool
++user_write_access_begin(const void __user *ptr, size_t len)
++{
++	if (unlikely(!access_ok(ptr, len)))
++		return false;
++	allow_write_to_user((void __user *)ptr, len);
++	return true;
++}
++#define user_write_access_begin	user_write_access_begin
++#define user_write_access_end		prevent_current_write_to_user
++
+ #define unsafe_op_wrap(op, err) do { if (unlikely(op)) goto err; } while (0)
+ #define unsafe_get_user(x, p, e) unsafe_op_wrap(__get_user_allowed(x, p), e)
+ #define unsafe_put_user(x, p, e) unsafe_op_wrap(__put_user_allowed(x, p), e)
+-- 
+2.25.0
