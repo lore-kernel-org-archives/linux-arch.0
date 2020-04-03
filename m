@@ -1,93 +1,151 @@
 From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v1 1/6] arm64: Detect the ARMv8.4 TTL feature
-Date: Fri, 3 Apr 2020 17:00:43 +0800
-Message-ID: <20200403090048.938-2-yezhenyu2@huawei.com>
+Subject: [PATCH v1 4/6] tlb: mmu_gather: add tlb_set_*_range APIs
+Date: Fri, 3 Apr 2020 17:00:46 +0800
+Message-ID: <20200403090048.938-5-yezhenyu2@huawei.com>
 References: <20200403090048.938-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:48746 "EHLO huawei.com"
+Received: from szxga07-in.huawei.com ([45.249.212.35]:49242 "EHLO huawei.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S2390578AbgDCJBO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 3 Apr 2020 05:01:14 -0400
+        id S1727860AbgDCJBP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 3 Apr 2020 05:01:15 -0400
 In-Reply-To: <20200403090048.938-1-yezhenyu2@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
 Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 
-From: Marc Zyngier <maz@kernel.org>
+From: "Peter Zijlstra (Intel)" <peterz@infradead.org>
 
-In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
-feature allows TLBs to be issued with a level allowing for quicker
-invalidation.
+tlb_set_{pte|pmd|pud|p4d}_range() adjust the tlb->start and
+tlb->end, then set corresponding cleared_*.
 
-Let's detect the feature for now. Further patches will implement
-its actual usage.
-
-Signed-off-by: Marc Zyngier <maz@kernel.org>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 ---
- arch/arm64/include/asm/cpucaps.h |  3 ++-
- arch/arm64/include/asm/sysreg.h  |  1 +
- arch/arm64/kernel/cpufeature.c   | 11 +++++++++++
- 3 files changed, 14 insertions(+), 1 deletion(-)
+ include/asm-generic/tlb.h | 55 ++++++++++++++++++++++++++++-----------
+ 1 file changed, 40 insertions(+), 15 deletions(-)
 
-diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cpucaps.h
-index 865e0253fc1e..8b3b4dd612b3 100644
---- a/arch/arm64/include/asm/cpucaps.h
-+++ b/arch/arm64/include/asm/cpucaps.h
-@@ -58,7 +58,8 @@
- #define ARM64_WORKAROUND_SPECULATIVE_AT_NVHE	48
- #define ARM64_HAS_E0PD				49
- #define ARM64_HAS_RNG				50
-+#define ARM64_HAS_ARMv8_4_TTL			51
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index f391f6b500b4..ee91310a65c6 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -511,6 +511,38 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ }
+ #endif
  
--#define ARM64_NCAPS				51
-+#define ARM64_NCAPS				52
++/*
++ * tlb_set_{pte|pmd|pud|p4d}_range() adjust the tlb->start and tlb->end,
++ * and set corresponding cleared_*.
++ */
++static inline void tlb_set_pte_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_ptes = 1;
++}
++
++static inline void tlb_set_pmd_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_pmds = 1;
++}
++
++static inline void tlb_set_pud_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_puds = 1;
++}
++
++static inline void tlb_set_p4d_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_p4ds = 1;
++}
++
+ #ifndef __tlb_remove_tlb_entry
+ #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+ #endif
+@@ -524,19 +556,17 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+  */
+ #define tlb_remove_tlb_entry(tlb, ptep, address)		\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+-		tlb->cleared_ptes = 1;				\
++		tlb_set_pte_range(tlb, address, PAGE_SIZE);	\
+ 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
+ 	} while (0)
  
- #endif /* __ASM_CPUCAPS_H */
-diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
-index b91570ff9db1..a28b76f32ba7 100644
---- a/arch/arm64/include/asm/sysreg.h
-+++ b/arch/arm64/include/asm/sysreg.h
-@@ -685,6 +685,7 @@
+ #define tlb_remove_huge_tlb_entry(h, tlb, ptep, address)	\
+ 	do {							\
+ 		unsigned long _sz = huge_page_size(h);		\
+-		__tlb_adjust_range(tlb, address, _sz);		\
+ 		if (_sz == PMD_SIZE)				\
+-			tlb->cleared_pmds = 1;			\
++			tlb_set_pmd_range(tlb, address, _sz);	\
+ 		else if (_sz == PUD_SIZE)			\
+-			tlb->cleared_puds = 1;			\
++			tlb_set_pud_range(tlb, address, _sz);	\
+ 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
+ 	} while (0)
  
- /* id_aa64mmfr2 */
- #define ID_AA64MMFR2_E0PD_SHIFT		60
-+#define ID_AA64MMFR2_TTL_SHIFT		48
- #define ID_AA64MMFR2_FWB_SHIFT		40
- #define ID_AA64MMFR2_AT_SHIFT		32
- #define ID_AA64MMFR2_LVA_SHIFT		16
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-index 0b6715625cf6..cbe46ad2900a 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -241,6 +241,7 @@ static const struct arm64_ftr_bits ftr_id_aa64mmfr1[] = {
+@@ -550,8 +580,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
  
- static const struct arm64_ftr_bits ftr_id_aa64mmfr2[] = {
- 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_NONSTRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_E0PD_SHIFT, 4, 0),
-+	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_TTL_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_FWB_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_AT_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_LVA_SHIFT, 4, 0),
-@@ -1523,6 +1524,16 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
- 		.matches = has_cpuid_feature,
- 		.cpu_enable = cpu_has_fwb,
- 	},
-+	{
-+		.desc = "ARMv8.4 Translation Table Level",
-+		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
-+		.capability = ARM64_HAS_ARMv8_4_TTL,
-+		.sys_reg = SYS_ID_AA64MMFR2_EL1,
-+		.sign = FTR_UNSIGNED,
-+		.field_pos = ID_AA64MMFR2_TTL_SHIFT,
-+		.min_field_value = 1,
-+		.matches = has_cpuid_feature,
-+	},
- #ifdef CONFIG_ARM64_HW_AFDBM
- 	{
- 		/*
+ #define tlb_remove_pmd_tlb_entry(tlb, pmdp, address)			\
+ 	do {								\
+-		__tlb_adjust_range(tlb, address, HPAGE_PMD_SIZE);	\
+-		tlb->cleared_pmds = 1;					\
++		tlb_set_pmd_range(tlb, address, HPAGE_PMD_SIZE);	\
+ 		__tlb_remove_pmd_tlb_entry(tlb, pmdp, address);		\
+ 	} while (0)
+ 
+@@ -565,8 +594,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ 
+ #define tlb_remove_pud_tlb_entry(tlb, pudp, address)			\
+ 	do {								\
+-		__tlb_adjust_range(tlb, address, HPAGE_PUD_SIZE);	\
+-		tlb->cleared_puds = 1;					\
++		tlb_set_pud_range(tlb, address, HPAGE_PUD_SIZE);	\
+ 		__tlb_remove_pud_tlb_entry(tlb, pudp, address);		\
+ 	} while (0)
+ 
+@@ -591,9 +619,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ #ifndef pte_free_tlb
+ #define pte_free_tlb(tlb, ptep, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
++		tlb_set_pmd_range(tlb, address, PAGE_SIZE);	\
+ 		tlb->freed_tables = 1;				\
+-		tlb->cleared_pmds = 1;				\
+ 		__pte_free_tlb(tlb, ptep, address);		\
+ 	} while (0)
+ #endif
+@@ -601,9 +628,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ #ifndef pmd_free_tlb
+ #define pmd_free_tlb(tlb, pmdp, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
++		tlb_set_pud_range(tlb, address, PAGE_SIZE);	\
+ 		tlb->freed_tables = 1;				\
+-		tlb->cleared_puds = 1;				\
+ 		__pmd_free_tlb(tlb, pmdp, address);		\
+ 	} while (0)
+ #endif
+@@ -611,9 +637,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ #ifndef pud_free_tlb
+ #define pud_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
++		tlb_set_p4d_range(tlb, address, PAGE_SIZE);	\
+ 		tlb->freed_tables = 1;				\
+-		tlb->cleared_p4ds = 1;				\
+ 		__pud_free_tlb(tlb, pudp, address);		\
+ 	} while (0)
+ #endif
 -- 
 2.19.1
