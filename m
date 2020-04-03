@@ -1,83 +1,84 @@
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
- flush_pmd_tlb_range
-Date: Fri, 3 Apr 2020 13:14:21 +0800
-Message-ID: <d512b28f-99d3-5a26-d189-2ebac7a412c7@huawei.com>
-References: <20200331142927.1237-1-yezhenyu2@huawei.com>
- <20200331142927.1237-5-yezhenyu2@huawei.com>
- <20200331151331.GS20730@hirez.programming.kicks-ass.net>
- <fe12101e-8efe-22ad-0258-e6aeafc798cc@huawei.com>
- <20200401122004.GE20713@hirez.programming.kicks-ass.net>
- <53675fb9-21c7-5309-07b8-1bbc1e775f9b@huawei.com>
- <20200402163849.GM20713@hirez.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <20200402163849.GM20713@hirez.programming.kicks-ass.net>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: mark.rutland@arm.com, catalin.marinas@arm.com, linux-mm@kvack.org, guohanjun@huawei.com, will@kernel.org, linux-arch@vger.kernel.org, yuzhao@google.com, corbet@lwn.net, maz@kernel.org, steven.price@arm.com, arm@kernel.org, Dave.Martin@arm.com, arnd@arndb.de, suzuki.poulose@arm.com, npiggin@gmail.com, zhangshaokun@hisilicon.com, broonie@kernel.org, rostedt@goodmis.org, prime.zeng@hisilicon.com, kuhn.chenqun@huawei.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, xiexiangyou@huawei.com, tony.luck@intel.com, vgupta@synopsys.com, linux-kernel@vger.kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: [PATCH v2 1/5] uaccess: Add user_read_access_begin/end and
+ user_write_access_begin/end
+Date: Fri,  3 Apr 2020 07:20:50 +0000 (UTC)
+Message-ID: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, intel-gfx@lists.freedesktop.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Peter,
+Some architectures like powerpc64 have the capability to separate
+read access and write access protection.
+For get_user() and copy_from_user(), powerpc64 only open read access.
+For put_user() and copy_to_user(), powerpc64 only open write access.
+But when using unsafe_get_user() or unsafe_put_user(),
+user_access_begin open both read and write.
 
-On 2020/4/3 0:38, Peter Zijlstra wrote:
-> On Thu, Apr 02, 2020 at 07:24:04PM +0800, Zhenyu Ye wrote:
->> Thanks for your detailed explanation.  I notice that you used
->> `tlb_end_vma` replace `flush_tlb_range`, which will call `tlb_flush`,
->> then finally call `flush_tlb_range` in generic code.  However, some
->> architectures define tlb_end_vma|tlb_flush|flush_tlb_range themselves,
->> so this may cause problems.
->>
->> For example, in s390, it defines:
->>
->> #define tlb_end_vma(tlb, vma)			do { } while (0)
->>
->> And it doesn't define it's own flush_pmd_tlb_range().  So there will be
->> a mistake if we changed flush_pmd_tlb_range() using tlb_end_vma().
->>
->> Is this really a problem or something I understand wrong ?
-> 
-> If tlb_end_vma() is a no-op, then tlb_finish_mmu() will do:
-> tlb_flush_mmu() -> tlb_flush_mmu_tlbonly() -> tlb_flush()
-> 
-> And s390 has tlb_flush().
-> 
-> If tlb_end_vma() is not a no-op and it calls tlb_flush_mmu_tlbonly(),
-> then tlb_finish_mmu()'s invocation of tlb_flush_mmu_tlbonly() will
-> terniate early due o no flags set.
-> 
-> IOW, it should all just work.
-> 
-> 
-> FYI the whole tlb_{start,end}_vma() thing is a only needed when the
-> architecture doesn't implement tlb_flush() and instead default to using
-> flush_tlb_range(), at which point we need to provide a 'fake' vma.
-> 
-> At the time I audited all architectures and they only look at VM_EXEC
-> (to do $I invalidation) and VM_HUGETLB (for pmd level invalidations),
-> but I forgot which architectures that were.
+Other architectures like powerpc book3s 32 bits only allow write
+access protection. And on this architecture protection is an heavy
+operation as it requires locking/unlocking per segment of 256Mbytes.
+On those architecture it is therefore desirable to do the unlocking
+only for write access. (Note that book3s/32 ranges from very old
+powermac from the 90's with powerpc 601 processor, till modern
+ADSL boxes with PowerQuicc II processors for instance so it
+is still worth considering.)
 
-Many architectures, such as alpha, arc, arm and so on.
-I really understand why you hate making vma->vm_flags more important for
-tlbi :).
+In order to avoid any risk based of hacking some variable parameters
+passed to user_access_begin/end that would allow hacking and
+leaving user access open or opening too much, it is preferable to
+use dedicated static functions that can't be overridden.
 
-> But that is all legacy code; eventually we'll get all archs a native
-> tlb_flush() and this can go away.
-> 
+Add a user_read_access_begin and user_read_access_end to only open
+read access.
 
-Thanks for your reply.  Currently, to enable the TTL feature, extending
-the flush_*tlb_range() may be more convenient.
-I will send a formal PATCH soon.
+Add a user_write_access_begin and user_write_access_end to only open
+write access.
 
-Thanks,
-Zhenyu
+By default, when undefined, those new access helpers default on the
+existing user_access_begin and user_access_end.
+
+Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+---
+v2: no change in this patch. See each patch for related changes.
+
+v1 at https://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=168174
+
+This series is based on the discussion we had in January, see
+https://patchwork.ozlabs.org/patch/1227926/ . I tried to
+take into account all remarks, especially @hpa 's remark to use
+a fixed API on not base the relocking on a magic id returned at
+unlocking.
+
+This series is awaited for implementing selective lkdtm test to
+test powerpc64 independant read and write protection, see
+https://patchwork.ozlabs.org/patch/1231765/
+
+Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
+---
+ include/linux/uaccess.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index 67f016010aad..9861c89f93be 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -378,6 +378,14 @@ extern long strnlen_unsafe_user(const void __user *unsafe_addr, long count);
+ static inline unsigned long user_access_save(void) { return 0UL; }
+ static inline void user_access_restore(unsigned long flags) { }
+ #endif
++#ifndef user_write_access_begin
++#define user_write_access_begin user_access_begin
++#define user_write_access_end user_access_end
++#endif
++#ifndef user_read_access_begin
++#define user_read_access_begin user_access_begin
++#define user_read_access_end user_access_end
++#endif
+ 
+ #ifdef CONFIG_HARDENED_USERCOPY
+ void usercopy_warn(const char *name, const char *detail, bool to_user,
+-- 
+2.25.0
