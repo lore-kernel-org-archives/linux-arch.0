@@ -1,46 +1,121 @@
-Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53370 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725779AbgDVPS3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2020 11:18:29 -0400
-Date: Wed, 22 Apr 2020 08:18:15 -0700
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: Implement close-on-fork
-Message-ID: <20200422151815.GT5820@bombadil.infradead.org>
-References: <20200420071548.62112-1-nate.karstens@garmin.com>
- <20200422150107.GK23230@ZenIV.linux.org.uk>
+Return-Path: <SRS0=HxeN=5T=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga07-in.huawei.com ([45.249.212.35]:49358 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S2390595AbgDCJB3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 3 Apr 2020 05:01:29 -0400
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [PATCH v1 5/6] mm: tlb: Provide flush_*_tlb_range wrappers
+Date: Fri, 3 Apr 2020 17:00:47 +0800
+Message-ID: <20200403090048.938-6-yezhenyu2@huawei.com>
+In-Reply-To: <20200403090048.938-1-yezhenyu2@huawei.com>
+References: <20200403090048.938-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200422150107.GK23230@ZenIV.linux.org.uk>
+Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Nate Karstens <nate.karstens@garmin.com>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Changli Gao <xiaosuo@gmail.com>
-Message-ID: <20200422151815.pSNPQWa962QAd8NYQb-hT43mcEeatQ2r-IsSvHK_GMY@z>
+To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Message-ID: <20200403090047.YFgSgSyIgk2ANc0h-tfQCGb8UdQvjqSKTM2noYs2GNM@z>
 
-On Wed, Apr 22, 2020 at 04:01:07PM +0100, Al Viro wrote:
-> On Mon, Apr 20, 2020 at 02:15:44AM -0500, Nate Karstens wrote:
-> > Series of 4 patches to implement close-on-fork. Tests have been
-> > published to https://github.com/nkarstens/ltp/tree/close-on-fork.
-> > 
-> > close-on-fork addresses race conditions in system(), which
-> > (depending on the implementation) is non-atomic in that it
-> > first calls a fork() and then an exec().
-> > 
-> > This functionality was approved by the Austin Common Standards
-> > Revision Group for inclusion in the next revision of the POSIX
-> > standard (see issue 1318 in the Austin Group Defect Tracker).
-> 
-> What exactly the reasons are and why would we want to implement that?
-> 
-> Pardon me, but going by the previous history, "The Austin Group Says It's
-> Good" is more of a source of concern regarding the merits, general sanity
-> and, most of all, good taste of a proposal.
-> 
-> I'm not saying that it's automatically bad, but you'll have to go much
-> deeper into the rationale of that change before your proposal is taken
-> seriously.
+This patch provides flush_{pte|pmd|pud|p4d}_tlb_range() in generic
+code, which are expressed through the mmu_gather APIs.  These
+interface set tlb->cleared_* and finally call tlb_flush(), so we
+can do the tlb invalidation according to the information in
+struct mmu_gather.
 
-https://www.mail-archive.com/austin-group-l@opengroup.org/msg05324.html
-might be useful
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+---
+ include/asm-generic/pgtable.h | 12 +++++++--
+ mm/pgtable-generic.c          | 50 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 60 insertions(+), 2 deletions(-)
+
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index e2e2bef07dd2..2bedeee94131 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1160,11 +1160,19 @@ static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+  * invalidate the entire TLB which is not desitable.
+  * e.g. see arch/arc: flush_pmd_tlb_range
+  */
+-#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
+-#define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
++extern void flush_pte_tlb_range(struct vm_area_struct *vma,
++				unsigned long addr, unsigned long end);
++extern void flush_pmd_tlb_range(struct vm_area_struct *vma,
++				unsigned long addr, unsigned long end);
++extern void flush_pud_tlb_range(struct vm_area_struct *vma,
++				unsigned long addr, unsigned long end);
++extern void flush_p4d_tlb_range(struct vm_area_struct *vma,
++				unsigned long addr, unsigned long end);
+ #else
++#define flush_pte_tlb_range(vma, addr, end)	BUILD_BUG()
+ #define flush_pmd_tlb_range(vma, addr, end)	BUILD_BUG()
+ #define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
++#define flush_p4d_tlb_range(vma, addr, end)	BUILD_BUG()
+ #endif
+ #endif
+ 
+diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
+index 3d7c01e76efc..0f5414a4a2ec 100644
+--- a/mm/pgtable-generic.c
++++ b/mm/pgtable-generic.c
+@@ -101,6 +101,56 @@ pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
+ 
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ 
++#ifndef __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
++void flush_pte_tlb_range(struct vm_area_struct *vma,
++			 unsigned long addr, unsigned long end)
++{
++	struct mmu_gather tlb;
++
++	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
++	tlb_start_vma(&tlb, vma);
++	tlb_set_pte_range(&tlb, addr, end - addr);
++	tlb_end_vma(&tlb, vma);
++	tlb_finish_mmu(&tlb, addr, end);
++}
++
++void flush_pmd_tlb_range(struct vm_area_struct *vma,
++			 unsigned long addr, unsigned long end)
++{
++	struct mmu_gather tlb;
++
++	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
++	tlb_start_vma(&tlb, vma);
++	tlb_set_pmd_range(&tlb, addr, end - addr);
++	tlb_end_vma(&tlb, vma);
++	tlb_finish_mmu(&tlb, addr, end);
++}
++
++void flush_pud_tlb_range(struct vm_area_struct *vma,
++			 unsigned long addr, unsigned long end)
++{
++	struct mmu_gather tlb;
++
++	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
++	tlb_start_vma(&tlb, vma);
++	tlb_set_pud_range(&tlb, addr, end - addr);
++	tlb_end_vma(&tlb, vma);
++	tlb_finish_mmu(&tlb, addr, end);
++}
++
++void flush_p4d_tlb_range(struct vm_area_struct *vma,
++			 unsigned long addr, unsigned long end)
++{
++	struct mmu_gather tlb;
++
++	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
++	tlb_start_vma(&tlb, vma);
++	tlb_set_p4d_range(&tlb, addr, end - addr);
++	tlb_end_vma(&tlb, vma);
++	tlb_finish_mmu(&tlb, addr, end);
++}
++#endif /* __HAVE_ARCH_FLUSH_PMD_TLB_RANGE */
++
+ #ifndef __HAVE_ARCH_PMDP_SET_ACCESS_FLAGS
+ int pmdp_set_access_flags(struct vm_area_struct *vma,
+ 			  unsigned long address, pmd_t *pmdp,
+-- 
+2.19.1
