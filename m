@@ -1,36 +1,119 @@
-Return-Path: <SRS0=V2YN=5S=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=HxeN=5T=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from userp2120.oracle.com ([156.151.31.85]:39910 "EHLO
+        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727829AbgDCVIx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2020 17:08:53 -0400
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: [PATCH v10 5/5] locking/qspinlock: Avoid moving certain threads between waiting queues in CNA
+Date: Fri,  3 Apr 2020 16:59:30 -0400
+Message-ID: <20200403205930.1707-6-alex.kogan@oracle.com>
+In-Reply-To: <20200403205930.1707-1-alex.kogan@oracle.com>
+References: <20200403205930.1707-1-alex.kogan@oracle.com>
 MIME-Version: 1.0
-References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
- <20200402162942.GG23230@ZenIV.linux.org.uk> <67e21b65-0e2d-7ca5-7518-cec1b7abc46c@c-s.fr>
- <20200402175032.GH23230@ZenIV.linux.org.uk> <202004021132.813F8E88@keescook>
-In-Reply-To: <202004021132.813F8E88@keescook>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 2 Apr 2020 12:26:52 -0700
-Message-ID: <CAHk-=wg9cSm=AjPmkasNHBDwuW4D10jszjv6EeCKp8V9Qbx2hg@mail.gmail.com>
-Subject: Re: [PATCH RESEND 1/4] uaccess: Add user_read_access_begin/end and user_write_access_begin/end
-Content-Type: text/plain; charset="UTF-8"
-Sender: owner-linux-mm@kvack.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Andrew Morton <akpm@linux-foundation.org>, Peter Anvin <hpa@zytor.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200402192652.1dqP1tx0IddIjpbz2KH0lJectGsGoinn9YB8ZRpwiXk@z>
+To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
+Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com
+Message-ID: <20200403205930.Pw1SL7qPVGrupiYG9VNMYqPa9n5Lkj2mbFWXsGppw8w@z>
 
-On Thu, Apr 2, 2020 at 11:36 AM Kees Cook <keescook@chromium.org> wrote:
->
-> Yup, I think it's a weakness of the ARM implementation and I'd like to
-> not extend it further. AFAIK we should never nest, but I would not be
-> surprised at all if we did.
+Prohibit moving certain threads (e.g., in irq and nmi contexts)
+to the secondary queue. Those prioritized threads will always stay
+in the primary queue, and so will have a shorter wait time for the lock.
 
-Wel, at least the user_access_begin/end() sections can't nest. objtool
-verifies and warns about that on x86.
+Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
+Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
+Reviewed-by: Waiman Long <longman@redhat.com>
+---
+ kernel/locking/qspinlock_cna.h | 30 ++++++++++++++++++++++++++----
+ 1 file changed, 26 insertions(+), 4 deletions(-)
 
-> If we were looking at a design goal for all architectures, I'd like
-> to be doing what the public PaX patchset
-
-We already do better than PaX ever did. Seriously. Mainline has long
-since passed their hacky garbage.
-
-Plus PaX  and grsecurity should be actively shunned. Don't look at it,
-don't use it, and tell everybody you know to not use that shit.
-
-                Linus
+diff --git a/kernel/locking/qspinlock_cna.h b/kernel/locking/qspinlock_cna.h
+index e3180f6f5cdc..b004ce6882b6 100644
+--- a/kernel/locking/qspinlock_cna.h
++++ b/kernel/locking/qspinlock_cna.h
+@@ -4,6 +4,7 @@
+ #endif
+ 
+ #include <linux/topology.h>
++#include <linux/sched/rt.h>
+ 
+ /*
+  * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
+@@ -41,6 +42,9 @@
+  * lock is passed to the next thread in the primary queue. To avoid starvation
+  * of threads in the secondary queue, those threads are moved back to the head
+  * of the primary queue after a certain number of intra-node lock hand-offs.
++ * Lastly, certain threads (e.g., in irq and nmi contexts) are given
++ * preferential treatment -- the scan stops when such a thread is found,
++ * effectively never moving those threads into the secondary queue.
+  *
+  * For more details, see https://arxiv.org/abs/1810.05600.
+  *
+@@ -50,7 +54,7 @@
+ 
+ struct cna_node {
+ 	struct mcs_spinlock	mcs;
+-	int			numa_node;
++	int			numa_node;	/* use LSB for priority */
+ 	u32			encoded_tail;	/* self */
+ 	u32			partial_order;	/* encoded tail or enum val */
+ 	u32			intra_count;
+@@ -79,7 +83,7 @@ static void __init cna_init_nodes_per_cpu(unsigned int cpu)
+ 	for (i = 0; i < MAX_NODES; i++) {
+ 		struct cna_node *cn = (struct cna_node *)grab_mcs_node(base, i);
+ 
+-		cn->numa_node = numa_node;
++		cn->numa_node = numa_node << 1;
+ 		cn->encoded_tail = encode_tail(cpu, i);
+ 		/*
+ 		 * make sure @encoded_tail is not confused with other valid
+@@ -110,6 +114,14 @@ static int __init cna_init_nodes(void)
+ 
+ static __always_inline void cna_init_node(struct mcs_spinlock *node)
+ {
++	/*
++	 * Set the priority bit in @numa_node for threads that should not
++	 * be moved to the secondary queue.
++	 */
++	bool priority = !in_task() || irqs_disabled() || rt_task(current);
++	((struct cna_node *)node)->numa_node =
++		(((struct cna_node *)node)->numa_node & ~1) | priority;
++
+ 	((struct cna_node *)node)->intra_count = 0;
+ }
+ 
+@@ -243,12 +255,16 @@ static u32 cna_order_queue(struct mcs_spinlock *node,
+ {
+ 	struct cna_node *cni = (struct cna_node *)READ_ONCE(iter->next);
+ 	struct cna_node *cn = (struct cna_node *)node;
+-	int nid = cn->numa_node;
++	int nid = cn->numa_node >> 1;
+ 	struct cna_node *last;
+ 
+ 	/* find any next waiter on 'our' NUMA node */
+ 	for (last = cn;
+-	     cni && cni->numa_node != nid;
++		 /*
++		  * iterate as long as the current node is not priorizied and
++		  * does not run on 'our' NUMA node
++		  */
++	     cni && !(cni->numa_node & 0x1) && (cni->numa_node >> 1) != nid;
+ 	     last = cni, cni = (struct cna_node *)READ_ONCE(cni->mcs.next))
+ 		;
+ 
+@@ -258,6 +274,12 @@ static u32 cna_order_queue(struct mcs_spinlock *node,
+ 	if (last != cn)	/* did we skip any waiters? */
+ 		cna_splice_tail(node, node->next, (struct mcs_spinlock *)last);
+ 
++	/*
++	 * We return LOCAL_WAITER_FOUND here even if we stopped the scan because
++	 * of a prioritized waiter. That waiter will get the lock next even if
++	 * it runs on a different NUMA node, but this is what we wanted when we
++	 * prioritized it.
++	 */
+ 	return LOCAL_WAITER_FOUND;
+ }
+ 
+-- 
+2.21.1 (Apple Git-122.3)
