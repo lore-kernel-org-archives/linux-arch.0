@@ -1,138 +1,51 @@
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH v2 5/5] uaccess: Rename user_access_begin/end() to
- user_full_access_begin/end()
-Date: Fri,  3 Apr 2020 07:20:54 +0000 (UTC)
-Message-ID: <42da416106d5c1cf92bda1e058434fe240b35f44.1585898438.git.christophe.leroy@c-s.fr>
-References: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:51428 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388959AbgDCHU5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 3 Apr 2020 03:20:57 -0400
-In-Reply-To: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, intel-gfx@lists.freedesktop.org
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [PATCH v1 0/6] arm64: tlb: add support for TTL feature
+Date: Fri, 3 Apr 2020 17:00:42 +0800
+Message-ID: <20200403090048.938-1-yezhenyu2@huawei.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+List-Id: linux-arch.vger.kernel.org
 
-Now we have user_read_access_begin() and user_write_access_begin()
-in addition to user_access_begin().
+In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+feature allows TLBs to be issued with a level allowing for quicker
+invalidation.  This series provide support for this feature.
 
-Make it explicit that user_access_begin() provides both read and
-write by renaming it user_full_access_begin(). And the same for
-user_access_end() which becomes user_full_access_end().
+Patch 1 and Patch 2 was provided by Marc on his NV series[1] patches,
+which detect the TTL feature and add __tlbi_level interface.  Patch 3
+added __tlbi_user_level interface.  Patch 4 was provided by Peter and
+added some mmu_gather APIs.  Patch 5 provided flush_*_tlb_range wrappers
+so we can do the tlb invalidation according to the information in
+struct mmu_gather.  Finally, we supported TTL feature in ARM64 by using
+tlb->cleared_* in struct mmu_gather.
 
-Done with following command, then hand splitted two too long lines.
+See patches for details, Thanks.
 
-sed -i s/user_access_begin/user_full_access_begin/g `git grep -l user_access_begin`
+Marc Zyngier (2):
+  arm64: Detect the ARMv8.4 TTL feature
+  arm64: Add level-hinted TLB invalidation helper
 
-Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
----
-v2: New, based on remark from Al Viro.
----
- arch/powerpc/include/asm/uaccess.h | 5 +++--
- arch/x86/include/asm/futex.h       | 4 ++--
- arch/x86/include/asm/uaccess.h     | 7 ++++---
- include/linux/uaccess.h            | 8 ++++----
- 4 files changed, 13 insertions(+), 11 deletions(-)
+Peter Zijlstra (Intel) (1):
+  tlb: mmu_gather: add tlb_set_*_range APIs
 
-diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
-index 4427d419eb1d..7fe799e081f2 100644
---- a/arch/powerpc/include/asm/uaccess.h
-+++ b/arch/powerpc/include/asm/uaccess.h
-@@ -456,14 +456,15 @@ extern long __copy_from_user_flushcache(void *dst, const void __user *src,
- extern void memcpy_page_flushcache(char *to, struct page *page, size_t offset,
- 			   size_t len);
- 
--static __must_check inline bool user_access_begin(const void __user *ptr, size_t len)
-+static __must_check inline bool
-+user_full_access_begin(const void __user *ptr, size_t len)
- {
- 	if (unlikely(!access_ok(ptr, len)))
- 		return false;
- 	allow_read_write_user((void __user *)ptr, ptr, len);
- 	return true;
- }
--#define user_access_begin	user_access_begin
-+#define user_full_access_begin	user_full_access_begin
- #define user_access_end		prevent_current_access_user
- #define user_access_save	prevent_user_access_return
- #define user_access_restore	restore_user_access
-diff --git a/arch/x86/include/asm/futex.h b/arch/x86/include/asm/futex.h
-index f9c00110a69a..9eefea374bd4 100644
---- a/arch/x86/include/asm/futex.h
-+++ b/arch/x86/include/asm/futex.h
-@@ -56,7 +56,7 @@ do {								\
- static __always_inline int arch_futex_atomic_op_inuser(int op, int oparg, int *oval,
- 		u32 __user *uaddr)
- {
--	if (!user_access_begin(uaddr, sizeof(u32)))
-+	if (!user_full_access_begin(uaddr, sizeof(u32)))
- 		return -EFAULT;
- 
- 	switch (op) {
-@@ -92,7 +92,7 @@ static inline int futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
- {
- 	int ret = 0;
- 
--	if (!user_access_begin(uaddr, sizeof(u32)))
-+	if (!user_full_access_begin(uaddr, sizeof(u32)))
- 		return -EFAULT;
- 	asm volatile("\n"
- 		"1:\t" LOCK_PREFIX "cmpxchgl %4, %2\n"
-diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
-index d8f283b9a569..8776e815f215 100644
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -473,16 +473,17 @@ extern struct movsl_mask {
-  * The "unsafe" user accesses aren't really "unsafe", but the naming
-  * is a big fat warning: you have to not only do the access_ok()
-  * checking before using them, but you have to surround them with the
-- * user_access_begin/end() pair.
-+ * user_full_access_begin/end() pair.
-  */
--static __must_check __always_inline bool user_access_begin(const void __user *ptr, size_t len)
-+static __must_check __always_inline bool
-+user_full_access_begin(const void __user *ptr, size_t len)
- {
- 	if (unlikely(!access_ok(ptr,len)))
- 		return 0;
- 	__uaccess_begin_nospec();
- 	return 1;
- }
--#define user_access_begin(a,b)	user_access_begin(a,b)
-+#define user_full_access_begin(a,b)	user_full_access_begin(a,b)
- #define user_access_end()	__uaccess_end()
- 
- #define user_access_save()	smap_save()
-diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
-index 9861c89f93be..5be9bc930342 100644
---- a/include/linux/uaccess.h
-+++ b/include/linux/uaccess.h
-@@ -368,8 +368,8 @@ extern long strnlen_unsafe_user(const void __user *unsafe_addr, long count);
- #define probe_kernel_address(addr, retval)		\
- 	probe_kernel_read(&retval, addr, sizeof(retval))
- 
--#ifndef user_access_begin
--#define user_access_begin(ptr,len) access_ok(ptr, len)
-+#ifndef user_full_access_begin
-+#define user_full_access_begin(ptr,len) access_ok(ptr, len)
- #define user_access_end() do { } while (0)
- #define unsafe_op_wrap(op, err) do { if (unlikely(op)) goto err; } while (0)
- #define unsafe_get_user(x,p,e) unsafe_op_wrap(__get_user(x,p),e)
-@@ -379,11 +379,11 @@ static inline unsigned long user_access_save(void) { return 0UL; }
- static inline void user_access_restore(unsigned long flags) { }
- #endif
- #ifndef user_write_access_begin
--#define user_write_access_begin user_access_begin
-+#define user_write_access_begin user_full_access_begin
- #define user_write_access_end user_access_end
- #endif
- #ifndef user_read_access_begin
--#define user_read_access_begin user_access_begin
-+#define user_read_access_begin user_full_access_begin
- #define user_read_access_end user_access_end
- #endif
- 
+Zhenyu Ye (3):
+  arm64: Add tlbi_user_level TLB invalidation helper
+  mm: tlb: Provide flush_*_tlb_range wrappers
+  arm64: tlb: Set the TTL field in flush_tlb_range
+
+ arch/arm64/include/asm/cpucaps.h  |  3 +-
+ arch/arm64/include/asm/sysreg.h   |  1 +
+ arch/arm64/include/asm/tlb.h      | 26 ++++++++++++++-
+ arch/arm64/include/asm/tlbflush.h | 53 ++++++++++++++++++++++++-----
+ arch/arm64/kernel/cpufeature.c    | 11 +++++++
+ include/asm-generic/pgtable.h     | 12 +++++--
+ include/asm-generic/tlb.h         | 55 ++++++++++++++++++++++---------
+ mm/pgtable-generic.c              | 50 ++++++++++++++++++++++++++++
+ 8 files changed, 184 insertions(+), 27 deletions(-)
+
 -- 
-2.25.0
+2.19.1
