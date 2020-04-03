@@ -1,108 +1,120 @@
-Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from esgaroth.petrovitsch.at ([78.47.184.11]:4925 "EHLO
-        esgaroth.tuxoid.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726147AbgDVRD0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2020 13:03:26 -0400
-Subject: Re: [PATCH 1/4] fs: Implement close-on-fork
-References: <20200420071548.62112-1-nate.karstens@garmin.com>
- <20200420071548.62112-2-nate.karstens@garmin.com>
- <fa6c5c9c7c434f878c94a7c984cd43ba@garmin.com>
- <20200422154356.GU5820@bombadil.infradead.org>
- <6ed7bd08892b4311b70636658321904f@garmin.com>
-From: Bernd Petrovitsch <bernd@petrovitsch.priv.at>
-Message-ID: <97f05204-a27c-7cc8-429a-edcf6eebaa11@petrovitsch.priv.at>
-Date: Wed, 22 Apr 2020 16:31:34 +0000
+Return-Path: <SRS0=HxeN=5T=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:33468 "EHLO
+        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728023AbgDCNhp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2020 09:37:45 -0400
+Date: Fri, 3 Apr 2020 14:37:19 +0100
+From: Russell King - ARM Linux admin <linux@armlinux.org.uk>
+Subject: Re: [PATCH RESEND 1/4] uaccess: Add user_read_access_begin/end and
+ user_write_access_begin/end
+Message-ID: <20200403133719.GC25745@shell.armlinux.org.uk>
+References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
+ <20200402162942.GG23230@ZenIV.linux.org.uk>
+ <67e21b65-0e2d-7ca5-7518-cec1b7abc46c@c-s.fr>
+ <20200402175032.GH23230@ZenIV.linux.org.uk>
+ <202004021132.813F8E88@keescook>
+ <20200403005831.GI23230@ZenIV.linux.org.uk>
+ <20200403112609.GB26633@mbp>
 MIME-Version: 1.0
-In-Reply-To: <6ed7bd08892b4311b70636658321904f@garmin.com>
-Content-Type: multipart/mixed;
- boundary="------------5C6F5C422D1052E6828086F8"
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200403112609.GB26633@mbp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Karstens, Nate" <Nate.Karstens@garmin.com>, Matthew Wilcox <willy@infradead.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Laight <David.Laight@aculab.com>, Changli Gao <xiaosuo@gmail.com>
-Message-ID: <20200422163134.bKK8QV0qM4DpzRnqpnkY72aLRB70i3FrYY1aQ1n_Osg@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Kees Cook <keescook@chromium.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, akpm@linux-foundation.org, hpa@zytor.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20200403133719.C4MnEWJozWugU9uslG2mTpKWJd2Jj-NBsTTdoM0IfZs@z>
 
-This is a multi-part message in MIME format.
---------------5C6F5C422D1052E6828086F8
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+On Fri, Apr 03, 2020 at 12:26:10PM +0100, Catalin Marinas wrote:
+> On Fri, Apr 03, 2020 at 01:58:31AM +0100, Al Viro wrote:
+> > On Thu, Apr 02, 2020 at 11:35:57AM -0700, Kees Cook wrote:
+> > > Yup, I think it's a weakness of the ARM implementation and I'd like to
+> > > not extend it further. AFAIK we should never nest, but I would not be
+> > > surprised at all if we did.
+> > > 
+> > > If we were looking at a design goal for all architectures, I'd like
+> > > to be doing what the public PaX patchset did for their memory access
+> > > switching, which is to alarm if calling into "enable" found the access
+> > > already enabled, etc. Such a condition would show an unexpected nesting
+> > > (like we've seen with similar constructs with set_fs() not getting reset
+> > > during an exception handler, etc etc).
+> > 
+> > FWIW, maybe I'm misreading the ARM uaccess logics, but... it smells like
+> > KERNEL_DS is somewhat more dangerous there than on e.g. x86.
+> > 
+> > Look: with CONFIG_CPU_DOMAINS, set_fs(KERNEL_DS) tells MMU to ignore
+> > per-page permission bits in DOMAIN_KERNEL (i.e. for kernel address
+> > ranges), allowing them even if they would normally be denied.  We need
+> > that for actual uaccess loads/stores, since those use insns that pretend
+> > to be done in user mode and we want them to access the kernel pages.
+> > But that affects the normal loads/stores as well; unless I'm misreading
+> > that code, it will ignore (supervisor) r/o on a page.  And that's not
+> > just for the code inside the uaccess blocks; *everything* done under
+> > KERNEL_DS is subject to that.
+> 
+> That's correct. Luckily this only affects ARMv5 and earlier. From ARMv6
+> onwards, CONFIG_CPU_USE_DOMAINS is no longer selected and the uaccess
+> instructions are just plain ldr/str.
+> 
+> Russell should know the details on whether there was much choice. Since
+> the kernel was living in the linear map with full rwx permissions, the
+> KERNEL_DS overriding was probably not a concern and the ldrt/strt for
+> uaccess deemed more secure. We also have weird permission setting
+> pre-ARMv6 (or rather v6k) where RO user pages are writable from the
+> kernel with standard str instructions (breaking CoW). I don't recall
+> whether it was a choice made by the kernel or something the architecture
+> enforced. The vectors page has to be kernel writable (and user RO) to
+> store the TLS value in the absence of a TLS register but maybe we could
+> do this via the linear alias together with the appropriate cache
+> maintenance.
+> 
+> From ARMv6, the domain overriding had the side-effect of ignoring the XN
+> bit and causing random instruction fetches from ioremap() areas. So we
+> had to remove the domain switching. We also gained a dedicated TLS
+> register.
 
-On 22/04/2020 16:02, Karstens, Nate wrote:
->> It's not safe to call system() from a threaded app.  That's all.  It's=
- right there in the DESCRIPTION:
->=20
-> That is true, but that description is missing from both the Linux man p=
-age and the glibc documentation (https://www.gnu.org/software/libc/manual=
-/html_mono/libc.html#Running-a-Command). It seems like a minor point that=
- won't be noticed until it causes a problem, and problems are rare enough=
- they might go unnoticed for a while. We have removed system() from our a=
-pplication, but we're also concerned that libraries we integrate will use=
- system() without our knowledge.
+Indeed.  On pre-ARMv6, we have the following choices for protection
+attributes:
 
-Reimplementing system() is trivial.
-LD_LIBRARY_PRELOAD should take care of all system(3) calls.
+Page tables	Control Reg	Privileged	User
+AP		S,R		permission	permission
+00		0,0		No access	No access
+00		1,0		Read-only	No access
+00		0,1		Read-only	Read-only
+00		1,1		Unpredictable	Unpredictable
+01		X,X		Read/Write	No access
+10		X,X		Read/Write	Read-only
+11		X,X		Read/Write	Read/Write
 
-I wonder it it has some value to add runtime checking for
-"multi-threaded" to such lib functions and error out if
-yes.
+We use S,R=1,0 under Linux because this allows us to read-protect
+kernel pages without making them visible to userspace.  If we
+changed to S,R=0,1, then we could have our read-only permissions
+for both kernel and userspace, drop domain switching, and use the
+plain LDR/STR instructions, but we then lose the ability to
+write-protect module executable code and other parts of kernel
+space without making them visible to userspace.
 
-Apart from that, system() is a PITA even on
-single/non-threaded apps.
+So, it essentially boils down to making a choice - which set of
+security features we think are the most important.
 
-MfG,
-	Bernd
---=20
-There is no cloud, just other people computers.
--- https://static.fsf.org/nosvn/stickers/thereisnocloud.svg
+> I think uaccess_enable() could indeed switch the kernel domain if
+> KERNEL_DS is set and move this out of set_fs(). It would reduce the
+> window the kernel domain permissions are overridden. Anyway,
+> uaccess_enable() appeared much later on arm when Russell introduced PAN
+> (SMAP) like support by switching the user domain.
 
---------------5C6F5C422D1052E6828086F8
-Content-Type: application/pgp-keys;
- name="pEpkey.asc"
-Content-Transfer-Encoding: quoted-printable
-Content-Disposition: attachment;
- filename="pEpkey.asc"
+Yes, that would be a possibility.  Another possibility would be to
+eliminate as much usage of KERNEL_DS as possible - I've just found
+one instance in sys_oabi-compat.c that can be eliminated (epoll_ctl)
+but there's several there that can't with the current code structure,
+and re-coding the contents of some fs/* functions to work around that
+is a very bad idea.  If there's some scope for rejigging some of the
+fs/* code, it may be possible to elimate some other cases in there.
 
------BEGIN PGP PUBLIC KEY BLOCK-----
+I notice that the fs/* code seems like some of the last remaining
+users of KERNEL_DS, although I suspect that some aren't possible to
+eliminate. :(
 
-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3D=3D
-=3DGX6K
------END PGP PUBLIC KEY BLOCK-----
-
---------------5C6F5C422D1052E6828086F8--
+-- 
+RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line in suburbia: sync at 10.2Mbps down 587kbps up
