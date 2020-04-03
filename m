@@ -1,7 +1,7 @@
 From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v1 5/6] mm: tlb: Provide flush_*_tlb_range wrappers
-Date: Fri, 3 Apr 2020 17:00:47 +0800
-Message-ID: <20200403090048.938-6-yezhenyu2@huawei.com>
+Subject: [PATCH v1 3/6] arm64: Add tlbi_user_level TLB invalidation helper
+Date: Fri, 3 Apr 2020 17:00:45 +0800
+Message-ID: <20200403090048.938-4-yezhenyu2@huawei.com>
 References: <20200403090048.938-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
@@ -13,104 +13,63 @@ To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas
 Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-Id: linux-arch.vger.kernel.org
 
-This patch provides flush_{pte|pmd|pud|p4d}_tlb_range() in generic
-code, which are expressed through the mmu_gather APIs.  These
-interface set tlb->cleared_* and finally call tlb_flush(), so we
-can do the tlb invalidation according to the information in
-struct mmu_gather.
+Add a level-hinted parameter to __tlbi_user, which only gets used
+if ARMv8.4-TTL gets detected.
+
+ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
+the level of translation table walk holding the leaf entry for the
+address that is being invalidated.
+
+This patch set the default level value to 0.
 
 Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 ---
- include/asm-generic/pgtable.h | 12 +++++++--
- mm/pgtable-generic.c          | 50 +++++++++++++++++++++++++++++++++++
- 2 files changed, 60 insertions(+), 2 deletions(-)
+ arch/arm64/include/asm/tlbflush.h | 18 ++++++++++++------
+ 1 file changed, 12 insertions(+), 6 deletions(-)
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index e2e2bef07dd2..2bedeee94131 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1160,11 +1160,19 @@ static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
-  * invalidate the entire TLB which is not desitable.
-  * e.g. see arch/arc: flush_pmd_tlb_range
-  */
--#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
--#define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
-+extern void flush_pte_tlb_range(struct vm_area_struct *vma,
-+				unsigned long addr, unsigned long end);
-+extern void flush_pmd_tlb_range(struct vm_area_struct *vma,
-+				unsigned long addr, unsigned long end);
-+extern void flush_pud_tlb_range(struct vm_area_struct *vma,
-+				unsigned long addr, unsigned long end);
-+extern void flush_p4d_tlb_range(struct vm_area_struct *vma,
-+				unsigned long addr, unsigned long end);
- #else
-+#define flush_pte_tlb_range(vma, addr, end)	BUILD_BUG()
- #define flush_pmd_tlb_range(vma, addr, end)	BUILD_BUG()
- #define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
-+#define flush_p4d_tlb_range(vma, addr, end)	BUILD_BUG()
- #endif
- #endif
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
+index 5f9f189bc6d2..892f33235dc7 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -89,6 +89,12 @@
+ 		__tlbi(op,  arg);					\
+ 	} while (0)
  
-diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
-index 3d7c01e76efc..0f5414a4a2ec 100644
---- a/mm/pgtable-generic.c
-+++ b/mm/pgtable-generic.c
-@@ -101,6 +101,56 @@ pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
++#define __tlbi_user_level(op, arg, level) do {				\
++	if (arm64_kernel_unmapped_at_el0())				\
++		__tlbi_level(op, (arg | USER_ASID_FLAG), level);	\
++} while (0)
++
++
+ /*
+  *	TLB Invalidation
+  *	================
+@@ -190,8 +196,8 @@ static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
+ 	unsigned long addr = __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
  
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ 	dsb(ishst);
+-	__tlbi(vale1is, addr);
+-	__tlbi_user(vale1is, addr);
++	__tlbi_level(vale1is, addr, 0);
++	__tlbi_user_level(vale1is, addr, 0);
+ }
  
-+#ifndef __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
-+void flush_pte_tlb_range(struct vm_area_struct *vma,
-+			 unsigned long addr, unsigned long end)
-+{
-+	struct mmu_gather tlb;
-+
-+	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
-+	tlb_start_vma(&tlb, vma);
-+	tlb_set_pte_range(&tlb, addr, end - addr);
-+	tlb_end_vma(&tlb, vma);
-+	tlb_finish_mmu(&tlb, addr, end);
-+}
-+
-+void flush_pmd_tlb_range(struct vm_area_struct *vma,
-+			 unsigned long addr, unsigned long end)
-+{
-+	struct mmu_gather tlb;
-+
-+	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
-+	tlb_start_vma(&tlb, vma);
-+	tlb_set_pmd_range(&tlb, addr, end - addr);
-+	tlb_end_vma(&tlb, vma);
-+	tlb_finish_mmu(&tlb, addr, end);
-+}
-+
-+void flush_pud_tlb_range(struct vm_area_struct *vma,
-+			 unsigned long addr, unsigned long end)
-+{
-+	struct mmu_gather tlb;
-+
-+	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
-+	tlb_start_vma(&tlb, vma);
-+	tlb_set_pud_range(&tlb, addr, end - addr);
-+	tlb_end_vma(&tlb, vma);
-+	tlb_finish_mmu(&tlb, addr, end);
-+}
-+
-+void flush_p4d_tlb_range(struct vm_area_struct *vma,
-+			 unsigned long addr, unsigned long end)
-+{
-+	struct mmu_gather tlb;
-+
-+	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
-+	tlb_start_vma(&tlb, vma);
-+	tlb_set_p4d_range(&tlb, addr, end - addr);
-+	tlb_end_vma(&tlb, vma);
-+	tlb_finish_mmu(&tlb, addr, end);
-+}
-+#endif /* __HAVE_ARCH_FLUSH_PMD_TLB_RANGE */
-+
- #ifndef __HAVE_ARCH_PMDP_SET_ACCESS_FLAGS
- int pmdp_set_access_flags(struct vm_area_struct *vma,
- 			  unsigned long address, pmd_t *pmdp,
+ static inline void flush_tlb_page(struct vm_area_struct *vma,
+@@ -231,11 +237,11 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
+ 	dsb(ishst);
+ 	for (addr = start; addr < end; addr += stride) {
+ 		if (last_level) {
+-			__tlbi(vale1is, addr);
+-			__tlbi_user(vale1is, addr);
++			__tlbi_level(vale1is, addr, 0);
++			__tlbi_user_level(vale1is, addr, 0);
+ 		} else {
+-			__tlbi(vae1is, addr);
+-			__tlbi_user(vae1is, addr);
++			__tlbi_level(vae1is, addr, 0);
++			__tlbi_user_level(vae1is, addr, 0);
+ 		}
+ 	}
+ 	dsb(ish);
 -- 
 2.19.1
