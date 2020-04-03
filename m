@@ -1,108 +1,79 @@
-From: Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Subject: Re: [PATCH RESEND 1/4] uaccess: Add user_read_access_begin/end and
- user_write_access_begin/end
-Date: Fri, 3 Apr 2020 11:02:57 +0100
-Message-ID: <20200403100257.GB25745@shell.armlinux.org.uk>
-References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
- <20200402162942.GG23230@ZenIV.linux.org.uk>
- <67e21b65-0e2d-7ca5-7518-cec1b7abc46c@c-s.fr>
- <20200402175032.GH23230@ZenIV.linux.org.uk>
- <202004021132.813F8E88@keescook>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v2 1/4] powerpc/64s: implement probe_kernel_read/write
+ without touching AMR
+Date: Fri, 03 Apr 2020 21:05:26 +1000
+Message-ID: <1585911072.njtr9qmios.astroid@bobo.none>
+References: <20200403093529.43587-1-npiggin@gmail.com>
+        <558b6131-60b4-98b7-dc40-25d8dacea05a@c-s.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:59130 "EHLO
-        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727774AbgDCKDS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2020 06:03:18 -0400
-Content-Disposition: inline
-In-Reply-To: <202004021132.813F8E88@keescook>
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:40727 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727792AbgDCLFk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2020 07:05:40 -0400
+In-Reply-To: <558b6131-60b4-98b7-dc40-25d8dacea05a@c-s.fr>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, akpm@linux-foundation.org, hpa@zytor.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>
+To: Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org
+Cc: Daniel Borkmann <daniel@iogearbox.net>, Alexei Starovoitov <ast@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Masami Hiramatsu <mhiramat@kernel.org>, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, Apr 02, 2020 at 11:35:57AM -0700, Kees Cook wrote:
-> On Thu, Apr 02, 2020 at 06:50:32PM +0100, Al Viro wrote:
-> > On Thu, Apr 02, 2020 at 07:03:28PM +0200, Christophe Leroy wrote:
-> > 
-> > > user_access_begin() grants both read and write.
-> > > 
-> > > This patch adds user_read_access_begin() and user_write_access_begin() but
-> > > it doesn't remove user_access_begin()
-> > 
-> > Ouch...  So the most generic name is for the rarest case?
-> >  
-> > > > What should we do about that?  Do we prohibit such blocks outside
-> > > > of arch?
-> > > > 
-> > > > What should we do about arm and s390?  There we want a cookie passed
-> > > > from beginning of block to its end; should that be a return value?
-> > > 
-> > > That was the way I implemented it in January, see
-> > > https://patchwork.ozlabs.org/patch/1227926/
-> > > 
-> > > There was some discussion around that and most noticeable was:
-> > > 
-> > > H. Peter (hpa) said about it: "I have *deep* concern with carrying state in
-> > > a "key" variable: it's a direct attack vector for a crowbar attack,
-> > > especially since it is by definition live inside a user access region."
-> > 
-> > > This patch minimises the change by just adding user_read_access_begin() and
-> > > user_write_access_begin() keeping the same parameters as the existing
-> > > user_access_begin().
-> > 
-> > Umm...  What about the arm situation?  The same concerns would apply there,
-> > wouldn't they?  Currently we have
-> > static __always_inline unsigned int uaccess_save_and_enable(void)
-> > {
-> > #ifdef CONFIG_CPU_SW_DOMAIN_PAN
-> >         unsigned int old_domain = get_domain();
-> > 
-> >         /* Set the current domain access to permit user accesses */
-> >         set_domain((old_domain & ~domain_mask(DOMAIN_USER)) |
-> >                    domain_val(DOMAIN_USER, DOMAIN_CLIENT));
-> > 
-> >         return old_domain;
-> > #else
-> >         return 0;
-> > #endif
-> > }
-> > and
-> > static __always_inline void uaccess_restore(unsigned int flags)
-> > {
-> > #ifdef CONFIG_CPU_SW_DOMAIN_PAN
-> >         /* Restore the user access mask */
-> >         set_domain(flags);
-> > #endif
-> > }
-> > 
-> > How much do we need nesting on those, anyway?  rmk?
+Christophe Leroy's on April 3, 2020 8:31 pm:
+>=20
+>=20
+> Le 03/04/2020 =C3=A0 11:35, Nicholas Piggin a =C3=A9crit=C2=A0:
+>> There is no need to allow user accesses when probing kernel addresses.
+>=20
+> I just discovered the following commit=20
+> https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit=
+/?id=3D75a1a607bb7e6d918be3aca11ec2214a275392f4
+>=20
+> This commit adds probe_kernel_read_strict() and probe_kernel_write_strict=
+().
+>=20
+> When reading the commit log, I understand that probe_kernel_read() may=20
+> be used to access some user memory. Which will not work anymore with=20
+> your patch.
 
-It's that way because it's easy, logical, and actually *more* efficient
-to do it that way, rather than read-modify-write the domain register
-each time we want to change it.
+Hmm, I looked at _strict but obviously not hard enough. Good catch.
 
-> Yup, I think it's a weakness of the ARM implementation and I'd like to
-> not extend it further. AFAIK we should never nest, but I would not be
-> surprised at all if we did.
+I don't think probe_kernel_read() should ever access user memory,
+the comment certainly says it doesn't, but that patch sort of implies
+that they do.
 
-There is one known nesting, which is __clear_user() when used with
-the (IMHO horrid and I don't care about) UACCESS_WITH_MEMCPY feature.
-That's not intentional however.
+I think it's wrong. The non-_strict maybe could return userspace data to=20
+you if you did pass a user address? I don't see why that shouldn't just=20
+be disallowed always though.
 
-When I introduced this on ARM, the placement I adopted was to locate
-it _as close as sanely possible_ to the userspace access so we
-minimised the kernel accesses, so we minimise the number of accesses
-that could go stray because of the domain issue - we ideally only
-want the access done by the accessor itself to be affected, which
-we achieve for most accesses.
+And if the _strict version is required to be safe, then it seems like a
+bug or security issue to just allow everyone that doesn't explicitly
+override it to use the default implementation.
 
-Thinking laterally, maybe we should get rid of the whole KERNEL_DS
-stuff entirely, and come up with an alternative way of handling the
-kernel-wants-to-access-kernelspace-via-user-accessors problem.
-Such as, copying some data back to userspace memory?
+Also, the way the weak linkage is done in that patch, means parisc and
+um archs that were previously overriding probe_kernel_read() now get
+the default probe_kernel_read_strict(), which would be wrong for them.
 
--- 
-RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line in suburbia: sync at 10.2Mbps down 587kbps up
+>=20
+> Isn't it probe_kernel_read_strict() and probe_kernel_write_strict() that=20
+> you want to add ?
+>=20
+>>=20
+>> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+>> ---
+>> v2:
+>> - Enable for all powerpc (suggested by Christophe)
+>> - Fold helper function together (Christophe)
+>> - Rename uaccess.c to maccess.c to match kernel/maccess.c.
+>>=20
+>>   arch/powerpc/include/asm/uaccess.h | 25 +++++++++++++++-------
+>>   arch/powerpc/lib/Makefile          |  2 +-
+>>   arch/powerpc/lib/maccess.c         | 34 ++++++++++++++++++++++++++++++
+>=20
+> x86 does it in mm/maccess.c
+
+Yeah I'll fix that up, thanks.
+
+Thanks,
+Nick
+=
