@@ -1,94 +1,76 @@
-Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51642 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727804AbgD1NVJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Apr 2020 09:21:09 -0400
-From: "H.J. Lu" <hjl.tools@gmail.com>
-Subject: [PATCH 2/2] Discard .note.gnu.property sections in generic NOTES
-Date: Tue, 28 Apr 2020 06:21:05 -0700
-Message-ID: <20200428132105.170886-2-hjl.tools@gmail.com>
-In-Reply-To: <20200428132105.170886-1-hjl.tools@gmail.com>
-References: <20200428132105.170886-1-hjl.tools@gmail.com>
+Return-Path: <SRS0=8f/M=5T=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
+ flush_pmd_tlb_range
+References: <20200331142927.1237-1-yezhenyu2@huawei.com>
+ <20200331142927.1237-5-yezhenyu2@huawei.com>
+ <20200331151331.GS20730@hirez.programming.kicks-ass.net>
+ <fe12101e-8efe-22ad-0258-e6aeafc798cc@huawei.com>
+ <20200401122004.GE20713@hirez.programming.kicks-ass.net>
+ <53675fb9-21c7-5309-07b8-1bbc1e775f9b@huawei.com>
+ <20200402163849.GM20713@hirez.programming.kicks-ass.net>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Message-ID: <d512b28f-99d3-5a26-d189-2ebac7a412c7@huawei.com>
+Date: Fri, 3 Apr 2020 13:14:21 +0800
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200402163849.GM20713@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Kees Cook <keescook@chromium.org>, Borislav Petkov <bp@suse.de>, "Naveen N . Rao" <naveen.n.rao@linux.vnet.ibm.com>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20200428132105.AJi5co9SuNYxF9e0C7V1z_a00JwoZLLgdSp6aWXjl_8@z>
+Message-ID: <20200403051421.qTJ0He-F6sjqqxpXwaegrV013sQaTRQy7x-my0n-Eso@z>
 
-With the command-line option, -mx86-used-note=yes, the x86 assembler
-in binutils 2.32 and above generates a program property note in a note
-section, .note.gnu.property, to encode used x86 ISAs and features.  But
-kernel linker script only contains a single NOTE segment:
+Hi Peter,
 
-PHDRS {
- text PT_LOAD FLAGS(5);
- data PT_LOAD FLAGS(6);
- percpu PT_LOAD FLAGS(6);
- init PT_LOAD FLAGS(7);
- note PT_NOTE FLAGS(0);
-}
-SECTIONS
-{
-...
- .notes : AT(ADDR(.notes) - 0xffffffff80000000) { __start_notes = .; KEEP(*(.not
-e.*)) __stop_notes = .; } :text :note
-...
-}
+On 2020/4/3 0:38, Peter Zijlstra wrote:
+> On Thu, Apr 02, 2020 at 07:24:04PM +0800, Zhenyu Ye wrote:
+>> Thanks for your detailed explanation.  I notice that you used
+>> `tlb_end_vma` replace `flush_tlb_range`, which will call `tlb_flush`,
+>> then finally call `flush_tlb_range` in generic code.  However, some
+>> architectures define tlb_end_vma|tlb_flush|flush_tlb_range themselves,
+>> so this may cause problems.
+>>
+>> For example, in s390, it defines:
+>>
+>> #define tlb_end_vma(tlb, vma)			do { } while (0)
+>>
+>> And it doesn't define it's own flush_pmd_tlb_range().  So there will be
+>> a mistake if we changed flush_pmd_tlb_range() using tlb_end_vma().
+>>
+>> Is this really a problem or something I understand wrong ?
+> 
+> If tlb_end_vma() is a no-op, then tlb_finish_mmu() will do:
+> tlb_flush_mmu() -> tlb_flush_mmu_tlbonly() -> tlb_flush()
+> 
+> And s390 has tlb_flush().
+> 
+> If tlb_end_vma() is not a no-op and it calls tlb_flush_mmu_tlbonly(),
+> then tlb_finish_mmu()'s invocation of tlb_flush_mmu_tlbonly() will
+> terniate early due o no flags set.
+> 
+> IOW, it should all just work.
+> 
+> 
+> FYI the whole tlb_{start,end}_vma() thing is a only needed when the
+> architecture doesn't implement tlb_flush() and instead default to using
+> flush_tlb_range(), at which point we need to provide a 'fake' vma.
+> 
+> At the time I audited all architectures and they only look at VM_EXEC
+> (to do $I invalidation) and VM_HUGETLB (for pmd level invalidations),
+> but I forgot which architectures that were.
 
-The NOTE segment generated by kernel linker script is aligned to 4 bytes.
-But .note.gnu.property section must be aligned to 8 bytes on x86-64 and
-we get
+Many architectures, such as alpha, arc, arm and so on.
+I really understand why you hate making vma->vm_flags more important for
+tlbi :).
 
-[hjl@gnu-skx-1 linux]$ readelf -n vmlinux
+> But that is all legacy code; eventually we'll get all archs a native
+> tlb_flush() and this can go away.
+> 
 
-Displaying notes found in: .notes
-  Owner                Data size Description
-  Xen                  0x00000006 Unknown note type: (0x00000006)
-   description data: 6c 69 6e 75 78 00
-  Xen                  0x00000004 Unknown note type: (0x00000007)
-   description data: 32 2e 36 00
-  xen-3.0              0x00000005 Unknown note type: (0x006e6558)
-   description data: 08 00 00 00 03
-readelf: Warning: note with invalid namesz and/or descsz found at offset 0x50
-readelf: Warning:  type: 0xffffffff, namesize: 0x006e6558, descsize:
-0x80000000, alignment: 8
-[hjl@gnu-skx-1 linux]$
+Thanks for your reply.  Currently, to enable the TTL feature, extending
+the flush_*tlb_range() may be more convenient.
+I will send a formal PATCH soon.
 
-Since note.gnu.property section in kernel image is never used, this patch
-discards .note.gnu.property sections in kernel linker script by adding
-
-/DISCARD/ : {
-  *(.note.gnu.property)
-}
-
-before kernel NOTE segment in generic NOTES.
-
-Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
----
- include/asm-generic/vmlinux.lds.h | 7 +++++++
- 1 file changed, 7 insertions(+)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 71e387a5fe90..95cd678428f4 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -833,7 +833,14 @@
- #define TRACEDATA
- #endif
- 
-+/*
-+ * Discard .note.gnu.property sections which are unused and have
-+ * different alignment requirement from kernel note sections.
-+ */
- #define NOTES								\
-+	/DISCARD/ : {							\
-+		*(.note.gnu.property)					\
-+	}								\
- 	.notes : AT(ADDR(.notes) - LOAD_OFFSET) {			\
- 		__start_notes = .;					\
- 		KEEP(*(.note.*))					\
--- 
-2.25.4
+Thanks,
+Zhenyu
