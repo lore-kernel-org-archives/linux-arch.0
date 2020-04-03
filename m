@@ -1,55 +1,81 @@
-Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout-p-201.mailbox.org ([80.241.56.171]:9918 "EHLO
-        mout-p-201.mailbox.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725917AbgD1Gjr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Apr 2020 02:39:47 -0400
-Date: Tue, 28 Apr 2020 08:39:35 +0200
-From: Hagen Paul Pfeifer <hagen@jauu.net>
-Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
-Message-ID: <20200428063935.GA5660@laniakea>
-References: <CAHk-=wga3O=BoKZXR27-CDnAFareWcMxXhpWerwtCffdaH6_ow@mail.gmail.com>
- <B7A115CB-0C8C-4719-B97B-74D94231CD1E@amacapital.net>
- <CAHk-=whQzOsh9O2uhUO2VETD+hrzjKMpEJpzoUby5QHMcvgPKg@mail.gmail.com>
+Return-Path: <SRS0=HxeN=5T=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga07-in.huawei.com ([45.249.212.35]:49428 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S2390600AbgDCJBV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 3 Apr 2020 05:01:21 -0400
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [PATCH v1 2/6] arm64: Add level-hinted TLB invalidation helper
+Date: Fri, 3 Apr 2020 17:00:44 +0800
+Message-ID: <20200403090048.938-3-yezhenyu2@huawei.com>
+In-Reply-To: <20200403090048.938-1-yezhenyu2@huawei.com>
+References: <20200403090048.938-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAHk-=whQzOsh9O2uhUO2VETD+hrzjKMpEJpzoUby5QHMcvgPKg@mail.gmail.com>
+Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andy Lutomirski <luto@amacapital.net>, Aleksa Sarai <cyphar@cyphar.com>, Christian Brauner <christian.brauner@ubuntu.com>, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, kernel list <linux-kernel@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Message-ID: <20200428063935.c697h0RS5670lr1zpQAvClgiuaG-uHhSYS-k0kQ_J10@z>
+To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Message-ID: <20200403090044.8M46noQY_2uCfodgADzCXZOMsLGHNabULOE4Vg7jE0Y@z>
 
-* Linus Torvalds | 2020-04-27 21:28:14 [-0700]:
+From: Marc Zyngier <maz@kernel.org>
 
->> I hate to say this, but I’m not convinced that asking the gdb folks is
->> the right approach. GDB has an ancient architecture and is
->> *incredibly* buggy. I’m sure ptrace is somewhere on the pain point
->> list, but I suspect it’s utterly dwarfed by everything else.
->
->You may be right. However, if gdbn isn't going to use it, then I
->seriously don't think it's worth changing much.
->
->It might be worth looking at people who don't use ptrace() for
->debugging, but for "incidental" reasons. IOW sandboxing, tracing,
->things like that.
->
->Maybe those people want things that are simpler and don't actually
->need the kinds of hard serialization that ptrace() wants.
->
->I'd rather add a few really simple things that might not be a full
->complement of operations for a debugger, but exactly because they
->aren't a full debugger, maybe they are things that we can tell are
->obviously secure and simple?
+Add a level-hinted TLB invalidation helper that only gets used if
+ARMv8.4-TTL gets detected.
 
-Okay, to sum up the the whole discussion: we go forward with Jann's proposal
-by simple adding PTRACE_ATTACH_PIDFD and friends. This is the minimal invasive
-solution and the risk of an potenial security problem is almost not present[TM].
+Signed-off-by: Marc Zyngier <maz@kernel.org>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+---
+ arch/arm64/include/asm/tlbflush.h | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
 
-Changing the whole ptrace API is a different beast. I rather believe that I
-see Linus Linux successor rather than a ptrace successor.
-
-I am fine with PTRACE_ATTACH_PIDFD!
-
-Hagen
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
+index bc3949064725..5f9f189bc6d2 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -10,6 +10,7 @@
+ 
+ #ifndef __ASSEMBLY__
+ 
++#include <linux/bitfield.h>
+ #include <linux/mm_types.h>
+ #include <linux/sched.h>
+ #include <asm/cputype.h>
+@@ -59,6 +60,35 @@
+ 		__ta;						\
+ 	})
+ 
++#define TLBI_TTL_MASK	GENMASK_ULL(47, 44)
++
++#define __tlbi_level(op, addr, level)					\
++	do {								\
++		u64 arg = addr;						\
++									\
++		if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
++		    level) {						\
++			u64 ttl = level;				\
++									\
++			switch (PAGE_SIZE) {				\
++			case SZ_4K:					\
++				ttl |= 1 << 2;				\
++				break;					\
++			case SZ_16K:					\
++				ttl |= 2 << 2;				\
++				break;					\
++			case SZ_64K:					\
++				ttl |= 3 << 2;				\
++				break;					\
++			}						\
++									\
++			arg &= ~TLBI_TTL_MASK;				\
++			arg |= FIELD_PREP(TLBI_TTL_MASK, ttl);		\
++		}							\
++									\
++		__tlbi(op,  arg);					\
++	} while (0)
++
+ /*
+  *	TLB Invalidation
+  *	================
+-- 
+2.19.1
