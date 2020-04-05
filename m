@@ -1,110 +1,73 @@
-Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45258 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725924AbgDVJuC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Apr 2020 05:50:02 -0400
-Date: Wed, 22 Apr 2020 10:49:52 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v4 05/11] arm64: csum: Disable KASAN for do_csum()
-Message-ID: <20200422094951.GA54428@lakrids.cambridge.arm.com>
-References: <20200421151537.19241-1-will@kernel.org>
- <20200421151537.19241-6-will@kernel.org>
+Return-Path: <SRS0=esWq=5V=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-wr1-f67.google.com ([209.85.221.67]:37825 "EHLO
+        mail-wr1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726399AbgDELOr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 5 Apr 2020 07:14:47 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200421151537.19241-6-will@kernel.org>
+References: <20200228002244.15240-1-keescook@chromium.org> <CA+icZUWTnP8DYfbaMwKtJbG30v7bB4w6=ywo8gn8fvwr731mUQ@mail.gmail.com>
+ <202004021023.D3D8AA3BE@keescook>
+In-Reply-To: <202004021023.D3D8AA3BE@keescook>
+Reply-To: sedat.dilek@gmail.com
+From: Sedat Dilek <sedat.dilek@gmail.com>
+Date: Sun, 5 Apr 2020 13:15:01 +0200
+Message-ID: <CA+icZUXi_iA7XkTEbrK7b6m673iG9qPKnDBE1V0JRywDLBc9jw@mail.gmail.com>
+Subject: Re: [PATCH 0/9] Enable orphan section warning
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@android.com, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Robin Murphy <robin.murphy@arm.com>
-Message-ID: <20200422094952.-2kBxYLnTIKBOv_5gLSctJavNN_DY8BBTItFVaoq3-4@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Clang-Built-Linux ML <clang-built-linux@googlegroups.com>, linux-kernel@vger.kernel.org
+Message-ID: <20200405111501.Bl7LlcFYViUplSwoxTSKUHXOqtLneUui0aSqFUHGVe0@z>
 
-On Tue, Apr 21, 2020 at 04:15:31PM +0100, Will Deacon wrote:
-> do_csum() over-reads the source buffer and therefore abuses
-> READ_ONCE_NOCHECK() to avoid tripping up KASAN. In preparation for
-> READ_ONCE_NOCHECK() becoming a macro, and therefore losing its
-> '__no_sanitize_address' annotation, just annotate do_csum() explicitly
-> and fall back to normal loads.
-> 
-> Cc: Mark Rutland <mark.rutland@arm.com>
-> Cc: Robin Murphy <robin.murphy@arm.com>
-> Signed-off-by: Will Deacon <will@kernel.org>
+On Thu, Apr 2, 2020 at 7:26 PM Kees Cook <keescook@chromium.org> wrote:
+>
+> On Thu, Apr 02, 2020 at 06:20:57PM +0200, Sedat Dilek wrote:
+> > On Fri, Feb 28, 2020 at 1:22 AM Kees Cook <keescook@chromium.org> wrote:
+> > >
+> > > Hi!
+> > >
+> > > A recent bug was solved for builds linked with ld.lld, and tracking
+> > > it down took way longer than it needed to (a year). Ultimately, it
+> > > boiled down to differences between ld.bfd and ld.lld's handling of
+> > > orphan sections. Similarly, the recent FGKASLR series brough up orphan
+> > > section handling too[2]. In both cases, it would have been nice if the
+> > > linker was running with --orphan-handling=warn so that surprise sections
+> > > wouldn't silently get mapped into the kernel image at locations up to
+> > > the whim of the linker's orphan handling logic. Instead, all desired
+> > > sections should be explicitly identified in the linker script (to be
+> > > either kept or discarded) with any orphans throwing a warning. The
+> > > powerpc architecture actually already does this, so this series seeks
+> > > to extend this coverage to x86, arm64, and arm.
+> > >
+> > > This series depends on tip/x86/boot (where recent .eh_frame fixes[3]
+> > > landed), and has a minor conflict[4] with the ARM tree (related to
+> > > the earlier mentioned bug). As it uses refactorings in the asm-generic
+> > > linker script, and makes changes to kbuild, I think the cleanest place
+> > > for this series to land would also be through -tip. Once again (like
+> > > my READ_IMPLIES_EXEC series), I'm looking to get maintainer Acks so
+> > > this can go all together with the least disruption. Splitting it up by
+> > > architecture seems needlessly difficult.
+> > >
+> > > Thanks!
+> > >
+> >
+> > Hi Kees,
+> >
+> > what is the status of this patchset?
+> > Looks like it is not in tip or linux-next Git.
+>
+> Based on the feedback, I have 3 TODO items:
+>
+> - track down and eliminate (or explain) the source of the .got.plt on arm64
+> - enable orphan warnings for _all_ architectures
+> - refactor final link logic to perform the orphan warning in a clean way
+>
+> I'm working through these (and other work) still. I'm hoping to have
+> another version up some time next week.
+>
 
-From a functional perspective:
+Please CC when possible with a pointer to a git-link.
 
-Acked-by: Mark Rutland <mark.rutland@arm.com>
+Thanks.
 
-I know that Robin had a concern w.r.t. how this would affect the
-codegen, but I think we can follow that up after the series as a whole
-is merged.
-
-Thanks,
-Mark.
-
-
-> ---
->  arch/arm64/lib/csum.c | 20 ++++++++++++--------
->  1 file changed, 12 insertions(+), 8 deletions(-)
-> 
-> diff --git a/arch/arm64/lib/csum.c b/arch/arm64/lib/csum.c
-> index 60eccae2abad..78b87a64ca0a 100644
-> --- a/arch/arm64/lib/csum.c
-> +++ b/arch/arm64/lib/csum.c
-> @@ -14,7 +14,11 @@ static u64 accumulate(u64 sum, u64 data)
->  	return tmp + (tmp >> 64);
->  }
->  
-> -unsigned int do_csum(const unsigned char *buff, int len)
-> +/*
-> + * We over-read the buffer and this makes KASAN unhappy. Instead, disable
-> + * instrumentation and call kasan explicitly.
-> + */
-> +unsigned int __no_sanitize_address do_csum(const unsigned char *buff, int len)
->  {
->  	unsigned int offset, shift, sum;
->  	const u64 *ptr;
-> @@ -42,7 +46,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
->  	 * odd/even alignment, and means we can ignore it until the very end.
->  	 */
->  	shift = offset * 8;
-> -	data = READ_ONCE_NOCHECK(*ptr++);
-> +	data = *ptr++;
->  #ifdef __LITTLE_ENDIAN
->  	data = (data >> shift) << shift;
->  #else
-> @@ -58,10 +62,10 @@ unsigned int do_csum(const unsigned char *buff, int len)
->  	while (unlikely(len > 64)) {
->  		__uint128_t tmp1, tmp2, tmp3, tmp4;
->  
-> -		tmp1 = READ_ONCE_NOCHECK(*(__uint128_t *)ptr);
-> -		tmp2 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 2));
-> -		tmp3 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 4));
-> -		tmp4 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 6));
-> +		tmp1 = *(__uint128_t *)ptr;
-> +		tmp2 = *(__uint128_t *)(ptr + 2);
-> +		tmp3 = *(__uint128_t *)(ptr + 4);
-> +		tmp4 = *(__uint128_t *)(ptr + 6);
->  
->  		len -= 64;
->  		ptr += 8;
-> @@ -85,7 +89,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
->  		__uint128_t tmp;
->  
->  		sum64 = accumulate(sum64, data);
-> -		tmp = READ_ONCE_NOCHECK(*(__uint128_t *)ptr);
-> +		tmp = *(__uint128_t *)ptr;
->  
->  		len -= 16;
->  		ptr += 2;
-> @@ -100,7 +104,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
->  	}
->  	if (len > 0) {
->  		sum64 = accumulate(sum64, data);
-> -		data = READ_ONCE_NOCHECK(*ptr);
-> +		data = *ptr;
->  		len -= 8;
->  	}
->  	/*
-> -- 
-> 2.26.1.301.g55bc3eb7cb9-goog
-> 
+- sed@ -
