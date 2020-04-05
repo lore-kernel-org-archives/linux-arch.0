@@ -1,78 +1,97 @@
-Return-Path: <SRS0=p5Ku=5Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:50138 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728979AbgDHMAx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 08:00:53 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 18/28] mm: enforce that vmap can't map pages executable
-Date: Wed,  8 Apr 2020 13:59:16 +0200
-Message-ID: <20200408115926.1467567-19-hch@lst.de>
-In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
-References: <20200408115926.1467567-1-hch@lst.de>
+Return-Path: <SRS0=esWq=5V=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:39588 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726598AbgDEOtb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 5 Apr 2020 10:49:31 -0400
+Subject: Re: [mm/debug] f675f2f91d:
+ WARNING:at_mm/debug_vm_pgtable.c:#debug_vm_pgtable
+References: <20200330085636.GG11705@shao2-debian>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Message-ID: <282deb38-8ce1-3980-2549-4413c33b6062@arm.com>
+Date: Sun, 5 Apr 2020 20:19:12 +0530
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20200330085636.GG11705@shao2-debian>
+Content-Type: text/plain; charset=windows-1252
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200408115916.6Nl9OMWyYtRiko1fZPaqBpM31xvAmpUvf6xiTnNxdg8@z>
+To: kernel test robot <rong.a.chen@intel.com>
+Cc: linux-mm@kvack.org, christophe.leroy@c-s.fr, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lkp@lists.01.org
+Message-ID: <20200405144912.sXrodOQTvepCgYKNPLuqXumfers59YtXGq61pp1h3H0@z>
 
-To help enforcing the W^X protection don't allow remapping existing
-pages as executable.
+On 03/30/2020 02:26 PM, kernel test robot wrote:
+> [  283.486118] WARNING: CPU: 1 PID: 1 at mm/debug_vm_pgtable.c:371 debug_vm_pgtable+0x4dc/0x7e3
+> [  283.487342] Modules linked in:
+> [  283.487752] CPU: 1 PID: 1 Comm: swapper/0 Not tainted 5.6.0-rc7-next-20200323-00001-gf675f2f91d045 #1
+> [  283.488817] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+> [  283.489794] RIP: 0010:debug_vm_pgtable+0x4dc/0x7e3
+> [  283.490361] Code: b5 fd 48 8b 7d d0 be 20 01 00 00 e8 3d 9f b5 fd 48 8b 75 c8 48 8b 7d d0 e8 30 9f b5 fd 48 8b 75 c8 48 8b 7d d0 e8 23 9f b5 fd <0f> 0b 48 8b 75 c8 48 8b 7d d0 e8 14 9f b5 fd 0f 0b 48 8b 75 c8 48
+> [  283.492577] RSP: 0000:ffff888236493ed8 EFLAGS: 00010202
+> [  283.493235] RAX: 00000001e1d31025 RBX: ffff88823e7f6cd8 RCX: ffffffffffffffff
+> [  283.494135] RDX: 0000000000000000 RSI: 0000000000000025 RDI: 00000001e1d31000
+> [  283.495002] RBP: ffff888236493f38 R08: 0000000000000001 R09: 0000000000000001
+> [  283.495858] R10: 0000000000000001 R11: 0000000000000000 R12: ffff88821d907000
+> [  283.496748] R13: ffff88821d8fc498 R14: ffff88821d8fda90 R15: ffff88821d8fc000
+> [  283.497614] FS:  0000000000000000(0000) GS:ffff888237800000(0000) knlGS:0000000000000000
+> [  283.498585] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+> [  283.499290] CR2: 00000000ffffffff CR3: 00000001e1222000 CR4: 00000000000406e0
+> [  283.500165] Call Trace:
+> [  283.500499]  ? rest_init+0x240/0x240
+> [  283.500985]  kernel_init+0x13/0x110
+> [  283.501433]  ret_from_fork+0x24/0x30
+> [  283.501907] irq event stamp: 4760776
+> [  283.502366] hardirqs last  enabled at (4760775): [<ffffffffb481e34d>] _raw_spin_unlock_irqrestore+0x4d/0x60
+> [  283.511686] hardirqs last disabled at (4760776): [<ffffffffb3c038d4>] trace_hardirqs_off_thunk+0x1a/0x1c
+> [  283.512914] softirqs last  enabled at (4760748): [<ffffffffb4c002cf>] __do_softirq+0x2cf/0x4ad
+> [  283.514086] softirqs last disabled at (4760741): [<ffffffffb3cf4f4d>] irq_exit+0xcd/0xe0
+> [  283.515114] ---[ end trace 7e3383c4261f8faa ]---
 
-Based on patch from Peter Zijlstra <peterz@infradead.org>.
+The above failure here and the one on the other thread can be solved with
+the following change. The failure is caused by the fact that even though
+the soft dirty helpers are defined within CONFIG_HAVE_ARCH_SOFT_DIRTY, the
+required PTE bits (_PAGE_SOFT_DIRTY and _PAGE_SWP_SOFT_DIRTY) are available
+only when CONFIG_MEM_SOFT_DIRTY is enabled. Hence these tests should not
+proceed unless CONFIG_MEM_SOFT_DIRTY is enabled. Similar situation exists
+in s390 (_PAGE_SOFT_DIRTY and _SEGMENT_ENTRY_SOFT_DIRTY) and powerpc (at
+least with _PAGE_SWP_SOFT_DIRTY).
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/x86/include/asm/pgtable_types.h | 6 ++++++
- include/asm-generic/pgtable.h        | 4 ++++
- mm/vmalloc.c                         | 2 +-
- 3 files changed, 11 insertions(+), 1 deletion(-)
-
-diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
-index 947867f112ea..2e7c442cc618 100644
---- a/arch/x86/include/asm/pgtable_types.h
-+++ b/arch/x86/include/asm/pgtable_types.h
-@@ -282,6 +282,12 @@ typedef struct pgprot { pgprotval_t pgprot; } pgprot_t;
+diff --git a/mm/debug_vm_pgtable.c b/mm/debug_vm_pgtable.c
+index 87b4b495333b..2a75a51fed06 100644
+--- a/mm/debug_vm_pgtable.c
++++ b/mm/debug_vm_pgtable.c
+@@ -589,7 +589,7 @@ static void __init pte_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
+ {
+        pte_t pte = pfn_pte(pfn, prot);
  
- typedef struct { pgdval_t pgd; } pgd_t;
+-       if (!IS_ENABLED(CONFIG_HAVE_ARCH_SOFT_DIRTY))
++       if (!IS_ENABLED(CONFIG_MEM_SOFT_DIRTY))
+                return;
  
-+static inline pgprot_t pgprot_nx(pgprot_t prot)
-+{
-+	return __pgprot(pgprot_val(prot) | _PAGE_NX);
-+}
-+#define pgprot_nx pgprot_nx
-+
- #ifdef CONFIG_X86_PAE
+        WARN_ON(!pte_soft_dirty(pte_mksoft_dirty(pte)));
+@@ -600,7 +600,7 @@ static void __init pte_swap_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
+ {
+        pte_t pte = pfn_pte(pfn, prot);
  
- /*
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 329b8c8ca703..8c5f9c29698b 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -491,6 +491,10 @@ static inline int arch_unmap_one(struct mm_struct *mm,
- #define flush_tlb_fix_spurious_fault(vma, address) flush_tlb_page(vma, address)
- #endif
+-       if (!IS_ENABLED(CONFIG_HAVE_ARCH_SOFT_DIRTY))
++       if (!IS_ENABLED(CONFIG_MEM_SOFT_DIRTY))
+                return;
  
-+#ifndef pgprot_nx
-+#define pgprot_nx(prot)	(prot)
-+#endif
-+
- #ifndef pgprot_noncached
- #define pgprot_noncached(prot)	(prot)
- #endif
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 7356b3f07bd8..334c75251ddb 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -2390,7 +2390,7 @@ void *vmap(struct page **pages, unsigned int count,
- 	if (!area)
- 		return NULL;
+        WARN_ON(!pte_swp_soft_dirty(pte_swp_mksoft_dirty(pte)));
+@@ -612,7 +612,7 @@ static void __init pmd_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
+ {
+        pmd_t pmd = pfn_pmd(pfn, prot);
  
--	if (map_kernel_range((unsigned long)area->addr, size, prot,
-+	if (map_kernel_range((unsigned long)area->addr, size, pgprot_nx(prot),
- 			pages) < 0) {
- 		vunmap(area->addr);
- 		return NULL;
--- 
-2.25.1
+-       if (!IS_ENABLED(CONFIG_HAVE_ARCH_SOFT_DIRTY))
++       if (!IS_ENABLED(CONFIG_MEM_SOFT_DIRTY))
+                return;
+ 
+        WARN_ON(!pmd_soft_dirty(pmd_mksoft_dirty(pmd)));
+@@ -623,7 +623,7 @@ static void __init pmd_swap_soft_dirty_tests(unsigned long pfn, pgprot_t prot)
+ {
+        pmd_t pmd = pfn_pmd(pfn, prot);
+ 
+-       if (!IS_ENABLED(CONFIG_HAVE_ARCH_SOFT_DIRTY) ||
++       if (!IS_ENABLED(CONFIG_MEM_SOFT_DIRTY) ||
+                !IS_ENABLED(CONFIG_ARCH_ENABLE_THP_MIGRATION))
+                return;
