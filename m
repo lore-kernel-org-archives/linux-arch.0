@@ -1,68 +1,205 @@
-From: Sedat Dilek <sedat.dilek@gmail.com>
-Subject: Re: [PATCH 0/9] Enable orphan section warning
-Date: Sun, 5 Apr 2020 13:15:01 +0200
-Message-ID: <CA+icZUXi_iA7XkTEbrK7b6m673iG9qPKnDBE1V0JRywDLBc9jw@mail.gmail.com>
-References: <20200228002244.15240-1-keescook@chromium.org> <CA+icZUWTnP8DYfbaMwKtJbG30v7bB4w6=ywo8gn8fvwr731mUQ@mail.gmail.com>
- <202004021023.D3D8AA3BE@keescook>
-Reply-To: sedat.dilek@gmail.com
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: Re: [PATCH V2 0/3] mm/debug: Add more arch page table helper tests
+Date: Sun, 5 Apr 2020 17:58:14 +0530
+Message-ID: <e3e35885-6852-16aa-3889-e22750a0cc87@arm.com>
+References: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
+ <20200331143059.29fca8fa@thinkpad>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <202004021023.D3D8AA3BE@keescook>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Clang-Built-Linux ML <clang-built-linux@googlegroups.com>, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20200331143059.29fca8fa@thinkpad>
+Content-Language: en-US
+Sender: linux-doc-owner@vger.kernel.org
+To: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Cc: linux-mm@kvack.org, christophe.leroy@c-s.fr, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 2, 2020 at 7:26 PM Kees Cook <keescook@chromium.org> wrote:
->
-> On Thu, Apr 02, 2020 at 06:20:57PM +0200, Sedat Dilek wrote:
-> > On Fri, Feb 28, 2020 at 1:22 AM Kees Cook <keescook@chromium.org> wrote:
-> > >
-> > > Hi!
-> > >
-> > > A recent bug was solved for builds linked with ld.lld, and tracking
-> > > it down took way longer than it needed to (a year). Ultimately, it
-> > > boiled down to differences between ld.bfd and ld.lld's handling of
-> > > orphan sections. Similarly, the recent FGKASLR series brough up orphan
-> > > section handling too[2]. In both cases, it would have been nice if the
-> > > linker was running with --orphan-handling=warn so that surprise sections
-> > > wouldn't silently get mapped into the kernel image at locations up to
-> > > the whim of the linker's orphan handling logic. Instead, all desired
-> > > sections should be explicitly identified in the linker script (to be
-> > > either kept or discarded) with any orphans throwing a warning. The
-> > > powerpc architecture actually already does this, so this series seeks
-> > > to extend this coverage to x86, arm64, and arm.
-> > >
-> > > This series depends on tip/x86/boot (where recent .eh_frame fixes[3]
-> > > landed), and has a minor conflict[4] with the ARM tree (related to
-> > > the earlier mentioned bug). As it uses refactorings in the asm-generic
-> > > linker script, and makes changes to kbuild, I think the cleanest place
-> > > for this series to land would also be through -tip. Once again (like
-> > > my READ_IMPLIES_EXEC series), I'm looking to get maintainer Acks so
-> > > this can go all together with the least disruption. Splitting it up by
-> > > architecture seems needlessly difficult.
-> > >
-> > > Thanks!
-> > >
-> >
-> > Hi Kees,
-> >
-> > what is the status of this patchset?
-> > Looks like it is not in tip or linux-next Git.
->
-> Based on the feedback, I have 3 TODO items:
->
-> - track down and eliminate (or explain) the source of the .got.plt on arm64
-> - enable orphan warnings for _all_ architectures
-> - refactor final link logic to perform the orphan warning in a clean way
->
-> I'm working through these (and other work) still. I'm hoping to have
-> another version up some time next week.
->
+On 03/31/2020 06:00 PM, Gerald Schaefer wrote:
+> On Tue, 24 Mar 2020 10:52:52 +0530
+> Anshuman Khandual <anshuman.khandual@arm.com> wrote:
+> 
+>> This series adds more arch page table helper tests. The new tests here are
+>> either related to core memory functions and advanced arch pgtable helpers.
+>> This also creates a documentation file enlisting all expected semantics as
+>> suggested by Mike Rapoport (https://lkml.org/lkml/2020/1/30/40).
+>>
+>> This series has been tested on arm64 and x86 platforms. There is just one
+>> expected failure on arm64 that will be fixed when we enable THP migration.
+>>
+>> [   21.741634] WARNING: CPU: 0 PID: 1 at mm/debug_vm_pgtable.c:782
+>>
+>> which corresponds to
+>>
+>> WARN_ON(!pmd_present(pmd_mknotpresent(pmd_mkhuge(pmd))))
+>>
+>> There are many TRANSPARENT_HUGEPAGE and ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD
+>> ifdefs scattered across the test. But consolidating all the fallback stubs
+>> is not very straight forward because ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD is
+>> not explicitly dependent on ARCH_HAS_TRANSPARENT_HUGEPAGE.
+>>
+>> This series has been build tested on many platforms including the ones that
+>> subscribe the test through ARCH_HAS_DEBUG_VM_PGTABLE.
+>>
+> 
+> Hi Anshuman,
+> 
+> thanks for the update. There are a couple of issues on s390, some might
+> also affect other archs.
 
-Please CC when possible with a pointer to a git-link.
+Sure, thanks for taking a look and giving it a spin on s390.
 
-Thanks.
+> 
+> 1) The pxd_huge_tests are using pxd_set/clear_huge, which defaults to
+> returning 0 if !CONFIG_HAVE_ARCH_HUGE_VMAP. As result, the checks for
+> !pxd_test/clear_huge in the pxd_huge_tests will always trigger the
+> warning. This should affect all archs w/o CONFIG_HAVE_ARCH_HUGE_VMAP.
+> Could be fixed like this:
+> 
+> @@ -923,8 +923,10 @@ void __init debug_vm_pgtable(void)
+>         pmd_leaf_tests(pmd_aligned, prot);
+>         pud_leaf_tests(pud_aligned, prot);
+>  
+> -       pmd_huge_tests(pmdp, pmd_aligned, prot);
+> -       pud_huge_tests(pudp, pud_aligned, prot);
+> +       if (IS_ENABLED(CONFIG_HAVE_ARCH_HUGE_VMAP)) {
+> +               pmd_huge_tests(pmdp, pmd_aligned, prot);
+> +               pud_huge_tests(pudp, pud_aligned, prot);
+> +       }
 
-- sed@ -
+That is correct. It was an omission on my part and will fix it.
+
+>  
+>         pte_savedwrite_tests(pte_aligned, prot);
+>         pmd_savedwrite_tests(pmd_aligned, prot);
+> 
+> BTW, please add some comments to the various #ifdef/#else stuff, especially
+> when the different parts are far away and/or nested.
+
+Sure, will do.
+
+> 
+> 2) The hugetlb_advanced_test will fail because it directly de-references
+> huge *ptep pointers instead of using huge_ptep_get() for this. We have
+> very different pagetable entry layout for pte and (large) pmd on s390,
+> and unfortunately the whole hugetlbfs code is using pte_t instead of pmd_t
+> like THP. For this reason, huge_ptep_get() was introduced, which will
+> return a "converted" pte, because directly reading from a *ptep (pointing
+> to a large pmd) will not return a proper pte. Only ARM has also an
+> implementation of huge_ptep_get(), so they could be affected, depending
+> on what exactly they need it for.
+
+Currently, we dont support ARM (32). But as huge_ptep_get() already got a
+fallback, its better to use that than a direct READ_ONCE().
+
+> 
+> Could be fixed like this (the first de-reference is a bit special,
+> because at that point *ptep does not really point to a large (pmd) entry
+> yet, it is initially an invalid pte entry, which breaks our huge_ptep_get()
+
+There seems to be an inconsistency on s390 platform. Even though it defines
+a huge_ptep_get() override, it does not subscribe __HAVE_ARCH_HUGE_PTEP_GET
+which should have forced it fallback on generic huge_ptep_get() but it does
+not :) Then I realized that __HAVE_ARCH_HUGE_PTEP_GET only makes sense when
+an arch uses <asm-generic/hugetlb.h>. s390 does not use that and hence gets
+away with it's own huge_ptep_get() without __HAVE_ARCH_HUGE_PTEP_GET. Sounds
+confusing ? But I might not have the entire context here.
+
+> conversion logic. I also added PMD_MASK alignment for RANDOM_ORVALUE,
+> because we do have some special bits there in our large pmds. It seems
+> to also work w/o that alignment, but it feels a bit wrong):
+
+Sure, we can accommodate that.
+
+> 
+> @@ -731,26 +731,26 @@ static void __init hugetlb_advanced_test
+>                                           unsigned long vaddr, pgprot_t prot)
+>  {
+>         struct page *page = pfn_to_page(pfn);
+> -       pte_t pte = READ_ONCE(*ptep);
+> +       pte_t pte;
+> 
+> -       pte = __pte(pte_val(pte) | RANDOM_ORVALUE);
+> +       pte = pte_mkhuge(mk_pte_phys(RANDOM_ORVALUE & PMD_MASK, prot));
+
+So that keeps the existing value in 'ptep' pointer at bay and instead
+construct a PTE from scratch. I would rather have READ_ONCE(*ptep) at
+least provide the seed that can be ORed with RANDOM_ORVALUE before
+being masked with PMD_MASK. Do you see any problem ?
+
+Some thing like this instead.
+
+pte_t pte = READ_ONCE(*ptep);
+pte = pte_mkhuge(__pte((pte_val(pte) | RANDOM_ORVALUE) & PMD_MASK));
+
+We cannot use mk_pte_phys() as it is defined only on some platforms
+without any generic fallback for others.
+
+>         set_huge_pte_at(mm, vaddr, ptep, pte);
+>         barrier();
+>         WARN_ON(!pte_same(pte, huge_ptep_get(ptep)));
+>         huge_pte_clear(mm, vaddr, ptep, PMD_SIZE);
+> -       pte = READ_ONCE(*ptep);
+> +       pte = huge_ptep_get(ptep);
+>         WARN_ON(!huge_pte_none(pte));
+>  
+>         pte = mk_huge_pte(page, prot);
+>         set_huge_pte_at(mm, vaddr, ptep, pte);
+>         huge_ptep_set_wrprotect(mm, vaddr, ptep);
+> -       pte = READ_ONCE(*ptep);
+> +       pte = huge_ptep_get(ptep);
+>         WARN_ON(huge_pte_write(pte));
+>  
+>         pte = mk_huge_pte(page, prot);
+>         set_huge_pte_at(mm, vaddr, ptep, pte);
+>         huge_ptep_get_and_clear(mm, vaddr, ptep);
+> -       pte = READ_ONCE(*ptep);
+> +       pte = huge_ptep_get(ptep);
+>         WARN_ON(!huge_pte_none(pte));
+>  
+>         pte = mk_huge_pte(page, prot);
+> @@ -759,7 +759,7 @@ static void __init hugetlb_advanced_test
+>         pte = huge_pte_mkwrite(pte);
+>         pte = huge_pte_mkdirty(pte);
+>         huge_ptep_set_access_flags(vma, vaddr, ptep, pte, 1);
+> -       pte = READ_ONCE(*ptep);
+> +       pte = huge_ptep_get(ptep);
+>         WARN_ON(!(huge_pte_write(pte) && huge_pte_dirty(pte)));
+>  }
+>  #else
+> 
+> 3) The pmd_protnone_tests() has an issue, because it passes a pmd to
+> pmd_protnone() which has not been marked as large. We check for large
+> pmd in the s390 implementation of pmd_protnone(), and will fail if a
+> pmd is not large. We had similar issues before, in other helpers, where
+> I changed the logic on s390 to not require the pmd large check, but I'm
+> not so sure in this case. Is there a valid use case for doing
+> pmd_protnone() on "normal" pmds? Or could this be changed like this:
+
+That is a valid question. IIUC, all existing callers for pmd_protnone()
+ensure that it is indeed a huge PMD. But even assuming otherwise should
+not the huge PMD requirement get checked in the caller itself rather than
+in the arch helper which is just supposed to check the existence of the
+dedicated PTE bit(s) for this purpose. Purely from a helper perspective
+pmd_protnone() should not really care about being large even though it
+might never get used without one.
+
+Also all platforms (except s390) derive the pmd_protnone() from their
+respective pte_protnone(). I wonder why should s390 be any different
+unless it is absolutely necessary.
+
+> 
+> @@ -537,7 +537,7 @@ static void __init pte_protnone_tests(un
+>  #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+>  static void __init pmd_protnone_tests(unsigned long pfn, pgprot_t prot)
+>  {
+> -       pmd_t pmd = pfn_pmd(pfn, prot);
+> +       pmd_t pmd = mk_huge_pmd(pfn_to_page(pfn), prot);
+> 
+>         if (!IS_ENABLED(CONFIG_NUMA_BALANCING))
+>                 return;
+> 
+> Regards,
+> Gerald
+> 
+> 
