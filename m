@@ -1,46 +1,111 @@
-Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from eu-smtp-delivery-151.mimecast.com ([146.101.78.151]:25592 "EHLO
-        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725934AbgDVIf1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Apr 2020 04:35:27 -0400
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH 1/4] fs: Implement close-on-fork
-Date: Wed, 22 Apr 2020 08:35:23 +0000
-Message-ID: <39a872f23b16405fb4e4683bf049beef@AcuMS.aculab.com>
-References: <20200420071548.62112-1-nate.karstens@garmin.com>
- <20200420071548.62112-2-nate.karstens@garmin.com>
- <36dce9b4-a0bf-0015-f6bc-1006938545b1@gmail.com>
-In-Reply-To: <36dce9b4-a0bf-0015-f6bc-1006938545b1@gmail.com>
-Content-Language: en-US
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=xoZC=5W=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pl1-f196.google.com ([209.85.214.196]:40330 "EHLO
+        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729120AbgDFPxm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Apr 2020 11:53:42 -0400
+From: ltykernel@gmail.com
+Subject: [PATCH V4 6/6] x86/Hyper-V: Report crash data in die() when panic_on_oops is set
+Date: Mon,  6 Apr 2020 08:53:31 -0700
+Message-ID: <20200406155331.2105-7-Tianyu.Lan@microsoft.com>
+In-Reply-To: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
+References: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Eric Dumazet' <eric.dumazet@gmail.com>, Nate Karstens <nate.karstens@garmin.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Cc: Changli Gao <xiaosuo@gmail.com>
-Message-ID: <20200422083523.v77YiHbERUsL7SUHjAVHQK8-IaU8MkNyH244QrH5MEU@z>
+To: kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com, liuwe@microsoft.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, michael.h.kelley@microsoft.com
+Cc: Tianyu Lan <Tianyu.Lan@microsoft.com>, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, vkuznets@redhat.com
+Message-ID: <20200406155331.n3t8ujCkjcajZuLcAgkqaZ8BhrNfUZsBJzPB5nVCclQ@z>
 
-RnJvbTogRXJpYyBEdW1hemV0DQo+IFNlbnQ6IDIwIEFwcmlsIDIwMjAgMTE6MjYNCj4gT24gNC8y
-MC8yMCAxMjoxNSBBTSwgTmF0ZSBLYXJzdGVucyB3cm90ZToNCj4gPiBUaGUgY2xvc2Utb24tZm9y
-ayBmbGFnIGNhdXNlcyB0aGUgZmlsZSBkZXNjcmlwdG9yIHRvIGJlIGNsb3NlZA0KPiA+IGF0b21p
-Y2FsbHkgaW4gdGhlIGNoaWxkIHByb2Nlc3MgYmVmb3JlIHRoZSBjaGlsZCBwcm9jZXNzIHJldHVy
-bnMNCj4gPiBmcm9tIGZvcmsoKS4gSW1wbGVtZW50IHRoaXMgZmVhdHVyZSBhbmQgcHJvdmlkZSBh
-IG1ldGhvZCB0bw0KPiA+IGdldC9zZXQgdGhlIGNsb3NlLW9uLWZvcmsgZmxhZyB1c2luZyBmY250
-bCgyKS4NCj4gPg0KPiA+IFRoaXMgZnVuY3Rpb25hbGl0eSB3YXMgYXBwcm92ZWQgYnkgdGhlIEF1
-c3RpbiBDb21tb24gU3RhbmRhcmRzDQo+ID4gUmV2aXNpb24gR3JvdXAgZm9yIGluY2x1c2lvbiBp
-biB0aGUgbmV4dCByZXZpc2lvbiBvZiB0aGUgUE9TSVgNCj4gPiBzdGFuZGFyZCAoc2VlIGlzc3Vl
-IDEzMTggaW4gdGhlIEF1c3RpbiBHcm91cCBEZWZlY3QgVHJhY2tlcikuDQo+IA0KPiBPaCB3ZWxs
-Li4uIHlldCBhbm90aGVyIGZlYXR1cmUgc2xvd2luZyBkb3duIGEgY3JpdGljYWwgcGF0aC4NCi4u
-Lg0KPiBJIHN1Z2dlc3Qgd2UgZ3JvdXAgdGhlIHR3byBiaXRzIG9mIGEgZmlsZSAoY2xvc2Vfb25f
-ZXhlYywgY2xvc2Vfb25fZm9yaykgdG9nZXRoZXIsDQo+IHNvIHRoYXQgd2UgZG8gbm90IGhhdmUg
-dG8gZGlydHkgdHdvIHNlcGFyYXRlIGNhY2hlIGxpbmVzLg0KPiANCj4gT3RoZXJ3aXNlIHdlIHdp
-bGwgYWRkIHlldCBhbm90aGVyIGNhY2hlIGxpbmUgbWlzcyBhdCBldmVyeSBmaWxlIG9wZW5pbmcv
-Y2xvc2luZyBmb3IgcHJvY2Vzc2VzDQo+IHdpdGggYmlnIGZpbGUgdGFibGVzLg0KDQpIb3cgYWJv
-dXQgb25seSBhbGxvY2F0aW5nIHRoZSAnY2xvc2Ugb24gZm9yaycgYml0bWFwIHRoZSBmaXJzdCB0
-aW1lDQphIHByb2Nlc3Mgc2V0cyBhIGJpdCBpbiBpdD8NCg0KT2ZmIGhhbmQgSSBjYW4ndCBpbWFn
-aW5lIHRoZSB1c2UgY2FzZS4NCkkgdGhvdWdodCBwb3NpeCBhbHdheXMgc2hhcmVkIGZkIHRhYmxl
-cyBhY3Jvc3MgZm9yaygpLg0KDQoJRGF2aWQNCg0KLQ0KUmVnaXN0ZXJlZCBBZGRyZXNzIExha2Vz
-aWRlLCBCcmFtbGV5IFJvYWQsIE1vdW50IEZhcm0sIE1pbHRvbiBLZXluZXMsIE1LMSAxUFQsIFVL
-DQpSZWdpc3RyYXRpb24gTm86IDEzOTczODYgKFdhbGVzKQ0K
+From: Tianyu Lan <Tianyu.Lan@microsoft.com>
+
+When oops happens with panic_on_oops unset, the oops
+thread is killed by die() and system continues to run.
+In such case, guest should not report crash register
+data to host since system still runs. Check panic_on_oops
+and return directly in hyperv_report_panic() when the function
+is called in the die() and panic_on_oops is unset. Fix it.
+
+Fixes: 7ed4325a44ea ("Drivers: hv: vmbus: Make panic reporting to be more useful")
+Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
+---
+Change since v3:
+	- Fix compile error.
+        - Add fix commit in the change log
+---
+ arch/x86/hyperv/hv_init.c      | 6 +++++-
+ drivers/hv/vmbus_drv.c         | 5 +++--
+ include/asm-generic/mshyperv.h | 2 +-
+ 3 files changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+index b0da5320bcff..31e1d70f7e03 100644
+--- a/arch/x86/hyperv/hv_init.c
++++ b/arch/x86/hyperv/hv_init.c
+@@ -20,6 +20,7 @@
+ #include <linux/mm.h>
+ #include <linux/hyperv.h>
+ #include <linux/slab.h>
++#include <linux/kernel.h>
+ #include <linux/cpuhotplug.h>
+ #include <linux/syscore_ops.h>
+ #include <clocksource/hyperv_timer.h>
+@@ -419,11 +420,14 @@ void hyperv_cleanup(void)
+ }
+ EXPORT_SYMBOL_GPL(hyperv_cleanup);
+ 
+-void hyperv_report_panic(struct pt_regs *regs, long err)
++void hyperv_report_panic(struct pt_regs *regs, long err, bool in_die)
+ {
+ 	static bool panic_reported;
+ 	u64 guest_id;
+ 
++	if (in_die && !panic_on_oops)
++		return;
++
+ 	/*
+ 	 * We prefer to report panic on 'die' chain as we have proper
+ 	 * registers to report, but if we miss it (e.g. on BUG()) we need
+diff --git a/drivers/hv/vmbus_drv.c b/drivers/hv/vmbus_drv.c
+index 172ceae69abb..a68bce4d0ddb 100644
+--- a/drivers/hv/vmbus_drv.c
++++ b/drivers/hv/vmbus_drv.c
+@@ -31,6 +31,7 @@
+ #include <linux/kdebug.h>
+ #include <linux/efi.h>
+ #include <linux/random.h>
++#include <linux/kernel.h>
+ #include <linux/syscore_ops.h>
+ #include <clocksource/hyperv_timer.h>
+ #include "hyperv_vmbus.h"
+@@ -75,7 +76,7 @@ static int hyperv_panic_event(struct notifier_block *nb, unsigned long val,
+ 	if (ms_hyperv.misc_features & HV_FEATURE_GUEST_CRASH_MSR_AVAILABLE
+ 	    && hyperv_report_reg()) {
+ 		regs = current_pt_regs();
+-		hyperv_report_panic(regs, val);
++		hyperv_report_panic(regs, val, false);
+ 	}
+ 	return NOTIFY_DONE;
+ }
+@@ -92,7 +93,7 @@ static int hyperv_die_event(struct notifier_block *nb, unsigned long val,
+ 	 * the notification here.
+ 	 */
+ 	if (hyperv_report_reg())
+-		hyperv_report_panic(regs, val);
++		hyperv_report_panic(regs, val, true);
+ 	return NOTIFY_DONE;
+ }
+ 
+diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+index b3f1082cc435..1c4fd950f091 100644
+--- a/include/asm-generic/mshyperv.h
++++ b/include/asm-generic/mshyperv.h
+@@ -163,7 +163,7 @@ static inline int cpumask_to_vpset(struct hv_vpset *vpset,
+ 	return nr_bank;
+ }
+ 
+-void hyperv_report_panic(struct pt_regs *regs, long err);
++void hyperv_report_panic(struct pt_regs *regs, long err, bool in_die);
+ void hyperv_report_panic_msg(phys_addr_t pa, size_t size);
+ bool hv_is_hyperv_initialized(void);
+ bool hv_is_hibernation_supported(void);
+-- 
+2.14.5
