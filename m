@@ -1,7 +1,7 @@
 From: ltykernel@gmail.com
-Subject: [PATCH V4 5/6] x86/Hyper-V: Report crash register data when sysctl_record_panic_msg is not set
-Date: Mon,  6 Apr 2020 08:53:30 -0700
-Message-ID: <20200406155331.2105-6-Tianyu.Lan@microsoft.com>
+Subject: [PATCH V4 2/6] x86/Hyper-V: Free hv_panic_page when fail to register kmsg dump
+Date: Mon,  6 Apr 2020 08:53:27 -0700
+Message-ID: <20200406155331.2105-3-Tianyu.Lan@microsoft.com>
 References: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
@@ -12,74 +12,48 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Tianyu Lan <Tianyu.Lan@microsoft.com>
 
-When sysctl_record_panic_msg is not set, the panic will
-not be reported to Hyper-V via hyperv_report_panic_msg().
-So the crash should be reported via hyperv_report_panic().
+If kmsg_dump_register() fails, hv_panic_page will not be used
+anywhere.  So free and reset it.
 
 Fixes: 81b18bce48af ("Drivers: HV: Send one page worth of kmsg dump over Hyper-V during panic")
 Reviewed-by: Michael Kelley <mikelley@microsoft.com>
 Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
 ---
+Change since v1:
+	- Update commit log
+	- Remove hv_free_hyperv_page() in the error path
 Change since v3:
-        - Add fix commit in the change log
+        - Add fix commit in the change log.	
 ---
- drivers/hv/vmbus_drv.c | 23 ++++++++++++++---------
- 1 file changed, 14 insertions(+), 9 deletions(-)
+ drivers/hv/vmbus_drv.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/hv/vmbus_drv.c b/drivers/hv/vmbus_drv.c
-index 333dad39b1c1..172ceae69abb 100644
+index 6478240d11ab..00a511f15926 100644
 --- a/drivers/hv/vmbus_drv.c
 +++ b/drivers/hv/vmbus_drv.c
-@@ -48,6 +48,18 @@ static int hyperv_cpuhp_online;
+@@ -1385,9 +1385,13 @@ static int vmbus_bus_init(void)
+ 			hv_panic_page = (void *)hv_alloc_hyperv_zeroed_page();
+ 			if (hv_panic_page) {
+ 				ret = kmsg_dump_register(&hv_kmsg_dumper);
+-				if (ret)
++				if (ret) {
+ 					pr_err("Hyper-V: kmsg dump register "
+ 						"error 0x%x\n", ret);
++					hv_free_hyperv_page(
++					    (unsigned long)hv_panic_page);
++					hv_panic_page = NULL;
++				}
+ 			} else
+ 				pr_err("Hyper-V: panic message page memory "
+ 					"allocation failed");
+@@ -1416,7 +1420,6 @@ static int vmbus_bus_init(void)
+ 	hv_remove_vmbus_irq();
  
- static void *hv_panic_page;
- 
-+/*
-+ * Boolean to control whether to report panic messages over Hyper-V.
-+ *
-+ * It can be set via /proc/sys/kernel/hyperv/record_panic_msg
-+ */
-+static int sysctl_record_panic_msg = 1;
-+
-+static int hyperv_report_reg(void)
-+{
-+	return !sysctl_record_panic_msg || !hv_panic_page;
-+}
-+
- static int hyperv_panic_event(struct notifier_block *nb, unsigned long val,
- 			      void *args)
- {
-@@ -61,7 +73,7 @@ static int hyperv_panic_event(struct notifier_block *nb, unsigned long val,
- 	 * the notification here.
- 	 */
- 	if (ms_hyperv.misc_features & HV_FEATURE_GUEST_CRASH_MSR_AVAILABLE
--	    && !hv_panic_page) {
-+	    && hyperv_report_reg()) {
- 		regs = current_pt_regs();
- 		hyperv_report_panic(regs, val);
- 	}
-@@ -79,7 +91,7 @@ static int hyperv_die_event(struct notifier_block *nb, unsigned long val,
- 	 * doing hyperv_report_panic_msg() later with kmsg data, don't do
- 	 * the notification here.
- 	 */
--	if (!hv_panic_page)
-+	if (hyperv_report_reg())
- 		hyperv_report_panic(regs, val);
- 	return NOTIFY_DONE;
- }
-@@ -1267,13 +1279,6 @@ static void vmbus_isr(void)
- 	add_interrupt_randomness(HYPERVISOR_CALLBACK_VECTOR, 0);
- }
- 
--/*
-- * Boolean to control whether to report panic messages over Hyper-V.
-- *
-- * It can be set via /proc/sys/kernel/hyperv/record_panic_msg
-- */
--static int sysctl_record_panic_msg = 1;
--
- /*
-  * Callback from kmsg_dump. Grab as much as possible from the end of the kmsg
-  * buffer and call into Hyper-V to transfer the data.
+ 	bus_unregister(&hv_bus);
+-	hv_free_hyperv_page((unsigned long)hv_panic_page);
+ 	unregister_sysctl_table(hv_ctl_table_hdr);
+ 	hv_ctl_table_hdr = NULL;
+ 	return ret;
 -- 
 2.14.5
