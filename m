@@ -1,103 +1,108 @@
-Return-Path: <SRS0=BI31=6F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35148 "EHLO mail.kernel.org"
+Return-Path: <SRS0=xoZC=5W=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:39072 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728371AbgDUPQJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 21 Apr 2020 11:16:09 -0400
-From: Will Deacon <will@kernel.org>
-Subject: [PATCH v4 08/11] READ_ONCE: Drop pointer qualifiers when reading from scalar types
-Date: Tue, 21 Apr 2020 16:15:34 +0100
-Message-ID: <20200421151537.19241-9-will@kernel.org>
-In-Reply-To: <20200421151537.19241-1-will@kernel.org>
-References: <20200421151537.19241-1-will@kernel.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        id S1727989AbgDFMhT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 Apr 2020 08:37:19 -0400
+From: guoren@kernel.org
+Subject: [ GIT PULL ] csky updates for v5.7-rc1
+Date: Mon,  6 Apr 2020 20:37:13 +0800
+Message-ID: <20200406123713.30492-1-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200421151534.KnKpctyFLVVvrrUnWAJEUki1XzAIi9DB0X-x1i8g904@z>
+To: torvalds@linux-foundation.org
+Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org
+Message-ID: <20200406123713.HMbm1MA9fS7B-AOMoRpkcrUGj3FncRnzbM6fQR77jrQ@z>
 
-Passing a volatile-qualified pointer to READ_ONCE() is an absolute
-trainwreck for code generation: the use of 'typeof()' to define a
-temporary variable inside the macro means that the final evaluation in
-macro scope ends up forcing a read back from the stack. When stack
-protector is enabled (the default for arm64, at least), this causes
-the compiler to vomit up all sorts of junk.
+Hi Linus,
 
-Unfortunately, dropping pointer qualifiers inside the macro poses quite
-a challenge, especially since the pointed-to type is permitted to be an
-aggregate, and this is relied upon by mm/ code accessing things like
-'pmd_t'. Based on numerous hacks and discussions on the mailing list,
-this is the best I've managed to come up with.
+Please pull the changes for v5.7-rc1. In this round, we have some features
+and fixups.
 
-Introduce '__unqual_scalar_typeof()' which takes an expression and, if
-the expression is an optionally qualified 8, 16, 32 or 64-bit scalar
-type, evaluates to the unqualified type. Other input types, including
-aggregates, remain unchanged. Hopefully READ_ONCE() on volatile aggregate
-pointers isn't something we do on a fast-path.
+Best Regards
+ Guo Ren
 
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Reported-by: Michael Ellerman <mpe@ellerman.id.au>
-Signed-off-by: Will Deacon <will@kernel.org>
----
- include/linux/compiler.h       |  6 +++---
- include/linux/compiler_types.h | 21 +++++++++++++++++++++
- 2 files changed, 24 insertions(+), 3 deletions(-)
+The following changes since commit 98d54f81e36ba3bf92172791eba5ca5bd813989b:
 
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 50bb2461648f..c363d8debc43 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -203,13 +203,13 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
-  * atomicity or dependency ordering guarantees. Note that this may result
-  * in tears!
-  */
--#define __READ_ONCE(x)	(*(const volatile typeof(x) *)&(x))
-+#define __READ_ONCE(x)	(*(const volatile __unqual_scalar_typeof(x) *)&(x))
- 
- #define __READ_ONCE_SCALAR(x)						\
- ({									\
--	typeof(x) __x = __READ_ONCE(x);					\
-+	__unqual_scalar_typeof(x) __x = __READ_ONCE(x);			\
- 	smp_read_barrier_depends();					\
--	__x;								\
-+	(typeof(x))__x;							\
- })
- 
- #define READ_ONCE(x)							\
-diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
-index e970f97a7fcb..233066c92f6f 100644
---- a/include/linux/compiler_types.h
-+++ b/include/linux/compiler_types.h
-@@ -210,6 +210,27 @@ struct ftrace_likely_data {
- /* Are two types/vars the same type (ignoring qualifiers)? */
- #define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
- 
-+/*
-+ * __unqual_scalar_typeof(x) - Declare an unqualified scalar type, leaving
-+ *			       non-scalar types unchanged.
-+ *
-+ * We build this out of a couple of helper macros in a vain attempt to
-+ * help you keep your lunch down while reading it.
-+ */
-+#define __pick_scalar_type(x, type, otherwise)					\
-+	__builtin_choose_expr(__same_type(x, type), (type)0, otherwise)
-+
-+#define __pick_integer_type(x, type, otherwise)					\
-+	__pick_scalar_type(x, unsigned type,					\
-+		__pick_scalar_type(x, signed type, otherwise))
-+
-+#define __unqual_scalar_typeof(x) typeof(					\
-+	__pick_integer_type(x, char,						\
-+		__pick_integer_type(x, short,					\
-+			__pick_integer_type(x, int,				\
-+				__pick_integer_type(x, long,			\
-+					__pick_integer_type(x, long long, x))))))
-+
- /* Is this type a native word size -- useful for atomic operations */
- #define __native_word(t) \
- 	(sizeof(t) == sizeof(char) || sizeof(t) == sizeof(short) || \
--- 
-2.26.1.301.g55bc3eb7cb9-goog
+  Linux 5.6-rc4 (2020-03-01 16:38:46 -0600)
+
+are available in the Git repository at:
+
+  https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.7-rc1
+
+for you to fetch changes up to aefd9461d34a1b0a2acad0750c43216c1c27b9d4:
+
+  csky: Fixup cpu speculative execution to IO area (2020-04-03 12:40:07 +0800)
+
+----------------------------------------------------------------
+csky updates for 5.7-rc1
+
+ - Add kproobes/uprobes support
+ - Add lockdep, rseq, gcov support
+ - Fixup init_fpu
+ - Fixup ftrace_modify deadlock
+ - Fixup speculative execution on IO area
+
+----------------------------------------------------------------
+Guo Ren (10):
+      csky: Fixup init_fpu compile warning with __init
+      csky: Implement ptrace regs and stack API
+      csky: Add support for restartable sequence
+      csky: Implement ftrace with regs
+      csky/ftrace: Fixup ftrace_modify_code deadlock without CPU_HAS_ICACHE_INS
+      csky: Fixup get wrong psr value from phyical reg
+      csky: Enable LOCKDEP_SUPPORT
+      csky: Add kprobes supported
+      csky: Add uprobes support
+      csky: Fixup cpu speculative execution to IO area
+
+Ma Jun (1):
+      csky: Enable the gcov function
+
+ arch/csky/Kconfig                            |  13 +
+ arch/csky/abiv1/inc/abi/entry.h              |   5 +-
+ arch/csky/abiv2/fpu.c                        |   5 -
+ arch/csky/abiv2/inc/abi/entry.h              |  67 +++-
+ arch/csky/abiv2/inc/abi/fpu.h                |   3 +-
+ arch/csky/abiv2/mcount.S                     |  48 +++
+ arch/csky/include/asm/Kbuild                 |   1 -
+ arch/csky/include/asm/ftrace.h               |   2 +
+ arch/csky/include/asm/kprobes.h              |  48 +++
+ arch/csky/include/asm/probes.h               |  24 ++
+ arch/csky/include/asm/processor.h            |   1 +
+ arch/csky/include/asm/ptrace.h               |  43 +++
+ arch/csky/include/asm/thread_info.h          |   2 +
+ arch/csky/include/asm/uprobes.h              |  33 ++
+ arch/csky/kernel/Makefile                    |   1 +
+ arch/csky/kernel/asm-offsets.c               |   1 +
+ arch/csky/kernel/entry.S                     |  18 +-
+ arch/csky/kernel/ftrace.c                    |  42 +++
+ arch/csky/kernel/head.S                      |   5 +
+ arch/csky/kernel/probes/Makefile             |   7 +
+ arch/csky/kernel/probes/decode-insn.c        |  49 +++
+ arch/csky/kernel/probes/decode-insn.h        |  20 ++
+ arch/csky/kernel/probes/ftrace.c             |  66 ++++
+ arch/csky/kernel/probes/kprobes.c            | 499 +++++++++++++++++++++++++++
+ arch/csky/kernel/probes/kprobes_trampoline.S |  19 +
+ arch/csky/kernel/probes/simulate-insn.c      | 398 +++++++++++++++++++++
+ arch/csky/kernel/probes/simulate-insn.h      |  49 +++
+ arch/csky/kernel/probes/uprobes.c            | 150 ++++++++
+ arch/csky/kernel/ptrace.c                    | 103 ++++++
+ arch/csky/kernel/setup.c                     |  63 +---
+ arch/csky/kernel/signal.c                    |   6 +
+ arch/csky/kernel/smp.c                       |   6 +
+ arch/csky/kernel/traps.c                     |  29 +-
+ arch/csky/mm/cachev2.c                       |  45 ++-
+ arch/csky/mm/fault.c                         |  11 +
+ 35 files changed, 1807 insertions(+), 75 deletions(-)
+ create mode 100644 arch/csky/include/asm/kprobes.h
+ create mode 100644 arch/csky/include/asm/probes.h
+ create mode 100644 arch/csky/include/asm/uprobes.h
+ create mode 100644 arch/csky/kernel/probes/Makefile
+ create mode 100644 arch/csky/kernel/probes/decode-insn.c
+ create mode 100644 arch/csky/kernel/probes/decode-insn.h
+ create mode 100644 arch/csky/kernel/probes/ftrace.c
+ create mode 100644 arch/csky/kernel/probes/kprobes.c
+ create mode 100644 arch/csky/kernel/probes/kprobes_trampoline.S
+ create mode 100644 arch/csky/kernel/probes/simulate-insn.c
+ create mode 100644 arch/csky/kernel/probes/simulate-insn.h
+ create mode 100644 arch/csky/kernel/probes/uprobes.c
