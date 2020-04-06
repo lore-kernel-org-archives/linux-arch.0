@@ -1,283 +1,129 @@
-Return-Path: <SRS0=P7mv=6J=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55280 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726192AbgDYTFv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 25 Apr 2020 15:05:51 -0400
-Date: Sun, 26 Apr 2020 00:35:44 +0530
-From: Syed Nayyar Waris <syednwaris@gmail.com>
-Subject: [PATCH v2 4/6] bitops: Remove code related to for_each_set_clump8
-Message-ID: <ba407eccf41fa824fbd1ecfa081d7319735bf5f8.1587840670.git.syednwaris@gmail.com>
-References: <cover.1587840667.git.syednwaris@gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <cover.1587840667.git.syednwaris@gmail.com>
+Return-Path: <SRS0=xoZC=5W=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-pg1-f196.google.com ([209.85.215.196]:34604 "EHLO
+        mail-pg1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728972AbgDFPxi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Apr 2020 11:53:38 -0400
+From: ltykernel@gmail.com
+Subject: [PATCH V4 1/6] x86/Hyper-V: Unload vmbus channel in hv panic callback
+Date: Mon,  6 Apr 2020 08:53:26 -0700
+Message-ID: <20200406155331.2105-2-Tianyu.Lan@microsoft.com>
+In-Reply-To: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
+References: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: andriy.shevchenko@linux.intel.com, vilhelm.gray@gmail.com, arnd@arndb.de, linus.walleij@linaro.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200425190544.ZuSrSVMwLlGNhW0cpY3Ug9DmEaPhMyDrPPSvUKeNP00@z>
+To: kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com, liuwe@microsoft.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, michael.h.kelley@microsoft.com
+Cc: Tianyu Lan <Tianyu.Lan@microsoft.com>, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, vkuznets@redhat.com
+Message-ID: <20200406155326.an6lrED7LttSc-b6o0F6Nw0KPV0hxIPvvqdvNYAVpHw@z>
 
-Remove code related to the old for_each_set_clump8 macro because
-it has now been replaced by the new generic for_each_set_clump macro.
+From: Tianyu Lan <Tianyu.Lan@microsoft.com>
 
-Cc: Linus Walleij <linus.walleij@linaro.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Syed Nayyar Waris <syednwaris@gmail.com>
-Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+When kdump is not configured, a Hyper-V VM might still respond to
+network traffic after a kernel panic when kernel parameter panic=0.
+The panic CPU goes into an infinite loop with interrupts enabled,
+and the VMbus driver interrupt handler still works because the
+VMbus connection is unloaded only in the kdump path.  The network
+responses make the other end of the connection think the VM is
+still functional even though it has panic'ed, which could affect any
+failover actions that should be taken.
+
+Fix this by unloading the VMbus connection during the panic process.
+vmbus_initiate_unload() could then be called twice (e.g., by
+hyperv_panic_event() and hv_crash_handler(), so reset the connection
+state in vmbus_initiate_unload() to ensure the unload is done only
+once.
+
+Fixes: 81b18bce48af ("Drivers: HV: Send one page worth of kmsg dump over Hyper-V during panic")
+Reviewed-by: Michael Kelley <mikelley@microsoft.com>
+Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
 ---
-Changes in v2:
- - No change.
+Change since v1:
+	- Update change log
+	- Use xchg() to change vmbus connection status
+Change since v2:
+	- Update comment of registering panic callback.
+Change since v3:
+        - Add fix commit in the change log.
+---
+ drivers/hv/channel_mgmt.c |  3 +++
+ drivers/hv/vmbus_drv.c    | 21 +++++++++++++--------
+ 2 files changed, 16 insertions(+), 8 deletions(-)
 
- include/asm-generic/bitops/find.h | 17 ----------
- include/linux/bitmap.h            | 35 ---------------------
- include/linux/bitops.h            | 12 --------
- lib/find_bit.c                    | 14 ---------
- lib/test_bitmap.c                 | 65 ---------------------------------------
- 5 files changed, 143 deletions(-)
-
-diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
-index 4e66007..d412268 100644
---- a/include/asm-generic/bitops/find.h
-+++ b/include/asm-generic/bitops/find.h
-@@ -81,23 +81,6 @@ extern unsigned long find_first_zero_bit(const unsigned long *addr,
- #endif /* CONFIG_GENERIC_FIND_FIRST_BIT */
+diff --git a/drivers/hv/channel_mgmt.c b/drivers/hv/channel_mgmt.c
+index 0370364169c4..501c43c5851d 100644
+--- a/drivers/hv/channel_mgmt.c
++++ b/drivers/hv/channel_mgmt.c
+@@ -839,6 +839,9 @@ void vmbus_initiate_unload(bool crash)
+ {
+ 	struct vmbus_channel_message_header hdr;
  
- /**
-- * find_next_clump8 - find next 8-bit clump with set bits in a memory region
-- * @clump: location to store copy of found clump
-- * @addr: address to base the search on
-- * @size: bitmap size in number of bits
-- * @offset: bit offset at which to start searching
-- *
-- * Returns the bit offset for the next set clump; the found clump value is
-- * copied to the location pointed by @clump. If no bits are set, returns @size.
-- */
--extern unsigned long find_next_clump8(unsigned long *clump,
--				      const unsigned long *addr,
--				      unsigned long size, unsigned long offset);
--
--#define find_first_clump8(clump, bits, size) \
--	find_next_clump8((clump), (bits), (size), 0)
--
--/**
-  * find_next_clump - find next clump with set bits in a memory region
-  * @clump: location to store copy of found clump
-  * @addr: address to base the search on
-diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
-index 7ab2c65..d6595bc1 100644
---- a/include/linux/bitmap.h
-+++ b/include/linux/bitmap.h
-@@ -74,10 +74,8 @@
-  *  bitmap_allocate_region(bitmap, pos, order)  Allocate specified bit region
-  *  bitmap_from_arr32(dst, buf, nbits)          Copy nbits from u32[] buf to dst
-  *  bitmap_to_arr32(buf, src, nbits)            Copy nbits from buf to u32[] dst
-- *  bitmap_get_value8(map, start)               Get 8bit value from map at start
-  *  bitmap_get_value(map, start, nbits)		Get bit value of size
-  *						'nbits' from map at start
-- *  bitmap_set_value8(map, value, start)        Set 8bit value to map at start
-  *  bitmap_set_value(map, value, start, nbits)	Set bit value of size 'nbits'
-  *						of map at start
-  *
-@@ -551,23 +549,6 @@ static inline void bitmap_from_u64(unsigned long *dst, u64 mask)
++	if (xchg(&vmbus_connection.conn_state, DISCONNECTED) == DISCONNECTED)
++		return;
++
+ 	/* Pre-Win2012R2 hosts don't support reconnect */
+ 	if (vmbus_proto_version < VERSION_WIN8_1)
+ 		return;
+diff --git a/drivers/hv/vmbus_drv.c b/drivers/hv/vmbus_drv.c
+index 029378c27421..6478240d11ab 100644
+--- a/drivers/hv/vmbus_drv.c
++++ b/drivers/hv/vmbus_drv.c
+@@ -53,9 +53,12 @@ static int hyperv_panic_event(struct notifier_block *nb, unsigned long val,
+ {
+ 	struct pt_regs *regs;
+ 
+-	regs = current_pt_regs();
++	vmbus_initiate_unload(true);
+ 
+-	hyperv_report_panic(regs, val);
++	if (ms_hyperv.misc_features & HV_FEATURE_GUEST_CRASH_MSR_AVAILABLE) {
++		regs = current_pt_regs();
++		hyperv_report_panic(regs, val);
++	}
+ 	return NOTIFY_DONE;
  }
  
- /**
-- * bitmap_get_value8 - get an 8-bit value within a memory region
-- * @map: address to the bitmap memory region
-- * @start: bit offset of the 8-bit value; must be a multiple of 8
-- *
-- * Returns the 8-bit value located at the @start bit offset within the @src
-- * memory region.
-- */
--static inline unsigned long bitmap_get_value8(const unsigned long *map,
--					      unsigned long start)
--{
--	const size_t index = BIT_WORD(start);
--	const unsigned long offset = start % BITS_PER_LONG;
--
--	return (map[index] >> offset) & 0xFF;
--}
--
--/**
-  * bitmap_get_value - get a value of n-bits from the memory region
-  * @map: address to the bitmap memory region
-  * @start: bit offset of the n-bit value
-@@ -596,22 +577,6 @@ static inline unsigned long bitmap_get_value(const unsigned long *map,
- }
+@@ -1391,10 +1394,16 @@ static int vmbus_bus_init(void)
+ 		}
  
- /**
-- * bitmap_set_value8 - set an 8-bit value within a memory region
-- * @map: address to the bitmap memory region
-- * @value: the 8-bit value; values wider than 8 bits may clobber bitmap
-- * @start: bit offset of the 8-bit value; must be a multiple of 8
-- */
--static inline void bitmap_set_value8(unsigned long *map, unsigned long value,
--				     unsigned long start)
--{
--	const size_t index = BIT_WORD(start);
--	const unsigned long offset = start % BITS_PER_LONG;
--
--	map[index] &= ~(0xFFUL << offset);
--	map[index] |= value << offset;
--}
--
--/**
-  * bitmap_set_value - set n-bit value within a memory region
-  * @map: address to the bitmap memory region
-  * @value: value of nbits
-diff --git a/include/linux/bitops.h b/include/linux/bitops.h
-index 41c2d9c..cc0a413 100644
---- a/include/linux/bitops.h
-+++ b/include/linux/bitops.h
-@@ -51,18 +51,6 @@ extern unsigned long __sw_hweight64(__u64 w);
- 	     (bit) = find_next_zero_bit((addr), (size), (bit) + 1))
- 
- /**
-- * for_each_set_clump8 - iterate over bitmap for each 8-bit clump with set bits
-- * @start: bit offset to start search and to store the current iteration offset
-- * @clump: location to store copy of current 8-bit clump
-- * @bits: bitmap address to base the search on
-- * @size: bitmap size in number of bits
-- */
--#define for_each_set_clump8(start, clump, bits, size) \
--	for ((start) = find_first_clump8(&(clump), (bits), (size)); \
--	     (start) < (size); \
--	     (start) = find_next_clump8(&(clump), (bits), (size), (start) + 8))
--
--/**
-  * for_each_set_clump - iterate over bitmap for each clump with set bits
-  * @start: bit offset to start search and to store the current iteration offset
-  * @clump: location to store copy of current 8-bit clump
-diff --git a/lib/find_bit.c b/lib/find_bit.c
-index 1341bd3..6332ec1 100644
---- a/lib/find_bit.c
-+++ b/lib/find_bit.c
-@@ -177,20 +177,6 @@ EXPORT_SYMBOL(find_next_bit_le);
- 
- #endif /* __BIG_ENDIAN */
- 
--unsigned long find_next_clump8(unsigned long *clump, const unsigned long *addr,
--			       unsigned long size, unsigned long offset)
--{
--	offset = find_next_bit(addr, size, offset);
--	if (offset == size)
--		return size;
--
--	offset = round_down(offset, 8);
--	*clump = bitmap_get_value8(addr, offset);
--
--	return offset;
--}
--EXPORT_SYMBOL(find_next_clump8);
--
- unsigned long find_next_clump(unsigned long *clump, const unsigned long *addr,
- 			       unsigned long size, unsigned long offset,
- 			       unsigned long clump_size)
-diff --git a/lib/test_bitmap.c b/lib/test_bitmap.c
-index 13fe9a2..100443c 100644
---- a/lib/test_bitmap.c
-+++ b/lib/test_bitmap.c
-@@ -125,36 +125,6 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
- 	return true;
- }
- 
--static bool __init __check_eq_clump8(const char *srcfile, unsigned int line,
--				    const unsigned int offset,
--				    const unsigned int size,
--				    const unsigned char *const clump_exp,
--				    const unsigned long *const clump)
--{
--	unsigned long exp;
--
--	if (offset >= size) {
--		pr_warn("[%s:%u] bit offset for clump out-of-bounds: expected less than %u, got %u\n",
--			srcfile, line, size, offset);
--		return false;
--	}
--
--	exp = clump_exp[offset / 8];
--	if (!exp) {
--		pr_warn("[%s:%u] bit offset for zero clump: expected nonzero clump, got bit offset %u with clump value 0",
--			srcfile, line, offset);
--		return false;
--	}
--
--	if (*clump != exp) {
--		pr_warn("[%s:%u] expected clump value of 0x%lX, got clump value of 0x%lX",
--			srcfile, line, exp, *clump);
--		return false;
--	}
--
--	return true;
--}
--
- static bool __init __check_eq_clump(const char *srcfile, unsigned int line,
- 				    const unsigned int offset,
- 				    const unsigned int size,
-@@ -203,7 +173,6 @@ static bool __init __check_eq_clump(const char *srcfile, unsigned int line,
- #define expect_eq_bitmap(...)		__expect_eq(bitmap, ##__VA_ARGS__)
- #define expect_eq_pbl(...)		__expect_eq(pbl, ##__VA_ARGS__)
- #define expect_eq_u32_array(...)	__expect_eq(u32_array, ##__VA_ARGS__)
--#define expect_eq_clump8(...)		__expect_eq(clump8, ##__VA_ARGS__)
- #define expect_eq_clump(...)		__expect_eq(clump, ##__VA_ARGS__)
- 
- static void __init test_zero_clear(void)
-@@ -610,17 +579,6 @@ static void noinline __init test_mem_optimisations(void)
+ 		register_die_notifier(&hyperv_die_block);
+-		atomic_notifier_chain_register(&panic_notifier_list,
+-					       &hyperv_panic_block);
  	}
- }
  
--static const unsigned char clump_exp[] __initconst = {
--	0x01,	/* 1 bit set */
--	0x02,	/* non-edge 1 bit set */
--	0x00,	/* zero bits set */
--	0x38,	/* 3 bits set across 4-bit boundary */
--	0x38,	/* Repeated clump */
--	0x0F,	/* 4 bits set */
--	0xFF,	/* all bits set */
--	0x05,	/* non-adjacent 2 bits set */
--};
--
- static const unsigned long clump_exp1[] __initconst = {
- 	0x01,	/* 1 bit set */
- 	0x02,	/* non-edge 1 bit set */
-@@ -661,28 +619,6 @@ static const unsigned long clump_exp4[] __initconst = {
- 	0x2b,
- };
++	/*
++	 * Always register the panic notifier because we need to unload
++	 * the VMbus channel connection to prevent any VMbus
++	 * activity after the VM panics.
++	 */
++	atomic_notifier_chain_register(&panic_notifier_list,
++			       &hyperv_panic_block);
++
+ 	vmbus_request_offers();
  
--static void __init test_for_each_set_clump8(void)
--{
--#define CLUMP_EXP_NUMBITS 64
--	DECLARE_BITMAP(bits, CLUMP_EXP_NUMBITS);
--	unsigned int start;
--	unsigned long clump;
--
--	/* set bitmap to test case */
--	bitmap_zero(bits, CLUMP_EXP_NUMBITS);
--	bitmap_set(bits, 0, 1);		/* 0x01 */
--	bitmap_set(bits, 9, 1);		/* 0x02 */
--	bitmap_set(bits, 27, 3);	/* 0x28 */
--	bitmap_set(bits, 35, 3);	/* 0x28 */
--	bitmap_set(bits, 40, 4);	/* 0x0F */
--	bitmap_set(bits, 48, 8);	/* 0xFF */
--	bitmap_set(bits, 56, 1);	/* 0x05 - part 1 */
--	bitmap_set(bits, 58, 1);	/* 0x05 - part 2 */
--
--	for_each_set_clump8(start, clump, bits, CLUMP_EXP_NUMBITS)
--		expect_eq_clump8(start, CLUMP_EXP_NUMBITS, clump_exp, &clump);
--}
--
- static void __init execute_for_each_set_clump(unsigned long *bits,
- 				unsigned long size,
- 				const unsigned long *clump_exp,
-@@ -742,7 +678,6 @@ static void __init selftest(void)
- 	test_bitmap_parselist();
- 	test_bitmap_parselist_user();
- 	test_mem_optimisations();
--	test_for_each_set_clump8();
- 	test_for_each_set_clump();
- }
+ 	return 0;
+@@ -2204,8 +2213,6 @@ static int vmbus_bus_suspend(struct device *dev)
  
+ 	vmbus_initiate_unload(false);
+ 
+-	vmbus_connection.conn_state = DISCONNECTED;
+-
+ 	/* Reset the event for the next resume. */
+ 	reinit_completion(&vmbus_connection.ready_for_resume_event);
+ 
+@@ -2289,7 +2296,6 @@ static void hv_kexec_handler(void)
+ {
+ 	hv_stimer_global_cleanup();
+ 	vmbus_initiate_unload(false);
+-	vmbus_connection.conn_state = DISCONNECTED;
+ 	/* Make sure conn_state is set as hv_synic_cleanup checks for it */
+ 	mb();
+ 	cpuhp_remove_state(hyperv_cpuhp_online);
+@@ -2306,7 +2312,6 @@ static void hv_crash_handler(struct pt_regs *regs)
+ 	 * doing the cleanup for current CPU only. This should be sufficient
+ 	 * for kdump.
+ 	 */
+-	vmbus_connection.conn_state = DISCONNECTED;
+ 	cpu = smp_processor_id();
+ 	hv_stimer_cleanup(cpu);
+ 	hv_synic_disable_regs(cpu);
 -- 
-2.7.4
+2.14.5
