@@ -1,53 +1,189 @@
-Return-Path: <SRS0=yGje=5Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-wr1-f65.google.com ([209.85.221.65]:39069 "EHLO
-        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726583AbgDIQk7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2020 12:40:59 -0400
-Date: Thu, 9 Apr 2020 17:40:54 +0100
-From: Wei Liu <wei.liu@kernel.org>
-Subject: Re: [PATCH V4 6/6] x86/Hyper-V: Report crash data in die() when
- panic_on_oops is set
-Message-ID: <20200409164054.72es2ykmbef3jbui@debian>
-References: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
- <20200406155331.2105-7-Tianyu.Lan@microsoft.com>
- <MW2PR2101MB10524CB8CBF3FE49C2EDAA8DD7C00@MW2PR2101MB1052.namprd21.prod.outlook.com>
+Return-Path: <SRS0=xoZC=5W=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout02.posteo.de ([185.67.36.66]:56839 "EHLO mout02.posteo.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725887AbgDFE1Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 Apr 2020 00:27:25 -0400
+Received: from submission (posteo.de [89.146.220.130])
+        by mout02.posteo.de (Postfix) with ESMTPS id 6531A240101
+        for <linux-arch@vger.kernel.org>; Mon,  6 Apr 2020 06:27:22 +0200 (CEST)
+Date: Mon, 6 Apr 2020 00:27:09 -0400
+From: Kevyn-Alexandre =?utf-8?B?UGFyw6k=?= <kapare@posteo.net>
+Subject: Re: [PATCH v2 10/12] task_isolation: ringbuffer: don't interrupt
+ CPUs running isolated tasks on buffer resize
+Message-ID: <20200406042709.e4isjrvrrwsusjc4@x1>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+ <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+ <5add46d3bfbdac3fb42dcef6b6e4ea0e39abe11f.camel@marvell.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <MW2PR2101MB10524CB8CBF3FE49C2EDAA8DD7C00@MW2PR2101MB1052.namprd21.prod.outlook.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <5add46d3bfbdac3fb42dcef6b6e4ea0e39abe11f.camel@marvell.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Kelley <mikelley@microsoft.com>
-Cc: "ltykernel@gmail.com" <ltykernel@gmail.com>, KY Srinivasan <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <liuwe@microsoft.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "hpa@zytor.com" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, Tianyu Lan <Tianyu.Lan@microsoft.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, vkuznets <vkuznets@redhat.com>, Wei Liu <wei.liu@kernel.org>
-Message-ID: <20200409164054.xQYG4zcGeupPHbtkRSv4ITx359Ia4Rnv5nDQOv40K8I@z>
+To: Alex Belits <abelits@marvell.com>
+Cc: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will@kernel.org" <will@kernel.org>
+Message-ID: <20200406042709.z3a76rmjGJ0Os1pziSCML7e9789xzWqul7QxxdX7clc@z>
 
-On Wed, Apr 08, 2020 at 08:19:47PM +0000, Michael Kelley wrote:
-> From: Tianyu Lan <Tianyu.Lan@microsoft.com> Sent: Monday, April 6, 2020 8:54 AM
-> > 
-> > When oops happens with panic_on_oops unset, the oops
-> > thread is killed by die() and system continues to run.
-> > In such case, guest should not report crash register
-> > data to host since system still runs. Check panic_on_oops
-> > and return directly in hyperv_report_panic() when the function
-> > is called in the die() and panic_on_oops is unset. Fix it.
-> > 
-> > Fixes: 7ed4325a44ea ("Drivers: hv: vmbus: Make panic reporting to be more useful")
-> > Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
-> > ---
-> > Change since v3:
-> > 	- Fix compile error.
-> >         - Add fix commit in the change log
-> > ---
-> >  arch/x86/hyperv/hv_init.c      | 6 +++++-
-> >  drivers/hv/vmbus_drv.c         | 5 +++--
-> >  include/asm-generic/mshyperv.h | 2 +-
-> >  3 files changed, 9 insertions(+), 4 deletions(-)
+On Sun, Mar 08, 2020 at 03:55:24AM +0000, Alex Belits wrote:
+> From: Yuri Norov <ynorov@marvell.com>
 > 
-> Reviewed-by: Michael Kelley <mikelley@microsoft.com>
+> CPUs running isolated tasks are in userspace, so they don't have to
+> perform ring buffer updates immediately. If ring_buffer_resize()
+> schedules the update on those CPUs, isolation is broken. To prevent
+> that, updates for CPUs running isolated tasks are performed locally,
+> like for offline CPUs.
+> 
+> A race condition between this update and isolation breaking is avoided
+> at the cost of disabling per_cpu buffer writing for the time of update
+> when it coincides with isolation breaking.
+> 
+> Signed-off-by: Yuri Norov <ynorov@marvell.com>
+> [abelits@marvell.com: updated to prevent race with isolation breaking]
+> Signed-off-by: Alex Belits <abelits@marvell.com>
+> ---
+>  kernel/trace/ring_buffer.c | 62 ++++++++++++++++++++++++++++++++++----
+>  1 file changed, 56 insertions(+), 6 deletions(-)
+> 
+> diff --git a/kernel/trace/ring_buffer.c b/kernel/trace/ring_buffer.c
+> index 61f0e92ace99..593effe40183 100644
+> --- a/kernel/trace/ring_buffer.c
+> +++ b/kernel/trace/ring_buffer.c
+> @@ -21,6 +21,7 @@
+>  #include <linux/delay.h>
+>  #include <linux/slab.h>
+>  #include <linux/init.h>
+> +#include <linux/isolation.h>
+>  #include <linux/hash.h>
+>  #include <linux/list.h>
+>  #include <linux/cpu.h>
+> @@ -1701,6 +1702,37 @@ static void update_pages_handler(struct work_struct *work)
+>  	complete(&cpu_buffer->update_done);
+>  }
+>  
+> +static bool update_if_isolated(struct ring_buffer_per_cpu *cpu_buffer,
+> +			       int cpu)
+> +{
+> +	bool rv = false;
+> +
+> +	if (task_isolation_on_cpu(cpu)) {
+> +		/*
+> +		 * CPU is running isolated task. Since it may lose
+> +		 * isolation and re-enter kernel simultaneously with
+> +		 * this update, disable recording until it's done.
+> +		 */
+> +		atomic_inc(&cpu_buffer->record_disabled);
+> +		/* Make sure, update is done, and isolation state is current */
+> +		smp_mb();
+> +		if (task_isolation_on_cpu(cpu)) {
+> +			/*
+> +			 * If CPU is still running isolated task, we
+> +			 * can be sure that breaking isolation will
+> +			 * happen while recording is disabled, and CPU
+> +			 * will not touch this buffer until the update
+> +			 * is done.
+> +			 */
+> +			rb_update_pages(cpu_buffer);
+> +			cpu_buffer->nr_pages_to_update = 0;
+> +			rv = true;
+> +		}
+> +		atomic_dec(&cpu_buffer->record_disabled);
+> +	}
+> +	return rv;
+> +}
+> +
+>  /**
+>   * ring_buffer_resize - resize the ring buffer
+>   * @buffer: the buffer to resize.
+> @@ -1784,13 +1816,22 @@ int ring_buffer_resize(struct trace_buffer *buffer, unsigned long size,
+>  			if (!cpu_buffer->nr_pages_to_update)
+>  				continue;
+>  
+> -			/* Can't run something on an offline CPU. */
+> +			/*
+> +			 * Can't run something on an offline CPU.
+> +			 *
+> +			 * CPUs running isolated tasks don't have to
+> +			 * update ring buffers until they exit
+> +			 * isolation because they are in
+> +			 * userspace. Use the procedure that prevents
+> +			 * race condition with isolation breaking.
+> +			 */
+>  			if (!cpu_online(cpu)) {
+>  				rb_update_pages(cpu_buffer);
+>  				cpu_buffer->nr_pages_to_update = 0;
+>  			} else {
+> -				schedule_work_on(cpu,
+> -						&cpu_buffer->update_pages_work);
+> +				if (!update_if_isolated(cpu_buffer, cpu))
+> +					schedule_work_on(cpu,
+> +					&cpu_buffer->update_pages_work);
+>  			}
+>  		}
+>  
+> @@ -1829,13 +1870,22 @@ int ring_buffer_resize(struct trace_buffer *buffer, unsigned long size,
+>  
+>  		get_online_cpus();
+>  
+> -		/* Can't run something on an offline CPU. */
+> +		/*
+> +		 * Can't run something on an offline CPU.
+> +		 *
+> +		 * CPUs running isolated tasks don't have to update
+> +		 * ring buffers until they exit isolation because they
+> +		 * are in userspace. Use the procedure that prevents
+> +		 * race condition with isolation breaking.
+> +		 */
+>  		if (!cpu_online(cpu_id))
+>  			rb_update_pages(cpu_buffer);
+>  		else {
+> -			schedule_work_on(cpu_id,
+> +			if (!update_if_isolated(cpu_buffer, cpu_id))
+> +				schedule_work_on(cpu_id,
+>  					 &cpu_buffer->update_pages_work);
+> -			wait_for_completion(&cpu_buffer->update_done);
+> +				wait_for_completion(&cpu_buffer->update_done);
+> +			}
+>  		}
+>  
+>  		cpu_buffer->nr_pages_to_update = 0;
 
-It seems to me only the last patch is new, others are already in my
-tree, so I only apply the last one.
+gcc output:
 
-Let me know if my understanding is wrong.
+kernel/trace/ring_buffer.c: In function 'ring_buffer_resize':
+kernel/trace/ring_buffer.c:1884:4: warning: this 'if' clause does not guard... [-Wmisleading-indentation]
+    if (!update_if_isolated(cpu_buffer, cpu_id))
+    ^~
+kernel/trace/ring_buffer.c:1887:5: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'if'
+     wait_for_completion(&cpu_buffer->update_done);
+     ^~~~~~~~~~~~~~~~~~~
+kernel/trace/ring_buffer.c:1858:4: error: label 'out' used but not defined
+    goto out;
+    ^~~~
+kernel/trace/ring_buffer.c:1868:4: error: label 'out_err' used but not defined
+    goto out_err;
+    ^~~~
 
-Wei.
+My fix:
+
+diff --git a/kernel/trace/ring_buffer.c b/kernel/trace/ring_buffer.c
+index 593effe40183..8b458400ac31 100644
+--- a/kernel/trace/ring_buffer.c
++++ b/kernel/trace/ring_buffer.c
+@@ -1881,9 +1881,8 @@ int ring_buffer_resize(struct trace_buffer *buffer, unsigned long size,
+                if (!cpu_online(cpu_id))
+                        rb_update_pages(cpu_buffer);
+                else {
+-                       if (!update_if_isolated(cpu_buffer, cpu_id))
+-                               schedule_work_on(cpu_id,
+-                                        &cpu_buffer->update_pages_work);
++                       if (!update_if_isolated(cpu_buffer, cpu_id)) {
++                               schedule_work_on(cpu_id, &cpu_buffer->update_pages_work);
+                                wait_for_completion(&cpu_buffer->update_done);
+                        }
+                }
+
+
+thx,
+
+-- Kevyn-Alexandre Paré 
