@@ -1,33 +1,116 @@
-Return-Path: <SRS0=Usf8=5Z=kvack.org=owner-linux-mm@kernel.org>
-Date: Thu, 9 Apr 2020 18:50:30 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
- zsmalloc
-Message-ID: <20200409165030.GG20713@hirez.programming.kicks-ass.net>
-References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-11-hch@lst.de>
- <20200409160826.GC247701@google.com>
+Return-Path: <SRS0=tF1W=5X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:57556 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726591AbgDGLGN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Apr 2020 07:06:13 -0400
+Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 037B4YpE060430
+        for <linux-arch@vger.kernel.org>; Tue, 7 Apr 2020 07:06:11 -0400
+Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 308eu865sp-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 07 Apr 2020 07:06:11 -0400
+Received: from localhost
+        by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+        Tue, 7 Apr 2020 12:05:45 +0100
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+References: <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+ <202001281457.FA11CC313A@keescook>
+ <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+ <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
+ <20200129170939.GA4277@infradead.org>
+ <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
+ <202001300945.7D465B5F5@keescook>
+ <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
+ <7d810f6d-8085-ea2f-7805-47ba3842dc50@suse.cz>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Date: Tue, 7 Apr 2020 13:05:46 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200409160826.GC247701@google.com>
-Sender: owner-linux-mm@kvack.org
-To: Minchan Kim <minchan@kernel.org>
-Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org, sergey.senozhatsky@gmail.com
+In-Reply-To: <7d810f6d-8085-ea2f-7805-47ba3842dc50@suse.cz>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Message-ID: <aecba9ae-887d-39c5-c3b7-8236fbcaa898@de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200409165030.FnfRZ6NdWcQ9gK2F5NF-Qq4SEw68QvKHbhEs_VnGdPc@z>
+To: Vlastimil Babka <vbabka@suse.cz>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>
+Cc: Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Michal Kubecek <mkubecek@suse.cz>
+Message-ID: <20200407110546.ENBeafNJrUp3UZZ8jN6oN0V_mF1Z9eZjkoviRfsuD7E@z>
 
-On Thu, Apr 09, 2020 at 09:08:26AM -0700, Minchan Kim wrote:
-> On Wed, Apr 08, 2020 at 01:59:08PM +0200, Christoph Hellwig wrote:
-> > This allows to unexport map_vm_area and unmap_kernel_range, which are
-> > rather deep internal and should not be available to modules.
+
+
+On 07.04.20 10:00, Vlastimil Babka wrote:
+> On 1/31/20 1:03 PM, Jann Horn wrote:
 > 
-> Even though I don't know how many usecase we have using zsmalloc as
-> module(I heard only once by dumb reason), it could affect existing
-> users. Thus, please include concrete explanation in the patch to
-> justify when the complain occurs.
+>> I think dma-kmalloc slabs should be handled the same way as normal
+>> kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
+>> just normal kernel memory - even if it might later be used for DMA -,
+>> and it should be perfectly fine to copy_from_user() into such
+>> allocations at that point, and to copy_to_user() out of them at the
+>> end. If you look at the places where such allocations are created, you
+>> can see things like kmemdup(), memcpy() and so on - all normal
+>> operations that shouldn't conceptually be different from usercopy in
+>> any relevant way.
+>  
+> So, let's do that?
+> 
+> ----8<----
+> From d5190e4e871689a530da3c3fd327be45a88f006a Mon Sep 17 00:00:00 2001
+> From: Vlastimil Babka <vbabka@suse.cz>
+> Date: Tue, 7 Apr 2020 09:58:00 +0200
+> Subject: [PATCH] usercopy: Mark dma-kmalloc caches as usercopy caches
+> 
+> We have seen a "usercopy: Kernel memory overwrite attempt detected to SLUB
+> object 'dma-kmalloc-1 k' (offset 0, size 11)!" error on s390x, as IUCV uses
+> kmalloc() with __GFP_DMA because of memory address restrictions.
+> The issue has been discussed [2] and it has been noted that if all the kmalloc
+> caches are marked as usercopy, there's little reason not to mark dma-kmalloc
+> caches too. The 'dma' part merely means that __GFP_DMA is used to restrict
+> memory address range.
+> 
+> As Jann Horn put it [3]:
+> 
+> "I think dma-kmalloc slabs should be handled the same way as normal
+> kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
+> just normal kernel memory - even if it might later be used for DMA -,
+> and it should be perfectly fine to copy_from_user() into such
+> allocations at that point, and to copy_to_user() out of them at the
+> end. If you look at the places where such allocations are created, you
+> can see things like kmemdup(), memcpy() and so on - all normal
+> operations that shouldn't conceptually be different from usercopy in
+> any relevant way."
+> 
+> Thus this patch marks the dma-kmalloc-* caches as usercopy.
+> 
+> [1] https://bugzilla.suse.com/show_bug.cgi?id=1156053
+> [2] https://lore.kernel.org/kernel-hardening/bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz/
+> [3] https://lore.kernel.org/kernel-hardening/CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com/
+> 
+> Signed-off-by: Vlastimil Babka <vbabka@suse.cz>
 
-The justification is 'we can unexport functions that have no sane reason
-of being exported in the first place'.
+Acked-by: Christian Borntraeger <borntraeger@de.ibm.com>
 
-The Changelog pretty much says that.
+> ---
+>  mm/slab_common.c | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
+> 
+> diff --git a/mm/slab_common.c b/mm/slab_common.c
+> index 5282f881d2f5..ae9486160594 100644
+> --- a/mm/slab_common.c
+> +++ b/mm/slab_common.c
+> @@ -1303,7 +1303,8 @@ void __init create_kmalloc_caches(slab_flags_t flags)
+>  			kmalloc_caches[KMALLOC_DMA][i] = create_kmalloc_cache(
+>  				kmalloc_info[i].name[KMALLOC_DMA],
+>  				kmalloc_info[i].size,
+> -				SLAB_CACHE_DMA | flags, 0, 0);
+> +				SLAB_CACHE_DMA | flags, 0,
+> +				kmalloc_info[i].size);
+>  		}
+>  	}
+>  #endif
+> 
