@@ -1,95 +1,105 @@
-Return-Path: <SRS0=8Oio=5S=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pf1-f196.google.com ([209.85.210.196]:34485 "EHLO
-        mail-pf1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389618AbgDBSgA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2020 14:36:00 -0400
-Received: by mail-pf1-f196.google.com with SMTP id 23so2177258pfj.1
-        for <linux-arch@vger.kernel.org>; Thu, 02 Apr 2020 11:36:00 -0700 (PDT)
-Date: Thu, 2 Apr 2020 11:35:57 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH RESEND 1/4] uaccess: Add user_read_access_begin/end and
- user_write_access_begin/end
-Message-ID: <202004021132.813F8E88@keescook>
-References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
- <20200402162942.GG23230@ZenIV.linux.org.uk>
- <67e21b65-0e2d-7ca5-7518-cec1b7abc46c@c-s.fr>
- <20200402175032.GH23230@ZenIV.linux.org.uk>
+Return-Path: <SRS0=tmHZ=5X=kvack.org=owner-linux-mm@kernel.org>
+Message-ID: <444d97c4a4f70ccbb12da5e8f7ff498b37a9f60d.camel@intel.com>
+Subject: Re: [RFC PATCH v9 14/27] mm: Handle Shadow Stack page fault
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Tue, 07 Apr 2020 11:14:58 -0700
+In-Reply-To: <4902a6ee-cb0f-2700-1f6d-9d756593183c@intel.com>
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+	 <20200205181935.3712-15-yu-cheng.yu@intel.com>
+	 <4902a6ee-cb0f-2700-1f6d-9d756593183c@intel.com>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200402175032.GH23230@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, akpm@linux-foundation.org, hpa@zytor.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20200402183557.uR4YFSP8zRB3OA06YqgWqFhZ8n4WUtA0ipcMJwNApkM@z>
+Message-ID: <20200407181458.IAPIAti6cTpFfWw11-kqwcbBq7lf1FPYh54Kd6_p0sI@z>
 
-On Thu, Apr 02, 2020 at 06:50:32PM +0100, Al Viro wrote:
-> On Thu, Apr 02, 2020 at 07:03:28PM +0200, Christophe Leroy wrote:
+On Wed, 2020-02-26 at 16:08 -0800, Dave Hansen wrote:
+> > diff --git a/mm/memory.c b/mm/memory.c
+> > index 45442d9a4f52..6daa28614327 100644
+> > --- a/mm/memory.c
+> > +++ b/mm/memory.c
+> > @@ -772,7 +772,8 @@ copy_one_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+> >  	 * If it's a COW mapping, write protect it both
+> >  	 * in the parent and the child
+> >  	 */
+> > -	if (is_cow_mapping(vm_flags) && pte_write(pte)) {
+> > +	if ((is_cow_mapping(vm_flags) && pte_write(pte)) ||
+> > +	    arch_copy_pte_mapping(vm_flags)) {
+> >  		ptep_set_wrprotect(src_mm, addr, src_pte);
+> >  		pte = pte_wrprotect(pte);
+> >  	}
 > 
-> > user_access_begin() grants both read and write.
-> > 
-> > This patch adds user_read_access_begin() and user_write_access_begin() but
-> > it doesn't remove user_access_begin()
+> You have to modify this because pte_write()==0 for shadow stack PTEs, right?
 > 
-> Ouch...  So the most generic name is for the rarest case?
->  
-> > > What should we do about that?  Do we prohibit such blocks outside
-> > > of arch?
-> > > 
-> > > What should we do about arm and s390?  There we want a cookie passed
-> > > from beginning of block to its end; should that be a return value?
-> > 
-> > That was the way I implemented it in January, see
-> > https://patchwork.ozlabs.org/patch/1227926/
-> > 
-> > There was some discussion around that and most noticeable was:
-> > 
-> > H. Peter (hpa) said about it: "I have *deep* concern with carrying state in
-> > a "key" variable: it's a direct attack vector for a crowbar attack,
-> > especially since it is by definition live inside a user access region."
-> 
-> > This patch minimises the change by just adding user_read_access_begin() and
-> > user_write_access_begin() keeping the same parameters as the existing
-> > user_access_begin().
-> 
-> Umm...  What about the arm situation?  The same concerns would apply there,
-> wouldn't they?  Currently we have
-> static __always_inline unsigned int uaccess_save_and_enable(void)
-> {
-> #ifdef CONFIG_CPU_SW_DOMAIN_PAN
->         unsigned int old_domain = get_domain();
-> 
->         /* Set the current domain access to permit user accesses */
->         set_domain((old_domain & ~domain_mask(DOMAIN_USER)) |
->                    domain_val(DOMAIN_USER, DOMAIN_CLIENT));
-> 
->         return old_domain;
-> #else
->         return 0;
-> #endif
-> }
-> and
-> static __always_inline void uaccess_restore(unsigned int flags)
-> {
-> #ifdef CONFIG_CPU_SW_DOMAIN_PAN
->         /* Restore the user access mask */
->         set_domain(flags);
-> #endif
-> }
-> 
-> How much do we need nesting on those, anyway?  rmk?
+> Aren't shadow stack ptes *logically* writable, even if they don't have
+> the write bit set?  What would happen if we made pte_write()==1 for them?
 
-Yup, I think it's a weakness of the ARM implementation and I'd like to
-not extend it further. AFAIK we should never nest, but I would not be
-surprised at all if we did.
+Here the vm_flags needs to have VM_MAYWRITE, and the PTE needs to have
+_PAGE_WRITE.  A shadow stack does not have either.
 
-If we were looking at a design goal for all architectures, I'd like
-to be doing what the public PaX patchset did for their memory access
-switching, which is to alarm if calling into "enable" found the access
-already enabled, etc. Such a condition would show an unexpected nesting
-(like we've seen with similar constructs with set_fs() not getting reset
-during an exception handler, etc etc).
+To fix checking vm_flags, what about adding a "arch_is_cow_mappping()" to the
+generic is_cow_mapping()?
 
--- 
-Kees Cook
+For the PTE, the check actually tries to determine if the PTE is not already
+being copy-on-write, which is:
+
+	(!_PAGE_RW && !_PAGE_DIRTY_HW)
+
+So what about making it pte_cow()?
+
+	/*
+	 * The PTE is in copy-on-write status.
+	 */
+	static inline int pte_cow(pte_t pte)
+	{
+		return !(pte_flags(pte) & (_PAGE_WRITE | _PAGE_DIRTY_HW));
+	}
+> 
+> > @@ -2417,6 +2418,7 @@ static inline void wp_page_reuse(struct vm_fault *vmf)
+> >  	flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+> >  	entry = pte_mkyoung(vmf->orig_pte);
+> >  	entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+> > +	entry = pte_set_vma_features(entry, vma);
+> >  	if (ptep_set_access_flags(vma, vmf->address, vmf->pte, entry, 1))
+> >  		update_mmu_cache(vma, vmf->address, vmf->pte);
+> >  	pte_unmap_unlock(vmf->pte, vmf->ptl);
+> > @@ -2504,6 +2506,7 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
+> >  		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+> >  		entry = mk_pte(new_page, vma->vm_page_prot);
+> >  		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+> > +		entry = pte_set_vma_features(entry, vma);
+> >  		/*
+> >  		 * Clear the pte entry and flush it first, before updating the
+> >  		 * pte with the new entry. This will avoid a race condition
+> > @@ -3023,6 +3026,7 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
+> >  	pte = mk_pte(page, vma->vm_page_prot);
+> >  	if ((vmf->flags & FAULT_FLAG_WRITE) && reuse_swap_page(page, NULL)) {
+> >  		pte = maybe_mkwrite(pte_mkdirty(pte), vma);
+> > +		pte = pte_set_vma_features(pte, vma);
+> >  		vmf->flags &= ~FAULT_FLAG_WRITE;
+> >  		ret |= VM_FAULT_WRITE;
+> >  		exclusive = RMAP_EXCLUSIVE;
+> > @@ -3165,6 +3169,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+> >  	entry = mk_pte(page, vma->vm_page_prot);
+> >  	if (vma->vm_flags & VM_WRITE)
+> >  		entry = pte_mkwrite(pte_mkdirty(entry));
+> > +	entry = pte_set_vma_features(entry, vma);
+> >  
+> >  	vmf->pte = pte_offset_map_lock(vma->vm_mm, vmf->pmd, vmf->address,
+> >  			&vmf->ptl);
+> > 
+> 
+> These seem wrong, or at best inconsistent with what's already done.
+> 
+> We don't need anything like pte_set_vma_features() today because we have
+> vma->vm_page_prot.  We could easily have done what you suggest here for
+> things like protection keys: ignore the pkey PTE bits until we create
+> the final PTE then shove them in there.
+> 
+> What are the bit patterns of the shadow stack bits that come out of
+> these sites?  Can they be represented in ->vm_page_prot?
+
+Yes, we can put _PAGE_DIRTY_HW in vm_page_prot.  Also set the bit in
+ptep_set_access_flags() for shadow stack PTEs.
