@@ -1,96 +1,78 @@
-Return-Path: <SRS0=Usf8=5Z=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [PATCH 19/28] gpu/drm: remove the powerpc hack in
- drm_legacy_sg_alloc
-References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-20-hch@lst.de>
- <20200408122504.GO3456981@phenom.ffwll.local>
- <eb48f7b6327e482ea9911b129210c0417ab48345.camel@kernel.crashing.org>
-From: Gerhard Pircher <gerhard_pircher@gmx.net>
-Message-ID: <d4a82787-5dd2-ccde-79b4-ff44848ba04e@gmx.net>
-Date: Thu, 9 Apr 2020 13:46:26 +0200
+Return-Path: <SRS0=OmAX=5X=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [RFC PATCH v9 14/27] mm: Handle Shadow Stack page fault
+References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
+ <20200205181935.3712-15-yu-cheng.yu@intel.com>
+ <4902a6ee-cb0f-2700-1f6d-9d756593183c@intel.com>
+ <444d97c4a4f70ccbb12da5e8f7ff498b37a9f60d.camel@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <e432d102-7f69-7ba3-6146-c0165eef87e1@intel.com>
+Date: Tue, 7 Apr 2020 15:21:59 -0700
 MIME-Version: 1.0
-In-Reply-To: <eb48f7b6327e482ea9911b129210c0417ab48345.camel@kernel.crashing.org>
+In-Reply-To: <444d97c4a4f70ccbb12da5e8f7ff498b37a9f60d.camel@intel.com>
 Content-Type: text/plain; charset=utf-8
-Content-Language: de-AT
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Daniel Vetter <daniel@ffwll.ch>, Christoph Hellwig <hch@lst.de>
-Cc: linux-hyperv@vger.kernel.org, David Airlie <airlied@linux.ie>, dri-devel@lists.freedesktop.org, linux-mm@kvack.org, "K. Y. Srinivasan" <kys@microsoft.com>, Sumit Semwal <sumit.semwal@linaro.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Wei Liu <wei.liu@kernel.org>, Stephen Hemminger <sthemmin@microsoft.com>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Laura Abbott <labbott@redhat.com>, Nitin Gupta <ngupta@vflare.org>, Haiyang Zhang <haiyangz@microsoft.com>, linaro-mm-sig@lists.linaro.org, bpf@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Robin Murphy <robin.murphy@arm.com>, linux-kernel@vger.kernel.org, Minchan Kim <minchan@kernel.org>, iommu@lists.linux-foundation.org, Sakari Ailus <sakari.ailus@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200409114626.B7Ea0jQoUyx702ymr_vjut-9JdDnktqhkl63lWnYboc@z>
+Message-ID: <20200407222159.KC4mMgtIT_vvJ-mvIpW5IpaEKm5Di33a5led1xhexqw@z>
 
-Am 09.04.20 um 10:54 schrieb Benjamin Herrenschmidt:
-> On Wed, 2020-04-08 at 14:25 +0200, Daniel Vetter wrote:
->> On Wed, Apr 08, 2020 at 01:59:17PM +0200, Christoph Hellwig wrote:
->>> If this code was broken for non-coherent caches a crude powerpc hack
->>> isn't going to help anyone else.  Remove the hack as it is the last
->>> user of __vmalloc passing a page protection flag other than PAGE_KERNE=
-L.
->>
->> Well Ben added this to make stuff work on ppc, ofc the home grown dma
->> layer in drm from back then isn't going to work in other places. I gues=
-s
->> should have at least an ack from him, in case anyone still cares about
->> this on ppc. Adding Ben to cc.
->
-> This was due to some drivers (radeon ?) trying to use vmalloc pages for
-> coherent DMA, which means on those 4xx powerpc's need to be non-cached.
->
-> There were machines using that (440 based iirc), though I honestly
-> can't tell if anybody still uses any of it.
-The first-gen amigaone platform (6xx/book32s) uses the radeon driver
-together with non-coherent DMA. However this only ever worked reliably
-for DRI1.
-
-br,
-Gerhard
-
-> Cheers,
-> Ben.
->
->> -Daniel
->>
->>>
->>> Signed-off-by: Christoph Hellwig <hch@lst.de>
->>> ---
->>>  drivers/gpu/drm/drm_scatter.c | 11 +----------
->>>  1 file changed, 1 insertion(+), 10 deletions(-)
->>>
->>> diff --git a/drivers/gpu/drm/drm_scatter.c b/drivers/gpu/drm/drm_scatt=
-er.c
->>> index ca520028b2cb..f4e6184d1877 100644
->>> --- a/drivers/gpu/drm/drm_scatter.c
->>> +++ b/drivers/gpu/drm/drm_scatter.c
->>> @@ -43,15 +43,6 @@
->>>
->>>  #define DEBUG_SCATTER 0
->>>
->>> -static inline void *drm_vmalloc_dma(unsigned long size)
->>> -{
->>> -#if defined(__powerpc__) && defined(CONFIG_NOT_COHERENT_CACHE)
->>> -	return __vmalloc(size, GFP_KERNEL, pgprot_noncached_wc(PAGE_KERNEL))=
-;
->>> -#else
->>> -	return vmalloc_32(size);
->>> -#endif
->>> -}
->>> -
->>>  static void drm_sg_cleanup(struct drm_sg_mem * entry)
->>>  {
->>>  	struct page *page;
->>> @@ -126,7 +117,7 @@ int drm_legacy_sg_alloc(struct drm_device *dev, vo=
-id *data,
->>>  		return -ENOMEM;
+On 4/7/20 11:14 AM, Yu-cheng Yu wrote:
+> On Wed, 2020-02-26 at 16:08 -0800, Dave Hansen wrote:
+>>> diff --git a/mm/memory.c b/mm/memory.c
+>>> index 45442d9a4f52..6daa28614327 100644
+>>> --- a/mm/memory.c
+>>> +++ b/mm/memory.c
+>>> @@ -772,7 +772,8 @@ copy_one_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+>>>  	 * If it's a COW mapping, write protect it both
+>>>  	 * in the parent and the child
+>>>  	 */
+>>> -	if (is_cow_mapping(vm_flags) && pte_write(pte)) {
+>>> +	if ((is_cow_mapping(vm_flags) && pte_write(pte)) ||
+>>> +	    arch_copy_pte_mapping(vm_flags)) {
+>>>  		ptep_set_wrprotect(src_mm, addr, src_pte);
+>>>  		pte = pte_wrprotect(pte);
 >>>  	}
->>>
->>> -	entry->virtual =3D drm_vmalloc_dma(pages << PAGE_SHIFT);
->>> +	entry->virtual =3D vmalloc_32(pages << PAGE_SHIFT);
->>>  	if (!entry->virtual) {
->>>  		kfree(entry->busaddr);
->>>  		kfree(entry->pagelist);
->>> --
->>> 2.25.1
->>>
 >>
+>> You have to modify this because pte_write()==0 for shadow stack PTEs, right?
 >>
->
+>> Aren't shadow stack ptes *logically* writable, even if they don't have
+>> the write bit set?  What would happen if we made pte_write()==1 for them?
+> 
+> Here the vm_flags needs to have VM_MAYWRITE, and the PTE needs to have
+> _PAGE_WRITE.  A shadow stack does not have either.
+
+I literally mean taking pte_write(), and doing something l
+
+static inline int pte_write(pte_t pte)
+{
+	if (pte_present(pte) && pte_is_shadow_stack(pte))
+		return 1;
+
+        return pte_flags(pte) & _PAGE_RW;
+}
+
+Then if is_cow_mapping() returns true for shadow stack VMAs, the above
+code doesn't need to change.
+
+> To fix checking vm_flags, what about adding a "arch_is_cow_mappping()" to the
+> generic is_cow_mapping()?
+
+That makes good sense to me.
+
+> For the PTE, the check actually tries to determine if the PTE is not already
+> being copy-on-write, which is:
+> 
+> 	(!_PAGE_RW && !_PAGE_DIRTY_HW)
+> 
+> So what about making it pte_cow()?
+> 
+> 	/*
+> 	 * The PTE is in copy-on-write status.
+> 	 */
+> 	static inline int pte_cow(pte_t pte)
+> 	{
+> 		return !(pte_flags(pte) & (_PAGE_WRITE | _PAGE_DIRTY_HW));
+> 	}
+
+... with appropriate comments that seems fine to me.
