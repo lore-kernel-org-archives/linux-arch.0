@@ -1,44 +1,94 @@
-From: SANDRA DEWI <dewisandra154@gmail.com>
-Subject: whether this is your correct email address or not
-Date: Tue, 7 Apr 2020 05:12:40 +0000
-Message-ID: <CABRVPWys0xe4CWBkaU0ZXQW+4d=tjDOjyo8cKohc5-VFkWPkcA__24436.7663910211$1586236374$gmane$org@mail.gmail.com>
+From: Vlastimil Babka <vbabka@suse.cz>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+Date: Tue, 7 Apr 2020 10:00:10 +0200
+Message-ID: <7d810f6d-8085-ea2f-7805-47ba3842dc50@suse.cz>
+References: <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+ <202001281457.FA11CC313A@keescook>
+ <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+ <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
+ <20200129170939.GA4277@infradead.org>
+ <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
+ <202001300945.7D465B5F5@keescook>
+ <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua1-f68.google.com ([209.85.222.68]:42219 "EHLO
-        mail-ua1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726841AbgDGFMm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Apr 2020 01:12:42 -0400
-Received: by mail-ua1-f68.google.com with SMTP id m18so833773uap.9
-        for <linux-arch@vger.kernel.org>; Mon, 06 Apr 2020 22:12:41 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
+Content-Language: en-US
+Sender: netdev-owner@vger.kernel.org
+To: Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Dear ,Pastor
+On 1/31/20 1:03 PM, Jann Horn wrote:
 
+> I think dma-kmalloc slabs should be handled the same way as normal
+> kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
+> just normal kernel memory - even if it might later be used for DMA -,
+> and it should be perfectly fine to copy_from_user() into such
+> allocations at that point, and to copy_to_user() out of them at the
+> end. If you look at the places where such allocations are created, you
+> can see things like kmemdup(), memcpy() and so on - all normal
+> operations that shouldn't conceptually be different from usercopy in
+> any relevant way.
+ 
+So, let's do that?
 
+----8<----
+From d5190e4e871689a530da3c3fd327be45a88f006a Mon Sep 17 00:00:00 2001
+From: Vlastimil Babka <vbabka@suse.cz>
+Date: Tue, 7 Apr 2020 09:58:00 +0200
+Subject: [PATCH] usercopy: Mark dma-kmalloc caches as usercopy caches
 
-I have a client who is an oil business man and he made a fixed deposit
-of $26 million USD in my bank, where I am the director of the branch,
-My client died with his entire family in Jordanian
+We have seen a "usercopy: Kernel memory overwrite attempt detected to SLUB
+object 'dma-kmalloc-1 k' (offset 0, size 11)!" error on s390x, as IUCV uses
+kmalloc() with __GFP_DMA because of memory address restrictions.
+The issue has been discussed [2] and it has been noted that if all the kmalloc
+caches are marked as usercopy, there's little reason not to mark dma-kmalloc
+caches too. The 'dma' part merely means that __GFP_DMA is used to restrict
+memory address range.
 
-50% of the fund will be for the church  for the work of God,the
-balance 50% we share it in the ratio of 50/50. Meaning 50% to you and
-50% for me
+As Jann Horn put it [3]:
 
-intervention in the Syrian Civil War 2014 leaving behind no next of
-kin. I Propose to present you as next of kin to claim the funds, if
-interested reply me for full details and how we are to
+"I think dma-kmalloc slabs should be handled the same way as normal
+kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
+just normal kernel memory - even if it might later be used for DMA -,
+and it should be perfectly fine to copy_from_user() into such
+allocations at that point, and to copy_to_user() out of them at the
+end. If you look at the places where such allocations are created, you
+can see things like kmemdup(), memcpy() and so on - all normal
+operations that shouldn't conceptually be different from usercopy in
+any relevant way."
 
+Thus this patch marks the dma-kmalloc-* caches as usercopy.
 
+[1] https://bugzilla.suse.com/show_bug.cgi?id=1156053
+[2] https://lore.kernel.org/kernel-hardening/bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz/
+[3] https://lore.kernel.org/kernel-hardening/CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com/
 
-proceed to close this deal.
+Signed-off-by: Vlastimil Babka <vbabka@suse.cz>
+---
+ mm/slab_common.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-
-
-
-Mrs. Sandra Dewi
-
-
-
-Email  mrsdewi@gmx.com
+diff --git a/mm/slab_common.c b/mm/slab_common.c
+index 5282f881d2f5..ae9486160594 100644
+--- a/mm/slab_common.c
++++ b/mm/slab_common.c
+@@ -1303,7 +1303,8 @@ void __init create_kmalloc_caches(slab_flags_t flags)
+ 			kmalloc_caches[KMALLOC_DMA][i] = create_kmalloc_cache(
+ 				kmalloc_info[i].name[KMALLOC_DMA],
+ 				kmalloc_info[i].size,
+-				SLAB_CACHE_DMA | flags, 0, 0);
++				SLAB_CACHE_DMA | flags, 0,
++				kmalloc_info[i].size);
+ 		}
+ 	}
+ #endif
+-- 
+2.26.0
