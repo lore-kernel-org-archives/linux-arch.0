@@ -1,56 +1,90 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 17/29] mm: remove unmap_vmap_area
-Date: Tue, 14 Apr 2020 15:13:36 +0200
-Message-ID: <20200414131348.444715-18-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+Return-Path: <SRS0=tF1W=5X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-lj1-f179.google.com ([209.85.208.179]:45210 "EHLO
+        mail-lj1-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726628AbgDGTZl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Apr 2020 15:25:41 -0400
+Received: by mail-lj1-f179.google.com with SMTP id t17so4998847ljc.12
+        for <linux-arch@vger.kernel.org>; Tue, 07 Apr 2020 12:25:39 -0700 (PDT)
 MIME-Version: 1.0
+References: <cover.1585579244.git.thehajime@gmail.com> <dca6ea7260830a03c060f57e6ab9961f16ad55ed.1585579244.git.thehajime@gmail.com>
+ <a84f3d7bcddbaa6125349c4bcdec6e3e07d6b783.camel@sipsolutions.net>
+ <CAFLxGvyFqXZSmMcD_=o81AHLzdM_u2iH8h412w7VZrxON7Ohig@mail.gmail.com>
+ <m21rp9xaqt.wl-thehajime@gmail.com> <ba2199bd17b6457c97305f6688b13ed36e7feac3.camel@sipsolutions.net>
+ <m2tv22wfmr.wl-thehajime@gmail.com>
+In-Reply-To: <m2tv22wfmr.wl-thehajime@gmail.com>
+From: Octavian Purdila <tavi.purdila@gmail.com>
+Date: Tue, 7 Apr 2020 22:25:27 +0300
+Message-ID: <CAMoF9u11mUvOO6NZoEq9Hu=ndOz_2he3Mjb2dEpCEAT6fk_CjQ@mail.gmail.com>
+Subject: Re: [RFC v4 02/25] um lkl: architecture skeleton for Linux kernel library
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414131336.JpTc_WQ7c8lM-xdZNow8G0D190-hY0araS97E_-0BnI@z>
+To: Hajime Tazaki <thehajime@gmail.com>
+Cc: Johannes Berg <johannes@sipsolutions.net>, Richard Weinberger <richard.weinberger@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Levente Kurusa <levex@linux.com>, Matthieu Coudron <mattator@gmail.com>, cem <cem@freebsd.org>, Lai Jiangshan <jiangshanlai@gmail.com>, Jens Staal <staal1978@gmail.com>, Motomu Utsumi <motomuman@gmail.com>, linux-um <linux-um@lists.infradead.org>, Akira Moroo <retrage01@gmail.com>, Petros Angelatos <petrosagg@gmail.com>, Yuan Liu <liuyuan@google.com>, Mark Stillwell <mark@stillwell.me>, pscollins <pscollins@google.com>, linux-kernel-library <linux-kernel-library@freelists.org>, Pierre-Hugues Husson <phh@phh.me>, sigmaepsilon92 <sigmaepsilon92@gmail.com>, Luca Dariz <luca.dariz@gmail.com>, "Edison M . Castro" <edisonmcastro@hotmail.com>
+Message-ID: <20200407192527.hKtg2n0X7sfUW9m4RO3MJQYFrARuTqtm8EBeEdiitwI@z>
 
-This function just has a single caller, open code it there.
+<snip>
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- mm/vmalloc.c | 10 +---------
- 1 file changed, 1 insertion(+), 9 deletions(-)
 
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index b0c7cdc8701a..258220b203f1 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -1247,14 +1247,6 @@ int unregister_vmap_purge_notifier(struct notifier=
-_block *nb)
- }
- EXPORT_SYMBOL_GPL(unregister_vmap_purge_notifier);
-=20
--/*
-- * Clear the pagetable entries of a given vmap_area
-- */
--static void unmap_vmap_area(struct vmap_area *va)
--{
--	unmap_kernel_range_noflush(va->va_start, va->va_end - va->va_start);
--}
--
- /*
-  * lazy_max_pages is the maximum amount of virtual address space we gath=
-er up
-  * before attempting to purge with a TLB flush.
-@@ -1416,7 +1408,7 @@ static void free_vmap_area_noflush(struct vmap_area=
- *va)
- static void free_unmap_vmap_area(struct vmap_area *va)
- {
- 	flush_cache_vunmap(va->va_start, va->va_end);
--	unmap_vmap_area(va);
-+	unmap_kernel_range_noflush(va->va_start, va->va_end - va->va_start);
- 	if (debug_pagealloc_enabled_static())
- 		flush_tlb_kernel_range(va->va_start, va->va_end);
-=20
---=20
-2.25.1
+> > And like I said before, that decision will frame everything else. I
+> > really don't think we can make significant progress here without having
+> > decided whether this is possible.
+> >
+> > Perhaps UML *can* become a "special case" of LKL, with a special API
+> > function (that's not part of the syscall surface) to "boot(cmdline)" or
+> > something. But if it can't, and has to remain as separated as the two
+> > are today, I would argue we're better off just not calling them the sam=
+e
+> > architecture.
+>
+> I agree with this if the unification has all completed.
+>
+
+I tought a lot about this and I agree with Johannes that if we want to
+unity UML and LKL we should start with the hard parts.
+
+I am also starting to think that it is unlikely to be able to merge the
+two "nicely" and that we should probably turn this on its head and start
+with reworking UML towards the LKL features. We will end up
+re-implementing *some* of the LKL concepts from scratch in UML but I
+think at this point this is unavoidable.
+
+Here are my thoughts on a very rough plan for doing that:
+
+Milestone 1: LKL lib on top of UML
+ * Kernel - Host build split
+   Build UML as a relocatable object using the UML=E2=80=99s kernel linker
+   script.
+   Move the ptrace and other well isolated os code out of arch/um to
+   tools/um (or maybe start directly with tools/lkl?)
+   Use standard host toolchain to create a static library stripped of
+   the ptrace code. Use standard host toolchain to build the main UML
+   executable.
+   Add library init API that creates the UML kernel process and starts
+   UML.
+* System calls APIs
+   Add new system call interface dbased on fd irq.
+   Use the LKL scripts to export the required headers to create system
+   calls APIs that use the UML system calls infrastructure.
+   Keep the underlying host and driver operations (threads, irqs, etc.)
+   as they are now in UML.
+ * Boot test
+   Port the LKL boot test to verify that we are able to programatically
+   issue system calls.
+
+Milestone 2: add virtio disk support
+ * Export asm/io.h operations to host/os. Create IO access operations
+   and redirect them to weak os_ variants that use the current UML
+   implementation.
+ * Add the LKL IO access layer including generic virtio handling and the
+   virtio block device code.
+ * Port LKL disk test and disk apps (lklfuse, fs2tar, cptofs)
+
+Milestone 3: new arch ports
+  * Abstrac the system call / IRQ mode the move the implementation to host
+  * Abstract the thread model and move the implementation to host
+  * Add LKL thread model and LKL ports
+
+Thanks,
+Tavi
