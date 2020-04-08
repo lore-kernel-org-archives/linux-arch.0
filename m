@@ -1,51 +1,241 @@
-Return-Path: <SRS0=8f/M=5T=kvack.org=owner-linux-mm@kernel.org>
-Message-ID: <ebf1250b6d4f351469fb339e5399d8b92aa8a1c1.1585898438.git.christophe.leroy@c-s.fr>
-In-Reply-To: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
-References: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH v2 3/5] drm/i915/gem: Replace user_access_begin by
- user_write_access_begin
-Date: Fri,  3 Apr 2020 07:20:52 +0000 (UTC)
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 05/28] powerpc: add an ioremap_phb helper
+Date: Wed,  8 Apr 2020 13:59:03 +0200
+Message-ID: <20200408115926.1467567-6-hch@lst.de>
+In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
+References: <20200408115926.1467567-1-hch@lst.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, intel-gfx@lists.freedesktop.org
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200403072052.blzaA94MV2Br9dTAjmmKuD-TxkHBVDt4zYNrzCG4lro@z>
+Message-ID: <20200408115903.i9cz053S4lU0doCzj5tBFStyLhuFCvZf4IyIEQy1J-4@z>
 
-When i915_gem_execbuffer2_ioctl() is using user_access_begin(),
-that's only to perform unsafe_put_user() so use
-user_write_access_begin() in order to only open write access.
+Factor code shared between pci_64 and electra_cf into a ioremap_pbh
+helper that follows the normal ioremap semantics, and returns a
+useful __iomem pointer.  Note that it opencodes __ioremap_at as
+we know from the callers the slab is available.  Switch pci_64
+to also store the result as __iomem pointer, and unmap the result
+using iounmap instead of force casting and using vmalloc APIs.
 
-Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
-Reviewed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
-v2: Rebased (one part of the patch flies away)
----
- drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ arch/powerpc/include/asm/io.h         |  2 +
+ arch/powerpc/include/asm/pci-bridge.h |  2 +-
+ arch/powerpc/kernel/pci_64.c          | 53 ++++++++++++++++++---------
+ drivers/pcmcia/electra_cf.c           | 45 ++++++++---------------
+ 4 files changed, 54 insertions(+), 48 deletions(-)
 
-diff --git a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
-index 36d069504836..b4c903308590 100644
---- a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
-+++ b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
-@@ -2794,7 +2794,8 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
- 		 * And this range already got effectively checked earlier
- 		 * when we did the "copy_from_user()" above.
- 		 */
--		if (!user_access_begin(user_exec_list, count * sizeof(*user_exec_list)))
-+		if (!user_write_access_begin(user_exec_list,
-+					     count * sizeof(*user_exec_list)))
- 			goto end;
- 
- 		for (i = 0; i < args->buffer_count; i++) {
-@@ -2808,7 +2809,7 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
- 					end_user);
- 		}
- end_user:
--		user_access_end();
-+		user_write_access_end();
- end:;
- 	}
- 
--- 
-2.25.0
+diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.=
+h
+index 635969b5b58e..71f1c5d69839 100644
+--- a/arch/powerpc/include/asm/io.h
++++ b/arch/powerpc/include/asm/io.h
+@@ -719,6 +719,8 @@ void __iomem *ioremap_coherent(phys_addr_t address, u=
+nsigned long size);
+=20
+ extern void iounmap(volatile void __iomem *addr);
+=20
++void __iomem *ioremap_pbh(phys_addr_t paddr, unsigned long size);
++
+ int early_ioremap_range(unsigned long ea, phys_addr_t pa,
+ 			unsigned long size, pgprot_t prot);
+ void __iomem *do_ioremap(phys_addr_t pa, phys_addr_t offset, unsigned lo=
+ng size,
+diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include=
+/asm/pci-bridge.h
+index 69f4cb3b7c56..b92e81b256e5 100644
+--- a/arch/powerpc/include/asm/pci-bridge.h
++++ b/arch/powerpc/include/asm/pci-bridge.h
+@@ -66,7 +66,7 @@ struct pci_controller {
+=20
+ 	void __iomem *io_base_virt;
+ #ifdef CONFIG_PPC64
+-	void *io_base_alloc;
++	void __iomem *io_base_alloc;
+ #endif
+ 	resource_size_t io_base_phys;
+ 	resource_size_t pci_io_size;
+diff --git a/arch/powerpc/kernel/pci_64.c b/arch/powerpc/kernel/pci_64.c
+index f83d1f69b1dd..8e86bd9c1eca 100644
+--- a/arch/powerpc/kernel/pci_64.c
++++ b/arch/powerpc/kernel/pci_64.c
+@@ -109,23 +109,46 @@ int pcibios_unmap_io_space(struct pci_bus *bus)
+ 	/* Get the host bridge */
+ 	hose =3D pci_bus_to_host(bus);
+=20
+-	/* Check if we have IOs allocated */
+-	if (hose->io_base_alloc =3D=3D NULL)
+-		return 0;
+-
+ 	pr_debug("IO unmapping for PHB %pOF\n", hose->dn);
+ 	pr_debug("  alloc=3D0x%p\n", hose->io_base_alloc);
+=20
+-	/* This is a PHB, we fully unmap the IO area */
+-	vunmap(hose->io_base_alloc);
+-
++	iounmap(hose->io_base_alloc);
+ 	return 0;
+ }
+ EXPORT_SYMBOL_GPL(pcibios_unmap_io_space);
+=20
+-static int pcibios_map_phb_io_space(struct pci_controller *hose)
++void __iomem *ioremap_pbh(phys_addr_t paddr, unsigned long size)
+ {
+ 	struct vm_struct *area;
++	unsigned long addr;
++
++	WARN_ON_ONCE(paddr & ~PAGE_MASK);
++	WARN_ON_ONCE(size & ~PAGE_MASK);
++
++	/*
++	 * Let's allocate some IO space for that guy. We don't pass VM_IOREMAP
++	 * because we don't care about alignment tricks that the core does in
++	 * that case.  Maybe we should due to stupid card with incomplete
++	 * address decoding but I'd rather not deal with those outside of the
++	 * reserved 64K legacy region.
++	 */
++	area =3D __get_vm_area(size, 0, PHB_IO_BASE, PHB_IO_END);
++	if (!area)
++		return NULL;
++
++	addr =3D (unsigned long)area->addr;
++	if (ioremap_page_range(addr, addr + size, paddr,
++			pgprot_noncached(PAGE_KERNEL))) {
++		unmap_kernel_range(addr, size);
++		return NULL;
++	}
++
++	return (void __iomem *)addr;
++}
++EXPORT_SYMBOL_GPL(ioremap_pbh);
++
++static int pcibios_map_phb_io_space(struct pci_controller *hose)
++{
+ 	unsigned long phys_page;
+ 	unsigned long size_page;
+ 	unsigned long io_virt_offset;
+@@ -146,12 +169,11 @@ static int pcibios_map_phb_io_space(struct pci_cont=
+roller *hose)
+ 	 * with incomplete address decoding but I'd rather not deal with
+ 	 * those outside of the reserved 64K legacy region.
+ 	 */
+-	area =3D __get_vm_area(size_page, 0, PHB_IO_BASE, PHB_IO_END);
+-	if (area =3D=3D NULL)
++	hose->io_base_alloc =3D ioremap_pbh(phys_page, size_page);
++	if (!hose->io_base_alloc)
+ 		return -ENOMEM;
+-	hose->io_base_alloc =3D area->addr;
+-	hose->io_base_virt =3D (void __iomem *)(area->addr +
+-					      hose->io_base_phys - phys_page);
++	hose->io_base_virt =3D hose->io_base_alloc +
++				hose->io_base_phys - phys_page;
+=20
+ 	pr_debug("IO mapping for PHB %pOF\n", hose->dn);
+ 	pr_debug("  phys=3D0x%016llx, virt=3D0x%p (alloc=3D0x%p)\n",
+@@ -159,11 +181,6 @@ static int pcibios_map_phb_io_space(struct pci_contr=
+oller *hose)
+ 	pr_debug("  size=3D0x%016llx (alloc=3D0x%016lx)\n",
+ 		 hose->pci_io_size, size_page);
+=20
+-	/* Establish the mapping */
+-	if (__ioremap_at(phys_page, area->addr, size_page,
+-			 pgprot_noncached(PAGE_KERNEL)) =3D=3D NULL)
+-		return -ENOMEM;
+-
+ 	/* Fixup hose IO resource */
+ 	io_virt_offset =3D pcibios_io_space_offset(hose);
+ 	hose->io_resource.start +=3D io_virt_offset;
+diff --git a/drivers/pcmcia/electra_cf.c b/drivers/pcmcia/electra_cf.c
+index f2741c04289d..77b229f8d218 100644
+--- a/drivers/pcmcia/electra_cf.c
++++ b/drivers/pcmcia/electra_cf.c
+@@ -178,10 +178,9 @@ static int electra_cf_probe(struct platform_device *=
+ofdev)
+ 	struct device_node *np =3D ofdev->dev.of_node;
+ 	struct electra_cf_socket   *cf;
+ 	struct resource mem, io;
+-	int status;
++	int status =3D -ENOMEM;
+ 	const unsigned int *prop;
+ 	int err;
+-	struct vm_struct *area;
+=20
+ 	err =3D of_address_to_resource(np, 0, &mem);
+ 	if (err)
+@@ -202,30 +201,19 @@ static int electra_cf_probe(struct platform_device =
+*ofdev)
+ 	cf->mem_phys =3D mem.start;
+ 	cf->mem_size =3D PAGE_ALIGN(resource_size(&mem));
+ 	cf->mem_base =3D ioremap(cf->mem_phys, cf->mem_size);
++	if (!cf->mem_base)
++		goto out_free_cf;
+ 	cf->io_size =3D PAGE_ALIGN(resource_size(&io));
+-
+-	area =3D __get_vm_area(cf->io_size, 0, PHB_IO_BASE, PHB_IO_END);
+-	if (area =3D=3D NULL) {
+-		status =3D -ENOMEM;
+-		goto fail1;
+-	}
+-
+-	cf->io_virt =3D (void __iomem *)(area->addr);
++	cf->io_virt =3D ioremap_pbh(io.start, cf->io_size);
++	if (!cf->io_virt)
++		goto out_unmap_mem;
+=20
+ 	cf->gpio_base =3D ioremap(0xfc103000, 0x1000);
++	if (!cf->gpio_base)
++		goto out_unmap_virt;
+ 	dev_set_drvdata(device, cf);
+=20
+-	if (!cf->mem_base || !cf->io_virt || !cf->gpio_base ||
+-	    (__ioremap_at(io.start, cf->io_virt, cf->io_size,
+-			  pgprot_noncached(PAGE_KERNEL)) =3D=3D NULL)) {
+-		dev_err(device, "can't ioremap ranges\n");
+-		status =3D -ENOMEM;
+-		goto fail1;
+-	}
+-
+-
+ 	cf->io_base =3D (unsigned long)cf->io_virt - VMALLOC_END;
+-
+ 	cf->iomem.start =3D (unsigned long)cf->mem_base;
+ 	cf->iomem.end =3D (unsigned long)cf->mem_base + (mem.end - mem.start);
+ 	cf->iomem.flags =3D IORESOURCE_MEM;
+@@ -305,14 +293,13 @@ static int electra_cf_probe(struct platform_device =
+*ofdev)
+ 	if (cf->irq)
+ 		free_irq(cf->irq, cf);
+=20
+-	if (cf->io_virt)
+-		__iounmap_at(cf->io_virt, cf->io_size);
+-	if (cf->mem_base)
+-		iounmap(cf->mem_base);
+-	if (cf->gpio_base)
+-		iounmap(cf->gpio_base);
+-	if (area)
+-		device_init_wakeup(&ofdev->dev, 0);
++	iounmap(cf->gpio_base);
++out_unmap_virt:
++	device_init_wakeup(&ofdev->dev, 0);
++	iounmap(cf->io_virt);
++out_unmap_mem:
++	iounmap(cf->mem_base);
++out_free_cf:
+ 	kfree(cf);
+ 	return status;
+=20
+@@ -330,7 +317,7 @@ static int electra_cf_remove(struct platform_device *=
+ofdev)
+ 	free_irq(cf->irq, cf);
+ 	del_timer_sync(&cf->timer);
+=20
+-	__iounmap_at(cf->io_virt, cf->io_size);
++	iounmap(cf->io_virt);
+ 	iounmap(cf->mem_base);
+ 	iounmap(cf->gpio_base);
+ 	release_mem_region(cf->mem_phys, cf->mem_size);
+--=20
+2.25.1
