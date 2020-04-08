@@ -1,127 +1,137 @@
-Return-Path: <SRS0=ftPA=6H=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v2 6/6] arm64: tlb: Set the TTL field in flush_tlb_range
-Date: Thu, 23 Apr 2020 21:56:56 +0800
-Message-ID: <20200423135656.2712-7-yezhenyu2@huawei.com>
-In-Reply-To: <20200423135656.2712-1-yezhenyu2@huawei.com>
-References: <20200423135656.2712-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 21/28] mm: remove the prot argument to __vmalloc_node
+Date: Wed,  8 Apr 2020 13:59:19 +0200
+Message-ID: <20200408115926.1467567-22-hch@lst.de>
+In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
+References: <20200408115926.1467567-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200423135656.NJd4tk4Y41EG_yWRZxjqN2EQKolFQYGkX2iewDmP2xE@z>
+Message-ID: <20200408115919.qHPg-22WCz3gyE-WbVqeukRkNNZ4G1iRY__Qlmf-jwU@z>
 
-This patch uses the cleared_* in struct mmu_gather to set the
-TTL field in flush_tlb_range().
+This is always PAGE_KERNEL now.
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/arm64/include/asm/tlb.h      | 29 ++++++++++++++++++++++++++++-
- arch/arm64/include/asm/tlbflush.h | 14 ++++++++------
- 2 files changed, 36 insertions(+), 7 deletions(-)
+ mm/vmalloc.c | 35 ++++++++++++++---------------------
+ 1 file changed, 14 insertions(+), 21 deletions(-)
 
-diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-index b76df828e6b7..61c97d3b58c7 100644
---- a/arch/arm64/include/asm/tlb.h
-+++ b/arch/arm64/include/asm/tlb.h
-@@ -21,11 +21,37 @@ static void tlb_flush(struct mmu_gather *tlb);
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 466a449b3a15..de7952959e82 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -2401,8 +2401,7 @@ void *vmap(struct page **pages, unsigned int count,
+ EXPORT_SYMBOL(vmap);
 =20
- #include <asm-generic/tlb.h>
-=20
-+/*
-+ * get the tlbi levels in arm64.  Default value is 0 if more than one
-+ * of cleared_* is set or neither is set.
-+ * Arm64 doesn't support p4ds now.
-+ */
-+static inline int tlb_get_level(struct mmu_gather *tlb)
-+{
-+	if (tlb->cleared_ptes && !(tlb->cleared_pmds ||
-+				   tlb->cleared_puds ||
-+				   tlb->cleared_p4ds))
-+		return 3;
-+
-+	if (tlb->cleared_pmds && !(tlb->cleared_ptes ||
-+				   tlb->cleared_puds ||
-+				   tlb->cleared_p4ds))
-+		return 2;
-+
-+	if (tlb->cleared_puds && !(tlb->cleared_ptes ||
-+				   tlb->cleared_pmds ||
-+				   tlb->cleared_p4ds))
-+		return 1;
-+
-+	return 0;
-+}
-+
- static inline void tlb_flush(struct mmu_gather *tlb)
+ static void *__vmalloc_node(unsigned long size, unsigned long align,
+-			    gfp_t gfp_mask, pgprot_t prot,
+-			    int node, const void *caller);
++			    gfp_t gfp_mask, int node, const void *caller);
+ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
+ 				 pgprot_t prot, int node)
  {
- 	struct vm_area_struct vma =3D TLB_FLUSH_VMA(tlb->mm, 0);
- 	bool last_level =3D !tlb->freed_tables;
- 	unsigned long stride =3D tlb_get_unmap_size(tlb);
-+	int tlb_level =3D tlb_get_level(tlb);
-=20
- 	/*
- 	 * If we're tearing down the address space then we only care about
-@@ -38,7 +64,8 @@ static inline void tlb_flush(struct mmu_gather *tlb)
- 		return;
+@@ -2420,7 +2419,7 @@ static void *__vmalloc_area_node(struct vm_struct *=
+area, gfp_t gfp_mask,
+ 	/* Please note that the recursion is strictly bounded. */
+ 	if (array_size > PAGE_SIZE) {
+ 		pages =3D __vmalloc_node(array_size, 1, nested_gfp|highmem_mask,
+-				PAGE_KERNEL, node, area->caller);
++				node, area->caller);
+ 	} else {
+ 		pages =3D kmalloc_node(array_size, nested_gfp, node);
  	}
-=20
--	__flush_tlb_range(&vma, tlb->start, tlb->end, stride, last_level);
-+	__flush_tlb_range(&vma, tlb->start, tlb->end, stride,
-+			  last_level, tlb_level);
+@@ -2539,13 +2538,11 @@ EXPORT_SYMBOL_GPL(__vmalloc_node_range);
+  * @size:	    allocation size
+  * @align:	    desired alignment
+  * @gfp_mask:	    flags for the page level allocator
+- * @prot:	    protection mask for the allocated pages
+  * @node:	    node to use for allocation or NUMA_NO_NODE
+  * @caller:	    caller's return address
+  *
+- * Allocate enough pages to cover @size from the page level
+- * allocator with @gfp_mask flags.  Map them into contiguous
+- * kernel virtual space, using a pagetable protection of @prot.
++ * Allocate enough pages to cover @size from the page level allocator wi=
+th
++ * @gfp_mask flags.  Map them into contiguous kernel virtual space.
+  *
+  * Reclaim modifiers in @gfp_mask - __GFP_NORETRY, __GFP_RETRY_MAYFAIL
+  * and __GFP_NOFAIL are not supported
+@@ -2556,16 +2553,15 @@ EXPORT_SYMBOL_GPL(__vmalloc_node_range);
+  * Return: pointer to the allocated memory or %NULL on error
+  */
+ static void *__vmalloc_node(unsigned long size, unsigned long align,
+-			    gfp_t gfp_mask, pgprot_t prot,
+-			    int node, const void *caller)
++			    gfp_t gfp_mask, int node, const void *caller)
+ {
+ 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
+-				gfp_mask, prot, 0, node, caller);
++				gfp_mask, PAGE_KERNEL, 0, node, caller);
  }
 =20
- static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
-lbflush.h
-index 892f33235dc7..3cc705755a2d 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -215,7 +215,8 @@ static inline void flush_tlb_page(struct vm_area_stru=
-ct *vma,
-=20
- static inline void __flush_tlb_range(struct vm_area_struct *vma,
- 				     unsigned long start, unsigned long end,
--				     unsigned long stride, bool last_level)
-+				     unsigned long stride, bool last_level,
-+				     int tlb_level)
+ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
  {
- 	unsigned long asid =3D ASID(vma->vm_mm);
- 	unsigned long addr;
-@@ -237,11 +238,11 @@ static inline void __flush_tlb_range(struct vm_area=
-_struct *vma,
- 	dsb(ishst);
- 	for (addr =3D start; addr < end; addr +=3D stride) {
- 		if (last_level) {
--			__tlbi_level(vale1is, addr, 0);
--			__tlbi_user_level(vale1is, addr, 0);
-+			__tlbi_level(vale1is, addr, tlb_level);
-+			__tlbi_user_level(vale1is, addr, tlb_level);
- 		} else {
--			__tlbi_level(vae1is, addr, 0);
--			__tlbi_user_level(vae1is, addr, 0);
-+			__tlbi_level(vae1is, addr, tlb_level);
-+			__tlbi_user_level(vae1is, addr, tlb_level);
- 		}
- 	}
- 	dsb(ish);
-@@ -253,8 +254,9 @@ static inline void flush_tlb_range(struct vm_area_str=
-uct *vma,
- 	/*
- 	 * We cannot use leaf-only invalidation here, since we may be invalidat=
-ing
- 	 * table entries as part of collapsing hugepages or moving page tables.
-+	 * Set the tlb_level to 0 because we can not get enough information her=
-e.
- 	 */
--	__flush_tlb_range(vma, start, end, PAGE_SIZE, false);
-+	__flush_tlb_range(vma, start, end, PAGE_SIZE, false, 0);
+-	return __vmalloc_node(size, 1, gfp_mask, PAGE_KERNEL, NUMA_NO_NODE,
++	return __vmalloc_node(size, 1, gfp_mask, NUMA_NO_NODE,
+ 				__builtin_return_address(0));
+ }
+ EXPORT_SYMBOL(__vmalloc);
+@@ -2573,15 +2569,15 @@ EXPORT_SYMBOL(__vmalloc);
+ static inline void *__vmalloc_node_flags(unsigned long size,
+ 					int node, gfp_t flags)
+ {
+-	return __vmalloc_node(size, 1, flags, PAGE_KERNEL,
+-					node, __builtin_return_address(0));
++	return __vmalloc_node(size, 1, flags, node,
++				__builtin_return_address(0));
  }
 =20
- static inline void flush_tlb_kernel_range(unsigned long start, unsigned =
-long end)
+=20
+ void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t fl=
+ags,
+ 				  void *caller)
+ {
+-	return __vmalloc_node(size, 1, flags, PAGE_KERNEL, node, caller);
++	return __vmalloc_node(size, 1, flags, node, caller);
+ }
+=20
+ /**
+@@ -2656,8 +2652,8 @@ EXPORT_SYMBOL(vmalloc_user);
+  */
+ void *vmalloc_node(unsigned long size, int node)
+ {
+-	return __vmalloc_node(size, 1, GFP_KERNEL, PAGE_KERNEL,
+-					node, __builtin_return_address(0));
++	return __vmalloc_node(size, 1, GFP_KERNEL, node,
++			__builtin_return_address(0));
+ }
+ EXPORT_SYMBOL(vmalloc_node);
+=20
+@@ -2670,9 +2666,6 @@ EXPORT_SYMBOL(vmalloc_node);
+  * allocator and map them into contiguous kernel virtual space.
+  * The memory allocated is set to zero.
+  *
+- * For tight control over page level allocator and protection flags
+- * use __vmalloc_node() instead.
+- *
+  * Return: pointer to the allocated memory or %NULL on error
+  */
+ void *vzalloc_node(unsigned long size, int node)
+@@ -2745,8 +2738,8 @@ void *vmalloc_exec(unsigned long size)
+  */
+ void *vmalloc_32(unsigned long size)
+ {
+-	return __vmalloc_node(size, 1, GFP_VMALLOC32, PAGE_KERNEL,
+-			      NUMA_NO_NODE, __builtin_return_address(0));
++	return __vmalloc_node(size, 1, GFP_VMALLOC32, NUMA_NO_NODE,
++			__builtin_return_address(0));
+ }
+ EXPORT_SYMBOL(vmalloc_32);
+=20
 --=20
-2.19.1
+2.25.1
