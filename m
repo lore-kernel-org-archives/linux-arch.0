@@ -1,288 +1,228 @@
-Return-Path: <SRS0=XT2V=55=kvack.org=owner-linux-mm@kernel.org>
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v2 3/4] mm: HUGE_VMAP arch query functions cleanup
-Date: Mon, 13 Apr 2020 22:53:02 +1000
-Message-ID: <20200413125303.423864-4-npiggin@gmail.com>
-In-Reply-To: <20200413125303.423864-1-npiggin@gmail.com>
-References: <20200413125303.423864-1-npiggin@gmail.com>
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+From: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+Subject: [PATCH 00/35] Documentation fixes for Kernel 5.8
+Date: Wed,  8 Apr 2020 17:45:52 +0200
+Message-ID: <cover.1586359676.git.mchehab+huawei@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: linux-mm@kvack.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
+To: Linux Doc Mailing List <linux-doc@vger.kernel.org>
+Cc: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh@kernel.org>, Maxime Ripard <maxime@cerno.tech>, Yuti Amonkar <yamonkar@cadence.com>, Kishon Vijay Abraham I <kishon@ti.com>, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, dri-devel@lists.freedesktop.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-unionfs@vger.kernel.org, linux-mm@kvack.org, linux-rdma@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-crypto@vger.kernel.org, linux-media@vger.kernel.org, linux-arm-msm@vger.kernel.org, freedreno@lists.freedesktop.org, linux-afs@lists.infradead.org, ecryptfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, ocfs2-devel@oss.oracle.com, linux-pci@vger.kernel.org, linux1394-devel@lists.sourceforge.net, linux-ide@vger.kernel.org, linux-edac@vger.kernel.org, linux-spi@vger.kernel.org, MPT-FusionLinux.pdl@broadcom.com, linux-scsi@vger.kernel.org, Stephen Boyd <swboyd@chromium.org>, Sandeep Maheswaram <sanm@codeaurora.org>, Matthias Kaehlcke <mka@chromium.org>, linux-usb@vger.kernel.org, Linus Walleij <linus.walleij@linaro.org>, Sudeep Holla <sudeep.holla@arm.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Matthias Brugger <mbrugger@suse.com>, netdev@vger.kernel.org, linux-i2c@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200413125302.gjO8KtBZP_WPPkzPbrBpkjOH9NoAAJlTNzh89gkuXTQ@z>
+Message-ID: <20200408154552.hEsMXBuotLjD2mNYCQbTqQ7XjdYsJZuRhyzUmP4ZbNQ@z>
 
-This changes the awkward approach where architectures provide init
-functions to determine which levels they can provide large mappings for,
-to one where the arch is queried for each call.
+Hi Jon,
 
-This allows odd configurations to be allowed (PUD but not PMD), and will
-make it easier to constant-fold dead code away if the arch inlines
-unsupported levels.
+I have a large list of patches this time for the Documentation/. So, I'm
+starting sending them a little earier. Yet, those are meant to be applied
+after the end of the merge window. They're based on today's linux-next,
+with has only 49 patches pending to be applied upstream touching
+Documentation/, so I don't expect much conflicts if applied early at
+-rc cycle.
 
-This also adds a prot argument to the arch query. This is unused
-currently but could help with some architectures (some powerpc
-implementations can't map uncacheable memory with large pages for
-example).
+Most of the patches here were already submitted, but weren't
+merged yet at next. So, it seems that nobody picked them yet.
 
-The name is changed from ioremap to vmap, as it will be used more
-generally in the next patch.
+In any case, most of those patches here are independent from=20
+the others.
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/arm64/mm/mmu.c                      |  8 ++--
- arch/powerpc/mm/book3s64/radix_pgtable.c |  6 +--
- arch/x86/mm/ioremap.c                    |  6 +--
- include/linux/io.h                       |  3 --
- include/linux/vmalloc.h                  | 10 +++++
- lib/ioremap.c                            | 51 ++----------------------
- mm/vmalloc.c                             |  9 +++++
- 7 files changed, 33 insertions(+), 60 deletions(-)
+The number of doc build warnings have been rising with time.
+The main goal with this series is to get rid of most Sphinx warnings
+and other errors.
 
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index a374e4f51a62..b8e381c46fa1 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -1244,12 +1244,12 @@ void *__init fixmap_remap_fdt(phys_addr_t dt_phys=
-, int *size, pgprot_t prot)
- 	return dt_virt;
- }
-=20
--int __init arch_ioremap_p4d_supported(void)
-+bool arch_vmap_p4d_supported(pgprot_t prot)
- {
- 	return 0;
- }
-=20
--int __init arch_ioremap_pud_supported(void)
-+bool arch_vmap_pud_supported(pgprot_t prot)
- {
- 	/*
- 	 * Only 4k granule supports level 1 block mappings.
-@@ -1259,9 +1259,9 @@ int __init arch_ioremap_pud_supported(void)
- 	       !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
- }
-=20
--int __init arch_ioremap_pmd_supported(void)
-+bool arch_vmap_pmd_supported(pgprot_t prot)
- {
--	/* See arch_ioremap_pud_supported() */
-+	/* See arch_vmap_pud_supported() */
- 	return !IS_ENABLED(CONFIG_PTDUMP_DEBUGFS);
- }
-=20
-diff --git a/arch/powerpc/mm/book3s64/radix_pgtable.c b/arch/powerpc/mm/b=
-ook3s64/radix_pgtable.c
-index 8f9edf07063a..5130e7912dd4 100644
---- a/arch/powerpc/mm/book3s64/radix_pgtable.c
-+++ b/arch/powerpc/mm/book3s64/radix_pgtable.c
-@@ -1091,13 +1091,13 @@ void radix__ptep_modify_prot_commit(struct vm_are=
-a_struct *vma,
- 	set_pte_at(mm, addr, ptep, pte);
- }
-=20
--int __init arch_ioremap_pud_supported(void)
-+bool arch_vmap_pud_supported(pgprot_t prot)
- {
- 	/* HPT does not cope with large pages in the vmalloc area */
- 	return radix_enabled();
- }
-=20
--int __init arch_ioremap_pmd_supported(void)
-+bool arch_vmap_pmd_supported(pgprot_t prot)
- {
- 	return radix_enabled();
- }
-@@ -1191,7 +1191,7 @@ int pmd_free_pte_page(pmd_t *pmd, unsigned long add=
-r)
- 	return 1;
- }
-=20
--int __init arch_ioremap_p4d_supported(void)
-+bool arch_vmap_p4d_supported(pgprot_t prot)
- {
- 	return 0;
- }
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 18c637c0dc6f..bb4b75c344e4 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -481,12 +481,12 @@ void iounmap(volatile void __iomem *addr)
- }
- EXPORT_SYMBOL(iounmap);
-=20
--int __init arch_ioremap_p4d_supported(void)
-+bool arch_vmap_p4d_supported(pgprot_t prot)
- {
- 	return 0;
- }
-=20
--int __init arch_ioremap_pud_supported(void)
-+bool arch_vmap_pud_supported(pgprot_t prot)
- {
- #ifdef CONFIG_X86_64
- 	return boot_cpu_has(X86_FEATURE_GBPAGES);
-@@ -495,7 +495,7 @@ int __init arch_ioremap_pud_supported(void)
- #endif
- }
-=20
--int __init arch_ioremap_pmd_supported(void)
-+bool arch_vmap_pmd_supported(pgprot_t prot)
- {
- 	return boot_cpu_has(X86_FEATURE_PSE);
- }
-diff --git a/include/linux/io.h b/include/linux/io.h
-index 8394c56babc2..2832e051bc2e 100644
---- a/include/linux/io.h
-+++ b/include/linux/io.h
-@@ -33,9 +33,6 @@ static inline int ioremap_page_range(unsigned long addr=
-, unsigned long end,
-=20
- #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
- void __init ioremap_huge_init(void);
--int arch_ioremap_p4d_supported(void);
--int arch_ioremap_pud_supported(void);
--int arch_ioremap_pmd_supported(void);
- #else
- static inline void ioremap_huge_init(void) { }
- #endif
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index eb8a5080e472..291313a7e663 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -84,6 +84,16 @@ struct vmap_area {
- 	};
- };
-=20
-+#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
-+bool arch_vmap_p4d_supported(pgprot_t prot);
-+bool arch_vmap_pud_supported(pgprot_t prot);
-+bool arch_vmap_pmd_supported(pgprot_t prot);
-+#else
-+static inline bool arch_vmap_p4d_supported(pgprot_t prot) { return false=
-; }
-+static inline bool arch_vmap_pud_supported(pgprot_t prot) { return false=
-; }
-+static inline bool arch_vmap_pmd_supported(prprot_t prot) { return false=
-; }
-+#endif
-+
- /*
-  *	Highlevel APIs for driver use
-  */
-diff --git a/lib/ioremap.c b/lib/ioremap.c
-index 7e383bdc51ad..0a1ddf1a1286 100644
---- a/lib/ioremap.c
-+++ b/lib/ioremap.c
-@@ -14,10 +14,9 @@
- #include <asm/cacheflush.h>
- #include <asm/pgtable.h>
-=20
-+static unsigned int __read_mostly max_page_shift =3D PAGE_SHIFT;
-+
- #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
--static int __read_mostly ioremap_p4d_capable;
--static int __read_mostly ioremap_pud_capable;
--static int __read_mostly ioremap_pmd_capable;
- static int __read_mostly ioremap_huge_disabled;
-=20
- static int __init set_nohugeiomap(char *str)
-@@ -29,56 +28,14 @@ early_param("nohugeiomap", set_nohugeiomap);
-=20
- void __init ioremap_huge_init(void)
- {
--	if (!ioremap_huge_disabled) {
--		if (arch_ioremap_p4d_supported())
--			ioremap_p4d_capable =3D 1;
--		if (arch_ioremap_pud_supported())
--			ioremap_pud_capable =3D 1;
--		if (arch_ioremap_pmd_supported())
--			ioremap_pmd_capable =3D 1;
--	}
--}
--
--static inline int ioremap_p4d_enabled(void)
--{
--	return ioremap_p4d_capable;
--}
--
--static inline int ioremap_pud_enabled(void)
--{
--	return ioremap_pud_capable;
-+	if (!ioremap_huge_disabled)
-+		max_page_shift =3D P4D_SHIFT;
- }
--
--static inline int ioremap_pmd_enabled(void)
--{
--	return ioremap_pmd_capable;
--}
--
--#else	/* !CONFIG_HAVE_ARCH_HUGE_VMAP */
--static inline int ioremap_p4d_enabled(void) { return 0; }
--static inline int ioremap_pud_enabled(void) { return 0; }
--static inline int ioremap_pmd_enabled(void) { return 0; }
- #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
-=20
- int ioremap_page_range(unsigned long addr,
- 		       unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
- {
--	unsigned int max_page_shift =3D PAGE_SHIFT;
--
--	/*
--	 * Due to the max_page_shift parameter to vmap_range, platforms must
--	 * enable all smaller sizes to take advantage of a given size,
--	 * otherwise fall back to small pages.
--	 */
--	if (ioremap_pmd_enabled()) {
--		max_page_shift =3D PMD_SHIFT;
--		if (ioremap_pud_enabled()) {
--			max_page_shift =3D PUD_SHIFT;
--			if (ioremap_p4d_enabled())
--				max_page_shift =3D P4D_SHIFT;
--		}
--	}
--
- 	return vmap_range(addr, end, phys_addr, prot, max_page_shift);
- }
-=20
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index b1bc2fcae4e0..c898d16ddd25 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -171,6 +171,9 @@ static int vmap_try_huge_pmd(pmd_t *pmd, unsigned lon=
-g addr, unsigned long end,
- 	if (max_page_shift < PMD_SHIFT)
- 		return 0;
-=20
-+	if (!arch_vmap_pmd_supported(prot))
-+		return 0;
-+
- 	if ((end - addr) !=3D PMD_SIZE)
- 		return 0;
-=20
-@@ -219,6 +222,9 @@ static int vmap_try_huge_pud(pud_t *pud, unsigned lon=
-g addr,
- 	if (max_page_shift < PUD_SHIFT)
- 		return 0;
-=20
-+	if (!arch_vmap_pud_supported(prot))
-+		return 0;
-+
- 	if ((end - addr) !=3D PUD_SIZE)
- 		return 0;
-=20
-@@ -268,6 +274,9 @@ static int vmap_try_huge_p4d(p4d_t *p4d, unsigned lon=
-g addr,
- 	if (max_page_shift < P4D_SHIFT)
- 		return 0;
-=20
-+	if (!arch_vmap_p4d_supported(prot))
-+		return 0;
-+
- 	if ((end - addr) !=3D P4D_SIZE)
- 		return 0;
-=20
+Patches 1 to 5: fix broken references detected by this tool:
+
+        ./scripts/documentation-file-ref-check
+
+The other patches fix other random errors due to tags being
+mis-interpreted or mis-used.
+
+You should notice that several patches touch kernel-doc scripts.
+IMHO, some of the warnings are actually due to kernel-doc being
+too pedantic. So, I ended by improving some things at the toolset,
+in order to make it smarter. That's the case of those patches:
+
+	docs: scripts/kernel-doc: accept blank lines on parameter description
+	scripts: kernel-doc: accept negation like !@var
+	scripts: kernel-doc: proper handle @foo->bar()
+
+The last 4 patches address problems with PDF building.
+
+The first one address a conflict that will rise during the merge
+window: Documentation/media will be removed. Instead of
+just drop it from the list of PDF documents, I opted to drop the
+entire list, as conf.py will auto-generate from the sources:
+
+	docs: LaTeX/PDF: drop list of documents
+
+Also, right now, PDF output is broken due to a namespace conflict=20
+at I2c (two pdf outputs there will have the same name).
+
+	docs: i2c: rename i2c.svg to i2c_bus.svg
+
+The third PDF patch is not really a fix, but it helps a lot to identify
+if the build succeeded or not, by placing the final PDF output on
+a separate dir:
+
+	docs: Makefile: place final pdf docs on a separate dir
+
+Finally, the last one solves a bug since the first supported Sphinx
+version, with also impacts PDF output: basically while nested tables
+are valid with ReST notation, the toolset only started supporting
+it on PDF output since version 2.4:
+
+	docs: update recommended Sphinx version to 2.4.4
+
+PS.: Due to the large number of C/C, I opted to keep a smaller
+set of C/C at this first e-mail (only e-mails with "L:" tag from
+MAINTAINERS file).
+
+Mauro Carvalho Chehab (35):
+  MAINTAINERS: dt: update display/allwinner file entry
+  docs: dt: fix broken reference to phy-cadence-torrent.yaml
+  docs: fix broken references to text files
+  docs: fix broken references for ReST files that moved around
+  docs: filesystems: fix renamed references
+  docs: amu: supress some Sphinx warnings
+  docs: arm64: booting.rst: get rid of some warnings
+  docs: pci: boot-interrupts.rst: improve html output
+  futex: get rid of a kernel-docs build warning
+  firewire: firewire-cdev.hL get rid of a docs warning
+  scripts: kernel-doc: proper handle @foo->bar()
+  lib: bitmap.c: get rid of some doc warnings
+  ata: libata-core: fix a doc warning
+  fs: inode.c: get rid of docs warnings
+  docs: ras: get rid of some warnings
+  docs: ras: don't need to repeat twice the same thing
+  docs: watch_queue.rst: supress some Sphinx warnings
+  scripts: kernel-doc: accept negation like !@var
+  docs: infiniband: verbs.c: fix some documentation warnings
+  docs: scripts/kernel-doc: accept blank lines on parameter description
+  docs: spi: spi.h: fix a doc building warning
+  docs: drivers: fix some warnings at base/platform.c when building docs
+  docs: fusion: mptbase.c: get rid of a doc build warning
+  docs: mm: slab.h: fix a broken cross-reference
+  docs mm: userfaultfd.rst: use ``foo`` for literals
+  docs: mm: userfaultfd.rst: use a cross-reference for a section
+  docs: vm: index.rst: add an orphan doc to the building system
+  docs: dt: qcom,dwc3.txt: fix cross-reference for a converted file
+  MAINTAINERS: dt: fix pointers for ARM Integrator, Versatile and
+    RealView
+  docs: dt: fix a broken reference for a file converted to json
+  powerpc: docs: cxl.rst: mark two section titles as such
+  docs: LaTeX/PDF: drop list of documents
+  docs: i2c: rename i2c.svg to i2c_bus.svg
+  docs: Makefile: place final pdf docs on a separate dir
+  docs: update recommended Sphinx version to 2.4.4
+
+ Documentation/ABI/stable/sysfs-devices-node   |   2 +-
+ Documentation/ABI/testing/procfs-smaps_rollup |   2 +-
+ Documentation/Makefile                        |   6 +-
+ Documentation/PCI/boot-interrupts.rst         |  34 +--
+ Documentation/admin-guide/cpu-load.rst        |   2 +-
+ Documentation/admin-guide/mm/userfaultfd.rst  | 209 +++++++++---------
+ Documentation/admin-guide/nfs/nfsroot.rst     |   2 +-
+ Documentation/admin-guide/ras.rst             |  18 +-
+ Documentation/arm64/amu.rst                   |   5 +
+ Documentation/arm64/booting.rst               |  36 +--
+ Documentation/conf.py                         |  38 ----
+ .../bindings/net/qualcomm-bluetooth.txt       |   2 +-
+ .../bindings/phy/ti,phy-j721e-wiz.yaml        |   2 +-
+ .../devicetree/bindings/usb/qcom,dwc3.txt     |   4 +-
+ .../doc-guide/maintainer-profile.rst          |   2 +-
+ .../driver-api/driver-model/device.rst        |   4 +-
+ .../driver-api/driver-model/overview.rst      |   2 +-
+ Documentation/filesystems/dax.txt             |   2 +-
+ Documentation/filesystems/dnotify.txt         |   2 +-
+ .../filesystems/ramfs-rootfs-initramfs.rst    |   2 +-
+ Documentation/filesystems/sysfs.rst           |   2 +-
+ Documentation/i2c/{i2c.svg =3D> i2c_bus.svg}    |   2 +-
+ Documentation/i2c/summary.rst                 |   2 +-
+ Documentation/memory-barriers.txt             |   2 +-
+ Documentation/powerpc/cxl.rst                 |   2 +
+ .../powerpc/firmware-assisted-dump.rst        |   2 +-
+ Documentation/process/adding-syscalls.rst     |   2 +-
+ Documentation/process/submit-checklist.rst    |   2 +-
+ Documentation/sphinx/requirements.txt         |   2 +-
+ .../it_IT/process/adding-syscalls.rst         |   2 +-
+ .../it_IT/process/submit-checklist.rst        |   2 +-
+ .../translations/ko_KR/memory-barriers.txt    |   2 +-
+ .../translations/zh_CN/filesystems/sysfs.txt  |   8 +-
+ .../zh_CN/process/submit-checklist.rst        |   2 +-
+ Documentation/virt/kvm/arm/pvtime.rst         |   2 +-
+ Documentation/virt/kvm/devices/vcpu.rst       |   2 +-
+ Documentation/virt/kvm/hypercalls.rst         |   4 +-
+ Documentation/virt/kvm/mmu.rst                |   2 +-
+ Documentation/virt/kvm/review-checklist.rst   |   2 +-
+ Documentation/vm/index.rst                    |   1 +
+ Documentation/watch_queue.rst                 |  34 ++-
+ MAINTAINERS                                   |   7 +-
+ arch/powerpc/include/uapi/asm/kvm_para.h      |   2 +-
+ arch/x86/kvm/mmu/mmu.c                        |   2 +-
+ drivers/ata/libata-core.c                     |   2 +-
+ drivers/base/core.c                           |   2 +-
+ drivers/base/platform.c                       |   6 +-
+ .../allwinner/sun8i-ce/sun8i-ce-cipher.c      |   2 +-
+ .../crypto/allwinner/sun8i-ce/sun8i-ce-core.c |   2 +-
+ .../allwinner/sun8i-ss/sun8i-ss-cipher.c      |   2 +-
+ .../crypto/allwinner/sun8i-ss/sun8i-ss-core.c |   2 +-
+ drivers/gpu/drm/Kconfig                       |   2 +-
+ drivers/gpu/drm/drm_ioctl.c                   |   2 +-
+ drivers/gpu/drm/msm/disp/dpu1/dpu_kms.h       |   2 +-
+ drivers/hwtracing/coresight/Kconfig           |   2 +-
+ drivers/infiniband/core/verbs.c               |   7 +-
+ drivers/media/v4l2-core/v4l2-fwnode.c         |   2 +-
+ drivers/message/fusion/mptbase.c              |   8 +-
+ fs/Kconfig                                    |   2 +-
+ fs/Kconfig.binfmt                             |   2 +-
+ fs/adfs/Kconfig                               |   2 +-
+ fs/affs/Kconfig                               |   2 +-
+ fs/afs/Kconfig                                |   6 +-
+ fs/bfs/Kconfig                                |   2 +-
+ fs/cramfs/Kconfig                             |   2 +-
+ fs/ecryptfs/Kconfig                           |   2 +-
+ fs/fat/Kconfig                                |   8 +-
+ fs/fuse/Kconfig                               |   2 +-
+ fs/fuse/dev.c                                 |   2 +-
+ fs/hfs/Kconfig                                |   2 +-
+ fs/hpfs/Kconfig                               |   2 +-
+ fs/inode.c                                    |   6 +-
+ fs/isofs/Kconfig                              |   2 +-
+ fs/namespace.c                                |   2 +-
+ fs/notify/inotify/Kconfig                     |   2 +-
+ fs/ntfs/Kconfig                               |   2 +-
+ fs/ocfs2/Kconfig                              |   2 +-
+ fs/overlayfs/Kconfig                          |   6 +-
+ fs/proc/Kconfig                               |   4 +-
+ fs/romfs/Kconfig                              |   2 +-
+ fs/sysfs/dir.c                                |   2 +-
+ fs/sysfs/file.c                               |   2 +-
+ fs/sysfs/mount.c                              |   2 +-
+ fs/sysfs/symlink.c                            |   2 +-
+ fs/sysv/Kconfig                               |   2 +-
+ fs/udf/Kconfig                                |   2 +-
+ include/linux/kobject.h                       |   2 +-
+ include/linux/kobject_ns.h                    |   2 +-
+ include/linux/mm.h                            |   4 +-
+ include/linux/relay.h                         |   2 +-
+ include/linux/slab.h                          |   2 +-
+ include/linux/spi/spi.h                       |   1 +
+ include/linux/sysfs.h                         |   2 +-
+ include/uapi/linux/ethtool_netlink.h          |   2 +-
+ include/uapi/linux/firewire-cdev.h            |   2 +-
+ include/uapi/linux/kvm.h                      |   4 +-
+ include/uapi/rdma/rdma_user_ioctl_cmds.h      |   2 +-
+ kernel/futex.c                                |   3 +
+ kernel/relay.c                                |   2 +-
+ lib/bitmap.c                                  |  27 +--
+ lib/kobject.c                                 |   4 +-
+ mm/gup.c                                      |  12 +-
+ scripts/kernel-doc                            |  41 ++--
+ tools/include/uapi/linux/kvm.h                |   4 +-
+ virt/kvm/arm/vgic/vgic-mmio-v3.c              |   2 +-
+ virt/kvm/arm/vgic/vgic.h                      |   4 +-
+ 106 files changed, 373 insertions(+), 338 deletions(-)
+ rename Documentation/i2c/{i2c.svg =3D> i2c_bus.svg} (99%)
+
 --=20
-2.23.0
+2.25.2
