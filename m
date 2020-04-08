@@ -1,111 +1,154 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 24/28] mm: switch the test_vmalloc module to use __vmalloc_node
-Date: Wed,  8 Apr 2020 13:59:22 +0200
-Message-ID: <20200408115926.1467567-25-hch@lst.de>
+Subject: [PATCH 25/28] mm: remove vmalloc_user_node_flags
+Date: Wed,  8 Apr 2020 13:59:23 +0200
+Message-ID: <20200408115926.1467567-26-hch@lst.de>
 References: <20200408115926.1467567-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:52008 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729009AbgDHMBQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 08:01:16 -0400
 In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
 Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-No need to export the very low-level __vmalloc_node_range when the
-test module can use a slightly higher level variant.
+Open code it in __bpf_map_area_alloc, which is the only caller.  Also
+clean up __bpf_map_area_alloc to have a single vmalloc call with
+slightly different flags instead of the current two different calls.
+
+For this to compile for the nommu case add a __vmalloc_node_range stub
+to nommu.c.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- lib/test_vmalloc.c | 26 +++++++-------------------
- mm/vmalloc.c       | 17 ++++++++---------
- 2 files changed, 15 insertions(+), 28 deletions(-)
+ include/linux/vmalloc.h |  1 -
+ kernel/bpf/syscall.c    | 23 +++++++++++++----------
+ mm/nommu.c              | 14 ++++++++------
+ mm/vmalloc.c            | 20 --------------------
+ 4 files changed, 21 insertions(+), 37 deletions(-)
 
-diff --git a/lib/test_vmalloc.c b/lib/test_vmalloc.c
-index 8bbefcaddfe8..cd6aef05dfb4 100644
---- a/lib/test_vmalloc.c
-+++ b/lib/test_vmalloc.c
-@@ -91,12 +91,8 @@ static int random_size_align_alloc_test(void)
- 		 */
- 		size = ((rnd % 10) + 1) * PAGE_SIZE;
+diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+index 108f49b47756..f90f2946aac2 100644
+--- a/include/linux/vmalloc.h
++++ b/include/linux/vmalloc.h
+@@ -106,7 +106,6 @@ extern void *vzalloc(unsigned long size);
+ extern void *vmalloc_user(unsigned long size);
+ extern void *vmalloc_node(unsigned long size, int node);
+ extern void *vzalloc_node(unsigned long size, int node);
+-extern void *vmalloc_user_node_flags(unsigned long size, int node, gfp_t flags);
+ extern void *vmalloc_exec(unsigned long size);
+ extern void *vmalloc_32(unsigned long size);
+ extern void *vmalloc_32_user(unsigned long size);
+diff --git a/kernel/bpf/syscall.c b/kernel/bpf/syscall.c
+index 48d98ea8fad6..249d9bd43321 100644
+--- a/kernel/bpf/syscall.c
++++ b/kernel/bpf/syscall.c
+@@ -281,26 +281,29 @@ static void *__bpf_map_area_alloc(u64 size, int numa_node, bool mmapable)
+ 	 * __GFP_RETRY_MAYFAIL to avoid such situations.
+ 	 */
  
--		ptr = __vmalloc_node_range(size, align,
--		   VMALLOC_START, VMALLOC_END,
--		   GFP_KERNEL | __GFP_ZERO,
--		   PAGE_KERNEL,
--		   0, 0, __builtin_return_address(0));
+-	const gfp_t flags = __GFP_NOWARN | __GFP_ZERO;
++	const gfp_t gfp = __GFP_NOWARN | __GFP_ZERO;
++	unsigned int flags = 0;
++	unsigned long align = 1;
+ 	void *area;
+ 
+ 	if (size >= SIZE_MAX)
+ 		return NULL;
+ 
+ 	/* kmalloc()'ed memory can't be mmap()'ed */
+-	if (!mmapable && size <= (PAGE_SIZE << PAGE_ALLOC_COSTLY_ORDER)) {
+-		area = kmalloc_node(size, GFP_USER | __GFP_NORETRY | flags,
++	if (mmapable) {
++		BUG_ON(!PAGE_ALIGNED(size));
++		align = SHMLBA;
++		flags = VM_USERMAP;
++	} else if (size <= (PAGE_SIZE << PAGE_ALLOC_COSTLY_ORDER)) {
++		area = kmalloc_node(size, gfp | GFP_USER | __GFP_NORETRY,
+ 				    numa_node);
+ 		if (area != NULL)
+ 			return area;
+ 	}
+-	if (mmapable) {
+-		BUG_ON(!PAGE_ALIGNED(size));
+-		return vmalloc_user_node_flags(size, numa_node, GFP_KERNEL |
+-					       __GFP_RETRY_MAYFAIL | flags);
+-	}
+-	return __vmalloc_node(size, 1, GFP_KERNEL | __GFP_RETRY_MAYFAIL | flags,
+-			      numa_node, __builtin_return_address(0));
++
++	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
++			gfp | GFP_KERNEL | __GFP_RETRY_MAYFAIL, PAGE_KERNEL,
++			flags, numa_node, __builtin_return_address(0));
+ }
+ 
+ void *bpf_map_area_alloc(u64 size, int numa_node)
+diff --git a/mm/nommu.c b/mm/nommu.c
+index 81a86cd85893..b42cd6003d7d 100644
+--- a/mm/nommu.c
++++ b/mm/nommu.c
+@@ -150,6 +150,14 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
+ }
+ EXPORT_SYMBOL(__vmalloc);
+ 
++void *__vmalloc_node_range(unsigned long size, unsigned long align,
++		unsigned long start, unsigned long end, gfp_t gfp_mask,
++		pgprot_t prot, unsigned long vm_flags, int node,
++		const void *caller)
++{
++	return __vmalloc(size, flags);
++}
++
+ void *__vmalloc_node(unsigned long size, unsigned long align, gfp_t gfp_mask,
+ 		int node, const void *caller)
+ {
+@@ -180,12 +188,6 @@ void *vmalloc_user(unsigned long size)
+ }
+ EXPORT_SYMBOL(vmalloc_user);
+ 
+-void *vmalloc_user_node_flags(unsigned long size, int node, gfp_t flags)
+-{
+-	return __vmalloc_user_flags(size, flags | __GFP_ZERO);
+-}
+-EXPORT_SYMBOL(vmalloc_user_node_flags);
 -
-+		ptr = __vmalloc_node(size, align, GFP_KERNEL | __GFP_ZERO,
-+				__builtin_return_address(0));
- 		if (!ptr)
- 			return -1;
- 
-@@ -118,12 +114,8 @@ static int align_shift_alloc_test(void)
- 	for (i = 0; i < BITS_PER_LONG; i++) {
- 		align = ((unsigned long) 1) << i;
- 
--		ptr = __vmalloc_node_range(PAGE_SIZE, align,
--			VMALLOC_START, VMALLOC_END,
--			GFP_KERNEL | __GFP_ZERO,
--			PAGE_KERNEL,
--			0, 0, __builtin_return_address(0));
--
-+		ptr = __vmalloc_node(PAGE_SIZE, align, GFP_KERNEL | __GFP_ZERO,
-+				__builtin_return_address(0));
- 		if (!ptr)
- 			return -1;
- 
-@@ -139,13 +131,9 @@ static int fix_align_alloc_test(void)
- 	int i;
- 
- 	for (i = 0; i < test_loop_count; i++) {
--		ptr = __vmalloc_node_range(5 * PAGE_SIZE,
--			THREAD_ALIGN << 1,
--			VMALLOC_START, VMALLOC_END,
--			GFP_KERNEL | __GFP_ZERO,
--			PAGE_KERNEL,
--			0, 0, __builtin_return_address(0));
--
-+		ptr = __vmalloc_node(5 * PAGE_SIZE, THREAD_ALIGN << 1,
-+				GFP_KERNEL | __GFP_ZERO,
-+				__builtin_return_address(0));
- 		if (!ptr)
- 			return -1;
- 
+ struct page *vmalloc_to_page(const void *addr)
+ {
+ 	return virt_to_page(addr);
 diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index ae8249ef5821..333fbe77255a 100644
+index 333fbe77255a..f6f2acdaf70c 100644
 --- a/mm/vmalloc.c
 +++ b/mm/vmalloc.c
-@@ -2522,15 +2522,6 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
- 	return NULL;
+@@ -2658,26 +2658,6 @@ void *vzalloc_node(unsigned long size, int node)
  }
+ EXPORT_SYMBOL(vzalloc_node);
  
--/*
-- * This is only for performance analysis of vmalloc and stress purpose.
-- * It is required by vmalloc test module, therefore do not use it other
-- * than that.
+-/**
+- * vmalloc_user_node_flags - allocate memory for userspace on a specific node
+- * @size: allocation size
+- * @node: numa node
+- * @flags: flags for the page level allocator
+- *
+- * The resulting memory area is zeroed so it can be mapped to userspace
+- * without leaking data.
+- *
+- * Return: pointer to the allocated memory or %NULL on error
 - */
--#ifdef CONFIG_TEST_VMALLOC_MODULE
--EXPORT_SYMBOL_GPL(__vmalloc_node_range);
--#endif
+-void *vmalloc_user_node_flags(unsigned long size, int node, gfp_t flags)
+-{
+-	return __vmalloc_node_range(size, SHMLBA,  VMALLOC_START, VMALLOC_END,
+-				    flags | __GFP_ZERO, PAGE_KERNEL,
+-				    VM_USERMAP, node,
+-				    __builtin_return_address(0));
+-}
+-EXPORT_SYMBOL(vmalloc_user_node_flags);
 -
  /**
-  * __vmalloc_node - allocate virtually contiguous memory
-  * @size:	    allocation size
-@@ -2556,6 +2547,14 @@ void *__vmalloc_node(unsigned long size, unsigned long align,
- 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
- 				gfp_mask, PAGE_KERNEL, 0, node, caller);
- }
-+/*
-+ * This is only for performance analysis of vmalloc and stress purpose.
-+ * It is required by vmalloc test module, therefore do not use it other
-+ * than that.
-+ */
-+#ifdef CONFIG_TEST_VMALLOC_MODULE
-+EXPORT_SYMBOL_GPL(__vmalloc_node);
-+#endif
- 
- void *__vmalloc(unsigned long size, gfp_t gfp_mask)
- {
+  * vmalloc_exec - allocate virtually contiguous, executable memory
+  * @size:	  allocation size
 -- 
 2.25.1
