@@ -1,105 +1,78 @@
-Return-Path: <SRS0=tmHZ=5X=kvack.org=owner-linux-mm@kernel.org>
-Message-ID: <444d97c4a4f70ccbb12da5e8f7ff498b37a9f60d.camel@intel.com>
-Subject: Re: [RFC PATCH v9 14/27] mm: Handle Shadow Stack page fault
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Tue, 07 Apr 2020 11:14:58 -0700
-In-Reply-To: <4902a6ee-cb0f-2700-1f6d-9d756593183c@intel.com>
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
-	 <20200205181935.3712-15-yu-cheng.yu@intel.com>
-	 <4902a6ee-cb0f-2700-1f6d-9d756593183c@intel.com>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=p5Ku=5Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:50138 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728979AbgDHMAx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 08:00:53 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 18/28] mm: enforce that vmap can't map pages executable
+Date: Wed,  8 Apr 2020 13:59:16 +0200
+Message-ID: <20200408115926.1467567-19-hch@lst.de>
+In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
+References: <20200408115926.1467567-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200407181458.IAPIAti6cTpFfWw11-kqwcbBq7lf1FPYh54Kd6_p0sI@z>
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200408115916.6Nl9OMWyYtRiko1fZPaqBpM31xvAmpUvf6xiTnNxdg8@z>
 
-On Wed, 2020-02-26 at 16:08 -0800, Dave Hansen wrote:
-> > diff --git a/mm/memory.c b/mm/memory.c
-> > index 45442d9a4f52..6daa28614327 100644
-> > --- a/mm/memory.c
-> > +++ b/mm/memory.c
-> > @@ -772,7 +772,8 @@ copy_one_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
-> >  	 * If it's a COW mapping, write protect it both
-> >  	 * in the parent and the child
-> >  	 */
-> > -	if (is_cow_mapping(vm_flags) && pte_write(pte)) {
-> > +	if ((is_cow_mapping(vm_flags) && pte_write(pte)) ||
-> > +	    arch_copy_pte_mapping(vm_flags)) {
-> >  		ptep_set_wrprotect(src_mm, addr, src_pte);
-> >  		pte = pte_wrprotect(pte);
-> >  	}
-> 
-> You have to modify this because pte_write()==0 for shadow stack PTEs, right?
-> 
-> Aren't shadow stack ptes *logically* writable, even if they don't have
-> the write bit set?  What would happen if we made pte_write()==1 for them?
+To help enforcing the W^X protection don't allow remapping existing
+pages as executable.
 
-Here the vm_flags needs to have VM_MAYWRITE, and the PTE needs to have
-_PAGE_WRITE.  A shadow stack does not have either.
+Based on patch from Peter Zijlstra <peterz@infradead.org>.
 
-To fix checking vm_flags, what about adding a "arch_is_cow_mappping()" to the
-generic is_cow_mapping()?
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/x86/include/asm/pgtable_types.h | 6 ++++++
+ include/asm-generic/pgtable.h        | 4 ++++
+ mm/vmalloc.c                         | 2 +-
+ 3 files changed, 11 insertions(+), 1 deletion(-)
 
-For the PTE, the check actually tries to determine if the PTE is not already
-being copy-on-write, which is:
-
-	(!_PAGE_RW && !_PAGE_DIRTY_HW)
-
-So what about making it pte_cow()?
-
-	/*
-	 * The PTE is in copy-on-write status.
-	 */
-	static inline int pte_cow(pte_t pte)
-	{
-		return !(pte_flags(pte) & (_PAGE_WRITE | _PAGE_DIRTY_HW));
-	}
-> 
-> > @@ -2417,6 +2418,7 @@ static inline void wp_page_reuse(struct vm_fault *vmf)
-> >  	flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
-> >  	entry = pte_mkyoung(vmf->orig_pte);
-> >  	entry = maybe_mkwrite(pte_mkdirty(entry), vma);
-> > +	entry = pte_set_vma_features(entry, vma);
-> >  	if (ptep_set_access_flags(vma, vmf->address, vmf->pte, entry, 1))
-> >  		update_mmu_cache(vma, vmf->address, vmf->pte);
-> >  	pte_unmap_unlock(vmf->pte, vmf->ptl);
-> > @@ -2504,6 +2506,7 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
-> >  		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
-> >  		entry = mk_pte(new_page, vma->vm_page_prot);
-> >  		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
-> > +		entry = pte_set_vma_features(entry, vma);
-> >  		/*
-> >  		 * Clear the pte entry and flush it first, before updating the
-> >  		 * pte with the new entry. This will avoid a race condition
-> > @@ -3023,6 +3026,7 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
-> >  	pte = mk_pte(page, vma->vm_page_prot);
-> >  	if ((vmf->flags & FAULT_FLAG_WRITE) && reuse_swap_page(page, NULL)) {
-> >  		pte = maybe_mkwrite(pte_mkdirty(pte), vma);
-> > +		pte = pte_set_vma_features(pte, vma);
-> >  		vmf->flags &= ~FAULT_FLAG_WRITE;
-> >  		ret |= VM_FAULT_WRITE;
-> >  		exclusive = RMAP_EXCLUSIVE;
-> > @@ -3165,6 +3169,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
-> >  	entry = mk_pte(page, vma->vm_page_prot);
-> >  	if (vma->vm_flags & VM_WRITE)
-> >  		entry = pte_mkwrite(pte_mkdirty(entry));
-> > +	entry = pte_set_vma_features(entry, vma);
-> >  
-> >  	vmf->pte = pte_offset_map_lock(vma->vm_mm, vmf->pmd, vmf->address,
-> >  			&vmf->ptl);
-> > 
-> 
-> These seem wrong, or at best inconsistent with what's already done.
-> 
-> We don't need anything like pte_set_vma_features() today because we have
-> vma->vm_page_prot.  We could easily have done what you suggest here for
-> things like protection keys: ignore the pkey PTE bits until we create
-> the final PTE then shove them in there.
-> 
-> What are the bit patterns of the shadow stack bits that come out of
-> these sites?  Can they be represented in ->vm_page_prot?
-
-Yes, we can put _PAGE_DIRTY_HW in vm_page_prot.  Also set the bit in
-ptep_set_access_flags() for shadow stack PTEs.
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index 947867f112ea..2e7c442cc618 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -282,6 +282,12 @@ typedef struct pgprot { pgprotval_t pgprot; } pgprot_t;
+ 
+ typedef struct { pgdval_t pgd; } pgd_t;
+ 
++static inline pgprot_t pgprot_nx(pgprot_t prot)
++{
++	return __pgprot(pgprot_val(prot) | _PAGE_NX);
++}
++#define pgprot_nx pgprot_nx
++
+ #ifdef CONFIG_X86_PAE
+ 
+ /*
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 329b8c8ca703..8c5f9c29698b 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -491,6 +491,10 @@ static inline int arch_unmap_one(struct mm_struct *mm,
+ #define flush_tlb_fix_spurious_fault(vma, address) flush_tlb_page(vma, address)
+ #endif
+ 
++#ifndef pgprot_nx
++#define pgprot_nx(prot)	(prot)
++#endif
++
+ #ifndef pgprot_noncached
+ #define pgprot_noncached(prot)	(prot)
+ #endif
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 7356b3f07bd8..334c75251ddb 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -2390,7 +2390,7 @@ void *vmap(struct page **pages, unsigned int count,
+ 	if (!area)
+ 		return NULL;
+ 
+-	if (map_kernel_range((unsigned long)area->addr, size, prot,
++	if (map_kernel_range((unsigned long)area->addr, size, pgprot_nx(prot),
+ 			pages) < 0) {
+ 		vunmap(area->addr);
+ 		return NULL;
+-- 
+2.25.1
