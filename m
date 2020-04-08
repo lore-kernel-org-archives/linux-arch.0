@@ -1,39 +1,60 @@
-From: Christoph Hellwig <hch@lst.de>
+From: Randy Dunlap <rdunlap@infradead.org>
 Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
  zsmalloc
-Date: Wed, 8 Apr 2020 17:36:02 +0200
-Message-ID: <20200408153602.GA28081@lst.de>
-References: <20200408115926.1467567-1-hch@lst.de> <20200408115926.1467567-11-hch@lst.de> <c0c86feb-b3d8-78f2-127f-71d682ffc51f@infradead.org> <20200408151203.GN20730@hirez.programming.kicks-ass.net> <20200408151519.GQ21484@bombadil.infradead.org>
+Date: Wed, 8 Apr 2020 08:36:56 -0700
+Message-ID: <139a494a-f946-fd4b-4854-6ff625e4c24f@infradead.org>
+References: <20200408115926.1467567-1-hch@lst.de>
+ <20200408115926.1467567-11-hch@lst.de>
+ <c0c86feb-b3d8-78f2-127f-71d682ffc51f@infradead.org>
+ <20200408151203.GN20730@hirez.programming.kicks-ass.net>
+ <20200408151519.GQ21484@bombadil.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
 In-Reply-To: <20200408151519.GQ21484@bombadil.infradead.org>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.orgli
+To: Matthew Wilcox <willy@infradead.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 08, 2020 at 08:15:19AM -0700, Matthew Wilcox wrote:
-> > > >  config ZSMALLOC_PGTABLE_MAPPING
-> > > >  	bool "Use page table mapping to access object in zsmalloc"
-> > > > -	depends on ZSMALLOC
-> > > > +	depends on ZSMALLOC=y
-> > > 
-> > > It's a bool so this shouldn't matter... not needed.
-> > 
-> > My mm/Kconfig has:
-> > 
-> > config ZSMALLOC
-> > 	tristate "Memory allocator for compressed pages"
-> > 	depends on MMU
-> > 
-> > which I think means it can be modular, no?
-> 
+On 4/8/20 8:15 AM, Matthew Wilcox wrote:
+> On Wed, Apr 08, 2020 at 05:12:03PM +0200, Peter Zijlstra wrote:
+>> On Wed, Apr 08, 2020 at 08:01:00AM -0700, Randy Dunlap wrote:
+>>> Hi,
+>>>
+>>> On 4/8/20 4:59 AM, Christoph Hellwig wrote:
+>>>> diff --git a/mm/Kconfig b/mm/Kconfig
+>>>> index 36949a9425b8..614cc786b519 100644
+>>>> --- a/mm/Kconfig
+>>>> +++ b/mm/Kconfig
+>>>> @@ -702,7 +702,7 @@ config ZSMALLOC
+>>>>  
+>>>>  config ZSMALLOC_PGTABLE_MAPPING
+>>>>  	bool "Use page table mapping to access object in zsmalloc"
+>>>> -	depends on ZSMALLOC
+>>>> +	depends on ZSMALLOC=y
+>>>
+>>> It's a bool so this shouldn't matter... not needed.
+>>
+>> My mm/Kconfig has:
+>>
+>> config ZSMALLOC
+>> 	tristate "Memory allocator for compressed pages"
+>> 	depends on MMU
+>>
+>> which I think means it can be modular, no?
+
+ack. I misread it.
+
 > Randy means that ZSMALLOC_PGTABLE_MAPPING is a bool, so I think hch's patch
 > is wrong ... if ZSMALLOC is 'm' then ZSMALLOC_PGTABLE_MAPPING would become
 > 'n' instead of 'y'.
 
-In Linus' tree you can select PGTABLE_MAPPING=y with ZSMALLOC=m,
-and that fits my understanding of the kbuild language.  With this
-patch I can't anymore.
+sigh, I wish that I had meant that. :)
+
+thanks.
+
+-- 
+~Randy
