@@ -1,60 +1,91 @@
-Return-Path: <SRS0=L6kS=52=kvack.org=owner-linux-mm@kernel.org>
-From: Michael Kelley <mikelley@microsoft.com>
-Subject: RE: [PATCH 20/28] mm: remove the pgprot argument to __vmalloc
-Date: Fri, 10 Apr 2020 20:39:22 +0000
-Message-ID: <DM5PR2101MB10472EA3373D4D1A73AC0F7ED7DE0@DM5PR2101MB1047.namprd21.prod.outlook.com>
-References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-21-hch@lst.de>
-In-Reply-To: <20200408115926.1467567-21-hch@lst.de>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
+ flush_pmd_tlb_range
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+References: <20200331142927.1237-1-yezhenyu2@huawei.com>
+ <20200331142927.1237-5-yezhenyu2@huawei.com>
+ <20200331151331.GS20730@hirez.programming.kicks-ass.net>
+ <fe12101e-8efe-22ad-0258-e6aeafc798cc@huawei.com>
+ <20200401122004.GE20713@hirez.programming.kicks-ass.net>
+ <53675fb9-21c7-5309-07b8-1bbc1e775f9b@huawei.com>
+ <20200402163849.GM20713@hirez.programming.kicks-ass.net>
+ <d512b28f-99d3-5a26-d189-2ebac7a412c7@huawei.com>
+Message-ID: <1770a141-3c97-94df-eac9-2d1f537516b1@huawei.com>
+Date: Wed, 8 Apr 2020 17:00:58 +0800
 MIME-Version: 1.0
+In-Reply-To: <d512b28f-99d3-5a26-d189-2ebac7a412c7@huawei.com>
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
 Sender: owner-linux-mm@kvack.org
-To: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, KY Srinivasan <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, "x86@kernel.org" <x86@kernel.org>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "bpf@vger.kernel.org" <bpf@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200410203922.Q-9bBmmhQf9e4cgtj_iHur6bVC9ForPEwyl8owFrN9w@z>
+Message-ID: <20200408090058.YBqPjD_ltOqtw1tQwetNqbFkkTBZmgI-Qx9pT0sKYQQ@z>
 
-From: Christoph Hellwig <hch@lst.de> Sent: Wednesday, April 8, 2020 4:59 AM
->=20
-> The pgprot argument to __vmalloc is always PROT_KERNEL now, so remove
-> it.
->=20
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  arch/x86/hyperv/hv_init.c              |  3 +--
->  arch/x86/include/asm/kvm_host.h        |  3 +--
->  arch/x86/kvm/svm.c                     |  3 +--
->  drivers/block/drbd/drbd_bitmap.c       |  4 +---
->  drivers/gpu/drm/etnaviv/etnaviv_dump.c |  4 ++--
->  drivers/lightnvm/pblk-init.c           |  5 ++---
->  drivers/md/dm-bufio.c                  |  4 ++--
->  drivers/mtd/ubi/io.c                   |  4 ++--
->  drivers/scsi/sd_zbc.c                  |  3 +--
->  fs/gfs2/dir.c                          |  9 ++++-----
->  fs/gfs2/quota.c                        |  2 +-
->  fs/nfs/blocklayout/extent_tree.c       |  2 +-
->  fs/ntfs/malloc.h                       |  2 +-
->  fs/ubifs/debug.c                       |  2 +-
->  fs/ubifs/lprops.c                      |  2 +-
->  fs/ubifs/lpt_commit.c                  |  4 ++--
->  fs/ubifs/orphan.c                      |  2 +-
->  fs/xfs/kmem.c                          |  2 +-
->  include/linux/vmalloc.h                |  2 +-
->  kernel/bpf/core.c                      |  6 +++---
->  kernel/groups.c                        |  2 +-
->  kernel/module.c                        |  3 +--
->  mm/nommu.c                             | 15 +++++++--------
->  mm/page_alloc.c                        |  2 +-
->  mm/percpu.c                            |  2 +-
->  mm/vmalloc.c                           |  4 ++--
->  net/bridge/netfilter/ebtables.c        |  6 ++----
->  sound/core/memalloc.c                  |  2 +-
->  sound/core/pcm_memory.c                |  2 +-
->  29 files changed, 47 insertions(+), 59 deletions(-)
->=20
+Hi Peter,
 
-For Hyper-V changes,
+On 2020/4/3 13:14, Zhenyu Ye wrote:
+> Hi Peter,
+> 
+> On 2020/4/3 0:38, Peter Zijlstra wrote:
+>> On Thu, Apr 02, 2020 at 07:24:04PM +0800, Zhenyu Ye wrote:
+>>> Thanks for your detailed explanation.  I notice that you used
+>>> `tlb_end_vma` replace `flush_tlb_range`, which will call `tlb_flush`,
+>>> then finally call `flush_tlb_range` in generic code.  However, some
+>>> architectures define tlb_end_vma|tlb_flush|flush_tlb_range themselves,
+>>> so this may cause problems.
+>>>
+>>> For example, in s390, it defines:
+>>>
+>>> #define tlb_end_vma(tlb, vma)			do { } while (0)
+>>>
+>>> And it doesn't define it's own flush_pmd_tlb_range().  So there will be
+>>> a mistake if we changed flush_pmd_tlb_range() using tlb_end_vma().
+>>>
+>>> Is this really a problem or something I understand wrong ?
+>>
+>> If tlb_end_vma() is a no-op, then tlb_finish_mmu() will do:
+>> tlb_flush_mmu() -> tlb_flush_mmu_tlbonly() -> tlb_flush()
+>>
+>> And s390 has tlb_flush().
+>>
+>> If tlb_end_vma() is not a no-op and it calls tlb_flush_mmu_tlbonly(),
+>> then tlb_finish_mmu()'s invocation of tlb_flush_mmu_tlbonly() will
+>> terniate early due o no flags set.
+>>
+>> IOW, it should all just work.
+>>
+>>
+>> FYI the whole tlb_{start,end}_vma() thing is a only needed when the
+>> architecture doesn't implement tlb_flush() and instead default to using
+>> flush_tlb_range(), at which point we need to provide a 'fake' vma.
+>>
+>> At the time I audited all architectures and they only look at VM_EXEC
+>> (to do $I invalidation) and VM_HUGETLB (for pmd level invalidations),
+>> but I forgot which architectures that were.
+> 
+> Many architectures, such as alpha, arc, arm and so on.
+> I really understand why you hate making vma->vm_flags more important for
+> tlbi :).
+> 
+>> But that is all legacy code; eventually we'll get all archs a native
+>> tlb_flush() and this can go away.
+>>
+> 
+> Thanks for your reply.  Currently, to enable the TTL feature, extending
+> the flush_*tlb_range() may be more convenient.
+> I will send a formal PATCH soon.
+> 
+> Thanks,
+> Zhenyu
+> 
 
-Reviewed-by: Michael Kelley <mikelley@microsoft.com>
+I had sent [PATCH v1] a few days ago[1].  Do you have time to review
+my changes?  Are those changes appropriate?
+
+Waiting for your suggestion.
+
+[1] https://lore.kernel.org/linux-arm-kernel/20200403090048.938-1-yezhenyu2@huawei.com/
+
+Thanks,
+Zhenyu
