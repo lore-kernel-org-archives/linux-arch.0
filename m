@@ -1,109 +1,87 @@
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [PATCH v3 0/3] Support userspace-selected fds
-Date: Wed, 8 Apr 2020 22:26:01 +1000
-Message-ID: <20200408122601.kvrdjksjkl7ktgt4@yavin.dot.cyphar.com>
-References: <cover.1586321767.git.josh@joshtriplett.org>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 18/28] mm: enforce that vmap can't map pages executable
+Date: Wed, 8 Apr 2020 13:38:36 +0100
+Message-ID: <20200408123835.GB36478@lakrids.cambridge.arm.com>
+References: <20200408115926.1467567-1-hch@lst.de>
+ <20200408115926.1467567-19-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="753o2egv4zmh6vyt"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <cover.1586321767.git.josh@joshtriplett.org>
+In-Reply-To: <20200408115926.1467567-19-hch@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Josh Triplett <josh@joshtriplett.org>
-Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, io-uring@vger.kernel.org, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Jens Axboe <axboe@kernel.dk>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
+On Wed, Apr 08, 2020 at 01:59:16PM +0200, Christoph Hellwig wrote:
+> To help enforcing the W^X protection don't allow remapping existing
+> pages as executable.
+> 
+> Based on patch from Peter Zijlstra <peterz@infradead.org>.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/x86/include/asm/pgtable_types.h | 6 ++++++
+>  include/asm-generic/pgtable.h        | 4 ++++
+>  mm/vmalloc.c                         | 2 +-
+>  3 files changed, 11 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+> index 947867f112ea..2e7c442cc618 100644
+> --- a/arch/x86/include/asm/pgtable_types.h
+> +++ b/arch/x86/include/asm/pgtable_types.h
+> @@ -282,6 +282,12 @@ typedef struct pgprot { pgprotval_t pgprot; } pgprot_t;
+>  
+>  typedef struct { pgdval_t pgd; } pgd_t;
+>  
+> +static inline pgprot_t pgprot_nx(pgprot_t prot)
+> +{
+> +	return __pgprot(pgprot_val(prot) | _PAGE_NX);
+> +}
+> +#define pgprot_nx pgprot_nx
+> +
+>  #ifdef CONFIG_X86_PAE
 
---753o2egv4zmh6vyt
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+I reckon for arm64 we can do similar in our <asm/pgtable.h>:
 
-On 2020-04-07, Josh Triplett <josh@joshtriplett.org> wrote:
-> (Note: numbering this updated version v3, to avoid confusion with Jens'
-> v2 that built on my v1. Jens, if you like this approach, please feel
-> free to stack your additional patches from the io_uring-fd-select branch
-> atop this series. 5.8 material, not intended for the current merge window=
-=2E)
->=20
-> Inspired by the X protocol's handling of XIDs, allow userspace to select
-> the file descriptor opened by a call like openat2, so that it can use
-> the resulting file descriptor in subsequent system calls without waiting
-> for the response to the initial openat2 syscall.
->=20
-> The first patch is independent of the other two; it allows reserving
-> file descriptors below a certain minimum for userspace-selected fd
-> allocation only.
->=20
-> The second patch implements userspace-selected fd allocation for
-> openat2, introducing a new O_SPECIFIC_FD flag and an fd field in struct
-> open_how. In io_uring, this allows sequences like openat2/read/close
-> without waiting for the openat2 to complete. Multiple such sequences can
-> overlap, as long as each uses a distinct file descriptor.
->=20
-> The third patch adds userspace-selected fd allocation to pipe2 as well.
-> I did this partly as a demonstration of how simple it is to wire up
-> O_SPECIFIC_FD support for any fd-allocating system call, and partly in
-> the hopes that this may make it more useful to wire up io_uring support
-> for pipe2 in the future.
->=20
-> If this gets accepted, I'm happy to also write corresponding manpage
-> patches.
->=20
-> v3:
-> This new version has an API to atomically increase the minimum fd and
-> return the previous minimum, rather than just getting and setting the
-> minimum; this makes it easier to allocate a range. (A library that might
-> initialize after the program has already opened other file descriptors
-> may need to check for existing open fds in the range after reserving it,
-> and reserve more fds if needed; this can be done entirely in userspace,
-> and we can't really do anything simpler in the kernel due to limitations
-> on file-descriptor semantics, so this patch series avoids introducing
-> any extra complexity in the kernel.)
->=20
-> This new version also supports a __get_specific_unused_fd_flags call
-> which accepts the limit for RLIMIT_NOFILE as an argument, analogous to
-> __get_unused_fd_flags, since io_uring needs that to correctly handle
-> RLIMIT_NOFILE.
->=20
-> Josh Triplett (3):
->   fs: Support setting a minimum fd for "lowest available fd" allocation
->   fs: openat2: Extend open_how to allow userspace-selected fds
->   fs: pipe2: Support O_SPECIFIC_FD
+#define pgprot_nx(pgprot_t prot) \
+	__pgprot_modify(prot, 0, PTE_PXN)
 
-Aside from my specific comments and questions, the changes to openat2
-deserve at least one or two selftests.
+... matching the style of our existing pgprot_*() modifier helpers.
 
->  fs/fcntl.c                       |  2 +-
->  fs/file.c                        | 62 ++++++++++++++++++++++++++++----
->  fs/io_uring.c                    |  3 +-
->  fs/open.c                        |  6 ++--
->  fs/pipe.c                        | 16 ++++++---
->  include/linux/fcntl.h            |  5 +--
->  include/linux/fdtable.h          |  1 +
->  include/linux/file.h             |  4 +++
->  include/uapi/asm-generic/fcntl.h |  4 +++
->  include/uapi/linux/openat2.h     |  2 ++
->  include/uapi/linux/prctl.h       |  3 ++
->  kernel/sys.c                     |  5 +++
->  12 files changed, 97 insertions(+), 16 deletions(-)
+Mark.
 
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
-
---753o2egv4zmh6vyt
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXo3C0QAKCRCdlLljIbnQ
-EhhjAQDFUJ5VOPLwbFaGpNlrcUpjPunloiKcWks6ACx6gv1cSwEA9Ii9QQBfqGMO
-K8HrFWauN6ip0V8Sf5777xDP7rGWww8=
-=OtzS
------END PGP SIGNATURE-----
-
---753o2egv4zmh6vyt--
+>  
+>  /*
+> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+> index 329b8c8ca703..8c5f9c29698b 100644
+> --- a/include/asm-generic/pgtable.h
+> +++ b/include/asm-generic/pgtable.h
+> @@ -491,6 +491,10 @@ static inline int arch_unmap_one(struct mm_struct *mm,
+>  #define flush_tlb_fix_spurious_fault(vma, address) flush_tlb_page(vma, address)
+>  #endif
+>  
+> +#ifndef pgprot_nx
+> +#define pgprot_nx(prot)	(prot)
+> +#endif
+> +
+>  #ifndef pgprot_noncached
+>  #define pgprot_noncached(prot)	(prot)
+>  #endif
+> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+> index 7356b3f07bd8..334c75251ddb 100644
+> --- a/mm/vmalloc.c
+> +++ b/mm/vmalloc.c
+> @@ -2390,7 +2390,7 @@ void *vmap(struct page **pages, unsigned int count,
+>  	if (!area)
+>  		return NULL;
+>  
+> -	if (map_kernel_range((unsigned long)area->addr, size, prot,
+> +	if (map_kernel_range((unsigned long)area->addr, size, pgprot_nx(prot),
+>  			pages) < 0) {
+>  		vunmap(area->addr);
+>  		return NULL;
+> -- 
+> 2.25.1
+> 
