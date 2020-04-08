@@ -1,156 +1,133 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 17/28] mm: remove the prot argument from vm_map_ram
-Date: Wed,  8 Apr 2020 13:59:15 +0200
-Message-ID: <20200408115926.1467567-18-hch@lst.de>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 21/28] mm: remove the prot argument to __vmalloc_node
+Date: Wed,  8 Apr 2020 13:59:19 +0200
+Message-ID: <20200408115926.1467567-22-hch@lst.de>
 References: <20200408115926.1467567-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20200408115926.1467567-1-hch-jcswGhMUV9g@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Sender: "iommu" <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "K. Y. Srinivasan" <kys-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, Haiyang Zhang <haiyangz-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, Stephen Hemminger <sthemmin-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, Wei Liu <wei.liu-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, David Airlie <airlied-cv59FeDIM0c@public.gmane.org>, Daniel Vetter <daniel-/w4YWyX8dFk@public.gmane.org>, Laura Abbott <labbott-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Sumit Semwal <sumit.semwal-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Sakari Ailus <sakari.ailus-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Minchan Kim <minchan-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Nitin Gupta <ngupta-KNmc09w0p+Ednm+yROfE0A@public.gmane.org>
-Cc: Christophe Leroy <christophe.leroy-GgN8y9CXRhA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-hyperv-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, bpf-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This is always GFP_KERNEL - for long term mappings with other properties
-vmap should be used.
+This is always PAGE_KERNEL now.
 
-Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c   | 2 +-
- drivers/media/common/videobuf2/videobuf2-dma-sg.c  | 3 +--
- drivers/media/common/videobuf2/videobuf2-vmalloc.c | 3 +--
- fs/erofs/decompressor.c                            | 2 +-
- fs/xfs/xfs_buf.c                                   | 2 +-
- include/linux/vmalloc.h                            | 3 +--
- mm/nommu.c                                         | 2 +-
- mm/vmalloc.c                                       | 4 ++--
- 8 files changed, 9 insertions(+), 12 deletions(-)
+ mm/vmalloc.c | 35 ++++++++++++++---------------------
+ 1 file changed, 14 insertions(+), 21 deletions(-)
 
-diff --git a/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c b/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c
-index 9272bef57092..debaf7b18ab5 100644
---- a/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c
-+++ b/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c
-@@ -66,7 +66,7 @@ static void *mock_dmabuf_vmap(struct dma_buf *dma_buf)
- {
- 	struct mock_dmabuf *mock = to_mock(dma_buf);
- 
--	return vm_map_ram(mock->pages, mock->npages, 0, PAGE_KERNEL);
-+	return vm_map_ram(mock->pages, mock->npages, 0);
- }
- 
- static void mock_dmabuf_vunmap(struct dma_buf *dma_buf, void *vaddr)
-diff --git a/drivers/media/common/videobuf2/videobuf2-dma-sg.c b/drivers/media/common/videobuf2/videobuf2-dma-sg.c
-index 6db60e9d5183..92072a08af25 100644
---- a/drivers/media/common/videobuf2/videobuf2-dma-sg.c
-+++ b/drivers/media/common/videobuf2/videobuf2-dma-sg.c
-@@ -309,8 +309,7 @@ static void *vb2_dma_sg_vaddr(void *buf_priv)
- 		if (buf->db_attach)
- 			buf->vaddr = dma_buf_vmap(buf->db_attach->dmabuf);
- 		else
--			buf->vaddr = vm_map_ram(buf->pages,
--					buf->num_pages, -1, PAGE_KERNEL);
-+			buf->vaddr = vm_map_ram(buf->pages, buf->num_pages, -1);
- 	}
- 
- 	/* add offset in case userptr is not page-aligned */
-diff --git a/drivers/media/common/videobuf2/videobuf2-vmalloc.c b/drivers/media/common/videobuf2/videobuf2-vmalloc.c
-index 1a4f0ca87c7c..c66fda4a65e4 100644
---- a/drivers/media/common/videobuf2/videobuf2-vmalloc.c
-+++ b/drivers/media/common/videobuf2/videobuf2-vmalloc.c
-@@ -107,8 +107,7 @@ static void *vb2_vmalloc_get_userptr(struct device *dev, unsigned long vaddr,
- 		buf->vaddr = (__force void *)
- 			ioremap(__pfn_to_phys(nums[0]), size + offset);
- 	} else {
--		buf->vaddr = vm_map_ram(frame_vector_pages(vec), n_pages, -1,
--					PAGE_KERNEL);
-+		buf->vaddr = vm_map_ram(frame_vector_pages(vec), n_pages, -1);
- 	}
- 
- 	if (!buf->vaddr)
-diff --git a/fs/erofs/decompressor.c b/fs/erofs/decompressor.c
-index 5d2d81940679..7628816f2453 100644
---- a/fs/erofs/decompressor.c
-+++ b/fs/erofs/decompressor.c
-@@ -274,7 +274,7 @@ static int z_erofs_decompress_generic(struct z_erofs_decompress_req *rq,
- 
- 	i = 0;
- 	while (1) {
--		dst = vm_map_ram(rq->out, nrpages_out, -1, PAGE_KERNEL);
-+		dst = vm_map_ram(rq->out, nrpages_out, -1);
- 
- 		/* retry two more times (totally 3 times) */
- 		if (dst || ++i >= 3)
-diff --git a/fs/xfs/xfs_buf.c b/fs/xfs/xfs_buf.c
-index f880141a2268..940af9da6db1 100644
---- a/fs/xfs/xfs_buf.c
-+++ b/fs/xfs/xfs_buf.c
-@@ -474,7 +474,7 @@ _xfs_buf_map_pages(
- 		nofs_flag = memalloc_nofs_save();
- 		do {
- 			bp->b_addr = vm_map_ram(bp->b_pages, bp->b_page_count,
--						-1, PAGE_KERNEL);
-+						-1);
- 			if (bp->b_addr)
- 				break;
- 			vm_unmap_aliases();
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 15ffbd8e8e65..9273b1a91ca5 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -88,8 +88,7 @@ struct vmap_area {
-  *	Highlevel APIs for driver use
-  */
- extern void vm_unmap_ram(const void *mem, unsigned int count);
--extern void *vm_map_ram(struct page **pages, unsigned int count,
--				int node, pgprot_t prot);
-+extern void *vm_map_ram(struct page **pages, unsigned int count, int node);
- extern void vm_unmap_aliases(void);
- 
- #ifdef CONFIG_MMU
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 318df4e236c9..4f07b7ef0297 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -351,7 +351,7 @@ void vunmap(const void *addr)
- }
- EXPORT_SYMBOL(vunmap);
- 
--void *vm_map_ram(struct page **pages, unsigned int count, int node, pgprot_t prot)
-+void *vm_map_ram(struct page **pages, unsigned int count, int node)
- {
- 	BUG();
- 	return NULL;
 diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 258220b203f1..7356b3f07bd8 100644
+index 466a449b3a15..de7952959e82 100644
 --- a/mm/vmalloc.c
 +++ b/mm/vmalloc.c
-@@ -1834,7 +1834,7 @@ EXPORT_SYMBOL(vm_unmap_ram);
-  *
-  * Returns: a pointer to the address that has been mapped, or %NULL on failure
-  */
--void *vm_map_ram(struct page **pages, unsigned int count, int node, pgprot_t prot)
-+void *vm_map_ram(struct page **pages, unsigned int count, int node)
+@@ -2401,8 +2401,7 @@ void *vmap(struct page **pages, unsigned int count,
+ EXPORT_SYMBOL(vmap);
+ 
+ static void *__vmalloc_node(unsigned long size, unsigned long align,
+-			    gfp_t gfp_mask, pgprot_t prot,
+-			    int node, const void *caller);
++			    gfp_t gfp_mask, int node, const void *caller);
+ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
+ 				 pgprot_t prot, int node)
  {
- 	unsigned long size = (unsigned long)count << PAGE_SHIFT;
- 	unsigned long addr;
-@@ -1858,7 +1858,7 @@ void *vm_map_ram(struct page **pages, unsigned int count, int node, pgprot_t pro
- 
- 	kasan_unpoison_vmalloc(mem, size);
- 
--	if (map_kernel_range(addr, size, prot, pages) < 0) {
-+	if (map_kernel_range(addr, size, PAGE_KERNEL, pages) < 0) {
- 		vm_unmap_ram(mem, count);
- 		return NULL;
+@@ -2420,7 +2419,7 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
+ 	/* Please note that the recursion is strictly bounded. */
+ 	if (array_size > PAGE_SIZE) {
+ 		pages = __vmalloc_node(array_size, 1, nested_gfp|highmem_mask,
+-				PAGE_KERNEL, node, area->caller);
++				node, area->caller);
+ 	} else {
+ 		pages = kmalloc_node(array_size, nested_gfp, node);
  	}
+@@ -2539,13 +2538,11 @@ EXPORT_SYMBOL_GPL(__vmalloc_node_range);
+  * @size:	    allocation size
+  * @align:	    desired alignment
+  * @gfp_mask:	    flags for the page level allocator
+- * @prot:	    protection mask for the allocated pages
+  * @node:	    node to use for allocation or NUMA_NO_NODE
+  * @caller:	    caller's return address
+  *
+- * Allocate enough pages to cover @size from the page level
+- * allocator with @gfp_mask flags.  Map them into contiguous
+- * kernel virtual space, using a pagetable protection of @prot.
++ * Allocate enough pages to cover @size from the page level allocator with
++ * @gfp_mask flags.  Map them into contiguous kernel virtual space.
+  *
+  * Reclaim modifiers in @gfp_mask - __GFP_NORETRY, __GFP_RETRY_MAYFAIL
+  * and __GFP_NOFAIL are not supported
+@@ -2556,16 +2553,15 @@ EXPORT_SYMBOL_GPL(__vmalloc_node_range);
+  * Return: pointer to the allocated memory or %NULL on error
+  */
+ static void *__vmalloc_node(unsigned long size, unsigned long align,
+-			    gfp_t gfp_mask, pgprot_t prot,
+-			    int node, const void *caller)
++			    gfp_t gfp_mask, int node, const void *caller)
+ {
+ 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
+-				gfp_mask, prot, 0, node, caller);
++				gfp_mask, PAGE_KERNEL, 0, node, caller);
+ }
+ 
+ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
+ {
+-	return __vmalloc_node(size, 1, gfp_mask, PAGE_KERNEL, NUMA_NO_NODE,
++	return __vmalloc_node(size, 1, gfp_mask, NUMA_NO_NODE,
+ 				__builtin_return_address(0));
+ }
+ EXPORT_SYMBOL(__vmalloc);
+@@ -2573,15 +2569,15 @@ EXPORT_SYMBOL(__vmalloc);
+ static inline void *__vmalloc_node_flags(unsigned long size,
+ 					int node, gfp_t flags)
+ {
+-	return __vmalloc_node(size, 1, flags, PAGE_KERNEL,
+-					node, __builtin_return_address(0));
++	return __vmalloc_node(size, 1, flags, node,
++				__builtin_return_address(0));
+ }
+ 
+ 
+ void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t flags,
+ 				  void *caller)
+ {
+-	return __vmalloc_node(size, 1, flags, PAGE_KERNEL, node, caller);
++	return __vmalloc_node(size, 1, flags, node, caller);
+ }
+ 
+ /**
+@@ -2656,8 +2652,8 @@ EXPORT_SYMBOL(vmalloc_user);
+  */
+ void *vmalloc_node(unsigned long size, int node)
+ {
+-	return __vmalloc_node(size, 1, GFP_KERNEL, PAGE_KERNEL,
+-					node, __builtin_return_address(0));
++	return __vmalloc_node(size, 1, GFP_KERNEL, node,
++			__builtin_return_address(0));
+ }
+ EXPORT_SYMBOL(vmalloc_node);
+ 
+@@ -2670,9 +2666,6 @@ EXPORT_SYMBOL(vmalloc_node);
+  * allocator and map them into contiguous kernel virtual space.
+  * The memory allocated is set to zero.
+  *
+- * For tight control over page level allocator and protection flags
+- * use __vmalloc_node() instead.
+- *
+  * Return: pointer to the allocated memory or %NULL on error
+  */
+ void *vzalloc_node(unsigned long size, int node)
+@@ -2745,8 +2738,8 @@ void *vmalloc_exec(unsigned long size)
+  */
+ void *vmalloc_32(unsigned long size)
+ {
+-	return __vmalloc_node(size, 1, GFP_VMALLOC32, PAGE_KERNEL,
+-			      NUMA_NO_NODE, __builtin_return_address(0));
++	return __vmalloc_node(size, 1, GFP_VMALLOC32, NUMA_NO_NODE,
++			__builtin_return_address(0));
+ }
+ EXPORT_SYMBOL(vmalloc_32);
+ 
 -- 
 2.25.1
