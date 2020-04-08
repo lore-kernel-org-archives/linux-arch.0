@@ -1,32 +1,39 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 18/28] mm: enforce that vmap can't map pages executable
-Date: Wed, 8 Apr 2020 17:32:44 +0200
-Message-ID: <20200408153244.GA27818@lst.de>
-References: <20200408115926.1467567-1-hch@lst.de> <20200408115926.1467567-19-hch@lst.de> <20200408123835.GB36478@lakrids.cambridge.arm.com>
+Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
+ zsmalloc
+Date: Wed, 8 Apr 2020 17:36:02 +0200
+Message-ID: <20200408153602.GA28081@lst.de>
+References: <20200408115926.1467567-1-hch@lst.de> <20200408115926.1467567-11-hch@lst.de> <c0c86feb-b3d8-78f2-127f-71d682ffc51f@infradead.org> <20200408151203.GN20730@hirez.programming.kicks-ass.net> <20200408151519.GQ21484@bombadil.infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200408123835.GB36478@lakrids.cambridge.arm.com>
+In-Reply-To: <20200408151519.GQ21484@bombadil.infradead.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-ar
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.orgli
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 08, 2020 at 01:38:36PM +0100, Mark Rutland wrote:
-> > +static inline pgprot_t pgprot_nx(pgprot_t prot)
-> > +{
-> > +	return __pgprot(pgprot_val(prot) | _PAGE_NX);
-> > +}
-> > +#define pgprot_nx pgprot_nx
-> > +
-> >  #ifdef CONFIG_X86_PAE
+On Wed, Apr 08, 2020 at 08:15:19AM -0700, Matthew Wilcox wrote:
+> > > >  config ZSMALLOC_PGTABLE_MAPPING
+> > > >  	bool "Use page table mapping to access object in zsmalloc"
+> > > > -	depends on ZSMALLOC
+> > > > +	depends on ZSMALLOC=y
+> > > 
+> > > It's a bool so this shouldn't matter... not needed.
+> > 
+> > My mm/Kconfig has:
+> > 
+> > config ZSMALLOC
+> > 	tristate "Memory allocator for compressed pages"
+> > 	depends on MMU
+> > 
+> > which I think means it can be modular, no?
 > 
-> I reckon for arm64 we can do similar in our <asm/pgtable.h>:
-> 
-> #define pgprot_nx(pgprot_t prot) \
-> 	__pgprot_modify(prot, 0, PTE_PXN)
-> 
-> ... matching the style of our existing pgprot_*() modifier helpers.
+> Randy means that ZSMALLOC_PGTABLE_MAPPING is a bool, so I think hch's patch
+> is wrong ... if ZSMALLOC is 'm' then ZSMALLOC_PGTABLE_MAPPING would become
+> 'n' instead of 'y'.
 
-I've added that for the next version with attribution to you.
+In Linus' tree you can select PGTABLE_MAPPING=y with ZSMALLOC=m,
+and that fits my understanding of the kbuild language.  With this
+patch I can't anymore.
