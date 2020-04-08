@@ -1,14 +1,14 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 10/28] mm: only allow page table mappings for built-in zsmalloc
-Date: Wed,  8 Apr 2020 13:59:08 +0200
-Message-ID: <20200408115926.1467567-11-hch@lst.de>
+Subject: [PATCH 11/28] mm: pass addr as unsigned long to vb_free
+Date: Wed,  8 Apr 2020 13:59:09 +0200
+Message-ID: <20200408115926.1467567-12-hch@lst.de>
 References: <20200408115926.1467567-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:48586 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.133]:48528 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728890AbgDHMAe (ORCPT
+        with ESMTP id S1728845AbgDHMAe (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 08:00:34 -0400
 In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
@@ -16,47 +16,66 @@ List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
 Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 
-This allows to unexport map_vm_area and unmap_kernel_range, which are
-rather deep internal and should not be available to modules.
+Ever use of addr in vb_free casts to unsigned long first, and the caller
+has an unsigned long version of the address available anyway.  Just pass
+that and avoid all the casts.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- mm/Kconfig   | 2 +-
- mm/vmalloc.c | 2 --
- 2 files changed, 1 insertion(+), 3 deletions(-)
+ mm/vmalloc.c | 16 +++++++---------
+ 1 file changed, 7 insertions(+), 9 deletions(-)
 
-diff --git a/mm/Kconfig b/mm/Kconfig
-index 36949a9425b8..614cc786b519 100644
---- a/mm/Kconfig
-+++ b/mm/Kconfig
-@@ -702,7 +702,7 @@ config ZSMALLOC
- 
- config ZSMALLOC_PGTABLE_MAPPING
- 	bool "Use page table mapping to access object in zsmalloc"
--	depends on ZSMALLOC
-+	depends on ZSMALLOC=y
- 	help
- 	  By default, zsmalloc uses a copy-based object mapping method to
- 	  access allocations that span two pages. However, if a particular
 diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 3375f9508ef6..9183fc0d365a 100644
+index 9183fc0d365a..aada9e9144bd 100644
 --- a/mm/vmalloc.c
 +++ b/mm/vmalloc.c
-@@ -2046,7 +2046,6 @@ void unmap_kernel_range(unsigned long addr, unsigned long size)
- 	vunmap_page_range(addr, end);
- 	flush_tlb_kernel_range(addr, end);
+@@ -1664,7 +1664,7 @@ static void *vb_alloc(unsigned long size, gfp_t gfp_mask)
+ 	return vaddr;
  }
--EXPORT_SYMBOL_GPL(unmap_kernel_range);
  
- int map_vm_area(struct vm_struct *area, pgprot_t prot, struct page **pages)
+-static void vb_free(const void *addr, unsigned long size)
++static void vb_free(unsigned long addr, unsigned long size)
  {
-@@ -2058,7 +2057,6 @@ int map_vm_area(struct vm_struct *area, pgprot_t prot, struct page **pages)
+ 	unsigned long offset;
+ 	unsigned long vb_idx;
+@@ -1674,24 +1674,22 @@ static void vb_free(const void *addr, unsigned long size)
+ 	BUG_ON(offset_in_page(size));
+ 	BUG_ON(size > PAGE_SIZE*VMAP_MAX_ALLOC);
  
- 	return err > 0 ? 0 : err;
- }
--EXPORT_SYMBOL_GPL(map_vm_area);
+-	flush_cache_vunmap((unsigned long)addr, (unsigned long)addr + size);
++	flush_cache_vunmap(addr, addr + size);
  
- static inline void setup_vmalloc_vm_locked(struct vm_struct *vm,
- 	struct vmap_area *va, unsigned long flags, const void *caller)
+ 	order = get_order(size);
+ 
+-	offset = (unsigned long)addr & (VMAP_BLOCK_SIZE - 1);
+-	offset >>= PAGE_SHIFT;
++	offset = (addr & (VMAP_BLOCK_SIZE - 1)) >> PAGE_SHIFT;
+ 
+-	vb_idx = addr_to_vb_idx((unsigned long)addr);
++	vb_idx = addr_to_vb_idx(addr);
+ 	rcu_read_lock();
+ 	vb = radix_tree_lookup(&vmap_block_tree, vb_idx);
+ 	rcu_read_unlock();
+ 	BUG_ON(!vb);
+ 
+-	vunmap_page_range((unsigned long)addr, (unsigned long)addr + size);
++	vunmap_page_range(addr, addr + size);
+ 
+ 	if (debug_pagealloc_enabled_static())
+-		flush_tlb_kernel_range((unsigned long)addr,
+-					(unsigned long)addr + size);
++		flush_tlb_kernel_range(addr, addr + size);
+ 
+ 	spin_lock(&vb->lock);
+ 
+@@ -1791,7 +1789,7 @@ void vm_unmap_ram(const void *mem, unsigned int count)
+ 
+ 	if (likely(count <= VMAP_MAX_ALLOC)) {
+ 		debug_check_no_locks_freed(mem, size);
+-		vb_free(mem, size);
++		vb_free(addr, size);
+ 		return;
+ 	}
+ 
 -- 
 2.25.1
