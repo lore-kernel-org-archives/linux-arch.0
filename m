@@ -1,78 +1,78 @@
-Return-Path: <SRS0=8Oio=5S=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:21271 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2387562AbgDBHeV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Apr 2020 03:34:21 -0400
-Message-ID: <6da6fa391c0d6344cc9ff99a69fcaa65666f3947.1585811416.git.christophe.leroy@c-s.fr>
-In-Reply-To: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
-References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH RESEND 3/4] drm/i915/gem: Replace user_access_begin by
- user_write_access_begin
-Date: Thu,  2 Apr 2020 07:34:18 +0000 (UTC)
+Return-Path: <SRS0=p5Ku=5Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-wr1-f66.google.com ([209.85.221.66]:39773 "EHLO
+        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726829AbgDHMZK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 08:25:10 -0400
+Received: by mail-wr1-f66.google.com with SMTP id p10so7564583wrt.6
+        for <linux-arch@vger.kernel.org>; Wed, 08 Apr 2020 05:25:08 -0700 (PDT)
+Date: Wed, 8 Apr 2020 14:25:04 +0200
+From: Daniel Vetter <daniel@ffwll.ch>
+Subject: Re: [PATCH 19/28] gpu/drm: remove the powerpc hack in
+ drm_legacy_sg_alloc
+Message-ID: <20200408122504.GO3456981@phenom.ffwll.local>
+References: <20200408115926.1467567-1-hch@lst.de>
+ <20200408115926.1467567-20-hch@lst.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200408115926.1467567-20-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20200402073418.i8K76T8uW3PfoTQu_pug_kX0N60-Jw500C2bw8T4Nw0@z>
+To: Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200408122504.2MX2jW2fMXckLgIWTgFwukA5f3ANZU_eCBme_WF0qK4@z>
 
-When i915_gem_execbuffer2_ioctl() is using user_access_begin(),
-that's only to perform unsafe_put_user() so use
-user_write_access_begin() in order to only open write access.
+On Wed, Apr 08, 2020 at 01:59:17PM +0200, Christoph Hellwig wrote:
+> If this code was broken for non-coherent caches a crude powerpc hack
+> isn't going to help anyone else.  Remove the hack as it is the last
+> user of __vmalloc passing a page protection flag other than PAGE_KERNEL.
 
-Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
----
- drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c | 11 ++++++-----
- 1 file changed, 6 insertions(+), 5 deletions(-)
+Well Ben added this to make stuff work on ppc, ofc the home grown dma
+layer in drm from back then isn't going to work in other places. I guess
+should have at least an ack from him, in case anyone still cares about
+this on ppc. Adding Ben to cc.
+-Daniel
 
-diff --git a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
-index 7643a30ba4cd..4be8205a70b6 100644
---- a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
-+++ b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
-@@ -1611,14 +1611,14 @@ static int eb_copy_relocations(const struct i915_execbuffer *eb)
- 		 * happened we would make the mistake of assuming that the
- 		 * relocations were valid.
- 		 */
--		if (!user_access_begin(urelocs, size))
-+		if (!user_write_access_begin(urelocs, size))
- 			goto end;
- 
- 		for (copied = 0; copied < nreloc; copied++)
- 			unsafe_put_user(-1,
- 					&urelocs[copied].presumed_offset,
- 					end_user);
--		user_access_end();
-+		user_write_access_end();
- 
- 		eb->exec[i].relocs_ptr = (uintptr_t)relocs;
- 	}
-@@ -1626,7 +1626,7 @@ static int eb_copy_relocations(const struct i915_execbuffer *eb)
- 	return 0;
- 
- end_user:
--	user_access_end();
-+	user_write_access_end();
- end:
- 	kvfree(relocs);
- 	err = -EFAULT;
-@@ -2991,7 +2991,8 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
- 		 * And this range already got effectively checked earlier
- 		 * when we did the "copy_from_user()" above.
- 		 */
--		if (!user_access_begin(user_exec_list, count * sizeof(*user_exec_list)))
-+		if (!user_write_access_begin(user_exec_list,
-+					     count * sizeof(*user_exec_list)))
- 			goto end;
- 
- 		for (i = 0; i < args->buffer_count; i++) {
-@@ -3005,7 +3006,7 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
- 					end_user);
- 		}
- end_user:
--		user_access_end();
-+		user_write_access_end();
- end:;
- 	}
- 
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  drivers/gpu/drm/drm_scatter.c | 11 +----------
+>  1 file changed, 1 insertion(+), 10 deletions(-)
+> 
+> diff --git a/drivers/gpu/drm/drm_scatter.c b/drivers/gpu/drm/drm_scatter.c
+> index ca520028b2cb..f4e6184d1877 100644
+> --- a/drivers/gpu/drm/drm_scatter.c
+> +++ b/drivers/gpu/drm/drm_scatter.c
+> @@ -43,15 +43,6 @@
+>  
+>  #define DEBUG_SCATTER 0
+>  
+> -static inline void *drm_vmalloc_dma(unsigned long size)
+> -{
+> -#if defined(__powerpc__) && defined(CONFIG_NOT_COHERENT_CACHE)
+> -	return __vmalloc(size, GFP_KERNEL, pgprot_noncached_wc(PAGE_KERNEL));
+> -#else
+> -	return vmalloc_32(size);
+> -#endif
+> -}
+> -
+>  static void drm_sg_cleanup(struct drm_sg_mem * entry)
+>  {
+>  	struct page *page;
+> @@ -126,7 +117,7 @@ int drm_legacy_sg_alloc(struct drm_device *dev, void *data,
+>  		return -ENOMEM;
+>  	}
+>  
+> -	entry->virtual = drm_vmalloc_dma(pages << PAGE_SHIFT);
+> +	entry->virtual = vmalloc_32(pages << PAGE_SHIFT);
+>  	if (!entry->virtual) {
+>  		kfree(entry->busaddr);
+>  		kfree(entry->pagelist);
+> -- 
+> 2.25.1
+> 
+
 -- 
-2.25.0
+Daniel Vetter
+Software Engineer, Intel Corporation
+http://blog.ffwll.ch
