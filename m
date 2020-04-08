@@ -1,39 +1,77 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: decruft the vmalloc API
-Date: Wed, 8 Apr 2020 14:25:01 +0200
-Message-ID: <20200408122501.GA20713@hirez.programming.kicks-ass.net>
+From: Daniel Vetter <daniel@ffwll.ch>
+Subject: Re: [PATCH 19/28] gpu/drm: remove the powerpc hack in
+ drm_legacy_sg_alloc
+Date: Wed, 8 Apr 2020 14:25:04 +0200
+Message-ID: <20200408122504.GO3456981@phenom.ffwll.local>
 References: <20200408115926.1467567-1-hch@lst.de>
+ <20200408115926.1467567-20-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wr1-f66.google.com ([209.85.221.66]:39773 "EHLO
+        mail-wr1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726829AbgDHMZK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 08:25:10 -0400
+Received: by mail-wr1-f66.google.com with SMTP id p10so7564583wrt.6
+        for <linux-arch@vger.kernel.org>; Wed, 08 Apr 2020 05:25:08 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-hyperv@vger.kernel.org, David Airlie <airlied@linux.ie>, dri-devel@lists.freedesktop.org, linux-mm@kvack.org, "K. Y. Srinivasan" <kys@microsoft.com>, Sumit Semwal <sumit.semwal@linaro.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Wei Liu <wei.liu@kernel.org>, Stephen Hemminger <sthemmin@microsoft.com>, x86@kernel.org, Laura Abbott <labbott@redhat.com>, Nitin Gupta <ngupta@vflare.org>, Daniel Vetter <daniel@ffwll.ch>, Haiyang Zhang <haiyangz@microsoft.com>, linaro-mm-sig@lists.linaro.org, bpf@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Robin Murphy <robin.murphy@arm.com>, linux-kernel@vger.kernel.org, Minchan Kim <minchan@kernel.org>, iommu@lists.linux-foundation.org, Sakari Ailus <sakari.ailus@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20200408115926.1467567-20-hch@lst.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Hellwig <hch@lst.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 
-On Wed, Apr 08, 2020 at 01:58:58PM +0200, Christoph Hellwig wrote:
-> Hi all,
+On Wed, Apr 08, 2020 at 01:59:17PM +0200, Christoph Hellwig wrote:
+> If this code was broken for non-coherent caches a crude powerpc hack
+> isn't going to help anyone else.  Remove the hack as it is the last
+> user of __vmalloc passing a page protection flag other than PAGE_KERNEL.
+
+Well Ben added this to make stuff work on ppc, ofc the home grown dma
+layer in drm from back then isn't going to work in other places. I guess
+should have at least an ack from him, in case anyone still cares about
+this on ppc. Adding Ben to cc.
+-Daniel
+
 > 
-> Peter noticed that with some dumb luck you can toast the kernel address
-> space with exported vmalloc symbols.
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  drivers/gpu/drm/drm_scatter.c | 11 +----------
+>  1 file changed, 1 insertion(+), 10 deletions(-)
 > 
-> I used this as an opportunity to decruft the vmalloc.c API and make it
-> much more systematic.  This also removes any chance to create vmalloc
-> mappings outside the designated areas or using executable permissions
-> from modules.  Besides that it removes more than 300 lines of code.
+> diff --git a/drivers/gpu/drm/drm_scatter.c b/drivers/gpu/drm/drm_scatter.c
+> index ca520028b2cb..f4e6184d1877 100644
+> --- a/drivers/gpu/drm/drm_scatter.c
+> +++ b/drivers/gpu/drm/drm_scatter.c
+> @@ -43,15 +43,6 @@
+>  
+>  #define DEBUG_SCATTER 0
+>  
+> -static inline void *drm_vmalloc_dma(unsigned long size)
+> -{
+> -#if defined(__powerpc__) && defined(CONFIG_NOT_COHERENT_CACHE)
+> -	return __vmalloc(size, GFP_KERNEL, pgprot_noncached_wc(PAGE_KERNEL));
+> -#else
+> -	return vmalloc_32(size);
+> -#endif
+> -}
+> -
+>  static void drm_sg_cleanup(struct drm_sg_mem * entry)
+>  {
+>  	struct page *page;
+> @@ -126,7 +117,7 @@ int drm_legacy_sg_alloc(struct drm_device *dev, void *data,
+>  		return -ENOMEM;
+>  	}
+>  
+> -	entry->virtual = drm_vmalloc_dma(pages << PAGE_SHIFT);
+> +	entry->virtual = vmalloc_32(pages << PAGE_SHIFT);
+>  	if (!entry->virtual) {
+>  		kfree(entry->busaddr);
+>  		kfree(entry->pagelist);
+> -- 
+> 2.25.1
 > 
 
-Looks great, thanks for doing this!
-
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+-- 
+Daniel Vetter
+Software Engineer, Intel Corporation
+http://blog.ffwll.ch
