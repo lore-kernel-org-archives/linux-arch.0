@@ -1,104 +1,45 @@
-Return-Path: <SRS0=yGje=5Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:29590 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1727978AbgDIPWL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2020 11:22:11 -0400
-From: Alex Belits <abelits@marvell.com>
-Subject: [PATCH 05/13] task_isolation: Add task isolation hooks to
-  arch-independent code
-Date: Thu, 9 Apr 2020 15:21:41 +0000
-Message-ID: <74b9aa603bc03fe572cc4cd51ba2f8e2829b6ed5.camel@marvell.com>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
-         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
-         <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
-In-Reply-To: <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <1E0295570786A34A894120F715BCC68A@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=p5Ku=5Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:52336 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729032AbgDHMBT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 08:01:19 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 26/28] arm64: use __vmalloc_node in arch_alloc_vmap_stack
+Date: Wed,  8 Apr 2020 13:59:24 +0200
+Message-ID: <20200408115926.1467567-27-hch@lst.de>
+In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
+References: <20200408115926.1467567-1-hch@lst.de>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
-Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Message-ID: <20200409152141.odCqZgksIXnpDXa9TkdiKHGBn1MzrnAQ_x1bcjOxjp8@z>
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200408115924.dlMbSe6t8y681Ofd2uAu-81eL57YudnTtfunIXuZlrc@z>
 
-RnJvbTogQ2hyaXMgTWV0Y2FsZiA8Y21ldGNhbGZAbWVsbGFub3guY29tPg0KDQpUaGlzIGNvbW1p
-dCBhZGRzIHRhc2sgaXNvbGF0aW9uIGhvb2tzIGFzIGZvbGxvd3M6DQoNCi0gX19oYW5kbGVfZG9t
-YWluX2lycSgpIGdlbmVyYXRlcyBhbiBpc29sYXRpb24gd2FybmluZyBmb3IgdGhlDQogIGxvY2Fs
-IHRhc2sNCg0KLSBpcnFfd29ya19xdWV1ZV9vbigpIGdlbmVyYXRlcyBhbiBpc29sYXRpb24gd2Fy
-bmluZyBmb3IgdGhlIHJlbW90ZQ0KICB0YXNrIGJlaW5nIGludGVycnVwdGVkIGZvciBpcnFfd29y
-aw0KDQotIGdlbmVyaWNfZXhlY19zaW5nbGUoKSBnZW5lcmF0ZXMgYSByZW1vdGUgaXNvbGF0aW9u
-IHdhcm5pbmcgZm9yDQogIHRoZSByZW1vdGUgY3B1IGJlaW5nIElQSSdkDQoNCi0gc21wX2NhbGxf
-ZnVuY3Rpb25fbWFueSgpIGdlbmVyYXRlcyBhIHJlbW90ZSBpc29sYXRpb24gd2FybmluZyBmb3IN
-CiAgdGhlIHNldCBvZiByZW1vdGUgY3B1cyBiZWluZyBJUEknZA0KDQpDYWxscyB0byB0YXNrX2lz
-b2xhdGlvbl9yZW1vdGUoKSBvciB0YXNrX2lzb2xhdGlvbl9pbnRlcnJ1cHQoKSBjYW4NCmJlIHBs
-YWNlZCBpbiB0aGUgcGxhdGZvcm0taW5kZXBlbmRlbnQgY29kZSBsaWtlIHRoaXMgd2hlbiBkb2lu
-ZyBzbw0KcmVzdWx0cyBpbiBmZXdlciBsaW5lcyBvZiBjb2RlIGNoYW5nZXMsIGFzIGZvciBleGFt
-cGxlIGlzIHRydWUgb2YNCnRoZSB1c2VycyBvZiB0aGUgYXJjaF9zZW5kX2NhbGxfZnVuY3Rpb25f
-KigpIEFQSXMuIE9yLCB0aGV5IGNhbiBiZQ0KcGxhY2VkIGluIHRoZSBwZXItYXJjaGl0ZWN0dXJl
-IGNvZGUgd2hlbiB0aGVyZSBhcmUgbWFueSBjYWxsZXJzLA0KYXMgZm9yIGV4YW1wbGUgaXMgdHJ1
-ZSBvZiB0aGUgc21wX3NlbmRfcmVzY2hlZHVsZSgpIGNhbGwuDQoNCkEgZnVydGhlciBjbGVhbnVw
-IG1pZ2h0IGJlIHRvIGNyZWF0ZSBhbiBpbnRlcm1lZGlhdGUgbGF5ZXIsIHNvIHRoYXQNCmZvciBl
-eGFtcGxlIHNtcF9zZW5kX3Jlc2NoZWR1bGUoKSBpcyBhIHNpbmdsZSBnZW5lcmljIGZ1bmN0aW9u
-IHRoYXQNCmp1c3QgY2FsbHMgYXJjaF9zbXBfc2VuZF9yZXNjaGVkdWxlKCksIGFsbG93aW5nIGdl
-bmVyaWMgY29kZSB0byBiZQ0KY2FsbGVkIGV2ZXJ5IHRpbWUgc21wX3NlbmRfcmVzY2hlZHVsZSgp
-IGlzIGludm9rZWQuIEJ1dCBmb3Igbm93LCB3ZQ0KanVzdCB1cGRhdGUgZWl0aGVyIGNhbGxlcnMg
-b3IgY2FsbGVlcyBhcyBtYWtlcyBtb3N0IHNlbnNlLg0KDQpTaWduZWQtb2ZmLWJ5OiBDaHJpcyBN
-ZXRjYWxmIDxjbWV0Y2FsZkBtZWxsYW5veC5jb20+DQpbYWJlbGl0c0BtYXJ2ZWxsLmNvbTogYWRh
-cHRlZCBmb3Iga2VybmVsIDUuNl0NClNpZ25lZC1vZmYtYnk6IEFsZXggQmVsaXRzIDxhYmVsaXRz
-QG1hcnZlbGwuY29tPg0KLS0tDQoga2VybmVsL2lycS9pcnFkZXNjLmMgfCA5ICsrKysrKysrKw0K
-IGtlcm5lbC9pcnFfd29yay5jICAgIHwgNSArKysrLQ0KIGtlcm5lbC9zbXAuYyAgICAgICAgIHwg
-NiArKysrKy0NCiAzIGZpbGVzIGNoYW5nZWQsIDE4IGluc2VydGlvbnMoKyksIDIgZGVsZXRpb25z
-KC0pDQoNCmRpZmYgLS1naXQgYS9rZXJuZWwvaXJxL2lycWRlc2MuYyBiL2tlcm5lbC9pcnEvaXJx
-ZGVzYy5jDQppbmRleCA5OGE1ZjEwZDE5MDAuLmUyYjgxZDAzNWZhMSAxMDA2NDQNCi0tLSBhL2tl
-cm5lbC9pcnEvaXJxZGVzYy5jDQorKysgYi9rZXJuZWwvaXJxL2lycWRlc2MuYw0KQEAgLTE2LDYg
-KzE2LDcgQEANCiAjaW5jbHVkZSA8bGludXgvYml0bWFwLmg+DQogI2luY2x1ZGUgPGxpbnV4L2ly
-cWRvbWFpbi5oPg0KICNpbmNsdWRlIDxsaW51eC9zeXNmcy5oPg0KKyNpbmNsdWRlIDxsaW51eC9p
-c29sYXRpb24uaD4NCiANCiAjaW5jbHVkZSAiaW50ZXJuYWxzLmgiDQogDQpAQCAtNjcwLDYgKzY3
-MSwxMCBAQCBpbnQgX19oYW5kbGVfZG9tYWluX2lycShzdHJ1Y3QgaXJxX2RvbWFpbiAqZG9tYWlu
-LCB1bnNpZ25lZCBpbnQgaHdpcnEsDQogCQlpcnEgPSBpcnFfZmluZF9tYXBwaW5nKGRvbWFpbiwg
-aHdpcnEpOw0KICNlbmRpZg0KIA0KKwl0YXNrX2lzb2xhdGlvbl9pbnRlcnJ1cHQoKGlycSA9PSBo
-d2lycSkgPw0KKwkJCQkgImlycSAlZCAoJXMpIiA6ICJpcnEgJWQgKCVzIGh3aXJxICVkKSIsDQor
-CQkJCSBpcnEsIGRvbWFpbiA/IGRvbWFpbi0+bmFtZSA6ICIiLCBod2lycSk7DQorDQogCS8qDQog
-CSAqIFNvbWUgaGFyZHdhcmUgZ2l2ZXMgcmFuZG9tbHkgd3JvbmcgaW50ZXJydXB0cy4gIFJhdGhl
-cg0KIAkgKiB0aGFuIGNyYXNoaW5nLCBkbyBzb21ldGhpbmcgc2Vuc2libGUuDQpAQCAtNzExLDYg
-KzcxNiwxMCBAQCBpbnQgaGFuZGxlX2RvbWFpbl9ubWkoc3RydWN0IGlycV9kb21haW4gKmRvbWFp
-biwgdW5zaWduZWQgaW50IGh3aXJxLA0KIA0KIAlpcnEgPSBpcnFfZmluZF9tYXBwaW5nKGRvbWFp
-biwgaHdpcnEpOw0KIA0KKwl0YXNrX2lzb2xhdGlvbl9pbnRlcnJ1cHQoKGlycSA9PSBod2lycSkg
-Pw0KKwkJCQkgIk5NSSBpcnEgJWQgKCVzKSIgOiAiTk1JIGlycSAlZCAoJXMgaHdpcnEgJWQpIiwN
-CisJCQkJIGlycSwgZG9tYWluID8gZG9tYWluLT5uYW1lIDogIiIsIGh3aXJxKTsNCisNCiAJLyoN
-CiAJICogYWNrX2JhZF9pcnEgaXMgbm90IE5NSS1zYWZlLCBqdXN0IHJlcG9ydA0KIAkgKiBhbiBp
-bnZhbGlkIGludGVycnVwdC4NCmRpZmYgLS1naXQgYS9rZXJuZWwvaXJxX3dvcmsuYyBiL2tlcm5l
-bC9pcnFfd29yay5jDQppbmRleCA4MjhjYzMwNzc0YmMuLjhmZDRlY2U0M2RkOCAxMDA2NDQNCi0t
-LSBhL2tlcm5lbC9pcnFfd29yay5jDQorKysgYi9rZXJuZWwvaXJxX3dvcmsuYw0KQEAgLTE4LDYg
-KzE4LDcgQEANCiAjaW5jbHVkZSA8bGludXgvY3B1Lmg+DQogI2luY2x1ZGUgPGxpbnV4L25vdGlm
-aWVyLmg+DQogI2luY2x1ZGUgPGxpbnV4L3NtcC5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29sYXRp
-b24uaD4NCiAjaW5jbHVkZSA8YXNtL3Byb2Nlc3Nvci5oPg0KIA0KIA0KQEAgLTEwMiw4ICsxMDMs
-MTAgQEAgYm9vbCBpcnFfd29ya19xdWV1ZV9vbihzdHJ1Y3QgaXJxX3dvcmsgKndvcmssIGludCBj
-cHUpDQogCWlmIChjcHUgIT0gc21wX3Byb2Nlc3Nvcl9pZCgpKSB7DQogCQkvKiBBcmNoIHJlbW90
-ZSBJUEkgc2VuZC9yZWNlaXZlIGJhY2tlbmQgYXJlbid0IE5NSSBzYWZlICovDQogCQlXQVJOX09O
-X09OQ0UoaW5fbm1pKCkpOw0KLQkJaWYgKGxsaXN0X2FkZCgmd29yay0+bGxub2RlLCAmcGVyX2Nw
-dShyYWlzZWRfbGlzdCwgY3B1KSkpDQorCQlpZiAobGxpc3RfYWRkKCZ3b3JrLT5sbG5vZGUsICZw
-ZXJfY3B1KHJhaXNlZF9saXN0LCBjcHUpKSkgew0KKwkJCXRhc2tfaXNvbGF0aW9uX3JlbW90ZShj
-cHUsICJpcnFfd29yayIpOw0KIAkJCWFyY2hfc2VuZF9jYWxsX2Z1bmN0aW9uX3NpbmdsZV9pcGko
-Y3B1KTsNCisJCX0NCiAJfSBlbHNlIHsNCiAJCV9faXJxX3dvcmtfcXVldWVfbG9jYWwod29yayk7
-DQogCX0NCmRpZmYgLS1naXQgYS9rZXJuZWwvc21wLmMgYi9rZXJuZWwvc21wLmMNCmluZGV4IGQw
-YWRhMzllYjRkNC4uM2E4YmNiZGQ0Y2U2IDEwMDY0NA0KLS0tIGEva2VybmVsL3NtcC5jDQorKysg
-Yi9rZXJuZWwvc21wLmMNCkBAIC0yMCw2ICsyMCw3IEBADQogI2luY2x1ZGUgPGxpbnV4L3NjaGVk
-Lmg+DQogI2luY2x1ZGUgPGxpbnV4L3NjaGVkL2lkbGUuaD4NCiAjaW5jbHVkZSA8bGludXgvaHlw
-ZXJ2aXNvci5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29sYXRpb24uaD4NCiANCiAjaW5jbHVkZSAi
-c21wYm9vdC5oIg0KIA0KQEAgLTE3Niw4ICsxNzcsMTAgQEAgc3RhdGljIGludCBnZW5lcmljX2V4
-ZWNfc2luZ2xlKGludCBjcHUsIGNhbGxfc2luZ2xlX2RhdGFfdCAqY3NkLA0KIAkgKiBsb2NraW5n
-IGFuZCBiYXJyaWVyIHByaW1pdGl2ZXMuIEdlbmVyaWMgY29kZSBpc24ndCByZWFsbHkNCiAJICog
-ZXF1aXBwZWQgdG8gZG8gdGhlIHJpZ2h0IHRoaW5nLi4uDQogCSAqLw0KLQlpZiAobGxpc3RfYWRk
-KCZjc2QtPmxsaXN0LCAmcGVyX2NwdShjYWxsX3NpbmdsZV9xdWV1ZSwgY3B1KSkpDQorCWlmIChs
-bGlzdF9hZGQoJmNzZC0+bGxpc3QsICZwZXJfY3B1KGNhbGxfc2luZ2xlX3F1ZXVlLCBjcHUpKSkg
-ew0KKwkJdGFza19pc29sYXRpb25fcmVtb3RlKGNwdSwgIklQSSBmdW5jdGlvbiIpOw0KIAkJYXJj
-aF9zZW5kX2NhbGxfZnVuY3Rpb25fc2luZ2xlX2lwaShjcHUpOw0KKwl9DQogDQogCXJldHVybiAw
-Ow0KIH0NCkBAIC00NjYsNiArNDY5LDcgQEAgc3RhdGljIHZvaWQgc21wX2NhbGxfZnVuY3Rpb25f
-bWFueV9jb25kKGNvbnN0IHN0cnVjdCBjcHVtYXNrICptYXNrLA0KIAl9DQogDQogCS8qIFNlbmQg
-YSBtZXNzYWdlIHRvIGFsbCBDUFVzIGluIHRoZSBtYXAgKi8NCisJdGFza19pc29sYXRpb25fcmVt
-b3RlX2NwdW1hc2soY2ZkLT5jcHVtYXNrX2lwaSwgIklQSSBmdW5jdGlvbiIpOw0KIAlhcmNoX3Nl
-bmRfY2FsbF9mdW5jdGlvbl9pcGlfbWFzayhjZmQtPmNwdW1hc2tfaXBpKTsNCiANCiAJaWYgKHdh
-aXQpIHsNCi0tIA0KMi4yMC4xDQoNCg==
+arch_alloc_vmap_stack can use a slightly higher level vmalloc function.
+
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/arm64/include/asm/vmap_stack.h | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/include/asm/vmap_stack.h b/arch/arm64/include/asm/vmap_stack.h
+index 0a12115d9638..0cc6636e3f15 100644
+--- a/arch/arm64/include/asm/vmap_stack.h
++++ b/arch/arm64/include/asm/vmap_stack.h
+@@ -19,10 +19,8 @@ static inline unsigned long *arch_alloc_vmap_stack(size_t stack_size, int node)
+ {
+ 	BUILD_BUG_ON(!IS_ENABLED(CONFIG_VMAP_STACK));
+ 
+-	return __vmalloc_node_range(stack_size, THREAD_ALIGN,
+-				    VMALLOC_START, VMALLOC_END,
+-				    THREADINFO_GFP, PAGE_KERNEL, 0, node,
+-				    __builtin_return_address(0));
++	return __vmalloc_node(stack_size, THREAD_ALIGN, THREADINFO_GFP, node,
++			__builtin_return_address(0));
+ }
+ 
+ #endif /* __ASM_VMAP_STACK_H */
+-- 
+2.25.1
