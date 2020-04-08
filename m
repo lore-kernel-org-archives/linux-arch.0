@@ -1,89 +1,55 @@
-Return-Path: <SRS0=HxeN=5T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:35320 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731040AbgDCHUx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 3 Apr 2020 03:20:53 -0400
-Message-ID: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH v2 1/5] uaccess: Add user_read_access_begin/end and
- user_write_access_begin/end
-Date: Fri,  3 Apr 2020 07:20:50 +0000 (UTC)
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH 28/28] s390: use __vmalloc_node in stack_alloc
+References: <20200408115926.1467567-1-hch@lst.de>
+ <20200408115926.1467567-29-hch@lst.de>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Date: Wed, 8 Apr 2020 15:44:28 +0200
+MIME-Version: 1.0
+In-Reply-To: <20200408115926.1467567-29-hch@lst.de>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Message-ID: <6689b12a-4473-af2e-0fa0-69097eb2bb52@de.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, intel-gfx@lists.freedesktop.org
-Message-ID: <20200403072050.pqq968_0lMTC779Iq_sWMSiToD1ac-6WdlrbFtmKzbU@z>
+Message-ID: <20200408134428.bCzQhlcuTmZLJ-7bciuIsD8wNzCCzZJGdZT9CSmdeXI@z>
 
-Some architectures like powerpc64 have the capability to separate
-read access and write access protection.
-For get_user() and copy_from_user(), powerpc64 only open read access.
-For put_user() and copy_to_user(), powerpc64 only open write access.
-But when using unsafe_get_user() or unsafe_put_user(),
-user_access_begin open both read and write.
 
-Other architectures like powerpc book3s 32 bits only allow write
-access protection. And on this architecture protection is an heavy
-operation as it requires locking/unlocking per segment of 256Mbytes.
-On those architecture it is therefore desirable to do the unlocking
-only for write access. (Note that book3s/32 ranges from very old
-powermac from the 90's with powerpc 601 processor, till modern
-ADSL boxes with PowerQuicc II processors for instance so it
-is still worth considering.)
 
-In order to avoid any risk based of hacking some variable parameters
-passed to user_access_begin/end that would allow hacking and
-leaving user access open or opening too much, it is preferable to
-use dedicated static functions that can't be overridden.
+On 08.04.20 13:59, Christoph Hellwig wrote:
+> stack_alloc can use a slightly higher level vmalloc function.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/s390/kernel/setup.c | 9 +++------
+>  1 file changed, 3 insertions(+), 6 deletions(-)
+> 
+> diff --git a/arch/s390/kernel/setup.c b/arch/s390/kernel/setup.c
+> index 36445dd40fdb..0f0b140b5558 100644
+> --- a/arch/s390/kernel/setup.c
+> +++ b/arch/s390/kernel/setup.c
+> @@ -305,12 +305,9 @@ void *restart_stack __section(.data);
+>  unsigned long stack_alloc(void)
+>  {
+>  #ifdef CONFIG_VMAP_STACK
+> -	return (unsigned long)
+> -		__vmalloc_node_range(THREAD_SIZE, THREAD_SIZE,
+> -				     VMALLOC_START, VMALLOC_END,
+> -				     THREADINFO_GFP,
+> -				     PAGE_KERNEL, 0, NUMA_NO_NODE,
+> -				     __builtin_return_address(0));
+> +	return (unsigned long)__vmalloc_node(THREAD_SIZE, THREAD_SIZE,
+> +			THREADINFO_GFP, NUMA_NO_NODE,
+> +			__builtin_return_address(0));
 
-Add a user_read_access_begin and user_read_access_end to only open
-read access.
+Looks sane.
 
-Add a user_write_access_begin and user_write_access_end to only open
-write access.
+Acked-by: Christian Borntraeger <borntraeger@de.ibm.com>
 
-By default, when undefined, those new access helpers default on the
-existing user_access_begin and user_access_end.
 
-Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
-Reviewed-by: Kees Cook <keescook@chromium.org>
----
-v2: no change in this patch. See each patch for related changes.
-
-v1 at https://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=168174
-
-This series is based on the discussion we had in January, see
-https://patchwork.ozlabs.org/patch/1227926/ . I tried to
-take into account all remarks, especially @hpa 's remark to use
-a fixed API on not base the relocking on a magic id returned at
-unlocking.
-
-This series is awaited for implementing selective lkdtm test to
-test powerpc64 independant read and write protection, see
-https://patchwork.ozlabs.org/patch/1231765/
-
-Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
----
- include/linux/uaccess.h | 8 ++++++++
- 1 file changed, 8 insertions(+)
-
-diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
-index 67f016010aad..9861c89f93be 100644
---- a/include/linux/uaccess.h
-+++ b/include/linux/uaccess.h
-@@ -378,6 +378,14 @@ extern long strnlen_unsafe_user(const void __user *unsafe_addr, long count);
- static inline unsigned long user_access_save(void) { return 0UL; }
- static inline void user_access_restore(unsigned long flags) { }
- #endif
-+#ifndef user_write_access_begin
-+#define user_write_access_begin user_access_begin
-+#define user_write_access_end user_access_end
-+#endif
-+#ifndef user_read_access_begin
-+#define user_read_access_begin user_access_begin
-+#define user_read_access_end user_access_end
-+#endif
- 
- #ifdef CONFIG_HARDENED_USERCOPY
- void usercopy_warn(const char *name, const char *detail, bool to_user,
--- 
-2.25.0
+>  #else
+>  	return __get_free_pages(GFP_KERNEL, THREAD_SIZE_ORDER);
+>  #endif
+> 
