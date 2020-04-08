@@ -1,93 +1,90 @@
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: Re: [RFC][Qusetion] the value of cleared_(ptes|pmds|puds|p4ds) in
- struct mmu_gather
-Date: Wed, 8 Apr 2020 10:51:59 +0200
-Message-ID: <68affa6e-44cd-37e3-cdfc-8eec31c4097e@de.ibm.com>
-References: <fbb00ac0-9104-8d25-f225-7b3d1b17a01f@huawei.com>
- <20200330121654.GL20696@hirez.programming.kicks-ass.net>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
+ flush_pmd_tlb_range
+Date: Wed, 8 Apr 2020 17:00:58 +0800
+Message-ID: <1770a141-3c97-94df-eac9-2d1f537516b1@huawei.com>
+References: <20200331142927.1237-1-yezhenyu2@huawei.com>
+ <20200331142927.1237-5-yezhenyu2@huawei.com>
+ <20200331151331.GS20730@hirez.programming.kicks-ass.net>
+ <fe12101e-8efe-22ad-0258-e6aeafc798cc@huawei.com>
+ <20200401122004.GE20713@hirez.programming.kicks-ass.net>
+ <53675fb9-21c7-5309-07b8-1bbc1e775f9b@huawei.com>
+ <20200402163849.GM20713@hirez.programming.kicks-ass.net>
+ <d512b28f-99d3-5a26-d189-2ebac7a412c7@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="gbk"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:5342 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725932AbgDHIwJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 04:52:09 -0400
-Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 0388X4oD123039
-        for <linux-arch@vger.kernel.org>; Wed, 8 Apr 2020 04:52:07 -0400
-Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 3099tnatdr-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 08 Apr 2020 04:52:07 -0400
-Received: from localhost
-        by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-        Wed, 8 Apr 2020 09:51:53 +0100
-In-Reply-To: <20200330121654.GL20696@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: npiggin@gmail.com, will.deacon@arm.com, mingo@kernel.org, torvalds@linux-foundation.org, Vasily Gorbik <gor@linux.ibm.com>, akpm@linux-foundation.org, luto@kernel.org, bp@alien8.de, Marc Zyngier <maz@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arm@kernel.org, xiexiangyou@huawei.com, Gerald Schaefer <gerald.schaefer@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <d512b28f-99d3-5a26-d189-2ebac7a412c7@huawei.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+List-Id: linux-arch.vger.kernel.org
 
-Sorry, just saw that now..
+Hi Peter,
 
-On 30.03.20 14:16, Peter Zijlstra wrote:
-> On Sat, Mar 28, 2020 at 12:30:50PM +0800, Zhenyu Ye wrote:
->> Hi all,
+On 2020/4/3 13:14, Zhenyu Ye wrote:
+> Hi Peter,
+> 
+> On 2020/4/3 0:38, Peter Zijlstra wrote:
+>> On Thu, Apr 02, 2020 at 07:24:04PM +0800, Zhenyu Ye wrote:
+>>> Thanks for your detailed explanation.  I notice that you used
+>>> `tlb_end_vma` replace `flush_tlb_range`, which will call `tlb_flush`,
+>>> then finally call `flush_tlb_range` in generic code.  However, some
+>>> architectures define tlb_end_vma|tlb_flush|flush_tlb_range themselves,
+>>> so this may cause problems.
+>>>
+>>> For example, in s390, it defines:
+>>>
+>>> #define tlb_end_vma(tlb, vma)			do { } while (0)
+>>>
+>>> And it doesn't define it's own flush_pmd_tlb_range().  So there will be
+>>> a mistake if we changed flush_pmd_tlb_range() using tlb_end_vma().
+>>>
+>>> Is this really a problem or something I understand wrong ?
 >>
->> commit a6d60245 "Track which levels of the page tables have been cleared"
->> added cleared_(ptes|pmds|puds|p4ds) in struct mmu_gather, and the values
->> of them are set in some places. For example:
+>> If tlb_end_vma() is a no-op, then tlb_finish_mmu() will do:
+>> tlb_flush_mmu() -> tlb_flush_mmu_tlbonly() -> tlb_flush()
 >>
->> In include/asm-generic/tlb.h, pte_free_tlb() set the tlb->cleared_pmds:
->> ---8<---
->> #ifndef pte_free_tlb
->> #define pte_free_tlb(tlb, ptep, address)			\
->> 	do {							\
->> 		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
->> 		tlb->freed_tables = 1;				\
->> 		tlb->cleared_pmds = 1;				\
->> 		__pte_free_tlb(tlb, ptep, address);		\
->> 	} while (0)
->> #endif
->> ---8<---
+>> And s390 has tlb_flush().
+>>
+>> If tlb_end_vma() is not a no-op and it calls tlb_flush_mmu_tlbonly(),
+>> then tlb_finish_mmu()'s invocation of tlb_flush_mmu_tlbonly() will
+>> terniate early due o no flags set.
+>>
+>> IOW, it should all just work.
 >>
 >>
->> However, in arch/s390/include/asm/tlb.h, pte_free_tlb() set the tlb->cleared_ptes:
->> ---8<---
->> static inline void pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
->>                                 unsigned long address)
->> {
->> 	__tlb_adjust_range(tlb, address, PAGE_SIZE);
->> 	tlb->mm->context.flush_mm = 1;
->> 	tlb->freed_tables = 1;
->> 	tlb->cleared_ptes = 1;
->> 	/*
->> 	 * page_table_free_rcu takes care of the allocation bit masks
->> 	 * of the 2K table fragments in the 4K page table page,
->> 	 * then calls tlb_remove_table.
->> 	 */
->> 	page_table_free_rcu(tlb, (unsigned long *) pte, address);
->> }
->> ---8<---
+>> FYI the whole tlb_{start,end}_vma() thing is a only needed when the
+>> architecture doesn't implement tlb_flush() and instead default to using
+>> flush_tlb_range(), at which point we need to provide a 'fake' vma.
+>>
+>> At the time I audited all architectures and they only look at VM_EXEC
+>> (to do $I invalidation) and VM_HUGETLB (for pmd level invalidations),
+>> but I forgot which architectures that were.
+> 
+> Many architectures, such as alpha, arc, arm and so on.
+> I really understand why you hate making vma->vm_flags more important for
+> tlbi :).
+> 
+>> But that is all legacy code; eventually we'll get all archs a native
+>> tlb_flush() and this can go away.
+>>
+> 
+> Thanks for your reply.  Currently, to enable the TTL feature, extending
+> the flush_*tlb_range() may be more convenient.
+> I will send a formal PATCH soon.
+> 
+> Thanks,
+> Zhenyu
+> 
 
-adding Gerald and Vasily. Gerald can you have a look?
+I had sent [PATCH v1] a few days ago[1].  Do you have time to review
+my changes?  Are those changes appropriate?
 
->>
->>
->> In my view, the cleared_(ptes|pmds|puds) and (pte|pmd|pud)_free_tlb
->> correspond one-to-one.  So we should set cleared_ptes in pte_free_tlb(),
->> then use it when needed.
-> 
-> So pte_free_tlb() clears a table of PTE entries, or a PMD level entity,
-> also see free_pte_range(). So the generic code makes sense to me. The
-> PTE level invalidations will have happened on tlb_remove_tlb_entry().
-> 
->> I'm very confused about this. Which is wrong? Or is there something
->> I understand wrong?
-> 
-> I agree the s390 case is puzzling, Martin does s390 need a PTE level
-> invalidate for removing a PTE table or was this a mistake?
-> 
+Waiting for your suggestion.
+
+[1] https://lore.kernel.org/linux-arm-kernel/20200403090048.938-1-yezhenyu2@huawei.com/
+
+Thanks,
+Zhenyu
