@@ -1,95 +1,61 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 08/29] mm: remove __get_vm_area
-Date: Tue, 14 Apr 2020 15:13:27 +0200
-Message-ID: <20200414131348.444715-9-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+Return-Path: <SRS0=p5Ku=5Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:57948 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727573AbgDHNdg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 09:33:36 -0400
+Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 038DX9gr032532
+        for <linux-arch@vger.kernel.org>; Wed, 8 Apr 2020 09:33:35 -0400
+Received: from e06smtp04.uk.ibm.com (e06smtp04.uk.ibm.com [195.75.94.100])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 30920an608-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 08 Apr 2020 09:33:35 -0400
+Received: from localhost
+        by e06smtp04.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+        Wed, 8 Apr 2020 14:33:07 +0100
+Subject: Re: [PATCH 27/28] s390: use __vmalloc_node in alloc_vm_stack
+References: <20200408115926.1467567-1-hch@lst.de>
+ <20200408115926.1467567-28-hch@lst.de>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Date: Wed, 8 Apr 2020 15:33:23 +0200
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20200408115926.1467567-28-hch@lst.de>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Message-ID: <de7703c7-5d0c-51f1-87fa-6ce43ad69f60@de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414131327.ig0izzz9McPx675TwAqCaR_pqQrCk7lBSENBY8e_YFw@z>
+To: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200408133323.51kbpA1j-cpBuUzl53LIHeLYiVLEJfwo3EPfBCMgy7c@z>
 
-Switch the two remaining callers to use __get_vm_area_caller instead.
+On 08.04.20 13:59, Christoph Hellwig wrote:
+> alloc_vm_stack can use a slightly higher level vmalloc function.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/powerpc/kernel/irq.c | 5 ++---
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/powerpc/kernel/pci_64.c | 3 ++-
- arch/sh/kernel/cpu/sh4/sq.c  | 3 ++-
- include/linux/vmalloc.h      | 2 --
- mm/vmalloc.c                 | 8 --------
- 4 files changed, 4 insertions(+), 12 deletions(-)
+wrong subject (power vs s390)
 
-diff --git a/arch/powerpc/kernel/pci_64.c b/arch/powerpc/kernel/pci_64.c
-index 2a976314f169..d9ac980c398c 100644
---- a/arch/powerpc/kernel/pci_64.c
-+++ b/arch/powerpc/kernel/pci_64.c
-@@ -132,7 +132,8 @@ void __iomem *ioremap_phb(phys_addr_t paddr, unsigned=
- long size)
- 	 * address decoding but I'd rather not deal with those outside of the
- 	 * reserved 64K legacy region.
- 	 */
--	area =3D __get_vm_area(size, 0, PHB_IO_BASE, PHB_IO_END);
-+	area =3D __get_vm_area_caller(size, 0, PHB_IO_BASE, PHB_IO_END,
-+				    __builtin_return_address(0));
- 	if (!area)
- 		return NULL;
-=20
-diff --git a/arch/sh/kernel/cpu/sh4/sq.c b/arch/sh/kernel/cpu/sh4/sq.c
-index 934ff84844fa..d432164b23b7 100644
---- a/arch/sh/kernel/cpu/sh4/sq.c
-+++ b/arch/sh/kernel/cpu/sh4/sq.c
-@@ -103,7 +103,8 @@ static int __sq_remap(struct sq_mapping *map, pgprot_=
-t prot)
- #if defined(CONFIG_MMU)
- 	struct vm_struct *vma;
-=20
--	vma =3D __get_vm_area(map->size, VM_ALLOC, map->sq_addr, SQ_ADDRMAX);
-+	vma =3D __get_vm_area_caller(map->size, VM_ALLOC, map->sq_addr,
-+			SQ_ADDRMAX, __builtin_return_address(0));
- 	if (!vma)
- 		return -ENOMEM;
-=20
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 0507a162ccd0..3070b4dbc2d9 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -161,8 +161,6 @@ static inline size_t get_vm_area_size(const struct vm=
-_struct *area)
- extern struct vm_struct *get_vm_area(unsigned long size, unsigned long f=
-lags);
- extern struct vm_struct *get_vm_area_caller(unsigned long size,
- 					unsigned long flags, const void *caller);
--extern struct vm_struct *__get_vm_area(unsigned long size, unsigned long=
- flags,
--					unsigned long start, unsigned long end);
- extern struct vm_struct *__get_vm_area_caller(unsigned long size,
- 					unsigned long flags,
- 					unsigned long start, unsigned long end,
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 399f219544f7..d1534d610b48 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -2127,14 +2127,6 @@ static struct vm_struct *__get_vm_area_node(unsign=
-ed long size,
- 	return area;
- }
-=20
--struct vm_struct *__get_vm_area(unsigned long size, unsigned long flags,
--				unsigned long start, unsigned long end)
--{
--	return __get_vm_area_node(size, 1, flags, start, end, NUMA_NO_NODE,
--				  GFP_KERNEL, __builtin_return_address(0));
--}
--EXPORT_SYMBOL_GPL(__get_vm_area);
--
- struct vm_struct *__get_vm_area_caller(unsigned long size, unsigned long=
- flags,
- 				       unsigned long start, unsigned long end,
- 				       const void *caller)
---=20
-2.25.1
+>  1 file changed, 2 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/powerpc/kernel/irq.c b/arch/powerpc/kernel/irq.c
+> index a25ed47087ee..4518fb1d6bf4 100644
+> --- a/arch/powerpc/kernel/irq.c
+> +++ b/arch/powerpc/kernel/irq.c
+> @@ -735,9 +735,8 @@ void do_IRQ(struct pt_regs *regs)
+>  
+>  static void *__init alloc_vm_stack(void)
+>  {
+> -	return __vmalloc_node_range(THREAD_SIZE, THREAD_ALIGN, VMALLOC_START,
+> -				    VMALLOC_END, THREADINFO_GFP, PAGE_KERNEL,
+> -				     0, NUMA_NO_NODE, (void*)_RET_IP_);
+> +	return __vmalloc_node(THREAD_SIZE, THREAD_ALIGN, THREADINFO_GFP,
+> +			      NUMA_NO_NODE, (void *)_RET_IP_);
+>  }
+>  
+>  static void __init vmap_irqstack_init(void)
+> 
