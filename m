@@ -1,45 +1,187 @@
-Return-Path: <SRS0=yBTr=57=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.73]:45649 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1416836AbgDOSiG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Apr 2020 14:38:06 -0400
+Return-Path: <SRS0=p5Ku=5Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:48310 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728845AbgDHMAb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 08:00:31 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 12/28] mm: remove vmap_page_range_noflush and vunmap_page_range
+Date: Wed,  8 Apr 2020 13:59:10 +0200
+Message-ID: <20200408115926.1467567-13-hch@lst.de>
+In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
+References: <20200408115926.1467567-1-hch@lst.de>
 MIME-Version: 1.0
-References: <20200415165218.20251-1-will@kernel.org> <20200415165218.20251-12-will@kernel.org>
-In-Reply-To: <20200415165218.20251-12-will@kernel.org>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 15 Apr 2020 20:37:46 +0200
-Message-ID: <CAK8P3a2jSS89Ldhu1g46zLTBHDVHUr3HSdyq_c7yiTfM8w6hDg@mail.gmail.com>
-Subject: Re: [PATCH v3 11/12] compiler/gcc: Raise minimum GCC version for
- kernel builds to 4.8
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200415183746._KpxAjaxH4LXyoexeY7qWiKR8uM8ciPlppItXiwDZa0@z>
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200408115910.JYrOM-TOcVxdnkybwGGz4lNu2p1ne7JVlQWqiCFYpeo@z>
 
-On Wed, Apr 15, 2020 at 6:53 PM Will Deacon <will@kernel.org> wrote:
->
-> It is very rare to see versions of GCC prior to 4.8 being used to build
-> the mainline kernel. These old compilers are also know to have codegen
-> issues which can lead to silent miscompilation:
->
-> https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
->
-> Raise the minimum GCC version for kernel build to 4.8 and remove some
-> tautological Kconfig dependencies as a consequence.
->
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Masahiro Yamada <masahiroy@kernel.org>
-> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-> Signed-off-by: Will Deacon <will@kernel.org>
+These have non-static aliases claled map_kernel_range_noflush and
+unmap_kernel_range_noflush that just differ slightly in the calling
+conventions that pass addr + size instead of an end.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ mm/vmalloc.c | 98 +++++++++++++++++++++-------------------------------
+ 1 file changed, 40 insertions(+), 58 deletions(-)
 
-On a related note, I've updated the cross-compilers on kernel.org and
-done some randconfig testing on all major versions from v4.8 to 9.3.
-There were a couple of minor regressions with 4.8 (mostly harmless
-warnings), but overall gcc-4.8 is still working well. I did not try older
-compilers.
-
-       Arnd
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index aada9e9144bd..55df5dc6a9fc 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -127,10 +127,24 @@ static void vunmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end)
+ 	} while (p4d++, addr = next, addr != end);
+ }
+ 
+-static void vunmap_page_range(unsigned long addr, unsigned long end)
++/**
++ * unmap_kernel_range_noflush - unmap kernel VM area
++ * @addr: start of the VM area to unmap
++ * @size: size of the VM area to unmap
++ *
++ * Unmap PFN_UP(@size) pages at @addr.  The VM area @addr and @size specify
++ * should have been allocated using get_vm_area() and its friends.
++ *
++ * NOTE:
++ * This function does NOT do any cache flushing.  The caller is responsible
++ * for calling flush_cache_vunmap() on to-be-mapped areas before calling this
++ * function and flush_tlb_kernel_range() after.
++ */
++void unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
+ {
+-	pgd_t *pgd;
++	unsigned long end = addr + size;
+ 	unsigned long next;
++	pgd_t *pgd;
+ 
+ 	BUG_ON(addr >= end);
+ 	pgd = pgd_offset_k(addr);
+@@ -219,18 +233,30 @@ static int vmap_p4d_range(pgd_t *pgd, unsigned long addr,
+ 	return 0;
+ }
+ 
+-/*
+- * Set up page tables in kva (addr, end). The ptes shall have prot "prot", and
+- * will have pfns corresponding to the "pages" array.
++/**
++ * map_kernel_range_noflush - map kernel VM area with the specified pages
++ * @addr: start of the VM area to map
++ * @size: size of the VM area to map
++ * @prot: page protection flags to use
++ * @pages: pages to map
+  *
+- * Ie. pte at addr+N*PAGE_SIZE shall point to pfn corresponding to pages[N]
++ * Map PFN_UP(@size) pages at @addr.  The VM area @addr and @size specify should
++ * have been allocated using get_vm_area() and its friends.
++ *
++ * NOTE:
++ * This function does NOT do any cache flushing.  The caller is responsible for
++ * calling flush_cache_vmap() on to-be-mapped areas before calling this
++ * function.
++ *
++ * RETURNS:
++ * The number of pages mapped on success, -errno on failure.
+  */
+-static int vmap_page_range_noflush(unsigned long start, unsigned long end,
+-				   pgprot_t prot, struct page **pages)
++int map_kernel_range_noflush(unsigned long addr, unsigned long size,
++			     pgprot_t prot, struct page **pages)
+ {
+-	pgd_t *pgd;
++	unsigned long end = addr + size;
+ 	unsigned long next;
+-	unsigned long addr = start;
++	pgd_t *pgd;
+ 	int err = 0;
+ 	int nr = 0;
+ 
+@@ -251,7 +277,7 @@ static int vmap_page_range(unsigned long start, unsigned long end,
+ {
+ 	int ret;
+ 
+-	ret = vmap_page_range_noflush(start, end, prot, pages);
++	ret = map_kernel_range_noflush(start, end - start, prot, pages);
+ 	flush_cache_vmap(start, end);
+ 	return ret;
+ }
+@@ -1226,7 +1252,7 @@ EXPORT_SYMBOL_GPL(unregister_vmap_purge_notifier);
+  */
+ static void unmap_vmap_area(struct vmap_area *va)
+ {
+-	vunmap_page_range(va->va_start, va->va_end);
++	unmap_kernel_range_noflush(va->va_start, va->va_end - va->va_start);
+ }
+ 
+ /*
+@@ -1686,7 +1712,7 @@ static void vb_free(unsigned long addr, unsigned long size)
+ 	rcu_read_unlock();
+ 	BUG_ON(!vb);
+ 
+-	vunmap_page_range(addr, addr + size);
++	unmap_kernel_range_noflush(addr, size);
+ 
+ 	if (debug_pagealloc_enabled_static())
+ 		flush_tlb_kernel_range(addr, addr + size);
+@@ -1984,50 +2010,6 @@ void __init vmalloc_init(void)
+ 	vmap_initialized = true;
+ }
+ 
+-/**
+- * map_kernel_range_noflush - map kernel VM area with the specified pages
+- * @addr: start of the VM area to map
+- * @size: size of the VM area to map
+- * @prot: page protection flags to use
+- * @pages: pages to map
+- *
+- * Map PFN_UP(@size) pages at @addr.  The VM area @addr and @size
+- * specify should have been allocated using get_vm_area() and its
+- * friends.
+- *
+- * NOTE:
+- * This function does NOT do any cache flushing.  The caller is
+- * responsible for calling flush_cache_vmap() on to-be-mapped areas
+- * before calling this function.
+- *
+- * RETURNS:
+- * The number of pages mapped on success, -errno on failure.
+- */
+-int map_kernel_range_noflush(unsigned long addr, unsigned long size,
+-			     pgprot_t prot, struct page **pages)
+-{
+-	return vmap_page_range_noflush(addr, addr + size, prot, pages);
+-}
+-
+-/**
+- * unmap_kernel_range_noflush - unmap kernel VM area
+- * @addr: start of the VM area to unmap
+- * @size: size of the VM area to unmap
+- *
+- * Unmap PFN_UP(@size) pages at @addr.  The VM area @addr and @size
+- * specify should have been allocated using get_vm_area() and its
+- * friends.
+- *
+- * NOTE:
+- * This function does NOT do any cache flushing.  The caller is
+- * responsible for calling flush_cache_vunmap() on to-be-mapped areas
+- * before calling this function and flush_tlb_kernel_range() after.
+- */
+-void unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
+-{
+-	vunmap_page_range(addr, addr + size);
+-}
+-
+ /**
+  * unmap_kernel_range - unmap kernel VM area and flush cache and TLB
+  * @addr: start of the VM area to unmap
+@@ -2041,7 +2023,7 @@ void unmap_kernel_range(unsigned long addr, unsigned long size)
+ 	unsigned long end = addr + size;
+ 
+ 	flush_cache_vunmap(addr, end);
+-	vunmap_page_range(addr, end);
++	unmap_kernel_range_noflush(addr, size);
+ 	flush_tlb_kernel_range(addr, end);
+ }
+ 
+-- 
+2.25.1
