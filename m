@@ -1,87 +1,61 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 18/28] mm: enforce that vmap can't map pages executable
-Date: Wed, 8 Apr 2020 13:38:36 +0100
-Message-ID: <20200408123835.GB36478@lakrids.cambridge.arm.com>
+From: Hillf Danton <hdanton-k+cT0dCbe1g@public.gmane.org>
+Subject: Re: [PATCH 02/28] staging: android: ion: use vmap instead of
+ vm_map_ram
+Date: Wed,  8 Apr 2020 20:48:33 +0800
+Message-ID: <20200408124833.13032-1-hdanton@sina.com>
 References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-19-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200408115926.1467567-19-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20200408115926.1467567-1-hch-jcswGhMUV9g@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+ <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+ <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Sender: "iommu" <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Cc: Christophe Leroy <christophe.leroy-GgN8y9CXRhA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-hyperv-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, syzkaller-bugs-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, bpf-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 08, 2020 at 01:59:16PM +0200, Christoph Hellwig wrote:
-> To help enforcing the W^X protection don't allow remapping existing
-> pages as executable.
+
+On Wed,  8 Apr 2020 13:59:00 +0200
 > 
-> Based on patch from Peter Zijlstra <peterz@infradead.org>.
+> vm_map_ram can keep mappings around after the vm_unmap_ram.  Using that
+> with non-PAGE_KERNEL mappings can lead to all kinds of aliasing issues.
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 > ---
->  arch/x86/include/asm/pgtable_types.h | 6 ++++++
->  include/asm-generic/pgtable.h        | 4 ++++
->  mm/vmalloc.c                         | 2 +-
->  3 files changed, 11 insertions(+), 1 deletion(-)
+>  drivers/staging/android/ion/ion_heap.c | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
 > 
-> diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
-> index 947867f112ea..2e7c442cc618 100644
-> --- a/arch/x86/include/asm/pgtable_types.h
-> +++ b/arch/x86/include/asm/pgtable_types.h
-> @@ -282,6 +282,12 @@ typedef struct pgprot { pgprotval_t pgprot; } pgprot_t;
+> diff --git a/drivers/staging/android/ion/ion_heap.c b/drivers/staging/android/ion/ion_heap.c
+> index 473b465724f1..a2d5c6df4b96 100644
+> --- a/drivers/staging/android/ion/ion_heap.c
+> +++ b/drivers/staging/android/ion/ion_heap.c
+> @@ -99,12 +99,12 @@ int ion_heap_map_user(struct ion_heap *heap, struct ion_buffer *buffer,
 >  
->  typedef struct { pgdval_t pgd; } pgd_t;
+>  static int ion_heap_clear_pages(struct page **pages, int num, pgprot_t pgprot)
+>  {
+> -	void *addr = vm_map_ram(pages, num, -1, pgprot);
+> +	void *addr = vmap(pages, num, VM_MAP);
+
+A merge glitch?
+
+void *vmap(struct page **pages, unsigned int count,
+	   unsigned long flags, pgprot_t prot)
 >  
-> +static inline pgprot_t pgprot_nx(pgprot_t prot)
-> +{
-> +	return __pgprot(pgprot_val(prot) | _PAGE_NX);
-> +}
-> +#define pgprot_nx pgprot_nx
-> +
->  #ifdef CONFIG_X86_PAE
-
-I reckon for arm64 we can do similar in our <asm/pgtable.h>:
-
-#define pgprot_nx(pgprot_t prot) \
-	__pgprot_modify(prot, 0, PTE_PXN)
-
-... matching the style of our existing pgprot_*() modifier helpers.
-
-Mark.
-
+>  	if (!addr)
+>  		return -ENOMEM;
+>  	memset(addr, 0, PAGE_SIZE * num);
+> -	vm_unmap_ram(addr, num);
+> +	vunmap(addr);
 >  
->  /*
-> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-> index 329b8c8ca703..8c5f9c29698b 100644
-> --- a/include/asm-generic/pgtable.h
-> +++ b/include/asm-generic/pgtable.h
-> @@ -491,6 +491,10 @@ static inline int arch_unmap_one(struct mm_struct *mm,
->  #define flush_tlb_fix_spurious_fault(vma, address) flush_tlb_page(vma, address)
->  #endif
->  
-> +#ifndef pgprot_nx
-> +#define pgprot_nx(prot)	(prot)
-> +#endif
-> +
->  #ifndef pgprot_noncached
->  #define pgprot_noncached(prot)	(prot)
->  #endif
-> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-> index 7356b3f07bd8..334c75251ddb 100644
-> --- a/mm/vmalloc.c
-> +++ b/mm/vmalloc.c
-> @@ -2390,7 +2390,7 @@ void *vmap(struct page **pages, unsigned int count,
->  	if (!area)
->  		return NULL;
->  
-> -	if (map_kernel_range((unsigned long)area->addr, size, prot,
-> +	if (map_kernel_range((unsigned long)area->addr, size, pgprot_nx(prot),
->  			pages) < 0) {
->  		vunmap(area->addr);
->  		return NULL;
+>  	return 0;
+>  }
 > -- 
 > 2.25.1
-> 
