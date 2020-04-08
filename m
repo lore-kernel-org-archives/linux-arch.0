@@ -1,24 +1,45 @@
-From: Greg KH <greg@kroah.com>
-Subject: Re: [PATCH 02/28] staging: android: ion: use vmap instead of
- vm_map_ram
-Date: Wed, 8 Apr 2020 15:27:13 +0200
-Message-ID: <20200408132713.GA1248058@kroah.com>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: Re: [PATCH 27/28] s390: use __vmalloc_node in alloc_vm_stack
+Date: Wed, 8 Apr 2020 15:33:23 +0200
+Message-ID: <de7703c7-5d0c-51f1-87fa-6ce43ad69f60@de.ibm.com>
 References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-3-hch@lst.de>
+ <20200408115926.1467567-28-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200408115926.1467567-3-hch@lst.de>
+In-Reply-To: <20200408115926.1467567-28-hch@lst.de>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 08, 2020 at 01:59:00PM +0200, Christoph Hellwig wrote:
-> vm_map_ram can keep mappings around after the vm_unmap_ram.  Using that
-> with non-PAGE_KERNEL mappings can lead to all kinds of aliasing issues.
+On 08.04.20 13:59, Christoph Hellwig wrote:
+> alloc_vm_stack can use a slightly higher level vmalloc function.
 > 
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/powerpc/kernel/irq.c | 5 ++---
 
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+wrong subject (power vs s390)
+
+>  1 file changed, 2 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/powerpc/kernel/irq.c b/arch/powerpc/kernel/irq.c
+> index a25ed47087ee..4518fb1d6bf4 100644
+> --- a/arch/powerpc/kernel/irq.c
+> +++ b/arch/powerpc/kernel/irq.c
+> @@ -735,9 +735,8 @@ void do_IRQ(struct pt_regs *regs)
+>  
+>  static void *__init alloc_vm_stack(void)
+>  {
+> -	return __vmalloc_node_range(THREAD_SIZE, THREAD_ALIGN, VMALLOC_START,
+> -				    VMALLOC_END, THREADINFO_GFP, PAGE_KERNEL,
+> -				     0, NUMA_NO_NODE, (void*)_RET_IP_);
+> +	return __vmalloc_node(THREAD_SIZE, THREAD_ALIGN, THREADINFO_GFP,
+> +			      NUMA_NO_NODE, (void *)_RET_IP_);
+>  }
+>  
+>  static void __init vmap_irqstack_init(void)
+> 
