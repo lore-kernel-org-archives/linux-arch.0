@@ -1,61 +1,112 @@
-Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
- zsmalloc
+Return-Path: <SRS0=p5Ku=5Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:46778 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728187AbgDHMAE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 08:00:04 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 04/28] dma-mapping: use vmap insted of reimplementing it
+Date: Wed,  8 Apr 2020 13:59:02 +0200
+Message-ID: <20200408115926.1467567-5-hch@lst.de>
+In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
 References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-11-hch@lst.de>
- <c0c86feb-b3d8-78f2-127f-71d682ffc51f@infradead.org>
- <20200408151203.GN20730@hirez.programming.kicks-ass.net>
- <20200408151519.GQ21484@bombadil.infradead.org>
-From: Randy Dunlap <rdunlap@infradead.org>
-Message-ID: <139a494a-f946-fd4b-4854-6ff625e4c24f@infradead.org>
-Date: Wed, 8 Apr 2020 08:36:56 -0700
 MIME-Version: 1.0
-In-Reply-To: <20200408151519.GQ21484@bombadil.infradead.org>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Matthew Wilcox <willy@infradead.org>, Peter Zijlstra <peterz@infradead.org>
-Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200408153656.-i3k-SSQj5Qi2kRENxr3Z7RFzg7xdgbcqH3OO87EwJY@z>
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200408115902.8ktqVRF3Sds7si8JtyJT57vEEixjsUDZH-jo7x4sncw@z>
 
-On 4/8/20 8:15 AM, Matthew Wilcox wrote:
-> On Wed, Apr 08, 2020 at 05:12:03PM +0200, Peter Zijlstra wrote:
->> On Wed, Apr 08, 2020 at 08:01:00AM -0700, Randy Dunlap wrote:
->>> Hi,
->>>
->>> On 4/8/20 4:59 AM, Christoph Hellwig wrote:
->>>> diff --git a/mm/Kconfig b/mm/Kconfig
->>>> index 36949a9425b8..614cc786b519 100644
->>>> --- a/mm/Kconfig
->>>> +++ b/mm/Kconfig
->>>> @@ -702,7 +702,7 @@ config ZSMALLOC
->>>>  
->>>>  config ZSMALLOC_PGTABLE_MAPPING
->>>>  	bool "Use page table mapping to access object in zsmalloc"
->>>> -	depends on ZSMALLOC
->>>> +	depends on ZSMALLOC=y
->>>
->>> It's a bool so this shouldn't matter... not needed.
->>
->> My mm/Kconfig has:
->>
->> config ZSMALLOC
->> 	tristate "Memory allocator for compressed pages"
->> 	depends on MMU
->>
->> which I think means it can be modular, no?
+Replace the open coded instance of vmap with the actual function.  In
+the non-contiguous (IOMMU) case this requires an extra find_vm_area,
+but given that this isn't a fast path function that is a small price
+to pay.
 
-ack. I misread it.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ kernel/dma/remap.c | 48 ++++++++++++----------------------------------
+ 1 file changed, 12 insertions(+), 36 deletions(-)
 
-> Randy means that ZSMALLOC_PGTABLE_MAPPING is a bool, so I think hch's patch
-> is wrong ... if ZSMALLOC is 'm' then ZSMALLOC_PGTABLE_MAPPING would become
-> 'n' instead of 'y'.
-
-sigh, I wish that I had meant that. :)
-
-thanks.
-
+diff --git a/kernel/dma/remap.c b/kernel/dma/remap.c
+index d14cbc83986a..7a8ba60951e8 100644
+--- a/kernel/dma/remap.c
++++ b/kernel/dma/remap.c
+@@ -20,23 +20,6 @@ struct page **dma_common_find_pages(void *cpu_addr)
+ 	return area->pages;
+ }
+ 
+-static struct vm_struct *__dma_common_pages_remap(struct page **pages,
+-			size_t size, pgprot_t prot, const void *caller)
+-{
+-	struct vm_struct *area;
+-
+-	area = get_vm_area_caller(size, VM_DMA_COHERENT, caller);
+-	if (!area)
+-		return NULL;
+-
+-	if (map_vm_area(area, prot, pages)) {
+-		vunmap(area->addr);
+-		return NULL;
+-	}
+-
+-	return area;
+-}
+-
+ /*
+  * Remaps an array of PAGE_SIZE pages into another vm_area.
+  * Cannot be used in non-sleeping contexts
+@@ -44,15 +27,12 @@ static struct vm_struct *__dma_common_pages_remap(struct page **pages,
+ void *dma_common_pages_remap(struct page **pages, size_t size,
+ 			 pgprot_t prot, const void *caller)
+ {
+-	struct vm_struct *area;
++	void *vaddr;
+ 
+-	area = __dma_common_pages_remap(pages, size, prot, caller);
+-	if (!area)
+-		return NULL;
+-
+-	area->pages = pages;
+-
+-	return area->addr;
++	vaddr = vmap(pages, count, VM_DMA_COHERENT, prot);
++	if (vaddr)
++		find_vm_area(vaddr)->pages = pages;
++	return vaddr;
+ }
+ 
+ /*
+@@ -62,24 +42,20 @@ void *dma_common_pages_remap(struct page **pages, size_t size,
+ void *dma_common_contiguous_remap(struct page *page, size_t size,
+ 			pgprot_t prot, const void *caller)
+ {
+-	int i;
++	int count = size >> PAGE_SHIFT;
+ 	struct page **pages;
+-	struct vm_struct *area;
++	void *vaddr;
++	int i;
+ 
+-	pages = kmalloc(sizeof(struct page *) << get_order(size), GFP_KERNEL);
++	pages = kmalloc_array(count, sizeof(struct page *), GFP_KERNEL);
+ 	if (!pages)
+ 		return NULL;
+-
+-	for (i = 0; i < (size >> PAGE_SHIFT); i++)
++	for (i = 0; i < count; i++)
+ 		pages[i] = nth_page(page, i);
+-
+-	area = __dma_common_pages_remap(pages, size, prot, caller);
+-
++	vaddr = vmap(pages, count, VM_DMA_COHERENT, prot);
+ 	kfree(pages);
+ 
+-	if (!area)
+-		return NULL;
+-	return area->addr;
++	return vaddr;
+ }
+ 
+ /*
 -- 
-~Randy
+2.25.1
