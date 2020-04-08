@@ -1,57 +1,67 @@
-From: guoren@kernel.org
-Subject: [PATCH] csky/ftrace: Fixup error when disable CONFIG_DYNAMIC_FTRACE
-Date: Wed,  8 Apr 2020 17:55:46 +0800
-Message-ID: <20200408095546.31763-1-guoren@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-csky@vger.kernel.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, guoren@kernel.org, Guo Ren <guoren@linux.alibaba.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 01/28] x86/hyperv: use vmalloc_exec for the hypercall page
+Date: Wed,  8 Apr 2020 13:58:59 +0200
+Message-ID: <20200408115926.1467567-2-hch@lst.de>
+References: <20200408115926.1467567-1-hch@lst.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch@vger.kernel.org, linux-hyperv@vger.kernel.org, linux-s390@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, bpf@vger.kernel.org, Robin Murphy <robin.murphy@arm.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Guo Ren <guoren@linux.alibaba.com>
+Use the designated helper for allocating executable kernel memory, and
+remove the now unused PAGE_KERNEL_RX define.
 
-When CONFIG_DYNAMIC_FTRACE is enabled, static ftrace will fail to
-boot up and compile. It's a carelessness when developing "dynamic
-ftrace" and "ftrace with regs".
-
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/csky/abiv2/mcount.S  | 2 ++
- arch/csky/kernel/ftrace.c | 2 ++
- 2 files changed, 4 insertions(+)
+ arch/x86/hyperv/hv_init.c            | 2 +-
+ arch/x86/include/asm/pgtable_types.h | 2 --
+ 2 files changed, 1 insertion(+), 3 deletions(-)
 
-diff --git a/arch/csky/abiv2/mcount.S b/arch/csky/abiv2/mcount.S
-index 9331c7ed5958..911512bf480f 100644
---- a/arch/csky/abiv2/mcount.S
-+++ b/arch/csky/abiv2/mcount.S
-@@ -103,6 +103,8 @@ ENTRY(_mcount)
- 	mov	a0, lr
- 	subi	a0, 4
- 	ldw	a1, (sp, 24)
-+	lrw	a2, function_trace_op
-+	ldw	a2, (a2, 0)
+diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+index b0da5320bcff..5a4b363ba67b 100644
+--- a/arch/x86/hyperv/hv_init.c
++++ b/arch/x86/hyperv/hv_init.c
+@@ -355,7 +355,7 @@ void __init hyperv_init(void)
+ 	guest_id = generate_guest_id(0, LINUX_VERSION_CODE, 0);
+ 	wrmsrl(HV_X64_MSR_GUEST_OS_ID, guest_id);
  
- 	jsr	r26
- 
-diff --git a/arch/csky/kernel/ftrace.c b/arch/csky/kernel/ftrace.c
-index 44628e3f7fa6..3c425b84e3be 100644
---- a/arch/csky/kernel/ftrace.c
-+++ b/arch/csky/kernel/ftrace.c
-@@ -202,6 +202,7 @@ int ftrace_disable_ftrace_graph_caller(void)
- #endif /* CONFIG_DYNAMIC_FTRACE */
- #endif /* CONFIG_FUNCTION_GRAPH_TRACER */
- 
-+#ifdef CONFIG_DYNAMIC_FTRACE
- #ifndef CONFIG_CPU_HAS_ICACHE_INS
- struct ftrace_modify_param {
- 	int command;
-@@ -231,6 +232,7 @@ void arch_ftrace_update_code(int command)
- 	stop_machine(__ftrace_modify_code, &param, cpu_online_mask);
- }
- #endif
-+#endif /* CONFIG_DYNAMIC_FTRACE */
- 
- /* _mcount is defined in abi's mcount.S */
- EXPORT_SYMBOL(_mcount);
+-	hv_hypercall_pg  = __vmalloc(PAGE_SIZE, GFP_KERNEL, PAGE_KERNEL_RX);
++	hv_hypercall_pg = vmalloc_exec(PAGE_SIZE);
+ 	if (hv_hypercall_pg == NULL) {
+ 		wrmsrl(HV_X64_MSR_GUEST_OS_ID, 0);
+ 		goto remove_cpuhp_state;
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index b6606fe6cfdf..947867f112ea 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -194,7 +194,6 @@ enum page_cache_mode {
+ #define _PAGE_TABLE_NOENC	 (__PP|__RW|_USR|___A|   0|___D|   0|   0)
+ #define _PAGE_TABLE		 (__PP|__RW|_USR|___A|   0|___D|   0|   0| _ENC)
+ #define __PAGE_KERNEL_RO	 (__PP|   0|   0|___A|__NX|___D|   0|___G)
+-#define __PAGE_KERNEL_RX	 (__PP|   0|   0|___A|   0|___D|   0|___G)
+ #define __PAGE_KERNEL_NOCACHE	 (__PP|__RW|   0|___A|__NX|___D|   0|___G| __NC)
+ #define __PAGE_KERNEL_VVAR	 (__PP|   0|_USR|___A|__NX|___D|   0|___G)
+ #define __PAGE_KERNEL_LARGE	 (__PP|__RW|   0|___A|__NX|___D|_PSE|___G)
+@@ -220,7 +219,6 @@ enum page_cache_mode {
+ #define PAGE_KERNEL_RO		__pgprot_mask(__PAGE_KERNEL_RO         | _ENC)
+ #define PAGE_KERNEL_EXEC	__pgprot_mask(__PAGE_KERNEL_EXEC       | _ENC)
+ #define PAGE_KERNEL_EXEC_NOENC	__pgprot_mask(__PAGE_KERNEL_EXEC       |    0)
+-#define PAGE_KERNEL_RX		__pgprot_mask(__PAGE_KERNEL_RX         | _ENC)
+ #define PAGE_KERNEL_NOCACHE	__pgprot_mask(__PAGE_KERNEL_NOCACHE    | _ENC)
+ #define PAGE_KERNEL_LARGE	__pgprot_mask(__PAGE_KERNEL_LARGE      | _ENC)
+ #define PAGE_KERNEL_LARGE_EXEC	__pgprot_mask(__PAGE_KERNEL_LARGE_EXEC | _ENC)
 -- 
-2.17.0
+2.25.1
