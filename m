@@ -1,30 +1,33 @@
-Return-Path: <SRS0=BI31=6F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42788 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726067AbgDUQyG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 21 Apr 2020 12:54:06 -0400
-Date: Tue, 21 Apr 2020 09:53:46 -0700
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH v1 1/6] arm64: Detect the ARMv8.4 TTL feature
-Message-ID: <20200421165346.GA11171@infradead.org>
-References: <20200403090048.938-1-yezhenyu2@huawei.com>
- <20200403090048.938-2-yezhenyu2@huawei.com>
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+Date: Wed, 8 Apr 2020 17:32:44 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 18/28] mm: enforce that vmap can't map pages executable
+Message-ID: <20200408153244.GA27818@lst.de>
+References: <20200408115926.1467567-1-hch@lst.de> <20200408115926.1467567-19-hch@lst.de> <20200408123835.GB36478@lakrids.cambridge.arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200403090048.938-2-yezhenyu2@huawei.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200408123835.GB36478@lakrids.cambridge.arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will@kernel.org>, Catalin marinas <catalin.marinas@arm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, xiexiangyou@huawei.com, zhangshaokun@hisilicon.com, linux-mm@kvack.org, arm@kernel.org, prime.zeng@hisilicon.com, kuhn.chenqun@huawei.com, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200421165346.-YfauCW6hA5g04O62QS4dA5DpMVWaIhEgKkDwmvot60@z>
+Message-ID: <20200408153244.IRhpnoThA75XooQqZ_ECFBQn6zeTFkjQMRCaMTIGdHs@z>
 
-On Fri, Apr 03, 2020 at 05:00:43PM +0800, Zhenyu Ye wrote:
-> From: Marc Zyngier <maz@kernel.org>
+On Wed, Apr 08, 2020 at 01:38:36PM +0100, Mark Rutland wrote:
+> > +static inline pgprot_t pgprot_nx(pgprot_t prot)
+> > +{
+> > +	return __pgprot(pgprot_val(prot) | _PAGE_NX);
+> > +}
+> > +#define pgprot_nx pgprot_nx
+> > +
+> >  #ifdef CONFIG_X86_PAE
 > 
-> In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
-> feature allows TLBs to be issued with a level allowing for quicker
-> invalidation.
+> I reckon for arm64 we can do similar in our <asm/pgtable.h>:
+> 
+> #define pgprot_nx(pgprot_t prot) \
+> 	__pgprot_modify(prot, 0, PTE_PXN)
+> 
+> ... matching the style of our existing pgprot_*() modifier helpers.
 
-What does "issued with a level" mean?
+I've added that for the next version with attribution to you.
