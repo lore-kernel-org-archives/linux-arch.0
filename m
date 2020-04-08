@@ -1,133 +1,58 @@
-From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Subject: Re: [PATCH V2 0/3] mm/debug: Add more arch page table helper tests
-Date: Wed, 8 Apr 2020 14:15:00 +0200
-Message-ID: <20200408141500.75b2e1a7@thinkpad>
-References: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
-        <20200331143059.29fca8fa@thinkpad>
-        <e3e35885-6852-16aa-3889-e22750a0cc87@arm.com>
-        <20200407175440.41cc00a5@thinkpad>
-        <253cf5c8-e43e-5737-24e8-3eda3b6ba7b3@arm.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 26/28] arm64: use __vmalloc_node in arch_alloc_vmap_stack
+Date: Wed, 8 Apr 2020 13:18:02 +0100
+Message-ID: <20200408121802.GA36478@lakrids.cambridge.arm.com>
+References: <20200408115926.1467567-1-hch@lst.de>
+ <20200408115926.1467567-27-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:49386 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1727835AbgDHMPQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 08:15:16 -0400
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 038C6XeS108357
-        for <linux-arch@vger.kernel.org>; Wed, 8 Apr 2020 08:15:15 -0400
-Received: from e06smtp03.uk.ibm.com (e06smtp03.uk.ibm.com [195.75.94.99])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 309208tru0-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 08 Apr 2020 08:15:15 -0400
-Received: from localhost
-        by e06smtp03.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <gerald.schaefer@de.ibm.com>;
-        Wed, 8 Apr 2020 13:15:00 +0100
-In-Reply-To: <253cf5c8-e43e-5737-24e8-3eda3b6ba7b3@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: linux-mm@kvack.org, christophe.leroy@c-s.fr, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20200408115926.1467567-27-hch@lst.de>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-hyperv@vger.kernel.org, David Airlie <airlied@linux.ie>, dri-devel@lists.freedesktop.org, linux-mm@kvack.org, "K. Y. Srinivasan" <kys@microsoft.com>, Sumit Semwal <sumit.semwal@linaro.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Wei Liu <wei.liu@kernel.org>, Stephen Hemminger <sthemmin@microsoft.com>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Laura Abbott <labbott@redhat.com>, Nitin Gupta <ngupta@vflare.org>, Daniel Vetter <daniel@ffwll.ch>, Haiyang Zhang <haiyangz@microsoft.com>, linaro-mm-sig@lists.linaro.org, bpf@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Robin Murphy <robin.murphy@arm.com>, linux-kernel@vger.kernel.org, Minchan Kim <minchan@kernel.org>, iommu@lists.linux-foundation.org, james.morse@arm.com, Sakari Ailus <sakari.ailus@linux.intel.com>, Andrew Morton <akpm@linu>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 8 Apr 2020 12:41:51 +0530
-Anshuman Khandual <anshuman.khandual@arm.com> wrote:
-
-[...]
-> >   
-> >>
-> >> Some thing like this instead.
-> >>
-> >> pte_t pte = READ_ONCE(*ptep);
-> >> pte = pte_mkhuge(__pte((pte_val(pte) | RANDOM_ORVALUE) & PMD_MASK));
-> >>
-> >> We cannot use mk_pte_phys() as it is defined only on some platforms
-> >> without any generic fallback for others.  
-> > 
-> > Oh, didn't know that, sorry. What about using mk_pte() instead, at least
-> > it would result in a present pte:
-> > 
-> > pte = pte_mkhuge(mk_pte(phys_to_page(RANDOM_ORVALUE & PMD_MASK), prot));  
+On Wed, Apr 08, 2020 at 01:59:24PM +0200, Christoph Hellwig wrote:
+> arch_alloc_vmap_stack can use a slightly higher level vmalloc function.
 > 
-> Lets use mk_pte() here but can we do this instead
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+
+Mark.
+
+> ---
+>  arch/arm64/include/asm/vmap_stack.h | 6 ++----
+>  1 file changed, 2 insertions(+), 4 deletions(-)
 > 
-> paddr = (__pfn_to_phys(pfn) | RANDOM_ORVALUE) & PMD_MASK;
-> pte = pte_mkhuge(mk_pte(phys_to_page(paddr), prot));
+> diff --git a/arch/arm64/include/asm/vmap_stack.h b/arch/arm64/include/asm/vmap_stack.h
+> index 0a12115d9638..0cc6636e3f15 100644
+> --- a/arch/arm64/include/asm/vmap_stack.h
+> +++ b/arch/arm64/include/asm/vmap_stack.h
+> @@ -19,10 +19,8 @@ static inline unsigned long *arch_alloc_vmap_stack(size_t stack_size, int node)
+>  {
+>  	BUILD_BUG_ON(!IS_ENABLED(CONFIG_VMAP_STACK));
+>  
+> -	return __vmalloc_node_range(stack_size, THREAD_ALIGN,
+> -				    VMALLOC_START, VMALLOC_END,
+> -				    THREADINFO_GFP, PAGE_KERNEL, 0, node,
+> -				    __builtin_return_address(0));
+> +	return __vmalloc_node(stack_size, THREAD_ALIGN, THREADINFO_GFP, node,
+> +			__builtin_return_address(0));
+>  }
+>  
+>  #endif /* __ASM_VMAP_STACK_H */
+> -- 
+> 2.25.1
 > 
-
-Sure, that will also work.
-
-BTW, this RANDOM_ORVALUE is not really very random, the way it is
-defined. For s390 we already changed it to mask out some arch bits,
-but I guess there are other archs and bits that would always be
-set with this "not so random" value, and I wonder if/how that would
-affect all the tests using this value, see also below.
-
-> > 
-> > And if you also want to do some with the existing value, which seems
-> > to be an empty pte, then maybe just check if writing and reading that
-> > value with set_huge_pte_at() / huge_ptep_get() returns the same,
-> > i.e. initially w/o RANDOM_ORVALUE.
-> > 
-> > So, in combination, like this (BTW, why is the barrier() needed, it
-> > is not used for the other set_huge_pte_at() calls later?):  
-> 
-> Ahh missed, will add them. Earlier we faced problem without it after
-> set_pte_at() for a test on powerpc (64) platform. Hence just added it
-> here to be extra careful.
-> 
-> > 
-> > @@ -733,24 +733,28 @@ static void __init hugetlb_advanced_test
-> >         struct page *page = pfn_to_page(pfn);
-> >         pte_t pte = READ_ONCE(*ptep);
-> >  
-> > -       pte = __pte(pte_val(pte) | RANDOM_ORVALUE);
-> > +       set_huge_pte_at(mm, vaddr, ptep, pte);
-> > +       WARN_ON(!pte_same(pte, huge_ptep_get(ptep)));
-> > +
-> > +       pte = pte_mkhuge(mk_pte(phys_to_page(RANDOM_ORVALUE & PMD_MASK), prot));
-> >         set_huge_pte_at(mm, vaddr, ptep, pte);
-> >         barrier();
-> >         WARN_ON(!pte_same(pte, huge_ptep_get(ptep)));
-> > 
-> > This would actually add a new test "write empty pte with
-> > set_huge_pte_at(), then verify with huge_ptep_get()", which happens
-> > to trigger a warning on s390 :-)  
-> 
-> On arm64 as well which checks for pte_present() in set_huge_pte_at().
-> But PTE present check is not really present in each set_huge_pte_at()
-> implementation especially without __HAVE_ARCH_HUGE_SET_HUGE_PTE_AT.
-> Hence wondering if we should add this new test here which will keep
-> giving warnings on s390 and arm64 (at the least).
-
-Hmm, interesting. I forgot about huge swap / migration, which is not
-(and probably cannot be) supported on s390. The pte_present() check
-on arm64 seems to check for such huge swap / migration entries,
-according to the comment.
-
-The new test "write empty pte with set_huge_pte_at(), then verify
-with huge_ptep_get()" would then probably trigger the
-WARN_ON(!pte_present(pte)) in arm64 code. So I guess "writing empty
-ptes with set_huge_pte_at()" is not really a valid use case in practice,
-or else you would have seen this warning before. In that case, it
-might not be a good idea to add this test.
-
-I also do wonder now, why the original test with
-"pte = __pte(pte_val(pte) | RANDOM_ORVALUE);"
-did not also trigger that warning on arm64. On s390 this test failed
-exactly because the constructed pte was not present (initially empty,
-or'ing RANDOM_ORVALUE does not make it present for s390). I guess this
-just worked by chance on arm64, because the bits from RANDOM_ORVALUE
-also happened to mark the pte present for arm64.
-
-This brings us back to the question above, regarding the "randomness"
-of RANDOM_ORVALUE. Not really sure what the intention behind that was,
-but maybe it would make sense to restrict this RANDOM_ORVALUE to
-non-arch-specific bits, i.e. only bits that would be part of the
-address value within a page table entry? Or was it intentionally
-chosen to also mess with other bits?
-
-Regards,
-Gerald
