@@ -1,52 +1,229 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 28/28] s390: use __vmalloc_node in stack_alloc
-Date: Wed,  8 Apr 2020 13:59:26 +0200
-Message-ID: <20200408115926.1467567-29-hch@lst.de>
-References: <20200408115926.1467567-1-hch@lst.de>
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH v3 1/3] fs: Support setting a minimum fd for "lowest
+ available fd" allocation
+Date: Wed, 8 Apr 2020 22:00:40 +1000
+Message-ID: <20200408120040.mtkqmymfazrv3lqk@yavin.dot.cyphar.com>
+References: <cover.1586321767.git.josh@joshtriplett.org>
+ <90bf6fd43343ca862e7f61b0834baf2bdbd0e24c.1586321767.git.josh@joshtriplett.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20200408115926.1467567-1-hch-jcswGhMUV9g@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Sender: "iommu" <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "K. Y. Srinivasan" <kys-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, Haiyang Zhang <haiyangz-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, Stephen Hemminger <sthemmin-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, Wei Liu <wei.liu-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, David Airlie <airlied-cv59FeDIM0c@public.gmane.org>, Daniel Vetter <daniel-/w4YWyX8dFk@public.gmane.org>, Laura Abbott <labbott-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Sumit Semwal <sumit.semwal-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Sakari Ailus <sakari.ailus-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Minchan Kim <minchan-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Nitin Gupta <ngupta-KNmc09w0p+Ednm+yROfE0A@public.gmane.org>
-Cc: Christophe Leroy <christophe.leroy-GgN8y9CXRhA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-hyperv-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, bpf-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="ds6ea26cc6xch3fv"
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <90bf6fd43343ca862e7f61b0834baf2bdbd0e24c.1586321767.git.josh@joshtriplett.org>
+Sender: linux-fsdevel-owner@vger.kernel.org
+To: Josh Triplett <josh@joshtriplett.org>
+Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, io-uring@vger.kernel.org, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Jens Axboe <axboe@kernel.dk>
 List-Id: linux-arch.vger.kernel.org
 
-stack_alloc can use a slightly higher level vmalloc function.
 
-Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
----
- arch/s390/kernel/setup.c | 9 +++------
- 1 file changed, 3 insertions(+), 6 deletions(-)
+--ds6ea26cc6xch3fv
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-diff --git a/arch/s390/kernel/setup.c b/arch/s390/kernel/setup.c
-index 36445dd40fdb..0f0b140b5558 100644
---- a/arch/s390/kernel/setup.c
-+++ b/arch/s390/kernel/setup.c
-@@ -305,12 +305,9 @@ void *restart_stack __section(.data);
- unsigned long stack_alloc(void)
- {
- #ifdef CONFIG_VMAP_STACK
--	return (unsigned long)
--		__vmalloc_node_range(THREAD_SIZE, THREAD_SIZE,
--				     VMALLOC_START, VMALLOC_END,
--				     THREADINFO_GFP,
--				     PAGE_KERNEL, 0, NUMA_NO_NODE,
--				     __builtin_return_address(0));
-+	return (unsigned long)__vmalloc_node(THREAD_SIZE, THREAD_SIZE,
-+			THREADINFO_GFP, NUMA_NO_NODE,
-+			__builtin_return_address(0));
- #else
- 	return __get_free_pages(GFP_KERNEL, THREAD_SIZE_ORDER);
- #endif
--- 
-2.25.1
+On 2020-04-07, Josh Triplett <josh@joshtriplett.org> wrote:
+> Some applications want to prevent the usual "lowest available fd"
+> allocation from allocating certain file descriptors. For instance, they
+> may want to prevent allocation of a closed fd 0, 1, or 2 other than via
+> dup2/dup3, or reserve some low file descriptors for other purposes.
+>=20
+> Add a prctl to increase the minimum fd and return the previous minimum.
+>=20
+> System calls that allocate a specific file descriptor, such as
+> dup2/dup3, ignore this minimum.
+>=20
+> exec resets the minimum fd, to prevent one program from interfering with
+> another program's expectations about fd allocation.
+
+Why is it implemented as an "increase the value" interface? It feels
+like this is meant to avoid some kind of security trap (with a library
+reducing the value) but it means that if you want to temporarily raise
+the minimum fd number it's not possible (without re-exec()ing yourself,
+which is hardly a fun thing to do).
+
+Then again, this might've been discussed before and I missed it...
+
+> Test program:
+>=20
+>     #include <err.h>
+>     #include <fcntl.h>
+>     #include <stdio.h>
+>     #include <sys/prctl.h>
+>=20
+>     int main(int argc, char *argv[])
+>     {
+>         if (prctl(PR_INCREASE_MIN_FD, 100, 0, 0, 0) < 0)
+>             err(1, "prctl");
+>         int fd =3D open("/dev/null", O_RDONLY);
+>         if (fd < 0)
+>             err(1, "open");
+>         printf("%d\n", fd); // prints 100
+>         return 0;
+>     }
+>=20
+> Signed-off-by: Josh Triplett <josh@joshtriplett.org>
+> ---
+>  fs/file.c                  | 23 +++++++++++++++++------
+>  include/linux/fdtable.h    |  1 +
+>  include/linux/file.h       |  1 +
+>  include/uapi/linux/prctl.h |  3 +++
+>  kernel/sys.c               |  5 +++++
+>  5 files changed, 27 insertions(+), 6 deletions(-)
+>=20
+> diff --git a/fs/file.c b/fs/file.c
+> index c8a4e4c86e55..ba06140d89af 100644
+> --- a/fs/file.c
+> +++ b/fs/file.c
+> @@ -286,7 +286,6 @@ struct files_struct *dup_fd(struct files_struct *oldf=
+, int *errorp)
+>  	spin_lock_init(&newf->file_lock);
+>  	newf->resize_in_progress =3D false;
+>  	init_waitqueue_head(&newf->resize_wait);
+> -	newf->next_fd =3D 0;
+>  	new_fdt =3D &newf->fdtab;
+>  	new_fdt->max_fds =3D NR_OPEN_DEFAULT;
+>  	new_fdt->close_on_exec =3D newf->close_on_exec_init;
+> @@ -295,6 +294,7 @@ struct files_struct *dup_fd(struct files_struct *oldf=
+, int *errorp)
+>  	new_fdt->fd =3D &newf->fd_array[0];
+> =20
+>  	spin_lock(&oldf->file_lock);
+> +	newf->next_fd =3D newf->min_fd =3D oldf->min_fd;
+>  	old_fdt =3D files_fdtable(oldf);
+>  	open_files =3D count_open_files(old_fdt);
+> =20
+> @@ -487,9 +487,7 @@ int __alloc_fd(struct files_struct *files,
+>  	spin_lock(&files->file_lock);
+>  repeat:
+>  	fdt =3D files_fdtable(files);
+> -	fd =3D start;
+> -	if (fd < files->next_fd)
+> -		fd =3D files->next_fd;
+> +	fd =3D max3(start, files->min_fd, files->next_fd);
+> =20
+>  	if (fd < fdt->max_fds)
+>  		fd =3D find_next_fd(fdt, fd);
+> @@ -514,7 +512,7 @@ int __alloc_fd(struct files_struct *files,
+>  		goto repeat;
+> =20
+>  	if (start <=3D files->next_fd)
+> -		files->next_fd =3D fd + 1;
+> +		files->next_fd =3D max(fd + 1, files->min_fd);
+> =20
+>  	__set_open_fd(fd, fdt);
+>  	if (flags & O_CLOEXEC)
+> @@ -555,7 +553,7 @@ static void __put_unused_fd(struct files_struct *file=
+s, unsigned int fd)
+>  {
+>  	struct fdtable *fdt =3D files_fdtable(files);
+>  	__clear_open_fd(fd, fdt);
+> -	if (fd < files->next_fd)
+> +	if (fd < files->next_fd && fd >=3D files->min_fd)
+>  		files->next_fd =3D fd;
+>  }
+> =20
+> @@ -684,6 +682,7 @@ void do_close_on_exec(struct files_struct *files)
+> =20
+>  	/* exec unshares first */
+>  	spin_lock(&files->file_lock);
+> +	files->min_fd =3D 0;
+>  	for (i =3D 0; ; i++) {
+>  		unsigned long set;
+>  		unsigned fd =3D i * BITS_PER_LONG;
+> @@ -865,6 +864,18 @@ bool get_close_on_exec(unsigned int fd)
+>  	return res;
+>  }
+> =20
+> +unsigned int increase_min_fd(unsigned int num)
+> +{
+> +	struct files_struct *files =3D current->files;
+> +	unsigned int old_min_fd;
+> +
+> +	spin_lock(&files->file_lock);
+> +	old_min_fd =3D files->min_fd;
+> +	files->min_fd +=3D num;
+> +	spin_unlock(&files->file_lock);
+> +	return old_min_fd;
+> +}
+> +
+>  static int do_dup2(struct files_struct *files,
+>  	struct file *file, unsigned fd, unsigned flags)
+>  __releases(&files->file_lock)
+> diff --git a/include/linux/fdtable.h b/include/linux/fdtable.h
+> index f07c55ea0c22..d1980443d8b3 100644
+> --- a/include/linux/fdtable.h
+> +++ b/include/linux/fdtable.h
+> @@ -60,6 +60,7 @@ struct files_struct {
+>     */
+>  	spinlock_t file_lock ____cacheline_aligned_in_smp;
+>  	unsigned int next_fd;
+> +	unsigned int min_fd; /* min for "lowest available fd" allocation */
+>  	unsigned long close_on_exec_init[1];
+>  	unsigned long open_fds_init[1];
+>  	unsigned long full_fds_bits_init[1];
+> diff --git a/include/linux/file.h b/include/linux/file.h
+> index 142d102f285e..b67986f818d2 100644
+> --- a/include/linux/file.h
+> +++ b/include/linux/file.h
+> @@ -88,6 +88,7 @@ extern bool get_close_on_exec(unsigned int fd);
+>  extern int __get_unused_fd_flags(unsigned flags, unsigned long nofile);
+>  extern int get_unused_fd_flags(unsigned flags);
+>  extern void put_unused_fd(unsigned int fd);
+> +extern unsigned int increase_min_fd(unsigned int num);
+> =20
+>  extern void fd_install(unsigned int fd, struct file *file);
+> =20
+> diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
+> index 07b4f8131e36..916327272d21 100644
+> --- a/include/uapi/linux/prctl.h
+> +++ b/include/uapi/linux/prctl.h
+> @@ -238,4 +238,7 @@ struct prctl_mm_map {
+>  #define PR_SET_IO_FLUSHER		57
+>  #define PR_GET_IO_FLUSHER		58
+> =20
+> +/* Increase minimum file descriptor for "lowest available fd" allocation=
+ */
+> +#define PR_INCREASE_MIN_FD		59
+> +
+>  #endif /* _LINUX_PRCTL_H */
+> diff --git a/kernel/sys.c b/kernel/sys.c
+> index d325f3ab624a..daa0ce43cecc 100644
+> --- a/kernel/sys.c
+> +++ b/kernel/sys.c
+> @@ -2514,6 +2514,11 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long,=
+ arg2, unsigned long, arg3,
+> =20
+>  		error =3D (current->flags & PR_IO_FLUSHER) =3D=3D PR_IO_FLUSHER;
+>  		break;
+> +	case PR_INCREASE_MIN_FD:
+> +		if (arg3 || arg4 || arg5)
+> +			return -EINVAL;
+> +		error =3D increase_min_fd((unsigned int)arg2);
+> +		break;
+>  	default:
+>  		error =3D -EINVAL;
+>  		break;
+> --=20
+> 2.26.0
+>=20
+
+
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--ds6ea26cc6xch3fv
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXo282wAKCRCdlLljIbnQ
+Erv6AP92+InVSN/fAcGC4fMQvLY3+Y+CWC4jEQleGa+Nske6fgEA9FGpiJkLNedH
+c/1zMZ/W9gr5n+kMEquw+xMVdw5PSQQ=
+=R7U+
+-----END PGP SIGNATURE-----
+
+--ds6ea26cc6xch3fv--
