@@ -1,70 +1,25 @@
-Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v10 02/26] x86/cpufeatures: Add CET CPU feature flags for Control-flow Enforcement Technology (CET)
-Date: Wed, 29 Apr 2020 15:07:08 -0700
-Message-ID: <20200429220732.31602-3-yu-cheng.yu@intel.com>
-In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+Date: Wed, 8 Apr 2020 15:27:13 +0200
+From: Greg KH <greg@kroah.com>
+Subject: Re: [PATCH 02/28] staging: android: ion: use vmap instead of
+ vm_map_ram
+Message-ID: <20200408132713.GA1248058@kroah.com>
+References: <20200408115926.1467567-1-hch@lst.de>
+ <20200408115926.1467567-3-hch@lst.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200408115926.1467567-3-hch@lst.de>
 Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, Borislav Petkov <bp@suse.de>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429220708.YvikYh2Nj5T2s-S-TCLfZuLPSV-nzDtVr5-xgwkExj8@z>
+Message-ID: <20200408132713.f5zNXL89hZXV5uYiXp_ZTd57z3JwI9hv05ruCnLlaqk@z>
 
-Add CPU feature flags for Control-flow Enforcement Technology (CET).
+On Wed, Apr 08, 2020 at 01:59:00PM +0200, Christoph Hellwig wrote:
+> vm_map_ram can keep mappings around after the vm_unmap_ram.  Using that
+> with non-PAGE_KERNEL mappings can lead to all kinds of aliasing issues.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-CPUID.(EAX=3D7,ECX=3D0):ECX[bit 7] Shadow stack
-CPUID.(EAX=3D7,ECX=3D0):EDX[bit 20] Indirect Branch Tracking
-
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Reviewed-by: Borislav Petkov <bp@suse.de>
-Reviewed-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/include/asm/cpufeatures.h | 2 ++
- arch/x86/kernel/cpu/cpuid-deps.c   | 2 ++
- 2 files changed, 4 insertions(+)
-
-diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cp=
-ufeatures.h
-index db189945e9b0..2c95a3efc2d9 100644
---- a/arch/x86/include/asm/cpufeatures.h
-+++ b/arch/x86/include/asm/cpufeatures.h
-@@ -339,6 +339,7 @@
- #define X86_FEATURE_OSPKE		(16*32+ 4) /* OS Protection Keys Enable */
- #define X86_FEATURE_WAITPKG		(16*32+ 5) /* UMONITOR/UMWAIT/TPAUSE Instru=
-ctions */
- #define X86_FEATURE_AVX512_VBMI2	(16*32+ 6) /* Additional AVX512 Vector =
-Bit Manipulation Instructions */
-+#define X86_FEATURE_SHSTK		(16*32+ 7) /* Shadow Stack */
- #define X86_FEATURE_GFNI		(16*32+ 8) /* Galois Field New Instructions */
- #define X86_FEATURE_VAES		(16*32+ 9) /* Vector AES */
- #define X86_FEATURE_VPCLMULQDQ		(16*32+10) /* Carry-Less Multiplication =
-Double Quadword */
-@@ -365,6 +366,7 @@
- #define X86_FEATURE_MD_CLEAR		(18*32+10) /* VERW clears CPU buffers */
- #define X86_FEATURE_TSX_FORCE_ABORT	(18*32+13) /* "" TSX_FORCE_ABORT */
- #define X86_FEATURE_PCONFIG		(18*32+18) /* Intel PCONFIG */
-+#define X86_FEATURE_IBT			(18*32+20) /* Indirect Branch Tracking */
- #define X86_FEATURE_SPEC_CTRL		(18*32+26) /* "" Speculation Control (IBR=
-S + IBPB) */
- #define X86_FEATURE_INTEL_STIBP		(18*32+27) /* "" Single Thread Indirect=
- Branch Predictors */
- #define X86_FEATURE_FLUSH_L1D		(18*32+28) /* Flush L1D cache */
-diff --git a/arch/x86/kernel/cpu/cpuid-deps.c b/arch/x86/kernel/cpu/cpuid=
--deps.c
-index 3cbe24ca80ab..fec83cc74b9e 100644
---- a/arch/x86/kernel/cpu/cpuid-deps.c
-+++ b/arch/x86/kernel/cpu/cpuid-deps.c
-@@ -69,6 +69,8 @@ static const struct cpuid_dep cpuid_deps[] =3D {
- 	{ X86_FEATURE_CQM_MBM_TOTAL,		X86_FEATURE_CQM_LLC   },
- 	{ X86_FEATURE_CQM_MBM_LOCAL,		X86_FEATURE_CQM_LLC   },
- 	{ X86_FEATURE_AVX512_BF16,		X86_FEATURE_AVX512VL  },
-+	{ X86_FEATURE_SHSTK,			X86_FEATURE_XSAVES    },
-+	{ X86_FEATURE_IBT,			X86_FEATURE_XSAVES    },
- 	{}
- };
-=20
---=20
-2.21.0
+Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
