@@ -1,44 +1,114 @@
-Return-Path: <SRS0=9HFN=52=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-ot1-f68.google.com ([209.85.210.68]:33210 "EHLO
-        mail-ot1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725913AbgDJILO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Apr 2020 04:11:14 -0400
-Received: by mail-ot1-f68.google.com with SMTP id 103so1222069otv.0
-        for <linux-arch@vger.kernel.org>; Fri, 10 Apr 2020 01:11:13 -0700 (PDT)
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 24/28] mm: switch the test_vmalloc module to use __vmalloc_node
+Date: Wed,  8 Apr 2020 13:59:22 +0200
+Message-ID: <20200408115926.1467567-25-hch@lst.de>
+In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
+References: <20200408115926.1467567-1-hch@lst.de>
 MIME-Version: 1.0
-References: <20200408115926.1467567-1-hch@lst.de> <20200408115926.1467567-20-hch@lst.de>
- <20200408122504.GO3456981@phenom.ffwll.local> <eb48f7b6327e482ea9911b129210c0417ab48345.camel@kernel.crashing.org>
- <CAKMK7uHtkLvdsWFGiAtkzVa5mpnDvXkn3CHZQ6bgJ_enbyAc8A@mail.gmail.com> <0f360b9cb72b80bae0d0db8150f65598c2776268.camel@kernel.crashing.org>
-In-Reply-To: <0f360b9cb72b80bae0d0db8150f65598c2776268.camel@kernel.crashing.org>
-From: Daniel Vetter <daniel@ffwll.ch>
-Date: Fri, 10 Apr 2020 10:11:02 +0200
-Message-ID: <CAKMK7uHKyN+c5oTEYVursx4at9br7LSXRb8PMoNEAEBh0hfBLQ@mail.gmail.com>
-Subject: Re: [PATCH 19/28] gpu/drm: remove the powerpc hack in drm_legacy_sg_alloc
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, X86 ML <x86@kernel.org>, David Airlie <airlied@linux.ie>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-hyperv@vger.kernel.org, dri-devel <dri-devel@lists.freedesktop.org>, "moderated list:DMA BUFFER SHARING FRAMEWORK" <linaro-mm-sig@lists.linaro.org>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, "list@263.net:IOMMU DRIVERS <iommu@lists.linux-foundation.org>, Joerg
-        Roedel <joro@8bytes.org>," <iommu@lists.linux-foundation.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-s390@vger.kernel.org, bpf <bpf@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20200410081102.a3j0KFdNO67zHj9HKEjL1qDAEWLTVRiwL2ofFAbVPo4@z>
+Message-ID: <20200408115922.WMerLzOrDDeMpWcjov1lwWxZJ4NaImnYc8B1C1SuKSY@z>
 
-On Fri, Apr 10, 2020 at 12:57 AM Benjamin Herrenschmidt
-<benh@kernel.crashing.org> wrote:
->
-> On Thu, 2020-04-09 at 11:41 +0200, Daniel Vetter wrote:
-> > Now if these boxes didn't ever have agp then I think we can get away
-> > with deleting this, since we've already deleted the legacy radeon
-> > driver. And that one used vmalloc for everything. The new kms one does
-> > use the dma-api if the gpu isn't connected through agp
->
-> Definitely no AGP there.
+No need to export the very low-level __vmalloc_node_range when the
+test module can use a slightly higher level variant.
 
-Ah in that case I think we can be sure that this code is dead.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ lib/test_vmalloc.c | 26 +++++++-------------------
+ mm/vmalloc.c       | 17 ++++++++---------
+ 2 files changed, 15 insertions(+), 28 deletions(-)
 
-Acked-by: Daniel Vetter <daniel.vetter@ffwll.ch>
-
-Cheers, Daniel
--- 
-Daniel Vetter
-Software Engineer, Intel Corporation
-+41 (0) 79 365 57 48 - http://blog.ffwll.ch
+diff --git a/lib/test_vmalloc.c b/lib/test_vmalloc.c
+index 8bbefcaddfe8..cd6aef05dfb4 100644
+--- a/lib/test_vmalloc.c
++++ b/lib/test_vmalloc.c
+@@ -91,12 +91,8 @@ static int random_size_align_alloc_test(void)
+ 		 */
+ 		size =3D ((rnd % 10) + 1) * PAGE_SIZE;
+=20
+-		ptr =3D __vmalloc_node_range(size, align,
+-		   VMALLOC_START, VMALLOC_END,
+-		   GFP_KERNEL | __GFP_ZERO,
+-		   PAGE_KERNEL,
+-		   0, 0, __builtin_return_address(0));
+-
++		ptr =3D __vmalloc_node(size, align, GFP_KERNEL | __GFP_ZERO,
++				__builtin_return_address(0));
+ 		if (!ptr)
+ 			return -1;
+=20
+@@ -118,12 +114,8 @@ static int align_shift_alloc_test(void)
+ 	for (i =3D 0; i < BITS_PER_LONG; i++) {
+ 		align =3D ((unsigned long) 1) << i;
+=20
+-		ptr =3D __vmalloc_node_range(PAGE_SIZE, align,
+-			VMALLOC_START, VMALLOC_END,
+-			GFP_KERNEL | __GFP_ZERO,
+-			PAGE_KERNEL,
+-			0, 0, __builtin_return_address(0));
+-
++		ptr =3D __vmalloc_node(PAGE_SIZE, align, GFP_KERNEL | __GFP_ZERO,
++				__builtin_return_address(0));
+ 		if (!ptr)
+ 			return -1;
+=20
+@@ -139,13 +131,9 @@ static int fix_align_alloc_test(void)
+ 	int i;
+=20
+ 	for (i =3D 0; i < test_loop_count; i++) {
+-		ptr =3D __vmalloc_node_range(5 * PAGE_SIZE,
+-			THREAD_ALIGN << 1,
+-			VMALLOC_START, VMALLOC_END,
+-			GFP_KERNEL | __GFP_ZERO,
+-			PAGE_KERNEL,
+-			0, 0, __builtin_return_address(0));
+-
++		ptr =3D __vmalloc_node(5 * PAGE_SIZE, THREAD_ALIGN << 1,
++				GFP_KERNEL | __GFP_ZERO,
++				__builtin_return_address(0));
+ 		if (!ptr)
+ 			return -1;
+=20
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index ae8249ef5821..333fbe77255a 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -2522,15 +2522,6 @@ void *__vmalloc_node_range(unsigned long size, uns=
+igned long align,
+ 	return NULL;
+ }
+=20
+-/*
+- * This is only for performance analysis of vmalloc and stress purpose.
+- * It is required by vmalloc test module, therefore do not use it other
+- * than that.
+- */
+-#ifdef CONFIG_TEST_VMALLOC_MODULE
+-EXPORT_SYMBOL_GPL(__vmalloc_node_range);
+-#endif
+-
+ /**
+  * __vmalloc_node - allocate virtually contiguous memory
+  * @size:	    allocation size
+@@ -2556,6 +2547,14 @@ void *__vmalloc_node(unsigned long size, unsigned =
+long align,
+ 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
+ 				gfp_mask, PAGE_KERNEL, 0, node, caller);
+ }
++/*
++ * This is only for performance analysis of vmalloc and stress purpose.
++ * It is required by vmalloc test module, therefore do not use it other
++ * than that.
++ */
++#ifdef CONFIG_TEST_VMALLOC_MODULE
++EXPORT_SYMBOL_GPL(__vmalloc_node);
++#endif
+=20
+ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
+ {
+--=20
+2.25.1
