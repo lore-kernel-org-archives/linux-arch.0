@@ -1,241 +1,26 @@
-Return-Path: <SRS0=V2YN=5S=kvack.org=owner-linux-mm@kernel.org>
-Message-ID: <25040ad2d2a2cef45a2442b0e934141987e11b71.1585811416.git.christophe.leroy@c-s.fr>
-In-Reply-To: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
-References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH RESEND 2/4] uaccess: Selectively open read or write user access
-Date: Thu,  2 Apr 2020 07:34:17 +0000 (UTC)
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+Date: Wed, 8 Apr 2020 18:07:43 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: decruft the vmalloc API
+Message-ID: <20200408160743.GA30662@lst.de>
+References: <20200408115926.1467567-1-hch@lst.de> <20200408160324.GS25745@shell.armlinux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200408160324.GS25745@shell.armlinux.org.uk>
 Sender: owner-linux-mm@kvack.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: Russell King - ARM Linux admin <linux@armlinux.org.uk>
+Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Christophe Leroy <christophe.leroy@c-s.fr>, linux-arch@vger.kernel.org, linux-hyperv@vger.kernel.org, linux-s390@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, bpf@vger.kernel.org, Robin Murphy <robin.murphy@arm.com>, linux-arm-kernel@lists.infradead.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200402073417._su9x0HMi3-8Ys5d4SmCSQVPTxeaZHE1Bvayq2pyeyc@z>
+Message-ID: <20200408160743.th-lvxsUhnqEX-waCz3n3ozoXH-RDAm3b77STnV0hjE@z>
 
-When opening user access to only perform reads, only open read access.
-When opening user access to only perform writes, only open write
-access.
+On Wed, Apr 08, 2020 at 05:03:24PM +0100, Russell King - ARM Linux admin wrote:
+> I haven't read all your patches yet.
+> 
+> Have you tested it on 32-bit ARM, where the module area is located
+> _below_ PAGE_OFFSET and outside of the vmalloc area?
 
-Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
----
- fs/readdir.c            | 12 ++++++------
- kernel/compat.c         | 12 ++++++------
- kernel/exit.c           | 12 ++++++------
- lib/strncpy_from_user.c |  4 ++--
- lib/strnlen_user.c      |  4 ++--
- lib/usercopy.c          |  6 +++---
- 6 files changed, 25 insertions(+), 25 deletions(-)
-
-diff --git a/fs/readdir.c b/fs/readdir.c
-index de2eceffdee8..ed6aaad451aa 100644
---- a/fs/readdir.c
-+++ b/fs/readdir.c
-@@ -242,7 +242,7 @@ static int filldir(struct dir_context *ctx, const char *name, int namlen,
- 		return -EINTR;
- 	dirent = buf->current_dir;
- 	prev = (void __user *) dirent - prev_reclen;
--	if (!user_access_begin(prev, reclen + prev_reclen))
-+	if (!user_write_access_begin(prev, reclen + prev_reclen))
- 		goto efault;
- 
- 	/* This might be 'dirent->d_off', but if so it will get overwritten */
-@@ -251,14 +251,14 @@ static int filldir(struct dir_context *ctx, const char *name, int namlen,
- 	unsafe_put_user(reclen, &dirent->d_reclen, efault_end);
- 	unsafe_put_user(d_type, (char __user *) dirent + reclen - 1, efault_end);
- 	unsafe_copy_dirent_name(dirent->d_name, name, namlen, efault_end);
--	user_access_end();
-+	user_write_access_end();
- 
- 	buf->current_dir = (void __user *)dirent + reclen;
- 	buf->prev_reclen = reclen;
- 	buf->count -= reclen;
- 	return 0;
- efault_end:
--	user_access_end();
-+	user_write_access_end();
- efault:
- 	buf->error = -EFAULT;
- 	return -EFAULT;
-@@ -327,7 +327,7 @@ static int filldir64(struct dir_context *ctx, const char *name, int namlen,
- 		return -EINTR;
- 	dirent = buf->current_dir;
- 	prev = (void __user *)dirent - prev_reclen;
--	if (!user_access_begin(prev, reclen + prev_reclen))
-+	if (!user_write_access_begin(prev, reclen + prev_reclen))
- 		goto efault;
- 
- 	/* This might be 'dirent->d_off', but if so it will get overwritten */
-@@ -336,7 +336,7 @@ static int filldir64(struct dir_context *ctx, const char *name, int namlen,
- 	unsafe_put_user(reclen, &dirent->d_reclen, efault_end);
- 	unsafe_put_user(d_type, &dirent->d_type, efault_end);
- 	unsafe_copy_dirent_name(dirent->d_name, name, namlen, efault_end);
--	user_access_end();
-+	user_write_access_end();
- 
- 	buf->prev_reclen = reclen;
- 	buf->current_dir = (void __user *)dirent + reclen;
-@@ -344,7 +344,7 @@ static int filldir64(struct dir_context *ctx, const char *name, int namlen,
- 	return 0;
- 
- efault_end:
--	user_access_end();
-+	user_write_access_end();
- efault:
- 	buf->error = -EFAULT;
- 	return -EFAULT;
-diff --git a/kernel/compat.c b/kernel/compat.c
-index 843dd17e6078..705ca7e418c6 100644
---- a/kernel/compat.c
-+++ b/kernel/compat.c
-@@ -199,7 +199,7 @@ long compat_get_bitmap(unsigned long *mask, const compat_ulong_t __user *umask,
- 	bitmap_size = ALIGN(bitmap_size, BITS_PER_COMPAT_LONG);
- 	nr_compat_longs = BITS_TO_COMPAT_LONGS(bitmap_size);
- 
--	if (!user_access_begin(umask, bitmap_size / 8))
-+	if (!user_write_access_begin(umask, bitmap_size / 8))
- 		return -EFAULT;
- 
- 	while (nr_compat_longs > 1) {
-@@ -211,11 +211,11 @@ long compat_get_bitmap(unsigned long *mask, const compat_ulong_t __user *umask,
- 	}
- 	if (nr_compat_longs)
- 		unsafe_get_user(*mask, umask++, Efault);
--	user_access_end();
-+	user_read_access_end();
- 	return 0;
- 
- Efault:
--	user_access_end();
-+	user_read_access_end();
- 	return -EFAULT;
- }
- 
-@@ -228,7 +228,7 @@ long compat_put_bitmap(compat_ulong_t __user *umask, unsigned long *mask,
- 	bitmap_size = ALIGN(bitmap_size, BITS_PER_COMPAT_LONG);
- 	nr_compat_longs = BITS_TO_COMPAT_LONGS(bitmap_size);
- 
--	if (!user_access_begin(umask, bitmap_size / 8))
-+	if (!user_read_access_begin(umask, bitmap_size / 8))
- 		return -EFAULT;
- 
- 	while (nr_compat_longs > 1) {
-@@ -239,10 +239,10 @@ long compat_put_bitmap(compat_ulong_t __user *umask, unsigned long *mask,
- 	}
- 	if (nr_compat_longs)
- 		unsafe_put_user((compat_ulong_t)*mask, umask++, Efault);
--	user_access_end();
-+	user_write_access_end();
- 	return 0;
- Efault:
--	user_access_end();
-+	user_write_access_end();
- 	return -EFAULT;
- }
- 
-diff --git a/kernel/exit.c b/kernel/exit.c
-index d70d47159640..61b2f7a85079 100644
---- a/kernel/exit.c
-+++ b/kernel/exit.c
-@@ -1555,7 +1555,7 @@ SYSCALL_DEFINE5(waitid, int, which, pid_t, upid, struct siginfo __user *,
- 	if (!infop)
- 		return err;
- 
--	if (!user_access_begin(infop, sizeof(*infop)))
-+	if (!user_write_access_begin(infop, sizeof(*infop)))
- 		return -EFAULT;
- 
- 	unsafe_put_user(signo, &infop->si_signo, Efault);
-@@ -1564,10 +1564,10 @@ SYSCALL_DEFINE5(waitid, int, which, pid_t, upid, struct siginfo __user *,
- 	unsafe_put_user(info.pid, &infop->si_pid, Efault);
- 	unsafe_put_user(info.uid, &infop->si_uid, Efault);
- 	unsafe_put_user(info.status, &infop->si_status, Efault);
--	user_access_end();
-+	user_write_access_end();
- 	return err;
- Efault:
--	user_access_end();
-+	user_write_access_end();
- 	return -EFAULT;
- }
- 
-@@ -1682,7 +1682,7 @@ COMPAT_SYSCALL_DEFINE5(waitid,
- 	if (!infop)
- 		return err;
- 
--	if (!user_access_begin(infop, sizeof(*infop)))
-+	if (!user_write_access_begin(infop, sizeof(*infop)))
- 		return -EFAULT;
- 
- 	unsafe_put_user(signo, &infop->si_signo, Efault);
-@@ -1691,10 +1691,10 @@ COMPAT_SYSCALL_DEFINE5(waitid,
- 	unsafe_put_user(info.pid, &infop->si_pid, Efault);
- 	unsafe_put_user(info.uid, &infop->si_uid, Efault);
- 	unsafe_put_user(info.status, &infop->si_status, Efault);
--	user_access_end();
-+	user_write_access_end();
- 	return err;
- Efault:
--	user_access_end();
-+	user_write_access_end();
- 	return -EFAULT;
- }
- #endif
-diff --git a/lib/strncpy_from_user.c b/lib/strncpy_from_user.c
-index 706020b06617..b90ec550183a 100644
---- a/lib/strncpy_from_user.c
-+++ b/lib/strncpy_from_user.c
-@@ -116,9 +116,9 @@ long strncpy_from_user(char *dst, const char __user *src, long count)
- 
- 		kasan_check_write(dst, count);
- 		check_object_size(dst, count, false);
--		if (user_access_begin(src, max)) {
-+		if (user_read_access_begin(src, max)) {
- 			retval = do_strncpy_from_user(dst, src, count, max);
--			user_access_end();
-+			user_read_access_end();
- 			return retval;
- 		}
- 	}
-diff --git a/lib/strnlen_user.c b/lib/strnlen_user.c
-index 41670d4a5816..1616710b8a82 100644
---- a/lib/strnlen_user.c
-+++ b/lib/strnlen_user.c
-@@ -109,9 +109,9 @@ long strnlen_user(const char __user *str, long count)
- 		if (max > count)
- 			max = count;
- 
--		if (user_access_begin(str, max)) {
-+		if (user_read_access_begin(str, max)) {
- 			retval = do_strnlen_user(str, count, max);
--			user_access_end();
-+			user_read_access_end();
- 			return retval;
- 		}
- 	}
-diff --git a/lib/usercopy.c b/lib/usercopy.c
-index cbb4d9ec00f2..ca2a697a2061 100644
---- a/lib/usercopy.c
-+++ b/lib/usercopy.c
-@@ -58,7 +58,7 @@ int check_zeroed_user(const void __user *from, size_t size)
- 	from -= align;
- 	size += align;
- 
--	if (!user_access_begin(from, size))
-+	if (!user_read_access_begin(from, size))
- 		return -EFAULT;
- 
- 	unsafe_get_user(val, (unsigned long __user *) from, err_fault);
-@@ -79,10 +79,10 @@ int check_zeroed_user(const void __user *from, size_t size)
- 		val &= aligned_byte_mask(size);
- 
- done:
--	user_access_end();
-+	user_read_access_end();
- 	return (val == 0);
- err_fault:
--	user_access_end();
-+	user_read_access_end();
- 	return -EFAULT;
- }
- EXPORT_SYMBOL(check_zeroed_user);
--- 
-2.25.0
+I have not tested it.  However existing in-kernel users that use
+different areas (and we have quite a few of those) have not been
+changed at all.  I think the arm32 module loader (like various other
+module loaders) falls into that category.
