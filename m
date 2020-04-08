@@ -1,57 +1,64 @@
-Return-Path: <SRS0=L6kS=52=kvack.org=owner-linux-mm@kernel.org>
-Date: Fri, 10 Apr 2020 16:11:36 -0700
-From: Minchan Kim <minchan@kernel.org>
-Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
- zsmalloc
-Message-ID: <20200410231136.GA101325@google.com>
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 01/28] x86/hyperv: use vmalloc_exec for the hypercall page
+Date: Wed,  8 Apr 2020 13:58:59 +0200
+Message-ID: <20200408115926.1467567-2-hch@lst.de>
+In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
 References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-11-hch@lst.de>
- <20200409160826.GC247701@google.com>
- <20200409165030.GG20713@hirez.programming.kicks-ass.net>
- <20200409170813.GD247701@google.com>
- <20200410023845.GA2354@jagdpanzerIV.localdomain>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200410023845.GA2354@jagdpanzerIV.localdomain>
+Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Sergey Senozhatsky <sergey.senozhatsky@gmail.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200410231136.4xZbNuO8ftGCfGnpkFxwGt79p-fvrTBm7ymPCXHy1-w@z>
+Message-ID: <20200408115859.J-_qV7n9gFVEPBuVczwJl24MqdhLKOy4OPAoFx-Dnw8@z>
 
-Hi Sergey,
+Use the designated helper for allocating executable kernel memory, and
+remove the now unused PAGE_KERNEL_RX define.
 
-On Fri, Apr 10, 2020 at 11:38:45AM +0900, Sergey Senozhatsky wrote:
-> On (20/04/09 10:08), Minchan Kim wrote:
-> > > > Even though I don't know how many usecase we have using zsmalloc as
-> > > > module(I heard only once by dumb reason), it could affect existing
-> > > > users. Thus, please include concrete explanation in the patch to
-> > > > justify when the complain occurs.
-> > > 
-> > > The justification is 'we can unexport functions that have no sane reason
-> > > of being exported in the first place'.
-> > > 
-> > > The Changelog pretty much says that.
-> > 
-> > Okay, I hope there is no affected user since this patch.
-> > If there are someone, they need to provide sane reason why they want
-> > to have zsmalloc as module.
-> 
-> I'm one of those who use zsmalloc as a module - mainly because I use zram
-> as a compressing general purpose block device, not as a swap device.
-> I create zram0, mkfs, mount, checkout and compile code, once done -
-> umount, rmmod. This reduces the number of writes to SSD. Some people use
-> tmpfs, but zram device(-s) can be much larger in size. That's a niche use
-> case and I'm not against the patch.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/x86/hyperv/hv_init.c            | 2 +-
+ arch/x86/include/asm/pgtable_types.h | 2 --
+ 2 files changed, 1 insertion(+), 3 deletions(-)
 
-It doesn't mean we couldn't use zsmalloc as module any longer. It means
-we couldn't use zsmalloc as module with pgtable mapping whcih was little
-bit faster on microbenchmark in some architecutre(However, I usually temped
-to remove it since it had several problems). However, we could still use
-zsmalloc as module as copy way instead of pgtable mapping. Thus, if someone
-really want to rollback the feature, they should provide reasonable reason
-why it doesn't work for them. "A little fast" wouldn't be enough to exports
-deep internal to the module.
-
-Thanks.
+diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+index b0da5320bcff..5a4b363ba67b 100644
+--- a/arch/x86/hyperv/hv_init.c
++++ b/arch/x86/hyperv/hv_init.c
+@@ -355,7 +355,7 @@ void __init hyperv_init(void)
+ 	guest_id =3D generate_guest_id(0, LINUX_VERSION_CODE, 0);
+ 	wrmsrl(HV_X64_MSR_GUEST_OS_ID, guest_id);
+=20
+-	hv_hypercall_pg  =3D __vmalloc(PAGE_SIZE, GFP_KERNEL, PAGE_KERNEL_RX);
++	hv_hypercall_pg =3D vmalloc_exec(PAGE_SIZE);
+ 	if (hv_hypercall_pg =3D=3D NULL) {
+ 		wrmsrl(HV_X64_MSR_GUEST_OS_ID, 0);
+ 		goto remove_cpuhp_state;
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/=
+pgtable_types.h
+index b6606fe6cfdf..947867f112ea 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -194,7 +194,6 @@ enum page_cache_mode {
+ #define _PAGE_TABLE_NOENC	 (__PP|__RW|_USR|___A|   0|___D|   0|   0)
+ #define _PAGE_TABLE		 (__PP|__RW|_USR|___A|   0|___D|   0|   0| _ENC)
+ #define __PAGE_KERNEL_RO	 (__PP|   0|   0|___A|__NX|___D|   0|___G)
+-#define __PAGE_KERNEL_RX	 (__PP|   0|   0|___A|   0|___D|   0|___G)
+ #define __PAGE_KERNEL_NOCACHE	 (__PP|__RW|   0|___A|__NX|___D|   0|___G|=
+ __NC)
+ #define __PAGE_KERNEL_VVAR	 (__PP|   0|_USR|___A|__NX|___D|   0|___G)
+ #define __PAGE_KERNEL_LARGE	 (__PP|__RW|   0|___A|__NX|___D|_PSE|___G)
+@@ -220,7 +219,6 @@ enum page_cache_mode {
+ #define PAGE_KERNEL_RO		__pgprot_mask(__PAGE_KERNEL_RO         | _ENC)
+ #define PAGE_KERNEL_EXEC	__pgprot_mask(__PAGE_KERNEL_EXEC       | _ENC)
+ #define PAGE_KERNEL_EXEC_NOENC	__pgprot_mask(__PAGE_KERNEL_EXEC       | =
+   0)
+-#define PAGE_KERNEL_RX		__pgprot_mask(__PAGE_KERNEL_RX         | _ENC)
+ #define PAGE_KERNEL_NOCACHE	__pgprot_mask(__PAGE_KERNEL_NOCACHE    | _EN=
+C)
+ #define PAGE_KERNEL_LARGE	__pgprot_mask(__PAGE_KERNEL_LARGE      | _ENC)
+ #define PAGE_KERNEL_LARGE_EXEC	__pgprot_mask(__PAGE_KERNEL_LARGE_EXEC | =
+_ENC)
+--=20
+2.25.1
