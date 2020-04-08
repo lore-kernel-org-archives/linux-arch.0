@@ -1,67 +1,252 @@
-Return-Path: <SRS0=NQxy=6N=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:61306 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728064AbgD2WI6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 Apr 2020 18:08:58 -0400
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v10 23/26] ELF: Introduce arch_setup_elf_property()
-Date: Wed, 29 Apr 2020 15:07:29 -0700
-Message-ID: <20200429220732.31602-24-yu-cheng.yu@intel.com>
-In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=WnF+=5Y=vger.kernel.org=linux-doc-owner@kernel.org>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: Re: [PATCH V2 0/3] mm/debug: Add more arch page table helper tests
+References: <1585027375-9997-1-git-send-email-anshuman.khandual@arm.com>
+ <20200331143059.29fca8fa@thinkpad>
+ <e3e35885-6852-16aa-3889-e22750a0cc87@arm.com>
+ <20200407175440.41cc00a5@thinkpad>
+Message-ID: <253cf5c8-e43e-5737-24e8-3eda3b6ba7b3@arm.com>
+Date: Wed, 8 Apr 2020 12:41:51 +0530
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200407175440.41cc00a5@thinkpad>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Cc: linux-mm@kvack.org, christophe.leroy@c-s.fr, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20200429220729.uFOB0l7uVOZhszymIkfM7Kz55HuFJrofYc47uaq9fJE@z>
+Message-ID: <20200408071151.7FtuWP03CXbYCRXDA1RJh9-RERA8VvU_C1vvqFp-OlI@z>
 
-An ELF file's .note.gnu.property indicates architecture features of the
-file.  These features are extracted earlier and stored in the struct
-'arch_elf_state'.  Introduce arch_setup_elf_property() to setup and enable
-these features.  The first use-case of this function is shadow stack.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- fs/binfmt_elf.c     | 4 ++++
- include/linux/elf.h | 6 ++++++
- 2 files changed, 10 insertions(+)
+On 04/07/2020 09:24 PM, Gerald Schaefer wrote:
+> On Sun, 5 Apr 2020 17:58:14 +0530
+> Anshuman Khandual <anshuman.khandual@arm.com> wrote:
+> 
+> [...]
+>>>
+>>> Could be fixed like this (the first de-reference is a bit special,
+>>> because at that point *ptep does not really point to a large (pmd) entry
+>>> yet, it is initially an invalid pte entry, which breaks our huge_ptep_get()  
+>>
+>> There seems to be an inconsistency on s390 platform. Even though it defines
+>> a huge_ptep_get() override, it does not subscribe __HAVE_ARCH_HUGE_PTEP_GET
+>> which should have forced it fallback on generic huge_ptep_get() but it does
+>> not :) Then I realized that __HAVE_ARCH_HUGE_PTEP_GET only makes sense when
+>> an arch uses <asm-generic/hugetlb.h>. s390 does not use that and hence gets
+>> away with it's own huge_ptep_get() without __HAVE_ARCH_HUGE_PTEP_GET. Sounds
+>> confusing ? But I might not have the entire context here.
+> 
+> Yes, that sounds very confusing. Also a bit ironic, since huge_ptep_get()
+> was initially introduced because of s390, and now we don't select
+> __HAVE_ARCH_HUGE_PTEP_GET...
+> 
+> As you realized, I guess this is because we do not use generic hugetlb.h.
+> And when __HAVE_ARCH_HUGE_PTEP_GET was introduced with commit 544db7597ad
+> ("hugetlb: introduce generic version of huge_ptep_get"), that was probably
+> the reason why we did not get our share of __HAVE_ARCH_HUGE_PTEP_GET.
 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 327a995ff743..d7a4c0a1245e 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -1216,6 +1216,10 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 
- 	set_binfmt(&elf_format);
- 
-+	retval = arch_setup_elf_property(&arch_state);
-+	if (retval < 0)
-+		goto out;
-+
- #ifdef ARCH_HAS_SETUP_ADDITIONAL_PAGES
- 	retval = arch_setup_additional_pages(bprm, !!interpreter);
- 	if (retval < 0)
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index 7bdc6da160c7..81f2161fa4a8 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -78,9 +78,15 @@ static inline int arch_parse_elf_property(u32 type, const void *data,
- {
- 	return 0;
- }
-+
-+static inline int arch_setup_elf_property(struct arch_elf_state *arch)
-+{
-+	return 0;
-+}
- #else
- extern int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
- 				   bool compat, struct arch_elf_state *arch);
-+extern int arch_setup_elf_property(struct arch_elf_state *arch);
- #endif
- 
- #endif /* _LINUX_ELF_H */
--- 
-2.21.0
+Understood.
+
+> 
+> Nothing really wrong with that, but yes, very confusing. Maybe we could
+> also select it for s390, even though it wouldn't have any functional
+> impact (so far), just for less confusion. Maybe also thinking about
+> using the generic hugetlb.h, not sure if the original reasons for not
+> doing so would still apply. Now I only need to find the time...
+
+Seems like something worth to explore if we could remove this confusion.
+
+> 
+>>
+>>> conversion logic. I also added PMD_MASK alignment for RANDOM_ORVALUE,
+>>> because we do have some special bits there in our large pmds. It seems
+>>> to also work w/o that alignment, but it feels a bit wrong):  
+>>
+>> Sure, we can accommodate that.
+>>
+>>>
+>>> @@ -731,26 +731,26 @@ static void __init hugetlb_advanced_test
+>>>                                           unsigned long vaddr, pgprot_t prot)
+>>>  {
+>>>         struct page *page = pfn_to_page(pfn);
+>>> -       pte_t pte = READ_ONCE(*ptep);
+>>> +       pte_t pte;
+>>>
+>>> -       pte = __pte(pte_val(pte) | RANDOM_ORVALUE);
+>>> +       pte = pte_mkhuge(mk_pte_phys(RANDOM_ORVALUE & PMD_MASK, prot));  
+>>
+>> So that keeps the existing value in 'ptep' pointer at bay and instead
+>> construct a PTE from scratch. I would rather have READ_ONCE(*ptep) at
+>> least provide the seed that can be ORed with RANDOM_ORVALUE before
+>> being masked with PMD_MASK. Do you see any problem ?
+> 
+> Yes, unfortunately. The problem is that the resulting pte is not marked
+> as present. The conversion pte -> (huge) pmd, which is done in
+> set_huge_pte_at() for s390, will establish an empty pmd for non-present
+> ptes, all the RANDOM_ORVALUE stuff is lost. And a subsequent
+> huge_ptep_get() will not result in the same original pte value. If you
+
+Ohh.
+
+> want to preserve and check the RANDOM_ORVALUE, it has to be a present
+> pte, hence the mk_pte(_phys).
+
+Understood and mk_pte() is also available on all platforms.
+
+> 
+>>
+>> Some thing like this instead.
+>>
+>> pte_t pte = READ_ONCE(*ptep);
+>> pte = pte_mkhuge(__pte((pte_val(pte) | RANDOM_ORVALUE) & PMD_MASK));
+>>
+>> We cannot use mk_pte_phys() as it is defined only on some platforms
+>> without any generic fallback for others.
+> 
+> Oh, didn't know that, sorry. What about using mk_pte() instead, at least
+> it would result in a present pte:
+> 
+> pte = pte_mkhuge(mk_pte(phys_to_page(RANDOM_ORVALUE & PMD_MASK), prot));
+
+Lets use mk_pte() here but can we do this instead
+
+paddr = (__pfn_to_phys(pfn) | RANDOM_ORVALUE) & PMD_MASK;
+pte = pte_mkhuge(mk_pte(phys_to_page(paddr), prot));
+
+> 
+> And if you also want to do some with the existing value, which seems
+> to be an empty pte, then maybe just check if writing and reading that
+> value with set_huge_pte_at() / huge_ptep_get() returns the same,
+> i.e. initially w/o RANDOM_ORVALUE.
+> 
+> So, in combination, like this (BTW, why is the barrier() needed, it
+> is not used for the other set_huge_pte_at() calls later?):
+
+Ahh missed, will add them. Earlier we faced problem without it after
+set_pte_at() for a test on powerpc (64) platform. Hence just added it
+here to be extra careful.
+
+> 
+> @@ -733,24 +733,28 @@ static void __init hugetlb_advanced_test
+>         struct page *page = pfn_to_page(pfn);
+>         pte_t pte = READ_ONCE(*ptep);
+>  
+> -       pte = __pte(pte_val(pte) | RANDOM_ORVALUE);
+> +       set_huge_pte_at(mm, vaddr, ptep, pte);
+> +       WARN_ON(!pte_same(pte, huge_ptep_get(ptep)));
+> +
+> +       pte = pte_mkhuge(mk_pte(phys_to_page(RANDOM_ORVALUE & PMD_MASK), prot));
+>         set_huge_pte_at(mm, vaddr, ptep, pte);
+>         barrier();
+>         WARN_ON(!pte_same(pte, huge_ptep_get(ptep)));
+> 
+> This would actually add a new test "write empty pte with
+> set_huge_pte_at(), then verify with huge_ptep_get()", which happens
+> to trigger a warning on s390 :-)
+
+On arm64 as well which checks for pte_present() in set_huge_pte_at().
+But PTE present check is not really present in each set_huge_pte_at()
+implementation especially without __HAVE_ARCH_HUGE_SET_HUGE_PTE_AT.
+Hence wondering if we should add this new test here which will keep
+giving warnings on s390 and arm64 (at the least).
+
+> 
+> That (new) warning actually points to misbehavior on s390, we do not
+> write a correct empty pmd in this case, but one that is empty and also
+> marked as large. huge_ptep_get() will then not correctly recognize it
+> as empty and do wrong conversion. It is also not consistent with
+> huge_ptep_get_and_clear(), where we write the empty pmd w/o marking
+> as large. Last but not least it would also break our pmd_protnone()
+> logic (see below). Another nice finding on s390 :-)
+
+:) 
+
+> 
+> I don't think this has any effect in practice (yet), but I will post a
+> fix for that, just in case you will add / change this test.
+
+Okay.
+
+> 
+>>
+>>>         set_huge_pte_at(mm, vaddr, ptep, pte);
+>>>         barrier();
+>>>         WARN_ON(!pte_same(pte, huge_ptep_get(ptep)));
+>>>         huge_pte_clear(mm, vaddr, ptep, PMD_SIZE);
+>>> -       pte = READ_ONCE(*ptep);
+>>> +       pte = huge_ptep_get(ptep);
+>>>         WARN_ON(!huge_pte_none(pte));
+>>>  
+>>>         pte = mk_huge_pte(page, prot);
+>>>         set_huge_pte_at(mm, vaddr, ptep, pte);
+>>>         huge_ptep_set_wrprotect(mm, vaddr, ptep);
+>>> -       pte = READ_ONCE(*ptep);
+>>> +       pte = huge_ptep_get(ptep);
+>>>         WARN_ON(huge_pte_write(pte));
+>>>  
+>>>         pte = mk_huge_pte(page, prot);
+>>>         set_huge_pte_at(mm, vaddr, ptep, pte);
+>>>         huge_ptep_get_and_clear(mm, vaddr, ptep);
+>>> -       pte = READ_ONCE(*ptep);
+>>> +       pte = huge_ptep_get(ptep);
+>>>         WARN_ON(!huge_pte_none(pte));
+>>>  
+>>>         pte = mk_huge_pte(page, prot);
+>>> @@ -759,7 +759,7 @@ static void __init hugetlb_advanced_test
+>>>         pte = huge_pte_mkwrite(pte);
+>>>         pte = huge_pte_mkdirty(pte);
+>>>         huge_ptep_set_access_flags(vma, vaddr, ptep, pte, 1);
+>>> -       pte = READ_ONCE(*ptep);
+>>> +       pte = huge_ptep_get(ptep);
+>>>         WARN_ON(!(huge_pte_write(pte) && huge_pte_dirty(pte)));
+>>>  }
+>>>  #else
+>>>
+>>> 3) The pmd_protnone_tests() has an issue, because it passes a pmd to
+>>> pmd_protnone() which has not been marked as large. We check for large
+>>> pmd in the s390 implementation of pmd_protnone(), and will fail if a
+>>> pmd is not large. We had similar issues before, in other helpers, where
+>>> I changed the logic on s390 to not require the pmd large check, but I'm
+>>> not so sure in this case. Is there a valid use case for doing
+>>> pmd_protnone() on "normal" pmds? Or could this be changed like this:  
+>>
+>> That is a valid question. IIUC, all existing callers for pmd_protnone()
+>> ensure that it is indeed a huge PMD. But even assuming otherwise should
+>> not the huge PMD requirement get checked in the caller itself rather than
+>> in the arch helper which is just supposed to check the existence of the
+>> dedicated PTE bit(s) for this purpose. Purely from a helper perspective
+>> pmd_protnone() should not really care about being large even though it
+>> might never get used without one.
+>>
+>> Also all platforms (except s390) derive the pmd_protnone() from their
+>> respective pte_protnone(). I wonder why should s390 be any different
+>> unless it is absolutely necessary.
+> 
+> This is again because of our different page table entry layouts for
+> pte/pmd and (large) pmd. The bits we check for pmd_protnone() are
+> not valid for normal pmd/pte, and we would return undefined result for
+> normal entries.
+> 
+> Of course, we could rely on nobody calling pmd_protnone() on normal
+> pmds, but in this case we also use pmd_large() check in pmd_protnone()
+> for indication if the pmd is present. W/o that, we would return
+> true for empty pmds, that doesn't sound right. Not sure if we also
+> want to rely on nobody calling pmd_protnone() on empty pmds.
+
+That might be problematic.
+
+> 
+> Anyway, if in practice it is not correct to use pmd_protnone()
+> on normal pmds, then I would suggest that your tests should also
+> not do / test it. And I strongly assume that it is not correct, at
+> least I cannot think of a valid case, and of course s390 would
+> already be broken if there was such a case.
+
+Okay, will use huge PMD here as you had suggested earlier.
+
+> 
+> Regards,
+> Gerald
+> 
+> 
