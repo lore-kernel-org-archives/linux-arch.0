@@ -1,59 +1,62 @@
-Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54276 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725803AbgD1EgY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Apr 2020 00:36:24 -0400
-Received: from mail-lj1-x241.google.com (mail-lj1-x241.google.com [IPv6:2a00:1450:4864:20::241])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 64FFAC03C1A9
-        for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2020 21:36:24 -0700 (PDT)
-Received: by mail-lj1-x241.google.com with SMTP id a21so19993325ljb.9
-        for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2020 21:36:24 -0700 (PDT)
-Received: from mail-lf1-f41.google.com (mail-lf1-f41.google.com. [209.85.167.41])
-        by smtp.gmail.com with ESMTPSA id h28sm1155665lfe.80.2020.04.27.21.36.22
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 27 Apr 2020 21:36:22 -0700 (PDT)
-Received: by mail-lf1-f41.google.com with SMTP id k28so15726343lfe.10
-        for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2020 21:36:22 -0700 (PDT)
-MIME-Version: 1.0
-References: <CAHk-=wga3O=BoKZXR27-CDnAFareWcMxXhpWerwtCffdaH6_ow@mail.gmail.com>
- <B7A115CB-0C8C-4719-B97B-74D94231CD1E@amacapital.net>
-In-Reply-To: <B7A115CB-0C8C-4719-B97B-74D94231CD1E@amacapital.net>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 27 Apr 2020 21:28:14 -0700
-Message-ID: <CAHk-=whQzOsh9O2uhUO2VETD+hrzjKMpEJpzoUby5QHMcvgPKg@mail.gmail.com>
-Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Return-Path: <SRS0=p5Ku=5Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:59398 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726975AbgDHJz4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Apr 2020 05:55:56 -0400
+From: guoren@kernel.org
+Subject: [PATCH] csky/ftrace: Fixup error when disable CONFIG_DYNAMIC_FTRACE
+Date: Wed,  8 Apr 2020 17:55:46 +0800
+Message-ID: <20200408095546.31763-1-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Christian Brauner <christian.brauner@ubuntu.com>, Arnd Bergmann <arnd@arndb.de>, Hagen Paul Pfeifer <hagen@jauu.net>, "Eric W. Biederman" <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, kernel list <linux-kernel@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Message-ID: <20200428042814.I9Xfdz88uqmKzK-o3-OuKVq89GxmYOR2TJftItkgi-0@z>
+To: linux-csky@vger.kernel.org
+Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, guoren@kernel.org, Guo Ren <guoren@linux.alibaba.com>
+Message-ID: <20200408095546.N6dcxV5t5AbIlOJIyzP5YAfqaviXwDkPvS0AhhtgQGg@z>
 
-On Mon, Apr 27, 2020 at 9:17 PM Andy Lutomirski <luto@amacapital.net> wrote=
-:
->
-> I hate to say this, but I=E2=80=99m not convinced that asking the gdb fol=
-ks is
-> the right approach. GDB has an ancient architecture and is
-> *incredibly* buggy. I=E2=80=99m sure ptrace is somewhere on the pain poin=
-t
-> list, but I suspect it=E2=80=99s utterly dwarfed by everything else.
+From: Guo Ren <guoren@linux.alibaba.com>
 
-You may be right. However, if gdbn isn't going to use it, then I
-seriously don't think it's worth changing much.
+When CONFIG_DYNAMIC_FTRACE is enabled, static ftrace will fail to
+boot up and compile. It's a carelessness when developing "dynamic
+ftrace" and "ftrace with regs".
 
-It might be worth looking at people who don't use ptrace() for
-debugging, but for "incidental" reasons. IOW sandboxing, tracing,
-things like that.
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+---
+ arch/csky/abiv2/mcount.S  | 2 ++
+ arch/csky/kernel/ftrace.c | 2 ++
+ 2 files changed, 4 insertions(+)
 
-Maybe those people want things that are simpler and don't actually
-need the kinds of hard serialization that ptrace() wants.
-
-I'd rather add a few really simple things that might not be a full
-complement of operations for a debugger, but exactly because they
-aren't a full debugger, maybe they are things that we can tell are
-obviously secure and simple?
-
-               Linus
+diff --git a/arch/csky/abiv2/mcount.S b/arch/csky/abiv2/mcount.S
+index 9331c7ed5958..911512bf480f 100644
+--- a/arch/csky/abiv2/mcount.S
++++ b/arch/csky/abiv2/mcount.S
+@@ -103,6 +103,8 @@ ENTRY(_mcount)
+ 	mov	a0, lr
+ 	subi	a0, 4
+ 	ldw	a1, (sp, 24)
++	lrw	a2, function_trace_op
++	ldw	a2, (a2, 0)
+ 
+ 	jsr	r26
+ 
+diff --git a/arch/csky/kernel/ftrace.c b/arch/csky/kernel/ftrace.c
+index 44628e3f7fa6..3c425b84e3be 100644
+--- a/arch/csky/kernel/ftrace.c
++++ b/arch/csky/kernel/ftrace.c
+@@ -202,6 +202,7 @@ int ftrace_disable_ftrace_graph_caller(void)
+ #endif /* CONFIG_DYNAMIC_FTRACE */
+ #endif /* CONFIG_FUNCTION_GRAPH_TRACER */
+ 
++#ifdef CONFIG_DYNAMIC_FTRACE
+ #ifndef CONFIG_CPU_HAS_ICACHE_INS
+ struct ftrace_modify_param {
+ 	int command;
+@@ -231,6 +232,7 @@ void arch_ftrace_update_code(int command)
+ 	stop_machine(__ftrace_modify_code, &param, cpu_online_mask);
+ }
+ #endif
++#endif /* CONFIG_DYNAMIC_FTRACE */
+ 
+ /* _mcount is defined in abi's mcount.S */
+ EXPORT_SYMBOL(_mcount);
+-- 
+2.17.0
