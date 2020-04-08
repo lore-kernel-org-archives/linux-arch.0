@@ -1,214 +1,31 @@
-Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v10 06/26] x86/mm: Change _PAGE_DIRTY to _PAGE_DIRTY_HW
-Date: Wed, 29 Apr 2020 15:07:12 -0700
-Message-ID: <20200429220732.31602-7-yu-cheng.yu@intel.com>
-In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+Date: Wed, 8 Apr 2020 14:25:01 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: decruft the vmalloc API
+Message-ID: <20200408122501.GA20713@hirez.programming.kicks-ass.net>
+References: <20200408115926.1467567-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
 Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, Dave Hansen <dave.hansen@intel.com>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429220712.jreBU-r384j6h79CWkyrxddtR0LvSpvielHraSY6Bos@z>
+Message-ID: <20200408122501.mdR5aoQR6VFAelhBxiML_X-nB6zkMUEDvLsNznJ-nEg@z>
 
-Before introducing _PAGE_COW for non-hardware memory management purposes =
-in
-the next patch, rename _PAGE_DIRTY to _PAGE_DIRTY_HW and _PAGE_BIT_DIRTY =
-to
-_PAGE_BIT_DIRTY_HW to make meanings more clear.  There are no functional
-changes from this patch.
+On Wed, Apr 08, 2020 at 01:58:58PM +0200, Christoph Hellwig wrote:
+> Hi all,
+> 
+> Peter noticed that with some dumb luck you can toast the kernel address
+> space with exported vmalloc symbols.
+> 
+> I used this as an opportunity to decruft the vmalloc.c API and make it
+> much more systematic.  This also removes any chance to create vmalloc
+> mappings outside the designated areas or using executable permissions
+> from modules.  Besides that it removes more than 300 lines of code.
+> 
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Dave Hansen <dave.hansen@intel.com>
----
-v9:
-- At some places _PAGE_DIRTY were not changed to _PAGE_DIRTY_HW, because
-  they will be changed again in the next patch to _PAGE_DIRTY_BITS.
-  However, this causes compile issues if the next patch is not yet applie=
-d.
-  Fix it by changing all _PAGE_DIRTY to _PAGE_DRITY_HW.
+Looks great, thanks for doing this!
 
- arch/x86/include/asm/pgtable.h       | 18 +++++++++---------
- arch/x86/include/asm/pgtable_types.h | 11 +++++------
- arch/x86/kernel/relocate_kernel_64.S |  2 +-
- arch/x86/kvm/vmx/vmx.c               |  2 +-
- 4 files changed, 16 insertions(+), 17 deletions(-)
-
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtabl=
-e.h
-index 4d02e64af1b3..90f9a73881ad 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -124,7 +124,7 @@ extern pmdval_t early_pmd_flags;
-  */
- static inline int pte_dirty(pte_t pte)
- {
--	return pte_flags(pte) & _PAGE_DIRTY;
-+	return pte_flags(pte) & _PAGE_DIRTY_HW;
- }
-=20
-=20
-@@ -163,7 +163,7 @@ static inline int pte_young(pte_t pte)
-=20
- static inline int pmd_dirty(pmd_t pmd)
- {
--	return pmd_flags(pmd) & _PAGE_DIRTY;
-+	return pmd_flags(pmd) & _PAGE_DIRTY_HW;
- }
-=20
- static inline int pmd_young(pmd_t pmd)
-@@ -173,7 +173,7 @@ static inline int pmd_young(pmd_t pmd)
-=20
- static inline int pud_dirty(pud_t pud)
- {
--	return pud_flags(pud) & _PAGE_DIRTY;
-+	return pud_flags(pud) & _PAGE_DIRTY_HW;
- }
-=20
- static inline int pud_young(pud_t pud)
-@@ -333,7 +333,7 @@ static inline pte_t pte_clear_uffd_wp(pte_t pte)
-=20
- static inline pte_t pte_mkclean(pte_t pte)
- {
--	return pte_clear_flags(pte, _PAGE_DIRTY);
-+	return pte_clear_flags(pte, _PAGE_DIRTY_HW);
- }
-=20
- static inline pte_t pte_mkold(pte_t pte)
-@@ -353,7 +353,7 @@ static inline pte_t pte_mkexec(pte_t pte)
-=20
- static inline pte_t pte_mkdirty(pte_t pte)
- {
--	return pte_set_flags(pte, _PAGE_DIRTY | _PAGE_SOFT_DIRTY);
-+	return pte_set_flags(pte, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
- }
-=20
- static inline pte_t pte_mkyoung(pte_t pte)
-@@ -434,7 +434,7 @@ static inline pmd_t pmd_mkold(pmd_t pmd)
-=20
- static inline pmd_t pmd_mkclean(pmd_t pmd)
- {
--	return pmd_clear_flags(pmd, _PAGE_DIRTY);
-+	return pmd_clear_flags(pmd, _PAGE_DIRTY_HW);
- }
-=20
- static inline pmd_t pmd_wrprotect(pmd_t pmd)
-@@ -444,7 +444,7 @@ static inline pmd_t pmd_wrprotect(pmd_t pmd)
-=20
- static inline pmd_t pmd_mkdirty(pmd_t pmd)
- {
--	return pmd_set_flags(pmd, _PAGE_DIRTY | _PAGE_SOFT_DIRTY);
-+	return pmd_set_flags(pmd, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
- }
-=20
- static inline pmd_t pmd_mkdevmap(pmd_t pmd)
-@@ -488,7 +488,7 @@ static inline pud_t pud_mkold(pud_t pud)
-=20
- static inline pud_t pud_mkclean(pud_t pud)
- {
--	return pud_clear_flags(pud, _PAGE_DIRTY);
-+	return pud_clear_flags(pud, _PAGE_DIRTY_HW);
- }
-=20
- static inline pud_t pud_wrprotect(pud_t pud)
-@@ -498,7 +498,7 @@ static inline pud_t pud_wrprotect(pud_t pud)
-=20
- static inline pud_t pud_mkdirty(pud_t pud)
- {
--	return pud_set_flags(pud, _PAGE_DIRTY | _PAGE_SOFT_DIRTY);
-+	return pud_set_flags(pud, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
- }
-=20
- static inline pud_t pud_mkdevmap(pud_t pud)
-diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/=
-pgtable_types.h
-index b6606fe6cfdf..b82e0f167879 100644
---- a/arch/x86/include/asm/pgtable_types.h
-+++ b/arch/x86/include/asm/pgtable_types.h
-@@ -15,7 +15,7 @@
- #define _PAGE_BIT_PWT		3	/* page write through */
- #define _PAGE_BIT_PCD		4	/* page cache disabled */
- #define _PAGE_BIT_ACCESSED	5	/* was accessed (raised by CPU) */
--#define _PAGE_BIT_DIRTY		6	/* was written to (raised by CPU) */
-+#define _PAGE_BIT_DIRTY_HW	6	/* was written to (raised by CPU) */
- #define _PAGE_BIT_PSE		7	/* 4 MB (or 2MB) page */
- #define _PAGE_BIT_PAT		7	/* on 4KB pages */
- #define _PAGE_BIT_GLOBAL	8	/* Global TLB entry PPro+ */
-@@ -46,7 +46,7 @@
- #define _PAGE_PWT	(_AT(pteval_t, 1) << _PAGE_BIT_PWT)
- #define _PAGE_PCD	(_AT(pteval_t, 1) << _PAGE_BIT_PCD)
- #define _PAGE_ACCESSED	(_AT(pteval_t, 1) << _PAGE_BIT_ACCESSED)
--#define _PAGE_DIRTY	(_AT(pteval_t, 1) << _PAGE_BIT_DIRTY)
-+#define _PAGE_DIRTY_HW	(_AT(pteval_t, 1) << _PAGE_BIT_DIRTY_HW)
- #define _PAGE_PSE	(_AT(pteval_t, 1) << _PAGE_BIT_PSE)
- #define _PAGE_GLOBAL	(_AT(pteval_t, 1) << _PAGE_BIT_GLOBAL)
- #define _PAGE_SOFTW1	(_AT(pteval_t, 1) << _PAGE_BIT_SOFTW1)
-@@ -74,7 +74,7 @@
- 			 _PAGE_PKEY_BIT3)
-=20
- #if defined(CONFIG_X86_64) || defined(CONFIG_X86_PAE)
--#define _PAGE_KNL_ERRATUM_MASK (_PAGE_DIRTY | _PAGE_ACCESSED)
-+#define _PAGE_KNL_ERRATUM_MASK (_PAGE_DIRTY_HW | _PAGE_ACCESSED)
- #else
- #define _PAGE_KNL_ERRATUM_MASK 0
- #endif
-@@ -126,7 +126,7 @@
-  * pte_modify() does modify it.
-  */
- #define _PAGE_CHG_MASK	(PTE_PFN_MASK | _PAGE_PCD | _PAGE_PWT |		\
--			 _PAGE_SPECIAL | _PAGE_ACCESSED | _PAGE_DIRTY |	\
-+			 _PAGE_SPECIAL | _PAGE_ACCESSED | _PAGE_DIRTY_HW |	\
- 			 _PAGE_SOFT_DIRTY | _PAGE_DEVMAP | _PAGE_ENC |  \
- 			 _PAGE_UFFD_WP)
- #define _HPAGE_CHG_MASK (_PAGE_CHG_MASK | _PAGE_PSE)
-@@ -163,7 +163,7 @@ enum page_cache_mode {
- #define __RW _PAGE_RW
- #define _USR _PAGE_USER
- #define ___A _PAGE_ACCESSED
--#define ___D _PAGE_DIRTY
-+#define ___D _PAGE_DIRTY_HW
- #define ___G _PAGE_GLOBAL
- #define __NX _PAGE_NX
-=20
-@@ -205,7 +205,6 @@ enum page_cache_mode {
- #define __PAGE_KERNEL_IO		__PAGE_KERNEL
- #define __PAGE_KERNEL_IO_NOCACHE	__PAGE_KERNEL_NOCACHE
-=20
--
- #ifndef __ASSEMBLY__
-=20
- #define __PAGE_KERNEL_ENC	(__PAGE_KERNEL    | _ENC)
-diff --git a/arch/x86/kernel/relocate_kernel_64.S b/arch/x86/kernel/reloc=
-ate_kernel_64.S
-index a4d9a261425b..e3bb4ff95523 100644
---- a/arch/x86/kernel/relocate_kernel_64.S
-+++ b/arch/x86/kernel/relocate_kernel_64.S
-@@ -17,7 +17,7 @@
-  */
-=20
- #define PTR(x) (x << 3)
--#define PAGE_ATTR (_PAGE_PRESENT | _PAGE_RW | _PAGE_ACCESSED | _PAGE_DIR=
-TY)
-+#define PAGE_ATTR (_PAGE_PRESENT | _PAGE_RW | _PAGE_ACCESSED | _PAGE_DIR=
-TY_HW)
-=20
- /*
-  * control_page + KEXEC_CONTROL_CODE_MAX_SIZE
-diff --git a/arch/x86/kvm/vmx/vmx.c b/arch/x86/kvm/vmx/vmx.c
-index c2c6335a998c..d52d470e36b1 100644
---- a/arch/x86/kvm/vmx/vmx.c
-+++ b/arch/x86/kvm/vmx/vmx.c
-@@ -3501,7 +3501,7 @@ static int init_rmode_identity_map(struct kvm *kvm)
- 	/* Set up identity-mapping pagetable for EPT in real mode */
- 	for (i =3D 0; i < PT32_ENT_PER_PAGE; i++) {
- 		tmp =3D (i << 22) + (_PAGE_PRESENT | _PAGE_RW | _PAGE_USER |
--			_PAGE_ACCESSED | _PAGE_DIRTY | _PAGE_PSE);
-+			_PAGE_ACCESSED | _PAGE_DIRTY_HW | _PAGE_PSE);
- 		r =3D kvm_write_guest_page(kvm, identity_map_pfn,
- 				&tmp, i * sizeof(tmp), sizeof(tmp));
- 		if (r < 0)
---=20
-2.21.0
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
