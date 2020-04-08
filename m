@@ -1,82 +1,50 @@
-Return-Path: <SRS0=V2YN=5S=kvack.org=owner-linux-mm@kernel.org>
-Message-ID: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH RESEND 1/4] uaccess: Add user_read_access_begin/end and
- user_write_access_begin/end
-Date: Thu,  2 Apr 2020 07:34:16 +0000 (UTC)
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+Date: Wed, 8 Apr 2020 13:18:02 +0100
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 26/28] arm64: use __vmalloc_node in arch_alloc_vmap_stack
+Message-ID: <20200408121802.GA36478@lakrids.cambridge.arm.com>
+References: <20200408115926.1467567-1-hch@lst.de>
+ <20200408115926.1467567-27-hch@lst.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200408115926.1467567-27-hch@lst.de>
 Sender: owner-linux-mm@kvack.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org, james.morse@arm.com
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200402073416.vgFtZSML7ZRqIcXzychtApT9reBLb7L5DFLwFOEu2nM@z>
+Message-ID: <20200408121802.LUmQY2B7BtTlHNR68auqThFQtDuu5Mq8zvDgpZ7ZgnM@z>
 
-Some architectures like powerpc64 have the capability to separate
-read access and write access protection.
-For get_user() and copy_from_user(), powerpc64 only open read access.
-For put_user() and copy_to_user(), powerpc64 only open write access.
-But when using unsafe_get_user() or unsafe_put_user(),
-user_access_begin open both read and write.
+On Wed, Apr 08, 2020 at 01:59:24PM +0200, Christoph Hellwig wrote:
+> arch_alloc_vmap_stack can use a slightly higher level vmalloc function.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Other architectures like powerpc book3s 32 bits only allow write
-access protection. And on this architecture protection is an heavy
-operation as it requires locking/unlocking per segment of 256Mbytes.
-On those architecture it is therefore desirable to do the unlocking
-only for write access. (Note that book3s/32 ranges from very old
-powermac from the 90's with powerpc 601 processor, till modern
-ADSL boxes with PowerQuicc II modern processors for instance so it
-is still worth considering)
+Acked-by: Mark Rutland <mark.rutland@arm.com>
 
-In order to avoid any risk based of hacking some variable parameters
-passed to user_access_begin/end that would allow hacking and
-leaving user access open or opening too much, it is preferable to
-use dedicated static functions that can't be overridden.
+Mark.
 
-Add a user_read_access_begin and user_read_access_end to only open
-read access.
-
-Add a user_write_access_begin and user_write_access_end to only open
-write access.
-
-By default, when undefined, those new access helpers default on the
-existing user_access_begin and user_access_end.
-
-Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
-Link: https://patchwork.ozlabs.org/patch/1227926/
----
-Resending this series as I mistakenly only sent it to powerpc list
-begining of February (https://patchwork.ozlabs.org/patch/1233172/)
-
-This series is based on the discussion we had in January, see
-https://patchwork.ozlabs.org/patch/1227926/ . I tried to
-take into account all remarks, especially @hpa 's remark to use
-a fixed API on not base the relocking on a magic id returned at
-unlocking.
-
-This series is awaited for implementing selective lkdtm test to
-test powerpc64 independant read and write protection, see
-https://patchwork.ozlabs.org/patch/1231765/
-
- include/linux/uaccess.h | 8 ++++++++
- 1 file changed, 8 insertions(+)
-
-diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
-index 67f016010aad..9861c89f93be 100644
---- a/include/linux/uaccess.h
-+++ b/include/linux/uaccess.h
-@@ -378,6 +378,14 @@ extern long strnlen_unsafe_user(const void __user *unsafe_addr, long count);
- static inline unsigned long user_access_save(void) { return 0UL; }
- static inline void user_access_restore(unsigned long flags) { }
- #endif
-+#ifndef user_write_access_begin
-+#define user_write_access_begin user_access_begin
-+#define user_write_access_end user_access_end
-+#endif
-+#ifndef user_read_access_begin
-+#define user_read_access_begin user_access_begin
-+#define user_read_access_end user_access_end
-+#endif
- 
- #ifdef CONFIG_HARDENED_USERCOPY
- void usercopy_warn(const char *name, const char *detail, bool to_user,
--- 
-2.25.0
+> ---
+>  arch/arm64/include/asm/vmap_stack.h | 6 ++----
+>  1 file changed, 2 insertions(+), 4 deletions(-)
+> 
+> diff --git a/arch/arm64/include/asm/vmap_stack.h b/arch/arm64/include/asm/vmap_stack.h
+> index 0a12115d9638..0cc6636e3f15 100644
+> --- a/arch/arm64/include/asm/vmap_stack.h
+> +++ b/arch/arm64/include/asm/vmap_stack.h
+> @@ -19,10 +19,8 @@ static inline unsigned long *arch_alloc_vmap_stack(size_t stack_size, int node)
+>  {
+>  	BUILD_BUG_ON(!IS_ENABLED(CONFIG_VMAP_STACK));
+>  
+> -	return __vmalloc_node_range(stack_size, THREAD_ALIGN,
+> -				    VMALLOC_START, VMALLOC_END,
+> -				    THREADINFO_GFP, PAGE_KERNEL, 0, node,
+> -				    __builtin_return_address(0));
+> +	return __vmalloc_node(stack_size, THREAD_ALIGN, THREADINFO_GFP, node,
+> +			__builtin_return_address(0));
+>  }
+>  
+>  #endif /* __ASM_VMAP_STACK_H */
+> -- 
+> 2.25.1
+> 
