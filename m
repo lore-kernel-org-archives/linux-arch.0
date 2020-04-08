@@ -1,310 +1,158 @@
-Return-Path: <SRS0=Gu+A=6K=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout-p-202.mailbox.org ([80.241.56.172]:62214 "EHLO
-        mout-p-202.mailbox.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726142AbgDZNB2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Apr 2020 09:01:28 -0400
-From: Hagen Paul Pfeifer <hagen@jauu.net>
-Subject: [RFC] ptrace, pidfd: add pidfd_ptrace syscall
-Date: Sun, 26 Apr 2020 15:01:00 +0200
-Message-ID: <20200426130100.306246-1-hagen@jauu.net>
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 17/28] mm: remove the prot argument from vm_map_ram
+Date: Wed,  8 Apr 2020 13:59:15 +0200
+Message-ID: <20200408115926.1467567-18-hch@lst.de>
+In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
+References: <20200408115926.1467567-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Hagen Paul Pfeifer <hagen@jauu.net>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, "Eric W . Biederman" <ebiederm@xmission.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200426130100.CVapDRS36gghn4x8EUvRcncsEQaNAQGgZlJdd3cmdwc@z>
+Message-ID: <20200408115915.N4pB0tGuaoWNPz6_dy2hv5XJ84-bukkJmsv29e2ektE@z>
 
-Working on a safety-critical stress testing tool, using ptrace in an
-rather uncommon way (stop, peeking memory, ...) for a bunch of
-applications in an automated way I realized that once opened processes
-where restarted and PIDs recycled.  Resulting in monitoring and
-manipulating the wrong processes.
+This is always GFP_KERNEL - for long term mappings with other properties
+vmap should be used.
 
-With the advent of pidfd we are now able to stick with one stable handle
-to identifying processes exactly. We now have the ability to get this
-race free. Sending signals now works like a charm, next step is to
-extend the functionality also for ptrace.
-
-API:
-         long pidfd_ptrace(int pidfd, enum __ptrace_request request,
-                           void *addr, void *data, unsigned flags);
-
-Based on original ptrace, the following API changes where made:
-
-- Process identificator (pidfd) is now moved as first argument, this is aligned
-  with pidfd_send_signal(int pidfd, ...) because potential future pidfd_* will have
-  one thing in common: the pid identifier. I think is natural to have
-  this argument upfront
-- Add an additional flags argument, not used now - but you never know
-
-All other arguments are identical compared to ptrace - no other
-modifications where made.
-
-Currently there are some pieces missing! This is just an early proposal
-for a new syscall. Still missing:
-- support for every architecture
-- re-use shared functions and move to common place
-- perf syscall registration
-- selftests
-- ...
-
-Signed-off-by: Hagen Paul Pfeifer <hagen@jauu.net>
-Cc: Christian Brauner <christian@brauner.io>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Brian Gerst <brgerst@gmail.com>
-Cc: Sami Tolvanen <samitolvanen@google.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Aleksa Sarai <cyphar@cyphar.com>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Eric W. Biederman <ebiederm@xmission.com>
-Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
-Cc: Sargun Dhillon <sargun@sargun.me>
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/x86/entry/syscalls/syscall_32.tbl |   1 +
- arch/x86/entry/syscalls/syscall_64.tbl |   1 +
- include/linux/syscalls.h               |   2 +
- include/uapi/asm-generic/unistd.h      |   4 +-
- kernel/ptrace.c                        | 129 ++++++++++++++++++++-----
- kernel/sys_ni.c                        |   1 +
- 6 files changed, 115 insertions(+), 23 deletions(-)
+ drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c   | 2 +-
+ drivers/media/common/videobuf2/videobuf2-dma-sg.c  | 3 +--
+ drivers/media/common/videobuf2/videobuf2-vmalloc.c | 3 +--
+ fs/erofs/decompressor.c                            | 2 +-
+ fs/xfs/xfs_buf.c                                   | 2 +-
+ include/linux/vmalloc.h                            | 3 +--
+ mm/nommu.c                                         | 2 +-
+ mm/vmalloc.c                                       | 4 ++--
+ 8 files changed, 9 insertions(+), 12 deletions(-)
 
-diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-index 54581ac671b4..593f7fab90eb 100644
---- a/arch/x86/entry/syscalls/syscall_32.tbl
-+++ b/arch/x86/entry/syscalls/syscall_32.tbl
-@@ -442,3 +442,4 @@
- 435	i386	clone3			sys_clone3
- 437	i386	openat2			sys_openat2
- 438	i386	pidfd_getfd		sys_pidfd_getfd
-+438	i386	pidfd_ptrace		sys_pidfd_ptrace
-diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
-index 37b844f839bc..cd76d8343510 100644
---- a/arch/x86/entry/syscalls/syscall_64.tbl
-+++ b/arch/x86/entry/syscalls/syscall_64.tbl
-@@ -359,6 +359,7 @@
- 435	common	clone3			sys_clone3
- 437	common	openat2			sys_openat2
- 438	common	pidfd_getfd		sys_pidfd_getfd
-+439	common	pidfd_ptrace		sys_pidfd_ptrace
- 
- #
- # x32-specific system call numbers start at 512 to avoid cache impact
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 1815065d52f3..254b071a5334 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -1003,6 +1003,8 @@ asmlinkage long sys_pidfd_send_signal(int pidfd, int sig,
- 				       siginfo_t __user *info,
- 				       unsigned int flags);
- asmlinkage long sys_pidfd_getfd(int pidfd, int fd, unsigned int flags);
-+asmlinkage long sys_pidfd_ptrace(int pidfd, long request, unsigned long addr,
-+		                 unsigned long data, unsigned int flags);
- 
- /*
-  * Architecture-specific system calls
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index 3a3201e4618e..64749a6f156e 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -855,9 +855,11 @@ __SYSCALL(__NR_clone3, sys_clone3)
- __SYSCALL(__NR_openat2, sys_openat2)
- #define __NR_pidfd_getfd 438
- __SYSCALL(__NR_pidfd_getfd, sys_pidfd_getfd)
-+#define __NR_pidfd_getfd 439
-+__SYSCALL(__NR_pidfd_ptrace, sys_pidfd_ptrace)
- 
- #undef __NR_syscalls
--#define __NR_syscalls 439
-+#define __NR_syscalls 440
- 
- /*
-  * 32 bit systems traditionally used different
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 43d6179508d6..8f4e99247742 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -29,6 +29,7 @@
- #include <linux/regset.h>
- #include <linux/hw_breakpoint.h>
- #include <linux/cn_proc.h>
-+#include <linux/proc_fs.h>
- #include <linux/compat.h>
- #include <linux/sched/signal.h>
- 
-@@ -1239,48 +1240,132 @@ int ptrace_request(struct task_struct *child, long request,
- #define arch_ptrace_attach(child)	do { } while (0)
- #endif
- 
-+static inline long ptrace_call(struct task_struct *task, long request, unsigned long addr,
-+		               unsigned long data)
-+{
-+	long ret;
-+
-+	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
-+		ret = ptrace_attach(task, request, addr, data);
-+		/*
-+		 * Some architectures need to do book-keeping after
-+		 * a ptrace attach.
-+		 */
-+		if (!ret)
-+			arch_ptrace_attach(task);
-+		goto out;
-+	}
-+
-+	ret = ptrace_check_attach(task, request == PTRACE_KILL ||
-+				  request == PTRACE_INTERRUPT);
-+	if (ret < 0)
-+		goto out;
-+
-+	ret = arch_ptrace(task, request, addr, data);
-+	if (ret || request != PTRACE_DETACH)
-+		ptrace_unfreeze_traced(task);
-+
-+ out:
-+	put_task_struct(task);
-+	return ret;
-+}
-+
- SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr,
- 		unsigned long, data)
+diff --git a/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c b/drivers/g=
+pu/drm/i915/gem/selftests/mock_dmabuf.c
+index 9272bef57092..debaf7b18ab5 100644
+--- a/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c
++++ b/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c
+@@ -66,7 +66,7 @@ static void *mock_dmabuf_vmap(struct dma_buf *dma_buf)
  {
--	struct task_struct *child;
-+	struct task_struct *task;
- 	long ret;
- 
- 	if (request == PTRACE_TRACEME) {
- 		ret = ptrace_traceme();
- 		if (!ret)
- 			arch_ptrace_attach(current);
--		goto out;
-+		return ret;
- 	}
- 
--	child = find_get_task_by_vpid(pid);
--	if (!child) {
-+	task = find_get_task_by_vpid(pid);
-+	if (!task) {
- 		ret = -ESRCH;
- 		goto out;
- 	}
- 
--	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
--		ret = ptrace_attach(child, request, addr, data);
--		/*
--		 * Some architectures need to do book-keeping after
--		 * a ptrace attach.
--		 */
-+
-+	ret = ptrace_call(task, request, addr, data);
-+out:
-+	return ret;
-+}
-+
-+static struct pid *pidfd_to_pid(const struct file *file)
-+{
-+	struct pid *pid;
-+
-+	pid = pidfd_pid(file);
-+	if (!IS_ERR(pid))
-+		return pid;
-+
-+	return tgid_pidfd_to_pid(file);
-+}
-+
-+static bool access_pidfd_pidns(struct pid *pid)
-+{
-+	struct pid_namespace *active = task_active_pid_ns(current);
-+	struct pid_namespace *p = ns_of_pid(pid);
-+
-+	for (;;) {
-+		if (!p)
-+			return false;
-+		if (p == active)
-+			break;
-+		p = p->parent;
-+	}
-+
-+	return true;
-+}
-+
-+SYSCALL_DEFINE5(pidfd_ptrace, int, pidfd, long, request, unsigned long, addr,
-+		unsigned long, data, unsigned int, flags)
-+{
-+	long ret;
-+	struct fd f;
-+	struct pid *pid;
-+	struct task_struct *task;
-+
-+	/* Enforce flags be set to 0 until we add an extension. */
-+	if (flags)
-+		return -EINVAL;
-+
-+	if (request == PTRACE_TRACEME) {
-+		ret = ptrace_traceme();
- 		if (!ret)
--			arch_ptrace_attach(child);
--		goto out_put_task_struct;
-+			arch_ptrace_attach(current);
-+		goto out;
- 	}
- 
--	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
--				  request == PTRACE_INTERRUPT);
--	if (ret < 0)
--		goto out_put_task_struct;
-+	f = fdget(pidfd);
-+	if (!f.file)
-+		return -EBADF;
- 
--	ret = arch_ptrace(child, request, addr, data);
--	if (ret || request != PTRACE_DETACH)
--		ptrace_unfreeze_traced(child);
-+	/* Is this a pidfd? */
-+	pid = pidfd_to_pid(f.file);
-+	if (IS_ERR(pid)) {
-+		ret = PTR_ERR(pid);
-+		goto err;
-+	}
- 
-- out_put_task_struct:
--	put_task_struct(child);
-- out:
-+	ret = -EINVAL;
-+	if (!access_pidfd_pidns(pid))
-+		goto err;
-+
-+	task = pid_task(pid, PIDTYPE_PID);
-+	if (!task) {
-+		ret = -EINVAL;
-+		goto err;
-+	}
-+
-+	ret = ptrace_call(task, request, addr, data);
-+err:
-+	fdput(f);
-+out:
- 	return ret;
+ 	struct mock_dmabuf *mock =3D to_mock(dma_buf);
+=20
+-	return vm_map_ram(mock->pages, mock->npages, 0, PAGE_KERNEL);
++	return vm_map_ram(mock->pages, mock->npages, 0);
  }
- 
-diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
-index 3b69a560a7ac..f7795294b8c4 100644
---- a/kernel/sys_ni.c
-+++ b/kernel/sys_ni.c
-@@ -166,6 +166,7 @@ COND_SYSCALL(delete_module);
- COND_SYSCALL(syslog);
- 
- /* kernel/ptrace.c */
-+COND_SYSCALL_COMPAT(pidfd_ptrace);
- 
- /* kernel/sched/core.c */
- 
--- 
-2.26.2
+=20
+ static void mock_dmabuf_vunmap(struct dma_buf *dma_buf, void *vaddr)
+diff --git a/drivers/media/common/videobuf2/videobuf2-dma-sg.c b/drivers/=
+media/common/videobuf2/videobuf2-dma-sg.c
+index 6db60e9d5183..92072a08af25 100644
+--- a/drivers/media/common/videobuf2/videobuf2-dma-sg.c
++++ b/drivers/media/common/videobuf2/videobuf2-dma-sg.c
+@@ -309,8 +309,7 @@ static void *vb2_dma_sg_vaddr(void *buf_priv)
+ 		if (buf->db_attach)
+ 			buf->vaddr =3D dma_buf_vmap(buf->db_attach->dmabuf);
+ 		else
+-			buf->vaddr =3D vm_map_ram(buf->pages,
+-					buf->num_pages, -1, PAGE_KERNEL);
++			buf->vaddr =3D vm_map_ram(buf->pages, buf->num_pages, -1);
+ 	}
+=20
+ 	/* add offset in case userptr is not page-aligned */
+diff --git a/drivers/media/common/videobuf2/videobuf2-vmalloc.c b/drivers=
+/media/common/videobuf2/videobuf2-vmalloc.c
+index 1a4f0ca87c7c..c66fda4a65e4 100644
+--- a/drivers/media/common/videobuf2/videobuf2-vmalloc.c
++++ b/drivers/media/common/videobuf2/videobuf2-vmalloc.c
+@@ -107,8 +107,7 @@ static void *vb2_vmalloc_get_userptr(struct device *d=
+ev, unsigned long vaddr,
+ 		buf->vaddr =3D (__force void *)
+ 			ioremap(__pfn_to_phys(nums[0]), size + offset);
+ 	} else {
+-		buf->vaddr =3D vm_map_ram(frame_vector_pages(vec), n_pages, -1,
+-					PAGE_KERNEL);
++		buf->vaddr =3D vm_map_ram(frame_vector_pages(vec), n_pages, -1);
+ 	}
+=20
+ 	if (!buf->vaddr)
+diff --git a/fs/erofs/decompressor.c b/fs/erofs/decompressor.c
+index 5d2d81940679..7628816f2453 100644
+--- a/fs/erofs/decompressor.c
++++ b/fs/erofs/decompressor.c
+@@ -274,7 +274,7 @@ static int z_erofs_decompress_generic(struct z_erofs_=
+decompress_req *rq,
+=20
+ 	i =3D 0;
+ 	while (1) {
+-		dst =3D vm_map_ram(rq->out, nrpages_out, -1, PAGE_KERNEL);
++		dst =3D vm_map_ram(rq->out, nrpages_out, -1);
+=20
+ 		/* retry two more times (totally 3 times) */
+ 		if (dst || ++i >=3D 3)
+diff --git a/fs/xfs/xfs_buf.c b/fs/xfs/xfs_buf.c
+index f880141a2268..940af9da6db1 100644
+--- a/fs/xfs/xfs_buf.c
++++ b/fs/xfs/xfs_buf.c
+@@ -474,7 +474,7 @@ _xfs_buf_map_pages(
+ 		nofs_flag =3D memalloc_nofs_save();
+ 		do {
+ 			bp->b_addr =3D vm_map_ram(bp->b_pages, bp->b_page_count,
+-						-1, PAGE_KERNEL);
++						-1);
+ 			if (bp->b_addr)
+ 				break;
+ 			vm_unmap_aliases();
+diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+index 15ffbd8e8e65..9273b1a91ca5 100644
+--- a/include/linux/vmalloc.h
++++ b/include/linux/vmalloc.h
+@@ -88,8 +88,7 @@ struct vmap_area {
+  *	Highlevel APIs for driver use
+  */
+ extern void vm_unmap_ram(const void *mem, unsigned int count);
+-extern void *vm_map_ram(struct page **pages, unsigned int count,
+-				int node, pgprot_t prot);
++extern void *vm_map_ram(struct page **pages, unsigned int count, int nod=
+e);
+ extern void vm_unmap_aliases(void);
+=20
+ #ifdef CONFIG_MMU
+diff --git a/mm/nommu.c b/mm/nommu.c
+index 318df4e236c9..4f07b7ef0297 100644
+--- a/mm/nommu.c
++++ b/mm/nommu.c
+@@ -351,7 +351,7 @@ void vunmap(const void *addr)
+ }
+ EXPORT_SYMBOL(vunmap);
+=20
+-void *vm_map_ram(struct page **pages, unsigned int count, int node, pgpr=
+ot_t prot)
++void *vm_map_ram(struct page **pages, unsigned int count, int node)
+ {
+ 	BUG();
+ 	return NULL;
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 258220b203f1..7356b3f07bd8 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -1834,7 +1834,7 @@ EXPORT_SYMBOL(vm_unmap_ram);
+  *
+  * Returns: a pointer to the address that has been mapped, or %NULL on f=
+ailure
+  */
+-void *vm_map_ram(struct page **pages, unsigned int count, int node, pgpr=
+ot_t prot)
++void *vm_map_ram(struct page **pages, unsigned int count, int node)
+ {
+ 	unsigned long size =3D (unsigned long)count << PAGE_SHIFT;
+ 	unsigned long addr;
+@@ -1858,7 +1858,7 @@ void *vm_map_ram(struct page **pages, unsigned int =
+count, int node, pgprot_t pro
+=20
+ 	kasan_unpoison_vmalloc(mem, size);
+=20
+-	if (map_kernel_range(addr, size, prot, pages) < 0) {
++	if (map_kernel_range(addr, size, PAGE_KERNEL, pages) < 0) {
+ 		vm_unmap_ram(mem, count);
+ 		return NULL;
+ 	}
+--=20
+2.25.1
