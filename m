@@ -1,39 +1,61 @@
-Return-Path: <SRS0=jgxL=6L=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39128 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726504AbgD0JAN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2020 05:00:13 -0400
-Date: Mon, 27 Apr 2020 11:00:05 +0200 (CEST)
-From: Hagen Paul Pfeifer <hagen@jauu.net>
-Reply-To: Hagen Paul Pfeifer <hagen@jauu.net>
-Message-ID: <2008370628.171531.1587978005102@office.mailbox.org>
-In-Reply-To: <CAK8P3a1qdyw+5B-E52O42VEWvpq_6jF74__ptM+q6SoKd3pkuA@mail.gmail.com>
-References: <20200426130100.306246-1-hagen@jauu.net>
- <20200426163430.22743-1-hagen@jauu.net>
- <CAK8P3a1qdyw+5B-E52O42VEWvpq_6jF74__ptM+q6SoKd3pkuA@mail.gmail.com>
-Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
+Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
+ zsmalloc
+References: <20200408115926.1467567-1-hch@lst.de>
+ <20200408115926.1467567-11-hch@lst.de>
+ <c0c86feb-b3d8-78f2-127f-71d682ffc51f@infradead.org>
+ <20200408151203.GN20730@hirez.programming.kicks-ass.net>
+ <20200408151519.GQ21484@bombadil.infradead.org>
+From: Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <139a494a-f946-fd4b-4854-6ff625e4c24f@infradead.org>
+Date: Wed, 8 Apr 2020 08:36:56 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+In-Reply-To: <20200408151519.GQ21484@bombadil.infradead.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
-Sender: linux-arch-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
+To: Matthew Wilcox <willy@infradead.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, "Eric W . Biederman" <ebiederm@xmission.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200427090005.j828ET97Vh-cXFs9nZsqmuvnSqCVQCgYbPAGCLM6gDg@z>
+Message-ID: <20200408153656.-i3k-SSQj5Qi2kRENxr3Z7RFzg7xdgbcqH3OO87EwJY@z>
 
-> On April 27, 2020 10:30 AM Arnd Bergmann <arnd@arndb.de> wrote:
+On 4/8/20 8:15 AM, Matthew Wilcox wrote:
+> On Wed, Apr 08, 2020 at 05:12:03PM +0200, Peter Zijlstra wrote:
+>> On Wed, Apr 08, 2020 at 08:01:00AM -0700, Randy Dunlap wrote:
+>>> Hi,
+>>>
+>>> On 4/8/20 4:59 AM, Christoph Hellwig wrote:
+>>>> diff --git a/mm/Kconfig b/mm/Kconfig
+>>>> index 36949a9425b8..614cc786b519 100644
+>>>> --- a/mm/Kconfig
+>>>> +++ b/mm/Kconfig
+>>>> @@ -702,7 +702,7 @@ config ZSMALLOC
+>>>>  
+>>>>  config ZSMALLOC_PGTABLE_MAPPING
+>>>>  	bool "Use page table mapping to access object in zsmalloc"
+>>>> -	depends on ZSMALLOC
+>>>> +	depends on ZSMALLOC=y
+>>>
+>>> It's a bool so this shouldn't matter... not needed.
+>>
+>> My mm/Kconfig has:
+>>
+>> config ZSMALLOC
+>> 	tristate "Memory allocator for compressed pages"
+>> 	depends on MMU
+>>
+>> which I think means it can be modular, no?
 
-Hey Arnd
+ack. I misread it.
 
-> When you add a new system call, please add it to all architectures.
-> See the patches for the last few additions on how to do it, in
-> particular the bit around adding the arm64 compat entry that is
-> a bit tricky.
+> Randy means that ZSMALLOC_PGTABLE_MAPPING is a bool, so I think hch's patch
+> is wrong ... if ZSMALLOC is 'm' then ZSMALLOC_PGTABLE_MAPPING would become
+> 'n' instead of 'y'.
 
-Yes, the patch was intended to be as an rough (but x86_64 working)
-RFC patch to basically check if there is interest in it. Or whether
-there are fundamental reasons against pidfd_ptrace().
+sigh, I wish that I had meant that. :)
 
-If not I will prepare v3 with all input, sure! Thank you Arnd
+thanks.
 
-Hagen
+-- 
+~Randy
