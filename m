@@ -1,98 +1,53 @@
-From: Gerhard Pircher <gerhard_pircher@gmx.net>
-Subject: Re: [PATCH 19/28] gpu/drm: remove the powerpc hack in
- drm_legacy_sg_alloc
-Date: Thu, 9 Apr 2020 13:46:26 +0200
-Message-ID: <d4a82787-5dd2-ccde-79b4-ff44848ba04e@gmx.net>
-References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-20-hch@lst.de>
- <20200408122504.GO3456981@phenom.ffwll.local>
- <eb48f7b6327e482ea9911b129210c0417ab48345.camel@kernel.crashing.org>
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v3 21/26] arm64: Introduce asm/vdso/arch_timer.h
+Date: Thu, 9 Apr 2020 14:26:34 +0100
+Message-ID: <20200409132633.GD13078@willie-the-truck>
+References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
+ <20200313154345.56760-22-vincenzo.frascino@arm.com>
+ <20200315183151.GE32205@mbp>
+ <4914ad9c-3eaf-b328-f31b-5d3077ef272f@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <eb48f7b6327e482ea9911b129210c0417ab48345.camel@kernel.crashing.org>
-Content-Language: de-AT
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Daniel Vetter <daniel@ffwll.ch>, Christoph Hellwig <hch@lst.de>
-Cc: linux-hyperv@vger.kernel.org, David Airlie <airlied@linux.ie>, dri-devel@lists.freedesktop.org, linux-mm@kvack.org, "K. Y. Srinivasan" <kys@microsoft.com>, Sumit Semwal <sumit.semwal@linaro.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Wei Liu <wei.liu@kernel.org>, Stephen Hemminger <sthemmin@microsoft.com>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Laura Abbott <labbott@redhat.com>, Nitin Gupta <ngupta@vflare.org>, Haiyang Zhang <haiyangz@microsoft.com>, linaro-mm-sig@lists.linaro.org, Andrew Morton <akpm@linux-foundation.org>, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, Minchan Kim <minchan@kernel.org>, iommu@lists.linux-foundation.org, Sakari Ailus <sakari.ailus@linux.intel.com>, bpf@vger.kernel.org, Robin Murphy <robin.murphy@arm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <4914ad9c-3eaf-b328-f31b-5d3077ef272f@arm.com>
+Sender: linux-mips-owner@vger.kernel.org
+To: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Am 09.04.20 um 10:54 schrieb Benjamin Herrenschmidt:
-> On Wed, 2020-04-08 at 14:25 +0200, Daniel Vetter wrote:
->> On Wed, Apr 08, 2020 at 01:59:17PM +0200, Christoph Hellwig wrote:
->>> If this code was broken for non-coherent caches a crude powerpc hack
->>> isn't going to help anyone else.  Remove the hack as it is the last
->>> user of __vmalloc passing a page protection flag other than PAGE_KERNEL.
->>
->> Well Ben added this to make stuff work on ppc, ofc the home grown dma
->> layer in drm from back then isn't going to work in other places. I guess
->> should have at least an ack from him, in case anyone still cares about
->> this on ppc. Adding Ben to cc.
->
-> This was due to some drivers (radeon ?) trying to use vmalloc pages for
-> coherent DMA, which means on those 4xx powerpc's need to be non-cached.
->
-> There were machines using that (440 based iirc), though I honestly
-> can't tell if anybody still uses any of it.
-The first-gen amigaone platform (6xx/book32s) uses the radeon driver
-together with non-coherent DMA. However this only ever worked reliably
-for DRI1.
+Hi Vincenzo,
 
-br,
-Gerhard
+Sorry, I was on holiday when you posted this and it slipped through the
+cracks.
 
-> Cheers,
-> Ben.
->
->> -Daniel
->>
->>>
->>> Signed-off-by: Christoph Hellwig <hch@lst.de>
->>> ---
->>>  drivers/gpu/drm/drm_scatter.c | 11 +----------
->>>  1 file changed, 1 insertion(+), 10 deletions(-)
->>>
->>> diff --git a/drivers/gpu/drm/drm_scatter.c b/drivers/gpu/drm/drm_scatter.c
->>> index ca520028b2cb..f4e6184d1877 100644
->>> --- a/drivers/gpu/drm/drm_scatter.c
->>> +++ b/drivers/gpu/drm/drm_scatter.c
->>> @@ -43,15 +43,6 @@
->>>
->>>  #define DEBUG_SCATTER 0
->>>
->>> -static inline void *drm_vmalloc_dma(unsigned long size)
->>> -{
->>> -#if defined(__powerpc__) && defined(CONFIG_NOT_COHERENT_CACHE)
->>> -	return __vmalloc(size, GFP_KERNEL, pgprot_noncached_wc(PAGE_KERNEL));
->>> -#else
->>> -	return vmalloc_32(size);
->>> -#endif
->>> -}
->>> -
->>>  static void drm_sg_cleanup(struct drm_sg_mem * entry)
->>>  {
->>>  	struct page *page;
->>> @@ -126,7 +117,7 @@ int drm_legacy_sg_alloc(struct drm_device *dev, void *data,
->>>  		return -ENOMEM;
->>>  	}
->>>
->>> -	entry->virtual = drm_vmalloc_dma(pages << PAGE_SHIFT);
->>> +	entry->virtual = vmalloc_32(pages << PAGE_SHIFT);
->>>  	if (!entry->virtual) {
->>>  		kfree(entry->busaddr);
->>>  		kfree(entry->pagelist);
->>> --
->>> 2.25.1
->>>
->>
->>
->
+On Mon, Mar 16, 2020 at 03:37:23PM +0000, Vincenzo Frascino wrote:
+> > On Fri, Mar 13, 2020 at 03:43:40PM +0000, Vincenzo Frascino wrote:
+> >> The vDSO library should only include the necessary headers required for
+> >> a userspace library (UAPI and a minimal set of kernel headers). To make
+> >> this possible it is necessary to isolate from the kernel headers the
+> >> common parts that are strictly necessary to build the library.
+> >>
+> >> Introduce asm/vdso/arch_timer.h to contain all the arm64 specific
+> >> code. This allows to replace the second isb() in __arch_get_hw_counter()
+> >> with a fake dependent stack read of the counter which improves the vdso
+> >> library peformances of ~4.5%. Below the results of vdsotest [1] ran for
+> >> 100 iterations.
+> > 
+> > The subject seems to imply a non-functional change but as you read, it
+> > gets a lot more complicated. Could you keep the functional change
+> > separate from the header clean-up, maybe submit it as an independent
+> > patch? And it shouldn't go in without Will's ack ;).
+> > 
+> 
+> It is fine by me. I will repost the series with the required fixes and without
+> this patch. This will give to me enough time to address Mark's comments as well
+> and to Will to have a proper look.
+
+Please can you post whatever is left at -rc1? I'll have a look then, but
+let's stick to just moving code around rather than randomly changing it
+at the same time, ok?
+
+Thanks,
+
+Will
