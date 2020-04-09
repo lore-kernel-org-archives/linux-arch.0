@@ -1,188 +1,104 @@
-Return-Path: <SRS0=w+Hx=56=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54956 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2502746AbgDNNO6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Apr 2020 09:14:58 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 13/29] mm: remove vmap_page_range_noflush and vunmap_page_range
-Date: Tue, 14 Apr 2020 15:13:32 +0200
-Message-ID: <20200414131348.444715-14-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+Return-Path: <SRS0=yGje=5Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:29590 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1727978AbgDIPWL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2020 11:22:11 -0400
+From: Alex Belits <abelits@marvell.com>
+Subject: [PATCH 05/13] task_isolation: Add task isolation hooks to
+  arch-independent code
+Date: Thu, 9 Apr 2020 15:21:41 +0000
+Message-ID: <74b9aa603bc03fe572cc4cd51ba2f8e2829b6ed5.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+         <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
+In-Reply-To: <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <1E0295570786A34A894120F715BCC68A@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200414131332.CxXQePPZlkUhvm0m7Rph8D4jppNtibYFVbA3I01hcPQ@z>
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+Message-ID: <20200409152141.odCqZgksIXnpDXa9TkdiKHGBn1MzrnAQ_x1bcjOxjp8@z>
 
-These have non-static aliases called map_kernel_range_noflush and
-unmap_kernel_range_noflush that just differ slightly in the calling
-conventions that pass addr + size instead of an end.
-
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- mm/vmalloc.c | 98 +++++++++++++++++++++-------------------------------
- 1 file changed, 40 insertions(+), 58 deletions(-)
-
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index aada9e9144bd..55df5dc6a9fc 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -127,10 +127,24 @@ static void vunmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end)
- 	} while (p4d++, addr = next, addr != end);
- }
- 
--static void vunmap_page_range(unsigned long addr, unsigned long end)
-+/**
-+ * unmap_kernel_range_noflush - unmap kernel VM area
-+ * @addr: start of the VM area to unmap
-+ * @size: size of the VM area to unmap
-+ *
-+ * Unmap PFN_UP(@size) pages at @addr.  The VM area @addr and @size specify
-+ * should have been allocated using get_vm_area() and its friends.
-+ *
-+ * NOTE:
-+ * This function does NOT do any cache flushing.  The caller is responsible
-+ * for calling flush_cache_vunmap() on to-be-mapped areas before calling this
-+ * function and flush_tlb_kernel_range() after.
-+ */
-+void unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
- {
--	pgd_t *pgd;
-+	unsigned long end = addr + size;
- 	unsigned long next;
-+	pgd_t *pgd;
- 
- 	BUG_ON(addr >= end);
- 	pgd = pgd_offset_k(addr);
-@@ -219,18 +233,30 @@ static int vmap_p4d_range(pgd_t *pgd, unsigned long addr,
- 	return 0;
- }
- 
--/*
-- * Set up page tables in kva (addr, end). The ptes shall have prot "prot", and
-- * will have pfns corresponding to the "pages" array.
-+/**
-+ * map_kernel_range_noflush - map kernel VM area with the specified pages
-+ * @addr: start of the VM area to map
-+ * @size: size of the VM area to map
-+ * @prot: page protection flags to use
-+ * @pages: pages to map
-  *
-- * Ie. pte at addr+N*PAGE_SIZE shall point to pfn corresponding to pages[N]
-+ * Map PFN_UP(@size) pages at @addr.  The VM area @addr and @size specify should
-+ * have been allocated using get_vm_area() and its friends.
-+ *
-+ * NOTE:
-+ * This function does NOT do any cache flushing.  The caller is responsible for
-+ * calling flush_cache_vmap() on to-be-mapped areas before calling this
-+ * function.
-+ *
-+ * RETURNS:
-+ * The number of pages mapped on success, -errno on failure.
-  */
--static int vmap_page_range_noflush(unsigned long start, unsigned long end,
--				   pgprot_t prot, struct page **pages)
-+int map_kernel_range_noflush(unsigned long addr, unsigned long size,
-+			     pgprot_t prot, struct page **pages)
- {
--	pgd_t *pgd;
-+	unsigned long end = addr + size;
- 	unsigned long next;
--	unsigned long addr = start;
-+	pgd_t *pgd;
- 	int err = 0;
- 	int nr = 0;
- 
-@@ -251,7 +277,7 @@ static int vmap_page_range(unsigned long start, unsigned long end,
- {
- 	int ret;
- 
--	ret = vmap_page_range_noflush(start, end, prot, pages);
-+	ret = map_kernel_range_noflush(start, end - start, prot, pages);
- 	flush_cache_vmap(start, end);
- 	return ret;
- }
-@@ -1226,7 +1252,7 @@ EXPORT_SYMBOL_GPL(unregister_vmap_purge_notifier);
-  */
- static void unmap_vmap_area(struct vmap_area *va)
- {
--	vunmap_page_range(va->va_start, va->va_end);
-+	unmap_kernel_range_noflush(va->va_start, va->va_end - va->va_start);
- }
- 
- /*
-@@ -1686,7 +1712,7 @@ static void vb_free(unsigned long addr, unsigned long size)
- 	rcu_read_unlock();
- 	BUG_ON(!vb);
- 
--	vunmap_page_range(addr, addr + size);
-+	unmap_kernel_range_noflush(addr, size);
- 
- 	if (debug_pagealloc_enabled_static())
- 		flush_tlb_kernel_range(addr, addr + size);
-@@ -1984,50 +2010,6 @@ void __init vmalloc_init(void)
- 	vmap_initialized = true;
- }
- 
--/**
-- * map_kernel_range_noflush - map kernel VM area with the specified pages
-- * @addr: start of the VM area to map
-- * @size: size of the VM area to map
-- * @prot: page protection flags to use
-- * @pages: pages to map
-- *
-- * Map PFN_UP(@size) pages at @addr.  The VM area @addr and @size
-- * specify should have been allocated using get_vm_area() and its
-- * friends.
-- *
-- * NOTE:
-- * This function does NOT do any cache flushing.  The caller is
-- * responsible for calling flush_cache_vmap() on to-be-mapped areas
-- * before calling this function.
-- *
-- * RETURNS:
-- * The number of pages mapped on success, -errno on failure.
-- */
--int map_kernel_range_noflush(unsigned long addr, unsigned long size,
--			     pgprot_t prot, struct page **pages)
--{
--	return vmap_page_range_noflush(addr, addr + size, prot, pages);
--}
--
--/**
-- * unmap_kernel_range_noflush - unmap kernel VM area
-- * @addr: start of the VM area to unmap
-- * @size: size of the VM area to unmap
-- *
-- * Unmap PFN_UP(@size) pages at @addr.  The VM area @addr and @size
-- * specify should have been allocated using get_vm_area() and its
-- * friends.
-- *
-- * NOTE:
-- * This function does NOT do any cache flushing.  The caller is
-- * responsible for calling flush_cache_vunmap() on to-be-mapped areas
-- * before calling this function and flush_tlb_kernel_range() after.
-- */
--void unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
--{
--	vunmap_page_range(addr, addr + size);
--}
--
- /**
-  * unmap_kernel_range - unmap kernel VM area and flush cache and TLB
-  * @addr: start of the VM area to unmap
-@@ -2041,7 +2023,7 @@ void unmap_kernel_range(unsigned long addr, unsigned long size)
- 	unsigned long end = addr + size;
- 
- 	flush_cache_vunmap(addr, end);
--	vunmap_page_range(addr, end);
-+	unmap_kernel_range_noflush(addr, size);
- 	flush_tlb_kernel_range(addr, end);
- }
- 
--- 
-2.25.1
+RnJvbTogQ2hyaXMgTWV0Y2FsZiA8Y21ldGNhbGZAbWVsbGFub3guY29tPg0KDQpUaGlzIGNvbW1p
+dCBhZGRzIHRhc2sgaXNvbGF0aW9uIGhvb2tzIGFzIGZvbGxvd3M6DQoNCi0gX19oYW5kbGVfZG9t
+YWluX2lycSgpIGdlbmVyYXRlcyBhbiBpc29sYXRpb24gd2FybmluZyBmb3IgdGhlDQogIGxvY2Fs
+IHRhc2sNCg0KLSBpcnFfd29ya19xdWV1ZV9vbigpIGdlbmVyYXRlcyBhbiBpc29sYXRpb24gd2Fy
+bmluZyBmb3IgdGhlIHJlbW90ZQ0KICB0YXNrIGJlaW5nIGludGVycnVwdGVkIGZvciBpcnFfd29y
+aw0KDQotIGdlbmVyaWNfZXhlY19zaW5nbGUoKSBnZW5lcmF0ZXMgYSByZW1vdGUgaXNvbGF0aW9u
+IHdhcm5pbmcgZm9yDQogIHRoZSByZW1vdGUgY3B1IGJlaW5nIElQSSdkDQoNCi0gc21wX2NhbGxf
+ZnVuY3Rpb25fbWFueSgpIGdlbmVyYXRlcyBhIHJlbW90ZSBpc29sYXRpb24gd2FybmluZyBmb3IN
+CiAgdGhlIHNldCBvZiByZW1vdGUgY3B1cyBiZWluZyBJUEknZA0KDQpDYWxscyB0byB0YXNrX2lz
+b2xhdGlvbl9yZW1vdGUoKSBvciB0YXNrX2lzb2xhdGlvbl9pbnRlcnJ1cHQoKSBjYW4NCmJlIHBs
+YWNlZCBpbiB0aGUgcGxhdGZvcm0taW5kZXBlbmRlbnQgY29kZSBsaWtlIHRoaXMgd2hlbiBkb2lu
+ZyBzbw0KcmVzdWx0cyBpbiBmZXdlciBsaW5lcyBvZiBjb2RlIGNoYW5nZXMsIGFzIGZvciBleGFt
+cGxlIGlzIHRydWUgb2YNCnRoZSB1c2VycyBvZiB0aGUgYXJjaF9zZW5kX2NhbGxfZnVuY3Rpb25f
+KigpIEFQSXMuIE9yLCB0aGV5IGNhbiBiZQ0KcGxhY2VkIGluIHRoZSBwZXItYXJjaGl0ZWN0dXJl
+IGNvZGUgd2hlbiB0aGVyZSBhcmUgbWFueSBjYWxsZXJzLA0KYXMgZm9yIGV4YW1wbGUgaXMgdHJ1
+ZSBvZiB0aGUgc21wX3NlbmRfcmVzY2hlZHVsZSgpIGNhbGwuDQoNCkEgZnVydGhlciBjbGVhbnVw
+IG1pZ2h0IGJlIHRvIGNyZWF0ZSBhbiBpbnRlcm1lZGlhdGUgbGF5ZXIsIHNvIHRoYXQNCmZvciBl
+eGFtcGxlIHNtcF9zZW5kX3Jlc2NoZWR1bGUoKSBpcyBhIHNpbmdsZSBnZW5lcmljIGZ1bmN0aW9u
+IHRoYXQNCmp1c3QgY2FsbHMgYXJjaF9zbXBfc2VuZF9yZXNjaGVkdWxlKCksIGFsbG93aW5nIGdl
+bmVyaWMgY29kZSB0byBiZQ0KY2FsbGVkIGV2ZXJ5IHRpbWUgc21wX3NlbmRfcmVzY2hlZHVsZSgp
+IGlzIGludm9rZWQuIEJ1dCBmb3Igbm93LCB3ZQ0KanVzdCB1cGRhdGUgZWl0aGVyIGNhbGxlcnMg
+b3IgY2FsbGVlcyBhcyBtYWtlcyBtb3N0IHNlbnNlLg0KDQpTaWduZWQtb2ZmLWJ5OiBDaHJpcyBN
+ZXRjYWxmIDxjbWV0Y2FsZkBtZWxsYW5veC5jb20+DQpbYWJlbGl0c0BtYXJ2ZWxsLmNvbTogYWRh
+cHRlZCBmb3Iga2VybmVsIDUuNl0NClNpZ25lZC1vZmYtYnk6IEFsZXggQmVsaXRzIDxhYmVsaXRz
+QG1hcnZlbGwuY29tPg0KLS0tDQoga2VybmVsL2lycS9pcnFkZXNjLmMgfCA5ICsrKysrKysrKw0K
+IGtlcm5lbC9pcnFfd29yay5jICAgIHwgNSArKysrLQ0KIGtlcm5lbC9zbXAuYyAgICAgICAgIHwg
+NiArKysrKy0NCiAzIGZpbGVzIGNoYW5nZWQsIDE4IGluc2VydGlvbnMoKyksIDIgZGVsZXRpb25z
+KC0pDQoNCmRpZmYgLS1naXQgYS9rZXJuZWwvaXJxL2lycWRlc2MuYyBiL2tlcm5lbC9pcnEvaXJx
+ZGVzYy5jDQppbmRleCA5OGE1ZjEwZDE5MDAuLmUyYjgxZDAzNWZhMSAxMDA2NDQNCi0tLSBhL2tl
+cm5lbC9pcnEvaXJxZGVzYy5jDQorKysgYi9rZXJuZWwvaXJxL2lycWRlc2MuYw0KQEAgLTE2LDYg
+KzE2LDcgQEANCiAjaW5jbHVkZSA8bGludXgvYml0bWFwLmg+DQogI2luY2x1ZGUgPGxpbnV4L2ly
+cWRvbWFpbi5oPg0KICNpbmNsdWRlIDxsaW51eC9zeXNmcy5oPg0KKyNpbmNsdWRlIDxsaW51eC9p
+c29sYXRpb24uaD4NCiANCiAjaW5jbHVkZSAiaW50ZXJuYWxzLmgiDQogDQpAQCAtNjcwLDYgKzY3
+MSwxMCBAQCBpbnQgX19oYW5kbGVfZG9tYWluX2lycShzdHJ1Y3QgaXJxX2RvbWFpbiAqZG9tYWlu
+LCB1bnNpZ25lZCBpbnQgaHdpcnEsDQogCQlpcnEgPSBpcnFfZmluZF9tYXBwaW5nKGRvbWFpbiwg
+aHdpcnEpOw0KICNlbmRpZg0KIA0KKwl0YXNrX2lzb2xhdGlvbl9pbnRlcnJ1cHQoKGlycSA9PSBo
+d2lycSkgPw0KKwkJCQkgImlycSAlZCAoJXMpIiA6ICJpcnEgJWQgKCVzIGh3aXJxICVkKSIsDQor
+CQkJCSBpcnEsIGRvbWFpbiA/IGRvbWFpbi0+bmFtZSA6ICIiLCBod2lycSk7DQorDQogCS8qDQog
+CSAqIFNvbWUgaGFyZHdhcmUgZ2l2ZXMgcmFuZG9tbHkgd3JvbmcgaW50ZXJydXB0cy4gIFJhdGhl
+cg0KIAkgKiB0aGFuIGNyYXNoaW5nLCBkbyBzb21ldGhpbmcgc2Vuc2libGUuDQpAQCAtNzExLDYg
+KzcxNiwxMCBAQCBpbnQgaGFuZGxlX2RvbWFpbl9ubWkoc3RydWN0IGlycV9kb21haW4gKmRvbWFp
+biwgdW5zaWduZWQgaW50IGh3aXJxLA0KIA0KIAlpcnEgPSBpcnFfZmluZF9tYXBwaW5nKGRvbWFp
+biwgaHdpcnEpOw0KIA0KKwl0YXNrX2lzb2xhdGlvbl9pbnRlcnJ1cHQoKGlycSA9PSBod2lycSkg
+Pw0KKwkJCQkgIk5NSSBpcnEgJWQgKCVzKSIgOiAiTk1JIGlycSAlZCAoJXMgaHdpcnEgJWQpIiwN
+CisJCQkJIGlycSwgZG9tYWluID8gZG9tYWluLT5uYW1lIDogIiIsIGh3aXJxKTsNCisNCiAJLyoN
+CiAJICogYWNrX2JhZF9pcnEgaXMgbm90IE5NSS1zYWZlLCBqdXN0IHJlcG9ydA0KIAkgKiBhbiBp
+bnZhbGlkIGludGVycnVwdC4NCmRpZmYgLS1naXQgYS9rZXJuZWwvaXJxX3dvcmsuYyBiL2tlcm5l
+bC9pcnFfd29yay5jDQppbmRleCA4MjhjYzMwNzc0YmMuLjhmZDRlY2U0M2RkOCAxMDA2NDQNCi0t
+LSBhL2tlcm5lbC9pcnFfd29yay5jDQorKysgYi9rZXJuZWwvaXJxX3dvcmsuYw0KQEAgLTE4LDYg
+KzE4LDcgQEANCiAjaW5jbHVkZSA8bGludXgvY3B1Lmg+DQogI2luY2x1ZGUgPGxpbnV4L25vdGlm
+aWVyLmg+DQogI2luY2x1ZGUgPGxpbnV4L3NtcC5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29sYXRp
+b24uaD4NCiAjaW5jbHVkZSA8YXNtL3Byb2Nlc3Nvci5oPg0KIA0KIA0KQEAgLTEwMiw4ICsxMDMs
+MTAgQEAgYm9vbCBpcnFfd29ya19xdWV1ZV9vbihzdHJ1Y3QgaXJxX3dvcmsgKndvcmssIGludCBj
+cHUpDQogCWlmIChjcHUgIT0gc21wX3Byb2Nlc3Nvcl9pZCgpKSB7DQogCQkvKiBBcmNoIHJlbW90
+ZSBJUEkgc2VuZC9yZWNlaXZlIGJhY2tlbmQgYXJlbid0IE5NSSBzYWZlICovDQogCQlXQVJOX09O
+X09OQ0UoaW5fbm1pKCkpOw0KLQkJaWYgKGxsaXN0X2FkZCgmd29yay0+bGxub2RlLCAmcGVyX2Nw
+dShyYWlzZWRfbGlzdCwgY3B1KSkpDQorCQlpZiAobGxpc3RfYWRkKCZ3b3JrLT5sbG5vZGUsICZw
+ZXJfY3B1KHJhaXNlZF9saXN0LCBjcHUpKSkgew0KKwkJCXRhc2tfaXNvbGF0aW9uX3JlbW90ZShj
+cHUsICJpcnFfd29yayIpOw0KIAkJCWFyY2hfc2VuZF9jYWxsX2Z1bmN0aW9uX3NpbmdsZV9pcGko
+Y3B1KTsNCisJCX0NCiAJfSBlbHNlIHsNCiAJCV9faXJxX3dvcmtfcXVldWVfbG9jYWwod29yayk7
+DQogCX0NCmRpZmYgLS1naXQgYS9rZXJuZWwvc21wLmMgYi9rZXJuZWwvc21wLmMNCmluZGV4IGQw
+YWRhMzllYjRkNC4uM2E4YmNiZGQ0Y2U2IDEwMDY0NA0KLS0tIGEva2VybmVsL3NtcC5jDQorKysg
+Yi9rZXJuZWwvc21wLmMNCkBAIC0yMCw2ICsyMCw3IEBADQogI2luY2x1ZGUgPGxpbnV4L3NjaGVk
+Lmg+DQogI2luY2x1ZGUgPGxpbnV4L3NjaGVkL2lkbGUuaD4NCiAjaW5jbHVkZSA8bGludXgvaHlw
+ZXJ2aXNvci5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29sYXRpb24uaD4NCiANCiAjaW5jbHVkZSAi
+c21wYm9vdC5oIg0KIA0KQEAgLTE3Niw4ICsxNzcsMTAgQEAgc3RhdGljIGludCBnZW5lcmljX2V4
+ZWNfc2luZ2xlKGludCBjcHUsIGNhbGxfc2luZ2xlX2RhdGFfdCAqY3NkLA0KIAkgKiBsb2NraW5n
+IGFuZCBiYXJyaWVyIHByaW1pdGl2ZXMuIEdlbmVyaWMgY29kZSBpc24ndCByZWFsbHkNCiAJICog
+ZXF1aXBwZWQgdG8gZG8gdGhlIHJpZ2h0IHRoaW5nLi4uDQogCSAqLw0KLQlpZiAobGxpc3RfYWRk
+KCZjc2QtPmxsaXN0LCAmcGVyX2NwdShjYWxsX3NpbmdsZV9xdWV1ZSwgY3B1KSkpDQorCWlmIChs
+bGlzdF9hZGQoJmNzZC0+bGxpc3QsICZwZXJfY3B1KGNhbGxfc2luZ2xlX3F1ZXVlLCBjcHUpKSkg
+ew0KKwkJdGFza19pc29sYXRpb25fcmVtb3RlKGNwdSwgIklQSSBmdW5jdGlvbiIpOw0KIAkJYXJj
+aF9zZW5kX2NhbGxfZnVuY3Rpb25fc2luZ2xlX2lwaShjcHUpOw0KKwl9DQogDQogCXJldHVybiAw
+Ow0KIH0NCkBAIC00NjYsNiArNDY5LDcgQEAgc3RhdGljIHZvaWQgc21wX2NhbGxfZnVuY3Rpb25f
+bWFueV9jb25kKGNvbnN0IHN0cnVjdCBjcHVtYXNrICptYXNrLA0KIAl9DQogDQogCS8qIFNlbmQg
+YSBtZXNzYWdlIHRvIGFsbCBDUFVzIGluIHRoZSBtYXAgKi8NCisJdGFza19pc29sYXRpb25fcmVt
+b3RlX2NwdW1hc2soY2ZkLT5jcHVtYXNrX2lwaSwgIklQSSBmdW5jdGlvbiIpOw0KIAlhcmNoX3Nl
+bmRfY2FsbF9mdW5jdGlvbl9pcGlfbWFzayhjZmQtPmNwdW1hc2tfaXBpKTsNCiANCiAJaWYgKHdh
+aXQpIHsNCi0tIA0KMi4yMC4xDQoNCg==
