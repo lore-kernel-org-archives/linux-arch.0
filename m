@@ -1,520 +1,193 @@
-Return-Path: <SRS0=lzY1=6F=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 21 Apr 2020 12:09:08 +0300
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH 03/21] mm: remove CONFIG_HAVE_MEMBLOCK_NODE_MAP option
-Message-ID: <20200421090908.GC14260@kernel.org>
-References: <20200412194859.12663-1-rppt@kernel.org>
- <20200412194859.12663-4-rppt@kernel.org>
- <20200421042316.GQ4247@MiWiFi-R3L-srv>
+Return-Path: <SRS0=yGje=5Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:54628 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728090AbgDIPZY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2020 11:25:24 -0400
+From: Alex Belits <abelits@marvell.com>
+Subject: [PATCH v3 08/13] task_isolation: arch/arm: enable task isolation
+ functionality
+Date: Thu, 9 Apr 2020 15:24:44 +0000
+Message-ID: <e4bed0c6be09443ef5f91ee0a084a4a558c3007d.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+         <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
+In-Reply-To: <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <237E0C527AEA2E4BBACC6C76A1A33403@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200421042316.GQ4247@MiWiFi-R3L-srv>
-Sender: owner-linux-mm@kvack.org
-To: Baoquan He <bhe@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200421090908.fyv5IBr3-1ZT1Sg_LzO3kv9i-Y8-BKX5bj71GVFRJnk@z>
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+Message-ID: <20200409152444.0YbAkofxzrzAZIuLH2iEubI0M6nl9KkW0uLon59Brl4@z>
 
-On Tue, Apr 21, 2020 at 12:23:16PM +0800, Baoquan He wrote:
-> On 04/12/20 at 10:48pm, Mike Rapoport wrote:
-> > From: Mike Rapoport <rppt@linux.ibm.com>
-> > 
-> > The CONFIG_HAVE_MEMBLOCK_NODE_MAP is used to differentiate initialization
-> > of nodes and zones structures between the systems that have region to node
-> > mapping in memblock and those that don't.
-> > 
-> > Currently all the NUMA architectures enable this option and for the
-> > non-NUMA systems we can presume that all the memory belongs to node 0 and
-> > therefore the compile time configuration option is not required.
-> > 
-> > The remaining few architectures that use DISCONTIGMEM without NUMA are
-> > easily updated to use memblock_add_node() instead of memblock_add() and
-> > thus have proper correspondence of memblock regions to NUMA nodes.
-> > 
-> > Still, free_area_init_node() must have a backward compatible version
-> > because its semantics with and without CONFIG_HAVE_MEMBLOCK_NODE_MAP is
-> > different. Once all the architectures will use the new semantics, the
-> > entire compatibility layer can be dropped.
-> > 
-> > To avoid addition of extra run time memory to store node id for
-> > architectures that keep memblock but have only a single node, the node id
-> > field of the memblock_region is guarded by CONFIG_NEED_MULTIPLE_NODES and
-> > the corresponding accessors presume that in those cases it is always 0.
-> > 
-> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> > ---
-> ...
-> > diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-> > index 6bc37a731d27..45abfc54da37 100644
-> > --- a/include/linux/memblock.h
-> > +++ b/include/linux/memblock.h
-> > @@ -50,7 +50,7 @@ struct memblock_region {
-> >  	phys_addr_t base;
-> >  	phys_addr_t size;
-> >  	enum memblock_flags flags;
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> > +#ifdef CONFIG_NEED_MULTIPLE_NODES
-> >  	int nid;
-> >  #endif
-> >  };
-> > @@ -215,7 +215,6 @@ static inline bool memblock_is_nomap(struct memblock_region *m)
-> >  	return m->flags & MEMBLOCK_NOMAP;
-> >  }
-> >  
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> >  int memblock_search_pfn_nid(unsigned long pfn, unsigned long *start_pfn,
-> >  			    unsigned long  *end_pfn);
-> >  void __next_mem_pfn_range(int *idx, int nid, unsigned long *out_start_pfn,
-> > @@ -234,7 +233,6 @@ void __next_mem_pfn_range(int *idx, int nid, unsigned long *out_start_pfn,
-> >  #define for_each_mem_pfn_range(i, nid, p_start, p_end, p_nid)		\
-> >  	for (i = -1, __next_mem_pfn_range(&i, nid, p_start, p_end, p_nid); \
-> >  	     i >= 0; __next_mem_pfn_range(&i, nid, p_start, p_end, p_nid))
-> > -#endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
-> >  
-> >  #ifdef CONFIG_DEFERRED_STRUCT_PAGE_INIT
-> >  void __next_mem_pfn_range_in_zone(u64 *idx, struct zone *zone,
-> > @@ -310,10 +308,10 @@ void __next_mem_pfn_range_in_zone(u64 *idx, struct zone *zone,
-> >  	for_each_mem_range_rev(i, &memblock.memory, &memblock.reserved,	\
-> >  			       nid, flags, p_start, p_end, p_nid)
-> >  
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> >  int memblock_set_node(phys_addr_t base, phys_addr_t size,
-> >  		      struct memblock_type *type, int nid);
-> >  
-> > +#ifdef CONFIG_NEED_MULTIPLE_NODES
-> >  static inline void memblock_set_region_node(struct memblock_region *r, int nid)
-> >  {
-> >  	r->nid = nid;
-> > @@ -332,7 +330,7 @@ static inline int memblock_get_region_node(const struct memblock_region *r)
-> >  {
-> >  	return 0;
-> >  }
-> > -#endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
-> > +#endif /* CONFIG_NEED_MULTIPLE_NODES */
-> >  
-> >  /* Flags for memblock allocation APIs */
-> >  #define MEMBLOCK_ALLOC_ANYWHERE	(~(phys_addr_t)0)
-> > diff --git a/include/linux/mm.h b/include/linux/mm.h
-> > index a404026d14d4..5903bbbdb336 100644
-> > --- a/include/linux/mm.h
-> > +++ b/include/linux/mm.h
-> > @@ -2344,9 +2344,8 @@ static inline unsigned long get_num_physpages(void)
-> >  	return phys_pages;
-> >  }
-> >  
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> >  /*
-> > - * With CONFIG_HAVE_MEMBLOCK_NODE_MAP set, an architecture may initialise its
-> > + * Using memblock node mappings, an architecture may initialise its
-> >   * zones, allocate the backing mem_map and account for memory holes in a more
-> >   * architecture independent manner. This is a substitute for creating the
-> >   * zone_sizes[] and zholes_size[] arrays and passing them to
-> > @@ -2367,9 +2366,6 @@ static inline unsigned long get_num_physpages(void)
-> >   * registered physical page range.  Similarly
-> >   * sparse_memory_present_with_active_regions() calls memory_present() for
-> >   * each range when SPARSEMEM is enabled.
-> > - *
-> > - * See mm/page_alloc.c for more information on each function exposed by
-> > - * CONFIG_HAVE_MEMBLOCK_NODE_MAP.
-> >   */
-> >  extern void free_area_init_nodes(unsigned long *max_zone_pfn);
-> >  unsigned long node_map_pfn_alignment(void);
-> > @@ -2384,13 +2380,9 @@ extern void free_bootmem_with_active_regions(int nid,
-> >  						unsigned long max_low_pfn);
-> >  extern void sparse_memory_present_with_active_regions(int nid);
-> >  
-> > -#endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
-> > -
-> > -#if !defined(CONFIG_HAVE_MEMBLOCK_NODE_MAP) && \
-> > -    !defined(CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID)
-> > +#ifndef CONFIG_NEED_MULTIPLE_NODES
-> >  static inline int early_pfn_to_nid(unsigned long pfn)
-> >  {
-> > -	BUILD_BUG_ON(IS_ENABLED(CONFIG_NUMA));
-> >  	return 0;
-> >  }
-> >  #else
-> > diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
-> > index 7b5b6eba402f..ffc2a3d6036b 100644
-> > --- a/include/linux/mmzone.h
-> > +++ b/include/linux/mmzone.h
-> > @@ -874,7 +874,7 @@ extern int movable_zone;
-> >  #ifdef CONFIG_HIGHMEM
-> >  static inline int zone_movable_is_highmem(void)
-> >  {
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> > +#ifdef CONFIG_NEED_MULTIPLE_NODES
-> >  	return movable_zone == ZONE_HIGHMEM;
-> >  #else
-> >  	return (ZONE_MOVABLE - 1) == ZONE_HIGHMEM;
-> 
-> If CONFIG_HIGHMEM is enabled, the above judgement is always true,
-> wondering what's the purpose we have to do like this. It's not related
-> to this patch though.
-
-The whole is_higmem() implementation looks scary and begs for cleanup :)
-
-> > diff --git a/mm/Kconfig b/mm/Kconfig index
-> > c1acc34c1c35..aaa5bdaa1c8a 100644 --- a/mm/Kconfig
-> > +++ b/mm/Kconfig
-> > @@ -126,9 +126,6 @@ config SPARSEMEM_VMEMMAP
-> >  	  pfn_to_page and page_to_pfn operations.  This is the most
-> >  	  efficient option when sufficient kernel resources are available.
-> >  
-> > -config HAVE_MEMBLOCK_NODE_MAP
-> > -	bool
-> > -
-> >  config HAVE_MEMBLOCK_PHYS_MAP
-> >  	bool
-> >  
-> > diff --git a/mm/memblock.c b/mm/memblock.c
-> > index 43e2fd3006c1..743659d88fc4 100644
-> > --- a/mm/memblock.c
-> > +++ b/mm/memblock.c
-> > @@ -620,7 +620,7 @@ static int __init_memblock memblock_add_range(struct memblock_type *type,
-> >  		 * area, insert that portion.
-> >  		 */
-> >  		if (rbase > base) {
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> > +#ifdef CONFIG_NEED_MULTIPLE_NODES
-> >  			WARN_ON(nid != memblock_get_region_node(rgn));
-> >  #endif
-> >  			WARN_ON(flags != rgn->flags);
-> > @@ -1197,7 +1197,6 @@ void __init_memblock __next_mem_range_rev(u64 *idx, int nid,
-> >  	*idx = ULLONG_MAX;
-> >  }
-> >  
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> >  /*
-> >   * Common iterator interface used to define for_each_mem_pfn_range().
-> >   */
-> > @@ -1247,6 +1246,7 @@ void __init_memblock __next_mem_pfn_range(int *idx, int nid,
-> >  int __init_memblock memblock_set_node(phys_addr_t base, phys_addr_t size,
-> >  				      struct memblock_type *type, int nid)
-> >  {
-> > +#ifdef CONFIG_NEED_MULTIPLE_NODES
-> >  	int start_rgn, end_rgn;
-> >  	int i, ret;
-> >  
-> > @@ -1258,9 +1258,10 @@ int __init_memblock memblock_set_node(phys_addr_t base, phys_addr_t size,
-> >  		memblock_set_region_node(&type->regions[i], nid);
-> >  
-> >  	memblock_merge_regions(type);
-> > +#endif
-> >  	return 0;
-> >  }
-> > -#endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
-> > +
-> >  #ifdef CONFIG_DEFERRED_STRUCT_PAGE_INIT
-> >  /**
-> >   * __next_mem_pfn_range_in_zone - iterator for for_each_*_range_in_zone()
-> > @@ -1799,7 +1800,6 @@ bool __init_memblock memblock_is_map_memory(phys_addr_t addr)
-> >  	return !memblock_is_nomap(&memblock.memory.regions[i]);
-> >  }
-> >  
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> >  int __init_memblock memblock_search_pfn_nid(unsigned long pfn,
-> >  			 unsigned long *start_pfn, unsigned long *end_pfn)
-> >  {
-> > @@ -1814,7 +1814,6 @@ int __init_memblock memblock_search_pfn_nid(unsigned long pfn,
-> >  
-> >  	return memblock_get_region_node(&type->regions[mid]);
-> >  }
-> > -#endif
-> >  
-> >  /**
-> >   * memblock_is_region_memory - check if a region is a subset of memory
-> > @@ -1905,7 +1904,7 @@ static void __init_memblock memblock_dump(struct memblock_type *type)
-> >  		size = rgn->size;
-> >  		end = base + size - 1;
-> >  		flags = rgn->flags;
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> > +#ifdef CONFIG_NEED_MULTIPLE_NODES
-> >  		if (memblock_get_region_node(rgn) != MAX_NUMNODES)
-> >  			snprintf(nid_buf, sizeof(nid_buf), " on node %d",
-> >  				 memblock_get_region_node(rgn));
-> > diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
-> > index fc0aad0bc1f5..e67dc501576a 100644
-> > --- a/mm/memory_hotplug.c
-> > +++ b/mm/memory_hotplug.c
-> > @@ -1372,11 +1372,7 @@ check_pages_isolated_cb(unsigned long start_pfn, unsigned long nr_pages,
-> >  
-> >  static int __init cmdline_parse_movable_node(char *p)
-> >  {
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> >  	movable_node_enabled = true;
-> > -#else
-> > -	pr_warn("movable_node parameter depends on CONFIG_HAVE_MEMBLOCK_NODE_MAP to work properly\n");
-> > -#endif
-> 
-> Wondering if this change will impact anything. Before, those ARCHes with
-> CONFIG_HAVE_MEMBLOCK_NODE_MAP support movable_node. With this patch
-> applied, those ARCHes which don't support CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> can also have 'movable_node' specified in kernel cmdline.
-> 
-> >  	return 0;
-> >  }
-> >  early_param("movable_node", cmdline_parse_movable_node);
-> > diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-> > index 1ac775bfc9cf..4530e9cfd9f7 100644
-> > --- a/mm/page_alloc.c
-> > +++ b/mm/page_alloc.c
-> > @@ -335,7 +335,6 @@ static unsigned long nr_kernel_pages __initdata;
-> >  static unsigned long nr_all_pages __initdata;
-> >  static unsigned long dma_reserve __initdata;
-> >  
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> >  static unsigned long arch_zone_lowest_possible_pfn[MAX_NR_ZONES] __initdata;
-> >  static unsigned long arch_zone_highest_possible_pfn[MAX_NR_ZONES] __initdata;
-> >  static unsigned long required_kernelcore __initdata;
-> 
-> Does it mean those ARCHes which don't support
-> CONFIG_HAVE_MEMBLOCK_NODE_MAP before, will have 'kernelcore=' and
-> 'movablecore=' now, and will have MOVABLE zone?
-
-I hesitated a lot about whether to hide the kernelcore/movablecore and
-related code behind an #ifdef.
-In the end I've decided to keep the code compiled unconditionally as it
-is anyway __init and no sane person would pass "kernelcore=" to the
-kernel on a UMA system.
-
-> > @@ -348,7 +347,6 @@ static bool mirrored_kernelcore __meminitdata;
-> >  /* movable_zone is the "real" zone pages in ZONE_MOVABLE are taken from */
-> >  int movable_zone;
-> >  EXPORT_SYMBOL(movable_zone);
-> > -#endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
-> >  
-> >  #if MAX_NUMNODES > 1
-> >  unsigned int nr_node_ids __read_mostly = MAX_NUMNODES;
-> > @@ -1499,8 +1497,7 @@ void __free_pages_core(struct page *page, unsigned int order)
-> >  	__free_pages(page, order);
-> >  }
-> >  
-> > -#if defined(CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID) || \
-> > -	defined(CONFIG_HAVE_MEMBLOCK_NODE_MAP)
-> > +#ifdef CONFIG_NEED_MULTIPLE_NODES
-> >  
-> >  static struct mminit_pfnnid_cache early_pfnnid_cache __meminitdata;
-> >  
-> > @@ -1542,7 +1539,7 @@ int __meminit early_pfn_to_nid(unsigned long pfn)
-> >  
-> >  	return nid;
-> >  }
-> > -#endif
-> > +#endif /* CONFIG_NEED_MULTIPLE_NODES */
-> >  
-> >  #ifdef CONFIG_NODES_SPAN_OTHER_NODES
-> >  /* Only safe to use early in boot when initialisation is single-threaded */
-> > @@ -5924,7 +5921,6 @@ void __ref build_all_zonelists(pg_data_t *pgdat)
-> >  static bool __meminit
-> >  overlap_memmap_init(unsigned long zone, unsigned long *pfn)
-> >  {
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> >  	static struct memblock_region *r;
-> >  
-> >  	if (mirrored_kernelcore && zone == ZONE_MOVABLE) {
-> > @@ -5940,7 +5936,6 @@ overlap_memmap_init(unsigned long zone, unsigned long *pfn)
-> >  			return true;
-> >  		}
-> >  	}
-> > -#endif
-> >  	return false;
-> >  }
-> >  
-> > @@ -6573,8 +6568,7 @@ static unsigned long __init zone_absent_pages_in_node(int nid,
-> >  	return nr_absent;
-> >  }
-> >  
-> > -#else /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
-> > -static inline unsigned long __init zone_spanned_pages_in_node(int nid,
-> > +static inline unsigned long __init compat_zone_spanned_pages_in_node(int nid,
-> 
-> Is it compact zone which has continuous memory region, and the
-> compat here is typo? Or it's compatible zone? The name seems a little
-> confusing, or I miss something.
-
-It's 'compat' from 'compatibility'. This is kinda "the old way" and the
-version that was defined when CONFIG_HAVE_MEMBLOCK_NODE_MAP=y is the
-"new way", so I picked 'compat' for backwards compatibility. 
-Anyway, it will go away later in pacth 19. 
-
-> >  					unsigned long zone_type,
-> >  					unsigned long node_start_pfn,
-> >  					unsigned long node_end_pfn,
-> > @@ -6593,7 +6587,7 @@ static inline unsigned long __init zone_spanned_pages_in_node(int nid,
-> >  	return zones_size[zone_type];
-> >  }
-> >  
-> > -static inline unsigned long __init zone_absent_pages_in_node(int nid,
-> > +static inline unsigned long __init compat_zone_absent_pages_in_node(int nid,
-> >  						unsigned long zone_type,
-> >  						unsigned long node_start_pfn,
-> >  						unsigned long node_end_pfn,
-> > @@ -6605,13 +6599,12 @@ static inline unsigned long __init zone_absent_pages_in_node(int nid,
-> >  	return zholes_size[zone_type];
-> >  }
-> >  
-> > -#endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
-> > -
-> >  static void __init calculate_node_totalpages(struct pglist_data *pgdat,
-> >  						unsigned long node_start_pfn,
-> >  						unsigned long node_end_pfn,
-> >  						unsigned long *zones_size,
-> > -						unsigned long *zholes_size)
-> > +						unsigned long *zholes_size,
-> > +						bool compat)
-> >  {
-> >  	unsigned long realtotalpages = 0, totalpages = 0;
-> >  	enum zone_type i;
-> > @@ -6619,17 +6612,38 @@ static void __init calculate_node_totalpages(struct pglist_data *pgdat,
-> >  	for (i = 0; i < MAX_NR_ZONES; i++) {
-> >  		struct zone *zone = pgdat->node_zones + i;
-> >  		unsigned long zone_start_pfn, zone_end_pfn;
-> > +		unsigned long spanned, absent;
-> >  		unsigned long size, real_size;
-> >  
-> > -		size = zone_spanned_pages_in_node(pgdat->node_id, i,
-> > -						  node_start_pfn,
-> > -						  node_end_pfn,
-> > -						  &zone_start_pfn,
-> > -						  &zone_end_pfn,
-> > -						  zones_size);
-> > -		real_size = size - zone_absent_pages_in_node(pgdat->node_id, i,
-> > -						  node_start_pfn, node_end_pfn,
-> > -						  zholes_size);
-> > +		if (compat) {
-> > +			spanned = compat_zone_spanned_pages_in_node(
-> > +						pgdat->node_id, i,
-> > +						node_start_pfn,
-> > +						node_end_pfn,
-> > +						&zone_start_pfn,
-> > +						&zone_end_pfn,
-> > +						zones_size);
-> > +			absent = compat_zone_absent_pages_in_node(
-> > +						pgdat->node_id, i,
-> > +						node_start_pfn,
-> > +						node_end_pfn,
-> > +						zholes_size);
-> > +		} else {
-> > +			spanned = zone_spanned_pages_in_node(pgdat->node_id, i,
-> > +						node_start_pfn,
-> > +						node_end_pfn,
-> > +						&zone_start_pfn,
-> > +						&zone_end_pfn,
-> > +						zones_size);
-> > +			absent = zone_absent_pages_in_node(pgdat->node_id, i,
-> > +						node_start_pfn,
-> > +						node_end_pfn,
-> > +						zholes_size);
-> > +		}
-> > +
-> > +		size = spanned;
-> > +		real_size = size - absent;
-> > +
-> >  		if (size)
-> >  			zone->zone_start_pfn = zone_start_pfn;
-> >  		else
-> > @@ -6929,10 +6943,8 @@ static void __ref alloc_node_mem_map(struct pglist_data *pgdat)
-> >  	 */
-> >  	if (pgdat == NODE_DATA(0)) {
-> >  		mem_map = NODE_DATA(0)->node_mem_map;
-> > -#if defined(CONFIG_HAVE_MEMBLOCK_NODE_MAP) || defined(CONFIG_FLATMEM)
-> >  		if (page_to_pfn(mem_map) != pgdat->node_start_pfn)
-> >  			mem_map -= offset;
-> > -#endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
-> >  	}
-> >  #endif
-> >  }
-> > @@ -6949,9 +6961,10 @@ static inline void pgdat_set_deferred_range(pg_data_t *pgdat)
-> >  static inline void pgdat_set_deferred_range(pg_data_t *pgdat) {}
-> >  #endif
-> >  
-> > -void __init free_area_init_node(int nid, unsigned long *zones_size,
-> > -				   unsigned long node_start_pfn,
-> > -				   unsigned long *zholes_size)
-> > +static void __init __free_area_init_node(int nid, unsigned long *zones_size,
-> > +					 unsigned long node_start_pfn,
-> > +					 unsigned long *zholes_size,
-> > +					 bool compat)
-> >  {
-> >  	pg_data_t *pgdat = NODE_DATA(nid);
-> >  	unsigned long start_pfn = 0;
-> > @@ -6963,16 +6976,16 @@ void __init free_area_init_node(int nid, unsigned long *zones_size,
-> >  	pgdat->node_id = nid;
-> >  	pgdat->node_start_pfn = node_start_pfn;
-> >  	pgdat->per_cpu_nodestats = NULL;
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> > -	get_pfn_range_for_nid(nid, &start_pfn, &end_pfn);
-> > -	pr_info("Initmem setup node %d [mem %#018Lx-%#018Lx]\n", nid,
-> > -		(u64)start_pfn << PAGE_SHIFT,
-> > -		end_pfn ? ((u64)end_pfn << PAGE_SHIFT) - 1 : 0);
-> > -#else
-> > -	start_pfn = node_start_pfn;
-> > -#endif
-> > +	if (!compat) {
-> > +		get_pfn_range_for_nid(nid, &start_pfn, &end_pfn);
-> > +		pr_info("Initmem setup node %d [mem %#018Lx-%#018Lx]\n", nid,
-> > +			(u64)start_pfn << PAGE_SHIFT,
-> > +			end_pfn ? ((u64)end_pfn << PAGE_SHIFT) - 1 : 0);
-> > +	} else {
-> > +		start_pfn = node_start_pfn;
-> > +	}
-> >  	calculate_node_totalpages(pgdat, start_pfn, end_pfn,
-> > -				  zones_size, zholes_size);
-> > +				  zones_size, zholes_size, compat);
-> >  
-> >  	alloc_node_mem_map(pgdat);
-> >  	pgdat_set_deferred_range(pgdat);
-> > @@ -6980,6 +6993,14 @@ void __init free_area_init_node(int nid, unsigned long *zones_size,
-> >  	free_area_init_core(pgdat);
-> >  }
-> >  
-> > +void __init free_area_init_node(int nid, unsigned long *zones_size,
-> > +				unsigned long node_start_pfn,
-> > +				unsigned long *zholes_size)
-> > +{
-> > +	__free_area_init_node(nid, zones_size, node_start_pfn, zholes_size,
-> > +			      true);
-> > +}
-> > +
-> >  #if !defined(CONFIG_FLAT_NODE_MEM_MAP)
-> >  /*
-> >   * Initialize all valid struct pages in the range [spfn, epfn) and mark them
-> > @@ -7063,8 +7084,6 @@ static inline void __init init_unavailable_mem(void)
-> >  }
-> >  #endif /* !CONFIG_FLAT_NODE_MEM_MAP */
-> >  
-> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-> > -
-> >  #if MAX_NUMNODES > 1
-> >  /*
-> >   * Figure out the number of possible node ids.
-> > @@ -7493,8 +7512,8 @@ void __init free_area_init_nodes(unsigned long *max_zone_pfn)
-> >  	init_unavailable_mem();
-> >  	for_each_online_node(nid) {
-> >  		pg_data_t *pgdat = NODE_DATA(nid);
-> > -		free_area_init_node(nid, NULL,
-> > -				find_min_pfn_for_node(nid), NULL);
-> > +		__free_area_init_node(nid, NULL,
-> > +				      find_min_pfn_for_node(nid), NULL, false);
-> >  
-> >  		/* Any memory on that node */
-> >  		if (pgdat->node_present_pages)
-> > @@ -7559,8 +7578,6 @@ static int __init cmdline_parse_movablecore(char *p)
-> >  early_param("kernelcore", cmdline_parse_kernelcore);
-> >  early_param("movablecore", cmdline_parse_movablecore);
-> >  
-> > -#endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
-> > -
-> >  void adjust_managed_page_count(struct page *page, long count)
-> >  {
-> >  	atomic_long_add(count, &page_zone(page)->managed_pages);
-> > -- 
-> > 2.25.1
-> > 
-> 
-
--- 
-Sincerely yours,
-Mike.
+RnJvbTogRnJhbmNpcyBHaXJhbGRlYXUgPGZyYW5jaXMuZ2lyYWxkZWF1QGdtYWlsLmNvbT4NCg0K
+VGhpcyBwYXRjaCBpcyBhIHBvcnQgb2YgdGhlIHRhc2sgaXNvbGF0aW9uIGZ1bmN0aW9uYWxpdHkg
+dG8gdGhlIGFybSAzMi1iaXQNCmFyY2hpdGVjdHVyZS4gVGhlIHRhc2sgaXNvbGF0aW9uIG5lZWRz
+IGFuIGFkZGl0aW9uYWwgdGhyZWFkIGZsYWcgdGhhdA0KcmVxdWlyZXMgdG8gY2hhbmdlIHRoZSBl
+bnRyeSBhc3NlbWJseSBjb2RlIHRvIGFjY2VwdCBhIGJpdGZpZWxkIGxhcmdlciB0aGFuDQpvbmUg
+Ynl0ZS4gVGhlIGNvbnN0YW50cyBfVElGX1NZU0NBTExfV09SSyBhbmQgX1RJRl9XT1JLX01BU0sg
+YXJlIG5vdw0KZGVmaW5lZCBpbiB0aGUgbGl0ZXJhbCBwb29sLiBUaGUgcmVzdCBvZiB0aGUgcGF0
+Y2ggaXMgc3RyYWlnaHRmb3J3YXJkIGFuZA0KcmVmbGVjdHMgd2hhdCBpcyBkb25lIG9uIG90aGVy
+IGFyY2hpdGVjdHVyZXMuDQoNClRvIGF2b2lkIHByb2JsZW1zIHdpdGggdGhlIHRzdCBpbnN0cnVj
+dGlvbiBpbiB0aGUgdjdtIGJ1aWxkLCB3ZSByZW51bWJlcg0KVElGX1NFQ0NPTVAgdG8gYml0IDgg
+YW5kIGxldCBUSUZfVEFTS19JU09MQVRJT04gdXNlIGJpdCA3Lg0KDQpTaWduZWQtb2ZmLWJ5OiBG
+cmFuY2lzIEdpcmFsZGVhdSA8ZnJhbmNpcy5naXJhbGRlYXVAZ21haWwuY29tPg0KU2lnbmVkLW9m
+Zi1ieTogQ2hyaXMgTWV0Y2FsZiA8Y21ldGNhbGZAbWVsbGFub3guY29tPiBbd2l0aCBtb2RpZmlj
+YXRpb25zXQ0KW2FiZWxpdHNAbWFydmVsbC5jb206IG1vZGlmaWVkIGZvciBrZXJuZWwgNS42LCBh
+ZGRlZCBpc29sYXRpb24gY2xlYW51cF0NClNpZ25lZC1vZmYtYnk6IEFsZXggQmVsaXRzIDxhYmVs
+aXRzQG1hcnZlbGwuY29tPg0KLS0tDQogYXJjaC9hcm0vS2NvbmZpZyAgICAgICAgICAgICAgICAg
+ICB8ICAxICsNCiBhcmNoL2FybS9pbmNsdWRlL2FzbS90aHJlYWRfaW5mby5oIHwgMTAgKysrKysr
+Ky0tLQ0KIGFyY2gvYXJtL2tlcm5lbC9lbnRyeS1jb21tb24uUyAgICAgfCAxNSArKysrKysrKysr
+LS0tLS0NCiBhcmNoL2FybS9rZXJuZWwvcHRyYWNlLmMgICAgICAgICAgIHwgMTAgKysrKysrKysr
+Kw0KIGFyY2gvYXJtL2tlcm5lbC9zaWduYWwuYyAgICAgICAgICAgfCAxMyArKysrKysrKysrKyst
+DQogYXJjaC9hcm0va2VybmVsL3NtcC5jICAgICAgICAgICAgICB8ICA0ICsrKysNCiBhcmNoL2Fy
+bS9tbS9mYXVsdC5jICAgICAgICAgICAgICAgIHwgIDggKysrKysrKy0NCiA3IGZpbGVzIGNoYW5n
+ZWQsIDUxIGluc2VydGlvbnMoKyksIDEwIGRlbGV0aW9ucygtKQ0KDQpkaWZmIC0tZ2l0IGEvYXJj
+aC9hcm0vS2NvbmZpZyBiL2FyY2gvYXJtL0tjb25maWcNCmluZGV4IDk3ODY0YWFiYzJhNi4uMWE2
+NmU2YzY4MDdjIDEwMDY0NA0KLS0tIGEvYXJjaC9hcm0vS2NvbmZpZw0KKysrIGIvYXJjaC9hcm0v
+S2NvbmZpZw0KQEAgLTY3LDYgKzY3LDcgQEAgY29uZmlnIEFSTQ0KIAlzZWxlY3QgSEFWRV9BUkNI
+X0tHREIgaWYgIUNQVV9FTkRJQU5fQkUzMiAmJiBNTVUNCiAJc2VsZWN0IEhBVkVfQVJDSF9NTUFQ
+X1JORF9CSVRTIGlmIE1NVQ0KIAlzZWxlY3QgSEFWRV9BUkNIX1NFQ0NPTVBfRklMVEVSIGlmIEFF
+QUJJICYmICFPQUJJX0NPTVBBVA0KKwlzZWxlY3QgSEFWRV9BUkNIX1RBU0tfSVNPTEFUSU9ODQog
+CXNlbGVjdCBIQVZFX0FSQ0hfVEhSRUFEX1NUUlVDVF9XSElURUxJU1QNCiAJc2VsZWN0IEhBVkVf
+QVJDSF9UUkFDRUhPT0sNCiAJc2VsZWN0IEhBVkVfQVJNX1NNQ0NDIGlmIENQVV9WNw0KZGlmZiAt
+LWdpdCBhL2FyY2gvYXJtL2luY2x1ZGUvYXNtL3RocmVhZF9pbmZvLmggYi9hcmNoL2FybS9pbmNs
+dWRlL2FzbS90aHJlYWRfaW5mby5oDQppbmRleCAwZDBkNTE3OGUyYzMuLmVjM2MyMDg0YzM5MSAx
+MDA2NDQNCi0tLSBhL2FyY2gvYXJtL2luY2x1ZGUvYXNtL3RocmVhZF9pbmZvLmgNCisrKyBiL2Fy
+Y2gvYXJtL2luY2x1ZGUvYXNtL3RocmVhZF9pbmZvLmgNCkBAIC0xMzksNyArMTM5LDggQEAgZXh0
+ZXJuIGludCB2ZnBfcmVzdG9yZV91c2VyX2h3c3RhdGUoc3RydWN0IHVzZXJfdmZwICosDQogI2Rl
+ZmluZSBUSUZfU1lTQ0FMTF9UUkFDRQk0CS8qIHN5c2NhbGwgdHJhY2UgYWN0aXZlICovDQogI2Rl
+ZmluZSBUSUZfU1lTQ0FMTF9BVURJVAk1CS8qIHN5c2NhbGwgYXVkaXRpbmcgYWN0aXZlICovDQog
+I2RlZmluZSBUSUZfU1lTQ0FMTF9UUkFDRVBPSU5UCTYJLyogc3lzY2FsbCB0cmFjZXBvaW50IGlu
+c3RydW1lbnRhdGlvbiAqLw0KLSNkZWZpbmUgVElGX1NFQ0NPTVAJCTcJLyogc2VjY29tcCBzeXNj
+YWxsIGZpbHRlcmluZyBhY3RpdmUgKi8NCisjZGVmaW5lIFRJRl9UQVNLX0lTT0xBVElPTgk3CS8q
+IHRhc2sgaXNvbGF0aW9uIGFjdGl2ZSAqLw0KKyNkZWZpbmUgVElGX1NFQ0NPTVAJCTgJLyogc2Vj
+Y29tcCBzeXNjYWxsIGZpbHRlcmluZyBhY3RpdmUgKi8NCiANCiAjZGVmaW5lIFRJRl9OT0haCQkx
+MgkvKiBpbiBhZGFwdGl2ZSBub2h6IG1vZGUgKi8NCiAjZGVmaW5lIFRJRl9VU0lOR19JV01NWFQJ
+MTcNCkBAIC0xNTMsMTggKzE1NCwyMSBAQCBleHRlcm4gaW50IHZmcF9yZXN0b3JlX3VzZXJfaHdz
+dGF0ZShzdHJ1Y3QgdXNlcl92ZnAgKiwNCiAjZGVmaW5lIF9USUZfU1lTQ0FMTF9UUkFDRQkoMSA8
+PCBUSUZfU1lTQ0FMTF9UUkFDRSkNCiAjZGVmaW5lIF9USUZfU1lTQ0FMTF9BVURJVAkoMSA8PCBU
+SUZfU1lTQ0FMTF9BVURJVCkNCiAjZGVmaW5lIF9USUZfU1lTQ0FMTF9UUkFDRVBPSU5UCSgxIDw8
+IFRJRl9TWVNDQUxMX1RSQUNFUE9JTlQpDQorI2RlZmluZSBfVElGX1RBU0tfSVNPTEFUSU9OCSgx
+IDw8IFRJRl9UQVNLX0lTT0xBVElPTikNCiAjZGVmaW5lIF9USUZfU0VDQ09NUAkJKDEgPDwgVElG
+X1NFQ0NPTVApDQogI2RlZmluZSBfVElGX1VTSU5HX0lXTU1YVAkoMSA8PCBUSUZfVVNJTkdfSVdN
+TVhUKQ0KIA0KIC8qIENoZWNrcyBmb3IgYW55IHN5c2NhbGwgd29yayBpbiBlbnRyeS1jb21tb24u
+UyAqLw0KICNkZWZpbmUgX1RJRl9TWVNDQUxMX1dPUksgKF9USUZfU1lTQ0FMTF9UUkFDRSB8IF9U
+SUZfU1lTQ0FMTF9BVURJVCB8IFwNCi0JCQkgICBfVElGX1NZU0NBTExfVFJBQ0VQT0lOVCB8IF9U
+SUZfU0VDQ09NUCkNCisJCQkgICBfVElGX1NZU0NBTExfVFJBQ0VQT0lOVCB8IF9USUZfU0VDQ09N
+UCB8IFwNCisJCQkgICBfVElGX1RBU0tfSVNPTEFUSU9OKQ0KIA0KIC8qDQogICogQ2hhbmdlIHRo
+ZXNlIGFuZCB5b3UgYnJlYWsgQVNNIGNvZGUgaW4gZW50cnktY29tbW9uLlMNCiAgKi8NCiAjZGVm
+aW5lIF9USUZfV09SS19NQVNLCQkoX1RJRl9ORUVEX1JFU0NIRUQgfCBfVElGX1NJR1BFTkRJTkcg
+fCBcDQotCQkJCSBfVElGX05PVElGWV9SRVNVTUUgfCBfVElGX1VQUk9CRSkNCisJCQkJIF9USUZf
+Tk9USUZZX1JFU1VNRSB8IF9USUZfVVBST0JFIHwgXA0KKwkJCQkgX1RJRl9UQVNLX0lTT0xBVElP
+TikNCiANCiAjZW5kaWYgLyogX19LRVJORUxfXyAqLw0KICNlbmRpZiAvKiBfX0FTTV9BUk1fVEhS
+RUFEX0lORk9fSCAqLw0KZGlmZiAtLWdpdCBhL2FyY2gvYXJtL2tlcm5lbC9lbnRyeS1jb21tb24u
+UyBiL2FyY2gvYXJtL2tlcm5lbC9lbnRyeS1jb21tb24uUw0KaW5kZXggMjcxY2I4YTFlYmExLi42
+Y2ViNWNiODA4YTkgMTAwNjQ0DQotLS0gYS9hcmNoL2FybS9rZXJuZWwvZW50cnktY29tbW9uLlMN
+CisrKyBiL2FyY2gvYXJtL2tlcm5lbC9lbnRyeS1jb21tb24uUw0KQEAgLTUzLDcgKzUzLDggQEAg
+X19yZXRfZmFzdF9zeXNjYWxsOg0KIAljbXAJcjIsICNUQVNLX1NJWkUNCiAJYmxuZQlhZGRyX2xp
+bWl0X2NoZWNrX2ZhaWxlZA0KIAlsZHIJcjEsIFt0c2ssICNUSV9GTEFHU10JCUAgcmUtY2hlY2sg
+Zm9yIHN5c2NhbGwgdHJhY2luZw0KLQl0c3QJcjEsICNfVElGX1NZU0NBTExfV09SSyB8IF9USUZf
+V09SS19NQVNLDQorCWxkcglyMiwgPV9USUZfU1lTQ0FMTF9XT1JLIHwgX1RJRl9XT1JLX01BU0sN
+CisJdHN0CXIxLCByMg0KIAlibmUJZmFzdF93b3JrX3BlbmRpbmcNCiANCiANCkBAIC05MCw3ICs5
+MSw4IEBAIF9fcmV0X2Zhc3Rfc3lzY2FsbDoNCiAJY21wCXIyLCAjVEFTS19TSVpFDQogCWJsbmUJ
+YWRkcl9saW1pdF9jaGVja19mYWlsZWQNCiAJbGRyCXIxLCBbdHNrLCAjVElfRkxBR1NdCQlAIHJl
+LWNoZWNrIGZvciBzeXNjYWxsIHRyYWNpbmcNCi0JdHN0CXIxLCAjX1RJRl9TWVNDQUxMX1dPUksg
+fCBfVElGX1dPUktfTUFTSw0KKwlsZHIJcjIsID1fVElGX1NZU0NBTExfV09SSyB8IF9USUZfV09S
+S19NQVNLDQorCXRzdAlyMSwgcjINCiAJYmVxCW5vX3dvcmtfcGVuZGluZw0KICBVTldJTkQoLmZu
+ZW5kCQkpDQogRU5EUFJPQyhyZXRfZmFzdF9zeXNjYWxsKQ0KQEAgLTk4LDcgKzEwMCw4IEBAIEVO
+RFBST0MocmV0X2Zhc3Rfc3lzY2FsbCkNCiAJLyogU2xvd2VyIHBhdGggLSBmYWxsIHRocm91Z2gg
+dG8gd29ya19wZW5kaW5nICovDQogI2VuZGlmDQogDQotCXRzdAlyMSwgI19USUZfU1lTQ0FMTF9X
+T1JLDQorCWxkcglyMiwgPV9USUZfU1lTQ0FMTF9XT1JLDQorCXRzdAlyMSwgcjINCiAJYm5lCV9f
+c3lzX3RyYWNlX3JldHVybl9ub3NhdmUNCiBzbG93X3dvcmtfcGVuZGluZzoNCiAJbW92CXIwLCBz
+cAkJCQlAICdyZWdzJw0KQEAgLTEzMSw3ICsxMzQsOCBAQCBFTlRSWShyZXRfdG9fdXNlcl9mcm9t
+X2lycSkNCiAJY21wCXIyLCAjVEFTS19TSVpFDQogCWJsbmUJYWRkcl9saW1pdF9jaGVja19mYWls
+ZWQNCiAJbGRyCXIxLCBbdHNrLCAjVElfRkxBR1NdDQotCXRzdAlyMSwgI19USUZfV09SS19NQVNL
+DQorCWxkcglyMiwgPV9USUZfV09SS19NQVNLDQorCXRzdAlyMSwgcjINCiAJYm5lCXNsb3dfd29y
+a19wZW5kaW5nDQogbm9fd29ya19wZW5kaW5nOg0KIAlhc21fdHJhY2VfaGFyZGlycXNfb24gc2F2
+ZSA9IDANCkBAIC0yNTEsNyArMjU1LDggQEAgbG9jYWxfcmVzdGFydDoNCiAJbGRyCXIxMCwgW3Rz
+aywgI1RJX0ZMQUdTXQkJQCBjaGVjayBmb3Igc3lzY2FsbCB0cmFjaW5nDQogCXN0bWRiCXNwISwg
+e3I0LCByNX0JCQlAIHB1c2ggZmlmdGggYW5kIHNpeHRoIGFyZ3MNCiANCi0JdHN0CXIxMCwgI19U
+SUZfU1lTQ0FMTF9XT1JLCQlAIGFyZSB3ZSB0cmFjaW5nIHN5c2NhbGxzPw0KKwlsZHIJcjExLCA9
+X1RJRl9TWVNDQUxMX1dPUksJCUAgYXJlIHdlIHRyYWNpbmcgc3lzY2FsbHM/DQorCXRzdAlyMTAs
+IHIxMQ0KIAlibmUJX19zeXNfdHJhY2UNCiANCiAJaW52b2tlX3N5c2NhbGwgdGJsLCBzY25vLCBy
+MTAsIF9fcmV0X2Zhc3Rfc3lzY2FsbA0KZGlmZiAtLWdpdCBhL2FyY2gvYXJtL2tlcm5lbC9wdHJh
+Y2UuYyBiL2FyY2gvYXJtL2tlcm5lbC9wdHJhY2UuYw0KaW5kZXggYjYwNmNkZWQ5MGNkLi5hNjli
+MGJmZDcxYWUgMTAwNjQ0DQotLS0gYS9hcmNoL2FybS9rZXJuZWwvcHRyYWNlLmMNCisrKyBiL2Fy
+Y2gvYXJtL2tlcm5lbC9wdHJhY2UuYw0KQEAgLTI0LDYgKzI0LDcgQEANCiAjaW5jbHVkZSA8bGlu
+dXgvYXVkaXQuaD4NCiAjaW5jbHVkZSA8bGludXgvdHJhY2Vob29rLmg+DQogI2luY2x1ZGUgPGxp
+bnV4L3VuaXN0ZC5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29sYXRpb24uaD4NCiANCiAjaW5jbHVk
+ZSA8YXNtL3BndGFibGUuaD4NCiAjaW5jbHVkZSA8YXNtL3RyYXBzLmg+DQpAQCAtOTIxLDYgKzky
+MiwxNSBAQCBhc21saW5rYWdlIGludCBzeXNjYWxsX3RyYWNlX2VudGVyKHN0cnVjdCBwdF9yZWdz
+ICpyZWdzLCBpbnQgc2NubykNCiAJaWYgKHRlc3RfdGhyZWFkX2ZsYWcoVElGX1NZU0NBTExfVFJB
+Q0UpKQ0KIAkJdHJhY2Vob29rX3JlcG9ydF9zeXNjYWxsKHJlZ3MsIFBUUkFDRV9TWVNDQUxMX0VO
+VEVSKTsNCiANCisJLyoNCisJICogSW4gdGFzayBpc29sYXRpb24gbW9kZSwgd2UgbWF5IHByZXZl
+bnQgdGhlIHN5c2NhbGwgZnJvbQ0KKwkgKiBydW5uaW5nLCBhbmQgaWYgc28gd2UgYWxzbyBkZWxp
+dmVyIGEgc2lnbmFsIHRvIHRoZSBwcm9jZXNzLg0KKwkgKi8NCisJaWYgKHRlc3RfdGhyZWFkX2Zs
+YWcoVElGX1RBU0tfSVNPTEFUSU9OKSkgew0KKwkJaWYgKHRhc2tfaXNvbGF0aW9uX3N5c2NhbGwo
+c2NubykgPT0gLTEpDQorCQkJcmV0dXJuIC0xOw0KKwl9DQorDQogCS8qIERvIHNlY2NvbXAgYWZ0
+ZXIgcHRyYWNlOyBzeXNjYWxsIG1heSBoYXZlIGNoYW5nZWQuICovDQogI2lmZGVmIENPTkZJR19I
+QVZFX0FSQ0hfU0VDQ09NUF9GSUxURVINCiAJaWYgKHNlY3VyZV9jb21wdXRpbmcoKSA9PSAtMSkN
+CmRpZmYgLS1naXQgYS9hcmNoL2FybS9rZXJuZWwvc2lnbmFsLmMgYi9hcmNoL2FybS9rZXJuZWwv
+c2lnbmFsLmMNCmluZGV4IGFiMjU2ODk5NmRkYi4uMjljY2VmODQwM2NkIDEwMDY0NA0KLS0tIGEv
+YXJjaC9hcm0va2VybmVsL3NpZ25hbC5jDQorKysgYi9hcmNoL2FybS9rZXJuZWwvc2lnbmFsLmMN
+CkBAIC0xMiw2ICsxMiw3IEBADQogI2luY2x1ZGUgPGxpbnV4L3RyYWNlaG9vay5oPg0KICNpbmNs
+dWRlIDxsaW51eC91cHJvYmVzLmg+DQogI2luY2x1ZGUgPGxpbnV4L3N5c2NhbGxzLmg+DQorI2lu
+Y2x1ZGUgPGxpbnV4L2lzb2xhdGlvbi5oPg0KIA0KICNpbmNsdWRlIDxhc20vZWxmLmg+DQogI2lu
+Y2x1ZGUgPGFzbS9jYWNoZWZsdXNoLmg+DQpAQCAtNjM5LDYgKzY0MCw5IEBAIHN0YXRpYyBpbnQg
+ZG9fc2lnbmFsKHN0cnVjdCBwdF9yZWdzICpyZWdzLCBpbnQgc3lzY2FsbCkNCiAJcmV0dXJuIDA7
+DQogfQ0KIA0KKyNkZWZpbmUgV09SS19QRU5ESU5HX0xPT1BfRkxBR1MJKF9USUZfTkVFRF9SRVND
+SEVEIHwgX1RJRl9TSUdQRU5ESU5HIHwJXA0KKwkJCQkgX1RJRl9OT1RJRllfUkVTVU1FIHwgX1RJ
+Rl9VUFJPQkUpDQorDQogYXNtbGlua2FnZSBpbnQNCiBkb193b3JrX3BlbmRpbmcoc3RydWN0IHB0
+X3JlZ3MgKnJlZ3MsIHVuc2lnbmVkIGludCB0aHJlYWRfZmxhZ3MsIGludCBzeXNjYWxsKQ0KIHsN
+CkBAIC02NDgsNiArNjUyLDkgQEAgZG9fd29ya19wZW5kaW5nKHN0cnVjdCBwdF9yZWdzICpyZWdz
+LCB1bnNpZ25lZCBpbnQgdGhyZWFkX2ZsYWdzLCBpbnQgc3lzY2FsbCkNCiAJICogVXBkYXRlIHRo
+ZSB0cmFjZSBjb2RlIHdpdGggdGhlIGN1cnJlbnQgc3RhdHVzLg0KIAkgKi8NCiAJdHJhY2VfaGFy
+ZGlycXNfb2ZmKCk7DQorDQorCXRhc2tfaXNvbGF0aW9uX2NoZWNrX3J1bl9jbGVhbnVwKCk7DQor
+DQogCWRvIHsNCiAJCWlmIChsaWtlbHkodGhyZWFkX2ZsYWdzICYgX1RJRl9ORUVEX1JFU0NIRUQp
+KSB7DQogCQkJc2NoZWR1bGUoKTsNCkBAIC02NzYsNyArNjgzLDExIEBAIGRvX3dvcmtfcGVuZGlu
+ZyhzdHJ1Y3QgcHRfcmVncyAqcmVncywgdW5zaWduZWQgaW50IHRocmVhZF9mbGFncywgaW50IHN5
+c2NhbGwpDQogCQl9DQogCQlsb2NhbF9pcnFfZGlzYWJsZSgpOw0KIAkJdGhyZWFkX2ZsYWdzID0g
+Y3VycmVudF90aHJlYWRfaW5mbygpLT5mbGFnczsNCi0JfSB3aGlsZSAodGhyZWFkX2ZsYWdzICYg
+X1RJRl9XT1JLX01BU0spOw0KKwl9IHdoaWxlICh0aHJlYWRfZmxhZ3MgJiBXT1JLX1BFTkRJTkdf
+TE9PUF9GTEFHUyk7DQorDQorCWlmICh0aHJlYWRfZmxhZ3MgJiBfVElGX1RBU0tfSVNPTEFUSU9O
+KQ0KKwkJdGFza19pc29sYXRpb25fc3RhcnQoKTsNCisNCiAJcmV0dXJuIDA7DQogfQ0KIA0KZGlm
+ZiAtLWdpdCBhL2FyY2gvYXJtL2tlcm5lbC9zbXAuYyBiL2FyY2gvYXJtL2tlcm5lbC9zbXAuYw0K
+aW5kZXggNDZlMWJlOWU1N2E4Li45NWYxOWI5ODA3NzYgMTAwNjQ0DQotLS0gYS9hcmNoL2FybS9r
+ZXJuZWwvc21wLmMNCisrKyBiL2FyY2gvYXJtL2tlcm5lbC9zbXAuYw0KQEAgLTI2LDYgKzI2LDcg
+QEANCiAjaW5jbHVkZSA8bGludXgvY29tcGxldGlvbi5oPg0KICNpbmNsdWRlIDxsaW51eC9jcHVm
+cmVxLmg+DQogI2luY2x1ZGUgPGxpbnV4L2lycV93b3JrLmg+DQorI2luY2x1ZGUgPGxpbnV4L2lz
+b2xhdGlvbi5oPg0KIA0KICNpbmNsdWRlIDxsaW51eC9hdG9taWMuaD4NCiAjaW5jbHVkZSA8YXNt
+L2J1Z3MuaD4NCkBAIC01NjAsNiArNTYxLDcgQEAgdm9pZCBhcmNoX3NlbmRfY2FsbF9mdW5jdGlv
+bl9pcGlfbWFzayhjb25zdCBzdHJ1Y3QgY3B1bWFzayAqbWFzaykNCiANCiB2b2lkIGFyY2hfc2Vu
+ZF93YWtldXBfaXBpX21hc2soY29uc3Qgc3RydWN0IGNwdW1hc2sgKm1hc2spDQogew0KKwl0YXNr
+X2lzb2xhdGlvbl9yZW1vdGVfY3B1bWFzayhtYXNrLCAid2FrZXVwIElQSSIpOw0KIAlzbXBfY3Jv
+c3NfY2FsbChtYXNrLCBJUElfV0FLRVVQKTsNCiB9DQogDQpAQCAtNTc5LDYgKzU4MSw3IEBAIHZv
+aWQgYXJjaF9pcnFfd29ya19yYWlzZSh2b2lkKQ0KICNpZmRlZiBDT05GSUdfR0VORVJJQ19DTE9D
+S0VWRU5UU19CUk9BRENBU1QNCiB2b2lkIHRpY2tfYnJvYWRjYXN0KGNvbnN0IHN0cnVjdCBjcHVt
+YXNrICptYXNrKQ0KIHsNCisJdGFza19pc29sYXRpb25fcmVtb3RlX2NwdW1hc2sobWFzaywgInRp
+bWVyIElQSSIpOw0KIAlzbXBfY3Jvc3NfY2FsbChtYXNrLCBJUElfVElNRVIpOw0KIH0NCiAjZW5k
+aWYNCkBAIC03MDIsNiArNzA1LDcgQEAgdm9pZCBoYW5kbGVfSVBJKGludCBpcGluciwgc3RydWN0
+IHB0X3JlZ3MgKnJlZ3MpDQogDQogdm9pZCBzbXBfc2VuZF9yZXNjaGVkdWxlKGludCBjcHUpDQog
+ew0KKwl0YXNrX2lzb2xhdGlvbl9yZW1vdGUoY3B1LCAicmVzY2hlZHVsZSBJUEkiKTsNCiAJc21w
+X2Nyb3NzX2NhbGwoY3B1bWFza19vZihjcHUpLCBJUElfUkVTQ0hFRFVMRSk7DQogfQ0KIA0KZGlm
+ZiAtLWdpdCBhL2FyY2gvYXJtL21tL2ZhdWx0LmMgYi9hcmNoL2FybS9tbS9mYXVsdC5jDQppbmRl
+eCBiZDBmNDgyMWY3ZTEuLmFjZDExYTY5YzRlNCAxMDA2NDQNCi0tLSBhL2FyY2gvYXJtL21tL2Zh
+dWx0LmMNCisrKyBiL2FyY2gvYXJtL21tL2ZhdWx0LmMNCkBAIC0xNyw2ICsxNyw3IEBADQogI2lu
+Y2x1ZGUgPGxpbnV4L3NjaGVkL2RlYnVnLmg+DQogI2luY2x1ZGUgPGxpbnV4L2hpZ2htZW0uaD4N
+CiAjaW5jbHVkZSA8bGludXgvcGVyZl9ldmVudC5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29sYXRp
+b24uaD4NCiANCiAjaW5jbHVkZSA8YXNtL3BndGFibGUuaD4NCiAjaW5jbHVkZSA8YXNtL3N5c3Rl
+bV9taXNjLmg+DQpAQCAtMzMyLDggKzMzMywxMyBAQCBkb19wYWdlX2ZhdWx0KHVuc2lnbmVkIGxv
+bmcgYWRkciwgdW5zaWduZWQgaW50IGZzciwgc3RydWN0IHB0X3JlZ3MgKnJlZ3MpDQogCS8qDQog
+CSAqIEhhbmRsZSB0aGUgIm5vcm1hbCIgY2FzZSBmaXJzdCAtIFZNX0ZBVUxUX01BSk9SDQogCSAq
+Lw0KLQlpZiAobGlrZWx5KCEoZmF1bHQgJiAoVk1fRkFVTFRfRVJST1IgfCBWTV9GQVVMVF9CQURN
+QVAgfCBWTV9GQVVMVF9CQURBQ0NFU1MpKSkpDQorCWlmIChsaWtlbHkoIShmYXVsdCAmIChWTV9G
+QVVMVF9FUlJPUiB8IFZNX0ZBVUxUX0JBRE1BUCB8DQorCQkJICAgICAgVk1fRkFVTFRfQkFEQUND
+RVNTKSkpKSB7DQorCQkvKiBObyBzaWduYWwgd2FzIGdlbmVyYXRlZCwgYnV0IG5vdGlmeSB0YXNr
+LWlzb2xhdGlvbiB0YXNrcy4gKi8NCisJCWlmICh1c2VyX21vZGUocmVncykpDQorCQkJdGFza19p
+c29sYXRpb25faW50ZXJydXB0KCJwYWdlIGZhdWx0IGF0ICUjbHgiLCBhZGRyKTsNCiAJCXJldHVy
+biAwOw0KKwl9DQogDQogCS8qDQogCSAqIElmIHdlIGFyZSBpbiBrZXJuZWwgbW9kZSBhdCB0aGlz
+IHBvaW50LCB3ZQ0KLS0gDQoyLjIwLjENCg0K
