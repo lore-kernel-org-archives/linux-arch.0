@@ -1,41 +1,44 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Minchan Kim <minchan@kernel.org>
 Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
  zsmalloc
-Date: Thu, 9 Apr 2020 18:50:30 +0200
-Message-ID: <20200409165030.GG20713@hirez.programming.kicks-ass.net>
+Date: Thu, 9 Apr 2020 10:08:13 -0700
+Message-ID: <20200409170813.GD247701@google.com>
 References: <20200408115926.1467567-1-hch@lst.de>
  <20200408115926.1467567-11-hch@lst.de>
  <20200409160826.GC247701@google.com>
+ <20200409165030.GG20713@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg1-f194.google.com ([209.85.215.194]:45387 "EHLO
+        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726725AbgDIRIS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2020 13:08:18 -0400
 Content-Disposition: inline
-In-Reply-To: <20200409160826.GC247701@google.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Minchan Kim <minchan@kernel.org>
-Cc: linux-hyperv@vger.kernel.org, David Airlie <airlied@linux.ie>, dri-devel@lists.freedesktop.org, linux-mm@kvack.org, "K. Y. Srinivasan" <kys@microsoft.com>, Sumit Semwal <sumit.semwal@linaro.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Wei Liu <wei.liu@kernel.org>, Stephen Hemminger <sthemmin@microsoft.com>, x86@kernel.org, Christoph Hellwig <hch@lst.de>, Laura Abbott <labbott@redhat.com>, Nitin Gupta <ngupta@vflare.org>, Daniel Vetter <daniel@ffwll.ch>, Haiyang Zhang <haiyangz@microsoft.com>, linaro-mm-sig@lists.linaro.org, bpf@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Christophe Leroy <christophe.leroy@c-s.fr>, Robin Murphy <robin.murphy@arm.com>, linux-kernel@vger.kernel.org, sergey.senozhatsky@gmail.com, iommu@lists.linux-foundation.org, Sakari Ailus <sakari.ailus@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20200409165030.GG20713@hirez.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 
-On Thu, Apr 09, 2020 at 09:08:26AM -0700, Minchan Kim wrote:
-> On Wed, Apr 08, 2020 at 01:59:08PM +0200, Christoph Hellwig wrote:
-> > This allows to unexport map_vm_area and unmap_kernel_range, which are
-> > rather deep internal and should not be available to modules.
+On Thu, Apr 09, 2020 at 06:50:30PM +0200, Peter Zijlstra wrote:
+> On Thu, Apr 09, 2020 at 09:08:26AM -0700, Minchan Kim wrote:
+> > On Wed, Apr 08, 2020 at 01:59:08PM +0200, Christoph Hellwig wrote:
+> > > This allows to unexport map_vm_area and unmap_kernel_range, which are
+> > > rather deep internal and should not be available to modules.
+> > 
+> > Even though I don't know how many usecase we have using zsmalloc as
+> > module(I heard only once by dumb reason), it could affect existing
+> > users. Thus, please include concrete explanation in the patch to
+> > justify when the complain occurs.
 > 
-> Even though I don't know how many usecase we have using zsmalloc as
-> module(I heard only once by dumb reason), it could affect existing
-> users. Thus, please include concrete explanation in the patch to
-> justify when the complain occurs.
+> The justification is 'we can unexport functions that have no sane reason
+> of being exported in the first place'.
+> 
+> The Changelog pretty much says that.
 
-The justification is 'we can unexport functions that have no sane reason
-of being exported in the first place'.
+Okay, I hope there is no affected user since this patch.
+If there are someone, they need to provide sane reason why they want
+to have zsmalloc as module.
 
-The Changelog pretty much says that.
+Acked-by: Minchan Kim <minchan@kernel.org>
