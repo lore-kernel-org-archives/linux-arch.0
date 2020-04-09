@@ -1,75 +1,46 @@
-From: Josh Triplett <josh@joshtriplett.org>
-Subject: Re: [PATCH v3 0/3] Support userspace-selected fds
-Date: Wed, 8 Apr 2020 20:19:18 -0700
-Message-ID: <20200409031918.GD6149@localhost>
-References: <cover.1586321767.git.josh@joshtriplett.org>
- <20200408122601.kvrdjksjkl7ktgt4@yavin.dot.cyphar.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: guoren@kernel.org
+Subject: [PATCH] csky: Fixup compile error for abiv1 entry.S
+Date: Thu,  9 Apr 2020 11:19:41 +0800
+Message-ID: <20200409031941.6288-1-guoren@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200408122601.kvrdjksjkl7ktgt4@yavin.dot.cyphar.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, io-uring@vger.kernel.org, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Jens Axboe <axboe@kernel.dk>
+To: linux-csky@vger.kernel.org
+Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, guoren@kernel.org, Guo Ren <guoren@linux.alibaba.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 08, 2020 at 10:26:01PM +1000, Aleksa Sarai wrote:
-> On 2020-04-07, Josh Triplett <josh@joshtriplett.org> wrote:
-> > (Note: numbering this updated version v3, to avoid confusion with Jens'
-> > v2 that built on my v1. Jens, if you like this approach, please feel
-> > free to stack your additional patches from the io_uring-fd-select branch
-> > atop this series. 5.8 material, not intended for the current merge window.)
-> > 
-> > Inspired by the X protocol's handling of XIDs, allow userspace to select
-> > the file descriptor opened by a call like openat2, so that it can use
-> > the resulting file descriptor in subsequent system calls without waiting
-> > for the response to the initial openat2 syscall.
-> > 
-> > The first patch is independent of the other two; it allows reserving
-> > file descriptors below a certain minimum for userspace-selected fd
-> > allocation only.
-> > 
-> > The second patch implements userspace-selected fd allocation for
-> > openat2, introducing a new O_SPECIFIC_FD flag and an fd field in struct
-> > open_how. In io_uring, this allows sequences like openat2/read/close
-> > without waiting for the openat2 to complete. Multiple such sequences can
-> > overlap, as long as each uses a distinct file descriptor.
-> > 
-> > The third patch adds userspace-selected fd allocation to pipe2 as well.
-> > I did this partly as a demonstration of how simple it is to wire up
-> > O_SPECIFIC_FD support for any fd-allocating system call, and partly in
-> > the hopes that this may make it more useful to wire up io_uring support
-> > for pipe2 in the future.
-> > 
-> > If this gets accepted, I'm happy to also write corresponding manpage
-> > patches.
-> > 
-> > v3:
-> > This new version has an API to atomically increase the minimum fd and
-> > return the previous minimum, rather than just getting and setting the
-> > minimum; this makes it easier to allocate a range. (A library that might
-> > initialize after the program has already opened other file descriptors
-> > may need to check for existing open fds in the range after reserving it,
-> > and reserve more fds if needed; this can be done entirely in userspace,
-> > and we can't really do anything simpler in the kernel due to limitations
-> > on file-descriptor semantics, so this patch series avoids introducing
-> > any extra complexity in the kernel.)
-> > 
-> > This new version also supports a __get_specific_unused_fd_flags call
-> > which accepts the limit for RLIMIT_NOFILE as an argument, analogous to
-> > __get_unused_fd_flags, since io_uring needs that to correctly handle
-> > RLIMIT_NOFILE.
-> > 
-> > Josh Triplett (3):
-> >   fs: Support setting a minimum fd for "lowest available fd" allocation
-> >   fs: openat2: Extend open_how to allow userspace-selected fds
-> >   fs: pipe2: Support O_SPECIFIC_FD
-> 
-> Aside from my specific comments and questions, the changes to openat2
-> deserve at least one or two selftests.
+From: Guo Ren <guoren@linux.alibaba.com>
 
-Agreed. I don't expect this to get merged until it has tests and
-manpage patches.
+This bug is from uprobe signal definition in thread_info.h. The
+instruction (andi) of abiv1 immediate is smaller than abiv2, then
+it will cause:
 
-- Josh Triplett
+  AS      arch/csky/kernel/entry.o
+ arch/csky/kernel/entry.S: Assembler messages:
+ arch/csky/kernel/entry.S:224: Error: Operand 2 immediate is overflow.
+
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+---
+ arch/csky/include/asm/thread_info.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/csky/include/asm/thread_info.h b/arch/csky/include/asm/thread_info.h
+index 442fedad0260..5d33fcfd7f2a 100644
+--- a/arch/csky/include/asm/thread_info.h
++++ b/arch/csky/include/asm/thread_info.h
+@@ -54,10 +54,10 @@ static inline struct thread_info *current_thread_info(void)
+ #define TIF_SIGPENDING		0	/* signal pending */
+ #define TIF_NOTIFY_RESUME	1       /* callback before returning to user */
+ #define TIF_NEED_RESCHED	2	/* rescheduling necessary */
+-#define TIF_SYSCALL_TRACE	3	/* syscall trace active */
+-#define TIF_SYSCALL_TRACEPOINT	4       /* syscall tracepoint instrumentation */
+-#define TIF_SYSCALL_AUDIT	5	/* syscall auditing */
+-#define TIF_UPROBE		6	/* uprobe breakpoint or singlestep */
++#define TIF_UPROBE		3	/* uprobe breakpoint or singlestep */
++#define TIF_SYSCALL_TRACE	4	/* syscall trace active */
++#define TIF_SYSCALL_TRACEPOINT	5       /* syscall tracepoint instrumentation */
++#define TIF_SYSCALL_AUDIT	6	/* syscall auditing */
+ #define TIF_POLLING_NRFLAG	16	/* poll_idle() is TIF_NEED_RESCHED */
+ #define TIF_MEMDIE		18      /* is terminating due to OOM killer */
+ #define TIF_RESTORE_SIGMASK	20	/* restore signal mask in do_signal() */
+-- 
+2.17.0
