@@ -1,68 +1,49 @@
-Return-Path: <SRS0=nfbU=55=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.18]:60608 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725775AbgDMEcS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Apr 2020 00:32:18 -0400
-Received: from shards.monkeyblade.net (shards.monkeyblade.net [23.128.96.9])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C450EC0A3BE0
-        for <linux-arch@vger.kernel.org>; Sun, 12 Apr 2020 21:32:18 -0700 (PDT)
-Date: Sun, 12 Apr 2020 21:32:16 -0700 (PDT)
-Message-ID: <20200412.213216.2171341731015449507.davem@davemloft.net>
-Subject: Re: [RFC] regset ->get() API
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20200222004157.GX23230@ZenIV.linux.org.uk>
-References: <20200221185903.GA3929948@ZenIV.linux.org.uk>
-        <20200221.112244.1426580944977593272.davem@davemloft.net>
-        <20200222004157.GX23230@ZenIV.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Return-Path: <SRS0=yGje=5Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:47456 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727912AbgDIP05 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2020 11:26:57 -0400
+From: Alex Belits <abelits@marvell.com>
+Subject: [PATCH v3 10/13] task_isolation: net: don't flush backlog on CPUs
+ running isolated tasks
+Date: Thu, 9 Apr 2020 15:26:26 +0000
+Message-ID: <ca337ff4e82a92d2fe22ce74232730eacfc74d96.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+         <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
+In-Reply-To: <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <76EC25E45302BC4699A62EBA0CFD13EB@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: viro@zeniv.linux.org.uk
-Cc: torvalds@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
-Message-ID: <20200413043216.CcR2kFTjLeIPG1-H-R_s7oeHZTQq69NwVhVnYKpXn5s@z>
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+Message-ID: <20200409152626.qU_EsmfoarQ2zkhXfu4K3o3b18itk8w8QG5n8FeO58g@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
-Date: Sat, 22 Feb 2020 00:41:57 +0000
-
-> On Fri, Feb 21, 2020 at 11:22:44AM -0800, David Miller wrote:
->> From: Al Viro <viro@zeniv.linux.org.uk>
->> Date: Fri, 21 Feb 2020 18:59:03 +0000
->> 
->> > Again, a couple of copy_regset_to_user(), but there's an additional
->> > twist - GETREGSET of 32bit task on sparc64 will use access_process_vm()
->> > when trying to fetch L0..L7/I0..I7 of other task, using copy_from_user()
->> > only when the target is equal to current.  For sparc32 this is not
->> > true - it's always copy_from_user() there, so the values it reports
->> > for those registers have nothing to do with the target process.  That
->> > part smells like a bug; by the time GETREGSET had been introduced
->> > sparc32 was not getting much attention, GETREGS worked just fine
->> > (not reporting L*/I* anyway) and for coredump it was accessing the
->> > caller's memory.  Not sure if anyone cares at that point...
->> 
->> That's definitely a bug and sparc64 is doing it correctly.
-> 
-> OK...  What does the comment in
->         case PTRACE_GETREGS64:
->                 ret = copy_regset_to_user(child, view, REGSET_GENERAL,
->                                           1 * sizeof(u64),
->                                           15 * sizeof(u64),
->                                           &pregs->u_regs[0]);
->                 if (!ret) {
->                         /* XXX doesn't handle 'y' register correctly XXX */
->                         ret = copy_regset_to_user(child, view, REGSET_GENERAL,
->                                                   32 * sizeof(u64),
->                                                   4 * sizeof(u64),
->                                                   &pregs->tstate);
->                 }
->                 break;   
-> refer to?  The fact that you end up with 0 in pregs->y and Y in pregs->magic?
-> In that case it's probably too late to do anything about that...
-
-Yes, that's exactly what it's talking about since we have:
-
-	unsigned int y;
-	unsigned int magic;
-
-and we're doing a 64-bit value copy.
+RnJvbTogWXVyaSBOb3JvdiA8eW5vcm92QG1hcnZlbGwuY29tPg0KDQpJZiBDUFUgcnVucyBpc29s
+YXRlZCB0YXNrLCB0aGVyZSdzIG5vIGFueSBiYWNrbG9nIG9uIGl0LCBhbmQNCnNvIHdlIGRvbid0
+IG5lZWQgdG8gZmx1c2ggaXQuIEN1cnJlbnRseSBmbHVzaF9hbGxfYmFja2xvZ3MoKQ0KZW5xdWV1
+ZXMgY29ycmVzcG9uZGluZyB3b3JrIG9uIGFsbCBDUFVzIGluY2x1ZGluZyBvbmVzIHRoYXQgcnVu
+DQppc29sYXRlZCB0YXNrcy4gSXQgbGVhZHMgdG8gYnJlYWtpbmcgdGFzayBpc29sYXRpb24gZm9y
+IG5vdGhpbmcuDQoNCkluIHRoaXMgcGF0Y2gsIGJhY2tsb2cgZmx1c2hpbmcgaXMgZW5xdWV1ZWQg
+b25seSBvbiBub24taXNvbGF0ZWQgQ1BVcy4NCg0KU2lnbmVkLW9mZi1ieTogWXVyaSBOb3JvdiA8
+eW5vcm92QG1hcnZlbGwuY29tPg0KW2FiZWxpdHNAbWFydmVsbC5jb206IHVzZSBzYWZlIHRhc2tf
+aXNvbGF0aW9uX29uX2NwdSgpIGltcGxlbWVudGF0aW9uXQ0KU2lnbmVkLW9mZi1ieTogQWxleCBC
+ZWxpdHMgPGFiZWxpdHNAbWFydmVsbC5jb20+DQotLS0NCiBuZXQvY29yZS9kZXYuYyB8IDcgKysr
+KysrLQ0KIDEgZmlsZSBjaGFuZ2VkLCA2IGluc2VydGlvbnMoKyksIDEgZGVsZXRpb24oLSkNCg0K
+ZGlmZiAtLWdpdCBhL25ldC9jb3JlL2Rldi5jIGIvbmV0L2NvcmUvZGV2LmMNCmluZGV4IGM2Yzk4
+NWZlN2IxYi4uMzUzZDJiZTM5MjAyIDEwMDY0NA0KLS0tIGEvbmV0L2NvcmUvZGV2LmMNCisrKyBi
+L25ldC9jb3JlL2Rldi5jDQpAQCAtNzQsNiArNzQsNyBAQA0KICNpbmNsdWRlIDxsaW51eC9jcHUu
+aD4NCiAjaW5jbHVkZSA8bGludXgvdHlwZXMuaD4NCiAjaW5jbHVkZSA8bGludXgva2VybmVsLmg+
+DQorI2luY2x1ZGUgPGxpbnV4L2lzb2xhdGlvbi5oPg0KICNpbmNsdWRlIDxsaW51eC9oYXNoLmg+
+DQogI2luY2x1ZGUgPGxpbnV4L3NsYWIuaD4NCiAjaW5jbHVkZSA8bGludXgvc2NoZWQuaD4NCkBA
+IC01NTE4LDkgKzU1MTksMTMgQEAgc3RhdGljIHZvaWQgZmx1c2hfYWxsX2JhY2tsb2dzKHZvaWQp
+DQogDQogCWdldF9vbmxpbmVfY3B1cygpOw0KIA0KLQlmb3JfZWFjaF9vbmxpbmVfY3B1KGNwdSkN
+CisJc21wX3JtYigpOw0KKwlmb3JfZWFjaF9vbmxpbmVfY3B1KGNwdSkgew0KKwkJaWYgKHRhc2tf
+aXNvbGF0aW9uX29uX2NwdShjcHUpKQ0KKwkJCWNvbnRpbnVlOw0KIAkJcXVldWVfd29ya19vbihj
+cHUsIHN5c3RlbV9oaWdocHJpX3dxLA0KIAkJCSAgICAgIHBlcl9jcHVfcHRyKCZmbHVzaF93b3Jr
+cywgY3B1KSk7DQorCX0NCiANCiAJZm9yX2VhY2hfb25saW5lX2NwdShjcHUpDQogCQlmbHVzaF93
+b3JrKHBlcl9jcHVfcHRyKCZmbHVzaF93b3JrcywgY3B1KSk7DQotLSANCjIuMjAuMQ0KDQo=
