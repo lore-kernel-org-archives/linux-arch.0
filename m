@@ -1,38 +1,64 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 19/28] gpu/drm: remove the powerpc hack in
- drm_legacy_sg_alloc
-Date: Fri, 10 Apr 2020 08:56:41 +1000
-Message-ID: <0f360b9cb72b80bae0d0db8150f65598c2776268.camel@kernel.crashing.org>
-References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-20-hch@lst.de>
- <20200408122504.GO3456981@phenom.ffwll.local>
- <eb48f7b6327e482ea9911b129210c0417ab48345.camel@kernel.crashing.org>
- <CAKMK7uHtkLvdsWFGiAtkzVa5mpnDvXkn3CHZQ6bgJ_enbyAc8A@mail.gmail.com>
+From: Michael Kelley <mikelley@microsoft.com>
+Subject: RE: [PATCH V4 6/6] x86/Hyper-V: Report crash data in die() when
+ panic_on_oops is set
+Date: Thu, 9 Apr 2020 23:06:13 +0000
+Message-ID: <MW2PR2101MB10525BA673D7FA81073B9F65D7C10@MW2PR2101MB1052.namprd21.prod.outlook.com>
+References: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
+ <20200406155331.2105-7-Tianyu.Lan@microsoft.com>
+ <MW2PR2101MB10524CB8CBF3FE49C2EDAA8DD7C00@MW2PR2101MB1052.namprd21.prod.outlook.com>
+ <20200409164054.72es2ykmbef3jbui@debian>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <CAKMK7uHtkLvdsWFGiAtkzVa5mpnDvXkn3CHZQ6bgJ_enbyAc8A@mail.gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Daniel Vetter <daniel@ffwll.ch>
-Cc: linux-hyperv@vger.kernel.org, David Airlie <airlied@linux.ie>, dri-devel <dri-devel@lists.freedesktop.org>, Linux MM <linux-mm@kvack.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Sumit Semwal <sumit.semwal@linaro.org>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, Wei Liu <wei.liu@kernel.org>, Stephen Hemminger <sthemmin@microsoft.com>, X86 ML <x86@kernel.org>, Christoph Hellwig <hch@lst.de>, Peter Zijlstra <peterz@infradead.org>, Laura Abbott <labbott@redhat.com>, Nitin Gupta <ngupta@vflare.org>, Haiyang Zhang <haiyangz@microsoft.com>, "moderated list:DMA BUFFER SHARING FRAMEWORK" <linaro-mm-sig@lists.linaro.org>, bpf <bpf@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Robin Murphy <robin.murphy@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-eopbgr690105.outbound.protection.outlook.com ([40.107.69.105]:53634
+        "EHLO NAM04-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726726AbgDIXGQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 9 Apr 2020 19:06:16 -0400
+In-Reply-To: <20200409164054.72es2ykmbef3jbui@debian>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Wei Liu <wei.liu@kernel.org>
+Cc: "ltykernel@gmail.com" <ltykernel@gmail.com>, KY Srinivasan <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <liuwe@microsoft.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "hpa@zytor.com" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, Tianyu Lan <Tianyu.Lan@microsoft.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, vkuznets <vkuznets@redhat.com>
 
-On Thu, 2020-04-09 at 11:41 +0200, Daniel Vetter wrote:
-> Now if these boxes didn't ever have agp then I think we can get away
-> with deleting this, since we've already deleted the legacy radeon
-> driver. And that one used vmalloc for everything. The new kms one does
-> use the dma-api if the gpu isn't connected through agp
+From: Wei Liu <wei.liu@kernel.org>  Sent: Thursday, April 9, 2020 9:41 AM
+>=20
+> On Wed, Apr 08, 2020 at 08:19:47PM +0000, Michael Kelley wrote:
+> > From: Tianyu Lan <Tianyu.Lan@microsoft.com> Sent: Monday, April 6, 2020=
+ 8:54 AM
+> > >
+> > > When oops happens with panic_on_oops unset, the oops
+> > > thread is killed by die() and system continues to run.
+> > > In such case, guest should not report crash register
+> > > data to host since system still runs. Check panic_on_oops
+> > > and return directly in hyperv_report_panic() when the function
+> > > is called in the die() and panic_on_oops is unset. Fix it.
+> > >
+> > > Fixes: 7ed4325a44ea ("Drivers: hv: vmbus: Make panic reporting to be =
+more useful")
+> > > Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
+> > > ---
+> > > Change since v3:
+> > > 	- Fix compile error.
+> > >         - Add fix commit in the change log
+> > > ---
+> > >  arch/x86/hyperv/hv_init.c      | 6 +++++-
+> > >  drivers/hv/vmbus_drv.c         | 5 +++--
+> > >  include/asm-generic/mshyperv.h | 2 +-
+> > >  3 files changed, 9 insertions(+), 4 deletions(-)
+> >
+> > Reviewed-by: Michael Kelley <mikelley@microsoft.com>
+>=20
+> It seems to me only the last patch is new, others are already in my
+> tree, so I only apply the last one.
+>=20
+> Let me know if my understanding is wrong.
+>=20
 
-Definitely no AGP there.
+Tianyu added "Fixes:" tags to some of the other patches in
+the series.  It appears the version you had already queued doesn't
+have those "Fixes:" tags.
 
-Cheers
-Ben.
+Michael
