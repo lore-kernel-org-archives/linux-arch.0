@@ -1,82 +1,53 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 12/29] mm: pass addr as unsigned long to vb_free
-Date: Tue, 14 Apr 2020 15:13:31 +0200
-Message-ID: <20200414131348.444715-13-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+Return-Path: <SRS0=yGje=5Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-wr1-f65.google.com ([209.85.221.65]:39069 "EHLO
+        mail-wr1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726583AbgDIQk7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2020 12:40:59 -0400
+Date: Thu, 9 Apr 2020 17:40:54 +0100
+From: Wei Liu <wei.liu@kernel.org>
+Subject: Re: [PATCH V4 6/6] x86/Hyper-V: Report crash data in die() when
+ panic_on_oops is set
+Message-ID: <20200409164054.72es2ykmbef3jbui@debian>
+References: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
+ <20200406155331.2105-7-Tianyu.Lan@microsoft.com>
+ <MW2PR2101MB10524CB8CBF3FE49C2EDAA8DD7C00@MW2PR2101MB1052.namprd21.prod.outlook.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <MW2PR2101MB10524CB8CBF3FE49C2EDAA8DD7C00@MW2PR2101MB1052.namprd21.prod.outlook.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414131331.52nv-OTQXP2XY8xgzzwF5xPczkc2WXIxP7bYhS_hFT4@z>
+To: Michael Kelley <mikelley@microsoft.com>
+Cc: "ltykernel@gmail.com" <ltykernel@gmail.com>, KY Srinivasan <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <liuwe@microsoft.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "hpa@zytor.com" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, Tianyu Lan <Tianyu.Lan@microsoft.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, vkuznets <vkuznets@redhat.com>, Wei Liu <wei.liu@kernel.org>
+Message-ID: <20200409164054.xQYG4zcGeupPHbtkRSv4ITx359Ia4Rnv5nDQOv40K8I@z>
 
-Ever use of addr in vb_free casts to unsigned long first, and the caller
-has an unsigned long version of the address available anyway.  Just pass
-that and avoid all the casts.
+On Wed, Apr 08, 2020 at 08:19:47PM +0000, Michael Kelley wrote:
+> From: Tianyu Lan <Tianyu.Lan@microsoft.com> Sent: Monday, April 6, 2020 8:54 AM
+> > 
+> > When oops happens with panic_on_oops unset, the oops
+> > thread is killed by die() and system continues to run.
+> > In such case, guest should not report crash register
+> > data to host since system still runs. Check panic_on_oops
+> > and return directly in hyperv_report_panic() when the function
+> > is called in the die() and panic_on_oops is unset. Fix it.
+> > 
+> > Fixes: 7ed4325a44ea ("Drivers: hv: vmbus: Make panic reporting to be more useful")
+> > Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
+> > ---
+> > Change since v3:
+> > 	- Fix compile error.
+> >         - Add fix commit in the change log
+> > ---
+> >  arch/x86/hyperv/hv_init.c      | 6 +++++-
+> >  drivers/hv/vmbus_drv.c         | 5 +++--
+> >  include/asm-generic/mshyperv.h | 2 +-
+> >  3 files changed, 9 insertions(+), 4 deletions(-)
+> 
+> Reviewed-by: Michael Kelley <mikelley@microsoft.com>
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- mm/vmalloc.c | 16 +++++++---------
- 1 file changed, 7 insertions(+), 9 deletions(-)
+It seems to me only the last patch is new, others are already in my
+tree, so I only apply the last one.
 
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 9183fc0d365a..aada9e9144bd 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -1664,7 +1664,7 @@ static void *vb_alloc(unsigned long size, gfp_t gfp=
-_mask)
- 	return vaddr;
- }
-=20
--static void vb_free(const void *addr, unsigned long size)
-+static void vb_free(unsigned long addr, unsigned long size)
- {
- 	unsigned long offset;
- 	unsigned long vb_idx;
-@@ -1674,24 +1674,22 @@ static void vb_free(const void *addr, unsigned lo=
-ng size)
- 	BUG_ON(offset_in_page(size));
- 	BUG_ON(size > PAGE_SIZE*VMAP_MAX_ALLOC);
-=20
--	flush_cache_vunmap((unsigned long)addr, (unsigned long)addr + size);
-+	flush_cache_vunmap(addr, addr + size);
-=20
- 	order =3D get_order(size);
-=20
--	offset =3D (unsigned long)addr & (VMAP_BLOCK_SIZE - 1);
--	offset >>=3D PAGE_SHIFT;
-+	offset =3D (addr & (VMAP_BLOCK_SIZE - 1)) >> PAGE_SHIFT;
-=20
--	vb_idx =3D addr_to_vb_idx((unsigned long)addr);
-+	vb_idx =3D addr_to_vb_idx(addr);
- 	rcu_read_lock();
- 	vb =3D radix_tree_lookup(&vmap_block_tree, vb_idx);
- 	rcu_read_unlock();
- 	BUG_ON(!vb);
-=20
--	vunmap_page_range((unsigned long)addr, (unsigned long)addr + size);
-+	vunmap_page_range(addr, addr + size);
-=20
- 	if (debug_pagealloc_enabled_static())
--		flush_tlb_kernel_range((unsigned long)addr,
--					(unsigned long)addr + size);
-+		flush_tlb_kernel_range(addr, addr + size);
-=20
- 	spin_lock(&vb->lock);
-=20
-@@ -1791,7 +1789,7 @@ void vm_unmap_ram(const void *mem, unsigned int cou=
-nt)
-=20
- 	if (likely(count <=3D VMAP_MAX_ALLOC)) {
- 		debug_check_no_locks_freed(mem, size);
--		vb_free(mem, size);
-+		vb_free(addr, size);
- 		return;
- 	}
-=20
---=20
-2.25.1
+Let me know if my understanding is wrong.
+
+Wei.
