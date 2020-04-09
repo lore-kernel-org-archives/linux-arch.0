@@ -1,69 +1,48 @@
-From: Minchan Kim <minchan@kernel.org>
-Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
- zsmalloc
-Date: Thu, 9 Apr 2020 09:08:26 -0700
-Message-ID: <20200409160826.GC247701@google.com>
-References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-11-hch@lst.de>
+From: Wei Liu <wei.liu@kernel.org>
+Subject: Re: [PATCH V4 6/6] x86/Hyper-V: Report crash data in die() when
+ panic_on_oops is set
+Date: Thu, 9 Apr 2020 17:40:54 +0100
+Message-ID: <20200409164054.72es2ykmbef3jbui@debian>
+References: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
+ <20200406155331.2105-7-Tianyu.Lan@microsoft.com>
+ <MW2PR2101MB10524CB8CBF3FE49C2EDAA8DD7C00@MW2PR2101MB1052.namprd21.prod.outlook.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200408115926.1467567-11-hch@lst.de>
+In-Reply-To: <MW2PR2101MB10524CB8CBF3FE49C2EDAA8DD7C00@MW2PR2101MB1052.namprd21.prod.outlook.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
+To: Michael Kelley <mikelley@microsoft.com>
+Cc: "ltykernel@gmail.com" <ltykernel@gmail.com>, KY Srinivasan <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <liuwe@microsoft.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "hpa@zytor.com" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, Tianyu Lan <Tianyu.Lan@microsoft.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, vkuznets <vkuznets@redhat.com>, Wei Liu <wei.liu@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 08, 2020 at 01:59:08PM +0200, Christoph Hellwig wrote:
-> This allows to unexport map_vm_area and unmap_kernel_range, which are
-> rather deep internal and should not be available to modules.
+On Wed, Apr 08, 2020 at 08:19:47PM +0000, Michael Kelley wrote:
+> From: Tianyu Lan <Tianyu.Lan@microsoft.com> Sent: Monday, April 6, 2020 8:54 AM
+> > 
+> > When oops happens with panic_on_oops unset, the oops
+> > thread is killed by die() and system continues to run.
+> > In such case, guest should not report crash register
+> > data to host since system still runs. Check panic_on_oops
+> > and return directly in hyperv_report_panic() when the function
+> > is called in the die() and panic_on_oops is unset. Fix it.
+> > 
+> > Fixes: 7ed4325a44ea ("Drivers: hv: vmbus: Make panic reporting to be more useful")
+> > Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
+> > ---
+> > Change since v3:
+> > 	- Fix compile error.
+> >         - Add fix commit in the change log
+> > ---
+> >  arch/x86/hyperv/hv_init.c      | 6 +++++-
+> >  drivers/hv/vmbus_drv.c         | 5 +++--
+> >  include/asm-generic/mshyperv.h | 2 +-
+> >  3 files changed, 9 insertions(+), 4 deletions(-)
+> 
+> Reviewed-by: Michael Kelley <mikelley@microsoft.com>
 
-Even though I don't know how many usecase we have using zsmalloc as
-module(I heard only once by dumb reason), it could affect existing
-users. Thus, please include concrete explanation in the patch to
-justify when the complain occurs.
+It seems to me only the last patch is new, others are already in my
+tree, so I only apply the last one.
 
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  mm/Kconfig   | 2 +-
->  mm/vmalloc.c | 2 --
->  2 files changed, 1 insertion(+), 3 deletions(-)
-> 
-> diff --git a/mm/Kconfig b/mm/Kconfig
-> index 36949a9425b8..614cc786b519 100644
-> --- a/mm/Kconfig
-> +++ b/mm/Kconfig
-> @@ -702,7 +702,7 @@ config ZSMALLOC
->  
->  config ZSMALLOC_PGTABLE_MAPPING
->  	bool "Use page table mapping to access object in zsmalloc"
-> -	depends on ZSMALLOC
-> +	depends on ZSMALLOC=y
->  	help
->  	  By default, zsmalloc uses a copy-based object mapping method to
->  	  access allocations that span two pages. However, if a particular
-> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-> index 3375f9508ef6..9183fc0d365a 100644
-> --- a/mm/vmalloc.c
-> +++ b/mm/vmalloc.c
-> @@ -2046,7 +2046,6 @@ void unmap_kernel_range(unsigned long addr, unsigned long size)
->  	vunmap_page_range(addr, end);
->  	flush_tlb_kernel_range(addr, end);
->  }
-> -EXPORT_SYMBOL_GPL(unmap_kernel_range);
->  
->  int map_vm_area(struct vm_struct *area, pgprot_t prot, struct page **pages)
->  {
-> @@ -2058,7 +2057,6 @@ int map_vm_area(struct vm_struct *area, pgprot_t prot, struct page **pages)
->  
->  	return err > 0 ? 0 : err;
->  }
-> -EXPORT_SYMBOL_GPL(map_vm_area);
->  
->  static inline void setup_vmalloc_vm_locked(struct vm_struct *vm,
->  	struct vmap_area *va, unsigned long flags, const void *caller)
-> -- 
-> 2.25.1
-> 
+Let me know if my understanding is wrong.
+
+Wei.
