@@ -1,160 +1,32 @@
-Return-Path: <SRS0=5ux+=5R=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 1 Apr 2020 14:20:04 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
- flush_pmd_tlb_range
-Message-ID: <20200401122004.GE20713@hirez.programming.kicks-ass.net>
-References: <20200331142927.1237-1-yezhenyu2@huawei.com>
- <20200331142927.1237-5-yezhenyu2@huawei.com>
- <20200331151331.GS20730@hirez.programming.kicks-ass.net>
- <fe12101e-8efe-22ad-0258-e6aeafc798cc@huawei.com>
+Return-Path: <SRS0=Usf8=5Z=kvack.org=owner-linux-mm@kernel.org>
+From: Federico Vaga <federico.vaga@vaga.pv.it>
+Subject: Re: [PATCH 03/35] docs: fix broken references to text files
+Date: Thu, 09 Apr 2020 09:07:13 +0200
+Message-ID: <2427906.fv9odQMh6t@harkonnen>
+In-Reply-To: <2e12bf13355bd06748fed5d135fd4de3d94ad5fd.1586359676.git.mchehab+huawei@kernel.org>
+References: <cover.1586359676.git.mchehab+huawei@kernel.org> <2e12bf13355bd06748fed5d135fd4de3d94ad5fd.1586359676.git.mchehab+huawei@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <fe12101e-8efe-22ad-0258-e6aeafc798cc@huawei.com>
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: owner-linux-mm@kvack.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+To: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+Cc: Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Harry Wei <harryxiyou@gmail.com>, Alex Shi <alex.shi@linux.alibaba.com>, Paolo Bonzini <pbonzini@redhat.com>, Paul Mackerras <paulus@ozlabs.org>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffw>, ll.ch, Mathieu Poirier <mathieu.poirier@linaro.org>, Suzuki K Poulose <suzuki.poulose@arm.com>, Mike Leach <mike.leach@linaro.org>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Miklos Szeredi <miklos@szeredi.hu>, Andrew Morton <akpm@linux-foundation.org>, Doug Ledford <dledford@redhat.com>, Jason Gunthorpe <jgg@ziepe.ca>, Marc Zyngier <maz@kernel.org>, James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, dri-devel@lists.freedesktop.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-unionfs@vger.kernel.org, linux-mm@kvack.org, linux-rdma@vger.kernel.org, kvmarm@lists.cs.columbia.edu
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200401122004.KG_GfM7rtGySJ_MtmY2Shs755EKu7duP9Et7k4FJCIY@z>
+Message-ID: <20200409070713.Q7t7S8gkuQE22r-RyG5RYndDDOhTMNH-dykU5zc421w@z>
 
-On Wed, Apr 01, 2020 at 04:51:15PM +0800, Zhenyu Ye wrote:
-> On 2020/3/31 23:13, Peter Zijlstra wrote:
-
-> > Instead of trying to retro-fit flush_*tlb_range() to take an mmu_gather
-> > parameter, please replace them out-right.
-> > 
+On Wednesday, April 8, 2020 5:45:55 PM CEST Mauro Carvalho Chehab wrote:
+> Several references got broken due to txt to ReST conversion.
 > 
-> I'm sorry that I'm not sure what "replace them out-right" means.  Do you
-> mean that I should define flush_*_tlb_range like this?
+> Several of them can be automatically fixed with:
 > 
-> #define flush_pmd_tlb_range(vma, addr, end)				\
-> 	do {								\
-> 		struct mmu_gather tlb;					\
-> 		tlb_gather_mmu(&tlb, (vma)->vm_mm, addr, end);		\
-> 		tlba.cleared_pmds = 1;					\
-> 		flush_tlb_range(&tlb, vma, addr, end);			\
-> 		tlb_finish_mmu(&tlb, addr, end);			\
-> 	} while (0)
+> 	scripts/documentation-file-ref-check --fix
 > 
+> Reviewed-by: Mathieu Poirier <mathieu.poirier@linaro.org> #
+> hwtracing/coresight/Kconfig Signed-off-by: Mauro Carvalho Chehab
+> <mchehab+huawei@kernel.org>
+> ---
+>  Documentation/memory-barriers.txt                    |  2 +-
+>  Documentation/process/submit-checklist.rst           |  2 +-
+>  .../translations/it_IT/process/submit-checklist.rst  |  2 +-
 
-I was thinking to remove flush_*tlb_range() entirely (from generic
-code).
-
-And specifically to not use them like the above; instead extend the
-mmu_gather API.
-
-Specifically, if you wanted to express flush_pmd_tlb_range() in mmu
-gather, you'd write it like:
-
-static inline void flush_pmd_tlb_range(struct vm_area_struct *vma, unsigned long addr, unsigned long end)
-{
-	struct mmu_gather tlb;
-
-	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
-	tlb_start_vma(&tlb, vma);
-	tlb.cleared_pmds = 1;
-	__tlb_adjust_range(addr, end - addr);
-	tlb_end_vma(&tlb, vma);
-	tlb_finish_mmu(&tlb, addr, end);
-}
-
-Except of course, that the code between start_vma and end_vma is not a
-proper mmu_gather API.
-
-So maybe add:
-
-  tlb_flush_{pte,pmd,pud,p4d}_range()
-
-Then we can write:
-
-static inline void flush_XXX_tlb_range(struct vm_area_struct *vma, unsigned long addr, unsigned long end)
-{
-	struct mmu_gather tlb;
-
-	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
-	tlb_start_vma(&tlb, vma);
-	tlb_flush_XXX_range(&tlb, addr, end - addr);
-	tlb_end_vma(&tlb, vma);
-	tlb_finish_mmu(&tlb, addr, end);
-}
-
-But when I look at the output of:
-
-  git grep flush_.*tlb_range -- :^arch/
-
-I doubt it makes sense to provide wrappers like the above.
-
-( Also, we should probably remove the (addr, end) arguments from
-tlb_finish_mmu(), Will? )
-
----
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index f391f6b500b4..be5452a8efaa 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -511,6 +511,34 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- }
- #endif
- 
-+static inline void tlb_flush_pte_range(struct mmu_gather *tlb,
-+				       unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_ptes = 1;
-+}
-+
-+static inline void tlb_flush_pmd_range(struct mmu_gather *tlb,
-+				       unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_pmds = 1;
-+}
-+
-+static inline void tlb_flush_pud_range(struct mmu_gather *tlb,
-+				       unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_puds = 1;
-+}
-+
-+static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
-+				       unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_p4ds = 1;
-+}
-+
- #ifndef __tlb_remove_tlb_entry
- #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
- #endif
-@@ -524,8 +552,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
-  */
- #define tlb_remove_tlb_entry(tlb, ptep, address)		\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
--		tlb->cleared_ptes = 1;				\
-+		tlb_flush_pte_range(tlb, address, PAGE_SIZE);	\
- 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
- 	} while (0)
- 
-@@ -550,8 +577,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 
- #define tlb_remove_pmd_tlb_entry(tlb, pmdp, address)			\
- 	do {								\
--		__tlb_adjust_range(tlb, address, HPAGE_PMD_SIZE);	\
--		tlb->cleared_pmds = 1;					\
-+		tlb_flush_pmd_range(tlb, address, HPAGE_PMD_SIZE);	\
- 		__tlb_remove_pmd_tlb_entry(tlb, pmdp, address);		\
- 	} while (0)
- 
-@@ -565,8 +591,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 
- #define tlb_remove_pud_tlb_entry(tlb, pudp, address)			\
- 	do {								\
--		__tlb_adjust_range(tlb, address, HPAGE_PUD_SIZE);	\
--		tlb->cleared_puds = 1;					\
-+		tlb_flush_pud_range(tlb, address, HPAGE_PUD_SIZE);	\
- 		__tlb_remove_pud_tlb_entry(tlb, pudp, address);		\
- 	} while (0)
- 
+Acked-by: Federico Vaga <federico.vaga@vaga.pv.it>
