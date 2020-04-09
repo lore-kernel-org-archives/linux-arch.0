@@ -1,115 +1,47 @@
-Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 15/20] mm: memmap_init: iterate over memblock regions rather that check each PFN
-Date: Wed, 29 Apr 2020 15:11:21 +0300
-Message-ID: <20200429121126.17989-16-rppt@kernel.org>
-In-Reply-To: <20200429121126.17989-1-rppt@kernel.org>
-References: <20200429121126.17989-1-rppt@kernel.org>
+Return-Path: <SRS0=yGje=5Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:28256 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1727912AbgDIP0I (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2020 11:26:08 -0400
+From: Alex Belits <abelits@marvell.com>
+Subject: [PATCH v3 09/13] task_isolation: don't interrupt CPUs with
+ tick_nohz_full_kick_cpu()
+Date: Thu, 9 Apr 2020 15:25:37 +0000
+Message-ID: <eb1f4ecbda4aa49a23bc459a37b8f160828f2919.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+         <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
+In-Reply-To: <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <75515075B8A98845BEB0DA9CF39FEF36@namprd18.prod.outlook.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Baoquan He <bhe@redhat.com>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Qian Cai <cai@lca.pw>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429121121.XyejS-k7edIadGO9zV2zusNIpf2wTLXrLG5wCmp8Lik@z>
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+Message-ID: <20200409152537.7JlZokZGibPCl8Dl0zoks3XKK31Y_4MVhgI8I5nzEvA@z>
 
-From: Baoquan He <bhe@redhat.com>
-
-When called during boot the memmap_init_zone() function checks if each PF=
-N
-is valid and actually belongs to the node being initialized using
-early_pfn_valid() and early_pfn_in_nid().
-
-Each such check may cost up to O(log(n)) where n is the number of memory
-banks, so for large amount of memory overall time spent in early_pfn*()
-becomes substantial.
-
-Since the information is anyway present in memblock, we can iterate over
-memblock memory regions in memmap_init() and only call memmap_init_zone()
-for PFN ranges that are know to be valid and in the appropriate node.
-
-Signed-off-by: Baoquan He <bhe@redhat.com>
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- mm/page_alloc.c | 47 ++++++++++++++++-------------------------------
- 1 file changed, 16 insertions(+), 31 deletions(-)
-
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 7f6a3081edb8..8d112defaead 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -5939,23 +5939,6 @@ overlap_memmap_init(unsigned long zone, unsigned l=
-ong *pfn)
- 	return false;
- }
-=20
--#ifdef CONFIG_SPARSEMEM
--/* Skip PFNs that belong to non-present sections */
--static inline __meminit unsigned long next_pfn(unsigned long pfn)
--{
--	const unsigned long section_nr =3D pfn_to_section_nr(++pfn);
--
--	if (present_section_nr(section_nr))
--		return pfn;
--	return section_nr_to_pfn(next_present_section_nr(section_nr));
--}
--#else
--static inline __meminit unsigned long next_pfn(unsigned long pfn)
--{
--	return pfn++;
--}
--#endif
--
- /*
-  * Initially all pages are reserved - free ones are freed
-  * up by memblock_free_all() once the early boot process is
-@@ -5990,19 +5973,7 @@ void __meminit memmap_init_zone(unsigned long size=
-, int nid, unsigned long zone,
- #endif
-=20
- 	for (pfn =3D start_pfn; pfn < end_pfn; ) {
--		/*
--		 * There can be holes in boot-time mem_map[]s handed to this
--		 * function.  They do not exist on hotplugged memory.
--		 */
- 		if (context =3D=3D MEMMAP_EARLY) {
--			if (!early_pfn_valid(pfn)) {
--				pfn =3D next_pfn(pfn);
--				continue;
--			}
--			if (!early_pfn_in_nid(pfn, nid)) {
--				pfn++;
--				continue;
--			}
- 			if (overlap_memmap_init(zone, &pfn))
- 				continue;
- 			if (defer_init(nid, pfn, end_pfn))
-@@ -6118,9 +6089,23 @@ static void __meminit zone_init_free_lists(struct =
-zone *zone)
- }
-=20
- void __meminit __weak memmap_init(unsigned long size, int nid,
--				  unsigned long zone, unsigned long start_pfn)
-+				  unsigned long zone,
-+				  unsigned long range_start_pfn)
- {
--	memmap_init_zone(size, nid, zone, start_pfn, MEMMAP_EARLY, NULL);
-+	unsigned long start_pfn, end_pfn;
-+	unsigned long range_end_pfn =3D range_start_pfn + size;
-+	int i;
-+
-+	for_each_mem_pfn_range(i, nid, &start_pfn, &end_pfn, NULL) {
-+		start_pfn =3D clamp(start_pfn, range_start_pfn, range_end_pfn);
-+		end_pfn =3D clamp(end_pfn, range_start_pfn, range_end_pfn);
-+
-+		if (end_pfn > start_pfn) {
-+			size =3D end_pfn - start_pfn;
-+			memmap_init_zone(size, nid, zone, start_pfn,
-+					 MEMMAP_EARLY, NULL);
-+		}
-+	}
- }
-=20
- static int zone_batchsize(struct zone *zone)
---=20
-2.26.1
+RnJvbTogWXVyaSBOb3JvdiA8eW5vcm92QG1hcnZlbGwuY29tPg0KDQpGb3Igbm9oel9mdWxsIENQ
+VXMgdGhlIGRlc2lyYWJsZSBiZWhhdmlvciBpcyB0byByZWNlaXZlIGludGVycnVwdHMNCmdlbmVy
+YXRlZCBieSB0aWNrX25vaHpfZnVsbF9raWNrX2NwdSgpLiBCdXQgZm9yIGhhcmQgaXNvbGF0aW9u
+IGl0J3MNCm9idmlvdXNseSBub3QgZGVzaXJhYmxlIGJlY2F1c2UgaXQgYnJlYWtzIGlzb2xhdGlv
+bi4NCg0KVGhpcyBwYXRjaCBhZGRzIGNoZWNrIGZvciBpdC4NCg0KU2lnbmVkLW9mZi1ieTogWXVy
+aSBOb3JvdiA8eW5vcm92QG1hcnZlbGwuY29tPg0KW2FiZWxpdHNAbWFydmVsbC5jb206IHVwZGF0
+ZWQsIG9ubHkgZXhjbHVkZSBDUFVzIHJ1bm5pbmcgaXNvbGF0ZWQgdGFza3NdDQpTaWduZWQtb2Zm
+LWJ5OiBBbGV4IEJlbGl0cyA8YWJlbGl0c0BtYXJ2ZWxsLmNvbT4NCi0tLQ0KIGtlcm5lbC90aW1l
+L3RpY2stc2NoZWQuYyB8IDQgKysrLQ0KIDEgZmlsZSBjaGFuZ2VkLCAzIGluc2VydGlvbnMoKyks
+IDEgZGVsZXRpb24oLSkNCg0KZGlmZiAtLWdpdCBhL2tlcm5lbC90aW1lL3RpY2stc2NoZWQuYyBi
+L2tlcm5lbC90aW1lL3RpY2stc2NoZWQuYw0KaW5kZXggMWQ0ZGVjOWQzZWU3Li44NDg4YzI4MjVh
+NDUgMTAwNjQ0DQotLS0gYS9rZXJuZWwvdGltZS90aWNrLXNjaGVkLmMNCisrKyBiL2tlcm5lbC90
+aW1lL3RpY2stc2NoZWQuYw0KQEAgLTIwLDYgKzIwLDcgQEANCiAjaW5jbHVkZSA8bGludXgvc2No
+ZWQvY2xvY2suaD4NCiAjaW5jbHVkZSA8bGludXgvc2NoZWQvc3RhdC5oPg0KICNpbmNsdWRlIDxs
+aW51eC9zY2hlZC9ub2h6Lmg+DQorI2luY2x1ZGUgPGxpbnV4L2lzb2xhdGlvbi5oPg0KICNpbmNs
+dWRlIDxsaW51eC9tb2R1bGUuaD4NCiAjaW5jbHVkZSA8bGludXgvaXJxX3dvcmsuaD4NCiAjaW5j
+bHVkZSA8bGludXgvcG9zaXgtdGltZXJzLmg+DQpAQCAtMjYyLDcgKzI2Myw4IEBAIHN0YXRpYyB2
+b2lkIHRpY2tfbm9oel9mdWxsX2tpY2sodm9pZCkNCiAgKi8NCiB2b2lkIHRpY2tfbm9oel9mdWxs
+X2tpY2tfY3B1KGludCBjcHUpDQogew0KLQlpZiAoIXRpY2tfbm9oel9mdWxsX2NwdShjcHUpKQ0K
+KwlzbXBfcm1iKCk7DQorCWlmICghdGlja19ub2h6X2Z1bGxfY3B1KGNwdSkgfHwgdGFza19pc29s
+YXRpb25fb25fY3B1KGNwdSkpDQogCQlyZXR1cm47DQogDQogCWlycV93b3JrX3F1ZXVlX29uKCZw
+ZXJfY3B1KG5vaHpfZnVsbF9raWNrX3dvcmssIGNwdSksIGNwdSk7DQotLSANCjIuMjAuMQ0KDQo=
