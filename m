@@ -1,136 +1,95 @@
-From: Daniel Vetter <daniel@ffwll.ch>
-Subject: Re: [PATCH 19/28] gpu/drm: remove the powerpc hack in drm_legacy_sg_alloc
-Date: Thu, 9 Apr 2020 16:57:12 +0200
-Message-ID: <CAKMK7uESDf446FsdA2KC9sybSKxf5OdXvHZ-d4G3PAt-vvP8zg@mail.gmail.com>
-References: <20200408115926.1467567-1-hch@lst.de> <20200408115926.1467567-20-hch@lst.de>
- <20200408122504.GO3456981@phenom.ffwll.local> <eb48f7b6327e482ea9911b129210c0417ab48345.camel@kernel.crashing.org>
- <CAKMK7uHtkLvdsWFGiAtkzVa5mpnDvXkn3CHZQ6bgJ_enbyAc8A@mail.gmail.com> <CADnq5_MjTSm6j=_8huVQ854H6jXY5Rg36wc31QDfOpfjfscWxA@mail.gmail.com>
+From: Alex Belits <abelits@marvell.com>
+Subject: Re: [PATCH v3 00/13] "Task_isolation" mode
+Date: Thu, 9 Apr 2020 15:09:53 +0000
+Message-ID: <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f65.google.com ([209.85.210.65]:32814 "EHLO
-        mail-ot1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727859AbgDIO5Y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2020 10:57:24 -0400
-Received: by mail-ot1-f65.google.com with SMTP id 103so4359182otv.0
-        for <linux-arch@vger.kernel.org>; Thu, 09 Apr 2020 07:57:24 -0700 (PDT)
-In-Reply-To: <CADnq5_MjTSm6j=_8huVQ854H6jXY5Rg36wc31QDfOpfjfscWxA@mail.gmail.com>
+Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:51800 "EHLO
+        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727771AbgDIPKu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2020 11:10:50 -0400
+In-Reply-To: <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+Content-Language: en-US
+Content-ID: <CF585B88C94C664FBF9473B31EB6D7BE@namprd18.prod.outlook.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Deucher <alexdeucher@gmail.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-hyperv@vger.kernel.org, David Airlie <airlied@linux.ie>, dri-devel <dri-devel@lists.freedesktop.org>, Linux MM <linux-mm@kvack.org>, "K. Y. Srinivasan" <kys@microsoft.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, Wei Liu <wei.liu@kernel.org>, Stephen Hemminger <sthemmin@microsoft.com>, X86 ML <x86@kernel.org>, Christoph Hellwig <hch@lst.de>, Peter Zijlstra <peterz@infradead.org>, Laura Abbott <labbott@redhat.com>, Nitin Gupta <ngupta@vflare.org>, Haiyang Zhang <haiyangz@microsoft.com>, "moderated list:DMA BUFFER SHARING FRAMEWORK" <linaro-mm-sig@lists.linaro.org>, bpf <bpf@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Christophe
+To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
+Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
 
-On Thu, Apr 9, 2020 at 4:19 PM Alex Deucher <alexdeucher@gmail.com> wrote:
->
-> On Thu, Apr 9, 2020 at 5:41 AM Daniel Vetter <daniel@ffwll.ch> wrote:
-> >
-> > On Thu, Apr 9, 2020 at 10:54 AM Benjamin Herrenschmidt
-> > <benh@kernel.crashing.org> wrote:
-> > >
-> > > On Wed, 2020-04-08 at 14:25 +0200, Daniel Vetter wrote:
-> > > > On Wed, Apr 08, 2020 at 01:59:17PM +0200, Christoph Hellwig wrote:
-> > > > > If this code was broken for non-coherent caches a crude powerpc hack
-> > > > > isn't going to help anyone else.  Remove the hack as it is the last
-> > > > > user of __vmalloc passing a page protection flag other than PAGE_KERNEL.
-> > > >
-> > > > Well Ben added this to make stuff work on ppc, ofc the home grown dma
-> > > > layer in drm from back then isn't going to work in other places. I guess
-> > > > should have at least an ack from him, in case anyone still cares about
-> > > > this on ppc. Adding Ben to cc.
-> > >
-> > > This was due to some drivers (radeon ?) trying to use vmalloc pages for
-> > > coherent DMA, which means on those 4xx powerpc's need to be non-cached.
-> > >
-> > > There were machines using that (440 based iirc), though I honestly
-> > > can't tell if anybody still uses any of it.
-> >
-> > agp subsystem still seems to happily do that (vmalloc memory for
-> > device access), never having been ported to dma apis (or well
-> > converted to iommu drivers, which they kinda are really). So I think
-> > this all still works exactly as back then, even with the kms radeon
-> > drivers. Question really is whether we have users left, and I have no
-> > clue about that either.
-> >
-> > Now if these boxes didn't ever have agp then I think we can get away
-> > with deleting this, since we've already deleted the legacy radeon
-> > driver. And that one used vmalloc for everything. The new kms one does
-> > use the dma-api if the gpu isn't connected through agp.
->
-> All radeons have a built in remapping table to handle non-AGP systems.
-> On the earlier radeons it wasn't quite as performant as AGP, but it
-> was always more reliable because AGP is AGP.  Maybe it's time to let
-> AGP go?
-
-I'd be very much in favour of that, if we can just use the integrated
-gart and drop agp fast writes wobbliness on the floor. I think the
-only other modern driver using agp would be nouveau at that point.
--Daniel
-
->
-> Alex
->
-> > -Daniel
-> >
-> > > Cheers,
-> > > Ben.
-> > >
-> > > > -Daniel
-> > > >
-> > > > >
-> > > > > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> > > > > ---
-> > > > >  drivers/gpu/drm/drm_scatter.c | 11 +----------
-> > > > >  1 file changed, 1 insertion(+), 10 deletions(-)
-> > > > >
-> > > > > diff --git a/drivers/gpu/drm/drm_scatter.c b/drivers/gpu/drm/drm_scatter.c
-> > > > > index ca520028b2cb..f4e6184d1877 100644
-> > > > > --- a/drivers/gpu/drm/drm_scatter.c
-> > > > > +++ b/drivers/gpu/drm/drm_scatter.c
-> > > > > @@ -43,15 +43,6 @@
-> > > > >
-> > > > >  #define DEBUG_SCATTER 0
-> > > > >
-> > > > > -static inline void *drm_vmalloc_dma(unsigned long size)
-> > > > > -{
-> > > > > -#if defined(__powerpc__) && defined(CONFIG_NOT_COHERENT_CACHE)
-> > > > > -   return __vmalloc(size, GFP_KERNEL, pgprot_noncached_wc(PAGE_KERNEL));
-> > > > > -#else
-> > > > > -   return vmalloc_32(size);
-> > > > > -#endif
-> > > > > -}
-> > > > > -
-> > > > >  static void drm_sg_cleanup(struct drm_sg_mem * entry)
-> > > > >  {
-> > > > >     struct page *page;
-> > > > > @@ -126,7 +117,7 @@ int drm_legacy_sg_alloc(struct drm_device *dev, void *data,
-> > > > >             return -ENOMEM;
-> > > > >     }
-> > > > >
-> > > > > -   entry->virtual = drm_vmalloc_dma(pages << PAGE_SHIFT);
-> > > > > +   entry->virtual = vmalloc_32(pages << PAGE_SHIFT);
-> > > > >     if (!entry->virtual) {
-> > > > >             kfree(entry->busaddr);
-> > > > >             kfree(entry->pagelist);
-> > > > > --
-> > > > > 2.25.1
-> > > > >
-> > > >
-> > > >
-> > >
-> >
-> >
-> > --
-> > Daniel Vetter
-> > Software Engineer, Intel Corporation
-> > +41 (0) 79 365 57 48 - http://blog.ffwll.ch
-> > _______________________________________________
-> > dri-devel mailing list
-> > dri-devel@lists.freedesktop.org
-> > https://lists.freedesktop.org/mailman/listinfo/dri-devel
-
-
-
--- 
-Daniel Vetter
-Software Engineer, Intel Corporation
-+41 (0) 79 365 57 48 - http://blog.ffwll.ch
+DQpPbiBTYXQsIDIwMjAtMDMtMDcgYXQgMTk6NDIgLTA4MDAsIEFsZXggQmVsaXRzIHdyb3RlOg0K
+PiBUaGlzIGlzIHRoZSB1cGRhdGVkIHZlcnNpb24gb2YgdGFzayBpc29sYXRpb24gcGF0Y2hzZXQu
+DQo+IA0KPiAxLiBDb21taXQgbWVzc2FnZXMgdXBkYXRlZCB0byBtYXRjaCBjaGFuZ2VzLg0KPiAy
+LiBTaWduLW9mZiBsaW5lcyByZXN0b3JlZCBmcm9tIG9yaWdpbmFsIHBhdGNoZXMsIGNoYW5nZXMg
+bGlzdGVkDQo+IHdoZXJldmVyIGFwcGxpY2FibGUuDQo+IDMuIGFybSBwbGF0Zm9ybSAtLSBhZGRl
+ZCBtaXNzaW5nIGNhbGxzIHRvIHN5c2NhbGwgY2hlY2sgYW5kIGNsZWFudXANCj4gcHJvY2VkdXJl
+IGFmdGVyIGxlYXZpbmcgaXNvbGF0aW9uLg0KPiA0LiB4ODYgcGxhdGZvcm0gLS0gYWRkZWQgbWlz
+c2luZyBjYWxscyB0byBjbGVhbnVwIHByb2NlZHVyZSBhZnRlcg0KPiBsZWF2aW5nIGlzb2xhdGlv
+bi4NCj4gDQoNCkFub3RoZXIgdXBkYXRlLCBhZGRyZXNzaW5nIENQVSBzdGF0ZSAvIHJhY2UgY29u
+ZGl0aW9ucy4NCg0KSSBiZWxpZXZlLCBJIGhhdmUgc29tZSB1c2FibGUgc29sdXRpb24gZm9yIHRo
+ZSBwcm9ibGVtIG9mIGJvdGggbWlzc2luZw0KdGhlIGV2ZW50cyBhbmQgcmFjZSBjb25kaXRpb25z
+IG9uIGlzb2xhdGlvbiBlbnRyeSBhbmQgZXhpdC4NCg0KVGhlIGlkZWEgaXMgdG8gbWFrZSBzdXJl
+IHRoYXQgQ1BVIGNvcmUgcmVtYWlucyBpbiB1c2Vyc3BhY2UgYW5kIHJ1bnMNCnVzZXJzcGFjZSBj
+b2RlIHJlZ2FyZGxlc3Mgb2Ygd2hhdCBpcyBoYXBwZW5pbmcgaW4ga2VybmVsIGFuZCB1c2Vyc3Bh
+Y2UNCmluIHRoZSByZXN0IG9mIHRoZSBzeXN0ZW0sIGhvd2V2ZXIgYW55IGV2ZW50cyB0aGF0IHJl
+c3VsdHMgaW4gcnVubmluZw0KYW55dGhpbmcgb3RoZXIgdGhhbiB1c2Vyc3BhY2UgY29kZSB3aWxs
+IHJlc3VsdCBpbiBDUFUgY29yZQ0KcmUtc3luY2hyb25pemluZyB3aXRoIHRoZSByZXN0IG9mIHRo
+ZSBzeXN0ZW0uIFRoZW4gYW55IGtlcm5lbCBjb2RlLA0Kd2l0aCB0aGUgZXhjZXB0aW9uIG9mIHNt
+YWxsIGFuZCBjbGVhcmx5IGRlZmluZWQgc2V0IG9mIHJvdXRpbmVzIHRoYXQNCm9ubHkgcGVyZm9y
+bSBrZXJuZWwgZW50cnkgLyBleGl0IHRoZW1zZWx2ZXMsIHdpbGwgcnVuIG9uIENQVSBhZnRlciBh
+bGwNCnN5bmNocm9uaXphdGlvbiBpcyBkb25lLg0KDQpUaGlzIGRvZXMgcmVxdWlyZSBhbiBhbnN3
+ZXIgdG8gcG9zc2libGUgcmFjZXMgYmV0d2VlbiBpc29sYXRpb24gZW50cnkNCi8gZXhpdCAoaW5j
+bHVkaW5nIGlzb2xhdGlvbiBicmVha2luZyBvbiBpbnRlcnJ1cHRzKSBhbmQgdXBkYXRlcyB0aGF0
+DQphcmUgbm9ybWFsbHkgY2FycmllZCBieSBJUElzLiBTbyB0aGUgc29sdXRpb24gc2hvdWxkIGlu
+dm9sdmUgc29tZQ0KbWVjaGFuaXNtIHRoYXQgbGltaXRzIHdoYXQgcnVucyBvbiBDUFUgaW4gaXRz
+ICJzdGFsZSIgc3RhdGUsIGFuZA0KY2F1c2VzIGluZXZpdGFibGUgc3luY2hyb25pemF0aW9uIGJl
+Zm9yZSB0aGUgcmVzdCBvZiB0aGUga2VybmVsIGlzDQpjYWxsZWQuIFRoaXMgc2hvdWxkIGFsc28g
+aW5jbHVkZSBhbnkgcHJlZW1wdGlvbiAtLSBpZiBwcmVlbXRpb24NCmhhcHBlbnMgaW4gdGhhdCAi
+c3RhbGUiIHN0YXRlIGFmdGVyIGVudGVyaW5nIHRoZSBrZXJuZWwgYnV0IGJlZm9yZQ0Kc3luY2hy
+b25pemF0aW9uIGlzIGNvbXBsZXRlZCwgaXQgc2hvdWxkIHN0aWxsIGdvIHRocm91Z2gNCnN5bmNo
+cm9uaXphdGlvbiBiZWZvcmUgcnVubmluZyB0aGUgcmVzdCBvZiB0aGUga2VybmVsLg0KDQpUaGVu
+IGFzIGxvbmcgYXMgaXQgY2FuIGJlIGRlbW9uc3RyYXRlZCB0aGF0IHJvdXRpbmVzIHJ1bm5pbmcg
+aW4NCiJzdGFsZSIgc3RhdGUgY2FuIHNhZmVseSBydW4gaW4gaXQsIGFuZCBhbnkgZXZlbnQgdGhh
+dCB3b3VsZCBub3JtYWxseQ0KcmVxdWlyZSBJUEksIHdpbGwgcmVzdWx0IGluIGVudGVyaW5nIHRo
+ZSByZXN0IG9mIGtlcm5lbCBhZnRlcg0Kc3luY2hyb25pemF0aW9uLCByYWNlIHdvdWxkIGNlYXNl
+IHRvIGJlIGEgcHJvYmxlbS4gQW55IHNlcXVlbmNlIG9mDQpldmVudHMgd291bGQgcmVzdWx0IGlu
+IGV4YWN0bHkgdGhlIHNhbWUgQ1BVIHN0YXRlIHdoZW4gaGl0dGluZyB0aGUNCnJlc3Qgb2YgdGhl
+IGtlcm5lbCwgYXMgaWYgQ1BVIHByb2Nlc3NlZCB0aGUgdXBkYXRlIGV2ZW50IHRocm91Z2ggSVBJ
+Lg0KDQpJIHdhcyB1bmRlciBpbXByZXNzaW9uIHRoYXQgdGhpcyBpcyBhbHJlYWR5IHRoZSBjYXNl
+LCBob3dldmVyIGFmdGVyDQpzb21lIGNsb3NlciBsb29rIGl0IGFwcGVhcnMgdGhhdCBzb21lIGJh
+cnJpZXJzIG11c3QgYmUgaW4gcGxhY2UgdG8NCm1ha2Ugc3VyZSB0aGF0IHRoZSBzZXF1ZW5jZSBv
+ZiBldmVudHMgaXMgZW5mb3JjZWQuDQoNClRoZXJlIGlzIG9idmlvdXNseSBhIHF1ZXN0aW9uIG9m
+IHBlcmZvcm1hbmNlIC0tIHdlIGRvbid0IHdhbnQgdG8gY2F1c2UNCmFueSBhZGRpdGlvbmFsIGZs
+dXNoZXMgb3IgYWRkIGxvY2tpbmcgaW4gYW55dGhpbmcNCnRpbWUtY3JpdGljYWwuIEZvcnR1bmF0
+ZWx5IGVudGVyaW5nIGFuZCBleGl0aW5nIGlzb2xhdGlvbiAoYXMgb3Bwb3NlZA0KdG8gZXZlbnRz
+IHRoYXQgX3BvdGVudGlhbGx5XyBjYW4gY2FsbCBpc29sYXRpb24tYnJlYWtpbmcgcm91dGluZXMp
+IGlzDQpuZXZlciBwZXJmb3JtYW5jZS1jcml0aWNhbCwgaXQncyB3aGF0IHN0YXJ0cyBhbmQgZW5k
+cyBhIHRhc2sgdGhhdCBoYXMNCm5vIHBlcmZvcm1hbmNlLWNyaXRpY2FsIGNvbW11bmljYXRpb24g
+d2l0aCBrZXJuZWwuIFNvIGlmIGEgQ1BVIHRoYXQNCmhhcyBpc29sYXRlZCB0YXNrIG9uIGl0IGlz
+IHJ1bm5pbmcga2VybmVsIGNvZGUsIGl0IG1lYW5zIHRoYXQgZWl0aGVyDQp0aGUgdGFzayBpcyBu
+b3QgaXNvbGF0ZWQgeWV0ICh3ZSBhcmUgZXhpdGluZyB0byB1c2Vyc3BhY2UpLCBvciBpdCBpcw0K
+bm8gbG9uZ2VyIHJ1bm5pbmcgYW55dGhpbmcgcGVyZm9ybWFuY2UtY3JpdGljYWwgKGludGVudGlv
+bmFsbHkgb24gZXhpdA0KZnJvbSBpc29sYXRpb24sIG9yIHVuaW50ZW50aW9uYWxseSBvbiBpc29s
+YXRpb24gYnJlYWtpbmcgZXZlbnQpLg0KDQpJc29sYXRpb24gc3RhdGUgaXMgcmVhZC1tb3N0bHks
+IGFuZCB3ZSB3b3VsZCBwcmVmZXIgUkNVIGZvciB0aGF0IGlmIHdlDQpjYW4gZ3VhcmFudGVlIHRo
+YXQgInN0YWxlIiBzdGF0ZSByZW1haW5zIHNhZmUgaW4gYWxsIGNvZGUgdGhhdCBydW5zDQp1bnRp
+bCBzeW5jaHJvbml6YXRpb24gaGFwcGVuLiBJIGFtIG5vdCBzdXJlIG9mIHRoYXQsIHNvIEkgdHJp
+ZWQgdG8NCm1ha2Ugc29tZXRoaW5nIG1vcmUgc3RyYWlnaHRmb3J3YXJkLCBob3dldmVyIEkgbWln
+aHQgYmUgd3JvbmcsIGFuZA0KUkNVLWlmeWluZyBleGl0IGZyb20gaXNvbGF0aW9uIG1heSBiZSBh
+IGJldHRlciB3YXkgZG8gZG8gaXQuDQoNCkZvciBub3cgSSB3YW50IHRvIG1ha2Ugc3VyZSB0aGF0
+IHRoZXJlIGlzIHNvbWUgY2xlYXJseSBkZWZpbmVkIHNtYWxsDQphbW91bnQgb2Yga2VybmVsIGNv
+ZGUgdGhhdCBydW5zIGJlZm9yZSB0aGUgaW5ldml0YWJsZSBzeW5jaHJvbml6YXRpb24sDQphbmQg
+dGhhdCBjb2RlIGlzIHVuYWZmZWN0ZWQgYnkgInN0YWxlIiBzdGF0ZS4NCg0KSSBoYXZlIHRyaWVk
+IHRvIHRyYWNrIGRvd24gYWxsIGNhbGwgcGF0aHMgZnJvbSBrZXJuZWwgZW50cnkgcG9pbnRzDQp0
+byB0aGUgY2FsbCBvZiBmYXN0X3Rhc2tfaXNvbGF0aW9uX2NwdV9jbGVhbnVwKCksIGFuZCB3aWxs
+IHBvc3QgdGhvc2UNCnNlcGFyYXRlbHkuIEl0J3MgcG9zc2libGUgdGhhdCBhbGwgYXJjaGl0ZWN0
+dXJlLXNwZWNpZmljIGNvZGUgYWxyZWFkeQ0KZm9sbG93cyBzb21lIGNsZWFybHkgZGVmaW5lZCBy
+dWxlcyBhYm91dCB0aGlzIGZvciBvdGhlciByZWFzb25zLA0KaG93ZXZlciBJIGFtIG5vdCB0aGF0
+IGZhbWlsaWFyIHdpdGggYWxsIG9mIGl0LCBhbmQgdHJpZWQgdG8gY2hlY2sgaWYNCmV4aXN0aW5n
+IGltcGxlbWVudGF0aW9uIGlzIGFsd2F5cyBzYWZlIGZvciBydW5uaW5nIGluICJzdGFsZSIgc3Rh
+dGUNCmJlZm9yZSBldmVyeXRoaW5nIHRoYXQgbWFrZXMgdGFzayBpc29sYXRpb24gY2FsbCBpdHMg
+Y2xlYW51cC4gRm9yIG5vdywNCnRoaXMgaXMgdGhlIGltcGxlbWVudGF0aW9uIHRoYXQgYXNzdW1l
+cyB0aGF0ICJzdGFsZSIgc3RhdGUgaXMgc2FmZSBmb3INCmtlcm5lbCBlbnRyeS4NCg==
