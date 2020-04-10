@@ -1,133 +1,278 @@
-Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 23/28] mm: remove __vmalloc_node_flags_caller
-Date: Wed,  8 Apr 2020 13:59:21 +0200
-Message-ID: <20200408115926.1467567-24-hch@lst.de>
-In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
-References: <20200408115926.1467567-1-hch@lst.de>
+Return-Path: <SRS0=nlb3=52=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [selftests/landlock] d9d464ccf6:
+ kernel-selftests.landlock.test_base.fail
+References: <20200410022739.GK8179@shao2-debian>
+ <65904ee7-602a-c10b-b85c-1a39023506a6@digikod.net>
+From: Rong Chen <rong.a.chen@intel.com>
+Message-ID: <e79bd4aa-fcb9-7e4b-db2d-bcc7af26f6ba@intel.com>
+Date: Fri, 10 Apr 2020 16:45:13 +0800
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+In-Reply-To: <65904ee7-602a-c10b-b85c-1a39023506a6@digikod.net>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 8bit
+Content-Language: en-US
+Sender: linux-doc-owner@vger.kernel.org
+To: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
+Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jann@thejh.net>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org, lkp@lists.01.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200408115921.zhFf9VYu3yh0v-yYnqEb_mSDq6KTVxkJ_iGjL5zaYvA@z>
+Message-ID: <20200410084513.OtUjbh1AZOD2QQdgJFZIVS_qrCgQDzv2LBnlTTCnX8I@z>
 
-Just use __vmalloc_node instead which gets and extra argument.  To be
-able to to use __vmalloc_node in all caller make it available outside
-of vmalloc and implement it in nommu.c.
+Sorry for this inconvenience, we only enabled the configs for 
+kernel-selftests in mainline,
+we'll consider to add new required configurations dynamically to avoid 
+false positive.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- include/linux/vmalloc.h |  4 ++--
- kernel/bpf/syscall.c    |  5 ++---
- mm/nommu.c              |  4 ++--
- mm/util.c               |  2 +-
- mm/vmalloc.c            | 10 +---------
- 5 files changed, 8 insertions(+), 17 deletions(-)
+Best Regards,
+Rong Chen
 
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 4a46d296e70d..108f49b47756 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -115,8 +115,8 @@ extern void *__vmalloc_node_range(unsigned long size,=
- unsigned long align,
- 			unsigned long start, unsigned long end, gfp_t gfp_mask,
- 			pgprot_t prot, unsigned long vm_flags, int node,
- 			const void *caller);
--extern void *__vmalloc_node_flags_caller(unsigned long size,
--					 int node, gfp_t flags, void *caller);
-+void *__vmalloc_node(unsigned long size, unsigned long align, gfp_t gfp_=
-mask,
-+		int node, const void *caller);
-=20
- extern void vfree(const void *addr);
- extern void vfree_atomic(const void *addr);
-diff --git a/kernel/bpf/syscall.c b/kernel/bpf/syscall.c
-index 64783da34202..48d98ea8fad6 100644
---- a/kernel/bpf/syscall.c
-+++ b/kernel/bpf/syscall.c
-@@ -299,9 +299,8 @@ static void *__bpf_map_area_alloc(u64 size, int numa_=
-node, bool mmapable)
- 		return vmalloc_user_node_flags(size, numa_node, GFP_KERNEL |
- 					       __GFP_RETRY_MAYFAIL | flags);
- 	}
--	return __vmalloc_node_flags_caller(size, numa_node,
--					   GFP_KERNEL | __GFP_RETRY_MAYFAIL |
--					   flags, __builtin_return_address(0));
-+	return __vmalloc_node(size, 1, GFP_KERNEL | __GFP_RETRY_MAYFAIL | flags=
-,
-+			      numa_node, __builtin_return_address(0));
- }
-=20
- void *bpf_map_area_alloc(u64 size, int numa_node)
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 9553efa59787..81a86cd85893 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -150,8 +150,8 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
- }
- EXPORT_SYMBOL(__vmalloc);
-=20
--void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t fl=
-ags,
--		void *caller)
-+void *__vmalloc_node(unsigned long size, unsigned long align, gfp_t gfp_=
-mask,
-+		int node, const void *caller)
- {
- 	return __vmalloc(size, flags);
- }
-diff --git a/mm/util.c b/mm/util.c
-index 988d11e6c17c..6d5868adbe18 100644
---- a/mm/util.c
-+++ b/mm/util.c
-@@ -580,7 +580,7 @@ void *kvmalloc_node(size_t size, gfp_t flags, int nod=
-e)
- 	if (ret || size <=3D PAGE_SIZE)
- 		return ret;
-=20
--	return __vmalloc_node_flags_caller(size, node, flags,
-+	return __vmalloc_node(size, 1, flags, node,
- 			__builtin_return_address(0));
- }
- EXPORT_SYMBOL(kvmalloc_node);
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 3d59d848ad48..ae8249ef5821 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -2400,8 +2400,6 @@ void *vmap(struct page **pages, unsigned int count,
- }
- EXPORT_SYMBOL(vmap);
-=20
--static void *__vmalloc_node(unsigned long size, unsigned long align,
--			    gfp_t gfp_mask, int node, const void *caller);
- static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
- 				 pgprot_t prot, int node)
- {
-@@ -2552,7 +2550,7 @@ EXPORT_SYMBOL_GPL(__vmalloc_node_range);
-  *
-  * Return: pointer to the allocated memory or %NULL on error
-  */
--static void *__vmalloc_node(unsigned long size, unsigned long align,
-+void *__vmalloc_node(unsigned long size, unsigned long align,
- 			    gfp_t gfp_mask, int node, const void *caller)
- {
- 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
-@@ -2566,12 +2564,6 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask=
-)
- }
- EXPORT_SYMBOL(__vmalloc);
-=20
--void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t fl=
-ags,
--				  void *caller)
--{
--	return __vmalloc_node(size, 1, flags, node, caller);
--}
--
- /**
-  * vmalloc - allocate virtually contiguous memory
-  * @size:    allocation size
---=20
-2.25.1
+On 4/10/20 4:15 PM, Mickaël Salaün wrote:
+> Why isn't this bot enabling the required kernel configuration (i.e.
+> CONFIG_SECURITY_LANDLOCK, specified in
+> tools/testing/selftests/landlock/config)?
+>
+> On 10/04/2020 04:27, kernel test robot wrote:
+>> FYI, we noticed the following commit (built with gcc-7):
+>>
+>> commit: d9d464ccf68e19bf7d303022d873141b5e1f7219 ("[PATCH v15 08/10] selftests/landlock: Add initial tests")
+>> url: https://github.com/0day-ci/linux/commits/Micka-l-Sala-n/Landlock-LSM/20200327-073729
+>> base: https://git.kernel.org/cgit/linux/kernel/git/shuah/linux-kselftest.git next
+>>
+>> in testcase: kernel-selftests
+>> with following parameters:
+>>
+>> 	group: kselftests-01
+>> 	ucode: 0xd6
+>>
+>> test-description: The kernel contains a set of "self tests" under the tools/testing/selftests/ directory. These are intended to be small unit tests to exercise individual code paths in the kernel.
+>> test-url: https://www.kernel.org/doc/Documentation/kselftest.txt
+>>
+>>
+>> on test machine: 8 threads Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz with 16G memory
+>>
+>> caused below changes (please refer to attached dmesg/kmsg for entire log/backtrace):
+>>
+>>
+>> If you fix the issue, kindly add following tag
+>> Reported-by: kernel test robot <rong.a.chen@intel.com>
+>>
+>>
+>> 2020-04-09 08:20:02 make run_tests -C landlock
+>> make: Entering directory '/usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219/tools/testing/selftests/landlock'
+>> make --no-builtin-rules ARCH=x86 -C ../../../.. headers_install
+>> make[1]: Entering directory '/usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219'
+>>    INSTALL ./usr/include
+>> make[1]: Leaving directory '/usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219'
+>> gcc -Wall -O2 -I../../../../usr/include    test_base.c /usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219/tools/testing/selftests/kselftest_harness.h /usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219/tools/testing/selftests/kselftest.h ../../../../usr/include/linux/landlock.h ../kselftest_harness.h common.h  -o /usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219/tools/testing/selftests/landlock/test_base
+>> gcc -Wall -O2 -I../../../../usr/include    test_ptrace.c /usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219/tools/testing/selftests/kselftest_harness.h /usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219/tools/testing/selftests/kselftest.h ../../../../usr/include/linux/landlock.h ../kselftest_harness.h common.h  -o /usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219/tools/testing/selftests/landlock/test_ptrace
+>> gcc -Wall -O2 -I../../../../usr/include    test_fs.c /usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219/tools/testing/selftests/kselftest_harness.h /usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219/tools/testing/selftests/kselftest.h ../../../../usr/include/linux/landlock.h ../kselftest_harness.h common.h  -o /usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219/tools/testing/selftests/landlock/test_fs
+>> gcc -Os -static -o /usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219/tools/testing/selftests/landlock/true true.c
+>> TAP version 13
+>> 1..3
+>> # selftests: landlock: test_base
+>> # common.h:37:ruleset_rw.fdinfo:Expected 0 (0) <= self->ruleset_fd (18446744073709551615)
+>> # ruleset_rw.fdinfo: Test terminated by assertion
+>> # test_base.c:64:global.features:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # global.features: Test terminated by assertion
+>> # test_base.c:89:global.empty_attr_ruleset:Expected errno (38) == EINVAL (22)
+>> # global.empty_attr_ruleset: Test terminated by assertion
+>> # test_base.c:99:global.empty_attr_path_beneath:Expected errno (38) == EINVAL (22)
+>> # global.empty_attr_path_beneath: Test terminated by assertion
+>> # test_base.c:109:global.empty_attr_enforce:Expected errno (38) == EINVAL (22)
+>> # global.empty_attr_enforce: Test terminated by assertion
+>> # [==========] Running 5 tests from 2 test cases.
+>> # [ RUN      ] ruleset_rw.fdinfo
+>> # [     FAIL ] ruleset_rw.fdinfo
+>> # [ RUN      ] global.features
+>> # [     FAIL ] global.features
+>> # [ RUN      ] global.empty_attr_ruleset
+>> # [     FAIL ] global.empty_attr_ruleset
+>> # [ RUN      ] global.empty_attr_path_beneath
+>> # [     FAIL ] global.empty_attr_path_beneath
+>> # [ RUN      ] global.empty_attr_enforce
+>> # [     FAIL ] global.empty_attr_enforce
+>> # [==========] 0 / 5 tests passed.
+>> # [  FAILED  ]
+>> not ok 1 selftests: landlock: test_base # exit=1
+>> # selftests: landlock: test_ptrace
+>> # test_ptrace.c:36:global.allow_with_one_domain:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # test_ptrace.c:148:global.allow_with_one_domain:Expected 1 (1) == read(pipe_child[0], &buf_parent, 1) (0)
+>> # test_ptrace.c:149:global.allow_with_one_domain:Failed to read() sync #2 from child
+>> # global.allow_with_one_domain: Test terminated by assertion
+>> # test_ptrace.c:36:global.deny_with_parent_domain:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # test_ptrace.c:99:global.deny_with_parent_domain:Expected 1 (1) == read(pipe_parent[0], &buf_child, 1) (0)
+>> # test_ptrace.c:100:global.deny_with_parent_domain:Failed to read() sync #1 from parent
+>> # global.deny_with_parent_domain: Test terminated by assertion
+>> # test_ptrace.c:36:global.deny_with_sibling_domain:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # test_ptrace.c:36:global.deny_with_sibling_domain:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # global.deny_with_sibling_domain: Test terminated by assertion
+>> # test_ptrace.c:36:global.allow_sibling_domain:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # global.allow_sibling_domain: Test terminated by assertion
+>> # test_ptrace.c:36:global.allow_with_nested_domain:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # global.allow_with_nested_domain: Test terminated by assertion
+>> # test_ptrace.c:36:global.deny_with_nested_and_parent_domain:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # global.deny_with_nested_and_parent_domain: Test terminated by assertion
+>> # test_ptrace.c:36:global.deny_with_forked_domain:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # global.deny_with_forked_domain: Test terminated by assertion
+>> # [==========] Running 8 tests from 2 test cases.
+>> # [ RUN      ] global.allow_without_domain
+>> # [       OK ] global.allow_without_domain
+>> # [ RUN      ] global.allow_with_one_domain
+>> # [     FAIL ] global.allow_with_one_domain
+>> # [ RUN      ] global.deny_with_parent_domain
+>> # [     FAIL ] global.deny_with_parent_domain
+>> # [ RUN      ] global.deny_with_sibling_domain
+>> # [     FAIL ] global.deny_with_sibling_domain
+>> # [ RUN      ] global.allow_sibling_domain
+>> # [     FAIL ] global.allow_sibling_domain
+>> # [ RUN      ] global.allow_with_nested_domain
+>> # [     FAIL ] global.allow_with_nested_domain
+>> # [ RUN      ] global.deny_with_nested_and_parent_domain
+>> # [     FAIL ] global.deny_with_nested_and_parent_domain
+>> # [ RUN      ] global.deny_with_forked_domain
+>> # [     FAIL ] global.deny_with_forked_domain
+>> # [==========] 1 / 8 tests passed.
+>> # [  FAILED  ]
+>> not ok 2 selftests: landlock: test_ptrace # exit=1
+>> # selftests: landlock: test_fs
+>> # common.h:37:ruleset_rw.inval:Expected 0 (0) <= self->ruleset_fd (18446744073709551615)
+>> # ruleset_rw.inval: Test terminated by assertion
+>> # common.h:37:ruleset_rw.nsfs:Expected 0 (0) <= self->ruleset_fd (18446744073709551615)
+>> # ruleset_rw.nsfs: Test terminated by assertion
+>> # test_fs.c:342:layout1.whitelist:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.whitelist: Test terminated by assertion
+>> # test_fs.c:342:layout1.unhandled_access:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.unhandled_access: Test terminated by assertion
+>> # test_fs.c:342:layout1.ruleset_overlap:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.ruleset_overlap: Test terminated by assertion
+>> # test_fs.c:342:layout1.inherit_superset:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.inherit_superset: Test terminated by assertion
+>> # test_fs.c:342:layout1.rule_on_mountpoint:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.rule_on_mountpoint: Test terminated by assertion
+>> # test_fs.c:342:layout1.rule_over_mountpoint:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.rule_over_mountpoint: Test terminated by assertion
+>> # test_fs.c:342:layout1.rule_over_root:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.rule_over_root: Test terminated by assertion
+>> # test_fs.c:720:layout1.rule_inside_mount_ns:Expected -1 (18446744073709551615) != syscall(SYS_pivot_root, dir_s3d2, dir_s3d3) (18446744073709551615)
+>> # test_fs.c:722:layout1.rule_inside_mount_ns:Failed to pivot_root into "tmp/s3d1/s3d2": Invalid argument
+>> #
+>> # layout1.rule_inside_mount_ns: Test terminated by assertion
+>> # test_fs.c:342:layout1.mount_and_pivot:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.mount_and_pivot: Test terminated by assertion
+>> # test_fs.c:342:layout1.relative_open:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.relative_open: Test terminated by assertion
+>> # test_fs.c:342:layout1.relative_chdir:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.relative_chdir: Test terminated by assertion
+>> # test_fs.c:342:layout1.relative_chroot_only:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.relative_chroot_only: Test terminated by assertion
+>> # test_fs.c:342:layout1.relative_chroot_chdir:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.relative_chroot_chdir: Test terminated by assertion
+>> # test_fs.c:342:layout1.chroot:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.chroot: Test terminated by assertion
+>> # test_fs.c:342:layout1.execute:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.execute: Test terminated by assertion
+>> # test_fs.c:342:layout1.link_to:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.link_to: Test terminated by assertion
+>> # test_fs.c:342:layout1.rename_from:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.rename_from: Test terminated by assertion
+>> # test_fs.c:342:layout1.rename_to:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.rename_to: Test terminated by assertion
+>> # test_fs.c:342:layout1.rmdir:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.rmdir: Test terminated by assertion
+>> # test_fs.c:342:layout1.unlink:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.unlink: Test terminated by assertion
+>> # test_fs.c:342:layout1.make_char:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.make_char: Test terminated by assertion
+>> # test_fs.c:342:layout1.make_block:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.make_block: Test terminated by assertion
+>> # test_fs.c:342:layout1.make_reg:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.make_reg: Test terminated by assertion
+>> # test_fs.c:342:layout1.make_sock:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.make_sock: Test terminated by assertion
+>> # test_fs.c:342:layout1.make_fifo:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.make_fifo: Test terminated by assertion
+>> # test_fs.c:342:layout1.make_sym:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.make_sym: Test terminated by assertion
+>> # test_fs.c:342:layout1.make_dir:Expected 0 (0) == landlock(LANDLOCK_CMD_GET_FEATURES, LANDLOCK_OPT_GET_FEATURES, sizeof(attr_features), &attr_features) (18446744073709551615)
+>> # layout1.make_dir: Test terminated by assertion
+>> # [==========] Running 31 tests from 3 test cases.
+>> # [ RUN      ] layout1.no_restriction
+>> # [       OK ] layout1.no_restriction
+>> # [ RUN      ] ruleset_rw.inval
+>> # [     FAIL ] ruleset_rw.inval
+>> # [ RUN      ] ruleset_rw.nsfs
+>> # [     FAIL ] ruleset_rw.nsfs
+>> # [ RUN      ] layout1.whitelist
+>> # [     FAIL ] layout1.whitelist
+>> # [ RUN      ] layout1.unhandled_access
+>> # [     FAIL ] layout1.unhandled_access
+>> # [ RUN      ] layout1.ruleset_overlap
+>> # [     FAIL ] layout1.ruleset_overlap
+>> # [ RUN      ] layout1.inherit_superset
+>> # [     FAIL ] layout1.inherit_superset
+>> # [ RUN      ] layout1.rule_on_mountpoint
+>> # [     FAIL ] layout1.rule_on_mountpoint
+>> # [ RUN      ] layout1.rule_over_mountpoint
+>> # [     FAIL ] layout1.rule_over_mountpoint
+>> # [ RUN      ] layout1.rule_over_root
+>> # [     FAIL ] layout1.rule_over_root
+>> # [ RUN      ] layout1.rule_inside_mount_ns
+>> # [     FAIL ] layout1.rule_inside_mount_ns
+>> # [ RUN      ] layout1.mount_and_pivot
+>> # [     FAIL ] layout1.mount_and_pivot
+>> # [ RUN      ] layout1.relative_open
+>> # [     FAIL ] layout1.relative_open
+>> # [ RUN      ] layout1.relative_chdir
+>> # [     FAIL ] layout1.relative_chdir
+>> # [ RUN      ] layout1.relative_chroot_only
+>> # [     FAIL ] layout1.relative_chroot_only
+>> # [ RUN      ] layout1.relative_chroot_chdir
+>> # [     FAIL ] layout1.relative_chroot_chdir
+>> # [ RUN      ] layout1.chroot
+>> # [     FAIL ] layout1.chroot
+>> # [ RUN      ] layout1.execute
+>> # [     FAIL ] layout1.execute
+>> # [ RUN      ] layout1.link_to
+>> # [     FAIL ] layout1.link_to
+>> # [ RUN      ] layout1.rename_from
+>> # [     FAIL ] layout1.rename_from
+>> # [ RUN      ] layout1.rename_to
+>> # [     FAIL ] layout1.rename_to
+>> # [ RUN      ] layout1.rmdir
+>> # [     FAIL ] layout1.rmdir
+>> # [ RUN      ] layout1.unlink
+>> # [     FAIL ] layout1.unlink
+>> # [ RUN      ] layout1.make_char
+>> # [     FAIL ] layout1.make_char
+>> # [ RUN      ] layout1.make_block
+>> # [     FAIL ] layout1.make_block
+>> # [ RUN      ] layout1.make_reg
+>> # [     FAIL ] layout1.make_reg
+>> # [ RUN      ] layout1.make_sock
+>> # [     FAIL ] layout1.make_sock
+>> # [ RUN      ] layout1.make_fifo
+>> # [     FAIL ] layout1.make_fifo
+>> # [ RUN      ] layout1.make_sym
+>> # [     FAIL ] layout1.make_sym
+>> # [ RUN      ] layout1.make_dir
+>> # [     FAIL ] layout1.make_dir
+>> # [ RUN      ] global.cleanup
+>> # [       OK ] global.cleanup
+>> # [==========] 2 / 31 tests passed.
+>> # [  FAILED  ]
+>> not ok 3 selftests: landlock: test_fs # exit=1
+>> make: Leaving directory '/usr/src/perf_selftests-x86_64-rhel-7.6-d9d464ccf68e19bf7d303022d873141b5e1f7219/tools/testing/selftests/landlock'
+>>
+>>
+>>
+>> To reproduce:
+>>
+>>          git clone https://github.com/intel/lkp-tests.git
+>>          cd lkp-tests
+>>          bin/lkp install job.yaml  # job file is attached in this email
+>>          bin/lkp run     job.yaml
+>>
+>>
+>>
+>> Thanks,
+>> Rong Chen
+>>
