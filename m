@@ -1,70 +1,60 @@
-Return-Path: <SRS0=iE4N=6I=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36404 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726301AbgDXNvE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Apr 2020 09:51:04 -0400
-Date: Fri, 24 Apr 2020 09:50:33 -0400
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [PATCH 0/6] Introduce the for_each_set_clump macro
-Message-ID: <20200424135011.GA3255@icarus>
-References: <20200424122407.GA5523@syed>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="WYTEVAkct0FjGQmd"
-Content-Disposition: inline
-In-Reply-To: <20200424122407.GA5523@syed>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: Syed Nayyar Waris <syednwaris@gmail.com>, andriy.shevchenko@linux.intel.com, michal.simek@xilinx.com, arnd@arndb.de, rrichter@marvell.com, linus.walleij@linaro.org, bgolaszewski@baylibre.com, yamada.masahiro@socionext.com, rui.zhang@intel.com, daniel.lezcano@linaro.org, amit.kucheria@verdurent.com, linux-arch@vger.kernel.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org
-Message-ID: <20200424135033.JLiQnYtmu9pAIPGE7-FMOYvWwCupkpGwLJmQVmy80Rk@z>
-
-
---WYTEVAkct0FjGQmd
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
+Return-Path: <SRS0=L6kS=52=kvack.org=owner-linux-mm@kernel.org>
+From: Michael Kelley <mikelley@microsoft.com>
+Subject: RE: [PATCH 20/28] mm: remove the pgprot argument to __vmalloc
+Date: Fri, 10 Apr 2020 20:39:22 +0000
+Message-ID: <DM5PR2101MB10472EA3373D4D1A73AC0F7ED7DE0@DM5PR2101MB1047.namprd21.prod.outlook.com>
+References: <20200408115926.1467567-1-hch@lst.de>
+ <20200408115926.1467567-21-hch@lst.de>
+In-Reply-To: <20200408115926.1467567-21-hch@lst.de>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+Sender: owner-linux-mm@kvack.org
+To: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, KY Srinivasan <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, "x86@kernel.org" <x86@kernel.org>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "bpf@vger.kernel.org" <bpf@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+List-ID: <linux-arch.vger.kernel.org>
+Message-ID: <20200410203922.Q-9bBmmhQf9e4cgtj_iHur6bVC9ForPEwyl8owFrN9w@z>
 
-On Fri, Apr 24, 2020 at 05:54:07PM +0530, Syed Nayyar Waris wrote:
-> This patchset introduces a new generic version of for_each_set_clump.=20
-> The previous version of for_each_set_clump8 used a fixed size 8-bit
-> clump, but the new generic version can work with clump of any size but
-> less than or equal to BITS_PER_LONG. The patchset utilizes the new macro=
-=20
-> in several GPIO drivers.
+From: Christoph Hellwig <hch@lst.de> Sent: Wednesday, April 8, 2020 4:59 AM
+>=20
+> The pgprot argument to __vmalloc is always PROT_KERNEL now, so remove
+> it.
+>=20
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/x86/hyperv/hv_init.c              |  3 +--
+>  arch/x86/include/asm/kvm_host.h        |  3 +--
+>  arch/x86/kvm/svm.c                     |  3 +--
+>  drivers/block/drbd/drbd_bitmap.c       |  4 +---
+>  drivers/gpu/drm/etnaviv/etnaviv_dump.c |  4 ++--
+>  drivers/lightnvm/pblk-init.c           |  5 ++---
+>  drivers/md/dm-bufio.c                  |  4 ++--
+>  drivers/mtd/ubi/io.c                   |  4 ++--
+>  drivers/scsi/sd_zbc.c                  |  3 +--
+>  fs/gfs2/dir.c                          |  9 ++++-----
+>  fs/gfs2/quota.c                        |  2 +-
+>  fs/nfs/blocklayout/extent_tree.c       |  2 +-
+>  fs/ntfs/malloc.h                       |  2 +-
+>  fs/ubifs/debug.c                       |  2 +-
+>  fs/ubifs/lprops.c                      |  2 +-
+>  fs/ubifs/lpt_commit.c                  |  4 ++--
+>  fs/ubifs/orphan.c                      |  2 +-
+>  fs/xfs/kmem.c                          |  2 +-
+>  include/linux/vmalloc.h                |  2 +-
+>  kernel/bpf/core.c                      |  6 +++---
+>  kernel/groups.c                        |  2 +-
+>  kernel/module.c                        |  3 +--
+>  mm/nommu.c                             | 15 +++++++--------
+>  mm/page_alloc.c                        |  2 +-
+>  mm/percpu.c                            |  2 +-
+>  mm/vmalloc.c                           |  4 ++--
+>  net/bridge/netfilter/ebtables.c        |  6 ++----
+>  sound/core/memalloc.c                  |  2 +-
+>  sound/core/pcm_memory.c                |  2 +-
+>  29 files changed, 47 insertions(+), 59 deletions(-)
+>=20
 
-Regarding the nomenclature, I created the term "clump" to represent an
-8-bit value that was not necessarily a byte yet was a contiguous
-grouping of bits. With this patchset, we now have a more generic
-for_each_set_clump macro that can handle values larger and smaller than
-8-bits.
+For Hyper-V changes,
 
-Would it make sense to retire the term "clump" and instead use "nbits"
-where applicable, in order to match the existing convention used by the
-bitmap functions; for instance, would it be better to name this macro
-for_each_set_nbits?
-
-William Breathitt Gray
-
---WYTEVAkct0FjGQmd
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCgAdFiEEk5I4PDJ2w1cDf/bghvpINdm7VJIFAl6i7qkACgkQhvpINdm7
-VJIciBAA4lGCd+eUHQXeYgvLK14UXVfbjASoiUjFVFetkDeXj+GGFQG7W/fVMxrM
-LoJV4wXwNl9qyedfdNI8aZmjUwF2Tyy+XEaxo/wa6XyfIXvKrqDYNpESIhvFgMv9
-BcxDVlWrMixZ440pQqqFRfGx7bLM2pryn05hh5yr46Y3kZZRISeAlygC+cZfDmzT
-O7KXcRIB4ZTeZ0irSlLKsEFpp42YIKUX+gt3zwkxSoRIhfBRToE2KU42oLhez48t
-WuUHpZ2TexCV35B+QAjjAXqMdnL3Rg43pRCJG614VuvSleY2hAkED5lqMlt0SIh4
-4kEbvK/fea2QInYY/WA5EKxtFka9huXJ1dhqqUUSFFQfUPhqA/GSxpZ+5o7EeWjr
-v4d4uzg897E5BwZhrWOJUHBIfA4LXkQMV+ZGL1ijWmNnYy3uigREGZYrNylShQ1O
-INlHzTcoqy++g+kETBV/MEZJWGbtqRGqr4/u1UaECO/Ccy0cHDhp9mQ0JmSoXdQe
-pIIhBDfm3raffCMVjSqfVToHENxHuwqcTIgxJ+CAR7j2BOAF/oeNULgsKnRZrfMu
-UE32VfmG2xXdHiqw4R/fBzK1g/DLF7c04RYBPjY7S1/Tvrox9dTnfJbPA1r4KB35
-vIQf2L/hGGV/F/IRYgVdtVVVNaB3qEsrimj0CJjnpQYNkE3fUoM=
-=A+Kx
------END PGP SIGNATURE-----
-
---WYTEVAkct0FjGQmd--
+Reviewed-by: Michael Kelley <mikelley@microsoft.com>
