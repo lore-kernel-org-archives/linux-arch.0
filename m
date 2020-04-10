@@ -1,43 +1,42 @@
-From: Sergey Senozhatsky <sergey.senozhatsky@gmail.com>
-Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
- zsmalloc
-Date: Fri, 10 Apr 2020 11:38:45 +0900
-Message-ID: <20200410023845.GA2354@jagdpanzerIV.localdomain>
-References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-11-hch@lst.de>
- <20200409160826.GC247701@google.com>
- <20200409165030.GG20713@hirez.programming.kicks-ass.net>
- <20200409170813.GD247701@google.com>
+From: Daniel Vetter <daniel@ffwll.ch>
+Subject: Re: [PATCH 19/28] gpu/drm: remove the powerpc hack in drm_legacy_sg_alloc
+Date: Fri, 10 Apr 2020 10:11:02 +0200
+Message-ID: <CAKMK7uHKyN+c5oTEYVursx4at9br7LSXRb8PMoNEAEBh0hfBLQ@mail.gmail.com>
+References: <20200408115926.1467567-1-hch@lst.de> <20200408115926.1467567-20-hch@lst.de>
+ <20200408122504.GO3456981@phenom.ffwll.local> <eb48f7b6327e482ea9911b129210c0417ab48345.camel@kernel.crashing.org>
+ <CAKMK7uHtkLvdsWFGiAtkzVa5mpnDvXkn3CHZQ6bgJ_enbyAc8A@mail.gmail.com> <0f360b9cb72b80bae0d0db8150f65598c2776268.camel@kernel.crashing.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200409170813.GD247701@google.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Minchan Kim <minchan@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ot1-f68.google.com ([209.85.210.68]:33210 "EHLO
+        mail-ot1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725913AbgDJILO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Apr 2020 04:11:14 -0400
+Received: by mail-ot1-f68.google.com with SMTP id 103so1222069otv.0
+        for <linux-arch@vger.kernel.org>; Fri, 10 Apr 2020 01:11:13 -0700 (PDT)
+In-Reply-To: <0f360b9cb72b80bae0d0db8150f65598c2776268.camel@kernel.crashing.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, X86 ML <x86@kernel.org>, David Airlie <airlied@linux.ie>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-hyperv@vger.kernel.org, dri-devel <dri-devel@lists.freedesktop.org>, moderated list:DMA BUFFER SHARING FR
 
-On (20/04/09 10:08), Minchan Kim wrote:
-> > > Even though I don't know how many usecase we have using zsmalloc as
-> > > module(I heard only once by dumb reason), it could affect existing
-> > > users. Thus, please include concrete explanation in the patch to
-> > > justify when the complain occurs.
-> > 
-> > The justification is 'we can unexport functions that have no sane reason
-> > of being exported in the first place'.
-> > 
-> > The Changelog pretty much says that.
-> 
-> Okay, I hope there is no affected user since this patch.
-> If there are someone, they need to provide sane reason why they want
-> to have zsmalloc as module.
+On Fri, Apr 10, 2020 at 12:57 AM Benjamin Herrenschmidt
+<benh@kernel.crashing.org> wrote:
+>
+> On Thu, 2020-04-09 at 11:41 +0200, Daniel Vetter wrote:
+> > Now if these boxes didn't ever have agp then I think we can get away
+> > with deleting this, since we've already deleted the legacy radeon
+> > driver. And that one used vmalloc for everything. The new kms one does
+> > use the dma-api if the gpu isn't connected through agp
+>
+> Definitely no AGP there.
 
-I'm one of those who use zsmalloc as a module - mainly because I use zram
-as a compressing general purpose block device, not as a swap device.
-I create zram0, mkfs, mount, checkout and compile code, once done -
-umount, rmmod. This reduces the number of writes to SSD. Some people use
-tmpfs, but zram device(-s) can be much larger in size. That's a niche use
-case and I'm not against the patch.
+Ah in that case I think we can be sure that this code is dead.
 
-	-ss
+Acked-by: Daniel Vetter <daniel.vetter@ffwll.ch>
+
+Cheers, Daniel
+-- 
+Daniel Vetter
+Software Engineer, Intel Corporation
++41 (0) 79 365 57 48 - http://blog.ffwll.ch
