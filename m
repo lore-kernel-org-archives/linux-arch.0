@@ -1,69 +1,38 @@
-Return-Path: <SRS0=9HFN=52=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-wm1-f65.google.com ([209.85.128.65]:52374 "EHLO
-        mail-wm1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726145AbgDJO2C (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Apr 2020 10:28:02 -0400
-Date: Fri, 10 Apr 2020 15:27:57 +0100
-From: Wei Liu <wei.liu@kernel.org>
-Subject: Re: [PATCH V4 6/6] x86/Hyper-V: Report crash data in die() when
- panic_on_oops is set
-Message-ID: <20200410142757.comrxjvnf3akllmc@debian>
-References: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
- <20200406155331.2105-7-Tianyu.Lan@microsoft.com>
- <MW2PR2101MB10524CB8CBF3FE49C2EDAA8DD7C00@MW2PR2101MB1052.namprd21.prod.outlook.com>
- <20200409164054.72es2ykmbef3jbui@debian>
- <MW2PR2101MB10525BA673D7FA81073B9F65D7C10@MW2PR2101MB1052.namprd21.prod.outlook.com>
+Return-Path: <SRS0=odmD=53=kvack.org=owner-linux-mm@kernel.org>
+Date: Sat, 11 Apr 2020 09:20:52 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
+ zsmalloc
+Message-ID: <20200411072052.GA31242@lst.de>
+References: <20200408115926.1467567-1-hch@lst.de> <20200408115926.1467567-11-hch@lst.de> <20200409160826.GC247701@google.com> <20200409165030.GG20713@hirez.programming.kicks-ass.net> <20200409170813.GD247701@google.com> <20200410023845.GA2354@jagdpanzerIV.localdomain> <20200410231136.GA101325@google.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <MW2PR2101MB10525BA673D7FA81073B9F65D7C10@MW2PR2101MB1052.namprd21.prod.outlook.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200410231136.GA101325@google.com>
+Sender: owner-linux-mm@kvack.org
+To: Minchan Kim <minchan@kernel.org>
+Cc: Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Kelley <mikelley@microsoft.com>
-Cc: Wei Liu <wei.liu@kernel.org>, "ltykernel@gmail.com" <ltykernel@gmail.com>, KY Srinivasan <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <liuwe@microsoft.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "hpa@zytor.com" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, Tianyu Lan <Tianyu.Lan@microsoft.com>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, vkuznets <vkuznets@redhat.com>
-Message-ID: <20200410142757.B2XfxQ49Uq4fN4mG-GxFvMwHdHKQYWYetJStUc8etII@z>
+Message-ID: <20200411072052.O4oDXm6m6sSZ6xFCBbcpCMvqj1w4lMGhpdtS82qbI8s@z>
 
-On Thu, Apr 09, 2020 at 11:06:13PM +0000, Michael Kelley wrote:
-> From: Wei Liu <wei.liu@kernel.org>  Sent: Thursday, April 9, 2020 9:41 AM
-> > 
-> > On Wed, Apr 08, 2020 at 08:19:47PM +0000, Michael Kelley wrote:
-> > > From: Tianyu Lan <Tianyu.Lan@microsoft.com> Sent: Monday, April 6, 2020 8:54 AM
-> > > >
-> > > > When oops happens with panic_on_oops unset, the oops
-> > > > thread is killed by die() and system continues to run.
-> > > > In such case, guest should not report crash register
-> > > > data to host since system still runs. Check panic_on_oops
-> > > > and return directly in hyperv_report_panic() when the function
-> > > > is called in the die() and panic_on_oops is unset. Fix it.
-> > > >
-> > > > Fixes: 7ed4325a44ea ("Drivers: hv: vmbus: Make panic reporting to be more useful")
-> > > > Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
-> > > > ---
-> > > > Change since v3:
-> > > > 	- Fix compile error.
-> > > >         - Add fix commit in the change log
-> > > > ---
-> > > >  arch/x86/hyperv/hv_init.c      | 6 +++++-
-> > > >  drivers/hv/vmbus_drv.c         | 5 +++--
-> > > >  include/asm-generic/mshyperv.h | 2 +-
-> > > >  3 files changed, 9 insertions(+), 4 deletions(-)
-> > >
-> > > Reviewed-by: Michael Kelley <mikelley@microsoft.com>
-> > 
-> > It seems to me only the last patch is new, others are already in my
-> > tree, so I only apply the last one.
-> > 
-> > Let me know if my understanding is wrong.
-> > 
-> 
-> Tianyu added "Fixes:" tags to some of the other patches in
-> the series.  It appears the version you had already queued doesn't
-> have those "Fixes:" tags.
+Hi Minchan,
 
-Oh, I only read the subject lines and checked the Reviewed-by tags. I
-will queue the new series instead.
+On Fri, Apr 10, 2020 at 04:11:36PM -0700, Minchan Kim wrote:
+> It doesn't mean we couldn't use zsmalloc as module any longer. It means
+> we couldn't use zsmalloc as module with pgtable mapping whcih was little
+> bit faster on microbenchmark in some architecutre(However, I usually temped
+> to remove it since it had several problems). However, we could still use
+> zsmalloc as module as copy way instead of pgtable mapping. Thus, if someone
+> really want to rollback the feature, they should provide reasonable reason
+> why it doesn't work for them. "A little fast" wouldn't be enough to exports
+> deep internal to the module.
 
-Wei.
+do you have any data how much faster it is on arm (and does that include
+arm64 as well)?  Besides the exports which were my prime concern,
+zsmalloc with pgtable mappings also is the only user of map_kernel_range
+outside of vmalloc.c, if it really is another code base for tiny
+improvements we could mark map_kernel_range or in fact remove it entirely
+and open code it in the remaining callers.
 
-> 
-> Michael
+(unmap_kernel_range is a different story, it has a bunch of callers,
+and most look odd)
