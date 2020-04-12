@@ -1,7 +1,7 @@
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH 11/21] parisc: simplify detection of memory zone boundaries
-Date: Sun, 12 Apr 2020 22:48:49 +0300
-Message-ID: <20200412194859.12663-12-rppt@kernel.org>
+Subject: [PATCH 12/21] sparc32: simplify detection of memory zone boundaries
+Date: Sun, 12 Apr 2020 22:48:50 +0300
+Message-ID: <20200412194859.12663-13-rppt@kernel.org>
 References: <20200412194859.12663-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -34,43 +34,42 @@ detection.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/parisc/mm/init.c | 22 +++-------------------
- 1 file changed, 3 insertions(+), 19 deletions(-)
+ arch/sparc/mm/srmmu.c | 21 +++++----------------
+ 1 file changed, 5 insertions(+), 16 deletions(-)
 
-diff --git a/arch/parisc/mm/init.c b/arch/parisc/mm/init.c
-index 5224fb38d766..02d2fdb85dcc 100644
---- a/arch/parisc/mm/init.c
-+++ b/arch/parisc/mm/init.c
-@@ -675,27 +675,11 @@ static void __init gateway_init(void)
+diff --git a/arch/sparc/mm/srmmu.c b/arch/sparc/mm/srmmu.c
+index b7c94de70cca..cc071dd7d8da 100644
+--- a/arch/sparc/mm/srmmu.c
++++ b/arch/sparc/mm/srmmu.c
+@@ -1008,24 +1008,13 @@ void __init srmmu_paging_init(void)
+ 	kmap_init();
  
- static void __init parisc_bootmem_free(void)
- {
--	unsigned long zones_size[MAX_NR_ZONES] = { 0, };
--	unsigned long holes_size[MAX_NR_ZONES] = { 0, };
--	unsigned long mem_start_pfn = ~0UL, mem_end_pfn = 0, mem_size_pfn = 0;
--	int i;
+ 	{
+-		unsigned long zones_size[MAX_NR_ZONES];
+-		unsigned long zholes_size[MAX_NR_ZONES];
+-		unsigned long npages;
+-		int znum;
++		unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0 };
+ 
+-		for (znum = 0; znum < MAX_NR_ZONES; znum++)
+-			zones_size[znum] = zholes_size[znum] = 0;
++		max_zone_pfn[ZONE_DMA] = max_low_pfn;
++		max_zone_pfn[ZONE_NORMAL] = max_low_pfn;
++		max_zone_pfn[ZONE_HIGHMEM] = highend_pfn;
+ 
+-		npages = max_low_pfn - pfn_base;
 -
--	for (i = 0; i < npmem_ranges; i++) {
--		unsigned long start = pmem_ranges[i].start_pfn;
--		unsigned long size = pmem_ranges[i].pages;
--		unsigned long end = start + size;
+-		zones_size[ZONE_DMA] = npages;
+-		zholes_size[ZONE_DMA] = npages - pages_avail;
 -
--		if (mem_start_pfn > start)
--			mem_start_pfn = start;
--		if (mem_end_pfn < end)
--			mem_end_pfn = end;
--		mem_size_pfn += size;
--	}
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0, };
- 
--	zones_size[0] = mem_end_pfn - mem_start_pfn;
--	holes_size[0] = zones_size[0] - mem_size_pfn;
-+	max_zone_pfn[0] = memblock_end_of_DRAM();
- 
--	free_area_init_node(0, zones_size, mem_start_pfn, holes_size);
-+	free_area_init(max_zone_pfn);
+-		npages = highend_pfn - max_low_pfn;
+-		zones_size[ZONE_HIGHMEM] = npages;
+-		zholes_size[ZONE_HIGHMEM] = npages - calc_highpages();
+-
+-		free_area_init_node(0, zones_size, pfn_base, zholes_size);
++		free_area_init(max_zone_pfn);
+ 	}
  }
  
- void __init paging_init(void)
 -- 
 2.25.1
