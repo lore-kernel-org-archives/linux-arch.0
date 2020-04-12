@@ -1,7 +1,7 @@
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH 10/21] m68k: mm: simplify detection of memory zone boundaries
-Date: Sun, 12 Apr 2020 22:48:48 +0300
-Message-ID: <20200412194859.12663-11-rppt@kernel.org>
+Subject: [PATCH 11/21] parisc: simplify detection of memory zone boundaries
+Date: Sun, 12 Apr 2020 22:48:49 +0300
+Message-ID: <20200412194859.12663-12-rppt@kernel.org>
 References: <20200412194859.12663-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -34,68 +34,43 @@ detection.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/m68k/mm/motorola.c | 11 +++++------
- arch/m68k/mm/sun3mmu.c  | 10 +++-------
- 2 files changed, 8 insertions(+), 13 deletions(-)
+ arch/parisc/mm/init.c | 22 +++-------------------
+ 1 file changed, 3 insertions(+), 19 deletions(-)
 
-diff --git a/arch/m68k/mm/motorola.c b/arch/m68k/mm/motorola.c
-index 84ab5963cabb..904c2a663977 100644
---- a/arch/m68k/mm/motorola.c
-+++ b/arch/m68k/mm/motorola.c
-@@ -365,7 +365,7 @@ static void __init map_node(int node)
-  */
- void __init paging_init(void)
+diff --git a/arch/parisc/mm/init.c b/arch/parisc/mm/init.c
+index 5224fb38d766..02d2fdb85dcc 100644
+--- a/arch/parisc/mm/init.c
++++ b/arch/parisc/mm/init.c
+@@ -675,27 +675,11 @@ static void __init gateway_init(void)
+ 
+ static void __init parisc_bootmem_free(void)
  {
 -	unsigned long zones_size[MAX_NR_ZONES] = { 0, };
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0, };
- 	unsigned long min_addr, max_addr;
- 	unsigned long addr;
- 	int i;
-@@ -448,11 +448,10 @@ void __init paging_init(void)
- #ifdef DEBUG
- 	printk ("before free_area_init\n");
- #endif
--	for (i = 0; i < m68k_num_memory; i++) {
--		zones_size[ZONE_DMA] = m68k_memory[i].size >> PAGE_SHIFT;
--		free_area_init_node(i, zones_size,
--				    m68k_memory[i].addr >> PAGE_SHIFT, NULL);
-+	for (i = 0; i < m68k_num_memory; i++)
- 		if (node_present_pages(i))
- 			node_set_state(i, N_NORMAL_MEMORY);
+-	unsigned long holes_size[MAX_NR_ZONES] = { 0, };
+-	unsigned long mem_start_pfn = ~0UL, mem_end_pfn = 0, mem_size_pfn = 0;
+-	int i;
+-
+-	for (i = 0; i < npmem_ranges; i++) {
+-		unsigned long start = pmem_ranges[i].start_pfn;
+-		unsigned long size = pmem_ranges[i].pages;
+-		unsigned long end = start + size;
+-
+-		if (mem_start_pfn > start)
+-			mem_start_pfn = start;
+-		if (mem_end_pfn < end)
+-			mem_end_pfn = end;
+-		mem_size_pfn += size;
 -	}
-+
-+	max_zone_pfn[ZONE_DMA] = memblock_end_of_DRAM();
-+	free_area_init(max_zone_pfn);
- }
-diff --git a/arch/m68k/mm/sun3mmu.c b/arch/m68k/mm/sun3mmu.c
-index eca1c46bb90a..5d8d956d9329 100644
---- a/arch/m68k/mm/sun3mmu.c
-+++ b/arch/m68k/mm/sun3mmu.c
-@@ -42,7 +42,7 @@ void __init paging_init(void)
- 	unsigned long address;
- 	unsigned long next_pgtable;
- 	unsigned long bootmem_end;
--	unsigned long zones_size[MAX_NR_ZONES] = { 0, };
 +	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0, };
- 	unsigned long size;
  
- 	empty_zero_page = memblock_alloc(PAGE_SIZE, PAGE_SIZE);
-@@ -89,14 +89,10 @@ void __init paging_init(void)
- 	current->mm = NULL;
+-	zones_size[0] = mem_end_pfn - mem_start_pfn;
+-	holes_size[0] = zones_size[0] - mem_size_pfn;
++	max_zone_pfn[0] = memblock_end_of_DRAM();
  
- 	/* memory sizing is a hack stolen from motorola.c..  hope it works for us */
--	zones_size[ZONE_DMA] = ((unsigned long)high_memory - PAGE_OFFSET) >> PAGE_SHIFT;
-+	max_zone_pfn[ZONE_DMA] = ((unsigned long)high_memory) >> PAGE_SHIFT;
- 
- 	/* I really wish I knew why the following change made things better...  -- Sam */
--/*	free_area_init(zones_size); */
--	free_area_init_node(0, zones_size,
--			    (__pa(PAGE_OFFSET) >> PAGE_SHIFT) + 1, NULL);
+-	free_area_init_node(0, zones_size, mem_start_pfn, holes_size);
 +	free_area_init(max_zone_pfn);
- 
- 
  }
--
--
+ 
+ void __init paging_init(void)
 -- 
 2.25.1
