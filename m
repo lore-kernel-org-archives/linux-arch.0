@@ -1,8 +1,8 @@
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH 17/21] mm: free_area_init: allow defining max_zone_pfn in
- descending order
-Date: Sun, 12 Apr 2020 22:48:55 +0300
-Message-ID: <20200412194859.12663-18-rppt@kernel.org>
+Subject: [PATCH 18/21] mm: rename free_area_init_node() to
+ free_area_init_memoryless_node()
+Date: Sun, 12 Apr 2020 22:48:56 +0300
+Message-ID: <20200412194859.12663-19-rppt@kernel.org>
 References: <20200412194859.12663-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -23,148 +23,81 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Mike Rapoport <rppt@linux.ibm.com>
 
-Some architectures (e.g. ARC) have the ZONE_HIGHMEM zone below the
-ZONE_NORMAL. Allowing free_area_init() parse max_zone_pfn array even it is
-sorted in descending order allows using free_area_init() on such
-architectures.
-
-Add top -> down traversal of max_zone_pfn array in free_area_init() and use
-the latter in ARC node/zone initialization.
+The free_area_init_node() is only used by x86 to initialize a memory-less
+nodes.
+Make its name reflect this and drop all the function parameters except node
+ID as they are anyway zero.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/arc/mm/init.c | 36 +++++++-----------------------------
- mm/page_alloc.c    | 24 +++++++++++++++++++-----
- 2 files changed, 26 insertions(+), 34 deletions(-)
+ arch/x86/mm/numa.c | 5 +----
+ include/linux/mm.h | 9 +++------
+ mm/page_alloc.c    | 7 ++-----
+ 3 files changed, 6 insertions(+), 15 deletions(-)
 
-diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
-index 0920c969c466..41eb9be1653c 100644
---- a/arch/arc/mm/init.c
-+++ b/arch/arc/mm/init.c
-@@ -63,11 +63,13 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
+diff --git a/arch/x86/mm/numa.c b/arch/x86/mm/numa.c
+index fe024b2ac796..8ee952038c80 100644
+--- a/arch/x86/mm/numa.c
++++ b/arch/x86/mm/numa.c
+@@ -737,12 +737,9 @@ void __init x86_numa_init(void)
  
- 		low_mem_sz = size;
- 		in_use = 1;
-+		memblock_add_node(base, size, 0);
- 	} else {
- #ifdef CONFIG_HIGHMEM
- 		high_mem_start = base;
- 		high_mem_sz = size;
- 		in_use = 1;
-+		memblock_add_node(base, size, 1);
- #endif
- 	}
- 
-@@ -83,8 +85,7 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
-  */
- void __init setup_arch_memory(void)
+ static void __init init_memory_less_node(int nid)
  {
--	unsigned long zones_size[MAX_NR_ZONES];
--	unsigned long zones_holes[MAX_NR_ZONES];
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0 };
- 
- 	init_mm.start_code = (unsigned long)_text;
- 	init_mm.end_code = (unsigned long)_etext;
-@@ -115,7 +116,6 @@ void __init setup_arch_memory(void)
- 	 * the crash
- 	 */
- 
--	memblock_add_node(low_mem_start, low_mem_sz, 0);
- 	memblock_reserve(CONFIG_LINUX_LINK_BASE,
- 			 __pa(_end) - CONFIG_LINUX_LINK_BASE);
- 
-@@ -133,22 +133,7 @@ void __init setup_arch_memory(void)
- 	memblock_dump_all();
- 
- 	/*----------------- node/zones setup --------------------------*/
--	memset(zones_size, 0, sizeof(zones_size));
--	memset(zones_holes, 0, sizeof(zones_holes));
+-	unsigned long zones_size[MAX_NR_ZONES] = {0};
+-	unsigned long zholes_size[MAX_NR_ZONES] = {0};
 -
--	zones_size[ZONE_NORMAL] = max_low_pfn - min_low_pfn;
--	zones_holes[ZONE_NORMAL] = 0;
--
--	/*
--	 * We can't use the helper free_area_init(zones[]) because it uses
--	 * PAGE_OFFSET to compute the @min_low_pfn which would be wrong
--	 * when our kernel doesn't start at PAGE_OFFSET, i.e.
--	 * PAGE_OFFSET != CONFIG_LINUX_RAM_BASE
--	 */
--	free_area_init_node(0,			/* node-id */
--			    zones_size,		/* num pages per zone */
--			    min_low_pfn,	/* first pfn of node */
--			    zones_holes);	/* holes */
-+	max_zone_pfn[ZONE_NORMAL] = max_low_pfn;
+ 	/* Allocate and initialize node data. Memory-less node is now online.*/
+ 	alloc_node_data(nid);
+-	free_area_init_node(nid, zones_size, 0, zholes_size);
++	free_area_init_memoryless_node(nid);
  
- #ifdef CONFIG_HIGHMEM
  	/*
-@@ -168,20 +153,13 @@ void __init setup_arch_memory(void)
- 	min_high_pfn = PFN_DOWN(high_mem_start);
- 	max_high_pfn = PFN_DOWN(high_mem_start + high_mem_sz);
- 
--	zones_size[ZONE_NORMAL] = 0;
--	zones_holes[ZONE_NORMAL] = 0;
--
--	zones_size[ZONE_HIGHMEM] = max_high_pfn - min_high_pfn;
--	zones_holes[ZONE_HIGHMEM] = 0;
--
--	free_area_init_node(1,			/* node-id */
--			    zones_size,		/* num pages per zone */
--			    min_high_pfn,	/* first pfn of node */
--			    zones_holes);	/* holes */
-+	max_zone_pfn[ZONE_HIGHMEM] = max_high_pfn;
- 
- 	high_memory = (void *)(min_high_pfn << PAGE_SHIFT);
- 	kmap_init();
- #endif
-+
-+	free_area_init(max_zone_pfn);
+ 	 * All zonelists will be built later in start_kernel() after per cpu
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 1c2ecb42e043..27660f6cf26e 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -2272,8 +2272,7 @@ static inline spinlock_t *pud_lock(struct mm_struct *mm, pud_t *pud)
  }
  
+ extern void __init pagecache_init(void);
+-extern void __init free_area_init_node(int nid, unsigned long * zones_size,
+-		unsigned long zone_start_pfn, unsigned long *zholes_size);
++extern void __init free_area_init_memoryless_node(int nid);
+ extern void free_initmem(void);
+ 
  /*
+@@ -2345,10 +2344,8 @@ static inline unsigned long get_num_physpages(void)
+ 
+ /*
+  * Using memblock node mappings, an architecture may initialise its
+- * zones, allocate the backing mem_map and account for memory holes in a more
+- * architecture independent manner. This is a substitute for creating the
+- * zone_sizes[] and zholes_size[] arrays and passing them to
+- * free_area_init_node()
++ * zones, allocate the backing mem_map and account for memory holes in an
++ * architecture independent manner.
+  *
+  * An architecture is expected to register range of page frames backed by
+  * physical memory with memblock_add[_node]() before calling
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 343d87b8697d..376434c7a78b 100644
+index 376434c7a78b..e46232ec4849 100644
 --- a/mm/page_alloc.c
 +++ b/mm/page_alloc.c
-@@ -7429,7 +7429,8 @@ static void check_for_memory(pg_data_t *pgdat, int nid)
- void __init free_area_init(unsigned long *max_zone_pfn)
+@@ -6979,12 +6979,9 @@ static void __init __free_area_init_node(int nid, unsigned long *zones_size,
+ 	free_area_init_core(pgdat);
+ }
+ 
+-void __init free_area_init_node(int nid, unsigned long *zones_size,
+-				unsigned long node_start_pfn,
+-				unsigned long *zholes_size)
++void __init free_area_init_memoryless_node(int nid)
  {
- 	unsigned long start_pfn, end_pfn;
--	int i, nid;
-+	int i, nid, zone;
-+	bool descending = false;
+-	__free_area_init_node(nid, zones_size, node_start_pfn, zholes_size,
+-			      true);
++	__free_area_init_node(nid, NULL, 0, NULL, false);
+ }
  
- 	/* Record where the zone boundaries are */
- 	memset(arch_zone_lowest_possible_pfn, 0,
-@@ -7439,13 +7440,26 @@ void __init free_area_init(unsigned long *max_zone_pfn)
- 
- 	start_pfn = find_min_pfn_with_active_regions();
- 
-+	/*
-+	 * Some architecturs, e.g. ARC may have ZONE_HIGHMEM below
-+	 * ZONE_NORMAL. For such cases we allow max_zone_pfn sorted in the
-+	 * descending order
-+	 */
-+	if (MAX_NR_ZONES > 1 && max_zone_pfn[0] > max_zone_pfn[1])
-+		descending = true;
-+
- 	for (i = 0; i < MAX_NR_ZONES; i++) {
--		if (i == ZONE_MOVABLE)
-+		if (descending)
-+			zone = MAX_NR_ZONES - i - 1;
-+		else
-+			zone = i;
-+
-+		if (zone == ZONE_MOVABLE)
- 			continue;
- 
--		end_pfn = max(max_zone_pfn[i], start_pfn);
--		arch_zone_lowest_possible_pfn[i] = start_pfn;
--		arch_zone_highest_possible_pfn[i] = end_pfn;
-+		end_pfn = max(max_zone_pfn[zone], start_pfn);
-+		arch_zone_lowest_possible_pfn[zone] = start_pfn;
-+		arch_zone_highest_possible_pfn[zone] = end_pfn;
- 
- 		start_pfn = end_pfn;
- 	}
+ #if !defined(CONFIG_FLAT_NODE_MEM_MAP)
 -- 
 2.25.1
