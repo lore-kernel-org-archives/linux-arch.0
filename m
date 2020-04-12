@@ -1,7 +1,7 @@
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH 12/21] sparc32: simplify detection of memory zone boundaries
-Date: Sun, 12 Apr 2020 22:48:50 +0300
-Message-ID: <20200412194859.12663-13-rppt@kernel.org>
+Subject: [PATCH 13/21] unicore32: simplify detection of memory zone boundaries
+Date: Sun, 12 Apr 2020 22:48:51 +0300
+Message-ID: <20200412194859.12663-14-rppt@kernel.org>
 References: <20200412194859.12663-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -34,42 +34,142 @@ detection.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/sparc/mm/srmmu.c | 21 +++++----------------
- 1 file changed, 5 insertions(+), 16 deletions(-)
+ arch/unicore32/include/asm/memory.h  |  2 +-
+ arch/unicore32/include/mach/memory.h |  6 ++--
+ arch/unicore32/kernel/pci.c          | 14 ++-------
+ arch/unicore32/mm/init.c             | 43 ++++++----------------------
+ 4 files changed, 15 insertions(+), 50 deletions(-)
 
-diff --git a/arch/sparc/mm/srmmu.c b/arch/sparc/mm/srmmu.c
-index b7c94de70cca..cc071dd7d8da 100644
---- a/arch/sparc/mm/srmmu.c
-+++ b/arch/sparc/mm/srmmu.c
-@@ -1008,24 +1008,13 @@ void __init srmmu_paging_init(void)
- 	kmap_init();
+diff --git a/arch/unicore32/include/asm/memory.h b/arch/unicore32/include/asm/memory.h
+index 23c93105f98f..66285178dd9b 100644
+--- a/arch/unicore32/include/asm/memory.h
++++ b/arch/unicore32/include/asm/memory.h
+@@ -60,7 +60,7 @@
+ #ifndef __ASSEMBLY__
  
- 	{
--		unsigned long zones_size[MAX_NR_ZONES];
--		unsigned long zholes_size[MAX_NR_ZONES];
--		unsigned long npages;
--		int znum;
-+		unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0 };
+ #ifndef arch_adjust_zones
+-#define arch_adjust_zones(size, holes) do { } while (0)
++#define arch_adjust_zones(max_zone_pfn) do { } while (0)
+ #endif
  
--		for (znum = 0; znum < MAX_NR_ZONES; znum++)
--			zones_size[znum] = zholes_size[znum] = 0;
-+		max_zone_pfn[ZONE_DMA] = max_low_pfn;
-+		max_zone_pfn[ZONE_NORMAL] = max_low_pfn;
-+		max_zone_pfn[ZONE_HIGHMEM] = highend_pfn;
+ /*
+diff --git a/arch/unicore32/include/mach/memory.h b/arch/unicore32/include/mach/memory.h
+index 2b527cedd03d..b4e6035cb9a3 100644
+--- a/arch/unicore32/include/mach/memory.h
++++ b/arch/unicore32/include/mach/memory.h
+@@ -25,10 +25,10 @@
  
--		npages = max_low_pfn - pfn_base;
+ #if !defined(__ASSEMBLY__) && defined(CONFIG_PCI)
+ 
+-void puv3_pci_adjust_zones(unsigned long *size, unsigned long *holes);
++void puv3_pci_adjust_zones(unsigned long *max_zone_pfn);
+ 
+-#define arch_adjust_zones(size, holes) \
+-	puv3_pci_adjust_zones(size, holes)
++#define arch_adjust_zones(max_zone_pfn) \
++	puv3_pci_adjust_zones(max_zone_pfn)
+ 
+ #endif
+ 
+diff --git a/arch/unicore32/kernel/pci.c b/arch/unicore32/kernel/pci.c
+index efa04a94dcdb..0d098aa05b47 100644
+--- a/arch/unicore32/kernel/pci.c
++++ b/arch/unicore32/kernel/pci.c
+@@ -133,21 +133,11 @@ static int pci_puv3_map_irq(const struct pci_dev *dev, u8 slot, u8 pin)
+  * This is really ugly and we need a better way of specifying
+  * DMA-capable regions of memory.
+  */
+-void __init puv3_pci_adjust_zones(unsigned long *zone_size,
+-	unsigned long *zhole_size)
++void __init puv3_pci_adjust_zones(unsigned long max_zone_pfn)
+ {
+ 	unsigned int sz = SZ_128M >> PAGE_SHIFT;
+ 
+-	/*
+-	 * Only adjust if > 128M on current system
+-	 */
+-	if (zone_size[0] <= sz)
+-		return;
 -
--		zones_size[ZONE_DMA] = npages;
--		zholes_size[ZONE_DMA] = npages - pages_avail;
--
--		npages = highend_pfn - max_low_pfn;
--		zones_size[ZONE_HIGHMEM] = npages;
--		zholes_size[ZONE_HIGHMEM] = npages - calc_highpages();
--
--		free_area_init_node(0, zones_size, pfn_base, zholes_size);
-+		free_area_init(max_zone_pfn);
+-	zone_size[1] = zone_size[0] - sz;
+-	zone_size[0] = sz;
+-	zhole_size[1] = zhole_size[0];
+-	zhole_size[0] = 0;
++	max_zone_pfn[ZONE_DMA] = sz;
+ }
+ 
+ /*
+diff --git a/arch/unicore32/mm/init.c b/arch/unicore32/mm/init.c
+index 6cf010fadc7a..52425d383cea 100644
+--- a/arch/unicore32/mm/init.c
++++ b/arch/unicore32/mm/init.c
+@@ -61,46 +61,21 @@ static void __init find_limits(unsigned long *min, unsigned long *max_low,
  	}
  }
+ 
+-static void __init uc32_bootmem_free(unsigned long min, unsigned long max_low,
+-	unsigned long max_high)
++static void __init uc32_bootmem_free(unsigned long max_low)
+ {
+-	unsigned long zone_size[MAX_NR_ZONES], zhole_size[MAX_NR_ZONES];
+-	struct memblock_region *reg;
++	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0 };
+ 
+-	/*
+-	 * initialise the zones.
+-	 */
+-	memset(zone_size, 0, sizeof(zone_size));
+-
+-	/*
+-	 * The memory size has already been determined.  If we need
+-	 * to do anything fancy with the allocation of this memory
+-	 * to the zones, now is the time to do it.
+-	 */
+-	zone_size[0] = max_low - min;
+-
+-	/*
+-	 * Calculate the size of the holes.
+-	 *  holes = node_size - sum(bank_sizes)
+-	 */
+-	memcpy(zhole_size, zone_size, sizeof(zhole_size));
+-	for_each_memblock(memory, reg) {
+-		unsigned long start = memblock_region_memory_base_pfn(reg);
+-		unsigned long end = memblock_region_memory_end_pfn(reg);
+-
+-		if (start < max_low) {
+-			unsigned long low_end = min(end, max_low);
+-			zhole_size[0] -= low_end - start;
+-		}
+-	}
++	max_zone_pfn[ZONE_DMA] = max_low;
++	max_zone_pfn[ZONE_NORMAL] = max_low;
+ 
+ 	/*
+ 	 * Adjust the sizes according to any special requirements for
+ 	 * this machine type.
++	 * This might lower ZONE_DMA limit.
+ 	 */
+-	arch_adjust_zones(zone_size, zhole_size);
++	arch_adjust_zones(max_zone_pfn);
+ 
+-	free_area_init_node(0, zone_size, min, zhole_size);
++	free_area_init(max_zone_pfn);
+ }
+ 
+ int pfn_valid(unsigned long pfn)
+@@ -176,11 +151,11 @@ void __init bootmem_init(void)
+ 	sparse_init();
+ 
+ 	/*
+-	 * Now free the memory - free_area_init_node needs
++	 * Now free the memory - free_area_init needs
+ 	 * the sparse mem_map arrays initialized by sparse_init()
+ 	 * for memmap_init_zone(), otherwise all PFNs are invalid.
+ 	 */
+-	uc32_bootmem_free(min, max_low, max_high);
++	uc32_bootmem_free(max_low);
+ 
+ 	high_memory = __va((max_low << PAGE_SHIFT) - 1) + 1;
  
 -- 
 2.25.1
