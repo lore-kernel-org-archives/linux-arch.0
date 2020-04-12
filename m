@@ -1,7 +1,8 @@
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH 07/21] arm: simplify detection of memory zone boundaries
-Date: Sun, 12 Apr 2020 22:48:45 +0300
-Message-ID: <20200412194859.12663-8-rppt@kernel.org>
+Subject: [PATCH 08/21] arm64: simplify detection of memory zone boundaries for
+ UMA configs
+Date: Sun, 12 Apr 2020 22:48:46 +0300
+Message-ID: <20200412194859.12663-9-rppt@kernel.org>
 References: <20200412194859.12663-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -34,103 +35,80 @@ detection.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/arm/mm/init.c | 66 +++++-----------------------------------------
- 1 file changed, 7 insertions(+), 59 deletions(-)
+ arch/arm64/mm/init.c | 54 --------------------------------------------
+ 1 file changed, 54 deletions(-)
 
-diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
-index 054be44d1cdb..4e43455fab84 100644
---- a/arch/arm/mm/init.c
-+++ b/arch/arm/mm/init.c
-@@ -92,18 +92,6 @@ EXPORT_SYMBOL(arm_dma_zone_size);
-  */
- phys_addr_t arm_dma_limit;
- unsigned long arm_dma_pfn_limit;
--
--static void __init arm_adjust_dma_zone(unsigned long *size, unsigned long *hole,
--	unsigned long dma_size)
--{
--	if (size[0] <= dma_size)
--		return;
--
--	size[ZONE_NORMAL] = size[0] - dma_size;
--	size[ZONE_DMA] = dma_size;
--	hole[ZONE_NORMAL] = hole[0];
--	hole[ZONE_DMA] = 0;
--}
- #endif
+diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
+index a650adb358ee..d54ad2250dce 100644
+--- a/arch/arm64/mm/init.c
++++ b/arch/arm64/mm/init.c
+@@ -192,8 +192,6 @@ static phys_addr_t __init max_zone_phys(unsigned int zone_bits)
+ 	return min(offset + (1ULL << zone_bits), memblock_end_of_DRAM());
+ }
  
- void __init setup_dma_zone(const struct machine_desc *mdesc)
-@@ -121,56 +109,16 @@ void __init setup_dma_zone(const struct machine_desc *mdesc)
- static void __init zone_sizes_init(unsigned long min, unsigned long max_low,
- 	unsigned long max_high)
+-#ifdef CONFIG_NUMA
+-
+ static void __init zone_sizes_init(unsigned long min, unsigned long max)
  {
--	unsigned long zone_size[MAX_NR_ZONES], zhole_size[MAX_NR_ZONES];
--	struct memblock_region *reg;
--
--	/*
--	 * initialise the zones.
--	 */
--	memset(zone_size, 0, sizeof(zone_size));
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0 };
+ 	unsigned long max_zone_pfns[MAX_NR_ZONES]  = {0};
+@@ -209,58 +207,6 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
+ 	free_area_init(max_zone_pfns);
+ }
  
--	/*
--	 * The memory size has already been determined.  If we need
--	 * to do anything fancy with the allocation of this memory
--	 * to the zones, now is the time to do it.
--	 */
--	zone_size[0] = max_low - min;
--#ifdef CONFIG_HIGHMEM
--	zone_size[ZONE_HIGHMEM] = max_high - max_low;
-+#ifdef CONFIG_ZONE_DMA
-+	max_zone_pfn[ZONE_DMA] = min(arm_dma_pfn_limit, max_low);
- #endif
+-#else
 -
--	/*
--	 * Calculate the size of the holes.
--	 *  holes = node_size - sum(bank_sizes)
--	 */
+-static void __init zone_sizes_init(unsigned long min, unsigned long max)
+-{
+-	struct memblock_region *reg;
+-	unsigned long zone_size[MAX_NR_ZONES], zhole_size[MAX_NR_ZONES];
+-	unsigned long __maybe_unused max_dma, max_dma32;
+-
+-	memset(zone_size, 0, sizeof(zone_size));
+-
+-	max_dma = max_dma32 = min;
+-#ifdef CONFIG_ZONE_DMA
+-	max_dma = max_dma32 = PFN_DOWN(arm64_dma_phys_limit);
+-	zone_size[ZONE_DMA] = max_dma - min;
+-#endif
+-#ifdef CONFIG_ZONE_DMA32
+-	max_dma32 = PFN_DOWN(arm64_dma32_phys_limit);
+-	zone_size[ZONE_DMA32] = max_dma32 - max_dma;
+-#endif
+-	zone_size[ZONE_NORMAL] = max - max_dma32;
+-
 -	memcpy(zhole_size, zone_size, sizeof(zhole_size));
+-
 -	for_each_memblock(memory, reg) {
 -		unsigned long start = memblock_region_memory_base_pfn(reg);
 -		unsigned long end = memblock_region_memory_end_pfn(reg);
 -
--		if (start < max_low) {
--			unsigned long low_end = min(end, max_low);
--			zhole_size[0] -= low_end - start;
+-#ifdef CONFIG_ZONE_DMA
+-		if (start >= min && start < max_dma) {
+-			unsigned long dma_end = min(end, max_dma);
+-			zhole_size[ZONE_DMA] -= dma_end - start;
+-			start = dma_end;
 -		}
-+	max_zone_pfn[ZONE_NORMAL] = max_low;
- #ifdef CONFIG_HIGHMEM
--		if (end > max_low) {
--			unsigned long high_start = max(start, max_low);
--			zhole_size[ZONE_HIGHMEM] -= end - high_start;
+-#endif
+-#ifdef CONFIG_ZONE_DMA32
+-		if (start >= max_dma && start < max_dma32) {
+-			unsigned long dma32_end = min(end, max_dma32);
+-			zhole_size[ZONE_DMA32] -= dma32_end - start;
+-			start = dma32_end;
 -		}
-+	max_zone_pfn[ZONE_HIGHMEM] = max_high;
- #endif
+-#endif
+-		if (start >= max_dma32 && start < max) {
+-			unsigned long normal_end = min(end, max);
+-			zhole_size[ZONE_NORMAL] -= normal_end - start;
+-		}
 -	}
 -
--#ifdef CONFIG_ZONE_DMA
--	/*
--	 * Adjust the sizes according to any special requirements for
--	 * this machine type.
--	 */
--	if (arm_dma_zone_size)
--		arm_adjust_dma_zone(zone_size, zhole_size,
--			arm_dma_zone_size >> PAGE_SHIFT);
--#endif
--
 -	free_area_init_node(0, zone_size, min, zhole_size);
-+	free_area_init(max_zone_pfn);
- }
- 
- #ifdef CONFIG_HAVE_ARCH_PFN_VALID
-@@ -306,7 +254,7 @@ void __init bootmem_init(void)
- 	sparse_init();
- 
- 	/*
--	 * Now free the memory - free_area_init_node needs
-+	 * Now free the memory - free_area_init needs
- 	 * the sparse mem_map arrays initialized by sparse_init()
- 	 * for memmap_init_zone(), otherwise all PFNs are invalid.
- 	 */
+-}
+-
+-#endif /* CONFIG_NUMA */
+-
+ int pfn_valid(unsigned long pfn)
+ {
+ 	phys_addr_t addr = pfn << PAGE_SHIFT;
 -- 
 2.25.1
