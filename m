@@ -1,38 +1,34 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
-Date: Mon, 13 Apr 2020 06:41:06 -0700
-Message-ID: <20200413134106.GN21484@bombadil.infradead.org>
-References: <20200413125303.423864-1-npiggin@gmail.com>
- <20200413125303.423864-5-npiggin@gmail.com>
+From: drharunabello <azarara92@gmail.com>
+Subject: GOOD DAY DEAR
+Date: Mon, 13 Apr 2020 07:02:19 -0700
+Message-ID: <CAOsPUbQYvDk6V6qyJBDU-01x6K-2oz0YREZHT-TiWKBnjCrzUw@mail.gmail.com>
+Reply-To: drharunabello4@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20200413125303.423864-5-npiggin@gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Will Deacon <will@kernel.org>, x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55350 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730187AbgDMOCU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Apr 2020 10:02:20 -0400
+Received: from mail-il1-x144.google.com (mail-il1-x144.google.com [IPv6:2607:f8b0:4864:20::144])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2C812C0A3BDC
+        for <linux-arch@vger.kernel.org>; Mon, 13 Apr 2020 07:02:20 -0700 (PDT)
+Received: by mail-il1-x144.google.com with SMTP id o11so8536584ilq.7
+        for <linux-arch@vger.kernel.org>; Mon, 13 Apr 2020 07:02:20 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On Mon, Apr 13, 2020 at 10:53:03PM +1000, Nicholas Piggin wrote:
-> +static int vmap_pages_range_noflush(unsigned long start, unsigned long end,
-> +				    pgprot_t prot, struct page **pages,
-> +				    unsigned int page_shift)
-> +{
-> +	if (page_shift == PAGE_SIZE) {
+-- 
 
-... I think you meant 'page_shift == PAGE_SHIFT'
+Good day Sir
 
-Overall I like this series, although it's a bit biased towards CPUs
-which have page sizes which match PMD/PUD sizes.  It doesn't offer the
-possibility of using 64kB page sizes on ARM, for example.  But it's a
-step in the right direction.
+I have a project of $18.5 Million Us Dollars which I will like you to
+support me
+so that the fund will be transfer to your bank account.
+Please if you are capable reply back to me so that i will give more
+details about this
+project.
+
+Thank you I am waiting to hear from you
+
+Dr Bello
