@@ -1,33 +1,30 @@
 Return-Path: <SRS0=XT2V=55=kvack.org=owner-linux-mm@kernel.org>
-Date: Mon, 13 Apr 2020 06:34:44 -0700
+Date: Mon, 13 Apr 2020 06:41:06 -0700
 From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH v2 1/4] mm/vmalloc: fix vmalloc_to_page for huge vmap
- mappings
-Message-ID: <20200413133444.GM21484@bombadil.infradead.org>
+Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
+Message-ID: <20200413134106.GN21484@bombadil.infradead.org>
 References: <20200413125303.423864-1-npiggin@gmail.com>
- <20200413125303.423864-2-npiggin@gmail.com>
+ <20200413125303.423864-5-npiggin@gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200413125303.423864-2-npiggin@gmail.com>
+In-Reply-To: <20200413125303.423864-5-npiggin@gmail.com>
 Sender: owner-linux-mm@kvack.org
 To: Nicholas Piggin <npiggin@gmail.com>
 Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200413133444.rCqqfh5QelD9zBJtsDCjl7zA_COh0UlkCJkNrRfsY7c@z>
+Message-ID: <20200413134106.4ssnec2wrKquszS4_mcLnwnSWES7Kr3f-HklW0Aj32w@z>
 
-On Mon, Apr 13, 2020 at 10:53:00PM +1000, Nicholas Piggin wrote:
-> vmalloc_to_page returns NULL for addresses mapped by larger pages[*].
-> Whether or not a vmap is huge depends on the architecture details,
-> alignments, boot options, etc., which the caller can not be expected
-> to know. Therefore HUGE_VMAP is a regression for vmalloc_to_page.
-> 
-> This change teaches vmalloc_to_page about larger pages, and returns
-> the struct page that corresponds to the offset within the large page.
-> This makes the API agnostic to mapping implementation details.
+On Mon, Apr 13, 2020 at 10:53:03PM +1000, Nicholas Piggin wrote:
+> +static int vmap_pages_range_noflush(unsigned long start, unsigned long end,
+> +				    pgprot_t prot, struct page **pages,
+> +				    unsigned int page_shift)
+> +{
+> +	if (page_shift == PAGE_SIZE) {
 
-I'm trying to get us away from returning tail pages from various
-functions.  How much of a pain would it be to return the head page
-instead of the tail page?  Obviously the implementation gets simpler,
-but can the callers cope?  I've been focusing on the page cache, so I
-haven't been looking at the vmalloc side of things at all.
+... I think you meant 'page_shift == PAGE_SHIFT'
+
+Overall I like this series, although it's a bit biased towards CPUs
+which have page sizes which match PMD/PUD sizes.  It doesn't offer the
+possibility of using 64kB page sizes on ARM, for example.  But it's a
+step in the right direction.
