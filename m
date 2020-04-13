@@ -1,60 +1,70 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [RFC] regset ->get() API
-Date: Sun, 12 Apr 2020 21:32:16 -0700 (PDT)
-Message-ID: <20200412.213216.2171341731015449507.davem@davemloft.net>
-References: <20200221185903.GA3929948@ZenIV.linux.org.uk>
-        <20200221.112244.1426580944977593272.davem@davemloft.net>
-        <20200222004157.GX23230@ZenIV.linux.org.uk>
+From: Barrister Robert Richter UN-Attorney at Law Court-Benin
+        <info.zennitbankplcnigerian@gmail.com>
+Subject: I have already sent you first payment US$5000.00 this morning through
+ MONEY Gram service.it is available to pick up in address now.
+Date: Mon, 13 Apr 2020 13:41:07 +0200
+Message-ID: <CABHzvrm3rWryg1yAooKeHwdxzrKD47PRAEfC+ay1A6i5z3Wdiw__40167.6536350109$1586778603$gmane$org@mail.gmail.com>
+Reply-To: mgbenin903@gmail.com
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200222004157.GX23230@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: viro@zeniv.linux.org.uk
-Cc: torvalds@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43804 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729169AbgDMLtz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Apr 2020 07:49:55 -0400
+Received: from mail-il1-x129.google.com (mail-il1-x129.google.com [IPv6:2607:f8b0:4864:20::129])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A6F5AC008611
+        for <linux-arch@vger.kernel.org>; Mon, 13 Apr 2020 04:41:09 -0700 (PDT)
+Received: by mail-il1-x129.google.com with SMTP id t10so8207557iln.2
+        for <linux-arch@vger.kernel.org>; Mon, 13 Apr 2020 04:41:09 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
-Date: Sat, 22 Feb 2020 00:41:57 +0000
+ATTN DEAR BENEFICIARY.
 
-> On Fri, Feb 21, 2020 at 11:22:44AM -0800, David Miller wrote:
->> From: Al Viro <viro@zeniv.linux.org.uk>
->> Date: Fri, 21 Feb 2020 18:59:03 +0000
->> 
->> > Again, a couple of copy_regset_to_user(), but there's an additional
->> > twist - GETREGSET of 32bit task on sparc64 will use access_process_vm()
->> > when trying to fetch L0..L7/I0..I7 of other task, using copy_from_user()
->> > only when the target is equal to current.  For sparc32 this is not
->> > true - it's always copy_from_user() there, so the values it reports
->> > for those registers have nothing to do with the target process.  That
->> > part smells like a bug; by the time GETREGSET had been introduced
->> > sparc32 was not getting much attention, GETREGS worked just fine
->> > (not reporting L*/I* anyway) and for coredump it was accessing the
->> > caller's memory.  Not sure if anyone cares at that point...
->> 
->> That's definitely a bug and sparc64 is doing it correctly.
-> 
-> OK...  What does the comment in
->         case PTRACE_GETREGS64:
->                 ret = copy_regset_to_user(child, view, REGSET_GENERAL,
->                                           1 * sizeof(u64),
->                                           15 * sizeof(u64),
->                                           &pregs->u_regs[0]);
->                 if (!ret) {
->                         /* XXX doesn't handle 'y' register correctly XXX */
->                         ret = copy_regset_to_user(child, view, REGSET_GENERAL,
->                                                   32 * sizeof(u64),
->                                                   4 * sizeof(u64),
->                                                   &pregs->tstate);
->                 }
->                 break;   
-> refer to?  The fact that you end up with 0 in pregs->y and Y in pregs->magic?
-> In that case it's probably too late to do anything about that...
+GOOD NEWS.
 
-Yes, that's exactly what it's talking about since we have:
+I have already sent you first payment US$5000.00 this morning through
+MONEY Gram service.it is available to pick up in address now.
 
-	unsigned int y;
-	unsigned int magic;
+So we advise you to Contact This Money Gram office to pick up your
+transfer $US5000.00 today.
 
-and we're doing a 64-bit value copy.
+
+Note that your compensation payment funds is total amount $US2.800,000
+Million Dollars.We have instructed the Money Gram Agent,Mr. James
+Gadner to keep sending the transfer to you daily, but the maximum
+amount you will be receiving everyday is US$5000.00. Contact Agent now
+to pick up your first payment $US5000.00 immediately.
+
+Contact Person, Mr. James Gadner, Dir. Money Gram Benin.
+Email: mgbenin903@gmail.com
+Telephone Numbers: +229 62819378/ +229 98477762
+
+HERE IS YOUR PAYMENT DETAILS FOR THE FIRST =C2=A3US5000.00 SENT TODAY.
+
+Track View Website link:
+https://secure.moneygram.com/track
+Sender=E2=80=99s First name: David
+Sender=E2=80=99s Last Name: Joiner
+Money Transfer Control Number (MTCN) (REFERENCE)# 26046856
+
+Contact the Mmoney Gram Urgent and reconfirm your address to the
+office before, they will allow you to pick up the transfer today.
+
+HERE IS WHAT REQUIRED OF YOU.
+
+YOUR FULL NAME---------
+ADDRESS--------------
+COUNTRY-----------------------------
+TELEPHONE NUMBERS-----------------
+
+Note, I paid the transfer fee for you, but only you are required to
+send to the office is $75 only,Been Your Payment File activation fee,
+Send once you contact the office,before you can able to pick up your
+transfer today.
+
+Let me know once you pick up first payment today.
+
+Barrister Robert Richter UN-Attorney at Law Court-Benin
