@@ -1,82 +1,115 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: [PATCH 0/3] mm/hugetlb: Add some new arch enabling macros
-Date: Tue, 14 Apr 2020 17:14:27 +0530
-Message-ID: <1586864670-21799-1-git-send-email-anshuman.khandual@arm.com>
+Return-Path: <SRS0=XT2V=55=kvack.org=owner-linux-mm@kernel.org>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH v2 1/4] mm/vmalloc: fix vmalloc_to_page for huge vmap mappings
+Date: Mon, 13 Apr 2020 22:53:00 +1000
+Message-ID: <20200413125303.423864-2-npiggin@gmail.com>
+In-Reply-To: <20200413125303.423864-1-npiggin@gmail.com>
+References: <20200413125303.423864-1-npiggin@gmail.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
 To: linux-mm@kvack.org
-Cc: Anshuman Khandual <anshuman.khandual@arm.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Mike Kravetz <mike.kravetz@oracle.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414114427.h0h4w_ETn6-C6xs7fcDMQdyLmuwObxYFmJuv_vtGBME@z>
+Message-ID: <20200413125300.S5J5J140EMgntlED1V7CA-eXy9DrnWKGnYVBeiupi9Q@z>
 
-This series adds two macros which platforms can enable to override generic
-fallback definitions. Before that it drops __HAVE_ARCH_HUGE_PTEP_GET from
-arm64 platform.
+vmalloc_to_page returns NULL for addresses mapped by larger pages[*].
+Whether or not a vmap is huge depends on the architecture details,
+alignments, boot options, etc., which the caller can not be expected
+to know. Therefore HUGE_VMAP is a regression for vmalloc_to_page.
 
-1. HAVE_ARCH_IS_HUGEPAGE_ONLY_RANGE - is_hugepage_only_range()
-2. HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS   - arch_clear_hugepage_flags()
+This change teaches vmalloc_to_page about larger pages, and returns
+the struct page that corresponds to the offset within the large page.
+This makes the API agnostic to mapping implementation details.
 
-This has been boot tested on arm64 and x86 platforms but built tested on
-some more platforms including the changed ones here. This series applies
-on v5.7-rc1. After this arm (32 bit) remains the sole platform defining
-it's own huge_ptep_get() via __HAVE_ARCH_HUGE_PTEP_GET.
+[*] As explained by commit 029c54b095995 ("mm/vmalloc.c: huge-vmap:
+    fail gracefully on unexpected huge vmap mappings")
 
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
-Cc: Helge Deller <deller@gmx.de>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Vasily Gorbik <gor@linux.ibm.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Mike Kravetz <mike.kravetz@oracle.com>
-Cc: x86@kernel.org
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: linux-ia64@vger.kernel.org
-Cc: linux-mips@vger.kernel.org
-Cc: linux-parisc@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-riscv@lists.infradead.org
-Cc: linux-s390@vger.kernel.org
-Cc: linux-sh@vger.kernel.org
-Cc: sparclinux@vger.kernel.org
-Cc: linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ mm/vmalloc.c | 40 ++++++++++++++++++++++++++--------------
+ 1 file changed, 26 insertions(+), 14 deletions(-)
 
-Anshuman Khandual (3):
-  arm64/mm: Drop __HAVE_ARCH_HUGE_PTEP_GET
-  mm/hugetlb: Introduce HAVE_ARCH_IS_HUGEPAGE_ONLY_RANGE
-  mm/hugetlb: Introduce HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
-
- arch/arm/include/asm/hugetlb.h     |  7 +------
- arch/arm64/include/asm/hugetlb.h   | 13 +------------
- arch/ia64/include/asm/hugetlb.h    |  5 +----
- arch/mips/include/asm/hugetlb.h    | 11 -----------
- arch/parisc/include/asm/hugetlb.h  | 10 ----------
- arch/powerpc/include/asm/hugetlb.h |  5 +----
- arch/riscv/include/asm/hugetlb.h   | 10 ----------
- arch/s390/include/asm/hugetlb.h    |  8 +-------
- arch/sh/include/asm/hugetlb.h      |  7 +------
- arch/sparc/include/asm/hugetlb.h   | 10 ----------
- arch/x86/include/asm/hugetlb.h     | 10 ----------
- include/linux/hugetlb.h            | 12 ++++++++++++
- 12 files changed, 18 insertions(+), 90 deletions(-)
-
--- 
-2.20.1
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 399f219544f7..1afec7def23f 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -36,6 +36,7 @@
+ #include <linux/rbtree_augmented.h>
+=20
+ #include <linux/uaccess.h>
++#include <asm/pgtable.h>
+ #include <asm/tlbflush.h>
+ #include <asm/shmparam.h>
+=20
+@@ -272,7 +273,9 @@ int is_vmalloc_or_module_addr(const void *x)
+ }
+=20
+ /*
+- * Walk a vmap address to the struct page it maps.
++ * Walk a vmap address to the struct page it maps. Huge vmap mappings wi=
+ll
++ * return the tail page that corresponds to the base page address, which
++ * matches small vmap mappings.
+  */
+ struct page *vmalloc_to_page(const void *vmalloc_addr)
+ {
+@@ -292,25 +295,33 @@ struct page *vmalloc_to_page(const void *vmalloc_ad=
+dr)
+=20
+ 	if (pgd_none(*pgd))
+ 		return NULL;
++	if (WARN_ON_ONCE(pgd_leaf(*pgd)))
++		return NULL; /* XXX: no allowance for huge pgd */
++	if (WARN_ON_ONCE(pgd_bad(*pgd)))
++		return NULL;
++
+ 	p4d =3D p4d_offset(pgd, addr);
+ 	if (p4d_none(*p4d))
+ 		return NULL;
+-	pud =3D pud_offset(p4d, addr);
++	if (p4d_leaf(*p4d))
++		return p4d_page(*p4d) + ((addr & ~P4D_MASK) >> PAGE_SHIFT);
++	if (WARN_ON_ONCE(p4d_bad(*p4d)))
++		return NULL;
+=20
+-	/*
+-	 * Don't dereference bad PUD or PMD (below) entries. This will also
+-	 * identify huge mappings, which we may encounter on architectures
+-	 * that define CONFIG_HAVE_ARCH_HUGE_VMAP=3Dy. Such regions will be
+-	 * identified as vmalloc addresses by is_vmalloc_addr(), but are
+-	 * not [unambiguously] associated with a struct page, so there is
+-	 * no correct value to return for them.
+-	 */
+-	WARN_ON_ONCE(pud_bad(*pud));
+-	if (pud_none(*pud) || pud_bad(*pud))
++	pud =3D pud_offset(p4d, addr);
++	if (pud_none(*pud))
++		return NULL;
++	if (pud_leaf(*pud))
++		return pud_page(*pud) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
++	if (WARN_ON_ONCE(pud_bad(*pud)))
+ 		return NULL;
++
+ 	pmd =3D pmd_offset(pud, addr);
+-	WARN_ON_ONCE(pmd_bad(*pmd));
+-	if (pmd_none(*pmd) || pmd_bad(*pmd))
++	if (pmd_none(*pmd))
++		return NULL;
++	if (pmd_leaf(*pmd))
++		return pmd_page(*pmd) + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
++	if (WARN_ON_ONCE(pmd_bad(*pmd)))
+ 		return NULL;
+=20
+ 	ptep =3D pte_offset_map(pmd, addr);
+@@ -318,6 +329,7 @@ struct page *vmalloc_to_page(const void *vmalloc_addr=
+)
+ 	if (pte_present(pte))
+ 		page =3D pte_page(pte);
+ 	pte_unmap(ptep);
++
+ 	return page;
+ }
+ EXPORT_SYMBOL(vmalloc_to_page);
+--=20
+2.23.0
