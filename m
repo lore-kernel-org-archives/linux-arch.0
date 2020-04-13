@@ -1,70 +1,45 @@
-From: Barrister Robert Richter UN-Attorney at Law Court-Benin
-        <info.zennitbankplcnigerian@gmail.com>
-Subject: I have already sent you first payment US$5000.00 this morning through
- MONEY Gram service.it is available to pick up in address now.
-Date: Mon, 13 Apr 2020 13:41:07 +0200
-Message-ID: <CABHzvrm3rWryg1yAooKeHwdxzrKD47PRAEfC+ay1A6i5z3Wdiw__40167.6536350109$1586778603$gmane$org@mail.gmail.com>
-Reply-To: mgbenin903@gmail.com
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH v2 0/4] huge vmalloc mappings
+Date: Mon, 13 Apr 2020 22:52:59 +1000
+Message-ID: <20200413125303.423864-1-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43804 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729169AbgDMLtz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Apr 2020 07:49:55 -0400
-Received: from mail-il1-x129.google.com (mail-il1-x129.google.com [IPv6:2607:f8b0:4864:20::129])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A6F5AC008611
-        for <linux-arch@vger.kernel.org>; Mon, 13 Apr 2020 04:41:09 -0700 (PDT)
-Received: by mail-il1-x129.google.com with SMTP id t10so8207557iln.2
-        for <linux-arch@vger.kernel.org>; Mon, 13 Apr 2020 04:41:09 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: linux-mm@kvack.org
+Cc: linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-ATTN DEAR BENEFICIARY.
+We can get a significant win with larger mappings for some of the big
+global hashes.
 
-GOOD NEWS.
+Since RFC, relevant architectures have added p?d_leaf accessors so no
+real arch changes required, and I changed it not to allocate huge
+mappings for modules and a bunch of other fixes.
 
-I have already sent you first payment US$5000.00 this morning through
-MONEY Gram service.it is available to pick up in address now.
+Nicholas Piggin (4):
+  mm/vmalloc: fix vmalloc_to_page for huge vmap mappings
+  mm: Move ioremap page table mapping function to mm/
+  mm: HUGE_VMAP arch query functions cleanup
+  mm/vmalloc: Hugepage vmalloc mappings
 
-So we advise you to Contact This Money Gram office to pick up your
-transfer $US5000.00 today.
+ arch/arm64/mm/mmu.c                      |   8 +-
+ arch/powerpc/mm/book3s64/radix_pgtable.c |   6 +-
+ arch/x86/mm/ioremap.c                    |   6 +-
+ include/linux/io.h                       |   3 -
+ include/linux/vmalloc.h                  |  15 +
+ lib/ioremap.c                            | 203 +----------
+ mm/vmalloc.c                             | 413 +++++++++++++++++++----
+ 7 files changed, 380 insertions(+), 274 deletions(-)
 
-
-Note that your compensation payment funds is total amount $US2.800,000
-Million Dollars.We have instructed the Money Gram Agent,Mr. James
-Gadner to keep sending the transfer to you daily, but the maximum
-amount you will be receiving everyday is US$5000.00. Contact Agent now
-to pick up your first payment $US5000.00 immediately.
-
-Contact Person, Mr. James Gadner, Dir. Money Gram Benin.
-Email: mgbenin903@gmail.com
-Telephone Numbers: +229 62819378/ +229 98477762
-
-HERE IS YOUR PAYMENT DETAILS FOR THE FIRST =C2=A3US5000.00 SENT TODAY.
-
-Track View Website link:
-https://secure.moneygram.com/track
-Sender=E2=80=99s First name: David
-Sender=E2=80=99s Last Name: Joiner
-Money Transfer Control Number (MTCN) (REFERENCE)# 26046856
-
-Contact the Mmoney Gram Urgent and reconfirm your address to the
-office before, they will allow you to pick up the transfer today.
-
-HERE IS WHAT REQUIRED OF YOU.
-
-YOUR FULL NAME---------
-ADDRESS--------------
-COUNTRY-----------------------------
-TELEPHONE NUMBERS-----------------
-
-Note, I paid the transfer fee for you, but only you are required to
-send to the office is $75 only,Been Your Payment File activation fee,
-Send once you contact the office,before you can able to pick up your
-transfer today.
-
-Let me know once you pick up first payment today.
-
-Barrister Robert Richter UN-Attorney at Law Court-Benin
+-- 
+2.23.0
