@@ -1,53 +1,33 @@
-Return-Path: <SRS0=p5Ku=5Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:59280 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727028AbgDHPPf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 11:15:35 -0400
-Date: Wed, 8 Apr 2020 08:15:19 -0700
+Return-Path: <SRS0=XT2V=55=kvack.org=owner-linux-mm@kernel.org>
+Date: Mon, 13 Apr 2020 06:34:44 -0700
 From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
- zsmalloc
-Message-ID: <20200408151519.GQ21484@bombadil.infradead.org>
-References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-11-hch@lst.de>
- <c0c86feb-b3d8-78f2-127f-71d682ffc51f@infradead.org>
- <20200408151203.GN20730@hirez.programming.kicks-ass.net>
+Subject: Re: [PATCH v2 1/4] mm/vmalloc: fix vmalloc_to_page for huge vmap
+ mappings
+Message-ID: <20200413133444.GM21484@bombadil.infradead.org>
+References: <20200413125303.423864-1-npiggin@gmail.com>
+ <20200413125303.423864-2-npiggin@gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200408151203.GN20730@hirez.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200413125303.423864-2-npiggin@gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Randy Dunlap <rdunlap@infradead.org>, Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200408151519.q3_Mp22xUtLch26sbFyht8TcJNd2Lgj44I63RpDpmYU@z>
+Message-ID: <20200413133444.rCqqfh5QelD9zBJtsDCjl7zA_COh0UlkCJkNrRfsY7c@z>
 
-On Wed, Apr 08, 2020 at 05:12:03PM +0200, Peter Zijlstra wrote:
-> On Wed, Apr 08, 2020 at 08:01:00AM -0700, Randy Dunlap wrote:
-> > Hi,
-> > 
-> > On 4/8/20 4:59 AM, Christoph Hellwig wrote:
-> > > diff --git a/mm/Kconfig b/mm/Kconfig
-> > > index 36949a9425b8..614cc786b519 100644
-> > > --- a/mm/Kconfig
-> > > +++ b/mm/Kconfig
-> > > @@ -702,7 +702,7 @@ config ZSMALLOC
-> > >  
-> > >  config ZSMALLOC_PGTABLE_MAPPING
-> > >  	bool "Use page table mapping to access object in zsmalloc"
-> > > -	depends on ZSMALLOC
-> > > +	depends on ZSMALLOC=y
-> > 
-> > It's a bool so this shouldn't matter... not needed.
+On Mon, Apr 13, 2020 at 10:53:00PM +1000, Nicholas Piggin wrote:
+> vmalloc_to_page returns NULL for addresses mapped by larger pages[*].
+> Whether or not a vmap is huge depends on the architecture details,
+> alignments, boot options, etc., which the caller can not be expected
+> to know. Therefore HUGE_VMAP is a regression for vmalloc_to_page.
 > 
-> My mm/Kconfig has:
-> 
-> config ZSMALLOC
-> 	tristate "Memory allocator for compressed pages"
-> 	depends on MMU
-> 
-> which I think means it can be modular, no?
+> This change teaches vmalloc_to_page about larger pages, and returns
+> the struct page that corresponds to the offset within the large page.
+> This makes the API agnostic to mapping implementation details.
 
-Randy means that ZSMALLOC_PGTABLE_MAPPING is a bool, so I think hch's patch
-is wrong ... if ZSMALLOC is 'm' then ZSMALLOC_PGTABLE_MAPPING would become
-'n' instead of 'y'.
+I'm trying to get us away from returning tail pages from various
+functions.  How much of a pain would it be to return the head page
+instead of the tail page?  Obviously the implementation gets simpler,
+but can the callers cope?  I've been focusing on the page cache, so I
+haven't been looking at the vmalloc side of things at all.
