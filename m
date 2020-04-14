@@ -1,7 +1,8 @@
 From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 08/29] mm: remove __get_vm_area
-Date: Tue, 14 Apr 2020 15:13:27 +0200
-Message-ID: <20200414131348.444715-9-hch@lst.de>
+Subject: [PATCH 10/29] mm: rename CONFIG_PGTABLE_MAPPING to
+ CONFIG_ZSMALLOC_PGTABLE_MAPPING
+Date: Tue, 14 Apr 2020 15:13:29 +0200
+Message-ID: <20200414131348.444715-11-hch@lst.de>
 References: <20200414131348.444715-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,76 +22,96 @@ To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "K. 
 Cc: Christophe Leroy <christophe.leroy-GgN8y9CXRhA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-hyperv-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, bpf-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Switch the two remaining callers to use __get_vm_area_caller instead.
+Rename the Kconfig variable to clarify the scope.
 
 Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Acked-by: Minchan Kim <minchan-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
 Acked-by: Peter Zijlstra (Intel) <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
 ---
- arch/powerpc/kernel/pci_64.c | 3 ++-
- arch/sh/kernel/cpu/sh4/sq.c  | 3 ++-
- include/linux/vmalloc.h      | 2 --
- mm/vmalloc.c                 | 8 --------
- 4 files changed, 4 insertions(+), 12 deletions(-)
+ arch/arm/configs/omap2plus_defconfig | 2 +-
+ include/linux/zsmalloc.h             | 2 +-
+ mm/Kconfig                           | 2 +-
+ mm/zsmalloc.c                        | 8 ++++----
+ 4 files changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/arch/powerpc/kernel/pci_64.c b/arch/powerpc/kernel/pci_64.c
-index 2a976314f169..d9ac980c398c 100644
---- a/arch/powerpc/kernel/pci_64.c
-+++ b/arch/powerpc/kernel/pci_64.c
-@@ -132,7 +132,8 @@ void __iomem *ioremap_phb(phys_addr_t paddr, unsigned long size)
- 	 * address decoding but I'd rather not deal with those outside of the
- 	 * reserved 64K legacy region.
- 	 */
--	area = __get_vm_area(size, 0, PHB_IO_BASE, PHB_IO_END);
-+	area = __get_vm_area_caller(size, 0, PHB_IO_BASE, PHB_IO_END,
-+				    __builtin_return_address(0));
- 	if (!area)
- 		return NULL;
+diff --git a/arch/arm/configs/omap2plus_defconfig b/arch/arm/configs/omap2plus_defconfig
+index 3cc3ca5fa027..583d8abd80a4 100644
+--- a/arch/arm/configs/omap2plus_defconfig
++++ b/arch/arm/configs/omap2plus_defconfig
+@@ -81,7 +81,7 @@ CONFIG_PARTITION_ADVANCED=y
+ CONFIG_BINFMT_MISC=y
+ CONFIG_CMA=y
+ CONFIG_ZSMALLOC=m
+-CONFIG_PGTABLE_MAPPING=y
++CONFIG_ZSMALLOC_PGTABLE_MAPPING=y
+ CONFIG_NET=y
+ CONFIG_PACKET=y
+ CONFIG_UNIX=y
+diff --git a/include/linux/zsmalloc.h b/include/linux/zsmalloc.h
+index 2219cce81ca4..0fdbf653b173 100644
+--- a/include/linux/zsmalloc.h
++++ b/include/linux/zsmalloc.h
+@@ -20,7 +20,7 @@
+  * zsmalloc mapping modes
+  *
+  * NOTE: These only make a difference when a mapped object spans pages.
+- * They also have no effect when PGTABLE_MAPPING is selected.
++ * They also have no effect when ZSMALLOC_PGTABLE_MAPPING is selected.
+  */
+ enum zs_mapmode {
+ 	ZS_MM_RW, /* normal read-write mapping */
+diff --git a/mm/Kconfig b/mm/Kconfig
+index c1acc34c1c35..09a9edfb8461 100644
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -705,7 +705,7 @@ config ZSMALLOC
+ 	  returned by an alloc().  This handle must be mapped in order to
+ 	  access the allocated space.
  
-diff --git a/arch/sh/kernel/cpu/sh4/sq.c b/arch/sh/kernel/cpu/sh4/sq.c
-index 934ff84844fa..d432164b23b7 100644
---- a/arch/sh/kernel/cpu/sh4/sq.c
-+++ b/arch/sh/kernel/cpu/sh4/sq.c
-@@ -103,7 +103,8 @@ static int __sq_remap(struct sq_mapping *map, pgprot_t prot)
- #if defined(CONFIG_MMU)
- 	struct vm_struct *vma;
+-config PGTABLE_MAPPING
++config ZSMALLOC_PGTABLE_MAPPING
+ 	bool "Use page table mapping to access object in zsmalloc"
+ 	depends on ZSMALLOC
+ 	help
+diff --git a/mm/zsmalloc.c b/mm/zsmalloc.c
+index 2f836a2b993f..ac0524330b9b 100644
+--- a/mm/zsmalloc.c
++++ b/mm/zsmalloc.c
+@@ -293,7 +293,7 @@ struct zspage {
+ };
  
--	vma = __get_vm_area(map->size, VM_ALLOC, map->sq_addr, SQ_ADDRMAX);
-+	vma = __get_vm_area_caller(map->size, VM_ALLOC, map->sq_addr,
-+			SQ_ADDRMAX, __builtin_return_address(0));
- 	if (!vma)
- 		return -ENOMEM;
- 
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 0507a162ccd0..3070b4dbc2d9 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -161,8 +161,6 @@ static inline size_t get_vm_area_size(const struct vm_struct *area)
- extern struct vm_struct *get_vm_area(unsigned long size, unsigned long flags);
- extern struct vm_struct *get_vm_area_caller(unsigned long size,
- 					unsigned long flags, const void *caller);
--extern struct vm_struct *__get_vm_area(unsigned long size, unsigned long flags,
--					unsigned long start, unsigned long end);
- extern struct vm_struct *__get_vm_area_caller(unsigned long size,
- 					unsigned long flags,
- 					unsigned long start, unsigned long end,
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 399f219544f7..d1534d610b48 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -2127,14 +2127,6 @@ static struct vm_struct *__get_vm_area_node(unsigned long size,
- 	return area;
+ struct mapping_area {
+-#ifdef CONFIG_PGTABLE_MAPPING
++#ifdef CONFIG_ZSMALLOC_PGTABLE_MAPPING
+ 	struct vm_struct *vm; /* vm area for mapping object that span pages */
+ #else
+ 	char *vm_buf; /* copy buffer for objects that span pages */
+@@ -1113,7 +1113,7 @@ static struct zspage *find_get_zspage(struct size_class *class)
+ 	return zspage;
  }
  
--struct vm_struct *__get_vm_area(unsigned long size, unsigned long flags,
--				unsigned long start, unsigned long end)
--{
--	return __get_vm_area_node(size, 1, flags, start, end, NUMA_NO_NODE,
--				  GFP_KERNEL, __builtin_return_address(0));
--}
--EXPORT_SYMBOL_GPL(__get_vm_area);
--
- struct vm_struct *__get_vm_area_caller(unsigned long size, unsigned long flags,
- 				       unsigned long start, unsigned long end,
- 				       const void *caller)
+-#ifdef CONFIG_PGTABLE_MAPPING
++#ifdef CONFIG_ZSMALLOC_PGTABLE_MAPPING
+ static inline int __zs_cpu_up(struct mapping_area *area)
+ {
+ 	/*
+@@ -1151,7 +1151,7 @@ static inline void __zs_unmap_object(struct mapping_area *area,
+ 	unmap_kernel_range(addr, PAGE_SIZE * 2);
+ }
+ 
+-#else /* CONFIG_PGTABLE_MAPPING */
++#else /* CONFIG_ZSMALLOC_PGTABLE_MAPPING */
+ 
+ static inline int __zs_cpu_up(struct mapping_area *area)
+ {
+@@ -1233,7 +1233,7 @@ static void __zs_unmap_object(struct mapping_area *area,
+ 	pagefault_enable();
+ }
+ 
+-#endif /* CONFIG_PGTABLE_MAPPING */
++#endif /* CONFIG_ZSMALLOC_PGTABLE_MAPPING */
+ 
+ static int zs_cpu_prepare(unsigned int cpu)
+ {
 -- 
 2.25.1
