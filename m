@@ -1,81 +1,74 @@
-Return-Path: <SRS0=iE4N=6I=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46078 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726753AbgDXOwu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Apr 2020 10:52:50 -0400
+Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
+Date: Tue, 14 Apr 2020 07:20:14 -0700
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
+Message-ID: <20200414142014.GO21484@bombadil.infradead.org>
+References: <20200413125303.423864-1-npiggin@gmail.com>
+ <20200413125303.423864-5-npiggin@gmail.com>
+ <20200413134106.GN21484@bombadil.infradead.org>
+ <36616218-1d3a-b18a-8fb8-4fc9eff22780@c-s.fr>
 MIME-Version: 1.0
-References: <20200424122521.GA5552@syed> <20200424141037.ersebbfe7xls37be@wunner.de>
-In-Reply-To: <20200424141037.ersebbfe7xls37be@wunner.de>
-From: Syed Nayyar Waris <syednwaris@gmail.com>
-Date: Fri, 24 Apr 2020 20:22:38 +0530
-Message-ID: <CACG_h5prcXVdk6ecn2WoT1jas3K6UF+KCrxAM9u4_ZLSyPKCEA@mail.gmail.com>
-Subject: Re: [PATCH 1/6] bitops: Introduce the the for_each_set_clump macro
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+In-Reply-To: <36616218-1d3a-b18a-8fb8-4fc9eff22780@c-s.fr>
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Christophe Leroy <christophe.leroy@c-s.fr>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Will Deacon <will@kernel.org>, x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lukas Wunner <lukas@wunner.de>
-Cc: akpm@linux-foundation.org, andriy.shevchenko@linux.intel.com, William Breathitt Gray <vilhelm.gray@gmail.com>, arnd@arndb.de, Linus Walleij <linus.walleij@linaro.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200424145238.Fd5jiy8-E1KNMw1n8BdyaVGnDIPgs8Cm4e2kdQlOgbI@z>
+Message-ID: <20200414142014.JzdueGXMJuF5_HoUffzgd59gVOA_UyTVDMHBQF-mTyg@z>
 
-On Fri, Apr 24, 2020 at 7:40 PM Lukas Wunner <lukas@wunner.de> wrote:
->
-> On Fri, Apr 24, 2020 at 05:55:21PM +0530, Syed Nayyar Waris wrote:
-> > +static inline void bitmap_set_value(unsigned long *map,
-> > +                                 unsigned long value,
-> > +                                 unsigned long start, unsigned long nbits)
-> > +{
-> > +     const size_t index = BIT_WORD(start);
-> > +     const unsigned long offset = start % BITS_PER_LONG;
-> > +     const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
-> > +     const unsigned long space = ceiling - start;
-> > +
-> > +     value &= GENMASK(nbits - 1, 0);
-> > +
-> > +     if (space >= nbits) {
-> > +             map[index] &= ~(GENMASK(nbits + offset - 1, offset));
-> > +             map[index] |= value << offset;
-> > +     } else {
-> > +             map[index] &= ~BITMAP_FIRST_WORD_MASK(start);
-> > +             map[index] |= value << offset;
-> > +             map[index + 1] &= ~BITMAP_LAST_WORD_MASK(start + nbits);
-> > +             map[index + 1] |= (value >> space);
-> > +     }
-> > +}
->
-> Sorry but what's the advantage of using this complicated function
-> as a replacement for the much simpler bitmap_set_value8()?
->
-> The drivers calling bitmap_set_value8() *know* that 8-bit accesses
-> are possible and take advantage of that knowledge by using a small,
-> speed-optimized function.  Replacing that with a more complicated
-> (potentially less performant) function doesn't seem to be a step
-> forward.
->
-> Thanks,
->
-> Lukas
+On Tue, Apr 14, 2020 at 02:28:35PM +0200, Christophe Leroy wrote:
+> Le 13/04/2020 =E0 15:41, Matthew Wilcox a =E9crit=A0:
+> > On Mon, Apr 13, 2020 at 10:53:03PM +1000, Nicholas Piggin wrote:
+> > > +static int vmap_pages_range_noflush(unsigned long start, unsigned =
+long end,
+> > > +				    pgprot_t prot, struct page **pages,
+> > > +				    unsigned int page_shift)
+> > > +{
+> > > +	if (page_shift =3D=3D PAGE_SIZE) {
+> >=20
+> > ... I think you meant 'page_shift =3D=3D PAGE_SHIFT'
+> >=20
+> > Overall I like this series, although it's a bit biased towards CPUs
+> > which have page sizes which match PMD/PUD sizes.  It doesn't offer th=
+e
+> > possibility of using 64kB page sizes on ARM, for example.  But it's a
+> > step in the right direction.
+>=20
+> I was going to ask more or less the same question, I would have liked t=
+o use
+> 512kB hugepages on powerpc 8xx.
+>=20
+> Even the 8M hugepages (still on the 8xx), can they be used as well, tak=
+ing
+> into account that two PGD entries have to point to the same 8M page ?
+>=20
+> I sent out a series which tends to make the management of 512k and 8M p=
+ages
+> closer to what Linux expects, in order to use them inside kernel, for L=
+inear
+> mappings and Kasan mappings for the moment. See
+> https://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=3D164620
+> It would be nice if we could amplify it a use it for ioremaps and vmall=
+ocs
+> as well.
 
-Actually this generic function can work with n-bits of any size (less
-than equal to BITS_PER_LONG), while the earlier bitmap_set_value8
-worked with n-bits having size of 8 bits only.
+I haven't been looking at vmalloc at all; I've been looking at the page
+cache.  See:
+https://lore.kernel.org/linux-mm/20200212041845.25879-1-willy@infradead.o=
+rg/
 
-In the case when n-bits is 8-bits, this new bitmap_set_value()
-function would behave very similar to the earlier bitmap_set_value8()
-function. For example,  in case of n-bits being 8-bits it will always
-execute the 'if' condition and not the 'else' condition, hence
-offering the same performance (because of encountering similar code
-statements) as earlier bitmap_set_value8() function, most probably.
+Once we have large pages in the page cache, I want to sort out the API
+for asking the CPU to insert a TLB entry.  Right now, we use set_pte_at()=
+,
+set_pmd_at() and set_pud_at().  I'm thinking something along the lines of=
+:
 
-There is an additional advantage (this can happen when n-bits is not 8
-bits): during setting value of n-bit in bitmap, if a situation arise
-that the width of next n-bit is exceeding the word boundary, then it
-will divide itself such that some portion of it is stored in that
-word, while the remaining portion is stored in the next higher word.
+vm_fault_t vmf_set_page_at(struct vm_fault *vmf, struct page *page);
 
-So, this function preserves the behaviour of earlier
-bitmap_set_value8() function and also adds extra functionality to
-that.
-
-Thanks
-Syed Nayyar Waris
+and the architecture can insert whatever PTEs and/or TLB entries it
+likes based on compound_order(page) -- if, say, it's a 1MB page, it might
+choose to insert 2 * 512kB entries, or just the upper or lower 512kB entr=
+y
+(depending which half of the 1MB page the address sits in).
