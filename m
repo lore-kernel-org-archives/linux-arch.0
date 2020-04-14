@@ -1,90 +1,115 @@
-Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout-p-102.mailbox.org ([80.241.56.152]:11350 "EHLO
-        mout-p-102.mailbox.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726337AbgD1AqQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2020 20:46:16 -0400
-Date: Tue, 28 Apr 2020 10:45:46 +1000
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
-Message-ID: <20200428004546.mlpwixgms2ekpfdm@yavin.dot.cyphar.com>
-References: <20200426130100.306246-1-hagen@jauu.net>
- <20200426163430.22743-1-hagen@jauu.net>
- <20200427170826.mdklazcrn4xaeafm@wittgenstein>
- <CAG48ez0hskhN7OkxwHX-Bo5HGboJaVEk8udFukkTgiC=43ixcw@mail.gmail.com>
- <87zhawdc6w.fsf@x220.int.ebiederm.org>
- <20200427185929.GA1768@laniakea>
- <CAK8P3a2Ux1pDZEBjgRSPMJXvwUAvbPastX2ynVVC2iPTTDK_ow@mail.gmail.com>
- <20200427201303.tbiipopeapxofn6h@wittgenstein>
+Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 25/29] mm: switch the test_vmalloc module to use __vmalloc_node
+Date: Tue, 14 Apr 2020 15:13:44 +0200
+Message-ID: <20200414131348.444715-26-hch@lst.de>
+In-Reply-To: <20200414131348.444715-1-hch@lst.de>
+References: <20200414131348.444715-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="3oqbxiocwy4jimao"
-Content-Disposition: inline
-In-Reply-To: <20200427201303.tbiipopeapxofn6h@wittgenstein>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christian Brauner <christian.brauner@ubuntu.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Hagen Paul Pfeifer <hagen@jauu.net>, "Eric W. Biederman" <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, kernel list <linux-kernel@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Message-ID: <20200428004546.suhK4WMILras6gI3orel076N6YlxhyiMR_DPo4Ckxl4@z>
-
-
---3oqbxiocwy4jimao
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+Message-ID: <20200414131344.-dIys1ox_F6eCAckuR6hj_Wo1qPBMCIc_-behJxMikE@z>
 
-On 2020-04-27, Christian Brauner <christian.brauner@ubuntu.com> wrote:
-> On Mon, Apr 27, 2020 at 10:08:03PM +0200, Arnd Bergmann wrote:
-> > The way I understood Jann was that instead of a new syscall that duplic=
-ates
-> > everything in ptrace(), there would only need to be a new ptrace request
-> > such as PTRACE_ATTACH_PIDFD that behaves like PTRACE_ATTACH
-> > but takes a pidfd as the second argument, perhaps setting the return va=
-lue
-> > to the pid on success. Same for PTRACE_SEIZE.
->=20
-> That was my initial suggestion, yes. Any enum that identifies a target
-> by a pid will get a new _PIDFD version and the pidfd is passed as pid_t
-> argument. That should work and is similar to what I did for waitid()
-> P_PIDFD. Realistically, there shouldn't be any system where pid_t is
-> smaller than an int that we care about.
->=20
-> > In effect this is not much different from your a), just a variation on =
-the
-> > calling conventions. The main upside is that it avoids adding another
-> > ugly interface, the flip side is that it makes the existing one slightl=
-y worse
-> > by adding complexity.
->=20
-> Basically, if a new syscall than please a proper re-design with real
-> benefits.
->=20
-> In the meantime we could make due with the _PIDFD variant. And then if
-> someone wants to do the nitty gritty work of adding a ptrace variant
-> purely based on pidfds and with a better api and features that e.g. Jann
-> pointed out then by all means, please do so. I'm sure we would all
-> welcome this as well.
+No need to export the very low-level __vmalloc_node_range when the
+test module can use a slightly higher level variant.
 
-I agree. It would be a shame to add a new ptrace syscall and not take
-the opportunity to fix the multitude of problems with the existing API.
-But that's a Pandora's box which we shouldn't open unless we want to
-wait a long time to get an API everyone is okay with -- a pretty high
-price to just get pidfds support in ptrace.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ lib/test_vmalloc.c | 26 +++++++-------------------
+ mm/vmalloc.c       | 17 ++++++++---------
+ 2 files changed, 15 insertions(+), 28 deletions(-)
 
+diff --git a/lib/test_vmalloc.c b/lib/test_vmalloc.c
+index 8bbefcaddfe8..cd6aef05dfb4 100644
+--- a/lib/test_vmalloc.c
++++ b/lib/test_vmalloc.c
+@@ -91,12 +91,8 @@ static int random_size_align_alloc_test(void)
+ 		 */
+ 		size =3D ((rnd % 10) + 1) * PAGE_SIZE;
+=20
+-		ptr =3D __vmalloc_node_range(size, align,
+-		   VMALLOC_START, VMALLOC_END,
+-		   GFP_KERNEL | __GFP_ZERO,
+-		   PAGE_KERNEL,
+-		   0, 0, __builtin_return_address(0));
+-
++		ptr =3D __vmalloc_node(size, align, GFP_KERNEL | __GFP_ZERO,
++				__builtin_return_address(0));
+ 		if (!ptr)
+ 			return -1;
+=20
+@@ -118,12 +114,8 @@ static int align_shift_alloc_test(void)
+ 	for (i =3D 0; i < BITS_PER_LONG; i++) {
+ 		align =3D ((unsigned long) 1) << i;
+=20
+-		ptr =3D __vmalloc_node_range(PAGE_SIZE, align,
+-			VMALLOC_START, VMALLOC_END,
+-			GFP_KERNEL | __GFP_ZERO,
+-			PAGE_KERNEL,
+-			0, 0, __builtin_return_address(0));
+-
++		ptr =3D __vmalloc_node(PAGE_SIZE, align, GFP_KERNEL | __GFP_ZERO,
++				__builtin_return_address(0));
+ 		if (!ptr)
+ 			return -1;
+=20
+@@ -139,13 +131,9 @@ static int fix_align_alloc_test(void)
+ 	int i;
+=20
+ 	for (i =3D 0; i < test_loop_count; i++) {
+-		ptr =3D __vmalloc_node_range(5 * PAGE_SIZE,
+-			THREAD_ALIGN << 1,
+-			VMALLOC_START, VMALLOC_END,
+-			GFP_KERNEL | __GFP_ZERO,
+-			PAGE_KERNEL,
+-			0, 0, __builtin_return_address(0));
+-
++		ptr =3D __vmalloc_node(5 * PAGE_SIZE, THREAD_ALIGN << 1,
++				GFP_KERNEL | __GFP_ZERO,
++				__builtin_return_address(0));
+ 		if (!ptr)
+ 			return -1;
+=20
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index ae8249ef5821..333fbe77255a 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -2522,15 +2522,6 @@ void *__vmalloc_node_range(unsigned long size, uns=
+igned long align,
+ 	return NULL;
+ }
+=20
+-/*
+- * This is only for performance analysis of vmalloc and stress purpose.
+- * It is required by vmalloc test module, therefore do not use it other
+- * than that.
+- */
+-#ifdef CONFIG_TEST_VMALLOC_MODULE
+-EXPORT_SYMBOL_GPL(__vmalloc_node_range);
+-#endif
+-
+ /**
+  * __vmalloc_node - allocate virtually contiguous memory
+  * @size:	    allocation size
+@@ -2556,6 +2547,14 @@ void *__vmalloc_node(unsigned long size, unsigned =
+long align,
+ 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
+ 				gfp_mask, PAGE_KERNEL, 0, node, caller);
+ }
++/*
++ * This is only for performance analysis of vmalloc and stress purpose.
++ * It is required by vmalloc test module, therefore do not use it other
++ * than that.
++ */
++#ifdef CONFIG_TEST_VMALLOC_MODULE
++EXPORT_SYMBOL_GPL(__vmalloc_node);
++#endif
+=20
+ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
+ {
 --=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
-
---3oqbxiocwy4jimao
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXqd8tgAKCRCdlLljIbnQ
-EgHUAP0eXsMeBvX6165xj8TEMgh4rB2Aum2qA+WKvKBlmmoq6AD/UQdz5i+S0aA6
-FmHhKfcX0nKnO3Qpss//v+w7UiJH/AQ=
-=FQhY
------END PGP SIGNATURE-----
-
---3oqbxiocwy4jimao--
+2.25.1
