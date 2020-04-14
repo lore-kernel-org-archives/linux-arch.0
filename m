@@ -1,51 +1,152 @@
-From: Wei Liu <wei.liu-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: Re: [PATCH 21/29] mm: remove the pgprot argument to __vmalloc
-Date: Tue, 14 Apr 2020 16:13:44 +0100
-Message-ID: <20200414151344.zgt2pnq7cjq2bgv6@debian>
-References: <20200414131348.444715-1-hch@lst.de>
- <20200414131348.444715-22-hch@lst.de>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v4 00/14] mm: remove __ARCH_HAS_5LEVEL_HACK
+Date: Tue, 14 Apr 2020 18:34:41 +0300
+Message-ID: <20200414153455.21744-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20200414131348.444715-22-hch-jcswGhMUV9g@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Sender: "iommu" <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Cc: linux-hyperv-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, David Airlie <airlied-cv59FeDIM0c@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Michael Kelley <mikelley-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, "K. Y. Srinivasan" <kys-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, Sumit Semwal <sumit.semwal-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Wei Liu <wei.liu-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Stephen Hemminger <sthemmin-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Gao Xiang <xiang-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Laura Abbott <labbott-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Nitin Gupta <ngupta-KNmc09w0p+Ednm+yROfE0A@public.gmane.org>, Daniel Vetter <daniel-/w4YWyX8dFk@public.gmane.org>, Haiyang Zhang <haiyangz-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, bpf-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Christophe Leroy <christophe.leroy-GgN8y9CXRhA@public.gmane.org>, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Minchan Kim <minchan-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Andrew Morton <akpm>
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, Geert Uytterhoeven <geert+renesas@glider.be>, linux-sh@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, linux-hexagon@vger.kernel.org, Will Deacon <will@kernel.org>, kvmarm@lists.cs.columbia.edu, Jonas Bonn <jonas@southpole.se>, linux-arch@vger.kernel.org, Brian Cain <bcain@codeaurora.org>, Marc Zyngier <maz@kernel.org>, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@intel.com>, Mike Rapoport <rppt@linux.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, uclinux-h8-devel@lists.sourceforge.jp, Fenghua Yu <fenghua.yu@intel.com>, Arnd Bergmann <arnd@arndb.de>, kvm-ppc@vger.kernel.org, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, openrisc@lists.librecores.org, Stafford Horne <shorne@gmail.com>, Guan Xuetao <gxt@p>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 14, 2020 at 03:13:40PM +0200, Christoph Hellwig wrote:
-> The pgprot argument to __vmalloc is always PROT_KERNEL now, so remove
-> it.
-> 
-> Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-> Reviewed-by: Michael Kelley <mikelley-0li6OtcxBFHby3iVrkZq2A@public.gmane.org> [hyperv]
-> Acked-by: Gao Xiang <xiang-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org> [erofs]
-> Acked-by: Peter Zijlstra (Intel) <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-> ---
->  arch/x86/hyperv/hv_init.c              |  3 +--
-[...]
-> 
-> diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-> index 5a4b363ba67b..a3d689dfc745 100644
-> --- a/arch/x86/hyperv/hv_init.c
-> +++ b/arch/x86/hyperv/hv_init.c
-> @@ -95,8 +95,7 @@ static int hv_cpu_init(unsigned int cpu)
->  	 * not be stopped in the case of CPU offlining and the VM will hang.
->  	 */
->  	if (!*hvp) {
-> -		*hvp = __vmalloc(PAGE_SIZE, GFP_KERNEL | __GFP_ZERO,
-> -				 PAGE_KERNEL);
-> +		*hvp = __vmalloc(PAGE_SIZE, GFP_KERNEL | __GFP_ZERO);
->  	}
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-Acked-by: Wei Liu <wei.liu-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Hi,
+
+These patches convert several architectures to use page table folding and
+remove __ARCH_HAS_5LEVEL_HACK along with include/asm-generic/5level-fixup.h
+and include/asm-generic/pgtable-nop4d-hack.h. With that we'll have a single
+and consistent way of dealing with page table folding instead of a mix of
+three existing options.
+
+The changes are mostly about mechanical replacement of pgd accessors with
+p4d ones and the addition of higher levels to page table traversals.
+
+v4 is about rebasing on top of v5.7-rc1 
+* split arm and arm64 changes as there is no KVM host on arm anymore
+* update powerpc patches to reflect its recent changes in page table handling
+
+v3:
+* add Christophe's patch that removes ppc32 get_pteptr()
+* reduce amount of upper layer walks in powerpc
+
+v2:
+* collect per-arch patches into a single set
+* include Geert's update of 'sh' printing messages
+* rebase on v5.6-rc1+
+
+Geert Uytterhoeven (1):
+  sh: fault: Modernize printing of kernel messages
+
+Mike Rapoport (13):
+  h8300: remove usage of __ARCH_USE_5LEVEL_HACK
+  arm: add support for folded p4d page tables
+  arm64: add support for folded p4d page tables
+  hexagon: remove __ARCH_USE_5LEVEL_HACK
+  ia64: add support for folded p4d page tables
+  nios2: add support for folded p4d page tables
+  openrisc: add support for folded p4d page tables
+  powerpc: add support for folded p4d page tables
+  sh: drop __pXd_offset() macros that duplicate pXd_index() ones
+  sh: add support for folded p4d page tables
+  unicore32: remove __ARCH_USE_5LEVEL_HACK
+  asm-generic: remove pgtable-nop4d-hack.h
+  mm: remove __ARCH_HAS_5LEVEL_HACK and include/asm-generic/5level-fixup.h
+
+ arch/arm/include/asm/pgtable.h                |   1 -
+ arch/arm/lib/uaccess_with_memcpy.c            |   7 +-
+ arch/arm/mach-sa1100/assabet.c                |   2 +-
+ arch/arm/mm/dump.c                            |  29 ++-
+ arch/arm/mm/fault-armv.c                      |   7 +-
+ arch/arm/mm/fault.c                           |  22 +-
+ arch/arm/mm/idmap.c                           |   3 +-
+ arch/arm/mm/init.c                            |   2 +-
+ arch/arm/mm/ioremap.c                         |  12 +-
+ arch/arm/mm/mm.h                              |   2 +-
+ arch/arm/mm/mmu.c                             |  35 ++-
+ arch/arm/mm/pgd.c                             |  40 +++-
+ arch/arm64/include/asm/kvm_mmu.h              |  10 +-
+ arch/arm64/include/asm/pgalloc.h              |  10 +-
+ arch/arm64/include/asm/pgtable-types.h        |   5 +-
+ arch/arm64/include/asm/pgtable.h              |  37 ++--
+ arch/arm64/include/asm/stage2_pgtable.h       |  48 +++-
+ arch/arm64/kernel/hibernate.c                 |  44 +++-
+ arch/arm64/mm/fault.c                         |   9 +-
+ arch/arm64/mm/hugetlbpage.c                   |  15 +-
+ arch/arm64/mm/kasan_init.c                    |  26 ++-
+ arch/arm64/mm/mmu.c                           |  52 +++--
+ arch/arm64/mm/pageattr.c                      |   7 +-
+ arch/h8300/include/asm/pgtable.h              |   1 -
+ arch/hexagon/include/asm/fixmap.h             |   4 +-
+ arch/hexagon/include/asm/pgtable.h            |   1 -
+ arch/ia64/include/asm/pgalloc.h               |   4 +-
+ arch/ia64/include/asm/pgtable.h               |  17 +-
+ arch/ia64/mm/fault.c                          |   7 +-
+ arch/ia64/mm/hugetlbpage.c                    |  18 +-
+ arch/ia64/mm/init.c                           |  28 ++-
+ arch/nios2/include/asm/pgtable.h              |   3 +-
+ arch/nios2/mm/fault.c                         |   9 +-
+ arch/nios2/mm/ioremap.c                       |   6 +-
+ arch/openrisc/include/asm/pgtable.h           |   1 -
+ arch/openrisc/mm/fault.c                      |  10 +-
+ arch/openrisc/mm/init.c                       |   4 +-
+ arch/powerpc/include/asm/book3s/32/pgtable.h  |   1 -
+ arch/powerpc/include/asm/book3s/64/hash.h     |   4 +-
+ arch/powerpc/include/asm/book3s/64/pgalloc.h  |   4 +-
+ arch/powerpc/include/asm/book3s/64/pgtable.h  |  60 ++---
+ arch/powerpc/include/asm/book3s/64/radix.h    |   6 +-
+ arch/powerpc/include/asm/nohash/32/pgtable.h  |   1 -
+ arch/powerpc/include/asm/nohash/64/pgalloc.h  |   2 +-
+ .../include/asm/nohash/64/pgtable-4k.h        |  32 +--
+ arch/powerpc/include/asm/nohash/64/pgtable.h  |   6 +-
+ arch/powerpc/include/asm/pgtable.h            |  10 +-
+ arch/powerpc/kvm/book3s_64_mmu_radix.c        |  32 +--
+ arch/powerpc/lib/code-patching.c              |   7 +-
+ arch/powerpc/mm/book3s64/hash_pgtable.c       |   4 +-
+ arch/powerpc/mm/book3s64/radix_pgtable.c      |  26 ++-
+ arch/powerpc/mm/book3s64/subpage_prot.c       |   6 +-
+ arch/powerpc/mm/hugetlbpage.c                 |  28 ++-
+ arch/powerpc/mm/nohash/book3e_pgtable.c       |  15 +-
+ arch/powerpc/mm/pgtable.c                     |  30 ++-
+ arch/powerpc/mm/pgtable_64.c                  |  10 +-
+ arch/powerpc/mm/ptdump/hashpagetable.c        |  20 +-
+ arch/powerpc/mm/ptdump/ptdump.c               |  14 +-
+ arch/powerpc/xmon/xmon.c                      |  18 +-
+ arch/sh/include/asm/pgtable-2level.h          |   1 -
+ arch/sh/include/asm/pgtable-3level.h          |   1 -
+ arch/sh/include/asm/pgtable_32.h              |   5 +-
+ arch/sh/include/asm/pgtable_64.h              |   5 +-
+ arch/sh/kernel/io_trapped.c                   |   7 +-
+ arch/sh/mm/cache-sh4.c                        |   4 +-
+ arch/sh/mm/cache-sh5.c                        |   7 +-
+ arch/sh/mm/fault.c                            |  65 ++++--
+ arch/sh/mm/hugetlbpage.c                      |  28 ++-
+ arch/sh/mm/init.c                             |  15 +-
+ arch/sh/mm/kmap.c                             |   2 +-
+ arch/sh/mm/tlbex_32.c                         |   6 +-
+ arch/sh/mm/tlbex_64.c                         |   7 +-
+ arch/unicore32/include/asm/pgtable.h          |   1 -
+ arch/unicore32/kernel/hibernate.c             |   4 +-
+ include/asm-generic/5level-fixup.h            |  58 -----
+ include/asm-generic/pgtable-nop4d-hack.h      |  64 ------
+ include/asm-generic/pgtable-nopud.h           |   4 -
+ include/linux/mm.h                            |   6 -
+ mm/kasan/init.c                               |  11 -
+ mm/memory.c                                   |   8 -
+ virt/kvm/arm/mmu.c                            | 209 +++++++++++++++---
+ 81 files changed, 872 insertions(+), 520 deletions(-)
+ delete mode 100644 include/asm-generic/5level-fixup.h
+ delete mode 100644 include/asm-generic/pgtable-nop4d-hack.h
+
+-- 
+2.25.1
