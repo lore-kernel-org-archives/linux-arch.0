@@ -1,44 +1,48 @@
-Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:57460 "EHLO
-        bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725935AbgDVOdA (ORCPT
+Return-Path: <SRS0=w+Hx=56=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47192 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S2440027AbgDNMYx (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Apr 2020 10:33:00 -0400
-Message-ID: <1587565975.3485.5.camel@HansenPartnership.com>
-Subject: Re: Implement close-on-fork
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Date: Wed, 22 Apr 2020 07:32:55 -0700
-In-Reply-To: <20200420071548.62112-1-nate.karstens@garmin.com>
-References: <20200420071548.62112-1-nate.karstens@garmin.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+        Tue, 14 Apr 2020 08:24:53 -0400
+Date: Tue, 14 Apr 2020 22:23:11 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v2 0/4] huge vmalloc mappings
+References: <20200413125303.423864-1-npiggin@gmail.com>
+        <alpine.DEB.2.21.2004131727150.260270@chino.kir.corp.google.com>
+In-Reply-To: <alpine.DEB.2.21.2004131727150.260270@chino.kir.corp.google.com>
+MIME-Version: 1.0
+Message-ID: <1586866432.g0r7udmtjr.astroid@bobo.none>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nate Karstens <nate.karstens@garmin.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Changli Gao <xiaosuo@gmail.com>
-Message-ID: <20200422143255.lcj7TKjgcWty1IQuvzrbHUaAfwlj0IKIobeovwvD-CU@z>
+To: David Rientjes <rientjes@google.com>
+Cc: Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, x86@kernel.org
+Message-ID: <20200414122311.1_bbn7RYUhyiS3yCqcukbWWejawM84uLB_nfPSCtNK0@z>
 
-On Mon, 2020-04-20 at 02:15 -0500, Nate Karstens wrote:
-> Series of 4 patches to implement close-on-fork. Tests have been
-> published to https://github.com/nkarstens/ltp/tree/close-on-fork.
-> 
-> close-on-fork addresses race conditions in system(), which
-> (depending on the implementation) is non-atomic in that it
-> first calls a fork() and then an exec().
+Excerpts from David Rientjes's message of April 14, 2020 10:27 am:
+> On Mon, 13 Apr 2020, Nicholas Piggin wrote:
+>=20
+>> We can get a significant win with larger mappings for some of the big
+>> global hashes.
+>>=20
+>> Since RFC, relevant architectures have added p?d_leaf accessors so no
+>> real arch changes required, and I changed it not to allocate huge
+>> mappings for modules and a bunch of other fixes.
+>>=20
+>=20
+> Hi Nicholas,
+>=20
+> Any performance numbers to share besides the git diff in the last patch i=
+n=20
+> the series?  I'm wondering if anything from mmtests or lkp-tests makes=20
+> sense to try?
 
-Why is this a problem?  I get that there's a time between fork and exec
-when you have open file descriptors, but they should still be running
-in the binary context of the programme that called fork, i.e. under
-your control.  The security problems don't seem to occur until you exec
-some random binary, which close on exec covers.  So what problem would
-close on fork fix?
+Hey, no I don't have any other tests I've run. Some of the networking
+hashes do make use of it as well though, and might see a few % in
+the right kind of workload. There's probably a bunch of other stuff
+where it could help a little bit, looking through the tree, I just don't
+have anything specific.
 
-> This functionality was approved by the Austin Common Standards
-> Revision Group for inclusion in the next revision of the POSIX
-> standard (see issue 1318 in the Austin Group Defect Tracker).
-
-URL?  Does this standard give a reason why the functionality might be
-useful.
-
-James
+Thanks,
+Nick
