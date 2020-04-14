@@ -1,44 +1,53 @@
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v3 0/2] arm64: tlb: add support for TLBI RANGE instructions
-Date: Tue, 14 Apr 2020 19:28:33 +0800
-Message-ID: <20200414112835.1121-1-yezhenyu2@huawei.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v2 1/4] mm/vmalloc: fix vmalloc_to_page for huge vmap
+ mappings
+Date: Tue, 14 Apr 2020 21:31:49 +1000
+Message-ID: <1586863573.ufpx8o7f0i.astroid@bobo.none>
+References: <20200413125303.423864-1-npiggin@gmail.com>
+        <20200413125303.423864-2-npiggin@gmail.com>
+        <20200413133444.GM21484@bombadil.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: will@kernel.org, catalin.marinas@arm.com, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
-Cc: linux-arch@vger.kernel.org, yezhenyu2@huawei.com, linux-kernel@vger.kernel.org, xiexiangyou@huawei.com, zhangshaokun@hisilicon.com, linux-mm@kvack.org, arm@kernel.org, prime.zeng@hisilicon.com, kuhn.chenqun@huawei.com, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39234 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S2439311AbgDNLdZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 14 Apr 2020 07:33:25 -0400
+In-Reply-To: <20200413133444.GM21484@bombadil.infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, x86@kernel.org
 
-ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
-range of input addresses. This series add support for this feature.
+Excerpts from Matthew Wilcox's message of April 13, 2020 11:34 pm:
+> On Mon, Apr 13, 2020 at 10:53:00PM +1000, Nicholas Piggin wrote:
+>> vmalloc_to_page returns NULL for addresses mapped by larger pages[*].
+>> Whether or not a vmap is huge depends on the architecture details,
+>> alignments, boot options, etc., which the caller can not be expected
+>> to know. Therefore HUGE_VMAP is a regression for vmalloc_to_page.
+>>=20
+>> This change teaches vmalloc_to_page about larger pages, and returns
+>> the struct page that corresponds to the offset within the large page.
+>> This makes the API agnostic to mapping implementation details.
+>=20
+> I'm trying to get us away from returning tail pages from various
+> functions.  How much of a pain would it be to return the head page
+> instead of the tail page?
 
---
-ChangeList:
-v3:
-rebase this series on Linux 5.7-rc1.
+Well, this is a fix for the interface for HUGE_VMAP stuff so it
+doesn't really make sense to change the implementation here. If you
+want to change or make a different API that would be a later patch, no?
 
-v2:
-Link: https://lkml.org/lkml/2019/11/11/348
+> Obviously the implementation gets simpler,
+> but can the callers cope?  I've been focusing on the page cache, so I
+> haven't been looking at the vmalloc side of things at all.
 
-Zhenyu Ye (2):
-  arm64: tlb: Detect the ARMv8.4 TLBI RANGE feature
-  arm64: tlb: Use the TLBI RANGE feature in arm64
+Well callers that operate on ioremap today (and vmalloc tomorrow) won't
+cope, because they're expecting a base page. If you wanted to change it
+I suspect the way to go would be introduce a new function and move
+everyone over individually.
 
- arch/arm64/include/asm/cpucaps.h  |   3 +-
- arch/arm64/include/asm/sysreg.h   |   4 ++
- arch/arm64/include/asm/tlbflush.h | 108 +++++++++++++++++++++++++++++-
- arch/arm64/kernel/cpufeature.c    |  11 +++
- 4 files changed, 124 insertions(+), 2 deletions(-)
-
--- 
-2.19.1
+Thanks,
+Nick
