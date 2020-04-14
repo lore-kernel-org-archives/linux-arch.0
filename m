@@ -1,124 +1,95 @@
-Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 22/28] mm: remove both instances of __vmalloc_node_flags
-Date: Wed,  8 Apr 2020 13:59:20 +0200
-Message-ID: <20200408115926.1467567-23-hch@lst.de>
-In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
-References: <20200408115926.1467567-1-hch@lst.de>
+Subject: [PATCH 08/29] mm: remove __get_vm_area
+Date: Tue, 14 Apr 2020 15:13:27 +0200
+Message-ID: <20200414131348.444715-9-hch@lst.de>
+In-Reply-To: <20200414131348.444715-1-hch@lst.de>
+References: <20200414131348.444715-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
 To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
 Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200408115920.9PBbnQ1v2mM5jpPAQg0vCy-ueeenkN4yJIV-H-qhkTE@z>
+Message-ID: <20200414131327.ig0izzz9McPx675TwAqCaR_pqQrCk7lBSENBY8e_YFw@z>
 
-The real version just had a few callers that can open code it and
-remove one layer of indirection.  The nommu stub was public but only
-had a single caller, so remove it and avoid a CONFIG_MMU ifdef in
-vmalloc.h.
+Switch the two remaining callers to use __get_vm_area_caller instead.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- include/linux/vmalloc.h |  9 ---------
- mm/nommu.c              |  3 ++-
- mm/vmalloc.c            | 20 ++++++--------------
- 3 files changed, 8 insertions(+), 24 deletions(-)
+ arch/powerpc/kernel/pci_64.c | 3 ++-
+ arch/sh/kernel/cpu/sh4/sq.c  | 3 ++-
+ include/linux/vmalloc.h      | 2 --
+ mm/vmalloc.c                 | 8 --------
+ 4 files changed, 4 insertions(+), 12 deletions(-)
 
+diff --git a/arch/powerpc/kernel/pci_64.c b/arch/powerpc/kernel/pci_64.c
+index 2a976314f169..d9ac980c398c 100644
+--- a/arch/powerpc/kernel/pci_64.c
++++ b/arch/powerpc/kernel/pci_64.c
+@@ -132,7 +132,8 @@ void __iomem *ioremap_phb(phys_addr_t paddr, unsigned=
+ long size)
+ 	 * address decoding but I'd rather not deal with those outside of the
+ 	 * reserved 64K legacy region.
+ 	 */
+-	area =3D __get_vm_area(size, 0, PHB_IO_BASE, PHB_IO_END);
++	area =3D __get_vm_area_caller(size, 0, PHB_IO_BASE, PHB_IO_END,
++				    __builtin_return_address(0));
+ 	if (!area)
+ 		return NULL;
+=20
+diff --git a/arch/sh/kernel/cpu/sh4/sq.c b/arch/sh/kernel/cpu/sh4/sq.c
+index 934ff84844fa..d432164b23b7 100644
+--- a/arch/sh/kernel/cpu/sh4/sq.c
++++ b/arch/sh/kernel/cpu/sh4/sq.c
+@@ -103,7 +103,8 @@ static int __sq_remap(struct sq_mapping *map, pgprot_=
+t prot)
+ #if defined(CONFIG_MMU)
+ 	struct vm_struct *vma;
+=20
+-	vma =3D __get_vm_area(map->size, VM_ALLOC, map->sq_addr, SQ_ADDRMAX);
++	vma =3D __get_vm_area_caller(map->size, VM_ALLOC, map->sq_addr,
++			SQ_ADDRMAX, __builtin_return_address(0));
+ 	if (!vma)
+ 		return -ENOMEM;
+=20
 diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index c1b9d6eca05f..4a46d296e70d 100644
+index 0507a162ccd0..3070b4dbc2d9 100644
 --- a/include/linux/vmalloc.h
 +++ b/include/linux/vmalloc.h
-@@ -115,17 +115,8 @@ extern void *__vmalloc_node_range(unsigned long size=
-, unsigned long align,
- 			unsigned long start, unsigned long end, gfp_t gfp_mask,
- 			pgprot_t prot, unsigned long vm_flags, int node,
- 			const void *caller);
--#ifndef CONFIG_MMU
--extern void *__vmalloc_node_flags(unsigned long size, int node, gfp_t fl=
-ags);
--static inline void *__vmalloc_node_flags_caller(unsigned long size, int =
-node,
--						gfp_t flags, void *caller)
--{
--	return __vmalloc_node_flags(size, node, flags);
--}
--#else
- extern void *__vmalloc_node_flags_caller(unsigned long size,
- 					 int node, gfp_t flags, void *caller);
--#endif
-=20
- extern void vfree(const void *addr);
- extern void vfree_atomic(const void *addr);
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 2df549adb22b..9553efa59787 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -150,7 +150,8 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
- }
- EXPORT_SYMBOL(__vmalloc);
-=20
--void *__vmalloc_node_flags(unsigned long size, int node, gfp_t flags)
-+void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t fl=
-ags,
-+		void *caller)
- {
- 	return __vmalloc(size, flags);
- }
+@@ -161,8 +161,6 @@ static inline size_t get_vm_area_size(const struct vm=
+_struct *area)
+ extern struct vm_struct *get_vm_area(unsigned long size, unsigned long f=
+lags);
+ extern struct vm_struct *get_vm_area_caller(unsigned long size,
+ 					unsigned long flags, const void *caller);
+-extern struct vm_struct *__get_vm_area(unsigned long size, unsigned long=
+ flags,
+-					unsigned long start, unsigned long end);
+ extern struct vm_struct *__get_vm_area_caller(unsigned long size,
+ 					unsigned long flags,
+ 					unsigned long start, unsigned long end,
 diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index de7952959e82..3d59d848ad48 100644
+index 399f219544f7..d1534d610b48 100644
 --- a/mm/vmalloc.c
 +++ b/mm/vmalloc.c
-@@ -2566,14 +2566,6 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask=
-)
+@@ -2127,14 +2127,6 @@ static struct vm_struct *__get_vm_area_node(unsign=
+ed long size,
+ 	return area;
  }
- EXPORT_SYMBOL(__vmalloc);
 =20
--static inline void *__vmalloc_node_flags(unsigned long size,
--					int node, gfp_t flags)
+-struct vm_struct *__get_vm_area(unsigned long size, unsigned long flags,
+-				unsigned long start, unsigned long end)
 -{
--	return __vmalloc_node(size, 1, flags, node,
--				__builtin_return_address(0));
+-	return __get_vm_area_node(size, 1, flags, start, end, NUMA_NO_NODE,
+-				  GFP_KERNEL, __builtin_return_address(0));
 -}
+-EXPORT_SYMBOL_GPL(__get_vm_area);
 -
--
- void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t fl=
-ags,
- 				  void *caller)
- {
-@@ -2594,8 +2586,8 @@ void *__vmalloc_node_flags_caller(unsigned long siz=
-e, int node, gfp_t flags,
-  */
- void *vmalloc(unsigned long size)
- {
--	return __vmalloc_node_flags(size, NUMA_NO_NODE,
--				    GFP_KERNEL);
-+	return __vmalloc_node(size, 1, GFP_KERNEL, NUMA_NO_NODE,
-+				__builtin_return_address(0));
- }
- EXPORT_SYMBOL(vmalloc);
-=20
-@@ -2614,8 +2606,8 @@ EXPORT_SYMBOL(vmalloc);
-  */
- void *vzalloc(unsigned long size)
- {
--	return __vmalloc_node_flags(size, NUMA_NO_NODE,
--				GFP_KERNEL | __GFP_ZERO);
-+	return __vmalloc_node(size, 1, GFP_KERNEL | __GFP_ZERO, NUMA_NO_NODE,
-+				__builtin_return_address(0));
- }
- EXPORT_SYMBOL(vzalloc);
-=20
-@@ -2670,8 +2662,8 @@ EXPORT_SYMBOL(vmalloc_node);
-  */
- void *vzalloc_node(unsigned long size, int node)
- {
--	return __vmalloc_node_flags(size, node,
--			 GFP_KERNEL | __GFP_ZERO);
-+	return __vmalloc_node(size, 1, GFP_KERNEL | __GFP_ZERO, node,
-+				__builtin_return_address(0));
- }
- EXPORT_SYMBOL(vzalloc_node);
-=20
+ struct vm_struct *__get_vm_area_caller(unsigned long size, unsigned long=
+ flags,
+ 				       unsigned long start, unsigned long end,
+ 				       const void *caller)
 --=20
 2.25.1
