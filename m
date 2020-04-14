@@ -1,41 +1,137 @@
 Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
 From: Christoph Hellwig <hch@lst.de>
-Subject: decruft the vmalloc API v2
-Date: Tue, 14 Apr 2020 15:13:19 +0200
-Message-ID: <20200414131348.444715-1-hch@lst.de>
+Subject: [PATCH 04/29] staging: media: ipu3: use vmap instead of reimplementing it
+Date: Tue, 14 Apr 2020 15:13:23 +0200
+Message-ID: <20200414131348.444715-5-hch@lst.de>
+In-Reply-To: <20200414131348.444715-1-hch@lst.de>
+References: <20200414131348.444715-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
 To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
 Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414131319.YzXjNOgMYZCkArjLftolwLoL_hlfrtaU7qEbfmwx8iI@z>
+Message-ID: <20200414131323.cVvrFhtL76I6OQL4st-YOJC2mIlPXatA0SLtWY7SocA@z>
 
-Hi all,
+Just use vmap instead of messing with vmalloc internals.
 
-Peter noticed that with some dumb luck you can toast the kernel address
-space with exported vmalloc symbols.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ drivers/staging/media/ipu3/ipu3-css-pool.h |  4 +--
+ drivers/staging/media/ipu3/ipu3-dmamap.c   | 30 ++++++----------------
+ 2 files changed, 9 insertions(+), 25 deletions(-)
 
-I used this as an opportunity to decruft the vmalloc.c API and make it
-much more systematic.  This also removes any chance to create vmalloc
-mappings outside the designated areas or using executable permissions
-from modules.  Besides that it removes more than 300 lines of code.
-
-A git tree is also available here:
-
-    git://git.infradead.org/users/hch/misc.git sanitize-vmalloc-api.2
-
-Gitweb:
-
-    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/sanit=
-ize-vmalloc-api.2
-
-Changes since v1:
- - implement pgprot_nx for arm64 (Mark Rutland)
- - fix a patch description
- - properly pass pgprot to vmap in ion
- - add a new patch to fix vmap() API misuse
- - fix a vmap argument in x86
- - two more vmalloc cleanups
- - cleanup use of the unmap_kernel_range API
- - rename ioremap_pbh to ioremap_phb
+diff --git a/drivers/staging/media/ipu3/ipu3-css-pool.h b/drivers/staging=
+/media/ipu3/ipu3-css-pool.h
+index f4a60b41401b..a8ccd4f70320 100644
+--- a/drivers/staging/media/ipu3/ipu3-css-pool.h
++++ b/drivers/staging/media/ipu3/ipu3-css-pool.h
+@@ -15,14 +15,12 @@ struct imgu_device;
+  * @size:		size of the buffer in bytes.
+  * @vaddr:		kernel virtual address.
+  * @daddr:		iova dma address to access IPU3.
+- * @vma:		private, a pointer to &struct vm_struct,
+- *			used for imgu_dmamap_free.
+  */
+ struct imgu_css_map {
+ 	size_t size;
+ 	void *vaddr;
+ 	dma_addr_t daddr;
+-	struct vm_struct *vma;
++	struct page **pages;
+ };
+=20
+ /**
+diff --git a/drivers/staging/media/ipu3/ipu3-dmamap.c b/drivers/staging/m=
+edia/ipu3/ipu3-dmamap.c
+index 7431322379f6..8a19b0024152 100644
+--- a/drivers/staging/media/ipu3/ipu3-dmamap.c
++++ b/drivers/staging/media/ipu3/ipu3-dmamap.c
+@@ -96,6 +96,7 @@ void *imgu_dmamap_alloc(struct imgu_device *imgu, struc=
+t imgu_css_map *map,
+ 	unsigned long shift =3D iova_shift(&imgu->iova_domain);
+ 	struct device *dev =3D &imgu->pci_dev->dev;
+ 	size_t size =3D PAGE_ALIGN(len);
++	int count =3D size >> PAGE_SHIFT;
+ 	struct page **pages;
+ 	dma_addr_t iovaddr;
+ 	struct iova *iova;
+@@ -114,7 +115,7 @@ void *imgu_dmamap_alloc(struct imgu_device *imgu, str=
+uct imgu_css_map *map,
+=20
+ 	/* Call IOMMU driver to setup pgt */
+ 	iovaddr =3D iova_dma_addr(&imgu->iova_domain, iova);
+-	for (i =3D 0; i < size / PAGE_SIZE; ++i) {
++	for (i =3D 0; i < count; ++i) {
+ 		rval =3D imgu_mmu_map(imgu->mmu, iovaddr,
+ 				    page_to_phys(pages[i]), PAGE_SIZE);
+ 		if (rval)
+@@ -123,33 +124,23 @@ void *imgu_dmamap_alloc(struct imgu_device *imgu, s=
+truct imgu_css_map *map,
+ 		iovaddr +=3D PAGE_SIZE;
+ 	}
+=20
+-	/* Now grab a virtual region */
+-	map->vma =3D __get_vm_area(size, VM_USERMAP, VMALLOC_START, VMALLOC_END=
+);
+-	if (!map->vma)
++	map->vaddr =3D vmap(pages, count, VM_USERMAP, PAGE_KERNEL);
++	if (!map->vaddr)
+ 		goto out_unmap;
+=20
+-	map->vma->pages =3D pages;
+-	/* And map it in KVA */
+-	if (map_vm_area(map->vma, PAGE_KERNEL, pages))
+-		goto out_vunmap;
+-
++	map->pages =3D pages;
+ 	map->size =3D size;
+ 	map->daddr =3D iova_dma_addr(&imgu->iova_domain, iova);
+-	map->vaddr =3D map->vma->addr;
+=20
+ 	dev_dbg(dev, "%s: allocated %zu @ IOVA %pad @ VA %p\n", __func__,
+-		size, &map->daddr, map->vma->addr);
+-
+-	return map->vma->addr;
++		size, &map->daddr, map->vaddr);
+=20
+-out_vunmap:
+-	vunmap(map->vma->addr);
++	return map->vaddr;
+=20
+ out_unmap:
+ 	imgu_dmamap_free_buffer(pages, size);
+ 	imgu_mmu_unmap(imgu->mmu, iova_dma_addr(&imgu->iova_domain, iova),
+ 		       i * PAGE_SIZE);
+-	map->vma =3D NULL;
+=20
+ out_free_iova:
+ 	__free_iova(&imgu->iova_domain, iova);
+@@ -177,8 +168,6 @@ void imgu_dmamap_unmap(struct imgu_device *imgu, stru=
+ct imgu_css_map *map)
+  */
+ void imgu_dmamap_free(struct imgu_device *imgu, struct imgu_css_map *map=
+)
+ {
+-	struct vm_struct *area =3D map->vma;
+-
+ 	dev_dbg(&imgu->pci_dev->dev, "%s: freeing %zu @ IOVA %pad @ VA %p\n",
+ 		__func__, map->size, &map->daddr, map->vaddr);
+=20
+@@ -187,11 +176,8 @@ void imgu_dmamap_free(struct imgu_device *imgu, stru=
+ct imgu_css_map *map)
+=20
+ 	imgu_dmamap_unmap(imgu, map);
+=20
+-	if (WARN_ON(!area) || WARN_ON(!area->pages))
+-		return;
+-
+-	imgu_dmamap_free_buffer(area->pages, map->size);
+ 	vunmap(map->vaddr);
++	imgu_dmamap_free_buffer(map->pages, map->size);
+ 	map->vaddr =3D NULL;
+ }
+=20
+--=20
+2.25.1
