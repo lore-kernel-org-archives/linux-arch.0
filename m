@@ -1,39 +1,138 @@
-Return-Path: <SRS0=FTo1=6D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:17576 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725769AbgDSFIa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 19 Apr 2020 01:08:30 -0400
-From: Alex Belits <abelits@marvell.com>
-Subject: Re: [PATCH v3 04/13] task_isolation: userspace hard isolation from
- kernel
-Date: Sun, 19 Apr 2020 05:07:41 +0000
-Message-ID: <bdea1b5d70460386303e59fdc7438d9013293147.camel@marvell.com>
-References: <58995f108f1af4d59aa8ccd412cdff92711a9990.camel@marvell.com>
-         <915489BC-B2C9-4D47-A205-FC597FC68B98@amacapital.net>
-In-Reply-To: <915489BC-B2C9-4D47-A205-FC597FC68B98@amacapital.net>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <C53B81AD43CDF74E93D23C0D24037623@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 22/29] mm: remove the prot argument to __vmalloc_node
+Date: Tue, 14 Apr 2020 15:13:41 +0200
+Message-ID: <20200414131348.444715-23-hch@lst.de>
+In-Reply-To: <20200414131348.444715-1-hch@lst.de>
+References: <20200414131348.444715-1-hch@lst.de>
 MIME-Version: 1.0
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "luto@amacapital.net" <luto@amacapital.net>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "frederic@kernel.org" <frederic@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20200419050741.tWU0lai6VN9zrRUOxg7rROxX_6jlnoGD4_c8H25cEzE@z>
+Message-ID: <20200414131341.SQGKEIrRCP3UDyModf0iD47Qfnaxopa4Pd9aSog7Ymw@z>
 
-DQpPbiBUaHUsIDIwMjAtMDQtMDkgYXQgMTE6MDAgLTA3MDAsIEFuZHkgTHV0b21pcnNraSB3cm90
-ZToNCj4gDQo+ID4gDQo+ID4gT25jZSB0aGUgdGFzayBoYXMgcmV0dXJuZWQgdG8gdXNlcnNwYWNl
-IGFmdGVyIGlzc3VpbmcgdGhlIHByY3RsKCksDQo+ID4gaWYgaXQgZW50ZXJzIHRoZSBrZXJuZWwg
-YWdhaW4gdmlhIHN5c3RlbSBjYWxsLCBwYWdlIGZhdWx0LCBvciBhbnkNCj4gPiBvdGhlciBleGNl
-cHRpb24gb3IgaXJxLCB0aGUga2VybmVsIHdpbGwga2lsbCBpdCB3aXRoIFNJR0tJTEwuDQo+IA0K
-PiBJIGNvdWxkIGVhc2lseSBpbWFnaW5lIG15c2VsZiB1c2luZyB0YXNrIGlzb2xhdGlvbiwgYnV0
-IG5vdCB3aXRoIHRoZQ0KPiBTSUdLSUxMIHNlbWFudGljcy4gU0lHS0lMTCBjYXVzZXMgZGF0YSBs
-b3NzLiBQbGVhc2UgYXQgbGVhc3QgbGV0DQo+IHVzZXJzIGNob29zZSB3aGF0IHNpZ25hbCB0byBz
-ZW5kLg0KDQpUaGlzIGlzIGFscmVhZHkgZG9uZSwgZXZlbiB0aG91Z2ggdGhlIGRvY3VtZW50YXRp
-b24gaXMgbm90IHVwZGF0ZWQuDQpUaGVyZSBpcyBldmVuIGEgdXNlcnNwYWNlIGxpYnJhcnkgdGhh
-dCBkZWFscyB3aXRoIHRoaXMgd2hpbGUNCmNvbXBlbnNhdGluZyBmb3IgcG9zc2libGUgcmFjZSBj
-b25kaXRpb25zIG9uIGlzb2xhdGlvbiBlbnRyeSBhbmQNCmF1dG9tYXRpYyByZS1lbnRyeSBhZnRl
-ciBpc29sYXRpb24gaXMgYnJva2VuOiANCmh0dHBzOi8vZ2l0aHViLmNvbS9hYmVsaXRzL2xpYnRt
-Yw0KDQotLSANCkFsZXgNCg==
+This is always PAGE_KERNEL now.
+
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ mm/vmalloc.c | 35 ++++++++++++++---------------------
+ 1 file changed, 14 insertions(+), 21 deletions(-)
+
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 466a449b3a15..de7952959e82 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -2401,8 +2401,7 @@ void *vmap(struct page **pages, unsigned int count,
+ EXPORT_SYMBOL(vmap);
+=20
+ static void *__vmalloc_node(unsigned long size, unsigned long align,
+-			    gfp_t gfp_mask, pgprot_t prot,
+-			    int node, const void *caller);
++			    gfp_t gfp_mask, int node, const void *caller);
+ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
+ 				 pgprot_t prot, int node)
+ {
+@@ -2420,7 +2419,7 @@ static void *__vmalloc_area_node(struct vm_struct *=
+area, gfp_t gfp_mask,
+ 	/* Please note that the recursion is strictly bounded. */
+ 	if (array_size > PAGE_SIZE) {
+ 		pages =3D __vmalloc_node(array_size, 1, nested_gfp|highmem_mask,
+-				PAGE_KERNEL, node, area->caller);
++				node, area->caller);
+ 	} else {
+ 		pages =3D kmalloc_node(array_size, nested_gfp, node);
+ 	}
+@@ -2539,13 +2538,11 @@ EXPORT_SYMBOL_GPL(__vmalloc_node_range);
+  * @size:	    allocation size
+  * @align:	    desired alignment
+  * @gfp_mask:	    flags for the page level allocator
+- * @prot:	    protection mask for the allocated pages
+  * @node:	    node to use for allocation or NUMA_NO_NODE
+  * @caller:	    caller's return address
+  *
+- * Allocate enough pages to cover @size from the page level
+- * allocator with @gfp_mask flags.  Map them into contiguous
+- * kernel virtual space, using a pagetable protection of @prot.
++ * Allocate enough pages to cover @size from the page level allocator wi=
+th
++ * @gfp_mask flags.  Map them into contiguous kernel virtual space.
+  *
+  * Reclaim modifiers in @gfp_mask - __GFP_NORETRY, __GFP_RETRY_MAYFAIL
+  * and __GFP_NOFAIL are not supported
+@@ -2556,16 +2553,15 @@ EXPORT_SYMBOL_GPL(__vmalloc_node_range);
+  * Return: pointer to the allocated memory or %NULL on error
+  */
+ static void *__vmalloc_node(unsigned long size, unsigned long align,
+-			    gfp_t gfp_mask, pgprot_t prot,
+-			    int node, const void *caller)
++			    gfp_t gfp_mask, int node, const void *caller)
+ {
+ 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
+-				gfp_mask, prot, 0, node, caller);
++				gfp_mask, PAGE_KERNEL, 0, node, caller);
+ }
+=20
+ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
+ {
+-	return __vmalloc_node(size, 1, gfp_mask, PAGE_KERNEL, NUMA_NO_NODE,
++	return __vmalloc_node(size, 1, gfp_mask, NUMA_NO_NODE,
+ 				__builtin_return_address(0));
+ }
+ EXPORT_SYMBOL(__vmalloc);
+@@ -2573,15 +2569,15 @@ EXPORT_SYMBOL(__vmalloc);
+ static inline void *__vmalloc_node_flags(unsigned long size,
+ 					int node, gfp_t flags)
+ {
+-	return __vmalloc_node(size, 1, flags, PAGE_KERNEL,
+-					node, __builtin_return_address(0));
++	return __vmalloc_node(size, 1, flags, node,
++				__builtin_return_address(0));
+ }
+=20
+=20
+ void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t fl=
+ags,
+ 				  void *caller)
+ {
+-	return __vmalloc_node(size, 1, flags, PAGE_KERNEL, node, caller);
++	return __vmalloc_node(size, 1, flags, node, caller);
+ }
+=20
+ /**
+@@ -2656,8 +2652,8 @@ EXPORT_SYMBOL(vmalloc_user);
+  */
+ void *vmalloc_node(unsigned long size, int node)
+ {
+-	return __vmalloc_node(size, 1, GFP_KERNEL, PAGE_KERNEL,
+-					node, __builtin_return_address(0));
++	return __vmalloc_node(size, 1, GFP_KERNEL, node,
++			__builtin_return_address(0));
+ }
+ EXPORT_SYMBOL(vmalloc_node);
+=20
+@@ -2670,9 +2666,6 @@ EXPORT_SYMBOL(vmalloc_node);
+  * allocator and map them into contiguous kernel virtual space.
+  * The memory allocated is set to zero.
+  *
+- * For tight control over page level allocator and protection flags
+- * use __vmalloc_node() instead.
+- *
+  * Return: pointer to the allocated memory or %NULL on error
+  */
+ void *vzalloc_node(unsigned long size, int node)
+@@ -2745,8 +2738,8 @@ void *vmalloc_exec(unsigned long size)
+  */
+ void *vmalloc_32(unsigned long size)
+ {
+-	return __vmalloc_node(size, 1, GFP_VMALLOC32, PAGE_KERNEL,
+-			      NUMA_NO_NODE, __builtin_return_address(0));
++	return __vmalloc_node(size, 1, GFP_VMALLOC32, NUMA_NO_NODE,
++			__builtin_return_address(0));
+ }
+ EXPORT_SYMBOL(vmalloc_32);
+=20
+--=20
+2.25.1
