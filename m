@@ -1,90 +1,50 @@
-Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v10 05/26] x86/cet/shstk: Add Kconfig option for user-mode Shadow Stack
-Date: Wed, 29 Apr 2020 15:07:11 -0700
-Message-ID: <20200429220732.31602-6-yu-cheng.yu@intel.com>
-In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=w+Hx=56=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55118 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2502853AbgDNNPu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Apr 2020 09:15:50 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 29/29] s390: use __vmalloc_node in stack_alloc
+Date: Tue, 14 Apr 2020 15:13:48 +0200
+Message-ID: <20200414131348.444715-30-hch@lst.de>
+In-Reply-To: <20200414131348.444715-1-hch@lst.de>
+References: <20200414131348.444715-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429220711.JTJHKProke_-JBit7DKWupDLk6jV0p_5q3LhQif_AHo@z>
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20200414131348.l4dAthl3VGapdcCPSPIBBFZjP8woC5auehyQMR9L1zs@z>
 
-Shadow Stack provides protection against function return address
-corruption.  It is active when the processor supports it, the kernel has
-CONFIG_X86_INTEL_SHADOW_STACK_USER, and the application is built for the
-feature.  This is only implemented for the 64-bit kernel.  When it is
-enabled, legacy non-shadow stack applications continue to work, but witho=
-ut
-protection.
+stack_alloc can use a slightly higher level vmalloc function.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Christian Borntraeger <borntraeger@de.ibm.com>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
-v10:
-- Change SHSTK to shadow stack in the help text.
-- Change build-time check to config-time check.
-- Change ARCH_HAS_SHSTK to ARCH_HAS_SHADOW_STACK.
+ arch/s390/kernel/setup.c | 9 +++------
+ 1 file changed, 3 insertions(+), 6 deletions(-)
 
- arch/x86/Kconfig                      | 30 +++++++++++++++++++++++++++
- scripts/as-x86_64-has-shadow-stack.sh |  4 ++++
- 2 files changed, 34 insertions(+)
- create mode 100755 scripts/as-x86_64-has-shadow-stack.sh
-
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 1197b5596d5a..c98f82fffe85 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1947,6 +1947,36 @@ config X86_INTEL_TSX_MODE_AUTO
- 	  side channel attacks- equals the tsx=3Dauto command line parameter.
- endchoice
-=20
-+config AS_HAS_SHADOW_STACK
-+	def_bool $(success,$(srctree)/scripts/as-x86_64-has-shadow-stack.sh $(C=
-C))
-+	help
-+	  Test the assembler for shadow stack instructions.
-+
-+config X86_INTEL_CET
-+	def_bool n
-+
-+config ARCH_HAS_SHADOW_STACK
-+	def_bool n
-+
-+config X86_INTEL_SHADOW_STACK_USER
-+	prompt "Intel Shadow Stacks for user-mode"
-+	def_bool n
-+	depends on CPU_SUP_INTEL && X86_64
-+	depends on AS_HAS_SHADOW_STACK
-+	select ARCH_USES_HIGH_VMA_FLAGS
-+	select X86_INTEL_CET
-+	select ARCH_HAS_SHADOW_STACK
-+	help
-+	  Shadow Stacks provides protection against program stack
-+	  corruption.  It's a hardware feature.  This only matters
-+	  if you have the right hardware.  It's a security hardening
-+	  feature and apps must be enabled to use it.  You get no
-+	  protection "for free" on old userspace.  The hardware can
-+	  support user and kernel, but this option is for user space
-+	  only.
-+
-+	  If unsure, say y.
-+
- config EFI
- 	bool "EFI runtime service support"
- 	depends on ACPI
-diff --git a/scripts/as-x86_64-has-shadow-stack.sh b/scripts/as-x86_64-ha=
-s-shadow-stack.sh
-new file mode 100755
-index 000000000000..fac1d363a1b8
---- /dev/null
-+++ b/scripts/as-x86_64-has-shadow-stack.sh
-@@ -0,0 +1,4 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0
-+
-+echo "wrussq %rax, (%rbx)" | $* -x assembler -c -
---=20
-2.21.0
+diff --git a/arch/s390/kernel/setup.c b/arch/s390/kernel/setup.c
+index 36445dd40fdb..0f0b140b5558 100644
+--- a/arch/s390/kernel/setup.c
++++ b/arch/s390/kernel/setup.c
+@@ -305,12 +305,9 @@ void *restart_stack __section(.data);
+ unsigned long stack_alloc(void)
+ {
+ #ifdef CONFIG_VMAP_STACK
+-	return (unsigned long)
+-		__vmalloc_node_range(THREAD_SIZE, THREAD_SIZE,
+-				     VMALLOC_START, VMALLOC_END,
+-				     THREADINFO_GFP,
+-				     PAGE_KERNEL, 0, NUMA_NO_NODE,
+-				     __builtin_return_address(0));
++	return (unsigned long)__vmalloc_node(THREAD_SIZE, THREAD_SIZE,
++			THREADINFO_GFP, NUMA_NO_NODE,
++			__builtin_return_address(0));
+ #else
+ 	return __get_free_pages(GFP_KERNEL, THREAD_SIZE_ORDER);
+ #endif
+-- 
+2.25.1
