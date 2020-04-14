@@ -1,201 +1,67 @@
-Return-Path: <SRS0=BI31=6F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:34986 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727911AbgDUPQD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 21 Apr 2020 11:16:03 -0400
-From: Will Deacon <will@kernel.org>
-Subject: [PATCH v4 06/11] READ_ONCE: Simplify implementations of {READ,WRITE}_ONCE()
-Date: Tue, 21 Apr 2020 16:15:32 +0100
-Message-ID: <20200421151537.19241-7-will@kernel.org>
-In-Reply-To: <20200421151537.19241-1-will@kernel.org>
-References: <20200421151537.19241-1-will@kernel.org>
+Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 01/29] x86/hyperv: use vmalloc_exec for the hypercall page
+Date: Tue, 14 Apr 2020 15:13:20 +0200
+Message-ID: <20200414131348.444715-2-hch@lst.de>
+In-Reply-To: <20200414131348.444715-1-hch@lst.de>
+References: <20200414131348.444715-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org, Michael Kelley <mikelley@microsoft.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200421151532.Fd7LzO3wk2X9RN-vvHU57uLIemdVrOAAG2p_owvJ4zU@z>
+Message-ID: <20200414131320.CTAfYWVGlQqJTnqiRXxo0C-opEL0Mqt6VfNLI8HsXuk@z>
 
-The implementations of {READ,WRITE}_ONCE() suffer from a significant
-amount of indirection and complexity due to a historic GCC bug:
+Use the designated helper for allocating executable kernel memory, and
+remove the now unused PAGE_KERNEL_RX define.
 
-https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
-
-which was originally worked around by 230fa253df63 ("kernel: Provide
-READ_ONCE and ASSIGN_ONCE").
-
-Since GCC 4.8 is fairly vintage at this point and we emit a warning if
-we detect it during the build, return {READ,WRITE}_ONCE() to their former
-glory with an implementation that is easier to understand and, crucially,
-more amenable to optimisation. A side effect of this simplification is
-that WRITE_ONCE() no longer returns a value, but nobody seems to be
-relying on that and the new behaviour is aligned with smp_store_release().
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Signed-off-by: Will Deacon <will@kernel.org>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: Michael Kelley <mikelley@microsoft.com>
+Acked-by: Wei Liu <wei.liu@kernel.org>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- include/linux/compiler.h | 118 +++++++++++++--------------------------
- 1 file changed, 39 insertions(+), 79 deletions(-)
+ arch/x86/hyperv/hv_init.c            | 2 +-
+ arch/x86/include/asm/pgtable_types.h | 2 --
+ 2 files changed, 1 insertion(+), 3 deletions(-)
 
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 034b0a644efc..338111a448d0 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -177,60 +177,6 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
- # define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __LINE__)
- #endif
- 
--#include <uapi/linux/types.h>
--
--#define __READ_ONCE_SIZE						\
--({									\
--	switch (size) {							\
--	case 1: *(__u8 *)res = *(volatile __u8 *)p; break;		\
--	case 2: *(__u16 *)res = *(volatile __u16 *)p; break;		\
--	case 4: *(__u32 *)res = *(volatile __u32 *)p; break;		\
--	case 8: *(__u64 *)res = *(volatile __u64 *)p; break;		\
--	default:							\
--		barrier();						\
--		__builtin_memcpy((void *)res, (const void *)p, size);	\
--		barrier();						\
--	}								\
--})
--
--static __always_inline
--void __read_once_size(const volatile void *p, void *res, int size)
--{
--	__READ_ONCE_SIZE;
--}
--
--#ifdef CONFIG_KASAN
--/*
-- * We can't declare function 'inline' because __no_sanitize_address confilcts
-- * with inlining. Attempt to inline it may cause a build failure.
-- * 	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67368
-- * '__maybe_unused' allows us to avoid defined-but-not-used warnings.
-- */
--# define __no_kasan_or_inline __no_sanitize_address notrace __maybe_unused
--#else
--# define __no_kasan_or_inline __always_inline
--#endif
--
--static __no_kasan_or_inline
--void __read_once_size_nocheck(const volatile void *p, void *res, int size)
--{
--	__READ_ONCE_SIZE;
--}
--
--static __always_inline void __write_once_size(volatile void *p, void *res, int size)
--{
--	switch (size) {
--	case 1: *(volatile __u8 *)p = *(__u8 *)res; break;
--	case 2: *(volatile __u16 *)p = *(__u16 *)res; break;
--	case 4: *(volatile __u32 *)p = *(__u32 *)res; break;
--	case 8: *(volatile __u64 *)p = *(__u64 *)res; break;
--	default:
--		barrier();
--		__builtin_memcpy((void *)p, (const void *)res, size);
--		barrier();
--	}
--}
--
- /*
-  * Prevent the compiler from merging or refetching reads or writes. The
-  * compiler is also forbidden from reordering successive instances of
-@@ -240,11 +186,7 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
-  * statements.
-  *
-  * These two macros will also work on aggregate data types like structs or
-- * unions. If the size of the accessed data type exceeds the word size of
-- * the machine (e.g., 32 bits or 64 bits) READ_ONCE() and WRITE_ONCE() will
-- * fall back to memcpy(). There's at least two memcpy()s: one for the
-- * __builtin_memcpy() and then one for the macro doing the copy of variable
-- * - '__u' allocated on the stack.
-+ * unions.
-  *
-  * Their two major use cases are: (1) Mediating communication between
-  * process-level code and irq/NMI handlers, all running on the same CPU,
-@@ -256,23 +198,49 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
- #include <asm/barrier.h>
- #include <linux/kasan-checks.h>
- 
--#define __READ_ONCE(x, check)						\
-+#define __READ_ONCE(x)	(*(volatile typeof(x) *)&(x))
-+
-+#define READ_ONCE(x)							\
- ({									\
--	union { typeof(x) __val; char __c[1]; } __u;			\
--	if (check)							\
--		__read_once_size(&(x), __u.__c, sizeof(x));		\
--	else								\
--		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
--	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
--	__u.__val;							\
-+	typeof(x) __x = __READ_ONCE(x);					\
-+	smp_read_barrier_depends();					\
-+	__x;								\
- })
--#define READ_ONCE(x) __READ_ONCE(x, 1)
-+
-+#define WRITE_ONCE(x, val)				\
-+do {							\
-+	*(volatile typeof(x) *)&(x) = (val);		\
-+} while (0)
-+
-+#ifdef CONFIG_KASAN
-+/*
-+ * We can't declare function 'inline' because __no_sanitize_address conflicts
-+ * with inlining. Attempt to inline it may cause a build failure.
-+ *     https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67368
-+ * '__maybe_unused' allows us to avoid defined-but-not-used warnings.
-+ */
-+# define __no_kasan_or_inline __no_sanitize_address notrace __maybe_unused
-+#else
-+# define __no_kasan_or_inline __always_inline
-+#endif
-+
-+static __no_kasan_or_inline
-+unsigned long __read_once_word_nocheck(const void *addr)
-+{
-+	return __READ_ONCE(*(unsigned long *)addr);
-+}
- 
- /*
-- * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
-- * to hide memory access from KASAN.
-+ * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need to load a
-+ * word from memory atomically but without telling KASAN. This is usually
-+ * used by unwinding code when walking the stack of a running process.
-  */
--#define READ_ONCE_NOCHECK(x) __READ_ONCE(x, 0)
-+#define READ_ONCE_NOCHECK(x)						\
-+({									\
-+	unsigned long __x = __read_once_word_nocheck(&(x));		\
-+	smp_read_barrier_depends();					\
-+	__x;								\
-+})
- 
- static __no_kasan_or_inline
- unsigned long read_word_at_a_time(const void *addr)
-@@ -281,14 +249,6 @@ unsigned long read_word_at_a_time(const void *addr)
- 	return *(unsigned long *)addr;
- }
- 
--#define WRITE_ONCE(x, val) \
--({							\
--	union { typeof(x) __val; char __c[1]; } __u =	\
--		{ .__val = (__force typeof(x)) (val) }; \
--	__write_once_size(&(x), __u.__c, sizeof(x));	\
--	__u.__val;					\
--})
--
- #endif /* __KERNEL__ */
- 
- /*
--- 
-2.26.1.301.g55bc3eb7cb9-goog
+diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+index b0da5320bcff..5a4b363ba67b 100644
+--- a/arch/x86/hyperv/hv_init.c
++++ b/arch/x86/hyperv/hv_init.c
+@@ -355,7 +355,7 @@ void __init hyperv_init(void)
+ 	guest_id =3D generate_guest_id(0, LINUX_VERSION_CODE, 0);
+ 	wrmsrl(HV_X64_MSR_GUEST_OS_ID, guest_id);
+=20
+-	hv_hypercall_pg  =3D __vmalloc(PAGE_SIZE, GFP_KERNEL, PAGE_KERNEL_RX);
++	hv_hypercall_pg =3D vmalloc_exec(PAGE_SIZE);
+ 	if (hv_hypercall_pg =3D=3D NULL) {
+ 		wrmsrl(HV_X64_MSR_GUEST_OS_ID, 0);
+ 		goto remove_cpuhp_state;
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/=
+pgtable_types.h
+index b6606fe6cfdf..947867f112ea 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -194,7 +194,6 @@ enum page_cache_mode {
+ #define _PAGE_TABLE_NOENC	 (__PP|__RW|_USR|___A|   0|___D|   0|   0)
+ #define _PAGE_TABLE		 (__PP|__RW|_USR|___A|   0|___D|   0|   0| _ENC)
+ #define __PAGE_KERNEL_RO	 (__PP|   0|   0|___A|__NX|___D|   0|___G)
+-#define __PAGE_KERNEL_RX	 (__PP|   0|   0|___A|   0|___D|   0|___G)
+ #define __PAGE_KERNEL_NOCACHE	 (__PP|__RW|   0|___A|__NX|___D|   0|___G|=
+ __NC)
+ #define __PAGE_KERNEL_VVAR	 (__PP|   0|_USR|___A|__NX|___D|   0|___G)
+ #define __PAGE_KERNEL_LARGE	 (__PP|__RW|   0|___A|__NX|___D|_PSE|___G)
+@@ -220,7 +219,6 @@ enum page_cache_mode {
+ #define PAGE_KERNEL_RO		__pgprot_mask(__PAGE_KERNEL_RO         | _ENC)
+ #define PAGE_KERNEL_EXEC	__pgprot_mask(__PAGE_KERNEL_EXEC       | _ENC)
+ #define PAGE_KERNEL_EXEC_NOENC	__pgprot_mask(__PAGE_KERNEL_EXEC       | =
+   0)
+-#define PAGE_KERNEL_RX		__pgprot_mask(__PAGE_KERNEL_RX         | _ENC)
+ #define PAGE_KERNEL_NOCACHE	__pgprot_mask(__PAGE_KERNEL_NOCACHE    | _EN=
+C)
+ #define PAGE_KERNEL_LARGE	__pgprot_mask(__PAGE_KERNEL_LARGE      | _ENC)
+ #define PAGE_KERNEL_LARGE_EXEC	__pgprot_mask(__PAGE_KERNEL_LARGE_EXEC | =
+_ENC)
+--=20
+2.25.1
