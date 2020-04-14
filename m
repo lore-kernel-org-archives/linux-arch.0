@@ -1,174 +1,129 @@
-Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 13/20] unicore32: simplify detection of memory zone boundaries
-Date: Wed, 29 Apr 2020 15:11:19 +0300
-Message-ID: <20200429121126.17989-14-rppt@kernel.org>
-In-Reply-To: <20200429121126.17989-1-rppt@kernel.org>
-References: <20200429121126.17989-1-rppt@kernel.org>
+Return-Path: <SRS0=w+Hx=56=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55058 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2502812AbgDNNPb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Apr 2020 09:15:31 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 24/29] mm: remove __vmalloc_node_flags_caller
+Date: Tue, 14 Apr 2020 15:13:43 +0200
+Message-ID: <20200414131348.444715-25-hch@lst.de>
+In-Reply-To: <20200414131348.444715-1-hch@lst.de>
+References: <20200414131348.444715-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Baoquan He <bhe@redhat.com>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Qian Cai <cai@lca.pw>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429121119.03OvrEGENjqYF8HJQQ5nyqGdWXlndsGD8sM7h7i5bF8@z>
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200414131343.suOfDwqezekkQdsOMN3XMbN8NN8E5byzFllGBaG1aLw@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+Just use __vmalloc_node instead which gets and extra argument.  To be
+able to to use __vmalloc_node in all caller make it available outside
+of vmalloc and implement it in nommu.c.
 
-The free_area_init() function only requires the definition of maximal PFN
-for each of the supported zone rater than calculation of actual zone size=
-s
-and the sizes of the holes between the zones.
-
-After removal of CONFIG_HAVE_MEMBLOCK_NODE_MAP the free_area_init() is
-available to all architectures.
-
-Using this function instead of free_area_init_node() simplifies the zone
-detection.
-
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/unicore32/include/asm/memory.h  |  2 +-
- arch/unicore32/include/mach/memory.h |  6 ++--
- arch/unicore32/kernel/pci.c          | 14 ++-------
- arch/unicore32/mm/init.c             | 43 ++++++----------------------
- 4 files changed, 15 insertions(+), 50 deletions(-)
+ include/linux/vmalloc.h |  4 ++--
+ kernel/bpf/syscall.c    |  5 ++---
+ mm/nommu.c              |  4 ++--
+ mm/util.c               |  2 +-
+ mm/vmalloc.c            | 10 +---------
+ 5 files changed, 8 insertions(+), 17 deletions(-)
 
-diff --git a/arch/unicore32/include/asm/memory.h b/arch/unicore32/include=
-/asm/memory.h
-index 23c93105f98f..66285178dd9b 100644
---- a/arch/unicore32/include/asm/memory.h
-+++ b/arch/unicore32/include/asm/memory.h
-@@ -60,7 +60,7 @@
- #ifndef __ASSEMBLY__
-=20
- #ifndef arch_adjust_zones
--#define arch_adjust_zones(size, holes) do { } while (0)
-+#define arch_adjust_zones(max_zone_pfn) do { } while (0)
- #endif
-=20
- /*
-diff --git a/arch/unicore32/include/mach/memory.h b/arch/unicore32/includ=
-e/mach/memory.h
-index 2b527cedd03d..b4e6035cb9a3 100644
---- a/arch/unicore32/include/mach/memory.h
-+++ b/arch/unicore32/include/mach/memory.h
-@@ -25,10 +25,10 @@
-=20
- #if !defined(__ASSEMBLY__) && defined(CONFIG_PCI)
-=20
--void puv3_pci_adjust_zones(unsigned long *size, unsigned long *holes);
-+void puv3_pci_adjust_zones(unsigned long *max_zone_pfn);
-=20
--#define arch_adjust_zones(size, holes) \
--	puv3_pci_adjust_zones(size, holes)
-+#define arch_adjust_zones(max_zone_pfn) \
-+	puv3_pci_adjust_zones(max_zone_pfn)
-=20
- #endif
-=20
-diff --git a/arch/unicore32/kernel/pci.c b/arch/unicore32/kernel/pci.c
-index efa04a94dcdb..0d098aa05b47 100644
---- a/arch/unicore32/kernel/pci.c
-+++ b/arch/unicore32/kernel/pci.c
-@@ -133,21 +133,11 @@ static int pci_puv3_map_irq(const struct pci_dev *d=
-ev, u8 slot, u8 pin)
-  * This is really ugly and we need a better way of specifying
-  * DMA-capable regions of memory.
-  */
--void __init puv3_pci_adjust_zones(unsigned long *zone_size,
--	unsigned long *zhole_size)
-+void __init puv3_pci_adjust_zones(unsigned long max_zone_pfn)
- {
- 	unsigned int sz =3D SZ_128M >> PAGE_SHIFT;
-=20
--	/*
--	 * Only adjust if > 128M on current system
--	 */
--	if (zone_size[0] <=3D sz)
--		return;
--
--	zone_size[1] =3D zone_size[0] - sz;
--	zone_size[0] =3D sz;
--	zhole_size[1] =3D zhole_size[0];
--	zhole_size[0] =3D 0;
-+	max_zone_pfn[ZONE_DMA] =3D sz;
- }
-=20
- /*
-diff --git a/arch/unicore32/mm/init.c b/arch/unicore32/mm/init.c
-index 6cf010fadc7a..52425d383cea 100644
---- a/arch/unicore32/mm/init.c
-+++ b/arch/unicore32/mm/init.c
-@@ -61,46 +61,21 @@ static void __init find_limits(unsigned long *min, un=
-signed long *max_low,
+diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+index 4a46d296e70d..108f49b47756 100644
+--- a/include/linux/vmalloc.h
++++ b/include/linux/vmalloc.h
+@@ -115,8 +115,8 @@ extern void *__vmalloc_node_range(unsigned long size, unsigned long align,
+ 			unsigned long start, unsigned long end, gfp_t gfp_mask,
+ 			pgprot_t prot, unsigned long vm_flags, int node,
+ 			const void *caller);
+-extern void *__vmalloc_node_flags_caller(unsigned long size,
+-					 int node, gfp_t flags, void *caller);
++void *__vmalloc_node(unsigned long size, unsigned long align, gfp_t gfp_mask,
++		int node, const void *caller);
+ 
+ extern void vfree(const void *addr);
+ extern void vfree_atomic(const void *addr);
+diff --git a/kernel/bpf/syscall.c b/kernel/bpf/syscall.c
+index 64783da34202..48d98ea8fad6 100644
+--- a/kernel/bpf/syscall.c
++++ b/kernel/bpf/syscall.c
+@@ -299,9 +299,8 @@ static void *__bpf_map_area_alloc(u64 size, int numa_node, bool mmapable)
+ 		return vmalloc_user_node_flags(size, numa_node, GFP_KERNEL |
+ 					       __GFP_RETRY_MAYFAIL | flags);
  	}
+-	return __vmalloc_node_flags_caller(size, numa_node,
+-					   GFP_KERNEL | __GFP_RETRY_MAYFAIL |
+-					   flags, __builtin_return_address(0));
++	return __vmalloc_node(size, 1, GFP_KERNEL | __GFP_RETRY_MAYFAIL | flags,
++			      numa_node, __builtin_return_address(0));
  }
-=20
--static void __init uc32_bootmem_free(unsigned long min, unsigned long ma=
-x_low,
--	unsigned long max_high)
-+static void __init uc32_bootmem_free(unsigned long max_low)
+ 
+ void *bpf_map_area_alloc(u64 size, int numa_node)
+diff --git a/mm/nommu.c b/mm/nommu.c
+index 9553efa59787..81a86cd85893 100644
+--- a/mm/nommu.c
++++ b/mm/nommu.c
+@@ -150,8 +150,8 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
+ }
+ EXPORT_SYMBOL(__vmalloc);
+ 
+-void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t flags,
+-		void *caller)
++void *__vmalloc_node(unsigned long size, unsigned long align, gfp_t gfp_mask,
++		int node, const void *caller)
  {
--	unsigned long zone_size[MAX_NR_ZONES], zhole_size[MAX_NR_ZONES];
--	struct memblock_region *reg;
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D { 0 };
-=20
--	/*
--	 * initialise the zones.
--	 */
--	memset(zone_size, 0, sizeof(zone_size));
--
--	/*
--	 * The memory size has already been determined.  If we need
--	 * to do anything fancy with the allocation of this memory
--	 * to the zones, now is the time to do it.
--	 */
--	zone_size[0] =3D max_low - min;
--
--	/*
--	 * Calculate the size of the holes.
--	 *  holes =3D node_size - sum(bank_sizes)
--	 */
--	memcpy(zhole_size, zone_size, sizeof(zhole_size));
--	for_each_memblock(memory, reg) {
--		unsigned long start =3D memblock_region_memory_base_pfn(reg);
--		unsigned long end =3D memblock_region_memory_end_pfn(reg);
--
--		if (start < max_low) {
--			unsigned long low_end =3D min(end, max_low);
--			zhole_size[0] -=3D low_end - start;
--		}
--	}
-+	max_zone_pfn[ZONE_DMA] =3D max_low;
-+	max_zone_pfn[ZONE_NORMAL] =3D max_low;
-=20
- 	/*
- 	 * Adjust the sizes according to any special requirements for
- 	 * this machine type.
-+	 * This might lower ZONE_DMA limit.
- 	 */
--	arch_adjust_zones(zone_size, zhole_size);
-+	arch_adjust_zones(max_zone_pfn);
-=20
--	free_area_init_node(0, zone_size, min, zhole_size);
-+	free_area_init(max_zone_pfn);
+ 	return __vmalloc(size, flags);
  }
-=20
- int pfn_valid(unsigned long pfn)
-@@ -176,11 +151,11 @@ void __init bootmem_init(void)
- 	sparse_init();
-=20
- 	/*
--	 * Now free the memory - free_area_init_node needs
-+	 * Now free the memory - free_area_init needs
- 	 * the sparse mem_map arrays initialized by sparse_init()
- 	 * for memmap_init_zone(), otherwise all PFNs are invalid.
- 	 */
--	uc32_bootmem_free(min, max_low, max_high);
-+	uc32_bootmem_free(max_low);
-=20
- 	high_memory =3D __va((max_low << PAGE_SHIFT) - 1) + 1;
-=20
---=20
-2.26.1
+diff --git a/mm/util.c b/mm/util.c
+index 988d11e6c17c..6d5868adbe18 100644
+--- a/mm/util.c
++++ b/mm/util.c
+@@ -580,7 +580,7 @@ void *kvmalloc_node(size_t size, gfp_t flags, int node)
+ 	if (ret || size <= PAGE_SIZE)
+ 		return ret;
+ 
+-	return __vmalloc_node_flags_caller(size, node, flags,
++	return __vmalloc_node(size, 1, flags, node,
+ 			__builtin_return_address(0));
+ }
+ EXPORT_SYMBOL(kvmalloc_node);
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 3d59d848ad48..ae8249ef5821 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -2400,8 +2400,6 @@ void *vmap(struct page **pages, unsigned int count,
+ }
+ EXPORT_SYMBOL(vmap);
+ 
+-static void *__vmalloc_node(unsigned long size, unsigned long align,
+-			    gfp_t gfp_mask, int node, const void *caller);
+ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
+ 				 pgprot_t prot, int node)
+ {
+@@ -2552,7 +2550,7 @@ EXPORT_SYMBOL_GPL(__vmalloc_node_range);
+  *
+  * Return: pointer to the allocated memory or %NULL on error
+  */
+-static void *__vmalloc_node(unsigned long size, unsigned long align,
++void *__vmalloc_node(unsigned long size, unsigned long align,
+ 			    gfp_t gfp_mask, int node, const void *caller)
+ {
+ 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
+@@ -2566,12 +2564,6 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
+ }
+ EXPORT_SYMBOL(__vmalloc);
+ 
+-void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t flags,
+-				  void *caller)
+-{
+-	return __vmalloc_node(size, 1, flags, node, caller);
+-}
+-
+ /**
+  * vmalloc - allocate virtually contiguous memory
+  * @size:    allocation size
+-- 
+2.25.1
