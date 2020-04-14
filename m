@@ -1,59 +1,107 @@
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [PATCH v2 0/4] huge vmalloc mappings
-Date: Mon, 13 Apr 2020 17:27:58 -0700 (PDT)
-Message-ID: <alpine.DEB.2.21.2004131727150.260270@chino.kir.corp.google.com>
-References: <20200413125303.423864-1-npiggin@gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: Patch "asm-generic/bitops/lock.h: Rewrite using atomic_fetch_"
+ causes kernel crash
+Date: Tue, 14 Apr 2020 01:19:06 +0000
+Message-ID: <d9b26292-4b40-f282-b1f6-5ee238358f0e@synopsys.com>
+References: <1535567633.4465.23.camel@synopsys.com>
+ <C2D7FE5348E1B147BCA15975FBA23075012B090BEA@us01wembx1.internal.synopsys.com>
+ <20180830094411.GX24124@hirez.programming.kicks-ass.net>
+ <20180830095148.GB5942@arm.com> <1535629996.4465.44.camel@synopsys.com>
+ <20180830141713.GN24082@hirez.programming.kicks-ass.net>
+ <20180830142354.GB13005@arm.com>
+ <20180830142920.GO24082@hirez.programming.kicks-ass.net>
+ <20180830144344.GW24142@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47486 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390443AbgDNA2A (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Apr 2020 20:28:00 -0400
-Received: from mail-pf1-x441.google.com (mail-pf1-x441.google.com [IPv6:2607:f8b0:4864:20::441])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7951CC0A3BE2
-        for <linux-arch@vger.kernel.org>; Mon, 13 Apr 2020 17:28:00 -0700 (PDT)
-Received: by mail-pf1-x441.google.com with SMTP id b72so5277783pfb.11
-        for <linux-arch@vger.kernel.org>; Mon, 13 Apr 2020 17:28:00 -0700 (PDT)
-In-Reply-To: <20200413125303.423864-1-npiggin@gmail.com>
+Received: from smtprelay-out1.synopsys.com ([149.117.87.133]:58028 "EHLO
+        smtprelay-out1.synopsys.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728066AbgDNBTN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 13 Apr 2020 21:19:13 -0400
+In-Reply-To: <20180830144344.GW24142@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Content-ID: <D1A41C114C659A49A5C62FC67F388E00@namprd12.prod.outlook.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
+To: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>
+Cc: Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "yamada.masahiro@socionext.com" <yamada.masahiro@socionext.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Mon, 13 Apr 2020, Nicholas Piggin wrote:
-
-> We can get a significant win with larger mappings for some of the big
-> global hashes.
-> 
-> Since RFC, relevant architectures have added p?d_leaf accessors so no
-> real arch changes required, and I changed it not to allocate huge
-> mappings for modules and a bunch of other fixes.
-> 
-
-Hi Nicholas,
-
-Any performance numbers to share besides the git diff in the last patch in 
-the series?  I'm wondering if anything from mmtests or lkp-tests makes 
-sense to try?
-
-> Nicholas Piggin (4):
->   mm/vmalloc: fix vmalloc_to_page for huge vmap mappings
->   mm: Move ioremap page table mapping function to mm/
->   mm: HUGE_VMAP arch query functions cleanup
->   mm/vmalloc: Hugepage vmalloc mappings
-> 
->  arch/arm64/mm/mmu.c                      |   8 +-
->  arch/powerpc/mm/book3s64/radix_pgtable.c |   6 +-
->  arch/x86/mm/ioremap.c                    |   6 +-
->  include/linux/io.h                       |   3 -
->  include/linux/vmalloc.h                  |  15 +
->  lib/ioremap.c                            | 203 +----------
->  mm/vmalloc.c                             | 413 +++++++++++++++++++----
->  7 files changed, 380 insertions(+), 274 deletions(-)
-> 
-> -- 
-> 2.23.0
-> 
-> 
-> 
+T24gOC8zMC8xOCA3OjQzIEFNLCBQZXRlciBaaWpsc3RyYSB3cm90ZToNCj4gT24gVGh1LCBBdWcg
+MzAsIDIwMTggYXQgMDQ6Mjk6MjBQTSArMDIwMCwgUGV0ZXIgWmlqbHN0cmEgd3JvdGU6DQo+DQo+
+PiBBbHNvLCBvbmNlIGl0IGFsbCB3b3JrcywgdGhleSBzaG91bGQgbG9vayBhdCBzd2l0Y2hpbmcg
+dG8gX3JlbGF4ZWQNCj4+IGF0b21pY3MgZm9yIExML1NDLg0KPiBBIGxpdHRsZSBzb21ldGhpbmcg
+bGlrZSBzby4uIHNob3VsZCBzYXZlIGEgZmV3IHNtcF9tYigpLg0KDQpGaW5hbGx5IGdvdCB0byB0
+aGlzIC0gdGltZSBmb3Igc29tZSBzcHJpbmcgY2xlYW5pbmcgOy0pDQoNCg0KPiAtLS0NCj4NCj4g
+ZGlmZiAtLWdpdCBhL2FyY2gvYXJjL2luY2x1ZGUvYXNtL2F0b21pYy5oIGIvYXJjaC9hcmMvaW5j
+bHVkZS9hc20vYXRvbWljLmgNCj4gaW5kZXggNGUwMDcyNzMwMjQxLi43MTRiNTRjMzA4YjAgMTAw
+NjQ0DQo+IC0tLSBhL2FyY2gvYXJjL2luY2x1ZGUvYXNtL2F0b21pYy5oDQo+ICsrKyBiL2FyY2gv
+YXJjL2luY2x1ZGUvYXNtL2F0b21pYy5oDQo+IEBAIC00NCw3ICs0NCw3IEBAIHN0YXRpYyBpbmxp
+bmUgdm9pZCBhdG9taWNfIyNvcChpbnQgaSwgYXRvbWljX3QgKnYpCQkJXA0KPiAgfQkJCQkJCQkJ
+CVwNCj4gIA0KPiAgI2RlZmluZSBBVE9NSUNfT1BfUkVUVVJOKG9wLCBjX29wLCBhc21fb3ApCQkJ
+CVwNCj4gLXN0YXRpYyBpbmxpbmUgaW50IGF0b21pY18jI29wIyNfcmV0dXJuKGludCBpLCBhdG9t
+aWNfdCAqdikJCVwNCj4gK3N0YXRpYyBpbmxpbmUgaW50IGF0b21pY18jI29wIyNfcmV0dXJuX3Jl
+bGF4ZWQoaW50IGksIGF0b21pY190ICp2KQlcDQo+ICB7CQkJCQkJCQkJXA0KDQpUaGlzIGJlaW5n
+IHJlbGF4ZWQsIHNob3Vkbid0IGl0IGFsc28gcmVtb3ZlIHRoZSBzbXBfbWIoKSBiZWZvcmUgdGhl
+IG9wZXJhdGlvbiBhbmQNCmxlYXZlIHRoZSBnZW5lcmljIGNvZGUgdG8gYWRkIG9uZSAvIG1vcmUg
+c21wX21iKCkgYXMgYXBwcm9wcmlhdGUgZm9yIGZ1bGx5DQpvcmRlcmVkLCBhY3F1aXJlIGFuZCBy
+ZWxlYXNlIHZhcmlhbnRzID8NCg0KPiAgCXVuc2lnbmVkIGludCB2YWw7CQkJCQkJXA0KPiAgCQkJ
+CQkJCQkJXA0KPiBAQCAtNjksOCArNjksMTEgQEAgc3RhdGljIGlubGluZSBpbnQgYXRvbWljXyMj
+b3AjI19yZXR1cm4oaW50IGksIGF0b21pY190ICp2KQkJXA0KPiAgCXJldHVybiB2YWw7CQkJCQkJ
+CVwNCj4gIH0NCj4gIA0KPiArI2RlZmluZSBhdG9taWNfYWRkX3JldHVybl9yZWxheGVkCWF0b21p
+Y19hZGRfcmV0dXJuX3JlbGF4ZWQNCj4gKyNkZWZpbmUgYXRvbWljX3N1Yl9yZXR1cm5fcmVsYXhl
+ZAlhdG9taWNfc3ViX3JldHVybl9yZWxheGVkDQo+ICsNCj4gICNkZWZpbmUgQVRPTUlDX0ZFVENI
+X09QKG9wLCBjX29wLCBhc21fb3ApCQkJCVwNCj4gLXN0YXRpYyBpbmxpbmUgaW50IGF0b21pY19m
+ZXRjaF8jI29wKGludCBpLCBhdG9taWNfdCAqdikJCQlcDQo+ICtzdGF0aWMgaW5saW5lIGludCBh
+dG9taWNfZmV0Y2hfIyNvcCMjX3JlbGF4ZWQoaW50IGksIGF0b21pY190ICp2KQlcDQo+ICB7CQkJ
+CQkJCQkJXA0KPiAgCXVuc2lnbmVkIGludCB2YWwsIG9yaWc7CQkJCQkJXA0KPiAgCQkJCQkJCQkJ
+XA0KPiBAQCAtOTYsNiArOTksMTQgQEAgc3RhdGljIGlubGluZSBpbnQgYXRvbWljX2ZldGNoXyMj
+b3AoaW50IGksIGF0b21pY190ICp2KQkJCVwNCj4gIAlyZXR1cm4gb3JpZzsJCQkJCQkJXA0KPiAg
+fQ0KPiAgDQo+ICsjZGVmaW5lIGF0b21pY19mZXRjaF9hZGRfcmVsYXhlZAlhdG9taWNfZmV0Y2hf
+YWRkX3JlbGF4ZWQNCj4gKyNkZWZpbmUgYXRvbWljX2ZldGNoX3N1Yl9yZWxheGVkCWF0b21pY19m
+ZXRjaF9zdWJfcmVsYXhlZA0KPiArDQo+ICsjZGVmaW5lIGF0b21pY19mZXRjaF9hbmRfcmVsYXhl
+ZAlhdG9taWNfZmV0Y2hfYW5kX3JlbGF4ZWQNCj4gKyNkZWZpbmUgYXRvbWljX2ZldGNoX2FuZG5v
+dF9yZWxheGVkCWF0b21pY19mZXRjaF9hbmRub3RfcmVsYXhlZA0KPiArI2RlZmluZSBhdG9taWNf
+ZmV0Y2hfb3JfcmVsYXhlZAkJYXRvbWljX2ZldGNoX29yX3JlbGF4ZWQNCj4gKyNkZWZpbmUgYXRv
+bWljX2ZldGNoX3hvcl9yZWxheGVkCWF0b21pY19mZXRjaF94b3JfcmVsYXhlZA0KPiArDQo+ICAj
+ZWxzZQkvKiAhQ09ORklHX0FSQ19IQVNfTExTQyAqLw0KPiAgDQo+ICAjaWZuZGVmIENPTkZJR19T
+TVANCj4gQEAgLTM3OSw3ICszOTAsNyBAQCBzdGF0aWMgaW5saW5lIHZvaWQgYXRvbWljNjRfIyNv
+cChsb25nIGxvbmcgYSwgYXRvbWljNjRfdCAqdikJCVwNCj4gIH0JCQkJCQkJCQlcDQo+ICANCj4g
+ICNkZWZpbmUgQVRPTUlDNjRfT1BfUkVUVVJOKG9wLCBvcDEsIG9wMikJCSAgICAgICAgCVwNCj4g
+LXN0YXRpYyBpbmxpbmUgbG9uZyBsb25nIGF0b21pYzY0XyMjb3AjI19yZXR1cm4obG9uZyBsb25n
+IGEsIGF0b21pYzY0X3QgKnYpCVwNCj4gK3N0YXRpYyBpbmxpbmUgbG9uZyBsb25nIGF0b21pYzY0
+XyMjb3AjI19yZXR1cm5fcmVsYXhlZChsb25nIGxvbmcgYSwgYXRvbWljNjRfdCAqdikJXA0KPiAg
+ewkJCQkJCQkJCVwNCj4gIAl1bnNpZ25lZCBsb25nIGxvbmcgdmFsOwkJCQkJCVwNCj4gIAkJCQkJ
+CQkJCVwNCj4gQEAgLTQwMSw4ICs0MTIsMTEgQEAgc3RhdGljIGlubGluZSBsb25nIGxvbmcgYXRv
+bWljNjRfIyNvcCMjX3JldHVybihsb25nIGxvbmcgYSwgYXRvbWljNjRfdCAqdikJXA0KPiAgCXJl
+dHVybiB2YWw7CQkJCQkJCVwNCj4gIH0NCj4gIA0KPiArI2RlZmluZSBhdG9taWM2NF9hZGRfcmV0
+dXJuX3JlbGF4ZWQJYXRvbWljNjRfYWRkX3JldHVybl9yZWxheGVkDQo+ICsjZGVmaW5lIGF0b21p
+YzY0X3N1Yl9yZXR1cm5fcmVsYXhlZAlhdG9taWM2NF9zdWJfcmV0dXJuX3JlbGF4ZWQNCj4gKw0K
+PiAgI2RlZmluZSBBVE9NSUM2NF9GRVRDSF9PUChvcCwgb3AxLCBvcDIpCQkgICAgICAgIAkJXA0K
+PiAtc3RhdGljIGlubGluZSBsb25nIGxvbmcgYXRvbWljNjRfZmV0Y2hfIyNvcChsb25nIGxvbmcg
+YSwgYXRvbWljNjRfdCAqdikJXA0KPiArc3RhdGljIGlubGluZSBsb25nIGxvbmcgYXRvbWljNjRf
+ZmV0Y2hfIyNvcCMjX3JlbGF4ZWQobG9uZyBsb25nIGEsIGF0b21pYzY0X3QgKnYpCVwNCj4gIHsJ
+CQkJCQkJCQlcDQo+ICAJdW5zaWduZWQgbG9uZyBsb25nIHZhbCwgb3JpZzsJCQkJCVwNCj4gIAkJ
+CQkJCQkJCVwNCj4gQEAgLTQyNCw2ICs0MzgsMTQgQEAgc3RhdGljIGlubGluZSBsb25nIGxvbmcg
+YXRvbWljNjRfZmV0Y2hfIyNvcChsb25nIGxvbmcgYSwgYXRvbWljNjRfdCAqdikJXA0KPiAgCXJl
+dHVybiBvcmlnOwkJCQkJCQlcDQo+ICB9DQo+ICANCj4gKyNkZWZpbmUgYXRvbWljNjRfZmV0Y2hf
+YWRkX3JlbGF4ZWQJYXRvbWljNjRfZmV0Y2hfYWRkX3JlbGF4ZWQNCj4gKyNkZWZpbmUgYXRvbWlj
+NjRfZmV0Y2hfc3ViX3JlbGF4ZWQJYXRvbWljNjRfZmV0Y2hfc3ViX3JlbGF4ZWQNCj4gKw0KPiAr
+I2RlZmluZSBhdG9taWM2NF9mZXRjaF9hbmRfcmVsYXhlZAlhdG9taWM2NF9mZXRjaF9hbmRfcmVs
+YXhlZA0KPiArI2RlZmluZSBhdG9taWM2NF9mZXRjaF9hbmRub3RfcmVsYXhlZAlhdG9taWM2NF9m
+ZXRjaF9hbmRub3RfcmVsYXhlZA0KPiArI2RlZmluZSBhdG9taWM2NF9mZXRjaF9vcl9yZWxheGVk
+CWF0b21pYzY0X2ZldGNoX29yX3JlbGF4ZWQNCj4gKyNkZWZpbmUgYXRvbWljNjRfZmV0Y2hfeG9y
+X3JlbGF4ZWQJYXRvbWljNjRfZmV0Y2hfeG9yX3JlbGF4ZWQNCj4gKw0KPiAgI2RlZmluZSBBVE9N
+SUM2NF9PUFMob3AsIG9wMSwgb3AyKQkJCQkJXA0KPiAgCUFUT01JQzY0X09QKG9wLCBvcDEsIG9w
+MikJCQkJCVwNCj4gIAlBVE9NSUM2NF9PUF9SRVRVUk4ob3AsIG9wMSwgb3AyKQkJCQlcDQo+IEBA
+IC00MzQsNiArNDU2LDEyIEBAIHN0YXRpYyBpbmxpbmUgbG9uZyBsb25nIGF0b21pYzY0X2ZldGNo
+XyMjb3AobG9uZyBsb25nIGEsIGF0b21pYzY0X3QgKnYpCVwNCj4gIA0KPiAgQVRPTUlDNjRfT1BT
+KGFkZCwgYWRkLmYsIGFkYykNCj4gIEFUT01JQzY0X09QUyhzdWIsIHN1Yi5mLCBzYmMpDQo+ICsN
+Cj4gKyN1bmRlZiBBVE9NSUM2NF9PUFMNCj4gKyNkZWZpbmUgQVRPTUlDNjRfT1BTKG9wLCBvcDEs
+IG9wMikJCQkJCVwNCj4gKwlBVE9NSUM2NF9PUChvcCwgb3AxLCBvcDIpCQkJCQlcDQo+ICsJQVRP
+TUlDNjRfRkVUQ0hfT1Aob3AsIG9wMSwgb3AyKQ0KPiArDQoNCkZvciBjbGFyaXR5IEkgc3BsaXQg
+b2ZmIHRoaXMgaHVuayBpbnRvIGEgc2VwZXJhdGUgcGF0Y2ggYXMgaXQgZWxpZGVzIGdlbmVyYXRp
+b24gb2YNCnVudXNlZCBiaXR3aXNlIG9wcy4NCg0KPiAgQVRPTUlDNjRfT1BTKGFuZCwgYW5kLCBh
+bmQpDQo+ICBBVE9NSUM2NF9PUFMoYW5kbm90LCBiaWMsIGJpYykNCj4gIEFUT01JQzY0X09QUyhv
+ciwgb3IsIG9yKQ0KPg0KDQo=
