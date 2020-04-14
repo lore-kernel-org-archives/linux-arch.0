@@ -1,66 +1,50 @@
-Return-Path: <SRS0=esWq=5V=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:17029 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726771AbgDESsE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 5 Apr 2020 14:48:04 -0400
-Subject: Re: [PATCH v2 5/5] uaccess: Rename user_access_begin/end() to
- user_full_access_begin/end()
-References: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
- <42da416106d5c1cf92bda1e058434fe240b35f44.1585898438.git.christophe.leroy@c-s.fr>
- <CAHk-=wh_DY_dysMX0NuvJmMFr3+QDKOZPZqWKwLkkjgZTuyQ+A@mail.gmail.com>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Message-ID: <0e5985d7-e73b-455b-6b05-351831f09340@c-s.fr>
-Date: Sun, 5 Apr 2020 20:47:26 +0200
+Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 15/29] mm: don't return the number of pages from map_kernel_range{,_noflush}
+Date: Tue, 14 Apr 2020 15:13:34 +0200
+Message-ID: <20200414131348.444715-16-hch@lst.de>
+In-Reply-To: <20200414131348.444715-1-hch@lst.de>
+References: <20200414131348.444715-1-hch@lst.de>
 MIME-Version: 1.0
-In-Reply-To: <CAHk-=wh_DY_dysMX0NuvJmMFr3+QDKOZPZqWKwLkkjgZTuyQ+A@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Michael Ellerman <mpe@ellerman.id.au>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Dave Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Peter Anvin <hpa@zytor.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, intel-gfx@lists.freedesktop.org
-Message-ID: <20200405184726._nNWspGtAx-l9mRUdUvVi_e1q04_KBFrOeCgVobXQRE@z>
+Message-ID: <20200414131334.6VPqAplUp2qQxUwLXRyTYR9FrTQguIF9KkVjd4Jj2Nk@z>
 
+None of the callers needs the number of pages, and a 0 / -errno return
+value is a lot more intuitive.
 
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ mm/vmalloc.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-Le 03/04/2020 à 20:01, Linus Torvalds a écrit :
-> On Fri, Apr 3, 2020 at 12:21 AM Christophe Leroy
-> <christophe.leroy@c-s.fr> wrote:
->>
->> Now we have user_read_access_begin() and user_write_access_begin()
->> in addition to user_access_begin().
-> 
-> I realize Al asked for this, but I don't think it really adds anything
-> to the series.
-> 
-> The "full" makes the names longer, but not really any more legible.
-> 
-> So I like 1-4, but am unconvinced about 5 and would prefer that to be
-> dropped. Sorry for the bikeshedding.
-> 
-
-Yes I was not sure about it, that's the reason why I added it as the 
-last patch of the series.
-
-And in the meantime, we see Robots reporting build failures due to 
-additional use of user_access_begin() in parallele to this change, so I 
-guess it would anyway be a challenge to perform such a change without 
-coordination.
-
-> And I like this series much better without the cookie that was
-> discussed, and just making the hard rule be that they can't nest.
-> 
-> Some architecture may obviously use a cookie internally if they have
-> some nesting behavior of their own, but it doesn't look like we have
-> any major reason to expose that as the actual interface.
-> 
-> The only other question is how to synchronize this? I'm ok with it
-> going through the ppc tree, for example, and just let others build on
-> that.  Maybe using a shared immutable branch with 5.6 as a base?
-
-Michael, can you take patches 1 to 4 ?
-
-Otherwise, can you ack patch 4 to enable merging through another tree ?
-
-Christophe
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index a3d810def567..ca8dc5d42580 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -249,7 +249,7 @@ static int vmap_p4d_range(pgd_t *pgd, unsigned long a=
+ddr,
+  * function.
+  *
+  * RETURNS:
+- * The number of pages mapped on success, -errno on failure.
++ * 0 on success, -errno on failure.
+  */
+ int map_kernel_range_noflush(unsigned long addr, unsigned long size,
+ 			     pgprot_t prot, struct page **pages)
+@@ -269,7 +269,7 @@ int map_kernel_range_noflush(unsigned long addr, unsi=
+gned long size,
+ 			return err;
+ 	} while (pgd++, addr =3D next, addr !=3D end);
+=20
+-	return nr;
++	return 0;
+ }
+=20
+ static int map_kernel_range(unsigned long start, unsigned long size,
+--=20
+2.25.1
