@@ -1,61 +1,82 @@
 Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 14 Apr 2020 22:13:44 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
-References: <20200413125303.423864-1-npiggin@gmail.com>
-	<20200413125303.423864-5-npiggin@gmail.com>
-	<20200414072316.GA5503@infradead.org>
-In-Reply-To: <20200414072316.GA5503@infradead.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 12/29] mm: pass addr as unsigned long to vb_free
+Date: Tue, 14 Apr 2020 15:13:31 +0200
+Message-ID: <20200414131348.444715-13-hch@lst.de>
+In-Reply-To: <20200414131348.444715-1-hch@lst.de>
+References: <20200414131348.444715-1-hch@lst.de>
 MIME-Version: 1.0
-Message-ID: <1586864403.0qfilei2ft.astroid@bobo.none>
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, x86@kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414121344.e_0UH3MiZAKnR4WYdKSdkA0lqCWUnWiNHMu1GPm337w@z>
+Message-ID: <20200414131331.52nv-OTQXP2XY8xgzzwF5xPczkc2WXIxP7bYhS_hFT4@z>
 
-Excerpts from Christoph Hellwig's message of April 14, 2020 5:23 pm:
-> On Mon, Apr 13, 2020 at 10:53:03PM +1000, Nicholas Piggin wrote:
->> For platforms that define HAVE_ARCH_HUGE_VMAP and support PMD vmap mappi=
-ngs,
->> have vmalloc attempt to allocate PMD-sized pages first, before falling b=
-ack
->> to small pages. Allocations which use something other than PAGE_KERNEL
->> protections are not permitted to use huge pages yet, not all callers exp=
-ect
->> this (e.g., module allocations vs strict module rwx).
->>=20
->> This gives a 6x reduction in dTLB misses for a `git diff` (of linux), fr=
-om
->> 45600 to 6500 and a 2.2% reduction in cycles on a 2-node POWER9.
->>=20
->> This can result in more internal fragmentation and memory overhead for a
->> given allocation. It can also cause greater NUMA unbalance on hashdist
->> allocations.
->>=20
->> There may be other callers that expect small pages under vmalloc but use
->> PAGE_KERNEL, I'm not sure if it's feasible to catch them all. An
->> alternative would be a new function or flag which enables large mappings=
-,
->> and use that in callers.
->=20
-> Why do we even use vmalloc in this case rather than just doing a huge
-> page allocation?
+Ever use of addr in vb_free casts to unsigned long first, and the caller
+has an unsigned long version of the address available anyway.  Just pass
+that and avoid all the casts.
 
-Which case? Usually the answer would be because you don't want to use
-contiguous physical memory and/or you don't want to use the linear=20
-mapping.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ mm/vmalloc.c | 16 +++++++---------
+ 1 file changed, 7 insertions(+), 9 deletions(-)
 
-> What callers are you intersted in?
-
-The dentry and inode caches for this test, obviously.
-
-Lots of other things could possibly benefit though, other system=20
-hashes like networking, but lot of other vmalloc callers that might
-benefit right away, some others could use some work to batch up
-allocation sizes to benefit.
-
-Thanks,
-Nick
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 9183fc0d365a..aada9e9144bd 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -1664,7 +1664,7 @@ static void *vb_alloc(unsigned long size, gfp_t gfp=
+_mask)
+ 	return vaddr;
+ }
+=20
+-static void vb_free(const void *addr, unsigned long size)
++static void vb_free(unsigned long addr, unsigned long size)
+ {
+ 	unsigned long offset;
+ 	unsigned long vb_idx;
+@@ -1674,24 +1674,22 @@ static void vb_free(const void *addr, unsigned lo=
+ng size)
+ 	BUG_ON(offset_in_page(size));
+ 	BUG_ON(size > PAGE_SIZE*VMAP_MAX_ALLOC);
+=20
+-	flush_cache_vunmap((unsigned long)addr, (unsigned long)addr + size);
++	flush_cache_vunmap(addr, addr + size);
+=20
+ 	order =3D get_order(size);
+=20
+-	offset =3D (unsigned long)addr & (VMAP_BLOCK_SIZE - 1);
+-	offset >>=3D PAGE_SHIFT;
++	offset =3D (addr & (VMAP_BLOCK_SIZE - 1)) >> PAGE_SHIFT;
+=20
+-	vb_idx =3D addr_to_vb_idx((unsigned long)addr);
++	vb_idx =3D addr_to_vb_idx(addr);
+ 	rcu_read_lock();
+ 	vb =3D radix_tree_lookup(&vmap_block_tree, vb_idx);
+ 	rcu_read_unlock();
+ 	BUG_ON(!vb);
+=20
+-	vunmap_page_range((unsigned long)addr, (unsigned long)addr + size);
++	vunmap_page_range(addr, addr + size);
+=20
+ 	if (debug_pagealloc_enabled_static())
+-		flush_tlb_kernel_range((unsigned long)addr,
+-					(unsigned long)addr + size);
++		flush_tlb_kernel_range(addr, addr + size);
+=20
+ 	spin_lock(&vb->lock);
+=20
+@@ -1791,7 +1789,7 @@ void vm_unmap_ram(const void *mem, unsigned int cou=
+nt)
+=20
+ 	if (likely(count <=3D VMAP_MAX_ALLOC)) {
+ 		debug_check_no_locks_freed(mem, size);
+-		vb_free(mem, size);
++		vb_free(addr, size);
+ 		return;
+ 	}
+=20
+--=20
+2.25.1
