@@ -1,8 +1,7 @@
 From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 15/29] mm: don't return the number of pages from
- map_kernel_range{, _noflush}
-Date: Tue, 14 Apr 2020 15:13:34 +0200
-Message-ID: <20200414131348.444715-16-hch@lst.de>
+Subject: [PATCH 12/29] mm: pass addr as unsigned long to vb_free
+Date: Tue, 14 Apr 2020 15:13:31 +0200
+Message-ID: <20200414131348.444715-13-hch@lst.de>
 References: <20200414131348.444715-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,36 +21,67 @@ To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "K. 
 Cc: Christophe Leroy <christophe.leroy-GgN8y9CXRhA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-hyperv-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, bpf-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-None of the callers needs the number of pages, and a 0 / -errno return
-value is a lot more intuitive.
+Ever use of addr in vb_free casts to unsigned long first, and the caller
+has an unsigned long version of the address available anyway.  Just pass
+that and avoid all the casts.
 
 Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 Acked-by: Peter Zijlstra (Intel) <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
 ---
- mm/vmalloc.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ mm/vmalloc.c | 16 +++++++---------
+ 1 file changed, 7 insertions(+), 9 deletions(-)
 
 diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index a3d810def567..ca8dc5d42580 100644
+index 9183fc0d365a..aada9e9144bd 100644
 --- a/mm/vmalloc.c
 +++ b/mm/vmalloc.c
-@@ -249,7 +249,7 @@ static int vmap_p4d_range(pgd_t *pgd, unsigned long addr,
-  * function.
-  *
-  * RETURNS:
-- * The number of pages mapped on success, -errno on failure.
-+ * 0 on success, -errno on failure.
-  */
- int map_kernel_range_noflush(unsigned long addr, unsigned long size,
- 			     pgprot_t prot, struct page **pages)
-@@ -269,7 +269,7 @@ int map_kernel_range_noflush(unsigned long addr, unsigned long size,
- 			return err;
- 	} while (pgd++, addr = next, addr != end);
- 
--	return nr;
-+	return 0;
+@@ -1664,7 +1664,7 @@ static void *vb_alloc(unsigned long size, gfp_t gfp_mask)
+ 	return vaddr;
  }
  
- static int map_kernel_range(unsigned long start, unsigned long size,
+-static void vb_free(const void *addr, unsigned long size)
++static void vb_free(unsigned long addr, unsigned long size)
+ {
+ 	unsigned long offset;
+ 	unsigned long vb_idx;
+@@ -1674,24 +1674,22 @@ static void vb_free(const void *addr, unsigned long size)
+ 	BUG_ON(offset_in_page(size));
+ 	BUG_ON(size > PAGE_SIZE*VMAP_MAX_ALLOC);
+ 
+-	flush_cache_vunmap((unsigned long)addr, (unsigned long)addr + size);
++	flush_cache_vunmap(addr, addr + size);
+ 
+ 	order = get_order(size);
+ 
+-	offset = (unsigned long)addr & (VMAP_BLOCK_SIZE - 1);
+-	offset >>= PAGE_SHIFT;
++	offset = (addr & (VMAP_BLOCK_SIZE - 1)) >> PAGE_SHIFT;
+ 
+-	vb_idx = addr_to_vb_idx((unsigned long)addr);
++	vb_idx = addr_to_vb_idx(addr);
+ 	rcu_read_lock();
+ 	vb = radix_tree_lookup(&vmap_block_tree, vb_idx);
+ 	rcu_read_unlock();
+ 	BUG_ON(!vb);
+ 
+-	vunmap_page_range((unsigned long)addr, (unsigned long)addr + size);
++	vunmap_page_range(addr, addr + size);
+ 
+ 	if (debug_pagealloc_enabled_static())
+-		flush_tlb_kernel_range((unsigned long)addr,
+-					(unsigned long)addr + size);
++		flush_tlb_kernel_range(addr, addr + size);
+ 
+ 	spin_lock(&vb->lock);
+ 
+@@ -1791,7 +1789,7 @@ void vm_unmap_ram(const void *mem, unsigned int count)
+ 
+ 	if (likely(count <= VMAP_MAX_ALLOC)) {
+ 		debug_check_no_locks_freed(mem, size);
+-		vb_free(mem, size);
++		vb_free(addr, size);
+ 		return;
+ 	}
+ 
 -- 
 2.25.1
