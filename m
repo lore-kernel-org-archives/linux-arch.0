@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 18/29] mm: remove the prot argument from vm_map_ram
-Date: Tue, 14 Apr 2020 15:13:37 +0200
-Message-ID: <20200414131348.444715-19-hch@lst.de>
+Subject: [PATCH 09/29] mm: unexport unmap_kernel_range_noflush
+Date: Tue, 14 Apr 2020 15:13:28 +0200
+Message-ID: <20200414131348.444715-10-hch@lst.de>
 References: <20200414131348.444715-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,137 +21,25 @@ To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "K. 
 Cc: Christophe Leroy <christophe.leroy-GgN8y9CXRhA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-hyperv-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, bpf-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-This is always PAGE_KERNEL - for long term mappings with other
-properties vmap should be used.
+There are no modular users of this function.
 
 Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 Acked-by: Peter Zijlstra (Intel) <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
 ---
- drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c   | 2 +-
- drivers/media/common/videobuf2/videobuf2-dma-sg.c  | 3 +--
- drivers/media/common/videobuf2/videobuf2-vmalloc.c | 3 +--
- fs/erofs/decompressor.c                            | 2 +-
- fs/xfs/xfs_buf.c                                   | 2 +-
- include/linux/vmalloc.h                            | 3 +--
- mm/nommu.c                                         | 2 +-
- mm/vmalloc.c                                       | 4 ++--
- 8 files changed, 9 insertions(+), 12 deletions(-)
+ mm/vmalloc.c | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c b/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c
-index 9272bef57092..debaf7b18ab5 100644
---- a/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c
-+++ b/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c
-@@ -66,7 +66,7 @@ static void *mock_dmabuf_vmap(struct dma_buf *dma_buf)
- {
- 	struct mock_dmabuf *mock = to_mock(dma_buf);
- 
--	return vm_map_ram(mock->pages, mock->npages, 0, PAGE_KERNEL);
-+	return vm_map_ram(mock->pages, mock->npages, 0);
- }
- 
- static void mock_dmabuf_vunmap(struct dma_buf *dma_buf, void *vaddr)
-diff --git a/drivers/media/common/videobuf2/videobuf2-dma-sg.c b/drivers/media/common/videobuf2/videobuf2-dma-sg.c
-index 6db60e9d5183..92072a08af25 100644
---- a/drivers/media/common/videobuf2/videobuf2-dma-sg.c
-+++ b/drivers/media/common/videobuf2/videobuf2-dma-sg.c
-@@ -309,8 +309,7 @@ static void *vb2_dma_sg_vaddr(void *buf_priv)
- 		if (buf->db_attach)
- 			buf->vaddr = dma_buf_vmap(buf->db_attach->dmabuf);
- 		else
--			buf->vaddr = vm_map_ram(buf->pages,
--					buf->num_pages, -1, PAGE_KERNEL);
-+			buf->vaddr = vm_map_ram(buf->pages, buf->num_pages, -1);
- 	}
- 
- 	/* add offset in case userptr is not page-aligned */
-diff --git a/drivers/media/common/videobuf2/videobuf2-vmalloc.c b/drivers/media/common/videobuf2/videobuf2-vmalloc.c
-index 1a4f0ca87c7c..c66fda4a65e4 100644
---- a/drivers/media/common/videobuf2/videobuf2-vmalloc.c
-+++ b/drivers/media/common/videobuf2/videobuf2-vmalloc.c
-@@ -107,8 +107,7 @@ static void *vb2_vmalloc_get_userptr(struct device *dev, unsigned long vaddr,
- 		buf->vaddr = (__force void *)
- 			ioremap(__pfn_to_phys(nums[0]), size + offset);
- 	} else {
--		buf->vaddr = vm_map_ram(frame_vector_pages(vec), n_pages, -1,
--					PAGE_KERNEL);
-+		buf->vaddr = vm_map_ram(frame_vector_pages(vec), n_pages, -1);
- 	}
- 
- 	if (!buf->vaddr)
-diff --git a/fs/erofs/decompressor.c b/fs/erofs/decompressor.c
-index 5d2d81940679..7628816f2453 100644
---- a/fs/erofs/decompressor.c
-+++ b/fs/erofs/decompressor.c
-@@ -274,7 +274,7 @@ static int z_erofs_decompress_generic(struct z_erofs_decompress_req *rq,
- 
- 	i = 0;
- 	while (1) {
--		dst = vm_map_ram(rq->out, nrpages_out, -1, PAGE_KERNEL);
-+		dst = vm_map_ram(rq->out, nrpages_out, -1);
- 
- 		/* retry two more times (totally 3 times) */
- 		if (dst || ++i >= 3)
-diff --git a/fs/xfs/xfs_buf.c b/fs/xfs/xfs_buf.c
-index 9ec3eaf1c618..65538d18e64f 100644
---- a/fs/xfs/xfs_buf.c
-+++ b/fs/xfs/xfs_buf.c
-@@ -477,7 +477,7 @@ _xfs_buf_map_pages(
- 		nofs_flag = memalloc_nofs_save();
- 		do {
- 			bp->b_addr = vm_map_ram(bp->b_pages, bp->b_page_count,
--						-1, PAGE_KERNEL);
-+						-1);
- 			if (bp->b_addr)
- 				break;
- 			vm_unmap_aliases();
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 15ffbd8e8e65..9273b1a91ca5 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -88,8 +88,7 @@ struct vmap_area {
-  *	Highlevel APIs for driver use
-  */
- extern void vm_unmap_ram(const void *mem, unsigned int count);
--extern void *vm_map_ram(struct page **pages, unsigned int count,
--				int node, pgprot_t prot);
-+extern void *vm_map_ram(struct page **pages, unsigned int count, int node);
- extern void vm_unmap_aliases(void);
- 
- #ifdef CONFIG_MMU
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 318df4e236c9..4f07b7ef0297 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -351,7 +351,7 @@ void vunmap(const void *addr)
- }
- EXPORT_SYMBOL(vunmap);
- 
--void *vm_map_ram(struct page **pages, unsigned int count, int node, pgprot_t prot)
-+void *vm_map_ram(struct page **pages, unsigned int count, int node)
- {
- 	BUG();
- 	return NULL;
 diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 258220b203f1..7356b3f07bd8 100644
+index d1534d610b48..3375f9508ef6 100644
 --- a/mm/vmalloc.c
 +++ b/mm/vmalloc.c
-@@ -1834,7 +1834,7 @@ EXPORT_SYMBOL(vm_unmap_ram);
-  *
-  * Returns: a pointer to the address that has been mapped, or %NULL on failure
-  */
--void *vm_map_ram(struct page **pages, unsigned int count, int node, pgprot_t prot)
-+void *vm_map_ram(struct page **pages, unsigned int count, int node)
+@@ -2029,7 +2029,6 @@ void unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
  {
- 	unsigned long size = (unsigned long)count << PAGE_SHIFT;
- 	unsigned long addr;
-@@ -1858,7 +1858,7 @@ void *vm_map_ram(struct page **pages, unsigned int count, int node, pgprot_t pro
+ 	vunmap_page_range(addr, addr + size);
+ }
+-EXPORT_SYMBOL_GPL(unmap_kernel_range_noflush);
  
- 	kasan_unpoison_vmalloc(mem, size);
- 
--	if (map_kernel_range(addr, size, prot, pages) < 0) {
-+	if (map_kernel_range(addr, size, PAGE_KERNEL, pages) < 0) {
- 		vm_unmap_ram(mem, count);
- 		return NULL;
- 	}
+ /**
+  * unmap_kernel_range - unmap kernel VM area and flush cache and TLB
 -- 
 2.25.1
