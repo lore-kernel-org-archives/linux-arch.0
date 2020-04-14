@@ -1,80 +1,43 @@
-Return-Path: <SRS0=HxeN=5T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:49336 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S2390362AbgDCJCI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 3 Apr 2020 05:02:08 -0400
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v1 3/6] arm64: Add tlbi_user_level TLB invalidation helper
-Date: Fri, 3 Apr 2020 17:00:45 +0800
-Message-ID: <20200403090048.938-4-yezhenyu2@huawei.com>
-In-Reply-To: <20200403090048.938-1-yezhenyu2@huawei.com>
-References: <20200403090048.938-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
+Date: Tue, 14 Apr 2020 16:13:44 +0100
+From: Wei Liu <wei.liu@kernel.org>
+Subject: Re: [PATCH 21/29] mm: remove the pgprot argument to __vmalloc
+Message-ID: <20200414151344.zgt2pnq7cjq2bgv6@debian>
+References: <20200414131348.444715-1-hch@lst.de>
+ <20200414131348.444715-22-hch@lst.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Content-Type: text/plain; charset=US-ASCII
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200414131348.444715-22-hch@lst.de>
+Sender: owner-linux-mm@kvack.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org, Michael Kelley <mikelley@microsoft.com>, Gao Xiang <xiang@kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200403090045.GIA62VTv8VjrgXhwFRoDnwXON28_WE_XLgClZG_VpCo@z>
+Message-ID: <20200414151344.DWKH6gfUjq1iAP-lMDyPbxfy8mxG0eAFm0gOVIrYKVw@z>
 
-Add a level-hinted parameter to __tlbi_user, which only gets used
-if ARMv8.4-TTL gets detected.
+On Tue, Apr 14, 2020 at 03:13:40PM +0200, Christoph Hellwig wrote:
+> The pgprot argument to __vmalloc is always PROT_KERNEL now, so remove
+> it.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> Reviewed-by: Michael Kelley <mikelley@microsoft.com> [hyperv]
+> Acked-by: Gao Xiang <xiang@kernel.org> [erofs]
+> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
+>  arch/x86/hyperv/hv_init.c              |  3 +--
+[...]
+> 
+> diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+> index 5a4b363ba67b..a3d689dfc745 100644
+> --- a/arch/x86/hyperv/hv_init.c
+> +++ b/arch/x86/hyperv/hv_init.c
+> @@ -95,8 +95,7 @@ static int hv_cpu_init(unsigned int cpu)
+>  	 * not be stopped in the case of CPU offlining and the VM will hang.
+>  	 */
+>  	if (!*hvp) {
+> -		*hvp = __vmalloc(PAGE_SIZE, GFP_KERNEL | __GFP_ZERO,
+> -				 PAGE_KERNEL);
+> +		*hvp = __vmalloc(PAGE_SIZE, GFP_KERNEL | __GFP_ZERO);
+>  	}
 
-ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
-the level of translation table walk holding the leaf entry for the
-address that is being invalidated.
-
-This patch set the default level value to 0.
-
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/tlbflush.h | 18 ++++++++++++------
- 1 file changed, 12 insertions(+), 6 deletions(-)
-
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-index 5f9f189bc6d2..892f33235dc7 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -89,6 +89,12 @@
- 		__tlbi(op,  arg);					\
- 	} while (0)
- 
-+#define __tlbi_user_level(op, arg, level) do {				\
-+	if (arm64_kernel_unmapped_at_el0())				\
-+		__tlbi_level(op, (arg | USER_ASID_FLAG), level);	\
-+} while (0)
-+
-+
- /*
-  *	TLB Invalidation
-  *	================
-@@ -190,8 +196,8 @@ static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
- 	unsigned long addr = __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
- 
- 	dsb(ishst);
--	__tlbi(vale1is, addr);
--	__tlbi_user(vale1is, addr);
-+	__tlbi_level(vale1is, addr, 0);
-+	__tlbi_user_level(vale1is, addr, 0);
- }
- 
- static inline void flush_tlb_page(struct vm_area_struct *vma,
-@@ -231,11 +237,11 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
- 	dsb(ishst);
- 	for (addr = start; addr < end; addr += stride) {
- 		if (last_level) {
--			__tlbi(vale1is, addr);
--			__tlbi_user(vale1is, addr);
-+			__tlbi_level(vale1is, addr, 0);
-+			__tlbi_user_level(vale1is, addr, 0);
- 		} else {
--			__tlbi(vae1is, addr);
--			__tlbi_user(vae1is, addr);
-+			__tlbi_level(vae1is, addr, 0);
-+			__tlbi_user_level(vae1is, addr, 0);
- 		}
- 	}
- 	dsb(ish);
--- 
-2.19.1
+Acked-by: Wei Liu <wei.liu@kernel.org>
