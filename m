@@ -1,34 +1,177 @@
-Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-dm6nam12on2117.outbound.protection.outlook.com ([40.107.243.117]:57049
-        "EHLO NAM12-DM6-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725773AbgDTHQN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Apr 2020 03:16:13 -0400
-From: Nate Karstens <nate.karstens@garmin.com>
-Subject: Implement close-on-fork
-Date: Mon, 20 Apr 2020 02:15:44 -0500
-Message-ID: <20200420071548.62112-1-nate.karstens@garmin.com>
+Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 16/29] mm: remove map_vm_range
+Date: Tue, 14 Apr 2020 15:13:35 +0200
+Message-ID: <20200414131348.444715-17-hch@lst.de>
+In-Reply-To: <20200414131348.444715-1-hch@lst.de>
+References: <20200414131348.444715-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
+Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Changli Gao <xiaosuo@gmail.com>
-Message-ID: <20200420071544.ZYciH2HcDcXT9ozBjfk4lUaBZ7-aWPEDGtQRKkPewDQ@z>
+Message-ID: <20200414131335.VUjT0WS8cY6I-ZQOKL3_0a6U6VfcNtfrBWbzr4ul2P4@z>
 
-Series of 4 patches to implement close-on-fork. Tests have been
-published to https://github.com/nkarstens/ltp/tree/close-on-fork.
+Switch all callers to map_kernel_range, which symmetric to the unmap
+side (as well as the _noflush versions).
 
-close-on-fork addresses race conditions in system(), which
-(depending on the implementation) is non-atomic in that it
-first calls a fork() and then an exec().
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ Documentation/core-api/cachetlb.rst |  2 +-
+ include/linux/vmalloc.h             | 10 ++++------
+ mm/vmalloc.c                        | 21 +++++++--------------
+ mm/zsmalloc.c                       |  4 +++-
+ net/ceph/ceph_common.c              |  3 +--
+ 5 files changed, 16 insertions(+), 24 deletions(-)
 
-This functionality was approved by the Austin Common Standards
-Revision Group for inclusion in the next revision of the POSIX
-standard (see issue 1318 in the Austin Group Defect Tracker).
-
-[PATCH 1/4] fs: Implement close-on-fork
-[PATCH 2/4] fs: Add O_CLOFORK flag for open(2) and dup3(2)
-[PATCH 3/4] fs: Add F_DUPFD_CLOFORK to fcntl(2)
-[PATCH 4/4] net: Add SOCK_CLOFORK
+diff --git a/Documentation/core-api/cachetlb.rst b/Documentation/core-api=
+/cachetlb.rst
+index 93cb65d52720..a1582cc79f0f 100644
+--- a/Documentation/core-api/cachetlb.rst
++++ b/Documentation/core-api/cachetlb.rst
+@@ -213,7 +213,7 @@ Here are the routines, one by one:
+ 	there will be no entries in the cache for the kernel address
+ 	space for virtual addresses in the range 'start' to 'end-1'.
+=20
+-	The first of these two routines is invoked after map_vm_area()
++	The first of these two routines is invoked after map_kernel_range()
+ 	has installed the page table entries.  The second is invoked
+ 	before unmap_kernel_range() deletes the page table entries.
+=20
+diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+index 3070b4dbc2d9..15ffbd8e8e65 100644
+--- a/include/linux/vmalloc.h
++++ b/include/linux/vmalloc.h
+@@ -168,11 +168,11 @@ extern struct vm_struct *__get_vm_area_caller(unsig=
+ned long size,
+ extern struct vm_struct *remove_vm_area(const void *addr);
+ extern struct vm_struct *find_vm_area(const void *addr);
+=20
+-extern int map_vm_area(struct vm_struct *area, pgprot_t prot,
+-			struct page **pages);
+ #ifdef CONFIG_MMU
+ extern int map_kernel_range_noflush(unsigned long start, unsigned long s=
+ize,
+ 				    pgprot_t prot, struct page **pages);
++int map_kernel_range(unsigned long start, unsigned long size, pgprot_t p=
+rot,
++		struct page **pages);
+ extern void unmap_kernel_range_noflush(unsigned long addr, unsigned long=
+ size);
+ extern void unmap_kernel_range(unsigned long addr, unsigned long size);
+ static inline void set_vm_flush_reset_perms(void *addr)
+@@ -189,14 +189,12 @@ map_kernel_range_noflush(unsigned long start, unsig=
+ned long size,
+ {
+ 	return size >> PAGE_SHIFT;
+ }
++#define map_kernel_range map_kernel_range_noflush
+ static inline void
+ unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
+ {
+ }
+-static inline void
+-unmap_kernel_range(unsigned long addr, unsigned long size)
+-{
+-}
++#define unmap_kernel_range unmap_kernel_range_noflush
+ static inline void set_vm_flush_reset_perms(void *addr)
+ {
+ }
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index ca8dc5d42580..b0c7cdc8701a 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -272,8 +272,8 @@ int map_kernel_range_noflush(unsigned long addr, unsi=
+gned long size,
+ 	return 0;
+ }
+=20
+-static int map_kernel_range(unsigned long start, unsigned long size,
+-			   pgprot_t prot, struct page **pages)
++int map_kernel_range(unsigned long start, unsigned long size, pgprot_t p=
+rot,
++		struct page **pages)
+ {
+ 	int ret;
+=20
+@@ -2027,16 +2027,6 @@ void unmap_kernel_range(unsigned long addr, unsign=
+ed long size)
+ 	flush_tlb_kernel_range(addr, end);
+ }
+=20
+-int map_vm_area(struct vm_struct *area, pgprot_t prot, struct page **pag=
+es)
+-{
+-	unsigned long addr =3D (unsigned long)area->addr;
+-	int err;
+-
+-	err =3D map_kernel_range(addr, get_vm_area_size(area), prot, pages);
+-
+-	return err > 0 ? 0 : err;
+-}
+-
+ static inline void setup_vmalloc_vm_locked(struct vm_struct *vm,
+ 	struct vmap_area *va, unsigned long flags, const void *caller)
+ {
+@@ -2408,7 +2398,8 @@ void *vmap(struct page **pages, unsigned int count,
+ 	if (!area)
+ 		return NULL;
+=20
+-	if (map_vm_area(area, prot, pages)) {
++	if (map_kernel_range((unsigned long)area->addr, size, prot,
++			pages) < 0) {
+ 		vunmap(area->addr);
+ 		return NULL;
+ 	}
+@@ -2471,8 +2462,10 @@ static void *__vmalloc_area_node(struct vm_struct =
+*area, gfp_t gfp_mask,
+ 	}
+ 	atomic_long_add(area->nr_pages, &nr_vmalloc_pages);
+=20
+-	if (map_vm_area(area, prot, pages))
++	if (map_kernel_range((unsigned long)area->addr, get_vm_area_size(area),
++			prot, pages) < 0)
+ 		goto fail;
++
+ 	return area->addr;
+=20
+ fail:
+diff --git a/mm/zsmalloc.c b/mm/zsmalloc.c
+index ac0524330b9b..f6dc0673e62c 100644
+--- a/mm/zsmalloc.c
++++ b/mm/zsmalloc.c
+@@ -1138,7 +1138,9 @@ static inline void __zs_cpu_down(struct mapping_are=
+a *area)
+ static inline void *__zs_map_object(struct mapping_area *area,
+ 				struct page *pages[2], int off, int size)
+ {
+-	BUG_ON(map_vm_area(area->vm, PAGE_KERNEL, pages));
++	unsigned long addr =3D (unsigned long)area->vm->addr;
++
++	BUG_ON(map_kernel_range(addr, PAGE_SIZE * 2, PAGE_KERNEL, pages) < 0);
+ 	area->vm_addr =3D area->vm->addr;
+ 	return area->vm_addr + off;
+ }
+diff --git a/net/ceph/ceph_common.c b/net/ceph/ceph_common.c
+index a0e97f6c1072..66f22e8aa529 100644
+--- a/net/ceph/ceph_common.c
++++ b/net/ceph/ceph_common.c
+@@ -190,8 +190,7 @@ EXPORT_SYMBOL(ceph_compare_options);
+  * kvmalloc() doesn't fall back to the vmalloc allocator unless flags ar=
+e
+  * compatible with (a superset of) GFP_KERNEL.  This is because while th=
+e
+  * actual pages are allocated with the specified flags, the page table p=
+ages
+- * are always allocated with GFP_KERNEL.  map_vm_area() doesn't even tak=
+e
+- * flags because GFP_KERNEL is hard-coded in {p4d,pud,pmd,pte}_alloc().
++ * are always allocated with GFP_KERNEL.
+  *
+  * ceph_kvmalloc() may be called with GFP_KERNEL, GFP_NOFS or GFP_NOIO.
+  */
+--=20
+2.25.1
