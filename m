@@ -1,115 +1,34 @@
 Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 25/29] mm: switch the test_vmalloc module to use __vmalloc_node
-Date: Tue, 14 Apr 2020 15:13:44 +0200
-Message-ID: <20200414131348.444715-26-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+Date: Wed, 15 Apr 2020 00:48:13 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
+References: <20200413125303.423864-1-npiggin@gmail.com>
+	<20200413125303.423864-5-npiggin@gmail.com>
+	<20200414072316.GA5503@infradead.org>
+	<1586864403.0qfilei2ft.astroid@bobo.none>
+	<20200414130203.GA20867@infradead.org>
+In-Reply-To: <20200414130203.GA20867@infradead.org>
 MIME-Version: 1.0
+Message-ID: <1586875675.f8q1grbltc.astroid@bobo.none>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, x86@kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414131344.-dIys1ox_F6eCAckuR6hj_Wo1qPBMCIc_-behJxMikE@z>
+Message-ID: <20200414144813.zIKT0UZewyDNTbKm9b9ii-XkMAraGEPfV9tzlOs6jac@z>
 
-No need to export the very low-level __vmalloc_node_range when the
-test module can use a slightly higher level variant.
+Excerpts from Christoph Hellwig's message of April 14, 2020 11:02 pm:
+> On Tue, Apr 14, 2020 at 10:13:44PM +1000, Nicholas Piggin wrote:
+>> Which case? Usually the answer would be because you don't want to use
+>> contiguous physical memory and/or you don't want to use the linear=20
+>> mapping.
+>=20
+> But with huge pages you do by definition already use large contiguous
+> areas.  So you want allocations larger than "small" huge pages but not
+> using gigantic pages using vmalloc?
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- lib/test_vmalloc.c | 26 +++++++-------------------
- mm/vmalloc.c       | 17 ++++++++---------
- 2 files changed, 15 insertions(+), 28 deletions(-)
+Yes.
 
-diff --git a/lib/test_vmalloc.c b/lib/test_vmalloc.c
-index 8bbefcaddfe8..cd6aef05dfb4 100644
---- a/lib/test_vmalloc.c
-+++ b/lib/test_vmalloc.c
-@@ -91,12 +91,8 @@ static int random_size_align_alloc_test(void)
- 		 */
- 		size =3D ((rnd % 10) + 1) * PAGE_SIZE;
-=20
--		ptr =3D __vmalloc_node_range(size, align,
--		   VMALLOC_START, VMALLOC_END,
--		   GFP_KERNEL | __GFP_ZERO,
--		   PAGE_KERNEL,
--		   0, 0, __builtin_return_address(0));
--
-+		ptr =3D __vmalloc_node(size, align, GFP_KERNEL | __GFP_ZERO,
-+				__builtin_return_address(0));
- 		if (!ptr)
- 			return -1;
-=20
-@@ -118,12 +114,8 @@ static int align_shift_alloc_test(void)
- 	for (i =3D 0; i < BITS_PER_LONG; i++) {
- 		align =3D ((unsigned long) 1) << i;
-=20
--		ptr =3D __vmalloc_node_range(PAGE_SIZE, align,
--			VMALLOC_START, VMALLOC_END,
--			GFP_KERNEL | __GFP_ZERO,
--			PAGE_KERNEL,
--			0, 0, __builtin_return_address(0));
--
-+		ptr =3D __vmalloc_node(PAGE_SIZE, align, GFP_KERNEL | __GFP_ZERO,
-+				__builtin_return_address(0));
- 		if (!ptr)
- 			return -1;
-=20
-@@ -139,13 +131,9 @@ static int fix_align_alloc_test(void)
- 	int i;
-=20
- 	for (i =3D 0; i < test_loop_count; i++) {
--		ptr =3D __vmalloc_node_range(5 * PAGE_SIZE,
--			THREAD_ALIGN << 1,
--			VMALLOC_START, VMALLOC_END,
--			GFP_KERNEL | __GFP_ZERO,
--			PAGE_KERNEL,
--			0, 0, __builtin_return_address(0));
--
-+		ptr =3D __vmalloc_node(5 * PAGE_SIZE, THREAD_ALIGN << 1,
-+				GFP_KERNEL | __GFP_ZERO,
-+				__builtin_return_address(0));
- 		if (!ptr)
- 			return -1;
-=20
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index ae8249ef5821..333fbe77255a 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -2522,15 +2522,6 @@ void *__vmalloc_node_range(unsigned long size, uns=
-igned long align,
- 	return NULL;
- }
-=20
--/*
-- * This is only for performance analysis of vmalloc and stress purpose.
-- * It is required by vmalloc test module, therefore do not use it other
-- * than that.
-- */
--#ifdef CONFIG_TEST_VMALLOC_MODULE
--EXPORT_SYMBOL_GPL(__vmalloc_node_range);
--#endif
--
- /**
-  * __vmalloc_node - allocate virtually contiguous memory
-  * @size:	    allocation size
-@@ -2556,6 +2547,14 @@ void *__vmalloc_node(unsigned long size, unsigned =
-long align,
- 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
- 				gfp_mask, PAGE_KERNEL, 0, node, caller);
- }
-+/*
-+ * This is only for performance analysis of vmalloc and stress purpose.
-+ * It is required by vmalloc test module, therefore do not use it other
-+ * than that.
-+ */
-+#ifdef CONFIG_TEST_VMALLOC_MODULE
-+EXPORT_SYMBOL_GPL(__vmalloc_node);
-+#endif
-=20
- void *__vmalloc(unsigned long size, gfp_t gfp_mask)
- {
---=20
-2.25.1
+Thanks,
+Nick
