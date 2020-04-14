@@ -1,137 +1,242 @@
-Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 21/28] mm: remove the prot argument to __vmalloc_node
-Date: Wed,  8 Apr 2020 13:59:19 +0200
-Message-ID: <20200408115926.1467567-22-hch@lst.de>
-In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
-References: <20200408115926.1467567-1-hch@lst.de>
+Subject: [PATCH 06/29] powerpc: add an ioremap_phb helper
+Date: Tue, 14 Apr 2020 15:13:25 +0200
+Message-ID: <20200414131348.444715-7-hch@lst.de>
+In-Reply-To: <20200414131348.444715-1-hch@lst.de>
+References: <20200414131348.444715-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
 To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
 Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200408115919.qHPg-22WCz3gyE-WbVqeukRkNNZ4G1iRY__Qlmf-jwU@z>
+Message-ID: <20200414131325.npY-0dVz6NdDJinXLBOWyMo76NrCe_u0RTLQeav0-go@z>
 
-This is always PAGE_KERNEL now.
+Factor code shared between pci_64 and electra_cf into a ioremap_pbh
+helper that follows the normal ioremap semantics, and returns a
+useful __iomem pointer.  Note that it opencodes __ioremap_at as
+we know from the callers the slab is available.  Switch pci_64
+to also store the result as __iomem pointer, and unmap the result
+using iounmap instead of force casting and using vmalloc APIs.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- mm/vmalloc.c | 35 ++++++++++++++---------------------
- 1 file changed, 14 insertions(+), 21 deletions(-)
+ arch/powerpc/include/asm/io.h         |  2 +
+ arch/powerpc/include/asm/pci-bridge.h |  2 +-
+ arch/powerpc/kernel/pci_64.c          | 53 ++++++++++++++++++---------
+ drivers/pcmcia/electra_cf.c           | 45 ++++++++---------------
+ 4 files changed, 54 insertions(+), 48 deletions(-)
 
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 466a449b3a15..de7952959e82 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -2401,8 +2401,7 @@ void *vmap(struct page **pages, unsigned int count,
- EXPORT_SYMBOL(vmap);
+diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.=
+h
+index 635969b5b58e..91320985d33f 100644
+--- a/arch/powerpc/include/asm/io.h
++++ b/arch/powerpc/include/asm/io.h
+@@ -719,6 +719,8 @@ void __iomem *ioremap_coherent(phys_addr_t address, u=
+nsigned long size);
 =20
- static void *__vmalloc_node(unsigned long size, unsigned long align,
--			    gfp_t gfp_mask, pgprot_t prot,
--			    int node, const void *caller);
-+			    gfp_t gfp_mask, int node, const void *caller);
- static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
- 				 pgprot_t prot, int node)
- {
-@@ -2420,7 +2419,7 @@ static void *__vmalloc_area_node(struct vm_struct *=
-area, gfp_t gfp_mask,
- 	/* Please note that the recursion is strictly bounded. */
- 	if (array_size > PAGE_SIZE) {
- 		pages =3D __vmalloc_node(array_size, 1, nested_gfp|highmem_mask,
--				PAGE_KERNEL, node, area->caller);
-+				node, area->caller);
- 	} else {
- 		pages =3D kmalloc_node(array_size, nested_gfp, node);
- 	}
-@@ -2539,13 +2538,11 @@ EXPORT_SYMBOL_GPL(__vmalloc_node_range);
-  * @size:	    allocation size
-  * @align:	    desired alignment
-  * @gfp_mask:	    flags for the page level allocator
-- * @prot:	    protection mask for the allocated pages
-  * @node:	    node to use for allocation or NUMA_NO_NODE
-  * @caller:	    caller's return address
-  *
-- * Allocate enough pages to cover @size from the page level
-- * allocator with @gfp_mask flags.  Map them into contiguous
-- * kernel virtual space, using a pagetable protection of @prot.
-+ * Allocate enough pages to cover @size from the page level allocator wi=
-th
-+ * @gfp_mask flags.  Map them into contiguous kernel virtual space.
-  *
-  * Reclaim modifiers in @gfp_mask - __GFP_NORETRY, __GFP_RETRY_MAYFAIL
-  * and __GFP_NOFAIL are not supported
-@@ -2556,16 +2553,15 @@ EXPORT_SYMBOL_GPL(__vmalloc_node_range);
-  * Return: pointer to the allocated memory or %NULL on error
-  */
- static void *__vmalloc_node(unsigned long size, unsigned long align,
--			    gfp_t gfp_mask, pgprot_t prot,
--			    int node, const void *caller)
-+			    gfp_t gfp_mask, int node, const void *caller)
- {
- 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
--				gfp_mask, prot, 0, node, caller);
-+				gfp_mask, PAGE_KERNEL, 0, node, caller);
+ extern void iounmap(volatile void __iomem *addr);
+=20
++void __iomem *ioremap_phb(phys_addr_t paddr, unsigned long size);
++
+ int early_ioremap_range(unsigned long ea, phys_addr_t pa,
+ 			unsigned long size, pgprot_t prot);
+ void __iomem *do_ioremap(phys_addr_t pa, phys_addr_t offset, unsigned lo=
+ng size,
+diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include=
+/asm/pci-bridge.h
+index 69f4cb3b7c56..b92e81b256e5 100644
+--- a/arch/powerpc/include/asm/pci-bridge.h
++++ b/arch/powerpc/include/asm/pci-bridge.h
+@@ -66,7 +66,7 @@ struct pci_controller {
+=20
+ 	void __iomem *io_base_virt;
+ #ifdef CONFIG_PPC64
+-	void *io_base_alloc;
++	void __iomem *io_base_alloc;
+ #endif
+ 	resource_size_t io_base_phys;
+ 	resource_size_t pci_io_size;
+diff --git a/arch/powerpc/kernel/pci_64.c b/arch/powerpc/kernel/pci_64.c
+index f83d1f69b1dd..2a976314f169 100644
+--- a/arch/powerpc/kernel/pci_64.c
++++ b/arch/powerpc/kernel/pci_64.c
+@@ -109,23 +109,46 @@ int pcibios_unmap_io_space(struct pci_bus *bus)
+ 	/* Get the host bridge */
+ 	hose =3D pci_bus_to_host(bus);
+=20
+-	/* Check if we have IOs allocated */
+-	if (hose->io_base_alloc =3D=3D NULL)
+-		return 0;
+-
+ 	pr_debug("IO unmapping for PHB %pOF\n", hose->dn);
+ 	pr_debug("  alloc=3D0x%p\n", hose->io_base_alloc);
+=20
+-	/* This is a PHB, we fully unmap the IO area */
+-	vunmap(hose->io_base_alloc);
+-
++	iounmap(hose->io_base_alloc);
+ 	return 0;
  }
+ EXPORT_SYMBOL_GPL(pcibios_unmap_io_space);
 =20
- void *__vmalloc(unsigned long size, gfp_t gfp_mask)
+-static int pcibios_map_phb_io_space(struct pci_controller *hose)
++void __iomem *ioremap_phb(phys_addr_t paddr, unsigned long size)
  {
--	return __vmalloc_node(size, 1, gfp_mask, PAGE_KERNEL, NUMA_NO_NODE,
-+	return __vmalloc_node(size, 1, gfp_mask, NUMA_NO_NODE,
- 				__builtin_return_address(0));
- }
- EXPORT_SYMBOL(__vmalloc);
-@@ -2573,15 +2569,15 @@ EXPORT_SYMBOL(__vmalloc);
- static inline void *__vmalloc_node_flags(unsigned long size,
- 					int node, gfp_t flags)
- {
--	return __vmalloc_node(size, 1, flags, PAGE_KERNEL,
--					node, __builtin_return_address(0));
-+	return __vmalloc_node(size, 1, flags, node,
-+				__builtin_return_address(0));
- }
+ 	struct vm_struct *area;
++	unsigned long addr;
++
++	WARN_ON_ONCE(paddr & ~PAGE_MASK);
++	WARN_ON_ONCE(size & ~PAGE_MASK);
++
++	/*
++	 * Let's allocate some IO space for that guy. We don't pass VM_IOREMAP
++	 * because we don't care about alignment tricks that the core does in
++	 * that case.  Maybe we should due to stupid card with incomplete
++	 * address decoding but I'd rather not deal with those outside of the
++	 * reserved 64K legacy region.
++	 */
++	area =3D __get_vm_area(size, 0, PHB_IO_BASE, PHB_IO_END);
++	if (!area)
++		return NULL;
++
++	addr =3D (unsigned long)area->addr;
++	if (ioremap_page_range(addr, addr + size, paddr,
++			pgprot_noncached(PAGE_KERNEL))) {
++		unmap_kernel_range(addr, size);
++		return NULL;
++	}
++
++	return (void __iomem *)addr;
++}
++EXPORT_SYMBOL_GPL(ioremap_phb);
++
++static int pcibios_map_phb_io_space(struct pci_controller *hose)
++{
+ 	unsigned long phys_page;
+ 	unsigned long size_page;
+ 	unsigned long io_virt_offset;
+@@ -146,12 +169,11 @@ static int pcibios_map_phb_io_space(struct pci_cont=
+roller *hose)
+ 	 * with incomplete address decoding but I'd rather not deal with
+ 	 * those outside of the reserved 64K legacy region.
+ 	 */
+-	area =3D __get_vm_area(size_page, 0, PHB_IO_BASE, PHB_IO_END);
+-	if (area =3D=3D NULL)
++	hose->io_base_alloc =3D ioremap_phb(phys_page, size_page);
++	if (!hose->io_base_alloc)
+ 		return -ENOMEM;
+-	hose->io_base_alloc =3D area->addr;
+-	hose->io_base_virt =3D (void __iomem *)(area->addr +
+-					      hose->io_base_phys - phys_page);
++	hose->io_base_virt =3D hose->io_base_alloc +
++				hose->io_base_phys - phys_page;
 =20
+ 	pr_debug("IO mapping for PHB %pOF\n", hose->dn);
+ 	pr_debug("  phys=3D0x%016llx, virt=3D0x%p (alloc=3D0x%p)\n",
+@@ -159,11 +181,6 @@ static int pcibios_map_phb_io_space(struct pci_contr=
+oller *hose)
+ 	pr_debug("  size=3D0x%016llx (alloc=3D0x%016lx)\n",
+ 		 hose->pci_io_size, size_page);
 =20
- void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t fl=
-ags,
- 				  void *caller)
- {
--	return __vmalloc_node(size, 1, flags, PAGE_KERNEL, node, caller);
-+	return __vmalloc_node(size, 1, flags, node, caller);
- }
+-	/* Establish the mapping */
+-	if (__ioremap_at(phys_page, area->addr, size_page,
+-			 pgprot_noncached(PAGE_KERNEL)) =3D=3D NULL)
+-		return -ENOMEM;
+-
+ 	/* Fixup hose IO resource */
+ 	io_virt_offset =3D pcibios_io_space_offset(hose);
+ 	hose->io_resource.start +=3D io_virt_offset;
+diff --git a/drivers/pcmcia/electra_cf.c b/drivers/pcmcia/electra_cf.c
+index f2741c04289d..35158cfd9c1a 100644
+--- a/drivers/pcmcia/electra_cf.c
++++ b/drivers/pcmcia/electra_cf.c
+@@ -178,10 +178,9 @@ static int electra_cf_probe(struct platform_device *=
+ofdev)
+ 	struct device_node *np =3D ofdev->dev.of_node;
+ 	struct electra_cf_socket   *cf;
+ 	struct resource mem, io;
+-	int status;
++	int status =3D -ENOMEM;
+ 	const unsigned int *prop;
+ 	int err;
+-	struct vm_struct *area;
 =20
- /**
-@@ -2656,8 +2652,8 @@ EXPORT_SYMBOL(vmalloc_user);
-  */
- void *vmalloc_node(unsigned long size, int node)
- {
--	return __vmalloc_node(size, 1, GFP_KERNEL, PAGE_KERNEL,
--					node, __builtin_return_address(0));
-+	return __vmalloc_node(size, 1, GFP_KERNEL, node,
-+			__builtin_return_address(0));
- }
- EXPORT_SYMBOL(vmalloc_node);
+ 	err =3D of_address_to_resource(np, 0, &mem);
+ 	if (err)
+@@ -202,30 +201,19 @@ static int electra_cf_probe(struct platform_device =
+*ofdev)
+ 	cf->mem_phys =3D mem.start;
+ 	cf->mem_size =3D PAGE_ALIGN(resource_size(&mem));
+ 	cf->mem_base =3D ioremap(cf->mem_phys, cf->mem_size);
++	if (!cf->mem_base)
++		goto out_free_cf;
+ 	cf->io_size =3D PAGE_ALIGN(resource_size(&io));
+-
+-	area =3D __get_vm_area(cf->io_size, 0, PHB_IO_BASE, PHB_IO_END);
+-	if (area =3D=3D NULL) {
+-		status =3D -ENOMEM;
+-		goto fail1;
+-	}
+-
+-	cf->io_virt =3D (void __iomem *)(area->addr);
++	cf->io_virt =3D ioremap_phb(io.start, cf->io_size);
++	if (!cf->io_virt)
++		goto out_unmap_mem;
 =20
-@@ -2670,9 +2666,6 @@ EXPORT_SYMBOL(vmalloc_node);
-  * allocator and map them into contiguous kernel virtual space.
-  * The memory allocated is set to zero.
-  *
-- * For tight control over page level allocator and protection flags
-- * use __vmalloc_node() instead.
-- *
-  * Return: pointer to the allocated memory or %NULL on error
-  */
- void *vzalloc_node(unsigned long size, int node)
-@@ -2745,8 +2738,8 @@ void *vmalloc_exec(unsigned long size)
-  */
- void *vmalloc_32(unsigned long size)
- {
--	return __vmalloc_node(size, 1, GFP_VMALLOC32, PAGE_KERNEL,
--			      NUMA_NO_NODE, __builtin_return_address(0));
-+	return __vmalloc_node(size, 1, GFP_VMALLOC32, NUMA_NO_NODE,
-+			__builtin_return_address(0));
- }
- EXPORT_SYMBOL(vmalloc_32);
+ 	cf->gpio_base =3D ioremap(0xfc103000, 0x1000);
++	if (!cf->gpio_base)
++		goto out_unmap_virt;
+ 	dev_set_drvdata(device, cf);
 =20
+-	if (!cf->mem_base || !cf->io_virt || !cf->gpio_base ||
+-	    (__ioremap_at(io.start, cf->io_virt, cf->io_size,
+-			  pgprot_noncached(PAGE_KERNEL)) =3D=3D NULL)) {
+-		dev_err(device, "can't ioremap ranges\n");
+-		status =3D -ENOMEM;
+-		goto fail1;
+-	}
+-
+-
+ 	cf->io_base =3D (unsigned long)cf->io_virt - VMALLOC_END;
+-
+ 	cf->iomem.start =3D (unsigned long)cf->mem_base;
+ 	cf->iomem.end =3D (unsigned long)cf->mem_base + (mem.end - mem.start);
+ 	cf->iomem.flags =3D IORESOURCE_MEM;
+@@ -305,14 +293,13 @@ static int electra_cf_probe(struct platform_device =
+*ofdev)
+ 	if (cf->irq)
+ 		free_irq(cf->irq, cf);
+=20
+-	if (cf->io_virt)
+-		__iounmap_at(cf->io_virt, cf->io_size);
+-	if (cf->mem_base)
+-		iounmap(cf->mem_base);
+-	if (cf->gpio_base)
+-		iounmap(cf->gpio_base);
+-	if (area)
+-		device_init_wakeup(&ofdev->dev, 0);
++	iounmap(cf->gpio_base);
++out_unmap_virt:
++	device_init_wakeup(&ofdev->dev, 0);
++	iounmap(cf->io_virt);
++out_unmap_mem:
++	iounmap(cf->mem_base);
++out_free_cf:
+ 	kfree(cf);
+ 	return status;
+=20
+@@ -330,7 +317,7 @@ static int electra_cf_remove(struct platform_device *=
+ofdev)
+ 	free_irq(cf->irq, cf);
+ 	del_timer_sync(&cf->timer);
+=20
+-	__iounmap_at(cf->io_virt, cf->io_size);
++	iounmap(cf->io_virt);
+ 	iounmap(cf->mem_base);
+ 	iounmap(cf->gpio_base);
+ 	release_mem_region(cf->mem_phys, cf->mem_size);
 --=20
 2.25.1
