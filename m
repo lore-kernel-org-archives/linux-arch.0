@@ -1,78 +1,85 @@
-From: Josh Triplett <josh@joshtriplett.org>
-Subject: [PATCH v4 3/3] fs: pipe2: Support O_SPECIFIC_FD
-Date: Mon, 13 Apr 2020 19:16:01 -0700
-Message-ID: <2993aae005b70f51636553d1522baa063ea01a26.1586830316.git.josh@joshtriplett.org>
-References: <cover.1586830316.git.josh@joshtriplett.org>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: Re: [RFC][Qusetion] the value of cleared_(ptes|pmds|puds|p4ds) in
+ struct mmu_gather
+Date: Tue, 14 Apr 2020 09:05:56 +0200
+Message-ID: <a2eaf3a1-61c7-4598-55bf-4d4bca54a850@de.ibm.com>
+References: <fbb00ac0-9104-8d25-f225-7b3d1b17a01f@huawei.com>
+ <20200330121654.GL20696@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <cover.1586830316.git.josh@joshtriplett.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, io-uring@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Jens Axboe <axboe@kernel.dk>, Aleksa Sarai <cyphar@cyphar.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <20200330121654.GL20696@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Peter Zijlstra <peterz@infradead.org>, Zhenyu Ye <yezhenyu2@huawei.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, Marc Zyngier <maz@kernel.org>, will.deacon@arm.com, linux-kernel@vger.kernel.org, npiggin@gmail.com, arm@kernel.org, bp@alien8.de, xiexiangyou@huawei.com, luto@kernel.org, schwidefsky@de.ibm.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, mingo@kernel.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-This allows the caller of pipe2 to specify one or both file descriptors
-rather than having them automatically use the lowest available file
-descriptor. The caller can specify either file descriptor as -1 to
-allow that file descriptor to use the lowest available.
+Gerald,
 
-Signed-off-by: Josh Triplett <josh@joshtriplett.org>
----
- fs/pipe.c | 16 ++++++++++++----
- 1 file changed, 12 insertions(+), 4 deletions(-)
+can you have a look?
 
-diff --git a/fs/pipe.c b/fs/pipe.c
-index 16fb72e9abf7..4681a0d1d587 100644
---- a/fs/pipe.c
-+++ b/fs/pipe.c
-@@ -936,19 +936,19 @@ static int __do_pipe_flags(int *fd, struct file **files, int flags)
- 	int error;
- 	int fdw, fdr;
- 
--	if (flags & ~(O_CLOEXEC | O_NONBLOCK | O_DIRECT))
-+	if (flags & ~(O_CLOEXEC | O_NONBLOCK | O_DIRECT | O_SPECIFIC_FD))
- 		return -EINVAL;
- 
- 	error = create_pipe_files(files, flags);
- 	if (error)
- 		return error;
- 
--	error = get_unused_fd_flags(flags);
-+	error = get_specific_unused_fd_flags(fd[0], flags);
- 	if (error < 0)
- 		goto err_read_pipe;
- 	fdr = error;
- 
--	error = get_unused_fd_flags(flags);
-+	error = get_specific_unused_fd_flags(fd[1], flags);
- 	if (error < 0)
- 		goto err_fdr;
- 	fdw = error;
-@@ -969,7 +969,11 @@ static int __do_pipe_flags(int *fd, struct file **files, int flags)
- int do_pipe_flags(int *fd, int flags)
- {
- 	struct file *files[2];
--	int error = __do_pipe_flags(fd, files, flags);
-+	int error;
-+
-+	if (flags & O_SPECIFIC_FD)
-+		return -EINVAL;
-+	error = __do_pipe_flags(fd, files, flags);
- 	if (!error) {
- 		fd_install(fd[0], files[0]);
- 		fd_install(fd[1], files[1]);
-@@ -987,6 +991,10 @@ static int do_pipe2(int __user *fildes, int flags)
- 	int fd[2];
- 	int error;
- 
-+	if (flags & O_SPECIFIC_FD)
-+		if (copy_from_user(fd, fildes, sizeof(fd)))
-+			return -EFAULT;
-+
- 	error = __do_pipe_flags(fd, files, flags);
- 	if (!error) {
- 		if (unlikely(copy_to_user(fildes, fd, sizeof(fd)))) {
--- 
-2.26.0
+On 30.03.20 14:16, Peter Zijlstra wrote:
+> On Sat, Mar 28, 2020 at 12:30:50PM +0800, Zhenyu Ye wrote:
+>> Hi all,
+>>
+>> commit a6d60245 "Track which levels of the page tables have been cleared"
+>> added cleared_(ptes|pmds|puds|p4ds) in struct mmu_gather, and the values
+>> of them are set in some places. For example:
+>>
+>> In include/asm-generic/tlb.h, pte_free_tlb() set the tlb->cleared_pmds:
+>> ---8<---
+>> #ifndef pte_free_tlb
+>> #define pte_free_tlb(tlb, ptep, address)			\
+>> 	do {							\
+>> 		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+>> 		tlb->freed_tables = 1;				\
+>> 		tlb->cleared_pmds = 1;				\
+>> 		__pte_free_tlb(tlb, ptep, address);		\
+>> 	} while (0)
+>> #endif
+>> ---8<---
+>>
+>>
+>> However, in arch/s390/include/asm/tlb.h, pte_free_tlb() set the tlb->cleared_ptes:
+>> ---8<---
+>> static inline void pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+>>                                 unsigned long address)
+>> {
+>> 	__tlb_adjust_range(tlb, address, PAGE_SIZE);
+>> 	tlb->mm->context.flush_mm = 1;
+>> 	tlb->freed_tables = 1;
+>> 	tlb->cleared_ptes = 1;
+>> 	/*
+>> 	 * page_table_free_rcu takes care of the allocation bit masks
+>> 	 * of the 2K table fragments in the 4K page table page,
+>> 	 * then calls tlb_remove_table.
+>> 	 */
+>> 	page_table_free_rcu(tlb, (unsigned long *) pte, address);
+>> }
+>> ---8<---
+>>
+>>
+>> In my view, the cleared_(ptes|pmds|puds) and (pte|pmd|pud)_free_tlb
+>> correspond one-to-one.  So we should set cleared_ptes in pte_free_tlb(),
+>> then use it when needed.
+> 
+> So pte_free_tlb() clears a table of PTE entries, or a PMD level entity,
+> also see free_pte_range(). So the generic code makes sense to me. The
+> PTE level invalidations will have happened on tlb_remove_tlb_entry().
+> 
+>> I'm very confused about this. Which is wrong? Or is there something
+>> I understand wrong?
+> 
+> I agree the s390 case is puzzling, Martin does s390 need a PTE level
+> invalidate for removing a PTE table or was this a mistake?
+> 
