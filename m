@@ -1,70 +1,79 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 20/29] gpu/drm: remove the powerpc hack in drm_legacy_sg_alloc
-Date: Tue, 14 Apr 2020 15:13:39 +0200
-Message-ID: <20200414131348.444715-21-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
+Date: Tue, 14 Apr 2020 07:20:14 -0700
+Message-ID: <20200414142014.GO21484@bombadil.infradead.org>
+References: <20200413125303.423864-1-npiggin@gmail.com>
+ <20200413125303.423864-5-npiggin@gmail.com>
+ <20200413134106.GN21484@bombadil.infradead.org>
+ <36616218-1d3a-b18a-8fb8-4fc9eff22780@c-s.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20200414131348.444715-1-hch-jcswGhMUV9g@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Sender: "iommu" <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "K. Y. Srinivasan" <kys-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, Haiyang Zhang <haiyangz-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, Stephen Hemminger <sthemmin-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, Wei Liu <wei.liu-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, David Airlie <airlied-cv59FeDIM0c@public.gmane.org>, Daniel Vetter <daniel-/w4YWyX8dFk@public.gmane.org>, Laura Abbott <labbott-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Sumit Semwal <sumit.semwal-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Sakari Ailus <sakari.ailus-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Minchan Kim <minchan-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Nitin Gupta <ngupta-KNmc09w0p+Ednm+yROfE0A@public.gmane.org>
-Cc: Christophe Leroy <christophe.leroy-GgN8y9CXRhA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-hyperv-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Daniel Vetter <daniel.vetter-/w4YWyX8dFk@public.gmane.org>, bpf-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <36616218-1d3a-b18a-8fb8-4fc9eff22780@c-s.fr>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Christophe Leroy <christophe.leroy@c-s.fr>
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, linux-kernel@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, linux-mm@kvack.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-The non-cached vmalloc mapping was initially added as a hack for the
-first-gen amigaone platform (6xx/book32s), isn't fully supported
-upstream, and which used the legacy radeon driver together with
-non-coherent DMA. However this only ever worked reliably for DRI .
+On Tue, Apr 14, 2020 at 02:28:35PM +0200, Christophe Leroy wrote:
+> Le 13/04/2020 =E0 15:41, Matthew Wilcox a =E9crit=A0:
+> > On Mon, Apr 13, 2020 at 10:53:03PM +1000, Nicholas Piggin wrote:
+> > > +static int vmap_pages_range_noflush(unsigned long start, unsigned lo=
+ng end,
+> > > +				    pgprot_t prot, struct page **pages,
+> > > +				    unsigned int page_shift)
+> > > +{
+> > > +	if (page_shift =3D=3D PAGE_SIZE) {
+> > =
 
-Remove the hack as it is the last user of __vmalloc passing a page
-protection flag other than PAGE_KERNEL and didn't do anything for
-other platforms with non-coherent DMA.
+> > ... I think you meant 'page_shift =3D=3D PAGE_SHIFT'
+> > =
 
-Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Acked-by: Daniel Vetter <daniel.vetter-/w4YWyX8dFk@public.gmane.org>
-Acked-by: Peter Zijlstra (Intel) <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
----
- drivers/gpu/drm/drm_scatter.c | 11 +----------
- 1 file changed, 1 insertion(+), 10 deletions(-)
+> > Overall I like this series, although it's a bit biased towards CPUs
+> > which have page sizes which match PMD/PUD sizes.  It doesn't offer the
+> > possibility of using 64kB page sizes on ARM, for example.  But it's a
+> > step in the right direction.
+> =
 
-diff --git a/drivers/gpu/drm/drm_scatter.c b/drivers/gpu/drm/drm_scatter.c
-index ca520028b2cb..f4e6184d1877 100644
---- a/drivers/gpu/drm/drm_scatter.c
-+++ b/drivers/gpu/drm/drm_scatter.c
-@@ -43,15 +43,6 @@
- 
- #define DEBUG_SCATTER 0
- 
--static inline void *drm_vmalloc_dma(unsigned long size)
--{
--#if defined(__powerpc__) && defined(CONFIG_NOT_COHERENT_CACHE)
--	return __vmalloc(size, GFP_KERNEL, pgprot_noncached_wc(PAGE_KERNEL));
--#else
--	return vmalloc_32(size);
--#endif
--}
--
- static void drm_sg_cleanup(struct drm_sg_mem * entry)
- {
- 	struct page *page;
-@@ -126,7 +117,7 @@ int drm_legacy_sg_alloc(struct drm_device *dev, void *data,
- 		return -ENOMEM;
- 	}
- 
--	entry->virtual = drm_vmalloc_dma(pages << PAGE_SHIFT);
-+	entry->virtual = vmalloc_32(pages << PAGE_SHIFT);
- 	if (!entry->virtual) {
- 		kfree(entry->busaddr);
- 		kfree(entry->pagelist);
--- 
-2.25.1
+> I was going to ask more or less the same question, I would have liked to =
+use
+> 512kB hugepages on powerpc 8xx.
+> =
+
+> Even the 8M hugepages (still on the 8xx), can they be used as well, taking
+> into account that two PGD entries have to point to the same 8M page ?
+> =
+
+> I sent out a series which tends to make the management of 512k and 8M pag=
+es
+> closer to what Linux expects, in order to use them inside kernel, for Lin=
+ear
+> mappings and Kasan mappings for the moment. See
+> https://patchwork.ozlabs.org/project/linuxppc-dev/list/?series=3D164620
+> It would be nice if we could amplify it a use it for ioremaps and vmallocs
+> as well.
+
+I haven't been looking at vmalloc at all; I've been looking at the page
+cache.  See:
+https://lore.kernel.org/linux-mm/20200212041845.25879-1-willy@infradead.org/
+
+Once we have large pages in the page cache, I want to sort out the API
+for asking the CPU to insert a TLB entry.  Right now, we use set_pte_at(),
+set_pmd_at() and set_pud_at().  I'm thinking something along the lines of:
+
+vm_fault_t vmf_set_page_at(struct vm_fault *vmf, struct page *page);
+
+and the architecture can insert whatever PTEs and/or TLB entries it
+likes based on compound_order(page) -- if, say, it's a 1MB page, it might
+choose to insert 2 * 512kB entries, or just the upper or lower 512kB entry
+(depending which half of the 1MB page the address sits in).
