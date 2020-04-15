@@ -1,7 +1,7 @@
 From: paulmck@kernel.org
-Subject: [PATCH lkmm tip/core/rcu 04/10] Documentation: LKMM: Add litmus test for RCU GP guarantee where updater frees object
-Date: Wed, 15 Apr 2020 11:49:39 -0700
-Message-ID: <20200415184945.16487-4-paulmck@kernel.org>
+Subject: [PATCH lkmm tip/core/rcu 06/10] MAINTAINERS: Update maintainers for new Documentaion/litmus-tests/
+Date: Wed, 15 Apr 2020 11:49:41 -0700
+Message-ID: <20200415184945.16487-6-paulmck@kernel.org>
 References: <20200415183343.GA12265@paulmck-ThinkPad-P72>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200415183343.GA12265@paulmck-ThinkPad-P72>
@@ -12,64 +12,36 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "Joel Fernandes (Google)" <joel@joelfernandes.org>
 
-This adds an example for the important RCU grace period guarantee, which
-shows an RCU reader can never span a grace period.
+Also add me as Reviewer for LKMM. Previously a patch to do this was
+Acked but somewhere along the line got lost. Add myself in this patch.
 
+Acked-by: Boqun Feng <boqun.feng@gmail.com>
 Acked-by: Andrea Parri <parri.andrea@gmail.com>
 Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 ---
- .../litmus-tests/rcu/RCU+sync+free.litmus          | 42 ++++++++++++++++++++++
- 1 file changed, 42 insertions(+)
- create mode 100644 Documentation/litmus-tests/rcu/RCU+sync+free.litmus
+ MAINTAINERS | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/Documentation/litmus-tests/rcu/RCU+sync+free.litmus b/Documentation/litmus-tests/rcu/RCU+sync+free.litmus
-new file mode 100644
-index 0000000..4ee67e1
---- /dev/null
-+++ b/Documentation/litmus-tests/rcu/RCU+sync+free.litmus
-@@ -0,0 +1,42 @@
-+C RCU+sync+free
-+
-+(*
-+ * Result: Never
-+ *
-+ * This litmus test demonstrates that an RCU reader can never see a write that
-+ * follows a grace period, if it did not see writes that precede that grace
-+ * period.
-+ *
-+ * This is a typical pattern of RCU usage, where the write before the grace
-+ * period assigns a pointer, and the writes following the grace period destroy
-+ * the object that the pointer used to point to.
-+ *
-+ * This is one implication of the RCU grace-period guarantee, which says (among
-+ * other things) that an RCU read-side critical section cannot span a grace period.
-+ *)
-+
-+{
-+int x = 1;
-+int *y = &x;
-+int z = 1;
-+}
-+
-+P0(int *x, int *z, int **y)
-+{
-+	int *r0;
-+	int r1;
-+
-+	rcu_read_lock();
-+	r0 = rcu_dereference(*y);
-+	r1 = READ_ONCE(*r0);
-+	rcu_read_unlock();
-+}
-+
-+P1(int *x, int *z, int **y)
-+{
-+	rcu_assign_pointer(*y, z);
-+	synchronize_rcu();
-+	WRITE_ONCE(*x, 0);
-+}
-+
-+exists (0:r0=x /\ 0:r1=0)
+diff --git a/MAINTAINERS b/MAINTAINERS
+index e64e5db..5d2b065 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -9806,6 +9806,7 @@ M:	Luc Maranget <luc.maranget@inria.fr>
+ M:	"Paul E. McKenney" <paulmck@kernel.org>
+ R:	Akira Yokosawa <akiyks@gmail.com>
+ R:	Daniel Lustig <dlustig@nvidia.com>
++R:	Joel Fernandes <joel@joelfernandes.org>
+ L:	linux-kernel@vger.kernel.org
+ L:	linux-arch@vger.kernel.org
+ S:	Supported
+@@ -9816,6 +9817,7 @@ F:	Documentation/core-api/atomic_ops.rst
+ F:	Documentation/core-api/refcount-vs-atomic.rst
+ F:	Documentation/memory-barriers.txt
+ F:	tools/memory-model/
++F:	Documentation/litmus-tests/
+ 
+ LIS3LV02D ACCELEROMETER DRIVER
+ M:	Eric Piel <eric.piel@tremplin-utc.net>
 -- 
 2.9.5
