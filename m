@@ -1,47 +1,55 @@
 From: paulmck@kernel.org
-Subject: [PATCH lkmm tip/core/rcu 06/10] MAINTAINERS: Update maintainers for new Documentaion/litmus-tests/
-Date: Wed, 15 Apr 2020 11:49:41 -0700
-Message-ID: <20200415184945.16487-6-paulmck@kernel.org>
+Subject: [PATCH lkmm tip/core/rcu 08/10] Documentation/litmus-tests: Introduce atomic directory
+Date: Wed, 15 Apr 2020 11:49:43 -0700
+Message-ID: <20200415184945.16487-8-paulmck@kernel.org>
 References: <20200415183343.GA12265@paulmck-ThinkPad-P72>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200415183343.GA12265@paulmck-ThinkPad-P72>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Joel Fernandes (Google)" <joel@joelfernandes.org>, "Paul E . McKenney" <paulmck@kernel.org>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E . McKenney" <paulmck@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: "Joel Fernandes (Google)" <joel@joelfernandes.org>
+From: Boqun Feng <boqun.feng@gmail.com>
 
-Also add me as Reviewer for LKMM. Previously a patch to do this was
-Acked but somewhere along the line got lost. Add myself in this patch.
+Although we have atomic_t.txt and its friends to describe the semantics
+of atomic APIs and lib/atomic64_test.c for build testing and testing in
+UP mode, the tests for our atomic APIs in real SMP mode are still
+missing. Since now we have the LKMM tool in kernel and litmus tests can
+be used to generate kernel modules for testing purpose with "klitmus" (a
+tool from the LKMM toolset), it makes sense to put a few typical litmus
+tests into kernel so that
 
-Acked-by: Boqun Feng <boqun.feng@gmail.com>
+1)	they are the examples to describe the conceptual mode of the
+	semantics of atomic APIs, and
+
+2)	they can be used to generate kernel test modules for anyone
+	who is interested to test the atomic APIs implementation (in
+	most cases, is the one who implements the APIs for a new arch)
+
+Therefore, introduce the atomic directory for this purpose. The
+directory is maintained by the LKMM group to make sure the litmus tests
+are always aligned with our memory model.
+
+Acked-by: Alan Stern <stern@rowland.harvard.edu>
 Acked-by: Andrea Parri <parri.andrea@gmail.com>
-Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 ---
- MAINTAINERS | 2 ++
- 1 file changed, 2 insertions(+)
+ Documentation/litmus-tests/atomic/README | 4 ++++
+ 1 file changed, 4 insertions(+)
+ create mode 100644 Documentation/litmus-tests/atomic/README
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index e64e5db..5d2b065 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -9806,6 +9806,7 @@ M:	Luc Maranget <luc.maranget@inria.fr>
- M:	"Paul E. McKenney" <paulmck@kernel.org>
- R:	Akira Yokosawa <akiyks@gmail.com>
- R:	Daniel Lustig <dlustig@nvidia.com>
-+R:	Joel Fernandes <joel@joelfernandes.org>
- L:	linux-kernel@vger.kernel.org
- L:	linux-arch@vger.kernel.org
- S:	Supported
-@@ -9816,6 +9817,7 @@ F:	Documentation/core-api/atomic_ops.rst
- F:	Documentation/core-api/refcount-vs-atomic.rst
- F:	Documentation/memory-barriers.txt
- F:	tools/memory-model/
-+F:	Documentation/litmus-tests/
- 
- LIS3LV02D ACCELEROMETER DRIVER
- M:	Eric Piel <eric.piel@tremplin-utc.net>
+diff --git a/Documentation/litmus-tests/atomic/README b/Documentation/litmus-tests/atomic/README
+new file mode 100644
+index 0000000..ae61201
+--- /dev/null
++++ b/Documentation/litmus-tests/atomic/README
+@@ -0,0 +1,4 @@
++This directory contains litmus tests that are typical to describe the semantics
++of our atomic APIs. For more information about how to "run" a litmus test or
++how to generate a kernel test module based on a litmus test, please see
++tools/memory-model/README.
 -- 
 2.9.5
