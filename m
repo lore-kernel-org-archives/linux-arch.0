@@ -1,144 +1,96 @@
 From: Will Deacon <will@kernel.org>
-Subject: [PATCH v3 07/12] READ_ONCE: Enforce atomicity for {READ,WRITE}_ONCE() memory accesses
-Date: Wed, 15 Apr 2020 17:52:13 +0100
-Message-ID: <20200415165218.20251-8-will@kernel.org>
+Subject: [PATCH v3 09/12] locking/barriers: Use '__unqual_scalar_typeof' for load-acquire macros
+Date: Wed, 15 Apr 2020 17:52:15 +0100
+Message-ID: <20200415165218.20251-10-will@kernel.org>
 References: <20200415165218.20251-1-will@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:55100 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:55230 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2410513AbgDOQxJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Apr 2020 12:53:09 -0400
+        id S2410521AbgDOQxO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Apr 2020 12:53:14 -0400
 In-Reply-To: <20200415165218.20251-1-will@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
 
-{READ,WRITE}_ONCE() cannot guarantee atomicity for arbitrary data sizes.
-This can be surprising to callers that might incorrectly be expecting
-atomicity for accesses to aggregate structures, although there are other
-callers where tearing is actually permissable (e.g. if they are using
-something akin to sequence locking to protect the access).
+Passing volatile-qualified pointers to the asm-generic implementations of
+the load-acquire macros results in a re-load from the stack due to the
+temporary result variable inheriting the volatile semantics thanks to the
+use of 'typeof()'.
 
-Linus sayeth:
+Define these temporary variables using 'unqual_scalar_typeof' to drop
+the volatile qualifier in the case that they are scalar types.
 
-  | We could also look at being stricter for the normal READ/WRITE_ONCE(),
-  | and require that they are
-  |
-  | (a) regular integer types
-  |
-  | (b) fit in an atomic word
-  |
-  | We actually did (b) for a while, until we noticed that we do it on
-  | loff_t's etc and relaxed the rules. But maybe we could have a
-  | "non-atomic" version of READ/WRITE_ONCE() that is used for the
-  | questionable cases?
-
-The slight snag is that we also have to support 64-bit accesses on 32-bit
-architectures, as these appear to be widespread and tend to work out ok
-if either the architecture supports atomic 64-bit accesses (x86, armv7)
-or if the variable being accesses represents a virtual address and
-therefore only requires 32-bit atomicity in practice.
-
-Take a step in that direction by introducing a variant of
-'compiletime_assert_atomic_type()' and use it to check the pointer
-argument to {READ,WRITE}_ONCE(). Expose __{READ,WRITE_ONCE}() variants
-which are allowed to tear and convert the one broken caller over to the
-new macros.
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
 Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- drivers/xen/time.c       |  2 +-
- include/linux/compiler.h | 37 +++++++++++++++++++++++++++++++++----
- 2 files changed, 34 insertions(+), 5 deletions(-)
+ include/asm-generic/barrier.h | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/drivers/xen/time.c b/drivers/xen/time.c
-index 0968859c29d0..108edbcbc040 100644
---- a/drivers/xen/time.c
-+++ b/drivers/xen/time.c
-@@ -64,7 +64,7 @@ static void xen_get_runstate_snapshot_cpu_delta(
- 	do {
- 		state_time = get64(&state->state_entry_time);
- 		rmb();	/* Hypervisor might update data. */
--		*res = READ_ONCE(*state);
-+		*res = __READ_ONCE(*state);
- 		rmb();	/* Hypervisor might update data. */
- 	} while (get64(&state->state_entry_time) != state_time ||
- 		 (state_time & XEN_RUNSTATE_UPDATE));
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 0bf6c04b3f8f..3e0b14de3504 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -198,24 +198,43 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
- #include <asm/barrier.h>
- #include <linux/kasan-checks.h>
- 
-+/*
-+ * Use __READ_ONCE() instead of READ_ONCE() if you do not require any
-+ * atomicity or dependency ordering guarantees. Note that this may result
-+ * in tears!
-+ */
-+#define __READ_ONCE(x)	(*(const volatile typeof(x) *)&(x))
-+
-+#define __READ_ONCE_SCALAR(x)						\
-+({									\
-+	typeof(x) __x = __READ_ONCE(x);					\
-+	smp_read_barrier_depends();					\
-+	__x;								\
-+})
-+
- /*
-  * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
-  * to hide memory access from KASAN.
-  */
- #define READ_ONCE_NOCHECK(x)						\
+diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+index 85b28eb80b11..2eacaf7d62f6 100644
+--- a/include/asm-generic/barrier.h
++++ b/include/asm-generic/barrier.h
+@@ -128,10 +128,10 @@ do {									\
+ #ifndef __smp_load_acquire
+ #define __smp_load_acquire(p)						\
  ({									\
--	typeof(x) __x = *(volatile typeof(x) *)&(x);			\
--	smp_read_barrier_depends();					\
--	__x;								\
-+	compiletime_assert_rwonce_type(x);				\
-+	__READ_ONCE_SCALAR(x);						\
+-	typeof(*p) ___p1 = READ_ONCE(*p);				\
++	__unqual_scalar_typeof(*p) ___p1 = READ_ONCE(*p);		\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	__smp_mb();							\
+-	___p1;								\
++	(typeof(*p))___p1;						\
  })
+ #endif
  
- #define READ_ONCE(x)	READ_ONCE_NOCHECK(x)
+@@ -183,10 +183,10 @@ do {									\
+ #ifndef smp_load_acquire
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = READ_ONCE(*p);				\
++	__unqual_scalar_typeof(*p) ___p1 = READ_ONCE(*p);		\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+-	___p1;								\
++	(typeof(*p))___p1;						\
+ })
+ #endif
  
--#define WRITE_ONCE(x, val)				\
-+#define __WRITE_ONCE(x, val)				\
- do {							\
- 	*(volatile typeof(x) *)&(x) = (val);		\
- } while (0)
+@@ -229,14 +229,14 @@ do {									\
+ #ifndef smp_cond_load_relaxed
+ #define smp_cond_load_relaxed(ptr, cond_expr) ({		\
+ 	typeof(ptr) __PTR = (ptr);				\
+-	typeof(*ptr) VAL;					\
++	__unqual_scalar_typeof(*ptr) VAL;			\
+ 	for (;;) {						\
+ 		VAL = READ_ONCE(*__PTR);			\
+ 		if (cond_expr)					\
+ 			break;					\
+ 		cpu_relax();					\
+ 	}							\
+-	VAL;							\
++	(typeof(*ptr))VAL;					\
+ })
+ #endif
  
-+#define WRITE_ONCE(x, val)				\
-+do {							\
-+	compiletime_assert_rwonce_type(x);		\
-+	__WRITE_ONCE(x, val);				\
-+} while (0)
-+
- #ifdef CONFIG_KASAN
- /*
-  * We can't declare function 'inline' because __no_sanitize_address conflicts
-@@ -299,6 +318,16 @@ static inline void *offset_to_ptr(const int *off)
- 	compiletime_assert(__native_word(t),				\
- 		"Need native word sized stores/loads for atomicity.")
- 
-+/*
-+ * Yes, this permits 64-bit accesses on 32-bit architectures. These will
-+ * actually be atomic in many cases (namely x86), but for others we rely on
-+ * the access being split into 2x32-bit accesses for a 32-bit quantity (e.g.
-+ * a virtual address) and a strong prevailing wind.
-+ */
-+#define compiletime_assert_rwonce_type(t)					\
-+	compiletime_assert(__native_word(t) || sizeof(t) == sizeof(long long),	\
-+		"Unsupported access size for {READ,WRITE}_ONCE().")
-+
- /* &a[0] degrades to a pointer: a different type from an array */
- #define __must_be_array(a)	BUILD_BUG_ON_ZERO(__same_type((a), &(a)[0]))
+@@ -250,10 +250,10 @@ do {									\
+  */
+ #ifndef smp_cond_load_acquire
+ #define smp_cond_load_acquire(ptr, cond_expr) ({		\
+-	typeof(*ptr) _val;					\
++	__unqual_scalar_typeof(*ptr) _val;			\
+ 	_val = smp_cond_load_relaxed(ptr, cond_expr);		\
+ 	smp_acquire__after_ctrl_dep();				\
+-	_val;							\
++	(typeof(*ptr))_val;					\
+ })
+ #endif
  
 -- 
 2.26.0.110.g2183baf09c-goog
