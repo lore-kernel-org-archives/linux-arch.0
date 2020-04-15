@@ -1,91 +1,57 @@
-Return-Path: <SRS0=EpiA=6E=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-References: <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
- <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
- <202001271519.AA6ADEACF0@keescook>
- <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
- <202001281457.FA11CC313A@keescook>
- <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
- <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
- <20200129170939.GA4277@infradead.org>
- <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
- <202001300945.7D465B5F5@keescook>
- <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
- <7d810f6d-8085-ea2f-7805-47ba3842dc50@suse.cz>
-From: Jiri Slaby <jslaby@suse.cz>
-Message-ID: <548e6212-7b3c-5925-19f2-699af451fd16@suse.cz>
-Date: Mon, 20 Apr 2020 09:53:20 +0200
-MIME-Version: 1.0
-In-Reply-To: <7d810f6d-8085-ea2f-7805-47ba3842dc50@suse.cz>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Vlastimil Babka <vbabka@suse.cz>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Michal Kubecek <mkubecek@suse.cz>
+Return-Path: <SRS0=yBTr=57=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:45914 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1416863AbgDOStt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Apr 2020 14:49:49 -0400
+From: paulmck@kernel.org
+Subject: [PATCH lkmm tip/core/rcu 07/10] tools/memory-model: Add an exception for limitations on _unless() family
+Date: Wed, 15 Apr 2020 11:49:42 -0700
+Message-ID: <20200415184945.16487-7-paulmck@kernel.org>
+In-Reply-To: <20200415183343.GA12265@paulmck-ThinkPad-P72>
+References: <20200415183343.GA12265@paulmck-ThinkPad-P72>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200420075320.kulbSdBlU3dQM1ybfjAAvfXP_rLbMfF8hsz12sKqgfQ@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E . McKenney" <paulmck@kernel.org>
+Message-ID: <20200415184942.OrclyB9fD61ujO2CxwxFUiCZvtsKP54-7jTubvrX_ng@z>
 
-On 07. 04. 20, 10:00, Vlastimil Babka wrote:
-> From d5190e4e871689a530da3c3fd327be45a88f006a Mon Sep 17 00:00:00 2001
-> From: Vlastimil Babka <vbabka@suse.cz>
-> Date: Tue, 7 Apr 2020 09:58:00 +0200
-> Subject: [PATCH] usercopy: Mark dma-kmalloc caches as usercopy caches
-> 
-> We have seen a "usercopy: Kernel memory overwrite attempt detected to SLUB
-> object 'dma-kmalloc-1 k' (offset 0, size 11)!" error on s390x, as IUCV uses
-> kmalloc() with __GFP_DMA because of memory address restrictions.
-> The issue has been discussed [2] and it has been noted that if all the kmalloc
-> caches are marked as usercopy, there's little reason not to mark dma-kmalloc
-> caches too. The 'dma' part merely means that __GFP_DMA is used to restrict
-> memory address range.
-> 
-> As Jann Horn put it [3]:
-> 
-> "I think dma-kmalloc slabs should be handled the same way as normal
-> kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
-> just normal kernel memory - even if it might later be used for DMA -,
-> and it should be perfectly fine to copy_from_user() into such
-> allocations at that point, and to copy_to_user() out of them at the
-> end. If you look at the places where such allocations are created, you
-> can see things like kmemdup(), memcpy() and so on - all normal
-> operations that shouldn't conceptually be different from usercopy in
-> any relevant way."
-> 
-> Thus this patch marks the dma-kmalloc-* caches as usercopy.
-> 
-> [1] https://bugzilla.suse.com/show_bug.cgi?id=1156053
-> [2] https://lore.kernel.org/kernel-hardening/bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz/
-> [3] https://lore.kernel.org/kernel-hardening/CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com/
-> 
-> Signed-off-by: Vlastimil Babka <vbabka@suse.cz>
+From: Boqun Feng <boqun.feng@gmail.com>
 
-Friendly ping.
+According to Luc, atomic_add_unless() is directly provided by herd7,
+therefore it can be used in litmus tests. So change the limitation
+section in README to unlimit the use of atomic_add_unless().
 
-Acked-by: Jiri Slaby <jslaby@suse.cz>
+Cc: Luc Maranget <luc.maranget@inria.fr>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
+Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+---
+ tools/memory-model/README | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
-> ---
->  mm/slab_common.c | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
-> 
-> diff --git a/mm/slab_common.c b/mm/slab_common.c
-> index 5282f881d2f5..ae9486160594 100644
-> --- a/mm/slab_common.c
-> +++ b/mm/slab_common.c
-> @@ -1303,7 +1303,8 @@ void __init create_kmalloc_caches(slab_flags_t flags)
->  			kmalloc_caches[KMALLOC_DMA][i] = create_kmalloc_cache(
->  				kmalloc_info[i].name[KMALLOC_DMA],
->  				kmalloc_info[i].size,
-> -				SLAB_CACHE_DMA | flags, 0, 0);
-> +				SLAB_CACHE_DMA | flags, 0,
-> +				kmalloc_info[i].size);
->  		}
->  	}
->  #endif
-> 
-
-thanks,
+diff --git a/tools/memory-model/README b/tools/memory-model/README
+index fc07b52..b9c562e 100644
+--- a/tools/memory-model/README
++++ b/tools/memory-model/README
+@@ -207,11 +207,15 @@ The Linux-kernel memory model (LKMM) has the following limitations:
+ 		case as a store release.
+ 
+ 	b.	The "unless" RMW operations are not currently modeled:
+-		atomic_long_add_unless(), atomic_add_unless(),
+-		atomic_inc_unless_negative(), and
+-		atomic_dec_unless_positive().  These can be emulated
++		atomic_long_add_unless(), atomic_inc_unless_negative(),
++		and atomic_dec_unless_positive().  These can be emulated
+ 		in litmus tests, for example, by using atomic_cmpxchg().
+ 
++		One exception of this limitation is atomic_add_unless(),
++		which is provided directly by herd7 (so no corresponding
++		definition in linux-kernel.def).  atomic_add_unless() is
++		modeled by herd7 therefore it can be used in litmus tests.
++
+ 	c.	The call_rcu() function is not modeled.  It can be
+ 		emulated in litmus tests by adding another process that
+ 		invokes synchronize_rcu() and the body of the callback
 -- 
-js
-suse labs
+2.9.5
