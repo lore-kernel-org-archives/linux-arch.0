@@ -1,27 +1,185 @@
-Return-Path: <SRS0=lzY1=6F=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 21 Apr 2020 16:29:48 +0100
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [PATCH v3 20/23] fs: Allow copy_mount_options() to access
- user-space in a single pass
-Message-ID: <20200421152948.GC23230@ZenIV.linux.org.uk>
-References: <20200421142603.3894-1-catalin.marinas@arm.com>
- <20200421142603.3894-21-catalin.marinas@arm.com>
+Return-Path: <SRS0=yBTr=57=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:55342 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2410533AbgDOQxU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Apr 2020 12:53:20 -0400
+From: Will Deacon <will@kernel.org>
+Subject: [PATCH v3 11/12] compiler/gcc: Raise minimum GCC version for kernel builds to 4.8
+Date: Wed, 15 Apr 2020 17:52:17 +0100
+Message-ID: <20200415165218.20251-12-will@kernel.org>
+In-Reply-To: <20200415165218.20251-1-will@kernel.org>
+References: <20200415165218.20251-1-will@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200421142603.3894-21-catalin.marinas@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200421152948.5yH_a2dk35TNEAEk4xgqwvJh5ygasrSXCXvPSTYfGAg@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200415165217.MRaE9wJVEVU60z0LVc6Br1Q1EPXpoM-O7DC8zRz3v-I@z>
 
-On Tue, Apr 21, 2020 at 03:26:00PM +0100, Catalin Marinas wrote:
+It is very rare to see versions of GCC prior to 4.8 being used to build
+the mainline kernel. These old compilers are also know to have codegen
+issues which can lead to silent miscompilation:
 
-> While this function is not on a critical path, the single-pass behaviour
-> is required for arm64 MTE (memory tagging) support where a uaccess can
-> trigger intra-page faults (tag not matching). With the current
-> implementation, if this happens during the first page, the function will
-> return -EFAULT.
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
 
-Details, please.
+Raise the minimum GCC version for kernel build to 4.8 and remove some
+tautological Kconfig dependencies as a consequence.
+
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Masahiro Yamada <masahiroy@kernel.org>
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+Signed-off-by: Will Deacon <will@kernel.org>
+---
+ Documentation/process/changes.rst |  2 +-
+ arch/arm/crypto/Kconfig           | 12 ++++++------
+ crypto/Kconfig                    |  1 -
+ include/linux/compiler-gcc.h      |  5 ++---
+ init/Kconfig                      |  1 -
+ scripts/Kconfig.include           |  3 ---
+ scripts/gcc-plugins/Kconfig       |  2 +-
+ 7 files changed, 10 insertions(+), 16 deletions(-)
+
+diff --git a/Documentation/process/changes.rst b/Documentation/process/changes.rst
+index 91c5ff8e161e..5cfb54c2aaa6 100644
+--- a/Documentation/process/changes.rst
++++ b/Documentation/process/changes.rst
+@@ -29,7 +29,7 @@ you probably needn't concern yourself with pcmciautils.
+ ====================== ===============  ========================================
+         Program        Minimal version       Command to check the version
+ ====================== ===============  ========================================
+-GNU C                  4.6              gcc --version
++GNU C                  4.8              gcc --version
+ GNU make               3.81             make --version
+ binutils               2.23             ld -v
+ flex                   2.5.35           flex --version
+diff --git a/arch/arm/crypto/Kconfig b/arch/arm/crypto/Kconfig
+index 2674de6ada1f..c9bf2df85cb9 100644
+--- a/arch/arm/crypto/Kconfig
++++ b/arch/arm/crypto/Kconfig
+@@ -30,7 +30,7 @@ config CRYPTO_SHA1_ARM_NEON
+ 
+ config CRYPTO_SHA1_ARM_CE
+ 	tristate "SHA1 digest algorithm (ARM v8 Crypto Extensions)"
+-	depends on KERNEL_MODE_NEON && (CC_IS_CLANG || GCC_VERSION >= 40800)
++	depends on KERNEL_MODE_NEON
+ 	select CRYPTO_SHA1_ARM
+ 	select CRYPTO_HASH
+ 	help
+@@ -39,7 +39,7 @@ config CRYPTO_SHA1_ARM_CE
+ 
+ config CRYPTO_SHA2_ARM_CE
+ 	tristate "SHA-224/256 digest algorithm (ARM v8 Crypto Extensions)"
+-	depends on KERNEL_MODE_NEON && (CC_IS_CLANG || GCC_VERSION >= 40800)
++	depends on KERNEL_MODE_NEON
+ 	select CRYPTO_SHA256_ARM
+ 	select CRYPTO_HASH
+ 	help
+@@ -96,7 +96,7 @@ config CRYPTO_AES_ARM_BS
+ 
+ config CRYPTO_AES_ARM_CE
+ 	tristate "Accelerated AES using ARMv8 Crypto Extensions"
+-	depends on KERNEL_MODE_NEON && (CC_IS_CLANG || GCC_VERSION >= 40800)
++	depends on KERNEL_MODE_NEON
+ 	select CRYPTO_SKCIPHER
+ 	select CRYPTO_LIB_AES
+ 	select CRYPTO_SIMD
+@@ -106,7 +106,7 @@ config CRYPTO_AES_ARM_CE
+ 
+ config CRYPTO_GHASH_ARM_CE
+ 	tristate "PMULL-accelerated GHASH using NEON/ARMv8 Crypto Extensions"
+-	depends on KERNEL_MODE_NEON && (CC_IS_CLANG || GCC_VERSION >= 40800)
++	depends on KERNEL_MODE_NEON
+ 	select CRYPTO_HASH
+ 	select CRYPTO_CRYPTD
+ 	select CRYPTO_GF128MUL
+@@ -118,13 +118,13 @@ config CRYPTO_GHASH_ARM_CE
+ 
+ config CRYPTO_CRCT10DIF_ARM_CE
+ 	tristate "CRCT10DIF digest algorithm using PMULL instructions"
+-	depends on KERNEL_MODE_NEON && (CC_IS_CLANG || GCC_VERSION >= 40800)
++	depends on KERNEL_MODE_NEON
+ 	depends on CRC_T10DIF
+ 	select CRYPTO_HASH
+ 
+ config CRYPTO_CRC32_ARM_CE
+ 	tristate "CRC32(C) digest algorithm using CRC and/or PMULL instructions"
+-	depends on KERNEL_MODE_NEON && (CC_IS_CLANG || GCC_VERSION >= 40800)
++	depends on KERNEL_MODE_NEON
+ 	depends on CRC32
+ 	select CRYPTO_HASH
+ 
+diff --git a/crypto/Kconfig b/crypto/Kconfig
+index c24a47406f8f..34a8c5bfd062 100644
+--- a/crypto/Kconfig
++++ b/crypto/Kconfig
+@@ -316,7 +316,6 @@ config CRYPTO_AEGIS128
+ config CRYPTO_AEGIS128_SIMD
+ 	bool "Support SIMD acceleration for AEGIS-128"
+ 	depends on CRYPTO_AEGIS128 && ((ARM || ARM64) && KERNEL_MODE_NEON)
+-	depends on !ARM || CC_IS_CLANG || GCC_VERSION >= 40800
+ 	default y
+ 
+ config CRYPTO_AEGIS128_AESNI_SSE2
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index d7ee4c6bad48..e2f725273261 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -10,7 +10,8 @@
+ 		     + __GNUC_MINOR__ * 100	\
+ 		     + __GNUC_PATCHLEVEL__)
+ 
+-#if GCC_VERSION < 40600
++/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145 */
++#if GCC_VERSION < 40800
+ # error Sorry, your compiler is too old - please upgrade it.
+ #endif
+ 
+@@ -126,9 +127,7 @@
+ #if defined(CONFIG_ARCH_USE_BUILTIN_BSWAP) && !defined(__CHECKER__)
+ #define __HAVE_BUILTIN_BSWAP32__
+ #define __HAVE_BUILTIN_BSWAP64__
+-#if GCC_VERSION >= 40800
+ #define __HAVE_BUILTIN_BSWAP16__
+-#endif
+ #endif /* CONFIG_ARCH_USE_BUILTIN_BSWAP && !__CHECKER__ */
+ 
+ #if GCC_VERSION >= 70000
+diff --git a/init/Kconfig b/init/Kconfig
+index 816b8b4a5e9e..e94e4d93a361 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1285,7 +1285,6 @@ config LD_DEAD_CODE_DATA_ELIMINATION
+ 	bool "Dead code and data elimination (EXPERIMENTAL)"
+ 	depends on HAVE_LD_DEAD_CODE_DATA_ELIMINATION
+ 	depends on EXPERT
+-	depends on !(FUNCTION_TRACER && CC_IS_GCC && GCC_VERSION < 40800)
+ 	depends on $(cc-option,-ffunction-sections -fdata-sections)
+ 	depends on $(ld-option,--gc-sections)
+ 	help
+diff --git a/scripts/Kconfig.include b/scripts/Kconfig.include
+index 5261e9d6b50b..b2dfba594042 100644
+--- a/scripts/Kconfig.include
++++ b/scripts/Kconfig.include
+@@ -60,6 +60,3 @@ gcc-version := $(shell,$(srctree)/scripts/gcc-version.sh $(CC))
+ 
+ # Return y if the compiler is GCC, n otherwise
+ cc-is-gcc := $(success,$(CC) --version | head -n 1 | grep -q gcc)
+-
+-# Warn if the compiler is GCC prior to 4.8
+-$(warning-if,$(if-success,[ $(gcc-version) -lt 40800 ],$(cc-is-gcc),n),"Your compiler is old and may miscompile the kernel due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145 - please upgrade it.")
+diff --git a/scripts/gcc-plugins/Kconfig b/scripts/gcc-plugins/Kconfig
+index 013ba3a57669..ce0b99fb5847 100644
+--- a/scripts/gcc-plugins/Kconfig
++++ b/scripts/gcc-plugins/Kconfig
+@@ -8,7 +8,7 @@ config HAVE_GCC_PLUGINS
+ menuconfig GCC_PLUGINS
+ 	bool "GCC plugins"
+ 	depends on HAVE_GCC_PLUGINS
+-	depends on CC_IS_GCC && GCC_VERSION >= 40800
++	depends on CC_IS_GCC
+ 	depends on $(success,$(srctree)/scripts/gcc-plugin.sh $(CC))
+ 	default y
+ 	help
+-- 
+2.26.0.110.g2183baf09c-goog
