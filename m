@@ -1,102 +1,107 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v3 1/2] arm64: tlb: Detect the ARMv8.4 TLBI RANGE feature
-Date: Tue, 14 Apr 2020 19:28:34 +0800
-Message-ID: <20200414112835.1121-2-yezhenyu2@huawei.com>
-In-Reply-To: <20200414112835.1121-1-yezhenyu2@huawei.com>
-References: <20200414112835.1121-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=yBTr=57=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:51634 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2404592AbgDOT0s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Apr 2020 15:26:48 -0400
+Subject: Re: [PATCH v3 05/12] arm64: csum: Disable KASAN for do_csum()
+References: <20200415165218.20251-1-will@kernel.org>
+ <20200415165218.20251-6-will@kernel.org>
+From: Robin Murphy <robin.murphy@arm.com>
+Message-ID: <4d31aca5-56dd-2ca5-d1b8-f754ad184b04@arm.com>
+Date: Wed, 15 Apr 2020 20:26:43 +0100
 MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: will@kernel.org, catalin.marinas@arm.com, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+In-Reply-To: <20200415165218.20251-6-will@kernel.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414112834.oK9gRA7yz2uQeczvkAt1zyLeufRQtB-FKRNdcvfdS1Q@z>
+To: Will Deacon <will@kernel.org>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Mark Rutland <mark.rutland@arm.com>
+Message-ID: <20200415192643.dcgaMNiZl2cBzB6Ck-7nPeTVH2HXN9FIXqBXFeaBLa8@z>
 
-ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
-range of input addresses. This patch detect this feature.
+On 2020-04-15 5:52 pm, Will Deacon wrote:
+> do_csum() over-reads the source buffer and therefore abuses
+> READ_ONCE_NOCHECK() to avoid tripping up KASAN. In preparation for
+> READ_ONCE_NOCHECK() becoming a macro, and therefore losing its
+> '__no_sanitize_address' annotation, just annotate do_csum() explicitly
+> and fall back to normal loads.
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/cpucaps.h |  3 ++-
- arch/arm64/include/asm/sysreg.h  |  4 ++++
- arch/arm64/kernel/cpufeature.c   | 11 +++++++++++
- 3 files changed, 17 insertions(+), 1 deletion(-)
+FWIW with most compilers I played with, the read-once-ness *was* also 
+important to ensure the uint128_t accesses compose to nice efficient 
+LDPs rather than being split into a motley mess of individual LDRs.
 
-diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cp=
-ucaps.h
-index 8eb5a088ae65..950095a72617 100644
---- a/arch/arm64/include/asm/cpucaps.h
-+++ b/arch/arm64/include/asm/cpucaps.h
-@@ -61,7 +61,8 @@
- #define ARM64_HAS_AMU_EXTN			51
- #define ARM64_HAS_ADDRESS_AUTH			52
- #define ARM64_HAS_GENERIC_AUTH			53
-+#define ARM64_HAS_TLBI_RANGE			54
-=20
--#define ARM64_NCAPS				54
-+#define ARM64_NCAPS				55
-=20
- #endif /* __ASM_CPUCAPS_H */
-diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sys=
-reg.h
-index ebc622432831..ac1b98650234 100644
---- a/arch/arm64/include/asm/sysreg.h
-+++ b/arch/arm64/include/asm/sysreg.h
-@@ -592,6 +592,7 @@
-=20
- /* id_aa64isar0 */
- #define ID_AA64ISAR0_RNDR_SHIFT		60
-+#define ID_AA64ISAR0_TLBI_RANGE_SHIFT	56
- #define ID_AA64ISAR0_TS_SHIFT		52
- #define ID_AA64ISAR0_FHM_SHIFT		48
- #define ID_AA64ISAR0_DP_SHIFT		44
-@@ -605,6 +606,9 @@
- #define ID_AA64ISAR0_SHA1_SHIFT		8
- #define ID_AA64ISAR0_AES_SHIFT		4
-=20
-+#define ID_AA64ISAR0_TLBI_RANGE_NI	0x0
-+#define ID_AA64ISAR0_TLBI_RANGE		0x2
-+
- /* id_aa64isar1 */
- #define ID_AA64ISAR1_I8MM_SHIFT		52
- #define ID_AA64ISAR1_DGH_SHIFT		48
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeatur=
-e.c
-index 9fac745aa7bb..31bcfd0722b5 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -124,6 +124,7 @@ static bool __system_matches_cap(unsigned int n);
-  */
- static const struct arm64_ftr_bits ftr_id_aa64isar0[] =3D {
- 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_RN=
-DR_SHIFT, 4, 0),
-+	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_TL=
-BI_RANGE_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_TS=
-_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_FH=
-M_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_DP=
-_SHIFT, 4, 0),
-@@ -1779,6 +1780,16 @@ static const struct arm64_cpu_capabilities arm64_f=
-eatures[] =3D {
- 		.min_field_value =3D 1,
- 	},
- #endif
-+	{
-+		.desc =3D "TLB range maintenance instruction",
-+		.capability =3D ARM64_HAS_TLBI_RANGE,
-+		.type =3D ARM64_CPUCAP_SYSTEM_FEATURE,
-+		.matches =3D has_cpuid_feature,
-+		.sys_reg =3D SYS_ID_AA64ISAR0_EL1,
-+		.field_pos =3D ID_AA64ISAR0_TLBI_RANGE_SHIFT,
-+		.sign =3D FTR_UNSIGNED,
-+		.min_field_value =3D ID_AA64ISAR0_TLBI_RANGE,
-+	},
- 	{},
- };
-=20
---=20
-2.19.1
+The buffer loads that aren't the first or potentially the last didn't 
+strictly need to be nocheck, however since the whole range gets 
+explicitly checked up-front they may as well avoid further unnecessary 
+KASAN penalty, plus it made things look nice and consistent :)
+
+Robin.
+
+> Cc: Mark Rutland <mark.rutland@arm.com>
+> Cc: Robin Murphy <robin.murphy@arm.com>
+> Signed-off-by: Will Deacon <will@kernel.org>
+> ---
+>   arch/arm64/lib/csum.c | 20 ++++++++++++--------
+>   1 file changed, 12 insertions(+), 8 deletions(-)
+> 
+> diff --git a/arch/arm64/lib/csum.c b/arch/arm64/lib/csum.c
+> index 60eccae2abad..78b87a64ca0a 100644
+> --- a/arch/arm64/lib/csum.c
+> +++ b/arch/arm64/lib/csum.c
+> @@ -14,7 +14,11 @@ static u64 accumulate(u64 sum, u64 data)
+>   	return tmp + (tmp >> 64);
+>   }
+>   
+> -unsigned int do_csum(const unsigned char *buff, int len)
+> +/*
+> + * We over-read the buffer and this makes KASAN unhappy. Instead, disable
+> + * instrumentation and call kasan explicitly.
+> + */
+> +unsigned int __no_sanitize_address do_csum(const unsigned char *buff, int len)
+>   {
+>   	unsigned int offset, shift, sum;
+>   	const u64 *ptr;
+> @@ -42,7 +46,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
+>   	 * odd/even alignment, and means we can ignore it until the very end.
+>   	 */
+>   	shift = offset * 8;
+> -	data = READ_ONCE_NOCHECK(*ptr++);
+> +	data = *ptr++;
+>   #ifdef __LITTLE_ENDIAN
+>   	data = (data >> shift) << shift;
+>   #else
+> @@ -58,10 +62,10 @@ unsigned int do_csum(const unsigned char *buff, int len)
+>   	while (unlikely(len > 64)) {
+>   		__uint128_t tmp1, tmp2, tmp3, tmp4;
+>   
+> -		tmp1 = READ_ONCE_NOCHECK(*(__uint128_t *)ptr);
+> -		tmp2 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 2));
+> -		tmp3 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 4));
+> -		tmp4 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 6));
+> +		tmp1 = *(__uint128_t *)ptr;
+> +		tmp2 = *(__uint128_t *)(ptr + 2);
+> +		tmp3 = *(__uint128_t *)(ptr + 4);
+> +		tmp4 = *(__uint128_t *)(ptr + 6);
+>   
+>   		len -= 64;
+>   		ptr += 8;
+> @@ -85,7 +89,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
+>   		__uint128_t tmp;
+>   
+>   		sum64 = accumulate(sum64, data);
+> -		tmp = READ_ONCE_NOCHECK(*(__uint128_t *)ptr);
+> +		tmp = *(__uint128_t *)ptr;
+>   
+>   		len -= 16;
+>   		ptr += 2;
+> @@ -100,7 +104,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
+>   	}
+>   	if (len > 0) {
+>   		sum64 = accumulate(sum64, data);
+> -		data = READ_ONCE_NOCHECK(*ptr);
+> +		data = *ptr;
+>   		len -= 8;
+>   	}
+>   	/*
+> 
