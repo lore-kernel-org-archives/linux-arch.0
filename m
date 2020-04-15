@@ -1,52 +1,76 @@
-From: paulmck@kernel.org
-Subject: [PATCH lkmm tip/core/rcu 07/10] tools/memory-model: Add an exception for limitations on _unless() family
-Date: Wed, 15 Apr 2020 11:49:42 -0700
-Message-ID: <20200415184945.16487-7-paulmck@kernel.org>
-References: <20200415183343.GA12265@paulmck-ThinkPad-P72>
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v3 05/12] arm64: csum: Disable KASAN for do_csum()
+Date: Wed, 15 Apr 2020 20:26:05 +0100
+Message-ID: <20200415192605.GA21804@willie-the-truck>
+References: <20200415165218.20251-1-will@kernel.org>
+ <20200415165218.20251-6-will@kernel.org>
+ <20200415172813.GA2272@lakrids.cambridge.arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200415183343.GA12265@paulmck-ThinkPad-P72>
+Content-Disposition: inline
+In-Reply-To: <20200415172813.GA2272@lakrids.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E . McKenney" <paulmck@kernel.org>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@android.com, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Robin Murphy <robin.murphy@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Boqun Feng <boqun.feng@gmail.com>
+On Wed, Apr 15, 2020 at 06:28:14PM +0100, Mark Rutland wrote:
+> On Wed, Apr 15, 2020 at 05:52:11PM +0100, Will Deacon wrote:
+> > do_csum() over-reads the source buffer and therefore abuses
+> > READ_ONCE_NOCHECK() to avoid tripping up KASAN. In preparation for
+> > READ_ONCE_NOCHECK() becoming a macro, and therefore losing its
+> > '__no_sanitize_address' annotation, just annotate do_csum() explicitly
+> > and fall back to normal loads.
+> 
+> I'm confused by this. The whole point of READ_ONCE_NOCHECK() is that it
+> isn't checked by KASAN, so if that semantic is removed it has no reason
+> to exist.
 
-According to Luc, atomic_add_unless() is directly provided by herd7,
-therefore it can be used in litmus tests. So change the limitation
-section in README to unlimit the use of atomic_add_unless().
+Oh, I thought it was there to be used by things like KASAN itself and
+because READ_ONCE() was implemented using a static function, then that
+function had to be marked as __no_sanitize_address when used in these
+cases. Now that it's just a macro, that's not necessary so it's just
+the same as normal READ_ONCE().
 
-Cc: Luc Maranget <luc.maranget@inria.fr>
-Acked-by: Andrea Parri <parri.andrea@gmail.com>
-Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
-Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
----
- tools/memory-model/README | 10 +++++++---
- 1 file changed, 7 insertions(+), 3 deletions(-)
+Do we have a "nocheck" version where we don't require the READ_ONCE()
+semantics? I think abusing a relaxed concurrency primitive for this is
+not the right thing to do, particularly when the __no_sanitize_address
+annotation is available. I fact, it's almost an argument in favour
+of removing READ_ONCE_NOCHECK() so that people use the annotation instead!
 
-diff --git a/tools/memory-model/README b/tools/memory-model/README
-index fc07b52..b9c562e 100644
---- a/tools/memory-model/README
-+++ b/tools/memory-model/README
-@@ -207,11 +207,15 @@ The Linux-kernel memory model (LKMM) has the following limitations:
- 		case as a store release.
- 
- 	b.	The "unless" RMW operations are not currently modeled:
--		atomic_long_add_unless(), atomic_add_unless(),
--		atomic_inc_unless_negative(), and
--		atomic_dec_unless_positive().  These can be emulated
-+		atomic_long_add_unless(), atomic_inc_unless_negative(),
-+		and atomic_dec_unless_positive().  These can be emulated
- 		in litmus tests, for example, by using atomic_cmpxchg().
- 
-+		One exception of this limitation is atomic_add_unless(),
-+		which is provided directly by herd7 (so no corresponding
-+		definition in linux-kernel.def).  atomic_add_unless() is
-+		modeled by herd7 therefore it can be used in litmus tests.
-+
- 	c.	The call_rcu() function is not modeled.  It can be
- 		emulated in litmus tests by adding another process that
- 		invokes synchronize_rcu() and the body of the callback
--- 
-2.9.5
+> Changing that will break the unwind/stacktrace code across multiple
+> architectures. IIRC they use READ_ONCE_NOCHECK() for two reasons:
+> 
+> 1. Races with concurrent modification, as might happen when a thread's
+>    stack is corrupted. Allowing the unwinder to bail out after a sanity
+>    check means the resulting report is more useful than a KASAN splat in
+>    the unwinder. I made the arm64 unwinder robust to this case.
+> 
+> 2. I believe that the frame record itself /might/ be poisoned by KASAN,
+>    since it's not meant to be an accessible object at the C langauge
+>    level. I could be wrong about this, and would have to check.
+
+Ok.
+
+> I would like to keep the unwinding robust in the first case, even if the
+> second case doesn't apply, and I'd prefer to not mark the entirety of
+> the unwinding code as unchecked as that's sufficiently large an subtle
+> that it could have nasty bugs.
+
+Hmm, maybe. I don't really see what's wrong with annotating the unwinding
+code, though. You can still tell kasan about the accesses you're making,
+like we do in the checksumming code here, and it's not hard to move the
+frame-pointer chasing code into a separate function.
+
+> Is there any way we keep something like READ_ONCE_NOCHECK() around even
+> if we have to give it reduced functionality relative to READ_ONCE()?
+> 
+> I'm not enirely sure why READ_ONCE_NOCHECK() had to go, so if there's a
+> particular pain point I'm happy to take a look.
+
+I got rid if it because I thought it wasn't required now that it's
+implemented entirely as a macro. I'd be reluctant to bring it back if
+there isn't a non-ONCE version of the helper.
+
+Will
