@@ -1,61 +1,68 @@
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: [PATCH memory-model 0/10] LKMM updates for v5.8
-Date: Wed, 15 Apr 2020 11:49:19 -0700
-Message-ID: <20200415184918.GA16301@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: paulmck@kernel.org
+Subject: [PATCH lkmm tip/core/rcu 01/10] tools/memory-model: Add recent references
+Date: Wed, 15 Apr 2020 11:49:36 -0700
+Message-ID: <20200415184945.16487-1-paulmck@kernel.org>
+References: <20200415183343.GA12265@paulmck-ThinkPad-P72>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
+In-Reply-To: <20200415183343.GA12265@paulmck-ThinkPad-P72>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hello!
+From: "Paul E. McKenney" <paulmck@kernel.org>
 
-This series contains LKMM updates:
+This commit updates the list of LKMM-related publications in
+Documentation/references.txt.
 
-1.	Add recent references.
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
+---
+ tools/memory-model/Documentation/references.txt | 21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
 
-2.	Fix "conflict" definition, courtesy of Marco Elver.
-
-3.	Move MP+onceassign+derefonce to new litmus-tests/rcu/, courtesy
-	of Joel Fernandes.
-
-4.	Add litmus test for RCU GP guarantee where updater frees object,
-	courtesy of Joel Fernandes.
-
-5.	Add litmus test for RCU GP guarantee where reader stores, courtesy
-	of Joel Fernandes.
-
-6.	Update maintainers for new Documentaion/litmus-tests/, courtesy of
-	Joel Fernandes.
-
-7.	Add an exception for limitations on _unless() family, courtesy of
-	Boqun Feng.
-
-8.	Introduce an atomic directory in Documentation, courtesy of Boqun
-	Feng.
-
-9.	Add a test for atomic_set(), courtesy of Boqun Feng.
-
-10.	Add a test for smp_mb__after_atomic(), courtesy of Boqun Feng.
-
-							Thanx, Paul
-
-------------------------------------------------------------------------
-
- Documentation/atomic_t.txt                                                                    |   24 +-
- Documentation/litmus-tests/README                                                             |   14 +
- Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus |   32 +++
- Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus             |   24 ++
- Documentation/litmus-tests/atomic/README                                                      |   16 +
- Documentation/litmus-tests/rcu/RCU+sync+free.litmus                                           |   42 +++++
- Documentation/litmus-tests/rcu/RCU+sync+read.litmus                                           |   37 ++++
- MAINTAINERS                                                                                   |    2 
- tools/memory-model/Documentation/explanation.txt                                              |   83 +++++-----
- tools/memory-model/Documentation/references.txt                                               |   21 ++
- tools/memory-model/README                                                                     |   10 -
- tools/memory-model/litmus-tests/README                                                        |    3 
- 12 files changed, 250 insertions(+), 58 deletions(-)
+diff --git a/tools/memory-model/Documentation/references.txt b/tools/memory-model/Documentation/references.txt
+index b177f3e..ecbbaa5 100644
+--- a/tools/memory-model/Documentation/references.txt
++++ b/tools/memory-model/Documentation/references.txt
+@@ -73,6 +73,18 @@ o	Christopher Pulte, Shaked Flur, Will Deacon, Jon French,
+ Linux-kernel memory model
+ =========================
+ 
++o	Jade Alglave, Will Deacon, Boqun Feng, David Howells, Daniel
++	Lustig, Luc Maranget, Paul E. McKenney, Andrea Parri, Nicholas
++	Piggin, Alan Stern, Akira Yokosawa, and Peter Zijlstra.
++	2019. "Calibrating your fear of big bad optimizing compilers"
++	Linux Weekly News.  https://lwn.net/Articles/799218/
++
++o	Jade Alglave, Will Deacon, Boqun Feng, David Howells, Daniel
++	Lustig, Luc Maranget, Paul E. McKenney, Andrea Parri, Nicholas
++	Piggin, Alan Stern, Akira Yokosawa, and Peter Zijlstra.
++	2019. "Who's afraid of a big bad optimizing compiler?"
++	Linux Weekly News.  https://lwn.net/Articles/793253/
++
+ o	Jade Alglave, Luc Maranget, Paul E. McKenney, Andrea Parri, and
+ 	Alan Stern.  2018. "Frightening small children and disconcerting
+ 	grown-ups: Concurrency in the Linux kernel". In Proceedings of
+@@ -88,6 +100,11 @@ o	Jade Alglave, Luc Maranget, Paul E. McKenney, Andrea Parri, and
+ 	Alan Stern.  2017.  "A formal kernel memory-ordering model (part 2)"
+ 	Linux Weekly News.  https://lwn.net/Articles/720550/
+ 
++o	Jade Alglave, Luc Maranget, Paul E. McKenney, Andrea Parri, and
++	Alan Stern.  2017-2019.  "A Formal Model of Linux-Kernel Memory
++	Ordering" (backup material for the LWN articles)
++	https://mirrors.edge.kernel.org/pub/linux/kernel/people/paulmck/LWNLinuxMM/
++
+ 
+ Memory-model tooling
+ ====================
+@@ -110,5 +127,5 @@ Memory-model comparisons
+ ========================
+ 
+ o	Paul E. McKenney, Ulrich Weigand, Andrea Parri, and Boqun
+-	Feng. 2016. "Linux-Kernel Memory Model". (6 June 2016).
+-	http://open-std.org/JTC1/SC22/WG21/docs/papers/2016/p0124r2.html.
++	Feng. 2018. "Linux-Kernel Memory Model". (27 September 2018).
++	http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0124r6.html.
+-- 
+2.9.5
