@@ -1,97 +1,52 @@
-Return-Path: <SRS0=BI31=6F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35220 "EHLO mail.kernel.org"
+Return-Path: <SRS0=yBTr=57=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:45886 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727911AbgDUPQM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 21 Apr 2020 11:16:12 -0400
-From: Will Deacon <will@kernel.org>
-Subject: [PATCH v4 09/11] locking/barriers: Use '__unqual_scalar_typeof' for load-acquire macros
-Date: Tue, 21 Apr 2020 16:15:35 +0100
-Message-ID: <20200421151537.19241-10-will@kernel.org>
-In-Reply-To: <20200421151537.19241-1-will@kernel.org>
-References: <20200421151537.19241-1-will@kernel.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        id S1416862AbgDOSts (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Apr 2020 14:49:48 -0400
+From: paulmck@kernel.org
+Subject: [PATCH lkmm tip/core/rcu 06/10] MAINTAINERS: Update maintainers for new Documentaion/litmus-tests/
+Date: Wed, 15 Apr 2020 11:49:41 -0700
+Message-ID: <20200415184945.16487-6-paulmck@kernel.org>
+In-Reply-To: <20200415183343.GA12265@paulmck-ThinkPad-P72>
+References: <20200415183343.GA12265@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200421151535.4mW2iKcn3wtNi0Z3dUAmzo5mS4gj38wrEfYJPzItPns@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Joel Fernandes (Google)" <joel@joelfernandes.org>, "Paul E . McKenney" <paulmck@kernel.org>
+Message-ID: <20200415184941.YeDaNXhJ0rb0VoPBZEPpQWja65hBYtyMxnDS6DW4STo@z>
 
-Passing volatile-qualified pointers to the asm-generic implementations of
-the load-acquire macros results in a re-load from the stack due to the
-temporary result variable inheriting the volatile semantics thanks to the
-use of 'typeof()'.
+From: "Joel Fernandes (Google)" <joel@joelfernandes.org>
 
-Define these temporary variables using 'unqual_scalar_typeof' to drop
-the volatile qualifier in the case that they are scalar types.
+Also add me as Reviewer for LKMM. Previously a patch to do this was
+Acked but somewhere along the line got lost. Add myself in this patch.
 
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Will Deacon <will@kernel.org>
+Acked-by: Boqun Feng <boqun.feng@gmail.com>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
+Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 ---
- include/asm-generic/barrier.h | 16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
+ MAINTAINERS | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-index 85b28eb80b11..2eacaf7d62f6 100644
---- a/include/asm-generic/barrier.h
-+++ b/include/asm-generic/barrier.h
-@@ -128,10 +128,10 @@ do {									\
- #ifndef __smp_load_acquire
- #define __smp_load_acquire(p)						\
- ({									\
--	typeof(*p) ___p1 = READ_ONCE(*p);				\
-+	__unqual_scalar_typeof(*p) ___p1 = READ_ONCE(*p);		\
- 	compiletime_assert_atomic_type(*p);				\
- 	__smp_mb();							\
--	___p1;								\
-+	(typeof(*p))___p1;						\
- })
- #endif
+diff --git a/MAINTAINERS b/MAINTAINERS
+index e64e5db..5d2b065 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -9806,6 +9806,7 @@ M:	Luc Maranget <luc.maranget@inria.fr>
+ M:	"Paul E. McKenney" <paulmck@kernel.org>
+ R:	Akira Yokosawa <akiyks@gmail.com>
+ R:	Daniel Lustig <dlustig@nvidia.com>
++R:	Joel Fernandes <joel@joelfernandes.org>
+ L:	linux-kernel@vger.kernel.org
+ L:	linux-arch@vger.kernel.org
+ S:	Supported
+@@ -9816,6 +9817,7 @@ F:	Documentation/core-api/atomic_ops.rst
+ F:	Documentation/core-api/refcount-vs-atomic.rst
+ F:	Documentation/memory-barriers.txt
+ F:	tools/memory-model/
++F:	Documentation/litmus-tests/
  
-@@ -183,10 +183,10 @@ do {									\
- #ifndef smp_load_acquire
- #define smp_load_acquire(p)						\
- ({									\
--	typeof(*p) ___p1 = READ_ONCE(*p);				\
-+	__unqual_scalar_typeof(*p) ___p1 = READ_ONCE(*p);		\
- 	compiletime_assert_atomic_type(*p);				\
- 	barrier();							\
--	___p1;								\
-+	(typeof(*p))___p1;						\
- })
- #endif
- 
-@@ -229,14 +229,14 @@ do {									\
- #ifndef smp_cond_load_relaxed
- #define smp_cond_load_relaxed(ptr, cond_expr) ({		\
- 	typeof(ptr) __PTR = (ptr);				\
--	typeof(*ptr) VAL;					\
-+	__unqual_scalar_typeof(*ptr) VAL;			\
- 	for (;;) {						\
- 		VAL = READ_ONCE(*__PTR);			\
- 		if (cond_expr)					\
- 			break;					\
- 		cpu_relax();					\
- 	}							\
--	VAL;							\
-+	(typeof(*ptr))VAL;					\
- })
- #endif
- 
-@@ -250,10 +250,10 @@ do {									\
-  */
- #ifndef smp_cond_load_acquire
- #define smp_cond_load_acquire(ptr, cond_expr) ({		\
--	typeof(*ptr) _val;					\
-+	__unqual_scalar_typeof(*ptr) _val;			\
- 	_val = smp_cond_load_relaxed(ptr, cond_expr);		\
- 	smp_acquire__after_ctrl_dep();				\
--	_val;							\
-+	(typeof(*ptr))_val;					\
- })
- #endif
- 
+ LIS3LV02D ACCELEROMETER DRIVER
+ M:	Eric Piel <eric.piel@tremplin-utc.net>
 -- 
-2.26.1.301.g55bc3eb7cb9-goog
+2.9.5
