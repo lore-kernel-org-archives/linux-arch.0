@@ -1,47 +1,60 @@
 From: Will Deacon <will@kernel.org>
-Subject: [PATCH v3 04/12] fault_inject: Don't rely on "return value" from WRITE_ONCE()
-Date: Wed, 15 Apr 2020 17:52:10 +0100
-Message-ID: <20200415165218.20251-5-will@kernel.org>
+Subject: [PATCH v3 02/12] netfilter: Avoid assigning 'const' pointer to non-const pointer
+Date: Wed, 15 Apr 2020 17:52:08 +0100
+Message-ID: <20200415165218.20251-3-will@kernel.org>
 References: <20200415165218.20251-1-will@kernel.org>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:54892 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2410496AbgDOQxA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Apr 2020 12:53:00 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200415165218.20251-1-will@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>
+List-Id: linux-arch.vger.kernel.org
 
-It's a bit weird that WRITE_ONCE() evaluates to the value it stores and
-it's different to smp_store_release(), which can't be used this way.
+nf_remove_net_hook() uses WRITE_ONCE() to assign a 'const' pointer to a
+'non-const' pointer. Cleanups to the implementation of WRITE_ONCE() mean
+that this will give rise to a compiler warning, just like a plain old
+assignment would do:
 
-In preparation for preventing this in WRITE_ONCE(), change the fault
-injection code to use a local variable instead.
+  | In file included from ./include/linux/export.h:43,
+  |                  from ./include/linux/linkage.h:7,
+  |                  from ./include/linux/kernel.h:8,
+  |                  from net/netfilter/core.c:9:
+  | net/netfilter/core.c: In function ‘nf_remove_net_hook’:
+  | ./include/linux/compiler.h:216:30: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  |   *(volatile typeof(x) *)&(x) = (val);  \
+  |                               ^
+  | net/netfilter/core.c:379:3: note: in expansion of macro ‘WRITE_ONCE’
+  |    WRITE_ONCE(orig_ops[i], &dummy_ops);
+  |    ^~~~~~~~~~
 
-Cc: Akinobu Mita <akinobu.mita@gmail.com>
+Follow the pattern used elsewhere in this file and add a cast to 'void *'
+to squash the warning.
+
+Cc: Pablo Neira Ayuso <pablo@netfilter.org>
+Cc: Jozsef Kadlecsik <kadlec@netfilter.org>
+Cc: Florian Westphal <fw@strlen.de>
+Cc: "David S. Miller" <davem@davemloft.net>
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- lib/fault-inject.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ net/netfilter/core.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/lib/fault-inject.c b/lib/fault-inject.c
-index 8186ca84910b..ce12621b4275 100644
---- a/lib/fault-inject.c
-+++ b/lib/fault-inject.c
-@@ -106,7 +106,9 @@ bool should_fail(struct fault_attr *attr, ssize_t size)
- 		unsigned int fail_nth = READ_ONCE(current->fail_nth);
+diff --git a/net/netfilter/core.c b/net/netfilter/core.c
+index 78f046ec506f..3ac7c8c1548d 100644
+--- a/net/netfilter/core.c
++++ b/net/netfilter/core.c
+@@ -376,7 +376,7 @@ static bool nf_remove_net_hook(struct nf_hook_entries *old,
+ 		if (orig_ops[i] != unreg)
+ 			continue;
+ 		WRITE_ONCE(old->hooks[i].hook, accept_all);
+-		WRITE_ONCE(orig_ops[i], &dummy_ops);
++		WRITE_ONCE(orig_ops[i], (void *)&dummy_ops);
+ 		return true;
+ 	}
  
- 		if (fail_nth) {
--			if (!WRITE_ONCE(current->fail_nth, fail_nth - 1))
-+			fail_nth--;
-+			WRITE_ONCE(current->fail_nth, fail_nth);
-+			if (!fail_nth)
- 				goto fail;
- 
- 			return false;
 -- 
 2.26.0.110.g2183baf09c-goog
