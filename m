@@ -1,60 +1,186 @@
 From: Will Deacon <will@kernel.org>
-Subject: [PATCH v3 02/12] netfilter: Avoid assigning 'const' pointer to non-const pointer
-Date: Wed, 15 Apr 2020 17:52:08 +0100
-Message-ID: <20200415165218.20251-3-will@kernel.org>
+Subject: [PATCH v3 06/12] READ_ONCE: Simplify implementations of {READ,WRITE}_ONCE()
+Date: Wed, 15 Apr 2020 17:52:12 +0100
+Message-ID: <20200415165218.20251-7-will@kernel.org>
 References: <20200415165218.20251-1-will@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:55018 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2410507AbgDOQxG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Apr 2020 12:53:06 -0400
 In-Reply-To: <20200415165218.20251-1-will@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
 
-nf_remove_net_hook() uses WRITE_ONCE() to assign a 'const' pointer to a
-'non-const' pointer. Cleanups to the implementation of WRITE_ONCE() mean
-that this will give rise to a compiler warning, just like a plain old
-assignment would do:
+The implementations of {READ,WRITE}_ONCE() suffer from a significant
+amount of indirection and complexity due to a historic GCC bug:
 
-  | In file included from ./include/linux/export.h:43,
-  |                  from ./include/linux/linkage.h:7,
-  |                  from ./include/linux/kernel.h:8,
-  |                  from net/netfilter/core.c:9:
-  | net/netfilter/core.c: In function ‘nf_remove_net_hook’:
-  | ./include/linux/compiler.h:216:30: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
-  |   *(volatile typeof(x) *)&(x) = (val);  \
-  |                               ^
-  | net/netfilter/core.c:379:3: note: in expansion of macro ‘WRITE_ONCE’
-  |    WRITE_ONCE(orig_ops[i], &dummy_ops);
-  |    ^~~~~~~~~~
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
 
-Follow the pattern used elsewhere in this file and add a cast to 'void *'
-to squash the warning.
+which was originally worked around by 230fa253df63 ("kernel: Provide
+READ_ONCE and ASSIGN_ONCE").
 
-Cc: Pablo Neira Ayuso <pablo@netfilter.org>
-Cc: Jozsef Kadlecsik <kadlec@netfilter.org>
-Cc: Florian Westphal <fw@strlen.de>
-Cc: "David S. Miller" <davem@davemloft.net>
-Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+Since GCC 4.8 is fairly vintage at this point and we emit a warning if
+we detect it during the build, return {READ,WRITE}_ONCE() to their former
+glory with an implementation that is easier to understand and, crucially,
+more amenable to optimisation. A side effect of this simplification is
+that WRITE_ONCE() no longer returns a value, but nobody seems to be
+relying on that and the new behaviour is aligned with smp_store_release().
+
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- net/netfilter/core.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/linux/compiler.h | 104 ++++++++++-----------------------------
+ 1 file changed, 25 insertions(+), 79 deletions(-)
 
-diff --git a/net/netfilter/core.c b/net/netfilter/core.c
-index 78f046ec506f..3ac7c8c1548d 100644
---- a/net/netfilter/core.c
-+++ b/net/netfilter/core.c
-@@ -376,7 +376,7 @@ static bool nf_remove_net_hook(struct nf_hook_entries *old,
- 		if (orig_ops[i] != unreg)
- 			continue;
- 		WRITE_ONCE(old->hooks[i].hook, accept_all);
--		WRITE_ONCE(orig_ops[i], &dummy_ops);
-+		WRITE_ONCE(orig_ops[i], (void *)&dummy_ops);
- 		return true;
- 	}
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index 034b0a644efc..0bf6c04b3f8f 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -177,60 +177,6 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+ # define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __LINE__)
+ #endif
  
+-#include <uapi/linux/types.h>
+-
+-#define __READ_ONCE_SIZE						\
+-({									\
+-	switch (size) {							\
+-	case 1: *(__u8 *)res = *(volatile __u8 *)p; break;		\
+-	case 2: *(__u16 *)res = *(volatile __u16 *)p; break;		\
+-	case 4: *(__u32 *)res = *(volatile __u32 *)p; break;		\
+-	case 8: *(__u64 *)res = *(volatile __u64 *)p; break;		\
+-	default:							\
+-		barrier();						\
+-		__builtin_memcpy((void *)res, (const void *)p, size);	\
+-		barrier();						\
+-	}								\
+-})
+-
+-static __always_inline
+-void __read_once_size(const volatile void *p, void *res, int size)
+-{
+-	__READ_ONCE_SIZE;
+-}
+-
+-#ifdef CONFIG_KASAN
+-/*
+- * We can't declare function 'inline' because __no_sanitize_address confilcts
+- * with inlining. Attempt to inline it may cause a build failure.
+- * 	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67368
+- * '__maybe_unused' allows us to avoid defined-but-not-used warnings.
+- */
+-# define __no_kasan_or_inline __no_sanitize_address notrace __maybe_unused
+-#else
+-# define __no_kasan_or_inline __always_inline
+-#endif
+-
+-static __no_kasan_or_inline
+-void __read_once_size_nocheck(const volatile void *p, void *res, int size)
+-{
+-	__READ_ONCE_SIZE;
+-}
+-
+-static __always_inline void __write_once_size(volatile void *p, void *res, int size)
+-{
+-	switch (size) {
+-	case 1: *(volatile __u8 *)p = *(__u8 *)res; break;
+-	case 2: *(volatile __u16 *)p = *(__u16 *)res; break;
+-	case 4: *(volatile __u32 *)p = *(__u32 *)res; break;
+-	case 8: *(volatile __u64 *)p = *(__u64 *)res; break;
+-	default:
+-		barrier();
+-		__builtin_memcpy((void *)p, (const void *)res, size);
+-		barrier();
+-	}
+-}
+-
+ /*
+  * Prevent the compiler from merging or refetching reads or writes. The
+  * compiler is also forbidden from reordering successive instances of
+@@ -240,11 +186,7 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+  * statements.
+  *
+  * These two macros will also work on aggregate data types like structs or
+- * unions. If the size of the accessed data type exceeds the word size of
+- * the machine (e.g., 32 bits or 64 bits) READ_ONCE() and WRITE_ONCE() will
+- * fall back to memcpy(). There's at least two memcpy()s: one for the
+- * __builtin_memcpy() and then one for the macro doing the copy of variable
+- * - '__u' allocated on the stack.
++ * unions.
+  *
+  * Their two major use cases are: (1) Mediating communication between
+  * process-level code and irq/NMI handlers, all running on the same CPU,
+@@ -256,23 +198,35 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+ #include <asm/barrier.h>
+ #include <linux/kasan-checks.h>
+ 
+-#define __READ_ONCE(x, check)						\
++/*
++ * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
++ * to hide memory access from KASAN.
++ */
++#define READ_ONCE_NOCHECK(x)						\
+ ({									\
+-	union { typeof(x) __val; char __c[1]; } __u;			\
+-	if (check)							\
+-		__read_once_size(&(x), __u.__c, sizeof(x));		\
+-	else								\
+-		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
+-	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
+-	__u.__val;							\
++	typeof(x) __x = *(volatile typeof(x) *)&(x);			\
++	smp_read_barrier_depends();					\
++	__x;								\
+ })
+-#define READ_ONCE(x) __READ_ONCE(x, 1)
+ 
++#define READ_ONCE(x)	READ_ONCE_NOCHECK(x)
++
++#define WRITE_ONCE(x, val)				\
++do {							\
++	*(volatile typeof(x) *)&(x) = (val);		\
++} while (0)
++
++#ifdef CONFIG_KASAN
+ /*
+- * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
+- * to hide memory access from KASAN.
++ * We can't declare function 'inline' because __no_sanitize_address conflicts
++ * with inlining. Attempt to inline it may cause a build failure.
++ *     https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67368
++ * '__maybe_unused' allows us to avoid defined-but-not-used warnings.
+  */
+-#define READ_ONCE_NOCHECK(x) __READ_ONCE(x, 0)
++# define __no_kasan_or_inline __no_sanitize_address notrace __maybe_unused
++#else
++# define __no_kasan_or_inline __always_inline
++#endif
+ 
+ static __no_kasan_or_inline
+ unsigned long read_word_at_a_time(const void *addr)
+@@ -281,14 +235,6 @@ unsigned long read_word_at_a_time(const void *addr)
+ 	return *(unsigned long *)addr;
+ }
+ 
+-#define WRITE_ONCE(x, val) \
+-({							\
+-	union { typeof(x) __val; char __c[1]; } __u =	\
+-		{ .__val = (__force typeof(x)) (val) }; \
+-	__write_once_size(&(x), __u.__c, sizeof(x));	\
+-	__u.__val;					\
+-})
+-
+ #endif /* __KERNEL__ */
+ 
+ /*
 -- 
 2.26.0.110.g2183baf09c-goog
