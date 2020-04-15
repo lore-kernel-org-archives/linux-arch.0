@@ -1,112 +1,103 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 10/29] mm: rename CONFIG_PGTABLE_MAPPING to CONFIG_ZSMALLOC_PGTABLE_MAPPING
-Date: Tue, 14 Apr 2020 15:13:29 +0200
-Message-ID: <20200414131348.444715-11-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+Return-Path: <SRS0=yBTr=57=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from condef-08.nifty.com ([202.248.20.73]:18867 "EHLO
+        condef-08.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2411377AbgDORed (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Apr 2020 13:34:33 -0400
+Received: from conssluserg-01.nifty.com ([10.126.8.80])by condef-08.nifty.com with ESMTP id 03FHLUkd013640
+        for <linux-arch@vger.kernel.org>; Thu, 16 Apr 2020 02:21:30 +0900
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+References: <20200415165218.20251-1-will@kernel.org> <20200415165218.20251-2-will@kernel.org>
+In-Reply-To: <20200415165218.20251-2-will@kernel.org>
+From: Masahiro Yamada <masahiroy@kernel.org>
+Date: Thu, 16 Apr 2020 02:20:07 +0900
+Message-ID: <CAK7LNATMDkey2ckTfuCysVPVUAbZa5C8oBBqWtE1ura+rnCbKg@mail.gmail.com>
+Subject: Re: [PATCH v3 01/12] compiler/gcc: Emit build-time warning for GCC
+ prior to version 4.8
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414131329.Xja8Kp3JGhckvVDDBuQO5rx68p3492Uib12-XlKv02s@z>
+To: Will Deacon <will@kernel.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "Cc: Android Kernel" <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200415172007.OV-E534jW1w30EnvIrxHvll532GlWCo6L_UQNDqplwk@z>
 
-Rename the Kconfig variable to clarify the scope.
+On Thu, Apr 16, 2020 at 1:52 AM Will Deacon <will@kernel.org> wrote:
+>
+> Prior to version 4.8, GCC may miscompile READ_ONCE() by erroneously
+> discarding the 'volatile' qualifier:
+>
+> https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
+>
+> We've been working around this using some nasty hacks which make
+> READ_ONCE() both horribly complicated and also prevent us from enforcing
+> that it is only used on scalar types. Since GCC 4.8 is pretty old for
+> kernel builds now, emit a warning if we detect it during the build.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Minchan Kim <minchan@kernel.org>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/arm/configs/omap2plus_defconfig | 2 +-
- include/linux/zsmalloc.h             | 2 +-
- mm/Kconfig                           | 2 +-
- mm/zsmalloc.c                        | 8 ++++----
- 4 files changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/arch/arm/configs/omap2plus_defconfig b/arch/arm/configs/omap=
-2plus_defconfig
-index 3cc3ca5fa027..583d8abd80a4 100644
---- a/arch/arm/configs/omap2plus_defconfig
-+++ b/arch/arm/configs/omap2plus_defconfig
-@@ -81,7 +81,7 @@ CONFIG_PARTITION_ADVANCED=3Dy
- CONFIG_BINFMT_MISC=3Dy
- CONFIG_CMA=3Dy
- CONFIG_ZSMALLOC=3Dm
--CONFIG_PGTABLE_MAPPING=3Dy
-+CONFIG_ZSMALLOC_PGTABLE_MAPPING=3Dy
- CONFIG_NET=3Dy
- CONFIG_PACKET=3Dy
- CONFIG_UNIX=3Dy
-diff --git a/include/linux/zsmalloc.h b/include/linux/zsmalloc.h
-index 2219cce81ca4..0fdbf653b173 100644
---- a/include/linux/zsmalloc.h
-+++ b/include/linux/zsmalloc.h
-@@ -20,7 +20,7 @@
-  * zsmalloc mapping modes
-  *
-  * NOTE: These only make a difference when a mapped object spans pages.
-- * They also have no effect when PGTABLE_MAPPING is selected.
-+ * They also have no effect when ZSMALLOC_PGTABLE_MAPPING is selected.
-  */
- enum zs_mapmode {
- 	ZS_MM_RW, /* normal read-write mapping */
-diff --git a/mm/Kconfig b/mm/Kconfig
-index c1acc34c1c35..09a9edfb8461 100644
---- a/mm/Kconfig
-+++ b/mm/Kconfig
-@@ -705,7 +705,7 @@ config ZSMALLOC
- 	  returned by an alloc().  This handle must be mapped in order to
- 	  access the allocated space.
-=20
--config PGTABLE_MAPPING
-+config ZSMALLOC_PGTABLE_MAPPING
- 	bool "Use page table mapping to access object in zsmalloc"
- 	depends on ZSMALLOC
- 	help
-diff --git a/mm/zsmalloc.c b/mm/zsmalloc.c
-index 2f836a2b993f..ac0524330b9b 100644
---- a/mm/zsmalloc.c
-+++ b/mm/zsmalloc.c
-@@ -293,7 +293,7 @@ struct zspage {
- };
-=20
- struct mapping_area {
--#ifdef CONFIG_PGTABLE_MAPPING
-+#ifdef CONFIG_ZSMALLOC_PGTABLE_MAPPING
- 	struct vm_struct *vm; /* vm area for mapping object that span pages */
- #else
- 	char *vm_buf; /* copy buffer for objects that span pages */
-@@ -1113,7 +1113,7 @@ static struct zspage *find_get_zspage(struct size_c=
-lass *class)
- 	return zspage;
- }
-=20
--#ifdef CONFIG_PGTABLE_MAPPING
-+#ifdef CONFIG_ZSMALLOC_PGTABLE_MAPPING
- static inline int __zs_cpu_up(struct mapping_area *area)
- {
- 	/*
-@@ -1151,7 +1151,7 @@ static inline void __zs_unmap_object(struct mapping=
-_area *area,
- 	unmap_kernel_range(addr, PAGE_SIZE * 2);
- }
-=20
--#else /* CONFIG_PGTABLE_MAPPING */
-+#else /* CONFIG_ZSMALLOC_PGTABLE_MAPPING */
-=20
- static inline int __zs_cpu_up(struct mapping_area *area)
- {
-@@ -1233,7 +1233,7 @@ static void __zs_unmap_object(struct mapping_area *=
-area,
- 	pagefault_enable();
- }
-=20
--#endif /* CONFIG_PGTABLE_MAPPING */
-+#endif /* CONFIG_ZSMALLOC_PGTABLE_MAPPING */
-=20
- static int zs_cpu_prepare(unsigned int cpu)
- {
---=20
-2.25.1
+This patch is unneeded since you will remove GCC 4.8 support
+in 11/12.
+
+Please move 11/12 to the head of this series,
+and remove all noise changes.
+
+Thanks.
+
+
+
+
+
+
+> Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+> Cc: Masahiro Yamada <masahiroy@kernel.org>
+> Signed-off-by: Will Deacon <will@kernel.org>
+> ---
+>  init/Kconfig            | 4 ++--
+>  scripts/Kconfig.include | 9 +++++++++
+>  2 files changed, 11 insertions(+), 2 deletions(-)
+>
+> diff --git a/init/Kconfig b/init/Kconfig
+> index 9e22ee8fbd75..816b8b4a5e9e 100644
+> --- a/init/Kconfig
+> +++ b/init/Kconfig
+> @@ -9,11 +9,11 @@ config DEFCONFIG_LIST
+>         default "arch/$(SRCARCH)/configs/$(KBUILD_DEFCONFIG)"
+>
+>  config CC_IS_GCC
+> -       def_bool $(success,$(CC) --version | head -n 1 | grep -q gcc)
+> +       def_bool $(cc-is-gcc)
+>
+>  config GCC_VERSION
+>         int
+> -       default $(shell,$(srctree)/scripts/gcc-version.sh $(CC)) if CC_IS_GCC
+> +       default $(gcc-version) if CC_IS_GCC
+>         default 0
+>
+>  config LD_VERSION
+> diff --git a/scripts/Kconfig.include b/scripts/Kconfig.include
+> index c264da2b9b30..5261e9d6b50b 100644
+> --- a/scripts/Kconfig.include
+> +++ b/scripts/Kconfig.include
+> @@ -54,3 +54,12 @@ $(error-if,$(success, $(LD) -v | grep -q gold), gold linker '$(LD)' not supporte
+>  cc-option-bit = $(if-success,$(CC) -Werror $(1) -E -x c /dev/null -o /dev/null,$(1))
+>  m32-flag := $(cc-option-bit,-m32)
+>  m64-flag := $(cc-option-bit,-m64)
+> +
+> +# gcc version including patch level
+> +gcc-version := $(shell,$(srctree)/scripts/gcc-version.sh $(CC))
+> +
+> +# Return y if the compiler is GCC, n otherwise
+> +cc-is-gcc := $(success,$(CC) --version | head -n 1 | grep -q gcc)
+> +
+> +# Warn if the compiler is GCC prior to 4.8
+> +$(warning-if,$(if-success,[ $(gcc-version) -lt 40800 ],$(cc-is-gcc),n),"Your compiler is old and may miscompile the kernel due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145 - please upgrade it.")
+> --
+> 2.26.0.110.g2183baf09c-goog
+>
+
+
+-- 
+Best Regards
+Masahiro Yamada
