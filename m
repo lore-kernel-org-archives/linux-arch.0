@@ -1,153 +1,81 @@
-Return-Path: <SRS0=w+Hx=56=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55024 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2502783AbgDNNPV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Apr 2020 09:15:21 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 18/29] mm: remove the prot argument from vm_map_ram
-Date: Tue, 14 Apr 2020 15:13:37 +0200
-Message-ID: <20200414131348.444715-19-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+Return-Path: <SRS0=yBTr=57=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:50338 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2404698AbgDOT0M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Apr 2020 15:26:12 -0400
+Date: Wed, 15 Apr 2020 20:26:05 +0100
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v3 05/12] arm64: csum: Disable KASAN for do_csum()
+Message-ID: <20200415192605.GA21804@willie-the-truck>
+References: <20200415165218.20251-1-will@kernel.org>
+ <20200415165218.20251-6-will@kernel.org>
+ <20200415172813.GA2272@lakrids.cambridge.arm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200415172813.GA2272@lakrids.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200414131337.hmw18Vuzzf5XFDnRGtpKz_UDtMUgeAedR0ayygXarQw@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@android.com, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Robin Murphy <robin.murphy@arm.com>
+Message-ID: <20200415192605.Kf_rTULRxcPrL1WIruRsuwtty0lrqDfj34UgH6Q7sVA@z>
 
-This is always PAGE_KERNEL - for long term mappings with other
-properties vmap should be used.
+On Wed, Apr 15, 2020 at 06:28:14PM +0100, Mark Rutland wrote:
+> On Wed, Apr 15, 2020 at 05:52:11PM +0100, Will Deacon wrote:
+> > do_csum() over-reads the source buffer and therefore abuses
+> > READ_ONCE_NOCHECK() to avoid tripping up KASAN. In preparation for
+> > READ_ONCE_NOCHECK() becoming a macro, and therefore losing its
+> > '__no_sanitize_address' annotation, just annotate do_csum() explicitly
+> > and fall back to normal loads.
+> 
+> I'm confused by this. The whole point of READ_ONCE_NOCHECK() is that it
+> isn't checked by KASAN, so if that semantic is removed it has no reason
+> to exist.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c   | 2 +-
- drivers/media/common/videobuf2/videobuf2-dma-sg.c  | 3 +--
- drivers/media/common/videobuf2/videobuf2-vmalloc.c | 3 +--
- fs/erofs/decompressor.c                            | 2 +-
- fs/xfs/xfs_buf.c                                   | 2 +-
- include/linux/vmalloc.h                            | 3 +--
- mm/nommu.c                                         | 2 +-
- mm/vmalloc.c                                       | 4 ++--
- 8 files changed, 9 insertions(+), 12 deletions(-)
+Oh, I thought it was there to be used by things like KASAN itself and
+because READ_ONCE() was implemented using a static function, then that
+function had to be marked as __no_sanitize_address when used in these
+cases. Now that it's just a macro, that's not necessary so it's just
+the same as normal READ_ONCE().
 
-diff --git a/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c b/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c
-index 9272bef57092..debaf7b18ab5 100644
---- a/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c
-+++ b/drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c
-@@ -66,7 +66,7 @@ static void *mock_dmabuf_vmap(struct dma_buf *dma_buf)
- {
- 	struct mock_dmabuf *mock = to_mock(dma_buf);
- 
--	return vm_map_ram(mock->pages, mock->npages, 0, PAGE_KERNEL);
-+	return vm_map_ram(mock->pages, mock->npages, 0);
- }
- 
- static void mock_dmabuf_vunmap(struct dma_buf *dma_buf, void *vaddr)
-diff --git a/drivers/media/common/videobuf2/videobuf2-dma-sg.c b/drivers/media/common/videobuf2/videobuf2-dma-sg.c
-index 6db60e9d5183..92072a08af25 100644
---- a/drivers/media/common/videobuf2/videobuf2-dma-sg.c
-+++ b/drivers/media/common/videobuf2/videobuf2-dma-sg.c
-@@ -309,8 +309,7 @@ static void *vb2_dma_sg_vaddr(void *buf_priv)
- 		if (buf->db_attach)
- 			buf->vaddr = dma_buf_vmap(buf->db_attach->dmabuf);
- 		else
--			buf->vaddr = vm_map_ram(buf->pages,
--					buf->num_pages, -1, PAGE_KERNEL);
-+			buf->vaddr = vm_map_ram(buf->pages, buf->num_pages, -1);
- 	}
- 
- 	/* add offset in case userptr is not page-aligned */
-diff --git a/drivers/media/common/videobuf2/videobuf2-vmalloc.c b/drivers/media/common/videobuf2/videobuf2-vmalloc.c
-index 1a4f0ca87c7c..c66fda4a65e4 100644
---- a/drivers/media/common/videobuf2/videobuf2-vmalloc.c
-+++ b/drivers/media/common/videobuf2/videobuf2-vmalloc.c
-@@ -107,8 +107,7 @@ static void *vb2_vmalloc_get_userptr(struct device *dev, unsigned long vaddr,
- 		buf->vaddr = (__force void *)
- 			ioremap(__pfn_to_phys(nums[0]), size + offset);
- 	} else {
--		buf->vaddr = vm_map_ram(frame_vector_pages(vec), n_pages, -1,
--					PAGE_KERNEL);
-+		buf->vaddr = vm_map_ram(frame_vector_pages(vec), n_pages, -1);
- 	}
- 
- 	if (!buf->vaddr)
-diff --git a/fs/erofs/decompressor.c b/fs/erofs/decompressor.c
-index 5d2d81940679..7628816f2453 100644
---- a/fs/erofs/decompressor.c
-+++ b/fs/erofs/decompressor.c
-@@ -274,7 +274,7 @@ static int z_erofs_decompress_generic(struct z_erofs_decompress_req *rq,
- 
- 	i = 0;
- 	while (1) {
--		dst = vm_map_ram(rq->out, nrpages_out, -1, PAGE_KERNEL);
-+		dst = vm_map_ram(rq->out, nrpages_out, -1);
- 
- 		/* retry two more times (totally 3 times) */
- 		if (dst || ++i >= 3)
-diff --git a/fs/xfs/xfs_buf.c b/fs/xfs/xfs_buf.c
-index 9ec3eaf1c618..65538d18e64f 100644
---- a/fs/xfs/xfs_buf.c
-+++ b/fs/xfs/xfs_buf.c
-@@ -477,7 +477,7 @@ _xfs_buf_map_pages(
- 		nofs_flag = memalloc_nofs_save();
- 		do {
- 			bp->b_addr = vm_map_ram(bp->b_pages, bp->b_page_count,
--						-1, PAGE_KERNEL);
-+						-1);
- 			if (bp->b_addr)
- 				break;
- 			vm_unmap_aliases();
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 15ffbd8e8e65..9273b1a91ca5 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -88,8 +88,7 @@ struct vmap_area {
-  *	Highlevel APIs for driver use
-  */
- extern void vm_unmap_ram(const void *mem, unsigned int count);
--extern void *vm_map_ram(struct page **pages, unsigned int count,
--				int node, pgprot_t prot);
-+extern void *vm_map_ram(struct page **pages, unsigned int count, int node);
- extern void vm_unmap_aliases(void);
- 
- #ifdef CONFIG_MMU
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 318df4e236c9..4f07b7ef0297 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -351,7 +351,7 @@ void vunmap(const void *addr)
- }
- EXPORT_SYMBOL(vunmap);
- 
--void *vm_map_ram(struct page **pages, unsigned int count, int node, pgprot_t prot)
-+void *vm_map_ram(struct page **pages, unsigned int count, int node)
- {
- 	BUG();
- 	return NULL;
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 258220b203f1..7356b3f07bd8 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -1834,7 +1834,7 @@ EXPORT_SYMBOL(vm_unmap_ram);
-  *
-  * Returns: a pointer to the address that has been mapped, or %NULL on failure
-  */
--void *vm_map_ram(struct page **pages, unsigned int count, int node, pgprot_t prot)
-+void *vm_map_ram(struct page **pages, unsigned int count, int node)
- {
- 	unsigned long size = (unsigned long)count << PAGE_SHIFT;
- 	unsigned long addr;
-@@ -1858,7 +1858,7 @@ void *vm_map_ram(struct page **pages, unsigned int count, int node, pgprot_t pro
- 
- 	kasan_unpoison_vmalloc(mem, size);
- 
--	if (map_kernel_range(addr, size, prot, pages) < 0) {
-+	if (map_kernel_range(addr, size, PAGE_KERNEL, pages) < 0) {
- 		vm_unmap_ram(mem, count);
- 		return NULL;
- 	}
--- 
-2.25.1
+Do we have a "nocheck" version where we don't require the READ_ONCE()
+semantics? I think abusing a relaxed concurrency primitive for this is
+not the right thing to do, particularly when the __no_sanitize_address
+annotation is available. I fact, it's almost an argument in favour
+of removing READ_ONCE_NOCHECK() so that people use the annotation instead!
+
+> Changing that will break the unwind/stacktrace code across multiple
+> architectures. IIRC they use READ_ONCE_NOCHECK() for two reasons:
+> 
+> 1. Races with concurrent modification, as might happen when a thread's
+>    stack is corrupted. Allowing the unwinder to bail out after a sanity
+>    check means the resulting report is more useful than a KASAN splat in
+>    the unwinder. I made the arm64 unwinder robust to this case.
+> 
+> 2. I believe that the frame record itself /might/ be poisoned by KASAN,
+>    since it's not meant to be an accessible object at the C langauge
+>    level. I could be wrong about this, and would have to check.
+
+Ok.
+
+> I would like to keep the unwinding robust in the first case, even if the
+> second case doesn't apply, and I'd prefer to not mark the entirety of
+> the unwinding code as unchecked as that's sufficiently large an subtle
+> that it could have nasty bugs.
+
+Hmm, maybe. I don't really see what's wrong with annotating the unwinding
+code, though. You can still tell kasan about the accesses you're making,
+like we do in the checksumming code here, and it's not hard to move the
+frame-pointer chasing code into a separate function.
+
+> Is there any way we keep something like READ_ONCE_NOCHECK() around even
+> if we have to give it reduced functionality relative to READ_ONCE()?
+> 
+> I'm not enirely sure why READ_ONCE_NOCHECK() had to go, so if there's a
+> particular pain point I'm happy to take a look.
+
+I got rid if it because I thought it wasn't required now that it's
+implemented entirely as a macro. I'd be reluctant to bring it back if
+there isn't a non-ONCE version of the helper.
+
+Will
