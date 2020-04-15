@@ -1,41 +1,66 @@
-Return-Path: <SRS0=V2YN=5S=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=yBTr=57=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:45722 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1416856AbgDOStT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Apr 2020 14:49:19 -0400
+Date: Wed, 15 Apr 2020 11:49:19 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: [PATCH memory-model 0/10] LKMM updates for v5.8
+Message-ID: <20200415184918.GA16301@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
 MIME-Version: 1.0
-References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
- <20200402162942.GG23230@ZenIV.linux.org.uk> <67e21b65-0e2d-7ca5-7518-cec1b7abc46c@c-s.fr>
- <20200402175032.GH23230@ZenIV.linux.org.uk> <202004021132.813F8E88@keescook>
- <CAHk-=wg9cSm=AjPmkasNHBDwuW4D10jszjv6EeCKp8V9Qbx2hg@mail.gmail.com> <202004021322.5F80467@keescook>
-In-Reply-To: <202004021322.5F80467@keescook>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 2 Apr 2020 13:47:24 -0700
-Message-ID: <CAHk-=wjUfAsepavvy2vsnyOv06yeYBMumSeb+dzDSnJXkX7qPQ@mail.gmail.com>
-Subject: Re: [PATCH RESEND 1/4] uaccess: Add user_read_access_begin/end and user_write_access_begin/end
-Content-Type: text/plain; charset="UTF-8"
-Sender: owner-linux-mm@kvack.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Andrew Morton <akpm@linux-foundation.org>, Peter Anvin <hpa@zytor.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200402204724.H73OtxnW5nvuqxb77nCh-KmzJDx9eYpAF29wpO5DagU@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20200415184919.NW4IZqeGwLc93q93QOiM9NilAjdAhHTNuMM9BQ8N5S8@z>
 
-On Thu, Apr 2, 2020 at 1:27 PM Kees Cook <keescook@chromium.org> wrote:
->
-> I was just speaking to design principles in this area: if the "enable"
-> is called when already enabled, Something Is Wrong. :)
+Hello!
 
-Well, the "something is wrong" could easily be "the hardware does not
-support this".
+This series contains LKMM updates:
 
-I'm not at all interested in the crazy code to do this in software.
-Nobody sane should ever do that.
+1.	Add recent references.
 
-Yes, I realize that PaX did software emulation of things like that,
-and it was one of the reasons why it was never useful to any normal
-use.
+2.	Fix "conflict" definition, courtesy of Marco Elver.
 
-Security is not an end goal in itself, it's always secondary to "can I
-use this".
+3.	Move MP+onceassign+derefonce to new litmus-tests/rcu/, courtesy
+	of Joel Fernandes.
 
-Security that means "normal people can't use this, it's only for the
-special l33t users" is not security, it's garbage. That "do page
-tables in software" was a prime example of garbage.
+4.	Add litmus test for RCU GP guarantee where updater frees object,
+	courtesy of Joel Fernandes.
 
-               Linus
+5.	Add litmus test for RCU GP guarantee where reader stores, courtesy
+	of Joel Fernandes.
+
+6.	Update maintainers for new Documentaion/litmus-tests/, courtesy of
+	Joel Fernandes.
+
+7.	Add an exception for limitations on _unless() family, courtesy of
+	Boqun Feng.
+
+8.	Introduce an atomic directory in Documentation, courtesy of Boqun
+	Feng.
+
+9.	Add a test for atomic_set(), courtesy of Boqun Feng.
+
+10.	Add a test for smp_mb__after_atomic(), courtesy of Boqun Feng.
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+ Documentation/atomic_t.txt                                                                    |   24 +-
+ Documentation/litmus-tests/README                                                             |   14 +
+ Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus |   32 +++
+ Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus             |   24 ++
+ Documentation/litmus-tests/atomic/README                                                      |   16 +
+ Documentation/litmus-tests/rcu/RCU+sync+free.litmus                                           |   42 +++++
+ Documentation/litmus-tests/rcu/RCU+sync+read.litmus                                           |   37 ++++
+ MAINTAINERS                                                                                   |    2 
+ tools/memory-model/Documentation/explanation.txt                                              |   83 +++++-----
+ tools/memory-model/Documentation/references.txt                                               |   21 ++
+ tools/memory-model/README                                                                     |   10 -
+ tools/memory-model/litmus-tests/README                                                        |    3 
+ 12 files changed, 250 insertions(+), 58 deletions(-)
