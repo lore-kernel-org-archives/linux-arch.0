@@ -1,40 +1,61 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 11/12] compiler/gcc: Raise minimum GCC version for
- kernel builds to 4.8
-Date: Wed, 15 Apr 2020 20:37:46 +0200
-Message-ID: <CAK8P3a2jSS89Ldhu1g46zLTBHDVHUr3HSdyq_c7yiTfM8w6hDg@mail.gmail.com>
-References: <20200415165218.20251-1-will@kernel.org> <20200415165218.20251-12-will@kernel.org>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: [PATCH memory-model 0/10] LKMM updates for v5.8
+Date: Wed, 15 Apr 2020 11:49:19 -0700
+Message-ID: <20200415184918.GA16301@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200415165218.20251-12-will@kernel.org>
+Content-Disposition: inline
 Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will@kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 15, 2020 at 6:53 PM Will Deacon <will@kernel.org> wrote:
->
-> It is very rare to see versions of GCC prior to 4.8 being used to build
-> the mainline kernel. These old compilers are also know to have codegen
-> issues which can lead to silent miscompilation:
->
-> https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
->
-> Raise the minimum GCC version for kernel build to 4.8 and remove some
-> tautological Kconfig dependencies as a consequence.
->
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Masahiro Yamada <masahiroy@kernel.org>
-> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-> Signed-off-by: Will Deacon <will@kernel.org>
+Hello!
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+This series contains LKMM updates:
 
-On a related note, I've updated the cross-compilers on kernel.org and
-done some randconfig testing on all major versions from v4.8 to 9.3.
-There were a couple of minor regressions with 4.8 (mostly harmless
-warnings), but overall gcc-4.8 is still working well. I did not try older
-compilers.
+1.	Add recent references.
 
-       Arnd
+2.	Fix "conflict" definition, courtesy of Marco Elver.
+
+3.	Move MP+onceassign+derefonce to new litmus-tests/rcu/, courtesy
+	of Joel Fernandes.
+
+4.	Add litmus test for RCU GP guarantee where updater frees object,
+	courtesy of Joel Fernandes.
+
+5.	Add litmus test for RCU GP guarantee where reader stores, courtesy
+	of Joel Fernandes.
+
+6.	Update maintainers for new Documentaion/litmus-tests/, courtesy of
+	Joel Fernandes.
+
+7.	Add an exception for limitations on _unless() family, courtesy of
+	Boqun Feng.
+
+8.	Introduce an atomic directory in Documentation, courtesy of Boqun
+	Feng.
+
+9.	Add a test for atomic_set(), courtesy of Boqun Feng.
+
+10.	Add a test for smp_mb__after_atomic(), courtesy of Boqun Feng.
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+ Documentation/atomic_t.txt                                                                    |   24 +-
+ Documentation/litmus-tests/README                                                             |   14 +
+ Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus |   32 +++
+ Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus             |   24 ++
+ Documentation/litmus-tests/atomic/README                                                      |   16 +
+ Documentation/litmus-tests/rcu/RCU+sync+free.litmus                                           |   42 +++++
+ Documentation/litmus-tests/rcu/RCU+sync+read.litmus                                           |   37 ++++
+ MAINTAINERS                                                                                   |    2 
+ tools/memory-model/Documentation/explanation.txt                                              |   83 +++++-----
+ tools/memory-model/Documentation/references.txt                                               |   21 ++
+ tools/memory-model/README                                                                     |   10 -
+ tools/memory-model/litmus-tests/README                                                        |    3 
+ 12 files changed, 250 insertions(+), 58 deletions(-)
