@@ -1,59 +1,38 @@
 From: Minchan Kim <minchan@kernel.org>
-Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
+Subject: Re: [PATCH 11/29] mm: only allow page table mappings for built-in
  zsmalloc
-Date: Thu, 16 Apr 2020 13:37:36 -0700
-Message-ID: <20200416203736.GB50092@google.com>
-References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-11-hch@lst.de>
- <20200409160826.GC247701@google.com>
- <20200409165030.GG20713@hirez.programming.kicks-ass.net>
- <20200409170813.GD247701@google.com>
- <20200410023845.GA2354@jagdpanzerIV.localdomain>
- <20200410231136.GA101325@google.com>
- <20200411072052.GA31242@lst.de>
+Date: Thu, 16 Apr 2020 13:43:14 -0700
+Message-ID: <20200416204314.GA59451@google.com>
+References: <20200414131348.444715-1-hch@lst.de>
+ <20200414131348.444715-12-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39002 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1727798AbgDPUnS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Apr 2020 16:43:18 -0400
 Content-Disposition: inline
-In-Reply-To: <20200411072052.GA31242@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
+In-Reply-To: <20200414131348.444715-12-hch@lst.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
-Cc: Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.orglin
-List-Id: linux-arch.vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 
-Hi Christoph,
-
-
-Sorry for the late.
-
-On Sat, Apr 11, 2020 at 09:20:52AM +0200, Christoph Hellwig wrote:
-> Hi Minchan,
+On Tue, Apr 14, 2020 at 03:13:30PM +0200, Christoph Hellwig wrote:
+> This allows to unexport map_vm_area and unmap_kernel_range, which are
+> rather deep internal and should not be available to modules, as they for
+> example allow fine grained control of mapping permissions, and also
+> allow splitting the setup of a vmalloc area and the actual mapping and
+> thus expose vmalloc internals.
 > 
-> On Fri, Apr 10, 2020 at 04:11:36PM -0700, Minchan Kim wrote:
-> > It doesn't mean we couldn't use zsmalloc as module any longer. It means
-> > we couldn't use zsmalloc as module with pgtable mapping whcih was little
-> > bit faster on microbenchmark in some architecutre(However, I usually temped
-> > to remove it since it had several problems). However, we could still use
-> > zsmalloc as module as copy way instead of pgtable mapping. Thus, if someone
-> > really want to rollback the feature, they should provide reasonable reason
-> > why it doesn't work for them. "A little fast" wouldn't be enough to exports
-> > deep internal to the module.
+> zsmalloc is typically built-in and continues to work (just like the
+> percpu-vm code using a similar patter), while modular zsmalloc also
+> continues to work, but must use copies.
 > 
-> do you have any data how much faster it is on arm (and does that include
-> arm64 as well)?  Besides the exports which were my prime concern,
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Acked-by: Minchan Kim <minchan@kernel.org>
 
-https://github.com/sjenning/zsmapbench
-
-I need to recall the memory. IIRC, it was almost 30% faster at that time
-in ARM so was not trivial at that time. However, it was story from
-several years ago.
-
-> zsmalloc with pgtable mappings also is the only user of map_kernel_range
-> outside of vmalloc.c, if it really is another code base for tiny
-> improvements we could mark map_kernel_range or in fact remove it entirely
-> and open code it in the remaining callers.
-
-I alsh have temped to remove it. Let me have time to revist it in this
-chance.
-
-Thanks.
+Thanks!
