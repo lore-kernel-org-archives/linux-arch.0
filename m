@@ -1,110 +1,115 @@
-Return-Path: <SRS0=p5Ku=5Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:48600 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728331AbgDHMAe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 08:00:34 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 09/28] mm: rename CONFIG_PGTABLE_MAPPING to CONFIG_ZSMALLOC_PGTABLE_MAPPING
-Date: Wed,  8 Apr 2020 13:59:07 +0200
-Message-ID: <20200408115926.1467567-10-hch@lst.de>
-In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
-References: <20200408115926.1467567-1-hch@lst.de>
+Return-Path: <SRS0=uGV/=6A=kvack.org=owner-linux-mm@kernel.org>
+Date: Thu, 16 Apr 2020 12:38:00 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
+References: <20200413125303.423864-1-npiggin@gmail.com>
+	<20200413125303.423864-5-npiggin@gmail.com>
+	<20200415104755.GD12621@willie-the-truck>
+In-Reply-To: <20200415104755.GD12621@willie-the-truck>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Message-ID: <1587003993.x84ylh11b2.astroid@bobo.none>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will@kernel.org>
+Cc: Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200408115907.2HGsPm_EIsKkDEsTlDgbSFPxzOMN5bASw9UgWP7FxKk@z>
+Message-ID: <20200416023800.Vh0PZueFqc94aq9V26L12Y0RFMwa-3EMw2jKnfgFrZw@z>
 
-Rename the Kconfig variable to clarify the scope.
+Excerpts from Will Deacon's message of April 15, 2020 8:47 pm:
+> Hi Nick,
+>=20
+> On Mon, Apr 13, 2020 at 10:53:03PM +1000, Nicholas Piggin wrote:
+>> For platforms that define HAVE_ARCH_HUGE_VMAP and support PMD vmap mappi=
+ngs,
+>> have vmalloc attempt to allocate PMD-sized pages first, before falling b=
+ack
+>> to small pages. Allocations which use something other than PAGE_KERNEL
+>> protections are not permitted to use huge pages yet, not all callers exp=
+ect
+>> this (e.g., module allocations vs strict module rwx).
+>>=20
+>> This gives a 6x reduction in dTLB misses for a `git diff` (of linux), fr=
+om
+>> 45600 to 6500 and a 2.2% reduction in cycles on a 2-node POWER9.
+>=20
+> I wonder if it's worth extending vmap() to handle higher order pages in
+> a similar way? That might be helpful for tracing PMUs such as Arm SPE,
+> where the CPU streams tracing data out to a virtually addressed buffer
+> (see rb_alloc_aux_page()).
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/arm/configs/omap2plus_defconfig | 2 +-
- include/linux/zsmalloc.h             | 2 +-
- mm/Kconfig                           | 2 +-
- mm/zsmalloc.c                        | 8 ++++----
- 4 files changed, 7 insertions(+), 7 deletions(-)
+Yeah it becomes pretty trivial to do that with VM_HUGE_PAGES after
+this patch, I have something to do it but no callers ready yet, if
+you have an easy one we can add it.
 
-diff --git a/arch/arm/configs/omap2plus_defconfig b/arch/arm/configs/omap2plus_defconfig
-index 3cc3ca5fa027..583d8abd80a4 100644
---- a/arch/arm/configs/omap2plus_defconfig
-+++ b/arch/arm/configs/omap2plus_defconfig
-@@ -81,7 +81,7 @@ CONFIG_PARTITION_ADVANCED=y
- CONFIG_BINFMT_MISC=y
- CONFIG_CMA=y
- CONFIG_ZSMALLOC=m
--CONFIG_PGTABLE_MAPPING=y
-+CONFIG_ZSMALLOC_PGTABLE_MAPPING=y
- CONFIG_NET=y
- CONFIG_PACKET=y
- CONFIG_UNIX=y
-diff --git a/include/linux/zsmalloc.h b/include/linux/zsmalloc.h
-index 2219cce81ca4..0fdbf653b173 100644
---- a/include/linux/zsmalloc.h
-+++ b/include/linux/zsmalloc.h
-@@ -20,7 +20,7 @@
-  * zsmalloc mapping modes
-  *
-  * NOTE: These only make a difference when a mapped object spans pages.
-- * They also have no effect when PGTABLE_MAPPING is selected.
-+ * They also have no effect when ZSMALLOC_PGTABLE_MAPPING is selected.
-  */
- enum zs_mapmode {
- 	ZS_MM_RW, /* normal read-write mapping */
-diff --git a/mm/Kconfig b/mm/Kconfig
-index 691021492e78..36949a9425b8 100644
---- a/mm/Kconfig
-+++ b/mm/Kconfig
-@@ -700,7 +700,7 @@ config ZSMALLOC
- 	  returned by an alloc().  This handle must be mapped in order to
- 	  access the allocated space.
- 
--config PGTABLE_MAPPING
-+config ZSMALLOC_PGTABLE_MAPPING
- 	bool "Use page table mapping to access object in zsmalloc"
- 	depends on ZSMALLOC
- 	help
-diff --git a/mm/zsmalloc.c b/mm/zsmalloc.c
-index 2f836a2b993f..ac0524330b9b 100644
---- a/mm/zsmalloc.c
-+++ b/mm/zsmalloc.c
-@@ -293,7 +293,7 @@ struct zspage {
- };
- 
- struct mapping_area {
--#ifdef CONFIG_PGTABLE_MAPPING
-+#ifdef CONFIG_ZSMALLOC_PGTABLE_MAPPING
- 	struct vm_struct *vm; /* vm area for mapping object that span pages */
- #else
- 	char *vm_buf; /* copy buffer for objects that span pages */
-@@ -1113,7 +1113,7 @@ static struct zspage *find_get_zspage(struct size_class *class)
- 	return zspage;
- }
- 
--#ifdef CONFIG_PGTABLE_MAPPING
-+#ifdef CONFIG_ZSMALLOC_PGTABLE_MAPPING
- static inline int __zs_cpu_up(struct mapping_area *area)
- {
- 	/*
-@@ -1151,7 +1151,7 @@ static inline void __zs_unmap_object(struct mapping_area *area,
- 	unmap_kernel_range(addr, PAGE_SIZE * 2);
- }
- 
--#else /* CONFIG_PGTABLE_MAPPING */
-+#else /* CONFIG_ZSMALLOC_PGTABLE_MAPPING */
- 
- static inline int __zs_cpu_up(struct mapping_area *area)
- {
-@@ -1233,7 +1233,7 @@ static void __zs_unmap_object(struct mapping_area *area,
- 	pagefault_enable();
- }
- 
--#endif /* CONFIG_PGTABLE_MAPPING */
-+#endif /* CONFIG_ZSMALLOC_PGTABLE_MAPPING */
- 
- static int zs_cpu_prepare(unsigned int cpu)
- {
--- 
-2.25.1
+>> This can result in more internal fragmentation and memory overhead for a
+>> given allocation. It can also cause greater NUMA unbalance on hashdist
+>> allocations.
+>>=20
+>> There may be other callers that expect small pages under vmalloc but use
+>> PAGE_KERNEL, I'm not sure if it's feasible to catch them all. An
+>> alternative would be a new function or flag which enables large mappings=
+,
+>> and use that in callers.
+>>=20
+>> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+>> ---
+>>  include/linux/vmalloc.h |   2 +
+>>  mm/vmalloc.c            | 135 +++++++++++++++++++++++++++++-----------
+>>  2 files changed, 102 insertions(+), 35 deletions(-)
+>>=20
+>> diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+>> index 291313a7e663..853b82eac192 100644
+>> --- a/include/linux/vmalloc.h
+>> +++ b/include/linux/vmalloc.h
+>> @@ -24,6 +24,7 @@ struct notifier_block;		/* in notifier.h */
+>>  #define VM_UNINITIALIZED	0x00000020	/* vm_struct is not fully initializ=
+ed */
+>>  #define VM_NO_GUARD		0x00000040      /* don't add guard page */
+>>  #define VM_KASAN		0x00000080      /* has allocated kasan shadow memory =
+*/
+>> +#define VM_HUGE_PAGES		0x00000100	/* may use huge pages */
+>=20
+> Please can you add a check for this in the arm64 change_memory_common()
+> code? Other architectures might need something similar, but we need to
+> forbid changing memory attributes for portions of the huge page.
+
+Yeah good idea, I can look about adding some more checks.
+
+>=20
+> In general, I'm a bit wary of software table walkers tripping over this.
+> For example, I don't think apply_to_existing_page_range() can handle
+> huge mappings at all, but the one user (KASAN) only ever uses page mappin=
+gs
+> so it's ok there.
+
+Right, I have something to warn for apply to page range (and looking
+at adding support for bigger pages). It doesn't even have a test and
+warn at the moment which isn't good practice IMO so we should add one
+even without huge vmap.
+
+>=20
+>> @@ -2325,9 +2356,11 @@ static struct vm_struct *__get_vm_area_node(unsig=
+ned long size,
+>>  	if (unlikely(!size))
+>>  		return NULL;
+>> =20
+>> -	if (flags & VM_IOREMAP)
+>> -		align =3D 1ul << clamp_t(int, get_count_order_long(size),
+>> -				       PAGE_SHIFT, IOREMAP_MAX_ORDER);
+>> +	if (flags & VM_IOREMAP) {
+>> +		align =3D max(align,
+>> +			    1ul << clamp_t(int, get_count_order_long(size),
+>> +					   PAGE_SHIFT, IOREMAP_MAX_ORDER));
+>> +	}
+>=20
+>=20
+> I don't follow this part. Please could you explain why you're potentially
+> aligning above IOREMAP_MAX_ORDER? It doesn't seem to follow from the rest
+> of the patch.
+
+Trying to remember. If the caller asks for a particular alignment we=20
+shouldn't reduce it. Should put it in another patch.
+
+Thanks,
+Nick
