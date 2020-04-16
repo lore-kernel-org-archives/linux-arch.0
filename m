@@ -1,100 +1,231 @@
-Return-Path: <SRS0=jgxL=6L=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:51866 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726162AbgD0SWF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2020 14:22:05 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <20200426130100.306246-1-hagen@jauu.net>
-        <20200426163430.22743-1-hagen@jauu.net>
-        <20200427170826.mdklazcrn4xaeafm@wittgenstein>
-        <CAG48ez0hskhN7OkxwHX-Bo5HGboJaVEk8udFukkTgiC=43ixcw@mail.gmail.com>
-Date: Mon, 27 Apr 2020 13:18:47 -0500
-In-Reply-To: <CAG48ez0hskhN7OkxwHX-Bo5HGboJaVEk8udFukkTgiC=43ixcw@mail.gmail.com>
-        (Jann Horn's message of "Mon, 27 Apr 2020 19:52:45 +0200")
-Message-ID: <87zhawdc6w.fsf@x220.int.ebiederm.org>
+Return-Path: <SRS0=GBzO=6A=vger.kernel.org=linux-doc-owner@kernel.org>
+From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
+Subject: [PATCH v16 04/10] landlock: Add ptrace restrictions
+Date: Thu, 16 Apr 2020 12:39:49 +0200
+Message-ID: <20200416103955.145757-5-mic@digikod.net>
+In-Reply-To: <20200416103955.145757-1-mic@digikod.net>
+References: <20200416103955.145757-1-mic@digikod.net>
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>
-Cc: Christian Brauner <christian.brauner@ubuntu.com>, Hagen Paul Pfeifer <hagen@jauu.net>, kernel list <linux-kernel@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200427181847.n5XQ0d92oRKyc3Fkfm3bB4TF9NXqTiyABp0pwqTEV7M@z>
+Message-ID: <20200416103949.reQrBJKd4emrLSiwmk9xuVkzUs-jhseJqMXcNJgVNfU@z>
 
-Jann Horn <jannh@google.com> writes:
+Using ptrace(2) and related debug features on a target process can lead
+to a privilege escalation.  Indeed, ptrace(2) can be used by an attacker
+to impersonate another task and to remain undetected while performing
+malicious activities.  Thanks to  ptrace_may_access(), various part of
+the kernel can check if a tracer is more privileged than a tracee.
 
-> On Mon, Apr 27, 2020 at 7:08 PM Christian Brauner
-> <christian.brauner@ubuntu.com> wrote:
->> On Sun, Apr 26, 2020 at 06:34:30PM +0200, Hagen Paul Pfeifer wrote:
->> > Working on a safety-critical stress testing tool, using ptrace in an
->> > rather uncommon way (stop, peeking memory, ...) for a bunch of
->> > applications in an automated way I realized that once opened processes
->> > where restarted and PIDs recycled.  Resulting in monitoring and
->> > manipulating the wrong processes.
->> >
->> > With the advent of pidfd we are now able to stick with one stable handle
->> > to identifying processes exactly. We now have the ability to get this
->> > race free. Sending signals now works like a charm, next step is to
->> > extend the functionality also for ptrace.
->> >
->> > API:
->> >          long pidfd_ptrace(int pidfd, enum __ptrace_request request,
->> >                            void *addr, void *data, unsigned flags);
->>
->> I'm in general not opposed to this if there's a clear need for this and
->> users that are interested. But I think if people really prefer having
->> this a new syscall then we should probably try to improve on the old
->> one. Things that come to mind right away without doing a deep review are
->> replacing the void *addr pointer with a dedicated struct ptract_args or
->> union ptrace_args and a size argument. If we're not doing something
->> like this or something more fundamental we can equally well either just
->> duplicate all enums in the old ptrace syscall and append a _PIDFD to it
->> where it makes sense.
->
-> Yeah, it seems like just adding pidfd flavors of PTRACE_ATTACH and
-> PTRACE_SEIZE should do the job.
+A landlocked process has fewer privileges than a non-landlocked process
+and must then be subject to additional restrictions when manipulating
+processes. To be allowed to use ptrace(2) and related syscalls on a
+target process, a landlocked process must have a subset of the target
+process' rules (i.e. the tracee must be in a sub-domain of the tracer).
 
-I am conflicted about that but I have to agree.    Instead of
-duplicating everything it would be good enough to duplicate the once
-that cause the process to be attached to use.  Then there would be no
-more pid races to worry about.
+Signed-off-by: Mickaël Salaün <mic@digikod.net>
+Cc: James Morris <jmorris@namei.org>
+Cc: Jann Horn <jannh@google.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Serge E. Hallyn <serge@hallyn.com>
+---
 
-> And if we do make a new syscall, there is a bunch of de-crufting that
-> can be done... for example, just as some low-hanging fruit, a new
-> ptrace API probably shouldn't have
-> PTRACE_PEEKTEXT/PTRACE_PEEKDATA/PTRACE_POKETEXT/PTRACE_POKEDATA (we
-> have /proc/$pid/mem for that, which is much saner than doing peek/poke
-> in word-size units), and probably also shouldn't support all the weird
-> arch-specific register-accessing requests (e.g.
-> PTRACE_PEEKUSR/PTRACE_POKEUSR/PTRACE_GETREGS/PTRACE_SETREGS/PTRACE_GETFPREGS/...)
-> that are nowadays accessible via PTRACE_GETREGSET/PTRACE_SETREGSET.
+Changes since v14:
+* Constify variables.
 
+Changes since v13:
+* Make the ptrace restriction mandatory, like in the v10.
+* Remove the eBPF dependency.
 
-> (And there are also some more major changes that I think would be
-> sensible; for example, it'd be neat if you could have notifications
-> about the tracee delivered through a pollable file descriptor, and if
-> you could get the kernel to tell you in each notification which type
-> of ptrace stop you're dealing with (e.g. distinguishing
-> syscall-entry-stop vs syscall-exit-stop), and it would be great to be
-> able to directly inject syscalls into the child instead of having to
-> figure out where a syscall instruction you can abuse is and then
-> setting the instruction pointer to that, and it'd be helpful to be
-> able to have multiple tracers attached to a single process so that you
-> can e.g. have strace and gdb active on the same process
-> concurrently...)
+Previous changes:
+https://lore.kernel.org/lkml/20191104172146.30797-5-mic@digikod.net/
+---
+ security/landlock/Makefile |   2 +-
+ security/landlock/ptrace.c | 120 +++++++++++++++++++++++++++++++++++++
+ security/landlock/ptrace.h |  14 +++++
+ security/landlock/setup.c  |   2 +
+ 4 files changed, 137 insertions(+), 1 deletion(-)
+ create mode 100644 security/landlock/ptrace.c
+ create mode 100644 security/landlock/ptrace.h
 
-How does this differ using the tracing related infrastructure we have
-for the kernel on a userspace process?  I suspect augmenting the tracing
-infrastructure with the ability to set breakpoints and watchpoints (aka
-stopping userspace threads and processes might be a more fertile
-direction to go).
-
-But I agree either we want to just address the races in PTRACE_ATTACH
-and PTRACE_SIEZE or we want to take a good hard look at things.
-
-There is a good case for minimal changes because one of the cases that
-comes up is how much work will it take to change existing programs.  But
-ultimately ptrace pretty much sucks so a very good set of test cases and
-documentation for what we want to implement would be a very good idea.
-
-Eric
+diff --git a/security/landlock/Makefile b/security/landlock/Makefile
+index 041ea242e627..f1d1eb72fa76 100644
+--- a/security/landlock/Makefile
++++ b/security/landlock/Makefile
+@@ -1,4 +1,4 @@
+ obj-$(CONFIG_SECURITY_LANDLOCK) := landlock.o
+ 
+ landlock-y := setup.o object.o ruleset.o \
+-	cred.o
++	cred.o ptrace.o
+diff --git a/security/landlock/ptrace.c b/security/landlock/ptrace.c
+new file mode 100644
+index 000000000000..61df38b13f5c
+--- /dev/null
++++ b/security/landlock/ptrace.c
+@@ -0,0 +1,120 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Landlock LSM - Ptrace hooks
++ *
++ * Copyright © 2017-2020 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2020 ANSSI
++ */
++
++#include <asm/current.h>
++#include <linux/cred.h>
++#include <linux/errno.h>
++#include <linux/kernel.h>
++#include <linux/lsm_hooks.h>
++#include <linux/rcupdate.h>
++#include <linux/sched.h>
++
++#include "common.h"
++#include "cred.h"
++#include "ptrace.h"
++#include "ruleset.h"
++#include "setup.h"
++
++/**
++ * domain_scope_le - Checks domain ordering for scoped ptrace
++ *
++ * @parent: Parent domain.
++ * @child: Potential child of @parent.
++ *
++ * Checks if the @parent domain is less or equal to (i.e. an ancestor, which
++ * means a subset of) the @child domain.
++ */
++static bool domain_scope_le(const struct landlock_ruleset *const parent,
++		const struct landlock_ruleset *const child)
++{
++	const struct landlock_hierarchy *walker;
++
++	if (!parent)
++		return true;
++	if (!child)
++		return false;
++	for (walker = child->hierarchy; walker; walker = walker->parent) {
++		if (walker == parent->hierarchy)
++			/* @parent is in the scoped hierarchy of @child. */
++			return true;
++	}
++	/* There is no relationship between @parent and @child. */
++	return false;
++}
++
++static bool task_is_scoped(const struct task_struct *const parent,
++		const struct task_struct *const child)
++{
++	bool is_scoped;
++	const struct landlock_ruleset *dom_parent, *dom_child;
++
++	rcu_read_lock();
++	dom_parent = landlock_get_task_domain(parent);
++	dom_child = landlock_get_task_domain(child);
++	is_scoped = domain_scope_le(dom_parent, dom_child);
++	rcu_read_unlock();
++	return is_scoped;
++}
++
++static int task_ptrace(const struct task_struct *const parent,
++		const struct task_struct *const child)
++{
++	/* Quick return for non-landlocked tasks. */
++	if (!landlocked(parent))
++		return 0;
++	if (task_is_scoped(parent, child))
++		return 0;
++	return -EPERM;
++}
++
++/**
++ * hook_ptrace_access_check - Determines whether the current process may access
++ *			      another
++ *
++ * @child: Process to be accessed.
++ * @mode: Mode of attachment.
++ *
++ * If the current task has Landlock rules, then the child must have at least
++ * the same rules.  Else denied.
++ *
++ * Determines whether a process may access another, returning 0 if permission
++ * granted, -errno if denied.
++ */
++static int hook_ptrace_access_check(struct task_struct *const child,
++		const unsigned int mode)
++{
++	return task_ptrace(current, child);
++}
++
++/**
++ * hook_ptrace_traceme - Determines whether another process may trace the
++ *			 current one
++ *
++ * @parent: Task proposed to be the tracer.
++ *
++ * If the parent has Landlock rules, then the current task must have the same
++ * or more rules.  Else denied.
++ *
++ * Determines whether the nominated task is permitted to trace the current
++ * process, returning 0 if permission is granted, -errno if denied.
++ */
++static int hook_ptrace_traceme(struct task_struct *const parent)
++{
++	return task_ptrace(parent, current);
++}
++
++static struct security_hook_list landlock_hooks[] __lsm_ro_after_init = {
++	LSM_HOOK_INIT(ptrace_access_check, hook_ptrace_access_check),
++	LSM_HOOK_INIT(ptrace_traceme, hook_ptrace_traceme),
++};
++
++__init void landlock_add_hooks_ptrace(void)
++{
++	security_add_hooks(landlock_hooks, ARRAY_SIZE(landlock_hooks),
++			LANDLOCK_NAME);
++}
+diff --git a/security/landlock/ptrace.h b/security/landlock/ptrace.h
+new file mode 100644
+index 000000000000..6740c6a723de
+--- /dev/null
++++ b/security/landlock/ptrace.h
+@@ -0,0 +1,14 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Landlock LSM - Ptrace hooks
++ *
++ * Copyright © 2017-2019 Mickaël Salaün <mic@digikod.net>
++ * Copyright © 2019 ANSSI
++ */
++
++#ifndef _SECURITY_LANDLOCK_PTRACE_H
++#define _SECURITY_LANDLOCK_PTRACE_H
++
++__init void landlock_add_hooks_ptrace(void);
++
++#endif /* _SECURITY_LANDLOCK_PTRACE_H */
+diff --git a/security/landlock/setup.c b/security/landlock/setup.c
+index 39ee1766f175..5e7540fdeefa 100644
+--- a/security/landlock/setup.c
++++ b/security/landlock/setup.c
+@@ -11,6 +11,7 @@
+ 
+ #include "common.h"
+ #include "cred.h"
++#include "ptrace.h"
+ #include "setup.h"
+ 
+ struct lsm_blob_sizes landlock_blob_sizes __lsm_ro_after_init = {
+@@ -20,6 +21,7 @@ struct lsm_blob_sizes landlock_blob_sizes __lsm_ro_after_init = {
+ static int __init landlock_init(void)
+ {
+ 	landlock_add_hooks_cred();
++	landlock_add_hooks_ptrace();
+ 	pr_info("Up and running.\n");
+ 	return 0;
+ }
+-- 
+2.26.1
