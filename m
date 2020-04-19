@@ -1,53 +1,56 @@
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH v4 2/3] fs: openat2: Extend open_how to allow
+From: Jens Axboe <axboe@kernel.dk>
+Subject: Re: [PATCH v4 2/3] fs: openat2: Extend open_how to allow
  userspace-selected fds
-Date: Sun, 19 Apr 2020 21:18:05 +0000
-Message-ID: <7f02bf52254443e380c33cae7c1fd5f0@AcuMS.aculab.com>
+Date: Sun, 19 Apr 2020 16:22:52 -0600
+Message-ID: <b7dae79b-4c5f-65f6-0960-617070357201@kernel.dk>
 References: <cover.1586830316.git.josh@joshtriplett.org>
  <f969e7d45a8e83efc1ca13d675efd8775f13f376.1586830316.git.josh@joshtriplett.org>
  <20200419104404.j4e5gxdn2duvmu6s@yavin.dot.cyphar.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from eu-smtp-delivery-151.mimecast.com ([207.82.80.151]:31722 "EHLO
-        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726007AbgDSVSK (ORCPT
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41678 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1725848AbgDSWW4 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 19 Apr 2020 17:18:10 -0400
+        Sun, 19 Apr 2020 18:22:56 -0400
+Received: from mail-pl1-x641.google.com (mail-pl1-x641.google.com [IPv6:2607:f8b0:4864:20::641])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 65ECAC061A0C
+        for <linux-arch@vger.kernel.org>; Sun, 19 Apr 2020 15:22:56 -0700 (PDT)
+Received: by mail-pl1-x641.google.com with SMTP id d24so3211261pll.8
+        for <linux-arch@vger.kernel.org>; Sun, 19 Apr 2020 15:22:56 -0700 (PDT)
 In-Reply-To: <20200419104404.j4e5gxdn2duvmu6s@yavin.dot.cyphar.com>
 Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Aleksa Sarai' <cyphar@cyphar.com>, Josh Triplett <josh@joshtriplett.org>
-Cc: "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "io-uring@vger.kernel.org" <io-uring@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Jens Axboe <axboe@kernel.dk>
+To: Aleksa Sarai <cyphar@cyphar.com>, Josh Triplett <josh@joshtriplett.org>
+Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, io-uring@vger.kernel.org, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>
 
-From: Aleksa Sarai
-> Sent: 19 April 2020 11:44
-> 
+On 4/19/20 4:44 AM, Aleksa Sarai wrote:
 > On 2020-04-13, Josh Triplett <josh@joshtriplett.org> wrote:
-> > Inspired by the X protocol's handling of XIDs, allow userspace to select
-> > the file descriptor opened by openat2, so that it can use the resulting
-> > file descriptor in subsequent system calls without waiting for the
-> > response to openat2.
-> >
-> > In io_uring, this allows sequences like openat2/read/close without
-> > waiting for the openat2 to complete. Multiple such sequences can
-> > overlap, as long as each uses a distinct file descriptor.
+>> Inspired by the X protocol's handling of XIDs, allow userspace to select
+>> the file descriptor opened by openat2, so that it can use the resulting
+>> file descriptor in subsequent system calls without waiting for the
+>> response to openat2.
+>>
+>> In io_uring, this allows sequences like openat2/read/close without
+>> waiting for the openat2 to complete. Multiple such sequences can
+>> overlap, as long as each uses a distinct file descriptor.
 > 
 > I'm not sure I understand this explanation -- how can you trigger a
 > syscall with an fd that hasn't yet been registered (unless you're just
 > hoping the race goes in your favour)?
 
-I suspect (there are no comments in the io_uring code to say what it does)
-that the io_uring code uses a thread of the user process to sequentially
-execute IO requests that the main application has added to a queue.
+io_uring can do chains of requests, where each link in the chain isn't
+started until the previous one has completed. Hence if you know what fd
+that openat2 will return, you can submit a chain ala:
 
-So it might make sense to queue up open/read/close.
-But that ought to be within the io_uring code.
+<open file X, give me fd Y><read from fd Y><close fd Y>
 
-	David
+as a single submission. This isn't possible to do currently, as the read
+will depend on the output of the open, and we have no good way of
+knowing what that fd will be.
 
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
+-- 
+Jens Axboe
