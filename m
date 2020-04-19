@@ -1,28 +1,91 @@
-From: Mr Kabiru Wahid <kabiruwahid111@gmail.com>
-Subject: Hello Dear Friend!
-Date: Sat, 18 Apr 2020 22:07:53 +0000
-Message-ID: <CAM5G+8xiYwGomhViNUoUgJGcwc5Cyws5Fph5qKUhn-qB+=YY1A__2038.25664227537$1587247683$gmane$org@mail.gmail.com>
-Reply-To: kabiruwahid199@gmail.com
+From: Alex Belits <abelits-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>
+Subject: Re: [EXT] Re: [PATCH v3 03/13] task_isolation: add instruction
+ synchronization memory barrier
+Date: Sun, 19 Apr 2020 05:02:01 +0000
+Message-ID: <e4d2cda6f011e80a0d8e482b85bca1c57665fcfd.camel@marvell.com>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+         <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
+         <d995795c731d6ecceb36bdf1c1df3d72fefd023d.camel@marvell.com>
+         <20200415124427.GB28304@C02TD0UTHF1T.local>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44758 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726887AbgDRWHz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 18 Apr 2020 18:07:55 -0400
-Received: from mail-qv1-xf41.google.com (mail-qv1-xf41.google.com [IPv6:2607:f8b0:4864:20::f41])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7AC51C061A0F
-        for <linux-arch@vger.kernel.org>; Sat, 18 Apr 2020 15:07:54 -0700 (PDT)
-Received: by mail-qv1-xf41.google.com with SMTP id v18so2829818qvx.9
-        for <linux-arch@vger.kernel.org>; Sat, 18 Apr 2020 15:07:54 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20200415124427.GB28304-NxAhncQ8SJbILnBEAk/BfazUEOm+Xw19@public.gmane.org>
+Content-Language: en-US
+Content-ID: <CE493171FAB7DC4EA12DCB54BAC853AE-WIijndS0fTycE4WynfumptQqCkab/8FMAL8bYrjMMd8@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "mark.rutland-5wv7dgnIgG8@public.gmane.org" <mark.rutland-5wv7dgnIgG8@public.gmane.org>
+Cc: "mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, "linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "rostedt-nx8X9YLhiw1AfugRpC6u6w@public.gmane.org" <rostedt-nx8X9YLhiw1AfugRpC6u6w@public.gmane.org>, "peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org" <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Prasun Kapoor <pkapoor-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>, "catalin.marinas-5wv7dgnIgG8@public.gmane.org" <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, "frederic-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <frederic-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org" <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-Dear Sir,  I came across your e-mail contact prior a private search
-while in need of your assistance, I have investment funds worth
-million of dollars and i need a trusted investment Manager/Partner, If
-you are willing to handle this project on my behalf kindly reply
-urgent to enable me provide you more information please this is not a
-spam, its a real business that will benefit both of us your urgent
-reply will be appreciated i will explain to you on how the business
-will be executed! kabiruwahid111@gmail.com.
+DQpPbiBXZWQsIDIwMjAtMDQtMTUgYXQgMTM6NDQgKzAxMDAsIE1hcmsgUnV0bGFuZCB3cm90ZToN
+Cj4gRXh0ZXJuYWwgRW1haWwNCj4gDQo+IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCj4gLS0tDQo+IE9uIFRodSwgQXBy
+IDA5LCAyMDIwIGF0IDAzOjE3OjQwUE0gKzAwMDAsIEFsZXggQmVsaXRzIHdyb3RlOg0KPiA+IFNv
+bWUgYXJjaGl0ZWN0dXJlcyBpbXBsZW1lbnQgbWVtb3J5IHN5bmNocm9uaXphdGlvbiBpbnN0cnVj
+dGlvbnMNCj4gPiBmb3INCj4gPiBpbnN0cnVjdGlvbiBjYWNoZS4gTWFrZSBhIHNlcGFyYXRlIGtp
+bmQgb2YgYmFycmllciB0aGF0IGNhbGxzIHRoZW0uDQo+IA0KPiBNb2RpZnlpbmcgdGhlIGluc3Ry
+dWN0aW9uIGNhY2hlcyByZXF1cmllcyBtb3JlIHRoYW4gYW4gSVNCLCBhbmQgdGhlDQo+ICdJTUIn
+IG5hbWluZyBpbXBsaWVzIHlvdSdyZSB0cnlpbmcgdG8gb3JkZXIgYWdhaW5zdCBtZW1vcnkgYWNj
+ZXNzZXMsDQo+IHdoaWNoIGlzbid0IHdoYXQgSVNCIChnZW5lcmFsbHkpIGRvZXMuDQo+IA0KPiBX
+aGF0IGV4YWN0bHkgZG8geW91IHdhbnQgdG8gdXNlIHRoaXMgZm9yPw0KDQpJIGd1ZXNzLCB0aGVy
+ZSBzaG91bGQgYmUgZGlmZmVyZW50IGV4cGxhbmF0aW9uIGFuZCBuYW1pbmcuDQoNClRoZSBpbnRl
+bnRpb24gaXMgdG8gaGF2ZSBhIHNlcGFyYXRlIGJhcnJpZXIgdGhhdCBjYXVzZXMgY2FjaGUNCnN5
+bmNocm9uaXphdGlvbiBldmVudCwgZm9yIHVzZSBpbiBhcmNoaXRlY3R1cmUtaW5kZXBlbmRlbnQg
+Y29kZS4gSSBhbQ0Kbm90IHN1cmUsIHdoYXQgZXhhY3RseSBpdCBzaG91bGQgZG8gdG8gYmUgaW1w
+bGVtZW50ZWQgaW4gYXJjaGl0ZWN0dXJlLQ0KaW5kZXBlbmRlbnQgbWFubmVyLCBzbyBpdCBwcm9i
+YWJseSBvbmx5IG1ha2VzIHNlbnNlIGFsb25nIHdpdGggYQ0KcmVndWxhciBtZW1vcnkgYmFycmll
+ci4NCg0KVGhlIHBhcnRpY3VsYXIgcGxhY2Ugd2hlcmUgSSBoYWQgdG8gdXNlIGlzIHRoZSBjb2Rl
+IHRoYXQgaGFzIHRvIHJ1bg0KYWZ0ZXIgaXNvbGF0ZWQgdGFzayByZXR1cm5zIHRvIHRoZSBrZXJu
+ZWwuIEluIHRoZSBtb2RlbCB0aGF0IEkgcHJvcG9zZQ0KZm9yIHRhc2sgaXNvbGF0aW9uLCByZW1v
+dGUgY29udGV4dCBzeW5jaHJvbml6YXRpb24gaXMgc2tpcHBlZCB3aGlsZQ0KdGFzayBpcyBpbiBp
+c29sYXRlZCBpbiB1c2Vyc3BhY2UgKGl0IGRvZXNuJ3QgcnVuIGtlcm5lbCwgYW5kIGtlcm5lbA0K
+ZG9lcyBub3QgbW9kaWZ5IGl0cyB1c2Vyc3BhY2UgY29kZSwgc28gaXQncyBoYXJtbGVzcyB1bnRp
+bCBlbnRlcmluZyB0aGUNCmtlcm5lbCkuIFNvIGl0IHdpbGwgc2tpcCB0aGUgcmVzdWx0cyBvZiBr
+aWNrX2FsbF9jcHVzX3N5bmMoKSB0aGF0IHdhcw0KdGhhdCB3YXMgY2FsbGVkIGZyb20gZmx1c2hf
+aWNhY2hlX3JhbmdlKCkgYW5kIG90aGVyIHNpbWlsYXIgcGxhY2VzLg0KVGhpcyBtZWFucyB0aGF0
+IG9uY2UgaXQncyBvdXQgb2YgdXNlcnNwYWNlLCBpdCBzaG91bGQgb25seSBydW4NCnNvbWUgInNh
+ZmUiIGtlcm5lbCBlbnRyeSBjb2RlLCBhbmQgdGhlbiBzeW5jaHJvbml6ZSBpbiBzb21lIG1hbm5l
+ciB0aGF0DQphdm9pZHMgcmFjZSBjb25kaXRpb25zIHdpdGggcG9zc2libGUgSVBJcyBpbnRlbmRl
+ZCBmb3IgY29udGV4dA0Kc3luY2hyb25pemF0aW9uIHRoYXQgbWF5IGhhcHBlbiBhdCB0aGUgc2Ft
+ZSB0aW1lLiBNeSBuZXh0IHBhdGNoIGluIHRoZQ0Kc2VyaWVzIHVzZXMgaXQgaW4gdGhhdCBvbmUg
+cGxhY2UuDQoNClN5bmNocm9uaXphdGlvbiB3aWxsIGhhdmUgdG8gYmUgaW1wbGVtZW50ZWQgd2l0
+aG91dCBhIG1hbmRhdG9yeQ0KaW50ZXJydXB0IGJlY2F1c2UgaXQgbWF5IGJlIHRyaWdnZXJlZCBs
+b2NhbGx5LCBvbiB0aGUgc2FtZSBDUFUuIE9uIEFSTSwNCklTQiBpcyBkZWZpbml0ZWx5IG5lY2Vz
+c2FyeSB0aGVyZSwgaG93ZXZlciBJIGFtIG5vdCBzdXJlLCBob3cgdGhpcw0Kc2hvdWxkIGxvb2sg
+bGlrZSBvbiB4ODYgYW5kIG90aGVyIGFyY2hpdGVjdHVyZXMuIE9uIEFSTSB0aGlzIHByb2JhYmx5
+DQpzdGlsbCBzaG91bGQgYmUgY29tYmluZWQgd2l0aCBhIHJlYWwgbWVtb3J5IGJhcnJpZXIgYW5k
+IGNhY2hlDQpzeW5jaHJvbml6YXRpb24sIGhvd2V2ZXIgSSBhbSBub3QgZW50aXJlbHkgc3VyZSBh
+Ym91dCBkZXRhaWxzLiBXb3VsZA0KaXQgbWFrZSBtb3JlIHNlbnNlIHRvIHJ1biBETUIsIElDIGFu
+ZCBJU0I/IA0KDQo+IA0KQXMtaXMsIEkgZG9uJ3QgdGhpbmsgdGhpcyBtYWtlcyBzZW5zZSBhcyBh
+IGdlbmVyaWMgYmFycmllci4NCg0KVGhhbmtzLA0KTWFyay4NCg0KU2lnbmVkLW9mZi1ieTogQWxl
+eCBCZWxpdHMgPGFiZWxpdHNAbWFydmVsbC5jb20+DQotLS0NCiBhcmNoL2FybS9pbmNsdWRlL2Fz
+bS9iYXJyaWVyLmggICB8IDIgKysNCiBhcmNoL2FybTY0L2luY2x1ZGUvYXNtL2JhcnJpZXIuaCB8
+IDIgKysNCiBpbmNsdWRlL2FzbS1nZW5lcmljL2JhcnJpZXIuaCAgICB8IDQgKysrKw0KIDMgZmls
+ZXMgY2hhbmdlZCwgOCBpbnNlcnRpb25zKCspDQoNCmRpZmYgLS1naXQgYS9hcmNoL2FybS9pbmNs
+dWRlL2FzbS9iYXJyaWVyLmgNCmIvYXJjaC9hcm0vaW5jbHVkZS9hc20vYmFycmllci5oDQppbmRl
+eCA4M2FlOTdjMDQ5ZDkuLjZkZWY2MmM5NTkzNyAxMDA2NDQNCi0tLSBhL2FyY2gvYXJtL2luY2x1
+ZGUvYXNtL2JhcnJpZXIuaA0KKysrIGIvYXJjaC9hcm0vaW5jbHVkZS9hc20vYmFycmllci5oDQpA
+QCAtNjQsMTIgKzY0LDE0IEBAIGV4dGVybiB2b2lkIGFybV9oZWF2eV9tYih2b2lkKTsNCiAjZGVm
+aW5lIG1iKCkJCV9fYXJtX2hlYXZ5X21iKCkNCiAjZGVmaW5lIHJtYigpCQlkc2IoKQ0KICNkZWZp
+bmUgd21iKCkJCV9fYXJtX2hlYXZ5X21iKHN0KQ0KKyNkZWZpbmUgaW1iKCkJCWlzYigpDQogI2Rl
+ZmluZSBkbWFfcm1iKCkJZG1iKG9zaCkNCiAjZGVmaW5lIGRtYV93bWIoKQlkbWIob3Noc3QpDQog
+I2Vsc2UNCiAjZGVmaW5lIG1iKCkJCWJhcnJpZXIoKQ0KICNkZWZpbmUgcm1iKCkJCWJhcnJpZXIo
+KQ0KICNkZWZpbmUgd21iKCkJCWJhcnJpZXIoKQ0KKyNkZWZpbmUgaW1iKCkJCWJhcnJpZXIoKQ0K
+ICNkZWZpbmUgZG1hX3JtYigpCWJhcnJpZXIoKQ0KICNkZWZpbmUgZG1hX3dtYigpCWJhcnJpZXIo
+KQ0KICNlbmRpZg0KZGlmZiAtLWdpdCBhL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vYmFycmllci5o
+DQpiL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vYmFycmllci5oDQppbmRleCA3ZDljYzVlYzQ5NzEu
+LjEyYTdkYmQ2OGJlZCAxMDA2NDQNCi0tLSBhL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vYmFycmll
+ci5oDQorKysgYi9hcmNoL2FybTY0L2luY2x1ZGUvYXNtL2JhcnJpZXIuaA0KQEAgLTQ1LDYgKzQ1
+LDggQEANCiAjZGVmaW5lIHJtYigpCQlkc2IobGQpDQogI2RlZmluZSB3bWIoKQkJZHNiKHN0KQ0K
+IA0KKyNkZWZpbmUgaW1iKCkJCWlzYigpDQorDQogI2RlZmluZSBkbWFfcm1iKCkJZG1iKG9zaGxk
+KQ0KICNkZWZpbmUgZG1hX3dtYigpCWRtYihvc2hzdCkNCiANCmRpZmYgLS1naXQgYS9pbmNsdWRl
+L2FzbS1nZW5lcmljL2JhcnJpZXIuaCBiL2luY2x1ZGUvYXNtLQ0KZ2VuZXJpYy9iYXJyaWVyLmgN
+CmluZGV4IDg1YjI4ZWI4MGIxMS4uZDVhODIyZmIzZTkyIDEwMDY0NA0KLS0tIGEvaW5jbHVkZS9h
+c20tZ2VuZXJpYy9iYXJyaWVyLmgNCisrKyBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvYmFycmllci5o
+DQpAQCAtNDYsNiArNDYsMTAgQEANCiAjZGVmaW5lIGRtYV93bWIoKQl3bWIoKQ0KICNlbmRpZg0K
+IA0KKyNpZm5kZWYgaW1iDQorI2RlZmluZSBpbWIJCWJhcnJpZXIoKQ0KKyNlbmRpZg0KKw0KICNp
+Zm5kZWYgcmVhZF9iYXJyaWVyX2RlcGVuZHMNCiAjZGVmaW5lIHJlYWRfYmFycmllcl9kZXBlbmRz
+KCkJCWRvIHsgfSB3aGlsZSAoMCkNCiAjZW5kaWYNCi0tIA0KMi4yMC4xDQoNCg0KDQoNCg==
