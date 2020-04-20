@@ -1,34 +1,47 @@
-Return-Path: <SRS0=p5Ku=5Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:45930 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726594AbgDHL7w (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 07:59:52 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: decruft the vmalloc API
-Date: Wed,  8 Apr 2020 13:58:58 +0200
-Message-ID: <20200408115926.1467567-1-hch@lst.de>
+Return-Path: <SRS0=VSGv=6E=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Mon, 20 Apr 2020 15:43:16 -0600
+From: Jonathan Corbet <corbet@lwn.net>
+Subject: Re: [PATCH v2 00/33] Documentation fixes for Kernel 5.8
+Message-ID: <20200420154316.28e42905@lwn.net>
+In-Reply-To: <cover.1586881715.git.mchehab+huawei@kernel.org>
+References: <cover.1586881715.git.mchehab+huawei@kernel.org>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Sender: linux-doc-owner@vger.kernel.org
+To: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+Cc: Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, Rob Herring <robh@kernel.org>, Maxime Ripard <maxime@cerno.tech>, Linus Walleij <linus.walleij@linaro.org>, Sudeep Holla <sudeep.holla@arm.com>, Kishon Vijay Abraham I <kishon@ti.com>, Yuti Amonkar <yamonkar@cadence.com>, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, dri-devel@lists.freedesktop.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-unionfs@vger.kernel.org, linux-mm@kvack.org, linux-rdma@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-crypto@vger.kernel.org, linux-media@vger.kernel.org, linux-arm-msm@vger.kernel.org, freedreno@lists.freedesktop.org, linux-afs@lists.infradead.org, ecryptfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, ocfs2-devel@oss.oracle.com, linux-pci@vger.kernel.org, linux-edac@vger.kernel.org, linux-spi@vger.kernel.org, Sandeep Maheswaram <sanm@codeaurora.org>, Stephen Boyd <swboyd@chromium.org>, Matthias Kaehlcke <mka@chromium.org>, linux-usb@vger.kernel.org, Geert Uytterhoeven <geert+renesas@glider.be>, Matthias Brugger <mbrugger@suse.com>, netdev@vger.kernel.org, linux-i2c@vger.kernel.org, linux-rockchip@lists.infradead.org, linux-ide@vger.kernel.org, linux1394-devel@lists.sourceforge.net
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200408115858.ubxwvgeVBZ-CqVNDYstwRjDSyaVMzuSIuDTsB5nfVZg@z>
+Message-ID: <20200420214316.kWRcdR9O-WXgmS3T-f0e4Bfw3ir1mOizF7Frp3uqVJs@z>
 
-Hi all,
+On Tue, 14 Apr 2020 18:48:26 +0200
+Mauro Carvalho Chehab <mchehab+huawei@kernel.org> wrote:
 
-Peter noticed that with some dumb luck you can toast the kernel address
-space with exported vmalloc symbols.
+> Patches 1 to 5 contain changes to the documentation toolset:
+> 
+> - The first 3 patches help to reduce a lot the number of reported
+>   kernel-doc issues, by making the tool more smart.
+> 
+> - Patches 4 and 5 are meant to partially address the PDF
+>   build, with now requires Sphinx version 2.4 or upper.
+> 
+> The remaining patches fix broken references detected by
+> this tool:
+> 
+>         ./scripts/documentation-file-ref-check
+> 
+> and address other random errors due to tags being mis-interpreted
+> or mis-used.
+> 
+> They are independent each other, but some may depend on
+> the kernel-doc improvements.
+> 
+> PS.: Due to the large number of C/C, I opted to keep a smaller
+> set of C/C at this first e-mail (only e-mails with "L:" tag from
+> MAINTAINERS file).
 
-I used this as an opportunity to decruft the vmalloc.c API and make it
-much more systematic.  This also removes any chance to create vmalloc
-mappings outside the designated areas or using executable permissions
-from modules.  Besides that it removes more than 300 lines of code.
+OK, I've applied this set, minus #17 which was applied elsewhere.
 
-A git tree is also available here:
+Thanks,
 
-    git://git.infradead.org/users/hch/misc.git sanitize-vmalloc-api
-
-Gitweb:
-
-    http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/sanitize-vmalloc-api
+jon
