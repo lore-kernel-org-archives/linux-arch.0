@@ -1,69 +1,93 @@
-From: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
-Subject: Re: [PATCH 24/29] mm: remove __vmalloc_node_flags_caller
-Date: Mon, 20 Apr 2020 11:27:56 +0200
-Message-ID: <CAMuHMdXktO=2n1tbE5RWRfE1CMd9bP-aHJQifO3J9HYxoQEuXQ@mail.gmail.com>
-References: <20200414131348.444715-1-hch@lst.de>
- <20200414131348.444715-25-hch@lst.de>
+From: Eric Dumazet <eric.dumazet@gmail.com>
+Subject: Re: [PATCH 1/4] fs: Implement close-on-fork
+Date: Mon, 20 Apr 2020 03:25:49 -0700
+Message-ID: <36dce9b4-a0bf-0015-f6bc-1006938545b1@gmail.com>
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
+ <20200420071548.62112-2-nate.karstens@garmin.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20200414131348.444715-25-hch-jcswGhMUV9g@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Sender: "iommu" <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Cc: linux-hyperv-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, David Airlie <airlied-cv59FeDIM0c@public.gmane.org>, DRI Development <dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org>, Linux MM <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, "K. Y. Srinivasan" <kys-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, Sumit Semwal <sumit.semwal-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-s390 <linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Wei Liu <wei.liu-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Stephen Hemminger <sthemmin-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, the arch/x86 maintainers <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Laura Abbott <labbott-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Nitin Gupta <ngupta-KNmc09w0p+Ednm+yROfE0A@public.gmane.org>, Daniel Vetter <daniel-/w4YWyX8dFk@public.gmane.org>, Haiyang Zhang <haiyangz-0li6OtcxBFHby3iVrkZq2A@public.gmane.org>, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, bpf <bpf-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux ARM <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, Christophe Leroy <christophe.leroy-GgN8y9CXRhA@public.gmane.org>, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Minchan Kim <minchan@kernel.o>
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <20200420071548.62112-2-nate.karstens@garmin.com>
+Content-Language: en-US
+Sender: linux-alpha-owner@vger.kernel.org
+To: Nate Karstens <nate.karstens@garmin.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Changli Gao <xiaosuo@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christoph,
-
-On Tue, Apr 14, 2020 at 3:21 PM Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org> wrote:
-> Just use __vmalloc_node instead which gets and extra argument.  To be
-> able to to use __vmalloc_node in all caller make it available outside
-> of vmalloc and implement it in nommu.c.
->
-> Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-> Acked-by: Peter Zijlstra (Intel) <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-
-One more nommu failure below...
-
-> --- a/mm/nommu.c
-> +++ b/mm/nommu.c
-> @@ -150,8 +150,8 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
->  }
->  EXPORT_SYMBOL(__vmalloc);
->
-> -void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t flags,
-> -               void *caller)
-> +void *__vmalloc_node(unsigned long size, unsigned long align, gfp_t gfp_mask,
-> +               int node, const void *caller)
->  {
->         return __vmalloc(size, flags);
-
-On Mon, Apr 20, 2020 at 10:39 AM <noreply-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org> wrote:
-> FAILED linux-next/m5272c3_defconfig/m68k-gcc8 Mon Apr 20, 18:38
->
-> http://kisskb.ellerman.id.au/kisskb/buildresult/14213623/
->
-> mm/nommu.c:164:25: error: 'flags' undeclared (first use in this function); did you mean 'class'?
-
-"return __vmalloc(size, gfp_mask);"
-
-Gr{oetje,eeting}s,
-
-                        Geert
 
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org
+On 4/20/20 12:15 AM, Nate Karstens wrote:
+> The close-on-fork flag causes the file descriptor to be closed
+> atomically in the child process before the child process returns
+> from fork(). Implement this feature and provide a method to
+> get/set the close-on-fork flag using fcntl(2).
+> 
+> This functionality was approved by the Austin Common Standards
+> Revision Group for inclusion in the next revision of the POSIX
+> standard (see issue 1318 in the Austin Group Defect Tracker).
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Oh well... yet another feature slowing down a critical path.
+
+> 
+> Co-developed-by: Changli Gao <xiaosuo@gmail.com>
+> Signed-off-by: Changli Gao <xiaosuo@gmail.com>
+> Signed-off-by: Nate Karstens <nate.karstens@garmin.com>
+> ---
+>  fs/fcntl.c                             |  2 ++
+>  fs/file.c                              | 50 +++++++++++++++++++++++++-
+>  include/linux/fdtable.h                |  7 ++++
+>  include/linux/file.h                   |  2 ++
+>  include/uapi/asm-generic/fcntl.h       |  5 +--
+>  tools/include/uapi/asm-generic/fcntl.h |  5 +--
+>  6 files changed, 66 insertions(+), 5 deletions(-)
+> 
+> diff --git a/fs/fcntl.c b/fs/fcntl.c
+> index 2e4c0fa2074b..23964abf4a1a 100644
+> --- a/fs/fcntl.c
+> +++ b/fs/fcntl.c
+> @@ -335,10 +335,12 @@ static long do_fcntl(int fd, unsigned int cmd, unsigned long arg,
+>  		break;
+>  	case F_GETFD:
+>  		err = get_close_on_exec(fd) ? FD_CLOEXEC : 0;
+> +		err |= get_close_on_fork(fd) ? FD_CLOFORK : 0;
+>  		break;
+>  	case F_SETFD:
+>  		err = 0;
+>  		set_close_on_exec(fd, arg & FD_CLOEXEC);
+> +		set_close_on_fork(fd, arg & FD_CLOFORK);
+>  		break;
+>  	case F_GETFL:
+>  		err = filp->f_flags;
+> diff --git a/fs/file.c b/fs/file.c
+> index c8a4e4c86e55..de7260ba718d 100644
+> --- a/fs/file.c
+> +++ b/fs/file.c
+> @@ -57,6 +57,8 @@ static void copy_fd_bitmaps(struct fdtable *nfdt, struct fdtable *ofdt,
+>  	memset((char *)nfdt->open_fds + cpy, 0, set);
+>  	memcpy(nfdt->close_on_exec, ofdt->close_on_exec, cpy);
+>  	memset((char *)nfdt->close_on_exec + cpy, 0, set);
+> +	memcpy(nfdt->close_on_fork, ofdt->close_on_fork, cpy);
+> +	memset((char *)nfdt->close_on_fork + cpy, 0, set);
+>  
+
+I suggest we group the two bits of a file (close_on_exec, close_on_fork) together,
+so that we do not have to dirty two separate cache lines.
+
+Otherwise we will add yet another cache line miss at every file opening/closing for processes
+with big file tables.
+
+Ie having a _single_ bitmap array, even bit for close_on_exec, odd bit for close_on_fork
+
+static inline void __set_close_on_exec(unsigned int fd, struct fdtable *fdt)
+{
+	__set_bit(fd * 2, fdt->close_on_fork_exec);
+}
+
+static inline void __set_close_on_fork(unsigned int fd, struct fdtable *fdt)
+{
+	__set_bit(fd * 2 + 1, fdt->close_on_fork_exec);
+}
+
+Also the F_GETFD/F_SETFD implementation must use a single function call,
+to not acquire the spinlock twice.
