@@ -1,107 +1,99 @@
-Return-Path: <SRS0=yBTr=57=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:51634 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2404592AbgDOT0s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Apr 2020 15:26:48 -0400
-Subject: Re: [PATCH v3 05/12] arm64: csum: Disable KASAN for do_csum()
-References: <20200415165218.20251-1-will@kernel.org>
- <20200415165218.20251-6-will@kernel.org>
-From: Robin Murphy <robin.murphy@arm.com>
-Message-ID: <4d31aca5-56dd-2ca5-d1b8-f754ad184b04@arm.com>
-Date: Wed, 15 Apr 2020 20:26:43 +0100
+Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39954 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1725773AbgDTKZy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Apr 2020 06:25:54 -0400
+Subject: Re: [PATCH 1/4] fs: Implement close-on-fork
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
+ <20200420071548.62112-2-nate.karstens@garmin.com>
+From: Eric Dumazet <eric.dumazet@gmail.com>
+Message-ID: <36dce9b4-a0bf-0015-f6bc-1006938545b1@gmail.com>
+Date: Mon, 20 Apr 2020 03:25:49 -0700
 MIME-Version: 1.0
-In-Reply-To: <20200415165218.20251-6-will@kernel.org>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-GB
+In-Reply-To: <20200420071548.62112-2-nate.karstens@garmin.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20200415192643.dcgaMNiZl2cBzB6Ck-7nPeTVH2HXN9FIXqBXFeaBLa8@z>
+To: Nate Karstens <nate.karstens@garmin.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Changli Gao <xiaosuo@gmail.com>
+Message-ID: <20200420102549.InQMk4jyAmGFqzqKBKzK3d5ALoAXKIon5FPEa8osWNs@z>
 
-On 2020-04-15 5:52 pm, Will Deacon wrote:
-> do_csum() over-reads the source buffer and therefore abuses
-> READ_ONCE_NOCHECK() to avoid tripping up KASAN. In preparation for
-> READ_ONCE_NOCHECK() becoming a macro, and therefore losing its
-> '__no_sanitize_address' annotation, just annotate do_csum() explicitly
-> and fall back to normal loads.
 
-FWIW with most compilers I played with, the read-once-ness *was* also 
-important to ensure the uint128_t accesses compose to nice efficient 
-LDPs rather than being split into a motley mess of individual LDRs.
 
-The buffer loads that aren't the first or potentially the last didn't 
-strictly need to be nocheck, however since the whole range gets 
-explicitly checked up-front they may as well avoid further unnecessary 
-KASAN penalty, plus it made things look nice and consistent :)
+On 4/20/20 12:15 AM, Nate Karstens wrote:
+> The close-on-fork flag causes the file descriptor to be closed
+> atomically in the child process before the child process returns
+> from fork(). Implement this feature and provide a method to
+> get/set the close-on-fork flag using fcntl(2).
+> 
+> This functionality was approved by the Austin Common Standards
+> Revision Group for inclusion in the next revision of the POSIX
+> standard (see issue 1318 in the Austin Group Defect Tracker).
 
-Robin.
+Oh well... yet another feature slowing down a critical path.
 
-> Cc: Mark Rutland <mark.rutland@arm.com>
-> Cc: Robin Murphy <robin.murphy@arm.com>
-> Signed-off-by: Will Deacon <will@kernel.org>
+> 
+> Co-developed-by: Changli Gao <xiaosuo@gmail.com>
+> Signed-off-by: Changli Gao <xiaosuo@gmail.com>
+> Signed-off-by: Nate Karstens <nate.karstens@garmin.com>
 > ---
->   arch/arm64/lib/csum.c | 20 ++++++++++++--------
->   1 file changed, 12 insertions(+), 8 deletions(-)
+>  fs/fcntl.c                             |  2 ++
+>  fs/file.c                              | 50 +++++++++++++++++++++++++-
+>  include/linux/fdtable.h                |  7 ++++
+>  include/linux/file.h                   |  2 ++
+>  include/uapi/asm-generic/fcntl.h       |  5 +--
+>  tools/include/uapi/asm-generic/fcntl.h |  5 +--
+>  6 files changed, 66 insertions(+), 5 deletions(-)
 > 
-> diff --git a/arch/arm64/lib/csum.c b/arch/arm64/lib/csum.c
-> index 60eccae2abad..78b87a64ca0a 100644
-> --- a/arch/arm64/lib/csum.c
-> +++ b/arch/arm64/lib/csum.c
-> @@ -14,7 +14,11 @@ static u64 accumulate(u64 sum, u64 data)
->   	return tmp + (tmp >> 64);
->   }
->   
-> -unsigned int do_csum(const unsigned char *buff, int len)
-> +/*
-> + * We over-read the buffer and this makes KASAN unhappy. Instead, disable
-> + * instrumentation and call kasan explicitly.
-> + */
-> +unsigned int __no_sanitize_address do_csum(const unsigned char *buff, int len)
->   {
->   	unsigned int offset, shift, sum;
->   	const u64 *ptr;
-> @@ -42,7 +46,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
->   	 * odd/even alignment, and means we can ignore it until the very end.
->   	 */
->   	shift = offset * 8;
-> -	data = READ_ONCE_NOCHECK(*ptr++);
-> +	data = *ptr++;
->   #ifdef __LITTLE_ENDIAN
->   	data = (data >> shift) << shift;
->   #else
-> @@ -58,10 +62,10 @@ unsigned int do_csum(const unsigned char *buff, int len)
->   	while (unlikely(len > 64)) {
->   		__uint128_t tmp1, tmp2, tmp3, tmp4;
->   
-> -		tmp1 = READ_ONCE_NOCHECK(*(__uint128_t *)ptr);
-> -		tmp2 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 2));
-> -		tmp3 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 4));
-> -		tmp4 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 6));
-> +		tmp1 = *(__uint128_t *)ptr;
-> +		tmp2 = *(__uint128_t *)(ptr + 2);
-> +		tmp3 = *(__uint128_t *)(ptr + 4);
-> +		tmp4 = *(__uint128_t *)(ptr + 6);
->   
->   		len -= 64;
->   		ptr += 8;
-> @@ -85,7 +89,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
->   		__uint128_t tmp;
->   
->   		sum64 = accumulate(sum64, data);
-> -		tmp = READ_ONCE_NOCHECK(*(__uint128_t *)ptr);
-> +		tmp = *(__uint128_t *)ptr;
->   
->   		len -= 16;
->   		ptr += 2;
-> @@ -100,7 +104,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
->   	}
->   	if (len > 0) {
->   		sum64 = accumulate(sum64, data);
-> -		data = READ_ONCE_NOCHECK(*ptr);
-> +		data = *ptr;
->   		len -= 8;
->   	}
->   	/*
-> 
+> diff --git a/fs/fcntl.c b/fs/fcntl.c
+> index 2e4c0fa2074b..23964abf4a1a 100644
+> --- a/fs/fcntl.c
+> +++ b/fs/fcntl.c
+> @@ -335,10 +335,12 @@ static long do_fcntl(int fd, unsigned int cmd, unsigned long arg,
+>  		break;
+>  	case F_GETFD:
+>  		err = get_close_on_exec(fd) ? FD_CLOEXEC : 0;
+> +		err |= get_close_on_fork(fd) ? FD_CLOFORK : 0;
+>  		break;
+>  	case F_SETFD:
+>  		err = 0;
+>  		set_close_on_exec(fd, arg & FD_CLOEXEC);
+> +		set_close_on_fork(fd, arg & FD_CLOFORK);
+>  		break;
+>  	case F_GETFL:
+>  		err = filp->f_flags;
+> diff --git a/fs/file.c b/fs/file.c
+> index c8a4e4c86e55..de7260ba718d 100644
+> --- a/fs/file.c
+> +++ b/fs/file.c
+> @@ -57,6 +57,8 @@ static void copy_fd_bitmaps(struct fdtable *nfdt, struct fdtable *ofdt,
+>  	memset((char *)nfdt->open_fds + cpy, 0, set);
+>  	memcpy(nfdt->close_on_exec, ofdt->close_on_exec, cpy);
+>  	memset((char *)nfdt->close_on_exec + cpy, 0, set);
+> +	memcpy(nfdt->close_on_fork, ofdt->close_on_fork, cpy);
+> +	memset((char *)nfdt->close_on_fork + cpy, 0, set);
+>  
+
+I suggest we group the two bits of a file (close_on_exec, close_on_fork) together,
+so that we do not have to dirty two separate cache lines.
+
+Otherwise we will add yet another cache line miss at every file opening/closing for processes
+with big file tables.
+
+Ie having a _single_ bitmap array, even bit for close_on_exec, odd bit for close_on_fork
+
+static inline void __set_close_on_exec(unsigned int fd, struct fdtable *fdt)
+{
+	__set_bit(fd * 2, fdt->close_on_fork_exec);
+}
+
+static inline void __set_close_on_fork(unsigned int fd, struct fdtable *fdt)
+{
+	__set_bit(fd * 2 + 1, fdt->close_on_fork_exec);
+}
+
+Also the F_GETFD/F_SETFD implementation must use a single function call,
+to not acquire the spinlock twice.
