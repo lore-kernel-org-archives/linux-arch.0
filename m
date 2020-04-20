@@ -1,85 +1,100 @@
-Return-Path: <SRS0=jgxL=6L=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from vultr.net.flygoat.com ([149.28.68.211]:60242 "EHLO
-        vultr.net.flygoat.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726260AbgD0M2z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2020 08:28:55 -0400
-Date: Mon, 27 Apr 2020 20:21:29 +0800
-From: Jiaxun Yang <jiaxun.yang@flygoat.com>
-Subject: Re: [PATCH 3/4] lib: logic_pio: Introduce MMIO_LOWER_RESERVED
-Message-ID: <20200427202129.34f8807e@flygoat-x1e>
-In-Reply-To: <e6e3331f-283d-03e8-b23e-41870b547e34@huawei.com>
-References: <20200426114806.1176629-1-jiaxun.yang@flygoat.com>
-        <20200426114806.1176629-4-jiaxun.yang@flygoat.com>
-        <e84f4146-b44f-b009-0dc4-876aa551f44f@huawei.com>
-        <42432F7C-D859-48B4-9547-A61BD22EFEEF@flygoat.com>
-        <e6e3331f-283d-03e8-b23e-41870b547e34@huawei.com>
+Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:47652 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726801AbgDTMgf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Apr 2020 08:36:35 -0400
+Date: Mon, 20 Apr 2020 13:36:28 +0100
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [EXT] Re: [PATCH v3 03/13] task_isolation: add instruction
+ synchronization memory barrier
+Message-ID: <20200420123628.GB69441@C02TD0UTHF1T.local>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+ <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+ <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
+ <d995795c731d6ecceb36bdf1c1df3d72fefd023d.camel@marvell.com>
+ <20200415124427.GB28304@C02TD0UTHF1T.local>
+ <e4d2cda6f011e80a0d8e482b85bca1c57665fcfd.camel@marvell.com>
+ <20200420122350.GB12889@willie-the-truck>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200420122350.GB12889@willie-the-truck>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Garry <john.garry@huawei.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Bjorn Helgaas <bhelgaas@google.com>, linux-mips@vger.kernel.org, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Huacai Chen <chenhc@lemote.com>, Paul Burton <paulburton@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Stephen Kitt <steve@sk2.org>, Nick Desaulniers <ndesaulniers@google.com>, Serge Semin <fancer.lancer@gmail.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>, Daniel Silsby <dansilsby@gmail.com>, Mike Rapoport <rppt@linux.ibm.com>, Paul Cercueil <paul@crapouillou.net>, Mark Tomlinson <mark.tomlinson@alliedtelesis.co.nz>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Allison Randal <allison@lohutok.net>, Tiezhu Yang <yangtiezhu@loongson.cn>, Wei Xu <xuwei5@hisilicon.com>, linux-kernel@vger.kernel.org, Linuxarm <linuxarm@huawei.com>, Rob Herring <robh@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200427122129.YvK0f7e9n0DkBshdpgsplFvgpIkzLMgmjMoTDIrMXJQ@z>
+To: Will Deacon <will@kernel.org>
+Cc: Alex Belits <abelits@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "frederic@kernel.org" <frederic@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20200420123628.ztnJYVj3rB9i_tQvBeiL1H72ui9-A2rn_QOdrJHIgAw@z>
 
-On Mon, 27 Apr 2020 12:54:06 +0100
-John Garry <john.garry@huawei.com> wrote:
+On Mon, Apr 20, 2020 at 01:23:51PM +0100, Will Deacon wrote:
+> On Sun, Apr 19, 2020 at 05:02:01AM +0000, Alex Belits wrote:
+> > On Wed, 2020-04-15 at 13:44 +0100, Mark Rutland wrote:
+> > > On Thu, Apr 09, 2020 at 03:17:40PM +0000, Alex Belits wrote:
+> > > > Some architectures implement memory synchronization instructions
+> > > > for
+> > > > instruction cache. Make a separate kind of barrier that calls them.
+> > > 
+> > > Modifying the instruction caches requries more than an ISB, and the
+> > > 'IMB' naming implies you're trying to order against memory accesses,
+> > > which isn't what ISB (generally) does.
+> > > 
+> > > What exactly do you want to use this for?
+> > 
+> > I guess, there should be different explanation and naming.
+> > 
+> > The intention is to have a separate barrier that causes cache
+> > synchronization event, for use in architecture-independent code. I am
+> > not sure, what exactly it should do to be implemented in architecture-
+> > independent manner, so it probably only makes sense along with a
+> > regular memory barrier.
+> > 
+> > The particular place where I had to use is the code that has to run
+> > after isolated task returns to the kernel. In the model that I propose
+> > for task isolation, remote context synchronization is skipped while
+> > task is in isolated in userspace (it doesn't run kernel, and kernel
+> > does not modify its userspace code, so it's harmless until entering the
+> > kernel).
+> 
+> > So it will skip the results of kick_all_cpus_sync() that was
+> > that was called from flush_icache_range() and other similar places.
+> > This means that once it's out of userspace, it should only run
+> > some "safe" kernel entry code, and then synchronize in some manner that
+> > avoids race conditions with possible IPIs intended for context
+> > synchronization that may happen at the same time. My next patch in the
+> > series uses it in that one place.
+> > 
+> > Synchronization will have to be implemented without a mandatory
+> > interrupt because it may be triggered locally, on the same CPU. On ARM,
+> > ISB is definitely necessary there, however I am not sure, how this
+> > should look like on x86 and other architectures. On ARM this probably
+> > still should be combined with a real memory barrier and cache
+> > synchronization, however I am not entirely sure about details. Would
+> > it make more sense to run DMB, IC and ISB? 
+> 
+> IIUC, we don't need to do anything on arm64 because taking an exception acts
+> as a context synchronization event, so I don't think you should try to
+> expose this as a new barrier macro. Instead, just make it a pre-requisite
+> that architectures need to ensure this behaviour when entering the kernel
+> from userspace if they are to select HAVE_ARCH_TASK_ISOLATION.
 
-> On 27/04/2020 12:03, Jiaxun Yang wrote:
-> >=20
-> >=20
-> > =E4=BA=8E 2020=E5=B9=B44=E6=9C=8827=E6=97=A5 GMT+08:00 =E4=B8=8B=E5=8D=
-=886:43:09, John Garry
-> > <john.garry@huawei.com> =E5=86=99=E5=88=B0: =20
-> >> On 26/04/2020 12:47, Jiaxun Yang wrote: =20
-> >>> That would allow platforms reserve some lower address in PIO MMIO
-> >>> range to deal with legacy drivers with hardcoded I/O ports that
-> >>> can't be managed by logic_pio. =20
-> >>
-> >> Hi,
-> >>
-> >> Is there some reason why the logic_pio code cannot be improved to
-> >> handle these devices at these "fixed" addresses? Or do you have a
-> >> plan to improve it? We already support fixed bus address devices
-> >> in the INDIRECT IO region. =20
-> >=20
-> > Hi,
-> >=20
-> > The issue about "Fixed Address" is we can't control the ioport
-> > That driver used to operate devices.
-> > So any attempt to resolve it in logic_pio seems impossible.
-> >=20
-> > Currently we have i8259, i8042, piix4_smbus, mc146818 rely on this
-> > assumption. =20
->=20
-> Right, and from glancing at a couple of drivers you mentioned, if we=20
-> were to register a logic pio region for that legacy region, there
-> does not seem to be an easy place to fixup to use logic pio addresses
-> (for those devices). They use hardcoded values. However if all those
-> drivers were mips specific, you could fixup those drivers to use
-> logic_pio addresses today through some macro. But not sure on that.
->=20
+The CSE from the exception isn't sufficient here, because it needs to
+occur after the CPU has re-registered to receive IPIs for
+kick_all_cpus_sync(). Otherwise there's a window between taking the
+exception and re-registering where a necessary context synchronization
+event can be missed. e.g.
 
-Well, most of these drivers are shared with x86 so....
-I guess the conversion needs two or more release cycles.
+CPU A				CPU B
+[ Modifies some code ]		
+				[ enters exception ]
+[ D cache maintenance ]
+[ I cache maintenance ]
+[ IPI ]				// IPI not taken
+  ...				[ register for IPI ] 
+[ IPI completes ] 
+				[ execute stale code here ]
 
->=20
-> So, going back to your change, I have a dilemma wondering whether you=20
-> should still register a logic pio region for the legacy region
-> instead of the carveout reservation, but ensure it is the first
-> region registered, such that logic pio address base is 0 and no
-> translation is required. At least then you have a region registered
-> and it shows in /proc/ioports, but then this whole thing becomes a
-> bit fragile.
+However, I think 'IMB' is far too generic, and we should have an arch
+hook specific to task isolation, as it's far less likely to be abused as
+IMB will.
 
-Thanks for your solution. So I must register this range as early as
-possible. As IRQ is the first subsystem using ISA, I'll do it before
-IRQ init, just at the place I setup iormap for reserved region now.
-
-Should be early enough to avoid any collision, as the only logic_pio
-user on our system is PCI controller.
-
-Thanks.
->=20
---
-Jiaxun Yang
+Thanks,
+Mark.
