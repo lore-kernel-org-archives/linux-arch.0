@@ -1,49 +1,107 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 03/29] staging: android: ion: use vmap instead of vm_map_ram
-Date: Tue, 14 Apr 2020 15:13:22 +0200
-Message-ID: <20200414131348.444715-4-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51692 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726457AbgDTRnk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Apr 2020 13:43:40 -0400
+Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6BCD4C061A10
+        for <linux-arch@vger.kernel.org>; Mon, 20 Apr 2020 10:43:40 -0700 (PDT)
+Received: by mail-pj1-x1042.google.com with SMTP id ng8so180074pjb.2
+        for <linux-arch@vger.kernel.org>; Mon, 20 Apr 2020 10:43:40 -0700 (PDT)
+Date: Mon, 20 Apr 2020 10:43:37 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches
+ as usercopy caches
+Message-ID: <202004201043.538A7B3F2@keescook>
+References: <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+ <202001281457.FA11CC313A@keescook>
+ <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+ <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
+ <20200129170939.GA4277@infradead.org>
+ <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
+ <202001300945.7D465B5F5@keescook>
+ <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
+ <7d810f6d-8085-ea2f-7805-47ba3842dc50@suse.cz>
+ <548e6212-7b3c-5925-19f2-699af451fd16@suse.cz>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <548e6212-7b3c-5925-19f2-699af451fd16@suse.cz>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414131322.3RG6empmmQrsANXueBFDrhgQPnHDLErAyQq7lts-bOE@z>
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: Vlastimil Babka <vbabka@suse.cz>, Jann Horn <jannh@google.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Michal Kubecek <mkubecek@suse.cz>
+Message-ID: <20200420174337.2K7J01ph0_gUgS7YjAgYiebvq1cxbRHrVwLY7sSlX-Y@z>
 
-vm_map_ram can keep mappings around after the vm_unmap_ram.  Using that
-with non-PAGE_KERNEL mappings can lead to all kinds of aliasing issues.
+On Mon, Apr 20, 2020 at 09:53:20AM +0200, Jiri Slaby wrote:
+> On 07. 04. 20, 10:00, Vlastimil Babka wrote:
+> > From d5190e4e871689a530da3c3fd327be45a88f006a Mon Sep 17 00:00:00 2001
+> > From: Vlastimil Babka <vbabka@suse.cz>
+> > Date: Tue, 7 Apr 2020 09:58:00 +0200
+> > Subject: [PATCH] usercopy: Mark dma-kmalloc caches as usercopy caches
+> > 
+> > We have seen a "usercopy: Kernel memory overwrite attempt detected to SLUB
+> > object 'dma-kmalloc-1 k' (offset 0, size 11)!" error on s390x, as IUCV uses
+> > kmalloc() with __GFP_DMA because of memory address restrictions.
+> > The issue has been discussed [2] and it has been noted that if all the kmalloc
+> > caches are marked as usercopy, there's little reason not to mark dma-kmalloc
+> > caches too. The 'dma' part merely means that __GFP_DMA is used to restrict
+> > memory address range.
+> > 
+> > As Jann Horn put it [3]:
+> > 
+> > "I think dma-kmalloc slabs should be handled the same way as normal
+> > kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
+> > just normal kernel memory - even if it might later be used for DMA -,
+> > and it should be perfectly fine to copy_from_user() into such
+> > allocations at that point, and to copy_to_user() out of them at the
+> > end. If you look at the places where such allocations are created, you
+> > can see things like kmemdup(), memcpy() and so on - all normal
+> > operations that shouldn't conceptually be different from usercopy in
+> > any relevant way."
+> > 
+> > Thus this patch marks the dma-kmalloc-* caches as usercopy.
+> > 
+> > [1] https://bugzilla.suse.com/show_bug.cgi?id=1156053
+> > [2] https://lore.kernel.org/kernel-hardening/bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz/
+> > [3] https://lore.kernel.org/kernel-hardening/CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com/
+> > 
+> > Signed-off-by: Vlastimil Babka <vbabka@suse.cz>
+> 
+> Friendly ping.
+> 
+> Acked-by: Jiri Slaby <jslaby@suse.cz>
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- drivers/staging/android/ion/ion_heap.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+Should this go via -mm?
 
-diff --git a/drivers/staging/android/ion/ion_heap.c b/drivers/staging/and=
-roid/ion/ion_heap.c
-index 473b465724f1..0755b11348ed 100644
---- a/drivers/staging/android/ion/ion_heap.c
-+++ b/drivers/staging/android/ion/ion_heap.c
-@@ -99,12 +99,12 @@ int ion_heap_map_user(struct ion_heap *heap, struct i=
-on_buffer *buffer,
-=20
- static int ion_heap_clear_pages(struct page **pages, int num, pgprot_t p=
-gprot)
- {
--	void *addr =3D vm_map_ram(pages, num, -1, pgprot);
-+	void *addr =3D vmap(pages, num, VM_MAP, pgprot);
-=20
- 	if (!addr)
- 		return -ENOMEM;
- 	memset(addr, 0, PAGE_SIZE * num);
--	vm_unmap_ram(addr, num);
-+	vunmap(addr);
-=20
- 	return 0;
- }
---=20
-2.25.1
+-Kees
+
+> 
+> > ---
+> >  mm/slab_common.c | 3 ++-
+> >  1 file changed, 2 insertions(+), 1 deletion(-)
+> > 
+> > diff --git a/mm/slab_common.c b/mm/slab_common.c
+> > index 5282f881d2f5..ae9486160594 100644
+> > --- a/mm/slab_common.c
+> > +++ b/mm/slab_common.c
+> > @@ -1303,7 +1303,8 @@ void __init create_kmalloc_caches(slab_flags_t flags)
+> >  			kmalloc_caches[KMALLOC_DMA][i] = create_kmalloc_cache(
+> >  				kmalloc_info[i].name[KMALLOC_DMA],
+> >  				kmalloc_info[i].size,
+> > -				SLAB_CACHE_DMA | flags, 0, 0);
+> > +				SLAB_CACHE_DMA | flags, 0,
+> > +				kmalloc_info[i].size);
+> >  		}
+> >  	}
+> >  #endif
+> > 
+> 
+> thanks,
+> -- 
+> js
+> suse labs
+
+-- 
+Kees Cook
