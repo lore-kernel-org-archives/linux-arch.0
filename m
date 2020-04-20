@@ -1,81 +1,58 @@
-Return-Path: <SRS0=HxeN=5T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:49428 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S2390600AbgDCJBV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 3 Apr 2020 05:01:21 -0400
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v1 2/6] arm64: Add level-hinted TLB invalidation helper
-Date: Fri, 3 Apr 2020 17:00:44 +0800
-Message-ID: <20200403090048.938-3-yezhenyu2@huawei.com>
-In-Reply-To: <20200403090048.938-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=EpiA=6E=kvack.org=owner-linux-mm@kernel.org>
+Date: Mon, 20 Apr 2020 14:10:55 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v1 6/6] arm64: tlb: Set the TTL field in flush_tlb_range
+Message-ID: <20200420121055.GF20696@hirez.programming.kicks-ass.net>
 References: <20200403090048.938-1-yezhenyu2@huawei.com>
+ <20200403090048.938-7-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Content-Type: text/plain; charset=US-ASCII
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200403090048.938-7-yezhenyu2@huawei.com>
+Sender: owner-linux-mm@kvack.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200403090044.8M46noQY_2uCfodgADzCXZOMsLGHNabULOE4Vg7jE0Y@z>
+Message-ID: <20200420121055.TQv44Otnphc0SKmbCgx9c1y8Xk2V08_-xM3S13dCXUY@z>
 
-From: Marc Zyngier <maz@kernel.org>
+On Fri, Apr 03, 2020 at 05:00:48PM +0800, Zhenyu Ye wrote:
+> This patch uses the cleared_* in struct mmu_gather to set the
+> TTL field in flush_tlb_range().
+> 
+> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+> ---
+>  arch/arm64/include/asm/tlb.h      | 26 +++++++++++++++++++++++++-
+>  arch/arm64/include/asm/tlbflush.h | 14 ++++++++------
+>  2 files changed, 33 insertions(+), 7 deletions(-)
+> 
+> diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+> index b76df828e6b7..d5ab72eccff4 100644
+> --- a/arch/arm64/include/asm/tlb.h
+> +++ b/arch/arm64/include/asm/tlb.h
+> @@ -21,11 +21,34 @@ static void tlb_flush(struct mmu_gather *tlb);
+>  
+>  #include <asm-generic/tlb.h>
+>  
+> +/*
+> + * get the tlbi levels in arm64.  Default value is 0 if more than one
+> + * of cleared_* is set or neither is set.
+> + * Arm64 doesn't support p4ds now.
+> + */
+> +static inline int tlb_get_level(struct mmu_gather *tlb)
+> +{
+> +	int sum = tlb->cleared_ptes + tlb->cleared_pmds +
+> +		  tlb->cleared_puds + tlb->cleared_p4ds;
+> +
+> +	if (sum != 1)
+> +		return 0;
+> +	else if (tlb->cleared_ptes)
+> +		return 3;
+> +	else if (tlb->cleared_pmds)
+> +		return 2;
+> +	else if (tlb->cleared_puds)
+> +		return 1;
+> +
+> +	return 0;
+> +}
 
-Add a level-hinted TLB invalidation helper that only gets used if
-ARMv8.4-TTL gets detected.
-
-Signed-off-by: Marc Zyngier <maz@kernel.org>
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/tlbflush.h | 30 ++++++++++++++++++++++++++++++
- 1 file changed, 30 insertions(+)
-
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-index bc3949064725..5f9f189bc6d2 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -10,6 +10,7 @@
- 
- #ifndef __ASSEMBLY__
- 
-+#include <linux/bitfield.h>
- #include <linux/mm_types.h>
- #include <linux/sched.h>
- #include <asm/cputype.h>
-@@ -59,6 +60,35 @@
- 		__ta;						\
- 	})
- 
-+#define TLBI_TTL_MASK	GENMASK_ULL(47, 44)
-+
-+#define __tlbi_level(op, addr, level)					\
-+	do {								\
-+		u64 arg = addr;						\
-+									\
-+		if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
-+		    level) {						\
-+			u64 ttl = level;				\
-+									\
-+			switch (PAGE_SIZE) {				\
-+			case SZ_4K:					\
-+				ttl |= 1 << 2;				\
-+				break;					\
-+			case SZ_16K:					\
-+				ttl |= 2 << 2;				\
-+				break;					\
-+			case SZ_64K:					\
-+				ttl |= 3 << 2;				\
-+				break;					\
-+			}						\
-+									\
-+			arg &= ~TLBI_TTL_MASK;				\
-+			arg |= FIELD_PREP(TLBI_TTL_MASK, ttl);		\
-+		}							\
-+									\
-+		__tlbi(op,  arg);					\
-+	} while (0)
-+
- /*
-  *	TLB Invalidation
-  *	================
--- 
-2.19.1
+That's some mighty wonky code. Please look at the generated asm.
