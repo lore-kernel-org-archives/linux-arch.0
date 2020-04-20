@@ -1,89 +1,112 @@
-Return-Path: <SRS0=V2YN=5S=kvack.org=owner-linux-mm@kernel.org>
-Date: Thu, 2 Apr 2020 00:52:15 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH RESEND 3/4] drm/i915/gem: Replace user_access_begin by
- user_write_access_begin
-Message-ID: <202004020051.649C6B8@keescook>
-References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
- <6da6fa391c0d6344cc9ff99a69fcaa65666f3947.1585811416.git.christophe.leroy@c-s.fr>
+Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-co1nam11on2138.outbound.protection.outlook.com ([40.107.220.138]:53754
+        "EHLO NAM11-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726161AbgDTHQZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Apr 2020 03:16:25 -0400
+From: Nate Karstens <nate.karstens@garmin.com>
+Subject: [PATCH 4/4] net: Add SOCK_CLOFORK
+Date: Mon, 20 Apr 2020 02:15:48 -0500
+Message-ID: <20200420071548.62112-5-nate.karstens@garmin.com>
+In-Reply-To: <20200420071548.62112-1-nate.karstens@garmin.com>
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <6da6fa391c0d6344cc9ff99a69fcaa65666f3947.1585811416.git.christophe.leroy@c-s.fr>
-Sender: owner-linux-mm@kvack.org
-To: Christophe Leroy <christophe.leroy@c-s.fr>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, hpa@zytor.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200402075215.7lHtPBpSgLVOvN3m9bS-aSjiSuhc-FdpNTjhtqNp3FM@z>
+To: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Changli Gao <xiaosuo@gmail.com>, Nate Karstens <nate.karstens@garmin.com>
+Message-ID: <20200420071548.PL0iwUqvd_R6wwAFnL6cB45pUwO3p3Tm6naaOzCm6Rw@z>
 
-On Thu, Apr 02, 2020 at 07:34:18AM +0000, Christophe Leroy wrote:
-> When i915_gem_execbuffer2_ioctl() is using user_access_begin(),
-> that's only to perform unsafe_put_user() so use
-> user_write_access_begin() in order to only open write access.
-> 
-> Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
+Implements a new socket flag that automatically sets the
+close-on-fork flag for sockets created using socket(2),
+socketpair(2), and accept4(2).
 
-Why is this split from the other conversions?
+Signed-off-by: Nate Karstens <nate.karstens@garmin.com>
+---
+ include/linux/net.h |  3 ++-
+ net/socket.c        | 14 ++++++++------
+ 2 files changed, 10 insertions(+), 7 deletions(-)
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
-
-
-> ---
->  drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c | 11 ++++++-----
->  1 file changed, 6 insertions(+), 5 deletions(-)
-> 
-> diff --git a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
-> index 7643a30ba4cd..4be8205a70b6 100644
-> --- a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
-> +++ b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
-> @@ -1611,14 +1611,14 @@ static int eb_copy_relocations(const struct i915_execbuffer *eb)
->  		 * happened we would make the mistake of assuming that the
->  		 * relocations were valid.
->  		 */
-> -		if (!user_access_begin(urelocs, size))
-> +		if (!user_write_access_begin(urelocs, size))
->  			goto end;
->  
->  		for (copied = 0; copied < nreloc; copied++)
->  			unsafe_put_user(-1,
->  					&urelocs[copied].presumed_offset,
->  					end_user);
-> -		user_access_end();
-> +		user_write_access_end();
->  
->  		eb->exec[i].relocs_ptr = (uintptr_t)relocs;
->  	}
-> @@ -1626,7 +1626,7 @@ static int eb_copy_relocations(const struct i915_execbuffer *eb)
->  	return 0;
->  
->  end_user:
-> -	user_access_end();
-> +	user_write_access_end();
->  end:
->  	kvfree(relocs);
->  	err = -EFAULT;
-> @@ -2991,7 +2991,8 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
->  		 * And this range already got effectively checked earlier
->  		 * when we did the "copy_from_user()" above.
->  		 */
-> -		if (!user_access_begin(user_exec_list, count * sizeof(*user_exec_list)))
-> +		if (!user_write_access_begin(user_exec_list,
-> +					     count * sizeof(*user_exec_list)))
->  			goto end;
->  
->  		for (i = 0; i < args->buffer_count; i++) {
-> @@ -3005,7 +3006,7 @@ i915_gem_execbuffer2_ioctl(struct drm_device *dev, void *data,
->  					end_user);
->  		}
->  end_user:
-> -		user_access_end();
-> +		user_write_access_end();
->  end:;
->  	}
->  
-> -- 
-> 2.25.0
-> 
-
+diff --git a/include/linux/net.h b/include/linux/net.h
+index 6451425e828f..57663c9dc8c4 100644
+--- a/include/linux/net.h
++++ b/include/linux/net.h
+@@ -17,7 +17,7 @@
+ #include <linux/stringify.h>
+ #include <linux/random.h>
+ #include <linux/wait.h>
+-#include <linux/fcntl.h>	/* For O_CLOEXEC and O_NONBLOCK */
++#include <linux/fcntl.h>	/* For O_CLOEXEC, O_CLOFORK, and O_NONBLOCK */
+ #include <linux/rcupdate.h>
+ #include <linux/once.h>
+ #include <linux/fs.h>
+@@ -73,6 +73,7 @@ enum sock_type {
+ 
+ /* Flags for socket, socketpair, accept4 */
+ #define SOCK_CLOEXEC	O_CLOEXEC
++#define SOCK_CLOFORK	O_CLOFORK
+ #ifndef SOCK_NONBLOCK
+ #define SOCK_NONBLOCK	O_NONBLOCK
+ #endif
+diff --git a/net/socket.c b/net/socket.c
+index 2eecf1517f76..ba6e971c7e78 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -1511,12 +1511,14 @@ int __sys_socket(int family, int type, int protocol)
+ 
+ 	/* Check the SOCK_* constants for consistency.  */
+ 	BUILD_BUG_ON(SOCK_CLOEXEC != O_CLOEXEC);
++	BUILD_BUG_ON(SOCK_CLOFORK != O_CLOFORK);
+ 	BUILD_BUG_ON((SOCK_MAX | SOCK_TYPE_MASK) != SOCK_TYPE_MASK);
+ 	BUILD_BUG_ON(SOCK_CLOEXEC & SOCK_TYPE_MASK);
++	BUILD_BUG_ON(SOCK_CLOFORK & SOCK_TYPE_MASK);
+ 	BUILD_BUG_ON(SOCK_NONBLOCK & SOCK_TYPE_MASK);
+ 
+ 	flags = type & ~SOCK_TYPE_MASK;
+-	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
++	if (flags & ~(SOCK_CLOEXEC | SOCK_CLOFORK | SOCK_NONBLOCK))
+ 		return -EINVAL;
+ 	type &= SOCK_TYPE_MASK;
+ 
+@@ -1527,7 +1529,7 @@ int __sys_socket(int family, int type, int protocol)
+ 	if (retval < 0)
+ 		return retval;
+ 
+-	return sock_map_fd(sock, flags & (O_CLOEXEC | O_NONBLOCK));
++	return sock_map_fd(sock, flags & (O_CLOEXEC | O_CLOFORK | O_NONBLOCK));
+ }
+ 
+ SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
+@@ -1547,7 +1549,7 @@ int __sys_socketpair(int family, int type, int protocol, int __user *usockvec)
+ 	int flags;
+ 
+ 	flags = type & ~SOCK_TYPE_MASK;
+-	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
++	if (flags & ~(SOCK_CLOEXEC | SOCK_CLOFORK | SOCK_NONBLOCK))
+ 		return -EINVAL;
+ 	type &= SOCK_TYPE_MASK;
+ 
+@@ -1715,7 +1717,7 @@ int __sys_accept4_file(struct file *file, unsigned file_flags,
+ 	int err, len, newfd;
+ 	struct sockaddr_storage address;
+ 
+-	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
++	if (flags & ~(SOCK_CLOEXEC | SOCK_CLOFORK | SOCK_NONBLOCK))
+ 		return -EINVAL;
+ 
+ 	if (SOCK_NONBLOCK != O_NONBLOCK && (flags & SOCK_NONBLOCK))
+@@ -3628,8 +3630,8 @@ EXPORT_SYMBOL(kernel_listen);
+  *	@newsock: new connected socket
+  *	@flags: flags
+  *
+- *	@flags must be SOCK_CLOEXEC, SOCK_NONBLOCK or 0.
+- *	If it fails, @newsock is guaranteed to be %NULL.
++ *	@flags must be SOCK_CLOEXEC, SOCK_CLOFORK, SOCK_NONBLOCK,
++ *	or 0. If it fails, @newsock is guaranteed to be %NULL.
+  *	Returns 0 or an error.
+  */
+ 
 -- 
-Kees Cook
+2.26.1
