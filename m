@@ -1,93 +1,83 @@
-From: Eric Dumazet <eric.dumazet@gmail.com>
-Subject: Re: [PATCH 1/4] fs: Implement close-on-fork
-Date: Mon, 20 Apr 2020 03:25:49 -0700
-Message-ID: <36dce9b4-a0bf-0015-f6bc-1006938545b1@gmail.com>
-References: <20200420071548.62112-1-nate.karstens@garmin.com>
- <20200420071548.62112-2-nate.karstens@garmin.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v1 4/6] tlb: mmu_gather: add tlb_set_*_range APIs
+Date: Mon, 20 Apr 2020 13:46:51 +0200
+Message-ID: <20200420114651.GD20696@hirez.programming.kicks-ass.net>
+References: <20200403090048.938-1-yezhenyu2@huawei.com>
+ <20200403090048.938-5-yezhenyu2@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <20200420071548.62112-2-nate.karstens@garmin.com>
-Content-Language: en-US
-Sender: linux-alpha-owner@vger.kernel.org
-To: Nate Karstens <nate.karstens@garmin.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Changli Gao <xiaosuo@gmail.com>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20200403090048.938-5-yezhenyu2@huawei.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: mark.rutland@arm.com, catalin.marinas@arm.com, linux-mm@kvack.org, guohanjun@huawei.com, will@kernel.org, linux-arch@vger.kernel.org, yuzhao@google.com, maz@kernel.org, steven.price@arm.com, arm@kernel.org, Dave.Martin@arm.com, arnd@arndb.de, suzuki.poulose@arm.com, npiggin@gmail.com, zhangshaokun@hisilicon.com, broonie@kernel.org, rostedt@goodmis.org, prime.zeng@hisilicon.com, kuhn.chenqun@huawei.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, xiexiangyou@huawei.com, linux-kernel@vger.kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-
-
-On 4/20/20 12:15 AM, Nate Karstens wrote:
-> The close-on-fork flag causes the file descriptor to be closed
-> atomically in the child process before the child process returns
-> from fork(). Implement this feature and provide a method to
-> get/set the close-on-fork flag using fcntl(2).
+On Fri, Apr 03, 2020 at 05:00:46PM +0800, Zhenyu Ye wrote:
+> From: "Peter Zijlstra (Intel)" <peterz@infradead.org>
 > 
-> This functionality was approved by the Austin Common Standards
-> Revision Group for inclusion in the next revision of the POSIX
-> standard (see issue 1318 in the Austin Group Defect Tracker).
-
-Oh well... yet another feature slowing down a critical path.
-
+> tlb_set_{pte|pmd|pud|p4d}_range() adjust the tlb->start and
+> tlb->end, then set corresponding cleared_*.
 > 
-> Co-developed-by: Changli Gao <xiaosuo@gmail.com>
-> Signed-off-by: Changli Gao <xiaosuo@gmail.com>
-> Signed-off-by: Nate Karstens <nate.karstens@garmin.com>
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 > ---
->  fs/fcntl.c                             |  2 ++
->  fs/file.c                              | 50 +++++++++++++++++++++++++-
->  include/linux/fdtable.h                |  7 ++++
->  include/linux/file.h                   |  2 ++
->  include/uapi/asm-generic/fcntl.h       |  5 +--
->  tools/include/uapi/asm-generic/fcntl.h |  5 +--
->  6 files changed, 66 insertions(+), 5 deletions(-)
+>  include/asm-generic/tlb.h | 55 ++++++++++++++++++++++++++++-----------
+>  1 file changed, 40 insertions(+), 15 deletions(-)
 > 
-> diff --git a/fs/fcntl.c b/fs/fcntl.c
-> index 2e4c0fa2074b..23964abf4a1a 100644
-> --- a/fs/fcntl.c
-> +++ b/fs/fcntl.c
-> @@ -335,10 +335,12 @@ static long do_fcntl(int fd, unsigned int cmd, unsigned long arg,
->  		break;
->  	case F_GETFD:
->  		err = get_close_on_exec(fd) ? FD_CLOEXEC : 0;
-> +		err |= get_close_on_fork(fd) ? FD_CLOFORK : 0;
->  		break;
->  	case F_SETFD:
->  		err = 0;
->  		set_close_on_exec(fd, arg & FD_CLOEXEC);
-> +		set_close_on_fork(fd, arg & FD_CLOFORK);
->  		break;
->  	case F_GETFL:
->  		err = filp->f_flags;
-> diff --git a/fs/file.c b/fs/file.c
-> index c8a4e4c86e55..de7260ba718d 100644
-> --- a/fs/file.c
-> +++ b/fs/file.c
-> @@ -57,6 +57,8 @@ static void copy_fd_bitmaps(struct fdtable *nfdt, struct fdtable *ofdt,
->  	memset((char *)nfdt->open_fds + cpy, 0, set);
->  	memcpy(nfdt->close_on_exec, ofdt->close_on_exec, cpy);
->  	memset((char *)nfdt->close_on_exec + cpy, 0, set);
-> +	memcpy(nfdt->close_on_fork, ofdt->close_on_fork, cpy);
-> +	memset((char *)nfdt->close_on_fork + cpy, 0, set);
+> diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+> index f391f6b500b4..ee91310a65c6 100644
+> --- a/include/asm-generic/tlb.h
+> +++ b/include/asm-generic/tlb.h
+> @@ -511,6 +511,38 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+>  }
+>  #endif
 >  
+> +/*
+> + * tlb_set_{pte|pmd|pud|p4d}_range() adjust the tlb->start and tlb->end,
+> + * and set corresponding cleared_*.
+> + */
+> +static inline void tlb_set_pte_range(struct mmu_gather *tlb,
+> +				     unsigned long address, unsigned long size)
+> +{
+> +	__tlb_adjust_range(tlb, address, size);
+> +	tlb->cleared_ptes = 1;
+> +}
+> +
+> +static inline void tlb_set_pmd_range(struct mmu_gather *tlb,
+> +				     unsigned long address, unsigned long size)
+> +{
+> +	__tlb_adjust_range(tlb, address, size);
+> +	tlb->cleared_pmds = 1;
+> +}
+> +
+> +static inline void tlb_set_pud_range(struct mmu_gather *tlb,
+> +				     unsigned long address, unsigned long size)
+> +{
+> +	__tlb_adjust_range(tlb, address, size);
+> +	tlb->cleared_puds = 1;
+> +}
+> +
+> +static inline void tlb_set_p4d_range(struct mmu_gather *tlb,
+> +				     unsigned long address, unsigned long size)
+> +{
+> +	__tlb_adjust_range(tlb, address, size);
+> +	tlb->cleared_p4ds = 1;
+> +}
 
-I suggest we group the two bits of a file (close_on_exec, close_on_fork) together,
-so that we do not have to dirty two separate cache lines.
+Uhm.. when I wrote that patch they were called tlb_flush_p*_range():
 
-Otherwise we will add yet another cache line miss at every file opening/closing for processes
-with big file tables.
+  https://lkml.kernel.org/r/20200401122004.GE20713@hirez.programming.kicks-ass.net
 
-Ie having a _single_ bitmap array, even bit for close_on_exec, odd bit for close_on_fork
-
-static inline void __set_close_on_exec(unsigned int fd, struct fdtable *fdt)
-{
-	__set_bit(fd * 2, fdt->close_on_fork_exec);
-}
-
-static inline void __set_close_on_fork(unsigned int fd, struct fdtable *fdt)
-{
-	__set_bit(fd * 2 + 1, fdt->close_on_fork_exec);
-}
-
-Also the F_GETFD/F_SETFD implementation must use a single function call,
-to not acquire the spinlock twice.
+Your current naming makes no sense what so ever, we do not "set" the
+range.
