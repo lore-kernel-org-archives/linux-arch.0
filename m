@@ -1,83 +1,208 @@
-Return-Path: <SRS0=5ux+=5R=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
- flush_pmd_tlb_range
-References: <20200331142927.1237-1-yezhenyu2@huawei.com>
- <20200331142927.1237-5-yezhenyu2@huawei.com>
- <20200331151331.GS20730@hirez.programming.kicks-ass.net>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Message-ID: <fe12101e-8efe-22ad-0258-e6aeafc798cc@huawei.com>
-Date: Wed, 1 Apr 2020 16:51:15 +0800
+Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-co1nam11on2115.outbound.protection.outlook.com ([40.107.220.115]:9664
+        "EHLO NAM11-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726147AbgDTHQX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Apr 2020 03:16:23 -0400
+From: Nate Karstens <nate.karstens@garmin.com>
+Subject: [PATCH 2/4] fs: Add O_CLOFORK flag for open(2) and dup3(2)
+Date: Mon, 20 Apr 2020 02:15:46 -0500
+Message-ID: <20200420071548.62112-3-nate.karstens@garmin.com>
+In-Reply-To: <20200420071548.62112-1-nate.karstens@garmin.com>
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
 MIME-Version: 1.0
-In-Reply-To: <20200331151331.GS20730@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset="gbk"
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200401085115.SYQzoxS_n4RTrj36Q4n2k6GDT_pVd7zy7o2ZG3Af0Mo@z>
+To: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Changli Gao <xiaosuo@gmail.com>, Nate Karstens <nate.karstens@garmin.com>
+Message-ID: <20200420071546.M5FdogdE9g4heC_aCG089jEunUQNl9QRjT9jatAnCzQ@z>
 
-Hi Peter,
+Add the O_CLOFORK flag to open(2) and dup3(2) to automatically
+set the close-on-fork flag in the new file descriptor, saving
+a separate call to fcntl(2).
 
-On 2020/3/31 23:13, Peter Zijlstra wrote:
-> On Tue, Mar 31, 2020 at 10:29:23PM +0800, Zhenyu Ye wrote:
->> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
->> index e2e2bef07dd2..32d4661e5a56 100644
->> --- a/include/asm-generic/pgtable.h
->> +++ b/include/asm-generic/pgtable.h
->> @@ -1160,10 +1160,10 @@ static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
->>   * invalidate the entire TLB which is not desitable.
->>   * e.g. see arch/arc: flush_pmd_tlb_range
->>   */
->> -#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
->> +#define flush_pmd_tlb_range(tlb, vma, addr, end)	flush_tlb_range(vma, addr, end)
->>  #define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
->>  #else
->> -#define flush_pmd_tlb_range(vma, addr, end)	BUILD_BUG()
->> +#define flush_pmd_tlb_range(tlb, vma, addr, end)	BUILD_BUG()
->>  #define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
->>  #endif
->>  #endif
->> diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
->> index 3d7c01e76efc..96c9cf77bfb5 100644
->> --- a/mm/pgtable-generic.c
->> +++ b/mm/pgtable-generic.c
->> @@ -109,8 +109,14 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,
->>  	int changed = !pmd_same(*pmdp, entry);
->>  	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
->>  	if (changed) {
->> +		struct mmu_gather tlb;
->> +		unsigned long tlb_start = address;
->> +		unsigned long tlb_end = address + HPAGE_PMD_SIZE;
->>  		set_pmd_at(vma->vm_mm, address, pmdp, entry);
->> -		flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
->> +		tlb_gather_mmu(&tlb, vma->vm_mm, tlb_start, tlb_end);
->> +		tlb.cleared_pmds = 1;
->> +		flush_pmd_tlb_range(&tlb, vma, tlb_start, tlb_end);
->> +		tlb_finish_mmu(&tlb, tlb_start, tlb_end);
->>  	}
->>  	return changed;
->>  }
-> 
-> This is madness. Please, carefully consider what you just wrote and what
-> it will do in the generic case.
-> 
-> Instead of trying to retro-fit flush_*tlb_range() to take an mmu_gather
-> parameter, please replace them out-right.
-> 
+Co-developed-by: Changli Gao <xiaosuo@gmail.com>
+Signed-off-by: Changli Gao <xiaosuo@gmail.com>
+Signed-off-by: Nate Karstens <nate.karstens@garmin.com>
+---
+ arch/alpha/include/uapi/asm/fcntl.h    |  2 ++
+ arch/parisc/include/uapi/asm/fcntl.h   | 39 +++++++++++++-------------
+ arch/sparc/include/uapi/asm/fcntl.h    |  1 +
+ fs/fcntl.c                             |  2 +-
+ fs/file.c                              | 10 ++++++-
+ include/linux/fcntl.h                  |  2 +-
+ include/uapi/asm-generic/fcntl.h       |  4 +++
+ tools/include/uapi/asm-generic/fcntl.h |  4 +++
+ 8 files changed, 42 insertions(+), 22 deletions(-)
 
-I'm sorry that I'm not sure what "replace them out-right" means.  Do you
-mean that I should define flush_*_tlb_range like this?
-
-#define flush_pmd_tlb_range(vma, addr, end)				\
-	do {								\
-		struct mmu_gather tlb;					\
-		tlb_gather_mmu(&tlb, (vma)->vm_mm, addr, end);		\
-		tlba.cleared_pmds = 1;					\
-		flush_tlb_range(&tlb, vma, addr, end);			\
-		tlb_finish_mmu(&tlb, addr, end);			\
-	} while (0)
-
-
-Thanks,
-Zhenyu
+diff --git a/arch/alpha/include/uapi/asm/fcntl.h b/arch/alpha/include/uapi/asm/fcntl.h
+index 50bdc8e8a271..fbab69b15f7f 100644
+--- a/arch/alpha/include/uapi/asm/fcntl.h
++++ b/arch/alpha/include/uapi/asm/fcntl.h
+@@ -35,6 +35,8 @@
+ #define O_PATH		040000000
+ #define __O_TMPFILE	0100000000
+ 
++#define O_CLOFORK	0200000000 /* set close_on_fork */
++
+ #define F_GETLK		7
+ #define F_SETLK		8
+ #define F_SETLKW	9
+diff --git a/arch/parisc/include/uapi/asm/fcntl.h b/arch/parisc/include/uapi/asm/fcntl.h
+index 03ce20e5ad7d..8f5989e75b05 100644
+--- a/arch/parisc/include/uapi/asm/fcntl.h
++++ b/arch/parisc/include/uapi/asm/fcntl.h
+@@ -2,26 +2,27 @@
+ #ifndef _PARISC_FCNTL_H
+ #define _PARISC_FCNTL_H
+ 
+-#define O_APPEND	000000010
+-#define O_BLKSEEK	000000100 /* HPUX only */
+-#define O_CREAT		000000400 /* not fcntl */
+-#define O_EXCL		000002000 /* not fcntl */
+-#define O_LARGEFILE	000004000
+-#define __O_SYNC	000100000
++#define O_APPEND	0000000010
++#define O_BLKSEEK	0000000100 /* HPUX only */
++#define O_CREAT		0000000400 /* not fcntl */
++#define O_EXCL		0000002000 /* not fcntl */
++#define O_LARGEFILE	0000004000
++#define __O_SYNC	0000100000
+ #define O_SYNC		(__O_SYNC|O_DSYNC)
+-#define O_NONBLOCK	000200004 /* HPUX has separate NDELAY & NONBLOCK */
+-#define O_NOCTTY	000400000 /* not fcntl */
+-#define O_DSYNC		001000000 /* HPUX only */
+-#define O_RSYNC		002000000 /* HPUX only */
+-#define O_NOATIME	004000000
+-#define O_CLOEXEC	010000000 /* set close_on_exec */
+-
+-#define O_DIRECTORY	000010000 /* must be a directory */
+-#define O_NOFOLLOW	000000200 /* don't follow links */
+-#define O_INVISIBLE	004000000 /* invisible I/O, for DMAPI/XDSM */
+-
+-#define O_PATH		020000000
+-#define __O_TMPFILE	040000000
++#define O_NONBLOCK	0000200004 /* HPUX has separate NDELAY & NONBLOCK */
++#define O_NOCTTY	0000400000 /* not fcntl */
++#define O_DSYNC		0001000000 /* HPUX only */
++#define O_RSYNC		0002000000 /* HPUX only */
++#define O_NOATIME	0004000000
++#define O_CLOEXEC	0010000000 /* set close_on_exec */
++
++#define O_DIRECTORY	0000010000 /* must be a directory */
++#define O_NOFOLLOW	0000000200 /* don't follow links */
++#define O_INVISIBLE	0004000000 /* invisible I/O, for DMAPI/XDSM */
++
++#define O_PATH		0020000000
++#define __O_TMPFILE	0040000000
++#define O_CLOFORK	0100000000
+ 
+ #define F_GETLK64	8
+ #define F_SETLK64	9
+diff --git a/arch/sparc/include/uapi/asm/fcntl.h b/arch/sparc/include/uapi/asm/fcntl.h
+index 67dae75e5274..d631ea13bac3 100644
+--- a/arch/sparc/include/uapi/asm/fcntl.h
++++ b/arch/sparc/include/uapi/asm/fcntl.h
+@@ -37,6 +37,7 @@
+ 
+ #define O_PATH		0x1000000
+ #define __O_TMPFILE	0x2000000
++#define O_CLOFORK	0x4000000
+ 
+ #define F_GETOWN	5	/*  for sockets. */
+ #define F_SETOWN	6	/*  for sockets. */
+diff --git a/fs/fcntl.c b/fs/fcntl.c
+index 23964abf4a1a..b59b27c3a338 100644
+--- a/fs/fcntl.c
++++ b/fs/fcntl.c
+@@ -1035,7 +1035,7 @@ static int __init fcntl_init(void)
+ 	 * Exceptions: O_NONBLOCK is a two bit define on parisc; O_NDELAY
+ 	 * is defined as O_NONBLOCK on some platforms and not on others.
+ 	 */
+-	BUILD_BUG_ON(21 - 1 /* for O_RDONLY being 0 */ !=
++	BUILD_BUG_ON(22 - 1 /* for O_RDONLY being 0 */ !=
+ 		HWEIGHT32(
+ 			(VALID_OPEN_FLAGS & ~(O_NONBLOCK | O_NDELAY)) |
+ 			__FMODE_EXEC | __FMODE_NONOTIFY));
+diff --git a/fs/file.c b/fs/file.c
+index de7260ba718d..95774b7962d1 100644
+--- a/fs/file.c
++++ b/fs/file.c
+@@ -544,6 +544,10 @@ int __alloc_fd(struct files_struct *files,
+ 		__set_close_on_exec(fd, fdt);
+ 	else
+ 		__clear_close_on_exec(fd, fdt);
++	if (flags & O_CLOFORK)
++		__set_close_on_fork(fd, fdt);
++	else
++		__clear_close_on_fork(fd, fdt);
+ 	error = fd;
+ #if 1
+ 	/* Sanity check */
+@@ -945,6 +949,10 @@ __releases(&files->file_lock)
+ 		__set_close_on_exec(fd, fdt);
+ 	else
+ 		__clear_close_on_exec(fd, fdt);
++	if (flags & O_CLOFORK)
++		__set_close_on_fork(fd, fdt);
++	else
++		__clear_close_on_fork(fd, fdt);
+ 	spin_unlock(&files->file_lock);
+ 
+ 	if (tofree)
+@@ -985,7 +993,7 @@ static int ksys_dup3(unsigned int oldfd, unsigned int newfd, int flags)
+ 	struct file *file;
+ 	struct files_struct *files = current->files;
+ 
+-	if ((flags & ~O_CLOEXEC) != 0)
++	if ((flags & ~(O_CLOEXEC | O_CLOFORK)) != 0)
+ 		return -EINVAL;
+ 
+ 	if (unlikely(oldfd == newfd))
+diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
+index 7bcdcf4f6ab2..cd4c625647db 100644
+--- a/include/linux/fcntl.h
++++ b/include/linux/fcntl.h
+@@ -10,7 +10,7 @@
+ 	(O_RDONLY | O_WRONLY | O_RDWR | O_CREAT | O_EXCL | O_NOCTTY | O_TRUNC | \
+ 	 O_APPEND | O_NDELAY | O_NONBLOCK | O_NDELAY | __O_SYNC | O_DSYNC | \
+ 	 FASYNC	| O_DIRECT | O_LARGEFILE | O_DIRECTORY | O_NOFOLLOW | \
+-	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE)
++	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE | O_CLOFORK)
+ 
+ /* List of all valid flags for the how->upgrade_mask argument: */
+ #define VALID_UPGRADE_FLAGS \
+diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
+index 0cb7199a7743..165a0736a3aa 100644
+--- a/include/uapi/asm-generic/fcntl.h
++++ b/include/uapi/asm-generic/fcntl.h
+@@ -89,6 +89,10 @@
+ #define __O_TMPFILE	020000000
+ #endif
+ 
++#ifndef O_CLOFORK
++#define O_CLOFORK	040000000	/* set close_on_fork */
++#endif
++
+ /* a horrid kludge trying to make sure that this will fail on old kernels */
+ #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
+ #define O_TMPFILE_MASK (__O_TMPFILE | O_DIRECTORY | O_CREAT)      
+diff --git a/tools/include/uapi/asm-generic/fcntl.h b/tools/include/uapi/asm-generic/fcntl.h
+index e04a00fecb4a..69d8a000ec65 100644
+--- a/tools/include/uapi/asm-generic/fcntl.h
++++ b/tools/include/uapi/asm-generic/fcntl.h
+@@ -88,6 +88,10 @@
+ #define __O_TMPFILE	020000000
+ #endif
+ 
++#ifndef O_CLOFORK
++#define O_CLOFORK	040000000	/* set close_on_fork */
++#endif
++
+ /* a horrid kludge trying to make sure that this will fail on old kernels */
+ #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
+ #define O_TMPFILE_MASK (__O_TMPFILE | O_DIRECTORY | O_CREAT)
+-- 
+2.26.1
