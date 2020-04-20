@@ -1,32 +1,91 @@
-Return-Path: <SRS0=Usf8=5Z=kvack.org=owner-linux-mm@kernel.org>
-Message-ID: <0f360b9cb72b80bae0d0db8150f65598c2776268.camel@kernel.crashing.org>
-Subject: Re: [PATCH 19/28] gpu/drm: remove the powerpc hack in
- drm_legacy_sg_alloc
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Fri, 10 Apr 2020 08:56:41 +1000
-In-Reply-To: <CAKMK7uHtkLvdsWFGiAtkzVa5mpnDvXkn3CHZQ6bgJ_enbyAc8A@mail.gmail.com>
-References: <20200408115926.1467567-1-hch@lst.de>
-	 <20200408115926.1467567-20-hch@lst.de>
-	 <20200408122504.GO3456981@phenom.ffwll.local>
-	 <eb48f7b6327e482ea9911b129210c0417ab48345.camel@kernel.crashing.org>
-	 <CAKMK7uHtkLvdsWFGiAtkzVa5mpnDvXkn3CHZQ6bgJ_enbyAc8A@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
+Return-Path: <SRS0=EpiA=6E=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+References: <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+ <202001281457.FA11CC313A@keescook>
+ <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+ <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
+ <20200129170939.GA4277@infradead.org>
+ <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
+ <202001300945.7D465B5F5@keescook>
+ <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
+ <7d810f6d-8085-ea2f-7805-47ba3842dc50@suse.cz>
+From: Jiri Slaby <jslaby@suse.cz>
+Message-ID: <548e6212-7b3c-5925-19f2-699af451fd16@suse.cz>
+Date: Mon, 20 Apr 2020 09:53:20 +0200
+MIME-Version: 1.0
+In-Reply-To: <7d810f6d-8085-ea2f-7805-47ba3842dc50@suse.cz>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: owner-linux-mm@kvack.org
-To: Daniel Vetter <daniel@ffwll.ch>
-Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, X86 ML <x86@kernel.org>, David Airlie <airlied@linux.ie>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-hyperv@vger.kernel.org, dri-devel <dri-devel@lists.freedesktop.org>, "moderated list:DMA BUFFER SHARING FRAMEWORK" <linaro-mm-sig@lists.linaro.org>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, "list@263.net:IOMMU DRIVERS <iommu@lists.linux-foundation.org>,	Joerg
-  Roedel <joro@8bytes.org>," <iommu@lists.linux-foundation.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-s390@vger.kernel.org, bpf <bpf@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Vlastimil Babka <vbabka@suse.cz>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Michal Kubecek <mkubecek@suse.cz>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200409225641.rOIIAnOuGmQitxjSqkHG_40lKUiFKg4aVbuKhQPeeEI@z>
+Message-ID: <20200420075320.kulbSdBlU3dQM1ybfjAAvfXP_rLbMfF8hsz12sKqgfQ@z>
 
-On Thu, 2020-04-09 at 11:41 +0200, Daniel Vetter wrote:
-> Now if these boxes didn't ever have agp then I think we can get away
-> with deleting this, since we've already deleted the legacy radeon
-> driver. And that one used vmalloc for everything. The new kms one does
-> use the dma-api if the gpu isn't connected through agp
+On 07. 04. 20, 10:00, Vlastimil Babka wrote:
+> From d5190e4e871689a530da3c3fd327be45a88f006a Mon Sep 17 00:00:00 2001
+> From: Vlastimil Babka <vbabka@suse.cz>
+> Date: Tue, 7 Apr 2020 09:58:00 +0200
+> Subject: [PATCH] usercopy: Mark dma-kmalloc caches as usercopy caches
+> 
+> We have seen a "usercopy: Kernel memory overwrite attempt detected to SLUB
+> object 'dma-kmalloc-1 k' (offset 0, size 11)!" error on s390x, as IUCV uses
+> kmalloc() with __GFP_DMA because of memory address restrictions.
+> The issue has been discussed [2] and it has been noted that if all the kmalloc
+> caches are marked as usercopy, there's little reason not to mark dma-kmalloc
+> caches too. The 'dma' part merely means that __GFP_DMA is used to restrict
+> memory address range.
+> 
+> As Jann Horn put it [3]:
+> 
+> "I think dma-kmalloc slabs should be handled the same way as normal
+> kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
+> just normal kernel memory - even if it might later be used for DMA -,
+> and it should be perfectly fine to copy_from_user() into such
+> allocations at that point, and to copy_to_user() out of them at the
+> end. If you look at the places where such allocations are created, you
+> can see things like kmemdup(), memcpy() and so on - all normal
+> operations that shouldn't conceptually be different from usercopy in
+> any relevant way."
+> 
+> Thus this patch marks the dma-kmalloc-* caches as usercopy.
+> 
+> [1] https://bugzilla.suse.com/show_bug.cgi?id=1156053
+> [2] https://lore.kernel.org/kernel-hardening/bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz/
+> [3] https://lore.kernel.org/kernel-hardening/CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com/
+> 
+> Signed-off-by: Vlastimil Babka <vbabka@suse.cz>
 
-Definitely no AGP there.
+Friendly ping.
 
-Cheers
-Ben.
+Acked-by: Jiri Slaby <jslaby@suse.cz>
+
+> ---
+>  mm/slab_common.c | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
+> 
+> diff --git a/mm/slab_common.c b/mm/slab_common.c
+> index 5282f881d2f5..ae9486160594 100644
+> --- a/mm/slab_common.c
+> +++ b/mm/slab_common.c
+> @@ -1303,7 +1303,8 @@ void __init create_kmalloc_caches(slab_flags_t flags)
+>  			kmalloc_caches[KMALLOC_DMA][i] = create_kmalloc_cache(
+>  				kmalloc_info[i].name[KMALLOC_DMA],
+>  				kmalloc_info[i].size,
+> -				SLAB_CACHE_DMA | flags, 0, 0);
+> +				SLAB_CACHE_DMA | flags, 0,
+> +				kmalloc_info[i].size);
+>  		}
+>  	}
+>  #endif
+> 
+
+thanks,
+-- 
+js
+suse labs
