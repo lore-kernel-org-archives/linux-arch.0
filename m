@@ -1,35 +1,60 @@
-Return-Path: <SRS0=KXl1=5R=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga17.intel.com ([192.55.52.151]:20532 "EHLO mga17.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732219AbgDATWG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 1 Apr 2020 15:22:06 -0400
-Subject: Re: [RFC PATCH v9 09/27] x86/mm: Introduce _PAGE_DIRTY_SW
-References: <20200205181935.3712-1-yu-cheng.yu@intel.com>
- <20200205181935.3712-10-yu-cheng.yu@intel.com>
- <325d3a25-0016-ea19-c0c9-7958066fc94e@intel.com>
- <6f68d7af6a618c087a85d2db6ad40b346e055452.camel@intel.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <6689281d-b71d-9044-eeb7-09c9228a61e0@intel.com>
-Date: Wed, 1 Apr 2020 12:22:03 -0700
+Return-Path: <SRS0=EpiA=6E=kvack.org=owner-linux-mm@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <6f68d7af6a618c087a85d2db6ad40b346e055452.camel@intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: linux-arch-owner@vger.kernel.org
+References: <20200414131348.444715-1-hch@lst.de> <20200414131348.444715-25-hch@lst.de>
+In-Reply-To: <20200414131348.444715-25-hch@lst.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 20 Apr 2020 11:27:56 +0200
+Message-ID: <CAMuHMdXktO=2n1tbE5RWRfE1CMd9bP-aHJQifO3J9HYxoQEuXQ@mail.gmail.com>
+Subject: Re: [PATCH 24/29] mm: remove __vmalloc_node_flags_caller
+Content-Type: text/plain; charset="UTF-8"
+Sender: owner-linux-mm@kvack.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Linux-Arch <linux-arch@vger.kernel.org>, linux-hyperv@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, DRI Development <dri-devel@lists.freedesktop.org>, linaro-mm-sig@lists.linaro.org, Linux MM <linux-mm@kvack.org>, Linux IOMMU <iommu@lists.linux-foundation.org>, bpf <bpf@vger.kernel.org>, Robin Murphy <robin.murphy@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, x86-patch-review@intel.com
-Message-ID: <20200401192203.6hT-xb-wTQztaEuugsvoQtrjDEyyDYHveICJ61OdWn4@z>
+Message-ID: <20200420092756.TlbQxdjTGWlfmK8LErF9Dsg7EjZtsSc9yFlxRePprG8@z>
 
-On 4/1/20 12:08 PM, Yu-cheng Yu wrote:
->>> +/*
->>> + * This bit indicates a copy-on-write page, and is different from
->>> + * _PAGE_BIT_SOFT_DIRTY, which tracks which pages a task writes to.
->>> + */
->>> +#define _PAGE_BIT_DIRTY_SW	_PAGE_BIT_SOFTW5 /* was written to */
->> Does it *only* indicate a copy-on-write (or copy-on-access) page?  If
->> so, haven't we misnamed it?
-> It indicates either a copy-on-write page or a read-only page that has been
-> cow'ed.  What about _PAGE_BIT_COW?
+Hi Christoph,
 
-Sounds sane to me.
+On Tue, Apr 14, 2020 at 3:21 PM Christoph Hellwig <hch@lst.de> wrote:
+> Just use __vmalloc_node instead which gets and extra argument.  To be
+> able to to use __vmalloc_node in all caller make it available outside
+> of vmalloc and implement it in nommu.c.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+
+One more nommu failure below...
+
+> --- a/mm/nommu.c
+> +++ b/mm/nommu.c
+> @@ -150,8 +150,8 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
+>  }
+>  EXPORT_SYMBOL(__vmalloc);
+>
+> -void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t flags,
+> -               void *caller)
+> +void *__vmalloc_node(unsigned long size, unsigned long align, gfp_t gfp_mask,
+> +               int node, const void *caller)
+>  {
+>         return __vmalloc(size, flags);
+
+On Mon, Apr 20, 2020 at 10:39 AM <noreply@ellerman.id.au> wrote:
+> FAILED linux-next/m5272c3_defconfig/m68k-gcc8 Mon Apr 20, 18:38
+>
+> http://kisskb.ellerman.id.au/kisskb/buildresult/14213623/
+>
+> mm/nommu.c:164:25: error: 'flags' undeclared (first use in this function); did you mean 'class'?
+
+"return __vmalloc(size, gfp_mask);"
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
