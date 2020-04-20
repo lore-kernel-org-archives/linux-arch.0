@@ -1,94 +1,150 @@
-Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v10 21/26] ELF: UAPI and Kconfig additions for ELF program properties
-Date: Wed, 29 Apr 2020 15:07:27 -0700
-Message-ID: <20200429220732.31602-22-yu-cheng.yu@intel.com>
-In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from relay12.mail.gandi.net ([217.70.178.232]:49317 "EHLO
+        relay12.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725774AbgDTVOn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Apr 2020 17:14:43 -0400
+Date: Mon, 20 Apr 2020 14:14:34 -0700
+From: Josh Triplett <josh@joshtriplett.org>
+Subject: Re: [PATCH v4 2/3] fs: openat2: Extend open_how to allow
+ userspace-selected fds
+Message-ID: <20200420211434.GC3515@localhost>
+References: <cover.1586830316.git.josh@joshtriplett.org>
+ <f969e7d45a8e83efc1ca13d675efd8775f13f376.1586830316.git.josh@joshtriplett.org>
+ <20200419104404.j4e5gxdn2duvmu6s@yavin.dot.cyphar.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200419104404.j4e5gxdn2duvmu6s@yavin.dot.cyphar.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429220727.nrCqkgvvbylkRpPw3NCD-14pA0PZbEWqOswnVZScFV0@z>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, io-uring@vger.kernel.org, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Jens Axboe <axboe@kernel.dk>
+Message-ID: <20200420211434.ybajcGh1poGWsLamLJj_I_tvxteHYMF0E3YtgV33NxI@z>
 
-Introduce basic ELF definitions relating to the NT_GNU_PROPERTY_TYPE_0
-note.
+On Sun, Apr 19, 2020 at 08:44:04PM +1000, Aleksa Sarai wrote:
+> On 2020-04-13, Josh Triplett <josh@joshtriplett.org> wrote:
+> > Inspired by the X protocol's handling of XIDs, allow userspace to select
+> > the file descriptor opened by openat2, so that it can use the resulting
+> > file descriptor in subsequent system calls without waiting for the
+> > response to openat2.
+> > 
+> > In io_uring, this allows sequences like openat2/read/close without
+> > waiting for the openat2 to complete. Multiple such sequences can
+> > overlap, as long as each uses a distinct file descriptor.
+> 
+> I'm not sure I understand this explanation -- how can you trigger a
+> syscall with an fd that hasn't yet been registered (unless you're just
+> hoping the race goes in your favour)?
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
----
-v10:
-- Merge GNU_PROPERTY_X86_FEATURE_1_* from a separate patch.
+See the response from Jens for an explanation of how this works in
+io_uring.
 
- fs/Kconfig.binfmt        | 3 +++
- include/linux/elf.h      | 8 ++++++++
- include/uapi/linux/elf.h | 8 ++++++++
- 3 files changed, 19 insertions(+)
+> > Add a new O_SPECIFIC_FD open flag to enable this behavior, only accepted
+> > by openat2 for now (ignored by open/openat like all unknown flags). Add
+> > an fd field to struct open_how (along with appropriate padding, and
+> > verify that the padding is 0 to allow replacing the padding with a field
+> > in the future).
+> > 
+> > The file table has a corresponding new function
+> > get_specific_unused_fd_flags, which gets the specified file descriptor
+> > if O_SPECIFIC_FD is set (and the fd isn't -1); otherwise it falls back
+> > to get_unused_fd_flags, to simplify callers.
+> > 
+> > The specified file descriptor must not already be open; if it is,
+> > get_specific_unused_fd_flags will fail with -EBUSY. This helps catch
+> > userspace errors.
+> > 
+> > When O_SPECIFIC_FD is set, and fd is not -1, openat2 will use the
+> > specified file descriptor rather than finding the lowest available one.
+> 
+> I still don't like that you can enable this feature with O_SPECIFIC_FD
+> but then disable it by specifying fd as -1. I understand why this is
+> needed for pipe2() and socketpair() and that's totally fine, but I don't
+> think it makes sense for openat2() or other interfaces where there's
+> only one fd being returned -- what does it mean to say "give me a
+> specific fd, but actually I don't care what it is"?
+> 
+> I know this is a trade-off between consistency of O_SPECIFIC_FD
+> interfaces and having wart-less interfaces for each syscall, but I don't
+> think it breaks consistency to say "syscalls that only give you one fd
+> don't have a second way of disabling the feature -- just don't pass
+> O_SPECIFIC_FD".
 
-diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
-index 62dc4f577ba1..d2cfe0729a73 100644
---- a/fs/Kconfig.binfmt
-+++ b/fs/Kconfig.binfmt
-@@ -36,6 +36,9 @@ config COMPAT_BINFMT_ELF
- config ARCH_BINFMT_ELF_STATE
- 	bool
-=20
-+config ARCH_USE_GNU_PROPERTY
-+	bool
-+
- config BINFMT_ELF_FDPIC
- 	bool "Kernel support for FDPIC ELF binaries"
- 	default y if !BINFMT_ELF
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index e3649b3e970e..459cddcceaac 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -2,6 +2,7 @@
- #ifndef _LINUX_ELF_H
- #define _LINUX_ELF_H
-=20
-+#include <linux/types.h>
- #include <asm/elf.h>
- #include <uapi/linux/elf.h>
-=20
-@@ -56,4 +57,11 @@ static inline int elf_coredump_extra_notes_write(struc=
-t coredump_params *cprm) {
- extern int elf_coredump_extra_notes_size(void);
- extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
- #endif
-+
-+/* NT_GNU_PROPERTY_TYPE_0 header */
-+struct gnu_property {
-+	u32 pr_type;
-+	u32 pr_datasz;
-+};
-+
- #endif /* _LINUX_ELF_H */
-diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index 34c02e4290fe..61251ecabdd7 100644
---- a/include/uapi/linux/elf.h
-+++ b/include/uapi/linux/elf.h
-@@ -36,6 +36,7 @@ typedef __s64	Elf64_Sxword;
- #define PT_LOPROC  0x70000000
- #define PT_HIPROC  0x7fffffff
- #define PT_GNU_EH_FRAME		0x6474e550
-+#define PT_GNU_PROPERTY		0x6474e553
-=20
- #define PT_GNU_STACK	(PT_LOOS + 0x474e551)
-=20
-@@ -443,4 +444,11 @@ typedef struct elf64_note {
-   Elf64_Word n_type;	/* Content type */
- } Elf64_Nhdr;
-=20
-+/* .note.gnu.property types */
-+#define GNU_PROPERTY_X86_FEATURE_1_AND		0xc0000002
-+
-+/* Bits of GNU_PROPERTY_X86_FEATURE_1_AND */
-+#define GNU_PROPERTY_X86_FEATURE_1_IBT		0x00000001
-+#define GNU_PROPERTY_X86_FEATURE_1_SHSTK	0x00000002
-+
- #endif /* _UAPI_LINUX_ELF_H */
---=20
-2.21.0
+I think there's value in the orthogonality, and -1 can never be a valid
+file descriptor. If this becomes a sticking point, it could certainly be
+changed (just modify pipe2 to remove the O_SPECIFIC_FD flag if passed
+-1), but at the same time, I'd rather have this logic implemented once
+with a uniform semantic no matter what syscall uses it.
+
+> >  struct open_how {
+> >  	__u64 flags;
+> >  	__u64 mode;
+> >  	__u64 resolve;
+> > +	__u32 fd;
+> > +	__u32 pad; /* Must be 0 in the current version */
+> 
+> Small nit: This field should be called __padding to make it more
+> explicit it's something internal and shouldn't be looked at by
+> userspace. And the comment should just be "must be zeroed".
+
+Good point. Done in v5.
+
+> > --- a/tools/testing/selftests/openat2/openat2_test.c
+> > +++ b/tools/testing/selftests/openat2/openat2_test.c
+> > @@ -40,7 +40,7 @@ struct struct_test {
+> >  	int err;
+> >  };
+> >  
+> > -#define NUM_OPENAT2_STRUCT_TESTS 7
+> > +#define NUM_OPENAT2_STRUCT_TESTS 8
+> >  #define NUM_OPENAT2_STRUCT_VARIATIONS 13
+> >  
+> >  void test_openat2_struct(void)
+> > @@ -52,6 +52,9 @@ void test_openat2_struct(void)
+> >  		{ .name = "normal struct",
+> >  		  .arg.inner.flags = O_RDONLY,
+> >  		  .size = sizeof(struct open_how) },
+> > +		{ .name = "v0 struct",
+> > +		  .arg.inner.flags = O_RDONLY,
+> > +		  .size = OPEN_HOW_SIZE_VER0 },
+> >  		/* Bigger struct, with zeroed out end. */
+> >  		{ .name = "bigger struct (zeroed out)",
+> >  		  .arg.inner.flags = O_RDONLY,
+> > @@ -155,7 +158,7 @@ struct flag_test {
+> >  	int err;
+> >  };
+> >  
+> > -#define NUM_OPENAT2_FLAG_TESTS 23
+> > +#define NUM_OPENAT2_FLAG_TESTS 29
+> >  
+> >  void test_openat2_flags(void)
+> >  {
+> > @@ -223,6 +226,24 @@ void test_openat2_flags(void)
+> >  		{ .name = "invalid how.resolve and O_PATH",
+> >  		  .how.flags = O_PATH,
+> >  		  .how.resolve = 0x1337, .err = -EINVAL },
+> > +
+> > +		/* O_SPECIFIC_FD tests */
+> > +		{ .name = "O_SPECIFIC_FD",
+> > +		  .how.flags = O_RDONLY | O_SPECIFIC_FD, .how.fd = 42 },
+> > +		{ .name = "O_SPECIFIC_FD if fd exists",
+> > +		  .how.flags = O_RDONLY | O_SPECIFIC_FD, .how.fd = 2,
+> > +		  .err = -EBUSY },
+> > +		{ .name = "O_SPECIFIC_FD with fd -1",
+> > +		  .how.flags = O_RDONLY | O_SPECIFIC_FD, .how.fd = -1 },
+> > +		{ .name = "fd without O_SPECIFIC_FD",
+> > +		  .how.flags = O_RDONLY, .how.fd = 42,
+> > +		  .err = -EINVAL },
+> > +		{ .name = "fd -1 without O_SPECIFIC_FD",
+> > +		  .how.flags = O_RDONLY, .how.fd = -1,
+> > +		  .err = -EINVAL },
+> > +		{ .name = "existing fd without O_SPECIFIC_FD",
+> > +		  .how.flags = O_RDONLY, .how.fd = 2,
+> > +		  .err = -EINVAL },
+> 
+> It would be good to add a test to make sure that a non-zero value of
+> how->__padding also gives -EINVAL.
+
+Done in v5.
+
+- Josh Triplett
