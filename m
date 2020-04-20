@@ -1,51 +1,84 @@
-Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:56300 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728151AbgD1QBu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Apr 2020 12:01:50 -0400
-Date: Tue, 28 Apr 2020 17:01:43 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
-Message-ID: <20200428160141.GD12697@willie-the-truck>
-References: <20200316165055.31179-1-broonie@kernel.org>
- <20200422154436.GJ4898@sirena.org.uk>
- <20200422162954.GF3585@gaia>
- <20200428132804.GF6791@willie-the-truck>
- <20200428151205.GH5677@sirena.org.uk>
- <20200428151815.GB12697@willie-the-truck>
- <20200428155808.GJ5677@sirena.org.uk>
+Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:23542 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726878AbgDTQUf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Apr 2020 12:20:35 -0400
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 03KG3DmY022366
+        for <linux-arch@vger.kernel.org>; Mon, 20 Apr 2020 12:20:33 -0400
+Received: from e06smtp01.uk.ibm.com (e06smtp01.uk.ibm.com [195.75.94.97])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 30ghu601c4-1
+        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 20 Apr 2020 12:20:33 -0400
+Received: from localhost
+        by e06smtp01.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <gerald.schaefer@de.ibm.com>;
+        Mon, 20 Apr 2020 17:19:49 +0100
+Date: Mon, 20 Apr 2020 18:20:23 +0200
+From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Subject: Re: [RFC][Qusetion] the value of cleared_(ptes|pmds|puds|p4ds) in
+ struct mmu_gather
+In-Reply-To: <68affa6e-44cd-37e3-cdfc-8eec31c4097e@de.ibm.com>
+References: <fbb00ac0-9104-8d25-f225-7b3d1b17a01f@huawei.com>
+        <20200330121654.GL20696@hirez.programming.kicks-ass.net>
+        <68affa6e-44cd-37e3-cdfc-8eec31c4097e@de.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200428155808.GJ5677@sirena.org.uk>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Message-ID: <20200420182023.6b8e143a@thinkpad>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200428160143.HeGGNQVrxNQgMjWd39DSG2fVc7bHvvVe7k-Azg5WniI@z>
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Zhenyu Ye <yezhenyu2@huawei.com>, npiggin@gmail.com, will.deacon@arm.com, mingo@kernel.org, torvalds@linux-foundation.org, Vasily Gorbik <gor@linux.ibm.com>, akpm@linux-foundation.org, luto@kernel.org, bp@alien8.de, Marc Zyngier <maz@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arm@kernel.org, xiexiangyou@huawei.com, linux-s390 <linux-s390@vger.kernel.org>, Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Message-ID: <20200420162023.T8rtSiz7y5YlwIutXmDEI1OzEugZEIhJUOsMqtzmhlw@z>
 
-On Tue, Apr 28, 2020 at 04:58:12PM +0100, Mark Brown wrote:
-> On Tue, Apr 28, 2020 at 04:18:16PM +0100, Will Deacon wrote:
-> > On Tue, Apr 28, 2020 at 04:12:05PM +0100, Mark Brown wrote:
-> 
-> > > It's probably easier for me if you just use the existing branch, I've
-> > > already got a branch based on a merge down.
-> 
-> > Okey doke, I'll funnel that in the direction of linux-next then. It does
-> > mean that any subsequent patches for 5.8 that depend on BTI will need to
-> > be based on this branch, so as long as you're ok with that then it's fine
-> > by me (since I won't be able to apply patches if they refer to changes
-> > introduced in the recent merge window).
-> 
-> That's not a problem, that's what I've got already and if I try to send
-> everything based off -rc3 directly the series would get unmanagably
-> large.  Actually unless you think it's a bad idea I think what I'll do
-> is go and send out a couple of the preparatory changes (the insn updates
-> and the last bit of annotation conversions) separately for that branch
-> while I finalize the revisions of the main BTI kernel bit, hopefully
-> that'll make the review a bit more approachable.
+On Wed, 8 Apr 2020 10:51:59 +0200
+Christian Borntraeger <borntraeger@de.ibm.com> wrote:
 
-Okey doke, sounds good to me. I'm queuing stuff atm, so as long you tell
-me what I need to apply things against then we should be good.
+[...]
+> 
+> adding Gerald and Vasily. Gerald can you have a look?
+> 
+> >>
+> >>
+> >> In my view, the cleared_(ptes|pmds|puds) and (pte|pmd|pud)_free_tlb
+> >> correspond one-to-one.  So we should set cleared_ptes in pte_free_tlb(),
+> >> then use it when needed.
+> > 
+> > So pte_free_tlb() clears a table of PTE entries, or a PMD level entity,
+> > also see free_pte_range(). So the generic code makes sense to me. The
+> > PTE level invalidations will have happened on tlb_remove_tlb_entry().
+> > 
+> >> I'm very confused about this. Which is wrong? Or is there something
+> >> I understand wrong?
+> > 
+> > I agree the s390 case is puzzling, Martin does s390 need a PTE level
+> > invalidate for removing a PTE table or was this a mistake?
+> > 
 
-Will
+Peter is right, the PTE level invalidations will happen before. For
+s390, not exactly at the tlb_remove_tlb_entry() itself, since
+__tlb_remove_tlb_entry() is not defined, but rather directly at the
+preceding ptep_get_and_clear(). I think this also the reason why we
+cannot easily optimize for larger granularity.
+
+Anyway, pte_free_tlb() will then later only take care of freeing
+the page table page, no further PTE level clearing/invalidation
+needed. I see no reason why s390 should behave differently from
+the generic code, wrt to cleared_pxds setting in pxd_free_tlb().
+
+So I guess this was an "off-by-one" mistake in commit 9de7d833e3708
+("s390/tlb: Convert to generic mmu_gather"), since the other
+pxd_free_tlb() functions also show similar puzzling behavior.
+Not consistently off-by-one though, as pmd_free_tlb() seems
+to behave correctly, setting tlb->cleared_puds = 1, similar to
+generic code.
+
+That was a very nice catch, Zhenyu, thanks for reporting!
+We are not yet making use of the tlb->cleared_pxds for s390, but
+we would certainly have stumbled over this if we ever tried.
+Will send a patch to make s390 behave like generic code here.
+
+Regards,
+Gerald
