@@ -1,89 +1,64 @@
-Return-Path: <SRS0=kGHj=6H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:43648 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727860AbgDWN7j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Apr 2020 09:59:39 -0400
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v2 2/6] arm64: Add level-hinted TLB invalidation helper
-Date: Thu, 23 Apr 2020 21:56:52 +0800
-Message-ID: <20200423135656.2712-3-yezhenyu2@huawei.com>
-In-Reply-To: <20200423135656.2712-1-yezhenyu2@huawei.com>
-References: <20200423135656.2712-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=EpiA=6E=kvack.org=owner-linux-mm@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Content-Type: text/plain; charset=US-ASCII
-Sender: linux-arch-owner@vger.kernel.org
+References: <20200414131348.444715-1-hch@lst.de> <20200414131348.444715-27-hch@lst.de>
+In-Reply-To: <20200414131348.444715-27-hch@lst.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 20 Apr 2020 11:26:19 +0200
+Message-ID: <CAMuHMdXO0TV09XYxyxjEA8YdvXVwg1u6Zs=z3PzCVb9Mw5boTQ@mail.gmail.com>
+Subject: Re: [PATCH 26/29] mm: remove vmalloc_user_node_flags
+Content-Type: text/plain; charset="UTF-8"
+Sender: owner-linux-mm@kvack.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Linux-Arch <linux-arch@vger.kernel.org>, linux-hyperv@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, DRI Development <dri-devel@lists.freedesktop.org>, linaro-mm-sig@lists.linaro.org, Linux MM <linux-mm@kvack.org>, Linux IOMMU <iommu@lists.linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, bpf <bpf@vger.kernel.org>, Robin Murphy <robin.murphy@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200423135652.OBKjIdnCL95_ddZySETYRyrBI3EkTmBRKqknx5w8Fkw@z>
+Message-ID: <20200420092619.neuV6aw98KN6xBLb8CsgS9VIRa_9v5hLJKBgod6rxNs@z>
 
-From: Marc Zyngier <maz@kernel.org>
+Hi Christoph,
 
-Add a level-hinted TLB invalidation helper that only gets used if
-ARMv8.4-TTL gets detected.
+On Tue, Apr 14, 2020 at 3:22 PM Christoph Hellwig <hch@lst.de> wrote:
+> Open code it in __bpf_map_area_alloc, which is the only caller.  Also
+> clean up __bpf_map_area_alloc to have a single vmalloc call with
+> slightly different flags instead of the current two different calls.
+>
+> For this to compile for the nommu case add a __vmalloc_node_range stub
+> to nommu.c.
 
-When ARMv8.4-TTL is implemented, the operand for TLBIs looks like
-below:
+Apparently your nommu-cross-compilers are in quarantaine? ;-)
 
-* +----------+-------+----------------------+
-* |   ASID   |  TTL  |        BADDR         |
-* +----------+-------+----------------------+
-* |63      48|47   44|43                   0|
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> Acked-by: Johannes Weiner <hannes@cmpxchg.org>
 
-Signed-off-by: Marc Zyngier <maz@kernel.org>
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/tlbflush.h | 30 ++++++++++++++++++++++++++++++
- 1 file changed, 30 insertions(+)
+> --- a/mm/nommu.c
+> +++ b/mm/nommu.c
+> @@ -150,6 +150,14 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
+>  }
+>  EXPORT_SYMBOL(__vmalloc);
+>
+> +void *__vmalloc_node_range(unsigned long size, unsigned long align,
+> +               unsigned long start, unsigned long end, gfp_t gfp_mask,
+> +               pgprot_t prot, unsigned long vm_flags, int node,
+> +               const void *caller)
+> +{
+> +       return __vmalloc(size, flags);
 
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-index bc3949064725..5f9f189bc6d2 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -10,6 +10,7 @@
- 
- #ifndef __ASSEMBLY__
- 
-+#include <linux/bitfield.h>
- #include <linux/mm_types.h>
- #include <linux/sched.h>
- #include <asm/cputype.h>
-@@ -59,6 +60,35 @@
- 		__ta;						\
- 	})
- 
-+#define TLBI_TTL_MASK	GENMASK_ULL(47, 44)
-+
-+#define __tlbi_level(op, addr, level)					\
-+	do {								\
-+		u64 arg = addr;						\
-+									\
-+		if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
-+		    level) {						\
-+			u64 ttl = level;				\
-+									\
-+			switch (PAGE_SIZE) {				\
-+			case SZ_4K:					\
-+				ttl |= 1 << 2;				\
-+				break;					\
-+			case SZ_16K:					\
-+				ttl |= 2 << 2;				\
-+				break;					\
-+			case SZ_64K:					\
-+				ttl |= 3 << 2;				\
-+				break;					\
-+			}						\
-+									\
-+			arg &= ~TLBI_TTL_MASK;				\
-+			arg |= FIELD_PREP(TLBI_TTL_MASK, ttl);		\
-+		}							\
-+									\
-+		__tlbi(op,  arg);					\
-+	} while (0)
-+
- /*
-  *	TLB Invalidation
-  *	================
--- 
-2.19.1
+On Mon, Apr 20, 2020 at 10:39 AM <noreply@ellerman.id.au> wrote:
+> FAILED linux-next/m5272c3_defconfig/m68k-gcc8 Mon Apr 20, 18:38
+>
+> http://kisskb.ellerman.id.au/kisskb/buildresult/14213623/
+>
+> mm/nommu.c:158:25: error: 'flags' undeclared (first use in this function); did you mean 'class'?
+
+"return __vmalloc(size, gfp_mask);", I assume?
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
