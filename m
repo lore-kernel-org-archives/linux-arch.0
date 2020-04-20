@@ -1,89 +1,79 @@
-From: Masahiro Yamada <masahiroy@kernel.org>
-Subject: Re: [PATCH] arch: split MODULE_ARCH_VERMAGIC definitions out to <asm/vermagic.h>
-Date: Mon, 20 Apr 2020 07:43:21 +0900
-Message-ID: <CAK7LNAQmdxmk7_fxo0v6T92GwXpXbmukcMBD_4Dp+L89ymM7=A@mail.gmail.com>
-References: <20200419222804.483191-1-masahiroy@kernel.org>
+From: Aleksa Sarai <cyphar@cyphar.com>
+Subject: Re: [PATCH v4 2/3] fs: openat2: Extend open_how to allow
+ userspace-selected fds
+Date: Mon, 20 Apr 2020 12:06:42 +1000
+Message-ID: <20200420020642.xzkqikia6kmslkjh@yavin.dot.cyphar.com>
+References: <cover.1586830316.git.josh@joshtriplett.org>
+ <f969e7d45a8e83efc1ca13d675efd8775f13f376.1586830316.git.josh@joshtriplett.org>
+ <20200419104404.j4e5gxdn2duvmu6s@yavin.dot.cyphar.com>
+ <b7dae79b-4c5f-65f6-0960-617070357201@kernel.dk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="nl3aoloccd36jfpc"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-03.nifty.com ([210.131.2.82]:57963 "EHLO
-        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725905AbgDSWoZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 19 Apr 2020 18:44:25 -0400
-In-Reply-To: <20200419222804.483191-1-masahiroy@kernel.org>
+Received: from mout-p-201.mailbox.org ([80.241.56.171]:46500 "EHLO
+        mout-p-201.mailbox.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725953AbgDTCHA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 19 Apr 2020 22:07:00 -0400
+Content-Disposition: inline
+In-Reply-To: <b7dae79b-4c5f-65f6-0960-617070357201@kernel.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jessica Yu <jeyu@kernel.org>
-Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Borislav Petkov <bp@suse.de>, Leon Romanovsky <leonro@mellanox.com>, "David S . Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-
-On Mon, Apr 20, 2020 at 7:28 AM Masahiro Yamada <masahiroy@kernel.org> wrote:
->
-> As the bug report [1] pointed out, <linux/vermagic.h> must be included
-> after <linux/module.h>.
->
-> I believe we should be able to include headers in any order. We often
-> sort include directives alphabetically, but it is just coding style
-> convention. Technically, we can get rid of the include order restriction
-> by making every header self-contained.
->
-> Currently, arch-specific MODULE_ARCH_VERMAGIC is defined in
-> <asm/module.h>, but it is not included from <linux/vermagic.h>.
->
-> Hence, the straight-forward fix-up would be as follows:
->
-> |--- a/include/linux/vermagic.h
-> |+++ b/include/linux/vermagic.h
-> |@@ -1,5 +1,6 @@
-> | /* SPDX-License-Identifier: GPL-2.0 */
-> | #include <generated/utsrelease.h>
-> |+#include <linux/module.h>
-> |
-> | /* Simply sanity version stamp for modules. */
-> | #ifdef CONFIG_SMP
->
-> This works enough, but for further cleanups, I split MODULE_ARCH_VERMAGIC
-> definitions into <asm/vermagic.h>.
->
-> With this, <linux/module.h> and <linux/vermagic.h> will be orthogonal,
-> and the location of MODULE_ARCH_VERMAGIC definitions will be consistent.
->
-> For arc and ia64, MODULE_PROC_FAMILY is only used for defining
-> MODULE_ARCH_VERMAGIC. I squashed it.
->
-> FOR hexagon, nds32, and xtensa, I removed <asm/modules.h> entirely
-> because they contained nothing but MODULE_ARCH_VERMAGIC definition.
-> Kbuild will automatically generate <asm/modules.h> at build-time,
-> wrapping <asm-generic/module.h>.
->
-> [1] https://lore.kernel.org/lkml/20200411155623.GA22175@zn.tnic
->
-
-I forgot to add this:
-
-Reported-by: Borislav Petkov <bp@suse.de>
+To: Jens Axboe <axboe@kernel.dk>
+Cc: Josh Triplett <josh@joshtriplett.org>, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, io-uring@vger.kernel.org, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>
 
 
+--nl3aoloccd36jfpc
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
-> ---
->
-> I do not mean to replace the work by Leon Romanovsky:
-> https://lkml.org/lkml/2020/4/19/201
->
-> His work intends to hide <linux/vermagic.h> from driver writers.
-> It is solving a different problem.
-> It does not solve the include order restriction reported by [1].
-> It still relies on kernel/module.c and *.mod.c
-> include <linux/vermagic.h> after <linux/module.h>.
->
-> I believe we should not impose any restriction about the include order.
-> So, this patch is the direct answer to the bug report [1].
->
-> BTW, I think commit f58dd03b1157bdf3b64c36e9525f8d7f69c25df2
-> was a bad way to suppress the problem, but that is another story.
->
+On 2020-04-19, Jens Axboe <axboe@kernel.dk> wrote:
+> On 4/19/20 4:44 AM, Aleksa Sarai wrote:
+> > On 2020-04-13, Josh Triplett <josh@joshtriplett.org> wrote:
+> >> Inspired by the X protocol's handling of XIDs, allow userspace to sele=
+ct
+> >> the file descriptor opened by openat2, so that it can use the resulting
+> >> file descriptor in subsequent system calls without waiting for the
+> >> response to openat2.
+> >>
+> >> In io_uring, this allows sequences like openat2/read/close without
+> >> waiting for the openat2 to complete. Multiple such sequences can
+> >> overlap, as long as each uses a distinct file descriptor.
+> >=20
+> > I'm not sure I understand this explanation -- how can you trigger a
+> > syscall with an fd that hasn't yet been registered (unless you're just
+> > hoping the race goes in your favour)?
+>=20
+> io_uring can do chains of requests, where each link in the chain isn't
+> started until the previous one has completed. Hence if you know what fd
+> that openat2 will return, you can submit a chain ala:
+>=20
+> <open file X, give me fd Y><read from fd Y><close fd Y>
+>=20
+> as a single submission. This isn't possible to do currently, as the read
+> will depend on the output of the open, and we have no good way of
+> knowing what that fd will be.
 
+Ah! I was aware of io_uring's chaining feature but thought it had access
+to the return of the previous stage -- now this makes much more sense.
+Thanks.
 
--- 
-Best Regards
-Masahiro Yamada
+--=20
+Aleksa Sarai
+Senior Software Engineer (Containers)
+SUSE Linux GmbH
+<https://www.cyphar.com/>
+
+--nl3aoloccd36jfpc
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXp0DrwAKCRCdlLljIbnQ
+EmOYAP4lkf0v9STwr5KoDYWT6PbyBkxhHUVVy9D52d30Gd/h6gD/eZQuaYg8dEjF
+EJpgo1J1EPiK6PIgD34KjQNKv8C7fQ0=
+=hBJk
+-----END PGP SIGNATURE-----
+
+--nl3aoloccd36jfpc--
