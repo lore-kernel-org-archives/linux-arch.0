@@ -1,66 +1,78 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v1 6/6] arm64: tlb: Set the TTL field in flush_tlb_range
-Date: Mon, 20 Apr 2020 14:10:55 +0200
-Message-ID: <20200420121055.GF20696@hirez.programming.kicks-ass.net>
-References: <20200403090048.938-1-yezhenyu2@huawei.com>
- <20200403090048.938-7-yezhenyu2@huawei.com>
+From: Will Deacon <will@kernel.org>
+Subject: Re: [EXT] Re: [PATCH v3 03/13] task_isolation: add instruction
+ synchronization memory barrier
+Date: Mon, 20 Apr 2020 13:23:51 +0100
+Message-ID: <20200420122350.GB12889@willie-the-truck>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+ <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+ <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
+ <d995795c731d6ecceb36bdf1c1df3d72fefd023d.camel@marvell.com>
+ <20200415124427.GB28304@C02TD0UTHF1T.local>
+ <e4d2cda6f011e80a0d8e482b85bca1c57665fcfd.camel@marvell.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200403090048.938-7-yezhenyu2@huawei.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: mark.rutland@arm.com, catalin.marinas@arm.com, linux-mm@kvack.org, guohanjun@huawei.com, will@kernel.org, linux-arch@vger.kernel.org, yuzhao@google.com, maz@kernel.org, steven.price@arm.com, arm@kernel.org, Dave.Martin@arm.com, arnd@arndb.de, suzuki.poulose@arm.com, npiggin@gmail.com, zhangshaokun@hisilicon.com, broonie@kernel.org, rostedt@goodmis.org, prime.zeng@hisilicon.com, kuhn.chenqun@huawei.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, xiexiangyou@huawei.com, linux-kernel@vger.kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org
+In-Reply-To: <e4d2cda6f011e80a0d8e482b85bca1c57665fcfd.camel@marvell.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alex Belits <abelits@marvell.com>
+Cc: "mark.rutland@arm.com" <mark.rutland@arm.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "frederic@kernel.org" <frederic@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 03, 2020 at 05:00:48PM +0800, Zhenyu Ye wrote:
-> This patch uses the cleared_* in struct mmu_gather to set the
-> TTL field in flush_tlb_range().
+On Sun, Apr 19, 2020 at 05:02:01AM +0000, Alex Belits wrote:
+> On Wed, 2020-04-15 at 13:44 +0100, Mark Rutland wrote:
+> > On Thu, Apr 09, 2020 at 03:17:40PM +0000, Alex Belits wrote:
+> > > Some architectures implement memory synchronization instructions
+> > > for
+> > > instruction cache. Make a separate kind of barrier that calls them.
+> > 
+> > Modifying the instruction caches requries more than an ISB, and the
+> > 'IMB' naming implies you're trying to order against memory accesses,
+> > which isn't what ISB (generally) does.
+> > 
+> > What exactly do you want to use this for?
 > 
-> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-> ---
->  arch/arm64/include/asm/tlb.h      | 26 +++++++++++++++++++++++++-
->  arch/arm64/include/asm/tlbflush.h | 14 ++++++++------
->  2 files changed, 33 insertions(+), 7 deletions(-)
+> I guess, there should be different explanation and naming.
 > 
-> diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-> index b76df828e6b7..d5ab72eccff4 100644
-> --- a/arch/arm64/include/asm/tlb.h
-> +++ b/arch/arm64/include/asm/tlb.h
-> @@ -21,11 +21,34 @@ static void tlb_flush(struct mmu_gather *tlb);
->  
->  #include <asm-generic/tlb.h>
->  
-> +/*
-> + * get the tlbi levels in arm64.  Default value is 0 if more than one
-> + * of cleared_* is set or neither is set.
-> + * Arm64 doesn't support p4ds now.
-> + */
-> +static inline int tlb_get_level(struct mmu_gather *tlb)
-> +{
-> +	int sum = tlb->cleared_ptes + tlb->cleared_pmds +
-> +		  tlb->cleared_puds + tlb->cleared_p4ds;
-> +
-> +	if (sum != 1)
-> +		return 0;
-> +	else if (tlb->cleared_ptes)
-> +		return 3;
-> +	else if (tlb->cleared_pmds)
-> +		return 2;
-> +	else if (tlb->cleared_puds)
-> +		return 1;
-> +
-> +	return 0;
-> +}
+> The intention is to have a separate barrier that causes cache
+> synchronization event, for use in architecture-independent code. I am
+> not sure, what exactly it should do to be implemented in architecture-
+> independent manner, so it probably only makes sense along with a
+> regular memory barrier.
+> 
+> The particular place where I had to use is the code that has to run
+> after isolated task returns to the kernel. In the model that I propose
+> for task isolation, remote context synchronization is skipped while
+> task is in isolated in userspace (it doesn't run kernel, and kernel
+> does not modify its userspace code, so it's harmless until entering the
+> kernel).
 
-That's some mighty wonky code. Please look at the generated asm.
+> So it will skip the results of kick_all_cpus_sync() that was
+> that was called from flush_icache_range() and other similar places.
+> This means that once it's out of userspace, it should only run
+> some "safe" kernel entry code, and then synchronize in some manner that
+> avoids race conditions with possible IPIs intended for context
+> synchronization that may happen at the same time. My next patch in the
+> series uses it in that one place.
+> 
+> Synchronization will have to be implemented without a mandatory
+> interrupt because it may be triggered locally, on the same CPU. On ARM,
+> ISB is definitely necessary there, however I am not sure, how this
+> should look like on x86 and other architectures. On ARM this probably
+> still should be combined with a real memory barrier and cache
+> synchronization, however I am not entirely sure about details. Would
+> it make more sense to run DMB, IC and ISB? 
+
+IIUC, we don't need to do anything on arm64 because taking an exception acts
+as a context synchronization event, so I don't think you should try to
+expose this as a new barrier macro. Instead, just make it a pre-requisite
+that architectures need to ensure this behaviour when entering the kernel
+from userspace if they are to select HAVE_ARCH_TASK_ISOLATION.
+
+That way, it's /very/ similar to what we do for MEMBARRIER_SYNC_CORE, the
+only real different being that that is concerned with return-to-user rather
+than entry-from-user.
+
+See Documentation/features/sched/membarrier-sync-core/arch-support.txt
+
+Will
