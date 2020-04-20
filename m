@@ -1,103 +1,149 @@
-From: Will Deacon <will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: Re: [EXT] Re: [PATCH v3 03/13] task_isolation: add instruction
- synchronization memory barrier
-Date: Mon, 20 Apr 2020 14:55:24 +0100
-Message-ID: <20200420135523.GA18711@willie-the-truck>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
- <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
- <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
- <d995795c731d6ecceb36bdf1c1df3d72fefd023d.camel@marvell.com>
- <20200415124427.GB28304@C02TD0UTHF1T.local>
- <e4d2cda6f011e80a0d8e482b85bca1c57665fcfd.camel@marvell.com>
- <20200420122350.GB12889@willie-the-truck>
- <20200420123628.GB69441@C02TD0UTHF1T.local>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20200420123628.GB69441-NxAhncQ8SJbILnBEAk/BfazUEOm+Xw19@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>
-Cc: Alex Belits <abelits-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>, "mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, "linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "rostedt-nx8X9YLhiw1AfugRpC6u6w@public.gmane.org" <rostedt-nx8X9YLhiw1AfugRpC6u6w@public.gmane.org>, "peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org" <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Prasun Kapoor <pkapoor-eYqpPyKDWXRBDgjK7y7TUQ@public.gmane.org>, "catalin.marinas-5wv7dgnIgG8@public.gmane.org" <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, "frederic-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <frederic-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org" <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
+From: Qian Cai <cai@lca.pw>
+Subject: Re: [PATCH 15/21] mm: memmap_init: iterate over memblock regions
+ rather that check each PFN
+Date: Mon, 20 Apr 2020 10:26:06 -0400
+Message-ID: <CF6E407F-17DC-427C-8203-21979FB882EF@lca.pw>
+References: <20200412194859.12663-1-rppt@kernel.org>
+ <20200412194859.12663-16-rppt@kernel.org>
+Mime-Version: 1.0 (Mac OS X Mail 13.4 \(3608.80.23.2.2\))
+Content-Type: text/plain;
+	charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <20200412194859.12663-16-rppt@kernel.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
+To: Mike Rapoport <rppt@kernel.org>, Baoquan He <bhe@redhat.com>
+Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-c6x-dev@linux-c6x.org, Brian Cain <bcain@codeaurora.org>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, the arch/x86 maintainers <x86@kernel.org>, Russell King <linux@armlinux.org.u>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 20, 2020 at 01:36:28PM +0100, Mark Rutland wrote:
-> On Mon, Apr 20, 2020 at 01:23:51PM +0100, Will Deacon wrote:
-> > On Sun, Apr 19, 2020 at 05:02:01AM +0000, Alex Belits wrote:
-> > > On Wed, 2020-04-15 at 13:44 +0100, Mark Rutland wrote:
-> > > > On Thu, Apr 09, 2020 at 03:17:40PM +0000, Alex Belits wrote:
-> > > > > Some architectures implement memory synchronization instructions
-> > > > > for
-> > > > > instruction cache. Make a separate kind of barrier that calls them.
-> > > > 
-> > > > Modifying the instruction caches requries more than an ISB, and the
-> > > > 'IMB' naming implies you're trying to order against memory accesses,
-> > > > which isn't what ISB (generally) does.
-> > > > 
-> > > > What exactly do you want to use this for?
-> > > 
-> > > I guess, there should be different explanation and naming.
-> > > 
-> > > The intention is to have a separate barrier that causes cache
-> > > synchronization event, for use in architecture-independent code. I am
-> > > not sure, what exactly it should do to be implemented in architecture-
-> > > independent manner, so it probably only makes sense along with a
-> > > regular memory barrier.
-> > > 
-> > > The particular place where I had to use is the code that has to run
-> > > after isolated task returns to the kernel. In the model that I propose
-> > > for task isolation, remote context synchronization is skipped while
-> > > task is in isolated in userspace (it doesn't run kernel, and kernel
-> > > does not modify its userspace code, so it's harmless until entering the
-> > > kernel).
-> > 
-> > > So it will skip the results of kick_all_cpus_sync() that was
-> > > that was called from flush_icache_range() and other similar places.
-> > > This means that once it's out of userspace, it should only run
-> > > some "safe" kernel entry code, and then synchronize in some manner that
-> > > avoids race conditions with possible IPIs intended for context
-> > > synchronization that may happen at the same time. My next patch in the
-> > > series uses it in that one place.
-> > > 
-> > > Synchronization will have to be implemented without a mandatory
-> > > interrupt because it may be triggered locally, on the same CPU. On ARM,
-> > > ISB is definitely necessary there, however I am not sure, how this
-> > > should look like on x86 and other architectures. On ARM this probably
-> > > still should be combined with a real memory barrier and cache
-> > > synchronization, however I am not entirely sure about details. Would
-> > > it make more sense to run DMB, IC and ISB? 
-> > 
-> > IIUC, we don't need to do anything on arm64 because taking an exception acts
-> > as a context synchronization event, so I don't think you should try to
-> > expose this as a new barrier macro. Instead, just make it a pre-requisite
-> > that architectures need to ensure this behaviour when entering the kernel
-> > from userspace if they are to select HAVE_ARCH_TASK_ISOLATION.
-> 
-> The CSE from the exception isn't sufficient here, because it needs to
-> occur after the CPU has re-registered to receive IPIs for
-> kick_all_cpus_sync(). Otherwise there's a window between taking the
-> exception and re-registering where a necessary context synchronization
-> event can be missed. e.g.
-> 
-> CPU A				CPU B
-> [ Modifies some code ]		
-> 				[ enters exception ]
-> [ D cache maintenance ]
-> [ I cache maintenance ]
-> [ IPI ]				// IPI not taken
->   ...				[ register for IPI ] 
-> [ IPI completes ] 
-> 				[ execute stale code here ]
 
-Thanks.
 
-> However, I think 'IMB' is far too generic, and we should have an arch
-> hook specific to task isolation, as it's far less likely to be abused as
-> IMB will.
+> On Apr 12, 2020, at 3:48 PM, Mike Rapoport <rppt@kernel.org> wrote:
+>=20
+> From: Baoquan He <bhe@redhat.com>
+>=20
+> When called during boot the memmap_init_zone() function checks if each =
+PFN
+> is valid and actually belongs to the node being initialized using
+> early_pfn_valid() and early_pfn_in_nid().
+>=20
+> Each such check may cost up to O(log(n)) where n is the number of =
+memory
+> banks, so for large amount of memory overall time spent in =
+early_pfn*()
+> becomes substantial.
+>=20
+> Since the information is anyway present in memblock, we can iterate =
+over
+> memblock memory regions in memmap_init() and only call =
+memmap_init_zone()
+> for PFN ranges that are know to be valid and in the appropriate node.
+>=20
+> Signed-off-by: Baoquan He <bhe@redhat.com>
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> ---
+> mm/page_alloc.c | 26 ++++++++++++++++----------
+> 1 file changed, 16 insertions(+), 10 deletions(-)
+>=20
+> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+> index 7f6a3081edb8..c43ce8709457 100644
+> --- a/mm/page_alloc.c
+> +++ b/mm/page_alloc.c
+> @@ -5995,14 +5995,6 @@ void __meminit memmap_init_zone(unsigned long =
+size, int nid, unsigned long zone,
+> 		 * function.  They do not exist on hotplugged memory.
+> 		 */
+> 		if (context =3D=3D MEMMAP_EARLY) {
+> -			if (!early_pfn_valid(pfn)) {
+> -				pfn =3D next_pfn(pfn);
+> -				continue;
+> -			}
+> -			if (!early_pfn_in_nid(pfn, nid)) {
+> -				pfn++;
+> -				continue;
+> -			}
 
-What guarantees we don't run any unsynchronised module code between
-exception entry and registering for the IPI? It seems like we'd want that
-code to run as early as possible, e.g. as part of
-task_isolation_user_exit() but that doesn't seem to be what's happening.
+This causes a compilation warning from Clang,
 
-Will
+mm/page_alloc.c:5917:39: warning: unused function 'next_pfn' =
+[-Wunused-function]
+static inline __meminit unsigned long next_pfn(unsigned long pfn)
+
+This should fix it,
+
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index d469384c9ca7..b48336e20bdc 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -5912,23 +5912,6 @@ overlap_memmap_init(unsigned long zone, unsigned =
+long *pfn)
+ 	return false;
+ }
+=20
+-#ifdef CONFIG_SPARSEMEM
+-/* Skip PFNs that belong to non-present sections */
+-static inline __meminit unsigned long next_pfn(unsigned long pfn)
+-{
+-	const unsigned long section_nr =3D pfn_to_section_nr(++pfn);
+-
+-	if (present_section_nr(section_nr))
+-		return pfn;
+-	return section_nr_to_pfn(next_present_section_nr(section_nr));
+-}
+-#else
+-static inline __meminit unsigned long next_pfn(unsigned long pfn)
+-{
+-	return pfn++;
+-}
+-#endif
+-
+ /*
+  * Initially all pages are reserved - free ones are freed
+  * up by memblock_free_all() once the early boot process is
+
+> 			if (overlap_memmap_init(zone, &pfn))
+> 				continue;
+> 			if (defer_init(nid, pfn, end_pfn))
+> @@ -6118,9 +6110,23 @@ static void __meminit =
+zone_init_free_lists(struct zone *zone)
+> }
+>=20
+> void __meminit __weak memmap_init(unsigned long size, int nid,
+> -				  unsigned long zone, unsigned long =
+start_pfn)
+> +				  unsigned long zone,
+> +				  unsigned long range_start_pfn)
+> {
+> -	memmap_init_zone(size, nid, zone, start_pfn, MEMMAP_EARLY, =
+NULL);
+> +	unsigned long start_pfn, end_pfn;
+> +	unsigned long range_end_pfn =3D range_start_pfn + size;
+> +	int i;
+> +
+> +	for_each_mem_pfn_range(i, nid, &start_pfn, &end_pfn, NULL) {
+> +		start_pfn =3D clamp(start_pfn, range_start_pfn, =
+range_end_pfn);
+> +		end_pfn =3D clamp(end_pfn, range_start_pfn, =
+range_end_pfn);
+> +
+> +		if (end_pfn > start_pfn) {
+> +			size =3D end_pfn - start_pfn;
+> +			memmap_init_zone(size, nid, zone, start_pfn,
+> +					 MEMMAP_EARLY, NULL);
+> +		}
+> +	}
+> }
+>=20
+> static int zone_batchsize(struct zone *zone)
+> --=20
+> 2.25.1
+>=20
+>=20
