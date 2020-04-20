@@ -1,106 +1,90 @@
-From: Nate Karstens <nate.karstens@garmin.com>
-Subject: [PATCH 4/4] net: Add SOCK_CLOFORK
-Date: Mon, 20 Apr 2020 02:15:48 -0500
-Message-ID: <20200420071548.62112-5-nate.karstens@garmin.com>
-References: <20200420071548.62112-1-nate.karstens@garmin.com>
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
+ usercopy caches
+Date: Mon, 20 Apr 2020 09:53:20 +0200
+Message-ID: <548e6212-7b3c-5925-19f2-699af451fd16@suse.cz>
+References: <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
+ <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
+ <202001271519.AA6ADEACF0@keescook>
+ <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
+ <202001281457.FA11CC313A@keescook>
+ <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
+ <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
+ <20200129170939.GA4277@infradead.org>
+ <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
+ <202001300945.7D465B5F5@keescook>
+ <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
+ <7d810f6d-8085-ea2f-7805-47ba3842dc50@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <20200420071548.62112-1-nate.karstens@garmin.com>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Changli Gao <xiaosuo@gmail.com>, Nate Karstens <nate.karstens@garmin.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <7d810f6d-8085-ea2f-7805-47ba3842dc50@suse.cz>
+Content-Language: en-US
+Sender: netdev-owner@vger.kernel.org
+To: Vlastimil Babka <vbabka@suse.cz>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <mart>
 List-Id: linux-arch.vger.kernel.org
 
-Implements a new socket flag that automatically sets the
-close-on-fork flag for sockets created using socket(2),
-socketpair(2), and accept4(2).
+On 07. 04. 20, 10:00, Vlastimil Babka wrote:
+> From d5190e4e871689a530da3c3fd327be45a88f006a Mon Sep 17 00:00:00 2001
+> From: Vlastimil Babka <vbabka@suse.cz>
+> Date: Tue, 7 Apr 2020 09:58:00 +0200
+> Subject: [PATCH] usercopy: Mark dma-kmalloc caches as usercopy caches
+> 
+> We have seen a "usercopy: Kernel memory overwrite attempt detected to SLUB
+> object 'dma-kmalloc-1 k' (offset 0, size 11)!" error on s390x, as IUCV uses
+> kmalloc() with __GFP_DMA because of memory address restrictions.
+> The issue has been discussed [2] and it has been noted that if all the kmalloc
+> caches are marked as usercopy, there's little reason not to mark dma-kmalloc
+> caches too. The 'dma' part merely means that __GFP_DMA is used to restrict
+> memory address range.
+> 
+> As Jann Horn put it [3]:
+> 
+> "I think dma-kmalloc slabs should be handled the same way as normal
+> kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
+> just normal kernel memory - even if it might later be used for DMA -,
+> and it should be perfectly fine to copy_from_user() into such
+> allocations at that point, and to copy_to_user() out of them at the
+> end. If you look at the places where such allocations are created, you
+> can see things like kmemdup(), memcpy() and so on - all normal
+> operations that shouldn't conceptually be different from usercopy in
+> any relevant way."
+> 
+> Thus this patch marks the dma-kmalloc-* caches as usercopy.
+> 
+> [1] https://bugzilla.suse.com/show_bug.cgi?id=1156053
+> [2] https://lore.kernel.org/kernel-hardening/bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz/
+> [3] https://lore.kernel.org/kernel-hardening/CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com/
+> 
+> Signed-off-by: Vlastimil Babka <vbabka@suse.cz>
 
-Signed-off-by: Nate Karstens <nate.karstens@garmin.com>
----
- include/linux/net.h |  3 ++-
- net/socket.c        | 14 ++++++++------
- 2 files changed, 10 insertions(+), 7 deletions(-)
+Friendly ping.
 
-diff --git a/include/linux/net.h b/include/linux/net.h
-index 6451425e828f..57663c9dc8c4 100644
---- a/include/linux/net.h
-+++ b/include/linux/net.h
-@@ -17,7 +17,7 @@
- #include <linux/stringify.h>
- #include <linux/random.h>
- #include <linux/wait.h>
--#include <linux/fcntl.h>	/* For O_CLOEXEC and O_NONBLOCK */
-+#include <linux/fcntl.h>	/* For O_CLOEXEC, O_CLOFORK, and O_NONBLOCK */
- #include <linux/rcupdate.h>
- #include <linux/once.h>
- #include <linux/fs.h>
-@@ -73,6 +73,7 @@ enum sock_type {
- 
- /* Flags for socket, socketpair, accept4 */
- #define SOCK_CLOEXEC	O_CLOEXEC
-+#define SOCK_CLOFORK	O_CLOFORK
- #ifndef SOCK_NONBLOCK
- #define SOCK_NONBLOCK	O_NONBLOCK
- #endif
-diff --git a/net/socket.c b/net/socket.c
-index 2eecf1517f76..ba6e971c7e78 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -1511,12 +1511,14 @@ int __sys_socket(int family, int type, int protocol)
- 
- 	/* Check the SOCK_* constants for consistency.  */
- 	BUILD_BUG_ON(SOCK_CLOEXEC != O_CLOEXEC);
-+	BUILD_BUG_ON(SOCK_CLOFORK != O_CLOFORK);
- 	BUILD_BUG_ON((SOCK_MAX | SOCK_TYPE_MASK) != SOCK_TYPE_MASK);
- 	BUILD_BUG_ON(SOCK_CLOEXEC & SOCK_TYPE_MASK);
-+	BUILD_BUG_ON(SOCK_CLOFORK & SOCK_TYPE_MASK);
- 	BUILD_BUG_ON(SOCK_NONBLOCK & SOCK_TYPE_MASK);
- 
- 	flags = type & ~SOCK_TYPE_MASK;
--	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
-+	if (flags & ~(SOCK_CLOEXEC | SOCK_CLOFORK | SOCK_NONBLOCK))
- 		return -EINVAL;
- 	type &= SOCK_TYPE_MASK;
- 
-@@ -1527,7 +1529,7 @@ int __sys_socket(int family, int type, int protocol)
- 	if (retval < 0)
- 		return retval;
- 
--	return sock_map_fd(sock, flags & (O_CLOEXEC | O_NONBLOCK));
-+	return sock_map_fd(sock, flags & (O_CLOEXEC | O_CLOFORK | O_NONBLOCK));
- }
- 
- SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
-@@ -1547,7 +1549,7 @@ int __sys_socketpair(int family, int type, int protocol, int __user *usockvec)
- 	int flags;
- 
- 	flags = type & ~SOCK_TYPE_MASK;
--	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
-+	if (flags & ~(SOCK_CLOEXEC | SOCK_CLOFORK | SOCK_NONBLOCK))
- 		return -EINVAL;
- 	type &= SOCK_TYPE_MASK;
- 
-@@ -1715,7 +1717,7 @@ int __sys_accept4_file(struct file *file, unsigned file_flags,
- 	int err, len, newfd;
- 	struct sockaddr_storage address;
- 
--	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
-+	if (flags & ~(SOCK_CLOEXEC | SOCK_CLOFORK | SOCK_NONBLOCK))
- 		return -EINVAL;
- 
- 	if (SOCK_NONBLOCK != O_NONBLOCK && (flags & SOCK_NONBLOCK))
-@@ -3628,8 +3630,8 @@ EXPORT_SYMBOL(kernel_listen);
-  *	@newsock: new connected socket
-  *	@flags: flags
-  *
-- *	@flags must be SOCK_CLOEXEC, SOCK_NONBLOCK or 0.
-- *	If it fails, @newsock is guaranteed to be %NULL.
-+ *	@flags must be SOCK_CLOEXEC, SOCK_CLOFORK, SOCK_NONBLOCK,
-+ *	or 0. If it fails, @newsock is guaranteed to be %NULL.
-  *	Returns 0 or an error.
-  */
- 
+Acked-by: Jiri Slaby <jslaby@suse.cz>
+
+> ---
+>  mm/slab_common.c | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
+> 
+> diff --git a/mm/slab_common.c b/mm/slab_common.c
+> index 5282f881d2f5..ae9486160594 100644
+> --- a/mm/slab_common.c
+> +++ b/mm/slab_common.c
+> @@ -1303,7 +1303,8 @@ void __init create_kmalloc_caches(slab_flags_t flags)
+>  			kmalloc_caches[KMALLOC_DMA][i] = create_kmalloc_cache(
+>  				kmalloc_info[i].name[KMALLOC_DMA],
+>  				kmalloc_info[i].size,
+> -				SLAB_CACHE_DMA | flags, 0, 0);
+> +				SLAB_CACHE_DMA | flags, 0,
+> +				kmalloc_info[i].size);
+>  		}
+>  	}
+>  #endif
+> 
+
+thanks,
 -- 
-2.26.1
+js
+suse labs
