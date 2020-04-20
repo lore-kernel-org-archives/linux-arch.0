@@ -1,60 +1,262 @@
-Return-Path: <SRS0=uGV/=6A=kvack.org=owner-linux-mm@kernel.org>
-Date: Thu, 16 Apr 2020 13:37:36 -0700
-From: Minchan Kim <minchan@kernel.org>
-Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
- zsmalloc
-Message-ID: <20200416203736.GB50092@google.com>
-References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-11-hch@lst.de>
- <20200409160826.GC247701@google.com>
- <20200409165030.GG20713@hirez.programming.kicks-ass.net>
- <20200409170813.GD247701@google.com>
- <20200410023845.GA2354@jagdpanzerIV.localdomain>
- <20200410231136.GA101325@google.com>
- <20200411072052.GA31242@lst.de>
+Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-eopbgr680105.outbound.protection.outlook.com ([40.107.68.105]:20708
+        "EHLO NAM04-BN3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726151AbgDTHQY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Apr 2020 03:16:24 -0400
+From: Nate Karstens <nate.karstens@garmin.com>
+Subject: [PATCH 1/4] fs: Implement close-on-fork
+Date: Mon, 20 Apr 2020 02:15:45 -0500
+Message-ID: <20200420071548.62112-2-nate.karstens@garmin.com>
+In-Reply-To: <20200420071548.62112-1-nate.karstens@garmin.com>
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200411072052.GA31242@lst.de>
-Sender: owner-linux-mm@kvack.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Sergey Senozhatsky <sergey.senozhatsky@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200416203736.BF8KOwGsHZfV_VgN13tXIhliqrHif9TBK3g-X7D8E-A@z>
+To: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Changli Gao <xiaosuo@gmail.com>, Nate Karstens <nate.karstens@garmin.com>
+Message-ID: <20200420071545.aM2IazY9N4uj_aCtBQhIbZ5P-_PfK0O0QjdXl4nyey0@z>
 
-Hi Christoph,
+The close-on-fork flag causes the file descriptor to be closed
+atomically in the child process before the child process returns
+from fork(). Implement this feature and provide a method to
+get/set the close-on-fork flag using fcntl(2).
 
+This functionality was approved by the Austin Common Standards
+Revision Group for inclusion in the next revision of the POSIX
+standard (see issue 1318 in the Austin Group Defect Tracker).
 
-Sorry for the late.
+Co-developed-by: Changli Gao <xiaosuo@gmail.com>
+Signed-off-by: Changli Gao <xiaosuo@gmail.com>
+Signed-off-by: Nate Karstens <nate.karstens@garmin.com>
+---
+ fs/fcntl.c                             |  2 ++
+ fs/file.c                              | 50 +++++++++++++++++++++++++-
+ include/linux/fdtable.h                |  7 ++++
+ include/linux/file.h                   |  2 ++
+ include/uapi/asm-generic/fcntl.h       |  5 +--
+ tools/include/uapi/asm-generic/fcntl.h |  5 +--
+ 6 files changed, 66 insertions(+), 5 deletions(-)
 
-On Sat, Apr 11, 2020 at 09:20:52AM +0200, Christoph Hellwig wrote:
-> Hi Minchan,
-> 
-> On Fri, Apr 10, 2020 at 04:11:36PM -0700, Minchan Kim wrote:
-> > It doesn't mean we couldn't use zsmalloc as module any longer. It means
-> > we couldn't use zsmalloc as module with pgtable mapping whcih was little
-> > bit faster on microbenchmark in some architecutre(However, I usually temped
-> > to remove it since it had several problems). However, we could still use
-> > zsmalloc as module as copy way instead of pgtable mapping. Thus, if someone
-> > really want to rollback the feature, they should provide reasonable reason
-> > why it doesn't work for them. "A little fast" wouldn't be enough to exports
-> > deep internal to the module.
-> 
-> do you have any data how much faster it is on arm (and does that include
-> arm64 as well)?  Besides the exports which were my prime concern,
-
-https://github.com/sjenning/zsmapbench
-
-I need to recall the memory. IIRC, it was almost 30% faster at that time
-in ARM so was not trivial at that time. However, it was story from
-several years ago.
-
-> zsmalloc with pgtable mappings also is the only user of map_kernel_range
-> outside of vmalloc.c, if it really is another code base for tiny
-> improvements we could mark map_kernel_range or in fact remove it entirely
-> and open code it in the remaining callers.
-
-I alsh have temped to remove it. Let me have time to revist it in this
-chance.
-
-Thanks.
+diff --git a/fs/fcntl.c b/fs/fcntl.c
+index 2e4c0fa2074b..23964abf4a1a 100644
+--- a/fs/fcntl.c
++++ b/fs/fcntl.c
+@@ -335,10 +335,12 @@ static long do_fcntl(int fd, unsigned int cmd, unsigned long arg,
+ 		break;
+ 	case F_GETFD:
+ 		err = get_close_on_exec(fd) ? FD_CLOEXEC : 0;
++		err |= get_close_on_fork(fd) ? FD_CLOFORK : 0;
+ 		break;
+ 	case F_SETFD:
+ 		err = 0;
+ 		set_close_on_exec(fd, arg & FD_CLOEXEC);
++		set_close_on_fork(fd, arg & FD_CLOFORK);
+ 		break;
+ 	case F_GETFL:
+ 		err = filp->f_flags;
+diff --git a/fs/file.c b/fs/file.c
+index c8a4e4c86e55..de7260ba718d 100644
+--- a/fs/file.c
++++ b/fs/file.c
+@@ -57,6 +57,8 @@ static void copy_fd_bitmaps(struct fdtable *nfdt, struct fdtable *ofdt,
+ 	memset((char *)nfdt->open_fds + cpy, 0, set);
+ 	memcpy(nfdt->close_on_exec, ofdt->close_on_exec, cpy);
+ 	memset((char *)nfdt->close_on_exec + cpy, 0, set);
++	memcpy(nfdt->close_on_fork, ofdt->close_on_fork, cpy);
++	memset((char *)nfdt->close_on_fork + cpy, 0, set);
+ 
+ 	cpy = BITBIT_SIZE(count);
+ 	set = BITBIT_SIZE(nfdt->max_fds) - cpy;
+@@ -118,7 +120,7 @@ static struct fdtable * alloc_fdtable(unsigned int nr)
+ 	fdt->fd = data;
+ 
+ 	data = kvmalloc(max_t(size_t,
+-				 2 * nr / BITS_PER_BYTE + BITBIT_SIZE(nr), L1_CACHE_BYTES),
++				 3 * nr / BITS_PER_BYTE + BITBIT_SIZE(nr), L1_CACHE_BYTES),
+ 				 GFP_KERNEL_ACCOUNT);
+ 	if (!data)
+ 		goto out_arr;
+@@ -126,6 +128,8 @@ static struct fdtable * alloc_fdtable(unsigned int nr)
+ 	data += nr / BITS_PER_BYTE;
+ 	fdt->close_on_exec = data;
+ 	data += nr / BITS_PER_BYTE;
++	fdt->close_on_fork = data;
++	data += nr / BITS_PER_BYTE;
+ 	fdt->full_fds_bits = data;
+ 
+ 	return fdt;
+@@ -236,6 +240,17 @@ static inline void __clear_close_on_exec(unsigned int fd, struct fdtable *fdt)
+ 		__clear_bit(fd, fdt->close_on_exec);
+ }
+ 
++static inline void __set_close_on_fork(unsigned int fd, struct fdtable *fdt)
++{
++	__set_bit(fd, fdt->close_on_fork);
++}
++
++static inline void __clear_close_on_fork(unsigned int fd, struct fdtable *fdt)
++{
++	if (test_bit(fd, fdt->close_on_fork))
++		__clear_bit(fd, fdt->close_on_fork);
++}
++
+ static inline void __set_open_fd(unsigned int fd, struct fdtable *fdt)
+ {
+ 	__set_bit(fd, fdt->open_fds);
+@@ -290,6 +305,7 @@ struct files_struct *dup_fd(struct files_struct *oldf, int *errorp)
+ 	new_fdt = &newf->fdtab;
+ 	new_fdt->max_fds = NR_OPEN_DEFAULT;
+ 	new_fdt->close_on_exec = newf->close_on_exec_init;
++	new_fdt->close_on_fork = newf->close_on_fork_init;
+ 	new_fdt->open_fds = newf->open_fds_init;
+ 	new_fdt->full_fds_bits = newf->full_fds_bits_init;
+ 	new_fdt->fd = &newf->fd_array[0];
+@@ -337,6 +353,12 @@ struct files_struct *dup_fd(struct files_struct *oldf, int *errorp)
+ 
+ 	for (i = open_files; i != 0; i--) {
+ 		struct file *f = *old_fds++;
++
++		if (test_bit(open_files - i, new_fdt->close_on_fork)) {
++			__clear_bit(open_files - i, new_fdt->open_fds);
++			f = NULL;
++		}
++
+ 		if (f) {
+ 			get_file(f);
+ 		} else {
+@@ -453,6 +475,7 @@ struct files_struct init_files = {
+ 		.max_fds	= NR_OPEN_DEFAULT,
+ 		.fd		= &init_files.fd_array[0],
+ 		.close_on_exec	= init_files.close_on_exec_init,
++		.close_on_fork	= init_files.close_on_fork_init,
+ 		.open_fds	= init_files.open_fds_init,
+ 		.full_fds_bits	= init_files.full_fds_bits_init,
+ 	},
+@@ -865,6 +888,31 @@ bool get_close_on_exec(unsigned int fd)
+ 	return res;
+ }
+ 
++void set_close_on_fork(unsigned int fd, int flag)
++{
++	struct files_struct *files = current->files;
++	struct fdtable *fdt;
++	spin_lock(&files->file_lock);
++	fdt = files_fdtable(files);
++	if (flag)
++		__set_close_on_fork(fd, fdt);
++	else
++		__clear_close_on_fork(fd, fdt);
++	spin_unlock(&files->file_lock);
++}
++
++bool get_close_on_fork(unsigned int fd)
++{
++	struct files_struct *files = current->files;
++	struct fdtable *fdt;
++	bool res;
++	rcu_read_lock();
++	fdt = files_fdtable(files);
++	res = close_on_fork(fd, fdt);
++	rcu_read_unlock();
++	return res;
++}
++
+ static int do_dup2(struct files_struct *files,
+ 	struct file *file, unsigned fd, unsigned flags)
+ __releases(&files->file_lock)
+diff --git a/include/linux/fdtable.h b/include/linux/fdtable.h
+index f07c55ea0c22..61c551947fa3 100644
+--- a/include/linux/fdtable.h
++++ b/include/linux/fdtable.h
+@@ -27,6 +27,7 @@ struct fdtable {
+ 	unsigned int max_fds;
+ 	struct file __rcu **fd;      /* current fd array */
+ 	unsigned long *close_on_exec;
++	unsigned long *close_on_fork;
+ 	unsigned long *open_fds;
+ 	unsigned long *full_fds_bits;
+ 	struct rcu_head rcu;
+@@ -37,6 +38,11 @@ static inline bool close_on_exec(unsigned int fd, const struct fdtable *fdt)
+ 	return test_bit(fd, fdt->close_on_exec);
+ }
+ 
++static inline bool close_on_fork(unsigned int fd, const struct fdtable *fdt)
++{
++	return test_bit(fd, fdt->close_on_fork);
++}
++
+ static inline bool fd_is_open(unsigned int fd, const struct fdtable *fdt)
+ {
+ 	return test_bit(fd, fdt->open_fds);
+@@ -61,6 +67,7 @@ struct files_struct {
+ 	spinlock_t file_lock ____cacheline_aligned_in_smp;
+ 	unsigned int next_fd;
+ 	unsigned long close_on_exec_init[1];
++	unsigned long close_on_fork_init[1];
+ 	unsigned long open_fds_init[1];
+ 	unsigned long full_fds_bits_init[1];
+ 	struct file __rcu * fd_array[NR_OPEN_DEFAULT];
+diff --git a/include/linux/file.h b/include/linux/file.h
+index 142d102f285e..86fbb36b438b 100644
+--- a/include/linux/file.h
++++ b/include/linux/file.h
+@@ -85,6 +85,8 @@ extern int f_dupfd(unsigned int from, struct file *file, unsigned flags);
+ extern int replace_fd(unsigned fd, struct file *file, unsigned flags);
+ extern void set_close_on_exec(unsigned int fd, int flag);
+ extern bool get_close_on_exec(unsigned int fd);
++extern void set_close_on_fork(unsigned int fd, int flag);
++extern bool get_close_on_fork(unsigned int fd);
+ extern int __get_unused_fd_flags(unsigned flags, unsigned long nofile);
+ extern int get_unused_fd_flags(unsigned flags);
+ extern void put_unused_fd(unsigned int fd);
+diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
+index 9dc0bf0c5a6e..0cb7199a7743 100644
+--- a/include/uapi/asm-generic/fcntl.h
++++ b/include/uapi/asm-generic/fcntl.h
+@@ -98,8 +98,8 @@
+ #endif
+ 
+ #define F_DUPFD		0	/* dup */
+-#define F_GETFD		1	/* get close_on_exec */
+-#define F_SETFD		2	/* set/clear close_on_exec */
++#define F_GETFD		1	/* get close_on_exec & close_on_fork */
++#define F_SETFD		2	/* set/clear close_on_exec & close_on_fork */
+ #define F_GETFL		3	/* get file->f_flags */
+ #define F_SETFL		4	/* set file->f_flags */
+ #ifndef F_GETLK
+@@ -160,6 +160,7 @@ struct f_owner_ex {
+ 
+ /* for F_[GET|SET]FL */
+ #define FD_CLOEXEC	1	/* actually anything with low bit set goes */
++#define FD_CLOFORK	2
+ 
+ /* for posix fcntl() and lockf() */
+ #ifndef F_RDLCK
+diff --git a/tools/include/uapi/asm-generic/fcntl.h b/tools/include/uapi/asm-generic/fcntl.h
+index ac190958c981..e04a00fecb4a 100644
+--- a/tools/include/uapi/asm-generic/fcntl.h
++++ b/tools/include/uapi/asm-generic/fcntl.h
+@@ -97,8 +97,8 @@
+ #endif
+ 
+ #define F_DUPFD		0	/* dup */
+-#define F_GETFD		1	/* get close_on_exec */
+-#define F_SETFD		2	/* set/clear close_on_exec */
++#define F_GETFD		1	/* get close_on_exec & close_on_fork */
++#define F_SETFD		2	/* set/clear close_on_exec & close_on_fork */
+ #define F_GETFL		3	/* get file->f_flags */
+ #define F_SETFL		4	/* set file->f_flags */
+ #ifndef F_GETLK
+@@ -159,6 +159,7 @@ struct f_owner_ex {
+ 
+ /* for F_[GET|SET]FL */
+ #define FD_CLOEXEC	1	/* actually anything with low bit set goes */
++#define FD_CLOFORK	2
+ 
+ /* for posix fcntl() and lockf() */
+ #ifndef F_RDLCK
+-- 
+2.26.1
