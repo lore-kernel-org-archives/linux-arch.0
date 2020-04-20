@@ -1,90 +1,63 @@
-From: Jiri Slaby <jslaby@suse.cz>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches as
- usercopy caches
-Date: Mon, 20 Apr 2020 09:53:20 +0200
-Message-ID: <548e6212-7b3c-5925-19f2-699af451fd16@suse.cz>
-References: <201911121313.1097D6EE@keescook> <201911141327.4DE6510@keescook>
- <bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz>
- <202001271519.AA6ADEACF0@keescook>
- <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
- <202001281457.FA11CC313A@keescook>
- <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
- <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
- <20200129170939.GA4277@infradead.org>
- <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
- <202001300945.7D465B5F5@keescook>
- <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
- <7d810f6d-8085-ea2f-7805-47ba3842dc50@suse.cz>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 26/29] mm: remove vmalloc_user_node_flags
+Date: Mon, 20 Apr 2020 11:26:19 +0200
+Message-ID: <CAMuHMdXO0TV09XYxyxjEA8YdvXVwg1u6Zs=z3PzCVb9Mw5boTQ@mail.gmail.com>
+References: <20200414131348.444715-1-hch@lst.de> <20200414131348.444715-27-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <7d810f6d-8085-ea2f-7805-47ba3842dc50@suse.cz>
-Content-Language: en-US
-Sender: netdev-owner@vger.kernel.org
-To: Vlastimil Babka <vbabka@suse.cz>, Jann Horn <jannh@google.com>, Kees Cook <keescook@chromium.org>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <mart>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200414131348.444715-27-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Linux-Arch <linux-arch@vger.kernel.org>, linux-hyperv@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>Linux
 List-Id: linux-arch.vger.kernel.org
 
-On 07. 04. 20, 10:00, Vlastimil Babka wrote:
-> From d5190e4e871689a530da3c3fd327be45a88f006a Mon Sep 17 00:00:00 2001
-> From: Vlastimil Babka <vbabka@suse.cz>
-> Date: Tue, 7 Apr 2020 09:58:00 +0200
-> Subject: [PATCH] usercopy: Mark dma-kmalloc caches as usercopy caches
-> 
-> We have seen a "usercopy: Kernel memory overwrite attempt detected to SLUB
-> object 'dma-kmalloc-1 k' (offset 0, size 11)!" error on s390x, as IUCV uses
-> kmalloc() with __GFP_DMA because of memory address restrictions.
-> The issue has been discussed [2] and it has been noted that if all the kmalloc
-> caches are marked as usercopy, there's little reason not to mark dma-kmalloc
-> caches too. The 'dma' part merely means that __GFP_DMA is used to restrict
-> memory address range.
-> 
-> As Jann Horn put it [3]:
-> 
-> "I think dma-kmalloc slabs should be handled the same way as normal
-> kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
-> just normal kernel memory - even if it might later be used for DMA -,
-> and it should be perfectly fine to copy_from_user() into such
-> allocations at that point, and to copy_to_user() out of them at the
-> end. If you look at the places where such allocations are created, you
-> can see things like kmemdup(), memcpy() and so on - all normal
-> operations that shouldn't conceptually be different from usercopy in
-> any relevant way."
-> 
-> Thus this patch marks the dma-kmalloc-* caches as usercopy.
-> 
-> [1] https://bugzilla.suse.com/show_bug.cgi?id=1156053
-> [2] https://lore.kernel.org/kernel-hardening/bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz/
-> [3] https://lore.kernel.org/kernel-hardening/CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com/
-> 
-> Signed-off-by: Vlastimil Babka <vbabka@suse.cz>
+Hi Christoph,
 
-Friendly ping.
+On Tue, Apr 14, 2020 at 3:22 PM Christoph Hellwig <hch@lst.de> wrote:
+> Open code it in __bpf_map_area_alloc, which is the only caller.  Also
+> clean up __bpf_map_area_alloc to have a single vmalloc call with
+> slightly different flags instead of the current two different calls.
+>
+> For this to compile for the nommu case add a __vmalloc_node_range stub
+> to nommu.c.
 
-Acked-by: Jiri Slaby <jslaby@suse.cz>
+Apparently your nommu-cross-compilers are in quarantaine? ;-)
 
-> ---
->  mm/slab_common.c | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
-> 
-> diff --git a/mm/slab_common.c b/mm/slab_common.c
-> index 5282f881d2f5..ae9486160594 100644
-> --- a/mm/slab_common.c
-> +++ b/mm/slab_common.c
-> @@ -1303,7 +1303,8 @@ void __init create_kmalloc_caches(slab_flags_t flags)
->  			kmalloc_caches[KMALLOC_DMA][i] = create_kmalloc_cache(
->  				kmalloc_info[i].name[KMALLOC_DMA],
->  				kmalloc_info[i].size,
-> -				SLAB_CACHE_DMA | flags, 0, 0);
-> +				SLAB_CACHE_DMA | flags, 0,
-> +				kmalloc_info[i].size);
->  		}
->  	}
->  #endif
-> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> Acked-by: Johannes Weiner <hannes@cmpxchg.org>
 
-thanks,
--- 
-js
-suse labs
+> --- a/mm/nommu.c
+> +++ b/mm/nommu.c
+> @@ -150,6 +150,14 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
+>  }
+>  EXPORT_SYMBOL(__vmalloc);
+>
+> +void *__vmalloc_node_range(unsigned long size, unsigned long align,
+> +               unsigned long start, unsigned long end, gfp_t gfp_mask,
+> +               pgprot_t prot, unsigned long vm_flags, int node,
+> +               const void *caller)
+> +{
+> +       return __vmalloc(size, flags);
+
+On Mon, Apr 20, 2020 at 10:39 AM <noreply@ellerman.id.au> wrote:
+> FAILED linux-next/m5272c3_defconfig/m68k-gcc8 Mon Apr 20, 18:38
+>
+> http://kisskb.ellerman.id.au/kisskb/buildresult/14213623/
+>
+> mm/nommu.c:158:25: error: 'flags' undeclared (first use in this function); did you mean 'class'?
+
+"return __vmalloc(size, gfp_mask);", I assume?
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
