@@ -1,102 +1,59 @@
-Return-Path: <SRS0=HxeN=5T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from userp2120.oracle.com ([156.151.31.85]:38246 "EHLO
-        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727947AbgDCVGw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2020 17:06:52 -0400
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: [PATCH v10 2/5] locking/qspinlock: Refactor the qspinlock slow path
-Date: Fri,  3 Apr 2020 16:59:27 -0400
-Message-ID: <20200403205930.1707-3-alex.kogan@oracle.com>
-In-Reply-To: <20200403205930.1707-1-alex.kogan@oracle.com>
-References: <20200403205930.1707-1-alex.kogan@oracle.com>
+Return-Path: <SRS0=lzY1=6F=kvack.org=owner-linux-mm@kernel.org>
+Date: Tue, 21 Apr 2020 11:39:46 +0300
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH 02/21] mm: make early_pfn_to_nid() and related defintions
+ close to each other
+Message-ID: <20200421083946.GA14260@kernel.org>
+References: <20200412194859.12663-1-rppt@kernel.org>
+ <20200412194859.12663-3-rppt@kernel.org>
+ <20200421033114.GA29658@MiWiFi-R3L-srv>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200421033114.GA29658@MiWiFi-R3L-srv>
+Sender: owner-linux-mm@kvack.org
+To: Baoquan He <bhe@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: linux@armlinux.org.uk, peterz@infradead.org, mingo@redhat.com, will.deacon@arm.com, arnd@arndb.de, longman@redhat.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, bp@alien8.de, hpa@zytor.com, x86@kernel.org, guohanjun@huawei.com, jglauber@marvell.com
-Cc: steven.sistare@oracle.com, daniel.m.jordan@oracle.com, alex.kogan@oracle.com, dave.dice@oracle.com
-Message-ID: <20200403205927.KGnClaLnHL0TaQn9kdAaLRgqxkzMAVboQ0H7RzN_leo@z>
+Message-ID: <20200421083946.J8aDD6wrbiz6l-KeAkrNqoXZYobS_q9i8L_n_-e6sCA@z>
 
-Move some of the code manipulating the spin lock into separate functions.
-This would allow easier integration of alternative ways to manipulate
-that lock.
+On Tue, Apr 21, 2020 at 11:31:14AM +0800, Baoquan He wrote:
+> On 04/12/20 at 10:48pm, Mike Rapoport wrote:
+> > From: Mike Rapoport <rppt@linux.ibm.com>
+> > 
+> > The early_pfn_to_nid() and it's helper __early_pfn_to_nid() are spread
+> > around include/linux/mm.h, include/linux/mmzone.h and mm/page_alloc.c.
+> > 
+> > Drop unused stub for __early_pfn_to_nid() and move its actual generic
+> > implementation close to its users.
+> > 
+> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> > ---
+> >  include/linux/mm.h     |  4 ++--
+> >  include/linux/mmzone.h |  9 --------
+> >  mm/page_alloc.c        | 51 +++++++++++++++++++++---------------------
+> >  3 files changed, 27 insertions(+), 37 deletions(-)
+ 
+...
 
-Signed-off-by: Alex Kogan <alex.kogan@oracle.com>
-Reviewed-by: Steve Sistare <steven.sistare@oracle.com>
-Reviewed-by: Waiman Long <longman@redhat.com>
----
- kernel/locking/qspinlock.c | 38 ++++++++++++++++++++++++++++++++++++--
- 1 file changed, 36 insertions(+), 2 deletions(-)
+> >  int __meminit early_pfn_to_nid(unsigned long pfn)
+> >  {
+> >  	static DEFINE_SPINLOCK(early_pfn_lock);
+> > @@ -6298,32 +6323,6 @@ void __meminit init_currently_empty_zone(struct zone *zone,
+> >  	zone->initialized = 1;
+> >  }
+> >  
+> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
+> 
+> Here it's apparently removing CONFIG_HAVE_MEMBLOCK_NODE_MAP too early,
+> it should be done in patch 3, and its #end is kept there. I just found
+> it when I almost became dizzy in reviewing patch 3.
 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index ac1dedbe0237..6e63c72e3fbd 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -289,6 +289,34 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
- #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
- #endif
- 
-+/*
-+ * __try_clear_tail - try to clear tail by setting the lock value to
-+ * _Q_LOCKED_VAL.
-+ * @lock: Pointer to the queued spinlock structure
-+ * @val: Current value of the lock
-+ * @node: Pointer to the MCS node of the lock holder
-+ */
-+static __always_inline bool __try_clear_tail(struct qspinlock *lock,
-+						   u32 val,
-+						   struct mcs_spinlock *node)
-+{
-+	return atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL);
-+}
-+
-+/*
-+ * __mcs_lock_handoff - pass the MCS lock to the next waiter
-+ * @node: Pointer to the MCS node of the lock holder
-+ * @next: Pointer to the MCS node of the first waiter in the MCS queue
-+ */
-+static __always_inline void __mcs_lock_handoff(struct mcs_spinlock *node,
-+					    struct mcs_spinlock *next)
-+{
-+	arch_mcs_lock_handoff(&next->locked, 1);
-+}
-+
-+#define try_clear_tail		__try_clear_tail
-+#define mcs_lock_handoff	__mcs_lock_handoff
-+
- #endif /* _GEN_PV_LOCK_SLOWPATH */
- 
- /**
-@@ -533,7 +561,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	 *       PENDING will make the uncontended transition fail.
- 	 */
- 	if ((val & _Q_TAIL_MASK) == tail) {
--		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL))
-+		if (try_clear_tail(lock, val, node))
- 			goto release; /* No contention */
- 	}
- 
-@@ -550,7 +578,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	if (!next)
- 		next = smp_cond_load_relaxed(&node->next, (VAL));
- 
--	arch_mcs_lock_handoff(&next->locked, 1);
-+	mcs_lock_handoff(node, next);
- 	pv_kick_node(lock, next);
- 
- release:
-@@ -575,6 +603,12 @@ EXPORT_SYMBOL(queued_spin_lock_slowpath);
- #undef pv_kick_node
- #undef pv_wait_head_or_lock
- 
-+#undef try_clear_tail
-+#define try_clear_tail		__try_clear_tail
-+
-+#undef mcs_lock_handoff
-+#define mcs_lock_handoff			__mcs_lock_handoff
-+
- #undef  queued_spin_lock_slowpath
- #define queued_spin_lock_slowpath	__pv_queued_spin_lock_slowpath
- 
+Right, thanks for catching!
+
+> > -#ifndef CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID
+> > -
+
 -- 
-2.21.1 (Apple Git-122.3)
+Sincerely yours,
+Mike.
