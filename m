@@ -1,138 +1,103 @@
-Return-Path: <SRS0=yGje=5Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-ot1-f65.google.com ([209.85.210.65]:32814 "EHLO
-        mail-ot1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727859AbgDIO5Y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2020 10:57:24 -0400
-Received: by mail-ot1-f65.google.com with SMTP id 103so4359182otv.0
-        for <linux-arch@vger.kernel.org>; Thu, 09 Apr 2020 07:57:24 -0700 (PDT)
+Return-Path: <SRS0=BI31=6F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:35148 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728371AbgDUPQJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 21 Apr 2020 11:16:09 -0400
+From: Will Deacon <will@kernel.org>
+Subject: [PATCH v4 08/11] READ_ONCE: Drop pointer qualifiers when reading from scalar types
+Date: Tue, 21 Apr 2020 16:15:34 +0100
+Message-ID: <20200421151537.19241-9-will@kernel.org>
+In-Reply-To: <20200421151537.19241-1-will@kernel.org>
+References: <20200421151537.19241-1-will@kernel.org>
 MIME-Version: 1.0
-References: <20200408115926.1467567-1-hch@lst.de> <20200408115926.1467567-20-hch@lst.de>
- <20200408122504.GO3456981@phenom.ffwll.local> <eb48f7b6327e482ea9911b129210c0417ab48345.camel@kernel.crashing.org>
- <CAKMK7uHtkLvdsWFGiAtkzVa5mpnDvXkn3CHZQ6bgJ_enbyAc8A@mail.gmail.com> <CADnq5_MjTSm6j=_8huVQ854H6jXY5Rg36wc31QDfOpfjfscWxA@mail.gmail.com>
-In-Reply-To: <CADnq5_MjTSm6j=_8huVQ854H6jXY5Rg36wc31QDfOpfjfscWxA@mail.gmail.com>
-From: Daniel Vetter <daniel@ffwll.ch>
-Date: Thu, 9 Apr 2020 16:57:12 +0200
-Message-ID: <CAKMK7uESDf446FsdA2KC9sybSKxf5OdXvHZ-d4G3PAt-vvP8zg@mail.gmail.com>
-Subject: Re: [PATCH 19/28] gpu/drm: remove the powerpc hack in drm_legacy_sg_alloc
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Deucher <alexdeucher@gmail.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-hyperv@vger.kernel.org, David Airlie <airlied@linux.ie>, dri-devel <dri-devel@lists.freedesktop.org>, Linux MM <linux-mm@kvack.org>, "K. Y. Srinivasan" <kys@microsoft.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, Wei Liu <wei.liu@kernel.org>, Stephen Hemminger <sthemmin@microsoft.com>, X86 ML <x86@kernel.org>, Christoph Hellwig <hch@lst.de>, Peter Zijlstra <peterz@infradead.org>, Laura Abbott <labbott@redhat.com>, Nitin Gupta <ngupta@vflare.org>, Haiyang Zhang <haiyangz@microsoft.com>, "moderated list:DMA BUFFER SHARING FRAMEWORK" <linaro-mm-sig@lists.linaro.org>, bpf <bpf@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Robin Murphy <robin.murphy@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Minchan Kim <minchan@kernel.org>, "list@263.net:IOMMU DRIVERS <iommu@lists.linux-foundation.org>, Joerg
-        Roedel <joro@8bytes.org>," <iommu@lists.linux-foundation.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
-Message-ID: <20200409145712.1YyoeyUBKyIhUnw-EPWnhaJAen1qQ40suJT1wDaJZO4@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200421151534.KnKpctyFLVVvrrUnWAJEUki1XzAIi9DB0X-x1i8g904@z>
 
-On Thu, Apr 9, 2020 at 4:19 PM Alex Deucher <alexdeucher@gmail.com> wrote:
->
-> On Thu, Apr 9, 2020 at 5:41 AM Daniel Vetter <daniel@ffwll.ch> wrote:
-> >
-> > On Thu, Apr 9, 2020 at 10:54 AM Benjamin Herrenschmidt
-> > <benh@kernel.crashing.org> wrote:
-> > >
-> > > On Wed, 2020-04-08 at 14:25 +0200, Daniel Vetter wrote:
-> > > > On Wed, Apr 08, 2020 at 01:59:17PM +0200, Christoph Hellwig wrote:
-> > > > > If this code was broken for non-coherent caches a crude powerpc hack
-> > > > > isn't going to help anyone else.  Remove the hack as it is the last
-> > > > > user of __vmalloc passing a page protection flag other than PAGE_KERNEL.
-> > > >
-> > > > Well Ben added this to make stuff work on ppc, ofc the home grown dma
-> > > > layer in drm from back then isn't going to work in other places. I guess
-> > > > should have at least an ack from him, in case anyone still cares about
-> > > > this on ppc. Adding Ben to cc.
-> > >
-> > > This was due to some drivers (radeon ?) trying to use vmalloc pages for
-> > > coherent DMA, which means on those 4xx powerpc's need to be non-cached.
-> > >
-> > > There were machines using that (440 based iirc), though I honestly
-> > > can't tell if anybody still uses any of it.
-> >
-> > agp subsystem still seems to happily do that (vmalloc memory for
-> > device access), never having been ported to dma apis (or well
-> > converted to iommu drivers, which they kinda are really). So I think
-> > this all still works exactly as back then, even with the kms radeon
-> > drivers. Question really is whether we have users left, and I have no
-> > clue about that either.
-> >
-> > Now if these boxes didn't ever have agp then I think we can get away
-> > with deleting this, since we've already deleted the legacy radeon
-> > driver. And that one used vmalloc for everything. The new kms one does
-> > use the dma-api if the gpu isn't connected through agp.
->
-> All radeons have a built in remapping table to handle non-AGP systems.
-> On the earlier radeons it wasn't quite as performant as AGP, but it
-> was always more reliable because AGP is AGP.  Maybe it's time to let
-> AGP go?
+Passing a volatile-qualified pointer to READ_ONCE() is an absolute
+trainwreck for code generation: the use of 'typeof()' to define a
+temporary variable inside the macro means that the final evaluation in
+macro scope ends up forcing a read back from the stack. When stack
+protector is enabled (the default for arm64, at least), this causes
+the compiler to vomit up all sorts of junk.
 
-I'd be very much in favour of that, if we can just use the integrated
-gart and drop agp fast writes wobbliness on the floor. I think the
-only other modern driver using agp would be nouveau at that point.
--Daniel
+Unfortunately, dropping pointer qualifiers inside the macro poses quite
+a challenge, especially since the pointed-to type is permitted to be an
+aggregate, and this is relied upon by mm/ code accessing things like
+'pmd_t'. Based on numerous hacks and discussions on the mailing list,
+this is the best I've managed to come up with.
 
->
-> Alex
->
-> > -Daniel
-> >
-> > > Cheers,
-> > > Ben.
-> > >
-> > > > -Daniel
-> > > >
-> > > > >
-> > > > > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> > > > > ---
-> > > > >  drivers/gpu/drm/drm_scatter.c | 11 +----------
-> > > > >  1 file changed, 1 insertion(+), 10 deletions(-)
-> > > > >
-> > > > > diff --git a/drivers/gpu/drm/drm_scatter.c b/drivers/gpu/drm/drm_scatter.c
-> > > > > index ca520028b2cb..f4e6184d1877 100644
-> > > > > --- a/drivers/gpu/drm/drm_scatter.c
-> > > > > +++ b/drivers/gpu/drm/drm_scatter.c
-> > > > > @@ -43,15 +43,6 @@
-> > > > >
-> > > > >  #define DEBUG_SCATTER 0
-> > > > >
-> > > > > -static inline void *drm_vmalloc_dma(unsigned long size)
-> > > > > -{
-> > > > > -#if defined(__powerpc__) && defined(CONFIG_NOT_COHERENT_CACHE)
-> > > > > -   return __vmalloc(size, GFP_KERNEL, pgprot_noncached_wc(PAGE_KERNEL));
-> > > > > -#else
-> > > > > -   return vmalloc_32(size);
-> > > > > -#endif
-> > > > > -}
-> > > > > -
-> > > > >  static void drm_sg_cleanup(struct drm_sg_mem * entry)
-> > > > >  {
-> > > > >     struct page *page;
-> > > > > @@ -126,7 +117,7 @@ int drm_legacy_sg_alloc(struct drm_device *dev, void *data,
-> > > > >             return -ENOMEM;
-> > > > >     }
-> > > > >
-> > > > > -   entry->virtual = drm_vmalloc_dma(pages << PAGE_SHIFT);
-> > > > > +   entry->virtual = vmalloc_32(pages << PAGE_SHIFT);
-> > > > >     if (!entry->virtual) {
-> > > > >             kfree(entry->busaddr);
-> > > > >             kfree(entry->pagelist);
-> > > > > --
-> > > > > 2.25.1
-> > > > >
-> > > >
-> > > >
-> > >
-> >
-> >
-> > --
-> > Daniel Vetter
-> > Software Engineer, Intel Corporation
-> > +41 (0) 79 365 57 48 - http://blog.ffwll.ch
-> > _______________________________________________
-> > dri-devel mailing list
-> > dri-devel@lists.freedesktop.org
-> > https://lists.freedesktop.org/mailman/listinfo/dri-devel
+Introduce '__unqual_scalar_typeof()' which takes an expression and, if
+the expression is an optionally qualified 8, 16, 32 or 64-bit scalar
+type, evaluates to the unqualified type. Other input types, including
+aggregates, remain unchanged. Hopefully READ_ONCE() on volatile aggregate
+pointers isn't something we do on a fast-path.
 
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Reported-by: Michael Ellerman <mpe@ellerman.id.au>
+Signed-off-by: Will Deacon <will@kernel.org>
+---
+ include/linux/compiler.h       |  6 +++---
+ include/linux/compiler_types.h | 21 +++++++++++++++++++++
+ 2 files changed, 24 insertions(+), 3 deletions(-)
 
-
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index 50bb2461648f..c363d8debc43 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -203,13 +203,13 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+  * atomicity or dependency ordering guarantees. Note that this may result
+  * in tears!
+  */
+-#define __READ_ONCE(x)	(*(const volatile typeof(x) *)&(x))
++#define __READ_ONCE(x)	(*(const volatile __unqual_scalar_typeof(x) *)&(x))
+ 
+ #define __READ_ONCE_SCALAR(x)						\
+ ({									\
+-	typeof(x) __x = __READ_ONCE(x);					\
++	__unqual_scalar_typeof(x) __x = __READ_ONCE(x);			\
+ 	smp_read_barrier_depends();					\
+-	__x;								\
++	(typeof(x))__x;							\
+ })
+ 
+ #define READ_ONCE(x)							\
+diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
+index e970f97a7fcb..233066c92f6f 100644
+--- a/include/linux/compiler_types.h
++++ b/include/linux/compiler_types.h
+@@ -210,6 +210,27 @@ struct ftrace_likely_data {
+ /* Are two types/vars the same type (ignoring qualifiers)? */
+ #define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
+ 
++/*
++ * __unqual_scalar_typeof(x) - Declare an unqualified scalar type, leaving
++ *			       non-scalar types unchanged.
++ *
++ * We build this out of a couple of helper macros in a vain attempt to
++ * help you keep your lunch down while reading it.
++ */
++#define __pick_scalar_type(x, type, otherwise)					\
++	__builtin_choose_expr(__same_type(x, type), (type)0, otherwise)
++
++#define __pick_integer_type(x, type, otherwise)					\
++	__pick_scalar_type(x, unsigned type,					\
++		__pick_scalar_type(x, signed type, otherwise))
++
++#define __unqual_scalar_typeof(x) typeof(					\
++	__pick_integer_type(x, char,						\
++		__pick_integer_type(x, short,					\
++			__pick_integer_type(x, int,				\
++				__pick_integer_type(x, long,			\
++					__pick_integer_type(x, long long, x))))))
++
+ /* Is this type a native word size -- useful for atomic operations */
+ #define __native_word(t) \
+ 	(sizeof(t) == sizeof(char) || sizeof(t) == sizeof(short) || \
 -- 
-Daniel Vetter
-Software Engineer, Intel Corporation
-+41 (0) 79 365 57 48 - http://blog.ffwll.ch
+2.26.1.301.g55bc3eb7cb9-goog
