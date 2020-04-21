@@ -1,262 +1,873 @@
-Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-eopbgr680105.outbound.protection.outlook.com ([40.107.68.105]:20708
-        "EHLO NAM04-BN3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726151AbgDTHQY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Apr 2020 03:16:24 -0400
-From: Nate Karstens <nate.karstens@garmin.com>
-Subject: [PATCH 1/4] fs: Implement close-on-fork
-Date: Mon, 20 Apr 2020 02:15:45 -0500
-Message-ID: <20200420071548.62112-2-nate.karstens@garmin.com>
-In-Reply-To: <20200420071548.62112-1-nate.karstens@garmin.com>
-References: <20200420071548.62112-1-nate.karstens@garmin.com>
+Return-Path: <SRS0=BI31=6F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from conuserg-10.nifty.com ([210.131.2.77]:20068 "EHLO
+        conuserg-10.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726168AbgDUQOf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Apr 2020 12:14:35 -0400
+From: Masahiro Yamada <masahiroy@kernel.org>
+Subject: [PATCH v2] arch: split MODULE_ARCH_VERMAGIC definitions out to <asm/vermagic.h>
+Date: Wed, 22 Apr 2020 01:13:55 +0900
+Message-ID: <20200421161355.1357112-1-masahiroy@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Changli Gao <xiaosuo@gmail.com>, Nate Karstens <nate.karstens@garmin.com>
-Message-ID: <20200420071545.aM2IazY9N4uj_aCtBQhIbZ5P-_PfK0O0QjdXl4nyey0@z>
+To: linux-kbuild@vger.kernel.org, Jessica Yu <jeyu@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Masahiro Yamada <masahiroy@kernel.org>, Borislav Petkov <bp@suse.de>
+Message-ID: <20200421161355.XzIVOavj-4sLhwQD5MUItiHcjC-1n6GvpCLFdaCyK2s@z>
 
-The close-on-fork flag causes the file descriptor to be closed
-atomically in the child process before the child process returns
-from fork(). Implement this feature and provide a method to
-get/set the close-on-fork flag using fcntl(2).
+As the bug report [1] pointed out, <linux/vermagic.h> must be included
+after <linux/module.h>.
 
-This functionality was approved by the Austin Common Standards
-Revision Group for inclusion in the next revision of the POSIX
-standard (see issue 1318 in the Austin Group Defect Tracker).
+I believe we should not impose any include order restriction. We often
+sort include directives alphabetically, but it is just coding style
+convention. Technically, we can include header files in any order by
+making every header self-contained.
 
-Co-developed-by: Changli Gao <xiaosuo@gmail.com>
-Signed-off-by: Changli Gao <xiaosuo@gmail.com>
-Signed-off-by: Nate Karstens <nate.karstens@garmin.com>
+Currently, arch-specific MODULE_ARCH_VERMAGIC is defined in
+<asm/module.h>, which is not included from <linux/vermagic.h>.
+
+Hence, the straight-forward fix-up would be as follows:
+
+|--- a/include/linux/vermagic.h
+|+++ b/include/linux/vermagic.h
+|@@ -1,5 +1,6 @@
+| /* SPDX-License-Identifier: GPL-2.0 */
+| #include <generated/utsrelease.h>
+|+#include <linux/module.h>
+|
+| /* Simply sanity version stamp for modules. */
+| #ifdef CONFIG_SMP
+
+This works enough, but for further cleanups, I split MODULE_ARCH_VERMAGIC
+definitions into <asm/vermagic.h>.
+
+With this, <linux/module.h> and <linux/vermagic.h> will be orthogonal,
+and the location of MODULE_ARCH_VERMAGIC definitions will be consistent.
+
+For arc and ia64, MODULE_PROC_FAMILY is only used for defining
+MODULE_ARCH_VERMAGIC. I squashed it.
+
+For hexagon, nds32, and xtensa, I removed <asm/modules.h> entirely
+because they contained nothing but MODULE_ARCH_VERMAGIC definition.
+Kbuild will automatically generate <asm/modules.h> at build-time,
+wrapping <asm-generic/module.h>.
+
+[1] https://lore.kernel.org/lkml/20200411155623.GA22175@zn.tnic
+
+Reported-by: Borislav Petkov <bp@suse.de>
+Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
- fs/fcntl.c                             |  2 ++
- fs/file.c                              | 50 +++++++++++++++++++++++++-
- include/linux/fdtable.h                |  7 ++++
- include/linux/file.h                   |  2 ++
- include/uapi/asm-generic/fcntl.h       |  5 +--
- tools/include/uapi/asm-generic/fcntl.h |  5 +--
- 6 files changed, 66 insertions(+), 5 deletions(-)
 
-diff --git a/fs/fcntl.c b/fs/fcntl.c
-index 2e4c0fa2074b..23964abf4a1a 100644
---- a/fs/fcntl.c
-+++ b/fs/fcntl.c
-@@ -335,10 +335,12 @@ static long do_fcntl(int fd, unsigned int cmd, unsigned long arg,
- 		break;
- 	case F_GETFD:
- 		err = get_close_on_exec(fd) ? FD_CLOEXEC : 0;
-+		err |= get_close_on_fork(fd) ? FD_CLOFORK : 0;
- 		break;
- 	case F_SETFD:
- 		err = 0;
- 		set_close_on_exec(fd, arg & FD_CLOEXEC);
-+		set_close_on_fork(fd, arg & FD_CLOFORK);
- 		break;
- 	case F_GETFL:
- 		err = filp->f_flags;
-diff --git a/fs/file.c b/fs/file.c
-index c8a4e4c86e55..de7260ba718d 100644
---- a/fs/file.c
-+++ b/fs/file.c
-@@ -57,6 +57,8 @@ static void copy_fd_bitmaps(struct fdtable *nfdt, struct fdtable *ofdt,
- 	memset((char *)nfdt->open_fds + cpy, 0, set);
- 	memcpy(nfdt->close_on_exec, ofdt->close_on_exec, cpy);
- 	memset((char *)nfdt->close_on_exec + cpy, 0, set);
-+	memcpy(nfdt->close_on_fork, ofdt->close_on_fork, cpy);
-+	memset((char *)nfdt->close_on_fork + cpy, 0, set);
+I do not mean to replace the work by Leon Romanovsky:
+https://lkml.org/lkml/2020/4/19/201
+
+His work intends to hide <linux/vermagic.h> from driver writers.
+It is solving a different problem.
+It does not solve the include order restriction reported by [1].
+It still relies on kernel/module.c and *.mod.c
+include <linux/vermagic.h> after <linux/module.h>.
+
+I believe we should not impose any restriction about the include order.
+So, this patch is the direct answer to the bug report [1].
+
+BTW, I think commit f58dd03b1157bdf3b64c36e9525f8d7f69c25df2
+was a bad way to suppress the problem, but that is another story.
+
+
+Changes in v2:
+  - add include/asm-generic/vermagic.h
+  - add Reported-by
+
+ arch/arc/include/asm/module.h                 |  5 --
+ arch/arc/include/asm/vermagic.h               |  8 +++
+ arch/arm/include/asm/module.h                 | 24 -------
+ arch/arm/include/asm/vermagic.h               | 31 +++++++++
+ arch/arm64/include/asm/module.h               |  2 -
+ arch/arm64/include/asm/vermagic.h             | 10 +++
+ .../include/asm/{module.h => vermagic.h}      |  8 +--
+ arch/ia64/include/asm/module.h                |  4 --
+ arch/ia64/include/asm/vermagic.h              | 15 ++++
+ arch/mips/include/asm/module.h                | 61 -----------------
+ arch/mips/include/asm/vermagic.h              | 66 ++++++++++++++++++
+ .../include/asm/{module.h => vermagic.h}      |  8 +--
+ arch/powerpc/include/asm/module.h             | 18 -----
+ arch/powerpc/include/asm/vermagic.h           | 20 ++++++
+ arch/riscv/include/asm/module.h               |  2 -
+ arch/riscv/include/asm/vermagic.h             |  9 +++
+ arch/sh/include/asm/module.h                  | 28 --------
+ arch/sh/include/asm/vermagic.h                | 34 ++++++++++
+ arch/x86/include/asm/module.h                 | 60 ----------------
+ arch/x86/include/asm/vermagic.h               | 68 +++++++++++++++++++
+ .../include/asm/{module.h => vermagic.h}      | 13 ++--
+ include/asm-generic/Kbuild                    |  1 +
+ include/asm-generic/vermagic.h                |  7 ++
+ include/linux/vermagic.h                      |  8 ++-
+ 24 files changed, 287 insertions(+), 223 deletions(-)
+ create mode 100644 arch/arc/include/asm/vermagic.h
+ create mode 100644 arch/arm/include/asm/vermagic.h
+ create mode 100644 arch/arm64/include/asm/vermagic.h
+ rename arch/hexagon/include/asm/{module.h => vermagic.h} (64%)
+ create mode 100644 arch/ia64/include/asm/vermagic.h
+ create mode 100644 arch/mips/include/asm/vermagic.h
+ rename arch/nds32/include/asm/{module.h => vermagic.h} (52%)
+ create mode 100644 arch/powerpc/include/asm/vermagic.h
+ create mode 100644 arch/riscv/include/asm/vermagic.h
+ create mode 100644 arch/sh/include/asm/vermagic.h
+ create mode 100644 arch/x86/include/asm/vermagic.h
+ rename arch/xtensa/include/asm/{module.h => vermagic.h} (72%)
+ create mode 100644 include/asm-generic/vermagic.h
+
+diff --git a/arch/arc/include/asm/module.h b/arch/arc/include/asm/module.h
+index 48f13a4ace4b..f534a1fef070 100644
+--- a/arch/arc/include/asm/module.h
++++ b/arch/arc/include/asm/module.h
+@@ -3,7 +3,6 @@
+  * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+  *
+  * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
+-
+  */
  
- 	cpy = BITBIT_SIZE(count);
- 	set = BITBIT_SIZE(nfdt->max_fds) - cpy;
-@@ -118,7 +120,7 @@ static struct fdtable * alloc_fdtable(unsigned int nr)
- 	fdt->fd = data;
+ #ifndef _ASM_ARC_MODULE_H
+@@ -19,8 +18,4 @@ struct mod_arch_specific {
+ 	const char *secstr;
+ };
  
- 	data = kvmalloc(max_t(size_t,
--				 2 * nr / BITS_PER_BYTE + BITBIT_SIZE(nr), L1_CACHE_BYTES),
-+				 3 * nr / BITS_PER_BYTE + BITBIT_SIZE(nr), L1_CACHE_BYTES),
- 				 GFP_KERNEL_ACCOUNT);
- 	if (!data)
- 		goto out_arr;
-@@ -126,6 +128,8 @@ static struct fdtable * alloc_fdtable(unsigned int nr)
- 	data += nr / BITS_PER_BYTE;
- 	fdt->close_on_exec = data;
- 	data += nr / BITS_PER_BYTE;
-+	fdt->close_on_fork = data;
-+	data += nr / BITS_PER_BYTE;
- 	fdt->full_fds_bits = data;
+-#define MODULE_PROC_FAMILY "ARC700"
+-
+-#define MODULE_ARCH_VERMAGIC MODULE_PROC_FAMILY
+-
+ #endif /* _ASM_ARC_MODULE_H */
+diff --git a/arch/arc/include/asm/vermagic.h b/arch/arc/include/asm/vermagic.h
+new file mode 100644
+index 000000000000..a10257d2c62c
+--- /dev/null
++++ b/arch/arc/include/asm/vermagic.h
+@@ -0,0 +1,8 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
++
++#define MODULE_ARCH_VERMAGIC "ARC700"
++
++#endif /* _ASM_VERMAGIC_H */
+diff --git a/arch/arm/include/asm/module.h b/arch/arm/include/asm/module.h
+index 182163b55546..4b0df09cbe67 100644
+--- a/arch/arm/include/asm/module.h
++++ b/arch/arm/include/asm/module.h
+@@ -37,30 +37,6 @@ struct mod_arch_specific {
+ struct module;
+ u32 get_module_plt(struct module *mod, unsigned long loc, Elf32_Addr val);
  
- 	return fdt;
-@@ -236,6 +240,17 @@ static inline void __clear_close_on_exec(unsigned int fd, struct fdtable *fdt)
- 		__clear_bit(fd, fdt->close_on_exec);
+-/*
+- * Add the ARM architecture version to the version magic string
+- */
+-#define MODULE_ARCH_VERMAGIC_ARMVSN "ARMv" __stringify(__LINUX_ARM_ARCH__) " "
+-
+-/* Add __virt_to_phys patching state as well */
+-#ifdef CONFIG_ARM_PATCH_PHYS_VIRT
+-#define MODULE_ARCH_VERMAGIC_P2V "p2v8 "
+-#else
+-#define MODULE_ARCH_VERMAGIC_P2V ""
+-#endif
+-
+-/* Add instruction set architecture tag to distinguish ARM/Thumb kernels */
+-#ifdef CONFIG_THUMB2_KERNEL
+-#define MODULE_ARCH_VERMAGIC_ARMTHUMB "thumb2 "
+-#else
+-#define MODULE_ARCH_VERMAGIC_ARMTHUMB ""
+-#endif
+-
+-#define MODULE_ARCH_VERMAGIC \
+-	MODULE_ARCH_VERMAGIC_ARMVSN \
+-	MODULE_ARCH_VERMAGIC_ARMTHUMB \
+-	MODULE_ARCH_VERMAGIC_P2V
+-
+ #ifdef CONFIG_THUMB2_KERNEL
+ #define HAVE_ARCH_KALLSYMS_SYMBOL_VALUE
+ static inline unsigned long kallsyms_symbol_value(const Elf_Sym *sym)
+diff --git a/arch/arm/include/asm/vermagic.h b/arch/arm/include/asm/vermagic.h
+new file mode 100644
+index 000000000000..62ce94e26a63
+--- /dev/null
++++ b/arch/arm/include/asm/vermagic.h
+@@ -0,0 +1,31 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
++
++#include <linux/stringify.h>
++
++/*
++ * Add the ARM architecture version to the version magic string
++ */
++#define MODULE_ARCH_VERMAGIC_ARMVSN "ARMv" __stringify(__LINUX_ARM_ARCH__) " "
++
++/* Add __virt_to_phys patching state as well */
++#ifdef CONFIG_ARM_PATCH_PHYS_VIRT
++#define MODULE_ARCH_VERMAGIC_P2V "p2v8 "
++#else
++#define MODULE_ARCH_VERMAGIC_P2V ""
++#endif
++
++/* Add instruction set architecture tag to distinguish ARM/Thumb kernels */
++#ifdef CONFIG_THUMB2_KERNEL
++#define MODULE_ARCH_VERMAGIC_ARMTHUMB "thumb2 "
++#else
++#define MODULE_ARCH_VERMAGIC_ARMTHUMB ""
++#endif
++
++#define MODULE_ARCH_VERMAGIC \
++	MODULE_ARCH_VERMAGIC_ARMVSN \
++	MODULE_ARCH_VERMAGIC_ARMTHUMB \
++	MODULE_ARCH_VERMAGIC_P2V
++
++#endif /* _ASM_VERMAGIC_H */
+diff --git a/arch/arm64/include/asm/module.h b/arch/arm64/include/asm/module.h
+index 1e93de68c044..4e7fa2623896 100644
+--- a/arch/arm64/include/asm/module.h
++++ b/arch/arm64/include/asm/module.h
+@@ -7,8 +7,6 @@
+ 
+ #include <asm-generic/module.h>
+ 
+-#define MODULE_ARCH_VERMAGIC	"aarch64"
+-
+ #ifdef CONFIG_ARM64_MODULE_PLTS
+ struct mod_plt_sec {
+ 	int			plt_shndx;
+diff --git a/arch/arm64/include/asm/vermagic.h b/arch/arm64/include/asm/vermagic.h
+new file mode 100644
+index 000000000000..a1eec6a000f1
+--- /dev/null
++++ b/arch/arm64/include/asm/vermagic.h
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ */
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
++
++#define MODULE_ARCH_VERMAGIC	"aarch64"
++
++#endif /* _ASM_VERMAGIC_H */
+diff --git a/arch/hexagon/include/asm/module.h b/arch/hexagon/include/asm/vermagic.h
+similarity index 64%
+rename from arch/hexagon/include/asm/module.h
+rename to arch/hexagon/include/asm/vermagic.h
+index e8de4fe03543..0e8dedc8c486 100644
+--- a/arch/hexagon/include/asm/module.h
++++ b/arch/hexagon/include/asm/vermagic.h
+@@ -3,11 +3,11 @@
+  * Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
+  */
+ 
+-#ifndef _ASM_MODULE_H
+-#define _ASM_MODULE_H
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
+ 
+-#include <asm-generic/module.h>
++#include <linux/stringify.h>
+ 
+ #define MODULE_ARCH_VERMAGIC __stringify(PROCESSOR_MODEL_NAME) " "
+ 
+-#endif
++#endif /* _ASM_VERMAGIC_H */
+diff --git a/arch/ia64/include/asm/module.h b/arch/ia64/include/asm/module.h
+index f319144260ce..5a29652e6def 100644
+--- a/arch/ia64/include/asm/module.h
++++ b/arch/ia64/include/asm/module.h
+@@ -26,10 +26,6 @@ struct mod_arch_specific {
+ 	unsigned int next_got_entry;	/* index of next available got entry */
+ };
+ 
+-#define MODULE_PROC_FAMILY	"ia64"
+-#define MODULE_ARCH_VERMAGIC	MODULE_PROC_FAMILY \
+-	"gcc-" __stringify(__GNUC__) "." __stringify(__GNUC_MINOR__)
+-
+ #define ARCH_SHF_SMALL	SHF_IA_64_SHORT
+ 
+ #endif /* _ASM_IA64_MODULE_H */
+diff --git a/arch/ia64/include/asm/vermagic.h b/arch/ia64/include/asm/vermagic.h
+new file mode 100644
+index 000000000000..29c7424f4c25
+--- /dev/null
++++ b/arch/ia64/include/asm/vermagic.h
+@@ -0,0 +1,15 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2003 Hewlett-Packard Co
++ *	David Mosberger-Tang <davidm@hpl.hp.com>
++ */
++
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
++
++#include <linux/stringify.h>
++
++#define MODULE_ARCH_VERMAGIC	"ia64" \
++	"gcc-" __stringify(__GNUC__) "." __stringify(__GNUC_MINOR__)
++
++#endif /* _ASM_VERMAGIC_H */
+diff --git a/arch/mips/include/asm/module.h b/arch/mips/include/asm/module.h
+index 9846047b3d3d..724a0882576b 100644
+--- a/arch/mips/include/asm/module.h
++++ b/arch/mips/include/asm/module.h
+@@ -83,65 +83,4 @@ search_module_dbetables(unsigned long addr)
  }
- 
-+static inline void __set_close_on_fork(unsigned int fd, struct fdtable *fdt)
-+{
-+	__set_bit(fd, fdt->close_on_fork);
-+}
-+
-+static inline void __clear_close_on_fork(unsigned int fd, struct fdtable *fdt)
-+{
-+	if (test_bit(fd, fdt->close_on_fork))
-+		__clear_bit(fd, fdt->close_on_fork);
-+}
-+
- static inline void __set_open_fd(unsigned int fd, struct fdtable *fdt)
- {
- 	__set_bit(fd, fdt->open_fds);
-@@ -290,6 +305,7 @@ struct files_struct *dup_fd(struct files_struct *oldf, int *errorp)
- 	new_fdt = &newf->fdtab;
- 	new_fdt->max_fds = NR_OPEN_DEFAULT;
- 	new_fdt->close_on_exec = newf->close_on_exec_init;
-+	new_fdt->close_on_fork = newf->close_on_fork_init;
- 	new_fdt->open_fds = newf->open_fds_init;
- 	new_fdt->full_fds_bits = newf->full_fds_bits_init;
- 	new_fdt->fd = &newf->fd_array[0];
-@@ -337,6 +353,12 @@ struct files_struct *dup_fd(struct files_struct *oldf, int *errorp)
- 
- 	for (i = open_files; i != 0; i--) {
- 		struct file *f = *old_fds++;
-+
-+		if (test_bit(open_files - i, new_fdt->close_on_fork)) {
-+			__clear_bit(open_files - i, new_fdt->open_fds);
-+			f = NULL;
-+		}
-+
- 		if (f) {
- 			get_file(f);
- 		} else {
-@@ -453,6 +475,7 @@ struct files_struct init_files = {
- 		.max_fds	= NR_OPEN_DEFAULT,
- 		.fd		= &init_files.fd_array[0],
- 		.close_on_exec	= init_files.close_on_exec_init,
-+		.close_on_fork	= init_files.close_on_fork_init,
- 		.open_fds	= init_files.open_fds_init,
- 		.full_fds_bits	= init_files.full_fds_bits_init,
- 	},
-@@ -865,6 +888,31 @@ bool get_close_on_exec(unsigned int fd)
- 	return res;
- }
- 
-+void set_close_on_fork(unsigned int fd, int flag)
-+{
-+	struct files_struct *files = current->files;
-+	struct fdtable *fdt;
-+	spin_lock(&files->file_lock);
-+	fdt = files_fdtable(files);
-+	if (flag)
-+		__set_close_on_fork(fd, fdt);
-+	else
-+		__clear_close_on_fork(fd, fdt);
-+	spin_unlock(&files->file_lock);
-+}
-+
-+bool get_close_on_fork(unsigned int fd)
-+{
-+	struct files_struct *files = current->files;
-+	struct fdtable *fdt;
-+	bool res;
-+	rcu_read_lock();
-+	fdt = files_fdtable(files);
-+	res = close_on_fork(fd, fdt);
-+	rcu_read_unlock();
-+	return res;
-+}
-+
- static int do_dup2(struct files_struct *files,
- 	struct file *file, unsigned fd, unsigned flags)
- __releases(&files->file_lock)
-diff --git a/include/linux/fdtable.h b/include/linux/fdtable.h
-index f07c55ea0c22..61c551947fa3 100644
---- a/include/linux/fdtable.h
-+++ b/include/linux/fdtable.h
-@@ -27,6 +27,7 @@ struct fdtable {
- 	unsigned int max_fds;
- 	struct file __rcu **fd;      /* current fd array */
- 	unsigned long *close_on_exec;
-+	unsigned long *close_on_fork;
- 	unsigned long *open_fds;
- 	unsigned long *full_fds_bits;
- 	struct rcu_head rcu;
-@@ -37,6 +38,11 @@ static inline bool close_on_exec(unsigned int fd, const struct fdtable *fdt)
- 	return test_bit(fd, fdt->close_on_exec);
- }
- 
-+static inline bool close_on_fork(unsigned int fd, const struct fdtable *fdt)
-+{
-+	return test_bit(fd, fdt->close_on_fork);
-+}
-+
- static inline bool fd_is_open(unsigned int fd, const struct fdtable *fdt)
- {
- 	return test_bit(fd, fdt->open_fds);
-@@ -61,6 +67,7 @@ struct files_struct {
- 	spinlock_t file_lock ____cacheline_aligned_in_smp;
- 	unsigned int next_fd;
- 	unsigned long close_on_exec_init[1];
-+	unsigned long close_on_fork_init[1];
- 	unsigned long open_fds_init[1];
- 	unsigned long full_fds_bits_init[1];
- 	struct file __rcu * fd_array[NR_OPEN_DEFAULT];
-diff --git a/include/linux/file.h b/include/linux/file.h
-index 142d102f285e..86fbb36b438b 100644
---- a/include/linux/file.h
-+++ b/include/linux/file.h
-@@ -85,6 +85,8 @@ extern int f_dupfd(unsigned int from, struct file *file, unsigned flags);
- extern int replace_fd(unsigned fd, struct file *file, unsigned flags);
- extern void set_close_on_exec(unsigned int fd, int flag);
- extern bool get_close_on_exec(unsigned int fd);
-+extern void set_close_on_fork(unsigned int fd, int flag);
-+extern bool get_close_on_fork(unsigned int fd);
- extern int __get_unused_fd_flags(unsigned flags, unsigned long nofile);
- extern int get_unused_fd_flags(unsigned flags);
- extern void put_unused_fd(unsigned int fd);
-diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
-index 9dc0bf0c5a6e..0cb7199a7743 100644
---- a/include/uapi/asm-generic/fcntl.h
-+++ b/include/uapi/asm-generic/fcntl.h
-@@ -98,8 +98,8 @@
  #endif
  
- #define F_DUPFD		0	/* dup */
--#define F_GETFD		1	/* get close_on_exec */
--#define F_SETFD		2	/* set/clear close_on_exec */
-+#define F_GETFD		1	/* get close_on_exec & close_on_fork */
-+#define F_SETFD		2	/* set/clear close_on_exec & close_on_fork */
- #define F_GETFL		3	/* get file->f_flags */
- #define F_SETFL		4	/* set file->f_flags */
- #ifndef F_GETLK
-@@ -160,6 +160,7 @@ struct f_owner_ex {
+-#ifdef CONFIG_CPU_BMIPS
+-#define MODULE_PROC_FAMILY "BMIPS "
+-#elif defined CONFIG_CPU_MIPS32_R1
+-#define MODULE_PROC_FAMILY "MIPS32_R1 "
+-#elif defined CONFIG_CPU_MIPS32_R2
+-#define MODULE_PROC_FAMILY "MIPS32_R2 "
+-#elif defined CONFIG_CPU_MIPS32_R6
+-#define MODULE_PROC_FAMILY "MIPS32_R6 "
+-#elif defined CONFIG_CPU_MIPS64_R1
+-#define MODULE_PROC_FAMILY "MIPS64_R1 "
+-#elif defined CONFIG_CPU_MIPS64_R2
+-#define MODULE_PROC_FAMILY "MIPS64_R2 "
+-#elif defined CONFIG_CPU_MIPS64_R6
+-#define MODULE_PROC_FAMILY "MIPS64_R6 "
+-#elif defined CONFIG_CPU_R3000
+-#define MODULE_PROC_FAMILY "R3000 "
+-#elif defined CONFIG_CPU_TX39XX
+-#define MODULE_PROC_FAMILY "TX39XX "
+-#elif defined CONFIG_CPU_VR41XX
+-#define MODULE_PROC_FAMILY "VR41XX "
+-#elif defined CONFIG_CPU_R4X00
+-#define MODULE_PROC_FAMILY "R4X00 "
+-#elif defined CONFIG_CPU_TX49XX
+-#define MODULE_PROC_FAMILY "TX49XX "
+-#elif defined CONFIG_CPU_R5000
+-#define MODULE_PROC_FAMILY "R5000 "
+-#elif defined CONFIG_CPU_R5500
+-#define MODULE_PROC_FAMILY "R5500 "
+-#elif defined CONFIG_CPU_NEVADA
+-#define MODULE_PROC_FAMILY "NEVADA "
+-#elif defined CONFIG_CPU_R10000
+-#define MODULE_PROC_FAMILY "R10000 "
+-#elif defined CONFIG_CPU_RM7000
+-#define MODULE_PROC_FAMILY "RM7000 "
+-#elif defined CONFIG_CPU_SB1
+-#define MODULE_PROC_FAMILY "SB1 "
+-#elif defined CONFIG_CPU_LOONGSON32
+-#define MODULE_PROC_FAMILY "LOONGSON32 "
+-#elif defined CONFIG_CPU_LOONGSON2EF
+-#define MODULE_PROC_FAMILY "LOONGSON2EF "
+-#elif defined CONFIG_CPU_LOONGSON64
+-#define MODULE_PROC_FAMILY "LOONGSON64 "
+-#elif defined CONFIG_CPU_CAVIUM_OCTEON
+-#define MODULE_PROC_FAMILY "OCTEON "
+-#elif defined CONFIG_CPU_XLR
+-#define MODULE_PROC_FAMILY "XLR "
+-#elif defined CONFIG_CPU_XLP
+-#define MODULE_PROC_FAMILY "XLP "
+-#else
+-#error MODULE_PROC_FAMILY undefined for your processor configuration
+-#endif
+-
+-#ifdef CONFIG_32BIT
+-#define MODULE_KERNEL_TYPE "32BIT "
+-#elif defined CONFIG_64BIT
+-#define MODULE_KERNEL_TYPE "64BIT "
+-#endif
+-
+-#define MODULE_ARCH_VERMAGIC \
+-	MODULE_PROC_FAMILY MODULE_KERNEL_TYPE
+-
+ #endif /* _ASM_MODULE_H */
+diff --git a/arch/mips/include/asm/vermagic.h b/arch/mips/include/asm/vermagic.h
+new file mode 100644
+index 000000000000..24dc3d35161c
+--- /dev/null
++++ b/arch/mips/include/asm/vermagic.h
+@@ -0,0 +1,66 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
++
++#ifdef CONFIG_CPU_BMIPS
++#define MODULE_PROC_FAMILY "BMIPS "
++#elif defined CONFIG_CPU_MIPS32_R1
++#define MODULE_PROC_FAMILY "MIPS32_R1 "
++#elif defined CONFIG_CPU_MIPS32_R2
++#define MODULE_PROC_FAMILY "MIPS32_R2 "
++#elif defined CONFIG_CPU_MIPS32_R6
++#define MODULE_PROC_FAMILY "MIPS32_R6 "
++#elif defined CONFIG_CPU_MIPS64_R1
++#define MODULE_PROC_FAMILY "MIPS64_R1 "
++#elif defined CONFIG_CPU_MIPS64_R2
++#define MODULE_PROC_FAMILY "MIPS64_R2 "
++#elif defined CONFIG_CPU_MIPS64_R6
++#define MODULE_PROC_FAMILY "MIPS64_R6 "
++#elif defined CONFIG_CPU_R3000
++#define MODULE_PROC_FAMILY "R3000 "
++#elif defined CONFIG_CPU_TX39XX
++#define MODULE_PROC_FAMILY "TX39XX "
++#elif defined CONFIG_CPU_VR41XX
++#define MODULE_PROC_FAMILY "VR41XX "
++#elif defined CONFIG_CPU_R4X00
++#define MODULE_PROC_FAMILY "R4X00 "
++#elif defined CONFIG_CPU_TX49XX
++#define MODULE_PROC_FAMILY "TX49XX "
++#elif defined CONFIG_CPU_R5000
++#define MODULE_PROC_FAMILY "R5000 "
++#elif defined CONFIG_CPU_R5500
++#define MODULE_PROC_FAMILY "R5500 "
++#elif defined CONFIG_CPU_NEVADA
++#define MODULE_PROC_FAMILY "NEVADA "
++#elif defined CONFIG_CPU_R10000
++#define MODULE_PROC_FAMILY "R10000 "
++#elif defined CONFIG_CPU_RM7000
++#define MODULE_PROC_FAMILY "RM7000 "
++#elif defined CONFIG_CPU_SB1
++#define MODULE_PROC_FAMILY "SB1 "
++#elif defined CONFIG_CPU_LOONGSON32
++#define MODULE_PROC_FAMILY "LOONGSON32 "
++#elif defined CONFIG_CPU_LOONGSON2EF
++#define MODULE_PROC_FAMILY "LOONGSON2EF "
++#elif defined CONFIG_CPU_LOONGSON64
++#define MODULE_PROC_FAMILY "LOONGSON64 "
++#elif defined CONFIG_CPU_CAVIUM_OCTEON
++#define MODULE_PROC_FAMILY "OCTEON "
++#elif defined CONFIG_CPU_XLR
++#define MODULE_PROC_FAMILY "XLR "
++#elif defined CONFIG_CPU_XLP
++#define MODULE_PROC_FAMILY "XLP "
++#else
++#error MODULE_PROC_FAMILY undefined for your processor configuration
++#endif
++
++#ifdef CONFIG_32BIT
++#define MODULE_KERNEL_TYPE "32BIT "
++#elif defined CONFIG_64BIT
++#define MODULE_KERNEL_TYPE "64BIT "
++#endif
++
++#define MODULE_ARCH_VERMAGIC \
++	MODULE_PROC_FAMILY MODULE_KERNEL_TYPE
++
++#endif /* _ASM_VERMAGIC_H */
+diff --git a/arch/nds32/include/asm/module.h b/arch/nds32/include/asm/vermagic.h
+similarity index 52%
+rename from arch/nds32/include/asm/module.h
+rename to arch/nds32/include/asm/vermagic.h
+index a3a08e993c65..f772e7ba33f1 100644
+--- a/arch/nds32/include/asm/module.h
++++ b/arch/nds32/include/asm/vermagic.h
+@@ -1,11 +1,9 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ // Copyright (C) 2005-2017 Andes Technology Corporation
  
- /* for F_[GET|SET]FL */
- #define FD_CLOEXEC	1	/* actually anything with low bit set goes */
-+#define FD_CLOFORK	2
+-#ifndef _ASM_NDS32_MODULE_H
+-#define _ASM_NDS32_MODULE_H
+-
+-#include <asm-generic/module.h>
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
  
- /* for posix fcntl() and lockf() */
- #ifndef F_RDLCK
-diff --git a/tools/include/uapi/asm-generic/fcntl.h b/tools/include/uapi/asm-generic/fcntl.h
-index ac190958c981..e04a00fecb4a 100644
---- a/tools/include/uapi/asm-generic/fcntl.h
-+++ b/tools/include/uapi/asm-generic/fcntl.h
-@@ -97,8 +97,8 @@
+ #define MODULE_ARCH_VERMAGIC	"NDS32v3"
+ 
+-#endif /* _ASM_NDS32_MODULE_H */
++#endif /* _ASM_VERMAGIC_H */
+diff --git a/arch/powerpc/include/asm/module.h b/arch/powerpc/include/asm/module.h
+index 356658711a86..5398bfc465b4 100644
+--- a/arch/powerpc/include/asm/module.h
++++ b/arch/powerpc/include/asm/module.h
+@@ -3,28 +3,10 @@
+ #define _ASM_POWERPC_MODULE_H
+ #ifdef __KERNEL__
+ 
+-/*
+- */
+-
+ #include <linux/list.h>
+ #include <asm/bug.h>
+ #include <asm-generic/module.h>
+ 
+-
+-#ifdef CONFIG_MPROFILE_KERNEL
+-#define MODULE_ARCH_VERMAGIC_FTRACE	"mprofile-kernel "
+-#else
+-#define MODULE_ARCH_VERMAGIC_FTRACE	""
+-#endif
+-
+-#ifdef CONFIG_RELOCATABLE
+-#define MODULE_ARCH_VERMAGIC_RELOCATABLE	"relocatable "
+-#else
+-#define MODULE_ARCH_VERMAGIC_RELOCATABLE	""
+-#endif
+-
+-#define MODULE_ARCH_VERMAGIC MODULE_ARCH_VERMAGIC_FTRACE MODULE_ARCH_VERMAGIC_RELOCATABLE
+-
+ #ifndef __powerpc64__
+ /*
+  * Thanks to Paul M for explaining this.
+diff --git a/arch/powerpc/include/asm/vermagic.h b/arch/powerpc/include/asm/vermagic.h
+new file mode 100644
+index 000000000000..b054a8576e5d
+--- /dev/null
++++ b/arch/powerpc/include/asm/vermagic.h
+@@ -0,0 +1,20 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
++
++#ifdef CONFIG_MPROFILE_KERNEL
++#define MODULE_ARCH_VERMAGIC_FTRACE	"mprofile-kernel "
++#else
++#define MODULE_ARCH_VERMAGIC_FTRACE	""
++#endif
++
++#ifdef CONFIG_RELOCATABLE
++#define MODULE_ARCH_VERMAGIC_RELOCATABLE	"relocatable "
++#else
++#define MODULE_ARCH_VERMAGIC_RELOCATABLE	""
++#endif
++
++#define MODULE_ARCH_VERMAGIC \
++		MODULE_ARCH_VERMAGIC_FTRACE MODULE_ARCH_VERMAGIC_RELOCATABLE
++
++#endif /* _ASM_VERMAGIC_H */
+diff --git a/arch/riscv/include/asm/module.h b/arch/riscv/include/asm/module.h
+index 46202dad365d..76aa96a9fc08 100644
+--- a/arch/riscv/include/asm/module.h
++++ b/arch/riscv/include/asm/module.h
+@@ -6,8 +6,6 @@
+ 
+ #include <asm-generic/module.h>
+ 
+-#define MODULE_ARCH_VERMAGIC    "riscv"
+-
+ struct module;
+ unsigned long module_emit_got_entry(struct module *mod, unsigned long val);
+ unsigned long module_emit_plt_entry(struct module *mod, unsigned long val);
+diff --git a/arch/riscv/include/asm/vermagic.h b/arch/riscv/include/asm/vermagic.h
+new file mode 100644
+index 000000000000..7b9441a57466
+--- /dev/null
++++ b/arch/riscv/include/asm/vermagic.h
+@@ -0,0 +1,9 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright (C) 2017 Andes Technology Corporation */
++
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
++
++#define MODULE_ARCH_VERMAGIC    "riscv"
++
++#endif /* _ASM_VERMAGIC_H */
+diff --git a/arch/sh/include/asm/module.h b/arch/sh/include/asm/module.h
+index 9f38fb35fe96..337663a028db 100644
+--- a/arch/sh/include/asm/module.h
++++ b/arch/sh/include/asm/module.h
+@@ -11,32 +11,4 @@ struct mod_arch_specific {
+ };
  #endif
  
- #define F_DUPFD		0	/* dup */
--#define F_GETFD		1	/* get close_on_exec */
--#define F_SETFD		2	/* set/clear close_on_exec */
-+#define F_GETFD		1	/* get close_on_exec & close_on_fork */
-+#define F_SETFD		2	/* set/clear close_on_exec & close_on_fork */
- #define F_GETFL		3	/* get file->f_flags */
- #define F_SETFL		4	/* set file->f_flags */
- #ifndef F_GETLK
-@@ -159,6 +159,7 @@ struct f_owner_ex {
+-#ifdef CONFIG_CPU_LITTLE_ENDIAN
+-# ifdef CONFIG_CPU_SH2
+-#  define MODULE_PROC_FAMILY "SH2LE "
+-# elif defined  CONFIG_CPU_SH3
+-#  define MODULE_PROC_FAMILY "SH3LE "
+-# elif defined  CONFIG_CPU_SH4
+-#  define MODULE_PROC_FAMILY "SH4LE "
+-# elif defined  CONFIG_CPU_SH5
+-#  define MODULE_PROC_FAMILY "SH5LE "
+-# else
+-#  error unknown processor family
+-# endif
+-#else
+-# ifdef CONFIG_CPU_SH2
+-#  define MODULE_PROC_FAMILY "SH2BE "
+-# elif defined  CONFIG_CPU_SH3
+-#  define MODULE_PROC_FAMILY "SH3BE "
+-# elif defined  CONFIG_CPU_SH4
+-#  define MODULE_PROC_FAMILY "SH4BE "
+-# elif defined  CONFIG_CPU_SH5
+-#  define MODULE_PROC_FAMILY "SH5BE "
+-# else
+-#  error unknown processor family
+-# endif
+-#endif
+-
+-#define MODULE_ARCH_VERMAGIC MODULE_PROC_FAMILY
+-
+ #endif /* _ASM_SH_MODULE_H */
+diff --git a/arch/sh/include/asm/vermagic.h b/arch/sh/include/asm/vermagic.h
+new file mode 100644
+index 000000000000..13d8eaa9188e
+--- /dev/null
++++ b/arch/sh/include/asm/vermagic.h
+@@ -0,0 +1,34 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
++
++#ifdef CONFIG_CPU_LITTLE_ENDIAN
++# ifdef CONFIG_CPU_SH2
++#  define MODULE_PROC_FAMILY "SH2LE "
++# elif defined  CONFIG_CPU_SH3
++#  define MODULE_PROC_FAMILY "SH3LE "
++# elif defined  CONFIG_CPU_SH4
++#  define MODULE_PROC_FAMILY "SH4LE "
++# elif defined  CONFIG_CPU_SH5
++#  define MODULE_PROC_FAMILY "SH5LE "
++# else
++#  error unknown processor family
++# endif
++#else
++# ifdef CONFIG_CPU_SH2
++#  define MODULE_PROC_FAMILY "SH2BE "
++# elif defined  CONFIG_CPU_SH3
++#  define MODULE_PROC_FAMILY "SH3BE "
++# elif defined  CONFIG_CPU_SH4
++#  define MODULE_PROC_FAMILY "SH4BE "
++# elif defined  CONFIG_CPU_SH5
++#  define MODULE_PROC_FAMILY "SH5BE "
++# else
++#  error unknown processor family
++# endif
++#endif
++
++#define MODULE_ARCH_VERMAGIC MODULE_PROC_FAMILY
++
++#endif /* _ASM_VERMAGIC_H */
+diff --git a/arch/x86/include/asm/module.h b/arch/x86/include/asm/module.h
+index c215d2762488..e988bac0a4a1 100644
+--- a/arch/x86/include/asm/module.h
++++ b/arch/x86/include/asm/module.h
+@@ -13,64 +13,4 @@ struct mod_arch_specific {
+ #endif
+ };
  
- /* for F_[GET|SET]FL */
- #define FD_CLOEXEC	1	/* actually anything with low bit set goes */
-+#define FD_CLOFORK	2
+-#ifdef CONFIG_X86_64
+-/* X86_64 does not define MODULE_PROC_FAMILY */
+-#elif defined CONFIG_M486SX
+-#define MODULE_PROC_FAMILY "486SX "
+-#elif defined CONFIG_M486
+-#define MODULE_PROC_FAMILY "486 "
+-#elif defined CONFIG_M586
+-#define MODULE_PROC_FAMILY "586 "
+-#elif defined CONFIG_M586TSC
+-#define MODULE_PROC_FAMILY "586TSC "
+-#elif defined CONFIG_M586MMX
+-#define MODULE_PROC_FAMILY "586MMX "
+-#elif defined CONFIG_MCORE2
+-#define MODULE_PROC_FAMILY "CORE2 "
+-#elif defined CONFIG_MATOM
+-#define MODULE_PROC_FAMILY "ATOM "
+-#elif defined CONFIG_M686
+-#define MODULE_PROC_FAMILY "686 "
+-#elif defined CONFIG_MPENTIUMII
+-#define MODULE_PROC_FAMILY "PENTIUMII "
+-#elif defined CONFIG_MPENTIUMIII
+-#define MODULE_PROC_FAMILY "PENTIUMIII "
+-#elif defined CONFIG_MPENTIUMM
+-#define MODULE_PROC_FAMILY "PENTIUMM "
+-#elif defined CONFIG_MPENTIUM4
+-#define MODULE_PROC_FAMILY "PENTIUM4 "
+-#elif defined CONFIG_MK6
+-#define MODULE_PROC_FAMILY "K6 "
+-#elif defined CONFIG_MK7
+-#define MODULE_PROC_FAMILY "K7 "
+-#elif defined CONFIG_MK8
+-#define MODULE_PROC_FAMILY "K8 "
+-#elif defined CONFIG_MELAN
+-#define MODULE_PROC_FAMILY "ELAN "
+-#elif defined CONFIG_MCRUSOE
+-#define MODULE_PROC_FAMILY "CRUSOE "
+-#elif defined CONFIG_MEFFICEON
+-#define MODULE_PROC_FAMILY "EFFICEON "
+-#elif defined CONFIG_MWINCHIPC6
+-#define MODULE_PROC_FAMILY "WINCHIPC6 "
+-#elif defined CONFIG_MWINCHIP3D
+-#define MODULE_PROC_FAMILY "WINCHIP3D "
+-#elif defined CONFIG_MCYRIXIII
+-#define MODULE_PROC_FAMILY "CYRIXIII "
+-#elif defined CONFIG_MVIAC3_2
+-#define MODULE_PROC_FAMILY "VIAC3-2 "
+-#elif defined CONFIG_MVIAC7
+-#define MODULE_PROC_FAMILY "VIAC7 "
+-#elif defined CONFIG_MGEODEGX1
+-#define MODULE_PROC_FAMILY "GEODEGX1 "
+-#elif defined CONFIG_MGEODE_LX
+-#define MODULE_PROC_FAMILY "GEODE "
+-#else
+-#error unknown processor family
+-#endif
+-
+-#ifdef CONFIG_X86_32
+-# define MODULE_ARCH_VERMAGIC MODULE_PROC_FAMILY
+-#endif
+-
+ #endif /* _ASM_X86_MODULE_H */
+diff --git a/arch/x86/include/asm/vermagic.h b/arch/x86/include/asm/vermagic.h
+new file mode 100644
+index 000000000000..75884d2cdec3
+--- /dev/null
++++ b/arch/x86/include/asm/vermagic.h
+@@ -0,0 +1,68 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
++
++#ifdef CONFIG_X86_64
++/* X86_64 does not define MODULE_PROC_FAMILY */
++#elif defined CONFIG_M486SX
++#define MODULE_PROC_FAMILY "486SX "
++#elif defined CONFIG_M486
++#define MODULE_PROC_FAMILY "486 "
++#elif defined CONFIG_M586
++#define MODULE_PROC_FAMILY "586 "
++#elif defined CONFIG_M586TSC
++#define MODULE_PROC_FAMILY "586TSC "
++#elif defined CONFIG_M586MMX
++#define MODULE_PROC_FAMILY "586MMX "
++#elif defined CONFIG_MCORE2
++#define MODULE_PROC_FAMILY "CORE2 "
++#elif defined CONFIG_MATOM
++#define MODULE_PROC_FAMILY "ATOM "
++#elif defined CONFIG_M686
++#define MODULE_PROC_FAMILY "686 "
++#elif defined CONFIG_MPENTIUMII
++#define MODULE_PROC_FAMILY "PENTIUMII "
++#elif defined CONFIG_MPENTIUMIII
++#define MODULE_PROC_FAMILY "PENTIUMIII "
++#elif defined CONFIG_MPENTIUMM
++#define MODULE_PROC_FAMILY "PENTIUMM "
++#elif defined CONFIG_MPENTIUM4
++#define MODULE_PROC_FAMILY "PENTIUM4 "
++#elif defined CONFIG_MK6
++#define MODULE_PROC_FAMILY "K6 "
++#elif defined CONFIG_MK7
++#define MODULE_PROC_FAMILY "K7 "
++#elif defined CONFIG_MK8
++#define MODULE_PROC_FAMILY "K8 "
++#elif defined CONFIG_MELAN
++#define MODULE_PROC_FAMILY "ELAN "
++#elif defined CONFIG_MCRUSOE
++#define MODULE_PROC_FAMILY "CRUSOE "
++#elif defined CONFIG_MEFFICEON
++#define MODULE_PROC_FAMILY "EFFICEON "
++#elif defined CONFIG_MWINCHIPC6
++#define MODULE_PROC_FAMILY "WINCHIPC6 "
++#elif defined CONFIG_MWINCHIP3D
++#define MODULE_PROC_FAMILY "WINCHIP3D "
++#elif defined CONFIG_MCYRIXIII
++#define MODULE_PROC_FAMILY "CYRIXIII "
++#elif defined CONFIG_MVIAC3_2
++#define MODULE_PROC_FAMILY "VIAC3-2 "
++#elif defined CONFIG_MVIAC7
++#define MODULE_PROC_FAMILY "VIAC7 "
++#elif defined CONFIG_MGEODEGX1
++#define MODULE_PROC_FAMILY "GEODEGX1 "
++#elif defined CONFIG_MGEODE_LX
++#define MODULE_PROC_FAMILY "GEODE "
++#else
++#error unknown processor family
++#endif
++
++#ifdef CONFIG_X86_32
++# define MODULE_ARCH_VERMAGIC MODULE_PROC_FAMILY
++#else
++# define MODULE_ARCH_VERMAGIC ""
++#endif
++
++#endif /* _ASM_VERMAGIC_H */
+diff --git a/arch/xtensa/include/asm/module.h b/arch/xtensa/include/asm/vermagic.h
+similarity index 72%
+rename from arch/xtensa/include/asm/module.h
+rename to arch/xtensa/include/asm/vermagic.h
+index 488b40c6f9b9..6f9e359a54ac 100644
+--- a/arch/xtensa/include/asm/module.h
++++ b/arch/xtensa/include/asm/vermagic.h
+@@ -1,6 +1,4 @@
+ /*
+- * include/asm-xtensa/module.h
+- *
+  * This file contains the module code specific to the Xtensa architecture.
+  *
+  * This file is subject to the terms and conditions of the GNU General Public
+@@ -10,11 +8,12 @@
+  * Copyright (C) 2001 - 2005 Tensilica Inc.
+  */
  
- /* for posix fcntl() and lockf() */
- #ifndef F_RDLCK
+-#ifndef _XTENSA_MODULE_H
+-#define _XTENSA_MODULE_H
++#ifndef _ASM_VERMAGIC_H
++#define _ASM_VERMAGIC_H
+ 
+-#define MODULE_ARCH_VERMAGIC "xtensa-" __stringify(XCHAL_CORE_ID) " "
++#include <linux/stringify.h>
++#include <variant/core.h>
+ 
+-#include <asm-generic/module.h>
++#define MODULE_ARCH_VERMAGIC "xtensa-" __stringify(XCHAL_CORE_ID) " "
+ 
+-#endif	/* _XTENSA_MODULE_H */
++#endif	/* _ASM_VERMAGIC_H */
+diff --git a/include/asm-generic/Kbuild b/include/asm-generic/Kbuild
+index 36341dfded70..44ec80e70518 100644
+--- a/include/asm-generic/Kbuild
++++ b/include/asm-generic/Kbuild
+@@ -56,6 +56,7 @@ mandatory-y += topology.h
+ mandatory-y += trace_clock.h
+ mandatory-y += uaccess.h
+ mandatory-y += unaligned.h
++mandatory-y += vermagic.h
+ mandatory-y += vga.h
+ mandatory-y += word-at-a-time.h
+ mandatory-y += xor.h
+diff --git a/include/asm-generic/vermagic.h b/include/asm-generic/vermagic.h
+new file mode 100644
+index 000000000000..084274a1219e
+--- /dev/null
++++ b/include/asm-generic/vermagic.h
+@@ -0,0 +1,7 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _ASM_GENERIC_VERMAGIC_H
++#define _ASM_GENERIC_VERMAGIC_H
++
++#define MODULE_ARCH_VERMAGIC ""
++
++#endif /* _ASM_GENERIC_VERMAGIC_H */
+diff --git a/include/linux/vermagic.h b/include/linux/vermagic.h
+index 9aced11e9000..dc236577b92f 100644
+--- a/include/linux/vermagic.h
++++ b/include/linux/vermagic.h
+@@ -1,5 +1,9 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _LINUX_VERMAGIC_H
++#define _LINUX_VERMAGIC_H
++
+ #include <generated/utsrelease.h>
++#include <asm/vermagic.h>
+ 
+ /* Simply sanity version stamp for modules. */
+ #ifdef CONFIG_SMP
+@@ -24,9 +28,6 @@
+ #else
+ #define MODULE_VERMAGIC_MODVERSIONS ""
+ #endif
+-#ifndef MODULE_ARCH_VERMAGIC
+-#define MODULE_ARCH_VERMAGIC ""
+-#endif
+ #ifdef RANDSTRUCT_PLUGIN
+ #include <generated/randomize_layout_hash.h>
+ #define MODULE_RANDSTRUCT_PLUGIN "RANDSTRUCT_PLUGIN_" RANDSTRUCT_HASHED_SEED
+@@ -41,3 +42,4 @@
+ 	MODULE_ARCH_VERMAGIC						\
+ 	MODULE_RANDSTRUCT_PLUGIN
+ 
++#endif /* _LINUX_VERMAGIC_H */
 -- 
-2.26.1
+2.25.1
