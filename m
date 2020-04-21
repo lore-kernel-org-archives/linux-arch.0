@@ -1,94 +1,50 @@
-Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 07/28] mm: remove __get_vm_area
-Date: Wed,  8 Apr 2020 13:59:05 +0200
-Message-ID: <20200408115926.1467567-8-hch@lst.de>
-In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
-References: <20200408115926.1467567-1-hch@lst.de>
+Return-Path: <SRS0=BI31=6F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59740 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1729590AbgDUSnS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 21 Apr 2020 14:43:18 -0400
+Received: from mail-lf1-x141.google.com (mail-lf1-x141.google.com [IPv6:2a00:1450:4864:20::141])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9AC4DC061BD3
+        for <linux-arch@vger.kernel.org>; Tue, 21 Apr 2020 11:43:17 -0700 (PDT)
+Received: by mail-lf1-x141.google.com with SMTP id m2so11935799lfo.6
+        for <linux-arch@vger.kernel.org>; Tue, 21 Apr 2020 11:43:17 -0700 (PDT)
+Received: from mail-lf1-f47.google.com (mail-lf1-f47.google.com. [209.85.167.47])
+        by smtp.gmail.com with ESMTPSA id u13sm2685155lji.27.2020.04.21.11.43.12
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 21 Apr 2020 11:43:13 -0700 (PDT)
+Received: by mail-lf1-f47.google.com with SMTP id m2so11935657lfo.6
+        for <linux-arch@vger.kernel.org>; Tue, 21 Apr 2020 11:43:12 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+References: <20200421151537.19241-1-will@kernel.org>
+In-Reply-To: <20200421151537.19241-1-will@kernel.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 21 Apr 2020 11:42:56 -0700
+Message-ID: <CAHk-=wjjz927czq5zKkV1TUvajbWZGsPeFBSgnQftLNWmCcoSg@mail.gmail.com>
+Subject: Re: [PATCH v4 00/11] Rework READ_ONCE() to improve codegen
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200408115905.UUC20crzOguI1H_yubCprSF7CYLpxytas8VHMTEmCKc@z>
+To: Will Deacon <will@kernel.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Android Kernel Team <kernel-team@android.com>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200421184256.acn9BNOrNkoN-3A8SxfnDs8BE-aLObqE33FLtZ7kVGc@z>
 
-Switch the two remaining callers to use __get_vm_area_caller instead.
+On Tue, Apr 21, 2020 at 8:15 AM Will Deacon <will@kernel.org> wrote:
+>
+> It's me again. This is version four of the READ_ONCE() codegen improvement
+> patches [...]
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/powerpc/kernel/pci_64.c | 3 ++-
- arch/sh/kernel/cpu/sh4/sq.c  | 3 ++-
- include/linux/vmalloc.h      | 2 --
- mm/vmalloc.c                 | 8 --------
- 4 files changed, 4 insertions(+), 12 deletions(-)
+Let's just plan on biting the bullet and do this for 5.8. I'm assuming
+that I'll juet get a pull request from you?
 
-diff --git a/arch/powerpc/kernel/pci_64.c b/arch/powerpc/kernel/pci_64.c
-index 8e86bd9c1eca..155e2ef60053 100644
---- a/arch/powerpc/kernel/pci_64.c
-+++ b/arch/powerpc/kernel/pci_64.c
-@@ -132,7 +132,8 @@ void __iomem *ioremap_pbh(phys_addr_t paddr, unsigned=
- long size)
- 	 * address decoding but I'd rather not deal with those outside of the
- 	 * reserved 64K legacy region.
- 	 */
--	area =3D __get_vm_area(size, 0, PHB_IO_BASE, PHB_IO_END);
-+	area =3D __get_vm_area_caller(size, 0, PHB_IO_BASE, PHB_IO_END,
-+				    __builtin_return_address(0));
- 	if (!area)
- 		return NULL;
-=20
-diff --git a/arch/sh/kernel/cpu/sh4/sq.c b/arch/sh/kernel/cpu/sh4/sq.c
-index 934ff84844fa..d432164b23b7 100644
---- a/arch/sh/kernel/cpu/sh4/sq.c
-+++ b/arch/sh/kernel/cpu/sh4/sq.c
-@@ -103,7 +103,8 @@ static int __sq_remap(struct sq_mapping *map, pgprot_=
-t prot)
- #if defined(CONFIG_MMU)
- 	struct vm_struct *vma;
-=20
--	vma =3D __get_vm_area(map->size, VM_ALLOC, map->sq_addr, SQ_ADDRMAX);
-+	vma =3D __get_vm_area_caller(map->size, VM_ALLOC, map->sq_addr,
-+			SQ_ADDRMAX, __builtin_return_address(0));
- 	if (!vma)
- 		return -ENOMEM;
-=20
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 0507a162ccd0..3070b4dbc2d9 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -161,8 +161,6 @@ static inline size_t get_vm_area_size(const struct vm=
-_struct *area)
- extern struct vm_struct *get_vm_area(unsigned long size, unsigned long f=
-lags);
- extern struct vm_struct *get_vm_area_caller(unsigned long size,
- 					unsigned long flags, const void *caller);
--extern struct vm_struct *__get_vm_area(unsigned long size, unsigned long=
- flags,
--					unsigned long start, unsigned long end);
- extern struct vm_struct *__get_vm_area_caller(unsigned long size,
- 					unsigned long flags,
- 					unsigned long start, unsigned long end,
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 399f219544f7..d1534d610b48 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -2127,14 +2127,6 @@ static struct vm_struct *__get_vm_area_node(unsign=
-ed long size,
- 	return area;
- }
-=20
--struct vm_struct *__get_vm_area(unsigned long size, unsigned long flags,
--				unsigned long start, unsigned long end)
--{
--	return __get_vm_area_node(size, 1, flags, start, end, NUMA_NO_NODE,
--				  GFP_KERNEL, __builtin_return_address(0));
--}
--EXPORT_SYMBOL_GPL(__get_vm_area);
--
- struct vm_struct *__get_vm_area_caller(unsigned long size, unsigned long=
- flags,
- 				       unsigned long start, unsigned long end,
- 				       const void *caller)
---=20
-2.25.1
+> (I'm interpreting the silence as monumental joy)
+
+By now I think we can take that for granted.
+
+Because "monumental joy" is certainly exactly what I felt re-reading
+that "unqualified scalar type" macro.
+
+Or maybe it was just my breakfast trying to say "Hi!".
+
+                 Linus
