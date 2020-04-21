@@ -1,86 +1,53 @@
 Return-Path: <SRS0=BI31=6F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:44962 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725550AbgDUAGU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Apr 2020 20:06:20 -0400
-Date: Mon, 20 Apr 2020 20:06:16 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v1 6/6] arm64: tlb: Set the TTL field in flush_tlb_range
-Message-ID: <20200420200616.44c7c7ea@oasis.local.home>
-In-Reply-To: <20200420121055.GF20696@hirez.programming.kicks-ass.net>
-References: <20200403090048.938-1-yezhenyu2@huawei.com>
-        <20200403090048.938-7-yezhenyu2@huawei.com>
-        <20200420121055.GF20696@hirez.programming.kicks-ass.net>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58342 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729282AbgDUSe1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Apr 2020 14:34:27 -0400
+Received: from mail-lj1-x241.google.com (mail-lj1-x241.google.com [IPv6:2a00:1450:4864:20::241])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 57F58C0610D6
+        for <linux-arch@vger.kernel.org>; Tue, 21 Apr 2020 11:34:25 -0700 (PDT)
+Received: by mail-lj1-x241.google.com with SMTP id u6so15081349ljl.6
+        for <linux-arch@vger.kernel.org>; Tue, 21 Apr 2020 11:34:25 -0700 (PDT)
+Received: from mail-lj1-f169.google.com (mail-lj1-f169.google.com. [209.85.208.169])
+        by smtp.gmail.com with ESMTPSA id r14sm2542856ljn.4.2020.04.21.11.34.21
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 21 Apr 2020 11:34:22 -0700 (PDT)
+Received: by mail-lj1-f169.google.com with SMTP id e25so15088543ljg.5
+        for <linux-arch@vger.kernel.org>; Tue, 21 Apr 2020 11:34:21 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+References: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
+ <42da416106d5c1cf92bda1e058434fe240b35f44.1585898438.git.christophe.leroy@c-s.fr>
+ <CAHk-=wh_DY_dysMX0NuvJmMFr3+QDKOZPZqWKwLkkjgZTuyQ+A@mail.gmail.com>
+ <20200403205205.GK23230@ZenIV.linux.org.uk> <20200421024919.GA23230@ZenIV.linux.org.uk>
+In-Reply-To: <20200421024919.GA23230@ZenIV.linux.org.uk>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 21 Apr 2020 11:34:04 -0700
+Message-ID: <CAHk-=wiuHxXwuPynLFh-fYjuUE3_HNPh79e_P6MFMbq4Ki+QCw@mail.gmail.com>
+Subject: Re: [PATCH v2 5/5] uaccess: Rename user_access_begin/end() to user_full_access_begin/end()
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Zhenyu Ye <yezhenyu2@huawei.com>, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200421000616.wZVn2mbpfeO2IvjqdNMdMS9PFL3We9w0HZdr4vXbn5I@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Peter Anvin <hpa@zytor.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, intel-gfx@lists.freedesktop.org, Russell King <linux@armlinux.org.uk>
+Message-ID: <20200421183404.JI33crWskh6L1vXYnpvBALOicnlYC585k88pBdWcLx0@z>
 
-On Mon, 20 Apr 2020 14:10:55 +0200
-Peter Zijlstra <peterz@infradead.org> wrote:
+On Mon, Apr 20, 2020 at 7:49 PM Al Viro <viro@zeniv.linux.org.uk> wrote:
+>
+>         The only source I'd been able to find speaks of >= 60 cycles
+> (and possibly much more) for non-pipelined coprocessor instructions;
+> the list of such does contain loads and stores to a bunch of registers.
+> However, the register in question (p15/c3) has only store mentioned there,
+> so loads might be cheap; no obvious reasons for those to be slow.
+> That's a question to arm folks, I'm afraid...  rmk?
 
-> On Fri, Apr 03, 2020 at 05:00:48PM +0800, Zhenyu Ye wrote:
-> > This patch uses the cleared_* in struct mmu_gather to set the
-> > TTL field in flush_tlb_range().
-> > 
-> > Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-> > ---
-> >  arch/arm64/include/asm/tlb.h      | 26 +++++++++++++++++++++++++-
-> >  arch/arm64/include/asm/tlbflush.h | 14 ++++++++------
-> >  2 files changed, 33 insertions(+), 7 deletions(-)
-> > 
-> > diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-> > index b76df828e6b7..d5ab72eccff4 100644
-> > --- a/arch/arm64/include/asm/tlb.h
-> > +++ b/arch/arm64/include/asm/tlb.h
-> > @@ -21,11 +21,34 @@ static void tlb_flush(struct mmu_gather *tlb);
-> >  
-> >  #include <asm-generic/tlb.h>
-> >  
-> > +/*
-> > + * get the tlbi levels in arm64.  Default value is 0 if more than one
-> > + * of cleared_* is set or neither is set.
-> > + * Arm64 doesn't support p4ds now.
-> > + */
-> > +static inline int tlb_get_level(struct mmu_gather *tlb)
-> > +{
-> > +	int sum = tlb->cleared_ptes + tlb->cleared_pmds +
-> > +		  tlb->cleared_puds + tlb->cleared_p4ds;
-> > +
-> > +	if (sum != 1)
-> > +		return 0;
-> > +	else if (tlb->cleared_ptes)
-> > +		return 3;
-> > +	else if (tlb->cleared_pmds)
-> > +		return 2;
-> > +	else if (tlb->cleared_puds)
-> > +		return 1;
-> > +
-> > +	return 0;
-> > +}  
-> 
-> That's some mighty wonky code. Please look at the generated asm.
+_If_ it turns out to be expensive, is there any reason we couldn't
+just cache the value in general?
 
-Without even looking at the generated asm, if a condition returns,
-there's no reason to add an else for that condition.
+That's what x86 tends to do with expensive system registers. One
+example would be "msr_misc_features_shadow".
 
-	if (x)
-		return 1;
-	else if (y)
-		return 2;
-	else
-		return 3;
+But maybe that's something to worry about when/if it turns out to
+actually be a problem?
 
-Is exactly the same as:
-
-	if (x)
-		return 1;
-	if (y)
-		return 2;
-	return 3;
-
--- Steve
+                 Linus
