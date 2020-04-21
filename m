@@ -1,46 +1,81 @@
-From: Jonathan Corbet <corbet@lwn.net>
-Subject: Re: [PATCH v2 00/33] Documentation fixes for Kernel 5.8
-Date: Mon, 20 Apr 2020 15:43:16 -0600
-Message-ID: <20200420154316.28e42905@lwn.net>
-References: <cover.1586881715.git.mchehab+huawei@kernel.org>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v1 6/6] arm64: tlb: Set the TTL field in flush_tlb_range
+Date: Mon, 20 Apr 2020 20:06:16 -0400
+Message-ID: <20200420200616.44c7c7ea@oasis.local.home>
+References: <20200403090048.938-1-yezhenyu2@huawei.com>
+        <20200403090048.938-7-yezhenyu2@huawei.com>
+        <20200420121055.GF20696@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8bit
-Return-path: <ecryptfs-owner@vger.kernel.org>
-In-Reply-To: <cover.1586881715.git.mchehab+huawei@kernel.org>
-Sender: ecryptfs-owner@vger.kernel.org
-To: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-Cc: Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, Rob Herring <robh@kernel.org>, Maxime Ripard <maxime@cerno.tech>, Linus Walleij <linus.walleij@linaro.org>, Sudeep Holla <sudeep.holla@arm.com>, Kishon Vijay Abraham I <kishon@ti.com>, Yuti Amonkar <yamonkar@cadence.com>, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, dri-devel@lists.freedesktop.org, linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-unionfs@vger.kernel.org, linux-mm@kvack.org, linux-rdma@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-crypto@vger.kernel.org, linux-media@vger.kernel.org, linux-arm-msm@vger.kernel.org, freedreno@lists.freedesktop.orglinux
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200420121055.GF20696@hirez.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Zhenyu Ye <yezhenyu2@huawei.com>, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 14 Apr 2020 18:48:26 +0200
-Mauro Carvalho Chehab <mchehab+huawei@kernel.org> wrote:
+On Mon, 20 Apr 2020 14:10:55 +0200
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-> Patches 1 to 5 contain changes to the documentation toolset:
+> On Fri, Apr 03, 2020 at 05:00:48PM +0800, Zhenyu Ye wrote:
+> > This patch uses the cleared_* in struct mmu_gather to set the
+> > TTL field in flush_tlb_range().
+> > 
+> > Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+> > ---
+> >  arch/arm64/include/asm/tlb.h      | 26 +++++++++++++++++++++++++-
+> >  arch/arm64/include/asm/tlbflush.h | 14 ++++++++------
+> >  2 files changed, 33 insertions(+), 7 deletions(-)
+> > 
+> > diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+> > index b76df828e6b7..d5ab72eccff4 100644
+> > --- a/arch/arm64/include/asm/tlb.h
+> > +++ b/arch/arm64/include/asm/tlb.h
+> > @@ -21,11 +21,34 @@ static void tlb_flush(struct mmu_gather *tlb);
+> >  
+> >  #include <asm-generic/tlb.h>
+> >  
+> > +/*
+> > + * get the tlbi levels in arm64.  Default value is 0 if more than one
+> > + * of cleared_* is set or neither is set.
+> > + * Arm64 doesn't support p4ds now.
+> > + */
+> > +static inline int tlb_get_level(struct mmu_gather *tlb)
+> > +{
+> > +	int sum = tlb->cleared_ptes + tlb->cleared_pmds +
+> > +		  tlb->cleared_puds + tlb->cleared_p4ds;
+> > +
+> > +	if (sum != 1)
+> > +		return 0;
+> > +	else if (tlb->cleared_ptes)
+> > +		return 3;
+> > +	else if (tlb->cleared_pmds)
+> > +		return 2;
+> > +	else if (tlb->cleared_puds)
+> > +		return 1;
+> > +
+> > +	return 0;
+> > +}  
 > 
-> - The first 3 patches help to reduce a lot the number of reported
->   kernel-doc issues, by making the tool more smart.
-> 
-> - Patches 4 and 5 are meant to partially address the PDF
->   build, with now requires Sphinx version 2.4 or upper.
-> 
-> The remaining patches fix broken references detected by
-> this tool:
-> 
->         ./scripts/documentation-file-ref-check
-> 
-> and address other random errors due to tags being mis-interpreted
-> or mis-used.
-> 
-> They are independent each other, but some may depend on
-> the kernel-doc improvements.
-> 
-> PS.: Due to the large number of C/C, I opted to keep a smaller
-> set of C/C at this first e-mail (only e-mails with "L:" tag from
-> MAINTAINERS file).
+> That's some mighty wonky code. Please look at the generated asm.
 
-OK, I've applied this set, minus #17 which was applied elsewhere.
+Without even looking at the generated asm, if a condition returns,
+there's no reason to add an else for that condition.
 
-Thanks,
+	if (x)
+		return 1;
+	else if (y)
+		return 2;
+	else
+		return 3;
 
-jon
+Is exactly the same as:
+
+	if (x)
+		return 1;
+	if (y)
+		return 2;
+	return 3;
+
+-- Steve
