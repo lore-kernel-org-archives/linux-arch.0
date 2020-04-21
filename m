@@ -1,76 +1,201 @@
-Return-Path: <SRS0=8f/M=5T=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
- flush_pmd_tlb_range
-References: <20200331142927.1237-1-yezhenyu2@huawei.com>
- <20200331142927.1237-5-yezhenyu2@huawei.com>
- <20200331151331.GS20730@hirez.programming.kicks-ass.net>
- <fe12101e-8efe-22ad-0258-e6aeafc798cc@huawei.com>
- <20200401122004.GE20713@hirez.programming.kicks-ass.net>
- <53675fb9-21c7-5309-07b8-1bbc1e775f9b@huawei.com>
- <20200402163849.GM20713@hirez.programming.kicks-ass.net>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Message-ID: <d512b28f-99d3-5a26-d189-2ebac7a412c7@huawei.com>
-Date: Fri, 3 Apr 2020 13:14:21 +0800
+Return-Path: <SRS0=BI31=6F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:34986 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727911AbgDUPQD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 21 Apr 2020 11:16:03 -0400
+From: Will Deacon <will@kernel.org>
+Subject: [PATCH v4 06/11] READ_ONCE: Simplify implementations of {READ,WRITE}_ONCE()
+Date: Tue, 21 Apr 2020 16:15:32 +0100
+Message-ID: <20200421151537.19241-7-will@kernel.org>
+In-Reply-To: <20200421151537.19241-1-will@kernel.org>
+References: <20200421151537.19241-1-will@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20200402163849.GM20713@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset="gbk"
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200403051421.qTJ0He-F6sjqqxpXwaegrV013sQaTRQy7x-my0n-Eso@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200421151532.Fd7LzO3wk2X9RN-vvHU57uLIemdVrOAAG2p_owvJ4zU@z>
 
-Hi Peter,
+The implementations of {READ,WRITE}_ONCE() suffer from a significant
+amount of indirection and complexity due to a historic GCC bug:
 
-On 2020/4/3 0:38, Peter Zijlstra wrote:
-> On Thu, Apr 02, 2020 at 07:24:04PM +0800, Zhenyu Ye wrote:
->> Thanks for your detailed explanation.  I notice that you used
->> `tlb_end_vma` replace `flush_tlb_range`, which will call `tlb_flush`,
->> then finally call `flush_tlb_range` in generic code.  However, some
->> architectures define tlb_end_vma|tlb_flush|flush_tlb_range themselves,
->> so this may cause problems.
->>
->> For example, in s390, it defines:
->>
->> #define tlb_end_vma(tlb, vma)			do { } while (0)
->>
->> And it doesn't define it's own flush_pmd_tlb_range().  So there will be
->> a mistake if we changed flush_pmd_tlb_range() using tlb_end_vma().
->>
->> Is this really a problem or something I understand wrong ?
-> 
-> If tlb_end_vma() is a no-op, then tlb_finish_mmu() will do:
-> tlb_flush_mmu() -> tlb_flush_mmu_tlbonly() -> tlb_flush()
-> 
-> And s390 has tlb_flush().
-> 
-> If tlb_end_vma() is not a no-op and it calls tlb_flush_mmu_tlbonly(),
-> then tlb_finish_mmu()'s invocation of tlb_flush_mmu_tlbonly() will
-> terniate early due o no flags set.
-> 
-> IOW, it should all just work.
-> 
-> 
-> FYI the whole tlb_{start,end}_vma() thing is a only needed when the
-> architecture doesn't implement tlb_flush() and instead default to using
-> flush_tlb_range(), at which point we need to provide a 'fake' vma.
-> 
-> At the time I audited all architectures and they only look at VM_EXEC
-> (to do $I invalidation) and VM_HUGETLB (for pmd level invalidations),
-> but I forgot which architectures that were.
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
 
-Many architectures, such as alpha, arc, arm and so on.
-I really understand why you hate making vma->vm_flags more important for
-tlbi :).
+which was originally worked around by 230fa253df63 ("kernel: Provide
+READ_ONCE and ASSIGN_ONCE").
 
-> But that is all legacy code; eventually we'll get all archs a native
-> tlb_flush() and this can go away.
-> 
+Since GCC 4.8 is fairly vintage at this point and we emit a warning if
+we detect it during the build, return {READ,WRITE}_ONCE() to their former
+glory with an implementation that is easier to understand and, crucially,
+more amenable to optimisation. A side effect of this simplification is
+that WRITE_ONCE() no longer returns a value, but nobody seems to be
+relying on that and the new behaviour is aligned with smp_store_release().
 
-Thanks for your reply.  Currently, to enable the TTL feature, extending
-the flush_*tlb_range() may be more convenient.
-I will send a formal PATCH soon.
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Signed-off-by: Will Deacon <will@kernel.org>
+---
+ include/linux/compiler.h | 118 +++++++++++++--------------------------
+ 1 file changed, 39 insertions(+), 79 deletions(-)
 
-Thanks,
-Zhenyu
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index 034b0a644efc..338111a448d0 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -177,60 +177,6 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+ # define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __LINE__)
+ #endif
+ 
+-#include <uapi/linux/types.h>
+-
+-#define __READ_ONCE_SIZE						\
+-({									\
+-	switch (size) {							\
+-	case 1: *(__u8 *)res = *(volatile __u8 *)p; break;		\
+-	case 2: *(__u16 *)res = *(volatile __u16 *)p; break;		\
+-	case 4: *(__u32 *)res = *(volatile __u32 *)p; break;		\
+-	case 8: *(__u64 *)res = *(volatile __u64 *)p; break;		\
+-	default:							\
+-		barrier();						\
+-		__builtin_memcpy((void *)res, (const void *)p, size);	\
+-		barrier();						\
+-	}								\
+-})
+-
+-static __always_inline
+-void __read_once_size(const volatile void *p, void *res, int size)
+-{
+-	__READ_ONCE_SIZE;
+-}
+-
+-#ifdef CONFIG_KASAN
+-/*
+- * We can't declare function 'inline' because __no_sanitize_address confilcts
+- * with inlining. Attempt to inline it may cause a build failure.
+- * 	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67368
+- * '__maybe_unused' allows us to avoid defined-but-not-used warnings.
+- */
+-# define __no_kasan_or_inline __no_sanitize_address notrace __maybe_unused
+-#else
+-# define __no_kasan_or_inline __always_inline
+-#endif
+-
+-static __no_kasan_or_inline
+-void __read_once_size_nocheck(const volatile void *p, void *res, int size)
+-{
+-	__READ_ONCE_SIZE;
+-}
+-
+-static __always_inline void __write_once_size(volatile void *p, void *res, int size)
+-{
+-	switch (size) {
+-	case 1: *(volatile __u8 *)p = *(__u8 *)res; break;
+-	case 2: *(volatile __u16 *)p = *(__u16 *)res; break;
+-	case 4: *(volatile __u32 *)p = *(__u32 *)res; break;
+-	case 8: *(volatile __u64 *)p = *(__u64 *)res; break;
+-	default:
+-		barrier();
+-		__builtin_memcpy((void *)p, (const void *)res, size);
+-		barrier();
+-	}
+-}
+-
+ /*
+  * Prevent the compiler from merging or refetching reads or writes. The
+  * compiler is also forbidden from reordering successive instances of
+@@ -240,11 +186,7 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+  * statements.
+  *
+  * These two macros will also work on aggregate data types like structs or
+- * unions. If the size of the accessed data type exceeds the word size of
+- * the machine (e.g., 32 bits or 64 bits) READ_ONCE() and WRITE_ONCE() will
+- * fall back to memcpy(). There's at least two memcpy()s: one for the
+- * __builtin_memcpy() and then one for the macro doing the copy of variable
+- * - '__u' allocated on the stack.
++ * unions.
+  *
+  * Their two major use cases are: (1) Mediating communication between
+  * process-level code and irq/NMI handlers, all running on the same CPU,
+@@ -256,23 +198,49 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+ #include <asm/barrier.h>
+ #include <linux/kasan-checks.h>
+ 
+-#define __READ_ONCE(x, check)						\
++#define __READ_ONCE(x)	(*(volatile typeof(x) *)&(x))
++
++#define READ_ONCE(x)							\
+ ({									\
+-	union { typeof(x) __val; char __c[1]; } __u;			\
+-	if (check)							\
+-		__read_once_size(&(x), __u.__c, sizeof(x));		\
+-	else								\
+-		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
+-	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
+-	__u.__val;							\
++	typeof(x) __x = __READ_ONCE(x);					\
++	smp_read_barrier_depends();					\
++	__x;								\
+ })
+-#define READ_ONCE(x) __READ_ONCE(x, 1)
++
++#define WRITE_ONCE(x, val)				\
++do {							\
++	*(volatile typeof(x) *)&(x) = (val);		\
++} while (0)
++
++#ifdef CONFIG_KASAN
++/*
++ * We can't declare function 'inline' because __no_sanitize_address conflicts
++ * with inlining. Attempt to inline it may cause a build failure.
++ *     https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67368
++ * '__maybe_unused' allows us to avoid defined-but-not-used warnings.
++ */
++# define __no_kasan_or_inline __no_sanitize_address notrace __maybe_unused
++#else
++# define __no_kasan_or_inline __always_inline
++#endif
++
++static __no_kasan_or_inline
++unsigned long __read_once_word_nocheck(const void *addr)
++{
++	return __READ_ONCE(*(unsigned long *)addr);
++}
+ 
+ /*
+- * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
+- * to hide memory access from KASAN.
++ * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need to load a
++ * word from memory atomically but without telling KASAN. This is usually
++ * used by unwinding code when walking the stack of a running process.
+  */
+-#define READ_ONCE_NOCHECK(x) __READ_ONCE(x, 0)
++#define READ_ONCE_NOCHECK(x)						\
++({									\
++	unsigned long __x = __read_once_word_nocheck(&(x));		\
++	smp_read_barrier_depends();					\
++	__x;								\
++})
+ 
+ static __no_kasan_or_inline
+ unsigned long read_word_at_a_time(const void *addr)
+@@ -281,14 +249,6 @@ unsigned long read_word_at_a_time(const void *addr)
+ 	return *(unsigned long *)addr;
+ }
+ 
+-#define WRITE_ONCE(x, val) \
+-({							\
+-	union { typeof(x) __val; char __c[1]; } __u =	\
+-		{ .__val = (__force typeof(x)) (val) }; \
+-	__write_once_size(&(x), __u.__c, sizeof(x));	\
+-	__u.__val;					\
+-})
+-
+ #endif /* __KERNEL__ */
+ 
+ /*
+-- 
+2.26.1.301.g55bc3eb7cb9-goog
