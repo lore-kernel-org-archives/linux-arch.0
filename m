@@ -1,45 +1,68 @@
-From: Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Subject: Re: [PATCH v2 5/5] uaccess: Rename user_access_begin/end() to
- user_full_access_begin/end()
-Date: Tue, 21 Apr 2020 10:12:56 +0100
-Message-ID: <20200421091256.GA25745@shell.armlinux.org.uk>
-References: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
- <42da416106d5c1cf92bda1e058434fe240b35f44.1585898438.git.christophe.leroy@c-s.fr>
- <CAHk-=wh_DY_dysMX0NuvJmMFr3+QDKOZPZqWKwLkkjgZTuyQ+A@mail.gmail.com>
- <20200403205205.GK23230@ZenIV.linux.org.uk>
- <20200421024919.GA23230@ZenIV.linux.org.uk>
+From: Baoquan He <bhe@redhat.com>
+Subject: Re: [PATCH 02/21] mm: make early_pfn_to_nid() and related defintions
+ close to each other
+Date: Tue, 21 Apr 2020 17:33:43 +0800
+Message-ID: <20200421093343.GR4247@MiWiFi-R3L-srv>
+References: <20200412194859.12663-1-rppt@kernel.org>
+ <20200412194859.12663-3-rppt@kernel.org>
+ <20200421022435.GP4247@MiWiFi-R3L-srv>
+ <20200421084935.GB14260@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56206 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726018AbgDUJNe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 21 Apr 2020 05:13:34 -0400
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <20200421024919.GA23230@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>, Will Deacon <will@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Peter Anvin <hpa@zytor.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, intel-gfx@lists.freedesktop.org
+In-Reply-To: <20200421084935.GB14260@kernel.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org
+To: Mike Rapoport <rppt@kernel.org>
+Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-c6x-dev@linux-c6x.org, Brian Cain <bcain@codeaurora.org>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 21, 2020 at 03:49:19AM +0100, Al Viro wrote:
-> 	The only source I'd been able to find speeks of >= 60 cycles
-> (and possibly much more) for non-pipelined coprocessor instructions;
-> the list of such does contain loads and stores to a bunch of registers.
-> However, the register in question (p15/c3) has only store mentioned there,
-> so loads might be cheap; no obvious reasons for those to be slow.
-> That's a question to arm folks, I'm afraid...  rmk?
+On 04/21/20 at 11:49am, Mike Rapoport wrote:
+> On Tue, Apr 21, 2020 at 10:24:35AM +0800, Baoquan He wrote:
+> > On 04/12/20 at 10:48pm, Mike Rapoport wrote:
+> > > From: Mike Rapoport <rppt@linux.ibm.com>
+> > > 
+> > > The early_pfn_to_nid() and it's helper __early_pfn_to_nid() are spread
+> > > around include/linux/mm.h, include/linux/mmzone.h and mm/page_alloc.c.
+> > > 
+> > > Drop unused stub for __early_pfn_to_nid() and move its actual generic
+> > > implementation close to its users.
+> > > 
+> > > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> > > ---
+> > >  include/linux/mm.h     |  4 ++--
+> > >  include/linux/mmzone.h |  9 --------
+> > >  mm/page_alloc.c        | 51 +++++++++++++++++++++---------------------
+> > >  3 files changed, 27 insertions(+), 37 deletions(-)
+> > > 
+> > > diff --git a/include/linux/mm.h b/include/linux/mm.h
+> > > index 5a323422d783..a404026d14d4 100644
+> > > --- a/include/linux/mm.h
+> > > +++ b/include/linux/mm.h
+> > > @@ -2388,9 +2388,9 @@ extern void sparse_memory_present_with_active_regions(int nid);
+> > >  
+> > >  #if !defined(CONFIG_HAVE_MEMBLOCK_NODE_MAP) && \
+> > >      !defined(CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID)
+> > > -static inline int __early_pfn_to_nid(unsigned long pfn,
+> > > -					struct mminit_pfnnid_cache *state)
+> > > +static inline int early_pfn_to_nid(unsigned long pfn)
+> > >  {
+> > > +	BUILD_BUG_ON(IS_ENABLED(CONFIG_NUMA));
+> > >  	return 0;
+> > >  }
+> > 
+> > It's better to make a separate patch to drop __early_pfn_to_nid() here.
+> 
+> Not sure it's really worth it.
+> This patch anyway only moves the code around without any actual changes.
 
-I have no information on that; instruction timings are not defined
-at architecture level (architecture reference manual), nor do I find
-information in the CPU technical reference manual (which would be
-specific to the CPU). Instruction timings tend to be implementation
-dependent.
-
-I've always consulted Will Deacon when I've needed to know whether
-an instruction is expensive or not.
-
--- 
-RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line in suburbia: sync at 10.2Mbps down 587kbps up
+OK, it's fine to me.
