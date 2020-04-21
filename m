@@ -1,84 +1,93 @@
-Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:23542 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726878AbgDTQUf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Apr 2020 12:20:35 -0400
-Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.42/8.16.0.42) with SMTP id 03KG3DmY022366
-        for <linux-arch@vger.kernel.org>; Mon, 20 Apr 2020 12:20:33 -0400
-Received: from e06smtp01.uk.ibm.com (e06smtp01.uk.ibm.com [195.75.94.97])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 30ghu601c4-1
-        (version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 20 Apr 2020 12:20:33 -0400
-Received: from localhost
-        by e06smtp01.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <gerald.schaefer@de.ibm.com>;
-        Mon, 20 Apr 2020 17:19:49 +0100
-Date: Mon, 20 Apr 2020 18:20:23 +0200
-From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Subject: Re: [RFC][Qusetion] the value of cleared_(ptes|pmds|puds|p4ds) in
- struct mmu_gather
-In-Reply-To: <68affa6e-44cd-37e3-cdfc-8eec31c4097e@de.ibm.com>
-References: <fbb00ac0-9104-8d25-f225-7b3d1b17a01f@huawei.com>
-        <20200330121654.GL20696@hirez.programming.kicks-ass.net>
-        <68affa6e-44cd-37e3-cdfc-8eec31c4097e@de.ibm.com>
+Return-Path: <SRS0=BI31=6F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:34892 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726946AbgDUPQB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 21 Apr 2020 11:16:01 -0400
+From: Will Deacon <will@kernel.org>
+Subject: [PATCH v4 05/11] arm64: csum: Disable KASAN for do_csum()
+Date: Tue, 21 Apr 2020 16:15:31 +0100
+Message-ID: <20200421151537.19241-6-will@kernel.org>
+In-Reply-To: <20200421151537.19241-1-will@kernel.org>
+References: <20200421151537.19241-1-will@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Message-ID: <20200420182023.6b8e143a@thinkpad>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Zhenyu Ye <yezhenyu2@huawei.com>, npiggin@gmail.com, will.deacon@arm.com, mingo@kernel.org, torvalds@linux-foundation.org, Vasily Gorbik <gor@linux.ibm.com>, akpm@linux-foundation.org, luto@kernel.org, bp@alien8.de, Marc Zyngier <maz@kernel.org>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arm@kernel.org, xiexiangyou@huawei.com, linux-s390 <linux-s390@vger.kernel.org>, Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Message-ID: <20200420162023.T8rtSiz7y5YlwIutXmDEI1OzEugZEIhJUOsMqtzmhlw@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Robin Murphy <robin.murphy@arm.com>
+Message-ID: <20200421151531.SlTAtApF8MlSPxY5Cyp29EG_9PKGgEoEtdQY-ZS9zWU@z>
 
-On Wed, 8 Apr 2020 10:51:59 +0200
-Christian Borntraeger <borntraeger@de.ibm.com> wrote:
+do_csum() over-reads the source buffer and therefore abuses
+READ_ONCE_NOCHECK() to avoid tripping up KASAN. In preparation for
+READ_ONCE_NOCHECK() becoming a macro, and therefore losing its
+'__no_sanitize_address' annotation, just annotate do_csum() explicitly
+and fall back to normal loads.
 
-[...]
-> 
-> adding Gerald and Vasily. Gerald can you have a look?
-> 
-> >>
-> >>
-> >> In my view, the cleared_(ptes|pmds|puds) and (pte|pmd|pud)_free_tlb
-> >> correspond one-to-one.  So we should set cleared_ptes in pte_free_tlb(),
-> >> then use it when needed.
-> > 
-> > So pte_free_tlb() clears a table of PTE entries, or a PMD level entity,
-> > also see free_pte_range(). So the generic code makes sense to me. The
-> > PTE level invalidations will have happened on tlb_remove_tlb_entry().
-> > 
-> >> I'm very confused about this. Which is wrong? Or is there something
-> >> I understand wrong?
-> > 
-> > I agree the s390 case is puzzling, Martin does s390 need a PTE level
-> > invalidate for removing a PTE table or was this a mistake?
-> > 
+Cc: Mark Rutland <mark.rutland@arm.com>
+Cc: Robin Murphy <robin.murphy@arm.com>
+Signed-off-by: Will Deacon <will@kernel.org>
+---
+ arch/arm64/lib/csum.c | 20 ++++++++++++--------
+ 1 file changed, 12 insertions(+), 8 deletions(-)
 
-Peter is right, the PTE level invalidations will happen before. For
-s390, not exactly at the tlb_remove_tlb_entry() itself, since
-__tlb_remove_tlb_entry() is not defined, but rather directly at the
-preceding ptep_get_and_clear(). I think this also the reason why we
-cannot easily optimize for larger granularity.
-
-Anyway, pte_free_tlb() will then later only take care of freeing
-the page table page, no further PTE level clearing/invalidation
-needed. I see no reason why s390 should behave differently from
-the generic code, wrt to cleared_pxds setting in pxd_free_tlb().
-
-So I guess this was an "off-by-one" mistake in commit 9de7d833e3708
-("s390/tlb: Convert to generic mmu_gather"), since the other
-pxd_free_tlb() functions also show similar puzzling behavior.
-Not consistently off-by-one though, as pmd_free_tlb() seems
-to behave correctly, setting tlb->cleared_puds = 1, similar to
-generic code.
-
-That was a very nice catch, Zhenyu, thanks for reporting!
-We are not yet making use of the tlb->cleared_pxds for s390, but
-we would certainly have stumbled over this if we ever tried.
-Will send a patch to make s390 behave like generic code here.
-
-Regards,
-Gerald
+diff --git a/arch/arm64/lib/csum.c b/arch/arm64/lib/csum.c
+index 60eccae2abad..78b87a64ca0a 100644
+--- a/arch/arm64/lib/csum.c
++++ b/arch/arm64/lib/csum.c
+@@ -14,7 +14,11 @@ static u64 accumulate(u64 sum, u64 data)
+ 	return tmp + (tmp >> 64);
+ }
+ 
+-unsigned int do_csum(const unsigned char *buff, int len)
++/*
++ * We over-read the buffer and this makes KASAN unhappy. Instead, disable
++ * instrumentation and call kasan explicitly.
++ */
++unsigned int __no_sanitize_address do_csum(const unsigned char *buff, int len)
+ {
+ 	unsigned int offset, shift, sum;
+ 	const u64 *ptr;
+@@ -42,7 +46,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
+ 	 * odd/even alignment, and means we can ignore it until the very end.
+ 	 */
+ 	shift = offset * 8;
+-	data = READ_ONCE_NOCHECK(*ptr++);
++	data = *ptr++;
+ #ifdef __LITTLE_ENDIAN
+ 	data = (data >> shift) << shift;
+ #else
+@@ -58,10 +62,10 @@ unsigned int do_csum(const unsigned char *buff, int len)
+ 	while (unlikely(len > 64)) {
+ 		__uint128_t tmp1, tmp2, tmp3, tmp4;
+ 
+-		tmp1 = READ_ONCE_NOCHECK(*(__uint128_t *)ptr);
+-		tmp2 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 2));
+-		tmp3 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 4));
+-		tmp4 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 6));
++		tmp1 = *(__uint128_t *)ptr;
++		tmp2 = *(__uint128_t *)(ptr + 2);
++		tmp3 = *(__uint128_t *)(ptr + 4);
++		tmp4 = *(__uint128_t *)(ptr + 6);
+ 
+ 		len -= 64;
+ 		ptr += 8;
+@@ -85,7 +89,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
+ 		__uint128_t tmp;
+ 
+ 		sum64 = accumulate(sum64, data);
+-		tmp = READ_ONCE_NOCHECK(*(__uint128_t *)ptr);
++		tmp = *(__uint128_t *)ptr;
+ 
+ 		len -= 16;
+ 		ptr += 2;
+@@ -100,7 +104,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
+ 	}
+ 	if (len > 0) {
+ 		sum64 = accumulate(sum64, data);
+-		data = READ_ONCE_NOCHECK(*ptr);
++		data = *ptr;
+ 		len -= 8;
+ 	}
+ 	/*
+-- 
+2.26.1.301.g55bc3eb7cb9-goog
