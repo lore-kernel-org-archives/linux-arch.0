@@ -1,150 +1,72 @@
-Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from relay12.mail.gandi.net ([217.70.178.232]:49317 "EHLO
-        relay12.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725774AbgDTVOn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Apr 2020 17:14:43 -0400
-Date: Mon, 20 Apr 2020 14:14:34 -0700
-From: Josh Triplett <josh@joshtriplett.org>
-Subject: Re: [PATCH v4 2/3] fs: openat2: Extend open_how to allow
- userspace-selected fds
-Message-ID: <20200420211434.GC3515@localhost>
-References: <cover.1586830316.git.josh@joshtriplett.org>
- <f969e7d45a8e83efc1ca13d675efd8775f13f376.1586830316.git.josh@joshtriplett.org>
- <20200419104404.j4e5gxdn2duvmu6s@yavin.dot.cyphar.com>
+Return-Path: <SRS0=lzY1=6F=kvack.org=owner-linux-mm@kernel.org>
+Date: Tue, 21 Apr 2020 10:30:43 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v1 6/6] arm64: tlb: Set the TTL field in flush_tlb_range
+Message-ID: <20200421083043.GP20730@hirez.programming.kicks-ass.net>
+References: <20200403090048.938-1-yezhenyu2@huawei.com>
+ <20200403090048.938-7-yezhenyu2@huawei.com>
+ <20200420121055.GF20696@hirez.programming.kicks-ass.net>
+ <20200420200616.44c7c7ea@oasis.local.home>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200419104404.j4e5gxdn2duvmu6s@yavin.dot.cyphar.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200420200616.44c7c7ea@oasis.local.home>
+Sender: owner-linux-mm@kvack.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Zhenyu Ye <yezhenyu2@huawei.com>, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Aleksa Sarai <cyphar@cyphar.com>
-Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, io-uring@vger.kernel.org, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Jens Axboe <axboe@kernel.dk>
-Message-ID: <20200420211434.ybajcGh1poGWsLamLJj_I_tvxteHYMF0E3YtgV33NxI@z>
+Message-ID: <20200421083043.-cr5MZyo8aysaeXy_Naa9Y8HaDeiWc1IWPYJgZMYBQc@z>
 
-On Sun, Apr 19, 2020 at 08:44:04PM +1000, Aleksa Sarai wrote:
-> On 2020-04-13, Josh Triplett <josh@joshtriplett.org> wrote:
-> > Inspired by the X protocol's handling of XIDs, allow userspace to select
-> > the file descriptor opened by openat2, so that it can use the resulting
-> > file descriptor in subsequent system calls without waiting for the
-> > response to openat2.
+On Mon, Apr 20, 2020 at 08:06:16PM -0400, Steven Rostedt wrote:
+> Peter Zijlstra <peterz@infradead.org> wrote:
+> > On Fri, Apr 03, 2020 at 05:00:48PM +0800, Zhenyu Ye wrote:
+
+> > > +static inline int tlb_get_level(struct mmu_gather *tlb)
+> > > +{
+> > > +	int sum = tlb->cleared_ptes + tlb->cleared_pmds +
+> > > +		  tlb->cleared_puds + tlb->cleared_p4ds;
+> > > +
+> > > +	if (sum != 1)
+> > > +		return 0;
+> > > +	else if (tlb->cleared_ptes)
+> > > +		return 3;
+> > > +	else if (tlb->cleared_pmds)
+> > > +		return 2;
+> > > +	else if (tlb->cleared_puds)
+> > > +		return 1;
+> > > +
+> > > +	return 0;
+> > > +}  
 > > 
-> > In io_uring, this allows sequences like openat2/read/close without
-> > waiting for the openat2 to complete. Multiple such sequences can
-> > overlap, as long as each uses a distinct file descriptor.
+> > That's some mighty wonky code. Please look at the generated asm.
 > 
-> I'm not sure I understand this explanation -- how can you trigger a
-> syscall with an fd that hasn't yet been registered (unless you're just
-> hoping the race goes in your favour)?
+> Without even looking at the generated asm, if a condition returns,
+> there's no reason to add an else for that condition.
 
-See the response from Jens for an explanation of how this works in
-io_uring.
+Not really the point; he wants to guarantee he only returns >0 when
+there's a single bit set. But the thing is, cleared_* is a bitfield, and
+I'm afraid that the above will result in some terrible code-gen.
 
-> > Add a new O_SPECIFIC_FD open flag to enable this behavior, only accepted
-> > by openat2 for now (ignored by open/openat like all unknown flags). Add
-> > an fd field to struct open_how (along with appropriate padding, and
-> > verify that the padding is 0 to allow replacing the padding with a field
-> > in the future).
-> > 
-> > The file table has a corresponding new function
-> > get_specific_unused_fd_flags, which gets the specified file descriptor
-> > if O_SPECIFIC_FD is set (and the fd isn't -1); otherwise it falls back
-> > to get_unused_fd_flags, to simplify callers.
-> > 
-> > The specified file descriptor must not already be open; if it is,
-> > get_specific_unused_fd_flags will fail with -EBUSY. This helps catch
-> > userspace errors.
-> > 
-> > When O_SPECIFIC_FD is set, and fd is not -1, openat2 will use the
-> > specified file descriptor rather than finding the lowest available one.
-> 
-> I still don't like that you can enable this feature with O_SPECIFIC_FD
-> but then disable it by specifying fd as -1. I understand why this is
-> needed for pipe2() and socketpair() and that's totally fine, but I don't
-> think it makes sense for openat2() or other interfaces where there's
-> only one fd being returned -- what does it mean to say "give me a
-> specific fd, but actually I don't care what it is"?
-> 
-> I know this is a trade-off between consistency of O_SPECIFIC_FD
-> interfaces and having wart-less interfaces for each syscall, but I don't
-> think it breaks consistency to say "syscalls that only give you one fd
-> don't have a second way of disabling the feature -- just don't pass
-> O_SPECIFIC_FD".
+Maybe something like:
 
-I think there's value in the orthogonality, and -1 can never be a valid
-file descriptor. If this becomes a sticking point, it could certainly be
-changed (just modify pipe2 to remove the O_SPECIFIC_FD flag if passed
--1), but at the same time, I'd rather have this logic implemented once
-with a uniform semantic no matter what syscall uses it.
+	if (tlb->cleared_ptes && !(tlb->cleared_pmds ||
+				   tlb->cleared_puds ||
+				   tlb->cleared_p4ds))
+		return 3;
 
-> >  struct open_how {
-> >  	__u64 flags;
-> >  	__u64 mode;
-> >  	__u64 resolve;
-> > +	__u32 fd;
-> > +	__u32 pad; /* Must be 0 in the current version */
-> 
-> Small nit: This field should be called __padding to make it more
-> explicit it's something internal and shouldn't be looked at by
-> userspace. And the comment should just be "must be zeroed".
+	if (tlb->cleared_pmds && !(tlb->cleared_ptes ||
+				   tlb->cleared_puds ||
+				   tlb->cleared_p4ds))
+		return 2;
 
-Good point. Done in v5.
+	if (tlb->cleared_puds && !(tlb->cleared_ptes ||
+				   tlb->cleared_pmds ||
+				   tlb->cleared_p4ds))
+		return 1;
 
-> > --- a/tools/testing/selftests/openat2/openat2_test.c
-> > +++ b/tools/testing/selftests/openat2/openat2_test.c
-> > @@ -40,7 +40,7 @@ struct struct_test {
-> >  	int err;
-> >  };
-> >  
-> > -#define NUM_OPENAT2_STRUCT_TESTS 7
-> > +#define NUM_OPENAT2_STRUCT_TESTS 8
-> >  #define NUM_OPENAT2_STRUCT_VARIATIONS 13
-> >  
-> >  void test_openat2_struct(void)
-> > @@ -52,6 +52,9 @@ void test_openat2_struct(void)
-> >  		{ .name = "normal struct",
-> >  		  .arg.inner.flags = O_RDONLY,
-> >  		  .size = sizeof(struct open_how) },
-> > +		{ .name = "v0 struct",
-> > +		  .arg.inner.flags = O_RDONLY,
-> > +		  .size = OPEN_HOW_SIZE_VER0 },
-> >  		/* Bigger struct, with zeroed out end. */
-> >  		{ .name = "bigger struct (zeroed out)",
-> >  		  .arg.inner.flags = O_RDONLY,
-> > @@ -155,7 +158,7 @@ struct flag_test {
-> >  	int err;
-> >  };
-> >  
-> > -#define NUM_OPENAT2_FLAG_TESTS 23
-> > +#define NUM_OPENAT2_FLAG_TESTS 29
-> >  
-> >  void test_openat2_flags(void)
-> >  {
-> > @@ -223,6 +226,24 @@ void test_openat2_flags(void)
-> >  		{ .name = "invalid how.resolve and O_PATH",
-> >  		  .how.flags = O_PATH,
-> >  		  .how.resolve = 0x1337, .err = -EINVAL },
-> > +
-> > +		/* O_SPECIFIC_FD tests */
-> > +		{ .name = "O_SPECIFIC_FD",
-> > +		  .how.flags = O_RDONLY | O_SPECIFIC_FD, .how.fd = 42 },
-> > +		{ .name = "O_SPECIFIC_FD if fd exists",
-> > +		  .how.flags = O_RDONLY | O_SPECIFIC_FD, .how.fd = 2,
-> > +		  .err = -EBUSY },
-> > +		{ .name = "O_SPECIFIC_FD with fd -1",
-> > +		  .how.flags = O_RDONLY | O_SPECIFIC_FD, .how.fd = -1 },
-> > +		{ .name = "fd without O_SPECIFIC_FD",
-> > +		  .how.flags = O_RDONLY, .how.fd = 42,
-> > +		  .err = -EINVAL },
-> > +		{ .name = "fd -1 without O_SPECIFIC_FD",
-> > +		  .how.flags = O_RDONLY, .how.fd = -1,
-> > +		  .err = -EINVAL },
-> > +		{ .name = "existing fd without O_SPECIFIC_FD",
-> > +		  .how.flags = O_RDONLY, .how.fd = 2,
-> > +		  .err = -EINVAL },
-> 
-> It would be good to add a test to make sure that a non-zero value of
-> how->__padding also gives -EINVAL.
+	return 0;
 
-Done in v5.
+Which I admit is far too much typing, but I suspect it generates far
+saner code (just a few masks and branches).
 
-- Josh Triplett
+But maybe the compiler surprises us, what do I konw.
