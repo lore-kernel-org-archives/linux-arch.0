@@ -1,38 +1,36 @@
-From: Masahiro Yamada <masahiroy@kernel.org>
-Subject: Re: [PATCH v4 11/11] gcov: Remove old GCC 3.4 support
-Date: Wed, 22 Apr 2020 02:19:43 +0900
-Message-ID: <CAK7LNATuvjY=SKuc-otRg0zPoJZeKOoTFzdyuyY_9X78p+twxQ@mail.gmail.com>
-References: <20200421151537.19241-1-will@kernel.org> <20200421151537.19241-12-will@kernel.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH v2 5/5] uaccess: Rename user_access_begin/end() to user_full_access_begin/end()
+Date: Tue, 21 Apr 2020 11:34:04 -0700
+Message-ID: <CAHk-=wiuHxXwuPynLFh-fYjuUE3_HNPh79e_P6MFMbq4Ki+QCw@mail.gmail.com>
+References: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
+ <42da416106d5c1cf92bda1e058434fe240b35f44.1585898438.git.christophe.leroy@c-s.fr>
+ <CAHk-=wh_DY_dysMX0NuvJmMFr3+QDKOZPZqWKwLkkjgZTuyQ+A@mail.gmail.com>
+ <20200403205205.GK23230@ZenIV.linux.org.uk> <20200421024919.GA23230@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-04.nifty.com ([210.131.2.83]:52159 "EHLO
-        conssluserg-04.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725990AbgDURUm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Apr 2020 13:20:42 -0400
-In-Reply-To: <20200421151537.19241-12-will@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "Cc: Android Kernel" <kernel-team@android.com>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Nick Desaulniers <ndesaulniers@google.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200421024919.GA23230@ZenIV.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Peter Anvin <hpa@zytor.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, intel-gfx@lists.freedesktop.org, Russell King <linux@armlinux.org.uk>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 22, 2020 at 12:16 AM Will Deacon <will@kernel.org> wrote:
+On Mon, Apr 20, 2020 at 7:49 PM Al Viro <viro@zeniv.linux.org.uk> wrote:
 >
-> The kernel requires at least GCC 4.8 in order to build, and so there is
-> no need to cater for the pre-4.7 gcov format.
->
-> Remove the obsolete code.
->
-> Acked-by: Peter Oberparleiter <oberpar@linux.ibm.com>
-> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-> Signed-off-by: Will Deacon <will@kernel.org>
+>         The only source I'd been able to find speaks of >= 60 cycles
+> (and possibly much more) for non-pipelined coprocessor instructions;
+> the list of such does contain loads and stores to a bunch of registers.
+> However, the register in question (p15/c3) has only store mentioned there,
+> so loads might be cheap; no obvious reasons for those to be slow.
+> That's a question to arm folks, I'm afraid...  rmk?
 
+_If_ it turns out to be expensive, is there any reason we couldn't
+just cache the value in general?
 
-Reviewed-by: Masahiro Yamada <masahiroy@kernel.org>
+That's what x86 tends to do with expensive system registers. One
+example would be "msr_misc_features_shadow".
 
-Thanks!
+But maybe that's something to worry about when/if it turns out to
+actually be a problem?
 
-
--- 
-Best Regards
-Masahiro Yamada
+                 Linus
