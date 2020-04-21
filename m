@@ -1,337 +1,660 @@
-Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 04/20] mm: free_area_init: use maximal zone PFNs rather than zone sizes
-Date: Wed, 29 Apr 2020 15:11:10 +0300
-Message-ID: <20200429121126.17989-5-rppt@kernel.org>
-In-Reply-To: <20200429121126.17989-1-rppt@kernel.org>
-References: <20200429121126.17989-1-rppt@kernel.org>
+Return-Path: <SRS0=BI31=6F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:35400 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728668AbgDUPQS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 21 Apr 2020 11:16:18 -0400
+From: Will Deacon <will@kernel.org>
+Subject: [PATCH v4 11/11] gcov: Remove old GCC 3.4 support
+Date: Tue, 21 Apr 2020 16:15:37 +0100
+Message-ID: <20200421151537.19241-12-will@kernel.org>
+In-Reply-To: <20200421151537.19241-1-will@kernel.org>
+References: <20200421151537.19241-1-will@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Baoquan He <bhe@redhat.com>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Qian Cai <cai@lca.pw>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429121110.s9_XhOBbSzv0MC3721yyczZm2JhKsLCkLutE64lbBUw@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200421151537.fztXo37DVWO89q4oBilLYmfV5_ynbPN3ncc9DfhTNCw@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+The kernel requires at least GCC 4.8 in order to build, and so there is
+no need to cater for the pre-4.7 gcov format.
 
-Currently, architectures that use free_area_init() to initialize memory m=
-ap
-and node and zone structures need to calculate zone and hole sizes. We ca=
-n
-use free_area_init_nodes() instead and let it detect the zone boundaries
-while the architectures will only have to supply the possible limits for
-the zones.
+Remove the obsolete code.
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Acked-by: Peter Oberparleiter <oberpar@linux.ibm.com>
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+Signed-off-by: Will Deacon <will@kernel.org>
 ---
- arch/alpha/mm/init.c    | 16 ++++++----------
- arch/c6x/mm/init.c      |  8 +++-----
- arch/h8300/mm/init.c    |  6 +++---
- arch/hexagon/mm/init.c  |  6 +++---
- arch/m68k/mm/init.c     |  6 +++---
- arch/m68k/mm/mcfmmu.c   |  9 +++------
- arch/nds32/mm/init.c    | 11 ++++-------
- arch/nios2/mm/init.c    |  8 +++-----
- arch/openrisc/mm/init.c |  9 +++------
- arch/um/kernel/mem.c    | 12 ++++--------
- include/linux/mm.h      |  2 +-
- mm/page_alloc.c         |  5 ++---
- 12 files changed, 38 insertions(+), 60 deletions(-)
+ kernel/gcov/Kconfig   |  24 --
+ kernel/gcov/Makefile  |   3 +-
+ kernel/gcov/gcc_3_4.c | 573 ------------------------------------------
+ 3 files changed, 1 insertion(+), 599 deletions(-)
+ delete mode 100644 kernel/gcov/gcc_3_4.c
 
-diff --git a/arch/alpha/mm/init.c b/arch/alpha/mm/init.c
-index 12e218d3792a..667cd21393b5 100644
---- a/arch/alpha/mm/init.c
-+++ b/arch/alpha/mm/init.c
-@@ -243,21 +243,17 @@ callback_init(void * kernel_end)
-  */
- void __init paging_init(void)
- {
--	unsigned long zones_size[MAX_NR_ZONES] =3D {0, };
--	unsigned long dma_pfn, high_pfn;
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D {0, };
-+	unsigned long dma_pfn;
-=20
- 	dma_pfn =3D virt_to_phys((char *)MAX_DMA_ADDRESS) >> PAGE_SHIFT;
--	high_pfn =3D max_pfn =3D max_low_pfn;
-+	max_pfn =3D max_low_pfn;
-=20
--	if (dma_pfn >=3D high_pfn)
--		zones_size[ZONE_DMA] =3D high_pfn;
--	else {
--		zones_size[ZONE_DMA] =3D dma_pfn;
--		zones_size[ZONE_NORMAL] =3D high_pfn - dma_pfn;
+diff --git a/kernel/gcov/Kconfig b/kernel/gcov/Kconfig
+index 3941a9c48f83..feaad597b3f4 100644
+--- a/kernel/gcov/Kconfig
++++ b/kernel/gcov/Kconfig
+@@ -51,28 +51,4 @@ config GCOV_PROFILE_ALL
+ 	larger and run slower. Also be sure to exclude files from profiling
+ 	which are not linked to the kernel image to prevent linker errors.
+ 
+-choice
+-	prompt "Specify GCOV format"
+-	depends on GCOV_KERNEL
+-	depends on CC_IS_GCC
+-	---help---
+-	The gcov format is usually determined by the GCC version, and the
+-	default is chosen according to your GCC version. However, there are
+-	exceptions where format changes are integrated in lower-version GCCs.
+-	In such a case, change this option to adjust the format used in the
+-	kernel accordingly.
+-
+-config GCOV_FORMAT_3_4
+-	bool "GCC 3.4 format"
+-	depends on GCC_VERSION < 40700
+-	---help---
+-	Select this option to use the format defined by GCC 3.4.
+-
+-config GCOV_FORMAT_4_7
+-	bool "GCC 4.7 format"
+-	---help---
+-	Select this option to use the format defined by GCC 4.7.
+-
+-endchoice
+-
+ endmenu
+diff --git a/kernel/gcov/Makefile b/kernel/gcov/Makefile
+index d66a74b0f100..16f8ecc7d882 100644
+--- a/kernel/gcov/Makefile
++++ b/kernel/gcov/Makefile
+@@ -2,6 +2,5 @@
+ ccflags-y := -DSRCTREE='"$(srctree)"' -DOBJTREE='"$(objtree)"'
+ 
+ obj-y := base.o fs.o
+-obj-$(CONFIG_GCOV_FORMAT_3_4) += gcc_base.o gcc_3_4.o
+-obj-$(CONFIG_GCOV_FORMAT_4_7) += gcc_base.o gcc_4_7.o
++obj-$(CONFIG_CC_IS_GCC) += gcc_base.o gcc_4_7.o
+ obj-$(CONFIG_CC_IS_CLANG) += clang.o
+diff --git a/kernel/gcov/gcc_3_4.c b/kernel/gcov/gcc_3_4.c
+deleted file mode 100644
+index acb83558e5df..000000000000
+--- a/kernel/gcov/gcc_3_4.c
++++ /dev/null
+@@ -1,573 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0
+-/*
+- *  This code provides functions to handle gcc's profiling data format
+- *  introduced with gcc 3.4. Future versions of gcc may change the gcov
+- *  format (as happened before), so all format-specific information needs
+- *  to be kept modular and easily exchangeable.
+- *
+- *  This file is based on gcc-internal definitions. Functions and data
+- *  structures are defined to be compatible with gcc counterparts.
+- *  For a better understanding, refer to gcc source: gcc/gcov-io.h.
+- *
+- *    Copyright IBM Corp. 2009
+- *    Author(s): Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
+- *
+- *    Uses gcc-internal data definitions.
+- */
+-
+-#include <linux/errno.h>
+-#include <linux/slab.h>
+-#include <linux/string.h>
+-#include <linux/seq_file.h>
+-#include <linux/vmalloc.h>
+-#include "gcov.h"
+-
+-#define GCOV_COUNTERS		5
+-
+-static struct gcov_info *gcov_info_head;
+-
+-/**
+- * struct gcov_fn_info - profiling meta data per function
+- * @ident: object file-unique function identifier
+- * @checksum: function checksum
+- * @n_ctrs: number of values per counter type belonging to this function
+- *
+- * This data is generated by gcc during compilation and doesn't change
+- * at run-time.
+- */
+-struct gcov_fn_info {
+-	unsigned int ident;
+-	unsigned int checksum;
+-	unsigned int n_ctrs[];
+-};
+-
+-/**
+- * struct gcov_ctr_info - profiling data per counter type
+- * @num: number of counter values for this type
+- * @values: array of counter values for this type
+- * @merge: merge function for counter values of this type (unused)
+- *
+- * This data is generated by gcc during compilation and doesn't change
+- * at run-time with the exception of the values array.
+- */
+-struct gcov_ctr_info {
+-	unsigned int	num;
+-	gcov_type	*values;
+-	void		(*merge)(gcov_type *, unsigned int);
+-};
+-
+-/**
+- * struct gcov_info - profiling data per object file
+- * @version: gcov version magic indicating the gcc version used for compilation
+- * @next: list head for a singly-linked list
+- * @stamp: time stamp
+- * @filename: name of the associated gcov data file
+- * @n_functions: number of instrumented functions
+- * @functions: function data
+- * @ctr_mask: mask specifying which counter types are active
+- * @counts: counter data per counter type
+- *
+- * This data is generated by gcc during compilation and doesn't change
+- * at run-time with the exception of the next pointer.
+- */
+-struct gcov_info {
+-	unsigned int			version;
+-	struct gcov_info		*next;
+-	unsigned int			stamp;
+-	const char			*filename;
+-	unsigned int			n_functions;
+-	const struct gcov_fn_info	*functions;
+-	unsigned int			ctr_mask;
+-	struct gcov_ctr_info		counts[];
+-};
+-
+-/**
+- * gcov_info_filename - return info filename
+- * @info: profiling data set
+- */
+-const char *gcov_info_filename(struct gcov_info *info)
+-{
+-	return info->filename;
+-}
+-
+-/**
+- * gcov_info_version - return info version
+- * @info: profiling data set
+- */
+-unsigned int gcov_info_version(struct gcov_info *info)
+-{
+-	return info->version;
+-}
+-
+-/**
+- * gcov_info_next - return next profiling data set
+- * @info: profiling data set
+- *
+- * Returns next gcov_info following @info or first gcov_info in the chain if
+- * @info is %NULL.
+- */
+-struct gcov_info *gcov_info_next(struct gcov_info *info)
+-{
+-	if (!info)
+-		return gcov_info_head;
+-
+-	return info->next;
+-}
+-
+-/**
+- * gcov_info_link - link/add profiling data set to the list
+- * @info: profiling data set
+- */
+-void gcov_info_link(struct gcov_info *info)
+-{
+-	info->next = gcov_info_head;
+-	gcov_info_head = info;
+-}
+-
+-/**
+- * gcov_info_unlink - unlink/remove profiling data set from the list
+- * @prev: previous profiling data set
+- * @info: profiling data set
+- */
+-void gcov_info_unlink(struct gcov_info *prev, struct gcov_info *info)
+-{
+-	if (prev)
+-		prev->next = info->next;
+-	else
+-		gcov_info_head = info->next;
+-}
+-
+-/**
+- * gcov_info_within_module - check if a profiling data set belongs to a module
+- * @info: profiling data set
+- * @mod: module
+- *
+- * Returns true if profiling data belongs module, false otherwise.
+- */
+-bool gcov_info_within_module(struct gcov_info *info, struct module *mod)
+-{
+-	return within_module((unsigned long)info, mod);
+-}
+-
+-/* Symbolic links to be created for each profiling data file. */
+-const struct gcov_link gcov_link[] = {
+-	{ OBJ_TREE, "gcno" },	/* Link to .gcno file in $(objtree). */
+-	{ 0, NULL},
+-};
+-
+-/*
+- * Determine whether a counter is active. Based on gcc magic. Doesn't change
+- * at run-time.
+- */
+-static int counter_active(struct gcov_info *info, unsigned int type)
+-{
+-	return (1 << type) & info->ctr_mask;
+-}
+-
+-/* Determine number of active counters. Based on gcc magic. */
+-static unsigned int num_counter_active(struct gcov_info *info)
+-{
+-	unsigned int i;
+-	unsigned int result = 0;
+-
+-	for (i = 0; i < GCOV_COUNTERS; i++) {
+-		if (counter_active(info, i))
+-			result++;
 -	}
-+	max_zone_pfn[ZONE_DMA] =3D dma_pfn;
-+	max_zone_pfn[ZONE_NORMAL] =3D max_pfn;
-=20
- 	/* Initialize mem_map[].  */
--	free_area_init(zones_size);
-+	free_area_init(max_zone_pfn);
-=20
- 	/* Initialize the kernel's ZERO_PGE. */
- 	memset((void *)ZERO_PGE, 0, PAGE_SIZE);
-diff --git a/arch/c6x/mm/init.c b/arch/c6x/mm/init.c
-index 9b374393a8f4..a97e51a3e26d 100644
---- a/arch/c6x/mm/init.c
-+++ b/arch/c6x/mm/init.c
-@@ -33,7 +33,7 @@ EXPORT_SYMBOL(empty_zero_page);
- void __init paging_init(void)
- {
- 	struct pglist_data *pgdat =3D NODE_DATA(0);
--	unsigned long zones_size[MAX_NR_ZONES] =3D {0, };
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D {0, };
-=20
- 	empty_zero_page      =3D (unsigned long) memblock_alloc(PAGE_SIZE,
- 							      PAGE_SIZE);
-@@ -49,11 +49,9 @@ void __init paging_init(void)
- 	/*
- 	 * Define zones
- 	 */
--	zones_size[ZONE_NORMAL] =3D (memory_end - PAGE_OFFSET) >> PAGE_SHIFT;
--	pgdat->node_zones[ZONE_NORMAL].zone_start_pfn =3D
--		__pa(PAGE_OFFSET) >> PAGE_SHIFT;
-+	max_zone_pfn[ZONE_NORMAL] =3D memory_end >> PAGE_SHIFT;
-=20
--	free_area_init(zones_size);
-+	free_area_init(max_zone_pfn);
- }
-=20
- void __init mem_init(void)
-diff --git a/arch/h8300/mm/init.c b/arch/h8300/mm/init.c
-index 1eab16b1a0bc..27a0020e3771 100644
---- a/arch/h8300/mm/init.c
-+++ b/arch/h8300/mm/init.c
-@@ -83,10 +83,10 @@ void __init paging_init(void)
- 		 start_mem, end_mem);
-=20
- 	{
--		unsigned long zones_size[MAX_NR_ZONES] =3D {0, };
-+		unsigned long max_zone_pfn[MAX_NR_ZONES] =3D {0, };
-=20
--		zones_size[ZONE_NORMAL] =3D (end_mem - PAGE_OFFSET) >> PAGE_SHIFT;
--		free_area_init(zones_size);
-+		max_zone_pfn[ZONE_NORMAL] =3D end_mem >> PAGE_SHIFT;
-+		free_area_init(max_zone_pfn);
- 	}
- }
-=20
-diff --git a/arch/hexagon/mm/init.c b/arch/hexagon/mm/init.c
-index c961773a6fff..f2e6c868e477 100644
---- a/arch/hexagon/mm/init.c
-+++ b/arch/hexagon/mm/init.c
-@@ -91,7 +91,7 @@ void sync_icache_dcache(pte_t pte)
-  */
- void __init paging_init(void)
- {
--	unsigned long zones_sizes[MAX_NR_ZONES] =3D {0, };
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D {0, };
-=20
- 	/*
- 	 *  This is not particularly well documented anywhere, but
-@@ -101,9 +101,9 @@ void __init paging_init(void)
- 	 *  adjust accordingly.
- 	 */
-=20
--	zones_sizes[ZONE_NORMAL] =3D max_low_pfn;
-+	max_zone_pfn[ZONE_NORMAL] =3D max_low_pfn;
-=20
--	free_area_init(zones_sizes);  /*  sets up the zonelists and mem_map  */
-+	free_area_init(max_zone_pfn);  /*  sets up the zonelists and mem_map  *=
-/
-=20
- 	/*
- 	 * Start of high memory area.  Will probably need something more
-diff --git a/arch/m68k/mm/init.c b/arch/m68k/mm/init.c
-index b88d510d4fe3..6d3147662ff2 100644
---- a/arch/m68k/mm/init.c
-+++ b/arch/m68k/mm/init.c
-@@ -84,7 +84,7 @@ void __init paging_init(void)
- 	 * page_alloc get different views of the world.
- 	 */
- 	unsigned long end_mem =3D memory_end & PAGE_MASK;
--	unsigned long zones_size[MAX_NR_ZONES] =3D { 0, };
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D { 0, };
-=20
- 	high_memory =3D (void *) end_mem;
-=20
-@@ -98,8 +98,8 @@ void __init paging_init(void)
- 	 */
- 	set_fs (USER_DS);
-=20
--	zones_size[ZONE_DMA] =3D (end_mem - PAGE_OFFSET) >> PAGE_SHIFT;
--	free_area_init(zones_size);
-+	max_zone_pfn[ZONE_DMA] =3D end_mem >> PAGE_SHIFT;
-+	free_area_init(max_zone_pfn);
- }
-=20
- #endif /* CONFIG_MMU */
-diff --git a/arch/m68k/mm/mcfmmu.c b/arch/m68k/mm/mcfmmu.c
-index 0ea375607767..80064e6d064f 100644
---- a/arch/m68k/mm/mcfmmu.c
-+++ b/arch/m68k/mm/mcfmmu.c
-@@ -39,7 +39,7 @@ void __init paging_init(void)
- 	pte_t *pg_table;
- 	unsigned long address, size;
- 	unsigned long next_pgtable, bootmem_end;
--	unsigned long zones_size[MAX_NR_ZONES];
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D { 0 };
- 	enum zone_type zone;
- 	int i;
-=20
-@@ -80,11 +80,8 @@ void __init paging_init(void)
- 	}
-=20
- 	current->mm =3D NULL;
+-	return result;
+-}
 -
--	for (zone =3D 0; zone < MAX_NR_ZONES; zone++)
--		zones_size[zone] =3D 0x0;
--	zones_size[ZONE_DMA] =3D num_pages;
--	free_area_init(zones_size);
-+	max_zone_pfn[ZONE_DMA] =3D PFN_DOWN(_ramend);
-+	free_area_init(max_zone_pfn);
- }
-=20
- int cf_tlb_miss(struct pt_regs *regs, int write, int dtlb, int extension=
-_word)
-diff --git a/arch/nds32/mm/init.c b/arch/nds32/mm/init.c
-index 0be3833f6814..91147cca4b64 100644
---- a/arch/nds32/mm/init.c
-+++ b/arch/nds32/mm/init.c
-@@ -31,16 +31,13 @@ EXPORT_SYMBOL(empty_zero_page);
-=20
- static void __init zone_sizes_init(void)
- {
--	unsigned long zones_size[MAX_NR_ZONES];
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D { 0 };
-=20
--	/* Clear the zone sizes */
--	memset(zones_size, 0, sizeof(zones_size));
+-/**
+- * gcov_info_reset - reset profiling data to zero
+- * @info: profiling data set
+- */
+-void gcov_info_reset(struct gcov_info *info)
+-{
+-	unsigned int active = num_counter_active(info);
+-	unsigned int i;
 -
--	zones_size[ZONE_NORMAL] =3D max_low_pfn;
-+	max_zone_pfn[ZONE_NORMAL] =3D max_low_pfn;
- #ifdef CONFIG_HIGHMEM
--	zones_size[ZONE_HIGHMEM] =3D max_pfn;
-+	max_zone_pfn[ZONE_HIGHMEM] =3D max_pfn;
- #endif
--	free_area_init(zones_size);
-+	free_area_init(max_zone_pfn);
-=20
- }
-=20
-diff --git a/arch/nios2/mm/init.c b/arch/nios2/mm/init.c
-index 2c609c2516b2..9afca77d10b1 100644
---- a/arch/nios2/mm/init.c
-+++ b/arch/nios2/mm/init.c
-@@ -46,17 +46,15 @@ pgd_t *pgd_current;
-  */
- void __init paging_init(void)
- {
--	unsigned long zones_size[MAX_NR_ZONES];
+-	for (i = 0; i < active; i++) {
+-		memset(info->counts[i].values, 0,
+-		       info->counts[i].num * sizeof(gcov_type));
+-	}
+-}
 -
--	memset(zones_size, 0, sizeof(zones_size));
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D { 0 };
-=20
- 	pagetable_init();
- 	pgd_current =3D swapper_pg_dir;
-=20
--	zones_size[ZONE_NORMAL] =3D max_mapnr;
-+	max_zone_pfn[ZONE_NORMAL] =3D max_mapnr;
-=20
- 	/* pass the memory from the bootmem allocator to the main allocator */
--	free_area_init(zones_size);
-+	free_area_init(max_zone_pfn);
-=20
- 	flush_dcache_range((unsigned long)empty_zero_page,
- 			(unsigned long)empty_zero_page + PAGE_SIZE);
-diff --git a/arch/openrisc/mm/init.c b/arch/openrisc/mm/init.c
-index 1f87b524db78..f94fe6d3f499 100644
---- a/arch/openrisc/mm/init.c
-+++ b/arch/openrisc/mm/init.c
-@@ -45,17 +45,14 @@ DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
-=20
- static void __init zone_sizes_init(void)
- {
--	unsigned long zones_size[MAX_NR_ZONES];
+-/**
+- * gcov_info_is_compatible - check if profiling data can be added
+- * @info1: first profiling data set
+- * @info2: second profiling data set
+- *
+- * Returns non-zero if profiling data can be added, zero otherwise.
+- */
+-int gcov_info_is_compatible(struct gcov_info *info1, struct gcov_info *info2)
+-{
+-	return (info1->stamp == info2->stamp);
+-}
 -
--	/* Clear the zone sizes */
--	memset(zones_size, 0, sizeof(zones_size));
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D { 0 };
-=20
- 	/*
- 	 * We use only ZONE_NORMAL
- 	 */
--	zones_size[ZONE_NORMAL] =3D max_low_pfn;
-+	max_zone_pfn[ZONE_NORMAL] =3D max_low_pfn;
-=20
--	free_area_init(zones_size);
-+	free_area_init(max_zone_pfn);
- }
-=20
- extern const char _s_kernel_ro[], _e_kernel_ro[];
-diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
-index 30885d0b94ac..401b22f14743 100644
---- a/arch/um/kernel/mem.c
-+++ b/arch/um/kernel/mem.c
-@@ -158,8 +158,8 @@ static void __init fixaddr_user_init( void)
-=20
- void __init paging_init(void)
- {
--	unsigned long zones_size[MAX_NR_ZONES], vaddr;
+-/**
+- * gcov_info_add - add up profiling data
+- * @dest: profiling data set to which data is added
+- * @source: profiling data set which is added
+- *
+- * Adds profiling counts of @source to @dest.
+- */
+-void gcov_info_add(struct gcov_info *dest, struct gcov_info *source)
+-{
+-	unsigned int i;
+-	unsigned int j;
+-
+-	for (i = 0; i < num_counter_active(dest); i++) {
+-		for (j = 0; j < dest->counts[i].num; j++) {
+-			dest->counts[i].values[j] +=
+-				source->counts[i].values[j];
+-		}
+-	}
+-}
+-
+-/* Get size of function info entry. Based on gcc magic. */
+-static size_t get_fn_size(struct gcov_info *info)
+-{
+-	size_t size;
+-
+-	size = sizeof(struct gcov_fn_info) + num_counter_active(info) *
+-	       sizeof(unsigned int);
+-	if (__alignof__(struct gcov_fn_info) > sizeof(unsigned int))
+-		size = ALIGN(size, __alignof__(struct gcov_fn_info));
+-	return size;
+-}
+-
+-/* Get address of function info entry. Based on gcc magic. */
+-static struct gcov_fn_info *get_fn_info(struct gcov_info *info, unsigned int fn)
+-{
+-	return (struct gcov_fn_info *)
+-		((char *) info->functions + fn * get_fn_size(info));
+-}
+-
+-/**
+- * gcov_info_dup - duplicate profiling data set
+- * @info: profiling data set to duplicate
+- *
+- * Return newly allocated duplicate on success, %NULL on error.
+- */
+-struct gcov_info *gcov_info_dup(struct gcov_info *info)
+-{
+-	struct gcov_info *dup;
+-	unsigned int i;
+-	unsigned int active;
+-
+-	/* Duplicate gcov_info. */
+-	active = num_counter_active(info);
+-	dup = kzalloc(struct_size(dup, counts, active), GFP_KERNEL);
+-	if (!dup)
+-		return NULL;
+-	dup->version		= info->version;
+-	dup->stamp		= info->stamp;
+-	dup->n_functions	= info->n_functions;
+-	dup->ctr_mask		= info->ctr_mask;
+-	/* Duplicate filename. */
+-	dup->filename		= kstrdup(info->filename, GFP_KERNEL);
+-	if (!dup->filename)
+-		goto err_free;
+-	/* Duplicate table of functions. */
+-	dup->functions = kmemdup(info->functions, info->n_functions *
+-				 get_fn_size(info), GFP_KERNEL);
+-	if (!dup->functions)
+-		goto err_free;
+-	/* Duplicate counter arrays. */
+-	for (i = 0; i < active ; i++) {
+-		struct gcov_ctr_info *ctr = &info->counts[i];
+-		size_t size = ctr->num * sizeof(gcov_type);
+-
+-		dup->counts[i].num = ctr->num;
+-		dup->counts[i].merge = ctr->merge;
+-		dup->counts[i].values = vmalloc(size);
+-		if (!dup->counts[i].values)
+-			goto err_free;
+-		memcpy(dup->counts[i].values, ctr->values, size);
+-	}
+-	return dup;
+-
+-err_free:
+-	gcov_info_free(dup);
+-	return NULL;
+-}
+-
+-/**
+- * gcov_info_free - release memory for profiling data set duplicate
+- * @info: profiling data set duplicate to free
+- */
+-void gcov_info_free(struct gcov_info *info)
+-{
+-	unsigned int active = num_counter_active(info);
+-	unsigned int i;
+-
+-	for (i = 0; i < active ; i++)
+-		vfree(info->counts[i].values);
+-	kfree(info->functions);
+-	kfree(info->filename);
+-	kfree(info);
+-}
+-
+-/**
+- * struct type_info - iterator helper array
+- * @ctr_type: counter type
+- * @offset: index of the first value of the current function for this type
+- *
+- * This array is needed to convert the in-memory data format into the in-file
+- * data format:
+- *
+- * In-memory:
+- *   for each counter type
+- *     for each function
+- *       values
+- *
+- * In-file:
+- *   for each function
+- *     for each counter type
+- *       values
+- *
+- * See gcc source gcc/gcov-io.h for more information on data organization.
+- */
+-struct type_info {
+-	int ctr_type;
+-	unsigned int offset;
+-};
+-
+-/**
+- * struct gcov_iterator - specifies current file position in logical records
+- * @info: associated profiling data
+- * @record: record type
+- * @function: function number
+- * @type: counter type
+- * @count: index into values array
+- * @num_types: number of counter types
+- * @type_info: helper array to get values-array offset for current function
+- */
+-struct gcov_iterator {
+-	struct gcov_info *info;
+-
+-	int record;
+-	unsigned int function;
+-	unsigned int type;
+-	unsigned int count;
+-
+-	int num_types;
+-	struct type_info type_info[];
+-};
+-
+-static struct gcov_fn_info *get_func(struct gcov_iterator *iter)
+-{
+-	return get_fn_info(iter->info, iter->function);
+-}
+-
+-static struct type_info *get_type(struct gcov_iterator *iter)
+-{
+-	return &iter->type_info[iter->type];
+-}
+-
+-/**
+- * gcov_iter_new - allocate and initialize profiling data iterator
+- * @info: profiling data set to be iterated
+- *
+- * Return file iterator on success, %NULL otherwise.
+- */
+-struct gcov_iterator *gcov_iter_new(struct gcov_info *info)
+-{
+-	struct gcov_iterator *iter;
+-
+-	iter = kzalloc(struct_size(iter, type_info, num_counter_active(info)),
+-		       GFP_KERNEL);
+-	if (iter)
+-		iter->info = info;
+-
+-	return iter;
+-}
+-
+-/**
+- * gcov_iter_free - release memory for iterator
+- * @iter: file iterator to free
+- */
+-void gcov_iter_free(struct gcov_iterator *iter)
+-{
+-	kfree(iter);
+-}
+-
+-/**
+- * gcov_iter_get_info - return profiling data set for given file iterator
+- * @iter: file iterator
+- */
+-struct gcov_info *gcov_iter_get_info(struct gcov_iterator *iter)
+-{
+-	return iter->info;
+-}
+-
+-/**
+- * gcov_iter_start - reset file iterator to starting position
+- * @iter: file iterator
+- */
+-void gcov_iter_start(struct gcov_iterator *iter)
+-{
 -	int i;
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D { 0 };
-+	unsigned long vaddr;
-=20
- 	empty_zero_page =3D (unsigned long *) memblock_alloc_low(PAGE_SIZE,
- 							       PAGE_SIZE);
-@@ -167,12 +167,8 @@ void __init paging_init(void)
- 		panic("%s: Failed to allocate %lu bytes align=3D%lx\n",
- 		      __func__, PAGE_SIZE, PAGE_SIZE);
-=20
--	for (i =3D 0; i < ARRAY_SIZE(zones_size); i++)
--		zones_size[i] =3D 0;
 -
--	zones_size[ZONE_NORMAL] =3D (end_iomem >> PAGE_SHIFT) -
--		(uml_physmem >> PAGE_SHIFT);
--	free_area_init(zones_size);
-+	max_zone_pfn[ZONE_NORMAL] =3D end_iomem >> PAGE_SHIFT;
-+	free_area_init(max_zone_pfn);
-=20
- 	/*
- 	 * Fixed mappings, only the page table structure has to be
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 5903bbbdb336..d9a256a97ac5 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2272,7 +2272,7 @@ static inline spinlock_t *pud_lock(struct mm_struct=
- *mm, pud_t *pud)
- }
-=20
- extern void __init pagecache_init(void);
--extern void free_area_init(unsigned long * zones_size);
-+extern void free_area_init(unsigned long * max_zone_pfn);
- extern void __init free_area_init_node(int nid, unsigned long * zones_si=
-ze,
- 		unsigned long zone_start_pfn, unsigned long *zholes_size);
- extern void free_initmem(void);
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 4530e9cfd9f7..530701b38bc7 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -7700,11 +7700,10 @@ void __init set_dma_reserve(unsigned long new_dma=
-_reserve)
- 	dma_reserve =3D new_dma_reserve;
- }
-=20
--void __init free_area_init(unsigned long *zones_size)
-+void __init free_area_init(unsigned long *max_zone_pfn)
- {
- 	init_unavailable_mem();
--	free_area_init_node(0, zones_size,
--			__pa(PAGE_OFFSET) >> PAGE_SHIFT, NULL);
-+	free_area_init_nodes(max_zone_pfn);
- }
-=20
- static int page_alloc_cpu_dead(unsigned int cpu)
---=20
-2.26.1
+-	iter->record = 0;
+-	iter->function = 0;
+-	iter->type = 0;
+-	iter->count = 0;
+-	iter->num_types = 0;
+-	for (i = 0; i < GCOV_COUNTERS; i++) {
+-		if (counter_active(iter->info, i)) {
+-			iter->type_info[iter->num_types].ctr_type = i;
+-			iter->type_info[iter->num_types++].offset = 0;
+-		}
+-	}
+-}
+-
+-/* Mapping of logical record number to actual file content. */
+-#define RECORD_FILE_MAGIC	0
+-#define RECORD_GCOV_VERSION	1
+-#define RECORD_TIME_STAMP	2
+-#define RECORD_FUNCTION_TAG	3
+-#define RECORD_FUNCTON_TAG_LEN	4
+-#define RECORD_FUNCTION_IDENT	5
+-#define RECORD_FUNCTION_CHECK	6
+-#define RECORD_COUNT_TAG	7
+-#define RECORD_COUNT_LEN	8
+-#define RECORD_COUNT		9
+-
+-/**
+- * gcov_iter_next - advance file iterator to next logical record
+- * @iter: file iterator
+- *
+- * Return zero if new position is valid, non-zero if iterator has reached end.
+- */
+-int gcov_iter_next(struct gcov_iterator *iter)
+-{
+-	switch (iter->record) {
+-	case RECORD_FILE_MAGIC:
+-	case RECORD_GCOV_VERSION:
+-	case RECORD_FUNCTION_TAG:
+-	case RECORD_FUNCTON_TAG_LEN:
+-	case RECORD_FUNCTION_IDENT:
+-	case RECORD_COUNT_TAG:
+-		/* Advance to next record */
+-		iter->record++;
+-		break;
+-	case RECORD_COUNT:
+-		/* Advance to next count */
+-		iter->count++;
+-		/* fall through */
+-	case RECORD_COUNT_LEN:
+-		if (iter->count < get_func(iter)->n_ctrs[iter->type]) {
+-			iter->record = 9;
+-			break;
+-		}
+-		/* Advance to next counter type */
+-		get_type(iter)->offset += iter->count;
+-		iter->count = 0;
+-		iter->type++;
+-		/* fall through */
+-	case RECORD_FUNCTION_CHECK:
+-		if (iter->type < iter->num_types) {
+-			iter->record = 7;
+-			break;
+-		}
+-		/* Advance to next function */
+-		iter->type = 0;
+-		iter->function++;
+-		/* fall through */
+-	case RECORD_TIME_STAMP:
+-		if (iter->function < iter->info->n_functions)
+-			iter->record = 3;
+-		else
+-			iter->record = -1;
+-		break;
+-	}
+-	/* Check for EOF. */
+-	if (iter->record == -1)
+-		return -EINVAL;
+-	else
+-		return 0;
+-}
+-
+-/**
+- * seq_write_gcov_u32 - write 32 bit number in gcov format to seq_file
+- * @seq: seq_file handle
+- * @v: value to be stored
+- *
+- * Number format defined by gcc: numbers are recorded in the 32 bit
+- * unsigned binary form of the endianness of the machine generating the
+- * file.
+- */
+-static int seq_write_gcov_u32(struct seq_file *seq, u32 v)
+-{
+-	return seq_write(seq, &v, sizeof(v));
+-}
+-
+-/**
+- * seq_write_gcov_u64 - write 64 bit number in gcov format to seq_file
+- * @seq: seq_file handle
+- * @v: value to be stored
+- *
+- * Number format defined by gcc: numbers are recorded in the 32 bit
+- * unsigned binary form of the endianness of the machine generating the
+- * file. 64 bit numbers are stored as two 32 bit numbers, the low part
+- * first.
+- */
+-static int seq_write_gcov_u64(struct seq_file *seq, u64 v)
+-{
+-	u32 data[2];
+-
+-	data[0] = (v & 0xffffffffUL);
+-	data[1] = (v >> 32);
+-	return seq_write(seq, data, sizeof(data));
+-}
+-
+-/**
+- * gcov_iter_write - write data for current pos to seq_file
+- * @iter: file iterator
+- * @seq: seq_file handle
+- *
+- * Return zero on success, non-zero otherwise.
+- */
+-int gcov_iter_write(struct gcov_iterator *iter, struct seq_file *seq)
+-{
+-	int rc = -EINVAL;
+-
+-	switch (iter->record) {
+-	case RECORD_FILE_MAGIC:
+-		rc = seq_write_gcov_u32(seq, GCOV_DATA_MAGIC);
+-		break;
+-	case RECORD_GCOV_VERSION:
+-		rc = seq_write_gcov_u32(seq, iter->info->version);
+-		break;
+-	case RECORD_TIME_STAMP:
+-		rc = seq_write_gcov_u32(seq, iter->info->stamp);
+-		break;
+-	case RECORD_FUNCTION_TAG:
+-		rc = seq_write_gcov_u32(seq, GCOV_TAG_FUNCTION);
+-		break;
+-	case RECORD_FUNCTON_TAG_LEN:
+-		rc = seq_write_gcov_u32(seq, 2);
+-		break;
+-	case RECORD_FUNCTION_IDENT:
+-		rc = seq_write_gcov_u32(seq, get_func(iter)->ident);
+-		break;
+-	case RECORD_FUNCTION_CHECK:
+-		rc = seq_write_gcov_u32(seq, get_func(iter)->checksum);
+-		break;
+-	case RECORD_COUNT_TAG:
+-		rc = seq_write_gcov_u32(seq,
+-			GCOV_TAG_FOR_COUNTER(get_type(iter)->ctr_type));
+-		break;
+-	case RECORD_COUNT_LEN:
+-		rc = seq_write_gcov_u32(seq,
+-				get_func(iter)->n_ctrs[iter->type] * 2);
+-		break;
+-	case RECORD_COUNT:
+-		rc = seq_write_gcov_u64(seq,
+-			iter->info->counts[iter->type].
+-				values[iter->count + get_type(iter)->offset]);
+-		break;
+-	}
+-	return rc;
+-}
+-- 
+2.26.1.301.g55bc3eb7cb9-goog
