@@ -1,7 +1,7 @@
 From: Will Deacon <will@kernel.org>
-Subject: [PATCH v4 07/11] READ_ONCE: Enforce atomicity for {READ,WRITE}_ONCE() memory accesses
-Date: Tue, 21 Apr 2020 16:15:33 +0100
-Message-ID: <20200421151537.19241-8-will@kernel.org>
+Subject: [PATCH v4 08/11] READ_ONCE: Drop pointer qualifiers when reading from scalar types
+Date: Tue, 21 Apr 2020 16:15:34 +0100
+Message-ID: <20200421151537.19241-9-will@kernel.org>
 References: <20200421151537.19241-1-will@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -12,122 +12,87 @@ To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-{READ,WRITE}_ONCE() cannot guarantee atomicity for arbitrary data sizes.
-This can be surprising to callers that might incorrectly be expecting
-atomicity for accesses to aggregate structures, although there are other
-callers where tearing is actually permissable (e.g. if they are using
-something akin to sequence locking to protect the access).
+Passing a volatile-qualified pointer to READ_ONCE() is an absolute
+trainwreck for code generation: the use of 'typeof()' to define a
+temporary variable inside the macro means that the final evaluation in
+macro scope ends up forcing a read back from the stack. When stack
+protector is enabled (the default for arm64, at least), this causes
+the compiler to vomit up all sorts of junk.
 
-Linus sayeth:
+Unfortunately, dropping pointer qualifiers inside the macro poses quite
+a challenge, especially since the pointed-to type is permitted to be an
+aggregate, and this is relied upon by mm/ code accessing things like
+'pmd_t'. Based on numerous hacks and discussions on the mailing list,
+this is the best I've managed to come up with.
 
-  | We could also look at being stricter for the normal READ/WRITE_ONCE(),
-  | and require that they are
-  |
-  | (a) regular integer types
-  |
-  | (b) fit in an atomic word
-  |
-  | We actually did (b) for a while, until we noticed that we do it on
-  | loff_t's etc and relaxed the rules. But maybe we could have a
-  | "non-atomic" version of READ/WRITE_ONCE() that is used for the
-  | questionable cases?
+Introduce '__unqual_scalar_typeof()' which takes an expression and, if
+the expression is an optionally qualified 8, 16, 32 or 64-bit scalar
+type, evaluates to the unqualified type. Other input types, including
+aggregates, remain unchanged. Hopefully READ_ONCE() on volatile aggregate
+pointers isn't something we do on a fast-path.
 
-The slight snag is that we also have to support 64-bit accesses on 32-bit
-architectures, as these appear to be widespread and tend to work out ok
-if either the architecture supports atomic 64-bit accesses (x86, armv7)
-or if the variable being accesses represents a virtual address and
-therefore only requires 32-bit atomicity in practice.
-
-Take a step in that direction by introducing a variant of
-'compiletime_assert_atomic_type()' and use it to check the pointer
-argument to {READ,WRITE}_ONCE(). Expose __{READ,WRITE}_ONCE() variants
-which are allowed to tear and convert the one broken caller over to the
-new macros.
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
 Cc: Arnd Bergmann <arnd@arndb.de>
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Reported-by: Michael Ellerman <mpe@ellerman.id.au>
 Signed-off-by: Will Deacon <will@kernel.org>
 ---
- drivers/xen/time.c       |  2 +-
- include/linux/compiler.h | 33 ++++++++++++++++++++++++++++++---
- 2 files changed, 31 insertions(+), 4 deletions(-)
+ include/linux/compiler.h       |  6 +++---
+ include/linux/compiler_types.h | 21 +++++++++++++++++++++
+ 2 files changed, 24 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/xen/time.c b/drivers/xen/time.c
-index 0968859c29d0..108edbcbc040 100644
---- a/drivers/xen/time.c
-+++ b/drivers/xen/time.c
-@@ -64,7 +64,7 @@ static void xen_get_runstate_snapshot_cpu_delta(
- 	do {
- 		state_time = get64(&state->state_entry_time);
- 		rmb();	/* Hypervisor might update data. */
--		*res = READ_ONCE(*state);
-+		*res = __READ_ONCE(*state);
- 		rmb();	/* Hypervisor might update data. */
- 	} while (get64(&state->state_entry_time) != state_time ||
- 		 (state_time & XEN_RUNSTATE_UPDATE));
 diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 338111a448d0..50bb2461648f 100644
+index 50bb2461648f..c363d8debc43 100644
 --- a/include/linux/compiler.h
 +++ b/include/linux/compiler.h
-@@ -198,20 +198,37 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
- #include <asm/barrier.h>
- #include <linux/kasan-checks.h>
+@@ -203,13 +203,13 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+  * atomicity or dependency ordering guarantees. Note that this may result
+  * in tears!
+  */
+-#define __READ_ONCE(x)	(*(const volatile typeof(x) *)&(x))
++#define __READ_ONCE(x)	(*(const volatile __unqual_scalar_typeof(x) *)&(x))
  
--#define __READ_ONCE(x)	(*(volatile typeof(x) *)&(x))
-+/*
-+ * Use __READ_ONCE() instead of READ_ONCE() if you do not require any
-+ * atomicity or dependency ordering guarantees. Note that this may result
-+ * in tears!
-+ */
-+#define __READ_ONCE(x)	(*(const volatile typeof(x) *)&(x))
- 
--#define READ_ONCE(x)							\
-+#define __READ_ONCE_SCALAR(x)						\
+ #define __READ_ONCE_SCALAR(x)						\
  ({									\
- 	typeof(x) __x = __READ_ONCE(x);					\
+-	typeof(x) __x = __READ_ONCE(x);					\
++	__unqual_scalar_typeof(x) __x = __READ_ONCE(x);			\
  	smp_read_barrier_depends();					\
- 	__x;								\
+-	__x;								\
++	(typeof(x))__x;							\
  })
  
--#define WRITE_ONCE(x, val)				\
-+#define READ_ONCE(x)							\
-+({									\
-+	compiletime_assert_rwonce_type(x);				\
-+	__READ_ONCE_SCALAR(x);						\
-+})
-+
-+#define __WRITE_ONCE(x, val)				\
- do {							\
- 	*(volatile typeof(x) *)&(x) = (val);		\
- } while (0)
- 
-+#define WRITE_ONCE(x, val)				\
-+do {							\
-+	compiletime_assert_rwonce_type(x);		\
-+	__WRITE_ONCE(x, val);				\
-+} while (0)
-+
- #ifdef CONFIG_KASAN
- /*
-  * We can't declare function 'inline' because __no_sanitize_address conflicts
-@@ -313,6 +330,16 @@ static inline void *offset_to_ptr(const int *off)
- 	compiletime_assert(__native_word(t),				\
- 		"Need native word sized stores/loads for atomicity.")
+ #define READ_ONCE(x)							\
+diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
+index e970f97a7fcb..233066c92f6f 100644
+--- a/include/linux/compiler_types.h
++++ b/include/linux/compiler_types.h
+@@ -210,6 +210,27 @@ struct ftrace_likely_data {
+ /* Are two types/vars the same type (ignoring qualifiers)? */
+ #define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
  
 +/*
-+ * Yes, this permits 64-bit accesses on 32-bit architectures. These will
-+ * actually be atomic in many cases (namely x86), but for others we rely on
-+ * the access being split into 2x32-bit accesses for a 32-bit quantity (e.g.
-+ * a virtual address) and a strong prevailing wind.
++ * __unqual_scalar_typeof(x) - Declare an unqualified scalar type, leaving
++ *			       non-scalar types unchanged.
++ *
++ * We build this out of a couple of helper macros in a vain attempt to
++ * help you keep your lunch down while reading it.
 + */
-+#define compiletime_assert_rwonce_type(t)					\
-+	compiletime_assert(__native_word(t) || sizeof(t) == sizeof(long long),	\
-+		"Unsupported access size for {READ,WRITE}_ONCE().")
++#define __pick_scalar_type(x, type, otherwise)					\
++	__builtin_choose_expr(__same_type(x, type), (type)0, otherwise)
 +
- /* &a[0] degrades to a pointer: a different type from an array */
- #define __must_be_array(a)	BUILD_BUG_ON_ZERO(__same_type((a), &(a)[0]))
- 
++#define __pick_integer_type(x, type, otherwise)					\
++	__pick_scalar_type(x, unsigned type,					\
++		__pick_scalar_type(x, signed type, otherwise))
++
++#define __unqual_scalar_typeof(x) typeof(					\
++	__pick_integer_type(x, char,						\
++		__pick_integer_type(x, short,					\
++			__pick_integer_type(x, int,				\
++				__pick_integer_type(x, long,			\
++					__pick_integer_type(x, long long, x))))))
++
+ /* Is this type a native word size -- useful for atomic operations */
+ #define __native_word(t) \
+ 	(sizeof(t) == sizeof(char) || sizeof(t) == sizeof(short) || \
 -- 
 2.26.1.301.g55bc3eb7cb9-goog
