@@ -1,55 +1,48 @@
-From: Masahiro Yamada <masahiroy@kernel.org>
-Subject: Re: [PATCH v4 01/11] compiler/gcc: Raise minimum GCC version for
- kernel builds to 4.8
-Date: Wed, 22 Apr 2020 02:15:30 +0900
-Message-ID: <CAK7LNATyFAusdcsvZxOjB7vAtj7G2w6b-bWd7dJjXUoEKm=LcA@mail.gmail.com>
-References: <20200421151537.19241-1-will@kernel.org> <20200421151537.19241-2-will@kernel.org>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH v1 1/6] arm64: Detect the ARMv8.4 TTL feature
+Date: Tue, 21 Apr 2020 10:16:41 -0700
+Message-ID: <20200421171641.GA25391@infradead.org>
+References: <20200403090048.938-1-yezhenyu2@huawei.com>
+ <20200403090048.938-2-yezhenyu2@huawei.com>
+ <20200421165346.GA11171@infradead.org>
+ <20200421171328.GW20730@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-02.nifty.com ([210.131.2.81]:35891 "EHLO
-        conssluserg-02.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726012AbgDURQc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Apr 2020 13:16:32 -0400
-In-Reply-To: <20200421151537.19241-2-will@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "Cc: Android Kernel" <kernel-team@android.com>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Nick Desaulniers <ndesaulniers@google.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20200421171328.GW20730@hirez.programming.kicks-ass.net>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: mark.rutland@arm.com, catalin.marinas@arm.com, linux-mm@kvack.org, guohanjun@huawei.com, will@kernel.org, linux-arch@vger.kernel.org, yuzhao@google.com, maz@kernel.org, suzuki.poulose@arm.com, steven.price@arm.com, Christoph Hellwig <hch@infradead.org>, arm@kernel.org, Dave.Martin@arm.com, arnd@arndb.de, Zhenyu Ye <yezhenyu2@huawei.com>, npiggin@gmail.com, zhangshaokun@hisilicon.com, broonie@kernel.org, rostedt@goodmis.org, prime.zeng@hisilicon.com, kuhn.chenqun@huawei.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, xiexiangyou@huawei.com, linux-kernel@vger.kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 22, 2020 at 12:15 AM Will Deacon <will@kernel.org> wrote:
->
-> It is very rare to see versions of GCC prior to 4.8 being used to build
-> the mainline kernel. These old compilers are also know to have codegen
+On Tue, Apr 21, 2020 at 07:13:28PM +0200, Peter Zijlstra wrote:
+> On Tue, Apr 21, 2020 at 09:53:46AM -0700, Christoph Hellwig wrote:
+> > On Fri, Apr 03, 2020 at 05:00:43PM +0800, Zhenyu Ye wrote:
+> > > From: Marc Zyngier <maz@kernel.org>
+> > > 
+> > > In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+> > > feature allows TLBs to be issued with a level allowing for quicker
+> > > invalidation.
+> > 
+> > What does "issued with a level" mean?
+> 
+> What I understood it to be is page-size based on page-table hierarchy.
+> Just like we have on x86, 4k, 2m, 1g etc..
+> 
+> So where x86 INVLPG will tear down any sized page for the address given,
+> you can now day, kill me the PMD level translation for @addr.
+> 
+> Power9 radix also has things like this.
 
-"know" -> "known"
-
-
-> issues which can lead to silent miscompilation:
->
-> https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
->
-> Raise the minimum GCC version for kernel build to 4.8 and remove some
-> tautological Kconfig dependencies as a consequence.
->
-> Cc: Masahiro Yamada <masahiroy@kernel.org>
-
-
-Maybe you can also clean up mm/migrate.c
-because GCC_VERSION >= 40700 is always met.
-It is up to you if you want to send v5.
-
-Please replace CC with
-Reviewed-by: Masahiro Yamada <masahiroy@kernel.org>
-
-Thank you!
-
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-> Signed-off-by: Will Deacon <will@kernel.org>
-> ---
-
-
--- 
-Best Regards
-Masahiro Yamada
+Maybe this needs to be spelled out a little more?  The current commit
+log sounds like paper generated by a neural network.
