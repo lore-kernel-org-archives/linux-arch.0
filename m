@@ -1,80 +1,67 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v1 6/6] arm64: tlb: Set the TTL field in flush_tlb_range
-Date: Tue, 21 Apr 2020 10:30:43 +0200
-Message-ID: <20200421083043.GP20730@hirez.programming.kicks-ass.net>
-References: <20200403090048.938-1-yezhenyu2@huawei.com>
- <20200403090048.938-7-yezhenyu2@huawei.com>
- <20200420121055.GF20696@hirez.programming.kicks-ass.net>
- <20200420200616.44c7c7ea@oasis.local.home>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH 02/21] mm: make early_pfn_to_nid() and related defintions
+ close to each other
+Date: Tue, 21 Apr 2020 11:39:46 +0300
+Message-ID: <20200421083946.GA14260@kernel.org>
+References: <20200412194859.12663-1-rppt@kernel.org>
+ <20200412194859.12663-3-rppt@kernel.org>
+ <20200421033114.GA29658@MiWiFi-R3L-srv>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <20200420200616.44c7c7ea@oasis.local.home>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: mark.rutland@arm.com, catalin.marinas@arm.com, linux-mm@kvack.org, guohanjun@huawei.com, will@kernel.org, linux-arch@vger.kernel.org, yuzhao@google.com, maz@kernel.org, suzuki.poulose@arm.com, steven.price@arm.com, arm@kernel.org, Dave.Martin@arm.com, arnd@arndb.de, Zhenyu Ye <yezhenyu2@huawei.com>, npiggin@gmail.com, zhangshaokun@hisilicon.com, broonie@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, kuhn.chenqun@huawei.com, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org
+In-Reply-To: <20200421033114.GA29658@MiWiFi-R3L-srv>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org
+To: Baoquan He <bhe@redhat.com>
+Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-c6x-dev@linux-c6x.org, Brian Cain <bcain@codeaurora.org>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 20, 2020 at 08:06:16PM -0400, Steven Rostedt wrote:
-> Peter Zijlstra <peterz@infradead.org> wrote:
-> > On Fri, Apr 03, 2020 at 05:00:48PM +0800, Zhenyu Ye wrote:
-
-> > > +static inline int tlb_get_level(struct mmu_gather *tlb)
-> > > +{
-> > > +	int sum = tlb->cleared_ptes + tlb->cleared_pmds +
-> > > +		  tlb->cleared_puds + tlb->cleared_p4ds;
-> > > +
-> > > +	if (sum != 1)
-> > > +		return 0;
-> > > +	else if (tlb->cleared_ptes)
-> > > +		return 3;
-> > > +	else if (tlb->cleared_pmds)
-> > > +		return 2;
-> > > +	else if (tlb->cleared_puds)
-> > > +		return 1;
-> > > +
-> > > +	return 0;
-> > > +}  
+On Tue, Apr 21, 2020 at 11:31:14AM +0800, Baoquan He wrote:
+> On 04/12/20 at 10:48pm, Mike Rapoport wrote:
+> > From: Mike Rapoport <rppt@linux.ibm.com>
 > > 
-> > That's some mighty wonky code. Please look at the generated asm.
+> > The early_pfn_to_nid() and it's helper __early_pfn_to_nid() are spread
+> > around include/linux/mm.h, include/linux/mmzone.h and mm/page_alloc.c.
+> > 
+> > Drop unused stub for __early_pfn_to_nid() and move its actual generic
+> > implementation close to its users.
+> > 
+> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> > ---
+> >  include/linux/mm.h     |  4 ++--
+> >  include/linux/mmzone.h |  9 --------
+> >  mm/page_alloc.c        | 51 +++++++++++++++++++++---------------------
+> >  3 files changed, 27 insertions(+), 37 deletions(-)
+ 
+...
+
+> >  int __meminit early_pfn_to_nid(unsigned long pfn)
+> >  {
+> >  	static DEFINE_SPINLOCK(early_pfn_lock);
+> > @@ -6298,32 +6323,6 @@ void __meminit init_currently_empty_zone(struct zone *zone,
+> >  	zone->initialized = 1;
+> >  }
+> >  
+> > -#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
 > 
-> Without even looking at the generated asm, if a condition returns,
-> there's no reason to add an else for that condition.
+> Here it's apparently removing CONFIG_HAVE_MEMBLOCK_NODE_MAP too early,
+> it should be done in patch 3, and its #end is kept there. I just found
+> it when I almost became dizzy in reviewing patch 3.
 
-Not really the point; he wants to guarantee he only returns >0 when
-there's a single bit set. But the thing is, cleared_* is a bitfield, and
-I'm afraid that the above will result in some terrible code-gen.
+Right, thanks for catching!
 
-Maybe something like:
+> > -#ifndef CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID
+> > -
 
-	if (tlb->cleared_ptes && !(tlb->cleared_pmds ||
-				   tlb->cleared_puds ||
-				   tlb->cleared_p4ds))
-		return 3;
-
-	if (tlb->cleared_pmds && !(tlb->cleared_ptes ||
-				   tlb->cleared_puds ||
-				   tlb->cleared_p4ds))
-		return 2;
-
-	if (tlb->cleared_puds && !(tlb->cleared_ptes ||
-				   tlb->cleared_pmds ||
-				   tlb->cleared_p4ds))
-		return 1;
-
-	return 0;
-
-Which I admit is far too much typing, but I suspect it generates far
-saner code (just a few masks and branches).
-
-But maybe the compiler surprises us, what do I konw.
+-- 
+Sincerely yours,
+Mike.
