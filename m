@@ -1,74 +1,35 @@
-Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:16939 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726764AbgD1NQs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Apr 2020 09:16:48 -0400
-Message-ID: <cover.1588079622.git.christophe.leroy@c-s.fr>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH v8 0/8] powerpc: switch VDSO to C implementation
-Date: Tue, 28 Apr 2020 13:16:46 +0000 (UTC)
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=lzY1=6F=kvack.org=owner-linux-mm@kernel.org>
+Date: Tue, 21 Apr 2020 19:13:28 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v1 1/6] arm64: Detect the ARMv8.4 TTL feature
+Message-ID: <20200421171328.GW20730@hirez.programming.kicks-ass.net>
+References: <20200403090048.938-1-yezhenyu2@huawei.com>
+ <20200403090048.938-2-yezhenyu2@huawei.com>
+ <20200421165346.GA11171@infradead.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200421165346.GA11171@infradead.org>
+Sender: owner-linux-mm@kvack.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Zhenyu Ye <yezhenyu2@huawei.com>, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, xiexiangyou@huawei.com, zhangshaokun@hisilicon.com, linux-mm@kvack.org, arm@kernel.org, prime.zeng@hisilicon.com, kuhn.chenqun@huawei.com, linux-arm-kernel@lists.infradead.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200428131646.obr9atVmMACkMIGUJ3LDcg9Rm7kcrCbeEY6DdQiniZk@z>
+Message-ID: <20200421171328.o4yjCzR2j-QEXRPk8rg9pZPlFIMbjNC62S3GdxyOAtg@z>
 
-This is the seventh version of a series to switch powerpc VDSO to
-generic C implementation.
+On Tue, Apr 21, 2020 at 09:53:46AM -0700, Christoph Hellwig wrote:
+> On Fri, Apr 03, 2020 at 05:00:43PM +0800, Zhenyu Ye wrote:
+> > From: Marc Zyngier <maz@kernel.org>
+> > 
+> > In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+> > feature allows TLBs to be issued with a level allowing for quicker
+> > invalidation.
+> 
+> What does "issued with a level" mean?
 
-Main changes since v7 are:
-- Added gettime64 on PPC32
+What I understood it to be is page-size based on page-table hierarchy.
+Just like we have on x86, 4k, 2m, 1g etc..
 
-This series applies on today's powerpc/merge branch.
+So where x86 INVLPG will tear down any sized page for the address given,
+you can now day, kill me the PMD level translation for @addr.
 
-See the last patches for details on changes and performance.
-
-Christophe Leroy (8):
-  powerpc/vdso64: Switch from __get_datapage() to get_datapage inline
-    macro
-  powerpc/vdso: Remove __kernel_datapage_offset and simplify
-    __get_datapage()
-  powerpc/vdso: Remove unused \tmp param in __get_datapage()
-  powerpc/processor: Move cpu_relax() into asm/vdso/processor.h
-  powerpc/vdso: Prepare for switching VDSO to generic C implementation.
-  powerpc/vdso: Switch VDSO to generic C implementation.
-  lib/vdso: force inlining of __cvdso_clock_gettime_common()
-  powerpc/vdso: Provide __kernel_clock_gettime64() on vdso32
-
- arch/powerpc/Kconfig                         |   2 +
- arch/powerpc/include/asm/clocksource.h       |   7 +
- arch/powerpc/include/asm/processor.h         |  10 +-
- arch/powerpc/include/asm/vdso/clocksource.h  |   7 +
- arch/powerpc/include/asm/vdso/gettimeofday.h | 175 +++++++++++
- arch/powerpc/include/asm/vdso/processor.h    |  23 ++
- arch/powerpc/include/asm/vdso/vsyscall.h     |  25 ++
- arch/powerpc/include/asm/vdso_datapage.h     |  50 ++--
- arch/powerpc/kernel/asm-offsets.c            |  49 +--
- arch/powerpc/kernel/time.c                   |  91 +-----
- arch/powerpc/kernel/vdso.c                   |  58 +---
- arch/powerpc/kernel/vdso32/Makefile          |  32 +-
- arch/powerpc/kernel/vdso32/cacheflush.S      |   2 +-
- arch/powerpc/kernel/vdso32/config-fake32.h   |  34 +++
- arch/powerpc/kernel/vdso32/datapage.S        |   7 +-
- arch/powerpc/kernel/vdso32/gettimeofday.S    | 300 +------------------
- arch/powerpc/kernel/vdso32/vdso32.lds.S      |   8 +-
- arch/powerpc/kernel/vdso32/vgettimeofday.c   |  35 +++
- arch/powerpc/kernel/vdso64/Makefile          |  23 +-
- arch/powerpc/kernel/vdso64/cacheflush.S      |   9 +-
- arch/powerpc/kernel/vdso64/datapage.S        |  31 +-
- arch/powerpc/kernel/vdso64/gettimeofday.S    | 243 +--------------
- arch/powerpc/kernel/vdso64/vdso64.lds.S      |   7 +-
- arch/powerpc/kernel/vdso64/vgettimeofday.c   |  29 ++
- lib/vdso/gettimeofday.c                      |   2 +-
- 25 files changed, 460 insertions(+), 799 deletions(-)
- create mode 100644 arch/powerpc/include/asm/clocksource.h
- create mode 100644 arch/powerpc/include/asm/vdso/clocksource.h
- create mode 100644 arch/powerpc/include/asm/vdso/gettimeofday.h
- create mode 100644 arch/powerpc/include/asm/vdso/processor.h
- create mode 100644 arch/powerpc/include/asm/vdso/vsyscall.h
- create mode 100644 arch/powerpc/kernel/vdso32/config-fake32.h
- create mode 100644 arch/powerpc/kernel/vdso32/vgettimeofday.c
- create mode 100644 arch/powerpc/kernel/vdso64/vgettimeofday.c
-
--- 
-2.25.0
+Power9 radix also has things like this.
