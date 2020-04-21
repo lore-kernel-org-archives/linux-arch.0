@@ -1,187 +1,97 @@
-Return-Path: <SRS0=p5Ku=5Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:48310 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728845AbgDHMAb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 08:00:31 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 12/28] mm: remove vmap_page_range_noflush and vunmap_page_range
-Date: Wed,  8 Apr 2020 13:59:10 +0200
-Message-ID: <20200408115926.1467567-13-hch@lst.de>
-In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
-References: <20200408115926.1467567-1-hch@lst.de>
+Return-Path: <SRS0=BI31=6F=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:35220 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727911AbgDUPQM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 21 Apr 2020 11:16:12 -0400
+From: Will Deacon <will@kernel.org>
+Subject: [PATCH v4 09/11] locking/barriers: Use '__unqual_scalar_typeof' for load-acquire macros
+Date: Tue, 21 Apr 2020 16:15:35 +0100
+Message-ID: <20200421151537.19241-10-will@kernel.org>
+In-Reply-To: <20200421151537.19241-1-will@kernel.org>
+References: <20200421151537.19241-1-will@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200408115910.JYrOM-TOcVxdnkybwGGz4lNu2p1ne7JVlQWqiCFYpeo@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200421151535.4mW2iKcn3wtNi0Z3dUAmzo5mS4gj38wrEfYJPzItPns@z>
 
-These have non-static aliases claled map_kernel_range_noflush and
-unmap_kernel_range_noflush that just differ slightly in the calling
-conventions that pass addr + size instead of an end.
+Passing volatile-qualified pointers to the asm-generic implementations of
+the load-acquire macros results in a re-load from the stack due to the
+temporary result variable inheriting the volatile semantics thanks to the
+use of 'typeof()'.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+Define these temporary variables using 'unqual_scalar_typeof' to drop
+the volatile qualifier in the case that they are scalar types.
+
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Will Deacon <will@kernel.org>
 ---
- mm/vmalloc.c | 98 +++++++++++++++++++++-------------------------------
- 1 file changed, 40 insertions(+), 58 deletions(-)
+ include/asm-generic/barrier.h | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index aada9e9144bd..55df5dc6a9fc 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -127,10 +127,24 @@ static void vunmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end)
- 	} while (p4d++, addr = next, addr != end);
- }
+diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+index 85b28eb80b11..2eacaf7d62f6 100644
+--- a/include/asm-generic/barrier.h
++++ b/include/asm-generic/barrier.h
+@@ -128,10 +128,10 @@ do {									\
+ #ifndef __smp_load_acquire
+ #define __smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = READ_ONCE(*p);				\
++	__unqual_scalar_typeof(*p) ___p1 = READ_ONCE(*p);		\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	__smp_mb();							\
+-	___p1;								\
++	(typeof(*p))___p1;						\
+ })
+ #endif
  
--static void vunmap_page_range(unsigned long addr, unsigned long end)
-+/**
-+ * unmap_kernel_range_noflush - unmap kernel VM area
-+ * @addr: start of the VM area to unmap
-+ * @size: size of the VM area to unmap
-+ *
-+ * Unmap PFN_UP(@size) pages at @addr.  The VM area @addr and @size specify
-+ * should have been allocated using get_vm_area() and its friends.
-+ *
-+ * NOTE:
-+ * This function does NOT do any cache flushing.  The caller is responsible
-+ * for calling flush_cache_vunmap() on to-be-mapped areas before calling this
-+ * function and flush_tlb_kernel_range() after.
-+ */
-+void unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
- {
--	pgd_t *pgd;
-+	unsigned long end = addr + size;
- 	unsigned long next;
-+	pgd_t *pgd;
+@@ -183,10 +183,10 @@ do {									\
+ #ifndef smp_load_acquire
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = READ_ONCE(*p);				\
++	__unqual_scalar_typeof(*p) ___p1 = READ_ONCE(*p);		\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+-	___p1;								\
++	(typeof(*p))___p1;						\
+ })
+ #endif
  
- 	BUG_ON(addr >= end);
- 	pgd = pgd_offset_k(addr);
-@@ -219,18 +233,30 @@ static int vmap_p4d_range(pgd_t *pgd, unsigned long addr,
- 	return 0;
- }
+@@ -229,14 +229,14 @@ do {									\
+ #ifndef smp_cond_load_relaxed
+ #define smp_cond_load_relaxed(ptr, cond_expr) ({		\
+ 	typeof(ptr) __PTR = (ptr);				\
+-	typeof(*ptr) VAL;					\
++	__unqual_scalar_typeof(*ptr) VAL;			\
+ 	for (;;) {						\
+ 		VAL = READ_ONCE(*__PTR);			\
+ 		if (cond_expr)					\
+ 			break;					\
+ 		cpu_relax();					\
+ 	}							\
+-	VAL;							\
++	(typeof(*ptr))VAL;					\
+ })
+ #endif
  
--/*
-- * Set up page tables in kva (addr, end). The ptes shall have prot "prot", and
-- * will have pfns corresponding to the "pages" array.
-+/**
-+ * map_kernel_range_noflush - map kernel VM area with the specified pages
-+ * @addr: start of the VM area to map
-+ * @size: size of the VM area to map
-+ * @prot: page protection flags to use
-+ * @pages: pages to map
-  *
-- * Ie. pte at addr+N*PAGE_SIZE shall point to pfn corresponding to pages[N]
-+ * Map PFN_UP(@size) pages at @addr.  The VM area @addr and @size specify should
-+ * have been allocated using get_vm_area() and its friends.
-+ *
-+ * NOTE:
-+ * This function does NOT do any cache flushing.  The caller is responsible for
-+ * calling flush_cache_vmap() on to-be-mapped areas before calling this
-+ * function.
-+ *
-+ * RETURNS:
-+ * The number of pages mapped on success, -errno on failure.
+@@ -250,10 +250,10 @@ do {									\
   */
--static int vmap_page_range_noflush(unsigned long start, unsigned long end,
--				   pgprot_t prot, struct page **pages)
-+int map_kernel_range_noflush(unsigned long addr, unsigned long size,
-+			     pgprot_t prot, struct page **pages)
- {
--	pgd_t *pgd;
-+	unsigned long end = addr + size;
- 	unsigned long next;
--	unsigned long addr = start;
-+	pgd_t *pgd;
- 	int err = 0;
- 	int nr = 0;
- 
-@@ -251,7 +277,7 @@ static int vmap_page_range(unsigned long start, unsigned long end,
- {
- 	int ret;
- 
--	ret = vmap_page_range_noflush(start, end, prot, pages);
-+	ret = map_kernel_range_noflush(start, end - start, prot, pages);
- 	flush_cache_vmap(start, end);
- 	return ret;
- }
-@@ -1226,7 +1252,7 @@ EXPORT_SYMBOL_GPL(unregister_vmap_purge_notifier);
-  */
- static void unmap_vmap_area(struct vmap_area *va)
- {
--	vunmap_page_range(va->va_start, va->va_end);
-+	unmap_kernel_range_noflush(va->va_start, va->va_end - va->va_start);
- }
- 
- /*
-@@ -1686,7 +1712,7 @@ static void vb_free(unsigned long addr, unsigned long size)
- 	rcu_read_unlock();
- 	BUG_ON(!vb);
- 
--	vunmap_page_range(addr, addr + size);
-+	unmap_kernel_range_noflush(addr, size);
- 
- 	if (debug_pagealloc_enabled_static())
- 		flush_tlb_kernel_range(addr, addr + size);
-@@ -1984,50 +2010,6 @@ void __init vmalloc_init(void)
- 	vmap_initialized = true;
- }
- 
--/**
-- * map_kernel_range_noflush - map kernel VM area with the specified pages
-- * @addr: start of the VM area to map
-- * @size: size of the VM area to map
-- * @prot: page protection flags to use
-- * @pages: pages to map
-- *
-- * Map PFN_UP(@size) pages at @addr.  The VM area @addr and @size
-- * specify should have been allocated using get_vm_area() and its
-- * friends.
-- *
-- * NOTE:
-- * This function does NOT do any cache flushing.  The caller is
-- * responsible for calling flush_cache_vmap() on to-be-mapped areas
-- * before calling this function.
-- *
-- * RETURNS:
-- * The number of pages mapped on success, -errno on failure.
-- */
--int map_kernel_range_noflush(unsigned long addr, unsigned long size,
--			     pgprot_t prot, struct page **pages)
--{
--	return vmap_page_range_noflush(addr, addr + size, prot, pages);
--}
--
--/**
-- * unmap_kernel_range_noflush - unmap kernel VM area
-- * @addr: start of the VM area to unmap
-- * @size: size of the VM area to unmap
-- *
-- * Unmap PFN_UP(@size) pages at @addr.  The VM area @addr and @size
-- * specify should have been allocated using get_vm_area() and its
-- * friends.
-- *
-- * NOTE:
-- * This function does NOT do any cache flushing.  The caller is
-- * responsible for calling flush_cache_vunmap() on to-be-mapped areas
-- * before calling this function and flush_tlb_kernel_range() after.
-- */
--void unmap_kernel_range_noflush(unsigned long addr, unsigned long size)
--{
--	vunmap_page_range(addr, addr + size);
--}
--
- /**
-  * unmap_kernel_range - unmap kernel VM area and flush cache and TLB
-  * @addr: start of the VM area to unmap
-@@ -2041,7 +2023,7 @@ void unmap_kernel_range(unsigned long addr, unsigned long size)
- 	unsigned long end = addr + size;
- 
- 	flush_cache_vunmap(addr, end);
--	vunmap_page_range(addr, end);
-+	unmap_kernel_range_noflush(addr, size);
- 	flush_tlb_kernel_range(addr, end);
- }
+ #ifndef smp_cond_load_acquire
+ #define smp_cond_load_acquire(ptr, cond_expr) ({		\
+-	typeof(*ptr) _val;					\
++	__unqual_scalar_typeof(*ptr) _val;			\
+ 	_val = smp_cond_load_relaxed(ptr, cond_expr);		\
+ 	smp_acquire__after_ctrl_dep();				\
+-	_val;							\
++	(typeof(*ptr))_val;					\
+ })
+ #endif
  
 -- 
-2.25.1
+2.26.1.301.g55bc3eb7cb9-goog
