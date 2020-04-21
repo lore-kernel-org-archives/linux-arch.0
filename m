@@ -1,75 +1,71 @@
-From: Nathan Chancellor <natechancellor@gmail.com>
-Subject: Re: [PATCH 0/6] Silence some instances of -Wtautological-compare and
- enable globally
-Date: Mon, 20 Apr 2020 21:32:51 -0700
-Message-ID: <20200421043251.GA4996@ubuntu-s3-xlarge-x86>
-References: <20200219045423.54190-1-natechancellor@gmail.com>
- <20200420210332.7ff9652c8bdca7fb91ccfb0c@linux-foundation.org>
+From: Will Deacon <will@kernel.org>
+Subject: Re: [EXT] Re: [PATCH v3 03/13] task_isolation: add instruction
+ synchronization memory barrier
+Date: Tue, 21 Apr 2020 08:41:02 +0100
+Message-ID: <20200421074101.GA15021@willie-the-truck>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+ <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
+ <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
+ <d995795c731d6ecceb36bdf1c1df3d72fefd023d.camel@marvell.com>
+ <20200415124427.GB28304@C02TD0UTHF1T.local>
+ <e4d2cda6f011e80a0d8e482b85bca1c57665fcfd.camel@marvell.com>
+ <20200420122350.GB12889@willie-the-truck>
+ <20200420123628.GB69441@C02TD0UTHF1T.local>
+ <20200420135523.GA18711@willie-the-truck>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41218 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726018AbgDUEcy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 21 Apr 2020 00:32:54 -0400
+Received: from mail.kernel.org ([198.145.29.99]:47812 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725992AbgDUHlI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 21 Apr 2020 03:41:08 -0400
 Content-Disposition: inline
-In-Reply-To: <20200420210332.7ff9652c8bdca7fb91ccfb0c@linux-foundation.org>
+In-Reply-To: <20200420135523.GA18711@willie-the-truck>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, Arnd Bergmann <arnd@arndb.de>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Jason Baron <jbaron@akamai.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, clang-built-linux@googlegroups.com
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Alex Belits <abelits@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "frederic@kernel.org" <frederic@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-Hi Andrew,
-
-On Mon, Apr 20, 2020 at 09:03:32PM -0700, Andrew Morton wrote:
-> On Tue, 18 Feb 2020 21:54:17 -0700 Nathan Chancellor <natechancellor@gmail.com> wrote:
-> 
-> > Hi everyone,
+On Mon, Apr 20, 2020 at 02:55:23PM +0100, Will Deacon wrote:
+> On Mon, Apr 20, 2020 at 01:36:28PM +0100, Mark Rutland wrote:
+> > On Mon, Apr 20, 2020 at 01:23:51PM +0100, Will Deacon wrote:
+> > > IIUC, we don't need to do anything on arm64 because taking an exception acts
+> > > as a context synchronization event, so I don't think you should try to
+> > > expose this as a new barrier macro. Instead, just make it a pre-requisite
+> > > that architectures need to ensure this behaviour when entering the kernel
+> > > from userspace if they are to select HAVE_ARCH_TASK_ISOLATION.
 > > 
-> > This patch series aims to silence some instances of clang's
-> > -Wtautological-compare that are not problematic and enable it globally
-> > for the kernel because it has a bunch of subwarnings that can find real
-> > bugs in the kernel such as
-> > https://lore.kernel.org/lkml/20200116222658.5285-1-natechancellor@gmail.com/
-> > and https://bugs.llvm.org/show_bug.cgi?id=42666, which was specifically
-> > requested by Dmitry.
+> > The CSE from the exception isn't sufficient here, because it needs to
+> > occur after the CPU has re-registered to receive IPIs for
+> > kick_all_cpus_sync(). Otherwise there's a window between taking the
+> > exception and re-registering where a necessary context synchronization
+> > event can be missed. e.g.
 > > 
-> > The first patch adds a macro that casts the section variables to
-> > unsigned long (uintptr_t), which silences the warning and adds
-> > documentation.
-> > 
-> > Patches two through four silence the warning in the places I have
-> > noticed it across all of my builds with -Werror, including arm, arm64,
-> > and x86_64 defconfig/allmodconfig/allyesconfig. There might still be
-> > more lurking but those will have to be teased out over time.
-> > 
-> > Patch six finally enables the warning, while leaving one of the
-> > subwarnings disabled because it is rather noisy and somewhat pointless
-> > for the kernel, where core kernel code is expected to build and run with
-> > many different configurations where variable types can be different
-> > sizes.
-> > 
+> > CPU A				CPU B
+> > [ Modifies some code ]		
+> > 				[ enters exception ]
+> > [ D cache maintenance ]
+> > [ I cache maintenance ]
+> > [ IPI ]				// IPI not taken
+> >   ...				[ register for IPI ] 
+> > [ IPI completes ] 
+> > 				[ execute stale code here ]
 > 
-> For some reason none of these patches apply.  Not sure why - prehaps
-> something in the diff headers.
+> Thanks.
 > 
-> Anyway, the kmemleak.c code has recently changed in ways which impact
-> these patches.  Please take a look at that, redo, retest and resend?
+> > However, I think 'IMB' is far too generic, and we should have an arch
+> > hook specific to task isolation, as it's far less likely to be abused as
+> > IMB will.
 > 
-> 
+> What guarantees we don't run any unsynchronised module code between
+> exception entry and registering for the IPI? It seems like we'd want that
+> code to run as early as possible, e.g. as part of
+> task_isolation_user_exit() but that doesn't seem to be what's happening.
 
-Thank you for doubling back around to this but we are good here. These
-warnings have all been fixed in Linus' tree without the need for the
-first patch in the series.
+Sorry, I guess that's more a question for Alex.
 
-For those curious:
+Alex -- do you think we could move the "register for IPI" step earlier
+so that it's easier to reason about the code that runs in the dead zone
+during exception entry?
 
-63174f61dfaef ("kernel/extable.c: use address-of operator on section symbols")
-bf2cbe044da27 ("tracing: Use address-of operator on section symbols")
-8306b057a85ec ("lib/dynamic_debug.c: use address-of operator on section symbols")
-b0d14fc43d392 ("mm/kmemleak.c: use address-of operator on section symbols")
-afe956c577b2d ("kbuild: Enable -Wtautological-compare")
-
-Cheers,
-Nathan
+Will
