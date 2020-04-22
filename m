@@ -1,44 +1,61 @@
-From: Jessica Yu <jeyu@kernel.org>
-Subject: Re: [PATCH v2] arch: split MODULE_ARCH_VERMAGIC definitions out to
- <asm/vermagic.h>
-Date: Wed, 22 Apr 2020 15:17:29 +0200
-Message-ID: <20200422131729.GB20103@linux-8ccs>
-References: <20200421161355.1357112-1-masahiroy@kernel.org>
+From: Steven Price <steven.price@arm.com>
+Subject: [PATCH 0/4] arm64: MTE swap and hibernation support
+Date: Wed, 22 Apr 2020 15:25:26 +0100
+Message-ID: <20200422142530.32619-1-steven.price@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200421161355.1357112-1-masahiroy@kernel.org>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Masahiro Yamada <masahiroy@kernel.org>
-Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Borislav Petkov <bp@suse.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:50664 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726697AbgDVOZm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Apr 2020 10:25:42 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org
+Cc: Steven Price <steven.price@arm.com>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Hugh Dickins <hughd@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
 
-+++ Masahiro Yamada [22/04/20 01:13 +0900]:
-[snip]
->diff --git a/arch/xtensa/include/asm/module.h b/arch/xtensa/include/asm/vermagic.h
->similarity index 72%
->rename from arch/xtensa/include/asm/module.h
->rename to arch/xtensa/include/asm/vermagic.h
->index 488b40c6f9b9..6f9e359a54ac 100644
->--- a/arch/xtensa/include/asm/module.h
->+++ b/arch/xtensa/include/asm/vermagic.h
->@@ -1,6 +1,4 @@
-> /*
->- * include/asm-xtensa/module.h
->- *
->  * This file contains the module code specific to the Xtensa architecture.
+This adds support for swapping and hibernation with MTE tagged memory.
+It's based on Catalin's v3 series[1].
 
-Maybe we can remove this comment too? Since it's now asm/vermagic.h and
-not asm/module.h anymore.
+To support swap, a new page flag is added which tracks whether a page
+has been mapped into user space with MTE enabled (and therefore may have
+valid data in the tags). Arch hooks are added to enable the
+saving/restoring of these tags (in memory) when the pages are swapped
+out.
 
-Thanks for the cleanup. I agree that <linux/vermagic.h> shouldn't have
-any ordering dependency on <linux/module.h>.
+Hibernation builds on the swap support by simply copying the tags out of
+hardware tag storage into normal memory before the hibernation image is
+created. On restore the tags are returned to the hardware tag storage.
 
-I just double checked to see if there were any other users of
-MODULE_ARCH_VERMAGIC that needed it through module.h, and there are
-none. It was literally just being defined in asm/module.h to be used
-in linux/vermagic.h. So there was no reason really to confine the
-MODULE_ARCH_VERMAGIC definition to asm/module.h.
+Feedback on the approach is welcomed.
 
-Acked-by: Jessica Yu <jeyu@kernel.org>
+[1] https://lore.kernel.org/linux-arm-kernel/20200421142603.3894-1-catalin.marinas@arm.com/
+
+Steven Price (4):
+  mm: Add PG_ARCH_2 page flag
+  mm: Add arch hooks for saving/restoring tags
+  arm64: mte: Enable swap of tagged pages
+  arm64: mte: Save tags when hibernating
+
+ arch/arm64/Kconfig                |   2 +-
+ arch/arm64/include/asm/mte.h      |   6 ++
+ arch/arm64/include/asm/pgtable.h  |  44 ++++++++++++
+ arch/arm64/kernel/hibernate.c     | 116 ++++++++++++++++++++++++++++++
+ arch/arm64/lib/mte.S              |  50 +++++++++++++
+ arch/arm64/mm/Makefile            |   2 +-
+ arch/arm64/mm/mteswap.c           |  98 +++++++++++++++++++++++++
+ fs/proc/page.c                    |   3 +
+ include/asm-generic/pgtable.h     |  23 ++++++
+ include/linux/kernel-page-flags.h |   1 +
+ include/linux/page-flags.h        |   3 +
+ include/trace/events/mmflags.h    |   9 ++-
+ mm/Kconfig                        |   3 +
+ mm/page_io.c                      |   6 ++
+ mm/shmem.c                        |   6 ++
+ mm/swapfile.c                     |   2 +
+ tools/vm/page-types.c             |   2 +
+ 17 files changed, 373 insertions(+), 3 deletions(-)
+ create mode 100644 arch/arm64/mm/mteswap.c
+
+-- 
+2.20.1
