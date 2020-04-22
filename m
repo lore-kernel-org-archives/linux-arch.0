@@ -1,80 +1,41 @@
-Return-Path: <SRS0=yBTr=57=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:45914 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1416860AbgDOSts (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Apr 2020 14:49:48 -0400
-From: paulmck@kernel.org
-Subject: [PATCH lkmm tip/core/rcu 04/10] Documentation: LKMM: Add litmus test for RCU GP guarantee where updater frees object
-Date: Wed, 15 Apr 2020 11:49:39 -0700
-Message-ID: <20200415184945.16487-4-paulmck@kernel.org>
-In-Reply-To: <20200415183343.GA12265@paulmck-ThinkPad-P72>
-References: <20200415183343.GA12265@paulmck-ThinkPad-P72>
+Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50776 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725934AbgDVPBo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2020 11:01:44 -0400
+Date: Wed, 22 Apr 2020 16:01:07 +0100
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: Implement close-on-fork
+Message-ID: <20200422150107.GK23230@ZenIV.linux.org.uk>
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200420071548.62112-1-nate.karstens@garmin.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Joel Fernandes (Google)" <joel@joelfernandes.org>, "Paul E . McKenney" <paulmck@kernel.org>
-Message-ID: <20200415184939.cBxEWIDnduH4cSKWWNx9SiEzFxJOCJIA5YwM1gmnSAY@z>
+To: Nate Karstens <nate.karstens@garmin.com>
+Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Changli Gao <xiaosuo@gmail.com>
+Message-ID: <20200422150107.COX9VKp2BwGhjmjZdQo_ifSgW7MuyvPoB0fG3LswdqE@z>
 
-From: "Joel Fernandes (Google)" <joel@joelfernandes.org>
+On Mon, Apr 20, 2020 at 02:15:44AM -0500, Nate Karstens wrote:
+> Series of 4 patches to implement close-on-fork. Tests have been
+> published to https://github.com/nkarstens/ltp/tree/close-on-fork.
+> 
+> close-on-fork addresses race conditions in system(), which
+> (depending on the implementation) is non-atomic in that it
+> first calls a fork() and then an exec().
+> 
+> This functionality was approved by the Austin Common Standards
+> Revision Group for inclusion in the next revision of the POSIX
+> standard (see issue 1318 in the Austin Group Defect Tracker).
 
-This adds an example for the important RCU grace period guarantee, which
-shows an RCU reader can never span a grace period.
+What exactly the reasons are and why would we want to implement that?
 
-Acked-by: Andrea Parri <parri.andrea@gmail.com>
-Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
----
- .../litmus-tests/rcu/RCU+sync+free.litmus          | 42 ++++++++++++++++++++++
- 1 file changed, 42 insertions(+)
- create mode 100644 Documentation/litmus-tests/rcu/RCU+sync+free.litmus
+Pardon me, but going by the previous history, "The Austin Group Says It's
+Good" is more of a source of concern regarding the merits, general sanity
+and, most of all, good taste of a proposal.
 
-diff --git a/Documentation/litmus-tests/rcu/RCU+sync+free.litmus b/Documentation/litmus-tests/rcu/RCU+sync+free.litmus
-new file mode 100644
-index 0000000..4ee67e1
---- /dev/null
-+++ b/Documentation/litmus-tests/rcu/RCU+sync+free.litmus
-@@ -0,0 +1,42 @@
-+C RCU+sync+free
-+
-+(*
-+ * Result: Never
-+ *
-+ * This litmus test demonstrates that an RCU reader can never see a write that
-+ * follows a grace period, if it did not see writes that precede that grace
-+ * period.
-+ *
-+ * This is a typical pattern of RCU usage, where the write before the grace
-+ * period assigns a pointer, and the writes following the grace period destroy
-+ * the object that the pointer used to point to.
-+ *
-+ * This is one implication of the RCU grace-period guarantee, which says (among
-+ * other things) that an RCU read-side critical section cannot span a grace period.
-+ *)
-+
-+{
-+int x = 1;
-+int *y = &x;
-+int z = 1;
-+}
-+
-+P0(int *x, int *z, int **y)
-+{
-+	int *r0;
-+	int r1;
-+
-+	rcu_read_lock();
-+	r0 = rcu_dereference(*y);
-+	r1 = READ_ONCE(*r0);
-+	rcu_read_unlock();
-+}
-+
-+P1(int *x, int *z, int **y)
-+{
-+	rcu_assign_pointer(*y, z);
-+	synchronize_rcu();
-+	WRITE_ONCE(*x, 0);
-+}
-+
-+exists (0:r0=x /\ 0:r1=0)
--- 
-2.9.5
+I'm not saying that it's automatically bad, but you'll have to go much
+deeper into the rationale of that change before your proposal is taken
+seriously.
