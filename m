@@ -1,69 +1,120 @@
-Return-Path: <SRS0=8Oio=5S=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pg1-f194.google.com ([209.85.215.194]:39072 "EHLO
-        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388815AbgDBR0l (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2020 13:26:41 -0400
-Received: by mail-pg1-f194.google.com with SMTP id g32so2149326pgb.6
-        for <linux-arch@vger.kernel.org>; Thu, 02 Apr 2020 10:26:40 -0700 (PDT)
-Date: Thu, 2 Apr 2020 10:26:38 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 0/9] Enable orphan section warning
-Message-ID: <202004021023.D3D8AA3BE@keescook>
-References: <20200228002244.15240-1-keescook@chromium.org>
- <CA+icZUWTnP8DYfbaMwKtJbG30v7bB4w6=ywo8gn8fvwr731mUQ@mail.gmail.com>
+Return-Path: <SRS0=/SNT=6G=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH 3/4] arm64: mte: Enable swap of tagged pages
+References: <20200422142530.32619-1-steven.price@arm.com>
+ <20200422142530.32619-4-steven.price@arm.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <6ebff138-a6ad-75c9-bfe5-b7174098e878@intel.com>
+Date: Wed, 22 Apr 2020 11:34:22 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+icZUWTnP8DYfbaMwKtJbG30v7bB4w6=ywo8gn8fvwr731mUQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200422142530.32619-4-steven.price@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Steven Price <steven.price@arm.com>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Hugh Dickins <hughd@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: Sedat Dilek <sedat.dilek@gmail.com>
-Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Clang-Built-Linux ML <clang-built-linux@googlegroups.com>, linux-kernel@vger.kernel.org
-Message-ID: <20200402172638.2EOK0j1KkO_fLOvAW36Gndqio9cG-Z98KeSWv5o6jtY@z>
+Message-ID: <20200422183422.BzlN3A1ZwUgaZ4zwufGNsbF7Ey14G-W_zC23rLfqj0Q@z>
 
-On Thu, Apr 02, 2020 at 06:20:57PM +0200, Sedat Dilek wrote:
-> On Fri, Feb 28, 2020 at 1:22 AM Kees Cook <keescook@chromium.org> wrote:
-> >
-> > Hi!
-> >
-> > A recent bug was solved for builds linked with ld.lld, and tracking
-> > it down took way longer than it needed to (a year). Ultimately, it
-> > boiled down to differences between ld.bfd and ld.lld's handling of
-> > orphan sections. Similarly, the recent FGKASLR series brough up orphan
-> > section handling too[2]. In both cases, it would have been nice if the
-> > linker was running with --orphan-handling=warn so that surprise sections
-> > wouldn't silently get mapped into the kernel image at locations up to
-> > the whim of the linker's orphan handling logic. Instead, all desired
-> > sections should be explicitly identified in the linker script (to be
-> > either kept or discarded) with any orphans throwing a warning. The
-> > powerpc architecture actually already does this, so this series seeks
-> > to extend this coverage to x86, arm64, and arm.
-> >
-> > This series depends on tip/x86/boot (where recent .eh_frame fixes[3]
-> > landed), and has a minor conflict[4] with the ARM tree (related to
-> > the earlier mentioned bug). As it uses refactorings in the asm-generic
-> > linker script, and makes changes to kbuild, I think the cleanest place
-> > for this series to land would also be through -tip. Once again (like
-> > my READ_IMPLIES_EXEC series), I'm looking to get maintainer Acks so
-> > this can go all together with the least disruption. Splitting it up by
-> > architecture seems needlessly difficult.
-> >
-> > Thanks!
-> >
-> 
-> Hi Kees,
-> 
-> what is the status of this patchset?
-> Looks like it is not in tip or linux-next Git.
+On 4/22/20 7:25 AM, Steven Price wrote:
+> Because shmem can swap pages back in without restoring
+> the userspace PTE it is also necessary to add a hook for shmem.
 
-Based on the feedback, I have 3 TODO items:
+I think the swap readahead code does this as well.  It pulls the page
+into the swap cache, but doesn't map it in.
 
-- track down and eliminate (or explain) the source of the .got.plt on arm64
-- enable orphan warnings for _all_ architectures
-- refactor final link logic to perform the orphan warning in a clean way
+...
+> +static DEFINE_XARRAY(mte_pages);
+> +
+> +void *mte_allocate_tag_storage(void)
+> +{
+> +	/* tags granule is 16 bytes, 2 tags stored per byte */
+> +	return kmalloc(PAGE_SIZE / 16 / 2, GFP_KERNEL);
+> +}
 
-I'm working through these (and other work) still. I'm hoping to have
-another version up some time next week.
+Yikes, so this eats 2k of unmovable kernel memory per 64k of swap?  This
+is *probably* worth having its own slab just so the memory that's used
+for it is less opaque.  It could be pretty large.  But, I guess if
+you're worried about how much kernel memory this can eat, there's always
+the swap cgroup controller to enforce limits.
 
--- 
-Kees Cook
+This also *increases* the footprint of a page while it's in the swap
+cache.  That's at least temporarily a _bit_ counterproductive.
+
+I guess there aren't any nice alternatives, though.  I would imagine
+that it would be substantially more complicated to rig the swap code up
+to write the tag along with the data.  Or, to store the tag data
+somewhere *it* can be reclaimed, like in a kernel-internal shmem file or
+something.
+
+> +void mte_free_tag_storage(char *storage)
+> +{
+> +	kfree(storage);
+> +}
+> +
+> +int mte_save_tags(struct page *page)
+> +{
+> +	void *tag_storage, *ret;
+> +
+> +	if (!test_bit(PG_mte_tagged, &page->flags))
+> +		return 0;
+> +
+> +	tag_storage =3D mte_allocate_tag_storage();
+> +	if (!tag_storage)
+> +		return -ENOMEM;
+> +
+> +	mte_save_page_tags(page_address(page), tag_storage);
+> +
+> +	ret =3D xa_store(&mte_pages, page_private(page), tag_storage, GFP_KER=
+NEL);
+
+This is indexing into the xarray with the swap entry.val established in
+do_swap_page()?  Might be nice to make a note where it came from.
+
+> +	if (WARN(xa_is_err(ret), "Failed to store MTE tags")) {
+> +		mte_free_tag_storage(tag_storage);
+> +		return xa_err(ret);
+> +	} else if (ret) {
+> +		mte_free_tag_storage(ret);
+
+Is there a missing "return ret;" here?  Otherwise, it seems like this
+might silently fail to save the page's tags.  I'm not sure what
+non-xa_is_err() codes get returned, but if there is one, it could end up
+here.
+
+> +	}
+> +
+> +	return 0;
+> +}
+...
+
+> +void mte_sync_tags(pte_t *ptep, pte_t pte)
+> +{
+> +	struct page *page =3D pte_page(pte);
+> +	pte_t old_pte =3D READ_ONCE(*ptep);
+> +	swp_entry_t entry;
+> +
+> +	set_bit(PG_mte_tagged, &page->flags);
+> +
+> +	if (!is_swap_pte(old_pte))
+> +		return;
+> +
+> +	entry =3D pte_to_swp_entry(old_pte);
+> +	if (non_swap_entry(entry))
+> +		return;
+> +
+> +	mte_restore_tags(entry, page);
+> +}
+
+Oh, here it is!  This gets called when replacing a swap PTE with a
+present PTE and restores the tags on swap-in.
+
+Does this work for swap PTEs which were copied at fork()?  I *think*
+those might end up in here twice, once for the parent and another for
+the child.  If both read the page, both will fault and both will do a
+set_pte() and end up in here.  I don't think it will do any harm since
+it will just set_bit(PG_mte_tagged) twice and restore the same tags
+twice.  But, it might be nice to call that out.
+
+This function is a bit light on comments.  It might make sense, for
+instance to note that 'pte' is always a tagged PTE at this point.
