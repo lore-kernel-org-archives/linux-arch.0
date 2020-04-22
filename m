@@ -1,58 +1,42 @@
-From: Masahiro Yamada <masahiroy@kernel.org>
-Subject: Re: [PATCH v2] arch: split MODULE_ARCH_VERMAGIC definitions out to <asm/vermagic.h>
-Date: Thu, 23 Apr 2020 01:06:26 +0900
-Message-ID: <CAK7LNAQ-WcKf1QDOnefjkzg7Cq1fKNuEPDvH9TYU8tLwbUhtmg@mail.gmail.com>
-References: <20200421161355.1357112-1-masahiroy@kernel.org> <20200422131729.GB20103@linux-8ccs>
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: Implement close-on-fork
+Date: Wed, 22 Apr 2020 17:13:43 +0100
+Message-ID: <20200422161343.GM23230@ZenIV.linux.org.uk>
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
+ <20200422150107.GK23230@ZenIV.linux.org.uk>
+ <20200422151815.GT5820@bombadil.infradead.org>
+ <20200422160032.GL23230@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200422131729.GB20103@linux-8ccs>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jessica Yu <jeyu@kernel.org>
-Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Borislav Petkov <bp@suse.de>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-parisc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200422160032.GL23230@ZenIV.linux.org.uk>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Nate Karstens <nate.karstens@garmin.com>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Changli Gao <xiaosuo@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 22, 2020 at 10:17 PM Jessica Yu <jeyu@kernel.org> wrote:
->
-> +++ Masahiro Yamada [22/04/20 01:13 +0900]:
-> [snip]
-> >diff --git a/arch/xtensa/include/asm/module.h b/arch/xtensa/include/asm/vermagic.h
-> >similarity index 72%
-> >rename from arch/xtensa/include/asm/module.h
-> >rename to arch/xtensa/include/asm/vermagic.h
-> >index 488b40c6f9b9..6f9e359a54ac 100644
-> >--- a/arch/xtensa/include/asm/module.h
-> >+++ b/arch/xtensa/include/asm/vermagic.h
-> >@@ -1,6 +1,4 @@
-> > /*
-> >- * include/asm-xtensa/module.h
-> >- *
-> >  * This file contains the module code specific to the Xtensa architecture.
->
-> Maybe we can remove this comment too? Since it's now asm/vermagic.h and
-> not asm/module.h anymore.
+On Wed, Apr 22, 2020 at 05:00:32PM +0100, Al Viro wrote:
 
-OK, I will delete it.
+> *snort*
+> 
+> Alan Coopersmith in that thread:
+> || https://lwn.net/Articles/785430/ suggests AIX, BSD, & MacOS have also defined
+> || it, and though it's been proposed multiple times for Linux, never adopted there.
+> 
+> Now, look at the article in question.  You'll see that it should've been
+> "someone's posting in the end of comments thread under LWN article says that
+> apparently it exists on AIX, BSD, ..."
+> 
+> The strength of evidence aside, that got me curious; I have checked the
+> source of FreeBSD, NetBSD and OpenBSD.  No such thing exists in either of
+> their kernels, so at least that part can be considered an urban legend.
+> 
+> As for the original problem...  what kind of exclusion is used between
+> the reaction to netlink notifications (including closing every socket,
+> etc.) and actual IO done on those sockets?
 
-Thanks for checking it closely.
-
-
-
-
->
-> Thanks for the cleanup. I agree that <linux/vermagic.h> shouldn't have
-> any ordering dependency on <linux/module.h>.
->
-> I just double checked to see if there were any other users of
-> MODULE_ARCH_VERMAGIC that needed it through module.h, and there are
-> none. It was literally just being defined in asm/module.h to be used
-> in linux/vermagic.h. So there was no reason really to confine the
-> MODULE_ARCH_VERMAGIC definition to asm/module.h.
->
-> Acked-by: Jessica Yu <jeyu@kernel.org>
-
-
-
--- 
-Best Regards
-Masahiro Yamada
+Not an idle question, BTW - unlike Solaris we do NOT (and will not) have
+close(2) abort IO on the same descriptor from another thread.  So if one
+thread sits in recvmsg(2) while another does close(2), the socket will
+*NOT* actually shut down until recvmsg(2) returns.
