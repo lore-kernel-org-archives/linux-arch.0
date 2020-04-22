@@ -1,103 +1,40 @@
-Return-Path: <SRS0=yBTr=57=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from condef-08.nifty.com ([202.248.20.73]:18867 "EHLO
-        condef-08.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2411377AbgDORed (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Apr 2020 13:34:33 -0400
-Received: from conssluserg-01.nifty.com ([10.126.8.80])by condef-08.nifty.com with ESMTP id 03FHLUkd013640
-        for <linux-arch@vger.kernel.org>; Thu, 16 Apr 2020 02:21:30 +0900
+Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57330 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726154AbgDVPoE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2020 11:44:04 -0400
+Date: Wed, 22 Apr 2020 08:43:56 -0700
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: [PATCH 1/4] fs: Implement close-on-fork
+Message-ID: <20200422154356.GU5820@bombadil.infradead.org>
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
+ <20200420071548.62112-2-nate.karstens@garmin.com>
+ <fa6c5c9c7c434f878c94a7c984cd43ba@garmin.com>
 MIME-Version: 1.0
-References: <20200415165218.20251-1-will@kernel.org> <20200415165218.20251-2-will@kernel.org>
-In-Reply-To: <20200415165218.20251-2-will@kernel.org>
-From: Masahiro Yamada <masahiroy@kernel.org>
-Date: Thu, 16 Apr 2020 02:20:07 +0900
-Message-ID: <CAK7LNATMDkey2ckTfuCysVPVUAbZa5C8oBBqWtE1ura+rnCbKg@mail.gmail.com>
-Subject: Re: [PATCH v3 01/12] compiler/gcc: Emit build-time warning for GCC
- prior to version 4.8
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <fa6c5c9c7c434f878c94a7c984cd43ba@garmin.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "Cc: Android Kernel" <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200415172007.OV-E534jW1w30EnvIrxHvll532GlWCo6L_UQNDqplwk@z>
+To: "Karstens, Nate" <Nate.Karstens@garmin.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Laight <David.Laight@aculab.com>, Changli Gao <xiaosuo@gmail.com>
+Message-ID: <20200422154356.2byt4C6CEt__h-bCsFyivbhg0VjOH0OTb08YEhHB16g@z>
 
-On Thu, Apr 16, 2020 at 1:52 AM Will Deacon <will@kernel.org> wrote:
->
-> Prior to version 4.8, GCC may miscompile READ_ONCE() by erroneously
-> discarding the 'volatile' qualifier:
->
-> https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
->
-> We've been working around this using some nasty hacks which make
-> READ_ONCE() both horribly complicated and also prevent us from enforcing
-> that it is only used on scalar types. Since GCC 4.8 is pretty old for
-> kernel builds now, emit a warning if we detect it during the build.
+On Wed, Apr 22, 2020 at 03:36:09PM +0000, Karstens, Nate wrote:
+> There was some skepticism about whether our practice of
+> closing/reopening sockets was advisable. Regardless, it does expose what
+> I believe to be something that was overlooked in the forking process
+> model. We posted two solutions to the Austin Group defect tracker:
 
+I don't think it was "overlooked" at all.  It's not safe to call system()
+from a threaded app.  That's all.  It's right there in the DESCRIPTION:
 
-This patch is unneeded since you will remove GCC 4.8 support
-in 11/12.
+   The system() function need not be thread-safe.
+https://pubs.opengroup.org/onlinepubs/9699919799/functions/system.html
 
-Please move 11/12 to the head of this series,
-and remove all noise changes.
+> Ultimately the Austin Group felt that close-on-fork
+> was the preferred approach. I think it's also worth
+> pointing that out Solaris reportedly has this feature
+> (https://www.mail-archive.com/austin-group-l@opengroup.org/msg05359.html).
 
-Thanks.
-
-
-
-
-
-
-> Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-> Cc: Masahiro Yamada <masahiroy@kernel.org>
-> Signed-off-by: Will Deacon <will@kernel.org>
-> ---
->  init/Kconfig            | 4 ++--
->  scripts/Kconfig.include | 9 +++++++++
->  2 files changed, 11 insertions(+), 2 deletions(-)
->
-> diff --git a/init/Kconfig b/init/Kconfig
-> index 9e22ee8fbd75..816b8b4a5e9e 100644
-> --- a/init/Kconfig
-> +++ b/init/Kconfig
-> @@ -9,11 +9,11 @@ config DEFCONFIG_LIST
->         default "arch/$(SRCARCH)/configs/$(KBUILD_DEFCONFIG)"
->
->  config CC_IS_GCC
-> -       def_bool $(success,$(CC) --version | head -n 1 | grep -q gcc)
-> +       def_bool $(cc-is-gcc)
->
->  config GCC_VERSION
->         int
-> -       default $(shell,$(srctree)/scripts/gcc-version.sh $(CC)) if CC_IS_GCC
-> +       default $(gcc-version) if CC_IS_GCC
->         default 0
->
->  config LD_VERSION
-> diff --git a/scripts/Kconfig.include b/scripts/Kconfig.include
-> index c264da2b9b30..5261e9d6b50b 100644
-> --- a/scripts/Kconfig.include
-> +++ b/scripts/Kconfig.include
-> @@ -54,3 +54,12 @@ $(error-if,$(success, $(LD) -v | grep -q gold), gold linker '$(LD)' not supporte
->  cc-option-bit = $(if-success,$(CC) -Werror $(1) -E -x c /dev/null -o /dev/null,$(1))
->  m32-flag := $(cc-option-bit,-m32)
->  m64-flag := $(cc-option-bit,-m64)
-> +
-> +# gcc version including patch level
-> +gcc-version := $(shell,$(srctree)/scripts/gcc-version.sh $(CC))
-> +
-> +# Return y if the compiler is GCC, n otherwise
-> +cc-is-gcc := $(success,$(CC) --version | head -n 1 | grep -q gcc)
-> +
-> +# Warn if the compiler is GCC prior to 4.8
-> +$(warning-if,$(if-success,[ $(gcc-version) -lt 40800 ],$(cc-is-gcc),n),"Your compiler is old and may miscompile the kernel due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145 - please upgrade it.")
-> --
-> 2.26.0.110.g2183baf09c-goog
->
-
-
--- 
-Best Regards
-Masahiro Yamada
+I am perplexed that the Austin Group thought this was a good idea.
