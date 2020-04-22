@@ -1,45 +1,66 @@
-Return-Path: <SRS0=p5Ku=5Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:52336 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729032AbgDHMBT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Apr 2020 08:01:19 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 26/28] arm64: use __vmalloc_node in arch_alloc_vmap_stack
-Date: Wed,  8 Apr 2020 13:59:24 +0200
-Message-ID: <20200408115926.1467567-27-hch@lst.de>
-In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
-References: <20200408115926.1467567-1-hch@lst.de>
+Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59972 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726006AbgDVQBH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2020 12:01:07 -0400
+Date: Wed, 22 Apr 2020 17:00:32 +0100
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: Implement close-on-fork
+Message-ID: <20200422160032.GL23230@ZenIV.linux.org.uk>
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
+ <20200422150107.GK23230@ZenIV.linux.org.uk>
+ <20200422151815.GT5820@bombadil.infradead.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200422151815.GT5820@bombadil.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200408115924.dlMbSe6t8y681Ofd2uAu-81eL57YudnTtfunIXuZlrc@z>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Nate Karstens <nate.karstens@garmin.com>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Changli Gao <xiaosuo@gmail.com>
+Message-ID: <20200422160032.laIgBBStFd5i-3QlYOXQp5z182KhCiP9v_jZdSVl4lc@z>
 
-arch_alloc_vmap_stack can use a slightly higher level vmalloc function.
+On Wed, Apr 22, 2020 at 08:18:15AM -0700, Matthew Wilcox wrote:
+> On Wed, Apr 22, 2020 at 04:01:07PM +0100, Al Viro wrote:
+> > On Mon, Apr 20, 2020 at 02:15:44AM -0500, Nate Karstens wrote:
+> > > Series of 4 patches to implement close-on-fork. Tests have been
+> > > published to https://github.com/nkarstens/ltp/tree/close-on-fork.
+> > > 
+> > > close-on-fork addresses race conditions in system(), which
+> > > (depending on the implementation) is non-atomic in that it
+> > > first calls a fork() and then an exec().
+> > > 
+> > > This functionality was approved by the Austin Common Standards
+> > > Revision Group for inclusion in the next revision of the POSIX
+> > > standard (see issue 1318 in the Austin Group Defect Tracker).
+> > 
+> > What exactly the reasons are and why would we want to implement that?
+> > 
+> > Pardon me, but going by the previous history, "The Austin Group Says It's
+> > Good" is more of a source of concern regarding the merits, general sanity
+> > and, most of all, good taste of a proposal.
+> > 
+> > I'm not saying that it's automatically bad, but you'll have to go much
+> > deeper into the rationale of that change before your proposal is taken
+> > seriously.
+> 
+> https://www.mail-archive.com/austin-group-l@opengroup.org/msg05324.html
+> might be useful
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/arm64/include/asm/vmap_stack.h | 6 ++----
- 1 file changed, 2 insertions(+), 4 deletions(-)
+*snort*
 
-diff --git a/arch/arm64/include/asm/vmap_stack.h b/arch/arm64/include/asm/vmap_stack.h
-index 0a12115d9638..0cc6636e3f15 100644
---- a/arch/arm64/include/asm/vmap_stack.h
-+++ b/arch/arm64/include/asm/vmap_stack.h
-@@ -19,10 +19,8 @@ static inline unsigned long *arch_alloc_vmap_stack(size_t stack_size, int node)
- {
- 	BUILD_BUG_ON(!IS_ENABLED(CONFIG_VMAP_STACK));
- 
--	return __vmalloc_node_range(stack_size, THREAD_ALIGN,
--				    VMALLOC_START, VMALLOC_END,
--				    THREADINFO_GFP, PAGE_KERNEL, 0, node,
--				    __builtin_return_address(0));
-+	return __vmalloc_node(stack_size, THREAD_ALIGN, THREADINFO_GFP, node,
-+			__builtin_return_address(0));
- }
- 
- #endif /* __ASM_VMAP_STACK_H */
--- 
-2.25.1
+Alan Coopersmith in that thread:
+|| https://lwn.net/Articles/785430/ suggests AIX, BSD, & MacOS have also defined
+|| it, and though it's been proposed multiple times for Linux, never adopted there.
+
+Now, look at the article in question.  You'll see that it should've been
+"someone's posting in the end of comments thread under LWN article says that
+apparently it exists on AIX, BSD, ..."
+
+The strength of evidence aside, that got me curious; I have checked the
+source of FreeBSD, NetBSD and OpenBSD.  No such thing exists in either of
+their kernels, so at least that part can be considered an urban legend.
+
+As for the original problem...  what kind of exclusion is used between
+the reaction to netlink notifications (including closing every socket,
+etc.) and actual IO done on those sockets?
