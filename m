@@ -1,129 +1,46 @@
-Return-Path: <SRS0=w+Hx=56=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55058 "EHLO
+Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53370 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2502812AbgDNNPb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Apr 2020 09:15:31 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 24/29] mm: remove __vmalloc_node_flags_caller
-Date: Tue, 14 Apr 2020 15:13:43 +0200
-Message-ID: <20200414131348.444715-25-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+        with ESMTP id S1725779AbgDVPS3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2020 11:18:29 -0400
+Date: Wed, 22 Apr 2020 08:18:15 -0700
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: Implement close-on-fork
+Message-ID: <20200422151815.GT5820@bombadil.infradead.org>
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
+ <20200422150107.GK23230@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200422150107.GK23230@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200414131343.suOfDwqezekkQdsOMN3XMbN8NN8E5byzFllGBaG1aLw@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Nate Karstens <nate.karstens@garmin.com>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Changli Gao <xiaosuo@gmail.com>
+Message-ID: <20200422151815.pSNPQWa962QAd8NYQb-hT43mcEeatQ2r-IsSvHK_GMY@z>
 
-Just use __vmalloc_node instead which gets and extra argument.  To be
-able to to use __vmalloc_node in all caller make it available outside
-of vmalloc and implement it in nommu.c.
+On Wed, Apr 22, 2020 at 04:01:07PM +0100, Al Viro wrote:
+> On Mon, Apr 20, 2020 at 02:15:44AM -0500, Nate Karstens wrote:
+> > Series of 4 patches to implement close-on-fork. Tests have been
+> > published to https://github.com/nkarstens/ltp/tree/close-on-fork.
+> > 
+> > close-on-fork addresses race conditions in system(), which
+> > (depending on the implementation) is non-atomic in that it
+> > first calls a fork() and then an exec().
+> > 
+> > This functionality was approved by the Austin Common Standards
+> > Revision Group for inclusion in the next revision of the POSIX
+> > standard (see issue 1318 in the Austin Group Defect Tracker).
+> 
+> What exactly the reasons are and why would we want to implement that?
+> 
+> Pardon me, but going by the previous history, "The Austin Group Says It's
+> Good" is more of a source of concern regarding the merits, general sanity
+> and, most of all, good taste of a proposal.
+> 
+> I'm not saying that it's automatically bad, but you'll have to go much
+> deeper into the rationale of that change before your proposal is taken
+> seriously.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- include/linux/vmalloc.h |  4 ++--
- kernel/bpf/syscall.c    |  5 ++---
- mm/nommu.c              |  4 ++--
- mm/util.c               |  2 +-
- mm/vmalloc.c            | 10 +---------
- 5 files changed, 8 insertions(+), 17 deletions(-)
-
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 4a46d296e70d..108f49b47756 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -115,8 +115,8 @@ extern void *__vmalloc_node_range(unsigned long size, unsigned long align,
- 			unsigned long start, unsigned long end, gfp_t gfp_mask,
- 			pgprot_t prot, unsigned long vm_flags, int node,
- 			const void *caller);
--extern void *__vmalloc_node_flags_caller(unsigned long size,
--					 int node, gfp_t flags, void *caller);
-+void *__vmalloc_node(unsigned long size, unsigned long align, gfp_t gfp_mask,
-+		int node, const void *caller);
- 
- extern void vfree(const void *addr);
- extern void vfree_atomic(const void *addr);
-diff --git a/kernel/bpf/syscall.c b/kernel/bpf/syscall.c
-index 64783da34202..48d98ea8fad6 100644
---- a/kernel/bpf/syscall.c
-+++ b/kernel/bpf/syscall.c
-@@ -299,9 +299,8 @@ static void *__bpf_map_area_alloc(u64 size, int numa_node, bool mmapable)
- 		return vmalloc_user_node_flags(size, numa_node, GFP_KERNEL |
- 					       __GFP_RETRY_MAYFAIL | flags);
- 	}
--	return __vmalloc_node_flags_caller(size, numa_node,
--					   GFP_KERNEL | __GFP_RETRY_MAYFAIL |
--					   flags, __builtin_return_address(0));
-+	return __vmalloc_node(size, 1, GFP_KERNEL | __GFP_RETRY_MAYFAIL | flags,
-+			      numa_node, __builtin_return_address(0));
- }
- 
- void *bpf_map_area_alloc(u64 size, int numa_node)
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 9553efa59787..81a86cd85893 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -150,8 +150,8 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
- }
- EXPORT_SYMBOL(__vmalloc);
- 
--void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t flags,
--		void *caller)
-+void *__vmalloc_node(unsigned long size, unsigned long align, gfp_t gfp_mask,
-+		int node, const void *caller)
- {
- 	return __vmalloc(size, flags);
- }
-diff --git a/mm/util.c b/mm/util.c
-index 988d11e6c17c..6d5868adbe18 100644
---- a/mm/util.c
-+++ b/mm/util.c
-@@ -580,7 +580,7 @@ void *kvmalloc_node(size_t size, gfp_t flags, int node)
- 	if (ret || size <= PAGE_SIZE)
- 		return ret;
- 
--	return __vmalloc_node_flags_caller(size, node, flags,
-+	return __vmalloc_node(size, 1, flags, node,
- 			__builtin_return_address(0));
- }
- EXPORT_SYMBOL(kvmalloc_node);
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 3d59d848ad48..ae8249ef5821 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -2400,8 +2400,6 @@ void *vmap(struct page **pages, unsigned int count,
- }
- EXPORT_SYMBOL(vmap);
- 
--static void *__vmalloc_node(unsigned long size, unsigned long align,
--			    gfp_t gfp_mask, int node, const void *caller);
- static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
- 				 pgprot_t prot, int node)
- {
-@@ -2552,7 +2550,7 @@ EXPORT_SYMBOL_GPL(__vmalloc_node_range);
-  *
-  * Return: pointer to the allocated memory or %NULL on error
-  */
--static void *__vmalloc_node(unsigned long size, unsigned long align,
-+void *__vmalloc_node(unsigned long size, unsigned long align,
- 			    gfp_t gfp_mask, int node, const void *caller)
- {
- 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
-@@ -2566,12 +2564,6 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask)
- }
- EXPORT_SYMBOL(__vmalloc);
- 
--void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t flags,
--				  void *caller)
--{
--	return __vmalloc_node(size, 1, flags, node, caller);
--}
--
- /**
-  * vmalloc - allocate virtually contiguous memory
-  * @size:    allocation size
--- 
-2.25.1
+https://www.mail-archive.com/austin-group-l@opengroup.org/msg05324.html
+might be useful
