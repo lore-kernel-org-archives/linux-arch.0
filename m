@@ -1,61 +1,80 @@
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: Implement close-on-fork
-Date: Wed, 22 Apr 2020 17:00:32 +0100
-Message-ID: <20200422160032.GL23230@ZenIV.linux.org.uk>
+From: "Karstens, Nate" <Nate.Karstens@garmin.com>
+Subject: RE: [PATCH 1/4] fs: Implement close-on-fork
+Date: Wed, 22 Apr 2020 16:02:49 +0000
+Message-ID: <6ed7bd08892b4311b70636658321904f@garmin.com>
 References: <20200420071548.62112-1-nate.karstens@garmin.com>
- <20200422150107.GK23230@ZenIV.linux.org.uk>
- <20200422151815.GT5820@bombadil.infradead.org>
+ <20200420071548.62112-2-nate.karstens@garmin.com>
+ <fa6c5c9c7c434f878c94a7c984cd43ba@garmin.com>
+ <20200422154356.GU5820@bombadil.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-alpha-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200422151815.GT5820@bombadil.infradead.org>
-Sender: linux-alpha-owner@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200422154356.GU5820@bombadil.infradead.org>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
 To: Matthew Wilcox <willy@infradead.org>
-Cc: Nate Karstens <nate.karstens@garmin.com>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Changli Gao <xiaosuo@gmail.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>"netdev@vger.kernel.org" <ne>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 22, 2020 at 08:18:15AM -0700, Matthew Wilcox wrote:
-> On Wed, Apr 22, 2020 at 04:01:07PM +0100, Al Viro wrote:
-> > On Mon, Apr 20, 2020 at 02:15:44AM -0500, Nate Karstens wrote:
-> > > Series of 4 patches to implement close-on-fork. Tests have been
-> > > published to https://github.com/nkarstens/ltp/tree/close-on-fork.
-> > > 
-> > > close-on-fork addresses race conditions in system(), which
-> > > (depending on the implementation) is non-atomic in that it
-> > > first calls a fork() and then an exec().
-> > > 
-> > > This functionality was approved by the Austin Common Standards
-> > > Revision Group for inclusion in the next revision of the POSIX
-> > > standard (see issue 1318 in the Austin Group Defect Tracker).
-> > 
-> > What exactly the reasons are and why would we want to implement that?
-> > 
-> > Pardon me, but going by the previous history, "The Austin Group Says It's
-> > Good" is more of a source of concern regarding the merits, general sanity
-> > and, most of all, good taste of a proposal.
-> > 
-> > I'm not saying that it's automatically bad, but you'll have to go much
-> > deeper into the rationale of that change before your proposal is taken
-> > seriously.
-> 
-> https://www.mail-archive.com/austin-group-l@opengroup.org/msg05324.html
-> might be useful
+> It's not safe to call system() from a threaded app.  That's all.  It's ri=
+ght there in the DESCRIPTION:
 
-*snort*
+That is true, but that description is missing from both the Linux man page =
+and the glibc documentation (https://www.gnu.org/software/libc/manual/html_=
+mono/libc.html#Running-a-Command). It seems like a minor point that won't b=
+e noticed until it causes a problem, and problems are rare enough they migh=
+t go unnoticed for a while. We have removed system() from our application, =
+but we're also concerned that libraries we integrate will use system() with=
+out our knowledge.
 
-Alan Coopersmith in that thread:
-|| https://lwn.net/Articles/785430/ suggests AIX, BSD, & MacOS have also defined
-|| it, and though it's been proposed multiple times for Linux, never adopted there.
+-----Original Message-----
+From: Matthew Wilcox <willy@infradead.org>
+Sent: Wednesday, April 22, 2020 10:44
+To: Karstens, Nate <Nate.Karstens@garmin.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>; Jeff Layton <jlayton@kernel.o=
+rg>; J. Bruce Fields <bfields@fieldses.org>; Arnd Bergmann <arnd@arndb.de>;=
+ Richard Henderson <rth@twiddle.net>; Ivan Kokshaysky <ink@jurassic.park.ms=
+u.ru>; Matt Turner <mattst88@gmail.com>; James E.J. Bottomley <James.Bottom=
+ley@hansenpartnership.com>; Helge Deller <deller@gmx.de>; David S. Miller <=
+davem@davemloft.net>; Jakub Kicinski <kuba@kernel.org>; linux-fsdevel@vger.=
+kernel.org; linux-arch@vger.kernel.org; linux-alpha@vger.kernel.org; linux-=
+parisc@vger.kernel.org; sparclinux@vger.kernel.org; netdev@vger.kernel.org;=
+ linux-kernel@vger.kernel.org; David Laight <David.Laight@aculab.com>; Chan=
+gli Gao <xiaosuo@gmail.com>
+Subject: Re: [PATCH 1/4] fs: Implement close-on-fork
 
-Now, look at the article in question.  You'll see that it should've been
-"someone's posting in the end of comments thread under LWN article says that
-apparently it exists on AIX, BSD, ..."
+CAUTION - EXTERNAL EMAIL: Do not click any links or open any attachments un=
+less you trust the sender and know the content is safe.
 
-The strength of evidence aside, that got me curious; I have checked the
-source of FreeBSD, NetBSD and OpenBSD.  No such thing exists in either of
-their kernels, so at least that part can be considered an urban legend.
 
-As for the original problem...  what kind of exclusion is used between
-the reaction to netlink notifications (including closing every socket,
-etc.) and actual IO done on those sockets?
+On Wed, Apr 22, 2020 at 03:36:09PM +0000, Karstens, Nate wrote:
+> There was some skepticism about whether our practice of
+> closing/reopening sockets was advisable. Regardless, it does expose
+> what I believe to be something that was overlooked in the forking
+> process model. We posted two solutions to the Austin Group defect tracker=
+:
+
+I don't think it was "overlooked" at all.  It's not safe to call system() f=
+rom a threaded app.  That's all.  It's right there in the DESCRIPTION:
+
+   The system() function need not be thread-safe.
+https://pubs.opengroup.org/onlinepubs/9699919799/functions/system.html
+
+> Ultimately the Austin Group felt that close-on-fork was the preferred
+> approach. I think it's also worth pointing that out Solaris reportedly
+> has this feature
+> (https://www.mail-archive.com/austin-group-l@opengroup.org/msg05359.html)=
+.
+
+I am perplexed that the Austin Group thought this was a good idea.
+
+________________________________
+
+CONFIDENTIALITY NOTICE: This email and any attachments are for the sole use=
+ of the intended recipient(s) and contain information that may be Garmin co=
+nfidential and/or Garmin legally privileged. If you have received this emai=
+l in error, please notify the sender by reply email and delete the message.=
+ Any disclosure, copying, distribution or use of this communication (includ=
+ing attachments) by someone other than the intended recipient is prohibited=
+. Thank you.
