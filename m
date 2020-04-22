@@ -1,108 +1,108 @@
-Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:53170 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726984AbgDTNzb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Apr 2020 09:55:31 -0400
-Date: Mon, 20 Apr 2020 14:55:24 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [EXT] Re: [PATCH v3 03/13] task_isolation: add instruction
- synchronization memory barrier
-Message-ID: <20200420135523.GA18711@willie-the-truck>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
- <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
- <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
- <d995795c731d6ecceb36bdf1c1df3d72fefd023d.camel@marvell.com>
- <20200415124427.GB28304@C02TD0UTHF1T.local>
- <e4d2cda6f011e80a0d8e482b85bca1c57665fcfd.camel@marvell.com>
- <20200420122350.GB12889@willie-the-truck>
- <20200420123628.GB69441@C02TD0UTHF1T.local>
+Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from esgaroth.petrovitsch.at ([78.47.184.11]:4925 "EHLO
+        esgaroth.tuxoid.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726147AbgDVRD0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2020 13:03:26 -0400
+Subject: Re: [PATCH 1/4] fs: Implement close-on-fork
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
+ <20200420071548.62112-2-nate.karstens@garmin.com>
+ <fa6c5c9c7c434f878c94a7c984cd43ba@garmin.com>
+ <20200422154356.GU5820@bombadil.infradead.org>
+ <6ed7bd08892b4311b70636658321904f@garmin.com>
+From: Bernd Petrovitsch <bernd@petrovitsch.priv.at>
+Message-ID: <97f05204-a27c-7cc8-429a-edcf6eebaa11@petrovitsch.priv.at>
+Date: Wed, 22 Apr 2020 16:31:34 +0000
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200420123628.GB69441@C02TD0UTHF1T.local>
+In-Reply-To: <6ed7bd08892b4311b70636658321904f@garmin.com>
+Content-Type: multipart/mixed;
+ boundary="------------5C6F5C422D1052E6828086F8"
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Alex Belits <abelits@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "frederic@kernel.org" <frederic@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20200420135524.tUzgrbTJfdFDsy3oDi9D-HQ-LlV0Nqax74b9nkh2DmQ@z>
+To: "Karstens, Nate" <Nate.Karstens@garmin.com>, Matthew Wilcox <willy@infradead.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Laight <David.Laight@aculab.com>, Changli Gao <xiaosuo@gmail.com>
+Message-ID: <20200422163134.bKK8QV0qM4DpzRnqpnkY72aLRB70i3FrYY1aQ1n_Osg@z>
 
-On Mon, Apr 20, 2020 at 01:36:28PM +0100, Mark Rutland wrote:
-> On Mon, Apr 20, 2020 at 01:23:51PM +0100, Will Deacon wrote:
-> > On Sun, Apr 19, 2020 at 05:02:01AM +0000, Alex Belits wrote:
-> > > On Wed, 2020-04-15 at 13:44 +0100, Mark Rutland wrote:
-> > > > On Thu, Apr 09, 2020 at 03:17:40PM +0000, Alex Belits wrote:
-> > > > > Some architectures implement memory synchronization instructions
-> > > > > for
-> > > > > instruction cache. Make a separate kind of barrier that calls them.
-> > > > 
-> > > > Modifying the instruction caches requries more than an ISB, and the
-> > > > 'IMB' naming implies you're trying to order against memory accesses,
-> > > > which isn't what ISB (generally) does.
-> > > > 
-> > > > What exactly do you want to use this for?
-> > > 
-> > > I guess, there should be different explanation and naming.
-> > > 
-> > > The intention is to have a separate barrier that causes cache
-> > > synchronization event, for use in architecture-independent code. I am
-> > > not sure, what exactly it should do to be implemented in architecture-
-> > > independent manner, so it probably only makes sense along with a
-> > > regular memory barrier.
-> > > 
-> > > The particular place where I had to use is the code that has to run
-> > > after isolated task returns to the kernel. In the model that I propose
-> > > for task isolation, remote context synchronization is skipped while
-> > > task is in isolated in userspace (it doesn't run kernel, and kernel
-> > > does not modify its userspace code, so it's harmless until entering the
-> > > kernel).
-> > 
-> > > So it will skip the results of kick_all_cpus_sync() that was
-> > > that was called from flush_icache_range() and other similar places.
-> > > This means that once it's out of userspace, it should only run
-> > > some "safe" kernel entry code, and then synchronize in some manner that
-> > > avoids race conditions with possible IPIs intended for context
-> > > synchronization that may happen at the same time. My next patch in the
-> > > series uses it in that one place.
-> > > 
-> > > Synchronization will have to be implemented without a mandatory
-> > > interrupt because it may be triggered locally, on the same CPU. On ARM,
-> > > ISB is definitely necessary there, however I am not sure, how this
-> > > should look like on x86 and other architectures. On ARM this probably
-> > > still should be combined with a real memory barrier and cache
-> > > synchronization, however I am not entirely sure about details. Would
-> > > it make more sense to run DMB, IC and ISB? 
-> > 
-> > IIUC, we don't need to do anything on arm64 because taking an exception acts
-> > as a context synchronization event, so I don't think you should try to
-> > expose this as a new barrier macro. Instead, just make it a pre-requisite
-> > that architectures need to ensure this behaviour when entering the kernel
-> > from userspace if they are to select HAVE_ARCH_TASK_ISOLATION.
-> 
-> The CSE from the exception isn't sufficient here, because it needs to
-> occur after the CPU has re-registered to receive IPIs for
-> kick_all_cpus_sync(). Otherwise there's a window between taking the
-> exception and re-registering where a necessary context synchronization
-> event can be missed. e.g.
-> 
-> CPU A				CPU B
-> [ Modifies some code ]		
-> 				[ enters exception ]
-> [ D cache maintenance ]
-> [ I cache maintenance ]
-> [ IPI ]				// IPI not taken
->   ...				[ register for IPI ] 
-> [ IPI completes ] 
-> 				[ execute stale code here ]
+This is a multi-part message in MIME format.
+--------------5C6F5C422D1052E6828086F8
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-Thanks.
+On 22/04/2020 16:02, Karstens, Nate wrote:
+>> It's not safe to call system() from a threaded app.  That's all.  It's=
+ right there in the DESCRIPTION:
+>=20
+> That is true, but that description is missing from both the Linux man p=
+age and the glibc documentation (https://www.gnu.org/software/libc/manual=
+/html_mono/libc.html#Running-a-Command). It seems like a minor point that=
+ won't be noticed until it causes a problem, and problems are rare enough=
+ they might go unnoticed for a while. We have removed system() from our a=
+pplication, but we're also concerned that libraries we integrate will use=
+ system() without our knowledge.
 
-> However, I think 'IMB' is far too generic, and we should have an arch
-> hook specific to task isolation, as it's far less likely to be abused as
-> IMB will.
+Reimplementing system() is trivial.
+LD_LIBRARY_PRELOAD should take care of all system(3) calls.
 
-What guarantees we don't run any unsynchronised module code between
-exception entry and registering for the IPI? It seems like we'd want that
-code to run as early as possible, e.g. as part of
-task_isolation_user_exit() but that doesn't seem to be what's happening.
+I wonder it it has some value to add runtime checking for
+"multi-threaded" to such lib functions and error out if
+yes.
 
-Will
+Apart from that, system() is a PITA even on
+single/non-threaded apps.
+
+MfG,
+	Bernd
+--=20
+There is no cloud, just other people computers.
+-- https://static.fsf.org/nosvn/stickers/thereisnocloud.svg
+
+--------------5C6F5C422D1052E6828086F8
+Content-Type: application/pgp-keys;
+ name="pEpkey.asc"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: attachment;
+ filename="pEpkey.asc"
+
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+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3D=3D
+=3DGX6K
+-----END PGP PUBLIC KEY BLOCK-----
+
+--------------5C6F5C422D1052E6828086F8--
