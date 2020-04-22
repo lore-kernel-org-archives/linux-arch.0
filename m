@@ -1,180 +1,38 @@
-From: Steven Price <steven.price@arm.com>
-Subject: [PATCH 4/4] arm64: mte: Save tags when hibernating
-Date: Wed, 22 Apr 2020 15:25:30 +0100
-Message-ID: <20200422142530.32619-5-steven.price@arm.com>
-References: <20200422142530.32619-1-steven.price@arm.com>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: Implement close-on-fork
+Date: Wed, 22 Apr 2020 07:32:55 -0700
+Message-ID: <1587565975.3485.5.camel@HansenPartnership.com>
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50726 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726969AbgDVOZs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Apr 2020 10:25:48 -0400
-In-Reply-To: <20200422142530.32619-1-steven.price@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org
-Cc: Steven Price <steven.price@arm.com>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Hugh Dickins <hughd@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200420071548.62112-1-nate.karstens@garmin.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Nate Karstens <nate.karstens@garmin.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Changli Gao <xiaosuo@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-When hibernating the contents of all pages in the system are written to
-disk, however the MTE tags are not visible to the generic hibernation
-code. So just before the hibernation image is created copy the tags out
-of the physical tag storage into standard memory so they will be
-included in the hibernation image. After hibernation apply the tags back
-into the physical tag storage.
+On Mon, 2020-04-20 at 02:15 -0500, Nate Karstens wrote:
+> Series of 4 patches to implement close-on-fork. Tests have been
+> published to https://github.com/nkarstens/ltp/tree/close-on-fork.
+> 
+> close-on-fork addresses race conditions in system(), which
+> (depending on the implementation) is non-atomic in that it
+> first calls a fork() and then an exec().
 
-Signed-off-by: Steven Price <steven.price@arm.com>
----
- arch/arm64/kernel/hibernate.c | 116 ++++++++++++++++++++++++++++++++++
- 1 file changed, 116 insertions(+)
+Why is this a problem?  I get that there's a time between fork and exec
+when you have open file descriptors, but they should still be running
+in the binary context of the programme that called fork, i.e. under
+your control.  The security problems don't seem to occur until you exec
+some random binary, which close on exec covers.  So what problem would
+close on fork fix?
 
-diff --git a/arch/arm64/kernel/hibernate.c b/arch/arm64/kernel/hibernate.c
-index 5b73e92c99e3..b89429778b5d 100644
---- a/arch/arm64/kernel/hibernate.c
-+++ b/arch/arm64/kernel/hibernate.c
-@@ -31,6 +31,7 @@
- #include <asm/kexec.h>
- #include <asm/memory.h>
- #include <asm/mmu_context.h>
-+#include <asm/mte.h>
- #include <asm/pgalloc.h>
- #include <asm/pgtable.h>
- #include <asm/pgtable-hwdef.h>
-@@ -277,6 +278,115 @@ static int create_safe_exec_page(void *src_start, size_t length,
- 
- #define dcache_clean_range(start, end)	__flush_dcache_area(start, (end - start))
- 
-+#ifdef CONFIG_ARM64_MTE
-+
-+static DEFINE_XARRAY(mte_pages);
-+
-+static int save_tags(struct page *page, unsigned long pfn)
-+{
-+	void *tag_storage, *ret;
-+
-+	tag_storage = mte_allocate_tag_storage();
-+	if (!tag_storage)
-+		return -ENOMEM;
-+
-+	mte_save_page_tags(page_address(page), tag_storage);
-+
-+	ret = xa_store(&mte_pages, pfn, tag_storage, GFP_KERNEL);
-+	if (WARN(xa_is_err(ret), "Failed to store MTE tags")) {
-+		mte_free_tag_storage(tag_storage);
-+		return xa_err(ret);
-+	} else if (WARN(ret, "swsusp: %s: Duplicate entry", __func__)) {
-+		mte_free_tag_storage(ret);
-+	}
-+
-+	return 0;
-+}
-+
-+static void swsusp_mte_free_storage(void)
-+{
-+	XA_STATE(xa_state, &mte_pages, 0);
-+	void *tags;
-+
-+	xa_lock(&mte_pages);
-+	xas_for_each(&xa_state, tags, ULONG_MAX) {
-+		mte_free_tag_storage(tags);
-+	}
-+	xa_unlock(&mte_pages);
-+
-+	xa_destroy(&mte_pages);
-+}
-+
-+static int swsusp_mte_save_tags(void)
-+{
-+	struct zone *zone;
-+	unsigned long pfn, max_zone_pfn;
-+	int ret = 0;
-+	int n = 0;
-+
-+	if (!system_supports_mte())
-+		return 0;
-+
-+	for_each_populated_zone(zone) {
-+		max_zone_pfn = zone_end_pfn(zone);
-+		for (pfn = zone->zone_start_pfn; pfn < max_zone_pfn; pfn++) {
-+			struct page *page = pfn_to_online_page(pfn);
-+
-+			if (!page)
-+				continue;
-+
-+			if (!test_bit(PG_mte_tagged, &page->flags))
-+				continue;
-+
-+			ret = save_tags(page, pfn);
-+			n++;
-+
-+			if (ret) {
-+				swsusp_mte_free_storage();
-+				goto out;
-+			}
-+		}
-+	}
-+
-+	pr_info("Saved %d MTE pages\n", n);
-+
-+out:
-+	return ret;
-+}
-+
-+static void swsusp_mte_restore_tags(void)
-+{
-+	XA_STATE(xa_state, &mte_pages, 0);
-+	int n = 0;
-+	void *tags;
-+
-+	xa_lock(&mte_pages);
-+	xas_for_each(&xa_state, tags, ULONG_MAX) {
-+		unsigned long pfn = xa_state.xa_index;
-+		struct page *page = pfn_to_online_page(pfn);
-+
-+		mte_restore_page_tags(page_address(page), tags);
-+
-+		mte_free_tag_storage(tags);
-+		n++;
-+	}
-+	xa_unlock(&mte_pages);
-+
-+	pr_info("Restored %d MTE pages\n", n);
-+
-+	xa_destroy(&mte_pages);
-+}
-+#else
-+static int swsusp_mte_save_tags(void)
-+{
-+	return 0;
-+}
-+
-+static void swsusp_mte_restore_tags(void)
-+{
-+}
-+#endif
-+
- int swsusp_arch_suspend(void)
- {
- 	int ret = 0;
-@@ -294,6 +404,10 @@ int swsusp_arch_suspend(void)
- 		/* make the crash dump kernel image visible/saveable */
- 		crash_prepare_suspend();
- 
-+		ret = swsusp_mte_save_tags();
-+		if (ret)
-+			return ret;
-+
- 		sleep_cpu = smp_processor_id();
- 		ret = swsusp_save();
- 	} else {
-@@ -307,6 +421,8 @@ int swsusp_arch_suspend(void)
- 			dcache_clean_range(__hyp_text_start, __hyp_text_end);
- 		}
- 
-+		swsusp_mte_restore_tags();
-+
- 		/* make the crash dump kernel image protected again */
- 		crash_post_resume();
- 
--- 
-2.20.1
+> This functionality was approved by the Austin Common Standards
+> Revision Group for inclusion in the next revision of the POSIX
+> standard (see issue 1318 in the Austin Group Defect Tracker).
+
+URL?  Does this standard give a reason why the functionality might be
+useful.
+
+James
