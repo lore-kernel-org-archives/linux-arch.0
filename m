@@ -1,50 +1,61 @@
-From: Mark Brown <broonie@kernel.org>
-Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
-Date: Wed, 22 Apr 2020 16:44:36 +0100
-Message-ID: <20200422154436.GJ4898@sirena.org.uk>
-References: <20200316165055.31179-1-broonie@kernel.org>
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: Implement close-on-fork
+Date: Wed, 22 Apr 2020 17:00:32 +0100
+Message-ID: <20200422160032.GL23230@ZenIV.linux.org.uk>
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
+ <20200422150107.GK23230@ZenIV.linux.org.uk>
+ <20200422151815.GT5820@bombadil.infradead.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="I/5syFLg1Ed7r+1G"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:53620 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726124AbgDVPoj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Apr 2020 11:44:39 -0400
-Content-Disposition: inline
-In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm
-
-
---I/5syFLg1Ed7r+1G
 Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-alpha-owner@vger.kernel.org>
 Content-Disposition: inline
+In-Reply-To: <20200422151815.GT5820@bombadil.infradead.org>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Nate Karstens <nate.karstens@garmin.com>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Changli Gao <xiaosuo@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 16, 2020 at 04:50:42PM +0000, Mark Brown wrote:
-> This patch series implements support for ARMv8.5-A Branch Target
-> Identification (BTI), which is a control flow integrity protection
-> feature introduced as part of the ARMv8.5-A extensions.
+On Wed, Apr 22, 2020 at 08:18:15AM -0700, Matthew Wilcox wrote:
+> On Wed, Apr 22, 2020 at 04:01:07PM +0100, Al Viro wrote:
+> > On Mon, Apr 20, 2020 at 02:15:44AM -0500, Nate Karstens wrote:
+> > > Series of 4 patches to implement close-on-fork. Tests have been
+> > > published to https://github.com/nkarstens/ltp/tree/close-on-fork.
+> > > 
+> > > close-on-fork addresses race conditions in system(), which
+> > > (depending on the implementation) is non-atomic in that it
+> > > first calls a fork() and then an exec().
+> > > 
+> > > This functionality was approved by the Austin Common Standards
+> > > Revision Group for inclusion in the next revision of the POSIX
+> > > standard (see issue 1318 in the Austin Group Defect Tracker).
+> > 
+> > What exactly the reasons are and why would we want to implement that?
+> > 
+> > Pardon me, but going by the previous history, "The Austin Group Says It's
+> > Good" is more of a source of concern regarding the merits, general sanity
+> > and, most of all, good taste of a proposal.
+> > 
+> > I'm not saying that it's automatically bad, but you'll have to go much
+> > deeper into the rationale of that change before your proposal is taken
+> > seriously.
+> 
+> https://www.mail-archive.com/austin-group-l@opengroup.org/msg05324.html
+> might be useful
 
-I've not resent this since the branch is still sitting in the arm64 tree
-but it's also not in -next at the minute - is there anything you're
-waiting for from my end here?
+*snort*
 
---I/5syFLg1Ed7r+1G
-Content-Type: application/pgp-signature; name="signature.asc"
+Alan Coopersmith in that thread:
+|| https://lwn.net/Articles/785430/ suggests AIX, BSD, & MacOS have also defined
+|| it, and though it's been proposed multiple times for Linux, never adopted there.
 
------BEGIN PGP SIGNATURE-----
+Now, look at the article in question.  You'll see that it should've been
+"someone's posting in the end of comments thread under LWN article says that
+apparently it exists on AIX, BSD, ..."
 
-iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl6gZmMACgkQJNaLcl1U
-h9AYVQf/ajN/x5F2wiYIKFjzo2+jXBlUnF9FczZVVrXFDW2YeidwJw/eKCefOPQY
-5HHDihIrHZBRdOrdnQ7UE8UIfQZMI8oOguL84O4O6IwCnwTZpEOuNhYHjCS1qMUI
-nAHZjSGlSnKBp4MwttY/LRRomyGW74ukfnOU91v91LR6Aakw31PUIQZ8EDOT84jC
-0hMnIjzmaA9LzLQRrMMQqSLi5FdLg4ps9NEb4zVklz94U/mzf4l+GzZczg6eJI1S
-JUz9EwBdrJIwPCRdBoHCQbrVCuiCbvDjhobVK0tKRycjOFvWXh0nDWRWFwfZiD68
-dpJmkHE2POaVhBEWnwhUJ57489SMCA==
-=z9OW
------END PGP SIGNATURE-----
+The strength of evidence aside, that got me curious; I have checked the
+source of FreeBSD, NetBSD and OpenBSD.  No such thing exists in either of
+their kernels, so at least that part can be considered an urban legend.
 
---I/5syFLg1Ed7r+1G--
+As for the original problem...  what kind of exclusion is used between
+the reaction to netlink notifications (including closing every socket,
+etc.) and actual IO done on those sockets?
