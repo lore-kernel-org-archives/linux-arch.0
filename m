@@ -1,43 +1,82 @@
-Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 8 Apr 2020 17:12:03 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
- zsmalloc
-Message-ID: <20200408151203.GN20730@hirez.programming.kicks-ass.net>
-References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-11-hch@lst.de>
- <c0c86feb-b3d8-78f2-127f-71d682ffc51f@infradead.org>
+Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:49440 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725968AbgDVNLf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Apr 2020 09:11:35 -0400
+Date: Wed, 22 Apr 2020 14:11:29 +0100
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v4 08/11] READ_ONCE: Drop pointer qualifiers when reading
+ from scalar types
+Message-ID: <20200422131129.GC676@willie-the-truck>
+References: <20200421151537.19241-1-will@kernel.org>
+ <20200421151537.19241-9-will@kernel.org>
+ <6cbc8ae1-8eb1-a5a0-a584-2081fca1c4aa@rasmusvillemoes.dk>
+ <20200422114807.GW26902@gate.crashing.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <c0c86feb-b3d8-78f2-127f-71d682ffc51f@infradead.org>
-Sender: owner-linux-mm@kvack.org
-To: Randy Dunlap <rdunlap@infradead.org>
-Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20200422114807.GW26902@gate.crashing.org>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200408151203._SEJkuyEtaxc5r4xGcHUPKOwLYXN1gSFFLo8l9Bm05c@z>
+To: Segher Boessenkool <segher@kernel.crashing.org>
+Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@android.com, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200422131129.WNovYwE3ostUcTddXfxV6VWFvMfql-LwcU-Q2-8aqTY@z>
 
-On Wed, Apr 08, 2020 at 08:01:00AM -0700, Randy Dunlap wrote:
-> Hi,
+On Wed, Apr 22, 2020 at 06:48:07AM -0500, Segher Boessenkool wrote:
+> On Wed, Apr 22, 2020 at 12:25:03PM +0200, Rasmus Villemoes wrote:
+> > On 21/04/2020 17.15, Will Deacon wrote:
+> > > Unfortunately, dropping pointer qualifiers inside the macro poses quite
+> > > a challenge, especially since the pointed-to type is permitted to be an
+> > > aggregate, and this is relied upon by mm/ code accessing things like
+> > > 'pmd_t'. Based on numerous hacks and discussions on the mailing list,
+> > > this is the best I've managed to come up with.
+> > 
+> > Hm, maybe this can be brought to work, only very lightly tested. It
+> > basically abuses what -Wignored-qualifiers points out:
+> > 
+> >   warning: type qualifiers ignored on function return type
+> > 
+> > Example showing the idea:
+> > 
+> > const int c(void);
+> > volatile int v(void);
+> > 
+> > int hack(int x, int y)
+> > {
+> > 	typeof(c()) a = x;
+> > 	typeof(v()) b = y;
+> > 
+> > 	a += b;
+> > 	b += a;
+> > 	a += b;
+> > 	return a;
+> > }
 > 
-> On 4/8/20 4:59 AM, Christoph Hellwig wrote:
-> > diff --git a/mm/Kconfig b/mm/Kconfig
-> > index 36949a9425b8..614cc786b519 100644
-> > --- a/mm/Kconfig
-> > +++ b/mm/Kconfig
-> > @@ -702,7 +702,7 @@ config ZSMALLOC
-> >  
-> >  config ZSMALLOC_PGTABLE_MAPPING
-> >  	bool "Use page table mapping to access object in zsmalloc"
-> > -	depends on ZSMALLOC
-> > +	depends on ZSMALLOC=y
+> Nasty.  I like it :-)
 > 
-> It's a bool so this shouldn't matter... not needed.
+> > Since that compiles, a cannot be const-qualified, and the generated code
+> > certainly suggests that b is not volatile-qualified. So something like
+> > 
+> > #define unqual_type(x) _unqual_type(x, unique_id_dance)
+> > #define _unqual_type(x, id) typeof( ({
+> >   typeof(x) id(void);
+> >   id();
+> > }) )
+> > 
+> > and perhaps some _Pragma("GCC diagnostic push")/_Pragma("GCC diagnostic
+> > ignored -Wignored-qualifiers")/_Pragma("GCC diagnostic pop") could
+> > prevent the warning (which is in -Wextra, so I don't think it would
+> > appear in a normal build anyway).
+> > 
+> > No idea how well any of this would work across gcc versions or with clang.
+> 
+> https://gcc.gnu.org/legacy-ml/gcc-patches/2016-05/msg01054.html
+> 
+> This is defined to work this way in ISO C since C11.
+> 
+> But, it doesn't work with GCC before GCC 7 :-(
 
-My mm/Kconfig has:
+Damn, that's quite a cool hack! Maybe we'll be able to implement it in a
+few years time ;)
 
-config ZSMALLOC
-	tristate "Memory allocator for compressed pages"
-	depends on MMU
-
-which I think means it can be modular, no?
+WIll
