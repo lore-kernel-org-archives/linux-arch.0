@@ -1,103 +1,85 @@
-From: Bernd Petrovitsch <bernd@petrovitsch.priv.at>
-Subject: Re: [PATCH 1/4] fs: Implement close-on-fork
-Date: Wed, 22 Apr 2020 16:31:34 +0000
-Message-ID: <97f05204-a27c-7cc8-429a-edcf6eebaa11@petrovitsch.priv.at>
-References: <20200420071548.62112-1-nate.karstens@garmin.com>
- <20200420071548.62112-2-nate.karstens@garmin.com>
- <fa6c5c9c7c434f878c94a7c984cd43ba@garmin.com>
- <20200422154356.GU5820@bombadil.infradead.org>
- <6ed7bd08892b4311b70636658321904f@garmin.com>
+From: Randy Dunlap <rdunlap@infradead.org>
+Subject: Re: [PATCH] io: correct documentation mismatches for io memcpy
+Date: Wed, 22 Apr 2020 09:42:56 -0700
+Message-ID: <4b0a80ed-a639-c8c0-e6c3-01ba3266b7de@infradead.org>
+References: <20200422092905.39529-1-wenhu.wang@vivo.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed;
- boundary="------------5C6F5C422D1052E6828086F8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <6ed7bd08892b4311b70636658321904f@garmin.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Karstens, Nate" <Nate.Karstens@garmin.com>, Matthew Wilcox <willy@infradead.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>"netdev@vger.kernel.org" <ne>
-List-Id: linux-arch.vger.kernel.org
-
-This is a multi-part message in MIME format.
---------------5C6F5C422D1052E6828086F8
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38302 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726154AbgDVQm5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2020 12:42:57 -0400
+In-Reply-To: <20200422092905.39529-1-wenhu.wang@vivo.com>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Wang Wenhu <wenhu.wang@vivo.com>, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: kernel@vivo.com
 
-On 22/04/2020 16:02, Karstens, Nate wrote:
->> It's not safe to call system() from a threaded app.  That's all.  It's=
- right there in the DESCRIPTION:
->=20
-> That is true, but that description is missing from both the Linux man p=
-age and the glibc documentation (https://www.gnu.org/software/libc/manual=
-/html_mono/libc.html#Running-a-Command). It seems like a minor point that=
- won't be noticed until it causes a problem, and problems are rare enough=
- they might go unnoticed for a while. We have removed system() from our a=
-pplication, but we're also concerned that libraries we integrate will use=
- system() without our knowledge.
+Hi--
 
-Reimplementing system() is trivial.
-LD_LIBRARY_PRELOAD should take care of all system(3) calls.
+2 small nits: please see below.
 
-I wonder it it has some value to add runtime checking for
-"multi-threaded" to such lib functions and error out if
-yes.
+On 4/22/20 2:29 AM, Wang Wenhu wrote:
+> Minor mismatches exist between funtion documentations and parameter
+> definitions.
+> 
+> Function definition lines are as following:
+> static inline void memcpy_fromio(void *buffer,
+> 				 const volatile void __iomem *addr,
+> 				 size_t size)
+> 
+> static inline void memcpy_toio(volatile void __iomem *addr, const void *buffer,
+> 			       size_t size)
+> 
+> Signed-off-by: Wang Wenhu <wenhu.wang@vivo.com>
+> ---
+>  include/asm-generic/io.h | 12 ++++++------
+>  1 file changed, 6 insertions(+), 6 deletions(-)
+> 
+> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+> index d39ac997dda8..63131ec4857f 100644
+> --- a/include/asm-generic/io.h
+> +++ b/include/asm-generic/io.h
+> @@ -1067,9 +1067,9 @@ static inline void memset_io(volatile void __iomem *addr, int value,
+>  #define memcpy_fromio memcpy_fromio
+>  /**
+>   * memcpy_fromio	Copy a block of data from I/O memory
 
-Apart from that, system() is a PITA even on
-single/non-threaded apps.
+This needs a dash ('-') between the function name & its description.
 
-MfG,
-	Bernd
---=20
-There is no cloud, just other people computers.
--- https://static.fsf.org/nosvn/stickers/thereisnocloud.svg
+> - * @dst:		The (RAM) destination for the copy
+> - * @src:		The (I/O memory) source for the data
+> - * @count:		The number of bytes to copy
+> + * @buffer:		The (RAM) destination for the copy
+> + * @addr:		The (I/O memory) source for the data
+> + * @size:		The number of bytes to copy
+>   *
+>   * Copy a block of data from I/O memory.
+>   */
+> @@ -1085,9 +1085,9 @@ static inline void memcpy_fromio(void *buffer,
+>  #define memcpy_toio memcpy_toio
+>  /**
+>   * memcpy_toio		Copy a block of data into I/O memory
 
---------------5C6F5C422D1052E6828086F8
-Content-Type: application/pgp-keys;
- name="pEpkey.asc"
-Content-Transfer-Encoding: quoted-printable
-Content-Disposition: attachment;
- filename="pEpkey.asc"
+Same here.
 
------BEGIN PGP PUBLIC KEY BLOCK-----
+> - * @dst:		The (I/O memory) destination for the copy
+> - * @src:		The (RAM) source for the data
+> - * @count:		The number of bytes to copy
+> + * @addr:		The (I/O memory) destination for the copy
+> + * @buffer:		The (RAM) source for the data
+> + * @size:		The number of bytes to copy
+>   *
+>   * Copy a block of data to I/O memory.
+>   */
+> 
 
-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3D=3D
-=3DGX6K
------END PGP PUBLIC KEY BLOCK-----
+If you would fix the above, you can also add:
+Reviewed-by: Randy Dunlap <rdunlap@infradead.org>
 
---------------5C6F5C422D1052E6828086F8--
+thanks.
+-- 
+~Randy
