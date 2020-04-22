@@ -1,84 +1,49 @@
-Return-Path: <SRS0=iE4N=6I=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from m17616.mail.qiye.163.com ([59.111.176.16]:10025 "EHLO
-        m17616.mail.qiye.163.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725884AbgDXCJB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Apr 2020 22:09:01 -0400
-From: Wang Wenhu <wenhu.wang@vivo.com>
-Subject: [PATCH v3] io: correct doc-mismatches for io mem ops
-Date: Thu, 23 Apr 2020 19:08:31 -0700
-Message-ID: <20200424020831.30494-1-wenhu.wang@vivo.com>
+Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:58228 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725810AbgDVNRe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Apr 2020 09:17:34 -0400
+Date: Wed, 22 Apr 2020 15:17:29 +0200
+From: Jessica Yu <jeyu@kernel.org>
+Subject: Re: [PATCH v2] arch: split MODULE_ARCH_VERMAGIC definitions out to
+ <asm/vermagic.h>
+Message-ID: <20200422131729.GB20103@linux-8ccs>
+References: <20200421161355.1357112-1-masahiroy@kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Disposition: inline
+In-Reply-To: <20200421161355.1357112-1-masahiroy@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: rdunlap@infradead.org, kernel@vivo.com, Wang Wenhu <wenhu.wang@vivo.com>
-Message-ID: <20200424020831.l3xf5xmPqKeDvga2dJr3E3pBUjZQqWmE6a5JXIgSi-A@z>
+To: Masahiro Yamada <masahiroy@kernel.org>
+Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Borislav Petkov <bp@suse.de>
+Message-ID: <20200422131729.ezuNcfabXE5wvOsOp0XGxtCxqBM4CbePVU_kbXB_2PE@z>
 
-Minor mismatches exist between funtion documentations and parameter
-definitions. Also a dash '-' is needed between a function name and
-its description.
++++ Masahiro Yamada [22/04/20 01:13 +0900]:
+[snip]
+>diff --git a/arch/xtensa/include/asm/module.h b/arch/xtensa/include/asm/vermagic.h
+>similarity index 72%
+>rename from arch/xtensa/include/asm/module.h
+>rename to arch/xtensa/include/asm/vermagic.h
+>index 488b40c6f9b9..6f9e359a54ac 100644
+>--- a/arch/xtensa/include/asm/module.h
+>+++ b/arch/xtensa/include/asm/vermagic.h
+>@@ -1,6 +1,4 @@
+> /*
+>- * include/asm-xtensa/module.h
+>- *
+>  * This file contains the module code specific to the Xtensa architecture.
 
-Function definitions are as following:
-static inline void memset_io(volatile void __iomem *addr, int value,
-			     size_t size)
-static inline void memcpy_fromio(void *buffer,
-				 const volatile void __iomem *addr,
-				 size_t size)
-static inline void memcpy_toio(volatile void __iomem *addr, const void *buffer,
-			       size_t size)
+Maybe we can remove this comment too? Since it's now asm/vermagic.h and
+not asm/module.h anymore.
 
-Reviewed-by: Randy Dunlap <rdunlap@infradead.org>
-Signed-off-by: Wang Wenhu <wenhu.wang@vivo.com>
----
- include/asm-generic/io.h | 22 +++++++++++-----------
- 1 file changed, 11 insertions(+), 11 deletions(-)
+Thanks for the cleanup. I agree that <linux/vermagic.h> shouldn't have
+any ordering dependency on <linux/module.h>.
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index d39ac997dda8..83ac47bfa33a 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -1049,10 +1049,10 @@ static inline void *bus_to_virt(unsigned long address)
- #ifndef memset_io
- #define memset_io memset_io
- /**
-- * memset_io	Set a range of I/O memory to a constant value
-+ * memset_io -	Set a range of I/O memory to a constant value
-  * @addr:	The beginning of the I/O-memory range to set
-- * @val:	The value to set the memory to
-- * @count:	The number of bytes to set
-+ * @value:	The value to set the memory to
-+ * @size:	The number of bytes to set
-  *
-  * Set a range of I/O memory to a given value.
-  */
-@@ -1066,10 +1066,10 @@ static inline void memset_io(volatile void __iomem *addr, int value,
- #ifndef memcpy_fromio
- #define memcpy_fromio memcpy_fromio
- /**
-- * memcpy_fromio	Copy a block of data from I/O memory
-- * @dst:		The (RAM) destination for the copy
-- * @src:		The (I/O memory) source for the data
-- * @count:		The number of bytes to copy
-+ * memcpy_fromio -	Copy a block of data from I/O memory
-+ * @buffer:		The (RAM) destination for the copy
-+ * @addr:		The (I/O memory) source for the data
-+ * @size:		The number of bytes to copy
-  *
-  * Copy a block of data from I/O memory.
-  */
-@@ -1084,10 +1084,10 @@ static inline void memcpy_fromio(void *buffer,
- #ifndef memcpy_toio
- #define memcpy_toio memcpy_toio
- /**
-- * memcpy_toio		Copy a block of data into I/O memory
-- * @dst:		The (I/O memory) destination for the copy
-- * @src:		The (RAM) source for the data
-- * @count:		The number of bytes to copy
-+ * memcpy_toio -	Copy a block of data into I/O memory
-+ * @addr:		The (I/O memory) destination for the copy
-+ * @buffer:		The (RAM) source for the data
-+ * @size:		The number of bytes to copy
-  *
-  * Copy a block of data to I/O memory.
-  */
--- 
-2.17.1
+I just double checked to see if there were any other users of
+MODULE_ARCH_VERMAGIC that needed it through module.h, and there are
+none. It was literally just being defined in asm/module.h to be used
+in linux/vermagic.h. So there was no reason really to confine the
+MODULE_ARCH_VERMAGIC definition to asm/module.h.
+
+Acked-by: Jessica Yu <jeyu@kernel.org>
