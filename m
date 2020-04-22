@@ -1,77 +1,44 @@
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH v4 08/11] READ_ONCE: Drop pointer qualifiers when reading
- from scalar types
-Date: Wed, 22 Apr 2020 14:11:29 +0100
-Message-ID: <20200422131129.GC676@willie-the-truck>
-References: <20200421151537.19241-1-will@kernel.org>
- <20200421151537.19241-9-will@kernel.org>
- <6cbc8ae1-8eb1-a5a0-a584-2081fca1c4aa@rasmusvillemoes.dk>
- <20200422114807.GW26902@gate.crashing.org>
+From: Jessica Yu <jeyu@kernel.org>
+Subject: Re: [PATCH v2] arch: split MODULE_ARCH_VERMAGIC definitions out to
+ <asm/vermagic.h>
+Date: Wed, 22 Apr 2020 15:17:29 +0200
+Message-ID: <20200422131729.GB20103@linux-8ccs>
+References: <20200421161355.1357112-1-masahiroy@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Return-path: <linux-kbuild-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200422114807.GW26902@gate.crashing.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@android.com, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+In-Reply-To: <20200421161355.1357112-1-masahiroy@kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Masahiro Yamada <masahiroy@kernel.org>
+Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Borislav Petkov <bp@suse.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 22, 2020 at 06:48:07AM -0500, Segher Boessenkool wrote:
-> On Wed, Apr 22, 2020 at 12:25:03PM +0200, Rasmus Villemoes wrote:
-> > On 21/04/2020 17.15, Will Deacon wrote:
-> > > Unfortunately, dropping pointer qualifiers inside the macro poses quite
-> > > a challenge, especially since the pointed-to type is permitted to be an
-> > > aggregate, and this is relied upon by mm/ code accessing things like
-> > > 'pmd_t'. Based on numerous hacks and discussions on the mailing list,
-> > > this is the best I've managed to come up with.
-> > 
-> > Hm, maybe this can be brought to work, only very lightly tested. It
-> > basically abuses what -Wignored-qualifiers points out:
-> > 
-> >   warning: type qualifiers ignored on function return type
-> > 
-> > Example showing the idea:
-> > 
-> > const int c(void);
-> > volatile int v(void);
-> > 
-> > int hack(int x, int y)
-> > {
-> > 	typeof(c()) a = x;
-> > 	typeof(v()) b = y;
-> > 
-> > 	a += b;
-> > 	b += a;
-> > 	a += b;
-> > 	return a;
-> > }
-> 
-> Nasty.  I like it :-)
-> 
-> > Since that compiles, a cannot be const-qualified, and the generated code
-> > certainly suggests that b is not volatile-qualified. So something like
-> > 
-> > #define unqual_type(x) _unqual_type(x, unique_id_dance)
-> > #define _unqual_type(x, id) typeof( ({
-> >   typeof(x) id(void);
-> >   id();
-> > }) )
-> > 
-> > and perhaps some _Pragma("GCC diagnostic push")/_Pragma("GCC diagnostic
-> > ignored -Wignored-qualifiers")/_Pragma("GCC diagnostic pop") could
-> > prevent the warning (which is in -Wextra, so I don't think it would
-> > appear in a normal build anyway).
-> > 
-> > No idea how well any of this would work across gcc versions or with clang.
-> 
-> https://gcc.gnu.org/legacy-ml/gcc-patches/2016-05/msg01054.html
-> 
-> This is defined to work this way in ISO C since C11.
-> 
-> But, it doesn't work with GCC before GCC 7 :-(
++++ Masahiro Yamada [22/04/20 01:13 +0900]:
+[snip]
+>diff --git a/arch/xtensa/include/asm/module.h b/arch/xtensa/include/asm/vermagic.h
+>similarity index 72%
+>rename from arch/xtensa/include/asm/module.h
+>rename to arch/xtensa/include/asm/vermagic.h
+>index 488b40c6f9b9..6f9e359a54ac 100644
+>--- a/arch/xtensa/include/asm/module.h
+>+++ b/arch/xtensa/include/asm/vermagic.h
+>@@ -1,6 +1,4 @@
+> /*
+>- * include/asm-xtensa/module.h
+>- *
+>  * This file contains the module code specific to the Xtensa architecture.
 
-Damn, that's quite a cool hack! Maybe we'll be able to implement it in a
-few years time ;)
+Maybe we can remove this comment too? Since it's now asm/vermagic.h and
+not asm/module.h anymore.
 
-WIll
+Thanks for the cleanup. I agree that <linux/vermagic.h> shouldn't have
+any ordering dependency on <linux/module.h>.
+
+I just double checked to see if there were any other users of
+MODULE_ARCH_VERMAGIC that needed it through module.h, and there are
+none. It was literally just being defined in asm/module.h to be used
+in linux/vermagic.h. So there was no reason really to confine the
+MODULE_ARCH_VERMAGIC definition to asm/module.h.
+
+Acked-by: Jessica Yu <jeyu@kernel.org>
