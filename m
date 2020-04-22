@@ -1,39 +1,50 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH 1/4] fs: Implement close-on-fork
-Date: Wed, 22 Apr 2020 08:43:56 -0700
-Message-ID: <20200422154356.GU5820@bombadil.infradead.org>
-References: <20200420071548.62112-1-nate.karstens@garmin.com>
- <20200420071548.62112-2-nate.karstens@garmin.com>
- <fa6c5c9c7c434f878c94a7c984cd43ba@garmin.com>
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
+Date: Wed, 22 Apr 2020 16:44:36 +0100
+Message-ID: <20200422154436.GJ4898@sirena.org.uk>
+References: <20200316165055.31179-1-broonie@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="I/5syFLg1Ed7r+1G"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57330 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726154AbgDVPoE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2020 11:44:04 -0400
+Received: from mail.kernel.org ([198.145.29.99]:53620 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726124AbgDVPoj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Apr 2020 11:44:39 -0400
 Content-Disposition: inline
-In-Reply-To: <fa6c5c9c7c434f878c94a7c984cd43ba@garmin.com>
+In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Karstens, Nate" <Nate.Karstens@garmin.com>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>"netdev@vger.kernel.org" <ne>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm
 
-On Wed, Apr 22, 2020 at 03:36:09PM +0000, Karstens, Nate wrote:
-> There was some skepticism about whether our practice of
-> closing/reopening sockets was advisable. Regardless, it does expose what
-> I believe to be something that was overlooked in the forking process
-> model. We posted two solutions to the Austin Group defect tracker:
 
-I don't think it was "overlooked" at all.  It's not safe to call system()
-from a threaded app.  That's all.  It's right there in the DESCRIPTION:
+--I/5syFLg1Ed7r+1G
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-   The system() function need not be thread-safe.
-https://pubs.opengroup.org/onlinepubs/9699919799/functions/system.html
+On Mon, Mar 16, 2020 at 04:50:42PM +0000, Mark Brown wrote:
+> This patch series implements support for ARMv8.5-A Branch Target
+> Identification (BTI), which is a control flow integrity protection
+> feature introduced as part of the ARMv8.5-A extensions.
 
-> Ultimately the Austin Group felt that close-on-fork
-> was the preferred approach. I think it's also worth
-> pointing that out Solaris reportedly has this feature
-> (https://www.mail-archive.com/austin-group-l@opengroup.org/msg05359.html).
+I've not resent this since the branch is still sitting in the arm64 tree
+but it's also not in -next at the minute - is there anything you're
+waiting for from my end here?
 
-I am perplexed that the Austin Group thought this was a good idea.
+--I/5syFLg1Ed7r+1G
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl6gZmMACgkQJNaLcl1U
+h9AYVQf/ajN/x5F2wiYIKFjzo2+jXBlUnF9FczZVVrXFDW2YeidwJw/eKCefOPQY
+5HHDihIrHZBRdOrdnQ7UE8UIfQZMI8oOguL84O4O6IwCnwTZpEOuNhYHjCS1qMUI
+nAHZjSGlSnKBp4MwttY/LRRomyGW74ukfnOU91v91LR6Aakw31PUIQZ8EDOT84jC
+0hMnIjzmaA9LzLQRrMMQqSLi5FdLg4ps9NEb4zVklz94U/mzf4l+GzZczg6eJI1S
+JUz9EwBdrJIwPCRdBoHCQbrVCuiCbvDjhobVK0tKRycjOFvWXh0nDWRWFwfZiD68
+dpJmkHE2POaVhBEWnwhUJ57489SMCA==
+=z9OW
+-----END PGP SIGNATURE-----
+
+--I/5syFLg1Ed7r+1G--
