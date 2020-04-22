@@ -1,111 +1,51 @@
-Return-Path: <SRS0=xoZC=5W=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pl1-f196.google.com ([209.85.214.196]:40330 "EHLO
-        mail-pl1-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729120AbgDFPxm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Apr 2020 11:53:42 -0400
-From: ltykernel@gmail.com
-Subject: [PATCH V4 6/6] x86/Hyper-V: Report crash data in die() when panic_on_oops is set
-Date: Mon,  6 Apr 2020 08:53:31 -0700
-Message-ID: <20200406155331.2105-7-Tianyu.Lan@microsoft.com>
-In-Reply-To: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
-References: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
+Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:53620 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726124AbgDVPoj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Apr 2020 11:44:39 -0400
+Date: Wed, 22 Apr 2020 16:44:36 +0100
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
+Message-ID: <20200422154436.GJ4898@sirena.org.uk>
+References: <20200316165055.31179-1-broonie@kernel.org>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="I/5syFLg1Ed7r+1G"
+Content-Disposition: inline
+In-Reply-To: <20200316165055.31179-1-broonie@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com, liuwe@microsoft.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, michael.h.kelley@microsoft.com
-Cc: Tianyu Lan <Tianyu.Lan@microsoft.com>, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, vkuznets@redhat.com
-Message-ID: <20200406155331.n3t8ujCkjcajZuLcAgkqaZ8BhrNfUZsBJzPB5nVCclQ@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200422154436.xuh3cr14E4hy66rbDKbKDY2NppTFg6NDp-_LIcx0axk@z>
 
-From: Tianyu Lan <Tianyu.Lan@microsoft.com>
 
-When oops happens with panic_on_oops unset, the oops
-thread is killed by die() and system continues to run.
-In such case, guest should not report crash register
-data to host since system still runs. Check panic_on_oops
-and return directly in hyperv_report_panic() when the function
-is called in the die() and panic_on_oops is unset. Fix it.
+--I/5syFLg1Ed7r+1G
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Fixes: 7ed4325a44ea ("Drivers: hv: vmbus: Make panic reporting to be more useful")
-Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
----
-Change since v3:
-	- Fix compile error.
-        - Add fix commit in the change log
----
- arch/x86/hyperv/hv_init.c      | 6 +++++-
- drivers/hv/vmbus_drv.c         | 5 +++--
- include/asm-generic/mshyperv.h | 2 +-
- 3 files changed, 9 insertions(+), 4 deletions(-)
+On Mon, Mar 16, 2020 at 04:50:42PM +0000, Mark Brown wrote:
+> This patch series implements support for ARMv8.5-A Branch Target
+> Identification (BTI), which is a control flow integrity protection
+> feature introduced as part of the ARMv8.5-A extensions.
 
-diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-index b0da5320bcff..31e1d70f7e03 100644
---- a/arch/x86/hyperv/hv_init.c
-+++ b/arch/x86/hyperv/hv_init.c
-@@ -20,6 +20,7 @@
- #include <linux/mm.h>
- #include <linux/hyperv.h>
- #include <linux/slab.h>
-+#include <linux/kernel.h>
- #include <linux/cpuhotplug.h>
- #include <linux/syscore_ops.h>
- #include <clocksource/hyperv_timer.h>
-@@ -419,11 +420,14 @@ void hyperv_cleanup(void)
- }
- EXPORT_SYMBOL_GPL(hyperv_cleanup);
- 
--void hyperv_report_panic(struct pt_regs *regs, long err)
-+void hyperv_report_panic(struct pt_regs *regs, long err, bool in_die)
- {
- 	static bool panic_reported;
- 	u64 guest_id;
- 
-+	if (in_die && !panic_on_oops)
-+		return;
-+
- 	/*
- 	 * We prefer to report panic on 'die' chain as we have proper
- 	 * registers to report, but if we miss it (e.g. on BUG()) we need
-diff --git a/drivers/hv/vmbus_drv.c b/drivers/hv/vmbus_drv.c
-index 172ceae69abb..a68bce4d0ddb 100644
---- a/drivers/hv/vmbus_drv.c
-+++ b/drivers/hv/vmbus_drv.c
-@@ -31,6 +31,7 @@
- #include <linux/kdebug.h>
- #include <linux/efi.h>
- #include <linux/random.h>
-+#include <linux/kernel.h>
- #include <linux/syscore_ops.h>
- #include <clocksource/hyperv_timer.h>
- #include "hyperv_vmbus.h"
-@@ -75,7 +76,7 @@ static int hyperv_panic_event(struct notifier_block *nb, unsigned long val,
- 	if (ms_hyperv.misc_features & HV_FEATURE_GUEST_CRASH_MSR_AVAILABLE
- 	    && hyperv_report_reg()) {
- 		regs = current_pt_regs();
--		hyperv_report_panic(regs, val);
-+		hyperv_report_panic(regs, val, false);
- 	}
- 	return NOTIFY_DONE;
- }
-@@ -92,7 +93,7 @@ static int hyperv_die_event(struct notifier_block *nb, unsigned long val,
- 	 * the notification here.
- 	 */
- 	if (hyperv_report_reg())
--		hyperv_report_panic(regs, val);
-+		hyperv_report_panic(regs, val, true);
- 	return NOTIFY_DONE;
- }
- 
-diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-index b3f1082cc435..1c4fd950f091 100644
---- a/include/asm-generic/mshyperv.h
-+++ b/include/asm-generic/mshyperv.h
-@@ -163,7 +163,7 @@ static inline int cpumask_to_vpset(struct hv_vpset *vpset,
- 	return nr_bank;
- }
- 
--void hyperv_report_panic(struct pt_regs *regs, long err);
-+void hyperv_report_panic(struct pt_regs *regs, long err, bool in_die);
- void hyperv_report_panic_msg(phys_addr_t pa, size_t size);
- bool hv_is_hyperv_initialized(void);
- bool hv_is_hibernation_supported(void);
--- 
-2.14.5
+I've not resent this since the branch is still sitting in the arm64 tree
+but it's also not in -next at the minute - is there anything you're
+waiting for from my end here?
+
+--I/5syFLg1Ed7r+1G
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl6gZmMACgkQJNaLcl1U
+h9AYVQf/ajN/x5F2wiYIKFjzo2+jXBlUnF9FczZVVrXFDW2YeidwJw/eKCefOPQY
+5HHDihIrHZBRdOrdnQ7UE8UIfQZMI8oOguL84O4O6IwCnwTZpEOuNhYHjCS1qMUI
+nAHZjSGlSnKBp4MwttY/LRRomyGW74ukfnOU91v91LR6Aakw31PUIQZ8EDOT84jC
+0hMnIjzmaA9LzLQRrMMQqSLi5FdLg4ps9NEb4zVklz94U/mzf4l+GzZczg6eJI1S
+JUz9EwBdrJIwPCRdBoHCQbrVCuiCbvDjhobVK0tKRycjOFvWXh0nDWRWFwfZiD68
+dpJmkHE2POaVhBEWnwhUJ57489SMCA==
+=z9OW
+-----END PGP SIGNATURE-----
+
+--I/5syFLg1Ed7r+1G--
