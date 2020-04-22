@@ -1,126 +1,345 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH 3/4] arm64: mte: Enable swap of tagged pages
-Date: Wed, 22 Apr 2020 11:34:22 -0700
-Message-ID: <6ebff138-a6ad-75c9-bfe5-b7174098e878@intel.com>
-References: <20200422142530.32619-1-steven.price@arm.com>
- <20200422142530.32619-4-steven.price@arm.com>
+From: Baoquan He <bhe@redhat.com>
+Subject: Re: [PATCH 04/21] mm: free_area_init: use maximal zone PFNs rather
+ than zone sizes
+Date: Thu, 23 Apr 2020 07:41:49 +0800
+Message-ID: <20200422234149.GW4247@MiWiFi-R3L-srv>
+References: <20200412194859.12663-1-rppt@kernel.org>
+ <20200412194859.12663-5-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <20200422142530.32619-4-steven.price@arm.com>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Steven Price <steven.price@arm.com>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20200412194859.12663-5-rppt@kernel.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
+To: Mike Rapoport <rppt@kernel.org>
+Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-c6x-dev@linux-c6x.org, Brian Cain <bcain@codeaurora.org>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.>
 List-Id: linux-arch.vger.kernel.org
 
-On 4/22/20 7:25 AM, Steven Price wrote:
-> Because shmem can swap pages back in without restoring
-> the userspace PTE it is also necessary to add a hook for shmem.
+On 04/12/20 at 10:48pm, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
+> 
+> Currently, architectures that use free_area_init() to initialize memory map
+> and node and zone structures need to calculate zone and hole sizes. We can
+> use free_area_init_nodes() instead and let it detect the zone boundaries
+> while the architectures will only have to supply the possible limits for
+> the zones.
+> 
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> ---
+>  arch/alpha/mm/init.c    | 16 ++++++----------
+>  arch/c6x/mm/init.c      |  8 +++-----
+>  arch/h8300/mm/init.c    |  6 +++---
+>  arch/hexagon/mm/init.c  |  6 +++---
+>  arch/m68k/mm/init.c     |  6 +++---
+>  arch/m68k/mm/mcfmmu.c   |  9 +++------
+>  arch/nds32/mm/init.c    | 11 ++++-------
+>  arch/nios2/mm/init.c    |  8 +++-----
+>  arch/openrisc/mm/init.c |  9 +++------
+>  arch/um/kernel/mem.c    | 12 ++++--------
+>  include/linux/mm.h      |  2 +-
+>  mm/page_alloc.c         |  5 ++---
+>  12 files changed, 38 insertions(+), 60 deletions(-)
+> 
+> diff --git a/arch/alpha/mm/init.c b/arch/alpha/mm/init.c
+> index 12e218d3792a..667cd21393b5 100644
+> --- a/arch/alpha/mm/init.c
+> +++ b/arch/alpha/mm/init.c
+> @@ -243,21 +243,17 @@ callback_init(void * kernel_end)
+>   */
+>  void __init paging_init(void)
+>  {
+> -	unsigned long zones_size[MAX_NR_ZONES] = {0, };
+> -	unsigned long dma_pfn, high_pfn;
+> +	unsigned long max_zone_pfn[MAX_NR_ZONES] = {0, };
+> +	unsigned long dma_pfn;
+>  
+>  	dma_pfn = virt_to_phys((char *)MAX_DMA_ADDRESS) >> PAGE_SHIFT;
+> -	high_pfn = max_pfn = max_low_pfn;
+> +	max_pfn = max_low_pfn;
+>  
+> -	if (dma_pfn >= high_pfn)
+> -		zones_size[ZONE_DMA] = high_pfn;
+> -	else {
+> -		zones_size[ZONE_DMA] = dma_pfn;
+> -		zones_size[ZONE_NORMAL] = high_pfn - dma_pfn;
+> -	}
+> +	max_zone_pfn[ZONE_DMA] = dma_pfn;
+> +	max_zone_pfn[ZONE_NORMAL] = max_pfn;
+>  
+>  	/* Initialize mem_map[].  */
+> -	free_area_init(zones_size);
+> +	free_area_init(max_zone_pfn);
+>  
+>  	/* Initialize the kernel's ZERO_PGE. */
+>  	memset((void *)ZERO_PGE, 0, PAGE_SIZE);
+> diff --git a/arch/c6x/mm/init.c b/arch/c6x/mm/init.c
+> index 9b374393a8f4..a97e51a3e26d 100644
+> --- a/arch/c6x/mm/init.c
+> +++ b/arch/c6x/mm/init.c
+> @@ -33,7 +33,7 @@ EXPORT_SYMBOL(empty_zero_page);
+>  void __init paging_init(void)
+>  {
+>  	struct pglist_data *pgdat = NODE_DATA(0);
+> -	unsigned long zones_size[MAX_NR_ZONES] = {0, };
+> +	unsigned long max_zone_pfn[MAX_NR_ZONES] = {0, };
+>  
+>  	empty_zero_page      = (unsigned long) memblock_alloc(PAGE_SIZE,
+>  							      PAGE_SIZE);
+> @@ -49,11 +49,9 @@ void __init paging_init(void)
+>  	/*
+>  	 * Define zones
+>  	 */
+> -	zones_size[ZONE_NORMAL] = (memory_end - PAGE_OFFSET) >> PAGE_SHIFT;
+> -	pgdat->node_zones[ZONE_NORMAL].zone_start_pfn =
+> -		__pa(PAGE_OFFSET) >> PAGE_SHIFT;
+> +	max_zone_pfn[ZONE_NORMAL] = memory_end >> PAGE_SHIFT;
+>  
+> -	free_area_init(zones_size);
+> +	free_area_init(max_zone_pfn);
+>  }
+>  
+>  void __init mem_init(void)
+> diff --git a/arch/h8300/mm/init.c b/arch/h8300/mm/init.c
+> index 1eab16b1a0bc..27a0020e3771 100644
+> --- a/arch/h8300/mm/init.c
+> +++ b/arch/h8300/mm/init.c
+> @@ -83,10 +83,10 @@ void __init paging_init(void)
+>  		 start_mem, end_mem);
+>  
+>  	{
+> -		unsigned long zones_size[MAX_NR_ZONES] = {0, };
+> +		unsigned long max_zone_pfn[MAX_NR_ZONES] = {0, };
+>  
+> -		zones_size[ZONE_NORMAL] = (end_mem - PAGE_OFFSET) >> PAGE_SHIFT;
+> -		free_area_init(zones_size);
+> +		max_zone_pfn[ZONE_NORMAL] = end_mem >> PAGE_SHIFT;
+> +		free_area_init(max_zone_pfn);
+>  	}
+>  }
+>  
+> diff --git a/arch/hexagon/mm/init.c b/arch/hexagon/mm/init.c
+> index c961773a6fff..f2e6c868e477 100644
+> --- a/arch/hexagon/mm/init.c
+> +++ b/arch/hexagon/mm/init.c
+> @@ -91,7 +91,7 @@ void sync_icache_dcache(pte_t pte)
+>   */
+>  void __init paging_init(void)
+>  {
+> -	unsigned long zones_sizes[MAX_NR_ZONES] = {0, };
+> +	unsigned long max_zone_pfn[MAX_NR_ZONES] = {0, };
+>  
+>  	/*
+>  	 *  This is not particularly well documented anywhere, but
+> @@ -101,9 +101,9 @@ void __init paging_init(void)
+>  	 *  adjust accordingly.
+>  	 */
+>  
+> -	zones_sizes[ZONE_NORMAL] = max_low_pfn;
+> +	max_zone_pfn[ZONE_NORMAL] = max_low_pfn;
+>  
+> -	free_area_init(zones_sizes);  /*  sets up the zonelists and mem_map  */
+> +	free_area_init(max_zone_pfn);  /*  sets up the zonelists and mem_map  */
+>  
+>  	/*
+>  	 * Start of high memory area.  Will probably need something more
+> diff --git a/arch/m68k/mm/init.c b/arch/m68k/mm/init.c
+> index b88d510d4fe3..6d3147662ff2 100644
+> --- a/arch/m68k/mm/init.c
+> +++ b/arch/m68k/mm/init.c
+> @@ -84,7 +84,7 @@ void __init paging_init(void)
+>  	 * page_alloc get different views of the world.
+>  	 */
+>  	unsigned long end_mem = memory_end & PAGE_MASK;
+> -	unsigned long zones_size[MAX_NR_ZONES] = { 0, };
+> +	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0, };
+>  
+>  	high_memory = (void *) end_mem;
+>  
+> @@ -98,8 +98,8 @@ void __init paging_init(void)
+>  	 */
+>  	set_fs (USER_DS);
+>  
+> -	zones_size[ZONE_DMA] = (end_mem - PAGE_OFFSET) >> PAGE_SHIFT;
+> -	free_area_init(zones_size);
+> +	max_zone_pfn[ZONE_DMA] = end_mem >> PAGE_SHIFT;
+> +	free_area_init(max_zone_pfn);
+>  }
+>  
+>  #endif /* CONFIG_MMU */
+> diff --git a/arch/m68k/mm/mcfmmu.c b/arch/m68k/mm/mcfmmu.c
+> index 0ea375607767..80064e6d064f 100644
+> --- a/arch/m68k/mm/mcfmmu.c
+> +++ b/arch/m68k/mm/mcfmmu.c
+> @@ -39,7 +39,7 @@ void __init paging_init(void)
+>  	pte_t *pg_table;
+>  	unsigned long address, size;
+>  	unsigned long next_pgtable, bootmem_end;
+> -	unsigned long zones_size[MAX_NR_ZONES];
+> +	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0 };
+>  	enum zone_type zone;
+>  	int i;
+>  
+> @@ -80,11 +80,8 @@ void __init paging_init(void)
+>  	}
+>  
+>  	current->mm = NULL;
+> -
+> -	for (zone = 0; zone < MAX_NR_ZONES; zone++)
+> -		zones_size[zone] = 0x0;
+> -	zones_size[ZONE_DMA] = num_pages;
+> -	free_area_init(zones_size);
+> +	max_zone_pfn[ZONE_DMA] = PFN_DOWN(_ramend);
+> +	free_area_init(max_zone_pfn);
+>  }
+>  
+>  int cf_tlb_miss(struct pt_regs *regs, int write, int dtlb, int extension_word)
+> diff --git a/arch/nds32/mm/init.c b/arch/nds32/mm/init.c
+> index 0be3833f6814..91147cca4b64 100644
+> --- a/arch/nds32/mm/init.c
+> +++ b/arch/nds32/mm/init.c
+> @@ -31,16 +31,13 @@ EXPORT_SYMBOL(empty_zero_page);
+>  
+>  static void __init zone_sizes_init(void)
+>  {
+> -	unsigned long zones_size[MAX_NR_ZONES];
+> +	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0 };
+>  
+> -	/* Clear the zone sizes */
+> -	memset(zones_size, 0, sizeof(zones_size));
+> -
+> -	zones_size[ZONE_NORMAL] = max_low_pfn;
+> +	max_zone_pfn[ZONE_NORMAL] = max_low_pfn;
+>  #ifdef CONFIG_HIGHMEM
+> -	zones_size[ZONE_HIGHMEM] = max_pfn;
+> +	max_zone_pfn[ZONE_HIGHMEM] = max_pfn;
+>  #endif
+> -	free_area_init(zones_size);
+> +	free_area_init(max_zone_pfn);
+>  
+>  }
+>  
+> diff --git a/arch/nios2/mm/init.c b/arch/nios2/mm/init.c
+> index 2c609c2516b2..9afca77d10b1 100644
+> --- a/arch/nios2/mm/init.c
+> +++ b/arch/nios2/mm/init.c
+> @@ -46,17 +46,15 @@ pgd_t *pgd_current;
+>   */
+>  void __init paging_init(void)
+>  {
+> -	unsigned long zones_size[MAX_NR_ZONES];
+> -
+> -	memset(zones_size, 0, sizeof(zones_size));
+> +	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0 };
+>  
+>  	pagetable_init();
+>  	pgd_current = swapper_pg_dir;
+>  
+> -	zones_size[ZONE_NORMAL] = max_mapnr;
+> +	max_zone_pfn[ZONE_NORMAL] = max_mapnr;
+>  
+>  	/* pass the memory from the bootmem allocator to the main allocator */
+> -	free_area_init(zones_size);
+> +	free_area_init(max_zone_pfn);
+>  
+>  	flush_dcache_range((unsigned long)empty_zero_page,
+>  			(unsigned long)empty_zero_page + PAGE_SIZE);
+> diff --git a/arch/openrisc/mm/init.c b/arch/openrisc/mm/init.c
+> index 1f87b524db78..f94fe6d3f499 100644
+> --- a/arch/openrisc/mm/init.c
+> +++ b/arch/openrisc/mm/init.c
+> @@ -45,17 +45,14 @@ DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
+>  
+>  static void __init zone_sizes_init(void)
+>  {
+> -	unsigned long zones_size[MAX_NR_ZONES];
+> -
+> -	/* Clear the zone sizes */
+> -	memset(zones_size, 0, sizeof(zones_size));
+> +	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0 };
+>  
+>  	/*
+>  	 * We use only ZONE_NORMAL
+>  	 */
+> -	zones_size[ZONE_NORMAL] = max_low_pfn;
+> +	max_zone_pfn[ZONE_NORMAL] = max_low_pfn;
+>  
+> -	free_area_init(zones_size);
+> +	free_area_init(max_zone_pfn);
+>  }
+>  
+>  extern const char _s_kernel_ro[], _e_kernel_ro[];
+> diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
+> index 30885d0b94ac..401b22f14743 100644
+> --- a/arch/um/kernel/mem.c
+> +++ b/arch/um/kernel/mem.c
+> @@ -158,8 +158,8 @@ static void __init fixaddr_user_init( void)
+>  
+>  void __init paging_init(void)
+>  {
+> -	unsigned long zones_size[MAX_NR_ZONES], vaddr;
+> -	int i;
+> +	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0 };
+> +	unsigned long vaddr;
+>  
+>  	empty_zero_page = (unsigned long *) memblock_alloc_low(PAGE_SIZE,
+>  							       PAGE_SIZE);
+> @@ -167,12 +167,8 @@ void __init paging_init(void)
+>  		panic("%s: Failed to allocate %lu bytes align=%lx\n",
+>  		      __func__, PAGE_SIZE, PAGE_SIZE);
+>  
+> -	for (i = 0; i < ARRAY_SIZE(zones_size); i++)
+> -		zones_size[i] = 0;
+> -
+> -	zones_size[ZONE_NORMAL] = (end_iomem >> PAGE_SHIFT) -
+> -		(uml_physmem >> PAGE_SHIFT);
+> -	free_area_init(zones_size);
+> +	max_zone_pfn[ZONE_NORMAL] = end_iomem >> PAGE_SHIFT;
+> +	free_area_init(max_zone_pfn);
+>  
+>  	/*
+>  	 * Fixed mappings, only the page table structure has to be
+> diff --git a/include/linux/mm.h b/include/linux/mm.h
+> index 5903bbbdb336..d9a256a97ac5 100644
+> --- a/include/linux/mm.h
+> +++ b/include/linux/mm.h
+> @@ -2272,7 +2272,7 @@ static inline spinlock_t *pud_lock(struct mm_struct *mm, pud_t *pud)
+>  }
+>  
+>  extern void __init pagecache_init(void);
+> -extern void free_area_init(unsigned long * zones_size);
+> +extern void free_area_init(unsigned long * max_zone_pfn);
+>  extern void __init free_area_init_node(int nid, unsigned long * zones_size,
+>  		unsigned long zone_start_pfn, unsigned long *zholes_size);
+>  extern void free_initmem(void);
+> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+> index 4530e9cfd9f7..530701b38bc7 100644
+> --- a/mm/page_alloc.c
+> +++ b/mm/page_alloc.c
+> @@ -7700,11 +7700,10 @@ void __init set_dma_reserve(unsigned long new_dma_reserve)
+>  	dma_reserve = new_dma_reserve;
+>  }
+>  
+> -void __init free_area_init(unsigned long *zones_size)
+> +void __init free_area_init(unsigned long *max_zone_pfn)
+>  {
+>  	init_unavailable_mem();
+> -	free_area_init_node(0, zones_size,
+> -			__pa(PAGE_OFFSET) >> PAGE_SHIFT, NULL);
+> +	free_area_init_nodes(max_zone_pfn);
 
-I think the swap readahead code does this as well.  It pulls the page
-into the swap cache, but doesn't map it in.
+Reviewed-by: Baoquan He <bhe@redhat.com>
 
-...
-> +static DEFINE_XARRAY(mte_pages);
-> +
-> +void *mte_allocate_tag_storage(void)
-> +{
-> +	/* tags granule is 16 bytes, 2 tags stored per byte */
-> +	return kmalloc(PAGE_SIZE / 16 / 2, GFP_KERNEL);
-> +}
-
-Yikes, so this eats 2k of unmovable kernel memory per 64k of swap?  This
-is *probably* worth having its own slab just so the memory that's used
-for it is less opaque.  It could be pretty large.  But, I guess if
-you're worried about how much kernel memory this can eat, there's always
-the swap cgroup controller to enforce limits.
-
-This also *increases* the footprint of a page while it's in the swap
-cache.  That's at least temporarily a _bit_ counterproductive.
-
-I guess there aren't any nice alternatives, though.  I would imagine
-that it would be substantially more complicated to rig the swap code up
-to write the tag along with the data.  Or, to store the tag data
-somewhere *it* can be reclaimed, like in a kernel-internal shmem file or
-something.
-
-> +void mte_free_tag_storage(char *storage)
-> +{
-> +	kfree(storage);
-> +}
-> +
-> +int mte_save_tags(struct page *page)
-> +{
-> +	void *tag_storage, *ret;
-> +
-> +	if (!test_bit(PG_mte_tagged, &page->flags))
-> +		return 0;
-> +
-> +	tag_storage = mte_allocate_tag_storage();
-> +	if (!tag_storage)
-> +		return -ENOMEM;
-> +
-> +	mte_save_page_tags(page_address(page), tag_storage);
-> +
-> +	ret = xa_store(&mte_pages, page_private(page), tag_storage, GFP_KERNEL);
-
-This is indexing into the xarray with the swap entry.val established in
-do_swap_page()?  Might be nice to make a note where it came from.
-
-> +	if (WARN(xa_is_err(ret), "Failed to store MTE tags")) {
-> +		mte_free_tag_storage(tag_storage);
-> +		return xa_err(ret);
-> +	} else if (ret) {
-> +		mte_free_tag_storage(ret);
-
-Is there a missing "return ret;" here?  Otherwise, it seems like this
-might silently fail to save the page's tags.  I'm not sure what
-non-xa_is_err() codes get returned, but if there is one, it could end up
-here.
-
-> +	}
-> +
-> +	return 0;
-> +}
-...
-
-> +void mte_sync_tags(pte_t *ptep, pte_t pte)
-> +{
-> +	struct page *page = pte_page(pte);
-> +	pte_t old_pte = READ_ONCE(*ptep);
-> +	swp_entry_t entry;
-> +
-> +	set_bit(PG_mte_tagged, &page->flags);
-> +
-> +	if (!is_swap_pte(old_pte))
-> +		return;
-> +
-> +	entry = pte_to_swp_entry(old_pte);
-> +	if (non_swap_entry(entry))
-> +		return;
-> +
-> +	mte_restore_tags(entry, page);
-> +}
-
-Oh, here it is!  This gets called when replacing a swap PTE with a
-present PTE and restores the tags on swap-in.
-
-Does this work for swap PTEs which were copied at fork()?  I *think*
-those might end up in here twice, once for the parent and another for
-the child.  If both read the page, both will fault and both will do a
-set_pte() and end up in here.  I don't think it will do any harm since
-it will just set_bit(PG_mte_tagged) twice and restore the same tags
-twice.  But, it might be nice to call that out.
-
-This function is a bit light on comments.  It might make sense, for
-instance to note that 'pte' is always a tagged PTE at this point.
+>  }
+>  
+>  static int page_alloc_cpu_dead(unsigned int cpu)
+> -- 
+> 2.25.1
+> 
