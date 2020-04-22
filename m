@@ -1,38 +1,110 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 09/29] mm: unexport unmap_kernel_range_noflush
-Date: Tue, 14 Apr 2020 15:13:28 +0200
-Message-ID: <20200414131348.444715-10-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:45258 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725924AbgDVJuC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Apr 2020 05:50:02 -0400
+Date: Wed, 22 Apr 2020 10:49:52 +0100
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH v4 05/11] arm64: csum: Disable KASAN for do_csum()
+Message-ID: <20200422094951.GA54428@lakrids.cambridge.arm.com>
+References: <20200421151537.19241-1-will@kernel.org>
+ <20200421151537.19241-6-will@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200421151537.19241-6-will@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414131328.74nBrHbXPHsYg_nNe6q8hEoKbfmmGMfLfjlLVAPeQ7Q@z>
+To: Will Deacon <will@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@android.com, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Robin Murphy <robin.murphy@arm.com>
+Message-ID: <20200422094952.-2kBxYLnTIKBOv_5gLSctJavNN_DY8BBTItFVaoq3-4@z>
 
-There are no modular users of this function.
+On Tue, Apr 21, 2020 at 04:15:31PM +0100, Will Deacon wrote:
+> do_csum() over-reads the source buffer and therefore abuses
+> READ_ONCE_NOCHECK() to avoid tripping up KASAN. In preparation for
+> READ_ONCE_NOCHECK() becoming a macro, and therefore losing its
+> '__no_sanitize_address' annotation, just annotate do_csum() explicitly
+> and fall back to normal loads.
+> 
+> Cc: Mark Rutland <mark.rutland@arm.com>
+> Cc: Robin Murphy <robin.murphy@arm.com>
+> Signed-off-by: Will Deacon <will@kernel.org>
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- mm/vmalloc.c | 1 -
- 1 file changed, 1 deletion(-)
+From a functional perspective:
 
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index d1534d610b48..3375f9508ef6 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -2029,7 +2029,6 @@ void unmap_kernel_range_noflush(unsigned long addr,=
- unsigned long size)
- {
- 	vunmap_page_range(addr, addr + size);
- }
--EXPORT_SYMBOL_GPL(unmap_kernel_range_noflush);
-=20
- /**
-  * unmap_kernel_range - unmap kernel VM area and flush cache and TLB
---=20
-2.25.1
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+
+I know that Robin had a concern w.r.t. how this would affect the
+codegen, but I think we can follow that up after the series as a whole
+is merged.
+
+Thanks,
+Mark.
+
+
+> ---
+>  arch/arm64/lib/csum.c | 20 ++++++++++++--------
+>  1 file changed, 12 insertions(+), 8 deletions(-)
+> 
+> diff --git a/arch/arm64/lib/csum.c b/arch/arm64/lib/csum.c
+> index 60eccae2abad..78b87a64ca0a 100644
+> --- a/arch/arm64/lib/csum.c
+> +++ b/arch/arm64/lib/csum.c
+> @@ -14,7 +14,11 @@ static u64 accumulate(u64 sum, u64 data)
+>  	return tmp + (tmp >> 64);
+>  }
+>  
+> -unsigned int do_csum(const unsigned char *buff, int len)
+> +/*
+> + * We over-read the buffer and this makes KASAN unhappy. Instead, disable
+> + * instrumentation and call kasan explicitly.
+> + */
+> +unsigned int __no_sanitize_address do_csum(const unsigned char *buff, int len)
+>  {
+>  	unsigned int offset, shift, sum;
+>  	const u64 *ptr;
+> @@ -42,7 +46,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
+>  	 * odd/even alignment, and means we can ignore it until the very end.
+>  	 */
+>  	shift = offset * 8;
+> -	data = READ_ONCE_NOCHECK(*ptr++);
+> +	data = *ptr++;
+>  #ifdef __LITTLE_ENDIAN
+>  	data = (data >> shift) << shift;
+>  #else
+> @@ -58,10 +62,10 @@ unsigned int do_csum(const unsigned char *buff, int len)
+>  	while (unlikely(len > 64)) {
+>  		__uint128_t tmp1, tmp2, tmp3, tmp4;
+>  
+> -		tmp1 = READ_ONCE_NOCHECK(*(__uint128_t *)ptr);
+> -		tmp2 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 2));
+> -		tmp3 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 4));
+> -		tmp4 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 6));
+> +		tmp1 = *(__uint128_t *)ptr;
+> +		tmp2 = *(__uint128_t *)(ptr + 2);
+> +		tmp3 = *(__uint128_t *)(ptr + 4);
+> +		tmp4 = *(__uint128_t *)(ptr + 6);
+>  
+>  		len -= 64;
+>  		ptr += 8;
+> @@ -85,7 +89,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
+>  		__uint128_t tmp;
+>  
+>  		sum64 = accumulate(sum64, data);
+> -		tmp = READ_ONCE_NOCHECK(*(__uint128_t *)ptr);
+> +		tmp = *(__uint128_t *)ptr;
+>  
+>  		len -= 16;
+>  		ptr += 2;
+> @@ -100,7 +104,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
+>  	}
+>  	if (len > 0) {
+>  		sum64 = accumulate(sum64, data);
+> -		data = READ_ONCE_NOCHECK(*ptr);
+> +		data = *ptr;
+>  		len -= 8;
+>  	}
+>  	/*
+> -- 
+> 2.26.1.301.g55bc3eb7cb9-goog
+> 
