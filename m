@@ -1,84 +1,104 @@
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v2 2/6] arm64: Add level-hinted TLB invalidation helper
-Date: Thu, 23 Apr 2020 21:56:52 +0800
-Message-ID: <20200423135656.2712-3-yezhenyu2@huawei.com>
-References: <20200423135656.2712-1-yezhenyu2@huawei.com>
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Subject: Re: [PATCH v3 18/23] arm64: mte: Restore the GCR_EL1 register after
+ a suspend
+Date: Thu, 23 Apr 2020 16:23:52 +0100
+Message-ID: <20200423152352.GA21616@e121166-lin.cambridge.arm.com>
+References: <20200421142603.3894-1-catalin.marinas@arm.com>
+ <20200421142603.3894-19-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200423135656.2712-1-yezhenyu2@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:42208 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729024AbgDWPYA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Apr 2020 11:24:00 -0400
+Content-Disposition: inline
+In-Reply-To: <20200421142603.3894-19-catalin.marinas@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
 
-From: Marc Zyngier <maz@kernel.org>
+On Tue, Apr 21, 2020 at 03:25:58PM +0100, Catalin Marinas wrote:
+> The CPU resume/suspend routines only take care of the common system
+> registers. Restore GCR_EL1 in addition via the __cpu_suspend_exit()
+> function.
+> 
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Lorenzo Pieralisi <Lorenzo.Pieralisi@arm.com>
+> ---
+> 
+> Notes:
+>     New in v3.
+> 
+>  arch/arm64/include/asm/mte.h | 4 ++++
+>  arch/arm64/kernel/mte.c      | 8 ++++++++
+>  arch/arm64/kernel/suspend.c  | 4 ++++
+>  3 files changed, 16 insertions(+)
 
-Add a level-hinted TLB invalidation helper that only gets used if
-ARMv8.4-TTL gets detected.
+Reviewed-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 
-When ARMv8.4-TTL is implemented, the operand for TLBIs looks like
-below:
-
-* +----------+-------+----------------------+
-* |   ASID   |  TTL  |        BADDR         |
-* +----------+-------+----------------------+
-* |63      48|47   44|43                   0|
-
-Signed-off-by: Marc Zyngier <maz@kernel.org>
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/tlbflush.h | 30 ++++++++++++++++++++++++++++++
- 1 file changed, 30 insertions(+)
-
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-index bc3949064725..5f9f189bc6d2 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -10,6 +10,7 @@
- 
- #ifndef __ASSEMBLY__
- 
-+#include <linux/bitfield.h>
- #include <linux/mm_types.h>
- #include <linux/sched.h>
- #include <asm/cputype.h>
-@@ -59,6 +60,35 @@
- 		__ta;						\
- 	})
- 
-+#define TLBI_TTL_MASK	GENMASK_ULL(47, 44)
-+
-+#define __tlbi_level(op, addr, level)					\
-+	do {								\
-+		u64 arg = addr;						\
-+									\
-+		if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
-+		    level) {						\
-+			u64 ttl = level;				\
-+									\
-+			switch (PAGE_SIZE) {				\
-+			case SZ_4K:					\
-+				ttl |= 1 << 2;				\
-+				break;					\
-+			case SZ_16K:					\
-+				ttl |= 2 << 2;				\
-+				break;					\
-+			case SZ_64K:					\
-+				ttl |= 3 << 2;				\
-+				break;					\
-+			}						\
-+									\
-+			arg &= ~TLBI_TTL_MASK;				\
-+			arg |= FIELD_PREP(TLBI_TTL_MASK, ttl);		\
-+		}							\
-+									\
-+		__tlbi(op,  arg);					\
-+	} while (0)
-+
- /*
-  *	TLB Invalidation
-  *	================
--- 
-2.19.1
+> diff --git a/arch/arm64/include/asm/mte.h b/arch/arm64/include/asm/mte.h
+> index 3dc0a7977124..22eb3e06f311 100644
+> --- a/arch/arm64/include/asm/mte.h
+> +++ b/arch/arm64/include/asm/mte.h
+> @@ -12,6 +12,7 @@ int mte_memcmp_pages(const void *page1_addr, const void *page2_addr);
+>  #ifdef CONFIG_ARM64_MTE
+>  void flush_mte_state(void);
+>  void mte_thread_switch(struct task_struct *next);
+> +void mte_suspend_exit(void);
+>  long set_mte_ctrl(unsigned long arg);
+>  long get_mte_ctrl(void);
+>  #else
+> @@ -21,6 +22,9 @@ static inline void flush_mte_state(void)
+>  static inline void mte_thread_switch(struct task_struct *next)
+>  {
+>  }
+> +static inline void mte_suspend_exit(void)
+> +{
+> +}
+>  static inline long set_mte_ctrl(unsigned long arg)
+>  {
+>  	return 0;
+> diff --git a/arch/arm64/kernel/mte.c b/arch/arm64/kernel/mte.c
+> index 212b9fac294d..fa4a4196b248 100644
+> --- a/arch/arm64/kernel/mte.c
+> +++ b/arch/arm64/kernel/mte.c
+> @@ -76,6 +76,14 @@ void mte_thread_switch(struct task_struct *next)
+>  	update_gcr_el1_excl(next->thread.gcr_incl);
+>  }
+>  
+> +void mte_suspend_exit(void)
+> +{
+> +	if (!system_supports_mte())
+> +		return;
+> +
+> +	update_gcr_el1_excl(current->thread.gcr_incl);
+> +}
+> +
+>  long set_mte_ctrl(unsigned long arg)
+>  {
+>  	u64 tcf0;
+> diff --git a/arch/arm64/kernel/suspend.c b/arch/arm64/kernel/suspend.c
+> index 9405d1b7f4b0..1d405b73d009 100644
+> --- a/arch/arm64/kernel/suspend.c
+> +++ b/arch/arm64/kernel/suspend.c
+> @@ -9,6 +9,7 @@
+>  #include <asm/daifflags.h>
+>  #include <asm/debug-monitors.h>
+>  #include <asm/exec.h>
+> +#include <asm/mte.h>
+>  #include <asm/pgtable.h>
+>  #include <asm/memory.h>
+>  #include <asm/mmu_context.h>
+> @@ -74,6 +75,9 @@ void notrace __cpu_suspend_exit(void)
+>  	 */
+>  	if (arm64_get_ssbd_state() == ARM64_SSBD_FORCE_DISABLE)
+>  		arm64_set_ssbd_mitigation(false);
+> +
+> +	/* Restore additional MTE-specific configuration */
+> +	mte_suspend_exit();
+>  }
+>  
+>  /*
