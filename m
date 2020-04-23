@@ -1,303 +1,70 @@
-From: Baoquan He <bhe@redhat.com>
-Subject: Re: [PATCH 05/21] mm: use free_area_init() instead of
- free_area_init_nodes()
-Date: Thu, 23 Apr 2020 08:02:42 +0800
-Message-ID: <20200423000242.GX4247@MiWiFi-R3L-srv>
-References: <20200412194859.12663-1-rppt@kernel.org>
- <20200412194859.12663-6-rppt@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20200412194859.12663-6-rppt@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: Mike Rapoport <rppt@kernel.org>
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-c6x-dev@linux-c6x.org, Brian Cain <bcain@codeaurora.org>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.>
-List-Id: linux-arch.vger.kernel.org
+From: Wang Wenhu <wenhu.wang@vivo.com>
+Subject: [PATCH v2] io: correct documentation mismatches for io memcpy
+Date: Wed, 22 Apr 2020 17:09:45 -0700
+Message-ID: <20200423000945.118231-1-wenhu.wang@vivo.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from m17616.mail.qiye.163.com ([59.111.176.16]:10449 "EHLO
+        m17616.mail.qiye.163.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725854AbgDWAKM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2020 20:10:12 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: rdunlap@infradead.org, kernel@vivo.com, Wang Wenhu <wenhu.wang@vivo.com>
 
-On 04/12/20 at 10:48pm, Mike Rapoport wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
-> 
-> The free_area_init() has effectively became a wrapper for
-> free_area_init_nodes() and there is no point of keeping it. Still
-> free_area_init() name is shorter and more general as it does not imply
-> necessity to initialize multiple nodes.
-> 
-> Rename free_area_init_nodes() to free_area_init(), update the callers and
-> drop old version of free_area_init().
-> 
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> ---
->  arch/arm64/mm/init.c             |  2 +-
->  arch/ia64/mm/contig.c            |  2 +-
->  arch/ia64/mm/discontig.c         |  2 +-
->  arch/microblaze/mm/init.c        |  2 +-
->  arch/mips/loongson64/numa.c      |  2 +-
->  arch/mips/mm/init.c              |  2 +-
->  arch/mips/sgi-ip27/ip27-memory.c |  2 +-
->  arch/powerpc/mm/mem.c            |  2 +-
->  arch/riscv/mm/init.c             |  2 +-
->  arch/s390/mm/init.c              |  2 +-
->  arch/sh/mm/init.c                |  2 +-
->  arch/sparc/mm/init_64.c          |  2 +-
->  arch/x86/mm/init.c               |  2 +-
->  include/linux/mm.h               |  7 +++----
->  mm/page_alloc.c                  | 10 ++--------
->  15 files changed, 18 insertions(+), 25 deletions(-)
-> 
-> diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
-> index e42727e3568e..a650adb358ee 100644
-> --- a/arch/arm64/mm/init.c
-> +++ b/arch/arm64/mm/init.c
-> @@ -206,7 +206,7 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
->  #endif
->  	max_zone_pfns[ZONE_NORMAL] = max;
->  
-> -	free_area_init_nodes(max_zone_pfns);
-> +	free_area_init(max_zone_pfns);
->  }
->  
->  #else
-> diff --git a/arch/ia64/mm/contig.c b/arch/ia64/mm/contig.c
-> index 5b00dc3898e1..8786fa5c7612 100644
-> --- a/arch/ia64/mm/contig.c
-> +++ b/arch/ia64/mm/contig.c
-> @@ -210,6 +210,6 @@ paging_init (void)
->  		printk("Virtual mem_map starts at 0x%p\n", mem_map);
->  	}
->  #endif /* !CONFIG_VIRTUAL_MEM_MAP */
-> -	free_area_init_nodes(max_zone_pfns);
-> +	free_area_init(max_zone_pfns);
->  	zero_page_memmap_ptr = virt_to_page(ia64_imva(empty_zero_page));
->  }
-> diff --git a/arch/ia64/mm/discontig.c b/arch/ia64/mm/discontig.c
-> index 4f33f6e7e206..dd8284bcbf16 100644
-> --- a/arch/ia64/mm/discontig.c
-> +++ b/arch/ia64/mm/discontig.c
-> @@ -627,7 +627,7 @@ void __init paging_init(void)
->  	max_zone_pfns[ZONE_DMA32] = max_dma;
->  #endif
->  	max_zone_pfns[ZONE_NORMAL] = max_pfn;
-> -	free_area_init_nodes(max_zone_pfns);
-> +	free_area_init(max_zone_pfns);
->  
->  	zero_page_memmap_ptr = virt_to_page(ia64_imva(empty_zero_page));
->  }
-> diff --git a/arch/microblaze/mm/init.c b/arch/microblaze/mm/init.c
-> index 1ffbfa96b9b8..dcaa53d11339 100644
-> --- a/arch/microblaze/mm/init.c
-> +++ b/arch/microblaze/mm/init.c
-> @@ -112,7 +112,7 @@ static void __init paging_init(void)
->  #endif
->  
->  	/* We don't have holes in memory map */
-> -	free_area_init_nodes(zones_size);
-> +	free_area_init(zones_size);
->  }
->  
->  void __init setup_memory(void)
-> diff --git a/arch/mips/loongson64/numa.c b/arch/mips/loongson64/numa.c
-> index 1ae072df4831..901f5be5ee76 100644
-> --- a/arch/mips/loongson64/numa.c
-> +++ b/arch/mips/loongson64/numa.c
-> @@ -247,7 +247,7 @@ void __init paging_init(void)
->  	zones_size[ZONE_DMA32] = MAX_DMA32_PFN;
->  #endif
->  	zones_size[ZONE_NORMAL] = max_low_pfn;
-> -	free_area_init_nodes(zones_size);
-> +	free_area_init(zones_size);
->  }
->  
->  void __init mem_init(void)
-> diff --git a/arch/mips/mm/init.c b/arch/mips/mm/init.c
-> index 79684000de0e..19719e8b41a5 100644
-> --- a/arch/mips/mm/init.c
-> +++ b/arch/mips/mm/init.c
-> @@ -418,7 +418,7 @@ void __init paging_init(void)
->  	}
->  #endif
->  
-> -	free_area_init_nodes(max_zone_pfns);
-> +	free_area_init(max_zone_pfns);
->  }
->  
->  #ifdef CONFIG_64BIT
-> diff --git a/arch/mips/sgi-ip27/ip27-memory.c b/arch/mips/sgi-ip27/ip27-memory.c
-> index a45691e6ab90..1213215ea965 100644
-> --- a/arch/mips/sgi-ip27/ip27-memory.c
-> +++ b/arch/mips/sgi-ip27/ip27-memory.c
-> @@ -419,7 +419,7 @@ void __init paging_init(void)
->  
->  	pagetable_init();
->  	zones_size[ZONE_NORMAL] = max_low_pfn;
-> -	free_area_init_nodes(zones_size);
-> +	free_area_init(zones_size);
->  }
->  
->  void __init mem_init(void)
-> diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
-> index 041ed7cfd341..0fcea21f26b4 100644
-> --- a/arch/powerpc/mm/mem.c
-> +++ b/arch/powerpc/mm/mem.c
-> @@ -271,7 +271,7 @@ void __init paging_init(void)
->  	max_zone_pfns[ZONE_HIGHMEM] = max_pfn;
->  #endif
->  
-> -	free_area_init_nodes(max_zone_pfns);
-> +	free_area_init(max_zone_pfns);
->  
->  	mark_nonram_nosave();
->  }
-> diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
-> index b55be44ff9bd..f2ceab77b8e6 100644
-> --- a/arch/riscv/mm/init.c
-> +++ b/arch/riscv/mm/init.c
-> @@ -39,7 +39,7 @@ static void __init zone_sizes_init(void)
->  #endif
->  	max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
->  
-> -	free_area_init_nodes(max_zone_pfns);
-> +	free_area_init(max_zone_pfns);
->  }
->  
->  static void setup_zero_page(void)
-> diff --git a/arch/s390/mm/init.c b/arch/s390/mm/init.c
-> index 87b2d024e75a..b11bcf4da531 100644
-> --- a/arch/s390/mm/init.c
-> +++ b/arch/s390/mm/init.c
-> @@ -122,7 +122,7 @@ void __init paging_init(void)
->  	memset(max_zone_pfns, 0, sizeof(max_zone_pfns));
->  	max_zone_pfns[ZONE_DMA] = PFN_DOWN(MAX_DMA_ADDRESS);
->  	max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
-> -	free_area_init_nodes(max_zone_pfns);
-> +	free_area_init(max_zone_pfns);
->  }
->  
->  void mark_rodata_ro(void)
-> diff --git a/arch/sh/mm/init.c b/arch/sh/mm/init.c
-> index b9de2d4fa57e..2573b163b3ab 100644
-> --- a/arch/sh/mm/init.c
-> +++ b/arch/sh/mm/init.c
-> @@ -334,7 +334,7 @@ void __init paging_init(void)
->  
->  	memset(max_zone_pfns, 0, sizeof(max_zone_pfns));
->  	max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
-> -	free_area_init_nodes(max_zone_pfns);
-> +	free_area_init(max_zone_pfns);
->  }
->  
->  unsigned int mem_init_done = 0;
-> diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
-> index 1cf0d666dea3..79d3c5e0802e 100644
-> --- a/arch/sparc/mm/init_64.c
-> +++ b/arch/sparc/mm/init_64.c
-> @@ -2488,7 +2488,7 @@ void __init paging_init(void)
->  
->  		max_zone_pfns[ZONE_NORMAL] = end_pfn;
->  
-> -		free_area_init_nodes(max_zone_pfns);
-> +		free_area_init(max_zone_pfns);
->  	}
->  
->  	printk("Booting Linux...\n");
-> diff --git a/arch/x86/mm/init.c b/arch/x86/mm/init.c
-> index 1bba16c5742b..4016f2bf5d87 100644
-> --- a/arch/x86/mm/init.c
-> +++ b/arch/x86/mm/init.c
-> @@ -949,7 +949,7 @@ void __init zone_sizes_init(void)
->  	max_zone_pfns[ZONE_HIGHMEM]	= max_pfn;
->  #endif
->  
-> -	free_area_init_nodes(max_zone_pfns);
-> +	free_area_init(max_zone_pfns);
->  }
->  
->  __visible DEFINE_PER_CPU_SHARED_ALIGNED(struct tlb_state, cpu_tlbstate) = {
-> diff --git a/include/linux/mm.h b/include/linux/mm.h
-> index d9a256a97ac5..1c2ecb42e043 100644
-> --- a/include/linux/mm.h
-> +++ b/include/linux/mm.h
-> @@ -2272,7 +2272,6 @@ static inline spinlock_t *pud_lock(struct mm_struct *mm, pud_t *pud)
->  }
->  
->  extern void __init pagecache_init(void);
-> -extern void free_area_init(unsigned long * max_zone_pfn);
->  extern void __init free_area_init_node(int nid, unsigned long * zones_size,
->  		unsigned long zone_start_pfn, unsigned long *zholes_size);
->  extern void free_initmem(void);
-> @@ -2353,21 +2352,21 @@ static inline unsigned long get_num_physpages(void)
->   *
->   * An architecture is expected to register range of page frames backed by
->   * physical memory with memblock_add[_node]() before calling
-> - * free_area_init_nodes() passing in the PFN each zone ends at. At a basic
-> + * free_area_init() passing in the PFN each zone ends at. At a basic
->   * usage, an architecture is expected to do something like
->   *
->   * unsigned long max_zone_pfns[MAX_NR_ZONES] = {max_dma, max_normal_pfn,
->   * 							 max_highmem_pfn};
->   * for_each_valid_physical_page_range()
->   * 	memblock_add_node(base, size, nid)
-> - * free_area_init_nodes(max_zone_pfns);
-> + * free_area_init(max_zone_pfns);
->   *
->   * free_bootmem_with_active_regions() calls free_bootmem_node() for each
->   * registered physical page range.  Similarly
->   * sparse_memory_present_with_active_regions() calls memory_present() for
->   * each range when SPARSEMEM is enabled.
->   */
-> -extern void free_area_init_nodes(unsigned long *max_zone_pfn);
-> +void free_area_init(unsigned long *max_zone_pfn);
->  unsigned long node_map_pfn_alignment(void);
->  unsigned long __absent_pages_in_range(int nid, unsigned long start_pfn,
->  						unsigned long end_pfn);
-> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-> index 530701b38bc7..7f6a3081edb8 100644
-> --- a/mm/page_alloc.c
-> +++ b/mm/page_alloc.c
-> @@ -7428,7 +7428,7 @@ static void check_for_memory(pg_data_t *pgdat, int nid)
->  }
->  
->  /**
-> - * free_area_init_nodes - Initialise all pg_data_t and zone data
-> + * free_area_init - Initialise all pg_data_t and zone data
->   * @max_zone_pfn: an array of max PFNs for each zone
->   *
->   * This will call free_area_init_node() for each active node in the system.
-               It's __free_area_init_node() here being called, while
-it dosn't matter much because it's updated in later patch.
-> @@ -7440,7 +7440,7 @@ static void check_for_memory(pg_data_t *pgdat, int nid)
->   * starts where the previous one ended. For example, ZONE_DMA32 starts
->   * at arch_max_dma_pfn.
->   */
-> -void __init free_area_init_nodes(unsigned long *max_zone_pfn)
-> +void __init free_area_init(unsigned long *max_zone_pfn)
->  {
->  	unsigned long start_pfn, end_pfn;
->  	int i, nid;
-> @@ -7700,12 +7700,6 @@ void __init set_dma_reserve(unsigned long new_dma_reserve)
->  	dma_reserve = new_dma_reserve;
->  }
->  
-> -void __init free_area_init(unsigned long *max_zone_pfn)
-> -{
-> -	init_unavailable_mem();
-> -	free_area_init_nodes(max_zone_pfn);
-> -}
-> -
->  static int page_alloc_cpu_dead(unsigned int cpu)
->  {
+Minor mismatches exist between funtion documentations and parameter
+definitions. Also a dash '-' is needed between a function name and
+its description.
 
-Reviewed-by: Baoquan He <bhe@redhat.com>
+Function definitions are as following:
+static inline void memcpy_fromio(void *buffer,
+				 const volatile void __iomem *addr,
+				 size_t size)
+static inline void memcpy_toio(volatile void __iomem *addr, const void *buffer,
+			       size_t size)
 
->  
-> -- 
-> 2.25.1
-> 
+Reviewed-by: Randy Dunlap <rdunlap@infradead.org>
+Signed-off-by: Wang Wenhu <wenhu.wang@vivo.com>
+---
+Changes since v1:
+ * Dashes added between the function names and their descriptions.
+
+ include/asm-generic/io.h | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index d39ac997dda8..b6a9131ec4d4 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -1066,10 +1066,10 @@ static inline void memset_io(volatile void __iomem *addr, int value,
+ #ifndef memcpy_fromio
+ #define memcpy_fromio memcpy_fromio
+ /**
+- * memcpy_fromio	Copy a block of data from I/O memory
+- * @dst:		The (RAM) destination for the copy
+- * @src:		The (I/O memory) source for the data
+- * @count:		The number of bytes to copy
++ * memcpy_fromio -	Copy a block of data from I/O memory
++ * @buffer:		The (RAM) destination for the copy
++ * @addr:		The (I/O memory) source for the data
++ * @size:		The number of bytes to copy
+  *
+  * Copy a block of data from I/O memory.
+  */
+@@ -1084,10 +1084,10 @@ static inline void memcpy_fromio(void *buffer,
+ #ifndef memcpy_toio
+ #define memcpy_toio memcpy_toio
+ /**
+- * memcpy_toio		Copy a block of data into I/O memory
+- * @dst:		The (I/O memory) destination for the copy
+- * @src:		The (RAM) source for the data
+- * @count:		The number of bytes to copy
++ * memcpy_toio -	Copy a block of data into I/O memory
++ * @addr:		The (I/O memory) destination for the copy
++ * @buffer:		The (RAM) source for the data
++ * @size:		The number of bytes to copy
+  *
+  * Copy a block of data to I/O memory.
+  */
+-- 
+2.17.1
