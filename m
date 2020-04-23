@@ -1,73 +1,107 @@
-Return-Path: <SRS0=esWq=5V=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-wr1-f67.google.com ([209.85.221.67]:37825 "EHLO
-        mail-wr1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726399AbgDELOr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 5 Apr 2020 07:14:47 -0400
+Return-Path: <SRS0=kGHj=6H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from esgaroth.petrovitsch.at ([78.47.184.11]:3302 "EHLO
+        esgaroth.tuxoid.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726090AbgDWMgB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Apr 2020 08:36:01 -0400
+Subject: Re: [PATCH 1/4] fs: Implement close-on-fork
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
+ <20200420071548.62112-2-nate.karstens@garmin.com>
+ <fa6c5c9c7c434f878c94a7c984cd43ba@garmin.com>
+ <20200422154356.GU5820@bombadil.infradead.org>
+ <6ed7bd08892b4311b70636658321904f@garmin.com>
+ <97f05204-a27c-7cc8-429a-edcf6eebaa11@petrovitsch.priv.at>
+ <337320db094d4426a621858fa0f6d7fd@AcuMS.aculab.com>
+From: Bernd Petrovitsch <bernd@petrovitsch.priv.at>
+Message-ID: <f3640ed9-d846-9cbd-7690-53da5ff1473a@petrovitsch.priv.at>
+Date: Thu, 23 Apr 2020 12:34:09 +0000
 MIME-Version: 1.0
-References: <20200228002244.15240-1-keescook@chromium.org> <CA+icZUWTnP8DYfbaMwKtJbG30v7bB4w6=ywo8gn8fvwr731mUQ@mail.gmail.com>
- <202004021023.D3D8AA3BE@keescook>
-In-Reply-To: <202004021023.D3D8AA3BE@keescook>
-Reply-To: sedat.dilek@gmail.com
-From: Sedat Dilek <sedat.dilek@gmail.com>
-Date: Sun, 5 Apr 2020 13:15:01 +0200
-Message-ID: <CA+icZUXi_iA7XkTEbrK7b6m673iG9qPKnDBE1V0JRywDLBc9jw@mail.gmail.com>
-Subject: Re: [PATCH 0/9] Enable orphan section warning
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <337320db094d4426a621858fa0f6d7fd@AcuMS.aculab.com>
+Content-Type: multipart/mixed;
+ boundary="------------985EBFE9F348F8C36FCBAAF1"
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Clang-Built-Linux ML <clang-built-linux@googlegroups.com>, linux-kernel@vger.kernel.org
-Message-ID: <20200405111501.Bl7LlcFYViUplSwoxTSKUHXOqtLneUui0aSqFUHGVe0@z>
+To: David Laight <David.Laight@ACULAB.COM>, "Karstens, Nate" <Nate.Karstens@garmin.com>, Matthew Wilcox <willy@infradead.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Changli Gao <xiaosuo@gmail.com>
+Message-ID: <20200423123409.kSTtLu0tyc9epnlAa9DglvG91pn0T67jCRC5FkzXdPw@z>
 
-On Thu, Apr 2, 2020 at 7:26 PM Kees Cook <keescook@chromium.org> wrote:
->
-> On Thu, Apr 02, 2020 at 06:20:57PM +0200, Sedat Dilek wrote:
-> > On Fri, Feb 28, 2020 at 1:22 AM Kees Cook <keescook@chromium.org> wrote:
-> > >
-> > > Hi!
-> > >
-> > > A recent bug was solved for builds linked with ld.lld, and tracking
-> > > it down took way longer than it needed to (a year). Ultimately, it
-> > > boiled down to differences between ld.bfd and ld.lld's handling of
-> > > orphan sections. Similarly, the recent FGKASLR series brough up orphan
-> > > section handling too[2]. In both cases, it would have been nice if the
-> > > linker was running with --orphan-handling=warn so that surprise sections
-> > > wouldn't silently get mapped into the kernel image at locations up to
-> > > the whim of the linker's orphan handling logic. Instead, all desired
-> > > sections should be explicitly identified in the linker script (to be
-> > > either kept or discarded) with any orphans throwing a warning. The
-> > > powerpc architecture actually already does this, so this series seeks
-> > > to extend this coverage to x86, arm64, and arm.
-> > >
-> > > This series depends on tip/x86/boot (where recent .eh_frame fixes[3]
-> > > landed), and has a minor conflict[4] with the ARM tree (related to
-> > > the earlier mentioned bug). As it uses refactorings in the asm-generic
-> > > linker script, and makes changes to kbuild, I think the cleanest place
-> > > for this series to land would also be through -tip. Once again (like
-> > > my READ_IMPLIES_EXEC series), I'm looking to get maintainer Acks so
-> > > this can go all together with the least disruption. Splitting it up by
-> > > architecture seems needlessly difficult.
-> > >
-> > > Thanks!
-> > >
-> >
-> > Hi Kees,
-> >
-> > what is the status of this patchset?
-> > Looks like it is not in tip or linux-next Git.
->
-> Based on the feedback, I have 3 TODO items:
->
-> - track down and eliminate (or explain) the source of the .got.plt on arm64
-> - enable orphan warnings for _all_ architectures
-> - refactor final link logic to perform the orphan warning in a clean way
->
-> I'm working through these (and other work) still. I'm hoping to have
-> another version up some time next week.
->
+This is a multi-part message in MIME format.
+--------------985EBFE9F348F8C36FCBAAF1
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-Please CC when possible with a pointer to a git-link.
+Hi all!
 
-Thanks.
+On 22/04/2020 16:55, David Laight wrote:
+> From: Bernd Petrovitsch
+>> Sent: 22 April 2020 17:32
+> ...
+>> Apart from that, system() is a PITA even on
+>> single/non-threaded apps.
+>=20
+> Not only that, it is bloody dangerous because (typically)
+> shell is doing post substitution syntax analysis.
 
-- sed@ -
+I actually meant exactly that with PITA;-)
+
+> If you need to run an external process you need to generate
+> an arv[] array containing the parameters.
+
+FullACK. That is usually similar trivial ...
+
+MfG,
+	Bernd
+--=20
+There is no cloud, just other people computers.
+-- https://static.fsf.org/nosvn/stickers/thereisnocloud.svg
+
+--------------985EBFE9F348F8C36FCBAAF1
+Content-Type: application/pgp-keys;
+ name="pEpkey.asc"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: attachment;
+ filename="pEpkey.asc"
+
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+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3D=3D
+=3DGX6K
+-----END PGP PUBLIC KEY BLOCK-----
+
+--------------985EBFE9F348F8C36FCBAAF1--
