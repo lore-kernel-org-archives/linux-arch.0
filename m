@@ -1,87 +1,52 @@
-From: Randy Dunlap <rdunlap@infradead.org>
-Subject: Re: [PATCH v2] io: correct documentation mismatches for io memcpy
-Date: Thu, 23 Apr 2020 10:02:39 -0700
-Message-ID: <84b453cb-886c-2ec6-e562-e300a3cd55d4@infradead.org>
-References: <20200423000945.118231-1-wenhu.wang@vivo.com>
+From: "Mrs. Angella Michelle" <info.zennitbankplcnigerian@gmail.com>
+Subject: Contact Bank of Africa-Benin to receive your payment funds transfer
+ amount of $12.800.000,00 Million USD,approved this morning by IMF.
+Date: Thu, 23 Apr 2020 20:26:49 +0200
+Message-ID: <CABHzvr=N78snvtMHePMOa+RLFdcZEjXLPkuhkojt4VoZGNzBsQ__46207.1204836079$1587666476$gmane$org@mail.gmail.com>
+Reply-To: boa.benin107@yahoo.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39594 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52832 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729674AbgDWRCn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Apr 2020 13:02:43 -0400
-In-Reply-To: <20200423000945.118231-1-wenhu.wang@vivo.com>
-Content-Language: en-US
+        with ESMTP id S1730291AbgDWS0w (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Apr 2020 14:26:52 -0400
+Received: from mail-io1-xd43.google.com (mail-io1-xd43.google.com [IPv6:2607:f8b0:4864:20::d43])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 67F07C09B051
+        for <linux-arch@vger.kernel.org>; Thu, 23 Apr 2020 11:26:51 -0700 (PDT)
+Received: by mail-io1-xd43.google.com with SMTP id z2so7488185iol.11
+        for <linux-arch@vger.kernel.org>; Thu, 23 Apr 2020 11:26:51 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Wang Wenhu <wenhu.wang@vivo.com>, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: kernel@vivo.com
 
-On 4/22/20 5:09 PM, Wang Wenhu wrote:
-> Minor mismatches exist between funtion documentations and parameter
-> definitions. Also a dash '-' is needed between a function name and
-> its description.
-> 
-> Function definitions are as following:
-> static inline void memcpy_fromio(void *buffer,
-> 				 const volatile void __iomem *addr,
-> 				 size_t size)
-> static inline void memcpy_toio(volatile void __iomem *addr, const void *buffer,
-> 			       size_t size)
-> 
-> Reviewed-by: Randy Dunlap <rdunlap@infradead.org>
-> Signed-off-by: Wang Wenhu <wenhu.wang@vivo.com>
-
-Hi,
-Sorry to just notice this, but could you also fix up all of
-the kernel-doc notation for memset_io() in the same manner?
-
-thanks.
-
-> ---
-> Changes since v1:
->  * Dashes added between the function names and their descriptions.
-> 
->  include/asm-generic/io.h | 16 ++++++++--------
->  1 file changed, 8 insertions(+), 8 deletions(-)
-> 
-> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> index d39ac997dda8..b6a9131ec4d4 100644
-> --- a/include/asm-generic/io.h
-> +++ b/include/asm-generic/io.h
-> @@ -1066,10 +1066,10 @@ static inline void memset_io(volatile void __iomem *addr, int value,
->  #ifndef memcpy_fromio
->  #define memcpy_fromio memcpy_fromio
->  /**
-> - * memcpy_fromio	Copy a block of data from I/O memory
-> - * @dst:		The (RAM) destination for the copy
-> - * @src:		The (I/O memory) source for the data
-> - * @count:		The number of bytes to copy
-> + * memcpy_fromio -	Copy a block of data from I/O memory
-> + * @buffer:		The (RAM) destination for the copy
-> + * @addr:		The (I/O memory) source for the data
-> + * @size:		The number of bytes to copy
->   *
->   * Copy a block of data from I/O memory.
->   */
-> @@ -1084,10 +1084,10 @@ static inline void memcpy_fromio(void *buffer,
->  #ifndef memcpy_toio
->  #define memcpy_toio memcpy_toio
->  /**
-> - * memcpy_toio		Copy a block of data into I/O memory
-> - * @dst:		The (I/O memory) destination for the copy
-> - * @src:		The (RAM) source for the data
-> - * @count:		The number of bytes to copy
-> + * memcpy_toio -	Copy a block of data into I/O memory
-> + * @addr:		The (I/O memory) destination for the copy
-> + * @buffer:		The (RAM) source for the data
-> + * @size:		The number of bytes to copy
->   *
->   * Copy a block of data to I/O memory.
->   */
-> 
-
-
--- 
-~Randy
+Attn Dear.
+Contact Bank of Africa-Benin to receive your payment funds transfer amount =
+of
+$12.800.000,00 Million USD,approved this morning by IMF.
+Happy to inform you, we have finally deposited your payment funds
+$12.8 million us dollars with the Paying Bank of Africa-Benin
+to transfer the payment amount of $12.800,000,00 Million Us Dollars to you
+Contact the bank immediately you receive this email now.
+Director Bank of Africa-Benin: Dr. Festus Obiara
+Email id:  boa.benin107@yahoo.com
+Tel/mobile, (229) 62819378
+BOA-BENIN | GROUPE BANK OF AFRICA, boa-benin
+Avenue Jean-Paul II - 08 BP 0879 - Cotonou - B=C3=A9nin
+Phone:(229) 62819378.
+2020 GROUPE BANK OF AFRICA
+Be advised to re-confirm your bank details to this bank as listed.
+Your account Holder's name----------------
+Bank Name----------------------------------------------------------
+Bank address----------------------------------------------
+Account Numbers---------------------------------------
+Rounting-----------------------------------------------------------------
+Your direct Phone Numbers----------------------------------------------
+Note,I have paid the deposit and insurance fees for you
+But the only money you are to send to this bank is $150.00 us dollars
+Been for the wire transfer fees of your funds
+Contact Him now to receive your transfer deposited this morning
+I wait for your reply upon confirmation
+Mrs. Angella Michelle
+Editor, Zenith Bank- Companies Benin
+mrsa9389@gmail.com
