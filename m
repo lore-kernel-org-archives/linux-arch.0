@@ -1,93 +1,127 @@
-Return-Path: <SRS0=BI31=6F=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:34892 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726946AbgDUPQB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 21 Apr 2020 11:16:01 -0400
-From: Will Deacon <will@kernel.org>
-Subject: [PATCH v4 05/11] arm64: csum: Disable KASAN for do_csum()
-Date: Tue, 21 Apr 2020 16:15:31 +0100
-Message-ID: <20200421151537.19241-6-will@kernel.org>
-In-Reply-To: <20200421151537.19241-1-will@kernel.org>
-References: <20200421151537.19241-1-will@kernel.org>
+Return-Path: <SRS0=ftPA=6H=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [PATCH v2 6/6] arm64: tlb: Set the TTL field in flush_tlb_range
+Date: Thu, 23 Apr 2020 21:56:56 +0800
+Message-ID: <20200423135656.2712-7-yezhenyu2@huawei.com>
+In-Reply-To: <20200423135656.2712-1-yezhenyu2@huawei.com>
+References: <20200423135656.2712-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Robin Murphy <robin.murphy@arm.com>
-Message-ID: <20200421151531.SlTAtApF8MlSPxY5Cyp29EG_9PKGgEoEtdQY-ZS9zWU@z>
+Message-ID: <20200423135656.NJd4tk4Y41EG_yWRZxjqN2EQKolFQYGkX2iewDmP2xE@z>
 
-do_csum() over-reads the source buffer and therefore abuses
-READ_ONCE_NOCHECK() to avoid tripping up KASAN. In preparation for
-READ_ONCE_NOCHECK() becoming a macro, and therefore losing its
-'__no_sanitize_address' annotation, just annotate do_csum() explicitly
-and fall back to normal loads.
+This patch uses the cleared_* in struct mmu_gather to set the
+TTL field in flush_tlb_range().
 
-Cc: Mark Rutland <mark.rutland@arm.com>
-Cc: Robin Murphy <robin.murphy@arm.com>
-Signed-off-by: Will Deacon <will@kernel.org>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 ---
- arch/arm64/lib/csum.c | 20 ++++++++++++--------
- 1 file changed, 12 insertions(+), 8 deletions(-)
+ arch/arm64/include/asm/tlb.h      | 29 ++++++++++++++++++++++++++++-
+ arch/arm64/include/asm/tlbflush.h | 14 ++++++++------
+ 2 files changed, 36 insertions(+), 7 deletions(-)
 
-diff --git a/arch/arm64/lib/csum.c b/arch/arm64/lib/csum.c
-index 60eccae2abad..78b87a64ca0a 100644
---- a/arch/arm64/lib/csum.c
-+++ b/arch/arm64/lib/csum.c
-@@ -14,7 +14,11 @@ static u64 accumulate(u64 sum, u64 data)
- 	return tmp + (tmp >> 64);
- }
- 
--unsigned int do_csum(const unsigned char *buff, int len)
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index b76df828e6b7..61c97d3b58c7 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -21,11 +21,37 @@ static void tlb_flush(struct mmu_gather *tlb);
+=20
+ #include <asm-generic/tlb.h>
+=20
 +/*
-+ * We over-read the buffer and this makes KASAN unhappy. Instead, disable
-+ * instrumentation and call kasan explicitly.
++ * get the tlbi levels in arm64.  Default value is 0 if more than one
++ * of cleared_* is set or neither is set.
++ * Arm64 doesn't support p4ds now.
 + */
-+unsigned int __no_sanitize_address do_csum(const unsigned char *buff, int len)
++static inline int tlb_get_level(struct mmu_gather *tlb)
++{
++	if (tlb->cleared_ptes && !(tlb->cleared_pmds ||
++				   tlb->cleared_puds ||
++				   tlb->cleared_p4ds))
++		return 3;
++
++	if (tlb->cleared_pmds && !(tlb->cleared_ptes ||
++				   tlb->cleared_puds ||
++				   tlb->cleared_p4ds))
++		return 2;
++
++	if (tlb->cleared_puds && !(tlb->cleared_ptes ||
++				   tlb->cleared_pmds ||
++				   tlb->cleared_p4ds))
++		return 1;
++
++	return 0;
++}
++
+ static inline void tlb_flush(struct mmu_gather *tlb)
  {
- 	unsigned int offset, shift, sum;
- 	const u64 *ptr;
-@@ -42,7 +46,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
- 	 * odd/even alignment, and means we can ignore it until the very end.
- 	 */
- 	shift = offset * 8;
--	data = READ_ONCE_NOCHECK(*ptr++);
-+	data = *ptr++;
- #ifdef __LITTLE_ENDIAN
- 	data = (data >> shift) << shift;
- #else
-@@ -58,10 +62,10 @@ unsigned int do_csum(const unsigned char *buff, int len)
- 	while (unlikely(len > 64)) {
- 		__uint128_t tmp1, tmp2, tmp3, tmp4;
- 
--		tmp1 = READ_ONCE_NOCHECK(*(__uint128_t *)ptr);
--		tmp2 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 2));
--		tmp3 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 4));
--		tmp4 = READ_ONCE_NOCHECK(*(__uint128_t *)(ptr + 6));
-+		tmp1 = *(__uint128_t *)ptr;
-+		tmp2 = *(__uint128_t *)(ptr + 2);
-+		tmp3 = *(__uint128_t *)(ptr + 4);
-+		tmp4 = *(__uint128_t *)(ptr + 6);
- 
- 		len -= 64;
- 		ptr += 8;
-@@ -85,7 +89,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
- 		__uint128_t tmp;
- 
- 		sum64 = accumulate(sum64, data);
--		tmp = READ_ONCE_NOCHECK(*(__uint128_t *)ptr);
-+		tmp = *(__uint128_t *)ptr;
- 
- 		len -= 16;
- 		ptr += 2;
-@@ -100,7 +104,7 @@ unsigned int do_csum(const unsigned char *buff, int len)
- 	}
- 	if (len > 0) {
- 		sum64 = accumulate(sum64, data);
--		data = READ_ONCE_NOCHECK(*ptr);
-+		data = *ptr;
- 		len -= 8;
- 	}
+ 	struct vm_area_struct vma =3D TLB_FLUSH_VMA(tlb->mm, 0);
+ 	bool last_level =3D !tlb->freed_tables;
+ 	unsigned long stride =3D tlb_get_unmap_size(tlb);
++	int tlb_level =3D tlb_get_level(tlb);
+=20
  	/*
--- 
-2.26.1.301.g55bc3eb7cb9-goog
+ 	 * If we're tearing down the address space then we only care about
+@@ -38,7 +64,8 @@ static inline void tlb_flush(struct mmu_gather *tlb)
+ 		return;
+ 	}
+=20
+-	__flush_tlb_range(&vma, tlb->start, tlb->end, stride, last_level);
++	__flush_tlb_range(&vma, tlb->start, tlb->end, stride,
++			  last_level, tlb_level);
+ }
+=20
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
+lbflush.h
+index 892f33235dc7..3cc705755a2d 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -215,7 +215,8 @@ static inline void flush_tlb_page(struct vm_area_stru=
+ct *vma,
+=20
+ static inline void __flush_tlb_range(struct vm_area_struct *vma,
+ 				     unsigned long start, unsigned long end,
+-				     unsigned long stride, bool last_level)
++				     unsigned long stride, bool last_level,
++				     int tlb_level)
+ {
+ 	unsigned long asid =3D ASID(vma->vm_mm);
+ 	unsigned long addr;
+@@ -237,11 +238,11 @@ static inline void __flush_tlb_range(struct vm_area=
+_struct *vma,
+ 	dsb(ishst);
+ 	for (addr =3D start; addr < end; addr +=3D stride) {
+ 		if (last_level) {
+-			__tlbi_level(vale1is, addr, 0);
+-			__tlbi_user_level(vale1is, addr, 0);
++			__tlbi_level(vale1is, addr, tlb_level);
++			__tlbi_user_level(vale1is, addr, tlb_level);
+ 		} else {
+-			__tlbi_level(vae1is, addr, 0);
+-			__tlbi_user_level(vae1is, addr, 0);
++			__tlbi_level(vae1is, addr, tlb_level);
++			__tlbi_user_level(vae1is, addr, tlb_level);
+ 		}
+ 	}
+ 	dsb(ish);
+@@ -253,8 +254,9 @@ static inline void flush_tlb_range(struct vm_area_str=
+uct *vma,
+ 	/*
+ 	 * We cannot use leaf-only invalidation here, since we may be invalidat=
+ing
+ 	 * table entries as part of collapsing hugepages or moving page tables.
++	 * Set the tlb_level to 0 because we can not get enough information her=
+e.
+ 	 */
+-	__flush_tlb_range(vma, start, end, PAGE_SIZE, false);
++	__flush_tlb_range(vma, start, end, PAGE_SIZE, false, 0);
+ }
+=20
+ static inline void flush_tlb_kernel_range(unsigned long start, unsigned =
+long end)
+--=20
+2.19.1
