@@ -1,16 +1,16 @@
 From: DONATION@orghim.ua
 Subject: =?utf-8?q?2MILLIONEN_=E2=82=AC_SPENDE_F=C3=9CR_SIE=2E?=
-Date: Thu, 23 Apr 2020 15:23:39 -0700
-Message-ID: <20200423222347.2169420120493@mx1.orghim.ua>
+Date: Thu, 23 Apr 2020 15:34:39 -0700
+Message-ID: <20200423223447.63E9415E9682@mx2.orghim.ua>
 Reply-To: shanemissler495@gmail.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset="iso-8859-1"
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.orghim.ua ([91.193.204.242]:55132 "EHLO mx1.orghim.ua"
+Received: from mx2.orghim.ua ([91.193.204.246]:55852 "EHLO mx2.orghim.ua"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726057AbgDWWf5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Apr 2020 18:35:57 -0400
+        id S1726060AbgDWWqu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Apr 2020 18:46:50 -0400
 Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
