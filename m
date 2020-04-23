@@ -1,125 +1,43 @@
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH 18/21] mm: rename free_area_init_node() to
- free_area_init_memoryless_node()
-Date: Thu, 23 Apr 2020 09:18:46 +0300
-Message-ID: <20200423061846.GG14260@kernel.org>
-References: <20200412194859.12663-1-rppt@kernel.org>
- <20200412194859.12663-19-rppt@kernel.org>
- <20200423031454.GB4247@MiWiFi-R3L-srv>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 2/4] mm: Add arch hooks for saving/restoring tags
+Date: Thu, 23 Apr 2020 10:09:20 +0100
+Message-ID: <20200423090919.GA4963@gaia>
+References: <20200422142530.32619-1-steven.price@arm.com>
+ <20200422142530.32619-3-steven.price@arm.com>
+ <edd132f8-c39b-9586-1714-19a335ccea5c@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:35476 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725884AbgDWJJ2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Apr 2020 05:09:28 -0400
 Content-Disposition: inline
-In-Reply-To: <20200423031454.GB4247@MiWiFi-R3L-srv>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: Baoquan He <bhe@redhat.com>
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-c6x-dev@linux-c6x.org, Brian Cain <bcain@codeaurora.org>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <edd132f8-c39b-9586-1714-19a335ccea5c@intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Steven Price <steven.price@arm.com>, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Hugh Dickins <hughd@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
 
-On Thu, Apr 23, 2020 at 11:14:54AM +0800, Baoquan He wrote:
-> On 04/12/20 at 10:48pm, Mike Rapoport wrote:
-> > From: Mike Rapoport <rppt@linux.ibm.com>
-> > 
-> > The free_area_init_node() is only used by x86 to initialize a memory-less
-> > nodes.
-> > Make its name reflect this and drop all the function parameters except node
-> > ID as they are anyway zero.
-> > 
-> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> > ---
-> >  arch/x86/mm/numa.c | 5 +----
-> >  include/linux/mm.h | 9 +++------
-> >  mm/page_alloc.c    | 7 ++-----
-> >  3 files changed, 6 insertions(+), 15 deletions(-)
-> > 
-> > diff --git a/arch/x86/mm/numa.c b/arch/x86/mm/numa.c
-> > index fe024b2ac796..8ee952038c80 100644
-> > --- a/arch/x86/mm/numa.c
-> > +++ b/arch/x86/mm/numa.c
-> > @@ -737,12 +737,9 @@ void __init x86_numa_init(void)
-> >  
-> >  static void __init init_memory_less_node(int nid)
-> >  {
-> > -	unsigned long zones_size[MAX_NR_ZONES] = {0};
-> > -	unsigned long zholes_size[MAX_NR_ZONES] = {0};
-> > -
-> >  	/* Allocate and initialize node data. Memory-less node is now online.*/
-> >  	alloc_node_data(nid);
-> > -	free_area_init_node(nid, zones_size, 0, zholes_size);
-> > +	free_area_init_memoryless_node(nid);
-> >  
-> >  	/*
-> >  	 * All zonelists will be built later in start_kernel() after per cpu
-> > diff --git a/include/linux/mm.h b/include/linux/mm.h
-> > index 1c2ecb42e043..27660f6cf26e 100644
-> > --- a/include/linux/mm.h
-> > +++ b/include/linux/mm.h
-> > @@ -2272,8 +2272,7 @@ static inline spinlock_t *pud_lock(struct mm_struct *mm, pud_t *pud)
-> >  }
-> >  
-> >  extern void __init pagecache_init(void);
-> > -extern void __init free_area_init_node(int nid, unsigned long * zones_size,
-> > -		unsigned long zone_start_pfn, unsigned long *zholes_size);
-> > +extern void __init free_area_init_memoryless_node(int nid);
-> >  extern void free_initmem(void);
-> >  
-> >  /*
-> > @@ -2345,10 +2344,8 @@ static inline unsigned long get_num_physpages(void)
-> >  
-> >  /*
-> >   * Using memblock node mappings, an architecture may initialise its
-> > - * zones, allocate the backing mem_map and account for memory holes in a more
-> > - * architecture independent manner. This is a substitute for creating the
-> > - * zone_sizes[] and zholes_size[] arrays and passing them to
-> > - * free_area_init_node()
-> > + * zones, allocate the backing mem_map and account for memory holes in an
-> > + * architecture independent manner.
-> >   *
-> >   * An architecture is expected to register range of page frames backed by
-> >   * physical memory with memblock_add[_node]() before calling
-> > diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-> > index 376434c7a78b..e46232ec4849 100644
-> > --- a/mm/page_alloc.c
-> > +++ b/mm/page_alloc.c
-> > @@ -6979,12 +6979,9 @@ static void __init __free_area_init_node(int nid, unsigned long *zones_size,
-> >  	free_area_init_core(pgdat);
-> >  }
-> >  
-> > -void __init free_area_init_node(int nid, unsigned long *zones_size,
-> > -				unsigned long node_start_pfn,
-> > -				unsigned long *zholes_size)
-> > +void __init free_area_init_memoryless_node(int nid)
-> >  {
-> > -	__free_area_init_node(nid, zones_size, node_start_pfn, zholes_size,
-> > -			      true);
-> > +	__free_area_init_node(nid, NULL, 0, NULL, false);
+On Wed, Apr 22, 2020 at 11:08:10AM -0700, Dave Hansen wrote:
+> On 4/22/20 7:25 AM, Steven Price wrote:
+> > Three new hooks are added to the swap code:
+> >  * arch_prepare_to_swap() and
+> >  * arch_swap_invalidate_page() / arch_swap_invalidate_area().
+> > One new hook is added to shmem:
+> >  * arch_swap_restore_tags()
 > 
-> Can we move free_area_init_memoryless_node() definition into 
-> arch/x86/mm/numa.c since there's only one caller there?
-> 
-> And I am also wondering if adding a wrapper
-> free_area_init_memoryless_node() is necessary if it's only called the
-> function free_area_init_node().
+> How do the tags get restored outside of the shmem path?  I was expecting
+> to see more arch_swap_restore_tags() sites.
 
-Yeah, I think this patch can be entirely dropped and the next one could
-be slightly updated :)
-Thanks!
+The restoring is done via set_pte_at() -> mte_sync_tags() ->
+mte_restore_tags() in the arch code (see patch 3).
+arch_swap_restore_tags() just calls mte_restore_tags() directly.
 
-> >  }
-> >  
-> >  #if !defined(CONFIG_FLAT_NODE_MEM_MAP) -- 
-> > 2.25.1
-> > 
-> 
+shmem is slightly problematic as it moves the page from the swap cache
+to the shmem one and I think arch_swap_invalidate_page() would have
+already been called by the time we get to set_pte_at() (Steven can
+correct me if I got this wrong).
 
 -- 
-Sincerely yours,
-Mike.
+Catalin
