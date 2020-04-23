@@ -1,121 +1,97 @@
-Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 29 Apr 2020 11:26:51 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v3 20/23] fs: Allow copy_mount_options() to access
- user-space in a single pass
-Message-ID: <20200429102650.GC30377@arm.com>
-References: <20200421142603.3894-1-catalin.marinas@arm.com>
- <20200421142603.3894-21-catalin.marinas@arm.com>
+Return-Path: <SRS0=kGHj=6H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga07-in.huawei.com ([45.249.212.35]:43650 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1728631AbgDWN7r (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Apr 2020 09:59:47 -0400
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [PATCH v2 1/6] arm64: Detect the ARMv8.4 TTL feature
+Date: Thu, 23 Apr 2020 21:56:51 +0800
+Message-ID: <20200423135656.2712-2-yezhenyu2@huawei.com>
+In-Reply-To: <20200423135656.2712-1-yezhenyu2@huawei.com>
+References: <20200423135656.2712-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200421142603.3894-21-catalin.marinas@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, Alexander Viro <viro@zeniv.linux.org.uk>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
+Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=US-ASCII
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429102651.sin2ygDpA57Cm2RkMB_Fjq2Y5aYisUlXVrcEIaSFAWA@z>
+To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Message-ID: <20200423135651.C1Morf0mRu6bwRMW5QEEqlrEGMzOO9USGuSzueG-Elg@z>
 
-On Tue, Apr 21, 2020 at 03:26:00PM +0100, Catalin Marinas wrote:
-> The copy_mount_options() function takes a user pointer argument but not
-> a size. It tries to read up to a PAGE_SIZE. However, copy_from_user() is
-> not guaranteed to return all the accessible bytes if, for example, the
-> access crosses a page boundary and gets a fault on the second page. To
-> work around this, the current copy_mount_options() implementations
-> performs to copy_from_user() passes, first to the end of the current
+From: Marc Zyngier <maz@kernel.org>
 
-implementation performs two
+In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+feature allows TLBs to be issued with a level allowing for quicker
+invalidation.
 
-> page and the second to what's left in the subsequent page.
-> 
-> Some architectures like arm64 can guarantee an exact copy_from_user()
-> depending on the size (since the arch function performs some alignment
-> on the source register). Introduce an arch_has_exact_copy_from_user()
-> function and allow copy_mount_options() to perform the user access in a
-> single pass.
-> 
-> While this function is not on a critical path, the single-pass behaviour
-> is required for arm64 MTE (memory tagging) support where a uaccess can
-> trigger intra-page faults (tag not matching). With the current
-> implementation, if this happens during the first page, the function will
-> return -EFAULT.
-> 
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-> Cc: Will Deacon <will@kernel.org>
-> ---
-> 
-> Notes:
->     New in v3.
-> 
->  arch/arm64/include/asm/uaccess.h | 11 +++++++++++
->  fs/namespace.c                   |  7 +++++--
->  include/linux/uaccess.h          |  8 ++++++++
->  3 files changed, 24 insertions(+), 2 deletions(-)
-> 
-> diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-> index 32fc8061aa76..566da441eba2 100644
-> --- a/arch/arm64/include/asm/uaccess.h
-> +++ b/arch/arm64/include/asm/uaccess.h
-> @@ -416,6 +416,17 @@ extern unsigned long __must_check __arch_copy_in_user(void __user *to, const voi
->  #define INLINE_COPY_TO_USER
->  #define INLINE_COPY_FROM_USER
->  
-> +static inline bool arch_has_exact_copy_from_user(unsigned long n)
-> +{
-> +	/*
-> +	 * copy_from_user() aligns the source pointer if the size is greater
-> +	 * than 15. Since all the loads are naturally aligned, they can only
-> +	 * fail on the first byte.
-> +	 */
-> +	return n > 15;
-> +}
-> +#define arch_has_exact_copy_from_user
+The TTL field indicates the level of page table walk
+holding the leaf entry for the address being invalidated.
 
-Did you mean:
+Let's detect the feature for now. Further patches will implement
+its actual usage.
 
-#define arch_has_exact_copy_from_user arch_has_exact_copy_from_user
+Signed-off-by: Marc Zyngier <maz@kernel.org>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+---
+ arch/arm64/include/asm/cpucaps.h |  3 ++-
+ arch/arm64/include/asm/sysreg.h  |  1 +
+ arch/arm64/kernel/cpufeature.c   | 11 +++++++++++
+ 3 files changed, 14 insertions(+), 1 deletion(-)
 
-Mind you, if this expands to 1 I'd have expected copy_mount_options()
-not to compile, so I may be missing something.
-
-[...]
-
-> diff --git a/fs/namespace.c b/fs/namespace.c
-> index a28e4db075ed..8febc50dfc5d 100644
-> --- a/fs/namespace.c
-> +++ b/fs/namespace.c
-> @@ -3025,13 +3025,16 @@ void *copy_mount_options(const void __user * data)
-
-[ Is this applying a band-aid to duct tape?
-
-The fs presumably knows ahead of time whether it's expecting a string or
-a fixed-size blob for data, so I'd hope we could just DTRT rather than
-playing SEGV roulette here.
-
-This might require more refactoring than makes sense for this series
-though. ]
-
->  	if (!copy)
->  		return ERR_PTR(-ENOMEM);
->  
-> -	size = PAGE_SIZE - offset_in_page(data);
-> +	size = PAGE_SIZE;
-> +	if (!arch_has_exact_copy_from_user(size))
-> +		size -= offset_in_page(data);
->  
-> -	if (copy_from_user(copy, data, size)) {
-> +	if (copy_from_user(copy, data, size) == size) {
->  		kfree(copy);
->  		return ERR_PTR(-EFAULT);
->  	}
->  	if (size != PAGE_SIZE) {
-> +		WARN_ON(1);
->  		if (copy_from_user(copy + size, data + size, PAGE_SIZE - size))
->  			memset(copy + size, 0, PAGE_SIZE - size);
->  	}
-
-[...]
-
-Cheers
----Dave
+diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cpucaps.h
+index 8eb5a088ae65..cabb0c49a1d1 100644
+--- a/arch/arm64/include/asm/cpucaps.h
++++ b/arch/arm64/include/asm/cpucaps.h
+@@ -61,7 +61,8 @@
+ #define ARM64_HAS_AMU_EXTN			51
+ #define ARM64_HAS_ADDRESS_AUTH			52
+ #define ARM64_HAS_GENERIC_AUTH			53
++#define ARM64_HAS_ARMv8_4_TTL			54
+ 
+-#define ARM64_NCAPS				54
++#define ARM64_NCAPS				55
+ 
+ #endif /* __ASM_CPUCAPS_H */
+diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
+index ebc622432831..df02a57fc329 100644
+--- a/arch/arm64/include/asm/sysreg.h
++++ b/arch/arm64/include/asm/sysreg.h
+@@ -723,6 +723,7 @@
+ 
+ /* id_aa64mmfr2 */
+ #define ID_AA64MMFR2_E0PD_SHIFT		60
++#define ID_AA64MMFR2_TTL_SHIFT		48
+ #define ID_AA64MMFR2_FWB_SHIFT		40
+ #define ID_AA64MMFR2_AT_SHIFT		32
+ #define ID_AA64MMFR2_LVA_SHIFT		16
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 9fac745aa7bb..d993dc6dc7d5 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -244,6 +244,7 @@ static const struct arm64_ftr_bits ftr_id_aa64mmfr1[] = {
+ 
+ static const struct arm64_ftr_bits ftr_id_aa64mmfr2[] = {
+ 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_NONSTRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_E0PD_SHIFT, 4, 0),
++	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_TTL_SHIFT, 4, 0),
+ 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_FWB_SHIFT, 4, 0),
+ 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_AT_SHIFT, 4, 0),
+ 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_LVA_SHIFT, 4, 0),
+@@ -1622,6 +1623,16 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
+ 		.matches = has_cpuid_feature,
+ 		.cpu_enable = cpu_has_fwb,
+ 	},
++	{
++		.desc = "ARMv8.4 Translation Table Level",
++		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
++		.capability = ARM64_HAS_ARMv8_4_TTL,
++		.sys_reg = SYS_ID_AA64MMFR2_EL1,
++		.sign = FTR_UNSIGNED,
++		.field_pos = ID_AA64MMFR2_TTL_SHIFT,
++		.min_field_value = 1,
++		.matches = has_cpuid_feature,
++	},
+ #ifdef CONFIG_ARM64_HW_AFDBM
+ 	{
+ 		/*
+-- 
+2.19.1
