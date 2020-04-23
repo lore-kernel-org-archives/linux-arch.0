@@ -1,127 +1,118 @@
-Return-Path: <SRS0=rRjF=6P=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=ftPA=6H=kvack.org=owner-linux-mm@kernel.org>
+Date: Thu, 23 Apr 2020 09:18:46 +0300
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH 18/21] mm: rename free_area_init_node() to
+ free_area_init_memoryless_node()
+Message-ID: <20200423061846.GG14260@kernel.org>
+References: <20200412194859.12663-1-rppt@kernel.org>
+ <20200412194859.12663-19-rppt@kernel.org>
+ <20200423031454.GB4247@MiWiFi-R3L-srv>
 MIME-Version: 1.0
-References: <20200414131348.444715-1-hch@lst.de> <20200414131348.444715-22-hch@lst.de>
- <20200414151344.zgt2pnq7cjq2bgv6@debian>
-In-Reply-To: <20200414151344.zgt2pnq7cjq2bgv6@debian>
-From: John Dorminy <jdorminy@redhat.com>
-Date: Thu, 30 Apr 2020 22:33:28 -0400
-Message-ID: <CAMeeMh8Q3Od76WaTasw+BpYVF58P-HQMaiFKHxXbZ_Q3tQPZ=A@mail.gmail.com>
-Subject: Re: [PATCH 21/29] mm: remove the pgprot argument to __vmalloc
-Content-Type: multipart/alternative; boundary="0000000000004b5c5705a48d02f1"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200423031454.GB4247@MiWiFi-R3L-srv>
 Sender: owner-linux-mm@kvack.org
-To: Wei Liu <wei.liu@kernel.org>
-Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michael Kelley <mikelley@microsoft.com>, Gao Xiang <xiang@kernel.org>
+To: Baoquan He <bhe@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200501023328.GSoBBo2VGmXDJsZfQVD6EqTAGnGUNi6akFXQB3fIEok@z>
+Message-ID: <20200423061846.yP5nV2brCGnxxeGIMLoNPB4DVr7IVMqF9wu2aDRxEjU@z>
 
---0000000000004b5c5705a48d02f1
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-
-Greetings;
-
-I recently noticed this change via the linux-next tree.
-
-It may not be possible to edit at this late date, but the change
-description refers to PROT_KERNEL, which is a symbol which does not appear
-to exist; perhaps PAGE_KERNEL was meant? The mismatch caused me and a
-couple other folks some confusion briefly until we decided it was supposed
-to be PAGE_KERNEL; if it's not too late, editing the description to clarify
-so would be nice.
-
-Many thanks.
-
-John Dorminy
-
-
-
-On Tue, Apr 14, 2020 at 11:15 AM Wei Liu <wei.liu@kernel.org> wrote:
-
-> On Tue, Apr 14, 2020 at 03:13:40PM +0200, Christoph Hellwig wrote:
-> > The pgprot argument to __vmalloc is always PROT_KERNEL now, so remove
-> > it.
-> >
-> > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> > Reviewed-by: Michael Kelley <mikelley@microsoft.com> [hyperv]
-> > Acked-by: Gao Xiang <xiang@kernel.org> [erofs]
-> > Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+On Thu, Apr 23, 2020 at 11:14:54AM +0800, Baoquan He wrote:
+> On 04/12/20 at 10:48pm, Mike Rapoport wrote:
+> > From: Mike Rapoport <rppt@linux.ibm.com>
+> > 
+> > The free_area_init_node() is only used by x86 to initialize a memory-less
+> > nodes.
+> > Make its name reflect this and drop all the function parameters except node
+> > ID as they are anyway zero.
+> > 
+> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 > > ---
-> >  arch/x86/hyperv/hv_init.c              |  3 +--
-> [...]
-> >
-> > diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-> > index 5a4b363ba67b..a3d689dfc745 100644
-> > --- a/arch/x86/hyperv/hv_init.c
-> > +++ b/arch/x86/hyperv/hv_init.c
-> > @@ -95,8 +95,7 @@ static int hv_cpu_init(unsigned int cpu)
-> >        * not be stopped in the case of CPU offlining and the VM will
-> hang.
-> >        */
-> >       if (!*hvp) {
-> > -             *hvp =3D __vmalloc(PAGE_SIZE, GFP_KERNEL | __GFP_ZERO,
-> > -                              PAGE_KERNEL);
-> > +             *hvp =3D __vmalloc(PAGE_SIZE, GFP_KERNEL | __GFP_ZERO);
-> >       }
->
-> Acked-by: Wei Liu <wei.liu@kernel.org>
->
->
+> >  arch/x86/mm/numa.c | 5 +----
+> >  include/linux/mm.h | 9 +++------
+> >  mm/page_alloc.c    | 7 ++-----
+> >  3 files changed, 6 insertions(+), 15 deletions(-)
+> > 
+> > diff --git a/arch/x86/mm/numa.c b/arch/x86/mm/numa.c
+> > index fe024b2ac796..8ee952038c80 100644
+> > --- a/arch/x86/mm/numa.c
+> > +++ b/arch/x86/mm/numa.c
+> > @@ -737,12 +737,9 @@ void __init x86_numa_init(void)
+> >  
+> >  static void __init init_memory_less_node(int nid)
+> >  {
+> > -	unsigned long zones_size[MAX_NR_ZONES] = {0};
+> > -	unsigned long zholes_size[MAX_NR_ZONES] = {0};
+> > -
+> >  	/* Allocate and initialize node data. Memory-less node is now online.*/
+> >  	alloc_node_data(nid);
+> > -	free_area_init_node(nid, zones_size, 0, zholes_size);
+> > +	free_area_init_memoryless_node(nid);
+> >  
+> >  	/*
+> >  	 * All zonelists will be built later in start_kernel() after per cpu
+> > diff --git a/include/linux/mm.h b/include/linux/mm.h
+> > index 1c2ecb42e043..27660f6cf26e 100644
+> > --- a/include/linux/mm.h
+> > +++ b/include/linux/mm.h
+> > @@ -2272,8 +2272,7 @@ static inline spinlock_t *pud_lock(struct mm_struct *mm, pud_t *pud)
+> >  }
+> >  
+> >  extern void __init pagecache_init(void);
+> > -extern void __init free_area_init_node(int nid, unsigned long * zones_size,
+> > -		unsigned long zone_start_pfn, unsigned long *zholes_size);
+> > +extern void __init free_area_init_memoryless_node(int nid);
+> >  extern void free_initmem(void);
+> >  
+> >  /*
+> > @@ -2345,10 +2344,8 @@ static inline unsigned long get_num_physpages(void)
+> >  
+> >  /*
+> >   * Using memblock node mappings, an architecture may initialise its
+> > - * zones, allocate the backing mem_map and account for memory holes in a more
+> > - * architecture independent manner. This is a substitute for creating the
+> > - * zone_sizes[] and zholes_size[] arrays and passing them to
+> > - * free_area_init_node()
+> > + * zones, allocate the backing mem_map and account for memory holes in an
+> > + * architecture independent manner.
+> >   *
+> >   * An architecture is expected to register range of page frames backed by
+> >   * physical memory with memblock_add[_node]() before calling
+> > diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+> > index 376434c7a78b..e46232ec4849 100644
+> > --- a/mm/page_alloc.c
+> > +++ b/mm/page_alloc.c
+> > @@ -6979,12 +6979,9 @@ static void __init __free_area_init_node(int nid, unsigned long *zones_size,
+> >  	free_area_init_core(pgdat);
+> >  }
+> >  
+> > -void __init free_area_init_node(int nid, unsigned long *zones_size,
+> > -				unsigned long node_start_pfn,
+> > -				unsigned long *zholes_size)
+> > +void __init free_area_init_memoryless_node(int nid)
+> >  {
+> > -	__free_area_init_node(nid, zones_size, node_start_pfn, zholes_size,
+> > -			      true);
+> > +	__free_area_init_node(nid, NULL, 0, NULL, false);
+> 
+> Can we move free_area_init_memoryless_node() definition into 
+> arch/x86/mm/numa.c since there's only one caller there?
+> 
+> And I am also wondering if adding a wrapper
+> free_area_init_memoryless_node() is necessary if it's only called the
+> function free_area_init_node().
 
---0000000000004b5c5705a48d02f1
-Content-Type: text/html; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Yeah, I think this patch can be entirely dropped and the next one could
+be slightly updated :)
+Thanks!
 
-<div dir=3D"ltr"><div>Greetings;<br><br></div><div>I recently noticed this =
-change via the linux-next tree.</div><div><br></div><div>It may not be poss=
-ible to edit at this late date, but the change description refers to PROT_K=
-ERNEL, which is a symbol which does not appear to exist; perhaps PAGE_KERNE=
-L was meant? The mismatch caused me and a couple other folks some confusion=
- briefly until we decided it was supposed to be PAGE_KERNEL; if it&#39;s no=
-t too late, editing the description to clarify so would be nice.<br><br></d=
-iv><div>Many thanks.<br><br></div><div>John Dorminy<br></div><div><br><br><=
-/div></div><br><div class=3D"gmail_quote"><div dir=3D"ltr" class=3D"gmail_a=
-ttr">On Tue, Apr 14, 2020 at 11:15 AM Wei Liu &lt;<a href=3D"mailto:wei.liu=
-@kernel.org">wei.liu@kernel.org</a>&gt; wrote:<br></div><blockquote class=
-=3D"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex;border-left:1px solid rg=
-b(204,204,204);padding-left:1ex">On Tue, Apr 14, 2020 at 03:13:40PM +0200, =
-Christoph Hellwig wrote:<br>
-&gt; The pgprot argument to __vmalloc is always PROT_KERNEL now, so remove<=
-br>
-&gt; it.<br>
-&gt; <br>
-&gt; Signed-off-by: Christoph Hellwig &lt;<a href=3D"mailto:hch@lst.de" tar=
-get=3D"_blank">hch@lst.de</a>&gt;<br>
-&gt; Reviewed-by: Michael Kelley &lt;<a href=3D"mailto:mikelley@microsoft.c=
-om" target=3D"_blank">mikelley@microsoft.com</a>&gt; [hyperv]<br>
-&gt; Acked-by: Gao Xiang &lt;<a href=3D"mailto:xiang@kernel.org" target=3D"=
-_blank">xiang@kernel.org</a>&gt; [erofs]<br>
-&gt; Acked-by: Peter Zijlstra (Intel) &lt;<a href=3D"mailto:peterz@infradea=
-d.org" target=3D"_blank">peterz@infradead.org</a>&gt;<br>
-&gt; ---<br>
-&gt;=C2=A0 arch/x86/hyperv/hv_init.c=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 |=C2=A0 3 +--<br>
-[...]<br>
-&gt; <br>
-&gt; diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c<br>
-&gt; index 5a4b363ba67b..a3d689dfc745 100644<br>
-&gt; --- a/arch/x86/hyperv/hv_init.c<br>
-&gt; +++ b/arch/x86/hyperv/hv_init.c<br>
-&gt; @@ -95,8 +95,7 @@ static int hv_cpu_init(unsigned int cpu)<br>
-&gt;=C2=A0 =C2=A0 =C2=A0 =C2=A0 * not be stopped in the case of CPU offlini=
-ng and the VM will hang.<br>
-&gt;=C2=A0 =C2=A0 =C2=A0 =C2=A0 */<br>
-&gt;=C2=A0 =C2=A0 =C2=A0 =C2=A0if (!*hvp) {<br>
-&gt; -=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0*hvp =3D __vmalloc(PA=
-GE_SIZE, GFP_KERNEL | __GFP_ZERO,<br>
-&gt; -=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 PAGE_KERNEL);<br>
-&gt; +=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0*hvp =3D __vmalloc(PA=
-GE_SIZE, GFP_KERNEL | __GFP_ZERO);<br>
-&gt;=C2=A0 =C2=A0 =C2=A0 =C2=A0}<br>
-<br>
-Acked-by: Wei Liu &lt;<a href=3D"mailto:wei.liu@kernel.org" target=3D"_blan=
-k">wei.liu@kernel.org</a>&gt;<br>
-<br>
-</blockquote></div>
+> >  }
+> >  
+> >  #if !defined(CONFIG_FLAT_NODE_MEM_MAP) -- 
+> > 2.25.1
+> > 
+> 
 
---0000000000004b5c5705a48d02f1--
+-- 
+Sincerely yours,
+Mike.
