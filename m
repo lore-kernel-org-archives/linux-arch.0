@@ -1,52 +1,23 @@
-From: "Mrs. Angella Michelle" <info.zennitbankplcnigerian@gmail.com>
-Subject: Contact Bank of Africa-Benin to receive your payment funds transfer
- amount of $12.800.000,00 Million USD,approved this morning by IMF.
-Date: Thu, 23 Apr 2020 20:26:49 +0200
-Message-ID: <CABHzvr=N78snvtMHePMOa+RLFdcZEjXLPkuhkojt4VoZGNzBsQ__46207.1204836079$1587666476$gmane$org@mail.gmail.com>
-Reply-To: boa.benin107@yahoo.com
+From: DONATION@orghim.ua
+Subject: =?utf-8?q?2MILLIONEN_=E2=82=AC_SPENDE_F=C3=9CR_SIE=2E?=
+Date: Thu, 23 Apr 2020 15:23:39 -0700
+Message-ID: <20200423222347.2169420120493@mx1.orghim.ua>
+Reply-To: shanemissler495@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="iso-8859-1"
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52832 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730291AbgDWS0w (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Apr 2020 14:26:52 -0400
-Received: from mail-io1-xd43.google.com (mail-io1-xd43.google.com [IPv6:2607:f8b0:4864:20::d43])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 67F07C09B051
-        for <linux-arch@vger.kernel.org>; Thu, 23 Apr 2020 11:26:51 -0700 (PDT)
-Received: by mail-io1-xd43.google.com with SMTP id z2so7488185iol.11
-        for <linux-arch@vger.kernel.org>; Thu, 23 Apr 2020 11:26:51 -0700 (PDT)
+Received: from mx1.orghim.ua ([91.193.204.242]:55132 "EHLO mx1.orghim.ua"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726057AbgDWWf5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Apr 2020 18:35:57 -0400
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Recipients <DONATION@orghim.ua>
 
-Attn Dear.
-Contact Bank of Africa-Benin to receive your payment funds transfer amount =
-of
-$12.800.000,00 Million USD,approved this morning by IMF.
-Happy to inform you, we have finally deposited your payment funds
-$12.8 million us dollars with the Paying Bank of Africa-Benin
-to transfer the payment amount of $12.800,000,00 Million Us Dollars to you
-Contact the bank immediately you receive this email now.
-Director Bank of Africa-Benin: Dr. Festus Obiara
-Email id:  boa.benin107@yahoo.com
-Tel/mobile, (229) 62819378
-BOA-BENIN | GROUPE BANK OF AFRICA, boa-benin
-Avenue Jean-Paul II - 08 BP 0879 - Cotonou - B=C3=A9nin
-Phone:(229) 62819378.
-2020 GROUPE BANK OF AFRICA
-Be advised to re-confirm your bank details to this bank as listed.
-Your account Holder's name----------------
-Bank Name----------------------------------------------------------
-Bank address----------------------------------------------
-Account Numbers---------------------------------------
-Rounting-----------------------------------------------------------------
-Your direct Phone Numbers----------------------------------------------
-Note,I have paid the deposit and insurance fees for you
-But the only money you are to send to this bank is $150.00 us dollars
-Been for the wire transfer fees of your funds
-Contact Him now to receive your transfer deposited this morning
-I wait for your reply upon confirmation
-Mrs. Angella Michelle
-Editor, Zenith Bank- Companies Benin
-mrsa9389@gmail.com
+Mein Name ist Shane Missler und ich habe eine Jackpot-Lotterie im Wert von =
+451 Millionen Dollar gewonnen. Ich habe beschlossen, Ihnen als Teil meines =
+Wohlt=E4tigkeitsprojekts 2.000.000,00 $ zu spenden und der Menschheit Gutes=
+ zu tun. Bitte sende eine Antwort an meine private Email shanemissler95@gma=
+il.com
