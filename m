@@ -1,136 +1,73 @@
-Return-Path: <SRS0=EpiA=6E=kvack.org=owner-linux-mm@kernel.org>
-Date: Mon, 20 Apr 2020 14:09:16 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v1 5/6] mm: tlb: Provide flush_*_tlb_range wrappers
-Message-ID: <20200420120916.GE20696@hirez.programming.kicks-ass.net>
-References: <20200403090048.938-1-yezhenyu2@huawei.com>
- <20200403090048.938-6-yezhenyu2@huawei.com>
+Return-Path: <SRS0=iE4N=6I=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from m142-177.yeah.net ([123.58.177.142]:61034 "EHLO
+        m142-177.yeah.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725884AbgDXC0W (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Apr 2020 22:26:22 -0400
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: base64
+Message-ID: <AL*AuQC2CBe-OBb-gWCpSKps.3.1587694631785.Hmail.wenhu.wang@vivo.com>
+Subject: =?UTF-8?B?UmU6IFtQQVRDSCB2M10gaW86IGNvcnJlY3QgZG9jLW1pc21hdGNoZXMgZm9yIGlvIG1lbSBvcHM=?=
+In-Reply-To: <ef0a77eb-202c-6772-ab46-ebd2a393df32@infradead.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200403090048.938-6-yezhenyu2@huawei.com>
-Sender: owner-linux-mm@kvack.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+From: =?UTF-8?B?546L5paH6JmO?= <wenhu.wang@vivo.com>
+Date: Fri, 24 Apr 2020 10:17:11 +0800 (GMT+08:00)
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200420120916.14ylzsKaQAIFJiH99Cubhlbx29pWkYTFA7m9OcSkvf8@z>
+To: Randy Dunlap <rdunlap@infradead.org>
+Cc: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@vivo.com
+Message-ID: <20200424021711.50qC_RKfLIDfvmUn2kPOS8Iu-UTgvR1kD0T0Pxy5USA@z>
 
-On Fri, Apr 03, 2020 at 05:00:47PM +0800, Zhenyu Ye wrote:
-> This patch provides flush_{pte|pmd|pud|p4d}_tlb_range() in generic
-> code, which are expressed through the mmu_gather APIs.  These
-> interface set tlb->cleared_* and finally call tlb_flush(), so we
-> can do the tlb invalidation according to the information in
-> struct mmu_gather.
-> 
-> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-> ---
->  include/asm-generic/pgtable.h | 12 +++++++--
->  mm/pgtable-generic.c          | 50 +++++++++++++++++++++++++++++++++++
->  2 files changed, 60 insertions(+), 2 deletions(-)
-> 
-> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-> index e2e2bef07dd2..2bedeee94131 100644
-> --- a/include/asm-generic/pgtable.h
-> +++ b/include/asm-generic/pgtable.h
-> @@ -1160,11 +1160,19 @@ static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
->   * invalidate the entire TLB which is not desitable.
->   * e.g. see arch/arc: flush_pmd_tlb_range
->   */
-> -#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
-> -#define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
-> +extern void flush_pte_tlb_range(struct vm_area_struct *vma,
-> +				unsigned long addr, unsigned long end);
-> +extern void flush_pmd_tlb_range(struct vm_area_struct *vma,
-> +				unsigned long addr, unsigned long end);
-> +extern void flush_pud_tlb_range(struct vm_area_struct *vma,
-> +				unsigned long addr, unsigned long end);
-> +extern void flush_p4d_tlb_range(struct vm_area_struct *vma,
-> +				unsigned long addr, unsigned long end);
->  #else
-> +#define flush_pte_tlb_range(vma, addr, end)	BUILD_BUG()
->  #define flush_pmd_tlb_range(vma, addr, end)	BUILD_BUG()
->  #define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
-> +#define flush_p4d_tlb_range(vma, addr, end)	BUILD_BUG()
->  #endif
->  #endif
-
-Ideally you'd make __HAVE_ARCH_FLUSH_PMD_TLB_RANGE go away. Power
-certainly doesnt need it with the below.
-
-> diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
-> index 3d7c01e76efc..0f5414a4a2ec 100644
-> --- a/mm/pgtable-generic.c
-> +++ b/mm/pgtable-generic.c
-> @@ -101,6 +101,56 @@ pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
->  
->  #ifdef CONFIG_TRANSPARENT_HUGEPAGE
->  
-> +#ifndef __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
-> +void flush_pte_tlb_range(struct vm_area_struct *vma,
-> +			 unsigned long addr, unsigned long end)
-> +{
-> +	struct mmu_gather tlb;
-> +
-> +	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
-> +	tlb_start_vma(&tlb, vma);
-> +	tlb_set_pte_range(&tlb, addr, end - addr);
-> +	tlb_end_vma(&tlb, vma);
-> +	tlb_finish_mmu(&tlb, addr, end);
-> +}
-> +
-> +void flush_pmd_tlb_range(struct vm_area_struct *vma,
-> +			 unsigned long addr, unsigned long end)
-> +{
-> +	struct mmu_gather tlb;
-> +
-> +	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
-> +	tlb_start_vma(&tlb, vma);
-> +	tlb_set_pmd_range(&tlb, addr, end - addr);
-> +	tlb_end_vma(&tlb, vma);
-> +	tlb_finish_mmu(&tlb, addr, end);
-> +}
-> +
-> +void flush_pud_tlb_range(struct vm_area_struct *vma,
-> +			 unsigned long addr, unsigned long end)
-> +{
-> +	struct mmu_gather tlb;
-> +
-> +	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
-> +	tlb_start_vma(&tlb, vma);
-> +	tlb_set_pud_range(&tlb, addr, end - addr);
-> +	tlb_end_vma(&tlb, vma);
-> +	tlb_finish_mmu(&tlb, addr, end);
-> +}
-> +
-> +void flush_p4d_tlb_range(struct vm_area_struct *vma,
-> +			 unsigned long addr, unsigned long end)
-> +{
-> +	struct mmu_gather tlb;
-> +
-> +	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);
-> +	tlb_start_vma(&tlb, vma);
-> +	tlb_set_p4d_range(&tlb, addr, end - addr);
-> +	tlb_end_vma(&tlb, vma);
-> +	tlb_finish_mmu(&tlb, addr, end);
-> +}
-> +#endif /* __HAVE_ARCH_FLUSH_PMD_TLB_RANGE */
-
-You're nowhere near lazy enough:
-
-#define FLUSH_Pxx_TLB_RANGE(_pxx) \
-void flush_##_pxx##_tlb_range(struct vm_area_struct *vma, \
-			      unsigned long addr, unsigned long end) \
-{ \
-	struct mmu_gather tlb; \
-	\
-	tlb_gather_mmu(&tlb, vma->vm_mm, addr, end); \
-	tlb_start_vma(&tlb, vma); \
-	tlb_flush_##_pxx##_range(&tlb, addr, end-addr); \
-	tlb_end_vma(&tlb, vma); \
-	tlb_finish_mmu(&tlb, addr, end); \
-}
-
-FLUSH_Pxx_TLB_RANGE(pte)
-FLUSH_Pxx_TLB_RANGE(pmd)
-FLUSH_Pxx_TLB_RANGE(pud)
-FLUSH_Pxx_TLB_RANGE(p4d)
+Pk9uIDQvMjMvMjAgNzowOCBQTSwgV2FuZyBXZW5odSB3cm90ZToKPj4gTWlub3IgbWlzbWF0Y2hl
+cyBleGlzdCBiZXR3ZWVuIGZ1bnRpb24gZG9jdW1lbnRhdGlvbnMgYW5kIHBhcmFtZXRlcgo+PiBk
+ZWZpbml0aW9ucy4gQWxzbyBhIGRhc2ggJy0nIGlzIG5lZWRlZCBiZXR3ZWVuIGEgZnVuY3Rpb24g
+bmFtZSBhbmQKPj4gaXRzIGRlc2NyaXB0aW9uLgo+PiAKPj4gRnVuY3Rpb24gZGVmaW5pdGlvbnMg
+YXJlIGFzIGZvbGxvd2luZzoKPj4gc3RhdGljIGlubGluZSB2b2lkIG1lbXNldF9pbyh2b2xhdGls
+ZSB2b2lkIF9faW9tZW0gKmFkZHIsIGludCB2YWx1ZSwKPj4gCQkJICAgICBzaXplX3Qgc2l6ZSkK
+Pj4gc3RhdGljIGlubGluZSB2b2lkIG1lbWNweV9mcm9taW8odm9pZCAqYnVmZmVyLAo+PiAJCQkJ
+IGNvbnN0IHZvbGF0aWxlIHZvaWQgX19pb21lbSAqYWRkciwKPj4gCQkJCSBzaXplX3Qgc2l6ZSkK
+Pj4gc3RhdGljIGlubGluZSB2b2lkIG1lbWNweV90b2lvKHZvbGF0aWxlIHZvaWQgX19pb21lbSAq
+YWRkciwgY29uc3Qgdm9pZCAqYnVmZmVyLAo+PiAJCQkgICAgICAgc2l6ZV90IHNpemUpCj4+IAo+
+PiBSZXZpZXdlZC1ieTogUmFuZHkgRHVubGFwIDxyZHVubGFwQGluZnJhZGVhZC5vcmc+Cj4+IFNp
+Z25lZC1vZmYtYnk6IFdhbmcgV2VuaHUgPHdlbmh1LndhbmdAdml2by5jb20+Cj4KPlRoYW5rcyBm
+b3IgdGFraW5nIGNhcmUgb2YgdGhhdC4KPgoKVGhhbnggZm9yIHlvdXIgbm90aWNlLCBhY3R1YWxs
+eSBJIGhhZCBiZWVuIHRyeWluZyB0byBjb3ZlciBhbGwsIGFuZCBtYWlubHkKdGFyZ2V0ZWQgZm9y
+IGRpZmZlcmVudCBmaWxlcyBvZiB0aGUgc2FtZSBmdW5jdGlvbiBkZWZpbml0aW9ucy4gTWF5YmUg
+YXQgdGhlCmZpcnN0IGdsaW1wc2UsIG1lbXNldF9pbyB3YXMgb2ssIGFuZCBJIG1pc3NlZCBpdC4K
+ClJlZ2FyZHMsCldlbmh1Cgo+PiAtLS0KPj4gIGluY2x1ZGUvYXNtLWdlbmVyaWMvaW8uaCB8IDIy
+ICsrKysrKysrKysrLS0tLS0tLS0tLS0KPj4gIDEgZmlsZSBjaGFuZ2VkLCAxMSBpbnNlcnRpb25z
+KCspLCAxMSBkZWxldGlvbnMoLSkKPj4gCj4+IGRpZmYgLS1naXQgYS9pbmNsdWRlL2FzbS1nZW5l
+cmljL2lvLmggYi9pbmNsdWRlL2FzbS1nZW5lcmljL2lvLmgKPj4gaW5kZXggZDM5YWM5OTdkZGE4
+Li44M2FjNDdiZmEzM2EgMTAwNjQ0Cj4+IC0tLSBhL2luY2x1ZGUvYXNtLWdlbmVyaWMvaW8uaAo+
+PiArKysgYi9pbmNsdWRlL2FzbS1nZW5lcmljL2lvLmgKPj4gQEAgLTEwNDksMTAgKzEwNDksMTAg
+QEAgc3RhdGljIGlubGluZSB2b2lkICpidXNfdG9fdmlydCh1bnNpZ25lZCBsb25nIGFkZHJlc3Mp
+Cj4+ICAjaWZuZGVmIG1lbXNldF9pbwo+PiAgI2RlZmluZSBtZW1zZXRfaW8gbWVtc2V0X2lvCj4+
+ICAvKioKPj4gLSAqIG1lbXNldF9pbwlTZXQgYSByYW5nZSBvZiBJL08gbWVtb3J5IHRvIGEgY29u
+c3RhbnQgdmFsdWUKPj4gKyAqIG1lbXNldF9pbyAtCVNldCBhIHJhbmdlIG9mIEkvTyBtZW1vcnkg
+dG8gYSBjb25zdGFudCB2YWx1ZQo+PiAgICogQGFkZHI6CVRoZSBiZWdpbm5pbmcgb2YgdGhlIEkv
+Ty1tZW1vcnkgcmFuZ2UgdG8gc2V0Cj4+IC0gKiBAdmFsOglUaGUgdmFsdWUgdG8gc2V0IHRoZSBt
+ZW1vcnkgdG8KPj4gLSAqIEBjb3VudDoJVGhlIG51bWJlciBvZiBieXRlcyB0byBzZXQKPj4gKyAq
+IEB2YWx1ZToJVGhlIHZhbHVlIHRvIHNldCB0aGUgbWVtb3J5IHRvCj4+ICsgKiBAc2l6ZToJVGhl
+IG51bWJlciBvZiBieXRlcyB0byBzZXQKPj4gICAqCj4+ICAgKiBTZXQgYSByYW5nZSBvZiBJL08g
+bWVtb3J5IHRvIGEgZ2l2ZW4gdmFsdWUuCj4+ICAgKi8KPj4gQEAgLTEwNjYsMTAgKzEwNjYsMTAg
+QEAgc3RhdGljIGlubGluZSB2b2lkIG1lbXNldF9pbyh2b2xhdGlsZSB2b2lkIF9faW9tZW0gKmFk
+ZHIsIGludCB2YWx1ZSwKPj4gICNpZm5kZWYgbWVtY3B5X2Zyb21pbwo+PiAgI2RlZmluZSBtZW1j
+cHlfZnJvbWlvIG1lbWNweV9mcm9taW8KPj4gIC8qKgo+PiAtICogbWVtY3B5X2Zyb21pbwlDb3B5
+IGEgYmxvY2sgb2YgZGF0YSBmcm9tIEkvTyBtZW1vcnkKPj4gLSAqIEBkc3Q6CQlUaGUgKFJBTSkg
+ZGVzdGluYXRpb24gZm9yIHRoZSBjb3B5Cj4+IC0gKiBAc3JjOgkJVGhlIChJL08gbWVtb3J5KSBz
+b3VyY2UgZm9yIHRoZSBkYXRhCj4+IC0gKiBAY291bnQ6CQlUaGUgbnVtYmVyIG9mIGJ5dGVzIHRv
+IGNvcHkKPj4gKyAqIG1lbWNweV9mcm9taW8gLQlDb3B5IGEgYmxvY2sgb2YgZGF0YSBmcm9tIEkv
+TyBtZW1vcnkKPj4gKyAqIEBidWZmZXI6CQlUaGUgKFJBTSkgZGVzdGluYXRpb24gZm9yIHRoZSBj
+b3B5Cj4+ICsgKiBAYWRkcjoJCVRoZSAoSS9PIG1lbW9yeSkgc291cmNlIGZvciB0aGUgZGF0YQo+
+PiArICogQHNpemU6CQlUaGUgbnVtYmVyIG9mIGJ5dGVzIHRvIGNvcHkKPj4gICAqCj4+ICAgKiBD
+b3B5IGEgYmxvY2sgb2YgZGF0YSBmcm9tIEkvTyBtZW1vcnkuCj4+ICAgKi8KPj4gQEAgLTEwODQs
+MTAgKzEwODQsMTAgQEAgc3RhdGljIGlubGluZSB2b2lkIG1lbWNweV9mcm9taW8odm9pZCAqYnVm
+ZmVyLAo+PiAgI2lmbmRlZiBtZW1jcHlfdG9pbwo+PiAgI2RlZmluZSBtZW1jcHlfdG9pbyBtZW1j
+cHlfdG9pbwo+PiAgLyoqCj4+IC0gKiBtZW1jcHlfdG9pbwkJQ29weSBhIGJsb2NrIG9mIGRhdGEg
+aW50byBJL08gbWVtb3J5Cj4+IC0gKiBAZHN0OgkJVGhlIChJL08gbWVtb3J5KSBkZXN0aW5hdGlv
+biBmb3IgdGhlIGNvcHkKPj4gLSAqIEBzcmM6CQlUaGUgKFJBTSkgc291cmNlIGZvciB0aGUgZGF0
+YQo+PiAtICogQGNvdW50OgkJVGhlIG51bWJlciBvZiBieXRlcyB0byBjb3B5Cj4+ICsgKiBtZW1j
+cHlfdG9pbyAtCUNvcHkgYSBibG9jayBvZiBkYXRhIGludG8gSS9PIG1lbW9yeQo+PiArICogQGFk
+ZHI6CQlUaGUgKEkvTyBtZW1vcnkpIGRlc3RpbmF0aW9uIGZvciB0aGUgY29weQo+PiArICogQGJ1
+ZmZlcjoJCVRoZSAoUkFNKSBzb3VyY2UgZm9yIHRoZSBkYXRhCj4+ICsgKiBAc2l6ZToJCVRoZSBu
+dW1iZXIgb2YgYnl0ZXMgdG8gY29weQo+PiAgICoKPj4gICAqIENvcHkgYSBibG9jayBvZiBkYXRh
+IHRvIEkvTyBtZW1vcnkuCj4+ICAgKi8KPj4gCj4KPgo+LS0gCj5+UmFuZHkKPgoNCg0K
