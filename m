@@ -1,67 +1,120 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 01/29] x86/hyperv: use vmalloc_exec for the hypercall page
-Date: Tue, 14 Apr 2020 15:13:20 +0200
-Message-ID: <20200414131348.444715-2-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+Return-Path: <SRS0=iE4N=6I=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51082 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728361AbgDXMYT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Apr 2020 08:24:19 -0400
+Date: Fri, 24 Apr 2020 17:54:07 +0530
+From: Syed Nayyar Waris <syednwaris@gmail.com>
+Subject: [PATCH 0/6] Introduce the for_each_set_clump macro
+Message-ID: <20200424122407.GA5523@syed>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org, Michael Kelley <mikelley@microsoft.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414131320.CTAfYWVGlQqJTnqiRXxo0C-opEL0Mqt6VfNLI8HsXuk@z>
+To: akpm@linux-foundation.org
+Cc: andriy.shevchenko@linux.intel.com, vilhelm.gray@gmail.com, michal.simek@xilinx.com, arnd@arndb.de, rrichter@marvell.com, linus.walleij@linaro.org, bgolaszewski@baylibre.com, yamada.masahiro@socionext.com, rui.zhang@intel.com, daniel.lezcano@linaro.org, amit.kucheria@verdurent.com, linux-arch@vger.kernel.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org
+Message-ID: <20200424122407.Wqcmpb284nYCqRQNRLLWekgbsSqFCZEfaTcegY47x9w@z>
 
-Use the designated helper for allocating executable kernel memory, and
-remove the now unused PAGE_KERNEL_RX define.
+This patchset introduces a new generic version of for_each_set_clump. 
+The previous version of for_each_set_clump8 used a fixed size 8-bit
+clump, but the new generic version can work with clump of any size but
+less than or equal to BITS_PER_LONG. The patchset utilizes the new macro 
+in several GPIO drivers.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Michael Kelley <mikelley@microsoft.com>
-Acked-by: Wei Liu <wei.liu@kernel.org>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/x86/hyperv/hv_init.c            | 2 +-
- arch/x86/include/asm/pgtable_types.h | 2 --
- 2 files changed, 1 insertion(+), 3 deletions(-)
+The earlier 8-bit for_each_set_clump8 facilitated a
+for-loop syntax that iterates over a memory region entire groups of set
+bits at a time.
 
-diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-index b0da5320bcff..5a4b363ba67b 100644
---- a/arch/x86/hyperv/hv_init.c
-+++ b/arch/x86/hyperv/hv_init.c
-@@ -355,7 +355,7 @@ void __init hyperv_init(void)
- 	guest_id =3D generate_guest_id(0, LINUX_VERSION_CODE, 0);
- 	wrmsrl(HV_X64_MSR_GUEST_OS_ID, guest_id);
-=20
--	hv_hypercall_pg  =3D __vmalloc(PAGE_SIZE, GFP_KERNEL, PAGE_KERNEL_RX);
-+	hv_hypercall_pg =3D vmalloc_exec(PAGE_SIZE);
- 	if (hv_hypercall_pg =3D=3D NULL) {
- 		wrmsrl(HV_X64_MSR_GUEST_OS_ID, 0);
- 		goto remove_cpuhp_state;
-diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/=
-pgtable_types.h
-index b6606fe6cfdf..947867f112ea 100644
---- a/arch/x86/include/asm/pgtable_types.h
-+++ b/arch/x86/include/asm/pgtable_types.h
-@@ -194,7 +194,6 @@ enum page_cache_mode {
- #define _PAGE_TABLE_NOENC	 (__PP|__RW|_USR|___A|   0|___D|   0|   0)
- #define _PAGE_TABLE		 (__PP|__RW|_USR|___A|   0|___D|   0|   0| _ENC)
- #define __PAGE_KERNEL_RO	 (__PP|   0|   0|___A|__NX|___D|   0|___G)
--#define __PAGE_KERNEL_RX	 (__PP|   0|   0|___A|   0|___D|   0|___G)
- #define __PAGE_KERNEL_NOCACHE	 (__PP|__RW|   0|___A|__NX|___D|   0|___G|=
- __NC)
- #define __PAGE_KERNEL_VVAR	 (__PP|   0|_USR|___A|__NX|___D|   0|___G)
- #define __PAGE_KERNEL_LARGE	 (__PP|__RW|   0|___A|__NX|___D|_PSE|___G)
-@@ -220,7 +219,6 @@ enum page_cache_mode {
- #define PAGE_KERNEL_RO		__pgprot_mask(__PAGE_KERNEL_RO         | _ENC)
- #define PAGE_KERNEL_EXEC	__pgprot_mask(__PAGE_KERNEL_EXEC       | _ENC)
- #define PAGE_KERNEL_EXEC_NOENC	__pgprot_mask(__PAGE_KERNEL_EXEC       | =
-   0)
--#define PAGE_KERNEL_RX		__pgprot_mask(__PAGE_KERNEL_RX         | _ENC)
- #define PAGE_KERNEL_NOCACHE	__pgprot_mask(__PAGE_KERNEL_NOCACHE    | _EN=
-C)
- #define PAGE_KERNEL_LARGE	__pgprot_mask(__PAGE_KERNEL_LARGE      | _ENC)
- #define PAGE_KERNEL_LARGE_EXEC	__pgprot_mask(__PAGE_KERNEL_LARGE_EXEC | =
-_ENC)
---=20
-2.25.1
+For example, suppose you would like to iterate over a 32-bit integer 8
+bits at a time, skipping over 8-bit groups with no set bit, where
+XXXXXXXX represents the current 8-bit group:
+
+    Example:        10111110 00000000 11111111 00110011
+    First loop:     10111110 00000000 11111111 XXXXXXXX
+    Second loop:    10111110 00000000 XXXXXXXX 00110011
+    Third loop:     XXXXXXXX 00000000 11111111 00110011
+
+Each iteration of the loop returns the next 8-bit group that has at
+least one set bit.
+
+But with the new for_each_set_clump the clump size can be different from 8 bits.
+Moreover, the clump can be split at word boundary in situations where word 
+size is not multiple of clump size. Following are examples showing the working 
+of new macro for clump sizes of 24 bits and 6 bits.
+
+Example 1:
+clump size: 24 bits, Number of clumps (or ports): 10
+bitmap stores the bit information from where successive clumps are retrieved.
+
+     /* bitmap memory region */
+        0x00aa0000ff000000;  /* Most significant bits */
+        0xaaaaaa0000ff0000;
+        0x000000aa000000aa;
+        0xbbbbabcdeffedcba;  /* Least significant bits */
+
+Different iterations of for_each_set_clump:-
+'offset' is the bit position and 'clump' is the 24 bit clump from the
+above bitmap.
+Iteration first:        offset: 0 clump: 0xfedcba
+Iteration second:       offset: 24 clump: 0xabcdef
+Iteration third:        offset: 48 clump: 0xaabbbb
+Iteration fourth:       offset: 96 clump: 0xaa
+Iteration fifth:        offset: 144 clump: 0xff
+Iteration sixth:        offset: 168 clump: 0xaaaaaa
+Iteration seventh:      offset: 216 clump: 0xff
+Loop breaks because in the end the remaining bits (0x00aa) size was less
+than clump size of 24 bits.
+
+In above example it can be seen that in iteration third, the 24 bit clump
+that was retrieved was split between bitmap[0] and bitmap[1]. This example 
+also shows that 24 bit zeroes if present in between, were skipped (preserving
+the previous for_each_set_macro8 behaviour). 
+
+Example 2:
+clump size = 6 bits, Number of clumps (or ports) = 3.
+
+     /* bitmap memory region */
+        0x00aa0000ff000000;  /* Most significant bits */
+        0xaaaaaa0000ff0000;
+        0x0f00000000000000;
+        0x0000000000000ac0;  /* Least significant bits */
+
+Different iterations of for_each_set_clump:
+'offset' is the bit position and 'clump' is the 6 bit clump from the
+above bitmap.
+Iteration first:        offset: 6 clump: 0x2b
+Loop breaks because 6 * 3 = 18 bits traversed in bitmap.
+Here 6 * 3 is clump size * no. of clumps.
+
+Syed Nayyar Waris (6):
+  bitops: Introduce the the for_each_set_clump macro
+  lib/test_bitmap.c: Add for_each_set_clump test cases
+  gpio: thermal: Utilize for_each_set_clump macro
+  bitops: Remove code related to for_each_set_clump8
+  gpio: thunderx: Utilize for_each_set_clump macro
+  gpio: xilinx: Utilize for_each_set_clump macro
+
+ drivers/gpio/gpio-104-dio-48e.c            |   8 +-
+ drivers/gpio/gpio-104-idi-48.c             |   4 +-
+ drivers/gpio/gpio-74x164.c                 |   4 +-
+ drivers/gpio/gpio-gpio-mm.c                |   8 +-
+ drivers/gpio/gpio-max3191x.c               |   4 +-
+ drivers/gpio/gpio-pca953x.c                |   4 +-
+ drivers/gpio/gpio-pci-idio-16.c            |   8 +-
+ drivers/gpio/gpio-pcie-idio-24.c           |   8 +-
+ drivers/gpio/gpio-pisosr.c                 |   4 +-
+ drivers/gpio/gpio-thunderx.c               |  12 ++-
+ drivers/gpio/gpio-uniphier.c               |   4 +-
+ drivers/gpio/gpio-ws16c48.c                |   8 +-
+ drivers/gpio/gpio-xilinx.c                 |  64 +++++++-------
+ drivers/thermal/intel/intel_soc_dts_iosf.c |   6 +-
+ include/asm-generic/bitops/find.h          |  12 +--
+ include/linux/bitmap.h                     |  60 +++++++++----
+ include/linux/bitops.h                     |   9 +-
+ lib/find_bit.c                             |  12 +--
+ lib/test_bitmap.c                          | 136 ++++++++++++++++++++++++-----
+ 19 files changed, 253 insertions(+), 122 deletions(-)
+
+-- 
+2.7.4
