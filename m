@@ -1,135 +1,97 @@
-Return-Path: <SRS0=8f/M=5T=kvack.org=owner-linux-mm@kernel.org>
-Message-ID: <42da416106d5c1cf92bda1e058434fe240b35f44.1585898438.git.christophe.leroy@c-s.fr>
-In-Reply-To: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
-References: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH v2 5/5] uaccess: Rename user_access_begin/end() to
- user_full_access_begin/end()
-Date: Fri,  3 Apr 2020 07:20:54 +0000 (UTC)
-Sender: owner-linux-mm@kvack.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, intel-gfx@lists.freedesktop.org
+Return-Path: <SRS0=iE4N=6I=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from eu-smtp-delivery-151.mimecast.com ([146.101.78.151]:42217 "EHLO
+        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727022AbgDXNEL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 24 Apr 2020 09:04:11 -0400
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH v4 05/11] arm64: csum: Disable KASAN for do_csum()
+Date: Fri, 24 Apr 2020 13:04:04 +0000
+Message-ID: <cdfcda98bce54632953cae5e05305dc7@AcuMS.aculab.com>
+References: <20200421151537.19241-1-will@kernel.org>
+ <20200421151537.19241-6-will@kernel.org>
+ <20200422094951.GA54428@lakrids.cambridge.arm.com>
+ <20200422104138.GA30265@willie-the-truck>
+ <6efa0cc1-bd3e-b9b6-4e69-7ac05e6efe35@arm.com>
+ <db86e9fa88754d59ac5f8d3f4fe0f9a3@AcuMS.aculab.com>
+ <a4ddb547-ea46-d79d-3088-a97b9a033997@arm.com>
+In-Reply-To: <a4ddb547-ea46-d79d-3088-a97b9a033997@arm.com>
+Content-Language: en-US
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200403072054.T9Tqj4xI6Q9nDytKVFSOcREVY7voxpGlJL6K4MxzKCY@z>
+To: 'Robin Murphy' <robin.murphy@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "kernel-team@android.com" <kernel-team@android.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+Message-ID: <20200424130404.npL2EZyXPZa9JMY3KYRkO3JL8OMU-YPtYUM3476QaIk@z>
 
-Now we have user_read_access_begin() and user_write_access_begin()
-in addition to user_access_begin().
-
-Make it explicit that user_access_begin() provides both read and
-write by renaming it user_full_access_begin(). And the same for
-user_access_end() which becomes user_full_access_end().
-
-Done with following command, then hand splitted two too long lines.
-
-sed -i s/user_access_begin/user_full_access_begin/g `git grep -l user_access_begin`
-
-Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
----
-v2: New, based on remark from Al Viro.
----
- arch/powerpc/include/asm/uaccess.h | 5 +++--
- arch/x86/include/asm/futex.h       | 4 ++--
- arch/x86/include/asm/uaccess.h     | 7 ++++---
- include/linux/uaccess.h            | 8 ++++----
- 4 files changed, 13 insertions(+), 11 deletions(-)
-
-diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
-index 4427d419eb1d..7fe799e081f2 100644
---- a/arch/powerpc/include/asm/uaccess.h
-+++ b/arch/powerpc/include/asm/uaccess.h
-@@ -456,14 +456,15 @@ extern long __copy_from_user_flushcache(void *dst, const void __user *src,
- extern void memcpy_page_flushcache(char *to, struct page *page, size_t offset,
- 			   size_t len);
- 
--static __must_check inline bool user_access_begin(const void __user *ptr, size_t len)
-+static __must_check inline bool
-+user_full_access_begin(const void __user *ptr, size_t len)
- {
- 	if (unlikely(!access_ok(ptr, len)))
- 		return false;
- 	allow_read_write_user((void __user *)ptr, ptr, len);
- 	return true;
- }
--#define user_access_begin	user_access_begin
-+#define user_full_access_begin	user_full_access_begin
- #define user_access_end		prevent_current_access_user
- #define user_access_save	prevent_user_access_return
- #define user_access_restore	restore_user_access
-diff --git a/arch/x86/include/asm/futex.h b/arch/x86/include/asm/futex.h
-index f9c00110a69a..9eefea374bd4 100644
---- a/arch/x86/include/asm/futex.h
-+++ b/arch/x86/include/asm/futex.h
-@@ -56,7 +56,7 @@ do {								\
- static __always_inline int arch_futex_atomic_op_inuser(int op, int oparg, int *oval,
- 		u32 __user *uaddr)
- {
--	if (!user_access_begin(uaddr, sizeof(u32)))
-+	if (!user_full_access_begin(uaddr, sizeof(u32)))
- 		return -EFAULT;
- 
- 	switch (op) {
-@@ -92,7 +92,7 @@ static inline int futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
- {
- 	int ret = 0;
- 
--	if (!user_access_begin(uaddr, sizeof(u32)))
-+	if (!user_full_access_begin(uaddr, sizeof(u32)))
- 		return -EFAULT;
- 	asm volatile("\n"
- 		"1:\t" LOCK_PREFIX "cmpxchgl %4, %2\n"
-diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
-index d8f283b9a569..8776e815f215 100644
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -473,16 +473,17 @@ extern struct movsl_mask {
-  * The "unsafe" user accesses aren't really "unsafe", but the naming
-  * is a big fat warning: you have to not only do the access_ok()
-  * checking before using them, but you have to surround them with the
-- * user_access_begin/end() pair.
-+ * user_full_access_begin/end() pair.
-  */
--static __must_check __always_inline bool user_access_begin(const void __user *ptr, size_t len)
-+static __must_check __always_inline bool
-+user_full_access_begin(const void __user *ptr, size_t len)
- {
- 	if (unlikely(!access_ok(ptr,len)))
- 		return 0;
- 	__uaccess_begin_nospec();
- 	return 1;
- }
--#define user_access_begin(a,b)	user_access_begin(a,b)
-+#define user_full_access_begin(a,b)	user_full_access_begin(a,b)
- #define user_access_end()	__uaccess_end()
- 
- #define user_access_save()	smap_save()
-diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
-index 9861c89f93be..5be9bc930342 100644
---- a/include/linux/uaccess.h
-+++ b/include/linux/uaccess.h
-@@ -368,8 +368,8 @@ extern long strnlen_unsafe_user(const void __user *unsafe_addr, long count);
- #define probe_kernel_address(addr, retval)		\
- 	probe_kernel_read(&retval, addr, sizeof(retval))
- 
--#ifndef user_access_begin
--#define user_access_begin(ptr,len) access_ok(ptr, len)
-+#ifndef user_full_access_begin
-+#define user_full_access_begin(ptr,len) access_ok(ptr, len)
- #define user_access_end() do { } while (0)
- #define unsafe_op_wrap(op, err) do { if (unlikely(op)) goto err; } while (0)
- #define unsafe_get_user(x,p,e) unsafe_op_wrap(__get_user(x,p),e)
-@@ -379,11 +379,11 @@ static inline unsigned long user_access_save(void) { return 0UL; }
- static inline void user_access_restore(unsigned long flags) { }
- #endif
- #ifndef user_write_access_begin
--#define user_write_access_begin user_access_begin
-+#define user_write_access_begin user_full_access_begin
- #define user_write_access_end user_access_end
- #endif
- #ifndef user_read_access_begin
--#define user_read_access_begin user_access_begin
-+#define user_read_access_begin user_full_access_begin
- #define user_read_access_end user_access_end
- #endif
- 
--- 
-2.25.0
+RnJvbTogUm9iaW4gTXVycGh5DQo+IFNlbnQ6IDI0IEFwcmlsIDIwMjAgMTI6MDENCj4gT24gMjAy
+MC0wNC0yNCAxMDo0MSBhbSwgRGF2aWQgTGFpZ2h0IHdyb3RlOg0KPiA+IEZyb206IFJvYmluIE11
+cnBoeQ0KPiA+PiBTZW50OiAyMiBBcHJpbCAyMDIwIDEyOjAyDQo+ID4gLi4NCj4gPj4gU3VyZSAt
+IEkgaGF2ZSBhIG5hZ2dpbmcgZmVlbGluZyB0aGF0IGl0IGNvdWxkIHN0aWxsIGRvIGJldHRlciBX
+UlQNCj4gPj4gcGlwZWxpbmluZyB0aGUgbG9hZHMgYW55d2F5LCBzbyBJJ20gaGFwcHkgdG8gY29t
+ZSBiYWNrIGFuZCByZWNvbnNpZGVyDQo+ID4+IHRoZSBsb2NhbCBjb2RlZ2VuIGxhdGVyLiBJdCBj
+ZXJ0YWlubHkgZG9lc24ndCBkZXNlcnZlIHRvIHN0YW5kIGluIHRoZQ0KPiA+PiB3YXkgb2YgY3Jv
+c3MtYXJjaCByZXdvcmsuDQo+ID4NCj4gPiBIb3cgZmFzdCBkb2VzIHRoYXQgbG9vcCBhY3R1YWxs
+eSBydW4/DQo+IA0KPiBJJ3ZlIG5vdCBjaGFyYWN0ZXJpc2VkIGl0IGluIGRldGFpbCwgYnV0IGZh
+c3RlciB0aGFuIGFueSBvZiB0aGUgb3RoZXINCj4gYXR0ZW1wdHMgc28gZmFyIDspDQouLi4NCj4g
+VGhlIGFpbSBoZXJlIGlzIHRvIG1pbmltaXNlIGxvYWQgYmFuZHdpZHRoIC0gbW9zdCBBcm0gY29y
+ZXMgY2FuIHNsdXJwIDE2DQo+IGJ5dGVzIGZyb20gTDEgaW4gYSBzaW5nbGUgbG9hZCBhcyBxdWlj
+a2x5IGFzIGFueSBzbWFsbGVyIGFtb3VudCwgc28NCj4gbmliYmxpbmcgYXdheSBpbiBsaXR0bGUg
+MzItYml0IGNodW5rcyB3b3VsZCByZXN1bHQgaW4gdXAgdG8gNHggbW9yZSBsb2FkDQo+IGN5Y2xl
+cy4NCg0KVGhlIHg4NiAncHJvYmxlbScgaXMgdGhhdCAnYWRjJyB0YWtlcyB0d28gY2xvY2tzIGFu
+ZCB0aGUgY2FycnkNCmZsYWcgJ3JlZ2lzdGVyIGNoYWluJyBtZWFucyB5b3UgY2FuIG9ubHkgc3Vt
+IDQgYnl0ZXMvY2xvY2sgcmVnYXJkbGVzcw0Kb2YgdGhlIG1lbW9yeSBhY2Nlc3Nlcy4NCg0KPiBZ
+ZXMsIHRoZSBDIGNvZGUgbG9va3MgcmlkaWN1bG91cywgYnV0IHRoZSBvdGhlciB0cmljayBpcyB0
+aGF0DQo+IG1vc3Qgb2YgdGhvc2Ugb3BlcmF0aW9ucyBkb24ndCBhY3R1YWxseSBleGlzdC4gU2lu
+Y2UgYSBfX3VpbnQxMjhfdCBpcw0KPiByZWFsbHkgYmFja2VkIGJ5IGFueSB0d28gNjQtYml0IEdQ
+UnMgLSBvciBpZiB5b3UncmUgY2FyZWZ1bCwgb25lIDY0LWJpdA0KPiBHUFIgYW5kIHRoZSBjYXJy
+eSBmbGFnIC0gYWxsIHRob3NlIHNoaWZ0cyBhbmQgcm90YXRpb25zIGFyZSBpbiBmYWN0DQo+IHJl
+c29sdmVkIGJ5IHJlZ2lzdGVyIGFsbG9jYXRpb24sIHNvIHdoYXQgd2UgZW5kIHVwIHdpdGggaXMg
+YSB2ZXJ5IG5lYXQNCj4gbG9vcCBvZiBlc3NlbnRpYWxseSBqdXN0IGxvYWRzIGFuZCA2NC1iaXQg
+YWNjdW11bGF0aW9uOg0KPiANCj4gLi4uDQo+ICAgMTM4OiAgIGE5NDAzMGMzICAgICAgICBsZHAg
+ICAgIHgzLCB4MTIsIFt4Nl0NCj4gICAxM2M6ICAgYTk0MTJjYzggICAgICAgIGxkcCAgICAgeDgs
+IHgxMSwgW3g2LCAjMTZdDQo+ICAgMTQwOiAgIGE5NDIyOGM0ICAgICAgICBsZHAgICAgIHg0LCB4
+MTAsIFt4NiwgIzMyXQ0KPiAgIDE0NDogICBhOTQzMjRjNyAgICAgICAgbGRwICAgICB4NywgeDks
+IFt4NiwgIzQ4XQ0KPiAgIDE0ODogICBhYjAzMDE4ZCAgICAgICAgYWRkcyAgICB4MTMsIHgxMiwg
+eDMNCj4gICAxNGM6ICAgNTEwMTAwYTUgICAgICAgIHN1YiAgICAgdzUsIHc1LCAjMHg0MA0KPiAg
+IDE1MDogICA5YTBjMDA2MyAgICAgICAgYWRjICAgICB4MywgeDMsIHgxMg0KPiAgIDE1NDogICBh
+YjA4MDE2YyAgICAgICAgYWRkcyAgICB4MTIsIHgxMSwgeDgNCj4gICAxNTg6ICAgOWEwYjAxMDgg
+ICAgICAgIGFkYyAgICAgeDgsIHg4LCB4MTENCj4gICAxNWM6ICAgYWIwNDAxNGIgICAgICAgIGFk
+ZHMgICAgeDExLCB4MTAsIHg0DQo+ICAgMTYwOiAgIDlhMGEwMDg0ICAgICAgICBhZGMgICAgIHg0
+LCB4NCwgeDEwDQo+ICAgMTY0OiAgIGFiMDcwMTJhICAgICAgICBhZGRzICAgIHgxMCwgeDksIHg3
+DQo+ICAgMTY4OiAgIDlhMDkwMGU3ICAgICAgICBhZGMgICAgIHg3LCB4NywgeDkNCj4gICAxNmM6
+ICAgYWIwODAwNjkgICAgICAgIGFkZHMgICAgeDksIHgzLCB4OA0KPiAgIDE3MDogICA5YTA4MDA2
+MyAgICAgICAgYWRjICAgICB4MywgeDMsIHg4DQo+ICAgMTc0OiAgIGFiMDcwMDg4ICAgICAgICBh
+ZGRzICAgIHg4LCB4NCwgeDcNCj4gICAxNzg6ICAgOWEwNzAwODQgICAgICAgIGFkYyAgICAgeDQs
+IHg0LCB4Nw0KPiAgIDE3YzogICA5MTAxMDBjNiAgICAgICAgYWRkICAgICB4NiwgeDYsICMweDQw
+DQo+ICAgMTgwOiAgIGFiMDQwMDY3ICAgICAgICBhZGRzICAgIHg3LCB4MywgeDQNCj4gICAxODQ6
+ICAgOWEwNDAwNjMgICAgICAgIGFkYyAgICAgeDMsIHgzLCB4NA0KPiAgIDE4ODogICBhYjAxMDA2
+NCAgICAgICAgYWRkcyAgICB4NCwgeDMsIHgxDQo+ICAgMThjOiAgIDlhMDMwMDIzICAgICAgICBh
+ZGMgICAgIHgzLCB4MSwgeDMNCj4gICAxOTA6ICAgNzEwMTAwYmYgICAgICAgIGNtcCAgICAgdzUs
+ICMweDQwDQo+ICAgMTk0OiAgIGFhMDMwM2UxICAgICAgICBtb3YgICAgIHgxLCB4Mw0KPiAgIDE5
+ODogICA1NGZmZmQwYyAgICAgICAgYi5ndCAgICAxMzggPGRvX2NzdW0rMHhkOD4NCj4gLi4uDQo+
+IA0KPiBJbnN0cnVjdGlvbi13aXNlLCB0aGF0J3MgYWJvdXQgYXMgZ29vZCBhcyBpdCBjYW4gZ2V0
+IHNob3J0IG9mDQo+IG1haW50YWluaW5nIG11bHRpcGxlIGFjY3VtdWxhdG9ycyBhbmQgbW92aW5n
+IHRoZSBwYWlyd2lzZSBmb2xkaW5nIG91dCBvZg0KPiB0aGUgbG9vcC4gVGhlIG1haW4gdGhpbmcg
+dGhhdCBJIHRoaW5rIGlzIHN0aWxsIGxlZnQgb24gdGhlIHRhYmxlIGlzIHRoYXQNCj4gdGhlIGxv
+YWQtdG8tdXNlIGRpc3RhbmNlcyBhcmUgcHJldHR5IHNob3J0IGFuZCB0aGVyZSdzIGNsZWFybHkg
+c2NvcGUgdG8NCj4gc3ByZWFkIG91dCBhbmQgYW1vcnRpc2UgdGhlIGxvYWQgY3ljbGVzIGJldHRl
+ciwgd2hpY2ggc3RhbmRzIHRvIGJlbmVmaXQNCj4gYm90aCBiaWcgYW5kIGxpdHRsZSBjb3Jlcy4N
+Cg0KSSByZWFsaXNlZCBtb3N0IG9mIHRoZSBDIHdvdWxkIGRpc2FwcGVhciAtIGp1c3QgaGFyZCB0
+byBzZWUgd2hhdA0KdGhlIHJlc3VsdCB3b3VsZCBiZS4NCkxvb2tpbmcgYXQgdGhlIGFib3ZlIHRo
+ZXJlIGFyZSA4ICg2NGJpdCkgbG9hZHMgYW5kIDE2IGFkZHMuDQooUGx1cyAyIGFkZHMgZm9yIHRo
+ZSBsb29wIGNvbnRyb2wsIHNob3VsZCBvbmx5IG5lZWQgb25lIQ0KYW5kIGEgc3BhcmUgcmVnaXN0
+ZXIgbW92ZS4pDQpXaXRob3V0IG11bHRpcGxlIGNhcnJ5IGZsYWdzIHRoZSBiZXN0IHlvdSBhcmUg
+Z29pbmcgdG8gZ2V0DQppcyBvbmUgYWRkIGluc3RydWN0aW9uIGFuZCBvbmUgJ3NhdmUgdGhlIGNh
+cnJ5IGZsYWcnIGluc3RydWN0aW9uDQpmb3IgZWFjaCAnd29yZCcuDQpUaGUgdGhpbmcgdGhlbiBp
+cyB0byBhcnJhbmdlIHRoZSBjb2RlIHRvIGF2b2lkIHJlZ2lzdGVyIGRlcGVuZGVuY3kNCmNoYWlu
+cyBzbyB0aGF0IHRoZSBpbnN0cnVjdGlvbnMgY2FuIHJ1biBpbiBwYXJhbGxlbC4NCkkgdGhpbmsg
+eW91IGxvc2UgYXQgdGhlIGJvdHRvbSBvZiB0aGUgYWJvdmUgd2hlbiB5b3UgYWRkIHRvDQp0aGUg
+Z2xvYmFsIHN1bSAtIG1pZ2h0IGJlIGZhc3RlciB3aXRoIDIgc3Vtcy4NCkFjdHVhbGx5IHRyeWlu
+ZyB0byBkbyBvbmUgbG9hZCBhbmQgNCBhZGRzIGV2ZXJ5IGNsb2NrIG1pZ2h0DQpiZSBwb3NzaWJs
+ZSAtIGlmIHRoZSBjcHUgY2FuIGV4ZWN1dGUgdGhlbS4NCkJ1dCB0aGF0IHdvdWxkIHJlcXVpcmUg
+YSBob3JyaWQgaW50ZXJsZWF2ZWQgbG9vcC4NCg0KCURhdmlkDQoNCi0NClJlZ2lzdGVyZWQgQWRk
+cmVzcyBMYWtlc2lkZSwgQnJhbWxleSBSb2FkLCBNb3VudCBGYXJtLCBNaWx0b24gS2V5bmVzLCBN
+SzEgMVBULCBVSw0KUmVnaXN0cmF0aW9uIE5vOiAxMzk3Mzg2IChXYWxlcykNCg==
