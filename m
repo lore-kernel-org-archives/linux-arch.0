@@ -1,64 +1,58 @@
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [PATCH 0/6] Introduce the for_each_set_clump macro
-Date: Fri, 24 Apr 2020 09:50:33 -0400
-Message-ID: <20200424135011.GA3255@icarus>
-References: <20200424122407.GA5523@syed>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 21/23] arm64: mte: Check the DT memory nodes for MTE
+ support
+Date: Fri, 24 Apr 2020 14:57:36 +0100
+Message-ID: <20200424135735.GB5551@gaia>
+References: <20200421142603.3894-1-catalin.marinas@arm.com>
+ <20200421142603.3894-22-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="WYTEVAkct0FjGQmd"
-Return-path: <linux-gpio-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:35116 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726698AbgDXN5o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 24 Apr 2020 09:57:44 -0400
 Content-Disposition: inline
-In-Reply-To: <20200424122407.GA5523@syed>
-Sender: linux-gpio-owner@vger.kernel.org
-To: akpm@linux-foundation.org
-Cc: Syed Nayyar Waris <syednwaris@gmail.com>, andriy.shevchenko@linux.intel.com, michal.simek@xilinx.com, arnd@arndb.de, rrichter@marvell.com, linus.walleij@linaro.org, bgolaszewski@baylibre.com, yamada.masahiro@socionext.com, rui.zhang@intel.com, daniel.lezcano@linaro.org, amit.kucheria@verdurent.com, linux-arch@vger.kernel.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20200421142603.3894-22-catalin.marinas@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arm-kernel@lists.infradead.org
+Cc: Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Rob Herring <Rob.Herring@arm.com>, Mark Rutland <mark.rutland@arm.com>, Suzuki K Poulose <Suzuki.Poulose@arm.com>
 
+On Tue, Apr 21, 2020 at 03:26:01PM +0100, Catalin Marinas wrote:
+> Even if the ID_AA64PFR1_EL1 register advertises the presence of MTE, it
+> is not guaranteed that the memory system on the SoC supports the
+> feature. In the absence of system-wide MTE support, the behaviour is
+> undefined and the kernel should not enable the MTE memory type in
+> MAIR_EL1.
+> 
+> For FDT, add an 'arm,armv8.5-memtag' property to the /memory nodes and
+> check for its presence during MTE probing. For example:
+> 
+> 	memory@80000000 {
+> 		device_type = "memory";
+> 		arm,armv8.5-memtag;
+> 		reg = <0x00000000 0x80000000 0 0x80000000>,
+> 		      <0x00000008 0x80000000 0 0x80000000>;
+> 	};
+> 
+> If the /memory nodes are not present in DT or if at least one node does
+> not support MTE, the feature will be disabled. On EFI systems, it is
+> assumed that the memory description matches the EFI memory map (if not,
+> it is considered a firmware bug).
+> 
+> MTE is not currently supported on ACPI systems.
+> 
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Rob Herring <Rob.Herring@arm.com>
+> Cc: Mark Rutland <mark.rutland@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Suzuki K Poulose <Suzuki.Poulose@arm.com>
 
---WYTEVAkct0FjGQmd
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+This patch turns out to be incomplete. While it does not expose the
+HWCAP2_MTE to user when the above DT property is not present, it still
+allows user access to the ID_AA64PFR1_EL1.MTE field (via MRS emulations)
+since it is marked as visible.
 
-On Fri, Apr 24, 2020 at 05:54:07PM +0530, Syed Nayyar Waris wrote:
-> This patchset introduces a new generic version of for_each_set_clump.=20
-> The previous version of for_each_set_clump8 used a fixed size 8-bit
-> clump, but the new generic version can work with clump of any size but
-> less than or equal to BITS_PER_LONG. The patchset utilizes the new macro=
-=20
-> in several GPIO drivers.
-
-Regarding the nomenclature, I created the term "clump" to represent an
-8-bit value that was not necessarily a byte yet was a contiguous
-grouping of bits. With this patchset, we now have a more generic
-for_each_set_clump macro that can handle values larger and smaller than
-8-bits.
-
-Would it make sense to retire the term "clump" and instead use "nbits"
-where applicable, in order to match the existing convention used by the
-bitmap functions; for instance, would it be better to name this macro
-for_each_set_nbits?
-
-William Breathitt Gray
-
---WYTEVAkct0FjGQmd
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCgAdFiEEk5I4PDJ2w1cDf/bghvpINdm7VJIFAl6i7qkACgkQhvpINdm7
-VJIciBAA4lGCd+eUHQXeYgvLK14UXVfbjASoiUjFVFetkDeXj+GGFQG7W/fVMxrM
-LoJV4wXwNl9qyedfdNI8aZmjUwF2Tyy+XEaxo/wa6XyfIXvKrqDYNpESIhvFgMv9
-BcxDVlWrMixZ440pQqqFRfGx7bLM2pryn05hh5yr46Y3kZZRISeAlygC+cZfDmzT
-O7KXcRIB4ZTeZ0irSlLKsEFpp42YIKUX+gt3zwkxSoRIhfBRToE2KU42oLhez48t
-WuUHpZ2TexCV35B+QAjjAXqMdnL3Rg43pRCJG614VuvSleY2hAkED5lqMlt0SIh4
-4kEbvK/fea2QInYY/WA5EKxtFka9huXJ1dhqqUUSFFQfUPhqA/GSxpZ+5o7EeWjr
-v4d4uzg897E5BwZhrWOJUHBIfA4LXkQMV+ZGL1ijWmNnYy3uigREGZYrNylShQ1O
-INlHzTcoqy++g+kETBV/MEZJWGbtqRGqr4/u1UaECO/Ccy0cHDhp9mQ0JmSoXdQe
-pIIhBDfm3raffCMVjSqfVToHENxHuwqcTIgxJ+CAR7j2BOAF/oeNULgsKnRZrfMu
-UE32VfmG2xXdHiqw4R/fBzK1g/DLF7c04RYBPjY7S1/Tvrox9dTnfJbPA1r4KB35
-vIQf2L/hGGV/F/IRYgVdtVVVNaB3qEsrimj0CJjnpQYNkE3fUoM=
-=A+Kx
------END PGP SIGNATURE-----
-
---WYTEVAkct0FjGQmd--
+-- 
+Catalin
