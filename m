@@ -1,185 +1,100 @@
-Return-Path: <SRS0=yBTr=57=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:55342 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2410533AbgDOQxU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Apr 2020 12:53:20 -0400
-From: Will Deacon <will@kernel.org>
-Subject: [PATCH v3 11/12] compiler/gcc: Raise minimum GCC version for kernel builds to 4.8
-Date: Wed, 15 Apr 2020 17:52:17 +0100
-Message-ID: <20200415165218.20251-12-will@kernel.org>
-In-Reply-To: <20200415165218.20251-1-will@kernel.org>
-References: <20200415165218.20251-1-will@kernel.org>
+Return-Path: <SRS0=iE4N=6I=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35578 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726698AbgDXQmP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Apr 2020 12:42:15 -0400
+Date: Fri, 24 Apr 2020 12:42:00 -0400
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: Re: [PATCH 1/6] bitops: Introduce the the for_each_set_clump macro
+Message-ID: <20200424163904.GA7742@icarus>
+References: <20200424122521.GA5552@syed>
+ <20200424141037.ersebbfe7xls37be@wunner.de>
+ <CACG_h5prcXVdk6ecn2WoT1jas3K6UF+KCrxAM9u4_ZLSyPKCEA@mail.gmail.com>
+ <20200424150058.xadjxaga3csh3br6@wunner.de>
+ <20200424150828.GA5034@icarus>
+ <20200424163410.GD185537@smile.fi.intel.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="7ZAtKRhVyVSsbBD2"
+Content-Disposition: inline
+In-Reply-To: <20200424163410.GD185537@smile.fi.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200415165217.MRaE9wJVEVU60z0LVc6Br1Q1EPXpoM-O7DC8zRz3v-I@z>
+To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Cc: Lukas Wunner <lukas@wunner.de>, Syed Nayyar Waris <syednwaris@gmail.com>, akpm@linux-foundation.org, arnd@arndb.de, Linus Walleij <linus.walleij@linaro.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200424164200.tWlKX9v_Qj71nJUevm4CS1pPCLlZ_5eK2XK1YrR8Jc0@z>
 
-It is very rare to see versions of GCC prior to 4.8 being used to build
-the mainline kernel. These old compilers are also know to have codegen
-issues which can lead to silent miscompilation:
 
-https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
+--7ZAtKRhVyVSsbBD2
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Raise the minimum GCC version for kernel build to 4.8 and remove some
-tautological Kconfig dependencies as a consequence.
+On Fri, Apr 24, 2020 at 07:34:10PM +0300, Andy Shevchenko wrote:
+> On Fri, Apr 24, 2020 at 11:09:26AM -0400, William Breathitt Gray wrote:
+> > On Fri, Apr 24, 2020 at 05:00:58PM +0200, Lukas Wunner wrote:
+> > > On Fri, Apr 24, 2020 at 08:22:38PM +0530, Syed Nayyar Waris wrote:
+> > > > On Fri, Apr 24, 2020 at 7:40 PM Lukas Wunner <lukas@wunner.de> wrot=
+e:
+> > > > > On Fri, Apr 24, 2020 at 05:55:21PM +0530, Syed Nayyar Waris wrote:
+>=20
+> ...
+>=20
+> > > > So, this function preserves the behaviour of earlier
+> > > > bitmap_set_value8() function and also adds extra functionality to
+> > > > that.
+> > >=20
+> > > Please leave drivers as is which use exclusively 8-bit accesses,
+> > > e.g. gpio-max3191x.c and gpio-74x164.c.  I'm fearing a performance
+> > > regression if your new generic variant is used.  They work perfectly
+> > > fine the way they are and I don't see any benefit this series may have
+> > > for them.
+> > >=20
+> > > If there are other drivers which benefit from the flexibility of your
+> > > generic variant then I'm not opposed to changing those.
+>=20
+> > We can leave of course bitmap_set_value8 alone, but for 8-bit values the
+> > difference in latency I suspect is primarily due to the conditional test
+> > for the word boundaries. This latency is surely overshadowed by the I/O
+> > latency of the GPIO drivers, so I don't think there's much harm in
+> > changing those to use the generic function when the bottleneck will not
+> > be due to the bitmap_set_value/bitmap_get_value operations.
+>=20
+> Okay, how many new (non-8-bit) users this will target?
+>=20
+> --=20
+> With Best Regards,
+> Andy Shevchenko
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Masahiro Yamada <masahiroy@kernel.org>
-Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-Signed-off-by: Will Deacon <will@kernel.org>
----
- Documentation/process/changes.rst |  2 +-
- arch/arm/crypto/Kconfig           | 12 ++++++------
- crypto/Kconfig                    |  1 -
- include/linux/compiler-gcc.h      |  5 ++---
- init/Kconfig                      |  1 -
- scripts/Kconfig.include           |  3 ---
- scripts/gcc-plugins/Kconfig       |  2 +-
- 7 files changed, 10 insertions(+), 16 deletions(-)
+Within this patchset the only non-8-bit users are gpio-thunderx and
+gpio-xilinix. The gpio-xilinx has configurable port widths so in some
+instances it can behave like the 8-bit users, but not always.
 
-diff --git a/Documentation/process/changes.rst b/Documentation/process/changes.rst
-index 91c5ff8e161e..5cfb54c2aaa6 100644
---- a/Documentation/process/changes.rst
-+++ b/Documentation/process/changes.rst
-@@ -29,7 +29,7 @@ you probably needn't concern yourself with pcmciautils.
- ====================== ===============  ========================================
-         Program        Minimal version       Command to check the version
- ====================== ===============  ========================================
--GNU C                  4.6              gcc --version
-+GNU C                  4.8              gcc --version
- GNU make               3.81             make --version
- binutils               2.23             ld -v
- flex                   2.5.35           flex --version
-diff --git a/arch/arm/crypto/Kconfig b/arch/arm/crypto/Kconfig
-index 2674de6ada1f..c9bf2df85cb9 100644
---- a/arch/arm/crypto/Kconfig
-+++ b/arch/arm/crypto/Kconfig
-@@ -30,7 +30,7 @@ config CRYPTO_SHA1_ARM_NEON
- 
- config CRYPTO_SHA1_ARM_CE
- 	tristate "SHA1 digest algorithm (ARM v8 Crypto Extensions)"
--	depends on KERNEL_MODE_NEON && (CC_IS_CLANG || GCC_VERSION >= 40800)
-+	depends on KERNEL_MODE_NEON
- 	select CRYPTO_SHA1_ARM
- 	select CRYPTO_HASH
- 	help
-@@ -39,7 +39,7 @@ config CRYPTO_SHA1_ARM_CE
- 
- config CRYPTO_SHA2_ARM_CE
- 	tristate "SHA-224/256 digest algorithm (ARM v8 Crypto Extensions)"
--	depends on KERNEL_MODE_NEON && (CC_IS_CLANG || GCC_VERSION >= 40800)
-+	depends on KERNEL_MODE_NEON
- 	select CRYPTO_SHA256_ARM
- 	select CRYPTO_HASH
- 	help
-@@ -96,7 +96,7 @@ config CRYPTO_AES_ARM_BS
- 
- config CRYPTO_AES_ARM_CE
- 	tristate "Accelerated AES using ARMv8 Crypto Extensions"
--	depends on KERNEL_MODE_NEON && (CC_IS_CLANG || GCC_VERSION >= 40800)
-+	depends on KERNEL_MODE_NEON
- 	select CRYPTO_SKCIPHER
- 	select CRYPTO_LIB_AES
- 	select CRYPTO_SIMD
-@@ -106,7 +106,7 @@ config CRYPTO_AES_ARM_CE
- 
- config CRYPTO_GHASH_ARM_CE
- 	tristate "PMULL-accelerated GHASH using NEON/ARMv8 Crypto Extensions"
--	depends on KERNEL_MODE_NEON && (CC_IS_CLANG || GCC_VERSION >= 40800)
-+	depends on KERNEL_MODE_NEON
- 	select CRYPTO_HASH
- 	select CRYPTO_CRYPTD
- 	select CRYPTO_GF128MUL
-@@ -118,13 +118,13 @@ config CRYPTO_GHASH_ARM_CE
- 
- config CRYPTO_CRCT10DIF_ARM_CE
- 	tristate "CRCT10DIF digest algorithm using PMULL instructions"
--	depends on KERNEL_MODE_NEON && (CC_IS_CLANG || GCC_VERSION >= 40800)
-+	depends on KERNEL_MODE_NEON
- 	depends on CRC_T10DIF
- 	select CRYPTO_HASH
- 
- config CRYPTO_CRC32_ARM_CE
- 	tristate "CRC32(C) digest algorithm using CRC and/or PMULL instructions"
--	depends on KERNEL_MODE_NEON && (CC_IS_CLANG || GCC_VERSION >= 40800)
-+	depends on KERNEL_MODE_NEON
- 	depends on CRC32
- 	select CRYPTO_HASH
- 
-diff --git a/crypto/Kconfig b/crypto/Kconfig
-index c24a47406f8f..34a8c5bfd062 100644
---- a/crypto/Kconfig
-+++ b/crypto/Kconfig
-@@ -316,7 +316,6 @@ config CRYPTO_AEGIS128
- config CRYPTO_AEGIS128_SIMD
- 	bool "Support SIMD acceleration for AEGIS-128"
- 	depends on CRYPTO_AEGIS128 && ((ARM || ARM64) && KERNEL_MODE_NEON)
--	depends on !ARM || CC_IS_CLANG || GCC_VERSION >= 40800
- 	default y
- 
- config CRYPTO_AEGIS128_AESNI_SSE2
-diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
-index d7ee4c6bad48..e2f725273261 100644
---- a/include/linux/compiler-gcc.h
-+++ b/include/linux/compiler-gcc.h
-@@ -10,7 +10,8 @@
- 		     + __GNUC_MINOR__ * 100	\
- 		     + __GNUC_PATCHLEVEL__)
- 
--#if GCC_VERSION < 40600
-+/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145 */
-+#if GCC_VERSION < 40800
- # error Sorry, your compiler is too old - please upgrade it.
- #endif
- 
-@@ -126,9 +127,7 @@
- #if defined(CONFIG_ARCH_USE_BUILTIN_BSWAP) && !defined(__CHECKER__)
- #define __HAVE_BUILTIN_BSWAP32__
- #define __HAVE_BUILTIN_BSWAP64__
--#if GCC_VERSION >= 40800
- #define __HAVE_BUILTIN_BSWAP16__
--#endif
- #endif /* CONFIG_ARCH_USE_BUILTIN_BSWAP && !__CHECKER__ */
- 
- #if GCC_VERSION >= 70000
-diff --git a/init/Kconfig b/init/Kconfig
-index 816b8b4a5e9e..e94e4d93a361 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1285,7 +1285,6 @@ config LD_DEAD_CODE_DATA_ELIMINATION
- 	bool "Dead code and data elimination (EXPERIMENTAL)"
- 	depends on HAVE_LD_DEAD_CODE_DATA_ELIMINATION
- 	depends on EXPERT
--	depends on !(FUNCTION_TRACER && CC_IS_GCC && GCC_VERSION < 40800)
- 	depends on $(cc-option,-ffunction-sections -fdata-sections)
- 	depends on $(ld-option,--gc-sections)
- 	help
-diff --git a/scripts/Kconfig.include b/scripts/Kconfig.include
-index 5261e9d6b50b..b2dfba594042 100644
---- a/scripts/Kconfig.include
-+++ b/scripts/Kconfig.include
-@@ -60,6 +60,3 @@ gcc-version := $(shell,$(srctree)/scripts/gcc-version.sh $(CC))
- 
- # Return y if the compiler is GCC, n otherwise
- cc-is-gcc := $(success,$(CC) --version | head -n 1 | grep -q gcc)
--
--# Warn if the compiler is GCC prior to 4.8
--$(warning-if,$(if-success,[ $(gcc-version) -lt 40800 ],$(cc-is-gcc),n),"Your compiler is old and may miscompile the kernel due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145 - please upgrade it.")
-diff --git a/scripts/gcc-plugins/Kconfig b/scripts/gcc-plugins/Kconfig
-index 013ba3a57669..ce0b99fb5847 100644
---- a/scripts/gcc-plugins/Kconfig
-+++ b/scripts/gcc-plugins/Kconfig
-@@ -8,7 +8,7 @@ config HAVE_GCC_PLUGINS
- menuconfig GCC_PLUGINS
- 	bool "GCC plugins"
- 	depends on HAVE_GCC_PLUGINS
--	depends on CC_IS_GCC && GCC_VERSION >= 40800
-+	depends on CC_IS_GCC
- 	depends on $(success,$(srctree)/scripts/gcc-plugin.sh $(CC))
- 	default y
- 	help
--- 
-2.26.0.110.g2183baf09c-goog
+If you want to keep the existing for_each_set_clump8 and related
+functions, ignore [PATCH 3/6] and [PATCH 4/6]. That should allow this
+patchset to be just an introduction of the new generic functions without
+affecting the existing 8-bit users.
+
+William Breathitt Gray
+
+--7ZAtKRhVyVSsbBD2
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCgAdFiEEk5I4PDJ2w1cDf/bghvpINdm7VJIFAl6jFtgACgkQhvpINdm7
+VJJDLQ//dC8JJyJuTyByjULnK5tnjcifhON861BfrOYqbQu20etmMZFIFYkAnre4
+7fBxjh7tSk05AecOKxEG6va+XybbFoDuMEVftcIJ/FGf69Gw4ml6lD2PPP/HFiJJ
+jh0BnBIwP1B+gbJYtGnW5aFWZWPYkBRbSmN4QEn5TQ5x06mCCxdlSIAh2jPpnlZD
+9P67mVq1m59i8/ZcEG2YD8oNwK6WVYB0wYvbO42ixVAJfAmfjD4o0/V+8Lt2K4Gs
+sPEVpwJMfxBbLJDYFaQh+CY+32Acujkfo+CwqorKgMghNciLrrH3jwfGPv1vUvL4
+/7v26sjRraruBlHMAakvzeV2o5BCyIaUxEX/zXMm7OgLOes7unLpFtrf1PkDBEP0
+H/QUQUWomI5Qq2HTjFzMl2zj2ohVQjFdMpLyFZpssgpbOjdO3DXWuLqDMs5Amzp3
+4ATQvbwdNwHRMoZp1fs1aCcE0UGXDKH+lc4+yLH0tmVHX+uC0x91D0Pdl2epR+k6
+JD86YfHcN9TAG1x35KiA2V3F/2MaPwydqjaGLi7TaGYxjFEV+kLWcT1qjhUrVlCL
+ifgrvaI1TfPpYDi0CgsxQFiD6NXGH8CUIK3Y9fB8vMn/qSwuSCCGQSeDfsVRTk9k
+YHS7FpJYHJ81HVj3N3UI7XoM+wCvkgrp5X3bVeePTbykiA8EruQ=
+=6E0z
+-----END PGP SIGNATURE-----
+
+--7ZAtKRhVyVSsbBD2--
