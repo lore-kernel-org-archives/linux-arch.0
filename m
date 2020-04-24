@@ -1,33 +1,40 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 07/11] READ_ONCE: Enforce atomicity for
- {READ,WRITE}_ONCE() memory accesses
-Date: Fri, 24 Apr 2020 19:43:34 +0200
-Message-ID: <20200424174334.GB13592@hirez.programming.kicks-ass.net>
-References: <20200421151537.19241-1-will@kernel.org>
- <20200421151537.19241-8-will@kernel.org>
- <CAG48ez2n6g6nenHM8uB5U+e-Zo1PSA6n9LOBHeqG2HdUnwFpSQ@mail.gmail.com>
- <20200424171135.GJ21141@willie-the-truck>
+From: Lukas Wunner <lukas@wunner.de>
+Subject: Re: [PATCH 1/6] bitops: Introduce the the for_each_set_clump macro
+Date: Fri, 24 Apr 2020 19:59:23 +0200
+Message-ID: <20200424175923.4f5y7xfp4w2wlm7b@wunner.de>
+References: <20200424122521.GA5552@syed>
+ <20200424141037.ersebbfe7xls37be@wunner.de>
+ <CACG_h5prcXVdk6ecn2WoT1jas3K6UF+KCrxAM9u4_ZLSyPKCEA@mail.gmail.com>
+ <20200424150058.xadjxaga3csh3br6@wunner.de>
+ <20200424150828.GA5034@icarus>
+ <20200424163410.GD185537@smile.fi.intel.com>
+ <20200424163904.GA7742@icarus>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46168 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1727049AbgDXRoS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Apr 2020 13:44:18 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200424171135.GJ21141@willie-the-truck>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Jann Horn <jannh@google.com>, kernel list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel-team <kernel-team@android.com>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
+In-Reply-To: <20200424163904.GA7742@icarus>
+Sender: linux-kernel-owner@vger.kernel.org
+To: William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Syed Nayyar Waris <syednwaris@gmail.com>, akpm@linux-foundation.org, arnd@arndb.de, Linus Walleij <linus.walleij@linaro.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 24, 2020 at 06:11:35PM +0100, Will Deacon wrote:
-> My apologies, you're completely right. I thought that PAE mandated 64-bit
-> atomicity, like it does on 32-bit ARM, but that's apparently not the case
-> and looking at the 32-bit x86 pgtable code they have to be really careful
-> there.
+On Fri, Apr 24, 2020 at 12:42:00PM -0400, William Breathitt Gray wrote:
+> Within this patchset the only non-8-bit users are gpio-thunderx and
+> gpio-xilinix. The gpio-xilinx has configurable port widths so in some
+> instances it can behave like the 8-bit users, but not always.
+> 
+> If you want to keep the existing for_each_set_clump8 and related
+> functions, ignore [PATCH 3/6] and [PATCH 4/6]. That should allow this
+> patchset to be just an introduction of the new generic functions without
+> affecting the existing 8-bit users.
 
-They added CMPXCHG8B for PAE, but then we never used it for that because
-it's dead slow (MS did use it I think). Instead we play horrible split
-word games, grep for CONFIG_GUP_GET_PTE_LOW_HIGH.
+Yes I don't mind the changes to gpio-thunderx and gpio-xilinx at all
+but please leave the 8-bit users as they are wherever possible.
+Actually my concern is not just performance but the existing 8-bit
+variant is simpler to understand than the generic variant,
+making it easier to follow the code in the drivers.
+
+Thanks,
+
+Lukas
