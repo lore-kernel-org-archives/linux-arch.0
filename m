@@ -1,69 +1,76 @@
-From: =?UTF-8?B?546L5paH6JmO?= <wenhu.wang@vivo.com>
-Subject: =?UTF-8?B?UmU6IFtQQVRDSCB2M10gaW86IGNvcnJlY3QgZG9jLW1pc21hdGNoZXMgZm9yIGlvIG1lbSBvcHM=?=
-Date: Fri, 24 Apr 2020 10:17:11 +0800 (GMT+08:00)
-Message-ID: <AL*AuQC2CBe-OBb-gWCpSKps.3.1587694631785.Hmail.wenhu.wang@vivo.com>
-References: <ef0a77eb-202c-6772-ab46-ebd2a393df32@infradead.org>
+From: David Hildenbrand <david@redhat.com>
+Subject: Re: [PATCH 15/21] mm: memmap_init: iterate over memblock regions
+ rather that check each PFN
+Date: Fri, 24 Apr 2020 09:22:32 +0200
+Message-ID: <9143538a-4aaa-ca1d-9c8f-72ac949cf593@redhat.com>
+References: <20200412194859.12663-1-rppt@kernel.org>
+ <20200412194859.12663-16-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <ef0a77eb-202c-6772-ab46-ebd2a393df32@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Randy Dunlap <rdunlap@infradead.org>
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@vivo.com
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <20200412194859.12663-16-rppt@kernel.org>
+Content-Language: en-US
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org
+To: Mike Rapoport <rppt@kernel.org>, linux-kernel@vger.kernel.org
+Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@in>
 List-Id: linux-arch.vger.kernel.org
 
-Pk9uIDQvMjMvMjAgNzowOCBQTSwgV2FuZyBXZW5odSB3cm90ZToKPj4gTWlub3IgbWlzbWF0Y2hl
-cyBleGlzdCBiZXR3ZWVuIGZ1bnRpb24gZG9jdW1lbnRhdGlvbnMgYW5kIHBhcmFtZXRlcgo+PiBk
-ZWZpbml0aW9ucy4gQWxzbyBhIGRhc2ggJy0nIGlzIG5lZWRlZCBiZXR3ZWVuIGEgZnVuY3Rpb24g
-bmFtZSBhbmQKPj4gaXRzIGRlc2NyaXB0aW9uLgo+PiAKPj4gRnVuY3Rpb24gZGVmaW5pdGlvbnMg
-YXJlIGFzIGZvbGxvd2luZzoKPj4gc3RhdGljIGlubGluZSB2b2lkIG1lbXNldF9pbyh2b2xhdGls
-ZSB2b2lkIF9faW9tZW0gKmFkZHIsIGludCB2YWx1ZSwKPj4gCQkJICAgICBzaXplX3Qgc2l6ZSkK
-Pj4gc3RhdGljIGlubGluZSB2b2lkIG1lbWNweV9mcm9taW8odm9pZCAqYnVmZmVyLAo+PiAJCQkJ
-IGNvbnN0IHZvbGF0aWxlIHZvaWQgX19pb21lbSAqYWRkciwKPj4gCQkJCSBzaXplX3Qgc2l6ZSkK
-Pj4gc3RhdGljIGlubGluZSB2b2lkIG1lbWNweV90b2lvKHZvbGF0aWxlIHZvaWQgX19pb21lbSAq
-YWRkciwgY29uc3Qgdm9pZCAqYnVmZmVyLAo+PiAJCQkgICAgICAgc2l6ZV90IHNpemUpCj4+IAo+
-PiBSZXZpZXdlZC1ieTogUmFuZHkgRHVubGFwIDxyZHVubGFwQGluZnJhZGVhZC5vcmc+Cj4+IFNp
-Z25lZC1vZmYtYnk6IFdhbmcgV2VuaHUgPHdlbmh1LndhbmdAdml2by5jb20+Cj4KPlRoYW5rcyBm
-b3IgdGFraW5nIGNhcmUgb2YgdGhhdC4KPgoKVGhhbnggZm9yIHlvdXIgbm90aWNlLCBhY3R1YWxs
-eSBJIGhhZCBiZWVuIHRyeWluZyB0byBjb3ZlciBhbGwsIGFuZCBtYWlubHkKdGFyZ2V0ZWQgZm9y
-IGRpZmZlcmVudCBmaWxlcyBvZiB0aGUgc2FtZSBmdW5jdGlvbiBkZWZpbml0aW9ucy4gTWF5YmUg
-YXQgdGhlCmZpcnN0IGdsaW1wc2UsIG1lbXNldF9pbyB3YXMgb2ssIGFuZCBJIG1pc3NlZCBpdC4K
-ClJlZ2FyZHMsCldlbmh1Cgo+PiAtLS0KPj4gIGluY2x1ZGUvYXNtLWdlbmVyaWMvaW8uaCB8IDIy
-ICsrKysrKysrKysrLS0tLS0tLS0tLS0KPj4gIDEgZmlsZSBjaGFuZ2VkLCAxMSBpbnNlcnRpb25z
-KCspLCAxMSBkZWxldGlvbnMoLSkKPj4gCj4+IGRpZmYgLS1naXQgYS9pbmNsdWRlL2FzbS1nZW5l
-cmljL2lvLmggYi9pbmNsdWRlL2FzbS1nZW5lcmljL2lvLmgKPj4gaW5kZXggZDM5YWM5OTdkZGE4
-Li44M2FjNDdiZmEzM2EgMTAwNjQ0Cj4+IC0tLSBhL2luY2x1ZGUvYXNtLWdlbmVyaWMvaW8uaAo+
-PiArKysgYi9pbmNsdWRlL2FzbS1nZW5lcmljL2lvLmgKPj4gQEAgLTEwNDksMTAgKzEwNDksMTAg
-QEAgc3RhdGljIGlubGluZSB2b2lkICpidXNfdG9fdmlydCh1bnNpZ25lZCBsb25nIGFkZHJlc3Mp
-Cj4+ICAjaWZuZGVmIG1lbXNldF9pbwo+PiAgI2RlZmluZSBtZW1zZXRfaW8gbWVtc2V0X2lvCj4+
-ICAvKioKPj4gLSAqIG1lbXNldF9pbwlTZXQgYSByYW5nZSBvZiBJL08gbWVtb3J5IHRvIGEgY29u
-c3RhbnQgdmFsdWUKPj4gKyAqIG1lbXNldF9pbyAtCVNldCBhIHJhbmdlIG9mIEkvTyBtZW1vcnkg
-dG8gYSBjb25zdGFudCB2YWx1ZQo+PiAgICogQGFkZHI6CVRoZSBiZWdpbm5pbmcgb2YgdGhlIEkv
-Ty1tZW1vcnkgcmFuZ2UgdG8gc2V0Cj4+IC0gKiBAdmFsOglUaGUgdmFsdWUgdG8gc2V0IHRoZSBt
-ZW1vcnkgdG8KPj4gLSAqIEBjb3VudDoJVGhlIG51bWJlciBvZiBieXRlcyB0byBzZXQKPj4gKyAq
-IEB2YWx1ZToJVGhlIHZhbHVlIHRvIHNldCB0aGUgbWVtb3J5IHRvCj4+ICsgKiBAc2l6ZToJVGhl
-IG51bWJlciBvZiBieXRlcyB0byBzZXQKPj4gICAqCj4+ICAgKiBTZXQgYSByYW5nZSBvZiBJL08g
-bWVtb3J5IHRvIGEgZ2l2ZW4gdmFsdWUuCj4+ICAgKi8KPj4gQEAgLTEwNjYsMTAgKzEwNjYsMTAg
-QEAgc3RhdGljIGlubGluZSB2b2lkIG1lbXNldF9pbyh2b2xhdGlsZSB2b2lkIF9faW9tZW0gKmFk
-ZHIsIGludCB2YWx1ZSwKPj4gICNpZm5kZWYgbWVtY3B5X2Zyb21pbwo+PiAgI2RlZmluZSBtZW1j
-cHlfZnJvbWlvIG1lbWNweV9mcm9taW8KPj4gIC8qKgo+PiAtICogbWVtY3B5X2Zyb21pbwlDb3B5
-IGEgYmxvY2sgb2YgZGF0YSBmcm9tIEkvTyBtZW1vcnkKPj4gLSAqIEBkc3Q6CQlUaGUgKFJBTSkg
-ZGVzdGluYXRpb24gZm9yIHRoZSBjb3B5Cj4+IC0gKiBAc3JjOgkJVGhlIChJL08gbWVtb3J5KSBz
-b3VyY2UgZm9yIHRoZSBkYXRhCj4+IC0gKiBAY291bnQ6CQlUaGUgbnVtYmVyIG9mIGJ5dGVzIHRv
-IGNvcHkKPj4gKyAqIG1lbWNweV9mcm9taW8gLQlDb3B5IGEgYmxvY2sgb2YgZGF0YSBmcm9tIEkv
-TyBtZW1vcnkKPj4gKyAqIEBidWZmZXI6CQlUaGUgKFJBTSkgZGVzdGluYXRpb24gZm9yIHRoZSBj
-b3B5Cj4+ICsgKiBAYWRkcjoJCVRoZSAoSS9PIG1lbW9yeSkgc291cmNlIGZvciB0aGUgZGF0YQo+
-PiArICogQHNpemU6CQlUaGUgbnVtYmVyIG9mIGJ5dGVzIHRvIGNvcHkKPj4gICAqCj4+ICAgKiBD
-b3B5IGEgYmxvY2sgb2YgZGF0YSBmcm9tIEkvTyBtZW1vcnkuCj4+ICAgKi8KPj4gQEAgLTEwODQs
-MTAgKzEwODQsMTAgQEAgc3RhdGljIGlubGluZSB2b2lkIG1lbWNweV9mcm9taW8odm9pZCAqYnVm
-ZmVyLAo+PiAgI2lmbmRlZiBtZW1jcHlfdG9pbwo+PiAgI2RlZmluZSBtZW1jcHlfdG9pbyBtZW1j
-cHlfdG9pbwo+PiAgLyoqCj4+IC0gKiBtZW1jcHlfdG9pbwkJQ29weSBhIGJsb2NrIG9mIGRhdGEg
-aW50byBJL08gbWVtb3J5Cj4+IC0gKiBAZHN0OgkJVGhlIChJL08gbWVtb3J5KSBkZXN0aW5hdGlv
-biBmb3IgdGhlIGNvcHkKPj4gLSAqIEBzcmM6CQlUaGUgKFJBTSkgc291cmNlIGZvciB0aGUgZGF0
-YQo+PiAtICogQGNvdW50OgkJVGhlIG51bWJlciBvZiBieXRlcyB0byBjb3B5Cj4+ICsgKiBtZW1j
-cHlfdG9pbyAtCUNvcHkgYSBibG9jayBvZiBkYXRhIGludG8gSS9PIG1lbW9yeQo+PiArICogQGFk
-ZHI6CQlUaGUgKEkvTyBtZW1vcnkpIGRlc3RpbmF0aW9uIGZvciB0aGUgY29weQo+PiArICogQGJ1
-ZmZlcjoJCVRoZSAoUkFNKSBzb3VyY2UgZm9yIHRoZSBkYXRhCj4+ICsgKiBAc2l6ZToJCVRoZSBu
-dW1iZXIgb2YgYnl0ZXMgdG8gY29weQo+PiAgICoKPj4gICAqIENvcHkgYSBibG9jayBvZiBkYXRh
-IHRvIEkvTyBtZW1vcnkuCj4+ICAgKi8KPj4gCj4KPgo+LS0gCj5+UmFuZHkKPgoNCg0K
+On 12.04.20 21:48, Mike Rapoport wrote:
+> From: Baoquan He <bhe@redhat.com>
+> 
+> When called during boot the memmap_init_zone() function checks if each PFN
+> is valid and actually belongs to the node being initialized using
+> early_pfn_valid() and early_pfn_in_nid().
+> 
+> Each such check may cost up to O(log(n)) where n is the number of memory
+> banks, so for large amount of memory overall time spent in early_pfn*()
+> becomes substantial.
+> 
+> Since the information is anyway present in memblock, we can iterate over
+> memblock memory regions in memmap_init() and only call memmap_init_zone()
+> for PFN ranges that are know to be valid and in the appropriate node.
+> 
+> Signed-off-by: Baoquan He <bhe@redhat.com>
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> ---
+>  mm/page_alloc.c | 26 ++++++++++++++++----------
+>  1 file changed, 16 insertions(+), 10 deletions(-)
+> 
+> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+> index 7f6a3081edb8..c43ce8709457 100644
+> --- a/mm/page_alloc.c
+> +++ b/mm/page_alloc.c
+> @@ -5995,14 +5995,6 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
+>  		 * function.  They do not exist on hotplugged memory.
+>  		 */
+
+After this change, the comment above is stale. the "holes in boot-time
+mem_map" are handled by the caller now AFAIKs.
+
+>  		if (context == MEMMAP_EARLY) {
+> -			if (!early_pfn_valid(pfn)) {
+> -				pfn = next_pfn(pfn);
+> -				continue;
+> -			}
+> -			if (!early_pfn_in_nid(pfn, nid)) {
+> -				pfn++;
+> -				continue;
+> -			}
+>  			if (overlap_memmap_init(zone, &pfn))
+>  				continue;
+>  			if (defer_init(nid, pfn, end_pfn))
+
+
+-- 
+Thanks,
+
+David / dhildenb
