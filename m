@@ -1,141 +1,45 @@
-Return-Path: <SRS0=8MBO=6N=vger.kernel.org=linux-doc-owner@kernel.org>
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v10 14/26] x86/mm: Update maybe_mkwrite() for shadow stack
-Date: Wed, 29 Apr 2020 15:07:20 -0700
-Message-ID: <20200429220732.31602-15-yu-cheng.yu@intel.com>
-In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=iE4N=6I=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from bmailout1.hostsharing.net ([83.223.95.100]:32783 "EHLO
+        bmailout1.hostsharing.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726793AbgDXR73 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Apr 2020 13:59:29 -0400
+Date: Fri, 24 Apr 2020 19:59:23 +0200
+From: Lukas Wunner <lukas@wunner.de>
+Subject: Re: [PATCH 1/6] bitops: Introduce the the for_each_set_clump macro
+Message-ID: <20200424175923.4f5y7xfp4w2wlm7b@wunner.de>
+References: <20200424122521.GA5552@syed>
+ <20200424141037.ersebbfe7xls37be@wunner.de>
+ <CACG_h5prcXVdk6ecn2WoT1jas3K6UF+KCrxAM9u4_ZLSyPKCEA@mail.gmail.com>
+ <20200424150058.xadjxaga3csh3br6@wunner.de>
+ <20200424150828.GA5034@icarus>
+ <20200424163410.GD185537@smile.fi.intel.com>
+ <20200424163904.GA7742@icarus>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200424163904.GA7742@icarus>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429220720.MVA8TGwU7FoGwOudjj--AakHOBHUmbiUO4FIvxXVLJw@z>
+To: William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Syed Nayyar Waris <syednwaris@gmail.com>, akpm@linux-foundation.org, arnd@arndb.de, Linus Walleij <linus.walleij@linaro.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200424175923.oOxkN4oavtv9sW3QnS5CHCDwj_7eoCAO1W952uxOmE4@z>
 
-Shadow stack memory is writable, but its VMA has VM_SHSTK instead of
-VM_WRITE.  Update maybe_mkwrite() to include the shadow stack.
+On Fri, Apr 24, 2020 at 12:42:00PM -0400, William Breathitt Gray wrote:
+> Within this patchset the only non-8-bit users are gpio-thunderx and
+> gpio-xilinix. The gpio-xilinx has configurable port widths so in some
+> instances it can behave like the 8-bit users, but not always.
+> 
+> If you want to keep the existing for_each_set_clump8 and related
+> functions, ignore [PATCH 3/6] and [PATCH 4/6]. That should allow this
+> patchset to be just an introduction of the new generic functions without
+> affecting the existing 8-bit users.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- arch/x86/Kconfig              |  4 ++++
- arch/x86/mm/pgtable.c         | 18 ++++++++++++++++++
- include/asm-generic/pgtable.h | 24 ++++++++++++++++++++++++
- include/linux/mm.h            |  2 ++
- mm/huge_memory.c              |  2 ++
- 5 files changed, 50 insertions(+)
+Yes I don't mind the changes to gpio-thunderx and gpio-xilinx at all
+but please leave the 8-bit users as they are wherever possible.
+Actually my concern is not just performance but the existing 8-bit
+variant is simpler to understand than the generic variant,
+making it easier to follow the code in the drivers.
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index c98f82fffe85..ac07e1f6a2bc 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1955,6 +1955,9 @@ config AS_HAS_SHADOW_STACK
- config X86_INTEL_CET
- 	def_bool n
- 
-+config ARCH_MAYBE_MKWRITE
-+	def_bool n
-+
- config ARCH_HAS_SHADOW_STACK
- 	def_bool n
- 
-@@ -1965,6 +1968,7 @@ config X86_INTEL_SHADOW_STACK_USER
- 	depends on AS_HAS_SHADOW_STACK
- 	select ARCH_USES_HIGH_VMA_FLAGS
- 	select X86_INTEL_CET
-+	select ARCH_MAYBE_MKWRITE
- 	select ARCH_HAS_SHADOW_STACK
- 	help
- 	  Shadow Stacks provides protection against program stack
-diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-index 7bd2c3a52297..aa4d396ff98d 100644
---- a/arch/x86/mm/pgtable.c
-+++ b/arch/x86/mm/pgtable.c
-@@ -603,6 +603,24 @@ int pmdp_clear_flush_young(struct vm_area_struct *vma,
- }
- #endif
- 
-+#ifdef CONFIG_ARCH_MAYBE_MKWRITE
-+pte_t arch_maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
-+{
-+	if (likely(vma->vm_flags & VM_SHSTK))
-+		pte = pte_mkwrite_shstk(pte);
-+	return pte;
-+}
-+
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+pmd_t arch_maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
-+{
-+	if (likely(vma->vm_flags & VM_SHSTK))
-+		pmd = pmd_mkwrite_shstk(pmd);
-+	return pmd;
-+}
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
-+#endif /* CONFIG_ARCH_MAYBE_MKWRITE */
-+
- /**
-  * reserve_top_address - reserves a hole in the top of kernel address space
-  * @reserve - size of hole to reserve
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 329b8c8ca703..2c3875724809 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1191,6 +1191,30 @@ static inline bool arch_has_pfn_modify_check(void)
- }
- #endif /* !_HAVE_ARCH_PFN_MODIFY_ALLOWED */
- 
-+#ifdef CONFIG_MMU
-+#ifdef CONFIG_ARCH_MAYBE_MKWRITE
-+pte_t arch_maybe_mkwrite(pte_t pte, struct vm_area_struct *vma);
-+
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+pmd_t arch_maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma);
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
-+
-+#else /* !CONFIG_ARCH_MAYBE_MKWRITE */
-+static inline pte_t arch_maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
-+{
-+	return pte;
-+}
-+
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+static inline pmd_t arch_maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
-+{
-+	return pmd;
-+}
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
-+
-+#endif /* CONFIG_ARCH_MAYBE_MKWRITE */
-+#endif /* CONFIG_MMU */
-+
- /*
-  * Architecture PAGE_KERNEL_* fallbacks
-  *
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 54bb4cd9fee8..f0669e3cdd37 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -944,6 +944,8 @@ static inline pte_t maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
- {
- 	if (likely(vma->vm_flags & VM_WRITE))
- 		pte = pte_mkwrite(pte);
-+	else
-+		pte = arch_maybe_mkwrite(pte, vma);
- 	return pte;
- }
- 
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 6ecd1045113b..608746bb9d19 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -485,6 +485,8 @@ pmd_t maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
- {
- 	if (likely(vma->vm_flags & VM_WRITE))
- 		pmd = pmd_mkwrite(pmd);
-+	else
-+		pmd = arch_maybe_pmd_mkwrite(pmd, vma);
- 	return pmd;
- }
- 
--- 
-2.21.0
+Thanks,
+
+Lukas
