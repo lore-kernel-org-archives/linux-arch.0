@@ -1,65 +1,97 @@
-Return-Path: <SRS0=yBTr=57=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:54830 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2410478AbgDOQwy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Apr 2020 12:52:54 -0400
-From: Will Deacon <will@kernel.org>
-Subject: [PATCH v3 02/12] netfilter: Avoid assigning 'const' pointer to non-const pointer
-Date: Wed, 15 Apr 2020 17:52:08 +0100
-Message-ID: <20200415165218.20251-3-will@kernel.org>
-In-Reply-To: <20200415165218.20251-1-will@kernel.org>
-References: <20200415165218.20251-1-will@kernel.org>
+Return-Path: <SRS0=iE4N=6I=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40440 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726054AbgDXCKw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Apr 2020 22:10:52 -0400
+Subject: Re: [PATCH v3] io: correct doc-mismatches for io mem ops
+References: <20200424020831.30494-1-wenhu.wang@vivo.com>
+From: Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <ef0a77eb-202c-6772-ab46-ebd2a393df32@infradead.org>
+Date: Thu, 23 Apr 2020 19:10:47 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20200424020831.30494-1-wenhu.wang@vivo.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-team@android.com, Will Deacon <will@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Segher Boessenkool <segher@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20200415165208.UiASdlxH0bOK782RPR5DOtrbVLNw567rh7rhgcv5v_M@z>
+To: Wang Wenhu <wenhu.wang@vivo.com>, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: kernel@vivo.com
+Message-ID: <20200424021047.O0fImU0c3UYyfw2-l6V_ILR4k-NQ9xbcRivD360QO48@z>
 
-nf_remove_net_hook() uses WRITE_ONCE() to assign a 'const' pointer to a
-'non-const' pointer. Cleanups to the implementation of WRITE_ONCE() mean
-that this will give rise to a compiler warning, just like a plain old
-assignment would do:
+On 4/23/20 7:08 PM, Wang Wenhu wrote:
+> Minor mismatches exist between funtion documentations and parameter
+> definitions. Also a dash '-' is needed between a function name and
+> its description.
+> 
+> Function definitions are as following:
+> static inline void memset_io(volatile void __iomem *addr, int value,
+> 			     size_t size)
+> static inline void memcpy_fromio(void *buffer,
+> 				 const volatile void __iomem *addr,
+> 				 size_t size)
+> static inline void memcpy_toio(volatile void __iomem *addr, const void *buffer,
+> 			       size_t size)
+> 
+> Reviewed-by: Randy Dunlap <rdunlap@infradead.org>
+> Signed-off-by: Wang Wenhu <wenhu.wang@vivo.com>
 
-  | In file included from ./include/linux/export.h:43,
-  |                  from ./include/linux/linkage.h:7,
-  |                  from ./include/linux/kernel.h:8,
-  |                  from net/netfilter/core.c:9:
-  | net/netfilter/core.c: In function ‘nf_remove_net_hook’:
-  | ./include/linux/compiler.h:216:30: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
-  |   *(volatile typeof(x) *)&(x) = (val);  \
-  |                               ^
-  | net/netfilter/core.c:379:3: note: in expansion of macro ‘WRITE_ONCE’
-  |    WRITE_ONCE(orig_ops[i], &dummy_ops);
-  |    ^~~~~~~~~~
+Thanks for taking care of that.
 
-Follow the pattern used elsewhere in this file and add a cast to 'void *'
-to squash the warning.
+> ---
+>  include/asm-generic/io.h | 22 +++++++++++-----------
+>  1 file changed, 11 insertions(+), 11 deletions(-)
+> 
+> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+> index d39ac997dda8..83ac47bfa33a 100644
+> --- a/include/asm-generic/io.h
+> +++ b/include/asm-generic/io.h
+> @@ -1049,10 +1049,10 @@ static inline void *bus_to_virt(unsigned long address)
+>  #ifndef memset_io
+>  #define memset_io memset_io
+>  /**
+> - * memset_io	Set a range of I/O memory to a constant value
+> + * memset_io -	Set a range of I/O memory to a constant value
+>   * @addr:	The beginning of the I/O-memory range to set
+> - * @val:	The value to set the memory to
+> - * @count:	The number of bytes to set
+> + * @value:	The value to set the memory to
+> + * @size:	The number of bytes to set
+>   *
+>   * Set a range of I/O memory to a given value.
+>   */
+> @@ -1066,10 +1066,10 @@ static inline void memset_io(volatile void __iomem *addr, int value,
+>  #ifndef memcpy_fromio
+>  #define memcpy_fromio memcpy_fromio
+>  /**
+> - * memcpy_fromio	Copy a block of data from I/O memory
+> - * @dst:		The (RAM) destination for the copy
+> - * @src:		The (I/O memory) source for the data
+> - * @count:		The number of bytes to copy
+> + * memcpy_fromio -	Copy a block of data from I/O memory
+> + * @buffer:		The (RAM) destination for the copy
+> + * @addr:		The (I/O memory) source for the data
+> + * @size:		The number of bytes to copy
+>   *
+>   * Copy a block of data from I/O memory.
+>   */
+> @@ -1084,10 +1084,10 @@ static inline void memcpy_fromio(void *buffer,
+>  #ifndef memcpy_toio
+>  #define memcpy_toio memcpy_toio
+>  /**
+> - * memcpy_toio		Copy a block of data into I/O memory
+> - * @dst:		The (I/O memory) destination for the copy
+> - * @src:		The (RAM) source for the data
+> - * @count:		The number of bytes to copy
+> + * memcpy_toio -	Copy a block of data into I/O memory
+> + * @addr:		The (I/O memory) destination for the copy
+> + * @buffer:		The (RAM) source for the data
+> + * @size:		The number of bytes to copy
+>   *
+>   * Copy a block of data to I/O memory.
+>   */
+> 
 
-Cc: Pablo Neira Ayuso <pablo@netfilter.org>
-Cc: Jozsef Kadlecsik <kadlec@netfilter.org>
-Cc: Florian Westphal <fw@strlen.de>
-Cc: "David S. Miller" <davem@davemloft.net>
-Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-Signed-off-by: Will Deacon <will@kernel.org>
----
- net/netfilter/core.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/net/netfilter/core.c b/net/netfilter/core.c
-index 78f046ec506f..3ac7c8c1548d 100644
---- a/net/netfilter/core.c
-+++ b/net/netfilter/core.c
-@@ -376,7 +376,7 @@ static bool nf_remove_net_hook(struct nf_hook_entries *old,
- 		if (orig_ops[i] != unreg)
- 			continue;
- 		WRITE_ONCE(old->hooks[i].hook, accept_all);
--		WRITE_ONCE(orig_ops[i], &dummy_ops);
-+		WRITE_ONCE(orig_ops[i], (void *)&dummy_ops);
- 		return true;
- 	}
- 
 -- 
-2.26.0.110.g2183baf09c-goog
+~Randy
