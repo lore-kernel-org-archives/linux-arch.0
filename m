@@ -1,120 +1,78 @@
-Return-Path: <SRS0=HxeN=5T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:33468 "EHLO
-        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728023AbgDCNhp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2020 09:37:45 -0400
-Date: Fri, 3 Apr 2020 14:37:19 +0100
-From: Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Subject: Re: [PATCH RESEND 1/4] uaccess: Add user_read_access_begin/end and
- user_write_access_begin/end
-Message-ID: <20200403133719.GC25745@shell.armlinux.org.uk>
-References: <27106d62fdbd4ffb47796236050e418131cb837f.1585811416.git.christophe.leroy@c-s.fr>
- <20200402162942.GG23230@ZenIV.linux.org.uk>
- <67e21b65-0e2d-7ca5-7518-cec1b7abc46c@c-s.fr>
- <20200402175032.GH23230@ZenIV.linux.org.uk>
- <202004021132.813F8E88@keescook>
- <20200403005831.GI23230@ZenIV.linux.org.uk>
- <20200403112609.GB26633@mbp>
+Return-Path: <SRS0=CnwN=6J=kvack.org=owner-linux-mm@kernel.org>
+Date: Sat, 25 Apr 2020 19:49:47 +0300
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH 15/21] mm: memmap_init: iterate over memblock regions
+ rather that check each PFN
+Message-ID: <20200425164947.GH14260@kernel.org>
+References: <20200412194859.12663-1-rppt@kernel.org>
+ <20200412194859.12663-16-rppt@kernel.org>
+ <9143538a-4aaa-ca1d-9c8f-72ac949cf593@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200403112609.GB26633@mbp>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <9143538a-4aaa-ca1d-9c8f-72ac949cf593@redhat.com>
+Sender: owner-linux-mm@kvack.org
+To: David Hildenbrand <david@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Baoquan He <bhe@redhat.com>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Kees Cook <keescook@chromium.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, akpm@linux-foundation.org, hpa@zytor.com, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20200403133719.C4MnEWJozWugU9uslG2mTpKWJd2Jj-NBsTTdoM0IfZs@z>
+Message-ID: <20200425164947.tz0qVg--jQdnZUacvskYxyPObrgz5RW5gTlI_BqKvjI@z>
 
-On Fri, Apr 03, 2020 at 12:26:10PM +0100, Catalin Marinas wrote:
-> On Fri, Apr 03, 2020 at 01:58:31AM +0100, Al Viro wrote:
-> > On Thu, Apr 02, 2020 at 11:35:57AM -0700, Kees Cook wrote:
-> > > Yup, I think it's a weakness of the ARM implementation and I'd like to
-> > > not extend it further. AFAIK we should never nest, but I would not be
-> > > surprised at all if we did.
-> > > 
-> > > If we were looking at a design goal for all architectures, I'd like
-> > > to be doing what the public PaX patchset did for their memory access
-> > > switching, which is to alarm if calling into "enable" found the access
-> > > already enabled, etc. Such a condition would show an unexpected nesting
-> > > (like we've seen with similar constructs with set_fs() not getting reset
-> > > during an exception handler, etc etc).
+On Fri, Apr 24, 2020 at 09:22:32AM +0200, David Hildenbrand wrote:
+> On 12.04.20 21:48, Mike Rapoport wrote:
+> > From: Baoquan He <bhe@redhat.com>
 > > 
-> > FWIW, maybe I'm misreading the ARM uaccess logics, but... it smells like
-> > KERNEL_DS is somewhat more dangerous there than on e.g. x86.
+> > When called during boot the memmap_init_zone() function checks if each PFN
+> > is valid and actually belongs to the node being initialized using
+> > early_pfn_valid() and early_pfn_in_nid().
 > > 
-> > Look: with CONFIG_CPU_DOMAINS, set_fs(KERNEL_DS) tells MMU to ignore
-> > per-page permission bits in DOMAIN_KERNEL (i.e. for kernel address
-> > ranges), allowing them even if they would normally be denied.  We need
-> > that for actual uaccess loads/stores, since those use insns that pretend
-> > to be done in user mode and we want them to access the kernel pages.
-> > But that affects the normal loads/stores as well; unless I'm misreading
-> > that code, it will ignore (supervisor) r/o on a page.  And that's not
-> > just for the code inside the uaccess blocks; *everything* done under
-> > KERNEL_DS is subject to that.
+> > Each such check may cost up to O(log(n)) where n is the number of memory
+> > banks, so for large amount of memory overall time spent in early_pfn*()
+> > becomes substantial.
+> > 
+> > Since the information is anyway present in memblock, we can iterate over
+> > memblock memory regions in memmap_init() and only call memmap_init_zone()
+> > for PFN ranges that are know to be valid and in the appropriate node.
+> > 
+> > Signed-off-by: Baoquan He <bhe@redhat.com>
+> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> > ---
+> >  mm/page_alloc.c | 26 ++++++++++++++++----------
+> >  1 file changed, 16 insertions(+), 10 deletions(-)
+> > 
+> > diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+> > index 7f6a3081edb8..c43ce8709457 100644
+> > --- a/mm/page_alloc.c
+> > +++ b/mm/page_alloc.c
+> > @@ -5995,14 +5995,6 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
+> >  		 * function.  They do not exist on hotplugged memory.
+> >  		 */
 > 
-> That's correct. Luckily this only affects ARMv5 and earlier. From ARMv6
-> onwards, CONFIG_CPU_USE_DOMAINS is no longer selected and the uaccess
-> instructions are just plain ldr/str.
+> After this change, the comment above is stale. the "holes in boot-time
+> mem_map" are handled by the caller now AFAIKs.
+
+Right, will update in v2.
+Thanks!
+
+> >  		if (context == MEMMAP_EARLY) {
+> > -			if (!early_pfn_valid(pfn)) {
+> > -				pfn = next_pfn(pfn);
+> > -				continue;
+> > -			}
+> > -			if (!early_pfn_in_nid(pfn, nid)) {
+> > -				pfn++;
+> > -				continue;
+> > -			}
+> >  			if (overlap_memmap_init(zone, &pfn))
+> >  				continue;
+> >  			if (defer_init(nid, pfn, end_pfn))
 > 
-> Russell should know the details on whether there was much choice. Since
-> the kernel was living in the linear map with full rwx permissions, the
-> KERNEL_DS overriding was probably not a concern and the ldrt/strt for
-> uaccess deemed more secure. We also have weird permission setting
-> pre-ARMv6 (or rather v6k) where RO user pages are writable from the
-> kernel with standard str instructions (breaking CoW). I don't recall
-> whether it was a choice made by the kernel or something the architecture
-> enforced. The vectors page has to be kernel writable (and user RO) to
-> store the TLS value in the absence of a TLS register but maybe we could
-> do this via the linear alias together with the appropriate cache
-> maintenance.
 > 
-> From ARMv6, the domain overriding had the side-effect of ignoring the XN
-> bit and causing random instruction fetches from ioremap() areas. So we
-> had to remove the domain switching. We also gained a dedicated TLS
-> register.
-
-Indeed.  On pre-ARMv6, we have the following choices for protection
-attributes:
-
-Page tables	Control Reg	Privileged	User
-AP		S,R		permission	permission
-00		0,0		No access	No access
-00		1,0		Read-only	No access
-00		0,1		Read-only	Read-only
-00		1,1		Unpredictable	Unpredictable
-01		X,X		Read/Write	No access
-10		X,X		Read/Write	Read-only
-11		X,X		Read/Write	Read/Write
-
-We use S,R=1,0 under Linux because this allows us to read-protect
-kernel pages without making them visible to userspace.  If we
-changed to S,R=0,1, then we could have our read-only permissions
-for both kernel and userspace, drop domain switching, and use the
-plain LDR/STR instructions, but we then lose the ability to
-write-protect module executable code and other parts of kernel
-space without making them visible to userspace.
-
-So, it essentially boils down to making a choice - which set of
-security features we think are the most important.
-
-> I think uaccess_enable() could indeed switch the kernel domain if
-> KERNEL_DS is set and move this out of set_fs(). It would reduce the
-> window the kernel domain permissions are overridden. Anyway,
-> uaccess_enable() appeared much later on arm when Russell introduced PAN
-> (SMAP) like support by switching the user domain.
-
-Yes, that would be a possibility.  Another possibility would be to
-eliminate as much usage of KERNEL_DS as possible - I've just found
-one instance in sys_oabi-compat.c that can be eliminated (epoll_ctl)
-but there's several there that can't with the current code structure,
-and re-coding the contents of some fs/* functions to work around that
-is a very bad idea.  If there's some scope for rejigging some of the
-fs/* code, it may be possible to elimate some other cases in there.
-
-I notice that the fs/* code seems like some of the last remaining
-users of KERNEL_DS, although I suspect that some aren't possible to
-eliminate. :(
+> -- 
+> Thanks,
+> 
+> David / dhildenb
+> 
 
 -- 
-RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line in suburbia: sync at 10.2Mbps down 587kbps up
+Sincerely yours,
+Mike.
