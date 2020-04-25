@@ -1,65 +1,283 @@
-Return-Path: <SRS0=Gu+A=6K=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35138 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726101AbgDZAzN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 25 Apr 2020 20:55:13 -0400
-Date: Sat, 25 Apr 2020 17:55:11 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 3/3] mm/hugetlb: Introduce
- HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
-Message-ID: <20200425175511.7a68efb5e2f4436fe0328c1d@linux-foundation.org>
-In-Reply-To: <1586864670-21799-4-git-send-email-anshuman.khandual@arm.com>
-References: <1586864670-21799-1-git-send-email-anshuman.khandual@arm.com>
-        <1586864670-21799-4-git-send-email-anshuman.khandual@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Return-Path: <SRS0=P7mv=6J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55280 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726192AbgDYTFv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 25 Apr 2020 15:05:51 -0400
+Date: Sun, 26 Apr 2020 00:35:44 +0530
+From: Syed Nayyar Waris <syednwaris@gmail.com>
+Subject: [PATCH v2 4/6] bitops: Remove code related to for_each_set_clump8
+Message-ID: <ba407eccf41fa824fbd1ecfa081d7319735bf5f8.1587840670.git.syednwaris@gmail.com>
+References: <cover.1587840667.git.syednwaris@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <cover.1587840667.git.syednwaris@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: linux-mm@kvack.org, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Mike Kravetz <mike.kravetz@oracle.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200426005511.u-JXBfuiK8W9r_iYFzdjTHCoXXFQCf1jGoovaaPWAk8@z>
+To: akpm@linux-foundation.org
+Cc: andriy.shevchenko@linux.intel.com, vilhelm.gray@gmail.com, arnd@arndb.de, linus.walleij@linaro.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200425190544.ZuSrSVMwLlGNhW0cpY3Ug9DmEaPhMyDrPPSvUKeNP00@z>
 
-On Tue, 14 Apr 2020 17:14:30 +0530 Anshuman Khandual <anshuman.khandual@arm.com> wrote:
+Remove code related to the old for_each_set_clump8 macro because
+it has now been replaced by the new generic for_each_set_clump macro.
 
-> There are multiple similar definitions for arch_clear_hugepage_flags() on
-> various platforms. This introduces HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS for those
-> platforms that need to define their own arch_clear_hugepage_flags() while
-> also providing a generic fallback definition for others to use. This help
-> reduce code duplication.
-> 
-> ...
->
-> --- a/include/linux/hugetlb.h
-> +++ b/include/linux/hugetlb.h
-> @@ -544,6 +544,10 @@ static inline int is_hugepage_only_range(struct mm_struct *mm,
->  }
->  #endif
->  
-> +#ifndef HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
-> +static inline void arch_clear_hugepage_flags(struct page *page) { }
-> +#endif
-> +
->  #ifndef arch_make_huge_pte
->  static inline pte_t arch_make_huge_pte(pte_t entry, struct vm_area_struct *vma,
->  				       struct page *page, int writable)
+Cc: Linus Walleij <linus.walleij@linaro.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Syed Nayyar Waris <syednwaris@gmail.com>
+Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+---
+Changes in v2:
+ - No change.
 
-This is the rather old-school way of doing it.  The Linus-suggested way is
+ include/asm-generic/bitops/find.h | 17 ----------
+ include/linux/bitmap.h            | 35 ---------------------
+ include/linux/bitops.h            | 12 --------
+ lib/find_bit.c                    | 14 ---------
+ lib/test_bitmap.c                 | 65 ---------------------------------------
+ 5 files changed, 143 deletions(-)
 
-#ifndef arch_clear_hugepage_flags
-static inline void arch_clear_hugepage_flags(struct page *page)
-{
-}
-#define arch_clear_hugepage_flags arch_clear_hugepage_flags
-#endif
-
-And the various arch headers do
-
-static inline void arch_clear_hugepage_flags(struct page *page)
-{
-	<some implementation>
-}
-#define arch_clear_hugepage_flags arch_clear_hugepage_flags
-
-It's a small difference - mainly to avoid adding two variables to the
-overall namespace where one would do.
+diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
+index 4e66007..d412268 100644
+--- a/include/asm-generic/bitops/find.h
++++ b/include/asm-generic/bitops/find.h
+@@ -81,23 +81,6 @@ extern unsigned long find_first_zero_bit(const unsigned long *addr,
+ #endif /* CONFIG_GENERIC_FIND_FIRST_BIT */
+ 
+ /**
+- * find_next_clump8 - find next 8-bit clump with set bits in a memory region
+- * @clump: location to store copy of found clump
+- * @addr: address to base the search on
+- * @size: bitmap size in number of bits
+- * @offset: bit offset at which to start searching
+- *
+- * Returns the bit offset for the next set clump; the found clump value is
+- * copied to the location pointed by @clump. If no bits are set, returns @size.
+- */
+-extern unsigned long find_next_clump8(unsigned long *clump,
+-				      const unsigned long *addr,
+-				      unsigned long size, unsigned long offset);
+-
+-#define find_first_clump8(clump, bits, size) \
+-	find_next_clump8((clump), (bits), (size), 0)
+-
+-/**
+  * find_next_clump - find next clump with set bits in a memory region
+  * @clump: location to store copy of found clump
+  * @addr: address to base the search on
+diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
+index 7ab2c65..d6595bc1 100644
+--- a/include/linux/bitmap.h
++++ b/include/linux/bitmap.h
+@@ -74,10 +74,8 @@
+  *  bitmap_allocate_region(bitmap, pos, order)  Allocate specified bit region
+  *  bitmap_from_arr32(dst, buf, nbits)          Copy nbits from u32[] buf to dst
+  *  bitmap_to_arr32(buf, src, nbits)            Copy nbits from buf to u32[] dst
+- *  bitmap_get_value8(map, start)               Get 8bit value from map at start
+  *  bitmap_get_value(map, start, nbits)		Get bit value of size
+  *						'nbits' from map at start
+- *  bitmap_set_value8(map, value, start)        Set 8bit value to map at start
+  *  bitmap_set_value(map, value, start, nbits)	Set bit value of size 'nbits'
+  *						of map at start
+  *
+@@ -551,23 +549,6 @@ static inline void bitmap_from_u64(unsigned long *dst, u64 mask)
+ }
+ 
+ /**
+- * bitmap_get_value8 - get an 8-bit value within a memory region
+- * @map: address to the bitmap memory region
+- * @start: bit offset of the 8-bit value; must be a multiple of 8
+- *
+- * Returns the 8-bit value located at the @start bit offset within the @src
+- * memory region.
+- */
+-static inline unsigned long bitmap_get_value8(const unsigned long *map,
+-					      unsigned long start)
+-{
+-	const size_t index = BIT_WORD(start);
+-	const unsigned long offset = start % BITS_PER_LONG;
+-
+-	return (map[index] >> offset) & 0xFF;
+-}
+-
+-/**
+  * bitmap_get_value - get a value of n-bits from the memory region
+  * @map: address to the bitmap memory region
+  * @start: bit offset of the n-bit value
+@@ -596,22 +577,6 @@ static inline unsigned long bitmap_get_value(const unsigned long *map,
+ }
+ 
+ /**
+- * bitmap_set_value8 - set an 8-bit value within a memory region
+- * @map: address to the bitmap memory region
+- * @value: the 8-bit value; values wider than 8 bits may clobber bitmap
+- * @start: bit offset of the 8-bit value; must be a multiple of 8
+- */
+-static inline void bitmap_set_value8(unsigned long *map, unsigned long value,
+-				     unsigned long start)
+-{
+-	const size_t index = BIT_WORD(start);
+-	const unsigned long offset = start % BITS_PER_LONG;
+-
+-	map[index] &= ~(0xFFUL << offset);
+-	map[index] |= value << offset;
+-}
+-
+-/**
+  * bitmap_set_value - set n-bit value within a memory region
+  * @map: address to the bitmap memory region
+  * @value: value of nbits
+diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+index 41c2d9c..cc0a413 100644
+--- a/include/linux/bitops.h
++++ b/include/linux/bitops.h
+@@ -51,18 +51,6 @@ extern unsigned long __sw_hweight64(__u64 w);
+ 	     (bit) = find_next_zero_bit((addr), (size), (bit) + 1))
+ 
+ /**
+- * for_each_set_clump8 - iterate over bitmap for each 8-bit clump with set bits
+- * @start: bit offset to start search and to store the current iteration offset
+- * @clump: location to store copy of current 8-bit clump
+- * @bits: bitmap address to base the search on
+- * @size: bitmap size in number of bits
+- */
+-#define for_each_set_clump8(start, clump, bits, size) \
+-	for ((start) = find_first_clump8(&(clump), (bits), (size)); \
+-	     (start) < (size); \
+-	     (start) = find_next_clump8(&(clump), (bits), (size), (start) + 8))
+-
+-/**
+  * for_each_set_clump - iterate over bitmap for each clump with set bits
+  * @start: bit offset to start search and to store the current iteration offset
+  * @clump: location to store copy of current 8-bit clump
+diff --git a/lib/find_bit.c b/lib/find_bit.c
+index 1341bd3..6332ec1 100644
+--- a/lib/find_bit.c
++++ b/lib/find_bit.c
+@@ -177,20 +177,6 @@ EXPORT_SYMBOL(find_next_bit_le);
+ 
+ #endif /* __BIG_ENDIAN */
+ 
+-unsigned long find_next_clump8(unsigned long *clump, const unsigned long *addr,
+-			       unsigned long size, unsigned long offset)
+-{
+-	offset = find_next_bit(addr, size, offset);
+-	if (offset == size)
+-		return size;
+-
+-	offset = round_down(offset, 8);
+-	*clump = bitmap_get_value8(addr, offset);
+-
+-	return offset;
+-}
+-EXPORT_SYMBOL(find_next_clump8);
+-
+ unsigned long find_next_clump(unsigned long *clump, const unsigned long *addr,
+ 			       unsigned long size, unsigned long offset,
+ 			       unsigned long clump_size)
+diff --git a/lib/test_bitmap.c b/lib/test_bitmap.c
+index 13fe9a2..100443c 100644
+--- a/lib/test_bitmap.c
++++ b/lib/test_bitmap.c
+@@ -125,36 +125,6 @@ __check_eq_u32_array(const char *srcfile, unsigned int line,
+ 	return true;
+ }
+ 
+-static bool __init __check_eq_clump8(const char *srcfile, unsigned int line,
+-				    const unsigned int offset,
+-				    const unsigned int size,
+-				    const unsigned char *const clump_exp,
+-				    const unsigned long *const clump)
+-{
+-	unsigned long exp;
+-
+-	if (offset >= size) {
+-		pr_warn("[%s:%u] bit offset for clump out-of-bounds: expected less than %u, got %u\n",
+-			srcfile, line, size, offset);
+-		return false;
+-	}
+-
+-	exp = clump_exp[offset / 8];
+-	if (!exp) {
+-		pr_warn("[%s:%u] bit offset for zero clump: expected nonzero clump, got bit offset %u with clump value 0",
+-			srcfile, line, offset);
+-		return false;
+-	}
+-
+-	if (*clump != exp) {
+-		pr_warn("[%s:%u] expected clump value of 0x%lX, got clump value of 0x%lX",
+-			srcfile, line, exp, *clump);
+-		return false;
+-	}
+-
+-	return true;
+-}
+-
+ static bool __init __check_eq_clump(const char *srcfile, unsigned int line,
+ 				    const unsigned int offset,
+ 				    const unsigned int size,
+@@ -203,7 +173,6 @@ static bool __init __check_eq_clump(const char *srcfile, unsigned int line,
+ #define expect_eq_bitmap(...)		__expect_eq(bitmap, ##__VA_ARGS__)
+ #define expect_eq_pbl(...)		__expect_eq(pbl, ##__VA_ARGS__)
+ #define expect_eq_u32_array(...)	__expect_eq(u32_array, ##__VA_ARGS__)
+-#define expect_eq_clump8(...)		__expect_eq(clump8, ##__VA_ARGS__)
+ #define expect_eq_clump(...)		__expect_eq(clump, ##__VA_ARGS__)
+ 
+ static void __init test_zero_clear(void)
+@@ -610,17 +579,6 @@ static void noinline __init test_mem_optimisations(void)
+ 	}
+ }
+ 
+-static const unsigned char clump_exp[] __initconst = {
+-	0x01,	/* 1 bit set */
+-	0x02,	/* non-edge 1 bit set */
+-	0x00,	/* zero bits set */
+-	0x38,	/* 3 bits set across 4-bit boundary */
+-	0x38,	/* Repeated clump */
+-	0x0F,	/* 4 bits set */
+-	0xFF,	/* all bits set */
+-	0x05,	/* non-adjacent 2 bits set */
+-};
+-
+ static const unsigned long clump_exp1[] __initconst = {
+ 	0x01,	/* 1 bit set */
+ 	0x02,	/* non-edge 1 bit set */
+@@ -661,28 +619,6 @@ static const unsigned long clump_exp4[] __initconst = {
+ 	0x2b,
+ };
+ 
+-static void __init test_for_each_set_clump8(void)
+-{
+-#define CLUMP_EXP_NUMBITS 64
+-	DECLARE_BITMAP(bits, CLUMP_EXP_NUMBITS);
+-	unsigned int start;
+-	unsigned long clump;
+-
+-	/* set bitmap to test case */
+-	bitmap_zero(bits, CLUMP_EXP_NUMBITS);
+-	bitmap_set(bits, 0, 1);		/* 0x01 */
+-	bitmap_set(bits, 9, 1);		/* 0x02 */
+-	bitmap_set(bits, 27, 3);	/* 0x28 */
+-	bitmap_set(bits, 35, 3);	/* 0x28 */
+-	bitmap_set(bits, 40, 4);	/* 0x0F */
+-	bitmap_set(bits, 48, 8);	/* 0xFF */
+-	bitmap_set(bits, 56, 1);	/* 0x05 - part 1 */
+-	bitmap_set(bits, 58, 1);	/* 0x05 - part 2 */
+-
+-	for_each_set_clump8(start, clump, bits, CLUMP_EXP_NUMBITS)
+-		expect_eq_clump8(start, CLUMP_EXP_NUMBITS, clump_exp, &clump);
+-}
+-
+ static void __init execute_for_each_set_clump(unsigned long *bits,
+ 				unsigned long size,
+ 				const unsigned long *clump_exp,
+@@ -742,7 +678,6 @@ static void __init selftest(void)
+ 	test_bitmap_parselist();
+ 	test_bitmap_parselist_user();
+ 	test_mem_optimisations();
+-	test_for_each_set_clump8();
+ 	test_for_each_set_clump();
+ }
+ 
+-- 
+2.7.4
