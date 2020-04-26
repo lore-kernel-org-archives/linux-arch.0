@@ -1,27 +1,65 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 14 Apr 2020 06:02:03 -0700
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
-Message-ID: <20200414130203.GA20867@infradead.org>
-References: <20200413125303.423864-1-npiggin@gmail.com>
- <20200413125303.423864-5-npiggin@gmail.com>
- <20200414072316.GA5503@infradead.org>
- <1586864403.0qfilei2ft.astroid@bobo.none>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1586864403.0qfilei2ft.astroid@bobo.none>
-Sender: owner-linux-mm@kvack.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, x86@kernel.org
+Return-Path: <SRS0=Gu+A=6K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:35138 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726101AbgDZAzN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 25 Apr 2020 20:55:13 -0400
+Date: Sat, 25 Apr 2020 17:55:11 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 3/3] mm/hugetlb: Introduce
+ HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
+Message-ID: <20200425175511.7a68efb5e2f4436fe0328c1d@linux-foundation.org>
+In-Reply-To: <1586864670-21799-4-git-send-email-anshuman.khandual@arm.com>
+References: <1586864670-21799-1-git-send-email-anshuman.khandual@arm.com>
+        <1586864670-21799-4-git-send-email-anshuman.khandual@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414130203.lym_oYhZrW1bldtxPW5nVb6bah3MSQT6NhRJIv5FiuU@z>
+To: Anshuman Khandual <anshuman.khandual@arm.com>
+Cc: linux-mm@kvack.org, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Mike Kravetz <mike.kravetz@oracle.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200426005511.u-JXBfuiK8W9r_iYFzdjTHCoXXFQCf1jGoovaaPWAk8@z>
 
-On Tue, Apr 14, 2020 at 10:13:44PM +1000, Nicholas Piggin wrote:
-> Which case? Usually the answer would be because you don't want to use
-> contiguous physical memory and/or you don't want to use the linear 
-> mapping.
+On Tue, 14 Apr 2020 17:14:30 +0530 Anshuman Khandual <anshuman.khandual@arm.com> wrote:
 
-But with huge pages you do by definition already use large contiguous
-areas.  So you want allocations larger than "small" huge pages but not
-using gigantic pages using vmalloc?
+> There are multiple similar definitions for arch_clear_hugepage_flags() on
+> various platforms. This introduces HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS for those
+> platforms that need to define their own arch_clear_hugepage_flags() while
+> also providing a generic fallback definition for others to use. This help
+> reduce code duplication.
+> 
+> ...
+>
+> --- a/include/linux/hugetlb.h
+> +++ b/include/linux/hugetlb.h
+> @@ -544,6 +544,10 @@ static inline int is_hugepage_only_range(struct mm_struct *mm,
+>  }
+>  #endif
+>  
+> +#ifndef HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
+> +static inline void arch_clear_hugepage_flags(struct page *page) { }
+> +#endif
+> +
+>  #ifndef arch_make_huge_pte
+>  static inline pte_t arch_make_huge_pte(pte_t entry, struct vm_area_struct *vma,
+>  				       struct page *page, int writable)
+
+This is the rather old-school way of doing it.  The Linus-suggested way is
+
+#ifndef arch_clear_hugepage_flags
+static inline void arch_clear_hugepage_flags(struct page *page)
+{
+}
+#define arch_clear_hugepage_flags arch_clear_hugepage_flags
+#endif
+
+And the various arch headers do
+
+static inline void arch_clear_hugepage_flags(struct page *page)
+{
+	<some implementation>
+}
+#define arch_clear_hugepage_flags arch_clear_hugepage_flags
+
+It's a small difference - mainly to avoid adding two variables to the
+overall namespace where one would do.
