@@ -1,14 +1,20 @@
-From: Hagen Paul Pfeifer <hagen-GvnIQ6b/HdU@public.gmane.org>
-Subject: [RFC] ptrace, pidfd: add pidfd_ptrace syscall
-Date: Sun, 26 Apr 2020 15:01:00 +0200
-Message-ID: <20200426130100.306246-1-hagen@jauu.net>
+From: Hagen Paul Pfeifer <hagen@jauu.net>
+Subject: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
+Date: Sun, 26 Apr 2020 18:34:30 +0200
+Message-ID: <20200426163430.22743-1-hagen@jauu.net>
+References: <20200426130100.306246-1-hagen@jauu.net>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Hagen Paul Pfeifer <hagen-GvnIQ6b/HdU@public.gmane.org>, Christian Brauner <christian-STijNZzMWpgWenYVfaLwtA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, "H . Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Brian Gerst <brgerst-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Sami Tolvanen <samitolvanen-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Aleksa Sarai <cyphar-gVpy/LI/lHzQT0dZR+AlfA@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "Eric W . Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>, Arnaldo Carvalho de Melo <acme-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Sargun Dhillon <sargun-GaZTRHToo+CzQB+pC5nmwQ@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57746 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726143AbgDZQod (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Apr 2020 12:44:33 -0400
+In-Reply-To: <20200426130100.306246-1-hagen@jauu.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Hagen Paul Pfeifer <hagen@jauu.net>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, "Eric W . Biederman" <ebiederm@xmission.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
 
 Working on a safety-critical stress testing tool, using ptrace in an
 rather uncommon way (stop, peeking memory, ...) for a bunch of
@@ -27,7 +33,7 @@ API:
 
 Based on original ptrace, the following API changes where made:
 
-- Process identificator (pidfd) is now moved as first argument, this is aligned
+- Process identificator (pidfd) is now moved to start, this is aligned
   with pidfd_send_signal(int pidfd, ...) because potential future pidfd_* will have
   one thing in common: the pid identifier. I think is natural to have
   this argument upfront
@@ -42,34 +48,117 @@ for a new syscall. Still missing:
 - re-use shared functions and move to common place
 - perf syscall registration
 - selftests
-- ...
+- ...|
 
-Signed-off-by: Hagen Paul Pfeifer <hagen-GvnIQ6b/HdU@public.gmane.org>
-Cc: Christian Brauner <christian-STijNZzMWpgWenYVfaLwtA@public.gmane.org>
-Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
-Cc: Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Cc: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: Brian Gerst <brgerst-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Sami Tolvanen <samitolvanen-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Cc: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: Aleksa Sarai <cyphar-gVpy/LI/lHzQT0dZR+AlfA@public.gmane.org>
-Cc: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: Eric W. Biederman <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
-Cc: Arnaldo Carvalho de Melo <acme-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: Sargun Dhillon <sargun-GaZTRHToo+CzQB+pC5nmwQ@public.gmane.org>
-Cc: linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Userspace Example:
+
+#define _GNU_SOURCE
+#include <errno.h>
+#include <sched.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/user.h>
+#include <sys/ptrace.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <linux/limits.h>
+
+#ifndef __NR_pidfd_ptrace
+#define __NR_pidfd_ptrace 439
+#endif
+
+static inline long do_pidfd_ptrace(int pidfd, int request, void *addr, void *data, unsigned int flags)
+{
+#ifdef __NR_pidfd_ptrace
+        return syscall(__NR_pidfd_ptrace, pidfd, request, addr, data, flags);
+#else
+        return -ENOSYS;
+#endif
+}
+
+int main(int argc, char *argv[])
+{
+	int pid, pidfd, ret, sleep_time = 10;
+	char pid_path[PATH_MAX];
+	struct user_regs_struct regs;
+
+	if (argc < 2) {
+		fprintf(stderr, "Usage: %s <pid>\n", argv[0]);
+		goto err;
+	}
+	pid = atoi(argv[1]);
+
+	sprintf(pid_path, "/proc/%d", pid);
+	pidfd = open(pid_path, O_DIRECTORY | O_CLOEXEC);
+	if (pidfd == -1) {
+		fprintf(stderr, "failed to open %s\n", pid_path);
+		goto err;
+	}
+
+	ret = do_pidfd_ptrace(pidfd, PTRACE_ATTACH, 0, 0, 0);
+	if (ret < 0) {
+		perror("do_pidfd_ptrace, PTRACE_ATTACH:");
+		goto err;
+	}
+	waitpid(pid, NULL, 0);
+	ret = do_pidfd_ptrace(pidfd, PTRACE_GETREGS, NULL, &regs, 0);
+	if (ret == -1) {
+		perror("do_pidfd_ptrace, PTRACE_GETREGS:");
+		goto err;
+	}
+	printf("RIP: %llx\nRAX: %llx\nRCX: %llx\nRDX: %llx\nRSI: %llx\nRDI: %llx\n",
+	       regs.rip, regs.rax, regs.rcx, regs.rdx, regs.rsi, regs.rdi);
+	fprintf(stdout, "stopping task for %d seconds\n",  sleep_time);
+	sleep(sleep_time);
+	ret = do_pidfd_ptrace(pidfd, PTRACE_DETACH, 0, 0, 0);
+	if (ret == -1) {
+		perror("do_pidfd_ptrace, PTRACE_DETACH:");
+		goto err;
+	}
+
+	exit(EXIT_SUCCESS);
+err:
+	exit(EXIT_FAILURE);
+}
+
+
+Cc: Christian Brauner <christian@brauner.io>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Brian Gerst <brgerst@gmail.com>
+Cc: Sami Tolvanen <samitolvanen@google.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Eric W. Biederman <ebiederm@xmission.com>
+Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
+Cc: Sargun Dhillon <sargun@sargun.me>
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Hagen Paul Pfeifer <hagen@jauu.net>
+---
+
+v2:
+- fixed a OOPS in __x64_sys_pidfd_ptrace+0x1bf/0x220 (call to __put_task_struct())
+- add userland example
+
 ---
  arch/x86/entry/syscalls/syscall_32.tbl |   1 +
  arch/x86/entry/syscalls/syscall_64.tbl |   1 +
  include/linux/syscalls.h               |   2 +
  include/uapi/asm-generic/unistd.h      |   4 +-
- kernel/ptrace.c                        | 129 ++++++++++++++++++++-----
+ kernel/ptrace.c                        | 126 ++++++++++++++++++++-----
  kernel/sys_ni.c                        |   1 +
- 6 files changed, 115 insertions(+), 23 deletions(-)
+ 6 files changed, 113 insertions(+), 22 deletions(-)
 
 diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
 index 54581ac671b4..593f7fab90eb 100644
@@ -106,14 +195,14 @@ index 1815065d52f3..254b071a5334 100644
  /*
   * Architecture-specific system calls
 diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index 3a3201e4618e..64749a6f156e 100644
+index 3a3201e4618e..d62505742447 100644
 --- a/include/uapi/asm-generic/unistd.h
 +++ b/include/uapi/asm-generic/unistd.h
 @@ -855,9 +855,11 @@ __SYSCALL(__NR_clone3, sys_clone3)
  __SYSCALL(__NR_openat2, sys_openat2)
  #define __NR_pidfd_getfd 438
  __SYSCALL(__NR_pidfd_getfd, sys_pidfd_getfd)
-+#define __NR_pidfd_getfd 439
++#define __NR_pidfd_ptrace 439
 +__SYSCALL(__NR_pidfd_ptrace, sys_pidfd_ptrace)
  
  #undef __NR_syscalls
@@ -123,7 +212,7 @@ index 3a3201e4618e..64749a6f156e 100644
  /*
   * 32 bit systems traditionally used different
 diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 43d6179508d6..8f4e99247742 100644
+index 43d6179508d6..e9e7e3225b9a 100644
 --- a/kernel/ptrace.c
 +++ b/kernel/ptrace.c
 @@ -29,6 +29,7 @@
@@ -134,7 +223,7 @@ index 43d6179508d6..8f4e99247742 100644
  #include <linux/compat.h>
  #include <linux/sched/signal.h>
  
-@@ -1239,48 +1240,132 @@ int ptrace_request(struct task_struct *child, long request,
+@@ -1239,10 +1240,39 @@ int ptrace_request(struct task_struct *child, long request,
  #define arch_ptrace_attach(child)	do { } while (0)
  #endif
  
@@ -164,7 +253,6 @@ index 43d6179508d6..8f4e99247742 100644
 +		ptrace_unfreeze_traced(task);
 +
 + out:
-+	put_task_struct(task);
 +	return ret;
 +}
 +
@@ -176,11 +264,8 @@ index 43d6179508d6..8f4e99247742 100644
  	long ret;
  
  	if (request == PTRACE_TRACEME) {
- 		ret = ptrace_traceme();
- 		if (!ret)
- 			arch_ptrace_attach(current);
--		goto out;
-+		return ret;
+@@ -1252,35 +1282,89 @@ SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr,
+ 		goto out;
  	}
  
 -	child = find_get_task_by_vpid(pid);
@@ -197,8 +282,8 @@ index 43d6179508d6..8f4e99247742 100644
 -		 * Some architectures need to do book-keeping after
 -		 * a ptrace attach.
 -		 */
-+
 +	ret = ptrace_call(task, request, addr, data);
++	put_task_struct(task);
 +out:
 +	return ret;
 +}
