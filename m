@@ -1,38 +1,89 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 02/29] x86: fix vmap arguments in map_irq_stack
-Date: Tue, 14 Apr 2020 15:13:21 +0200
-Message-ID: <20200414131348.444715-3-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
-MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
+Return-Path: <SRS0=vqN2=6K=kvack.org=owner-linux-mm@kernel.org>
+Date: Sat, 25 Apr 2020 20:01:24 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 3/3] mm/hugetlb: Introduce
+ HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
+Message-ID: <20200425200124.20d0c75fcaef05d062d3667c@linux-foundation.org>
+In-Reply-To: <87d37591-caa2-b82b-392a-3a29b2c7e9a6@arm.com>
+References: <1586864670-21799-1-git-send-email-anshuman.khandual@arm.com>
+	<1586864670-21799-4-git-send-email-anshuman.khandual@arm.com>
+	<20200425175511.7a68efb5e2f4436fe0328c1d@linux-foundation.org>
+	<87d37591-caa2-b82b-392a-3a29b2c7e9a6@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>
+Cc: linux-mm@kvack.org, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Mike Kravetz <mike.kravetz@oracle.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414131321.TjDPn2hzni_qOksmFX4yQ6O1iV8BpMlL9ZNj-c3Tvgk@z>
+Message-ID: <20200426030124.8a8ZvFP4pRUZx-cFULCVOgdNJ56FVW7gkDnNlYKi7Bc@z>
 
-vmap does not take a gfp_t, the flags argument is for VM_* flags.
+On Sun, 26 Apr 2020 08:13:17 +0530 Anshuman Khandual <anshuman.khandual@arm.com> wrote:
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/x86/kernel/irq_64.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> 
+> On 04/26/2020 06:25 AM, Andrew Morton wrote:
+> > On Tue, 14 Apr 2020 17:14:30 +0530 Anshuman Khandual <anshuman.khandual@arm.com> wrote:
+> > 
+> >> There are multiple similar definitions for arch_clear_hugepage_flags() on
+> >> various platforms. This introduces HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS for those
+> >> platforms that need to define their own arch_clear_hugepage_flags() while
+> >> also providing a generic fallback definition for others to use. This help
+> >> reduce code duplication.
+> >>
+> >> ...
+> >>
+> >> --- a/include/linux/hugetlb.h
+> >> +++ b/include/linux/hugetlb.h
+> >> @@ -544,6 +544,10 @@ static inline int is_hugepage_only_range(struct mm_struct *mm,
+> >>  }
+> >>  #endif
+> >>  
+> >> +#ifndef HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
+> >> +static inline void arch_clear_hugepage_flags(struct page *page) { }
+> >> +#endif
+> >> +
+> >>  #ifndef arch_make_huge_pte
+> >>  static inline pte_t arch_make_huge_pte(pte_t entry, struct vm_area_struct *vma,
+> >>  				       struct page *page, int writable)
+> > 
+> > This is the rather old-school way of doing it.  The Linus-suggested way is
+> > 
+> > #ifndef arch_clear_hugepage_flags
+> > static inline void arch_clear_hugepage_flags(struct page *page)
+> > {
+> > }
+> > #define arch_clear_hugepage_flags arch_clear_hugepage_flags
+> 
+> Do we need that above line here ? Is not that implicit.
 
-diff --git a/arch/x86/kernel/irq_64.c b/arch/x86/kernel/irq_64.c
-index 12df3a4abfdd..6b32ab009c19 100644
---- a/arch/x86/kernel/irq_64.c
-+++ b/arch/x86/kernel/irq_64.c
-@@ -43,7 +43,7 @@ static int map_irq_stack(unsigned int cpu)
- 		pages[i] =3D pfn_to_page(pa >> PAGE_SHIFT);
- 	}
-=20
--	va =3D vmap(pages, IRQ_STACK_SIZE / PAGE_SIZE, GFP_KERNEL, PAGE_KERNEL)=
-;
-+	va =3D vmap(pages, IRQ_STACK_SIZE / PAGE_SIZE, VM_MAP, PAGE_KERNEL);
- 	if (!va)
- 		return -ENOMEM;
-=20
---=20
-2.25.1
+It depends if other header files want to test whether
+arch_clear_hugepage_flags is already defined.  If the header heorarchy
+is well-defined and working properly, they shouldn't need to, because
+we're reliably indluding the relevant arch header before (or early
+within) include/linux/hugetlb.h.
+
+It would be nice if
+
+#define arch_clear_hugepage_flags arch_clear_hugepage_flags
+#define arch_clear_hugepage_flags arch_clear_hugepage_flags
+
+were to generate an compiler error but it doesn't.  If it did we could
+detect these incorrect inclusion orders.
+
+> > #endif
+> > 
+> > And the various arch headers do
+> > 
+> > static inline void arch_clear_hugepage_flags(struct page *page)
+> > {
+> > 	<some implementation>
+> > }
+> > #define arch_clear_hugepage_flags arch_clear_hugepage_flags
+> > 
+> > It's a small difference - mainly to avoid adding two variables to the
+> > overall namespace where one would do.
+> 
+> Understood, will change and resend.
+
+That's OK - I've queued up that fix.
