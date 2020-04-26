@@ -1,60 +1,72 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 3/3] mm/hugetlb: Introduce
- HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
-Date: Sat, 25 Apr 2020 17:55:11 -0700
-Message-ID: <20200425175511.7a68efb5e2f4436fe0328c1d@linux-foundation.org>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: Re: [PATCH 3/3] mm/hugetlb: Introduce HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
+Date: Sun, 26 Apr 2020 08:13:17 +0530
+Message-ID: <87d37591-caa2-b82b-392a-3a29b2c7e9a6@arm.com>
 References: <1586864670-21799-1-git-send-email-anshuman.khandual@arm.com>
-        <1586864670-21799-4-git-send-email-anshuman.khandual@arm.com>
+ <1586864670-21799-4-git-send-email-anshuman.khandual@arm.com>
+ <20200425175511.7a68efb5e2f4436fe0328c1d@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-mips-owner@vger.kernel.org>
-In-Reply-To: <1586864670-21799-4-git-send-email-anshuman.khandual@arm.com>
-Sender: linux-mips-owner@vger.kernel.org
-To: Anshuman Khandual <anshuman.khandual@arm.com>
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <20200425175511.7a68efb5e2f4436fe0328c1d@linux-foundation.org>
+Content-Language: en-US
+Sender: sparclinux-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
 Cc: linux-mm@kvack.org, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, David S.
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 14 Apr 2020 17:14:30 +0530 Anshuman Khandual <anshuman.khandual@arm.com> wrote:
 
-> There are multiple similar definitions for arch_clear_hugepage_flags() on
-> various platforms. This introduces HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS for those
-> platforms that need to define their own arch_clear_hugepage_flags() while
-> also providing a generic fallback definition for others to use. This help
-> reduce code duplication.
+
+On 04/26/2020 06:25 AM, Andrew Morton wrote:
+> On Tue, 14 Apr 2020 17:14:30 +0530 Anshuman Khandual <anshuman.khandual@arm.com> wrote:
 > 
-> ...
->
-> --- a/include/linux/hugetlb.h
-> +++ b/include/linux/hugetlb.h
-> @@ -544,6 +544,10 @@ static inline int is_hugepage_only_range(struct mm_struct *mm,
->  }
->  #endif
->  
-> +#ifndef HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
-> +static inline void arch_clear_hugepage_flags(struct page *page) { }
-> +#endif
-> +
->  #ifndef arch_make_huge_pte
->  static inline pte_t arch_make_huge_pte(pte_t entry, struct vm_area_struct *vma,
->  				       struct page *page, int writable)
+>> There are multiple similar definitions for arch_clear_hugepage_flags() on
+>> various platforms. This introduces HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS for those
+>> platforms that need to define their own arch_clear_hugepage_flags() while
+>> also providing a generic fallback definition for others to use. This help
+>> reduce code duplication.
+>>
+>> ...
+>>
+>> --- a/include/linux/hugetlb.h
+>> +++ b/include/linux/hugetlb.h
+>> @@ -544,6 +544,10 @@ static inline int is_hugepage_only_range(struct mm_struct *mm,
+>>  }
+>>  #endif
+>>  
+>> +#ifndef HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
+>> +static inline void arch_clear_hugepage_flags(struct page *page) { }
+>> +#endif
+>> +
+>>  #ifndef arch_make_huge_pte
+>>  static inline pte_t arch_make_huge_pte(pte_t entry, struct vm_area_struct *vma,
+>>  				       struct page *page, int writable)
+> 
+> This is the rather old-school way of doing it.  The Linus-suggested way is
+> 
+> #ifndef arch_clear_hugepage_flags
+> static inline void arch_clear_hugepage_flags(struct page *page)
+> {
+> }
+> #define arch_clear_hugepage_flags arch_clear_hugepage_flags
 
-This is the rather old-school way of doing it.  The Linus-suggested way is
+Do we need that above line here ? Is not that implicit.
 
-#ifndef arch_clear_hugepage_flags
-static inline void arch_clear_hugepage_flags(struct page *page)
-{
-}
-#define arch_clear_hugepage_flags arch_clear_hugepage_flags
-#endif
+> #endif
+> 
+> And the various arch headers do
+> 
+> static inline void arch_clear_hugepage_flags(struct page *page)
+> {
+> 	<some implementation>
+> }
+> #define arch_clear_hugepage_flags arch_clear_hugepage_flags
+> 
+> It's a small difference - mainly to avoid adding two variables to the
+> overall namespace where one would do.
 
-And the various arch headers do
+Understood, will change and resend.
 
-static inline void arch_clear_hugepage_flags(struct page *page)
-{
-	<some implementation>
-}
-#define arch_clear_hugepage_flags arch_clear_hugepage_flags
-
-It's a small difference - mainly to avoid adding two variables to the
-overall namespace where one would do.
+> 
+> 
