@@ -1,34 +1,152 @@
-From: Hagen Paul Pfeifer <hagen-GvnIQ6b/HdU@public.gmane.org>
-Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
-Date: Mon, 27 Apr 2020 11:00:05 +0200 (CEST)
-Message-ID: <2008370628.171531.1587978005102@office.mailbox.org>
-References: <20200426130100.306246-1-hagen@jauu.net>
- <20200426163430.22743-1-hagen@jauu.net>
- <CAK8P3a1qdyw+5B-E52O42VEWvpq_6jF74__ptM+q6SoKd3pkuA@mail.gmail.com>
-Reply-To: Hagen Paul Pfeifer <hagen-GvnIQ6b/HdU@public.gmane.org>
+From: Suzuki K Poulose <suzuki.poulose@arm.com>
+Subject: Re: [PATCH v3 21/23] arm64: mte: Check the DT memory nodes for MTE
+ support
+Date: Mon, 27 Apr 2020 12:14:42 +0100
+Message-ID: <43762365-60f6-e271-1338-795e8d7fbb72@arm.com>
+References: <20200421142603.3894-1-catalin.marinas@arm.com>
+ <20200421142603.3894-22-catalin.marinas@arm.com> <20200424135735.GB5551@gaia>
+ <20200424161742.GE5551@gaia>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <CAK8P3a1qdyw+5B-E52O42VEWvpq_6jF74__ptM+q6SoKd3pkuA-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Christian Brauner <christian-STijNZzMWpgWenYVfaLwtA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Brian Gerst <brgerst-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Sami Tolvanen <samitolvanen-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Aleksa Sarai <cyphar-gVpy/LI/lHzQT0dZR+AlfA@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "Eric W . Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>, Arnaldo Carvalho de Melo <acme-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Sargun Dhillon <sargun-GaZTRHToo+CzQB+pC5nmwQ@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:33816 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726539AbgD0LJv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Apr 2020 07:09:51 -0400
+In-Reply-To: <20200424161742.GE5551@gaia>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org
+Cc: will@kernel.org, Vincenzo.Frascino@arm.com, Szabolcs.Nagy@arm.com, Richard.Earnshaw@arm.com, kevin.brodsky@arm.com, andreyknvl@google.com, pcc@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, Rob.Herring@arm.com, mark.rutland@arm.com
 
-> On April 27, 2020 10:30 AM Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org> wrote:
+Hi Catalin,
 
-Hey Arnd
+On 04/24/2020 05:17 PM, Catalin Marinas wrote:
+> On Fri, Apr 24, 2020 at 02:57:36PM +0100, Catalin Marinas wrote:
+>> On Tue, Apr 21, 2020 at 03:26:01PM +0100, Catalin Marinas wrote:
+>>> Even if the ID_AA64PFR1_EL1 register advertises the presence of MTE, it
+>>> is not guaranteed that the memory system on the SoC supports the
+>>> feature. In the absence of system-wide MTE support, the behaviour is
+>>> undefined and the kernel should not enable the MTE memory type in
+>>> MAIR_EL1.
+>>>
+>>> For FDT, add an 'arm,armv8.5-memtag' property to the /memory nodes and
+>>> check for its presence during MTE probing. For example:
+>>>
+>>> 	memory@80000000 {
+>>> 		device_type = "memory";
+>>> 		arm,armv8.5-memtag;
+>>> 		reg = <0x00000000 0x80000000 0 0x80000000>,
+>>> 		      <0x00000008 0x80000000 0 0x80000000>;
+>>> 	};
+>>>
+>>> If the /memory nodes are not present in DT or if at least one node does
+>>> not support MTE, the feature will be disabled. On EFI systems, it is
+>>> assumed that the memory description matches the EFI memory map (if not,
+>>> it is considered a firmware bug).
+>>>
+>>> MTE is not currently supported on ACPI systems.
+>>>
+>>> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+>>> Cc: Rob Herring <Rob.Herring@arm.com>
+>>> Cc: Mark Rutland <mark.rutland@arm.com>
+>>> Cc: Will Deacon <will@kernel.org>
+>>> Cc: Suzuki K Poulose <Suzuki.Poulose@arm.com>
+>>
+>> This patch turns out to be incomplete. While it does not expose the
+>> HWCAP2_MTE to user when the above DT property is not present, it still
+>> allows user access to the ID_AA64PFR1_EL1.MTE field (via MRS emulations)
+>> since it is marked as visible.
+> 
+> Attempt below at moving the check to the CPUID fields setup. This way we
+> can avoid the original patch entirely since the sanitised id regs will
+> have a zero MTE field if DT doesn't support it.
+> 
+> diff --git a/arch/arm64/include/asm/cpufeature.h b/arch/arm64/include/asm/cpufeature.h
+> index afc315814563..0a24d36bf231 100644
+> --- a/arch/arm64/include/asm/cpufeature.h
+> +++ b/arch/arm64/include/asm/cpufeature.h
+> @@ -61,6 +61,7 @@ struct arm64_ftr_bits {
+>   	u8		shift;
+>   	u8		width;
+>   	s64		safe_val; /* safe value for FTR_EXACT features */
+> +	s64		(*filter)(const struct arm64_ftr_bits *, s64);
+>   };
+>   
+>   /*
+> @@ -542,7 +543,10 @@ cpuid_feature_extract_field(u64 features, int field, bool sign)
+>   
+>   static inline s64 arm64_ftr_value(const struct arm64_ftr_bits *ftrp, u64 val)
+>   {
+> -	return (s64)cpuid_feature_extract_field_width(val, ftrp->shift, ftrp->width, ftrp->sign);
+> +	s64 fval = (s64)cpuid_feature_extract_field_width(val, ftrp->shift, ftrp->width, ftrp->sign);
+> +	if (ftrp->filter)
+> +		fval = ftrp->filter(ftrp, fval);
+> +	return fval;
+>   }
+>   
 
-> When you add a new system call, please add it to all architectures.
-> See the patches for the last few additions on how to do it, in
-> particular the bit around adding the arm64 compat entry that is
-> a bit tricky.
+This change makes sure that the sanitised infrastructure is initialised
+with masked value and all consumers see a "sanitised" value, including
+KVM (unless they emulate it directly on the local CPU)
 
-Yes, the patch was intended to be as an rough (but x86_64 working)
-RFC patch to basically check if there is interest in it. Or whether
-there are fundamental reasons against pidfd_ptrace().
 
-If not I will prepare v3 with all input, sure! Thank you Arnd
 
-Hagen
+
+>   
+> +#ifdef CONFIG_ARM64_MTE
+> +s64 mte_ftr_filter(const struct arm64_ftr_bits *ftrp, s64 val)
+> +{
+> +	struct device_node *np;
+> +	static bool memory_checked = false;
+> +	static bool mte_capable = true;
+> +
+> +	/* EL0-only MTE is not supported by Linux, don't expose it */
+> +	if (val < ID_AA64PFR1_MTE)
+> +		return ID_AA64PFR1_MTE_NI;
+> +
+> +	if (memory_checked)
+> +		return mte_capable ? val : ID_AA64PFR1_MTE_NI;
+> +
+> +	if (!acpi_disabled) {
+> +		pr_warn("MTE not supported on ACPI systems\n");
+> +		return ID_AA64PFR1_MTE_NI;
+> +	}
+> +
+> +	/* check the DT "memory" nodes for MTE support */
+> +	for_each_node_by_type(np, "memory") {
+> +		memory_checked = true;
+> +		mte_capable &= of_property_read_bool(np, "arm,armv8.5-memtag");
+> +	}
+> +
+> +	if (!memory_checked || !mte_capable) {
+> +		pr_warn("System memory is not MTE-capable\n");
+> +		memory_checked = true;
+> +		mte_capable = false;
+> +		return ID_AA64PFR1_MTE_NI;
+> +	}
+> +
+> +	return val;
+> +}
+> +#endif
+> +
+>   /*
+>    * NOTE: Any changes to the visibility of features should be kept in
+>    * sync with the documentation of the CPU feature register ABI.
+> @@ -184,8 +225,10 @@ static const struct arm64_ftr_bits ftr_id_aa64pfr0[] = {
+>   
+>   static const struct arm64_ftr_bits ftr_id_aa64pfr1[] = {
+>   	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_SSBS_SHIFT, 4, ID_AA64PFR1_SSBS_PSTATE_NI),
+> -	ARM64_FTR_BITS(FTR_VISIBLE_IF_IS_ENABLED(CONFIG_ARM64_MTE),
+> -		       FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_MTE_SHIFT, 4, ID_AA64PFR1_MTE_NI),
+> +#ifdef CONFIG_ARM64_MTE
+> +	FILTERED_ARM64_FTR_BITS(FTR_UNSIGNED, FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE,
+> +				ID_AA64PFR1_MTE_SHIFT, 4, ID_AA64PFR1_MTE_NI, mte_ftr_filter),
+> +#endif
+>   	ARM64_FTR_END,
+>   };
+>   
+
+Reviewed-by: Suzuki K Poulose <suzuki.poulose@arm.com>
