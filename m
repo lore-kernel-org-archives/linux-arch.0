@@ -1,72 +1,117 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 14/29] mm: rename vmap_page_range to map_kernel_range
-Date: Tue, 14 Apr 2020 15:13:33 +0200
-Message-ID: <20200414131348.444715-15-hch@lst.de>
-In-Reply-To: <20200414131348.444715-1-hch@lst.de>
-References: <20200414131348.444715-1-hch@lst.de>
+Return-Path: <SRS0=jgxL=6L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lhrrgout.huawei.com ([185.176.76.210]:2112 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726260AbgD0Lyt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Apr 2020 07:54:49 -0400
+Subject: Re: [PATCH 3/4] lib: logic_pio: Introduce MMIO_LOWER_RESERVED
+References: <20200426114806.1176629-1-jiaxun.yang@flygoat.com>
+ <20200426114806.1176629-4-jiaxun.yang@flygoat.com>
+ <e84f4146-b44f-b009-0dc4-876aa551f44f@huawei.com>
+ <42432F7C-D859-48B4-9547-A61BD22EFEEF@flygoat.com>
+From: John Garry <john.garry@huawei.com>
+Message-ID: <e6e3331f-283d-03e8-b23e-41870b547e34@huawei.com>
+Date: Mon, 27 Apr 2020 12:54:06 +0100
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+In-Reply-To: <42432F7C-D859-48B4-9547-A61BD22EFEEF@flygoat.com>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414131333.DLMk3glCEeuu_f5-gr931suXqqwIG8hdWH3Z_HGP32U@z>
+To: jiaxun.yang@flygoat.com, Arnd Bergmann <arnd@arndb.de>, Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-mips@vger.kernel.org, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Huacai Chen <chenhc@lemote.com>, Paul Burton <paulburton@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Stephen Kitt <steve@sk2.org>, Nick Desaulniers <ndesaulniers@google.com>, Serge Semin <fancer.lancer@gmail.com>, Anshuman Khandual <anshuman.khandual@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>, Daniel Silsby <dansilsby@gmail.com>, Mike Rapoport <rppt@linux.ibm.com>, Paul Cercueil <paul@crapouillou.net>, Mark Tomlinson <mark.tomlinson@alliedtelesis.co.nz>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Allison Randal <allison@lohutok.net>, Tiezhu Yang <yangtiezhu@loongson.cn>, Wei Xu <xuwei5@hisilicon.com>, linux-kernel@vger.kernel.org, Linuxarm <linuxarm@huawei.com>, Rob Herring <robh@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200427115406.69lkWYqAxWNDxNdSp71QsZ-XEk2-w0UvVAsA44AxO4Y@z>
 
-This matches the map_kernel_range_noflush API.  Also change to pass
-a size instead of the end, similar to the noflush version.
+On 27/04/2020 12:03, Jiaxun Yang wrote:
+> 
+> 
+> 于 2020年4月27日 GMT+08:00 下午6:43:09, John Garry <john.garry@huawei.com> 写到:
+>> On 26/04/2020 12:47, Jiaxun Yang wrote:
+>>> That would allow platforms reserve some lower address in PIO MMIO range
+>>> to deal with legacy drivers with hardcoded I/O ports that can't be
+>>> managed by logic_pio.
+>>
+>> Hi,
+>>
+>> Is there some reason why the logic_pio code cannot be improved to handle
+>> these devices at these "fixed" addresses? Or do you have a plan to
+>> improve it? We already support fixed bus address devices in the INDIRECT
+>> IO region.
+> 
+> Hi,
+> 
+> The issue about "Fixed Address" is we can't control the ioport
+> That driver used to operate devices.
+> So any attempt to resolve it in logic_pio seems impossible.
+> 
+> Currently we have i8259, i8042, piix4_smbus, mc146818 rely on this assumption.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- mm/vmalloc.c | 11 +++++------
- 1 file changed, 5 insertions(+), 6 deletions(-)
+Right, and from glancing at a couple of drivers you mentioned, if we 
+were to register a logic pio region for that legacy region, there does 
+not seem to be an easy place to fixup to use logic pio addresses (for 
+those devices). They use hardcoded values. However if all those drivers 
+were mips specific, you could fixup those drivers to use logic_pio 
+addresses today through some macro. But not sure on that.
 
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 55df5dc6a9fc..a3d810def567 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -272,13 +272,13 @@ int map_kernel_range_noflush(unsigned long addr, un=
-signed long size,
- 	return nr;
- }
-=20
--static int vmap_page_range(unsigned long start, unsigned long end,
-+static int map_kernel_range(unsigned long start, unsigned long size,
- 			   pgprot_t prot, struct page **pages)
- {
- 	int ret;
-=20
--	ret =3D map_kernel_range_noflush(start, end - start, prot, pages);
--	flush_cache_vmap(start, end);
-+	ret =3D map_kernel_range_noflush(start, size, prot, pages);
-+	flush_cache_vmap(start, start + size);
- 	return ret;
- }
-=20
-@@ -1866,7 +1866,7 @@ void *vm_map_ram(struct page **pages, unsigned int =
-count, int node, pgprot_t pro
-=20
- 	kasan_unpoison_vmalloc(mem, size);
-=20
--	if (vmap_page_range(addr, addr + size, prot, pages) < 0) {
-+	if (map_kernel_range(addr, size, prot, pages) < 0) {
- 		vm_unmap_ram(mem, count);
- 		return NULL;
- 	}
-@@ -2030,10 +2030,9 @@ void unmap_kernel_range(unsigned long addr, unsign=
-ed long size)
- int map_vm_area(struct vm_struct *area, pgprot_t prot, struct page **pag=
-es)
- {
- 	unsigned long addr =3D (unsigned long)area->addr;
--	unsigned long end =3D addr + get_vm_area_size(area);
- 	int err;
-=20
--	err =3D vmap_page_range(addr, end, prot, pages);
-+	err =3D map_kernel_range(addr, get_vm_area_size(area), prot, pages);
-=20
- 	return err > 0 ? 0 : err;
- }
---=20
-2.25.1
+So, going back to your change, I have a dilemma wondering whether you 
+should still register a logic pio region for the legacy region instead 
+of the carveout reservation, but ensure it is the first region 
+registered, such that logic pio address base is 0 and no translation is 
+required. At least then you have a region registered and it shows in 
+/proc/ioports, but then this whole thing becomes a bit fragile.
+
+Maybe Arnd or Bjorn have an opinion on this.
+
+Thanks,
+John
+
+
+> 
+> My plan is after getting this part merged, I'm going to work on a ISA Host bridge driver,
+> then convert device drivers into logic_pio and Devicetree based driver step by step.
+> 
+> Finally when we nologner have any legacy driver, we can safely remove this reserved
+> range.
+> 
+> Thanks.
+> 
+> 
+>>
+>> Carving out a region of IO space is less than ideal.
+>>
+>> Thanks,
+>> John
+>>
+>>>
+>>> Signed-off-by: Jiaxun Yang <jiaxun.yang@flygoat.com>
+>>> ---
+>>>    lib/logic_pio.c | 6 +++++-
+>>>    1 file changed, 5 insertions(+), 1 deletion(-)
+>>>
+>>> diff --git a/lib/logic_pio.c b/lib/logic_pio.c
+>>> index f511a99bb389..57fff1cb7063 100644
+>>> --- a/lib/logic_pio.c
+>>> +++ b/lib/logic_pio.c
+>>> @@ -20,6 +20,10 @@
+>>>    static LIST_HEAD(io_range_list);
+>>>    static DEFINE_MUTEX(io_range_mutex);
+>>>    
+>>> +#ifndef MMIO_LOWER_RESERVED
+>>> +#define MMIO_LOWER_RESERVED	0
+>>> +#endif
+>>> +
+>>>    /* Consider a kernel general helper for this */
+>>>    #define in_range(b, first, len)        ((b) >= (first) && (b) < (first) + (len))
+>>>    
+>>> @@ -36,7 +40,7 @@ int logic_pio_register_range(struct logic_pio_hwaddr *new_range)
+>>>    	struct logic_pio_hwaddr *range;
+>>>    	resource_size_t start;
+>>>    	resource_size_t end;
+>>> -	resource_size_t mmio_end = 0;
+>>> +	resource_size_t mmio_end = MMIO_LOWER_RESERVED;
+>>>    	resource_size_t iio_sz = MMIO_UPPER_LIMIT;
+>>>    	int ret = 0;
+>>>    
+>>>
+>>
+> 
