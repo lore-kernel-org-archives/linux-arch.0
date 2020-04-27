@@ -1,83 +1,100 @@
-Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:54524 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726318AbgDTMX5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Apr 2020 08:23:57 -0400
-Date: Mon, 20 Apr 2020 13:23:51 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [EXT] Re: [PATCH v3 03/13] task_isolation: add instruction
- synchronization memory barrier
-Message-ID: <20200420122350.GB12889@willie-the-truck>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
- <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
- <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
- <d995795c731d6ecceb36bdf1c1df3d72fefd023d.camel@marvell.com>
- <20200415124427.GB28304@C02TD0UTHF1T.local>
- <e4d2cda6f011e80a0d8e482b85bca1c57665fcfd.camel@marvell.com>
+Return-Path: <SRS0=jgxL=6L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from out01.mta.xmission.com ([166.70.13.231]:51866 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726162AbgD0SWF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2020 14:22:05 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <20200426130100.306246-1-hagen@jauu.net>
+        <20200426163430.22743-1-hagen@jauu.net>
+        <20200427170826.mdklazcrn4xaeafm@wittgenstein>
+        <CAG48ez0hskhN7OkxwHX-Bo5HGboJaVEk8udFukkTgiC=43ixcw@mail.gmail.com>
+Date: Mon, 27 Apr 2020 13:18:47 -0500
+In-Reply-To: <CAG48ez0hskhN7OkxwHX-Bo5HGboJaVEk8udFukkTgiC=43ixcw@mail.gmail.com>
+        (Jann Horn's message of "Mon, 27 Apr 2020 19:52:45 +0200")
+Message-ID: <87zhawdc6w.fsf@x220.int.ebiederm.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <e4d2cda6f011e80a0d8e482b85bca1c57665fcfd.camel@marvell.com>
+Content-Type: text/plain
+Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Belits <abelits@marvell.com>
-Cc: "mark.rutland@arm.com" <mark.rutland@arm.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "frederic@kernel.org" <frederic@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20200420122351.6yRWKiwG63LmMpZMoV-VRlFc80zaj0-CX69v_ZlRlqo@z>
+To: Jann Horn <jannh@google.com>
+Cc: Christian Brauner <christian.brauner@ubuntu.com>, Hagen Paul Pfeifer <hagen@jauu.net>, kernel list <linux-kernel@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200427181847.n5XQ0d92oRKyc3Fkfm3bB4TF9NXqTiyABp0pwqTEV7M@z>
 
-On Sun, Apr 19, 2020 at 05:02:01AM +0000, Alex Belits wrote:
-> On Wed, 2020-04-15 at 13:44 +0100, Mark Rutland wrote:
-> > On Thu, Apr 09, 2020 at 03:17:40PM +0000, Alex Belits wrote:
-> > > Some architectures implement memory synchronization instructions
-> > > for
-> > > instruction cache. Make a separate kind of barrier that calls them.
-> > 
-> > Modifying the instruction caches requries more than an ISB, and the
-> > 'IMB' naming implies you're trying to order against memory accesses,
-> > which isn't what ISB (generally) does.
-> > 
-> > What exactly do you want to use this for?
-> 
-> I guess, there should be different explanation and naming.
-> 
-> The intention is to have a separate barrier that causes cache
-> synchronization event, for use in architecture-independent code. I am
-> not sure, what exactly it should do to be implemented in architecture-
-> independent manner, so it probably only makes sense along with a
-> regular memory barrier.
-> 
-> The particular place where I had to use is the code that has to run
-> after isolated task returns to the kernel. In the model that I propose
-> for task isolation, remote context synchronization is skipped while
-> task is in isolated in userspace (it doesn't run kernel, and kernel
-> does not modify its userspace code, so it's harmless until entering the
-> kernel).
+Jann Horn <jannh@google.com> writes:
 
-> So it will skip the results of kick_all_cpus_sync() that was
-> that was called from flush_icache_range() and other similar places.
-> This means that once it's out of userspace, it should only run
-> some "safe" kernel entry code, and then synchronize in some manner that
-> avoids race conditions with possible IPIs intended for context
-> synchronization that may happen at the same time. My next patch in the
-> series uses it in that one place.
-> 
-> Synchronization will have to be implemented without a mandatory
-> interrupt because it may be triggered locally, on the same CPU. On ARM,
-> ISB is definitely necessary there, however I am not sure, how this
-> should look like on x86 and other architectures. On ARM this probably
-> still should be combined with a real memory barrier and cache
-> synchronization, however I am not entirely sure about details. Would
-> it make more sense to run DMB, IC and ISB? 
+> On Mon, Apr 27, 2020 at 7:08 PM Christian Brauner
+> <christian.brauner@ubuntu.com> wrote:
+>> On Sun, Apr 26, 2020 at 06:34:30PM +0200, Hagen Paul Pfeifer wrote:
+>> > Working on a safety-critical stress testing tool, using ptrace in an
+>> > rather uncommon way (stop, peeking memory, ...) for a bunch of
+>> > applications in an automated way I realized that once opened processes
+>> > where restarted and PIDs recycled.  Resulting in monitoring and
+>> > manipulating the wrong processes.
+>> >
+>> > With the advent of pidfd we are now able to stick with one stable handle
+>> > to identifying processes exactly. We now have the ability to get this
+>> > race free. Sending signals now works like a charm, next step is to
+>> > extend the functionality also for ptrace.
+>> >
+>> > API:
+>> >          long pidfd_ptrace(int pidfd, enum __ptrace_request request,
+>> >                            void *addr, void *data, unsigned flags);
+>>
+>> I'm in general not opposed to this if there's a clear need for this and
+>> users that are interested. But I think if people really prefer having
+>> this a new syscall then we should probably try to improve on the old
+>> one. Things that come to mind right away without doing a deep review are
+>> replacing the void *addr pointer with a dedicated struct ptract_args or
+>> union ptrace_args and a size argument. If we're not doing something
+>> like this or something more fundamental we can equally well either just
+>> duplicate all enums in the old ptrace syscall and append a _PIDFD to it
+>> where it makes sense.
+>
+> Yeah, it seems like just adding pidfd flavors of PTRACE_ATTACH and
+> PTRACE_SEIZE should do the job.
 
-IIUC, we don't need to do anything on arm64 because taking an exception acts
-as a context synchronization event, so I don't think you should try to
-expose this as a new barrier macro. Instead, just make it a pre-requisite
-that architectures need to ensure this behaviour when entering the kernel
-from userspace if they are to select HAVE_ARCH_TASK_ISOLATION.
+I am conflicted about that but I have to agree.    Instead of
+duplicating everything it would be good enough to duplicate the once
+that cause the process to be attached to use.  Then there would be no
+more pid races to worry about.
 
-That way, it's /very/ similar to what we do for MEMBARRIER_SYNC_CORE, the
-only real different being that that is concerned with return-to-user rather
-than entry-from-user.
+> And if we do make a new syscall, there is a bunch of de-crufting that
+> can be done... for example, just as some low-hanging fruit, a new
+> ptrace API probably shouldn't have
+> PTRACE_PEEKTEXT/PTRACE_PEEKDATA/PTRACE_POKETEXT/PTRACE_POKEDATA (we
+> have /proc/$pid/mem for that, which is much saner than doing peek/poke
+> in word-size units), and probably also shouldn't support all the weird
+> arch-specific register-accessing requests (e.g.
+> PTRACE_PEEKUSR/PTRACE_POKEUSR/PTRACE_GETREGS/PTRACE_SETREGS/PTRACE_GETFPREGS/...)
+> that are nowadays accessible via PTRACE_GETREGSET/PTRACE_SETREGSET.
 
-See Documentation/features/sched/membarrier-sync-core/arch-support.txt
 
-Will
+> (And there are also some more major changes that I think would be
+> sensible; for example, it'd be neat if you could have notifications
+> about the tracee delivered through a pollable file descriptor, and if
+> you could get the kernel to tell you in each notification which type
+> of ptrace stop you're dealing with (e.g. distinguishing
+> syscall-entry-stop vs syscall-exit-stop), and it would be great to be
+> able to directly inject syscalls into the child instead of having to
+> figure out where a syscall instruction you can abuse is and then
+> setting the instruction pointer to that, and it'd be helpful to be
+> able to have multiple tracers attached to a single process so that you
+> can e.g. have strace and gdb active on the same process
+> concurrently...)
+
+How does this differ using the tracing related infrastructure we have
+for the kernel on a userspace process?  I suspect augmenting the tracing
+infrastructure with the ability to set breakpoints and watchpoints (aka
+stopping userspace threads and processes might be a more fertile
+direction to go).
+
+But I agree either we want to just address the races in PTRACE_ATTACH
+and PTRACE_SIEZE or we want to take a good hard look at things.
+
+There is a good case for minimal changes because one of the cases that
+comes up is how much work will it take to change existing programs.  But
+ultimately ptrace pretty much sucks so a very good set of test cases and
+documentation for what we want to implement would be a very good idea.
+
+Eric
