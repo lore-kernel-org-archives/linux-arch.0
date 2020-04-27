@@ -1,63 +1,48 @@
-Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from conssluserg-06.nifty.com ([210.131.2.91]:52481 "EHLO
-        conssluserg-06.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726057AbgDVQHR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2020 12:07:17 -0400
+Return-Path: <SRS0=jgxL=6L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from youngberry.canonical.com ([91.189.89.112]:37408 "EHLO
+        youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726194AbgD0RIa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2020 13:08:30 -0400
+Date: Mon, 27 Apr 2020 19:08:26 +0200
+From: Christian Brauner <christian.brauner@ubuntu.com>
+Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
+Message-ID: <20200427170826.mdklazcrn4xaeafm@wittgenstein>
+References: <20200426130100.306246-1-hagen@jauu.net>
+ <20200426163430.22743-1-hagen@jauu.net>
 MIME-Version: 1.0
-References: <20200421161355.1357112-1-masahiroy@kernel.org> <20200422131729.GB20103@linux-8ccs>
-In-Reply-To: <20200422131729.GB20103@linux-8ccs>
-From: Masahiro Yamada <masahiroy@kernel.org>
-Date: Thu, 23 Apr 2020 01:06:26 +0900
-Message-ID: <CAK7LNAQ-WcKf1QDOnefjkzg7Cq1fKNuEPDvH9TYU8tLwbUhtmg@mail.gmail.com>
-Subject: Re: [PATCH v2] arch: split MODULE_ARCH_VERMAGIC definitions out to <asm/vermagic.h>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20200426163430.22743-1-hagen@jauu.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jessica Yu <jeyu@kernel.org>
-Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Borislav Petkov <bp@suse.de>
-Message-ID: <20200422160626.zri3w9pFLrbdV9i6wNJzHfIzuqC67mmckRNd-fJoHK0@z>
+To: Hagen Paul Pfeifer <hagen@jauu.net>
+Cc: linux-kernel@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, "Eric W . Biederman" <ebiederm@xmission.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200427170826.IOPIV6yMNc1CBUScu_Y5vYHObxDlOGEBqDvWbvqzL98@z>
 
-On Wed, Apr 22, 2020 at 10:17 PM Jessica Yu <jeyu@kernel.org> wrote:
->
-> +++ Masahiro Yamada [22/04/20 01:13 +0900]:
-> [snip]
-> >diff --git a/arch/xtensa/include/asm/module.h b/arch/xtensa/include/asm/vermagic.h
-> >similarity index 72%
-> >rename from arch/xtensa/include/asm/module.h
-> >rename to arch/xtensa/include/asm/vermagic.h
-> >index 488b40c6f9b9..6f9e359a54ac 100644
-> >--- a/arch/xtensa/include/asm/module.h
-> >+++ b/arch/xtensa/include/asm/vermagic.h
-> >@@ -1,6 +1,4 @@
-> > /*
-> >- * include/asm-xtensa/module.h
-> >- *
-> >  * This file contains the module code specific to the Xtensa architecture.
->
-> Maybe we can remove this comment too? Since it's now asm/vermagic.h and
-> not asm/module.h anymore.
+On Sun, Apr 26, 2020 at 06:34:30PM +0200, Hagen Paul Pfeifer wrote:
+> Working on a safety-critical stress testing tool, using ptrace in an
+> rather uncommon way (stop, peeking memory, ...) for a bunch of
+> applications in an automated way I realized that once opened processes
+> where restarted and PIDs recycled.  Resulting in monitoring and
+> manipulating the wrong processes.
+> 
+> With the advent of pidfd we are now able to stick with one stable handle
+> to identifying processes exactly. We now have the ability to get this
+> race free. Sending signals now works like a charm, next step is to
+> extend the functionality also for ptrace.
+> 
+> API:
+>          long pidfd_ptrace(int pidfd, enum __ptrace_request request,
+>                            void *addr, void *data, unsigned flags);
 
-OK, I will delete it.
+I'm in general not opposed to this if there's a clear need for this and
+users that are interested. But I think if people really prefer having
+this a new syscall then we should probably try to improve on the old
+one. Things that come to mind right away without doing a deep review are
+replacing the void *addr pointer with a dedicated struct ptract_args or
+union ptrace_args and a size argument. If we're not doing something
+like this or something more fundamental we can equally well either just
+duplicate all enums in the old ptrace syscall and append a _PIDFD to it
+where it makes sense.
 
-Thanks for checking it closely.
-
-
-
-
->
-> Thanks for the cleanup. I agree that <linux/vermagic.h> shouldn't have
-> any ordering dependency on <linux/module.h>.
->
-> I just double checked to see if there were any other users of
-> MODULE_ARCH_VERMAGIC that needed it through module.h, and there are
-> none. It was literally just being defined in asm/module.h to be used
-> in linux/vermagic.h. So there was no reason really to confine the
-> MODULE_ARCH_VERMAGIC definition to asm/module.h.
->
-> Acked-by: Jessica Yu <jeyu@kernel.org>
-
-
-
--- 
-Best Regards
-Masahiro Yamada
+Christian
