@@ -1,107 +1,68 @@
-Return-Path: <SRS0=YOFp=6E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51692 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726457AbgDTRnk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Apr 2020 13:43:40 -0400
-Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6BCD4C061A10
-        for <linux-arch@vger.kernel.org>; Mon, 20 Apr 2020 10:43:40 -0700 (PDT)
-Received: by mail-pj1-x1042.google.com with SMTP id ng8so180074pjb.2
-        for <linux-arch@vger.kernel.org>; Mon, 20 Apr 2020 10:43:40 -0700 (PDT)
-Date: Mon, 20 Apr 2020 10:43:37 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [kernel-hardening] [PATCH 09/38] usercopy: Mark kmalloc caches
- as usercopy caches
-Message-ID: <202004201043.538A7B3F2@keescook>
-References: <5861936c-1fe1-4c44-d012-26efa0c8b6e7@de.ibm.com>
- <202001281457.FA11CC313A@keescook>
- <alpine.DEB.2.21.2001291640350.1546@www.lameter.com>
- <6844ea47-8e0e-4fb7-d86f-68046995a749@de.ibm.com>
- <20200129170939.GA4277@infradead.org>
- <771c5511-c5ab-3dd1-d938-5dbc40396daa@de.ibm.com>
- <202001300945.7D465B5F5@keescook>
- <CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com>
- <7d810f6d-8085-ea2f-7805-47ba3842dc50@suse.cz>
- <548e6212-7b3c-5925-19f2-699af451fd16@suse.cz>
+Return-Path: <SRS0=jgxL=6L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48514 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726260AbgD0S7m (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2020 14:59:42 -0400
+Date: Mon, 27 Apr 2020 20:59:29 +0200
+From: Hagen Paul Pfeifer <hagen@jauu.net>
+Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
+Message-ID: <20200427185929.GA1768@laniakea>
+References: <20200426130100.306246-1-hagen@jauu.net>
+ <20200426163430.22743-1-hagen@jauu.net>
+ <20200427170826.mdklazcrn4xaeafm@wittgenstein>
+ <CAG48ez0hskhN7OkxwHX-Bo5HGboJaVEk8udFukkTgiC=43ixcw@mail.gmail.com>
+ <87zhawdc6w.fsf@x220.int.ebiederm.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <548e6212-7b3c-5925-19f2-699af451fd16@suse.cz>
+In-Reply-To: <87zhawdc6w.fsf@x220.int.ebiederm.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: Vlastimil Babka <vbabka@suse.cz>, Jann Horn <jannh@google.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoph Hellwig <hch@infradead.org>, Christopher Lameter <cl@linux.com>, Julian Wiedmann <jwi@linux.ibm.com>, Ursula Braun <ubraun@linux.ibm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, kernel list <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Linux-MM <linux-mm@kvack.org>, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Michal Kubecek <mkubecek@suse.cz>
-Message-ID: <20200420174337.2K7J01ph0_gUgS7YjAgYiebvq1cxbRHrVwLY7sSlX-Y@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Jann Horn <jannh@google.com>, Christian Brauner <christian.brauner@ubuntu.com>, kernel list <linux-kernel@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Aleksa Sarai <cyphar@cyphar.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Message-ID: <20200427185929.u5FREsYh1-lf_u_svFXvekUG49Y-LHEyJuMfiejdyh4@z>
 
-On Mon, Apr 20, 2020 at 09:53:20AM +0200, Jiri Slaby wrote:
-> On 07. 04. 20, 10:00, Vlastimil Babka wrote:
-> > From d5190e4e871689a530da3c3fd327be45a88f006a Mon Sep 17 00:00:00 2001
-> > From: Vlastimil Babka <vbabka@suse.cz>
-> > Date: Tue, 7 Apr 2020 09:58:00 +0200
-> > Subject: [PATCH] usercopy: Mark dma-kmalloc caches as usercopy caches
-> > 
-> > We have seen a "usercopy: Kernel memory overwrite attempt detected to SLUB
-> > object 'dma-kmalloc-1 k' (offset 0, size 11)!" error on s390x, as IUCV uses
-> > kmalloc() with __GFP_DMA because of memory address restrictions.
-> > The issue has been discussed [2] and it has been noted that if all the kmalloc
-> > caches are marked as usercopy, there's little reason not to mark dma-kmalloc
-> > caches too. The 'dma' part merely means that __GFP_DMA is used to restrict
-> > memory address range.
-> > 
-> > As Jann Horn put it [3]:
-> > 
-> > "I think dma-kmalloc slabs should be handled the same way as normal
-> > kmalloc slabs. When a dma-kmalloc allocation is freshly created, it is
-> > just normal kernel memory - even if it might later be used for DMA -,
-> > and it should be perfectly fine to copy_from_user() into such
-> > allocations at that point, and to copy_to_user() out of them at the
-> > end. If you look at the places where such allocations are created, you
-> > can see things like kmemdup(), memcpy() and so on - all normal
-> > operations that shouldn't conceptually be different from usercopy in
-> > any relevant way."
-> > 
-> > Thus this patch marks the dma-kmalloc-* caches as usercopy.
-> > 
-> > [1] https://bugzilla.suse.com/show_bug.cgi?id=1156053
-> > [2] https://lore.kernel.org/kernel-hardening/bfca96db-bbd0-d958-7732-76e36c667c68@suse.cz/
-> > [3] https://lore.kernel.org/kernel-hardening/CAG48ez1a4waGk9kB0WLaSbs4muSoK0AYAVk8=XYaKj4_+6e6Hg@mail.gmail.com/
-> > 
-> > Signed-off-by: Vlastimil Babka <vbabka@suse.cz>
-> 
-> Friendly ping.
-> 
-> Acked-by: Jiri Slaby <jslaby@suse.cz>
+* Eric W. Biederman | 2020-04-27 13:18:47 [-0500]:
 
-Should this go via -mm?
+>I am conflicted about that but I have to agree.    Instead of
+>duplicating everything it would be good enough to duplicate the once
+>that cause the process to be attached to use.  Then there would be no
+>more pid races to worry about.
 
--Kees
+>How does this differ using the tracing related infrastructure we have
+>for the kernel on a userspace process?  I suspect augmenting the tracing
+>infrastructure with the ability to set breakpoints and watchpoints (aka
+>stopping userspace threads and processes might be a more fertile
+>direction to go).
+>
+>But I agree either we want to just address the races in PTRACE_ATTACH
+>and PTRACE_SIEZE or we want to take a good hard look at things.
+>
+>There is a good case for minimal changes because one of the cases that
+>comes up is how much work will it take to change existing programs.  But
+>ultimately ptrace pretty much sucks so a very good set of test cases and
+>documentation for what we want to implement would be a very good idea.
 
-> 
-> > ---
-> >  mm/slab_common.c | 3 ++-
-> >  1 file changed, 2 insertions(+), 1 deletion(-)
-> > 
-> > diff --git a/mm/slab_common.c b/mm/slab_common.c
-> > index 5282f881d2f5..ae9486160594 100644
-> > --- a/mm/slab_common.c
-> > +++ b/mm/slab_common.c
-> > @@ -1303,7 +1303,8 @@ void __init create_kmalloc_caches(slab_flags_t flags)
-> >  			kmalloc_caches[KMALLOC_DMA][i] = create_kmalloc_cache(
-> >  				kmalloc_info[i].name[KMALLOC_DMA],
-> >  				kmalloc_info[i].size,
-> > -				SLAB_CACHE_DMA | flags, 0, 0);
-> > +				SLAB_CACHE_DMA | flags, 0,
-> > +				kmalloc_info[i].size);
-> >  		}
-> >  	}
-> >  #endif
-> > 
-> 
-> thanks,
-> -- 
-> js
-> suse labs
+Hey Eric, Jann, Christian, Arnd,
 
--- 
-Kees Cook
+thank you for your valuable input! IMHO I think we have exactly two choices
+here:
+
+a) we go with my patchset that is 100% ptrace feature compatible - except the
+   pidfd thing - now and in the future. If ptrace is extended pidfd_ptrace is
+   automatically extended and vice versa. Both APIs are feature identical
+   without any headaches.
+b) leave ptrace completely behind us and design ptrace that we have always
+   dreamed of! eBPF filters, ftrace kernel architecture, k/uprobe goodness,
+   a speedy API to copy & modify large chunks of data, io_uring/epoll support
+   and of course: pidfd based (missed likely thousands of other dreams)
+	
+I think a solution in between is not worth the effort! It will not be
+compatible in any way for the userspace and the benefit will be negligible.
+Ptrace is horrible API - everybody knows that but developers get comfy with
+it. You find examples everywhere, why should we make it harder for the user for
+no or little benefit (except that stable handle with pidfd and some cleanups)?
+
+Any thoughts on this?
+
+Hagen
