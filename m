@@ -1,85 +1,108 @@
-From: Christian Brauner <christian.brauner-GeWIH/nMZzLQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
-Date: Tue, 28 Apr 2020 10:21:33 +0200
-Message-ID: <20200428082133.kusyjofgg7w2lchg@wittgenstein>
-References: <CAHk-=wga3O=BoKZXR27-CDnAFareWcMxXhpWerwtCffdaH6_ow@mail.gmail.com>
- <B7A115CB-0C8C-4719-B97B-74D94231CD1E@amacapital.net>
- <CAHk-=whQzOsh9O2uhUO2VETD+hrzjKMpEJpzoUby5QHMcvgPKg@mail.gmail.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 01/23] arm64: alternative: Allow alternative_insn to
+ always issue the first instruction
+Date: Tue, 28 Apr 2020 12:43:54 +0100
+Message-ID: <20200428114354.GE3868@gaia>
+References: <20200421142603.3894-1-catalin.marinas@arm.com>
+ <20200421142603.3894-2-catalin.marinas@arm.com>
+ <20200427165737.GD15808@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:49966 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726426AbgD1Ln7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Apr 2020 07:43:59 -0400
 Content-Disposition: inline
-In-Reply-To: <CAHk-=whQzOsh9O2uhUO2VETD+hrzjKMpEJpzoUby5QHMcvgPKg-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Aleksa Sarai <cyphar-gVpy/LI/lHzQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Hagen Paul Pfeifer <hagen-GvnIQ6b/HdU@public.gmane.org>, "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>, Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, kernel list <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Christian Brauner <christian-STijNZzMWpgWenYVfaLwtA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Brian Gerst <brgerst-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Sami Tolvanen <samitolvanen-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnaldo Carvalho de Melo <acme-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Sargun Dhillon <sar>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20200427165737.GD15808@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <dave.martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
 
-On Mon, Apr 27, 2020 at 09:28:14PM -0700, Linus Torvalds wrote:
-> On Mon, Apr 27, 2020 at 9:17 PM Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org> wrote:
-> >
-> > I hate to say this, but I’m not convinced that asking the gdb folks is
-> > the right approach. GDB has an ancient architecture and is
-> > *incredibly* buggy. I’m sure ptrace is somewhere on the pain point
-> > list, but I suspect it’s utterly dwarfed by everything else.
+Hi Dave,
+
+On Mon, Apr 27, 2020 at 05:57:37PM +0100, Dave P Martin wrote:
+> On Tue, Apr 21, 2020 at 03:25:41PM +0100, Catalin Marinas wrote:
+> > There are situations where we do not want to disable the whole block
+> > based on a config option, only the alternative part while keeping the
+> > first instruction. Improve the alternative_insn assembler macro to take
+> > a 'first_insn' argument, default 0, to preserve the current behaviour.
+> > 
+> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> > Cc: Will Deacon <will@kernel.org>
+> > ---
+> >  arch/arm64/include/asm/alternative.h | 8 +++++++-
+> >  1 file changed, 7 insertions(+), 1 deletion(-)
+> > 
+> > diff --git a/arch/arm64/include/asm/alternative.h b/arch/arm64/include/asm/alternative.h
+> > index 5e5dc05d63a0..67d7cc608336 100644
+> > --- a/arch/arm64/include/asm/alternative.h
+> > +++ b/arch/arm64/include/asm/alternative.h
+> > @@ -111,7 +111,11 @@ static inline void apply_alternatives_module(void *start, size_t length) { }
+> >  	.byte \alt_len
+> >  .endm
+> >  
+> > -.macro alternative_insn insn1, insn2, cap, enable = 1
+> > +/*
+> > + * Disable the whole block if enable == 0, unless first_insn == 1 in which
+> > + * case insn1 will always be issued but without an alternative insn2.
+> > + */
+> > +.macro alternative_insn insn1, insn2, cap, enable = 1, first_insn = 0
+> >  	.if \enable
+> >  661:	\insn1
+> >  662:	.pushsection .altinstructions, "a"
+> > @@ -122,6 +126,8 @@ static inline void apply_alternatives_module(void *start, size_t length) { }
+> >  664:	.popsection
+> >  	.org	. - (664b-663b) + (662b-661b)
+> >  	.org	. - (662b-661b) + (664b-663b)
+> > +	.elseif \first_insn
+> > +	\insn1
 > 
-> You may be right. However, if gdbn isn't going to use it, then I
-> seriously don't think it's worth changing much.
+> This becomes quite unreadable at the invocation site, especially when
+> invoked as "alternative_insn ..., 1".  "... first_insn=1" is not much
+> better either).
+
+That I agree.
+
+The reason I didn't leave the alternative in place here is that if gas
+doesn't support MTE, it will fail to compile. I wanted to avoid the
+several #ifdef's.
+
+> I'm struggling to find non-trivial users of this that actually want the
+> whole block to be deleted dependent on the config.
+
+Some of the errata stuff like CONFIG_ARM64_REPEAT_TLBI ends up with
+unnecessary nops. Similarly for CONFIG_ARM64_UAO/PAN and maybe a few
+others (it's all additional nops). We also have a few errata workaround
+where we didn't bother with the config enable option at all.
+
+While this is C code + inline asm, I'd like to have a consistent
+behaviour of ALTERNATIVE between C and .S files. Now, given that some of
+them (like UAO/PAN) are on by default, it probably doesn't make any
+difference if we always keep the first block (non-alternative).
+
+We could add a new macro ALTERNATIVE_OR_NOP.
+
+> Can we instead just always behave as if first_insn=1 instead?  This this
+> works intuitively as an alternative, not the current weird 3-way choice
+> between insn1, insn2 and nothing at all.  The only time that makes sense
+> is when one of the insns is a branch that skips the block, but that's
+> handled via the alternative_if macros instead.
 > 
-> It might be worth looking at people who don't use ptrace() for
-> debugging, but for "incidental" reasons. IOW sandboxing, tracing,
-> things like that.
+> Behaving always like first_insn=1 provides an if-else that is statically
+> optimised if the relevant feature is configured out, which I think is
+> the only thing people are ever going to want.
 > 
-> Maybe those people want things that are simpler and don't actually
-> need the kinds of hard serialization that ptrace() wants.
-> 
-> I'd rather add a few really simple things that might not be a full
-> complement of operations for a debugger, but exactly because they
-> aren't a full debugger, maybe they are things that we can tell are
-> obviously secure and simple?
+> Maybe something depends on the current behaviour, but I can't see it so
+> far...
 
-I think the biggest non-anecdotal user of ptrace() besides debuggers
-is actually criu (and strace of course). They use it to inject parasite
-code (their phrasing not mine) into another task to handle restoring the
-parts of a task that can't be restored from the outside. Looking through
-their repo they make quite a bit of use of ptrace functionality including
-some arch specific bits:
-PTRACE_GETREGSET
-PTRACE_GETFPREGS
-PTRACE_PEEKUSER
-PTRACE_POKEUSER
-PTRACE_CONT
-PTRACE_SETREGSET
-PTRACE_GETVFPREGS /* arm/arm64 */
-PTRACE_GETVRREGS /* powerpc */
-PTRACE_GETVSRREGS /* powerpc */
-PTRACE_EVENT_STOP
-PTRACE_GETSIGMASK
-PTRACE_INTERRUPT
-PTRACE_DETACH
-PTRACE_GETSIGINFO
-PTRACE_SEIZE
-PTRACE_SETSIGMASK
-PTRACE_SI_EVENT
-PTRACE_SYSCALL
-PTRACE_SETOPTIONS
-PTRACE_ATTACH
-PTRACE_O_SUSPEND_SECCOMP
-PTRACE_PEEKSIGINFO
-PTRACE_SECCOMP_GET_FILTER
-PTRACE_SECCOMP_GET_METADATA
+I'll give it a go in v4 and see how it looks.
 
-So I guess strace and criu would be the ones to go and ask and if they
-don't care enough we already need to start squinting for other larg-ish
-users. proot comes to mind
-https://github.com/proot-me/proot
+Another option would be an alternative_else which takes an enable
+argument.
 
-(From personal experience, most of the time when ptrace is used in a
- non-debugger codebase it's either to plug a security hole exploitable
- through ptracing the task and the fix is ptracing that very task to
- prevent the attacker from ptracing it (where non-dumpability alone
- doesn't cut it) or the idea is dropped immediately to not lose the
- ability to use a debugger on the program.)
+Thanks.
 
-Christian
+-- 
+Catalin
