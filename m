@@ -1,147 +1,73 @@
-Return-Path: <linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org>
-Subject: Re: [PATCH V14] mm/debug: Add tests validating architecture page
- table helpers
-References: <1581909460-19148-1-git-send-email-anshuman.khandual@arm.com>
- <1582726182.7365.123.camel@lca.pw>
- <7c707b7f-ce3d-993b-8042-44fdc1ed28bf@c-s.fr>
- <1582732318.7365.129.camel@lca.pw> <1583178042.7365.146.camel@lca.pw>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Message-ID: <6757aa1d-7951-69ef-de93-50a7b7b172e0@c-s.fr>
-Date: Tue, 3 Mar 2020 06:59:39 +0100
+Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54104 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726251AbgD1Bg5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Apr 2020 21:36:57 -0400
+Received: from mail-lj1-x243.google.com (mail-lj1-x243.google.com [IPv6:2a00:1450:4864:20::243])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7FFD5C03C1A8
+        for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2020 18:36:57 -0700 (PDT)
+Received: by mail-lj1-x243.google.com with SMTP id u15so19724048ljd.3
+        for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2020 18:36:57 -0700 (PDT)
+Received: from mail-lj1-f180.google.com (mail-lj1-f180.google.com. [209.85.208.180])
+        by smtp.gmail.com with ESMTPSA id l2sm11307361ljg.89.2020.04.27.18.36.52
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 27 Apr 2020 18:36:54 -0700 (PDT)
+Received: by mail-lj1-f180.google.com with SMTP id u15so19723954ljd.3
+        for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2020 18:36:52 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <1583178042.7365.146.camel@lca.pw>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
-Content-Transfer-Encoding: 8bit
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+rppt=linux.ibm.com@lists.infradead.org
-To: Qian Cai <cai@lca.pw>, Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-snps-arc@lists.infradead.org, Vasily Gorbik <gor@linux.ibm.com>, Borislav Petkov <bp@alien8.de>, Paul Walmsley <paul.walmsley@sifive.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Vineet Gupta <vgupta@synopsys.com>, linux-kernel@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org
+References: <20200426130100.306246-1-hagen@jauu.net> <20200426163430.22743-1-hagen@jauu.net>
+ <20200427170826.mdklazcrn4xaeafm@wittgenstein> <CAG48ez0hskhN7OkxwHX-Bo5HGboJaVEk8udFukkTgiC=43ixcw@mail.gmail.com>
+ <87zhawdc6w.fsf@x220.int.ebiederm.org> <20200427185929.GA1768@laniakea>
+ <CAK8P3a2Ux1pDZEBjgRSPMJXvwUAvbPastX2ynVVC2iPTTDK_ow@mail.gmail.com>
+ <20200427201303.tbiipopeapxofn6h@wittgenstein> <20200428004546.mlpwixgms2ekpfdm@yavin.dot.cyphar.com>
+In-Reply-To: <20200428004546.mlpwixgms2ekpfdm@yavin.dot.cyphar.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 27 Apr 2020 18:36:36 -0700
+Message-ID: <CAHk-=wga3O=BoKZXR27-CDnAFareWcMxXhpWerwtCffdaH6_ow@mail.gmail.com>
+Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200303055939.NyfMiCdlTwnGvTT_phOcSV_CJ38mWoPTc6ige1QKiQo@z>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: Christian Brauner <christian.brauner@ubuntu.com>, Arnd Bergmann <arnd@arndb.de>, Hagen Paul Pfeifer <hagen@jauu.net>, "Eric W. Biederman" <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, kernel list <linux-kernel@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Message-ID: <20200428013636.uJKZ3xi5_eW0P1Kxjr4YJ1WZKuWOfSGsgaCTxVVXnWA@z>
 
+On Mon, Apr 27, 2020 at 5:46 PM Aleksa Sarai <cyphar@cyphar.com> wrote:
+>
+> I agree. It would be a shame to add a new ptrace syscall and not take
+> the opportunity to fix the multitude of problems with the existing API.
+> But that's a Pandora's box which we shouldn't open unless we want to
+> wait a long time to get an API everyone is okay with -- a pretty high
+> price to just get pidfds support in ptrace.
 
+We should really be very very careful with some "smarter ptrace".
+We've had _so_ many security issues with ptrace that it's not even
+funny.
 
-Le 02/03/2020 à 20:40, Qian Cai a écrit :
-> On Wed, 2020-02-26 at 10:51 -0500, Qian Cai wrote:
->> On Wed, 2020-02-26 at 15:45 +0100, Christophe Leroy wrote:
->>>
->>> Le 26/02/2020 à 15:09, Qian Cai a écrit :
->>>> On Mon, 2020-02-17 at 08:47 +0530, Anshuman Khandual wrote:
->>>>> This adds tests which will validate architecture page table helpers and
->>>>> other accessors in their compliance with expected generic MM semantics.
->>>>> This will help various architectures in validating changes to existing
->>>>> page table helpers or addition of new ones.
->>>>>
->>>>> This test covers basic page table entry transformations including but not
->>>>> limited to old, young, dirty, clean, write, write protect etc at various
->>>>> level along with populating intermediate entries with next page table page
->>>>> and validating them.
->>>>>
->>>>> Test page table pages are allocated from system memory with required size
->>>>> and alignments. The mapped pfns at page table levels are derived from a
->>>>> real pfn representing a valid kernel text symbol. This test gets called
->>>>> inside kernel_init() right after async_synchronize_full().
->>>>>
->>>>> This test gets built and run when CONFIG_DEBUG_VM_PGTABLE is selected. Any
->>>>> architecture, which is willing to subscribe this test will need to select
->>>>> ARCH_HAS_DEBUG_VM_PGTABLE. For now this is limited to arc, arm64, x86, s390
->>>>> and ppc32 platforms where the test is known to build and run successfully.
->>>>> Going forward, other architectures too can subscribe the test after fixing
->>>>> any build or runtime problems with their page table helpers. Meanwhile for
->>>>> better platform coverage, the test can also be enabled with CONFIG_EXPERT
->>>>> even without ARCH_HAS_DEBUG_VM_PGTABLE.
->>>>>
->>>>> Folks interested in making sure that a given platform's page table helpers
->>>>> conform to expected generic MM semantics should enable the above config
->>>>> which will just trigger this test during boot. Any non conformity here will
->>>>> be reported as an warning which would need to be fixed. This test will help
->>>>> catch any changes to the agreed upon semantics expected from generic MM and
->>>>> enable platforms to accommodate it thereafter.
->>>>
->>>> How useful is this that straightly crash the powerpc?
->>>>
->>>> [   23.263425][    T1] debug_vm_pgtable: debug_vm_pgtable: Validating
->>>> architecture page table helpers
->>>> [   23.263625][    T1] ------------[ cut here ]------------
->>>> [   23.263649][    T1] kernel BUG at arch/powerpc/mm/pgtable.c:274!
->>>
->>> The problem on PPC64 is known and has to be investigated and fixed.
->>
->> It might be interesting to hear what powerpc64 maintainers would say about it
->> and if it is actually worth "fixing" in the arch code, but that BUG_ON() was
->> there since 2009 and had not been exposed until this patch comes alone?
-> 
-> This patch below makes it works on powerpc64 in order to dodge the BUG_ON()s in
-> assert_pte_locked() triggered by pte_clear_tests().
-> 
-> 
-> diff --git a/mm/debug_vm_pgtable.c b/mm/debug_vm_pgtable.c
-> index 96dd7d574cef..50b385233971 100644
-> --- a/mm/debug_vm_pgtable.c
-> +++ b/mm/debug_vm_pgtable.c
-> @@ -55,6 +55,8 @@
->   #define RANDOM_ORVALUE	GENMASK(BITS_PER_LONG - 1, S390_MASK_BITS)
->   #define RANDOM_NZVALUE	GENMASK(7, 0)
->   
-> +unsigned long vaddr;
-> +
+And that's ignoring all the practical issues we've had.
 
-Can we avoid global var ?
+I would definitely not want to have anything that looks like ptrace AT
+ALL using pidfd. If we have a file descriptor to specify the target
+process, then we should probably take advantage of that file
+descriptor to actually make it more of a asynchronous interface that
+doesn't cause the kinds of deadlocks that we've had with ptrace.
 
->   static void __init pte_basic_tests(unsigned long pfn, pgprot_t prot)
->   {
->   	pte_t pte = pfn_pte(pfn, prot);
-> @@ -256,7 +258,7 @@ static void __init pte_clear_tests(struct mm_struct *mm,
-> pte_t *ptep)
->   
->   	pte = __pte(pte_val(pte) | RANDOM_ORVALUE);
->   	WRITE_ONCE(*ptep, pte);
-> -	pte_clear(mm, 0, ptep);
-> +	pte_clear(mm, vaddr, ptep);
->   	pte = READ_ONCE(*ptep);
->   	WARN_ON(!pte_none(pte));
->   }
-> @@ -310,8 +312,9 @@ void __init debug_vm_pgtable(void)
->   	pgtable_t saved_ptep;
->   	pgprot_t prot;
->   	phys_addr_t paddr;
-> -	unsigned long vaddr, pte_aligned, pmd_aligned;
+The synchronous nature of ptrace() means that not only do we have
+those nasty deadlocks, it's also very very expensive to use. It also
+has some other fundamental problems, like the whole "take over parent"
+and the SIGCHLD behavior.
 
-Can we pass local vaddr to pte_clear_tests() instead of making it a 
-global var ?
+It also is hard to ptrace a ptracer. Which is annoying when you're
+debugging gdb or strace or whatever.
 
-> +	unsigned long pte_aligned, pmd_aligned;
->   	unsigned long pud_aligned, p4d_aligned, pgd_aligned;
-> +	spinlock_t *ptl;
->   
->   	pr_info("Validating architecture page table helpers\n");
->   	prot = vm_get_page_prot(VMFLAGS);
-> @@ -344,7 +347,7 @@ void __init debug_vm_pgtable(void)
->   	p4dp = p4d_alloc(mm, pgdp, vaddr);
->   	pudp = pud_alloc(mm, p4dp, vaddr);
->   	pmdp = pmd_alloc(mm, pudp, vaddr);
-> -	ptep = pte_alloc_map(mm, pmdp, vaddr);
-> +	ptep = pte_alloc_map_lock(mm, pmdp, vaddr, &ptl);
->   
->   	/*
->   	 * Save all the page table page addresses as the page table
-> @@ -370,7 +373,7 @@ void __init debug_vm_pgtable(void)
->   	p4d_clear_tests(mm, p4dp);
->   	pgd_clear_tests(mm, pgdp);
->   
-> -	pte_unmap(ptep);
-> +	pte_unmap_unlock(ptep, ptl);
->   
->   	pmd_populate_tests(mm, pmdp, saved_ptep);
->   	pud_populate_tests(mm, pudp, saved_pmdp);
-> 
+So I think the thing to do is ask the gdb (and strace) people if they
+have any _very_ particular painpoints that we could perhaps help with.
 
-Christophe
+And then very carefully think things through and not repeat all the
+mistakes ptrace did.
+
+I'm not very optimistic.
+
+              Linus
