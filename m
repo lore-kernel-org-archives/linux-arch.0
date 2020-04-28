@@ -1,51 +1,84 @@
-Return-Path: <SRS0=yGje=5Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60370 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726552AbgDIDTv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Apr 2020 23:19:51 -0400
-From: guoren@kernel.org
-Subject: [PATCH] csky: Fixup compile error for abiv1 entry.S
-Date: Thu,  9 Apr 2020 11:19:41 +0800
-Message-ID: <20200409031941.6288-1-guoren@kernel.org>
+Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51378 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725917AbgD1ER3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Apr 2020 00:17:29 -0400
+Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 87E93C09B050
+        for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2020 21:17:29 -0700 (PDT)
+Received: by mail-pj1-x1043.google.com with SMTP id a31so564301pje.1
+        for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2020 21:17:29 -0700 (PDT)
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+From: Andy Lutomirski <luto@amacapital.net>
+Mime-Version: 1.0 (1.0)
+Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
+Date: Mon, 27 Apr 2020 21:17:26 -0700
+Message-ID: <B7A115CB-0C8C-4719-B97B-74D94231CD1E@amacapital.net>
+References: <CAHk-=wga3O=BoKZXR27-CDnAFareWcMxXhpWerwtCffdaH6_ow@mail.gmail.com>
+In-Reply-To: <CAHk-=wga3O=BoKZXR27-CDnAFareWcMxXhpWerwtCffdaH6_ow@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-csky@vger.kernel.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, guoren@kernel.org, Guo Ren <guoren@linux.alibaba.com>
-Message-ID: <20200409031941.xUxlNWt1LzUu6KJGJbUIlHQEfR4A_B5p1tcmqJq5AAI@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Aleksa Sarai <cyphar@cyphar.com>, Christian Brauner <christian.brauner@ubuntu.com>, Arnd Bergmann <arnd@arndb.de>, Hagen Paul Pfeifer <hagen@jauu.net>, "Eric W. Biederman" <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, kernel list <linux-kernel@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Message-ID: <20200428041726.Zl4Q3WGa_37mEqkKHf_fNYXYgrVHlDe4EF2xk9SLGxg@z>
 
-From: Guo Ren <guoren@linux.alibaba.com>
 
-This bug is from uprobe signal definition in thread_info.h. The
-instruction (andi) of abiv1 immediate is smaller than abiv2, then
-it will cause:
 
-  AS      arch/csky/kernel/entry.o
- arch/csky/kernel/entry.S: Assembler messages:
- arch/csky/kernel/entry.S:224: Error: Operand 2 immediate is overflow.
+> On Apr 27, 2020, at 6:36 PM, Linus Torvalds <torvalds@linux-foundation.org=
+> wrote:
+>=20
+> =EF=BB=BFOn Mon, Apr 27, 2020 at 5:46 PM Aleksa Sarai <cyphar@cyphar.com> w=
+rote:
+>>=20
+>> I agree. It would be a shame to add a new ptrace syscall and not take
+>> the opportunity to fix the multitude of problems with the existing API.
+>> But that's a Pandora's box which we shouldn't open unless we want to
+>> wait a long time to get an API everyone is okay with -- a pretty high
+>> price to just get pidfds support in ptrace.
+>=20
+> We should really be very very careful with some "smarter ptrace".
+> We've had _so_ many security issues with ptrace that it's not even
+> funny.
+>=20
+> And that's ignoring all the practical issues we've had.
+>=20
+> I would definitely not want to have anything that looks like ptrace AT
+> ALL using pidfd. If we have a file descriptor to specify the target
+> process, then we should probably take advantage of that file
+> descriptor to actually make it more of a asynchronous interface that
+> doesn't cause the kinds of deadlocks that we've had with ptrace.
+>=20
+> The synchronous nature of ptrace() means that not only do we have
+> those nasty deadlocks, it's also very very expensive to use. It also
+> has some other fundamental problems, like the whole "take over parent"
+> and the SIGCHLD behavior.
+>=20
+> It also is hard to ptrace a ptracer. Which is annoying when you're
+> debugging gdb or strace or whatever.
+>=20
+> So I think the thing to do is ask the gdb (and strace) people if they
+> have any _very_ particular painpoints that we could perhaps help with.
+>=20
+> And then very carefully think things through and not repeat all the
+> mistakes ptrace did.
+>=20
+> I'm not very optimistic.
 
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
----
- arch/csky/include/asm/thread_info.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+I hate to say this, but I=E2=80=99m not convinced that asking the gdb folks i=
+s the right approach. GDB has an ancient architecture and is *incredibly* bu=
+ggy.  I=E2=80=99m sure ptrace is somewhere on the pain point list, but I sus=
+pect it=E2=80=99s utterly dwarfed by everything else.
 
-diff --git a/arch/csky/include/asm/thread_info.h b/arch/csky/include/asm/thread_info.h
-index 442fedad0260..5d33fcfd7f2a 100644
---- a/arch/csky/include/asm/thread_info.h
-+++ b/arch/csky/include/asm/thread_info.h
-@@ -54,10 +54,10 @@ static inline struct thread_info *current_thread_info(void)
- #define TIF_SIGPENDING		0	/* signal pending */
- #define TIF_NOTIFY_RESUME	1       /* callback before returning to user */
- #define TIF_NEED_RESCHED	2	/* rescheduling necessary */
--#define TIF_SYSCALL_TRACE	3	/* syscall trace active */
--#define TIF_SYSCALL_TRACEPOINT	4       /* syscall tracepoint instrumentation */
--#define TIF_SYSCALL_AUDIT	5	/* syscall auditing */
--#define TIF_UPROBE		6	/* uprobe breakpoint or singlestep */
-+#define TIF_UPROBE		3	/* uprobe breakpoint or singlestep */
-+#define TIF_SYSCALL_TRACE	4	/* syscall trace active */
-+#define TIF_SYSCALL_TRACEPOINT	5       /* syscall tracepoint instrumentation */
-+#define TIF_SYSCALL_AUDIT	6	/* syscall auditing */
- #define TIF_POLLING_NRFLAG	16	/* poll_idle() is TIF_NEED_RESCHED */
- #define TIF_MEMDIE		18      /* is terminating due to OOM killer */
- #define TIF_RESTORE_SIGMASK	20	/* restore signal mask in do_signal() */
--- 
-2.17.0
+Maybe the LLDB people would have a better perspective?  The rr folks would b=
+e a good bet, too. Or, and I know this is sacrilege, the VSCode people?
+
+
+I think one requirement for a better ptrace is that it should work if you tr=
+y to debug, simultaneously, a debugger and its debugee. Maybe not perfectly,=
+ but it should work. And you should be able to debug init.
+
+Another major pain point I=E2=80=99ve seen is compat. A 64-bit debugger shou=
+ld be able to debug a program that switches back and forth between 32-bit an=
+d 64-bit.  A debugger that is entirely unaware of a set of registers should b=
+e able to debug a process using those registers.
