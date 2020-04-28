@@ -1,130 +1,51 @@
-From: Marcelo Tosatti <mtosatti@redhat.com>
-Subject: Re: [PATCH 03/12] task_isolation: userspace hard isolation from
- kernel
-Date: Tue, 28 Apr 2020 11:12:50 -0300
-Message-ID: <20200428141250.GA28012@fuller.cnet>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
- <36d84b8dd168a38e6a56549dedc15dd6ebf8c09e.camel@marvell.com>
- <20200305183313.GA29033@lenoir>
+From: Cyril Hrubis <chrubis-AlSwsSmVLrQ@public.gmane.org>
+Subject: Re: [fs] ce436509a8: ltp.openat203.fail
+Date: Tue, 28 Apr 2020 17:30:22 +0200
+Message-ID: <20200428153022.GC4244@yuki.lan>
+References: <f969e7d45a8e83efc1ca13d675efd8775f13f376.1586830316.git.josh@joshtriplett.org>
+ <20200427135210.GB5770@shao2-debian> <20200427142733.GD7661@rei>
+ <20200428005126.6wncibudt6ohghvc@yavin.dot.cyphar.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <ltp-bounces+glt-ltp-list=m.gmane-mx.org-cunTk1MwBs91InPhgRC9rw@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <20200305183313.GA29033@lenoir>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Frederic Weisbecker <frederic@kernel.org>
-Cc: Alex Belits <abelits@marvell.com>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-mm@vger.kernel.org" <linux-mm@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+In-Reply-To: <20200428005126.6wncibudt6ohghvc-DDZ4AMo6ZIKk7xURhxcYY1aTQe2KTcn/@public.gmane.org>
+List-Unsubscribe: <https://lists.linux.it/options/ltp>,
+ <mailto:ltp-request-cunTk1MwBs91InPhgRC9rw@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linux.it/pipermail/ltp/>
+List-Post: <mailto:ltp-cunTk1MwBs91InPhgRC9rw@public.gmane.org>
+List-Help: <mailto:ltp-request-cunTk1MwBs91InPhgRC9rw@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linux.it/listinfo/ltp>,
+ <mailto:ltp-request-cunTk1MwBs91InPhgRC9rw@public.gmane.org?subject=subscribe>
+Errors-To: ltp-bounces+glt-ltp-list=m.gmane-mx.org-cunTk1MwBs91InPhgRC9rw@public.gmane.org
+Sender: "ltp" <ltp-bounces+glt-ltp-list=m.gmane-mx.org-cunTk1MwBs91InPhgRC9rw@public.gmane.org>
+To: Aleksa Sarai <cyphar-gVpy/LI/lHzQT0dZR+AlfA@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jens Axboe <axboe-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, kernel test robot <rong.a.chen-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Josh Triplett <josh-iaAMLnmF4UmaiuxdJuQwMA@public.gmane.org>, lkp-hn68Rpc1hR1g9hUCZPvPmw@public.gmane.org, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, io-uring-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ltp-cunTk1MwBs91InPhgRC9rw@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-
-I like the idea as well, especially the reporting infrastructure, and 
-would like to see something like this integrated upstream.
-
-On Thu, Mar 05, 2020 at 07:33:13PM +0100, Frederic Weisbecker wrote:
-> On Wed, Mar 04, 2020 at 04:07:12PM +0000, Alex Belits wrote:
-> > The existing nohz_full mode is designed as a "soft" isolation mode
-> > that makes tradeoffs to minimize userspace interruptions while
-> > still attempting to avoid overheads in the kernel entry/exit path,
-> > to provide 100% kernel semantics, etc.
+Hi!
+> > > commit: ce436509a8e109330c56bb4d8ec87d258788f5f4 ("[PATCH v4 2/3] fs: openat2: Extend open_how to allow userspace-selected fds")
+> > > url: https://github.com/0day-ci/linux/commits/Josh-Triplett/Support-userspace-selected-fds/20200414-102939
+> > > base: https://git.kernel.org/cgit/linux/kernel/git/shuah/linux-kselftest.git next
 > > 
-> > However, some applications require a "hard" commitment from the
-> > kernel to avoid interruptions, in particular userspace device driver
-> > style applications, such as high-speed networking code.
+> > This commit adds fd parameter to the how structure where LTP test was
+> > previously passing garbage, which obviously causes the difference in
+> > errno.
 > > 
-> > This change introduces a framework to allow applications
-> > to elect to have the "hard" semantics as needed, specifying
-> > prctl(PR_TASK_ISOLATION, PR_TASK_ISOLATION_ENABLE) to do so.
-> > 
-> > The kernel must be built with the new TASK_ISOLATION Kconfig flag
-> > to enable this mode, and the kernel booted with an appropriate
-> > "isolcpus=nohz,domain,CPULIST" boot argument to enable
-> > nohz_full and isolcpus. The "task_isolation" state is then indicated
-> > by setting a new task struct field, task_isolation_flag, to the
-> > value passed by prctl(), and also setting a TIF_TASK_ISOLATION
-> > bit in the thread_info flags. When the kernel is returning to
-> > userspace from the prctl() call and sees TIF_TASK_ISOLATION set,
-> > it calls the new task_isolation_start() routine to arrange for
-> > the task to avoid being interrupted in the future.
-> > 
-> > With interrupts disabled, task_isolation_start() ensures that kernel
-> > subsystems that might cause a future interrupt are quiesced. If it
-> > doesn't succeed, it adjusts the syscall return value to indicate that
-> > fact, and userspace can retry as desired. In addition to stopping
-> > the scheduler tick, the code takes any actions that might avoid
-> > a future interrupt to the core, such as a worker thread being
-> > scheduled that could be quiesced now (e.g. the vmstat worker)
-> > or a future IPI to the core to clean up some state that could be
-> > cleaned up now (e.g. the mm lru per-cpu cache).
-> > 
-> > Once the task has returned to userspace after issuing the prctl(),
-> > if it enters the kernel again via system call, page fault, or any
-> > other exception or irq, the kernel will kill it with SIGKILL.
-
-This severely limits usage of the interface. 
-
-I suppose the reason for blocking system calls is to make sure 
-userspace does not initiate actions that might generate interruptions, 
-such as IPI flushes (memory unmaps or changes), vmstat work items
-(page dirtying), or is there any reason for it ?
-
-
-+/* Only a few syscalls are valid once we are in task isolation mode. */
-+static bool is_acceptable_syscall(int syscall)
-+{
-+       /* No need to incur an isolation signal if we are just exiting. */
-+       if (syscall == __NR_exit || syscall == __NR_exit_group)
-+               return true;
-+       
-+       /* Check to see if it's the prctl for isolation. */
-+       if (syscall == __NR_prctl) {
-+               unsigned long arg[SYSCALL_MAX_ARGS];
-+       
-+               syscall_get_arguments(current, current_pt_regs(), arg);
-+               if (arg[0] == PR_TASK_ISOLATION)
-+                       return true;
-+       }
-+ 
-+       return false;
-+}
-
-
-> > In addition to sending a signal, the code supports a kernel
-> > command-line "task_isolation_debug" flag which causes a stack
-> > backtrace to be generated whenever a task loses isolation.
-> > 
-> > To allow the state to be entered and exited, the syscall checking
-> > test ignores the prctl(PR_TASK_ISOLATION) syscall so that we can
-> > clear the bit again later, and ignores exit/exit_group to allow
-> > exiting the task without a pointless signal being delivered.
-> > 
-> > The prctl() API allows for specifying a signal number to use instead
-> > of the default SIGKILL, to allow for catching the notification
-> > signal; for example, in a production environment, it might be
-> > helpful to log information to the application logging mechanism
-> > before exiting. Or, the signal handler might choose to reset the
-> > program counter back to the code segment intended to be run isolated
-> > via prctl() to continue execution.
+> > This could be safely ignored for now, if the patch gets merged the test
+> > needs to be updated.
 > 
-> Hi Alew,
-> 
-> I'm glad this patchset is being resurected.
-> Reading that changelog, I like the general idea and the direction.
-> The diff is a bit scary though but I'll check the patches in detail
-> in the upcoming days.
-> 
-> > 
-> > In a number of cases we can tell on a remote cpu that we are
-> > going to be interrupting the cpu, e.g. via an IPI or a TLB flush.
-> > In that case we generate the diagnostic (and optional stack dump)
-> > on the remote core to be able to deliver better diagnostics.
-> > If the interrupt is not something caught by Linux (e.g. a
-> > hypervisor interrupt) we can also request a reschedule IPI to
-> > be sent to the remote core so it can be sure to generate a
-> > signal to notify the process.
-> 
-> I'm wondering if it's wise to run that on a guest at all :-)
-> Or we should consider any guest exit to the host as a
-> disturbance, we would then need some sort of paravirt
-> driver to notify that, etc... That doesn't sound appealing.
-> 
-> Thanks.
+> It wouldn't be a bad idea to switch the test to figure out the ksize of
+> the struct, so that you only add bad padding after that. But then again,
+> this would be a bit ugly -- having CHECK_FIELDS would make this simpler.
+
+Any pointers how can be the size figured out without relying on the
+E2BIG we are testing for? Does the kernel export it somewhere?
+
+-- 
+Cyril Hrubis
+chrubis-AlSwsSmVLrQ@public.gmane.org
+
+-- 
+Mailing list info: https://lists.linux.it/listinfo/ltp
