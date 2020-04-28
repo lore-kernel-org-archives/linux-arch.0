@@ -1,40 +1,51 @@
-Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57330 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726154AbgDVPoE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2020 11:44:04 -0400
-Date: Wed, 22 Apr 2020 08:43:56 -0700
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH 1/4] fs: Implement close-on-fork
-Message-ID: <20200422154356.GU5820@bombadil.infradead.org>
-References: <20200420071548.62112-1-nate.karstens@garmin.com>
- <20200420071548.62112-2-nate.karstens@garmin.com>
- <fa6c5c9c7c434f878c94a7c984cd43ba@garmin.com>
+Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:56300 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728151AbgD1QBu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Apr 2020 12:01:50 -0400
+Date: Tue, 28 Apr 2020 17:01:43 +0100
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
+Message-ID: <20200428160141.GD12697@willie-the-truck>
+References: <20200316165055.31179-1-broonie@kernel.org>
+ <20200422154436.GJ4898@sirena.org.uk>
+ <20200422162954.GF3585@gaia>
+ <20200428132804.GF6791@willie-the-truck>
+ <20200428151205.GH5677@sirena.org.uk>
+ <20200428151815.GB12697@willie-the-truck>
+ <20200428155808.GJ5677@sirena.org.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <fa6c5c9c7c434f878c94a7c984cd43ba@garmin.com>
+In-Reply-To: <20200428155808.GJ5677@sirena.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Karstens, Nate" <Nate.Karstens@garmin.com>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Laight <David.Laight@aculab.com>, Changli Gao <xiaosuo@gmail.com>
-Message-ID: <20200422154356.2byt4C6CEt__h-bCsFyivbhg0VjOH0OTb08YEhHB16g@z>
+To: Mark Brown <broonie@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200428160143.HeGGNQVrxNQgMjWd39DSG2fVc7bHvvVe7k-Azg5WniI@z>
 
-On Wed, Apr 22, 2020 at 03:36:09PM +0000, Karstens, Nate wrote:
-> There was some skepticism about whether our practice of
-> closing/reopening sockets was advisable. Regardless, it does expose what
-> I believe to be something that was overlooked in the forking process
-> model. We posted two solutions to the Austin Group defect tracker:
+On Tue, Apr 28, 2020 at 04:58:12PM +0100, Mark Brown wrote:
+> On Tue, Apr 28, 2020 at 04:18:16PM +0100, Will Deacon wrote:
+> > On Tue, Apr 28, 2020 at 04:12:05PM +0100, Mark Brown wrote:
+> 
+> > > It's probably easier for me if you just use the existing branch, I've
+> > > already got a branch based on a merge down.
+> 
+> > Okey doke, I'll funnel that in the direction of linux-next then. It does
+> > mean that any subsequent patches for 5.8 that depend on BTI will need to
+> > be based on this branch, so as long as you're ok with that then it's fine
+> > by me (since I won't be able to apply patches if they refer to changes
+> > introduced in the recent merge window).
+> 
+> That's not a problem, that's what I've got already and if I try to send
+> everything based off -rc3 directly the series would get unmanagably
+> large.  Actually unless you think it's a bad idea I think what I'll do
+> is go and send out a couple of the preparatory changes (the insn updates
+> and the last bit of annotation conversions) separately for that branch
+> while I finalize the revisions of the main BTI kernel bit, hopefully
+> that'll make the review a bit more approachable.
 
-I don't think it was "overlooked" at all.  It's not safe to call system()
-from a threaded app.  That's all.  It's right there in the DESCRIPTION:
+Okey doke, sounds good to me. I'm queuing stuff atm, so as long you tell
+me what I need to apply things against then we should be good.
 
-   The system() function need not be thread-safe.
-https://pubs.opengroup.org/onlinepubs/9699919799/functions/system.html
-
-> Ultimately the Austin Group felt that close-on-fork
-> was the preferred approach. I think it's also worth
-> pointing that out Solaris reportedly has this feature
-> (https://www.mail-archive.com/austin-group-l@opengroup.org/msg05359.html).
-
-I am perplexed that the Austin Group thought this was a good idea.
+Will
