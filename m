@@ -1,46 +1,42 @@
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
-Date: Tue, 28 Apr 2020 17:01:43 +0100
-Message-ID: <20200428160141.GD12697@willie-the-truck>
-References: <20200316165055.31179-1-broonie@kernel.org>
- <20200422154436.GJ4898@sirena.org.uk>
- <20200422162954.GF3585@gaia>
- <20200428132804.GF6791@willie-the-truck>
- <20200428151205.GH5677@sirena.org.uk>
- <20200428151815.GB12697@willie-the-truck>
- <20200428155808.GJ5677@sirena.org.uk>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v8 8/8] powerpc/vdso: Provide __kernel_clock_gettime64()
+ on vdso32
+Date: Tue, 28 Apr 2020 18:05:03 +0200
+Message-ID: <CAK8P3a2aXJRWjxWO8oMRX2AJkfeVeeoYbOPbpd9-UTgjqM4B7g@mail.gmail.com>
+References: <cover.1588079622.git.christophe.leroy@c-s.fr> <e78344d3fcc1d33bfb1782e430b7f0529f6c612f.1588079622.git.christophe.leroy@c-s.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200428155808.GJ5677@sirena.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Brown <broonie@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>S
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([217.72.192.75]:44447 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727917AbgD1QFW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Apr 2020 12:05:22 -0400
+In-Reply-To: <e78344d3fcc1d33bfb1782e430b7f0529f6c612f.1588079622.git.christophe.leroy@c-s.fr>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christophe Leroy <christophe.leroy@c-s.fr>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Nathan Lynch <nathanl@linux.ibm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Thomas Gleixner <tglx@linutronix.de>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Andy Lutomirski <luto@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Tue, Apr 28, 2020 at 04:58:12PM +0100, Mark Brown wrote:
-> On Tue, Apr 28, 2020 at 04:18:16PM +0100, Will Deacon wrote:
-> > On Tue, Apr 28, 2020 at 04:12:05PM +0100, Mark Brown wrote:
-> 
-> > > It's probably easier for me if you just use the existing branch, I've
-> > > already got a branch based on a merge down.
-> 
-> > Okey doke, I'll funnel that in the direction of linux-next then. It does
-> > mean that any subsequent patches for 5.8 that depend on BTI will need to
-> > be based on this branch, so as long as you're ok with that then it's fine
-> > by me (since I won't be able to apply patches if they refer to changes
-> > introduced in the recent merge window).
-> 
-> That's not a problem, that's what I've got already and if I try to send
-> everything based off -rc3 directly the series would get unmanagably
-> large.  Actually unless you think it's a bad idea I think what I'll do
-> is go and send out a couple of the preparatory changes (the insn updates
-> and the last bit of annotation conversions) separately for that branch
-> while I finalize the revisions of the main BTI kernel bit, hopefully
-> that'll make the review a bit more approachable.
+On Tue, Apr 28, 2020 at 3:16 PM Christophe Leroy
+<christophe.leroy@c-s.fr> wrote:
+>
+> Provides __kernel_clock_gettime64() on vdso32. This is the
+> 64 bits version of __kernel_clock_gettime() which is
+> y2038 compliant.
+>
+> Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 
-Okey doke, sounds good to me. I'm queuing stuff atm, so as long you tell
-me what I need to apply things against then we should be good.
+Looks good to me
 
-Will
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+
+There was a bug on ARM for the corresponding function, so far it is unclear
+if this was a problem related to particular hardware, the 32-bit kernel code,
+or the common implementation of clock_gettime64 in the vdso library,
+see https://github.com/richfelker/musl-cross-make/issues/96
+
+Just to be sure that powerpc is not affected by the same issue, can you
+confirm that repeatedly calling clock_gettime64 on powerpc32, alternating
+between vdso and syscall, results in monotically increasing times?
+
+       Arnd
