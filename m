@@ -1,95 +1,136 @@
-Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v10 15/26] mm: Fixup places that call pte_mkwrite() directly
-Date: Wed, 29 Apr 2020 15:07:21 -0700
-Message-ID: <20200429220732.31602-16-yu-cheng.yu@intel.com>
-In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-2.mimecast.com ([205.139.110.61]:46298 "EHLO
+        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1728265AbgD1P2u (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Apr 2020 11:28:50 -0400
+Date: Tue, 28 Apr 2020 11:12:50 -0300
+From: Marcelo Tosatti <mtosatti@redhat.com>
+Subject: Re: [PATCH 03/12] task_isolation: userspace hard isolation from
+ kernel
+Message-ID: <20200428141250.GA28012@fuller.cnet>
+References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
+ <36d84b8dd168a38e6a56549dedc15dd6ebf8c09e.camel@marvell.com>
+ <20200305183313.GA29033@lenoir>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200305183313.GA29033@lenoir>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429220721.2XRqk7h3GPgst8O1Ck1QulPgnr59dSqt7qS-r6KKTts@z>
+To: Frederic Weisbecker <frederic@kernel.org>, Alex Belits <abelits@marvell.com>
+Cc: "rostedt@goodmis.org" <rostedt@goodmis.org>, "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-mm@vger.kernel.org" <linux-mm@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20200428141250.L4V9MpnArLzar1VtYwCGng9O6EO1h8UuD2FGrWpLw9k@z>
 
-A shadow stack page is made writable by pte_mkwrite_shstk(), which sets
-_PAGE_DIRTY_HW.  There are a few places that call pte_mkwrite() directly
-and miss the maybe_mkwrite() fixup in the previous patch.  Fix them with
-maybe_mkwrite():
 
-- do_anonymous_page() and migrate_vma_insert_page() check VM_WRITE direct=
-ly
-  and call pte_mkwrite(), which is the same as maybe_mkwrite().  Change
-  them to maybe_mkwrite().
+I like the idea as well, especially the reporting infrastructure, and 
+would like to see something like this integrated upstream.
 
-- In do_numa_page(), if the numa entry 'was-writable', then pte_mkwrite()
-  is called directly.  Fix it by doing maybe_mkwrite().
+On Thu, Mar 05, 2020 at 07:33:13PM +0100, Frederic Weisbecker wrote:
+> On Wed, Mar 04, 2020 at 04:07:12PM +0000, Alex Belits wrote:
+> > The existing nohz_full mode is designed as a "soft" isolation mode
+> > that makes tradeoffs to minimize userspace interruptions while
+> > still attempting to avoid overheads in the kernel entry/exit path,
+> > to provide 100% kernel semantics, etc.
+> > 
+> > However, some applications require a "hard" commitment from the
+> > kernel to avoid interruptions, in particular userspace device driver
+> > style applications, such as high-speed networking code.
+> > 
+> > This change introduces a framework to allow applications
+> > to elect to have the "hard" semantics as needed, specifying
+> > prctl(PR_TASK_ISOLATION, PR_TASK_ISOLATION_ENABLE) to do so.
+> > 
+> > The kernel must be built with the new TASK_ISOLATION Kconfig flag
+> > to enable this mode, and the kernel booted with an appropriate
+> > "isolcpus=nohz,domain,CPULIST" boot argument to enable
+> > nohz_full and isolcpus. The "task_isolation" state is then indicated
+> > by setting a new task struct field, task_isolation_flag, to the
+> > value passed by prctl(), and also setting a TIF_TASK_ISOLATION
+> > bit in the thread_info flags. When the kernel is returning to
+> > userspace from the prctl() call and sees TIF_TASK_ISOLATION set,
+> > it calls the new task_isolation_start() routine to arrange for
+> > the task to avoid being interrupted in the future.
+> > 
+> > With interrupts disabled, task_isolation_start() ensures that kernel
+> > subsystems that might cause a future interrupt are quiesced. If it
+> > doesn't succeed, it adjusts the syscall return value to indicate that
+> > fact, and userspace can retry as desired. In addition to stopping
+> > the scheduler tick, the code takes any actions that might avoid
+> > a future interrupt to the core, such as a worker thread being
+> > scheduled that could be quiesced now (e.g. the vmstat worker)
+> > or a future IPI to the core to clean up some state that could be
+> > cleaned up now (e.g. the mm lru per-cpu cache).
+> > 
+> > Once the task has returned to userspace after issuing the prctl(),
+> > if it enters the kernel again via system call, page fault, or any
+> > other exception or irq, the kernel will kill it with SIGKILL.
 
-- In change_pte_range(), pte_mkwrite() is called directly.  Replace it wi=
-th
-  maybe_mkwrite().
+This severely limits usage of the interface. 
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
- mm/memory.c   | 5 ++---
- mm/migrate.c  | 3 +--
- mm/mprotect.c | 2 +-
- 3 files changed, 4 insertions(+), 6 deletions(-)
+I suppose the reason for blocking system calls is to make sure 
+userspace does not initiate actions that might generate interruptions, 
+such as IPI flushes (memory unmaps or changes), vmstat work items
+(page dirtying), or is there any reason for it ?
 
-diff --git a/mm/memory.c b/mm/memory.c
-index f703fe8c8346..b9002f644806 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3373,8 +3373,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault=
- *vmf)
- 	__SetPageUptodate(page);
-=20
- 	entry =3D mk_pte(page, vma->vm_page_prot);
--	if (vma->vm_flags & VM_WRITE)
--		entry =3D pte_mkwrite(pte_mkdirty(entry));
-+	entry =3D maybe_mkwrite(pte_mkdirty(entry), vma);
-=20
- 	vmf->pte =3D pte_offset_map_lock(vma->vm_mm, vmf->pmd, vmf->address,
- 			&vmf->ptl);
-@@ -4033,7 +4032,7 @@ static vm_fault_t do_numa_page(struct vm_fault *vmf=
-)
- 	pte =3D pte_modify(old_pte, vma->vm_page_prot);
- 	pte =3D pte_mkyoung(pte);
- 	if (was_writable)
--		pte =3D pte_mkwrite(pte);
-+		pte =3D maybe_mkwrite(pte, vma);
- 	ptep_modify_prot_commit(vma, vmf->address, vmf->pte, old_pte, pte);
- 	update_mmu_cache(vma, vmf->address, vmf->pte);
-=20
-diff --git a/mm/migrate.c b/mm/migrate.c
-index 7160c1556f79..0fa59b1562c6 100644
---- a/mm/migrate.c
-+++ b/mm/migrate.c
-@@ -2805,8 +2805,7 @@ static void migrate_vma_insert_page(struct migrate_=
-vma *migrate,
- 		}
- 	} else {
- 		entry =3D mk_pte(page, vma->vm_page_prot);
--		if (vma->vm_flags & VM_WRITE)
--			entry =3D pte_mkwrite(pte_mkdirty(entry));
-+		entry =3D maybe_mkwrite(pte_mkdirty(entry), vma);
- 	}
-=20
- 	ptep =3D pte_offset_map_lock(mm, pmdp, addr, &ptl);
-diff --git a/mm/mprotect.c b/mm/mprotect.c
-index 494192ca954b..02762af1057c 100644
---- a/mm/mprotect.c
-+++ b/mm/mprotect.c
-@@ -135,7 +135,7 @@ static unsigned long change_pte_range(struct vm_area_=
-struct *vma, pmd_t *pmd,
- 			if (dirty_accountable && pte_dirty(ptent) &&
- 					(pte_soft_dirty(ptent) ||
- 					 !(vma->vm_flags & VM_SOFTDIRTY))) {
--				ptent =3D pte_mkwrite(ptent);
-+				ptent =3D maybe_mkwrite(ptent, vma);
- 			}
- 			ptep_modify_prot_commit(vma, addr, pte, oldpte, ptent);
- 			pages++;
---=20
-2.21.0
+
++/* Only a few syscalls are valid once we are in task isolation mode. */
++static bool is_acceptable_syscall(int syscall)
++{
++       /* No need to incur an isolation signal if we are just exiting. */
++       if (syscall == __NR_exit || syscall == __NR_exit_group)
++               return true;
++       
++       /* Check to see if it's the prctl for isolation. */
++       if (syscall == __NR_prctl) {
++               unsigned long arg[SYSCALL_MAX_ARGS];
++       
++               syscall_get_arguments(current, current_pt_regs(), arg);
++               if (arg[0] == PR_TASK_ISOLATION)
++                       return true;
++       }
++ 
++       return false;
++}
+
+
+> > In addition to sending a signal, the code supports a kernel
+> > command-line "task_isolation_debug" flag which causes a stack
+> > backtrace to be generated whenever a task loses isolation.
+> > 
+> > To allow the state to be entered and exited, the syscall checking
+> > test ignores the prctl(PR_TASK_ISOLATION) syscall so that we can
+> > clear the bit again later, and ignores exit/exit_group to allow
+> > exiting the task without a pointless signal being delivered.
+> > 
+> > The prctl() API allows for specifying a signal number to use instead
+> > of the default SIGKILL, to allow for catching the notification
+> > signal; for example, in a production environment, it might be
+> > helpful to log information to the application logging mechanism
+> > before exiting. Or, the signal handler might choose to reset the
+> > program counter back to the code segment intended to be run isolated
+> > via prctl() to continue execution.
+> 
+> Hi Alew,
+> 
+> I'm glad this patchset is being resurected.
+> Reading that changelog, I like the general idea and the direction.
+> The diff is a bit scary though but I'll check the patches in detail
+> in the upcoming days.
+> 
+> > 
+> > In a number of cases we can tell on a remote cpu that we are
+> > going to be interrupting the cpu, e.g. via an IPI or a TLB flush.
+> > In that case we generate the diagnostic (and optional stack dump)
+> > on the remote core to be able to deliver better diagnostics.
+> > If the interrupt is not something caught by Linux (e.g. a
+> > hypervisor interrupt) we can also request a reschedule IPI to
+> > be sent to the remote core so it can be sure to generate a
+> > signal to notify the process.
+> 
+> I'm wondering if it's wise to run that on a guest at all :-)
+> Or we should consider any guest exit to the host as a
+> disturbance, we would then need some sort of paravirt
+> driver to notify that, etc... That doesn't sound appealing.
+> 
+> Thanks.
