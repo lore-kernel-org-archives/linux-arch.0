@@ -1,42 +1,89 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
-Date: Mon, 27 Apr 2020 21:28:14 -0700
-Message-ID: <CAHk-=whQzOsh9O2uhUO2VETD+hrzjKMpEJpzoUby5QHMcvgPKg@mail.gmail.com>
-References: <CAHk-=wga3O=BoKZXR27-CDnAFareWcMxXhpWerwtCffdaH6_ow@mail.gmail.com>
- <B7A115CB-0C8C-4719-B97B-74D94231CD1E@amacapital.net>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: Re: [PATCH 1/2] powerpc: Discard .rela* sections if
+ CONFIG_RELOCATABLE is undefined
+Date: Tue, 28 Apr 2020 07:31:38 +0200
+Message-ID: <55518443-1ab4-1961-beb5-43e9e41e3227@c-s.fr>
+References: <20200428014900.407098-1-hjl.tools@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <B7A115CB-0C8C-4719-B97B-74D94231CD1E@amacapital.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Christian Brauner <christian.brauner@ubuntu.com>, Arnd Bergmann <arnd@arndb.de>, Hagen Paul Pfeifer <hagen@jauu.net>, "Eric W. Biederman" <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, kernel list <linux-kernel@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:9824 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725792AbgD1Fbt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Apr 2020 01:31:49 -0400
+In-Reply-To: <20200428014900.407098-1-hjl.tools@gmail.com>
+Content-Language: fr
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "H.J. Lu" <hjl.tools@gmail.com>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Yu-cheng Yu <yu-cheng.yu@intel.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Paul Mackerras <paulus@samba.org>, "Naveen N . Rao" <naveen.n.rao@linux.vnet.ibm.com>, Borislav Petkov <bp@suse.de>, linuxppc-dev@lists.ozlabs.org
 
-On Mon, Apr 27, 2020 at 9:17 PM Andy Lutomirski <luto@amacapital.net> wrote=
-:
->
-> I hate to say this, but I=E2=80=99m not convinced that asking the gdb fol=
-ks is
-> the right approach. GDB has an ancient architecture and is
-> *incredibly* buggy. I=E2=80=99m sure ptrace is somewhere on the pain poin=
-t
-> list, but I suspect it=E2=80=99s utterly dwarfed by everything else.
+Hi,
 
-You may be right. However, if gdbn isn't going to use it, then I
-seriously don't think it's worth changing much.
+Le 28/04/2020 à 03:48, H.J. Lu a écrit :
+> arch/powerpc/kernel/vmlinux.lds.S has
+> 
+>          DISCARDS
+>          /DISCARD/ : {
+>                  *(*.EMB.apuinfo)
+>                  *(.glink .iplt .plt .rela* .comment)
+>                  *(.gnu.version*)
+>                  *(.gnu.attributes)
+>                  *(.eh_frame)
+>          }
+> 
+> Since .rela* sections are needed when CONFIG_RELOCATABLE is defined,
+> change to discard .rela* sections if CONFIG_RELOCATABLE is undefined.
 
-It might be worth looking at people who don't use ptrace() for
-debugging, but for "incidental" reasons. IOW sandboxing, tracing,
-things like that.
+Your explanation and especially the subject are unclear.
 
-Maybe those people want things that are simpler and don't actually
-need the kinds of hard serialization that ptrace() wants.
+ From the subject you understand that you are adding a discard of the 
+.rela* sections if CONFIG_RELOCATABLE is undefined.
 
-I'd rather add a few really simple things that might not be a full
-complement of operations for a debugger, but exactly because they
-aren't a full debugger, maybe they are things that we can tell are
-obviously secure and simple?
+But when reading the patch, you see that it is the contrary: you are 
+removing a discard of the .rela* sections if CONFIG_RELOCATABLE is defined.
 
-               Linus
+
+So I think the subject could instead be:
+
+	Only discard .rela* sections when CONFIG_RELOCATABLE is undefined
+
+Or maybe better:
+
+	Keep .rela* sections when CONFIG_RELOCATABLE is defined
+
+And the explanation could be:
+
+	Since .rela* sections are needed when CONFIG_RELOCATABLE
+	is defined, don't discard .rela* sections if
+	CONFIG_RELOCATABLE is defined.
+
+> 
+> Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
+> Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
+> ---
+>   arch/powerpc/kernel/vmlinux.lds.S | 5 ++++-
+>   1 file changed, 4 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+> index 31a0f201fb6f..4ba07734a210 100644
+> --- a/arch/powerpc/kernel/vmlinux.lds.S
+> +++ b/arch/powerpc/kernel/vmlinux.lds.S
+> @@ -366,9 +366,12 @@ SECTIONS
+>   	DISCARDS
+>   	/DISCARD/ : {
+>   		*(*.EMB.apuinfo)
+> -		*(.glink .iplt .plt .rela* .comment)
+> +		*(.glink .iplt .plt .comment)
+>   		*(.gnu.version*)
+>   		*(.gnu.attributes)
+>   		*(.eh_frame)
+> +#ifndef CONFIG_RELOCATABLE
+> +		*(.rela*)
+> +#endif
+>   	}
+>   }
+> 
+
+Christophe
