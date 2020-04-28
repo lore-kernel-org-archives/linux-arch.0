@@ -1,75 +1,112 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 20/23] fs: Allow copy_mount_options() to access
- user-space in a single pass
-Date: Tue, 28 Apr 2020 20:40:01 +0100
-Message-ID: <20200428194001.GB35158@C02TF0J2HF1T.local>
-References: <20200421142603.3894-1-catalin.marinas@arm.com>
- <20200421142603.3894-21-catalin.marinas@arm.com>
- <9544d86b-d445-3497-fbbf-56c590400f83@arm.com>
+From: Syed Nayyar Waris <syednwaris@gmail.com>
+Subject: [PATCH v3 0/4] Introduce the for_each_set_clump macro
+Date: Wed, 29 Apr 2020 04:33:11 +0530
+Message-ID: <cover.1588112714.git.syednwaris@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58232 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728392AbgD1TkK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Apr 2020 15:40:10 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <9544d86b-d445-3497-fbbf-56c590400f83@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: akpm@linux-foundation.org
+Cc: andriy.shevchenko@linux.intel.com, vilhelm.gray@gmail.com, michal.simek@xilinx.com, arnd@arndb.de, rrichter@marvell.com, linus.walleij@linaro.org, bgolaszewski@baylibre.com, yamada.masahiro@socionext.com, rui.zhang@intel.com, daniel.lezcano@linaro.org, amit.kucheria@verdurent.com, linux-arch@vger.kernel.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 28, 2020 at 07:16:29PM +0100, Kevin Brodsky wrote:
-> On 21/04/2020 15:26, Catalin Marinas wrote:
-> > diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-> > index 32fc8061aa76..566da441eba2 100644
-> > --- a/arch/arm64/include/asm/uaccess.h
-> > +++ b/arch/arm64/include/asm/uaccess.h
-> > @@ -416,6 +416,17 @@ extern unsigned long __must_check __arch_copy_in_user(void __user *to, const voi
-> >   #define INLINE_COPY_TO_USER
-> >   #define INLINE_COPY_FROM_USER
-> > +static inline bool arch_has_exact_copy_from_user(unsigned long n)
-> > +{
-> > +	/*
-> > +	 * copy_from_user() aligns the source pointer if the size is greater
-> > +	 * than 15. Since all the loads are naturally aligned, they can only
-> > +	 * fail on the first byte.
-> > +	 */
-> > +	return n > 15;
-> > +}
-> > +#define arch_has_exact_copy_from_user
-> > +
-> >   extern unsigned long __must_check __arch_clear_user(void __user *to, unsigned long n);
-> >   static inline unsigned long __must_check __clear_user(void __user *to, unsigned long n)
-> >   {
-> > diff --git a/fs/namespace.c b/fs/namespace.c
-> > index a28e4db075ed..8febc50dfc5d 100644
-> > --- a/fs/namespace.c
-> > +++ b/fs/namespace.c
-> > @@ -3025,13 +3025,16 @@ void *copy_mount_options(const void __user * data)
-> >   	if (!copy)
-> >   		return ERR_PTR(-ENOMEM);
-> > -	size = PAGE_SIZE - offset_in_page(data);
-> > +	size = PAGE_SIZE;
-> > +	if (!arch_has_exact_copy_from_user(size))
-> > +		size -= offset_in_page(data);
-> > -	if (copy_from_user(copy, data, size)) {
-> > +	if (copy_from_user(copy, data, size) == size) {
-> >   		kfree(copy);
-> >   		return ERR_PTR(-EFAULT);
-> >   	}
-> >   	if (size != PAGE_SIZE) {
-> > +		WARN_ON(1);
-> 
-> I'm not sure I understand the rationale here. If we don't have exact
-> copy_from_user for size, then we will attempt to copy up to the end of the
-> page. Assuming this doesn't fault, we then want to carry on copying from the
-> start of the next page, until we reach a total size of up to 4K. Why would
-> we warn in that case?
+This patchset introduces a new generic version of for_each_set_clump. 
+The previous version of for_each_set_clump8 used a fixed size 8-bit
+clump, but the new generic version can work with clump of any size but
+less than or equal to BITS_PER_LONG. The patchset utilizes the new macro 
+in several GPIO drivers.
 
-We shouldn't warn, thanks for spotting this. I added it for some testing
-and somehow ended up in the commit.
+The earlier 8-bit for_each_set_clump8 facilitated a
+for-loop syntax that iterates over a memory region entire groups of set
+bits at a time.
 
+For example, suppose you would like to iterate over a 32-bit integer 8
+bits at a time, skipping over 8-bit groups with no set bit, where
+XXXXXXXX represents the current 8-bit group:
+
+    Example:        10111110 00000000 11111111 00110011
+    First loop:     10111110 00000000 11111111 XXXXXXXX
+    Second loop:    10111110 00000000 XXXXXXXX 00110011
+    Third loop:     XXXXXXXX 00000000 11111111 00110011
+
+Each iteration of the loop returns the next 8-bit group that has at
+least one set bit.
+
+But with the new for_each_set_clump the clump size can be different from 8 bits.
+Moreover, the clump can be split at word boundary in situations where word 
+size is not multiple of clump size. Following are examples showing the working 
+of new macro for clump sizes of 24 bits and 6 bits.
+
+Example 1:
+clump size: 24 bits, Number of clumps (or ports): 10
+bitmap stores the bit information from where successive clumps are retrieved.
+
+     /* bitmap memory region */
+        0x00aa0000ff000000;  /* Most significant bits */
+        0xaaaaaa0000ff0000;
+        0x000000aa000000aa;
+        0xbbbbabcdeffedcba;  /* Least significant bits */
+
+Different iterations of for_each_set_clump:-
+'offset' is the bit position and 'clump' is the 24 bit clump from the
+above bitmap.
+Iteration first:        offset: 0 clump: 0xfedcba
+Iteration second:       offset: 24 clump: 0xabcdef
+Iteration third:        offset: 48 clump: 0xaabbbb
+Iteration fourth:       offset: 96 clump: 0xaa
+Iteration fifth:        offset: 144 clump: 0xff
+Iteration sixth:        offset: 168 clump: 0xaaaaaa
+Iteration seventh:      offset: 216 clump: 0xff
+Loop breaks because in the end the remaining bits (0x00aa) size was less
+than clump size of 24 bits.
+
+In above example it can be seen that in iteration third, the 24 bit clump
+that was retrieved was split between bitmap[0] and bitmap[1]. This example 
+also shows that 24 bit zeroes if present in between, were skipped (preserving
+the previous for_each_set_macro8 behaviour). 
+
+Example 2:
+clump size = 6 bits, Number of clumps (or ports) = 3.
+
+     /* bitmap memory region */
+        0x00aa0000ff000000;  /* Most significant bits */
+        0xaaaaaa0000ff0000;
+        0x0f00000000000000;
+        0x0000000000000ac0;  /* Least significant bits */
+
+Different iterations of for_each_set_clump:
+'offset' is the bit position and 'clump' is the 6 bit clump from the
+above bitmap.
+Iteration first:        offset: 6 clump: 0x2b
+Loop breaks because 6 * 3 = 18 bits traversed in bitmap.
+Here 6 * 3 is clump size * no. of clumps.
+
+Changes in v3:
+ - Patch 3: Change datatype of some variables from u64 to unsigned long
+   in function thunderx_gpio_set_multiple.
+
+CHanges in v2:
+ - Patch 2: Unify different tests for 'for_each_set_clump'. Pass test data as
+   function parameters.
+ - Patch 2: Remove unnecessary bitmap_zero calls.
+
+Syed Nayyar Waris (4):
+  bitops: Introduce the the for_each_set_clump macro
+  lib/test_bitmap.c: Add for_each_set_clump test cases
+  gpio: thunderx: Utilize for_each_set_clump macro
+  gpio: xilinx: Utilize for_each_set_clump macro
+
+ drivers/gpio/gpio-thunderx.c      |  12 ++-
+ drivers/gpio/gpio-xilinx.c        |  64 ++++++++--------
+ include/asm-generic/bitops/find.h |  19 +++++
+ include/linux/bitmap.h            |  61 +++++++++++++++
+ include/linux/bitops.h            |  13 ++++
+ lib/find_bit.c                    |  14 ++++
+ lib/test_bitmap.c                 | 121 ++++++++++++++++++++++++++++++
+ 7 files changed, 270 insertions(+), 34 deletions(-)
+
+
+base-commit: a9509b8ee069a06cd14334edca904bd0607622ca
 -- 
-Catalin
+2.26.2
