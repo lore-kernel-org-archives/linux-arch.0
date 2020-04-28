@@ -1,104 +1,55 @@
-Return-Path: <SRS0=8Oio=5S=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-wm1-f68.google.com ([209.85.128.68]:38137 "EHLO
-        mail-wm1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389689AbgDBQUx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Apr 2020 12:20:53 -0400
+Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:60026 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727879AbgD1PMK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Apr 2020 11:12:10 -0400
+Date: Tue, 28 Apr 2020 16:12:05 +0100
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
+Message-ID: <20200428151205.GH5677@sirena.org.uk>
+References: <20200316165055.31179-1-broonie@kernel.org>
+ <20200422154436.GJ4898@sirena.org.uk>
+ <20200422162954.GF3585@gaia>
+ <20200428132804.GF6791@willie-the-truck>
 MIME-Version: 1.0
-References: <20200228002244.15240-1-keescook@chromium.org>
-In-Reply-To: <20200228002244.15240-1-keescook@chromium.org>
-Reply-To: sedat.dilek@gmail.com
-From: Sedat Dilek <sedat.dilek@gmail.com>
-Date: Thu, 2 Apr 2020 18:20:57 +0200
-Message-ID: <CA+icZUWTnP8DYfbaMwKtJbG30v7bB4w6=ywo8gn8fvwr731mUQ@mail.gmail.com>
-Subject: Re: [PATCH 0/9] Enable orphan section warning
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="Bg2esWel0ueIH/G/"
+Content-Disposition: inline
+In-Reply-To: <20200428132804.GF6791@willie-the-truck>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Borislav Petkov <bp@suse.de>, "H.J. Lu" <hjl.tools@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Arnd Bergmann <arnd@arndb.de>, Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Clang-Built-Linux ML <clang-built-linux@googlegroups.com>, linux-kernel@vger.kernel.org
-Message-ID: <20200402162057.MOJH-lns10Ug2GhgdFqnyqPq9-EIh1o1KNcjMLfxfxI@z>
+To: Will Deacon <will@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200428151205.A6nnAnR_YJfNya0RIq-pWpKJ91t5zrwm35SQDU1ntqY@z>
 
-On Fri, Feb 28, 2020 at 1:22 AM Kees Cook <keescook@chromium.org> wrote:
->
-> Hi!
->
-> A recent bug was solved for builds linked with ld.lld, and tracking
-> it down took way longer than it needed to (a year). Ultimately, it
-> boiled down to differences between ld.bfd and ld.lld's handling of
-> orphan sections. Similarly, the recent FGKASLR series brough up orphan
-> section handling too[2]. In both cases, it would have been nice if the
-> linker was running with --orphan-handling=warn so that surprise sections
-> wouldn't silently get mapped into the kernel image at locations up to
-> the whim of the linker's orphan handling logic. Instead, all desired
-> sections should be explicitly identified in the linker script (to be
-> either kept or discarded) with any orphans throwing a warning. The
-> powerpc architecture actually already does this, so this series seeks
-> to extend this coverage to x86, arm64, and arm.
->
-> This series depends on tip/x86/boot (where recent .eh_frame fixes[3]
-> landed), and has a minor conflict[4] with the ARM tree (related to
-> the earlier mentioned bug). As it uses refactorings in the asm-generic
-> linker script, and makes changes to kbuild, I think the cleanest place
-> for this series to land would also be through -tip. Once again (like
-> my READ_IMPLIES_EXEC series), I'm looking to get maintainer Acks so
-> this can go all together with the least disruption. Splitting it up by
-> architecture seems needlessly difficult.
->
-> Thanks!
->
 
-Hi Kees,
+--Bg2esWel0ueIH/G/
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-what is the status of this patchset?
-Looks like it is not in tip or linux-next Git.
+On Tue, Apr 28, 2020 at 02:28:05PM +0100, Will Deacon wrote:
 
-Thanks.
+> I'm happy either way, but it would be nice to base other BTI patches on
+> top of this branch. Mark -- is it easier for you to refresh the series
+> against v5.7-rc3, or leave it like it is? Please just let me know either
+> way.
 
-Regards,
-- Sedat -
+It's probably easier for me if you just use the existing branch, I've
+already got a branch based on a merge down.
 
-> -Kees
->
-> [1] https://github.com/ClangBuiltLinux/linux/issues/282
-> [2] https://lore.kernel.org/lkml/202002242122.AA4D1B8@keescook/
-> [3] https://lore.kernel.org/lkml/158264960194.28353.10560165361470246192.tip-bot2@tip-bot2/
-> [4] https://www.arm.linux.org.uk/developer/patches/viewpatch.php?id=8959/1
->
-> H.J. Lu (1):
->   Add RUNTIME_DISCARD_EXIT to generic DISCARDS
->
-> Kees Cook (8):
->   scripts/link-vmlinux.sh: Delay orphan handling warnings until final
->     link
->   vmlinux.lds.h: Add .gnu.version* to DISCARDS
->   x86/build: Warn on orphan section placement
->   x86/boot: Warn on orphan section placement
->   arm64/build: Use common DISCARDS in linker script
->   arm64/build: Warn on orphan section placement
->   arm/build: Warn on orphan section placement
->   arm/boot: Warn on orphan section placement
->
->  arch/arm/Makefile                             |  4 ++++
->  arch/arm/boot/compressed/Makefile             |  2 ++
->  arch/arm/boot/compressed/vmlinux.lds.S        | 17 ++++++--------
->  .../arm/{kernel => include/asm}/vmlinux.lds.h | 22 ++++++++++++++-----
->  arch/arm/kernel/vmlinux-xip.lds.S             |  5 ++---
->  arch/arm/kernel/vmlinux.lds.S                 |  5 ++---
->  arch/arm64/Makefile                           |  4 ++++
->  arch/arm64/kernel/vmlinux.lds.S               | 13 +++++------
->  arch/x86/Makefile                             |  4 ++++
->  arch/x86/boot/compressed/Makefile             |  3 ++-
->  arch/x86/boot/compressed/vmlinux.lds.S        | 13 +++++++++++
->  arch/x86/kernel/vmlinux.lds.S                 |  7 ++++++
->  include/asm-generic/vmlinux.lds.h             | 11 ++++++++--
->  scripts/link-vmlinux.sh                       |  6 +++++
->  14 files changed, 85 insertions(+), 31 deletions(-)
->  rename arch/arm/{kernel => include/asm}/vmlinux.lds.h (92%)
->
-> --
-> 2.20.1
->
-> --
-> You received this message because you are subscribed to the Google Groups "Clang Built Linux" group.
-> To unsubscribe from this group and stop receiving emails from it, send an email to clang-built-linux+unsubscribe@googlegroups.com.
-> To view this discussion on the web visit https://groups.google.com/d/msgid/clang-built-linux/20200228002244.15240-1-keescook%40chromium.org.
+--Bg2esWel0ueIH/G/
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl6oR8QACgkQJNaLcl1U
+h9DRUQf/dlpsgh2tPKIHik+DY7EQMgJJUmD7ZJRWxntS4/wM6bMOxOT617T0Cljr
+ERZBQ8cyC6N3d2HdeY1TyjMenKaCWrMVps1bPjuZqZYMEGEBXWi3TwoW8hPojTw4
+l3lh7Z5Eg3da+YBS1sOzymIlfcPg7JRA7f7Z9KtbSs1srWTTetHurhtK59xD9l0p
+B6QNwoJBKybECHjkIsNK8xOc03nY4vmXcrbHLWs0POF8gJRVaLLrJxgozJ6q4Nj7
+9VEgiQWIkvLH7daFvPPyagp1WWdrxt6noTK2hkNvB5q46VxasUOoybeKB7IX6/jb
+Sj4vxb1g49Kcf1pjRwRSz1rGe/E0Dw==
+=09DA
+-----END PGP SIGNATURE-----
+
+--Bg2esWel0ueIH/G/--
