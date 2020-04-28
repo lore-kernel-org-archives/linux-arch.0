@@ -1,45 +1,74 @@
-Return-Path: <SRS0=yGje=5Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pg1-f194.google.com ([209.85.215.194]:45387 "EHLO
-        mail-pg1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726725AbgDIRIS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2020 13:08:18 -0400
-Date: Thu, 9 Apr 2020 10:08:13 -0700
-From: Minchan Kim <minchan@kernel.org>
-Subject: Re: [PATCH 10/28] mm: only allow page table mappings for built-in
- zsmalloc
-Message-ID: <20200409170813.GD247701@google.com>
-References: <20200408115926.1467567-1-hch@lst.de>
- <20200408115926.1467567-11-hch@lst.de>
- <20200409160826.GC247701@google.com>
- <20200409165030.GG20713@hirez.programming.kicks-ass.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200409165030.GG20713@hirez.programming.kicks-ass.net>
+Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:16939 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726764AbgD1NQs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Apr 2020 09:16:48 -0400
+Message-ID: <cover.1588079622.git.christophe.leroy@c-s.fr>
+From: Christophe Leroy <christophe.leroy@c-s.fr>
+Subject: [PATCH v8 0/8] powerpc: switch VDSO to C implementation
+Date: Tue, 28 Apr 2020 13:16:46 +0000 (UTC)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org, sergey.senozhatsky@gmail.com
-Message-ID: <20200409170813.Ji8IdPnW6Ul4kDglihnkP25G4cz-Tk2YrxWKpXHIQew@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200428131646.obr9atVmMACkMIGUJ3LDcg9Rm7kcrCbeEY6DdQiniZk@z>
 
-On Thu, Apr 09, 2020 at 06:50:30PM +0200, Peter Zijlstra wrote:
-> On Thu, Apr 09, 2020 at 09:08:26AM -0700, Minchan Kim wrote:
-> > On Wed, Apr 08, 2020 at 01:59:08PM +0200, Christoph Hellwig wrote:
-> > > This allows to unexport map_vm_area and unmap_kernel_range, which are
-> > > rather deep internal and should not be available to modules.
-> > 
-> > Even though I don't know how many usecase we have using zsmalloc as
-> > module(I heard only once by dumb reason), it could affect existing
-> > users. Thus, please include concrete explanation in the patch to
-> > justify when the complain occurs.
-> 
-> The justification is 'we can unexport functions that have no sane reason
-> of being exported in the first place'.
-> 
-> The Changelog pretty much says that.
+This is the seventh version of a series to switch powerpc VDSO to
+generic C implementation.
 
-Okay, I hope there is no affected user since this patch.
-If there are someone, they need to provide sane reason why they want
-to have zsmalloc as module.
+Main changes since v7 are:
+- Added gettime64 on PPC32
 
-Acked-by: Minchan Kim <minchan@kernel.org>
+This series applies on today's powerpc/merge branch.
+
+See the last patches for details on changes and performance.
+
+Christophe Leroy (8):
+  powerpc/vdso64: Switch from __get_datapage() to get_datapage inline
+    macro
+  powerpc/vdso: Remove __kernel_datapage_offset and simplify
+    __get_datapage()
+  powerpc/vdso: Remove unused \tmp param in __get_datapage()
+  powerpc/processor: Move cpu_relax() into asm/vdso/processor.h
+  powerpc/vdso: Prepare for switching VDSO to generic C implementation.
+  powerpc/vdso: Switch VDSO to generic C implementation.
+  lib/vdso: force inlining of __cvdso_clock_gettime_common()
+  powerpc/vdso: Provide __kernel_clock_gettime64() on vdso32
+
+ arch/powerpc/Kconfig                         |   2 +
+ arch/powerpc/include/asm/clocksource.h       |   7 +
+ arch/powerpc/include/asm/processor.h         |  10 +-
+ arch/powerpc/include/asm/vdso/clocksource.h  |   7 +
+ arch/powerpc/include/asm/vdso/gettimeofday.h | 175 +++++++++++
+ arch/powerpc/include/asm/vdso/processor.h    |  23 ++
+ arch/powerpc/include/asm/vdso/vsyscall.h     |  25 ++
+ arch/powerpc/include/asm/vdso_datapage.h     |  50 ++--
+ arch/powerpc/kernel/asm-offsets.c            |  49 +--
+ arch/powerpc/kernel/time.c                   |  91 +-----
+ arch/powerpc/kernel/vdso.c                   |  58 +---
+ arch/powerpc/kernel/vdso32/Makefile          |  32 +-
+ arch/powerpc/kernel/vdso32/cacheflush.S      |   2 +-
+ arch/powerpc/kernel/vdso32/config-fake32.h   |  34 +++
+ arch/powerpc/kernel/vdso32/datapage.S        |   7 +-
+ arch/powerpc/kernel/vdso32/gettimeofday.S    | 300 +------------------
+ arch/powerpc/kernel/vdso32/vdso32.lds.S      |   8 +-
+ arch/powerpc/kernel/vdso32/vgettimeofday.c   |  35 +++
+ arch/powerpc/kernel/vdso64/Makefile          |  23 +-
+ arch/powerpc/kernel/vdso64/cacheflush.S      |   9 +-
+ arch/powerpc/kernel/vdso64/datapage.S        |  31 +-
+ arch/powerpc/kernel/vdso64/gettimeofday.S    | 243 +--------------
+ arch/powerpc/kernel/vdso64/vdso64.lds.S      |   7 +-
+ arch/powerpc/kernel/vdso64/vgettimeofday.c   |  29 ++
+ lib/vdso/gettimeofday.c                      |   2 +-
+ 25 files changed, 460 insertions(+), 799 deletions(-)
+ create mode 100644 arch/powerpc/include/asm/clocksource.h
+ create mode 100644 arch/powerpc/include/asm/vdso/clocksource.h
+ create mode 100644 arch/powerpc/include/asm/vdso/gettimeofday.h
+ create mode 100644 arch/powerpc/include/asm/vdso/processor.h
+ create mode 100644 arch/powerpc/include/asm/vdso/vsyscall.h
+ create mode 100644 arch/powerpc/kernel/vdso32/config-fake32.h
+ create mode 100644 arch/powerpc/kernel/vdso32/vgettimeofday.c
+ create mode 100644 arch/powerpc/kernel/vdso64/vgettimeofday.c
+
+-- 
+2.25.0
