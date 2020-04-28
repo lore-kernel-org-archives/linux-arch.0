@@ -1,75 +1,66 @@
-From: Aleksa Sarai <cyphar@cyphar.com>
-Subject: Re: [LTP] [fs] ce436509a8: ltp.openat203.fail
-Date: Wed, 29 Apr 2020 01:35:58 +1000
-Message-ID: <20200428153558.r32pgvymgk56urtu@yavin.dot.cyphar.com>
-References: <f969e7d45a8e83efc1ca13d675efd8775f13f376.1586830316.git.josh@joshtriplett.org>
- <20200427135210.GB5770@shao2-debian>
- <20200427142733.GD7661@rei>
- <20200428005126.6wncibudt6ohghvc@yavin.dot.cyphar.com>
- <20200428153022.GC4244@yuki.lan>
+From: Mark Brown <broonie@kernel.org>
+Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
+Date: Tue, 28 Apr 2020 16:58:12 +0100
+Message-ID: <20200428155808.GJ5677@sirena.org.uk>
+References: <20200316165055.31179-1-broonie@kernel.org>
+ <20200422154436.GJ4898@sirena.org.uk>
+ <20200422162954.GF3585@gaia>
+ <20200428132804.GF6791@willie-the-truck>
+ <20200428151205.GH5677@sirena.org.uk>
+ <20200428151815.GB12697@willie-the-truck>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="qekeybbajeoqkaf2"
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="GvznHscUikHnwW2p"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:54488 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728225AbgD1P6P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Apr 2020 11:58:15 -0400
 Content-Disposition: inline
-In-Reply-To: <20200428153022.GC4244@yuki.lan>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Cyril Hrubis <chrubis@suse.cz>
-Cc: kernel test robot <rong.a.chen@intel.com>, Josh Triplett <josh@joshtriplett.org>, linux-arch@vger.kernel.org, Jens Axboe <axboe@kernel.dk>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, lkp@lists.01.org, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, io-uring@vger.kernel.org, ltp@lists.linux.it
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20200428151815.GB12697@willie-the-truck>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>S
 
 
---qekeybbajeoqkaf2
+--GvznHscUikHnwW2p
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
 
-On 2020-04-28, Cyril Hrubis <chrubis@suse.cz> wrote:
-> Hi!
-> > > > commit: ce436509a8e109330c56bb4d8ec87d258788f5f4 ("[PATCH v4 2/3] f=
-s: openat2: Extend open_how to allow userspace-selected fds")
-> > > > url: https://github.com/0day-ci/linux/commits/Josh-Triplett/Support=
--userspace-selected-fds/20200414-102939
-> > > > base: https://git.kernel.org/cgit/linux/kernel/git/shuah/linux-ksel=
-ftest.git next
-> > >=20
-> > > This commit adds fd parameter to the how structure where LTP test was
-> > > previously passing garbage, which obviously causes the difference in
-> > > errno.
-> > >=20
-> > > This could be safely ignored for now, if the patch gets merged the te=
-st
-> > > needs to be updated.
-> >=20
-> > It wouldn't be a bad idea to switch the test to figure out the ksize of
-> > the struct, so that you only add bad padding after that. But then again,
-> > this would be a bit ugly -- having CHECK_FIELDS would make this simpler.
->=20
-> Any pointers how can be the size figured out without relying on the
-> E2BIG we are testing for? Does the kernel export it somewhere?
+On Tue, Apr 28, 2020 at 04:18:16PM +0100, Will Deacon wrote:
+> On Tue, Apr 28, 2020 at 04:12:05PM +0100, Mark Brown wrote:
 
-No, you would have to effectively binary search on -E2BIG at the moment.
-CHECK_FIELDS is a proposal I have which would allow you to get get the
-size of the in-kernel struct, but it's still a proposal.
+> > It's probably easier for me if you just use the existing branch, I've
+> > already got a branch based on a merge down.
 
-In theory you could get the size through BTF, but it's probably more
-effort than it's worth to implement that.
+> Okey doke, I'll funnel that in the direction of linux-next then. It does
+> mean that any subsequent patches for 5.8 that depend on BTI will need to
+> be based on this branch, so as long as you're ok with that then it's fine
+> by me (since I won't be able to apply patches if they refer to changes
+> introduced in the recent merge window).
 
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
+That's not a problem, that's what I've got already and if I try to send
+everything based off -rc3 directly the series would get unmanagably
+large.  Actually unless you think it's a bad idea I think what I'll do
+is go and send out a couple of the preparatory changes (the insn updates
+and the last bit of annotation conversions) separately for that branch
+while I finalize the revisions of the main BTI kernel bit, hopefully
+that'll make the review a bit more approachable.
 
---qekeybbajeoqkaf2
+--GvznHscUikHnwW2p
 Content-Type: application/pgp-signature; name="signature.asc"
 
 -----BEGIN PGP SIGNATURE-----
 
-iHUEABYIAB0WIQSxZm6dtfE8gxLLfYqdlLljIbnQEgUCXqhNWwAKCRCdlLljIbnQ
-Esn9AQCkc2dq/DSy5/MYZkNgJc7GfzxvLJGPqfhRlbD3A09eyQEA0CfnnSVqWzit
-PCqYg2CM/EUK36nHPWj7vQb7o8bFSQo=
-=TzFl
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAl6oUo8ACgkQJNaLcl1U
+h9ANJwf/WRlo08Mn6rULa8b3pqa1bQzdRN/zAGUfNf93UHKMH2yvxQZ6GTGie8us
+Kw24VCNz5n7f6AjcO0v+vH6pAJxlD2DHraSawXDaEKZJ2YMnFSryzWFrWJr12klT
+DRRRi3+D2+GBFPflADAl2YaCfEV9D2USZGPG6OB/gkF43dmK1VIAon0ixx8WL7dw
+GtmV9U8DZlC9FrJd7gh9jbJGYiIgZ7hcMR2eyuzH5Z2gW4WPwWOkfd+pc9eBuyNl
+vbBauk5tAYnPssGMtNUG7M9gakg5U1GsRBY7E1QUJ97iMAUqiKN2Z1mharmqU6cs
+sswMEKQMo98MespYoImEM/wHQ5GqJw==
+=KIkv
 -----END PGP SIGNATURE-----
 
---qekeybbajeoqkaf2--
+--GvznHscUikHnwW2p--
