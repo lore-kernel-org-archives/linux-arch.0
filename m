@@ -1,260 +1,79 @@
 From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH v8 2/8] powerpc/vdso: Remove __kernel_datapage_offset and
- simplify __get_datapage()
-Date: Tue, 28 Apr 2020 13:16:48 +0000 (UTC)
-Message-ID: <0d2201efe3c7727f2acc718aefd7c5bb22c66c57.1588079622.git.christophe.leroy@c-s.fr>
+Subject: [PATCH v8 8/8] powerpc/vdso: Provide __kernel_clock_gettime64() on
+ vdso32
+Date: Tue, 28 Apr 2020 13:16:54 +0000 (UTC)
+Message-ID: <e78344d3fcc1d33bfb1782e430b7f0529f6c612f.1588079622.git.christophe.leroy@c-s.fr>
 References: <cover.1588079622.git.christophe.leroy@c-s.fr>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:3827 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727113AbgD1NQ5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Apr 2020 09:16:57 -0400
 In-Reply-To: <cover.1588079622.git.christophe.leroy@c-s.fr>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com
 Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-The VDSO datapage and the text pages are always located immediately
-next to each other, so it can be hardcoded without an indirection
-through __kernel_datapage_offset
-
-In order to ease things, move the data page in front like other
-arches, that way there is no need to know the size of the library
-to locate the data page.
-
-Before:
-clock-getres-realtime-coarse:    vdso: 714 nsec/call
-clock-gettime-realtime-coarse:    vdso: 792 nsec/call
-clock-gettime-realtime:    vdso: 1243 nsec/call
-
-After:
-clock-getres-realtime-coarse:    vdso: 699 nsec/call
-clock-gettime-realtime-coarse:    vdso: 784 nsec/call
-clock-gettime-realtime:    vdso: 1231 nsec/call
+Provides __kernel_clock_gettime64() on vdso32. This is the
+64 bits version of __kernel_clock_gettime() which is
+y2038 compliant.
 
 Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 ---
-v7:
-- Moved the removal of the tmp param of __get_datapage()
-in a subsequent patch
-- Included the addition of the offset param to __get_datapage()
-in the further preparatory patch
----
- arch/powerpc/include/asm/vdso_datapage.h |  8 ++--
- arch/powerpc/kernel/vdso.c               | 53 ++++--------------------
- arch/powerpc/kernel/vdso32/datapage.S    |  3 --
- arch/powerpc/kernel/vdso32/vdso32.lds.S  |  7 +---
- arch/powerpc/kernel/vdso64/datapage.S    |  3 --
- arch/powerpc/kernel/vdso64/vdso64.lds.S  |  7 +---
- 6 files changed, 16 insertions(+), 65 deletions(-)
+ arch/powerpc/kernel/vdso32/gettimeofday.S  | 9 +++++++++
+ arch/powerpc/kernel/vdso32/vdso32.lds.S    | 1 +
+ arch/powerpc/kernel/vdso32/vgettimeofday.c | 6 ++++++
+ 3 files changed, 16 insertions(+)
 
-diff --git a/arch/powerpc/include/asm/vdso_datapage.h b/arch/powerpc/include/asm/vdso_datapage.h
-index b9ef6cf50ea5..11886467dfdf 100644
---- a/arch/powerpc/include/asm/vdso_datapage.h
-+++ b/arch/powerpc/include/asm/vdso_datapage.h
-@@ -118,10 +118,12 @@ extern struct vdso_data *vdso_data;
+diff --git a/arch/powerpc/kernel/vdso32/gettimeofday.S b/arch/powerpc/kernel/vdso32/gettimeofday.S
+index fd7b01c51281..a6e29f880e0e 100644
+--- a/arch/powerpc/kernel/vdso32/gettimeofday.S
++++ b/arch/powerpc/kernel/vdso32/gettimeofday.S
+@@ -35,6 +35,15 @@ V_FUNCTION_BEGIN(__kernel_clock_gettime)
+ 	cvdso_call __c_kernel_clock_gettime
+ V_FUNCTION_END(__kernel_clock_gettime)
  
- .macro get_datapage ptr, tmp
- 	bcl	20, 31, .+4
-+999:
- 	mflr	\ptr
--	addi	\ptr, \ptr, (__kernel_datapage_offset - (.-4))@l
--	lwz	\tmp, 0(\ptr)
--	add	\ptr, \tmp, \ptr
-+#if CONFIG_PPC_PAGE_SHIFT > 14
-+	addis	\ptr, \ptr, (_vdso_datapage - 999b)@ha
-+#endif
-+	addi	\ptr, \ptr, (_vdso_datapage - 999b)@l
- .endm
- 
- #endif /* __ASSEMBLY__ */
-diff --git a/arch/powerpc/kernel/vdso.c b/arch/powerpc/kernel/vdso.c
-index f38f26e844b6..d33fa22ddbed 100644
---- a/arch/powerpc/kernel/vdso.c
-+++ b/arch/powerpc/kernel/vdso.c
-@@ -190,7 +190,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	 * install_special_mapping or the perf counter mmap tracking code
- 	 * will fail to recognise it as a vDSO (since arch_vma_name fails).
- 	 */
--	current->mm->context.vdso_base = vdso_base;
-+	current->mm->context.vdso_base = vdso_base + PAGE_SIZE;
- 
- 	/*
- 	 * our vma flags don't have VM_WRITE so by default, the process isn't
-@@ -482,42 +482,6 @@ static __init void vdso_setup_trampolines(struct lib32_elfinfo *v32,
- 	vdso32_rt_sigtramp = find_function32(v32, "__kernel_sigtramp_rt32");
- }
- 
--static __init int vdso_fixup_datapage(struct lib32_elfinfo *v32,
--				       struct lib64_elfinfo *v64)
--{
--#ifdef CONFIG_VDSO32
--	Elf32_Sym *sym32;
--#endif
--#ifdef CONFIG_PPC64
--	Elf64_Sym *sym64;
--
--       	sym64 = find_symbol64(v64, "__kernel_datapage_offset");
--	if (sym64 == NULL) {
--		printk(KERN_ERR "vDSO64: Can't find symbol "
--		       "__kernel_datapage_offset !\n");
--		return -1;
--	}
--	*((int *)(vdso64_kbase + sym64->st_value - VDSO64_LBASE)) =
--		(vdso64_pages << PAGE_SHIFT) -
--		(sym64->st_value - VDSO64_LBASE);
--#endif /* CONFIG_PPC64 */
--
--#ifdef CONFIG_VDSO32
--	sym32 = find_symbol32(v32, "__kernel_datapage_offset");
--	if (sym32 == NULL) {
--		printk(KERN_ERR "vDSO32: Can't find symbol "
--		       "__kernel_datapage_offset !\n");
--		return -1;
--	}
--	*((int *)(vdso32_kbase + (sym32->st_value - VDSO32_LBASE))) =
--		(vdso32_pages << PAGE_SHIFT) -
--		(sym32->st_value - VDSO32_LBASE);
--#endif
--
--	return 0;
--}
--
--
- static __init int vdso_fixup_features(struct lib32_elfinfo *v32,
- 				      struct lib64_elfinfo *v64)
- {
-@@ -618,9 +582,6 @@ static __init int vdso_setup(void)
- 	if (vdso_do_find_sections(&v32, &v64))
- 		return -1;
- 
--	if (vdso_fixup_datapage(&v32, &v64))
--		return -1;
--
- 	if (vdso_fixup_features(&v32, &v64))
- 		return -1;
- 
-@@ -761,26 +722,26 @@ static int __init vdso_init(void)
- 	vdso32_pagelist = kcalloc(vdso32_pages + 2, sizeof(struct page *),
- 				  GFP_KERNEL);
- 	BUG_ON(vdso32_pagelist == NULL);
-+	vdso32_pagelist[0] = virt_to_page(vdso_data);
- 	for (i = 0; i < vdso32_pages; i++) {
- 		struct page *pg = virt_to_page(vdso32_kbase + i*PAGE_SIZE);
- 		get_page(pg);
--		vdso32_pagelist[i] = pg;
-+		vdso32_pagelist[i + 1] = pg;
- 	}
--	vdso32_pagelist[i++] = virt_to_page(vdso_data);
--	vdso32_pagelist[i] = NULL;
-+	vdso32_pagelist[i + 1] = NULL;
- #endif
- 
- #ifdef CONFIG_PPC64
- 	vdso64_pagelist = kcalloc(vdso64_pages + 2, sizeof(struct page *),
- 				  GFP_KERNEL);
- 	BUG_ON(vdso64_pagelist == NULL);
-+	vdso64_pagelist[0] = virt_to_page(vdso_data);
- 	for (i = 0; i < vdso64_pages; i++) {
- 		struct page *pg = virt_to_page(vdso64_kbase + i*PAGE_SIZE);
- 		get_page(pg);
--		vdso64_pagelist[i] = pg;
-+		vdso64_pagelist[i + 1] = pg;
- 	}
--	vdso64_pagelist[i++] = virt_to_page(vdso_data);
--	vdso64_pagelist[i] = NULL;
-+	vdso64_pagelist[i + 1] = NULL;
- #endif /* CONFIG_PPC64 */
- 
- 	get_page(virt_to_page(vdso_data));
-diff --git a/arch/powerpc/kernel/vdso32/datapage.S b/arch/powerpc/kernel/vdso32/datapage.S
-index 217bb630f8f9..5513a4f8253e 100644
---- a/arch/powerpc/kernel/vdso32/datapage.S
-+++ b/arch/powerpc/kernel/vdso32/datapage.S
-@@ -13,9 +13,6 @@
- #include <asm/vdso_datapage.h>
- 
- 	.text
--	.global	__kernel_datapage_offset;
--__kernel_datapage_offset:
--	.long	0
++/*
++ * Exact prototype of clock_gettime64()
++ *
++ * int __kernel_clock_gettime64(clockid_t clock_id, struct __timespec64 *ts);
++ *
++ */
++V_FUNCTION_BEGIN(__kernel_clock_gettime64)
++	cvdso_call __c_kernel_clock_gettime64
++V_FUNCTION_END(__kernel_clock_gettime64)
  
  /*
-  * void *__kernel_get_syscall_map(unsigned int *syscall_count) ;
+  * Exact prototype of clock_getres()
 diff --git a/arch/powerpc/kernel/vdso32/vdso32.lds.S b/arch/powerpc/kernel/vdso32/vdso32.lds.S
-index 5206c2eb2a1d..6cf729612268 100644
+index 6cf729612268..05b462143238 100644
 --- a/arch/powerpc/kernel/vdso32/vdso32.lds.S
 +++ b/arch/powerpc/kernel/vdso32/vdso32.lds.S
-@@ -4,6 +4,7 @@
-  * library
-  */
- #include <asm/vdso.h>
-+#include <asm/page.h>
- 
- #ifdef __LITTLE_ENDIAN__
- OUTPUT_FORMAT("elf32-powerpcle", "elf32-powerpcle", "elf32-powerpcle")
-@@ -15,6 +16,7 @@ ENTRY(_start)
- 
- SECTIONS
- {
-+	PROVIDE(_vdso_datapage = . - PAGE_SIZE);
- 	. = VDSO32_LBASE + SIZEOF_HEADERS;
- 
- 	.hash          	: { *(.hash) }			:text
-@@ -138,11 +140,6 @@ VERSION
- {
- 	VDSO_VERSION_STRING {
- 	global:
--		/*
--		 * Has to be there for the kernel to find
--		 */
--		__kernel_datapage_offset;
--
- 		__kernel_get_syscall_map;
+@@ -144,6 +144,7 @@ VERSION
  #ifndef CONFIG_PPC_BOOK3S_601
  		__kernel_gettimeofday;
-diff --git a/arch/powerpc/kernel/vdso64/datapage.S b/arch/powerpc/kernel/vdso64/datapage.S
-index 067247d3efb9..03bb72c440dc 100644
---- a/arch/powerpc/kernel/vdso64/datapage.S
-+++ b/arch/powerpc/kernel/vdso64/datapage.S
-@@ -13,9 +13,6 @@
- #include <asm/vdso_datapage.h>
- 
- 	.text
--.global	__kernel_datapage_offset;
--__kernel_datapage_offset:
--	.long	0
- 
- /*
-  * void *__kernel_get_syscall_map(unsigned int *syscall_count) ;
-diff --git a/arch/powerpc/kernel/vdso64/vdso64.lds.S b/arch/powerpc/kernel/vdso64/vdso64.lds.S
-index 256fb9720298..f58c7e2e9cbd 100644
---- a/arch/powerpc/kernel/vdso64/vdso64.lds.S
-+++ b/arch/powerpc/kernel/vdso64/vdso64.lds.S
-@@ -4,6 +4,7 @@
-  * library
-  */
- #include <asm/vdso.h>
-+#include <asm/page.h>
- 
- #ifdef __LITTLE_ENDIAN__
- OUTPUT_FORMAT("elf64-powerpcle", "elf64-powerpcle", "elf64-powerpcle")
-@@ -15,6 +16,7 @@ ENTRY(_start)
- 
- SECTIONS
- {
-+	PROVIDE(_vdso_datapage = . - PAGE_SIZE);
- 	. = VDSO64_LBASE + SIZEOF_HEADERS;
- 
- 	.hash		: { *(.hash) }			:text
-@@ -138,11 +140,6 @@ VERSION
- {
- 	VDSO_VERSION_STRING {
- 	global:
--		/*
--		 * Has to be there for the kernel to find
--		 */
--		__kernel_datapage_offset;
--
- 		__kernel_get_syscall_map;
- 		__kernel_gettimeofday;
  		__kernel_clock_gettime;
++		__kernel_clock_gettime64;
+ 		__kernel_clock_getres;
+ 		__kernel_time;
+ 		__kernel_get_tbfreq;
+diff --git a/arch/powerpc/kernel/vdso32/vgettimeofday.c b/arch/powerpc/kernel/vdso32/vgettimeofday.c
+index 0b9ab4c22ef2..f7f71fecf4ed 100644
+--- a/arch/powerpc/kernel/vdso32/vgettimeofday.c
++++ b/arch/powerpc/kernel/vdso32/vgettimeofday.c
+@@ -11,6 +11,12 @@ int __c_kernel_clock_gettime(clockid_t clock, struct old_timespec32 *ts,
+ 	return __cvdso_clock_gettime32_data(vd, clock, ts);
+ }
+ 
++int __c_kernel_clock_gettime64(clockid_t clock, struct __kernel_timespec *ts,
++			       const struct vdso_data *vd)
++{
++	return __cvdso_clock_gettime_data(vd, clock, ts);
++}
++
+ int __c_kernel_gettimeofday(struct __kernel_old_timeval *tv, struct timezone *tz,
+ 			    const struct vdso_data *vd)
+ {
 -- 
 2.25.0
