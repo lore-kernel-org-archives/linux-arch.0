@@ -1,54 +1,45 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 14 Apr 2020 21:39:53 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
-References: <20200413125303.423864-1-npiggin@gmail.com>
-	<20200413125303.423864-5-npiggin@gmail.com>
-	<20200413134106.GN21484@bombadil.infradead.org>
-In-Reply-To: <20200413134106.GN21484@bombadil.infradead.org>
+Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:45866 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727931AbgD1PaG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Apr 2020 11:30:06 -0400
+Date: Tue, 28 Apr 2020 17:30:22 +0200
+From: Cyril Hrubis <chrubis@suse.cz>
+Subject: Re: [LTP] [fs] ce436509a8: ltp.openat203.fail
+Message-ID: <20200428153022.GC4244@yuki.lan>
+References: <f969e7d45a8e83efc1ca13d675efd8775f13f376.1586830316.git.josh@joshtriplett.org>
+ <20200427135210.GB5770@shao2-debian>
+ <20200427142733.GD7661@rei>
+ <20200428005126.6wncibudt6ohghvc@yavin.dot.cyphar.com>
 MIME-Version: 1.0
-Message-ID: <1586863931.xb4yeowkao.astroid@bobo.none>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Borislav Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, x86@kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200428005126.6wncibudt6ohghvc@yavin.dot.cyphar.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414113953.zXed8JmXDeKsAyNG3e8rJSBPR38qGE9Z2XECMfWb-7Q@z>
+To: Aleksa Sarai <cyphar@cyphar.com>
+Cc: kernel test robot <rong.a.chen@intel.com>, Josh Triplett <josh@joshtriplett.org>, linux-arch@vger.kernel.org, Jens Axboe <axboe@kernel.dk>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, lkp@lists.01.org, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, io-uring@vger.kernel.org, ltp@lists.linux.it
+Message-ID: <20200428153022.2IQV2gg-rHvJpLJH9B-4TvW7tC8pmRiPZMDRrdkAUnk@z>
 
-Excerpts from Matthew Wilcox's message of April 13, 2020 11:41 pm:
-> On Mon, Apr 13, 2020 at 10:53:03PM +1000, Nicholas Piggin wrote:
->> +static int vmap_pages_range_noflush(unsigned long start, unsigned long =
-end,
->> +				    pgprot_t prot, struct page **pages,
->> +				    unsigned int page_shift)
->> +{
->> +	if (page_shift =3D=3D PAGE_SIZE) {
->=20
-> ... I think you meant 'page_shift =3D=3D PAGE_SHIFT'
+Hi!
+> > > commit: ce436509a8e109330c56bb4d8ec87d258788f5f4 ("[PATCH v4 2/3] fs: openat2: Extend open_how to allow userspace-selected fds")
+> > > url: https://github.com/0day-ci/linux/commits/Josh-Triplett/Support-userspace-selected-fds/20200414-102939
+> > > base: https://git.kernel.org/cgit/linux/kernel/git/shuah/linux-kselftest.git next
+> > 
+> > This commit adds fd parameter to the how structure where LTP test was
+> > previously passing garbage, which obviously causes the difference in
+> > errno.
+> > 
+> > This could be safely ignored for now, if the patch gets merged the test
+> > needs to be updated.
+> 
+> It wouldn't be a bad idea to switch the test to figure out the ksize of
+> the struct, so that you only add bad padding after that. But then again,
+> this would be a bit ugly -- having CHECK_FIELDS would make this simpler.
 
-Thanks, good catch. I obviously didn't test the fallback path (the
-other path works for small pages, it just goes one at a time).
+Any pointers how can be the size figured out without relying on the
+E2BIG we are testing for? Does the kernel export it somewhere?
 
-> Overall I like this series, although it's a bit biased towards CPUs
-> which have page sizes which match PMD/PUD sizes.  It doesn't offer the
-> possibility of using 64kB page sizes on ARM, for example.
-
-No, it's just an incremental step on existing huge vmap stuff in
-tree, so such a thing would be out of scope.
-
-> But it's a
-> step in the right direction.
->=20
-
-I don't know about moving kernel maps away from a generic Linux page
-table format. I quite like moving to it and making it as generic as
-possible.
-
-On the other hand, I also would like to make some arch-specific
-allowances for certain special cases that may not fit within the
-standard page table format, but it might be a much more specific and
-limited interface than the general vmalloc stuff.
-
-Thanks,
-Nick
+-- 
+Cyril Hrubis
+chrubis@suse.cz
