@@ -1,37 +1,94 @@
-Return-Path: <SRS0=05z6=56=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v3 0/2] arm64: tlb: add support for TLBI RANGE instructions
-Date: Tue, 14 Apr 2020 19:28:33 +0800
-Message-ID: <20200414112835.1121-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v10 21/26] ELF: UAPI and Kconfig additions for ELF program properties
+Date: Wed, 29 Apr 2020 15:07:27 -0700
+Message-ID: <20200429220732.31602-22-yu-cheng.yu@intel.com>
+In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: will@kernel.org, catalin.marinas@arm.com, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200414112833.hpxvMWCSKxgM5Z_815BEbLgMPQVwVGJuYz23na6Ldfc@z>
+Message-ID: <20200429220727.nrCqkgvvbylkRpPw3NCD-14pA0PZbEWqOswnVZScFV0@z>
 
-ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
-range of input addresses. This series add support for this feature.
+Introduce basic ELF definitions relating to the NT_GNU_PROPERTY_TYPE_0
+note.
 
---
-ChangeList:
-v3:
-rebase this series on Linux 5.7-rc1.
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+---
+v10:
+- Merge GNU_PROPERTY_X86_FEATURE_1_* from a separate patch.
 
-v2:
-Link: https://lkml.org/lkml/2019/11/11/348
+ fs/Kconfig.binfmt        | 3 +++
+ include/linux/elf.h      | 8 ++++++++
+ include/uapi/linux/elf.h | 8 ++++++++
+ 3 files changed, 19 insertions(+)
 
-Zhenyu Ye (2):
-  arm64: tlb: Detect the ARMv8.4 TLBI RANGE feature
-  arm64: tlb: Use the TLBI RANGE feature in arm64
-
- arch/arm64/include/asm/cpucaps.h  |   3 +-
- arch/arm64/include/asm/sysreg.h   |   4 ++
- arch/arm64/include/asm/tlbflush.h | 108 +++++++++++++++++++++++++++++-
- arch/arm64/kernel/cpufeature.c    |  11 +++
- 4 files changed, 124 insertions(+), 2 deletions(-)
-
+diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
+index 62dc4f577ba1..d2cfe0729a73 100644
+--- a/fs/Kconfig.binfmt
++++ b/fs/Kconfig.binfmt
+@@ -36,6 +36,9 @@ config COMPAT_BINFMT_ELF
+ config ARCH_BINFMT_ELF_STATE
+ 	bool
+=20
++config ARCH_USE_GNU_PROPERTY
++	bool
++
+ config BINFMT_ELF_FDPIC
+ 	bool "Kernel support for FDPIC ELF binaries"
+ 	default y if !BINFMT_ELF
+diff --git a/include/linux/elf.h b/include/linux/elf.h
+index e3649b3e970e..459cddcceaac 100644
+--- a/include/linux/elf.h
++++ b/include/linux/elf.h
+@@ -2,6 +2,7 @@
+ #ifndef _LINUX_ELF_H
+ #define _LINUX_ELF_H
+=20
++#include <linux/types.h>
+ #include <asm/elf.h>
+ #include <uapi/linux/elf.h>
+=20
+@@ -56,4 +57,11 @@ static inline int elf_coredump_extra_notes_write(struc=
+t coredump_params *cprm) {
+ extern int elf_coredump_extra_notes_size(void);
+ extern int elf_coredump_extra_notes_write(struct coredump_params *cprm);
+ #endif
++
++/* NT_GNU_PROPERTY_TYPE_0 header */
++struct gnu_property {
++	u32 pr_type;
++	u32 pr_datasz;
++};
++
+ #endif /* _LINUX_ELF_H */
+diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+index 34c02e4290fe..61251ecabdd7 100644
+--- a/include/uapi/linux/elf.h
++++ b/include/uapi/linux/elf.h
+@@ -36,6 +36,7 @@ typedef __s64	Elf64_Sxword;
+ #define PT_LOPROC  0x70000000
+ #define PT_HIPROC  0x7fffffff
+ #define PT_GNU_EH_FRAME		0x6474e550
++#define PT_GNU_PROPERTY		0x6474e553
+=20
+ #define PT_GNU_STACK	(PT_LOOS + 0x474e551)
+=20
+@@ -443,4 +444,11 @@ typedef struct elf64_note {
+   Elf64_Word n_type;	/* Content type */
+ } Elf64_Nhdr;
+=20
++/* .note.gnu.property types */
++#define GNU_PROPERTY_X86_FEATURE_1_AND		0xc0000002
++
++/* Bits of GNU_PROPERTY_X86_FEATURE_1_AND */
++#define GNU_PROPERTY_X86_FEATURE_1_IBT		0x00000001
++#define GNU_PROPERTY_X86_FEATURE_1_SHSTK	0x00000002
++
+ #endif /* _UAPI_LINUX_ELF_H */
 --=20
-2.19.1
+2.21.0
