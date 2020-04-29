@@ -1,158 +1,362 @@
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2.5 16/20] mm: remove early_pfn_in_nid() and
- CONFIG_NODES_SPAN_OTHER_NODES
-Date: Wed, 29 Apr 2020 19:29:17 +0300
-Message-ID: <20200429162917.GL14260@kernel.org>
-References: <20200429121126.17989-1-rppt@kernel.org>
- <20200429121126.17989-17-rppt@kernel.org>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v3 19/23] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
+ support
+Date: Wed, 29 Apr 2020 17:46:07 +0100
+Message-ID: <20200429164607.GE30377@arm.com>
+References: <20200421142603.3894-1-catalin.marinas@arm.com>
+ <20200421142603.3894-20-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:42072 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726877AbgD2QqM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Apr 2020 12:46:12 -0400
 Content-Disposition: inline
-In-Reply-To: <20200429121126.17989-17-rppt@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.or>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20200421142603.3894-20-catalin.marinas@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Luis Machado <luis.machado@linaro.org>, Omair Javaid <omair.javaid@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, Alan Hayward <Alan.Hayward@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
 
-On Wed, Apr 29, 2020 at 03:11:22PM +0300, Mike Rapoport wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
+On Tue, Apr 21, 2020 at 03:25:59PM +0100, Catalin Marinas wrote:
+> Add support for bulk setting/getting of the MTE tags in a tracee's
+> address space at 'addr' in the ptrace() syscall prototype. 'data' points
+> to a struct iovec in the tracer's address space with iov_base
+> representing the address of a tracer's buffer of length iov_len. The
+> tags to be copied to/from the tracer's buffer are stored as one tag per
+> byte.
 > 
-> The commit f47ac088c406 ("mm: memmap_init: iterate over memblock regions
-> rather that check each PFN") made early_pfn_in_nid() obsolete and since
-> CONFIG_NODES_SPAN_OTHER_NODES is only used to pick a stub or a real
-> implementation of early_pfn_in_nid() it is also not needed anymore.
+> On successfully copying at least one tag, ptrace() returns 0 and updates
+> the tracer's iov_len with the number of tags copied. In case of error,
+> either -EIO or -EFAULT is returned, trying to follow the ptrace() man
+> page.
 > 
-> Remove both early_pfn_in_nid() and the CONFIG_NODES_SPAN_OTHER_NODES.
-> 
-> Co-developed-by: Hoan Tran <Hoan@os.amperecomputing.com>
-> Signed-off-by: Hoan Tran <Hoan@os.amperecomputing.com>
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> Note that the tag copying functions are not performance critical,
+> therefore they lack optimisations found in typical memory copy routines.
+
+Doesn't quite belong here, but:
+
+Can we dump the tags and possible the faulting mode etc. when dumping
+core?
+
+That information seems potentially valuable for debugging.
+Tweaking the fault mode from a debugger may also be useful (which is
+quite easy to achieve if coredump support is done by wrapping the MTE
+control word in a regset).
+
+These could probably be added later, though.
+
+
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Alan Hayward <Alan.Hayward@arm.com>
+> Cc: Luis Machado <luis.machado@linaro.org>
+> Cc: Omair Javaid <omair.javaid@linaro.org>
 > ---
+> 
+> Notes:
+>     New in v3.
+> 
+>  arch/arm64/include/asm/mte.h         |  17 ++++
+>  arch/arm64/include/uapi/asm/ptrace.h |   3 +
+>  arch/arm64/kernel/mte.c              | 127 +++++++++++++++++++++++++++
+>  arch/arm64/kernel/ptrace.c           |  15 +++-
+>  arch/arm64/lib/mte.S                 |  50 +++++++++++
+>  5 files changed, 211 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/arm64/include/asm/mte.h b/arch/arm64/include/asm/mte.h
+> index 22eb3e06f311..0ca2aaff07a1 100644
+> --- a/arch/arm64/include/asm/mte.h
+> +++ b/arch/arm64/include/asm/mte.h
+> @@ -2,12 +2,21 @@
+>  #ifndef __ASM_MTE_H
+>  #define __ASM_MTE_H
+>  
+> +#define MTE_ALLOC_SIZE	UL(16)
+> +#define MTE_ALLOC_MASK	(~(MTE_ALLOC_SIZE - 1))
+> +#define MTE_TAG_SHIFT	(56)
+> +#define MTE_TAG_SIZE	(4)
+> +
 
-Here's the version with the updated changelog:
+Nit: pointless () on the last two #defines.
 
-From 7415d1a9b7000c6eecd9f63770592e4d4a8d2463 Mon Sep 17 00:00:00 2001
-From: Mike Rapoport <rppt@linux.ibm.com>
-Date: Sat, 11 Apr 2020 11:26:49 +0300
-Subject: [PATCH v2.5] mm: remove early_pfn_in_nid() and CONFIG_NODES_SPAN_OTHER_NODES
+[...]
 
-The memmap_init() function was made to iterate over memblock regions and as
-the result the early_pfn_in_nid() function became obsolete.
-Since CONFIG_NODES_SPAN_OTHER_NODES is only used to pick a stub or a real
-implementation of early_pfn_in_nid(), it is also not needed anymore.
+> diff --git a/arch/arm64/kernel/mte.c b/arch/arm64/kernel/mte.c
+> index fa4a4196b248..0cb496ed9bf9 100644
+> --- a/arch/arm64/kernel/mte.c
+> +++ b/arch/arm64/kernel/mte.c
+> @@ -3,12 +3,17 @@
+>   * Copyright (C) 2020 ARM Ltd.
+>   */
+>  
+> +#include <linux/kernel.h>
+> +#include <linux/mm.h>
+>  #include <linux/prctl.h>
+>  #include <linux/sched.h>
+> +#include <linux/sched/mm.h>
+>  #include <linux/thread_info.h>
+> +#include <linux/uio.h>
+>  
+>  #include <asm/cpufeature.h>
+>  #include <asm/mte.h>
+> +#include <asm/ptrace.h>
+>  #include <asm/sysreg.h>
+>  
+>  static void update_sctlr_el1_tcf0(u64 tcf0)
+> @@ -133,3 +138,125 @@ long get_mte_ctrl(void)
+>  
+>  	return ret;
+>  }
+> +
+> +/*
+> + * Access MTE tags in another process' address space as given in mm. Update
+> + * the number of tags copied. Return 0 if any tags copied, error otherwise.
+> + * Inspired by __access_remote_vm().
+> + */
+> +static int __access_remote_tags(struct task_struct *tsk, struct mm_struct *mm,
+> +				unsigned long addr, struct iovec *kiov,
+> +				unsigned int gup_flags)
+> +{
+> +	struct vm_area_struct *vma;
+> +	void __user *buf = kiov->iov_base;
+> +	size_t len = kiov->iov_len;
+> +	int ret;
+> +	int write = gup_flags & FOLL_WRITE;
+> +
+> +	if (down_read_killable(&mm->mmap_sem))
+> +		return -EIO;
+> +
+> +	if (!access_ok(buf, len))
+> +		return -EFAULT;
 
-Remove both early_pfn_in_nid() and the CONFIG_NODES_SPAN_OTHER_NODES.
+Leaked down_read()?
 
-Co-developed-by: Hoan Tran <Hoan@os.amperecomputing.com>
-Signed-off-by: Hoan Tran <Hoan@os.amperecomputing.com>
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- arch/powerpc/Kconfig |  9 ---------
- arch/sparc/Kconfig   |  9 ---------
- arch/x86/Kconfig     |  9 ---------
- mm/page_alloc.c      | 20 --------------------
- 4 files changed, 47 deletions(-)
+> +
+> +	while (len) {
+> +		unsigned long tags, offset;
+> +		void *maddr;
+> +		struct page *page = NULL;
+> +
+> +		ret = get_user_pages_remote(tsk, mm, addr, 1, gup_flags,
+> +					    &page, &vma, NULL);
+> +		if (ret <= 0)
+> +			break;
+> +
+> +		/* limit access to the end of the page */
+> +		offset = offset_in_page(addr);
+> +		tags = min(len, (PAGE_SIZE - offset) / MTE_ALLOC_SIZE);
+> +
+> +		maddr = page_address(page);
+> +		if (write) {
+> +			tags = mte_copy_tags_from_user(maddr + offset, buf, tags);
+> +			set_page_dirty_lock(page);
+> +		} else {
+> +			tags = mte_copy_tags_to_user(buf, maddr + offset, tags);
+> +		}
+> +		put_page(page);
+> +
+> +		/* error accessing the tracer's buffer */
+> +		if (!tags)
+> +			break;
+> +
+> +		len -= tags;
+> +		buf += tags;
+> +		addr += tags * MTE_ALLOC_SIZE;
+> +	}
+> +	up_read(&mm->mmap_sem);
+> +
+> +	/* return an error if no tags copied */
+> +	kiov->iov_len = buf - kiov->iov_base;
+> +	if (!kiov->iov_len) {
+> +		/* check for error accessing the tracee's address space */
+> +		if (ret <= 0)
+> +			return -EIO;
+> +		else
+> +			return -EFAULT;
+> +	}
+> +
+> +	return 0;
+> +}
+> +
+> +/*
+> + * Copy MTE tags in another process' address space at 'addr' to/from tracer's
+> + * iovec buffer. Return 0 on success. Inspired by ptrace_access_vm().
+> + */
+> +static int access_remote_tags(struct task_struct *tsk, unsigned long addr,
+> +			      struct iovec *kiov, unsigned int gup_flags)
+> +{
+> +	struct mm_struct *mm;
+> +	int ret;
+> +
+> +	mm = get_task_mm(tsk);
+> +	if (!mm)
+> +		return -EPERM;
+> +
+> +	if (!tsk->ptrace || (current != tsk->parent) ||
+> +	    ((get_dumpable(mm) != SUID_DUMP_USER) &&
+> +	     !ptracer_capable(tsk, mm->user_ns))) {
+> +		mmput(mm);
+> +		return -EPERM;
+> +	}
+> +
+> +	ret = __access_remote_tags(tsk, mm, addr, kiov, gup_flags);
+> +	mmput(mm);
+> +
+> +	return ret;
+> +}
+> +
+> +int mte_ptrace_copy_tags(struct task_struct *child, long request,
+> +			 unsigned long addr, unsigned long data)
+> +{
+> +	int ret;
+> +	struct iovec kiov;
+> +	struct iovec __user *uiov = (void __user *)data;
+> +	unsigned int gup_flags = FOLL_FORCE;
+> +
+> +	if (!system_supports_mte())
+> +		return -EIO;
+> +
+> +	if (get_user(kiov.iov_base, &uiov->iov_base) ||
+> +	    get_user(kiov.iov_len, &uiov->iov_len))
+> +		return -EFAULT;
+> +
+> +	if (request == PTRACE_POKEMTETAGS)
+> +		gup_flags |= FOLL_WRITE;
+> +
+> +	/* align addr to the MTE tag granule */
+> +	addr &= MTE_ALLOC_MASK;
+> +
+> +	ret = access_remote_tags(child, addr, &kiov, gup_flags);
+> +	if (!ret)
+> +		ret = __put_user(kiov.iov_len, &uiov->iov_len);
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 5f86b22b7d2c..74f316deeae1 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -685,15 +685,6 @@ config ARCH_MEMORY_PROBE
- 	def_bool y
- 	depends on MEMORY_HOTPLUG
- 
--# Some NUMA nodes have memory ranges that span
--# other nodes.  Even though a pfn is valid and
--# between a node's start and end pfns, it may not
--# reside on that node.  See memmap_init_zone()
--# for details.
--config NODES_SPAN_OTHER_NODES
--	def_bool y
--	depends on NEED_MULTIPLE_NODES
--
- config STDBINUTILS
- 	bool "Using standard binutils settings"
- 	depends on 44x
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index 795206b7b552..0e4f3891b904 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -286,15 +286,6 @@ config NODES_SHIFT
- 	  Specify the maximum number of NUMA Nodes available on the target
- 	  system.  Increases memory reserved to accommodate various tables.
- 
--# Some NUMA nodes have memory ranges that span
--# other nodes.  Even though a pfn is valid and
--# between a node's start and end pfns, it may not
--# reside on that node.  See memmap_init_zone()
--# for details.
--config NODES_SPAN_OTHER_NODES
--	def_bool y
--	depends on NEED_MULTIPLE_NODES
--
- config ARCH_SPARSEMEM_ENABLE
- 	def_bool y if SPARC64
- 	select SPARSEMEM_VMEMMAP_ENABLE
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index f8bf218a169c..1ec2a5e2fef6 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1581,15 +1581,6 @@ config X86_64_ACPI_NUMA
- 	---help---
- 	  Enable ACPI SRAT based node topology detection.
- 
--# Some NUMA nodes have memory ranges that span
--# other nodes.  Even though a pfn is valid and
--# between a node's start and end pfns, it may not
--# reside on that node.  See memmap_init_zone()
--# for details.
--config NODES_SPAN_OTHER_NODES
--	def_bool y
--	depends on X86_64_ACPI_NUMA
--
- config NUMA_EMU
- 	bool "NUMA emulation"
- 	depends on NUMA
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 8d112defaead..d35ca0996a09 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -1541,26 +1541,6 @@ int __meminit early_pfn_to_nid(unsigned long pfn)
- }
- #endif /* CONFIG_NEED_MULTIPLE_NODES */
- 
--#ifdef CONFIG_NODES_SPAN_OTHER_NODES
--/* Only safe to use early in boot when initialisation is single-threaded */
--static inline bool __meminit early_pfn_in_nid(unsigned long pfn, int node)
--{
--	int nid;
--
--	nid = __early_pfn_to_nid(pfn, &early_pfnnid_cache);
--	if (nid >= 0 && nid != node)
--		return false;
--	return true;
--}
--
--#else
--static inline bool __meminit early_pfn_in_nid(unsigned long pfn, int node)
--{
--	return true;
--}
--#endif
--
--
- void __init memblock_free_pages(struct page *page, unsigned long pfn,
- 							unsigned int order)
- {
--- 
-2.26.1
+Should this be put_user()?  We didn't use __get_user() above, and I
+don't see what guards the access.
+
+> +
+> +	return ret;
+> +}
+> diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+> index 077e352495eb..1fdb841ad536 100644
+> --- a/arch/arm64/kernel/ptrace.c
+> +++ b/arch/arm64/kernel/ptrace.c
+> @@ -34,6 +34,7 @@
+>  #include <asm/cpufeature.h>
+>  #include <asm/debug-monitors.h>
+>  #include <asm/fpsimd.h>
+> +#include <asm/mte.h>
+>  #include <asm/pgtable.h>
+>  #include <asm/pointer_auth.h>
+>  #include <asm/stacktrace.h>
+> @@ -1797,7 +1798,19 @@ const struct user_regset_view *task_user_regset_view(struct task_struct *task)
+>  long arch_ptrace(struct task_struct *child, long request,
+>  		 unsigned long addr, unsigned long data)
+>  {
+> -	return ptrace_request(child, request, addr, data);
+> +	int ret;
+> +
+> +	switch (request) {
+> +	case PTRACE_PEEKMTETAGS:
+> +	case PTRACE_POKEMTETAGS:
+> +		ret = mte_ptrace_copy_tags(child, request, addr, data);
+> +		break;
+
+Nit: return mte_trace_copy_tags()?
+
+This is a new function, so we don't need to follow the verbose style of
+the core code.  Not everyone likes returning out of switches though.
+
+> +	default:
+> +		ret = ptrace_request(child, request, addr, data);
+> +		break;
+> +	}
+> +
+> +	return ret;
+>  }
+>  
+>  enum ptrace_syscall_dir {
+> diff --git a/arch/arm64/lib/mte.S b/arch/arm64/lib/mte.S
+> index bd51ea7e2fcb..45be04a8c73c 100644
+> --- a/arch/arm64/lib/mte.S
+> +++ b/arch/arm64/lib/mte.S
+> @@ -5,6 +5,7 @@
+>  #include <linux/linkage.h>
+>  
+>  #include <asm/assembler.h>
+> +#include <asm/mte.h>
+>  
+>  /*
+>   * Compare tags of two pages
+> @@ -44,3 +45,52 @@ SYM_FUNC_START(mte_memcmp_pages)
+>  
+>  	ret
+>  SYM_FUNC_END(mte_memcmp_pages)
+> +
+> +/*
+> + * Read tags from a user buffer (one tag per byte) and set the corresponding
+> + * tags at the given kernel address. Used by PTRACE_POKEMTETAGS.
+> + *   x0 - kernel address (to)
+> + *   x1 - user buffer (from)
+> + *   x2 - number of tags/bytes (n)
+
+Is it worth checking for x2 == 0?  Currently, x2 will underflow and
+we'll try to loop 2^64 times (until a fault stops us).
+
+I don't think callers currently pass 0 here, but it feels like an
+accident waiting to happen.  Things like memcpy() usually try to close
+this loophole.
+
+Similarly for _to_user().
+
+Cheers
+---Dave
+
+> + * Returns:
+> + *   x0 - number of tags read/set
+> + */
+> +SYM_FUNC_START(mte_copy_tags_from_user)
+> +	mov	x3, x1
+> +1:
+> +USER(2f, ldtrb	w4, [x1])
+> +	lsl	x4, x4, #MTE_TAG_SHIFT
+> +	stg	x4, [x0], #MTE_ALLOC_SIZE
+> +	add	x1, x1, #1
+> +	subs	x2, x2, #1
+> +	b.ne	1b
+> +
+> +	// exception handling and function return
+> +2:	sub	x0, x1, x3		// update the number of tags set
+> +	ret
+> +SYM_FUNC_END(mte_copy_tags_from_user)
+> +
+> +/*
+> + * Get the tags from a kernel address range and write the tag values to the
+> + * given user buffer (one tag per byte). Used by PTRACE_PEEKMTETAGS.
+> + *   x0 - user buffer (to)
+> + *   x1 - kernel address (from)
+> + *   x2 - number of tags/bytes (n)
+> + * Returns:
+> + *   x0 - number of tags read/set
+> + */
+> +SYM_FUNC_START(mte_copy_tags_to_user)
+> +	mov	x3, x0
+> +1:
+> +	ldg	x4, [x1]
+> +	ubfx	x4, x4, #MTE_TAG_SHIFT, #MTE_TAG_SIZE
+> +USER(2f, sttrb	w4, [x0])
+> +	add	x0, x0, #1
+> +	add	x1, x1, #MTE_ALLOC_SIZE
+> +	subs	x2, x2, #1
+> +	b.ne	1b
+> +
+> +	// exception handling and function return
+> +2:	sub	x0, x0, x3		// update the number of tags copied
+> +	ret
+> +SYM_FUNC_END(mte_copy_tags_from_user)
+> 
+> _______________________________________________
+> linux-arm-kernel mailing list
+> linux-arm-kernel@lists.infradead.org
+> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
