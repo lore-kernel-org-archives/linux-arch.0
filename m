@@ -1,388 +1,214 @@
-Return-Path: <SRS0=XT2V=55=kvack.org=owner-linux-mm@kernel.org>
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
-Date: Mon, 13 Apr 2020 22:53:03 +1000
-Message-ID: <20200413125303.423864-5-npiggin@gmail.com>
-In-Reply-To: <20200413125303.423864-1-npiggin@gmail.com>
-References: <20200413125303.423864-1-npiggin@gmail.com>
+Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v10 06/26] x86/mm: Change _PAGE_DIRTY to _PAGE_DIRTY_HW
+Date: Wed, 29 Apr 2020 15:07:12 -0700
+Message-ID: <20200429220732.31602-7-yu-cheng.yu@intel.com>
+In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: linux-mm@kvack.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, Dave Hansen <dave.hansen@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200413125303.hRvbiPgbVOAlwXOEnLFGV518t9tDDfLoQP4AAPMin3g@z>
+Message-ID: <20200429220712.jreBU-r384j6h79CWkyrxddtR0LvSpvielHraSY6Bos@z>
 
-For platforms that define HAVE_ARCH_HUGE_VMAP and support PMD vmap mappin=
-gs,
-have vmalloc attempt to allocate PMD-sized pages first, before falling ba=
-ck
-to small pages. Allocations which use something other than PAGE_KERNEL
-protections are not permitted to use huge pages yet, not all callers expe=
-ct
-this (e.g., module allocations vs strict module rwx).
+Before introducing _PAGE_COW for non-hardware memory management purposes =
+in
+the next patch, rename _PAGE_DIRTY to _PAGE_DIRTY_HW and _PAGE_BIT_DIRTY =
+to
+_PAGE_BIT_DIRTY_HW to make meanings more clear.  There are no functional
+changes from this patch.
 
-This gives a 6x reduction in dTLB misses for a `git diff` (of linux), fro=
-m
-45600 to 6500 and a 2.2% reduction in cycles on a 2-node POWER9.
-
-This can result in more internal fragmentation and memory overhead for a
-given allocation. It can also cause greater NUMA unbalance on hashdist
-allocations.
-
-There may be other callers that expect small pages under vmalloc but use
-PAGE_KERNEL, I'm not sure if it's feasible to catch them all. An
-alternative would be a new function or flag which enables large mappings,
-and use that in callers.
-
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Dave Hansen <dave.hansen@intel.com>
 ---
- include/linux/vmalloc.h |   2 +
- mm/vmalloc.c            | 135 +++++++++++++++++++++++++++++-----------
- 2 files changed, 102 insertions(+), 35 deletions(-)
+v9:
+- At some places _PAGE_DIRTY were not changed to _PAGE_DIRTY_HW, because
+  they will be changed again in the next patch to _PAGE_DIRTY_BITS.
+  However, this causes compile issues if the next patch is not yet applie=
+d.
+  Fix it by changing all _PAGE_DIRTY to _PAGE_DRITY_HW.
 
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index 291313a7e663..853b82eac192 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -24,6 +24,7 @@ struct notifier_block;		/* in notifier.h */
- #define VM_UNINITIALIZED	0x00000020	/* vm_struct is not fully initialize=
-d */
- #define VM_NO_GUARD		0x00000040      /* don't add guard page */
- #define VM_KASAN		0x00000080      /* has allocated kasan shadow memory *=
-/
-+#define VM_HUGE_PAGES		0x00000100	/* may use huge pages */
+ arch/x86/include/asm/pgtable.h       | 18 +++++++++---------
+ arch/x86/include/asm/pgtable_types.h | 11 +++++------
+ arch/x86/kernel/relocate_kernel_64.S |  2 +-
+ arch/x86/kvm/vmx/vmx.c               |  2 +-
+ 4 files changed, 16 insertions(+), 17 deletions(-)
+
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtabl=
+e.h
+index 4d02e64af1b3..90f9a73881ad 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -124,7 +124,7 @@ extern pmdval_t early_pmd_flags;
+  */
+ static inline int pte_dirty(pte_t pte)
+ {
+-	return pte_flags(pte) & _PAGE_DIRTY;
++	return pte_flags(pte) & _PAGE_DIRTY_HW;
+ }
+=20
+=20
+@@ -163,7 +163,7 @@ static inline int pte_young(pte_t pte)
+=20
+ static inline int pmd_dirty(pmd_t pmd)
+ {
+-	return pmd_flags(pmd) & _PAGE_DIRTY;
++	return pmd_flags(pmd) & _PAGE_DIRTY_HW;
+ }
+=20
+ static inline int pmd_young(pmd_t pmd)
+@@ -173,7 +173,7 @@ static inline int pmd_young(pmd_t pmd)
+=20
+ static inline int pud_dirty(pud_t pud)
+ {
+-	return pud_flags(pud) & _PAGE_DIRTY;
++	return pud_flags(pud) & _PAGE_DIRTY_HW;
+ }
+=20
+ static inline int pud_young(pud_t pud)
+@@ -333,7 +333,7 @@ static inline pte_t pte_clear_uffd_wp(pte_t pte)
+=20
+ static inline pte_t pte_mkclean(pte_t pte)
+ {
+-	return pte_clear_flags(pte, _PAGE_DIRTY);
++	return pte_clear_flags(pte, _PAGE_DIRTY_HW);
+ }
+=20
+ static inline pte_t pte_mkold(pte_t pte)
+@@ -353,7 +353,7 @@ static inline pte_t pte_mkexec(pte_t pte)
+=20
+ static inline pte_t pte_mkdirty(pte_t pte)
+ {
+-	return pte_set_flags(pte, _PAGE_DIRTY | _PAGE_SOFT_DIRTY);
++	return pte_set_flags(pte, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
+ }
+=20
+ static inline pte_t pte_mkyoung(pte_t pte)
+@@ -434,7 +434,7 @@ static inline pmd_t pmd_mkold(pmd_t pmd)
+=20
+ static inline pmd_t pmd_mkclean(pmd_t pmd)
+ {
+-	return pmd_clear_flags(pmd, _PAGE_DIRTY);
++	return pmd_clear_flags(pmd, _PAGE_DIRTY_HW);
+ }
+=20
+ static inline pmd_t pmd_wrprotect(pmd_t pmd)
+@@ -444,7 +444,7 @@ static inline pmd_t pmd_wrprotect(pmd_t pmd)
+=20
+ static inline pmd_t pmd_mkdirty(pmd_t pmd)
+ {
+-	return pmd_set_flags(pmd, _PAGE_DIRTY | _PAGE_SOFT_DIRTY);
++	return pmd_set_flags(pmd, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
+ }
+=20
+ static inline pmd_t pmd_mkdevmap(pmd_t pmd)
+@@ -488,7 +488,7 @@ static inline pud_t pud_mkold(pud_t pud)
+=20
+ static inline pud_t pud_mkclean(pud_t pud)
+ {
+-	return pud_clear_flags(pud, _PAGE_DIRTY);
++	return pud_clear_flags(pud, _PAGE_DIRTY_HW);
+ }
+=20
+ static inline pud_t pud_wrprotect(pud_t pud)
+@@ -498,7 +498,7 @@ static inline pud_t pud_wrprotect(pud_t pud)
+=20
+ static inline pud_t pud_mkdirty(pud_t pud)
+ {
+-	return pud_set_flags(pud, _PAGE_DIRTY | _PAGE_SOFT_DIRTY);
++	return pud_set_flags(pud, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
+ }
+=20
+ static inline pud_t pud_mkdevmap(pud_t pud)
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/=
+pgtable_types.h
+index b6606fe6cfdf..b82e0f167879 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -15,7 +15,7 @@
+ #define _PAGE_BIT_PWT		3	/* page write through */
+ #define _PAGE_BIT_PCD		4	/* page cache disabled */
+ #define _PAGE_BIT_ACCESSED	5	/* was accessed (raised by CPU) */
+-#define _PAGE_BIT_DIRTY		6	/* was written to (raised by CPU) */
++#define _PAGE_BIT_DIRTY_HW	6	/* was written to (raised by CPU) */
+ #define _PAGE_BIT_PSE		7	/* 4 MB (or 2MB) page */
+ #define _PAGE_BIT_PAT		7	/* on 4KB pages */
+ #define _PAGE_BIT_GLOBAL	8	/* Global TLB entry PPro+ */
+@@ -46,7 +46,7 @@
+ #define _PAGE_PWT	(_AT(pteval_t, 1) << _PAGE_BIT_PWT)
+ #define _PAGE_PCD	(_AT(pteval_t, 1) << _PAGE_BIT_PCD)
+ #define _PAGE_ACCESSED	(_AT(pteval_t, 1) << _PAGE_BIT_ACCESSED)
+-#define _PAGE_DIRTY	(_AT(pteval_t, 1) << _PAGE_BIT_DIRTY)
++#define _PAGE_DIRTY_HW	(_AT(pteval_t, 1) << _PAGE_BIT_DIRTY_HW)
+ #define _PAGE_PSE	(_AT(pteval_t, 1) << _PAGE_BIT_PSE)
+ #define _PAGE_GLOBAL	(_AT(pteval_t, 1) << _PAGE_BIT_GLOBAL)
+ #define _PAGE_SOFTW1	(_AT(pteval_t, 1) << _PAGE_BIT_SOFTW1)
+@@ -74,7 +74,7 @@
+ 			 _PAGE_PKEY_BIT3)
+=20
+ #if defined(CONFIG_X86_64) || defined(CONFIG_X86_PAE)
+-#define _PAGE_KNL_ERRATUM_MASK (_PAGE_DIRTY | _PAGE_ACCESSED)
++#define _PAGE_KNL_ERRATUM_MASK (_PAGE_DIRTY_HW | _PAGE_ACCESSED)
+ #else
+ #define _PAGE_KNL_ERRATUM_MASK 0
+ #endif
+@@ -126,7 +126,7 @@
+  * pte_modify() does modify it.
+  */
+ #define _PAGE_CHG_MASK	(PTE_PFN_MASK | _PAGE_PCD | _PAGE_PWT |		\
+-			 _PAGE_SPECIAL | _PAGE_ACCESSED | _PAGE_DIRTY |	\
++			 _PAGE_SPECIAL | _PAGE_ACCESSED | _PAGE_DIRTY_HW |	\
+ 			 _PAGE_SOFT_DIRTY | _PAGE_DEVMAP | _PAGE_ENC |  \
+ 			 _PAGE_UFFD_WP)
+ #define _HPAGE_CHG_MASK (_PAGE_CHG_MASK | _PAGE_PSE)
+@@ -163,7 +163,7 @@ enum page_cache_mode {
+ #define __RW _PAGE_RW
+ #define _USR _PAGE_USER
+ #define ___A _PAGE_ACCESSED
+-#define ___D _PAGE_DIRTY
++#define ___D _PAGE_DIRTY_HW
+ #define ___G _PAGE_GLOBAL
+ #define __NX _PAGE_NX
+=20
+@@ -205,7 +205,6 @@ enum page_cache_mode {
+ #define __PAGE_KERNEL_IO		__PAGE_KERNEL
+ #define __PAGE_KERNEL_IO_NOCACHE	__PAGE_KERNEL_NOCACHE
+=20
+-
+ #ifndef __ASSEMBLY__
+=20
+ #define __PAGE_KERNEL_ENC	(__PAGE_KERNEL    | _ENC)
+diff --git a/arch/x86/kernel/relocate_kernel_64.S b/arch/x86/kernel/reloc=
+ate_kernel_64.S
+index a4d9a261425b..e3bb4ff95523 100644
+--- a/arch/x86/kernel/relocate_kernel_64.S
++++ b/arch/x86/kernel/relocate_kernel_64.S
+@@ -17,7 +17,7 @@
+  */
+=20
+ #define PTR(x) (x << 3)
+-#define PAGE_ATTR (_PAGE_PRESENT | _PAGE_RW | _PAGE_ACCESSED | _PAGE_DIR=
+TY)
++#define PAGE_ATTR (_PAGE_PRESENT | _PAGE_RW | _PAGE_ACCESSED | _PAGE_DIR=
+TY_HW)
 =20
  /*
-  * VM_KASAN is used slighly differently depending on CONFIG_KASAN_VMALLO=
-C.
-@@ -58,6 +59,7 @@ struct vm_struct {
- 	unsigned long		size;
- 	unsigned long		flags;
- 	struct page		**pages;
-+	unsigned int		page_order;
- 	unsigned int		nr_pages;
- 	phys_addr_t		phys_addr;
- 	const void		*caller;
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index c898d16ddd25..7b7e992c5ff1 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -436,7 +436,7 @@ static int vmap_pages_p4d_range(pgd_t *pgd, unsigned =
-long addr,
-  *
-  * Ie. pte at addr+N*PAGE_SIZE shall point to pfn corresponding to pages=
-[N]
-  */
--static int vmap_pages_range_noflush(unsigned long start, unsigned long e=
-nd,
-+static int vmap_small_pages_range_noflush(unsigned long start, unsigned =
-long end,
- 				   pgprot_t prot, struct page **pages)
- {
- 	pgd_t *pgd;
-@@ -457,13 +457,44 @@ static int vmap_pages_range_noflush(unsigned long s=
-tart, unsigned long end,
- 	return nr;
- }
-=20
-+static int vmap_pages_range_noflush(unsigned long start, unsigned long e=
-nd,
-+				    pgprot_t prot, struct page **pages,
-+				    unsigned int page_shift)
-+{
-+	if (page_shift =3D=3D PAGE_SIZE) {
-+		return vmap_small_pages_range_noflush(start, end, prot, pages);
-+	} else {
-+		unsigned long addr =3D start;
-+		unsigned int i, nr =3D (end - start) >> page_shift;
-+
-+		for (i =3D 0; i < nr; i++) {
-+			int err;
-+
-+			err =3D vmap_range_noflush(addr,
-+					addr + (1UL << page_shift),
-+					__pa(page_address(pages[i])), prot,
-+					page_shift);
-+			if (err)
-+				return err;
-+
-+			addr +=3D 1UL << page_shift;
-+		}
-+
-+		return 0;
-+	}
-+}
-+
- static int vmap_pages_range(unsigned long start, unsigned long end,
--			   pgprot_t prot, struct page **pages)
-+			    pgprot_t prot, struct page **pages,
-+			    unsigned int page_shift)
- {
- 	int ret;
-=20
--	ret =3D vmap_pages_range_noflush(start, end, prot, pages);
-+	BUG_ON(page_shift < PAGE_SHIFT);
-+
-+	ret =3D vmap_pages_range_noflush(start, end, prot, pages, page_shift);
- 	flush_cache_vmap(start, end);
-+
- 	return ret;
- }
-=20
-@@ -2064,7 +2095,7 @@ void *vm_map_ram(struct page **pages, unsigned int =
-count, int node, pgprot_t pro
-=20
- 	kasan_unpoison_vmalloc(mem, size);
-=20
--	if (vmap_pages_range(addr, addr + size, prot, pages) < 0) {
-+	if (vmap_pages_range(addr, addr + size, prot, pages, PAGE_SHIFT) < 0) {
- 		vm_unmap_ram(mem, count);
- 		return NULL;
- 	}
-@@ -2230,7 +2261,7 @@ void __init vmalloc_init(void)
- int map_kernel_range_noflush(unsigned long addr, unsigned long size,
- 			     pgprot_t prot, struct page **pages)
- {
--	return vmap_pages_range_noflush(addr, addr + size, prot, pages);
-+	return vmap_pages_range_noflush(addr, addr + size, prot, pages, PAGE_SH=
-IFT);
- }
-=20
- /**
-@@ -2277,7 +2308,7 @@ int map_vm_area(struct vm_struct *area, pgprot_t pr=
-ot, struct page **pages)
- 	unsigned long end =3D addr + get_vm_area_size(area);
- 	int err;
-=20
--	err =3D vmap_pages_range(addr, end, prot, pages);
-+	err =3D vmap_pages_range(addr, end, prot, pages, PAGE_SHIFT);
-=20
- 	return err > 0 ? 0 : err;
- }
-@@ -2325,9 +2356,11 @@ static struct vm_struct *__get_vm_area_node(unsign=
-ed long size,
- 	if (unlikely(!size))
- 		return NULL;
-=20
--	if (flags & VM_IOREMAP)
--		align =3D 1ul << clamp_t(int, get_count_order_long(size),
--				       PAGE_SHIFT, IOREMAP_MAX_ORDER);
-+	if (flags & VM_IOREMAP) {
-+		align =3D max(align,
-+			    1ul << clamp_t(int, get_count_order_long(size),
-+					   PAGE_SHIFT, IOREMAP_MAX_ORDER));
-+	}
-=20
- 	area =3D kzalloc_node(sizeof(*area), gfp_mask & GFP_RECLAIM_MASK, node)=
-;
- 	if (unlikely(!area))
-@@ -2534,7 +2567,7 @@ static void __vunmap(const void *addr, int dealloca=
-te_pages)
- 			struct page *page =3D area->pages[i];
-=20
- 			BUG_ON(!page);
--			__free_pages(page, 0);
-+			__free_pages(page, area->page_order);
- 		}
- 		atomic_long_sub(area->nr_pages, &nr_vmalloc_pages);
-=20
-@@ -2672,26 +2705,29 @@ void *vmap(struct page **pages, unsigned int coun=
-t,
- EXPORT_SYMBOL(vmap);
-=20
- static void *__vmalloc_node(unsigned long size, unsigned long align,
--			    gfp_t gfp_mask, pgprot_t prot,
--			    int node, const void *caller);
-+			gfp_t gfp_mask, pgprot_t prot, unsigned long vm_flags,
-+			int node, const void *caller);
- static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
--				 pgprot_t prot, int node)
-+				 pgprot_t prot, unsigned int page_shift,
-+				 int node)
- {
- 	struct page **pages;
-+	unsigned long addr =3D (unsigned long)area->addr;
-+	unsigned long size =3D get_vm_area_size(area);
-+	unsigned int page_order =3D page_shift - PAGE_SHIFT;
- 	unsigned int nr_pages, array_size, i;
- 	const gfp_t nested_gfp =3D (gfp_mask & GFP_RECLAIM_MASK) | __GFP_ZERO;
- 	const gfp_t alloc_mask =3D gfp_mask | __GFP_NOWARN;
- 	const gfp_t highmem_mask =3D (gfp_mask & (GFP_DMA | GFP_DMA32)) ?
--					0 :
--					__GFP_HIGHMEM;
-+					0 : __GFP_HIGHMEM;
-=20
--	nr_pages =3D get_vm_area_size(area) >> PAGE_SHIFT;
-+	nr_pages =3D size >> page_shift;
- 	array_size =3D (nr_pages * sizeof(struct page *));
-=20
- 	/* Please note that the recursion is strictly bounded. */
- 	if (array_size > PAGE_SIZE) {
- 		pages =3D __vmalloc_node(array_size, 1, nested_gfp|highmem_mask,
--				PAGE_KERNEL, node, area->caller);
-+				PAGE_KERNEL, 0, node, area->caller);
- 	} else {
- 		pages =3D kmalloc_node(array_size, nested_gfp, node);
- 	}
-@@ -2704,14 +2740,13 @@ static void *__vmalloc_area_node(struct vm_struct=
- *area, gfp_t gfp_mask,
-=20
- 	area->pages =3D pages;
- 	area->nr_pages =3D nr_pages;
-+	area->page_order =3D page_order;
-=20
- 	for (i =3D 0; i < area->nr_pages; i++) {
- 		struct page *page;
-=20
--		if (node =3D=3D NUMA_NO_NODE)
--			page =3D alloc_page(alloc_mask|highmem_mask);
--		else
--			page =3D alloc_pages_node(node, alloc_mask|highmem_mask, 0);
-+		page =3D alloc_pages_node(node,
-+				alloc_mask|highmem_mask, page_order);
-=20
- 		if (unlikely(!page)) {
- 			/* Successfully allocated i pages, free them in __vunmap() */
-@@ -2725,8 +2760,9 @@ static void *__vmalloc_area_node(struct vm_struct *=
-area, gfp_t gfp_mask,
- 	}
- 	atomic_long_add(area->nr_pages, &nr_vmalloc_pages);
-=20
--	if (map_vm_area(area, prot, pages))
-+	if (vmap_pages_range(addr, addr + size, prot, pages, page_shift) < 0)
- 		goto fail;
-+
- 	return area->addr;
-=20
- fail:
-@@ -2760,22 +2796,39 @@ void *__vmalloc_node_range(unsigned long size, un=
-signed long align,
- 			pgprot_t prot, unsigned long vm_flags, int node,
- 			const void *caller)
- {
--	struct vm_struct *area;
-+	struct vm_struct *area =3D NULL;
- 	void *addr;
- 	unsigned long real_size =3D size;
-+	unsigned long real_align =3D align;
-+	unsigned int shift =3D PAGE_SHIFT;
-=20
- 	size =3D PAGE_ALIGN(size);
- 	if (!size || (size >> PAGE_SHIFT) > totalram_pages())
- 		goto fail;
-=20
--	area =3D __get_vm_area_node(real_size, align, VM_ALLOC | VM_UNINITIALIZ=
-ED |
-+	if (IS_ENABLED(CONFIG_HAVE_ARCH_HUGE_VMAP) &&
-+			(vm_flags & VM_HUGE_PAGES)) {
-+		unsigned long size_per_node;
-+
-+		size_per_node =3D size;
-+		if (node =3D=3D NUMA_NO_NODE)
-+			size_per_node /=3D num_online_nodes();
-+		if (size_per_node >=3D PMD_SIZE)
-+			shift =3D PMD_SHIFT;
-+	}
-+
-+again:
-+	align =3D max(real_align, 1UL << shift);
-+	size =3D ALIGN(real_size, align);
-+
-+	area =3D __get_vm_area_node(size, align, VM_ALLOC | VM_UNINITIALIZED |
- 				vm_flags, start, end, node, gfp_mask, caller);
- 	if (!area)
- 		goto fail;
-=20
--	addr =3D __vmalloc_area_node(area, gfp_mask, prot, node);
-+	addr =3D __vmalloc_area_node(area, gfp_mask, prot, shift, node);
- 	if (!addr)
--		return NULL;
-+		goto fail;
-=20
- 	/*
- 	 * In this function, newly allocated vm_struct has VM_UNINITIALIZED
-@@ -2789,8 +2842,16 @@ void *__vmalloc_node_range(unsigned long size, uns=
-igned long align,
- 	return addr;
-=20
- fail:
--	warn_alloc(gfp_mask, NULL,
-+	if (shift > PAGE_SHIFT) {
-+		shift =3D PAGE_SHIFT;
-+		goto again;
-+	}
-+
-+	if (!area) {
-+		/* Warn for area allocation, page allocations already warn */
-+		warn_alloc(gfp_mask, NULL,
- 			  "vmalloc: allocation failure: %lu bytes", real_size);
-+	}
- 	return NULL;
- }
-=20
-@@ -2825,16 +2886,19 @@ EXPORT_SYMBOL_GPL(__vmalloc_node_range);
-  * Return: pointer to the allocated memory or %NULL on error
-  */
- static void *__vmalloc_node(unsigned long size, unsigned long align,
--			    gfp_t gfp_mask, pgprot_t prot,
--			    int node, const void *caller)
-+			gfp_t gfp_mask, pgprot_t prot, unsigned long vm_flags,
-+			int node, const void *caller)
- {
- 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
--				gfp_mask, prot, 0, node, caller);
-+				gfp_mask, prot, vm_flags, node, caller);
- }
-=20
- void *__vmalloc(unsigned long size, gfp_t gfp_mask, pgprot_t prot)
- {
--	return __vmalloc_node(size, 1, gfp_mask, prot, NUMA_NO_NODE,
-+	unsigned long vm_flags =3D 0;
-+	if (pgprot_val(prot) =3D=3D pgprot_val(PAGE_KERNEL))
-+		vm_flags |=3D VM_HUGE_PAGES;
-+	return __vmalloc_node(size, 1, gfp_mask, prot, vm_flags, NUMA_NO_NODE,
- 				__builtin_return_address(0));
- }
- EXPORT_SYMBOL(__vmalloc);
-@@ -2842,7 +2906,7 @@ EXPORT_SYMBOL(__vmalloc);
- static inline void *__vmalloc_node_flags(unsigned long size,
- 					int node, gfp_t flags)
- {
--	return __vmalloc_node(size, 1, flags, PAGE_KERNEL,
-+	return __vmalloc_node(size, 1, flags, PAGE_KERNEL, VM_HUGE_PAGES,
- 					node, __builtin_return_address(0));
- }
-=20
-@@ -2850,7 +2914,8 @@ static inline void *__vmalloc_node_flags(unsigned l=
-ong size,
- void *__vmalloc_node_flags_caller(unsigned long size, int node, gfp_t fl=
-ags,
- 				  void *caller)
- {
--	return __vmalloc_node(size, 1, flags, PAGE_KERNEL, node, caller);
-+	return __vmalloc_node(size, 1, flags, PAGE_KERNEL, VM_HUGE_PAGES,
-+					node, caller);
- }
-=20
- /**
-@@ -2925,7 +2990,7 @@ EXPORT_SYMBOL(vmalloc_user);
-  */
- void *vmalloc_node(unsigned long size, int node)
- {
--	return __vmalloc_node(size, 1, GFP_KERNEL, PAGE_KERNEL,
-+	return __vmalloc_node(size, 1, GFP_KERNEL, PAGE_KERNEL, VM_HUGE_PAGES,
- 					node, __builtin_return_address(0));
- }
- EXPORT_SYMBOL(vmalloc_node);
-@@ -3014,7 +3079,7 @@ void *vmalloc_exec(unsigned long size)
-  */
- void *vmalloc_32(unsigned long size)
- {
--	return __vmalloc_node(size, 1, GFP_VMALLOC32, PAGE_KERNEL,
-+	return __vmalloc_node(size, 1, GFP_VMALLOC32, PAGE_KERNEL, 0,
- 			      NUMA_NO_NODE, __builtin_return_address(0));
- }
- EXPORT_SYMBOL(vmalloc_32);
+  * control_page + KEXEC_CONTROL_CODE_MAX_SIZE
+diff --git a/arch/x86/kvm/vmx/vmx.c b/arch/x86/kvm/vmx/vmx.c
+index c2c6335a998c..d52d470e36b1 100644
+--- a/arch/x86/kvm/vmx/vmx.c
++++ b/arch/x86/kvm/vmx/vmx.c
+@@ -3501,7 +3501,7 @@ static int init_rmode_identity_map(struct kvm *kvm)
+ 	/* Set up identity-mapping pagetable for EPT in real mode */
+ 	for (i =3D 0; i < PT32_ENT_PER_PAGE; i++) {
+ 		tmp =3D (i << 22) + (_PAGE_PRESENT | _PAGE_RW | _PAGE_USER |
+-			_PAGE_ACCESSED | _PAGE_DIRTY | _PAGE_PSE);
++			_PAGE_ACCESSED | _PAGE_DIRTY_HW | _PAGE_PSE);
+ 		r =3D kvm_write_guest_page(kvm, identity_map_pfn,
+ 				&tmp, i * sizeof(tmp), sizeof(tmp));
+ 		if (r < 0)
 --=20
-2.23.0
+2.21.0
