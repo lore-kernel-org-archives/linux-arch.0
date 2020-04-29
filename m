@@ -1,271 +1,141 @@
-Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 18/20] mm: clean up free_area_init_node() and its helpers
-Date: Wed, 29 Apr 2020 15:11:24 +0300
-Message-ID: <20200429121126.17989-19-rppt@kernel.org>
-In-Reply-To: <20200429121126.17989-1-rppt@kernel.org>
-References: <20200429121126.17989-1-rppt@kernel.org>
+Return-Path: <SRS0=8MBO=6N=vger.kernel.org=linux-doc-owner@kernel.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v10 14/26] x86/mm: Update maybe_mkwrite() for shadow stack
+Date: Wed, 29 Apr 2020 15:07:20 -0700
+Message-ID: <20200429220732.31602-15-yu-cheng.yu@intel.com>
+In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Baoquan He <bhe@redhat.com>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Qian Cai <cai@lca.pw>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429121124.Z-Jb8oC_0K0USws6ADkBnJ20hJVCLLbKcMEMvp2dEmg@z>
+Message-ID: <20200429220720.MVA8TGwU7FoGwOudjj--AakHOBHUmbiUO4FIvxXVLJw@z>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+Shadow stack memory is writable, but its VMA has VM_SHSTK instead of
+VM_WRITE.  Update maybe_mkwrite() to include the shadow stack.
 
-The free_area_init_node() now always uses memblock info and the zone PFN
-limits so it does not need the backwards compatibility functions to
-calculate the zone spanned and absent pages. The removal of the compat_
-versions of zone_{abscent,spanned}_pages_in_node() in turn, makes zone_si=
-ze
-and zhole_size parameters unused.
-
-The node_start_pfn is determined by get_pfn_range_for_nid(), so there is =
-no
-need to pass it to free_area_init_node().
-
-As the result, the only required parameter to free_area_init_node() is th=
-e
-node ID, all the rest are removed along with no longer used
-compat_zone_{abscent,spanned}_pages_in_node() helpers.
-
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- arch/x86/mm/numa.c |   2 +-
- include/linux/mm.h |   7 +--
- mm/page_alloc.c    | 110 +++++++++------------------------------------
- 3 files changed, 24 insertions(+), 95 deletions(-)
+ arch/x86/Kconfig              |  4 ++++
+ arch/x86/mm/pgtable.c         | 18 ++++++++++++++++++
+ include/asm-generic/pgtable.h | 24 ++++++++++++++++++++++++
+ include/linux/mm.h            |  2 ++
+ mm/huge_memory.c              |  2 ++
+ 5 files changed, 50 insertions(+)
 
-diff --git a/arch/x86/mm/numa.c b/arch/x86/mm/numa.c
-index fe024b2ac796..0e1b99f491e4 100644
---- a/arch/x86/mm/numa.c
-+++ b/arch/x86/mm/numa.c
-@@ -742,7 +742,7 @@ static void __init init_memory_less_node(int nid)
-=20
- 	/* Allocate and initialize node data. Memory-less node is now online.*/
- 	alloc_node_data(nid);
--	free_area_init_node(nid, zones_size, 0, zholes_size);
-+	free_area_init_node(nid);
-=20
- 	/*
- 	 * All zonelists will be built later in start_kernel() after per cpu
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c98f82fffe85..ac07e1f6a2bc 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1955,6 +1955,9 @@ config AS_HAS_SHADOW_STACK
+ config X86_INTEL_CET
+ 	def_bool n
+ 
++config ARCH_MAYBE_MKWRITE
++	def_bool n
++
+ config ARCH_HAS_SHADOW_STACK
+ 	def_bool n
+ 
+@@ -1965,6 +1968,7 @@ config X86_INTEL_SHADOW_STACK_USER
+ 	depends on AS_HAS_SHADOW_STACK
+ 	select ARCH_USES_HIGH_VMA_FLAGS
+ 	select X86_INTEL_CET
++	select ARCH_MAYBE_MKWRITE
+ 	select ARCH_HAS_SHADOW_STACK
+ 	help
+ 	  Shadow Stacks provides protection against program stack
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index 7bd2c3a52297..aa4d396ff98d 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -603,6 +603,24 @@ int pmdp_clear_flush_young(struct vm_area_struct *vma,
+ }
+ #endif
+ 
++#ifdef CONFIG_ARCH_MAYBE_MKWRITE
++pte_t arch_maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
++{
++	if (likely(vma->vm_flags & VM_SHSTK))
++		pte = pte_mkwrite_shstk(pte);
++	return pte;
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++pmd_t arch_maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
++{
++	if (likely(vma->vm_flags & VM_SHSTK))
++		pmd = pmd_mkwrite_shstk(pmd);
++	return pmd;
++}
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++#endif /* CONFIG_ARCH_MAYBE_MKWRITE */
++
+ /**
+  * reserve_top_address - reserves a hole in the top of kernel address space
+  * @reserve - size of hole to reserve
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 329b8c8ca703..2c3875724809 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1191,6 +1191,30 @@ static inline bool arch_has_pfn_modify_check(void)
+ }
+ #endif /* !_HAVE_ARCH_PFN_MODIFY_ALLOWED */
+ 
++#ifdef CONFIG_MMU
++#ifdef CONFIG_ARCH_MAYBE_MKWRITE
++pte_t arch_maybe_mkwrite(pte_t pte, struct vm_area_struct *vma);
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++pmd_t arch_maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma);
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++
++#else /* !CONFIG_ARCH_MAYBE_MKWRITE */
++static inline pte_t arch_maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
++{
++	return pte;
++}
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++static inline pmd_t arch_maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
++{
++	return pmd;
++}
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++
++#endif /* CONFIG_ARCH_MAYBE_MKWRITE */
++#endif /* CONFIG_MMU */
++
+ /*
+  * Architecture PAGE_KERNEL_* fallbacks
+  *
 diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 1c2ecb42e043..2c0d42b11f3c 100644
+index 54bb4cd9fee8..f0669e3cdd37 100644
 --- a/include/linux/mm.h
 +++ b/include/linux/mm.h
-@@ -2272,8 +2272,7 @@ static inline spinlock_t *pud_lock(struct mm_struct=
- *mm, pud_t *pud)
+@@ -944,6 +944,8 @@ static inline pte_t maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
+ {
+ 	if (likely(vma->vm_flags & VM_WRITE))
+ 		pte = pte_mkwrite(pte);
++	else
++		pte = arch_maybe_mkwrite(pte, vma);
+ 	return pte;
  }
-=20
- extern void __init pagecache_init(void);
--extern void __init free_area_init_node(int nid, unsigned long * zones_si=
-ze,
--		unsigned long zone_start_pfn, unsigned long *zholes_size);
-+extern void __init free_area_init_node(int nid);
- extern void free_initmem(void);
-=20
- /*
-@@ -2346,9 +2345,7 @@ static inline unsigned long get_num_physpages(void)
- /*
-  * Using memblock node mappings, an architecture may initialise its
-  * zones, allocate the backing mem_map and account for memory holes in a=
- more
-- * architecture independent manner. This is a substitute for creating th=
-e
-- * zone_sizes[] and zholes_size[] arrays and passing them to
-- * free_area_init_node()
-+ * architecture independent manner.
-  *
-  * An architecture is expected to register range of page frames backed b=
-y
-  * physical memory with memblock_add[_node]() before calling
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 98a47f90065a..30d171451d4c 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -6420,8 +6420,7 @@ static unsigned long __init zone_spanned_pages_in_n=
-ode(int nid,
- 					unsigned long node_start_pfn,
- 					unsigned long node_end_pfn,
- 					unsigned long *zone_start_pfn,
--					unsigned long *zone_end_pfn,
--					unsigned long *ignored)
-+					unsigned long *zone_end_pfn)
+ 
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 6ecd1045113b..608746bb9d19 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -485,6 +485,8 @@ pmd_t maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
  {
- 	unsigned long zone_low =3D arch_zone_lowest_possible_pfn[zone_type];
- 	unsigned long zone_high =3D arch_zone_highest_possible_pfn[zone_type];
-@@ -6485,8 +6484,7 @@ unsigned long __init absent_pages_in_range(unsigned=
- long start_pfn,
- static unsigned long __init zone_absent_pages_in_node(int nid,
- 					unsigned long zone_type,
- 					unsigned long node_start_pfn,
--					unsigned long node_end_pfn,
--					unsigned long *ignored)
-+					unsigned long node_end_pfn)
- {
- 	unsigned long zone_low =3D arch_zone_lowest_possible_pfn[zone_type];
- 	unsigned long zone_high =3D arch_zone_highest_possible_pfn[zone_type];
-@@ -6533,43 +6531,9 @@ static unsigned long __init zone_absent_pages_in_n=
-ode(int nid,
- 	return nr_absent;
+ 	if (likely(vma->vm_flags & VM_WRITE))
+ 		pmd = pmd_mkwrite(pmd);
++	else
++		pmd = arch_maybe_pmd_mkwrite(pmd, vma);
+ 	return pmd;
  }
-=20
--static inline unsigned long __init compat_zone_spanned_pages_in_node(int=
- nid,
--					unsigned long zone_type,
--					unsigned long node_start_pfn,
--					unsigned long node_end_pfn,
--					unsigned long *zone_start_pfn,
--					unsigned long *zone_end_pfn,
--					unsigned long *zones_size)
--{
--	unsigned int zone;
--
--	*zone_start_pfn =3D node_start_pfn;
--	for (zone =3D 0; zone < zone_type; zone++)
--		*zone_start_pfn +=3D zones_size[zone];
--
--	*zone_end_pfn =3D *zone_start_pfn + zones_size[zone_type];
--
--	return zones_size[zone_type];
--}
--
--static inline unsigned long __init compat_zone_absent_pages_in_node(int =
-nid,
--						unsigned long zone_type,
--						unsigned long node_start_pfn,
--						unsigned long node_end_pfn,
--						unsigned long *zholes_size)
--{
--	if (!zholes_size)
--		return 0;
--
--	return zholes_size[zone_type];
--}
--
- static void __init calculate_node_totalpages(struct pglist_data *pgdat,
- 						unsigned long node_start_pfn,
--						unsigned long node_end_pfn,
--						unsigned long *zones_size,
--						unsigned long *zholes_size,
--						bool compat)
-+						unsigned long node_end_pfn)
- {
- 	unsigned long realtotalpages =3D 0, totalpages =3D 0;
- 	enum zone_type i;
-@@ -6580,31 +6544,14 @@ static void __init calculate_node_totalpages(stru=
-ct pglist_data *pgdat,
- 		unsigned long spanned, absent;
- 		unsigned long size, real_size;
-=20
--		if (compat) {
--			spanned =3D compat_zone_spanned_pages_in_node(
--						pgdat->node_id, i,
--						node_start_pfn,
--						node_end_pfn,
--						&zone_start_pfn,
--						&zone_end_pfn,
--						zones_size);
--			absent =3D compat_zone_absent_pages_in_node(
--						pgdat->node_id, i,
--						node_start_pfn,
--						node_end_pfn,
--						zholes_size);
--		} else {
--			spanned =3D zone_spanned_pages_in_node(pgdat->node_id, i,
--						node_start_pfn,
--						node_end_pfn,
--						&zone_start_pfn,
--						&zone_end_pfn,
--						zones_size);
--			absent =3D zone_absent_pages_in_node(pgdat->node_id, i,
--						node_start_pfn,
--						node_end_pfn,
--						zholes_size);
--		}
-+		spanned =3D zone_spanned_pages_in_node(pgdat->node_id, i,
-+						     node_start_pfn,
-+						     node_end_pfn,
-+						     &zone_start_pfn,
-+						     &zone_end_pfn);
-+		absent =3D zone_absent_pages_in_node(pgdat->node_id, i,
-+						   node_start_pfn,
-+						   node_end_pfn);
-=20
- 		size =3D spanned;
- 		real_size =3D size - absent;
-@@ -6926,10 +6873,7 @@ static inline void pgdat_set_deferred_range(pg_dat=
-a_t *pgdat)
- static inline void pgdat_set_deferred_range(pg_data_t *pgdat) {}
- #endif
-=20
--static void __init __free_area_init_node(int nid, unsigned long *zones_s=
-ize,
--					 unsigned long node_start_pfn,
--					 unsigned long *zholes_size,
--					 bool compat)
-+void __init free_area_init_node(int nid)
- {
- 	pg_data_t *pgdat =3D NODE_DATA(nid);
- 	unsigned long start_pfn =3D 0;
-@@ -6938,19 +6882,16 @@ static void __init __free_area_init_node(int nid,=
- unsigned long *zones_size,
- 	/* pg_data_t should be reset to zero when it's allocated */
- 	WARN_ON(pgdat->nr_zones || pgdat->kswapd_classzone_idx);
-=20
-+	get_pfn_range_for_nid(nid, &start_pfn, &end_pfn);
-+
- 	pgdat->node_id =3D nid;
--	pgdat->node_start_pfn =3D node_start_pfn;
-+	pgdat->node_start_pfn =3D start_pfn;
- 	pgdat->per_cpu_nodestats =3D NULL;
--	if (!compat) {
--		get_pfn_range_for_nid(nid, &start_pfn, &end_pfn);
--		pr_info("Initmem setup node %d [mem %#018Lx-%#018Lx]\n", nid,
--			(u64)start_pfn << PAGE_SHIFT,
--			end_pfn ? ((u64)end_pfn << PAGE_SHIFT) - 1 : 0);
--	} else {
--		start_pfn =3D node_start_pfn;
--	}
--	calculate_node_totalpages(pgdat, start_pfn, end_pfn,
--				  zones_size, zholes_size, compat);
-+
-+	pr_info("Initmem setup node %d [mem %#018Lx-%#018Lx]\n", nid,
-+		(u64)start_pfn << PAGE_SHIFT,
-+		end_pfn ? ((u64)end_pfn << PAGE_SHIFT) - 1 : 0);
-+	calculate_node_totalpages(pgdat, start_pfn, end_pfn);
-=20
- 	alloc_node_mem_map(pgdat);
- 	pgdat_set_deferred_range(pgdat);
-@@ -6958,14 +6899,6 @@ static void __init __free_area_init_node(int nid, =
-unsigned long *zones_size,
- 	free_area_init_core(pgdat);
- }
-=20
--void __init free_area_init_node(int nid, unsigned long *zones_size,
--				unsigned long node_start_pfn,
--				unsigned long *zholes_size)
--{
--	__free_area_init_node(nid, zones_size, node_start_pfn, zholes_size,
--			      true);
--}
--
- #if !defined(CONFIG_FLAT_NODE_MEM_MAP)
- /*
-  * Initialize all valid struct pages in the range [spfn, epfn) and mark =
-them
-@@ -7491,8 +7424,7 @@ void __init free_area_init(unsigned long *max_zone_=
-pfn)
- 	init_unavailable_mem();
- 	for_each_online_node(nid) {
- 		pg_data_t *pgdat =3D NODE_DATA(nid);
--		__free_area_init_node(nid, NULL,
--				      find_min_pfn_for_node(nid), NULL, false);
-+		free_area_init_node(nid);
-=20
- 		/* Any memory on that node */
- 		if (pgdat->node_present_pages)
---=20
-2.26.1
+ 
+-- 
+2.21.0
