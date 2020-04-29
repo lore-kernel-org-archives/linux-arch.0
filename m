@@ -1,245 +1,607 @@
-Return-Path: <SRS0=GBzO=6A=vger.kernel.org=linux-doc-owner@kernel.org>
-From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-Subject: [PATCH v16 07/10] arch: Wire up landlock() syscall
-Date: Thu, 16 Apr 2020 12:39:52 +0200
-Message-ID: <20200416103955.145757-8-mic@digikod.net>
-In-Reply-To: <20200416103955.145757-1-mic@digikod.net>
-References: <20200416103955.145757-1-mic@digikod.net>
+Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v10 20/26] x86/cet/shstk: Handle signals for shadow stack
+Date: Wed, 29 Apr 2020 15:07:26 -0700
+Message-ID: <20200429220732.31602-21-yu-cheng.yu@intel.com>
+In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200416103952.mHahqBxFM1_b61LC3ZUD9TC0RjNRYw6NSJVLGDvlHn0@z>
+Message-ID: <20200429220726.bSEAUcRkGrh9NkG794p46uPrRdV-y5OvDbc0lLnarjs@z>
 
-Wire up the landlock() system call for all architectures.
+To deliver a signal, create a shadow stack restore token and put a restor=
+e
+token and the signal restorer address on the shadow stack.  For sigreturn=
+,
+verify the token and restore the shadow stack pointer.
 
-Signed-off-by: Mickaël Salaün <mic@digikod.net>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: James Morris <jmorris@namei.org>
-Cc: Jann Horn <jannh@google.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Serge E. Hallyn <serge@hallyn.com>
+Introduce WRUSS, which is a kernel-mode instruction but writes directly t=
+o
+user shadow stack.  It is used to construct the user signal stack as
+described above.
+
+Introduce a signal context extension struct 'sc_ext', which is used to sa=
+ve
+shadow stack restore token address and WAIT_ENDBR status.  WAIT_ENDBR wil=
+l
+be introduced later in the Indirect Branch Tracking (IBT) series, but add
+that into sc_ext now to keep the struct stable in case the IBT series is
+applied later.
+
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
+v10:
+- Combine with WRUSS instruction patch, since it is used only here.
+- Revise signal restore code to the latest supervisor states handling.
+  Move shadow stack restore token checking out of the fast path.
 
-Changes since v14:
-* Add all architectures.
+v9:
+- Update CET MSR access according to XSAVES supervisor state changes.
+- Add 'wait_endbr' to struct 'sc_ext'.
+- Update and simplify signal frame allocation, setup, and restoration.
+- Update commit log text.
 
-Changes since v13:
-* New implementation.
----
- arch/alpha/kernel/syscalls/syscall.tbl      | 1 +
- arch/arm/tools/syscall.tbl                  | 1 +
- arch/arm64/include/asm/unistd.h             | 2 +-
- arch/arm64/include/asm/unistd32.h           | 2 ++
- arch/ia64/kernel/syscalls/syscall.tbl       | 1 +
- arch/m68k/kernel/syscalls/syscall.tbl       | 1 +
- arch/microblaze/kernel/syscalls/syscall.tbl | 1 +
- arch/mips/kernel/syscalls/syscall_n32.tbl   | 1 +
- arch/mips/kernel/syscalls/syscall_n64.tbl   | 1 +
- arch/mips/kernel/syscalls/syscall_o32.tbl   | 1 +
- arch/parisc/kernel/syscalls/syscall.tbl     | 1 +
- arch/powerpc/kernel/syscalls/syscall.tbl    | 1 +
- arch/s390/kernel/syscalls/syscall.tbl       | 1 +
- arch/sh/kernel/syscalls/syscall.tbl         | 1 +
- arch/sparc/kernel/syscalls/syscall.tbl      | 1 +
- arch/x86/entry/syscalls/syscall_32.tbl      | 1 +
- arch/x86/entry/syscalls/syscall_64.tbl      | 1 +
- arch/xtensa/kernel/syscalls/syscall.tbl     | 1 +
- include/uapi/asm-generic/unistd.h           | 4 +++-
- 19 files changed, 22 insertions(+), 2 deletions(-)
+v2:
+- Move CET status from sigcontext to a separate struct sc_ext, which is
+  located above the fpstate on the signal frame.
+- Add a restore token for sigreturn address.
 
-diff --git a/arch/alpha/kernel/syscalls/syscall.tbl b/arch/alpha/kernel/syscalls/syscall.tbl
-index 36d42da7466a..424f1f7f4ea8 100644
---- a/arch/alpha/kernel/syscalls/syscall.tbl
-+++ b/arch/alpha/kernel/syscalls/syscall.tbl
-@@ -477,3 +477,4 @@
- # 545 reserved for clone3
- 547	common	openat2				sys_openat2
- 548	common	pidfd_getfd			sys_pidfd_getfd
-+549	common	landlock			sys_landlock
-diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
-index 4d1cf74a2caa..46b49724da4a 100644
---- a/arch/arm/tools/syscall.tbl
-+++ b/arch/arm/tools/syscall.tbl
-@@ -451,3 +451,4 @@
- 435	common	clone3				sys_clone3
- 437	common	openat2				sys_openat2
- 438	common	pidfd_getfd			sys_pidfd_getfd
-+439	common	landlock			sys_landlock
-diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
-index 803039d504de..3b859596840d 100644
---- a/arch/arm64/include/asm/unistd.h
-+++ b/arch/arm64/include/asm/unistd.h
-@@ -38,7 +38,7 @@
- #define __ARM_NR_compat_set_tls		(__ARM_NR_COMPAT_BASE + 5)
- #define __ARM_NR_COMPAT_END		(__ARM_NR_COMPAT_BASE + 0x800)
- 
--#define __NR_compat_syscalls		439
-+#define __NR_compat_syscalls		440
+ arch/x86/ia32/ia32_signal.c            |  17 +++
+ arch/x86/include/asm/cet.h             |   8 ++
+ arch/x86/include/asm/fpu/internal.h    |  10 ++
+ arch/x86/include/asm/special_insns.h   |  32 ++++++
+ arch/x86/include/uapi/asm/sigcontext.h |   9 ++
+ arch/x86/kernel/cet.c                  | 151 +++++++++++++++++++++++++
+ arch/x86/kernel/fpu/signal.c           | 101 +++++++++++++++++
+ arch/x86/kernel/signal.c               |  10 ++
+ 8 files changed, 338 insertions(+)
+
+diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
+index f9d8804144d0..cb19159817cb 100644
+--- a/arch/x86/ia32/ia32_signal.c
++++ b/arch/x86/ia32/ia32_signal.c
+@@ -35,6 +35,7 @@
+ #include <asm/sigframe.h>
+ #include <asm/sighandling.h>
+ #include <asm/smap.h>
++#include <asm/cet.h>
+=20
+ static inline void reload_segments(struct sigcontext_32 *sc)
+ {
+@@ -205,6 +206,7 @@ static void __user *get_sigframe(struct ksignal *ksig=
+, struct pt_regs *regs,
+ 				 void __user **fpstate)
+ {
+ 	unsigned long sp, fx_aligned, math_size;
++	void __user *restorer =3D NULL;
+=20
+ 	/* Default to using normal stack */
+ 	sp =3D regs->sp;
+@@ -218,8 +220,23 @@ static void __user *get_sigframe(struct ksignal *ksi=
+g, struct pt_regs *regs,
+ 		 ksig->ka.sa.sa_restorer)
+ 		sp =3D (unsigned long) ksig->ka.sa.sa_restorer;
+=20
++	if (ksig->ka.sa.sa_flags & SA_RESTORER) {
++		restorer =3D ksig->ka.sa.sa_restorer;
++	} else if (current->mm->context.vdso) {
++		if (ksig->ka.sa.sa_flags & SA_SIGINFO)
++			restorer =3D current->mm->context.vdso +
++				vdso_image_32.sym___kernel_rt_sigreturn;
++		else
++			restorer =3D current->mm->context.vdso +
++				vdso_image_32.sym___kernel_sigreturn;
++	}
++
+ 	sp =3D fpu__alloc_mathframe(sp, 1, &fx_aligned, &math_size);
+ 	*fpstate =3D (struct _fpstate_32 __user *) sp;
++
++	if (save_cet_to_sigframe(1, *fpstate, (unsigned long)restorer))
++		return (void __user *) -1L;
++
+ 	if (copy_fpstate_to_sigframe(*fpstate, (void __user *)fx_aligned,
+ 				     math_size) < 0)
+ 		return (void __user *) -1L;
+diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+index caac0687c8e4..56fe08eebae6 100644
+--- a/arch/x86/include/asm/cet.h
++++ b/arch/x86/include/asm/cet.h
+@@ -6,6 +6,8 @@
+ #include <linux/types.h>
+=20
+ struct task_struct;
++struct sc_ext;
++
+ /*
+  * Per-thread CET status
+  */
+@@ -17,8 +19,14 @@ struct cet_status {
+ #ifdef CONFIG_X86_INTEL_CET
+ int cet_setup_shstk(void);
+ void cet_disable_free_shstk(struct task_struct *p);
++int cet_verify_rstor_token(bool ia32, unsigned long ssp, unsigned long *=
+new_ssp);
++void cet_restore_signal(struct sc_ext *sc);
++int cet_setup_signal(bool ia32, unsigned long rstor, struct sc_ext *sc);
+ #else
+ static inline void cet_disable_free_shstk(struct task_struct *p) {}
++static inline void cet_restore_signal(struct sc_ext *sc) { return; }
++static inline int cet_setup_signal(bool ia32, unsigned long rstor,
++				   struct sc_ext *sc) { return -EINVAL; }
  #endif
- 
- #define __ARCH_WANT_SYS_CLONE
-diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
-index c1c61635f89c..a24fe33f7c0d 100644
---- a/arch/arm64/include/asm/unistd32.h
-+++ b/arch/arm64/include/asm/unistd32.h
-@@ -883,6 +883,8 @@ __SYSCALL(__NR_clone3, sys_clone3)
- __SYSCALL(__NR_openat2, sys_openat2)
- #define __NR_pidfd_getfd 438
- __SYSCALL(__NR_pidfd_getfd, sys_pidfd_getfd)
-+#define __NR_landlock 439
-+__SYSCALL(__NR_landlock, sys_landlock)
- 
+=20
+ #endif /* __ASSEMBLY__ */
+diff --git a/arch/x86/include/asm/fpu/internal.h b/arch/x86/include/asm/f=
+pu/internal.h
+index 42159f45bf9c..b569ac929ccc 100644
+--- a/arch/x86/include/asm/fpu/internal.h
++++ b/arch/x86/include/asm/fpu/internal.h
+@@ -476,6 +476,16 @@ static inline void copy_kernel_to_fpregs(union fpreg=
+s_state *fpstate)
+ 	__copy_kernel_to_fpregs(fpstate, -1);
+ }
+=20
++#ifdef CONFIG_X86_INTEL_CET
++extern int save_cet_to_sigframe(int ia32, void __user *fp,
++				unsigned long restorer);
++#else
++static inline int save_cet_to_sigframe(int ia32, void __user *fp,
++				unsigned long restorer)
++{
++	return 0;
++}
++#endif
+ extern int copy_fpstate_to_sigframe(void __user *buf, void __user *fp, i=
+nt size);
+=20
  /*
-  * Please add new compat syscalls above this comment and update
-diff --git a/arch/ia64/kernel/syscalls/syscall.tbl b/arch/ia64/kernel/syscalls/syscall.tbl
-index 042911e670b8..c311696e0f5f 100644
---- a/arch/ia64/kernel/syscalls/syscall.tbl
-+++ b/arch/ia64/kernel/syscalls/syscall.tbl
-@@ -358,3 +358,4 @@
- # 435 reserved for clone3
- 437	common	openat2				sys_openat2
- 438	common	pidfd_getfd			sys_pidfd_getfd
-+439	common	landlock			sys_landlock
-diff --git a/arch/m68k/kernel/syscalls/syscall.tbl b/arch/m68k/kernel/syscalls/syscall.tbl
-index f4f49fcb76d0..d73a43d235d3 100644
---- a/arch/m68k/kernel/syscalls/syscall.tbl
-+++ b/arch/m68k/kernel/syscalls/syscall.tbl
-@@ -437,3 +437,4 @@
- 435	common	clone3				__sys_clone3
- 437	common	openat2				sys_openat2
- 438	common	pidfd_getfd			sys_pidfd_getfd
-+439	common	landlock			sys_landlock
-diff --git a/arch/microblaze/kernel/syscalls/syscall.tbl b/arch/microblaze/kernel/syscalls/syscall.tbl
-index 4c67b11f9c9e..f3927af7716f 100644
---- a/arch/microblaze/kernel/syscalls/syscall.tbl
-+++ b/arch/microblaze/kernel/syscalls/syscall.tbl
-@@ -443,3 +443,4 @@
- 435	common	clone3				sys_clone3
- 437	common	openat2				sys_openat2
- 438	common	pidfd_getfd			sys_pidfd_getfd
-+439	common	landlock			sys_landlock
-diff --git a/arch/mips/kernel/syscalls/syscall_n32.tbl b/arch/mips/kernel/syscalls/syscall_n32.tbl
-index 1f9e8ad636cc..e467033ec474 100644
---- a/arch/mips/kernel/syscalls/syscall_n32.tbl
-+++ b/arch/mips/kernel/syscalls/syscall_n32.tbl
-@@ -376,3 +376,4 @@
- 435	n32	clone3				__sys_clone3
- 437	n32	openat2				sys_openat2
- 438	n32	pidfd_getfd			sys_pidfd_getfd
-+439	n32	landlock			sys_landlock
-diff --git a/arch/mips/kernel/syscalls/syscall_n64.tbl b/arch/mips/kernel/syscalls/syscall_n64.tbl
-index c0b9d802dbf6..1930ba6c75b7 100644
---- a/arch/mips/kernel/syscalls/syscall_n64.tbl
-+++ b/arch/mips/kernel/syscalls/syscall_n64.tbl
-@@ -352,3 +352,4 @@
- 435	n64	clone3				__sys_clone3
- 437	n64	openat2				sys_openat2
- 438	n64	pidfd_getfd			sys_pidfd_getfd
-+439	n64	landlock			sys_landlock
-diff --git a/arch/mips/kernel/syscalls/syscall_o32.tbl b/arch/mips/kernel/syscalls/syscall_o32.tbl
-index ac586774c980..0a66f190ae3d 100644
---- a/arch/mips/kernel/syscalls/syscall_o32.tbl
-+++ b/arch/mips/kernel/syscalls/syscall_o32.tbl
-@@ -425,3 +425,4 @@
- 435	o32	clone3				__sys_clone3
- 437	o32	openat2				sys_openat2
- 438	o32	pidfd_getfd			sys_pidfd_getfd
-+439	o32	landlock			sys_landlock
-diff --git a/arch/parisc/kernel/syscalls/syscall.tbl b/arch/parisc/kernel/syscalls/syscall.tbl
-index 52a15f5cd130..93ddc36a660e 100644
---- a/arch/parisc/kernel/syscalls/syscall.tbl
-+++ b/arch/parisc/kernel/syscalls/syscall.tbl
-@@ -435,3 +435,4 @@
- 435	common	clone3				sys_clone3_wrapper
- 437	common	openat2				sys_openat2
- 438	common	pidfd_getfd			sys_pidfd_getfd
-+439	common	landlock			sys_landlock
-diff --git a/arch/powerpc/kernel/syscalls/syscall.tbl b/arch/powerpc/kernel/syscalls/syscall.tbl
-index 220ae11555f2..34ca2cd82d4e 100644
---- a/arch/powerpc/kernel/syscalls/syscall.tbl
-+++ b/arch/powerpc/kernel/syscalls/syscall.tbl
-@@ -527,3 +527,4 @@
- 435	spu	clone3				sys_ni_syscall
- 437	common	openat2				sys_openat2
- 438	common	pidfd_getfd			sys_pidfd_getfd
-+439	common	landlock			sys_landlock
-diff --git a/arch/s390/kernel/syscalls/syscall.tbl b/arch/s390/kernel/syscalls/syscall.tbl
-index bd7bd3581a0f..b4233c9c7421 100644
---- a/arch/s390/kernel/syscalls/syscall.tbl
-+++ b/arch/s390/kernel/syscalls/syscall.tbl
-@@ -440,3 +440,4 @@
- 435  common	clone3			sys_clone3			sys_clone3
- 437  common	openat2			sys_openat2			sys_openat2
- 438  common	pidfd_getfd		sys_pidfd_getfd			sys_pidfd_getfd
-+439  common	landlock		sys_landlock			sys_landlock
-diff --git a/arch/sh/kernel/syscalls/syscall.tbl b/arch/sh/kernel/syscalls/syscall.tbl
-index c7a30fcd135f..49fd37c18528 100644
---- a/arch/sh/kernel/syscalls/syscall.tbl
-+++ b/arch/sh/kernel/syscalls/syscall.tbl
-@@ -440,3 +440,4 @@
- # 435 reserved for clone3
- 437	common	openat2				sys_openat2
- 438	common	pidfd_getfd			sys_pidfd_getfd
-+439	common	landlock			sys_landlock
-diff --git a/arch/sparc/kernel/syscalls/syscall.tbl b/arch/sparc/kernel/syscalls/syscall.tbl
-index f13615ecdecc..33e2a9d55bdd 100644
---- a/arch/sparc/kernel/syscalls/syscall.tbl
-+++ b/arch/sparc/kernel/syscalls/syscall.tbl
-@@ -483,3 +483,4 @@
- # 435 reserved for clone3
- 437	common	openat2			sys_openat2
- 438	common	pidfd_getfd			sys_pidfd_getfd
-+439	common	landlock			sys_landlock
-diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-index 54581ac671b4..b350580405b3 100644
---- a/arch/x86/entry/syscalls/syscall_32.tbl
-+++ b/arch/x86/entry/syscalls/syscall_32.tbl
-@@ -442,3 +442,4 @@
- 435	i386	clone3			sys_clone3
- 437	i386	openat2			sys_openat2
- 438	i386	pidfd_getfd		sys_pidfd_getfd
-+439	i386	landlock		sys_landlock
-diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
-index 37b844f839bc..b6efdd813978 100644
---- a/arch/x86/entry/syscalls/syscall_64.tbl
-+++ b/arch/x86/entry/syscalls/syscall_64.tbl
-@@ -359,6 +359,7 @@
- 435	common	clone3			sys_clone3
- 437	common	openat2			sys_openat2
- 438	common	pidfd_getfd		sys_pidfd_getfd
-+439	common	landlock		sys_landlock
- 
- #
- # x32-specific system call numbers start at 512 to avoid cache impact
-diff --git a/arch/xtensa/kernel/syscalls/syscall.tbl b/arch/xtensa/kernel/syscalls/syscall.tbl
-index 85a9ab1bc04d..84fc6db485ef 100644
---- a/arch/xtensa/kernel/syscalls/syscall.tbl
-+++ b/arch/xtensa/kernel/syscalls/syscall.tbl
-@@ -408,3 +408,4 @@
- 435	common	clone3				sys_clone3
- 437	common	openat2				sys_openat2
- 438	common	pidfd_getfd			sys_pidfd_getfd
-+439	common	landlock			sys_landlock
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index 3a3201e4618e..31d5814ddb13 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -855,9 +855,11 @@ __SYSCALL(__NR_clone3, sys_clone3)
- __SYSCALL(__NR_openat2, sys_openat2)
- #define __NR_pidfd_getfd 438
- __SYSCALL(__NR_pidfd_getfd, sys_pidfd_getfd)
-+#define __NR_landlock 439
-+__SYSCALL(__NR_landlock, sys_landlock)
- 
- #undef __NR_syscalls
--#define __NR_syscalls 439
-+#define __NR_syscalls 440
- 
+diff --git a/arch/x86/include/asm/special_insns.h b/arch/x86/include/asm/=
+special_insns.h
+index 6d37b8fcfc77..1b9b2e79c353 100644
+--- a/arch/x86/include/asm/special_insns.h
++++ b/arch/x86/include/asm/special_insns.h
+@@ -222,6 +222,38 @@ static inline void clwb(volatile void *__p)
+ 		: [pax] "a" (p));
+ }
+=20
++#ifdef CONFIG_X86_INTEL_CET
++#if defined(CONFIG_IA32_EMULATION) || defined(CONFIG_X86_X32)
++static inline int write_user_shstk_32(unsigned long addr, unsigned int v=
+al)
++{
++	asm_volatile_goto("1: wrussd %1, (%0)\n"
++			  _ASM_EXTABLE(1b, %l[fail])
++			  :: "r" (addr), "r" (val)
++			  :: fail);
++	return 0;
++fail:
++	return -EPERM;
++}
++#else
++static inline int write_user_shstk_32(unsigned long addr, unsigned int v=
+al)
++{
++	WARN_ONCE(1, "%s used but not supported.\n", __func__);
++	return -EFAULT;
++}
++#endif
++
++static inline int write_user_shstk_64(unsigned long addr, unsigned long =
+val)
++{
++	asm_volatile_goto("1: wrussq %1, (%0)\n"
++			  _ASM_EXTABLE(1b, %l[fail])
++			  :: "r" (addr), "r" (val)
++			  :: fail);
++	return 0;
++fail:
++	return -EPERM;
++}
++#endif /* CONFIG_X86_INTEL_CET */
++
+ #define nop() asm volatile ("nop")
+=20
+=20
+diff --git a/arch/x86/include/uapi/asm/sigcontext.h b/arch/x86/include/ua=
+pi/asm/sigcontext.h
+index 844d60eb1882..cf2d55db3be4 100644
+--- a/arch/x86/include/uapi/asm/sigcontext.h
++++ b/arch/x86/include/uapi/asm/sigcontext.h
+@@ -196,6 +196,15 @@ struct _xstate {
+ 	/* New processor state extensions go here: */
+ };
+=20
++/*
++ * Located at the end of sigcontext->fpstate, aligned to 8.
++ */
++struct sc_ext {
++	unsigned long total_size;
++	unsigned long ssp;
++	unsigned long wait_endbr;
++};
++
  /*
-  * 32 bit systems traditionally used different
--- 
-2.26.1
+  * The 32-bit signal frame:
+  */
+diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+index d8196c8e792a..274fecdd9669 100644
+--- a/arch/x86/kernel/cet.c
++++ b/arch/x86/kernel/cet.c
+@@ -19,6 +19,8 @@
+ #include <asm/fpu/xstate.h>
+ #include <asm/fpu/types.h>
+ #include <asm/cet.h>
++#include <asm/special_insns.h>
++#include <uapi/asm/sigcontext.h>
+=20
+ static void start_update_msrs(void)
+ {
+@@ -69,6 +71,80 @@ static unsigned long alloc_shstk(unsigned long size)
+ 	return addr;
+ }
+=20
++#define TOKEN_MODE_MASK	3UL
++#define TOKEN_MODE_64	1UL
++#define IS_TOKEN_64(token) ((token & TOKEN_MODE_MASK) =3D=3D TOKEN_MODE_=
+64)
++#define IS_TOKEN_32(token) ((token & TOKEN_MODE_MASK) =3D=3D 0)
++
++/*
++ * Verify the restore token at the address of 'ssp' is
++ * valid and then set shadow stack pointer according to the
++ * token.
++ */
++int cet_verify_rstor_token(bool ia32, unsigned long ssp,
++			   unsigned long *new_ssp)
++{
++	unsigned long token;
++
++	*new_ssp =3D 0;
++
++	if (!IS_ALIGNED(ssp, 8))
++		return -EINVAL;
++
++	if (get_user(token, (unsigned long __user *)ssp))
++		return -EFAULT;
++
++	/* Is 64-bit mode flag correct? */
++	if (!ia32 && !IS_TOKEN_64(token))
++		return -EINVAL;
++	else if (ia32 && !IS_TOKEN_32(token))
++		return -EINVAL;
++
++	token &=3D ~TOKEN_MODE_MASK;
++
++	/*
++	 * Restore address properly aligned?
++	 */
++	if ((!ia32 && !IS_ALIGNED(token, 8)) || !IS_ALIGNED(token, 4))
++		return -EINVAL;
++
++	/*
++	 * Token was placed properly?
++	 */
++	if ((ALIGN_DOWN(token, 8) - 8) !=3D ssp)
++		return -EINVAL;
++
++	*new_ssp =3D token;
++	return 0;
++}
++
++/*
++ * Create a restore token on the shadow stack.
++ * A token is always 8-byte and aligned to 8.
++ */
++static int create_rstor_token(bool ia32, unsigned long ssp,
++			      unsigned long *new_ssp)
++{
++	unsigned long addr;
++
++	*new_ssp =3D 0;
++
++	if ((!ia32 && !IS_ALIGNED(ssp, 8)) || !IS_ALIGNED(ssp, 4))
++		return -EINVAL;
++
++	addr =3D ALIGN_DOWN(ssp, 8) - 8;
++
++	/* Is the token for 64-bit? */
++	if (!ia32)
++		ssp |=3D TOKEN_MODE_64;
++
++	if (write_user_shstk_64(addr, ssp))
++		return -EFAULT;
++
++	*new_ssp =3D addr;
++	return 0;
++}
++
+ int cet_setup_shstk(void)
+ {
+ 	unsigned long addr, size;
+@@ -133,3 +209,78 @@ void cet_disable_free_shstk(struct task_struct *tsk)
+ 	cet->shstk_base =3D 0;
+ 	cet->shstk_size =3D 0;
+ }
++
++/*
++ * Called from __fpu__restore_sig() and XSAVES buffer is protected by
++ * set_thread_flag(TIF_NEED_FPU_LOAD) in the slow path.
++ */
++void cet_restore_signal(struct sc_ext *sc_ext)
++{
++	struct cet_user_state *cet_user_state;
++	struct cet_status *cet =3D &current->thread.cet;
++	u64 msr_val =3D 0;
++
++	cet_user_state =3D get_xsave_addr(&current->thread.fpu.state.xsave,
++					XFEATURE_CET_USER);
++	if (!cet_user_state)
++		return;
++
++	if (cet->shstk_size) {
++		if (test_thread_flag(TIF_NEED_FPU_LOAD))
++			cet_user_state->user_ssp =3D sc_ext->ssp;
++		else
++			wrmsrl(MSR_IA32_PL3_SSP, sc_ext->ssp);
++
++		msr_val |=3D MSR_IA32_CET_SHSTK_EN;
++	}
++
++	if (test_thread_flag(TIF_NEED_FPU_LOAD))
++		cet_user_state->user_cet =3D msr_val;
++	else
++		wrmsrl(MSR_IA32_U_CET, msr_val);
++
++	return;
++}
++
++/*
++ * Setup the shadow stack for the signal handler: first,
++ * create a restore token to keep track of the current ssp,
++ * and then the return address of the signal handler.
++ */
++int cet_setup_signal(bool ia32, unsigned long rstor_addr, struct sc_ext =
+*sc_ext)
++{
++	struct cet_status *cet =3D &current->thread.cet;
++	unsigned long ssp =3D 0, new_ssp =3D 0;
++	int err;
++
++	if (cet->shstk_size) {
++		if (!rstor_addr)
++			return -EINVAL;
++
++		ssp =3D cet_get_shstk_addr();
++		err =3D create_rstor_token(ia32, ssp, &new_ssp);
++		if (err)
++			return err;
++
++		if (ia32) {
++			ssp =3D new_ssp - sizeof(u32);
++			err =3D write_user_shstk_32(ssp, (unsigned int)rstor_addr);
++		} else {
++			ssp =3D new_ssp - sizeof(u64);
++			err =3D write_user_shstk_64(ssp, rstor_addr);
++		}
++
++		if (err)
++			return err;
++
++		sc_ext->ssp =3D new_ssp;
++	}
++
++	if (ssp) {
++		start_update_msrs();
++		wrmsrl(MSR_IA32_PL3_SSP, ssp);
++		end_update_msrs();
++	}
++
++	return 0;
++}
+diff --git a/arch/x86/kernel/fpu/signal.c b/arch/x86/kernel/fpu/signal.c
+index 4dad5afc938d..95ee76d08971 100644
+--- a/arch/x86/kernel/fpu/signal.c
++++ b/arch/x86/kernel/fpu/signal.c
+@@ -52,6 +52,73 @@ static inline int check_for_xstate(struct fxregs_state=
+ __user *buf,
+ 	return 0;
+ }
+=20
++#ifdef CONFIG_X86_INTEL_CET
++int save_cet_to_sigframe(int ia32, void __user *fp, unsigned long restor=
+er)
++{
++	int err =3D 0;
++
++	if (!current->thread.cet.shstk_size)
++		return 0;
++
++	if (fp) {
++		struct sc_ext ext =3D {0, 0, 0};
++
++		err =3D cet_setup_signal(ia32, restorer, &ext);
++		if (!err) {
++			void __user *p =3D fp;
++
++			ext.total_size =3D sizeof(ext);
++
++			if (ia32)
++				p +=3D sizeof(struct fregs_state);
++
++			p +=3D fpu_user_xstate_size + FP_XSTATE_MAGIC2_SIZE;
++			p =3D (void __user *)ALIGN((unsigned long)p, 8);
++
++			if (copy_to_user(p, &ext, sizeof(ext)))
++				return -EFAULT;
++		}
++	}
++
++	return err;
++}
++
++static int get_cet_from_sigframe(int ia32, void __user *fp, struct sc_ex=
+t *ext)
++{
++	int err =3D 0;
++
++	memset(ext, 0, sizeof(*ext));
++
++	if (!current->thread.cet.shstk_size)
++		return 0;
++
++	if (fp) {
++		void __user *p =3D fp;
++
++		if (ia32)
++			p +=3D sizeof(struct fregs_state);
++
++		p +=3D fpu_user_xstate_size + FP_XSTATE_MAGIC2_SIZE;
++		p =3D (void __user *)ALIGN((unsigned long)p, 8);
++
++		if (copy_from_user(ext, p, sizeof(*ext)))
++			return -EFAULT;
++
++		if (ext->total_size !=3D sizeof(*ext))
++			return -EFAULT;
++
++		err =3D cet_verify_rstor_token(ia32, ext->ssp, &ext->ssp);
++	}
++
++	return err;
++}
++#else
++static int get_cet_from_sigframe(int ia32, void __user *fp, struct sc_ex=
+t *ext)
++{
++	return 0;
++}
++#endif
++
+ /*
+  * Signal frame handlers.
+  */
+@@ -294,6 +361,7 @@ static int __fpu__restore_sig(void __user *buf, void =
+__user *buf_fx, int size)
+ 	struct task_struct *tsk =3D current;
+ 	struct fpu *fpu =3D &tsk->thread.fpu;
+ 	struct user_i387_ia32_struct env;
++	struct sc_ext sc_ext;
+ 	u64 user_xfeatures =3D 0;
+ 	int fx_only =3D 0;
+ 	int ret =3D 0;
+@@ -334,6 +402,10 @@ static int __fpu__restore_sig(void __user *buf, void=
+ __user *buf_fx, int size)
+ 	if ((unsigned long)buf_fx % 64)
+ 		fx_only =3D 1;
+=20
++	ret =3D get_cet_from_sigframe(ia32_fxstate, buf, &sc_ext);
++	if (ret)
++		return ret;
++
+ 	if (!ia32_fxstate) {
+ 		/*
+ 		 * Attempt to restore the FPU registers directly from user
+@@ -346,7 +418,10 @@ static int __fpu__restore_sig(void __user *buf, void=
+ __user *buf_fx, int size)
+ 		pagefault_disable();
+ 		ret =3D copy_user_to_fpregs_zeroing(buf_fx, user_xfeatures, fx_only);
+ 		pagefault_enable();
++
+ 		if (!ret) {
++			cet_restore_signal(&sc_ext);
++
+ 			/* Restore supervisor states */
+ 			if (test_thread_flag(TIF_NEED_FPU_LOAD) &&
+ 			    xfeatures_mask_supervisor())
+@@ -405,6 +480,9 @@ static int __fpu__restore_sig(void __user *buf, void =
+__user *buf_fx, int size)
+ 		fpregs_lock();
+ 		if (unlikely(init_bv))
+ 			copy_kernel_to_xregs(&init_fpstate.xsave, init_bv);
++
++		cet_restore_signal(&sc_ext);
++
+ 		/*
+ 		 * Restore previously saved supervisor xstates along with
+ 		 * copied-in user xstates.
+@@ -473,12 +551,35 @@ int fpu__restore_sig(void __user *buf, int ia32_fra=
+me)
+ 	return __fpu__restore_sig(buf, buf_fx, size);
+ }
+=20
++#ifdef CONFIG_X86_INTEL_CET
++static unsigned long fpu__alloc_sigcontext_ext(unsigned long sp)
++{
++	struct cet_status *cet =3D &current->thread.cet;
++
++	/*
++	 * sigcontext_ext is at: fpu + fpu_user_xstate_size +
++	 * FP_XSTATE_MAGIC2_SIZE, then aligned to 8.
++	 */
++	if (cet->shstk_size)
++		sp -=3D (sizeof(struct sc_ext) + 8);
++
++	return sp;
++}
++#else
++static unsigned long fpu__alloc_sigcontext_ext(unsigned long sp)
++{
++	return sp;
++}
++#endif
++
+ unsigned long
+ fpu__alloc_mathframe(unsigned long sp, int ia32_frame,
+ 		     unsigned long *buf_fx, unsigned long *size)
+ {
+ 	unsigned long frame_size =3D xstate_sigframe_size();
+=20
++	sp =3D fpu__alloc_sigcontext_ext(sp);
++
+ 	*buf_fx =3D sp =3D round_down(sp - frame_size, 64);
+ 	if (ia32_frame && use_fxsr()) {
+ 		frame_size +=3D sizeof(struct fregs_state);
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index 0052bbe5dfd4..5ee1b2e51de3 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -44,6 +44,7 @@
+ #include <asm/syscall.h>
+ #include <asm/sigframe.h>
+ #include <asm/signal.h>
++#include <asm/cet.h>
+=20
+ #ifdef CONFIG_X86_64
+ /*
+@@ -237,6 +238,9 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs *=
+regs, size_t frame_size,
+ 	unsigned long buf_fx =3D 0;
+ 	int onsigstack =3D on_sig_stack(sp);
+ 	int ret;
++#ifdef CONFIG_X86_64
++	void __user *restorer =3D NULL;
++#endif
+=20
+ 	/* redzone */
+ 	if (IS_ENABLED(CONFIG_X86_64))
+@@ -268,6 +272,12 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs =
+*regs, size_t frame_size,
+ 	if (onsigstack && !likely(on_sig_stack(sp)))
+ 		return (void __user *)-1L;
+=20
++#ifdef CONFIG_X86_64
++	if (ka->sa.sa_flags & SA_RESTORER)
++		restorer =3D ka->sa.sa_restorer;
++	ret =3D save_cet_to_sigframe(0, *fpstate, (unsigned long)restorer);
++#endif
++
+ 	/* save i387 and extended state */
+ 	ret =3D copy_fpstate_to_sigframe(*fpstate, (void __user *)buf_fx, math_=
+size);
+ 	if (ret < 0)
+--=20
+2.21.0
