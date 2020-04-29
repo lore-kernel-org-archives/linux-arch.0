@@ -1,169 +1,72 @@
-Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:12112 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726878AbgD1NQt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Apr 2020 09:16:49 -0400
-Message-ID: <e13d95312e0b9792556b19b4bb8955cc1ff19fc7.1588079622.git.christophe.leroy@c-s.fr>
-In-Reply-To: <cover.1588079622.git.christophe.leroy@c-s.fr>
-References: <cover.1588079622.git.christophe.leroy@c-s.fr>
-From: Christophe Leroy <christophe.leroy@c-s.fr>
-Subject: [PATCH v8 1/8] powerpc/vdso64: Switch from __get_datapage() to
- get_datapage inline macro
-Date: Tue, 28 Apr 2020 13:16:47 +0000 (UTC)
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2 19/20] mm: simplify find_min_pfn_with_active_regions()
+Date: Wed, 29 Apr 2020 15:11:25 +0300
+Message-ID: <20200429121126.17989-20-rppt@kernel.org>
+In-Reply-To: <20200429121126.17989-1-rppt@kernel.org>
+References: <20200429121126.17989-1-rppt@kernel.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Baoquan He <bhe@redhat.com>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Qian Cai <cai@lca.pw>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, nathanl@linux.ibm.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200428131647.9SCC1Xui1TtzX6mZAkE0n8YXLGbmXj9w_DfwBdDKfmM@z>
+Message-ID: <20200429121125.R4dFzKJM42NL8cYePRQRflwjlA_JRc6jEUtwVys9QPA@z>
 
-On the same way as already done on PPC32, drop __get_datapage()
-function and use get_datapage inline macro instead.
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-See commit ec0895f08f99 ("powerpc/vdso32: inline __get_datapage()")
+The find_min_pfn_with_active_regions() calls find_min_pfn_for_node() with
+nid parameter set to MAX_NUMNODES. This makes the find_min_pfn_for_node()
+traverse all memblock memory regions although the first PFN in the system
+can be easily found with memblock_start_of_DRAM().
 
-Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
+Use memblock_start_of_DRAM() in find_min_pfn_with_active_regions() and dr=
+op
+now unused find_min_pfn_for_node().
+
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/powerpc/kernel/vdso64/cacheflush.S   |  9 ++++----
- arch/powerpc/kernel/vdso64/datapage.S     | 28 +++--------------------
- arch/powerpc/kernel/vdso64/gettimeofday.S |  8 +++----
- 3 files changed, 11 insertions(+), 34 deletions(-)
+ mm/page_alloc.c | 20 +-------------------
+ 1 file changed, 1 insertion(+), 19 deletions(-)
 
-diff --git a/arch/powerpc/kernel/vdso64/cacheflush.S b/arch/powerpc/kernel/vdso64/cacheflush.S
-index 526f5ba2593e..cab14324242b 100644
---- a/arch/powerpc/kernel/vdso64/cacheflush.S
-+++ b/arch/powerpc/kernel/vdso64/cacheflush.S
-@@ -8,6 +8,7 @@
- #include <asm/processor.h>
- #include <asm/ppc_asm.h>
- #include <asm/vdso.h>
-+#include <asm/vdso_datapage.h>
- #include <asm/asm-offsets.h>
- 
- 	.text
-@@ -24,14 +25,12 @@ V_FUNCTION_BEGIN(__kernel_sync_dicache)
-   .cfi_startproc
- 	mflr	r12
-   .cfi_register lr,r12
--	mr	r11,r3
--	bl	V_LOCAL_FUNC(__get_datapage)
-+	get_datapage	r10, r0
- 	mtlr	r12
--	mr	r10,r3
- 
- 	lwz	r7,CFG_DCACHE_BLOCKSZ(r10)
- 	addi	r5,r7,-1
--	andc	r6,r11,r5		/* round low to line bdy */
-+	andc	r6,r3,r5		/* round low to line bdy */
- 	subf	r8,r6,r4		/* compute length */
- 	add	r8,r8,r5		/* ensure we get enough */
- 	lwz	r9,CFG_DCACHE_LOGBLOCKSZ(r10)
-@@ -48,7 +47,7 @@ V_FUNCTION_BEGIN(__kernel_sync_dicache)
- 
- 	lwz	r7,CFG_ICACHE_BLOCKSZ(r10)
- 	addi	r5,r7,-1
--	andc	r6,r11,r5		/* round low to line bdy */
-+	andc	r6,r3,r5		/* round low to line bdy */
- 	subf	r8,r6,r4		/* compute length */
- 	add	r8,r8,r5
- 	lwz	r9,CFG_ICACHE_LOGBLOCKSZ(r10)
-diff --git a/arch/powerpc/kernel/vdso64/datapage.S b/arch/powerpc/kernel/vdso64/datapage.S
-index dc84f5ae3802..067247d3efb9 100644
---- a/arch/powerpc/kernel/vdso64/datapage.S
-+++ b/arch/powerpc/kernel/vdso64/datapage.S
-@@ -10,35 +10,13 @@
- #include <asm/asm-offsets.h>
- #include <asm/unistd.h>
- #include <asm/vdso.h>
-+#include <asm/vdso_datapage.h>
- 
- 	.text
- .global	__kernel_datapage_offset;
- __kernel_datapage_offset:
- 	.long	0
- 
--V_FUNCTION_BEGIN(__get_datapage)
--  .cfi_startproc
--	/* We don't want that exposed or overridable as we want other objects
--	 * to be able to bl directly to here
--	 */
--	.protected __get_datapage
--	.hidden __get_datapage
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 30d171451d4c..b990e9734474 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -7045,24 +7045,6 @@ unsigned long __init node_map_pfn_alignment(void)
+ 	return ~accl_mask + 1;
+ }
+=20
+-/* Find the lowest pfn for a node */
+-static unsigned long __init find_min_pfn_for_node(int nid)
+-{
+-	unsigned long min_pfn =3D ULONG_MAX;
+-	unsigned long start_pfn;
+-	int i;
 -
--	mflr	r0
--  .cfi_register lr,r0
+-	for_each_mem_pfn_range(i, nid, &start_pfn, NULL, NULL)
+-		min_pfn =3D min(min_pfn, start_pfn);
 -
--	bcl	20,31,data_page_branch
--data_page_branch:
--	mflr	r3
--	mtlr	r0
--	addi	r3, r3, __kernel_datapage_offset-data_page_branch
--	lwz	r0,0(r3)
--  .cfi_restore lr
--	add	r3,r0,r3
--	blr
--  .cfi_endproc
--V_FUNCTION_END(__get_datapage)
+-	if (min_pfn =3D=3D ULONG_MAX) {
+-		pr_warn("Could not find start_pfn for node %d\n", nid);
+-		return 0;
+-	}
 -
- /*
-  * void *__kernel_get_syscall_map(unsigned int *syscall_count) ;
+-	return min_pfn;
+-}
+-
+ /**
+  * find_min_pfn_with_active_regions - Find the minimum PFN registered
   *
-@@ -53,7 +31,7 @@ V_FUNCTION_BEGIN(__kernel_get_syscall_map)
- 	mflr	r12
-   .cfi_register lr,r12
- 	mr	r4,r3
--	bl	V_LOCAL_FUNC(__get_datapage)
-+	get_datapage	r3, r0
- 	mtlr	r12
- 	addi	r3,r3,CFG_SYSCALL_MAP64
- 	cmpldi	cr0,r4,0
-@@ -75,7 +53,7 @@ V_FUNCTION_BEGIN(__kernel_get_tbfreq)
-   .cfi_startproc
- 	mflr	r12
-   .cfi_register lr,r12
--	bl	V_LOCAL_FUNC(__get_datapage)
-+	get_datapage	r3, r0
- 	ld	r3,CFG_TB_TICKS_PER_SEC(r3)
- 	mtlr	r12
- 	crclr	cr0*4+so
-diff --git a/arch/powerpc/kernel/vdso64/gettimeofday.S b/arch/powerpc/kernel/vdso64/gettimeofday.S
-index 1c9a04703250..e54c4ce4d356 100644
---- a/arch/powerpc/kernel/vdso64/gettimeofday.S
-+++ b/arch/powerpc/kernel/vdso64/gettimeofday.S
-@@ -26,7 +26,7 @@ V_FUNCTION_BEGIN(__kernel_gettimeofday)
- 
- 	mr	r11,r3			/* r11 holds tv */
- 	mr	r10,r4			/* r10 holds tz */
--	bl	V_LOCAL_FUNC(__get_datapage)	/* get data page */
-+	get_datapage	r3, r0
- 	cmpldi	r11,0			/* check if tv is NULL */
- 	beq	2f
- 	lis	r7,1000000@ha		/* load up USEC_PER_SEC */
-@@ -71,7 +71,7 @@ V_FUNCTION_BEGIN(__kernel_clock_gettime)
- 	mflr	r12			/* r12 saves lr */
-   .cfi_register lr,r12
- 	mr	r11,r4			/* r11 saves tp */
--	bl	V_LOCAL_FUNC(__get_datapage)	/* get data page */
-+	get_datapage	r3, r0
- 	lis	r7,NSEC_PER_SEC@h	/* want nanoseconds */
- 	ori	r7,r7,NSEC_PER_SEC@l
- 	beq	cr5,70f
-@@ -188,7 +188,7 @@ V_FUNCTION_BEGIN(__kernel_clock_getres)
- 
- 	mflr	r12
-   .cfi_register lr,r12
--	bl	V_LOCAL_FUNC(__get_datapage)
-+	get_datapage	r3, r0
- 	lwz	r5, CLOCK_HRTIMER_RES(r3)
- 	mtlr	r12
- 	li	r3,0
-@@ -221,7 +221,7 @@ V_FUNCTION_BEGIN(__kernel_time)
-   .cfi_register lr,r12
- 
- 	mr	r11,r3			/* r11 holds t */
--	bl	V_LOCAL_FUNC(__get_datapage)
-+	get_datapage	r3, r0
- 
- 	ld	r4,STAMP_XTIME_SEC(r3)
- 
--- 
-2.25.0
+@@ -7071,7 +7053,7 @@ static unsigned long __init find_min_pfn_for_node(i=
+nt nid)
+  */
+ unsigned long __init find_min_pfn_with_active_regions(void)
+ {
+-	return find_min_pfn_for_node(MAX_NUMNODES);
++	return PHYS_PFN(memblock_start_of_DRAM());
+ }
+=20
+ /*
+--=20
+2.26.1
