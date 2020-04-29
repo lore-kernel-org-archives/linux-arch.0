@@ -1,73 +1,158 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 19/23] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
- support
-Date: Wed, 29 Apr 2020 16:24:44 +0100
-Message-ID: <20200429152443.GD10651@gaia>
-References: <20200421142603.3894-1-catalin.marinas@arm.com>
- <20200421142603.3894-20-catalin.marinas@arm.com>
- <e568615c-7f13-5ad6-48cc-45f5211ed1df@arm.com>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2.5 16/20] mm: remove early_pfn_in_nid() and
+ CONFIG_NODES_SPAN_OTHER_NODES
+Date: Wed, 29 Apr 2020 19:29:17 +0300
+Message-ID: <20200429162917.GL14260@kernel.org>
+References: <20200429121126.17989-1-rppt@kernel.org>
+ <20200429121126.17989-17-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:41058 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726511AbgD2PYt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 Apr 2020 11:24:49 -0400
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <e568615c-7f13-5ad6-48cc-45f5211ed1df@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Alan Hayward <Alan.Hayward@arm.com>, Luis Machado <luis.machado@linaro.org>, Omair Javaid <omair.javaid@linaro.org>
+In-Reply-To: <20200429121126.17989-17-rppt@kernel.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.or>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 29, 2020 at 11:27:10AM +0100, Kevin Brodsky wrote:
-> On 21/04/2020 15:25, Catalin Marinas wrote:
-> > diff --git a/arch/arm64/lib/mte.S b/arch/arm64/lib/mte.S
-> > index bd51ea7e2fcb..45be04a8c73c 100644
-> > --- a/arch/arm64/lib/mte.S
-> > +++ b/arch/arm64/lib/mte.S
-> > @@ -5,6 +5,7 @@
-> >   #include <linux/linkage.h>
-> >   #include <asm/assembler.h>
-> > +#include <asm/mte.h>
-> >   /*
-> >    * Compare tags of two pages
-> > @@ -44,3 +45,52 @@ SYM_FUNC_START(mte_memcmp_pages)
-> >   	ret
-> >   SYM_FUNC_END(mte_memcmp_pages)
-> > +
-> > +/*
-> > + * Read tags from a user buffer (one tag per byte) and set the corresponding
-> > + * tags at the given kernel address. Used by PTRACE_POKEMTETAGS.
-> > + *   x0 - kernel address (to)
-> > + *   x1 - user buffer (from)
-> > + *   x2 - number of tags/bytes (n)
-> > + * Returns:
-> > + *   x0 - number of tags read/set
-> > + */
-> > +SYM_FUNC_START(mte_copy_tags_from_user)
-> > +	mov	x3, x1
-> > +1:
-> > +USER(2f, ldtrb	w4, [x1])
+On Wed, Apr 29, 2020 at 03:11:22PM +0300, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
 > 
-> Here we are making either of the following assumptions:
-> 1. The __user pointer (here `from`) actually points to user memory, not
-> kernel memory (and we have set_fs(USER_DS) in place).
-> 2. CONFIG_ARM64_UAO is enabled and the hardware implements UAO.
+> The commit f47ac088c406 ("mm: memmap_init: iterate over memblock regions
+> rather that check each PFN") made early_pfn_in_nid() obsolete and since
+> CONFIG_NODES_SPAN_OTHER_NODES is only used to pick a stub or a real
+> implementation of early_pfn_in_nid() it is also not needed anymore.
 > 
-> 1. is currently true because these functions are only used for the new
-> ptrace requests, which indeed pass pointers to user memory. However, future
-> users of these functions may not know about this requirement.
-> 2. is not necessarily true because ARM64_MTE does not depend on ARM64_UAO.
+> Remove both early_pfn_in_nid() and the CONFIG_NODES_SPAN_OTHER_NODES.
 > 
-> It is unlikely that future users of these functions actually need to pass
-> __user pointers to kernel memory, so adding a comment spelling out the first
-> assumption is probably fine.
+> Co-developed-by: Hoan Tran <Hoan@os.amperecomputing.com>
+> Signed-off-by: Hoan Tran <Hoan@os.amperecomputing.com>
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> ---
 
-I found it easier to add uao_user_alternative rather than writing a
-comment ;).
+Here's the version with the updated changelog:
 
-Thanks.
+From 7415d1a9b7000c6eecd9f63770592e4d4a8d2463 Mon Sep 17 00:00:00 2001
+From: Mike Rapoport <rppt@linux.ibm.com>
+Date: Sat, 11 Apr 2020 11:26:49 +0300
+Subject: [PATCH v2.5] mm: remove early_pfn_in_nid() and CONFIG_NODES_SPAN_OTHER_NODES
 
+The memmap_init() function was made to iterate over memblock regions and as
+the result the early_pfn_in_nid() function became obsolete.
+Since CONFIG_NODES_SPAN_OTHER_NODES is only used to pick a stub or a real
+implementation of early_pfn_in_nid(), it is also not needed anymore.
+
+Remove both early_pfn_in_nid() and the CONFIG_NODES_SPAN_OTHER_NODES.
+
+Co-developed-by: Hoan Tran <Hoan@os.amperecomputing.com>
+Signed-off-by: Hoan Tran <Hoan@os.amperecomputing.com>
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/powerpc/Kconfig |  9 ---------
+ arch/sparc/Kconfig   |  9 ---------
+ arch/x86/Kconfig     |  9 ---------
+ mm/page_alloc.c      | 20 --------------------
+ 4 files changed, 47 deletions(-)
+
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 5f86b22b7d2c..74f316deeae1 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -685,15 +685,6 @@ config ARCH_MEMORY_PROBE
+ 	def_bool y
+ 	depends on MEMORY_HOTPLUG
+ 
+-# Some NUMA nodes have memory ranges that span
+-# other nodes.  Even though a pfn is valid and
+-# between a node's start and end pfns, it may not
+-# reside on that node.  See memmap_init_zone()
+-# for details.
+-config NODES_SPAN_OTHER_NODES
+-	def_bool y
+-	depends on NEED_MULTIPLE_NODES
+-
+ config STDBINUTILS
+ 	bool "Using standard binutils settings"
+ 	depends on 44x
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 795206b7b552..0e4f3891b904 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -286,15 +286,6 @@ config NODES_SHIFT
+ 	  Specify the maximum number of NUMA Nodes available on the target
+ 	  system.  Increases memory reserved to accommodate various tables.
+ 
+-# Some NUMA nodes have memory ranges that span
+-# other nodes.  Even though a pfn is valid and
+-# between a node's start and end pfns, it may not
+-# reside on that node.  See memmap_init_zone()
+-# for details.
+-config NODES_SPAN_OTHER_NODES
+-	def_bool y
+-	depends on NEED_MULTIPLE_NODES
+-
+ config ARCH_SPARSEMEM_ENABLE
+ 	def_bool y if SPARC64
+ 	select SPARSEMEM_VMEMMAP_ENABLE
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index f8bf218a169c..1ec2a5e2fef6 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1581,15 +1581,6 @@ config X86_64_ACPI_NUMA
+ 	---help---
+ 	  Enable ACPI SRAT based node topology detection.
+ 
+-# Some NUMA nodes have memory ranges that span
+-# other nodes.  Even though a pfn is valid and
+-# between a node's start and end pfns, it may not
+-# reside on that node.  See memmap_init_zone()
+-# for details.
+-config NODES_SPAN_OTHER_NODES
+-	def_bool y
+-	depends on X86_64_ACPI_NUMA
+-
+ config NUMA_EMU
+ 	bool "NUMA emulation"
+ 	depends on NUMA
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 8d112defaead..d35ca0996a09 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -1541,26 +1541,6 @@ int __meminit early_pfn_to_nid(unsigned long pfn)
+ }
+ #endif /* CONFIG_NEED_MULTIPLE_NODES */
+ 
+-#ifdef CONFIG_NODES_SPAN_OTHER_NODES
+-/* Only safe to use early in boot when initialisation is single-threaded */
+-static inline bool __meminit early_pfn_in_nid(unsigned long pfn, int node)
+-{
+-	int nid;
+-
+-	nid = __early_pfn_to_nid(pfn, &early_pfnnid_cache);
+-	if (nid >= 0 && nid != node)
+-		return false;
+-	return true;
+-}
+-
+-#else
+-static inline bool __meminit early_pfn_in_nid(unsigned long pfn, int node)
+-{
+-	return true;
+-}
+-#endif
+-
+-
+ void __init memblock_free_pages(struct page *page, unsigned long pfn,
+ 							unsigned int order)
+ {
 -- 
-Catalin
+2.26.1
