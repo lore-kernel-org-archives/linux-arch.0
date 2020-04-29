@@ -1,104 +1,67 @@
-Return-Path: <SRS0=8MBO=6N=vger.kernel.org=linux-doc-owner@kernel.org>
+Return-Path: <SRS0=NQxy=6N=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga09.intel.com ([134.134.136.24]:61306 "EHLO mga09.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728064AbgD2WI6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Apr 2020 18:08:58 -0400
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v10 24/26] x86/cet/shstk: ELF header parsing for shadow stack
-Date: Wed, 29 Apr 2020 15:07:30 -0700
-Message-ID: <20200429220732.31602-25-yu-cheng.yu@intel.com>
+Subject: [PATCH v10 23/26] ELF: Introduce arch_setup_elf_property()
+Date: Wed, 29 Apr 2020 15:07:29 -0700
+Message-ID: <20200429220732.31602-24-yu-cheng.yu@intel.com>
 In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
 References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429220730.XhItUwaKy2ynx8w4X0lKopphwJG8ZU-pvsOXTfvQLvI@z>
+Message-ID: <20200429220729.uFOB0l7uVOZhszymIkfM7Kz55HuFJrofYc47uaq9fJE@z>
 
-Check an ELF file's .note.gnu.property, and setup shadow stack if the
-application supports it.
+An ELF file's .note.gnu.property indicates architecture features of the
+file.  These features are extracted earlier and stored in the struct
+'arch_elf_state'.  Introduce arch_setup_elf_property() to setup and enable
+these features.  The first use-case of this function is shadow stack.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
-v9:
-- Change cpu_feature_enabled() to static_cpu_has().
+ fs/binfmt_elf.c     | 4 ++++
+ include/linux/elf.h | 6 ++++++
+ 2 files changed, 10 insertions(+)
 
- arch/x86/Kconfig             |  2 ++
- arch/x86/include/asm/elf.h   | 13 +++++++++++++
- arch/x86/kernel/process_64.c | 29 +++++++++++++++++++++++++++++
- 3 files changed, 44 insertions(+)
-
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index ac07e1f6a2bc..8b7b97ff5fb4 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1970,6 +1970,8 @@ config X86_INTEL_SHADOW_STACK_USER
- 	select X86_INTEL_CET
- 	select ARCH_MAYBE_MKWRITE
- 	select ARCH_HAS_SHADOW_STACK
-+	select ARCH_USE_GNU_PROPERTY
-+	select ARCH_BINFMT_ELF_STATE
- 	help
- 	  Shadow Stacks provides protection against program stack
- 	  corruption.  It's a hardware feature.  This only matters
-diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
-index 69c0f892e310..fac79b621e0a 100644
---- a/arch/x86/include/asm/elf.h
-+++ b/arch/x86/include/asm/elf.h
-@@ -367,6 +367,19 @@ extern int compat_arch_setup_additional_pages(struct linux_binprm *bprm,
- 					      int uses_interp);
- #define compat_arch_setup_additional_pages compat_arch_setup_additional_pages
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 327a995ff743..d7a4c0a1245e 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -1216,6 +1216,10 @@ static int load_elf_binary(struct linux_binprm *bprm)
  
-+#ifdef CONFIG_ARCH_BINFMT_ELF_STATE
-+struct arch_elf_state {
-+	unsigned int gnu_property;
-+};
+ 	set_binfmt(&elf_format);
+ 
++	retval = arch_setup_elf_property(&arch_state);
++	if (retval < 0)
++		goto out;
 +
-+#define INIT_ARCH_ELF_STATE {	\
-+	.gnu_property = 0,	\
-+}
-+
-+#define arch_elf_pt_proc(ehdr, phdr, elf, interp, state) (0)
-+#define arch_check_elf(ehdr, interp, interp_ehdr, state) (0)
-+#endif
-+
- /* Do not change the values. See get_align_mask() */
- enum align_flags {
- 	ALIGN_VA_32	= BIT(0),
-diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
-index 5ef9d8f25b0e..93ba4afd0c19 100644
---- a/arch/x86/kernel/process_64.c
-+++ b/arch/x86/kernel/process_64.c
-@@ -730,3 +730,32 @@ unsigned long KSTK_ESP(struct task_struct *task)
+ #ifdef ARCH_HAS_SETUP_ADDITIONAL_PAGES
+ 	retval = arch_setup_additional_pages(bprm, !!interpreter);
+ 	if (retval < 0)
+diff --git a/include/linux/elf.h b/include/linux/elf.h
+index 7bdc6da160c7..81f2161fa4a8 100644
+--- a/include/linux/elf.h
++++ b/include/linux/elf.h
+@@ -78,9 +78,15 @@ static inline int arch_parse_elf_property(u32 type, const void *data,
  {
- 	return task_pt_regs(task)->sp;
+ 	return 0;
  }
 +
-+#ifdef CONFIG_ARCH_USE_GNU_PROPERTY
-+int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
-+			     bool compat, struct arch_elf_state *state)
++static inline int arch_setup_elf_property(struct arch_elf_state *arch)
 +{
-+	if (type != GNU_PROPERTY_X86_FEATURE_1_AND)
-+		return 0;
-+
-+	if (datasz != sizeof(unsigned int))
-+		return -ENOEXEC;
-+
-+	state->gnu_property = *(unsigned int *)data;
 +	return 0;
 +}
-+
-+int arch_setup_elf_property(struct arch_elf_state *state)
-+{
-+	int r = 0;
-+
-+	memset(&current->thread.cet, 0, sizeof(struct cet_status));
-+
-+	if (static_cpu_has(X86_FEATURE_SHSTK)) {
-+		if (state->gnu_property & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
-+			r = cet_setup_shstk();
-+	}
-+
-+	return r;
-+}
-+#endif
+ #else
+ extern int arch_parse_elf_property(u32 type, const void *data, size_t datasz,
+ 				   bool compat, struct arch_elf_state *arch);
++extern int arch_setup_elf_property(struct arch_elf_state *arch);
+ #endif
+ 
+ #endif /* _LINUX_ELF_H */
 -- 
 2.21.0
