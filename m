@@ -1,120 +1,135 @@
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 15/20] mm: memmap_init: iterate over memblock regions
- rather that check each PFN
-Date: Wed, 29 Apr 2020 15:11:21 +0300
-Message-ID: <20200429121126.17989-16-rppt@kernel.org>
+Subject: [PATCH v2 16/20] mm: remove early_pfn_in_nid() and
+ CONFIG_NODES_SPAN_OTHER_NODES
+Date: Wed, 29 Apr 2020 15:11:22 +0300
+Message-ID: <20200429121126.17989-17-rppt@kernel.org>
 References: <20200429121126.17989-1-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
 In-Reply-To: <20200429121126.17989-1-rppt@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
 To: linux-kernel@vger.kernel.org
 Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@in>
 List-Id: linux-arch.vger.kernel.org
 
-From: Baoquan He <bhe@redhat.com>
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-When called during boot the memmap_init_zone() function checks if each PFN
-is valid and actually belongs to the node being initialized using
-early_pfn_valid() and early_pfn_in_nid().
+The commit f47ac088c406 ("mm: memmap_init: iterate over memblock regions
+rather that check each PFN") made early_pfn_in_nid() obsolete and since
+CONFIG_NODES_SPAN_OTHER_NODES is only used to pick a stub or a real
+implementation of early_pfn_in_nid() it is also not needed anymore.
 
-Each such check may cost up to O(log(n)) where n is the number of memory
-banks, so for large amount of memory overall time spent in early_pfn*()
-becomes substantial.
+Remove both early_pfn_in_nid() and the CONFIG_NODES_SPAN_OTHER_NODES.
 
-Since the information is anyway present in memblock, we can iterate over
-memblock memory regions in memmap_init() and only call memmap_init_zone()
-for PFN ranges that are know to be valid and in the appropriate node.
-
-Signed-off-by: Baoquan He <bhe@redhat.com>
+Co-developed-by: Hoan Tran <Hoan@os.amperecomputing.com>
+Signed-off-by: Hoan Tran <Hoan@os.amperecomputing.com>
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- mm/page_alloc.c | 47 ++++++++++++++++-------------------------------
- 1 file changed, 16 insertions(+), 31 deletions(-)
+ arch/powerpc/Kconfig |  9 ---------
+ arch/sparc/Kconfig   |  9 ---------
+ arch/x86/Kconfig     |  9 ---------
+ mm/page_alloc.c      | 20 --------------------
+ 4 files changed, 47 deletions(-)
 
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 5f86b22b7d2c..74f316deeae1 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -685,15 +685,6 @@ config ARCH_MEMORY_PROBE
+ 	def_bool y
+ 	depends on MEMORY_HOTPLUG
+ 
+-# Some NUMA nodes have memory ranges that span
+-# other nodes.  Even though a pfn is valid and
+-# between a node's start and end pfns, it may not
+-# reside on that node.  See memmap_init_zone()
+-# for details.
+-config NODES_SPAN_OTHER_NODES
+-	def_bool y
+-	depends on NEED_MULTIPLE_NODES
+-
+ config STDBINUTILS
+ 	bool "Using standard binutils settings"
+ 	depends on 44x
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 795206b7b552..0e4f3891b904 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -286,15 +286,6 @@ config NODES_SHIFT
+ 	  Specify the maximum number of NUMA Nodes available on the target
+ 	  system.  Increases memory reserved to accommodate various tables.
+ 
+-# Some NUMA nodes have memory ranges that span
+-# other nodes.  Even though a pfn is valid and
+-# between a node's start and end pfns, it may not
+-# reside on that node.  See memmap_init_zone()
+-# for details.
+-config NODES_SPAN_OTHER_NODES
+-	def_bool y
+-	depends on NEED_MULTIPLE_NODES
+-
+ config ARCH_SPARSEMEM_ENABLE
+ 	def_bool y if SPARC64
+ 	select SPARSEMEM_VMEMMAP_ENABLE
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index f8bf218a169c..1ec2a5e2fef6 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1581,15 +1581,6 @@ config X86_64_ACPI_NUMA
+ 	---help---
+ 	  Enable ACPI SRAT based node topology detection.
+ 
+-# Some NUMA nodes have memory ranges that span
+-# other nodes.  Even though a pfn is valid and
+-# between a node's start and end pfns, it may not
+-# reside on that node.  See memmap_init_zone()
+-# for details.
+-config NODES_SPAN_OTHER_NODES
+-	def_bool y
+-	depends on X86_64_ACPI_NUMA
+-
+ config NUMA_EMU
+ 	bool "NUMA emulation"
+ 	depends on NUMA
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 7f6a3081edb8..8d112defaead 100644
+index 8d112defaead..d35ca0996a09 100644
 --- a/mm/page_alloc.c
 +++ b/mm/page_alloc.c
-@@ -5939,23 +5939,6 @@ overlap_memmap_init(unsigned long zone, unsigned long *pfn)
- 	return false;
+@@ -1541,26 +1541,6 @@ int __meminit early_pfn_to_nid(unsigned long pfn)
  }
+ #endif /* CONFIG_NEED_MULTIPLE_NODES */
  
--#ifdef CONFIG_SPARSEMEM
--/* Skip PFNs that belong to non-present sections */
--static inline __meminit unsigned long next_pfn(unsigned long pfn)
+-#ifdef CONFIG_NODES_SPAN_OTHER_NODES
+-/* Only safe to use early in boot when initialisation is single-threaded */
+-static inline bool __meminit early_pfn_in_nid(unsigned long pfn, int node)
 -{
--	const unsigned long section_nr = pfn_to_section_nr(++pfn);
+-	int nid;
 -
--	if (present_section_nr(section_nr))
--		return pfn;
--	return section_nr_to_pfn(next_present_section_nr(section_nr));
+-	nid = __early_pfn_to_nid(pfn, &early_pfnnid_cache);
+-	if (nid >= 0 && nid != node)
+-		return false;
+-	return true;
 -}
+-
 -#else
--static inline __meminit unsigned long next_pfn(unsigned long pfn)
+-static inline bool __meminit early_pfn_in_nid(unsigned long pfn, int node)
 -{
--	return pfn++;
+-	return true;
 -}
 -#endif
 -
- /*
-  * Initially all pages are reserved - free ones are freed
-  * up by memblock_free_all() once the early boot process is
-@@ -5990,19 +5973,7 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
- #endif
- 
- 	for (pfn = start_pfn; pfn < end_pfn; ) {
--		/*
--		 * There can be holes in boot-time mem_map[]s handed to this
--		 * function.  They do not exist on hotplugged memory.
--		 */
- 		if (context == MEMMAP_EARLY) {
--			if (!early_pfn_valid(pfn)) {
--				pfn = next_pfn(pfn);
--				continue;
--			}
--			if (!early_pfn_in_nid(pfn, nid)) {
--				pfn++;
--				continue;
--			}
- 			if (overlap_memmap_init(zone, &pfn))
- 				continue;
- 			if (defer_init(nid, pfn, end_pfn))
-@@ -6118,9 +6089,23 @@ static void __meminit zone_init_free_lists(struct zone *zone)
- }
- 
- void __meminit __weak memmap_init(unsigned long size, int nid,
--				  unsigned long zone, unsigned long start_pfn)
-+				  unsigned long zone,
-+				  unsigned long range_start_pfn)
+-
+ void __init memblock_free_pages(struct page *page, unsigned long pfn,
+ 							unsigned int order)
  {
--	memmap_init_zone(size, nid, zone, start_pfn, MEMMAP_EARLY, NULL);
-+	unsigned long start_pfn, end_pfn;
-+	unsigned long range_end_pfn = range_start_pfn + size;
-+	int i;
-+
-+	for_each_mem_pfn_range(i, nid, &start_pfn, &end_pfn, NULL) {
-+		start_pfn = clamp(start_pfn, range_start_pfn, range_end_pfn);
-+		end_pfn = clamp(end_pfn, range_start_pfn, range_end_pfn);
-+
-+		if (end_pfn > start_pfn) {
-+			size = end_pfn - start_pfn;
-+			memmap_init_zone(size, nid, zone, start_pfn,
-+					 MEMMAP_EARLY, NULL);
-+		}
-+	}
- }
- 
- static int zone_batchsize(struct zone *zone)
 -- 
 2.26.1
