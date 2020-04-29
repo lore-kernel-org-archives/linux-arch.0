@@ -1,60 +1,145 @@
-Return-Path: <SRS0=V2YN=5S=kvack.org=owner-linux-mm@kernel.org>
-Date: Thu, 2 Apr 2020 18:38:49 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
- flush_pmd_tlb_range
-Message-ID: <20200402163849.GM20713@hirez.programming.kicks-ass.net>
-References: <20200331142927.1237-1-yezhenyu2@huawei.com>
- <20200331142927.1237-5-yezhenyu2@huawei.com>
- <20200331151331.GS20730@hirez.programming.kicks-ass.net>
- <fe12101e-8efe-22ad-0258-e6aeafc798cc@huawei.com>
- <20200401122004.GE20713@hirez.programming.kicks-ass.net>
- <53675fb9-21c7-5309-07b8-1bbc1e775f9b@huawei.com>
+Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2 00/20] mm: rework free_area_init*() funcitons 
+Date: Wed, 29 Apr 2020 15:11:06 +0300
+Message-ID: <20200429121126.17989-1-rppt@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <53675fb9-21c7-5309-07b8-1bbc1e775f9b@huawei.com>
+Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+To: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Baoquan He <bhe@redhat.com>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Qian Cai <cai@lca.pw>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200402163849.8PaLnsXpUNKYw7MZw9UXHchyP0AkWxaXitTymXHD4ug@z>
+Message-ID: <20200429121106.DJMyHsMrVTEPsViS1X1Y7QgGjARY1YDRw0veNZwFXDo@z>
 
-On Thu, Apr 02, 2020 at 07:24:04PM +0800, Zhenyu Ye wrote:
-> Thanks for your detailed explanation.  I notice that you used
-> `tlb_end_vma` replace `flush_tlb_range`, which will call `tlb_flush`,
-> then finally call `flush_tlb_range` in generic code.  However, some
-> architectures define tlb_end_vma|tlb_flush|flush_tlb_range themselves,
-> so this may cause problems.
-> 
-> For example, in s390, it defines:
-> 
-> #define tlb_end_vma(tlb, vma)			do { } while (0)
-> 
-> And it doesn't define it's own flush_pmd_tlb_range().  So there will be
-> a mistake if we changed flush_pmd_tlb_range() using tlb_end_vma().
-> 
-> Is this really a problem or something I understand wrong ?
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-If tlb_end_vma() is a no-op, then tlb_finish_mmu() will do:
-tlb_flush_mmu() -> tlb_flush_mmu_tlbonly() -> tlb_flush()
+Hi,
 
-And s390 has tlb_flush().
+After the discussion [1] about removal of CONFIG_NODES_SPAN_OTHER_NODES a=
+nd
+CONFIG_HAVE_MEMBLOCK_NODE_MAP options, I took it a bit further and update=
+d
+the node/zone initialization.=20
 
-If tlb_end_vma() is not a no-op and it calls tlb_flush_mmu_tlbonly(),
-then tlb_finish_mmu()'s invocation of tlb_flush_mmu_tlbonly() will
-terniate early due o no flags set.
+Since all architectures have memblock, it is possible to use only the new=
+er
+version of free_area_init_node() that calculates the zone and node
+boundaries based on memblock node mapping and architectural limits on
+possible zone PFNs.=20
 
-IOW, it should all just work.
+The architectures that still determined zone and hole sizes can be switch=
+ed
+to the generic code and the old code that took those zone and hole sizes
+can be simply removed.
 
+And, since it all started from the removal of
+CONFIG_NODES_SPAN_OTHER_NODES, the memmap_init() is now updated to iterat=
+e
+over memblocks and so it does not need to perform early_pfn_to_nid() quer=
+y
+for every PFN.
 
-FYI the whole tlb_{start,end}_vma() thing is a only needed when the
-architecture doesn't implement tlb_flush() and instead default to using
-flush_tlb_range(), at which point we need to provide a 'fake' vma.
+v2 changes:
+* move deletion of one of '#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP' from
+  patch 2 to patch 3 where it should have been from the beginning
+* drop patch that introduced a free_area_init_memoryless_node() wrapper
+  for free_area_init_node()
+* remove unused next_pfn(), thanks Qian
+* drop stale comment in memmap_init_zone(), as per David
 
-At the time I audited all architectures and they only look at VM_EXEC
-(to do $I invalidation) and VM_HUGETLB (for pmd level invalidations),
-but I forgot which architectures that were.
+--
+Sincerely yours,
+Mike.
 
-But that is all legacy code; eventually we'll get all archs a native
-tlb_flush() and this can go away.
+[1] https://lore.kernel.org/lkml/1585420282-25630-1-git-send-email-Hoan@o=
+s.amperecomputing.com
+
+Baoquan He (1):
+  mm: memmap_init: iterate over memblock regions rather that check each P=
+FN
+
+Mike Rapoport (19):
+  mm: memblock: replace dereferences of memblock_region.nid with API call=
+s
+  mm: make early_pfn_to_nid() and related defintions close to each other
+  mm: remove CONFIG_HAVE_MEMBLOCK_NODE_MAP option
+  mm: free_area_init: use maximal zone PFNs rather than zone sizes
+  mm: use free_area_init() instead of free_area_init_nodes()
+  alpha: simplify detection of memory zone boundaries
+  arm: simplify detection of memory zone boundaries
+  arm64: simplify detection of memory zone boundaries for UMA configs
+  csky: simplify detection of memory zone boundaries
+  m68k: mm: simplify detection of memory zone boundaries
+  parisc: simplify detection of memory zone boundaries
+  sparc32: simplify detection of memory zone boundaries
+  unicore32: simplify detection of memory zone boundaries
+  xtensa: simplify detection of memory zone boundaries
+  mm: remove early_pfn_in_nid() and CONFIG_NODES_SPAN_OTHER_NODES
+  mm: free_area_init: allow defining max_zone_pfn in descending order
+  mm: clean up free_area_init_node() and its helpers
+  mm: simplify find_min_pfn_with_active_regions()
+  docs/vm: update memory-models documentation
+
+ .../vm/numa-memblock/arch-support.txt         |  34 ---
+ Documentation/vm/memory-model.rst             |   9 +-
+ arch/alpha/mm/init.c                          |  16 +-
+ arch/alpha/mm/numa.c                          |  22 +-
+ arch/arc/mm/init.c                            |  36 +--
+ arch/arm/mm/init.c                            |  66 +----
+ arch/arm64/Kconfig                            |   1 -
+ arch/arm64/mm/init.c                          |  56 +---
+ arch/arm64/mm/numa.c                          |   9 +-
+ arch/c6x/mm/init.c                            |   8 +-
+ arch/csky/kernel/setup.c                      |  26 +-
+ arch/h8300/mm/init.c                          |   6 +-
+ arch/hexagon/mm/init.c                        |   6 +-
+ arch/ia64/Kconfig                             |   1 -
+ arch/ia64/mm/contig.c                         |   2 +-
+ arch/ia64/mm/discontig.c                      |   2 +-
+ arch/m68k/mm/init.c                           |   6 +-
+ arch/m68k/mm/mcfmmu.c                         |   9 +-
+ arch/m68k/mm/motorola.c                       |  15 +-
+ arch/m68k/mm/sun3mmu.c                        |  10 +-
+ arch/microblaze/Kconfig                       |   1 -
+ arch/microblaze/mm/init.c                     |   2 +-
+ arch/mips/Kconfig                             |   1 -
+ arch/mips/loongson64/numa.c                   |   2 +-
+ arch/mips/mm/init.c                           |   2 +-
+ arch/mips/sgi-ip27/ip27-memory.c              |   2 +-
+ arch/nds32/mm/init.c                          |  11 +-
+ arch/nios2/mm/init.c                          |   8 +-
+ arch/openrisc/mm/init.c                       |   9 +-
+ arch/parisc/mm/init.c                         |  22 +-
+ arch/powerpc/Kconfig                          |  10 -
+ arch/powerpc/mm/mem.c                         |   2 +-
+ arch/riscv/Kconfig                            |   1 -
+ arch/riscv/mm/init.c                          |   2 +-
+ arch/s390/Kconfig                             |   1 -
+ arch/s390/mm/init.c                           |   2 +-
+ arch/sh/Kconfig                               |   1 -
+ arch/sh/mm/init.c                             |   2 +-
+ arch/sparc/Kconfig                            |  10 -
+ arch/sparc/mm/init_64.c                       |   2 +-
+ arch/sparc/mm/srmmu.c                         |  21 +-
+ arch/um/kernel/mem.c                          |  12 +-
+ arch/unicore32/include/asm/memory.h           |   2 +-
+ arch/unicore32/include/mach/memory.h          |   6 +-
+ arch/unicore32/kernel/pci.c                   |  14 +-
+ arch/unicore32/mm/init.c                      |  43 +--
+ arch/x86/Kconfig                              |  10 -
+ arch/x86/mm/init.c                            |   2 +-
+ arch/x86/mm/numa.c                            |   8 +-
+ arch/xtensa/mm/init.c                         |   8 +-
+ include/linux/memblock.h                      |   8 +-
+ include/linux/mm.h                            |  28 +-
+ include/linux/mmzone.h                        |  11 +-
+ mm/Kconfig                                    |   3 -
+ mm/memblock.c                                 |  19 +-
+ mm/memory_hotplug.c                           |   4 -
+ mm/page_alloc.c                               | 278 ++++++------------
+ 57 files changed, 243 insertions(+), 667 deletions(-)
+ delete mode 100644 Documentation/features/vm/numa-memblock/arch-support.=
+txt
+
+--=20
+2.26.1
