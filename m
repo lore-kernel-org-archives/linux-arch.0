@@ -1,7 +1,7 @@
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 12/20] sparc32: simplify detection of memory zone boundaries
-Date: Wed, 29 Apr 2020 15:11:18 +0300
-Message-ID: <20200429121126.17989-13-rppt@kernel.org>
+Subject: [PATCH v2 14/20] xtensa: simplify detection of memory zone boundaries
+Date: Wed, 29 Apr 2020 15:11:20 +0300
+Message-ID: <20200429121126.17989-15-rppt@kernel.org>
 References: <20200429121126.17989-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -34,42 +34,30 @@ detection.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/sparc/mm/srmmu.c | 21 +++++----------------
- 1 file changed, 5 insertions(+), 16 deletions(-)
+ arch/xtensa/mm/init.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/sparc/mm/srmmu.c b/arch/sparc/mm/srmmu.c
-index b7c94de70cca..cc071dd7d8da 100644
---- a/arch/sparc/mm/srmmu.c
-+++ b/arch/sparc/mm/srmmu.c
-@@ -1008,24 +1008,13 @@ void __init srmmu_paging_init(void)
- 	kmap_init();
- 
- 	{
--		unsigned long zones_size[MAX_NR_ZONES];
--		unsigned long zholes_size[MAX_NR_ZONES];
--		unsigned long npages;
--		int znum;
-+		unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0 };
- 
--		for (znum = 0; znum < MAX_NR_ZONES; znum++)
--			zones_size[znum] = zholes_size[znum] = 0;
-+		max_zone_pfn[ZONE_DMA] = max_low_pfn;
-+		max_zone_pfn[ZONE_NORMAL] = max_low_pfn;
-+		max_zone_pfn[ZONE_HIGHMEM] = highend_pfn;
- 
--		npages = max_low_pfn - pfn_base;
--
--		zones_size[ZONE_DMA] = npages;
--		zholes_size[ZONE_DMA] = npages - pages_avail;
--
--		npages = highend_pfn - max_low_pfn;
--		zones_size[ZONE_HIGHMEM] = npages;
--		zholes_size[ZONE_HIGHMEM] = npages - calc_highpages();
--
--		free_area_init_node(0, zones_size, pfn_base, zholes_size);
-+		free_area_init(max_zone_pfn);
- 	}
+diff --git a/arch/xtensa/mm/init.c b/arch/xtensa/mm/init.c
+index 19c625e6d81f..a05b306cf371 100644
+--- a/arch/xtensa/mm/init.c
++++ b/arch/xtensa/mm/init.c
+@@ -70,13 +70,13 @@ void __init bootmem_init(void)
+ void __init zones_init(void)
+ {
+ 	/* All pages are DMA-able, so we put them all in the DMA zone. */
+-	unsigned long zones_size[MAX_NR_ZONES] = {
+-		[ZONE_NORMAL] = max_low_pfn - ARCH_PFN_OFFSET,
++	unsigned long max_zone_pfn[MAX_NR_ZONES] = {
++		[ZONE_NORMAL] = max_low_pfn,
+ #ifdef CONFIG_HIGHMEM
+-		[ZONE_HIGHMEM] = max_pfn - max_low_pfn,
++		[ZONE_HIGHMEM] = max_pfn,
+ #endif
+ 	};
+-	free_area_init_node(0, zones_size, ARCH_PFN_OFFSET, NULL);
++	free_area_init(max_zone_pfn);
  }
  
+ #ifdef CONFIG_HIGHMEM
 -- 
 2.26.1
