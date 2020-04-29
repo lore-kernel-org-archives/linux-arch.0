@@ -1,193 +1,158 @@
-Return-Path: <SRS0=yGje=5Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:54628 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728090AbgDIPZY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2020 11:25:24 -0400
-From: Alex Belits <abelits@marvell.com>
-Subject: [PATCH v3 08/13] task_isolation: arch/arm: enable task isolation
- functionality
-Date: Thu, 9 Apr 2020 15:24:44 +0000
-Message-ID: <e4bed0c6be09443ef5f91ee0a084a4a558c3007d.camel@marvell.com>
-References: <4473787e1b6bc3cc226067e8d122092a678b63de.camel@marvell.com>
-         <aed12dd15ea2981bc9554cfa8b5e273c1342c756.camel@marvell.com>
-         <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
-In-Reply-To: <07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <237E0C527AEA2E4BBACC6C76A1A33403@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=8MBO=6N=vger.kernel.org=linux-doc-owner@kernel.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v10 25/26] x86/cet/shstk: Handle thread shadow stack
+Date: Wed, 29 Apr 2020 15:07:31 -0700
+Message-ID: <20200429220732.31602-26-yu-cheng.yu@intel.com>
+In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
-Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Message-ID: <20200409152444.0YbAkofxzrzAZIuLH2iEubI0M6nl9KkW0uLon59Brl4@z>
+Message-ID: <20200429220731.yj2LG6LqKskz4QBKDbZgDNek-Mt3sEf3tukaUjur1sU@z>
 
-RnJvbTogRnJhbmNpcyBHaXJhbGRlYXUgPGZyYW5jaXMuZ2lyYWxkZWF1QGdtYWlsLmNvbT4NCg0K
-VGhpcyBwYXRjaCBpcyBhIHBvcnQgb2YgdGhlIHRhc2sgaXNvbGF0aW9uIGZ1bmN0aW9uYWxpdHkg
-dG8gdGhlIGFybSAzMi1iaXQNCmFyY2hpdGVjdHVyZS4gVGhlIHRhc2sgaXNvbGF0aW9uIG5lZWRz
-IGFuIGFkZGl0aW9uYWwgdGhyZWFkIGZsYWcgdGhhdA0KcmVxdWlyZXMgdG8gY2hhbmdlIHRoZSBl
-bnRyeSBhc3NlbWJseSBjb2RlIHRvIGFjY2VwdCBhIGJpdGZpZWxkIGxhcmdlciB0aGFuDQpvbmUg
-Ynl0ZS4gVGhlIGNvbnN0YW50cyBfVElGX1NZU0NBTExfV09SSyBhbmQgX1RJRl9XT1JLX01BU0sg
-YXJlIG5vdw0KZGVmaW5lZCBpbiB0aGUgbGl0ZXJhbCBwb29sLiBUaGUgcmVzdCBvZiB0aGUgcGF0
-Y2ggaXMgc3RyYWlnaHRmb3J3YXJkIGFuZA0KcmVmbGVjdHMgd2hhdCBpcyBkb25lIG9uIG90aGVy
-IGFyY2hpdGVjdHVyZXMuDQoNClRvIGF2b2lkIHByb2JsZW1zIHdpdGggdGhlIHRzdCBpbnN0cnVj
-dGlvbiBpbiB0aGUgdjdtIGJ1aWxkLCB3ZSByZW51bWJlcg0KVElGX1NFQ0NPTVAgdG8gYml0IDgg
-YW5kIGxldCBUSUZfVEFTS19JU09MQVRJT04gdXNlIGJpdCA3Lg0KDQpTaWduZWQtb2ZmLWJ5OiBG
-cmFuY2lzIEdpcmFsZGVhdSA8ZnJhbmNpcy5naXJhbGRlYXVAZ21haWwuY29tPg0KU2lnbmVkLW9m
-Zi1ieTogQ2hyaXMgTWV0Y2FsZiA8Y21ldGNhbGZAbWVsbGFub3guY29tPiBbd2l0aCBtb2RpZmlj
-YXRpb25zXQ0KW2FiZWxpdHNAbWFydmVsbC5jb206IG1vZGlmaWVkIGZvciBrZXJuZWwgNS42LCBh
-ZGRlZCBpc29sYXRpb24gY2xlYW51cF0NClNpZ25lZC1vZmYtYnk6IEFsZXggQmVsaXRzIDxhYmVs
-aXRzQG1hcnZlbGwuY29tPg0KLS0tDQogYXJjaC9hcm0vS2NvbmZpZyAgICAgICAgICAgICAgICAg
-ICB8ICAxICsNCiBhcmNoL2FybS9pbmNsdWRlL2FzbS90aHJlYWRfaW5mby5oIHwgMTAgKysrKysr
-Ky0tLQ0KIGFyY2gvYXJtL2tlcm5lbC9lbnRyeS1jb21tb24uUyAgICAgfCAxNSArKysrKysrKysr
-LS0tLS0NCiBhcmNoL2FybS9rZXJuZWwvcHRyYWNlLmMgICAgICAgICAgIHwgMTAgKysrKysrKysr
-Kw0KIGFyY2gvYXJtL2tlcm5lbC9zaWduYWwuYyAgICAgICAgICAgfCAxMyArKysrKysrKysrKyst
-DQogYXJjaC9hcm0va2VybmVsL3NtcC5jICAgICAgICAgICAgICB8ICA0ICsrKysNCiBhcmNoL2Fy
-bS9tbS9mYXVsdC5jICAgICAgICAgICAgICAgIHwgIDggKysrKysrKy0NCiA3IGZpbGVzIGNoYW5n
-ZWQsIDUxIGluc2VydGlvbnMoKyksIDEwIGRlbGV0aW9ucygtKQ0KDQpkaWZmIC0tZ2l0IGEvYXJj
-aC9hcm0vS2NvbmZpZyBiL2FyY2gvYXJtL0tjb25maWcNCmluZGV4IDk3ODY0YWFiYzJhNi4uMWE2
-NmU2YzY4MDdjIDEwMDY0NA0KLS0tIGEvYXJjaC9hcm0vS2NvbmZpZw0KKysrIGIvYXJjaC9hcm0v
-S2NvbmZpZw0KQEAgLTY3LDYgKzY3LDcgQEAgY29uZmlnIEFSTQ0KIAlzZWxlY3QgSEFWRV9BUkNI
-X0tHREIgaWYgIUNQVV9FTkRJQU5fQkUzMiAmJiBNTVUNCiAJc2VsZWN0IEhBVkVfQVJDSF9NTUFQ
-X1JORF9CSVRTIGlmIE1NVQ0KIAlzZWxlY3QgSEFWRV9BUkNIX1NFQ0NPTVBfRklMVEVSIGlmIEFF
-QUJJICYmICFPQUJJX0NPTVBBVA0KKwlzZWxlY3QgSEFWRV9BUkNIX1RBU0tfSVNPTEFUSU9ODQog
-CXNlbGVjdCBIQVZFX0FSQ0hfVEhSRUFEX1NUUlVDVF9XSElURUxJU1QNCiAJc2VsZWN0IEhBVkVf
-QVJDSF9UUkFDRUhPT0sNCiAJc2VsZWN0IEhBVkVfQVJNX1NNQ0NDIGlmIENQVV9WNw0KZGlmZiAt
-LWdpdCBhL2FyY2gvYXJtL2luY2x1ZGUvYXNtL3RocmVhZF9pbmZvLmggYi9hcmNoL2FybS9pbmNs
-dWRlL2FzbS90aHJlYWRfaW5mby5oDQppbmRleCAwZDBkNTE3OGUyYzMuLmVjM2MyMDg0YzM5MSAx
-MDA2NDQNCi0tLSBhL2FyY2gvYXJtL2luY2x1ZGUvYXNtL3RocmVhZF9pbmZvLmgNCisrKyBiL2Fy
-Y2gvYXJtL2luY2x1ZGUvYXNtL3RocmVhZF9pbmZvLmgNCkBAIC0xMzksNyArMTM5LDggQEAgZXh0
-ZXJuIGludCB2ZnBfcmVzdG9yZV91c2VyX2h3c3RhdGUoc3RydWN0IHVzZXJfdmZwICosDQogI2Rl
-ZmluZSBUSUZfU1lTQ0FMTF9UUkFDRQk0CS8qIHN5c2NhbGwgdHJhY2UgYWN0aXZlICovDQogI2Rl
-ZmluZSBUSUZfU1lTQ0FMTF9BVURJVAk1CS8qIHN5c2NhbGwgYXVkaXRpbmcgYWN0aXZlICovDQog
-I2RlZmluZSBUSUZfU1lTQ0FMTF9UUkFDRVBPSU5UCTYJLyogc3lzY2FsbCB0cmFjZXBvaW50IGlu
-c3RydW1lbnRhdGlvbiAqLw0KLSNkZWZpbmUgVElGX1NFQ0NPTVAJCTcJLyogc2VjY29tcCBzeXNj
-YWxsIGZpbHRlcmluZyBhY3RpdmUgKi8NCisjZGVmaW5lIFRJRl9UQVNLX0lTT0xBVElPTgk3CS8q
-IHRhc2sgaXNvbGF0aW9uIGFjdGl2ZSAqLw0KKyNkZWZpbmUgVElGX1NFQ0NPTVAJCTgJLyogc2Vj
-Y29tcCBzeXNjYWxsIGZpbHRlcmluZyBhY3RpdmUgKi8NCiANCiAjZGVmaW5lIFRJRl9OT0haCQkx
-MgkvKiBpbiBhZGFwdGl2ZSBub2h6IG1vZGUgKi8NCiAjZGVmaW5lIFRJRl9VU0lOR19JV01NWFQJ
-MTcNCkBAIC0xNTMsMTggKzE1NCwyMSBAQCBleHRlcm4gaW50IHZmcF9yZXN0b3JlX3VzZXJfaHdz
-dGF0ZShzdHJ1Y3QgdXNlcl92ZnAgKiwNCiAjZGVmaW5lIF9USUZfU1lTQ0FMTF9UUkFDRQkoMSA8
-PCBUSUZfU1lTQ0FMTF9UUkFDRSkNCiAjZGVmaW5lIF9USUZfU1lTQ0FMTF9BVURJVAkoMSA8PCBU
-SUZfU1lTQ0FMTF9BVURJVCkNCiAjZGVmaW5lIF9USUZfU1lTQ0FMTF9UUkFDRVBPSU5UCSgxIDw8
-IFRJRl9TWVNDQUxMX1RSQUNFUE9JTlQpDQorI2RlZmluZSBfVElGX1RBU0tfSVNPTEFUSU9OCSgx
-IDw8IFRJRl9UQVNLX0lTT0xBVElPTikNCiAjZGVmaW5lIF9USUZfU0VDQ09NUAkJKDEgPDwgVElG
-X1NFQ0NPTVApDQogI2RlZmluZSBfVElGX1VTSU5HX0lXTU1YVAkoMSA8PCBUSUZfVVNJTkdfSVdN
-TVhUKQ0KIA0KIC8qIENoZWNrcyBmb3IgYW55IHN5c2NhbGwgd29yayBpbiBlbnRyeS1jb21tb24u
-UyAqLw0KICNkZWZpbmUgX1RJRl9TWVNDQUxMX1dPUksgKF9USUZfU1lTQ0FMTF9UUkFDRSB8IF9U
-SUZfU1lTQ0FMTF9BVURJVCB8IFwNCi0JCQkgICBfVElGX1NZU0NBTExfVFJBQ0VQT0lOVCB8IF9U
-SUZfU0VDQ09NUCkNCisJCQkgICBfVElGX1NZU0NBTExfVFJBQ0VQT0lOVCB8IF9USUZfU0VDQ09N
-UCB8IFwNCisJCQkgICBfVElGX1RBU0tfSVNPTEFUSU9OKQ0KIA0KIC8qDQogICogQ2hhbmdlIHRo
-ZXNlIGFuZCB5b3UgYnJlYWsgQVNNIGNvZGUgaW4gZW50cnktY29tbW9uLlMNCiAgKi8NCiAjZGVm
-aW5lIF9USUZfV09SS19NQVNLCQkoX1RJRl9ORUVEX1JFU0NIRUQgfCBfVElGX1NJR1BFTkRJTkcg
-fCBcDQotCQkJCSBfVElGX05PVElGWV9SRVNVTUUgfCBfVElGX1VQUk9CRSkNCisJCQkJIF9USUZf
-Tk9USUZZX1JFU1VNRSB8IF9USUZfVVBST0JFIHwgXA0KKwkJCQkgX1RJRl9UQVNLX0lTT0xBVElP
-TikNCiANCiAjZW5kaWYgLyogX19LRVJORUxfXyAqLw0KICNlbmRpZiAvKiBfX0FTTV9BUk1fVEhS
-RUFEX0lORk9fSCAqLw0KZGlmZiAtLWdpdCBhL2FyY2gvYXJtL2tlcm5lbC9lbnRyeS1jb21tb24u
-UyBiL2FyY2gvYXJtL2tlcm5lbC9lbnRyeS1jb21tb24uUw0KaW5kZXggMjcxY2I4YTFlYmExLi42
-Y2ViNWNiODA4YTkgMTAwNjQ0DQotLS0gYS9hcmNoL2FybS9rZXJuZWwvZW50cnktY29tbW9uLlMN
-CisrKyBiL2FyY2gvYXJtL2tlcm5lbC9lbnRyeS1jb21tb24uUw0KQEAgLTUzLDcgKzUzLDggQEAg
-X19yZXRfZmFzdF9zeXNjYWxsOg0KIAljbXAJcjIsICNUQVNLX1NJWkUNCiAJYmxuZQlhZGRyX2xp
-bWl0X2NoZWNrX2ZhaWxlZA0KIAlsZHIJcjEsIFt0c2ssICNUSV9GTEFHU10JCUAgcmUtY2hlY2sg
-Zm9yIHN5c2NhbGwgdHJhY2luZw0KLQl0c3QJcjEsICNfVElGX1NZU0NBTExfV09SSyB8IF9USUZf
-V09SS19NQVNLDQorCWxkcglyMiwgPV9USUZfU1lTQ0FMTF9XT1JLIHwgX1RJRl9XT1JLX01BU0sN
-CisJdHN0CXIxLCByMg0KIAlibmUJZmFzdF93b3JrX3BlbmRpbmcNCiANCiANCkBAIC05MCw3ICs5
-MSw4IEBAIF9fcmV0X2Zhc3Rfc3lzY2FsbDoNCiAJY21wCXIyLCAjVEFTS19TSVpFDQogCWJsbmUJ
-YWRkcl9saW1pdF9jaGVja19mYWlsZWQNCiAJbGRyCXIxLCBbdHNrLCAjVElfRkxBR1NdCQlAIHJl
-LWNoZWNrIGZvciBzeXNjYWxsIHRyYWNpbmcNCi0JdHN0CXIxLCAjX1RJRl9TWVNDQUxMX1dPUksg
-fCBfVElGX1dPUktfTUFTSw0KKwlsZHIJcjIsID1fVElGX1NZU0NBTExfV09SSyB8IF9USUZfV09S
-S19NQVNLDQorCXRzdAlyMSwgcjINCiAJYmVxCW5vX3dvcmtfcGVuZGluZw0KICBVTldJTkQoLmZu
-ZW5kCQkpDQogRU5EUFJPQyhyZXRfZmFzdF9zeXNjYWxsKQ0KQEAgLTk4LDcgKzEwMCw4IEBAIEVO
-RFBST0MocmV0X2Zhc3Rfc3lzY2FsbCkNCiAJLyogU2xvd2VyIHBhdGggLSBmYWxsIHRocm91Z2gg
-dG8gd29ya19wZW5kaW5nICovDQogI2VuZGlmDQogDQotCXRzdAlyMSwgI19USUZfU1lTQ0FMTF9X
-T1JLDQorCWxkcglyMiwgPV9USUZfU1lTQ0FMTF9XT1JLDQorCXRzdAlyMSwgcjINCiAJYm5lCV9f
-c3lzX3RyYWNlX3JldHVybl9ub3NhdmUNCiBzbG93X3dvcmtfcGVuZGluZzoNCiAJbW92CXIwLCBz
-cAkJCQlAICdyZWdzJw0KQEAgLTEzMSw3ICsxMzQsOCBAQCBFTlRSWShyZXRfdG9fdXNlcl9mcm9t
-X2lycSkNCiAJY21wCXIyLCAjVEFTS19TSVpFDQogCWJsbmUJYWRkcl9saW1pdF9jaGVja19mYWls
-ZWQNCiAJbGRyCXIxLCBbdHNrLCAjVElfRkxBR1NdDQotCXRzdAlyMSwgI19USUZfV09SS19NQVNL
-DQorCWxkcglyMiwgPV9USUZfV09SS19NQVNLDQorCXRzdAlyMSwgcjINCiAJYm5lCXNsb3dfd29y
-a19wZW5kaW5nDQogbm9fd29ya19wZW5kaW5nOg0KIAlhc21fdHJhY2VfaGFyZGlycXNfb24gc2F2
-ZSA9IDANCkBAIC0yNTEsNyArMjU1LDggQEAgbG9jYWxfcmVzdGFydDoNCiAJbGRyCXIxMCwgW3Rz
-aywgI1RJX0ZMQUdTXQkJQCBjaGVjayBmb3Igc3lzY2FsbCB0cmFjaW5nDQogCXN0bWRiCXNwISwg
-e3I0LCByNX0JCQlAIHB1c2ggZmlmdGggYW5kIHNpeHRoIGFyZ3MNCiANCi0JdHN0CXIxMCwgI19U
-SUZfU1lTQ0FMTF9XT1JLCQlAIGFyZSB3ZSB0cmFjaW5nIHN5c2NhbGxzPw0KKwlsZHIJcjExLCA9
-X1RJRl9TWVNDQUxMX1dPUksJCUAgYXJlIHdlIHRyYWNpbmcgc3lzY2FsbHM/DQorCXRzdAlyMTAs
-IHIxMQ0KIAlibmUJX19zeXNfdHJhY2UNCiANCiAJaW52b2tlX3N5c2NhbGwgdGJsLCBzY25vLCBy
-MTAsIF9fcmV0X2Zhc3Rfc3lzY2FsbA0KZGlmZiAtLWdpdCBhL2FyY2gvYXJtL2tlcm5lbC9wdHJh
-Y2UuYyBiL2FyY2gvYXJtL2tlcm5lbC9wdHJhY2UuYw0KaW5kZXggYjYwNmNkZWQ5MGNkLi5hNjli
-MGJmZDcxYWUgMTAwNjQ0DQotLS0gYS9hcmNoL2FybS9rZXJuZWwvcHRyYWNlLmMNCisrKyBiL2Fy
-Y2gvYXJtL2tlcm5lbC9wdHJhY2UuYw0KQEAgLTI0LDYgKzI0LDcgQEANCiAjaW5jbHVkZSA8bGlu
-dXgvYXVkaXQuaD4NCiAjaW5jbHVkZSA8bGludXgvdHJhY2Vob29rLmg+DQogI2luY2x1ZGUgPGxp
-bnV4L3VuaXN0ZC5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29sYXRpb24uaD4NCiANCiAjaW5jbHVk
-ZSA8YXNtL3BndGFibGUuaD4NCiAjaW5jbHVkZSA8YXNtL3RyYXBzLmg+DQpAQCAtOTIxLDYgKzky
-MiwxNSBAQCBhc21saW5rYWdlIGludCBzeXNjYWxsX3RyYWNlX2VudGVyKHN0cnVjdCBwdF9yZWdz
-ICpyZWdzLCBpbnQgc2NubykNCiAJaWYgKHRlc3RfdGhyZWFkX2ZsYWcoVElGX1NZU0NBTExfVFJB
-Q0UpKQ0KIAkJdHJhY2Vob29rX3JlcG9ydF9zeXNjYWxsKHJlZ3MsIFBUUkFDRV9TWVNDQUxMX0VO
-VEVSKTsNCiANCisJLyoNCisJICogSW4gdGFzayBpc29sYXRpb24gbW9kZSwgd2UgbWF5IHByZXZl
-bnQgdGhlIHN5c2NhbGwgZnJvbQ0KKwkgKiBydW5uaW5nLCBhbmQgaWYgc28gd2UgYWxzbyBkZWxp
-dmVyIGEgc2lnbmFsIHRvIHRoZSBwcm9jZXNzLg0KKwkgKi8NCisJaWYgKHRlc3RfdGhyZWFkX2Zs
-YWcoVElGX1RBU0tfSVNPTEFUSU9OKSkgew0KKwkJaWYgKHRhc2tfaXNvbGF0aW9uX3N5c2NhbGwo
-c2NubykgPT0gLTEpDQorCQkJcmV0dXJuIC0xOw0KKwl9DQorDQogCS8qIERvIHNlY2NvbXAgYWZ0
-ZXIgcHRyYWNlOyBzeXNjYWxsIG1heSBoYXZlIGNoYW5nZWQuICovDQogI2lmZGVmIENPTkZJR19I
-QVZFX0FSQ0hfU0VDQ09NUF9GSUxURVINCiAJaWYgKHNlY3VyZV9jb21wdXRpbmcoKSA9PSAtMSkN
-CmRpZmYgLS1naXQgYS9hcmNoL2FybS9rZXJuZWwvc2lnbmFsLmMgYi9hcmNoL2FybS9rZXJuZWwv
-c2lnbmFsLmMNCmluZGV4IGFiMjU2ODk5NmRkYi4uMjljY2VmODQwM2NkIDEwMDY0NA0KLS0tIGEv
-YXJjaC9hcm0va2VybmVsL3NpZ25hbC5jDQorKysgYi9hcmNoL2FybS9rZXJuZWwvc2lnbmFsLmMN
-CkBAIC0xMiw2ICsxMiw3IEBADQogI2luY2x1ZGUgPGxpbnV4L3RyYWNlaG9vay5oPg0KICNpbmNs
-dWRlIDxsaW51eC91cHJvYmVzLmg+DQogI2luY2x1ZGUgPGxpbnV4L3N5c2NhbGxzLmg+DQorI2lu
-Y2x1ZGUgPGxpbnV4L2lzb2xhdGlvbi5oPg0KIA0KICNpbmNsdWRlIDxhc20vZWxmLmg+DQogI2lu
-Y2x1ZGUgPGFzbS9jYWNoZWZsdXNoLmg+DQpAQCAtNjM5LDYgKzY0MCw5IEBAIHN0YXRpYyBpbnQg
-ZG9fc2lnbmFsKHN0cnVjdCBwdF9yZWdzICpyZWdzLCBpbnQgc3lzY2FsbCkNCiAJcmV0dXJuIDA7
-DQogfQ0KIA0KKyNkZWZpbmUgV09SS19QRU5ESU5HX0xPT1BfRkxBR1MJKF9USUZfTkVFRF9SRVND
-SEVEIHwgX1RJRl9TSUdQRU5ESU5HIHwJXA0KKwkJCQkgX1RJRl9OT1RJRllfUkVTVU1FIHwgX1RJ
-Rl9VUFJPQkUpDQorDQogYXNtbGlua2FnZSBpbnQNCiBkb193b3JrX3BlbmRpbmcoc3RydWN0IHB0
-X3JlZ3MgKnJlZ3MsIHVuc2lnbmVkIGludCB0aHJlYWRfZmxhZ3MsIGludCBzeXNjYWxsKQ0KIHsN
-CkBAIC02NDgsNiArNjUyLDkgQEAgZG9fd29ya19wZW5kaW5nKHN0cnVjdCBwdF9yZWdzICpyZWdz
-LCB1bnNpZ25lZCBpbnQgdGhyZWFkX2ZsYWdzLCBpbnQgc3lzY2FsbCkNCiAJICogVXBkYXRlIHRo
-ZSB0cmFjZSBjb2RlIHdpdGggdGhlIGN1cnJlbnQgc3RhdHVzLg0KIAkgKi8NCiAJdHJhY2VfaGFy
-ZGlycXNfb2ZmKCk7DQorDQorCXRhc2tfaXNvbGF0aW9uX2NoZWNrX3J1bl9jbGVhbnVwKCk7DQor
-DQogCWRvIHsNCiAJCWlmIChsaWtlbHkodGhyZWFkX2ZsYWdzICYgX1RJRl9ORUVEX1JFU0NIRUQp
-KSB7DQogCQkJc2NoZWR1bGUoKTsNCkBAIC02NzYsNyArNjgzLDExIEBAIGRvX3dvcmtfcGVuZGlu
-ZyhzdHJ1Y3QgcHRfcmVncyAqcmVncywgdW5zaWduZWQgaW50IHRocmVhZF9mbGFncywgaW50IHN5
-c2NhbGwpDQogCQl9DQogCQlsb2NhbF9pcnFfZGlzYWJsZSgpOw0KIAkJdGhyZWFkX2ZsYWdzID0g
-Y3VycmVudF90aHJlYWRfaW5mbygpLT5mbGFnczsNCi0JfSB3aGlsZSAodGhyZWFkX2ZsYWdzICYg
-X1RJRl9XT1JLX01BU0spOw0KKwl9IHdoaWxlICh0aHJlYWRfZmxhZ3MgJiBXT1JLX1BFTkRJTkdf
-TE9PUF9GTEFHUyk7DQorDQorCWlmICh0aHJlYWRfZmxhZ3MgJiBfVElGX1RBU0tfSVNPTEFUSU9O
-KQ0KKwkJdGFza19pc29sYXRpb25fc3RhcnQoKTsNCisNCiAJcmV0dXJuIDA7DQogfQ0KIA0KZGlm
-ZiAtLWdpdCBhL2FyY2gvYXJtL2tlcm5lbC9zbXAuYyBiL2FyY2gvYXJtL2tlcm5lbC9zbXAuYw0K
-aW5kZXggNDZlMWJlOWU1N2E4Li45NWYxOWI5ODA3NzYgMTAwNjQ0DQotLS0gYS9hcmNoL2FybS9r
-ZXJuZWwvc21wLmMNCisrKyBiL2FyY2gvYXJtL2tlcm5lbC9zbXAuYw0KQEAgLTI2LDYgKzI2LDcg
-QEANCiAjaW5jbHVkZSA8bGludXgvY29tcGxldGlvbi5oPg0KICNpbmNsdWRlIDxsaW51eC9jcHVm
-cmVxLmg+DQogI2luY2x1ZGUgPGxpbnV4L2lycV93b3JrLmg+DQorI2luY2x1ZGUgPGxpbnV4L2lz
-b2xhdGlvbi5oPg0KIA0KICNpbmNsdWRlIDxsaW51eC9hdG9taWMuaD4NCiAjaW5jbHVkZSA8YXNt
-L2J1Z3MuaD4NCkBAIC01NjAsNiArNTYxLDcgQEAgdm9pZCBhcmNoX3NlbmRfY2FsbF9mdW5jdGlv
-bl9pcGlfbWFzayhjb25zdCBzdHJ1Y3QgY3B1bWFzayAqbWFzaykNCiANCiB2b2lkIGFyY2hfc2Vu
-ZF93YWtldXBfaXBpX21hc2soY29uc3Qgc3RydWN0IGNwdW1hc2sgKm1hc2spDQogew0KKwl0YXNr
-X2lzb2xhdGlvbl9yZW1vdGVfY3B1bWFzayhtYXNrLCAid2FrZXVwIElQSSIpOw0KIAlzbXBfY3Jv
-c3NfY2FsbChtYXNrLCBJUElfV0FLRVVQKTsNCiB9DQogDQpAQCAtNTc5LDYgKzU4MSw3IEBAIHZv
-aWQgYXJjaF9pcnFfd29ya19yYWlzZSh2b2lkKQ0KICNpZmRlZiBDT05GSUdfR0VORVJJQ19DTE9D
-S0VWRU5UU19CUk9BRENBU1QNCiB2b2lkIHRpY2tfYnJvYWRjYXN0KGNvbnN0IHN0cnVjdCBjcHVt
-YXNrICptYXNrKQ0KIHsNCisJdGFza19pc29sYXRpb25fcmVtb3RlX2NwdW1hc2sobWFzaywgInRp
-bWVyIElQSSIpOw0KIAlzbXBfY3Jvc3NfY2FsbChtYXNrLCBJUElfVElNRVIpOw0KIH0NCiAjZW5k
-aWYNCkBAIC03MDIsNiArNzA1LDcgQEAgdm9pZCBoYW5kbGVfSVBJKGludCBpcGluciwgc3RydWN0
-IHB0X3JlZ3MgKnJlZ3MpDQogDQogdm9pZCBzbXBfc2VuZF9yZXNjaGVkdWxlKGludCBjcHUpDQog
-ew0KKwl0YXNrX2lzb2xhdGlvbl9yZW1vdGUoY3B1LCAicmVzY2hlZHVsZSBJUEkiKTsNCiAJc21w
-X2Nyb3NzX2NhbGwoY3B1bWFza19vZihjcHUpLCBJUElfUkVTQ0hFRFVMRSk7DQogfQ0KIA0KZGlm
-ZiAtLWdpdCBhL2FyY2gvYXJtL21tL2ZhdWx0LmMgYi9hcmNoL2FybS9tbS9mYXVsdC5jDQppbmRl
-eCBiZDBmNDgyMWY3ZTEuLmFjZDExYTY5YzRlNCAxMDA2NDQNCi0tLSBhL2FyY2gvYXJtL21tL2Zh
-dWx0LmMNCisrKyBiL2FyY2gvYXJtL21tL2ZhdWx0LmMNCkBAIC0xNyw2ICsxNyw3IEBADQogI2lu
-Y2x1ZGUgPGxpbnV4L3NjaGVkL2RlYnVnLmg+DQogI2luY2x1ZGUgPGxpbnV4L2hpZ2htZW0uaD4N
-CiAjaW5jbHVkZSA8bGludXgvcGVyZl9ldmVudC5oPg0KKyNpbmNsdWRlIDxsaW51eC9pc29sYXRp
-b24uaD4NCiANCiAjaW5jbHVkZSA8YXNtL3BndGFibGUuaD4NCiAjaW5jbHVkZSA8YXNtL3N5c3Rl
-bV9taXNjLmg+DQpAQCAtMzMyLDggKzMzMywxMyBAQCBkb19wYWdlX2ZhdWx0KHVuc2lnbmVkIGxv
-bmcgYWRkciwgdW5zaWduZWQgaW50IGZzciwgc3RydWN0IHB0X3JlZ3MgKnJlZ3MpDQogCS8qDQog
-CSAqIEhhbmRsZSB0aGUgIm5vcm1hbCIgY2FzZSBmaXJzdCAtIFZNX0ZBVUxUX01BSk9SDQogCSAq
-Lw0KLQlpZiAobGlrZWx5KCEoZmF1bHQgJiAoVk1fRkFVTFRfRVJST1IgfCBWTV9GQVVMVF9CQURN
-QVAgfCBWTV9GQVVMVF9CQURBQ0NFU1MpKSkpDQorCWlmIChsaWtlbHkoIShmYXVsdCAmIChWTV9G
-QVVMVF9FUlJPUiB8IFZNX0ZBVUxUX0JBRE1BUCB8DQorCQkJICAgICAgVk1fRkFVTFRfQkFEQUND
-RVNTKSkpKSB7DQorCQkvKiBObyBzaWduYWwgd2FzIGdlbmVyYXRlZCwgYnV0IG5vdGlmeSB0YXNr
-LWlzb2xhdGlvbiB0YXNrcy4gKi8NCisJCWlmICh1c2VyX21vZGUocmVncykpDQorCQkJdGFza19p
-c29sYXRpb25faW50ZXJydXB0KCJwYWdlIGZhdWx0IGF0ICUjbHgiLCBhZGRyKTsNCiAJCXJldHVy
-biAwOw0KKwl9DQogDQogCS8qDQogCSAqIElmIHdlIGFyZSBpbiBrZXJuZWwgbW9kZSBhdCB0aGlz
-IHBvaW50LCB3ZQ0KLS0gDQoyLjIwLjENCg0K
+The kernel allocates (and frees on thread exit) a new shadow stack for a
+pthread child.
+
+    It is possible for the kernel to complete the clone syscall and set the
+    child's shadow stack pointer to NULL and let the child thread allocate
+    a shadow stack for itself.  There are two issues in this approach: It
+    is not compatible with existing code that does inline syscall and it
+    cannot handle signals before the child can successfully allocate a
+    shadow stack.
+
+A 64-bit shadow stack has a size of min(RLIMIT_STACK, 4 GB).  A compat-mode
+thread shadow stack has a size of 1/4 min(RLIMIT_STACK, 4 GB).  This allows
+more threads to run in a 32-bit address space.
+
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+v10:
+- Limit shadow stack size to 4 GB.
+
+ arch/x86/include/asm/cet.h         |  2 ++
+ arch/x86/include/asm/mmu_context.h |  3 +++
+ arch/x86/kernel/cet.c              | 41 ++++++++++++++++++++++++++++++
+ arch/x86/kernel/process.c          |  7 +++++
+ 4 files changed, 53 insertions(+)
+
+diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+index 56fe08eebae6..71dc92acd2f2 100644
+--- a/arch/x86/include/asm/cet.h
++++ b/arch/x86/include/asm/cet.h
+@@ -18,11 +18,13 @@ struct cet_status {
+ 
+ #ifdef CONFIG_X86_INTEL_CET
+ int cet_setup_shstk(void);
++int cet_setup_thread_shstk(struct task_struct *p);
+ void cet_disable_free_shstk(struct task_struct *p);
+ int cet_verify_rstor_token(bool ia32, unsigned long ssp, unsigned long *new_ssp);
+ void cet_restore_signal(struct sc_ext *sc);
+ int cet_setup_signal(bool ia32, unsigned long rstor, struct sc_ext *sc);
+ #else
++static inline int cet_setup_thread_shstk(struct task_struct *p) { return 0; }
+ static inline void cet_disable_free_shstk(struct task_struct *p) {}
+ static inline void cet_restore_signal(struct sc_ext *sc) { return; }
+ static inline int cet_setup_signal(bool ia32, unsigned long rstor,
+diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+index 4e55370e48e8..bb7a4a2d6923 100644
+--- a/arch/x86/include/asm/mmu_context.h
++++ b/arch/x86/include/asm/mmu_context.h
+@@ -12,6 +12,7 @@
+ #include <asm/pgalloc.h>
+ #include <asm/tlbflush.h>
+ #include <asm/paravirt.h>
++#include <asm/cet.h>
+ #include <asm/debugreg.h>
+ 
+ extern atomic64_t last_mm_ctx_id;
+@@ -155,6 +156,8 @@ do {						\
+ #else
+ #define deactivate_mm(tsk, mm)			\
+ do {						\
++	if (!tsk->vfork_done)			\
++		cet_disable_free_shstk(tsk);	\
+ 	load_gs_index(0);			\
+ 	loadsegment(fs, 0);			\
+ } while (0)
+diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+index 274fecdd9669..121552047b86 100644
+--- a/arch/x86/kernel/cet.c
++++ b/arch/x86/kernel/cet.c
+@@ -169,6 +169,47 @@ int cet_setup_shstk(void)
+ 	return 0;
+ }
+ 
++int cet_setup_thread_shstk(struct task_struct *tsk)
++{
++	unsigned long addr, size;
++	struct cet_user_state *state;
++	struct cet_status *cet = &tsk->thread.cet;
++
++	if (!cet->shstk_size)
++		return 0;
++
++	state = get_xsave_addr(&tsk->thread.fpu.state.xsave,
++			       XFEATURE_CET_USER);
++
++	if (!state)
++		return -EINVAL;
++
++	/* Cap shadow stack size to 4 GB */
++	size = min(rlimit(RLIMIT_STACK), 1UL << 32);
++
++	/*
++	 * Compat-mode pthreads share a limited address space.
++	 * If each function call takes an average of four slots
++	 * stack space, we need 1/4 of stack size for shadow stack.
++	 */
++	if (in_compat_syscall())
++		size /= 4;
++	size = round_up(size, PAGE_SIZE);
++	addr = alloc_shstk(size);
++
++	if (IS_ERR((void *)addr)) {
++		cet->shstk_base = 0;
++		cet->shstk_size = 0;
++		return PTR_ERR((void *)addr);
++	}
++
++	fpu__prepare_write(&tsk->thread.fpu);
++	state->user_ssp = (u64)(addr + size);
++	cet->shstk_base = addr;
++	cet->shstk_size = size;
++	return 0;
++}
++
+ void cet_disable_free_shstk(struct task_struct *tsk)
+ {
+ 	struct cet_status *cet = &tsk->thread.cet;
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index 9d9cff2c1018..ef1c2b8086a2 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -109,6 +109,7 @@ void exit_thread(struct task_struct *tsk)
+ 
+ 	free_vm86(t);
+ 
++	cet_disable_free_shstk(tsk);
+ 	fpu__drop(fpu);
+ }
+ 
+@@ -179,6 +180,12 @@ int copy_thread_tls(unsigned long clone_flags, unsigned long sp,
+ 	if (clone_flags & CLONE_SETTLS)
+ 		ret = set_new_tls(p, tls);
+ 
++#ifdef CONFIG_X86_64
++	/* Allocate a new shadow stack for pthread */
++	if (!ret && (clone_flags & (CLONE_VFORK | CLONE_VM)) == CLONE_VM)
++		ret = cet_setup_thread_shstk(p);
++#endif
++
+ 	if (!ret && unlikely(test_tsk_thread_flag(current, TIF_IO_BITMAP)))
+ 		io_bitmap_share(p);
+ 
+-- 
+2.21.0
