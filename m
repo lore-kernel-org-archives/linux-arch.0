@@ -1,8 +1,8 @@
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 13/20] unicore32: simplify detection of memory zone
- boundaries
-Date: Wed, 29 Apr 2020 15:11:19 +0300
-Message-ID: <20200429121126.17989-14-rppt@kernel.org>
+Subject: [PATCH v2 15/20] mm: memmap_init: iterate over memblock regions
+ rather that check each PFN
+Date: Wed, 29 Apr 2020 15:11:21 +0300
+Message-ID: <20200429121126.17989-16-rppt@kernel.org>
 References: <20200429121126.17989-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,156 +22,99 @@ To: linux-kernel@vger.kernel.org
 Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@in>
 List-Id: linux-arch.vger.kernel.org
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+From: Baoquan He <bhe@redhat.com>
 
-The free_area_init() function only requires the definition of maximal PFN
-for each of the supported zone rater than calculation of actual zone sizes
-and the sizes of the holes between the zones.
+When called during boot the memmap_init_zone() function checks if each PFN
+is valid and actually belongs to the node being initialized using
+early_pfn_valid() and early_pfn_in_nid().
 
-After removal of CONFIG_HAVE_MEMBLOCK_NODE_MAP the free_area_init() is
-available to all architectures.
+Each such check may cost up to O(log(n)) where n is the number of memory
+banks, so for large amount of memory overall time spent in early_pfn*()
+becomes substantial.
 
-Using this function instead of free_area_init_node() simplifies the zone
-detection.
+Since the information is anyway present in memblock, we can iterate over
+memblock memory regions in memmap_init() and only call memmap_init_zone()
+for PFN ranges that are know to be valid and in the appropriate node.
 
+Signed-off-by: Baoquan He <bhe@redhat.com>
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/unicore32/include/asm/memory.h  |  2 +-
- arch/unicore32/include/mach/memory.h |  6 ++--
- arch/unicore32/kernel/pci.c          | 14 ++-------
- arch/unicore32/mm/init.c             | 43 ++++++----------------------
- 4 files changed, 15 insertions(+), 50 deletions(-)
+ mm/page_alloc.c | 47 ++++++++++++++++-------------------------------
+ 1 file changed, 16 insertions(+), 31 deletions(-)
 
-diff --git a/arch/unicore32/include/asm/memory.h b/arch/unicore32/include/asm/memory.h
-index 23c93105f98f..66285178dd9b 100644
---- a/arch/unicore32/include/asm/memory.h
-+++ b/arch/unicore32/include/asm/memory.h
-@@ -60,7 +60,7 @@
- #ifndef __ASSEMBLY__
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 7f6a3081edb8..8d112defaead 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -5939,23 +5939,6 @@ overlap_memmap_init(unsigned long zone, unsigned long *pfn)
+ 	return false;
+ }
  
- #ifndef arch_adjust_zones
--#define arch_adjust_zones(size, holes) do { } while (0)
-+#define arch_adjust_zones(max_zone_pfn) do { } while (0)
+-#ifdef CONFIG_SPARSEMEM
+-/* Skip PFNs that belong to non-present sections */
+-static inline __meminit unsigned long next_pfn(unsigned long pfn)
+-{
+-	const unsigned long section_nr = pfn_to_section_nr(++pfn);
+-
+-	if (present_section_nr(section_nr))
+-		return pfn;
+-	return section_nr_to_pfn(next_present_section_nr(section_nr));
+-}
+-#else
+-static inline __meminit unsigned long next_pfn(unsigned long pfn)
+-{
+-	return pfn++;
+-}
+-#endif
+-
+ /*
+  * Initially all pages are reserved - free ones are freed
+  * up by memblock_free_all() once the early boot process is
+@@ -5990,19 +5973,7 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
  #endif
  
- /*
-diff --git a/arch/unicore32/include/mach/memory.h b/arch/unicore32/include/mach/memory.h
-index 2b527cedd03d..b4e6035cb9a3 100644
---- a/arch/unicore32/include/mach/memory.h
-+++ b/arch/unicore32/include/mach/memory.h
-@@ -25,10 +25,10 @@
+ 	for (pfn = start_pfn; pfn < end_pfn; ) {
+-		/*
+-		 * There can be holes in boot-time mem_map[]s handed to this
+-		 * function.  They do not exist on hotplugged memory.
+-		 */
+ 		if (context == MEMMAP_EARLY) {
+-			if (!early_pfn_valid(pfn)) {
+-				pfn = next_pfn(pfn);
+-				continue;
+-			}
+-			if (!early_pfn_in_nid(pfn, nid)) {
+-				pfn++;
+-				continue;
+-			}
+ 			if (overlap_memmap_init(zone, &pfn))
+ 				continue;
+ 			if (defer_init(nid, pfn, end_pfn))
+@@ -6118,9 +6089,23 @@ static void __meminit zone_init_free_lists(struct zone *zone)
+ }
  
- #if !defined(__ASSEMBLY__) && defined(CONFIG_PCI)
- 
--void puv3_pci_adjust_zones(unsigned long *size, unsigned long *holes);
-+void puv3_pci_adjust_zones(unsigned long *max_zone_pfn);
- 
--#define arch_adjust_zones(size, holes) \
--	puv3_pci_adjust_zones(size, holes)
-+#define arch_adjust_zones(max_zone_pfn) \
-+	puv3_pci_adjust_zones(max_zone_pfn)
- 
- #endif
- 
-diff --git a/arch/unicore32/kernel/pci.c b/arch/unicore32/kernel/pci.c
-index efa04a94dcdb..0d098aa05b47 100644
---- a/arch/unicore32/kernel/pci.c
-+++ b/arch/unicore32/kernel/pci.c
-@@ -133,21 +133,11 @@ static int pci_puv3_map_irq(const struct pci_dev *dev, u8 slot, u8 pin)
-  * This is really ugly and we need a better way of specifying
-  * DMA-capable regions of memory.
-  */
--void __init puv3_pci_adjust_zones(unsigned long *zone_size,
--	unsigned long *zhole_size)
-+void __init puv3_pci_adjust_zones(unsigned long max_zone_pfn)
+ void __meminit __weak memmap_init(unsigned long size, int nid,
+-				  unsigned long zone, unsigned long start_pfn)
++				  unsigned long zone,
++				  unsigned long range_start_pfn)
  {
- 	unsigned int sz = SZ_128M >> PAGE_SHIFT;
- 
--	/*
--	 * Only adjust if > 128M on current system
--	 */
--	if (zone_size[0] <= sz)
--		return;
--
--	zone_size[1] = zone_size[0] - sz;
--	zone_size[0] = sz;
--	zhole_size[1] = zhole_size[0];
--	zhole_size[0] = 0;
-+	max_zone_pfn[ZONE_DMA] = sz;
+-	memmap_init_zone(size, nid, zone, start_pfn, MEMMAP_EARLY, NULL);
++	unsigned long start_pfn, end_pfn;
++	unsigned long range_end_pfn = range_start_pfn + size;
++	int i;
++
++	for_each_mem_pfn_range(i, nid, &start_pfn, &end_pfn, NULL) {
++		start_pfn = clamp(start_pfn, range_start_pfn, range_end_pfn);
++		end_pfn = clamp(end_pfn, range_start_pfn, range_end_pfn);
++
++		if (end_pfn > start_pfn) {
++			size = end_pfn - start_pfn;
++			memmap_init_zone(size, nid, zone, start_pfn,
++					 MEMMAP_EARLY, NULL);
++		}
++	}
  }
  
- /*
-diff --git a/arch/unicore32/mm/init.c b/arch/unicore32/mm/init.c
-index 6cf010fadc7a..52425d383cea 100644
---- a/arch/unicore32/mm/init.c
-+++ b/arch/unicore32/mm/init.c
-@@ -61,46 +61,21 @@ static void __init find_limits(unsigned long *min, unsigned long *max_low,
- 	}
- }
- 
--static void __init uc32_bootmem_free(unsigned long min, unsigned long max_low,
--	unsigned long max_high)
-+static void __init uc32_bootmem_free(unsigned long max_low)
- {
--	unsigned long zone_size[MAX_NR_ZONES], zhole_size[MAX_NR_ZONES];
--	struct memblock_region *reg;
-+	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0 };
- 
--	/*
--	 * initialise the zones.
--	 */
--	memset(zone_size, 0, sizeof(zone_size));
--
--	/*
--	 * The memory size has already been determined.  If we need
--	 * to do anything fancy with the allocation of this memory
--	 * to the zones, now is the time to do it.
--	 */
--	zone_size[0] = max_low - min;
--
--	/*
--	 * Calculate the size of the holes.
--	 *  holes = node_size - sum(bank_sizes)
--	 */
--	memcpy(zhole_size, zone_size, sizeof(zhole_size));
--	for_each_memblock(memory, reg) {
--		unsigned long start = memblock_region_memory_base_pfn(reg);
--		unsigned long end = memblock_region_memory_end_pfn(reg);
--
--		if (start < max_low) {
--			unsigned long low_end = min(end, max_low);
--			zhole_size[0] -= low_end - start;
--		}
--	}
-+	max_zone_pfn[ZONE_DMA] = max_low;
-+	max_zone_pfn[ZONE_NORMAL] = max_low;
- 
- 	/*
- 	 * Adjust the sizes according to any special requirements for
- 	 * this machine type.
-+	 * This might lower ZONE_DMA limit.
- 	 */
--	arch_adjust_zones(zone_size, zhole_size);
-+	arch_adjust_zones(max_zone_pfn);
- 
--	free_area_init_node(0, zone_size, min, zhole_size);
-+	free_area_init(max_zone_pfn);
- }
- 
- int pfn_valid(unsigned long pfn)
-@@ -176,11 +151,11 @@ void __init bootmem_init(void)
- 	sparse_init();
- 
- 	/*
--	 * Now free the memory - free_area_init_node needs
-+	 * Now free the memory - free_area_init needs
- 	 * the sparse mem_map arrays initialized by sparse_init()
- 	 * for memmap_init_zone(), otherwise all PFNs are invalid.
- 	 */
--	uc32_bootmem_free(min, max_low, max_high);
-+	uc32_bootmem_free(max_low);
- 
- 	high_memory = __va((max_low << PAGE_SHIFT) - 1) + 1;
- 
+ static int zone_batchsize(struct zone *zone)
 -- 
 2.26.1
