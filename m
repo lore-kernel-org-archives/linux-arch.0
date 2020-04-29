@@ -1,49 +1,73 @@
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH v2 16/20] mm: remove early_pfn_in_nid() and
- CONFIG_NODES_SPAN_OTHER_NODES
-Date: Wed, 29 Apr 2020 17:33:46 +0300
-Message-ID: <20200429143346.GI14260@kernel.org>
-References: <20200429121126.17989-1-rppt@kernel.org>
- <20200429121126.17989-17-rppt@kernel.org>
- <20200429141706.GA25142@infradead.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 19/23] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
+ support
+Date: Wed, 29 Apr 2020 16:24:44 +0100
+Message-ID: <20200429152443.GD10651@gaia>
+References: <20200421142603.3894-1-catalin.marinas@arm.com>
+ <20200421142603.3894-20-catalin.marinas@arm.com>
+ <e568615c-7f13-5ad6-48cc-45f5211ed1df@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:41058 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726511AbgD2PYt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Apr 2020 11:24:49 -0400
 Content-Disposition: inline
-In-Reply-To: <20200429141706.GA25142@infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, x86@kernel.org, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, Ley Foon Tan <ley.foon.tan@intel.com>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, linux-hexagon@vger.kernel.org, Helge Deller <deller@gmx.de>, linux-sh@vger.kernel.org, Russell King <linux@armlinux.org.uk>, linux-csky@vger.kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Hoan Tran <Hoan>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <e568615c-7f13-5ad6-48cc-45f5211ed1df@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kevin Brodsky <kevin.brodsky@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Alan Hayward <Alan.Hayward@arm.com>, Luis Machado <luis.machado@linaro.org>, Omair Javaid <omair.javaid@linaro.org>
 
-On Wed, Apr 29, 2020 at 07:17:06AM -0700, Christoph Hellwig wrote:
-> On Wed, Apr 29, 2020 at 03:11:22PM +0300, Mike Rapoport wrote:
-> > From: Mike Rapoport <rppt@linux.ibm.com>
-> > 
-> > The commit f47ac088c406 ("mm: memmap_init: iterate over memblock regions
-> > rather that check each PFN") made early_pfn_in_nid() obsolete and since
-> > CONFIG_NODES_SPAN_OTHER_NODES is only used to pick a stub or a real
-> > implementation of early_pfn_in_nid() it is also not needed anymore.
+On Wed, Apr 29, 2020 at 11:27:10AM +0100, Kevin Brodsky wrote:
+> On 21/04/2020 15:25, Catalin Marinas wrote:
+> > diff --git a/arch/arm64/lib/mte.S b/arch/arm64/lib/mte.S
+> > index bd51ea7e2fcb..45be04a8c73c 100644
+> > --- a/arch/arm64/lib/mte.S
+> > +++ b/arch/arm64/lib/mte.S
+> > @@ -5,6 +5,7 @@
+> >   #include <linux/linkage.h>
+> >   #include <asm/assembler.h>
+> > +#include <asm/mte.h>
+> >   /*
+> >    * Compare tags of two pages
+> > @@ -44,3 +45,52 @@ SYM_FUNC_START(mte_memcmp_pages)
+> >   	ret
+> >   SYM_FUNC_END(mte_memcmp_pages)
+> > +
+> > +/*
+> > + * Read tags from a user buffer (one tag per byte) and set the corresponding
+> > + * tags at the given kernel address. Used by PTRACE_POKEMTETAGS.
+> > + *   x0 - kernel address (to)
+> > + *   x1 - user buffer (from)
+> > + *   x2 - number of tags/bytes (n)
+> > + * Returns:
+> > + *   x0 - number of tags read/set
+> > + */
+> > +SYM_FUNC_START(mte_copy_tags_from_user)
+> > +	mov	x3, x1
+> > +1:
+> > +USER(2f, ldtrb	w4, [x1])
 > 
-> I don't think you can quote a commit id for something that hasn't been
-> commited to mainline yet.i
+> Here we are making either of the following assumptions:
+> 1. The __user pointer (here `from`) actually points to user memory, not
+> kernel memory (and we have set_fs(USER_DS) in place).
+> 2. CONFIG_ARM64_UAO is enabled and the hardware implements UAO.
+> 
+> 1. is currently true because these functions are only used for the new
+> ptrace requests, which indeed pass pointers to user memory. However, future
+> users of these functions may not know about this requirement.
+> 2. is not necessarily true because ARM64_MTE does not depend on ARM64_UAO.
+> 
+> It is unlikely that future users of these functions actually need to pass
+> __user pointers to kernel memory, so adding a comment spelling out the first
+> assumption is probably fine.
 
-Ouch, that was one of the things I've indented to fix in v2...
+I found it easier to add uao_user_alternative rather than writing a
+comment ;).
 
-> Then again I would have just merged this
-> patch into the one that obsoleted early_pfn_in_nid anyway.
-
-I've kept these commits separate to preserve the authorship.
-I'll update the changelog so that it won't mention commit id.
+Thanks.
 
 -- 
-Sincerely yours,
-Mike.
+Catalin
