@@ -1,132 +1,142 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 20/23] fs: Allow copy_mount_options() to access
- user-space in a single pass
-Date: Wed, 29 Apr 2020 12:58:59 +0100
-Message-ID: <20200429115858.GA10651@gaia>
-References: <20200421142603.3894-1-catalin.marinas@arm.com>
- <20200421142603.3894-21-catalin.marinas@arm.com>
- <9544d86b-d445-3497-fbbf-56c590400f83@arm.com>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2 00/20] mm: rework free_area_init*() funcitons
+Date: Wed, 29 Apr 2020 15:11:06 +0300
+Message-ID: <20200429121126.17989-1-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37796 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726511AbgD2L7E (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 Apr 2020 07:59:04 -0400
-Content-Disposition: inline
-In-Reply-To: <9544d86b-d445-3497-fbbf-56c590400f83@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
+To: linux-kernel@vger.kernel.org
+Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@in>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 28, 2020 at 07:16:29PM +0100, Kevin Brodsky wrote:
-> On 21/04/2020 15:26, Catalin Marinas wrote:
-> > diff --git a/fs/namespace.c b/fs/namespace.c
-> > index a28e4db075ed..8febc50dfc5d 100644
-> > --- a/fs/namespace.c
-> > +++ b/fs/namespace.c
-> > @@ -3025,13 +3025,16 @@ void *copy_mount_options(const void __user * data)
-> >   	if (!copy)
-> >   		return ERR_PTR(-ENOMEM);
-> > -	size = PAGE_SIZE - offset_in_page(data);
-> > +	size = PAGE_SIZE;
-> > +	if (!arch_has_exact_copy_from_user(size))
-> > +		size -= offset_in_page(data);
-> > -	if (copy_from_user(copy, data, size)) {
-> > +	if (copy_from_user(copy, data, size) == size) {
-> >   		kfree(copy);
-> >   		return ERR_PTR(-EFAULT);
-> >   	}
-> >   	if (size != PAGE_SIZE) {
-> > +		WARN_ON(1);
-> 
-> I'm not sure I understand the rationale here. If we don't have exact
-> copy_from_user for size, then we will attempt to copy up to the end of the
-> page. Assuming this doesn't fault, we then want to carry on copying from the
-> start of the next page, until we reach a total size of up to 4K. Why would
-> we warn in that case? AIUI, if you don't have exact copy_from_user, there
-> are 3 cases:
-> 1. copy_from_user() returns size, we bail out.
-> 2. copy_from_user() returns 0, we carry on copying from the next page.
-> 3. copy_from_user() returns anything else, we return immediately.
-> 
-> I think you're not handling case 3 here.
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-(3) is still handled as (2) since the only check we have is whether
-copy_from_user() returned size. Since size is not updated, it falls
-through the second if block (where WARN_ON should have disappeared).
+Hi,
 
-Thinking some more about this, I think it can be simplified without
-adding arch_has_exact_copy_from_user(). We do have to guarantee on arm64
-that a copy_from_user() to the end of a page (4K aligned, hence tag
-granule aligned) is exact but that's just matching the current
-semantics.
+After the discussion [1] about removal of CONFIG_NODES_SPAN_OTHER_NODES and
+CONFIG_HAVE_MEMBLOCK_NODE_MAP options, I took it a bit further and updated
+the node/zone initialization. 
 
-What about this new patch below, replacing the current one:
+Since all architectures have memblock, it is possible to use only the newer
+version of free_area_init_node() that calculates the zone and node
+boundaries based on memblock node mapping and architectural limits on
+possible zone PFNs. 
 
--------------8<-------------------------------
-From cf9a1c9668ce77af3ef6589ee8038e91df127dab Mon Sep 17 00:00:00 2001
-From: Catalin Marinas <catalin.marinas@arm.com>
-Date: Wed, 15 Apr 2020 18:45:44 +0100
-Subject: [PATCH] fs: Handle intra-page faults in copy_mount_options()
+The architectures that still determined zone and hole sizes can be switched
+to the generic code and the old code that took those zone and hole sizes
+can be simply removed.
 
-The copy_mount_options() function takes a user pointer argument but no
-size. It tries to read up to a PAGE_SIZE. However, copy_from_user() is
-not guaranteed to return all the accessible bytes if, for example, the
-access crosses a page boundary and gets a fault on the second page. To
-work around this, the current copy_mount_options() implementation
-performs two copy_from_user() passes, first to the end of the current
-page and the second to what's left in the subsequent page.
+And, since it all started from the removal of
+CONFIG_NODES_SPAN_OTHER_NODES, the memmap_init() is now updated to iterate
+over memblocks and so it does not need to perform early_pfn_to_nid() query
+for every PFN.
 
-On arm64 with MTE enabled, access to a user page may trigger a fault
-after part of the buffer has been copied (when the user pointer tag,
-bits 56-59, no longer matches the allocation tag stored in memory).
-Allow copy_mount_options() to handle such case by only returning -EFAULT
-if the first copy_from_user() has not copied any bytes.
+v2 changes:
+* move deletion of one of '#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP' from
+  patch 2 to patch 3 where it should have been from the beginning
+* drop patch that introduced a free_area_init_memoryless_node() wrapper
+  for free_area_init_node()
+* remove unused next_pfn(), thanks Qian
+* drop stale comment in memmap_init_zone(), as per David
 
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: Will Deacon <will@kernel.org>
----
- fs/namespace.c | 17 ++++++++++++++---
- 1 file changed, 14 insertions(+), 3 deletions(-)
+--
+Sincerely yours,
+Mike.
 
-diff --git a/fs/namespace.c b/fs/namespace.c
-index a28e4db075ed..51eecbd8ea89 100644
---- a/fs/namespace.c
-+++ b/fs/namespace.c
-@@ -3016,7 +3016,7 @@ static void shrink_submounts(struct mount *mnt)
- void *copy_mount_options(const void __user * data)
- {
- 	char *copy;
--	unsigned size;
-+	unsigned size, left;
- 
- 	if (!data)
- 		return NULL;
-@@ -3027,11 +3027,22 @@ void *copy_mount_options(const void __user * data)
- 
- 	size = PAGE_SIZE - offset_in_page(data);
- 
--	if (copy_from_user(copy, data, size)) {
-+	/*
-+	 * Attempt to copy to the end of the first user page. On success,
-+	 * left == 0, copy the rest from the second user page (if it is
-+	 * accessible).
-+	 *
-+	 * On architectures with intra-page faults (arm64 with MTE), the read
-+	 * from the first page may fail after copying part of the user data
-+	 * (left > 0 && left < size). Do not attempt the second copy in this
-+	 * case as the end of the valid user buffer has already been reached.
-+	 */
-+	left = copy_from_user(copy, data, size);
-+	if (left == size) {
- 		kfree(copy);
- 		return ERR_PTR(-EFAULT);
- 	}
--	if (size != PAGE_SIZE) {
-+	if (left == 0 && size != PAGE_SIZE) {
- 		if (copy_from_user(copy + size, data + size, PAGE_SIZE - size))
- 			memset(copy + size, 0, PAGE_SIZE - size);
- 	}
+[1] https://lore.kernel.org/lkml/1585420282-25630-1-git-send-email-Hoan@os.amperecomputing.com
+
+Baoquan He (1):
+  mm: memmap_init: iterate over memblock regions rather that check each PFN
+
+Mike Rapoport (19):
+  mm: memblock: replace dereferences of memblock_region.nid with API calls
+  mm: make early_pfn_to_nid() and related defintions close to each other
+  mm: remove CONFIG_HAVE_MEMBLOCK_NODE_MAP option
+  mm: free_area_init: use maximal zone PFNs rather than zone sizes
+  mm: use free_area_init() instead of free_area_init_nodes()
+  alpha: simplify detection of memory zone boundaries
+  arm: simplify detection of memory zone boundaries
+  arm64: simplify detection of memory zone boundaries for UMA configs
+  csky: simplify detection of memory zone boundaries
+  m68k: mm: simplify detection of memory zone boundaries
+  parisc: simplify detection of memory zone boundaries
+  sparc32: simplify detection of memory zone boundaries
+  unicore32: simplify detection of memory zone boundaries
+  xtensa: simplify detection of memory zone boundaries
+  mm: remove early_pfn_in_nid() and CONFIG_NODES_SPAN_OTHER_NODES
+  mm: free_area_init: allow defining max_zone_pfn in descending order
+  mm: clean up free_area_init_node() and its helpers
+  mm: simplify find_min_pfn_with_active_regions()
+  docs/vm: update memory-models documentation
+
+ .../vm/numa-memblock/arch-support.txt         |  34 ---
+ Documentation/vm/memory-model.rst             |   9 +-
+ arch/alpha/mm/init.c                          |  16 +-
+ arch/alpha/mm/numa.c                          |  22 +-
+ arch/arc/mm/init.c                            |  36 +--
+ arch/arm/mm/init.c                            |  66 +----
+ arch/arm64/Kconfig                            |   1 -
+ arch/arm64/mm/init.c                          |  56 +---
+ arch/arm64/mm/numa.c                          |   9 +-
+ arch/c6x/mm/init.c                            |   8 +-
+ arch/csky/kernel/setup.c                      |  26 +-
+ arch/h8300/mm/init.c                          |   6 +-
+ arch/hexagon/mm/init.c                        |   6 +-
+ arch/ia64/Kconfig                             |   1 -
+ arch/ia64/mm/contig.c                         |   2 +-
+ arch/ia64/mm/discontig.c                      |   2 +-
+ arch/m68k/mm/init.c                           |   6 +-
+ arch/m68k/mm/mcfmmu.c                         |   9 +-
+ arch/m68k/mm/motorola.c                       |  15 +-
+ arch/m68k/mm/sun3mmu.c                        |  10 +-
+ arch/microblaze/Kconfig                       |   1 -
+ arch/microblaze/mm/init.c                     |   2 +-
+ arch/mips/Kconfig                             |   1 -
+ arch/mips/loongson64/numa.c                   |   2 +-
+ arch/mips/mm/init.c                           |   2 +-
+ arch/mips/sgi-ip27/ip27-memory.c              |   2 +-
+ arch/nds32/mm/init.c                          |  11 +-
+ arch/nios2/mm/init.c                          |   8 +-
+ arch/openrisc/mm/init.c                       |   9 +-
+ arch/parisc/mm/init.c                         |  22 +-
+ arch/powerpc/Kconfig                          |  10 -
+ arch/powerpc/mm/mem.c                         |   2 +-
+ arch/riscv/Kconfig                            |   1 -
+ arch/riscv/mm/init.c                          |   2 +-
+ arch/s390/Kconfig                             |   1 -
+ arch/s390/mm/init.c                           |   2 +-
+ arch/sh/Kconfig                               |   1 -
+ arch/sh/mm/init.c                             |   2 +-
+ arch/sparc/Kconfig                            |  10 -
+ arch/sparc/mm/init_64.c                       |   2 +-
+ arch/sparc/mm/srmmu.c                         |  21 +-
+ arch/um/kernel/mem.c                          |  12 +-
+ arch/unicore32/include/asm/memory.h           |   2 +-
+ arch/unicore32/include/mach/memory.h          |   6 +-
+ arch/unicore32/kernel/pci.c                   |  14 +-
+ arch/unicore32/mm/init.c                      |  43 +--
+ arch/x86/Kconfig                              |  10 -
+ arch/x86/mm/init.c                            |   2 +-
+ arch/x86/mm/numa.c                            |   8 +-
+ arch/xtensa/mm/init.c                         |   8 +-
+ include/linux/memblock.h                      |   8 +-
+ include/linux/mm.h                            |  28 +-
+ include/linux/mmzone.h                        |  11 +-
+ mm/Kconfig                                    |   3 -
+ mm/memblock.c                                 |  19 +-
+ mm/memory_hotplug.c                           |   4 -
+ mm/page_alloc.c                               | 278 ++++++------------
+ 57 files changed, 243 insertions(+), 667 deletions(-)
+ delete mode 100644 Documentation/features/vm/numa-memblock/arch-support.txt
+
+-- 
+2.26.1
