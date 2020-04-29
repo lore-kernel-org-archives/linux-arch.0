@@ -1,359 +1,401 @@
 Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 29 Apr 2020 17:46:07 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v3 19/23] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
- support
-Message-ID: <20200429164607.GE30377@arm.com>
-References: <20200421142603.3894-1-catalin.marinas@arm.com>
- <20200421142603.3894-20-catalin.marinas@arm.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v10 08/26] x86/mm: Introduce _PAGE_COW
+Date: Wed, 29 Apr 2020 15:07:14 -0700
+Message-ID: <20200429220732.31602-9-yu-cheng.yu@intel.com>
+In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200421142603.3894-20-catalin.marinas@arm.com>
+Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Luis Machado <luis.machado@linaro.org>, Omair Javaid <omair.javaid@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, Alan Hayward <Alan.Hayward@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429164607.KlqAEbor3kE3vWZZBqp482cfyDvCje4fPd28kTKzWjM@z>
+Message-ID: <20200429220714.ohYbiO6hGAzJpLLr7RF4EL7AlT2l3GYRWpZ66jIiC3o@z>
 
-On Tue, Apr 21, 2020 at 03:25:59PM +0100, Catalin Marinas wrote:
-> Add support for bulk setting/getting of the MTE tags in a tracee's
-> address space at 'addr' in the ptrace() syscall prototype. 'data' points
-> to a struct iovec in the tracer's address space with iov_base
-> representing the address of a tracer's buffer of length iov_len. The
-> tags to be copied to/from the tracer's buffer are stored as one tag per
-> byte.
-> 
-> On successfully copying at least one tag, ptrace() returns 0 and updates
-> the tracer's iov_len with the number of tags copied. In case of error,
-> either -EIO or -EFAULT is returned, trying to follow the ptrace() man
-> page.
-> 
-> Note that the tag copying functions are not performance critical,
-> therefore they lack optimisations found in typical memory copy routines.
+There is essentially no room left in the x86 hardware PTEs on some OSes
+(not Linux).  That left the hardware architects looking for a way to
+represent a new memory type (shadow stack) within the existing bits.
+They chose to repurpose a lightly-used state: Write=3D0,Dirty=3D1.
 
-Doesn't quite belong here, but:
+The reason it's lightly used is that Dirty=3D1 is normally set by hardwar=
+e
+and cannot normally be set by hardware on a Write=3D0 PTE.  Software must
+normally be involved to create one of these PTEs, so software can simply
+opt to not create them.
 
-Can we dump the tags and possible the faulting mode etc. when dumping
-core?
+But that leaves us with a Linux problem: we need to ensure we never creat=
+e
+Write=3D0,Dirty=3D1 PTEs.  In places where we do create them, we need to =
+find
+an alternative way to represent them _without_ using the same hardware bi=
+t
+combination.  Thus, enter _PAGE_COW.  This results in the following:
 
-That information seems potentially valuable for debugging.
-Tweaking the fault mode from a debugger may also be useful (which is
-quite easy to achieve if coredump support is done by wrapping the MTE
-control word in a regset).
+(a) A modified, copy-on-write (COW) page: (R/O + _PAGE_COW)
+(b) A R/O page that has been COW'ed: (R/O + _PAGE_COW)
+    The user page is in a R/O VMA, and get_user_pages() needs a writable
+    copy.  The page fault handler creates a copy of the page and sets
+    the new copy's PTE as R/O and _PAGE_COW.
+(c) A shadow stack PTE: (R/O + _PAGE_DIRTY_HW)
+(d) A shared shadow stack PTE: (R/O + _PAGE_COW)
+    When a shadow stack page is being shared among processes (this happen=
+s
+    at fork()), its PTE is cleared of _PAGE_DIRTY_HW, so the next shadow
+    stack access causes a fault, and the page is duplicated and
+    _PAGE_DIRTY_HW is set again.  This is the COW equivalent for shadow
+    stack pages, even though it's copy-on-access rather than copy-on-writ=
+e.
+(e) A page where the processor observed a Write=3D1 PTE, started a write,=
+ set
+    Dirty=3D1, but then observed a Write=3D0 PTE.  That's possible today,=
+ but
+    will not happen on processors that support shadow stack.
 
-These could probably be added later, though.
+Use _PAGE_COW in pte_wrprotect() and _PAGE_DIRTY_HW in pte_mkwrite().
+Apply the same changes to pmd and pud.
 
+When this patch is applied, there are six free bits left in the 64-bit PT=
+E.
+There are no more free bits in the 32-bit PTE (except for PAE) and shadow
+stack is not implemented for the 32-bit kernel.
 
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: Alan Hayward <Alan.Hayward@arm.com>
-> Cc: Luis Machado <luis.machado@linaro.org>
-> Cc: Omair Javaid <omair.javaid@linaro.org>
-> ---
-> 
-> Notes:
->     New in v3.
-> 
->  arch/arm64/include/asm/mte.h         |  17 ++++
->  arch/arm64/include/uapi/asm/ptrace.h |   3 +
->  arch/arm64/kernel/mte.c              | 127 +++++++++++++++++++++++++++
->  arch/arm64/kernel/ptrace.c           |  15 +++-
->  arch/arm64/lib/mte.S                 |  50 +++++++++++
->  5 files changed, 211 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/arm64/include/asm/mte.h b/arch/arm64/include/asm/mte.h
-> index 22eb3e06f311..0ca2aaff07a1 100644
-> --- a/arch/arm64/include/asm/mte.h
-> +++ b/arch/arm64/include/asm/mte.h
-> @@ -2,12 +2,21 @@
->  #ifndef __ASM_MTE_H
->  #define __ASM_MTE_H
->  
-> +#define MTE_ALLOC_SIZE	UL(16)
-> +#define MTE_ALLOC_MASK	(~(MTE_ALLOC_SIZE - 1))
-> +#define MTE_TAG_SHIFT	(56)
-> +#define MTE_TAG_SIZE	(4)
-> +
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+---
+v10:
+- Change _PAGE_BIT_DIRTY_SW to _PAGE_BIT_COW, as it is used for copy-on-
+  write PTEs.
+- Update pte_write() and treat shadow stack as writable.
+- Change *_mkdirty_shstk() to *_mkwrite_shstk() as these make shadow stac=
+k
+  pages writable.
+- Use bit test & shift to move _PAGE_BIT_DIRTY_HW to _PAGE_BIT_COW.
+- Change static_cpu_has() to cpu_feature_enabled().
+- Revise commit log.
 
-Nit: pointless () on the last two #defines.
+v9:
+- Remove pte_move_flags() etc. and put the logic directly in
+  pte_wrprotect()/pte_mkwrite() etc.
+- Change compile-time conditionals to run-time checks.
+- Split out pte_modify()/pmd_modify() to a new patch.
+- Update comments.
 
-[...]
+ arch/x86/include/asm/pgtable.h       | 120 ++++++++++++++++++++++++---
+ arch/x86/include/asm/pgtable_types.h |  41 ++++++++-
+ 2 files changed, 150 insertions(+), 11 deletions(-)
 
-> diff --git a/arch/arm64/kernel/mte.c b/arch/arm64/kernel/mte.c
-> index fa4a4196b248..0cb496ed9bf9 100644
-> --- a/arch/arm64/kernel/mte.c
-> +++ b/arch/arm64/kernel/mte.c
-> @@ -3,12 +3,17 @@
->   * Copyright (C) 2020 ARM Ltd.
->   */
->  
-> +#include <linux/kernel.h>
-> +#include <linux/mm.h>
->  #include <linux/prctl.h>
->  #include <linux/sched.h>
-> +#include <linux/sched/mm.h>
->  #include <linux/thread_info.h>
-> +#include <linux/uio.h>
->  
->  #include <asm/cpufeature.h>
->  #include <asm/mte.h>
-> +#include <asm/ptrace.h>
->  #include <asm/sysreg.h>
->  
->  static void update_sctlr_el1_tcf0(u64 tcf0)
-> @@ -133,3 +138,125 @@ long get_mte_ctrl(void)
->  
->  	return ret;
->  }
-> +
-> +/*
-> + * Access MTE tags in another process' address space as given in mm. Update
-> + * the number of tags copied. Return 0 if any tags copied, error otherwise.
-> + * Inspired by __access_remote_vm().
-> + */
-> +static int __access_remote_tags(struct task_struct *tsk, struct mm_struct *mm,
-> +				unsigned long addr, struct iovec *kiov,
-> +				unsigned int gup_flags)
-> +{
-> +	struct vm_area_struct *vma;
-> +	void __user *buf = kiov->iov_base;
-> +	size_t len = kiov->iov_len;
-> +	int ret;
-> +	int write = gup_flags & FOLL_WRITE;
-> +
-> +	if (down_read_killable(&mm->mmap_sem))
-> +		return -EIO;
-> +
-> +	if (!access_ok(buf, len))
-> +		return -EFAULT;
-
-Leaked down_read()?
-
-> +
-> +	while (len) {
-> +		unsigned long tags, offset;
-> +		void *maddr;
-> +		struct page *page = NULL;
-> +
-> +		ret = get_user_pages_remote(tsk, mm, addr, 1, gup_flags,
-> +					    &page, &vma, NULL);
-> +		if (ret <= 0)
-> +			break;
-> +
-> +		/* limit access to the end of the page */
-> +		offset = offset_in_page(addr);
-> +		tags = min(len, (PAGE_SIZE - offset) / MTE_ALLOC_SIZE);
-> +
-> +		maddr = page_address(page);
-> +		if (write) {
-> +			tags = mte_copy_tags_from_user(maddr + offset, buf, tags);
-> +			set_page_dirty_lock(page);
-> +		} else {
-> +			tags = mte_copy_tags_to_user(buf, maddr + offset, tags);
-> +		}
-> +		put_page(page);
-> +
-> +		/* error accessing the tracer's buffer */
-> +		if (!tags)
-> +			break;
-> +
-> +		len -= tags;
-> +		buf += tags;
-> +		addr += tags * MTE_ALLOC_SIZE;
-> +	}
-> +	up_read(&mm->mmap_sem);
-> +
-> +	/* return an error if no tags copied */
-> +	kiov->iov_len = buf - kiov->iov_base;
-> +	if (!kiov->iov_len) {
-> +		/* check for error accessing the tracee's address space */
-> +		if (ret <= 0)
-> +			return -EIO;
-> +		else
-> +			return -EFAULT;
-> +	}
-> +
-> +	return 0;
-> +}
-> +
-> +/*
-> + * Copy MTE tags in another process' address space at 'addr' to/from tracer's
-> + * iovec buffer. Return 0 on success. Inspired by ptrace_access_vm().
-> + */
-> +static int access_remote_tags(struct task_struct *tsk, unsigned long addr,
-> +			      struct iovec *kiov, unsigned int gup_flags)
-> +{
-> +	struct mm_struct *mm;
-> +	int ret;
-> +
-> +	mm = get_task_mm(tsk);
-> +	if (!mm)
-> +		return -EPERM;
-> +
-> +	if (!tsk->ptrace || (current != tsk->parent) ||
-> +	    ((get_dumpable(mm) != SUID_DUMP_USER) &&
-> +	     !ptracer_capable(tsk, mm->user_ns))) {
-> +		mmput(mm);
-> +		return -EPERM;
-> +	}
-> +
-> +	ret = __access_remote_tags(tsk, mm, addr, kiov, gup_flags);
-> +	mmput(mm);
-> +
-> +	return ret;
-> +}
-> +
-> +int mte_ptrace_copy_tags(struct task_struct *child, long request,
-> +			 unsigned long addr, unsigned long data)
-> +{
-> +	int ret;
-> +	struct iovec kiov;
-> +	struct iovec __user *uiov = (void __user *)data;
-> +	unsigned int gup_flags = FOLL_FORCE;
-> +
-> +	if (!system_supports_mte())
-> +		return -EIO;
-> +
-> +	if (get_user(kiov.iov_base, &uiov->iov_base) ||
-> +	    get_user(kiov.iov_len, &uiov->iov_len))
-> +		return -EFAULT;
-> +
-> +	if (request == PTRACE_POKEMTETAGS)
-> +		gup_flags |= FOLL_WRITE;
-> +
-> +	/* align addr to the MTE tag granule */
-> +	addr &= MTE_ALLOC_MASK;
-> +
-> +	ret = access_remote_tags(child, addr, &kiov, gup_flags);
-> +	if (!ret)
-> +		ret = __put_user(kiov.iov_len, &uiov->iov_len);
-
-Should this be put_user()?  We didn't use __get_user() above, and I
-don't see what guards the access.
-
-> +
-> +	return ret;
-> +}
-> diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-> index 077e352495eb..1fdb841ad536 100644
-> --- a/arch/arm64/kernel/ptrace.c
-> +++ b/arch/arm64/kernel/ptrace.c
-> @@ -34,6 +34,7 @@
->  #include <asm/cpufeature.h>
->  #include <asm/debug-monitors.h>
->  #include <asm/fpsimd.h>
-> +#include <asm/mte.h>
->  #include <asm/pgtable.h>
->  #include <asm/pointer_auth.h>
->  #include <asm/stacktrace.h>
-> @@ -1797,7 +1798,19 @@ const struct user_regset_view *task_user_regset_view(struct task_struct *task)
->  long arch_ptrace(struct task_struct *child, long request,
->  		 unsigned long addr, unsigned long data)
->  {
-> -	return ptrace_request(child, request, addr, data);
-> +	int ret;
-> +
-> +	switch (request) {
-> +	case PTRACE_PEEKMTETAGS:
-> +	case PTRACE_POKEMTETAGS:
-> +		ret = mte_ptrace_copy_tags(child, request, addr, data);
-> +		break;
-
-Nit: return mte_trace_copy_tags()?
-
-This is a new function, so we don't need to follow the verbose style of
-the core code.  Not everyone likes returning out of switches though.
-
-> +	default:
-> +		ret = ptrace_request(child, request, addr, data);
-> +		break;
-> +	}
-> +
-> +	return ret;
->  }
->  
->  enum ptrace_syscall_dir {
-> diff --git a/arch/arm64/lib/mte.S b/arch/arm64/lib/mte.S
-> index bd51ea7e2fcb..45be04a8c73c 100644
-> --- a/arch/arm64/lib/mte.S
-> +++ b/arch/arm64/lib/mte.S
-> @@ -5,6 +5,7 @@
->  #include <linux/linkage.h>
->  
->  #include <asm/assembler.h>
-> +#include <asm/mte.h>
->  
->  /*
->   * Compare tags of two pages
-> @@ -44,3 +45,52 @@ SYM_FUNC_START(mte_memcmp_pages)
->  
->  	ret
->  SYM_FUNC_END(mte_memcmp_pages)
-> +
-> +/*
-> + * Read tags from a user buffer (one tag per byte) and set the corresponding
-> + * tags at the given kernel address. Used by PTRACE_POKEMTETAGS.
-> + *   x0 - kernel address (to)
-> + *   x1 - user buffer (from)
-> + *   x2 - number of tags/bytes (n)
-
-Is it worth checking for x2 == 0?  Currently, x2 will underflow and
-we'll try to loop 2^64 times (until a fault stops us).
-
-I don't think callers currently pass 0 here, but it feels like an
-accident waiting to happen.  Things like memcpy() usually try to close
-this loophole.
-
-Similarly for _to_user().
-
-Cheers
----Dave
-
-> + * Returns:
-> + *   x0 - number of tags read/set
-> + */
-> +SYM_FUNC_START(mte_copy_tags_from_user)
-> +	mov	x3, x1
-> +1:
-> +USER(2f, ldtrb	w4, [x1])
-> +	lsl	x4, x4, #MTE_TAG_SHIFT
-> +	stg	x4, [x0], #MTE_ALLOC_SIZE
-> +	add	x1, x1, #1
-> +	subs	x2, x2, #1
-> +	b.ne	1b
-> +
-> +	// exception handling and function return
-> +2:	sub	x0, x1, x3		// update the number of tags set
-> +	ret
-> +SYM_FUNC_END(mte_copy_tags_from_user)
-> +
-> +/*
-> + * Get the tags from a kernel address range and write the tag values to the
-> + * given user buffer (one tag per byte). Used by PTRACE_PEEKMTETAGS.
-> + *   x0 - user buffer (to)
-> + *   x1 - kernel address (from)
-> + *   x2 - number of tags/bytes (n)
-> + * Returns:
-> + *   x0 - number of tags read/set
-> + */
-> +SYM_FUNC_START(mte_copy_tags_to_user)
-> +	mov	x3, x0
-> +1:
-> +	ldg	x4, [x1]
-> +	ubfx	x4, x4, #MTE_TAG_SHIFT, #MTE_TAG_SIZE
-> +USER(2f, sttrb	w4, [x0])
-> +	add	x0, x0, #1
-> +	add	x1, x1, #MTE_ALLOC_SIZE
-> +	subs	x2, x2, #1
-> +	b.ne	1b
-> +
-> +	// exception handling and function return
-> +2:	sub	x0, x0, x3		// update the number of tags copied
-> +	ret
-> +SYM_FUNC_END(mte_copy_tags_from_user)
-> 
-> _______________________________________________
-> linux-arm-kernel mailing list
-> linux-arm-kernel@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtabl=
+e.h
+index 90f9a73881ad..5f89035d1e60 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -122,9 +122,9 @@ extern pmdval_t early_pmd_flags;
+  * The following only work if pte_present() is true.
+  * Undefined behaviour if not..
+  */
+-static inline int pte_dirty(pte_t pte)
++static inline bool pte_dirty(pte_t pte)
+ {
+-	return pte_flags(pte) & _PAGE_DIRTY_HW;
++	return pte_flags(pte) & _PAGE_DIRTY_BITS;
+ }
+=20
+=20
+@@ -161,9 +161,9 @@ static inline int pte_young(pte_t pte)
+ 	return pte_flags(pte) & _PAGE_ACCESSED;
+ }
+=20
+-static inline int pmd_dirty(pmd_t pmd)
++static inline bool pmd_dirty(pmd_t pmd)
+ {
+-	return pmd_flags(pmd) & _PAGE_DIRTY_HW;
++	return pmd_flags(pmd) & _PAGE_DIRTY_BITS;
+ }
+=20
+ static inline int pmd_young(pmd_t pmd)
+@@ -171,9 +171,9 @@ static inline int pmd_young(pmd_t pmd)
+ 	return pmd_flags(pmd) & _PAGE_ACCESSED;
+ }
+=20
+-static inline int pud_dirty(pud_t pud)
++static inline bool pud_dirty(pud_t pud)
+ {
+-	return pud_flags(pud) & _PAGE_DIRTY_HW;
++	return pud_flags(pud) & _PAGE_DIRTY_BITS;
+ }
+=20
+ static inline int pud_young(pud_t pud)
+@@ -183,6 +183,12 @@ static inline int pud_young(pud_t pud)
+=20
+ static inline int pte_write(pte_t pte)
+ {
++	/*
++	 * If _PAGE_DIRTY_HW is set, the PTE must either have
++	 * _PAGE_RW or be a shadow stack PTE, which is logically writable.
++	 */
++	if (cpu_feature_enabled(X86_FEATURE_SHSTK))
++		return pte_flags(pte) & (_PAGE_RW | _PAGE_DIRTY_HW);
+ 	return pte_flags(pte) & _PAGE_RW;
+ }
+=20
+@@ -333,7 +339,7 @@ static inline pte_t pte_clear_uffd_wp(pte_t pte)
+=20
+ static inline pte_t pte_mkclean(pte_t pte)
+ {
+-	return pte_clear_flags(pte, _PAGE_DIRTY_HW);
++	return pte_clear_flags(pte, _PAGE_DIRTY_BITS);
+ }
+=20
+ static inline pte_t pte_mkold(pte_t pte)
+@@ -343,6 +349,17 @@ static inline pte_t pte_mkold(pte_t pte)
+=20
+ static inline pte_t pte_wrprotect(pte_t pte)
+ {
++	/*
++	 * Blindly clearing _PAGE_RW might accidentally create
++	 * a shadow stack PTE (RW=3D0,Dirty=3D1).  Move the hardware
++	 * dirty value to the software bit.
++	 */
++	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
++		pte.pte |=3D (pte.pte & _PAGE_DIRTY_HW) >>
++			   _PAGE_BIT_DIRTY_HW << _PAGE_BIT_COW;
++		pte =3D pte_clear_flags(pte, _PAGE_DIRTY_HW);
++	}
++
+ 	return pte_clear_flags(pte, _PAGE_RW);
+ }
+=20
+@@ -353,6 +370,18 @@ static inline pte_t pte_mkexec(pte_t pte)
+=20
+ static inline pte_t pte_mkdirty(pte_t pte)
+ {
++	pteval_t dirty =3D _PAGE_DIRTY_HW;
++
++	/* Avoid creating (HW)Dirty=3D1,Write=3D0 PTEs */
++	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && !pte_write(pte))
++		dirty =3D _PAGE_COW;
++
++	return pte_set_flags(pte, dirty | _PAGE_SOFT_DIRTY);
++}
++
++static inline pte_t pte_mkwrite_shstk(pte_t pte)
++{
++	pte =3D pte_clear_flags(pte, _PAGE_COW);
+ 	return pte_set_flags(pte, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
+ }
+=20
+@@ -363,6 +392,13 @@ static inline pte_t pte_mkyoung(pte_t pte)
+=20
+ static inline pte_t pte_mkwrite(pte_t pte)
+ {
++	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
++		if (pte_flags(pte) & _PAGE_COW) {
++			pte =3D pte_clear_flags(pte, _PAGE_COW);
++			pte =3D pte_set_flags(pte, _PAGE_DIRTY_HW);
++		}
++	}
++
+ 	return pte_set_flags(pte, _PAGE_RW);
+ }
+=20
+@@ -434,16 +470,41 @@ static inline pmd_t pmd_mkold(pmd_t pmd)
+=20
+ static inline pmd_t pmd_mkclean(pmd_t pmd)
+ {
+-	return pmd_clear_flags(pmd, _PAGE_DIRTY_HW);
++	return pmd_clear_flags(pmd, _PAGE_DIRTY_BITS);
+ }
+=20
+ static inline pmd_t pmd_wrprotect(pmd_t pmd)
+ {
++	/*
++	 * Blindly clearing _PAGE_RW might accidentally create
++	 * a shadow stack PMD (RW=3D0,Dirty=3D1).  Move the hardware
++	 * dirty value to the software bit.
++	 */
++	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
++		pmdval_t v =3D native_pmd_val(pmd);
++
++		v |=3D (v & _PAGE_DIRTY_HW) >> _PAGE_BIT_DIRTY_HW <<
++		     _PAGE_BIT_COW;
++		pmd =3D pmd_clear_flags(__pmd(v), _PAGE_DIRTY_HW);
++	}
++
+ 	return pmd_clear_flags(pmd, _PAGE_RW);
+ }
+=20
+ static inline pmd_t pmd_mkdirty(pmd_t pmd)
+ {
++	pmdval_t dirty =3D _PAGE_DIRTY_HW;
++
++	/* Avoid creating (HW)Dirty=3D1,Write=3D0 PMDs */
++	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && !(pmd_flags(pmd) & _PAGE_=
+RW))
++		dirty =3D _PAGE_COW;
++
++	return pmd_set_flags(pmd, dirty | _PAGE_SOFT_DIRTY);
++}
++
++static inline pmd_t pmd_mkwrite_shstk(pmd_t pmd)
++{
++	pmd =3D pmd_clear_flags(pmd, _PAGE_COW);
+ 	return pmd_set_flags(pmd, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
+ }
+=20
+@@ -464,6 +525,13 @@ static inline pmd_t pmd_mkyoung(pmd_t pmd)
+=20
+ static inline pmd_t pmd_mkwrite(pmd_t pmd)
+ {
++	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
++		if (pmd_flags(pmd) & _PAGE_COW) {
++			pmd =3D pmd_clear_flags(pmd, _PAGE_COW);
++			pmd =3D pmd_set_flags(pmd, _PAGE_DIRTY_HW);
++		}
++	}
++
+ 	return pmd_set_flags(pmd, _PAGE_RW);
+ }
+=20
+@@ -488,17 +556,36 @@ static inline pud_t pud_mkold(pud_t pud)
+=20
+ static inline pud_t pud_mkclean(pud_t pud)
+ {
+-	return pud_clear_flags(pud, _PAGE_DIRTY_HW);
++	return pud_clear_flags(pud, _PAGE_DIRTY_BITS);
+ }
+=20
+ static inline pud_t pud_wrprotect(pud_t pud)
+ {
++	/*
++	 * Blindly clearing _PAGE_RW might accidentally create
++	 * a shadow stack PUD (RW=3D0,Dirty=3D1).  Move the hardware
++	 * dirty value to the software bit.
++	 */
++	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
++		pudval_t v =3D native_pud_val(pud);
++
++		v |=3D (v & _PAGE_DIRTY_HW) >> _PAGE_BIT_DIRTY_HW <<
++		     _PAGE_BIT_COW;
++		pud =3D pud_clear_flags(__pud(v), _PAGE_DIRTY_HW);
++	}
++
+ 	return pud_clear_flags(pud, _PAGE_RW);
+ }
+=20
+ static inline pud_t pud_mkdirty(pud_t pud)
+ {
+-	return pud_set_flags(pud, _PAGE_DIRTY_HW | _PAGE_SOFT_DIRTY);
++	pudval_t dirty =3D _PAGE_DIRTY_HW;
++
++	/* Avoid creating (HW)Dirty=3D1,Write=3D0 PUDs */
++	if (cpu_feature_enabled(X86_FEATURE_SHSTK) && !(pud_flags(pud) & _PAGE_=
+RW))
++		dirty =3D _PAGE_COW;
++
++	return pud_set_flags(pud, dirty | _PAGE_SOFT_DIRTY);
+ }
+=20
+ static inline pud_t pud_mkdevmap(pud_t pud)
+@@ -518,6 +605,13 @@ static inline pud_t pud_mkyoung(pud_t pud)
+=20
+ static inline pud_t pud_mkwrite(pud_t pud)
+ {
++	if (cpu_feature_enabled(X86_FEATURE_SHSTK)) {
++		if (pud_flags(pud) & _PAGE_COW) {
++			pud =3D pud_clear_flags(pud, _PAGE_COW);
++			pud =3D pud_set_flags(pud, _PAGE_DIRTY_HW);
++		}
++	}
++
+ 	return pud_set_flags(pud, _PAGE_RW);
+ }
+=20
+@@ -1218,6 +1312,12 @@ extern int pmdp_clear_flush_young(struct vm_area_s=
+truct *vma,
+ #define pmd_write pmd_write
+ static inline int pmd_write(pmd_t pmd)
+ {
++	/*
++	 * If _PAGE_DIRTY_HW is set, then the PMD must either have
++	 * _PAGE_RW or be a shadow stack PMD, which is logically writable.
++	 */
++	if (cpu_feature_enabled(X86_FEATURE_SHSTK))
++		return pmd_flags(pmd) & (_PAGE_RW | _PAGE_DIRTY_HW);
+ 	return pmd_flags(pmd) & _PAGE_RW;
+ }
+=20
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/=
+pgtable_types.h
+index 522b80b952f4..74229db078ce 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -23,7 +23,8 @@
+ #define _PAGE_BIT_SOFTW2	10	/* " */
+ #define _PAGE_BIT_SOFTW3	11	/* " */
+ #define _PAGE_BIT_PAT_LARGE	12	/* On 2MB or 1GB pages */
+-#define _PAGE_BIT_SOFTW4	58	/* available for programmer */
++#define _PAGE_BIT_SOFTW4	57	/* available for programmer */
++#define _PAGE_BIT_SOFTW5	58	/* available for programmer */
+ #define _PAGE_BIT_PKEY_BIT0	59	/* Protection Keys, bit 1/4 */
+ #define _PAGE_BIT_PKEY_BIT1	60	/* Protection Keys, bit 2/4 */
+ #define _PAGE_BIT_PKEY_BIT2	61	/* Protection Keys, bit 3/4 */
+@@ -36,6 +37,16 @@
+ #define _PAGE_BIT_SOFT_DIRTY	_PAGE_BIT_SOFTW3 /* software dirty tracking=
+ */
+ #define _PAGE_BIT_DEVMAP	_PAGE_BIT_SOFTW4
+=20
++/*
++ * This bit indicates a copy-on-write page, and is different from
++ * _PAGE_BIT_SOFT_DIRTY, which tracks which pages a task writes to.
++ */
++#ifdef CONFIG_X86_64
++#define _PAGE_BIT_COW		_PAGE_BIT_SOFTW5 /* copy-on-write */
++#else
++#define _PAGE_BIT_COW		0
++#endif
++
+ /* If _PAGE_BIT_PRESENT is clear, we use these: */
+ /* - if the user mapped it with PROT_NONE; pte_present gives true */
+ #define _PAGE_BIT_PROTNONE	_PAGE_BIT_GLOBAL
+@@ -117,6 +128,34 @@
+ #define _PAGE_DEVMAP	(_AT(pteval_t, 0))
+ #endif
+=20
++/*
++ * _PAGE_COW is used to separate R/O and copy-on-write PTEs created by
++ * software from the shadow stack PTE setting required by the hardware:
++ * (a) A modified, copy-on-write (COW) page: (R/O + _PAGE_COW)
++ * (b) A R/O page that has been COW'ed: (R/O +_PAGE_COW)
++ *     The user page is in a R/O VMA, and get_user_pages() needs a
++ *     writable copy.  The page fault handler creates a copy of the page
++ *     and sets the new copy's PTE as R/O and _PAGE_COW.
++ * (c) A shadow stack PTE: (R/O + _PAGE_DIRTY_HW)
++ * (d) A shared (copy-on-access) shadow stack PTE: (R/O + _PAGE_COW)
++ *     When a shadow stack page is being shared among processes (this
++ *     happens at fork()), its PTE is cleared of _PAGE_DIRTY_HW, so the
++ *     next shadow stack access causes a fault, and the page is duplicat=
+ed
++ *     and _PAGE_DIRTY_HW is set again.  This is the COW equivalent for
++ *     shadow stack pages, even though it's copy-on-access rather than
++ *     copy-on-write.
++ * (e) A page where the processor observed a Write=3D1 PTE, started a wr=
+ite,
++ *     set Dirty=3D1, but then observed a Write=3D0 PTE.  That's possibl=
+e
++ *     today, but will not happen on processors that support shadow stac=
+k.
++ */
++#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
++#define _PAGE_COW	(_AT(pteval_t, 1) << _PAGE_BIT_COW)
++#else
++#define _PAGE_COW	(_AT(pteval_t, 0))
++#endif
++
++#define _PAGE_DIRTY_BITS (_PAGE_DIRTY_HW | _PAGE_COW)
++
+ #define _PAGE_PROTNONE	(_AT(pteval_t, 1) << _PAGE_BIT_PROTNONE)
+=20
+ /*
+--=20
+2.21.0
