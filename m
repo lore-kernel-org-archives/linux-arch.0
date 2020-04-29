@@ -1,53 +1,80 @@
-From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 20/20] docs/vm: update memory-models documentation
-Date: Wed, 29 Apr 2020 15:11:26 +0300
-Message-ID: <20200429121126.17989-21-rppt@kernel.org>
-References: <20200429121126.17989-1-rppt@kernel.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 20/23] fs: Allow copy_mount_options() to access
+ user-space in a single pass
+Date: Wed, 29 Apr 2020 14:52:25 +0100
+Message-ID: <20200429135224.GB10651@gaia>
+References: <20200421142603.3894-1-catalin.marinas@arm.com>
+ <20200421142603.3894-21-catalin.marinas@arm.com>
+ <20200429102650.GC30377@arm.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <20200429121126.17989-1-rppt@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: linux-kernel@vger.kernel.org
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@in>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:39594 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726885AbgD2Nwa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Apr 2020 09:52:30 -0400
+Content-Disposition: inline
+In-Reply-To: <20200429102650.GC30377@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, Alexander Viro <viro@zeniv.linux.org.uk>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>
 
-From: Mike Rapoport <rppt@linux.ibm.com>
+On Wed, Apr 29, 2020 at 11:26:51AM +0100, Dave P Martin wrote:
+> On Tue, Apr 21, 2020 at 03:26:00PM +0100, Catalin Marinas wrote:
+> > diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
+> > index 32fc8061aa76..566da441eba2 100644
+> > --- a/arch/arm64/include/asm/uaccess.h
+> > +++ b/arch/arm64/include/asm/uaccess.h
+> > @@ -416,6 +416,17 @@ extern unsigned long __must_check __arch_copy_in_user(void __user *to, const voi
+> >  #define INLINE_COPY_TO_USER
+> >  #define INLINE_COPY_FROM_USER
+> >  
+> > +static inline bool arch_has_exact_copy_from_user(unsigned long n)
+> > +{
+> > +	/*
+> > +	 * copy_from_user() aligns the source pointer if the size is greater
+> > +	 * than 15. Since all the loads are naturally aligned, they can only
+> > +	 * fail on the first byte.
+> > +	 */
+> > +	return n > 15;
+> > +}
+> > +#define arch_has_exact_copy_from_user
+> 
+> Did you mean:
+> 
+> #define arch_has_exact_copy_from_user arch_has_exact_copy_from_user
 
-to reflect the updates to free_area_init() family of functions.
+Yes (and I shouldn't write patches late in the day).
 
-Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
----
- Documentation/vm/memory-model.rst | 9 ++++-----
- 1 file changed, 4 insertions(+), 5 deletions(-)
+> Mind you, if this expands to 1 I'd have expected copy_mount_options()
+> not to compile, so I may be missing something.
 
-diff --git a/Documentation/vm/memory-model.rst b/Documentation/vm/memory-model.rst
-index 58a12376b7df..91228044ed16 100644
---- a/Documentation/vm/memory-model.rst
-+++ b/Documentation/vm/memory-model.rst
-@@ -46,11 +46,10 @@ maps the entire physical memory. For most architectures, the holes
- have entries in the `mem_map` array. The `struct page` objects
- corresponding to the holes are never fully initialized.
- 
--To allocate the `mem_map` array, architecture specific setup code
--should call :c:func:`free_area_init_node` function or its convenience
--wrapper :c:func:`free_area_init`. Yet, the mappings array is not
--usable until the call to :c:func:`memblock_free_all` that hands all
--the memory to the page allocator.
-+To allocate the `mem_map` array, architecture specific setup code should
-+call :c:func:`free_area_init` function. Yet, the mappings array is not
-+usable until the call to :c:func:`memblock_free_all` that hands all the
-+memory to the page allocator.
- 
- If an architecture enables `CONFIG_ARCH_HAS_HOLES_MEMORYMODEL` option,
- it may free parts of the `mem_map` array that do not cover the
+I think arch_has_exact_copy_from_user() (with the braces) is looked up
+in the function namespace, so the macro isn't expanded. So arguably the
+patch is correct but pretty dodgy ;).
+
+I scrapped this in my second attempt in reply to Kevin.
+
+> > diff --git a/fs/namespace.c b/fs/namespace.c
+> > index a28e4db075ed..8febc50dfc5d 100644
+> > --- a/fs/namespace.c
+> > +++ b/fs/namespace.c
+> > @@ -3025,13 +3025,16 @@ void *copy_mount_options(const void __user * data)
+> 
+> [ Is this applying a band-aid to duct tape?
+> 
+> The fs presumably knows ahead of time whether it's expecting a string or
+> a fixed-size blob for data, so I'd hope we could just DTRT rather than
+> playing SEGV roulette here.
+> 
+> This might require more refactoring than makes sense for this series
+> though. ]
+
+That's possible but it means moving the copy from sys_mount() to the
+specific places where it has additional information (the filesystems).
+I'm not even sure it's guaranteed to be strings. If it is, we could just
+replace all this with a strncpy_from_user().
+
 -- 
-2.26.1
+Catalin
