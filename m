@@ -1,91 +1,57 @@
-Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH v5 4/8] mm: tlb: Pass struct mmu_gather to
- flush_pmd_tlb_range
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-References: <20200331142927.1237-1-yezhenyu2@huawei.com>
- <20200331142927.1237-5-yezhenyu2@huawei.com>
- <20200331151331.GS20730@hirez.programming.kicks-ass.net>
- <fe12101e-8efe-22ad-0258-e6aeafc798cc@huawei.com>
- <20200401122004.GE20713@hirez.programming.kicks-ass.net>
- <53675fb9-21c7-5309-07b8-1bbc1e775f9b@huawei.com>
- <20200402163849.GM20713@hirez.programming.kicks-ass.net>
- <d512b28f-99d3-5a26-d189-2ebac7a412c7@huawei.com>
-Message-ID: <1770a141-3c97-94df-eac9-2d1f537516b1@huawei.com>
-Date: Wed, 8 Apr 2020 17:00:58 +0800
+Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2 14/20] xtensa: simplify detection of memory zone boundaries
+Date: Wed, 29 Apr 2020 15:11:20 +0300
+Message-ID: <20200429121126.17989-15-rppt@kernel.org>
+In-Reply-To: <20200429121126.17989-1-rppt@kernel.org>
+References: <20200429121126.17989-1-rppt@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <d512b28f-99d3-5a26-d189-2ebac7a412c7@huawei.com>
-Content-Type: text/plain; charset="gbk"
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, corbet@lwn.net, vgupta@synopsys.com, tony.luck@intel.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+To: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Baoquan He <bhe@redhat.com>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Qian Cai <cai@lca.pw>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200408090058.YBqPjD_ltOqtw1tQwetNqbFkkTBZmgI-Qx9pT0sKYQQ@z>
+Message-ID: <20200429121120.3oiSfQh7Snqcb6jzSz1WBHQL7adieK2nHqqAVmvJ1xg@z>
 
-Hi Peter,
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-On 2020/4/3 13:14, Zhenyu Ye wrote:
-> Hi Peter,
-> 
-> On 2020/4/3 0:38, Peter Zijlstra wrote:
->> On Thu, Apr 02, 2020 at 07:24:04PM +0800, Zhenyu Ye wrote:
->>> Thanks for your detailed explanation.  I notice that you used
->>> `tlb_end_vma` replace `flush_tlb_range`, which will call `tlb_flush`,
->>> then finally call `flush_tlb_range` in generic code.  However, some
->>> architectures define tlb_end_vma|tlb_flush|flush_tlb_range themselves,
->>> so this may cause problems.
->>>
->>> For example, in s390, it defines:
->>>
->>> #define tlb_end_vma(tlb, vma)			do { } while (0)
->>>
->>> And it doesn't define it's own flush_pmd_tlb_range().  So there will be
->>> a mistake if we changed flush_pmd_tlb_range() using tlb_end_vma().
->>>
->>> Is this really a problem or something I understand wrong ?
->>
->> If tlb_end_vma() is a no-op, then tlb_finish_mmu() will do:
->> tlb_flush_mmu() -> tlb_flush_mmu_tlbonly() -> tlb_flush()
->>
->> And s390 has tlb_flush().
->>
->> If tlb_end_vma() is not a no-op and it calls tlb_flush_mmu_tlbonly(),
->> then tlb_finish_mmu()'s invocation of tlb_flush_mmu_tlbonly() will
->> terniate early due o no flags set.
->>
->> IOW, it should all just work.
->>
->>
->> FYI the whole tlb_{start,end}_vma() thing is a only needed when the
->> architecture doesn't implement tlb_flush() and instead default to using
->> flush_tlb_range(), at which point we need to provide a 'fake' vma.
->>
->> At the time I audited all architectures and they only look at VM_EXEC
->> (to do $I invalidation) and VM_HUGETLB (for pmd level invalidations),
->> but I forgot which architectures that were.
-> 
-> Many architectures, such as alpha, arc, arm and so on.
-> I really understand why you hate making vma->vm_flags more important for
-> tlbi :).
-> 
->> But that is all legacy code; eventually we'll get all archs a native
->> tlb_flush() and this can go away.
->>
-> 
-> Thanks for your reply.  Currently, to enable the TTL feature, extending
-> the flush_*tlb_range() may be more convenient.
-> I will send a formal PATCH soon.
-> 
-> Thanks,
-> Zhenyu
-> 
+The free_area_init() function only requires the definition of maximal PFN
+for each of the supported zone rater than calculation of actual zone size=
+s
+and the sizes of the holes between the zones.
 
-I had sent [PATCH v1] a few days ago[1].  Do you have time to review
-my changes?  Are those changes appropriate?
+After removal of CONFIG_HAVE_MEMBLOCK_NODE_MAP the free_area_init() is
+available to all architectures.
 
-Waiting for your suggestion.
+Using this function instead of free_area_init_node() simplifies the zone
+detection.
 
-[1] https://lore.kernel.org/linux-arm-kernel/20200403090048.938-1-yezhenyu2@huawei.com/
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/xtensa/mm/init.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-Thanks,
-Zhenyu
+diff --git a/arch/xtensa/mm/init.c b/arch/xtensa/mm/init.c
+index 19c625e6d81f..a05b306cf371 100644
+--- a/arch/xtensa/mm/init.c
++++ b/arch/xtensa/mm/init.c
+@@ -70,13 +70,13 @@ void __init bootmem_init(void)
+ void __init zones_init(void)
+ {
+ 	/* All pages are DMA-able, so we put them all in the DMA zone. */
+-	unsigned long zones_size[MAX_NR_ZONES] =3D {
+-		[ZONE_NORMAL] =3D max_low_pfn - ARCH_PFN_OFFSET,
++	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D {
++		[ZONE_NORMAL] =3D max_low_pfn,
+ #ifdef CONFIG_HIGHMEM
+-		[ZONE_HIGHMEM] =3D max_pfn - max_low_pfn,
++		[ZONE_HIGHMEM] =3D max_pfn,
+ #endif
+ 	};
+-	free_area_init_node(0, zones_size, ARCH_PFN_OFFSET, NULL);
++	free_area_init(max_zone_pfn);
+ }
+=20
+ #ifdef CONFIG_HIGHMEM
+--=20
+2.26.1
