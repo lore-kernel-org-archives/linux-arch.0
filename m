@@ -1,7 +1,7 @@
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 19/20] mm: simplify find_min_pfn_with_active_regions()
-Date: Wed, 29 Apr 2020 15:11:25 +0300
-Message-ID: <20200429121126.17989-20-rppt@kernel.org>
+Subject: [PATCH v2 20/20] docs/vm: update memory-models documentation
+Date: Wed, 29 Apr 2020 15:11:26 +0300
+Message-ID: <20200429121126.17989-21-rppt@kernel.org>
 References: <20200429121126.17989-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -22,56 +22,32 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Mike Rapoport <rppt@linux.ibm.com>
 
-The find_min_pfn_with_active_regions() calls find_min_pfn_for_node() with
-nid parameter set to MAX_NUMNODES. This makes the find_min_pfn_for_node()
-traverse all memblock memory regions although the first PFN in the system
-can be easily found with memblock_start_of_DRAM().
-
-Use memblock_start_of_DRAM() in find_min_pfn_with_active_regions() and drop
-now unused find_min_pfn_for_node().
+to reflect the updates to free_area_init() family of functions.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- mm/page_alloc.c | 20 +-------------------
- 1 file changed, 1 insertion(+), 19 deletions(-)
+ Documentation/vm/memory-model.rst | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
 
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 30d171451d4c..b990e9734474 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -7045,24 +7045,6 @@ unsigned long __init node_map_pfn_alignment(void)
- 	return ~accl_mask + 1;
- }
+diff --git a/Documentation/vm/memory-model.rst b/Documentation/vm/memory-model.rst
+index 58a12376b7df..91228044ed16 100644
+--- a/Documentation/vm/memory-model.rst
++++ b/Documentation/vm/memory-model.rst
+@@ -46,11 +46,10 @@ maps the entire physical memory. For most architectures, the holes
+ have entries in the `mem_map` array. The `struct page` objects
+ corresponding to the holes are never fully initialized.
  
--/* Find the lowest pfn for a node */
--static unsigned long __init find_min_pfn_for_node(int nid)
--{
--	unsigned long min_pfn = ULONG_MAX;
--	unsigned long start_pfn;
--	int i;
--
--	for_each_mem_pfn_range(i, nid, &start_pfn, NULL, NULL)
--		min_pfn = min(min_pfn, start_pfn);
--
--	if (min_pfn == ULONG_MAX) {
--		pr_warn("Could not find start_pfn for node %d\n", nid);
--		return 0;
--	}
--
--	return min_pfn;
--}
--
- /**
-  * find_min_pfn_with_active_regions - Find the minimum PFN registered
-  *
-@@ -7071,7 +7053,7 @@ static unsigned long __init find_min_pfn_for_node(int nid)
-  */
- unsigned long __init find_min_pfn_with_active_regions(void)
- {
--	return find_min_pfn_for_node(MAX_NUMNODES);
-+	return PHYS_PFN(memblock_start_of_DRAM());
- }
+-To allocate the `mem_map` array, architecture specific setup code
+-should call :c:func:`free_area_init_node` function or its convenience
+-wrapper :c:func:`free_area_init`. Yet, the mappings array is not
+-usable until the call to :c:func:`memblock_free_all` that hands all
+-the memory to the page allocator.
++To allocate the `mem_map` array, architecture specific setup code should
++call :c:func:`free_area_init` function. Yet, the mappings array is not
++usable until the call to :c:func:`memblock_free_all` that hands all the
++memory to the page allocator.
  
- /*
+ If an architecture enables `CONFIG_ARCH_HAS_HOLES_MEMORYMODEL` option,
+ it may free parts of the `mem_map` array that do not cover the
 -- 
 2.26.1
