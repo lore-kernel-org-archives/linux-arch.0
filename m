@@ -1,104 +1,388 @@
-Return-Path: <SRS0=8Oio=5S=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-qt1-f194.google.com ([209.85.160.194]:35663 "EHLO
-        mail-qt1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2387440AbgDBD6T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Apr 2020 23:58:19 -0400
-Received: by mail-qt1-f194.google.com with SMTP id e14so2240514qts.2
-        for <linux-arch@vger.kernel.org>; Wed, 01 Apr 2020 20:58:17 -0700 (PDT)
-Date: Wed, 1 Apr 2020 23:58:16 -0400
-From: Joel Fernandes <joel@joelfernandes.org>
-Subject: Re: [PATCH v4 0/4] Documentation/litmus-tests: Add litmus tests for
- atomic APIs
-Message-ID: <20200402035816.GA46686@google.com>
-References: <20200326024022.7566-1-boqun.feng@gmail.com>
- <20200327221843.GA226939@google.com>
- <20200331014037.GB59159@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
+Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v10 19/26] x86/cet/shstk: User-mode shadow stack support
+Date: Wed, 29 Apr 2020 15:07:25 -0700
+Message-ID: <20200429220732.31602-20-yu-cheng.yu@intel.com>
+In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200331014037.GB59159@debian-boqun.qqnc3lrjykvubdpftowmye0fmh.lx.internal.cloudapp.net>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: linux-kernel@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jonathan Corbet <corbet@lwn.net>, Mauro Carvalho Chehab <mchehab+samsung@kernel.org>, "David S. Miller" <davem@davemloft.net>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Cameron <Jonathan.Cameron@huawei.com>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
-Message-ID: <20200402035816.x0D4o0MvHjzYOtJs8jYv321FFnBImdu6Ar3T1ZHRO0k@z>
+Message-ID: <20200429220725.Pj7RaP7ESGc_7w7xDHerDp1xbpFP8D396VYH3JPBtSg@z>
 
-On Tue, Mar 31, 2020 at 09:40:37AM +0800, Boqun Feng wrote:
-> On Fri, Mar 27, 2020 at 06:18:43PM -0400, Joel Fernandes wrote:
-> > On Thu, Mar 26, 2020 at 10:40:18AM +0800, Boqun Feng wrote:
-> > > A recent discussion raises up the requirement for having test cases for
-> > > atomic APIs:
-> > > 
-> > > 	https://lore.kernel.org/lkml/20200213085849.GL14897@hirez.programming.kicks-ass.net/
-> > > 
-> > > , and since we already have a way to generate a test module from a
-> > > litmus test with klitmus[1]. It makes sense that we add more litmus
-> > > tests for atomic APIs. And based on the previous discussion, I create a
-> > > new directory Documentation/atomic-tests and put these litmus tests
-> > > here.
-> > > 
-> > > This patchset starts the work by adding the litmus tests which are
-> > > already used in atomic_t.txt, and also improve the atomic_t.txt to make
-> > > it consistent with the litmus tests.
-> > > 
-> > > Previous version:
-> > > v1: https://lore.kernel.org/linux-doc/20200214040132.91934-1-boqun.feng@gmail.com/
-> > > v2: https://lore.kernel.org/lkml/20200219062627.104736-1-boqun.feng@gmail.com/
-> > > v3: https://lore.kernel.org/linux-doc/20200227004049.6853-1-boqun.feng@gmail.com/
-> > 
-> > For full series:
-> > 
-> > Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-> > 
-> > One question I had was in the existing atomic_set() documentation, it talks
-> > about atomic_add_unless() implementation based on locking could have issues.
-> > It says the way to fix such cases is:
-> > 
-> > Quote:
-> >     the typical solution is to then implement atomic_set{}() with
-> >     atomic_xchg().
-> > 
-> > I didn't get how using atomic_xchg() fixes it. Is the assumption there that
-> > atomic_xchg() would be implemented using locking to avoid atomic_set() having
-> 
-> Right, I think that's the intent of the sentence.
-> 
-> > issues? If so, we could clarify that in the document.
-> > 
-> 
-> Patches are welcome ;-)
+This patch adds basic shadow stack enabling/disabling routines.  A task's
+shadow stack is allocated from memory with VM_SHSTK flag and has a fixed
+size of min(RLIMIT_STACK, 4GB).
 
-
----8<-----------------------
-
-Like this? I'll add it to my tree and send it to Paul during my next
-series, unless you disagree ;-)
-
-Subject: [PATCH] doc: atomic_t: Document better about the locking within
- atomic_xchg()
-
-It is not fully clear how the atomic_set() would not cause an issue with
-preservation of the atomicity of RMW in this example. Make it clear that
-locking within atomic_xchg() would save the day.
-
-Suggested-by: Boqun Feng <boqun.feng@gmail.com>
-Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- Documentation/atomic_t.txt | 2 ++
- 1 file changed, 2 insertions(+)
+v10:
+- Change no_cet_shstk to no_user_shstk.
+- Limit shadow stack size to 4 GB, and round_up to PAGE_SIZE.
+- Replace checking shstk_enabled with shstk_size being zero.
+- WARN_ON_ONCE() when vm_munmap() fails.
 
-diff --git a/Documentation/atomic_t.txt b/Documentation/atomic_t.txt
-index 0f1fdedf36bbb..1d9c307c73a7c 100644
---- a/Documentation/atomic_t.txt
-+++ b/Documentation/atomic_t.txt
-@@ -129,6 +129,8 @@ with a lock:
-     unlock();
- 
- the typical solution is to then implement atomic_set{}() with atomic_xchg().
-+The locking within the atomic_xchg() in CPU1 would ensure that the value read
-+in CPU0 would not be overwritten.
- 
- 
- RMW ops:
--- 
-2.26.0.292.g33ef6b2f38-goog
+v9:
+- Change cpu_feature_enabled() to static_cpu_has().
+- Merge cet_disable_shstk to cet_disable_free_shstk.
+- Remove the empty slot at the top of the shadow stack, as it is not
+  needed.
+- Move do_mmap_locked() to alloc_shstk(), which is a static function.
+
+v6:
+- Create a function do_mmap_locked() for shadow stack allocation.
+
+v2:
+- Change noshstk to no_cet_shstk.
+
+ arch/x86/include/asm/cet.h                    |  26 ++++
+ arch/x86/include/asm/disabled-features.h      |   8 +-
+ arch/x86/include/asm/processor.h              |   5 +
+ arch/x86/kernel/Makefile                      |   2 +
+ arch/x86/kernel/cet.c                         | 135 ++++++++++++++++++
+ arch/x86/kernel/cpu/common.c                  |  28 ++++
+ arch/x86/kernel/process.c                     |   1 +
+ .../arch/x86/include/asm/disabled-features.h  |   8 +-
+ 8 files changed, 211 insertions(+), 2 deletions(-)
+ create mode 100644 arch/x86/include/asm/cet.h
+ create mode 100644 arch/x86/kernel/cet.c
+
+diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+new file mode 100644
+index 000000000000..caac0687c8e4
+--- /dev/null
++++ b/arch/x86/include/asm/cet.h
+@@ -0,0 +1,26 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_X86_CET_H
++#define _ASM_X86_CET_H
++
++#ifndef __ASSEMBLY__
++#include <linux/types.h>
++
++struct task_struct;
++/*
++ * Per-thread CET status
++ */
++struct cet_status {
++	unsigned long	shstk_base;
++	unsigned long	shstk_size;
++};
++
++#ifdef CONFIG_X86_INTEL_CET
++int cet_setup_shstk(void);
++void cet_disable_free_shstk(struct task_struct *p);
++#else
++static inline void cet_disable_free_shstk(struct task_struct *p) {}
++#endif
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* _ASM_X86_CET_H */
+diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/=
+asm/disabled-features.h
+index 4ea8584682f9..a0e1b24cfa02 100644
+--- a/arch/x86/include/asm/disabled-features.h
++++ b/arch/x86/include/asm/disabled-features.h
+@@ -56,6 +56,12 @@
+ # define DISABLE_PTI		(1 << (X86_FEATURE_PTI & 31))
+ #endif
+=20
++#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
++#define DISABLE_SHSTK	0
++#else
++#define DISABLE_SHSTK	(1<<(X86_FEATURE_SHSTK & 31))
++#endif
++
+ /*
+  * Make sure to add features to the correct mask
+  */
+@@ -75,7 +81,7 @@
+ #define DISABLED_MASK13	0
+ #define DISABLED_MASK14	0
+ #define DISABLED_MASK15	0
+-#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57|DISABLE_=
+UMIP)
++#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57|DISABLE_=
+UMIP|DISABLE_SHSTK)
+ #define DISABLED_MASK17	0
+ #define DISABLED_MASK18	0
+ #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS !=3D 19)
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/proc=
+essor.h
+index eb9536f803f9..0ccf1c7ab173 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -27,6 +27,7 @@ struct vm86;
+ #include <asm/unwind_hints.h>
+ #include <asm/vmxfeatures.h>
+ #include <asm/vdso/processor.h>
++#include <asm/cet.h>
+=20
+ #include <linux/personality.h>
+ #include <linux/cache.h>
+@@ -543,6 +544,10 @@ struct thread_struct {
+=20
+ 	unsigned int		sig_on_uaccess_err:1;
+=20
++#ifdef CONFIG_X86_INTEL_CET
++	struct cet_status	cet;
++#endif
++
+ 	/* Floating point and extended processor state */
+ 	struct fpu		fpu;
+ 	/*
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index ba89cabe5fcf..e9cc2551573b 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -144,6 +144,8 @@ obj-$(CONFIG_UNWINDER_ORC)		+=3D unwind_orc.o
+ obj-$(CONFIG_UNWINDER_FRAME_POINTER)	+=3D unwind_frame.o
+ obj-$(CONFIG_UNWINDER_GUESS)		+=3D unwind_guess.o
+=20
++obj-$(CONFIG_X86_INTEL_CET)		+=3D cet.o
++
+ ###
+ # 64 bit specific files
+ ifeq ($(CONFIG_X86_64),y)
+diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+new file mode 100644
+index 000000000000..d8196c8e792a
+--- /dev/null
++++ b/arch/x86/kernel/cet.c
+@@ -0,0 +1,135 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * cet.c - Control-flow Enforcement (CET)
++ *
++ * Copyright (c) 2019, Intel Corporation.
++ * Yu-cheng Yu <yu-cheng.yu@intel.com>
++ */
++
++#include <linux/types.h>
++#include <linux/mm.h>
++#include <linux/mman.h>
++#include <linux/slab.h>
++#include <linux/uaccess.h>
++#include <linux/sched/signal.h>
++#include <linux/compat.h>
++#include <asm/msr.h>
++#include <asm/user.h>
++#include <asm/fpu/internal.h>
++#include <asm/fpu/xstate.h>
++#include <asm/fpu/types.h>
++#include <asm/cet.h>
++
++static void start_update_msrs(void)
++{
++	fpregs_lock();
++	if (test_thread_flag(TIF_NEED_FPU_LOAD))
++		__fpregs_load_activate();
++}
++
++static void end_update_msrs(void)
++{
++	fpregs_unlock();
++}
++
++static unsigned long cet_get_shstk_addr(void)
++{
++	struct fpu *fpu =3D &current->thread.fpu;
++	unsigned long ssp =3D 0;
++
++	fpregs_lock();
++
++	if (fpregs_state_valid(fpu, smp_processor_id())) {
++		rdmsrl(MSR_IA32_PL3_SSP, ssp);
++	} else {
++		struct cet_user_state *p;
++
++		p =3D get_xsave_addr(&fpu->state.xsave, XFEATURE_CET_USER);
++		if (p)
++			ssp =3D p->user_ssp;
++	}
++
++	fpregs_unlock();
++	return ssp;
++}
++
++static unsigned long alloc_shstk(unsigned long size)
++{
++	struct mm_struct *mm =3D current->mm;
++	unsigned long addr, populate;
++
++	down_write(&mm->mmap_sem);
++	addr =3D do_mmap(NULL, 0, size, PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE,
++		       VM_SHSTK, 0, &populate, NULL);
++	up_write(&mm->mmap_sem);
++
++	if (populate)
++		mm_populate(addr, populate);
++
++	return addr;
++}
++
++int cet_setup_shstk(void)
++{
++	unsigned long addr, size;
++	struct cet_status *cet =3D &current->thread.cet;
++
++	if (!static_cpu_has(X86_FEATURE_SHSTK))
++		return -EOPNOTSUPP;
++
++	size =3D round_up(min(rlimit(RLIMIT_STACK), 1UL << 32), PAGE_SIZE);
++	addr =3D alloc_shstk(size);
++
++	if (IS_ERR((void *)addr))
++		return PTR_ERR((void *)addr);
++
++	cet->shstk_base =3D addr;
++	cet->shstk_size =3D size;
++
++	start_update_msrs();
++	wrmsrl(MSR_IA32_PL3_SSP, addr + size);
++	wrmsrl(MSR_IA32_U_CET, MSR_IA32_CET_SHSTK_EN);
++	end_update_msrs();
++	return 0;
++}
++
++void cet_disable_free_shstk(struct task_struct *tsk)
++{
++	struct cet_status *cet =3D &tsk->thread.cet;
++
++	if (!static_cpu_has(X86_FEATURE_SHSTK) ||
++	    !cet->shstk_size || !cet->shstk_base)
++		return;
++
++	if (!tsk->mm || (tsk->mm !=3D current->mm))
++		return;
++
++	if (tsk =3D=3D current) {
++		u64 msr_val;
++
++		start_update_msrs();
++		rdmsrl(MSR_IA32_U_CET, msr_val);
++		wrmsrl(MSR_IA32_U_CET, msr_val & ~MSR_IA32_CET_SHSTK_EN);
++		wrmsrl(MSR_IA32_PL3_SSP, 0);
++		end_update_msrs();
++	}
++
++	while (1) {
++		int r;
++
++		r =3D vm_munmap(cet->shstk_base, cet->shstk_size);
++
++		/*
++		 * Retry if mmap_sem is not available.
++		 */
++		if (r =3D=3D -EINTR) {
++			cond_resched();
++			continue;
++		}
++
++		WARN_ON_ONCE(r);
++		break;
++	}
++	cet->shstk_base =3D 0;
++	cet->shstk_size =3D 0;
++}
+diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+index bed0cb83fe24..1563b472e0f9 100644
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -55,6 +55,7 @@
+ #include <asm/microcode_intel.h>
+ #include <asm/intel-family.h>
+ #include <asm/cpu_device_id.h>
++#include <asm/cet.h>
+ #include <asm/uv/uv.h>
+=20
+ #include "cpu.h"
+@@ -469,6 +470,32 @@ static __init int setup_disable_pku(char *arg)
+ __setup("nopku", setup_disable_pku);
+ #endif /* CONFIG_X86_64 */
+=20
++static __always_inline void setup_cet(struct cpuinfo_x86 *c)
++{
++	if (!cpu_feature_enabled(X86_FEATURE_SHSTK) &&
++	    !cpu_feature_enabled(X86_FEATURE_IBT))
++		return;
++
++	cr4_set_bits(X86_CR4_CET);
++}
++
++#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
++static __init int setup_disable_shstk(char *s)
++{
++	/* require an exact match without trailing characters */
++	if (s[0] !=3D '\0')
++		return 0;
++
++	if (!boot_cpu_has(X86_FEATURE_SHSTK))
++		return 1;
++
++	setup_clear_cpu_cap(X86_FEATURE_SHSTK);
++	pr_info("x86: 'no_user_shstk' specified, disabling user Shadow Stack\n"=
+);
++	return 1;
++}
++__setup("no_user_shstk", setup_disable_shstk);
++#endif
++
+ /*
+  * Some CPU features depend on higher CPUID levels, which may not always
+  * be available due to CPUID level capping or broken virtualization
+@@ -1505,6 +1532,7 @@ static void identify_cpu(struct cpuinfo_x86 *c)
+ 	x86_init_rdrand(c);
+ 	x86_init_cache_qos(c);
+ 	setup_pku(c);
++	setup_cet(c);
+=20
+ 	/*
+ 	 * Clear/Set all flags overridden by options, need do it
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index de182b84723a..9d9cff2c1018 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -42,6 +42,7 @@
+ #include <asm/spec-ctrl.h>
+ #include <asm/io_bitmap.h>
+ #include <asm/proto.h>
++#include <asm/cet.h>
+=20
+ #include "process.h"
+=20
+diff --git a/tools/arch/x86/include/asm/disabled-features.h b/tools/arch/=
+x86/include/asm/disabled-features.h
+index 4ea8584682f9..a0e1b24cfa02 100644
+--- a/tools/arch/x86/include/asm/disabled-features.h
++++ b/tools/arch/x86/include/asm/disabled-features.h
+@@ -56,6 +56,12 @@
+ # define DISABLE_PTI		(1 << (X86_FEATURE_PTI & 31))
+ #endif
+=20
++#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
++#define DISABLE_SHSTK	0
++#else
++#define DISABLE_SHSTK	(1<<(X86_FEATURE_SHSTK & 31))
++#endif
++
+ /*
+  * Make sure to add features to the correct mask
+  */
+@@ -75,7 +81,7 @@
+ #define DISABLED_MASK13	0
+ #define DISABLED_MASK14	0
+ #define DISABLED_MASK15	0
+-#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57|DISABLE_=
+UMIP)
++#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57|DISABLE_=
+UMIP|DISABLE_SHSTK)
+ #define DISABLED_MASK17	0
+ #define DISABLED_MASK18	0
+ #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS !=3D 19)
+--=20
+2.21.0
