@@ -1,22 +1,22 @@
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 08/20] arm64: simplify detection of memory zone boundaries
- for UMA configs
-Date: Wed, 29 Apr 2020 15:11:14 +0300
-Message-ID: <20200429121126.17989-9-rppt@kernel.org>
+Subject: [PATCH v2 09/20] csky: simplify detection of memory zone boundaries
+Date: Wed, 29 Apr 2020 15:11:15 +0300
+Message-ID: <20200429121126.17989-10-rppt@kernel.org>
 References: <20200429121126.17989-1-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org>
 In-Reply-To: <20200429121126.17989-1-rppt@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org
 To: linux-kernel@vger.kernel.org
 Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@in>
 List-Id: linux-arch.vger.kernel.org
@@ -35,80 +35,68 @@ detection.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- arch/arm64/mm/init.c | 54 --------------------------------------------
- 1 file changed, 54 deletions(-)
+ arch/csky/kernel/setup.c | 26 +++++++++++---------------
+ 1 file changed, 11 insertions(+), 15 deletions(-)
 
-diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
-index a650adb358ee..d54ad2250dce 100644
---- a/arch/arm64/mm/init.c
-+++ b/arch/arm64/mm/init.c
-@@ -192,8 +192,6 @@ static phys_addr_t __init max_zone_phys(unsigned int zone_bits)
- 	return min(offset + (1ULL << zone_bits), memblock_end_of_DRAM());
- }
+diff --git a/arch/csky/kernel/setup.c b/arch/csky/kernel/setup.c
+index 819a9a7bf786..0481f4e34538 100644
+--- a/arch/csky/kernel/setup.c
++++ b/arch/csky/kernel/setup.c
+@@ -26,7 +26,9 @@ struct screen_info screen_info = {
  
--#ifdef CONFIG_NUMA
--
- static void __init zone_sizes_init(unsigned long min, unsigned long max)
+ static void __init csky_memblock_init(void)
  {
- 	unsigned long max_zone_pfns[MAX_NR_ZONES]  = {0};
-@@ -209,58 +207,6 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
- 	free_area_init(max_zone_pfns);
- }
+-	unsigned long zone_size[MAX_NR_ZONES];
++	unsigned long lowmem_size = PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET_OFFSET);
++	unsigned long sseg_size = PFN_DOWN(SSEG_SIZE - PHYS_OFFSET_OFFSET);
++	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0 };
+ 	signed long size;
  
--#else
--
--static void __init zone_sizes_init(unsigned long min, unsigned long max)
--{
--	struct memblock_region *reg;
--	unsigned long zone_size[MAX_NR_ZONES], zhole_size[MAX_NR_ZONES];
--	unsigned long __maybe_unused max_dma, max_dma32;
--
+ 	memblock_reserve(__pa(_stext), _end - _stext);
+@@ -36,28 +38,22 @@ static void __init csky_memblock_init(void)
+ 
+ 	memblock_dump_all();
+ 
 -	memset(zone_size, 0, sizeof(zone_size));
 -
--	max_dma = max_dma32 = min;
--#ifdef CONFIG_ZONE_DMA
--	max_dma = max_dma32 = PFN_DOWN(arm64_dma_phys_limit);
--	zone_size[ZONE_DMA] = max_dma - min;
--#endif
--#ifdef CONFIG_ZONE_DMA32
--	max_dma32 = PFN_DOWN(arm64_dma32_phys_limit);
--	zone_size[ZONE_DMA32] = max_dma32 - max_dma;
--#endif
--	zone_size[ZONE_NORMAL] = max - max_dma32;
--
--	memcpy(zhole_size, zone_size, sizeof(zhole_size));
--
--	for_each_memblock(memory, reg) {
--		unsigned long start = memblock_region_memory_base_pfn(reg);
--		unsigned long end = memblock_region_memory_end_pfn(reg);
--
--#ifdef CONFIG_ZONE_DMA
--		if (start >= min && start < max_dma) {
--			unsigned long dma_end = min(end, max_dma);
--			zhole_size[ZONE_DMA] -= dma_end - start;
--			start = dma_end;
--		}
--#endif
--#ifdef CONFIG_ZONE_DMA32
--		if (start >= max_dma && start < max_dma32) {
--			unsigned long dma32_end = min(end, max_dma32);
--			zhole_size[ZONE_DMA32] -= dma32_end - start;
--			start = dma32_end;
--		}
--#endif
--		if (start >= max_dma32 && start < max) {
--			unsigned long normal_end = min(end, max);
--			zhole_size[ZONE_NORMAL] -= normal_end - start;
--		}
--	}
--
--	free_area_init_node(0, zone_size, min, zhole_size);
--}
--
--#endif /* CONFIG_NUMA */
--
- int pfn_valid(unsigned long pfn)
- {
- 	phys_addr_t addr = pfn << PAGE_SHIFT;
+ 	min_low_pfn = PFN_UP(memblock_start_of_DRAM());
+ 	max_low_pfn = max_pfn = PFN_DOWN(memblock_end_of_DRAM());
+ 
+ 	size = max_pfn - min_low_pfn;
+ 
+-	if (size <= PFN_DOWN(SSEG_SIZE - PHYS_OFFSET_OFFSET))
+-		zone_size[ZONE_NORMAL] = size;
+-	else if (size < PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET_OFFSET)) {
+-		zone_size[ZONE_NORMAL] =
+-				PFN_DOWN(SSEG_SIZE - PHYS_OFFSET_OFFSET);
+-		max_low_pfn = min_low_pfn + zone_size[ZONE_NORMAL];
+-	} else {
+-		zone_size[ZONE_NORMAL] =
+-				PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET_OFFSET);
+-		max_low_pfn = min_low_pfn + zone_size[ZONE_NORMAL];
++	if (size >= lowmem_size) {
++		max_low_pfn = min_low_pfn + lowmem_size;
+ 		write_mmu_msa1(read_mmu_msa0() + SSEG_SIZE);
++	} else if (size > sseg_size) {
++		max_low_pfn = min_low_pfn + sseg_size;
+ 	}
+ 
++	max_zone_pfn[ZONE_NORMAL] = max_low_pfn;
++
+ #ifdef CONFIG_HIGHMEM
+-	zone_size[ZONE_HIGHMEM] = max_pfn - max_low_pfn;
++	max_zone_pfn[ZONE_HIGHMEM] = max_pfn;
+ 
+ 	highstart_pfn = max_low_pfn;
+ 	highend_pfn   = max_pfn;
+@@ -66,7 +62,7 @@ static void __init csky_memblock_init(void)
+ 
+ 	dma_contiguous_reserve(0);
+ 
+-	free_area_init_node(0, zone_size, min_low_pfn, NULL);
++	free_area_init(max_zone_pfn);
+ }
+ 
+ void __init setup_arch(char **cmdline_p)
 -- 
 2.26.1
