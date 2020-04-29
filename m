@@ -1,86 +1,33 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v10 05/26] x86/cet/shstk: Add Kconfig option for user-mode Shadow Stack
-Date: Wed, 29 Apr 2020 15:07:11 -0700
-Message-ID: <20200429220732.31602-6-yu-cheng.yu@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+Date: Wed, 29 Apr 2020 15:53:00 -0700
+Message-ID: <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
 References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+ <20200429220732.31602-2-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20200429220732.31602-2-yu-cheng.yu@intel.com>
+Content-Language: en-US
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-Shadow Stack provides protection against function return address
-corruption.  It is active when the processor supports it, the kernel has
-CONFIG_X86_INTEL_SHADOW_STACK_USER, and the application is built for the
-feature.  This is only implemented for the 64-bit kernel.  When it is
-enabled, legacy non-shadow stack applications continue to work, but without
-protection.
+On 4/29/20 3:07 PM, Yu-cheng Yu wrote:
+> +Note:
+> +  There is no CET-enabling arch_prctl function.  By design, CET is enabled
+> +  automatically if the binary and the system can support it.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
-v10:
-- Change SHSTK to shadow stack in the help text.
-- Change build-time check to config-time check.
-- Change ARCH_HAS_SHSTK to ARCH_HAS_SHADOW_STACK.
+I think Andy and I danced around this last time.  Let me try to say it
+more explicitly.
 
- arch/x86/Kconfig                      | 30 +++++++++++++++++++++++++++
- scripts/as-x86_64-has-shadow-stack.sh |  4 ++++
- 2 files changed, 34 insertions(+)
- create mode 100755 scripts/as-x86_64-has-shadow-stack.sh
+I want CET kernel enabling to able to be disconnected from the on-disk
+binary.  I want a binary compiled with CET to be able to disable it, and
+I want a binary not compiled with CET to be able to enable it.  I want
+different threads in a process to be able to each have different CET status.
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 1197b5596d5a..c98f82fffe85 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1947,6 +1947,36 @@ config X86_INTEL_TSX_MODE_AUTO
- 	  side channel attacks- equals the tsx=auto command line parameter.
- endchoice
- 
-+config AS_HAS_SHADOW_STACK
-+	def_bool $(success,$(srctree)/scripts/as-x86_64-has-shadow-stack.sh $(CC))
-+	help
-+	  Test the assembler for shadow stack instructions.
-+
-+config X86_INTEL_CET
-+	def_bool n
-+
-+config ARCH_HAS_SHADOW_STACK
-+	def_bool n
-+
-+config X86_INTEL_SHADOW_STACK_USER
-+	prompt "Intel Shadow Stacks for user-mode"
-+	def_bool n
-+	depends on CPU_SUP_INTEL && X86_64
-+	depends on AS_HAS_SHADOW_STACK
-+	select ARCH_USES_HIGH_VMA_FLAGS
-+	select X86_INTEL_CET
-+	select ARCH_HAS_SHADOW_STACK
-+	help
-+	  Shadow Stacks provides protection against program stack
-+	  corruption.  It's a hardware feature.  This only matters
-+	  if you have the right hardware.  It's a security hardening
-+	  feature and apps must be enabled to use it.  You get no
-+	  protection "for free" on old userspace.  The hardware can
-+	  support user and kernel, but this option is for user space
-+	  only.
-+
-+	  If unsure, say y.
-+
- config EFI
- 	bool "EFI runtime service support"
- 	depends on ACPI
-diff --git a/scripts/as-x86_64-has-shadow-stack.sh b/scripts/as-x86_64-has-shadow-stack.sh
-new file mode 100755
-index 000000000000..fac1d363a1b8
---- /dev/null
-+++ b/scripts/as-x86_64-has-shadow-stack.sh
-@@ -0,0 +1,4 @@
-+#!/bin/sh
-+# SPDX-License-Identifier: GPL-2.0
-+
-+echo "wrussq %rax, (%rbx)" | $* -x assembler -c -
--- 
-2.21.0
+Which JITs was this tested with?  I think as a bare minimum we need to
+know that this design can accommodate _a_ modern JIT.  It would be
+horrible if the browser javascript engines couldn't use this design, for
+instance.
