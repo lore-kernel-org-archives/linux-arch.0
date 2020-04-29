@@ -1,8 +1,8 @@
 Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 02/20] mm: make early_pfn_to_nid() and related defintions close to each other
-Date: Wed, 29 Apr 2020 15:11:08 +0300
-Message-ID: <20200429121126.17989-3-rppt@kernel.org>
+Subject: [PATCH v2 13/20] unicore32: simplify detection of memory zone boundaries
+Date: Wed, 29 Apr 2020 15:11:19 +0300
+Message-ID: <20200429121126.17989-14-rppt@kernel.org>
 In-Reply-To: <20200429121126.17989-1-rppt@kernel.org>
 References: <20200429121126.17989-1-rppt@kernel.org>
 MIME-Version: 1.0
@@ -11,130 +11,164 @@ Sender: owner-linux-mm@kvack.org
 To: linux-kernel@vger.kernel.org
 Cc: Andrew Morton <akpm@linux-foundation.org>, Baoquan He <bhe@redhat.com>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Qian Cai <cai@lca.pw>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429121108.VYLVVQKUYcjFcMs1M7O-qS8bZBhJZiUzFX7fkGNL71Q@z>
+Message-ID: <20200429121119.03OvrEGENjqYF8HJQQ5nyqGdWXlndsGD8sM7h7i5bF8@z>
 
 From: Mike Rapoport <rppt@linux.ibm.com>
 
-The early_pfn_to_nid() and it's helper __early_pfn_to_nid() are spread
-around include/linux/mm.h, include/linux/mmzone.h and mm/page_alloc.c.
+The free_area_init() function only requires the definition of maximal PFN
+for each of the supported zone rater than calculation of actual zone size=
+s
+and the sizes of the holes between the zones.
 
-Drop unused stub for __early_pfn_to_nid() and move its actual generic
-implementation close to its users.
+After removal of CONFIG_HAVE_MEMBLOCK_NODE_MAP the free_area_init() is
+available to all architectures.
+
+Using this function instead of free_area_init_node() simplifies the zone
+detection.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 ---
- include/linux/mm.h     |  4 ++--
- include/linux/mmzone.h |  9 --------
- mm/page_alloc.c        | 49 +++++++++++++++++++++---------------------
- 3 files changed, 27 insertions(+), 35 deletions(-)
+ arch/unicore32/include/asm/memory.h  |  2 +-
+ arch/unicore32/include/mach/memory.h |  6 ++--
+ arch/unicore32/kernel/pci.c          | 14 ++-------
+ arch/unicore32/mm/init.c             | 43 ++++++----------------------
+ 4 files changed, 15 insertions(+), 50 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 5a323422d783..a404026d14d4 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2388,9 +2388,9 @@ extern void sparse_memory_present_with_active_regio=
-ns(int nid);
+diff --git a/arch/unicore32/include/asm/memory.h b/arch/unicore32/include=
+/asm/memory.h
+index 23c93105f98f..66285178dd9b 100644
+--- a/arch/unicore32/include/asm/memory.h
++++ b/arch/unicore32/include/asm/memory.h
+@@ -60,7 +60,7 @@
+ #ifndef __ASSEMBLY__
 =20
- #if !defined(CONFIG_HAVE_MEMBLOCK_NODE_MAP) && \
-     !defined(CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID)
--static inline int __early_pfn_to_nid(unsigned long pfn,
--					struct mminit_pfnnid_cache *state)
-+static inline int early_pfn_to_nid(unsigned long pfn)
- {
-+	BUILD_BUG_ON(IS_ENABLED(CONFIG_NUMA));
- 	return 0;
- }
- #else
-diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
-index 1b9de7d220fb..7b5b6eba402f 100644
---- a/include/linux/mmzone.h
-+++ b/include/linux/mmzone.h
-@@ -1078,15 +1078,6 @@ static inline struct zoneref *first_zones_zonelist=
-(struct zonelist *zonelist,
- #include <asm/sparsemem.h>
+ #ifndef arch_adjust_zones
+-#define arch_adjust_zones(size, holes) do { } while (0)
++#define arch_adjust_zones(max_zone_pfn) do { } while (0)
  #endif
 =20
--#if !defined(CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID) && \
--	!defined(CONFIG_HAVE_MEMBLOCK_NODE_MAP)
--static inline unsigned long early_pfn_to_nid(unsigned long pfn)
--{
--	BUILD_BUG_ON(IS_ENABLED(CONFIG_NUMA));
--	return 0;
--}
--#endif
--
- #ifdef CONFIG_FLATMEM
- #define pfn_to_nid(pfn)		(0)
+ /*
+diff --git a/arch/unicore32/include/mach/memory.h b/arch/unicore32/includ=
+e/mach/memory.h
+index 2b527cedd03d..b4e6035cb9a3 100644
+--- a/arch/unicore32/include/mach/memory.h
++++ b/arch/unicore32/include/mach/memory.h
+@@ -25,10 +25,10 @@
+=20
+ #if !defined(__ASSEMBLY__) && defined(CONFIG_PCI)
+=20
+-void puv3_pci_adjust_zones(unsigned long *size, unsigned long *holes);
++void puv3_pci_adjust_zones(unsigned long *max_zone_pfn);
+=20
+-#define arch_adjust_zones(size, holes) \
+-	puv3_pci_adjust_zones(size, holes)
++#define arch_adjust_zones(max_zone_pfn) \
++	puv3_pci_adjust_zones(max_zone_pfn)
+=20
  #endif
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 0d012eda1694..a802ee47e715 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -1504,6 +1504,31 @@ void __free_pages_core(struct page *page, unsigned=
- int order)
 =20
- static struct mminit_pfnnid_cache early_pfnnid_cache __meminitdata;
-=20
-+#ifndef CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID
-+
-+/*
-+ * Required by SPARSEMEM. Given a PFN, return what node the PFN is on.
-+ */
-+int __meminit __early_pfn_to_nid(unsigned long pfn,
-+					struct mminit_pfnnid_cache *state)
-+{
-+	unsigned long start_pfn, end_pfn;
-+	int nid;
-+
-+	if (state->last_start <=3D pfn && pfn < state->last_end)
-+		return state->last_nid;
-+
-+	nid =3D memblock_search_pfn_nid(pfn, &start_pfn, &end_pfn);
-+	if (nid !=3D NUMA_NO_NODE) {
-+		state->last_start =3D start_pfn;
-+		state->last_end =3D end_pfn;
-+		state->last_nid =3D nid;
-+	}
-+
-+	return nid;
-+}
-+#endif /* CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID */
-+
- int __meminit early_pfn_to_nid(unsigned long pfn)
+diff --git a/arch/unicore32/kernel/pci.c b/arch/unicore32/kernel/pci.c
+index efa04a94dcdb..0d098aa05b47 100644
+--- a/arch/unicore32/kernel/pci.c
++++ b/arch/unicore32/kernel/pci.c
+@@ -133,21 +133,11 @@ static int pci_puv3_map_irq(const struct pci_dev *d=
+ev, u8 slot, u8 pin)
+  * This is really ugly and we need a better way of specifying
+  * DMA-capable regions of memory.
+  */
+-void __init puv3_pci_adjust_zones(unsigned long *zone_size,
+-	unsigned long *zhole_size)
++void __init puv3_pci_adjust_zones(unsigned long max_zone_pfn)
  {
- 	static DEFINE_SPINLOCK(early_pfn_lock);
-@@ -6299,30 +6324,6 @@ void __meminit init_currently_empty_zone(struct zo=
-ne *zone,
+ 	unsigned int sz =3D SZ_128M >> PAGE_SHIFT;
+=20
+-	/*
+-	 * Only adjust if > 128M on current system
+-	 */
+-	if (zone_size[0] <=3D sz)
+-		return;
+-
+-	zone_size[1] =3D zone_size[0] - sz;
+-	zone_size[0] =3D sz;
+-	zhole_size[1] =3D zhole_size[0];
+-	zhole_size[0] =3D 0;
++	max_zone_pfn[ZONE_DMA] =3D sz;
  }
 =20
- #ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
--#ifndef CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID
+ /*
+diff --git a/arch/unicore32/mm/init.c b/arch/unicore32/mm/init.c
+index 6cf010fadc7a..52425d383cea 100644
+--- a/arch/unicore32/mm/init.c
++++ b/arch/unicore32/mm/init.c
+@@ -61,46 +61,21 @@ static void __init find_limits(unsigned long *min, un=
+signed long *max_low,
+ 	}
+ }
+=20
+-static void __init uc32_bootmem_free(unsigned long min, unsigned long ma=
+x_low,
+-	unsigned long max_high)
++static void __init uc32_bootmem_free(unsigned long max_low)
+ {
+-	unsigned long zone_size[MAX_NR_ZONES], zhole_size[MAX_NR_ZONES];
+-	struct memblock_region *reg;
++	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D { 0 };
+=20
+-	/*
+-	 * initialise the zones.
+-	 */
+-	memset(zone_size, 0, sizeof(zone_size));
 -
--/*
-- * Required by SPARSEMEM. Given a PFN, return what node the PFN is on.
-- */
--int __meminit __early_pfn_to_nid(unsigned long pfn,
--					struct mminit_pfnnid_cache *state)
--{
--	unsigned long start_pfn, end_pfn;
--	int nid;
+-	/*
+-	 * The memory size has already been determined.  If we need
+-	 * to do anything fancy with the allocation of this memory
+-	 * to the zones, now is the time to do it.
+-	 */
+-	zone_size[0] =3D max_low - min;
 -
--	if (state->last_start <=3D pfn && pfn < state->last_end)
--		return state->last_nid;
+-	/*
+-	 * Calculate the size of the holes.
+-	 *  holes =3D node_size - sum(bank_sizes)
+-	 */
+-	memcpy(zhole_size, zone_size, sizeof(zhole_size));
+-	for_each_memblock(memory, reg) {
+-		unsigned long start =3D memblock_region_memory_base_pfn(reg);
+-		unsigned long end =3D memblock_region_memory_end_pfn(reg);
 -
--	nid =3D memblock_search_pfn_nid(pfn, &start_pfn, &end_pfn);
--	if (nid !=3D NUMA_NO_NODE) {
--		state->last_start =3D start_pfn;
--		state->last_end =3D end_pfn;
--		state->last_nid =3D nid;
+-		if (start < max_low) {
+-			unsigned long low_end =3D min(end, max_low);
+-			zhole_size[0] -=3D low_end - start;
+-		}
 -	}
--
--	return nid;
--}
--#endif /* CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID */
++	max_zone_pfn[ZONE_DMA] =3D max_low;
++	max_zone_pfn[ZONE_NORMAL] =3D max_low;
 =20
- /**
-  * free_bootmem_with_active_regions - Call memblock_free_early_nid for e=
-ach active range
+ 	/*
+ 	 * Adjust the sizes according to any special requirements for
+ 	 * this machine type.
++	 * This might lower ZONE_DMA limit.
+ 	 */
+-	arch_adjust_zones(zone_size, zhole_size);
++	arch_adjust_zones(max_zone_pfn);
+=20
+-	free_area_init_node(0, zone_size, min, zhole_size);
++	free_area_init(max_zone_pfn);
+ }
+=20
+ int pfn_valid(unsigned long pfn)
+@@ -176,11 +151,11 @@ void __init bootmem_init(void)
+ 	sparse_init();
+=20
+ 	/*
+-	 * Now free the memory - free_area_init_node needs
++	 * Now free the memory - free_area_init needs
+ 	 * the sparse mem_map arrays initialized by sparse_init()
+ 	 * for memmap_init_zone(), otherwise all PFNs are invalid.
+ 	 */
+-	uc32_bootmem_free(min, max_low, max_high);
++	uc32_bootmem_free(max_low);
+=20
+ 	high_memory =3D __va((max_low << PAGE_SHIFT) - 1) + 1;
+=20
 --=20
 2.26.1
