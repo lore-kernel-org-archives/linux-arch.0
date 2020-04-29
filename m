@@ -1,84 +1,260 @@
-Return-Path: <SRS0=fQTO=6M=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51378 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725917AbgD1ER3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Apr 2020 00:17:29 -0400
-Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 87E93C09B050
-        for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2020 21:17:29 -0700 (PDT)
-Received: by mail-pj1-x1043.google.com with SMTP id a31so564301pje.1
-        for <linux-arch@vger.kernel.org>; Mon, 27 Apr 2020 21:17:29 -0700 (PDT)
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-From: Andy Lutomirski <luto@amacapital.net>
-Mime-Version: 1.0 (1.0)
-Subject: Re: [RFC v2] ptrace, pidfd: add pidfd_ptrace syscall
-Date: Mon, 27 Apr 2020 21:17:26 -0700
-Message-ID: <B7A115CB-0C8C-4719-B97B-74D94231CD1E@amacapital.net>
-References: <CAHk-=wga3O=BoKZXR27-CDnAFareWcMxXhpWerwtCffdaH6_ow@mail.gmail.com>
-In-Reply-To: <CAHk-=wga3O=BoKZXR27-CDnAFareWcMxXhpWerwtCffdaH6_ow@mail.gmail.com>
+Return-Path: <SRS0=NQxy=6N=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga09.intel.com ([134.134.136.24]:61306 "EHLO mga09.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727085AbgD2WI7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Apr 2020 18:08:59 -0400
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v10 26/26] x86/cet/shstk: Add arch_prctl functions for shadow stack
+Date: Wed, 29 Apr 2020 15:07:32 -0700
+Message-ID: <20200429220732.31602-27-yu-cheng.yu@intel.com>
+In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Aleksa Sarai <cyphar@cyphar.com>, Christian Brauner <christian.brauner@ubuntu.com>, Arnd Bergmann <arnd@arndb.de>, Hagen Paul Pfeifer <hagen@jauu.net>, "Eric W. Biederman" <ebiederm@xmission.com>, Jann Horn <jannh@google.com>, kernel list <linux-kernel@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Christian Brauner <christian@brauner.io>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Brian Gerst <brgerst@gmail.com>, Sami Tolvanen <samitolvanen@google.com>, David Howells <dhowells@redhat.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Sargun Dhillon <sargun@sargun.me>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Message-ID: <20200428041726.Zl4Q3WGa_37mEqkKHf_fNYXYgrVHlDe4EF2xk9SLGxg@z>
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Message-ID: <20200429220732.Hkim5Qbfn2B-DT7TtyH3WsIpIkbhb5HqKJ2QOzWK1G0@z>
 
+arch_prctl(ARCH_X86_CET_STATUS, u64 *args)
+    Get CET feature status.
 
+    The parameter 'args' is a pointer to a user buffer.  The kernel returns
+    the following information:
 
-> On Apr 27, 2020, at 6:36 PM, Linus Torvalds <torvalds@linux-foundation.org=
-> wrote:
->=20
-> =EF=BB=BFOn Mon, Apr 27, 2020 at 5:46 PM Aleksa Sarai <cyphar@cyphar.com> w=
-rote:
->>=20
->> I agree. It would be a shame to add a new ptrace syscall and not take
->> the opportunity to fix the multitude of problems with the existing API.
->> But that's a Pandora's box which we shouldn't open unless we want to
->> wait a long time to get an API everyone is okay with -- a pretty high
->> price to just get pidfds support in ptrace.
->=20
-> We should really be very very careful with some "smarter ptrace".
-> We've had _so_ many security issues with ptrace that it's not even
-> funny.
->=20
-> And that's ignoring all the practical issues we've had.
->=20
-> I would definitely not want to have anything that looks like ptrace AT
-> ALL using pidfd. If we have a file descriptor to specify the target
-> process, then we should probably take advantage of that file
-> descriptor to actually make it more of a asynchronous interface that
-> doesn't cause the kinds of deadlocks that we've had with ptrace.
->=20
-> The synchronous nature of ptrace() means that not only do we have
-> those nasty deadlocks, it's also very very expensive to use. It also
-> has some other fundamental problems, like the whole "take over parent"
-> and the SIGCHLD behavior.
->=20
-> It also is hard to ptrace a ptracer. Which is annoying when you're
-> debugging gdb or strace or whatever.
->=20
-> So I think the thing to do is ask the gdb (and strace) people if they
-> have any _very_ particular painpoints that we could perhaps help with.
->=20
-> And then very carefully think things through and not repeat all the
-> mistakes ptrace did.
->=20
-> I'm not very optimistic.
+    *args = shadow stack/IBT status
+    *(args + 1) = shadow stack base address
+    *(args + 2) = shadow stack size
 
-I hate to say this, but I=E2=80=99m not convinced that asking the gdb folks i=
-s the right approach. GDB has an ancient architecture and is *incredibly* bu=
-ggy.  I=E2=80=99m sure ptrace is somewhere on the pain point list, but I sus=
-pect it=E2=80=99s utterly dwarfed by everything else.
+arch_prctl(ARCH_X86_CET_DISABLE, u64 features)
+    Disable CET features specified in 'features'.  Return -EPERM if CET is
+    locked.
 
-Maybe the LLDB people would have a better perspective?  The rr folks would b=
-e a good bet, too. Or, and I know this is sacrilege, the VSCode people?
+arch_prctl(ARCH_X86_CET_LOCK)
+    Lock in CET features.
 
+arch_prctl(ARCH_X86_CET_ALLOC_SHSTK, u64 *args)
+    Allocate a new shadow stack.
 
-I think one requirement for a better ptrace is that it should work if you tr=
-y to debug, simultaneously, a debugger and its debugee. Maybe not perfectly,=
- but it should work. And you should be able to debug init.
+    The parameter 'args' is a pointer to a user buffer containing the
+    desired size to allocate.  The kernel returns the allocated shadow
+    stack address in *args.
 
-Another major pain point I=E2=80=99ve seen is compat. A 64-bit debugger shou=
-ld be able to debug a program that switches back and forth between 32-bit an=
-d 64-bit.  A debugger that is entirely unaware of a set of registers should b=
-e able to debug a process using those registers.
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+v10:
+- Verify CET is enabled before handling arch_prctl.
+- Change input parameters from unsigned long to u64, to make it clear they
+  are 64-bit.
+
+ arch/x86/include/asm/cet.h        |  4 ++
+ arch/x86/include/uapi/asm/prctl.h |  5 ++
+ arch/x86/kernel/Makefile          |  2 +-
+ arch/x86/kernel/cet.c             | 29 +++++++++++
+ arch/x86/kernel/cet_prctl.c       | 87 +++++++++++++++++++++++++++++++
+ arch/x86/kernel/process.c         |  4 +-
+ 6 files changed, 128 insertions(+), 3 deletions(-)
+ create mode 100644 arch/x86/kernel/cet_prctl.c
+
+diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+index 71dc92acd2f2..99e6e741d28c 100644
+--- a/arch/x86/include/asm/cet.h
++++ b/arch/x86/include/asm/cet.h
+@@ -14,16 +14,20 @@ struct sc_ext;
+ struct cet_status {
+ 	unsigned long	shstk_base;
+ 	unsigned long	shstk_size;
++	unsigned int	locked:1;
+ };
+ 
+ #ifdef CONFIG_X86_INTEL_CET
++int prctl_cet(int option, u64 arg2);
+ int cet_setup_shstk(void);
+ int cet_setup_thread_shstk(struct task_struct *p);
++int cet_alloc_shstk(unsigned long *arg);
+ void cet_disable_free_shstk(struct task_struct *p);
+ int cet_verify_rstor_token(bool ia32, unsigned long ssp, unsigned long *new_ssp);
+ void cet_restore_signal(struct sc_ext *sc);
+ int cet_setup_signal(bool ia32, unsigned long rstor, struct sc_ext *sc);
+ #else
++static inline int prctl_cet(int option, u64 arg2) { return -EINVAL; }
+ static inline int cet_setup_thread_shstk(struct task_struct *p) { return 0; }
+ static inline void cet_disable_free_shstk(struct task_struct *p) {}
+ static inline void cet_restore_signal(struct sc_ext *sc) { return; }
+diff --git a/arch/x86/include/uapi/asm/prctl.h b/arch/x86/include/uapi/asm/prctl.h
+index 5a6aac9fa41f..d962f0ec9ccf 100644
+--- a/arch/x86/include/uapi/asm/prctl.h
++++ b/arch/x86/include/uapi/asm/prctl.h
+@@ -14,4 +14,9 @@
+ #define ARCH_MAP_VDSO_32	0x2002
+ #define ARCH_MAP_VDSO_64	0x2003
+ 
++#define ARCH_X86_CET_STATUS		0x3001
++#define ARCH_X86_CET_DISABLE		0x3002
++#define ARCH_X86_CET_LOCK		0x3003
++#define ARCH_X86_CET_ALLOC_SHSTK	0x3004
++
+ #endif /* _ASM_X86_PRCTL_H */
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index e9cc2551573b..0b621e2afbdc 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -144,7 +144,7 @@ obj-$(CONFIG_UNWINDER_ORC)		+= unwind_orc.o
+ obj-$(CONFIG_UNWINDER_FRAME_POINTER)	+= unwind_frame.o
+ obj-$(CONFIG_UNWINDER_GUESS)		+= unwind_guess.o
+ 
+-obj-$(CONFIG_X86_INTEL_CET)		+= cet.o
++obj-$(CONFIG_X86_INTEL_CET)		+= cet.o cet_prctl.o
+ 
+ ###
+ # 64 bit specific files
+diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+index 121552047b86..c1b9b540c03e 100644
+--- a/arch/x86/kernel/cet.c
++++ b/arch/x86/kernel/cet.c
+@@ -145,6 +145,35 @@ static int create_rstor_token(bool ia32, unsigned long ssp,
+ 	return 0;
+ }
+ 
++int cet_alloc_shstk(unsigned long *arg)
++{
++	unsigned long len = *arg;
++	unsigned long addr;
++	unsigned long token;
++	unsigned long ssp;
++
++	addr = alloc_shstk(round_up(len, PAGE_SIZE));
++
++	if (IS_ERR((void *)addr))
++		return PTR_ERR((void *)addr);
++
++	/* Restore token is 8 bytes and aligned to 8 bytes */
++	ssp = addr + len;
++	token = ssp;
++
++	if (!in_ia32_syscall())
++		token |= TOKEN_MODE_64;
++	ssp -= 8;
++
++	if (write_user_shstk_64(ssp, token)) {
++		vm_munmap(addr, len);
++		return -EINVAL;
++	}
++
++	*arg = addr;
++	return 0;
++}
++
+ int cet_setup_shstk(void)
+ {
+ 	unsigned long addr, size;
+diff --git a/arch/x86/kernel/cet_prctl.c b/arch/x86/kernel/cet_prctl.c
+new file mode 100644
+index 000000000000..0139c48f2215
+--- /dev/null
++++ b/arch/x86/kernel/cet_prctl.c
+@@ -0,0 +1,87 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#include <linux/errno.h>
++#include <linux/uaccess.h>
++#include <linux/prctl.h>
++#include <linux/compat.h>
++#include <linux/mman.h>
++#include <linux/elfcore.h>
++#include <asm/processor.h>
++#include <asm/prctl.h>
++#include <asm/cet.h>
++
++/* See Documentation/x86/intel_cet.rst. */
++
++static int handle_get_status(u64 arg2)
++{
++	struct cet_status *cet = &current->thread.cet;
++	u64 buf[3] = {0, 0, 0};
++
++	if (cet->shstk_size) {
++		buf[0] |= GNU_PROPERTY_X86_FEATURE_1_SHSTK;
++		buf[1] = (u64)cet->shstk_base;
++		buf[2] = (u64)cet->shstk_size;
++	}
++
++	return copy_to_user((u64 __user *)arg2, buf, sizeof(buf));
++}
++
++static int handle_alloc_shstk(u64 arg2)
++{
++	int err = 0;
++	unsigned long arg;
++	unsigned long addr = 0;
++	unsigned long size = 0;
++
++	if (get_user(arg, (unsigned long __user *)arg2))
++		return -EFAULT;
++
++	size = arg;
++	err = cet_alloc_shstk(&arg);
++	if (err)
++		return err;
++
++	addr = arg;
++	if (put_user((u64)addr, (u64 __user *)arg2)) {
++		vm_munmap(addr, size);
++		return -EFAULT;
++	}
++
++	return 0;
++}
++
++int prctl_cet(int option, u64 arg2)
++{
++	struct cet_status *cet;
++
++	if (!IS_ENABLED(CONFIG_X86_INTEL_CET))
++		return -EINVAL;
++
++	if (option == ARCH_X86_CET_STATUS)
++		return handle_get_status(arg2);
++
++	if (!static_cpu_has(X86_FEATURE_SHSTK))
++		return -EINVAL;
++
++	cet = &current->thread.cet;
++
++	switch (option) {
++	case ARCH_X86_CET_DISABLE:
++		if (cet->locked)
++			return -EPERM;
++		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
++			cet_disable_free_shstk(current);
++
++		return 0;
++
++	case ARCH_X86_CET_LOCK:
++		cet->locked = 1;
++		return 0;
++
++	case ARCH_X86_CET_ALLOC_SHSTK:
++		return handle_alloc_shstk(arg2);
++
++	default:
++		return -EINVAL;
++	}
++}
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index ef1c2b8086a2..de6773dd6a16 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -996,7 +996,7 @@ long do_arch_prctl_common(struct task_struct *task, int option,
+ 		return get_cpuid_mode();
+ 	case ARCH_SET_CPUID:
+ 		return set_cpuid_mode(task, cpuid_enabled);
++	default:
++		return prctl_cet(option, cpuid_enabled);
+ 	}
+-
+-	return -EINVAL;
+ }
+-- 
+2.21.0
