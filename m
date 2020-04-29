@@ -1,82 +1,96 @@
-Return-Path: <SRS0=8toe=6G=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:49440 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725968AbgDVNLf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Apr 2020 09:11:35 -0400
-Date: Wed, 22 Apr 2020 14:11:29 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH v4 08/11] READ_ONCE: Drop pointer qualifiers when reading
- from scalar types
-Message-ID: <20200422131129.GC676@willie-the-truck>
-References: <20200421151537.19241-1-will@kernel.org>
- <20200421151537.19241-9-will@kernel.org>
- <6cbc8ae1-8eb1-a5a0-a584-2081fca1c4aa@rasmusvillemoes.dk>
- <20200422114807.GW26902@gate.crashing.org>
+Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2 09/20] csky: simplify detection of memory zone boundaries
+Date: Wed, 29 Apr 2020 15:11:15 +0300
+Message-ID: <20200429121126.17989-10-rppt@kernel.org>
+In-Reply-To: <20200429121126.17989-1-rppt@kernel.org>
+References: <20200429121126.17989-1-rppt@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200422114807.GW26902@gate.crashing.org>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Baoquan He <bhe@redhat.com>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Qian Cai <cai@lca.pw>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@android.com, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Peter Oberparleiter <oberpar@linux.ibm.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>
-Message-ID: <20200422131129.WNovYwE3ostUcTddXfxV6VWFvMfql-LwcU-Q2-8aqTY@z>
+Message-ID: <20200429121115.X6LjKen8GHPPV69Y_1Ix24KjEnQe8QxvAQezRMCO6Xo@z>
 
-On Wed, Apr 22, 2020 at 06:48:07AM -0500, Segher Boessenkool wrote:
-> On Wed, Apr 22, 2020 at 12:25:03PM +0200, Rasmus Villemoes wrote:
-> > On 21/04/2020 17.15, Will Deacon wrote:
-> > > Unfortunately, dropping pointer qualifiers inside the macro poses quite
-> > > a challenge, especially since the pointed-to type is permitted to be an
-> > > aggregate, and this is relied upon by mm/ code accessing things like
-> > > 'pmd_t'. Based on numerous hacks and discussions on the mailing list,
-> > > this is the best I've managed to come up with.
-> > 
-> > Hm, maybe this can be brought to work, only very lightly tested. It
-> > basically abuses what -Wignored-qualifiers points out:
-> > 
-> >   warning: type qualifiers ignored on function return type
-> > 
-> > Example showing the idea:
-> > 
-> > const int c(void);
-> > volatile int v(void);
-> > 
-> > int hack(int x, int y)
-> > {
-> > 	typeof(c()) a = x;
-> > 	typeof(v()) b = y;
-> > 
-> > 	a += b;
-> > 	b += a;
-> > 	a += b;
-> > 	return a;
-> > }
-> 
-> Nasty.  I like it :-)
-> 
-> > Since that compiles, a cannot be const-qualified, and the generated code
-> > certainly suggests that b is not volatile-qualified. So something like
-> > 
-> > #define unqual_type(x) _unqual_type(x, unique_id_dance)
-> > #define _unqual_type(x, id) typeof( ({
-> >   typeof(x) id(void);
-> >   id();
-> > }) )
-> > 
-> > and perhaps some _Pragma("GCC diagnostic push")/_Pragma("GCC diagnostic
-> > ignored -Wignored-qualifiers")/_Pragma("GCC diagnostic pop") could
-> > prevent the warning (which is in -Wextra, so I don't think it would
-> > appear in a normal build anyway).
-> > 
-> > No idea how well any of this would work across gcc versions or with clang.
-> 
-> https://gcc.gnu.org/legacy-ml/gcc-patches/2016-05/msg01054.html
-> 
-> This is defined to work this way in ISO C since C11.
-> 
-> But, it doesn't work with GCC before GCC 7 :-(
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-Damn, that's quite a cool hack! Maybe we'll be able to implement it in a
-few years time ;)
+The free_area_init() function only requires the definition of maximal PFN
+for each of the supported zone rater than calculation of actual zone size=
+s
+and the sizes of the holes between the zones.
 
-WIll
+After removal of CONFIG_HAVE_MEMBLOCK_NODE_MAP the free_area_init() is
+available to all architectures.
+
+Using this function instead of free_area_init_node() simplifies the zone
+detection.
+
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/csky/kernel/setup.c | 26 +++++++++++---------------
+ 1 file changed, 11 insertions(+), 15 deletions(-)
+
+diff --git a/arch/csky/kernel/setup.c b/arch/csky/kernel/setup.c
+index 819a9a7bf786..0481f4e34538 100644
+--- a/arch/csky/kernel/setup.c
++++ b/arch/csky/kernel/setup.c
+@@ -26,7 +26,9 @@ struct screen_info screen_info =3D {
+=20
+ static void __init csky_memblock_init(void)
+ {
+-	unsigned long zone_size[MAX_NR_ZONES];
++	unsigned long lowmem_size =3D PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET_OFFSE=
+T);
++	unsigned long sseg_size =3D PFN_DOWN(SSEG_SIZE - PHYS_OFFSET_OFFSET);
++	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D { 0 };
+ 	signed long size;
+=20
+ 	memblock_reserve(__pa(_stext), _end - _stext);
+@@ -36,28 +38,22 @@ static void __init csky_memblock_init(void)
+=20
+ 	memblock_dump_all();
+=20
+-	memset(zone_size, 0, sizeof(zone_size));
+-
+ 	min_low_pfn =3D PFN_UP(memblock_start_of_DRAM());
+ 	max_low_pfn =3D max_pfn =3D PFN_DOWN(memblock_end_of_DRAM());
+=20
+ 	size =3D max_pfn - min_low_pfn;
+=20
+-	if (size <=3D PFN_DOWN(SSEG_SIZE - PHYS_OFFSET_OFFSET))
+-		zone_size[ZONE_NORMAL] =3D size;
+-	else if (size < PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET_OFFSET)) {
+-		zone_size[ZONE_NORMAL] =3D
+-				PFN_DOWN(SSEG_SIZE - PHYS_OFFSET_OFFSET);
+-		max_low_pfn =3D min_low_pfn + zone_size[ZONE_NORMAL];
+-	} else {
+-		zone_size[ZONE_NORMAL] =3D
+-				PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET_OFFSET);
+-		max_low_pfn =3D min_low_pfn + zone_size[ZONE_NORMAL];
++	if (size >=3D lowmem_size) {
++		max_low_pfn =3D min_low_pfn + lowmem_size;
+ 		write_mmu_msa1(read_mmu_msa0() + SSEG_SIZE);
++	} else if (size > sseg_size) {
++		max_low_pfn =3D min_low_pfn + sseg_size;
+ 	}
+=20
++	max_zone_pfn[ZONE_NORMAL] =3D max_low_pfn;
++
+ #ifdef CONFIG_HIGHMEM
+-	zone_size[ZONE_HIGHMEM] =3D max_pfn - max_low_pfn;
++	max_zone_pfn[ZONE_HIGHMEM] =3D max_pfn;
+=20
+ 	highstart_pfn =3D max_low_pfn;
+ 	highend_pfn   =3D max_pfn;
+@@ -66,7 +62,7 @@ static void __init csky_memblock_init(void)
+=20
+ 	dma_contiguous_reserve(0);
+=20
+-	free_area_init_node(0, zone_size, min_low_pfn, NULL);
++	free_area_init(max_zone_pfn);
+ }
+=20
+ void __init setup_arch(char **cmdline_p)
+--=20
+2.26.1
