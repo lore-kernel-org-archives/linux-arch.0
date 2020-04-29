@@ -1,73 +1,71 @@
-Return-Path: <SRS0=yGje=5Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:50244 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726597AbgDINgI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 9 Apr 2020 09:36:08 -0400
-Subject: Re: [PATCH v3 21/26] arm64: Introduce asm/vdso/arch_timer.h
-References: <20200313154345.56760-1-vincenzo.frascino@arm.com>
- <20200313154345.56760-22-vincenzo.frascino@arm.com>
- <20200315183151.GE32205@mbp> <4914ad9c-3eaf-b328-f31b-5d3077ef272f@arm.com>
- <20200409132633.GD13078@willie-the-truck>
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <d578db85-7581-9bbb-2dab-25555e424ceb@arm.com>
-Date: Thu, 9 Apr 2020 14:36:48 +0100
+Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: [PATCH v2 11/20] parisc: simplify detection of memory zone boundaries
+Date: Wed, 29 Apr 2020 15:11:17 +0300
+Message-ID: <20200429121126.17989-12-rppt@kernel.org>
+In-Reply-To: <20200429121126.17989-1-rppt@kernel.org>
+References: <20200429121126.17989-1-rppt@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20200409132633.GD13078@willie-the-truck>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Baoquan He <bhe@redhat.com>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Hoan Tran <Hoan@os.amperecomputing.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Jonathan Corbet <corbet@lwn.net>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Hocko <mhocko@kernel.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Qian Cai <cai@lca.pw>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Tony Luck <tony.luck@intel.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, Mike Rapoport <rppt@linux.ibm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, clang-built-linux@googlegroups.com, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Paul Burton <paul.burton@mips.com>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Stephen Boyd <sboyd@kernel.org>, Mark Salyzyn <salyzyn@android.com>, Kees Cook <keescook@chromium.org>, Peter Collingbourne <pcc@google.com>, Dmitry Safonov <0x7f454c46@gmail.com>, Andrei Vagin <avagin@openvz.org>, Nick Desaulniers <ndesaulniers@google.com>, Marc Zyngier <maz@kernel.org>, Mark Rutland <Mark.Rutland@arm.com>
-Message-ID: <20200409133648.D5yXPxhsghYMdB8YxybKIBWwFxQZOdIAezHMI2vxarw@z>
+Message-ID: <20200429121117.v0_XGAyOnveH7KlLkSWF4qovBvaPsrZJ2RWMUS1Ntlk@z>
 
-Hi Will,
+From: Mike Rapoport <rppt@linux.ibm.com>
 
-On 4/9/20 2:26 PM, Will Deacon wrote:
-> Hi Vincenzo,
-> 
-> Sorry, I was on holiday when you posted this and it slipped through the
-> cracks.
-> 
+The free_area_init() function only requires the definition of maximal PFN
+for each of the supported zone rater than calculation of actual zone size=
+s
+and the sizes of the holes between the zones.
 
-No issue at all. Thank you for getting back to me.
+After removal of CONFIG_HAVE_MEMBLOCK_NODE_MAP the free_area_init() is
+available to all architectures.
 
-> On Mon, Mar 16, 2020 at 03:37:23PM +0000, Vincenzo Frascino wrote:
->>> On Fri, Mar 13, 2020 at 03:43:40PM +0000, Vincenzo Frascino wrote:
->>>> The vDSO library should only include the necessary headers required for
->>>> a userspace library (UAPI and a minimal set of kernel headers). To make
->>>> this possible it is necessary to isolate from the kernel headers the
->>>> common parts that are strictly necessary to build the library.
->>>>
->>>> Introduce asm/vdso/arch_timer.h to contain all the arm64 specific
->>>> code. This allows to replace the second isb() in __arch_get_hw_counter()
->>>> with a fake dependent stack read of the counter which improves the vdso
->>>> library peformances of ~4.5%. Below the results of vdsotest [1] ran for
->>>> 100 iterations.
->>>
->>> The subject seems to imply a non-functional change but as you read, it
->>> gets a lot more complicated. Could you keep the functional change
->>> separate from the header clean-up, maybe submit it as an independent
->>> patch? And it shouldn't go in without Will's ack ;).
->>>
->>
->> It is fine by me. I will repost the series with the required fixes and without
->> this patch. This will give to me enough time to address Mark's comments as well
->> and to Will to have a proper look.
-> 
-> Please can you post whatever is left at -rc1? I'll have a look then, but
-> let's stick to just moving code around rather than randomly changing it
-> at the same time, ok?
-> 
+Using this function instead of free_area_init_node() simplifies the zone
+detection.
 
-Sure, I will try to re-post it by -rc1 and take on board your comments.
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/parisc/mm/init.c | 22 +++-------------------
+ 1 file changed, 3 insertions(+), 19 deletions(-)
 
-> Thanks,
-> 
-> Will
-> 
-
--- 
-Regards,
-Vincenzo
+diff --git a/arch/parisc/mm/init.c b/arch/parisc/mm/init.c
+index 5224fb38d766..02d2fdb85dcc 100644
+--- a/arch/parisc/mm/init.c
++++ b/arch/parisc/mm/init.c
+@@ -675,27 +675,11 @@ static void __init gateway_init(void)
+=20
+ static void __init parisc_bootmem_free(void)
+ {
+-	unsigned long zones_size[MAX_NR_ZONES] =3D { 0, };
+-	unsigned long holes_size[MAX_NR_ZONES] =3D { 0, };
+-	unsigned long mem_start_pfn =3D ~0UL, mem_end_pfn =3D 0, mem_size_pfn =3D=
+ 0;
+-	int i;
+-
+-	for (i =3D 0; i < npmem_ranges; i++) {
+-		unsigned long start =3D pmem_ranges[i].start_pfn;
+-		unsigned long size =3D pmem_ranges[i].pages;
+-		unsigned long end =3D start + size;
+-
+-		if (mem_start_pfn > start)
+-			mem_start_pfn =3D start;
+-		if (mem_end_pfn < end)
+-			mem_end_pfn =3D end;
+-		mem_size_pfn +=3D size;
+-	}
++	unsigned long max_zone_pfn[MAX_NR_ZONES] =3D { 0, };
+=20
+-	zones_size[0] =3D mem_end_pfn - mem_start_pfn;
+-	holes_size[0] =3D zones_size[0] - mem_size_pfn;
++	max_zone_pfn[0] =3D memblock_end_of_DRAM();
+=20
+-	free_area_init_node(0, zones_size, mem_start_pfn, holes_size);
++	free_area_init(max_zone_pfn);
+ }
+=20
+ void __init paging_init(void)
+--=20
+2.26.1
