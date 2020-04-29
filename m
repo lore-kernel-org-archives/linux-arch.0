@@ -1,8 +1,8 @@
 Return-Path: <SRS0=W8sI=6N=kvack.org=owner-linux-mm@kernel.org>
 From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v10 12/26] mm: Introduce VM_SHSTK for shadow stack memory
-Date: Wed, 29 Apr 2020 15:07:18 -0700
-Message-ID: <20200429220732.31602-13-yu-cheng.yu@intel.com>
+Subject: [PATCH v10 05/26] x86/cet/shstk: Add Kconfig option for user-mode Shadow Stack
+Date: Wed, 29 Apr 2020 15:07:11 -0700
+Message-ID: <20200429220732.31602-6-yu-cheng.yu@intel.com>
 In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
 References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
@@ -11,87 +11,80 @@ Sender: owner-linux-mm@kvack.org
 To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200429220718.q2UWqBgbvSapjdOZfU7vvMKUR-sFi5Bffmfic_Yj514@z>
+Message-ID: <20200429220711.JTJHKProke_-JBit7DKWupDLk6jV0p_5q3LhQif_AHo@z>
 
-A Shadow Stack PTE must be read-only and have _PAGE_DIRTY set.  However,
-read-only and Dirty PTEs also exist for copy-on-write (COW) pages.  These
-two cases are handled differently for page faults.  Introduce VM_SHSTK to
-track shadow stack VMAs.
+Shadow Stack provides protection against function return address
+corruption.  It is active when the processor supports it, the kernel has
+CONFIG_X86_INTEL_SHADOW_STACK_USER, and the application is built for the
+feature.  This is only implemented for the 64-bit kernel.  When it is
+enabled, legacy non-shadow stack applications continue to work, but witho=
+ut
+protection.
 
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
-v9:
-- Add VM_SHSTK case to arch_vma_name().
-- Revise the commit log to explain why adding a new VM flag.
+v10:
+- Change SHSTK to shadow stack in the help text.
+- Change build-time check to config-time check.
+- Change ARCH_HAS_SHSTK to ARCH_HAS_SHADOW_STACK.
 
- arch/x86/mm/mmap.c | 2 ++
- fs/proc/task_mmu.c | 3 +++
- include/linux/mm.h | 8 ++++++++
- 3 files changed, 13 insertions(+)
+ arch/x86/Kconfig                      | 30 +++++++++++++++++++++++++++
+ scripts/as-x86_64-has-shadow-stack.sh |  4 ++++
+ 2 files changed, 34 insertions(+)
+ create mode 100755 scripts/as-x86_64-has-shadow-stack.sh
 
-diff --git a/arch/x86/mm/mmap.c b/arch/x86/mm/mmap.c
-index cb91eccc4960..fe77fd6debf1 100644
---- a/arch/x86/mm/mmap.c
-+++ b/arch/x86/mm/mmap.c
-@@ -163,6 +163,8 @@ unsigned long get_mmap_base(int is_legacy)
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 1197b5596d5a..c98f82fffe85 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1947,6 +1947,36 @@ config X86_INTEL_TSX_MODE_AUTO
+ 	  side channel attacks- equals the tsx=3Dauto command line parameter.
+ endchoice
 =20
- const char *arch_vma_name(struct vm_area_struct *vma)
- {
-+	if (vma->vm_flags & VM_SHSTK)
-+		return "[shadow stack]";
- 	return NULL;
- }
-=20
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 8d382d4ec067..434692759265 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -657,6 +657,9 @@ static void show_smap_vma_flags(struct seq_file *m, s=
-truct vm_area_struct *vma)
- 		[ilog2(VM_PKEY_BIT4)]	=3D "",
- #endif
- #endif /* CONFIG_ARCH_HAS_PKEYS */
-+#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-+		[ilog2(VM_SHSTK)]	=3D "ss",
-+#endif
- 	};
- 	size_t i;
-=20
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 5a323422d783..54bb4cd9fee8 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -294,11 +294,13 @@ extern unsigned int kobjsize(const void *objp);
- #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures=
- */
- #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures=
- */
- #define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectures=
- */
-+#define VM_HIGH_ARCH_BIT_5	37	/* bit only usable on 64-bit architectures=
- */
- #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
- #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
- #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
- #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
- #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
-+#define VM_HIGH_ARCH_5	BIT(VM_HIGH_ARCH_BIT_5)
- #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
-=20
- #ifdef CONFIG_ARCH_HAS_PKEYS
-@@ -336,6 +338,12 @@ extern unsigned int kobjsize(const void *objp);
- # define VM_MPX		VM_NONE
- #endif
-=20
-+#ifdef CONFIG_X86_INTEL_SHADOW_STACK_USER
-+# define VM_SHSTK	VM_HIGH_ARCH_5
-+#else
-+# define VM_SHSTK	VM_NONE
-+#endif
++config AS_HAS_SHADOW_STACK
++	def_bool $(success,$(srctree)/scripts/as-x86_64-has-shadow-stack.sh $(C=
+C))
++	help
++	  Test the assembler for shadow stack instructions.
 +
- #ifndef VM_GROWSUP
- # define VM_GROWSUP	VM_NONE
- #endif
++config X86_INTEL_CET
++	def_bool n
++
++config ARCH_HAS_SHADOW_STACK
++	def_bool n
++
++config X86_INTEL_SHADOW_STACK_USER
++	prompt "Intel Shadow Stacks for user-mode"
++	def_bool n
++	depends on CPU_SUP_INTEL && X86_64
++	depends on AS_HAS_SHADOW_STACK
++	select ARCH_USES_HIGH_VMA_FLAGS
++	select X86_INTEL_CET
++	select ARCH_HAS_SHADOW_STACK
++	help
++	  Shadow Stacks provides protection against program stack
++	  corruption.  It's a hardware feature.  This only matters
++	  if you have the right hardware.  It's a security hardening
++	  feature and apps must be enabled to use it.  You get no
++	  protection "for free" on old userspace.  The hardware can
++	  support user and kernel, but this option is for user space
++	  only.
++
++	  If unsure, say y.
++
+ config EFI
+ 	bool "EFI runtime service support"
+ 	depends on ACPI
+diff --git a/scripts/as-x86_64-has-shadow-stack.sh b/scripts/as-x86_64-ha=
+s-shadow-stack.sh
+new file mode 100755
+index 000000000000..fac1d363a1b8
+--- /dev/null
++++ b/scripts/as-x86_64-has-shadow-stack.sh
+@@ -0,0 +1,4 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0
++
++echo "wrussq %rax, (%rbx)" | $* -x assembler -c -
 --=20
 2.21.0
