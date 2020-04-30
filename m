@@ -1,81 +1,57 @@
-Return-Path: <SRS0=Usf8=5Z=kvack.org=owner-linux-mm@kernel.org>
-Message-ID: <eb48f7b6327e482ea9911b129210c0417ab48345.camel@kernel.crashing.org>
-Subject: Re: [PATCH 19/28] gpu/drm: remove the powerpc hack in
- drm_legacy_sg_alloc
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Thu, 09 Apr 2020 18:54:01 +1000
-In-Reply-To: <20200408122504.GO3456981@phenom.ffwll.local>
-References: <20200408115926.1467567-1-hch@lst.de>
-	 <20200408115926.1467567-20-hch@lst.de>
-	 <20200408122504.GO3456981@phenom.ffwll.local>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Daniel Vetter <daniel@ffwll.ch>, Christoph Hellwig <hch@lst.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+Return-Path: <SRS0=3z+k=6O=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:41480 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726447AbgD3V0c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Apr 2020 17:26:32 -0400
+Date: Thu, 30 Apr 2020 22:26:24 +0100
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v10 00/13] arm64: Branch Target Identification support
+Message-ID: <20200430212623.GA802@willie-the-truck>
+References: <20200316165055.31179-1-broonie@kernel.org>
+ <20200422154436.GJ4898@sirena.org.uk>
+ <20200422162954.GF3585@gaia>
+ <20200428132804.GF6791@willie-the-truck>
+ <20200428151205.GH5677@sirena.org.uk>
+ <20200428151815.GB12697@willie-the-truck>
+ <20200428155808.GJ5677@sirena.org.uk>
+ <20200428160141.GD12697@willie-the-truck>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200428160141.GD12697@willie-the-truck>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200409085401.MaCxJGg1mqdq7J_Qc5Fa0tS1eTMqLYvr3Qh9WEWdg04@z>
+To: Mark Brown <broonie@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Paul Elliott <paul.elliott@arm.com>, Peter Zijlstra <peterz@infradead.org>, Yu-cheng Yu <yu-cheng.yu@intel.com>, Amit Kachhap <amit.kachhap@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Marc Zyngier <maz@kernel.org>, Eugene Syromiatnikov <esyr@redhat.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, "H . J . Lu " <hjl.tools@gmail.com>, Andrew Jones <drjones@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Richard Henderson <richard.henderson@linaro.org>, Kristina =?utf-8?Q?Mart=C5=A1enko?= <kristina.martsenko@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Florian Weimer <fweimer@redhat.com>, Sudakshina Das <sudi.das@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200430212624.75xssq4pfUPVw106og5rOlaommKYrEC3ilDgOTggfNc@z>
 
-On Wed, 2020-04-08 at 14:25 +0200, Daniel Vetter wrote:
-> On Wed, Apr 08, 2020 at 01:59:17PM +0200, Christoph Hellwig wrote:
-> > If this code was broken for non-coherent caches a crude powerpc hack
-> > isn't going to help anyone else.  Remove the hack as it is the last
-> > user of __vmalloc passing a page protection flag other than PAGE_KERNEL.
-> 
-> Well Ben added this to make stuff work on ppc, ofc the home grown dma
-> layer in drm from back then isn't going to work in other places. I guess
-> should have at least an ack from him, in case anyone still cares about
-> this on ppc. Adding Ben to cc.
-
-This was due to some drivers (radeon ?) trying to use vmalloc pages for
-coherent DMA, which means on those 4xx powerpc's need to be non-cached.
-
-There were machines using that (440 based iirc), though I honestly
-can't tell if anybody still uses any of it.
-
-Cheers,
-Ben.
-
-> -Daniel
-> 
+On Tue, Apr 28, 2020 at 05:01:43PM +0100, Will Deacon wrote:
+> On Tue, Apr 28, 2020 at 04:58:12PM +0100, Mark Brown wrote:
+> > On Tue, Apr 28, 2020 at 04:18:16PM +0100, Will Deacon wrote:
+> > > On Tue, Apr 28, 2020 at 04:12:05PM +0100, Mark Brown wrote:
 > > 
-> > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> > ---
-> >  drivers/gpu/drm/drm_scatter.c | 11 +----------
-> >  1 file changed, 1 insertion(+), 10 deletions(-)
+> > > > It's probably easier for me if you just use the existing branch, I've
+> > > > already got a branch based on a merge down.
 > > 
-> > diff --git a/drivers/gpu/drm/drm_scatter.c b/drivers/gpu/drm/drm_scatter.c
-> > index ca520028b2cb..f4e6184d1877 100644
-> > --- a/drivers/gpu/drm/drm_scatter.c
-> > +++ b/drivers/gpu/drm/drm_scatter.c
-> > @@ -43,15 +43,6 @@
-> >  
-> >  #define DEBUG_SCATTER 0
-> >  
-> > -static inline void *drm_vmalloc_dma(unsigned long size)
-> > -{
-> > -#if defined(__powerpc__) && defined(CONFIG_NOT_COHERENT_CACHE)
-> > -	return __vmalloc(size, GFP_KERNEL, pgprot_noncached_wc(PAGE_KERNEL));
-> > -#else
-> > -	return vmalloc_32(size);
-> > -#endif
-> > -}
-> > -
-> >  static void drm_sg_cleanup(struct drm_sg_mem * entry)
-> >  {
-> >  	struct page *page;
-> > @@ -126,7 +117,7 @@ int drm_legacy_sg_alloc(struct drm_device *dev, void *data,
-> >  		return -ENOMEM;
-> >  	}
-> >  
-> > -	entry->virtual = drm_vmalloc_dma(pages << PAGE_SHIFT);
-> > +	entry->virtual = vmalloc_32(pages << PAGE_SHIFT);
-> >  	if (!entry->virtual) {
-> >  		kfree(entry->busaddr);
-> >  		kfree(entry->pagelist);
-> > -- 
-> > 2.25.1
+> > > Okey doke, I'll funnel that in the direction of linux-next then. It does
+> > > mean that any subsequent patches for 5.8 that depend on BTI will need to
+> > > be based on this branch, so as long as you're ok with that then it's fine
+> > > by me (since I won't be able to apply patches if they refer to changes
+> > > introduced in the recent merge window).
 > > 
+> > That's not a problem, that's what I've got already and if I try to send
+> > everything based off -rc3 directly the series would get unmanagably
+> > large.  Actually unless you think it's a bad idea I think what I'll do
+> > is go and send out a couple of the preparatory changes (the insn updates
+> > and the last bit of annotation conversions) separately for that branch
+> > while I finalize the revisions of the main BTI kernel bit, hopefully
+> > that'll make the review a bit more approachable.
 > 
-> 
+> Okey doke, sounds good to me. I'm queuing stuff atm, so as long you tell
+> me what I need to apply things against then we should be good.
+
+Just a heads up: I've renamed for-next/bti to for-next/bti-user, so it
+doesn't get confusing with the pending in-kernel BTI patches. All the commit
+SHAs remain unchanged.
+
+Will
