@@ -1,119 +1,31 @@
-Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35730 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1727943AbgEOOh5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 10:37:57 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 17/29] riscv: use asm-generic/cacheflush.h
-Date: Fri, 15 May 2020 16:36:34 +0200
-Message-ID: <20200515143646.3857579-18-hch@lst.de>
-In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-References: <20200515143646.3857579-1-hch@lst.de>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Return-Path: <SRS0=xM+x=6P=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:58062 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726272AbgEAWJt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 1 May 2020 18:09:49 -0400
+Date: Fri, 1 May 2020 15:09:47 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 21/29] mm: remove the pgprot argument to __vmalloc
+Message-ID: <20200501150947.367ca6b38a394f1ff678ed4b@linux-foundation.org>
+In-Reply-To: <CAMeeMh_9N0ORhPM8EmkGeeuiDoQY3+QoAPX5QBuK7=gsC5ONng@mail.gmail.com>
+References: <20200414131348.444715-1-hch@lst.de>
+        <20200414131348.444715-22-hch@lst.de>
+        <20200414151344.zgt2pnq7cjq2bgv6@debian>
+        <CAMeeMh8Q3Od76WaTasw+BpYVF58P-HQMaiFKHxXbZ_Q3tQPZ=A@mail.gmail.com>
+        <CAMeeMh_9N0ORhPM8EmkGeeuiDoQY3+QoAPX5QBuK7=gsC5ONng@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org, Palmer Dabbelt <palmerdabbelt@google.com>
-Message-ID: <20200515143634.p_SWcDWs6ErpC5CKQBAdkg0M38-lm2pb8GTQoLlmY70@z>
+To: John Dorminy <jdorminy@redhat.com>
+Cc: Wei Liu <wei.liu@kernel.org>, Christoph Hellwig <hch@lst.de>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michael Kelley <mikelley@microsoft.com>, Gao Xiang <xiang@kernel.org>
+Message-ID: <20200501220947._1xiOEwkDklvZZz7Fwxf4mX19fNGlVJmErUuFGSSMSM@z>
 
-RISC-V needs almost no cache flushing routines of its own.  Rely on
-asm-generic/cacheflush.h for the defaults.
+On Thu, 30 Apr 2020 22:38:10 -0400 John Dorminy <jdorminy@redhat.com> wrote:
 
-Also remove the pointless __KERNEL__ ifdef while we're at it.
+> the change
+> description refers to PROT_KERNEL, which is a symbol which does not
+> appear to exist; perhaps PAGE_KERNEL was meant?
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Palmer Dabbelt <palmerdabbelt@google.com>
-Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
----
- arch/riscv/include/asm/cacheflush.h | 62 ++---------------------------
- 1 file changed, 3 insertions(+), 59 deletions(-)
-
-diff --git a/arch/riscv/include/asm/cacheflush.h b/arch/riscv/include/asm/cacheflush.h
-index c8677c75f82cb..a167b4fbdf007 100644
---- a/arch/riscv/include/asm/cacheflush.h
-+++ b/arch/riscv/include/asm/cacheflush.h
-@@ -8,65 +8,6 @@
- 
- #include <linux/mm.h>
- 
--#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
--
--/*
-- * The cache doesn't need to be flushed when TLB entries change when
-- * the cache is mapped to physical memory, not virtual memory
-- */
--static inline void flush_cache_all(void)
--{
--}
--
--static inline void flush_cache_mm(struct mm_struct *mm)
--{
--}
--
--static inline void flush_cache_dup_mm(struct mm_struct *mm)
--{
--}
--
--static inline void flush_cache_range(struct vm_area_struct *vma,
--				     unsigned long start,
--				     unsigned long end)
--{
--}
--
--static inline void flush_cache_page(struct vm_area_struct *vma,
--				    unsigned long vmaddr,
--				    unsigned long pfn)
--{
--}
--
--static inline void flush_dcache_mmap_lock(struct address_space *mapping)
--{
--}
--
--static inline void flush_dcache_mmap_unlock(struct address_space *mapping)
--{
--}
--
--static inline void flush_icache_page(struct vm_area_struct *vma,
--				     struct page *page)
--{
--}
--
--static inline void flush_cache_vmap(unsigned long start, unsigned long end)
--{
--}
--
--static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
--{
--}
--
--#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--	do { \
--		memcpy(dst, src, len); \
--		flush_icache_user_range(vma, page, vaddr, len); \
--	} while (0)
--#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
--
- static inline void local_flush_icache_all(void)
- {
- 	asm volatile ("fence.i" ::: "memory");
-@@ -79,6 +20,7 @@ static inline void flush_dcache_page(struct page *page)
- 	if (test_bit(PG_dcache_clean, &page->flags))
- 		clear_bit(PG_dcache_clean, &page->flags);
- }
-+#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
- 
- /*
-  * RISC-V doesn't have an instruction to flush parts of the instruction cache,
-@@ -105,4 +47,6 @@ void flush_icache_mm(struct mm_struct *mm, bool local);
- #define SYS_RISCV_FLUSH_ICACHE_LOCAL 1UL
- #define SYS_RISCV_FLUSH_ICACHE_ALL   (SYS_RISCV_FLUSH_ICACHE_LOCAL)
- 
-+#include <asm-generic/cacheflush.h>
-+
- #endif /* _ASM_RISCV_CACHEFLUSH_H */
--- 
-2.26.2
+Yes, thanks, fixed.
