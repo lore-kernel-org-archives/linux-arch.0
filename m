@@ -1,241 +1,127 @@
-Return-Path: <SRS0=F7pE=5Y=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 05/28] powerpc: add an ioremap_phb helper
-Date: Wed,  8 Apr 2020 13:59:03 +0200
-Message-ID: <20200408115926.1467567-6-hch@lst.de>
-In-Reply-To: <20200408115926.1467567-1-hch@lst.de>
-References: <20200408115926.1467567-1-hch@lst.de>
+Return-Path: <SRS0=rRjF=6P=kvack.org=owner-linux-mm@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
+References: <20200414131348.444715-1-hch@lst.de> <20200414131348.444715-22-hch@lst.de>
+ <20200414151344.zgt2pnq7cjq2bgv6@debian>
+In-Reply-To: <20200414151344.zgt2pnq7cjq2bgv6@debian>
+From: John Dorminy <jdorminy@redhat.com>
+Date: Thu, 30 Apr 2020 22:33:28 -0400
+Message-ID: <CAMeeMh8Q3Od76WaTasw+BpYVF58P-HQMaiFKHxXbZ_Q3tQPZ=A@mail.gmail.com>
+Subject: Re: [PATCH 21/29] mm: remove the pgprot argument to __vmalloc
+Content-Type: multipart/alternative; boundary="0000000000004b5c5705a48d02f1"
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, Wei Liu <wei.liu@kernel.org>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>
-Cc: Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Wei Liu <wei.liu@kernel.org>
+Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michael Kelley <mikelley@microsoft.com>, Gao Xiang <xiang@kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200408115903.i9cz053S4lU0doCzj5tBFStyLhuFCvZf4IyIEQy1J-4@z>
+Message-ID: <20200501023328.GSoBBo2VGmXDJsZfQVD6EqTAGnGUNi6akFXQB3fIEok@z>
 
-Factor code shared between pci_64 and electra_cf into a ioremap_pbh
-helper that follows the normal ioremap semantics, and returns a
-useful __iomem pointer.  Note that it opencodes __ioremap_at as
-we know from the callers the slab is available.  Switch pci_64
-to also store the result as __iomem pointer, and unmap the result
-using iounmap instead of force casting and using vmalloc APIs.
+--0000000000004b5c5705a48d02f1
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/powerpc/include/asm/io.h         |  2 +
- arch/powerpc/include/asm/pci-bridge.h |  2 +-
- arch/powerpc/kernel/pci_64.c          | 53 ++++++++++++++++++---------
- drivers/pcmcia/electra_cf.c           | 45 ++++++++---------------
- 4 files changed, 54 insertions(+), 48 deletions(-)
+Greetings;
 
-diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.=
-h
-index 635969b5b58e..71f1c5d69839 100644
---- a/arch/powerpc/include/asm/io.h
-+++ b/arch/powerpc/include/asm/io.h
-@@ -719,6 +719,8 @@ void __iomem *ioremap_coherent(phys_addr_t address, u=
-nsigned long size);
-=20
- extern void iounmap(volatile void __iomem *addr);
-=20
-+void __iomem *ioremap_pbh(phys_addr_t paddr, unsigned long size);
-+
- int early_ioremap_range(unsigned long ea, phys_addr_t pa,
- 			unsigned long size, pgprot_t prot);
- void __iomem *do_ioremap(phys_addr_t pa, phys_addr_t offset, unsigned lo=
-ng size,
-diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include=
-/asm/pci-bridge.h
-index 69f4cb3b7c56..b92e81b256e5 100644
---- a/arch/powerpc/include/asm/pci-bridge.h
-+++ b/arch/powerpc/include/asm/pci-bridge.h
-@@ -66,7 +66,7 @@ struct pci_controller {
-=20
- 	void __iomem *io_base_virt;
- #ifdef CONFIG_PPC64
--	void *io_base_alloc;
-+	void __iomem *io_base_alloc;
- #endif
- 	resource_size_t io_base_phys;
- 	resource_size_t pci_io_size;
-diff --git a/arch/powerpc/kernel/pci_64.c b/arch/powerpc/kernel/pci_64.c
-index f83d1f69b1dd..8e86bd9c1eca 100644
---- a/arch/powerpc/kernel/pci_64.c
-+++ b/arch/powerpc/kernel/pci_64.c
-@@ -109,23 +109,46 @@ int pcibios_unmap_io_space(struct pci_bus *bus)
- 	/* Get the host bridge */
- 	hose =3D pci_bus_to_host(bus);
-=20
--	/* Check if we have IOs allocated */
--	if (hose->io_base_alloc =3D=3D NULL)
--		return 0;
--
- 	pr_debug("IO unmapping for PHB %pOF\n", hose->dn);
- 	pr_debug("  alloc=3D0x%p\n", hose->io_base_alloc);
-=20
--	/* This is a PHB, we fully unmap the IO area */
--	vunmap(hose->io_base_alloc);
--
-+	iounmap(hose->io_base_alloc);
- 	return 0;
- }
- EXPORT_SYMBOL_GPL(pcibios_unmap_io_space);
-=20
--static int pcibios_map_phb_io_space(struct pci_controller *hose)
-+void __iomem *ioremap_pbh(phys_addr_t paddr, unsigned long size)
- {
- 	struct vm_struct *area;
-+	unsigned long addr;
-+
-+	WARN_ON_ONCE(paddr & ~PAGE_MASK);
-+	WARN_ON_ONCE(size & ~PAGE_MASK);
-+
-+	/*
-+	 * Let's allocate some IO space for that guy. We don't pass VM_IOREMAP
-+	 * because we don't care about alignment tricks that the core does in
-+	 * that case.  Maybe we should due to stupid card with incomplete
-+	 * address decoding but I'd rather not deal with those outside of the
-+	 * reserved 64K legacy region.
-+	 */
-+	area =3D __get_vm_area(size, 0, PHB_IO_BASE, PHB_IO_END);
-+	if (!area)
-+		return NULL;
-+
-+	addr =3D (unsigned long)area->addr;
-+	if (ioremap_page_range(addr, addr + size, paddr,
-+			pgprot_noncached(PAGE_KERNEL))) {
-+		unmap_kernel_range(addr, size);
-+		return NULL;
-+	}
-+
-+	return (void __iomem *)addr;
-+}
-+EXPORT_SYMBOL_GPL(ioremap_pbh);
-+
-+static int pcibios_map_phb_io_space(struct pci_controller *hose)
-+{
- 	unsigned long phys_page;
- 	unsigned long size_page;
- 	unsigned long io_virt_offset;
-@@ -146,12 +169,11 @@ static int pcibios_map_phb_io_space(struct pci_cont=
-roller *hose)
- 	 * with incomplete address decoding but I'd rather not deal with
- 	 * those outside of the reserved 64K legacy region.
- 	 */
--	area =3D __get_vm_area(size_page, 0, PHB_IO_BASE, PHB_IO_END);
--	if (area =3D=3D NULL)
-+	hose->io_base_alloc =3D ioremap_pbh(phys_page, size_page);
-+	if (!hose->io_base_alloc)
- 		return -ENOMEM;
--	hose->io_base_alloc =3D area->addr;
--	hose->io_base_virt =3D (void __iomem *)(area->addr +
--					      hose->io_base_phys - phys_page);
-+	hose->io_base_virt =3D hose->io_base_alloc +
-+				hose->io_base_phys - phys_page;
-=20
- 	pr_debug("IO mapping for PHB %pOF\n", hose->dn);
- 	pr_debug("  phys=3D0x%016llx, virt=3D0x%p (alloc=3D0x%p)\n",
-@@ -159,11 +181,6 @@ static int pcibios_map_phb_io_space(struct pci_contr=
-oller *hose)
- 	pr_debug("  size=3D0x%016llx (alloc=3D0x%016lx)\n",
- 		 hose->pci_io_size, size_page);
-=20
--	/* Establish the mapping */
--	if (__ioremap_at(phys_page, area->addr, size_page,
--			 pgprot_noncached(PAGE_KERNEL)) =3D=3D NULL)
--		return -ENOMEM;
--
- 	/* Fixup hose IO resource */
- 	io_virt_offset =3D pcibios_io_space_offset(hose);
- 	hose->io_resource.start +=3D io_virt_offset;
-diff --git a/drivers/pcmcia/electra_cf.c b/drivers/pcmcia/electra_cf.c
-index f2741c04289d..77b229f8d218 100644
---- a/drivers/pcmcia/electra_cf.c
-+++ b/drivers/pcmcia/electra_cf.c
-@@ -178,10 +178,9 @@ static int electra_cf_probe(struct platform_device *=
-ofdev)
- 	struct device_node *np =3D ofdev->dev.of_node;
- 	struct electra_cf_socket   *cf;
- 	struct resource mem, io;
--	int status;
-+	int status =3D -ENOMEM;
- 	const unsigned int *prop;
- 	int err;
--	struct vm_struct *area;
-=20
- 	err =3D of_address_to_resource(np, 0, &mem);
- 	if (err)
-@@ -202,30 +201,19 @@ static int electra_cf_probe(struct platform_device =
-*ofdev)
- 	cf->mem_phys =3D mem.start;
- 	cf->mem_size =3D PAGE_ALIGN(resource_size(&mem));
- 	cf->mem_base =3D ioremap(cf->mem_phys, cf->mem_size);
-+	if (!cf->mem_base)
-+		goto out_free_cf;
- 	cf->io_size =3D PAGE_ALIGN(resource_size(&io));
--
--	area =3D __get_vm_area(cf->io_size, 0, PHB_IO_BASE, PHB_IO_END);
--	if (area =3D=3D NULL) {
--		status =3D -ENOMEM;
--		goto fail1;
--	}
--
--	cf->io_virt =3D (void __iomem *)(area->addr);
-+	cf->io_virt =3D ioremap_pbh(io.start, cf->io_size);
-+	if (!cf->io_virt)
-+		goto out_unmap_mem;
-=20
- 	cf->gpio_base =3D ioremap(0xfc103000, 0x1000);
-+	if (!cf->gpio_base)
-+		goto out_unmap_virt;
- 	dev_set_drvdata(device, cf);
-=20
--	if (!cf->mem_base || !cf->io_virt || !cf->gpio_base ||
--	    (__ioremap_at(io.start, cf->io_virt, cf->io_size,
--			  pgprot_noncached(PAGE_KERNEL)) =3D=3D NULL)) {
--		dev_err(device, "can't ioremap ranges\n");
--		status =3D -ENOMEM;
--		goto fail1;
--	}
--
--
- 	cf->io_base =3D (unsigned long)cf->io_virt - VMALLOC_END;
--
- 	cf->iomem.start =3D (unsigned long)cf->mem_base;
- 	cf->iomem.end =3D (unsigned long)cf->mem_base + (mem.end - mem.start);
- 	cf->iomem.flags =3D IORESOURCE_MEM;
-@@ -305,14 +293,13 @@ static int electra_cf_probe(struct platform_device =
-*ofdev)
- 	if (cf->irq)
- 		free_irq(cf->irq, cf);
-=20
--	if (cf->io_virt)
--		__iounmap_at(cf->io_virt, cf->io_size);
--	if (cf->mem_base)
--		iounmap(cf->mem_base);
--	if (cf->gpio_base)
--		iounmap(cf->gpio_base);
--	if (area)
--		device_init_wakeup(&ofdev->dev, 0);
-+	iounmap(cf->gpio_base);
-+out_unmap_virt:
-+	device_init_wakeup(&ofdev->dev, 0);
-+	iounmap(cf->io_virt);
-+out_unmap_mem:
-+	iounmap(cf->mem_base);
-+out_free_cf:
- 	kfree(cf);
- 	return status;
-=20
-@@ -330,7 +317,7 @@ static int electra_cf_remove(struct platform_device *=
-ofdev)
- 	free_irq(cf->irq, cf);
- 	del_timer_sync(&cf->timer);
-=20
--	__iounmap_at(cf->io_virt, cf->io_size);
-+	iounmap(cf->io_virt);
- 	iounmap(cf->mem_base);
- 	iounmap(cf->gpio_base);
- 	release_mem_region(cf->mem_phys, cf->mem_size);
---=20
-2.25.1
+I recently noticed this change via the linux-next tree.
+
+It may not be possible to edit at this late date, but the change
+description refers to PROT_KERNEL, which is a symbol which does not appear
+to exist; perhaps PAGE_KERNEL was meant? The mismatch caused me and a
+couple other folks some confusion briefly until we decided it was supposed
+to be PAGE_KERNEL; if it's not too late, editing the description to clarify
+so would be nice.
+
+Many thanks.
+
+John Dorminy
+
+
+
+On Tue, Apr 14, 2020 at 11:15 AM Wei Liu <wei.liu@kernel.org> wrote:
+
+> On Tue, Apr 14, 2020 at 03:13:40PM +0200, Christoph Hellwig wrote:
+> > The pgprot argument to __vmalloc is always PROT_KERNEL now, so remove
+> > it.
+> >
+> > Signed-off-by: Christoph Hellwig <hch@lst.de>
+> > Reviewed-by: Michael Kelley <mikelley@microsoft.com> [hyperv]
+> > Acked-by: Gao Xiang <xiang@kernel.org> [erofs]
+> > Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > ---
+> >  arch/x86/hyperv/hv_init.c              |  3 +--
+> [...]
+> >
+> > diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
+> > index 5a4b363ba67b..a3d689dfc745 100644
+> > --- a/arch/x86/hyperv/hv_init.c
+> > +++ b/arch/x86/hyperv/hv_init.c
+> > @@ -95,8 +95,7 @@ static int hv_cpu_init(unsigned int cpu)
+> >        * not be stopped in the case of CPU offlining and the VM will
+> hang.
+> >        */
+> >       if (!*hvp) {
+> > -             *hvp =3D __vmalloc(PAGE_SIZE, GFP_KERNEL | __GFP_ZERO,
+> > -                              PAGE_KERNEL);
+> > +             *hvp =3D __vmalloc(PAGE_SIZE, GFP_KERNEL | __GFP_ZERO);
+> >       }
+>
+> Acked-by: Wei Liu <wei.liu@kernel.org>
+>
+>
+
+--0000000000004b5c5705a48d02f1
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr"><div>Greetings;<br><br></div><div>I recently noticed this =
+change via the linux-next tree.</div><div><br></div><div>It may not be poss=
+ible to edit at this late date, but the change description refers to PROT_K=
+ERNEL, which is a symbol which does not appear to exist; perhaps PAGE_KERNE=
+L was meant? The mismatch caused me and a couple other folks some confusion=
+ briefly until we decided it was supposed to be PAGE_KERNEL; if it&#39;s no=
+t too late, editing the description to clarify so would be nice.<br><br></d=
+iv><div>Many thanks.<br><br></div><div>John Dorminy<br></div><div><br><br><=
+/div></div><br><div class=3D"gmail_quote"><div dir=3D"ltr" class=3D"gmail_a=
+ttr">On Tue, Apr 14, 2020 at 11:15 AM Wei Liu &lt;<a href=3D"mailto:wei.liu=
+@kernel.org">wei.liu@kernel.org</a>&gt; wrote:<br></div><blockquote class=
+=3D"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex;border-left:1px solid rg=
+b(204,204,204);padding-left:1ex">On Tue, Apr 14, 2020 at 03:13:40PM +0200, =
+Christoph Hellwig wrote:<br>
+&gt; The pgprot argument to __vmalloc is always PROT_KERNEL now, so remove<=
+br>
+&gt; it.<br>
+&gt; <br>
+&gt; Signed-off-by: Christoph Hellwig &lt;<a href=3D"mailto:hch@lst.de" tar=
+get=3D"_blank">hch@lst.de</a>&gt;<br>
+&gt; Reviewed-by: Michael Kelley &lt;<a href=3D"mailto:mikelley@microsoft.c=
+om" target=3D"_blank">mikelley@microsoft.com</a>&gt; [hyperv]<br>
+&gt; Acked-by: Gao Xiang &lt;<a href=3D"mailto:xiang@kernel.org" target=3D"=
+_blank">xiang@kernel.org</a>&gt; [erofs]<br>
+&gt; Acked-by: Peter Zijlstra (Intel) &lt;<a href=3D"mailto:peterz@infradea=
+d.org" target=3D"_blank">peterz@infradead.org</a>&gt;<br>
+&gt; ---<br>
+&gt;=C2=A0 arch/x86/hyperv/hv_init.c=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 |=C2=A0 3 +--<br>
+[...]<br>
+&gt; <br>
+&gt; diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c<br>
+&gt; index 5a4b363ba67b..a3d689dfc745 100644<br>
+&gt; --- a/arch/x86/hyperv/hv_init.c<br>
+&gt; +++ b/arch/x86/hyperv/hv_init.c<br>
+&gt; @@ -95,8 +95,7 @@ static int hv_cpu_init(unsigned int cpu)<br>
+&gt;=C2=A0 =C2=A0 =C2=A0 =C2=A0 * not be stopped in the case of CPU offlini=
+ng and the VM will hang.<br>
+&gt;=C2=A0 =C2=A0 =C2=A0 =C2=A0 */<br>
+&gt;=C2=A0 =C2=A0 =C2=A0 =C2=A0if (!*hvp) {<br>
+&gt; -=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0*hvp =3D __vmalloc(PA=
+GE_SIZE, GFP_KERNEL | __GFP_ZERO,<br>
+&gt; -=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
+ =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 PAGE_KERNEL);<br>
+&gt; +=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0*hvp =3D __vmalloc(PA=
+GE_SIZE, GFP_KERNEL | __GFP_ZERO);<br>
+&gt;=C2=A0 =C2=A0 =C2=A0 =C2=A0}<br>
+<br>
+Acked-by: Wei Liu &lt;<a href=3D"mailto:wei.liu@kernel.org" target=3D"_blan=
+k">wei.liu@kernel.org</a>&gt;<br>
+<br>
+</blockquote></div>
+
+--0000000000004b5c5705a48d02f1--
