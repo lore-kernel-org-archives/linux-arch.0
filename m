@@ -1,81 +1,215 @@
-Return-Path: <SRS0=wOT8=6T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39456 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729019AbgEENQ3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 May 2020 09:16:29 -0400
-Date: Tue, 5 May 2020 14:16:19 +0100
-From: Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Subject: Re: RFC: Adding arch-specific user ABI documentation in linux-man
-Message-ID: <20200505131619.GG1551@shell.armlinux.org.uk>
-References: <20200504153214.GH30377@arm.com>
- <20200505104454.GC19710@willie-the-truck>
- <20200505124351.GF1551@shell.armlinux.org.uk>
- <20200505130629.GK19710@willie-the-truck>
+Return-Path: <SRS0=mjUA=6Q=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41964 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726306AbgEBSsG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 2 May 2020 14:48:06 -0400
+Date: Sun, 3 May 2020 00:17:48 +0530
+From: Syed Nayyar Waris <syednwaris@gmail.com>
+Subject: [PATCH v4 1/4] bitops: Introduce the the for_each_set_clump macro
+Message-ID: <2334ac49d10856db92cb1ca791641fd3200f18af.1588443578.git.syednwaris@gmail.com>
+References: <cover.1588443578.git.syednwaris@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20200505130629.GK19710@willie-the-truck>
+In-Reply-To: <cover.1588443578.git.syednwaris@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Dave Martin <Dave.Martin@arm.com>, linux-arch@vger.kernel.org, linux-man@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200505131619.fD7WqxjILv71Vlz7cgMPJ1QYSr_rUP6dLtcWJaPnVck@z>
+To: akpm@linux-foundation.org
+Cc: andriy.shevchenko@linux.intel.com, vilhelm.gray@gmail.com, arnd@arndb.de, linus.walleij@linaro.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200502184748.NOyEUhdcjGL-maiDi3CzIulPszX5sAeBW6K6RkGtHy0@z>
 
-On Tue, May 05, 2020 at 02:06:30PM +0100, Will Deacon wrote:
-> On Tue, May 05, 2020 at 01:43:51PM +0100, Russell King - ARM Linux admin wrote:
-> > On Tue, May 05, 2020 at 11:44:55AM +0100, Will Deacon wrote:
-> > > Michael has been nagging me on and off about that for, what, 10 years now?
-> > > I would therefore be very much in favour of having our ptrace extensions
-> > > documented!
-> > > 
-> > > We could even put this stuff under Documentation/arm64/man/ if it's deemed
-> > > too CPU-specific for the man-pages project, but my preference would still
-> > > be for it to be hosted there alongside all the other man pages.
-> > 
-> > Stuffing random things into the kernel tree is painful for some people.
-> > 
-> > For example, if you cross-build your kernel, then the stuff in the
-> > tools/ subdirectory is totally useless (I think everything except
-> > perf) because you can't build it.
-> > 
-> > Let's stop making the mistake of constantly shoving stuff into the
-> > kernel source tree.
-> 
-> For userspace tools, I'm inclined to agree, but this is just documentation
-> so it shouldn't cause any issues with cross building. But to be clear: I'd
-> still prefer it to be part of the man-pages project, and would only consider
-> it for inclusion in the kernel tree if it was rejected for being too
-> CPU-specific.
+This macro iterates for each group of bits (clump) with set bits,
+within a bitmap memory region. For each iteration, "start" is set to
+the bit offset of the found clump, while the respective clump value is
+stored to the location pointed by "clump". Additionally, the
+bitmap_get_value and bitmap_set_value functions are introduced to
+respectively get and set a value of n-bits in a bitmap memory region.
+The n-bits can have any size less than or equal to BITS_PER_LONG.
+Moreover, during setting value of n-bit in bitmap, if a situation arise
+that the width of next n-bit is exceeding the word boundary, then it
+will divide itself such that some portion of it is stored in that word,
+while the remaining portion is stored in the next higher word. Similar
+situation occurs while retrieving value of n-bits from bitmap.
 
-I don't think that should be a concern; the man-pages project already
-contains documentation that is specific to kernel versions, including
-documentation for interfaces that are architecture specific (such as
-prctl is a big one, ptrace to a lesser extent.)  syscall(2) contains
-a whole bunch of architecture stuff about the calling convention for
-syscalls.
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Syed Nayyar Waris <syednwaris@gmail.com>
+Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+---
+Changes in v4:
+ - No change
 
-Interestingly, I notice that syscall(2) is wrong for arm/OABI. I am
-not surprised, because that documentation never came my way, and I am
-the author of the kernel's OABI syscall interface.
+Changes in v3:
+ - No change
 
-It claims:
+Changes in v2:
+ - No change
 
-       arch/ABI      arg1  arg2  arg3  arg4  arg5  arg6  arg7  Notes
-       ──────────────────────────────────────────────────────────────
-       arm/OABI      a1    a2    a3    a4    v1    v2    v3
+ include/asm-generic/bitops/find.h | 19 ++++++++++
+ include/linux/bitmap.h            | 61 +++++++++++++++++++++++++++++++
+ include/linux/bitops.h            | 13 +++++++
+ lib/find_bit.c                    | 14 +++++++
+ 4 files changed, 107 insertions(+)
 
-whereas, at the time I invented it, I decided that it shall pass
-arguments in r0 to r6.  That's r0 to r6.  Not the APCS register
-names that this document claims.  Not everything in OABI is APCS,
-as illustrated here - APCS passes the first four arguments in a1
-to a4, and then the rest on the stack.  The OABI syscall interface
-doesn't do that.
-
-I guess that's what happens when someone else writes interface
-documentation and doesn't bother to get it reviewed by those who
-created the interface in the first place.
-
+diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
+index 9fdf21302fdf..4e6600759455 100644
+--- a/include/asm-generic/bitops/find.h
++++ b/include/asm-generic/bitops/find.h
+@@ -97,4 +97,23 @@ extern unsigned long find_next_clump8(unsigned long *clump,
+ #define find_first_clump8(clump, bits, size) \
+ 	find_next_clump8((clump), (bits), (size), 0)
+ 
++/**
++ * find_next_clump - find next clump with set bits in a memory region
++ * @clump: location to store copy of found clump
++ * @addr: address to base the search on
++ * @size: bitmap size in number of bits
++ * @offset: bit offset at which to start searching
++ * @clump_size: clump size in bits
++ *
++ * Returns the bit offset for the next set clump; the found clump value is
++ * copied to the location pointed by @clump. If no bits are set, returns @size.
++ */
++extern unsigned long find_next_clump(unsigned long *clump,
++				      const unsigned long *addr,
++				      unsigned long size, unsigned long offset,
++				      unsigned long clump_size);
++
++#define find_first_clump(clump, bits, size, clump_size) \
++	find_next_clump((clump), (bits), (size), 0, (clump_size))
++
+ #endif /*_ASM_GENERIC_BITOPS_FIND_H_ */
+diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
+index 99058eb81042..7ab2c65fc964 100644
+--- a/include/linux/bitmap.h
++++ b/include/linux/bitmap.h
+@@ -75,7 +75,11 @@
+  *  bitmap_from_arr32(dst, buf, nbits)          Copy nbits from u32[] buf to dst
+  *  bitmap_to_arr32(buf, src, nbits)            Copy nbits from buf to u32[] dst
+  *  bitmap_get_value8(map, start)               Get 8bit value from map at start
++ *  bitmap_get_value(map, start, nbits)		Get bit value of size
++ *						'nbits' from map at start
+  *  bitmap_set_value8(map, value, start)        Set 8bit value to map at start
++ *  bitmap_set_value(map, value, start, nbits)	Set bit value of size 'nbits'
++ *						of map at start
+  *
+  * Note, bitmap_zero() and bitmap_fill() operate over the region of
+  * unsigned longs, that is, bits behind bitmap till the unsigned long
+@@ -563,6 +567,34 @@ static inline unsigned long bitmap_get_value8(const unsigned long *map,
+ 	return (map[index] >> offset) & 0xFF;
+ }
+ 
++/**
++ * bitmap_get_value - get a value of n-bits from the memory region
++ * @map: address to the bitmap memory region
++ * @start: bit offset of the n-bit value
++ * @nbits: size of value in bits
++ *
++ * Returns value of nbits located at the @start bit offset within the @map
++ * memory region.
++ */
++static inline unsigned long bitmap_get_value(const unsigned long *map,
++					      unsigned long start,
++					      unsigned long nbits)
++{
++	const size_t index = BIT_WORD(start);
++	const unsigned long offset = start % BITS_PER_LONG;
++	const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
++	const unsigned long space = ceiling - start;
++	unsigned long value_low, value_high;
++
++	if (space >= nbits)
++		return (map[index] >> offset) & GENMASK(nbits - 1, 0);
++	else {
++		value_low = map[index] & BITMAP_FIRST_WORD_MASK(start);
++		value_high = map[index + 1] & BITMAP_LAST_WORD_MASK(start + nbits);
++		return (value_low >> offset) | (value_high << space);
++	}
++}
++
+ /**
+  * bitmap_set_value8 - set an 8-bit value within a memory region
+  * @map: address to the bitmap memory region
+@@ -579,6 +611,35 @@ static inline void bitmap_set_value8(unsigned long *map, unsigned long value,
+ 	map[index] |= value << offset;
+ }
+ 
++/**
++ * bitmap_set_value - set n-bit value within a memory region
++ * @map: address to the bitmap memory region
++ * @value: value of nbits
++ * @start: bit offset of the n-bit value
++ * @nbits: size of value in bits
++ */
++static inline void bitmap_set_value(unsigned long *map,
++				    unsigned long value,
++				    unsigned long start, unsigned long nbits)
++{
++	const size_t index = BIT_WORD(start);
++	const unsigned long offset = start % BITS_PER_LONG;
++	const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
++	const unsigned long space = ceiling - start;
++
++	value &= GENMASK(nbits - 1, 0);
++
++	if (space >= nbits) {
++		map[index] &= ~(GENMASK(nbits + offset - 1, offset));
++		map[index] |= value << offset;
++	} else {
++		map[index] &= ~BITMAP_FIRST_WORD_MASK(start);
++		map[index] |= value << offset;
++		map[index + 1] &= ~BITMAP_LAST_WORD_MASK(start + nbits);
++		map[index + 1] |= (value >> space);
++	}
++}
++
+ #endif /* __ASSEMBLY__ */
+ 
+ #endif /* __LINUX_BITMAP_H */
+diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+index 9acf654f0b19..41c2d9ce63e7 100644
+--- a/include/linux/bitops.h
++++ b/include/linux/bitops.h
+@@ -62,6 +62,19 @@ extern unsigned long __sw_hweight64(__u64 w);
+ 	     (start) < (size); \
+ 	     (start) = find_next_clump8(&(clump), (bits), (size), (start) + 8))
+ 
++/**
++ * for_each_set_clump - iterate over bitmap for each clump with set bits
++ * @start: bit offset to start search and to store the current iteration offset
++ * @clump: location to store copy of current 8-bit clump
++ * @bits: bitmap address to base the search on
++ * @size: bitmap size in number of bits
++ * @clump_size: clump size in bits
++ */
++#define for_each_set_clump(start, clump, bits, size, clump_size) \
++	for ((start) = find_first_clump(&(clump), (bits), (size), (clump_size)); \
++	     (start) < (size); \
++	     (start) = find_next_clump(&(clump), (bits), (size), (start) + (clump_size), (clump_size)))
++
+ static inline int get_bitmask_order(unsigned int count)
+ {
+ 	int order;
+diff --git a/lib/find_bit.c b/lib/find_bit.c
+index 49f875f1baf7..1341bd39b32a 100644
+--- a/lib/find_bit.c
++++ b/lib/find_bit.c
+@@ -190,3 +190,17 @@ unsigned long find_next_clump8(unsigned long *clump, const unsigned long *addr,
+ 	return offset;
+ }
+ EXPORT_SYMBOL(find_next_clump8);
++
++unsigned long find_next_clump(unsigned long *clump, const unsigned long *addr,
++			       unsigned long size, unsigned long offset,
++			       unsigned long clump_size)
++{
++	offset = find_next_bit(addr, size, offset);
++	if (offset == size)
++		return size;
++
++	offset = rounddown(offset, clump_size);
++	*clump = bitmap_get_value(addr, offset, clump_size);
++	return offset;
++}
++EXPORT_SYMBOL(find_next_clump);
 -- 
-RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line in suburbia: sync at 10.2Mbps down 587kbps up
+2.26.2
