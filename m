@@ -1,104 +1,125 @@
-Return-Path: <SRS0=W/Kb=6W=kvack.org=owner-linux-mm@kernel.org>
-From: Joerg Roedel <joro@8bytes.org>
-Subject: [RFC PATCH 5/7] x86/mm/32: Implement arch_sync_kernel_mappings()
-Date: Fri,  8 May 2020 16:40:41 +0200
-Message-ID: <20200508144043.13893-6-joro@8bytes.org>
-In-Reply-To: <20200508144043.13893-1-joro@8bytes.org>
-References: <20200508144043.13893-1-joro@8bytes.org>
-Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org
-Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Return-Path: <SRS0=mjUA=6Q=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54108 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1728587AbgEBXJJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 2 May 2020 19:09:09 -0400
+Date: Sun, 3 May 2020 04:38:36 +0530
+From: Syed Nayyar Waris <syednwaris@gmail.com>
+Subject: [PATCH v5 0/4] Introduce the for_each_set_clump macro
+Message-ID: <cover.1588460322.git.syednwaris@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200508144041.7n7oGuO31bfYdCviqZE1creBMQuAGy3Y0Sn99BpHyP8@z>
+To: akpm@linux-foundation.org
+Cc: andriy.shevchenko@linux.intel.com, vilhelm.gray@gmail.com, michal.simek@xilinx.com, arnd@arndb.de, rrichter@marvell.com, linus.walleij@linaro.org, bgolaszewski@baylibre.com, yamada.masahiro@socionext.com, rui.zhang@intel.com, daniel.lezcano@linaro.org, amit.kucheria@verdurent.com, linux-arch@vger.kernel.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org
+Message-ID: <20200502230836.rs18jvBN0mlqEhtcrfHYhA8B4uFnSZCJAo95TP8oT3E@z>
 
-From: Joerg Roedel <jroedel@suse.de>
+This patchset introduces a new generic version of for_each_set_clump. 
+The previous version of for_each_set_clump8 used a fixed size 8-bit
+clump, but the new generic version can work with clump of any size but
+less than or equal to BITS_PER_LONG. The patchset utilizes the new macro 
+in several GPIO drivers.
 
-Implement the function to sync changes in vmalloc and ioremap ranges
-to all page-tables.
+The earlier 8-bit for_each_set_clump8 facilitated a
+for-loop syntax that iterates over a memory region entire groups of set
+bits at a time.
 
-Signed-off-by: Joerg Roedel <jroedel@suse.de>
----
- arch/x86/include/asm/pgtable-2level_types.h |  2 ++
- arch/x86/include/asm/pgtable-3level_types.h |  2 ++
- arch/x86/mm/fault.c                         | 25 +++++++++++++--------
- 3 files changed, 20 insertions(+), 9 deletions(-)
+For example, suppose you would like to iterate over a 32-bit integer 8
+bits at a time, skipping over 8-bit groups with no set bit, where
+XXXXXXXX represents the current 8-bit group:
 
-diff --git a/arch/x86/include/asm/pgtable-2level_types.h b/arch/x86/include/asm/pgtable-2level_types.h
-index 6deb6cd236e3..7f6ccff0ba72 100644
---- a/arch/x86/include/asm/pgtable-2level_types.h
-+++ b/arch/x86/include/asm/pgtable-2level_types.h
-@@ -20,6 +20,8 @@ typedef union {
- 
- #define SHARED_KERNEL_PMD	0
- 
-+#define ARCH_PAGE_TABLE_SYNC_MASK	PGTBL_PMD_MODIFIED
-+
- /*
-  * traditional i386 two-level paging structure:
-  */
-diff --git a/arch/x86/include/asm/pgtable-3level_types.h b/arch/x86/include/asm/pgtable-3level_types.h
-index 33845d36897c..80fbb4a9ed87 100644
---- a/arch/x86/include/asm/pgtable-3level_types.h
-+++ b/arch/x86/include/asm/pgtable-3level_types.h
-@@ -27,6 +27,8 @@ typedef union {
- #define SHARED_KERNEL_PMD	(!static_cpu_has(X86_FEATURE_PTI))
- #endif
- 
-+#define ARCH_PAGE_TABLE_SYNC_MASK	(SHARED_KERNEL_PMD ? 0 : PGTBL_PMD_MODIFIED)
-+
- /*
-  * PGDIR_SHIFT determines what a top-level page table entry can map
-  */
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index a51df516b87b..edeb2adaf31f 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -190,16 +190,13 @@ static inline pmd_t *vmalloc_sync_one(pgd_t *pgd, unsigned long address)
- 	return pmd_k;
- }
- 
--static void vmalloc_sync(void)
-+void arch_sync_kernel_mappings(unsigned long start, unsigned long end)
- {
--	unsigned long address;
--
--	if (SHARED_KERNEL_PMD)
--		return;
-+	unsigned long addr;
- 
--	for (address = VMALLOC_START & PMD_MASK;
--	     address >= TASK_SIZE_MAX && address < VMALLOC_END;
--	     address += PMD_SIZE) {
-+	for (addr = start & PMD_MASK;
-+	     addr >= TASK_SIZE_MAX && addr < VMALLOC_END;
-+	     addr += PMD_SIZE) {
- 		struct page *page;
- 
- 		spin_lock(&pgd_lock);
-@@ -210,13 +207,23 @@ static void vmalloc_sync(void)
- 			pgt_lock = &pgd_page_get_mm(page)->page_table_lock;
- 
- 			spin_lock(pgt_lock);
--			vmalloc_sync_one(page_address(page), address);
-+			vmalloc_sync_one(page_address(page), addr);
- 			spin_unlock(pgt_lock);
- 		}
- 		spin_unlock(&pgd_lock);
- 	}
- }
- 
-+static void vmalloc_sync(void)
-+{
-+	unsigned long address;
-+
-+	if (SHARED_KERNEL_PMD)
-+		return;
-+
-+	arch_sync_kernel_mappings(VMALLOC_START, VMALLOC_END);
-+}
-+
- void vmalloc_sync_mappings(void)
- {
- 	vmalloc_sync();
+    Example:        10111110 00000000 11111111 00110011
+    First loop:     10111110 00000000 11111111 XXXXXXXX
+    Second loop:    10111110 00000000 XXXXXXXX 00110011
+    Third loop:     XXXXXXXX 00000000 11111111 00110011
+
+Each iteration of the loop returns the next 8-bit group that has at
+least one set bit.
+
+But with the new for_each_set_clump the clump size can be different from 8 bits.
+Moreover, the clump can be split at word boundary in situations where word 
+size is not multiple of clump size. Following are examples showing the working 
+of new macro for clump sizes of 24 bits and 6 bits.
+
+Example 1:
+clump size: 24 bits, Number of clumps (or ports): 10
+bitmap stores the bit information from where successive clumps are retrieved.
+
+     /* bitmap memory region */
+        0x00aa0000ff000000;  /* Most significant bits */
+        0xaaaaaa0000ff0000;
+        0x000000aa000000aa;
+        0xbbbbabcdeffedcba;  /* Least significant bits */
+
+Different iterations of for_each_set_clump:-
+'offset' is the bit position and 'clump' is the 24 bit clump from the
+above bitmap.
+Iteration first:        offset: 0 clump: 0xfedcba
+Iteration second:       offset: 24 clump: 0xabcdef
+Iteration third:        offset: 48 clump: 0xaabbbb
+Iteration fourth:       offset: 96 clump: 0xaa
+Iteration fifth:        offset: 144 clump: 0xff
+Iteration sixth:        offset: 168 clump: 0xaaaaaa
+Iteration seventh:      offset: 216 clump: 0xff
+Loop breaks because in the end the remaining bits (0x00aa) size was less
+than clump size of 24 bits.
+
+In above example it can be seen that in iteration third, the 24 bit clump
+that was retrieved was split between bitmap[0] and bitmap[1]. This example 
+also shows that 24 bit zeroes if present in between, were skipped (preserving
+the previous for_each_set_macro8 behaviour). 
+
+Example 2:
+clump size = 6 bits, Number of clumps (or ports) = 3.
+
+     /* bitmap memory region */
+        0x00aa0000ff000000;  /* Most significant bits */
+        0xaaaaaa0000ff0000;
+        0x0f00000000000000;
+        0x0000000000000ac0;  /* Least significant bits */
+
+Different iterations of for_each_set_clump:
+'offset' is the bit position and 'clump' is the 6 bit clump from the
+above bitmap.
+Iteration first:        offset: 6 clump: 0x2b
+Loop breaks because 6 * 3 = 18 bits traversed in bitmap.
+Here 6 * 3 is clump size * no. of clumps.
+
+Changes in v5:
+ - [Patch 4/4]: Minor change: Hardcode value for better code readability.
+
+Changes in v4:
+ - [Patch 2/4]: Use 'for' loop in test function of for_each_set_clump.
+ - [Patch 3/4]: Minor change: Hardcode value for better code readability.
+ - [Patch 4/4]: Minor change: Hardcode value for better code readability.
+
+Changes in v3:
+ - [Patch 3/4]: Change datatype of some variables from u64 to unsigned long
+   in function thunderx_gpio_set_multiple.
+
+CHanges in v2:
+ - [Patch 2/4]: Unify different tests for 'for_each_set_clump'. Pass test data as
+   function parameters.
+ - [Patch 2/4]: Remove unnecessary bitmap_zero calls.
+
+Syed Nayyar Waris (4):
+  bitops: Introduce the the for_each_set_clump macro
+  lib/test_bitmap.c: Add for_each_set_clump test cases
+  gpio: thunderx: Utilize for_each_set_clump macro
+  gpio: xilinx: Utilize for_each_set_clump macro
+
+ drivers/gpio/gpio-thunderx.c      |  11 ++-
+ drivers/gpio/gpio-xilinx.c        |  62 ++++++-------
+ include/asm-generic/bitops/find.h |  19 ++++
+ include/linux/bitmap.h            |  61 +++++++++++++
+ include/linux/bitops.h            |  13 +++
+ lib/find_bit.c                    |  14 +++
+ lib/test_bitmap.c                 | 141 ++++++++++++++++++++++++++++++
+ 7 files changed, 287 insertions(+), 34 deletions(-)
+
+
+base-commit: 25c04a75f14fdc074d7dd1d6d40b49eddd0e66e7
 -- 
-2.17.1
+2.26.2
