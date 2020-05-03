@@ -1,67 +1,54 @@
-Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH v3 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Date: Fri, 15 May 2020 16:00:16 +0200
-Message-ID: <20200515140023.25469-1-joro@8bytes.org>
-Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org
-Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Return-Path: <SRS0=N0+l=6R=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from eu-smtp-delivery-151.mimecast.com ([207.82.80.151]:58366 "EHLO
+        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728522AbgECNwu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 May 2020 09:52:50 -0400
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH 1/4] fs: Implement close-on-fork
+Date: Sun, 3 May 2020 13:52:45 +0000
+Message-ID: <4d00ffe759ec4f87bd7f4e663732838b@AcuMS.aculab.com>
+References: <20200420071548.62112-1-nate.karstens@garmin.com>
+ <20200420071548.62112-2-nate.karstens@garmin.com>
+ <36dce9b4-a0bf-0015-f6bc-1006938545b1@gmail.com>
+ <0e884704c25740df8e652d50431facff@garmin.com>
+In-Reply-To: <0e884704c25740df8e652d50431facff@garmin.com>
+Content-Language: en-US
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515140016.F74loBAfQA0FwSQAYZ3gN3T6S8kPbP_ljTkvhXM4c5o@z>
+To: "'Karstens, Nate'" <Nate.Karstens@garmin.com>, Eric Dumazet <eric.dumazet@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: Changli Gao <xiaosuo@gmail.com>
+Message-ID: <20200503135245.9blX9m2LQXidYD5WyvkKRfD58dfgfP54CdHQvT33-3I@z>
 
-Hi,
-
-here is the updated version of this series with these
-changes:
-
-	- Removed sync_current_stack_to_mm() too.
-
-	- Added Acked-by's from Andy Lutomirski
-
-The previous versions can be found here:
-
-	v1: https://lore.kernel.org/lkml/20200508144043.13893-1-joro@8bytes.org/
-
-	v2: https://lore.kernel.org/lkml/20200513152137.32426-1-joro@8bytes.org/
-
-The cover-letter of v1 has more details on the motivation
-for this patch-set.
-
-Please review.
-
-Regards,
-
-	Joerg
-
-Joerg Roedel (7):
-  mm: Add functions to track page directory modifications
-  mm/vmalloc: Track which page-table levels were modified
-  mm/ioremap: Track which page-table levels were modified
-  x86/mm/64: Implement arch_sync_kernel_mappings()
-  x86/mm/32: Implement arch_sync_kernel_mappings()
-  mm: Remove vmalloc_sync_(un)mappings()
-  x86/mm: Remove vmalloc faulting
-
- arch/x86/include/asm/pgtable-2level_types.h |   2 +
- arch/x86/include/asm/pgtable-3level_types.h |   2 +
- arch/x86/include/asm/pgtable_64_types.h     |   2 +
- arch/x86/include/asm/switch_to.h            |  23 ---
- arch/x86/kernel/setup_percpu.c              |   6 +-
- arch/x86/mm/fault.c                         | 176 +-------------------
- arch/x86/mm/init_64.c                       |   5 +
- arch/x86/mm/pti.c                           |   8 +-
- arch/x86/mm/tlb.c                           |  37 ----
- drivers/acpi/apei/ghes.c                    |   6 -
- include/asm-generic/5level-fixup.h          |   5 +-
- include/asm-generic/pgtable.h               |  23 +++
- include/linux/mm.h                          |  46 +++++
- include/linux/vmalloc.h                     |  18 +-
- kernel/notifier.c                           |   1 -
- kernel/trace/trace.c                        |  12 --
- lib/ioremap.c                               |  46 +++--
- mm/nommu.c                                  |  12 --
- mm/vmalloc.c                                | 109 +++++++-----
- 19 files changed, 204 insertions(+), 335 deletions(-)
-
--- 
-2.17.1
+RnJvbTogS2Fyc3RlbnMsIE5hdGUNCj4gU2VudDogMDEgTWF5IDIwMjAgMTU6NDUNCj4gVGhhbmtz
+IGZvciB0aGUgc3VnZ2VzdGlvbi4gSSBsb29rZWQgaW50byBpdCBhbmQgbm90aWNlZCB0aGF0IGRv
+X2Nsb3NlX29uX2V4ZWMoKSBhcHBlYXJzIHRvIGhhdmUgc29tZQ0KPiBvcHRpbWl6YXRpb25zIGFz
+IHdlbGw6DQo+IA0KPiA+IHNldCA9IGZkdC0+Y2xvc2Vfb25fZXhlY1tpXTsNCj4gPiBpZiAoIXNl
+dCkNCj4gPiAJY29udGludWU7DQo+IA0KPiBJZiB3ZSBpbnRlcmxlYXZlIHRoZSBjbG9zZS1vbi1l
+eGVjIGFuZCBjbG9zZS1vbi1mb3JrIGZsYWdzIHRoZW4gdGhpcyBvcHRpbWl6YXRpb24gd2lsbCBo
+YXZlIHRvIGJlDQo+IHJlbW92ZWQuIERvIHlvdSBoYXZlIGEgc2Vuc2Ugb2Ygd2hpY2ggb3B0aW1p
+emF0aW9uIHByb3ZpZGVzIHRoZSBtb3N0IGJlbmVmaXQ/DQoNClRoaW5rcy4uLi4NCkEgbW9kZXJh
+dGUgcHJvcG9ydGlvbiBvZiBleGVjKCkgd2lsbCBoYXZlIGF0IGxlYXN0IG9uZSBmZCB3aXRoICdj
+bG9zZSBvbiBleGVjJyBzZXQuDQpWZXJ5IGZldyBmb3JrKCkgd2lsbCBoYXZlIGFueSBmZCB3aXRo
+ICdjbG9zZSBvbiBmb3JrJyBzZXQuDQpUaGUgJ2Nsb3NlIG9uIGZvcmsnIHRhYmxlIHNob3VsZG4n
+dCBiZSBjb3BpZWQgdG8gdGhlIGZvcmtlZCBwcm9jZXNzLg0KVGhlICdjbG9zZSBvbiBleGVjJyB0
+YWJsZSBpcyBkZWxldGVkIGJ5IGV4ZWMoKS4NCg0KU28uLi4NCk9uIGZvcmsoKSB0YWtlIGEgY29w
+eSBhbmQgY2xlYXIgdGhlICdjbG9zZV9vbl9mb3JrJyBiaXRtYXAuDQpGb3IgZXZlcnkgYml0IHNl
+dCBsb29rdXAgdGhlIGZkIGFuZCBjbG9zZSBpZiB0aGUgbGl2ZSBiaXQgaXMgc2V0Lg0KU2ltaWxh
+cmx5IGV4ZWMoKSBjbGVhcnMgYW5kIGFjdHMgb24gdGhlICdjbG9zZSBvbiBleGVjJyBtYXAuDQoN
+CllvdSBzaG91bGQgYmUgYWJsZSB0byB1c2UgdGhlIHNhbWUgJ2Nsb3NlIHRoZSBmZHMgaW4gdGhp
+cyBiaXRtYXAnDQpmdW5jdGlvbiBmb3IgYm90aCBjYXNlcy4NCg0KU28gSSB0aGluayB5b3UgbmVl
+ZCB0d28gYml0bWFwcy4NCkJ1dCB0aGUgY29kZSBuZWVkcyB0byBkaWZmZXJlbnRpYXRlIGJldHdl
+ZW4gcmVxdWVzdHMgdG8gc2V0IGJpdHMNCih3aGljaCBuZWVkIHRvIGFsbG9jYXRlL2V4dGVuZCB0
+aGUgYml0bWFwKSBhbmQgb25lcyB0byBjbGVhci9yZWFkDQpiaXRzICh3aGljaCBkbyBub3QpLg0K
+DQpZb3UgbWlnaHQgZXZlbiBjb25zaWRlciBwdXR0aW5nIHRoZSAnbGl2ZScgZmxhZyBpbnRvIHRo
+ZSBmZCBzdHJ1Y3R1cmUNCmFuZCB1c2luZyB0aGUgYml0bWFwIHZhbHVlIGFzIGEgJ2hpbnQnIC0g
+d2hpY2ggbWlnaHQgYmUgaGFzaGVkLg0KDQpBZnRlciBhbGwsIGl0IGlzIGxpa2VseSB0aGF0IHRo
+ZSAnY2xvc2Ugb24gZXhlYycgcHJvY2Vzc2luZw0Kd2lsbCBiZSBmYXN0ZXIgb3ZlcmFsbCBpZiBp
+dCBqdXN0IGxvb3BzIHRocm91Z2ggdGhlIG9wZW4gZmQgYW5kDQpjaGVja3MgZWFjaCBpbiB0dXJu
+IQ0KSSBkb3VidCBtYW55IHByb2Nlc3NlcyBhY3R1YWxseSBleGVjIHdpdGggbW9yZSB0aGFuIGFu
+IGhhbmRmdWwNCm9mIG9wZW4gZmlsZXMuDQoNCglEYXZpZA0KDQotDQpSZWdpc3RlcmVkIEFkZHJl
+c3MgTGFrZXNpZGUsIEJyYW1sZXkgUm9hZCwgTW91bnQgRmFybSwgTWlsdG9uIEtleW5lcywgTUsx
+IDFQVCwgVUsNClJlZ2lzdHJhdGlvbiBObzogMTM5NzM4NiAoV2FsZXMpDQo=
