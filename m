@@ -1,158 +1,153 @@
-From: "Karstens, Nate" <Nate.Karstens@garmin.com>
-Subject: RE: Implement close-on-fork
-Date: Mon, 4 May 2020 13:46:22 +0000
-Message-ID: <de6adce76b534310975e4d3c4a4facb2@garmin.com>
-References: <20200420071548.62112-1-nate.karstens@garmin.com>
- <20200422150107.GK23230@ZenIV.linux.org.uk>
- <20200422151815.GT5820@bombadil.infradead.org>
- <20200422160032.GL23230@ZenIV.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <20200422160032.GL23230@ZenIV.linux.org.uk>
-Content-Language: en-US
-Sender: linux-parisc-owner@vger.kernel.org
-To: Al Viro <viro@zeniv.linux.org.uk>, Matthew Wilcox <willy@infradead.org>
-Cc: Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, linux-kernel@vger.
+From: Alex Kogan <alex.kogan@oracle.com>
+Subject: Re: [PATCH v10 0/5] Add NUMA-awareness to qspinlock
+Date: Mon, 4 May 2020 10:17:56 -0400
+Message-ID: <6DE89034-0388-4F62-A75D-898EE53D45A7@oracle.com>
+References: <20200403205930.1707-1-alex.kogan@oracle.com>
+Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <20200403205930.1707-1-alex.kogan@oracle.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Peter Zijlstra <peterz@infradead.org>, Waiman Long <longman@redhat.com>
+Cc: linux-arch@vger.kernel.org, Hanjun Guo <guohanjun@huawei.com>, Arnd Bergmann <arnd@arndb.de>, dave.dice@oracle.com, Jan Glauber <jglauber@marvell.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, Alex Kogan <alex.kogan@oracle.com>, Steven Sistare <steven.sistare@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Thanks everyone for their comments, sorry for the delay in my reply.
-
-> As for the original problem...  what kind of exclusion is used between th=
-e reaction to netlink notifications (including closing every socket,
-> etc.) and actual IO done on those sockets?
-> Not an idle question, BTW - unlike Solaris we do NOT (and will not) have
-> close(2) abort IO on the same descriptor from another thread.  So if one =
-thread sits in recvmsg(2) while another does close(2), the socket will
-> *NOT* actually shut down until recvmsg(2) returns.
-
-The netlink notification is received on a separate thread, but handling of =
-that notification (closing and re-opening sockets) and the socket I/O is al=
-l done on the same thread. The call to system() happens sometime between wh=
-en this thread decides to close all of its sockets and when the sockets hav=
-e been closed. The child process is left with a reference to one or more so=
-ckets. The close-on-exec flag is set on the socket, so the period of time i=
-s brief, but because system() is not atomic this still leaves a window of o=
-pportunity for the failure to occur. The parent process tries to open the s=
-ocket again but fails because the child process still has an open socket th=
-at controls the port.
-
-This phenomenon can really be generalized to any resource that 1) a process=
- needs exclusive access to and 2) the operating system automatically create=
-s a new reference in the child when the process forks.
-
-> Reimplementing system() is trivial.
-> LD_LIBRARY_PRELOAD should take care of all system(3) calls.
-
-Yes, that would solve the problem for our system. We identified what we bel=
-ieve to be a problem with the POSIX threading model and wanted to work with=
- the community to improve this for others as well. The Austin Group agreed =
-with the premise enough that they were willing to update the POSIX standard=
-.
-
-> I wonder it it has some value to add runtime checking for "multi-threaded=
-" to such lib functions and error out if yes.
-> Apart from that, system() is a PITA even on single/non-threaded apps.
-
-That may be, but system() is convenient and there isn't much in the documen=
-tation that warns the average developer away from its use. The manpage indi=
-cates system() is thread-safe. The manpage is also somewhat contradictory i=
-n that it describes the operation as being equivalent to a fork() and an ex=
-ecl(), though it later points out that pthread_atfork() handlers may not be=
- executed.
-
-> FWIW, I'm opposed to the entire feature.  Improving the implementation wi=
-ll not change that.
-
-I get it. From our perspective, changing the OS to resolve an issue seems l=
-ike a drastic step. We tried hard to come up with an alternative (see https=
-://www.mail-archive.com/austin-group-l@opengroup.org/msg05324.html and http=
-s://austingroupbugs.net/view.php?id=3D1317), but nothing else addresses the=
- underlying issue: there is no way to prevent a fork() from duplicating the=
- resource. The close-on-exec flag partially-addresses this by allowing the =
-parent process to mark a file descriptor as exclusive to itself, but there =
-is still a period of time the failure can occur because the auto-close only=
- occurs during the exec(). Perhaps this would not be an issue with a differ=
-ent process/threading model, but that is another discussion entirely.
-
-Best Regards,
-
-Nate
-
------Original Message-----
-From: Al Viro <viro@ftp.linux.org.uk> On Behalf Of Al Viro
-Sent: Wednesday, April 22, 2020 11:01
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Karstens, Nate <Nate.Karstens@garmin.com>; Jeff Layton <jlayton@kernel.=
-org>; J. Bruce Fields <bfields@fieldses.org>; Arnd Bergmann <arnd@arndb.de>=
-; Richard Henderson <rth@twiddle.net>; Ivan Kokshaysky <ink@jurassic.park.m=
-su.ru>; Matt Turner <mattst88@gmail.com>; James E.J. Bottomley <James.Botto=
-mley@hansenpartnership.com>; Helge Deller <deller@gmx.de>; David S. Miller =
-<davem@davemloft.net>; Jakub Kicinski <kuba@kernel.org>; linux-fsdevel@vger=
-.kernel.org; linux-arch@vger.kernel.org; linux-alpha@vger.kernel.org; linux=
--parisc@vger.kernel.org; sparclinux@vger.kernel.org; netdev@vger.kernel.org=
-; linux-kernel@vger.kernel.org; Changli Gao <xiaosuo@gmail.com>
-Subject: Re: Implement close-on-fork
-
-CAUTION - EXTERNAL EMAIL: Do not click any links or open any attachments un=
-less you trust the sender and know the content is safe.
-
-
-On Wed, Apr 22, 2020 at 08:18:15AM -0700, Matthew Wilcox wrote:
-> On Wed, Apr 22, 2020 at 04:01:07PM +0100, Al Viro wrote:
-> > On Mon, Apr 20, 2020 at 02:15:44AM -0500, Nate Karstens wrote:
-> > > Series of 4 patches to implement close-on-fork. Tests have been
-> > > published to https://github.com/nkarstens/ltp/tree/close-on-fork.
-> > >
-> > > close-on-fork addresses race conditions in system(), which
-> > > (depending on the implementation) is non-atomic in that it first
-> > > calls a fork() and then an exec().
-> > >
-> > > This functionality was approved by the Austin Common Standards
-> > > Revision Group for inclusion in the next revision of the POSIX
-> > > standard (see issue 1318 in the Austin Group Defect Tracker).
-> >
-> > What exactly the reasons are and why would we want to implement that?
-> >
-> > Pardon me, but going by the previous history, "The Austin Group Says
-> > It's Good" is more of a source of concern regarding the merits,
-> > general sanity and, most of all, good taste of a proposal.
-> >
-> > I'm not saying that it's automatically bad, but you'll have to go
-> > much deeper into the rationale of that change before your proposal
-> > is taken seriously.
->
-> https://www.mail-archive.com/austin-group-l@opengroup.org/msg05324.htm
-> l
-> might be useful
-
-*snort*
-
-Alan Coopersmith in that thread:
-|| https://lwn.net/Articles/785430/ suggests AIX, BSD, & MacOS have also
-|| defined it, and though it's been proposed multiple times for Linux, neve=
-r adopted there.
-
-Now, look at the article in question.  You'll see that it should've been "s=
-omeone's posting in the end of comments thread under LWN article says that =
-apparently it exists on AIX, BSD, ..."
-
-The strength of evidence aside, that got me curious; I have checked the sou=
-rce of FreeBSD, NetBSD and OpenBSD.  No such thing exists in either of thei=
-r kernels, so at least that part can be considered an urban legend.
-
-As for the original problem...  what kind of exclusion is used between the =
-reaction to netlink notifications (including closing every socket,
-etc.) and actual IO done on those sockets?
-
-
-________________________________
-
-CONFIDENTIALITY NOTICE: This email and any attachments are for the sole use=
- of the intended recipient(s) and contain information that may be Garmin co=
-nfidential and/or Garmin legally privileged. If you have received this emai=
-l in error, please notify the sender by reply email and delete the message.=
- Any disclosure, copying, distribution or use of this communication (includ=
-ing attachments) by someone other than the intended recipient is prohibited=
-. Thank you.
+SGksIFBldGVyLCBMb25nbWFuIChhbmQgZXZlcnlvbmUgb24gdGhpcyBsaXN0KSwKCkhvcGUgeW91
+IGFyZSBkb2luZyB3ZWxsLgoKSSB3YXMgd29uZGVyaW5nIHdoZXRoZXIgeW91IGhhdmUgaGFkIGEg
+Y2hhbmNlIHRvIHJldmlldyB0aGlzIHNlcmllcywKYW5kIGhhdmUgYW55IGZ1cnRoZXIgY29tbWVu
+dHMuCgpUaGFua3MsCuKAlCBBbGV4Cgo+IE9uIEFwciAzLCAyMDIwLCBhdCA0OjU5IFBNLCBBbGV4
+IEtvZ2FuIDxhbGV4LmtvZ2FuQG9yYWNsZS5jb20+IHdyb3RlOgo+IAo+IENoYW5nZXMgZnJvbSB2
+OToKPiAtLS0tLS0tLS0tLS0tLS0tCj4gCj4gLSBSZXZpc2UgdGhlIHNlcmllcyBiYXNlZCBvbiBQ
+ZXRlcidzIHZlcnNpb24sIGFkb3B0aW5nIG5hbWVzLCBzdHlsZSwgZXRjLgo+IAo+IC0gQWRkIGEg
+bmV3IHBhdGNoIHRoYXQgYWxsb3dzIHRvIHByaW9yaXRpemUgY2VydGFpbiB0aHJlYWRzIChlLmcu
+LCBpbiAKPiBpcnEgYW5kIG5taSBjb250ZXh0cykgYW5kIGF2b2lkcyBtb3ZpbmcgdGhlbSBiZXR3
+ZWVuIHdhaXRpbmcgcXVldWVzLAo+IGJhc2VkIG9uIHRoZSBzdWdnZXN0aW9uIGJ5IExvbmdtYW4u
+Cj4gCj4gLSBEcm9wIHRoZSBzaHVmZmxlIHJlZHVjdGlvbiBvcHRpbWl6YXRpb24gZnJvbSB0aGUg
+c2VyaWVzIChuZXcgcGVyZm9ybWFuY2UKPiBkYXRhIGRpZCBub3QganVzdGlmeSBpdCkuCj4gCj4g
+LSBEbyBub3QgY2FsbCBjbmFfaW5pdF9ub2RlcygpIGFzIGFuIGVhcmx5X2luaXRjYWxsIChjYWxs
+IGl0IGZyb20gCj4gY25hX2NvbmZpZ3VyZV9zcGluX2xvY2tfc2xvd3BhdGgoKSBpbnN0ZWFkKSwg
+YmFzZWQgb24gdGhlIGNvbW1lbnQgZnJvbSAKPiBMb25nbWFuLgo+IAo+IAo+IFN1bW1hcnkKPiAt
+LS0tLS0tCj4gCj4gTG9jayB0aHJvdWdocHV0IGNhbiBiZSBpbmNyZWFzZWQgYnkgaGFuZGluZyBh
+IGxvY2sgdG8gYSB3YWl0ZXIgb24gdGhlCj4gc2FtZSBOVU1BIG5vZGUgYXMgdGhlIGxvY2sgaG9s
+ZGVyLCBwcm92aWRlZCBjYXJlIGlzIHRha2VuIHRvIGF2b2lkCj4gc3RhcnZhdGlvbiBvZiB3YWl0
+ZXJzIG9uIG90aGVyIE5VTUEgbm9kZXMuIFRoaXMgcGF0Y2ggaW50cm9kdWNlcyBDTkEKPiAoY29t
+cGFjdCBOVU1BLWF3YXJlIGxvY2spIGFzIHRoZSBzbG93IHBhdGggZm9yIHFzcGlubG9jay4gSXQg
+aXMKPiBlbmFibGVkIHRocm91Z2ggYSBjb25maWd1cmF0aW9uIG9wdGlvbiAoTlVNQV9BV0FSRV9T
+UElOTE9DS1MpLgo+IAo+IENOQSBpcyBhIE5VTUEtYXdhcmUgdmVyc2lvbiBvZiB0aGUgTUNTIGxv
+Y2suIFNwaW5uaW5nIHRocmVhZHMgYXJlCj4gb3JnYW5pemVkIGluIHR3byBxdWV1ZXMsIGEgcHJp
+bWFyeSBxdWV1ZSBmb3IgdGhyZWFkcyBydW5uaW5nIG9uIHRoZSBzYW1lCj4gbm9kZSBhcyB0aGUg
+Y3VycmVudCBsb2NrIGhvbGRlciwgYW5kIGEgc2Vjb25kYXJ5IHF1ZXVlIGZvciB0aHJlYWRzCj4g
+cnVubmluZyBvbiBvdGhlciBub2Rlcy4gVGhyZWFkcyBzdG9yZSB0aGUgSUQgb2YgdGhlIG5vZGUg
+b24gd2hpY2gKPiB0aGV5IGFyZSBydW5uaW5nIGluIHRoZWlyIHF1ZXVlIG5vZGVzLiBBZnRlciBh
+Y3F1aXJpbmcgdGhlIE1DUyBsb2NrIGFuZAo+IGJlZm9yZSBhY3F1aXJpbmcgdGhlIHNwaW5sb2Nr
+LCB0aGUgbG9jayBob2xkZXIgc2NhbnMgdGhlIHByaW1hcnkgcXVldWUKPiBsb29raW5nIGZvciBh
+IHRocmVhZCBydW5uaW5nIG9uIHRoZSBzYW1lIG5vZGUgKHByZS1zY2FuKS4gSWYgZm91bmQgKGNh
+bGwKPiBpdCB0aHJlYWQgVCksIGFsbCB0aHJlYWRzIGluIHRoZSBwcmltYXJ5IHF1ZXVlIGJldHdl
+ZW4gdGhlIGN1cnJlbnQgbG9jawo+IGhvbGRlciBhbmQgVCBhcmUgbW92ZWQgdG8gdGhlIGVuZCBv
+ZiB0aGUgc2Vjb25kYXJ5IHF1ZXVlLiAgSWYgc3VjaCBUCj4gaXMgbm90IGZvdW5kLCB3ZSBtYWtl
+IGFub3RoZXIgc2NhbiBvZiB0aGUgcHJpbWFyeSBxdWV1ZSBhZnRlciBhY3F1aXJpbmcgCj4gdGhl
+IHNwaW5sb2NrIHdoZW4gdW5sb2NraW5nIHRoZSBNQ1MgbG9jayAocG9zdC1zY2FuKSwgc3RhcnRp
+bmcgYXQgdGhlCj4gbm9kZSB3aGVyZSBwcmUtc2NhbiBzdG9wcGVkLiBJZiBib3RoIHNjYW5zIGZh
+aWwgdG8gZmluZCBzdWNoIFQsIHRoZQo+IE1DUyBsb2NrIGlzIHBhc3NlZCB0byB0aGUgZmlyc3Qg
+dGhyZWFkIGluIHRoZSBzZWNvbmRhcnkgcXVldWUuIElmIHRoZQo+IHNlY29uZGFyeSBxdWV1ZSBp
+cyBlbXB0eSwgdGhlIE1DUyBsb2NrIGlzIHBhc3NlZCB0byB0aGUgbmV4dCB0aHJlYWQgaW4gdGhl
+Cj4gcHJpbWFyeSBxdWV1ZS4gVG8gYXZvaWQgc3RhcnZhdGlvbiBvZiB0aHJlYWRzIGluIHRoZSBz
+ZWNvbmRhcnkgcXVldWUsIHRob3NlCj4gdGhyZWFkcyBhcmUgbW92ZWQgYmFjayB0byB0aGUgaGVh
+ZCBvZiB0aGUgcHJpbWFyeSBxdWV1ZSBhZnRlciBhIGNlcnRhaW4KPiBudW1iZXIgb2YgaW50cmEt
+bm9kZSBsb2NrIGhhbmQtb2Zmcy4gTGFzdGx5LCBjZXJ0YWluIHRocmVhZHMgKGUuZy4sIGluCj4g
+aW4gaXJxIGFuZCBubWkgY29udGV4dHMpIGFyZSBnaXZlbiBhIHByZWZlcmVudGlhbCB0cmVhdG1l
+bnQgLS0gdGhlIHNjYW4KPiBzdG9wcyB3aGVuIHN1Y2ggYSB0aHJlYWQgaXMgZm91bmQsIGVmZmVj
+dGl2ZWx5IG5ldmVyIG1vdmluZyB0aG9zZSB0aHJlYWRzIAo+IGludG8gdGhlIHNlY29uZGFyeSBx
+dWV1ZS4KPiAKPiBNb3JlIGRldGFpbHMgYXJlIGF2YWlsYWJsZSBhdCBodHRwczovL2FyeGl2Lm9y
+Zy9hYnMvMTgxMC4wNTYwMC4KPiAKPiBXZSBoYXZlIGRvbmUgc29tZSBwZXJmb3JtYW5jZSBldmFs
+dWF0aW9uIHdpdGggdGhlIGxvY2t0b3J0dXJlIG1vZHVsZQo+IGFzIHdlbGwgYXMgd2l0aCBzZXZl
+cmFsIGJlbmNobWFya3MgZnJvbSB0aGUgd2lsbC1pdC1zY2FsZSByZXBvLgo+IFRoZSBmb2xsb3dp
+bmcgbG9ja3RvcnR1cmUgcmVzdWx0cyBhcmUgZnJvbSBhbiBPcmFjbGUgWDUtNCBzZXJ2ZXIKPiAo
+Zm91ciBJbnRlbCBYZW9uIEU3LTg4OTUgdjMgQCAyLjYwR0h6IHNvY2tldHMgd2l0aCAxOCBoeXBl
+cnRocmVhZGVkCj4gY29yZXMgZWFjaCkuIEVhY2ggbnVtYmVyIHJlcHJlc2VudHMgYW4gYXZlcmFn
+ZSAob3ZlciAyNSBydW5zKSBvZiB0aGUKPiB0b3RhbCBudW1iZXIgb2Ygb3BzICh4MTBeNykgcmVw
+b3J0ZWQgYXQgdGhlIGVuZCBvZiBlYWNoIHJ1bi4gVGhlIAo+IHN0YW5kYXJkIGRldmlhdGlvbiBp
+cyBhbHNvIHJlcG9ydGVkIGluICgpLCBhbmQgaW4gZ2VuZXJhbCBpcyBhYm91dCAzJQo+IGZyb20g
+dGhlIGF2ZXJhZ2UuIFRoZSAnc3RvY2snIGtlcm5lbCBpcyB2NS42LjAtcmM2LAo+IGNvbW1pdCA1
+YWQwZWMwYjg2NTIsIGNvbXBpbGVkIGluIHRoZSBkZWZhdWx0IGNvbmZpZ3VyYXRpb24uIAo+ICdw
+YXRjaC1DTkEnIGlzIHRoZSBtb2RpZmllZCBrZXJuZWwgd2l0aCBOVU1BX0FXQVJFX1NQSU5MT0NL
+UyBzZXQ7IAo+IHRoZSBzcGVlZHVwIGlzIGNhbGN1bGF0ZWQgZGl2aWRpbmcgJ3BhdGNoLUNOQScg
+YnkgJ3N0b2NrJy4KPiAKPiAjdGhyICAJIHN0b2NrICAgICAgICBwYXRjaC1DTkEgICBzcGVlZHVw
+IChwYXRjaC1DTkEvc3RvY2spCj4gIDEgIDIuNzAyICgwLjEwMCkgIDIuNzEyICgwLjEyMikgIDEu
+MDAzCj4gIDIgIDMuNjkxICgwLjE2MikgIDMuNjcyICgwLjEzOCkgIDAuOTk1Cj4gIDQgIDQuMjg1
+ICgwLjEwOCkgIDQuMjU2ICgwLjEyNCkgIDAuOTkzCj4gIDggIDUuMTE3ICgwLjEzMykgIDUuOTcy
+ICgwLjI1OCkgIDEuMTY3Cj4gMTYgIDYuMjczICgwLjE5NikgIDcuNjI4ICgwLjI3NCkgIDEuMjE2
+Cj4gMzIgIDYuNzU3ICgwLjEyMikgIDguNTQ0ICgwLjIyNSkgIDEuMjY0Cj4gMzYgIDYuNzYxICgw
+LjA5MSkgIDguNjkxICgwLjE3MCkgIDEuMjg1Cj4gNzIgIDYuNTY5ICgwLjEzMikgIDkuMjgwICgw
+LjIyNSkgIDEuNDEzCj4gMTA4ICA2LjE2NyAoMC4xMTIpICA5LjQxMCAoMC4xNzEpICAxLjUyNgo+
+IDE0MiAgNS45MDEgKDAuMTE3KSAgOS40MTUgKDAuMjExKSAgMS41OTUKPiAKPiBUaGUgZm9sbG93
+aW5nIHRhYmxlcyBjb250YWluIHRocm91Z2hwdXQgcmVzdWx0cyAob3BzL3VzKSBmcm9tIHRoZSBz
+YW1lCj4gc2V0dXAgZm9yIHdpbGwtaXQtc2NhbGUvb3BlbjFfdGhyZWFkczogCj4gCj4gI3RociAg
+CSBzdG9jayAgICAgICAgcGF0Y2gtQ05BICAgc3BlZWR1cCAocGF0Y2gtQ05BL3N0b2NrKQo+ICAx
+ICAwLjUxMSAoMC4wMDIpICAwLjUyNSAoMC4wMDMpICAxLjAyNwo+ICAyICAwLjc3NCAoMC4wMTgp
+ICAwLjc2OSAoMC4wMTcpICAwLjk5Mwo+ICA0ICAxLjM1MiAoMC4wMjMpICAxLjM3MiAoMC4wMzIp
+ICAxLjAxNAo+ICA4ICAxLjY3NSAoMC4wOTApICAxLjY2MCAoMC4xMzYpICAwLjk5MQo+IDE2ICAx
+LjY2NSAoMC4xMTQpICAxLjU4MyAoMC4wOTIpICAwLjk1MQo+IDMyICAwLjk2NiAoMC4wMzgpICAx
+LjYzNyAoMC4wODcpICAxLjY5NAo+IDM2ICAwLjk3MyAoMC4wNjYpICAxLjU3MCAoMC4wODEpICAx
+LjYxMwo+IDcyICAwLjg0NCAoMC4wNDApICAxLjYyMCAoMC4wOTEpICAxLjkxOQo+IDEwOCAgMC44
+MzYgKDAuMDQwKSAgMS42NzAgKDAuMDg0KSAgMS45OTkKPiAxNDIgIDAuNzk5ICgwLjA0MykgIDEu
+Njk5ICgwLjA4NykgIDIuMTI3Cj4gCj4gYW5kIHdpbGwtaXQtc2NhbGUvbG9jazJfdGhyZWFkczoK
+PiAKPiAjdGhyICAJIHN0b2NrICAgICAgICBwYXRjaC1DTkEgICBzcGVlZHVwIChwYXRjaC1DTkEv
+c3RvY2spCj4gIDEgIDEuNTgxICgwLjAwNCkgIDEuNTc2ICgwLjAwNykgIDAuOTk3Cj4gIDIgIDIu
+Njk5ICgwLjA1OSkgIDIuNjg3ICgwLjA2NykgIDAuOTk2Cj4gIDQgIDUuMjQwICgwLjIzNCkgIDUu
+MTU1ICgwLjI1MikgIDAuOTg0Cj4gIDggIDQuMzcwICgwLjI0MSkgIDQuMTExICgwLjM0MikgIDAu
+OTQxCj4gMTYgIDQuMTUyICgwLjExMikgIDQuMTEzICgwLjE2NCkgIDAuOTkxCj4gMzIgIDIuNTc5
+ICgwLjA5OSkgIDQuMDk5ICgwLjEyNykgIDEuNTg5Cj4gMzYgIDIuNjA0ICgwLjA2NikgIDQuMDA1
+ICgwLjEwNCkgIDEuNTM4Cj4gNzIgIDIuMDI4ICgwLjA5MSkgIDQuMDI0ICgwLjExMikgIDEuOTg0
+Cj4gMTA4ICAyLjA3OSAoMC4xMDYpICAzLjk5NyAoMC4wOTMpICAxLjkyMwo+IDE0MiAgMS44NTgg
+KDAuMTAzKSAgMy45NTUgKDAuMTA5KSAgMi4xMjkKPiAKPiBPdXIgZXZhbHVhdGlvbiBzaG93cyB0
+aGF0IENOQSBhbHNvIGltcHJvdmVzIHBlcmZvcm1hbmNlIG9mIHVzZXIgCj4gYXBwbGljYXRpb25z
+IHRoYXQgaGF2ZSBob3QgcHRocmVhZCBtdXRleGVzLiBUaG9zZSBtdXRleGVzIGFyZSAKPiBibG9j
+a2luZywgYW5kIHdhaXRpbmcgdGhyZWFkcyBwYXJrIGFuZCB1bnBhcmsgdmlhIHRoZSBmdXRleCAK
+PiBtZWNoYW5pc20gaW4gdGhlIGtlcm5lbC4gR2l2ZW4gdGhhdCBrZXJuZWwgZnV0ZXggY2hhaW5z
+LCB3aGljaAo+IGFyZSBoYXNoZWQgYnkgdGhlIG11dGV4IGFkZHJlc3MsIGFyZSBlYWNoIHByb3Rl
+Y3RlZCBieSBhIAo+IGNoYWluLXNwZWNpZmljIHNwaW4gbG9jaywgdGhlIGNvbnRlbnRpb24gb24g
+YSB1c2VyLW1vZGUgbXV0ZXggCj4gdHJhbnNsYXRlcyBpbnRvIGNvbnRlbnRpb24gb24gYSBrZXJu
+ZWwgbGV2ZWwgc3BpbmxvY2suIAo+IAo+IEhlcmUgYXJlIHRoZSByZXN1bHRzIGZvciB0aGUgbGV2
+ZWxkYiDigJhyZWFkcmFuZG9t4oCZIGJlbmNobWFyazoKPiAKPiAjdGhyICAJIHN0b2NrICAgICAg
+ICBwYXRjaC1DTkEgICBzcGVlZHVwIChwYXRjaC1DTkEvc3RvY2spCj4gIDEgIDAuNTMwICgwLjAx
+MykgIDAuNTMzICgwLjAxMSkgIDEuMDA2Cj4gIDIgIDAuODM5ICgwLjA0MykgIDAuODQ3ICgwLjAz
+MSkgIDEuMDEwCj4gIDQgIDAuNzU4ICgwLjAyMSkgIDAuNzY0ICgwLjAxOCkgIDEuMDA4Cj4gIDgg
+IDAuNjc3ICgwLjAyMikgIDAuNjgyICgwLjAxNikgIDEuMDA4Cj4gMTYgIDAuNzE0ICgwLjAyMykg
+IDAuODE0ICgwLjAyNykgIDEuMTQwCj4gMzIgIDAuNzY1ICgwLjA0MCkgIDEuMTY4ICgwLjAzMikg
+IDEuNTI3Cj4gMzYgIDAuNzA2ICgwLjAyMykgIDEuMTM5ICgwLjA2NikgIDEuNjE0Cj4gNzIgIDAu
+NjI0ICgwLjAxNykgIDEuMTg0ICgwLjAyNikgIDEuODk4Cj4gMTA4ICAwLjYwNSAoMC4wMTMpICAx
+LjE0NyAoMC4wMjMpICAxLjg5NAo+IDE0MiAgMC41OTMgKDAuMDEyKSAgMS4xMzEgKDAuMDE5KSAg
+MS45MDgKPiAKPiBGdXJ0aGVyIGNvbW1lbnRzIGFyZSB3ZWxjb21lIGFuZCBhcHByZWNpYXRlZC4K
+PiAKPiBBbGV4IEtvZ2FuICg1KToKPiAgbG9ja2luZy9xc3BpbmxvY2s6IFJlbmFtZSBtY3MgbG9j
+ay91bmxvY2sgbWFjcm9zIGFuZCBtYWtlIHRoZW0gbW9yZQo+ICAgIGdlbmVyaWMKPiAgbG9ja2lu
+Zy9xc3BpbmxvY2s6IFJlZmFjdG9yIHRoZSBxc3BpbmxvY2sgc2xvdyBwYXRoCj4gIGxvY2tpbmcv
+cXNwaW5sb2NrOiBJbnRyb2R1Y2UgQ05BIGludG8gdGhlIHNsb3cgcGF0aCBvZiBxc3BpbmxvY2sK
+PiAgbG9ja2luZy9xc3BpbmxvY2s6IEludHJvZHVjZSBzdGFydmF0aW9uIGF2b2lkYW5jZSBpbnRv
+IENOQQo+ICBsb2NraW5nL3FzcGlubG9jazogQXZvaWQgbW92aW5nIGNlcnRhaW4gdGhyZWFkcyBi
+ZXR3ZWVuIHdhaXRpbmcgcXVldWVzCj4gICAgaW4gQ05BCj4gCj4gLi4uL2FkbWluLWd1aWRlL2tl
+cm5lbC1wYXJhbWV0ZXJzLnR4dCAgICAgICAgIHwgIDE4ICsKPiBhcmNoL2FybS9pbmNsdWRlL2Fz
+bS9tY3Nfc3BpbmxvY2suaCAgICAgICAgICAgfCAgIDYgKy0KPiBhcmNoL3g4Ni9LY29uZmlnICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgfCAgMjAgKwo+IGFyY2gveDg2L2luY2x1ZGUvYXNt
+L3FzcGlubG9jay5oICAgICAgICAgICAgICB8ICAgNiArCj4gYXJjaC94ODYva2VybmVsL2FsdGVy
+bmF0aXZlLmMgICAgICAgICAgICAgICAgIHwgICAyICsKPiBpbmNsdWRlL2FzbS1nZW5lcmljL21j
+c19zcGlubG9jay5oICAgICAgICAgICAgfCAgIDQgKy0KPiBrZXJuZWwvbG9ja2luZy9tY3Nfc3Bp
+bmxvY2suaCAgICAgICAgICAgICAgICAgfCAgMjAgKy0KPiBrZXJuZWwvbG9ja2luZy9xc3Bpbmxv
+Y2suYyAgICAgICAgICAgICAgICAgICAgfCAgODIgKysrLQo+IGtlcm5lbC9sb2NraW5nL3FzcGlu
+bG9ja19jbmEuaCAgICAgICAgICAgICAgICB8IDQwNyArKysrKysrKysrKysrKysrKysKPiBrZXJu
+ZWwvbG9ja2luZy9xc3BpbmxvY2tfcGFyYXZpcnQuaCAgICAgICAgICAgfCAgIDIgKy0KPiAxMCBm
+aWxlcyBjaGFuZ2VkLCA1NDQgaW5zZXJ0aW9ucygrKSwgMjMgZGVsZXRpb25zKC0pCj4gY3JlYXRl
+IG1vZGUgMTAwNjQ0IGtlcm5lbC9sb2NraW5nL3FzcGlubG9ja19jbmEuaAo+IAo+IC0tIAo+IDIu
+MjEuMSAoQXBwbGUgR2l0LTEyMi4zKQo+IAoKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0CmxpbnV4LWFy
+bS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFkZWFkLm9yZy9t
+YWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
