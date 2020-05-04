@@ -1,153 +1,153 @@
-From: Alex Kogan <alex.kogan@oracle.com>
-Subject: Re: [PATCH v10 0/5] Add NUMA-awareness to qspinlock
-Date: Mon, 4 May 2020 10:17:56 -0400
-Message-ID: <6DE89034-0388-4F62-A75D-898EE53D45A7@oracle.com>
-References: <20200403205930.1707-1-alex.kogan@oracle.com>
-Mime-Version: 1.0 (Mac OS X Mail 12.4 \(3445.104.11\))
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <20200403205930.1707-1-alex.kogan@oracle.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Peter Zijlstra <peterz@infradead.org>, Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org, Hanjun Guo <guohanjun@huawei.com>, Arnd Bergmann <arnd@arndb.de>, dave.dice@oracle.com, Jan Glauber <jglauber@marvell.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux@armlinux.org.uk, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, hpa@zytor.com, Alex Kogan <alex.kogan@oracle.com>, Steven Sistare <steven.sistare@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: Re: [PATCH v5 0/4] Introduce the for_each_set_clump macro
+Date: Mon, 4 May 2020 10:36:38 -0400
+Message-ID: <20200504143638.GA4635@shinobu>
+References: <cover.1588460322.git.syednwaris@gmail.com>
+ <20200504114109.GE185537@smile.fi.intel.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="+HP7ph2BbKc20aGI"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200504114109.GE185537@smile.fi.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Cc: Syed Nayyar Waris <syednwaris@gmail.com>, akpm@linux-foundation.org, michal.simek@xilinx.com, arnd@arndb.de, rrichter@marvell.com, linus.walleij@linaro.org, bgolaszewski@baylibre.com, yamada.masahiro@socionext.com, rui.zhang@intel.com, daniel.lezcano@linaro.org, amit.kucheria@verdurent.com, linux-arch@vger.kernel.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-SGksIFBldGVyLCBMb25nbWFuIChhbmQgZXZlcnlvbmUgb24gdGhpcyBsaXN0KSwKCkhvcGUgeW91
-IGFyZSBkb2luZyB3ZWxsLgoKSSB3YXMgd29uZGVyaW5nIHdoZXRoZXIgeW91IGhhdmUgaGFkIGEg
-Y2hhbmNlIHRvIHJldmlldyB0aGlzIHNlcmllcywKYW5kIGhhdmUgYW55IGZ1cnRoZXIgY29tbWVu
-dHMuCgpUaGFua3MsCuKAlCBBbGV4Cgo+IE9uIEFwciAzLCAyMDIwLCBhdCA0OjU5IFBNLCBBbGV4
-IEtvZ2FuIDxhbGV4LmtvZ2FuQG9yYWNsZS5jb20+IHdyb3RlOgo+IAo+IENoYW5nZXMgZnJvbSB2
-OToKPiAtLS0tLS0tLS0tLS0tLS0tCj4gCj4gLSBSZXZpc2UgdGhlIHNlcmllcyBiYXNlZCBvbiBQ
-ZXRlcidzIHZlcnNpb24sIGFkb3B0aW5nIG5hbWVzLCBzdHlsZSwgZXRjLgo+IAo+IC0gQWRkIGEg
-bmV3IHBhdGNoIHRoYXQgYWxsb3dzIHRvIHByaW9yaXRpemUgY2VydGFpbiB0aHJlYWRzIChlLmcu
-LCBpbiAKPiBpcnEgYW5kIG5taSBjb250ZXh0cykgYW5kIGF2b2lkcyBtb3ZpbmcgdGhlbSBiZXR3
-ZWVuIHdhaXRpbmcgcXVldWVzLAo+IGJhc2VkIG9uIHRoZSBzdWdnZXN0aW9uIGJ5IExvbmdtYW4u
-Cj4gCj4gLSBEcm9wIHRoZSBzaHVmZmxlIHJlZHVjdGlvbiBvcHRpbWl6YXRpb24gZnJvbSB0aGUg
-c2VyaWVzIChuZXcgcGVyZm9ybWFuY2UKPiBkYXRhIGRpZCBub3QganVzdGlmeSBpdCkuCj4gCj4g
-LSBEbyBub3QgY2FsbCBjbmFfaW5pdF9ub2RlcygpIGFzIGFuIGVhcmx5X2luaXRjYWxsIChjYWxs
-IGl0IGZyb20gCj4gY25hX2NvbmZpZ3VyZV9zcGluX2xvY2tfc2xvd3BhdGgoKSBpbnN0ZWFkKSwg
-YmFzZWQgb24gdGhlIGNvbW1lbnQgZnJvbSAKPiBMb25nbWFuLgo+IAo+IAo+IFN1bW1hcnkKPiAt
-LS0tLS0tCj4gCj4gTG9jayB0aHJvdWdocHV0IGNhbiBiZSBpbmNyZWFzZWQgYnkgaGFuZGluZyBh
-IGxvY2sgdG8gYSB3YWl0ZXIgb24gdGhlCj4gc2FtZSBOVU1BIG5vZGUgYXMgdGhlIGxvY2sgaG9s
-ZGVyLCBwcm92aWRlZCBjYXJlIGlzIHRha2VuIHRvIGF2b2lkCj4gc3RhcnZhdGlvbiBvZiB3YWl0
-ZXJzIG9uIG90aGVyIE5VTUEgbm9kZXMuIFRoaXMgcGF0Y2ggaW50cm9kdWNlcyBDTkEKPiAoY29t
-cGFjdCBOVU1BLWF3YXJlIGxvY2spIGFzIHRoZSBzbG93IHBhdGggZm9yIHFzcGlubG9jay4gSXQg
-aXMKPiBlbmFibGVkIHRocm91Z2ggYSBjb25maWd1cmF0aW9uIG9wdGlvbiAoTlVNQV9BV0FSRV9T
-UElOTE9DS1MpLgo+IAo+IENOQSBpcyBhIE5VTUEtYXdhcmUgdmVyc2lvbiBvZiB0aGUgTUNTIGxv
-Y2suIFNwaW5uaW5nIHRocmVhZHMgYXJlCj4gb3JnYW5pemVkIGluIHR3byBxdWV1ZXMsIGEgcHJp
-bWFyeSBxdWV1ZSBmb3IgdGhyZWFkcyBydW5uaW5nIG9uIHRoZSBzYW1lCj4gbm9kZSBhcyB0aGUg
-Y3VycmVudCBsb2NrIGhvbGRlciwgYW5kIGEgc2Vjb25kYXJ5IHF1ZXVlIGZvciB0aHJlYWRzCj4g
-cnVubmluZyBvbiBvdGhlciBub2Rlcy4gVGhyZWFkcyBzdG9yZSB0aGUgSUQgb2YgdGhlIG5vZGUg
-b24gd2hpY2gKPiB0aGV5IGFyZSBydW5uaW5nIGluIHRoZWlyIHF1ZXVlIG5vZGVzLiBBZnRlciBh
-Y3F1aXJpbmcgdGhlIE1DUyBsb2NrIGFuZAo+IGJlZm9yZSBhY3F1aXJpbmcgdGhlIHNwaW5sb2Nr
-LCB0aGUgbG9jayBob2xkZXIgc2NhbnMgdGhlIHByaW1hcnkgcXVldWUKPiBsb29raW5nIGZvciBh
-IHRocmVhZCBydW5uaW5nIG9uIHRoZSBzYW1lIG5vZGUgKHByZS1zY2FuKS4gSWYgZm91bmQgKGNh
-bGwKPiBpdCB0aHJlYWQgVCksIGFsbCB0aHJlYWRzIGluIHRoZSBwcmltYXJ5IHF1ZXVlIGJldHdl
-ZW4gdGhlIGN1cnJlbnQgbG9jawo+IGhvbGRlciBhbmQgVCBhcmUgbW92ZWQgdG8gdGhlIGVuZCBv
-ZiB0aGUgc2Vjb25kYXJ5IHF1ZXVlLiAgSWYgc3VjaCBUCj4gaXMgbm90IGZvdW5kLCB3ZSBtYWtl
-IGFub3RoZXIgc2NhbiBvZiB0aGUgcHJpbWFyeSBxdWV1ZSBhZnRlciBhY3F1aXJpbmcgCj4gdGhl
-IHNwaW5sb2NrIHdoZW4gdW5sb2NraW5nIHRoZSBNQ1MgbG9jayAocG9zdC1zY2FuKSwgc3RhcnRp
-bmcgYXQgdGhlCj4gbm9kZSB3aGVyZSBwcmUtc2NhbiBzdG9wcGVkLiBJZiBib3RoIHNjYW5zIGZh
-aWwgdG8gZmluZCBzdWNoIFQsIHRoZQo+IE1DUyBsb2NrIGlzIHBhc3NlZCB0byB0aGUgZmlyc3Qg
-dGhyZWFkIGluIHRoZSBzZWNvbmRhcnkgcXVldWUuIElmIHRoZQo+IHNlY29uZGFyeSBxdWV1ZSBp
-cyBlbXB0eSwgdGhlIE1DUyBsb2NrIGlzIHBhc3NlZCB0byB0aGUgbmV4dCB0aHJlYWQgaW4gdGhl
-Cj4gcHJpbWFyeSBxdWV1ZS4gVG8gYXZvaWQgc3RhcnZhdGlvbiBvZiB0aHJlYWRzIGluIHRoZSBz
-ZWNvbmRhcnkgcXVldWUsIHRob3NlCj4gdGhyZWFkcyBhcmUgbW92ZWQgYmFjayB0byB0aGUgaGVh
-ZCBvZiB0aGUgcHJpbWFyeSBxdWV1ZSBhZnRlciBhIGNlcnRhaW4KPiBudW1iZXIgb2YgaW50cmEt
-bm9kZSBsb2NrIGhhbmQtb2Zmcy4gTGFzdGx5LCBjZXJ0YWluIHRocmVhZHMgKGUuZy4sIGluCj4g
-aW4gaXJxIGFuZCBubWkgY29udGV4dHMpIGFyZSBnaXZlbiBhIHByZWZlcmVudGlhbCB0cmVhdG1l
-bnQgLS0gdGhlIHNjYW4KPiBzdG9wcyB3aGVuIHN1Y2ggYSB0aHJlYWQgaXMgZm91bmQsIGVmZmVj
-dGl2ZWx5IG5ldmVyIG1vdmluZyB0aG9zZSB0aHJlYWRzIAo+IGludG8gdGhlIHNlY29uZGFyeSBx
-dWV1ZS4KPiAKPiBNb3JlIGRldGFpbHMgYXJlIGF2YWlsYWJsZSBhdCBodHRwczovL2FyeGl2Lm9y
-Zy9hYnMvMTgxMC4wNTYwMC4KPiAKPiBXZSBoYXZlIGRvbmUgc29tZSBwZXJmb3JtYW5jZSBldmFs
-dWF0aW9uIHdpdGggdGhlIGxvY2t0b3J0dXJlIG1vZHVsZQo+IGFzIHdlbGwgYXMgd2l0aCBzZXZl
-cmFsIGJlbmNobWFya3MgZnJvbSB0aGUgd2lsbC1pdC1zY2FsZSByZXBvLgo+IFRoZSBmb2xsb3dp
-bmcgbG9ja3RvcnR1cmUgcmVzdWx0cyBhcmUgZnJvbSBhbiBPcmFjbGUgWDUtNCBzZXJ2ZXIKPiAo
-Zm91ciBJbnRlbCBYZW9uIEU3LTg4OTUgdjMgQCAyLjYwR0h6IHNvY2tldHMgd2l0aCAxOCBoeXBl
-cnRocmVhZGVkCj4gY29yZXMgZWFjaCkuIEVhY2ggbnVtYmVyIHJlcHJlc2VudHMgYW4gYXZlcmFn
-ZSAob3ZlciAyNSBydW5zKSBvZiB0aGUKPiB0b3RhbCBudW1iZXIgb2Ygb3BzICh4MTBeNykgcmVw
-b3J0ZWQgYXQgdGhlIGVuZCBvZiBlYWNoIHJ1bi4gVGhlIAo+IHN0YW5kYXJkIGRldmlhdGlvbiBp
-cyBhbHNvIHJlcG9ydGVkIGluICgpLCBhbmQgaW4gZ2VuZXJhbCBpcyBhYm91dCAzJQo+IGZyb20g
-dGhlIGF2ZXJhZ2UuIFRoZSAnc3RvY2snIGtlcm5lbCBpcyB2NS42LjAtcmM2LAo+IGNvbW1pdCA1
-YWQwZWMwYjg2NTIsIGNvbXBpbGVkIGluIHRoZSBkZWZhdWx0IGNvbmZpZ3VyYXRpb24uIAo+ICdw
-YXRjaC1DTkEnIGlzIHRoZSBtb2RpZmllZCBrZXJuZWwgd2l0aCBOVU1BX0FXQVJFX1NQSU5MT0NL
-UyBzZXQ7IAo+IHRoZSBzcGVlZHVwIGlzIGNhbGN1bGF0ZWQgZGl2aWRpbmcgJ3BhdGNoLUNOQScg
-YnkgJ3N0b2NrJy4KPiAKPiAjdGhyICAJIHN0b2NrICAgICAgICBwYXRjaC1DTkEgICBzcGVlZHVw
-IChwYXRjaC1DTkEvc3RvY2spCj4gIDEgIDIuNzAyICgwLjEwMCkgIDIuNzEyICgwLjEyMikgIDEu
-MDAzCj4gIDIgIDMuNjkxICgwLjE2MikgIDMuNjcyICgwLjEzOCkgIDAuOTk1Cj4gIDQgIDQuMjg1
-ICgwLjEwOCkgIDQuMjU2ICgwLjEyNCkgIDAuOTkzCj4gIDggIDUuMTE3ICgwLjEzMykgIDUuOTcy
-ICgwLjI1OCkgIDEuMTY3Cj4gMTYgIDYuMjczICgwLjE5NikgIDcuNjI4ICgwLjI3NCkgIDEuMjE2
-Cj4gMzIgIDYuNzU3ICgwLjEyMikgIDguNTQ0ICgwLjIyNSkgIDEuMjY0Cj4gMzYgIDYuNzYxICgw
-LjA5MSkgIDguNjkxICgwLjE3MCkgIDEuMjg1Cj4gNzIgIDYuNTY5ICgwLjEzMikgIDkuMjgwICgw
-LjIyNSkgIDEuNDEzCj4gMTA4ICA2LjE2NyAoMC4xMTIpICA5LjQxMCAoMC4xNzEpICAxLjUyNgo+
-IDE0MiAgNS45MDEgKDAuMTE3KSAgOS40MTUgKDAuMjExKSAgMS41OTUKPiAKPiBUaGUgZm9sbG93
-aW5nIHRhYmxlcyBjb250YWluIHRocm91Z2hwdXQgcmVzdWx0cyAob3BzL3VzKSBmcm9tIHRoZSBz
-YW1lCj4gc2V0dXAgZm9yIHdpbGwtaXQtc2NhbGUvb3BlbjFfdGhyZWFkczogCj4gCj4gI3RociAg
-CSBzdG9jayAgICAgICAgcGF0Y2gtQ05BICAgc3BlZWR1cCAocGF0Y2gtQ05BL3N0b2NrKQo+ICAx
-ICAwLjUxMSAoMC4wMDIpICAwLjUyNSAoMC4wMDMpICAxLjAyNwo+ICAyICAwLjc3NCAoMC4wMTgp
-ICAwLjc2OSAoMC4wMTcpICAwLjk5Mwo+ICA0ICAxLjM1MiAoMC4wMjMpICAxLjM3MiAoMC4wMzIp
-ICAxLjAxNAo+ICA4ICAxLjY3NSAoMC4wOTApICAxLjY2MCAoMC4xMzYpICAwLjk5MQo+IDE2ICAx
-LjY2NSAoMC4xMTQpICAxLjU4MyAoMC4wOTIpICAwLjk1MQo+IDMyICAwLjk2NiAoMC4wMzgpICAx
-LjYzNyAoMC4wODcpICAxLjY5NAo+IDM2ICAwLjk3MyAoMC4wNjYpICAxLjU3MCAoMC4wODEpICAx
-LjYxMwo+IDcyICAwLjg0NCAoMC4wNDApICAxLjYyMCAoMC4wOTEpICAxLjkxOQo+IDEwOCAgMC44
-MzYgKDAuMDQwKSAgMS42NzAgKDAuMDg0KSAgMS45OTkKPiAxNDIgIDAuNzk5ICgwLjA0MykgIDEu
-Njk5ICgwLjA4NykgIDIuMTI3Cj4gCj4gYW5kIHdpbGwtaXQtc2NhbGUvbG9jazJfdGhyZWFkczoK
-PiAKPiAjdGhyICAJIHN0b2NrICAgICAgICBwYXRjaC1DTkEgICBzcGVlZHVwIChwYXRjaC1DTkEv
-c3RvY2spCj4gIDEgIDEuNTgxICgwLjAwNCkgIDEuNTc2ICgwLjAwNykgIDAuOTk3Cj4gIDIgIDIu
-Njk5ICgwLjA1OSkgIDIuNjg3ICgwLjA2NykgIDAuOTk2Cj4gIDQgIDUuMjQwICgwLjIzNCkgIDUu
-MTU1ICgwLjI1MikgIDAuOTg0Cj4gIDggIDQuMzcwICgwLjI0MSkgIDQuMTExICgwLjM0MikgIDAu
-OTQxCj4gMTYgIDQuMTUyICgwLjExMikgIDQuMTEzICgwLjE2NCkgIDAuOTkxCj4gMzIgIDIuNTc5
-ICgwLjA5OSkgIDQuMDk5ICgwLjEyNykgIDEuNTg5Cj4gMzYgIDIuNjA0ICgwLjA2NikgIDQuMDA1
-ICgwLjEwNCkgIDEuNTM4Cj4gNzIgIDIuMDI4ICgwLjA5MSkgIDQuMDI0ICgwLjExMikgIDEuOTg0
-Cj4gMTA4ICAyLjA3OSAoMC4xMDYpICAzLjk5NyAoMC4wOTMpICAxLjkyMwo+IDE0MiAgMS44NTgg
-KDAuMTAzKSAgMy45NTUgKDAuMTA5KSAgMi4xMjkKPiAKPiBPdXIgZXZhbHVhdGlvbiBzaG93cyB0
-aGF0IENOQSBhbHNvIGltcHJvdmVzIHBlcmZvcm1hbmNlIG9mIHVzZXIgCj4gYXBwbGljYXRpb25z
-IHRoYXQgaGF2ZSBob3QgcHRocmVhZCBtdXRleGVzLiBUaG9zZSBtdXRleGVzIGFyZSAKPiBibG9j
-a2luZywgYW5kIHdhaXRpbmcgdGhyZWFkcyBwYXJrIGFuZCB1bnBhcmsgdmlhIHRoZSBmdXRleCAK
-PiBtZWNoYW5pc20gaW4gdGhlIGtlcm5lbC4gR2l2ZW4gdGhhdCBrZXJuZWwgZnV0ZXggY2hhaW5z
-LCB3aGljaAo+IGFyZSBoYXNoZWQgYnkgdGhlIG11dGV4IGFkZHJlc3MsIGFyZSBlYWNoIHByb3Rl
-Y3RlZCBieSBhIAo+IGNoYWluLXNwZWNpZmljIHNwaW4gbG9jaywgdGhlIGNvbnRlbnRpb24gb24g
-YSB1c2VyLW1vZGUgbXV0ZXggCj4gdHJhbnNsYXRlcyBpbnRvIGNvbnRlbnRpb24gb24gYSBrZXJu
-ZWwgbGV2ZWwgc3BpbmxvY2suIAo+IAo+IEhlcmUgYXJlIHRoZSByZXN1bHRzIGZvciB0aGUgbGV2
-ZWxkYiDigJhyZWFkcmFuZG9t4oCZIGJlbmNobWFyazoKPiAKPiAjdGhyICAJIHN0b2NrICAgICAg
-ICBwYXRjaC1DTkEgICBzcGVlZHVwIChwYXRjaC1DTkEvc3RvY2spCj4gIDEgIDAuNTMwICgwLjAx
-MykgIDAuNTMzICgwLjAxMSkgIDEuMDA2Cj4gIDIgIDAuODM5ICgwLjA0MykgIDAuODQ3ICgwLjAz
-MSkgIDEuMDEwCj4gIDQgIDAuNzU4ICgwLjAyMSkgIDAuNzY0ICgwLjAxOCkgIDEuMDA4Cj4gIDgg
-IDAuNjc3ICgwLjAyMikgIDAuNjgyICgwLjAxNikgIDEuMDA4Cj4gMTYgIDAuNzE0ICgwLjAyMykg
-IDAuODE0ICgwLjAyNykgIDEuMTQwCj4gMzIgIDAuNzY1ICgwLjA0MCkgIDEuMTY4ICgwLjAzMikg
-IDEuNTI3Cj4gMzYgIDAuNzA2ICgwLjAyMykgIDEuMTM5ICgwLjA2NikgIDEuNjE0Cj4gNzIgIDAu
-NjI0ICgwLjAxNykgIDEuMTg0ICgwLjAyNikgIDEuODk4Cj4gMTA4ICAwLjYwNSAoMC4wMTMpICAx
-LjE0NyAoMC4wMjMpICAxLjg5NAo+IDE0MiAgMC41OTMgKDAuMDEyKSAgMS4xMzEgKDAuMDE5KSAg
-MS45MDgKPiAKPiBGdXJ0aGVyIGNvbW1lbnRzIGFyZSB3ZWxjb21lIGFuZCBhcHByZWNpYXRlZC4K
-PiAKPiBBbGV4IEtvZ2FuICg1KToKPiAgbG9ja2luZy9xc3BpbmxvY2s6IFJlbmFtZSBtY3MgbG9j
-ay91bmxvY2sgbWFjcm9zIGFuZCBtYWtlIHRoZW0gbW9yZQo+ICAgIGdlbmVyaWMKPiAgbG9ja2lu
-Zy9xc3BpbmxvY2s6IFJlZmFjdG9yIHRoZSBxc3BpbmxvY2sgc2xvdyBwYXRoCj4gIGxvY2tpbmcv
-cXNwaW5sb2NrOiBJbnRyb2R1Y2UgQ05BIGludG8gdGhlIHNsb3cgcGF0aCBvZiBxc3BpbmxvY2sK
-PiAgbG9ja2luZy9xc3BpbmxvY2s6IEludHJvZHVjZSBzdGFydmF0aW9uIGF2b2lkYW5jZSBpbnRv
-IENOQQo+ICBsb2NraW5nL3FzcGlubG9jazogQXZvaWQgbW92aW5nIGNlcnRhaW4gdGhyZWFkcyBi
-ZXR3ZWVuIHdhaXRpbmcgcXVldWVzCj4gICAgaW4gQ05BCj4gCj4gLi4uL2FkbWluLWd1aWRlL2tl
-cm5lbC1wYXJhbWV0ZXJzLnR4dCAgICAgICAgIHwgIDE4ICsKPiBhcmNoL2FybS9pbmNsdWRlL2Fz
-bS9tY3Nfc3BpbmxvY2suaCAgICAgICAgICAgfCAgIDYgKy0KPiBhcmNoL3g4Ni9LY29uZmlnICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgfCAgMjAgKwo+IGFyY2gveDg2L2luY2x1ZGUvYXNt
-L3FzcGlubG9jay5oICAgICAgICAgICAgICB8ICAgNiArCj4gYXJjaC94ODYva2VybmVsL2FsdGVy
-bmF0aXZlLmMgICAgICAgICAgICAgICAgIHwgICAyICsKPiBpbmNsdWRlL2FzbS1nZW5lcmljL21j
-c19zcGlubG9jay5oICAgICAgICAgICAgfCAgIDQgKy0KPiBrZXJuZWwvbG9ja2luZy9tY3Nfc3Bp
-bmxvY2suaCAgICAgICAgICAgICAgICAgfCAgMjAgKy0KPiBrZXJuZWwvbG9ja2luZy9xc3Bpbmxv
-Y2suYyAgICAgICAgICAgICAgICAgICAgfCAgODIgKysrLQo+IGtlcm5lbC9sb2NraW5nL3FzcGlu
-bG9ja19jbmEuaCAgICAgICAgICAgICAgICB8IDQwNyArKysrKysrKysrKysrKysrKysKPiBrZXJu
-ZWwvbG9ja2luZy9xc3BpbmxvY2tfcGFyYXZpcnQuaCAgICAgICAgICAgfCAgIDIgKy0KPiAxMCBm
-aWxlcyBjaGFuZ2VkLCA1NDQgaW5zZXJ0aW9ucygrKSwgMjMgZGVsZXRpb25zKC0pCj4gY3JlYXRl
-IG1vZGUgMTAwNjQ0IGtlcm5lbC9sb2NraW5nL3FzcGlubG9ja19jbmEuaAo+IAo+IC0tIAo+IDIu
-MjEuMSAoQXBwbGUgR2l0LTEyMi4zKQo+IAoKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0CmxpbnV4LWFy
-bS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFkZWFkLm9yZy9t
-YWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
+
+--+HP7ph2BbKc20aGI
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+On Mon, May 04, 2020 at 02:41:09PM +0300, Andy Shevchenko wrote:
+> On Sun, May 03, 2020 at 04:38:36AM +0530, Syed Nayyar Waris wrote:
+> > This patchset introduces a new generic version of for_each_set_clump.=
+=20
+> > The previous version of for_each_set_clump8 used a fixed size 8-bit
+> > clump, but the new generic version can work with clump of any size but
+> > less than or equal to BITS_PER_LONG. The patchset utilizes the new macr=
+o=20
+> > in several GPIO drivers.
+> >=20
+> > The earlier 8-bit for_each_set_clump8 facilitated a
+> > for-loop syntax that iterates over a memory region entire groups of set
+> > bits at a time.
+> >=20
+> > For example, suppose you would like to iterate over a 32-bit integer 8
+> > bits at a time, skipping over 8-bit groups with no set bit, where
+> > XXXXXXXX represents the current 8-bit group:
+> >=20
+> >     Example:        10111110 00000000 11111111 00110011
+> >     First loop:     10111110 00000000 11111111 XXXXXXXX
+> >     Second loop:    10111110 00000000 XXXXXXXX 00110011
+> >     Third loop:     XXXXXXXX 00000000 11111111 00110011
+> >=20
+> > Each iteration of the loop returns the next 8-bit group that has at
+> > least one set bit.
+> >=20
+> > But with the new for_each_set_clump the clump size can be different fro=
+m 8 bits.
+> > Moreover, the clump can be split at word boundary in situations where w=
+ord=20
+> > size is not multiple of clump size. Following are examples showing the =
+working=20
+> > of new macro for clump sizes of 24 bits and 6 bits.
+> >=20
+> > Example 1:
+> > clump size: 24 bits, Number of clumps (or ports): 10
+> > bitmap stores the bit information from where successive clumps are retr=
+ieved.
+> >=20
+> >      /* bitmap memory region */
+> >         0x00aa0000ff000000;  /* Most significant bits */
+> >         0xaaaaaa0000ff0000;
+> >         0x000000aa000000aa;
+> >         0xbbbbabcdeffedcba;  /* Least significant bits */
+> >=20
+> > Different iterations of for_each_set_clump:-
+> > 'offset' is the bit position and 'clump' is the 24 bit clump from the
+> > above bitmap.
+> > Iteration first:        offset: 0 clump: 0xfedcba
+> > Iteration second:       offset: 24 clump: 0xabcdef
+> > Iteration third:        offset: 48 clump: 0xaabbbb
+> > Iteration fourth:       offset: 96 clump: 0xaa
+> > Iteration fifth:        offset: 144 clump: 0xff
+> > Iteration sixth:        offset: 168 clump: 0xaaaaaa
+> > Iteration seventh:      offset: 216 clump: 0xff
+> > Loop breaks because in the end the remaining bits (0x00aa) size was less
+> > than clump size of 24 bits.
+> >=20
+> > In above example it can be seen that in iteration third, the 24 bit clu=
+mp
+> > that was retrieved was split between bitmap[0] and bitmap[1]. This exam=
+ple=20
+> > also shows that 24 bit zeroes if present in between, were skipped (pres=
+erving
+> > the previous for_each_set_macro8 behaviour).=20
+> >=20
+> > Example 2:
+> > clump size =3D 6 bits, Number of clumps (or ports) =3D 3.
+> >=20
+> >      /* bitmap memory region */
+> >         0x00aa0000ff000000;  /* Most significant bits */
+> >         0xaaaaaa0000ff0000;
+> >         0x0f00000000000000;
+> >         0x0000000000000ac0;  /* Least significant bits */
+> >=20
+> > Different iterations of for_each_set_clump:
+> > 'offset' is the bit position and 'clump' is the 6 bit clump from the
+> > above bitmap.
+> > Iteration first:        offset: 6 clump: 0x2b
+> > Loop breaks because 6 * 3 =3D 18 bits traversed in bitmap.
+> > Here 6 * 3 is clump size * no. of clumps.
+>=20
+> Looking into the last patches where we have examples I still do not see a
+> benefit of variadic clump sizes. power of 2 sizes would make sense (and be
+> optimized accordingly (64-bit, 32-bit).
+>=20
+> --=20
+> With Best Regards,
+> Andy Shevchenko
+
+There is of course benefit in defining for_each_set_clump with clump
+sizes of powers of 2 (we can optimize for 32 and 64 bit sizes and avoid
+boundary checks that we know will not occur), but at the very least the
+variable size bitmap_set_value and bitmap_get_value provide significant
+benefit for the readability of the gpio-xilinx code:
+
+	bitmap_set_value(old, state[0], 0, width[0]);
+	bitmap_set_value(old, state[1], width[0], width[1]);
+	...
+	state[0] =3D bitmap_get_value(new, 0, width[0]);
+	state[1] =3D bitmap_get_value(new, width[0], width[1]);
+
+These lines are simple and clear to read: we know immediately what they
+do. But if we did not have bitmap_set_value/bitmap_get_value, we'd have
+to use several bitwise operations for each line; the obfuscation of the
+code would be an obvious hinderance here.
+
+William Breathitt Gray
+
+--+HP7ph2BbKc20aGI
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCgAdFiEEk5I4PDJ2w1cDf/bghvpINdm7VJIFAl6wKGIACgkQhvpINdm7
+VJKZaxAA563CCfH6P1WpErURHBsLjHAUFl6mWCySrxGYUSYQqsxhz1w30MzHhckw
+kQBx1mik+w14YUypQ7ISU8a8EWdkbHEW2xyKPKb7jnWnz/7SWf69BzkZJJBrzeXP
+89IGJNkWXg5sVx2AWPA5aY4aQqita5RAEbZvroQKQr3C264kV5lH86GxG9KRD5+E
+O71wWPdZ48+5sM9PXS6DH3F/BJ67g8Ii43WqNLrJ5C7JW370iYsaLiF/wspSFtpZ
+a7BNAOPhJB7qkBhl14KwotTAMkv7crq1WLKP8D/0ycsrZNGiMaS7rmYyWM5DSZOb
+zWmI082M3v3KL+XLtIHx59kjM3wkE6P1cMdRbh7ba06xn2Sx5Ml45wto1F0eVTwi
+Pl+FfnefRZ7GYp5Zi2HfAl7LciWArBiFQTjj+8AJivE5dAXQSkjbB0EjJGsrdBQG
+VgynevuG1Ni7wW99wO0LA/zv3EoZd7bqcZRmd/ntLZIUY2pw+llKODzUJYXxz3zh
+QIkppvkkaQMv9/0XksRNIRETvzEy5fI3eVD2LFZrndu3fYEHXdHuQiFRZuvjnjao
+8CG3LMAzfWjBy8fIApCXtYAScRxFw3lcwAl/G0VsI98rVZ6z1J7LhawStPRfG7FE
+NUjbshq/FN/pSVsTKkXCJiSXdgyckbjkeFry5GOyDcrncEzWH5Y=
+=mCyx
+-----END PGP SIGNATURE-----
+
+--+HP7ph2BbKc20aGI--
