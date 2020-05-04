@@ -1,50 +1,98 @@
-From: "Naveen N. Rao" <naveen.n.rao@linux.ibm.com>
-Subject: Re: [PATCH 12/14] docs: move remaining stuff under
- Documentation/*.txt to Documentation/staging
-Date: Mon, 04 May 2020 15:21:53 +0530
-Message-ID: <1588585777.904qzycqcn.naveen@linux.ibm.com>
-References: <cover.1588345503.git.mchehab+huawei@kernel.org>
-        <28687056965ff46c0e6c81663a419bc59cfb94b4.1588345503.git.mchehab+huawei@kernel.org>
-        <20200504085415.db8e0e3b40e795f2fb4af009@kernel.org>
+From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Subject: Re: [PATCH v5 0/4] Introduce the for_each_set_clump macro
+Date: Mon, 4 May 2020 14:41:09 +0300
+Message-ID: <20200504114109.GE185537@smile.fi.intel.com>
+References: <cover.1588460322.git.syednwaris@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:8288 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1728339AbgEDJxJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2020 05:53:09 -0400
-In-Reply-To: <20200504085415.db8e0e3b40e795f2fb4af009@kernel.org>
+Received: from mga18.intel.com ([134.134.136.126]:57390 "EHLO mga18.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726797AbgEDLlL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 4 May 2020 07:41:11 -0400
+Content-Disposition: inline
+In-Reply-To: <cover.1588460322.git.syednwaris@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, Arnd Bergmann <arnd@arndb.de>, Bjorn Andersson <bjorn.andersson@linaro.org>, Daniel Bristot de Oliveira <bristot@redhat.com>, Jonathan Corbet <corbet@lwn.net>, "David S. Miller" <davem@davemloft.net>, =?iso-8859-1?q?Greg=0A?= Kroah-Hartman <gregkh@linuxfoundation.org>, Jens Wiklander <jens.wiklander@linaro.org>, Lecopzer Chen <lecopzer.chen@mediatek.com>, linux-arch@vger.kernel.org, Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, linux-remoteproc@vger.kernel.org, =?iso-8859-1?q?Sameer=0A?= Rahmani <lxsameer@gnu.org>, Ingo Molnar <mingo@kernel.org>, Ohad Ben-Cohen <ohad@wizery.com>, Peter Zijlstra <peterz@infradead.org>, Rob Herring <robh@kernel.org>, St
+To: Syed Nayyar Waris <syednwaris@gmail.com>
+Cc: akpm@linux-foundation.org, vilhelm.gray@gmail.com, michal.simek@xilinx.com, arnd@arndb.de, rrichter@marvell.com, linus.walleij@linaro.org, bgolaszewski@baylibre.com, yamada.masahiro@socionext.com, rui.zhang@intel.com, daniel.lezcano@linaro.org, amit.kucheria@verdurent.com, linux-arch@vger.kernel.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org
 
-Masami Hiramatsu wrote:
-> On Fri,  1 May 2020 17:37:56 +0200
-> Mauro Carvalho Chehab <mchehab+huawei@kernel.org> wrote:
+On Sun, May 03, 2020 at 04:38:36AM +0530, Syed Nayyar Waris wrote:
+> This patchset introduces a new generic version of for_each_set_clump. 
+> The previous version of for_each_set_clump8 used a fixed size 8-bit
+> clump, but the new generic version can work with clump of any size but
+> less than or equal to BITS_PER_LONG. The patchset utilizes the new macro 
+> in several GPIO drivers.
 > 
->> There are several files that I was unable to find a proper place
->> for them, and 3 ones that are still in plain old text format.
->> 
->> Let's place those stuff behind the carpet, as we'd like to keep the
->> root directory clean.
->> 
->> We can later discuss and move those into better places.
+> The earlier 8-bit for_each_set_clump8 facilitated a
+> for-loop syntax that iterates over a memory region entire groups of set
+> bits at a time.
 > 
-> Hi Mauro,
+> For example, suppose you would like to iterate over a 32-bit integer 8
+> bits at a time, skipping over 8-bit groups with no set bit, where
+> XXXXXXXX represents the current 8-bit group:
 > 
-> Thanks for cleaning it up! Tentatively moving kprobes.txt under
-> staging/ is good to me.
+>     Example:        10111110 00000000 11111111 00110011
+>     First loop:     10111110 00000000 11111111 XXXXXXXX
+>     Second loop:    10111110 00000000 XXXXXXXX 00110011
+>     Third loop:     XXXXXXXX 00000000 11111111 00110011
 > 
-> Acked-by: Masami Hiramatsu <mhiramat@kernel.org>
+> Each iteration of the loop returns the next 8-bit group that has at
+> least one set bit.
 > 
-> BTW, I think kprobes.txt is under trace/ or we may be better
-> making a new core-api/events/ directory and prepare other event
-> systems (PMU, uprobes, and hw_breakpoint.) 
+> But with the new for_each_set_clump the clump size can be different from 8 bits.
+> Moreover, the clump can be split at word boundary in situations where word 
+> size is not multiple of clump size. Following are examples showing the working 
+> of new macro for clump sizes of 24 bits and 6 bits.
+> 
+> Example 1:
+> clump size: 24 bits, Number of clumps (or ports): 10
+> bitmap stores the bit information from where successive clumps are retrieved.
+> 
+>      /* bitmap memory region */
+>         0x00aa0000ff000000;  /* Most significant bits */
+>         0xaaaaaa0000ff0000;
+>         0x000000aa000000aa;
+>         0xbbbbabcdeffedcba;  /* Least significant bits */
+> 
+> Different iterations of for_each_set_clump:-
+> 'offset' is the bit position and 'clump' is the 24 bit clump from the
+> above bitmap.
+> Iteration first:        offset: 0 clump: 0xfedcba
+> Iteration second:       offset: 24 clump: 0xabcdef
+> Iteration third:        offset: 48 clump: 0xaabbbb
+> Iteration fourth:       offset: 96 clump: 0xaa
+> Iteration fifth:        offset: 144 clump: 0xff
+> Iteration sixth:        offset: 168 clump: 0xaaaaaa
+> Iteration seventh:      offset: 216 clump: 0xff
+> Loop breaks because in the end the remaining bits (0x00aa) size was less
+> than clump size of 24 bits.
+> 
+> In above example it can be seen that in iteration third, the 24 bit clump
+> that was retrieved was split between bitmap[0] and bitmap[1]. This example 
+> also shows that 24 bit zeroes if present in between, were skipped (preserving
+> the previous for_each_set_macro8 behaviour). 
+> 
+> Example 2:
+> clump size = 6 bits, Number of clumps (or ports) = 3.
+> 
+>      /* bitmap memory region */
+>         0x00aa0000ff000000;  /* Most significant bits */
+>         0xaaaaaa0000ff0000;
+>         0x0f00000000000000;
+>         0x0000000000000ac0;  /* Least significant bits */
+> 
+> Different iterations of for_each_set_clump:
+> 'offset' is the bit position and 'clump' is the 6 bit clump from the
+> above bitmap.
+> Iteration first:        offset: 6 clump: 0x2b
+> Loop breaks because 6 * 3 = 18 bits traversed in bitmap.
+> Here 6 * 3 is clump size * no. of clumps.
 
-I think it would be good to move kprobes.txt under trace/ -- all other 
-tracing bits are already present there, including uprobes.
+Looking into the last patches where we have examples I still do not see a
+benefit of variadic clump sizes. power of 2 sizes would make sense (and be
+optimized accordingly (64-bit, 32-bit).
 
-
-- Naveen
+-- 
+With Best Regards,
+Andy Shevchenko
