@@ -1,107 +1,70 @@
-Return-Path: <SRS0=W/Kb=6W=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [PATCH V3 2/3] mm/hugetlb: Define a generic fallback for
- is_hugepage_only_range()
-References: <1588907271-11920-1-git-send-email-anshuman.khandual@arm.com>
- <1588907271-11920-3-git-send-email-anshuman.khandual@arm.com>
-From: Mike Kravetz <mike.kravetz@oracle.com>
-Message-ID: <9fc622e1-45ff-b79f-ebe0-35614837456c@oracle.com>
-Date: Fri, 8 May 2020 15:22:34 -0700
+Return-Path: <SRS0=VNB8=6S=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Mon, 4 May 2020 11:50:23 +0200
+From: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+Subject: Re: [PATCH 00/14] Move the ReST files from Documentation/*.txt
+Message-ID: <20200504115023.2ead040f@coco.lan>
+In-Reply-To: <9f79e15a-4e36-3747-51fc-ca2d8ab616b7@gmail.com>
+References: <cover.1588345503.git.mchehab+huawei@kernel.org>
+        <9f79e15a-4e36-3747-51fc-ca2d8ab616b7@gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <1588907271-11920-3-git-send-email-anshuman.khandual@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org, akpm@linux-foundation.org
-Cc: Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Sender: linux-doc-owner@vger.kernel.org
+To: Akira Yokosawa <akiyks@gmail.com>
+Cc: Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Joel Fernandes <joel@joelfernandes.org>, linux-arch@vger.kernel.org, Alan Stern <stern@rowland.harvard.edu>, David Howells <dhowells@redhat.com>, Andrea Parri <parri.andrea@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Will Deacon <will@kernel.org>, "Paul E. McKenney" <paulmck@kernel.org>, Joe Perches <joe@perches.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200508222234.uh7gndHs16Pv_xhiN0dTA1owTSPQhUCEaCEzPsF9GHw@z>
+Message-ID: <20200504095023.ETnueYpx7v_kITz6BxIpfGzqr6DwiFRf6_Q3MpxCR9k@z>
 
-On 5/7/20 8:07 PM, Anshuman Khandual wrote:
-> There are multiple similar definitions for is_hugepage_only_range() on
-> various platforms. Lets just add it's generic fallback definition for
-> platforms that do not override. This help reduce code duplication.
-> 
-> Cc: Russell King <linux@armlinux.org.uk>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: Tony Luck <tony.luck@intel.com>
-> Cc: Fenghua Yu <fenghua.yu@intel.com>
-> Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-> Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
-> Cc: Helge Deller <deller@gmx.de>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Cc: Paul Walmsley <paul.walmsley@sifive.com>
-> Cc: Palmer Dabbelt <palmer@dabbelt.com>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Cc: Vasily Gorbik <gor@linux.ibm.com>
-> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-> Cc: Rich Felker <dalias@libc.org>
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Borislav Petkov <bp@alien8.de>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: Mike Kravetz <mike.kravetz@oracle.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: x86@kernel.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: linux-ia64@vger.kernel.org
-> Cc: linux-mips@vger.kernel.org
-> Cc: linux-parisc@vger.kernel.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: linux-riscv@lists.infradead.org
-> Cc: linux-s390@vger.kernel.org
-> Cc: linux-sh@vger.kernel.org
-> Cc: sparclinux@vger.kernel.org
-> Cc: linux-mm@kvack.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
-> ---
->  arch/arm/include/asm/hugetlb.h     | 6 ------
->  arch/arm64/include/asm/hugetlb.h   | 6 ------
->  arch/ia64/include/asm/hugetlb.h    | 1 +
->  arch/mips/include/asm/hugetlb.h    | 7 -------
->  arch/parisc/include/asm/hugetlb.h  | 6 ------
->  arch/powerpc/include/asm/hugetlb.h | 1 +
->  arch/riscv/include/asm/hugetlb.h   | 6 ------
->  arch/s390/include/asm/hugetlb.h    | 7 -------
->  arch/sh/include/asm/hugetlb.h      | 6 ------
->  arch/sparc/include/asm/hugetlb.h   | 6 ------
->  arch/x86/include/asm/hugetlb.h     | 6 ------
->  include/linux/hugetlb.h            | 9 +++++++++
->  12 files changed, 11 insertions(+), 56 deletions(-)
-> 
-<snip>
-> diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
-> index 43a1cef8f0f1..c01c0c6f7fd4 100644
-> --- a/include/linux/hugetlb.h
-> +++ b/include/linux/hugetlb.h
-> @@ -591,6 +591,15 @@ static inline unsigned int blocks_per_huge_page(struct hstate *h)
->  
->  #include <asm/hugetlb.h>
->  
-> +#ifndef is_hugepage_only_range
-> +static inline int is_hugepage_only_range(struct mm_struct *mm,
-> +					unsigned long addr, unsigned long len)
-> +{
-> +	return 0;
-> +}
-> +#define is_hugepage_only_range is_hugepage_only_range
-> +#endif
-> +
->  #ifndef arch_make_huge_pte
->  static inline pte_t arch_make_huge_pte(pte_t entry, struct vm_area_struct *vma,
->  				       struct page *page, int writable)
-> 
+Em Mon, 4 May 2020 18:25:51 +0900
+Akira Yokosawa <akiyks@gmail.com> escreveu:
 
-Did you try building without CONFIG_HUGETLB_PAGE defined?  I'm guessing
-that you need a stub for is_hugepage_only_range().  Or, perhaps add this
-to asm-generic/hugetlb.h?
+> (CC to documentation, get_maintainer, and LKMM maintainers)
+> 
+> Hi Mauro,
+> 
+> As I didn't receive "[PATCH 12/14] docs: move remaining stuff under
+> Documentation/*.txt to Documentation/staging", I'm replying to
+> [PATCH 00/14].
+>
+> diff stat above shows you are not moving Documentation/atomic_bitops.txt in
+> this series. However, PATCH 12/14 contains the following hunks:
+> 
+> > diff --git a/MAINTAINERS b/MAINTAINERS
+> > index 1aa6e89e7424..8aa8f7c0db93 100644
+> > --- a/MAINTAINERS
+> > +++ b/MAINTAINERS  
+> [...]
+> > @@ -9855,7 +9855,7 @@ L:	linux-kernel@vger.kernel.org
+> >  L:	linux-arch@vger.kernel.org
+> >  S:	Supported
+> >  T:	git git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git dev
+> > -F:	Documentation/atomic_bitops.txt
+> > +F:	Documentation/staging/atomic_bitops.txt
+> >  F:	Documentation/atomic_t.txt
+> >  F:	Documentation/core-api/atomic_ops.rst
+> >  F:	Documentation/core-api/refcount-vs-atomic.rst  
+> 
+> [...]
+> 
+> > diff --git a/include/asm-generic/bitops/atomic.h b/include/asm-generic/bitops/atomic.h
+> > index dd90c9792909..edeeb8375006 100644
+> > --- a/include/asm-generic/bitops/atomic.h
+> > +++ b/include/asm-generic/bitops/atomic.h
+> > @@ -8,7 +8,7 @@
+> >  
+> >  /*
+> >   * Implementation of atomic bitops using atomic-fetch ops.
+> > - * See Documentation/atomic_bitops.txt for details.
+> > + * See Documentation/staging/atomic_bitops.txt for details.
+> >   */
+> >  
+> >  static inline void set_bit(unsigned int nr, volatile unsigned long *p)  
+> 
+> Please drop them.
 
--- 
-Mike Kravetz
+Thanks for pointing! Yeah, I noticed that too from Joe's review.
+Already dropped locally. I'll post a new version without such change.
+
+
+Thanks,
+Mauro
