@@ -1,56 +1,42 @@
-Return-Path: <SRS0=Pqm0=7A=kvack.org=owner-linux-mm@kernel.org>
-Date: Mon, 18 May 2020 15:18:28 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v3 2/7] mm/vmalloc: Track which page-table levels were
- modified
-Message-ID: <20200518151828.ad3c714a29209b359e326ec4@linux-foundation.org>
-In-Reply-To: <20200516125641.GK8135@suse.de>
-References: <20200515140023.25469-1-joro@8bytes.org>
-	<20200515140023.25469-3-joro@8bytes.org>
-	<20200515130142.4ca90ee590e9d8ab88497676@linux-foundation.org>
-	<20200516125641.GK8135@suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Return-Path: <SRS0=dppB=6S=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from smtprelay0122.hostedemail.com ([216.40.44.122]:53038 "EHLO
+        smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726549AbgEDArR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 May 2020 20:47:17 -0400
+Message-ID: <a88be1298aa1600f46e868dd45f83a6075c7162e.camel@perches.com>
+Subject: Re: [PATCH 12/14] docs: move remaining stuff under
+ Documentation/*.txt to Documentation/staging
+From: Joe Perches <joe@perches.com>
+Date: Sun, 03 May 2020 17:47:11 -0700
+In-Reply-To: <20200504085415.db8e0e3b40e795f2fb4af009@kernel.org>
+References: <cover.1588345503.git.mchehab+huawei@kernel.org>
+         <28687056965ff46c0e6c81663a419bc59cfb94b4.1588345503.git.mchehab+huawei@kernel.org>
+         <20200504085415.db8e0e3b40e795f2fb4af009@kernel.org>
+Content-Type: text/plain; charset="ISO-8859-1"
+MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Joerg Roedel <jroedel@suse.de>
-Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Christoph Hellwig <hch@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200518221828.iFZoXv1XfrdrgvuxBswXDX4oGdHQbXpngm2APA7qVpE@z>
+To: Masami Hiramatsu <mhiramat@kernel.org>, Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+Cc: Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, "Naveen N. Rao" <naveen.n.rao@linux.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S. Miller" <davem@davemloft.net>, Ohad Ben-Cohen <ohad@wizery.com>, Bjorn Andersson <bjorn.andersson@linaro.org>, Jens Wiklander <jens.wiklander@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Lecopzer Chen <lecopzer.chen@mediatek.com>, Sameer Rahmani <lxsameer@gnu.org>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Daniel Bristot de Oliveira <bristot@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-remoteproc@vger.kernel.org, tee-dev@lists.linaro.org, linux-arch@vger.kernel.org
+Message-ID: <20200504004711.ueVu61kBpCj95YB2stlInugAw-UgnwC40l5hJF6FMa0@z>
 
-On Sat, 16 May 2020 14:56:41 +0200 Joerg Roedel <jroedel@suse.de> wrote:
+On Mon, 2020-05-04 at 08:54 +0900, Masami Hiramatsu wrote:
+> On Fri,  1 May 2020 17:37:56 +0200
+> Mauro Carvalho Chehab <mchehab+huawei@kernel.org> wrote:
+[]
+> > diff --git a/MAINTAINERS b/MAINTAINERS
+[]
+> > @@ -9855,7 +9855,7 @@ L:	linux-kernel@vger.kernel.org
+> >  L:	linux-arch@vger.kernel.org
+> >  S:	Supported
+> >  T:	git git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git dev
+> > -F:	Documentation/atomic_bitops.txt
+> > +F:	Documentation/staging/atomic_bitops.txt
 
-> Hi Andrew,
-> 
-> On Fri, May 15, 2020 at 01:01:42PM -0700, Andrew Morton wrote:
-> > On Fri, 15 May 2020 16:00:18 +0200 Joerg Roedel <joro@8bytes.org> wrote:
-> > Lots of collisions here with Christoph's "decruft the vmalloc API" series
-> > (http://lkml.kernel.org/r/20200414131348.444715-1-hch@lst.de).
-> > 
-> > I attempted to fix things up.
-> > 
-> > unmap_kernel_range_noflush() needed to be redone.
-> > 
-> > map_kernel_range_noflush() might need the arch_sync_kernel_mappings() call?
-> 
-> Yes, map_kernel_range_noflush() needs the arch_sync_kernel_mappings()
-> call as well.
-> 
+Can you please keep the file lists in alphabetic order
+and move this entry down appropriately?  Thanks.
 
-This?
-
---- a/mm/vmalloc.c~mm-vmalloc-track-which-page-table-levels-were-modified-fix
-+++ a/mm/vmalloc.c
-@@ -309,6 +309,9 @@ int map_kernel_range_noflush(unsigned lo
- 			return err;
- 	} while (pgd++, addr = next, addr != end);
- 
-+	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-+		arch_sync_kernel_mappings(start, end);
-+
- 	return 0;
- }
- 
-
-It would be nice to get all this (ie, linux-next) retested before we
-send it upstream, please.  
+> >  F:	Documentation/atomic_t.txt
+> >  F:	Documentation/core-api/atomic_ops.rst
+> >  F:	Documentation/core-api/refcount-vs-atomic.rst
