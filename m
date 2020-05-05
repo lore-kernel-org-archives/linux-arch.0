@@ -1,50 +1,93 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 3/3] mm/hugetlb: Introduce
- HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
-Date: Tue, 5 May 2020 13:12:06 -0700
-Message-ID: <20200505131206.bee7b103431bff077c2ca0cf@linux-foundation.org>
-References: <1586864670-21799-1-git-send-email-anshuman.khandual@arm.com>
-        <1586864670-21799-4-git-send-email-anshuman.khandual@arm.com>
-        <20200425175511.7a68efb5e2f4436fe0328c1d@linux-foundation.org>
-        <87d37591-caa2-b82b-392a-3a29b2c7e9a6@arm.com>
-        <20200425200124.20d0c75fcaef05d062d3667c@linux-foundation.org>
-        <21460cbc-8e9a-b956-5797-57b2e1df9fb1@arm.com>
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: Re: [PATCH v2 17/20] mm: free_area_init: allow defining max_zone_pfn
+ in descending order
+Date: Tue, 5 May 2020 23:15:22 +0300
+Message-ID: <20200505201522.GA683243@linux.ibm.com>
+References: <20200429121126.17989-1-rppt@kernel.org>
+ <20200429121126.17989-18-rppt@kernel.org>
+ <20200503174138.GA114085@roeck-us.net>
+ <20200503184300.GA154219@roeck-us.net>
+ <20200504153901.GM14260@kernel.org>
+ <a0b20e15-fddb-aa9c-fd67-f1c8e735b4a4@synopsys.com>
+ <20200505091946.GG342687@linux.ibm.com>
+ <88b9465b-6e6d-86ca-3776-ccb7a5b60b7f@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35598 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727785AbgEEUMJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 5 May 2020 16:12:09 -0400
-In-Reply-To: <21460cbc-8e9a-b956-5797-57b2e1df9fb1@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: linux-mm@kvack.org, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, David S.
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <88b9465b-6e6d-86ca-3776-ccb7a5b60b7f@synopsys.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Rich Felker <dalias@libc.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, "linux-csky@vger.kernel.org" <linux-csky@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, Greg Ungerer <gerg@linux-m68k.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kerne
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 5 May 2020 08:21:34 +0530 Anshuman Khandual <anshuman.khandual@arm.com> wrote:
-
-> >>> static inline void arch_clear_hugepage_flags(struct page *page)
-> >>> {
-> >>> 	<some implementation>
-> >>> }
-> >>> #define arch_clear_hugepage_flags arch_clear_hugepage_flags
-> >>>
-> >>> It's a small difference - mainly to avoid adding two variables to the
-> >>> overall namespace where one would do.
-> >>
-> >> Understood, will change and resend.
-> > 
-> > That's OK - I've queued up that fix.
+On Tue, May 05, 2020 at 06:07:46PM +0000, Vineet Gupta wrote:
+> On 5/5/20 2:19 AM, Mike Rapoport wrote:
+> > From the code I've got the impression that it is either one of them. I.e
+> > the physical memory is either at
 > >
+> > 0x8000_0000 - <end of DDR 0 bank>
+> > 0x0000_0000 - <end of DDR 1 bank>
+> >
+> > or
+> >
+> > 0x0_8000_0000 - <end of DDR 0 bank>
+> > 0x1_0000_0000 - <end of DDR 1 bank>
+> >
+> > Is this possible to have a system with three live ranges? Like
+> >
+> > 0x0_0000_0000 - <end of DDR 1 bank>
+> > 0x0_8000_0000 - <end of DDR 0 bank>
+> > 0x1_0000_0000 - <end of DDR 2 bank>
 > 
-> Hello Andrew,
-> 
-> I might not have searched all the relevant trees or might have just searched
-> earlier than required. But I dont see these patches (or your proposed fixes)
-> either in mmotm (2020-04-29-23-04) or in next-20200504. Wondering if you are
-> waiting on a V2 for this series accommodating the changes you had proposed.
+> We don't have such a system, but it is indeed possible in theory. The question is
+>  - Can other arches have such a setup too
 
-hm.  I think I must have got confused and thought you were referring to
-a different patch.  Yes please, let's have v2.
+At the moment all architectures that support HIGHMEM have it above
+DMA/NORMAL. I'm not sure if such a setup is theoretically possible for
+other architectures, but as of now none of them support it in Linux.
+
+The general case is somewhat like
+
+	max_dma_pfn <= max_normal_pfn < max_high_pfn
+
+And of course, either max_dma_pfn or max_high_pfn or both may be not
+needed for an architecture.
+
+>  - Is it not better to have the core retain the flexibility just in case
+
+Hmm, there is indeed flexibility in the nodes and zones initialization,
+but if you'd look more closely to free_area_init*() and friends, there
+is a lot of cruft and retrofitting ;-)
+
+What we have is two mutually exclusive paths, one that relies on the
+architecture to calculate zone sizes and find the holes between the
+zones (!CONFIG_HAVE_MEMBLOCK_NODE_MAP) and the other one that only
+requires the architectures to pass possible limit for each zone and
+detects the actual zone spans based on the knowlegde about the actual
+physical memory layout that comes from memblock.
+
+These patches attempt to drop the older method and switch all the
+architectures to use newer and simpler one.
+
+If the requirement to have support for 3-banks is a theoretical
+possibility, I would prefer to adjust ARC's version of
+arch_has_descending_max_zone_pfns() to cope with either of 2-banks
+configuration (PAE40 and non-PAE40) and deal with the third bank when/if
+it actually materializes.
+
+> Thx,
+> -Vineet
+
+-- 
+Sincerely yours,
+Mike.
