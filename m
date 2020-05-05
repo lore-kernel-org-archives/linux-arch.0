@@ -1,75 +1,61 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 23/23] arm64: mte: Add Memory Tagging Extension
- documentation
-Date: Tue, 5 May 2020 18:30:29 +0100
-Message-ID: <20200505173029.GB81129@C02TF0J2HF1T.local>
+From: Luis Machado <luis.machado@linaro.org>
+Subject: Re: [PATCH v3 19/23] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
+ support
+Date: Tue, 5 May 2020 15:03:29 -0300
+Message-ID: <b78fe0c4-f89e-9347-7d7d-a68085f70b1d@linaro.org>
 References: <20200421142603.3894-1-catalin.marinas@arm.com>
- <20200421142603.3894-24-catalin.marinas@arm.com>
- <20200505103232.GE23080@arm.com>
+ <20200421142603.3894-20-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:46370 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726350AbgEERal (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 5 May 2020 13:30:41 -0400
-Content-Disposition: inline
-In-Reply-To: <20200505103232.GE23080@arm.com>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56712 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730093AbgEESDh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 May 2020 14:03:37 -0400
+Received: from mail-qv1-xf42.google.com (mail-qv1-xf42.google.com [IPv6:2607:f8b0:4864:20::f42])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 81670C061A0F
+        for <linux-arch@vger.kernel.org>; Tue,  5 May 2020 11:03:37 -0700 (PDT)
+Received: by mail-qv1-xf42.google.com with SMTP id fb4so1473149qvb.7
+        for <linux-arch@vger.kernel.org>; Tue, 05 May 2020 11:03:37 -0700 (PDT)
+In-Reply-To: <20200421142603.3894-20-catalin.marinas@arm.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, nd@arm.com
+To: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Alan Hayward <Alan.Hayward@arm.com>, Omair Javaid <omair.javaid@linaro.org>
 
-On Tue, May 05, 2020 at 11:32:33AM +0100, Szabolcs Nagy wrote:
-> The 04/21/2020 15:26, Catalin Marinas wrote:
-> > +PROT_MTE
-> > +--------
-> > +
-> > +To access the allocation tags, a user process must enable the Tagged
-> > +memory attribute on an address range using a new ``prot`` flag for
-> > +``mmap()`` and ``mprotect()``:
-> > +
-> > +``PROT_MTE`` - Pages allow access to the MTE allocation tags.
-> > +
-> > +The allocation tag is set to 0 when such pages are first mapped in the
-> > +user address space and preserved on copy-on-write. ``MAP_SHARED`` is
-> > +supported and the allocation tags can be shared between processes.
-> > +
-> > +**Note**: ``PROT_MTE`` is only supported on ``MAP_ANONYMOUS`` and
-> > +RAM-based file mappings (``tmpfs``, ``memfd``). Passing it to other
-> > +types of mapping will result in ``-EINVAL`` returned by these system
-> > +calls.
-> > +
-> > +**Note**: The ``PROT_MTE`` flag (and corresponding memory type) cannot
-> > +be cleared by ``mprotect()``.
+On 4/21/20 11:25 AM, Catalin Marinas wrote:
+> Add support for bulk setting/getting of the MTE tags in a tracee's
+> address space at 'addr' in the ptrace() syscall prototype. 'data' points
+> to a struct iovec in the tracer's address space with iov_base
+> representing the address of a tracer's buffer of length iov_len. The
+> tags to be copied to/from the tracer's buffer are stored as one tag per
+> byte.
 > 
-> i think there are some non-obvious madvise operations that may
-> be worth documenting too for mte specific semantics.
+> On successfully copying at least one tag, ptrace() returns 0 and updates
+> the tracer's iov_len with the number of tags copied. In case of error,
+> either -EIO or -EFAULT is returned, trying to follow the ptrace() man
+> page.
 > 
-> e.g. MADV_DONTNEED or MADV_FREE can presumably drop tags which
-> means that existing pointers can no longer write to the memory
-> which is a change of behaviour compared to the non-mte case.
-> (affects most malloc implementations that will have to deal
-> with this when implementing heap coloring) there might be other
-> similar problems like MADV_WIPEONFORK that wont work as
-> currently expected when mte is enabled.
+> Note that the tag copying functions are not performance critical,
+> therefore they lack optimisations found in typical memory copy routines.
 > 
-> if such behaviour changes cause serious problems to existing
-> software there may be a need to have a way to opt out from
-> these changes (e.g. MADV_ flag variant that only affects the
-> memory content but not the tags) or to make that the default
-> behaviour. (but i can't tell how widely these are used in
-> ways that can be expected to work with PROT_MTE)
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Alan Hayward <Alan.Hayward@arm.com>
+> Cc: Luis Machado <luis.machado@linaro.org>
+> Cc: Omair Javaid <omair.javaid@linaro.org>
+> ---
+> 
+> Notes:
+>      New in v3.
+> 
+>   arch/arm64/include/asm/mte.h         |  17 ++++
+>   arch/arm64/include/uapi/asm/ptrace.h |   3 +
+>   arch/arm64/kernel/mte.c              | 127 +++++++++++++++++++++++++++
+>   arch/arm64/kernel/ptrace.c           |  15 +++-
+>   arch/arm64/lib/mte.S                 |  50 +++++++++++
+>   5 files changed, 211 insertions(+), 1 deletion(-)
 
-Thanks. I'll document this behaviour as it may not be obvious.
-
-For the record (as we discussed this internally), I think the kernel
-behaviour is entirely expected. On mmap(PROT_MTE), the kernel would
-return pages with tags set to 0. On madvise(MADV_DONTNEED), the kernel
-may free the pages but map them back on access using the same conditions
-they were previously given to the user, i.e. tags set to 0. There isn't
-any expectations for the kernel to preserve the tags of
-MADV_DONTNEED/FREE pages (which defeats the point of dontneed/free).
-
--- 
-Catalin
+I'll try to exercise the new ptrace requests with QEMU and GDB.
