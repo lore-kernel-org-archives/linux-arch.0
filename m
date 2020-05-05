@@ -1,104 +1,65 @@
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [PATCH v5 0/4] Introduce the for_each_set_clump macro
-Date: Tue, 5 May 2020 10:53:49 -0400
-Message-ID: <20200505145250.GA5979@shinobu>
-References: <cover.1588460322.git.syednwaris@gmail.com>
- <20200504114109.GE185537@smile.fi.intel.com>
- <20200504143638.GA4635@shinobu>
- <CAHp75Vf_vP1qM9x81dErPeaJ4-cK-GOMnmEkxkhPY2gCvtmVbA@mail.gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v2 17/20] mm: free_area_init: allow defining max_zone_pfn
+ in descending order
+Date: Tue, 5 May 2020 17:27:16 +0000
+Message-ID: <51b468f8-c05b-a019-f473-429622083045@synopsys.com>
+References: <20200429121126.17989-1-rppt@kernel.org>
+ <20200429121126.17989-18-rppt@kernel.org>
+ <20200503174138.GA114085@roeck-us.net> <20200503184300.GA154219@roeck-us.net>
+ <20200504153901.GM14260@kernel.org>
+ <ca099c3e-c0bc-cd2f-cdb0-852dfc2c10db@roeck-us.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="CblX+4bnyfN0pR09"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55166 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1729065AbgEEOyL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 May 2020 10:54:11 -0400
-Content-Disposition: inline
-In-Reply-To: <CAHp75Vf_vP1qM9x81dErPeaJ4-cK-GOMnmEkxkhPY2gCvtmVbA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andy.shevchenko@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Michal Simek <michal.simek@xilinx.com>
-Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Syed Nayyar Waris <syednwaris@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, rrichter@marvell.com, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, "Zhang, Rui" <rui.zhang@intel.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Amit Kucheria <amit.kucheria@verdurent.com>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, Linux PM <linux-pm@vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <ca099c3e-c0bc-cd2f-cdb0-852dfc2c10db@roeck-us.net>
+Content-Language: en-US
+Content-ID: <71155D187A337740904D5836ABF4A094@namprd12.prod.outlook.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
+To: Guenter Roeck <linux@roeck-us.net>, Mike Rapoport <rppt@kernel.org>
+Cc: Rich Felker <dalias@libc.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "x86@kernel.org" <x86@kernel.org>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, Ley Foon Tan <ley.foon.tan@intel.com>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, Greg Ungerer <gerg@linux-m68k.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>lin
+List-Id: linux-arch.vger.kernel.org
 
-
---CblX+4bnyfN0pR09
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On Tue, May 05, 2020 at 04:51:56PM +0300, Andy Shevchenko wrote:
-> On Mon, May 4, 2020 at 5:41 PM William Breathitt Gray
-> <vilhelm.gray@gmail.com> wrote:
-> > On Mon, May 04, 2020 at 02:41:09PM +0300, Andy Shevchenko wrote:
-> > > On Sun, May 03, 2020 at 04:38:36AM +0530, Syed Nayyar Waris wrote:
->=20
-> ...
->=20
-> > > Looking into the last patches where we have examples I still do not s=
-ee a
-> > > benefit of variadic clump sizes. power of 2 sizes would make sense (a=
-nd be
-> > > optimized accordingly (64-bit, 32-bit).
-> > >
-> > > --
-> > > With Best Regards,
-> > > Andy Shevchenko
-> >
-> > There is of course benefit in defining for_each_set_clump with clump
-> > sizes of powers of 2 (we can optimize for 32 and 64 bit sizes and avoid
-> > boundary checks that we know will not occur), but at the very least the
-> > variable size bitmap_set_value and bitmap_get_value provide significant
-> > benefit for the readability of the gpio-xilinx code:
-> >
-> >         bitmap_set_value(old, state[0], 0, width[0]);
-> >         bitmap_set_value(old, state[1], width[0], width[1]);
-> >         ...
-> >         state[0] =3D bitmap_get_value(new, 0, width[0]);
-> >         state[1] =3D bitmap_get_value(new, width[0], width[1]);
-> >
-> > These lines are simple and clear to read: we know immediately what they
-> > do. But if we did not have bitmap_set_value/bitmap_get_value, we'd have
-> > to use several bitwise operations for each line; the obfuscation of the
-> > code would be an obvious hinderance here.
->=20
-> Do I understand correctly that width[0] and width[1] may not be power
-> of two and it's actually the case?
->=20
-> --=20
-> With Best Regards,
-> Andy Shevchenko
-
-I'm under the impression that width[0] and width[1] are arbitrarily
-chosen by the user and could be any integer. I have never used this
-hardware so I'm hoping one of the gpio-xilinx or GPIO subsystem
-maintainers in this thread will respond with some guidance.
-
-If the values of width[0] and width[1] are restricted to powers of 2,
-then I agree that there is no need for generic bitmap_set_value and
-bitmap_get_value functions and we can instead use more optimized power
-of 2 versions.
-
-William Breathitt Gray
-
---CblX+4bnyfN0pR09
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCgAdFiEEk5I4PDJ2w1cDf/bghvpINdm7VJIFAl6xff0ACgkQhvpINdm7
-VJI65w/8CTBNaBXzqQ6+AtgyAfLROsibTUPDE3wEs7s/eQkI4dlNN0BzmXwJ6sb6
-oMCj6NqzTFksNVUoM6OSjyAGqHZVTJaSfFS97TG4+GrUZm4iWrLMmCipkYEh3qjB
-b10DXznOSf6l0IFFbB51QRFRaDu2hJEFYbtCM0hDHYssMXQyI3wMyw/9qCtPwPOC
-1l0MYPTFb825gGxAnfNCJ8CODpBXFxbahDtK1gvkaNB7Bdq/BFHyaR4FqMP0QbCC
-hoxK7bdMqur6ghYjld9dPRw7iFMXZHt1gD90DMzyXZDl3FcOKlzaAsAz9abgCZ4d
-sNHU6i8bRUtdTy66niUDTFHuMKOsWzcHe223zeC6SXp9L00kRzWbSJ4RioncRIEP
-X1/Vc+7x62yX/PzECkI+jxhLA8G+wwWuizAxN2VxDDx3ei7XJ4UEfSnNYZwBYlyc
-DUhyQZ3UyeID5wDu0XiGGBM8/+Y6mQprrYG7pgsPqAMCMYbcuK58W6cC+uM9ilH9
-oNFMz74DRUKaRrK6N/L+ujYD5R+uqVIzq4rwXsT9UOeh4N85uNI/Vjxx5jYO6ICG
-B4SGVNo2lwkdvH8XhnCfad+no1HV1XWPNflkedffcfALCxAsxhKF5riw4H1cmZ3B
-NbCZv5hfWtY/5opWhWKCVrxAdH512xxHdWBThcAdj8l2NGpZaYM=
-=lkYR
------END PGP SIGNATURE-----
-
---CblX+4bnyfN0pR09--
+T24gNS81LzIwIDY6MTggQU0sIEd1ZW50ZXIgUm9lY2sgd3JvdGU6DQo+IE9uIDUvNC8yMCA4OjM5
+IEFNLCBNaWtlIFJhcG9wb3J0IHdyb3RlOg0KPj4gT24gU3VuLCBNYXkgMDMsIDIwMjAgYXQgMTE6
+NDM6MDBBTSAtMDcwMCwgR3VlbnRlciBSb2VjayB3cm90ZToNCj4+PiBPbiBTdW4sIE1heSAwMywg
+MjAyMCBhdCAxMDo0MTozOEFNIC0wNzAwLCBHdWVudGVyIFJvZWNrIHdyb3RlOg0KPj4+PiBIaSwN
+Cj4+Pj4NCj4+Pj4gT24gV2VkLCBBcHIgMjksIDIwMjAgYXQgMDM6MTE6MjNQTSArMDMwMCwgTWlr
+ZSBSYXBvcG9ydCB3cm90ZToNCj4+Pj4+IEZyb206IE1pa2UgUmFwb3BvcnQgPHJwcHRAbGludXgu
+aWJtLmNvbT4NCj4+Pj4+DQo+Pj4+PiBTb21lIGFyY2hpdGVjdHVyZXMgKGUuZy4gQVJDKSBoYXZl
+IHRoZSBaT05FX0hJR0hNRU0gem9uZSBiZWxvdyB0aGUNCj4+Pj4+IFpPTkVfTk9STUFMLiBBbGxv
+d2luZyBmcmVlX2FyZWFfaW5pdCgpIHBhcnNlIG1heF96b25lX3BmbiBhcnJheSBldmVuIGl0IGlz
+DQo+Pj4+PiBzb3J0ZWQgaW4gZGVzY2VuZGluZyBvcmRlciBhbGxvd3MgdXNpbmcgZnJlZV9hcmVh
+X2luaXQoKSBvbiBzdWNoDQo+Pj4+PiBhcmNoaXRlY3R1cmVzLg0KPj4+Pj4NCj4+Pj4+IEFkZCB0
+b3AgLT4gZG93biB0cmF2ZXJzYWwgb2YgbWF4X3pvbmVfcGZuIGFycmF5IGluIGZyZWVfYXJlYV9p
+bml0KCkgYW5kIHVzZQ0KPj4+Pj4gdGhlIGxhdHRlciBpbiBBUkMgbm9kZS96b25lIGluaXRpYWxp
+emF0aW9uLg0KPj4+Pj4NCj4+Pj4+IFNpZ25lZC1vZmYtYnk6IE1pa2UgUmFwb3BvcnQgPHJwcHRA
+bGludXguaWJtLmNvbT4NCj4+Pj4gVGhpcyBwYXRjaCBjYXVzZXMgbXkgbWljcm9ibGF6ZWVsIHFl
+bXUgYm9vdCB0ZXN0IGluIGxpbnV4LW5leHQgdG8gZmFpbC4NCj4+Pj4gUmV2ZXJ0aW5nIGl0IGZp
+eGVzIHRoZSBwcm9ibGVtLg0KPj4+Pg0KPj4+IFRoZSBzYW1lIHByb2JsZW0gaXMgc2VlbiB3aXRo
+IHMzOTAgZW11bGF0aW9ucy4NCj4+IFllYWgsIHRoaXMgcGF0Y2ggYnJlYWtzIHNvbWUgb3RoZXJz
+IGFzIHdlbGwgOigNCj4+DQo+PiBNeSBhc3N1bXB0aW9uIHRoYXQgbWF4X3pvbmVfcGZuIGRlZmlu
+ZXMgYXJjaGl0ZWN0dXJhbCBsaW1pdCBmb3IgbWF4aW1hbA0KPj4gUEZOIHRoYXQgY2FuIGJlbG9u
+ZyB0byBhIHpvbmUgd2FzIG92ZXItb3B0aW1pc3RpYy4gU2V2ZXJhbCBhcmNoZXMNCj4+IGFjdHVh
+bGx5IGRvIHRoYXQsIGJ1dCBvdGhlcnMgZG8NCj4+DQo+PiAJbWF4X3pvbmVfcGZuW1pPTkVfRE1B
+XSA9IE1BWF9ETUFfUEZOOw0KPj4gCW1heF96b25lX3BmbltaT05FX05PUk1BTF0gPSBtYXhfcGZu
+Ow0KPj4NCj4+IHdoZXJlIE1BWF9ETUFfUEZOIGlzIGJ1aWxkLXRpbWUgY29uc3RyYWluIGFuZCBt
+YXhfcGZuIGlzIHJ1biB0aW1lIGxpbWl0DQo+PiBmb3IgdGhlIGN1cnJlbnQgc3lzdGVtLg0KPj4N
+Cj4+IFNvLCB3aGVuIG1heF9wZm4gaXMgbG93ZXIgdGhhbiBNQVhfRE1BX1BGTiwgdGhlIGZyZWVf
+aW5pdF9hcmVhKCkgd2lsbA0KPj4gY29uc2lkZXIgbWF4X3pvbmVfcGZuIGFzIGRlc2NlbmRpbmcg
+YW5kIHdpbGwgd3JvbmdseSBjYWxjdWxhdGUgem9uZQ0KPj4gZXh0ZW50cy4NCj4+DQo+PiBUaGF0
+IHNhaWQsIGluc3RlYWQgb2YgdHJ5aW5nIHRvIGNyZWF0ZSBhIGdlbmVyaWMgd2F5IHRvIHNwZWNp
+YWwgY2FzZQ0KPj4gQVJDLCBJIHN1Z2dlc3QgdG8gc2ltcGx5IHVzZSB0aGUgYmVsb3cgcGF0Y2gg
+aW5zdGVhZC4NCj4+DQo+IEFzIGEgcmVtaW5kZXIsIEkgcmVwb3J0ZWQgdGhlIHByb2JsZW0gYWdh
+aW5zdCBzMzkwIGFuZCBtaWNyb2JsYXplZWwNCj4gKGludGVyZXN0aW5nbHkgZW5vdWdoLCBtaWNy
+b2JsYXplIChiaWcgZW5kaWFuKSB3b3JrcyksIG5vdCBhZ2FpbnN0IGFyYy4NCg0KVW5kZXJzdG9v
+ZCBhbmQgbXkgY29tbWVudCB3YXMgdG8gcG9pbnQgdG8gYW55IG90aGVyIHByb2JsZW1zIGluIGZ1
+dHVyZS4NCg0KVGh4LA0KLVZpbmVldA0K
