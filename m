@@ -1,78 +1,97 @@
-Return-Path: <SRS0=W/Kb=6W=kvack.org=owner-linux-mm@kernel.org>
-From: Joerg Roedel <joro@8bytes.org>
-Subject: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Date: Fri,  8 May 2020 16:40:36 +0200
-Message-ID: <20200508144043.13893-1-joro@8bytes.org>
-Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org
-Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Return-Path: <SRS0=wOT8=6T=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:39912 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728233AbgEEMOd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 5 May 2020 08:14:33 -0400
+Date: Tue, 5 May 2020 13:14:28 +0100
+From: Will Deacon <will@kernel.org>
+Subject: Re: RFC: Adding arch-specific user ABI documentation in linux-man
+Message-ID: <20200505121428.GJ19710@willie-the-truck>
+References: <20200504153214.GH30377@arm.com>
+ <20200505104454.GC19710@willie-the-truck>
+ <20200505110519.GM30377@arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200505110519.GM30377@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200508144036.9R30s9dlgLxwfOIPo6DpxsS2-YOwaSojb_rZi6ZnNEM@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200505121428.FWz4mdnbOX02H66Hn1P6z1Pb_GfYPXhSJbKAbYDhSM4@z>
 
-Hi,
+On Tue, May 05, 2020 at 12:05:19PM +0100, Dave Martin wrote:
+> On Tue, May 05, 2020 at 11:44:55AM +0100, Will Deacon wrote:
+> > Hi Dave,
+> > 
+> > On Mon, May 04, 2020 at 04:32:35PM +0100, Dave Martin wrote:
+> > > I considering trying to plug some gaps in the arch-specific ABI
+> > > documentation in the linux man-pages, specifically for arm64 (and
+> > > possibly arm, where compat means we have some overlap).
+> > > 
+> > > For arm64, there are now significant new extensions (Pointer
+> > > authentication, SVE, MTE etc.)  Currently there is some user-facing
+> > > documentation mixed in with the kernel-facing documentation in the
+> > > kernel tree, but this situation isn't ideal.
+> > > 
+> > > Do you have an opinion on where in the man-pages documentation should be
+> > > added, and how to structure it?
+> > > 
+> > > 
+> > > Affected areas include:
+> > > 
+> > >  * exec interface
+> > >  * aux vector, hwcaps
+> > >  * arch-specific signals
+> > >  * signal frame
+> > >  * mmap/mprotect extensions
+> > >  * prctl calls
+> > >  * ptrace quirks and extensions
+> > >  * coredump contents
+> > > 
+> > > 
+> > > Not everything has an obvious home in an existing page, and adding
+> > > specifics for every architecture could make some existing manpages very
+> > > unwieldy.
+> > > 
+> > > I think for some arch features, we really need some "overview" pages
+> > > too: just documenting the low-level details is of limited value
+> > > without some guide as to how to use them together.
+> > > 
+> > > 
+> > > Does the following sketch look reasonable?
+> > > 
+> > >  * man7/arm64.7: new page: overview of arm64-specific ABI extensions
+> > > 
+> > >  * man7/sve.7 (or man7/arm64-sve.7 or man7/sve.7arm64): new page:
+> > >    overview of arm64 SVE ABI
+> > > 
+> > >  * man2/arm64-ptrace.2 (or man2/ptrace.2arm64): new page:
+> > >    arm64 ptrace extensions
+> > 
+> > Michael has been nagging me on and off about that for, what, 10 years now?
+> > I would therefore be very much in favour of having our ptrace extensions
+> > documented!
+> > 
+> > We could even put this stuff under Documentation/arm64/man/ if it's deemed
+> > too CPU-specific for the man-pages project, but my preference would still
+> > be for it to be hosted there alongside all the other man pages.
+> 
+> Heh, perhaps we could build that into the kernel and mount it somewhere.
 
-after the recent issue with vmalloc and tracing code[1] on x86 and a
-long history of previous issues related to the vmalloc_sync_mappings()
-interface, I thought the time has come to remove it. Please
-see [2], [3], and [4] for some other issues in the past.
+Argh, don't joke too loudly about things like that!
 
-The patches are based on v5.7-rc4 and add tracking of page-table
-directory changes to the vmalloc and ioremap code. Depending on which
-page-table levels changes have been made, a new per-arch function is
-called: arch_sync_kernel_mappings().
+> Seriously though,
+> 
+> I guess I can start off with straightforward small things for which the
+> documentation has an obvious home (like prctls[*]) and then move on to
+> the bigger stuff like ptrace.
+> 
+> If people start shouting about a page getting too big or messy I can try
+> to split it up.
+> 
+> Make sense?
 
-On x86-64 with 4-level paging, this function will not be called more
-than 64 times in a systems runtime (because vmalloc-space takes 64 PGD
-entries which are only populated, but never cleared).
+Sure, works for me.
 
-As a side effect this also allows to get rid of vmalloc faults on x86,
-making it safe to touch vmalloc'ed memory in the page-fault handler.
-Note that this potentially includes per-cpu memory.
-
-The code is tested on x86-64, x86-32 with and without PAE. It also fixes
-the issue described in [1]. Additionally this code has been
-compile-tested on almost all architectures supported by Linux. I
-couldn't find working compilers for hexagon and unicore32, so these are
-not tested.
-
-Please review.
-
-Regards,
-
-	Joerg
-
-[1] https://lore.kernel.org/lkml/20200430141120.GA8135@suse.de/
-[2] https://lore.kernel.org/lkml/20191009124418.8286-1-joro@8bytes.org/
-[3] https://lore.kernel.org/lkml/20190719184652.11391-1-joro@8bytes.org/
-[4] https://lore.kernel.org/lkml/20191126111119.GA110513@gmail.com/
-
-Joerg Roedel (7):
-  mm: Add functions to track page directory modifications
-  mm/vmalloc: Track which page-table levels were modified
-  mm/ioremap: Track which page-table levels were modified
-  x86/mm/64: Implement arch_sync_kernel_mappings()
-  x86/mm/32: Implement arch_sync_kernel_mappings()
-  mm: Remove vmalloc_sync_(un)mappings()
-  x86/mm: Remove vmalloc faulting
-
- arch/x86/include/asm/pgtable-2level_types.h |   2 +
- arch/x86/include/asm/pgtable-3level_types.h |   2 +
- arch/x86/include/asm/pgtable_64_types.h     |   2 +
- arch/x86/include/asm/switch_to.h            |  23 ---
- arch/x86/kernel/setup_percpu.c              |   6 +-
- arch/x86/mm/fault.c                         | 176 +-------------------
- arch/x86/mm/init_64.c                       |   5 +
- arch/x86/mm/pti.c                           |   8 +-
- drivers/acpi/apei/ghes.c                    |   6 -
- include/asm-generic/5level-fixup.h          |   5 +-
- include/asm-generic/pgtable.h               |  23 +++
- include/linux/mm.h                          |  46 +++++
- include/linux/vmalloc.h                     |  13 +-
- kernel/notifier.c                           |   1 -
- lib/ioremap.c                               |  46 +++--
- mm/nommu.c                                  |  12 --
- mm/vmalloc.c                                | 109 +++++++-----
- 17 files changed, 199 insertions(+), 286 deletions(-)
-
--- 
-2.17.1
+Will
