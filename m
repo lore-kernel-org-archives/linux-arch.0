@@ -1,113 +1,140 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [RFC PATCH v3 1/2] arm64: tlb: Detect the ARMv8.4 TLBI RANGE
- feature
-Date: Tue, 5 May 2020 11:14:05 +0100
-Message-ID: <20200505101405.GB82424@C02TD0UTHF1T.local>
-References: <20200414112835.1121-1-yezhenyu2@huawei.com>
- <20200414112835.1121-2-yezhenyu2@huawei.com>
+From: Szabolcs Nagy <szabolcs.nagy@arm.com>
+Subject: Re: [PATCH v3 23/23] arm64: mte: Add Memory Tagging Extension
+ documentation
+Date: Tue, 5 May 2020 11:32:33 +0100
+Message-ID: <20200505103232.GE23080@arm.com>
+References: <20200421142603.3894-1-catalin.marinas@arm.com>
+ <20200421142603.3894-24-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:36356 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728422AbgEEKOR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 5 May 2020 06:14:17 -0400
+Received: from mail-vi1eur05on2080.outbound.protection.outlook.com ([40.107.21.80]:1088
+        "EHLO EUR05-VI1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725766AbgEEKcz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 5 May 2020 06:32:55 -0400
 Content-Disposition: inline
-In-Reply-To: <20200414112835.1121-2-yezhenyu2@huawei.com>
+In-Reply-To: <20200421142603.3894-24-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: will@kernel.org, catalin.marinas@arm.com, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, xiexiangyou@huawei.com, zhangshaokun@hisilicon.com, linux-mm@kvack.org, arm@kernel.org, prime.zeng@hisilicon.com, kuhn.chenqun@huawei.com, linux-arm-kernel@lists.infradead.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, nd@arm.com
 
-On Tue, Apr 14, 2020 at 07:28:34PM +0800, Zhenyu Ye wrote:
-> ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
-> range of input addresses. This patch detect this feature.
-> 
-> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-> ---
->  arch/arm64/include/asm/cpucaps.h |  3 ++-
->  arch/arm64/include/asm/sysreg.h  |  4 ++++
->  arch/arm64/kernel/cpufeature.c   | 11 +++++++++++
->  3 files changed, 17 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cpucaps.h
-> index 8eb5a088ae65..950095a72617 100644
-> --- a/arch/arm64/include/asm/cpucaps.h
-> +++ b/arch/arm64/include/asm/cpucaps.h
-> @@ -61,7 +61,8 @@
->  #define ARM64_HAS_AMU_EXTN			51
->  #define ARM64_HAS_ADDRESS_AUTH			52
->  #define ARM64_HAS_GENERIC_AUTH			53
-> +#define ARM64_HAS_TLBI_RANGE			54
->  
-> -#define ARM64_NCAPS				54
-> +#define ARM64_NCAPS				55
->  
->  #endif /* __ASM_CPUCAPS_H */
-> diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
-> index ebc622432831..ac1b98650234 100644
-> --- a/arch/arm64/include/asm/sysreg.h
-> +++ b/arch/arm64/include/asm/sysreg.h
-> @@ -592,6 +592,7 @@
->  
->  /* id_aa64isar0 */
->  #define ID_AA64ISAR0_RNDR_SHIFT		60
-> +#define ID_AA64ISAR0_TLBI_RANGE_SHIFT	56
->  #define ID_AA64ISAR0_TS_SHIFT		52
->  #define ID_AA64ISAR0_FHM_SHIFT		48
->  #define ID_AA64ISAR0_DP_SHIFT		44
-> @@ -605,6 +606,9 @@
->  #define ID_AA64ISAR0_SHA1_SHIFT		8
->  #define ID_AA64ISAR0_AES_SHIFT		4
->  
-> +#define ID_AA64ISAR0_TLBI_RANGE_NI	0x0
-> +#define ID_AA64ISAR0_TLBI_RANGE		0x2
+The 04/21/2020 15:26, Catalin Marinas wrote:
+> diff --git a/Documentation/arm64/memory-tagging-extension.rst b/Documentation/arm64/memory-tagging-extension.rst
+> new file mode 100644
+> index 000000000000..f82dfbd70061
+> --- /dev/null
+> +++ b/Documentation/arm64/memory-tagging-extension.rst
+> @@ -0,0 +1,260 @@
+> +===============================================
+> +Memory Tagging Extension (MTE) in AArch64 Linux
+> +===============================================
 > +
->  /* id_aa64isar1 */
->  #define ID_AA64ISAR1_I8MM_SHIFT		52
->  #define ID_AA64ISAR1_DGH_SHIFT		48
-> diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-> index 9fac745aa7bb..31bcfd0722b5 100644
-> --- a/arch/arm64/kernel/cpufeature.c
-> +++ b/arch/arm64/kernel/cpufeature.c
-> @@ -124,6 +124,7 @@ static bool __system_matches_cap(unsigned int n);
->   */
->  static const struct arm64_ftr_bits ftr_id_aa64isar0[] = {
->  	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_RNDR_SHIFT, 4, 0),
-> +	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_TLBI_RANGE_SHIFT, 4, 0),
+> +Authors: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> +         Catalin Marinas <catalin.marinas@arm.com>
+> +
+> +Date: 2020-02-25
+> +
+> +This document describes the provision of the Memory Tagging Extension
+> +functionality in AArch64 Linux.
+> +
+> +Introduction
+> +============
+> +
+> +ARMv8.5 based processors introduce the Memory Tagging Extension (MTE)
+> +feature. MTE is built on top of the ARMv8.0 virtual address tagging TBI
+> +(Top Byte Ignore) feature and allows software to access a 4-bit
+> +allocation tag for each 16-byte granule in the physical address space.
+> +Such memory range must be mapped with the Normal-Tagged memory
+> +attribute. A logical tag is derived from bits 59-56 of the virtual
+> +address used for the memory access. A CPU with MTE enabled will compare
+> +the logical tag against the allocation tag and potentially raise an
+> +exception on mismatch, subject to system registers configuration.
+> +
+> +Userspace Support
+> +=================
+> +
+> +When ``CONFIG_ARM64_MTE`` is selected and Memory Tagging Extension is
+> +supported by the hardware, the kernel advertises the feature to
+> +userspace via ``HWCAP2_MTE``.
+> +
+> +PROT_MTE
+> +--------
+> +
+> +To access the allocation tags, a user process must enable the Tagged
+> +memory attribute on an address range using a new ``prot`` flag for
+> +``mmap()`` and ``mprotect()``:
+> +
+> +``PROT_MTE`` - Pages allow access to the MTE allocation tags.
+> +
+> +The allocation tag is set to 0 when such pages are first mapped in the
+> +user address space and preserved on copy-on-write. ``MAP_SHARED`` is
+> +supported and the allocation tags can be shared between processes.
+> +
+> +**Note**: ``PROT_MTE`` is only supported on ``MAP_ANONYMOUS`` and
+> +RAM-based file mappings (``tmpfs``, ``memfd``). Passing it to other
+> +types of mapping will result in ``-EINVAL`` returned by these system
+> +calls.
+> +
+> +**Note**: The ``PROT_MTE`` flag (and corresponding memory type) cannot
+> +be cleared by ``mprotect()``.
 
-This should be FTR_HIDDEN as userspace has no reason to see this.
+i think there are some non-obvious madvise operations that may
+be worth documenting too for mte specific semantics.
 
-Otherwise this all seems to match the ARM ARM.
+e.g. MADV_DONTNEED or MADV_FREE can presumably drop tags which
+means that existing pointers can no longer write to the memory
+which is a change of behaviour compared to the non-mte case.
+(affects most malloc implementations that will have to deal
+with this when implementing heap coloring) there might be other
+similar problems like MADV_WIPEONFORK that wont work as
+currently expected when mte is enabled.
 
-Mark.
+if such behaviour changes cause serious problems to existing
+software there may be a need to have a way to opt out from
+these changes (e.g. MADV_ flag variant that only affects the
+memory content but not the tags) or to make that the default
+behaviour. (but i can't tell how widely these are used in
+ways that can be expected to work with PROT_MTE)
 
->  	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_TS_SHIFT, 4, 0),
->  	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_FHM_SHIFT, 4, 0),
->  	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_DP_SHIFT, 4, 0),
-> @@ -1779,6 +1780,16 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
->  		.min_field_value = 1,
->  	},
->  #endif
-> +	{
-> +		.desc = "TLB range maintenance instruction",
-> +		.capability = ARM64_HAS_TLBI_RANGE,
-> +		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
-> +		.matches = has_cpuid_feature,
-> +		.sys_reg = SYS_ID_AA64ISAR0_EL1,
-> +		.field_pos = ID_AA64ISAR0_TLBI_RANGE_SHIFT,
-> +		.sign = FTR_UNSIGNED,
-> +		.min_field_value = ID_AA64ISAR0_TLBI_RANGE,
-> +	},
->  	{},
->  };
->  
-> -- 
-> 2.19.1
-> 
-> 
-> 
-> _______________________________________________
-> linux-arm-kernel mailing list
-> linux-arm-kernel@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+
+> +Tag Check Faults
+> +----------------
+> +
+> +When ``PROT_MTE`` is enabled on an address range and a mismatch between
+> +the logical and allocation tags occurs on access, there are three
+> +configurable behaviours:
+> +
+> +- *Ignore* - This is the default mode. The CPU (and kernel) ignores the
+> +  tag check fault.
+> +
+> +- *Synchronous* - The kernel raises a ``SIGSEGV`` synchronously, with
+> +  ``.si_code = SEGV_MTESERR`` and ``.si_addr = <fault-address>``. The
+> +  memory access is not performed.
+> +
+> +- *Asynchronous* - The kernel raises a ``SIGSEGV``, in the current
+> +  thread, asynchronously following one or multiple tag check faults,
+> +  with ``.si_code = SEGV_MTEAERR`` and ``.si_addr = 0``.
+> +
+> +**Note**: There are no *match-all* logical tags available for user
+> +applications.
+> +
+> +The user can select the above modes, per thread, using the
+> +``prctl(PR_SET_TAGGED_ADDR_CTRL, flags, 0, 0, 0)`` system call where
+> +``flags`` contain one of the following values in the ``PR_MTE_TCF_MASK``
+> +bit-field:
+> +
+> +- ``PR_MTE_TCF_NONE``  - *Ignore* tag check faults
+> +- ``PR_MTE_TCF_SYNC``  - *Synchronous* tag check fault mode
+> +- ``PR_MTE_TCF_ASYNC`` - *Asynchronous* tag check fault mode
+> +
+> +Tag checking can also be disabled for a user thread by setting the
+> +``PSTATE.TCO`` bit with ``MSR TCO, #1``.
+> +
+> +**Note**: Signal handlers are always invoked with ``PSTATE.TCO = 0``,
+> +irrespective of the interrupted context.
+> +
+> +**Note**: Kernel accesses to user memory (e.g. ``read()`` system call)
+> +are only checked if the current thread tag checking mode is
+> +PR_MTE_TCF_SYNC.
