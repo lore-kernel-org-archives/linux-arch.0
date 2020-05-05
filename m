@@ -1,204 +1,57 @@
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: Re: [PATCH v2 17/20] mm: free_area_init: allow defining max_zone_pfn
- in descending order
-Date: Tue, 5 May 2020 16:45:01 +0300
-Message-ID: <20200505134501.GI342687@linux.ibm.com>
-References: <20200429121126.17989-1-rppt@kernel.org>
- <20200429121126.17989-18-rppt@kernel.org>
- <20200503174138.GA114085@roeck-us.net>
- <20200503184300.GA154219@roeck-us.net>
- <20200504153901.GM14260@kernel.org>
- <ca099c3e-c0bc-cd2f-cdb0-852dfc2c10db@roeck-us.net>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Subject: Re: [PATCH v5 0/4] Introduce the for_each_set_clump macro
+Date: Tue, 5 May 2020 16:51:56 +0300
+Message-ID: <CAHp75Vf_vP1qM9x81dErPeaJ4-cK-GOMnmEkxkhPY2gCvtmVbA@mail.gmail.com>
+References: <cover.1588460322.git.syednwaris@gmail.com> <20200504114109.GE185537@smile.fi.intel.com>
+ <20200504143638.GA4635@shinobu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <ca099c3e-c0bc-cd2f-cdb0-852dfc2c10db@roeck-us.net>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: Guenter Roeck <linux@roeck-us.net>
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, x86@kernel.org, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, Ley Foon Tan <ley.foon.tan@intel.com>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, linux-hexagon@vger.kernel.org, Helge Deller <deller@gmx.de>, linux-sh@vger.kernel.org, Russell King <linux@armlinux.org.uk>, linux-csky@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Hoan Tran <Hoan@os.amperecomputing.com>, Mark
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45040 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1728993AbgEENwD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 May 2020 09:52:03 -0400
+In-Reply-To: <20200504143638.GA4635@shinobu>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Syed Nayyar Waris <syednwaris@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Michal Simek <michal.simek@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, rrichter@marvell.com, Linus Walleij <linus.walleij@linaro.org>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, "Zhang, Rui" <rui.zhang@intel.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Amit Kucheria <amit.kucheria@verdurent.com>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, Linux PM <linux-pm@vger.kernel.org>
 
-On Tue, May 05, 2020 at 06:18:11AM -0700, Guenter Roeck wrote:
-> On 5/4/20 8:39 AM, Mike Rapoport wrote:
-> > On Sun, May 03, 2020 at 11:43:00AM -0700, Guenter Roeck wrote:
-> >> On Sun, May 03, 2020 at 10:41:38AM -0700, Guenter Roeck wrote:
-> >>> Hi,
-> >>>
-> >>> On Wed, Apr 29, 2020 at 03:11:23PM +0300, Mike Rapoport wrote:
-> >>>> From: Mike Rapoport <rppt@linux.ibm.com>
-> >>>>
-> >>>> Some architectures (e.g. ARC) have the ZONE_HIGHMEM zone below the
-> >>>> ZONE_NORMAL. Allowing free_area_init() parse max_zone_pfn array even it is
-> >>>> sorted in descending order allows using free_area_init() on such
-> >>>> architectures.
-> >>>>
-> >>>> Add top -> down traversal of max_zone_pfn array in free_area_init() and use
-> >>>> the latter in ARC node/zone initialization.
-> >>>>
-> >>>> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> >>>
-> >>> This patch causes my microblazeel qemu boot test in linux-next to fail.
-> >>> Reverting it fixes the problem.
-> >>>
-> >> The same problem is seen with s390 emulations.
-> > 
-> > Yeah, this patch breaks some others as well :(
-> > 
-> > My assumption that max_zone_pfn defines architectural limit for maximal
-> > PFN that can belong to a zone was over-optimistic. Several arches
-> > actually do that, but others do
-> > 
-> > 	max_zone_pfn[ZONE_DMA] = MAX_DMA_PFN;
-> > 	max_zone_pfn[ZONE_NORMAL] = max_pfn;
-> > 
-> > where MAX_DMA_PFN is build-time constrain and max_pfn is run time limit
-> > for the current system.
-> > 
-> > So, when max_pfn is lower than MAX_DMA_PFN, the free_init_area() will
-> > consider max_zone_pfn as descending and will wrongly calculate zone
-> > extents.
-> > 
-> > That said, instead of trying to create a generic way to special case
-> > ARC, I suggest to simply use the below patch instead.
-> > 
-> 
-> As a reminder, I reported the problem against s390 and microblazeel
-> (interestingly enough, microblaze (big endian) works), not against arc.
+On Mon, May 4, 2020 at 5:41 PM William Breathitt Gray
+<vilhelm.gray@gmail.com> wrote:
+> On Mon, May 04, 2020 at 02:41:09PM +0300, Andy Shevchenko wrote:
+> > On Sun, May 03, 2020 at 04:38:36AM +0530, Syed Nayyar Waris wrote:
 
-With this fix microblazeel and s390 worked for me and also Christian had
-reported that s390 is fixed.
+...
 
-microblaze (big endian) works because its defconfig does not enable HIGHMEM
-while little endian does.
+> > Looking into the last patches where we have examples I still do not see a
+> > benefit of variadic clump sizes. power of 2 sizes would make sense (and be
+> > optimized accordingly (64-bit, 32-bit).
+> >
+> > --
+> > With Best Regards,
+> > Andy Shevchenko
+>
+> There is of course benefit in defining for_each_set_clump with clump
+> sizes of powers of 2 (we can optimize for 32 and 64 bit sizes and avoid
+> boundary checks that we know will not occur), but at the very least the
+> variable size bitmap_set_value and bitmap_get_value provide significant
+> benefit for the readability of the gpio-xilinx code:
+>
+>         bitmap_set_value(old, state[0], 0, width[0]);
+>         bitmap_set_value(old, state[1], width[0], width[1]);
+>         ...
+>         state[0] = bitmap_get_value(new, 0, width[0]);
+>         state[1] = bitmap_get_value(new, width[0], width[1]);
+>
+> These lines are simple and clear to read: we know immediately what they
+> do. But if we did not have bitmap_set_value/bitmap_get_value, we'd have
+> to use several bitwise operations for each line; the obfuscation of the
+> code would be an obvious hinderance here.
 
-ARC is mentioned because it is the only arch that may have ZONE_HIGHMEM
-and ZONE_NORMAL and this patch was required to consolidate
-free_area_init* variants.
-
-> Guenter
-> 
-> > diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
-> > index 41eb9be1653c..386959bac3d2 100644
-> > --- a/arch/arc/mm/init.c
-> > +++ b/arch/arc/mm/init.c
-> > @@ -77,6 +77,11 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
-> >  		base, TO_MB(size), !in_use ? "Not used":"");
-> >  }
-> >  
-> > +bool arch_has_descending_max_zone_pfns(void)
-> > +{
-> > +	return true;
-> > +}
-> > +
-> >  /*
-> >   * First memory setup routine called from setup_arch()
-> >   * 1. setup swapper's mm @init_mm
-> > diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-> > index b990e9734474..114f0e027144 100644
-> > --- a/mm/page_alloc.c
-> > +++ b/mm/page_alloc.c
-> > @@ -7307,6 +7307,15 @@ static void check_for_memory(pg_data_t *pgdat, int nid)
-> >  	}
-> >  }
-> >  
-> > +/*
-> > + * Some architecturs, e.g. ARC may have ZONE_HIGHMEM below ZONE_NORMAL. For
-> > + * such cases we allow max_zone_pfn sorted in the descending order
-> > + */
-> > +bool __weak arch_has_descending_max_zone_pfns(void)
-> > +{
-> > +	return false;
-> > +}
-> > +
-> >  /**
-> >   * free_area_init - Initialise all pg_data_t and zone data
-> >   * @max_zone_pfn: an array of max PFNs for each zone
-> > @@ -7324,7 +7333,7 @@ void __init free_area_init(unsigned long *max_zone_pfn)
-> >  {
-> >  	unsigned long start_pfn, end_pfn;
-> >  	int i, nid, zone;
-> > -	bool descending = false;
-> > +	bool descending;
-> >  
-> >  	/* Record where the zone boundaries are */
-> >  	memset(arch_zone_lowest_possible_pfn, 0,
-> > @@ -7333,14 +7342,7 @@ void __init free_area_init(unsigned long *max_zone_pfn)
-> >  				sizeof(arch_zone_highest_possible_pfn));
-> >  
-> >  	start_pfn = find_min_pfn_with_active_regions();
-> > -
-> > -	/*
-> > -	 * Some architecturs, e.g. ARC may have ZONE_HIGHMEM below
-> > -	 * ZONE_NORMAL. For such cases we allow max_zone_pfn sorted in the
-> > -	 * descending order
-> > -	 */
-> > -	if (MAX_NR_ZONES > 1 && max_zone_pfn[0] > max_zone_pfn[1])
-> > -		descending = true;
-> > +	descending = arch_has_descending_max_zone_pfns();
-> >  
-> >  	for (i = 0; i < MAX_NR_ZONES; i++) {
-> >  		if (descending)
-> > 
-> >> Guenter
-> >>
-> >>> qemu command line:
-> >>>
-> >>> qemu-system-microblazeel -M petalogix-ml605 -m 256 \
-> >>> 	-kernel arch/microblaze/boot/linux.bin -no-reboot \
-> >>> 	-initrd rootfs.cpio \
-> >>> 	-append 'panic=-1 slub_debug=FZPUA rdinit=/sbin/init console=ttyS0,115200' \
-> >>> 	-monitor none -serial stdio -nographic
-> >>>
-> >>> initrd:
-> >>> 	https://github.com/groeck/linux-build-test/blob/master/rootfs/microblazeel/rootfs.cpio.gz
-> >>> configuration:
-> >>> 	https://github.com/groeck/linux-build-test/blob/master/rootfs/microblazeel/qemu_microblazeel_ml605_defconfig
-> >>>
-> >>> Bisect log is below.
-> >>>
-> >>> Guenter
-> >>>
-> >>> ---
-> >>> # bad: [fb9d670f57e3f6478602328bbbf71138be06ca4f] Add linux-next specific files for 20200501
-> >>> # good: [6a8b55ed4056ea5559ebe4f6a4b247f627870d4c] Linux 5.7-rc3
-> >>> git bisect start 'HEAD' 'v5.7-rc3'
-> >>> # good: [068b80b68a670f0b17288c8a3d1ee751f35162ab] Merge remote-tracking branch 'drm/drm-next'
-> >>> git bisect good 068b80b68a670f0b17288c8a3d1ee751f35162ab
-> >>> # good: [46c70fc6a3ac35cd72ddad248dcbe4eee716d2a5] Merge remote-tracking branch 'drivers-x86/for-next'
-> >>> git bisect good 46c70fc6a3ac35cd72ddad248dcbe4eee716d2a5
-> >>> # good: [f39c4ad479a2f005f972a2b941b40efa6b9c9349] Merge remote-tracking branch 'rpmsg/for-next'
-> >>> git bisect good f39c4ad479a2f005f972a2b941b40efa6b9c9349
-> >>> # bad: [165d3ee0162fe28efc2c8180176633e33515df15] ipc-convert-ipcs_idr-to-xarray-update
-> >>> git bisect bad 165d3ee0162fe28efc2c8180176633e33515df15
-> >>> # good: [001f1d211ed2ed0f005838dc4390993930bbbd69] mm: remove early_pfn_in_nid() and CONFIG_NODES_SPAN_OTHER_NODES
-> >>> git bisect good 001f1d211ed2ed0f005838dc4390993930bbbd69
-> >>> # bad: [aaad7401bd32f10c1d591dd886b3a9b9595c6d77] mm/vmsan: fix some typos in comment
-> >>> git bisect bad aaad7401bd32f10c1d591dd886b3a9b9595c6d77
-> >>> # bad: [09f9d0ab1fbed85623b283995aa7a7d78daa1611] khugepaged: allow to collapse PTE-mapped compound pages
-> >>> git bisect bad 09f9d0ab1fbed85623b283995aa7a7d78daa1611
-> >>> # bad: [c942fc8a3e5088407bc32d94f554bab205175f8a] mm/vmstat.c: do not show lowmem reserve protection information of empty zone
-> >>> git bisect bad c942fc8a3e5088407bc32d94f554bab205175f8a
-> >>> # bad: [b29358d269ace3826d8521bea842fc2984cfc11b] mm/page_alloc.c: rename free_pages_check() to check_free_page()
-> >>> git bisect bad b29358d269ace3826d8521bea842fc2984cfc11b
-> >>> # bad: [be0fb591a1f1df20a00c8f023f9ca4891f177b0d] mm: simplify find_min_pfn_with_active_regions()
-> >>> git bisect bad be0fb591a1f1df20a00c8f023f9ca4891f177b0d
-> >>> # bad: [c17422a008d36dcf3e9f51469758c5762716cb0a] mm: rename free_area_init_node() to free_area_init_memoryless_node()
-> >>> git bisect bad c17422a008d36dcf3e9f51469758c5762716cb0a
-> >>> # bad: [51a2f644fd020d5f090044825c388444d11029d5] mm: free_area_init: allow defining max_zone_pfn in descending order
-> >>> git bisect bad 51a2f644fd020d5f090044825c388444d11029d5
-> >>> # first bad commit: [51a2f644fd020d5f090044825c388444d11029d5] mm: free_area_init: allow defining max_zone_pfn in descending order
-> > 
-> 
+Do I understand correctly that width[0] and width[1] may not be power
+of two and it's actually the case?
 
 -- 
-Sincerely yours,
-Mike.
+With Best Regards,
+Andy Shevchenko
