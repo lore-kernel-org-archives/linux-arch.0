@@ -1,153 +1,105 @@
-Return-Path: <SRS0=uIBl=7H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:45238 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S2390627AbgEYMxf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 25 May 2020 08:53:35 -0400
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v3 4/6] tlb: mmu_gather: add tlb_flush_*_range APIs
-Date: Mon, 25 May 2020 20:52:58 +0800
-Message-ID: <20200525125300.794-5-yezhenyu2@huawei.com>
-In-Reply-To: <20200525125300.794-1-yezhenyu2@huawei.com>
-References: <20200525125300.794-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=wOT8=6T=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55166 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1729065AbgEEOyL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 May 2020 10:54:11 -0400
+Date: Tue, 5 May 2020 10:53:49 -0400
+From: William Breathitt Gray <vilhelm.gray@gmail.com>
+Subject: Re: [PATCH v5 0/4] Introduce the for_each_set_clump macro
+Message-ID: <20200505145250.GA5979@shinobu>
+References: <cover.1588460322.git.syednwaris@gmail.com>
+ <20200504114109.GE185537@smile.fi.intel.com>
+ <20200504143638.GA4635@shinobu>
+ <CAHp75Vf_vP1qM9x81dErPeaJ4-cK-GOMnmEkxkhPY2gCvtmVbA@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="CblX+4bnyfN0pR09"
+Content-Disposition: inline
+In-Reply-To: <CAHp75Vf_vP1qM9x81dErPeaJ4-cK-GOMnmEkxkhPY2gCvtmVbA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200525125258.N1p3Yz8i-EURVhJT1LYY_zK35AYE0V0TkiwrYOJrBag@z>
+To: Andy Shevchenko <andy.shevchenko@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Michal Simek <michal.simek@xilinx.com>
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Syed Nayyar Waris <syednwaris@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, rrichter@marvell.com, Masahiro Yamada <yamada.masahiro@socionext.com>, "Zhang, Rui" <rui.zhang@intel.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Amit Kucheria <amit.kucheria@verdurent.com>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, Linux PM <linux-pm@vger.kernel.org>
+Message-ID: <20200505145349.BGT58heWer5G7U5wd-6t4XXVfH-2IxvRbuESldbY6hw@z>
 
-From: "Peter Zijlstra (Intel)" <peterz@infradead.org>
 
-tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and
-tlb->end, then set corresponding cleared_*.
+--CblX+4bnyfN0pR09
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
----
- include/asm-generic/tlb.h | 55 ++++++++++++++++++++++++++++-----------
- 1 file changed, 40 insertions(+), 15 deletions(-)
+On Tue, May 05, 2020 at 04:51:56PM +0300, Andy Shevchenko wrote:
+> On Mon, May 4, 2020 at 5:41 PM William Breathitt Gray
+> <vilhelm.gray@gmail.com> wrote:
+> > On Mon, May 04, 2020 at 02:41:09PM +0300, Andy Shevchenko wrote:
+> > > On Sun, May 03, 2020 at 04:38:36AM +0530, Syed Nayyar Waris wrote:
+>=20
+> ...
+>=20
+> > > Looking into the last patches where we have examples I still do not s=
+ee a
+> > > benefit of variadic clump sizes. power of 2 sizes would make sense (a=
+nd be
+> > > optimized accordingly (64-bit, 32-bit).
+> > >
+> > > --
+> > > With Best Regards,
+> > > Andy Shevchenko
+> >
+> > There is of course benefit in defining for_each_set_clump with clump
+> > sizes of powers of 2 (we can optimize for 32 and 64 bit sizes and avoid
+> > boundary checks that we know will not occur), but at the very least the
+> > variable size bitmap_set_value and bitmap_get_value provide significant
+> > benefit for the readability of the gpio-xilinx code:
+> >
+> >         bitmap_set_value(old, state[0], 0, width[0]);
+> >         bitmap_set_value(old, state[1], width[0], width[1]);
+> >         ...
+> >         state[0] =3D bitmap_get_value(new, 0, width[0]);
+> >         state[1] =3D bitmap_get_value(new, width[0], width[1]);
+> >
+> > These lines are simple and clear to read: we know immediately what they
+> > do. But if we did not have bitmap_set_value/bitmap_get_value, we'd have
+> > to use several bitwise operations for each line; the obfuscation of the
+> > code would be an obvious hinderance here.
+>=20
+> Do I understand correctly that width[0] and width[1] may not be power
+> of two and it's actually the case?
+>=20
+> --=20
+> With Best Regards,
+> Andy Shevchenko
 
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 3f1649a8cf55..ef75ec86f865 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -512,6 +512,38 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- }
- #endif
- 
-+/*
-+ * tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and tlb->end,
-+ * and set corresponding cleared_*.
-+ */
-+static inline void tlb_flush_pte_range(struct mmu_gather *tlb,
-+				     unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_ptes = 1;
-+}
-+
-+static inline void tlb_flush_pmd_range(struct mmu_gather *tlb,
-+				     unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_pmds = 1;
-+}
-+
-+static inline void tlb_flush_pud_range(struct mmu_gather *tlb,
-+				     unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_puds = 1;
-+}
-+
-+static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
-+				     unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_p4ds = 1;
-+}
-+
- #ifndef __tlb_remove_tlb_entry
- #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
- #endif
-@@ -525,19 +557,17 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
-  */
- #define tlb_remove_tlb_entry(tlb, ptep, address)		\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
--		tlb->cleared_ptes = 1;				\
-+		tlb_flush_pte_range(tlb, address, PAGE_SIZE);	\
- 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
- 	} while (0)
- 
- #define tlb_remove_huge_tlb_entry(h, tlb, ptep, address)	\
- 	do {							\
- 		unsigned long _sz = huge_page_size(h);		\
--		__tlb_adjust_range(tlb, address, _sz);		\
- 		if (_sz == PMD_SIZE)				\
--			tlb->cleared_pmds = 1;			\
-+			tlb_flush_pmd_range(tlb, address, _sz);	\
- 		else if (_sz == PUD_SIZE)			\
--			tlb->cleared_puds = 1;			\
-+			tlb_flush_pud_range(tlb, address, _sz);	\
- 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
- 	} while (0)
- 
-@@ -551,8 +581,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 
- #define tlb_remove_pmd_tlb_entry(tlb, pmdp, address)			\
- 	do {								\
--		__tlb_adjust_range(tlb, address, HPAGE_PMD_SIZE);	\
--		tlb->cleared_pmds = 1;					\
-+		tlb_flush_pmd_range(tlb, address, HPAGE_PMD_SIZE);	\
- 		__tlb_remove_pmd_tlb_entry(tlb, pmdp, address);		\
- 	} while (0)
- 
-@@ -566,8 +595,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 
- #define tlb_remove_pud_tlb_entry(tlb, pudp, address)			\
- 	do {								\
--		__tlb_adjust_range(tlb, address, HPAGE_PUD_SIZE);	\
--		tlb->cleared_puds = 1;					\
-+		tlb_flush_pud_range(tlb, address, HPAGE_PUD_SIZE);	\
- 		__tlb_remove_pud_tlb_entry(tlb, pudp, address);		\
- 	} while (0)
- 
-@@ -592,9 +620,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- #ifndef pte_free_tlb
- #define pte_free_tlb(tlb, ptep, address)			\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
-+		tlb_flush_pmd_range(tlb, address, PAGE_SIZE);	\
- 		tlb->freed_tables = 1;				\
--		tlb->cleared_pmds = 1;				\
- 		__pte_free_tlb(tlb, ptep, address);		\
- 	} while (0)
- #endif
-@@ -602,9 +629,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- #ifndef pmd_free_tlb
- #define pmd_free_tlb(tlb, pmdp, address)			\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
-+		tlb_flush_pud_range(tlb, address, PAGE_SIZE);	\
- 		tlb->freed_tables = 1;				\
--		tlb->cleared_puds = 1;				\
- 		__pmd_free_tlb(tlb, pmdp, address);		\
- 	} while (0)
- #endif
-@@ -612,9 +638,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- #ifndef pud_free_tlb
- #define pud_free_tlb(tlb, pudp, address)			\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
-+		tlb_flush_p4d_range(tlb, address, PAGE_SIZE);	\
- 		tlb->freed_tables = 1;				\
--		tlb->cleared_p4ds = 1;				\
- 		__pud_free_tlb(tlb, pudp, address);		\
- 	} while (0)
- #endif
--- 
-2.19.1
+I'm under the impression that width[0] and width[1] are arbitrarily
+chosen by the user and could be any integer. I have never used this
+hardware so I'm hoping one of the gpio-xilinx or GPIO subsystem
+maintainers in this thread will respond with some guidance.
+
+If the values of width[0] and width[1] are restricted to powers of 2,
+then I agree that there is no need for generic bitmap_set_value and
+bitmap_get_value functions and we can instead use more optimized power
+of 2 versions.
+
+William Breathitt Gray
+
+--CblX+4bnyfN0pR09
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCgAdFiEEk5I4PDJ2w1cDf/bghvpINdm7VJIFAl6xff0ACgkQhvpINdm7
+VJI65w/8CTBNaBXzqQ6+AtgyAfLROsibTUPDE3wEs7s/eQkI4dlNN0BzmXwJ6sb6
+oMCj6NqzTFksNVUoM6OSjyAGqHZVTJaSfFS97TG4+GrUZm4iWrLMmCipkYEh3qjB
+b10DXznOSf6l0IFFbB51QRFRaDu2hJEFYbtCM0hDHYssMXQyI3wMyw/9qCtPwPOC
+1l0MYPTFb825gGxAnfNCJ8CODpBXFxbahDtK1gvkaNB7Bdq/BFHyaR4FqMP0QbCC
+hoxK7bdMqur6ghYjld9dPRw7iFMXZHt1gD90DMzyXZDl3FcOKlzaAsAz9abgCZ4d
+sNHU6i8bRUtdTy66niUDTFHuMKOsWzcHe223zeC6SXp9L00kRzWbSJ4RioncRIEP
+X1/Vc+7x62yX/PzECkI+jxhLA8G+wwWuizAxN2VxDDx3ei7XJ4UEfSnNYZwBYlyc
+DUhyQZ3UyeID5wDu0XiGGBM8/+Y6mQprrYG7pgsPqAMCMYbcuK58W6cC+uM9ilH9
+oNFMz74DRUKaRrK6N/L+ujYD5R+uqVIzq4rwXsT9UOeh4N85uNI/Vjxx5jYO6ICG
+B4SGVNo2lwkdvH8XhnCfad+no1HV1XWPNflkedffcfALCxAsxhKF5riw4H1cmZ3B
+NbCZv5hfWtY/5opWhWKCVrxAdH512xxHdWBThcAdj8l2NGpZaYM=
+=lkYR
+-----END PGP SIGNATURE-----
+
+--CblX+4bnyfN0pR09--
