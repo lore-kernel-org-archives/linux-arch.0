@@ -1,140 +1,75 @@
-From: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Subject: Re: [PATCH v3 23/23] arm64: mte: Add Memory Tagging Extension
- documentation
-Date: Tue, 5 May 2020 11:32:33 +0100
-Message-ID: <20200505103232.GE23080@arm.com>
-References: <20200421142603.3894-1-catalin.marinas@arm.com>
- <20200421142603.3894-24-catalin.marinas@arm.com>
+From: Will Deacon <will@kernel.org>
+Subject: Re: RFC: Adding arch-specific user ABI documentation in linux-man
+Date: Tue, 5 May 2020 11:44:55 +0100
+Message-ID: <20200505104454.GC19710@willie-the-truck>
+References: <20200504153214.GH30377@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vi1eur05on2080.outbound.protection.outlook.com ([40.107.21.80]:1088
-        "EHLO EUR05-VI1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725766AbgEEKcz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 5 May 2020 06:32:55 -0400
+Received: from mail.kernel.org ([198.145.29.99]:56192 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728233AbgEEKpA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 5 May 2020 06:45:00 -0400
 Content-Disposition: inline
-In-Reply-To: <20200421142603.3894-24-catalin.marinas@arm.com>
+In-Reply-To: <20200504153214.GH30377@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, nd@arm.com
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-The 04/21/2020 15:26, Catalin Marinas wrote:
-> diff --git a/Documentation/arm64/memory-tagging-extension.rst b/Documentation/arm64/memory-tagging-extension.rst
-> new file mode 100644
-> index 000000000000..f82dfbd70061
-> --- /dev/null
-> +++ b/Documentation/arm64/memory-tagging-extension.rst
-> @@ -0,0 +1,260 @@
-> +===============================================
-> +Memory Tagging Extension (MTE) in AArch64 Linux
-> +===============================================
-> +
-> +Authors: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> +         Catalin Marinas <catalin.marinas@arm.com>
-> +
-> +Date: 2020-02-25
-> +
-> +This document describes the provision of the Memory Tagging Extension
-> +functionality in AArch64 Linux.
-> +
-> +Introduction
-> +============
-> +
-> +ARMv8.5 based processors introduce the Memory Tagging Extension (MTE)
-> +feature. MTE is built on top of the ARMv8.0 virtual address tagging TBI
-> +(Top Byte Ignore) feature and allows software to access a 4-bit
-> +allocation tag for each 16-byte granule in the physical address space.
-> +Such memory range must be mapped with the Normal-Tagged memory
-> +attribute. A logical tag is derived from bits 59-56 of the virtual
-> +address used for the memory access. A CPU with MTE enabled will compare
-> +the logical tag against the allocation tag and potentially raise an
-> +exception on mismatch, subject to system registers configuration.
-> +
-> +Userspace Support
-> +=================
-> +
-> +When ``CONFIG_ARM64_MTE`` is selected and Memory Tagging Extension is
-> +supported by the hardware, the kernel advertises the feature to
-> +userspace via ``HWCAP2_MTE``.
-> +
-> +PROT_MTE
-> +--------
-> +
-> +To access the allocation tags, a user process must enable the Tagged
-> +memory attribute on an address range using a new ``prot`` flag for
-> +``mmap()`` and ``mprotect()``:
-> +
-> +``PROT_MTE`` - Pages allow access to the MTE allocation tags.
-> +
-> +The allocation tag is set to 0 when such pages are first mapped in the
-> +user address space and preserved on copy-on-write. ``MAP_SHARED`` is
-> +supported and the allocation tags can be shared between processes.
-> +
-> +**Note**: ``PROT_MTE`` is only supported on ``MAP_ANONYMOUS`` and
-> +RAM-based file mappings (``tmpfs``, ``memfd``). Passing it to other
-> +types of mapping will result in ``-EINVAL`` returned by these system
-> +calls.
-> +
-> +**Note**: The ``PROT_MTE`` flag (and corresponding memory type) cannot
-> +be cleared by ``mprotect()``.
+Hi Dave,
 
-i think there are some non-obvious madvise operations that may
-be worth documenting too for mte specific semantics.
+On Mon, May 04, 2020 at 04:32:35PM +0100, Dave Martin wrote:
+> I considering trying to plug some gaps in the arch-specific ABI
+> documentation in the linux man-pages, specifically for arm64 (and
+> possibly arm, where compat means we have some overlap).
+> 
+> For arm64, there are now significant new extensions (Pointer
+> authentication, SVE, MTE etc.)  Currently there is some user-facing
+> documentation mixed in with the kernel-facing documentation in the
+> kernel tree, but this situation isn't ideal.
+> 
+> Do you have an opinion on where in the man-pages documentation should be
+> added, and how to structure it?
+> 
+> 
+> Affected areas include:
+> 
+>  * exec interface
+>  * aux vector, hwcaps
+>  * arch-specific signals
+>  * signal frame
+>  * mmap/mprotect extensions
+>  * prctl calls
+>  * ptrace quirks and extensions
+>  * coredump contents
+> 
+> 
+> Not everything has an obvious home in an existing page, and adding
+> specifics for every architecture could make some existing manpages very
+> unwieldy.
+> 
+> I think for some arch features, we really need some "overview" pages
+> too: just documenting the low-level details is of limited value
+> without some guide as to how to use them together.
+> 
+> 
+> Does the following sketch look reasonable?
+> 
+>  * man7/arm64.7: new page: overview of arm64-specific ABI extensions
+> 
+>  * man7/sve.7 (or man7/arm64-sve.7 or man7/sve.7arm64): new page:
+>    overview of arm64 SVE ABI
+> 
+>  * man2/arm64-ptrace.2 (or man2/ptrace.2arm64): new page:
+>    arm64 ptrace extensions
 
-e.g. MADV_DONTNEED or MADV_FREE can presumably drop tags which
-means that existing pointers can no longer write to the memory
-which is a change of behaviour compared to the non-mte case.
-(affects most malloc implementations that will have to deal
-with this when implementing heap coloring) there might be other
-similar problems like MADV_WIPEONFORK that wont work as
-currently expected when mte is enabled.
+Michael has been nagging me on and off about that for, what, 10 years now?
+I would therefore be very much in favour of having our ptrace extensions
+documented!
 
-if such behaviour changes cause serious problems to existing
-software there may be a need to have a way to opt out from
-these changes (e.g. MADV_ flag variant that only affects the
-memory content but not the tags) or to make that the default
-behaviour. (but i can't tell how widely these are used in
-ways that can be expected to work with PROT_MTE)
+We could even put this stuff under Documentation/arm64/man/ if it's deemed
+too CPU-specific for the man-pages project, but my preference would still
+be for it to be hosted there alongside all the other man pages.
 
-
-> +Tag Check Faults
-> +----------------
-> +
-> +When ``PROT_MTE`` is enabled on an address range and a mismatch between
-> +the logical and allocation tags occurs on access, there are three
-> +configurable behaviours:
-> +
-> +- *Ignore* - This is the default mode. The CPU (and kernel) ignores the
-> +  tag check fault.
-> +
-> +- *Synchronous* - The kernel raises a ``SIGSEGV`` synchronously, with
-> +  ``.si_code = SEGV_MTESERR`` and ``.si_addr = <fault-address>``. The
-> +  memory access is not performed.
-> +
-> +- *Asynchronous* - The kernel raises a ``SIGSEGV``, in the current
-> +  thread, asynchronously following one or multiple tag check faults,
-> +  with ``.si_code = SEGV_MTEAERR`` and ``.si_addr = 0``.
-> +
-> +**Note**: There are no *match-all* logical tags available for user
-> +applications.
-> +
-> +The user can select the above modes, per thread, using the
-> +``prctl(PR_SET_TAGGED_ADDR_CTRL, flags, 0, 0, 0)`` system call where
-> +``flags`` contain one of the following values in the ``PR_MTE_TCF_MASK``
-> +bit-field:
-> +
-> +- ``PR_MTE_TCF_NONE``  - *Ignore* tag check faults
-> +- ``PR_MTE_TCF_SYNC``  - *Synchronous* tag check fault mode
-> +- ``PR_MTE_TCF_ASYNC`` - *Asynchronous* tag check fault mode
-> +
-> +Tag checking can also be disabled for a user thread by setting the
-> +``PSTATE.TCO`` bit with ``MSR TCO, #1``.
-> +
-> +**Note**: Signal handlers are always invoked with ``PSTATE.TCO = 0``,
-> +irrespective of the interrupted context.
-> +
-> +**Note**: Kernel accesses to user memory (e.g. ``read()`` system call)
-> +are only checked if the current thread tag checking mode is
-> +PR_MTE_TCF_SYNC.
+Will
