@@ -1,36 +1,50 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 17/20] mm: free_area_init: allow defining max_zone_pfn
- in descending order
-Date: Tue, 5 May 2020 18:07:46 +0000
-Message-ID: <88b9465b-6e6d-86ca-3776-ccb7a5b60b7f@synopsys.com>
-References: <20200429121126.17989-1-rppt@kernel.org>
- <20200429121126.17989-18-rppt@kernel.org>
- <20200503174138.GA114085@roeck-us.net> <20200503184300.GA154219@roeck-us.net>
- <20200504153901.GM14260@kernel.org>
- <a0b20e15-fddb-aa9c-fd67-f1c8e735b4a4@synopsys.com>
- <20200505091946.GG342687@linux.ibm.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 3/3] mm/hugetlb: Introduce
+ HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
+Date: Tue, 5 May 2020 13:12:06 -0700
+Message-ID: <20200505131206.bee7b103431bff077c2ca0cf@linux-foundation.org>
+References: <1586864670-21799-1-git-send-email-anshuman.khandual@arm.com>
+        <1586864670-21799-4-git-send-email-anshuman.khandual@arm.com>
+        <20200425175511.7a68efb5e2f4436fe0328c1d@linux-foundation.org>
+        <87d37591-caa2-b82b-392a-3a29b2c7e9a6@arm.com>
+        <20200425200124.20d0c75fcaef05d062d3667c@linux-foundation.org>
+        <21460cbc-8e9a-b956-5797-57b2e1df9fb1@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <20200505091946.GG342687@linux.ibm.com>
-Content-Language: en-US
-Content-ID: <5C25EB48EA9FC849929696E7D5B3FBF8@namprd12.prod.outlook.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Mike Rapoport <rppt@kernel.org>, Guenter Roeck <linux@roeck-us.net>, Rich Felker <dalias@libc.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "x86@kernel.org" <x86@kernel.org>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, Ley Foon Tan <ley.foon.tan@intel.com>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>, Greg Ungerer <gerg@linux-m68k.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>lin
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:35598 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727785AbgEEUMJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 5 May 2020 16:12:09 -0400
+In-Reply-To: <21460cbc-8e9a-b956-5797-57b2e1df9fb1@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Anshuman Khandual <anshuman.khandual@arm.com>
+Cc: linux-mm@kvack.org, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, David S.
 
-T24gNS81LzIwIDI6MTkgQU0sIE1pa2UgUmFwb3BvcnQgd3JvdGU6DQo+IEZyb20gdGhlIGNvZGUg
-SSd2ZSBnb3QgdGhlIGltcHJlc3Npb24gdGhhdCBpdCBpcyBlaXRoZXIgb25lIG9mIHRoZW0uIEku
-ZQ0KPiB0aGUgcGh5c2ljYWwgbWVtb3J5IGlzIGVpdGhlciBhdA0KPg0KPiAweDgwMDBfMDAwMCAt
-IDxlbmQgb2YgRERSIDAgYmFuaz4NCj4gMHgwMDAwXzAwMDAgLSA8ZW5kIG9mIEREUiAxIGJhbms+
-DQo+DQo+IG9yDQo+DQo+IDB4MF84MDAwXzAwMDAgLSA8ZW5kIG9mIEREUiAwIGJhbms+DQo+IDB4
-MV8wMDAwXzAwMDAgLSA8ZW5kIG9mIEREUiAxIGJhbms+DQo+DQo+IElzIHRoaXMgcG9zc2libGUg
-dG8gaGF2ZSBhIHN5c3RlbSB3aXRoIHRocmVlIGxpdmUgcmFuZ2VzPyBMaWtlDQo+DQo+IDB4MF8w
-MDAwXzAwMDAgLSA8ZW5kIG9mIEREUiAxIGJhbms+DQo+IDB4MF84MDAwXzAwMDAgLSA8ZW5kIG9m
-IEREUiAwIGJhbms+DQo+IDB4MV8wMDAwXzAwMDAgLSA8ZW5kIG9mIEREUiAyIGJhbms+DQoNCldl
-IGRvbid0IGhhdmUgc3VjaCBhIHN5c3RlbSwgYnV0IGl0IGlzIGluZGVlZCBwb3NzaWJsZSBpbiB0
-aGVvcnkuIFRoZSBxdWVzdGlvbiBpcw0KwqAtIENhbiBvdGhlciBhcmNoZXMgaGF2ZSBzdWNoIGEg
-c2V0dXAgdG9vDQrCoC0gSXMgaXQgbm90IGJldHRlciB0byBoYXZlIHRoZSBjb3JlIHJldGFpbiB0
-aGUgZmxleGliaWxpdHkganVzdCBpbiBjYXNlDQoNClRoeCwNCi1WaW5lZXQNCg==
+On Tue, 5 May 2020 08:21:34 +0530 Anshuman Khandual <anshuman.khandual@arm.com> wrote:
+
+> >>> static inline void arch_clear_hugepage_flags(struct page *page)
+> >>> {
+> >>> 	<some implementation>
+> >>> }
+> >>> #define arch_clear_hugepage_flags arch_clear_hugepage_flags
+> >>>
+> >>> It's a small difference - mainly to avoid adding two variables to the
+> >>> overall namespace where one would do.
+> >>
+> >> Understood, will change and resend.
+> > 
+> > That's OK - I've queued up that fix.
+> >
+> 
+> Hello Andrew,
+> 
+> I might not have searched all the relevant trees or might have just searched
+> earlier than required. But I dont see these patches (or your proposed fixes)
+> either in mmotm (2020-04-29-23-04) or in next-20200504. Wondering if you are
+> waiting on a V2 for this series accommodating the changes you had proposed.
+
+hm.  I think I must have got confused and thought you were referring to
+a different patch.  Yes please, let's have v2.
