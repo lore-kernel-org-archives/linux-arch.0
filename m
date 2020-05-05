@@ -1,199 +1,96 @@
-Return-Path: <SRS0=nKtn=64=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:38980 "EHLO foss.arm.com"
+Return-Path: <SRS0=wOT8=6T=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:37290 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726056AbgENP2u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 14 May 2020 11:28:50 -0400
-Date: Thu, 14 May 2020 16:28:40 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH v3 2/2] arm64: tlb: Use the TLBI RANGE feature in
- arm64
-Message-ID: <20200514152840.GC1907@gaia>
-References: <20200414112835.1121-1-yezhenyu2@huawei.com>
- <20200414112835.1121-3-yezhenyu2@huawei.com>
+        id S1728608AbgEELFX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 5 May 2020 07:05:23 -0400
+Date: Tue, 5 May 2020 12:05:19 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: RFC: Adding arch-specific user ABI documentation in linux-man
+Message-ID: <20200505110519.GM30377@arm.com>
+References: <20200504153214.GH30377@arm.com>
+ <20200505104454.GC19710@willie-the-truck>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200414112835.1121-3-yezhenyu2@huawei.com>
+In-Reply-To: <20200505104454.GC19710@willie-the-truck>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200514152840.dRBOalX607nr0AMCTZX4DufwzrKhXPl4aOrZASPq4R8@z>
+To: Will Deacon <will@kernel.org>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200505110519.HzPguitbNJW-HsTmbNdC6uIhDNzUIgC_AH0hCqiR7BE@z>
 
-Hi Zhenyu,
+On Tue, May 05, 2020 at 11:44:55AM +0100, Will Deacon wrote:
+> Hi Dave,
+> 
+> On Mon, May 04, 2020 at 04:32:35PM +0100, Dave Martin wrote:
+> > I considering trying to plug some gaps in the arch-specific ABI
+> > documentation in the linux man-pages, specifically for arm64 (and
+> > possibly arm, where compat means we have some overlap).
+> > 
+> > For arm64, there are now significant new extensions (Pointer
+> > authentication, SVE, MTE etc.)  Currently there is some user-facing
+> > documentation mixed in with the kernel-facing documentation in the
+> > kernel tree, but this situation isn't ideal.
+> > 
+> > Do you have an opinion on where in the man-pages documentation should be
+> > added, and how to structure it?
+> > 
+> > 
+> > Affected areas include:
+> > 
+> >  * exec interface
+> >  * aux vector, hwcaps
+> >  * arch-specific signals
+> >  * signal frame
+> >  * mmap/mprotect extensions
+> >  * prctl calls
+> >  * ptrace quirks and extensions
+> >  * coredump contents
+> > 
+> > 
+> > Not everything has an obvious home in an existing page, and adding
+> > specifics for every architecture could make some existing manpages very
+> > unwieldy.
+> > 
+> > I think for some arch features, we really need some "overview" pages
+> > too: just documenting the low-level details is of limited value
+> > without some guide as to how to use them together.
+> > 
+> > 
+> > Does the following sketch look reasonable?
+> > 
+> >  * man7/arm64.7: new page: overview of arm64-specific ABI extensions
+> > 
+> >  * man7/sve.7 (or man7/arm64-sve.7 or man7/sve.7arm64): new page:
+> >    overview of arm64 SVE ABI
+> > 
+> >  * man2/arm64-ptrace.2 (or man2/ptrace.2arm64): new page:
+> >    arm64 ptrace extensions
+> 
+> Michael has been nagging me on and off about that for, what, 10 years now?
+> I would therefore be very much in favour of having our ptrace extensions
+> documented!
+> 
+> We could even put this stuff under Documentation/arm64/man/ if it's deemed
+> too CPU-specific for the man-pages project, but my preference would still
+> be for it to be hosted there alongside all the other man pages.
 
-On Tue, Apr 14, 2020 at 07:28:35PM +0800, Zhenyu Ye wrote:
-> diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-> index b76df828e6b7..3a1816770bd1 100644
-> --- a/arch/arm64/include/asm/tlb.h
-> +++ b/arch/arm64/include/asm/tlb.h
-> @@ -38,7 +38,12 @@ static inline void tlb_flush(struct mmu_gather *tlb)
->  		return;
->  	}
->  
-> -	__flush_tlb_range(&vma, tlb->start, tlb->end, stride, last_level);
-> +	if (cpus_have_const_cap(ARM64_HAS_TLBI_RANGE))
-> +		__flush_tlb_range_directly(&vma, tlb->start, tlb->end,
-> +					   stride, last_level);
-> +	else
-> +		__flush_tlb_range(&vma, tlb->start, tlb->end,
-> +				  stride, last_level);
+Heh, perhaps we could build that into the kernel and mount it somewhere.
 
-I think you could move such check in __flush_tlb_range() and avoid
-cpus_have_const_cap() in two places. More on this below.
 
-> diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-> index bc3949064725..a482188ea563 100644
-> --- a/arch/arm64/include/asm/tlbflush.h
-> +++ b/arch/arm64/include/asm/tlbflush.h
-> @@ -59,6 +59,44 @@
->  		__ta;						\
->  	})
->  
-> +/*
-> + * This macro creates a properly formatted VA operand for the TLBI RANGE.
-> + * The value bit assignments are:
-> + *
-> + * +----------+------+-------+-------+-------+----------------------+
-> + * |   ASID   |  TG  | SCALE |  NUM  |  TTL  |        BADDR         |
-> + * +-----------------+-------+-------+-------+----------------------+
-> + * |63      48|47  46|45   44|43   39|38   37|36                   0|
-> + *
-> + * The address range is determined by below formula:
-> + * [BADDR, BADDR + (NUM + 1) * 2^(5*SCALE + 1) * PAGESIZE)
-> + *
-> + */
-> +#define __TLBI_VADDR_RANGE(addr, asid, tg, scale, num, ttl)	\
-> +	({							\
-> +		unsigned long __ta = (addr) >> PAGE_SHIFT;	\
-> +		__ta &= GENMASK_ULL(36, 0);			\
-> +		__ta |= (unsigned long)(ttl) << 37;		\
-> +		__ta |= (unsigned long)(num) << 39;		\
-> +		__ta |= (unsigned long)(scale) << 44;		\
-> +		__ta |= (unsigned long)(tg) << 46;		\
-> +		__ta |= (unsigned long)(asid) << 48;		\
-> +		__ta;						\
-> +	})
-> +
-> +#define TLB_RANGE_MASK_SHIFT 5
-> +#define TLB_RANGE_MASK GENMASK_ULL(TLB_RANGE_MASK_SHIFT - 1, 0)
-> +
-> +/*
-> + * __TG defines translation granule of the system, which is defined by
-> + * PAGE_SHIFT.  Used by TTL.
-> + *  - 4KB	: 1
-> + *  - 16KB	: 2
-> + *  - 64KB	: 3
-> + */
-> +#define __TG	((PAGE_SHIFT - 12) / 2 + 1)
+Seriously though,
 
-I don't think we need __TLBI_VADDR_RANGE to take a tg argument since
-it's always the same.
+I guess I can start off with straightforward small things for which the
+documentation has an obvious home (like prctls[*]) and then move on to
+the bigger stuff like ptrace.
 
-> +
-> +
->  /*
->   *	TLB Invalidation
->   *	================
-> @@ -171,12 +209,83 @@ static inline void flush_tlb_page(struct vm_area_struct *vma,
->  	dsb(ish);
->  }
->  
-> +/* The maximum range size of one TLBI-RANGE instruction */
-> +#define MAX_TLBI_RANGE_SIZE	(1UL << 21)
+If people start shouting about a page getting too big or messy I can try
+to split it up.
 
-Nitpick: call this MAX_TLBI_RANGE_PAGES as that's not an address range.
+Make sense?
 
-It may be useful to have a macro for the range here, something like:
+Cheers
+---Dave
 
-#define __TLBI_PAGES(num, scale)	((num + 1) << (5 * scale + 1))
 
-and define MAX_TLBI_RANGE_PAGES in terms of this macro as
-__TLBI_PAGES(31, 3).
-
-> +
-> +/*
-> + * This interface uses the *rvale1is* instruction to flush TLBs
-> + * in [start, end) directly.
-> + * This instruction is supported from ARM v8.4.
-> + */
-> +static inline void __flush_tlb_range_directly(struct vm_area_struct *vma,
-> +				unsigned long start, unsigned long end,
-> +				unsigned long stride, bool last_level)
-> +{
-> +	int num = 0;
-> +	int scale = 0;
-> +	unsigned long asid = ASID(vma->vm_mm);
-> +	unsigned long addr = 0;
-> +	unsigned long range_size;
-> +
-> +	start = round_down(start, stride);
-> +	end = round_up(end, stride);
-> +	range_size = (end - start) >> PAGE_SHIFT;
-> +
-> +	if (range_size > MAX_TLBI_RANGE_SIZE) {
-> +		flush_tlb_mm(vma->vm_mm);
-> +		return;
-> +	}
-> +
-> +	dsb(ishst);
-> +
-> +	/*
-> +	 * The minimum size of TLB RANGE is 2 PAGE;
-> +	 * Use normal TLB instruction to handle odd PAGEs
-
-Nitpick: no need to capitalise PAGE.
-
-> +	 */
-> +	if (range_size % 2 == 1) {
-> +		addr = __TLBI_VADDR(start, asid);
-> +		if (last_level) {
-> +			__tlbi(vale1is, addr);
-> +			__tlbi_user(vale1is, addr);
-> +		} else {
-> +			__tlbi(vae1is, addr);
-> +			__tlbi_user(vae1is, addr);
-> +		}
-> +		start += 1 << PAGE_SHIFT;
-> +		range_size -= 1;
-> +	}
-> +
-> +	range_size >>= 1;
-> +	while (range_size > 0) {
-> +		num = (range_size & TLB_RANGE_MASK) - 1;
-> +		if (num >= 0) {
-> +			addr = __TLBI_VADDR_RANGE(start, asid, __TG,
-> +						  scale, num, 0);
-> +			if (last_level) {
-> +				__tlbi(rvale1is, addr);
-> +				__tlbi_user(rvale1is, addr);
-> +			} else {
-> +				__tlbi(rvae1is, addr);
-> +				__tlbi_user(rvae1is, addr);
-> +			}
-> +			start += (num + 1) << (5 * scale + 1) << PAGE_SHIFT;
-
-You could use the __TLBI_PAGES macro I proposed above.
-
-> +		}
-> +		scale++;
-> +		range_size >>= TLB_RANGE_MASK_SHIFT;
-> +	}
-
-So, you start from scale 0 and increment it until you reach the maximum.
-I think (haven't done the maths on paper) you could also start from the
-top with something like scale = ilog2(range_size) / 5. Not sure it's
-significantly better though, maybe avoiding the loop 3 times if your
-range is 2MB (which happens with huge pages).
-
-Anyway, I think it would be more efficient if we combine the
-__flush_tlb_range() and the _directly one into the same function with a
-single loop for both. For example, if the stride is 2MB already, we can
-handle this with a single classic TLBI without all the calculations for
-the range operation. The hardware may also handle this better since the
-software already told it there can be only one entry in that 2MB range.
-So each loop iteration could figure which operation to use based on
-cpucaps, TLBI range ops, stride and reduce range_size accordingly.
-
--- 
-Catalin
+[*] "straightforward" was a joke, obviously
