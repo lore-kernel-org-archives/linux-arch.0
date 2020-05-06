@@ -1,53 +1,136 @@
-Return-Path: <SRS0=nKtn=64=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from namei.org ([65.99.196.166]:59018 "EHLO namei.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726027AbgENRcP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 14 May 2020 13:32:15 -0400
-Date: Fri, 15 May 2020 03:31:38 +1000 (AEST)
-From: James Morris <jmorris@namei.org>
-Subject: Re: [PATCH v17 05/10] fs,landlock: Support filesystem
- access-control
-In-Reply-To: <c159d845-6108-4b67-6527-405589fa5382@digikod.net>
-Message-ID: <alpine.LRH.2.21.2005150329580.26489@namei.org>
-References: <20200511192156.1618284-1-mic@digikod.net> <20200511192156.1618284-6-mic@digikod.net> <alpine.LRH.2.21.2005141335280.30052@namei.org> <c159d845-6108-4b67-6527-405589fa5382@digikod.net>
+Return-Path: <SRS0=eIWg=6U=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43586 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726906AbgEFKrW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2020 06:47:22 -0400
+Subject: Re: RFC: Adding arch-specific user ABI documentation in linux-man
+References: <20200504153214.GH30377@arm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Message-ID: <07855941-d0f7-2ec6-819e-e43a8935e29e@gmail.com>
+Date: Wed, 6 May 2020 12:47:17 +0200
 MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="1665246916-621977297-1589477498=:26489"
+In-Reply-To: <20200504153214.GH30377@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?ISO-8859-15?Q?Micka=EBl_Sala=FCn?= <mic@digikod.net>
-Cc: Casey Schaufler <casey@schaufler-ca.com>, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?ISO-8859-15?Q?Micka=EBl_Sala=FCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
-Message-ID: <20200514173138.5Oz0gw9pTUh8L4oOjMJ5CD4fogfy_wOhvFZpaO6lbpk@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: mtk.manpages@gmail.com, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200506104717.5XPO6gDHOQwOTHf7aw2fFrklzgc1MLHmA_LyYdV8QwY@z>
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
+Hello Dave, et al.
 
---1665246916-621977297-1589477498=:26489
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
-
-On Thu, 14 May 2020, Mickaël Salaün wrote:
-
-> > This needs to be converted to the LSM API via superblock blob stacking.
-> > 
-> > See Casey's old patch: 
-> > https://lore.kernel.org/linux-security-module/20190829232935.7099-2-casey@schaufler-ca.com/
+On 5/4/20 5:32 PM, Dave Martin wrote:
+> Hi all,
 > 
-> s_landlock_inode_refs is quite similar to s_fsnotify_inode_refs, but I
-> can do it once the superblock security blob patch is upstream. Is it a
-> blocker for now? What is the current status of lbs_superblock?
+> I considering trying to plug some gaps in the arch-specific ABI
+> documentation in the linux man-pages, specifically for arm64 (and
+> possibly arm, where compat means we have some overlap).
 
-Yes it is a blocker. Landlock should not be adding its own functions in 
-core code, it should be using the LSM API (and extending that as needed).
+Sounds good to me.
 
-> Anyway, we also need to have a call to landlock_release_inodes() in
-> generic_shutdown_super(), which does not fit the LSM framework, and I
-> think it is not an issue. Landlock handling of inodes is quite similar
-> to fsnotify.
+> For arm64, there are now significant new extensions (Pointer
+> authentication, SVE, MTE etc.)  Currently there is some user-facing
+> documentation mixed in with the kernel-facing documentation in the
+> kernel tree, but this situation isn't ideal.
+> 
+> Do you have an opinion on where in the man-pages documentation should be
+> added, and how to structure it?
+> 
+> 
+> Affected areas include:
+> 
+>  * exec interface
 
-fsnotify is not an LSM.
+Not sure what the details are here, so I have no opinion yet.
+But probably, as additions to execve(2).
+
+>  * aux vector, hwcaps
+
+==> getauxval(3)
+
+>  * arch-specific signals
+>  * signal frame
+
+Not sure what the details are here, so I have no opinion yet.
+
+>  * mmap/mprotect extensions
+
+See below.
+
+>  * prctl calls
+
+As additions in prctl(2) would be fine, I think.
+
+>  * ptrace quirks and extensions
+
+See below.
+
+>  * coredump contents
+
+Not sure what the details are here, so I have no opinion yet.
+Possibly as additions to core(5).
+
+> Not everything has an obvious home in an existing page, 
+
+Yes.
+
+> and adding
+> specifics for every architecture could make some existing manpages very
+> unwieldy.
+
+Still, I think it's worth adding details, especially for widely
+used architectures.
+ 
+> I think for some arch features, we really need some "overview" pages
+> too: just documenting the low-level details is of limited value
+> without some guide as to how to use them together.
+> 
+> 
+> Does the following sketch look reasonable?
+> 
+>  * man7/arm64.7: new page: overview of arm64-specific ABI extensions
+
+I'm a little unclear on what would land in here, but sounds 
+reasonable in principle.
+
+>  * man7/sve.7 (or man7/arm64-sve.7 or man7/sve.7arm64): new page:
+>    overview of arm64 SVE ABI
+
+Sounds reasonable to me.
+
+>  * man2/arm64-ptrace.2 (or man2/ptrace.2arm64): new page:
+>    arm64 ptrace extensions
+
+I think maybe better is: ptrace-arm64.2
+
+I'm agnostic about whether there should be a new page, or whether 
+these should be added to ptrace(2). But, we could start with the
+idea of a new page.
+
+>  * man2/mmap.2: extend with arm64-specific flags (only two flags, so we
+>    add them to the existing man page rather than creating a new one).
+
+Sounds good to me
+
+> etc.
+> 
+> 
+> Ideally, I'd like to adopt a pattern that other arches can follow.
+
+Well, if they do follow. Arch-specific documentation is woefully
+thin at the moment. I'm not going to worry too much about the right
+pattern (don't let perfect get in the way of good, yadda, yadda),
+until I get so much arch-specific documentation that some refactoring
+may be required. (I'm not going to hold my breath waiting for that
+to happen ;-).)
+
+Cheers,
+
+Michael
 
 -- 
-James Morris
-<jmorris@namei.org>
-
---1665246916-621977297-1589477498=:26489--
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
