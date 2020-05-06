@@ -1,74 +1,179 @@
-Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
-Date: Mon, 11 May 2020 12:00:14 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 02/31] arm64: fix the flush_icache_range arguments in
- machine_kexec
-Message-ID: <20200511110014.GA19176@gaia>
-References: <20200510075510.987823-1-hch@lst.de>
- <20200510075510.987823-3-hch@lst.de>
- <20200511075115.GA16134@willie-the-truck>
+Return-Path: <SRS0=eIWg=6U=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:37700 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728784AbgEFO3q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 6 May 2020 10:29:46 -0400
+Date: Wed, 6 May 2020 15:29:42 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: RFC: Adding arch-specific user ABI documentation in linux-man
+Message-ID: <20200506142942.GV30377@arm.com>
+References: <20200504153214.GH30377@arm.com>
+ <07855941-d0f7-2ec6-819e-e43a8935e29e@gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200511075115.GA16134@willie-the-truck>
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will@kernel.org>
-Cc: Christoph Hellwig <hch@lst.de>, james.morse@arm.com, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+In-Reply-To: <07855941-d0f7-2ec6-819e-e43a8935e29e@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200511110014.lb9PEahJ4hVOYrbwIb_qUHXyNy9KQzNFdb_I3YlzY6A@z>
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200506142942.HGeKE_TeHnIfLC_3T7TmTeskUqFvaUzgiec9Owpbv9Y@z>
 
-On Mon, May 11, 2020 at 08:51:15AM +0100, Will Deacon wrote:
-> On Sun, May 10, 2020 at 09:54:41AM +0200, Christoph Hellwig wrote:
-> > The second argument is the end "pointer", not the length.
-> > 
-> > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> > ---
-> >  arch/arm64/kernel/machine_kexec.c | 1 +
-> >  1 file changed, 1 insertion(+)
-> > 
-> > diff --git a/arch/arm64/kernel/machine_kexec.c b/arch/arm64/kernel/machine_kexec.c
-> > index 8e9c924423b4e..a0b144cfaea71 100644
-> > --- a/arch/arm64/kernel/machine_kexec.c
-> > +++ b/arch/arm64/kernel/machine_kexec.c
-> > @@ -177,6 +177,7 @@ void machine_kexec(struct kimage *kimage)
-> >  	 * the offline CPUs. Therefore, we must use the __* variant here.
-> >  	 */
-> >  	__flush_icache_range((uintptr_t)reboot_code_buffer,
-> > +			     (uintptr_t)reboot_code_buffer +
-> >  			     arm64_relocate_new_kernel_size);
+On Wed, May 06, 2020 at 12:47:17PM +0200, Michael Kerrisk (man-pages) wrote:
+> Hello Dave, et al.
 > 
-> Urgh, well spotted. It's annoyingly different from __flush_dcache_area().
+> On 5/4/20 5:32 PM, Dave Martin wrote:
+> > Hi all,
+> > 
+> > I considering trying to plug some gaps in the arch-specific ABI
+> > documentation in the linux man-pages, specifically for arm64 (and
+> > possibly arm, where compat means we have some overlap).
 > 
-> But now I'm wondering what this code actually does... the loop condition
-> in invalidate_icache_by_line works with 64-bit arithmetic, so we could
-> spend a /very/ long time here afaict.
+> Sounds good to me.
+> 
+> > For arm64, there are now significant new extensions (Pointer
+> > authentication, SVE, MTE etc.)  Currently there is some user-facing
+> > documentation mixed in with the kernel-facing documentation in the
+> > kernel tree, but this situation isn't ideal.
+> > 
+> > Do you have an opinion on where in the man-pages documentation should be
+> > added, and how to structure it?
+> > 
+> > 
+> > Affected areas include:
+> > 
+> >  * exec interface
+> 
+> Not sure what the details are here, so I have no opinion yet.
+> But probably, as additions to execve(2).
 
-I think it goes through the loop only once. The 'b.lo' saves us here.
-OTOH, there is no I-cache maintenance done.
+Having looked at that page again, probably yes.
 
-> It's also a bit annoying that we do a bunch of redundant D-cache
-> maintenance too. Should we use invalidate_icache_range() here instead?
+This would include things like how arch-specific registers get reset,
+and how various thread properties are reset/inherited.
 
-Since we have the __flush_dcache_area() above it for cleaning to PoC, we
-could use invalidate_icache_range() here. We probably didn't have this
-function at the time, it was added for KVM (commit 4fee94736603cd6).
+Possibly, much of this would be documented by cross-referencing other
+pages.
 
-> (and why does that thing need to toggle uaccess)?
+> 
+> >  * aux vector, hwcaps
+> 
+> ==> getauxval(3)
 
-invalidate_icache_range() doesn't need to, it works on the kernel linear
+Ah, yes.  I keep forgetting that because it's provided by libc.
+
+There are a few things missing, but we can add them in there.
+
+> >  * arch-specific signals
+> >  * signal frame
+> 
+> Not sure what the details are here, so I have no opinion yet.
+
+Stuff like architecture-specific si_codes and how they are used.
+
+Signal handlers that poke about in the signal frame need to know how it
+is structured, and for arm64 this is now quite complex.  I want to
+document some example code for parsing it somewhere, and I feel that
+will be too much noise for signal(7).
+
+I guess I can try to write something and than we can figure out where to
+put it.
+
+> 
+> >  * mmap/mprotect extensions
+> 
+> See below.
+> 
+> >  * prctl calls
+> 
+> As additions in prctl(2) would be fine, I think.
+> 
+> >  * ptrace quirks and extensions
+> 
+> See below.
+> 
+> >  * coredump contents
+> 
+> Not sure what the details are here, so I have no opinion yet.
+> Possibly as additions to core(5).
+
+Things like arch-specific regsets.  Some of that can probabably live
+in the ptrace page, with cross-references from core(5).
+
+> > Not everything has an obvious home in an existing page, 
+> 
+> Yes.
+> 
+> > and adding
+> > specifics for every architecture could make some existing manpages very
+> > unwieldy.
+> 
+> Still, I think it's worth adding details, especially for widely
+> used architectures.
+
+Agreed.  If there's a lot of explanation required for somethings which
+feels out of scope for the core page, then I might still be tempted to
+push some of that out into a more arch-specific page and cross-reference
+it.  We can play that by ear, though.
+
+> > I think for some arch features, we really need some "overview" pages
+> > too: just documenting the low-level details is of limited value
+> > without some guide as to how to use them together.
+> > 
+> > 
+> > Does the following sketch look reasonable?
+> > 
+> >  * man7/arm64.7: new page: overview of arm64-specific ABI extensions
+> 
+> I'm a little unclear on what would land in here, but sounds 
+> reasonable in principle.
+
+I probably won't attempt to add such a page until I find a use for it.
+
+I mainly intended this as an overview of what areas are impacted by the
+architecture and which other pages to go look at.
+
+> >  * man7/sve.7 (or man7/arm64-sve.7 or man7/sve.7arm64): new page:
+> >    overview of arm64 SVE ABI
+> 
+> Sounds reasonable to me.
+> 
+> >  * man2/arm64-ptrace.2 (or man2/ptrace.2arm64): new page:
+> >    arm64 ptrace extensions
+> 
+> I think maybe better is: ptrace-arm64.2
+
+Agreed.  That's probably easier to for people to place in their mental
 map.
 
-__flush_icache_range() doesn't need to either, that's a side-effect of
-the fall-through implementation.
+> 
+> I'm agnostic about whether there should be a new page, or whether 
+> these should be added to ptrace(2). But, we could start with the
+> idea of a new page.
+> 
+> >  * man2/mmap.2: extend with arm64-specific flags (only two flags, so we
+> >    add them to the existing man page rather than creating a new one).
+> 
+> Sounds good to me
+> 
+> > etc.
+> > 
+> > 
+> > Ideally, I'd like to adopt a pattern that other arches can follow.
+> 
+> Well, if they do follow. Arch-specific documentation is woefully
+> thin at the moment. I'm not going to worry too much about the right
+> pattern (don't let perfect get in the way of good, yadda, yadda),
+> until I get so much arch-specific documentation that some refactoring
+> may be required. (I'm not going to hold my breath waiting for that
+> to happen ;-).)
 
-Anyway, I think Christoph's patch needs to go in with a fixes tag:
+Sure.  I don't want to do something obviously broken, but it sounds like
+you're reasonably happy with my approach.  In any case I'll start with the
+simple stuff.
 
-Fixes: d28f6df1305a ("arm64/kexec: Add core kexec support")
-Cc: <stable@vger.kernel.org> # 4.8.x-
+Where it's easy to do so, I may try to trawl up some undocumented non-
+ARM stuff, but I'm not the expert there...
 
-and we'll change these functions/helpers going forward for arm64.
-
-Happy to pick this up via the arm64 for-next/fixes branch.
-
--- 
-Catalin
+Cheers
+---Dave
