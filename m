@@ -1,60 +1,93 @@
-Return-Path: <SRS0=j6d5=7I=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45820 "EHLO foss.arm.com"
+Return-Path: <SRS0=eIWg=6U=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:56194 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388428AbgEZCjw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 25 May 2020 22:39:52 -0400
-Subject: Re: [PATCH v3 1/6] arm64: Detect the ARMv8.4 TTL feature
-References: <20200525125300.794-1-yezhenyu2@huawei.com>
- <20200525125300.794-2-yezhenyu2@huawei.com>
+        id S1726712AbgEFGNF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 6 May 2020 02:13:05 -0400
 From: Anshuman Khandual <anshuman.khandual@arm.com>
-Message-ID: <c6b6eb07-2606-9fc0-280a-e53b81a6491c@arm.com>
-Date: Tue, 26 May 2020 08:09:03 +0530
-MIME-Version: 1.0
-In-Reply-To: <20200525125300.794-2-yezhenyu2@huawei.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Subject: [PATCH V2 0/3] mm/hugetlb: Add some new generic fallbacks
+Date: Wed,  6 May 2020 11:42:11 +0530
+Message-ID: <1588745534-24418-1-git-send-email-anshuman.khandual@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zhenyu Ye <yezhenyu2@huawei.com>, catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200526023903.-XquApwQmCGrr7YkvCwmInviKVLk5nUwZ_uVw7bzNCI@z>
+To: linux-mm@kvack.org, akpm@linux-foundation.org
+Cc: Anshuman Khandual <anshuman.khandual@arm.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Mike Kravetz <mike.kravetz@oracle.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200506061211.WmLQfXExrEetWHWhrJOzGM-KbGhgffygPxwqylWTLQA@z>
 
-Hello Zhenyu,
+This series adds the following new generic fallbacks. Before that it drops
+__HAVE_ARCH_HUGE_PTEP_GET from arm64 platform.
 
-On 05/25/2020 06:22 PM, Zhenyu Ye wrote:
-> diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
-> index c4ac0ac25a00..477d84ba1056 100644
-> --- a/arch/arm64/include/asm/sysreg.h
-> +++ b/arch/arm64/include/asm/sysreg.h
-> @@ -725,6 +725,7 @@
->  
->  /* id_aa64mmfr2 */
->  #define ID_AA64MMFR2_E0PD_SHIFT		60
-> +#define ID_AA64MMFR2_TTL_SHIFT		48
->  #define ID_AA64MMFR2_FWB_SHIFT		40
->  #define ID_AA64MMFR2_AT_SHIFT		32
->  #define ID_AA64MMFR2_LVA_SHIFT		16
-> diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-> index 9fac745aa7bb..d993dc6dc7d5 100644
-> --- a/arch/arm64/kernel/cpufeature.c
-> +++ b/arch/arm64/kernel/cpufeature.c
-> @@ -244,6 +244,7 @@ static const struct arm64_ftr_bits ftr_id_aa64mmfr1[] = {
->  
->  static const struct arm64_ftr_bits ftr_id_aa64mmfr2[] = {
->  	ARM64_FTR_BITS(FTR_HIDDEN, FTR_NONSTRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_E0PD_SHIFT, 4, 0),
-> +	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_TTL_SHIFT, 4, 0),
->  	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_FWB_SHIFT, 4, 0),
->  	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_AT_SHIFT, 4, 0),
->  	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_LVA_SHIFT, 4, 0),
-> @@ -1622,6 +1623,16 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
->  		.matches = has_cpuid_feature,
->  		.cpu_enable = cpu_has_fwb,
->  	},
+1. is_hugepage_only_range()
+2. arch_clear_hugepage_flags()
 
-This patch (https://patchwork.kernel.org/patch/11557359/) is adding some
-more ID_AA64MMFR2 features including the TTL. I am going to respin parts
-of the V4 series patches along with the above mentioned patch. So please
-rebase this series accordingly, probably on latest next.
+This has been boot tested on arm64 and x86 platforms but built tested on
+some more platforms including the changed ones here. This series applies
+on v5.7-rc4. After this arm (32 bit) remains the sole platform defining
+it's own huge_ptep_get() via __HAVE_ARCH_HUGE_PTEP_GET.
 
-- Anshuman
+Changes in V2:
+
+- Adopted "#ifndef func" method (adding a single symbol to namespace) per Andrew
+- Updated the commit messages in [PATCH 2/3] and [PATCH 3/3] as required
+
+Changes in V1: (https://patchwork.kernel.org/project/linux-mm/list/?series=270677)
+
+Cc: Russell King <linux@armlinux.org.uk>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
+Cc: Helge Deller <deller@gmx.de>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Paul Walmsley <paul.walmsley@sifive.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Vasily Gorbik <gor@linux.ibm.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Mike Kravetz <mike.kravetz@oracle.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: x86@kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-ia64@vger.kernel.org
+Cc: linux-mips@vger.kernel.org
+Cc: linux-parisc@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-riscv@lists.infradead.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-sh@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
+Cc: linux-mm@kvack.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+
+Anshuman Khandual (3):
+  arm64/mm: Drop __HAVE_ARCH_HUGE_PTEP_GET
+  mm/hugetlb: Define a generic fallback for is_hugepage_only_range()
+  mm/hugetlb: Define a generic fallback for arch_clear_hugepage_flags()
+
+ arch/arm/include/asm/hugetlb.h     |  7 +------
+ arch/arm64/include/asm/hugetlb.h   | 13 +------------
+ arch/ia64/include/asm/hugetlb.h    |  5 +----
+ arch/mips/include/asm/hugetlb.h    | 11 -----------
+ arch/parisc/include/asm/hugetlb.h  | 10 ----------
+ arch/powerpc/include/asm/hugetlb.h |  5 +----
+ arch/riscv/include/asm/hugetlb.h   | 10 ----------
+ arch/s390/include/asm/hugetlb.h    |  8 +-------
+ arch/sh/include/asm/hugetlb.h      |  7 +------
+ arch/sparc/include/asm/hugetlb.h   | 10 ----------
+ arch/x86/include/asm/hugetlb.h     | 10 ----------
+ include/linux/hugetlb.h            | 14 ++++++++++++++
+ 12 files changed, 20 insertions(+), 90 deletions(-)
+
+-- 
+2.20.1
