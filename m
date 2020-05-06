@@ -1,129 +1,45 @@
-From: "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
 Subject: Re: RFC: Adding arch-specific user ABI documentation in linux-man
-Date: Wed, 6 May 2020 12:47:17 +0200
-Message-ID: <07855941-d0f7-2ec6-819e-e43a8935e29e@gmail.com>
+Date: Wed, 6 May 2020 12:47:25 +0200
+Message-ID: <66fbca56-bed7-d36a-9f97-395a3d82565e@gmail.com>
 References: <20200504153214.GH30377@arm.com>
+ <20200505104454.GC19710@willie-the-truck>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20200504153214.GH30377-5wv7dgnIgG8@public.gmane.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43602 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726906AbgEFKr1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2020 06:47:27 -0400
+In-Reply-To: <20200505104454.GC19710@willie-the-truck>
 Content-Language: en-US
-Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-Cc: mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Will Deacon <will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Vincenzo Frascino <vincenzo.frascino-5wv7dgnIgG8@public.gmane.org>, linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will@kernel.org>, Dave Martin <Dave.Martin@arm.com>
+Cc: mtk.manpages@gmail.com, Catalin Marinas <catalin.marinas@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-Hello Dave, et al.
-
-On 5/4/20 5:32 PM, Dave Martin wrote:
-> Hi all,
+>>  * man2/arm64-ptrace.2 (or man2/ptrace.2arm64): new page:
+>>    arm64 ptrace extensions
 > 
-> I considering trying to plug some gaps in the arch-specific ABI
-> documentation in the linux man-pages, specifically for arm64 (and
-> possibly arm, where compat means we have some overlap).
+> Michael has been nagging me on and off about that for, what, 10 years now?
 
-Sounds good to me.
+Perhaps not that long, but a while now ;-).
 
-> For arm64, there are now significant new extensions (Pointer
-> authentication, SVE, MTE etc.)  Currently there is some user-facing
-> documentation mixed in with the kernel-facing documentation in the
-> kernel tree, but this situation isn't ideal.
+> I would therefore be very much in favour of having our ptrace extensions
+> documented!
 > 
-> Do you have an opinion on where in the man-pages documentation should be
-> added, and how to structure it?
-> 
-> 
-> Affected areas include:
-> 
->  * exec interface
+> We could even put this stuff under Documentation/arm64/man/ if it's deemed
+> too CPU-specific for the man-pages project, but my preference would still
+> be for it to be hosted there alongside all the other man pages.
 
-Not sure what the details are here, so I have no opinion yet.
-But probably, as additions to execve(2).
-
->  * aux vector, hwcaps
-
-==> getauxval(3)
-
->  * arch-specific signals
->  * signal frame
-
-Not sure what the details are here, so I have no opinion yet.
-
->  * mmap/mprotect extensions
-
-See below.
-
->  * prctl calls
-
-As additions in prctl(2) would be fine, I think.
-
->  * ptrace quirks and extensions
-
-See below.
-
->  * coredump contents
-
-Not sure what the details are here, so I have no opinion yet.
-Possibly as additions to core(5).
-
-> Not everything has an obvious home in an existing page, 
-
-Yes.
-
-> and adding
-> specifics for every architecture could make some existing manpages very
-> unwieldy.
-
-Still, I think it's worth adding details, especially for widely
-used architectures.
- 
-> I think for some arch features, we really need some "overview" pages
-> too: just documenting the low-level details is of limited value
-> without some guide as to how to use them together.
-> 
-> 
-> Does the following sketch look reasonable?
-> 
->  * man7/arm64.7: new page: overview of arm64-specific ABI extensions
-
-I'm a little unclear on what would land in here, but sounds 
-reasonable in principle.
-
->  * man7/sve.7 (or man7/arm64-sve.7 or man7/sve.7arm64): new page:
->    overview of arm64 SVE ABI
-
-Sounds reasonable to me.
-
->  * man2/arm64-ptrace.2 (or man2/ptrace.2arm64): new page:
->    arm64 ptrace extensions
-
-I think maybe better is: ptrace-arm64.2
-
-I'm agnostic about whether there should be a new page, or whether 
-these should be added to ptrace(2). But, we could start with the
-idea of a new page.
-
->  * man2/mmap.2: extend with arm64-specific flags (only two flags, so we
->    add them to the existing man page rather than creating a new one).
-
-Sounds good to me
-
-> etc.
-> 
-> 
-> Ideally, I'd like to adopt a pattern that other arches can follow.
-
-Well, if they do follow. Arch-specific documentation is woefully
-thin at the moment. I'm not going to worry too much about the right
-pattern (don't let perfect get in the way of good, yadda, yadda),
-until I get so much arch-specific documentation that some refactoring
-may be required. (I'm not going to hold my breath waiting for that
-to happen ;-).)
+Agreed; manual pages is I think a better place.
 
 Cheers,
 
 Michael
+
+
 
 -- 
 Michael Kerrisk
