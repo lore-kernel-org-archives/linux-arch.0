@@ -1,130 +1,60 @@
-Return-Path: <SRS0=nKtn=64=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33208 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726088AbgENXQZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 14 May 2020 19:16:25 -0400
-Date: Fri, 15 May 2020 04:46:03 +0530
-From: Syed Nayyar Waris <syednwaris@gmail.com>
-Subject: [PATCH v6 0/4] Introduce the for_each_set_clump macro
-Message-ID: <cover.1589497311.git.syednwaris@gmail.com>
+Return-Path: <SRS0=//km=6U=kvack.org=owner-linux-mm@kernel.org>
+From: Luis Chamberlain <mcgrof@kernel.org>
+Subject: [PATCH] mm: expland documentation over __read_mostly
+Date: Wed,  6 May 2020 23:13:53 +0000
+Message-ID: <20200506231353.32451-1-mcgrof@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: cl@linux.com, akpm@linux-foundation.org
+Cc: arnd@arndb.de, willy@infradead.org, aquini@redhat.com, keescook@chromium.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Luis Chamberlain <mcgrof@kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: andriy.shevchenko@linux.intel.com, vilhelm.gray@gmail.com, michal.simek@xilinx.com, arnd@arndb.de, rrichter@marvell.com, linus.walleij@linaro.org, bgolaszewski@baylibre.com, yamada.masahiro@socionext.com, rui.zhang@intel.com, daniel.lezcano@linaro.org, amit.kucheria@verdurent.com, linux-arch@vger.kernel.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org
-Message-ID: <20200514231603.0hiMetIEBCYjdWcTdk5iVAu-kx-eebo8BoF1HfIcQV8@z>
+Message-ID: <20200506231353.VtXNt0JsngsJR9WNY951WEFT-1kSrLFAkghH8lFdR94@z>
 
-This patchset introduces a new generic version of for_each_set_clump. 
-The previous version of for_each_set_clump8 used a fixed size 8-bit
-clump, but the new generic version can work with clump of any size but
-less than or equal to BITS_PER_LONG. The patchset utilizes the new macro 
-in several GPIO drivers.
+__read_mostly can easily be misused by folks, its not meant for
+just read-only data. There are performance reasons for using it, but
+we also don't provide any guidance about its use. Provide a bit more
+guidance over it use.
 
-The earlier 8-bit for_each_set_clump8 facilitated a
-for-loop syntax that iterates over a memory region entire groups of set
-bits at a time.
+Acked-by: Christoph Lameter <cl@linux.com>
+Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
+---
 
-For example, suppose you would like to iterate over a 32-bit integer 8
-bits at a time, skipping over 8-bit groups with no set bit, where
-XXXXXXXX represents the current 8-bit group:
+I sent this 2 years ago, but it fell through the cracks. This time
+I'm adding Andrew Morton now, the fix0r-of-falling-through-the-cracks.
 
-    Example:        10111110 00000000 11111111 00110011
-    First loop:     10111110 00000000 11111111 XXXXXXXX
-    Second loop:    10111110 00000000 XXXXXXXX 00110011
-    Third loop:     XXXXXXXX 00000000 11111111 00110011
+Resending as I just saw a patch which doesn't clearly justifiy the
+merits of the use of __read_mostly on it.
 
-Each iteration of the loop returns the next 8-bit group that has at
-least one set bit.
+ include/linux/cache.h | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
-But with the new for_each_set_clump the clump size can be different from 8 bits.
-Moreover, the clump can be split at word boundary in situations where word 
-size is not multiple of clump size. Following are examples showing the working 
-of new macro for clump sizes of 24 bits and 6 bits.
-
-Example 1:
-clump size: 24 bits, Number of clumps (or ports): 10
-bitmap stores the bit information from where successive clumps are retrieved.
-
-     /* bitmap memory region */
-        0x00aa0000ff000000;  /* Most significant bits */
-        0xaaaaaa0000ff0000;
-        0x000000aa000000aa;
-        0xbbbbabcdeffedcba;  /* Least significant bits */
-
-Different iterations of for_each_set_clump:-
-'offset' is the bit position and 'clump' is the 24 bit clump from the
-above bitmap.
-Iteration first:        offset: 0 clump: 0xfedcba
-Iteration second:       offset: 24 clump: 0xabcdef
-Iteration third:        offset: 48 clump: 0xaabbbb
-Iteration fourth:       offset: 96 clump: 0xaa
-Iteration fifth:        offset: 144 clump: 0xff
-Iteration sixth:        offset: 168 clump: 0xaaaaaa
-Iteration seventh:      offset: 216 clump: 0xff
-Loop breaks because in the end the remaining bits (0x00aa) size was less
-than clump size of 24 bits.
-
-In above example it can be seen that in iteration third, the 24 bit clump
-that was retrieved was split between bitmap[0] and bitmap[1]. This example 
-also shows that 24 bit zeroes if present in between, were skipped (preserving
-the previous for_each_set_macro8 behaviour). 
-
-Example 2:
-clump size = 6 bits, Number of clumps (or ports) = 3.
-
-     /* bitmap memory region */
-        0x00aa0000ff000000;  /* Most significant bits */
-        0xaaaaaa0000ff0000;
-        0x0f00000000000000;
-        0x0000000000000ac0;  /* Least significant bits */
-
-Different iterations of for_each_set_clump:
-'offset' is the bit position and 'clump' is the 6 bit clump from the
-above bitmap.
-Iteration first:        offset: 6 clump: 0x2b
-Loop breaks because 6 * 3 = 18 bits traversed in bitmap.
-Here 6 * 3 is clump size * no. of clumps.
-
-Changes in v6:
- - [Patch 2/4]: Make 'for loop' inside test_for_each_set_clump more
-   succinct.
-
-Changes in v5:
- - [Patch 4/4]: Minor change: Hardcode value for better code readability.
-
-Changes in v4:
- - [Patch 2/4]: Use 'for' loop in test function of for_each_set_clump.
- - [Patch 3/4]: Minor change: Inline value for better code readability.
- - [Patch 4/4]: Minor change: Inline value for better code readability.
-
-Changes in v3:
- - [Patch 3/4]: Change datatype of some variables from u64 to unsigned long
-   in function thunderx_gpio_set_multiple.
-
-CHanges in v2:
- - [Patch 2/4]: Unify different tests for 'for_each_set_clump'. Pass test data as
-   function parameters.
- - [Patch 2/4]: Remove unnecessary bitmap_zero calls.
-
-Syed Nayyar Waris (4):
-  bitops: Introduce the the for_each_set_clump macro
-  lib/test_bitmap.c: Add for_each_set_clump test cases
-  gpio: thunderx: Utilize for_each_set_clump macro
-  gpio: xilinx: Utilize for_each_set_clump macro
-
- drivers/gpio/gpio-thunderx.c      |  11 ++-
- drivers/gpio/gpio-xilinx.c        |  62 ++++++-------
- include/asm-generic/bitops/find.h |  19 ++++
- include/linux/bitmap.h            |  61 +++++++++++++
- include/linux/bitops.h            |  13 +++
- lib/find_bit.c                    |  14 +++
- lib/test_bitmap.c                 | 142 ++++++++++++++++++++++++++++++
- 7 files changed, 288 insertions(+), 34 deletions(-)
-
-
-base-commit: 5f458e572071a54841b93f41e25fbe8ded82df79
--- 
-2.26.2
+diff --git a/include/linux/cache.h b/include/linux/cache.h
+index 750621e41d1c..8106fb304fa7 100644
+--- a/include/linux/cache.h
++++ b/include/linux/cache.h
+@@ -15,8 +15,14 @@
+=20
+ /*
+  * __read_mostly is used to keep rarely changing variables out of freque=
+ntly
+- * updated cachelines. If an architecture doesn't support it, ignore the
+- * hint.
++ * updated cachelines. Its use should be reserved for data that is used
++ * frequently in hot paths. Performance traces can help decide when to u=
+se
++ * this. You want __read_mostly data to be tightly packed, so that in th=
+e
++ * best case multiple frequently read variables for a hot path will be n=
+ext
++ * to each other in order to reduce the number of cachelines needed to
++ * execute a critial path. We should be mindful and selective of its use=
+.
++ * ie: if you're going to use it please supply a *good* justification in=
+ your
++ * commit log
+  */
+ #ifndef __read_mostly
+ #define __read_mostly
+--=20
+2.25.1
