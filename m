@@ -1,53 +1,49 @@
-From: Luis Chamberlain <mcgrof@kernel.org>
-Subject: [PATCH v2] mm: expand documentation over __read_mostly
-Date: Thu,  7 May 2020 16:14:24 +0000
-Message-ID: <20200507161424.2584-1-mcgrof@kernel.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [PATCH v10 05/26] x86/cet/shstk: Add Kconfig option for
+ user-mode Shadow Stack
+Date: Thu, 07 May 2020 09:59:02 -0700
+Message-ID: <e0bb75f71ccc7fdf5cd5012441536918a09a9322.camel@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+         <20200429220732.31602-6-yu-cheng.yu@intel.com>
+         <f4329e8c-0b3a-2c52-2145-08ea4dcab26e@intel.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg1-f193.google.com ([209.85.215.193]:40922 "EHLO
-        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726521AbgEGQO2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 May 2020 12:14:28 -0400
+Received: from mga14.intel.com ([192.55.52.115]:26106 "EHLO mga14.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726320AbgEGQ7A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 May 2020 12:59:00 -0400
+In-Reply-To: <f4329e8c-0b3a-2c52-2145-08ea4dcab26e@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: cl@linux.com, akpm@linux-foundation.org
-Cc: arnd@arndb.de, willy@infradead.org, aquini@redhat.com, keescook@chromium.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Luis Chamberlain <mcgrof@kernel.org>
+To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
 
-__read_mostly can easily be misused by folks, its not meant for
-just read-only data. There are performance reasons for using it, but
-we also don't provide any guidance about its use. Provide a bit more
-guidance over its use.
+On Thu, 2020-05-07 at 08:55 -0700, Dave Hansen wrote:
+> On 4/29/20 3:07 PM, Yu-cheng Yu wrote:
+> > +config X86_INTEL_SHADOW_STACK_USER
+> > +	prompt "Intel Shadow Stacks for user-mode"
+> > +	def_bool n
+> > +	depends on CPU_SUP_INTEL && X86_64
+> > +	depends on AS_HAS_SHADOW_STACK
+> > +	select ARCH_USES_HIGH_VMA_FLAGS
+> > +	select X86_INTEL_CET
+> > +	select ARCH_HAS_SHADOW_STACK
+> 
+> I called protection keys: X86_INTEL_MEMORY_PROTECTION_KEYS
+> 
+> AMD recently posted documentation which shows them implementing it as
+> well.  The "INTEL_" is feeling now like a mistake.
+> 
+> Going forward, we should probably avoid sticking the company name on
+> them, if for no other reason than avoiding confusion and/or churn in the
+> future.
+> 
+> Shadow stacks, for instance, seem like something that another vendor
+> might implement one day.  So, let's at least remove the "INTEL_" from
+> the config option names themselves.  Mentioning Intel in the changelog
+> and the Kconfig help text is fine.
 
-Acked-by: Christoph Lameter <cl@linux.com>
-Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
----
+Yes, sure.
 
-This v2 just has a few spelling fixes.
-
- include/linux/cache.h | 10 ++++++++--
- 1 file changed, 8 insertions(+), 2 deletions(-)
-
-diff --git a/include/linux/cache.h b/include/linux/cache.h
-index 750621e41d1c..8106fb304fa7 100644
---- a/include/linux/cache.h
-+++ b/include/linux/cache.h
-@@ -15,8 +15,14 @@
- 
- /*
-  * __read_mostly is used to keep rarely changing variables out of frequently
-- * updated cachelines. If an architecture doesn't support it, ignore the
-- * hint.
-+ * updated cachelines. Its use should be reserved for data that is used
-+ * frequently in hot paths. Performance traces can help decide when to use
-+ * this. You want __read_mostly data to be tightly packed, so that in the
-+ * best case multiple frequently read variables for a hot path will be next
-+ * to each other in order to reduce the number of cachelines needed to
-+ * execute a critical path. We should be mindful and selective of its use.
-+ * ie: if you're going to use it please supply a *good* justification in your
-+ * commit log
-  */
- #ifndef __read_mostly
- #define __read_mostly
--- 
-2.25.1
+Yu-cheng
