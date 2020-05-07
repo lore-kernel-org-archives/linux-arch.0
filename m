@@ -1,123 +1,53 @@
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: Re: [PATCH v4 02/14] arm: add support for folded p4d page tables
-Date: Thu, 7 May 2020 19:11:55 +0300
-Message-ID: <20200507161155.GE683243@linux.ibm.com>
-References: <20200414153455.21744-1-rppt@kernel.org>
- <20200414153455.21744-3-rppt@kernel.org>
- <CGME20200507121658eucas1p240cf4a3e0fe5c22dda5ec4f72734149f@eucas1p2.samsung.com>
- <39ba8a04-d6b5-649d-c289-0c8b27cb66c5@samsung.com>
+From: Luis Chamberlain <mcgrof@kernel.org>
+Subject: [PATCH v2] mm: expand documentation over __read_mostly
+Date: Thu,  7 May 2020 16:14:24 +0000
+Message-ID: <20200507161424.2584-1-mcgrof@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
-Content-Disposition: inline
-In-Reply-To: <39ba8a04-d6b5-649d-c289-0c8b27cb66c5@samsung.com>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, Geert Uytterhoeven <geert+renesas@glider.be>, Fenghua Yu <fenghua.yu@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will@kernel.org>, kvmarm@lists.cs.columbia.edu, Jonas Bonn <jonas@southpole.se>, Brian Cain <bcain@codeaurora.org>, linux-hexagon@vger.kernel.org, linux-sh@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@intel.com>, Catalin Marinas <catalin.marinas@arm.com>, uclinux-h8-devel@lists.sourceforge.jp, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, =?utf-8?Q?=C5=81ukasz?= Stelmach <l.stelmach@samsung.com>, kvm-ppc@vger.kernel.org, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg1-f193.google.com ([209.85.215.193]:40922 "EHLO
+        mail-pg1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726521AbgEGQO2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 May 2020 12:14:28 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: cl@linux.com, akpm@linux-foundation.org
+Cc: arnd@arndb.de, willy@infradead.org, aquini@redhat.com, keescook@chromium.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Luis Chamberlain <mcgrof@kernel.org>
 
-Hi,
+__read_mostly can easily be misused by folks, its not meant for
+just read-only data. There are performance reasons for using it, but
+we also don't provide any guidance about its use. Provide a bit more
+guidance over its use.
 
-On Thu, May 07, 2020 at 02:16:56PM +0200, Marek Szyprowski wrote:
-> Hi
-> =
+Acked-by: Christoph Lameter <cl@linux.com>
+Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
+---
 
-> On 14.04.2020 17:34, Mike Rapoport wrote:
-> > From: Mike Rapoport <rppt@linux.ibm.com>
-> >
-> > Implement primitives necessary for the 4th level folding, add walks of =
-p4d
-> > level where appropriate, and remove __ARCH_USE_5LEVEL_HACK.
-> >
-> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> =
+This v2 just has a few spelling fixes.
 
-> Today I've noticed that kexec is broken on ARM 32bit. Bisecting between =
+ include/linux/cache.h | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
-> current linux-next and v5.7-rc1 pointed to this commit. I've tested this =
-
-> on Odroid XU4 and Raspberry Pi4 boards. Here is the relevant log:
-> =
-
-> # kexec --kexec-syscall -l zImage --append "$(cat /proc/cmdline)"
-> memory_range[0]:0x40000000..0xbe9fffff
-> memory_range[0]:0x40000000..0xbe9fffff
-> # kexec -e
-> kexec_core: Starting new kernel
-> 8<--- cut here ---
-> Unable to handle kernel paging request at virtual address c010f1f4
-> pgd =3D c6817793
-> [c010f1f4] *pgd=3D4000041e(bad)
-> Internal error: Oops: 80d [#1] PREEMPT ARM
-> Modules linked in:
-> CPU: 0 PID: 1329 Comm: kexec Tainted: G=A0=A0=A0=A0=A0=A0=A0 W =
-
-> 5.7.0-rc3-00127-g6cba81ed0f62 #611
-> Hardware name: Samsung Exynos (Flattened Device Tree)
-> PC is at machine_kexec+0x40/0xfc
-
-Any chance you have the debug info in this kernel?
-scripts/faddr2line would come handy here.
-
-> LR is at 0xffffffff
-> pc : [<c010f0b4>]=A0=A0=A0 lr : [<ffffffff>]=A0=A0=A0 psr: 60000013
-> sp : ebc13e60=A0 ip : 40008000=A0 fp : 00000001
-> r10: 00000058=A0 r9 : fee1dead=A0 r8 : 00000001
-> r7 : c121387c=A0 r6 : 6c224000=A0 r5 : ece40c00=A0 r4 : ec222000
-> r3 : c010f1f4=A0 r2 : c1100000=A0 r1 : c1100000=A0 r0 : 418d0000
-> Flags: nZCv=A0 IRQs on=A0 FIQs on=A0 Mode SVC_32=A0 ISA ARM=A0 Segment no=
-ne
-> Control: 10c5387d=A0 Table: 6bc14059=A0 DAC: 00000051
-> Process kexec (pid: 1329, stack limit =3D 0x366bb4dc)
-> Stack: (0xebc13e60 to 0xebc14000)
-> ...
-> [<c010f0b4>] (machine_kexec) from [<c01c0d84>] (kernel_kexec+0x74/0x7c)
-> [<c01c0d84>] (kernel_kexec) from [<c014b1bc>] (__do_sys_reboot+0x1f8/0x21=
-0)
-> [<c014b1bc>] (__do_sys_reboot) from [<c0100060>] (ret_fast_syscall+0x0/0x=
-28)
-> Exception stack(0xebc13fa8 to 0xebc13ff0)
-> ...
-> ---[ end trace 3e8d6c81723c778d ]---
-> 1329 Segmentation fault=A0=A0=A0=A0=A0 ./kexec -e
-> =
-
-> > ---
-> >   arch/arm/include/asm/pgtable.h     |  1 -
-> >   arch/arm/lib/uaccess_with_memcpy.c |  7 +++++-
-> >   arch/arm/mach-sa1100/assabet.c     |  2 +-
-> >   arch/arm/mm/dump.c                 | 29 +++++++++++++++++-----
-> >   arch/arm/mm/fault-armv.c           |  7 +++++-
-> >   arch/arm/mm/fault.c                | 22 ++++++++++------
-> >   arch/arm/mm/idmap.c                |  3 ++-
-> >   arch/arm/mm/init.c                 |  2 +-
-> >   arch/arm/mm/ioremap.c              | 12 ++++++---
-> >   arch/arm/mm/mm.h                   |  2 +-
-> >   arch/arm/mm/mmu.c                  | 35 +++++++++++++++++++++-----
-> >   arch/arm/mm/pgd.c                  | 40 ++++++++++++++++++++++++------
-> >   12 files changed, 125 insertions(+), 37 deletions(-)
-> >
-> > ...
-> =
-
-> Best regards
-> -- =
-
-> Marek Szyprowski, PhD
-> Samsung R&D Institute Poland
-> =
-
-
--- =
-
-Sincerely yours,
-Mike.
+diff --git a/include/linux/cache.h b/include/linux/cache.h
+index 750621e41d1c..8106fb304fa7 100644
+--- a/include/linux/cache.h
++++ b/include/linux/cache.h
+@@ -15,8 +15,14 @@
+ 
+ /*
+  * __read_mostly is used to keep rarely changing variables out of frequently
+- * updated cachelines. If an architecture doesn't support it, ignore the
+- * hint.
++ * updated cachelines. Its use should be reserved for data that is used
++ * frequently in hot paths. Performance traces can help decide when to use
++ * this. You want __read_mostly data to be tightly packed, so that in the
++ * best case multiple frequently read variables for a hot path will be next
++ * to each other in order to reduce the number of cachelines needed to
++ * execute a critical path. We should be mindful and selective of its use.
++ * ie: if you're going to use it please supply a *good* justification in your
++ * commit log
+  */
+ #ifndef __read_mostly
+ #define __read_mostly
+-- 
+2.25.1
