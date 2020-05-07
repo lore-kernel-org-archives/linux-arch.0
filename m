@@ -1,84 +1,50 @@
-Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from hqnvemgate24.nvidia.com ([216.228.121.143]:8391 "EHLO
-        hqnvemgate24.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388827AbgEMO03 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 10:26:29 -0400
-Subject: Re: RE: [PATCH v6 09/10] arm64: efi: Export screen_info
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <1584200119-18594-10-git-send-email-mikelley@microsoft.com>
- <CAK8P3a1YUjhaVUmjVC2pCoTTBTU408iN44Q=QZ0RDz8rmzJisQ@mail.gmail.com>
- <MW2PR2101MB10524254D2FE3EFC72329465D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
- <CAK8P3a1YCtc3LJ-_3iT90_Srehb96gLHvTXsbJ0wT6NFYCG=TQ@mail.gmail.com>
- <MW2PR2101MB1052E413218D295EF24E5E05D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
-From: Nikhil Mahale <nmahale@nvidia.com>
-Message-ID: <f2b63853-24ae-d6b7-cd43-5792c0d4d31b@nvidia.com>
-Date: Wed, 13 May 2020 19:56:14 +0530
+Return-Path: <SRS0=ekR5=6V=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga14.intel.com ([192.55.52.115]:26106 "EHLO mga14.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726320AbgEGQ7A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 May 2020 12:59:00 -0400
+Message-ID: <e0bb75f71ccc7fdf5cd5012441536918a09a9322.camel@intel.com>
+Subject: Re: [PATCH v10 05/26] x86/cet/shstk: Add Kconfig option for
+ user-mode Shadow Stack
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Thu, 07 May 2020 09:59:02 -0700
+In-Reply-To: <f4329e8c-0b3a-2c52-2145-08ea4dcab26e@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+         <20200429220732.31602-6-yu-cheng.yu@intel.com>
+         <f4329e8c-0b3a-2c52-2145-08ea4dcab26e@intel.com>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-In-Reply-To: <MW2PR2101MB1052E413218D295EF24E5E05D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Kelley <mikelley@microsoft.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>
-Message-ID: <20200513142614.oLgjQZTCjIj3vCX2B3ZnseeK5_LXIctBZCHbeaPwGD4@z>
+To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Message-ID: <20200507165902.Bm9j1WGSTAFDOyYcRMrVeLb72ny7JgxfFW7-U3nKNWI@z>
 
-On 3/20/20 3:16 AM, Michael Kelley wrote:
-> From: Arnd Bergmann <arnd@arndb.de> Sent: Wednesday, March 18, 2020 2:27 AM
->>
->> On Wed, Mar 18, 2020 at 1:18 AM Michael Kelley <mikelley@microsoft.com> wrote:
->>> From: Arnd Bergmann <arnd@arndb.de>
->>>> On Sat, Mar 14, 2020 at 4:36 PM Michael Kelley <mikelley@microsoft.com> wrote:
->>>>>
->>>>> The Hyper-V frame buffer driver may be built as a module, and
->>>>> it needs access to screen_info. So export screen_info.
->>>>>
->>>>> Signed-off-by: Michael Kelley <mikelley@microsoft.com>
->>>>
->>>> Is there any chance of using a more modern KMS based driver for the screen
->>>> than the old fbdev subsystem? I had hoped to one day completely remove
->>>> support for the old CONFIG_VIDEO_FBDEV and screen_info from modern
->>>> architectures.
->>>>
->>>
->>> The current hyperv_fb.c driver is all we have today for the synthetic Hyper-V
->>> frame buffer device.  That driver builds and runs on both ARM64 and x86.
->>>
->>> I'm not knowledgeable about video/graphics drivers, but when you
->>> say "a more modern KMS based driver", are you meaning one based on
->>> DRM & KMS?  Does DRM make sense for a "dumb" frame buffer device?
->>> Are there any drivers that would be a good pattern to look at?
->>
->> It used to be a lot harder to write a DRM driver compared to an fbdev
->> driver, but this has changed to the opposite over the years.
->>
->> A fairly minimal example would be drivers/gpu/drm/pl111/pl111_drv.c
->> or anything in drivers/gpu/drm/tiny/, but you may want to look at the
->> other hypervisor platforms first, i.e drivers/gpu/drm/virtio/virtgpu_drv.c,
->> drivers/gpu/drm/vmwgfx/vmwgfx_drv.c, drivers/gpu/drm/xen/xen_drm_front.c,
->> drivers/gpu/drm/qxl/qxl_drv.c, and drivers/gpu/drm/bochs/bochs_drv.c.
->>
+On Thu, 2020-05-07 at 08:55 -0700, Dave Hansen wrote:
+> On 4/29/20 3:07 PM, Yu-cheng Yu wrote:
+> > +config X86_INTEL_SHADOW_STACK_USER
+> > +	prompt "Intel Shadow Stacks for user-mode"
+> > +	def_bool n
+> > +	depends on CPU_SUP_INTEL && X86_64
+> > +	depends on AS_HAS_SHADOW_STACK
+> > +	select ARCH_USES_HIGH_VMA_FLAGS
+> > +	select X86_INTEL_CET
+> > +	select ARCH_HAS_SHADOW_STACK
 > 
-> Thanks for the pointers, especially for the other hypervisors.
+> I called protection keys: X86_INTEL_MEMORY_PROTECTION_KEYS
 > 
-Sorry if anybody in 'to' or 'cc' is receiving this reply multiple times.
-I had configured by email client incorrectly to reply.
-
-screen_info is still useful with a modern KMS-based driver.  It exposes
-the mode parameters that the GOP driver chose.  This information is
-needed to implement seamless or glitchless boot, by both ensuring that
-the scanout parameters don't change and being able to read back the
-scanout image to populate the initial contents of the new surface.
-
-This works today on arches which implement (U)EFI and export
-screen_info, including x86 and powerpc, but doesn't work on arm or
-arm64.  As arm64 systems that implement UEFI with real GOP drivers
-become more prevalent, it would be nice to be have these features there
-as well.
-
-Thanks,
-Nikhil Mahale
-
-> Michael
+> AMD recently posted documentation which shows them implementing it as
+> well.  The "INTEL_" is feeling now like a mistake.
 > 
+> Going forward, we should probably avoid sticking the company name on
+> them, if for no other reason than avoiding confusion and/or churn in the
+> future.
+> 
+> Shadow stacks, for instance, seem like something that another vendor
+> might implement one day.  So, let's at least remove the "INTEL_" from
+> the config option names themselves.  Mentioning Intel in the changelog
+> and the Kconfig help text is fine.
+
+Yes, sure.
+
+Yu-cheng
