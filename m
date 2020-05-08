@@ -1,105 +1,51 @@
-Return-Path: <SRS0=wOT8=6T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55166 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1729065AbgEEOyL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 May 2020 10:54:11 -0400
-Date: Tue, 5 May 2020 10:53:49 -0400
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [PATCH v5 0/4] Introduce the for_each_set_clump macro
-Message-ID: <20200505145250.GA5979@shinobu>
-References: <cover.1588460322.git.syednwaris@gmail.com>
- <20200504114109.GE185537@smile.fi.intel.com>
- <20200504143638.GA4635@shinobu>
- <CAHp75Vf_vP1qM9x81dErPeaJ4-cK-GOMnmEkxkhPY2gCvtmVbA@mail.gmail.com>
+Return-Path: <SRS0=W/Kb=6W=kvack.org=owner-linux-mm@kernel.org>
+Date: Fri, 8 May 2020 21:20:00 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Message-ID: <20200508192000.GB2957@hirez.programming.kicks-ass.net>
+References: <20200508144043.13893-1-joro@8bytes.org>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="CblX+4bnyfN0pR09"
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAHp75Vf_vP1qM9x81dErPeaJ4-cK-GOMnmEkxkhPY2gCvtmVbA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200508144043.13893-1-joro@8bytes.org>
+Sender: owner-linux-mm@kvack.org
+To: Joerg Roedel <joro@8bytes.org>
+Cc: x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Joerg Roedel <jroedel@suse.de>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andy.shevchenko@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Michal Simek <michal.simek@xilinx.com>
-Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Syed Nayyar Waris <syednwaris@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, rrichter@marvell.com, Masahiro Yamada <yamada.masahiro@socionext.com>, "Zhang, Rui" <rui.zhang@intel.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Amit Kucheria <amit.kucheria@verdurent.com>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, Linux PM <linux-pm@vger.kernel.org>
-Message-ID: <20200505145349.BGT58heWer5G7U5wd-6t4XXVfH-2IxvRbuESldbY6hw@z>
+Message-ID: <20200508192000.yRN83yNY8Y7FsPFiM6Qi79DOHTU-pYpDzHArrPZ0jXk@z>
 
+On Fri, May 08, 2020 at 04:40:36PM +0200, Joerg Roedel wrote:
 
---CblX+4bnyfN0pR09
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+> Joerg Roedel (7):
+>   mm: Add functions to track page directory modifications
+>   mm/vmalloc: Track which page-table levels were modified
+>   mm/ioremap: Track which page-table levels were modified
+>   x86/mm/64: Implement arch_sync_kernel_mappings()
+>   x86/mm/32: Implement arch_sync_kernel_mappings()
+>   mm: Remove vmalloc_sync_(un)mappings()
+>   x86/mm: Remove vmalloc faulting
+> 
+>  arch/x86/include/asm/pgtable-2level_types.h |   2 +
+>  arch/x86/include/asm/pgtable-3level_types.h |   2 +
+>  arch/x86/include/asm/pgtable_64_types.h     |   2 +
+>  arch/x86/include/asm/switch_to.h            |  23 ---
+>  arch/x86/kernel/setup_percpu.c              |   6 +-
+>  arch/x86/mm/fault.c                         | 176 +-------------------
+>  arch/x86/mm/init_64.c                       |   5 +
+>  arch/x86/mm/pti.c                           |   8 +-
+>  drivers/acpi/apei/ghes.c                    |   6 -
+>  include/asm-generic/5level-fixup.h          |   5 +-
+>  include/asm-generic/pgtable.h               |  23 +++
+>  include/linux/mm.h                          |  46 +++++
+>  include/linux/vmalloc.h                     |  13 +-
+>  kernel/notifier.c                           |   1 -
+>  lib/ioremap.c                               |  46 +++--
+>  mm/nommu.c                                  |  12 --
+>  mm/vmalloc.c                                | 109 +++++++-----
+>  17 files changed, 199 insertions(+), 286 deletions(-)
 
-On Tue, May 05, 2020 at 04:51:56PM +0300, Andy Shevchenko wrote:
-> On Mon, May 4, 2020 at 5:41 PM William Breathitt Gray
-> <vilhelm.gray@gmail.com> wrote:
-> > On Mon, May 04, 2020 at 02:41:09PM +0300, Andy Shevchenko wrote:
-> > > On Sun, May 03, 2020 at 04:38:36AM +0530, Syed Nayyar Waris wrote:
->=20
-> ...
->=20
-> > > Looking into the last patches where we have examples I still do not s=
-ee a
-> > > benefit of variadic clump sizes. power of 2 sizes would make sense (a=
-nd be
-> > > optimized accordingly (64-bit, 32-bit).
-> > >
-> > > --
-> > > With Best Regards,
-> > > Andy Shevchenko
-> >
-> > There is of course benefit in defining for_each_set_clump with clump
-> > sizes of powers of 2 (we can optimize for 32 and 64 bit sizes and avoid
-> > boundary checks that we know will not occur), but at the very least the
-> > variable size bitmap_set_value and bitmap_get_value provide significant
-> > benefit for the readability of the gpio-xilinx code:
-> >
-> >         bitmap_set_value(old, state[0], 0, width[0]);
-> >         bitmap_set_value(old, state[1], width[0], width[1]);
-> >         ...
-> >         state[0] =3D bitmap_get_value(new, 0, width[0]);
-> >         state[1] =3D bitmap_get_value(new, width[0], width[1]);
-> >
-> > These lines are simple and clear to read: we know immediately what they
-> > do. But if we did not have bitmap_set_value/bitmap_get_value, we'd have
-> > to use several bitwise operations for each line; the obfuscation of the
-> > code would be an obvious hinderance here.
->=20
-> Do I understand correctly that width[0] and width[1] may not be power
-> of two and it's actually the case?
->=20
-> --=20
-> With Best Regards,
-> Andy Shevchenko
+The only concern I have is the pgd_lock lock hold times.
 
-I'm under the impression that width[0] and width[1] are arbitrarily
-chosen by the user and could be any integer. I have never used this
-hardware so I'm hoping one of the gpio-xilinx or GPIO subsystem
-maintainers in this thread will respond with some guidance.
-
-If the values of width[0] and width[1] are restricted to powers of 2,
-then I agree that there is no need for generic bitmap_set_value and
-bitmap_get_value functions and we can instead use more optimized power
-of 2 versions.
-
-William Breathitt Gray
-
---CblX+4bnyfN0pR09
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCgAdFiEEk5I4PDJ2w1cDf/bghvpINdm7VJIFAl6xff0ACgkQhvpINdm7
-VJI65w/8CTBNaBXzqQ6+AtgyAfLROsibTUPDE3wEs7s/eQkI4dlNN0BzmXwJ6sb6
-oMCj6NqzTFksNVUoM6OSjyAGqHZVTJaSfFS97TG4+GrUZm4iWrLMmCipkYEh3qjB
-b10DXznOSf6l0IFFbB51QRFRaDu2hJEFYbtCM0hDHYssMXQyI3wMyw/9qCtPwPOC
-1l0MYPTFb825gGxAnfNCJ8CODpBXFxbahDtK1gvkaNB7Bdq/BFHyaR4FqMP0QbCC
-hoxK7bdMqur6ghYjld9dPRw7iFMXZHt1gD90DMzyXZDl3FcOKlzaAsAz9abgCZ4d
-sNHU6i8bRUtdTy66niUDTFHuMKOsWzcHe223zeC6SXp9L00kRzWbSJ4RioncRIEP
-X1/Vc+7x62yX/PzECkI+jxhLA8G+wwWuizAxN2VxDDx3ei7XJ4UEfSnNYZwBYlyc
-DUhyQZ3UyeID5wDu0XiGGBM8/+Y6mQprrYG7pgsPqAMCMYbcuK58W6cC+uM9ilH9
-oNFMz74DRUKaRrK6N/L+ujYD5R+uqVIzq4rwXsT9UOeh4N85uNI/Vjxx5jYO6ICG
-B4SGVNo2lwkdvH8XhnCfad+no1HV1XWPNflkedffcfALCxAsxhKF5riw4H1cmZ3B
-NbCZv5hfWtY/5opWhWKCVrxAdH512xxHdWBThcAdj8l2NGpZaYM=
-=lkYR
------END PGP SIGNATURE-----
-
---CblX+4bnyfN0pR09--
+By not doing on-demand faults anymore, and consistently calling
+sync_global_*(), we iterate that pgd_list thing much more often than
+before if I'm not mistaken.
