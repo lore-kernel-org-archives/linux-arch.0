@@ -1,38 +1,68 @@
 Return-Path: <SRS0=nIgR=6W=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:32814 "EHLO mx2.suse.de"
+Received: from mail.kernel.org ([198.145.29.99]:51586 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727088AbgEHVX0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 8 May 2020 17:23:26 -0400
-Date: Fri, 8 May 2020 23:23:21 +0200
-From: Joerg Roedel <jroedel@suse.de>
-Subject: Re: [RFC PATCH 2/7] mm/vmalloc: Track which page-table levels were
- modified
-Message-ID: <20200508212321.GR8135@suse.de>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <20200508144043.13893-3-joro@8bytes.org>
- <20200508191048.GA2957@hirez.programming.kicks-ass.net>
+        id S1728060AbgEHMhS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 8 May 2020 08:37:18 -0400
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.4 032/312] MIPS: Define AT_VECTOR_SIZE_ARCH for ARCH_DLINFO
+Date: Fri,  8 May 2020 14:30:23 +0200
+Message-ID: <20200508123126.743335733@linuxfoundation.org>
+In-Reply-To: <20200508123124.574959822@linuxfoundation.org>
+References: <20200508123124.574959822@linuxfoundation.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200508191048.GA2957@hirez.programming.kicks-ass.net>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20200508212321.IgX0ij3hs77JyWsFQcS0TKQsOVe-3RRTkwMRbe5LRuk@z>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20200508123023.EpSGvHpsVrfg51FSPVRAxNhAAJn6kVxYqkIhWqXT0MI@z>
 
-On Fri, May 08, 2020 at 09:10:48PM +0200, Peter Zijlstra wrote:
-> On Fri, May 08, 2020 at 04:40:38PM +0200, Joerg Roedel wrote:
-> > +	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-> > +		arch_sync_kernel_mappings(start, end);
-> 
-> So you're relying on the compiler DCE'ing the call in the 'normal' case.
-> 
-> Works I suppose, but I went over the patches twice to look for a default
-> implementation of it before I figured that out ...
+From: James Hogan <james.hogan@imgtec.com>
 
-Yes, works on all architectures I compile-tested this on, with gcc-9.3.
-I should probably add a comment about that.
+commit 233b2ca181f20674ecad11be90b00814911ce345 upstream.
 
+AT_VECTOR_SIZE_ARCH should be defined with the maximum number of
+NEW_AUX_ENT entries that ARCH_DLINFO can contain, but it wasn't defined
+for MIPS at all even though ARCH_DLINFO will contain one NEW_AUX_ENT for
+the VDSO address.
 
-	Joerg
+This shouldn't be a problem as AT_VECTOR_SIZE_BASE includes space for
+AT_BASE_PLATFORM which MIPS doesn't use, but lets define it now and add
+the comment above ARCH_DLINFO as found in several other architectures to
+remind future modifiers of ARCH_DLINFO to keep AT_VECTOR_SIZE_ARCH up to
+date.
+
+Fixes: ebb5e78cc634 ("MIPS: Initial implementation of a VDSO")
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: linux-mips@linux-mips.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Patchwork: https://patchwork.linux-mips.org/patch/13823/
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+---
+ arch/mips/include/asm/elf.h         |    1 +
+ arch/mips/include/uapi/asm/auxvec.h |    2 ++
+ 2 files changed, 3 insertions(+)
+
+--- a/arch/mips/include/asm/elf.h
++++ b/arch/mips/include/asm/elf.h
+@@ -420,6 +420,7 @@ extern const char *__elf_platform;
+ #define ELF_ET_DYN_BASE		(TASK_SIZE / 3 * 2)
+ #endif
+ 
++/* update AT_VECTOR_SIZE_ARCH if the number of NEW_AUX_ENT entries changes */
+ #define ARCH_DLINFO							\
+ do {									\
+ 	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
+--- a/arch/mips/include/uapi/asm/auxvec.h
++++ b/arch/mips/include/uapi/asm/auxvec.h
+@@ -14,4 +14,6 @@
+ /* Location of VDSO image. */
+ #define AT_SYSINFO_EHDR		33
+ 
++#define AT_VECTOR_SIZE_ARCH 1 /* entries in ARCH_DLINFO */
++
+ #endif /* __ASM_AUXVEC_H */
