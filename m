@@ -1,114 +1,57 @@
-From: Mike Kravetz <mike.kravetz@oracle.com>
-Subject: Re: [PATCH V3 2/3] mm/hugetlb: Define a generic fallback for
- is_hugepage_only_range()
-Date: Fri, 8 May 2020 15:22:34 -0700
-Message-ID: <9fc622e1-45ff-b79f-ebe0-35614837456c@oracle.com>
-References: <1588907271-11920-1-git-send-email-anshuman.khandual@arm.com>
- <1588907271-11920-3-git-send-email-anshuman.khandual@arm.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Date: Fri, 8 May 2020 16:49:17 -0700
+Message-ID: <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
+References: <20200508144043.13893-1-joro@8bytes.org> <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
+ <20200508213609.GU8135@suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <1588907271-11920-3-git-send-email-anshuman.khandual@arm.com>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org, akpm@linux-foundation.org
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-kernel@vger.kernel.org, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Fenghua Yu <fenghua.yu@intel.com>, Vasily Gorbik <gor@linux.ibm.com>, Thomas Bogendoerfer <tsbogend@a>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:50446 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727983AbgEHXtb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 8 May 2020 19:49:31 -0400
+Received: from mail-wm1-f51.google.com (mail-wm1-f51.google.com [209.85.128.51])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 2009C2496F
+        for <linux-arch@vger.kernel.org>; Fri,  8 May 2020 23:49:31 +0000 (UTC)
+Received: by mail-wm1-f51.google.com with SMTP id r26so12544043wmh.0
+        for <linux-arch@vger.kernel.org>; Fri, 08 May 2020 16:49:31 -0700 (PDT)
+In-Reply-To: <20200508213609.GU8135@suse.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Joerg Roedel <jroedel@suse.de>
+Cc: Andy Lutomirski <luto@kernel.org>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
 
-On 5/7/20 8:07 PM, Anshuman Khandual wrote:
-> There are multiple similar definitions for is_hugepage_only_range() on
-> various platforms. Lets just add it's generic fallback definition for
-> platforms that do not override. This help reduce code duplication.
-> 
-> Cc: Russell King <linux@armlinux.org.uk>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: Tony Luck <tony.luck@intel.com>
-> Cc: Fenghua Yu <fenghua.yu@intel.com>
-> Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-> Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
-> Cc: Helge Deller <deller@gmx.de>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Cc: Paul Walmsley <paul.walmsley@sifive.com>
-> Cc: Palmer Dabbelt <palmer@dabbelt.com>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Cc: Vasily Gorbik <gor@linux.ibm.com>
-> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-> Cc: Rich Felker <dalias@libc.org>
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Borislav Petkov <bp@alien8.de>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: Mike Kravetz <mike.kravetz@oracle.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: x86@kernel.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: linux-ia64@vger.kernel.org
-> Cc: linux-mips@vger.kernel.org
-> Cc: linux-parisc@vger.kernel.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: linux-riscv@lists.infradead.org
-> Cc: linux-s390@vger.kernel.org
-> Cc: linux-sh@vger.kernel.org
-> Cc: sparclinux@vger.kernel.org
-> Cc: linux-mm@kvack.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
-> ---
->  arch/arm/include/asm/hugetlb.h     | 6 ------
->  arch/arm64/include/asm/hugetlb.h   | 6 ------
->  arch/ia64/include/asm/hugetlb.h    | 1 +
->  arch/mips/include/asm/hugetlb.h    | 7 -------
->  arch/parisc/include/asm/hugetlb.h  | 6 ------
->  arch/powerpc/include/asm/hugetlb.h | 1 +
->  arch/riscv/include/asm/hugetlb.h   | 6 ------
->  arch/s390/include/asm/hugetlb.h    | 7 -------
->  arch/sh/include/asm/hugetlb.h      | 6 ------
->  arch/sparc/include/asm/hugetlb.h   | 6 ------
->  arch/x86/include/asm/hugetlb.h     | 6 ------
->  include/linux/hugetlb.h            | 9 +++++++++
->  12 files changed, 11 insertions(+), 56 deletions(-)
-> 
-<snip>
-> diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
-> index 43a1cef8f0f1..c01c0c6f7fd4 100644
-> --- a/include/linux/hugetlb.h
-> +++ b/include/linux/hugetlb.h
-> @@ -591,6 +591,15 @@ static inline unsigned int blocks_per_huge_page(struct hstate *h)
->  
->  #include <asm/hugetlb.h>
->  
-> +#ifndef is_hugepage_only_range
-> +static inline int is_hugepage_only_range(struct mm_struct *mm,
-> +					unsigned long addr, unsigned long len)
-> +{
-> +	return 0;
-> +}
-> +#define is_hugepage_only_range is_hugepage_only_range
-> +#endif
-> +
->  #ifndef arch_make_huge_pte
->  static inline pte_t arch_make_huge_pte(pte_t entry, struct vm_area_struct *vma,
->  				       struct page *page, int writable)
-> 
+On Fri, May 8, 2020 at 2:36 PM Joerg Roedel <jroedel@suse.de> wrote:
+>
+> On Fri, May 08, 2020 at 02:33:19PM -0700, Andy Lutomirski wrote:
+> > On Fri, May 8, 2020 at 7:40 AM Joerg Roedel <joro@8bytes.org> wrote:
+>
+> > What's the maximum on other system types?  It might make more sense to
+> > take the memory hit and pre-populate all the tables at boot so we
+> > never have to sync them.
+>
+> Need to look it up for 5-level paging, with 4-level paging its 64 pages
+> to pre-populate the vmalloc area.
+>
+> But that would not solve the problem on x86-32, which needs to
+> synchronize unmappings on the PMD level.
 
-Did you try building without CONFIG_HUGETLB_PAGE defined?  I'm guessing
-that you need a stub for is_hugepage_only_range().  Or, perhaps add this
-to asm-generic/hugetlb.h?
+What changes in this series with x86-32?  We already do that
+synchronization, right?  IOW, in the cases where the vmalloc *fault*
+code does anything at all, we should have a small bound for how much
+memory to preallocate and, if we preallocate it, then there is nothing
+to sync and nothing to fault.  And we have the benefit that we never
+need to sync anything on 64-bit, which is kind of nice.
 
--- 
-Mike Kravetz
+Do we actually need PMD-level things for 32-bit?  What if we just
+outlawed huge pages in the vmalloc space on 32-bit non-PAE?
+
+Or maybe the net result isn't much of a cleanup after all given the
+need to support 32-bit.
+
+>
+>
+>         Joerg
