@@ -1,46 +1,41 @@
-From: Andy Lutomirski <luto@kernel.org>
+From: Joerg Roedel <jroedel@suse.de>
 Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Date: Fri, 8 May 2020 14:33:19 -0700
-Message-ID: <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
+Date: Fri, 8 May 2020 23:34:07 +0200
+Message-ID: <20200508213407.GT8135@suse.de>
 References: <20200508144043.13893-1-joro@8bytes.org>
+ <20200508192000.GB2957@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60940 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728070AbgEHVdd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 8 May 2020 17:33:33 -0400
-Received: from mail-wr1-f52.google.com (mail-wr1-f52.google.com [209.85.221.52])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id B44062496C
-        for <linux-arch@vger.kernel.org>; Fri,  8 May 2020 21:33:32 +0000 (UTC)
-Received: by mail-wr1-f52.google.com with SMTP id v12so3562472wrp.12
-        for <linux-arch@vger.kernel.org>; Fri, 08 May 2020 14:33:32 -0700 (PDT)
-In-Reply-To: <20200508144043.13893-1-joro@8bytes.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Joerg Roedel <joro@8bytes.org>
-Cc: X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Joerg Roedel <jroedel@suse.de>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-acpi-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200508192000.GB2957@hirez.programming.kicks-ass.net>
+Sender: linux-acpi-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 8, 2020 at 7:40 AM Joerg Roedel <joro@8bytes.org> wrote:
->
-> Hi,
->
-> after the recent issue with vmalloc and tracing code[1] on x86 and a
-> long history of previous issues related to the vmalloc_sync_mappings()
-> interface, I thought the time has come to remove it. Please
-> see [2], [3], and [4] for some other issues in the past.
->
-> The patches are based on v5.7-rc4 and add tracking of page-table
-> directory changes to the vmalloc and ioremap code. Depending on which
-> page-table levels changes have been made, a new per-arch function is
-> called: arch_sync_kernel_mappings().
->
-> On x86-64 with 4-level paging, this function will not be called more
-> than 64 times in a systems runtime (because vmalloc-space takes 64 PGD
-> entries which are only populated, but never cleared).
+Hi Peter,
 
-What's the maximum on other system types?  It might make more sense to
-take the memory hit and pre-populate all the tables at boot so we
-never have to sync them.
+thanks for reviewing this!
+
+On Fri, May 08, 2020 at 09:20:00PM +0200, Peter Zijlstra wrote:
+> The only concern I have is the pgd_lock lock hold times.
+> 
+> By not doing on-demand faults anymore, and consistently calling
+> sync_global_*(), we iterate that pgd_list thing much more often than
+> before if I'm not mistaken.
+
+Should not be a problem, from what I have seen this function is not
+called often on x86-64.  The vmalloc area needs to be synchronized at
+the top-level there, which is by now P4D (with 4-level paging). And the
+vmalloc area takes 64 entries, when all of them are populated the
+function will not be called again.
+
+On 32bit it might be called more often, because synchronization happens
+on the PMD level, which is also used for large-page mapped ioremap
+regions. But these don't happen very often and there are also no VMAP
+stacks on x86-32 which could cause this function to be called
+frequently.
+
+
+	Joerg
