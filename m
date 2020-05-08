@@ -1,208 +1,104 @@
-Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-dm6nam12on2130.outbound.protection.outlook.com ([40.107.243.130]:13665
-        "EHLO NAM12-DM6-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727801AbgEOPYG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 11:24:06 -0400
-From: Nate Karstens <nate.karstens@garmin.com>
-Subject: [PATCH v2 2/4] fs: Add O_CLOFORK flag for open(2) and dup3(2)
-Date: Fri, 15 May 2020 10:23:19 -0500
-Message-ID: <20200515152321.9280-3-nate.karstens@garmin.com>
-In-Reply-To: <20200515152321.9280-1-nate.karstens@garmin.com>
-References: <20200515152321.9280-1-nate.karstens@garmin.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=W/Kb=6W=kvack.org=owner-linux-mm@kernel.org>
+From: Joerg Roedel <joro@8bytes.org>
+Subject: [RFC PATCH 5/7] x86/mm/32: Implement arch_sync_kernel_mappings()
+Date: Fri,  8 May 2020 16:40:41 +0200
+Message-ID: <20200508144043.13893-6-joro@8bytes.org>
+In-Reply-To: <20200508144043.13893-1-joro@8bytes.org>
+References: <20200508144043.13893-1-joro@8bytes.org>
+Sender: owner-linux-mm@kvack.org
+To: x86@kernel.org
+Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Eric Dumazet <edumazet@google.com>, David Laight <David.Laight@aculab.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Changli Gao <xiaosuo@gmail.com>, Nate Karstens <nate.karstens@garmin.com>
-Message-ID: <20200515152319.Xwunus8x-Hpn52cYkx5-T13k16YvhaArfoTQHqnxTwc@z>
+Message-ID: <20200508144041.7n7oGuO31bfYdCviqZE1creBMQuAGy3Y0Sn99BpHyP8@z>
 
-Add the O_CLOFORK flag to open(2) and dup3(2) to automatically
-set the close-on-fork flag in the new file descriptor, saving
-a separate call to fcntl(2).
+From: Joerg Roedel <jroedel@suse.de>
 
-Co-developed-by: Changli Gao <xiaosuo@gmail.com>
-Signed-off-by: Changli Gao <xiaosuo@gmail.com>
-Signed-off-by: Nate Karstens <nate.karstens@garmin.com>
+Implement the function to sync changes in vmalloc and ioremap ranges
+to all page-tables.
+
+Signed-off-by: Joerg Roedel <jroedel@suse.de>
 ---
- arch/alpha/include/uapi/asm/fcntl.h    |  2 ++
- arch/parisc/include/uapi/asm/fcntl.h   | 39 +++++++++++++-------------
- arch/sparc/include/uapi/asm/fcntl.h    |  1 +
- fs/fcntl.c                             |  2 +-
- fs/file.c                              | 10 ++++++-
- include/linux/fcntl.h                  |  2 +-
- include/uapi/asm-generic/fcntl.h       |  4 +++
- tools/include/uapi/asm-generic/fcntl.h |  4 +++
- 8 files changed, 42 insertions(+), 22 deletions(-)
+ arch/x86/include/asm/pgtable-2level_types.h |  2 ++
+ arch/x86/include/asm/pgtable-3level_types.h |  2 ++
+ arch/x86/mm/fault.c                         | 25 +++++++++++++--------
+ 3 files changed, 20 insertions(+), 9 deletions(-)
 
-diff --git a/arch/alpha/include/uapi/asm/fcntl.h b/arch/alpha/include/uapi/asm/fcntl.h
-index 50bdc8e8a271..fbab69b15f7f 100644
---- a/arch/alpha/include/uapi/asm/fcntl.h
-+++ b/arch/alpha/include/uapi/asm/fcntl.h
-@@ -35,6 +35,8 @@
- #define O_PATH		040000000
- #define __O_TMPFILE	0100000000
+diff --git a/arch/x86/include/asm/pgtable-2level_types.h b/arch/x86/include/asm/pgtable-2level_types.h
+index 6deb6cd236e3..7f6ccff0ba72 100644
+--- a/arch/x86/include/asm/pgtable-2level_types.h
++++ b/arch/x86/include/asm/pgtable-2level_types.h
+@@ -20,6 +20,8 @@ typedef union {
  
-+#define O_CLOFORK	0200000000 /* set close_on_fork */
+ #define SHARED_KERNEL_PMD	0
+ 
++#define ARCH_PAGE_TABLE_SYNC_MASK	PGTBL_PMD_MODIFIED
 +
- #define F_GETLK		7
- #define F_SETLK		8
- #define F_SETLKW	9
-diff --git a/arch/parisc/include/uapi/asm/fcntl.h b/arch/parisc/include/uapi/asm/fcntl.h
-index 03ce20e5ad7d..8f5989e75b05 100644
---- a/arch/parisc/include/uapi/asm/fcntl.h
-+++ b/arch/parisc/include/uapi/asm/fcntl.h
-@@ -2,26 +2,27 @@
- #ifndef _PARISC_FCNTL_H
- #define _PARISC_FCNTL_H
- 
--#define O_APPEND	000000010
--#define O_BLKSEEK	000000100 /* HPUX only */
--#define O_CREAT		000000400 /* not fcntl */
--#define O_EXCL		000002000 /* not fcntl */
--#define O_LARGEFILE	000004000
--#define __O_SYNC	000100000
-+#define O_APPEND	0000000010
-+#define O_BLKSEEK	0000000100 /* HPUX only */
-+#define O_CREAT		0000000400 /* not fcntl */
-+#define O_EXCL		0000002000 /* not fcntl */
-+#define O_LARGEFILE	0000004000
-+#define __O_SYNC	0000100000
- #define O_SYNC		(__O_SYNC|O_DSYNC)
--#define O_NONBLOCK	000200004 /* HPUX has separate NDELAY & NONBLOCK */
--#define O_NOCTTY	000400000 /* not fcntl */
--#define O_DSYNC		001000000 /* HPUX only */
--#define O_RSYNC		002000000 /* HPUX only */
--#define O_NOATIME	004000000
--#define O_CLOEXEC	010000000 /* set close_on_exec */
--
--#define O_DIRECTORY	000010000 /* must be a directory */
--#define O_NOFOLLOW	000000200 /* don't follow links */
--#define O_INVISIBLE	004000000 /* invisible I/O, for DMAPI/XDSM */
--
--#define O_PATH		020000000
--#define __O_TMPFILE	040000000
-+#define O_NONBLOCK	0000200004 /* HPUX has separate NDELAY & NONBLOCK */
-+#define O_NOCTTY	0000400000 /* not fcntl */
-+#define O_DSYNC		0001000000 /* HPUX only */
-+#define O_RSYNC		0002000000 /* HPUX only */
-+#define O_NOATIME	0004000000
-+#define O_CLOEXEC	0010000000 /* set close_on_exec */
-+
-+#define O_DIRECTORY	0000010000 /* must be a directory */
-+#define O_NOFOLLOW	0000000200 /* don't follow links */
-+#define O_INVISIBLE	0004000000 /* invisible I/O, for DMAPI/XDSM */
-+
-+#define O_PATH		0020000000
-+#define __O_TMPFILE	0040000000
-+#define O_CLOFORK	0100000000
- 
- #define F_GETLK64	8
- #define F_SETLK64	9
-diff --git a/arch/sparc/include/uapi/asm/fcntl.h b/arch/sparc/include/uapi/asm/fcntl.h
-index 67dae75e5274..d631ea13bac3 100644
---- a/arch/sparc/include/uapi/asm/fcntl.h
-+++ b/arch/sparc/include/uapi/asm/fcntl.h
-@@ -37,6 +37,7 @@
- 
- #define O_PATH		0x1000000
- #define __O_TMPFILE	0x2000000
-+#define O_CLOFORK	0x4000000
- 
- #define F_GETOWN	5	/*  for sockets. */
- #define F_SETOWN	6	/*  for sockets. */
-diff --git a/fs/fcntl.c b/fs/fcntl.c
-index 913b0cb70804..40af2a48702b 100644
---- a/fs/fcntl.c
-+++ b/fs/fcntl.c
-@@ -1033,7 +1033,7 @@ static int __init fcntl_init(void)
- 	 * Exceptions: O_NONBLOCK is a two bit define on parisc; O_NDELAY
- 	 * is defined as O_NONBLOCK on some platforms and not on others.
- 	 */
--	BUILD_BUG_ON(21 - 1 /* for O_RDONLY being 0 */ !=
-+	BUILD_BUG_ON(22 - 1 /* for O_RDONLY being 0 */ !=
- 		HWEIGHT32(
- 			(VALID_OPEN_FLAGS & ~(O_NONBLOCK | O_NDELAY)) |
- 			__FMODE_EXEC | __FMODE_NONOTIFY));
-diff --git a/fs/file.c b/fs/file.c
-index 81194349e980..4a1b84eecec6 100644
---- a/fs/file.c
-+++ b/fs/file.c
-@@ -547,6 +547,10 @@ int __alloc_fd(struct files_struct *files,
- 		__set_close_on_exec(fd, fdt);
- 	else
- 		__clear_close_on_exec(fd, fdt);
-+	if (flags & O_CLOFORK)
-+		__set_close_on_fork(fd, fdt);
-+	else
-+		__clear_close_on_fork(fd, fdt);
- 	error = fd;
- #if 1
- 	/* Sanity check */
-@@ -953,6 +957,10 @@ __releases(&files->file_lock)
- 		__set_close_on_exec(fd, fdt);
- 	else
- 		__clear_close_on_exec(fd, fdt);
-+	if (flags & O_CLOFORK)
-+		__set_close_on_fork(fd, fdt);
-+	else
-+		__clear_close_on_fork(fd, fdt);
- 	spin_unlock(&files->file_lock);
- 
- 	if (tofree)
-@@ -993,7 +1001,7 @@ static int ksys_dup3(unsigned int oldfd, unsigned int newfd, int flags)
- 	struct file *file;
- 	struct files_struct *files = current->files;
- 
--	if ((flags & ~O_CLOEXEC) != 0)
-+	if ((flags & ~(O_CLOEXEC | O_CLOFORK)) != 0)
- 		return -EINVAL;
- 
- 	if (unlikely(oldfd == newfd))
-diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
-index 7bcdcf4f6ab2..cd4c625647db 100644
---- a/include/linux/fcntl.h
-+++ b/include/linux/fcntl.h
-@@ -10,7 +10,7 @@
- 	(O_RDONLY | O_WRONLY | O_RDWR | O_CREAT | O_EXCL | O_NOCTTY | O_TRUNC | \
- 	 O_APPEND | O_NDELAY | O_NONBLOCK | O_NDELAY | __O_SYNC | O_DSYNC | \
- 	 FASYNC	| O_DIRECT | O_LARGEFILE | O_DIRECTORY | O_NOFOLLOW | \
--	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE)
-+	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE | O_CLOFORK)
- 
- /* List of all valid flags for the how->upgrade_mask argument: */
- #define VALID_UPGRADE_FLAGS \
-diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
-index 0cb7199a7743..165a0736a3aa 100644
---- a/include/uapi/asm-generic/fcntl.h
-+++ b/include/uapi/asm-generic/fcntl.h
-@@ -89,6 +89,10 @@
- #define __O_TMPFILE	020000000
+ /*
+  * traditional i386 two-level paging structure:
+  */
+diff --git a/arch/x86/include/asm/pgtable-3level_types.h b/arch/x86/include/asm/pgtable-3level_types.h
+index 33845d36897c..80fbb4a9ed87 100644
+--- a/arch/x86/include/asm/pgtable-3level_types.h
++++ b/arch/x86/include/asm/pgtable-3level_types.h
+@@ -27,6 +27,8 @@ typedef union {
+ #define SHARED_KERNEL_PMD	(!static_cpu_has(X86_FEATURE_PTI))
  #endif
  
-+#ifndef O_CLOFORK
-+#define O_CLOFORK	040000000	/* set close_on_fork */
-+#endif
++#define ARCH_PAGE_TABLE_SYNC_MASK	(SHARED_KERNEL_PMD ? 0 : PGTBL_PMD_MODIFIED)
 +
- /* a horrid kludge trying to make sure that this will fail on old kernels */
- #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
- #define O_TMPFILE_MASK (__O_TMPFILE | O_DIRECTORY | O_CREAT)      
-diff --git a/tools/include/uapi/asm-generic/fcntl.h b/tools/include/uapi/asm-generic/fcntl.h
-index e04a00fecb4a..69d8a000ec65 100644
---- a/tools/include/uapi/asm-generic/fcntl.h
-+++ b/tools/include/uapi/asm-generic/fcntl.h
-@@ -88,6 +88,10 @@
- #define __O_TMPFILE	020000000
- #endif
+ /*
+  * PGDIR_SHIFT determines what a top-level page table entry can map
+  */
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index a51df516b87b..edeb2adaf31f 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -190,16 +190,13 @@ static inline pmd_t *vmalloc_sync_one(pgd_t *pgd, unsigned long address)
+ 	return pmd_k;
+ }
  
-+#ifndef O_CLOFORK
-+#define O_CLOFORK	040000000	/* set close_on_fork */
-+#endif
+-static void vmalloc_sync(void)
++void arch_sync_kernel_mappings(unsigned long start, unsigned long end)
+ {
+-	unsigned long address;
+-
+-	if (SHARED_KERNEL_PMD)
+-		return;
++	unsigned long addr;
+ 
+-	for (address = VMALLOC_START & PMD_MASK;
+-	     address >= TASK_SIZE_MAX && address < VMALLOC_END;
+-	     address += PMD_SIZE) {
++	for (addr = start & PMD_MASK;
++	     addr >= TASK_SIZE_MAX && addr < VMALLOC_END;
++	     addr += PMD_SIZE) {
+ 		struct page *page;
+ 
+ 		spin_lock(&pgd_lock);
+@@ -210,13 +207,23 @@ static void vmalloc_sync(void)
+ 			pgt_lock = &pgd_page_get_mm(page)->page_table_lock;
+ 
+ 			spin_lock(pgt_lock);
+-			vmalloc_sync_one(page_address(page), address);
++			vmalloc_sync_one(page_address(page), addr);
+ 			spin_unlock(pgt_lock);
+ 		}
+ 		spin_unlock(&pgd_lock);
+ 	}
+ }
+ 
++static void vmalloc_sync(void)
++{
++	unsigned long address;
 +
- /* a horrid kludge trying to make sure that this will fail on old kernels */
- #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
- #define O_TMPFILE_MASK (__O_TMPFILE | O_DIRECTORY | O_CREAT)
++	if (SHARED_KERNEL_PMD)
++		return;
++
++	arch_sync_kernel_mappings(VMALLOC_START, VMALLOC_END);
++}
++
+ void vmalloc_sync_mappings(void)
+ {
+ 	vmalloc_sync();
 -- 
-2.26.1
+2.17.1
