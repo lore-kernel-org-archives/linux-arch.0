@@ -1,63 +1,77 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 032/312] MIPS: Define AT_VECTOR_SIZE_ARCH for ARCH_DLINFO
-Date: Fri,  8 May 2020 14:30:23 +0200
-Message-ID: <20200508123126.743335733@linuxfoundation.org>
-References: <20200508123124.574959822@linuxfoundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200508123124.574959822@linuxfoundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>
+From: Joerg Roedel <joro@8bytes.org>
+Subject: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Date: Fri,  8 May 2020 16:40:36 +0200
+Message-ID: <20200508144043.13893-1-joro@8bytes.org>
+Return-path: <linux-acpi-owner@vger.kernel.org>
+Sender: linux-acpi-owner@vger.kernel.org
+To: x86@kernel.org
+Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-From: James Hogan <james.hogan@imgtec.com>
+Hi,
 
-commit 233b2ca181f20674ecad11be90b00814911ce345 upstream.
+after the recent issue with vmalloc and tracing code[1] on x86 and a
+long history of previous issues related to the vmalloc_sync_mappings()
+interface, I thought the time has come to remove it. Please
+see [2], [3], and [4] for some other issues in the past.
 
-AT_VECTOR_SIZE_ARCH should be defined with the maximum number of
-NEW_AUX_ENT entries that ARCH_DLINFO can contain, but it wasn't defined
-for MIPS at all even though ARCH_DLINFO will contain one NEW_AUX_ENT for
-the VDSO address.
+The patches are based on v5.7-rc4 and add tracking of page-table
+directory changes to the vmalloc and ioremap code. Depending on which
+page-table levels changes have been made, a new per-arch function is
+called: arch_sync_kernel_mappings().
 
-This shouldn't be a problem as AT_VECTOR_SIZE_BASE includes space for
-AT_BASE_PLATFORM which MIPS doesn't use, but lets define it now and add
-the comment above ARCH_DLINFO as found in several other architectures to
-remind future modifiers of ARCH_DLINFO to keep AT_VECTOR_SIZE_ARCH up to
-date.
+On x86-64 with 4-level paging, this function will not be called more
+than 64 times in a systems runtime (because vmalloc-space takes 64 PGD
+entries which are only populated, but never cleared).
 
-Fixes: ebb5e78cc634 ("MIPS: Initial implementation of a VDSO")
-Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: linux-mips@linux-mips.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-Patchwork: https://patchwork.linux-mips.org/patch/13823/
-Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+As a side effect this also allows to get rid of vmalloc faults on x86,
+making it safe to touch vmalloc'ed memory in the page-fault handler.
+Note that this potentially includes per-cpu memory.
 
----
- arch/mips/include/asm/elf.h         |    1 +
- arch/mips/include/uapi/asm/auxvec.h |    2 ++
- 2 files changed, 3 insertions(+)
+The code is tested on x86-64, x86-32 with and without PAE. It also fixes
+the issue described in [1]. Additionally this code has been
+compile-tested on almost all architectures supported by Linux. I
+couldn't find working compilers for hexagon and unicore32, so these are
+not tested.
 
---- a/arch/mips/include/asm/elf.h
-+++ b/arch/mips/include/asm/elf.h
-@@ -420,6 +420,7 @@ extern const char *__elf_platform;
- #define ELF_ET_DYN_BASE		(TASK_SIZE / 3 * 2)
- #endif
- 
-+/* update AT_VECTOR_SIZE_ARCH if the number of NEW_AUX_ENT entries changes */
- #define ARCH_DLINFO							\
- do {									\
- 	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
---- a/arch/mips/include/uapi/asm/auxvec.h
-+++ b/arch/mips/include/uapi/asm/auxvec.h
-@@ -14,4 +14,6 @@
- /* Location of VDSO image. */
- #define AT_SYSINFO_EHDR		33
- 
-+#define AT_VECTOR_SIZE_ARCH 1 /* entries in ARCH_DLINFO */
-+
- #endif /* __ASM_AUXVEC_H */
+Please review.
+
+Regards,
+
+	Joerg
+
+[1] https://lore.kernel.org/lkml/20200430141120.GA8135@suse.de/
+[2] https://lore.kernel.org/lkml/20191009124418.8286-1-joro@8bytes.org/
+[3] https://lore.kernel.org/lkml/20190719184652.11391-1-joro@8bytes.org/
+[4] https://lore.kernel.org/lkml/20191126111119.GA110513@gmail.com/
+
+Joerg Roedel (7):
+  mm: Add functions to track page directory modifications
+  mm/vmalloc: Track which page-table levels were modified
+  mm/ioremap: Track which page-table levels were modified
+  x86/mm/64: Implement arch_sync_kernel_mappings()
+  x86/mm/32: Implement arch_sync_kernel_mappings()
+  mm: Remove vmalloc_sync_(un)mappings()
+  x86/mm: Remove vmalloc faulting
+
+ arch/x86/include/asm/pgtable-2level_types.h |   2 +
+ arch/x86/include/asm/pgtable-3level_types.h |   2 +
+ arch/x86/include/asm/pgtable_64_types.h     |   2 +
+ arch/x86/include/asm/switch_to.h            |  23 ---
+ arch/x86/kernel/setup_percpu.c              |   6 +-
+ arch/x86/mm/fault.c                         | 176 +-------------------
+ arch/x86/mm/init_64.c                       |   5 +
+ arch/x86/mm/pti.c                           |   8 +-
+ drivers/acpi/apei/ghes.c                    |   6 -
+ include/asm-generic/5level-fixup.h          |   5 +-
+ include/asm-generic/pgtable.h               |  23 +++
+ include/linux/mm.h                          |  46 +++++
+ include/linux/vmalloc.h                     |  13 +-
+ kernel/notifier.c                           |   1 -
+ lib/ioremap.c                               |  46 +++--
+ mm/nommu.c                                  |  12 --
+ mm/vmalloc.c                                | 109 +++++++-----
+ 17 files changed, 199 insertions(+), 286 deletions(-)
+
+-- 
+2.17.1
