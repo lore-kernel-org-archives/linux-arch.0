@@ -1,47 +1,78 @@
-Return-Path: <SRS0=03B7=63=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 13 May 2020 08:21:33 +0300
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH 03/12] mm: reorder includes after introduction of
- linux/pgtable.h
-Message-ID: <20200513052133.GN14260@kernel.org>
-References: <20200512184422.12418-1-rppt@kernel.org>
- <20200512184422.12418-4-rppt@kernel.org>
- <20200512192013.GY16070@bombadil.infradead.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200512192013.GY16070@bombadil.infradead.org>
+Return-Path: <SRS0=W/Kb=6W=kvack.org=owner-linux-mm@kernel.org>
+From: Joerg Roedel <joro@8bytes.org>
+Subject: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Date: Fri,  8 May 2020 16:40:36 +0200
+Message-ID: <20200508144043.13893-1-joro@8bytes.org>
 Sender: owner-linux-mm@kvack.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Chris Zankel <chris@zankel.net>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Greentime Hu <green.hu@gmail.com>, Greg Ungerer <gerg@linux-m68k.org>, Guan Xuetao <gxt@pku.edu.cn>, Guo Ren <guoren@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, Ingo Molnar <mingo@redhat.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, Richard Weinberger <richard@nod.at>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Thomas Gleixner <tglx@linutronix.de>, Tony Luck <tony.luck@intel.com>, Vincent Chen <deanbo422@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Will Deacon <will@kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, x86@kernel.org, Mike Rapoport <rppt@linux.ibm.com>
+To: x86@kernel.org
+Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200513052133.7rXVkr8CeDM6GwdAiT02Q8wGKwLHn6tStzMjVtwdU1U@z>
+Message-ID: <20200508144036.9R30s9dlgLxwfOIPo6DpxsS2-YOwaSojb_rZi6ZnNEM@z>
 
-On Tue, May 12, 2020 at 12:20:13PM -0700, Matthew Wilcox wrote:
-> On Tue, May 12, 2020 at 09:44:13PM +0300, Mike Rapoport wrote:
-> > diff --git a/arch/alpha/kernel/proto.h b/arch/alpha/kernel/proto.h
-> > index a093cd45ec79..701a05090141 100644
-> > --- a/arch/alpha/kernel/proto.h
-> > +++ b/arch/alpha/kernel/proto.h
-> > @@ -2,8 +2,6 @@
-> >  #include <linux/interrupt.h>
-> >  #include <linux/io.h>
-> >  
-> > -#include <linux/pgtable.h>
-> > -
-> >  /* Prototypes of functions used across modules here in this directory.  */
-> >  
-> >  #define vucp	volatile unsigned char  *
-> 
-> Looks like your script has a bug if linux/pgtable.h is the last include
-> in the file?
+Hi,
 
-Script indeed cannot handle all the corner case, but this is not one of
-them.
-I've started initially to look into removing asm/pgtable.h if it was not
-needed, but I've run out of patience very soon. This file is what
-sneaked in from that attempt.
+after the recent issue with vmalloc and tracing code[1] on x86 and a
+long history of previous issues related to the vmalloc_sync_mappings()
+interface, I thought the time has come to remove it. Please
+see [2], [3], and [4] for some other issues in the past.
+
+The patches are based on v5.7-rc4 and add tracking of page-table
+directory changes to the vmalloc and ioremap code. Depending on which
+page-table levels changes have been made, a new per-arch function is
+called: arch_sync_kernel_mappings().
+
+On x86-64 with 4-level paging, this function will not be called more
+than 64 times in a systems runtime (because vmalloc-space takes 64 PGD
+entries which are only populated, but never cleared).
+
+As a side effect this also allows to get rid of vmalloc faults on x86,
+making it safe to touch vmalloc'ed memory in the page-fault handler.
+Note that this potentially includes per-cpu memory.
+
+The code is tested on x86-64, x86-32 with and without PAE. It also fixes
+the issue described in [1]. Additionally this code has been
+compile-tested on almost all architectures supported by Linux. I
+couldn't find working compilers for hexagon and unicore32, so these are
+not tested.
+
+Please review.
+
+Regards,
+
+	Joerg
+
+[1] https://lore.kernel.org/lkml/20200430141120.GA8135@suse.de/
+[2] https://lore.kernel.org/lkml/20191009124418.8286-1-joro@8bytes.org/
+[3] https://lore.kernel.org/lkml/20190719184652.11391-1-joro@8bytes.org/
+[4] https://lore.kernel.org/lkml/20191126111119.GA110513@gmail.com/
+
+Joerg Roedel (7):
+  mm: Add functions to track page directory modifications
+  mm/vmalloc: Track which page-table levels were modified
+  mm/ioremap: Track which page-table levels were modified
+  x86/mm/64: Implement arch_sync_kernel_mappings()
+  x86/mm/32: Implement arch_sync_kernel_mappings()
+  mm: Remove vmalloc_sync_(un)mappings()
+  x86/mm: Remove vmalloc faulting
+
+ arch/x86/include/asm/pgtable-2level_types.h |   2 +
+ arch/x86/include/asm/pgtable-3level_types.h |   2 +
+ arch/x86/include/asm/pgtable_64_types.h     |   2 +
+ arch/x86/include/asm/switch_to.h            |  23 ---
+ arch/x86/kernel/setup_percpu.c              |   6 +-
+ arch/x86/mm/fault.c                         | 176 +-------------------
+ arch/x86/mm/init_64.c                       |   5 +
+ arch/x86/mm/pti.c                           |   8 +-
+ drivers/acpi/apei/ghes.c                    |   6 -
+ include/asm-generic/5level-fixup.h          |   5 +-
+ include/asm-generic/pgtable.h               |  23 +++
+ include/linux/mm.h                          |  46 +++++
+ include/linux/vmalloc.h                     |  13 +-
+ kernel/notifier.c                           |   1 -
+ lib/ioremap.c                               |  46 +++--
+ mm/nommu.c                                  |  12 --
+ mm/vmalloc.c                                | 109 +++++++-----
+ 17 files changed, 199 insertions(+), 286 deletions(-)
 
 -- 
-Sincerely yours,
-Mike.
+2.17.1
