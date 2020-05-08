@@ -1,81 +1,32 @@
-Return-Path: <SRS0=tTjP=7E=kvack.org=owner-linux-mm@kernel.org>
-Date: Fri, 22 May 2020 11:28:48 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH 5/5] selftest/x86: Add CET quick test
-Message-ID: <20200522092848.GJ325280@hirez.programming.kicks-ass.net>
-References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
- <20200521211720.20236-6-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=W/Kb=6W=kvack.org=owner-linux-mm@kernel.org>
+Date: Fri, 8 May 2020 23:24:32 +0200
+From: Joerg Roedel <jroedel@suse.de>
+Subject: Re: [RFC PATCH 6/7] mm: Remove vmalloc_sync_(un)mappings()
+Message-ID: <20200508212432.GS8135@suse.de>
+References: <20200508144043.13893-1-joro@8bytes.org>
+ <20200508144043.13893-7-joro@8bytes.org>
+ <20200508145822.07fcc32b@gandalf.local.home>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200521211720.20236-6-yu-cheng.yu@intel.com>
+In-Reply-To: <20200508145822.07fcc32b@gandalf.local.home>
 Sender: owner-linux-mm@kvack.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200522092848.n-NCo8IuPg-kmxQf7Wa9YAVPqDqjCAgdSCT9UYOWkQE@z>
+Message-ID: <20200508212432.xN1UfjGbAw-8B6n3SKJVQtd6eklVIaWHMZwDh0rTUqs@z>
 
-On Thu, May 21, 2020 at 02:17:20PM -0700, Yu-cheng Yu wrote:
+On Fri, May 08, 2020 at 02:58:22PM -0400, Steven Rostedt wrote:
+> You'll need to fold this into this patch, as my patch has already hit
+> Linus's tree.
 
-> +#pragma GCC push_options
-> +#pragma GCC optimize ("O0")
-> +void ibt_violation(void)
-> +{
-> +#ifdef __i386__
-> +	asm volatile("lea 1f, %eax");
-> +	asm volatile("jmp *%eax");
-> +#else
-> +	asm volatile("lea 1f, %rax");
-> +	asm volatile("jmp *%rax");
-> +#endif
-> +	asm volatile("1:");
-> +	result[test_id] = -1;
-> +	test_id++;
-> +	setcontext(&ucp);
-> +}
-> +
-> +void shstk_violation(void)
-> +{
-> +#ifdef __i386__
-> +	unsigned long x = 0;
-> +
-> +	((unsigned long *)&x)[2] = (unsigned long)stack_hacked;
-> +#else
-> +	unsigned long long x = 0;
-> +
-> +	((unsigned long long *)&x)[2] = (unsigned long)stack_hacked;
-> +#endif
-> +}
-> +#pragma GCC pop_options
+Yeah, have it on my todo-list already when I rebase this.
 
-This is absolutely atrocious.
+> But I applied your whole series and I'm not able to reproduce the bug.
+> 
+> Tested-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 
-The #pragma like Kees already said just need to go. Also, there's
-absolutely no clue what so ever what it attempts to achieve.
-
-The __i386__ ifdeffery is horrible crap. Splitting an asm with #ifdef
-like that is also horrible crap.
-
-This is not how you write code.
-
-Get asm/asm.h into userspace and then write something like:
+Thanks a lot for testing!
 
 
-void ibt_violation(void)
-{
-	asm volatile("lea  1f, %" _ASM_AX "\n\t"
-		     "jmp  *%" _ASM_AX "\n\t"
-		     "1:\n\t" ::: "a");
-
-	WRITE_ONCE(result[test_id], -1);
-	WRITE_ONCE(test_id, test_id+1);
-
-	setcontext(&ucp);
-}
-
-void shstk_violation(void)
-{
-	unsigned long x = 0;
-
-	WRITE_ONCE(x[2], stack_hacked);
-}
+	Joerg
