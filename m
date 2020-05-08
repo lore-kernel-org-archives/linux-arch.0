@@ -1,13 +1,13 @@
 From: Joerg Roedel <joro@8bytes.org>
-Subject: [RFC PATCH 1/7] mm: Add functions to track page directory modifications
-Date: Fri,  8 May 2020 16:40:37 +0200
-Message-ID: <20200508144043.13893-2-joro@8bytes.org>
+Subject: [RFC PATCH 3/7] mm/ioremap: Track which page-table levels were modified
+Date: Fri,  8 May 2020 16:40:39 +0200
+Message-ID: <20200508144043.13893-4-joro@8bytes.org>
 References: <20200508144043.13893-1-joro@8bytes.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 8bytes.org ([81.169.241.247]:41616 "EHLO theia.8bytes.org"
+Received: from 8bytes.org ([81.169.241.247]:41752 "EHLO theia.8bytes.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727841AbgEHOkx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 8 May 2020 10:40:53 -0400
+        id S1726843AbgEHOk4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 8 May 2020 10:40:56 -0400
 In-Reply-To: <20200508144043.13893-1-joro@8bytes.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -16,139 +16,159 @@ Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <l
 
 From: Joerg Roedel <jroedel@suse.de>
 
-Add page-table allocation functions which will keep track of changed
-directory entries. They are needed for new PGD, P4D, PUD, and PMD
-entries and will be used in vmalloc and ioremap code to decide whether
-any changes in the kernel mappings need to be synchronized between
-page-tables in the system.
+Track at which levels in the page-table entries were modified by
+ioremap_page_range(). After the page-table has been modified, use that
+information do decide whether the new arch_sync_kernel_mappings()
+needs to be called. The iounmap path re-uses vunmap(), which has
+already been taken care of.
 
 Signed-off-by: Joerg Roedel <jroedel@suse.de>
 ---
- include/asm-generic/5level-fixup.h |  5 ++--
- include/asm-generic/pgtable.h      | 23 +++++++++++++++
- include/linux/mm.h                 | 46 ++++++++++++++++++++++++++++++
- 3 files changed, 72 insertions(+), 2 deletions(-)
+ lib/ioremap.c | 46 +++++++++++++++++++++++++++++++---------------
+ 1 file changed, 31 insertions(+), 15 deletions(-)
 
-diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
-index 4c74b1c1d13b..58046ddc08d0 100644
---- a/include/asm-generic/5level-fixup.h
-+++ b/include/asm-generic/5level-fixup.h
-@@ -17,8 +17,9 @@
- 	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
- 		NULL : pud_offset(p4d, address))
+diff --git a/lib/ioremap.c b/lib/ioremap.c
+index 3f0e18543de8..ad485f08173b 100644
+--- a/lib/ioremap.c
++++ b/lib/ioremap.c
+@@ -61,13 +61,14 @@ static inline int ioremap_pmd_enabled(void) { return 0; }
+ #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
  
--#define p4d_alloc(mm, pgd, address)	(pgd)
--#define p4d_offset(pgd, start)		(pgd)
-+#define p4d_alloc(mm, pgd, address)		(pgd)
-+#define p4d_alloc_track(mm, pgd, address, mask)	(pgd)
-+#define p4d_offset(pgd, start)			(pgd)
- 
- #ifndef __ASSEMBLY__
- static inline int p4d_none(p4d_t p4d)
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 329b8c8ca703..bf1418ae91a2 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1209,6 +1209,29 @@ static inline bool arch_has_pfn_modify_check(void)
- # define PAGE_KERNEL_EXEC PAGE_KERNEL
- #endif
- 
-+/*
-+ * Page Table Modification bits for pgtbl_mod_mask.
-+ *
-+ * These are used by the p?d_alloc_track*() set of functions an in the generic
-+ * vmalloc/ioremap code to track at which page-table levels entries have been
-+ * modified. Based on that the code can better decide when vmalloc and ioremap
-+ * mapping changes need to be synchronized to other page-tables in the system.
-+ */
-+#define		__PGTBL_PGD_MODIFIED	0
-+#define		__PGTBL_P4D_MODIFIED	1
-+#define		__PGTBL_PUD_MODIFIED	2
-+#define		__PGTBL_PMD_MODIFIED	3
-+#define		__PGTBL_PTE_MODIFIED	4
-+
-+#define		PGTBL_PGD_MODIFIED	BIT(__PGTBL_PGD_MODIFIED)
-+#define		PGTBL_P4D_MODIFIED	BIT(__PGTBL_P4D_MODIFIED)
-+#define		PGTBL_PUD_MODIFIED	BIT(__PGTBL_PUD_MODIFIED)
-+#define		PGTBL_PMD_MODIFIED	BIT(__PGTBL_PMD_MODIFIED)
-+#define		PGTBL_PTE_MODIFIED	BIT(__PGTBL_PTE_MODIFIED)
-+
-+/* Page-Table Modification Mask */
-+typedef unsigned int pgtbl_mod_mask;
-+
- #endif /* !__ASSEMBLY__ */
- 
- #ifndef io_remap_pfn_range
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 5a323422d783..022fe682af9e 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2078,13 +2078,54 @@ static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
- 	return (unlikely(p4d_none(*p4d)) && __pud_alloc(mm, p4d, address)) ?
- 		NULL : pud_offset(p4d, address);
- }
-+
-+static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
-+				     unsigned long address,
-+				     pgtbl_mod_mask *mod_mask)
-+
-+{
-+	if (unlikely(pgd_none(*pgd))) {
-+		if (__p4d_alloc(mm, pgd, address))
-+			return NULL;
-+		*mod_mask |= PGTBL_PGD_MODIFIED;
-+	}
-+
-+	return p4d_offset(pgd, address);
-+}
-+
- #endif /* !__ARCH_HAS_5LEVEL_HACK */
- 
-+static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
-+				     unsigned long address,
-+				     pgtbl_mod_mask *mod_mask)
-+{
-+	if (unlikely(p4d_none(*p4d))) {
-+		if (__pud_alloc(mm, p4d, address))
-+			return NULL;
-+		*mod_mask |= PGTBL_P4D_MODIFIED;
-+	}
-+
-+	return pud_offset(p4d, address);
-+}
-+
- static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
+ static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
++		pgtbl_mod_mask *mask)
  {
- 	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address))?
- 		NULL: pmd_offset(pud, address);
+ 	pte_t *pte;
+ 	u64 pfn;
+ 
+ 	pfn = phys_addr >> PAGE_SHIFT;
+-	pte = pte_alloc_kernel(pmd, addr);
++	pte = pte_alloc_kernel_track(pmd, addr, mask);
+ 	if (!pte)
+ 		return -ENOMEM;
+ 	do {
+@@ -75,6 +76,7 @@ static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
+ 		set_pte_at(&init_mm, addr, pte, pfn_pte(pfn, prot));
+ 		pfn++;
+ 	} while (pte++, addr += PAGE_SIZE, addr != end);
++	*mask |= PGTBL_PTE_MODIFIED;
+ 	return 0;
  }
-+
-+static inline pmd_t *pmd_alloc_track(struct mm_struct *mm, pud_t *pud,
-+				     unsigned long address,
-+				     pgtbl_mod_mask *mod_mask)
-+{
-+	if (unlikely(pud_none(*pud))) {
-+		if (__pmd_alloc(mm, pud, address))
-+			return NULL;
-+		*mod_mask |= PGTBL_PUD_MODIFIED;
-+	}
-+
-+	return pmd_offset(pud, address);
-+}
- #endif /* CONFIG_MMU */
  
- #if USE_SPLIT_PTE_PTLOCKS
-@@ -2200,6 +2241,11 @@ static inline void pgtable_pte_page_dtor(struct page *page)
- 	((unlikely(pmd_none(*(pmd))) && __pte_alloc_kernel(pmd))? \
- 		NULL: pte_offset_kernel(pmd, address))
+@@ -101,21 +103,24 @@ static int ioremap_try_huge_pmd(pmd_t *pmd, unsigned long addr,
+ }
  
-+#define pte_alloc_kernel_track(pmd, address, mask)			\
-+	((unlikely(pmd_none(*(pmd))) &&					\
-+	  (__pte_alloc_kernel(pmd) || ({*(mask)|=PGTBL_PMD_MODIFIED;0;})))?\
-+		NULL: pte_offset_kernel(pmd, address))
+ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
++		pgtbl_mod_mask *mask)
+ {
+ 	pmd_t *pmd;
+ 	unsigned long next;
+ 
+-	pmd = pmd_alloc(&init_mm, pud, addr);
++	pmd = pmd_alloc_track(&init_mm, pud, addr, mask);
+ 	if (!pmd)
+ 		return -ENOMEM;
+ 	do {
+ 		next = pmd_addr_end(addr, end);
+ 
+-		if (ioremap_try_huge_pmd(pmd, addr, next, phys_addr, prot))
++		if (ioremap_try_huge_pmd(pmd, addr, next, phys_addr, prot)) {
++			*mask |= PGTBL_PMD_MODIFIED;
+ 			continue;
++		}
+ 
+-		if (ioremap_pte_range(pmd, addr, next, phys_addr, prot))
++		if (ioremap_pte_range(pmd, addr, next, phys_addr, prot, mask))
+ 			return -ENOMEM;
+ 	} while (pmd++, phys_addr += (next - addr), addr = next, addr != end);
+ 	return 0;
+@@ -144,21 +149,24 @@ static int ioremap_try_huge_pud(pud_t *pud, unsigned long addr,
+ }
+ 
+ static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
++		pgtbl_mod_mask *mask)
+ {
+ 	pud_t *pud;
+ 	unsigned long next;
+ 
+-	pud = pud_alloc(&init_mm, p4d, addr);
++	pud = pud_alloc_track(&init_mm, p4d, addr, mask);
+ 	if (!pud)
+ 		return -ENOMEM;
+ 	do {
+ 		next = pud_addr_end(addr, end);
+ 
+-		if (ioremap_try_huge_pud(pud, addr, next, phys_addr, prot))
++		if (ioremap_try_huge_pud(pud, addr, next, phys_addr, prot)) {
++			*mask |= PGTBL_PUD_MODIFIED;
+ 			continue;
++		}
+ 
+-		if (ioremap_pmd_range(pud, addr, next, phys_addr, prot))
++		if (ioremap_pmd_range(pud, addr, next, phys_addr, prot, mask))
+ 			return -ENOMEM;
+ 	} while (pud++, phys_addr += (next - addr), addr = next, addr != end);
+ 	return 0;
+@@ -187,21 +195,24 @@ static int ioremap_try_huge_p4d(p4d_t *p4d, unsigned long addr,
+ }
+ 
+ static inline int ioremap_p4d_range(pgd_t *pgd, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
++		pgtbl_mod_mask *mask)
+ {
+ 	p4d_t *p4d;
+ 	unsigned long next;
+ 
+-	p4d = p4d_alloc(&init_mm, pgd, addr);
++	p4d = p4d_alloc_track(&init_mm, pgd, addr, mask);
+ 	if (!p4d)
+ 		return -ENOMEM;
+ 	do {
+ 		next = p4d_addr_end(addr, end);
+ 
+-		if (ioremap_try_huge_p4d(p4d, addr, next, phys_addr, prot))
++		if (ioremap_try_huge_p4d(p4d, addr, next, phys_addr, prot)) {
++			*mask |= PGTBL_P4D_MODIFIED;
+ 			continue;
++		}
+ 
+-		if (ioremap_pud_range(p4d, addr, next, phys_addr, prot))
++		if (ioremap_pud_range(p4d, addr, next, phys_addr, prot, mask))
+ 			return -ENOMEM;
+ 	} while (p4d++, phys_addr += (next - addr), addr = next, addr != end);
+ 	return 0;
+@@ -214,6 +225,7 @@ int ioremap_page_range(unsigned long addr,
+ 	unsigned long start;
+ 	unsigned long next;
+ 	int err;
++	pgtbl_mod_mask mask = 0;
+ 
+ 	might_sleep();
+ 	BUG_ON(addr >= end);
+@@ -222,13 +234,17 @@ int ioremap_page_range(unsigned long addr,
+ 	pgd = pgd_offset_k(addr);
+ 	do {
+ 		next = pgd_addr_end(addr, end);
+-		err = ioremap_p4d_range(pgd, addr, next, phys_addr, prot);
++		err = ioremap_p4d_range(pgd, addr, next, phys_addr, prot,
++					&mask);
+ 		if (err)
+ 			break;
+ 	} while (pgd++, phys_addr += (next - addr), addr = next, addr != end);
+ 
+ 	flush_cache_vmap(start, end);
+ 
++	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
++		arch_sync_kernel_mappings(start, end);
 +
- #if USE_SPLIT_PMD_PTLOCKS
+ 	return err;
+ }
  
- static struct page *pmd_to_page(pmd_t *pmd)
 -- 
 2.17.1
