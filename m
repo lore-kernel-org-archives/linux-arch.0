@@ -1,49 +1,38 @@
-Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 25/29] exec: only build read_code when needed
-Date: Fri, 15 May 2020 16:36:42 +0200
-Message-ID: <20200515143646.3857579-26-hch@lst.de>
-In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-References: <20200515143646.3857579-1-hch@lst.de>
+Return-Path: <SRS0=nIgR=6W=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:32814 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727088AbgEHVX0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 8 May 2020 17:23:26 -0400
+Date: Fri, 8 May 2020 23:23:21 +0200
+From: Joerg Roedel <jroedel@suse.de>
+Subject: Re: [RFC PATCH 2/7] mm/vmalloc: Track which page-table levels were
+ modified
+Message-ID: <20200508212321.GR8135@suse.de>
+References: <20200508144043.13893-1-joro@8bytes.org>
+ <20200508144043.13893-3-joro@8bytes.org>
+ <20200508191048.GA2957@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200508191048.GA2957@hirez.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515143642.EjitrmbUi7G0hKjOHUjH8s7GJhJDuFMRP9zlMXZriBo@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20200508212321.IgX0ij3hs77JyWsFQcS0TKQsOVe-3RRTkwMRbe5LRuk@z>
 
-Only build read_code when binary formats that use it are built into the
-kernel.
+On Fri, May 08, 2020 at 09:10:48PM +0200, Peter Zijlstra wrote:
+> On Fri, May 08, 2020 at 04:40:38PM +0200, Joerg Roedel wrote:
+> > +	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
+> > +		arch_sync_kernel_mappings(start, end);
+> 
+> So you're relying on the compiler DCE'ing the call in the 'normal' case.
+> 
+> Works I suppose, but I went over the patches twice to look for a default
+> implementation of it before I figured that out ...
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- fs/exec.c | 3 +++
- 1 file changed, 3 insertions(+)
+Yes, works on all architectures I compile-tested this on, with gcc-9.3.
+I should probably add a comment about that.
 
-diff --git a/fs/exec.c b/fs/exec.c
-index 06b4c550af5d9..a4f766f296f8f 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -1027,6 +1027,8 @@ int kernel_read_file_from_fd(int fd, void **buf, lo=
-ff_t *size, loff_t max_size,
- }
- EXPORT_SYMBOL_GPL(kernel_read_file_from_fd);
-=20
-+#if defined(CONFIG_HAVE_AOUT) || defined(CONFIG_BINFMT_FLAT) || \
-+    defined(CONFIG_BINFMT_ELF_FDPIC)
- ssize_t read_code(struct file *file, unsigned long addr, loff_t pos, siz=
-e_t len)
- {
- 	ssize_t res =3D vfs_read(file, (void __user *)addr, len, &pos);
-@@ -1035,6 +1037,7 @@ ssize_t read_code(struct file *file, unsigned long =
-addr, loff_t pos, size_t len)
- 	return res;
- }
- EXPORT_SYMBOL(read_code);
-+#endif
-=20
- /*
-  * Maps the mm_struct mm into the current task struct.
---=20
-2.26.2
+
+	Joerg
