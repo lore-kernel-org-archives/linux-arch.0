@@ -1,56 +1,32 @@
-Return-Path: <SRS0=nKtn=64=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtp-42ae.mail.infomaniak.ch ([84.16.66.174]:53953 "EHLO
-        smtp-42ae.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1725925AbgENKkC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 14 May 2020 06:40:02 -0400
-Subject: Re: [PATCH v17 05/10] fs,landlock: Support filesystem access-control
-References: <20200511192156.1618284-1-mic@digikod.net>
- <20200511192156.1618284-6-mic@digikod.net>
- <alpine.LRH.2.21.2005141335280.30052@namei.org>
-From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
-Message-ID: <c159d845-6108-4b67-6527-405589fa5382@digikod.net>
-Date: Thu, 14 May 2020 12:39:58 +0200
+Return-Path: <SRS0=W/Kb=6W=kvack.org=owner-linux-mm@kernel.org>
+Date: Fri, 8 May 2020 23:36:09 +0200
+From: Joerg Roedel <jroedel@suse.de>
+Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Message-ID: <20200508213609.GU8135@suse.de>
+References: <20200508144043.13893-1-joro@8bytes.org>
+ <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <alpine.LRH.2.21.2005141335280.30052@namei.org>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>
-Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
-Message-ID: <20200514103958.TLC6okhO548lS3lyUgGzKmdqDnUWrgH58ydc8ocfRvQ@z>
+Message-ID: <20200508213609.86P8Q342Hi4tPy-jFyrCd5CCzElJBdsW0yFogJY18yk@z>
+
+On Fri, May 08, 2020 at 02:33:19PM -0700, Andy Lutomirski wrote:
+> On Fri, May 8, 2020 at 7:40 AM Joerg Roedel <joro@8bytes.org> wrote:
+
+> What's the maximum on other system types?  It might make more sense to
+> take the memory hit and pre-populate all the tables at boot so we
+> never have to sync them.
+
+Need to look it up for 5-level paging, with 4-level paging its 64 pages
+to pre-populate the vmalloc area.
+
+But that would not solve the problem on x86-32, which needs to
+synchronize unmappings on the PMD level.
 
 
-On 14/05/2020 05:37, James Morris wrote:
-> On Mon, 11 May 2020, Mickaël Salaün wrote:
-> 
-> 
->> diff --git a/include/linux/fs.h b/include/linux/fs.h
->> index 45cc10cdf6dd..2276642f8e05 100644
->> --- a/include/linux/fs.h
->> +++ b/include/linux/fs.h
->> @@ -1517,6 +1517,11 @@ struct super_block {
->>  	/* Pending fsnotify inode refs */
->>  	atomic_long_t s_fsnotify_inode_refs;
->>  
->> +#ifdef CONFIG_SECURITY_LANDLOCK
->> +	/* References to Landlock underlying objects */
->> +	atomic_long_t s_landlock_inode_refs;
->> +#endif
->> +
-> 
-> This needs to be converted to the LSM API via superblock blob stacking.
-> 
-> See Casey's old patch: 
-> https://lore.kernel.org/linux-security-module/20190829232935.7099-2-casey@schaufler-ca.com/
-
-s_landlock_inode_refs is quite similar to s_fsnotify_inode_refs, but I
-can do it once the superblock security blob patch is upstream. Is it a
-blocker for now? What is the current status of lbs_superblock?
-
-Anyway, we also need to have a call to landlock_release_inodes() in
-generic_shutdown_super(), which does not fit the LSM framework, and I
-think it is not an issue. Landlock handling of inodes is quite similar
-to fsnotify.
+	Joerg
