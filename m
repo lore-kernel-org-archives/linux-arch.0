@@ -1,62 +1,38 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFC PATCH 6/7] mm: Remove vmalloc_sync_(un)mappings()
-Date: Fri, 8 May 2020 14:58:22 -0400
-Message-ID: <20200508145822.07fcc32b@gandalf.local.home>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH 2/7] mm/vmalloc: Track which page-table levels were
+ modified
+Date: Fri, 8 May 2020 21:10:48 +0200
+Message-ID: <20200508191048.GA2957@hirez.programming.kicks-ass.net>
 References: <20200508144043.13893-1-joro@8bytes.org>
-        <20200508144043.13893-7-joro@8bytes.org>
+ <20200508144043.13893-3-joro@8bytes.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-acpi-owner@vger.kernel.org>
-In-Reply-To: <20200508144043.13893-7-joro@8bytes.org>
+Content-Disposition: inline
+In-Reply-To: <20200508144043.13893-3-joro@8bytes.org>
 Sender: linux-acpi-owner@vger.kernel.org
 To: Joerg Roedel <joro@8bytes.org>
-Cc: x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Joerg Roedel <jroedel@suse.de>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Joerg Roedel <jroedel@suse.de>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri,  8 May 2020 16:40:42 +0200
-Joerg Roedel <joro@8bytes.org> wrote:
+On Fri, May 08, 2020 at 04:40:38PM +0200, Joerg Roedel wrote:
 
-> From: Joerg Roedel <jroedel@suse.de>
-> 
-> These functions are not needed anymore because the vmalloc and ioremap
-> mappings are now synchronized when they are created or teared down.
-> 
-> Remove all callers and function definitions.
-> 
-> Signed-off-by: Joerg Roedel <jroedel@suse.de>
->
+> +/*
+> + * Architectures can set this mask to a combination of PGTBL_P?D_MODIFIED values
+> + * and let generic vmalloc and ioremap code know when arch_sync_kernel_mappings()
+> + * needs to be called.
+> + */
+> +#ifndef ARCH_PAGE_TABLE_SYNC_MASK
+> +#define ARCH_PAGE_TABLE_SYNC_MASK 0
+> +#endif
+> +
+> +void arch_sync_kernel_mappings(unsigned long start, unsigned long end);
 
-You'll need to fold this into this patch, as my patch has already hit
-Linus's tree.
 
-But I applied your whole series and I'm not able to reproduce the bug.
+> +	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
+> +		arch_sync_kernel_mappings(start, end);
 
-Tested-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+So you're relying on the compiler DCE'ing the call in the 'normal' case.
 
--- Steve
-
-diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
-index 29615f15a820..1424a89193c6 100644
---- a/kernel/trace/trace.c
-+++ b/kernel/trace/trace.c
-@@ -8526,19 +8526,6 @@ static int allocate_trace_buffers(struct trace_array *tr, int size)
- 	 */
- 	allocate_snapshot = false;
- #endif
--
--	/*
--	 * Because of some magic with the way alloc_percpu() works on
--	 * x86_64, we need to synchronize the pgd of all the tables,
--	 * otherwise the trace events that happen in x86_64 page fault
--	 * handlers can't cope with accessing the chance that a
--	 * alloc_percpu()'d memory might be touched in the page fault trace
--	 * event. Oh, and we need to audit all other alloc_percpu() and vmalloc()
--	 * calls in tracing, because something might get triggered within a
--	 * page fault trace event!
--	 */
--	vmalloc_sync_mappings();
--
- 	return 0;
- }
- 
+Works I suppose, but I went over the patches twice to look for a default
+implementation of it before I figured that out ...
