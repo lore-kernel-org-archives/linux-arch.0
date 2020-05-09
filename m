@@ -1,94 +1,75 @@
-Return-Path: <SRS0=z9eI=7A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43512 "EHLO mail.kernel.org"
+Return-Path: <SRS0=g3ia=6X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:54418 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726726AbgERMvY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 May 2020 08:51:24 -0400
+        id S1726214AbgEIRwW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 9 May 2020 13:52:22 -0400
+Date: Sat, 9 May 2020 19:52:17 +0200
+From: Joerg Roedel <jroedel@suse.de>
+Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Message-ID: <20200509175217.GV8135@suse.de>
+References: <20200508144043.13893-1-joro@8bytes.org>
+ <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
+ <20200508213609.GU8135@suse.de>
+ <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
 MIME-Version: 1.0
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <1584200119-18594-10-git-send-email-mikelley@microsoft.com>
- <CAK8P3a1YUjhaVUmjVC2pCoTTBTU408iN44Q=QZ0RDz8rmzJisQ@mail.gmail.com>
- <MW2PR2101MB10524254D2FE3EFC72329465D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
- <CAK8P3a1YCtc3LJ-_3iT90_Srehb96gLHvTXsbJ0wT6NFYCG=TQ@mail.gmail.com>
- <MW2PR2101MB1052E413218D295EF24E5E05D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
- <f2b63853-24ae-d6b7-cd43-5792c0d4d31b@nvidia.com> <4202ea20-6e51-31d3-44b1-3861798a8158@nvidia.com>
-In-Reply-To: <4202ea20-6e51-31d3-44b1-3861798a8158@nvidia.com>
-From: Ard Biesheuvel <ardb@kernel.org>
-Date: Mon, 18 May 2020 14:51:11 +0200
-Message-ID: <CAMj1kXEpryfqk5eKxB5NrDcriEBRQKEHnDVZNBMfB4DY=708fw@mail.gmail.com>
-Subject: Re: [PATCH v6 09/10] arm64: efi: Export screen_info
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nikhil Mahale <nmahale@nvidia.com>
-Cc: Michael Kelley <mikelley@microsoft.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>
-Message-ID: <20200518125111.F5HSUj26e-3LhLMU-hbOYxsZ_auYa1TdcgQ9MY2l2Bg@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+Message-ID: <20200509175217.X0wyuO_vbdYGchCR0Whx7dVUz1z2Ox609xUt_-dLKaw@z>
 
-On Mon, 18 May 2020 at 06:25, Nikhil Mahale <nmahale@nvidia.com> wrote:
->
-> On 5/13/20 7:56 PM, Nikhil Mahale wrote:
-> > On 3/20/20 3:16 AM, Michael Kelley wrote:
-> >> From: Arnd Bergmann <arnd@arndb.de> Sent: Wednesday, March 18, 2020 2:27 AM
-> >>>
-> >>> On Wed, Mar 18, 2020 at 1:18 AM Michael Kelley <mikelley@microsoft.com> wrote:
-> >>>> From: Arnd Bergmann <arnd@arndb.de>
-> >>>>> On Sat, Mar 14, 2020 at 4:36 PM Michael Kelley <mikelley@microsoft.com> wrote:
-> >>>>>>
-> >>>>>> The Hyper-V frame buffer driver may be built as a module, and
-> >>>>>> it needs access to screen_info. So export screen_info.
-> >>>>>>
-> >>>>>> Signed-off-by: Michael Kelley <mikelley@microsoft.com>
-> >>>>>
-> >>>>> Is there any chance of using a more modern KMS based driver for the screen
-> >>>>> than the old fbdev subsystem? I had hoped to one day completely remove
-> >>>>> support for the old CONFIG_VIDEO_FBDEV and screen_info from modern
-> >>>>> architectures.
-> >>>>>
-> >>>>
-> >>>> The current hyperv_fb.c driver is all we have today for the synthetic Hyper-V
-> >>>> frame buffer device.  That driver builds and runs on both ARM64 and x86.
-> >>>>
-> >>>> I'm not knowledgeable about video/graphics drivers, but when you
-> >>>> say "a more modern KMS based driver", are you meaning one based on
-> >>>> DRM & KMS?  Does DRM make sense for a "dumb" frame buffer device?
-> >>>> Are there any drivers that would be a good pattern to look at?
-> >>>
-> >>> It used to be a lot harder to write a DRM driver compared to an fbdev
-> >>> driver, but this has changed to the opposite over the years.
-> >>>
-> >>> A fairly minimal example would be drivers/gpu/drm/pl111/pl111_drv.c
-> >>> or anything in drivers/gpu/drm/tiny/, but you may want to look at the
-> >>> other hypervisor platforms first, i.e drivers/gpu/drm/virtio/virtgpu_drv.c,
-> >>> drivers/gpu/drm/vmwgfx/vmwgfx_drv.c, drivers/gpu/drm/xen/xen_drm_front.c,
-> >>> drivers/gpu/drm/qxl/qxl_drv.c, and drivers/gpu/drm/bochs/bochs_drv.c.
-> >>>
-> >>
-> >> Thanks for the pointers, especially for the other hypervisors.
-> >>
-> > Sorry if anybody in 'to' or 'cc' is receiving this reply multiple times.
-> > I had configured by email client incorrectly to reply.
+On Fri, May 08, 2020 at 04:49:17PM -0700, Andy Lutomirski wrote:
+> On Fri, May 8, 2020 at 2:36 PM Joerg Roedel <jroedel@suse.de> wrote:
 > >
-> > screen_info is still useful with a modern KMS-based driver.  It exposes
-> > the mode parameters that the GOP driver chose.  This information is
-> > needed to implement seamless or glitchless boot, by both ensuring that
-> > the scanout parameters don't change and being able to read back the
-> > scanout image to populate the initial contents of the new surface.
+> > On Fri, May 08, 2020 at 02:33:19PM -0700, Andy Lutomirski wrote:
+> > > On Fri, May 8, 2020 at 7:40 AM Joerg Roedel <joro@8bytes.org> wrote:
 > >
-> > This works today on arches which implement (U)EFI and export
-> > screen_info, including x86 and powerpc, but doesn't work on arm or
-> > arm64.  As arm64 systems that implement UEFI with real GOP drivers
-> > become more prevalent, it would be nice to be have these features there
-> > as well.
->
-> In addition to this, even if a driver doesn't implement a framebuffer
-> console, or if it does but has an option to disable it, the driver still
-> needs to know whether the EFI console is using resources on the GPU so
-> it can avoid clobbering them. For example screen_info provides information
-> like offset and size of EFI console, using this information driver can
-> reserve memory used by console and prevent corruption on it.
->
-> I think arm64 should export screen_info.
->
+> > > What's the maximum on other system types?  It might make more sense to
+> > > take the memory hit and pre-populate all the tables at boot so we
+> > > never have to sync them.
+> >
+> > Need to look it up for 5-level paging, with 4-level paging its 64 pages
+> > to pre-populate the vmalloc area.
+> >
+> > But that would not solve the problem on x86-32, which needs to
+> > synchronize unmappings on the PMD level.
+> 
+> What changes in this series with x86-32?
 
-If there are reasons why KMS or fbdev drivers may need to access the
-information in screen_info, it should be exported. I don't think that
-is under debate here.
+This series sets ARCH_PAGE_TABLE_SYNC_MASK to PGTBL_PMD_MODIFIED, so
+that the synchronization happens every time PMD(s) in the vmalloc areas
+are changed. Before this series this synchronization only happened at
+arbitrary places calling vmalloc_sync_(un)mappings().
+
+> We already do that synchronization, right?  IOW, in the cases where
+> the vmalloc *fault* code does anything at all, we should have a small
+> bound for how much memory to preallocate and, if we preallocate it,
+> then there is nothing to sync and nothing to fault.  And we have the
+> benefit that we never need to sync anything on 64-bit, which is kind
+> of nice.
+
+Don't really get you here, what is pre-allocated and why is there no
+need to sync and fault then?
+
+> Do we actually need PMD-level things for 32-bit?  What if we just
+> outlawed huge pages in the vmalloc space on 32-bit non-PAE?
+
+Disallowing huge-pages would at least remove the need to sync
+unmappings, but we still need to sync new PMD entries. Remember that the
+size of the vmalloc area on 32 bit is dynamic and depends on the VM-split
+and the actual amount of RAM on the system.
+
+A machine wit 512MB of RAM and a 1G/3G split will have around 2.5G of
+VMALLOC address space. And if we want to avoid vmalloc-faults there, we
+need to pre-allocate all PTE pages for that area (and the amount of PTE
+pages needed increases when RAM decreases).
+
+On a machine with 512M of RAM we would need ca. 1270+ PTE pages, which
+is around 5M (or 1% of total system memory).
+
+Regards,
+
+	Joerg
