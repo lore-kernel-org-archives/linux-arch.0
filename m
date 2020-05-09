@@ -1,52 +1,95 @@
-From: Christophe Leroy <christophe.leroy@csgroup.eu>
-Subject: Re: [PATCH v8 8/8] powerpc/vdso: Provide __kernel_clock_gettime64()
- on vdso32
-Date: Sat, 9 May 2020 17:54:25 +0200
-Message-ID: <d3f303f1-8b2c-0c54-5380-0b9a370a4eb3@csgroup.eu>
-References: <cover.1588079622.git.christophe.leroy@c-s.fr>
- <e78344d3fcc1d33bfb1782e430b7f0529f6c612f.1588079622.git.christophe.leroy@c-s.fr>
- <CAK8P3a2aXJRWjxWO8oMRX2AJkfeVeeoYbOPbpd9-UTgjqM4B7g@mail.gmail.com>
+From: Syed Nayyar Waris <syednwaris@gmail.com>
+Subject: Re: [PATCH v5 0/4] Introduce the for_each_set_clump macro
+Date: Sat, 9 May 2020 22:06:14 +0530
+Message-ID: <CACG_h5pcb3uOn+or-6L8bMk3bBNFXWJre9C9pRi3hNgFxGkd_g@mail.gmail.com>
+References: <cover.1588460322.git.syednwaris@gmail.com> <20200504114109.GE185537@smile.fi.intel.com>
+ <20200504143638.GA4635@shinobu> <CAHp75Vf_vP1qM9x81dErPeaJ4-cK-GOMnmEkxkhPY2gCvtmVbA@mail.gmail.com>
+ <20200505145250.GA5979@shinobu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:38197 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727105AbgEIPyb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 9 May 2020 11:54:31 -0400
-In-Reply-To: <CAK8P3a2aXJRWjxWO8oMRX2AJkfeVeeoYbOPbpd9-UTgjqM4B7g@mail.gmail.com>
-Content-Language: fr
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37292 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1727787AbgEIQg1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 9 May 2020 12:36:27 -0400
+In-Reply-To: <20200505145250.GA5979@shinobu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Nathan Lynch <nathanl@linux.ibm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Thomas Gleixner <tglx@linutronix.de>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Andy Lutomirski <luto@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: William Breathitt Gray <vilhelm.gray@gmail.com>
+Cc: Andy Shevchenko <andy.shevchenko@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Michal Simek <michal.simek@xilinx.com>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, rrichter@marvell.com, Masahiro Yamada <yamada.masahiro@socionext.com>, "Zhang, Rui" <rui.zhang@intel.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Amit Kucheria <amit.kucheria@verdurent.com>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, Linux PM <linux-pm@vger.kernel.org>
+
+On Tue, May 5, 2020 at 8:24 PM William Breathitt Gray
+<vilhelm.gray@gmail.com> wrote:
+>
+> On Tue, May 05, 2020 at 04:51:56PM +0300, Andy Shevchenko wrote:
+> > On Mon, May 4, 2020 at 5:41 PM William Breathitt Gray
+> > <vilhelm.gray@gmail.com> wrote:
+> > > On Mon, May 04, 2020 at 02:41:09PM +0300, Andy Shevchenko wrote:
+> > > > On Sun, May 03, 2020 at 04:38:36AM +0530, Syed Nayyar Waris wrote:
+> >
+> > ...
+> >
+> > > > Looking into the last patches where we have examples I still do not see a
+> > > > benefit of variadic clump sizes. power of 2 sizes would make sense (and be
+> > > > optimized accordingly (64-bit, 32-bit).
+> > > >
+> > > > --
+> > > > With Best Regards,
+> > > > Andy Shevchenko
+> > >
+> > > There is of course benefit in defining for_each_set_clump with clump
+> > > sizes of powers of 2 (we can optimize for 32 and 64 bit sizes and avoid
+> > > boundary checks that we know will not occur), but at the very least the
+> > > variable size bitmap_set_value and bitmap_get_value provide significant
+> > > benefit for the readability of the gpio-xilinx code:
+> > >
+> > >         bitmap_set_value(old, state[0], 0, width[0]);
+> > >         bitmap_set_value(old, state[1], width[0], width[1]);
+> > >         ...
+> > >         state[0] = bitmap_get_value(new, 0, width[0]);
+> > >         state[1] = bitmap_get_value(new, width[0], width[1]);
+> > >
+> > > These lines are simple and clear to read: we know immediately what they
+> > > do. But if we did not have bitmap_set_value/bitmap_get_value, we'd have
+> > > to use several bitwise operations for each line; the obfuscation of the
+> > > code would be an obvious hinderance here.
+> >
+> > Do I understand correctly that width[0] and width[1] may not be power
+> > of two and it's actually the case?
+> >
+> > --
+> > With Best Regards,
+> > Andy Shevchenko
+>
+> I'm under the impression that width[0] and width[1] are arbitrarily
+> chosen by the user and could be any integer. I have never used this
+> hardware so I'm hoping one of the gpio-xilinx or GPIO subsystem
+> maintainers in this thread will respond with some guidance.
+>
+> If the values of width[0] and width[1] are restricted to powers of 2,
+> then I agree that there is no need for generic bitmap_set_value and
+> bitmap_get_value functions and we can instead use more optimized power
+> of 2 versions.
+>
+> William Breathitt Gray
 
 
+Regarding the question that whether width[0] and width[1] can have any
+value or they are restricted to power-of-2.
 
-Le 28/04/2020 à 18:05, Arnd Bergmann a écrit :
-> On Tue, Apr 28, 2020 at 3:16 PM Christophe Leroy
-> <christophe.leroy@c-s.fr> wrote:
->>
->> Provides __kernel_clock_gettime64() on vdso32. This is the
->> 64 bits version of __kernel_clock_gettime() which is
->> y2038 compliant.
->>
->> Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
-> 
-> Looks good to me
-> 
-> Reviewed-by: Arnd Bergmann <arnd@arndb.de>
-> 
-> There was a bug on ARM for the corresponding function, so far it is unclear
-> if this was a problem related to particular hardware, the 32-bit kernel code,
-> or the common implementation of clock_gettime64 in the vdso library,
-> see https://github.com/richfelker/musl-cross-make/issues/96
-> 
-> Just to be sure that powerpc is not affected by the same issue, can you
-> confirm that repeatedly calling clock_gettime64 on powerpc32, alternating
-> between vdso and syscall, results in monotically increasing times?
-> 
+Referring to the document (This xilinx GPIO IP was mentioned in the
+gpio-xilinx.c file):
+https://www.xilinx.com/support/documentation/ip_documentation/axi_gpio/v2_0/pg144-axi-gpio.pdf
 
-I think that's one of the things vdsotest checks, so yes that's ok I think.
+On page 8, we can see that the GPIO widths for the 2 channels can have
+values different from power-of-2.For example: 5, 15 etc.
 
-Christophe
+So, I think we should keep the 'for_each_set_clump',
+'bitmap_get_value' and 'bitmap_set_value' as completely generic.
+
+I am proceeding further for my next patchset submission keeping above
+findings in mind. If you guys think something else or would like to
+add something, let me know.
+
+Regards
+Syed Nayyar Waris
