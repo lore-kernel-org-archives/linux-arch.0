@@ -1,48 +1,52 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Date: Sat, 9 May 2020 11:25:16 +0200
-Message-ID: <20200509092516.GC2957@hirez.programming.kicks-ass.net>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <20200508192000.GB2957@hirez.programming.kicks-ass.net>
- <20200508213407.GT8135@suse.de>
+From: Christophe Leroy <christophe.leroy@csgroup.eu>
+Subject: Re: [PATCH v8 8/8] powerpc/vdso: Provide __kernel_clock_gettime64()
+ on vdso32
+Date: Sat, 9 May 2020 17:54:25 +0200
+Message-ID: <d3f303f1-8b2c-0c54-5380-0b9a370a4eb3@csgroup.eu>
+References: <cover.1588079622.git.christophe.leroy@c-s.fr>
+ <e78344d3fcc1d33bfb1782e430b7f0529f6c612f.1588079622.git.christophe.leroy@c-s.fr>
+ <CAK8P3a2aXJRWjxWO8oMRX2AJkfeVeeoYbOPbpd9-UTgjqM4B7g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-acpi-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200508213407.GT8135@suse.de>
-Sender: linux-acpi-owner@vger.kernel.org
-To: Joerg Roedel <jroedel@suse.de>
-Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:38197 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727105AbgEIPyb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 9 May 2020 11:54:31 -0400
+In-Reply-To: <CAK8P3a2aXJRWjxWO8oMRX2AJkfeVeeoYbOPbpd9-UTgjqM4B7g@mail.gmail.com>
+Content-Language: fr
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Nathan Lynch <nathanl@linux.ibm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Thomas Gleixner <tglx@linutronix.de>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Andy Lutomirski <luto@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Fri, May 08, 2020 at 11:34:07PM +0200, Joerg Roedel wrote:
-> Hi Peter,
+
+
+Le 28/04/2020 à 18:05, Arnd Bergmann a écrit :
+> On Tue, Apr 28, 2020 at 3:16 PM Christophe Leroy
+> <christophe.leroy@c-s.fr> wrote:
+>>
+>> Provides __kernel_clock_gettime64() on vdso32. This is the
+>> 64 bits version of __kernel_clock_gettime() which is
+>> y2038 compliant.
+>>
+>> Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 > 
-> thanks for reviewing this!
+> Looks good to me
 > 
-> On Fri, May 08, 2020 at 09:20:00PM +0200, Peter Zijlstra wrote:
-> > The only concern I have is the pgd_lock lock hold times.
-> > 
-> > By not doing on-demand faults anymore, and consistently calling
-> > sync_global_*(), we iterate that pgd_list thing much more often than
-> > before if I'm not mistaken.
+> Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 > 
-> Should not be a problem, from what I have seen this function is not
-> called often on x86-64.  The vmalloc area needs to be synchronized at
-> the top-level there, which is by now P4D (with 4-level paging). And the
-> vmalloc area takes 64 entries, when all of them are populated the
-> function will not be called again.
+> There was a bug on ARM for the corresponding function, so far it is unclear
+> if this was a problem related to particular hardware, the 32-bit kernel code,
+> or the common implementation of clock_gettime64 in the vdso library,
+> see https://github.com/richfelker/musl-cross-make/issues/96
+> 
+> Just to be sure that powerpc is not affected by the same issue, can you
+> confirm that repeatedly calling clock_gettime64 on powerpc32, alternating
+> between vdso and syscall, results in monotically increasing times?
+> 
 
-Right; it's just that the moment you do trigger it, it'll iterate that
-pgd_list and that is potentially huge. Then again, that's not a new
-problem.
+I think that's one of the things vdsotest checks, so yes that's ok I think.
 
-I suppose we can deal with it if/when it becomes an actual problem.
-
-I had a quick look and I think it might be possible to make it an RCU
-managed list. We'd have to remove the pgd_list entry in
-put_task_struct_rcu_user(). Then we can play games in sync_global_*()
-and use RCU iteration. New tasks (which can be missed in the RCU
-iteration) will already have a full clone of the PGD anyway.
-
-But like said, something for later I suppose.
+Christophe
