@@ -1,29 +1,49 @@
-Return-Path: <SRS0=7GPW=7K=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:34194 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2407447AbgE1VKD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 28 May 2020 17:10:03 -0400
-Subject: Re: [GIT PULL] csky updates for v5.7-rc8
-From: pr-tracker-bot@kernel.org
-In-Reply-To: <1590627572-10100-1-git-send-email-guoren@kernel.org>
-References: <1590627572-10100-1-git-send-email-guoren@kernel.org>
-Message-ID: <159070020283.6784.9180466553239444193.pr-tracker-bot@kernel.org>
-Date: Thu, 28 May 2020 21:10:02 +0000
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=C0rT=6X=kvack.org=owner-linux-mm@kernel.org>
+Date: Sat, 9 May 2020 11:25:16 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Message-ID: <20200509092516.GC2957@hirez.programming.kicks-ass.net>
+References: <20200508144043.13893-1-joro@8bytes.org>
+ <20200508192000.GB2957@hirez.programming.kicks-ass.net>
+ <20200508213407.GT8135@suse.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200508213407.GT8135@suse.de>
+Sender: owner-linux-mm@kvack.org
+To: Joerg Roedel <jroedel@suse.de>
+Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-To: guoren@kernel.org
-Cc: torvalds@linux-foundation.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org
-Message-ID: <20200528211002.RN26FcIB_uaWTUtnSbTY0NxXp6QslqWi5JldgQyJns8@z>
+Message-ID: <20200509092516.xB1Irs6OmLpRH9iBP2r8cez0qALQpxsRAKjl-94myWo@z>
 
-The pull request you sent on Thu, 28 May 2020 08:59:32 +0800:
+On Fri, May 08, 2020 at 11:34:07PM +0200, Joerg Roedel wrote:
+> Hi Peter,
+> 
+> thanks for reviewing this!
+> 
+> On Fri, May 08, 2020 at 09:20:00PM +0200, Peter Zijlstra wrote:
+> > The only concern I have is the pgd_lock lock hold times.
+> > 
+> > By not doing on-demand faults anymore, and consistently calling
+> > sync_global_*(), we iterate that pgd_list thing much more often than
+> > before if I'm not mistaken.
+> 
+> Should not be a problem, from what I have seen this function is not
+> called often on x86-64.  The vmalloc area needs to be synchronized at
+> the top-level there, which is by now P4D (with 4-level paging). And the
+> vmalloc area takes 64 entries, when all of them are populated the
+> function will not be called again.
 
-> https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.7-rc8
+Right; it's just that the moment you do trigger it, it'll iterate that
+pgd_list and that is potentially huge. Then again, that's not a new
+problem.
 
-has been merged into torvalds/linux.git:
-https://git.kernel.org/torvalds/c/6b5f25909bb8a94a0c1d1c6e9530f8fc261d1b5d
+I suppose we can deal with it if/when it becomes an actual problem.
 
-Thank you!
+I had a quick look and I think it might be possible to make it an RCU
+managed list. We'd have to remove the pgd_list entry in
+put_task_struct_rcu_user(). Then we can play games in sync_global_*()
+and use RCU iteration. New tasks (which can be missed in the RCU
+iteration) will already have a full clone of the PGD anyway.
 
--- 
-Deet-doot-dot, I am a bot.
-https://korg.wiki.kernel.org/userdoc/prtracker
+But like said, something for later I suppose.
