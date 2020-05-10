@@ -1,87 +1,44 @@
-Return-Path: <SRS0=0VUr=66=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:53560 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726888AbgEPJdx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 16 May 2020 05:33:53 -0400
-From: guoren@kernel.org
-Subject: [GIT PULL] csky updates for v5.7-rc6
-Date: Sat, 16 May 2020 17:33:36 +0800
-Message-ID: <20200516093336.13886-1-guoren@kernel.org>
+Return-Path: <SRS0=eh2/=6Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38124 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725810AbgEJHzU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2020 03:55:20 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 01/31] arm: fix the flush_icache_range arguments in set_fiq_handler
+Date: Sun, 10 May 2020 09:54:40 +0200
+Message-ID: <20200510075510.987823-2-hch@lst.de>
+In-Reply-To: <20200510075510.987823-1-hch@lst.de>
+References: <20200510075510.987823-1-hch@lst.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org, guoren@kernel.org
-Message-ID: <20200516093336.TP37_ljZO8XUVV6WdWNvEqASGMFc8--v-kGqJv2FV5A@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200510075440.E9ttA-KkvxDLy8jSUVxzokmtLK9VX1OKBl17BQZpsDs@z>
 
-Hi Linus,
+The arguments passed look bogus, try to fix them to something that seems
+to make sense.
 
-Please pull the changes (10 fixups) for v5.7-rc6.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/arm/kernel/fiq.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-Best Regards
- Guo Ren
-
-The following changes since commit 2ef96a5bb12be62ef75b5828c0aab838ebb29cb8:
-
-  Linux 5.7-rc5 (2020-05-10 15:16:58 -0700)
-
-are available in the Git repository at:
-
-  https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.7-rc6
-
-for you to fetch changes up to 51bb38cb78363fdad1f89e87357b7bc73e39ba88:
-
-  csky: Fixup raw_copy_from_user() (2020-05-15 00:16:30 +0800)
-
-----------------------------------------------------------------
-csky updates for 5.7-rc6
-
-10 Fixups for this updates :P
-
- - 1 fixup for copy_from/to_user (a hard-to-find bug, thx Viro)
- - 1 fixup for calltrace panic without FRAME_POINT
- - 2 fixups for perf
- - 2 fixups for compile error
- - 4 fixups for non-fatal bugs:
-   (msa, rm dis_irq, cleanup psr, gdbmacros.txt)
-
-----------------------------------------------------------------
-Al Viro (1):
-      csky: Fixup raw_copy_from_user()
-
-Guo Ren (6):
-      csky/ftrace: Fixup error when disable CONFIG_DYNAMIC_FTRACE
-      csky: Fixup compile error for abiv1 entry.S
-      csky: Fixup perf probe -x hungup
-      csky: Fixup calltrace panic
-      csky: Fixup remove unnecessary save/restore PSR code
-      csky: Fixup gdbmacros.txt with name sp in thread_struct
-
-Liu Yibin (2):
-      csky: Fixup msa highest 3 bits mask
-      csky: Fixup remove duplicate irq_disable
-
-Mao Han (1):
-      csky: Fixup perf callchain unwind
-
- arch/csky/Kconfig                   |   2 +
- arch/csky/Makefile                  |   2 +-
- arch/csky/abiv1/inc/abi/entry.h     |   4 +-
- arch/csky/abiv2/inc/abi/entry.h     |   4 +-
- arch/csky/abiv2/mcount.S            |   2 +
- arch/csky/include/asm/processor.h   |   6 +-
- arch/csky/include/asm/ptrace.h      |  10 ++
- arch/csky/include/asm/thread_info.h |  16 +++-
- arch/csky/include/asm/uaccess.h     |  49 +++++-----
- arch/csky/kernel/Makefile           |   2 +-
- arch/csky/kernel/asm-offsets.c      |   3 +-
- arch/csky/kernel/dumpstack.c        |  49 ----------
- arch/csky/kernel/entry.S            |  12 +--
- arch/csky/kernel/ftrace.c           |   2 +
- arch/csky/kernel/perf_callchain.c   |   9 +-
- arch/csky/kernel/probes/uprobes.c   |   5 +
- arch/csky/kernel/process.c          |  37 +-------
- arch/csky/kernel/ptrace.c           |   6 ++
- arch/csky/kernel/stacktrace.c       | 176 ++++++++++++++++++++++++++++--------
- arch/csky/lib/usercopy.c            |   8 +-
- 20 files changed, 226 insertions(+), 178 deletions(-)
- delete mode 100644 arch/csky/kernel/dumpstack.c
+diff --git a/arch/arm/kernel/fiq.c b/arch/arm/kernel/fiq.c
+index cd1234c103fcd..98ca3e3fa8471 100644
+--- a/arch/arm/kernel/fiq.c
++++ b/arch/arm/kernel/fiq.c
+@@ -98,8 +98,8 @@ void set_fiq_handler(void *start, unsigned int length)
+ 
+ 	memcpy(base + offset, start, length);
+ 	if (!cache_is_vipt_nonaliasing())
+-		flush_icache_range((unsigned long)base + offset, offset +
+-				   length);
++		flush_icache_range((unsigned long)base + offset,
++				   (unsigned long)base + offset + length);
+ 	flush_icache_range(0xffff0000 + offset, 0xffff0000 + offset + length);
+ }
+ 
+-- 
+2.26.2
