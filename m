@@ -1,37 +1,97 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 23/31] sh: implement flush_icache_user_range
-Date: Sun, 10 May 2020 09:55:02 +0200
-Message-ID: <20200510075510.987823-24-hch@lst.de>
+Subject: [PATCH 11/31] arm64: use asm-generic/cacheflush.h
+Date: Sun, 10 May 2020 09:54:50 +0200
+Message-ID: <20200510075510.987823-12-hch@lst.de>
 References: <20200510075510.987823-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-m68k-owner@vger.kernel.org>
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
 In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-Sender: linux-m68k-owner@vger.kernel.org
+Sender: linux-fsdevel-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
 Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The SuperH implementation of flush_icache_range seems to be able to
-cope with user addresses.  Just define flush_icache_user_range to
-flush_icache_range.
+ARM64 needs almost no cache flushing routines of its own.  Rely on
+asm-generic/cacheflush.h for the defaults.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/sh/include/asm/cacheflush.h | 1 +
- 1 file changed, 1 insertion(+)
+ arch/arm64/include/asm/cacheflush.h | 46 ++++-------------------------
+ 1 file changed, 5 insertions(+), 41 deletions(-)
 
-diff --git a/arch/sh/include/asm/cacheflush.h b/arch/sh/include/asm/cacheflush.h
-index b932e42ef0284..fe7400079b97b 100644
---- a/arch/sh/include/asm/cacheflush.h
-+++ b/arch/sh/include/asm/cacheflush.h
-@@ -46,6 +46,7 @@ extern void flush_cache_range(struct vm_area_struct *vma,
- #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
- extern void flush_dcache_page(struct page *page);
- extern void flush_icache_range(unsigned long start, unsigned long end);
-+#define flush_icache_user_range flush_icache_range
- extern void flush_icache_page(struct vm_area_struct *vma,
- 				 struct page *page);
- extern void flush_cache_sigtramp(unsigned long address);
+diff --git a/arch/arm64/include/asm/cacheflush.h b/arch/arm64/include/asm/cacheflush.h
+index e6cca3d4acf70..03a5a187163ab 100644
+--- a/arch/arm64/include/asm/cacheflush.h
++++ b/arch/arm64/include/asm/cacheflush.h
+@@ -94,20 +94,7 @@ static inline void flush_icache_range(unsigned long start, unsigned long end)
+ #endif
+ 	kick_all_cpus_sync();
+ }
+-
+-static inline void flush_cache_mm(struct mm_struct *mm)
+-{
+-}
+-
+-static inline void flush_cache_page(struct vm_area_struct *vma,
+-				    unsigned long user_addr, unsigned long pfn)
+-{
+-}
+-
+-static inline void flush_cache_range(struct vm_area_struct *vma,
+-				     unsigned long start, unsigned long end)
+-{
+-}
++#define flush_icache_range flush_icache_range
+ 
+ /*
+  * Cache maintenance functions used by the DMA API. No to be used directly.
+@@ -123,12 +110,7 @@ extern void __dma_flush_area(const void *, size_t);
+  */
+ extern void copy_to_user_page(struct vm_area_struct *, struct page *,
+ 	unsigned long, void *, const void *, unsigned long);
+-#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
+-	do {							\
+-		memcpy(dst, src, len);				\
+-	} while (0)
+-
+-#define flush_cache_dup_mm(mm) flush_cache_mm(mm)
++#define copy_to_user_page copy_to_user_page
+ 
+ /*
+  * flush_dcache_page is used when the kernel has written to the page
+@@ -154,29 +136,11 @@ static __always_inline void __flush_icache_all(void)
+ 	dsb(ish);
+ }
+ 
+-#define flush_dcache_mmap_lock(mapping)		do { } while (0)
+-#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
+-
+-/*
+- * We don't appear to need to do anything here.  In fact, if we did, we'd
+- * duplicate cache flushing elsewhere performed by flush_dcache_page().
+- */
+-#define flush_icache_page(vma,page)	do { } while (0)
+-
+-/*
+- * Not required on AArch64 (PIPT or VIPT non-aliasing D-cache).
+- */
+-static inline void flush_cache_vmap(unsigned long start, unsigned long end)
+-{
+-}
+-
+-static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
+-{
+-}
+-
+ int set_memory_valid(unsigned long addr, int numpages, int enable);
+ 
+ int set_direct_map_invalid_noflush(struct page *page);
+ int set_direct_map_default_noflush(struct page *page);
+ 
+-#endif
++#include <asm-generic/cacheflush.h>
++
++#endif /* __ASM_CACHEFLUSH_H */
 -- 
 2.26.2
