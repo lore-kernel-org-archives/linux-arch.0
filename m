@@ -1,54 +1,114 @@
-Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=eh2/=6Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38338 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729236AbgEJH42 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2020 03:56:28 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 19/31] riscv: use asm-generic/cacheflush.h
+Date: Sun, 10 May 2020 09:54:58 +0200
+Message-ID: <20200510075510.987823-20-hch@lst.de>
+In-Reply-To: <20200510075510.987823-1-hch@lst.de>
+References: <20200510075510.987823-1-hch@lst.de>
 MIME-Version: 1.0
-References: <20200510075510.987823-1-hch@lst.de> <20200510075510.987823-32-hch@lst.de>
- <CAMuHMdU_OxNoKfO=i903kx0mgk0-i2h4u2ase3m9_dn6oFh_5g@mail.gmail.com> <20200511151120.GA28634@lst.de>
-In-Reply-To: <20200511151120.GA28634@lst.de>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 11 May 2020 17:24:30 +0200
-Message-ID: <CAMuHMdW1S91i3x0unNcJnypHse7ifynGb4dZcVhJaemR3GH1Pg@mail.gmail.com>
-Subject: Re: [PATCH 31/31] module: move the set_fs hack for flush_icache_range
- to m68k
-Content-Type: text/plain; charset="UTF-8"
-Sender: owner-linux-mm@kvack.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, the arch/x86 maintainers <x86@kernel.org>, alpha <linux-alpha@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Openrisc <openrisc@lists.librecores.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-riscv@lists.infradead.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, linux-um <linux-um@lists.infradead.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200511152430.PUzL8r_6qdGT6L89uBksDidl6mHjN4Cj1yO9n1UhE8E@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200510075458.wTduK6uyIeowzXp8VgvKuRRr9ONI925C_WB3Gm9VbCo@z>
 
-Hi Christoph,
+RISC-V needs almost no cache flushing routines of its own.  Rely on
+asm-generic/cacheflush.h for the defaults.
 
-On Mon, May 11, 2020 at 5:11 PM Christoph Hellwig <hch@lst.de> wrote:
-> On Mon, May 11, 2020 at 09:40:39AM +0200, Geert Uytterhoeven wrote:
-> > On Sun, May 10, 2020 at 9:57 AM Christoph Hellwig <hch@lst.de> wrote:
-> > >
-> > > flush_icache_range generally operates on kernel addresses, but for some
-> > > reason m68k needed a set_fs override.  Move that into the m68k code
-> > > insted of keeping it in the module loader.
-> > >
-> > > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> >
-> > Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> > Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
->
-> Btw, do you know what part of flush_icache_range relied on set_fs?
-> Do any of the m68k maintainers have an idea how to handle that in
-> a nicer way when we can split the implementations?
+Also remove the pointless __KERNEL__ ifdef while we're at it.
+---
+ arch/riscv/include/asm/cacheflush.h | 62 ++---------------------------
+ 1 file changed, 3 insertions(+), 59 deletions(-)
 
-arch/m68k/mm/cache.c:virt_to_phys_slow()
-
-All instructions that look up addresses in the page tables look at the
-source/destination function codes (SFC/DFC) to know if they have to use
-the supervisor or user page tables.
-So the actual implementation is the same: set_fs() merely configures
-SFC/DFC, to select the address space to use.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
+diff --git a/arch/riscv/include/asm/cacheflush.h b/arch/riscv/include/asm/cacheflush.h
+index c8677c75f82cb..a167b4fbdf007 100644
+--- a/arch/riscv/include/asm/cacheflush.h
++++ b/arch/riscv/include/asm/cacheflush.h
+@@ -8,65 +8,6 @@
+ 
+ #include <linux/mm.h>
+ 
+-#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
+-
+-/*
+- * The cache doesn't need to be flushed when TLB entries change when
+- * the cache is mapped to physical memory, not virtual memory
+- */
+-static inline void flush_cache_all(void)
+-{
+-}
+-
+-static inline void flush_cache_mm(struct mm_struct *mm)
+-{
+-}
+-
+-static inline void flush_cache_dup_mm(struct mm_struct *mm)
+-{
+-}
+-
+-static inline void flush_cache_range(struct vm_area_struct *vma,
+-				     unsigned long start,
+-				     unsigned long end)
+-{
+-}
+-
+-static inline void flush_cache_page(struct vm_area_struct *vma,
+-				    unsigned long vmaddr,
+-				    unsigned long pfn)
+-{
+-}
+-
+-static inline void flush_dcache_mmap_lock(struct address_space *mapping)
+-{
+-}
+-
+-static inline void flush_dcache_mmap_unlock(struct address_space *mapping)
+-{
+-}
+-
+-static inline void flush_icache_page(struct vm_area_struct *vma,
+-				     struct page *page)
+-{
+-}
+-
+-static inline void flush_cache_vmap(unsigned long start, unsigned long end)
+-{
+-}
+-
+-static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
+-{
+-}
+-
+-#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+-	do { \
+-		memcpy(dst, src, len); \
+-		flush_icache_user_range(vma, page, vaddr, len); \
+-	} while (0)
+-#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
+-	memcpy(dst, src, len)
+-
+ static inline void local_flush_icache_all(void)
+ {
+ 	asm volatile ("fence.i" ::: "memory");
+@@ -79,6 +20,7 @@ static inline void flush_dcache_page(struct page *page)
+ 	if (test_bit(PG_dcache_clean, &page->flags))
+ 		clear_bit(PG_dcache_clean, &page->flags);
+ }
++#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
+ 
+ /*
+  * RISC-V doesn't have an instruction to flush parts of the instruction cache,
+@@ -105,4 +47,6 @@ void flush_icache_mm(struct mm_struct *mm, bool local);
+ #define SYS_RISCV_FLUSH_ICACHE_LOCAL 1UL
+ #define SYS_RISCV_FLUSH_ICACHE_ALL   (SYS_RISCV_FLUSH_ICACHE_LOCAL)
+ 
++#include <asm-generic/cacheflush.h>
++
+ #endif /* _ASM_RISCV_CACHEFLUSH_H */
 -- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+2.26.2
