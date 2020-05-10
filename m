@@ -1,286 +1,78 @@
-Return-Path: <SRS0=03B7=63=kvack.org=owner-linux-mm@kernel.org>
-From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH v2 2/7] mm/vmalloc: Track which page-table levels were modified
-Date: Wed, 13 May 2020 17:21:32 +0200
-Message-ID: <20200513152137.32426-3-joro@8bytes.org>
-In-Reply-To: <20200513152137.32426-1-joro@8bytes.org>
-References: <20200513152137.32426-1-joro@8bytes.org>
+Return-Path: <SRS0=y3dn=6Y=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 10/31] alpha: use asm-generic/cacheflush.h
+Date: Sun, 10 May 2020 09:54:49 +0200
+Message-ID: <20200510075510.987823-11-hch@lst.de>
+In-Reply-To: <20200510075510.987823-1-hch@lst.de>
+References: <20200510075510.987823-1-hch@lst.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org
-Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200513152132.dsXkMOBDFw5KAm2IX8QDqappQs5okhrx3dyjt0f-OPI@z>
+Message-ID: <20200510075449.HFOVMdsVaOt1epRZCyjyqZMOngMLkzYtbNgV1m3u3yg@z>
 
-From: Joerg Roedel <jroedel@suse.de>
+Alpha needs almost no cache flushing routines of its own.  Rely on
+asm-generic/cacheflush.h for the defaults.
 
-Track at which levels in the page-table entries were modified by
-vmap/vunmap. After the page-table has been modified, use that
-information do decide whether the new arch_sync_kernel_mappings()
-needs to be called.
-
-Signed-off-by: Joerg Roedel <jroedel@suse.de>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- include/linux/vmalloc.h | 16 ++++++++
- mm/vmalloc.c            | 88 ++++++++++++++++++++++++++++++-----------
- 2 files changed, 80 insertions(+), 24 deletions(-)
+ arch/alpha/include/asm/cacheflush.h | 28 ++++++----------------------
+ 1 file changed, 6 insertions(+), 22 deletions(-)
 
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index a95d3cc74d79..c80bdb8a6b55 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -144,6 +144,22 @@ extern int remap_vmalloc_range(struct vm_area_struct *vma, void *addr,
- void vmalloc_sync_mappings(void);
- void vmalloc_sync_unmappings(void);
- 
-+/*
-+ * Architectures can set this mask to a combination of PGTBL_P?D_MODIFIED values
-+ * and let generic vmalloc and ioremap code know when arch_sync_kernel_mappings()
-+ * needs to be called.
-+ */
-+#ifndef ARCH_PAGE_TABLE_SYNC_MASK
-+#define ARCH_PAGE_TABLE_SYNC_MASK 0
-+#endif
-+
-+/*
-+ * There is no default implementation for arch_sync_kernel_mappings(). It is
-+ * relied upon the compiler to optimize calls out if ARCH_PAGE_TABLE_SYNC_MASK
-+ * is 0.
-+ */
-+void arch_sync_kernel_mappings(unsigned long start, unsigned long end);
-+
- /*
-  *	Lowlevel-APIs (not for driver use!)
-  */
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 9a8227afa073..184f5a556cf7 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -69,7 +69,8 @@ static void free_work(struct work_struct *w)
- 
- /*** Page table manipulation functions ***/
- 
--static void vunmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end)
-+static void vunmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
-+			     pgtbl_mod_mask *mask)
- {
- 	pte_t *pte;
- 
-@@ -78,73 +79,104 @@ static void vunmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end)
- 		pte_t ptent = ptep_get_and_clear(&init_mm, addr, pte);
- 		WARN_ON(!pte_none(ptent) && !pte_present(ptent));
- 	} while (pte++, addr += PAGE_SIZE, addr != end);
-+	*mask |= PGTBL_PTE_MODIFIED;
+diff --git a/arch/alpha/include/asm/cacheflush.h b/arch/alpha/include/asm=
+/cacheflush.h
+index 89128489cb598..636d7ca0d05f6 100644
+--- a/arch/alpha/include/asm/cacheflush.h
++++ b/arch/alpha/include/asm/cacheflush.h
+@@ -4,19 +4,6 @@
+=20
+ #include <linux/mm.h>
+=20
+-/* Caches aren't brain-dead on the Alpha. */
+-#define flush_cache_all()			do { } while (0)
+-#define flush_cache_mm(mm)			do { } while (0)
+-#define flush_cache_dup_mm(mm)			do { } while (0)
+-#define flush_cache_range(vma, start, end)	do { } while (0)
+-#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
+-#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
+-#define flush_dcache_page(page)			do { } while (0)
+-#define flush_dcache_mmap_lock(mapping)		do { } while (0)
+-#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
+-#define flush_cache_vmap(start, end)		do { } while (0)
+-#define flush_cache_vunmap(start, end)		do { } while (0)
+-
+ /* Note that the following two definitions are _highly_ dependent
+    on the contexts in which they are used in the kernel.  I personally
+    think it is criminal how loosely defined these macros are.  */
+@@ -59,20 +46,17 @@ flush_icache_user_range(struct vm_area_struct *vma, s=
+truct page *page,
+ 			mm->context[smp_processor_id()] =3D 0;
+ 	}
  }
- 
--static void vunmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end)
-+static void vunmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
-+			     pgtbl_mod_mask *mask)
- {
- 	pmd_t *pmd;
- 	unsigned long next;
-+	int cleared;
- 
- 	pmd = pmd_offset(pud, addr);
- 	do {
- 		next = pmd_addr_end(addr, end);
--		if (pmd_clear_huge(pmd))
-+
-+		cleared = pmd_clear_huge(pmd);
-+		if (cleared || pmd_bad(*pmd))
-+			*mask |= PGTBL_PMD_MODIFIED;
-+
-+		if (cleared)
- 			continue;
- 		if (pmd_none_or_clear_bad(pmd))
- 			continue;
--		vunmap_pte_range(pmd, addr, next);
-+		vunmap_pte_range(pmd, addr, next, mask);
- 	} while (pmd++, addr = next, addr != end);
- }
- 
--static void vunmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end)
-+static void vunmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end,
-+			     pgtbl_mod_mask *mask)
- {
- 	pud_t *pud;
- 	unsigned long next;
-+	int cleared;
- 
- 	pud = pud_offset(p4d, addr);
- 	do {
- 		next = pud_addr_end(addr, end);
--		if (pud_clear_huge(pud))
-+
-+		cleared = pud_clear_huge(pud);
-+		if (cleared || pud_bad(*pud))
-+			*mask |= PGTBL_PUD_MODIFIED;
-+
-+		if (cleared)
- 			continue;
- 		if (pud_none_or_clear_bad(pud))
- 			continue;
--		vunmap_pmd_range(pud, addr, next);
-+		vunmap_pmd_range(pud, addr, next, mask);
- 	} while (pud++, addr = next, addr != end);
- }
- 
--static void vunmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end)
-+static void vunmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end,
-+			     pgtbl_mod_mask *mask)
- {
- 	p4d_t *p4d;
- 	unsigned long next;
-+	int cleared;
- 
- 	p4d = p4d_offset(pgd, addr);
- 	do {
- 		next = p4d_addr_end(addr, end);
--		if (p4d_clear_huge(p4d))
-+
-+		cleared = p4d_clear_huge(p4d);
-+		if (cleared || p4d_bad(*p4d))
-+			*mask |= PGTBL_P4D_MODIFIED;
-+
-+		if (cleared)
- 			continue;
- 		if (p4d_none_or_clear_bad(p4d))
- 			continue;
--		vunmap_pud_range(p4d, addr, next);
-+		vunmap_pud_range(p4d, addr, next, mask);
- 	} while (p4d++, addr = next, addr != end);
- }
- 
--static void vunmap_page_range(unsigned long addr, unsigned long end)
-+static void vunmap_page_range(unsigned long start, unsigned long end)
- {
- 	pgd_t *pgd;
-+	unsigned long addr = start;
- 	unsigned long next;
-+	pgtbl_mod_mask mask = 0;
- 
- 	BUG_ON(addr >= end);
-+	start = addr;
- 	pgd = pgd_offset_k(addr);
- 	do {
- 		next = pgd_addr_end(addr, end);
-+		if (pgd_bad(*pgd))
-+			mask |= PGTBL_PGD_MODIFIED;
- 		if (pgd_none_or_clear_bad(pgd))
- 			continue;
--		vunmap_p4d_range(pgd, addr, next);
-+		vunmap_p4d_range(pgd, addr, next, &mask);
- 	} while (pgd++, addr = next, addr != end);
-+
-+	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-+		arch_sync_kernel_mappings(start, end);
- }
- 
- static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
--		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
-+		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
-+		pgtbl_mod_mask *mask)
- {
- 	pte_t *pte;
- 
-@@ -153,7 +185,7 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
- 	 * callers keep track of where we're up to.
- 	 */
- 
--	pte = pte_alloc_kernel(pmd, addr);
-+	pte = pte_alloc_kernel_track(pmd, addr, mask);
- 	if (!pte)
- 		return -ENOMEM;
- 	do {
-@@ -166,55 +198,59 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
- 		set_pte_at(&init_mm, addr, pte, mk_pte(page, prot));
- 		(*nr)++;
- 	} while (pte++, addr += PAGE_SIZE, addr != end);
-+	*mask |= PGTBL_PTE_MODIFIED;
- 	return 0;
- }
- 
- static int vmap_pmd_range(pud_t *pud, unsigned long addr,
--		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
-+		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
-+		pgtbl_mod_mask *mask)
- {
- 	pmd_t *pmd;
- 	unsigned long next;
- 
--	pmd = pmd_alloc(&init_mm, pud, addr);
-+	pmd = pmd_alloc_track(&init_mm, pud, addr, mask);
- 	if (!pmd)
- 		return -ENOMEM;
- 	do {
- 		next = pmd_addr_end(addr, end);
--		if (vmap_pte_range(pmd, addr, next, prot, pages, nr))
-+		if (vmap_pte_range(pmd, addr, next, prot, pages, nr, mask))
- 			return -ENOMEM;
- 	} while (pmd++, addr = next, addr != end);
- 	return 0;
- }
- 
- static int vmap_pud_range(p4d_t *p4d, unsigned long addr,
--		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
-+		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
-+		pgtbl_mod_mask *mask)
- {
- 	pud_t *pud;
- 	unsigned long next;
- 
--	pud = pud_alloc(&init_mm, p4d, addr);
-+	pud = pud_alloc_track(&init_mm, p4d, addr, mask);
- 	if (!pud)
- 		return -ENOMEM;
- 	do {
- 		next = pud_addr_end(addr, end);
--		if (vmap_pmd_range(pud, addr, next, prot, pages, nr))
-+		if (vmap_pmd_range(pud, addr, next, prot, pages, nr, mask))
- 			return -ENOMEM;
- 	} while (pud++, addr = next, addr != end);
- 	return 0;
- }
- 
- static int vmap_p4d_range(pgd_t *pgd, unsigned long addr,
--		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
-+		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
-+		pgtbl_mod_mask *mask)
- {
- 	p4d_t *p4d;
- 	unsigned long next;
- 
--	p4d = p4d_alloc(&init_mm, pgd, addr);
-+	p4d = p4d_alloc_track(&init_mm, pgd, addr, mask);
- 	if (!p4d)
- 		return -ENOMEM;
- 	do {
- 		next = p4d_addr_end(addr, end);
--		if (vmap_pud_range(p4d, addr, next, prot, pages, nr))
-+		if (vmap_pud_range(p4d, addr, next, prot, pages, nr, mask))
- 			return -ENOMEM;
- 	} while (p4d++, addr = next, addr != end);
- 	return 0;
-@@ -234,16 +270,20 @@ static int vmap_page_range_noflush(unsigned long start, unsigned long end,
- 	unsigned long addr = start;
- 	int err = 0;
- 	int nr = 0;
-+	pgtbl_mod_mask mask = 0;
- 
- 	BUG_ON(addr >= end);
- 	pgd = pgd_offset_k(addr);
- 	do {
- 		next = pgd_addr_end(addr, end);
--		err = vmap_p4d_range(pgd, addr, next, prot, pages, &nr);
-+		err = vmap_p4d_range(pgd, addr, next, prot, pages, &nr, &mask);
- 		if (err)
- 			return err;
- 	} while (pgd++, addr = next, addr != end);
- 
-+	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-+		arch_sync_kernel_mappings(start, end);
-+
- 	return nr;
- }
- 
--- 
-2.17.1
+-#else
++#define flush_icache_user_range flush_icache_user_range
++#else /* CONFIG_SMP */
+ extern void flush_icache_user_range(struct vm_area_struct *vma,
+ 		struct page *page, unsigned long addr, int len);
+-#endif
++#define flush_icache_user_range flush_icache_user_range
++#endif /* CONFIG_SMP */
+=20
+ /* This is used only in __do_fault and do_swap_page.  */
+ #define flush_icache_page(vma, page) \
+-  flush_icache_user_range((vma), (page), 0, 0)
++	flush_icache_user_range((vma), (page), 0, 0)
+=20
+-#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+-do { memcpy(dst, src, len); \
+-     flush_icache_user_range(vma, page, vaddr, len); \
+-} while (0)
+-#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
+-	memcpy(dst, src, len)
++#include <asm-generic/cacheflush.h>
+=20
+ #endif /* _ALPHA_CACHEFLUSH_H */
+--=20
+2.26.2
