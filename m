@@ -1,57 +1,104 @@
-Return-Path: <SRS0=R1OV=7E=vger.kernel.org=linux-doc-owner@kernel.org>
-Message-ID: <c9c9314374c7db0bf9b6e39670855afe5b0d4014.camel@intel.com>
-Subject: Re: [PATCH v10 26/26] x86/cet/shstk: Add arch_prctl functions for
- shadow stack
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Fri, 22 May 2020 10:17:43 -0700
-In-Reply-To: <202005211528.A12B4AD@keescook>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-         <20200429220732.31602-27-yu-cheng.yu@intel.com>
-         <202005211528.A12B4AD@keescook>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=y3dn=6Y=kvack.org=owner-linux-mm@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+References: <20200508144043.13893-1-joro@8bytes.org> <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
+ <20200508213609.GU8135@suse.de> <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
+ <20200509175217.GV8135@suse.de> <CALCETrVU-+G3K5ABBRSEMiwnskL4mZsVcoTESZXnu34J7TaOqw@mail.gmail.com>
+ <20200509215713.GE18353@8bytes.org>
+In-Reply-To: <20200509215713.GE18353@8bytes.org>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Sat, 9 May 2020 22:05:43 -0700
+Message-ID: <CALCETrWyQA=4y57PsKhhcRWpxfCufBpda5g7gyEVSST6H5FNJQ@mail.gmail.com>
+Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Content-Type: text/plain; charset="UTF-8"
+Sender: owner-linux-mm@kvack.org
+To: Joerg Roedel <joro@8bytes.org>
+Cc: Andy Lutomirski <luto@kernel.org>, Joerg Roedel <jroedel@suse.de>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200522171743.T33CoqUN3ak1_4PP0j8CnsiKX5ik1mC25qJelgQsJ2E@z>
+Message-ID: <20200510050543.a32sJOFZrs5_D7F2R7akRPykNyMhYUvpsobhOZuMKRs@z>
 
-On Thu, 2020-05-21 at 15:42 -0700, Kees Cook wrote:
-> On Wed, Apr 29, 2020 at 03:07:32PM -0700, Yu-cheng Yu wrote:
-[...]
-> > +
-> > +int prctl_cet(int option, u64 arg2)
-> > +{
-> > +	struct cet_status *cet;
-> > +
-> > +	if (!IS_ENABLED(CONFIG_X86_INTEL_CET))
-> > +		return -EINVAL;
-> 
-> Using -EINVAL here means userspace can't tell the difference between an
-> old kernel and a kernel not built with CONFIG_X86_INTEL_CET. Perhaps
-> -ENOTSUPP?
+On Sat, May 9, 2020 at 2:57 PM Joerg Roedel <joro@8bytes.org> wrote:
+>
+> Hi Andy,
+>
+> On Sat, May 09, 2020 at 12:05:29PM -0700, Andy Lutomirski wrote:
 
-Looked into this.  The kernel and GLIBC are not in sync.  So maybe we still use
-EINVAL here?
+> > So, unless I'm missing something here, there is an absolute maximum of
+> > 512 top-level entries that ever need to be synchronized.
+>
+> And here is where your assumption is wrong. On 32-bit PAE systems it is
+> not the top-level entries that need to be synchronized for vmalloc, but
+> the second-level entries. And dependent on the kernel configuration,
+> there are (in total, not only vmalloc) 1536, 1024, or 512 of these
+> second-level entries. How much of them are actually used for vmalloc
+> depends on the size of the system RAM (but is at least 64), because
+> the vmalloc area begins after the kernel direct-mapping (with an 8MB
+> unmapped hole).
 
-Yu-cheng
+I spent some time looking at the code, and I'm guessing you're talking
+about the 3-level !SHARED_KERNEL_PMD case.  I can't quite figure out
+what's going on.
 
+Can you explain what is actually going on that causes different
+mms/pgds to have top-level entries in the kernel range that point to
+different tables?  Because I'm not seeing why this makes any sense.
 
+>
+> > Now, there's an additional complication.  On x86_64, we have a rule:
+> > those entries that need to be synced start out null and may, during
+> > the lifetime of the system, change *once*.  They are never unmapped or
+> > modified after being allocated.  This means that those entries can
+> > only ever point to a page *table* and not to a ginormous page.  So,
+> > even if the hardware were to support ginormous pages (which, IIRC, it
+> > doesn't), we would be limited to merely immense and not ginormous
+> > pages in the vmalloc range.  On x86_32, I don't think we have this
+> > rule right now.  And this means that it's possible for one of these
+> > pages to be unmapped or modified.
+>
+> The reason for x86-32 being different is that the address space is
+> orders of magnitude smaller than on x86-64. We just have 4 top-level
+> entries with PAE paging and can't afford to partition kernel-adress
+> space on that level like we do on x86-64. That is the reason the address
+> space is partitioned on the second (PMD) level, which is also the reason
+> vmalloc synchronization needs to happen on that level. And because
+> that's not enough yet, its also the page-table level to map huge-pages.
 
-In kernel:
-----------
+Why does it need to be partitioned at all?  The only thing that comes
+to mind is that the LDT range is per-mm.  So I can imagine that the
+PAE case with a 3G user / 1G kernel split has to have the vmalloc
+range and the LDT range in the same top-level entry.  Yuck.
 
-#define EOPNOTSUPP	95
-#define ENOTSUPP 	524
+>
+> > So my suggestion is that just apply the x86_64 rule to x86_32 as well.
+> > The practical effect will be that 2-level-paging systems will not be
+> > able to use huge pages in the vmalloc range, since the rule will be
+> > that the vmalloc-relevant entries in the top-level table must point to
+> > page *tables* instead of huge pages.
+>
+> I could very well live with prohibiting huge-page ioremap mappings for
+> x86-32. But as I wrote before, this doesn't solve the problems I am
+> trying to address with this patch-set, or would only address them if
+> significant amount of total system memory is used.
+>
+> The pre-allocation solution would work for x86-64, it would only need
+> 256kb of preallocated memory for the vmalloc range to never synchronize
+> or fault again. I have thought about that and did the math before
+> writing this patch-set, but doing the math for 32 bit drove me away from
+> it for reasons written above.
+>
 
-In GLIBC:
----------
+If it's *just* the LDT that's a problem, we could plausibly shrink the
+user address range a little bit and put the LDT in the user portion.
+I suppose this could end up creating its own set of problems involving
+tracking which code owns which page tables.
 
-printf("ENOTSUP=%d\n", ENOTSUP);
-printf("EOPNOTSUPP=%d\n", EOPNOTSUPP);
-printf("%s=524\n", strerror(524));
- 
-ENOTSUP=95
-EOPNOTSUPP=95
-Unknown error 524=524
+> And since a lot of the vmalloc_sync_(un)mappings problems I debugged
+> were actually related to 32-bit, I want a solution that works for 32 and
+> 64-bit x86 (at least until support for x86-32 is removed). And I think
+> this patch-set provides a solution that works well for both.
+
+I'm not fundamentally objecting to your patch set, but I do want to
+understand what's going on that needs this stuff.
+
+>
+>
+>         Joerg
