@@ -1,89 +1,57 @@
-Return-Path: <SRS0=eh2/=6Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56828 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728385AbgEJTFu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2020 15:05:50 -0400
+Return-Path: <SRS0=y3dn=6Y=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 09/31] asm-generic: improve the flush_dcache_page stub
+Date: Sun, 10 May 2020 09:54:48 +0200
+Message-ID: <20200510075510.987823-10-hch@lst.de>
+In-Reply-To: <20200510075510.987823-1-hch@lst.de>
+References: <20200510075510.987823-1-hch@lst.de>
 MIME-Version: 1.0
-References: <cover.1588460322.git.syednwaris@gmail.com> <20200504114109.GE185537@smile.fi.intel.com>
- <20200504143638.GA4635@shinobu> <CAHp75Vf_vP1qM9x81dErPeaJ4-cK-GOMnmEkxkhPY2gCvtmVbA@mail.gmail.com>
- <20200505145250.GA5979@shinobu> <CACG_h5pcb3uOn+or-6L8bMk3bBNFXWJre9C9pRi3hNgFxGkd_g@mail.gmail.com>
-In-Reply-To: <CACG_h5pcb3uOn+or-6L8bMk3bBNFXWJre9C9pRi3hNgFxGkd_g@mail.gmail.com>
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Date: Sun, 10 May 2020 22:05:38 +0300
-Message-ID: <CAHp75VcRztO-DPnUin-2TU9e10k0VViD7=S3ypQ0vQ=ittxNkw@mail.gmail.com>
-Subject: Re: [PATCH v5 0/4] Introduce the for_each_set_clump macro
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Syed Nayyar Waris <syednwaris@gmail.com>
-Cc: William Breathitt Gray <vilhelm.gray@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Michal Simek <michal.simek@xilinx.com>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, rrichter@marvell.com, Masahiro Yamada <yamada.masahiro@socionext.com>, "Zhang, Rui" <rui.zhang@intel.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Amit Kucheria <amit.kucheria@verdurent.com>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, Linux PM <linux-pm@vger.kernel.org>
-Message-ID: <20200510190538.abFEy8l39qd3KVkbCJzmCs7SEEzASLTp8-F1Beyyk2Q@z>
+Message-ID: <20200510075448._3eaYjiAFTq1eSDY_7B2rINkYNg61tm35O9VgCeP95s@z>
 
-On Sat, May 9, 2020 at 7:36 PM Syed Nayyar Waris <syednwaris@gmail.com> wrote:
-> On Tue, May 5, 2020 at 8:24 PM William Breathitt Gray
-> <vilhelm.gray@gmail.com> wrote:
-> > On Tue, May 05, 2020 at 04:51:56PM +0300, Andy Shevchenko wrote:
-> > > On Mon, May 4, 2020 at 5:41 PM William Breathitt Gray
-> > > <vilhelm.gray@gmail.com> wrote:
-> > > > On Mon, May 04, 2020 at 02:41:09PM +0300, Andy Shevchenko wrote:
-> > > > > On Sun, May 03, 2020 at 04:38:36AM +0530, Syed Nayyar Waris wrote:
+There is a magic ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE cpp symbol that
+guards non-stub availability of flush_dcache_pagge.  Use that to
+check if flush_dcache_pagg is implemented.
 
-...
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ include/asm-generic/cacheflush.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-> > > > > Looking into the last patches where we have examples I still do not see a
-> > > > > benefit of variadic clump sizes. power of 2 sizes would make sense (and be
-> > > > > optimized accordingly (64-bit, 32-bit).
-
-> > > > There is of course benefit in defining for_each_set_clump with clump
-> > > > sizes of powers of 2 (we can optimize for 32 and 64 bit sizes and avoid
-> > > > boundary checks that we know will not occur), but at the very least the
-> > > > variable size bitmap_set_value and bitmap_get_value provide significant
-> > > > benefit for the readability of the gpio-xilinx code:
-> > > >
-> > > >         bitmap_set_value(old, state[0], 0, width[0]);
-> > > >         bitmap_set_value(old, state[1], width[0], width[1]);
-> > > >         ...
-> > > >         state[0] = bitmap_get_value(new, 0, width[0]);
-> > > >         state[1] = bitmap_get_value(new, width[0], width[1]);
-> > > >
-> > > > These lines are simple and clear to read: we know immediately what they
-> > > > do. But if we did not have bitmap_set_value/bitmap_get_value, we'd have
-> > > > to use several bitwise operations for each line; the obfuscation of the
-> > > > code would be an obvious hinderance here.
-> > >
-> > > Do I understand correctly that width[0] and width[1] may not be power
-> > > of two and it's actually the case?
-
-> > I'm under the impression that width[0] and width[1] are arbitrarily
-> > chosen by the user and could be any integer. I have never used this
-> > hardware so I'm hoping one of the gpio-xilinx or GPIO subsystem
-> > maintainers in this thread will respond with some guidance.
-> >
-> > If the values of width[0] and width[1] are restricted to powers of 2,
-> > then I agree that there is no need for generic bitmap_set_value and
-> > bitmap_get_value functions and we can instead use more optimized power
-> > of 2 versions.
-
-> Regarding the question that whether width[0] and width[1] can have any
-> value or they are restricted to power-of-2.
->
-> Referring to the document (This xilinx GPIO IP was mentioned in the
-> gpio-xilinx.c file):
-> https://www.xilinx.com/support/documentation/ip_documentation/axi_gpio/v2_0/pg144-axi-gpio.pdf
->
-> On page 8, we can see that the GPIO widths for the 2 channels can have
-> values different from power-of-2.For example: 5, 15 etc.
->
-> So, I think we should keep the 'for_each_set_clump',
-> 'bitmap_get_value' and 'bitmap_set_value' as completely generic.
->
-> I am proceeding further for my next patchset submission keeping above
-> findings in mind. If you guys think something else or would like to
-> add something, let me know.
-
-Thank you for investigation. So, if Xilinx is okay with the change, I
-have no objections.
-
--- 
-With Best Regards,
-Andy Shevchenko
+diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cache=
+flush.h
+index bf9bb83e9fc8d..bbbb4d4ef6516 100644
+--- a/include/asm-generic/cacheflush.h
++++ b/include/asm-generic/cacheflush.h
+@@ -2,8 +2,6 @@
+ #ifndef _ASM_GENERIC_CACHEFLUSH_H
+ #define _ASM_GENERIC_CACHEFLUSH_H
+=20
+-#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
+-
+ /*
+  * The cache doesn't need to be flushed when TLB entries change when
+  * the cache is mapped to physical memory, not virtual memory
+@@ -42,12 +40,14 @@ static inline void flush_cache_page(struct vm_area_st=
+ruct *vma,
+ }
+ #endif
+=20
+-#ifndef flush_dcache_page
++#ifndef ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE
+ static inline void flush_dcache_page(struct page *page)
+ {
+ }
++#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
+ #endif
+=20
++
+ #ifndef flush_dcache_mmap_lock
+ static inline void flush_dcache_mmap_lock(struct address_space *mapping)
+ {
+--=20
+2.26.2
