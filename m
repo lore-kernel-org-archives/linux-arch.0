@@ -1,35 +1,44 @@
-Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
-Date: Mon, 11 May 2020 09:42:43 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Message-ID: <20200511074243.GE2957@hirez.programming.kicks-ass.net>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
- <20200508213609.GU8135@suse.de>
- <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
- <20200509175217.GV8135@suse.de>
- <CALCETrVU-+G3K5ABBRSEMiwnskL4mZsVcoTESZXnu34J7TaOqw@mail.gmail.com>
+Return-Path: <SRS0=eh2/=6Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38364 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729273AbgEJH4e (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2020 03:56:34 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 22/31] asm-generic: add a flush_icache_user_range stub
+Date: Sun, 10 May 2020 09:55:01 +0200
+Message-ID: <20200510075510.987823-23-hch@lst.de>
+In-Reply-To: <20200510075510.987823-1-hch@lst.de>
+References: <20200510075510.987823-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALCETrVU-+G3K5ABBRSEMiwnskL4mZsVcoTESZXnu34J7TaOqw@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Joerg Roedel <jroedel@suse.de>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200511074243.54tJKd0UkObDGtH-R5MoXGH9mdn1WlyKzSXzbnCkrHA@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200510075501.fu6GIHxagJJZYVwE17Cp14vpuKA6xpWvqVvBRYYc7Gg@z>
 
-On Sat, May 09, 2020 at 12:05:29PM -0700, Andy Lutomirski wrote:
+Define flush_icache_user_range to flush_icache_range unless the
+architecture provides its own implementation.
 
-> On x86_64, the only real advantage is that the handful of corner cases
-> that make vmalloc faults unpleasant (mostly relating to vmap stacks)
-> go away.  On x86_32, a bunch of mind-bending stuff (everything your
-> series deletes but also almost everything your series *adds*) goes
-> away.  There may be a genuine tiny performance hit on 2-level systems
-> due to the loss of huge pages in vmalloc space, but I'm not sure I
-> care or that we use them anyway on these systems.  And PeterZ can stop
-> even thinking about RCU.
-> 
-> Am I making sense?
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ include/asm-generic/cacheflush.h | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-I think it'll work for x86_64 and that is really all I care about :-)
+diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
+index 2c9686fefb715..907fa5d164944 100644
+--- a/include/asm-generic/cacheflush.h
++++ b/include/asm-generic/cacheflush.h
+@@ -66,6 +66,10 @@ static inline void flush_icache_range(unsigned long start, unsigned long end)
+ }
+ #endif
+ 
++#ifndef flush_icache_user_range
++#define flush_icache_user_range flush_icache_range
++#endif
++
+ #ifndef flush_icache_page
+ static inline void flush_icache_page(struct vm_area_struct *vma,
+ 				     struct page *page)
+-- 
+2.26.2
