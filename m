@@ -1,75 +1,70 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 10/31] alpha: use asm-generic/cacheflush.h
-Date: Sun, 10 May 2020 09:54:49 +0200
-Message-ID: <20200510075510.987823-11-hch@lst.de>
-References: <20200510075510.987823-1-hch@lst.de>
+From: Joerg Roedel <jroedel@suse.de>
+Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Date: Sun, 10 May 2020 10:15:16 +0200
+Message-ID: <20200510081516.GX8135@suse.de>
+References: <20200508144043.13893-1-joro@8bytes.org>
+ <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
+ <20200508213609.GU8135@suse.de>
+ <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
+ <20200509175217.GV8135@suse.de>
+ <CALCETrVU-+G3K5ABBRSEMiwnskL4mZsVcoTESZXnu34J7TaOqw@mail.gmail.com>
+ <20200509215713.GE18353@8bytes.org>
+ <CALCETrWyQA=4y57PsKhhcRWpxfCufBpda5g7gyEVSST6H5FNJQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:60116 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726630AbgEJIPV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 10 May 2020 04:15:21 -0400
+Content-Disposition: inline
+In-Reply-To: <CALCETrWyQA=4y57PsKhhcRWpxfCufBpda5g7gyEVSST6H5FNJQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
 
-Alpha needs almost no cache flushing routines of its own.  Rely on
-asm-generic/cacheflush.h for the defaults.
+On Sat, May 09, 2020 at 10:05:43PM -0700, Andy Lutomirski wrote:
+> On Sat, May 9, 2020 at 2:57 PM Joerg Roedel <joro@8bytes.org> wrote:
+> I spent some time looking at the code, and I'm guessing you're talking
+> about the 3-level !SHARED_KERNEL_PMD case.  I can't quite figure out
+> what's going on.
+> 
+> Can you explain what is actually going on that causes different
+> mms/pgds to have top-level entries in the kernel range that point to
+> different tables?  Because I'm not seeing why this makes any sense.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/alpha/include/asm/cacheflush.h | 28 ++++++----------------------
- 1 file changed, 6 insertions(+), 22 deletions(-)
+There are three cases where the PMDs are not shared on x86-32:
 
-diff --git a/arch/alpha/include/asm/cacheflush.h b/arch/alpha/include/asm/cacheflush.h
-index 89128489cb598..636d7ca0d05f6 100644
---- a/arch/alpha/include/asm/cacheflush.h
-+++ b/arch/alpha/include/asm/cacheflush.h
-@@ -4,19 +4,6 @@
- 
- #include <linux/mm.h>
- 
--/* Caches aren't brain-dead on the Alpha. */
--#define flush_cache_all()			do { } while (0)
--#define flush_cache_mm(mm)			do { } while (0)
--#define flush_cache_dup_mm(mm)			do { } while (0)
--#define flush_cache_range(vma, start, end)	do { } while (0)
--#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
--#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
--#define flush_dcache_page(page)			do { } while (0)
--#define flush_dcache_mmap_lock(mapping)		do { } while (0)
--#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
--#define flush_cache_vmap(start, end)		do { } while (0)
--#define flush_cache_vunmap(start, end)		do { } while (0)
--
- /* Note that the following two definitions are _highly_ dependent
-    on the contexts in which they are used in the kernel.  I personally
-    think it is criminal how loosely defined these macros are.  */
-@@ -59,20 +46,17 @@ flush_icache_user_range(struct vm_area_struct *vma, struct page *page,
- 			mm->context[smp_processor_id()] = 0;
- 	}
- }
--#else
-+#define flush_icache_user_range flush_icache_user_range
-+#else /* CONFIG_SMP */
- extern void flush_icache_user_range(struct vm_area_struct *vma,
- 		struct page *page, unsigned long addr, int len);
--#endif
-+#define flush_icache_user_range flush_icache_user_range
-+#endif /* CONFIG_SMP */
- 
- /* This is used only in __do_fault and do_swap_page.  */
- #define flush_icache_page(vma, page) \
--  flush_icache_user_range((vma), (page), 0, 0)
-+	flush_icache_user_range((vma), (page), 0, 0)
- 
--#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--do { memcpy(dst, src, len); \
--     flush_icache_user_range(vma, page, vaddr, len); \
--} while (0)
--#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+#include <asm-generic/cacheflush.h>
- 
- #endif /* _ALPHA_CACHEFLUSH_H */
--- 
-2.26.2
+	1) With non-PAE the top-level is already the PMD level, because
+	   the page-table only has two levels. Since the top-level can't
+	   be shared, the PMDs are also not shared.
+
+	2) For some reason Xen-PV also does not share kernel PMDs on PAE
+	   systems, but I havn't looked into why.
+
+	3) On 32-bit PAE with PTI enabled the kernel address space
+	   contains the LDT mapping, which is also different per-PGD.
+	   There is one PMD entry reserved for the LDT, giving it 2MB of
+	   address space. I implemented it this way to keep the 32-bit
+	   implementation of PTI mostly similar to the 64-bit one.
+
+> Why does it need to be partitioned at all?  The only thing that comes
+> to mind is that the LDT range is per-mm.  So I can imagine that the
+> PAE case with a 3G user / 1G kernel split has to have the vmalloc
+> range and the LDT range in the same top-level entry.  Yuck.
+
+PAE with 3G user / 1G kernel has _all_ of the kernel mappings in one
+top-level entry (direct-mapping, vmalloc, ldt, fixmap).
+
+> If it's *just* the LDT that's a problem, we could plausibly shrink the
+> user address range a little bit and put the LDT in the user portion.
+> I suppose this could end up creating its own set of problems involving
+> tracking which code owns which page tables.
+
+Yeah, for the PTI case it is only the LDT that causes the unshared
+kernel PMDs, but even if we move the LDT somewhere else we still have
+two-level paging and the xen-pv case.
+
+
+	Joerg
