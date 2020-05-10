@@ -1,78 +1,80 @@
-Return-Path: <SRS0=HMh4=7K=kvack.org=owner-linux-mm@kernel.org>
-Date: Thu, 28 May 2020 12:05:09 +0100
-From: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Subject: Re: [PATCH v4 11/26] arm64: mte: Add PROT_MTE support to mmap() and
- mprotect()
-Message-ID: <20200528110509.GA18623@arm.com>
-References: <20200515171612.1020-1-catalin.marinas@arm.com>
- <20200515171612.1020-12-catalin.marinas@arm.com>
- <CAMn1gO5ApcHOgQ_oLjiGDdCx9znz7N50w-BbzGPYpAzPQC3OQQ@mail.gmail.com>
- <20200528091445.GA2961@gaia>
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20200528091445.GA2961@gaia>
+Return-Path: <SRS0=y3dn=6Y=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 14/31] ia64: use asm-generic/cacheflush.h
+Date: Sun, 10 May 2020 09:54:53 +0200
+Message-ID: <20200510075510.987823-15-hch@lst.de>
+In-Reply-To: <20200510075510.987823-1-hch@lst.de>
+References: <20200510075510.987823-1-hch@lst.de>
 MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Peter Collingbourne <pcc@google.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Evgenii Stepanov <eugenis@google.com>, nd@arm.com
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200528110509.YalHW7SaAMF4_Aql1fkuU0FcrO8vuS5tF9UYMuQnNPQ@z>
+Message-ID: <20200510075453._XEEdQulrQx0tmkoTbISN4URKJUla_ZKupgyG5qT9dU@z>
 
-The 05/28/2020 10:14, Catalin Marinas wrote:
-> On Wed, May 27, 2020 at 11:57:39AM -0700, Peter Collingbourne wrote:
-> > On Fri, May 15, 2020 at 10:16 AM Catalin Marinas
-> > <catalin.marinas@arm.com> wrote:
-> > > To enable tagging on a memory range, the user must explicitly opt in via
-> > > a new PROT_MTE flag passed to mmap() or mprotect(). Since this is a new
-> > > memory type in the AttrIndx field of a pte, simplify the or'ing of these
-> > > bits over the protection_map[] attributes by making MT_NORMAL index 0.
-> > 
-> > Should the userspace stack always be mapped as if with PROT_MTE if the
-> > hardware supports it? Such a change would be invisible to non-MTE
-> > aware userspace since it would already need to opt in to tag checking
-> > via prctl. This would let userspace avoid a complex stack
-> > initialization sequence when running with stack tagging enabled on the
-> > main thread.
-> 
-> I don't think the stack initialisation is that difficult. On program
-> startup (can be the dynamic loader). Something like (untested):
-> 
-> 	register unsigned long stack asm ("sp");
-> 	unsigned long page_sz = sysconf(_SC_PAGESIZE);
-> 
-> 	mprotect((void *)(stack & ~(page_sz - 1)), page_sz,
-> 		 PROT_READ | PROT_WRITE | PROT_MTE | PROT_GROWSDOWN);
-> 
-> (the essential part it PROT_GROWSDOWN so that you don't have to specify
-> a stack lower limit)
+IA64 needs almost no cache flushing routines of its own.  Rely on
+asm-generic/cacheflush.h for the defaults.
 
-does this work even if the currently mapped stack is more than page_sz?
-determining the mapped main stack area is i think non-trivial to do in
-userspace (requires parsing /proc/self/maps or similar).
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/ia64/include/asm/cacheflush.h | 28 +++-------------------------
+ 1 file changed, 3 insertions(+), 25 deletions(-)
 
-...
-> I'm fine, however, with enabling PROT_MTE on the main stack based on
-> some ELF note.
-
-note that would likely mean an elf note on the dynamic linker
-(because a dynamic linked executable may not be loaded by the
-kernel and ctors in loaded libs run before the executable entry
-code anyway, so the executable alone cannot be in charge of this
-decision) i.e. one global switch for all dynamic linked binaries.
-
-i think a dynamic linker can map a new stack and switch to it
-if it needs to control the properties of the stack at runtime
-(it's wasteful though).
-
-and i think there should be a runtime mechanism for the brk area:
-it should be possible to request that future brk expansions are
-mapped as PROT_MTE so an mte aware malloc implementation can use
-brk. i think this is not important in the initial design, but if
-a prctl flag can do it that may be useful to add (may be at a
-later time).
-
-(and eventually there should be a way to use PROT_MTE on
-writable global data and appropriate code generation that
-takes colors into account when globals are accessed, but
-that requires significant ELF, ld.so and compiler changes,
-that need not be part of the initial mte design).
+diff --git a/arch/ia64/include/asm/cacheflush.h b/arch/ia64/include/asm/c=
+acheflush.h
+index 6d3478f8abc89..a8f1c86ac242a 100644
+--- a/arch/ia64/include/asm/cacheflush.h
++++ b/arch/ia64/include/asm/cacheflush.h
+@@ -12,44 +12,22 @@
+=20
+ #include <asm/page.h>
+=20
+-/*
+- * Cache flushing routines.  This is the kind of stuff that can be very =
+expensive, so try
+- * to avoid them whenever possible.
+- */
+-
+-#define flush_cache_all()			do { } while (0)
+-#define flush_cache_mm(mm)			do { } while (0)
+-#define flush_cache_dup_mm(mm)			do { } while (0)
+-#define flush_cache_range(vma, start, end)	do { } while (0)
+-#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
+-#define flush_icache_page(vma,page)		do { } while (0)
+-#define flush_cache_vmap(start, end)		do { } while (0)
+-#define flush_cache_vunmap(start, end)		do { } while (0)
+-
+ #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
+ #define flush_dcache_page(page)			\
+ do {						\
+ 	clear_bit(PG_arch_1, &(page)->flags);	\
+ } while (0)
+=20
+-#define flush_dcache_mmap_lock(mapping)		do { } while (0)
+-#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
+-
+-extern void flush_icache_range (unsigned long start, unsigned long end);
++extern void flush_icache_range(unsigned long start, unsigned long end);
++#define flush_icache_range flush_icache_range
+ extern void clflush_cache_range(void *addr, int size);
+=20
+-
+ #define flush_icache_user_range(vma, page, user_addr, len)					\
+ do {												\
+ 	unsigned long _addr =3D (unsigned long) page_address(page) + ((user_add=
+r) & ~PAGE_MASK);	\
+ 	flush_icache_range(_addr, _addr + (len));						\
+ } while (0)
+=20
+-#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+-do { memcpy(dst, src, len); \
+-     flush_icache_user_range(vma, page, vaddr, len); \
+-} while (0)
+-#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
+-	memcpy(dst, src, len)
++#include <asm-generic/cacheflush.h>
+=20
+ #endif /* _ASM_IA64_CACHEFLUSH_H */
+--=20
+2.26.2
