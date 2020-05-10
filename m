@@ -1,136 +1,61 @@
-Return-Path: <SRS0=eIWg=6U=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43586 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726906AbgEFKrW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2020 06:47:22 -0400
-Subject: Re: RFC: Adding arch-specific user ABI documentation in linux-man
-References: <20200504153214.GH30377@arm.com>
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Message-ID: <07855941-d0f7-2ec6-819e-e43a8935e29e@gmail.com>
-Date: Wed, 6 May 2020 12:47:17 +0200
+Return-Path: <SRS0=eh2/=6Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38408 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729315AbgEJH4t (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2020 03:56:49 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 25/31] arm: rename flush_cache_user_range to flush_icache_user_range
+Date: Sun, 10 May 2020 09:55:04 +0200
+Message-ID: <20200510075510.987823-26-hch@lst.de>
+In-Reply-To: <20200510075510.987823-1-hch@lst.de>
+References: <20200510075510.987823-1-hch@lst.de>
 MIME-Version: 1.0
-In-Reply-To: <20200504153214.GH30377@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: mtk.manpages@gmail.com, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200506104717.5XPO6gDHOQwOTHf7aw2fFrklzgc1MLHmA_LyYdV8QwY@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200510075504.bdXTECdwMey2B75D_K1AXeOXNS-yILsysDYiRTcePxs@z>
 
-Hello Dave, et al.
+flush_icache_user_range will be the name for a generic primitive.
+Move the arm name so that arm already has an implementation.
 
-On 5/4/20 5:32 PM, Dave Martin wrote:
-> Hi all,
-> 
-> I considering trying to plug some gaps in the arch-specific ABI
-> documentation in the linux man-pages, specifically for arm64 (and
-> possibly arm, where compat means we have some overlap).
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/arm/include/asm/cacheflush.h | 4 ++--
+ arch/arm/kernel/traps.c           | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-Sounds good to me.
-
-> For arm64, there are now significant new extensions (Pointer
-> authentication, SVE, MTE etc.)  Currently there is some user-facing
-> documentation mixed in with the kernel-facing documentation in the
-> kernel tree, but this situation isn't ideal.
-> 
-> Do you have an opinion on where in the man-pages documentation should be
-> added, and how to structure it?
-> 
-> 
-> Affected areas include:
-> 
->  * exec interface
-
-Not sure what the details are here, so I have no opinion yet.
-But probably, as additions to execve(2).
-
->  * aux vector, hwcaps
-
-==> getauxval(3)
-
->  * arch-specific signals
->  * signal frame
-
-Not sure what the details are here, so I have no opinion yet.
-
->  * mmap/mprotect extensions
-
-See below.
-
->  * prctl calls
-
-As additions in prctl(2) would be fine, I think.
-
->  * ptrace quirks and extensions
-
-See below.
-
->  * coredump contents
-
-Not sure what the details are here, so I have no opinion yet.
-Possibly as additions to core(5).
-
-> Not everything has an obvious home in an existing page, 
-
-Yes.
-
-> and adding
-> specifics for every architecture could make some existing manpages very
-> unwieldy.
-
-Still, I think it's worth adding details, especially for widely
-used architectures.
+diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cacheflush.h
+index c78e14fcfb5df..2e24e765e6d3a 100644
+--- a/arch/arm/include/asm/cacheflush.h
++++ b/arch/arm/include/asm/cacheflush.h
+@@ -258,11 +258,11 @@ extern void flush_cache_page(struct vm_area_struct *vma, unsigned long user_addr
+ #define flush_cache_dup_mm(mm) flush_cache_mm(mm)
  
-> I think for some arch features, we really need some "overview" pages
-> too: just documenting the low-level details is of limited value
-> without some guide as to how to use them together.
-> 
-> 
-> Does the following sketch look reasonable?
-> 
->  * man7/arm64.7: new page: overview of arm64-specific ABI extensions
-
-I'm a little unclear on what would land in here, but sounds 
-reasonable in principle.
-
->  * man7/sve.7 (or man7/arm64-sve.7 or man7/sve.7arm64): new page:
->    overview of arm64 SVE ABI
-
-Sounds reasonable to me.
-
->  * man2/arm64-ptrace.2 (or man2/ptrace.2arm64): new page:
->    arm64 ptrace extensions
-
-I think maybe better is: ptrace-arm64.2
-
-I'm agnostic about whether there should be a new page, or whether 
-these should be added to ptrace(2). But, we could start with the
-idea of a new page.
-
->  * man2/mmap.2: extend with arm64-specific flags (only two flags, so we
->    add them to the existing man page rather than creating a new one).
-
-Sounds good to me
-
-> etc.
-> 
-> 
-> Ideally, I'd like to adopt a pattern that other arches can follow.
-
-Well, if they do follow. Arch-specific documentation is woefully
-thin at the moment. I'm not going to worry too much about the right
-pattern (don't let perfect get in the way of good, yadda, yadda),
-until I get so much arch-specific documentation that some refactoring
-may be required. (I'm not going to hold my breath waiting for that
-to happen ;-).)
-
-Cheers,
-
-Michael
-
+ /*
+- * flush_cache_user_range is used when we want to ensure that the
++ * flush_icache_user_range is used when we want to ensure that the
+  * Harvard caches are synchronised for the user space address range.
+  * This is used for the ARM private sys_cacheflush system call.
+  */
+-#define flush_cache_user_range(s,e)	__cpuc_coherent_user_range(s,e)
++#define flush_icache_user_range(s,e)	__cpuc_coherent_user_range(s,e)
+ 
+ /*
+  * Perform necessary cache operations to ensure that data previously
+diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
+index 1e70e7227f0ff..316a7687f8133 100644
+--- a/arch/arm/kernel/traps.c
++++ b/arch/arm/kernel/traps.c
+@@ -566,7 +566,7 @@ __do_cache_op(unsigned long start, unsigned long end)
+ 		if (fatal_signal_pending(current))
+ 			return 0;
+ 
+-		ret = flush_cache_user_range(start, start + chunk);
++		ret = flush_icache_user_range(start, start + chunk);
+ 		if (ret)
+ 			return ret;
+ 
 -- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+2.26.2
