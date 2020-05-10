@@ -1,84 +1,43 @@
-Return-Path: <SRS0=7GPW=7K=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58796 "EHLO
+Return-Path: <SRS0=eh2/=6Y=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38380 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725601AbgE1HLw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 May 2020 03:11:52 -0400
+        with ESMTP id S1725810AbgEJH4j (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2020 03:56:39 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 24/31] xtensa: implement flush_icache_user_range
+Date: Sun, 10 May 2020 09:55:03 +0200
+Message-ID: <20200510075510.987823-25-hch@lst.de>
+In-Reply-To: <20200510075510.987823-1-hch@lst.de>
+References: <20200510075510.987823-1-hch@lst.de>
 MIME-Version: 1.0
-References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
-Reply-To: mtk.manpages@gmail.com
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Date: Thu, 28 May 2020 09:11:40 +0200
-Message-ID: <CAKgNAkhHzrNHjpRAKo_cU7+0-OGP9eyvmdA=AD3OgvVDq8vjcQ@mail.gmail.com>
-Subject: Re: [PATCH v2 0/6] prctl.2 man page updates for Linux 5.6
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-man <linux-man@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, Amit Daniel Kachhap <amit.kachhap@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Dave Hansen <dave.hansen@linux.intel.com>, Mark Rutland <mark.rutland@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <20200528071140.60Quh6Iq2YIIbxY4r1cY949OfBNfGgLgYjrEC-L7uuU@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200510075503.gMbq0KnbTKGQcqW3F4M2z5xXnXJfEyMSzcpZtzVVGYM@z>
 
-Hi Dave
+The Xtensa implementation of flush_icache_range seems to be able to
+cope with user addresses.  Just define flush_icache_user_range to
+flush_icache_range.
 
-On Wed, 27 May 2020 at 23:17, Dave Martin <Dave.Martin@arm.com> wrote:
->
-> A bunch of updates to the prctl(2) man page to fill in missing
-> prctls (mostly) up to Linux 5.6 (along with a few other tweaks and
-> fixes).
->
-> Patches from the v1 series [1] that have been applied or rejected
-> already have been dropped.
->
-> People not Cc'd on the whole series can find the whole series at
-> https://lore.kernel.org/linux-man/ .
->
-> Patches:
->
->  * Patch 1 is a new (but trivial) formatting fix, unrelated to the new
->    prctls.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/xtensa/include/asm/cacheflush.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-Applied.
-
->  * Patches 2-3 relate to the speculation control prctls.  These are
->    unmodified from v1, but need review.
-
-Applied, and pushed (since there were no review comments from last version).
-
->  * Patches 4-5 relate to the arm64 prctls from v1, with reviewer
->    feedback incorporated.  (See notes in the patches.)
-
-I'll hold off on these patches, to see if review comments come in.
-
->  * Patch 6 is *draft* wording for the arm64 address tagging prctls.
->    The semantics of address tagging is particularly slippery, so
->    this needs discussion before merging.
-
-Okay -- I'll hold off with that patch too.
-
-Cheers,
-
-Michael
-
-> [1] https://lore.kernel.org/linux-man/29a02b16-dd61-6186-1340-fcc7d5225ad0@gmail.com/T/#t
->
->
-> Dave Martin (6):
->   prctl.2: ffix use literal hyphens when referencing kernel docs
->   prctl.2: Add PR_SPEC_INDIRECT_BRANCH for SPECULATION_CTRL prctls
->   prctl.2: Add PR_SPEC_DISABLE_NOEXEC for SPECULATION_CTRL prctls
->   prctl.2: Add SVE prctls (arm64)
->   prctl.2: Add PR_PAC_RESET_KEYS (arm64)
->   prctl.2: Add tagged address ABI control prctls (arm64)
->
->  man2/prctl.2 | 444 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++--
->  1 file changed, 435 insertions(+), 9 deletions(-)
->
-> --
-> 2.1.4
->
-
-
---
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+diff --git a/arch/xtensa/include/asm/cacheflush.h b/arch/xtensa/include/asm/cacheflush.h
+index a0d50be5a8cb1..460e666ad0761 100644
+--- a/arch/xtensa/include/asm/cacheflush.h
++++ b/arch/xtensa/include/asm/cacheflush.h
+@@ -107,6 +107,8 @@ void flush_cache_page(struct vm_area_struct*,
+ #define flush_cache_page  local_flush_cache_page
+ #endif
+ 
++#define flush_icache_user_range flush_icache_range
++
+ #define local_flush_cache_all()						\
+ 	do {								\
+ 		__flush_invalidate_dcache_all();			\
+-- 
+2.26.2
