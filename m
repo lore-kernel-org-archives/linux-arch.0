@@ -1,40 +1,74 @@
-Return-Path: <SRS0=Roe3=6Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52462 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726687AbgEKPwO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 May 2020 11:52:14 -0400
-Date: Mon, 11 May 2020 08:52:04 -0700
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Message-ID: <20200511155204.GW16070@bombadil.infradead.org>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <20200508192000.GB2957@hirez.programming.kicks-ass.net>
- <20200508213407.GT8135@suse.de>
- <20200509092516.GC2957@hirez.programming.kicks-ass.net>
- <20200510011157.GU16070@bombadil.infradead.org>
- <20200511073134.GD2957@hirez.programming.kicks-ass.net>
+Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
+Date: Mon, 11 May 2020 12:00:14 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 02/31] arm64: fix the flush_icache_range arguments in
+ machine_kexec
+Message-ID: <20200511110014.GA19176@gaia>
+References: <20200510075510.987823-1-hch@lst.de>
+ <20200510075510.987823-3-hch@lst.de>
+ <20200511075115.GA16134@willie-the-truck>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200511073134.GD2957@hirez.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200511075115.GA16134@willie-the-truck>
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will@kernel.org>
+Cc: Christoph Hellwig <hch@lst.de>, james.morse@arm.com, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Joerg Roedel <jroedel@suse.de>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20200511155204.aYJc0LI69kEmgKzIUNh92BtEBhsJPWA2Zwfq8ebeZ-I@z>
+Message-ID: <20200511110014.lb9PEahJ4hVOYrbwIb_qUHXyNy9KQzNFdb_I3YlzY6A@z>
 
-On Mon, May 11, 2020 at 09:31:34AM +0200, Peter Zijlstra wrote:
-> On Sat, May 09, 2020 at 06:11:57PM -0700, Matthew Wilcox wrote:
-> > Iterating an XArray (whether the entire thing
-> > or with marks) is RCU-safe and faster than iterating a linked list,
-> > so this should solve the problem?
+On Mon, May 11, 2020 at 08:51:15AM +0100, Will Deacon wrote:
+> On Sun, May 10, 2020 at 09:54:41AM +0200, Christoph Hellwig wrote:
+> > The second argument is the end "pointer", not the length.
+> > 
+> > Signed-off-by: Christoph Hellwig <hch@lst.de>
+> > ---
+> >  arch/arm64/kernel/machine_kexec.c | 1 +
+> >  1 file changed, 1 insertion(+)
+> > 
+> > diff --git a/arch/arm64/kernel/machine_kexec.c b/arch/arm64/kernel/machine_kexec.c
+> > index 8e9c924423b4e..a0b144cfaea71 100644
+> > --- a/arch/arm64/kernel/machine_kexec.c
+> > +++ b/arch/arm64/kernel/machine_kexec.c
+> > @@ -177,6 +177,7 @@ void machine_kexec(struct kimage *kimage)
+> >  	 * the offline CPUs. Therefore, we must use the __* variant here.
+> >  	 */
+> >  	__flush_icache_range((uintptr_t)reboot_code_buffer,
+> > +			     (uintptr_t)reboot_code_buffer +
+> >  			     arm64_relocate_new_kernel_size);
 > 
-> It can hardly be faster if you want all elements -- which is I think the
-> case here. We only call into this if we change an entry, and then we
-> need to propagate that change to all.
+> Urgh, well spotted. It's annoyingly different from __flush_dcache_area().
+> 
+> But now I'm wondering what this code actually does... the loop condition
+> in invalidate_icache_by_line works with 64-bit arithmetic, so we could
+> spend a /very/ long time here afaict.
 
-Of course it can be faster.  Iterating an array is faster than iterating
-a linked list because caches.  While an XArray is a segmented array
-(so slower than a plain array), it's plainly going to be faster than
-iterating a linked list.
+I think it goes through the loop only once. The 'b.lo' saves us here.
+OTOH, there is no I-cache maintenance done.
+
+> It's also a bit annoying that we do a bunch of redundant D-cache
+> maintenance too. Should we use invalidate_icache_range() here instead?
+
+Since we have the __flush_dcache_area() above it for cleaning to PoC, we
+could use invalidate_icache_range() here. We probably didn't have this
+function at the time, it was added for KVM (commit 4fee94736603cd6).
+
+> (and why does that thing need to toggle uaccess)?
+
+invalidate_icache_range() doesn't need to, it works on the kernel linear
+map.
+
+__flush_icache_range() doesn't need to either, that's a side-effect of
+the fall-through implementation.
+
+Anyway, I think Christoph's patch needs to go in with a fixes tag:
+
+Fixes: d28f6df1305a ("arm64/kexec: Add core kexec support")
+Cc: <stable@vger.kernel.org> # 4.8.x-
+
+and we'll change these functions/helpers going forward for arm64.
+
+Happy to pick this up via the arm64 for-next/fixes branch.
+
+-- 
+Catalin
