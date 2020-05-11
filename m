@@ -1,124 +1,63 @@
-Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:47144 "EHLO foss.arm.com"
+Return-Path: <SRS0=Roe3=6Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:38788 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727792AbgEMNx1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 May 2020 09:53:27 -0400
-Date: Wed, 13 May 2020 14:53:24 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 10/14] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for
- SPECULATION_CTRL prctls
-Message-ID: <20200513135323.GO21779@arm.com>
-References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
- <1589301419-24459-11-git-send-email-Dave.Martin@arm.com>
- <bd548916-11c8-a53f-67b5-876c79088258@gmail.com>
- <20200513114915.GL21779@arm.com>
- <604879eb-1c7e-d08b-a6b8-165e4259b60c@gmail.com>
+        id S1726173AbgEKPgp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 11 May 2020 11:36:45 -0400
+Received: from mail-wr1-f53.google.com (mail-wr1-f53.google.com [209.85.221.53])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 213BB20746
+        for <linux-arch@vger.kernel.org>; Mon, 11 May 2020 15:36:45 +0000 (UTC)
+Received: by mail-wr1-f53.google.com with SMTP id x17so11560538wrt.5
+        for <linux-arch@vger.kernel.org>; Mon, 11 May 2020 08:36:45 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <604879eb-1c7e-d08b-a6b8-165e4259b60c@gmail.com>
+References: <20200508144043.13893-1-joro@8bytes.org> <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
+ <20200508213609.GU8135@suse.de> <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
+ <20200509175217.GV8135@suse.de> <CALCETrVU-+G3K5ABBRSEMiwnskL4mZsVcoTESZXnu34J7TaOqw@mail.gmail.com>
+ <20200511074243.GE2957@hirez.programming.kicks-ass.net>
+In-Reply-To: <20200511074243.GE2957@hirez.programming.kicks-ass.net>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Mon, 11 May 2020 08:36:31 -0700
+Message-ID: <CALCETrVyoAXXOqm8cYs+31fjWK8mcnKR+wM0_HeJx9=bOaZC6Q@mail.gmail.com>
+Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20200513135324.V9lreSdq8nLbQjRosktFxvZhhbK1_PKQRC5Z-uHcV1I@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Andy Lutomirski <luto@kernel.org>, Joerg Roedel <jroedel@suse.de>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+Message-ID: <20200511153631.9O3top9ZGaxAv3D2hRzelq9kcyuXdQ2c7UYYcZybKXQ@z>
 
-On Wed, May 13, 2020 at 02:06:38PM +0200, Michael Kerrisk (man-pages) wrote:
-> On 5/13/20 1:49 PM, Dave Martin wrote:
-> > On Wed, May 13, 2020 at 01:21:12PM +0200, Michael Kerrisk (man-pages) wrote:
-> >> Hello Dave,
-> >>
-> >> On 5/12/20 6:36 PM, Dave Martin wrote:
-> >>> Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
-> >>> for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
-> >>>
-> >>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> >>> Cc: Tim Chen <tim.c.chen@linux.intel.com>
-> >>> Cc: Thomas Gleixner <tglx@linutronix.de>
-> >>
-> >> Thanks. Patch applied, but not yet pushed while I wait to see if any
-> >> Review/Ack arrives.
-> >>
-> >> Also, could you please check the tweaks I note below.
-> >>
-> >>> ---
-> >>>  man2/prctl.2 | 24 ++++++++++++++++++------
-> >>>  1 file changed, 18 insertions(+), 6 deletions(-)
-> >>>
-> >>> diff --git a/man2/prctl.2 b/man2/prctl.2
-> >>> index e8eaf95..66417cf 100644
-> >>> --- a/man2/prctl.2
-> >>> +++ b/man2/prctl.2
-> >>> @@ -1213,11 +1213,20 @@ arguments must be specified as 0; otherwise the call fails with the error
-> >>>  .\" commit 356e4bfff2c5489e016fdb925adbf12a1e3950ee
-> >>>  Sets the state of the speculation misfeature specified in
-> >>>  .IR arg2 .
-> >>> -Currently, the only permitted value for this argument is
-> >>> +Currently, this argument must be one of:
-> >>> +.RS
-> >>> +.TP
-> >>>  .B PR_SPEC_STORE_BYPASS
-> >>> -(otherwise the call fails with the error
-> >>> +speculative store bypass control, or
-> >>
-> >> s/speculative/enable speculative/
-> >>
-> >>> +.\" commit 9137bb27e60e554dab694eafa4cca241fa3a694f
-> >>> +.TP
-> >>> +.BR PR_SPEC_INDIRECT_BRANCH " (since Linux 4.20)"
-> >>> +indirect branch speculation control.
-> >>
-> >> s/indirect/enable indirect/
-> > 
-> > That doesn't seem quite right.
-> 
-> My goof, not looking at the bigger context of the patch.
-> 
-> > 
-> > arg2 just identifies what behaviour to configure.
-> > It's arg3 that says whether to disable / enable it or whatever.
-> > 
-> > 
-> > While editing this I did wonder whether the "control" was helpful.
-> > Maybe just dropping that word from these entries would help.
-> 
-> Okay I tried to fix things, and made also some other edits.
-> How does the following look to you?
-> 
->       PR_SET_SPECULATION_CTRL (since Linux 4.17)
->               Sets the state of the speculation misfeature  specified  in
->               arg2.   The  speculation-misfeature settings are per-thread
->               attributes.
-> 
->               Currently, arg2 must be one of:
-> 
->               PR_SPEC_STORE_BYPASS
->                      Set the state of the speculative store  bypass  mis‐
->                      feature.
-> 
->               PR_SPEC_INDIRECT_BRANCH (since Linux 4.20)
->                      Set  the  state  of  the indirect branch speculation
->                      misfeature.
-> 
->               If arg2 does not have one of the  above  values,  then  the
->               call fails with the error ENODEV.
-> 
->               The  arg3  argument  is  used to hand in the control value,
->               which is one of the following:
-> 
->               ...
+On Mon, May 11, 2020 at 12:42 AM Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> On Sat, May 09, 2020 at 12:05:29PM -0700, Andy Lutomirski wrote:
+>
+> > On x86_64, the only real advantage is that the handful of corner cases
+> > that make vmalloc faults unpleasant (mostly relating to vmap stacks)
+> > go away.  On x86_32, a bunch of mind-bending stuff (everything your
+> > series deletes but also almost everything your series *adds*) goes
+> > away.  There may be a genuine tiny performance hit on 2-level systems
+> > due to the loss of huge pages in vmalloc space, but I'm not sure I
+> > care or that we use them anyway on these systems.  And PeterZ can stop
+> > even thinking about RCU.
+> >
+> > Am I making sense?
+>
+> I think it'll work for x86_64 and that is really all I care about :-)
 
-Look OK to me.
+Sadly, I think that Joerg has convinced my that this doesn't really
+work for 32-bit unless we rework the LDT code or drop support for
+something that we might not want to drop support for.  So, last try --
+maybe we can start defeaturing 32-bit:
 
-I thought it sounded odd to "set the state" of a silicon bug, but that
-was a bogus concern.
+What if we make 32-bit PTI depend on PAE?  And drop 32-bit Xen PV
+support?  And make 32-bit huge pages depend on PAE?  Then 32-bit
+non-PAE can use the direct-mapped LDT, 32-bit PTI (and optionally PAE
+non-PTI) can use the evil virtually mapped LDT.  And 32-bit non-PAE
+(the 2-level case) will only have pointers to page tables at the top
+level.  And then we can preallocate.
 
-This isn't about bugs, but intentional, often configurable behaviours in
-the silicon that happen to have harmful side effects.
+Or maybe we don't want to defeature this much, or maybe the memory hit
+from this preallocation will hurt little 2-level 32-bit systems too
+much.
 
-It could be more terse to say "configure" instead of "set the state of",
-but either way works for me.
-
-Cheers
----Dave
+(Xen 32-bit PV support seems to be on its way out upstream.)
