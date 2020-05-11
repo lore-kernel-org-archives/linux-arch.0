@@ -1,112 +1,105 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH V3 2/3] mm/hugetlb: Define a generic fallback for
- is_hugepage_only_range()
-Date: Mon, 11 May 2020 08:44:39 +0530
-Message-ID: <c21ab871-da06-baf6-ba31-80b13402b8c9@arm.com>
-References: <1588907271-11920-1-git-send-email-anshuman.khandual@arm.com>
- <1588907271-11920-3-git-send-email-anshuman.khandual@arm.com>
- <9fc622e1-45ff-b79f-ebe0-35614837456c@oracle.com>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: Re: [PATCH v4 02/14] arm: add support for folded p4d page tables
+Date: Mon, 11 May 2020 08:36:41 +0200
+Message-ID: <665dade8-727a-3318-6779-3998080da18f@samsung.com>
+References: <20200414153455.21744-1-rppt@kernel.org>
+        <20200414153455.21744-3-rppt@kernel.org>
+        <CGME20200507121658eucas1p240cf4a3e0fe5c22dda5ec4f72734149f@eucas1p2.samsung.com>
+        <39ba8a04-d6b5-649d-c289-0c8b27cb66c5@samsung.com>
+        <20200507161155.GE683243@linux.ibm.com>
+        <98229ab1-fbf8-0a89-c5d6-270c828799e7@samsung.com>
+        <20200508174232.GA759899@linux.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <9fc622e1-45ff-b79f-ebe0-35614837456c@oracle.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailout1.w1.samsung.com ([210.118.77.11]:43674 "EHLO
+        mailout1.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725863AbgEKGgm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2020 02:36:42 -0400
+In-Reply-To: <20200508174232.GA759899@linux.ibm.com>
 Content-Language: en-US
-Sender: linux-ia64-owner@vger.kernel.org
-To: Mike Kravetz <mike.kravetz@oracle.com>, linux-mm@kvack.org, akpm@linux-foundation.org
-Cc: Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davem>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Mike Rapoport <rppt@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, Geert Uytterhoeven <geert+renesas@glider.be>, linux-sh@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, linux-hexagon@vger.kernel.org, Will Deacon <will@kernel.org>, kvmarm@lists.cs.columbia.edu, Jonas Bonn <jonas@southpole.se>, linux-arch@vger.kernel.org, Brian Cain <bcain@codeaurora.org>, Marc Zyngier <maz@kernel.org>, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@intel.com>, Catalin Marinas <catalin.marinas@arm.com>, uclinux-h8-devel@lists.sourceforge.jp, Fenghua Yu <fenghua.yu@intel.com>, Arnd Bergmann <arnd@arndb.de>, kvm-ppc@vge
 
+Hi Mike,
 
-
-On 05/09/2020 03:52 AM, Mike Kravetz wrote:
-> On 5/7/20 8:07 PM, Anshuman Khandual wrote:
->> There are multiple similar definitions for is_hugepage_only_range() on
->> various platforms. Lets just add it's generic fallback definition for
->> platforms that do not override. This help reduce code duplication.
+On 08.05.2020 19:42, Mike Rapoport wrote:
+> On Fri, May 08, 2020 at 08:53:27AM +0200, Marek Szyprowski wrote:
+>> On 07.05.2020 18:11, Mike Rapoport wrote:
+>>> On Thu, May 07, 2020 at 02:16:56PM +0200, Marek Szyprowski wrote:
+>>>> On 14.04.2020 17:34, Mike Rapoport wrote:
+>>>>> From: Mike Rapoport <rppt@linux.ibm.com>
+>>>>>
+>>>>> Implement primitives necessary for the 4th level folding, add walks of p4d
+>>>>> level where appropriate, and remove __ARCH_USE_5LEVEL_HACK.
+>>>>>
+>>>>> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+>>>> Today I've noticed that kexec is broken on ARM 32bit. Bisecting between
+>>>> current linux-next and v5.7-rc1 pointed to this commit. I've tested this
+>>>> on Odroid XU4 and Raspberry Pi4 boards. Here is the relevant log:
+>>>>
+>>>> # kexec --kexec-syscall -l zImage --append "$(cat /proc/cmdline)"
+>>>> memory_range[0]:0x40000000..0xbe9fffff
+>>>> memory_range[0]:0x40000000..0xbe9fffff
+>>>> # kexec -e
+>>>> kexec_core: Starting new kernel
+>>>> 8<--- cut here ---
+>>>> Unable to handle kernel paging request at virtual address c010f1f4
+>>>> pgd = c6817793
+>>>> [c010f1f4] *pgd=4000041e(bad)
+>>>> Internal error: Oops: 80d [#1] PREEMPT ARM
+>>>> Modules linked in:
+>>>> CPU: 0 PID: 1329 Comm: kexec Tainted: G        W
+>>>> 5.7.0-rc3-00127-g6cba81ed0f62 #611
+>>>> Hardware name: Samsung Exynos (Flattened Device Tree)
+>>>> PC is at machine_kexec+0x40/0xfc
+>>> Any chance you have the debug info in this kernel?
+>>> scripts/faddr2line would come handy here.
+>> # ./scripts/faddr2line --list vmlinux machine_kexec+0x40
+>> machine_kexec+0x40/0xf8:
 >>
->> Cc: Russell King <linux@armlinux.org.uk>
->> Cc: Catalin Marinas <catalin.marinas@arm.com>
->> Cc: Will Deacon <will@kernel.org>
->> Cc: Tony Luck <tony.luck@intel.com>
->> Cc: Fenghua Yu <fenghua.yu@intel.com>
->> Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
->> Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
->> Cc: Helge Deller <deller@gmx.de>
->> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
->> Cc: Paul Mackerras <paulus@samba.org>
->> Cc: Michael Ellerman <mpe@ellerman.id.au>
->> Cc: Paul Walmsley <paul.walmsley@sifive.com>
->> Cc: Palmer Dabbelt <palmer@dabbelt.com>
->> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
->> Cc: Vasily Gorbik <gor@linux.ibm.com>
->> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
->> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
->> Cc: Rich Felker <dalias@libc.org>
->> Cc: "David S. Miller" <davem@davemloft.net>
->> Cc: Thomas Gleixner <tglx@linutronix.de>
->> Cc: Ingo Molnar <mingo@redhat.com>
->> Cc: Borislav Petkov <bp@alien8.de>
->> Cc: "H. Peter Anvin" <hpa@zytor.com>
->> Cc: Mike Kravetz <mike.kravetz@oracle.com>
->> Cc: Andrew Morton <akpm@linux-foundation.org>
->> Cc: x86@kernel.org
->> Cc: linux-arm-kernel@lists.infradead.org
->> Cc: linux-ia64@vger.kernel.org
->> Cc: linux-mips@vger.kernel.org
->> Cc: linux-parisc@vger.kernel.org
->> Cc: linuxppc-dev@lists.ozlabs.org
->> Cc: linux-riscv@lists.infradead.org
->> Cc: linux-s390@vger.kernel.org
->> Cc: linux-sh@vger.kernel.org
->> Cc: sparclinux@vger.kernel.org
->> Cc: linux-mm@kvack.org
->> Cc: linux-arch@vger.kernel.org
->> Cc: linux-kernel@vger.kernel.org
->> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
->> ---
->>  arch/arm/include/asm/hugetlb.h     | 6 ------
->>  arch/arm64/include/asm/hugetlb.h   | 6 ------
->>  arch/ia64/include/asm/hugetlb.h    | 1 +
->>  arch/mips/include/asm/hugetlb.h    | 7 -------
->>  arch/parisc/include/asm/hugetlb.h  | 6 ------
->>  arch/powerpc/include/asm/hugetlb.h | 1 +
->>  arch/riscv/include/asm/hugetlb.h   | 6 ------
->>  arch/s390/include/asm/hugetlb.h    | 7 -------
->>  arch/sh/include/asm/hugetlb.h      | 6 ------
->>  arch/sparc/include/asm/hugetlb.h   | 6 ------
->>  arch/x86/include/asm/hugetlb.h     | 6 ------
->>  include/linux/hugetlb.h            | 9 +++++++++
->>  12 files changed, 11 insertions(+), 56 deletions(-)
->>
-> <snip>
->> diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
->> index 43a1cef8f0f1..c01c0c6f7fd4 100644
->> --- a/include/linux/hugetlb.h
->> +++ b/include/linux/hugetlb.h
->> @@ -591,6 +591,15 @@ static inline unsigned int blocks_per_huge_page(struct hstate *h)
->>  
->>  #include <asm/hugetlb.h>
->>  
->> +#ifndef is_hugepage_only_range
->> +static inline int is_hugepage_only_range(struct mm_struct *mm,
->> +					unsigned long addr, unsigned long len)
->> +{
->> +	return 0;
->> +}
->> +#define is_hugepage_only_range is_hugepage_only_range
->> +#endif
->> +
->>  #ifndef arch_make_huge_pte
->>  static inline pte_t arch_make_huge_pte(pte_t entry, struct vm_area_struct *vma,
->>  				       struct page *page, int writable)
->>
-> 
-> Did you try building without CONFIG_HUGETLB_PAGE defined?  I'm guessing
+>> machine_kexec at arch/arm/kernel/machine_kexec.c:182
+>>    177            reboot_code_buffer =
+>> page_address(image->control_code_page);
+>>    178
+>>    179            /* Prepare parameters for reboot_code_buffer*/
+>>    180            set_kernel_text_rw();
+>>    181            kexec_start_address = image->start;
+>>   >182<           kexec_indirection_page = page_list;
+>>    183            kexec_mach_type = machine_arch_type;
+>>    184            kexec_boot_atags = image->arch.kernel_r2;
+>>    185
+>>    186            /* copy our kernel relocation code to the control code
+>> page */
+>>    187            reboot_entry = fncpy(reboot_code_buffer,
+> Can you please try the patch below:
+>
+> diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
+> index 963b5284d284..f86b3d17928e 100644
+> --- a/arch/arm/mm/init.c
+> +++ b/arch/arm/mm/init.c
+> @@ -571,7 +571,7 @@ static inline void section_update(unsigned long addr, pmdval_t mask,
+>   {
+>   	pmd_t *pmd;
+>   
+> -	pmd = pmd_off_k(addr);
+> +	pmd = pmd_offset(pud_offset(p4d_offset(pgd_offset(mm, addr), addr), addr), addr);
+>   
+>   #ifdef CONFIG_ARM_LPAE
+>   	pmd[0] = __pmd((pmd_val(pmd[0]) & mask) | prot);
+This fixes kexec issue! Thanks!
 
-Yes I did for multiple platforms (s390, arm64, ia64, x86, powerpc etc).
 
-> that you need a stub for is_hugepage_only_range().  Or, perhaps add this
-> to asm-generic/hugetlb.h?
-> 
-There is already a stub (include/linux/hugetlb.h) when !CONFIG_HUGETLB_PAGE.
+Feel free to add:
+
+Reported-by: Marek Szyprowski <m.szyprowski@samsung.com>
+Fixes: 218f1c390557 ("arm: add support for folded p4d page tables")
+Tested-by: Marek Szyprowski <m.szyprowski@samsung.com>
+
+Best regards
+-- 
+Marek Szyprowski, PhD
+Samsung R&D Institute Poland
