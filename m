@@ -1,50 +1,79 @@
-Return-Path: <SRS0=eh2/=6Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38438 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729361AbgEJH45 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2020 03:56:57 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 30/31] nommu: use flush_icache_user_range in brk and mmap
-Date: Sun, 10 May 2020 09:55:09 +0200
-Message-ID: <20200510075510.987823-31-hch@lst.de>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-References: <20200510075510.987823-1-hch@lst.de>
+Return-Path: <SRS0=Roe3=6Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga05-in.huawei.com ([45.249.212.191]:4330 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1729478AbgEKMlh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 11 May 2020 08:41:37 -0400
+Subject: Re: [PATCH v2 0/6] arm64: tlb: add support for TTL feature
+References: <20200423135656.2712-1-yezhenyu2@huawei.com>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Message-ID: <6c59eae9-3a77-ef18-fac4-aa21e97fd1f0@huawei.com>
+Date: Mon, 11 May 2020 20:41:24 +0800
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20200423135656.2712-1-yezhenyu2@huawei.com>
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200510075509.c92EcQI_EatPIi_66m9CRc6GQPiDerPkPGv-yoFIDfw@z>
+To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Message-ID: <20200511124124.K32Y4DcIUnu7jx8MqLf4pih8CE1CXtTFdKe9KXAPi5c@z>
 
-These obviously operate on user addresses.
+Hi all,
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- mm/nommu.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+How is this going about this patch series? Does anyone have any
+suggestions?
 
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 318df4e236c99..aed7acaed2383 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -443,7 +443,7 @@ SYSCALL_DEFINE1(brk, unsigned long, brk)
- 	/*
- 	 * Ok, looks good - let it rip.
- 	 */
--	flush_icache_range(mm->brk, brk);
-+	flush_icache_user_range(mm->brk, brk);
- 	return mm->brk = brk;
- }
- 
-@@ -1287,7 +1287,7 @@ unsigned long do_mmap(struct file *file,
- 	/* we flush the region from the icache only when the first executable
- 	 * mapping of it is made  */
- 	if (vma->vm_flags & VM_EXEC && !region->vm_icache_flushed) {
--		flush_icache_range(region->vm_start, region->vm_end);
-+		flush_icache_user_range(region->vm_start, region->vm_end);
- 		region->vm_icache_flushed = true;
- 	}
- 
--- 
-2.26.2
+Thanks,
+Zhenyu
+
+On 2020/4/23 21:56, Zhenyu Ye wrote:
+> In order to reduce the cost of TLB invalidation, ARMv8.4 provides
+> the TTL field in TLBI instruction.  The TTL field indicates the
+> level of page table walk holding the leaf entry for the address
+> being invalidated.  This series provide support for this feature.
+> 
+> When ARMv8.4-TTL is implemented, the operand for TLBIs looks like
+> below:
+> 
+> * +----------+-------+----------------------+
+> * |   ASID   |  TTL  |        BADDR         |
+> * +----------+-------+----------------------+
+> * |63      48|47   44|43                   0|
+> 
+> 
+> This version updates some codes implementation according to Peter's
+> suggestion, and adds some commit msg.
+> 
+> See patches for details, Thanks.
+> 
+> 
+> --
+> ChangeList:
+> v2:
+> rebase series on Linux 5.7-rc1 and simplify the code implementation.
+> 
+> v1:
+> add support for TTL feature in arm64.
+> 
+> Marc Zyngier (2):
+>   arm64: Detect the ARMv8.4 TTL feature
+>   arm64: Add level-hinted TLB invalidation helper
+> 
+> Peter Zijlstra (Intel) (1):
+>   tlb: mmu_gather: add tlb_flush_*_range APIs
+> 
+> Zhenyu Ye (3):
+>   arm64: Add tlbi_user_level TLB invalidation helper
+>   mm: tlb: Provide flush_*_tlb_range wrappers
+>   arm64: tlb: Set the TTL field in flush_tlb_range
+> 
+>  arch/arm64/include/asm/cpucaps.h  |  3 +-
+>  arch/arm64/include/asm/sysreg.h   |  1 +
+>  arch/arm64/include/asm/tlb.h      | 29 +++++++++++++++-
+>  arch/arm64/include/asm/tlbflush.h | 54 +++++++++++++++++++++++++-----
+>  arch/arm64/kernel/cpufeature.c    | 11 +++++++
+>  include/asm-generic/pgtable.h     | 12 +++++--
+>  include/asm-generic/tlb.h         | 55 ++++++++++++++++++++++---------
+>  mm/pgtable-generic.c              | 22 +++++++++++++
+>  8 files changed, 160 insertions(+), 27 deletions(-)
+> 
