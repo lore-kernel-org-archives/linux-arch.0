@@ -1,74 +1,87 @@
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: Re: [PATCH v2 0/6] arm64: tlb: add support for TTL feature
-Date: Mon, 11 May 2020 20:41:24 +0800
-Message-ID: <6c59eae9-3a77-ef18-fac4-aa21e97fd1f0@huawei.com>
-References: <20200423135656.2712-1-yezhenyu2@huawei.com>
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: Re: [PATCH v4 02/14] arm: add support for folded p4d page tables
+Date: Mon, 11 May 2020 17:15:36 +0300
+Message-ID: <20200511141536.GB983798@linux.ibm.com>
+References: <20200414153455.21744-1-rppt@kernel.org>
+ <20200414153455.21744-3-rppt@kernel.org>
+ <CGME20200507121658eucas1p240cf4a3e0fe5c22dda5ec4f72734149f@eucas1p2.samsung.com>
+ <39ba8a04-d6b5-649d-c289-0c8b27cb66c5@samsung.com>
+ <20200507161155.GE683243@linux.ibm.com>
+ <98229ab1-fbf8-0a89-c5d6-270c828799e7@samsung.com>
+ <20200508174232.GA759899@linux.ibm.com>
+ <665dade8-727a-3318-6779-3998080da18f@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="gbk"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200423135656.2712-1-yezhenyu2@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, catalin.marinas@arm.com, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+Content-Disposition: inline
+In-Reply-To: <665dade8-727a-3318-6779-3998080da18f@samsung.com>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
+To: Marek Szyprowski <m.szyprowski@samsung.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, Geert Uytterhoeven <geert+renesas@glider.be>, Fenghua Yu <fenghua.yu@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will@kernel.org>, kvmarm@lists.cs.columbia.edu, Jonas Bonn <jonas@southpole.se>, Brian Cain <bcain@codeaurora.org>, linux-hexagon@vger.kernel.org, linux-sh@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@intel.com>, Catalin Marinas <catalin.marinas@arm.com>, uclinux-h8-devel@lists.sourceforge.jp, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, =?utf-8?Q?=C5=81ukasz?= Stelmach <l.stelmach@samsung.com>, kvm-ppc@vger.kernel.org, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
 List-Id: linux-arch.vger.kernel.org
 
-Hi all,
+Hi Marek,
 
-How is this going about this patch series? Does anyone have any
-suggestions?
+On Mon, May 11, 2020 at 08:36:41AM +0200, Marek Szyprowski wrote:
+> Hi Mike,
+> 
+> On 08.05.2020 19:42, Mike Rapoport wrote:
+> > On Fri, May 08, 2020 at 08:53:27AM +0200, Marek Szyprowski wrote:
+> >> On 07.05.2020 18:11, Mike Rapoport wrote:
+> >>> On Thu, May 07, 2020 at 02:16:56PM +0200, Marek Szyprowski wrote:
+> >>>> On 14.04.2020 17:34, Mike Rapoport wrote:
+> >>>>> From: Mike Rapoport <rppt@linux.ibm.com>
+> >>>>>
+> >>>>> Implement primitives necessary for the 4th level folding, add walks of p4d
+> >>>>> level where appropriate, and remove __ARCH_USE_5LEVEL_HACK.
+> >>>>>
+> >>>>> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> > Can you please try the patch below:
+> >
+> > diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
+> > index 963b5284d284..f86b3d17928e 100644
+> > --- a/arch/arm/mm/init.c
+> > +++ b/arch/arm/mm/init.c
+> > @@ -571,7 +571,7 @@ static inline void section_update(unsigned long addr, pmdval_t mask,
+> >   {
+> >   	pmd_t *pmd;
+> >   
+> > -	pmd = pmd_off_k(addr);
+> > +	pmd = pmd_offset(pud_offset(p4d_offset(pgd_offset(mm, addr), addr), addr), addr);
+> >   
+> >   #ifdef CONFIG_ARM_LPAE
+> >   	pmd[0] = __pmd((pmd_val(pmd[0]) & mask) | prot);
+> This fixes kexec issue! Thanks!
+> 
+> 
+> Feel free to add:
+> 
+> Reported-by: Marek Szyprowski <m.szyprowski@samsung.com>
+> Fixes: 218f1c390557 ("arm: add support for folded p4d page tables")
+> Tested-by: Marek Szyprowski <m.szyprowski@samsung.com>
 
-Thanks,
-Zhenyu
+Thanks for testing!
 
-On 2020/4/23 21:56, Zhenyu Ye wrote:
-> In order to reduce the cost of TLB invalidation, ARMv8.4 provides
-> the TTL field in TLBI instruction.  The TTL field indicates the
-> level of page table walk holding the leaf entry for the address
-> being invalidated.  This series provide support for this feature.
+The patch is still in mmotm tree, so I don't think "Fixes" apply.
+
+Andrew, would you like me to send the fix as a formal patch or will pick
+it up as a fixup?
+
+> Best regards
+> -- 
+> Marek Szyprowski, PhD
+> Samsung R&D Institute Poland
 > 
-> When ARMv8.4-TTL is implemented, the operand for TLBIs looks like
-> below:
-> 
-> * +----------+-------+----------------------+
-> * |   ASID   |  TTL  |        BADDR         |
-> * +----------+-------+----------------------+
-> * |63      48|47   44|43                   0|
-> 
-> 
-> This version updates some codes implementation according to Peter's
-> suggestion, and adds some commit msg.
-> 
-> See patches for details, Thanks.
-> 
-> 
-> --
-> ChangeList:
-> v2:
-> rebase series on Linux 5.7-rc1 and simplify the code implementation.
-> 
-> v1:
-> add support for TTL feature in arm64.
-> 
-> Marc Zyngier (2):
->   arm64: Detect the ARMv8.4 TTL feature
->   arm64: Add level-hinted TLB invalidation helper
-> 
-> Peter Zijlstra (Intel) (1):
->   tlb: mmu_gather: add tlb_flush_*_range APIs
-> 
-> Zhenyu Ye (3):
->   arm64: Add tlbi_user_level TLB invalidation helper
->   mm: tlb: Provide flush_*_tlb_range wrappers
->   arm64: tlb: Set the TTL field in flush_tlb_range
-> 
->  arch/arm64/include/asm/cpucaps.h  |  3 +-
->  arch/arm64/include/asm/sysreg.h   |  1 +
->  arch/arm64/include/asm/tlb.h      | 29 +++++++++++++++-
->  arch/arm64/include/asm/tlbflush.h | 54 +++++++++++++++++++++++++-----
->  arch/arm64/kernel/cpufeature.c    | 11 +++++++
->  include/asm-generic/pgtable.h     | 12 +++++--
->  include/asm-generic/tlb.h         | 55 ++++++++++++++++++++++---------
->  mm/pgtable-generic.c              | 22 +++++++++++++
->  8 files changed, 160 insertions(+), 27 deletions(-)
-> 
+
+-- 
+Sincerely yours,
+Mike.
