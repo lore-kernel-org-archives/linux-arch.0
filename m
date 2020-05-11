@@ -1,30 +1,24 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 21/31] mm: rename flush_icache_user_range to flush_icache_user_page
-Date: Mon, 11 May 2020 09:36:05 +0200
-Message-ID: <CAMuHMdXS-ygT01KfhS0y9WcYbi9HKdQL7Q1HXgUZdayzQb_qSA@mail.gmail.com>
-References: <20200510075510.987823-1-hch@lst.de> <20200510075510.987823-22-hch@lst.de>
+Subject: Re: [PATCH 26/31] m68k: implement flush_icache_user_range
+Date: Mon, 11 May 2020 09:38:25 +0200
+Message-ID: <CAMuHMdUTAA_mkS-KY70ykr-n-UJxfqM09EYcVQVKA4+FSkC1Og@mail.gmail.com>
+References: <20200510075510.987823-1-hch@lst.de> <20200510075510.987823-27-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f66.google.com ([209.85.210.66]:43167 "EHLO
-        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725790AbgEKHgS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2020 03:36:18 -0400
-In-Reply-To: <20200510075510.987823-22-hch@lst.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <20200510075510.987823-27-hch@lst.de>
+Sender: linux-alpha-owner@vger.kernel.org
 To: Christoph Hellwig <hch@lst.de>
 Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, the arch/x86 maintainers <x86@kernel.org>, alpha <linux-alpha@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Openrisc <openrisc@lists.librecores.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-riscv@lists.infradead.orgLinux-sh list <linu>
+List-Id: linux-arch.vger.kernel.org
 
 On Sun, May 10, 2020 at 9:57 AM Christoph Hellwig <hch@lst.de> wrote:
-> The function currently known as flush_icache_user_range only operates
-> on a single page.  Rename it to flush_icache_user_page as we'll need
-> the name flush_icache_user_range for something else soon.
+> Rename the current flush_icache_range to flush_icache_user_range as
+> per commit ae92ef8a4424 ("PATCH] flush icache in correct context") there
+> seems to be an assumption that it operates on user addresses.  Add a
+> flush_icache_range around it that for now is a no-op.
 >
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
-
->  arch/m68k/include/asm/cacheflush_mm.h  |  4 ++--
->  arch/m68k/mm/cache.c                   |  2 +-
 
 Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
