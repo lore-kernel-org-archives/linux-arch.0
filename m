@@ -1,78 +1,37 @@
-From: Mike Kravetz <mike.kravetz@oracle.com>
-Subject: Re: [PATCH V3 3/3] mm/hugetlb: Define a generic fallback for
- arch_clear_hugepage_flags()
-Date: Mon, 11 May 2020 13:22:50 -0700
-Message-ID: <cbccae27-ff79-5580-80be-0a9493d063ba@oracle.com>
-References: <1588907271-11920-1-git-send-email-anshuman.khandual@arm.com>
- <1588907271-11920-4-git-send-email-anshuman.khandual@arm.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Date: Mon, 11 May 2020 16:50:45 -0400
+Message-ID: <20200511165045.36198080@gandalf.local.home>
+References: <20200508144043.13893-1-joro@8bytes.org>
+        <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
+        <20200508213609.GU8135@suse.de>
+        <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
+        <20200509175217.GV8135@suse.de>
+        <CALCETrVU-+G3K5ABBRSEMiwnskL4mZsVcoTESZXnu34J7TaOqw@mail.gmail.com>
+        <20200511074243.GE2957@hirez.programming.kicks-ass.net>
+        <CALCETrVyoAXXOqm8cYs+31fjWK8mcnKR+wM0_HeJx9=bOaZC6Q@mail.gmail.com>
+        <20200511191414.GY8135@suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <1588907271-11920-4-git-send-email-anshuman.khandual@arm.com>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org, akpm@linux-foundation.org
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-kernel@vger.kernel.org, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Fenghua Yu <fenghua.yu@intel.com>, Vasily Gorbik <gor@linux.ibm.com>, Thomas Bogendoerfer <tsbogend@a>
+Return-path: <linux-acpi-owner@vger.kernel.org>
+In-Reply-To: <20200511191414.GY8135@suse.de>
+Sender: linux-acpi-owner@vger.kernel.org
+To: Joerg Roedel <jroedel@suse.de>
+Cc: Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 5/7/20 8:07 PM, Anshuman Khandual wrote:
-> There are multiple similar definitions for arch_clear_hugepage_flags() on
-> various platforms. Lets just add it's generic fallback definition for
-> platforms that do not override. This help reduce code duplication.
+On Mon, 11 May 2020 21:14:14 +0200
+Joerg Roedel <jroedel@suse.de> wrote:
+
+> > Or maybe we don't want to defeature this much, or maybe the memory hit
+> > from this preallocation will hurt little 2-level 32-bit systems too
+> > much.  
 > 
-> Cc: Russell King <linux@armlinux.org.uk>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: Tony Luck <tony.luck@intel.com>
-> Cc: Fenghua Yu <fenghua.yu@intel.com>
-> Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-> Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
-> Cc: Helge Deller <deller@gmx.de>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Cc: Paul Walmsley <paul.walmsley@sifive.com>
-> Cc: Palmer Dabbelt <palmer@dabbelt.com>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Cc: Vasily Gorbik <gor@linux.ibm.com>
-> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-> Cc: Rich Felker <dalias@libc.org>
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Borislav Petkov <bp@alien8.de>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: Mike Kravetz <mike.kravetz@oracle.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: x86@kernel.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: linux-ia64@vger.kernel.org
-> Cc: linux-mips@vger.kernel.org
-> Cc: linux-parisc@vger.kernel.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: linux-riscv@lists.infradead.org
-> Cc: linux-s390@vger.kernel.org
-> Cc: linux-sh@vger.kernel.org
-> Cc: sparclinux@vger.kernel.org
-> Cc: linux-mm@kvack.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
+> It will certainly make Linux less likely to boot on low-memory x86-32
+> systems, whoever will be affected by this.
 
-Thanks!
-Removing duplicate code is good.
+That may be an issue, as I'm guessing the biggest users of x86-32, is
+probably small systems that uses Intel's attempts at the embedded space.
 
-Acked-by: Mike Kravetz <mike.kravetz@oracle.com>
-
--- 
-Mike Kravetz
+-- Steve
