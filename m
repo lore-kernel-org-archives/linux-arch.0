@@ -1,212 +1,42 @@
-Return-Path: <SRS0=WvJP=62=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58184 "EHLO foss.arm.com"
+Return-Path: <SRS0=Roe3=6Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:34052 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726922AbgELQhu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 May 2020 12:37:50 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 05/14] prctl.2: tfix listing order of prctls
-Date: Tue, 12 May 2020 17:36:50 +0100
-Message-ID: <1589301419-24459-6-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
-References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+        id S1727873AbgEKUus (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 11 May 2020 16:50:48 -0400
+Date: Mon, 11 May 2020 16:50:45 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Message-ID: <20200511165045.36198080@gandalf.local.home>
+In-Reply-To: <20200511191414.GY8135@suse.de>
+References: <20200508144043.13893-1-joro@8bytes.org>
+        <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
+        <20200508213609.GU8135@suse.de>
+        <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
+        <20200509175217.GV8135@suse.de>
+        <CALCETrVU-+G3K5ABBRSEMiwnskL4mZsVcoTESZXnu34J7TaOqw@mail.gmail.com>
+        <20200511074243.GE2957@hirez.programming.kicks-ass.net>
+        <CALCETrVyoAXXOqm8cYs+31fjWK8mcnKR+wM0_HeJx9=bOaZC6Q@mail.gmail.com>
+        <20200511191414.GY8135@suse.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mtk.manpages@gmail.com
-Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200512163650.Jddwil_aNnHvG6FoZsO7U1hmP_UTPHXb-4qX2gQ6xyU@z>
+To: Joerg Roedel <jroedel@suse.de>
+Cc: Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+Message-ID: <20200511205045.cJmi3neS-Qv4hRTwYvT3VamnanIS6KUZh4yNMqEMQfg@z>
 
-The prctl list has historically been sorted by prctl name (ignoring
-any SET_ or GET_ prefix) to make individual prctls easier to find.
-Some noise seems to have crept in since.
+On Mon, 11 May 2020 21:14:14 +0200
+Joerg Roedel <jroedel@suse.de> wrote:
 
-Sort the list back into order.  Similarly, reorder the list of
-prctls specified to return non-zero values on success.
+> > Or maybe we don't want to defeature this much, or maybe the memory hit
+> > from this preallocation will hurt little 2-level 32-bit systems too
+> > much.  
+> 
+> It will certainly make Linux less likely to boot on low-memory x86-32
+> systems, whoever will be affected by this.
 
-Content movement only.  No semantic change.
+That may be an issue, as I'm guessing the biggest users of x86-32, is
+probably small systems that uses Intel's attempts at the embedded space.
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
----
- man2/prctl.2 | 138 +++++++++++++++++++++++++++++------------------------------
- 1 file changed, 69 insertions(+), 69 deletions(-)
-
-diff --git a/man2/prctl.2 b/man2/prctl.2
-index e5b2b4b..1611448 100644
---- a/man2/prctl.2
-+++ b/man2/prctl.2
-@@ -490,6 +490,52 @@ Pass \fBPR_FP_EXC_SW_ENABLE\fP to use FPEXC for FP exception enables,
- Return floating-point exception mode,
- in the location pointed to by
- .IR "(int\ *) arg2" .
-+.\" prctl PR_SET_IO_FLUSHER
-+.TP
-+.BR PR_SET_IO_FLUSHER " (since Linux 5.6)"
-+If a user process is involved in the block layer or filesystem I/O path,
-+and can allocate memory while processing I/O requests it must set
-+\fIarg2\fP to 1.
-+This will put the process in the IO_FLUSHER state,
-+which allows it special treatment to make progress when allocating memory.
-+If \fIarg2\fP is 0, the process will clear the IO_FLUSHER state, and
-+the default behavior will be used.
-+.IP
-+The calling process must have the
-+.BR CAP_SYS_RESOURCE
-+capability.
-+.IP
-+.IR arg3 ,
-+.IR arg4 ,
-+and
-+.IR arg5
-+must be zero.
-+.IP
-+The IO_FLUSHER state is inherited by a child process created via
-+.BR fork (2)
-+and is preserved across
-+.BR execve (2).
-+.IP
-+Examples of IO_FLUSHER applications are FUSE daemons, SCSI device
-+emulation daemons, and daemons that perform error handling like multipath
-+path recovery applications.
-+.\" prctl PR_GET_IO_FLUSHER
-+.TP
-+.B PR_GET_IO_FLUSHER (Since Linux 5.6)
-+Return (as the function result) the IO_FLUSHER state of the caller.
-+A value of 1 indicates that the caller is in the IO_FLUSHER state;
-+0 indicates that the caller is not in the IO_FLUSHER state.
-+.IP
-+The calling process must have the
-+.BR CAP_SYS_RESOURCE
-+capability.
-+.IP
-+.IR arg2 ,
-+.IR arg3 ,
-+.IR arg4 ,
-+and
-+.IR arg5
-+must be zero.
- .\" prctl PR_SET_KEEPCAPS
- .TP
- .BR PR_SET_KEEPCAPS " (since Linux 2.2.18)"
-@@ -1207,23 +1253,6 @@ call failing with the error
- .BR ENXIO .
- For further details, see the kernel source file
- .IR Documentation/admin-guide/kernel-parameters.txt .
--.\" prctl PR_SET_THP_DISABLE
--.TP
--.BR PR_SET_THP_DISABLE " (since Linux 3.15)"
--.\" commit a0715cc22601e8830ace98366c0c2bd8da52af52
--Set the state of the "THP disable" flag for the calling thread.
--If
--.I arg2
--has a nonzero value, the flag is set, otherwise it is cleared.
--Setting this flag provides a method
--for disabling transparent huge pages
--for jobs where the code cannot be modified, and using a malloc hook with
--.BR madvise (2)
--is not an option (i.e., statically allocated data).
--The setting of the "THP disable" flag is inherited by a child created via
--.BR fork (2)
--and is preserved across
--.BR execve (2).
- .\"
- .\" prctl PR_TASK_PERF_EVENTS_DISABLE
- .TP
-@@ -1256,6 +1285,23 @@ renamed
- .\" commit cdd6c482c9ff9c55475ee7392ec8f672eddb7be6
- in Linux 2.6.32.
- .\"
-+.\" prctl PR_SET_THP_DISABLE
-+.TP
-+.BR PR_SET_THP_DISABLE " (since Linux 3.15)"
-+.\" commit a0715cc22601e8830ace98366c0c2bd8da52af52
-+Set the state of the "THP disable" flag for the calling thread.
-+If
-+.I arg2
-+has a nonzero value, the flag is set, otherwise it is cleared.
-+Setting this flag provides a method
-+for disabling transparent huge pages
-+for jobs where the code cannot be modified, and using a malloc hook with
-+.BR madvise (2)
-+is not an option (i.e., statically allocated data).
-+The setting of the "THP disable" flag is inherited by a child created via
-+.BR fork (2)
-+and is preserved across
-+.BR execve (2).
- .\" prctl PR_GET_THP_DISABLE
- .TP
- .BR PR_GET_THP_DISABLE " (since Linux 3.15)"
-@@ -1438,67 +1484,21 @@ system call on Tru64).
- for information on versions and architectures.)
- Return unaligned access control bits, in the location pointed to by
- .IR "(unsigned int\ *) arg2" .
--.\" prctl PR_SET_IO_FLUSHER
--.TP
--.BR PR_SET_IO_FLUSHER " (since Linux 5.6)"
--If a user process is involved in the block layer or filesystem I/O path,
--and can allocate memory while processing I/O requests it must set
--\fIarg2\fP to 1.
--This will put the process in the IO_FLUSHER state,
--which allows it special treatment to make progress when allocating memory.
--If \fIarg2\fP is 0, the process will clear the IO_FLUSHER state, and
--the default behavior will be used.
--.IP
--The calling process must have the
--.BR CAP_SYS_RESOURCE
--capability.
--.IP
--.IR arg3 ,
--.IR arg4 ,
--and
--.IR arg5
--must be zero.
--.IP
--The IO_FLUSHER state is inherited by a child process created via
--.BR fork (2)
--and is preserved across
--.BR execve (2).
--.IP
--Examples of IO_FLUSHER applications are FUSE daemons, SCSI device
--emulation daemons, and daemons that perform error handling like multipath
--path recovery applications.
--.\" prctl PR_GET_IO_FLUSHER
--.TP
--.B PR_GET_IO_FLUSHER (Since Linux 5.6)
--Return (as the function result) the IO_FLUSHER state of the caller.
--A value of 1 indicates that the caller is in the IO_FLUSHER state;
--0 indicates that the caller is not in the IO_FLUSHER state.
--.IP
--The calling process must have the
--.BR CAP_SYS_RESOURCE
--capability.
--.IP
--.IR arg2 ,
--.IR arg3 ,
--.IR arg4 ,
--and
--.IR arg5
--must be zero.
- .SH RETURN VALUE
- On success,
-+.BR PR_CAP_AMBIENT + PR_CAP_AMBIENT_IS_SET ,
-+.BR PR_CAPBSET_READ ,
- .BR PR_GET_DUMPABLE ,
- .BR PR_GET_FP_MODE ,
-+.BR PR_GET_IO_FLUSHER ,
- .BR PR_GET_KEEPCAPS ,
-+.BR PR_MCE_KILL_GET ,
- .BR PR_GET_NO_NEW_PRIVS ,
-+.BR PR_GET_SECUREBITS ,
-+.BR PR_GET_SPECULATION_CTRL ,
- .BR PR_GET_THP_DISABLE ,
--.BR PR_CAPBSET_READ ,
- .BR PR_GET_TIMING ,
- .BR PR_GET_TIMERSLACK ,
--.BR PR_GET_SECUREBITS ,
--.BR PR_GET_SPECULATION_CTRL ,
--.BR PR_MCE_KILL_GET ,
--.BR PR_CAP_AMBIENT + PR_CAP_AMBIENT_IS_SET ,
--.BR PR_GET_IO_FLUSHER ,
- and (if it returns)
- .BR PR_GET_SECCOMP
- return the nonnegative values described above.
--- 
-2.1.4
+-- Steve
