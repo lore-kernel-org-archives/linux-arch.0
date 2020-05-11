@@ -1,34 +1,49 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: sort out the flush_icache_range mess
-Date: Mon, 11 May 2020 09:46:17 +0200
-Message-ID: <CAMuHMdXazsBw0mjJd0uFHQud7qbb5-Uw-PTDB3+-M=huRWOfgQ@mail.gmail.com>
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH 02/31] arm64: fix the flush_icache_range arguments in
+ machine_kexec
+Date: Mon, 11 May 2020 08:51:15 +0100
+Message-ID: <20200511075115.GA16134@willie-the-truck>
 References: <20200510075510.987823-1-hch@lst.de>
+ <20200510075510.987823-3-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
+Content-Disposition: inline
+In-Reply-To: <20200510075510.987823-3-hch@lst.de>
 Sender: linux-m68k-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Michal Simek <monstr@monstr.eu>, Jessica Yu <jeyu@kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, Linux-sh list <linux-sh@vger.kernel.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-um <linux-um@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, linux-m68k <linux-m68k@lists.linux-m68k.o>
+To: Christoph Hellwig <hch@lst.de>, james.morse@arm.com, catalin.marinas@arm.com
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christoph,
+[+James and Catalin]
 
-On Sun, May 10, 2020 at 9:55 AM Christoph Hellwig <hch@lst.de> wrote:
-> none of which really are used by a typical MMU enabled kernel, as a.out can
-> only be build for alpha and m68k to start with.
+On Sun, May 10, 2020 at 09:54:41AM +0200, Christoph Hellwig wrote:
+> The second argument is the end "pointer", not the length.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/arm64/kernel/machine_kexec.c | 1 +
+>  1 file changed, 1 insertion(+)
+> 
+> diff --git a/arch/arm64/kernel/machine_kexec.c b/arch/arm64/kernel/machine_kexec.c
+> index 8e9c924423b4e..a0b144cfaea71 100644
+> --- a/arch/arm64/kernel/machine_kexec.c
+> +++ b/arch/arm64/kernel/machine_kexec.c
+> @@ -177,6 +177,7 @@ void machine_kexec(struct kimage *kimage)
+>  	 * the offline CPUs. Therefore, we must use the __* variant here.
+>  	 */
+>  	__flush_icache_range((uintptr_t)reboot_code_buffer,
+> +			     (uintptr_t)reboot_code_buffer +
+>  			     arm64_relocate_new_kernel_size);
 
-Quoting myself:
-"I think it's safe to assume no one still runs a.out binaries on m68k."
-http://lore.kernel.org/r/CAMuHMdW+m0Q+j3rsQdMXnrEPm+XB5Y2AQrxW5sD1mZAKgmEqoA@mail.gmail.com
+Urgh, well spotted. It's annoyingly different from __flush_dcache_area().
 
-Gr{oetje,eeting}s,
+But now I'm wondering what this code actually does... the loop condition
+in invalidate_icache_by_line works with 64-bit arithmetic, so we could
+spend a /very/ long time here afaict. It's also a bit annoying that we
+do a bunch of redundant D-cache maintenance too.
 
-                        Geert
+Should we use invalidate_icache_range() here instead? (and why does that
+thing need to toggle uaccess)? Argh, too many questions!
 
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Will
