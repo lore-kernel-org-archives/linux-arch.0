@@ -1,84 +1,56 @@
-Return-Path: <SRS0=MIV2=7C=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:60208 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726826AbgETRIG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 20 May 2020 13:08:06 -0400
-Date: Wed, 20 May 2020 18:08:00 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH v3 2/2] arm64: tlb: Use the TLBI RANGE feature in
- arm64
-Message-ID: <20200520170759.GE18302@gaia>
-References: <20200414112835.1121-1-yezhenyu2@huawei.com>
- <20200414112835.1121-3-yezhenyu2@huawei.com>
- <20200514152840.GC1907@gaia>
- <54468aae-dbb1-66bd-c633-82fc75936206@huawei.com>
+Return-Path: <SRS0=Roe3=6Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-oi1-f194.google.com ([209.85.167.194]:36978 "EHLO
+        mail-oi1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726410AbgEKPZ6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2020 11:25:58 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <54468aae-dbb1-66bd-c633-82fc75936206@huawei.com>
+References: <20200510075510.987823-1-hch@lst.de> <CAMuHMdXazsBw0mjJd0uFHQud7qbb5-Uw-PTDB3+-M=huRWOfgQ@mail.gmail.com>
+ <20200511151356.GB28634@lst.de>
+In-Reply-To: <20200511151356.GB28634@lst.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 11 May 2020 17:25:45 +0200
+Message-ID: <CAMuHMdU1xAmyWysi5xRoaRL7PFurPncvEL0CcEY0V_sUz3EJPw@mail.gmail.com>
+Subject: Re: sort out the flush_icache_range mess
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: linux-arch@vger.kernel.org, suzuki.poulose@arm.com, maz@kernel.org, linux-kernel@vger.kernel.org, xiexiangyou@huawei.com, steven.price@arm.com, zhangshaokun@hisilicon.com, linux-mm@kvack.org, arm@kernel.org, prime.zeng@hisilicon.com, guohanjun@huawei.com, olof@lixom.net, kuhn.chenqun@huawei.com, will@kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200520170800.asyY4jAQ6mraHoo32PMFPeb4se0wjJ2W1GBfPAieM0Q@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Michal Simek <monstr@monstr.eu>, Jessica Yu <jeyu@kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, Linux-sh list <linux-sh@vger.kernel.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-um <linux-um@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Openrisc <openrisc@lists.librecores.org>, alpha <linux-alpha@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, linux-riscv@lists.infradead.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20200511152545.KK-X_LPsi_HlhJZlrm05jq_MAxRO4iTdVYinucD7-BM@z>
 
-On Mon, May 18, 2020 at 08:21:02PM +0800, Zhenyu Ye wrote:
-> On 2020/5/14 23:28, Catalin Marinas wrote:
-> > On Tue, Apr 14, 2020 at 07:28:35PM +0800, Zhenyu Ye wrote:
-> >> +		}
-> >> +		scale++;
-> >> +		range_size >>= TLB_RANGE_MASK_SHIFT;
-> >> +	}
-> > 
-> > So, you start from scale 0 and increment it until you reach the maximum.
-> > I think (haven't done the maths on paper) you could also start from the
-> > top with something like scale = ilog2(range_size) / 5. Not sure it's
-> > significantly better though, maybe avoiding the loop 3 times if your
-> > range is 2MB (which happens with huge pages).
-> 
-> This optimization is only effective when the range is a multiple of 256KB
-> (when the page size is 4KB), and I'm worried about the performance
-> of ilog2().  I traced the __flush_tlb_range() last year and found that in
-> most cases the range is less than 256K (see details in [1]).
+Hi Christoph,
 
-THP or hugetlbfs would exercise bigger strides but I guess it depends on
-the use-case. ilog2() should be reduced to a few instructions on arm64
-AFAICT (haven't tried but it should use the CLZ instruction).
+On Mon, May 11, 2020 at 5:14 PM Christoph Hellwig <hch@lst.de> wrote:
+> On Mon, May 11, 2020 at 09:46:17AM +0200, Geert Uytterhoeven wrote:
+> > On Sun, May 10, 2020 at 9:55 AM Christoph Hellwig <hch@lst.de> wrote:
+> > > none of which really are used by a typical MMU enabled kernel, as a.out can
+> > > only be build for alpha and m68k to start with.
+> >
+> > Quoting myself:
+> > "I think it's safe to assume no one still runs a.out binaries on m68k."
+> > http://lore.kernel.org/r/CAMuHMdW+m0Q+j3rsQdMXnrEPm+XB5Y2AQrxW5sD1mZAKgmEqoA@mail.gmail.com
+>
+> Do you want to drop the:
+>
+>     select HAVE_AOUT if MMU
+>
+> for m68k then?
 
-> > Anyway, I think it would be more efficient if we combine the
-> > __flush_tlb_range() and the _directly one into the same function with a
-> > single loop for both. For example, if the stride is 2MB already, we can
-> > handle this with a single classic TLBI without all the calculations for
-> > the range operation. The hardware may also handle this better since the
-> > software already told it there can be only one entry in that 2MB range.
-> > So each loop iteration could figure which operation to use based on
-> > cpucaps, TLBI range ops, stride and reduce range_size accordingly.
-> 
-> Summarize your suggestion in one sentence: use 'stride' to optimize the
-> preformance of TLBI.  This can also be done by dividing into two functions,
-> and this should indeed be taken into account in the TLBI RANGE feature.
-> 
-> But if we figure which operation to use based on cpucaps in each loop
-> iteration, then cpus_have_const_cap() will be called frequently, which
-> may affect performance of TLBI.  In my opinion, we should do as few
-> judgments as possible in the loop, so judge the cpucaps outside the
-> loop maybe a good choice.
+If that helps to reduce maintenance, it's fine for me.
+That leaves alpha as the sole user?
 
-cpus_have_const_cap() is a static label, so should be patched with a
-branch or nop. My point was that in the classic __flush_tlb_range()
-loop, instead of an addr += stride we could have something more dynamic
-depending on whether the CPU supports range TLBI ops or not. But we
-would indeed have more (static) branches in the loop, so possibly some
-performance degradation.
+> Note that we'll still need flush_icache_user_range for m68k with mmu,
+> as it also allows binfmt_flat for mmu configs.
 
-If the code looks ok, I'd favour this and we can look at the
-optimisation later. But I can't really tell how the code would look
-without attempting to merge the two.
+Understood.
 
-Anyway, a first step would be to to add the the range and stride to the
-decision (i.e. (end-start)/stride > 1) before jumping to the range
-operations. You can avoid the additional checks in the new TLBI
-functions since we know we have at least two (huge)pages.
+Gr{oetje,eeting}s,
+
+                        Geert
 
 -- 
-Catalin
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
