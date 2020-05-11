@@ -1,43 +1,25 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Date: Mon, 11 May 2020 19:02:12 +0200
-Message-ID: <20200511170212.GI2957@hirez.programming.kicks-ass.net>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <20200508192000.GB2957@hirez.programming.kicks-ass.net>
- <20200508213407.GT8135@suse.de>
- <20200509092516.GC2957@hirez.programming.kicks-ass.net>
- <20200510011157.GU16070@bombadil.infradead.org>
- <20200511073134.GD2957@hirez.programming.kicks-ass.net>
- <20200511155204.GW16070@bombadil.infradead.org>
+From: "Mr. Lawson Amegan." <annabelleedo36@gmail.com>
+Subject: Good Day..
+Date: Mon, 11 May 2020 19:06:08 +0200
+Message-ID: <CAEFP4efHO=riGmafr3psHm9TBzoc1whOzd02AtUbwCiopCCF_w@mail.gmail.com>
+Reply-To: lawsonamegan343@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35182 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35766 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730066AbgEKRCd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2020 13:02:33 -0400
-Content-Disposition: inline
-In-Reply-To: <20200511155204.GW16070@bombadil.infradead.org>
+        with ESMTP id S1730734AbgEKRGJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2020 13:06:09 -0400
+Received: from mail-il1-x143.google.com (mail-il1-x143.google.com [IPv6:2607:f8b0:4864:20::143])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4FAF1C061A0C
+        for <linux-arch@vger.kernel.org>; Mon, 11 May 2020 10:06:09 -0700 (PDT)
+Received: by mail-il1-x143.google.com with SMTP id e8so1377242ilm.7
+        for <linux-arch@vger.kernel.org>; Mon, 11 May 2020 10:06:09 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Joerg Roedel <jroedel@suse.de>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 
-On Mon, May 11, 2020 at 08:52:04AM -0700, Matthew Wilcox wrote:
-> On Mon, May 11, 2020 at 09:31:34AM +0200, Peter Zijlstra wrote:
-> > On Sat, May 09, 2020 at 06:11:57PM -0700, Matthew Wilcox wrote:
-> > > Iterating an XArray (whether the entire thing
-> > > or with marks) is RCU-safe and faster than iterating a linked list,
-> > > so this should solve the problem?
-> > 
-> > It can hardly be faster if you want all elements -- which is I think the
-> > case here. We only call into this if we change an entry, and then we
-> > need to propagate that change to all.
-> 
-> Of course it can be faster.  Iterating an array is faster than iterating
-> a linked list because caches.  While an XArray is a segmented array
-> (so slower than a plain array), it's plainly going to be faster than
-> iterating a linked list.
+Good Day..
 
-Fair enough, mostly also because the actual work (setting a single PTE)
-doesn't dominate in this case.
+I contacted you earlier for an important info, kindly get back to me.
+
+Best regards,
