@@ -1,88 +1,42 @@
-Return-Path: <SRS0=7GPW=7K=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-2.mimecast.com ([205.139.110.61]:58601 "EHLO
-        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S2390432AbgE1NpH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 28 May 2020 09:45:07 -0400
-Subject: Re: [PATCH v2 3/6] prctl.2: Add PR_SPEC_DISABLE_NOEXEC for
- SPECULATION_CTRL prctls
-References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
- <1590614258-24728-4-git-send-email-Dave.Martin@arm.com>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <35acb48d-6703-bed5-8c6d-739411eea679@redhat.com>
-Date: Thu, 28 May 2020 09:45:00 -0400
+Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH V3 2/3] mm/hugetlb: Define a generic fallback for
+ is_hugepage_only_range()
+References: <1588907271-11920-1-git-send-email-anshuman.khandual@arm.com>
+ <1588907271-11920-3-git-send-email-anshuman.khandual@arm.com>
+ <9fc622e1-45ff-b79f-ebe0-35614837456c@oracle.com>
+ <c21ab871-da06-baf6-ba31-80b13402b8c9@arm.com>
+From: Mike Kravetz <mike.kravetz@oracle.com>
+Message-ID: <ab931b52-1f1b-1ff3-47ee-377de3ed1a98@oracle.com>
+Date: Mon, 11 May 2020 11:52:34 -0700
 MIME-Version: 1.0
-In-Reply-To: <1590614258-24728-4-git-send-email-Dave.Martin@arm.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <c21ab871-da06-baf6-ba31-80b13402b8c9@arm.com>
+Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org, akpm@linux-foundation.org
+Cc: Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>, Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20200528134500.T1AG84GLQhgQk1s-j3UFC1AN3LiKb-M4UuH6QHbV9i4@z>
+Message-ID: <20200511185234.IONuxUhXa_cRm0udNIJNASOIpG1Vi_p-DIp90KdVd-k@z>
 
-On 5/27/20 5:17 PM, Dave Martin wrote:
-> Add the PR_SPEC_DISABLE_NOEXEC mode added in Linux 5.1
-> for the PR_SPEC_STORE_BYPASS "misfeature" of
-> PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
->
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Cc: Waiman Long <longman@redhat.com>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> ---
->   man2/prctl.2 | 22 ++++++++++++++++++++--
->   1 file changed, 20 insertions(+), 2 deletions(-)
->
-> diff --git a/man2/prctl.2 b/man2/prctl.2
-> index b6fb51c..cab9915 100644
-> --- a/man2/prctl.2
-> +++ b/man2/prctl.2
-> @@ -1187,6 +1187,12 @@ The speculation feature is disabled, mitigation is enabled.
->   Same as
->   .B PR_SPEC_DISABLE
->   but cannot be undone.
-> +.TP
-> +.BR PR_SPEC_DISABLE_NOEXEC " (since Linux 5.1)"
-> +Same as
-> +.BR PR_SPEC_DISABLE ,
-> +but but the state will be cleared on
-> +.BR execve (2).
->   .RE
->   .IP
->   If all bits are 0,
-> @@ -1251,6 +1257,17 @@ with the same value for
->   .I arg2
->   will fail with the error
->   .BR EPERM .
-> +.\" commit 71368af9027f18fe5d1c6f372cfdff7e4bde8b48
-> +.TP
-> +.BR PR_SPEC_DISABLE_NOEXEC " (since Linux 5.1)"
-> +Same as
-> +.BR PR_SPEC_DISABLE ,
-> +but but the state will be cleared on
-> +.BR execve (2).
-> +Currently only supported for
-> +.I arg2
-> +equal to
-> +.B PR_SPEC_STORE_BYPASS.
->   .RE
->   .IP
->   Any unsupported value in
-> @@ -1899,11 +1916,12 @@ was
->   .BR PR_SET_SPECULATION_CTRL
->   and
->   .IR arg3
-> -is neither
-> +is not
->   .BR PR_SPEC_ENABLE ,
->   .BR PR_SPEC_DISABLE ,
-> +.BR PR_SPEC_FORCE_DISABLE ,
->   nor
-> -.BR PR_SPEC_FORCE_DISABLE .
-> +.BR PR_SPEC_DISABLE_NOEXEC .
->   .SH VERSIONS
->   The
->   .BR prctl ()
+On 5/10/20 8:14 PM, Anshuman Khandual wrote:
+> On 05/09/2020 03:52 AM, Mike Kravetz wrote:
+>> On 5/7/20 8:07 PM, Anshuman Khandual wrote:
+>>
+>> Did you try building without CONFIG_HUGETLB_PAGE defined?  I'm guessing
+> 
+> Yes I did for multiple platforms (s390, arm64, ia64, x86, powerpc etc).
+> 
+>> that you need a stub for is_hugepage_only_range().  Or, perhaps add this
+>> to asm-generic/hugetlb.h?
+>>
+> There is already a stub (include/linux/hugetlb.h) when !CONFIG_HUGETLB_PAGE.
+> 
 
-Acked-by: Waiman Long <longman@redhat.com>
+Thanks!  I missed that stub in the existing code.  I like the removal of
+redundant code.
+
+Acked-by: Mike Kravetz <mike.kravetz@oracle.com>
+
+-- 
+Mike Kravetz
