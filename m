@@ -1,78 +1,35 @@
-Return-Path: <SRS0=y3dn=6Y=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
+Date: Mon, 11 May 2020 17:13:56 +0200
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 10/31] alpha: use asm-generic/cacheflush.h
-Date: Sun, 10 May 2020 09:54:49 +0200
-Message-ID: <20200510075510.987823-11-hch@lst.de>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-References: <20200510075510.987823-1-hch@lst.de>
+Subject: Re: sort out the flush_icache_range mess
+Message-ID: <20200511151356.GB28634@lst.de>
+References: <20200510075510.987823-1-hch@lst.de> <CAMuHMdXazsBw0mjJd0uFHQud7qbb5-Uw-PTDB3+-M=huRWOfgQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdXazsBw0mjJd0uFHQud7qbb5-Uw-PTDB3+-M=huRWOfgQ@mail.gmail.com>
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Michal Simek <monstr@monstr.eu>, Jessica Yu <jeyu@kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, Linux-sh list <linux-sh@vger.kernel.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-um <linux-um@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Openrisc <openrisc@lists.librecores.org>, alpha <linux-alpha@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, linux-riscv@lists.infradead.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200510075449.HFOVMdsVaOt1epRZCyjyqZMOngMLkzYtbNgV1m3u3yg@z>
+Message-ID: <20200511151356.5HQZbQ22tv1XKCWEFiz8YEW6v3zVxPurW4BZOf0Yj4k@z>
 
-Alpha needs almost no cache flushing routines of its own.  Rely on
-asm-generic/cacheflush.h for the defaults.
+On Mon, May 11, 2020 at 09:46:17AM +0200, Geert Uytterhoeven wrote:
+> Hi Christoph,
+> 
+> On Sun, May 10, 2020 at 9:55 AM Christoph Hellwig <hch@lst.de> wrote:
+> > none of which really are used by a typical MMU enabled kernel, as a.out can
+> > only be build for alpha and m68k to start with.
+> 
+> Quoting myself:
+> "I think it's safe to assume no one still runs a.out binaries on m68k."
+> http://lore.kernel.org/r/CAMuHMdW+m0Q+j3rsQdMXnrEPm+XB5Y2AQrxW5sD1mZAKgmEqoA@mail.gmail.com
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/alpha/include/asm/cacheflush.h | 28 ++++++----------------------
- 1 file changed, 6 insertions(+), 22 deletions(-)
+Do you want to drop the:
 
-diff --git a/arch/alpha/include/asm/cacheflush.h b/arch/alpha/include/asm=
-/cacheflush.h
-index 89128489cb598..636d7ca0d05f6 100644
---- a/arch/alpha/include/asm/cacheflush.h
-+++ b/arch/alpha/include/asm/cacheflush.h
-@@ -4,19 +4,6 @@
-=20
- #include <linux/mm.h>
-=20
--/* Caches aren't brain-dead on the Alpha. */
--#define flush_cache_all()			do { } while (0)
--#define flush_cache_mm(mm)			do { } while (0)
--#define flush_cache_dup_mm(mm)			do { } while (0)
--#define flush_cache_range(vma, start, end)	do { } while (0)
--#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
--#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
--#define flush_dcache_page(page)			do { } while (0)
--#define flush_dcache_mmap_lock(mapping)		do { } while (0)
--#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
--#define flush_cache_vmap(start, end)		do { } while (0)
--#define flush_cache_vunmap(start, end)		do { } while (0)
--
- /* Note that the following two definitions are _highly_ dependent
-    on the contexts in which they are used in the kernel.  I personally
-    think it is criminal how loosely defined these macros are.  */
-@@ -59,20 +46,17 @@ flush_icache_user_range(struct vm_area_struct *vma, s=
-truct page *page,
- 			mm->context[smp_processor_id()] =3D 0;
- 	}
- }
--#else
-+#define flush_icache_user_range flush_icache_user_range
-+#else /* CONFIG_SMP */
- extern void flush_icache_user_range(struct vm_area_struct *vma,
- 		struct page *page, unsigned long addr, int len);
--#endif
-+#define flush_icache_user_range flush_icache_user_range
-+#endif /* CONFIG_SMP */
-=20
- /* This is used only in __do_fault and do_swap_page.  */
- #define flush_icache_page(vma, page) \
--  flush_icache_user_range((vma), (page), 0, 0)
-+	flush_icache_user_range((vma), (page), 0, 0)
-=20
--#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--do { memcpy(dst, src, len); \
--     flush_icache_user_range(vma, page, vaddr, len); \
--} while (0)
--#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+#include <asm-generic/cacheflush.h>
-=20
- #endif /* _ALPHA_CACHEFLUSH_H */
---=20
-2.26.2
+    select HAVE_AOUT if MMU
+
+for m68k then?
+
+Note that we'll still need flush_icache_user_range for m68k with mmu,
+as it also allows binfmt_flat for mmu configs.
