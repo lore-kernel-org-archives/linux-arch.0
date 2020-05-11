@@ -1,75 +1,54 @@
-Return-Path: <SRS0=WvJP=62=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58122 "EHLO foss.arm.com"
+Return-Path: <SRS0=Roe3=6Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:50784 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725851AbgELQhG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 May 2020 12:37:06 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 00/14] prctl.2 man page updates for Linux 5.6
-Date: Tue, 12 May 2020 17:36:45 +0100
-Message-ID: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+        id S1726173AbgEKHvY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 11 May 2020 03:51:24 -0400
+Date: Mon, 11 May 2020 08:51:15 +0100
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH 02/31] arm64: fix the flush_icache_range arguments in
+ machine_kexec
+Message-ID: <20200511075115.GA16134@willie-the-truck>
+References: <20200510075510.987823-1-hch@lst.de>
+ <20200510075510.987823-3-hch@lst.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200510075510.987823-3-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mtk.manpages@gmail.com
-Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Amit Daniel Kachhap <amit.kachhap@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Dave Hansen <dave.hansen@linux.intel.com>, Mark Rutland <mark.rutland@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200512163645.7hiTEmG8Om73-h4CxBIE814km0NuXxzTryy67wLOu4k@z>
+To: Christoph Hellwig <hch@lst.de>, james.morse@arm.com, catalin.marinas@arm.com
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200511075115.xLeZwMwAM-OtG8FZ_JeluIGYmnqyP0FASdQCsYId9qo@z>
 
-A bunch of updates to the prctl(2) man page to fill in the missing
-prctls (mostly) up to Linux 5.6 (along with a few other tweaks fixes).
+[+James and Catalin]
 
-People not Cc'd on the whole series can find the whole series at
-https://lore.kernel.org/linux-man/ .
+On Sun, May 10, 2020 at 09:54:41AM +0200, Christoph Hellwig wrote:
+> The second argument is the end "pointer", not the length.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/arm64/kernel/machine_kexec.c | 1 +
+>  1 file changed, 1 insertion(+)
+> 
+> diff --git a/arch/arm64/kernel/machine_kexec.c b/arch/arm64/kernel/machine_kexec.c
+> index 8e9c924423b4e..a0b144cfaea71 100644
+> --- a/arch/arm64/kernel/machine_kexec.c
+> +++ b/arch/arm64/kernel/machine_kexec.c
+> @@ -177,6 +177,7 @@ void machine_kexec(struct kimage *kimage)
+>  	 * the offline CPUs. Therefore, we must use the __* variant here.
+>  	 */
+>  	__flush_icache_range((uintptr_t)reboot_code_buffer,
+> +			     (uintptr_t)reboot_code_buffer +
+>  			     arm64_relocate_new_kernel_size);
 
-Patches:
+Urgh, well spotted. It's annoyingly different from __flush_dcache_area().
 
- * Patches 1-6 and 8-9 are rather trivial optional tweaks and fixes
-   that don't make substantive changes.  I can live with some of these
-   being dropped.
+But now I'm wondering what this code actually does... the loop condition
+in invalidate_icache_by_line works with 64-bit arithmetic, so we could
+spend a /very/ long time here afaict. It's also a bit annoying that we
+do a bunch of redundant D-cache maintenance too.
 
- * Patch 7 (removal of the MPX prctls) could use an Ack, but should be
-   uncontroversial.
+Should we use invalidate_icache_range() here instead? (and why does that
+thing need to toggle uaccess)? Argh, too many questions!
 
- * Patches 10-11 cover recent extensions to the speculation control
-   prctls.
-
- * Patch 12 adds one particular case Errors for EINVAL, applicable to
-   all arch-specific prctls.  I've not tried too hard to be 100%
-   comprehensive with the error conditions, since the list in its
-   current form looks in need of a major overhaul.
-
- * Patches 13-14 add the new arm64-specific prctls.
-   (PR_SET_TAGGED_ADDR_CTRL requires a bit more discussion and will be
-   posted separately.)
-
-Maintainer notes:
-
- * I'm *asssuming* that the datestamps in .TH are automatically
-   updated by maintainer scripts, since maintaining them by hand would
-   interact very badly with rebase.  If needed I can go update them by
-   hand though.
-
- * Similarly, in the days of git (and because I see no recent entries)
-   I'm assuming that in-file changelogs no longer need to be updated.
-   Again, I'm happy to do that if needed.
-
-
-Dave Martin (14):
-  prctl.2: tfix clarify that prctl can apply to threads
-  prctl.2: Add health warning
-  prctl.2: tfix mis-description of thread ID values in procfs
-  prctl.2: srcfix add comments for navigation
-  prctl.2: tfix listing order of prctls
-  prctl.2: ffix quotation mark tweaks
-  prctl.2: Document removal of Intel MPX prctls
-  prctl.2: Work around bogus constant "maxsig" in PR_SET_PDEATHSIG
-  prctl.2: tfix minor punctuation in SPECULATION_CTRL prctls
-  prctl.2: Add PR_SPEC_INDIRECT_BRANCH for SPECULATION_CTRL prctls
-  prctl.2: Add PR_SPEC_DISABLE_NOEXEC for SPECULATION_CTRL prctls
-  prctl.2: Clarify the unsupported hardware case of EINVAL
-  prctl.2: Add SVE prctls (arm64)
-  prctl.2: Add PR_PAC_RESET_KEYS (arm64)
-
- man2/prctl.2 | 496 +++++++++++++++++++++++++++++++++++++++++++++--------------
- 1 file changed, 384 insertions(+), 112 deletions(-)
-
--- 
-2.1.4
+Will
