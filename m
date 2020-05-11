@@ -1,63 +1,28 @@
-Return-Path: <SRS0=uIBl=7H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from jabberwock.ucw.cz ([46.255.230.98]:52540 "EHLO
-        jabberwock.ucw.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727894AbgEYIQ3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 May 2020 04:16:29 -0400
-Date: Mon, 25 May 2020 10:16:26 +0200
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [PATCH v2] Implement close-on-fork
-Message-ID: <20200525081626.GA16796@amd>
-References: <20200515152321.9280-1-nate.karstens@garmin.com>
- <20200515155730.GF16070@bombadil.infradead.org>
- <5b1929aa9f424e689c7f430663891827@garmin.com>
- <1589559950.3653.11.camel@HansenPartnership.com>
- <4964fe0ccdf7495daf4045c195b14ed6@garmin.com>
+Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
+Date: Mon, 11 May 2020 18:35:04 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: sort out the flush_icache_range mess
+Message-ID: <20200511163503.GA32228@lst.de>
+References: <20200510075510.987823-1-hch@lst.de> <CAMuHMdXazsBw0mjJd0uFHQud7qbb5-Uw-PTDB3+-M=huRWOfgQ@mail.gmail.com> <20200511151356.GB28634@lst.de> <CAMuHMdU1xAmyWysi5xRoaRL7PFurPncvEL0CcEY0V_sUz3EJPw@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-        protocol="application/pgp-signature"; boundary="5vNYLRcllDrimb99"
-Content-Disposition: inline
-In-Reply-To: <4964fe0ccdf7495daf4045c195b14ed6@garmin.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Karstens, Nate" <Nate.Karstens@garmin.com>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, Matthew Wilcox <willy@infradead.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Eric Dumazet <edumazet@google.com>, David Laight <David.Laight@aculab.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Changli Gao <xiaosuo@gmail.com>, "a.josey@opengroup.org" <a.josey@opengroup.org>
-Message-ID: <20200525081626.D-TwaL2vfiz9JFEIl9Jq9-s-h3gNUsBxsZgrPjGTRMc@z>
-
-
---5vNYLRcllDrimb99
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <CAMuHMdU1xAmyWysi5xRoaRL7PFurPncvEL0CcEY0V_sUz3EJPw@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Michal Simek <monstr@monstr.eu>, Jessica Yu <jeyu@kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, Linux-sh list <linux-sh@vger.kernel.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-um <linux-um@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Openrisc <openrisc@lists.librecores.org>, alpha <linux-alpha@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, linux-riscv@lists.infradead.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+List-ID: <linux-arch.vger.kernel.org>
+Message-ID: <20200511163504.mYFDrPdfdP-tDf63bsEcDuU7S4cP_1q3Zjsc88cmGHQ@z>
 
-Hi!
+On Mon, May 11, 2020 at 05:25:45PM +0200, Geert Uytterhoeven wrote:
+> > Do you want to drop the:
+> >
+> >     select HAVE_AOUT if MMU
+> >
+> > for m68k then?
+> 
+> If that helps to reduce maintenance, it's fine for me.
+> That leaves alpha as the sole user?
 
->=20
-> If the feedback from the community is truly and finally that system() sho=
-uld not be used in these applications, then is there support for updating t=
-he man page to better communicate that?
->=20
-
-Clarifying documenation might be the best way forward. Note you'd have
-to do that anyway, since people would not know about O_CLOFORK without
-pointers in documentation.
-
-Best regards,
-									Pavel
---=20
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
-g.html
-
---5vNYLRcllDrimb99
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iEYEARECAAYFAl7LftoACgkQMOfwapXb+vJqEACcD+lR3XKYglSp+Req63ZwDi9m
-e/8An0k5uMvqkwoEcFAXFS3vLQ/eJejy
-=GABB
------END PGP SIGNATURE-----
-
---5vNYLRcllDrimb99--
+Yes.  And for alpha it isn't classic Linux a.out, but the OSF/1 ECOFF
+format, which might lead to further cleanups eventually.
