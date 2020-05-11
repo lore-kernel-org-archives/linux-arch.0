@@ -1,34 +1,31 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: Re: sort out the flush_icache_range mess
-Date: Mon, 11 May 2020 17:13:56 +0200
-Message-ID: <20200511151356.GB28634@lst.de>
-References: <20200510075510.987823-1-hch@lst.de> <CAMuHMdXazsBw0mjJd0uFHQud7qbb5-Uw-PTDB3+-M=huRWOfgQ@mail.gmail.com>
+Subject: Re: [PATCH 02/31] arm64: fix the flush_icache_range arguments in
+ machine_kexec
+Date: Mon, 11 May 2020 17:15:35 +0200
+Message-ID: <20200511151535.GC28634@lst.de>
+References: <20200510075510.987823-1-hch@lst.de> <20200510075510.987823-3-hch@lst.de> <20200511075115.GA16134@willie-the-truck> <20200511110014.GA19176@gaia>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-m68k-owner@vger.kernel.org>
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAMuHMdXazsBw0mjJd0uFHQud7qbb5-Uw-PTDB3+-M=huRWOfgQ@mail.gmail.com>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Michal Simek <monstr@monstr.eu>, Jessica Yu <jeyu@kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, Linux-sh list <linux-sh@vger.kernel.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-um <linux-um@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Linux MM <linux-mm@kvack.org>lin
+In-Reply-To: <20200511110014.GA19176@gaia>
+Sender: linux-fsdevel-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>, Christoph Hellwig <hch@lst.de>, james.morse@arm.com, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.orglinux
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 11, 2020 at 09:46:17AM +0200, Geert Uytterhoeven wrote:
-> Hi Christoph,
+On Mon, May 11, 2020 at 12:00:14PM +0100, Catalin Marinas wrote:
+> Anyway, I think Christoph's patch needs to go in with a fixes tag:
 > 
-> On Sun, May 10, 2020 at 9:55 AM Christoph Hellwig <hch@lst.de> wrote:
-> > none of which really are used by a typical MMU enabled kernel, as a.out can
-> > only be build for alpha and m68k to start with.
+> Fixes: d28f6df1305a ("arm64/kexec: Add core kexec support")
+> Cc: <stable@vger.kernel.org> # 4.8.x-
 > 
-> Quoting myself:
-> "I think it's safe to assume no one still runs a.out binaries on m68k."
-> http://lore.kernel.org/r/CAMuHMdW+m0Q+j3rsQdMXnrEPm+XB5Y2AQrxW5sD1mZAKgmEqoA@mail.gmail.com
+> and we'll change these functions/helpers going forward for arm64.
+> 
+> Happy to pick this up via the arm64 for-next/fixes branch.
 
-Do you want to drop the:
-
-    select HAVE_AOUT if MMU
-
-for m68k then?
-
-Note that we'll still need flush_icache_user_range for m68k with mmu,
-as it also allows binfmt_flat for mmu configs.
+Please do, there are no dependencies on it in this series (I originally
+planned to switch flush_icache_range to pass a kernel pointer + len
+instead of the strange unsigned long start and end.  That still looks
+very useful, but the series already is way too large, so I'm going to
+defer that change for another merge window).
