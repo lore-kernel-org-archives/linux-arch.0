@@ -1,172 +1,41 @@
-Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH v3 3/7] mm/ioremap: Track which page-table levels were modified
-Date: Fri, 15 May 2020 16:00:19 +0200
-Message-ID: <20200515140023.25469-4-joro@8bytes.org>
-In-Reply-To: <20200515140023.25469-1-joro@8bytes.org>
-References: <20200515140023.25469-1-joro@8bytes.org>
-Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org
-Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Return-Path: <SRS0=Roe3=6Z=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-ot1-f66.google.com ([209.85.210.66]:43167 "EHLO
+        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725790AbgEKHgS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2020 03:36:18 -0400
+MIME-Version: 1.0
+References: <20200510075510.987823-1-hch@lst.de> <20200510075510.987823-22-hch@lst.de>
+In-Reply-To: <20200510075510.987823-22-hch@lst.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 11 May 2020 09:36:05 +0200
+Message-ID: <CAMuHMdXS-ygT01KfhS0y9WcYbi9HKdQL7Q1HXgUZdayzQb_qSA@mail.gmail.com>
+Subject: Re: [PATCH 21/31] mm: rename flush_icache_user_range to flush_icache_user_page
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515140019.lAuxujzv6NlvPir15vHl4ByBs0ww0I9AhoM0K1ah0sI@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, the arch/x86 maintainers <x86@kernel.org>, alpha <linux-alpha@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Openrisc <openrisc@lists.librecores.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-riscv@lists.infradead.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, linux-um <linux-um@lists.infradead.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>
+Message-ID: <20200511073605.3Qrq5zrEvVl2iodOtWJlu4ePbiy70BYokhF5WGVCl2M@z>
 
-From: Joerg Roedel <jroedel@suse.de>
+On Sun, May 10, 2020 at 9:57 AM Christoph Hellwig <hch@lst.de> wrote:
+> The function currently known as flush_icache_user_range only operates
+> on a single page.  Rename it to flush_icache_user_page as we'll need
+> the name flush_icache_user_range for something else soon.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Track at which levels in the page-table entries were modified by
-ioremap_page_range(). After the page-table has been modified, use that
-information do decide whether the new arch_sync_kernel_mappings()
-needs to be called. The iounmap path re-uses vunmap(), which has
-already been taken care of.
+>  arch/m68k/include/asm/cacheflush_mm.h  |  4 ++--
+>  arch/m68k/mm/cache.c                   |  2 +-
 
-Signed-off-by: Joerg Roedel <jroedel@suse.de>
-Acked-by: Andy Lutomirski <luto@kernel.org>
----
- lib/ioremap.c | 46 +++++++++++++++++++++++++++++++---------------
- 1 file changed, 31 insertions(+), 15 deletions(-)
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-diff --git a/lib/ioremap.c b/lib/ioremap.c
-index 3f0e18543de8..ad485f08173b 100644
---- a/lib/ioremap.c
-+++ b/lib/ioremap.c
-@@ -61,13 +61,14 @@ static inline int ioremap_pmd_enabled(void) { return 0; }
- #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
- 
- static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
--		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
-+		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
-+		pgtbl_mod_mask *mask)
- {
- 	pte_t *pte;
- 	u64 pfn;
- 
- 	pfn = phys_addr >> PAGE_SHIFT;
--	pte = pte_alloc_kernel(pmd, addr);
-+	pte = pte_alloc_kernel_track(pmd, addr, mask);
- 	if (!pte)
- 		return -ENOMEM;
- 	do {
-@@ -75,6 +76,7 @@ static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
- 		set_pte_at(&init_mm, addr, pte, pfn_pte(pfn, prot));
- 		pfn++;
- 	} while (pte++, addr += PAGE_SIZE, addr != end);
-+	*mask |= PGTBL_PTE_MODIFIED;
- 	return 0;
- }
- 
-@@ -101,21 +103,24 @@ static int ioremap_try_huge_pmd(pmd_t *pmd, unsigned long addr,
- }
- 
- static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
--		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
-+		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
-+		pgtbl_mod_mask *mask)
- {
- 	pmd_t *pmd;
- 	unsigned long next;
- 
--	pmd = pmd_alloc(&init_mm, pud, addr);
-+	pmd = pmd_alloc_track(&init_mm, pud, addr, mask);
- 	if (!pmd)
- 		return -ENOMEM;
- 	do {
- 		next = pmd_addr_end(addr, end);
- 
--		if (ioremap_try_huge_pmd(pmd, addr, next, phys_addr, prot))
-+		if (ioremap_try_huge_pmd(pmd, addr, next, phys_addr, prot)) {
-+			*mask |= PGTBL_PMD_MODIFIED;
- 			continue;
-+		}
- 
--		if (ioremap_pte_range(pmd, addr, next, phys_addr, prot))
-+		if (ioremap_pte_range(pmd, addr, next, phys_addr, prot, mask))
- 			return -ENOMEM;
- 	} while (pmd++, phys_addr += (next - addr), addr = next, addr != end);
- 	return 0;
-@@ -144,21 +149,24 @@ static int ioremap_try_huge_pud(pud_t *pud, unsigned long addr,
- }
- 
- static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
--		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
-+		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
-+		pgtbl_mod_mask *mask)
- {
- 	pud_t *pud;
- 	unsigned long next;
- 
--	pud = pud_alloc(&init_mm, p4d, addr);
-+	pud = pud_alloc_track(&init_mm, p4d, addr, mask);
- 	if (!pud)
- 		return -ENOMEM;
- 	do {
- 		next = pud_addr_end(addr, end);
- 
--		if (ioremap_try_huge_pud(pud, addr, next, phys_addr, prot))
-+		if (ioremap_try_huge_pud(pud, addr, next, phys_addr, prot)) {
-+			*mask |= PGTBL_PUD_MODIFIED;
- 			continue;
-+		}
- 
--		if (ioremap_pmd_range(pud, addr, next, phys_addr, prot))
-+		if (ioremap_pmd_range(pud, addr, next, phys_addr, prot, mask))
- 			return -ENOMEM;
- 	} while (pud++, phys_addr += (next - addr), addr = next, addr != end);
- 	return 0;
-@@ -187,21 +195,24 @@ static int ioremap_try_huge_p4d(p4d_t *p4d, unsigned long addr,
- }
- 
- static inline int ioremap_p4d_range(pgd_t *pgd, unsigned long addr,
--		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
-+		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
-+		pgtbl_mod_mask *mask)
- {
- 	p4d_t *p4d;
- 	unsigned long next;
- 
--	p4d = p4d_alloc(&init_mm, pgd, addr);
-+	p4d = p4d_alloc_track(&init_mm, pgd, addr, mask);
- 	if (!p4d)
- 		return -ENOMEM;
- 	do {
- 		next = p4d_addr_end(addr, end);
- 
--		if (ioremap_try_huge_p4d(p4d, addr, next, phys_addr, prot))
-+		if (ioremap_try_huge_p4d(p4d, addr, next, phys_addr, prot)) {
-+			*mask |= PGTBL_P4D_MODIFIED;
- 			continue;
-+		}
- 
--		if (ioremap_pud_range(p4d, addr, next, phys_addr, prot))
-+		if (ioremap_pud_range(p4d, addr, next, phys_addr, prot, mask))
- 			return -ENOMEM;
- 	} while (p4d++, phys_addr += (next - addr), addr = next, addr != end);
- 	return 0;
-@@ -214,6 +225,7 @@ int ioremap_page_range(unsigned long addr,
- 	unsigned long start;
- 	unsigned long next;
- 	int err;
-+	pgtbl_mod_mask mask = 0;
- 
- 	might_sleep();
- 	BUG_ON(addr >= end);
-@@ -222,13 +234,17 @@ int ioremap_page_range(unsigned long addr,
- 	pgd = pgd_offset_k(addr);
- 	do {
- 		next = pgd_addr_end(addr, end);
--		err = ioremap_p4d_range(pgd, addr, next, phys_addr, prot);
-+		err = ioremap_p4d_range(pgd, addr, next, phys_addr, prot,
-+					&mask);
- 		if (err)
- 			break;
- 	} while (pgd++, phys_addr += (next - addr), addr = next, addr != end);
- 
- 	flush_cache_vmap(start, end);
- 
-+	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-+		arch_sync_kernel_mappings(start, end);
-+
- 	return err;
- }
- 
+Gr{oetje,eeting}s,
+
+                        Geert
+
 -- 
-2.17.1
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
