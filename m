@@ -1,49 +1,54 @@
-From: Mike Kravetz <mike.kravetz@oracle.com>
-Subject: Re: [PATCH V3 2/3] mm/hugetlb: Define a generic fallback for
- is_hugepage_only_range()
-Date: Mon, 11 May 2020 11:52:34 -0700
-Message-ID: <ab931b52-1f1b-1ff3-47ee-377de3ed1a98@oracle.com>
-References: <1588907271-11920-1-git-send-email-anshuman.khandual@arm.com>
- <1588907271-11920-3-git-send-email-anshuman.khandual@arm.com>
- <9fc622e1-45ff-b79f-ebe0-35614837456c@oracle.com>
- <c21ab871-da06-baf6-ba31-80b13402b8c9@arm.com>
+From: Joerg Roedel <jroedel@suse.de>
+Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Date: Mon, 11 May 2020 21:14:14 +0200
+Message-ID: <20200511191414.GY8135@suse.de>
+References: <20200508144043.13893-1-joro@8bytes.org>
+ <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
+ <20200508213609.GU8135@suse.de>
+ <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
+ <20200509175217.GV8135@suse.de>
+ <CALCETrVU-+G3K5ABBRSEMiwnskL4mZsVcoTESZXnu34J7TaOqw@mail.gmail.com>
+ <20200511074243.GE2957@hirez.programming.kicks-ass.net>
+ <CALCETrVyoAXXOqm8cYs+31fjWK8mcnKR+wM0_HeJx9=bOaZC6Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <c21ab871-da06-baf6-ba31-80b13402b8c9@arm.com>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org, akpm@linux-foundation.org
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-kernel@vger.kernel.org, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Fenghua Yu <fenghua.yu@intel.com>, Vasily Gorbik <gor@linux.ibm.com>, Thomas Bogendoerfer <tsbogend@a>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-acpi-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CALCETrVyoAXXOqm8cYs+31fjWK8mcnKR+wM0_HeJx9=bOaZC6Q@mail.gmail.com>
+Sender: linux-acpi-owner@vger.kernel.org
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 5/10/20 8:14 PM, Anshuman Khandual wrote:
-> On 05/09/2020 03:52 AM, Mike Kravetz wrote:
->> On 5/7/20 8:07 PM, Anshuman Khandual wrote:
->>
->> Did you try building without CONFIG_HUGETLB_PAGE defined?  I'm guessing
-> 
-> Yes I did for multiple platforms (s390, arm64, ia64, x86, powerpc etc).
-> 
->> that you need a stub for is_hugepage_only_range().  Or, perhaps add this
->> to asm-generic/hugetlb.h?
->>
-> There is already a stub (include/linux/hugetlb.h) when !CONFIG_HUGETLB_PAGE.
-> 
+On Mon, May 11, 2020 at 08:36:31AM -0700, Andy Lutomirski wrote:
+> What if we make 32-bit PTI depend on PAE?
 
-Thanks!  I missed that stub in the existing code.  I like the removal of
-redundant code.
+It already does, PTI support for legacy paging had to be removed because
+there were memory corruption problems with THP. The reason was that huge
+PTEs in the user-space area were mapped in two page-tables (kernel and
+user), but A/D bits were only fetched from the kernel part. To not make
+things more complicated we agreed on just not supporting PTI without
+PAE.
 
-Acked-by: Mike Kravetz <mike.kravetz@oracle.com>
+> And drop 32-bit Xen PV support?  And make 32-bit huge pages depend on
+> PAE?  Then 32-bit non-PAE can use the direct-mapped LDT, 32-bit PTI
+> (and optionally PAE non-PTI) can use the evil virtually mapped LDT.
+> And 32-bit non-PAE (the 2-level case) will only have pointers to page
+> tables at the top level.  And then we can preallocate.
 
--- 
-Mike Kravetz
+Not sure I can follow you here. How can 32-bit PTI with PAE use the LDT
+from the direct mapping? I am guessing you want to get rid of the
+SHARED_KERNEL_PMD==0 case for PAE kernels. This would indeed make
+syncing unneccessary on PAE, but pre-allocation would still be needed
+for 2-level paging. Just the amount of memory needed for the
+pre-allocated PTE pages is half as big as it would be with PAE.
+
+> Or maybe we don't want to defeature this much, or maybe the memory hit
+> from this preallocation will hurt little 2-level 32-bit systems too
+> much.
+
+It will certainly make Linux less likely to boot on low-memory x86-32
+systems, whoever will be affected by this.
+
+
+	Joerg
