@@ -1,105 +1,88 @@
-Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 09/29] arm64: use asm-generic/cacheflush.h
-Date: Fri, 15 May 2020 16:36:26 +0200
-Message-ID: <20200515143646.3857579-10-hch@lst.de>
-In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-References: <20200515143646.3857579-1-hch@lst.de>
+Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [RFC PATCH v3 1/2] arm64: tlb: Detect the ARMv8.4 TLBI RANGE
+ feature
+References: <20200414112835.1121-1-yezhenyu2@huawei.com>
+ <20200414112835.1121-2-yezhenyu2@huawei.com>
+ <20200505101405.GB82424@C02TD0UTHF1T.local>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Message-ID: <cb9d32b6-a9d8-3737-e69d-df4191b7afa9@huawei.com>
+Date: Mon, 11 May 2020 20:25:30 +0800
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <20200505101405.GB82424@C02TD0UTHF1T.local>
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: will@kernel.org, catalin.marinas@arm.com, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, xiexiangyou@huawei.com, zhangshaokun@hisilicon.com, linux-mm@kvack.org, arm@kernel.org, prime.zeng@hisilicon.com, kuhn.chenqun@huawei.com, linux-arm-kernel@lists.infradead.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515143626.e-392Iq4RntM1Px5LoDwaQ1LxrBEKONu7ATgAVnvIwM@z>
+Message-ID: <20200511122530.BxW9lbWjI6LhTgs5XcUERRcuM1VyzhYBd8t0xr129E0@z>
 
-ARM64 needs almost no cache flushing routines of its own.  Rely on
-asm-generic/cacheflush.h for the defaults.
+On 2020/5/5 18:14, Mark Rutland wrote:
+> On Tue, Apr 14, 2020 at 07:28:34PM +0800, Zhenyu Ye wrote:
+>> ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
+>> range of input addresses. This patch detect this feature.
+>>
+>> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+>> ---
+>>  arch/arm64/include/asm/cpucaps.h |  3 ++-
+>>  arch/arm64/include/asm/sysreg.h  |  4 ++++
+>>  arch/arm64/kernel/cpufeature.c   | 11 +++++++++++
+>>  3 files changed, 17 insertions(+), 1 deletion(-)
+>>
+>> diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cpucaps.h
+>> index 8eb5a088ae65..950095a72617 100644
+>> --- a/arch/arm64/include/asm/cpucaps.h
+>> +++ b/arch/arm64/include/asm/cpucaps.h
+>> @@ -61,7 +61,8 @@
+>>  #define ARM64_HAS_AMU_EXTN			51
+>>  #define ARM64_HAS_ADDRESS_AUTH			52
+>>  #define ARM64_HAS_GENERIC_AUTH			53
+>> +#define ARM64_HAS_TLBI_RANGE			54
+>>  
+>> -#define ARM64_NCAPS				54
+>> +#define ARM64_NCAPS				55
+>>  
+>>  #endif /* __ASM_CPUCAPS_H */
+>> diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
+>> index ebc622432831..ac1b98650234 100644
+>> --- a/arch/arm64/include/asm/sysreg.h
+>> +++ b/arch/arm64/include/asm/sysreg.h
+>> @@ -592,6 +592,7 @@
+>>  
+>>  /* id_aa64isar0 */
+>>  #define ID_AA64ISAR0_RNDR_SHIFT		60
+>> +#define ID_AA64ISAR0_TLBI_RANGE_SHIFT	56
+>>  #define ID_AA64ISAR0_TS_SHIFT		52
+>>  #define ID_AA64ISAR0_FHM_SHIFT		48
+>>  #define ID_AA64ISAR0_DP_SHIFT		44
+>> @@ -605,6 +606,9 @@
+>>  #define ID_AA64ISAR0_SHA1_SHIFT		8
+>>  #define ID_AA64ISAR0_AES_SHIFT		4
+>>  
+>> +#define ID_AA64ISAR0_TLBI_RANGE_NI	0x0
+>> +#define ID_AA64ISAR0_TLBI_RANGE		0x2
+>> +
+>>  /* id_aa64isar1 */
+>>  #define ID_AA64ISAR1_I8MM_SHIFT		52
+>>  #define ID_AA64ISAR1_DGH_SHIFT		48
+>> diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+>> index 9fac745aa7bb..31bcfd0722b5 100644
+>> --- a/arch/arm64/kernel/cpufeature.c
+>> +++ b/arch/arm64/kernel/cpufeature.c
+>> @@ -124,6 +124,7 @@ static bool __system_matches_cap(unsigned int n);
+>>   */
+>>  static const struct arm64_ftr_bits ftr_id_aa64isar0[] = {
+>>  	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_RNDR_SHIFT, 4, 0),
+>> +	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_TLBI_RANGE_SHIFT, 4, 0),
+> 
+> This should be FTR_HIDDEN as userspace has no reason to see this.
+> 
+> Otherwise this all seems to match the ARM ARM.
+> 
+> Mark.
+> 
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/arm64/include/asm/cacheflush.h | 46 ++++-------------------------
- 1 file changed, 5 insertions(+), 41 deletions(-)
+OK, I will change it to FTR_HIDDEN in next version series.
 
-diff --git a/arch/arm64/include/asm/cacheflush.h b/arch/arm64/include/asm=
-/cacheflush.h
-index e6cca3d4acf70..03a5a187163ab 100644
---- a/arch/arm64/include/asm/cacheflush.h
-+++ b/arch/arm64/include/asm/cacheflush.h
-@@ -94,20 +94,7 @@ static inline void flush_icache_range(unsigned long st=
-art, unsigned long end)
- #endif
- 	kick_all_cpus_sync();
- }
--
--static inline void flush_cache_mm(struct mm_struct *mm)
--{
--}
--
--static inline void flush_cache_page(struct vm_area_struct *vma,
--				    unsigned long user_addr, unsigned long pfn)
--{
--}
--
--static inline void flush_cache_range(struct vm_area_struct *vma,
--				     unsigned long start, unsigned long end)
--{
--}
-+#define flush_icache_range flush_icache_range
-=20
- /*
-  * Cache maintenance functions used by the DMA API. No to be used direct=
-ly.
-@@ -123,12 +110,7 @@ extern void __dma_flush_area(const void *, size_t);
-  */
- extern void copy_to_user_page(struct vm_area_struct *, struct page *,
- 	unsigned long, void *, const void *, unsigned long);
--#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	do {							\
--		memcpy(dst, src, len);				\
--	} while (0)
--
--#define flush_cache_dup_mm(mm) flush_cache_mm(mm)
-+#define copy_to_user_page copy_to_user_page
-=20
- /*
-  * flush_dcache_page is used when the kernel has written to the page
-@@ -154,29 +136,11 @@ static __always_inline void __flush_icache_all(void=
-)
- 	dsb(ish);
- }
-=20
--#define flush_dcache_mmap_lock(mapping)		do { } while (0)
--#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
--
--/*
-- * We don't appear to need to do anything here.  In fact, if we did, we'=
-d
-- * duplicate cache flushing elsewhere performed by flush_dcache_page().
-- */
--#define flush_icache_page(vma,page)	do { } while (0)
--
--/*
-- * Not required on AArch64 (PIPT or VIPT non-aliasing D-cache).
-- */
--static inline void flush_cache_vmap(unsigned long start, unsigned long e=
-nd)
--{
--}
--
--static inline void flush_cache_vunmap(unsigned long start, unsigned long=
- end)
--{
--}
--
- int set_memory_valid(unsigned long addr, int numpages, int enable);
-=20
- int set_direct_map_invalid_noflush(struct page *page);
- int set_direct_map_default_noflush(struct page *page);
-=20
--#endif
-+#include <asm-generic/cacheflush.h>
-+
-+#endif /* __ASM_CACHEFLUSH_H */
---=20
-2.26.2
+Thanks,
+Zhenyu
