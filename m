@@ -1,41 +1,40 @@
-Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from eu-smtp-delivery-151.mimecast.com ([146.101.78.151]:20456 "EHLO
-        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726723AbgEOQAE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 12:00:04 -0400
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH v2] Implement close-on-fork
-Date: Fri, 15 May 2020 15:59:58 +0000
-Message-ID: <480b831115724107ab5a0cab9d7caafc@AcuMS.aculab.com>
-References: <20200515152321.9280-1-nate.karstens@garmin.com>
- <CANn89iKr_9MyRpdB4pcHm08ccH_M42etDnrOzpVKUYfhSKvxQw@mail.gmail.com>
-In-Reply-To: <CANn89iKr_9MyRpdB4pcHm08ccH_M42etDnrOzpVKUYfhSKvxQw@mail.gmail.com>
-Content-Language: en-US
+Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
+Date: Mon, 11 May 2020 19:02:12 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Message-ID: <20200511170212.GI2957@hirez.programming.kicks-ass.net>
+References: <20200508144043.13893-1-joro@8bytes.org>
+ <20200508192000.GB2957@hirez.programming.kicks-ass.net>
+ <20200508213407.GT8135@suse.de>
+ <20200509092516.GC2957@hirez.programming.kicks-ass.net>
+ <20200510011157.GU16070@bombadil.infradead.org>
+ <20200511073134.GD2957@hirez.programming.kicks-ass.net>
+ <20200511155204.GW16070@bombadil.infradead.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200511155204.GW16070@bombadil.infradead.org>
+Sender: owner-linux-mm@kvack.org
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Joerg Roedel <jroedel@suse.de>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Eric Dumazet' <edumazet@google.com>, Nate Karstens <nate.karstens@garmin.com>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, netdev <netdev@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Changli Gao <xiaosuo@gmail.com>
-Message-ID: <20200515155958.j6vF1tOPeuRFcFs3TxL62lOHJ1LcLvEVuHnFdmEcuuA@z>
+Message-ID: <20200511170212.2JOHGkmvzICMYUDDK2xjmDVClbRK9y2LBvktGM793TU@z>
 
-RnJvbTogRXJpYyBEdW1hemV0DQo+IFNlbnQ6IDE1IE1heSAyMDIwIDE2OjMxDQouLi4NCj4gRmFz
-dCBwYXRoIGluIGJpZyBhbmQgcGVyZm9ybWFuY2Ugc2Vuc2l0aXZlIGFwcGxpY2F0aW9ucyBpcyBu
-b3QgZm9yaygpDQo+IGFuZC9vciBleGVjKCkuDQo+IA0KPiBUaGlzIGlzIG9wZW4oKS9jbG9zZSgp
-IGFuZCBvdGhlcnMgKHNvY2tldCgpLCBhY2NlcHQoKSwgLi4uKQ0KPiANCj4gV2UgZG8gbm90IHdh
-bnQgdGhlbSB0byBhY2Nlc3MgZXh0cmEgY2FjaGUgbGluZXMgZm9yIHRoaXMgbmV3IGZlYXR1cmUu
-DQo+IA0KPiBTb3JyeSwgSSB3aWxsIHNheSBubyB0byB0aGVzZSBwYXRjaGVzIGluIHRoZWlyIGN1
-cnJlbnQgZm9ybS4NCg0KSXMgaXQgd29ydGggY29tcGxldGVseSByZW1vdmluZyB0aGUgYml0bWFw
-cyBhbmQganVzdCByZW1lbWJlcmluZw0KdGhlIGxvd2VzdCBmZCB0aGF0IGhhcyBoYWQgZWFjaCBi
-aXQgc2V0IChkb24ndCB3b3JyeSBhYm91dCBjbGVhcnMpLg0KDQpUaGVuIGxldmVyYWdlIHRoZSBj
-bG9zZV9hbGwoKSBjb2RlIHRoYXQgY2xvc2VzIGFsbCBmZCBhYm92ZQ0KYSBzcGVjaWZpZWQgbnVt
-YmVyIHRvIGNsb3NlIG9ubHkgdGhvc2Ugd2l0aCB0aGUgJ2Nsb3NlIG9uIGV4ZWMnDQpvciAnY2xv
-c2Ugb24gZm9yaycgZmxhZyBzZXQuDQoNCkFmdGVyIGFsbCBhbiBhcHBsaWNhdGlvbiBpcyBjdXJy
-ZW50bHkgdmVyeSBsaWtlbHkgdG8gaGF2ZSBzZXQNCidjbG9zZSBvbiBleGVjJyBvbiBhbGwgb3Bl
-biBmZCBhYm92ZSAyLg0KDQpTbyB0aGUgbnVtYmVyIG9mIGZkIHRoYXQgZG9uJ3QgbmVlZCBjbG9z
-aW5nIGlzIHNtYWxsLg0KDQpUaGlzIHB1dHMgYWxsIHRoZSBleHBlbnNpdmUgY29kZSBpbiB0aGUg
-YWxyZWFkeSBzbG93IGZvcmsvZXhlYw0KcGF0aHMuDQoNCglEYXZpZA0KDQotDQpSZWdpc3RlcmVk
-IEFkZHJlc3MgTGFrZXNpZGUsIEJyYW1sZXkgUm9hZCwgTW91bnQgRmFybSwgTWlsdG9uIEtleW5l
-cywgTUsxIDFQVCwgVUsNClJlZ2lzdHJhdGlvbiBObzogMTM5NzM4NiAoV2FsZXMpDQo=
+On Mon, May 11, 2020 at 08:52:04AM -0700, Matthew Wilcox wrote:
+> On Mon, May 11, 2020 at 09:31:34AM +0200, Peter Zijlstra wrote:
+> > On Sat, May 09, 2020 at 06:11:57PM -0700, Matthew Wilcox wrote:
+> > > Iterating an XArray (whether the entire thing
+> > > or with marks) is RCU-safe and faster than iterating a linked list,
+> > > so this should solve the problem?
+> > 
+> > It can hardly be faster if you want all elements -- which is I think the
+> > case here. We only call into this if we change an entry, and then we
+> > need to propagate that change to all.
+> 
+> Of course it can be faster.  Iterating an array is faster than iterating
+> a linked list because caches.  While an XArray is a segmented array
+> (so slower than a plain array), it's plainly going to be faster than
+> iterating a linked list.
+
+Fair enough, mostly also because the actual work (setting a single PTE)
+doesn't dominate in this case.
