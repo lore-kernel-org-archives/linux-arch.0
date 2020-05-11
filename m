@@ -1,87 +1,31 @@
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: Re: [PATCH v4 02/14] arm: add support for folded p4d page tables
-Date: Mon, 11 May 2020 17:15:36 +0300
-Message-ID: <20200511141536.GB983798@linux.ibm.com>
-References: <20200414153455.21744-1-rppt@kernel.org>
- <20200414153455.21744-3-rppt@kernel.org>
- <CGME20200507121658eucas1p240cf4a3e0fe5c22dda5ec4f72734149f@eucas1p2.samsung.com>
- <39ba8a04-d6b5-649d-c289-0c8b27cb66c5@samsung.com>
- <20200507161155.GE683243@linux.ibm.com>
- <98229ab1-fbf8-0a89-c5d6-270c828799e7@samsung.com>
- <20200508174232.GA759899@linux.ibm.com>
- <665dade8-727a-3318-6779-3998080da18f@samsung.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 31/31] module: move the set_fs hack for
+ flush_icache_range to m68k
+Date: Mon, 11 May 2020 17:11:20 +0200
+Message-ID: <20200511151120.GA28634@lst.de>
+References: <20200510075510.987823-1-hch@lst.de> <20200510075510.987823-32-hch@lst.de> <CAMuHMdU_OxNoKfO=i903kx0mgk0-i2h4u2ase3m9_dn6oFh_5g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-m68k-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <665dade8-727a-3318-6779-3998080da18f@samsung.com>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
-To: Marek Szyprowski <m.szyprowski@samsung.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, Geert Uytterhoeven <geert+renesas@glider.be>, Fenghua Yu <fenghua.yu@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will@kernel.org>, kvmarm@lists.cs.columbia.edu, Jonas Bonn <jonas@southpole.se>, Brian Cain <bcain@codeaurora.org>, linux-hexagon@vger.kernel.org, linux-sh@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@intel.com>, Catalin Marinas <catalin.marinas@arm.com>, uclinux-h8-devel@lists.sourceforge.jp, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, =?utf-8?Q?=C5=81ukasz?= Stelmach <l.stelmach@samsung.com>, kvm-ppc@vger.kernel.org, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
+In-Reply-To: <CAMuHMdU_OxNoKfO=i903kx0mgk0-i2h4u2ase3m9_dn6oFh_5g@mail.gmail.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, the arch/x86 maintainers <x86@kernel.org>, alpha <linux-alpha@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Openrisc <openrisc@lists.librecores.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-riscv@lists.infr
 List-Id: linux-arch.vger.kernel.org
 
-Hi Marek,
-
-On Mon, May 11, 2020 at 08:36:41AM +0200, Marek Szyprowski wrote:
-> Hi Mike,
-> 
-> On 08.05.2020 19:42, Mike Rapoport wrote:
-> > On Fri, May 08, 2020 at 08:53:27AM +0200, Marek Szyprowski wrote:
-> >> On 07.05.2020 18:11, Mike Rapoport wrote:
-> >>> On Thu, May 07, 2020 at 02:16:56PM +0200, Marek Szyprowski wrote:
-> >>>> On 14.04.2020 17:34, Mike Rapoport wrote:
-> >>>>> From: Mike Rapoport <rppt@linux.ibm.com>
-> >>>>>
-> >>>>> Implement primitives necessary for the 4th level folding, add walks of p4d
-> >>>>> level where appropriate, and remove __ARCH_USE_5LEVEL_HACK.
-> >>>>>
-> >>>>> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> > Can you please try the patch below:
+On Mon, May 11, 2020 at 09:40:39AM +0200, Geert Uytterhoeven wrote:
+> On Sun, May 10, 2020 at 9:57 AM Christoph Hellwig <hch@lst.de> wrote:
 > >
-> > diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
-> > index 963b5284d284..f86b3d17928e 100644
-> > --- a/arch/arm/mm/init.c
-> > +++ b/arch/arm/mm/init.c
-> > @@ -571,7 +571,7 @@ static inline void section_update(unsigned long addr, pmdval_t mask,
-> >   {
-> >   	pmd_t *pmd;
-> >   
-> > -	pmd = pmd_off_k(addr);
-> > +	pmd = pmd_offset(pud_offset(p4d_offset(pgd_offset(mm, addr), addr), addr), addr);
-> >   
-> >   #ifdef CONFIG_ARM_LPAE
-> >   	pmd[0] = __pmd((pmd_val(pmd[0]) & mask) | prot);
-> This fixes kexec issue! Thanks!
+> > flush_icache_range generally operates on kernel addresses, but for some
+> > reason m68k needed a set_fs override.  Move that into the m68k code
+> > insted of keeping it in the module loader.
+> >
+> > Signed-off-by: Christoph Hellwig <hch@lst.de>
 > 
-> 
-> Feel free to add:
-> 
-> Reported-by: Marek Szyprowski <m.szyprowski@samsung.com>
-> Fixes: 218f1c390557 ("arm: add support for folded p4d page tables")
-> Tested-by: Marek Szyprowski <m.szyprowski@samsung.com>
+> Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Thanks for testing!
-
-The patch is still in mmotm tree, so I don't think "Fixes" apply.
-
-Andrew, would you like me to send the fix as a formal patch or will pick
-it up as a fixup?
-
-> Best regards
-> -- 
-> Marek Szyprowski, PhD
-> Samsung R&D Institute Poland
-> 
-
--- 
-Sincerely yours,
-Mike.
+Btw, do you know what part of flush_icache_range relied on set_fs?
+Do any of the m68k maintainers have an idea how to handle that in
+a nicer way when we can split the implementations?
