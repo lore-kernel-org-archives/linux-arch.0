@@ -1,60 +1,78 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Date: Mon, 11 May 2020 12:36:19 -0700
-Message-ID: <8D6745B7-0EC2-4FCC-B6FC-E7E1557EB18E@amacapital.net>
-References: <20200511191414.GY8135@suse.de>
-Mime-Version: 1.0 (1.0)
+From: Mike Kravetz <mike.kravetz@oracle.com>
+Subject: Re: [PATCH V3 3/3] mm/hugetlb: Define a generic fallback for
+ arch_clear_hugepage_flags()
+Date: Mon, 11 May 2020 13:22:50 -0700
+Message-ID: <cbccae27-ff79-5580-80be-0a9493d063ba@oracle.com>
+References: <1588907271-11920-1-git-send-email-anshuman.khandual@arm.com>
+ <1588907271-11920-4-git-send-email-anshuman.khandual@arm.com>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-acpi-owner@vger.kernel.org>
-In-Reply-To: <20200511191414.GY8135@suse.de>
-Sender: linux-acpi-owner@vger.kernel.org
-To: Joerg Roedel <jroedel@suse.de>
-Cc: Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <1588907271-11920-4-git-send-email-anshuman.khandual@arm.com>
+Content-Language: en-US
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org, akpm@linux-foundation.org
+Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-kernel@vger.kernel.org, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Fenghua Yu <fenghua.yu@intel.com>, Vasily Gorbik <gor@linux.ibm.com>, Thomas Bogendoerfer <tsbogend@a>
 List-Id: linux-arch.vger.kernel.org
 
+On 5/7/20 8:07 PM, Anshuman Khandual wrote:
+> There are multiple similar definitions for arch_clear_hugepage_flags() on
+> various platforms. Lets just add it's generic fallback definition for
+> platforms that do not override. This help reduce code duplication.
+> 
+> Cc: Russell King <linux@armlinux.org.uk>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Tony Luck <tony.luck@intel.com>
+> Cc: Fenghua Yu <fenghua.yu@intel.com>
+> Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+> Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
+> Cc: Helge Deller <deller@gmx.de>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Cc: Paul Walmsley <paul.walmsley@sifive.com>
+> Cc: Palmer Dabbelt <palmer@dabbelt.com>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> Cc: Vasily Gorbik <gor@linux.ibm.com>
+> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+> Cc: Rich Felker <dalias@libc.org>
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Borislav Petkov <bp@alien8.de>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: Mike Kravetz <mike.kravetz@oracle.com>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: x86@kernel.org
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: linux-ia64@vger.kernel.org
+> Cc: linux-mips@vger.kernel.org
+> Cc: linux-parisc@vger.kernel.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: linux-riscv@lists.infradead.org
+> Cc: linux-s390@vger.kernel.org
+> Cc: linux-sh@vger.kernel.org
+> Cc: sparclinux@vger.kernel.org
+> Cc: linux-mm@kvack.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
 
-> On May 11, 2020, at 12:14 PM, Joerg Roedel <jroedel@suse.de> wrote:
->=20
-> =EF=BB=BFOn Mon, May 11, 2020 at 08:36:31AM -0700, Andy Lutomirski wrote:
->> What if we make 32-bit PTI depend on PAE?
->=20
-> It already does, PTI support for legacy paging had to be removed because
-> there were memory corruption problems with THP. The reason was that huge
-> PTEs in the user-space area were mapped in two page-tables (kernel and
-> user), but A/D bits were only fetched from the kernel part. To not make
-> things more complicated we agreed on just not supporting PTI without
-> PAE.
->=20
->> And drop 32-bit Xen PV support?  And make 32-bit huge pages depend on
->> PAE?  Then 32-bit non-PAE can use the direct-mapped LDT, 32-bit PTI
->> (and optionally PAE non-PTI) can use the evil virtually mapped LDT.
->> And 32-bit non-PAE (the 2-level case) will only have pointers to page
->> tables at the top level.  And then we can preallocate.
->=20
-> Not sure I can follow you here. How can 32-bit PTI with PAE use the LDT
-> from the direct mapping? I am guessing you want to get rid of the
-> SHARED_KERNEL_PMD=3D=3D0 case for PAE kernels.
+Thanks!
+Removing duplicate code is good.
 
-I wrote nonsense. I mean bite off a piece of the *user* portion of the addre=
-ss space and stick the LDT there.
+Acked-by: Mike Kravetz <mike.kravetz@oracle.com>
 
-I contemplated doing this when I wrote the 64-bit code, but I decided we had=
- so much address space to throw around that I liked my solution better.
-
-> This would indeed make
-> syncing unneccessary on PAE, but pre-allocation would still be needed
-> for 2-level paging. Just the amount of memory needed for the
-> pre-allocated PTE pages is half as big as it would be with PAE.
->=20
->> Or maybe we don't want to defeature this much, or maybe the memory hit
->> from this preallocation will hurt little 2-level 32-bit systems too
->> much.
->=20
-> It will certainly make Linux less likely to boot on low-memory x86-32
-> systems, whoever will be affected by this.
->=20
->=20
-
-I=E2=80=99m guessing the right solution is either your series or your series=
- plus preallocation on 64-bit. I=E2=80=99m just grumpy about it...=
+-- 
+Mike Kravetz
