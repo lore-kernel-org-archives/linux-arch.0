@@ -1,47 +1,49 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Date: Mon, 11 May 2020 19:06:46 +0200
-Message-ID: <20200511170646.GJ2957@hirez.programming.kicks-ass.net>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
- <20200508213609.GU8135@suse.de>
- <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
- <20200509175217.GV8135@suse.de>
- <CALCETrVU-+G3K5ABBRSEMiwnskL4mZsVcoTESZXnu34J7TaOqw@mail.gmail.com>
- <20200511074243.GE2957@hirez.programming.kicks-ass.net>
- <CALCETrVyoAXXOqm8cYs+31fjWK8mcnKR+wM0_HeJx9=bOaZC6Q@mail.gmail.com>
+From: Mike Kravetz <mike.kravetz@oracle.com>
+Subject: Re: [PATCH V3 2/3] mm/hugetlb: Define a generic fallback for
+ is_hugepage_only_range()
+Date: Mon, 11 May 2020 11:52:34 -0700
+Message-ID: <ab931b52-1f1b-1ff3-47ee-377de3ed1a98@oracle.com>
+References: <1588907271-11920-1-git-send-email-anshuman.khandual@arm.com>
+ <1588907271-11920-3-git-send-email-anshuman.khandual@arm.com>
+ <9fc622e1-45ff-b79f-ebe0-35614837456c@oracle.com>
+ <c21ab871-da06-baf6-ba31-80b13402b8c9@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-acpi-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CALCETrVyoAXXOqm8cYs+31fjWK8mcnKR+wM0_HeJx9=bOaZC6Q@mail.gmail.com>
-Sender: linux-acpi-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Joerg Roedel <jroedel@suse.de>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+In-Reply-To: <c21ab871-da06-baf6-ba31-80b13402b8c9@arm.com>
+Content-Language: en-US
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org, akpm@linux-foundation.org
+Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-kernel@vger.kernel.org, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Fenghua Yu <fenghua.yu@intel.com>, Vasily Gorbik <gor@linux.ibm.com>, Thomas Bogendoerfer <tsbogend@a>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 11, 2020 at 08:36:31AM -0700, Andy Lutomirski wrote:
-> On Mon, May 11, 2020 at 12:42 AM Peter Zijlstra <peterz@infradead.org> wrote:
-> >
-> > On Sat, May 09, 2020 at 12:05:29PM -0700, Andy Lutomirski wrote:
-> >
-> > > On x86_64, the only real advantage is that the handful of corner cases
-> > > that make vmalloc faults unpleasant (mostly relating to vmap stacks)
-> > > go away.  On x86_32, a bunch of mind-bending stuff (everything your
-> > > series deletes but also almost everything your series *adds*) goes
-> > > away.  There may be a genuine tiny performance hit on 2-level systems
-> > > due to the loss of huge pages in vmalloc space, but I'm not sure I
-> > > care or that we use them anyway on these systems.  And PeterZ can stop
-> > > even thinking about RCU.
-> > >
-> > > Am I making sense?
-> >
-> > I think it'll work for x86_64 and that is really all I care about :-)
+On 5/10/20 8:14 PM, Anshuman Khandual wrote:
+> On 05/09/2020 03:52 AM, Mike Kravetz wrote:
+>> On 5/7/20 8:07 PM, Anshuman Khandual wrote:
+>>
+>> Did you try building without CONFIG_HUGETLB_PAGE defined?  I'm guessing
 > 
-> Sadly, I think that Joerg has convinced my that this doesn't really
-> work for 32-bit unless we rework the LDT code or drop support for
-> something that we might not want to drop support for.
+> Yes I did for multiple platforms (s390, arm64, ia64, x86, powerpc etc).
+> 
+>> that you need a stub for is_hugepage_only_range().  Or, perhaps add this
+>> to asm-generic/hugetlb.h?
+>>
+> There is already a stub (include/linux/hugetlb.h) when !CONFIG_HUGETLB_PAGE.
+> 
 
-I was thinking keep these patches for 32bit and fix 64bit 'proper'. But
-sure, if we can get rid of it all by stripping 32bit features I'm not
-going to object either.
+Thanks!  I missed that stub in the existing code.  I like the removal of
+redundant code.
+
+Acked-by: Mike Kravetz <mike.kravetz@oracle.com>
+
+-- 
+Mike Kravetz
