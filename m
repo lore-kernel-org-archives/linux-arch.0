@@ -1,47 +1,72 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 08/14] prctl.2: Work around bogus constant "maxsig" in PR_SET_PDEATHSIG
-Date: Tue, 12 May 2020 17:36:53 +0100
-Message-ID: <1589301419-24459-9-git-send-email-Dave.Martin@arm.com>
+From: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Subject: [PATCH 10/14] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for SPECULATION_CTRL prctls
+Date: Tue, 12 May 2020 17:36:55 +0100
+Message-ID: <1589301419-24459-11-git-send-email-Dave.Martin@arm.com>
 References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58198 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727999AbgELQhx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 May 2020 12:37:53 -0400
-In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: mtk.manpages@gmail.com
-Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org
+Cc: linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Tim Chen <tim.c.chen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-The description of PR_SET_PDEATHSIG refers to "maxsig", which is
-apparently intended to stand for the maximum defined signal number.
+Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
+for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
 
-maxsig seems not to be a thing, even in the kernel.
-
-Reword to use the standard constant NSIG.  (Discussion of SIGRTMIN
-and SIGRTMAX seems out of scope here, and anyway is not relevant to
-the kernel.)
-
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Signed-off-by: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Cc: Tim Chen <tim.c.chen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
+Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
 ---
- man2/prctl.2 | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ man2/prctl.2 | 24 ++++++++++++++++++------
+ 1 file changed, 18 insertions(+), 6 deletions(-)
 
 diff --git a/man2/prctl.2 b/man2/prctl.2
-index a84fb1d..1e04859 100644
+index e8eaf95..66417cf 100644
 --- a/man2/prctl.2
 +++ b/man2/prctl.2
-@@ -955,7 +955,9 @@ will operate in the privilege-restricting mode described above.
- .BR PR_SET_PDEATHSIG " (since Linux 2.1.57)"
- Set the parent-death signal
- of the calling process to \fIarg2\fP (either a signal value
--in the range 1..maxsig, or 0 to clear).
-+in the range 1 ..
-+.BR NSIG " \-"
-+1, or 0 to clear).
- This is the signal that the calling process will get when its
- parent dies.
+@@ -1213,11 +1213,20 @@ arguments must be specified as 0; otherwise the call fails with the error
+ .\" commit 356e4bfff2c5489e016fdb925adbf12a1e3950ee
+ Sets the state of the speculation misfeature specified in
+ .IR arg2 .
+-Currently, the only permitted value for this argument is
++Currently, this argument must be one of:
++.RS
++.TP
+ .B PR_SPEC_STORE_BYPASS
+-(otherwise the call fails with the error
++speculative store bypass control, or
++.\" commit 9137bb27e60e554dab694eafa4cca241fa3a694f
++.TP
++.BR PR_SPEC_INDIRECT_BRANCH " (since Linux 4.20)"
++indirect branch speculation control.
++.RE
++.IP
++(Otherwise the call fails with the error
+ .BR ENODEV ).
+-This setting is a per-thread attribute.
++These settings are per-thread attributes.
+ The
+ .IR arg3
+ argument is used to hand in the control value,
+@@ -1235,13 +1244,16 @@ Same as
+ .BR PR_SPEC_DISABLE ,
+ but cannot be undone.
+ A subsequent
+-.B
+-prctl(..., PR_SPEC_ENABLE)
++.BR prctl (\c
++.IR arg2 ,
++.BR PR_SPEC_ENABLE )
++with the same value for
++.I arg2
+ will fail with the error
+ .BR EPERM .
+ .RE
  .IP
+-Any other value in
++Any unsupported value in
+ .IR arg3
+ will result in the call failing with the error
+ .BR ERANGE .
 -- 
 2.1.4
