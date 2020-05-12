@@ -1,54 +1,55 @@
-Return-Path: <SRS0=Roe3=6Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:50784 "EHLO mail.kernel.org"
+Return-Path: <SRS0=WvJP=62=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga04.intel.com ([192.55.52.120]:19892 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726173AbgEKHvY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 May 2020 03:51:24 -0400
-Date: Mon, 11 May 2020 08:51:15 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH 02/31] arm64: fix the flush_icache_range arguments in
- machine_kexec
-Message-ID: <20200511075115.GA16134@willie-the-truck>
-References: <20200510075510.987823-1-hch@lst.de>
- <20200510075510.987823-3-hch@lst.de>
+        id S1726031AbgELXU3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 May 2020 19:20:29 -0400
+Message-ID: <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Tue, 12 May 2020 16:20:32 -0700
+In-Reply-To: <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+         <20200429220732.31602-2-yu-cheng.yu@intel.com>
+         <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
+         <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200510075510.987823-3-hch@lst.de>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>, james.morse@arm.com, catalin.marinas@arm.com
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200511075115.xLeZwMwAM-OtG8FZ_JeluIGYmnqyP0FASdQCsYId9qo@z>
+To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Message-ID: <20200512232032.6Uc0btw4AOETeQYiBm-ksI-ZUs0adBUrTupsvMPB-is@z>
 
-[+James and Catalin]
-
-On Sun, May 10, 2020 at 09:54:41AM +0200, Christoph Hellwig wrote:
-> The second argument is the end "pointer", not the length.
+On Wed, 2020-04-29 at 16:02 -0700, Yu-cheng Yu wrote:
+> On Wed, 2020-04-29 at 15:53 -0700, Dave Hansen wrote:
+> > On 4/29/20 3:07 PM, Yu-cheng Yu wrote:
+> > > +Note:
+> > > +  There is no CET-enabling arch_prctl function.  By design, CET is enabled
+> > > +  automatically if the binary and the system can support it.
+> > 
+> > I think Andy and I danced around this last time.  Let me try to say it
+> > more explicitly.
+> > 
+> > I want CET kernel enabling to able to be disconnected from the on-disk
+> > binary.  I want a binary compiled with CET to be able to disable it, and
+> > I want a binary not compiled with CET to be able to enable it.  I want
+> > different threads in a process to be able to each have different CET status.
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  arch/arm64/kernel/machine_kexec.c | 1 +
->  1 file changed, 1 insertion(+)
+> The kernel patches we have now can be modified to support this model.  If after
+> discussion this is favorable, I will modify code accordingly.
+
+To turn on/off and to lock CET are application-level decisions.  The kernel does
+not prevent any of those.  Should there be a need to provide an arch_prctl() to
+turn on CET, it can be added without any conflict to this series.
+
+> > Which JITs was this tested with?  I think as a bare minimum we need to
+> > know that this design can accommodate _a_ modern JIT.  It would be
+> > horrible if the browser javascript engines couldn't use this design, for
+> > instance.
 > 
-> diff --git a/arch/arm64/kernel/machine_kexec.c b/arch/arm64/kernel/machine_kexec.c
-> index 8e9c924423b4e..a0b144cfaea71 100644
-> --- a/arch/arm64/kernel/machine_kexec.c
-> +++ b/arch/arm64/kernel/machine_kexec.c
-> @@ -177,6 +177,7 @@ void machine_kexec(struct kimage *kimage)
->  	 * the offline CPUs. Therefore, we must use the __* variant here.
->  	 */
->  	__flush_icache_range((uintptr_t)reboot_code_buffer,
-> +			     (uintptr_t)reboot_code_buffer +
->  			     arm64_relocate_new_kernel_size);
+> JIT work is still in progress.  When that is available I will test it.
 
-Urgh, well spotted. It's annoyingly different from __flush_dcache_area().
+I found CET has been enabled in LLVM JIT, Mesa JIT as well as sljit which is
+used by jit.  So the current model works with JIT.
 
-But now I'm wondering what this code actually does... the loop condition
-in invalidate_icache_by_line works with 64-bit arithmetic, so we could
-spend a /very/ long time here afaict. It's also a bit annoying that we
-do a bunch of redundant D-cache maintenance too.
-
-Should we use invalidate_icache_range() here instead? (and why does that
-thing need to toggle uaccess)? Argh, too many questions!
-
-Will
+Yu-cheng
