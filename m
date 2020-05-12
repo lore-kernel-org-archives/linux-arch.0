@@ -1,31 +1,78 @@
-Return-Path: <SRS0=yLSb=7E=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:38506 "EHLO foss.arm.com"
+Return-Path: <SRS0=WvJP=62=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:35970 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730358AbgEVPvD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 22 May 2020 11:51:03 -0400
-Date: Fri, 22 May 2020 16:50:56 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 4/6] tlb: mmu_gather: add tlb_flush_*_range APIs
-Message-ID: <20200522155056.GH26492@gaia>
-References: <20200423135656.2712-1-yezhenyu2@huawei.com>
- <20200423135656.2712-5-yezhenyu2@huawei.com>
+        id S1726055AbgELOpM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 May 2020 10:45:12 -0400
+Subject: Re: [PATCH 16/31] m68knommu: use asm-generic/cacheflush.h
+References: <20200510075510.987823-1-hch@lst.de>
+ <20200510075510.987823-17-hch@lst.de>
+From: Greg Ungerer <gerg@linux-m68k.org>
+Message-ID: <fb98853b-c02a-a682-443e-2ae62d0502d9@linux-m68k.org>
+Date: Wed, 13 May 2020 00:44:59 +1000
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200423135656.2712-5-yezhenyu2@huawei.com>
+In-Reply-To: <20200510075510.987823-17-hch@lst.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200522155056.mPveFlTYL82loFGB2Qh4iLnU0f5ocfUA9vxZt8fakKY@z>
+To: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200512144459.ZyiERMh-ZU5L5uOHiwX9nxbdI33AYUkNPA255JdkPm8@z>
 
-On Thu, Apr 23, 2020 at 09:56:54PM +0800, Zhenyu Ye wrote:
-> From: "Peter Zijlstra (Intel)" <peterz@infradead.org>
-> 
-> tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and
-> tlb->end, then set corresponding cleared_*.
-> 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Hi Christoph,
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+On 10/5/20 5:54 pm, Christoph Hellwig wrote:
+> m68knommu needs almost no cache flushing routines of its own.  Rely on
+> asm-generic/cacheflush.h for the defaults.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+
+Acked-by: Greg Ungerer <gerg@linux-m68k.org>
+
+Regards
+Greg
+
+
+> ---
+>   arch/m68k/include/asm/cacheflush_no.h | 19 ++-----------------
+>   1 file changed, 2 insertions(+), 17 deletions(-)
+> 
+> diff --git a/arch/m68k/include/asm/cacheflush_no.h b/arch/m68k/include/asm/cacheflush_no.h
+> index 11e9a9dcbfb24..2731f07e7be8c 100644
+> --- a/arch/m68k/include/asm/cacheflush_no.h
+> +++ b/arch/m68k/include/asm/cacheflush_no.h
+> @@ -9,25 +9,8 @@
+>   #include <asm/mcfsim.h>
+>   
+>   #define flush_cache_all()			__flush_cache_all()
+> -#define flush_cache_mm(mm)			do { } while (0)
+> -#define flush_cache_dup_mm(mm)			do { } while (0)
+> -#define flush_cache_range(vma, start, end)	do { } while (0)
+> -#define flush_cache_page(vma, vmaddr)		do { } while (0)
+>   #define flush_dcache_range(start, len)		__flush_dcache_all()
+> -#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
+> -#define flush_dcache_page(page)			do { } while (0)
+> -#define flush_dcache_mmap_lock(mapping)		do { } while (0)
+> -#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
+>   #define flush_icache_range(start, len)		__flush_icache_all()
+> -#define flush_icache_page(vma,pg)		do { } while (0)
+> -#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
+> -#define flush_cache_vmap(start, end)		do { } while (0)
+> -#define flush_cache_vunmap(start, end)		do { } while (0)
+> -
+> -#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+> -	memcpy(dst, src, len)
+> -#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
+> -	memcpy(dst, src, len)
+>   
+>   void mcf_cache_push(void);
+>   
+> @@ -98,4 +81,6 @@ static inline void cache_clear(unsigned long paddr, int len)
+>   	__clear_cache_all();
+>   }
+>   
+> +#include <asm-generic/cacheflush.h>
+> +
+>   #endif /* _M68KNOMMU_CACHEFLUSH_H */
+> 
