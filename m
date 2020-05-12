@@ -1,42 +1,56 @@
-From: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-Subject: [PATCH 02/14] prctl.2: Add health warning
-Date: Tue, 12 May 2020 17:36:47 +0100
-Message-ID: <1589301419-24459-3-git-send-email-Dave.Martin@arm.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [PATCH 01/14] prctl.2: tfix clarify that prctl can apply to threads
+Date: Tue, 12 May 2020 17:36:46 +0100
+Message-ID: <1589301419-24459-2-git-send-email-Dave.Martin@arm.com>
 References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
-Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org
-Cc: linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:58158 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725851AbgELQhr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 May 2020 12:37:47 -0400
+In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: mtk.manpages@gmail.com
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-In reality, almost every prctl interferes with assumptions that the
-compiler and C library / runtime rely on.  prctl() can therefore
-make userspace explode in a variety ways that are likely to be hard
-to debug.
+The current synopsis for prctl(2) misleadingly claims that prctl
+operates on a process.  Rather, some (in fact, most) prctls operate
+on a thread.
 
-This is not obvious to the uninitiated, so add a warning.
+The wording probably dates back to the old days when Linux didn't
+really have threads at all.
 
-Signed-off-by: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Reword as appropriate.
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 ---
- man2/prctl.2 | 5 +++++
- 1 file changed, 5 insertions(+)
+ man2/prctl.2 | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
 diff --git a/man2/prctl.2 b/man2/prctl.2
-index 7932ada..a35b748 100644
+index 7a5af76..7932ada 100644
 --- a/man2/prctl.2
 +++ b/man2/prctl.2
-@@ -66,6 +66,11 @@ prctl \- operations on a process or thread
- manipulates various aspects of the behavior
- of the calling thread or process.
- .PP
-+Note that careless use of
-+.BR prctl ()
-+can confuse the userspace run-time environment,
-+so these operations should be used with care (if at all).
-+.PP
+@@ -53,7 +53,7 @@
+ .\"
+ .TH PRCTL 2 2020-04-11 "Linux" "Linux Programmer's Manual"
+ .SH NAME
+-prctl \- operations on a process
++prctl \- operations on a process or thread
+ .SH SYNOPSIS
+ .nf
+ .B #include <sys/prctl.h>
+@@ -63,6 +63,10 @@ prctl \- operations on a process
+ .fi
+ .SH DESCRIPTION
  .BR prctl ()
++manipulates various aspects of the behavior
++of the calling thread or process.
++.PP
++.BR prctl ()
  is called with a first argument describing what to do
  (with values defined in \fI<linux/prctl.h>\fP), and further
+ arguments with a significance depending on the first one.
 -- 
 2.1.4
