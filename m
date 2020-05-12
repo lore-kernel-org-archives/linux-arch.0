@@ -1,16 +1,16 @@
 Return-Path: <SRS0=WvJP=62=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35970 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:36974 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726055AbgELOpM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 May 2020 10:45:12 -0400
-Subject: Re: [PATCH 16/31] m68knommu: use asm-generic/cacheflush.h
+        id S1727099AbgELOrH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 May 2020 10:47:07 -0400
+Subject: Re: [PATCH 29/31] binfmt_flat: use flush_icache_user_range
 References: <20200510075510.987823-1-hch@lst.de>
- <20200510075510.987823-17-hch@lst.de>
+ <20200510075510.987823-30-hch@lst.de>
 From: Greg Ungerer <gerg@linux-m68k.org>
-Message-ID: <fb98853b-c02a-a682-443e-2ae62d0502d9@linux-m68k.org>
-Date: Wed, 13 May 2020 00:44:59 +1000
+Message-ID: <484af2c0-2450-b40a-8322-e691495c45aa@linux-m68k.org>
+Date: Wed, 13 May 2020 00:46:55 +1000
 MIME-Version: 1.0
-In-Reply-To: <20200510075510.987823-17-hch@lst.de>
+In-Reply-To: <20200510075510.987823-30-hch@lst.de>
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
@@ -18,13 +18,12 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
 Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200512144459.ZyiERMh-ZU5L5uOHiwX9nxbdI33AYUkNPA255JdkPm8@z>
+Message-ID: <20200512144655.qoGxdzWeqbGKS28dn1l08zxxlXDGa3BBMEgpRSNBihQ@z>
 
 Hi Christoph,
 
-On 10/5/20 5:54 pm, Christoph Hellwig wrote:
-> m68knommu needs almost no cache flushing routines of its own.  Rely on
-> asm-generic/cacheflush.h for the defaults.
+On 10/5/20 5:55 pm, Christoph Hellwig wrote:
+> load_flat_file works on user addresses.
 > 
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
 
@@ -34,45 +33,22 @@ Regards
 Greg
 
 
+
 > ---
->   arch/m68k/include/asm/cacheflush_no.h | 19 ++-----------------
->   1 file changed, 2 insertions(+), 17 deletions(-)
+>   fs/binfmt_flat.c | 2 +-
+>   1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff --git a/arch/m68k/include/asm/cacheflush_no.h b/arch/m68k/include/asm/cacheflush_no.h
-> index 11e9a9dcbfb24..2731f07e7be8c 100644
-> --- a/arch/m68k/include/asm/cacheflush_no.h
-> +++ b/arch/m68k/include/asm/cacheflush_no.h
-> @@ -9,25 +9,8 @@
->   #include <asm/mcfsim.h>
+> diff --git a/fs/binfmt_flat.c b/fs/binfmt_flat.c
+> index 831a2b25ba79f..6f0aca5379da2 100644
+> --- a/fs/binfmt_flat.c
+> +++ b/fs/binfmt_flat.c
+> @@ -854,7 +854,7 @@ static int load_flat_file(struct linux_binprm *bprm,
+>   #endif /* CONFIG_BINFMT_FLAT_OLD */
+>   	}
 >   
->   #define flush_cache_all()			__flush_cache_all()
-> -#define flush_cache_mm(mm)			do { } while (0)
-> -#define flush_cache_dup_mm(mm)			do { } while (0)
-> -#define flush_cache_range(vma, start, end)	do { } while (0)
-> -#define flush_cache_page(vma, vmaddr)		do { } while (0)
->   #define flush_dcache_range(start, len)		__flush_dcache_all()
-> -#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
-> -#define flush_dcache_page(page)			do { } while (0)
-> -#define flush_dcache_mmap_lock(mapping)		do { } while (0)
-> -#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
->   #define flush_icache_range(start, len)		__flush_icache_all()
-> -#define flush_icache_page(vma,pg)		do { } while (0)
-> -#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
-> -#define flush_cache_vmap(start, end)		do { } while (0)
-> -#define flush_cache_vunmap(start, end)		do { } while (0)
-> -
-> -#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
-> -	memcpy(dst, src, len)
-> -#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
-> -	memcpy(dst, src, len)
+> -	flush_icache_range(start_code, end_code);
+> +	flush_icache_user_range(start_code, end_code);
 >   
->   void mcf_cache_push(void);
->   
-> @@ -98,4 +81,6 @@ static inline void cache_clear(unsigned long paddr, int len)
->   	__clear_cache_all();
->   }
->   
-> +#include <asm-generic/cacheflush.h>
-> +
->   #endif /* _M68KNOMMU_CACHEFLUSH_H */
+>   	/* zero the BSS,  BRK and stack areas */
+>   	if (clear_user((void __user *)(datapos + data_len), bss_len +
 > 
