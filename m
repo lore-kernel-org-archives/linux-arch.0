@@ -1,25 +1,47 @@
-Return-Path: <SRS0=ONGt=7L=kvack.org=owner-linux-mm@kernel.org>
-In-Reply-To: <2e73bc57125c2c6ab12a587586a4eed3a47105fc.1585898438.git.christophe.leroy@c-s.fr>
-From: Michael Ellerman <patch-notifications@ellerman.id.au>
-Subject: Re: [PATCH v2 2/5] uaccess: Selectively open read or write user access
-Message-ID: <49YBF530k9z9sSs@ozlabs.org>
-Date: Fri, 29 May 2020 14:20:25 +1000 (AEST)
-Sender: owner-linux-mm@kvack.org
-To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, intel-gfx@lists.freedesktop.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
+Return-Path: <SRS0=WvJP=62=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:58164 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725851AbgELQhs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 May 2020 12:37:48 -0400
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [PATCH 02/14] prctl.2: Add health warning
+Date: Tue, 12 May 2020 17:36:47 +0100
+Message-ID: <1589301419-24459-3-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200529042025.qhT9xqcoos0YRGc6gFBWBLKpNTPkbO5ssh_aKyPTkZw@z>
+To: mtk.manpages@gmail.com
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200512163647.UlihfrNVSdGSJCIY5NcDROg9VbyGdWahC9s9sEXwMZU@z>
 
-On Fri, 2020-04-03 at 07:20:51 UTC, Christophe Leroy wrote:
-> When opening user access to only perform reads, only open read access.
-> When opening user access to only perform writes, only open write
-> access.
-> 
-> Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
-> Reviewed-by: Kees Cook <keescook@chromium.org>
+In reality, almost every prctl interferes with assumptions that the
+compiler and C library / runtime rely on.  prctl() can therefore
+make userspace explode in a variety ways that are likely to be hard
+to debug.
 
-Applied to powerpc topic/uaccess, thanks.
+This is not obvious to the uninitiated, so add a warning.
 
-https://git.kernel.org/powerpc/c/41cd780524674082b037e7c8461f90c5e42103f0
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+---
+ man2/prctl.2 | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-cheers
+diff --git a/man2/prctl.2 b/man2/prctl.2
+index 7932ada..a35b748 100644
+--- a/man2/prctl.2
++++ b/man2/prctl.2
+@@ -66,6 +66,11 @@ prctl \- operations on a process or thread
+ manipulates various aspects of the behavior
+ of the calling thread or process.
+ .PP
++Note that careless use of
++.BR prctl ()
++can confuse the userspace run-time environment,
++so these operations should be used with care (if at all).
++.PP
+ .BR prctl ()
+ is called with a first argument describing what to do
+ (with values defined in \fI<linux/prctl.h>\fP), and further
+-- 
+2.1.4
