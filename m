@@ -1,48 +1,212 @@
-Return-Path: <SRS0=uIBl=7H=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56786 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389421AbgEYJgr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 May 2020 05:36:47 -0400
-Received: from mail-qt1-x844.google.com (mail-qt1-x844.google.com [IPv6:2607:f8b0:4864:20::844])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F0567C08C5C1
-        for <linux-arch@vger.kernel.org>; Mon, 25 May 2020 02:36:46 -0700 (PDT)
-Received: by mail-qt1-x844.google.com with SMTP id y1so2698388qtv.12
-        for <linux-arch@vger.kernel.org>; Mon, 25 May 2020 02:36:46 -0700 (PDT)
-MIME-Version: 1.0
-References: <cover.1590017578.git.syednwaris@gmail.com>
-In-Reply-To: <cover.1590017578.git.syednwaris@gmail.com>
-From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
-Date: Mon, 25 May 2020 11:36:35 +0200
-Message-ID: <CAMpxmJUrC270rgWcADYruqA_qVeh9-N8mCVPWgJkL-8kU2bO1A@mail.gmail.com>
-Subject: Re: [PATCH v7 0/4] Introduce the for_each_set_clump macro
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Return-Path: <SRS0=WvJP=62=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:58184 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726922AbgELQhu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 May 2020 12:37:50 -0400
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [PATCH 05/14] prctl.2: tfix listing order of prctls
+Date: Tue, 12 May 2020 17:36:50 +0100
+Message-ID: <1589301419-24459-6-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Syed Nayyar Waris <syednwaris@gmail.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, William Breathitt Gray <vilhelm.gray@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, rrichter@marvell.com, Masahiro Yamada <yamada.masahiro@socionext.com>, Zhang Rui <rui.zhang@intel.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Amit Kucheria <amit.kucheria@verdurent.com>, linux-arch@vger.kernel.org, linux-gpio <linux-gpio@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, arm-soc <linux-arm-kernel@lists.infradead.org>, linux-pm <linux-pm@vger.kernel.org>
-Message-ID: <20200525093635.-XHV-ma1Btug2divxE0j6E3Bx22Dn4FLLcxkT8f3fAY@z>
+To: mtk.manpages@gmail.com
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200512163650.Jddwil_aNnHvG6FoZsO7U1hmP_UTPHXb-4qX2gQ6xyU@z>
 
-niedz., 24 maj 2020 o 07:00 Syed Nayyar Waris <syednwaris@gmail.com> napisa=
-=C5=82(a):
->
-> Hello Linus,
->
-> Since this patchset primarily affects GPIO drivers, would you like
-> to pick it up through your GPIO tree?
->
-> This patchset introduces a new generic version of for_each_set_clump.
-> The previous version of for_each_set_clump8 used a fixed size 8-bit
-> clump, but the new generic version can work with clump of any size but
-> less than or equal to BITS_PER_LONG. The patchset utilizes the new macro
-> in several GPIO drivers.
->
-> The earlier 8-bit for_each_set_clump8 facilitated a
-> for-loop syntax that iterates over a memory region entire groups of set
-> bits at a time.
->
+The prctl list has historically been sorted by prctl name (ignoring
+any SET_ or GET_ prefix) to make individual prctls easier to find.
+Some noise seems to have crept in since.
 
-The GPIO part looks good to me. Linus: how do we go about merging it
-given the bitops dependency?
+Sort the list back into order.  Similarly, reorder the list of
+prctls specified to return non-zero values on success.
 
-Bart
+Content movement only.  No semantic change.
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+---
+ man2/prctl.2 | 138 +++++++++++++++++++++++++++++------------------------------
+ 1 file changed, 69 insertions(+), 69 deletions(-)
+
+diff --git a/man2/prctl.2 b/man2/prctl.2
+index e5b2b4b..1611448 100644
+--- a/man2/prctl.2
++++ b/man2/prctl.2
+@@ -490,6 +490,52 @@ Pass \fBPR_FP_EXC_SW_ENABLE\fP to use FPEXC for FP exception enables,
+ Return floating-point exception mode,
+ in the location pointed to by
+ .IR "(int\ *) arg2" .
++.\" prctl PR_SET_IO_FLUSHER
++.TP
++.BR PR_SET_IO_FLUSHER " (since Linux 5.6)"
++If a user process is involved in the block layer or filesystem I/O path,
++and can allocate memory while processing I/O requests it must set
++\fIarg2\fP to 1.
++This will put the process in the IO_FLUSHER state,
++which allows it special treatment to make progress when allocating memory.
++If \fIarg2\fP is 0, the process will clear the IO_FLUSHER state, and
++the default behavior will be used.
++.IP
++The calling process must have the
++.BR CAP_SYS_RESOURCE
++capability.
++.IP
++.IR arg3 ,
++.IR arg4 ,
++and
++.IR arg5
++must be zero.
++.IP
++The IO_FLUSHER state is inherited by a child process created via
++.BR fork (2)
++and is preserved across
++.BR execve (2).
++.IP
++Examples of IO_FLUSHER applications are FUSE daemons, SCSI device
++emulation daemons, and daemons that perform error handling like multipath
++path recovery applications.
++.\" prctl PR_GET_IO_FLUSHER
++.TP
++.B PR_GET_IO_FLUSHER (Since Linux 5.6)
++Return (as the function result) the IO_FLUSHER state of the caller.
++A value of 1 indicates that the caller is in the IO_FLUSHER state;
++0 indicates that the caller is not in the IO_FLUSHER state.
++.IP
++The calling process must have the
++.BR CAP_SYS_RESOURCE
++capability.
++.IP
++.IR arg2 ,
++.IR arg3 ,
++.IR arg4 ,
++and
++.IR arg5
++must be zero.
+ .\" prctl PR_SET_KEEPCAPS
+ .TP
+ .BR PR_SET_KEEPCAPS " (since Linux 2.2.18)"
+@@ -1207,23 +1253,6 @@ call failing with the error
+ .BR ENXIO .
+ For further details, see the kernel source file
+ .IR Documentation/admin-guide/kernel-parameters.txt .
+-.\" prctl PR_SET_THP_DISABLE
+-.TP
+-.BR PR_SET_THP_DISABLE " (since Linux 3.15)"
+-.\" commit a0715cc22601e8830ace98366c0c2bd8da52af52
+-Set the state of the "THP disable" flag for the calling thread.
+-If
+-.I arg2
+-has a nonzero value, the flag is set, otherwise it is cleared.
+-Setting this flag provides a method
+-for disabling transparent huge pages
+-for jobs where the code cannot be modified, and using a malloc hook with
+-.BR madvise (2)
+-is not an option (i.e., statically allocated data).
+-The setting of the "THP disable" flag is inherited by a child created via
+-.BR fork (2)
+-and is preserved across
+-.BR execve (2).
+ .\"
+ .\" prctl PR_TASK_PERF_EVENTS_DISABLE
+ .TP
+@@ -1256,6 +1285,23 @@ renamed
+ .\" commit cdd6c482c9ff9c55475ee7392ec8f672eddb7be6
+ in Linux 2.6.32.
+ .\"
++.\" prctl PR_SET_THP_DISABLE
++.TP
++.BR PR_SET_THP_DISABLE " (since Linux 3.15)"
++.\" commit a0715cc22601e8830ace98366c0c2bd8da52af52
++Set the state of the "THP disable" flag for the calling thread.
++If
++.I arg2
++has a nonzero value, the flag is set, otherwise it is cleared.
++Setting this flag provides a method
++for disabling transparent huge pages
++for jobs where the code cannot be modified, and using a malloc hook with
++.BR madvise (2)
++is not an option (i.e., statically allocated data).
++The setting of the "THP disable" flag is inherited by a child created via
++.BR fork (2)
++and is preserved across
++.BR execve (2).
+ .\" prctl PR_GET_THP_DISABLE
+ .TP
+ .BR PR_GET_THP_DISABLE " (since Linux 3.15)"
+@@ -1438,67 +1484,21 @@ system call on Tru64).
+ for information on versions and architectures.)
+ Return unaligned access control bits, in the location pointed to by
+ .IR "(unsigned int\ *) arg2" .
+-.\" prctl PR_SET_IO_FLUSHER
+-.TP
+-.BR PR_SET_IO_FLUSHER " (since Linux 5.6)"
+-If a user process is involved in the block layer or filesystem I/O path,
+-and can allocate memory while processing I/O requests it must set
+-\fIarg2\fP to 1.
+-This will put the process in the IO_FLUSHER state,
+-which allows it special treatment to make progress when allocating memory.
+-If \fIarg2\fP is 0, the process will clear the IO_FLUSHER state, and
+-the default behavior will be used.
+-.IP
+-The calling process must have the
+-.BR CAP_SYS_RESOURCE
+-capability.
+-.IP
+-.IR arg3 ,
+-.IR arg4 ,
+-and
+-.IR arg5
+-must be zero.
+-.IP
+-The IO_FLUSHER state is inherited by a child process created via
+-.BR fork (2)
+-and is preserved across
+-.BR execve (2).
+-.IP
+-Examples of IO_FLUSHER applications are FUSE daemons, SCSI device
+-emulation daemons, and daemons that perform error handling like multipath
+-path recovery applications.
+-.\" prctl PR_GET_IO_FLUSHER
+-.TP
+-.B PR_GET_IO_FLUSHER (Since Linux 5.6)
+-Return (as the function result) the IO_FLUSHER state of the caller.
+-A value of 1 indicates that the caller is in the IO_FLUSHER state;
+-0 indicates that the caller is not in the IO_FLUSHER state.
+-.IP
+-The calling process must have the
+-.BR CAP_SYS_RESOURCE
+-capability.
+-.IP
+-.IR arg2 ,
+-.IR arg3 ,
+-.IR arg4 ,
+-and
+-.IR arg5
+-must be zero.
+ .SH RETURN VALUE
+ On success,
++.BR PR_CAP_AMBIENT + PR_CAP_AMBIENT_IS_SET ,
++.BR PR_CAPBSET_READ ,
+ .BR PR_GET_DUMPABLE ,
+ .BR PR_GET_FP_MODE ,
++.BR PR_GET_IO_FLUSHER ,
+ .BR PR_GET_KEEPCAPS ,
++.BR PR_MCE_KILL_GET ,
+ .BR PR_GET_NO_NEW_PRIVS ,
++.BR PR_GET_SECUREBITS ,
++.BR PR_GET_SPECULATION_CTRL ,
+ .BR PR_GET_THP_DISABLE ,
+-.BR PR_CAPBSET_READ ,
+ .BR PR_GET_TIMING ,
+ .BR PR_GET_TIMERSLACK ,
+-.BR PR_GET_SECUREBITS ,
+-.BR PR_GET_SPECULATION_CTRL ,
+-.BR PR_MCE_KILL_GET ,
+-.BR PR_CAP_AMBIENT + PR_CAP_AMBIENT_IS_SET ,
+-.BR PR_GET_IO_FLUSHER ,
+ and (if it returns)
+ .BR PR_GET_SECCOMP
+ return the nonnegative values described above.
+-- 
+2.1.4
