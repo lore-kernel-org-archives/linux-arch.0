@@ -1,117 +1,50 @@
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH 19/31] riscv: use asm-generic/cacheflush.h
-Date: Tue, 12 May 2020 16:00:26 -0700 (PDT)
-Message-ID: <mhng-8adbedbc-0f91-4291-9471-2df5eb7b802b@palmerdabbelt-glaptop1>
-References: <20200510075510.987823-20-hch@lst.de>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <20200510075510.987823-20-hch@lst.de>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: akpm@linux-foundation.org, Arnd Bergmann <arnd@arndb.de>, zippel@linux-m68k.org, linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, monstr@monstr.eu, jeyu@kernel.org, linux-ia64@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, x86@kernel.org, linux-um@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-riscv@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+Date: Tue, 12 May 2020 16:20:32 -0700
+Message-ID: <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+         <20200429220732.31602-2-yu-cheng.yu@intel.com>
+         <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
+         <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, 10 May 2020 00:54:58 PDT (-0700), Christoph Hellwig wrote:
-> RISC-V needs almost no cache flushing routines of its own.  Rely on
-> asm-generic/cacheflush.h for the defaults.
->
-> Also remove the pointless __KERNEL__ ifdef while we're at it.
-> ---
->  arch/riscv/include/asm/cacheflush.h | 62 ++---------------------------
->  1 file changed, 3 insertions(+), 59 deletions(-)
->
-> diff --git a/arch/riscv/include/asm/cacheflush.h b/arch/riscv/include/asm/cacheflush.h
-> index c8677c75f82cb..a167b4fbdf007 100644
-> --- a/arch/riscv/include/asm/cacheflush.h
-> +++ b/arch/riscv/include/asm/cacheflush.h
-> @@ -8,65 +8,6 @@
->
->  #include <linux/mm.h>
->
-> -#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
-> -
-> -/*
-> - * The cache doesn't need to be flushed when TLB entries change when
-> - * the cache is mapped to physical memory, not virtual memory
-> - */
-> -static inline void flush_cache_all(void)
-> -{
-> -}
-> -
-> -static inline void flush_cache_mm(struct mm_struct *mm)
-> -{
-> -}
-> -
-> -static inline void flush_cache_dup_mm(struct mm_struct *mm)
-> -{
-> -}
-> -
-> -static inline void flush_cache_range(struct vm_area_struct *vma,
-> -				     unsigned long start,
-> -				     unsigned long end)
-> -{
-> -}
-> -
-> -static inline void flush_cache_page(struct vm_area_struct *vma,
-> -				    unsigned long vmaddr,
-> -				    unsigned long pfn)
-> -{
-> -}
-> -
-> -static inline void flush_dcache_mmap_lock(struct address_space *mapping)
-> -{
-> -}
-> -
-> -static inline void flush_dcache_mmap_unlock(struct address_space *mapping)
-> -{
-> -}
-> -
-> -static inline void flush_icache_page(struct vm_area_struct *vma,
-> -				     struct page *page)
-> -{
-> -}
-> -
-> -static inline void flush_cache_vmap(unsigned long start, unsigned long end)
-> -{
-> -}
-> -
-> -static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
-> -{
-> -}
-> -
-> -#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
-> -	do { \
-> -		memcpy(dst, src, len); \
-> -		flush_icache_user_range(vma, page, vaddr, len); \
-> -	} while (0)
-> -#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
-> -	memcpy(dst, src, len)
-> -
->  static inline void local_flush_icache_all(void)
->  {
->  	asm volatile ("fence.i" ::: "memory");
-> @@ -79,6 +20,7 @@ static inline void flush_dcache_page(struct page *page)
->  	if (test_bit(PG_dcache_clean, &page->flags))
->  		clear_bit(PG_dcache_clean, &page->flags);
->  }
-> +#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
->
->  /*
->   * RISC-V doesn't have an instruction to flush parts of the instruction cache,
-> @@ -105,4 +47,6 @@ void flush_icache_mm(struct mm_struct *mm, bool local);
->  #define SYS_RISCV_FLUSH_ICACHE_LOCAL 1UL
->  #define SYS_RISCV_FLUSH_ICACHE_ALL   (SYS_RISCV_FLUSH_ICACHE_LOCAL)
->
-> +#include <asm-generic/cacheflush.h>
-> +
->  #endif /* _ASM_RISCV_CACHEFLUSH_H */
+On Wed, 2020-04-29 at 16:02 -0700, Yu-cheng Yu wrote:
+> On Wed, 2020-04-29 at 15:53 -0700, Dave Hansen wrote:
+> > On 4/29/20 3:07 PM, Yu-cheng Yu wrote:
+> > > +Note:
+> > > +  There is no CET-enabling arch_prctl function.  By design, CET is enabled
+> > > +  automatically if the binary and the system can support it.
+> > 
+> > I think Andy and I danced around this last time.  Let me try to say it
+> > more explicitly.
+> > 
+> > I want CET kernel enabling to able to be disconnected from the on-disk
+> > binary.  I want a binary compiled with CET to be able to disable it, and
+> > I want a binary not compiled with CET to be able to enable it.  I want
+> > different threads in a process to be able to each have different CET status.
+> 
+> The kernel patches we have now can be modified to support this model.  If after
+> discussion this is favorable, I will modify code accordingly.
 
-Thanks!
+To turn on/off and to lock CET are application-level decisions.  The kernel does
+not prevent any of those.  Should there be a need to provide an arch_prctl() to
+turn on CET, it can be added without any conflict to this series.
 
-Reviewed-by: Palmer Dabbelt <palmerdabbelt@google.com>
-Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
+> > Which JITs was this tested with?  I think as a bare minimum we need to
+> > know that this design can accommodate _a_ modern JIT.  It would be
+> > horrible if the browser javascript engines couldn't use this design, for
+> > instance.
+> 
+> JIT work is still in progress.  When that is available I will test it.
 
-Were you trying to get these all in at once, or do you want me to take it into
-my tree?
+I found CET has been enabled in LLVM JIT, Mesa JIT as well as sljit which is
+used by jit.  So the current model works with JIT.
+
+Yu-cheng
