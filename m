@@ -1,107 +1,77 @@
-Return-Path: <SRS0=wOT8=6T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx01-sz.bfs.de ([194.94.69.67]:44441 "EHLO mx01-sz.bfs.de"
+Return-Path: <SRS0=WvJP=62=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:58198 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727938AbgEEHpf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 5 May 2020 03:45:35 -0400
-From: Walter Harms <wharms@bfs.de>
-Subject: AW: Adding arch-specific user ABI documentation in linux-man
-Date: Tue, 5 May 2020 07:45:32 +0000
-Message-ID: <32259f3763344500a058a8ca8a3a33d8@bfs.de>
-References: <20200504153214.GH30377@arm.com>
-In-Reply-To: <20200504153214.GH30377@arm.com>
-Content-Language: de-DE
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-MIME-Version: 1.0
+        id S1726922AbgELQhz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 May 2020 12:37:55 -0400
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [PATCH 10/14] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for SPECULATION_CTRL prctls
+Date: Tue, 12 May 2020 17:36:55 +0100
+Message-ID: <1589301419-24459-11-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>, Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, "linux-man@vger.kernel.org" <linux-man@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20200505074532.9Z0yZc8U70wXXANbDE8xhqann8GiP6tZM6Ya62A3IM8@z>
+To: mtk.manpages@gmail.com
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20200512163655.btJ_RhaifirfNNi0-TLbxbVVXMgfqoPUOeqysPYaMbo@z>
 
-Hi Dave,
-you are pointing to an (IMHO) interesting question.
-How to document different CPUs ?
-Given that an operating system should hide the different CPU's using
-CPU specific features should be used sparsely at best.
+Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
+for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
 
-the easy part are adds-on like flags for prctrl etc. simply add it to the p=
-age.
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+---
+ man2/prctl.2 | 24 ++++++++++++++++++------
+ 1 file changed, 18 insertions(+), 6 deletions(-)
 
-Other things should go to a cpu specific pages (can of worms). The problem =
-will
-be to keep that small but informative. I have no idea about the level of de=
-tail
-(and i have worked with a range of CPUs) that could be interesting for a pr=
-ogrammer.
-An of cause every other CPU now needs also a page.
-
-jm2c
- wh
-________________________________________
-Von: linux-man-owner@vger.kernel.org <linux-man-owner@vger.kernel.org> im A=
-uftrag von Dave Martin <Dave.Martin@arm.com>
-Gesendet: Montag, 4. Mai 2020 17:32:35
-An: Michael Kerrisk
-Cc: Catalin Marinas; Will Deacon; Vincenzo Frascino; linux-man@vger.kernel.=
-org; linux-arch@vger.kernel.org; linux-arm-kernel@lists.infradead.org
-Betreff: RFC: Adding arch-specific user ABI documentation in linux-man
-
-Hi all,
-
-I considering trying to plug some gaps in the arch-specific ABI
-documentation in the linux man-pages, specifically for arm64 (and
-possibly arm, where compat means we have some overlap).
-
-For arm64, there are now significant new extensions (Pointer
-authentication, SVE, MTE etc.)  Currently there is some user-facing
-documentation mixed in with the kernel-facing documentation in the
-kernel tree, but this situation isn't ideal.
-
-Do you have an opinion on where in the man-pages documentation should be
-added, and how to structure it?
-
-
-Affected areas include:
-
- * exec interface
- * aux vector, hwcaps
- * arch-specific signals
- * signal frame
- * mmap/mprotect extensions
- * prctl calls
- * ptrace quirks and extensions
- * coredump contents
-
-
-Not everything has an obvious home in an existing page, and adding
-specifics for every architecture could make some existing manpages very
-unwieldy.
-
-I think for some arch features, we really need some "overview" pages
-too: just documenting the low-level details is of limited value
-without some guide as to how to use them together.
-
-
-Does the following sketch look reasonable?
-
- * man7/arm64.7: new page: overview of arm64-specific ABI extensions
-
- * man7/sve.7 (or man7/arm64-sve.7 or man7/sve.7arm64): new page:
-   overview of arm64 SVE ABI
-
- * man2/arm64-ptrace.2 (or man2/ptrace.2arm64): new page:
-   arm64 ptrace extensions
-
- * man2/mmap.2: extend with arm64-specific flags (only two flags, so we
-   add them to the existing man page rather than creating a new one).
-
-etc.
-
-
-Ideally, I'd like to adopt a pattern that other arches can follow.
-
-Thoughts?
-
-Cheers
----Dave
+diff --git a/man2/prctl.2 b/man2/prctl.2
+index e8eaf95..66417cf 100644
+--- a/man2/prctl.2
++++ b/man2/prctl.2
+@@ -1213,11 +1213,20 @@ arguments must be specified as 0; otherwise the call fails with the error
+ .\" commit 356e4bfff2c5489e016fdb925adbf12a1e3950ee
+ Sets the state of the speculation misfeature specified in
+ .IR arg2 .
+-Currently, the only permitted value for this argument is
++Currently, this argument must be one of:
++.RS
++.TP
+ .B PR_SPEC_STORE_BYPASS
+-(otherwise the call fails with the error
++speculative store bypass control, or
++.\" commit 9137bb27e60e554dab694eafa4cca241fa3a694f
++.TP
++.BR PR_SPEC_INDIRECT_BRANCH " (since Linux 4.20)"
++indirect branch speculation control.
++.RE
++.IP
++(Otherwise the call fails with the error
+ .BR ENODEV ).
+-This setting is a per-thread attribute.
++These settings are per-thread attributes.
+ The
+ .IR arg3
+ argument is used to hand in the control value,
+@@ -1235,13 +1244,16 @@ Same as
+ .BR PR_SPEC_DISABLE ,
+ but cannot be undone.
+ A subsequent
+-.B
+-prctl(..., PR_SPEC_ENABLE)
++.BR prctl (\c
++.IR arg2 ,
++.BR PR_SPEC_ENABLE )
++with the same value for
++.I arg2
+ will fail with the error
+ .BR EPERM .
+ .RE
+ .IP
+-Any other value in
++Any unsupported value in
+ .IR arg3
+ will result in the call failing with the error
+ .BR ERANGE .
+-- 
+2.1.4
