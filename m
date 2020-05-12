@@ -1,79 +1,44 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 11/14] prctl.2: Add PR_SPEC_DISABLE_NOEXEC for SPECULATION_CTRL prctls
-Date: Tue, 12 May 2020 17:36:56 +0100
-Message-ID: <1589301419-24459-12-git-send-email-Dave.Martin@arm.com>
+From: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Subject: [PATCH 12/14] prctl.2: Clarify the unsupported hardware case of EINVAL
+Date: Tue, 12 May 2020 17:36:57 +0100
+Message-ID: <1589301419-24459-13-git-send-email-Dave.Martin@arm.com>
 References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58234 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726367AbgELQh4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 May 2020 12:37:56 -0400
-In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: mtk.manpages@gmail.com
-Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Waiman Long <longman@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
+Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org
+Cc: linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-Add the PR_SPEC_DISABLE_NOEXEC mode added in Linux 5.1
-for the PR_SPEC_STORE_BYPASS "misfeature" of
-PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+prctls that are architecture-specific won't work on other
+architectures, and arch-specific prctls that manipulate optional
+hardware features likewise won't work if that hardware feature is
+not present.
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Cc: Waiman Long <longman@redhat.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+The established pattern seems to be to treat such prctls as if they
+are unimplemented, when attempted on the wrong hardware.
+
+Cover these cases with some generic weasel words in the closet
+existing EINVAL clause.
+
+Signed-off-by: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
 ---
- man2/prctl.2 | 22 ++++++++++++++++++++--
- 1 file changed, 20 insertions(+), 2 deletions(-)
+ man2/prctl.2 | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/man2/prctl.2 b/man2/prctl.2
-index 66417cf..2361b44 100644
+index 2361b44..7f511d2 100644
 --- a/man2/prctl.2
 +++ b/man2/prctl.2
-@@ -1187,6 +1187,12 @@ The speculation feature is disabled, mitigation is enabled.
- Same as
- .B PR_SPEC_DISABLE
- but cannot be undone.
-+.TP
-+.BR PR_SPEC_DISABLE_NOEXEC " (since Linux 5.1)"
-+Same as
-+.BR PR_SPEC_DISABLE ,
-+but but the state will be cleared on
-+.BR execve (2).
- .RE
- .IP
- If all bits are 0,
-@@ -1251,6 +1257,17 @@ with the same value for
- .I arg2
- will fail with the error
- .BR EPERM .
-+.\" commit 71368af9027f18fe5d1c6f372cfdff7e4bde8b48
-+.TP
-+.BR PR_SPEC_DISABLE_NOEXEC " (since Linux 5.1)"
-+Same as
-+.BR PR_SPEC_DISABLE ,
-+but but the state will be cleared on
-+.BR execve (2).
-+Currently only supported for
-+.I arg2
-+equal to
-+.B PR_SPEC_STORE_BYPASS.
- .RE
- .IP
- Any unsupported value in
-@@ -1898,11 +1915,12 @@ was
- .BR PR_SET_SPECULATION_CTRL
- and
- .IR arg3
--is neither
-+is not
- .BR PR_SPEC_ENABLE ,
- .BR PR_SPEC_DISABLE ,
-+.BR PR_SPEC_FORCE_DISABLE ,
- nor
--.BR PR_SPEC_FORCE_DISABLE .
-+.BR PR_SPEC_DISABLE_NOEXEC .
- .SH VERSIONS
- The
- .BR prctl ()
+@@ -1616,7 +1616,8 @@ is an invalid address.
+ .B EINVAL
+ The value of
+ .I option
+-is not recognized.
++is not recognized,
++or not supported on this system.
+ .TP
+ .B EINVAL
+ .I option
 -- 
 2.1.4
