@@ -1,61 +1,61 @@
-Return-Path: <SRS0=eh2/=6Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38408 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729315AbgEJH4t (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2020 03:56:49 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 25/31] arm: rename flush_cache_user_range to flush_icache_user_range
-Date: Sun, 10 May 2020 09:55:04 +0200
-Message-ID: <20200510075510.987823-26-hch@lst.de>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-References: <20200510075510.987823-1-hch@lst.de>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Return-Path: <SRS0=WvJP=62=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:58214 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728039AbgELQhy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 May 2020 12:37:54 -0400
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [PATCH 09/14] prctl.2: tfix minor punctuation in SPECULATION_CTRL prctls
+Date: Tue, 12 May 2020 17:36:54 +0100
+Message-ID: <1589301419-24459-10-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200510075504.bdXTECdwMey2B75D_K1AXeOXNS-yILsysDYiRTcePxs@z>
+To: mtk.manpages@gmail.com
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200512163654.2EjcRtnMaQFD0831ofQ_g63XIGs5Jz81fOcK3DRCPDg@z>
 
-flush_icache_user_range will be the name for a generic primitive.
-Move the arm name so that arm already has an implementation.
+Fix a few very minor bits of punctuation in
+PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 ---
- arch/arm/include/asm/cacheflush.h | 4 ++--
- arch/arm/kernel/traps.c           | 2 +-
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ man2/prctl.2 | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cacheflush.h
-index c78e14fcfb5df..2e24e765e6d3a 100644
---- a/arch/arm/include/asm/cacheflush.h
-+++ b/arch/arm/include/asm/cacheflush.h
-@@ -258,11 +258,11 @@ extern void flush_cache_page(struct vm_area_struct *vma, unsigned long user_addr
- #define flush_cache_dup_mm(mm) flush_cache_mm(mm)
- 
- /*
-- * flush_cache_user_range is used when we want to ensure that the
-+ * flush_icache_user_range is used when we want to ensure that the
-  * Harvard caches are synchronised for the user space address range.
-  * This is used for the ARM private sys_cacheflush system call.
-  */
--#define flush_cache_user_range(s,e)	__cpuc_coherent_user_range(s,e)
-+#define flush_icache_user_range(s,e)	__cpuc_coherent_user_range(s,e)
- 
- /*
-  * Perform necessary cache operations to ensure that data previously
-diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
-index 1e70e7227f0ff..316a7687f8133 100644
---- a/arch/arm/kernel/traps.c
-+++ b/arch/arm/kernel/traps.c
-@@ -566,7 +566,7 @@ __do_cache_op(unsigned long start, unsigned long end)
- 		if (fatal_signal_pending(current))
- 			return 0;
- 
--		ret = flush_cache_user_range(start, start + chunk);
-+		ret = flush_icache_user_range(start, start + chunk);
- 		if (ret)
- 			return ret;
- 
+diff --git a/man2/prctl.2 b/man2/prctl.2
+index 1e04859..e8eaf95 100644
+--- a/man2/prctl.2
++++ b/man2/prctl.2
+@@ -1175,13 +1175,13 @@ The return value uses bits 0-3 with the following meaning:
+ .TP
+ .BR PR_SPEC_PRCTL
+ Mitigation can be controlled per thread by
+-.B PR_SET_SPECULATION_CTRL
++.BR PR_SET_SPECULATION_CTRL .
+ .TP
+ .BR PR_SPEC_ENABLE
+ The speculation feature is enabled, mitigation is disabled.
+ .TP
+ .BR PR_SPEC_DISABLE
+-The speculation feature is disabled, mitigation is enabled
++The speculation feature is disabled, mitigation is enabled.
+ .TP
+ .BR PR_SPEC_FORCE_DISABLE
+ Same as
+@@ -1228,11 +1228,11 @@ which is one of the following:
+ The speculation feature is enabled, mitigation is disabled.
+ .TP
+ .BR PR_SPEC_DISABLE
+-The speculation feature is disabled, mitigation is enabled
++The speculation feature is disabled, mitigation is enabled.
+ .TP
+ .BR PR_SPEC_FORCE_DISABLE
+ Same as
+-.B PR_SPEC_DISABLE
++.BR PR_SPEC_DISABLE ,
+ but cannot be undone.
+ A subsequent
+ .B
 -- 
-2.26.2
+2.1.4
