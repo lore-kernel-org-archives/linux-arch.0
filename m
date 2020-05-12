@@ -1,48 +1,57 @@
-Return-Path: <SRS0=wOT8=6T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37084 "EHLO foss.arm.com"
+Return-Path: <SRS0=WvJP=62=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:58198 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728180AbgEEKz2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 5 May 2020 06:55:28 -0400
-Date: Tue, 5 May 2020 11:55:24 +0100
+        id S1726922AbgELQhw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 May 2020 12:37:52 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: Adding arch-specific user ABI documentation in linux-man
-Message-ID: <20200505105522.GL30377@arm.com>
-References: <20200504153214.GH30377@arm.com>
- <32259f3763344500a058a8ca8a3a33d8@bfs.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <32259f3763344500a058a8ca8a3a33d8@bfs.de>
+Subject: [PATCH 07/14] prctl.2: Document removal of Intel MPX prctls
+Date: Tue, 12 May 2020 17:36:52 +0100
+Message-ID: <1589301419-24459-8-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Walter Harms <wharms@bfs.de>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, "linux-man@vger.kernel.org" <linux-man@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20200505105524.olxqq9pZYNExvZeYL5gHmOqDE39rLhhW8rA6aBNT4zg@z>
+To: mtk.manpages@gmail.com
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Dave Hansen <dave.hansen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20200512163652.1Mqkx3kIAH_A5vmOOiCw2h2hUe95bGLfaShaX-xITZs@z>
 
-On Tue, May 05, 2020 at 07:45:32AM +0000, Walter Harms wrote:
-> Hi Dave,
-> you are pointing to an (IMHO) interesting question.
-> How to document different CPUs ?
-> Given that an operating system should hide the different CPU's using
-> CPU specific features should be used sparsely at best.
+The Intel MPX API was removed from Linux 5.4.  See Linux
+commit f240652b6032 ("x86/mpx: Remove MPX APIs")
 
-Agreed!  But there are real situations where cpu specifics can't be
-avoided, and having documentation will help people to use those features
-correctly.
+Document this change.
 
-> the easy part are adds-on like flags for prctrl etc. simply add it to the page.
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+---
+ man2/prctl.2 | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
 
-For prctl, that makes sense (it's a jumble of arch specifics already).
-
-But would it be considered a problem if the ptrace page, say, becomes
-80% arch-specific stuff?  That page is cumbersome enough already...
-
-> Other things should go to a cpu specific pages (can of worms). The problem will
-> be to keep that small but informative. I have no idea about the level of detail
-> (and i have worked with a range of CPUs) that could be interesting for a programmer.
-> An of cause every other CPU now needs also a page.
-
-Fair enough.
-
-Cheers
----Dave
+diff --git a/man2/prctl.2 b/man2/prctl.2
+index 7a3fc5c..a84fb1d 100644
+--- a/man2/prctl.2
++++ b/man2/prctl.2
+@@ -784,7 +784,7 @@ option enabled.
+ .RE
+ .\" prctl PR_MPX_ENABLE_MANAGEMENT
+ .TP
+-.BR PR_MPX_ENABLE_MANAGEMENT ", " PR_MPX_DISABLE_MANAGEMENT " (since Linux 3.19) "
++.BR PR_MPX_ENABLE_MANAGEMENT ", " PR_MPX_DISABLE_MANAGEMENT " (since Linux 3.19, removed in Linux 5.4; only on x86) "
+ .\" commit fe3d197f84319d3bce379a9c0dc17b1f48ad358c
+ .\" See also http://lwn.net/Articles/582712/
+ .\" See also https://gcc.gnu.org/wiki/Intel%20MPX%20support%20in%20the%20GCC%20compiler
+@@ -859,6 +859,12 @@ had been called.
+ .IP
+ For further information on Intel MPX, see the kernel source file
+ .IR Documentation/x86/intel_mpx.txt .
++.IP
++.\" commit f240652b6032b48ad7fa35c5e701cc4c8d697c0b
++.\" See also https://lkml.kernel.org/r/20190705175321.DB42F0AD@viggo.jf.intel.com
++Due to a lack of toolchain support,
++.BR PR_MPX_ENABLE_MANAGEMENT " and " PR_MPX_DISABLE_MANAGEMENT
++are not supported by Linux 5.4 or later.
+ .\" prctl PR_SET_NAME
+ .TP
+ .BR PR_SET_NAME " (since Linux 2.6.9)"
+-- 
+2.1.4
