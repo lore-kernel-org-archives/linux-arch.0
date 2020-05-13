@@ -1,35 +1,95 @@
-Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:44228 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725982AbgEMLvS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 May 2020 07:51:18 -0400
+Date: Wed, 13 May 2020 12:51:15 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 06/14] prctl.2: ffix quotation mark tweaks
+Message-ID: <20200513115115.GM21779@arm.com>
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-7-git-send-email-Dave.Martin@arm.com>
+ <7afe32a5-9675-74d4-7c39-f1271d475afd@gmail.com>
+ <20200513113949.GI21779@arm.com>
+ <f575e35d-cd5e-5808-bed4-91bdfb9c2905@gmail.com>
 MIME-Version: 1.0
-References: <20200510075510.987823-1-hch@lst.de>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 11 May 2020 09:46:17 +0200
-Message-ID: <CAMuHMdXazsBw0mjJd0uFHQud7qbb5-Uw-PTDB3+-M=huRWOfgQ@mail.gmail.com>
-Subject: Re: sort out the flush_icache_range mess
-Content-Type: text/plain; charset="UTF-8"
-Sender: owner-linux-mm@kvack.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Michal Simek <monstr@monstr.eu>, Jessica Yu <jeyu@kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, Linux-sh list <linux-sh@vger.kernel.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-um <linux-um@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Openrisc <openrisc@lists.librecores.org>, alpha <linux-alpha@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, linux-riscv@lists.infradead.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <f575e35d-cd5e-5808-bed4-91bdfb9c2905@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200511074617.Owhabip_UFXTylDDgTaDasrz4kfAirdRoxGp5Qf-eBA@z>
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200513115115.jpBamJXc0FvtCI9HJw8eLYc1nvtW6ujIyEamWoHaPBc@z>
 
-Hi Christoph,
+On Wed, May 13, 2020 at 01:46:22PM +0200, Michael Kerrisk (man-pages) wrote:
+> On 5/13/20 1:39 PM, Dave Martin wrote:
+> > On Wed, May 13, 2020 at 12:11:21PM +0200, Michael Kerrisk (man-pages) wrote:
+> >> Hello Dave,
+> >>
+> >> On 5/12/20 6:36 PM, Dave Martin wrote:
+> >>> Convert quote marks used for information terms in prose to use
+> >>> \(oq .. \(cq, for better graphical rendering.
+> >>>
+> >>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> >>
+> >> Again, this is a patch that I would prefer to see near the end 
+> >> of a series, rather than in the middle.
+> >>
+> >> I'm currently agnostic about this change. But, I do not
+> >> want to apply this patch, since no other pages in man-pages
+> >> use \(oq...\(cq.
+> >>
+> >> I haven't applied this patch. Luckily, that does not prevent
+> >> any of the later patches applying.
+> > 
+> > I'll be careful to move this sort of thing to the end of a series in
+> > future.
+> > 
+> > This was a provocative patch, so I'm happy for it to be dropped.
+> > 
+> > 
+> > The main motivation was that ' renders to PostScript etc. as a closing
+> > quote, which is fine for apostrophes but not fine for an opening quote
+> > mark.  Most of the current quotes in here are actually ", but I don't
+> > see an actual promise from groff that that renders as a neutral glyph
+> > either, so it seemed best to avoid.  For now " does seem to be rendered
+> > with a neutral glyph (i.e., neither opening or closing).
+> 
+> See my commit 11b0b31a14bd2c7dcb0cf7bc815b4c1887444a89, just pushed,
+> which addresses the ' issues.
+> 
+> >>> ---
+> >>>
+> >>> Note, this can lead to misrendering on badly-configured systems.
+> >>> However, many man pages do it.
+> >>
+> >> Can you say some more about this please?
+> > 
+> > Terminal character maps need to match LANG etc. in order for fancy
+> > characters coming out of nroff to display correctly.
+> > 
+> > ssh attempts to send LANG across, but terminal sessions between systems
+> > that have different locales installed can be a problem, as can dumb
+> > serial links that don't magically pass the locale and terminal type
+> > settings across.
+> > 
+> > The fact that I hit this problem a lot in some situations (particularly
+> > the serial link case) suggested to me that fancy characters are
+> > considered fine nowadays, but perhaps I'd need to dig into it some more
+> > to understand the situation fully.
+> 
+> Thanks for the clarification.
+> 
+> > (There are one or two ' that should really be \(aq anyway, but I'll
+> > try to address that separately.)
+> 
+> See above. I presume that patch is what you wanted?
 
-On Sun, May 10, 2020 at 9:55 AM Christoph Hellwig <hch@lst.de> wrote:
-> none of which really are used by a typical MMU enabled kernel, as a.out can
-> only be build for alpha and m68k to start with.
+Yup, works for me.
 
-Quoting myself:
-"I think it's safe to assume no one still runs a.out binaries on m68k."
-http://lore.kernel.org/r/CAMuHMdW+m0Q+j3rsQdMXnrEPm+XB5Y2AQrxW5sD1mZAKgmEqoA@mail.gmail.com
+I'll keep an eye out for other instances, but those were the ones that
+stood out.
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Cheers
+---Dave
