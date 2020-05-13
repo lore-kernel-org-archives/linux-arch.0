@@ -1,39 +1,80 @@
-Return-Path: <SRS0=W/Kb=6W=kvack.org=owner-linux-mm@kernel.org>
-Date: Fri, 8 May 2020 21:10:48 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH 2/7] mm/vmalloc: Track which page-table levels were
- modified
-Message-ID: <20200508191048.GA2957@hirez.programming.kicks-ass.net>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <20200508144043.13893-3-joro@8bytes.org>
+Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55698 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732606AbgEMKbK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 06:31:10 -0400
+Subject: Re: [PATCH 09/14] prctl.2: tfix minor punctuation in SPECULATION_CTRL
+ prctls
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-10-git-send-email-Dave.Martin@arm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Message-ID: <6322d3db-75d0-7539-b61c-252d222f932f@gmail.com>
+Date: Wed, 13 May 2020 12:31:06 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200508144043.13893-3-joro@8bytes.org>
-Sender: owner-linux-mm@kvack.org
-To: Joerg Roedel <joro@8bytes.org>
-Cc: x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Joerg Roedel <jroedel@suse.de>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+In-Reply-To: <1589301419-24459-10-git-send-email-Dave.Martin@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200508191048.SMbrYFTGzQAxMsUYGZV1pOKqxA04PIZPk7dFI9KFp0w@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200513103106.X5Q8uueeCojpEJO79-bzs6bMcRQIujjKpyAKF8uUPGE@z>
 
-On Fri, May 08, 2020 at 04:40:38PM +0200, Joerg Roedel wrote:
+On 5/12/20 6:36 PM, Dave Martin wrote:
+> Fix a few very minor bits of punctuation in
+> PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+> 
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 
-> +/*
-> + * Architectures can set this mask to a combination of PGTBL_P?D_MODIFIED values
-> + * and let generic vmalloc and ioremap code know when arch_sync_kernel_mappings()
-> + * needs to be called.
-> + */
-> +#ifndef ARCH_PAGE_TABLE_SYNC_MASK
-> +#define ARCH_PAGE_TABLE_SYNC_MASK 0
-> +#endif
-> +
-> +void arch_sync_kernel_mappings(unsigned long start, unsigned long end);
+Thanks, Dave. Patch applied.
+
+Cheers,
+
+Michael
+
+> ---
+>  man2/prctl.2 | 8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
+> 
+> diff --git a/man2/prctl.2 b/man2/prctl.2
+> index 1e04859..e8eaf95 100644
+> --- a/man2/prctl.2
+> +++ b/man2/prctl.2
+> @@ -1175,13 +1175,13 @@ The return value uses bits 0-3 with the following meaning:
+>  .TP
+>  .BR PR_SPEC_PRCTL
+>  Mitigation can be controlled per thread by
+> -.B PR_SET_SPECULATION_CTRL
+> +.BR PR_SET_SPECULATION_CTRL .
+>  .TP
+>  .BR PR_SPEC_ENABLE
+>  The speculation feature is enabled, mitigation is disabled.
+>  .TP
+>  .BR PR_SPEC_DISABLE
+> -The speculation feature is disabled, mitigation is enabled
+> +The speculation feature is disabled, mitigation is enabled.
+>  .TP
+>  .BR PR_SPEC_FORCE_DISABLE
+>  Same as
+> @@ -1228,11 +1228,11 @@ which is one of the following:
+>  The speculation feature is enabled, mitigation is disabled.
+>  .TP
+>  .BR PR_SPEC_DISABLE
+> -The speculation feature is disabled, mitigation is enabled
+> +The speculation feature is disabled, mitigation is enabled.
+>  .TP
+>  .BR PR_SPEC_FORCE_DISABLE
+>  Same as
+> -.B PR_SPEC_DISABLE
+> +.BR PR_SPEC_DISABLE ,
+>  but cannot be undone.
+>  A subsequent
+>  .B
+> 
 
 
-> +	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-> +		arch_sync_kernel_mappings(start, end);
-
-So you're relying on the compiler DCE'ing the call in the 'normal' case.
-
-Works I suppose, but I went over the patches twice to look for a default
-implementation of it before I figured that out ...
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
