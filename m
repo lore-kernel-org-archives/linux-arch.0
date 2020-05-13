@@ -1,112 +1,79 @@
-Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-mw2nam12on2125.outbound.protection.outlook.com ([40.107.244.125]:36832
-        "EHLO NAM12-MW2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727836AbgEOPYH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 11:24:07 -0400
-From: Nate Karstens <nate.karstens@garmin.com>
-Subject: [PATCH v2 4/4] net: Add SOCK_CLOFORK
-Date: Fri, 15 May 2020 10:23:21 -0500
-Message-ID: <20200515152321.9280-5-nate.karstens@garmin.com>
-In-Reply-To: <20200515152321.9280-1-nate.karstens@garmin.com>
-References: <20200515152321.9280-1-nate.karstens@garmin.com>
+Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36898 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730057AbgEMLbi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 07:31:38 -0400
+Subject: Re: [PATCH 05/14] prctl.2: tfix listing order of prctls
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-6-git-send-email-Dave.Martin@arm.com>
+ <1bb991f4-176a-a74e-01fc-c73b49ed77f5@gmail.com>
+ <20200513112133.GH21779@arm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Message-ID: <6ef9a969-3e16-e21c-f047-e5a471cbc163@gmail.com>
+Date: Wed, 13 May 2020 13:31:32 +0200
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
+In-Reply-To: <20200513112133.GH21779@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Eric Dumazet <edumazet@google.com>, David Laight <David.Laight@aculab.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Changli Gao <xiaosuo@gmail.com>, Nate Karstens <nate.karstens@garmin.com>
-Message-ID: <20200515152321.P7Y2cMyedwAFXH3f2qNx53KefKamM0Ogana2d0d2lQk@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200513113132.viO_Yg5qg659TLJyXQIpyrxvMNXyQ1Ksj7UoXvOaoRY@z>
 
-Implements a new socket flag that automatically sets the
-close-on-fork flag for sockets created using socket(2),
-socketpair(2), and accept4(2).
+Hi Dave,
 
-Signed-off-by: Nate Karstens <nate.karstens@garmin.com>
----
- include/linux/net.h |  3 ++-
- net/socket.c        | 14 ++++++++------
- 2 files changed, 10 insertions(+), 7 deletions(-)
+On 5/13/20 1:21 PM, Dave Martin wrote:
+> On Wed, May 13, 2020 at 12:10:53PM +0200, Michael Kerrisk (man-pages) wrote:
+>> Hi Dave,
+>>
+>> On 5/12/20 6:36 PM, Dave Martin wrote:
+>>> The prctl list has historically been sorted by prctl name (ignoring
+>>> any SET_ or GET_ prefix) to make individual prctls easier to find.
+>>> Some noise seems to have crept in since.
+>>>
+>>> Sort the list back into order.  Similarly, reorder the list of
+>>> prctls specified to return non-zero values on success.
+>>
+>> This is a good patch. But see my comments on patch 04.
+>> I'd prefer a patch like this at the end of a series, 
+>> rather than in the middle of it.
+> 
+> Ack.
+> 
+> Ideally we could check the order with a script, but that seemed a step
+> too far.
 
-diff --git a/include/linux/net.h b/include/linux/net.h
-index 6451425e828f..57663c9dc8c4 100644
---- a/include/linux/net.h
-+++ b/include/linux/net.h
-@@ -17,7 +17,7 @@
- #include <linux/stringify.h>
- #include <linux/random.h>
- #include <linux/wait.h>
--#include <linux/fcntl.h>	/* For O_CLOEXEC and O_NONBLOCK */
-+#include <linux/fcntl.h>	/* For O_CLOEXEC, O_CLOFORK, and O_NONBLOCK */
- #include <linux/rcupdate.h>
- #include <linux/once.h>
- #include <linux/fs.h>
-@@ -73,6 +73,7 @@ enum sock_type {
- 
- /* Flags for socket, socketpair, accept4 */
- #define SOCK_CLOEXEC	O_CLOEXEC
-+#define SOCK_CLOFORK	O_CLOFORK
- #ifndef SOCK_NONBLOCK
- #define SOCK_NONBLOCK	O_NONBLOCK
- #endif
-diff --git a/net/socket.c b/net/socket.c
-index 2eecf1517f76..ba6e971c7e78 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -1511,12 +1511,14 @@ int __sys_socket(int family, int type, int protocol)
- 
- 	/* Check the SOCK_* constants for consistency.  */
- 	BUILD_BUG_ON(SOCK_CLOEXEC != O_CLOEXEC);
-+	BUILD_BUG_ON(SOCK_CLOFORK != O_CLOFORK);
- 	BUILD_BUG_ON((SOCK_MAX | SOCK_TYPE_MASK) != SOCK_TYPE_MASK);
- 	BUILD_BUG_ON(SOCK_CLOEXEC & SOCK_TYPE_MASK);
-+	BUILD_BUG_ON(SOCK_CLOFORK & SOCK_TYPE_MASK);
- 	BUILD_BUG_ON(SOCK_NONBLOCK & SOCK_TYPE_MASK);
- 
- 	flags = type & ~SOCK_TYPE_MASK;
--	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
-+	if (flags & ~(SOCK_CLOEXEC | SOCK_CLOFORK | SOCK_NONBLOCK))
- 		return -EINVAL;
- 	type &= SOCK_TYPE_MASK;
- 
-@@ -1527,7 +1529,7 @@ int __sys_socket(int family, int type, int protocol)
- 	if (retval < 0)
- 		return retval;
- 
--	return sock_map_fd(sock, flags & (O_CLOEXEC | O_NONBLOCK));
-+	return sock_map_fd(sock, flags & (O_CLOEXEC | O_CLOFORK | O_NONBLOCK));
- }
- 
- SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
-@@ -1547,7 +1549,7 @@ int __sys_socketpair(int family, int type, int protocol, int __user *usockvec)
- 	int flags;
- 
- 	flags = type & ~SOCK_TYPE_MASK;
--	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
-+	if (flags & ~(SOCK_CLOEXEC | SOCK_CLOFORK | SOCK_NONBLOCK))
- 		return -EINVAL;
- 	type &= SOCK_TYPE_MASK;
- 
-@@ -1715,7 +1717,7 @@ int __sys_accept4_file(struct file *file, unsigned file_flags,
- 	int err, len, newfd;
- 	struct sockaddr_storage address;
- 
--	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
-+	if (flags & ~(SOCK_CLOEXEC | SOCK_CLOFORK | SOCK_NONBLOCK))
- 		return -EINVAL;
- 
- 	if (SOCK_NONBLOCK != O_NONBLOCK && (flags & SOCK_NONBLOCK))
-@@ -3628,8 +3630,8 @@ EXPORT_SYMBOL(kernel_listen);
-  *	@newsock: new connected socket
-  *	@flags: flags
-  *
-- *	@flags must be SOCK_CLOEXEC, SOCK_NONBLOCK or 0.
-- *	If it fails, @newsock is guaranteed to be %NULL.
-+ *	@flags must be SOCK_CLOEXEC, SOCK_CLOFORK, SOCK_NONBLOCK,
-+ *	or 0. If it fails, @newsock is guaranteed to be %NULL.
-  *	Returns 0 or an error.
-  */
- 
+Quite.
+
+> What's the view on having parts of the man pages generated, rather then
+> being distributed ready-built?
+
+I'm not keen (until someone shows me compelling benefits). Splitting
+things up would make pages harder to edit, and IMO increase
+the chance for inconsistencies in pages.
+
+> If we split prctl.2 up with a fragment per prctl, we could paste the
+> fragments together in the right order with a script.
+> 
+>>
+>>> Content movement only.  No semantic change.
+>>
+>> And explicitly noting that detail is very helpful to me.
+> 
+> Unless of course I'm lying ;)  (I'm not, but I won't be offended if you
+> check.)
+
+Actually, with your first two patches, you impressed right out of
+the gate, so my "I'm gonna blindly trust this guy" needle already
+switched up pretty high :-).
+
+Cheers,
+
+Michael
+
 -- 
-2.26.1
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
