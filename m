@@ -1,102 +1,53 @@
-From: "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH 10/14] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for
- SPECULATION_CTRL prctls
-Date: Wed, 13 May 2020 13:21:12 +0200
-Message-ID: <bd548916-11c8-a53f-67b5-876c79088258@gmail.com>
+From: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH 05/14] prctl.2: tfix listing order of prctls
+Date: Wed, 13 May 2020 12:21:33 +0100
+Message-ID: <20200513112133.GH21779@arm.com>
 References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
- <1589301419-24459-11-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-6-git-send-email-Dave.Martin@arm.com>
+ <1bb991f4-176a-a74e-01fc-c73b49ed77f5@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1589301419-24459-11-git-send-email-Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <1bb991f4-176a-a74e-01fc-c73b49ed77f5-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
 Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-Cc: mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Tim Chen <tim.c.chen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+To: "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Hello Dave,
-
-On 5/12/20 6:36 PM, Dave Martin wrote:
-> Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
-> for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+On Wed, May 13, 2020 at 12:10:53PM +0200, Michael Kerrisk (man-pages) wrote:
+> Hi Dave,
 > 
-> Signed-off-by: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-> Cc: Tim Chen <tim.c.chen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
-> Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
-
-Thanks. Patch applied, but not yet pushed while I wait to see if any
-Review/Ack arrives.
-
-Also, could you please check the tweaks I note below.
-
-> ---
->  man2/prctl.2 | 24 ++++++++++++++++++------
->  1 file changed, 18 insertions(+), 6 deletions(-)
+> On 5/12/20 6:36 PM, Dave Martin wrote:
+> > The prctl list has historically been sorted by prctl name (ignoring
+> > any SET_ or GET_ prefix) to make individual prctls easier to find.
+> > Some noise seems to have crept in since.
+> > 
+> > Sort the list back into order.  Similarly, reorder the list of
+> > prctls specified to return non-zero values on success.
 > 
-> diff --git a/man2/prctl.2 b/man2/prctl.2
-> index e8eaf95..66417cf 100644
-> --- a/man2/prctl.2
-> +++ b/man2/prctl.2
-> @@ -1213,11 +1213,20 @@ arguments must be specified as 0; otherwise the call fails with the error
->  .\" commit 356e4bfff2c5489e016fdb925adbf12a1e3950ee
->  Sets the state of the speculation misfeature specified in
->  .IR arg2 .
-> -Currently, the only permitted value for this argument is
-> +Currently, this argument must be one of:
-> +.RS
-> +.TP
->  .B PR_SPEC_STORE_BYPASS
-> -(otherwise the call fails with the error
-> +speculative store bypass control, or
+> This is a good patch. But see my comments on patch 04.
+> I'd prefer a patch like this at the end of a series, 
+> rather than in the middle of it.
 
-s/speculative/enable speculative/
+Ack.
 
-> +.\" commit 9137bb27e60e554dab694eafa4cca241fa3a694f
-> +.TP
-> +.BR PR_SPEC_INDIRECT_BRANCH " (since Linux 4.20)"
-> +indirect branch speculation control.
+Ideally we could check the order with a script, but that seemed a step
+too far.
 
-s/indirect/enable indirect/
+What's the view on having parts of the man pages generated, rather then
+being distributed ready-built?
 
-> +.RE
-> +.IP
-> +(Otherwise the call fails with the error
->  .BR ENODEV ).
-> -This setting is a per-thread attribute.
-> +These settings are per-thread attributes.
->  The
->  .IR arg3
->  argument is used to hand in the control value,
-> @@ -1235,13 +1244,16 @@ Same as
->  .BR PR_SPEC_DISABLE ,
->  but cannot be undone.
->  A subsequent
-> -.B
-> -prctl(..., PR_SPEC_ENABLE)
-> +.BR prctl (\c
-> +.IR arg2 ,
-> +.BR PR_SPEC_ENABLE )
-> +with the same value for
-> +.I arg2
->  will fail with the error
->  .BR EPERM .
->  .RE
->  .IP
-> -Any other value in
-> +Any unsupported value in
->  .IR arg3
->  will result in the call failing with the error
->  .BR ERANGE .
+If we split prctl.2 up with a fragment per prctl, we could paste the
+fragments together in the right order with a script.
 
-Cheers,
+> 
+> > Content movement only.  No semantic change.
+> 
+> And explicitly noting that detail is very helpful to me.
 
-Michael
+Unless of course I'm lying ;)  (I'm not, but I won't be offended if you
+check.)
 
-
-
--- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+Cheers
+---Dave
