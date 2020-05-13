@@ -1,54 +1,97 @@
-Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH v3 4/7] x86/mm/64: Implement arch_sync_kernel_mappings()
-Date: Fri, 15 May 2020 16:00:20 +0200
-Message-ID: <20200515140023.25469-5-joro@8bytes.org>
-In-Reply-To: <20200515140023.25469-1-joro@8bytes.org>
-References: <20200515140023.25469-1-joro@8bytes.org>
-Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org
-Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:44252 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725982AbgEMLwA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 May 2020 07:52:00 -0400
+Date: Wed, 13 May 2020 12:51:57 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 04/14] prctl.2: srcfix add comments for navigation
+Message-ID: <20200513115156.GN21779@arm.com>
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-5-git-send-email-Dave.Martin@arm.com>
+ <8b882b6e-376b-111d-3c3c-7a042b0e91b5@gmail.com>
+ <20200513105620.GE21779@arm.com>
+ <9770249d-0d5a-1b02-4de1-bbb6343b5829@gmail.com>
+ <20200513111557.GG21779@arm.com>
+ <022b1d7f-8381-a9a8-b5aa-907143fd4831@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <022b1d7f-8381-a9a8-b5aa-907143fd4831@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515140020.yaqkNJfIDN8FL-9_fYh1ubjJe2t2w8pCxlcYgyH6OCQ@z>
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200513115157.mj87lhqXQvnHIiRA-PSdsOpBmQmqlF5JvJu2-tGB7ec@z>
 
-From: Joerg Roedel <jroedel@suse.de>
+On Wed, May 13, 2020 at 01:48:36PM +0200, Michael Kerrisk (man-pages) wrote:
+> Hi Dave,
+> 
+> On 5/13/20 1:15 PM, Dave Martin wrote:
+> > On Wed, May 13, 2020 at 01:03:27PM +0200, Michael Kerrisk (man-pages) wrote:
+> >> Hi Dave,
+> >>
+> >> On 5/13/20 12:56 PM, Dave Martin wrote:
+> >>> On Wed, May 13, 2020 at 12:09:27PM +0200, Michael Kerrisk (man-pages) wrote:
+> >>>> Hi Dave,
+> >>>>
+> >>>> On 5/12/20 6:36 PM, Dave Martin wrote:
+> >>>>> The prctl.2 source is unnecessarily hard to navigate, not least
+> >>>>> because prctl option flags are traditionally named PR_* and so look
+> >>>>> just like prctl names.
+> >>>>>
+> >>>>> For each actual prctl, add a comment of the form
+> >>>>>
+> >>>>> 	.\" prctl PR_FOO
+> >>>>>
+> >>>>> to make it move obvious where each top-level prctl starts.
+> >>>>>
+> >>>>> Of course, we could add some clever macros, but let's not confuse
+> >>>>> dumb parsers.
+> >>>>
+> >>>> A patch like this, which makes sweeping changes across the page,
+> >>>> should be best placed at the end of a series, I think.
+> >>>> The reason is that if I fail to apply this patch (and I am a
+> >>>> little dubious about it), then probably the rest of the patches
+> >>>> in the series won't apply. (Furthermore, it also forced me to
+> >>>> apply patch 02 already, which I wanted to reflect on a little.)
+> >>>
+> >>> Agreed, I'll try to do that in future.
+> >>>
+> >>>> That said, I'll apply it, so that the remaining patches
+> >>>> apply cleanly. I'll consider later whether to keep this
+> >>>> change. For example, I wonder if a visually distinctive 
+> >>>> source line that is always the same would be better than
+> >>>> these comments that repeat the PR_* names. For example, 
+> >>>> something like
+> >>>>
+> >>>> .\" ==========================
+> >>>>
+> >>>> I'll circle back to this later.
+> >>>
+> >>> I'd prefer to keep the name if we can, since navigating by search is
+> >>> otherwise bothersome due to false hits.
+> >>>
+> >>> Could we do both, say:
+> >>>
+> >>> .\" === PR_FOO ===
+> >>
+> >> Okay -- I'll give that some thought.
+> >>
+> >>> If you prefer to reject this patch, I'm happy to rebase and repost the
+> >>> series as appropriate.
+> >>>
+> >>> In any case, this one is nice to have rather than essential.
+> >>
+> >> For now, the patch is already committed and pushed.
+> > 
+> > OK, thanks.  I'm happy to write a further patch when you've decided what
+> > to do, if it saves you work.
+> 
+> Let's leave this for the moment. Once the dust settles on your 
+> remaining patches, I'll try to remember to circle back on this.
 
-Implement the function to sync changes in vmalloc and ioremap ranges
-to all page-tables.
+OK, give me a should if you need anything from me.
 
-Signed-off-by: Joerg Roedel <jroedel@suse.de>
-Acked-by: Andy Lutomirski <luto@kernel.org>
----
- arch/x86/include/asm/pgtable_64_types.h | 2 ++
- arch/x86/mm/init_64.c                   | 5 +++++
- 2 files changed, 7 insertions(+)
-
-diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
-index 52e5f5f2240d..8f63efb2a2cc 100644
---- a/arch/x86/include/asm/pgtable_64_types.h
-+++ b/arch/x86/include/asm/pgtable_64_types.h
-@@ -159,4 +159,6 @@ extern unsigned int ptrs_per_p4d;
- 
- #define PGD_KERNEL_START	((PAGE_SIZE / 2) / sizeof(pgd_t))
- 
-+#define ARCH_PAGE_TABLE_SYNC_MASK	(pgtable_l5_enabled() ?	PGTBL_PGD_MODIFIED : PGTBL_P4D_MODIFIED)
-+
- #endif /* _ASM_X86_PGTABLE_64_DEFS_H */
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 3b289c2f75cd..541af8e5bcd4 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -217,6 +217,11 @@ void sync_global_pgds(unsigned long start, unsigned long end)
- 		sync_global_pgds_l4(start, end);
- }
- 
-+void arch_sync_kernel_mappings(unsigned long start, unsigned long end)
-+{
-+	sync_global_pgds(start, end);
-+}
-+
- /*
-  * NOTE: This function is marked __ref because it calls __init function
-  * (alloc_bootmem_pages). It's safe to do it ONLY when after_bootmem == 0.
--- 
-2.17.1
+Cheers
+---Dave
