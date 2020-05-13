@@ -1,7 +1,7 @@
 From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH v2 6/7] mm: Remove vmalloc_sync_(un)mappings()
-Date: Wed, 13 May 2020 17:21:36 +0200
-Message-ID: <20200513152137.32426-7-joro@8bytes.org>
+Subject: [PATCH v2 1/7] mm: Add functions to track page directory modifications
+Date: Wed, 13 May 2020 17:21:31 +0200
+Message-ID: <20200513152137.32426-2-joro@8bytes.org>
 References: <20200513152137.32426-1-joro@8bytes.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200513152137.32426-1-joro@8bytes.org>
@@ -12,204 +12,139 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Joerg Roedel <jroedel@suse.de>
 
-These functions are not needed anymore because the vmalloc and ioremap
-mappings are now synchronized when they are created or teared down.
+Add page-table allocation functions which will keep track of changed
+directory entries. They are needed for new PGD, P4D, PUD, and PMD
+entries and will be used in vmalloc and ioremap code to decide whether
+any changes in the kernel mappings need to be synchronized between
+page-tables in the system.
 
-Remove all callers and function definitions.
-
-Tested-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
 Signed-off-by: Joerg Roedel <jroedel@suse.de>
 ---
- arch/x86/mm/fault.c      | 37 -------------------------------------
- drivers/acpi/apei/ghes.c |  6 ------
- include/linux/vmalloc.h  |  2 --
- kernel/notifier.c        |  1 -
- kernel/trace/trace.c     | 12 ------------
- mm/nommu.c               | 12 ------------
- mm/vmalloc.c             | 21 ---------------------
- 7 files changed, 91 deletions(-)
+ include/asm-generic/5level-fixup.h |  5 ++--
+ include/asm-generic/pgtable.h      | 23 +++++++++++++++
+ include/linux/mm.h                 | 46 ++++++++++++++++++++++++++++++
+ 3 files changed, 72 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index edeb2adaf31f..255fc631b042 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -214,26 +214,6 @@ void arch_sync_kernel_mappings(unsigned long start, unsigned long end)
- 	}
- }
+diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
+index 4c74b1c1d13b..58046ddc08d0 100644
+--- a/include/asm-generic/5level-fixup.h
++++ b/include/asm-generic/5level-fixup.h
+@@ -17,8 +17,9 @@
+ 	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
+ 		NULL : pud_offset(p4d, address))
  
--static void vmalloc_sync(void)
--{
--	unsigned long address;
--
--	if (SHARED_KERNEL_PMD)
--		return;
--
--	arch_sync_kernel_mappings(VMALLOC_START, VMALLOC_END);
--}
--
--void vmalloc_sync_mappings(void)
--{
--	vmalloc_sync();
--}
--
--void vmalloc_sync_unmappings(void)
--{
--	vmalloc_sync();
--}
--
- /*
-  * 32-bit:
-  *
-@@ -336,23 +316,6 @@ static void dump_pagetable(unsigned long address)
+-#define p4d_alloc(mm, pgd, address)	(pgd)
+-#define p4d_offset(pgd, start)		(pgd)
++#define p4d_alloc(mm, pgd, address)		(pgd)
++#define p4d_alloc_track(mm, pgd, address, mask)	(pgd)
++#define p4d_offset(pgd, start)			(pgd)
  
- #else /* CONFIG_X86_64: */
- 
--void vmalloc_sync_mappings(void)
--{
--	/*
--	 * 64-bit mappings might allocate new p4d/pud pages
--	 * that need to be propagated to all tasks' PGDs.
--	 */
--	sync_global_pgds(VMALLOC_START & PGDIR_MASK, VMALLOC_END);
--}
--
--void vmalloc_sync_unmappings(void)
--{
--	/*
--	 * Unmappings never allocate or free p4d/pud pages.
--	 * No work is required here.
--	 */
--}
--
- /*
-  * 64-bit:
-  *
-diff --git a/drivers/acpi/apei/ghes.c b/drivers/acpi/apei/ghes.c
-index 24c9642e8fc7..aabe9c5ee515 100644
---- a/drivers/acpi/apei/ghes.c
-+++ b/drivers/acpi/apei/ghes.c
-@@ -167,12 +167,6 @@ int ghes_estatus_pool_init(int num_ghes)
- 	if (!addr)
- 		goto err_pool_alloc;
- 
--	/*
--	 * New allocation must be visible in all pgd before it can be found by
--	 * an NMI allocating from the pool.
--	 */
--	vmalloc_sync_mappings();
--
- 	rc = gen_pool_add(ghes_estatus_pool, addr, PAGE_ALIGN(len), -1);
- 	if (rc)
- 		goto err_pool_add;
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index c80bdb8a6b55..82c9a2ddcfa9 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -141,8 +141,6 @@ extern int remap_vmalloc_range_partial(struct vm_area_struct *vma,
- 
- extern int remap_vmalloc_range(struct vm_area_struct *vma, void *addr,
- 							unsigned long pgoff);
--void vmalloc_sync_mappings(void);
--void vmalloc_sync_unmappings(void);
- 
- /*
-  * Architectures can set this mask to a combination of PGTBL_P?D_MODIFIED values
-diff --git a/kernel/notifier.c b/kernel/notifier.c
-index 5989bbb93039..84c987dfbe03 100644
---- a/kernel/notifier.c
-+++ b/kernel/notifier.c
-@@ -519,7 +519,6 @@ NOKPROBE_SYMBOL(notify_die);
- 
- int register_die_notifier(struct notifier_block *nb)
- {
--	vmalloc_sync_mappings();
- 	return atomic_notifier_chain_register(&die_chain, nb);
- }
- EXPORT_SYMBOL_GPL(register_die_notifier);
-diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
-index 29615f15a820..f12e99b387b2 100644
---- a/kernel/trace/trace.c
-+++ b/kernel/trace/trace.c
-@@ -8527,18 +8527,6 @@ static int allocate_trace_buffers(struct trace_array *tr, int size)
- 	allocate_snapshot = false;
+ #ifndef __ASSEMBLY__
+ static inline int p4d_none(p4d_t p4d)
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 329b8c8ca703..bf1418ae91a2 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1209,6 +1209,29 @@ static inline bool arch_has_pfn_modify_check(void)
+ # define PAGE_KERNEL_EXEC PAGE_KERNEL
  #endif
  
--	/*
--	 * Because of some magic with the way alloc_percpu() works on
--	 * x86_64, we need to synchronize the pgd of all the tables,
--	 * otherwise the trace events that happen in x86_64 page fault
--	 * handlers can't cope with accessing the chance that a
--	 * alloc_percpu()'d memory might be touched in the page fault trace
--	 * event. Oh, and we need to audit all other alloc_percpu() and vmalloc()
--	 * calls in tracing, because something might get triggered within a
--	 * page fault trace event!
--	 */
--	vmalloc_sync_mappings();
--
- 	return 0;
- }
++/*
++ * Page Table Modification bits for pgtbl_mod_mask.
++ *
++ * These are used by the p?d_alloc_track*() set of functions an in the generic
++ * vmalloc/ioremap code to track at which page-table levels entries have been
++ * modified. Based on that the code can better decide when vmalloc and ioremap
++ * mapping changes need to be synchronized to other page-tables in the system.
++ */
++#define		__PGTBL_PGD_MODIFIED	0
++#define		__PGTBL_P4D_MODIFIED	1
++#define		__PGTBL_PUD_MODIFIED	2
++#define		__PGTBL_PMD_MODIFIED	3
++#define		__PGTBL_PTE_MODIFIED	4
++
++#define		PGTBL_PGD_MODIFIED	BIT(__PGTBL_PGD_MODIFIED)
++#define		PGTBL_P4D_MODIFIED	BIT(__PGTBL_P4D_MODIFIED)
++#define		PGTBL_PUD_MODIFIED	BIT(__PGTBL_PUD_MODIFIED)
++#define		PGTBL_PMD_MODIFIED	BIT(__PGTBL_PMD_MODIFIED)
++#define		PGTBL_PTE_MODIFIED	BIT(__PGTBL_PTE_MODIFIED)
++
++/* Page-Table Modification Mask */
++typedef unsigned int pgtbl_mod_mask;
++
+ #endif /* !__ASSEMBLY__ */
  
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 318df4e236c9..b4267e1471f3 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -369,18 +369,6 @@ void vm_unmap_aliases(void)
+ #ifndef io_remap_pfn_range
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 5a323422d783..022fe682af9e 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -2078,13 +2078,54 @@ static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
+ 	return (unlikely(p4d_none(*p4d)) && __pud_alloc(mm, p4d, address)) ?
+ 		NULL : pud_offset(p4d, address);
  }
- EXPORT_SYMBOL_GPL(vm_unmap_aliases);
++
++static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
++				     unsigned long address,
++				     pgtbl_mod_mask *mod_mask)
++
++{
++	if (unlikely(pgd_none(*pgd))) {
++		if (__p4d_alloc(mm, pgd, address))
++			return NULL;
++		*mod_mask |= PGTBL_PGD_MODIFIED;
++	}
++
++	return p4d_offset(pgd, address);
++}
++
+ #endif /* !__ARCH_HAS_5LEVEL_HACK */
  
--/*
-- * Implement a stub for vmalloc_sync_[un]mapping() if the architecture
-- * chose not to have one.
-- */
--void __weak vmalloc_sync_mappings(void)
--{
--}
--
--void __weak vmalloc_sync_unmappings(void)
--{
--}
--
- struct vm_struct *alloc_vm_area(size_t size, pte_t **ptes)
++static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
++				     unsigned long address,
++				     pgtbl_mod_mask *mod_mask)
++{
++	if (unlikely(p4d_none(*p4d))) {
++		if (__pud_alloc(mm, p4d, address))
++			return NULL;
++		*mod_mask |= PGTBL_P4D_MODIFIED;
++	}
++
++	return pud_offset(p4d, address);
++}
++
+ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
  {
- 	BUG();
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 184f5a556cf7..901540e4773b 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -1332,12 +1332,6 @@ static bool __purge_vmap_area_lazy(unsigned long start, unsigned long end)
- 	if (unlikely(valist == NULL))
- 		return false;
- 
--	/*
--	 * First make sure the mappings are removed from all page-tables
--	 * before they are freed.
--	 */
--	vmalloc_sync_unmappings();
--
- 	/*
- 	 * TODO: to calculate a flush range without looping.
- 	 * The list can be up to lazy_max_pages() elements.
-@@ -3177,21 +3171,6 @@ int remap_vmalloc_range(struct vm_area_struct *vma, void *addr,
+ 	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address))?
+ 		NULL: pmd_offset(pud, address);
  }
- EXPORT_SYMBOL(remap_vmalloc_range);
++
++static inline pmd_t *pmd_alloc_track(struct mm_struct *mm, pud_t *pud,
++				     unsigned long address,
++				     pgtbl_mod_mask *mod_mask)
++{
++	if (unlikely(pud_none(*pud))) {
++		if (__pmd_alloc(mm, pud, address))
++			return NULL;
++		*mod_mask |= PGTBL_PUD_MODIFIED;
++	}
++
++	return pmd_offset(pud, address);
++}
+ #endif /* CONFIG_MMU */
  
--/*
-- * Implement stubs for vmalloc_sync_[un]mappings () if the architecture chose
-- * not to have one.
-- *
-- * The purpose of this function is to make sure the vmalloc area
-- * mappings are identical in all page-tables in the system.
-- */
--void __weak vmalloc_sync_mappings(void)
--{
--}
--
--void __weak vmalloc_sync_unmappings(void)
--{
--}
--
- static int f(pte_t *pte, unsigned long addr, void *data)
- {
- 	pte_t ***p = data;
+ #if USE_SPLIT_PTE_PTLOCKS
+@@ -2200,6 +2241,11 @@ static inline void pgtable_pte_page_dtor(struct page *page)
+ 	((unlikely(pmd_none(*(pmd))) && __pte_alloc_kernel(pmd))? \
+ 		NULL: pte_offset_kernel(pmd, address))
+ 
++#define pte_alloc_kernel_track(pmd, address, mask)			\
++	((unlikely(pmd_none(*(pmd))) &&					\
++	  (__pte_alloc_kernel(pmd) || ({*(mask)|=PGTBL_PMD_MODIFIED;0;})))?\
++		NULL: pte_offset_kernel(pmd, address))
++
+ #if USE_SPLIT_PMD_PTLOCKS
+ 
+ static struct page *pmd_to_page(pmd_t *pmd)
 -- 
 2.17.1
