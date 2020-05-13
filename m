@@ -1,74 +1,102 @@
-From: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [PATCH 06/14] prctl.2: ffix quotation mark tweaks
-Date: Wed, 13 May 2020 12:39:50 +0100
-Message-ID: <20200513113949.GI21779@arm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH 02/14] prctl.2: Add health warning
+Date: Wed, 13 May 2020 13:40:26 +0200
+Message-ID: <7218089f-20df-52b3-e1d4-ac63e0215efc@gmail.com>
 References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
- <1589301419-24459-7-git-send-email-Dave.Martin@arm.com>
- <7afe32a5-9675-74d4-7c39-f1271d475afd@gmail.com>
+ <1589301419-24459-3-git-send-email-Dave.Martin@arm.com>
+ <93c5bfe6-fbbe-93ca-ef9c-91228c99d31b@gmail.com>
+ <20200513111340.GF21779@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <7afe32a5-9675-74d4-7c39-f1271d475afd-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <20200513111340.GF21779-5wv7dgnIgG8@public.gmane.org>
+Content-Language: en-US
 Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Cc: mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 13, 2020 at 12:11:21PM +0200, Michael Kerrisk (man-pages) wrote:
-> Hello Dave,
+Hi Dave,
+
+On 5/13/20 1:13 PM, Dave Martin wrote:
+> On Wed, May 13, 2020 at 12:10:25PM +0200, Michael Kerrisk (man-pages) wrote:
+>> Hi Dave,
+>>
+>> On 5/12/20 6:36 PM, Dave Martin wrote:
+>>> In reality, almost every prctl interferes with assumptions that the
+>>> compiler and C library / runtime rely on.  prctl() can therefore
+>>> make userspace explode in a variety ways that are likely to be hard
+>>> to debug.
+>>>
+>>> This is not obvious to the uninitiated, so add a warning.
+>>
+>> Patch applied. But see my comments on patch 04. I may want to 
+>> circle back on this patch later, since the wording feels a 
+>> little strong to me (we simply must use prctl for some things, 
+>> and not all of those things break user-space/runtime as far 
+>> as I know). If you have some thoughts on softening the warning,
+>> let me know.
 > 
-> On 5/12/20 6:36 PM, Dave Martin wrote:
-> > Convert quote marks used for information terms in prose to use
-> > \(oq .. \(cq, for better graphical rendering.
-> > 
-> > Signed-off-by: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+> Certainly the "if at all" can go -- this was just a suggestion
+> really.
+
+Yes. Gone.
+
+> Maybe the whole thing is superfluous.  In C anything can screw up the
+> runtime if you try hard enough.
+
+I think it's at least worth alerting the reader to this issue.
+
+> The background to this patch is that things like the new
+> PR_PAC_RESET_KEYS and PR_SVE_SET_VL are likely to crash the program, or
+> place a timebomb that will explode later when someone upgrades their
+> toolchain or links with a new version of some library.  Many existing
+> prctls that look equally unfriendly...
 > 
-> Again, this is a patch that I would prefer to see near the end 
-> of a series, rather than in the middle.
+> I didn't want to say nothing at all, but I didn't want to get into the
+> gory details either.
+
+(Okay.)
+
+> Doing the digging to document the safety requirements of each prctl
+> would be a lot of work, and probably an exercise in futility anyway --
+> how to use a lot of prctls safely depends on the run-time environment as
+> much as it does on the kernel.
 > 
-> I'm currently agnostic about this change. But, I do not
-> want to apply this patch, since no other pages in man-pages
-> use \(oq...\(cq.
 > 
-> I haven't applied this patch. Luckily, that does not prevent
-> any of the later patches applying.
+> If you want to drop this, I'm happy to add explicit notes to just the
+> new arm64 prctls instead for now.
 
-I'll be careful to move this sort of thing to the end of a series in
-future.
+I just softened the warning a little; see below. Explicit notes for
+the new arm64 prctls would certainly be welcome.
 
-This was a provocative patch, so I'm happy for it to be dropped.
+Cheers,
+
+Michael
+
+diff --git a/man2/prctl.2 b/man2/prctl.2
+index 7e78fc3c1..4e2d67345 100644
+--- a/man2/prctl.2
++++ b/man2/prctl.2
+@@ -66,10 +66,10 @@ prctl \- operations on a process or thread
+ manipulates various aspects of the behavior
+ of the calling thread or process.
+ .PP
+-Note that careless use of
++Note that careless use of some
+ .BR prctl ()
+-can confuse the user-space run-time environment,
+-so these operations should be used with care (if at all).
++operations can confuse the user-space run-time environment,
++so these operations should be used with care.
+ .PP
+ .BR prctl ()
+ is called with a first argument describing what to do
 
 
-The main motivation was that ' renders to PostScript etc. as a closing
-quote, which is fine for apostrophes but not fine for an opening quote
-mark.  Most of the current quotes in here are actually ", but I don't
-see an actual promise from groff that that renders as a neutral glyph
-either, so it seemed best to avoid.  For now " does seem to be rendered
-with a neutral glyph (i.e., neither opening or closing).
 
-> > ---
-> > 
-> > Note, this can lead to misrendering on badly-configured systems.
-> > However, many man pages do it.
-> 
-> Can you say some more about this please?
-
-Terminal character maps need to match LANG etc. in order for fancy
-characters coming out of nroff to display correctly.
-
-ssh attempts to send LANG across, but terminal sessions between systems
-that have different locales installed can be a problem, as can dumb
-serial links that don't magically pass the locale and terminal type
-settings across.
-
-The fact that I hit this problem a lot in some situations (particularly
-the serial link case) suggested to me that fancy characters are
-considered fine nowadays, but perhaps I'd need to dig into it some more
-to understand the situation fully.
-
-(There are one or two ' that should really be \(aq anyway, but I'll
-try to address that separately.)
-
-Cheers
----Dave
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
