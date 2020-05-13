@@ -1,150 +1,263 @@
 From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH v2 1/7] mm: Add functions to track page directory modifications
-Date: Wed, 13 May 2020 17:21:31 +0200
-Message-ID: <20200513152137.32426-2-joro@8bytes.org>
+Subject: [PATCH v2 7/7] x86/mm: Remove vmalloc faulting
+Date: Wed, 13 May 2020 17:21:37 +0200
+Message-ID: <20200513152137.32426-8-joro@8bytes.org>
 References: <20200513152137.32426-1-joro@8bytes.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-acpi-owner@vger.kernel.org>
 In-Reply-To: <20200513152137.32426-1-joro@8bytes.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-acpi-owner@vger.kernel.org
 To: x86@kernel.org
 Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
 From: Joerg Roedel <jroedel@suse.de>
 
-Add page-table allocation functions which will keep track of changed
-directory entries. They are needed for new PGD, P4D, PUD, and PMD
-entries and will be used in vmalloc and ioremap code to decide whether
-any changes in the kernel mappings need to be synchronized between
-page-tables in the system.
+Remove fault handling on vmalloc areas, as the vmalloc code now takes
+care of synchronizing changes to all page-tables in the system.
 
 Signed-off-by: Joerg Roedel <jroedel@suse.de>
 ---
- include/asm-generic/5level-fixup.h |  5 ++--
- include/asm-generic/pgtable.h      | 23 +++++++++++++++
- include/linux/mm.h                 | 46 ++++++++++++++++++++++++++++++
- 3 files changed, 72 insertions(+), 2 deletions(-)
+ arch/x86/include/asm/switch_to.h |  23 ------
+ arch/x86/kernel/setup_percpu.c   |   6 +-
+ arch/x86/mm/fault.c              | 134 -------------------------------
+ arch/x86/mm/pti.c                |   8 +-
+ 4 files changed, 4 insertions(+), 167 deletions(-)
 
-diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
-index 4c74b1c1d13b..58046ddc08d0 100644
---- a/include/asm-generic/5level-fixup.h
-+++ b/include/asm-generic/5level-fixup.h
-@@ -17,8 +17,9 @@
- 	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
- 		NULL : pud_offset(p4d, address))
+diff --git a/arch/x86/include/asm/switch_to.h b/arch/x86/include/asm/switch_to.h
+index 0e059b73437b..9f69cc497f4b 100644
+--- a/arch/x86/include/asm/switch_to.h
++++ b/arch/x86/include/asm/switch_to.h
+@@ -12,27 +12,6 @@ struct task_struct *__switch_to_asm(struct task_struct *prev,
+ __visible struct task_struct *__switch_to(struct task_struct *prev,
+ 					  struct task_struct *next);
  
--#define p4d_alloc(mm, pgd, address)	(pgd)
--#define p4d_offset(pgd, start)		(pgd)
-+#define p4d_alloc(mm, pgd, address)		(pgd)
-+#define p4d_alloc_track(mm, pgd, address, mask)	(pgd)
-+#define p4d_offset(pgd, start)			(pgd)
+-/* This runs runs on the previous thread's stack. */
+-static inline void prepare_switch_to(struct task_struct *next)
+-{
+-#ifdef CONFIG_VMAP_STACK
+-	/*
+-	 * If we switch to a stack that has a top-level paging entry
+-	 * that is not present in the current mm, the resulting #PF will
+-	 * will be promoted to a double-fault and we'll panic.  Probe
+-	 * the new stack now so that vmalloc_fault can fix up the page
+-	 * tables if needed.  This can only happen if we use a stack
+-	 * in vmap space.
+-	 *
+-	 * We assume that the stack is aligned so that it never spans
+-	 * more than one top-level paging entry.
+-	 *
+-	 * To minimize cache pollution, just follow the stack pointer.
+-	 */
+-	READ_ONCE(*(unsigned char *)next->thread.sp);
+-#endif
+-}
+-
+ asmlinkage void ret_from_fork(void);
  
- #ifndef __ASSEMBLY__
- static inline int p4d_none(p4d_t p4d)
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 329b8c8ca703..bf1418ae91a2 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1209,6 +1209,29 @@ static inline bool arch_has_pfn_modify_check(void)
- # define PAGE_KERNEL_EXEC PAGE_KERNEL
- #endif
+ /*
+@@ -67,8 +46,6 @@ struct fork_frame {
  
-+/*
-+ * Page Table Modification bits for pgtbl_mod_mask.
-+ *
-+ * These are used by the p?d_alloc_track*() set of functions an in the generic
-+ * vmalloc/ioremap code to track at which page-table levels entries have been
-+ * modified. Based on that the code can better decide when vmalloc and ioremap
-+ * mapping changes need to be synchronized to other page-tables in the system.
-+ */
-+#define		__PGTBL_PGD_MODIFIED	0
-+#define		__PGTBL_P4D_MODIFIED	1
-+#define		__PGTBL_PUD_MODIFIED	2
-+#define		__PGTBL_PMD_MODIFIED	3
-+#define		__PGTBL_PTE_MODIFIED	4
-+
-+#define		PGTBL_PGD_MODIFIED	BIT(__PGTBL_PGD_MODIFIED)
-+#define		PGTBL_P4D_MODIFIED	BIT(__PGTBL_P4D_MODIFIED)
-+#define		PGTBL_PUD_MODIFIED	BIT(__PGTBL_PUD_MODIFIED)
-+#define		PGTBL_PMD_MODIFIED	BIT(__PGTBL_PMD_MODIFIED)
-+#define		PGTBL_PTE_MODIFIED	BIT(__PGTBL_PTE_MODIFIED)
-+
-+/* Page-Table Modification Mask */
-+typedef unsigned int pgtbl_mod_mask;
-+
- #endif /* !__ASSEMBLY__ */
+ #define switch_to(prev, next, last)					\
+ do {									\
+-	prepare_switch_to(next);					\
+-									\
+ 	((last) = __switch_to_asm((prev), (next)));			\
+ } while (0)
  
- #ifndef io_remap_pfn_range
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 5a323422d783..022fe682af9e 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2078,13 +2078,54 @@ static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
- 	return (unlikely(p4d_none(*p4d)) && __pud_alloc(mm, p4d, address)) ?
- 		NULL : pud_offset(p4d, address);
+diff --git a/arch/x86/kernel/setup_percpu.c b/arch/x86/kernel/setup_percpu.c
+index e6d7894ad127..fd945ce78554 100644
+--- a/arch/x86/kernel/setup_percpu.c
++++ b/arch/x86/kernel/setup_percpu.c
+@@ -287,9 +287,9 @@ void __init setup_per_cpu_areas(void)
+ 	/*
+ 	 * Sync back kernel address range again.  We already did this in
+ 	 * setup_arch(), but percpu data also needs to be available in
+-	 * the smpboot asm.  We can't reliably pick up percpu mappings
+-	 * using vmalloc_fault(), because exception dispatch needs
+-	 * percpu data.
++	 * the smpboot asm and arch_sync_kernel_mappings() doesn't sync to
++	 * swapper_pg_dir on 32-bit. The per-cpu mappings need to be available
++	 * there too.
+ 	 *
+ 	 * FIXME: Can the later sync in setup_cpu_entry_areas() replace
+ 	 * this call?
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 255fc631b042..dffe8e4d3140 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -214,44 +214,6 @@ void arch_sync_kernel_mappings(unsigned long start, unsigned long end)
+ 	}
  }
-+
-+static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
-+				     unsigned long address,
-+				     pgtbl_mod_mask *mod_mask)
-+
-+{
-+	if (unlikely(pgd_none(*pgd))) {
-+		if (__p4d_alloc(mm, pgd, address))
-+			return NULL;
-+		*mod_mask |= PGTBL_PGD_MODIFIED;
-+	}
-+
-+	return p4d_offset(pgd, address);
-+}
-+
- #endif /* !__ARCH_HAS_5LEVEL_HACK */
  
-+static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
-+				     unsigned long address,
-+				     pgtbl_mod_mask *mod_mask)
-+{
-+	if (unlikely(p4d_none(*p4d))) {
-+		if (__pud_alloc(mm, p4d, address))
-+			return NULL;
-+		*mod_mask |= PGTBL_P4D_MODIFIED;
-+	}
-+
-+	return pud_offset(p4d, address);
-+}
-+
- static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
- {
- 	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address))?
- 		NULL: pmd_offset(pud, address);
- }
-+
-+static inline pmd_t *pmd_alloc_track(struct mm_struct *mm, pud_t *pud,
-+				     unsigned long address,
-+				     pgtbl_mod_mask *mod_mask)
-+{
-+	if (unlikely(pud_none(*pud))) {
-+		if (__pmd_alloc(mm, pud, address))
-+			return NULL;
-+		*mod_mask |= PGTBL_PUD_MODIFIED;
-+	}
-+
-+	return pmd_offset(pud, address);
-+}
- #endif /* CONFIG_MMU */
+-/*
+- * 32-bit:
+- *
+- *   Handle a fault on the vmalloc or module mapping area
+- */
+-static noinline int vmalloc_fault(unsigned long address)
+-{
+-	unsigned long pgd_paddr;
+-	pmd_t *pmd_k;
+-	pte_t *pte_k;
+-
+-	/* Make sure we are in vmalloc area: */
+-	if (!(address >= VMALLOC_START && address < VMALLOC_END))
+-		return -1;
+-
+-	/*
+-	 * Synchronize this task's top level page-table
+-	 * with the 'reference' page table.
+-	 *
+-	 * Do _not_ use "current" here. We might be inside
+-	 * an interrupt in the middle of a task switch..
+-	 */
+-	pgd_paddr = read_cr3_pa();
+-	pmd_k = vmalloc_sync_one(__va(pgd_paddr), address);
+-	if (!pmd_k)
+-		return -1;
+-
+-	if (pmd_large(*pmd_k))
+-		return 0;
+-
+-	pte_k = pte_offset_kernel(pmd_k, address);
+-	if (!pte_present(*pte_k))
+-		return -1;
+-
+-	return 0;
+-}
+-NOKPROBE_SYMBOL(vmalloc_fault);
+-
+ /*
+  * Did it hit the DOS screen memory VA from vm86 mode?
+  */
+@@ -316,79 +278,6 @@ static void dump_pagetable(unsigned long address)
  
- #if USE_SPLIT_PTE_PTLOCKS
-@@ -2200,6 +2241,11 @@ static inline void pgtable_pte_page_dtor(struct page *page)
- 	((unlikely(pmd_none(*(pmd))) && __pte_alloc_kernel(pmd))? \
- 		NULL: pte_offset_kernel(pmd, address))
+ #else /* CONFIG_X86_64: */
  
-+#define pte_alloc_kernel_track(pmd, address, mask)			\
-+	((unlikely(pmd_none(*(pmd))) &&					\
-+	  (__pte_alloc_kernel(pmd) || ({*(mask)|=PGTBL_PMD_MODIFIED;0;})))?\
-+		NULL: pte_offset_kernel(pmd, address))
-+
- #if USE_SPLIT_PMD_PTLOCKS
+-/*
+- * 64-bit:
+- *
+- *   Handle a fault on the vmalloc area
+- */
+-static noinline int vmalloc_fault(unsigned long address)
+-{
+-	pgd_t *pgd, *pgd_k;
+-	p4d_t *p4d, *p4d_k;
+-	pud_t *pud;
+-	pmd_t *pmd;
+-	pte_t *pte;
+-
+-	/* Make sure we are in vmalloc area: */
+-	if (!(address >= VMALLOC_START && address < VMALLOC_END))
+-		return -1;
+-
+-	/*
+-	 * Copy kernel mappings over when needed. This can also
+-	 * happen within a race in page table update. In the later
+-	 * case just flush:
+-	 */
+-	pgd = (pgd_t *)__va(read_cr3_pa()) + pgd_index(address);
+-	pgd_k = pgd_offset_k(address);
+-	if (pgd_none(*pgd_k))
+-		return -1;
+-
+-	if (pgtable_l5_enabled()) {
+-		if (pgd_none(*pgd)) {
+-			set_pgd(pgd, *pgd_k);
+-			arch_flush_lazy_mmu_mode();
+-		} else {
+-			BUG_ON(pgd_page_vaddr(*pgd) != pgd_page_vaddr(*pgd_k));
+-		}
+-	}
+-
+-	/* With 4-level paging, copying happens on the p4d level. */
+-	p4d = p4d_offset(pgd, address);
+-	p4d_k = p4d_offset(pgd_k, address);
+-	if (p4d_none(*p4d_k))
+-		return -1;
+-
+-	if (p4d_none(*p4d) && !pgtable_l5_enabled()) {
+-		set_p4d(p4d, *p4d_k);
+-		arch_flush_lazy_mmu_mode();
+-	} else {
+-		BUG_ON(p4d_pfn(*p4d) != p4d_pfn(*p4d_k));
+-	}
+-
+-	BUILD_BUG_ON(CONFIG_PGTABLE_LEVELS < 4);
+-
+-	pud = pud_offset(p4d, address);
+-	if (pud_none(*pud))
+-		return -1;
+-
+-	if (pud_large(*pud))
+-		return 0;
+-
+-	pmd = pmd_offset(pud, address);
+-	if (pmd_none(*pmd))
+-		return -1;
+-
+-	if (pmd_large(*pmd))
+-		return 0;
+-
+-	pte = pte_offset_kernel(pmd, address);
+-	if (!pte_present(*pte))
+-		return -1;
+-
+-	return 0;
+-}
+-NOKPROBE_SYMBOL(vmalloc_fault);
+-
+ #ifdef CONFIG_CPU_SUP_AMD
+ static const char errata93_warning[] =
+ KERN_ERR 
+@@ -1227,29 +1116,6 @@ do_kern_addr_fault(struct pt_regs *regs, unsigned long hw_error_code,
+ 	 */
+ 	WARN_ON_ONCE(hw_error_code & X86_PF_PK);
  
- static struct page *pmd_to_page(pmd_t *pmd)
+-	/*
+-	 * We can fault-in kernel-space virtual memory on-demand. The
+-	 * 'reference' page table is init_mm.pgd.
+-	 *
+-	 * NOTE! We MUST NOT take any locks for this case. We may
+-	 * be in an interrupt or a critical region, and should
+-	 * only copy the information from the master page table,
+-	 * nothing more.
+-	 *
+-	 * Before doing this on-demand faulting, ensure that the
+-	 * fault is not any of the following:
+-	 * 1. A fault on a PTE with a reserved bit set.
+-	 * 2. A fault caused by a user-mode access.  (Do not demand-
+-	 *    fault kernel memory due to user-mode accesses).
+-	 * 3. A fault caused by a page-level protection violation.
+-	 *    (A demand fault would be on a non-present page which
+-	 *     would have X86_PF_PROT==0).
+-	 */
+-	if (!(hw_error_code & (X86_PF_RSVD | X86_PF_USER | X86_PF_PROT))) {
+-		if (vmalloc_fault(address) >= 0)
+-			return;
+-	}
+-
+ 	/* Was the fault spurious, caused by lazy TLB invalidation? */
+ 	if (spurious_kernel_fault(hw_error_code, address))
+ 		return;
+diff --git a/arch/x86/mm/pti.c b/arch/x86/mm/pti.c
+index 843aa10a4cb6..da0fb17a1a36 100644
+--- a/arch/x86/mm/pti.c
++++ b/arch/x86/mm/pti.c
+@@ -448,13 +448,7 @@ static void __init pti_clone_user_shared(void)
+ 		 * the sp1 and sp2 slots.
+ 		 *
+ 		 * This is done for all possible CPUs during boot to ensure
+-		 * that it's propagated to all mms.  If we were to add one of
+-		 * these mappings during CPU hotplug, we would need to take
+-		 * some measure to make sure that every mm that subsequently
+-		 * ran on that CPU would have the relevant PGD entry in its
+-		 * pagetables.  The usual vmalloc_fault() mechanism would not
+-		 * work for page faults taken in entry_SYSCALL_64 before RSP
+-		 * is set up.
++		 * that it's propagated to all mms.
+ 		 */
+ 
+ 		unsigned long va = (unsigned long)&per_cpu(cpu_tss_rw, cpu);
 -- 
 2.17.1
