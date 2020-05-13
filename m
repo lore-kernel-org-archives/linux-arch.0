@@ -1,95 +1,74 @@
-Return-Path: <SRS0=z9eI=7A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from hqnvemgate24.nvidia.com ([216.228.121.143]:10274 "EHLO
-        hqnvemgate24.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725280AbgEREZe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 May 2020 00:25:34 -0400
-Subject: Re: [PATCH v6 09/10] arm64: efi: Export screen_info
-From: Nikhil Mahale <nmahale@nvidia.com>
-References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
- <1584200119-18594-10-git-send-email-mikelley@microsoft.com>
- <CAK8P3a1YUjhaVUmjVC2pCoTTBTU408iN44Q=QZ0RDz8rmzJisQ@mail.gmail.com>
- <MW2PR2101MB10524254D2FE3EFC72329465D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
- <CAK8P3a1YCtc3LJ-_3iT90_Srehb96gLHvTXsbJ0wT6NFYCG=TQ@mail.gmail.com>
- <MW2PR2101MB1052E413218D295EF24E5E05D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
- <f2b63853-24ae-d6b7-cd43-5792c0d4d31b@nvidia.com>
-Message-ID: <4202ea20-6e51-31d3-44b1-3861798a8158@nvidia.com>
-Date: Mon, 18 May 2020 09:55:21 +0530
+Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52728 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732382AbgEMKMA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 06:12:00 -0400
+Subject: Re: [PATCH 07/14] prctl.2: Document removal of Intel MPX prctls
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-8-git-send-email-Dave.Martin@arm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Message-ID: <3201c6e6-bd9e-aef4-fae5-70229e1b1abe@gmail.com>
+Date: Wed, 13 May 2020 12:11:57 +0200
 MIME-Version: 1.0
-In-Reply-To: <f2b63853-24ae-d6b7-cd43-5792c0d4d31b@nvidia.com>
-Content-Type: text/plain; charset="utf-8"
+In-Reply-To: <1589301419-24459-8-git-send-email-Dave.Martin@arm.com>
+Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Kelley <mikelley@microsoft.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>
-Message-ID: <20200518042521.5ZXHZCVW8KpYhxxqMwJ-4b4xgVRmxEM8ws3JyJeWD24@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Dave Hansen <dave.hansen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20200513101157.wPZ6_FwdRox-5mwk00p7RyRj60MwDtOhX7POKcxdDf4@z>
 
-On 5/13/20 7:56 PM, Nikhil Mahale wrote:
-> On 3/20/20 3:16 AM, Michael Kelley wrote:
->> From: Arnd Bergmann <arnd@arndb.de> Sent: Wednesday, March 18, 2020 2:27 AM
->>>
->>> On Wed, Mar 18, 2020 at 1:18 AM Michael Kelley <mikelley@microsoft.com> wrote:
->>>> From: Arnd Bergmann <arnd@arndb.de>
->>>>> On Sat, Mar 14, 2020 at 4:36 PM Michael Kelley <mikelley@microsoft.com> wrote:
->>>>>>
->>>>>> The Hyper-V frame buffer driver may be built as a module, and
->>>>>> it needs access to screen_info. So export screen_info.
->>>>>>
->>>>>> Signed-off-by: Michael Kelley <mikelley@microsoft.com>
->>>>>
->>>>> Is there any chance of using a more modern KMS based driver for the screen
->>>>> than the old fbdev subsystem? I had hoped to one day completely remove
->>>>> support for the old CONFIG_VIDEO_FBDEV and screen_info from modern
->>>>> architectures.
->>>>>
->>>>
->>>> The current hyperv_fb.c driver is all we have today for the synthetic Hyper-V
->>>> frame buffer device.  That driver builds and runs on both ARM64 and x86.
->>>>
->>>> I'm not knowledgeable about video/graphics drivers, but when you
->>>> say "a more modern KMS based driver", are you meaning one based on
->>>> DRM & KMS?  Does DRM make sense for a "dumb" frame buffer device?
->>>> Are there any drivers that would be a good pattern to look at?
->>>
->>> It used to be a lot harder to write a DRM driver compared to an fbdev
->>> driver, but this has changed to the opposite over the years.
->>>
->>> A fairly minimal example would be drivers/gpu/drm/pl111/pl111_drv.c
->>> or anything in drivers/gpu/drm/tiny/, but you may want to look at the
->>> other hypervisor platforms first, i.e drivers/gpu/drm/virtio/virtgpu_drv.c,
->>> drivers/gpu/drm/vmwgfx/vmwgfx_drv.c, drivers/gpu/drm/xen/xen_drm_front.c,
->>> drivers/gpu/drm/qxl/qxl_drv.c, and drivers/gpu/drm/bochs/bochs_drv.c.
->>>
->>
->> Thanks for the pointers, especially for the other hypervisors.
->>
-> Sorry if anybody in 'to' or 'cc' is receiving this reply multiple times.
-> I had configured by email client incorrectly to reply.
+On 5/12/20 6:36 PM, Dave Martin wrote:
+> The Intel MPX API was removed from Linux 5.4.  See Linux
+> commit f240652b6032 ("x86/mpx: Remove MPX APIs")
 > 
-> screen_info is still useful with a modern KMS-based driver.  It exposes
-> the mode parameters that the GOP driver chose.  This information is
-> needed to implement seamless or glitchless boot, by both ensuring that
-> the scanout parameters don't change and being able to read back the
-> scanout image to populate the initial contents of the new surface.
+> Document this change.
+
+Thanks. Patch applied, with Dave H's Acked-by.
+
+Cheers,
+
+Michael
+
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Cc: Dave Hansen <dave.hansen@linux.intel.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> ---
+>  man2/prctl.2 | 8 +++++++-
+>  1 file changed, 7 insertions(+), 1 deletion(-)
 > 
-> This works today on arches which implement (U)EFI and export
-> screen_info, including x86 and powerpc, but doesn't work on arm or
-> arm64.  As arm64 systems that implement UEFI with real GOP drivers
-> become more prevalent, it would be nice to be have these features there
-> as well.
-
-In addition to this, even if a driver doesn't implement a framebuffer
-console, or if it does but has an option to disable it, the driver still
-needs to know whether the EFI console is using resources on the GPU so
-it can avoid clobbering them. For example screen_info provides information
-like offset and size of EFI console, using this information driver can
-reserve memory used by console and prevent corruption on it.
-
-I think arm64 should export screen_info.
-
-> Thanks,
-> Nikhil Mahale
+> diff --git a/man2/prctl.2 b/man2/prctl.2
+> index 7a3fc5c..a84fb1d 100644
+> --- a/man2/prctl.2
+> +++ b/man2/prctl.2
+> @@ -784,7 +784,7 @@ option enabled.
+>  .RE
+>  .\" prctl PR_MPX_ENABLE_MANAGEMENT
+>  .TP
+> -.BR PR_MPX_ENABLE_MANAGEMENT ", " PR_MPX_DISABLE_MANAGEMENT " (since Linux 3.19) "
+> +.BR PR_MPX_ENABLE_MANAGEMENT ", " PR_MPX_DISABLE_MANAGEMENT " (since Linux 3.19, removed in Linux 5.4; only on x86) "
+>  .\" commit fe3d197f84319d3bce379a9c0dc17b1f48ad358c
+>  .\" See also http://lwn.net/Articles/582712/
+>  .\" See also https://gcc.gnu.org/wiki/Intel%20MPX%20support%20in%20the%20GCC%20compiler
+> @@ -859,6 +859,12 @@ had been called.
+>  .IP
+>  For further information on Intel MPX, see the kernel source file
+>  .IR Documentation/x86/intel_mpx.txt .
+> +.IP
+> +.\" commit f240652b6032b48ad7fa35c5e701cc4c8d697c0b
+> +.\" See also https://lkml.kernel.org/r/20190705175321.DB42F0AD@viggo.jf.intel.com
+> +Due to a lack of toolchain support,
+> +.BR PR_MPX_ENABLE_MANAGEMENT " and " PR_MPX_DISABLE_MANAGEMENT
+> +are not supported by Linux 5.4 or later.
+>  .\" prctl PR_SET_NAME
+>  .TP
+>  .BR PR_SET_NAME " (since Linux 2.6.9)"
 > 
->> Michael
->>
+
+
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
