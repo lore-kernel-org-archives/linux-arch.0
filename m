@@ -1,68 +1,108 @@
-Return-Path: <SRS0=nIgR=6W=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:51586 "EHLO mail.kernel.org"
+Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from 8bytes.org ([81.169.241.247]:42656 "EHLO theia.8bytes.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728060AbgEHMhS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 8 May 2020 08:37:18 -0400
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 032/312] MIPS: Define AT_VECTOR_SIZE_ARCH for ARCH_DLINFO
-Date: Fri,  8 May 2020 14:30:23 +0200
-Message-ID: <20200508123126.743335733@linuxfoundation.org>
-In-Reply-To: <20200508123124.574959822@linuxfoundation.org>
-References: <20200508123124.574959822@linuxfoundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+        id S1732271AbgEMPVp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 May 2020 11:21:45 -0400
+From: Joerg Roedel <joro@8bytes.org>
+Subject: [PATCH v2 5/7] x86/mm/32: Implement arch_sync_kernel_mappings()
+Date: Wed, 13 May 2020 17:21:35 +0200
+Message-ID: <20200513152137.32426-6-joro@8bytes.org>
+In-Reply-To: <20200513152137.32426-1-joro@8bytes.org>
+References: <20200513152137.32426-1-joro@8bytes.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20200508123023.EpSGvHpsVrfg51FSPVRAxNhAAJn6kVxYqkIhWqXT0MI@z>
+To: x86@kernel.org
+Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20200513152135.D8IMpLThoG_Tmc7Ic8satzdmjU8kbx9G7DnI62ik0vg@z>
 
-From: James Hogan <james.hogan@imgtec.com>
+From: Joerg Roedel <jroedel@suse.de>
 
-commit 233b2ca181f20674ecad11be90b00814911ce345 upstream.
+Implement the function to sync changes in vmalloc and ioremap ranges
+to all page-tables.
 
-AT_VECTOR_SIZE_ARCH should be defined with the maximum number of
-NEW_AUX_ENT entries that ARCH_DLINFO can contain, but it wasn't defined
-for MIPS at all even though ARCH_DLINFO will contain one NEW_AUX_ENT for
-the VDSO address.
-
-This shouldn't be a problem as AT_VECTOR_SIZE_BASE includes space for
-AT_BASE_PLATFORM which MIPS doesn't use, but lets define it now and add
-the comment above ARCH_DLINFO as found in several other architectures to
-remind future modifiers of ARCH_DLINFO to keep AT_VECTOR_SIZE_ARCH up to
-date.
-
-Fixes: ebb5e78cc634 ("MIPS: Initial implementation of a VDSO")
-Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: linux-mips@linux-mips.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-Patchwork: https://patchwork.linux-mips.org/patch/13823/
-Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-
+Signed-off-by: Joerg Roedel <jroedel@suse.de>
 ---
- arch/mips/include/asm/elf.h         |    1 +
- arch/mips/include/uapi/asm/auxvec.h |    2 ++
- 2 files changed, 3 insertions(+)
+ arch/x86/include/asm/pgtable-2level_types.h |  2 ++
+ arch/x86/include/asm/pgtable-3level_types.h |  2 ++
+ arch/x86/mm/fault.c                         | 25 +++++++++++++--------
+ 3 files changed, 20 insertions(+), 9 deletions(-)
 
---- a/arch/mips/include/asm/elf.h
-+++ b/arch/mips/include/asm/elf.h
-@@ -420,6 +420,7 @@ extern const char *__elf_platform;
- #define ELF_ET_DYN_BASE		(TASK_SIZE / 3 * 2)
+diff --git a/arch/x86/include/asm/pgtable-2level_types.h b/arch/x86/include/asm/pgtable-2level_types.h
+index 6deb6cd236e3..7f6ccff0ba72 100644
+--- a/arch/x86/include/asm/pgtable-2level_types.h
++++ b/arch/x86/include/asm/pgtable-2level_types.h
+@@ -20,6 +20,8 @@ typedef union {
+ 
+ #define SHARED_KERNEL_PMD	0
+ 
++#define ARCH_PAGE_TABLE_SYNC_MASK	PGTBL_PMD_MODIFIED
++
+ /*
+  * traditional i386 two-level paging structure:
+  */
+diff --git a/arch/x86/include/asm/pgtable-3level_types.h b/arch/x86/include/asm/pgtable-3level_types.h
+index 33845d36897c..80fbb4a9ed87 100644
+--- a/arch/x86/include/asm/pgtable-3level_types.h
++++ b/arch/x86/include/asm/pgtable-3level_types.h
+@@ -27,6 +27,8 @@ typedef union {
+ #define SHARED_KERNEL_PMD	(!static_cpu_has(X86_FEATURE_PTI))
  #endif
  
-+/* update AT_VECTOR_SIZE_ARCH if the number of NEW_AUX_ENT entries changes */
- #define ARCH_DLINFO							\
- do {									\
- 	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
---- a/arch/mips/include/uapi/asm/auxvec.h
-+++ b/arch/mips/include/uapi/asm/auxvec.h
-@@ -14,4 +14,6 @@
- /* Location of VDSO image. */
- #define AT_SYSINFO_EHDR		33
- 
-+#define AT_VECTOR_SIZE_ARCH 1 /* entries in ARCH_DLINFO */
++#define ARCH_PAGE_TABLE_SYNC_MASK	(SHARED_KERNEL_PMD ? 0 : PGTBL_PMD_MODIFIED)
 +
- #endif /* __ASM_AUXVEC_H */
+ /*
+  * PGDIR_SHIFT determines what a top-level page table entry can map
+  */
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index a51df516b87b..edeb2adaf31f 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -190,16 +190,13 @@ static inline pmd_t *vmalloc_sync_one(pgd_t *pgd, unsigned long address)
+ 	return pmd_k;
+ }
+ 
+-static void vmalloc_sync(void)
++void arch_sync_kernel_mappings(unsigned long start, unsigned long end)
+ {
+-	unsigned long address;
+-
+-	if (SHARED_KERNEL_PMD)
+-		return;
++	unsigned long addr;
+ 
+-	for (address = VMALLOC_START & PMD_MASK;
+-	     address >= TASK_SIZE_MAX && address < VMALLOC_END;
+-	     address += PMD_SIZE) {
++	for (addr = start & PMD_MASK;
++	     addr >= TASK_SIZE_MAX && addr < VMALLOC_END;
++	     addr += PMD_SIZE) {
+ 		struct page *page;
+ 
+ 		spin_lock(&pgd_lock);
+@@ -210,13 +207,23 @@ static void vmalloc_sync(void)
+ 			pgt_lock = &pgd_page_get_mm(page)->page_table_lock;
+ 
+ 			spin_lock(pgt_lock);
+-			vmalloc_sync_one(page_address(page), address);
++			vmalloc_sync_one(page_address(page), addr);
+ 			spin_unlock(pgt_lock);
+ 		}
+ 		spin_unlock(&pgd_lock);
+ 	}
+ }
+ 
++static void vmalloc_sync(void)
++{
++	unsigned long address;
++
++	if (SHARED_KERNEL_PMD)
++		return;
++
++	arch_sync_kernel_mappings(VMALLOC_START, VMALLOC_END);
++}
++
+ void vmalloc_sync_mappings(void)
+ {
+ 	vmalloc_sync();
+-- 
+2.17.1
