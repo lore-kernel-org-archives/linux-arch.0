@@ -1,114 +1,58 @@
-Return-Path: <SRS0=eh2/=6Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38338 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729236AbgEJH42 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2020 03:56:28 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 19/31] riscv: use asm-generic/cacheflush.h
-Date: Sun, 10 May 2020 09:54:58 +0200
-Message-ID: <20200510075510.987823-20-hch@lst.de>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-References: <20200510075510.987823-1-hch@lst.de>
+Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:43748 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730571AbgEMLVg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 May 2020 07:21:36 -0400
+Date: Wed, 13 May 2020 12:21:33 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 05/14] prctl.2: tfix listing order of prctls
+Message-ID: <20200513112133.GH21779@arm.com>
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-6-git-send-email-Dave.Martin@arm.com>
+ <1bb991f4-176a-a74e-01fc-c73b49ed77f5@gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1bb991f4-176a-a74e-01fc-c73b49ed77f5@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200510075458.wTduK6uyIeowzXp8VgvKuRRr9ONI925C_WB3Gm9VbCo@z>
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200513112133.la9dPMyloj_w65CSVLiIzD0Dfe-etLu8gP02TON7H4Y@z>
 
-RISC-V needs almost no cache flushing routines of its own.  Rely on
-asm-generic/cacheflush.h for the defaults.
+On Wed, May 13, 2020 at 12:10:53PM +0200, Michael Kerrisk (man-pages) wrote:
+> Hi Dave,
+> 
+> On 5/12/20 6:36 PM, Dave Martin wrote:
+> > The prctl list has historically been sorted by prctl name (ignoring
+> > any SET_ or GET_ prefix) to make individual prctls easier to find.
+> > Some noise seems to have crept in since.
+> > 
+> > Sort the list back into order.  Similarly, reorder the list of
+> > prctls specified to return non-zero values on success.
+> 
+> This is a good patch. But see my comments on patch 04.
+> I'd prefer a patch like this at the end of a series, 
+> rather than in the middle of it.
 
-Also remove the pointless __KERNEL__ ifdef while we're at it.
----
- arch/riscv/include/asm/cacheflush.h | 62 ++---------------------------
- 1 file changed, 3 insertions(+), 59 deletions(-)
+Ack.
 
-diff --git a/arch/riscv/include/asm/cacheflush.h b/arch/riscv/include/asm/cacheflush.h
-index c8677c75f82cb..a167b4fbdf007 100644
---- a/arch/riscv/include/asm/cacheflush.h
-+++ b/arch/riscv/include/asm/cacheflush.h
-@@ -8,65 +8,6 @@
- 
- #include <linux/mm.h>
- 
--#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
--
--/*
-- * The cache doesn't need to be flushed when TLB entries change when
-- * the cache is mapped to physical memory, not virtual memory
-- */
--static inline void flush_cache_all(void)
--{
--}
--
--static inline void flush_cache_mm(struct mm_struct *mm)
--{
--}
--
--static inline void flush_cache_dup_mm(struct mm_struct *mm)
--{
--}
--
--static inline void flush_cache_range(struct vm_area_struct *vma,
--				     unsigned long start,
--				     unsigned long end)
--{
--}
--
--static inline void flush_cache_page(struct vm_area_struct *vma,
--				    unsigned long vmaddr,
--				    unsigned long pfn)
--{
--}
--
--static inline void flush_dcache_mmap_lock(struct address_space *mapping)
--{
--}
--
--static inline void flush_dcache_mmap_unlock(struct address_space *mapping)
--{
--}
--
--static inline void flush_icache_page(struct vm_area_struct *vma,
--				     struct page *page)
--{
--}
--
--static inline void flush_cache_vmap(unsigned long start, unsigned long end)
--{
--}
--
--static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
--{
--}
--
--#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--	do { \
--		memcpy(dst, src, len); \
--		flush_icache_user_range(vma, page, vaddr, len); \
--	} while (0)
--#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
--
- static inline void local_flush_icache_all(void)
- {
- 	asm volatile ("fence.i" ::: "memory");
-@@ -79,6 +20,7 @@ static inline void flush_dcache_page(struct page *page)
- 	if (test_bit(PG_dcache_clean, &page->flags))
- 		clear_bit(PG_dcache_clean, &page->flags);
- }
-+#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
- 
- /*
-  * RISC-V doesn't have an instruction to flush parts of the instruction cache,
-@@ -105,4 +47,6 @@ void flush_icache_mm(struct mm_struct *mm, bool local);
- #define SYS_RISCV_FLUSH_ICACHE_LOCAL 1UL
- #define SYS_RISCV_FLUSH_ICACHE_ALL   (SYS_RISCV_FLUSH_ICACHE_LOCAL)
- 
-+#include <asm-generic/cacheflush.h>
-+
- #endif /* _ASM_RISCV_CACHEFLUSH_H */
--- 
-2.26.2
+Ideally we could check the order with a script, but that seemed a step
+too far.
+
+What's the view on having parts of the man pages generated, rather then
+being distributed ready-built?
+
+If we split prctl.2 up with a fragment per prctl, we could paste the
+fragments together in the right order with a script.
+
+> 
+> > Content movement only.  No semantic change.
+> 
+> And explicitly noting that detail is very helpful to me.
+
+Unless of course I'm lying ;)  (I'm not, but I won't be offended if you
+check.)
+
+Cheers
+---Dave
