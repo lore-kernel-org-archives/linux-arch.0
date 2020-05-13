@@ -1,52 +1,72 @@
 From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH v2 4/7] x86/mm/64: Implement arch_sync_kernel_mappings()
-Date: Wed, 13 May 2020 17:21:34 +0200
-Message-ID: <20200513152137.32426-5-joro@8bytes.org>
-References: <20200513152137.32426-1-joro@8bytes.org>
-Return-path: <linux-acpi-owner@vger.kernel.org>
-In-Reply-To: <20200513152137.32426-1-joro@8bytes.org>
-Sender: linux-acpi-owner@vger.kernel.org
+Subject: [PATCH v2 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Date: Wed, 13 May 2020 17:21:30 +0200
+Message-ID: <20200513152137.32426-1-joro@8bytes.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44656 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729573AbgEMPVo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 11:21:44 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org
 Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
 
-From: Joerg Roedel <jroedel@suse.de>
+Hi,
 
-Implement the function to sync changes in vmalloc and ioremap ranges
-to all page-tables.
+here is the next post of this series with these changes to the first
+version:
 
-Signed-off-by: Joerg Roedel <jroedel@suse.de>
----
- arch/x86/include/asm/pgtable_64_types.h | 2 ++
- arch/x86/mm/init_64.c                   | 5 +++++
- 2 files changed, 7 insertions(+)
+	- Rebased to v5.7-rc5
 
-diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
-index 52e5f5f2240d..8f63efb2a2cc 100644
---- a/arch/x86/include/asm/pgtable_64_types.h
-+++ b/arch/x86/include/asm/pgtable_64_types.h
-@@ -159,4 +159,6 @@ extern unsigned int ptrs_per_p4d;
- 
- #define PGD_KERNEL_START	((PAGE_SIZE / 2) / sizeof(pgd_t))
- 
-+#define ARCH_PAGE_TABLE_SYNC_MASK	(pgtable_l5_enabled() ?	PGTBL_PGD_MODIFIED : PGTBL_P4D_MODIFIED)
-+
- #endif /* _ASM_X86_PGTABLE_64_DEFS_H */
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 3b289c2f75cd..541af8e5bcd4 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -217,6 +217,11 @@ void sync_global_pgds(unsigned long start, unsigned long end)
- 		sync_global_pgds_l4(start, end);
- }
- 
-+void arch_sync_kernel_mappings(unsigned long start, unsigned long end)
-+{
-+	sync_global_pgds(start, end);
-+}
-+
- /*
-  * NOTE: This function is marked __ref because it calls __init function
-  * (alloc_bootmem_pages). It's safe to do it ONLY when after_bootmem == 0.
+	- As a result of the rebase, also removed the
+	  vmalloc_sync_mappings() call from tracing code
+
+	- Added a comment that we rely on the compiler optimizing calls
+	  to arch_syn_kernel_mappings() away when
+	  ARCH_PAGE_TABLE_SYNC_MASK is 0
+
+The first version can be found here:
+
+	https://lore.kernel.org/lkml/20200508144043.13893-1-joro@8bytes.org/
+
+The cover letter of the first post also has more details on the
+motivation for this patch-set.
+
+Please review.
+
+Regards,
+
+	Joerg
+
+Joerg Roedel (7):
+  mm: Add functions to track page directory modifications
+  mm/vmalloc: Track which page-table levels were modified
+  mm/ioremap: Track which page-table levels were modified
+  x86/mm/64: Implement arch_sync_kernel_mappings()
+  x86/mm/32: Implement arch_sync_kernel_mappings()
+  mm: Remove vmalloc_sync_(un)mappings()
+  x86/mm: Remove vmalloc faulting
+
+ arch/x86/include/asm/pgtable-2level_types.h |   2 +
+ arch/x86/include/asm/pgtable-3level_types.h |   2 +
+ arch/x86/include/asm/pgtable_64_types.h     |   2 +
+ arch/x86/include/asm/switch_to.h            |  23 ---
+ arch/x86/kernel/setup_percpu.c              |   6 +-
+ arch/x86/mm/fault.c                         | 176 +-------------------
+ arch/x86/mm/init_64.c                       |   5 +
+ arch/x86/mm/pti.c                           |   8 +-
+ drivers/acpi/apei/ghes.c                    |   6 -
+ include/asm-generic/5level-fixup.h          |   5 +-
+ include/asm-generic/pgtable.h               |  23 +++
+ include/linux/mm.h                          |  46 +++++
+ include/linux/vmalloc.h                     |  18 +-
+ kernel/notifier.c                           |   1 -
+ kernel/trace/trace.c                        |  12 --
+ lib/ioremap.c                               |  46 +++--
+ mm/nommu.c                                  |  12 --
+ mm/vmalloc.c                                | 109 +++++++-----
+ 18 files changed, 204 insertions(+), 298 deletions(-)
+
 -- 
 2.17.1
