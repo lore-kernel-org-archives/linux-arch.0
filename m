@@ -1,101 +1,94 @@
 Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39536 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725962AbgEMLsj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 07:48:39 -0400
-Subject: Re: [PATCH 04/14] prctl.2: srcfix add comments for navigation
-References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
- <1589301419-24459-5-git-send-email-Dave.Martin@arm.com>
- <8b882b6e-376b-111d-3c3c-7a042b0e91b5@gmail.com>
- <20200513105620.GE21779@arm.com>
- <9770249d-0d5a-1b02-4de1-bbb6343b5829@gmail.com>
- <20200513111557.GG21779@arm.com>
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Message-ID: <022b1d7f-8381-a9a8-b5aa-907143fd4831@gmail.com>
-Date: Wed, 13 May 2020 13:48:36 +0200
-MIME-Version: 1.0
-In-Reply-To: <20200513111557.GG21779@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Received: from mail.kernel.org ([198.145.29.99]:46382 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729917AbgEMKQb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 May 2020 06:16:31 -0400
+From: guoren@kernel.org
+Subject: [PATCH 4/4] csky: Fixup remove unnecessary save/restore PSR code
+Date: Wed, 13 May 2020 18:16:17 +0800
+Message-ID: <20200513101617.11588-4-guoren@kernel.org>
+In-Reply-To: <20200513101617.11588-1-guoren@kernel.org>
+References: <20200513101617.11588-1-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200513114836.UarzW-Pwg_vKe0jfF9261qH0e_Pu2Hu_-eBpZ5Xao_I@z>
+To: linux-csky@vger.kernel.org
+Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, guoren@kernel.org, Guo Ren <guoren@linux.alibaba.com>
+Message-ID: <20200513101617.0a61G594o4iyT_oZClnWvhMQF3Gqw9GtAxZO8SZU9vY@z>
 
-Hi Dave,
+From: Guo Ren <guoren@linux.alibaba.com>
 
-On 5/13/20 1:15 PM, Dave Martin wrote:
-> On Wed, May 13, 2020 at 01:03:27PM +0200, Michael Kerrisk (man-pages) wrote:
->> Hi Dave,
->>
->> On 5/13/20 12:56 PM, Dave Martin wrote:
->>> On Wed, May 13, 2020 at 12:09:27PM +0200, Michael Kerrisk (man-pages) wrote:
->>>> Hi Dave,
->>>>
->>>> On 5/12/20 6:36 PM, Dave Martin wrote:
->>>>> The prctl.2 source is unnecessarily hard to navigate, not least
->>>>> because prctl option flags are traditionally named PR_* and so look
->>>>> just like prctl names.
->>>>>
->>>>> For each actual prctl, add a comment of the form
->>>>>
->>>>> 	.\" prctl PR_FOO
->>>>>
->>>>> to make it move obvious where each top-level prctl starts.
->>>>>
->>>>> Of course, we could add some clever macros, but let's not confuse
->>>>> dumb parsers.
->>>>
->>>> A patch like this, which makes sweeping changes across the page,
->>>> should be best placed at the end of a series, I think.
->>>> The reason is that if I fail to apply this patch (and I am a
->>>> little dubious about it), then probably the rest of the patches
->>>> in the series won't apply. (Furthermore, it also forced me to
->>>> apply patch 02 already, which I wanted to reflect on a little.)
->>>
->>> Agreed, I'll try to do that in future.
->>>
->>>> That said, I'll apply it, so that the remaining patches
->>>> apply cleanly. I'll consider later whether to keep this
->>>> change. For example, I wonder if a visually distinctive 
->>>> source line that is always the same would be better than
->>>> these comments that repeat the PR_* names. For example, 
->>>> something like
->>>>
->>>> .\" ==========================
->>>>
->>>> I'll circle back to this later.
->>>
->>> I'd prefer to keep the name if we can, since navigating by search is
->>> otherwise bothersome due to false hits.
->>>
->>> Could we do both, say:
->>>
->>> .\" === PR_FOO ===
->>
->> Okay -- I'll give that some thought.
->>
->>> If you prefer to reject this patch, I'm happy to rebase and repost the
->>> series as appropriate.
->>>
->>> In any case, this one is nice to have rather than essential.
->>
->> For now, the patch is already committed and pushed.
-> 
-> OK, thanks.  I'm happy to write a further patch when you've decided what
-> to do, if it saves you work.
+All processes' PSR could success from SETUP_MMU, so need set it
+in INIT_THREAD again.
 
-Let's leave this for the moment. Once the dust settles on your 
-remaining patches, I'll try to remember to circle back on this.
+And use a3 instead of r7 in __switch_to for code convention.
 
-Cheers,
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+---
+ arch/csky/include/asm/processor.h |  2 --
+ arch/csky/kernel/asm-offsets.c    |  1 -
+ arch/csky/kernel/entry.S          | 10 ++--------
+ 3 files changed, 2 insertions(+), 11 deletions(-)
 
-Michael
-
-
+diff --git a/arch/csky/include/asm/processor.h b/arch/csky/include/asm/processor.h
+index c6bcd7f7c720..79eaaaed3d23 100644
+--- a/arch/csky/include/asm/processor.h
++++ b/arch/csky/include/asm/processor.h
+@@ -42,7 +42,6 @@ extern struct cpuinfo_csky cpu_data[];
+ 
+ struct thread_struct {
+ 	unsigned long  ksp;       /* kernel stack pointer */
+-	unsigned long  sr;        /* saved status register */
+ 	unsigned long  trap_no;   /* saved status register */
+ 
+ 	/* FPU regs */
+@@ -51,7 +50,6 @@ struct thread_struct {
+ 
+ #define INIT_THREAD  { \
+ 	.ksp = sizeof(init_stack) + (unsigned long) &init_stack, \
+-	.sr = DEFAULT_PSR_VALUE, \
+ }
+ 
+ /*
+diff --git a/arch/csky/kernel/asm-offsets.c b/arch/csky/kernel/asm-offsets.c
+index f8be348df9e4..bbc259eed233 100644
+--- a/arch/csky/kernel/asm-offsets.c
++++ b/arch/csky/kernel/asm-offsets.c
+@@ -19,7 +19,6 @@ int main(void)
+ 
+ 	/* offsets into the thread struct */
+ 	DEFINE(THREAD_KSP,        offsetof(struct thread_struct, ksp));
+-	DEFINE(THREAD_SR,         offsetof(struct thread_struct, sr));
+ 	DEFINE(THREAD_FESR,       offsetof(struct thread_struct, user_fp.fesr));
+ 	DEFINE(THREAD_FCR,        offsetof(struct thread_struct, user_fp.fcr));
+ 	DEFINE(THREAD_FPREG,      offsetof(struct thread_struct, user_fp.vr));
+diff --git a/arch/csky/kernel/entry.S b/arch/csky/kernel/entry.S
+index 6a468ff75432..3760397fdd3d 100644
+--- a/arch/csky/kernel/entry.S
++++ b/arch/csky/kernel/entry.S
+@@ -330,9 +330,6 @@ ENTRY(__switch_to)
+ 	lrw	a3, TASK_THREAD
+ 	addu	a3, a0
+ 
+-	mfcr	a2, psr			/* Save PSR value */
+-	stw	a2, (a3, THREAD_SR)	/* Save PSR in task struct */
+-
+ 	SAVE_SWITCH_STACK
+ 
+ 	stw	sp, (a3, THREAD_KSP)
+@@ -343,12 +340,9 @@ ENTRY(__switch_to)
+ 
+ 	ldw	sp, (a3, THREAD_KSP)	/* Set next kernel sp */
+ 
+-	ldw	a2, (a3, THREAD_SR)	/* Set next PSR */
+-	mtcr	a2, psr
+-
+ #if  defined(__CSKYABIV2__)
+-	addi	r7, a1, TASK_THREAD_INFO
+-	ldw	tls, (r7, TINFO_TP_VALUE)
++	addi	a3, a1, TASK_THREAD_INFO
++	ldw	tls, (a3, TINFO_TP_VALUE)
+ #endif
+ 
+ 	RESTORE_SWITCH_STACK
 -- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+2.17.0
