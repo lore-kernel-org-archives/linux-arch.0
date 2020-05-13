@@ -1,87 +1,95 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 05/14] prctl.2: tfix listing order of prctls
-Date: Wed, 13 May 2020 12:45:48 +0100
-Message-ID: <20200513114548.GK21779@arm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Subject: Re: [PATCH 06/14] prctl.2: ffix quotation mark tweaks
+Date: Wed, 13 May 2020 13:46:22 +0200
+Message-ID: <f575e35d-cd5e-5808-bed4-91bdfb9c2905@gmail.com>
 References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
- <1589301419-24459-6-git-send-email-Dave.Martin@arm.com>
- <1bb991f4-176a-a74e-01fc-c73b49ed77f5@gmail.com>
- <20200513112133.GH21779@arm.com>
- <6ef9a969-3e16-e21c-f047-e5a471cbc163@gmail.com>
+ <1589301419-24459-7-git-send-email-Dave.Martin@arm.com>
+ <7afe32a5-9675-74d4-7c39-f1271d475afd@gmail.com>
+ <20200513113949.GI21779@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <6ef9a969-3e16-e21c-f047-e5a471cbc163@gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-man@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39188 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725982AbgEMLq0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 07:46:26 -0400
+In-Reply-To: <20200513113949.GI21779@arm.com>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-On Wed, May 13, 2020 at 01:31:32PM +0200, Michael Kerrisk (man-pages) wrote:
-> Hi Dave,
+On 5/13/20 1:39 PM, Dave Martin wrote:
+> On Wed, May 13, 2020 at 12:11:21PM +0200, Michael Kerrisk (man-pages) wrote:
+>> Hello Dave,
+>>
+>> On 5/12/20 6:36 PM, Dave Martin wrote:
+>>> Convert quote marks used for information terms in prose to use
+>>> \(oq .. \(cq, for better graphical rendering.
+>>>
+>>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+>>
+>> Again, this is a patch that I would prefer to see near the end 
+>> of a series, rather than in the middle.
+>>
+>> I'm currently agnostic about this change. But, I do not
+>> want to apply this patch, since no other pages in man-pages
+>> use \(oq...\(cq.
+>>
+>> I haven't applied this patch. Luckily, that does not prevent
+>> any of the later patches applying.
 > 
-> On 5/13/20 1:21 PM, Dave Martin wrote:
-> > On Wed, May 13, 2020 at 12:10:53PM +0200, Michael Kerrisk (man-pages) wrote:
-> >> Hi Dave,
-> >>
-> >> On 5/12/20 6:36 PM, Dave Martin wrote:
-> >>> The prctl list has historically been sorted by prctl name (ignoring
-> >>> any SET_ or GET_ prefix) to make individual prctls easier to find.
-> >>> Some noise seems to have crept in since.
-> >>>
-> >>> Sort the list back into order.  Similarly, reorder the list of
-> >>> prctls specified to return non-zero values on success.
-> >>
-> >> This is a good patch. But see my comments on patch 04.
-> >> I'd prefer a patch like this at the end of a series, 
-> >> rather than in the middle of it.
-> > 
-> > Ack.
-> > 
-> > Ideally we could check the order with a script, but that seemed a step
-> > too far.
+> I'll be careful to move this sort of thing to the end of a series in
+> future.
 > 
-> Quite.
+> This was a provocative patch, so I'm happy for it to be dropped.
 > 
-> > What's the view on having parts of the man pages generated, rather then
-> > being distributed ready-built?
 > 
-> I'm not keen (until someone shows me compelling benefits). Splitting
-> things up would make pages harder to edit, and IMO increase
-> the chance for inconsistencies in pages.
+> The main motivation was that ' renders to PostScript etc. as a closing
+> quote, which is fine for apostrophes but not fine for an opening quote
+> mark.  Most of the current quotes in here are actually ", but I don't
+> see an actual promise from groff that that renders as a neutral glyph
+> either, so it seemed best to avoid.  For now " does seem to be rendered
+> with a neutral glyph (i.e., neither opening or closing).
 
-Fair enough.  I might experiment with something, but I won't expect an
-easy sell!
+See my commit 11b0b31a14bd2c7dcb0cf7bc815b4c1887444a89, just pushed,
+which addresses the ' issues.
 
-This sort of thing was part of my motivation for having a distinctive
-marker for the start of each prctl entry.
-
+>>> ---
+>>>
+>>> Note, this can lead to misrendering on badly-configured systems.
+>>> However, many man pages do it.
+>>
+>> Can you say some more about this please?
 > 
-> > If we split prctl.2 up with a fragment per prctl, we could paste the
-> > fragments together in the right order with a script.
-> > 
-> >>
-> >>> Content movement only.  No semantic change.
-> >>
-> >> And explicitly noting that detail is very helpful to me.
-> > 
-> > Unless of course I'm lying ;)  (I'm not, but I won't be offended if you
-> > check.)
+> Terminal character maps need to match LANG etc. in order for fancy
+> characters coming out of nroff to display correctly.
 > 
-> Actually, with your first two patches, you impressed right out of
-> the gate, so my "I'm gonna blindly trust this guy" needle already
-> switched up pretty high :-).
+> ssh attempts to send LANG across, but terminal sessions between systems
+> that have different locales installed can be a problem, as can dumb
+> serial links that don't magically pass the locale and terminal type
+> settings across.
+> 
+> The fact that I hit this problem a lot in some situations (particularly
+> the serial link case) suggested to me that fancy characters are
+> considered fine nowadays, but perhaps I'd need to dig into it some more
+> to understand the situation fully.
 
-I guess I'll need to be careful...
+Thanks for the clarification.
 
-Cheers
----Dave
+> (There are one or two ' that should really be \(aq anyway, but I'll
+> try to address that separately.)
+
+See above. I presume that patch is what you wanted?
+
+Cheers,
+
+Michael
+
+
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
