@@ -1,82 +1,72 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 19/23] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
- support
-Date: Wed, 13 May 2020 11:48:50 +0100
-Message-ID: <20200513104849.GC2719@gaia>
-References: <20200421142603.3894-1-catalin.marinas@arm.com>
- <20200421142603.3894-20-catalin.marinas@arm.com>
- <a7569985-eb85-497b-e3b2-5dce0acb1332@linaro.org>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 04/14] prctl.2: srcfix add comments for navigation
+Date: Wed, 13 May 2020 11:56:20 +0100
+Message-ID: <20200513105620.GE21779@arm.com>
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-5-git-send-email-Dave.Martin@arm.com>
+ <8b882b6e-376b-111d-3c3c-7a042b0e91b5@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:43210 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:43306 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726907AbgEMKs6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 May 2020 06:48:58 -0400
+        id S1727794AbgEMK4X (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 May 2020 06:56:23 -0400
 Content-Disposition: inline
-In-Reply-To: <a7569985-eb85-497b-e3b2-5dce0acb1332@linaro.org>
+In-Reply-To: <8b882b6e-376b-111d-3c3c-7a042b0e91b5@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Luis Machado <luis.machado@linaro.org>
-Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Alan Hayward <Alan.Hayward@arm.com>, Omair Javaid <omair.javaid@linaro.org>
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-Hi Luis,
-
-On Tue, May 12, 2020 at 04:05:15PM -0300, Luis Machado wrote:
-> On 4/21/20 11:25 AM, Catalin Marinas wrote:
-> > Add support for bulk setting/getting of the MTE tags in a tracee's
-> > address space at 'addr' in the ptrace() syscall prototype. 'data' points
-> > to a struct iovec in the tracer's address space with iov_base
-> > representing the address of a tracer's buffer of length iov_len. The
-> > tags to be copied to/from the tracer's buffer are stored as one tag per
-> > byte.
-> > 
-> > On successfully copying at least one tag, ptrace() returns 0 and updates
-> > the tracer's iov_len with the number of tags copied. In case of error,
-> > either -EIO or -EFAULT is returned, trying to follow the ptrace() man
-> > page.
-> > 
-> > Note that the tag copying functions are not performance critical,
-> > therefore they lack optimisations found in typical memory copy routines.
-> > 
-> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> > Cc: Will Deacon <will@kernel.org>
-> > Cc: Alan Hayward <Alan.Hayward@arm.com>
-> > Cc: Luis Machado <luis.machado@linaro.org>
-> > Cc: Omair Javaid <omair.javaid@linaro.org>
-> > ---
-> > 
-> > Notes:
-> >      New in v3.
-> > 
-> >   arch/arm64/include/asm/mte.h         |  17 ++++
-> >   arch/arm64/include/uapi/asm/ptrace.h |   3 +
-> >   arch/arm64/kernel/mte.c              | 127 +++++++++++++++++++++++++++
-> >   arch/arm64/kernel/ptrace.c           |  15 +++-
-> >   arch/arm64/lib/mte.S                 |  50 +++++++++++
-> >   5 files changed, 211 insertions(+), 1 deletion(-)
-> > 
-> I started working on MTE support for GDB and I'm wondering if we've already
-> defined a way to check for runtime MTE support (as opposed to a HWCAP2-based
-> check) in a traced process.
+On Wed, May 13, 2020 at 12:09:27PM +0200, Michael Kerrisk (man-pages) wrote:
+> Hi Dave,
 > 
-> Originally we were going to do it via empty-parameter ptrace calls, but you
-> had mentioned something about a proc-based method, if I'm not mistaken.
+> On 5/12/20 6:36 PM, Dave Martin wrote:
+> > The prctl.2 source is unnecessarily hard to navigate, not least
+> > because prctl option flags are traditionally named PR_* and so look
+> > just like prctl names.
+> > 
+> > For each actual prctl, add a comment of the form
+> > 
+> > 	.\" prctl PR_FOO
+> > 
+> > to make it move obvious where each top-level prctl starts.
+> > 
+> > Of course, we could add some clever macros, but let's not confuse
+> > dumb parsers.
+> 
+> A patch like this, which makes sweeping changes across the page,
+> should be best placed at the end of a series, I think.
+> The reason is that if I fail to apply this patch (and I am a
+> little dubious about it), then probably the rest of the patches
+> in the series won't apply. (Furthermore, it also forced me to
+> apply patch 02 already, which I wanted to reflect on a little.)
 
-We could expose more information via proc_pid_arch_status() but that
-would be the tagged address ABI and tag check fault mode and intended
-for human consumption mostly. We don't have any ptrace interface that
-exposes HWCAPs. Since the gdbserver runs on the same machine as the
-debugged process, it can check the HWCAPs itself, they are the same for
-all processes.
+Agreed, I'll try to do that in future.
 
-BTW, in my pre-v4 patches (hopefully I'll post v4 this week), I changed
-the ptrace tag access slightly to return an error (and no tags copied)
-if the page has not been mapped with PROT_MTE. The other option would
-have been read-as-zero/write-ignored as per the hardware behaviour.
-Either option is fine by me but I thought the write-ignored part would
-be more confusing for the debugger. If you have any preference here,
-please let me know.
+> That said, I'll apply it, so that the remaining patches
+> apply cleanly. I'll consider later whether to keep this
+> change. For example, I wonder if a visually distinctive 
+> source line that is always the same would be better than
+> these comments that repeat the PR_* names. For example, 
+> something like
+> 
+> .\" ==========================
+> 
+> I'll circle back to this later.
 
--- 
-Catalin
+I'd prefer to keep the name if we can, since navigating by search is
+otherwise bothersome due to false hits.
+
+Could we do both, say:
+
+.\" === PR_FOO ===
+
+If you prefer to reject this patch, I'm happy to rebase and repost the
+series as appropriate.
+
+In any case, this one is nice to have rather than essential.
+
+Cheers
+---Dave
