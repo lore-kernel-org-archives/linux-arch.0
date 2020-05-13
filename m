@@ -1,217 +1,102 @@
-From: Greg Ungerer <gerg@linux-m68k.org>
-Subject: Re: [PATCH 06/12] m68k/mm: move {cache,nocahe}_page() definitions
- close to their user
-Date: Wed, 13 May 2020 21:19:45 +1000
-Message-ID: <b59ef7eb-537e-c092-949f-225322f94e2c@linux-m68k.org>
-References: <20200512184422.12418-1-rppt@kernel.org>
- <20200512184422.12418-7-rppt@kernel.org>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH 10/14] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for
+ SPECULATION_CTRL prctls
+Date: Wed, 13 May 2020 13:21:12 +0200
+Message-ID: <bd548916-11c8-a53f-67b5-876c79088258@gmail.com>
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-11-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <20200512184422.12418-7-rppt@kernel.org>
+Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1589301419-24459-11-git-send-email-Dave.Martin-5wv7dgnIgG8@public.gmane.org>
 Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: Mike Rapoport <rppt@kernel.org>, linux-kernel@vger.kernel.org
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Vincent Chen <deanbo422@gmail.com>, Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Brian Cain <bcain@codeaurora.org>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@intel.com>, Mike Rapoport <rppt@linux.ibm.com>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-parisc@vger.kernel.org
+Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Cc: mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Tim Chen <tim.c.chen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Mike,
+Hello Dave,
 
-On 13/5/20 4:44 am, Mike Rapoport wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
+On 5/12/20 6:36 PM, Dave Martin wrote:
+> Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
+> for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
 > 
-> The cache_page() and nocache_page() functions are only used by the morotola
-                                                                      ^^^^^^^^
-                                                                      motorola
+> Signed-off-by: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+> Cc: Tim Chen <tim.c.chen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
+> Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
 
-> MMU variant for setting caching attributes for the page table pages.
-> 
-> Move the definitions of these functions from
-> arch/m68k/include/asm/motorola_pgtable.h closer to their usage in
-> arch/m68k/mm/motorola.c and drop unused definition in
-> arch/m68k/include/asm/mcf_pgtable.h.
-> 
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Thanks. Patch applied, but not yet pushed while I wait to see if any
+Review/Ack arrives.
 
-Acked-by: Greg Ungerer <gerg@linux-m68k.org>
-
-Regards
-Greg
-
+Also, could you please check the tweaks I note below.
 
 > ---
->   arch/m68k/include/asm/mcf_pgtable.h      | 40 ---------------------
->   arch/m68k/include/asm/motorola_pgtable.h | 44 ------------------------
->   arch/m68k/mm/motorola.c                  | 43 +++++++++++++++++++++++
->   3 files changed, 43 insertions(+), 84 deletions(-)
+>  man2/prctl.2 | 24 ++++++++++++++++++------
+>  1 file changed, 18 insertions(+), 6 deletions(-)
 > 
-> diff --git a/arch/m68k/include/asm/mcf_pgtable.h b/arch/m68k/include/asm/mcf_pgtable.h
-> index 0031cd387b75..737e826294f3 100644
-> --- a/arch/m68k/include/asm/mcf_pgtable.h
-> +++ b/arch/m68k/include/asm/mcf_pgtable.h
-> @@ -328,46 +328,6 @@ extern pgd_t kernel_pg_dir[PTRS_PER_PGD];
->   #define pte_offset_kernel(dir, address) \
->   	((pte_t *) __pmd_page(*(dir)) + __pte_offset(address))
->   
-> -/*
-> - * Disable caching for page at given kernel virtual address.
-> - */
-> -static inline void nocache_page(void *vaddr)
-> -{
-> -	pgd_t *dir;
-> -	p4d_t *p4dp;
-> -	pud_t *pudp;
-> -	pmd_t *pmdp;
-> -	pte_t *ptep;
-> -	unsigned long addr = (unsigned long) vaddr;
-> -
-> -	dir = pgd_offset_k(addr);
-> -	p4dp = p4d_offset(dir, addr);
-> -	pudp = pud_offset(p4dp, addr);
-> -	pmdp = pmd_offset(pudp, addr);
-> -	ptep = pte_offset_kernel(pmdp, addr);
-> -	*ptep = pte_mknocache(*ptep);
-> -}
-> -
-> -/*
-> - * Enable caching for page at given kernel virtual address.
-> - */
-> -static inline void cache_page(void *vaddr)
-> -{
-> -	pgd_t *dir;
-> -	p4d_t *p4dp;
-> -	pud_t *pudp;
-> -	pmd_t *pmdp;
-> -	pte_t *ptep;
-> -	unsigned long addr = (unsigned long) vaddr;
-> -
-> -	dir = pgd_offset_k(addr);
-> -	p4dp = p4d_offset(dir, addr);
-> -	pudp = pud_offset(p4dp, addr);
-> -	pmdp = pmd_offset(pudp, addr);
-> -	ptep = pte_offset_kernel(pmdp, addr);
-> -	*ptep = pte_mkcache(*ptep);
-> -}
-> -
->   /*
->    * Encode and de-code a swap entry (must be !pte_none(e) && !pte_present(e))
->    */
-> diff --git a/arch/m68k/include/asm/motorola_pgtable.h b/arch/m68k/include/asm/motorola_pgtable.h
-> index 9e5a3de21e15..e1594acf7c7e 100644
-> --- a/arch/m68k/include/asm/motorola_pgtable.h
-> +++ b/arch/m68k/include/asm/motorola_pgtable.h
-> @@ -227,50 +227,6 @@ static inline pte_t *pte_offset_kernel(pmd_t *pmdp, unsigned long address)
->   #define pte_offset_map(pmdp,address) ((pte_t *)__pmd_page(*pmdp) + (((address) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)))
->   #define pte_unmap(pte)		((void)0)
->   
-> -/* Prior to calling these routines, the page should have been flushed
-> - * from both the cache and ATC, or the CPU might not notice that the
-> - * cache setting for the page has been changed. -jskov
-> - */
-> -static inline void nocache_page(void *vaddr)
-> -{
-> -	unsigned long addr = (unsigned long)vaddr;
-> -
-> -	if (CPU_IS_040_OR_060) {
-> -		pgd_t *dir;
-> -		p4d_t *p4dp;
-> -		pud_t *pudp;
-> -		pmd_t *pmdp;
-> -		pte_t *ptep;
-> -
-> -		dir = pgd_offset_k(addr);
-> -		p4dp = p4d_offset(dir, addr);
-> -		pudp = pud_offset(p4dp, addr);
-> -		pmdp = pmd_offset(pudp, addr);
-> -		ptep = pte_offset_kernel(pmdp, addr);
-> -		*ptep = pte_mknocache(*ptep);
-> -	}
-> -}
-> -
-> -static inline void cache_page(void *vaddr)
-> -{
-> -	unsigned long addr = (unsigned long)vaddr;
-> -
-> -	if (CPU_IS_040_OR_060) {
-> -		pgd_t *dir;
-> -		p4d_t *p4dp;
-> -		pud_t *pudp;
-> -		pmd_t *pmdp;
-> -		pte_t *ptep;
-> -
-> -		dir = pgd_offset_k(addr);
-> -		p4dp = p4d_offset(dir, addr);
-> -		pudp = pud_offset(p4dp, addr);
-> -		pmdp = pmd_offset(pudp, addr);
-> -		ptep = pte_offset_kernel(pmdp, addr);
-> -		*ptep = pte_mkcache(*ptep);
-> -	}
-> -}
-> -
->   /* Encode and de-code a swap entry (must be !pte_none(e) && !pte_present(e)) */
->   #define __swp_type(x)		(((x).val >> 4) & 0xff)
->   #define __swp_offset(x)		((x).val >> 12)
-> diff --git a/arch/m68k/mm/motorola.c b/arch/m68k/mm/motorola.c
-> index 904c2a663977..8e5e74121a78 100644
-> --- a/arch/m68k/mm/motorola.c
-> +++ b/arch/m68k/mm/motorola.c
-> @@ -45,6 +45,49 @@ unsigned long mm_cachebits;
->   EXPORT_SYMBOL(mm_cachebits);
->   #endif
->   
-> +/* Prior to calling these routines, the page should have been flushed
-> + * from both the cache and ATC, or the CPU might not notice that the
-> + * cache setting for the page has been changed. -jskov
-> + */
-> +static inline void nocache_page(void *vaddr)
-> +{
-> +	unsigned long addr = (unsigned long)vaddr;
-> +
-> +	if (CPU_IS_040_OR_060) {
-> +		pgd_t *dir;
-> +		p4d_t *p4dp;
-> +		pud_t *pudp;
-> +		pmd_t *pmdp;
-> +		pte_t *ptep;
-> +
-> +		dir = pgd_offset_k(addr);
-> +		p4dp = p4d_offset(dir, addr);
-> +		pudp = pud_offset(p4dp, addr);
-> +		pmdp = pmd_offset(pudp, addr);
-> +		ptep = pte_offset_kernel(pmdp, addr);
-> +		*ptep = pte_mknocache(*ptep);
-> +	}
-> +}
-> +
-> +static inline void cache_page(void *vaddr)
-> +{
-> +	unsigned long addr = (unsigned long)vaddr;
-> +
-> +	if (CPU_IS_040_OR_060) {
-> +		pgd_t *dir;
-> +		p4d_t *p4dp;
-> +		pud_t *pudp;
-> +		pmd_t *pmdp;
-> +		pte_t *ptep;
-> +
-> +		dir = pgd_offset_k(addr);
-> +		p4dp = p4d_offset(dir, addr);
-> +		pudp = pud_offset(p4dp, addr);
-> +		pmdp = pmd_offset(pudp, addr);
-> +		ptep = pte_offset_kernel(pmdp, addr);
-> +		*ptep = pte_mkcache(*ptep);
-> +	}
-> +}
->   
->   /*
->    * Motorola 680x0 user's manual recommends using uncached memory for address
-> 
+> diff --git a/man2/prctl.2 b/man2/prctl.2
+> index e8eaf95..66417cf 100644
+> --- a/man2/prctl.2
+> +++ b/man2/prctl.2
+> @@ -1213,11 +1213,20 @@ arguments must be specified as 0; otherwise the call fails with the error
+>  .\" commit 356e4bfff2c5489e016fdb925adbf12a1e3950ee
+>  Sets the state of the speculation misfeature specified in
+>  .IR arg2 .
+> -Currently, the only permitted value for this argument is
+> +Currently, this argument must be one of:
+> +.RS
+> +.TP
+>  .B PR_SPEC_STORE_BYPASS
+> -(otherwise the call fails with the error
+> +speculative store bypass control, or
+
+s/speculative/enable speculative/
+
+> +.\" commit 9137bb27e60e554dab694eafa4cca241fa3a694f
+> +.TP
+> +.BR PR_SPEC_INDIRECT_BRANCH " (since Linux 4.20)"
+> +indirect branch speculation control.
+
+s/indirect/enable indirect/
+
+> +.RE
+> +.IP
+> +(Otherwise the call fails with the error
+>  .BR ENODEV ).
+> -This setting is a per-thread attribute.
+> +These settings are per-thread attributes.
+>  The
+>  .IR arg3
+>  argument is used to hand in the control value,
+> @@ -1235,13 +1244,16 @@ Same as
+>  .BR PR_SPEC_DISABLE ,
+>  but cannot be undone.
+>  A subsequent
+> -.B
+> -prctl(..., PR_SPEC_ENABLE)
+> +.BR prctl (\c
+> +.IR arg2 ,
+> +.BR PR_SPEC_ENABLE )
+> +with the same value for
+> +.I arg2
+>  will fail with the error
+>  .BR EPERM .
+>  .RE
+>  .IP
+> -Any other value in
+> +Any unsupported value in
+>  .IR arg3
+>  will result in the call failing with the error
+>  .BR ERANGE .
+
+Cheers,
+
+Michael
+
+
+
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
