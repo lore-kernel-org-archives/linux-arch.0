@@ -1,31 +1,118 @@
-Return-Path: <SRS0=qpv3=7J=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42322 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727778AbgEMMGl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 08:06:41 -0400
+Subject: Re: [PATCH 10/14] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for
+ SPECULATION_CTRL prctls
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-11-git-send-email-Dave.Martin@arm.com>
+ <bd548916-11c8-a53f-67b5-876c79088258@gmail.com>
+ <20200513114915.GL21779@arm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Message-ID: <604879eb-1c7e-d08b-a6b8-165e4259b60c@gmail.com>
+Date: Wed, 13 May 2020 14:06:38 +0200
 MIME-Version: 1.0
-References: <20200515171612.1020-1-catalin.marinas@arm.com> <20200515171612.1020-12-catalin.marinas@arm.com>
-In-Reply-To: <20200515171612.1020-12-catalin.marinas@arm.com>
-From: Peter Collingbourne <pcc@google.com>
-Date: Wed, 27 May 2020 11:57:39 -0700
-Message-ID: <CAMn1gO5ApcHOgQ_oLjiGDdCx9znz7N50w-BbzGPYpAzPQC3OQQ@mail.gmail.com>
-Subject: Re: [PATCH v4 11/26] arm64: mte: Add PROT_MTE support to mmap() and mprotect()
-Content-Type: text/plain; charset="UTF-8"
-Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Evgenii Stepanov <eugenis@google.com>
+In-Reply-To: <20200513114915.GL21779@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200527185739.yUeB4wEu3o-U-vL-v5x2LYRWDphbYevnVh0OS7WzVH0@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20200513120638.FDlTvTF4Gvn4rMvilUOtFcRb2sYyL-V0TSofxh044LA@z>
 
-On Fri, May 15, 2020 at 10:16 AM Catalin Marinas
-<catalin.marinas@arm.com> wrote:
->
-> To enable tagging on a memory range, the user must explicitly opt in via
-> a new PROT_MTE flag passed to mmap() or mprotect(). Since this is a new
-> memory type in the AttrIndx field of a pte, simplify the or'ing of these
-> bits over the protection_map[] attributes by making MT_NORMAL index 0.
+On 5/13/20 1:49 PM, Dave Martin wrote:
+> On Wed, May 13, 2020 at 01:21:12PM +0200, Michael Kerrisk (man-pages) wrote:
+>> Hello Dave,
+>>
+>> On 5/12/20 6:36 PM, Dave Martin wrote:
+>>> Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
+>>> for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+>>>
+>>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+>>> Cc: Tim Chen <tim.c.chen@linux.intel.com>
+>>> Cc: Thomas Gleixner <tglx@linutronix.de>
+>>
+>> Thanks. Patch applied, but not yet pushed while I wait to see if any
+>> Review/Ack arrives.
+>>
+>> Also, could you please check the tweaks I note below.
+>>
+>>> ---
+>>>  man2/prctl.2 | 24 ++++++++++++++++++------
+>>>  1 file changed, 18 insertions(+), 6 deletions(-)
+>>>
+>>> diff --git a/man2/prctl.2 b/man2/prctl.2
+>>> index e8eaf95..66417cf 100644
+>>> --- a/man2/prctl.2
+>>> +++ b/man2/prctl.2
+>>> @@ -1213,11 +1213,20 @@ arguments must be specified as 0; otherwise the call fails with the error
+>>>  .\" commit 356e4bfff2c5489e016fdb925adbf12a1e3950ee
+>>>  Sets the state of the speculation misfeature specified in
+>>>  .IR arg2 .
+>>> -Currently, the only permitted value for this argument is
+>>> +Currently, this argument must be one of:
+>>> +.RS
+>>> +.TP
+>>>  .B PR_SPEC_STORE_BYPASS
+>>> -(otherwise the call fails with the error
+>>> +speculative store bypass control, or
+>>
+>> s/speculative/enable speculative/
+>>
+>>> +.\" commit 9137bb27e60e554dab694eafa4cca241fa3a694f
+>>> +.TP
+>>> +.BR PR_SPEC_INDIRECT_BRANCH " (since Linux 4.20)"
+>>> +indirect branch speculation control.
+>>
+>> s/indirect/enable indirect/
+> 
+> That doesn't seem quite right.
 
-Should the userspace stack always be mapped as if with PROT_MTE if the
-hardware supports it? Such a change would be invisible to non-MTE
-aware userspace since it would already need to opt in to tag checking
-via prctl. This would let userspace avoid a complex stack
-initialization sequence when running with stack tagging enabled on the
-main thread.
+My goof, not looking at the bigger context of the patch.
 
-Peter
+> 
+> arg2 just identifies what behaviour to configure.
+> It's arg3 that says whether to disable / enable it or whatever.
+> 
+> 
+> While editing this I did wonder whether the "control" was helpful.
+> Maybe just dropping that word from these entries would help.
+
+Okay I tried to fix things, and made also some other edits.
+How does the following look to you?
+
+      PR_SET_SPECULATION_CTRL (since Linux 4.17)
+              Sets the state of the speculation misfeature  specified  in
+              arg2.   The  speculation-misfeature settings are per-thread
+              attributes.
+
+              Currently, arg2 must be one of:
+
+              PR_SPEC_STORE_BYPASS
+                     Set the state of the speculative store  bypass  mis‐
+                     feature.
+
+              PR_SPEC_INDIRECT_BRANCH (since Linux 4.20)
+                     Set  the  state  of  the indirect branch speculation
+                     misfeature.
+
+              If arg2 does not have one of the  above  values,  then  the
+              call fails with the error ENODEV.
+
+              The  arg3  argument  is  used to hand in the control value,
+              which is one of the following:
+
+              ...
+
+Cheers,
+
+Michael
+
+
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
