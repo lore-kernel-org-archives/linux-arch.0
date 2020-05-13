@@ -1,41 +1,124 @@
-Return-Path: <SRS0=g3ia=6X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:55210 "EHLO mx2.suse.de"
+Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:47144 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726214AbgEIRyv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 9 May 2020 13:54:51 -0400
-Date: Sat, 9 May 2020 19:54:48 +0200
-From: Joerg Roedel <jroedel@suse.de>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Message-ID: <20200509175448.GW8135@suse.de>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <20200508192000.GB2957@hirez.programming.kicks-ass.net>
- <20200508213407.GT8135@suse.de>
- <20200509092516.GC2957@hirez.programming.kicks-ass.net>
+        id S1727792AbgEMNx1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 May 2020 09:53:27 -0400
+Date: Wed, 13 May 2020 14:53:24 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 10/14] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for
+ SPECULATION_CTRL prctls
+Message-ID: <20200513135323.GO21779@arm.com>
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-11-git-send-email-Dave.Martin@arm.com>
+ <bd548916-11c8-a53f-67b5-876c79088258@gmail.com>
+ <20200513114915.GL21779@arm.com>
+ <604879eb-1c7e-d08b-a6b8-165e4259b60c@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20200509092516.GC2957@hirez.programming.kicks-ass.net>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <604879eb-1c7e-d08b-a6b8-165e4259b60c@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20200509175448.wWF2HZMUeobYGxO5snduzmwBKLo8oSEB4baUMYn2Dbs@z>
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20200513135324.V9lreSdq8nLbQjRosktFxvZhhbK1_PKQRC5Z-uHcV1I@z>
 
-On Sat, May 09, 2020 at 11:25:16AM +0200, Peter Zijlstra wrote:
-> Right; it's just that the moment you do trigger it, it'll iterate that
-> pgd_list and that is potentially huge. Then again, that's not a new
-> problem.
+On Wed, May 13, 2020 at 02:06:38PM +0200, Michael Kerrisk (man-pages) wrote:
+> On 5/13/20 1:49 PM, Dave Martin wrote:
+> > On Wed, May 13, 2020 at 01:21:12PM +0200, Michael Kerrisk (man-pages) wrote:
+> >> Hello Dave,
+> >>
+> >> On 5/12/20 6:36 PM, Dave Martin wrote:
+> >>> Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
+> >>> for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+> >>>
+> >>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> >>> Cc: Tim Chen <tim.c.chen@linux.intel.com>
+> >>> Cc: Thomas Gleixner <tglx@linutronix.de>
+> >>
+> >> Thanks. Patch applied, but not yet pushed while I wait to see if any
+> >> Review/Ack arrives.
+> >>
+> >> Also, could you please check the tweaks I note below.
+> >>
+> >>> ---
+> >>>  man2/prctl.2 | 24 ++++++++++++++++++------
+> >>>  1 file changed, 18 insertions(+), 6 deletions(-)
+> >>>
+> >>> diff --git a/man2/prctl.2 b/man2/prctl.2
+> >>> index e8eaf95..66417cf 100644
+> >>> --- a/man2/prctl.2
+> >>> +++ b/man2/prctl.2
+> >>> @@ -1213,11 +1213,20 @@ arguments must be specified as 0; otherwise the call fails with the error
+> >>>  .\" commit 356e4bfff2c5489e016fdb925adbf12a1e3950ee
+> >>>  Sets the state of the speculation misfeature specified in
+> >>>  .IR arg2 .
+> >>> -Currently, the only permitted value for this argument is
+> >>> +Currently, this argument must be one of:
+> >>> +.RS
+> >>> +.TP
+> >>>  .B PR_SPEC_STORE_BYPASS
+> >>> -(otherwise the call fails with the error
+> >>> +speculative store bypass control, or
+> >>
+> >> s/speculative/enable speculative/
+> >>
+> >>> +.\" commit 9137bb27e60e554dab694eafa4cca241fa3a694f
+> >>> +.TP
+> >>> +.BR PR_SPEC_INDIRECT_BRANCH " (since Linux 4.20)"
+> >>> +indirect branch speculation control.
+> >>
+> >> s/indirect/enable indirect/
+> > 
+> > That doesn't seem quite right.
 > 
-> I suppose we can deal with it if/when it becomes an actual problem.
+> My goof, not looking at the bigger context of the patch.
 > 
-> I had a quick look and I think it might be possible to make it an RCU
-> managed list. We'd have to remove the pgd_list entry in
-> put_task_struct_rcu_user(). Then we can play games in sync_global_*()
-> and use RCU iteration. New tasks (which can be missed in the RCU
-> iteration) will already have a full clone of the PGD anyway.
+> > 
+> > arg2 just identifies what behaviour to configure.
+> > It's arg3 that says whether to disable / enable it or whatever.
+> > 
+> > 
+> > While editing this I did wonder whether the "control" was helpful.
+> > Maybe just dropping that word from these entries would help.
+> 
+> Okay I tried to fix things, and made also some other edits.
+> How does the following look to you?
+> 
+>       PR_SET_SPECULATION_CTRL (since Linux 4.17)
+>               Sets the state of the speculation misfeature  specified  in
+>               arg2.   The  speculation-misfeature settings are per-thread
+>               attributes.
+> 
+>               Currently, arg2 must be one of:
+> 
+>               PR_SPEC_STORE_BYPASS
+>                      Set the state of the speculative store  bypass  mis‐
+>                      feature.
+> 
+>               PR_SPEC_INDIRECT_BRANCH (since Linux 4.20)
+>                      Set  the  state  of  the indirect branch speculation
+>                      misfeature.
+> 
+>               If arg2 does not have one of the  above  values,  then  the
+>               call fails with the error ENODEV.
+> 
+>               The  arg3  argument  is  used to hand in the control value,
+>               which is one of the following:
+> 
+>               ...
 
-Right, it should not be that difficult to rcu-protect the pgd-list, but
-we can try that when it actually becomes a problem.
+Look OK to me.
 
+I thought it sounded odd to "set the state" of a silicon bug, but that
+was a bogus concern.
 
-	Joerg
+This isn't about bugs, but intentional, often configurable behaviours in
+the silicon that happen to have harmful side effects.
+
+It could be more terse to say "configure" instead of "set the state of",
+but either way works for me.
+
+Cheers
+---Dave
