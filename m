@@ -1,53 +1,105 @@
-From: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [PATCH 05/14] prctl.2: tfix listing order of prctls
-Date: Wed, 13 May 2020 12:21:33 +0100
-Message-ID: <20200513112133.GH21779@arm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Subject: Re: [PATCH 00/14] prctl.2 man page updates for Linux 5.6
+Date: Wed, 13 May 2020 13:28:23 +0200
+Message-ID: <29a02b16-dd61-6186-1340-fcc7d5225ad0@gmail.com>
 References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
- <1589301419-24459-6-git-send-email-Dave.Martin@arm.com>
- <1bb991f4-176a-a74e-01fc-c73b49ed77f5@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <1bb991f4-176a-a74e-01fc-c73b49ed77f5-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36398 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726081AbgEML21 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 07:28:27 -0400
+In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Amit Daniel Kachhap <amit.kachhap@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Dave Hansen <dave.hansen@linux.intel.com>, Mark Rutland <mark.rutland@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>, Will Deacon <will@kernel.org>
 
-On Wed, May 13, 2020 at 12:10:53PM +0200, Michael Kerrisk (man-pages) wrote:
-> Hi Dave,
+Hi Dave,
+
+On 5/12/20 6:36 PM, Dave Martin wrote:
+> A bunch of updates to the prctl(2) man page to fill in the missing
+> prctls (mostly) up to Linux 5.6 (along with a few other tweaks fixes).
 > 
-> On 5/12/20 6:36 PM, Dave Martin wrote:
-> > The prctl list has historically been sorted by prctl name (ignoring
-> > any SET_ or GET_ prefix) to make individual prctls easier to find.
-> > Some noise seems to have crept in since.
-> > 
-> > Sort the list back into order.  Similarly, reorder the list of
-> > prctls specified to return non-zero values on success.
+> People not Cc'd on the whole series can find the whole series at
+> https://lore.kernel.org/linux-man/ .
 > 
-> This is a good patch. But see my comments on patch 04.
-> I'd prefer a patch like this at the end of a series, 
-> rather than in the middle of it.
-
-Ack.
-
-Ideally we could check the order with a script, but that seemed a step
-too far.
-
-What's the view on having parts of the man pages generated, rather then
-being distributed ready-built?
-
-If we split prctl.2 up with a fragment per prctl, we could paste the
-fragments together in the right order with a script.
-
+> Patches:
 > 
-> > Content movement only.  No semantic change.
+>  * Patches 1-6 and 8-9 are rather trivial optional tweaks and fixes
+>    that don't make substantive changes.  I can live with some of these
+>    being dropped.
 > 
-> And explicitly noting that detail is very helpful to me.
+>  * Patch 7 (removal of the MPX prctls) could use an Ack, but should be
+>    uncontroversial.
+> 
+>  * Patches 10-11 cover recent extensions to the speculation control
+>    prctls.
+> 
+>  * Patch 12 adds one particular case Errors for EINVAL, applicable to
+>    all arch-specific prctls.  I've not tried too hard to be 100%
+>    comprehensive with the error conditions, since the list in its
+>    current form looks in need of a major overhaul.
+> 
+>  * Patches 13-14 add the new arm64-specific prctls.
+>    (PR_SET_TAGGED_ADDR_CTRL requires a bit more discussion and will be
+>    posted separately.)
 
-Unless of course I'm lying ;)  (I'm not, but I won't be offended if you
-check.)
+Thanks. This is great!
 
-Cheers
----Dave
+> Maintainer notes:
+> 
+>  * I'm *asssuming* that the datestamps in .TH are automatically
+>    updated by maintainer scripts, since maintaining them by hand would
+>    interact very badly with rebase.  If needed I can go update them by
+>    hand though.
+> 
+>  * Similarly, in the days of git (and because I see no recent entries)
+>    I'm assuming that in-file changelogs no longer need to be updated.
+
+Correct.
+
+>    Again, I'm happy to do that if needed.
+
+(No need.)
+
+Except as noted below, patches have been applied:
+
+> Dave Martin (14):
+>   prctl.2: tfix clarify that prctl can apply to threads
+>   prctl.2: Add health warning
+>   prctl.2: tfix mis-description of thread ID values in procfs
+>   prctl.2: srcfix add comments for navigation
+>   prctl.2: tfix listing order of prctls
+>   prctl.2: ffix quotation mark tweaks
+>   prctl.2: Document removal of Intel MPX prctls
+>   prctl.2: Work around bogus constant "maxsig" in PR_SET_PDEATHSIG
+>   prctl.2: tfix minor punctuation in SPECULATION_CTRL prctls
+>   prctl.2: Add PR_SPEC_INDIRECT_BRANCH for SPECULATION_CTRL prctls
+
+Applied, but not yet pushed.
+
+>   prctl.2: Add PR_SPEC_DISABLE_NOEXEC for SPECULATION_CTRL prctls
+
+Applied, but not yet pushed.
+
+>   prctl.2: Clarify the unsupported hardware case of EINVAL
+>   prctl.2: Add SVE prctls (arm64)
+
+Will had comments. I'm presuming there will be a v2 of this patch.
+
+>   prctl.2: Add PR_PAC_RESET_KEYS (arm64)
+
+Will had comments. I'm presuming there will be a v2 of this patch.
+
+Cheers,
+
+Michael
+
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
