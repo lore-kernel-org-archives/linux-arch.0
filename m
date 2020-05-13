@@ -1,111 +1,119 @@
-From: Luis Machado <luis.machado@linaro.org>
-Subject: Re: [PATCH v3 19/23] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
- support
-Date: Wed, 13 May 2020 09:52:52 -0300
-Message-ID: <3d2621ac-9d08-53ea-6c22-c62532911377@linaro.org>
-References: <20200421142603.3894-1-catalin.marinas@arm.com>
- <20200421142603.3894-20-catalin.marinas@arm.com>
- <a7569985-eb85-497b-e3b2-5dce0acb1332@linaro.org>
- <20200513104849.GC2719@gaia>
+From: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH 10/14] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for
+ SPECULATION_CTRL prctls
+Date: Wed, 13 May 2020 14:53:24 +0100
+Message-ID: <20200513135323.GO21779@arm.com>
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-11-git-send-email-Dave.Martin@arm.com>
+ <bd548916-11c8-a53f-67b5-876c79088258@gmail.com>
+ <20200513114915.GL21779@arm.com>
+ <604879eb-1c7e-d08b-a6b8-165e4259b60c@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49642 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732967AbgEMMxB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 08:53:01 -0400
-Received: from mail-qv1-xf41.google.com (mail-qv1-xf41.google.com [IPv6:2607:f8b0:4864:20::f41])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4B8E4C061A0C
-        for <linux-arch@vger.kernel.org>; Wed, 13 May 2020 05:53:01 -0700 (PDT)
-Received: by mail-qv1-xf41.google.com with SMTP id r3so8135174qvm.1
-        for <linux-arch@vger.kernel.org>; Wed, 13 May 2020 05:53:01 -0700 (PDT)
-In-Reply-To: <20200513104849.GC2719@gaia>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Alan Hayward <Alan.Hayward@arm.com>, Omair Javaid <omair.javaid@linaro.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <604879eb-1c7e-d08b-a6b8-165e4259b60c-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Tim Chen <tim.c.chen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 5/13/20 7:48 AM, Catalin Marinas wrote:
-> Hi Luis,
+On Wed, May 13, 2020 at 02:06:38PM +0200, Michael Kerrisk (man-pages) wrote:
+> On 5/13/20 1:49 PM, Dave Martin wrote:
+> > On Wed, May 13, 2020 at 01:21:12PM +0200, Michael Kerrisk (man-pages) wrote:
+> >> Hello Dave,
+> >>
+> >> On 5/12/20 6:36 PM, Dave Martin wrote:
+> >>> Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
+> >>> for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+> >>>
+> >>> Signed-off-by: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+> >>> Cc: Tim Chen <tim.c.chen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
+> >>> Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+> >>
+> >> Thanks. Patch applied, but not yet pushed while I wait to see if any
+> >> Review/Ack arrives.
+> >>
+> >> Also, could you please check the tweaks I note below.
+> >>
+> >>> ---
+> >>>  man2/prctl.2 | 24 ++++++++++++++++++------
+> >>>  1 file changed, 18 insertions(+), 6 deletions(-)
+> >>>
+> >>> diff --git a/man2/prctl.2 b/man2/prctl.2
+> >>> index e8eaf95..66417cf 100644
+> >>> --- a/man2/prctl.2
+> >>> +++ b/man2/prctl.2
+> >>> @@ -1213,11 +1213,20 @@ arguments must be specified as 0; otherwise the call fails with the error
+> >>>  .\" commit 356e4bfff2c5489e016fdb925adbf12a1e3950ee
+> >>>  Sets the state of the speculation misfeature specified in
+> >>>  .IR arg2 .
+> >>> -Currently, the only permitted value for this argument is
+> >>> +Currently, this argument must be one of:
+> >>> +.RS
+> >>> +.TP
+> >>>  .B PR_SPEC_STORE_BYPASS
+> >>> -(otherwise the call fails with the error
+> >>> +speculative store bypass control, or
+> >>
+> >> s/speculative/enable speculative/
+> >>
+> >>> +.\" commit 9137bb27e60e554dab694eafa4cca241fa3a694f
+> >>> +.TP
+> >>> +.BR PR_SPEC_INDIRECT_BRANCH " (since Linux 4.20)"
+> >>> +indirect branch speculation control.
+> >>
+> >> s/indirect/enable indirect/
+> > 
+> > That doesn't seem quite right.
 > 
-> On Tue, May 12, 2020 at 04:05:15PM -0300, Luis Machado wrote:
->> On 4/21/20 11:25 AM, Catalin Marinas wrote:
->>> Add support for bulk setting/getting of the MTE tags in a tracee's
->>> address space at 'addr' in the ptrace() syscall prototype. 'data' points
->>> to a struct iovec in the tracer's address space with iov_base
->>> representing the address of a tracer's buffer of length iov_len. The
->>> tags to be copied to/from the tracer's buffer are stored as one tag per
->>> byte.
->>>
->>> On successfully copying at least one tag, ptrace() returns 0 and updates
->>> the tracer's iov_len with the number of tags copied. In case of error,
->>> either -EIO or -EFAULT is returned, trying to follow the ptrace() man
->>> page.
->>>
->>> Note that the tag copying functions are not performance critical,
->>> therefore they lack optimisations found in typical memory copy routines.
->>>
->>> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
->>> Cc: Will Deacon <will@kernel.org>
->>> Cc: Alan Hayward <Alan.Hayward@arm.com>
->>> Cc: Luis Machado <luis.machado@linaro.org>
->>> Cc: Omair Javaid <omair.javaid@linaro.org>
->>> ---
->>>
->>> Notes:
->>>       New in v3.
->>>
->>>    arch/arm64/include/asm/mte.h         |  17 ++++
->>>    arch/arm64/include/uapi/asm/ptrace.h |   3 +
->>>    arch/arm64/kernel/mte.c              | 127 +++++++++++++++++++++++++++
->>>    arch/arm64/kernel/ptrace.c           |  15 +++-
->>>    arch/arm64/lib/mte.S                 |  50 +++++++++++
->>>    5 files changed, 211 insertions(+), 1 deletion(-)
->>>
->> I started working on MTE support for GDB and I'm wondering if we've already
->> defined a way to check for runtime MTE support (as opposed to a HWCAP2-based
->> check) in a traced process.
->>
->> Originally we were going to do it via empty-parameter ptrace calls, but you
->> had mentioned something about a proc-based method, if I'm not mistaken.
+> My goof, not looking at the bigger context of the patch.
 > 
-> We could expose more information via proc_pid_arch_status() but that
-> would be the tagged address ABI and tag check fault mode and intended
-> for human consumption mostly. We don't have any ptrace interface that
-> exposes HWCAPs. Since the gdbserver runs on the same machine as the
-> debugged process, it can check the HWCAPs itself, they are the same for
-> all processes.
-
-Sorry, I think i haven't made it clear. I already have access to HWCAP2 
-both from GDB's and gdbserver's side. But HWCAP2 only indicates the 
-availability of a particular feature in a CPU, it doesn't necessarily 
-means the traced process is actively using MTE, right?
-
-So GDB/gdbserver would need runtime checks to be able to tell if a 
-process is using MTE, in which case the tools will pay attention to tags 
-and additional MTE-related registers (sctlr and gcr) we plan to make 
-available to userspace.
-
-This would be similar to SVE, where we have a HWCAP bit indicating the 
-presence of the feature, but it may not be in use at runtime for a 
-particular running process.
-
-The original proposal was to have GDB send PTRACE_PEEKMTETAGS with a 
-NULL address and check the result. Then GDB would be able to decide if 
-the process is using MTE or not.
-
+> > 
+> > arg2 just identifies what behaviour to configure.
+> > It's arg3 that says whether to disable / enable it or whatever.
+> > 
+> > 
+> > While editing this I did wonder whether the "control" was helpful.
+> > Maybe just dropping that word from these entries would help.
 > 
-> BTW, in my pre-v4 patches (hopefully I'll post v4 this week), I changed
-> the ptrace tag access slightly to return an error (and no tags copied)
-> if the page has not been mapped with PROT_MTE. The other option would
-> have been read-as-zero/write-ignored as per the hardware behaviour.
-> Either option is fine by me but I thought the write-ignored part would
-> be more confusing for the debugger. If you have any preference here,
-> please let me know.
+> Okay I tried to fix things, and made also some other edits.
+> How does the following look to you?
 > 
+>       PR_SET_SPECULATION_CTRL (since Linux 4.17)
+>               Sets the state of the speculation misfeature  specified  in
+>               arg2.   The  speculation-misfeature settings are per-thread
+>               attributes.
+> 
+>               Currently, arg2 must be one of:
+> 
+>               PR_SPEC_STORE_BYPASS
+>                      Set the state of the speculative store  bypass  mis‐
+>                      feature.
+> 
+>               PR_SPEC_INDIRECT_BRANCH (since Linux 4.20)
+>                      Set  the  state  of  the indirect branch speculation
+>                      misfeature.
+> 
+>               If arg2 does not have one of the  above  values,  then  the
+>               call fails with the error ENODEV.
+> 
+>               The  arg3  argument  is  used to hand in the control value,
+>               which is one of the following:
+> 
+>               ...
 
-I think erroring out is a better alternative, as long as the debugger 
-can tell what the error means, like, for example, "this particular 
-address doesn't make use of tags".
+Look OK to me.
+
+I thought it sounded odd to "set the state" of a silicon bug, but that
+was a bogus concern.
+
+This isn't about bugs, but intentional, often configurable behaviours in
+the silicon that happen to have harmful side effects.
+
+It could be more terse to say "configure" instead of "set the state of",
+but either way works for me.
+
+Cheers
+---Dave
