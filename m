@@ -1,42 +1,151 @@
-Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35816 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1728179AbgEOOiW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 10:38:22 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 26/29] exec: use flush_icache_user_range in read_code
-Date: Fri, 15 May 2020 16:36:43 +0200
-Message-ID: <20200515143646.3857579-27-hch@lst.de>
-In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-References: <20200515143646.3857579-1-hch@lst.de>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=03B7=63=kvack.org=owner-linux-mm@kernel.org>
+From: Joerg Roedel <joro@8bytes.org>
+Subject: [PATCH v2 1/7] mm: Add functions to track page directory modifications
+Date: Wed, 13 May 2020 17:21:31 +0200
+Message-ID: <20200513152137.32426-2-joro@8bytes.org>
+In-Reply-To: <20200513152137.32426-1-joro@8bytes.org>
+References: <20200513152137.32426-1-joro@8bytes.org>
+Sender: owner-linux-mm@kvack.org
+To: x86@kernel.org
+Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200515143643.D3fOT8oV1LJy7ynVnAOtMXLOsuCwr6k-Nqy2NcfMj9o@z>
+Message-ID: <20200513152131.R9PR8VuQk-nx6DDwX9Q9C_BeCQXGTnwtQvHrmvWV5H0@z>
 
-read_code operates on user addresses.
+From: Joerg Roedel <jroedel@suse.de>
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+Add page-table allocation functions which will keep track of changed
+directory entries. They are needed for new PGD, P4D, PUD, and PMD
+entries and will be used in vmalloc and ioremap code to decide whether
+any changes in the kernel mappings need to be synchronized between
+page-tables in the system.
+
+Signed-off-by: Joerg Roedel <jroedel@suse.de>
 ---
- fs/exec.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/asm-generic/5level-fixup.h |  5 ++--
+ include/asm-generic/pgtable.h      | 23 +++++++++++++++
+ include/linux/mm.h                 | 46 ++++++++++++++++++++++++++++++
+ 3 files changed, 72 insertions(+), 2 deletions(-)
 
-diff --git a/fs/exec.c b/fs/exec.c
-index a4f766f296f8f..c541867316a63 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -1033,7 +1033,7 @@ ssize_t read_code(struct file *file, unsigned long addr, loff_t pos, size_t len)
- {
- 	ssize_t res = vfs_read(file, (void __user *)addr, len, &pos);
- 	if (res > 0)
--		flush_icache_range(addr, addr + len);
-+		flush_icache_user_range(addr, addr + len);
- 	return res;
+diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
+index 4c74b1c1d13b..58046ddc08d0 100644
+--- a/include/asm-generic/5level-fixup.h
++++ b/include/asm-generic/5level-fixup.h
+@@ -17,8 +17,9 @@
+ 	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
+ 		NULL : pud_offset(p4d, address))
+ 
+-#define p4d_alloc(mm, pgd, address)	(pgd)
+-#define p4d_offset(pgd, start)		(pgd)
++#define p4d_alloc(mm, pgd, address)		(pgd)
++#define p4d_alloc_track(mm, pgd, address, mask)	(pgd)
++#define p4d_offset(pgd, start)			(pgd)
+ 
+ #ifndef __ASSEMBLY__
+ static inline int p4d_none(p4d_t p4d)
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 329b8c8ca703..bf1418ae91a2 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1209,6 +1209,29 @@ static inline bool arch_has_pfn_modify_check(void)
+ # define PAGE_KERNEL_EXEC PAGE_KERNEL
+ #endif
+ 
++/*
++ * Page Table Modification bits for pgtbl_mod_mask.
++ *
++ * These are used by the p?d_alloc_track*() set of functions an in the generic
++ * vmalloc/ioremap code to track at which page-table levels entries have been
++ * modified. Based on that the code can better decide when vmalloc and ioremap
++ * mapping changes need to be synchronized to other page-tables in the system.
++ */
++#define		__PGTBL_PGD_MODIFIED	0
++#define		__PGTBL_P4D_MODIFIED	1
++#define		__PGTBL_PUD_MODIFIED	2
++#define		__PGTBL_PMD_MODIFIED	3
++#define		__PGTBL_PTE_MODIFIED	4
++
++#define		PGTBL_PGD_MODIFIED	BIT(__PGTBL_PGD_MODIFIED)
++#define		PGTBL_P4D_MODIFIED	BIT(__PGTBL_P4D_MODIFIED)
++#define		PGTBL_PUD_MODIFIED	BIT(__PGTBL_PUD_MODIFIED)
++#define		PGTBL_PMD_MODIFIED	BIT(__PGTBL_PMD_MODIFIED)
++#define		PGTBL_PTE_MODIFIED	BIT(__PGTBL_PTE_MODIFIED)
++
++/* Page-Table Modification Mask */
++typedef unsigned int pgtbl_mod_mask;
++
+ #endif /* !__ASSEMBLY__ */
+ 
+ #ifndef io_remap_pfn_range
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 5a323422d783..022fe682af9e 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -2078,13 +2078,54 @@ static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
+ 	return (unlikely(p4d_none(*p4d)) && __pud_alloc(mm, p4d, address)) ?
+ 		NULL : pud_offset(p4d, address);
  }
- EXPORT_SYMBOL(read_code);
++
++static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
++				     unsigned long address,
++				     pgtbl_mod_mask *mod_mask)
++
++{
++	if (unlikely(pgd_none(*pgd))) {
++		if (__p4d_alloc(mm, pgd, address))
++			return NULL;
++		*mod_mask |= PGTBL_PGD_MODIFIED;
++	}
++
++	return p4d_offset(pgd, address);
++}
++
+ #endif /* !__ARCH_HAS_5LEVEL_HACK */
+ 
++static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
++				     unsigned long address,
++				     pgtbl_mod_mask *mod_mask)
++{
++	if (unlikely(p4d_none(*p4d))) {
++		if (__pud_alloc(mm, p4d, address))
++			return NULL;
++		*mod_mask |= PGTBL_P4D_MODIFIED;
++	}
++
++	return pud_offset(p4d, address);
++}
++
+ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
+ {
+ 	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address))?
+ 		NULL: pmd_offset(pud, address);
+ }
++
++static inline pmd_t *pmd_alloc_track(struct mm_struct *mm, pud_t *pud,
++				     unsigned long address,
++				     pgtbl_mod_mask *mod_mask)
++{
++	if (unlikely(pud_none(*pud))) {
++		if (__pmd_alloc(mm, pud, address))
++			return NULL;
++		*mod_mask |= PGTBL_PUD_MODIFIED;
++	}
++
++	return pmd_offset(pud, address);
++}
+ #endif /* CONFIG_MMU */
+ 
+ #if USE_SPLIT_PTE_PTLOCKS
+@@ -2200,6 +2241,11 @@ static inline void pgtable_pte_page_dtor(struct page *page)
+ 	((unlikely(pmd_none(*(pmd))) && __pte_alloc_kernel(pmd))? \
+ 		NULL: pte_offset_kernel(pmd, address))
+ 
++#define pte_alloc_kernel_track(pmd, address, mask)			\
++	((unlikely(pmd_none(*(pmd))) &&					\
++	  (__pte_alloc_kernel(pmd) || ({*(mask)|=PGTBL_PMD_MODIFIED;0;})))?\
++		NULL: pte_offset_kernel(pmd, address))
++
+ #if USE_SPLIT_PMD_PTLOCKS
+ 
+ static struct page *pmd_to_page(pmd_t *pmd)
 -- 
-2.26.2
+2.17.1
