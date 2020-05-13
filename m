@@ -1,77 +1,101 @@
-Return-Path: <SRS0=WvJP=62=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58198 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726922AbgELQhz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 May 2020 12:37:55 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 10/14] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for SPECULATION_CTRL prctls
-Date: Tue, 12 May 2020 17:36:55 +0100
-Message-ID: <1589301419-24459-11-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39536 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725962AbgEMLsj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 07:48:39 -0400
+Subject: Re: [PATCH 04/14] prctl.2: srcfix add comments for navigation
 References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-5-git-send-email-Dave.Martin@arm.com>
+ <8b882b6e-376b-111d-3c3c-7a042b0e91b5@gmail.com>
+ <20200513105620.GE21779@arm.com>
+ <9770249d-0d5a-1b02-4de1-bbb6343b5829@gmail.com>
+ <20200513111557.GG21779@arm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Message-ID: <022b1d7f-8381-a9a8-b5aa-907143fd4831@gmail.com>
+Date: Wed, 13 May 2020 13:48:36 +0200
+MIME-Version: 1.0
+In-Reply-To: <20200513111557.GG21779@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mtk.manpages@gmail.com
-Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20200512163655.btJ_RhaifirfNNi0-TLbxbVVXMgfqoPUOeqysPYaMbo@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200513114836.UarzW-Pwg_vKe0jfF9261qH0e_Pu2Hu_-eBpZ5Xao_I@z>
 
-Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
-for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+Hi Dave,
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Cc: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
----
- man2/prctl.2 | 24 ++++++++++++++++++------
- 1 file changed, 18 insertions(+), 6 deletions(-)
+On 5/13/20 1:15 PM, Dave Martin wrote:
+> On Wed, May 13, 2020 at 01:03:27PM +0200, Michael Kerrisk (man-pages) wrote:
+>> Hi Dave,
+>>
+>> On 5/13/20 12:56 PM, Dave Martin wrote:
+>>> On Wed, May 13, 2020 at 12:09:27PM +0200, Michael Kerrisk (man-pages) wrote:
+>>>> Hi Dave,
+>>>>
+>>>> On 5/12/20 6:36 PM, Dave Martin wrote:
+>>>>> The prctl.2 source is unnecessarily hard to navigate, not least
+>>>>> because prctl option flags are traditionally named PR_* and so look
+>>>>> just like prctl names.
+>>>>>
+>>>>> For each actual prctl, add a comment of the form
+>>>>>
+>>>>> 	.\" prctl PR_FOO
+>>>>>
+>>>>> to make it move obvious where each top-level prctl starts.
+>>>>>
+>>>>> Of course, we could add some clever macros, but let's not confuse
+>>>>> dumb parsers.
+>>>>
+>>>> A patch like this, which makes sweeping changes across the page,
+>>>> should be best placed at the end of a series, I think.
+>>>> The reason is that if I fail to apply this patch (and I am a
+>>>> little dubious about it), then probably the rest of the patches
+>>>> in the series won't apply. (Furthermore, it also forced me to
+>>>> apply patch 02 already, which I wanted to reflect on a little.)
+>>>
+>>> Agreed, I'll try to do that in future.
+>>>
+>>>> That said, I'll apply it, so that the remaining patches
+>>>> apply cleanly. I'll consider later whether to keep this
+>>>> change. For example, I wonder if a visually distinctive 
+>>>> source line that is always the same would be better than
+>>>> these comments that repeat the PR_* names. For example, 
+>>>> something like
+>>>>
+>>>> .\" ==========================
+>>>>
+>>>> I'll circle back to this later.
+>>>
+>>> I'd prefer to keep the name if we can, since navigating by search is
+>>> otherwise bothersome due to false hits.
+>>>
+>>> Could we do both, say:
+>>>
+>>> .\" === PR_FOO ===
+>>
+>> Okay -- I'll give that some thought.
+>>
+>>> If you prefer to reject this patch, I'm happy to rebase and repost the
+>>> series as appropriate.
+>>>
+>>> In any case, this one is nice to have rather than essential.
+>>
+>> For now, the patch is already committed and pushed.
+> 
+> OK, thanks.  I'm happy to write a further patch when you've decided what
+> to do, if it saves you work.
 
-diff --git a/man2/prctl.2 b/man2/prctl.2
-index e8eaf95..66417cf 100644
---- a/man2/prctl.2
-+++ b/man2/prctl.2
-@@ -1213,11 +1213,20 @@ arguments must be specified as 0; otherwise the call fails with the error
- .\" commit 356e4bfff2c5489e016fdb925adbf12a1e3950ee
- Sets the state of the speculation misfeature specified in
- .IR arg2 .
--Currently, the only permitted value for this argument is
-+Currently, this argument must be one of:
-+.RS
-+.TP
- .B PR_SPEC_STORE_BYPASS
--(otherwise the call fails with the error
-+speculative store bypass control, or
-+.\" commit 9137bb27e60e554dab694eafa4cca241fa3a694f
-+.TP
-+.BR PR_SPEC_INDIRECT_BRANCH " (since Linux 4.20)"
-+indirect branch speculation control.
-+.RE
-+.IP
-+(Otherwise the call fails with the error
- .BR ENODEV ).
--This setting is a per-thread attribute.
-+These settings are per-thread attributes.
- The
- .IR arg3
- argument is used to hand in the control value,
-@@ -1235,13 +1244,16 @@ Same as
- .BR PR_SPEC_DISABLE ,
- but cannot be undone.
- A subsequent
--.B
--prctl(..., PR_SPEC_ENABLE)
-+.BR prctl (\c
-+.IR arg2 ,
-+.BR PR_SPEC_ENABLE )
-+with the same value for
-+.I arg2
- will fail with the error
- .BR EPERM .
- .RE
- .IP
--Any other value in
-+Any unsupported value in
- .IR arg3
- will result in the call failing with the error
- .BR ERANGE .
+Let's leave this for the moment. Once the dust settles on your 
+remaining patches, I'll try to remember to circle back on this.
+
+Cheers,
+
+Michael
+
+
 -- 
-2.1.4
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
