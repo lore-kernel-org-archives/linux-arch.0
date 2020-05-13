@@ -1,15 +1,15 @@
 From: "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH 08/14] prctl.2: Work around bogus constant "maxsig" in
- PR_SET_PDEATHSIG
-Date: Wed, 13 May 2020 12:30:58 +0200
-Message-ID: <4f7bee2a-1db6-1cf5-6561-b24397c33707@gmail.com>
+Subject: Re: [PATCH 09/14] prctl.2: tfix minor punctuation in SPECULATION_CTRL
+ prctls
+Date: Wed, 13 May 2020 12:31:06 +0200
+Message-ID: <6322d3db-75d0-7539-b61c-252d222f932f@gmail.com>
 References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
- <1589301419-24459-9-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-10-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1589301419-24459-9-git-send-email-Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+In-Reply-To: <1589301419-24459-10-git-send-email-Dave.Martin-5wv7dgnIgG8@public.gmane.org>
 Content-Language: en-US
 Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
@@ -17,14 +17,10 @@ Cc: mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-man-u79uwXL29TY7
 List-Id: linux-arch.vger.kernel.org
 
 On 5/12/20 6:36 PM, Dave Martin wrote:
-> The description of PR_SET_PDEATHSIG refers to "maxsig", which is
-> apparently intended to stand for the maximum defined signal number.
+> Fix a few very minor bits of punctuation in
+> PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
 > 
-> maxsig seems not to be a thing, even in the kernel.
-> 
-> Reword to use the standard constant NSIG.  (Discussion of SIGRTMIN
-> and SIGRTMAX seems out of scope here, and anyway is not relevant to
-> the kernel.)
+> Signed-off-by: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
 
 Thanks, Dave. Patch applied.
 
@@ -32,26 +28,44 @@ Cheers,
 
 Michael
 
-> Signed-off-by: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
 > ---
->  man2/prctl.2 | 4 +++-
->  1 file changed, 3 insertions(+), 1 deletion(-)
+>  man2/prctl.2 | 8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
 > 
 > diff --git a/man2/prctl.2 b/man2/prctl.2
-> index a84fb1d..1e04859 100644
+> index 1e04859..e8eaf95 100644
 > --- a/man2/prctl.2
 > +++ b/man2/prctl.2
-> @@ -955,7 +955,9 @@ will operate in the privilege-restricting mode described above.
->  .BR PR_SET_PDEATHSIG " (since Linux 2.1.57)"
->  Set the parent-death signal
->  of the calling process to \fIarg2\fP (either a signal value
-> -in the range 1..maxsig, or 0 to clear).
-> +in the range 1 ..
-> +.BR NSIG " \-"
-> +1, or 0 to clear).
->  This is the signal that the calling process will get when its
->  parent dies.
->  .IP
+> @@ -1175,13 +1175,13 @@ The return value uses bits 0-3 with the following meaning:
+>  .TP
+>  .BR PR_SPEC_PRCTL
+>  Mitigation can be controlled per thread by
+> -.B PR_SET_SPECULATION_CTRL
+> +.BR PR_SET_SPECULATION_CTRL .
+>  .TP
+>  .BR PR_SPEC_ENABLE
+>  The speculation feature is enabled, mitigation is disabled.
+>  .TP
+>  .BR PR_SPEC_DISABLE
+> -The speculation feature is disabled, mitigation is enabled
+> +The speculation feature is disabled, mitigation is enabled.
+>  .TP
+>  .BR PR_SPEC_FORCE_DISABLE
+>  Same as
+> @@ -1228,11 +1228,11 @@ which is one of the following:
+>  The speculation feature is enabled, mitigation is disabled.
+>  .TP
+>  .BR PR_SPEC_DISABLE
+> -The speculation feature is disabled, mitigation is enabled
+> +The speculation feature is disabled, mitigation is enabled.
+>  .TP
+>  .BR PR_SPEC_FORCE_DISABLE
+>  Same as
+> -.B PR_SPEC_DISABLE
+> +.BR PR_SPEC_DISABLE ,
+>  but cannot be undone.
+>  A subsequent
+>  .B
 > 
 
 
