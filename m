@@ -1,89 +1,61 @@
-From: guoren@kernel.org
-Subject: [PATCH 4/4] csky: Fixup remove unnecessary save/restore PSR code
-Date: Wed, 13 May 2020 18:16:17 +0800
-Message-ID: <20200513101617.11588-4-guoren@kernel.org>
-References: <20200513101617.11588-1-guoren@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200513101617.11588-1-guoren@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-csky@vger.kernel.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, guoren@kernel.org, Guo Ren <guoren@linux.alibaba.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH 08/14] prctl.2: Work around bogus constant "maxsig" in
+ PR_SET_PDEATHSIG
+Date: Wed, 13 May 2020 12:30:58 +0200
+Message-ID: <4f7bee2a-1db6-1cf5-6561-b24397c33707@gmail.com>
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-9-git-send-email-Dave.Martin@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1589301419-24459-9-git-send-email-Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Content-Language: en-US
+Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Cc: mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Guo Ren <guoren@linux.alibaba.com>
+On 5/12/20 6:36 PM, Dave Martin wrote:
+> The description of PR_SET_PDEATHSIG refers to "maxsig", which is
+> apparently intended to stand for the maximum defined signal number.
+> 
+> maxsig seems not to be a thing, even in the kernel.
+> 
+> Reword to use the standard constant NSIG.  (Discussion of SIGRTMIN
+> and SIGRTMAX seems out of scope here, and anyway is not relevant to
+> the kernel.)
 
-All processes' PSR could success from SETUP_MMU, so need set it
-in INIT_THREAD again.
+Thanks, Dave. Patch applied.
 
-And use a3 instead of r7 in __switch_to for code convention.
+Cheers,
 
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
----
- arch/csky/include/asm/processor.h |  2 --
- arch/csky/kernel/asm-offsets.c    |  1 -
- arch/csky/kernel/entry.S          | 10 ++--------
- 3 files changed, 2 insertions(+), 11 deletions(-)
+Michael
 
-diff --git a/arch/csky/include/asm/processor.h b/arch/csky/include/asm/processor.h
-index c6bcd7f7c720..79eaaaed3d23 100644
---- a/arch/csky/include/asm/processor.h
-+++ b/arch/csky/include/asm/processor.h
-@@ -42,7 +42,6 @@ extern struct cpuinfo_csky cpu_data[];
- 
- struct thread_struct {
- 	unsigned long  ksp;       /* kernel stack pointer */
--	unsigned long  sr;        /* saved status register */
- 	unsigned long  trap_no;   /* saved status register */
- 
- 	/* FPU regs */
-@@ -51,7 +50,6 @@ struct thread_struct {
- 
- #define INIT_THREAD  { \
- 	.ksp = sizeof(init_stack) + (unsigned long) &init_stack, \
--	.sr = DEFAULT_PSR_VALUE, \
- }
- 
- /*
-diff --git a/arch/csky/kernel/asm-offsets.c b/arch/csky/kernel/asm-offsets.c
-index f8be348df9e4..bbc259eed233 100644
---- a/arch/csky/kernel/asm-offsets.c
-+++ b/arch/csky/kernel/asm-offsets.c
-@@ -19,7 +19,6 @@ int main(void)
- 
- 	/* offsets into the thread struct */
- 	DEFINE(THREAD_KSP,        offsetof(struct thread_struct, ksp));
--	DEFINE(THREAD_SR,         offsetof(struct thread_struct, sr));
- 	DEFINE(THREAD_FESR,       offsetof(struct thread_struct, user_fp.fesr));
- 	DEFINE(THREAD_FCR,        offsetof(struct thread_struct, user_fp.fcr));
- 	DEFINE(THREAD_FPREG,      offsetof(struct thread_struct, user_fp.vr));
-diff --git a/arch/csky/kernel/entry.S b/arch/csky/kernel/entry.S
-index 6a468ff75432..3760397fdd3d 100644
---- a/arch/csky/kernel/entry.S
-+++ b/arch/csky/kernel/entry.S
-@@ -330,9 +330,6 @@ ENTRY(__switch_to)
- 	lrw	a3, TASK_THREAD
- 	addu	a3, a0
- 
--	mfcr	a2, psr			/* Save PSR value */
--	stw	a2, (a3, THREAD_SR)	/* Save PSR in task struct */
--
- 	SAVE_SWITCH_STACK
- 
- 	stw	sp, (a3, THREAD_KSP)
-@@ -343,12 +340,9 @@ ENTRY(__switch_to)
- 
- 	ldw	sp, (a3, THREAD_KSP)	/* Set next kernel sp */
- 
--	ldw	a2, (a3, THREAD_SR)	/* Set next PSR */
--	mtcr	a2, psr
--
- #if  defined(__CSKYABIV2__)
--	addi	r7, a1, TASK_THREAD_INFO
--	ldw	tls, (r7, TINFO_TP_VALUE)
-+	addi	a3, a1, TASK_THREAD_INFO
-+	ldw	tls, (a3, TINFO_TP_VALUE)
- #endif
- 
- 	RESTORE_SWITCH_STACK
+> Signed-off-by: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+> ---
+>  man2/prctl.2 | 4 +++-
+>  1 file changed, 3 insertions(+), 1 deletion(-)
+> 
+> diff --git a/man2/prctl.2 b/man2/prctl.2
+> index a84fb1d..1e04859 100644
+> --- a/man2/prctl.2
+> +++ b/man2/prctl.2
+> @@ -955,7 +955,9 @@ will operate in the privilege-restricting mode described above.
+>  .BR PR_SET_PDEATHSIG " (since Linux 2.1.57)"
+>  Set the parent-death signal
+>  of the calling process to \fIarg2\fP (either a signal value
+> -in the range 1..maxsig, or 0 to clear).
+> +in the range 1 ..
+> +.BR NSIG " \-"
+> +1, or 0 to clear).
+>  This is the signal that the calling process will get when its
+>  parent dies.
+>  .IP
+> 
+
+
 -- 
-2.17.0
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
