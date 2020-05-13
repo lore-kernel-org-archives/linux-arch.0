@@ -1,121 +1,66 @@
-Return-Path: <SRS0=tUtt=7I=vger.kernel.org=linux-doc-owner@kernel.org>
-From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-Subject: [PATCH v18 06/12] fs,security: Add sb_delete hook
-Date: Tue, 26 May 2020 22:53:16 +0200
-Message-ID: <20200526205322.23465-7-mic@digikod.net>
-In-Reply-To: <20200526205322.23465-1-mic@digikod.net>
-References: <20200526205322.23465-1-mic@digikod.net>
+Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55674 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732741AbgEMKbB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 06:31:01 -0400
+Subject: Re: [PATCH 08/14] prctl.2: Work around bogus constant "maxsig" in
+ PR_SET_PDEATHSIG
+References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
+ <1589301419-24459-9-git-send-email-Dave.Martin@arm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Message-ID: <4f7bee2a-1db6-1cf5-6561-b24397c33707@gmail.com>
+Date: Wed, 13 May 2020 12:30:58 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+In-Reply-To: <1589301419-24459-9-git-send-email-Dave.Martin@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200526205316.tEtVuPGZN4_OaxHdIa3O0qSRf5NUdorw6nV7HMfKhRk@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200513103058.kYqQxRpnW6mfKA02Z0TTvCy5ZuXsipTZoM0TefCug7Q@z>
 
-The sb_delete security hook is called when shutting down a superblock,
-which may be useful to release kernel objects tied to the superblock's
-lifetime (e.g. inodes).
+On 5/12/20 6:36 PM, Dave Martin wrote:
+> The description of PR_SET_PDEATHSIG refers to "maxsig", which is
+> apparently intended to stand for the maximum defined signal number.
+> 
+> maxsig seems not to be a thing, even in the kernel.
+> 
+> Reword to use the standard constant NSIG.  (Discussion of SIGRTMIN
+> and SIGRTMAX seems out of scope here, and anyway is not relevant to
+> the kernel.)
 
-This new hook is needed by Landlock to release (ephemerally) tagged
-struct inodes.  This comes from the unprivileged nature of Landlock
-described in the next commit.
+Thanks, Dave. Patch applied.
 
-Signed-off-by: Mickaël Salaün <mic@digikod.net>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: James Morris <jmorris@namei.org>
-Cc: Jann Horn <jannh@google.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Serge E. Hallyn <serge@hallyn.com>
----
+Cheers,
 
-Changes since v17:
-* Initial patch to replace the direct call to landlock_release_inodes()
-  (requested by James Morris).
-  https://lore.kernel.org/lkml/alpine.LRH.2.21.2005150536440.7929@namei.org/
----
- fs/super.c                    | 1 +
- include/linux/lsm_hook_defs.h | 1 +
- include/linux/lsm_hooks.h     | 2 ++
- include/linux/security.h      | 4 ++++
- security/security.c           | 5 +++++
- 5 files changed, 13 insertions(+)
+Michael
 
-diff --git a/fs/super.c b/fs/super.c
-index a288cd60d2ae..3369b554fabe 100644
---- a/fs/super.c
-+++ b/fs/super.c
-@@ -454,6 +454,7 @@ void generic_shutdown_super(struct super_block *sb)
- 		evict_inodes(sb);
- 		/* only nonzero refcount inodes can have marks */
- 		fsnotify_sb_delete(sb);
-+		security_sb_delete(sb);
- 
- 		if (sb->s_dio_done_wq) {
- 			destroy_workqueue(sb->s_dio_done_wq);
-diff --git a/include/linux/lsm_hook_defs.h b/include/linux/lsm_hook_defs.h
-index 5616b2567aa7..8ce0add3eab5 100644
---- a/include/linux/lsm_hook_defs.h
-+++ b/include/linux/lsm_hook_defs.h
-@@ -58,6 +58,7 @@ LSM_HOOK(int, 0, fs_context_dup, struct fs_context *fc,
- LSM_HOOK(int, -ENOPARAM, fs_context_parse_param, struct fs_context *fc,
- 	 struct fs_parameter *param)
- LSM_HOOK(int, 0, sb_alloc_security, struct super_block *sb)
-+LSM_HOOK(void, LSM_RET_VOID, sb_delete, struct super_block *sb)
- LSM_HOOK(void, LSM_RET_VOID, sb_free_security, struct super_block *sb)
- LSM_HOOK(void, LSM_RET_VOID, sb_free_mnt_opts, void *mnt_opts)
- LSM_HOOK(int, 0, sb_eat_lsm_opts, char *orig, void **mnt_opts)
-diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index 4c6c5dc991c4..e9f267a78ecf 100644
---- a/include/linux/lsm_hooks.h
-+++ b/include/linux/lsm_hooks.h
-@@ -100,6 +100,8 @@
-  *	allocated.
-  *	@sb contains the super_block structure to be modified.
-  *	Return 0 if operation was successful.
-+ * @sb_delete:
-+ *	Release objects tied to a superblock (e.g. inodes).
-  * @sb_free_security:
-  *	Deallocate and clear the sb->s_security field.
-  *	@sb contains the super_block structure to be modified.
-diff --git a/include/linux/security.h b/include/linux/security.h
-index a8d9310472df..2747a0d12345 100644
---- a/include/linux/security.h
-+++ b/include/linux/security.h
-@@ -283,6 +283,7 @@ void security_bprm_committed_creds(struct linux_binprm *bprm);
- int security_fs_context_dup(struct fs_context *fc, struct fs_context *src_fc);
- int security_fs_context_parse_param(struct fs_context *fc, struct fs_parameter *param);
- int security_sb_alloc(struct super_block *sb);
-+void security_sb_delete(struct super_block *sb);
- void security_sb_free(struct super_block *sb);
- void security_free_mnt_opts(void **mnt_opts);
- int security_sb_eat_lsm_opts(char *options, void **mnt_opts);
-@@ -603,6 +604,9 @@ static inline int security_sb_alloc(struct super_block *sb)
- 	return 0;
- }
- 
-+static inline void security_sb_delete(struct super_block *sb)
-+{ }
-+
- static inline void security_sb_free(struct super_block *sb)
- { }
- 
-diff --git a/security/security.c b/security/security.c
-index 5adfaa529163..6bda9f9ab0a4 100644
---- a/security/security.c
-+++ b/security/security.c
-@@ -893,6 +893,11 @@ int security_sb_alloc(struct super_block *sb)
- 	return rc;
- }
- 
-+void security_sb_delete(struct super_block *sb)
-+{
-+	call_void_hook(sb_delete, sb);
-+}
-+
- void security_sb_free(struct super_block *sb)
- {
- 	call_void_hook(sb_free_security, sb);
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> ---
+>  man2/prctl.2 | 4 +++-
+>  1 file changed, 3 insertions(+), 1 deletion(-)
+> 
+> diff --git a/man2/prctl.2 b/man2/prctl.2
+> index a84fb1d..1e04859 100644
+> --- a/man2/prctl.2
+> +++ b/man2/prctl.2
+> @@ -955,7 +955,9 @@ will operate in the privilege-restricting mode described above.
+>  .BR PR_SET_PDEATHSIG " (since Linux 2.1.57)"
+>  Set the parent-death signal
+>  of the calling process to \fIarg2\fP (either a signal value
+> -in the range 1..maxsig, or 0 to clear).
+> +in the range 1 ..
+> +.BR NSIG " \-"
+> +1, or 0 to clear).
+>  This is the signal that the calling process will get when its
+>  parent dies.
+>  .IP
+> 
+
+
 -- 
-2.26.2
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
