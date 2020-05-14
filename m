@@ -1,194 +1,63 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH v3 2/2] arm64: tlb: Use the TLBI RANGE feature in
- arm64
-Date: Thu, 14 May 2020 16:28:40 +0100
-Message-ID: <20200514152840.GC1907@gaia>
-References: <20200414112835.1121-1-yezhenyu2@huawei.com>
- <20200414112835.1121-3-yezhenyu2@huawei.com>
+From: Casey Schaufler <casey@schaufler-ca.com>
+Subject: Re: [PATCH v17 05/10] fs,landlock: Support filesystem access-control
+Date: Thu, 14 May 2020 08:58:03 -0700
+Message-ID: <bcfa8f74-5bc9-b363-5372-b254ba2e88a7@schaufler-ca.com>
+References: <20200511192156.1618284-1-mic@digikod.net>
+ <20200511192156.1618284-6-mic@digikod.net>
+ <alpine.LRH.2.21.2005141335280.30052@namei.org>
+ <c159d845-6108-4b67-6527-405589fa5382@digikod.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200414112835.1121-3-yezhenyu2@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-security-module-owner@vger.kernel.org>
+In-Reply-To: <c159d845-6108-4b67-6527-405589fa5382@digikod.net>
+Content-Language: en-US
+Sender: owner-linux-security-module@vger.kernel.org
+To: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>, James Morris <jmorris@namei.org>
+Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org, Casey Schaufler <casey@schaufler-ca.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Zhenyu,
+On 5/14/2020 3:39 AM, Micka=C3=ABl Sala=C3=BCn wrote:
+> On 14/05/2020 05:37, James Morris wrote:
+>> On Mon, 11 May 2020, Micka=C3=ABl Sala=C3=BCn wrote:
+>>
+>>
+>>> diff --git a/include/linux/fs.h b/include/linux/fs.h
+>>> index 45cc10cdf6dd..2276642f8e05 100644
+>>> --- a/include/linux/fs.h
+>>> +++ b/include/linux/fs.h
+>>> @@ -1517,6 +1517,11 @@ struct super_block {
+>>>  	/* Pending fsnotify inode refs */
+>>>  	atomic_long_t s_fsnotify_inode_refs;
+>>> =20
+>>> +#ifdef CONFIG_SECURITY_LANDLOCK
+>>> +	/* References to Landlock underlying objects */
+>>> +	atomic_long_t s_landlock_inode_refs;
+>>> +#endif
+>>> +
+>> This needs to be converted to the LSM API via superblock blob stacking=
+=2E
+>>
+>> See Casey's old patch:=20
+>> https://lore.kernel.org/linux-security-module/20190829232935.7099-2-ca=
+sey@schaufler-ca.com/
+> s_landlock_inode_refs is quite similar to s_fsnotify_inode_refs, but I
+> can do it once the superblock security blob patch is upstream. Is it a
+> blocker for now? What is the current status of lbs_superblock?
 
-On Tue, Apr 14, 2020 at 07:28:35PM +0800, Zhenyu Ye wrote:
-> diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-> index b76df828e6b7..3a1816770bd1 100644
-> --- a/arch/arm64/include/asm/tlb.h
-> +++ b/arch/arm64/include/asm/tlb.h
-> @@ -38,7 +38,12 @@ static inline void tlb_flush(struct mmu_gather *tlb)
->  		return;
->  	}
->  
-> -	__flush_tlb_range(&vma, tlb->start, tlb->end, stride, last_level);
-> +	if (cpus_have_const_cap(ARM64_HAS_TLBI_RANGE))
-> +		__flush_tlb_range_directly(&vma, tlb->start, tlb->end,
-> +					   stride, last_level);
-> +	else
-> +		__flush_tlb_range(&vma, tlb->start, tlb->end,
-> +				  stride, last_level);
+As no currently stackable modules conflict over the superblock
+(SELinux and Smack are the existing users) there has been no need
+to move its management into the infrastructure. The active push for
+stacking does not (yet) include everything needed for SELinux+Smack.
+It includes what is needed for SELinux+AppArmor and Smack+AppArmor.
+That does not include the superblock blob.
 
-I think you could move such check in __flush_tlb_range() and avoid
-cpus_have_const_cap() in two places. More on this below.
+You can include a patch in the landlock set that provides infrastructure
+management of the superblock blob. Feel free to glean it from my proposal=
+=2E
 
-> diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-> index bc3949064725..a482188ea563 100644
-> --- a/arch/arm64/include/asm/tlbflush.h
-> +++ b/arch/arm64/include/asm/tlbflush.h
-> @@ -59,6 +59,44 @@
->  		__ta;						\
->  	})
->  
-> +/*
-> + * This macro creates a properly formatted VA operand for the TLBI RANGE.
-> + * The value bit assignments are:
-> + *
-> + * +----------+------+-------+-------+-------+----------------------+
-> + * |   ASID   |  TG  | SCALE |  NUM  |  TTL  |        BADDR         |
-> + * +-----------------+-------+-------+-------+----------------------+
-> + * |63      48|47  46|45   44|43   39|38   37|36                   0|
-> + *
-> + * The address range is determined by below formula:
-> + * [BADDR, BADDR + (NUM + 1) * 2^(5*SCALE + 1) * PAGESIZE)
-> + *
-> + */
-> +#define __TLBI_VADDR_RANGE(addr, asid, tg, scale, num, ttl)	\
-> +	({							\
-> +		unsigned long __ta = (addr) >> PAGE_SHIFT;	\
-> +		__ta &= GENMASK_ULL(36, 0);			\
-> +		__ta |= (unsigned long)(ttl) << 37;		\
-> +		__ta |= (unsigned long)(num) << 39;		\
-> +		__ta |= (unsigned long)(scale) << 44;		\
-> +		__ta |= (unsigned long)(tg) << 46;		\
-> +		__ta |= (unsigned long)(asid) << 48;		\
-> +		__ta;						\
-> +	})
-> +
-> +#define TLB_RANGE_MASK_SHIFT 5
-> +#define TLB_RANGE_MASK GENMASK_ULL(TLB_RANGE_MASK_SHIFT - 1, 0)
-> +
-> +/*
-> + * __TG defines translation granule of the system, which is defined by
-> + * PAGE_SHIFT.  Used by TTL.
-> + *  - 4KB	: 1
-> + *  - 16KB	: 2
-> + *  - 64KB	: 3
-> + */
-> +#define __TG	((PAGE_SHIFT - 12) / 2 + 1)
-
-I don't think we need __TLBI_VADDR_RANGE to take a tg argument since
-it's always the same.
-
-> +
-> +
->  /*
->   *	TLB Invalidation
->   *	================
-> @@ -171,12 +209,83 @@ static inline void flush_tlb_page(struct vm_area_struct *vma,
->  	dsb(ish);
->  }
->  
-> +/* The maximum range size of one TLBI-RANGE instruction */
-> +#define MAX_TLBI_RANGE_SIZE	(1UL << 21)
-
-Nitpick: call this MAX_TLBI_RANGE_PAGES as that's not an address range.
-
-It may be useful to have a macro for the range here, something like:
-
-#define __TLBI_PAGES(num, scale)	((num + 1) << (5 * scale + 1))
-
-and define MAX_TLBI_RANGE_PAGES in terms of this macro as
-__TLBI_PAGES(31, 3).
-
-> +
-> +/*
-> + * This interface uses the *rvale1is* instruction to flush TLBs
-> + * in [start, end) directly.
-> + * This instruction is supported from ARM v8.4.
-> + */
-> +static inline void __flush_tlb_range_directly(struct vm_area_struct *vma,
-> +				unsigned long start, unsigned long end,
-> +				unsigned long stride, bool last_level)
-> +{
-> +	int num = 0;
-> +	int scale = 0;
-> +	unsigned long asid = ASID(vma->vm_mm);
-> +	unsigned long addr = 0;
-> +	unsigned long range_size;
-> +
-> +	start = round_down(start, stride);
-> +	end = round_up(end, stride);
-> +	range_size = (end - start) >> PAGE_SHIFT;
-> +
-> +	if (range_size > MAX_TLBI_RANGE_SIZE) {
-> +		flush_tlb_mm(vma->vm_mm);
-> +		return;
-> +	}
-> +
-> +	dsb(ishst);
-> +
-> +	/*
-> +	 * The minimum size of TLB RANGE is 2 PAGE;
-> +	 * Use normal TLB instruction to handle odd PAGEs
-
-Nitpick: no need to capitalise PAGE.
-
-> +	 */
-> +	if (range_size % 2 == 1) {
-> +		addr = __TLBI_VADDR(start, asid);
-> +		if (last_level) {
-> +			__tlbi(vale1is, addr);
-> +			__tlbi_user(vale1is, addr);
-> +		} else {
-> +			__tlbi(vae1is, addr);
-> +			__tlbi_user(vae1is, addr);
-> +		}
-> +		start += 1 << PAGE_SHIFT;
-> +		range_size -= 1;
-> +	}
-> +
-> +	range_size >>= 1;
-> +	while (range_size > 0) {
-> +		num = (range_size & TLB_RANGE_MASK) - 1;
-> +		if (num >= 0) {
-> +			addr = __TLBI_VADDR_RANGE(start, asid, __TG,
-> +						  scale, num, 0);
-> +			if (last_level) {
-> +				__tlbi(rvale1is, addr);
-> +				__tlbi_user(rvale1is, addr);
-> +			} else {
-> +				__tlbi(rvae1is, addr);
-> +				__tlbi_user(rvae1is, addr);
-> +			}
-> +			start += (num + 1) << (5 * scale + 1) << PAGE_SHIFT;
-
-You could use the __TLBI_PAGES macro I proposed above.
-
-> +		}
-> +		scale++;
-> +		range_size >>= TLB_RANGE_MASK_SHIFT;
-> +	}
-
-So, you start from scale 0 and increment it until you reach the maximum.
-I think (haven't done the maths on paper) you could also start from the
-top with something like scale = ilog2(range_size) / 5. Not sure it's
-significantly better though, maybe avoiding the loop 3 times if your
-range is 2MB (which happens with huge pages).
-
-Anyway, I think it would be more efficient if we combine the
-__flush_tlb_range() and the _directly one into the same function with a
-single loop for both. For example, if the stride is 2MB already, we can
-handle this with a single classic TLBI without all the calculations for
-the range operation. The hardware may also handle this better since the
-software already told it there can be only one entry in that 2MB range.
-So each loop iteration could figure which operation to use based on
-cpucaps, TLBI range ops, stride and reduce range_size accordingly.
-
--- 
-Catalin
+>
+> Anyway, we also need to have a call to landlock_release_inodes() in
+> generic_shutdown_super(), which does not fit the LSM framework, and I
+> think it is not an issue. Landlock handling of inodes is quite similar
+> to fsnotify.
