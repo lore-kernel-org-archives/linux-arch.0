@@ -1,69 +1,98 @@
-Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 15/29] openrisc: use asm-generic/cacheflush.h
-Date: Fri, 15 May 2020 16:36:32 +0200
-Message-ID: <20200515143646.3857579-16-hch@lst.de>
-In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-References: <20200515143646.3857579-1-hch@lst.de>
+Return-Path: <SRS0=pCyG=64=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [PATCH v17 02/10] landlock: Add ruleset and domain management
+References: <20200511192156.1618284-1-mic@digikod.net>
+ <20200511192156.1618284-3-mic@digikod.net>
+ <alpine.LRH.2.21.2005141302330.30052@namei.org>
+From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
+Message-ID: <f646e1c7-33cf-333f-070c-0a40ad0468cd@digikod.net>
+Date: Thu, 14 May 2020 12:27:45 +0200
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+In-Reply-To: <alpine.LRH.2.21.2005141302330.30052@namei.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: James Morris <jmorris@namei.org>
+Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515143632.Iz1RWEvchvEdvJM2OHvTesk7aZT69HGbRcLXSpDGbwA@z>
+Message-ID: <20200514102745.hdrhlURYEuuURJ1KBD3CKa_dOpk7NIjIgITK0Rl6RPA@z>
 
-OpenRISC needs almost no cache flushing routines of its own.  Rely on
-asm-generic/cacheflush.h for the defaults.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/openrisc/include/asm/cacheflush.h | 31 +++++---------------------
- 1 file changed, 6 insertions(+), 25 deletions(-)
+On 14/05/2020 05:09, James Morris wrote:
+> On Mon, 11 May 2020, Mickaël Salaün wrote:
+> 
+>> + * .. warning::
+>> + *
+>> + *   It is currently not possible to restrict some file-related actions
+>> + *   accessible through these syscall families: :manpage:`chdir(2)`,
+>> + *   :manpage:`truncate(2)`, :manpage:`stat(2)`, :manpage:`flock(2)`,
+>> + *   :manpage:`chmod(2)`, :manpage:`chown(2)`, :manpage:`setxattr(2)`,
+>> + *   :manpage:`ioctl(2)`, :manpage:`fcntl(2)`.
+>> + *   Future Landlock evolutions will enable to restrict them.
+> 
+> I have to wonder how useful Landlock will be without more coverage per 
+> the above.
 
-diff --git a/arch/openrisc/include/asm/cacheflush.h b/arch/openrisc/inclu=
-de/asm/cacheflush.h
-index 79d5d7753fe4b..74d1fce4e8839 100644
---- a/arch/openrisc/include/asm/cacheflush.h
-+++ b/arch/openrisc/include/asm/cacheflush.h
-@@ -62,31 +62,12 @@ static inline void flush_dcache_page(struct page *pag=
-e)
- 	clear_bit(PG_dc_clean, &page->flags);
- }
-=20
--/*
-- * Other interfaces are not required since we do not have virtually
-- * indexed or tagged caches. So we can use the default here.
-- */
--#define flush_cache_all()				do { } while (0)
--#define flush_cache_mm(mm)				do { } while (0)
--#define flush_cache_dup_mm(mm)				do { } while (0)
--#define flush_cache_range(vma, start, end)		do { } while (0)
--#define flush_cache_page(vma, vmaddr, pfn)		do { } while (0)
--#define flush_dcache_mmap_lock(mapping)			do { } while (0)
--#define flush_dcache_mmap_unlock(mapping)		do { } while (0)
--#define flush_icache_range(start, end)			do { } while (0)
--#define flush_icache_page(vma, pg)			do { } while (0)
--#define flush_icache_user_range(vma, pg, adr, len)	do { } while (0)
--#define flush_cache_vmap(start, end)			do { } while (0)
--#define flush_cache_vunmap(start, end)			do { } while (0)
--
--#define copy_to_user_page(vma, page, vaddr, dst, src, len)           \
--	do {                                                         \
--		memcpy(dst, src, len);                               \
--		if (vma->vm_flags & VM_EXEC)                         \
--			sync_icache_dcache(page);                    \
--	} while (0)
-+#define flush_icache_user_range(vma, page, addr, len)	\
-+do {							\
-+	if (vma->vm_flags & VM_EXEC)			\
-+		sync_icache_dcache(page);		\
-+} while (0)
-=20
--#define copy_from_user_page(vma, page, vaddr, dst, src, len)         \
--	memcpy(dst, src, len)
-+#include <asm-generic/cacheflush.h>
-=20
- #endif /* __ASM_CACHEFLUSH_H */
---=20
-2.26.2
+This is the result of previous discussions (on mailing lists and
+conferences) to minimize the code of Landlock to ease review. There is
+also network and other subsystems which are not covered, the same way
+other LSMs may not cover everything. However, Landlock is designed to be
+extensible without breaking user space, so extending this access-control
+will not be a problem. Previous versions of this patch series handled
+much more.
+
+Moreover, we can compare the current situation with seccomp. Indeed,
+seccomp only enables to restrict system calls according to their number
+and their raw arguments. seccomp is designed to limit the attack surface
+of the kernel but it is also used to remove ways to access kernel
+resources. Application developers willing to sandbox their products are
+already using seccomp but there is limitations (e.g. file access
+control). Landlock addresses such limitations, which improves the
+current situation.
+
+We can also view seccomp as a complementary solution to the current
+limitations of Landlock. Indeed, seccomp filters can block or restrict
+the use of syscall families which may not be currently handled by Landlock.
+
+> 
+> It would be helpful if you could outline a threat model for this initial 
+> version, so people can get an idea of what kind of useful protection may
+> be gained from it.
+
+The main threat model may be seen as protecting from vulnerable (i.e.
+malicious) code. But because Landlock policies are defined by
+application developers, they also define their own threat model.
+
+> 
+> Are there any distros or other major users who are planning on enabling or 
+> at least investigating Landlock?
+
+I think the question should be: is there any distros which are not
+interested to improve the security of their users? :)
+Landlock is mainly designed for application developers, and most Linux
+distros rely on applications which are not developed by themselves.
+
+Some hardened distros such as CLIP OS and Chrome OS are interested to
+extend the security of the whole system with tailored sandboxing (e.g.
+internal and critical services, security brokers). For example, Chrome
+OS folks investigated with a previous version of Landlock:
+https://chromium-review.googlesource.com/c/chromiumos/third_party/kernel-next/+/658517/
+I'm sure there is other tailored distros which will be interested once
+Landlock will be upstream (e.g. Tails, Qubes OS, Subgraph OS, etc.).
+
+> 
+> Do you have any examples of a practical application of this scheme?
+
+We can start with applications with builtin sandboxing, like web
+browsers, web services, email services, SSH, etc. There is also all
+system services handled by an init system which provides security
+features (e.g. systemd). There is also the security sandbox tools (e.g.
+Minijail [1], Firejail [2], nsjail [3], Flatpak [4], etc.). And finally,
+security-oriented APIs such as Sandboxed API [5]. Most of them should
+welcome new Linux sandboxing features provided by Landlock.
+
+[1] https://android.googlesource.com/platform/external/minijail
+[2] https://firejail.wordpress.com/
+[3] https://nsjail.dev/
+[4] https://flatpak.org/
+[5] https://github.com/google/sandboxed-api
