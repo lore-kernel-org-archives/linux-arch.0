@@ -1,48 +1,52 @@
-Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
-Date: Mon, 11 May 2020 19:06:46 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Message-ID: <20200511170646.GJ2957@hirez.programming.kicks-ass.net>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
- <20200508213609.GU8135@suse.de>
- <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
- <20200509175217.GV8135@suse.de>
- <CALCETrVU-+G3K5ABBRSEMiwnskL4mZsVcoTESZXnu34J7TaOqw@mail.gmail.com>
- <20200511074243.GE2957@hirez.programming.kicks-ass.net>
- <CALCETrVyoAXXOqm8cYs+31fjWK8mcnKR+wM0_HeJx9=bOaZC6Q@mail.gmail.com>
+Return-Path: <SRS0=pCyG=64=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Thu, 14 May 2020 13:37:49 +1000 (AEST)
+From: James Morris <jmorris@namei.org>
+Subject: Re: [PATCH v17 05/10] fs,landlock: Support filesystem
+ access-control
+In-Reply-To: <20200511192156.1618284-6-mic@digikod.net>
+Message-ID: <alpine.LRH.2.21.2005141335280.30052@namei.org>
+References: <20200511192156.1618284-1-mic@digikod.net> <20200511192156.1618284-6-mic@digikod.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALCETrVyoAXXOqm8cYs+31fjWK8mcnKR+wM0_HeJx9=bOaZC6Q@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Joerg Roedel <jroedel@suse.de>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+Content-Type: multipart/mixed; boundary="1665246916-1014880157-1589427470=:30052"
+Sender: linux-doc-owner@vger.kernel.org
+To: =?ISO-8859-15?Q?Micka=EBl_Sala=FCn?= <mic@digikod.net>
+Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?ISO-8859-15?Q?Micka=EBl_Sala=FCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200511170646.SwcOwQJwVyutOQpW_IQU_w33EcTyFuQCW4PpWCS71cM@z>
+Message-ID: <20200514033749.TBzdT-DuDtri419xXSYyVLzuzLelWZt8ddMf_74FtG8@z>
 
-On Mon, May 11, 2020 at 08:36:31AM -0700, Andy Lutomirski wrote:
-> On Mon, May 11, 2020 at 12:42 AM Peter Zijlstra <peterz@infradead.org> wrote:
-> >
-> > On Sat, May 09, 2020 at 12:05:29PM -0700, Andy Lutomirski wrote:
-> >
-> > > On x86_64, the only real advantage is that the handful of corner cases
-> > > that make vmalloc faults unpleasant (mostly relating to vmap stacks)
-> > > go away.  On x86_32, a bunch of mind-bending stuff (everything your
-> > > series deletes but also almost everything your series *adds*) goes
-> > > away.  There may be a genuine tiny performance hit on 2-level systems
-> > > due to the loss of huge pages in vmalloc space, but I'm not sure I
-> > > care or that we use them anyway on these systems.  And PeterZ can stop
-> > > even thinking about RCU.
-> > >
-> > > Am I making sense?
-> >
-> > I think it'll work for x86_64 and that is really all I care about :-)
-> 
-> Sadly, I think that Joerg has convinced my that this doesn't really
-> work for 32-bit unless we rework the LDT code or drop support for
-> something that we might not want to drop support for.
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
 
-I was thinking keep these patches for 32bit and fix 64bit 'proper'. But
-sure, if we can get rid of it all by stripping 32bit features I'm not
-going to object either.
+--1665246916-1014880157-1589427470=:30052
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
+
+On Mon, 11 May 2020, Mickaël Salaün wrote:
+
+
+> diff --git a/include/linux/fs.h b/include/linux/fs.h
+> index 45cc10cdf6dd..2276642f8e05 100644
+> --- a/include/linux/fs.h
+> +++ b/include/linux/fs.h
+> @@ -1517,6 +1517,11 @@ struct super_block {
+>  	/* Pending fsnotify inode refs */
+>  	atomic_long_t s_fsnotify_inode_refs;
+>  
+> +#ifdef CONFIG_SECURITY_LANDLOCK
+> +	/* References to Landlock underlying objects */
+> +	atomic_long_t s_landlock_inode_refs;
+> +#endif
+> +
+
+This needs to be converted to the LSM API via superblock blob stacking.
+
+See Casey's old patch: 
+https://lore.kernel.org/linux-security-module/20190829232935.7099-2-casey@schaufler-ca.com/
+
+
+
+-- 
+James Morris
+<jmorris@namei.org>
+
+--1665246916-1014880157-1589427470=:30052--
