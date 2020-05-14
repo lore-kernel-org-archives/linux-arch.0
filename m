@@ -1,8 +1,8 @@
 From: Mike Rapoport <rppt@kernel.org>
-Subject: [PATCH v2 05/12] m68k/mm/motorola: move comment about page table
- allocation funcitons
-Date: Thu, 14 May 2020 20:03:20 +0300
-Message-ID: <20200514170327.31389-6-rppt@kernel.org>
+Subject: [PATCH v2 06/12] m68k/mm: move {cache,
+ nocahe}_page() definitions close to their user
+Date: Thu, 14 May 2020 20:03:21 +0300
+Message-ID: <20200514170327.31389-7-rppt@kernel.org>
 References: <20200514170327.31389-1-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -23,51 +23,181 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Mike Rapoport <rppt@linux.ibm.com>
 
-The comment about page table allocation functions resides in
-include/asm/motorola_pgtable.h while the functions live in
-include/asm/motorola_pgaloc.h.
+The cache_page() and nocache_page() functions are only used by the motorola
+MMU variant for setting caching attributes for the page table pages.
 
-Move the comment close to the code.
+Move the definitions of these functions from
+arch/m68k/include/asm/motorola_pgtable.h closer to their usage in
+arch/m68k/mm/motorola.c and drop unused definition in
+arch/m68k/include/asm/mcf_pgtable.h.
 
 Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+Acked-by: Greg Ungerer <gerg@linux-m68k.org>
 ---
- arch/m68k/include/asm/motorola_pgalloc.h | 6 ++++++
- arch/m68k/include/asm/motorola_pgtable.h | 6 ------
- 2 files changed, 6 insertions(+), 6 deletions(-)
+ arch/m68k/include/asm/mcf_pgtable.h      | 40 ---------------------
+ arch/m68k/include/asm/motorola_pgtable.h | 44 ------------------------
+ arch/m68k/mm/motorola.c                  | 43 +++++++++++++++++++++++
+ 3 files changed, 43 insertions(+), 84 deletions(-)
 
-diff --git a/arch/m68k/include/asm/motorola_pgalloc.h b/arch/m68k/include/asm/motorola_pgalloc.h
-index c66e42917912..f3cb453a07b7 100644
---- a/arch/m68k/include/asm/motorola_pgalloc.h
-+++ b/arch/m68k/include/asm/motorola_pgalloc.h
-@@ -18,6 +18,12 @@ extern void init_pointer_table(void *table, int type);
- extern void *get_pointer_table(int type);
- extern int free_pointer_table(void *table, int type);
+diff --git a/arch/m68k/include/asm/mcf_pgtable.h b/arch/m68k/include/asm/mcf_pgtable.h
+index 0031cd387b75..737e826294f3 100644
+--- a/arch/m68k/include/asm/mcf_pgtable.h
++++ b/arch/m68k/include/asm/mcf_pgtable.h
+@@ -328,46 +328,6 @@ extern pgd_t kernel_pg_dir[PTRS_PER_PGD];
+ #define pte_offset_kernel(dir, address) \
+ 	((pte_t *) __pmd_page(*(dir)) + __pte_offset(address))
  
-+/*
-+ * Allocate and free page tables. The xxx_kernel() versions are
-+ * used to allocate a kernel page table - this turns on ASN bits
-+ * if any.
-+ */
-+
- static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
- {
- 	return get_pointer_table(TABLE_PTE);
+-/*
+- * Disable caching for page at given kernel virtual address.
+- */
+-static inline void nocache_page(void *vaddr)
+-{
+-	pgd_t *dir;
+-	p4d_t *p4dp;
+-	pud_t *pudp;
+-	pmd_t *pmdp;
+-	pte_t *ptep;
+-	unsigned long addr = (unsigned long) vaddr;
+-
+-	dir = pgd_offset_k(addr);
+-	p4dp = p4d_offset(dir, addr);
+-	pudp = pud_offset(p4dp, addr);
+-	pmdp = pmd_offset(pudp, addr);
+-	ptep = pte_offset_kernel(pmdp, addr);
+-	*ptep = pte_mknocache(*ptep);
+-}
+-
+-/*
+- * Enable caching for page at given kernel virtual address.
+- */
+-static inline void cache_page(void *vaddr)
+-{
+-	pgd_t *dir;
+-	p4d_t *p4dp;
+-	pud_t *pudp;
+-	pmd_t *pmdp;
+-	pte_t *ptep;
+-	unsigned long addr = (unsigned long) vaddr;
+-
+-	dir = pgd_offset_k(addr);
+-	p4dp = p4d_offset(dir, addr);
+-	pudp = pud_offset(p4dp, addr);
+-	pmdp = pmd_offset(pudp, addr);
+-	ptep = pte_offset_kernel(pmdp, addr);
+-	*ptep = pte_mkcache(*ptep);
+-}
+-
+ /*
+  * Encode and de-code a swap entry (must be !pte_none(e) && !pte_present(e))
+  */
 diff --git a/arch/m68k/include/asm/motorola_pgtable.h b/arch/m68k/include/asm/motorola_pgtable.h
-index 48f19f0ab1e7..9e5a3de21e15 100644
+index 9e5a3de21e15..e1594acf7c7e 100644
 --- a/arch/m68k/include/asm/motorola_pgtable.h
 +++ b/arch/m68k/include/asm/motorola_pgtable.h
-@@ -227,12 +227,6 @@ static inline pte_t *pte_offset_kernel(pmd_t *pmdp, unsigned long address)
+@@ -227,50 +227,6 @@ static inline pte_t *pte_offset_kernel(pmd_t *pmdp, unsigned long address)
  #define pte_offset_map(pmdp,address) ((pte_t *)__pmd_page(*pmdp) + (((address) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)))
  #define pte_unmap(pte)		((void)0)
  
--/*
-- * Allocate and free page tables. The xxx_kernel() versions are
-- * used to allocate a kernel page table - this turns on ASN bits
-- * if any.
+-/* Prior to calling these routines, the page should have been flushed
+- * from both the cache and ATC, or the CPU might not notice that the
+- * cache setting for the page has been changed. -jskov
 - */
+-static inline void nocache_page(void *vaddr)
+-{
+-	unsigned long addr = (unsigned long)vaddr;
 -
- /* Prior to calling these routines, the page should have been flushed
-  * from both the cache and ATC, or the CPU might not notice that the
-  * cache setting for the page has been changed. -jskov
+-	if (CPU_IS_040_OR_060) {
+-		pgd_t *dir;
+-		p4d_t *p4dp;
+-		pud_t *pudp;
+-		pmd_t *pmdp;
+-		pte_t *ptep;
+-
+-		dir = pgd_offset_k(addr);
+-		p4dp = p4d_offset(dir, addr);
+-		pudp = pud_offset(p4dp, addr);
+-		pmdp = pmd_offset(pudp, addr);
+-		ptep = pte_offset_kernel(pmdp, addr);
+-		*ptep = pte_mknocache(*ptep);
+-	}
+-}
+-
+-static inline void cache_page(void *vaddr)
+-{
+-	unsigned long addr = (unsigned long)vaddr;
+-
+-	if (CPU_IS_040_OR_060) {
+-		pgd_t *dir;
+-		p4d_t *p4dp;
+-		pud_t *pudp;
+-		pmd_t *pmdp;
+-		pte_t *ptep;
+-
+-		dir = pgd_offset_k(addr);
+-		p4dp = p4d_offset(dir, addr);
+-		pudp = pud_offset(p4dp, addr);
+-		pmdp = pmd_offset(pudp, addr);
+-		ptep = pte_offset_kernel(pmdp, addr);
+-		*ptep = pte_mkcache(*ptep);
+-	}
+-}
+-
+ /* Encode and de-code a swap entry (must be !pte_none(e) && !pte_present(e)) */
+ #define __swp_type(x)		(((x).val >> 4) & 0xff)
+ #define __swp_offset(x)		((x).val >> 12)
+diff --git a/arch/m68k/mm/motorola.c b/arch/m68k/mm/motorola.c
+index 904c2a663977..8e5e74121a78 100644
+--- a/arch/m68k/mm/motorola.c
++++ b/arch/m68k/mm/motorola.c
+@@ -45,6 +45,49 @@ unsigned long mm_cachebits;
+ EXPORT_SYMBOL(mm_cachebits);
+ #endif
+ 
++/* Prior to calling these routines, the page should have been flushed
++ * from both the cache and ATC, or the CPU might not notice that the
++ * cache setting for the page has been changed. -jskov
++ */
++static inline void nocache_page(void *vaddr)
++{
++	unsigned long addr = (unsigned long)vaddr;
++
++	if (CPU_IS_040_OR_060) {
++		pgd_t *dir;
++		p4d_t *p4dp;
++		pud_t *pudp;
++		pmd_t *pmdp;
++		pte_t *ptep;
++
++		dir = pgd_offset_k(addr);
++		p4dp = p4d_offset(dir, addr);
++		pudp = pud_offset(p4dp, addr);
++		pmdp = pmd_offset(pudp, addr);
++		ptep = pte_offset_kernel(pmdp, addr);
++		*ptep = pte_mknocache(*ptep);
++	}
++}
++
++static inline void cache_page(void *vaddr)
++{
++	unsigned long addr = (unsigned long)vaddr;
++
++	if (CPU_IS_040_OR_060) {
++		pgd_t *dir;
++		p4d_t *p4dp;
++		pud_t *pudp;
++		pmd_t *pmdp;
++		pte_t *ptep;
++
++		dir = pgd_offset_k(addr);
++		p4dp = p4d_offset(dir, addr);
++		pudp = pud_offset(p4dp, addr);
++		pmdp = pmd_offset(pudp, addr);
++		ptep = pte_offset_kernel(pmdp, addr);
++		*ptep = pte_mkcache(*ptep);
++	}
++}
+ 
+ /*
+  * Motorola 680x0 user's manual recommends using uncached memory for address
 -- 
 2.26.2
