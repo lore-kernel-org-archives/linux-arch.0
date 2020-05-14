@@ -1,78 +1,33 @@
-Return-Path: <SRS0=7Sat=7H=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v3 2/6] arm64: Add level-hinted TLB invalidation helper
-Date: Mon, 25 May 2020 20:52:56 +0800
-Message-ID: <20200525125300.794-3-yezhenyu2@huawei.com>
-In-Reply-To: <20200525125300.794-1-yezhenyu2@huawei.com>
-References: <20200525125300.794-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=nKtn=64=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from 8bytes.org ([81.169.241.247]:42964 "EHLO theia.8bytes.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726176AbgENOtz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 14 May 2020 10:49:55 -0400
+Date: Thu, 14 May 2020 16:49:51 +0200
+From: Joerg Roedel <joro@8bytes.org>
+Subject: Re: [PATCH v2 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Message-ID: <20200514144951.GL18353@8bytes.org>
+References: <20200513152137.32426-1-joro@8bytes.org>
+ <CALCETrW1Y2Q7dWwv4X7PHf3yxOGMcDaBG0NK7BWPAR=FiqsoPQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CALCETrW1Y2Q7dWwv4X7PHf3yxOGMcDaBG0NK7BWPAR=FiqsoPQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200525125256.-rJyX_h1v0YWtqEUrjefrL9bdXLufqSxaHvqo7K5TjE@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+Message-ID: <20200514144951.GLv7lbEyQggJqXxBqWOIbT1PnVozyHvzJMdYZWwiEEE@z>
 
-From: Marc Zyngier <maz@kernel.org>
+On Wed, May 13, 2020 at 09:01:04AM -0700, Andy Lutomirski wrote:
+> Assuming the missing cleanup at the end gets done:
+> 
+> Acked-by: Andy Lutomirski <luto@kernel.org>
+> 
+> grumpily acked, anyway.
 
-Add a level-hinted TLB invalidation helper that only gets used if
-ARMv8.4-TTL gets detected.
+Thanks, I updated patch 7 and added your acks, will send a v3 probably
+tomorrow.
 
-Signed-off-by: Marc Zyngier <maz@kernel.org>
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
----
- arch/arm64/include/asm/tlbflush.h | 29 +++++++++++++++++++++++++++++
- 1 file changed, 29 insertions(+)
 
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
-lbflush.h
-index bc3949064725..8adbd6fd8489 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -10,6 +10,7 @@
-=20
- #ifndef __ASSEMBLY__
-=20
-+#include <linux/bitfield.h>
- #include <linux/mm_types.h>
- #include <linux/sched.h>
- #include <asm/cputype.h>
-@@ -59,6 +60,34 @@
- 		__ta;						\
- 	})
-=20
-+#define TLBI_TTL_MASK	GENMASK_ULL(47, 44)
-+
-+#define __tlbi_level(op, addr, level) do {			\
-+	u64 arg =3D addr;						\
-+								\
-+	if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
-+	    level) {						\
-+		u64 ttl =3D level;				\
-+								\
-+		switch (PAGE_SIZE) {				\
-+		case SZ_4K:					\
-+			ttl |=3D 1 << 2;				\
-+			break;					\
-+		case SZ_16K:					\
-+			ttl |=3D 2 << 2;				\
-+			break;					\
-+		case SZ_64K:					\
-+			ttl |=3D 3 << 2;				\
-+			break;					\
-+		}						\
-+								\
-+		arg &=3D ~TLBI_TTL_MASK;				\
-+		arg |=3D FIELD_PREP(TLBI_TTL_MASK, ttl);		\
-+	}							\
-+								\
-+	__tlbi(op,  arg);					\
-+} while (0)
-+
- /*
-  *	TLB Invalidation
-  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
---=20
-2.19.1
+	Joerg
