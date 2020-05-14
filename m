@@ -1,75 +1,56 @@
-Return-Path: <SRS0=z9eI=7A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-2.mimecast.com ([205.139.110.61]:58419 "EHLO
-        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S2387783AbgERSU6 (ORCPT
+Return-Path: <SRS0=nKtn=64=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from smtp-42ae.mail.infomaniak.ch ([84.16.66.174]:53953 "EHLO
+        smtp-42ae.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1725925AbgENKkC (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 May 2020 14:20:58 -0400
-Message-ID: <5260142047d0339e00d4a74865c2f0b7511c89f6.camel@redhat.com>
-Subject: Re: [PATCH 10/29] c6x: use asm-generic/cacheflush.h
-From: Mark Salter <msalter@redhat.com>
-Date: Mon, 18 May 2020 14:20:42 -0400
-In-Reply-To: <20200515143646.3857579-11-hch@lst.de>
-References: <20200515143646.3857579-1-hch@lst.de>
-         <20200515143646.3857579-11-hch@lst.de>
-Content-Type: text/plain; charset="UTF-8"
+        Thu, 14 May 2020 06:40:02 -0400
+Subject: Re: [PATCH v17 05/10] fs,landlock: Support filesystem access-control
+References: <20200511192156.1618284-1-mic@digikod.net>
+ <20200511192156.1618284-6-mic@digikod.net>
+ <alpine.LRH.2.21.2005141335280.30052@namei.org>
+From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
+Message-ID: <c159d845-6108-4b67-6527-405589fa5382@digikod.net>
+Date: Thu, 14 May 2020 12:39:58 +0200
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <alpine.LRH.2.21.2005141335280.30052@namei.org>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, Jessica Yu <jeyu@kernel.org>, linux-ia64@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, x86@kernel.org, linux-um@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-riscv@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200518182042.BI9MidGatVtKq83dNmEKt5NsjMtxRHt3ZkL-dDwnQvA@z>
+To: James Morris <jmorris@namei.org>, Casey Schaufler <casey@schaufler-ca.com>
+Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Message-ID: <20200514103958.TLC6okhO548lS3lyUgGzKmdqDnUWrgH58ydc8ocfRvQ@z>
 
-On Fri, 2020-05-15 at 16:36 +0200, Christoph Hellwig wrote:
-> C6x needs almost no cache flushing routines of its own.  Rely on
-> asm-generic/cacheflush.h for the defaults.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  arch/c6x/include/asm/cacheflush.h | 19 +------------------
->  1 file changed, 1 insertion(+), 18 deletions(-)
-> 
-> diff --git a/arch/c6x/include/asm/cacheflush.h b/arch/c6x/include/asm/cacheflush.h
-> index 4540b40475e6c..10922d528de6d 100644
-> --- a/arch/c6x/include/asm/cacheflush.h
-> +++ b/arch/c6x/include/asm/cacheflush.h
-> @@ -16,21 +16,6 @@
->  #include <asm/page.h>
->  #include <asm/string.h>
->  
-> -/*
-> - * virtually-indexed cache management (our cache is physically indexed)
-> - */
-> -#define flush_cache_all()			do {} while (0)
-> -#define flush_cache_mm(mm)			do {} while (0)
-> -#define flush_cache_dup_mm(mm)			do {} while (0)
-> -#define flush_cache_range(mm, start, end)	do {} while (0)
-> -#define flush_cache_page(vma, vmaddr, pfn)	do {} while (0)
-> -#define flush_cache_vmap(start, end)		do {} while (0)
-> -#define flush_cache_vunmap(start, end)		do {} while (0)
-> -#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
-> -#define flush_dcache_page(page)			do {} while (0)
-> -#define flush_dcache_mmap_lock(mapping)		do {} while (0)
-> -#define flush_dcache_mmap_unlock(mapping)	do {} while (0)
-> -
->  /*
->   * physically-indexed cache management
->   */
-> @@ -49,14 +34,12 @@ do {								  \
->  			(unsigned long) page_address(page) + PAGE_SIZE)); \
->  } while (0)
->  
-> -
->  #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
->  do {						     \
->  	memcpy(dst, src, len);			     \
->  	flush_icache_range((unsigned) (dst), (unsigned) (dst) + (len)); \
->  } while (0)
->  
-> -#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
-> -	memcpy(dst, src, len)
-> +#include <asm-generic/cacheflush.h>
->  
->  #endif /* _ASM_C6X_CACHEFLUSH_H */
 
-Acked-by: Mark Salter <msalter@redhat.com>
+On 14/05/2020 05:37, James Morris wrote:
+> On Mon, 11 May 2020, Mickaël Salaün wrote:
+> 
+> 
+>> diff --git a/include/linux/fs.h b/include/linux/fs.h
+>> index 45cc10cdf6dd..2276642f8e05 100644
+>> --- a/include/linux/fs.h
+>> +++ b/include/linux/fs.h
+>> @@ -1517,6 +1517,11 @@ struct super_block {
+>>  	/* Pending fsnotify inode refs */
+>>  	atomic_long_t s_fsnotify_inode_refs;
+>>  
+>> +#ifdef CONFIG_SECURITY_LANDLOCK
+>> +	/* References to Landlock underlying objects */
+>> +	atomic_long_t s_landlock_inode_refs;
+>> +#endif
+>> +
+> 
+> This needs to be converted to the LSM API via superblock blob stacking.
+> 
+> See Casey's old patch: 
+> https://lore.kernel.org/linux-security-module/20190829232935.7099-2-casey@schaufler-ca.com/
+
+s_landlock_inode_refs is quite similar to s_fsnotify_inode_refs, but I
+can do it once the superblock security blob patch is upstream. Is it a
+blocker for now? What is the current status of lbs_superblock?
+
+Anyway, we also need to have a call to landlock_release_inodes() in
+generic_shutdown_super(), which does not fit the LSM framework, and I
+think it is not an issue. Landlock handling of inodes is quite similar
+to fsnotify.
