@@ -1,69 +1,56 @@
-Return-Path: <SRS0=kV/L=65=vger.kernel.org=linux-doc-owner@kernel.org>
-Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
- <20200429220732.31602-2-yu-cheng.yu@intel.com>
- <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
- <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
- <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
-Date: Fri, 15 May 2020 11:39:14 -0700
+Return-Path: <SRS0=nKtn=64=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from namei.org ([65.99.196.166]:58830 "EHLO namei.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725895AbgENDKE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 May 2020 23:10:04 -0400
+Date: Thu, 14 May 2020 13:09:32 +1000 (AEST)
+From: James Morris <jmorris@namei.org>
+Subject: Re: [PATCH v17 02/10] landlock: Add ruleset and domain management
+In-Reply-To: <20200511192156.1618284-3-mic@digikod.net>
+Message-ID: <alpine.LRH.2.21.2005141302330.30052@namei.org>
+References: <20200511192156.1618284-1-mic@digikod.net> <20200511192156.1618284-3-mic@digikod.net>
 MIME-Version: 1.0
-In-Reply-To: <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Content-Type: multipart/mixed; boundary="1665246916-408680353-1589425772=:30052"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515183914.bCJyXIRs_svdjY5CPagdGlwlnYjji9K8WCueBFkOS9M@z>
+To: =?ISO-8859-15?Q?Micka=EBl_Sala=FCn?= <mic@digikod.net>
+Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?ISO-8859-15?Q?Micka=EBl_Sala=FCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Message-ID: <20200514030932.jctph-I_OFba2wORMzrKSjwkjEPY_BCuG7MMxTS73XI@z>
 
-On 5/12/20 4:20 PM, Yu-cheng Yu wrote:
-> On Wed, 2020-04-29 at 16:02 -0700, Yu-cheng Yu wrote:
->> On Wed, 2020-04-29 at 15:53 -0700, Dave Hansen wrote:
->>> On 4/29/20 3:07 PM, Yu-cheng Yu wrote:
->>>> +Note:
->>>> +  There is no CET-enabling arch_prctl function.  By design, CET is enabled
->>>> +  automatically if the binary and the system can support it.
->>>
->>> I think Andy and I danced around this last time.  Let me try to say it
->>> more explicitly.
->>>
->>> I want CET kernel enabling to able to be disconnected from the on-disk
->>> binary.  I want a binary compiled with CET to be able to disable it, and
->>> I want a binary not compiled with CET to be able to enable it.  I want
->>> different threads in a process to be able to each have different CET status.
->>
->> The kernel patches we have now can be modified to support this model.  If after
->> discussion this is favorable, I will modify code accordingly.
-> 
-> To turn on/off and to lock CET are application-level decisions.  The kernel does
-> not prevent any of those.  Should there be a need to provide an arch_prctl() to
-> turn on CET, it can be added without any conflict to this series.
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
 
-I spelled out what I wanted pretty clearly.  On your next post, could
-you please directly address each of the things I asked for?  Please
-directly answer the following questions in your next post with respect
-to the code you post:
+--1665246916-408680353-1589425772=:30052
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 
-Can a binary compiled with CET run without CET?
-Can a binary compiled without CET run CET-enabled code?
-Can different threads in a process have different CET enabling state?
+On Mon, 11 May 2020, Mickaël Salaün wrote:
 
->>> Which JITs was this tested with?  I think as a bare minimum we need to
->>> know that this design can accommodate _a_ modern JIT.  It would be
->>> horrible if the browser javascript engines couldn't use this design, for
->>> instance.
->>
->> JIT work is still in progress.  When that is available I will test it.
-> 
-> I found CET has been enabled in LLVM JIT, Mesa JIT as well as sljit which is
-> used by jit.  So the current model works with JIT.
+> + * .. warning::
+> + *
+> + *   It is currently not possible to restrict some file-related actions
+> + *   accessible through these syscall families: :manpage:`chdir(2)`,
+> + *   :manpage:`truncate(2)`, :manpage:`stat(2)`, :manpage:`flock(2)`,
+> + *   :manpage:`chmod(2)`, :manpage:`chown(2)`, :manpage:`setxattr(2)`,
+> + *   :manpage:`ioctl(2)`, :manpage:`fcntl(2)`.
+> + *   Future Landlock evolutions will enable to restrict them.
 
-Great!  I'm glad the model works.  That's not what I asked, though.
+I have to wonder how useful Landlock will be without more coverage per 
+the above.
 
-Does this *code* work?  Could you please indicate which JITs have been
-enabled to use the code in this series?  How much of the new ABI is in use?
+It would be helpful if you could outline a threat model for this initial 
+version, so people can get an idea of what kind of useful protection may
+be gained from it.
 
-Where are the selftests/ for this new ABI?  Were you planning on
-submitting any with this series?
+Are there any distros or other major users who are planning on enabling or 
+at least investigating Landlock?
+
+Do you have any examples of a practical application of this scheme?
+
+
+
+-- 
+James Morris
+<jmorris@namei.org>
+
+--1665246916-408680353-1589425772=:30052--
