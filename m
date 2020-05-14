@@ -1,48 +1,78 @@
-Return-Path: <SRS0=pCyG=64=vger.kernel.org=linux-doc-owner@kernel.org>
-Subject: Re: [PATCH v17 05/10] fs,landlock: Support filesystem access-control
-References: <20200511192156.1618284-1-mic@digikod.net>
- <20200511192156.1618284-6-mic@digikod.net>
- <alpine.LRH.2.21.2005141335280.30052@namei.org>
- <c159d845-6108-4b67-6527-405589fa5382@digikod.net>
- <alpine.LRH.2.21.2005150329580.26489@namei.org>
-From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
-Message-ID: <2561827e-020c-9a76-98ae-9514904c69f9@digikod.net>
-Date: Thu, 14 May 2020 20:49:31 +0200
+Return-Path: <SRS0=nKtn=64=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58410 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1728928AbgENW4u (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 14 May 2020 18:56:50 -0400
+Date: Thu, 14 May 2020 15:56:46 -0700
+From: Alexei Starovoitov <alexei.starovoitov@gmail.com>
+Subject: Re: [PATCH bpf-next 1/6] bpf: implement BPF ring buffer and verifier
+ support for it
+Message-ID: <20200514225646.4kgc7lrsviusujg2@ast-mbp.dhcp.thefacebook.com>
+References: <20200513192532.4058934-1-andriin@fb.com>
+ <20200513192532.4058934-2-andriin@fb.com>
+ <20200514121848.052966b3@kicinski-fedora-pc1c0hjn.dhcp.thefacebook.com>
+ <87h7wixndi.fsf@nanos.tec.linutronix.de>
+ <CAEf4Bzbj-WvRkoGxkSFtK5_1JfQxthoFid398C97RM0ppBb0dA@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <alpine.LRH.2.21.2005150329580.26489@namei.org>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: James Morris <jmorris@namei.org>
-Cc: Casey Schaufler <casey@schaufler-ca.com>, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAEf4Bzbj-WvRkoGxkSFtK5_1JfQxthoFid398C97RM0ppBb0dA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200514184931.dmoLloVOOzQn8U48T4878yJfeLo_OTAfQX27ao68jx8@z>
+To: Andrii Nakryiko <andrii.nakryiko@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Jakub Kicinski <kuba@kernel.org>, Andrii Nakryiko <andriin@fb.com>, linux-arch@vger.kernel.org, bpf <bpf@vger.kernel.org>, Networking <netdev@vger.kernel.org>, Alexei Starovoitov <ast@fb.com>, Daniel Borkmann <daniel@iogearbox.net>, Kernel Team <kernel-team@fb.com>, "Paul E . McKenney" <paulmck@kernel.org>, Jonathan Lemon <jonathan.lemon@gmail.com>
+Message-ID: <20200514225646.RMllrIpCsvx50fs7h7Jvtq9PxzYxKoru4b29CmRiA9Q@z>
 
-
-On 14/05/2020 19:31, James Morris wrote:
-> On Thu, 14 May 2020, Mickaël Salaün wrote:
+On Thu, May 14, 2020 at 02:30:11PM -0700, Andrii Nakryiko wrote:
+> On Thu, May 14, 2020 at 1:39 PM Thomas Gleixner <tglx@linutronix.de> wrote:
+> >
+> > Jakub Kicinski <kuba@kernel.org> writes:
+> >
+> > > On Wed, 13 May 2020 12:25:27 -0700 Andrii Nakryiko wrote:
+> > >> One interesting implementation bit, that significantly simplifies (and thus
+> > >> speeds up as well) implementation of both producers and consumers is how data
+> > >> area is mapped twice contiguously back-to-back in the virtual memory. This
+> > >> allows to not take any special measures for samples that have to wrap around
+> > >> at the end of the circular buffer data area, because the next page after the
+> > >> last data page would be first data page again, and thus the sample will still
+> > >> appear completely contiguous in virtual memory. See comment and a simple ASCII
+> > >> diagram showing this visually in bpf_ringbuf_area_alloc().
+> > >
+> > > Out of curiosity - is this 100% okay to do in the kernel and user space
+> > > these days? Is this bit part of the uAPI in case we need to back out of
+> > > it?
+> > >
+> > > In the olden days virtually mapped/tagged caches could get confused
+> > > seeing the same physical memory have two active virtual mappings, or
+> > > at least that's what I've been told in school :)
+> >
+> > Yes, caching the same thing twice causes coherency problems.
+> >
+> > VIVT can be found in ARMv5, MIPS, NDS32 and Unicore32.
+> >
+> > > Checking with Paul - he says that could have been the case for Itanium
+> > > and PA-RISC CPUs.
+> >
+> > Itanium: PIPT L1/L2.
+> > PA-RISC: VIPT L1 and PIPT L2
+> >
+> > Thanks,
+> >
 > 
->>> This needs to be converted to the LSM API via superblock blob stacking.
->>>
->>> See Casey's old patch: 
->>> https://lore.kernel.org/linux-security-module/20190829232935.7099-2-casey@schaufler-ca.com/
->>
->> s_landlock_inode_refs is quite similar to s_fsnotify_inode_refs, but I
->> can do it once the superblock security blob patch is upstream. Is it a
->> blocker for now? What is the current status of lbs_superblock?
+> Jakub, thanks for bringing this up.
 > 
-> Yes it is a blocker. Landlock should not be adding its own functions in 
-> core code, it should be using the LSM API (and extending that as needed).
+> Thomas, Paul, what kind of problems are we talking about here? What
+> are the possible problems in practice?
 
-OK, I'll use that in the next series.
-
-> 
->> Anyway, we also need to have a call to landlock_release_inodes() in
->> generic_shutdown_super(), which does not fit the LSM framework, and I
->> think it is not an issue. Landlock handling of inodes is quite similar
->> to fsnotify.
-> 
-> fsnotify is not an LSM.
-
-Yes, so I'll need to add a new LSM hook for this (release) call, right?
+VIVT cpus will have issues with coherency protocol between cpus.
+I don't think it applies to this case.
+Here all cpus we have the same phys page seen in two virtual pages.
+That mapping is the same across all cpus.
+But any given range of virtual addresses in these two pages will
+be accessed by only one cpu at a time.
+At least that's my understanding of Andrii's algorithm.
+We probably need to white board the overlapping case a bit more.
+Worst case I think it's fine to disallow this new ring buffer
+on such architectures. The usability from bpf program side
+is too great to give up.
