@@ -1,86 +1,51 @@
-From: Randy Dunlap <rdunlap@infradead.org>
-Subject: Re: [PATCH] asm-generic: Update kernel documentation in io.h
-Date: Thu, 14 May 2020 10:31:03 -0700
-Message-ID: <a9e29e70-b0c9-9d54-bf87-31d5dcd211ab@infradead.org>
-References: <20200514170818.24598-1-miquel.raynal@bootlin.com>
+From: James Morris <jmorris@namei.org>
+Subject: Re: [PATCH v17 05/10] fs,landlock: Support filesystem
+ access-control
+Date: Fri, 15 May 2020 03:31:38 +1000 (AEST)
+Message-ID: <alpine.LRH.2.21.2005150329580.26489@namei.org>
+References: <20200511192156.1618284-1-mic@digikod.net> <20200511192156.1618284-6-mic@digikod.net> <alpine.LRH.2.21.2005141335280.30052@namei.org> <c159d845-6108-4b67-6527-405589fa5382@digikod.net>
 Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="1665246916-621977297-1589477498=:26489"
+Return-path: <kernel-hardening-return-18799-glkh-kernel-hardening=m.gmane-mx.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <c159d845-6108-4b67-6527-405589fa5382@digikod.net>
+To: =?ISO-8859-15?Q?Micka=EBl_Sala=FCn?= <mic@digikod.net>
+Cc: Casey Schaufler <casey@schaufler-ca.com>, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?ISO-8859-15?Q?Micka=EBl_Sala=FCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+List-Id: linux-arch.vger.kernel.org
+
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
+
+--1665246916-621977297-1589477498=:26489
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35696 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726027AbgENRbJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 14 May 2020 13:31:09 -0400
-In-Reply-To: <20200514170818.24598-1-miquel.raynal@bootlin.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Miquel Raynal <miquel.raynal@bootlin.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Petazzoni <thomas.petazzoni@bootlin.com>
+Content-Transfer-Encoding: 8BIT
 
-On 5/14/20 10:08 AM, Miquel Raynal wrote:
-> The kernel documentation of:
-> * bus_to_virt()
-> * memcpy_fromio()
-> * memcpy_toio()
-> refers to older parameters.
-> 
-> Update it to fit the actual names.
-> 
-> Signed-off-by: Miquel Raynal <miquel.raynal@bootlin.com>
-> ---
->  include/asm-generic/io.h | 16 ++++++++--------
->  1 file changed, 8 insertions(+), 8 deletions(-)
-> 
-> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> index d39ac997dda8..cb617baf8d47 100644
-> --- a/include/asm-generic/io.h
-> +++ b/include/asm-generic/io.h
-> @@ -1051,8 +1051,8 @@ static inline void *bus_to_virt(unsigned long address)
->  /**
->   * memset_io	Set a range of I/O memory to a constant value
->   * @addr:	The beginning of the I/O-memory range to set
-> - * @val:	The value to set the memory to
-> - * @count:	The number of bytes to set
-> + * @value:	The value to set the memory to
-> + * @size:	The number of bytes to set
->   *
->   * Set a range of I/O memory to a given value.
->   */
-> @@ -1067,9 +1067,9 @@ static inline void memset_io(volatile void __iomem *addr, int value,
->  #define memcpy_fromio memcpy_fromio
->  /**
->   * memcpy_fromio	Copy a block of data from I/O memory
-> - * @dst:		The (RAM) destination for the copy
-> - * @src:		The (I/O memory) source for the data
-> - * @count:		The number of bytes to copy
-> + * @buffer:		The (RAM) destination for the copy
-> + * @addr:		The (I/O memory) source for the data
-> + * @size:		The number of bytes to copy
->   *
->   * Copy a block of data from I/O memory.
->   */
-> @@ -1085,9 +1085,9 @@ static inline void memcpy_fromio(void *buffer,
->  #define memcpy_toio memcpy_toio
->  /**
->   * memcpy_toio		Copy a block of data into I/O memory
-> - * @dst:		The (I/O memory) destination for the copy
-> - * @src:		The (RAM) source for the data
-> - * @count:		The number of bytes to copy
-> + * @addr:		The (I/O memory) destination for the copy
-> + * @buffer:		The (RAM) source for the data
-> + * @size:		The number of bytes to copy
->   *
->   * Copy a block of data to I/O memory.
->   */
-> 
+On Thu, 14 May 2020, Mickaël Salaün wrote:
 
-https://lore.kernel.org/lkml/20200424020831.30494-1-wenhu.wang@vivo.com/
-is a better (more complete) patch IMO.
+> > This needs to be converted to the LSM API via superblock blob stacking.
+> > 
+> > See Casey's old patch: 
+> > https://lore.kernel.org/linux-security-module/20190829232935.7099-2-casey@schaufler-ca.com/
+> 
+> s_landlock_inode_refs is quite similar to s_fsnotify_inode_refs, but I
+> can do it once the superblock security blob patch is upstream. Is it a
+> blocker for now? What is the current status of lbs_superblock?
 
-if Arnd would merge...
+Yes it is a blocker. Landlock should not be adding its own functions in 
+core code, it should be using the LSM API (and extending that as needed).
 
-thanks.
+> Anyway, we also need to have a call to landlock_release_inodes() in
+> generic_shutdown_super(), which does not fit the LSM framework, and I
+> think it is not an issue. Landlock handling of inodes is quite similar
+> to fsnotify.
+
+fsnotify is not an LSM.
+
 -- 
-~Randy
+James Morris
+<jmorris@namei.org>
+
+--1665246916-621977297-1589477498=:26489--
