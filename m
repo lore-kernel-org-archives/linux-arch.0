@@ -1,32 +1,69 @@
-Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:59862 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1726722AbgEOQxd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 May 2020 12:53:33 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <954ef5ce2e47472f8b41300bf59209c5@garmin.com>
-References: <954ef5ce2e47472f8b41300bf59209c5@garmin.com> <20200515152321.9280-1-nate.karstens@garmin.com> <20200515160342.GE23230@ZenIV.linux.org.uk>
-Subject: Re: [PATCH v2] Implement close-on-fork
+Return-Path: <SRS0=nKtn=64=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from sonic307-15.consmr.mail.ne1.yahoo.com ([66.163.190.38]:35416
+        "EHLO sonic307-15.consmr.mail.ne1.yahoo.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1727836AbgENP6H (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 14 May 2020 11:58:07 -0400
+Subject: Re: [PATCH v17 05/10] fs,landlock: Support filesystem access-control
+References: <20200511192156.1618284-1-mic@digikod.net>
+ <20200511192156.1618284-6-mic@digikod.net>
+ <alpine.LRH.2.21.2005141335280.30052@namei.org>
+ <c159d845-6108-4b67-6527-405589fa5382@digikod.net>
+From: Casey Schaufler <casey@schaufler-ca.com>
+Message-ID: <bcfa8f74-5bc9-b363-5372-b254ba2e88a7@schaufler-ca.com>
+Date: Thu, 14 May 2020 08:58:03 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <197933.1589561600.1@warthog.procyon.org.uk>
-Date: Fri, 15 May 2020 17:53:20 +0100
-Message-ID: <197934.1589561600@warthog.procyon.org.uk>
+In-Reply-To: <c159d845-6108-4b67-6527-405589fa5382@digikod.net>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Karstens, Nate" <Nate.Karstens@garmin.com>
-Cc: dhowells@redhat.com, Al Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Eric Dumazet <edumazet@google.com>, David Laight <David.Laight@aculab.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Changli Gao <xiaosuo@gmail.com>
-Message-ID: <20200515165320.5AhNyWaYZWad0qxGdG1p4o0FpB-tSR6peQYyRISQtkY@z>
+To: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>, James Morris <jmorris@namei.org>
+Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org, Casey Schaufler <casey@schaufler-ca.com>
+Message-ID: <20200514155803.rGPJhdhFWrBajqKHn7V00jd-lLDM-_QC-08DF_BDsxU@z>
 
-Karstens, Nate <Nate.Karstens@garmin.com> wrote:
+On 5/14/2020 3:39 AM, Micka=C3=ABl Sala=C3=BCn wrote:
+> On 14/05/2020 05:37, James Morris wrote:
+>> On Mon, 11 May 2020, Micka=C3=ABl Sala=C3=BCn wrote:
+>>
+>>
+>>> diff --git a/include/linux/fs.h b/include/linux/fs.h
+>>> index 45cc10cdf6dd..2276642f8e05 100644
+>>> --- a/include/linux/fs.h
+>>> +++ b/include/linux/fs.h
+>>> @@ -1517,6 +1517,11 @@ struct super_block {
+>>>  	/* Pending fsnotify inode refs */
+>>>  	atomic_long_t s_fsnotify_inode_refs;
+>>> =20
+>>> +#ifdef CONFIG_SECURITY_LANDLOCK
+>>> +	/* References to Landlock underlying objects */
+>>> +	atomic_long_t s_landlock_inode_refs;
+>>> +#endif
+>>> +
+>> This needs to be converted to the LSM API via superblock blob stacking=
+=2E
+>>
+>> See Casey's old patch:=20
+>> https://lore.kernel.org/linux-security-module/20190829232935.7099-2-ca=
+sey@schaufler-ca.com/
+> s_landlock_inode_refs is quite similar to s_fsnotify_inode_refs, but I
+> can do it once the superblock security blob patch is upstream. Is it a
+> blocker for now? What is the current status of lbs_superblock?
 
-> > already has a portable solution
-> 
-> What is the solution?
+As no currently stackable modules conflict over the superblock
+(SELinux and Smack are the existing users) there has been no need
+to move its management into the infrastructure. The active push for
+stacking does not (yet) include everything needed for SELinux+Smack.
+It includes what is needed for SELinux+AppArmor and Smack+AppArmor.
+That does not include the superblock blob.
 
-sys_spawn(const char *path, const char **argv, const char **envv,
-	  unsigned long clone_flags, unsigned int nfds, int *fds);
+You can include a patch in the landlock set that provides infrastructure
+management of the superblock blob. Feel free to glean it from my proposal=
+=2E
 
-maybe?
-
-David
+>
+> Anyway, we also need to have a call to landlock_release_inodes() in
+> generic_shutdown_super(), which does not fit the LSM framework, and I
+> think it is not an issue. Landlock handling of inodes is quite similar
+> to fsnotify.
