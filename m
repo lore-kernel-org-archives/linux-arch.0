@@ -1,66 +1,29 @@
-From: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Subject: Re: [PATCH v3 23/23] arm64: mte: Add Memory Tagging Extension
- documentation
-Date: Fri, 15 May 2020 13:53:32 +0100
-Message-ID: <20200515125332.GF27289@arm.com>
-References: <20200430162316.GJ2717@gaia>
- <20200504164617.GK30377@arm.com>
- <20200511164018.GC19176@gaia>
- <20200513154845.GT21779@arm.com>
- <20200514113722.GA1907@gaia>
- <20200515103839.GA22393@gaia>
- <20200515111359.GC27289@arm.com>
- <20200515112740.GB22393@gaia>
- <20200515120433.GE27289@arm.com>
- <20200515121343.GC22393@gaia>
+From: Joerg Roedel <jroedel@suse.de>
+Subject: Re: [PATCH v2 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Date: Fri, 15 May 2020 15:03:13 +0200
+Message-ID: <20200515130313.GI8135@suse.de>
+References: <20200513152137.32426-1-joro@8bytes.org>
+ <CALCETrW1Y2Q7dWwv4X7PHf3yxOGMcDaBG0NK7BWPAR=FiqsoPQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr10084.outbound.protection.outlook.com ([40.107.1.84]:47921
-        "EHLO EUR02-HE1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726226AbgEOMx6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 08:53:58 -0400
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-acpi-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200515121343.GC22393@gaia>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Dave Martin <Dave.Martin@arm.com>, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, nd@arm.com
+In-Reply-To: <CALCETrW1Y2Q7dWwv4X7PHf3yxOGMcDaBG0NK7BWPAR=FiqsoPQ@mail.gmail.com>
+Sender: linux-acpi-owner@vger.kernel.org
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+List-Id: linux-arch.vger.kernel.org
 
-The 05/15/2020 13:13, Catalin Marinas wrote:
-> On Fri, May 15, 2020 at 01:04:33PM +0100, Szabolcs Nagy wrote:
-> > The 05/15/2020 12:27, Catalin Marinas wrote:
-> > > Thanks Szabolcs. While we are at this, no-one so far asked for the
-> > > GCR_EL1.RRND to be exposed to user (and this implies RGSR_EL1.SEED).
-> > > Since RRND=1 guarantees a distribution "no worse" than that of RRND=0, I
-> > > thought there isn't much point in exposing this configuration to the
-> > > user. The only advantage of RRND=0 I see is that the kernel can change
-> > 
-> > it seems RRND=1 is the impl specific algorithm.
-> 
-> Yes, that's the implementation specific algorithm which shouldn't be
-> worse than the standard one.
-> 
-> > > the seed randomly but, with only 4 bits per tag, it really doesn't
-> > > matter much.
-> > > 
-> > > Anyway, mentioning it here in case anyone is surprised later about the
-> > > lack of RRND configurability.
-> > 
-> > i'm not familiar with how irg works.
-> 
-> It generates a random tag based on some algorithm.
-> 
-> > is the seed per process state that's set up at process startup in some
-> > way? or shared (and thus effectively irg is non-deterministic in
-> > userspace)?
-> 
-> The seed is only relevant if the standard algorithm is used (RRND=0).
+On Wed, May 13, 2020 at 09:01:04AM -0700, Andy Lutomirski wrote:
+> I would love to see a followup patch that preallocates the vmalloc
+> region on 64-bit and compiles out pgd_list and all of the associated
+> gunk.
 
-i wanted to understand if we can get deterministic
-irg behaviour in user space (which may be useful
-for debugging to get reproducible tag failures).
+Looked a bit into this, with pre-allocation and a few more changes all
+but one users of pgd_list and pgd_lock can be get rid of on x86-64. But
+there is the XEN-PV code which also needs to traverse pgd_list, and I am
+not sure how to get rid of that.
 
-i guess if no control is exposed that means non-
-deterministic irg. i think this is fine.
+Regards,
+
+	Joerg
