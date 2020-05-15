@@ -1,88 +1,152 @@
-Return-Path: <SRS0=T8h9=7D=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:63542 "EHLO mga02.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730662AbgEUVRk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 21 May 2020 17:17:40 -0400
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [RFC PATCH 3/5] selftest/x86: Fix sigreturn_64 test.
-Date: Thu, 21 May 2020 14:17:18 -0700
-Message-ID: <20200521211720.20236-4-yu-cheng.yu@intel.com>
-In-Reply-To: <20200521211720.20236-1-yu-cheng.yu@intel.com>
-References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
+From: Joerg Roedel <joro@8bytes.org>
+Subject: [PATCH v3 1/7] mm: Add functions to track page directory modifications
+Date: Fri, 15 May 2020 16:00:17 +0200
+Message-ID: <20200515140023.25469-2-joro@8bytes.org>
+In-Reply-To: <20200515140023.25469-1-joro@8bytes.org>
+References: <20200515140023.25469-1-joro@8bytes.org>
+Sender: owner-linux-mm@kvack.org
+To: x86@kernel.org
+Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Message-ID: <20200521211718.GBDakspQRB2UYTF1EIYMZVJ4wH-rfp7NqbHozF_mgHY@z>
+Message-ID: <20200515140017.hkKeaD1zcTrh6noQf03TAc1sbBDm5yn5P5_xfyZt8uw@z>
 
-When shadow stack is enabled, selftests/x86/sigreturn_64 triggers a fault
-when doing sigreturn to 32-bit context but the task's shadow stack pointer
-is above 32-bit address range.  Fix it by:
+From: Joerg Roedel <jroedel@suse.de>
 
-- Allocate a small shadow stack below 32-bit address,
-- Switch to the new shadow stack,
-- Run tests,
-- Switch back to the original 64-bit shadow stack.
+Add page-table allocation functions which will keep track of changed
+directory entries. They are needed for new PGD, P4D, PUD, and PMD
+entries and will be used in vmalloc and ioremap code to decide whether
+any changes in the kernel mappings need to be synchronized between
+page-tables in the system.
 
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Signed-off-by: Joerg Roedel <jroedel@suse.de>
+Acked-by: Andy Lutomirski <luto@kernel.org>
 ---
- tools/testing/selftests/x86/sigreturn.c | 28 +++++++++++++++++++++++++
- 1 file changed, 28 insertions(+)
+ include/asm-generic/5level-fixup.h |  5 ++--
+ include/asm-generic/pgtable.h      | 23 +++++++++++++++
+ include/linux/mm.h                 | 46 ++++++++++++++++++++++++++++++
+ 3 files changed, 72 insertions(+), 2 deletions(-)
 
-diff --git a/tools/testing/selftests/x86/sigreturn.c b/tools/testing/selftests/x86/sigreturn.c
-index 57c4f67f16ef..5bcd74d416ff 100644
---- a/tools/testing/selftests/x86/sigreturn.c
-+++ b/tools/testing/selftests/x86/sigreturn.c
-@@ -45,6 +45,14 @@
- #include <stdbool.h>
- #include <sys/ptrace.h>
- #include <sys/user.h>
-+#include <x86intrin.h>
-+#include <asm/prctl.h>
-+#include <sys/prctl.h>
-+
-+#ifdef __x86_64__
-+int arch_prctl(int code, unsigned long *addr);
-+#define ARCH_CET_ALLOC_SHSTK 0x3004
-+#endif
+diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
+index 4c74b1c1d13b..58046ddc08d0 100644
+--- a/include/asm-generic/5level-fixup.h
++++ b/include/asm-generic/5level-fixup.h
+@@ -17,8 +17,9 @@
+ 	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
+ 		NULL : pud_offset(p4d, address))
  
- /* Pull in AR_xyz defines. */
- typedef unsigned int u32;
-@@ -766,6 +774,20 @@ int main()
- 	int total_nerrs = 0;
- 	unsigned short my_cs, my_ss;
+-#define p4d_alloc(mm, pgd, address)	(pgd)
+-#define p4d_offset(pgd, start)		(pgd)
++#define p4d_alloc(mm, pgd, address)		(pgd)
++#define p4d_alloc_track(mm, pgd, address, mask)	(pgd)
++#define p4d_offset(pgd, start)			(pgd)
  
-+#ifdef __x86_64__
-+	/* Alloc a shadow stack within 32-bit address range */
-+	unsigned long arg, ssp_64, ssp_32;
-+	ssp_64 = _get_ssp();
-+
-+	if (ssp_64 != 0) {
-+		arg = 0x1001;
-+		arch_prctl(ARCH_CET_ALLOC_SHSTK, &arg);
-+		ssp_32 = arg + 0x1000 - 8;
-+		asm volatile("RSTORSSP (%0)\n":: "r" (ssp_32));
-+		asm volatile("SAVEPREVSSP");
-+	}
-+#endif
-+
- 	asm volatile ("mov %%cs,%0" : "=r" (my_cs));
- 	asm volatile ("mov %%ss,%0" : "=r" (my_ss));
- 	setup_ldt();
-@@ -870,6 +892,12 @@ int main()
- 
- #ifdef __x86_64__
- 	total_nerrs += test_nonstrict_ss();
-+
-+	if (ssp_64 != 0) {
-+		ssp_64 -= 8;
-+		asm volatile("RSTORSSP (%0)\n":: "r" (ssp_64));
-+		asm volatile("SAVEPREVSSP");
-+	}
+ #ifndef __ASSEMBLY__
+ static inline int p4d_none(p4d_t p4d)
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 329b8c8ca703..bf1418ae91a2 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1209,6 +1209,29 @@ static inline bool arch_has_pfn_modify_check(void)
+ # define PAGE_KERNEL_EXEC PAGE_KERNEL
  #endif
  
- 	return total_nerrs ? 1 : 0;
++/*
++ * Page Table Modification bits for pgtbl_mod_mask.
++ *
++ * These are used by the p?d_alloc_track*() set of functions an in the generic
++ * vmalloc/ioremap code to track at which page-table levels entries have been
++ * modified. Based on that the code can better decide when vmalloc and ioremap
++ * mapping changes need to be synchronized to other page-tables in the system.
++ */
++#define		__PGTBL_PGD_MODIFIED	0
++#define		__PGTBL_P4D_MODIFIED	1
++#define		__PGTBL_PUD_MODIFIED	2
++#define		__PGTBL_PMD_MODIFIED	3
++#define		__PGTBL_PTE_MODIFIED	4
++
++#define		PGTBL_PGD_MODIFIED	BIT(__PGTBL_PGD_MODIFIED)
++#define		PGTBL_P4D_MODIFIED	BIT(__PGTBL_P4D_MODIFIED)
++#define		PGTBL_PUD_MODIFIED	BIT(__PGTBL_PUD_MODIFIED)
++#define		PGTBL_PMD_MODIFIED	BIT(__PGTBL_PMD_MODIFIED)
++#define		PGTBL_PTE_MODIFIED	BIT(__PGTBL_PTE_MODIFIED)
++
++/* Page-Table Modification Mask */
++typedef unsigned int pgtbl_mod_mask;
++
+ #endif /* !__ASSEMBLY__ */
+ 
+ #ifndef io_remap_pfn_range
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 5a323422d783..022fe682af9e 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -2078,13 +2078,54 @@ static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
+ 	return (unlikely(p4d_none(*p4d)) && __pud_alloc(mm, p4d, address)) ?
+ 		NULL : pud_offset(p4d, address);
+ }
++
++static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
++				     unsigned long address,
++				     pgtbl_mod_mask *mod_mask)
++
++{
++	if (unlikely(pgd_none(*pgd))) {
++		if (__p4d_alloc(mm, pgd, address))
++			return NULL;
++		*mod_mask |= PGTBL_PGD_MODIFIED;
++	}
++
++	return p4d_offset(pgd, address);
++}
++
+ #endif /* !__ARCH_HAS_5LEVEL_HACK */
+ 
++static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
++				     unsigned long address,
++				     pgtbl_mod_mask *mod_mask)
++{
++	if (unlikely(p4d_none(*p4d))) {
++		if (__pud_alloc(mm, p4d, address))
++			return NULL;
++		*mod_mask |= PGTBL_P4D_MODIFIED;
++	}
++
++	return pud_offset(p4d, address);
++}
++
+ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
+ {
+ 	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address))?
+ 		NULL: pmd_offset(pud, address);
+ }
++
++static inline pmd_t *pmd_alloc_track(struct mm_struct *mm, pud_t *pud,
++				     unsigned long address,
++				     pgtbl_mod_mask *mod_mask)
++{
++	if (unlikely(pud_none(*pud))) {
++		if (__pmd_alloc(mm, pud, address))
++			return NULL;
++		*mod_mask |= PGTBL_PUD_MODIFIED;
++	}
++
++	return pmd_offset(pud, address);
++}
+ #endif /* CONFIG_MMU */
+ 
+ #if USE_SPLIT_PTE_PTLOCKS
+@@ -2200,6 +2241,11 @@ static inline void pgtable_pte_page_dtor(struct page *page)
+ 	((unlikely(pmd_none(*(pmd))) && __pte_alloc_kernel(pmd))? \
+ 		NULL: pte_offset_kernel(pmd, address))
+ 
++#define pte_alloc_kernel_track(pmd, address, mask)			\
++	((unlikely(pmd_none(*(pmd))) &&					\
++	  (__pte_alloc_kernel(pmd) || ({*(mask)|=PGTBL_PMD_MODIFIED;0;})))?\
++		NULL: pte_offset_kernel(pmd, address))
++
+ #if USE_SPLIT_PMD_PTLOCKS
+ 
+ static struct page *pmd_to_page(pmd_t *pmd)
 -- 
-2.21.0
+2.17.1
