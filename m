@@ -1,89 +1,39 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 06/29] asm-generic: don't include <linux/mm.h> in cacheflush.h
-Date: Fri, 15 May 2020 16:36:23 +0200
-Message-ID: <20200515143646.3857579-7-hch@lst.de>
+Subject: [PATCH 20/29] asm-generic: add a flush_icache_user_range stub
+Date: Fri, 15 May 2020 16:36:37 +0200
+Message-ID: <20200515143646.3857579-21-hch@lst.de>
 References: <20200515143646.3857579-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-sh-owner@vger.kernel.org>
+Return-path: <linux-mips-owner@vger.kernel.org>
 In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-Sender: linux-sh-owner@vger.kernel.org
+Sender: linux-mips-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
 Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This seems to lead to some crazy include loops when using
-asm-generic/cacheflush.h on more architectures, so leave it
-to the arch header for now.
+Define flush_icache_user_range to flush_icache_range unless the
+architecture provides its own implementation.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/um/include/asm/tlb.h         | 2 ++
- arch/x86/include/asm/cacheflush.h | 2 ++
- drivers/nvdimm/pmem.c             | 3 ++-
- include/asm-generic/cacheflush.h  | 3 ---
- 4 files changed, 6 insertions(+), 4 deletions(-)
+ include/asm-generic/cacheflush.h | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/arch/um/include/asm/tlb.h b/arch/um/include/asm/tlb.h
-index 70ee603839006..ff9c62828962c 100644
---- a/arch/um/include/asm/tlb.h
-+++ b/arch/um/include/asm/tlb.h
-@@ -2,6 +2,8 @@
- #ifndef __UM_TLB_H
- #define __UM_TLB_H
- 
-+#include <linux/mm.h>
-+
- #include <asm/tlbflush.h>
- #include <asm-generic/cacheflush.h>
- #include <asm-generic/tlb.h>
-diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cacheflush.h
-index 63feaf2a5f93d..b192d917a6d0b 100644
---- a/arch/x86/include/asm/cacheflush.h
-+++ b/arch/x86/include/asm/cacheflush.h
-@@ -2,6 +2,8 @@
- #ifndef _ASM_X86_CACHEFLUSH_H
- #define _ASM_X86_CACHEFLUSH_H
- 
-+#include <linux/mm.h>
-+
- /* Caches aren't brain-dead on the intel. */
- #include <asm-generic/cacheflush.h>
- #include <asm/special_insns.h>
-diff --git a/drivers/nvdimm/pmem.c b/drivers/nvdimm/pmem.c
-index 2df6994acf836..55282a6217407 100644
---- a/drivers/nvdimm/pmem.c
-+++ b/drivers/nvdimm/pmem.c
-@@ -7,7 +7,6 @@
-  * Copyright (c) 2015, Boaz Harrosh <boaz@plexistor.com>.
-  */
- 
--#include <asm/cacheflush.h>
- #include <linux/blkdev.h>
- #include <linux/hdreg.h>
- #include <linux/init.h>
-@@ -25,6 +24,8 @@
- #include <linux/dax.h>
- #include <linux/nd.h>
- #include <linux/backing-dev.h>
-+#include <linux/mm.h>
-+#include <asm/cacheflush.h>
- #include "pmem.h"
- #include "pfn.h"
- #include "nd.h"
 diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
-index 906277492ec59..bf9bb83e9fc8d 100644
+index 2c9686fefb715..907fa5d164944 100644
 --- a/include/asm-generic/cacheflush.h
 +++ b/include/asm-generic/cacheflush.h
-@@ -2,9 +2,6 @@
- #ifndef _ASM_GENERIC_CACHEFLUSH_H
- #define _ASM_GENERIC_CACHEFLUSH_H
+@@ -66,6 +66,10 @@ static inline void flush_icache_range(unsigned long start, unsigned long end)
+ }
+ #endif
  
--/* Keep includes the same across arches.  */
--#include <linux/mm.h>
--
- #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
- 
- /*
++#ifndef flush_icache_user_range
++#define flush_icache_user_range flush_icache_range
++#endif
++
+ #ifndef flush_icache_page
+ static inline void flush_icache_page(struct vm_area_struct *vma,
+ 				     struct page *page)
 -- 
 2.26.2
