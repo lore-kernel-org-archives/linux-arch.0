@@ -1,51 +1,112 @@
-Return-Path: <SRS0=wOT8=6T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35598 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727785AbgEEUMJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 5 May 2020 16:12:09 -0400
-Date: Tue, 5 May 2020 13:12:06 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 3/3] mm/hugetlb: Introduce
- HAVE_ARCH_CLEAR_HUGEPAGE_FLAGS
-Message-ID: <20200505131206.bee7b103431bff077c2ca0cf@linux-foundation.org>
-In-Reply-To: <21460cbc-8e9a-b956-5797-57b2e1df9fb1@arm.com>
-References: <1586864670-21799-1-git-send-email-anshuman.khandual@arm.com>
-        <1586864670-21799-4-git-send-email-anshuman.khandual@arm.com>
-        <20200425175511.7a68efb5e2f4436fe0328c1d@linux-foundation.org>
-        <87d37591-caa2-b82b-392a-3a29b2c7e9a6@arm.com>
-        <20200425200124.20d0c75fcaef05d062d3667c@linux-foundation.org>
-        <21460cbc-8e9a-b956-5797-57b2e1df9fb1@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-mw2nam12on2125.outbound.protection.outlook.com ([40.107.244.125]:36832
+        "EHLO NAM12-MW2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1727836AbgEOPYH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 May 2020 11:24:07 -0400
+From: Nate Karstens <nate.karstens@garmin.com>
+Subject: [PATCH v2 4/4] net: Add SOCK_CLOFORK
+Date: Fri, 15 May 2020 10:23:21 -0500
+Message-ID: <20200515152321.9280-5-nate.karstens@garmin.com>
+In-Reply-To: <20200515152321.9280-1-nate.karstens@garmin.com>
+References: <20200515152321.9280-1-nate.karstens@garmin.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: linux-mm@kvack.org, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Mike Kravetz <mike.kravetz@oracle.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200505201206.VQahkfFWJ-choAxXqBADmadYc4gU8jKTajelcr7R1Jg@z>
+To: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Eric Dumazet <edumazet@google.com>, David Laight <David.Laight@aculab.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Changli Gao <xiaosuo@gmail.com>, Nate Karstens <nate.karstens@garmin.com>
+Message-ID: <20200515152321.P7Y2cMyedwAFXH3f2qNx53KefKamM0Ogana2d0d2lQk@z>
 
-On Tue, 5 May 2020 08:21:34 +0530 Anshuman Khandual <anshuman.khandual@arm.com> wrote:
+Implements a new socket flag that automatically sets the
+close-on-fork flag for sockets created using socket(2),
+socketpair(2), and accept4(2).
 
-> >>> static inline void arch_clear_hugepage_flags(struct page *page)
-> >>> {
-> >>> 	<some implementation>
-> >>> }
-> >>> #define arch_clear_hugepage_flags arch_clear_hugepage_flags
-> >>>
-> >>> It's a small difference - mainly to avoid adding two variables to the
-> >>> overall namespace where one would do.
-> >>
-> >> Understood, will change and resend.
-> > 
-> > That's OK - I've queued up that fix.
-> >
-> 
-> Hello Andrew,
-> 
-> I might not have searched all the relevant trees or might have just searched
-> earlier than required. But I dont see these patches (or your proposed fixes)
-> either in mmotm (2020-04-29-23-04) or in next-20200504. Wondering if you are
-> waiting on a V2 for this series accommodating the changes you had proposed.
+Signed-off-by: Nate Karstens <nate.karstens@garmin.com>
+---
+ include/linux/net.h |  3 ++-
+ net/socket.c        | 14 ++++++++------
+ 2 files changed, 10 insertions(+), 7 deletions(-)
 
-hm.  I think I must have got confused and thought you were referring to
-a different patch.  Yes please, let's have v2.
+diff --git a/include/linux/net.h b/include/linux/net.h
+index 6451425e828f..57663c9dc8c4 100644
+--- a/include/linux/net.h
++++ b/include/linux/net.h
+@@ -17,7 +17,7 @@
+ #include <linux/stringify.h>
+ #include <linux/random.h>
+ #include <linux/wait.h>
+-#include <linux/fcntl.h>	/* For O_CLOEXEC and O_NONBLOCK */
++#include <linux/fcntl.h>	/* For O_CLOEXEC, O_CLOFORK, and O_NONBLOCK */
+ #include <linux/rcupdate.h>
+ #include <linux/once.h>
+ #include <linux/fs.h>
+@@ -73,6 +73,7 @@ enum sock_type {
+ 
+ /* Flags for socket, socketpair, accept4 */
+ #define SOCK_CLOEXEC	O_CLOEXEC
++#define SOCK_CLOFORK	O_CLOFORK
+ #ifndef SOCK_NONBLOCK
+ #define SOCK_NONBLOCK	O_NONBLOCK
+ #endif
+diff --git a/net/socket.c b/net/socket.c
+index 2eecf1517f76..ba6e971c7e78 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -1511,12 +1511,14 @@ int __sys_socket(int family, int type, int protocol)
+ 
+ 	/* Check the SOCK_* constants for consistency.  */
+ 	BUILD_BUG_ON(SOCK_CLOEXEC != O_CLOEXEC);
++	BUILD_BUG_ON(SOCK_CLOFORK != O_CLOFORK);
+ 	BUILD_BUG_ON((SOCK_MAX | SOCK_TYPE_MASK) != SOCK_TYPE_MASK);
+ 	BUILD_BUG_ON(SOCK_CLOEXEC & SOCK_TYPE_MASK);
++	BUILD_BUG_ON(SOCK_CLOFORK & SOCK_TYPE_MASK);
+ 	BUILD_BUG_ON(SOCK_NONBLOCK & SOCK_TYPE_MASK);
+ 
+ 	flags = type & ~SOCK_TYPE_MASK;
+-	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
++	if (flags & ~(SOCK_CLOEXEC | SOCK_CLOFORK | SOCK_NONBLOCK))
+ 		return -EINVAL;
+ 	type &= SOCK_TYPE_MASK;
+ 
+@@ -1527,7 +1529,7 @@ int __sys_socket(int family, int type, int protocol)
+ 	if (retval < 0)
+ 		return retval;
+ 
+-	return sock_map_fd(sock, flags & (O_CLOEXEC | O_NONBLOCK));
++	return sock_map_fd(sock, flags & (O_CLOEXEC | O_CLOFORK | O_NONBLOCK));
+ }
+ 
+ SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
+@@ -1547,7 +1549,7 @@ int __sys_socketpair(int family, int type, int protocol, int __user *usockvec)
+ 	int flags;
+ 
+ 	flags = type & ~SOCK_TYPE_MASK;
+-	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
++	if (flags & ~(SOCK_CLOEXEC | SOCK_CLOFORK | SOCK_NONBLOCK))
+ 		return -EINVAL;
+ 	type &= SOCK_TYPE_MASK;
+ 
+@@ -1715,7 +1717,7 @@ int __sys_accept4_file(struct file *file, unsigned file_flags,
+ 	int err, len, newfd;
+ 	struct sockaddr_storage address;
+ 
+-	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
++	if (flags & ~(SOCK_CLOEXEC | SOCK_CLOFORK | SOCK_NONBLOCK))
+ 		return -EINVAL;
+ 
+ 	if (SOCK_NONBLOCK != O_NONBLOCK && (flags & SOCK_NONBLOCK))
+@@ -3628,8 +3630,8 @@ EXPORT_SYMBOL(kernel_listen);
+  *	@newsock: new connected socket
+  *	@flags: flags
+  *
+- *	@flags must be SOCK_CLOEXEC, SOCK_NONBLOCK or 0.
+- *	If it fails, @newsock is guaranteed to be %NULL.
++ *	@flags must be SOCK_CLOEXEC, SOCK_CLOFORK, SOCK_NONBLOCK,
++ *	or 0. If it fails, @newsock is guaranteed to be %NULL.
+  *	Returns 0 or an error.
+  */
+ 
+-- 
+2.26.1
