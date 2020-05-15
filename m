@@ -1,47 +1,45 @@
-Return-Path: <SRS0=W/Kb=6W=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35530 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726140AbgEOOg4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 May 2020 10:36:56 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 01/29] arm: fix the flush_icache_range arguments in set_fiq_handler
+Date: Fri, 15 May 2020 16:36:18 +0200
+Message-ID: <20200515143646.3857579-2-hch@lst.de>
+In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
+References: <20200515143646.3857579-1-hch@lst.de>
 MIME-Version: 1.0
-References: <20200508144043.13893-1-joro@8bytes.org> <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
- <20200508213609.GU8135@suse.de>
-In-Reply-To: <20200508213609.GU8135@suse.de>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Fri, 8 May 2020 16:49:17 -0700
-Message-ID: <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Content-Type: text/plain; charset="UTF-8"
-Sender: owner-linux-mm@kvack.org
-To: Joerg Roedel <jroedel@suse.de>
-Cc: Andy Lutomirski <luto@kernel.org>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200508234917.7rdffsnvbLoouWpkDkR9qu-zJPfjsRc2u__HQTKYbSo@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200515143618.iUv8xP89VuUlccdctBB95dIHPriLizE0DUN9gf6fw3E@z>
 
-On Fri, May 8, 2020 at 2:36 PM Joerg Roedel <jroedel@suse.de> wrote:
->
-> On Fri, May 08, 2020 at 02:33:19PM -0700, Andy Lutomirski wrote:
-> > On Fri, May 8, 2020 at 7:40 AM Joerg Roedel <joro@8bytes.org> wrote:
->
-> > What's the maximum on other system types?  It might make more sense to
-> > take the memory hit and pre-populate all the tables at boot so we
-> > never have to sync them.
->
-> Need to look it up for 5-level paging, with 4-level paging its 64 pages
-> to pre-populate the vmalloc area.
->
-> But that would not solve the problem on x86-32, which needs to
-> synchronize unmappings on the PMD level.
+The arguments passed look bogus, try to fix them to something that seems
+to make sense.
 
-What changes in this series with x86-32?  We already do that
-synchronization, right?  IOW, in the cases where the vmalloc *fault*
-code does anything at all, we should have a small bound for how much
-memory to preallocate and, if we preallocate it, then there is nothing
-to sync and nothing to fault.  And we have the benefit that we never
-need to sync anything on 64-bit, which is kind of nice.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/arm/kernel/fiq.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-Do we actually need PMD-level things for 32-bit?  What if we just
-outlawed huge pages in the vmalloc space on 32-bit non-PAE?
-
-Or maybe the net result isn't much of a cleanup after all given the
-need to support 32-bit.
-
->
->
->         Joerg
+diff --git a/arch/arm/kernel/fiq.c b/arch/arm/kernel/fiq.c
+index cd1234c103fcd..98ca3e3fa8471 100644
+--- a/arch/arm/kernel/fiq.c
++++ b/arch/arm/kernel/fiq.c
+@@ -98,8 +98,8 @@ void set_fiq_handler(void *start, unsigned int length)
+ 
+ 	memcpy(base + offset, start, length);
+ 	if (!cache_is_vipt_nonaliasing())
+-		flush_icache_range((unsigned long)base + offset, offset +
+-				   length);
++		flush_icache_range((unsigned long)base + offset,
++				   (unsigned long)base + offset + length);
+ 	flush_icache_range(0xffff0000 + offset, 0xffff0000 + offset + length);
+ }
+ 
+-- 
+2.26.2
