@@ -1,41 +1,90 @@
-Return-Path: <SRS0=hh2G=62=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 12 May 2020 11:13:32 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Message-ID: <20200512111332.24f5cd7a@gandalf.local.home>
-In-Reply-To: <20200512150250.GC8135@suse.de>
-References: <20200511191414.GY8135@suse.de>
-	<8D6745B7-0EC2-4FCC-B6FC-E7E1557EB18E@amacapital.net>
-	<20200512150250.GC8135@suse.de>
+Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 18/29] arm,sparc,unicore32: remove flush_icache_user_range
+Date: Fri, 15 May 2020 16:36:35 +0200
+Message-ID: <20200515143646.3857579-19-hch@lst.de>
+In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
+References: <20200515143646.3857579-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Joerg Roedel <jroedel@suse.de>
-Cc: Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, "Rafael J.
- Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200512151332.Yb9TcyP-mJQiAzI0zscJ4fRaCRC4MZV4TDxWDTIkR6U@z>
+Message-ID: <20200515143635.O00ewEkE5DL2EH9uGUD0QIfP8aqnTbV_aS5i08t4eAY@z>
 
-On Tue, 12 May 2020 17:02:50 +0200
-Joerg Roedel <jroedel@suse.de> wrote:
+flush_icache_user_range is only used by <asm-generic/cacheflush.h>, so
+remove it from the architectures that implement it, but don't use
+<asm-generic/cacheflush.h>.
 
-> On Mon, May 11, 2020 at 12:36:19PM -0700, Andy Lutomirski wrote:
-> > I=E2=80=99m guessing the right solution is either your series or your s=
-eries
-> > plus preallocation on 64-bit. I=E2=80=99m just grumpy about it... =20
->=20
-> Okay, so we can do the pre-allocation when it turns out the pgd_list
-> lock-times become a problem on x86-64. The tracking code in vmalloc.c is
-> needed anyway for 32-bit and there is no reason why 64-bit shouldn't use
-> it as well for now.
-> I don't think that taking the lock _will_ be a problem, as it is only
-> taken when a new PGD/P4D entry is populated. And it is pretty unlikely
-> that a system will populate all 64 of them, with 4-level paging each of
-> these entries will map 512GB of address space. But if I am wrong here
-> pre-allocating is still an option.
->=20
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/arm/include/asm/cacheflush.h       | 3 ---
+ arch/sparc/include/asm/cacheflush_32.h  | 2 --
+ arch/sparc/include/asm/cacheflush_64.h  | 1 -
+ arch/unicore32/include/asm/cacheflush.h | 3 ---
+ 4 files changed, 9 deletions(-)
 
-256TB of RAM isn't too far in the future ;-)
-
--- Steve
+diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cac=
+heflush.h
+index 7114b9aa46b87..c78e14fcfb5df 100644
+--- a/arch/arm/include/asm/cacheflush.h
++++ b/arch/arm/include/asm/cacheflush.h
+@@ -318,9 +318,6 @@ extern void flush_kernel_dcache_page(struct page *);
+ #define flush_dcache_mmap_lock(mapping)		xa_lock_irq(&mapping->i_pages)
+ #define flush_dcache_mmap_unlock(mapping)	xa_unlock_irq(&mapping->i_page=
+s)
+=20
+-#define flush_icache_user_range(vma,page,addr,len) \
+-	flush_dcache_page(page)
+-
+ /*
+  * We don't appear to need to do anything here.  In fact, if we did, we'=
+d
+  * duplicate cache flushing elsewhere performed by flush_dcache_page().
+diff --git a/arch/sparc/include/asm/cacheflush_32.h b/arch/sparc/include/=
+asm/cacheflush_32.h
+index fb66094a2c30c..41c6d734a4741 100644
+--- a/arch/sparc/include/asm/cacheflush_32.h
++++ b/arch/sparc/include/asm/cacheflush_32.h
+@@ -17,8 +17,6 @@
+ #define flush_icache_range(start, end)		do { } while (0)
+ #define flush_icache_page(vma, pg)		do { } while (0)
+=20
+-#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
+-
+ #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+ 	do {							\
+ 		flush_cache_page(vma, vaddr, page_to_pfn(page));\
+diff --git a/arch/sparc/include/asm/cacheflush_64.h b/arch/sparc/include/=
+asm/cacheflush_64.h
+index e7517434d1fa6..b9341836597ec 100644
+--- a/arch/sparc/include/asm/cacheflush_64.h
++++ b/arch/sparc/include/asm/cacheflush_64.h
+@@ -49,7 +49,6 @@ void __flush_dcache_range(unsigned long start, unsigned=
+ long end);
+ void flush_dcache_page(struct page *page);
+=20
+ #define flush_icache_page(vma, pg)	do { } while(0)
+-#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
+=20
+ void flush_ptrace_access(struct vm_area_struct *, struct page *,
+ 			 unsigned long uaddr, void *kaddr,
+diff --git a/arch/unicore32/include/asm/cacheflush.h b/arch/unicore32/inc=
+lude/asm/cacheflush.h
+index 9393ca4047e93..ff0be92ebc320 100644
+--- a/arch/unicore32/include/asm/cacheflush.h
++++ b/arch/unicore32/include/asm/cacheflush.h
+@@ -162,9 +162,6 @@ extern void flush_dcache_page(struct page *);
+ #define flush_dcache_mmap_lock(mapping)		do { } while (0)
+ #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
+=20
+-#define flush_icache_user_range(vma, page, addr, len)	\
+-	flush_dcache_page(page)
+-
+ /*
+  * We don't appear to need to do anything here.  In fact, if we did, we'=
+d
+  * duplicate cache flushing elsewhere performed by flush_dcache_page().
+--=20
+2.26.2
