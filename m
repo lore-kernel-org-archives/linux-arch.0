@@ -1,13 +1,13 @@
 Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35744 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35702 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1728015AbgEOOiB (ORCPT
+        by vger.kernel.org with ESMTP id S1726144AbgEOOhs (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 10:38:01 -0400
+        Fri, 15 May 2020 10:37:48 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 20/29] asm-generic: add a flush_icache_user_range stub
-Date: Fri, 15 May 2020 16:36:37 +0200
-Message-ID: <20200515143646.3857579-21-hch@lst.de>
+Subject: [PATCH 14/29] m68knommu: use asm-generic/cacheflush.h
+Date: Fri, 15 May 2020 16:36:31 +0200
+Message-ID: <20200515143646.3857579-15-hch@lst.de>
 In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
 References: <20200515143646.3857579-1-hch@lst.de>
 MIME-Version: 1.0
@@ -15,31 +15,54 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200515143637.renqP6PLnAXiOQDhRzCiHv7sIcdTl6JWnmOBzVEeALU@z>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org, Greg Ungerer <gerg@linux-m68k.org>
+Message-ID: <20200515143631.7Bi86PKVLsBA1-uwPRh5Gjh-Riq3n46fh010Q0ZeTgo@z>
 
-Define flush_icache_user_range to flush_icache_range unless the
-architecture provides its own implementation.
+m68knommu needs almost no cache flushing routines of its own.  Rely on
+asm-generic/cacheflush.h for the defaults.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Greg Ungerer <gerg@linux-m68k.org>
 ---
- include/asm-generic/cacheflush.h | 4 ++++
- 1 file changed, 4 insertions(+)
+ arch/m68k/include/asm/cacheflush_no.h | 19 ++-----------------
+ 1 file changed, 2 insertions(+), 17 deletions(-)
 
-diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
-index 2c9686fefb715..907fa5d164944 100644
---- a/include/asm-generic/cacheflush.h
-+++ b/include/asm-generic/cacheflush.h
-@@ -66,6 +66,10 @@ static inline void flush_icache_range(unsigned long start, unsigned long end)
- }
- #endif
+diff --git a/arch/m68k/include/asm/cacheflush_no.h b/arch/m68k/include/asm/cacheflush_no.h
+index 11e9a9dcbfb24..2731f07e7be8c 100644
+--- a/arch/m68k/include/asm/cacheflush_no.h
++++ b/arch/m68k/include/asm/cacheflush_no.h
+@@ -9,25 +9,8 @@
+ #include <asm/mcfsim.h>
  
-+#ifndef flush_icache_user_range
-+#define flush_icache_user_range flush_icache_range
-+#endif
+ #define flush_cache_all()			__flush_cache_all()
+-#define flush_cache_mm(mm)			do { } while (0)
+-#define flush_cache_dup_mm(mm)			do { } while (0)
+-#define flush_cache_range(vma, start, end)	do { } while (0)
+-#define flush_cache_page(vma, vmaddr)		do { } while (0)
+ #define flush_dcache_range(start, len)		__flush_dcache_all()
+-#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
+-#define flush_dcache_page(page)			do { } while (0)
+-#define flush_dcache_mmap_lock(mapping)		do { } while (0)
+-#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
+ #define flush_icache_range(start, len)		__flush_icache_all()
+-#define flush_icache_page(vma,pg)		do { } while (0)
+-#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
+-#define flush_cache_vmap(start, end)		do { } while (0)
+-#define flush_cache_vunmap(start, end)		do { } while (0)
+-
+-#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+-	memcpy(dst, src, len)
+-#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
+-	memcpy(dst, src, len)
+ 
+ void mcf_cache_push(void);
+ 
+@@ -98,4 +81,6 @@ static inline void cache_clear(unsigned long paddr, int len)
+ 	__clear_cache_all();
+ }
+ 
++#include <asm-generic/cacheflush.h>
 +
- #ifndef flush_icache_page
- static inline void flush_icache_page(struct vm_area_struct *vma,
- 				     struct page *page)
+ #endif /* _M68KNOMMU_CACHEFLUSH_H */
 -- 
 2.26.2
