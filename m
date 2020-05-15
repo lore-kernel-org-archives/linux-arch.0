@@ -1,138 +1,51 @@
-From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Subject: Re: [PATCH v6 0/4] Introduce the for_each_set_clump macro
-Date: Fri, 15 May 2020 14:32:57 +0300
-Message-ID: <20200515113257.GP185537@smile.fi.intel.com>
-References: <cover.1589497311.git.syednwaris@gmail.com>
+From: Szabolcs Nagy <szabolcs.nagy@arm.com>
+Subject: Re: [PATCH v3 23/23] arm64: mte: Add Memory Tagging Extension
+ documentation
+Date: Fri, 15 May 2020 13:04:33 +0100
+Message-ID: <20200515120433.GE27289@arm.com>
+References: <20200421142603.3894-24-catalin.marinas@arm.com>
+ <20200429164705.GF30377@arm.com>
+ <20200430162316.GJ2717@gaia>
+ <20200504164617.GK30377@arm.com>
+ <20200511164018.GC19176@gaia>
+ <20200513154845.GT21779@arm.com>
+ <20200514113722.GA1907@gaia>
+ <20200515103839.GA22393@gaia>
+ <20200515111359.GC27289@arm.com>
+ <20200515112740.GB22393@gaia>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-eopbgr70082.outbound.protection.outlook.com ([40.107.7.82]:63560
+        "EHLO EUR04-HE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726168AbgEOMEs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 May 2020 08:04:48 -0400
 Content-Disposition: inline
-In-Reply-To: <cover.1589497311.git.syednwaris@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Syed Nayyar Waris <syednwaris@gmail.com>
-Cc: akpm@linux-foundation.org, vilhelm.gray@gmail.com, michal.simek@xilinx.com, arnd@arndb.de, rrichter@marvell.com, linus.walleij@linaro.org, bgolaszewski@baylibre.com, yamada.masahiro@socionext.com, rui.zhang@intel.com, daniel.lezcano@linaro.org, amit.kucheria@verdurent.com, linux-arch@vger.kernel.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20200515112740.GB22393@gaia>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Dave Martin <Dave.Martin@arm.com>, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, linux-arm-kernel@lists.infradead.org, nd@arm.com
 
-On Fri, May 15, 2020 at 04:46:03AM +0530, Syed Nayyar Waris wrote:
-> This patchset introduces a new generic version of for_each_set_clump. 
-> The previous version of for_each_set_clump8 used a fixed size 8-bit
-> clump, but the new generic version can work with clump of any size but
-> less than or equal to BITS_PER_LONG. The patchset utilizes the new macro 
-> in several GPIO drivers.
-> 
-> The earlier 8-bit for_each_set_clump8 facilitated a
-> for-loop syntax that iterates over a memory region entire groups of set
-> bits at a time.
-> 
-> For example, suppose you would like to iterate over a 32-bit integer 8
-> bits at a time, skipping over 8-bit groups with no set bit, where
-> XXXXXXXX represents the current 8-bit group:
-> 
->     Example:        10111110 00000000 11111111 00110011
->     First loop:     10111110 00000000 11111111 XXXXXXXX
->     Second loop:    10111110 00000000 XXXXXXXX 00110011
->     Third loop:     XXXXXXXX 00000000 11111111 00110011
-> 
-> Each iteration of the loop returns the next 8-bit group that has at
-> least one set bit.
-> 
-> But with the new for_each_set_clump the clump size can be different from 8 bits.
-> Moreover, the clump can be split at word boundary in situations where word 
-> size is not multiple of clump size. Following are examples showing the working 
-> of new macro for clump sizes of 24 bits and 6 bits.
-> 
-> Example 1:
-> clump size: 24 bits, Number of clumps (or ports): 10
-> bitmap stores the bit information from where successive clumps are retrieved.
-> 
->      /* bitmap memory region */
->         0x00aa0000ff000000;  /* Most significant bits */
->         0xaaaaaa0000ff0000;
->         0x000000aa000000aa;
->         0xbbbbabcdeffedcba;  /* Least significant bits */
-> 
-> Different iterations of for_each_set_clump:-
-> 'offset' is the bit position and 'clump' is the 24 bit clump from the
-> above bitmap.
-> Iteration first:        offset: 0 clump: 0xfedcba
-> Iteration second:       offset: 24 clump: 0xabcdef
-> Iteration third:        offset: 48 clump: 0xaabbbb
-> Iteration fourth:       offset: 96 clump: 0xaa
-> Iteration fifth:        offset: 144 clump: 0xff
-> Iteration sixth:        offset: 168 clump: 0xaaaaaa
-> Iteration seventh:      offset: 216 clump: 0xff
-> Loop breaks because in the end the remaining bits (0x00aa) size was less
-> than clump size of 24 bits.
-> 
-> In above example it can be seen that in iteration third, the 24 bit clump
-> that was retrieved was split between bitmap[0] and bitmap[1]. This example 
-> also shows that 24 bit zeroes if present in between, were skipped (preserving
-> the previous for_each_set_macro8 behaviour). 
-> 
-> Example 2:
-> clump size = 6 bits, Number of clumps (or ports) = 3.
-> 
->      /* bitmap memory region */
->         0x00aa0000ff000000;  /* Most significant bits */
->         0xaaaaaa0000ff0000;
->         0x0f00000000000000;
->         0x0000000000000ac0;  /* Least significant bits */
-> 
-> Different iterations of for_each_set_clump:
-> 'offset' is the bit position and 'clump' is the 6 bit clump from the
-> above bitmap.
-> Iteration first:        offset: 6 clump: 0x2b
-> Loop breaks because 6 * 3 = 18 bits traversed in bitmap.
-> Here 6 * 3 is clump size * no. of clumps.
+The 05/15/2020 12:27, Catalin Marinas wrote:
+> Thanks Szabolcs. While we are at this, no-one so far asked for the
+> GCR_EL1.RRND to be exposed to user (and this implies RGSR_EL1.SEED).
+> Since RRND=1 guarantees a distribution "no worse" than that of RRND=0, I
+> thought there isn't much point in exposing this configuration to the
+> user. The only advantage of RRND=0 I see is that the kernel can change
 
-Thank you!
+it seems RRND=1 is the impl specific algorithm.
 
-Overall looks good to me, though I gave tags per individual patches (I'm not
-familiar with that GPIO drivers, so, I may not tag them).
+> the seed randomly but, with only 4 bits per tag, it really doesn't
+> matter much.
+> 
+> Anyway, mentioning it here in case anyone is surprised later about the
+> lack of RRND configurability.
 
-> 
-> Changes in v6:
->  - [Patch 2/4]: Make 'for loop' inside test_for_each_set_clump more
->    succinct.
-> 
-> Changes in v5:
->  - [Patch 4/4]: Minor change: Hardcode value for better code readability.
-> 
-> Changes in v4:
->  - [Patch 2/4]: Use 'for' loop in test function of for_each_set_clump.
->  - [Patch 3/4]: Minor change: Inline value for better code readability.
->  - [Patch 4/4]: Minor change: Inline value for better code readability.
-> 
-> Changes in v3:
->  - [Patch 3/4]: Change datatype of some variables from u64 to unsigned long
->    in function thunderx_gpio_set_multiple.
-> 
-> CHanges in v2:
->  - [Patch 2/4]: Unify different tests for 'for_each_set_clump'. Pass test data as
->    function parameters.
->  - [Patch 2/4]: Remove unnecessary bitmap_zero calls.
-> 
-> Syed Nayyar Waris (4):
->   bitops: Introduce the the for_each_set_clump macro
->   lib/test_bitmap.c: Add for_each_set_clump test cases
->   gpio: thunderx: Utilize for_each_set_clump macro
->   gpio: xilinx: Utilize for_each_set_clump macro
-> 
->  drivers/gpio/gpio-thunderx.c      |  11 ++-
->  drivers/gpio/gpio-xilinx.c        |  62 ++++++-------
->  include/asm-generic/bitops/find.h |  19 ++++
->  include/linux/bitmap.h            |  61 +++++++++++++
->  include/linux/bitops.h            |  13 +++
->  lib/find_bit.c                    |  14 +++
->  lib/test_bitmap.c                 | 142 ++++++++++++++++++++++++++++++
->  7 files changed, 288 insertions(+), 34 deletions(-)
-> 
-> 
-> base-commit: 5f458e572071a54841b93f41e25fbe8ded82df79
-> -- 
-> 2.26.2
-> 
+i'm not familiar with how irg works.
 
--- 
-With Best Regards,
-Andy Shevchenko
+is the seed per process state that's set
+up at process startup in some way?
+or shared (and thus effectively irg is
+non-deterministic in userspace)?
