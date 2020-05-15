@@ -1,13 +1,13 @@
 Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-eopbgr700119.outbound.protection.outlook.com ([40.107.70.119]:43540
-        "EHLO NAM04-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-dm6nam12on2130.outbound.protection.outlook.com ([40.107.243.130]:13665
+        "EHLO NAM12-DM6-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726362AbgEOPYG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1727801AbgEOPYG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Fri, 15 May 2020 11:24:06 -0400
 From: Nate Karstens <nate.karstens@garmin.com>
-Subject: [PATCH v2 1/4] fs: Implement close-on-fork
-Date: Fri, 15 May 2020 10:23:18 -0500
-Message-ID: <20200515152321.9280-2-nate.karstens@garmin.com>
+Subject: [PATCH v2 2/4] fs: Add O_CLOFORK flag for open(2) and dup3(2)
+Date: Fri, 15 May 2020 10:23:19 -0500
+Message-ID: <20200515152321.9280-3-nate.karstens@garmin.com>
 In-Reply-To: <20200515152321.9280-1-nate.karstens@garmin.com>
 References: <20200515152321.9280-1-nate.karstens@garmin.com>
 MIME-Version: 1.0
@@ -17,293 +17,192 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Eric Dumazet <edumazet@google.com>, David Laight <David.Laight@aculab.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Changli Gao <xiaosuo@gmail.com>, Nate Karstens <nate.karstens@garmin.com>
-Message-ID: <20200515152318.GrCa0GnEx7yZFnSw69q6QBDUs09aLnleyHVTVrQqrsk@z>
+Message-ID: <20200515152319.Xwunus8x-Hpn52cYkx5-T13k16YvhaArfoTQHqnxTwc@z>
 
-The close-on-fork flag causes the file descriptor to be closed
-atomically in the child process before the child process returns
-from fork(). Implement this feature and provide a method to
-get/set the close-on-fork flag using fcntl(2).
-
-This functionality was approved by the Austin Common Standards
-Revision Group for inclusion in the next revision of the POSIX
-standard (see issue 1318 in the Austin Group Defect Tracker).
-
-If clone(2) is used to create a child process and the CLONE_FILES
-flag is set, then both processes will share the table of file
-descriptors and the state of the close-on-fork flag for any
-individual file descriptor. If unshare(2) is later used to stop
-sharing the file descriptor table, then any file descriptor with
-the close-on-fork flag set will be closed in the process that
-calls unshare(2).
-
-execve(2) also causes the file descriptor table to be unshared,
-so any file descriptor with the close-on-fork flag set will be
-closed in the process that calls execve(2).
+Add the O_CLOFORK flag to open(2) and dup3(2) to automatically
+set the close-on-fork flag in the new file descriptor, saving
+a separate call to fcntl(2).
 
 Co-developed-by: Changli Gao <xiaosuo@gmail.com>
 Signed-off-by: Changli Gao <xiaosuo@gmail.com>
 Signed-off-by: Nate Karstens <nate.karstens@garmin.com>
 ---
- fs/fcntl.c                             |  4 +-
- fs/file.c                              | 64 ++++++++++++++++++++++++--
- include/linux/fdtable.h                |  7 +++
- include/linux/file.h                   |  2 +
- include/uapi/asm-generic/fcntl.h       |  5 +-
- tools/include/uapi/asm-generic/fcntl.h |  5 +-
- 6 files changed, 77 insertions(+), 10 deletions(-)
+ arch/alpha/include/uapi/asm/fcntl.h    |  2 ++
+ arch/parisc/include/uapi/asm/fcntl.h   | 39 +++++++++++++-------------
+ arch/sparc/include/uapi/asm/fcntl.h    |  1 +
+ fs/fcntl.c                             |  2 +-
+ fs/file.c                              | 10 ++++++-
+ include/linux/fcntl.h                  |  2 +-
+ include/uapi/asm-generic/fcntl.h       |  4 +++
+ tools/include/uapi/asm-generic/fcntl.h |  4 +++
+ 8 files changed, 42 insertions(+), 22 deletions(-)
 
+diff --git a/arch/alpha/include/uapi/asm/fcntl.h b/arch/alpha/include/uapi/asm/fcntl.h
+index 50bdc8e8a271..fbab69b15f7f 100644
+--- a/arch/alpha/include/uapi/asm/fcntl.h
++++ b/arch/alpha/include/uapi/asm/fcntl.h
+@@ -35,6 +35,8 @@
+ #define O_PATH		040000000
+ #define __O_TMPFILE	0100000000
+ 
++#define O_CLOFORK	0200000000 /* set close_on_fork */
++
+ #define F_GETLK		7
+ #define F_SETLK		8
+ #define F_SETLKW	9
+diff --git a/arch/parisc/include/uapi/asm/fcntl.h b/arch/parisc/include/uapi/asm/fcntl.h
+index 03ce20e5ad7d..8f5989e75b05 100644
+--- a/arch/parisc/include/uapi/asm/fcntl.h
++++ b/arch/parisc/include/uapi/asm/fcntl.h
+@@ -2,26 +2,27 @@
+ #ifndef _PARISC_FCNTL_H
+ #define _PARISC_FCNTL_H
+ 
+-#define O_APPEND	000000010
+-#define O_BLKSEEK	000000100 /* HPUX only */
+-#define O_CREAT		000000400 /* not fcntl */
+-#define O_EXCL		000002000 /* not fcntl */
+-#define O_LARGEFILE	000004000
+-#define __O_SYNC	000100000
++#define O_APPEND	0000000010
++#define O_BLKSEEK	0000000100 /* HPUX only */
++#define O_CREAT		0000000400 /* not fcntl */
++#define O_EXCL		0000002000 /* not fcntl */
++#define O_LARGEFILE	0000004000
++#define __O_SYNC	0000100000
+ #define O_SYNC		(__O_SYNC|O_DSYNC)
+-#define O_NONBLOCK	000200004 /* HPUX has separate NDELAY & NONBLOCK */
+-#define O_NOCTTY	000400000 /* not fcntl */
+-#define O_DSYNC		001000000 /* HPUX only */
+-#define O_RSYNC		002000000 /* HPUX only */
+-#define O_NOATIME	004000000
+-#define O_CLOEXEC	010000000 /* set close_on_exec */
+-
+-#define O_DIRECTORY	000010000 /* must be a directory */
+-#define O_NOFOLLOW	000000200 /* don't follow links */
+-#define O_INVISIBLE	004000000 /* invisible I/O, for DMAPI/XDSM */
+-
+-#define O_PATH		020000000
+-#define __O_TMPFILE	040000000
++#define O_NONBLOCK	0000200004 /* HPUX has separate NDELAY & NONBLOCK */
++#define O_NOCTTY	0000400000 /* not fcntl */
++#define O_DSYNC		0001000000 /* HPUX only */
++#define O_RSYNC		0002000000 /* HPUX only */
++#define O_NOATIME	0004000000
++#define O_CLOEXEC	0010000000 /* set close_on_exec */
++
++#define O_DIRECTORY	0000010000 /* must be a directory */
++#define O_NOFOLLOW	0000000200 /* don't follow links */
++#define O_INVISIBLE	0004000000 /* invisible I/O, for DMAPI/XDSM */
++
++#define O_PATH		0020000000
++#define __O_TMPFILE	0040000000
++#define O_CLOFORK	0100000000
+ 
+ #define F_GETLK64	8
+ #define F_SETLK64	9
+diff --git a/arch/sparc/include/uapi/asm/fcntl.h b/arch/sparc/include/uapi/asm/fcntl.h
+index 67dae75e5274..d631ea13bac3 100644
+--- a/arch/sparc/include/uapi/asm/fcntl.h
++++ b/arch/sparc/include/uapi/asm/fcntl.h
+@@ -37,6 +37,7 @@
+ 
+ #define O_PATH		0x1000000
+ #define __O_TMPFILE	0x2000000
++#define O_CLOFORK	0x4000000
+ 
+ #define F_GETOWN	5	/*  for sockets. */
+ #define F_SETOWN	6	/*  for sockets. */
 diff --git a/fs/fcntl.c b/fs/fcntl.c
-index 2e4c0fa2074b..913b0cb70804 100644
+index 913b0cb70804..40af2a48702b 100644
 --- a/fs/fcntl.c
 +++ b/fs/fcntl.c
-@@ -334,11 +334,11 @@ static long do_fcntl(int fd, unsigned int cmd, unsigned long arg,
- 		err = f_dupfd(arg, filp, O_CLOEXEC);
- 		break;
- 	case F_GETFD:
--		err = get_close_on_exec(fd) ? FD_CLOEXEC : 0;
-+		err = f_getfd(fd);
- 		break;
- 	case F_SETFD:
- 		err = 0;
--		set_close_on_exec(fd, arg & FD_CLOEXEC);
-+		f_setfd(fd, arg);
- 		break;
- 	case F_GETFL:
- 		err = filp->f_flags;
+@@ -1033,7 +1033,7 @@ static int __init fcntl_init(void)
+ 	 * Exceptions: O_NONBLOCK is a two bit define on parisc; O_NDELAY
+ 	 * is defined as O_NONBLOCK on some platforms and not on others.
+ 	 */
+-	BUILD_BUG_ON(21 - 1 /* for O_RDONLY being 0 */ !=
++	BUILD_BUG_ON(22 - 1 /* for O_RDONLY being 0 */ !=
+ 		HWEIGHT32(
+ 			(VALID_OPEN_FLAGS & ~(O_NONBLOCK | O_NDELAY)) |
+ 			__FMODE_EXEC | __FMODE_NONOTIFY));
 diff --git a/fs/file.c b/fs/file.c
-index c8a4e4c86e55..81194349e980 100644
+index 81194349e980..4a1b84eecec6 100644
 --- a/fs/file.c
 +++ b/fs/file.c
-@@ -47,7 +47,7 @@ static void free_fdtable_rcu(struct rcu_head *rcu)
-  * spinlock held for write.
-  */
- static void copy_fd_bitmaps(struct fdtable *nfdt, struct fdtable *ofdt,
--			    unsigned int count)
-+			    unsigned int count, bool copy_cof)
- {
- 	unsigned int cpy, set;
- 
-@@ -58,6 +58,13 @@ static void copy_fd_bitmaps(struct fdtable *nfdt, struct fdtable *ofdt,
- 	memcpy(nfdt->close_on_exec, ofdt->close_on_exec, cpy);
- 	memset((char *)nfdt->close_on_exec + cpy, 0, set);
- 
-+	if (copy_cof) {
-+		memcpy(nfdt->close_on_fork, ofdt->close_on_fork, cpy);
-+		memset((char *)nfdt->close_on_fork + cpy, 0, set);
-+	} else {
-+		memset((char *)nfdt->close_on_fork, 0, cpy + set);
-+	}
-+
- 	cpy = BITBIT_SIZE(count);
- 	set = BITBIT_SIZE(nfdt->max_fds) - cpy;
- 	memcpy(nfdt->full_fds_bits, ofdt->full_fds_bits, cpy);
-@@ -79,7 +86,7 @@ static void copy_fdtable(struct fdtable *nfdt, struct fdtable *ofdt)
- 	memcpy(nfdt->fd, ofdt->fd, cpy);
- 	memset((char *)nfdt->fd + cpy, 0, set);
- 
--	copy_fd_bitmaps(nfdt, ofdt, ofdt->max_fds);
-+	copy_fd_bitmaps(nfdt, ofdt, ofdt->max_fds, true);
- }
- 
- static struct fdtable * alloc_fdtable(unsigned int nr)
-@@ -118,7 +125,7 @@ static struct fdtable * alloc_fdtable(unsigned int nr)
- 	fdt->fd = data;
- 
- 	data = kvmalloc(max_t(size_t,
--				 2 * nr / BITS_PER_BYTE + BITBIT_SIZE(nr), L1_CACHE_BYTES),
-+				 3 * nr / BITS_PER_BYTE + BITBIT_SIZE(nr), L1_CACHE_BYTES),
- 				 GFP_KERNEL_ACCOUNT);
- 	if (!data)
- 		goto out_arr;
-@@ -126,6 +133,8 @@ static struct fdtable * alloc_fdtable(unsigned int nr)
- 	data += nr / BITS_PER_BYTE;
- 	fdt->close_on_exec = data;
- 	data += nr / BITS_PER_BYTE;
-+	fdt->close_on_fork = data;
-+	data += nr / BITS_PER_BYTE;
- 	fdt->full_fds_bits = data;
- 
- 	return fdt;
-@@ -236,6 +245,17 @@ static inline void __clear_close_on_exec(unsigned int fd, struct fdtable *fdt)
- 		__clear_bit(fd, fdt->close_on_exec);
- }
- 
-+static inline void __set_close_on_fork(unsigned int fd, struct fdtable *fdt)
-+{
-+	__set_bit(fd, fdt->close_on_fork);
-+}
-+
-+static inline void __clear_close_on_fork(unsigned int fd, struct fdtable *fdt)
-+{
-+	if (test_bit(fd, fdt->close_on_fork))
-+		__clear_bit(fd, fdt->close_on_fork);
-+}
-+
- static inline void __set_open_fd(unsigned int fd, struct fdtable *fdt)
- {
- 	__set_bit(fd, fdt->open_fds);
-@@ -290,6 +310,7 @@ struct files_struct *dup_fd(struct files_struct *oldf, int *errorp)
- 	new_fdt = &newf->fdtab;
- 	new_fdt->max_fds = NR_OPEN_DEFAULT;
- 	new_fdt->close_on_exec = newf->close_on_exec_init;
-+	new_fdt->close_on_fork = newf->close_on_fork_init;
- 	new_fdt->open_fds = newf->open_fds_init;
- 	new_fdt->full_fds_bits = newf->full_fds_bits_init;
- 	new_fdt->fd = &newf->fd_array[0];
-@@ -330,13 +351,17 @@ struct files_struct *dup_fd(struct files_struct *oldf, int *errorp)
- 		open_files = count_open_files(old_fdt);
- 	}
- 
--	copy_fd_bitmaps(new_fdt, old_fdt, open_files);
-+	copy_fd_bitmaps(new_fdt, old_fdt, open_files, false);
- 
- 	old_fds = old_fdt->fd;
- 	new_fds = new_fdt->fd;
- 
- 	for (i = open_files; i != 0; i--) {
- 		struct file *f = *old_fds++;
-+
-+		if (close_on_fork(open_files - i, old_fdt))
-+			f = NULL;
-+
- 		if (f) {
- 			get_file(f);
- 		} else {
-@@ -453,6 +478,7 @@ struct files_struct init_files = {
- 		.max_fds	= NR_OPEN_DEFAULT,
- 		.fd		= &init_files.fd_array[0],
- 		.close_on_exec	= init_files.close_on_exec_init,
-+		.close_on_fork	= init_files.close_on_fork_init,
- 		.open_fds	= init_files.open_fds_init,
- 		.full_fds_bits	= init_files.full_fds_bits_init,
- 	},
-@@ -840,6 +866,36 @@ void __f_unlock_pos(struct file *f)
-  * file count (done either by fdget() or by fork()).
-  */
- 
-+void f_setfd(unsigned int fd, int flags)
-+{
-+	struct files_struct *files = current->files;
-+	struct fdtable *fdt;
-+	spin_lock(&files->file_lock);
-+	fdt = files_fdtable(files);
-+	if (flags & FD_CLOEXEC)
-+		__set_close_on_exec(fd, fdt);
-+	else
-+		__clear_close_on_exec(fd, fdt);
-+	if (flags & FD_CLOFORK)
+@@ -547,6 +547,10 @@ int __alloc_fd(struct files_struct *files,
+ 		__set_close_on_exec(fd, fdt);
+ 	else
+ 		__clear_close_on_exec(fd, fdt);
++	if (flags & O_CLOFORK)
 +		__set_close_on_fork(fd, fdt);
 +	else
 +		__clear_close_on_fork(fd, fdt);
-+	spin_unlock(&files->file_lock);
-+}
-+
-+int f_getfd(unsigned int fd)
-+{
-+	struct files_struct *files = current->files;
-+	struct fdtable *fdt;
-+	int flags;
-+	rcu_read_lock();
-+	fdt = files_fdtable(files);
-+	flags = (close_on_exec(fd, fdt) ? FD_CLOEXEC : 0) |
-+	        (close_on_fork(fd, fdt) ? FD_CLOFORK : 0);
-+	rcu_read_unlock();
-+	return flags;
-+}
-+
- void set_close_on_exec(unsigned int fd, int flag)
- {
+ 	error = fd;
+ #if 1
+ 	/* Sanity check */
+@@ -953,6 +957,10 @@ __releases(&files->file_lock)
+ 		__set_close_on_exec(fd, fdt);
+ 	else
+ 		__clear_close_on_exec(fd, fdt);
++	if (flags & O_CLOFORK)
++		__set_close_on_fork(fd, fdt);
++	else
++		__clear_close_on_fork(fd, fdt);
+ 	spin_unlock(&files->file_lock);
+ 
+ 	if (tofree)
+@@ -993,7 +1001,7 @@ static int ksys_dup3(unsigned int oldfd, unsigned int newfd, int flags)
+ 	struct file *file;
  	struct files_struct *files = current->files;
-diff --git a/include/linux/fdtable.h b/include/linux/fdtable.h
-index f07c55ea0c22..61c551947fa3 100644
---- a/include/linux/fdtable.h
-+++ b/include/linux/fdtable.h
-@@ -27,6 +27,7 @@ struct fdtable {
- 	unsigned int max_fds;
- 	struct file __rcu **fd;      /* current fd array */
- 	unsigned long *close_on_exec;
-+	unsigned long *close_on_fork;
- 	unsigned long *open_fds;
- 	unsigned long *full_fds_bits;
- 	struct rcu_head rcu;
-@@ -37,6 +38,11 @@ static inline bool close_on_exec(unsigned int fd, const struct fdtable *fdt)
- 	return test_bit(fd, fdt->close_on_exec);
- }
  
-+static inline bool close_on_fork(unsigned int fd, const struct fdtable *fdt)
-+{
-+	return test_bit(fd, fdt->close_on_fork);
-+}
-+
- static inline bool fd_is_open(unsigned int fd, const struct fdtable *fdt)
- {
- 	return test_bit(fd, fdt->open_fds);
-@@ -61,6 +67,7 @@ struct files_struct {
- 	spinlock_t file_lock ____cacheline_aligned_in_smp;
- 	unsigned int next_fd;
- 	unsigned long close_on_exec_init[1];
-+	unsigned long close_on_fork_init[1];
- 	unsigned long open_fds_init[1];
- 	unsigned long full_fds_bits_init[1];
- 	struct file __rcu * fd_array[NR_OPEN_DEFAULT];
-diff --git a/include/linux/file.h b/include/linux/file.h
-index 142d102f285e..0ee15ee24010 100644
---- a/include/linux/file.h
-+++ b/include/linux/file.h
-@@ -83,6 +83,8 @@ static inline void fdput_pos(struct fd f)
+-	if ((flags & ~O_CLOEXEC) != 0)
++	if ((flags & ~(O_CLOEXEC | O_CLOFORK)) != 0)
+ 		return -EINVAL;
  
- extern int f_dupfd(unsigned int from, struct file *file, unsigned flags);
- extern int replace_fd(unsigned fd, struct file *file, unsigned flags);
-+extern int f_getfd(unsigned int fd);
-+extern void f_setfd(unsigned int fd, int flags);
- extern void set_close_on_exec(unsigned int fd, int flag);
- extern bool get_close_on_exec(unsigned int fd);
- extern int __get_unused_fd_flags(unsigned flags, unsigned long nofile);
+ 	if (unlikely(oldfd == newfd))
+diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
+index 7bcdcf4f6ab2..cd4c625647db 100644
+--- a/include/linux/fcntl.h
++++ b/include/linux/fcntl.h
+@@ -10,7 +10,7 @@
+ 	(O_RDONLY | O_WRONLY | O_RDWR | O_CREAT | O_EXCL | O_NOCTTY | O_TRUNC | \
+ 	 O_APPEND | O_NDELAY | O_NONBLOCK | O_NDELAY | __O_SYNC | O_DSYNC | \
+ 	 FASYNC	| O_DIRECT | O_LARGEFILE | O_DIRECTORY | O_NOFOLLOW | \
+-	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE)
++	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE | O_CLOFORK)
+ 
+ /* List of all valid flags for the how->upgrade_mask argument: */
+ #define VALID_UPGRADE_FLAGS \
 diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
-index 9dc0bf0c5a6e..0cb7199a7743 100644
+index 0cb7199a7743..165a0736a3aa 100644
 --- a/include/uapi/asm-generic/fcntl.h
 +++ b/include/uapi/asm-generic/fcntl.h
-@@ -98,8 +98,8 @@
+@@ -89,6 +89,10 @@
+ #define __O_TMPFILE	020000000
  #endif
  
- #define F_DUPFD		0	/* dup */
--#define F_GETFD		1	/* get close_on_exec */
--#define F_SETFD		2	/* set/clear close_on_exec */
-+#define F_GETFD		1	/* get close_on_exec & close_on_fork */
-+#define F_SETFD		2	/* set/clear close_on_exec & close_on_fork */
- #define F_GETFL		3	/* get file->f_flags */
- #define F_SETFL		4	/* set file->f_flags */
- #ifndef F_GETLK
-@@ -160,6 +160,7 @@ struct f_owner_ex {
- 
- /* for F_[GET|SET]FL */
- #define FD_CLOEXEC	1	/* actually anything with low bit set goes */
-+#define FD_CLOFORK	2
- 
- /* for posix fcntl() and lockf() */
- #ifndef F_RDLCK
++#ifndef O_CLOFORK
++#define O_CLOFORK	040000000	/* set close_on_fork */
++#endif
++
+ /* a horrid kludge trying to make sure that this will fail on old kernels */
+ #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
+ #define O_TMPFILE_MASK (__O_TMPFILE | O_DIRECTORY | O_CREAT)      
 diff --git a/tools/include/uapi/asm-generic/fcntl.h b/tools/include/uapi/asm-generic/fcntl.h
-index ac190958c981..e04a00fecb4a 100644
+index e04a00fecb4a..69d8a000ec65 100644
 --- a/tools/include/uapi/asm-generic/fcntl.h
 +++ b/tools/include/uapi/asm-generic/fcntl.h
-@@ -97,8 +97,8 @@
+@@ -88,6 +88,10 @@
+ #define __O_TMPFILE	020000000
  #endif
  
- #define F_DUPFD		0	/* dup */
--#define F_GETFD		1	/* get close_on_exec */
--#define F_SETFD		2	/* set/clear close_on_exec */
-+#define F_GETFD		1	/* get close_on_exec & close_on_fork */
-+#define F_SETFD		2	/* set/clear close_on_exec & close_on_fork */
- #define F_GETFL		3	/* get file->f_flags */
- #define F_SETFL		4	/* set file->f_flags */
- #ifndef F_GETLK
-@@ -159,6 +159,7 @@ struct f_owner_ex {
- 
- /* for F_[GET|SET]FL */
- #define FD_CLOEXEC	1	/* actually anything with low bit set goes */
-+#define FD_CLOFORK	2
- 
- /* for posix fcntl() and lockf() */
- #ifndef F_RDLCK
++#ifndef O_CLOFORK
++#define O_CLOFORK	040000000	/* set close_on_fork */
++#endif
++
+ /* a horrid kludge trying to make sure that this will fail on old kernels */
+ #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
+ #define O_TMPFILE_MASK (__O_TMPFILE | O_DIRECTORY | O_CREAT)
 -- 
 2.26.1
