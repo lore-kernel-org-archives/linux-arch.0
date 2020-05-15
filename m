@@ -1,111 +1,121 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
 Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
-Date: Fri, 15 May 2020 14:33:49 -0700
-Message-ID: <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
+Date: Fri, 15 May 2020 15:43:56 -0700
+Message-ID: <32235ffc-6e6c-fb3d-80c4-a0478e2d0e0f@intel.com>
 References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-         <20200429220732.31602-2-yu-cheng.yu@intel.com>
-         <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
-         <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
-         <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
-         <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
+ <20200429220732.31602-2-yu-cheng.yu@intel.com>
+ <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
+ <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+ <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
+ <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
+ <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:49479 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726301AbgEOVdq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 17:33:46 -0400
-In-Reply-To: <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
+Content-Language: en-US
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2020-05-15 at 11:39 -0700, Dave Hansen wrote:
-> On 5/12/20 4:20 PM, Yu-cheng Yu wrote:
-> > On Wed, 2020-04-29 at 16:02 -0700, Yu-cheng Yu wrote:
-> > > On Wed, 2020-04-29 at 15:53 -0700, Dave Hansen wrote:
-> > > > On 4/29/20 3:07 PM, Yu-cheng Yu wrote:
-> > > > > +Note:
-> > > > > +  There is no CET-enabling arch_prctl function.  By design, CET is enabled
-> > > > > +  automatically if the binary and the system can support it.
-> > > > 
-> > > > I think Andy and I danced around this last time.  Let me try to say it
-> > > > more explicitly.
-> > > > 
-> > > > I want CET kernel enabling to able to be disconnected from the on-disk
-> > > > binary.  I want a binary compiled with CET to be able to disable it, and
-> > > > I want a binary not compiled with CET to be able to enable it.  I want
-> > > > different threads in a process to be able to each have different CET status.
-> > > 
-> > > The kernel patches we have now can be modified to support this model.  If after
-> > > discussion this is favorable, I will modify code accordingly.
-> > 
-> > To turn on/off and to lock CET are application-level decisions.  The kernel does
-> > not prevent any of those.  Should there be a need to provide an arch_prctl() to
-> > turn on CET, it can be added without any conflict to this series.
+On 5/15/20 2:33 PM, Yu-cheng Yu wrote:
+> On Fri, 2020-05-15 at 11:39 -0700, Dave Hansen wrote:
+>> On 5/12/20 4:20 PM, Yu-cheng Yu wrote:
+>> Can a binary compiled with CET run without CET?
 > 
-> I spelled out what I wanted pretty clearly.  On your next post, could
-> you please directly address each of the things I asked for?  Please
-> directly answer the following questions in your next post with respect
-> to the code you post:
+> Yes, but a few details:
 > 
-> Can a binary compiled with CET run without CET?
+> - The shadow stack is transparent to the application.  A CET application does
+> not have anything different from a non-CET application.  However, if a CET
+> application uses any CET instructions (e.g. INCSSP), it must first check if CET
+> is turned on.
+> - If an application is compiled for IBT, the compiler inserts ENDBRs at branch
+> targets.  These are nops if IBT is not on.
 
-Yes, but a few details:
+I appreciate the detailed response, but it wasn't quite what I was
+asking.  Let's ignore IBT for now and just talk about shadow stacks.
 
-- The shadow stack is transparent to the application.  A CET application does
-not have anything different from a non-CET application.  However, if a CET
-application uses any CET instructions (e.g. INCSSP), it must first check if CET
-is turned on.
-- If an application is compiled for IBT, the compiler inserts ENDBRs at branch
-targets.  These are nops if IBT is not on.
+An app compiled with the new ELF flags and running on a CET-enabled
+kernel and CPU will start off with shadow stacks allocated and enabled,
+right?  It can turn its shadow stack off per-thread with the new prctl.
+ But, otherwise, it's stuck, the only way to turn shadow stacks off at
+startup would be editing the binary.
 
-> Can a binary compiled without CET run CET-enabled code?
+Basically, if there ends up being a bug in an app that violates the
+shadow stack rules, the app is broken, period.  The only recourse is to
+have the kernel disable CET and reboot.
 
-Partially yes, but in reality somewhat difficult.
+Is that right?
 
-- If a non-CET application does exec() of a CET binary, then CET is enabled.
-- If a not-CET application does fork(), and the child wants to turn on CET, it
-would be difficult to manage the stack frames, unless the child knows what is is
-doing.  The JIT examples I mentioned previously run with CET enabled from the
-beginning.  Do you have a reason to do this?  In other words, if the JIT code
-needs CET, the app could have started with CET in the first place.
-- If you are asking about dlopen(), the library will have the same setting as
-the main application.  Do you have any reason to have a library running with
-CET, but the application does not have CET?
-
-> Can different threads in a process have different CET enabling state?
-
-Yes, if the parent starts with CET, children can turn it off.  But for the same
-reason described above, it is difficult to turn on CET from the middle.
-
-> > > > Which JITs was this tested with?  I think as a bare minimum we need to
-> > > > know that this design can accommodate _a_ modern JIT.  It would be
-> > > > horrible if the browser javascript engines couldn't use this design, for
-> > > > instance.
-> > > 
-> > > JIT work is still in progress.  When that is available I will test it.
-> > 
-> > I found CET has been enabled in LLVM JIT, Mesa JIT as well as sljit which is
-> > used by jit.  So the current model works with JIT.
+>> Can a binary compiled without CET run CET-enabled code?
 > 
-> Great!  I'm glad the model works.  That's not what I asked, though.
+> Partially yes, but in reality somewhat difficult.
+...
+> - If a not-CET application does fork(), and the child wants to turn on CET, it
+> would be difficult to manage the stack frames, unless the child knows what is is
+> doing.  
+
+It might be hard to do, but it is possible with the patches you posted?
+ I think you're saying that the CET-enabled binary would do
+arch_setup_elf_property() when it was first exec()'d.  Later, it could
+use the new prctl(ARCH_X86_CET_DISABLE) to disable its shadow stack,
+then fork() and the child would not be using CET.  Right?
+
+What is ARCH_X86_CET_DISABLE used for, anyway?
+
+> The JIT examples I mentioned previously run with CET enabled from the
+> beginning.  Do you have a reason to do this?  In other words, if the JIT code
+> needs CET, the app could have started with CET in the first place.
+
+Let's say I have a JIT'd sandbox.  I want the sandbox to be
+CET-protected, but the JIT engine itself not to be.
+
+> - If you are asking about dlopen(), the library will have the same setting as
+> the main application.  Do you have any reason to have a library running with
+> CET, but the application does not have CET?
+
+Sure, using old binaries.  That's why IBT has a legacy bitmap and things
+like MPX had ways of jumping into old non-enabled binaries.
+
+>> Can different threads in a process have different CET enabling state?
 > 
-> Does this *code* work?  Could you please indicate which JITs have been
-> enabled to use the code in this series?  How much of the new ABI is in use?
+> Yes, if the parent starts with CET, children can turn it off.
 
-JIT does not necessarily use all of the ABI.  The JIT changes mainly fix stack
-frames and insert ENDBRs.  I do not work on JIT.  What I found is LLVM JIT fixes
-are tested and in the master branch.  Sljit fixes are in the release.
+How would that work, though?  clone() by default will copy the parent
+xsave state, which means it will be CET-enabled, which means it needs a
+shadow stack.  So, if I want a CET-free child thread, I need to clone(),
+then turn CET off, then free the shadow stack?
 
-> Where are the selftests/ for this new ABI?  Were you planning on
-> submitting any with this series?
+>> Does this *code* work?  Could you please indicate which JITs have been
+>> enabled to use the code in this series?  How much of the new ABI is in use?
+> 
+> JIT does not necessarily use all of the ABI.  The JIT changes mainly fix stack
+> frames and insert ENDBRs.  I do not work on JIT.  What I found is LLVM JIT fixes
+> are tested and in the master branch.  Sljit fixes are in the release.
 
-The ABI is more related to the application side, and therefore most suitable for
-GLIBC unit tests.  The more complicated areas such as pthreads, signals,
-ucontext, fork() are all included there.  I have been constantly running these
-tests without any problems.  I can provide more details if testing is the
-concern.
+Huh, so who is using the new prctl() ABIs?
 
-Yu-cheng
+>> Where are the selftests/ for this new ABI?  Were you planning on
+>> submitting any with this series?
+> 
+> The ABI is more related to the application side, and therefore most suitable for
+> GLIBC unit tests.
+
+I was mostly concerned with the kernel selftests.  The things in
+tools/testing/selftests/x86 in the kernel tree.
+
+> The more complicated areas such as pthreads, signals, ucontext,
+> fork() are all included there.  I have been constantly running these 
+> tests without any problems.  I can provide more details if testing is
+> the concern.
+
+For something this complicated, with new kernel ABIs, we need an
+in-kernel sefltest.
+
+MPX was not that much different from this feature.  It required a
+boatload of compiler and linker changes to function.  Yet, there was a
+simple in-kernel test for it that didn't require *any* of that big pile
+of toolchain bits.
+
+Is there a reason we don't have one of those for CET?
