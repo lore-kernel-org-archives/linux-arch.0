@@ -1,53 +1,83 @@
-Return-Path: <SRS0=03B7=63=kvack.org=owner-linux-mm@kernel.org>
-From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH v2 4/7] x86/mm/64: Implement arch_sync_kernel_mappings()
-Date: Wed, 13 May 2020 17:21:34 +0200
-Message-ID: <20200513152137.32426-5-joro@8bytes.org>
-In-Reply-To: <20200513152137.32426-1-joro@8bytes.org>
-References: <20200513152137.32426-1-joro@8bytes.org>
-Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org
-Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44112 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1727125AbgEOPbB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 May 2020 11:31:01 -0400
+Received: from mail-yb1-xb43.google.com (mail-yb1-xb43.google.com [IPv6:2607:f8b0:4864:20::b43])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C1A18C05BD0C
+        for <linux-arch@vger.kernel.org>; Fri, 15 May 2020 08:30:59 -0700 (PDT)
+Received: by mail-yb1-xb43.google.com with SMTP id c2so1325029ybi.7
+        for <linux-arch@vger.kernel.org>; Fri, 15 May 2020 08:30:59 -0700 (PDT)
+MIME-Version: 1.0
+References: <20200515152321.9280-1-nate.karstens@garmin.com>
+In-Reply-To: <20200515152321.9280-1-nate.karstens@garmin.com>
+From: Eric Dumazet <edumazet@google.com>
+Date: Fri, 15 May 2020 08:30:47 -0700
+Message-ID: <CANn89iKr_9MyRpdB4pcHm08ccH_M42etDnrOzpVKUYfhSKvxQw@mail.gmail.com>
+Subject: Re: [PATCH v2] Implement close-on-fork
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200513152134.xsjubtERwXyIkjDaNngKm6putcICMGk88aSpEZE5gVc@z>
+To: Nate Karstens <nate.karstens@garmin.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, David Laight <David.Laight@aculab.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-alpha@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, netdev <netdev@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Changli Gao <xiaosuo@gmail.com>
+Message-ID: <20200515153047.2IRCdnoidn1tcJBAXstYmh6HVO0hziVE00ot-DkC_Sg@z>
 
-From: Joerg Roedel <jroedel@suse.de>
+On Fri, May 15, 2020 at 8:23 AM Nate Karstens <nate.karstens@garmin.com> wrote:
+>
+>
+> Series of 4 patches to implement close-on-fork. Tests have been
+> published to https://github.com/nkarstens/ltp/tree/close-on-fork
+> and cover close-on-fork functionality in the following syscalls:
+>
+>  * accept(4)
+>  * dup3(2)
+>  * fcntl(2)
+>  * open(2)
+>  * socket(2)
+>  * socketpair(2)
+>  * unshare(2)
+>
+> Addresses underlying issue in that there is no way to prevent
+> a fork() from duplicating a file descriptor. The existing
+> close-on-exec flag partially-addresses this by allowing the
+> parent process to mark a file descriptor as exclusive to itself,
+> but there is still a period of time the failure can occur
+> because the auto-close only occurs during the exec().
+>
+> One manifestation of this is a race conditions in system(), which
+> (depending on the implementation) is non-atomic in that it first
+> calls a fork() and then an exec().
+>
+> This functionality was approved by the Austin Common Standards
+> Revision Group for inclusion in the next revision of the POSIX
+> standard (see issue 1318 in the Austin Group Defect Tracker).
+>
+> ---
+>
+> This is v2 of the change. See https://lkml.org/lkml/2020/4/20/113
+> for the original work.
+>
+> Thanks to everyone who provided comments on the first series of
+> patches. Here are replies to specific comments:
+>
+> > I suggest we group the two bits of a file (close_on_exec, close_on_fork)
+> > together, so that we do not have to dirty two separate cache lines.
+>
+> I could be mistaken, but I don't think this would improve efficiency.
+> The close-on-fork and close-on-exec flags are read at different
+> times. If you assume separate syscalls for fork and exec then
+> there are several switches between when the two flags are read.
+> In addition, the close-on-fork flags in the new process must be
+> cleared, which will be much harder if the flags are interleaved.
 
-Implement the function to sync changes in vmalloc and ioremap ranges
-to all page-tables.
+:/
 
-Signed-off-by: Joerg Roedel <jroedel@suse.de>
----
- arch/x86/include/asm/pgtable_64_types.h | 2 ++
- arch/x86/mm/init_64.c                   | 5 +++++
- 2 files changed, 7 insertions(+)
+Fast path in big and performance sensitive applications is not fork()
+and/or exec().
 
-diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
-index 52e5f5f2240d..8f63efb2a2cc 100644
---- a/arch/x86/include/asm/pgtable_64_types.h
-+++ b/arch/x86/include/asm/pgtable_64_types.h
-@@ -159,4 +159,6 @@ extern unsigned int ptrs_per_p4d;
- 
- #define PGD_KERNEL_START	((PAGE_SIZE / 2) / sizeof(pgd_t))
- 
-+#define ARCH_PAGE_TABLE_SYNC_MASK	(pgtable_l5_enabled() ?	PGTBL_PGD_MODIFIED : PGTBL_P4D_MODIFIED)
-+
- #endif /* _ASM_X86_PGTABLE_64_DEFS_H */
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 3b289c2f75cd..541af8e5bcd4 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -217,6 +217,11 @@ void sync_global_pgds(unsigned long start, unsigned long end)
- 		sync_global_pgds_l4(start, end);
- }
- 
-+void arch_sync_kernel_mappings(unsigned long start, unsigned long end)
-+{
-+	sync_global_pgds(start, end);
-+}
-+
- /*
-  * NOTE: This function is marked __ref because it calls __init function
-  * (alloc_bootmem_pages). It's safe to do it ONLY when after_bootmem == 0.
--- 
-2.17.1
+This is open()/close() and others (socket(), accept(), ...)
+
+We do not want them to access extra cache lines for this new feature.
+
+Sorry, I will say no to these patches in their current form.
