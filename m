@@ -1,287 +1,172 @@
-Return-Path: <SRS0=HMh4=7K=kvack.org=owner-linux-mm@kernel.org>
-MIME-Version: 1.0
-References: <20200515171612.1020-1-catalin.marinas@arm.com>
- <20200515171612.1020-12-catalin.marinas@arm.com> <CAMn1gO5ApcHOgQ_oLjiGDdCx9znz7N50w-BbzGPYpAzPQC3OQQ@mail.gmail.com>
- <20200528091445.GA2961@gaia> <20200528110509.GA18623@arm.com> <20200528163412.GC2961@gaia>
-In-Reply-To: <20200528163412.GC2961@gaia>
-From: Evgenii Stepanov <eugenis@google.com>
-Date: Thu, 28 May 2020 11:35:50 -0700
-Message-ID: <CAFKCwri+X=de0gFrMZfA84dYmftSkcDc0DEvQ2JAmeOw2sLR=A@mail.gmail.com>
-Subject: Re: [PATCH v4 11/26] arm64: mte: Add PROT_MTE support to mmap() and mprotect()
-Content-Type: multipart/alternative; boundary="000000000000d9931405a6b99917"
+Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
+From: Joerg Roedel <joro@8bytes.org>
+Subject: [PATCH v3 3/7] mm/ioremap: Track which page-table levels were modified
+Date: Fri, 15 May 2020 16:00:19 +0200
+Message-ID: <20200515140023.25469-4-joro@8bytes.org>
+In-Reply-To: <20200515140023.25469-1-joro@8bytes.org>
+References: <20200515140023.25469-1-joro@8bytes.org>
 Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Szabolcs Nagy <szabolcs.nagy@arm.com>, Peter Collingbourne <pcc@google.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Memory Management List <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, nd <nd@arm.com>
+To: x86@kernel.org
+Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
+Message-ID: <20200515140019.lAuxujzv6NlvPir15vHl4ByBs0ww0I9AhoM0K1ah0sI@z>
 
---000000000000d9931405a6b99917
-Content-Type: text/plain; charset="UTF-8"
+From: Joerg Roedel <jroedel@suse.de>
 
-On Thu, May 28, 2020 at 9:34 AM Catalin Marinas <catalin.marinas@arm.com>
-wrote:
+Track at which levels in the page-table entries were modified by
+ioremap_page_range(). After the page-table has been modified, use that
+information do decide whether the new arch_sync_kernel_mappings()
+needs to be called. The iounmap path re-uses vunmap(), which has
+already been taken care of.
 
-> On Thu, May 28, 2020 at 12:05:09PM +0100, Szabolcs Nagy wrote:
-> > The 05/28/2020 10:14, Catalin Marinas wrote:
-> > > On Wed, May 27, 2020 at 11:57:39AM -0700, Peter Collingbourne wrote:
-> > > > On Fri, May 15, 2020 at 10:16 AM Catalin Marinas
-> > > > <catalin.marinas@arm.com> wrote:
-> > > > > To enable tagging on a memory range, the user must explicitly opt
-> in via
-> > > > > a new PROT_MTE flag passed to mmap() or mprotect(). Since this is
-> a new
-> > > > > memory type in the AttrIndx field of a pte, simplify the or'ing of
-> these
-> > > > > bits over the protection_map[] attributes by making MT_NORMAL
-> index 0.
-> > > >
-> > > > Should the userspace stack always be mapped as if with PROT_MTE if
-> the
-> > > > hardware supports it? Such a change would be invisible to non-MTE
-> > > > aware userspace since it would already need to opt in to tag checking
-> > > > via prctl. This would let userspace avoid a complex stack
-> > > > initialization sequence when running with stack tagging enabled on
-> the
-> > > > main thread.
-> > >
-> > > I don't think the stack initialisation is that difficult. On program
-> > > startup (can be the dynamic loader). Something like (untested):
-> > >
-> > >     register unsigned long stack asm ("sp");
-> > >     unsigned long page_sz = sysconf(_SC_PAGESIZE);
-> > >
-> > >     mprotect((void *)(stack & ~(page_sz - 1)), page_sz,
-> > >              PROT_READ | PROT_WRITE | PROT_MTE | PROT_GROWSDOWN);
-> > >
-> > > (the essential part it PROT_GROWSDOWN so that you don't have to specify
-> > > a stack lower limit)
-> >
-> > does this work even if the currently mapped stack is more than page_sz?
-> > determining the mapped main stack area is i think non-trivial to do in
-> > userspace (requires parsing /proc/self/maps or similar).
->
-> Because of PROT_GROWSDOWN, the kernel adjusts the start of the range
-> down automatically. It is potentially problematic if the top of the
-> stack is more than a page away and you want the whole stack coloured. I
-> haven't run a test but my reading of the kernel code is that the stack
-> vma would be split in this scenario, so the range beyond sp+page_sz
-> won't have PROT_MTE set.
->
-> My assumption is that if you do this during program start, the stack is
-> smaller than a page. Alternatively, could we use argv or envp to
-> determine the top of the user stack (the bottom is taken care of by the
-> kernel)?
->
+Signed-off-by: Joerg Roedel <jroedel@suse.de>
+Acked-by: Andy Lutomirski <luto@kernel.org>
+---
+ lib/ioremap.c | 46 +++++++++++++++++++++++++++++++---------------
+ 1 file changed, 31 insertions(+), 15 deletions(-)
 
-PROT_GROWSDOWN seems to work fine in our case, and the extra tag
-maintenance overhead sounds like a valid argument against setting PROT_MTE
-unconditionally.
-
-On the other hand, we may end up doing this in the userspace in every
-process. The reason is, PROT_MTE can not be set on a page that contains a
-live frame with stack tagging because of mismatching tags (IRG is not
-affected by PROT_MTE but STG is). So ideally, this should be done at (or
-near) the program entry point, while the stack is mostly empty.
-
-
->
-> > > I'm fine, however, with enabling PROT_MTE on the main stack based on
-> > > some ELF note.
-> >
-> > note that would likely mean an elf note on the dynamic linker
-> > (because a dynamic linked executable may not be loaded by the
-> > kernel and ctors in loaded libs run before the executable entry
-> > code anyway, so the executable alone cannot be in charge of this
-> > decision) i.e. one global switch for all dynamic linked binaries.
->
-> I guess parsing such note in the kernel is only useful for static
-> binaries.
->
-> > i think a dynamic linker can map a new stack and switch to it
-> > if it needs to control the properties of the stack at runtime
-> > (it's wasteful though).
->
-> There is already user code to check for HWCAP2_MTE and the prctl(), so
-> adding an mprotect() doesn't look like a significant overhead.
->
-> > and i think there should be a runtime mechanism for the brk area:
-> > it should be possible to request that future brk expansions are
-> > mapped as PROT_MTE so an mte aware malloc implementation can use
-> > brk. i think this is not important in the initial design, but if
-> > a prctl flag can do it that may be useful to add (may be at a
-> > later time).
->
-> Looking at the kernel code briefly, I think this would work. We do end
-> up with two vmas for the brk, only the expansion having PROT_MTE, and
-> I'd to find a way to store the extra flag.
->
-> From a coding perspective, it's easier to just set PROT_MTE by default
-> on both brk and initial stack ;) (VM_DATA_DEFAULT_FLAGS).
->
-> > (and eventually there should be a way to use PROT_MTE on
-> > writable global data and appropriate code generation that
-> > takes colors into account when globals are accessed, but
-> > that requires significant ELF, ld.so and compiler changes,
-> > that need not be part of the initial mte design).
->
-> The .data section needs to be driven by the ELF information. It's also a
-> file mapping and we don't support PROT_MTE on them even if MAP_PRIVATE.
-> There are complications like DAX where the file you mmap for CoW may be
-> hosted on memory that does not support MTE (copied to RAM on write).
->
-> Is there a use-case for global data to be tagged?
->
-
-Yes, catching global buffer overflow bugs. They are not nearly as common as
-heap-based issues though.
-
-
->
-> --
-> Catalin
->
-
---000000000000d9931405a6b99917
-Content-Type: text/html; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-
-<div dir=3D"ltr"><div dir=3D"ltr"><br></div><br><div class=3D"gmail_quote">=
-<div dir=3D"ltr" class=3D"gmail_attr">On Thu, May 28, 2020 at 9:34 AM Catal=
-in Marinas &lt;<a href=3D"mailto:catalin.marinas@arm.com">catalin.marinas@a=
-rm.com</a>&gt; wrote:<br></div><blockquote class=3D"gmail_quote" style=3D"m=
-argin:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204);padding-left=
-:1ex">On Thu, May 28, 2020 at 12:05:09PM +0100, Szabolcs Nagy wrote:<br>
-&gt; The 05/28/2020 10:14, Catalin Marinas wrote:<br>
-&gt; &gt; On Wed, May 27, 2020 at 11:57:39AM -0700, Peter Collingbourne wro=
-te:<br>
-&gt; &gt; &gt; On Fri, May 15, 2020 at 10:16 AM Catalin Marinas<br>
-&gt; &gt; &gt; &lt;<a href=3D"mailto:catalin.marinas@arm.com" target=3D"_bl=
-ank">catalin.marinas@arm.com</a>&gt; wrote:<br>
-&gt; &gt; &gt; &gt; To enable tagging on a memory range, the user must expl=
-icitly opt in via<br>
-&gt; &gt; &gt; &gt; a new PROT_MTE flag passed to mmap() or mprotect(). Sin=
-ce this is a new<br>
-&gt; &gt; &gt; &gt; memory type in the AttrIndx field of a pte, simplify th=
-e or&#39;ing of these<br>
-&gt; &gt; &gt; &gt; bits over the protection_map[] attributes by making MT_=
-NORMAL index 0.<br>
-&gt; &gt; &gt; <br>
-&gt; &gt; &gt; Should the userspace stack always be mapped as if with PROT_=
-MTE if the<br>
-&gt; &gt; &gt; hardware supports it? Such a change would be invisible to no=
-n-MTE<br>
-&gt; &gt; &gt; aware userspace since it would already need to opt in to tag=
- checking<br>
-&gt; &gt; &gt; via prctl. This would let userspace avoid a complex stack<br=
->
-&gt; &gt; &gt; initialization sequence when running with stack tagging enab=
-led on the<br>
-&gt; &gt; &gt; main thread.<br>
-&gt; &gt; <br>
-&gt; &gt; I don&#39;t think the stack initialisation is that difficult. On =
-program<br>
-&gt; &gt; startup (can be the dynamic loader). Something like (untested):<b=
-r>
-&gt; &gt; <br>
-&gt; &gt;=C2=A0 =C2=A0 =C2=A0register unsigned long stack asm (&quot;sp&quo=
-t;);<br>
-&gt; &gt;=C2=A0 =C2=A0 =C2=A0unsigned long page_sz =3D sysconf(_SC_PAGESIZE=
-);<br>
-&gt; &gt; <br>
-&gt; &gt;=C2=A0 =C2=A0 =C2=A0mprotect((void *)(stack &amp; ~(page_sz - 1)),=
- page_sz,<br>
-&gt; &gt;=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 PROT_READ | PROT_=
-WRITE | PROT_MTE | PROT_GROWSDOWN);<br>
-&gt; &gt; <br>
-&gt; &gt; (the essential part it PROT_GROWSDOWN so that you don&#39;t have =
-to specify<br>
-&gt; &gt; a stack lower limit)<br>
-&gt; <br>
-&gt; does this work even if the currently mapped stack is more than page_sz=
-?<br>
-&gt; determining the mapped main stack area is i think non-trivial to do in=
-<br>
-&gt; userspace (requires parsing /proc/self/maps or similar).<br>
-<br>
-Because of PROT_GROWSDOWN, the kernel adjusts the start of the range<br>
-down automatically. It is potentially problematic if the top of the<br>
-stack is more than a page away and you want the whole stack coloured. I<br>
-haven&#39;t run a test but my reading of the kernel code is that the stack<=
-br>
-vma would be split in this scenario, so the range beyond sp+page_sz<br>
-won&#39;t have PROT_MTE set.<br>
-<br>
-My assumption is that if you do this during program start, the stack is<br>
-smaller than a page. Alternatively, could we use argv or envp to<br>
-determine the top of the user stack (the bottom is taken care of by the<br>
-kernel)?<br></blockquote><div><br></div><div><span style=3D"color:rgb(80,0,=
-80)">PROT_GROWSDOWN seems to work fine in our case, and the extra tag maint=
-enance overhead sounds like a valid argument against setting PROT_MTE uncon=
-ditionally.</span><br></div><div><span style=3D"color:rgb(80,0,80)"><br></s=
-pan></div><div><span style=3D"color:rgb(80,0,80)">On the other hand, we may=
- end up doing this in the userspace in every process. The reason is, PROT_M=
-TE can not be set on a page that contains a live frame with stack tagging b=
-ecause of mismatching tags (IRG is not affected by PROT_MTE but STG is). So=
- ideally, this should be done at (or near) the program entry point, while t=
-he stack is mostly empty.</span></div><div>=C2=A0</div><blockquote class=3D=
-"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex;border-left:1px solid rgb(2=
-04,204,204);padding-left:1ex">
-<br>
-&gt; &gt; I&#39;m fine, however, with enabling PROT_MTE on the main stack b=
-ased on<br>
-&gt; &gt; some ELF note.<br>
-&gt; <br>
-&gt; note that would likely mean an elf note on the dynamic linker<br>
-&gt; (because a dynamic linked executable may not be loaded by the<br>
-&gt; kernel and ctors in loaded libs run before the executable entry<br>
-&gt; code anyway, so the executable alone cannot be in charge of this<br>
-&gt; decision) i.e. one global switch for all dynamic linked binaries.<br>
-<br>
-I guess parsing such note in the kernel is only useful for static<br>
-binaries.<br>
-<br>
-&gt; i think a dynamic linker can map a new stack and switch to it<br>
-&gt; if it needs to control the properties of the stack at runtime<br>
-&gt; (it&#39;s wasteful though).<br>
-<br>
-There is already user code to check for HWCAP2_MTE and the prctl(), so<br>
-adding an mprotect() doesn&#39;t look like a significant overhead.<br>
-<br>
-&gt; and i think there should be a runtime mechanism for the brk area:<br>
-&gt; it should be possible to request that future brk expansions are<br>
-&gt; mapped as PROT_MTE so an mte aware malloc implementation can use<br>
-&gt; brk. i think this is not important in the initial design, but if<br>
-&gt; a prctl flag can do it that may be useful to add (may be at a<br>
-&gt; later time).<br>
-<br>
-Looking at the kernel code briefly, I think this would work. We do end<br>
-up with two vmas for the brk, only the expansion having PROT_MTE, and<br>
-I&#39;d to find a way to store the extra flag.<br>
-<br>
-From a coding perspective, it&#39;s easier to just set PROT_MTE by default<=
-br>
-on both brk and initial stack ;) (VM_DATA_DEFAULT_FLAGS).<br>
-<br>
-&gt; (and eventually there should be a way to use PROT_MTE on<br>
-&gt; writable global data and appropriate code generation that<br>
-&gt; takes colors into account when globals are accessed, but<br>
-&gt; that requires significant ELF, ld.so and compiler changes,<br>
-&gt; that need not be part of the initial mte design).<br>
-<br>
-The .data section needs to be driven by the ELF information. It&#39;s also =
-a<br>
-file mapping and we don&#39;t support PROT_MTE on them even if MAP_PRIVATE.=
-<br>
-There are complications like DAX where the file you mmap for CoW may be<br>
-hosted on memory that does not support MTE (copied to RAM on write).<br>
-<br>
-Is there a use-case for global data to be tagged?<br></blockquote><div><br>=
-</div><div>Yes, catching global buffer overflow bugs. They are not nearly a=
-s common as heap-based issues though.</div><div>=C2=A0</div><blockquote cla=
-ss=3D"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex;border-left:1px solid =
-rgb(204,204,204);padding-left:1ex">
-<br>
--- <br>
-Catalin<br>
-</blockquote></div></div>
-
---000000000000d9931405a6b99917--
+diff --git a/lib/ioremap.c b/lib/ioremap.c
+index 3f0e18543de8..ad485f08173b 100644
+--- a/lib/ioremap.c
++++ b/lib/ioremap.c
+@@ -61,13 +61,14 @@ static inline int ioremap_pmd_enabled(void) { return 0; }
+ #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
+ 
+ static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
++		pgtbl_mod_mask *mask)
+ {
+ 	pte_t *pte;
+ 	u64 pfn;
+ 
+ 	pfn = phys_addr >> PAGE_SHIFT;
+-	pte = pte_alloc_kernel(pmd, addr);
++	pte = pte_alloc_kernel_track(pmd, addr, mask);
+ 	if (!pte)
+ 		return -ENOMEM;
+ 	do {
+@@ -75,6 +76,7 @@ static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
+ 		set_pte_at(&init_mm, addr, pte, pfn_pte(pfn, prot));
+ 		pfn++;
+ 	} while (pte++, addr += PAGE_SIZE, addr != end);
++	*mask |= PGTBL_PTE_MODIFIED;
+ 	return 0;
+ }
+ 
+@@ -101,21 +103,24 @@ static int ioremap_try_huge_pmd(pmd_t *pmd, unsigned long addr,
+ }
+ 
+ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
++		pgtbl_mod_mask *mask)
+ {
+ 	pmd_t *pmd;
+ 	unsigned long next;
+ 
+-	pmd = pmd_alloc(&init_mm, pud, addr);
++	pmd = pmd_alloc_track(&init_mm, pud, addr, mask);
+ 	if (!pmd)
+ 		return -ENOMEM;
+ 	do {
+ 		next = pmd_addr_end(addr, end);
+ 
+-		if (ioremap_try_huge_pmd(pmd, addr, next, phys_addr, prot))
++		if (ioremap_try_huge_pmd(pmd, addr, next, phys_addr, prot)) {
++			*mask |= PGTBL_PMD_MODIFIED;
+ 			continue;
++		}
+ 
+-		if (ioremap_pte_range(pmd, addr, next, phys_addr, prot))
++		if (ioremap_pte_range(pmd, addr, next, phys_addr, prot, mask))
+ 			return -ENOMEM;
+ 	} while (pmd++, phys_addr += (next - addr), addr = next, addr != end);
+ 	return 0;
+@@ -144,21 +149,24 @@ static int ioremap_try_huge_pud(pud_t *pud, unsigned long addr,
+ }
+ 
+ static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
++		pgtbl_mod_mask *mask)
+ {
+ 	pud_t *pud;
+ 	unsigned long next;
+ 
+-	pud = pud_alloc(&init_mm, p4d, addr);
++	pud = pud_alloc_track(&init_mm, p4d, addr, mask);
+ 	if (!pud)
+ 		return -ENOMEM;
+ 	do {
+ 		next = pud_addr_end(addr, end);
+ 
+-		if (ioremap_try_huge_pud(pud, addr, next, phys_addr, prot))
++		if (ioremap_try_huge_pud(pud, addr, next, phys_addr, prot)) {
++			*mask |= PGTBL_PUD_MODIFIED;
+ 			continue;
++		}
+ 
+-		if (ioremap_pmd_range(pud, addr, next, phys_addr, prot))
++		if (ioremap_pmd_range(pud, addr, next, phys_addr, prot, mask))
+ 			return -ENOMEM;
+ 	} while (pud++, phys_addr += (next - addr), addr = next, addr != end);
+ 	return 0;
+@@ -187,21 +195,24 @@ static int ioremap_try_huge_p4d(p4d_t *p4d, unsigned long addr,
+ }
+ 
+ static inline int ioremap_p4d_range(pgd_t *pgd, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
++		pgtbl_mod_mask *mask)
+ {
+ 	p4d_t *p4d;
+ 	unsigned long next;
+ 
+-	p4d = p4d_alloc(&init_mm, pgd, addr);
++	p4d = p4d_alloc_track(&init_mm, pgd, addr, mask);
+ 	if (!p4d)
+ 		return -ENOMEM;
+ 	do {
+ 		next = p4d_addr_end(addr, end);
+ 
+-		if (ioremap_try_huge_p4d(p4d, addr, next, phys_addr, prot))
++		if (ioremap_try_huge_p4d(p4d, addr, next, phys_addr, prot)) {
++			*mask |= PGTBL_P4D_MODIFIED;
+ 			continue;
++		}
+ 
+-		if (ioremap_pud_range(p4d, addr, next, phys_addr, prot))
++		if (ioremap_pud_range(p4d, addr, next, phys_addr, prot, mask))
+ 			return -ENOMEM;
+ 	} while (p4d++, phys_addr += (next - addr), addr = next, addr != end);
+ 	return 0;
+@@ -214,6 +225,7 @@ int ioremap_page_range(unsigned long addr,
+ 	unsigned long start;
+ 	unsigned long next;
+ 	int err;
++	pgtbl_mod_mask mask = 0;
+ 
+ 	might_sleep();
+ 	BUG_ON(addr >= end);
+@@ -222,13 +234,17 @@ int ioremap_page_range(unsigned long addr,
+ 	pgd = pgd_offset_k(addr);
+ 	do {
+ 		next = pgd_addr_end(addr, end);
+-		err = ioremap_p4d_range(pgd, addr, next, phys_addr, prot);
++		err = ioremap_p4d_range(pgd, addr, next, phys_addr, prot,
++					&mask);
+ 		if (err)
+ 			break;
+ 	} while (pgd++, phys_addr += (next - addr), addr = next, addr != end);
+ 
+ 	flush_cache_vmap(start, end);
+ 
++	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
++		arch_sync_kernel_mappings(start, end);
++
+ 	return err;
+ }
+ 
+-- 
+2.17.1
