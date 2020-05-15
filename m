@@ -1,163 +1,180 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+From: Dave Hansen <dave.hansen-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
 Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
-Date: Fri, 15 May 2020 16:29:25 -0700
-Message-ID: <b09658f92eb66c1d1be509813939b9ed827f9cf0.camel@intel.com>
+Date: Fri, 15 May 2020 16:56:38 -0700
+Message-ID: <631f071c-c755-a818-6a97-b333eb1fe21c@intel.com>
 References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-         <20200429220732.31602-2-yu-cheng.yu@intel.com>
-         <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
-         <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
-         <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
-         <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
-         <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
-         <32235ffc-6e6c-fb3d-80c4-a0478e2d0e0f@intel.com>
+ <20200429220732.31602-2-yu-cheng.yu@intel.com>
+ <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
+ <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+ <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
+ <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
+ <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
+ <32235ffc-6e6c-fb3d-80c4-a0478e2d0e0f@intel.com>
+ <b09658f92eb66c1d1be509813939b9ed827f9cf0.camel@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:35114 "EHLO mga04.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726231AbgEOX3W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 19:29:22 -0400
-In-Reply-To: <32235ffc-6e6c-fb3d-80c4-a0478e2d0e0f@intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <b09658f92eb66c1d1be509813939b9ed827f9cf0.camel-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Content-Language: en-US
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Yu-cheng Yu <yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Balbir Singh <bsingharora-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Cyrill Gorcunov <gorcunov-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Eugene Syromiatnikov <esyr-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H.J. Lu" <hjl.tools-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Mike Kravetz <mike.kravetz-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2020-05-15 at 15:43 -0700, Dave Hansen wrote:
-> On 5/15/20 2:33 PM, Yu-cheng Yu wrote:
-> > On Fri, 2020-05-15 at 11:39 -0700, Dave Hansen wrote:
-> > > On 5/12/20 4:20 PM, Yu-cheng Yu wrote:
-> > > Can a binary compiled with CET run without CET?
-> > 
-> > Yes, but a few details:
-> > 
-> > - The shadow stack is transparent to the application.  A CET application does
-> > not have anything different from a non-CET application.  However, if a CET
-> > application uses any CET instructions (e.g. INCSSP), it must first check if CET
-> > is turned on.
-> > - If an application is compiled for IBT, the compiler inserts ENDBRs at branch
-> > targets.  These are nops if IBT is not on.
+On 5/15/20 4:29 PM, Yu-cheng Yu wrote:
+> On Fri, 2020-05-15 at 15:43 -0700, Dave Hansen wrote:
+>> Basically, if there ends up being a bug in an app that violates the
+>> shadow stack rules, the app is broken, period.  The only recourse is to
+>> have the kernel disable CET and reboot.
+>>
+>> Is that right?
 > 
-> I appreciate the detailed response, but it wasn't quite what I was
-> asking.  Let's ignore IBT for now and just talk about shadow stacks.
+> You must be talking about init or any of the system daemons, right?
+> Assuming we let the app itself start CET with an arch_prctl(), why would that be
+> different from the current approach?
+
+You're getting ahead of me a bit here.
+
+I'm actually not asking directly about the prctls() or advocating for a
+different approach.  The MPX approach of _requiring the app to make a
+prctl() was actually pretty nasty because sometimes threads got created
+before the prctl() could get called.  Apps ended up inadvertently
+half-MPX-enabled.  Not fun.
+
+Let's say we have an app doing silly things like retpolines.  (Lots of
+app do lots of silly things).  It gets compiled in a distro but never
+runs on a system with CET.  The app gets run for the first time on a
+system with CET.  App goes boom.  Not init, just some random app, say
+/usr/bin/ldapsearch.
+
+What's my recourse as an end user?  I want to run my app and turn off
+CET for that app.  How can I do that?
+
+>>>> Can a binary compiled without CET run CET-enabled code?
+>>>
+>>> Partially yes, but in reality somewhat difficult.
+>> ...
+>>> - If a not-CET application does fork(), and the child wants to turn on CET, it
+>>> would be difficult to manage the stack frames, unless the child knows what is is
+>>> doing.  
+>>
+>> It might be hard to do, but it is possible with the patches you posted?
 > 
-> An app compiled with the new ELF flags and running on a CET-enabled
-> kernel and CPU will start off with shadow stacks allocated and enabled,
-> right?  It can turn its shadow stack off per-thread with the new prctl.
->  But, otherwise, it's stuck, the only way to turn shadow stacks off at
-> startup would be editing the binary.
+> It is possible to add an arch_prctl() to turn on CET.  That is simple from the
+> kernel's perspective, but difficult for the application.  Once the app enables
+> shadow stack, it has to take care not to return beyond the function call layers
+> before that point.  It can no longer do longjmp or ucontext swaps to anything
+> before that point.  It will also be complicated if the app enables shadow stack
+> in a signal handler.
+
+Yu-cheng, I'm having a very hard time getting direct answers to my
+questions.  Could you endeavor to give succinct, direct answers?  If you
+want to give a longer, conditioned answer, that's great.  But, I'd
+appreciate if you could please focus first on clearly answering the
+questions that I'm asking.
+
+Let me try again:
+
+	Is it possible with the patches in this series to run a single-
+	threaded binary which was has GNU_PROPERTY_X86_FEATURE_1_SHSTK
+	unset to run with shadow stack protection?
+
+I think the answer is an unambiguous: "No".  But I'd like to hear it
+from you.
+
+>>  I think you're saying that the CET-enabled binary would do
+>> arch_setup_elf_property() when it was first exec()'d.  Later, it could
+>> use the new prctl(ARCH_X86_CET_DISABLE) to disable its shadow stack,
+>> then fork() and the child would not be using CET.  Right?
+>>
+>> What is ARCH_X86_CET_DISABLE used for, anyway?
 > 
-> Basically, if there ends up being a bug in an app that violates the
-> shadow stack rules, the app is broken, period.  The only recourse is to
-> have the kernel disable CET and reboot.
+> Both the parent and the child can do ARCH_X86_CET_DISABLE, if CET is
+> not locked.
+
+Could you please describe a real-world example of why
+ARCH_X86_CET_DISABLE exists?  What kinds of apps will use it, or *are*
+using it?  Why was it created in the first place?
+
+>>> The JIT examples I mentioned previously run with CET enabled from the
+>>> beginning.  Do you have a reason to do this?  In other words, if the JIT code
+>>> needs CET, the app could have started with CET in the first place.
+>>
+>> Let's say I have a JIT'd sandbox.  I want the sandbox to be
+>> CET-protected, but the JIT engine itself not to be.
 > 
-> Is that right?
+> I do not have any objections to this use case, but it needs some cautions as
+> stated above.  It will be much easier and cleaner if the sandbox is in a
+> separate exec'ed task with CET on.
 
-You must be talking about init or any of the system daemons, right?
-Assuming we let the app itself start CET with an arch_prctl(), why would that be
-different from the current approach?
+OK, great suggestion!  Could you do some research and look at the
+various sandboxing techniques?  Is imposing this requirement for a
+separate exec'd task reasonable?  Does it fit nicely with their existing
+models?  How about the Chrome browser and Firefox sandboxs?
 
-> > > Can a binary compiled without CET run CET-enabled code?
-> > 
-> > Partially yes, but in reality somewhat difficult.
-> ...
-> > - If a not-CET application does fork(), and the child wants to turn on CET, it
-> > would be difficult to manage the stack frames, unless the child knows what is is
-> > doing.  
+>>>> Does this *code* work?  Could you please indicate which JITs have been
+>>>> enabled to use the code in this series?  How much of the new ABI is in use?
+>>>
+>>> JIT does not necessarily use all of the ABI.  The JIT changes mainly fix stack
+>>> frames and insert ENDBRs.  I do not work on JIT.  What I found is LLVM JIT fixes
+>>> are tested and in the master branch.  Sljit fixes are in the release.
+>>
+>> Huh, so who is using the new prctl() ABIs?
 > 
-> It might be hard to do, but it is possible with the patches you posted?
+> Any code can use the ABI, but JIT code CET-enabling part mostly do not use these
+> new prctl()'s, except, probably to get CET status.
 
-It is possible to add an arch_prctl() to turn on CET.  That is simple from the
-kernel's perspective, but difficult for the application.  Once the app enables
-shadow stack, it has to take care not to return beyond the function call layers
-before that point.  It can no longer do longjmp or ucontext swaps to anything
-before that point.  It will also be complicated if the app enables shadow stack
-in a signal handler.
+Which applications specifically are going to use the new prctl()s which
+this series adds?  How are they going to use them?
 
->  I think you're saying that the CET-enabled binary would do
-> arch_setup_elf_property() when it was first exec()'d.  Later, it could
-> use the new prctl(ARCH_X86_CET_DISABLE) to disable its shadow stack,
-> then fork() and the child would not be using CET.  Right?
+"Any code can use them" is not a specific enough answer.
+
+>>>> Where are the selftests/ for this new ABI?  Were you planning on
+>>>> submitting any with this series?
+>>>
+>>> The ABI is more related to the application side, and therefore most suitable for
+>>> GLIBC unit tests.
+>>
+>> I was mostly concerned with the kernel selftests.  The things in
+>> tools/testing/selftests/x86 in the kernel tree.
 > 
-> What is ARCH_X86_CET_DISABLE used for, anyway?
+> I have run them with CET enabled.  All of them pass, except for the following:
+> Sigreturn from 64-bit to 32-bit fails, because shadow stack is at a 64-bit
+> address.  This is understandable.
 
-Both the parent and the child can do ARCH_X86_CET_DISABLE, if CET is not locked.
+That is not what I meant.  I'm going to be as explicit:
 
-> > The JIT examples I mentioned previously run with CET enabled from the
-> > beginning.  Do you have a reason to do this?  In other words, if the JIT code
-> > needs CET, the app could have started with CET in the first place.
+I expect you to create a test case which you will submit with these
+patches and the test case will go into the tools/testing/selftests/x86
+directory in the kernel tree.  This test case will exercise the kernel
+functionality added in this series, especially the new prctl()s.
+
+One a separate topic: You ran the selftests and one failed.  This is a
+*MASSIVE* warning sign.  It should minimally be described in your cover
+letter, and accompanied by a fix to the test case.  It is absolutely
+unacceptable to introduce a kernel feature that causes a test to fail.
+You must either fix your kernel feature or you fix the test.
+
+This code can not be accepted until this selftests issue is rectified.
+
+>>> The more complicated areas such as pthreads, signals, ucontext,
+>>> fork() are all included there.  I have been constantly running these 
+>>> tests without any problems.  I can provide more details if testing is
+>>> the concern.
+>>
+>> For something this complicated, with new kernel ABIs, we need an
+>> in-kernel sefltest.
+>>
+>> MPX was not that much different from this feature.  It required a
+>> boatload of compiler and linker changes to function.  Yet, there was a
+>> simple in-kernel test for it that didn't require *any* of that big pile
+>> of toolchain bits.
+>>
+>> Is there a reason we don't have one of those for CET?
 > 
-> Let's say I have a JIT'd sandbox.  I want the sandbox to be
-> CET-protected, but the JIT engine itself not to be.
+> I have a quick test that checks shadow stack and ibt in both main program and in
+> signals.  Currently it is public on Github.  If that is desired, I can submit it
+> to the mailing list.
 
-I do not have any objections to this use case, but it needs some cautions as
-stated above.  It will be much easier and cleaner if the sandbox is in a
-separate exec'ed task with CET on.
-
-> > - If you are asking about dlopen(), the library will have the same setting as
-> > the main application.  Do you have any reason to have a library running with
-> > CET, but the application does not have CET?
-> 
-> Sure, using old binaries.  That's why IBT has a legacy bitmap and things
-> like MPX had ways of jumping into old non-enabled binaries.
-
-If the app has CET, but libs do not, then bitmap can help.
-If the app does not have CET, we don't run the libs with CET, right?  This is
-the case right now.
-
-> > > Can different threads in a process have different CET enabling state?
-> > 
-> > Yes, if the parent starts with CET, children can turn it off.
-> 
-> How would that work, though?  clone() by default will copy the parent
-> xsave state, which means it will be CET-enabled, which means it needs a
-> shadow stack.  So, if I want a CET-free child thread, I need to clone(),
-> then turn CET off, then free the shadow stack?
-
-Yes, the child itself turns off CET.
-
-> > > Does this *code* work?  Could you please indicate which JITs have been
-> > > enabled to use the code in this series?  How much of the new ABI is in use?
-> > 
-> > JIT does not necessarily use all of the ABI.  The JIT changes mainly fix stack
-> > frames and insert ENDBRs.  I do not work on JIT.  What I found is LLVM JIT fixes
-> > are tested and in the master branch.  Sljit fixes are in the release.
-> 
-> Huh, so who is using the new prctl() ABIs?
-
-Any code can use the ABI, but JIT code CET-enabling part mostly do not use these
-new prctl()'s, except, probably to get CET status.
-
-> > > Where are the selftests/ for this new ABI?  Were you planning on
-> > > submitting any with this series?
-> > 
-> > The ABI is more related to the application side, and therefore most suitable for
-> > GLIBC unit tests.
-> 
-> I was mostly concerned with the kernel selftests.  The things in
-> tools/testing/selftests/x86 in the kernel tree.
-
-I have run them with CET enabled.  All of them pass, except for the following:
-Sigreturn from 64-bit to 32-bit fails, because shadow stack is at a 64-bit
-address.  This is understandable.
-
-> > The more complicated areas such as pthreads, signals, ucontext,
-> > fork() are all included there.  I have been constantly running these 
-> > tests without any problems.  I can provide more details if testing is
-> > the concern.
-> 
-> For something this complicated, with new kernel ABIs, we need an
-> in-kernel sefltest.
-> 
-> MPX was not that much different from this feature.  It required a
-> boatload of compiler and linker changes to function.  Yet, there was a
-> simple in-kernel test for it that didn't require *any* of that big pile
-> of toolchain bits.
-> 
-> Is there a reason we don't have one of those for CET?
-
-I have a quick test that checks shadow stack and ibt in both main program and in
-signals.  Currently it is public on Github.  If that is desired, I can submit it
-to the mailing list.
-
-Yu-cheng
+Yes, that is desired.  It must accompany this submission.  It must also
+exercise all of the new ABIs.
