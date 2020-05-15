@@ -1,30 +1,67 @@
 Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-Date: Fri, 15 May 2020 15:03:13 +0200
-From: Joerg Roedel <jroedel@suse.de>
-Subject: Re: [PATCH v2 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Message-ID: <20200515130313.GI8135@suse.de>
-References: <20200513152137.32426-1-joro@8bytes.org>
- <CALCETrW1Y2Q7dWwv4X7PHf3yxOGMcDaBG0NK7BWPAR=FiqsoPQ@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALCETrW1Y2Q7dWwv4X7PHf3yxOGMcDaBG0NK7BWPAR=FiqsoPQ@mail.gmail.com>
+From: Joerg Roedel <joro@8bytes.org>
+Subject: [PATCH v3 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
+Date: Fri, 15 May 2020 16:00:16 +0200
+Message-ID: <20200515140023.25469-1-joro@8bytes.org>
 Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+To: x86@kernel.org
+Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515130313.iWO5mdDmtTxn1FAsFUQ58amrGA8KtVJIURYywmBIzWU@z>
+Message-ID: <20200515140016.F74loBAfQA0FwSQAYZ3gN3T6S8kPbP_ljTkvhXM4c5o@z>
 
-On Wed, May 13, 2020 at 09:01:04AM -0700, Andy Lutomirski wrote:
-> I would love to see a followup patch that preallocates the vmalloc
-> region on 64-bit and compiles out pgd_list and all of the associated
-> gunk.
+Hi,
 
-Looked a bit into this, with pre-allocation and a few more changes all
-but one users of pgd_list and pgd_lock can be get rid of on x86-64. But
-there is the XEN-PV code which also needs to traverse pgd_list, and I am
-not sure how to get rid of that.
+here is the updated version of this series with these
+changes:
+
+	- Removed sync_current_stack_to_mm() too.
+
+	- Added Acked-by's from Andy Lutomirski
+
+The previous versions can be found here:
+
+	v1: https://lore.kernel.org/lkml/20200508144043.13893-1-joro@8bytes.org/
+
+	v2: https://lore.kernel.org/lkml/20200513152137.32426-1-joro@8bytes.org/
+
+The cover-letter of v1 has more details on the motivation
+for this patch-set.
+
+Please review.
 
 Regards,
 
 	Joerg
+
+Joerg Roedel (7):
+  mm: Add functions to track page directory modifications
+  mm/vmalloc: Track which page-table levels were modified
+  mm/ioremap: Track which page-table levels were modified
+  x86/mm/64: Implement arch_sync_kernel_mappings()
+  x86/mm/32: Implement arch_sync_kernel_mappings()
+  mm: Remove vmalloc_sync_(un)mappings()
+  x86/mm: Remove vmalloc faulting
+
+ arch/x86/include/asm/pgtable-2level_types.h |   2 +
+ arch/x86/include/asm/pgtable-3level_types.h |   2 +
+ arch/x86/include/asm/pgtable_64_types.h     |   2 +
+ arch/x86/include/asm/switch_to.h            |  23 ---
+ arch/x86/kernel/setup_percpu.c              |   6 +-
+ arch/x86/mm/fault.c                         | 176 +-------------------
+ arch/x86/mm/init_64.c                       |   5 +
+ arch/x86/mm/pti.c                           |   8 +-
+ arch/x86/mm/tlb.c                           |  37 ----
+ drivers/acpi/apei/ghes.c                    |   6 -
+ include/asm-generic/5level-fixup.h          |   5 +-
+ include/asm-generic/pgtable.h               |  23 +++
+ include/linux/mm.h                          |  46 +++++
+ include/linux/vmalloc.h                     |  18 +-
+ kernel/notifier.c                           |   1 -
+ kernel/trace/trace.c                        |  12 --
+ lib/ioremap.c                               |  46 +++--
+ mm/nommu.c                                  |  12 --
+ mm/vmalloc.c                                | 109 +++++++-----
+ 19 files changed, 204 insertions(+), 335 deletions(-)
+
+-- 
+2.17.1
