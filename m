@@ -1,52 +1,39 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Date: Fri, 15 May 2020 16:16:57 +0200
-Message-ID: <20200515141657.GF2940@hirez.programming.kicks-ass.net>
-References: <20200515140023.25469-1-joro@8bytes.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 01/29] arm: fix the flush_icache_range arguments in set_fiq_handler
+Date: Fri, 15 May 2020 16:36:18 +0200
+Message-ID: <20200515143646.3857579-2-hch@lst.de>
+References: <20200515143646.3857579-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-acpi-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200515140023.25469-1-joro@8bytes.org>
-Sender: linux-acpi-owner@vger.kernel.org
-To: Joerg Roedel <joro@8bytes.org>
-Cc: x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-hexagon-owner@vger.kernel.org>
+In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
+Sender: linux-hexagon-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 15, 2020 at 04:00:16PM +0200, Joerg Roedel wrote:
-> Joerg Roedel (7):
->   mm: Add functions to track page directory modifications
->   mm/vmalloc: Track which page-table levels were modified
->   mm/ioremap: Track which page-table levels were modified
->   x86/mm/64: Implement arch_sync_kernel_mappings()
->   x86/mm/32: Implement arch_sync_kernel_mappings()
->   mm: Remove vmalloc_sync_(un)mappings()
->   x86/mm: Remove vmalloc faulting
-> 
->  arch/x86/include/asm/pgtable-2level_types.h |   2 +
->  arch/x86/include/asm/pgtable-3level_types.h |   2 +
->  arch/x86/include/asm/pgtable_64_types.h     |   2 +
->  arch/x86/include/asm/switch_to.h            |  23 ---
->  arch/x86/kernel/setup_percpu.c              |   6 +-
->  arch/x86/mm/fault.c                         | 176 +-------------------
->  arch/x86/mm/init_64.c                       |   5 +
->  arch/x86/mm/pti.c                           |   8 +-
->  arch/x86/mm/tlb.c                           |  37 ----
->  drivers/acpi/apei/ghes.c                    |   6 -
->  include/asm-generic/5level-fixup.h          |   5 +-
->  include/asm-generic/pgtable.h               |  23 +++
->  include/linux/mm.h                          |  46 +++++
->  include/linux/vmalloc.h                     |  18 +-
->  kernel/notifier.c                           |   1 -
->  kernel/trace/trace.c                        |  12 --
->  lib/ioremap.c                               |  46 +++--
->  mm/nommu.c                                  |  12 --
->  mm/vmalloc.c                                | 109 +++++++-----
->  19 files changed, 204 insertions(+), 335 deletions(-)
+The arguments passed look bogus, try to fix them to something that seems
+to make sense.
 
-I'm thinking this improves the status-quo, so:
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/arm/kernel/fiq.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-
-Like Andy, I think I'd like x86_64 to pre-populate, but that can easily
-be done on top and should not hold this back.
+diff --git a/arch/arm/kernel/fiq.c b/arch/arm/kernel/fiq.c
+index cd1234c103fcd..98ca3e3fa8471 100644
+--- a/arch/arm/kernel/fiq.c
++++ b/arch/arm/kernel/fiq.c
+@@ -98,8 +98,8 @@ void set_fiq_handler(void *start, unsigned int length)
+ 
+ 	memcpy(base + offset, start, length);
+ 	if (!cache_is_vipt_nonaliasing())
+-		flush_icache_range((unsigned long)base + offset, offset +
+-				   length);
++		flush_icache_range((unsigned long)base + offset,
++				   (unsigned long)base + offset + length);
+ 	flush_icache_range(0xffff0000 + offset, 0xffff0000 + offset + length);
+ }
+ 
+-- 
+2.26.2
