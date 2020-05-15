@@ -1,28 +1,43 @@
-Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
-Date: Mon, 11 May 2020 09:31:34 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Message-ID: <20200511073134.GD2957@hirez.programming.kicks-ass.net>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <20200508192000.GB2957@hirez.programming.kicks-ass.net>
- <20200508213407.GT8135@suse.de>
- <20200509092516.GC2957@hirez.programming.kicks-ass.net>
- <20200510011157.GU16070@bombadil.infradead.org>
+Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35836 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1728230AbgEOOi1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 May 2020 10:38:27 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 27/29] binfmt_flat: use flush_icache_user_range
+Date: Fri, 15 May 2020 16:36:44 +0200
+Message-ID: <20200515143646.3857579-28-hch@lst.de>
+In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
+References: <20200515143646.3857579-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200510011157.GU16070@bombadil.infradead.org>
-Sender: owner-linux-mm@kvack.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Joerg Roedel <jroedel@suse.de>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200511073134.RKzZb_EqOwxPASCUKhk_moKrhzflUhFNe66EfT3tJhU@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org, Greg Ungerer <gerg@linux-m68k.org>
+Message-ID: <20200515143644.baahZiS0A-I6FlkiLhga8pemuBiO2p3ZehL_lO1PibY@z>
 
-On Sat, May 09, 2020 at 06:11:57PM -0700, Matthew Wilcox wrote:
-> Iterating an XArray (whether the entire thing
-> or with marks) is RCU-safe and faster than iterating a linked list,
-> so this should solve the problem?
+load_flat_file works on user addresses.
 
-It can hardly be faster if you want all elements -- which is I think the
-case here. We only call into this if we change an entry, and then we
-need to propagate that change to all.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Greg Ungerer <gerg@linux-m68k.org>
+---
+ fs/binfmt_flat.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/binfmt_flat.c b/fs/binfmt_flat.c
+index 831a2b25ba79f..6f0aca5379da2 100644
+--- a/fs/binfmt_flat.c
++++ b/fs/binfmt_flat.c
+@@ -854,7 +854,7 @@ static int load_flat_file(struct linux_binprm *bprm,
+ #endif /* CONFIG_BINFMT_FLAT_OLD */
+ 	}
+ 
+-	flush_icache_range(start_code, end_code);
++	flush_icache_user_range(start_code, end_code);
+ 
+ 	/* zero the BSS,  BRK and stack areas */
+ 	if (clear_user((void __user *)(datapos + data_len), bss_len +
+-- 
+2.26.2
