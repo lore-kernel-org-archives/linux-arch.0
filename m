@@ -1,25 +1,39 @@
-Return-Path: <SRS0=ONGt=7L=kvack.org=owner-linux-mm@kernel.org>
-In-Reply-To: <ebf1250b6d4f351469fb339e5399d8b92aa8a1c1.1585898438.git.christophe.leroy@c-s.fr>
-From: Michael Ellerman <patch-notifications@ellerman.id.au>
-Subject: Re: [PATCH v2 3/5] drm/i915/gem: Replace user_access_begin by user_write_access_begin
-Message-ID: <49YBF610M2z9sSw@ozlabs.org>
-Date: Fri, 29 May 2020 14:20:25 +1000 (AEST)
+Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 03/29] powerpc: unexport flush_icache_user_range
+Date: Fri, 15 May 2020 16:36:20 +0200
+Message-ID: <20200515143646.3857579-4-hch@lst.de>
+In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
+References: <20200515143646.3857579-1-hch@lst.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, intel-gfx@lists.freedesktop.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200529042025.FS0_vbNY3wErTtgKFLeAyi1EvDga7tE1mqSk5WSMRx0@z>
+Message-ID: <20200515143620.q9xkUCE0jmGW8RTT6m_KgPNWphbrOezC1Hm7AiD9tjc@z>
 
-On Fri, 2020-04-03 at 07:20:52 UTC, Christophe Leroy wrote:
-> When i915_gem_execbuffer2_ioctl() is using user_access_begin(),
-> that's only to perform unsafe_put_user() so use
-> user_write_access_begin() in order to only open write access.
-> 
-> Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
-> Reviewed-by: Kees Cook <keescook@chromium.org>
+flush_icache_user_range is only used by copy_to_user_page, which is
+only used by core VM code.
 
-Applied to powerpc topic/uaccess, thanks.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/powerpc/mm/mem.c | 1 -
+ 1 file changed, 1 deletion(-)
 
-https://git.kernel.org/powerpc/c/b44f687386875b714dae2afa768e73401e45c21c
-
-cheers
+diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
+index 041ed7cfd341a..f0d1bf0a8e14f 100644
+--- a/arch/powerpc/mm/mem.c
++++ b/arch/powerpc/mm/mem.c
+@@ -587,7 +587,6 @@ void flush_icache_user_range(struct vm_area_struct *v=
+ma, struct page *page,
+ 	flush_icache_range(maddr, maddr + len);
+ 	kunmap(page);
+ }
+-EXPORT_SYMBOL(flush_icache_user_range);
+=20
+ /*
+  * System memory should not be in /proc/iomem but various tools expect i=
+t
+--=20
+2.26.2
