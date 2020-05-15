@@ -1,287 +1,69 @@
-Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH v3 2/7] mm/vmalloc: Track which page-table levels were modified
-Date: Fri, 15 May 2020 16:00:18 +0200
-Message-ID: <20200515140023.25469-3-joro@8bytes.org>
-In-Reply-To: <20200515140023.25469-1-joro@8bytes.org>
-References: <20200515140023.25469-1-joro@8bytes.org>
-Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org
-Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Return-Path: <SRS0=kV/L=65=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+ <20200429220732.31602-2-yu-cheng.yu@intel.com>
+ <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
+ <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+ <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
+Date: Fri, 15 May 2020 11:39:14 -0700
+MIME-Version: 1.0
+In-Reply-To: <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515140018.lh2zFKsSoAIQZhRqwVuHNs0ukIKLdD0BV_cdIMGwQiM@z>
+Message-ID: <20200515183914.bCJyXIRs_svdjY5CPagdGlwlnYjji9K8WCueBFkOS9M@z>
 
-From: Joerg Roedel <jroedel@suse.de>
+On 5/12/20 4:20 PM, Yu-cheng Yu wrote:
+> On Wed, 2020-04-29 at 16:02 -0700, Yu-cheng Yu wrote:
+>> On Wed, 2020-04-29 at 15:53 -0700, Dave Hansen wrote:
+>>> On 4/29/20 3:07 PM, Yu-cheng Yu wrote:
+>>>> +Note:
+>>>> +  There is no CET-enabling arch_prctl function.  By design, CET is enabled
+>>>> +  automatically if the binary and the system can support it.
+>>>
+>>> I think Andy and I danced around this last time.  Let me try to say it
+>>> more explicitly.
+>>>
+>>> I want CET kernel enabling to able to be disconnected from the on-disk
+>>> binary.  I want a binary compiled with CET to be able to disable it, and
+>>> I want a binary not compiled with CET to be able to enable it.  I want
+>>> different threads in a process to be able to each have different CET status.
+>>
+>> The kernel patches we have now can be modified to support this model.  If after
+>> discussion this is favorable, I will modify code accordingly.
+> 
+> To turn on/off and to lock CET are application-level decisions.  The kernel does
+> not prevent any of those.  Should there be a need to provide an arch_prctl() to
+> turn on CET, it can be added without any conflict to this series.
 
-Track at which levels in the page-table entries were modified by
-vmap/vunmap. After the page-table has been modified, use that
-information do decide whether the new arch_sync_kernel_mappings()
-needs to be called.
+I spelled out what I wanted pretty clearly.  On your next post, could
+you please directly address each of the things I asked for?  Please
+directly answer the following questions in your next post with respect
+to the code you post:
 
-Signed-off-by: Joerg Roedel <jroedel@suse.de>
-Acked-by: Andy Lutomirski <luto@kernel.org>
----
- include/linux/vmalloc.h | 16 ++++++++
- mm/vmalloc.c            | 88 ++++++++++++++++++++++++++++++-----------
- 2 files changed, 80 insertions(+), 24 deletions(-)
+Can a binary compiled with CET run without CET?
+Can a binary compiled without CET run CET-enabled code?
+Can different threads in a process have different CET enabling state?
 
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index a95d3cc74d79..c80bdb8a6b55 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -144,6 +144,22 @@ extern int remap_vmalloc_range(struct vm_area_struct *vma, void *addr,
- void vmalloc_sync_mappings(void);
- void vmalloc_sync_unmappings(void);
- 
-+/*
-+ * Architectures can set this mask to a combination of PGTBL_P?D_MODIFIED values
-+ * and let generic vmalloc and ioremap code know when arch_sync_kernel_mappings()
-+ * needs to be called.
-+ */
-+#ifndef ARCH_PAGE_TABLE_SYNC_MASK
-+#define ARCH_PAGE_TABLE_SYNC_MASK 0
-+#endif
-+
-+/*
-+ * There is no default implementation for arch_sync_kernel_mappings(). It is
-+ * relied upon the compiler to optimize calls out if ARCH_PAGE_TABLE_SYNC_MASK
-+ * is 0.
-+ */
-+void arch_sync_kernel_mappings(unsigned long start, unsigned long end);
-+
- /*
-  *	Lowlevel-APIs (not for driver use!)
-  */
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 9a8227afa073..184f5a556cf7 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -69,7 +69,8 @@ static void free_work(struct work_struct *w)
- 
- /*** Page table manipulation functions ***/
- 
--static void vunmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end)
-+static void vunmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
-+			     pgtbl_mod_mask *mask)
- {
- 	pte_t *pte;
- 
-@@ -78,73 +79,104 @@ static void vunmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end)
- 		pte_t ptent = ptep_get_and_clear(&init_mm, addr, pte);
- 		WARN_ON(!pte_none(ptent) && !pte_present(ptent));
- 	} while (pte++, addr += PAGE_SIZE, addr != end);
-+	*mask |= PGTBL_PTE_MODIFIED;
- }
- 
--static void vunmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end)
-+static void vunmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
-+			     pgtbl_mod_mask *mask)
- {
- 	pmd_t *pmd;
- 	unsigned long next;
-+	int cleared;
- 
- 	pmd = pmd_offset(pud, addr);
- 	do {
- 		next = pmd_addr_end(addr, end);
--		if (pmd_clear_huge(pmd))
-+
-+		cleared = pmd_clear_huge(pmd);
-+		if (cleared || pmd_bad(*pmd))
-+			*mask |= PGTBL_PMD_MODIFIED;
-+
-+		if (cleared)
- 			continue;
- 		if (pmd_none_or_clear_bad(pmd))
- 			continue;
--		vunmap_pte_range(pmd, addr, next);
-+		vunmap_pte_range(pmd, addr, next, mask);
- 	} while (pmd++, addr = next, addr != end);
- }
- 
--static void vunmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end)
-+static void vunmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end,
-+			     pgtbl_mod_mask *mask)
- {
- 	pud_t *pud;
- 	unsigned long next;
-+	int cleared;
- 
- 	pud = pud_offset(p4d, addr);
- 	do {
- 		next = pud_addr_end(addr, end);
--		if (pud_clear_huge(pud))
-+
-+		cleared = pud_clear_huge(pud);
-+		if (cleared || pud_bad(*pud))
-+			*mask |= PGTBL_PUD_MODIFIED;
-+
-+		if (cleared)
- 			continue;
- 		if (pud_none_or_clear_bad(pud))
- 			continue;
--		vunmap_pmd_range(pud, addr, next);
-+		vunmap_pmd_range(pud, addr, next, mask);
- 	} while (pud++, addr = next, addr != end);
- }
- 
--static void vunmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end)
-+static void vunmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end,
-+			     pgtbl_mod_mask *mask)
- {
- 	p4d_t *p4d;
- 	unsigned long next;
-+	int cleared;
- 
- 	p4d = p4d_offset(pgd, addr);
- 	do {
- 		next = p4d_addr_end(addr, end);
--		if (p4d_clear_huge(p4d))
-+
-+		cleared = p4d_clear_huge(p4d);
-+		if (cleared || p4d_bad(*p4d))
-+			*mask |= PGTBL_P4D_MODIFIED;
-+
-+		if (cleared)
- 			continue;
- 		if (p4d_none_or_clear_bad(p4d))
- 			continue;
--		vunmap_pud_range(p4d, addr, next);
-+		vunmap_pud_range(p4d, addr, next, mask);
- 	} while (p4d++, addr = next, addr != end);
- }
- 
--static void vunmap_page_range(unsigned long addr, unsigned long end)
-+static void vunmap_page_range(unsigned long start, unsigned long end)
- {
- 	pgd_t *pgd;
-+	unsigned long addr = start;
- 	unsigned long next;
-+	pgtbl_mod_mask mask = 0;
- 
- 	BUG_ON(addr >= end);
-+	start = addr;
- 	pgd = pgd_offset_k(addr);
- 	do {
- 		next = pgd_addr_end(addr, end);
-+		if (pgd_bad(*pgd))
-+			mask |= PGTBL_PGD_MODIFIED;
- 		if (pgd_none_or_clear_bad(pgd))
- 			continue;
--		vunmap_p4d_range(pgd, addr, next);
-+		vunmap_p4d_range(pgd, addr, next, &mask);
- 	} while (pgd++, addr = next, addr != end);
-+
-+	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-+		arch_sync_kernel_mappings(start, end);
- }
- 
- static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
--		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
-+		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
-+		pgtbl_mod_mask *mask)
- {
- 	pte_t *pte;
- 
-@@ -153,7 +185,7 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
- 	 * callers keep track of where we're up to.
- 	 */
- 
--	pte = pte_alloc_kernel(pmd, addr);
-+	pte = pte_alloc_kernel_track(pmd, addr, mask);
- 	if (!pte)
- 		return -ENOMEM;
- 	do {
-@@ -166,55 +198,59 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
- 		set_pte_at(&init_mm, addr, pte, mk_pte(page, prot));
- 		(*nr)++;
- 	} while (pte++, addr += PAGE_SIZE, addr != end);
-+	*mask |= PGTBL_PTE_MODIFIED;
- 	return 0;
- }
- 
- static int vmap_pmd_range(pud_t *pud, unsigned long addr,
--		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
-+		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
-+		pgtbl_mod_mask *mask)
- {
- 	pmd_t *pmd;
- 	unsigned long next;
- 
--	pmd = pmd_alloc(&init_mm, pud, addr);
-+	pmd = pmd_alloc_track(&init_mm, pud, addr, mask);
- 	if (!pmd)
- 		return -ENOMEM;
- 	do {
- 		next = pmd_addr_end(addr, end);
--		if (vmap_pte_range(pmd, addr, next, prot, pages, nr))
-+		if (vmap_pte_range(pmd, addr, next, prot, pages, nr, mask))
- 			return -ENOMEM;
- 	} while (pmd++, addr = next, addr != end);
- 	return 0;
- }
- 
- static int vmap_pud_range(p4d_t *p4d, unsigned long addr,
--		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
-+		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
-+		pgtbl_mod_mask *mask)
- {
- 	pud_t *pud;
- 	unsigned long next;
- 
--	pud = pud_alloc(&init_mm, p4d, addr);
-+	pud = pud_alloc_track(&init_mm, p4d, addr, mask);
- 	if (!pud)
- 		return -ENOMEM;
- 	do {
- 		next = pud_addr_end(addr, end);
--		if (vmap_pmd_range(pud, addr, next, prot, pages, nr))
-+		if (vmap_pmd_range(pud, addr, next, prot, pages, nr, mask))
- 			return -ENOMEM;
- 	} while (pud++, addr = next, addr != end);
- 	return 0;
- }
- 
- static int vmap_p4d_range(pgd_t *pgd, unsigned long addr,
--		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
-+		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
-+		pgtbl_mod_mask *mask)
- {
- 	p4d_t *p4d;
- 	unsigned long next;
- 
--	p4d = p4d_alloc(&init_mm, pgd, addr);
-+	p4d = p4d_alloc_track(&init_mm, pgd, addr, mask);
- 	if (!p4d)
- 		return -ENOMEM;
- 	do {
- 		next = p4d_addr_end(addr, end);
--		if (vmap_pud_range(p4d, addr, next, prot, pages, nr))
-+		if (vmap_pud_range(p4d, addr, next, prot, pages, nr, mask))
- 			return -ENOMEM;
- 	} while (p4d++, addr = next, addr != end);
- 	return 0;
-@@ -234,16 +270,20 @@ static int vmap_page_range_noflush(unsigned long start, unsigned long end,
- 	unsigned long addr = start;
- 	int err = 0;
- 	int nr = 0;
-+	pgtbl_mod_mask mask = 0;
- 
- 	BUG_ON(addr >= end);
- 	pgd = pgd_offset_k(addr);
- 	do {
- 		next = pgd_addr_end(addr, end);
--		err = vmap_p4d_range(pgd, addr, next, prot, pages, &nr);
-+		err = vmap_p4d_range(pgd, addr, next, prot, pages, &nr, &mask);
- 		if (err)
- 			return err;
- 	} while (pgd++, addr = next, addr != end);
- 
-+	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-+		arch_sync_kernel_mappings(start, end);
-+
- 	return nr;
- }
- 
--- 
-2.17.1
+>>> Which JITs was this tested with?  I think as a bare minimum we need to
+>>> know that this design can accommodate _a_ modern JIT.  It would be
+>>> horrible if the browser javascript engines couldn't use this design, for
+>>> instance.
+>>
+>> JIT work is still in progress.  When that is available I will test it.
+> 
+> I found CET has been enabled in LLVM JIT, Mesa JIT as well as sljit which is
+> used by jit.  So the current model works with JIT.
+
+Great!  I'm glad the model works.  That's not what I asked, though.
+
+Does this *code* work?  Could you please indicate which JITs have been
+enabled to use the code in this series?  How much of the new ABI is in use?
+
+Where are the selftests/ for this new ABI?  Were you planning on
+submitting any with this series?
