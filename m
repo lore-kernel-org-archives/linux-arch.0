@@ -1,69 +1,49 @@
-Return-Path: <SRS0=7Sat=7H=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v3 0/6] arm64: tlb: add support for TTL feature
-Date: Mon, 25 May 2020 20:52:54 +0800
-Message-ID: <20200525125300.794-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 25/29] exec: only build read_code when needed
+Date: Fri, 15 May 2020 16:36:42 +0200
+Message-ID: <20200515143646.3857579-26-hch@lst.de>
+In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
+References: <20200515143646.3857579-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200525125254.0Q4rSXnpkYJxvUfjXWSSgrYy-uJBEqAIbyrSH38dKFY@z>
+Message-ID: <20200515143642.EjitrmbUi7G0hKjOHUjH8s7GJhJDuFMRP9zlMXZriBo@z>
 
-In order to reduce the cost of TLB invalidation, ARMv8.4 provides
-the TTL field in TLBI instruction.  The TTL field indicates the
-level of page table walk holding the leaf entry for the address
-being invalidated.  This series provide support for this feature.
+Only build read_code when binary formats that use it are built into the
+kernel.
 
-When ARMv8.4-TTL is implemented, the operand for TLBIs looks like
-below:
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ fs/exec.c | 3 +++
+ 1 file changed, 3 insertions(+)
 
-* +----------+-------+----------------------+
-* |   ASID   |  TTL  |        BADDR         |
-* +----------+-------+----------------------+
-* |63      48|47   44|43                   0|
-
-
-This version updates some codes implementation according to Peter's
-suggestion, and adds some commit msg.
-
-See patches for details, Thanks.
-
---
-ChangeList:
-v3:
-minor changes: reduce the indentation levels of __tlbi_level().
-
-v2:
-rebase series on Linux 5.7-rc1 and simplify the code implementation.
-
-v1:
-add support for TTL feature in arm64.
-
-
-Marc Zyngier (2):
-  arm64: Detect the ARMv8.4 TTL feature
-  arm64: Add level-hinted TLB invalidation helper
-
-Peter Zijlstra (Intel) (1):
-  tlb: mmu_gather: add tlb_flush_*_range APIs
-
-Zhenyu Ye (3):
-  arm64: Add tlbi_user_level TLB invalidation helper
-  mm: tlb: Provide flush_*_tlb_range wrappers
-  arm64: tlb: Set the TTL field in flush_tlb_range
-
- arch/arm64/include/asm/cpucaps.h  |  3 +-
- arch/arm64/include/asm/sysreg.h   |  1 +
- arch/arm64/include/asm/tlb.h      | 29 +++++++++++++++-
- arch/arm64/include/asm/tlbflush.h | 49 +++++++++++++++++++++++----
- arch/arm64/kernel/cpufeature.c    | 11 +++++++
- include/asm-generic/pgtable.h     | 12 +++++--
- include/asm-generic/tlb.h         | 55 ++++++++++++++++++++++---------
- mm/pgtable-generic.c              | 22 +++++++++++++
- 8 files changed, 157 insertions(+), 25 deletions(-)
-
+diff --git a/fs/exec.c b/fs/exec.c
+index 06b4c550af5d9..a4f766f296f8f 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1027,6 +1027,8 @@ int kernel_read_file_from_fd(int fd, void **buf, lo=
+ff_t *size, loff_t max_size,
+ }
+ EXPORT_SYMBOL_GPL(kernel_read_file_from_fd);
+=20
++#if defined(CONFIG_HAVE_AOUT) || defined(CONFIG_BINFMT_FLAT) || \
++    defined(CONFIG_BINFMT_ELF_FDPIC)
+ ssize_t read_code(struct file *file, unsigned long addr, loff_t pos, siz=
+e_t len)
+ {
+ 	ssize_t res =3D vfs_read(file, (void __user *)addr, len, &pos);
+@@ -1035,6 +1037,7 @@ ssize_t read_code(struct file *file, unsigned long =
+addr, loff_t pos, size_t len)
+ 	return res;
+ }
+ EXPORT_SYMBOL(read_code);
++#endif
+=20
+ /*
+  * Maps the mm_struct mm into the current task struct.
 --=20
-2.19.1
+2.26.2
