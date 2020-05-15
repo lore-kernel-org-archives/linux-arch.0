@@ -1,70 +1,56 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 29/29] module: move the set_fs hack for flush_icache_range to m68k
-Date: Fri, 15 May 2020 16:36:46 +0200
-Message-ID: <20200515143646.3857579-30-hch@lst.de>
+Subject: [PATCH 23/29] arm: rename flush_cache_user_range to flush_icache_user_range
+Date: Fri, 15 May 2020 16:36:40 +0200
+Message-ID: <20200515143646.3857579-24-hch@lst.de>
 References: <20200515143646.3857579-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-m68k-owner@vger.kernel.org>
+Return-path: <linux-hexagon-owner@vger.kernel.org>
 In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-Sender: linux-m68k-owner@vger.kernel.org
+Sender: linux-hexagon-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-flush_icache_range generally operates on kernel addresses, but for some
-reason m68k needed a set_fs override.  Move that into the m68k code
-insted of keeping it in the module loader.
+flush_icache_user_range will be the name for a generic primitive.
+Move the arm name so that arm already has an implementation.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 ---
- arch/m68k/mm/cache.c | 4 ++++
- kernel/module.c      | 8 --------
- 2 files changed, 4 insertions(+), 8 deletions(-)
+ arch/arm/include/asm/cacheflush.h | 4 ++--
+ arch/arm/kernel/traps.c           | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/m68k/mm/cache.c b/arch/m68k/mm/cache.c
-index 7915be3a09712..5ecb3310e8745 100644
---- a/arch/m68k/mm/cache.c
-+++ b/arch/m68k/mm/cache.c
-@@ -107,7 +107,11 @@ void flush_icache_user_range(unsigned long address, unsigned long endaddr)
+diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cacheflush.h
+index c78e14fcfb5df..2e24e765e6d3a 100644
+--- a/arch/arm/include/asm/cacheflush.h
++++ b/arch/arm/include/asm/cacheflush.h
+@@ -258,11 +258,11 @@ extern void flush_cache_page(struct vm_area_struct *vma, unsigned long user_addr
+ #define flush_cache_dup_mm(mm) flush_cache_mm(mm)
  
- void flush_icache_range(unsigned long address, unsigned long endaddr)
- {
-+	mm_segment_t old_fs = get_fs();
-+
-+	set_fs(KERNEL_DS);
- 	flush_icache_user_range(address, endaddr);
-+	set_fs(old_fs);
- }
- EXPORT_SYMBOL(flush_icache_range);
+ /*
+- * flush_cache_user_range is used when we want to ensure that the
++ * flush_icache_user_range is used when we want to ensure that the
+  * Harvard caches are synchronised for the user space address range.
+  * This is used for the ARM private sys_cacheflush system call.
+  */
+-#define flush_cache_user_range(s,e)	__cpuc_coherent_user_range(s,e)
++#define flush_icache_user_range(s,e)	__cpuc_coherent_user_range(s,e)
  
-diff --git a/kernel/module.c b/kernel/module.c
-index 646f1e2330d2b..b1673ed49594f 100644
---- a/kernel/module.c
-+++ b/kernel/module.c
-@@ -3312,12 +3312,6 @@ static int check_module_license_and_versions(struct module *mod)
+ /*
+  * Perform necessary cache operations to ensure that data previously
+diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
+index 1e70e7227f0ff..316a7687f8133 100644
+--- a/arch/arm/kernel/traps.c
++++ b/arch/arm/kernel/traps.c
+@@ -566,7 +566,7 @@ __do_cache_op(unsigned long start, unsigned long end)
+ 		if (fatal_signal_pending(current))
+ 			return 0;
  
- static void flush_module_icache(const struct module *mod)
- {
--	mm_segment_t old_fs;
--
--	/* flush the icache in correct context */
--	old_fs = get_fs();
--	set_fs(KERNEL_DS);
--
- 	/*
- 	 * Flush the instruction cache, since we've played with text.
- 	 * Do it before processing of module parameters, so the module
-@@ -3329,8 +3323,6 @@ static void flush_module_icache(const struct module *mod)
- 				   + mod->init_layout.size);
- 	flush_icache_range((unsigned long)mod->core_layout.base,
- 			   (unsigned long)mod->core_layout.base + mod->core_layout.size);
--
--	set_fs(old_fs);
- }
+-		ret = flush_cache_user_range(start, start + chunk);
++		ret = flush_icache_user_range(start, start + chunk);
+ 		if (ret)
+ 			return ret;
  
- int __weak module_frob_arch_sections(Elf_Ehdr *hdr,
 -- 
 2.26.2
