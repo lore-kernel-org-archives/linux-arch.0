@@ -1,112 +1,68 @@
-From: "Karstens, Nate" <Nate.Karstens@garmin.com>
-Subject: RE: [PATCH v2] Implement close-on-fork
-Date: Fri, 15 May 2020 18:28:20 +0000
-Message-ID: <4964fe0ccdf7495daf4045c195b14ed6@garmin.com>
-References: <20200515152321.9280-1-nate.karstens@garmin.com>
-         <20200515155730.GF16070@bombadil.infradead.org>
-         <5b1929aa9f424e689c7f430663891827@garmin.com>
- <1589559950.3653.11.camel@HansenPartnership.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+Date: Fri, 15 May 2020 11:39:14 -0700
+Message-ID: <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+ <20200429220732.31602-2-yu-cheng.yu@intel.com>
+ <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
+ <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+ <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <1589559950.3653.11.camel@HansenPartnership.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
 Content-Language: en-US
-Sender: linux-alpha-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@HansenPartnership.com>, Matthew Wilcox <willy@infradead.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Eric Dumazet <edumazet@google.com>, David Laight <David.Laight@aculab.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, netdev@vger.ker
+Sender: linux-doc-owner@vger.kernel.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-SmFtZXMsDQoNClNvcnJ5LCBwZXJoYXBzIEkgd2FzIGluZGlyZWN0LCBidXQgSSB0aG91Z2h0IEkg
-aGFkIHJlc3BvbmRlZCB0byB0aGF0IGluIGh0dHBzOi8vbG9yZS5rZXJuZWwub3JnL2xpbnV4LWZz
-ZGV2ZWwvZGU2YWRjZTc2YjUzNDMxMDk3NWU0ZDNjNGE0ZmFjYjJAZ2FybWluLmNvbS8uDQoNCkkg
-cmVhbGx5IGhvcGUgSSBkbyBub3QgY29tZSBvZmYgYXMgY29tcGxhaW5pbmcgYWJvdXQgdGhpcyBp
-c3N1ZS4gV2UgaWRlbnRpZmllZCB3aGF0IHNlZW1lZCB0byBiZSBzb21ldGhpbmcgdGhhdCB3YXMg
-b3Zlcmxvb2tlZCB3aXRoIHRoZSB2YXJpb3VzIEFQSXMgYXJvdW5kIGNyZWF0aW5nIGNoaWxkIHBy
-b2Nlc3Nlcy4gUmF0aGVyIHRoYW4gZml4aW5nIGl0IG91cnNlbHZlcyBhbmQgbW92aW5nIG9uIHdl
-IGNob3NlIHRvIGludmVzdCBtb3JlIHRpbWUgYW5kIGVmZm9ydCBpbnRvIGl0IGJ5IGVuZ2FnaW5n
-IHRoZSBjb21tdW5pdHkgKGZpcnN0IFBPU0lYLCBhbmQgbm93IHRoaXMgb25lKSBpbiBhIGRpc2N1
-c3Npb24uIEkgaHVtYmx5IGFuZCBzaW5jZXJlbHkgYXNrIGlmIHlvdSB3b3VsZCBoZWxwIG1lIHVu
-ZGVyc3RhbmQsIGlmIHdlIGNvdWxkIHR1cm4gYmFjayB0aGUgY2xvY2ssIGhvdyBvdXIgYXBwbGlj
-YXRpb24gY291bGQgaGF2ZSBiZWVuIHdyaXR0ZW4gdG8gYXZvaWQgdGhpcyBpc3N1ZToNCg0KKkEg
-cGFyZW50IHByb2Nlc3MgZm9ya3MgYSBjaGlsZC4gQW5vdGhlciB0aHJlYWQgaW4gdGhlIHBhcmVu
-dCBwcm9jZXNzIGNsb3NlcyBhbmQgYXR0ZW1wdHMgdG8gcmVvcGVuIGEgc29ja2V0LCBmaWxlLCBv
-ciBvdGhlciByZXNvdXJjZSBpdCBuZWVkcyBleGNsdXNpdmUgYWNjZXNzIHRvLiBUaGlzIGZhaWxz
-IGJlY2F1c2UgdGhlIC1vcGVyYXRpbmcgc3lzdGVtLSBzdGlsbCBoYXMgYSByZWZlcmVuY2UgdG8g
-dGhhdCByZXNvdXJjZSB0aGF0IGl0IGlzIGtlZXBpbmcgb24gYmVoYWxmIG9mIHRoZSBjaGlsZC4g
-VGhlIGNoaWxkIGV2ZW50dWFsbHkgY2FsbHMgZXhlYyBhbmQgdGhlIHJlc291cmNlIGlzIGNsb3Nl
-ZCBiZWNhdXNlIHRoZSBjbG9zZS1vbi1leGVjIGZsYWcgaXMgc2V0LioNCg0KT3VyIGZpcnN0IGF0
-dGVtcHQsIHdoaWNoIHdhcyB0byB1c2UgdGhlIHB0aHJlYWRfYXRmb3JrKCkgaGFuZGxlcnMsIGZh
-aWxlZCBiZWNhdXNlIHN5c3RlbSgpIGlzIG5vdCByZXF1aXJlZCB0byBjYWxsIHRoZSBoYW5kbGVy
-cy4NCg0KTW9zdCBvZiB0aGUgZmVlZGJhY2sgd2UncmUgZ2V0dGluZyBvbiB0aGlzIHNlZW1zIHRv
-IHNheSAiZG9uJ3QgdXNlIHN5c3RlbSgpLCBpdCBpcyB1bnNhZmUgZm9yIHRocmVhZGVkIGFwcGxp
-Y2F0aW9ucyIuIElzIHRoYXQgZG9jdW1lbnRlZCBhbnl3aGVyZT8gVGhlIG1hbiBwYWdlIHNheXMg
-aXQgaXMgIk1ULVNhZmUiLg0KDQpBc2lkZSBmcm9tIHRoYXQsIGV2ZW4gaWYgd2UgcmVtb3ZlIGFs
-bCB1c2VzIG9mIHN5c3RlbSgpIGZyb20gb3VyIGFwcGxpY2F0aW9uICh3aGljaCB3ZSBhbHJlYWR5
-IGhhdmUpLCB0aGVuIG91ciBhcHBsaWNhdGlvbiwgbGlrZSBtYW55IG90aGVyIGFwcGxpY2F0aW9u
-cywgbmVlZHMgdG8gdXNlIHRoaXJkLXBhcnR5IHNoYXJlZCBsaWJyYXJpZXMuIFRoZXJlIGlzIG5v
-dGhpbmcgdGhhdCBwcmV2ZW50cyB0aG9zZSBsaWJyYXJpZXMgZnJvbSB1c2luZyBzeXN0ZW0oKS4g
-V2UgY2FuIGF1ZGl0IHRob3NlIGxpYnJhcmllcyBhbmQgZ28gYmFjayB3aXRoIHRoZSB2ZW5kb3Ig
-d2l0aCBhIHJlcXVlc3QgdG8gcmVwbGFjZSBzeXN0ZW0oKSB3aXRoIGEgc3RhbmRhcmQgZm9yay9l
-eGVjLCBidXQgdGhleSB3aWxsIGFsc28gd2FudCBkb2N1bWVudGF0aW9uIHN1cHBvcnRpbmcgdGhh
-dC4NCg0KV2UgY2FuIGFsc28gdGFrZSBzdGVwcyB0byBjaGFuZ2Ugb3IgcmVtb3ZlIHN5c3RlbSgp
-IGZyb20gb3VyIHN0YW5kYXJkIGxpYnJhcnkuIEl0IGZpeGVzIG91ciBpc3N1ZSwgYnV0IHN0aWxs
-IGxlYXZlcyB0aGUgY29tbXVuaXR5IHdpdGggYW4gQVBJIHRoYXQgaXMgYnJva2VuL2ZsYXdlZC9w
-b29ybHktZG9jdW1lbnRlZCAoZGVwZW5kaW5nIG9uIGhvdyBvbmUgbG9va3MgYXQgaXQpLg0KDQpJ
-ZiB0aGUgZmVlZGJhY2sgZnJvbSB0aGUgY29tbXVuaXR5IGlzIHRydWx5IGFuZCBmaW5hbGx5IHRo
-YXQgc3lzdGVtKCkgc2hvdWxkIG5vdCBiZSB1c2VkIGluIHRoZXNlIGFwcGxpY2F0aW9ucywgdGhl
-biBpcyB0aGVyZSBzdXBwb3J0IGZvciB1cGRhdGluZyB0aGUgbWFuIHBhZ2UgdG8gYmV0dGVyIGNv
-bW11bmljYXRlIHRoYXQ/DQoNClRoYW5rcyBmb3IgeW91ciBoZWxwIHdpdGggdGhpcy4NCg0KTmF0
-ZQ0KDQotLS0tLU9yaWdpbmFsIE1lc3NhZ2UtLS0tLQ0KRnJvbTogSmFtZXMgQm90dG9tbGV5IDxK
-YW1lcy5Cb3R0b21sZXlASGFuc2VuUGFydG5lcnNoaXAuY29tPg0KU2VudDogRnJpZGF5LCBNYXkg
-MTUsIDIwMjAgMTE6MjYNClRvOiBLYXJzdGVucywgTmF0ZSA8TmF0ZS5LYXJzdGVuc0BnYXJtaW4u
-Y29tPjsgTWF0dGhldyBXaWxjb3ggPHdpbGx5QGluZnJhZGVhZC5vcmc+DQpDYzogQWxleGFuZGVy
-IFZpcm8gPHZpcm9AemVuaXYubGludXgub3JnLnVrPjsgSmVmZiBMYXl0b24gPGpsYXl0b25Aa2Vy
-bmVsLm9yZz47IEouIEJydWNlIEZpZWxkcyA8YmZpZWxkc0BmaWVsZHNlcy5vcmc+OyBBcm5kIEJl
-cmdtYW5uIDxhcm5kQGFybmRiLmRlPjsgUmljaGFyZCBIZW5kZXJzb24gPHJ0aEB0d2lkZGxlLm5l
-dD47IEl2YW4gS29rc2hheXNreSA8aW5rQGp1cmFzc2ljLnBhcmsubXN1LnJ1PjsgTWF0dCBUdXJu
-ZXIgPG1hdHRzdDg4QGdtYWlsLmNvbT47IEhlbGdlIERlbGxlciA8ZGVsbGVyQGdteC5kZT47IERh
-dmlkIFMuIE1pbGxlciA8ZGF2ZW1AZGF2ZW1sb2Z0Lm5ldD47IEpha3ViIEtpY2luc2tpIDxrdWJh
-QGtlcm5lbC5vcmc+OyBFcmljIER1bWF6ZXQgPGVkdW1hemV0QGdvb2dsZS5jb20+OyBEYXZpZCBM
-YWlnaHQgPERhdmlkLkxhaWdodEBhY3VsYWIuY29tPjsgbGludXgtZnNkZXZlbEB2Z2VyLmtlcm5l
-bC5vcmc7IGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3JnOyBsaW51eC1hbHBoYUB2Z2VyLmtlcm5l
-bC5vcmc7IGxpbnV4LXBhcmlzY0B2Z2VyLmtlcm5lbC5vcmc7IHNwYXJjbGludXhAdmdlci5rZXJu
-ZWwub3JnOyBuZXRkZXZAdmdlci5rZXJuZWwub3JnOyBsaW51eC1rZXJuZWxAdmdlci5rZXJuZWwu
-b3JnOyBDaGFuZ2xpIEdhbyA8eGlhb3N1b0BnbWFpbC5jb20+OyBhLmpvc2V5QG9wZW5ncm91cC5v
-cmcNClN1YmplY3Q6IFJlOiBbUEFUQ0ggdjJdIEltcGxlbWVudCBjbG9zZS1vbi1mb3JrDQoNCkNB
-VVRJT04gLSBFWFRFUk5BTCBFTUFJTDogRG8gbm90IGNsaWNrIGFueSBsaW5rcyBvciBvcGVuIGFu
-eSBhdHRhY2htZW50cyB1bmxlc3MgeW91IHRydXN0IHRoZSBzZW5kZXIgYW5kIGtub3cgdGhlIGNv
-bnRlbnQgaXMgc2FmZS4NCg0KDQpPbiBGcmksIDIwMjAtMDUtMTUgYXQgMTY6MDcgKzAwMDAsIEth
-cnN0ZW5zLCBOYXRlIHdyb3RlOg0KPiBNYXR0aGV3LA0KPg0KPiBXaGF0IGFsdGVybmF0aXZlIHdv
-dWxkIHlvdSBzdWdnZXN0Pw0KPg0KPiBGcm9tIGFuIGVhcmxpZXIgZW1haWw6DQo+DQo+ID4gLi4u
-bm90aGluZyBlbHNlIGFkZHJlc3NlcyB0aGUgdW5kZXJseWluZyBpc3N1ZTogdGhlcmUgaXMgbm8g
-d2F5IHRvDQo+ID4gcHJldmVudCBhIGZvcmsoKSBmcm9tIGR1cGxpY2F0aW5nIHRoZSByZXNvdXJj
-ZS4gVGhlIGNsb3NlLW9uLWV4ZWMNCj4gPiBmbGFnIHBhcnRpYWxseS1hZGRyZXNzZXMgdGhpcyBi
-eSBhbGxvd2luZyB0aGUgcGFyZW50IHByb2Nlc3MgdG8gbWFyaw0KPiA+IGEgZmlsZSBkZXNjcmlw
-dG9yIGFzIGV4Y2x1c2l2ZSB0byBpdHNlbGYsIGJ1dCB0aGVyZSBpcyBzdGlsbCBhDQo+ID4gcGVy
-aW9kIG9mIHRpbWUgdGhlIGZhaWx1cmUgY2FuIG9jY3VyIGJlY2F1c2UgdGhlIGF1dG8tY2xvc2Ug
-b25seQ0KPiA+IG9jY3VycyBkdXJpbmcgdGhlIGV4ZWMoKS4gUGVyaGFwcyB0aGlzIHdvdWxkIG5v
-dCBiZSBhbiBpc3N1ZSB3aXRoIGENCj4gPiBkaWZmZXJlbnQgcHJvY2Vzcy90aHJlYWRpbmcgbW9k
-ZWwsIGJ1dCB0aGF0IGlzIGFub3RoZXIgZGlzY3Vzc2lvbg0KPiA+IGVudGlyZWx5Lg0KPg0KPiBE
-byB5b3UgZGlzYWdyZWUgdGhlcmUgaXMgYW4gaXNzdWU/DQoNCk9oIGdvb2QgZ3JpZWYgdGhhdCdz
-IGEgbGVhZGluZyBxdWVzdGlvbjogV2hlbiBJIHdyaXRlIGJhZCBjb2RlIGFuZCBpdCBjcmFzaGVz
-LCBtb3N0IHBlb3BsZSB3b3VsZCBhZ3JlZSB0aGVyZSBpcyBhbiBpc3N1ZTsgdmVyeSBmZXcgd291
-bGQgYWdyZWUgdGhlIGtlcm5lbCBzaG91bGQgYmUgY2hhbmdlZCB0byBmaXggaXQuIFNldmVyYWwg
-b2YgdXMgaGF2ZSBhbHJlYWR5IHNhaWQgdGhlIHByb2JsZW0gc2VlbXMgdG8gYmUgd2l0aCB0aGUg
-d2F5IHlvdXIgYXBwbGljYXRpb24gaXMgd3JpdHRlbi4gIFlvdSBkaWRuJ3QgZXZlbiBhbnN3ZXIg
-ZW1haWxzIGxpa2UgdGhpcyBzcGVjdWxhdGluZyBhYm91dCB0aGUgY2F1c2UgYmVpbmcgdGhlIHdh
-eSB5b3VyIGFwcGxpY2F0aW9uIGNvdW50cyByZXNvdXJjZXM6DQoNCmh0dHBzOi8vbG9yZS5rZXJu
-ZWwub3JnL2xpbnV4LWZzZGV2ZWwvMTU4NzU2OTY2My4zNDg1LjE4LmNhbWVsQEhhbnNlblBhcnRu
-ZXJzaGlwLmNvbS8NCg0KVGhlIGJvdHRvbSBsaW5lIGlzIHRoYXQgd2UgdGhpbmsgeW91IGNvdWxk
-IHJld3JpdGUgdGhpcyBvbmUgYXBwbGljYXRpb24gbm90IHRvIGhhdmUgdGhlIHByb2JsZW0geW91
-J3JlIGNvbXBsYWluaW5nIGFib3V0IHJhdGhlciB0aGFuIGludHJvZHVjZSBhIG5ldyBrZXJuZWwg
-QVBJIHRvICJmaXgiIGl0Lg0KDQpKYW1lcw0KDQoNCg0KDQpfX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fXw0KDQpDT05GSURFTlRJQUxJVFkgTk9USUNFOiBUaGlzIGVtYWlsIGFuZCBhbnkg
-YXR0YWNobWVudHMgYXJlIGZvciB0aGUgc29sZSB1c2Ugb2YgdGhlIGludGVuZGVkIHJlY2lwaWVu
-dChzKSBhbmQgY29udGFpbiBpbmZvcm1hdGlvbiB0aGF0IG1heSBiZSBHYXJtaW4gY29uZmlkZW50
-aWFsIGFuZC9vciBHYXJtaW4gbGVnYWxseSBwcml2aWxlZ2VkLiBJZiB5b3UgaGF2ZSByZWNlaXZl
-ZCB0aGlzIGVtYWlsIGluIGVycm9yLCBwbGVhc2Ugbm90aWZ5IHRoZSBzZW5kZXIgYnkgcmVwbHkg
-ZW1haWwgYW5kIGRlbGV0ZSB0aGUgbWVzc2FnZS4gQW55IGRpc2Nsb3N1cmUsIGNvcHlpbmcsIGRp
-c3RyaWJ1dGlvbiBvciB1c2Ugb2YgdGhpcyBjb21tdW5pY2F0aW9uIChpbmNsdWRpbmcgYXR0YWNo
-bWVudHMpIGJ5IHNvbWVvbmUgb3RoZXIgdGhhbiB0aGUgaW50ZW5kZWQgcmVjaXBpZW50IGlzIHBy
-b2hpYml0ZWQuIFRoYW5rIHlvdS4NCg==
+On 5/12/20 4:20 PM, Yu-cheng Yu wrote:
+> On Wed, 2020-04-29 at 16:02 -0700, Yu-cheng Yu wrote:
+>> On Wed, 2020-04-29 at 15:53 -0700, Dave Hansen wrote:
+>>> On 4/29/20 3:07 PM, Yu-cheng Yu wrote:
+>>>> +Note:
+>>>> +  There is no CET-enabling arch_prctl function.  By design, CET is enabled
+>>>> +  automatically if the binary and the system can support it.
+>>>
+>>> I think Andy and I danced around this last time.  Let me try to say it
+>>> more explicitly.
+>>>
+>>> I want CET kernel enabling to able to be disconnected from the on-disk
+>>> binary.  I want a binary compiled with CET to be able to disable it, and
+>>> I want a binary not compiled with CET to be able to enable it.  I want
+>>> different threads in a process to be able to each have different CET status.
+>>
+>> The kernel patches we have now can be modified to support this model.  If after
+>> discussion this is favorable, I will modify code accordingly.
+> 
+> To turn on/off and to lock CET are application-level decisions.  The kernel does
+> not prevent any of those.  Should there be a need to provide an arch_prctl() to
+> turn on CET, it can be added without any conflict to this series.
+
+I spelled out what I wanted pretty clearly.  On your next post, could
+you please directly address each of the things I asked for?  Please
+directly answer the following questions in your next post with respect
+to the code you post:
+
+Can a binary compiled with CET run without CET?
+Can a binary compiled without CET run CET-enabled code?
+Can different threads in a process have different CET enabling state?
+
+>>> Which JITs was this tested with?  I think as a bare minimum we need to
+>>> know that this design can accommodate _a_ modern JIT.  It would be
+>>> horrible if the browser javascript engines couldn't use this design, for
+>>> instance.
+>>
+>> JIT work is still in progress.  When that is available I will test it.
+> 
+> I found CET has been enabled in LLVM JIT, Mesa JIT as well as sljit which is
+> used by jit.  So the current model works with JIT.
+
+Great!  I'm glad the model works.  That's not what I asked, though.
+
+Does this *code* work?  Could you please indicate which JITs have been
+enabled to use the code in this series?  How much of the new ABI is in use?
+
+Where are the selftests/ for this new ABI?  Were you planning on
+submitting any with this series?
