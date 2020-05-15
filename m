@@ -1,28 +1,81 @@
-Return-Path: <SRS0=xM+x=6P=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40436 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729537AbgEAPYB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2020 11:24:01 -0400
-Date: Fri, 1 May 2020 08:23:42 -0700
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH 1/4] fs: Implement close-on-fork
-Message-ID: <20200501152342.GA29705@bombadil.infradead.org>
-References: <20200420071548.62112-1-nate.karstens@garmin.com>
- <20200420071548.62112-2-nate.karstens@garmin.com>
- <36dce9b4-a0bf-0015-f6bc-1006938545b1@gmail.com>
- <0e884704c25740df8e652d50431facff@garmin.com>
+Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35660 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1727082AbgEOOhh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 May 2020 10:37:37 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 08/29] alpha: use asm-generic/cacheflush.h
+Date: Fri, 15 May 2020 16:36:25 +0200
+Message-ID: <20200515143646.3857579-9-hch@lst.de>
+In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
+References: <20200515143646.3857579-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <0e884704c25740df8e652d50431facff@garmin.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Karstens, Nate" <Nate.Karstens@garmin.com>
-Cc: Eric Dumazet <eric.dumazet@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Changli Gao <xiaosuo@gmail.com>
-Message-ID: <20200501152342.dnz3uLQgs6Sk38fwroV3xgWcucBSqbUtoQvsx4a3oRo@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20200515143625.94M7JFeXVvMQO1FX9vAREVtaseulaDQQIeGBdQ1UWD4@z>
 
-On Fri, May 01, 2020 at 02:45:16PM +0000, Karstens, Nate wrote:
-> Others -- I will respond to feedback outside of implementation details in a separate message.
+Alpha needs almost no cache flushing routines of its own.  Rely on
+asm-generic/cacheflush.h for the defaults.
 
-FWIW, I'm opposed to the entire feature.  Improving the implementation
-will not change that.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/alpha/include/asm/cacheflush.h | 28 ++++++----------------------
+ 1 file changed, 6 insertions(+), 22 deletions(-)
+
+diff --git a/arch/alpha/include/asm/cacheflush.h b/arch/alpha/include/asm/cacheflush.h
+index 89128489cb598..636d7ca0d05f6 100644
+--- a/arch/alpha/include/asm/cacheflush.h
++++ b/arch/alpha/include/asm/cacheflush.h
+@@ -4,19 +4,6 @@
+ 
+ #include <linux/mm.h>
+ 
+-/* Caches aren't brain-dead on the Alpha. */
+-#define flush_cache_all()			do { } while (0)
+-#define flush_cache_mm(mm)			do { } while (0)
+-#define flush_cache_dup_mm(mm)			do { } while (0)
+-#define flush_cache_range(vma, start, end)	do { } while (0)
+-#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
+-#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
+-#define flush_dcache_page(page)			do { } while (0)
+-#define flush_dcache_mmap_lock(mapping)		do { } while (0)
+-#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
+-#define flush_cache_vmap(start, end)		do { } while (0)
+-#define flush_cache_vunmap(start, end)		do { } while (0)
+-
+ /* Note that the following two definitions are _highly_ dependent
+    on the contexts in which they are used in the kernel.  I personally
+    think it is criminal how loosely defined these macros are.  */
+@@ -59,20 +46,17 @@ flush_icache_user_range(struct vm_area_struct *vma, struct page *page,
+ 			mm->context[smp_processor_id()] = 0;
+ 	}
+ }
+-#else
++#define flush_icache_user_range flush_icache_user_range
++#else /* CONFIG_SMP */
+ extern void flush_icache_user_range(struct vm_area_struct *vma,
+ 		struct page *page, unsigned long addr, int len);
+-#endif
++#define flush_icache_user_range flush_icache_user_range
++#endif /* CONFIG_SMP */
+ 
+ /* This is used only in __do_fault and do_swap_page.  */
+ #define flush_icache_page(vma, page) \
+-  flush_icache_user_range((vma), (page), 0, 0)
++	flush_icache_user_range((vma), (page), 0, 0)
+ 
+-#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+-do { memcpy(dst, src, len); \
+-     flush_icache_user_range(vma, page, vaddr, len); \
+-} while (0)
+-#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
+-	memcpy(dst, src, len)
++#include <asm-generic/cacheflush.h>
+ 
+ #endif /* _ALPHA_CACHEFLUSH_H */
+-- 
+2.26.2
