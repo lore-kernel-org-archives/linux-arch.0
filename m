@@ -1,66 +1,171 @@
 From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH v3 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Date: Fri, 15 May 2020 16:00:16 +0200
-Message-ID: <20200515140023.25469-1-joro@8bytes.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: [PATCH v3 3/7] mm/ioremap: Track which page-table levels were modified
+Date: Fri, 15 May 2020 16:00:19 +0200
+Message-ID: <20200515140023.25469-4-joro@8bytes.org>
+References: <20200515140023.25469-1-joro@8bytes.org>
+Return-path: <linux-acpi-owner@vger.kernel.org>
+In-Reply-To: <20200515140023.25469-1-joro@8bytes.org>
+Sender: linux-acpi-owner@vger.kernel.org
 To: x86@kernel.org
 Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+From: Joerg Roedel <jroedel@suse.de>
 
-here is the updated version of this series with these
-changes:
+Track at which levels in the page-table entries were modified by
+ioremap_page_range(). After the page-table has been modified, use that
+information do decide whether the new arch_sync_kernel_mappings()
+needs to be called. The iounmap path re-uses vunmap(), which has
+already been taken care of.
 
-	- Removed sync_current_stack_to_mm() too.
+Signed-off-by: Joerg Roedel <jroedel@suse.de>
+Acked-by: Andy Lutomirski <luto@kernel.org>
+---
+ lib/ioremap.c | 46 +++++++++++++++++++++++++++++++---------------
+ 1 file changed, 31 insertions(+), 15 deletions(-)
 
-	- Added Acked-by's from Andy Lutomirski
-
-The previous versions can be found here:
-
-	v1: https://lore.kernel.org/lkml/20200508144043.13893-1-joro@8bytes.org/
-
-	v2: https://lore.kernel.org/lkml/20200513152137.32426-1-joro@8bytes.org/
-
-The cover-letter of v1 has more details on the motivation
-for this patch-set.
-
-Please review.
-
-Regards,
-
-	Joerg
-
-Joerg Roedel (7):
-  mm: Add functions to track page directory modifications
-  mm/vmalloc: Track which page-table levels were modified
-  mm/ioremap: Track which page-table levels were modified
-  x86/mm/64: Implement arch_sync_kernel_mappings()
-  x86/mm/32: Implement arch_sync_kernel_mappings()
-  mm: Remove vmalloc_sync_(un)mappings()
-  x86/mm: Remove vmalloc faulting
-
- arch/x86/include/asm/pgtable-2level_types.h |   2 +
- arch/x86/include/asm/pgtable-3level_types.h |   2 +
- arch/x86/include/asm/pgtable_64_types.h     |   2 +
- arch/x86/include/asm/switch_to.h            |  23 ---
- arch/x86/kernel/setup_percpu.c              |   6 +-
- arch/x86/mm/fault.c                         | 176 +-------------------
- arch/x86/mm/init_64.c                       |   5 +
- arch/x86/mm/pti.c                           |   8 +-
- arch/x86/mm/tlb.c                           |  37 ----
- drivers/acpi/apei/ghes.c                    |   6 -
- include/asm-generic/5level-fixup.h          |   5 +-
- include/asm-generic/pgtable.h               |  23 +++
- include/linux/mm.h                          |  46 +++++
- include/linux/vmalloc.h                     |  18 +-
- kernel/notifier.c                           |   1 -
- kernel/trace/trace.c                        |  12 --
- lib/ioremap.c                               |  46 +++--
- mm/nommu.c                                  |  12 --
- mm/vmalloc.c                                | 109 +++++++-----
- 19 files changed, 204 insertions(+), 335 deletions(-)
-
+diff --git a/lib/ioremap.c b/lib/ioremap.c
+index 3f0e18543de8..ad485f08173b 100644
+--- a/lib/ioremap.c
++++ b/lib/ioremap.c
+@@ -61,13 +61,14 @@ static inline int ioremap_pmd_enabled(void) { return 0; }
+ #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
+ 
+ static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
++		pgtbl_mod_mask *mask)
+ {
+ 	pte_t *pte;
+ 	u64 pfn;
+ 
+ 	pfn = phys_addr >> PAGE_SHIFT;
+-	pte = pte_alloc_kernel(pmd, addr);
++	pte = pte_alloc_kernel_track(pmd, addr, mask);
+ 	if (!pte)
+ 		return -ENOMEM;
+ 	do {
+@@ -75,6 +76,7 @@ static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
+ 		set_pte_at(&init_mm, addr, pte, pfn_pte(pfn, prot));
+ 		pfn++;
+ 	} while (pte++, addr += PAGE_SIZE, addr != end);
++	*mask |= PGTBL_PTE_MODIFIED;
+ 	return 0;
+ }
+ 
+@@ -101,21 +103,24 @@ static int ioremap_try_huge_pmd(pmd_t *pmd, unsigned long addr,
+ }
+ 
+ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
++		pgtbl_mod_mask *mask)
+ {
+ 	pmd_t *pmd;
+ 	unsigned long next;
+ 
+-	pmd = pmd_alloc(&init_mm, pud, addr);
++	pmd = pmd_alloc_track(&init_mm, pud, addr, mask);
+ 	if (!pmd)
+ 		return -ENOMEM;
+ 	do {
+ 		next = pmd_addr_end(addr, end);
+ 
+-		if (ioremap_try_huge_pmd(pmd, addr, next, phys_addr, prot))
++		if (ioremap_try_huge_pmd(pmd, addr, next, phys_addr, prot)) {
++			*mask |= PGTBL_PMD_MODIFIED;
+ 			continue;
++		}
+ 
+-		if (ioremap_pte_range(pmd, addr, next, phys_addr, prot))
++		if (ioremap_pte_range(pmd, addr, next, phys_addr, prot, mask))
+ 			return -ENOMEM;
+ 	} while (pmd++, phys_addr += (next - addr), addr = next, addr != end);
+ 	return 0;
+@@ -144,21 +149,24 @@ static int ioremap_try_huge_pud(pud_t *pud, unsigned long addr,
+ }
+ 
+ static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
++		pgtbl_mod_mask *mask)
+ {
+ 	pud_t *pud;
+ 	unsigned long next;
+ 
+-	pud = pud_alloc(&init_mm, p4d, addr);
++	pud = pud_alloc_track(&init_mm, p4d, addr, mask);
+ 	if (!pud)
+ 		return -ENOMEM;
+ 	do {
+ 		next = pud_addr_end(addr, end);
+ 
+-		if (ioremap_try_huge_pud(pud, addr, next, phys_addr, prot))
++		if (ioremap_try_huge_pud(pud, addr, next, phys_addr, prot)) {
++			*mask |= PGTBL_PUD_MODIFIED;
+ 			continue;
++		}
+ 
+-		if (ioremap_pmd_range(pud, addr, next, phys_addr, prot))
++		if (ioremap_pmd_range(pud, addr, next, phys_addr, prot, mask))
+ 			return -ENOMEM;
+ 	} while (pud++, phys_addr += (next - addr), addr = next, addr != end);
+ 	return 0;
+@@ -187,21 +195,24 @@ static int ioremap_try_huge_p4d(p4d_t *p4d, unsigned long addr,
+ }
+ 
+ static inline int ioremap_p4d_range(pgd_t *pgd, unsigned long addr,
+-		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
++		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
++		pgtbl_mod_mask *mask)
+ {
+ 	p4d_t *p4d;
+ 	unsigned long next;
+ 
+-	p4d = p4d_alloc(&init_mm, pgd, addr);
++	p4d = p4d_alloc_track(&init_mm, pgd, addr, mask);
+ 	if (!p4d)
+ 		return -ENOMEM;
+ 	do {
+ 		next = p4d_addr_end(addr, end);
+ 
+-		if (ioremap_try_huge_p4d(p4d, addr, next, phys_addr, prot))
++		if (ioremap_try_huge_p4d(p4d, addr, next, phys_addr, prot)) {
++			*mask |= PGTBL_P4D_MODIFIED;
+ 			continue;
++		}
+ 
+-		if (ioremap_pud_range(p4d, addr, next, phys_addr, prot))
++		if (ioremap_pud_range(p4d, addr, next, phys_addr, prot, mask))
+ 			return -ENOMEM;
+ 	} while (p4d++, phys_addr += (next - addr), addr = next, addr != end);
+ 	return 0;
+@@ -214,6 +225,7 @@ int ioremap_page_range(unsigned long addr,
+ 	unsigned long start;
+ 	unsigned long next;
+ 	int err;
++	pgtbl_mod_mask mask = 0;
+ 
+ 	might_sleep();
+ 	BUG_ON(addr >= end);
+@@ -222,13 +234,17 @@ int ioremap_page_range(unsigned long addr,
+ 	pgd = pgd_offset_k(addr);
+ 	do {
+ 		next = pgd_addr_end(addr, end);
+-		err = ioremap_p4d_range(pgd, addr, next, phys_addr, prot);
++		err = ioremap_p4d_range(pgd, addr, next, phys_addr, prot,
++					&mask);
+ 		if (err)
+ 			break;
+ 	} while (pgd++, phys_addr += (next - addr), addr = next, addr != end);
+ 
+ 	flush_cache_vmap(start, end);
+ 
++	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
++		arch_sync_kernel_mappings(start, end);
++
+ 	return err;
+ }
+ 
 -- 
 2.17.1
