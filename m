@@ -1,47 +1,40 @@
-Return-Path: <SRS0=WvJP=62=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58164 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725851AbgELQhs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 May 2020 12:37:48 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 02/14] prctl.2: Add health warning
-Date: Tue, 12 May 2020 17:36:47 +0100
-Message-ID: <1589301419-24459-3-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
-References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 22/29] xtensa: implement flush_icache_user_range
+Date: Fri, 15 May 2020 16:36:39 +0200
+Message-ID: <20200515143646.3857579-23-hch@lst.de>
+In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
+References: <20200515143646.3857579-1-hch@lst.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mtk.manpages@gmail.com
-Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200512163647.UlihfrNVSdGSJCIY5NcDROg9VbyGdWahC9s9sEXwMZU@z>
+Message-ID: <20200515143639.XIrbIkbwXot5kIg6IPhorXTWBaTYLufcoLIt-484HgM@z>
 
-In reality, almost every prctl interferes with assumptions that the
-compiler and C library / runtime rely on.  prctl() can therefore
-make userspace explode in a variety ways that are likely to be hard
-to debug.
+The Xtensa implementation of flush_icache_range seems to be able to
+cope with user addresses.  Just define flush_icache_user_range to
+flush_icache_range.
 
-This is not obvious to the uninitiated, so add a warning.
-
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- man2/prctl.2 | 5 +++++
- 1 file changed, 5 insertions(+)
+ arch/xtensa/include/asm/cacheflush.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/man2/prctl.2 b/man2/prctl.2
-index 7932ada..a35b748 100644
---- a/man2/prctl.2
-+++ b/man2/prctl.2
-@@ -66,6 +66,11 @@ prctl \- operations on a process or thread
- manipulates various aspects of the behavior
- of the calling thread or process.
- .PP
-+Note that careless use of
-+.BR prctl ()
-+can confuse the userspace run-time environment,
-+so these operations should be used with care (if at all).
-+.PP
- .BR prctl ()
- is called with a first argument describing what to do
- (with values defined in \fI<linux/prctl.h>\fP), and further
--- 
-2.1.4
+diff --git a/arch/xtensa/include/asm/cacheflush.h b/arch/xtensa/include/a=
+sm/cacheflush.h
+index a0d50be5a8cb1..460e666ad0761 100644
+--- a/arch/xtensa/include/asm/cacheflush.h
++++ b/arch/xtensa/include/asm/cacheflush.h
+@@ -107,6 +107,8 @@ void flush_cache_page(struct vm_area_struct*,
+ #define flush_cache_page  local_flush_cache_page
+ #endif
+=20
++#define flush_icache_user_range flush_icache_range
++
+ #define local_flush_cache_all()						\
+ 	do {								\
+ 		__flush_invalidate_dcache_all();			\
+--=20
+2.26.2
