@@ -1,60 +1,119 @@
-Return-Path: <SRS0=xoZC=5W=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-pf1-f193.google.com ([209.85.210.193]:46103 "EHLO
-        mail-pf1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729118AbgDFPxl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Apr 2020 11:53:41 -0400
-From: ltykernel@gmail.com
-Subject: [PATCH V4 4/6] x86/Hyper-V: Report crash register data or kmsg before running crash kernel
-Date: Mon,  6 Apr 2020 08:53:29 -0700
-Message-ID: <20200406155331.2105-5-Tianyu.Lan@microsoft.com>
-In-Reply-To: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
-References: <20200406155331.2105-1-Tianyu.Lan@microsoft.com>
+Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35730 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1727943AbgEOOh5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 May 2020 10:37:57 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 17/29] riscv: use asm-generic/cacheflush.h
+Date: Fri, 15 May 2020 16:36:34 +0200
+Message-ID: <20200515143646.3857579-18-hch@lst.de>
+In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
+References: <20200515143646.3857579-1-hch@lst.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com, liuwe@microsoft.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, michael.h.kelley@microsoft.com
-Cc: Tianyu Lan <Tianyu.Lan@microsoft.com>, linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, vkuznets@redhat.com
-Message-ID: <20200406155329.PJMZoe2zKkBgzkq4Iu7Z1liCY60FMmnorPb_PpJtbl4@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org, Palmer Dabbelt <palmerdabbelt@google.com>
+Message-ID: <20200515143634.p_SWcDWs6ErpC5CKQBAdkg0M38-lm2pb8GTQoLlmY70@z>
 
-From: Tianyu Lan <Tianyu.Lan@microsoft.com>
+RISC-V needs almost no cache flushing routines of its own.  Rely on
+asm-generic/cacheflush.h for the defaults.
 
-We want to notify Hyper-V when a Linux guest VM crash occurs, so
-there is a record of the crash even when kdump is enabled.   But
-crash_kexec_post_notifiers defaults to "false", so the kdump kernel
-runs before the notifiers and Hyper-V never gets notified.  Fix this by
-always setting crash_kexec_post_notifiers to be true for Hyper-V VMs.
+Also remove the pointless __KERNEL__ ifdef while we're at it.
 
-Fixes: 81b18bce48af ("Drivers: HV: Send one page worth of kmsg dump over Hyper-V during panic")
-Reviewed-by: Michael Kelley <mikelley@microsoft.com>
-Signed-off-by: Tianyu Lan <Tianyu.Lan@microsoft.com>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: Palmer Dabbelt <palmerdabbelt@google.com>
+Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
 ---
-Change since v1:
-       Update commit log
-Change since v3:
-        - Add fix commit in the change log.
----
- arch/x86/kernel/cpu/mshyperv.c | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+ arch/riscv/include/asm/cacheflush.h | 62 ++---------------------------
+ 1 file changed, 3 insertions(+), 59 deletions(-)
 
-diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
-index caa032ce3fe3..5e296a7e6036 100644
---- a/arch/x86/kernel/cpu/mshyperv.c
-+++ b/arch/x86/kernel/cpu/mshyperv.c
-@@ -263,6 +263,16 @@ static void __init ms_hyperv_init_platform(void)
- 			cpuid_eax(HYPERV_CPUID_NESTED_FEATURES);
- 	}
+diff --git a/arch/riscv/include/asm/cacheflush.h b/arch/riscv/include/asm/cacheflush.h
+index c8677c75f82cb..a167b4fbdf007 100644
+--- a/arch/riscv/include/asm/cacheflush.h
++++ b/arch/riscv/include/asm/cacheflush.h
+@@ -8,65 +8,6 @@
  
-+	/*
-+	 * Hyper-V expects to get crash register data or kmsg when
-+	 * crash enlightment is available and system crashes. Set
-+	 * crash_kexec_post_notifiers to be true to make sure that
-+	 * calling crash enlightment interface before running kdump
-+	 * kernel.
-+	 */
-+	if (ms_hyperv.misc_features & HV_FEATURE_GUEST_CRASH_MSR_AVAILABLE)
-+		crash_kexec_post_notifiers = true;
+ #include <linux/mm.h>
+ 
+-#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
+-
+-/*
+- * The cache doesn't need to be flushed when TLB entries change when
+- * the cache is mapped to physical memory, not virtual memory
+- */
+-static inline void flush_cache_all(void)
+-{
+-}
+-
+-static inline void flush_cache_mm(struct mm_struct *mm)
+-{
+-}
+-
+-static inline void flush_cache_dup_mm(struct mm_struct *mm)
+-{
+-}
+-
+-static inline void flush_cache_range(struct vm_area_struct *vma,
+-				     unsigned long start,
+-				     unsigned long end)
+-{
+-}
+-
+-static inline void flush_cache_page(struct vm_area_struct *vma,
+-				    unsigned long vmaddr,
+-				    unsigned long pfn)
+-{
+-}
+-
+-static inline void flush_dcache_mmap_lock(struct address_space *mapping)
+-{
+-}
+-
+-static inline void flush_dcache_mmap_unlock(struct address_space *mapping)
+-{
+-}
+-
+-static inline void flush_icache_page(struct vm_area_struct *vma,
+-				     struct page *page)
+-{
+-}
+-
+-static inline void flush_cache_vmap(unsigned long start, unsigned long end)
+-{
+-}
+-
+-static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
+-{
+-}
+-
+-#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+-	do { \
+-		memcpy(dst, src, len); \
+-		flush_icache_user_range(vma, page, vaddr, len); \
+-	} while (0)
+-#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
+-	memcpy(dst, src, len)
+-
+ static inline void local_flush_icache_all(void)
+ {
+ 	asm volatile ("fence.i" ::: "memory");
+@@ -79,6 +20,7 @@ static inline void flush_dcache_page(struct page *page)
+ 	if (test_bit(PG_dcache_clean, &page->flags))
+ 		clear_bit(PG_dcache_clean, &page->flags);
+ }
++#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
+ 
+ /*
+  * RISC-V doesn't have an instruction to flush parts of the instruction cache,
+@@ -105,4 +47,6 @@ void flush_icache_mm(struct mm_struct *mm, bool local);
+ #define SYS_RISCV_FLUSH_ICACHE_LOCAL 1UL
+ #define SYS_RISCV_FLUSH_ICACHE_ALL   (SYS_RISCV_FLUSH_ICACHE_LOCAL)
+ 
++#include <asm-generic/cacheflush.h>
 +
- #ifdef CONFIG_X86_LOCAL_APIC
- 	if (ms_hyperv.features & HV_X64_ACCESS_FREQUENCY_MSRS &&
- 	    ms_hyperv.misc_features & HV_FEATURE_FREQUENCY_MSRS_AVAILABLE) {
+ #endif /* _ASM_RISCV_CACHEFLUSH_H */
 -- 
-2.14.5
+2.26.2
