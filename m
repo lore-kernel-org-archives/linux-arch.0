@@ -1,61 +1,46 @@
-Return-Path: <SRS0=WvJP=62=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:58214 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728039AbgELQhy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 May 2020 12:37:54 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 09/14] prctl.2: tfix minor punctuation in SPECULATION_CTRL prctls
-Date: Tue, 12 May 2020 17:36:54 +0100
-Message-ID: <1589301419-24459-10-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
-References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 05/29] asm-generic: fix the inclusion guards for cacheflush.h
+Date: Fri, 15 May 2020 16:36:22 +0200
+Message-ID: <20200515143646.3857579-6-hch@lst.de>
+In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
+References: <20200515143646.3857579-1-hch@lst.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mtk.manpages@gmail.com
-Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200512163654.2EjcRtnMaQFD0831ofQ_g63XIGs5Jz81fOcK3DRCPDg@z>
+Message-ID: <20200515143622.bJERZLjLNrQdba9ud-slYLVuRB5SlOmVE9vhVEHZW6A@z>
 
-Fix a few very minor bits of punctuation in
-PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+cacheflush.h uses a somewhat to generic include guard name that clashes
+with various arch files.  Use a more specific one.
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- man2/prctl.2 | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ include/asm-generic/cacheflush.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/man2/prctl.2 b/man2/prctl.2
-index 1e04859..e8eaf95 100644
---- a/man2/prctl.2
-+++ b/man2/prctl.2
-@@ -1175,13 +1175,13 @@ The return value uses bits 0-3 with the following meaning:
- .TP
- .BR PR_SPEC_PRCTL
- Mitigation can be controlled per thread by
--.B PR_SET_SPECULATION_CTRL
-+.BR PR_SET_SPECULATION_CTRL .
- .TP
- .BR PR_SPEC_ENABLE
- The speculation feature is enabled, mitigation is disabled.
- .TP
- .BR PR_SPEC_DISABLE
--The speculation feature is disabled, mitigation is enabled
-+The speculation feature is disabled, mitigation is enabled.
- .TP
- .BR PR_SPEC_FORCE_DISABLE
- Same as
-@@ -1228,11 +1228,11 @@ which is one of the following:
- The speculation feature is enabled, mitigation is disabled.
- .TP
- .BR PR_SPEC_DISABLE
--The speculation feature is disabled, mitigation is enabled
-+The speculation feature is disabled, mitigation is enabled.
- .TP
- .BR PR_SPEC_FORCE_DISABLE
- Same as
--.B PR_SPEC_DISABLE
-+.BR PR_SPEC_DISABLE ,
- but cannot be undone.
- A subsequent
- .B
--- 
-2.1.4
+diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cache=
+flush.h
+index cac7404b2bdd2..906277492ec59 100644
+--- a/include/asm-generic/cacheflush.h
++++ b/include/asm-generic/cacheflush.h
+@@ -1,6 +1,6 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+-#ifndef __ASM_CACHEFLUSH_H
+-#define __ASM_CACHEFLUSH_H
++#ifndef _ASM_GENERIC_CACHEFLUSH_H
++#define _ASM_GENERIC_CACHEFLUSH_H
+=20
+ /* Keep includes the same across arches.  */
+ #include <linux/mm.h>
+@@ -109,4 +109,4 @@ static inline void flush_cache_vunmap(unsigned long s=
+tart, unsigned long end)
+ 	memcpy(dst, src, len)
+ #endif
+=20
+-#endif /* __ASM_CACHEFLUSH_H */
++#endif /* _ASM_GENERIC_CACHEFLUSH_H */
+--=20
+2.26.2
