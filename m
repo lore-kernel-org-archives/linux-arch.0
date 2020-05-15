@@ -1,210 +1,322 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v4 23/26] arm64: mte: Check the DT memory nodes for MTE support
-Date: Fri, 15 May 2020 18:16:09 +0100
-Message-ID: <20200515171612.1020-24-catalin.marinas@arm.com>
+Subject: [PATCH v4 21/26] arm64: mte: Enable swap of tagged pages
+Date: Fri, 15 May 2020 18:16:07 +0100
+Message-ID: <20200515171612.1020-22-catalin.marinas@arm.com>
 References: <20200515171612.1020-1-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:59604 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:59572 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726550AbgEORRI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 13:17:08 -0400
+        id S1726204AbgEORRE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 May 2020 13:17:04 -0400
 In-Reply-To: <20200515171612.1020-1-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Rob Herring <Rob.Herring@arm.com>, Mark Rutland <mark.rutland@arm.com>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Steven Price <steven.price@arm.com>, Andrew Morton <akpm@linux-foundation.org>
 
-Even if the ID_AA64PFR1_EL1 register advertises the presence of MTE, it
-is not guaranteed that the memory system on the SoC supports the
-feature. In the absence of system-wide MTE support, the behaviour is
-undefined and the kernel should not enable the MTE memory type in
-MAIR_EL1.
+From: Steven Price <steven.price@arm.com>
 
-For FDT, add an 'arm,armv8.5-memtag' property to the /memory nodes and
-check for its presence during MTE probing. For example:
+When swapping pages out to disk it is necessary to save any tags that
+have been set, and restore when swapping back in. Make use of the new
+page flag (PG_ARCH_2, locally named PG_mte_tagged) to identify pages
+with tags. When swapping out these pages the tags are stored in memory
+and later restored when the pages are brought back in. Because shmem can
+swap pages back in without restoring the userspace PTE it is also
+necessary to add a hook for shmem.
 
-	memory@80000000 {
-		device_type = "memory";
-		arm,armv8.5-memtag;
-		reg = <0x00000000 0x80000000 0 0x80000000>,
-		      <0x00000008 0x80000000 0 0x80000000>;
-	};
-
-If the /memory nodes are not present in DT or if at least one node does
-not support MTE, the feature will be disabled. On EFI systems, it is
-assumed that the memory description matches the EFI memory map (if not,
-it is considered a firmware bug).
-
-MTE is not currently supported on ACPI systems.
-
+Signed-off-by: Steven Price <steven.price@arm.com>
+[catalin.marinas@arm.com: move function prototypes to mte.h]
+[catalin.marinas@arm.com: drop '_tags' from arch_swap_restore_tags()]
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Rob Herring <Rob.Herring@arm.com>
-Cc: Mark Rutland <mark.rutland@arm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Cc: Will Deacon <will@kernel.org>
-Reviewed-by: Suzuki K Poulose <suzuki.poulose@arm.com>
 ---
+ arch/arm64/include/asm/mte.h     |  8 ++++
+ arch/arm64/include/asm/pgtable.h | 32 +++++++++++++
+ arch/arm64/kernel/mte.c          | 10 ++++
+ arch/arm64/lib/mte.S             | 45 ++++++++++++++++++
+ arch/arm64/mm/Makefile           |  1 +
+ arch/arm64/mm/mteswap.c          | 82 ++++++++++++++++++++++++++++++++
+ include/asm-generic/pgtable.h    |  4 +-
+ mm/shmem.c                       |  2 +-
+ 8 files changed, 181 insertions(+), 3 deletions(-)
+ create mode 100644 arch/arm64/mm/mteswap.c
 
-Notes:
-    Ongoing (internal) discussions on whether this is the right approach.
-    The issue may need to be solved similarly for ACPI systems.
-    
-    v4:
-    - Reworked the CPUID field handling to ensure that it is not exposed to
-      user (via MRS emulation) when the feature is not described in the DT.
-      Previously, only the HWCAP was hidden.
-    
-    New in v3.
-
- arch/arm64/boot/dts/arm/fvp-base-revc.dts |  1 +
- arch/arm64/include/asm/cpufeature.h       |  6 ++-
- arch/arm64/kernel/cpufeature.c            | 59 ++++++++++++++++++++---
- 3 files changed, 58 insertions(+), 8 deletions(-)
-
-diff --git a/arch/arm64/boot/dts/arm/fvp-base-revc.dts b/arch/arm64/boot/dts/arm/fvp-base-revc.dts
-index 66381d89c1ce..c620a289f15e 100644
---- a/arch/arm64/boot/dts/arm/fvp-base-revc.dts
-+++ b/arch/arm64/boot/dts/arm/fvp-base-revc.dts
-@@ -94,6 +94,7 @@
+diff --git a/arch/arm64/include/asm/mte.h b/arch/arm64/include/asm/mte.h
+index 9d4b1390d07d..ad43cfe88d5f 100644
+--- a/arch/arm64/include/asm/mte.h
++++ b/arch/arm64/include/asm/mte.h
+@@ -21,6 +21,14 @@ unsigned long mte_copy_tags_from_user(void *to, const void __user *from,
+ 				      unsigned long n);
+ unsigned long mte_copy_tags_to_user(void __user *to, void *from,
+ 				    unsigned long n);
++int mte_save_tags(struct page *page);
++void mte_save_page_tags(const void *page_addr, void *tag_storage);
++bool mte_restore_tags(swp_entry_t entry, struct page *page);
++void mte_restore_page_tags(void *page_addr, const void *tag_storage);
++void mte_invalidate_tags(int type, pgoff_t offset);
++void mte_invalidate_tags_area(int type);
++void *mte_allocate_tag_storage(void);
++void mte_free_tag_storage(char *storage);
  
- 	memory@80000000 {
- 		device_type = "memory";
-+		arm,armv8.5-memtag;
- 		reg = <0x00000000 0x80000000 0 0x80000000>,
- 		      <0x00000008 0x80000000 0 0x80000000>;
- 	};
-diff --git a/arch/arm64/include/asm/cpufeature.h b/arch/arm64/include/asm/cpufeature.h
-index afc315814563..0a24d36bf231 100644
---- a/arch/arm64/include/asm/cpufeature.h
-+++ b/arch/arm64/include/asm/cpufeature.h
-@@ -61,6 +61,7 @@ struct arm64_ftr_bits {
- 	u8		shift;
- 	u8		width;
- 	s64		safe_val; /* safe value for FTR_EXACT features */
-+	s64		(*filter)(const struct arm64_ftr_bits *, s64);
- };
+ #ifdef CONFIG_ARM64_MTE
  
- /*
-@@ -542,7 +543,10 @@ cpuid_feature_extract_field(u64 features, int field, bool sign)
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index f2cd59b01b27..281d0b0f4fe1 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -851,6 +851,38 @@ static inline pmd_t pmdp_establish(struct vm_area_struct *vma,
  
- static inline s64 arm64_ftr_value(const struct arm64_ftr_bits *ftrp, u64 val)
- {
--	return (s64)cpuid_feature_extract_field_width(val, ftrp->shift, ftrp->width, ftrp->sign);
-+	s64 fval = (s64)cpuid_feature_extract_field_width(val, ftrp->shift, ftrp->width, ftrp->sign);
-+	if (ftrp->filter)
-+		fval = ftrp->filter(ftrp, fval);
-+	return fval;
- }
- 
- static inline bool id_aa64mmfr0_mixed_endian_el0(u64 mmfr0)
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-index d2fe8ff72324..aaadc1cbc006 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -7,6 +7,7 @@
- 
- #define pr_fmt(fmt) "CPU features: " fmt
- 
-+#include <linux/acpi.h>
- #include <linux/bsearch.h>
- #include <linux/cpumask.h>
- #include <linux/crash_dump.h>
-@@ -14,6 +15,7 @@
- #include <linux/stop_machine.h>
- #include <linux/types.h>
- #include <linux/mm.h>
-+#include <linux/of.h>
- #include <linux/cpu.h>
- #include <asm/cpu.h>
- #include <asm/cpufeature.h>
-@@ -87,23 +89,28 @@ DEFINE_STATIC_KEY_ARRAY_FALSE(cpu_hwcap_keys, ARM64_NCAPS);
- EXPORT_SYMBOL(cpu_hwcap_keys);
- 
- #define __ARM64_FTR_BITS(SIGNED, VISIBLE, STRICT, TYPE, SHIFT, WIDTH, SAFE_VAL) \
--	{						\
- 		.sign = SIGNED,				\
- 		.visible = VISIBLE,			\
- 		.strict = STRICT,			\
- 		.type = TYPE,				\
- 		.shift = SHIFT,				\
- 		.width = WIDTH,				\
--		.safe_val = SAFE_VAL,			\
--	}
-+		.safe_val = SAFE_VAL
- 
- /* Define a feature with unsigned values */
- #define ARM64_FTR_BITS(VISIBLE, STRICT, TYPE, SHIFT, WIDTH, SAFE_VAL) \
--	__ARM64_FTR_BITS(FTR_UNSIGNED, VISIBLE, STRICT, TYPE, SHIFT, WIDTH, SAFE_VAL)
-+	{ __ARM64_FTR_BITS(FTR_UNSIGNED, VISIBLE, STRICT, TYPE, SHIFT, WIDTH, SAFE_VAL), }
- 
- /* Define a feature with a signed value */
- #define S_ARM64_FTR_BITS(VISIBLE, STRICT, TYPE, SHIFT, WIDTH, SAFE_VAL) \
--	__ARM64_FTR_BITS(FTR_SIGNED, VISIBLE, STRICT, TYPE, SHIFT, WIDTH, SAFE_VAL)
-+	{ __ARM64_FTR_BITS(FTR_SIGNED, VISIBLE, STRICT, TYPE, SHIFT, WIDTH, SAFE_VAL), }
-+
-+/* Define a feature with a filter function to process the field value */
-+#define FILTERED_ARM64_FTR_BITS(SIGNED, VISIBLE, STRICT, TYPE, SHIFT, WIDTH, SAFE_VAL, filter_fn) \
-+	{											\
-+		__ARM64_FTR_BITS(SIGNED, VISIBLE, STRICT, TYPE, SHIFT, WIDTH, SAFE_VAL),	\
-+		.filter = filter_fn,								\
-+	}
- 
- #define ARM64_FTR_END					\
- 	{						\
-@@ -118,6 +125,42 @@ static void cpu_enable_cnp(struct arm64_cpu_capabilities const *cap);
- 
- static bool __system_matches_cap(unsigned int n);
+ extern int kern_addr_valid(unsigned long addr);
  
 +#ifdef CONFIG_ARM64_MTE
-+s64 mte_ftr_filter(const struct arm64_ftr_bits *ftrp, s64 val)
++
++#define __HAVE_ARCH_PREPARE_TO_SWAP
++static inline int arch_prepare_to_swap(struct page *page)
 +{
-+	struct device_node *np;
-+	static bool memory_checked = false;
-+	static bool mte_capable = true;
-+
-+	/* EL0-only MTE is not supported by Linux, don't expose it */
-+	if (val < ID_AA64PFR1_MTE)
-+		return ID_AA64PFR1_MTE_NI;
-+
-+	if (memory_checked)
-+		return mte_capable ? val : ID_AA64PFR1_MTE_NI;
-+
-+	if (!acpi_disabled) {
-+		pr_warn("MTE not supported on ACPI systems\n");
-+		return ID_AA64PFR1_MTE_NI;
-+	}
-+
-+	/* check the DT "memory" nodes for MTE support */
-+	for_each_node_by_type(np, "memory") {
-+		memory_checked = true;
-+		mte_capable &= of_property_read_bool(np, "arm,armv8.5-memtag");
-+	}
-+
-+	if (!memory_checked || !mte_capable) {
-+		pr_warn("System memory is not MTE-capable\n");
-+		memory_checked = true;
-+		mte_capable = false;
-+		return ID_AA64PFR1_MTE_NI;
-+	}
-+
-+	return val;
++	if (system_supports_mte())
++		return mte_save_tags(page);
++	return 0;
 +}
-+#endif
 +
++#define __HAVE_ARCH_SWAP_INVALIDATE
++static inline void arch_swap_invalidate_page(int type, pgoff_t offset)
++{
++	if (system_supports_mte())
++		mte_invalidate_tags(type, offset);
++}
++
++static inline void arch_swap_invalidate_area(int type)
++{
++	if (system_supports_mte())
++		mte_invalidate_tags_area(type);
++}
++
++#define __HAVE_ARCH_SWAP_RESTORE
++static inline void arch_swap_restore(swp_entry_t entry, struct page *page)
++{
++	if (system_supports_mte() && mte_restore_tags(entry, page))
++		set_bit(PG_mte_tagged, &page->flags);
++}
++
++#endif /* CONFIG_ARM64_MTE */
++
+ #include <asm-generic/pgtable.h>
+ 
  /*
-  * NOTE: Any changes to the visibility of features should be kept in
-  * sync with the documentation of the CPU feature register ABI.
-@@ -182,8 +225,10 @@ static const struct arm64_ftr_bits ftr_id_aa64pfr0[] = {
+diff --git a/arch/arm64/kernel/mte.c b/arch/arm64/kernel/mte.c
+index 6abd6a16a145..7b3041b0f909 100644
+--- a/arch/arm64/kernel/mte.c
++++ b/arch/arm64/kernel/mte.c
+@@ -10,6 +10,8 @@
+ #include <linux/sched.h>
+ #include <linux/sched/mm.h>
+ #include <linux/string.h>
++#include <linux/swap.h>
++#include <linux/swapops.h>
+ #include <linux/thread_info.h>
+ #include <linux/uio.h>
  
- static const struct arm64_ftr_bits ftr_id_aa64pfr1[] = {
- 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_SSBS_SHIFT, 4, ID_AA64PFR1_SSBS_PSTATE_NI),
--	ARM64_FTR_BITS(FTR_VISIBLE_IF_IS_ENABLED(CONFIG_ARM64_MTE),
--		       FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_MTE_SHIFT, 4, ID_AA64PFR1_MTE_NI),
-+#ifdef CONFIG_ARM64_MTE
-+	FILTERED_ARM64_FTR_BITS(FTR_UNSIGNED, FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE,
-+				ID_AA64PFR1_MTE_SHIFT, 4, ID_AA64PFR1_MTE_NI, mte_ftr_filter),
-+#endif
- 	ARM64_FTR_END,
- };
+@@ -21,11 +23,19 @@
+ void mte_sync_tags(pte_t *ptep, pte_t pte)
+ {
+ 	struct page *page = pte_page(pte);
++	pte_t old_pte = READ_ONCE(*ptep);
  
+ 	/* if PG_mte_tagged is set, tags have already been initialised */
+ 	if (test_and_set_bit(PG_mte_tagged, &page->flags))
+ 		return;
+ 
++	if (is_swap_pte(old_pte)) {
++		swp_entry_t entry = pte_to_swp_entry(old_pte);
++
++		if (!non_swap_entry(entry) && mte_restore_tags(entry, page))
++			return;
++	}
++
+ 	/* tags of the zero page will be cleared on first mapping */
+ 	mte_clear_page_tags(page_address(page), page_size(page));
+ }
+diff --git a/arch/arm64/lib/mte.S b/arch/arm64/lib/mte.S
+index 862655a36013..dd4593693e63 100644
+--- a/arch/arm64/lib/mte.S
++++ b/arch/arm64/lib/mte.S
+@@ -93,3 +93,48 @@ SYM_FUNC_START(mte_copy_tags_to_user)
+ 2:	sub	x0, x0, x3		// update the number of tags copied
+ 	ret
+ SYM_FUNC_END(mte_copy_tags_to_user)
++
++/*
++ * Save the tags in a page
++ *   x0 - page address
++ *   x1 - tag storage
++ */
++SYM_FUNC_START(mte_save_page_tags)
++	multitag_transfer_size x7, x5
++1:
++	mov	x2, #0
++2:
++	ldgm	x5, [x0]
++	orr	x2, x2, x5
++	add	x0, x0, x7
++	tst	x0, #0xFF		// 16 tag values fit in a register,
++	b.ne	2b			// which is 16*16=256 bytes
++
++	str	x2, [x1], #8
++
++	tst	x0, #(PAGE_SIZE - 1)
++	b.ne	1b
++
++	ret
++SYM_FUNC_END(mte_save_page_tags)
++
++/*
++ * Restore the tags in a page
++ *   x0 - page address
++ *   x1 - tag storage
++ */
++SYM_FUNC_START(mte_restore_page_tags)
++	multitag_transfer_size x7, x5
++1:
++	ldr	x2, [x1], #8
++2:
++	stgm	x2, [x0]
++	add	x0, x0, x7
++	tst	x0, #0xFF
++	b.ne	2b
++
++	tst	x0, #(PAGE_SIZE - 1)
++	b.ne	1b
++
++	ret
++SYM_FUNC_END(mte_restore_page_tags)
+diff --git a/arch/arm64/mm/Makefile b/arch/arm64/mm/Makefile
+index d91030f0ffee..5bcc9e0aa259 100644
+--- a/arch/arm64/mm/Makefile
++++ b/arch/arm64/mm/Makefile
+@@ -8,6 +8,7 @@ obj-$(CONFIG_PTDUMP_CORE)	+= dump.o
+ obj-$(CONFIG_PTDUMP_DEBUGFS)	+= ptdump_debugfs.o
+ obj-$(CONFIG_NUMA)		+= numa.o
+ obj-$(CONFIG_DEBUG_VIRTUAL)	+= physaddr.o
++obj-$(CONFIG_ARM64_MTE)		+= mteswap.o
+ KASAN_SANITIZE_physaddr.o	+= n
+ 
+ obj-$(CONFIG_KASAN)		+= kasan_init.o
+diff --git a/arch/arm64/mm/mteswap.c b/arch/arm64/mm/mteswap.c
+new file mode 100644
+index 000000000000..847d99814d03
+--- /dev/null
++++ b/arch/arm64/mm/mteswap.c
+@@ -0,0 +1,82 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include <linux/pagemap.h>
++#include <linux/xarray.h>
++#include <linux/swap.h>
++#include <linux/swapops.h>
++#include <asm/mte.h>
++
++static DEFINE_XARRAY(mte_pages);
++
++void *mte_allocate_tag_storage(void)
++{
++	/* tags granule is 16 bytes, 2 tags stored per byte */
++	return kmalloc(PAGE_SIZE / 16 / 2, GFP_KERNEL);
++}
++
++void mte_free_tag_storage(char *storage)
++{
++	kfree(storage);
++}
++
++int mte_save_tags(struct page *page)
++{
++	void *tag_storage, *ret;
++
++	if (!test_bit(PG_mte_tagged, &page->flags))
++		return 0;
++
++	tag_storage = mte_allocate_tag_storage();
++	if (!tag_storage)
++		return -ENOMEM;
++
++	mte_save_page_tags(page_address(page), tag_storage);
++
++	/* page_private contains the swap entry.val set in do_swap_page */
++	ret = xa_store(&mte_pages, page_private(page), tag_storage, GFP_KERNEL);
++	if (WARN(xa_is_err(ret), "Failed to store MTE tags")) {
++		mte_free_tag_storage(tag_storage);
++		return xa_err(ret);
++	} else if (ret) {
++		/* Entry is being replaced, free the old entry */
++		mte_free_tag_storage(ret);
++	}
++
++	return 0;
++}
++
++bool mte_restore_tags(swp_entry_t entry, struct page *page)
++{
++	void *tags = xa_load(&mte_pages, entry.val);
++
++	if (!tags)
++		return false;
++
++	mte_restore_page_tags(page_address(page), tags);
++
++	return true;
++}
++
++void mte_invalidate_tags(int type, pgoff_t offset)
++{
++	swp_entry_t entry = swp_entry(type, offset);
++	void *tags = xa_erase(&mte_pages, entry.val);
++
++	mte_free_tag_storage(tags);
++}
++
++void mte_invalidate_tags_area(int type)
++{
++	swp_entry_t entry = swp_entry(type, 0);
++	swp_entry_t last_entry = swp_entry(type + 1, 0);
++	void *tags;
++
++	XA_STATE(xa_state, &mte_pages, entry.val);
++
++	xa_lock(&mte_pages);
++	xas_for_each(&xa_state, tags, last_entry.val - 1) {
++		__xa_erase(&mte_pages, xa_state.xa_index);
++		mte_free_tag_storage(tags);
++	}
++	xa_unlock(&mte_pages);
++}
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 306cee75b9ec..09eb80160920 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -492,8 +492,8 @@ static inline void arch_swap_invalidate_area(int type)
+ }
+ #endif
+ 
+-#ifndef __HAVE_ARCH_SWAP_RESTORE_TAGS
+-static inline void arch_swap_restore_tags(swp_entry_t entry, struct page *page)
++#ifndef __HAVE_ARCH_SWAP_RESTORE
++static inline void arch_swap_restore(swp_entry_t entry, struct page *page)
+ {
+ }
+ #endif
+diff --git a/mm/shmem.c b/mm/shmem.c
+index 0e87925a7cb4..003b0e96c746 100644
+--- a/mm/shmem.c
++++ b/mm/shmem.c
+@@ -1662,7 +1662,7 @@ static int shmem_swapin_page(struct inode *inode, pgoff_t index,
+ 	 * Some architectures may have to restore extra metadata to the
+ 	 * physical page after reading from swap.
+ 	 */
+-	arch_swap_restore_tags(swap, page);
++	arch_swap_restore(swap, page);
+ 
+ 	if (shmem_should_replace_page(page, gfp)) {
+ 		error = shmem_replace_page(&page, gfp, info, index);
