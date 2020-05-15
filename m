@@ -1,90 +1,86 @@
-Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 18/29] arm,sparc,unicore32: remove flush_icache_user_range
-Date: Fri, 15 May 2020 16:36:35 +0200
-Message-ID: <20200515143646.3857579-19-hch@lst.de>
-In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-References: <20200515143646.3857579-1-hch@lst.de>
-MIME-Version: 1.0
+Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-co1nam11on2110.outbound.protection.outlook.com ([40.107.220.110]:43617
+        "EHLO NAM11-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726266AbgEOQHn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 May 2020 12:07:43 -0400
+From: "Karstens, Nate" <Nate.Karstens@garmin.com>
+Subject: RE: [PATCH v2] Implement close-on-fork
+Date: Fri, 15 May 2020 16:07:33 +0000
+Message-ID: <5b1929aa9f424e689c7f430663891827@garmin.com>
+References: <20200515152321.9280-1-nate.karstens@garmin.com>
+ <20200515155730.GF16070@bombadil.infradead.org>
+In-Reply-To: <20200515155730.GF16070@bombadil.infradead.org>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+MIME-Version: 1.0
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515143635.O00ewEkE5DL2EH9uGUD0QIfP8aqnTbV_aS5i08t4eAY@z>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Eric Dumazet <edumazet@google.com>, David Laight <David.Laight@aculab.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Changli Gao <xiaosuo@gmail.com>, "a.josey@opengroup.org" <a.josey@opengroup.org>
+Message-ID: <20200515160733.gD2yx7GtW0I6ipi5FlwVuHQk2oxSn1DbgnQxTS-thbU@z>
 
-flush_icache_user_range is only used by <asm-generic/cacheflush.h>, so
-remove it from the architectures that implement it, but don't use
-<asm-generic/cacheflush.h>.
+Matthew,
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/arm/include/asm/cacheflush.h       | 3 ---
- arch/sparc/include/asm/cacheflush_32.h  | 2 --
- arch/sparc/include/asm/cacheflush_64.h  | 1 -
- arch/unicore32/include/asm/cacheflush.h | 3 ---
- 4 files changed, 9 deletions(-)
+What alternative would you suggest?
 
-diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cac=
-heflush.h
-index 7114b9aa46b87..c78e14fcfb5df 100644
---- a/arch/arm/include/asm/cacheflush.h
-+++ b/arch/arm/include/asm/cacheflush.h
-@@ -318,9 +318,6 @@ extern void flush_kernel_dcache_page(struct page *);
- #define flush_dcache_mmap_lock(mapping)		xa_lock_irq(&mapping->i_pages)
- #define flush_dcache_mmap_unlock(mapping)	xa_unlock_irq(&mapping->i_page=
-s)
-=20
--#define flush_icache_user_range(vma,page,addr,len) \
--	flush_dcache_page(page)
--
- /*
-  * We don't appear to need to do anything here.  In fact, if we did, we'=
-d
-  * duplicate cache flushing elsewhere performed by flush_dcache_page().
-diff --git a/arch/sparc/include/asm/cacheflush_32.h b/arch/sparc/include/=
-asm/cacheflush_32.h
-index fb66094a2c30c..41c6d734a4741 100644
---- a/arch/sparc/include/asm/cacheflush_32.h
-+++ b/arch/sparc/include/asm/cacheflush_32.h
-@@ -17,8 +17,6 @@
- #define flush_icache_range(start, end)		do { } while (0)
- #define flush_icache_page(vma, pg)		do { } while (0)
-=20
--#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
--
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
- 	do {							\
- 		flush_cache_page(vma, vaddr, page_to_pfn(page));\
-diff --git a/arch/sparc/include/asm/cacheflush_64.h b/arch/sparc/include/=
-asm/cacheflush_64.h
-index e7517434d1fa6..b9341836597ec 100644
---- a/arch/sparc/include/asm/cacheflush_64.h
-+++ b/arch/sparc/include/asm/cacheflush_64.h
-@@ -49,7 +49,6 @@ void __flush_dcache_range(unsigned long start, unsigned=
- long end);
- void flush_dcache_page(struct page *page);
-=20
- #define flush_icache_page(vma, pg)	do { } while(0)
--#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
-=20
- void flush_ptrace_access(struct vm_area_struct *, struct page *,
- 			 unsigned long uaddr, void *kaddr,
-diff --git a/arch/unicore32/include/asm/cacheflush.h b/arch/unicore32/inc=
-lude/asm/cacheflush.h
-index 9393ca4047e93..ff0be92ebc320 100644
---- a/arch/unicore32/include/asm/cacheflush.h
-+++ b/arch/unicore32/include/asm/cacheflush.h
-@@ -162,9 +162,6 @@ extern void flush_dcache_page(struct page *);
- #define flush_dcache_mmap_lock(mapping)		do { } while (0)
- #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
-=20
--#define flush_icache_user_range(vma, page, addr, len)	\
--	flush_dcache_page(page)
--
- /*
-  * We don't appear to need to do anything here.  In fact, if we did, we'=
-d
-  * duplicate cache flushing elsewhere performed by flush_dcache_page().
---=20
-2.26.2
+From an earlier email:
+
+> ...nothing else addresses the underlying issue: there is no way to
+> prevent a fork() from duplicating the resource. The close-on-exec
+> flag partially-addresses this by allowing the parent process to
+> mark a file descriptor as exclusive to itself, but there is still
+> a period of time the failure can occur because the auto-close only
+> occurs during the exec(). Perhaps this would not be an issue with
+> a different process/threading model, but that is another discussion
+> entirely.
+
+Do you disagree there is an issue?
+
+-----Original Message-----
+From: Matthew Wilcox <willy@infradead.org>
+Sent: Friday, May 15, 2020 10:58
+To: Karstens, Nate <Nate.Karstens@garmin.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>; Jeff Layton <jlayton@kernel.o=
+rg>; J. Bruce Fields <bfields@fieldses.org>; Arnd Bergmann <arnd@arndb.de>;=
+ Richard Henderson <rth@twiddle.net>; Ivan Kokshaysky <ink@jurassic.park.ms=
+u.ru>; Matt Turner <mattst88@gmail.com>; James E.J. Bottomley <James.Bottom=
+ley@hansenpartnership.com>; Helge Deller <deller@gmx.de>; David S. Miller <=
+davem@davemloft.net>; Jakub Kicinski <kuba@kernel.org>; Eric Dumazet <eduma=
+zet@google.com>; David Laight <David.Laight@aculab.com>; linux-fsdevel@vger=
+.kernel.org; linux-arch@vger.kernel.org; linux-alpha@vger.kernel.org; linux=
+-parisc@vger.kernel.org; sparclinux@vger.kernel.org; netdev@vger.kernel.org=
+; linux-kernel@vger.kernel.org; Changli Gao <xiaosuo@gmail.com>; a.josey@op=
+engroup.org
+Subject: Re: [PATCH v2] Implement close-on-fork
+
+CAUTION - EXTERNAL EMAIL: Do not click any links or open any attachments un=
+less you trust the sender and know the content is safe.
+
+
+On Fri, May 15, 2020 at 10:23:17AM -0500, Nate Karstens wrote:
+> Series of 4 patches to implement close-on-fork. Tests have been
+> published to https://github.com/nkarstens/ltp/tree/close-on-fork
+> and cover close-on-fork functionality in the following syscalls:
+
+[...]
+
+> This functionality was approved by the Austin Common Standards
+> Revision Group for inclusion in the next revision of the POSIX
+> standard (see issue 1318 in the Austin Group Defect Tracker).
+
+NAK to this patch series, and the entire concept.
+
+Is there a way to persuade POSIX that they made a bad decision by standardi=
+sing this mess?
+
+________________________________
+
+CONFIDENTIALITY NOTICE: This email and any attachments are for the sole use=
+ of the intended recipient(s) and contain information that may be Garmin co=
+nfidential and/or Garmin legally privileged. If you have received this emai=
+l in error, please notify the sender by reply email and delete the message.=
+ Any disclosure, copying, distribution or use of this communication (includ=
+ing attachments) by someone other than the intended recipient is prohibited=
+. Thank you.
