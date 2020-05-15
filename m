@@ -1,237 +1,92 @@
-Return-Path: <SRS0=EGju=7L=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38628 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726878AbgE2US0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 May 2020 16:18:26 -0400
+Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 06/29] asm-generic: don't include <linux/mm.h> in cacheflush.h
+Date: Fri, 15 May 2020 16:36:23 +0200
+Message-ID: <20200515143646.3857579-7-hch@lst.de>
+In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
+References: <20200515143646.3857579-1-hch@lst.de>
 MIME-Version: 1.0
-References: <20200528062408.547149-1-andriin@fb.com> <20200528225427.GA225299@google.com>
- <CAEf4BzZ_g2RwOgaRL1Qa9yo-8dH4kpgNaBOWZznNxqxhJUM1aA@mail.gmail.com> <20200529173432.GC196085@google.com>
-In-Reply-To: <20200529173432.GC196085@google.com>
-From: Andrii Nakryiko <andrii.nakryiko@gmail.com>
-Date: Fri, 29 May 2020 13:18:13 -0700
-Message-ID: <CAEf4BzaPoG1LhE3oi+eQ1_8wa4=V7gEc-Fk5-tRyeLRfCAu3Dg@mail.gmail.com>
-Subject: Re: [PATCH linux-rcu] docs/litmus-tests: add BPF ringbuf MPSC litmus tests
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joel Fernandes <joel@joelfernandes.org>
-Cc: Andrii Nakryiko <andriin@fb.com>, bpf <bpf@vger.kernel.org>, Networking <netdev@vger.kernel.org>, "Paul E . McKenney" <paulmck@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, parri.andrea@gmail.com, will@kernel.org, Peter Ziljstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, Akira Yokosawa <akiyks@gmail.com>, dlustig@nvidia.com, open list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Kernel Team <kernel-team@fb.com>
-Message-ID: <20200529201813.bLkk7hjig2Jwl24RoqZND-IL1L3QLHoeCbyLrDCynxI@z>
+Message-ID: <20200515143623.GNTviCVDcn_Yu_nic7fkavoB5PlxVpF-fBPr1KLbYvw@z>
 
-On Fri, May 29, 2020 at 10:34 AM Joel Fernandes <joel@joelfernandes.org> wrote:
->
-> Hi Andrii,
->
-> On Thu, May 28, 2020 at 10:50:30PM -0700, Andrii Nakryiko wrote:
-> > > [...]
-> > > > diff --git a/Documentation/litmus-tests/bpf-rb/bpf-rb+1p1c+bounded.litmus b/Documentation/litmus-tests/bpf-rb/bpf-rb+1p1c+bounded.litmus
-> > > > new file mode 100644
-> > > > index 000000000000..558f054fb0b4
-> > > > --- /dev/null
-> > > > +++ b/Documentation/litmus-tests/bpf-rb/bpf-rb+1p1c+bounded.litmus
-> > > > @@ -0,0 +1,91 @@
-> > > > +C bpf-rb+1p1c+bounded
-> > > > +
-> > > > +(*
-> > > > + * Result: Always
-> > > > + *
-> > > > + * This litmus test validates BPF ring buffer implementation under the
-> > > > + * following assumptions:
-> > > > + * - 1 producer;
-> > > > + * - 1 consumer;
-> > > > + * - ring buffer has capacity for only 1 record.
-> > > > + *
-> > > > + * Expectations:
-> > > > + * - 1 record pushed into ring buffer;
-> > > > + * - 0 or 1 element is consumed.
-> > > > + * - no failures.
-> > > > + *)
-> > > > +
-> > > > +{
-> > > > +     atomic_t dropped;
-> > > > +}
-> > > > +
-> > > > +P0(int *lenFail, int *len1, int *cx, int *px)
-> > > > +{
-> > > > +     int *rLenPtr;
-> > > > +     int rLen;
-> > > > +     int rPx;
-> > > > +     int rCx;
-> > > > +     int rFail;
-> > > > +
-> > > > +     rFail = 0;
-> > > > +
-> > > > +     rCx = smp_load_acquire(cx);
-> > > > +     rPx = smp_load_acquire(px);
-> > >
-> > > Is it possible for you to put some more comments around which ACQUIRE is
-> > > paired with which RELEASE? And, in general more comments around the reason
-> > > for a certain memory barrier and what pairs with what. In the kernel sources,
-> > > the barriers needs a comment anyway.
->
-> This was the comment earlier that was missed.
+This seems to lead to some crazy include loops when using
+asm-generic/cacheflush.h on more architectures, so leave it
+to the arch header for now.
 
-Right, I'll follow up extending kernel implementation comments, and
-will add some more to litmus tests.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/um/include/asm/tlb.h         | 2 ++
+ arch/x86/include/asm/cacheflush.h | 2 ++
+ drivers/nvdimm/pmem.c             | 3 ++-
+ include/asm-generic/cacheflush.h  | 3 ---
+ 4 files changed, 6 insertions(+), 4 deletions(-)
 
->
-> > > > +     if (rCx < rPx) {
-> > > > +             if (rCx == 0) {
-> > > > +                     rLenPtr = len1;
-> > > > +             } else {
-> > > > +                     rLenPtr = lenFail;
-> > > > +                     rFail = 1;
-> > > > +             }
-> > > > +
-> > > > +             rLen = smp_load_acquire(rLenPtr);
-> > > > +             if (rLen == 0) {
-> > > > +                     rFail = 1;
-> > > > +             } else if (rLen == 1) {
-> > > > +                     rCx = rCx + 1;
-> > > > +                     smp_store_release(cx, rCx);
-> > > > +             }
-> > > > +     }
-> > > > +}
-> > > > +
-> > > > +P1(int *lenFail, int *len1, spinlock_t *rb_lock, int *px, int *cx, atomic_t *dropped)
-> > > > +{
-> > > > +     int rPx;
-> > > > +     int rCx;
-> > > > +     int rFail;
-> > > > +     int *rLenPtr;
-> > > > +
-> > > > +     rFail = 0;
-> > > > +
-> > > > +     rCx = smp_load_acquire(cx);
-> > > > +     spin_lock(rb_lock);
-> > > > +
-> > > > +     rPx = *px;
-> > > > +     if (rPx - rCx >= 1) {
-> > > > +             atomic_inc(dropped);
-> > >
-> > > Why does 'dropped' need to be atomic if you are always incrementing under a
-> > > lock?
-> >
-> > It doesn't, strictly speaking, but making it atomic in litmus test was
-> > just more convenient, especially that I initially also had a lock-less
-> > variant of this algorithm.
->
-> Ok, that's fine.
->
-> > >
-> > > > +             spin_unlock(rb_lock);
-> > > > +     } else {
-> > > > +             if (rPx == 0) {
-> > > > +                     rLenPtr = len1;
-> > > > +             } else {
-> > > > +                     rLenPtr = lenFail;
-> > > > +                     rFail = 1;
-> > > > +             }
-> > > > +
-> > > > +             *rLenPtr = -1;
-> > >
-> > > Clarify please the need to set the length intermittently to -1. Thanks.
-> >
-> > This corresponds to setting a "busy bit" in kernel implementation.
-> > These litmus tests are supposed to be correlated with in-kernel
-> > implementation, I'm not sure I want to maintain extra 4 copies of
-> > comments here and in kernel code. Especially for 2-producer cases,
-> > there are 2 identical P1 and P2, which is unfortunate, but I haven't
-> > figured out how to have a re-usable pieces of code with litmus tests
-> > :)
->
-> I disagree that comments related to memory ordering are optional. IMHO, the
-> documentation should be clear from a memory ordering standpoint. After all,
-> good Documentation/ always clarifies something / some concept to the reader
-> right? :-) Please have mercy on me, I am just trying to learn *your*
-> Documentation ;-)
-
-My point was that reading litmus test without also reading ringbuf
-implementation is pointless and is harder than necessary. I'll add few
-comments to litmus tests, but ultimately I view kernel implementation
-as the source of truth and litmus test as a simplified model of it. So
-having extensive comments in litmus test is just a maintenance burden
-and more chance to get confusing, out-of-sync documentation.
-
->
-> > > > diff --git a/Documentation/litmus-tests/bpf-rb/bpf-rb+2p1c+bounded.litmus b/Documentation/litmus-tests/bpf-rb/bpf-rb+2p1c+bounded.litmus
-> [...]
-> > > > +P1(int *lenFail, int *len1, spinlock_t *rb_lock, int *px, int *cx, atomic_t *dropped)
-> > > > +{
-> > > > +     int rPx;
-> > > > +     int rCx;
-> > > > +     int rFail;
-> > > > +     int *rLenPtr;
-> > > > +
-> > > > +     rFail = 0;
-> > > > +     rLenPtr = lenFail;
-> > > > +
-> > > > +     rCx = smp_load_acquire(cx);
-> > > > +     spin_lock(rb_lock);
-> > > > +
-> > > > +     rPx = *px;
-> > > > +     if (rPx - rCx >= 1) {
-> > > > +             atomic_inc(dropped);
-> > > > +             spin_unlock(rb_lock);
-> > > > +     } else {
-> > > > +             if (rPx == 0) {
-> > > > +                     rLenPtr = len1;
-> > > > +             } else if (rPx == 1) {
-> > > > +                     rLenPtr = len1;
-> > > > +             } else {
-> > > > +                     rLenPtr = lenFail;
-> > > > +                     rFail = 1;
-> > > > +             }
-> > > > +
-> > > > +             *rLenPtr = -1;
-> > > > +             smp_store_release(px, rPx + 1);
-> > > > +
-> > > > +             spin_unlock(rb_lock);
-> > > > +
-> > > > +             smp_store_release(rLenPtr, 1);
-> > >
-> > > I ran a test replacing the last 2 statements above with the following and it
-> > > still works:
-> > >
-> > >                 spin_unlock(rb_lock);
-> > >                 WRITE_ONCE(*rLenPtr, 1);
-> > >
-> > > Wouldn't you expect the test to catch an issue? The spin_unlock is already a
-> > > RELEASE barrier.
-> >
-> > Well, apparently it's not an issue and WRITE_ONCE would work as well
-> > :) My original version actually used WRITE_ONCE here. See [0] and
-> > discussion in [1] after which I removed all the WRITE_ONCE/READ_ONCE
-> > in favor of store_release/load_acquire for consistency.
-> >
-> >   [0] https://patchwork.ozlabs.org/project/netdev/patch/20200513192532.4058934-3-andriin@fb.com/
-> >   [1] https://patchwork.ozlabs.org/project/netdev/patch/20200513192532.4058934-2-andriin@fb.com/
->
-> Huh. So you are replacing the test to use WRITE_ONCE instead? Why did you
-> favor the acquire/release memory barriers over the _ONCE annotations, if that
-> was not really needed then?
-
-I replaced WRITE_ONCE with store_release. There was a request on
-initial version to keep it simple and use store_release/load_acquire
-pairings consistently and not mix up WRITE_ONCE and load_acquire, so
-that's what I did. As I mentioned elsewhere, this might not be the
-weakest possible set of orderings and we might improve that, but it
-seems to work well.
-
->
-> > > Suggestion: It is hard to review the patch because it is huge, it would be
-> > > good to split this up into 4 patches for each of the tests. But upto you :)
-> >
-> > Those 4 files are partial copies of each other, not sure splitting
-> > them actually would be easier. If anyone else thinks the same, though,
-> > I'll happily split.
->
-> I personally disagree. It would be much easier IMHO to review 4 different
-> files since some of them are also quite dissimilar. I frequently keep jumping
-> between diffs to find a different file and it makes the review that much
-> harder. But anything the LKMM experts decide in this regard is acceptable to me :)
->
-> thanks,
->
->  - Joel
->
+diff --git a/arch/um/include/asm/tlb.h b/arch/um/include/asm/tlb.h
+index 70ee603839006..ff9c62828962c 100644
+--- a/arch/um/include/asm/tlb.h
++++ b/arch/um/include/asm/tlb.h
+@@ -2,6 +2,8 @@
+ #ifndef __UM_TLB_H
+ #define __UM_TLB_H
+=20
++#include <linux/mm.h>
++
+ #include <asm/tlbflush.h>
+ #include <asm-generic/cacheflush.h>
+ #include <asm-generic/tlb.h>
+diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cac=
+heflush.h
+index 63feaf2a5f93d..b192d917a6d0b 100644
+--- a/arch/x86/include/asm/cacheflush.h
++++ b/arch/x86/include/asm/cacheflush.h
+@@ -2,6 +2,8 @@
+ #ifndef _ASM_X86_CACHEFLUSH_H
+ #define _ASM_X86_CACHEFLUSH_H
+=20
++#include <linux/mm.h>
++
+ /* Caches aren't brain-dead on the intel. */
+ #include <asm-generic/cacheflush.h>
+ #include <asm/special_insns.h>
+diff --git a/drivers/nvdimm/pmem.c b/drivers/nvdimm/pmem.c
+index 2df6994acf836..55282a6217407 100644
+--- a/drivers/nvdimm/pmem.c
++++ b/drivers/nvdimm/pmem.c
+@@ -7,7 +7,6 @@
+  * Copyright (c) 2015, Boaz Harrosh <boaz@plexistor.com>.
+  */
+=20
+-#include <asm/cacheflush.h>
+ #include <linux/blkdev.h>
+ #include <linux/hdreg.h>
+ #include <linux/init.h>
+@@ -25,6 +24,8 @@
+ #include <linux/dax.h>
+ #include <linux/nd.h>
+ #include <linux/backing-dev.h>
++#include <linux/mm.h>
++#include <asm/cacheflush.h>
+ #include "pmem.h"
+ #include "pfn.h"
+ #include "nd.h"
+diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cache=
+flush.h
+index 906277492ec59..bf9bb83e9fc8d 100644
+--- a/include/asm-generic/cacheflush.h
++++ b/include/asm-generic/cacheflush.h
+@@ -2,9 +2,6 @@
+ #ifndef _ASM_GENERIC_CACHEFLUSH_H
+ #define _ASM_GENERIC_CACHEFLUSH_H
+=20
+-/* Keep includes the same across arches.  */
+-#include <linux/mm.h>
+-
+ #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
+=20
+ /*
+--=20
+2.26.2
