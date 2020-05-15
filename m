@@ -1,95 +1,222 @@
-Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:44228 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725982AbgEMLvS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 May 2020 07:51:18 -0400
-Date: Wed, 13 May 2020 12:51:15 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 06/14] prctl.2: ffix quotation mark tweaks
-Message-ID: <20200513115115.GM21779@arm.com>
-References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
- <1589301419-24459-7-git-send-email-Dave.Martin@arm.com>
- <7afe32a5-9675-74d4-7c39-f1271d475afd@gmail.com>
- <20200513113949.GI21779@arm.com>
- <f575e35d-cd5e-5808-bed4-91bdfb9c2905@gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <f575e35d-cd5e-5808-bed4-91bdfb9c2905@gmail.com>
+Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58016 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1726367AbgEOOA3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 May 2020 10:00:29 -0400
+From: Joerg Roedel <joro@8bytes.org>
+Subject: [PATCH v3 6/7] mm: Remove vmalloc_sync_(un)mappings()
+Date: Fri, 15 May 2020 16:00:22 +0200
+Message-ID: <20200515140023.25469-7-joro@8bytes.org>
+In-Reply-To: <20200515140023.25469-1-joro@8bytes.org>
+References: <20200515140023.25469-1-joro@8bytes.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200513115115.jpBamJXc0FvtCI9HJw8eLYc1nvtW6ujIyEamWoHaPBc@z>
+To: x86@kernel.org
+Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20200515140022.9xFcU6Ld6uVdqYRClEowHPoICdjlgnXjwMwAevc6EKI@z>
 
-On Wed, May 13, 2020 at 01:46:22PM +0200, Michael Kerrisk (man-pages) wrote:
-> On 5/13/20 1:39 PM, Dave Martin wrote:
-> > On Wed, May 13, 2020 at 12:11:21PM +0200, Michael Kerrisk (man-pages) wrote:
-> >> Hello Dave,
-> >>
-> >> On 5/12/20 6:36 PM, Dave Martin wrote:
-> >>> Convert quote marks used for information terms in prose to use
-> >>> \(oq .. \(cq, for better graphical rendering.
-> >>>
-> >>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> >>
-> >> Again, this is a patch that I would prefer to see near the end 
-> >> of a series, rather than in the middle.
-> >>
-> >> I'm currently agnostic about this change. But, I do not
-> >> want to apply this patch, since no other pages in man-pages
-> >> use \(oq...\(cq.
-> >>
-> >> I haven't applied this patch. Luckily, that does not prevent
-> >> any of the later patches applying.
-> > 
-> > I'll be careful to move this sort of thing to the end of a series in
-> > future.
-> > 
-> > This was a provocative patch, so I'm happy for it to be dropped.
-> > 
-> > 
-> > The main motivation was that ' renders to PostScript etc. as a closing
-> > quote, which is fine for apostrophes but not fine for an opening quote
-> > mark.  Most of the current quotes in here are actually ", but I don't
-> > see an actual promise from groff that that renders as a neutral glyph
-> > either, so it seemed best to avoid.  For now " does seem to be rendered
-> > with a neutral glyph (i.e., neither opening or closing).
-> 
-> See my commit 11b0b31a14bd2c7dcb0cf7bc815b4c1887444a89, just pushed,
-> which addresses the ' issues.
-> 
-> >>> ---
-> >>>
-> >>> Note, this can lead to misrendering on badly-configured systems.
-> >>> However, many man pages do it.
-> >>
-> >> Can you say some more about this please?
-> > 
-> > Terminal character maps need to match LANG etc. in order for fancy
-> > characters coming out of nroff to display correctly.
-> > 
-> > ssh attempts to send LANG across, but terminal sessions between systems
-> > that have different locales installed can be a problem, as can dumb
-> > serial links that don't magically pass the locale and terminal type
-> > settings across.
-> > 
-> > The fact that I hit this problem a lot in some situations (particularly
-> > the serial link case) suggested to me that fancy characters are
-> > considered fine nowadays, but perhaps I'd need to dig into it some more
-> > to understand the situation fully.
-> 
-> Thanks for the clarification.
-> 
-> > (There are one or two ' that should really be \(aq anyway, but I'll
-> > try to address that separately.)
-> 
-> See above. I presume that patch is what you wanted?
+From: Joerg Roedel <jroedel@suse.de>
 
-Yup, works for me.
+These functions are not needed anymore because the vmalloc and ioremap
+mappings are now synchronized when they are created or teared down.
 
-I'll keep an eye out for other instances, but those were the ones that
-stood out.
+Remove all callers and function definitions.
 
-Cheers
----Dave
+Signed-off-by: Joerg Roedel <jroedel@suse.de>
+Tested-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+Acked-by: Andy Lutomirski <luto@kernel.org>
+---
+ arch/x86/mm/fault.c      | 37 -------------------------------------
+ drivers/acpi/apei/ghes.c |  6 ------
+ include/linux/vmalloc.h  |  2 --
+ kernel/notifier.c        |  1 -
+ kernel/trace/trace.c     | 12 ------------
+ mm/nommu.c               | 12 ------------
+ mm/vmalloc.c             | 21 ---------------------
+ 7 files changed, 91 deletions(-)
+
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index edeb2adaf31f..255fc631b042 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -214,26 +214,6 @@ void arch_sync_kernel_mappings(unsigned long start, unsigned long end)
+ 	}
+ }
+ 
+-static void vmalloc_sync(void)
+-{
+-	unsigned long address;
+-
+-	if (SHARED_KERNEL_PMD)
+-		return;
+-
+-	arch_sync_kernel_mappings(VMALLOC_START, VMALLOC_END);
+-}
+-
+-void vmalloc_sync_mappings(void)
+-{
+-	vmalloc_sync();
+-}
+-
+-void vmalloc_sync_unmappings(void)
+-{
+-	vmalloc_sync();
+-}
+-
+ /*
+  * 32-bit:
+  *
+@@ -336,23 +316,6 @@ static void dump_pagetable(unsigned long address)
+ 
+ #else /* CONFIG_X86_64: */
+ 
+-void vmalloc_sync_mappings(void)
+-{
+-	/*
+-	 * 64-bit mappings might allocate new p4d/pud pages
+-	 * that need to be propagated to all tasks' PGDs.
+-	 */
+-	sync_global_pgds(VMALLOC_START & PGDIR_MASK, VMALLOC_END);
+-}
+-
+-void vmalloc_sync_unmappings(void)
+-{
+-	/*
+-	 * Unmappings never allocate or free p4d/pud pages.
+-	 * No work is required here.
+-	 */
+-}
+-
+ /*
+  * 64-bit:
+  *
+diff --git a/drivers/acpi/apei/ghes.c b/drivers/acpi/apei/ghes.c
+index 24c9642e8fc7..aabe9c5ee515 100644
+--- a/drivers/acpi/apei/ghes.c
++++ b/drivers/acpi/apei/ghes.c
+@@ -167,12 +167,6 @@ int ghes_estatus_pool_init(int num_ghes)
+ 	if (!addr)
+ 		goto err_pool_alloc;
+ 
+-	/*
+-	 * New allocation must be visible in all pgd before it can be found by
+-	 * an NMI allocating from the pool.
+-	 */
+-	vmalloc_sync_mappings();
+-
+ 	rc = gen_pool_add(ghes_estatus_pool, addr, PAGE_ALIGN(len), -1);
+ 	if (rc)
+ 		goto err_pool_add;
+diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+index c80bdb8a6b55..82c9a2ddcfa9 100644
+--- a/include/linux/vmalloc.h
++++ b/include/linux/vmalloc.h
+@@ -141,8 +141,6 @@ extern int remap_vmalloc_range_partial(struct vm_area_struct *vma,
+ 
+ extern int remap_vmalloc_range(struct vm_area_struct *vma, void *addr,
+ 							unsigned long pgoff);
+-void vmalloc_sync_mappings(void);
+-void vmalloc_sync_unmappings(void);
+ 
+ /*
+  * Architectures can set this mask to a combination of PGTBL_P?D_MODIFIED values
+diff --git a/kernel/notifier.c b/kernel/notifier.c
+index 5989bbb93039..84c987dfbe03 100644
+--- a/kernel/notifier.c
++++ b/kernel/notifier.c
+@@ -519,7 +519,6 @@ NOKPROBE_SYMBOL(notify_die);
+ 
+ int register_die_notifier(struct notifier_block *nb)
+ {
+-	vmalloc_sync_mappings();
+ 	return atomic_notifier_chain_register(&die_chain, nb);
+ }
+ EXPORT_SYMBOL_GPL(register_die_notifier);
+diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
+index 29615f15a820..f12e99b387b2 100644
+--- a/kernel/trace/trace.c
++++ b/kernel/trace/trace.c
+@@ -8527,18 +8527,6 @@ static int allocate_trace_buffers(struct trace_array *tr, int size)
+ 	allocate_snapshot = false;
+ #endif
+ 
+-	/*
+-	 * Because of some magic with the way alloc_percpu() works on
+-	 * x86_64, we need to synchronize the pgd of all the tables,
+-	 * otherwise the trace events that happen in x86_64 page fault
+-	 * handlers can't cope with accessing the chance that a
+-	 * alloc_percpu()'d memory might be touched in the page fault trace
+-	 * event. Oh, and we need to audit all other alloc_percpu() and vmalloc()
+-	 * calls in tracing, because something might get triggered within a
+-	 * page fault trace event!
+-	 */
+-	vmalloc_sync_mappings();
+-
+ 	return 0;
+ }
+ 
+diff --git a/mm/nommu.c b/mm/nommu.c
+index 318df4e236c9..b4267e1471f3 100644
+--- a/mm/nommu.c
++++ b/mm/nommu.c
+@@ -369,18 +369,6 @@ void vm_unmap_aliases(void)
+ }
+ EXPORT_SYMBOL_GPL(vm_unmap_aliases);
+ 
+-/*
+- * Implement a stub for vmalloc_sync_[un]mapping() if the architecture
+- * chose not to have one.
+- */
+-void __weak vmalloc_sync_mappings(void)
+-{
+-}
+-
+-void __weak vmalloc_sync_unmappings(void)
+-{
+-}
+-
+ struct vm_struct *alloc_vm_area(size_t size, pte_t **ptes)
+ {
+ 	BUG();
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 184f5a556cf7..901540e4773b 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -1332,12 +1332,6 @@ static bool __purge_vmap_area_lazy(unsigned long start, unsigned long end)
+ 	if (unlikely(valist == NULL))
+ 		return false;
+ 
+-	/*
+-	 * First make sure the mappings are removed from all page-tables
+-	 * before they are freed.
+-	 */
+-	vmalloc_sync_unmappings();
+-
+ 	/*
+ 	 * TODO: to calculate a flush range without looping.
+ 	 * The list can be up to lazy_max_pages() elements.
+@@ -3177,21 +3171,6 @@ int remap_vmalloc_range(struct vm_area_struct *vma, void *addr,
+ }
+ EXPORT_SYMBOL(remap_vmalloc_range);
+ 
+-/*
+- * Implement stubs for vmalloc_sync_[un]mappings () if the architecture chose
+- * not to have one.
+- *
+- * The purpose of this function is to make sure the vmalloc area
+- * mappings are identical in all page-tables in the system.
+- */
+-void __weak vmalloc_sync_mappings(void)
+-{
+-}
+-
+-void __weak vmalloc_sync_unmappings(void)
+-{
+-}
+-
+ static int f(pte_t *pte, unsigned long addr, void *data)
+ {
+ 	pte_t ***p = data;
+-- 
+2.17.1
