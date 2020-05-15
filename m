@@ -1,63 +1,111 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v2 00/12] mm: consolidate definitions of page table
- accessors
-Date: Fri, 15 May 2020 14:12:11 -0700
-Message-ID: <20200515141211.653db07a4e7142107a57cf24@linux-foundation.org>
-References: <20200514170327.31389-1-rppt@kernel.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+Date: Fri, 15 May 2020 14:33:49 -0700
+Message-ID: <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+         <20200429220732.31602-2-yu-cheng.yu@intel.com>
+         <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
+         <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+         <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
+         <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <20200514170327.31389-1-rppt@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: Mike Rapoport <rppt@kernel.org>
-Cc: linux-m68k@vger.kernel.org, Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, Matthew Wilcox <willy@infradead.org>, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Vincent Chen <deanbo422@gmail.com>, Will Deacon <will@kernel.org>, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Brian Cain <bcain@codeaurora.org>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@intel.com>, Mike Rapoport <rppt@linux.ibm.com>, Ingo Molnar <mingo@redhat.com>, Geert
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga11.intel.com ([192.55.52.93]:49479 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726301AbgEOVdq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 May 2020 17:33:46 -0400
+In-Reply-To: <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
 
-On Thu, 14 May 2020 20:03:15 +0300 Mike Rapoport <rppt@kernel.org> wrote:
+On Fri, 2020-05-15 at 11:39 -0700, Dave Hansen wrote:
+> On 5/12/20 4:20 PM, Yu-cheng Yu wrote:
+> > On Wed, 2020-04-29 at 16:02 -0700, Yu-cheng Yu wrote:
+> > > On Wed, 2020-04-29 at 15:53 -0700, Dave Hansen wrote:
+> > > > On 4/29/20 3:07 PM, Yu-cheng Yu wrote:
+> > > > > +Note:
+> > > > > +  There is no CET-enabling arch_prctl function.  By design, CET is enabled
+> > > > > +  automatically if the binary and the system can support it.
+> > > > 
+> > > > I think Andy and I danced around this last time.  Let me try to say it
+> > > > more explicitly.
+> > > > 
+> > > > I want CET kernel enabling to able to be disconnected from the on-disk
+> > > > binary.  I want a binary compiled with CET to be able to disable it, and
+> > > > I want a binary not compiled with CET to be able to enable it.  I want
+> > > > different threads in a process to be able to each have different CET status.
+> > > 
+> > > The kernel patches we have now can be modified to support this model.  If after
+> > > discussion this is favorable, I will modify code accordingly.
+> > 
+> > To turn on/off and to lock CET are application-level decisions.  The kernel does
+> > not prevent any of those.  Should there be a need to provide an arch_prctl() to
+> > turn on CET, it can be added without any conflict to this series.
+> 
+> I spelled out what I wanted pretty clearly.  On your next post, could
+> you please directly address each of the things I asked for?  Please
+> directly answer the following questions in your next post with respect
+> to the code you post:
+> 
+> Can a binary compiled with CET run without CET?
 
-> The low level page table accessors (pXY_index(), pXY_offset()) are
-> duplicated across all architectures and sometimes more than once. For
-> instance, we have 31 definition of pgd_offset() for 25 supported
-> architectures.
-> 
-> Most of these definitions are actually identical and typically it boils
-> down to, e.g. 
-> 
-> static inline unsigned long pmd_index(unsigned long address)
-> {
->         return (address >> PMD_SHIFT) & (PTRS_PER_PMD - 1);
-> }
-> 
-> static inline pmd_t *pmd_offset(pud_t *pud, unsigned long address)
-> {
->         return (pmd_t *)pud_page_vaddr(*pud) + pmd_index(address);
-> }
-> 
-> These definitions can be shared among 90% of the arches provided XYZ_SHIFT,
-> PTRS_PER_XYZ and xyz_page_vaddr() are defined.
-> 
-> For architectures that really need a custom version there is always
-> possibility to override the generic version with the usual ifdefs magic.
-> 
-> These patches introduce include/linux/pgtable.h that replaces
-> include/asm-generic/pgtable.h and add the definitions of the page table
-> accessors to the new header.
+Yes, but a few details:
 
-hm,
+- The shadow stack is transparent to the application.  A CET application does
+not have anything different from a non-CET application.  However, if a CET
+application uses any CET instructions (e.g. INCSSP), it must first check if CET
+is turned on.
+- If an application is compiled for IBT, the compiler inserts ENDBRs at branch
+targets.  These are nops if IBT is not on.
 
->  712 files changed, 684 insertions(+), 2021 deletions(-)
+> Can a binary compiled without CET run CET-enabled code?
 
-big!
+Partially yes, but in reality somewhat difficult.
 
-There's a lot of stuff going on at present (I suspect everyone is
-sitting at home coding up a storm).  However this all merged up fairly
-cleanly, haven't tried compiling it yet.
+- If a non-CET application does exec() of a CET binary, then CET is enabled.
+- If a not-CET application does fork(), and the child wants to turn on CET, it
+would be difficult to manage the stack frames, unless the child knows what is is
+doing.  The JIT examples I mentioned previously run with CET enabled from the
+beginning.  Do you have a reason to do this?  In other words, if the JIT code
+needs CET, the app could have started with CET in the first place.
+- If you are asking about dlopen(), the library will have the same setting as
+the main application.  Do you have any reason to have a library running with
+CET, but the application does not have CET?
+
+> Can different threads in a process have different CET enabling state?
+
+Yes, if the parent starts with CET, children can turn it off.  But for the same
+reason described above, it is difficult to turn on CET from the middle.
+
+> > > > Which JITs was this tested with?  I think as a bare minimum we need to
+> > > > know that this design can accommodate _a_ modern JIT.  It would be
+> > > > horrible if the browser javascript engines couldn't use this design, for
+> > > > instance.
+> > > 
+> > > JIT work is still in progress.  When that is available I will test it.
+> > 
+> > I found CET has been enabled in LLVM JIT, Mesa JIT as well as sljit which is
+> > used by jit.  So the current model works with JIT.
+> 
+> Great!  I'm glad the model works.  That's not what I asked, though.
+> 
+> Does this *code* work?  Could you please indicate which JITs have been
+> enabled to use the code in this series?  How much of the new ABI is in use?
+
+JIT does not necessarily use all of the ABI.  The JIT changes mainly fix stack
+frames and insert ENDBRs.  I do not work on JIT.  What I found is LLVM JIT fixes
+are tested and in the master branch.  Sljit fixes are in the release.
+
+> Where are the selftests/ for this new ABI?  Were you planning on
+> submitting any with this series?
+
+The ABI is more related to the application side, and therefore most suitable for
+GLIBC unit tests.  The more complicated areas such as pthreads, signals,
+ucontext, fork() are all included there.  I have been constantly running these
+tests without any problems.  I can provide more details if testing is the
+concern.
+
+Yu-cheng
