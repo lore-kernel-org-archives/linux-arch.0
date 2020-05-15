@@ -1,136 +1,185 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v4 20/26] mm: Add arch hooks for saving/restoring tags
-Date: Fri, 15 May 2020 18:16:06 +0100
-Message-ID: <20200515171612.1020-21-catalin.marinas@arm.com>
+Subject: [PATCH v4 22/26] arm64: mte: Save tags when hibernating
+Date: Fri, 15 May 2020 18:16:08 +0100
+Message-ID: <20200515171612.1020-23-catalin.marinas@arm.com>
 References: <20200515171612.1020-1-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:59560 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.110.172]:59588 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726183AbgEORRC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 13:17:02 -0400
+        id S1726550AbgEORRG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 15 May 2020 13:17:06 -0400
 In-Reply-To: <20200515171612.1020-1-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Steven Price <steven.price@arm.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Steven Price <steven.price@arm.com>, James Morse <james.morse@arm.com>
 
 From: Steven Price <steven.price@arm.com>
 
-Arm's Memory Tagging Extension (MTE) adds some metadata (tags) to
-every physical page, when swapping pages out to disk it is necessary to
-save these tags, and later restore them when reading the pages back.
-
-Add some hooks along with dummy implementations to enable the
-arch code to handle this.
-
-Three new hooks are added to the swap code:
- * arch_prepare_to_swap() and
- * arch_swap_invalidate_page() / arch_swap_invalidate_area().
-One new hook is added to shmem:
- * arch_swap_restore_tags()
+When hibernating the contents of all pages in the system are written to
+disk, however the MTE tags are not visible to the generic hibernation
+code. So just before the hibernation image is created copy the tags out
+of the physical tag storage into standard memory so they will be
+included in the hibernation image. After hibernation apply the tags back
+into the physical tag storage.
 
 Signed-off-by: Steven Price <steven.price@arm.com>
-[catalin.marinas@arm.com: add unlock_page() on the error path]
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: James Morse <james.morse@arm.com>
+Cc: Will Deacon <will@kernel.org>
 ---
- include/asm-generic/pgtable.h | 23 +++++++++++++++++++++++
- mm/page_io.c                  | 10 ++++++++++
- mm/shmem.c                    |  6 ++++++
- mm/swapfile.c                 |  2 ++
- 4 files changed, 41 insertions(+)
+ arch/arm64/kernel/hibernate.c | 118 ++++++++++++++++++++++++++++++++++
+ 1 file changed, 118 insertions(+)
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 329b8c8ca703..306cee75b9ec 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -475,6 +475,29 @@ static inline int arch_unmap_one(struct mm_struct *mm,
- }
- #endif
+diff --git a/arch/arm64/kernel/hibernate.c b/arch/arm64/kernel/hibernate.c
+index 5b73e92c99e3..d042ea325417 100644
+--- a/arch/arm64/kernel/hibernate.c
++++ b/arch/arm64/kernel/hibernate.c
+@@ -31,6 +31,7 @@
+ #include <asm/kexec.h>
+ #include <asm/memory.h>
+ #include <asm/mmu_context.h>
++#include <asm/mte.h>
+ #include <asm/pgalloc.h>
+ #include <asm/pgtable.h>
+ #include <asm/pgtable-hwdef.h>
+@@ -277,6 +278,117 @@ static int create_safe_exec_page(void *src_start, size_t length,
  
-+#ifndef __HAVE_ARCH_PREPARE_TO_SWAP
-+static inline int arch_prepare_to_swap(struct page *page)
+ #define dcache_clean_range(start, end)	__flush_dcache_area(start, (end - start))
+ 
++#ifdef CONFIG_ARM64_MTE
++
++static DEFINE_XARRAY(mte_pages);
++
++static int save_tags(struct page *page, unsigned long pfn)
++{
++	void *tag_storage, *ret;
++
++	tag_storage = mte_allocate_tag_storage();
++	if (!tag_storage)
++		return -ENOMEM;
++
++	mte_save_page_tags(page_address(page), tag_storage);
++
++	ret = xa_store(&mte_pages, pfn, tag_storage, GFP_KERNEL);
++	if (WARN(xa_is_err(ret), "Failed to store MTE tags")) {
++		mte_free_tag_storage(tag_storage);
++		return xa_err(ret);
++	} else if (WARN(ret, "swsusp: %s: Duplicate entry", __func__)) {
++		mte_free_tag_storage(ret);
++	}
++
++	return 0;
++}
++
++static void swsusp_mte_free_storage(void)
++{
++	XA_STATE(xa_state, &mte_pages, 0);
++	void *tags;
++
++	xa_lock(&mte_pages);
++	xas_for_each(&xa_state, tags, ULONG_MAX) {
++		mte_free_tag_storage(tags);
++	}
++	xa_unlock(&mte_pages);
++
++	xa_destroy(&mte_pages);
++}
++
++static int swsusp_mte_save_tags(void)
++{
++	struct zone *zone;
++	unsigned long pfn, max_zone_pfn;
++	int ret = 0;
++	int n = 0;
++
++	if (!system_supports_mte())
++		return 0;
++
++	for_each_populated_zone(zone) {
++		max_zone_pfn = zone_end_pfn(zone);
++		for (pfn = zone->zone_start_pfn; pfn < max_zone_pfn; pfn++) {
++			struct page *page = pfn_to_online_page(pfn);
++
++			if (!page)
++				continue;
++
++			if (!test_bit(PG_mte_tagged, &page->flags))
++				continue;
++
++			ret = save_tags(page, pfn);
++			if (ret) {
++				swsusp_mte_free_storage();
++				goto out;
++			}
++
++			n++;
++		}
++	}
++	pr_info("Saved %d MTE pages\n", n);
++
++out:
++	return ret;
++}
++
++static void swsusp_mte_restore_tags(void)
++{
++	XA_STATE(xa_state, &mte_pages, 0);
++	int n = 0;
++	void *tags;
++
++	xa_lock(&mte_pages);
++	xas_for_each(&xa_state, tags, ULONG_MAX) {
++		unsigned long pfn = xa_state.xa_index;
++		struct page *page = pfn_to_online_page(pfn);
++
++		mte_restore_page_tags(page_address(page), tags);
++
++		mte_free_tag_storage(tags);
++		n++;
++	}
++	xa_unlock(&mte_pages);
++
++	pr_info("Restored %d MTE pages\n", n);
++
++	xa_destroy(&mte_pages);
++}
++
++#else	/* CONFIG_ARM64_MTE */
++
++static int swsusp_mte_save_tags(void)
 +{
 +	return 0;
 +}
-+#endif
 +
-+#ifndef __HAVE_ARCH_SWAP_INVALIDATE
-+static inline void arch_swap_invalidate_page(int type, pgoff_t offset)
++static void swsusp_mte_restore_tags(void)
 +{
 +}
 +
-+static inline void arch_swap_invalidate_area(int type)
-+{
-+}
-+#endif
++#endif	/* CONFIG_ARM64_MTE */
 +
-+#ifndef __HAVE_ARCH_SWAP_RESTORE_TAGS
-+static inline void arch_swap_restore_tags(swp_entry_t entry, struct page *page)
-+{
-+}
-+#endif
-+
- #ifndef __HAVE_ARCH_PGD_OFFSET_GATE
- #define pgd_offset_gate(mm, addr)	pgd_offset(mm, addr)
- #endif
-diff --git a/mm/page_io.c b/mm/page_io.c
-index 76965be1d40e..dae85d56e45b 100644
---- a/mm/page_io.c
-+++ b/mm/page_io.c
-@@ -253,6 +253,16 @@ int swap_writepage(struct page *page, struct writeback_control *wbc)
- 		unlock_page(page);
- 		goto out;
- 	}
-+	/*
-+	 * Arch code may have to preserve more data than just the page
-+	 * contents, e.g. memory tags.
-+	 */
-+	ret = arch_prepare_to_swap(page);
-+	if (ret) {
-+		set_page_dirty(page);
-+		unlock_page(page);
-+		goto out;
-+	}
- 	if (frontswap_store(page) == 0) {
- 		set_page_writeback(page);
- 		unlock_page(page);
-diff --git a/mm/shmem.c b/mm/shmem.c
-index 73754ed7af69..0e87925a7cb4 100644
---- a/mm/shmem.c
-+++ b/mm/shmem.c
-@@ -1658,6 +1658,12 @@ static int shmem_swapin_page(struct inode *inode, pgoff_t index,
- 	}
- 	wait_on_page_writeback(page);
+ int swsusp_arch_suspend(void)
+ {
+ 	int ret = 0;
+@@ -294,6 +406,10 @@ int swsusp_arch_suspend(void)
+ 		/* make the crash dump kernel image visible/saveable */
+ 		crash_prepare_suspend();
  
-+	/*
-+	 * Some architectures may have to restore extra metadata to the
-+	 * physical page after reading from swap.
-+	 */
-+	arch_swap_restore_tags(swap, page);
++		ret = swsusp_mte_save_tags();
++		if (ret)
++			return ret;
 +
- 	if (shmem_should_replace_page(page, gfp)) {
- 		error = shmem_replace_page(&page, gfp, info, index);
- 		if (error)
-diff --git a/mm/swapfile.c b/mm/swapfile.c
-index 5871a2aa86a5..b39c6520b0cf 100644
---- a/mm/swapfile.c
-+++ b/mm/swapfile.c
-@@ -722,6 +722,7 @@ static void swap_range_free(struct swap_info_struct *si, unsigned long offset,
- 	else
- 		swap_slot_free_notify = NULL;
- 	while (offset <= end) {
-+		arch_swap_invalidate_page(si->type, offset);
- 		frontswap_invalidate_page(si->type, offset);
- 		if (swap_slot_free_notify)
- 			swap_slot_free_notify(si->bdev, offset);
-@@ -2645,6 +2646,7 @@ SYSCALL_DEFINE1(swapoff, const char __user *, specialfile)
- 	frontswap_map = frontswap_map_get(p);
- 	spin_unlock(&p->lock);
- 	spin_unlock(&swap_lock);
-+	arch_swap_invalidate_area(p->type);
- 	frontswap_invalidate_area(p->type);
- 	frontswap_map_set(p, NULL);
- 	mutex_unlock(&swapon_mutex);
+ 		sleep_cpu = smp_processor_id();
+ 		ret = swsusp_save();
+ 	} else {
+@@ -307,6 +423,8 @@ int swsusp_arch_suspend(void)
+ 			dcache_clean_range(__hyp_text_start, __hyp_text_end);
+ 		}
+ 
++		swsusp_mte_restore_tags();
++
+ 		/* make the crash dump kernel image protected again */
+ 		crash_post_resume();
+ 
