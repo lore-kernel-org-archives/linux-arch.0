@@ -1,49 +1,85 @@
-Return-Path: <SRS0=C0rT=6X=kvack.org=owner-linux-mm@kernel.org>
-Date: Sat, 9 May 2020 11:25:16 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Message-ID: <20200509092516.GC2957@hirez.programming.kicks-ass.net>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <20200508192000.GB2957@hirez.programming.kicks-ass.net>
- <20200508213407.GT8135@suse.de>
+Return-Path: <SRS0=XZEQ=67=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+ <20200429220732.31602-2-yu-cheng.yu@intel.com>
+ <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
+ <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+ <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
+ <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
+ <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
+ <32235ffc-6e6c-fb3d-80c4-a0478e2d0e0f@intel.com>
+ <b09658f92eb66c1d1be509813939b9ed827f9cf0.camel@intel.com>
+ <631f071c-c755-a818-6a97-b333eb1fe21c@intel.com>
+ <CAMe9rOq_pCUz4wTQUyGCjyLpSkj4i3YO0XpZecADEp5cF=FhsQ@mail.gmail.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <042a0b0e-bbf0-53d7-91b2-ea113ca8cca5@intel.com>
+Date: Sun, 17 May 2020 16:09:39 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200508213407.GT8135@suse.de>
-Sender: owner-linux-mm@kvack.org
-To: Joerg Roedel <jroedel@suse.de>
-Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+In-Reply-To: <CAMe9rOq_pCUz4wTQUyGCjyLpSkj4i3YO0XpZecADEp5cF=FhsQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: "H.J. Lu" <hjl.tools@gmail.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200509092516.xB1Irs6OmLpRH9iBP2r8cez0qALQpxsRAKjl-94myWo@z>
+Message-ID: <20200517230939.Yaw2wYJOXeIuJXBiLtWsxVThTsErLtaNUZg561Ru0yo@z>
 
-On Fri, May 08, 2020 at 11:34:07PM +0200, Joerg Roedel wrote:
-> Hi Peter,
+On 5/15/20 7:51 PM, H.J. Lu wrote:
+> On Fri, May 15, 2020 at 4:56 PM Dave Hansen <dave.hansen@intel.com> wrote:
+>> Let's say we have an app doing silly things like retpolines.  (Lots of
+>> app do lots of silly things).  It gets compiled in a distro but never
+>> runs on a system with CET.  The app gets run for the first time on a
+>> system with CET.  App goes boom.  Not init, just some random app, say
+>> /usr/bin/ldapsearch.
 > 
-> thanks for reviewing this!
+> I designed and implemented CET toolchain and run-time in such a way
+> for it very difficult to happen.   Basically, CET won't be enabled on such
+> an app.
+
+Would you care to share any specifics about how this is implemented?
+That would be great information to include in the kernel documentation
+because it informs us about the reasons why we don't need a kernel-based
+"kill switch".
+
+>> What's my recourse as an end user?  I want to run my app and turn off
+>> CET for that app.  How can I do that?
 > 
-> On Fri, May 08, 2020 at 09:20:00PM +0200, Peter Zijlstra wrote:
-> > The only concern I have is the pgd_lock lock hold times.
-> > 
-> > By not doing on-demand faults anymore, and consistently calling
-> > sync_global_*(), we iterate that pgd_list thing much more often than
-> > before if I'm not mistaken.
+> The CET OS I designed turns CET off for you and you don't have to do
+> anything.
+
+OK, cool!  Could you share some of the specifics about how it does that?
+
+>>         Is it possible with the patches in this series to run a single-
+>>         threaded binary which was has GNU_PROPERTY_X86_FEATURE_1_SHSTK
+>>         unset to run with shadow stack protection?
 > 
-> Should not be a problem, from what I have seen this function is not
-> called often on x86-64.  The vmalloc area needs to be synchronized at
-> the top-level there, which is by now P4D (with 4-level paging). And the
-> vmalloc area takes 64 entries, when all of them are populated the
-> function will not be called again.
+> Yes, you can.  I added such capabilities for testing purpose.  But
+> you application will crash as soon as there is a CET violation.  My
+> CET software design is very flexible. 
 
-Right; it's just that the moment you do trigger it, it'll iterate that
-pgd_list and that is potentially huge. Then again, that's not a new
-problem.
+Yu-cheng speficially referred to the:
 
-I suppose we can deal with it if/when it becomes an actual problem.
+	GLIBC_TUNABLES=glibc.tune.hwcaps=-SHSTK,-IBT
 
-I had a quick look and I think it might be possible to make it an RCU
-managed list. We'd have to remove the pgd_list entry in
-put_task_struct_rcu_user(). Then we can play games in sync_global_*()
-and use RCU iteration. New tasks (which can be missed in the RCU
-iteration) will already have a full clone of the PGD anyway.
+option.  Is that the option you're talking about?
 
-But like said, something for later I suppose.
+>>> I have a quick test that checks shadow stack and ibt in both main program and in
+>>> signals.  Currently it is public on Github.  If that is desired, I can submit it
+>>> to the mailing list.
+>>
+>> Yes, that is desired.  It must accompany this submission.  It must also
+>> exercise all of the new ABIs.
+> 
+> Our CET smoke test is for quick validation of CET OS, not just
+> kernel. It requires the complete CET implementation.   It does
+> nothing if your OS isn't CET enabled.
+I think requiring the complete CET implementation to be present for this
+test to work is a mistake.  We don't require anything other than an
+enabled kernel and the selftests that ship with that kernel.
+
+MPX required toolchain, library and compiler changes.  Yet, we had a
+totally standalone kernel test that found real bugs.  It sounds like
+this smoke test as it stands wouldn't be a great fit.  But, that
+shouldn't discourage us from finding something that _is_ a good fit for
+the kernel-shipped selftests.
