@@ -1,31 +1,29 @@
-Return-Path: <SRS0=xM+x=6P=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:58062 "EHLO mail.kernel.org"
+Return-Path: <SRS0=Wd1w=67=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:38602 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726272AbgEAWJt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 1 May 2020 18:09:49 -0400
-Date: Fri, 1 May 2020 15:09:47 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 21/29] mm: remove the pgprot argument to __vmalloc
-Message-ID: <20200501150947.367ca6b38a394f1ff678ed4b@linux-foundation.org>
-In-Reply-To: <CAMeeMh_9N0ORhPM8EmkGeeuiDoQY3+QoAPX5QBuK7=gsC5ONng@mail.gmail.com>
-References: <20200414131348.444715-1-hch@lst.de>
-        <20200414131348.444715-22-hch@lst.de>
-        <20200414151344.zgt2pnq7cjq2bgv6@debian>
-        <CAMeeMh8Q3Od76WaTasw+BpYVF58P-HQMaiFKHxXbZ_Q3tQPZ=A@mail.gmail.com>
-        <CAMeeMh_9N0ORhPM8EmkGeeuiDoQY3+QoAPX5QBuK7=gsC5ONng@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+        id S1726497AbgEQEpD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 17 May 2020 00:45:03 -0400
+Subject: Re: [GIT PULL] csky updates for v5.7-rc6
+From: pr-tracker-bot@kernel.org
+In-Reply-To: <20200516093336.13886-1-guoren@kernel.org>
+References: <20200516093336.13886-1-guoren@kernel.org>
+Message-ID: <158969070298.26561.10106671482752667154.pr-tracker-bot@kernel.org>
+Date: Sun, 17 May 2020 04:45:02 +0000
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Dorminy <jdorminy@redhat.com>
-Cc: Wei Liu <wei.liu@kernel.org>, Christoph Hellwig <hch@lst.de>, "K. Y. Srinivasan" <kys@microsoft.com>, Haiyang Zhang <haiyangz@microsoft.com>, Stephen Hemminger <sthemmin@microsoft.com>, x86@kernel.org, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel@ffwll.ch>, Laura Abbott <labbott@redhat.com>, Sumit Semwal <sumit.semwal@linaro.org>, Sakari Ailus <sakari.ailus@linux.intel.com>, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Robin Murphy <robin.murphy@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Peter Zijlstra <peterz@infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-hyperv@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, bpf@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michael Kelley <mikelley@microsoft.com>, Gao Xiang <xiang@kernel.org>
-Message-ID: <20200501220947._1xiOEwkDklvZZz7Fwxf4mX19fNGlVJmErUuFGSSMSM@z>
+To: guoren@kernel.org
+Cc: torvalds@linux-foundation.org, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org
+Message-ID: <20200517044502.tTCKfF89Z4ZyGaGvgbOK8bcBWRm4EwyhvoXs9eyovH4@z>
 
-On Thu, 30 Apr 2020 22:38:10 -0400 John Dorminy <jdorminy@redhat.com> wrote:
+The pull request you sent on Sat, 16 May 2020 17:33:36 +0800:
 
-> the change
-> description refers to PROT_KERNEL, which is a symbol which does not
-> appear to exist; perhaps PAGE_KERNEL was meant?
+> https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.7-rc6
 
-Yes, thanks, fixed.
+has been merged into torvalds/linux.git:
+https://git.kernel.org/torvalds/c/26b089a7fc3301d8f53f99dd3607513d7700b505
+
+Thank you!
+
+-- 
+Deet-doot-dot, I am a bot.
+https://korg.wiki.kernel.org/userdoc/prtracker
