@@ -1,66 +1,103 @@
-Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55674 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732741AbgEMKbB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 06:31:01 -0400
-Subject: Re: [PATCH 08/14] prctl.2: Work around bogus constant "maxsig" in
- PR_SET_PDEATHSIG
+Return-Path: <SRS0=z9eI=7A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:43622 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727007AbgERQLc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 May 2020 12:11:32 -0400
+Date: Mon, 18 May 2020 17:11:28 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 14/14] prctl.2: Add PR_PAC_RESET_KEYS (arm64)
+Message-ID: <20200518161128.GB21779@arm.com>
 References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
- <1589301419-24459-9-git-send-email-Dave.Martin@arm.com>
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Message-ID: <4f7bee2a-1db6-1cf5-6561-b24397c33707@gmail.com>
-Date: Wed, 13 May 2020 12:30:58 +0200
+ <1589301419-24459-15-git-send-email-Dave.Martin@arm.com>
+ <20200513072530.GA18196@willie-the-truck>
+ <20200513143653.GQ21779@arm.com>
+ <20200513210022.GA28594@willie-the-truck>
 MIME-Version: 1.0
-In-Reply-To: <1589301419-24459-9-git-send-email-Dave.Martin@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200513210022.GA28594@willie-the-truck>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200513103058.kYqQxRpnW6mfKA02Z0TTvCy5ZuXsipTZoM0TefCug7Q@z>
+To: Will Deacon <will@kernel.org>
+Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Amit Daniel Kachhap <amit.kachhap@arm.com>, Mark Rutland <mark.rutland@arm.com>
+Message-ID: <20200518161128.4I8qDeWunBDoAo42B0Qb3aeH6oypIIFYAOBiWWpuPVI@z>
 
-On 5/12/20 6:36 PM, Dave Martin wrote:
-> The description of PR_SET_PDEATHSIG refers to "maxsig", which is
-> apparently intended to stand for the maximum defined signal number.
+On Wed, May 13, 2020 at 10:00:22PM +0100, Will Deacon wrote:
+> On Wed, May 13, 2020 at 03:36:54PM +0100, Dave Martin wrote:
+> > On Wed, May 13, 2020 at 08:25:31AM +0100, Will Deacon wrote:
+> > > On Tue, May 12, 2020 at 05:36:59PM +0100, Dave Martin wrote:
+> > > > +As a special case, if
+> > > > +.I arg2
+> > > > +is zero then all the keys are reset.
+> > > > +Since new keys could be added in future,
+> > > > +this is the recommended way to completely wipe the existing keys
+> > > > +when creating a new execution context.
+> > > 
+> > > I see what you're saying, but the keys are also reset on exec() iirc, so we
+> > > don't want to encourage people to issue the prctl() unnecessarily
+> > > immediately following an exec().
+> > 
+> > I thought of saying that, then pulled it out again.
+> > 
+> > How about:
+> > 
+> > "[...] a new execution context within an existing process.  Note that
+> > execve() always resets all the keys as part of its operation, without
+> > the need for this prctl() call.  PR_PAC_RESET_KEYS is intended for
+> > custom situations that do not involve execve(), such as creating a new
+> > managed run-time sandbox."
+> > 
+> > I deliberately don't say "thread" because that's probably libc's job.
+> > I'll need to check glibc does, though.  There may be issues with
+> > pthreads semantics that mean we can't reset the keys there.
 > 
-> maxsig seems not to be a thing, even in the kernel.
+> That's better, but you may even be able to drop the "such as..." part, I
+> reckon.
 > 
-> Reword to use the standard constant NSIG.  (Discussion of SIGRTMIN
-> and SIGRTMAX seems out of scope here, and anyway is not relevant to
-> the kernel.)
-
-Thanks, Dave. Patch applied.
-
-Cheers,
-
-Michael
-
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> ---
->  man2/prctl.2 | 4 +++-
->  1 file changed, 3 insertions(+), 1 deletion(-)
+> > > > @@ -1920,6 +1960,27 @@ are not 0.
+> > > >  .B EINVAL
+> > > >  .I option
+> > > >  was
+> > > > +.B PR_PAC_RESET_KEYS
+> > > > +and
+> > > > +.I arg2
+> > > > +contains non-zero bits other than
+> > > > +.BR
+> > > > +.BR PR_PAC_APIAKEY ,
+> > > > +.BR PR_PAC_APIBKEY ,
+> > > > +.BR PR_PAC_APDAKEY ,
+> > > > +.B PR_PAC_APDBKEY
+> > > > +and
+> > > > +.BR PR_PAC_APGAKEY ;
+> > > > +or
+> > > > +.IR arg3 ,
+> > > > +.I arg4
+> > > > +and
+> > > > +.I arg5
+> > > > +were not all zero.
+> > > 
+> > > Do we care about other reasons for -EINVAL, such as the system not
+> > > supporting pointer authentication?
+> > 
+> > Again, I tried to catch that under the new "not supported by this
+> > platform" wording in the earlier patch.  Do you think that's sufficient,
+> > or do we need something else here?
 > 
-> diff --git a/man2/prctl.2 b/man2/prctl.2
-> index a84fb1d..1e04859 100644
-> --- a/man2/prctl.2
-> +++ b/man2/prctl.2
-> @@ -955,7 +955,9 @@ will operate in the privilege-restricting mode described above.
->  .BR PR_SET_PDEATHSIG " (since Linux 2.1.57)"
->  Set the parent-death signal
->  of the calling process to \fIarg2\fP (either a signal value
-> -in the range 1..maxsig, or 0 to clear).
-> +in the range 1 ..
-> +.BR NSIG " \-"
-> +1, or 0 to clear).
->  This is the signal that the calling process will get when its
->  parent dies.
->  .IP
-> 
+> As long as it's clear that the prctl() *can* fail and userspace can't just
+> ignore the return value, then I'm happy. If it's not obvious, then spelling
+> it out seems harmless to me.
+
+OK, I'll try to figure out a way to capture this.
+
+Since prctl is really the wild west when it comes to error codes I was
+presuming that's it's best to say nothing and rely on people's common sense.
+But I guess this isn't great either.
 
 
--- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+How about summarising the key error cases here, and just putting a cross-
+reference in the ERRORS section rather than trying to describe them
+there?  I really don't want to duplicate this stuff -- that will get
+unmaintanable, fast (if it hasn't already).
+
+Cheers
+---Dave
