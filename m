@@ -1,55 +1,50 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v3 2/7] mm/vmalloc: Track which page-table levels were
- modified
-Date: Mon, 18 May 2020 15:18:28 -0700
-Message-ID: <20200518151828.ad3c714a29209b359e326ec4@linux-foundation.org>
-References: <20200515140023.25469-1-joro@8bytes.org>
-        <20200515140023.25469-3-joro@8bytes.org>
-        <20200515130142.4ca90ee590e9d8ab88497676@linux-foundation.org>
-        <20200516125641.GK8135@suse.de>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+Date: Mon, 18 May 2020 16:47:42 -0700
+Message-ID: <075c5757d6c4d3813f7ae45288b765d76de8b6fc.camel@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+         <20200429220732.31602-2-yu-cheng.yu@intel.com>
+         <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
+         <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+         <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
+         <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
+         <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
+         <32235ffc-6e6c-fb3d-80c4-a0478e2d0e0f@intel.com>
+         <b09658f92eb66c1d1be509813939b9ed827f9cf0.camel@intel.com>
+         <631f071c-c755-a818-6a97-b333eb1fe21c@intel.com>
+         <0f751be6d25364c25ee4bddc425b61e626dcd942.camel@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-acpi-owner@vger.kernel.org>
-In-Reply-To: <20200516125641.GK8135@suse.de>
-Sender: linux-acpi-owner@vger.kernel.org
-To: Joerg Roedel <jroedel@suse.de>
-Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Christoph Hellwig <hch@infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga18.intel.com ([134.134.136.126]:49255 "EHLO mga18.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727835AbgERXri (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 May 2020 19:47:38 -0400
+In-Reply-To: <0f751be6d25364c25ee4bddc425b61e626dcd942.camel@intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>
 
-On Sat, 16 May 2020 14:56:41 +0200 Joerg Roedel <jroedel@suse.de> wrote:
-
-> Hi Andrew,
-> 
-> On Fri, May 15, 2020 at 01:01:42PM -0700, Andrew Morton wrote:
-> > On Fri, 15 May 2020 16:00:18 +0200 Joerg Roedel <joro@8bytes.org> wrote:
-> > Lots of collisions here with Christoph's "decruft the vmalloc API" series
-> > (http://lkml.kernel.org/r/20200414131348.444715-1-hch@lst.de).
+On Fri, 2020-05-15 at 19:53 -0700, Yu-cheng Yu wrote:
+> On Fri, 2020-05-15 at 16:56 -0700, Dave Hansen wrote:
+> > On 5/15/20 4:29 PM, Yu-cheng Yu wrote:
+> > > [...]
+> > > I have run them with CET enabled.  All of them pass, except for the following:
+> > > Sigreturn from 64-bit to 32-bit fails, because shadow stack is at a 64-bit
+> > > address.  This is understandable.
+> > [...]
+> > One a separate topic: You ran the selftests and one failed.  This is a
+> > *MASSIVE* warning sign.  It should minimally be described in your cover
+> > letter, and accompanied by a fix to the test case.  It is absolutely
+> > unacceptable to introduce a kernel feature that causes a test to fail.
+> > You must either fix your kernel feature or you fix the test.
 > > 
-> > I attempted to fix things up.
-> > 
-> > unmap_kernel_range_noflush() needed to be redone.
-> > 
-> > map_kernel_range_noflush() might need the arch_sync_kernel_mappings() call?
-> 
-> Yes, map_kernel_range_noflush() needs the arch_sync_kernel_mappings()
-> call as well.
-> 
+> > This code can not be accepted until this selftests issue is rectified.
 
-This?
+The x86/sigreturn test constructs 32-bit ldt entries, and does sigreturn from
+64-bit to 32-bit context.  We do not have a way to construct a static 32-bit
+shadow stack.  Why do we want that?  I think we can simply run the test with CET
+disabled.
 
---- a/mm/vmalloc.c~mm-vmalloc-track-which-page-table-levels-were-modified-fix
-+++ a/mm/vmalloc.c
-@@ -309,6 +309,9 @@ int map_kernel_range_noflush(unsigned lo
- 			return err;
- 	} while (pgd++, addr = next, addr != end);
- 
-+	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-+		arch_sync_kernel_mappings(start, end);
-+
- 	return 0;
- }
- 
-
-It would be nice to get all this (ie, linux-next) retested before we
-send it upstream, please.  
+Yu-cheng
