@@ -1,42 +1,54 @@
-Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [PATCH V3 2/3] mm/hugetlb: Define a generic fallback for
- is_hugepage_only_range()
-References: <1588907271-11920-1-git-send-email-anshuman.khandual@arm.com>
- <1588907271-11920-3-git-send-email-anshuman.khandual@arm.com>
- <9fc622e1-45ff-b79f-ebe0-35614837456c@oracle.com>
- <c21ab871-da06-baf6-ba31-80b13402b8c9@arm.com>
-From: Mike Kravetz <mike.kravetz@oracle.com>
-Message-ID: <ab931b52-1f1b-1ff3-47ee-377de3ed1a98@oracle.com>
-Date: Mon, 11 May 2020 11:52:34 -0700
+Return-Path: <SRS0=z9eI=7A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga11.intel.com ([192.55.52.93]:45833 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726989AbgERO06 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 May 2020 10:26:58 -0400
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+ <20200429220732.31602-2-yu-cheng.yu@intel.com>
+ <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
+ <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+ <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
+ <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
+ <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
+ <32235ffc-6e6c-fb3d-80c4-a0478e2d0e0f@intel.com>
+ <b09658f92eb66c1d1be509813939b9ed827f9cf0.camel@intel.com>
+ <631f071c-c755-a818-6a97-b333eb1fe21c@intel.com>
+ <0f751be6d25364c25ee4bddc425b61e626dcd942.camel@intel.com>
+ <6f2ef0e5-d3bb-2b52-dc81-8228fec4a3f5@intel.com>
+ <CAMe9rOpX_6Zn69ZzwVt5Rdh5B9HwU7ccyoQLfyM067G8A=Eg-Q@mail.gmail.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <05b4dd11-eb30-5ed8-4249-0396c3136428@intel.com>
+Date: Mon, 18 May 2020 07:26:52 -0700
 MIME-Version: 1.0
-In-Reply-To: <c21ab871-da06-baf6-ba31-80b13402b8c9@arm.com>
+In-Reply-To: <CAMe9rOpX_6Zn69ZzwVt5Rdh5B9HwU7ccyoQLfyM067G8A=Eg-Q@mail.gmail.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org, akpm@linux-foundation.org
-Cc: Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200511185234.IONuxUhXa_cRm0udNIJNASOIpG1Vi_p-DIp90KdVd-k@z>
+To: "H.J. Lu" <hjl.tools@gmail.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Message-ID: <20200518142652.sMX-qSJjqp3NSXUdjvJrpFCN1K0zo5nxxfYE-ylSDB4@z>
 
-On 5/10/20 8:14 PM, Anshuman Khandual wrote:
-> On 05/09/2020 03:52 AM, Mike Kravetz wrote:
->> On 5/7/20 8:07 PM, Anshuman Khandual wrote:
->>
->> Did you try building without CONFIG_HUGETLB_PAGE defined?  I'm guessing
+On 5/18/20 7:01 AM, H.J. Lu wrote:
+>> Could some of this information be added to the documentation, please?
+>> It would also be nice to have some more details about how apps end up
+>> using ARCH_X86_CET_STATUS.  Why would they care that CET is on?
+> CET software spec is at
 > 
-> Yes I did for multiple platforms (s390, arm64, ia64, x86, powerpc etc).
+> https://gitlab.com/x86-psABIs/x86-64-ABI/-/wikis/Intel-CET-extension
 > 
->> that you need a stub for is_hugepage_only_range().  Or, perhaps add this
->> to asm-generic/hugetlb.h?
->>
-> There is already a stub (include/linux/hugetlb.h) when !CONFIG_HUGETLB_PAGE.
+> My CET presentation at 2018 LPC is at
 > 
+> https://www.linuxplumbersconf.org/event/2/contributions/147/attachments/72/83/CET-LPC-2018.pdf
+> 
+> I am working on an updated CET presentation for 2020 LPC.  Let me know
+> if you want to see the early draft.
 
-Thanks!  I missed that stub in the existing code.  I like the removal of
-redundant code.
+There's a lot of great information in there!
 
-Acked-by: Mike Kravetz <mike.kravetz@oracle.com>
-
--- 
-Mike Kravetz
+However, please remember that presentations are no substitute for old
+fashioned documentation in the kernel tree and changelogs.  The fact
+that we need to lean on them to answer basic questions about new
+interfaces is not a great sign.
