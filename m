@@ -1,88 +1,94 @@
-Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH v3 1/2] arm64: tlb: Detect the ARMv8.4 TLBI RANGE
- feature
-References: <20200414112835.1121-1-yezhenyu2@huawei.com>
- <20200414112835.1121-2-yezhenyu2@huawei.com>
- <20200505101405.GB82424@C02TD0UTHF1T.local>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Message-ID: <cb9d32b6-a9d8-3737-e69d-df4191b7afa9@huawei.com>
-Date: Mon, 11 May 2020 20:25:30 +0800
+Return-Path: <SRS0=z9eI=7A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:43512 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726726AbgERMvY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 May 2020 08:51:24 -0400
 MIME-Version: 1.0
-In-Reply-To: <20200505101405.GB82424@C02TD0UTHF1T.local>
-Content-Type: text/plain; charset="gbk"
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: will@kernel.org, catalin.marinas@arm.com, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, xiexiangyou@huawei.com, zhangshaokun@hisilicon.com, linux-mm@kvack.org, arm@kernel.org, prime.zeng@hisilicon.com, kuhn.chenqun@huawei.com, linux-arm-kernel@lists.infradead.org
+References: <1584200119-18594-1-git-send-email-mikelley@microsoft.com>
+ <1584200119-18594-10-git-send-email-mikelley@microsoft.com>
+ <CAK8P3a1YUjhaVUmjVC2pCoTTBTU408iN44Q=QZ0RDz8rmzJisQ@mail.gmail.com>
+ <MW2PR2101MB10524254D2FE3EFC72329465D7F70@MW2PR2101MB1052.namprd21.prod.outlook.com>
+ <CAK8P3a1YCtc3LJ-_3iT90_Srehb96gLHvTXsbJ0wT6NFYCG=TQ@mail.gmail.com>
+ <MW2PR2101MB1052E413218D295EF24E5E05D7F40@MW2PR2101MB1052.namprd21.prod.outlook.com>
+ <f2b63853-24ae-d6b7-cd43-5792c0d4d31b@nvidia.com> <4202ea20-6e51-31d3-44b1-3861798a8158@nvidia.com>
+In-Reply-To: <4202ea20-6e51-31d3-44b1-3861798a8158@nvidia.com>
+From: Ard Biesheuvel <ardb@kernel.org>
+Date: Mon, 18 May 2020 14:51:11 +0200
+Message-ID: <CAMj1kXEpryfqk5eKxB5NrDcriEBRQKEHnDVZNBMfB4DY=708fw@mail.gmail.com>
+Subject: Re: [PATCH v6 09/10] arm64: efi: Export screen_info
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200511122530.BxW9lbWjI6LhTgs5XcUERRcuM1VyzhYBd8t0xr129E0@z>
+To: Nikhil Mahale <nmahale@nvidia.com>
+Cc: Michael Kelley <mikelley@microsoft.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Marc Zyngier <maz@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, gregkh <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "olaf@aepfle.de" <olaf@aepfle.de>, Andy Whitcroft <apw@canonical.com>, vkuznets <vkuznets@redhat.com>, Jason Wang <jasowang@redhat.com>, "marcelo.cerri@canonical.com" <marcelo.cerri@canonical.com>, KY Srinivasan <kys@microsoft.com>, Sunil Muthuswamy <sunilmut@microsoft.com>, Boqun Feng <boqun.feng@gmail.com>
+Message-ID: <20200518125111.F5HSUj26e-3LhLMU-hbOYxsZ_auYa1TdcgQ9MY2l2Bg@z>
 
-On 2020/5/5 18:14, Mark Rutland wrote:
-> On Tue, Apr 14, 2020 at 07:28:34PM +0800, Zhenyu Ye wrote:
->> ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
->> range of input addresses. This patch detect this feature.
->>
->> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
->> ---
->>  arch/arm64/include/asm/cpucaps.h |  3 ++-
->>  arch/arm64/include/asm/sysreg.h  |  4 ++++
->>  arch/arm64/kernel/cpufeature.c   | 11 +++++++++++
->>  3 files changed, 17 insertions(+), 1 deletion(-)
->>
->> diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cpucaps.h
->> index 8eb5a088ae65..950095a72617 100644
->> --- a/arch/arm64/include/asm/cpucaps.h
->> +++ b/arch/arm64/include/asm/cpucaps.h
->> @@ -61,7 +61,8 @@
->>  #define ARM64_HAS_AMU_EXTN			51
->>  #define ARM64_HAS_ADDRESS_AUTH			52
->>  #define ARM64_HAS_GENERIC_AUTH			53
->> +#define ARM64_HAS_TLBI_RANGE			54
->>  
->> -#define ARM64_NCAPS				54
->> +#define ARM64_NCAPS				55
->>  
->>  #endif /* __ASM_CPUCAPS_H */
->> diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
->> index ebc622432831..ac1b98650234 100644
->> --- a/arch/arm64/include/asm/sysreg.h
->> +++ b/arch/arm64/include/asm/sysreg.h
->> @@ -592,6 +592,7 @@
->>  
->>  /* id_aa64isar0 */
->>  #define ID_AA64ISAR0_RNDR_SHIFT		60
->> +#define ID_AA64ISAR0_TLBI_RANGE_SHIFT	56
->>  #define ID_AA64ISAR0_TS_SHIFT		52
->>  #define ID_AA64ISAR0_FHM_SHIFT		48
->>  #define ID_AA64ISAR0_DP_SHIFT		44
->> @@ -605,6 +606,9 @@
->>  #define ID_AA64ISAR0_SHA1_SHIFT		8
->>  #define ID_AA64ISAR0_AES_SHIFT		4
->>  
->> +#define ID_AA64ISAR0_TLBI_RANGE_NI	0x0
->> +#define ID_AA64ISAR0_TLBI_RANGE		0x2
->> +
->>  /* id_aa64isar1 */
->>  #define ID_AA64ISAR1_I8MM_SHIFT		52
->>  #define ID_AA64ISAR1_DGH_SHIFT		48
->> diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
->> index 9fac745aa7bb..31bcfd0722b5 100644
->> --- a/arch/arm64/kernel/cpufeature.c
->> +++ b/arch/arm64/kernel/cpufeature.c
->> @@ -124,6 +124,7 @@ static bool __system_matches_cap(unsigned int n);
->>   */
->>  static const struct arm64_ftr_bits ftr_id_aa64isar0[] = {
->>  	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_RNDR_SHIFT, 4, 0),
->> +	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_TLBI_RANGE_SHIFT, 4, 0),
-> 
-> This should be FTR_HIDDEN as userspace has no reason to see this.
-> 
-> Otherwise this all seems to match the ARM ARM.
-> 
-> Mark.
-> 
+On Mon, 18 May 2020 at 06:25, Nikhil Mahale <nmahale@nvidia.com> wrote:
+>
+> On 5/13/20 7:56 PM, Nikhil Mahale wrote:
+> > On 3/20/20 3:16 AM, Michael Kelley wrote:
+> >> From: Arnd Bergmann <arnd@arndb.de> Sent: Wednesday, March 18, 2020 2:27 AM
+> >>>
+> >>> On Wed, Mar 18, 2020 at 1:18 AM Michael Kelley <mikelley@microsoft.com> wrote:
+> >>>> From: Arnd Bergmann <arnd@arndb.de>
+> >>>>> On Sat, Mar 14, 2020 at 4:36 PM Michael Kelley <mikelley@microsoft.com> wrote:
+> >>>>>>
+> >>>>>> The Hyper-V frame buffer driver may be built as a module, and
+> >>>>>> it needs access to screen_info. So export screen_info.
+> >>>>>>
+> >>>>>> Signed-off-by: Michael Kelley <mikelley@microsoft.com>
+> >>>>>
+> >>>>> Is there any chance of using a more modern KMS based driver for the screen
+> >>>>> than the old fbdev subsystem? I had hoped to one day completely remove
+> >>>>> support for the old CONFIG_VIDEO_FBDEV and screen_info from modern
+> >>>>> architectures.
+> >>>>>
+> >>>>
+> >>>> The current hyperv_fb.c driver is all we have today for the synthetic Hyper-V
+> >>>> frame buffer device.  That driver builds and runs on both ARM64 and x86.
+> >>>>
+> >>>> I'm not knowledgeable about video/graphics drivers, but when you
+> >>>> say "a more modern KMS based driver", are you meaning one based on
+> >>>> DRM & KMS?  Does DRM make sense for a "dumb" frame buffer device?
+> >>>> Are there any drivers that would be a good pattern to look at?
+> >>>
+> >>> It used to be a lot harder to write a DRM driver compared to an fbdev
+> >>> driver, but this has changed to the opposite over the years.
+> >>>
+> >>> A fairly minimal example would be drivers/gpu/drm/pl111/pl111_drv.c
+> >>> or anything in drivers/gpu/drm/tiny/, but you may want to look at the
+> >>> other hypervisor platforms first, i.e drivers/gpu/drm/virtio/virtgpu_drv.c,
+> >>> drivers/gpu/drm/vmwgfx/vmwgfx_drv.c, drivers/gpu/drm/xen/xen_drm_front.c,
+> >>> drivers/gpu/drm/qxl/qxl_drv.c, and drivers/gpu/drm/bochs/bochs_drv.c.
+> >>>
+> >>
+> >> Thanks for the pointers, especially for the other hypervisors.
+> >>
+> > Sorry if anybody in 'to' or 'cc' is receiving this reply multiple times.
+> > I had configured by email client incorrectly to reply.
+> >
+> > screen_info is still useful with a modern KMS-based driver.  It exposes
+> > the mode parameters that the GOP driver chose.  This information is
+> > needed to implement seamless or glitchless boot, by both ensuring that
+> > the scanout parameters don't change and being able to read back the
+> > scanout image to populate the initial contents of the new surface.
+> >
+> > This works today on arches which implement (U)EFI and export
+> > screen_info, including x86 and powerpc, but doesn't work on arm or
+> > arm64.  As arm64 systems that implement UEFI with real GOP drivers
+> > become more prevalent, it would be nice to be have these features there
+> > as well.
+>
+> In addition to this, even if a driver doesn't implement a framebuffer
+> console, or if it does but has an option to disable it, the driver still
+> needs to know whether the EFI console is using resources on the GPU so
+> it can avoid clobbering them. For example screen_info provides information
+> like offset and size of EFI console, using this information driver can
+> reserve memory used by console and prevent corruption on it.
+>
+> I think arm64 should export screen_info.
+>
 
-OK, I will change it to FTR_HIDDEN in next version series.
-
-Thanks,
-Zhenyu
+If there are reasons why KMS or fbdev drivers may need to access the
+information in screen_info, it should be exported. I don't think that
+is under debate here.
