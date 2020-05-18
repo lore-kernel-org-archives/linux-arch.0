@@ -1,168 +1,55 @@
-From: Hoan Tran <hoan@os.amperecomputing.com>
-Subject: Re: [PATCH 16/21] mm: remove early_pfn_in_nid() and
- CONFIG_NODES_SPAN_OTHER_NODES
-Date: Mon, 18 May 2020 14:38:50 -0700
-Message-ID: <84f572b2-9e61-f9d1-008d-47ac978f5ccc@os.amperecomputing.com>
-References: <20200412194859.12663-1-rppt@kernel.org>
- <20200412194859.12663-17-rppt@kernel.org>
- <20200423011312.GY4247@MiWiFi-R3L-srv>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v3 2/7] mm/vmalloc: Track which page-table levels were
+ modified
+Date: Mon, 18 May 2020 15:18:28 -0700
+Message-ID: <20200518151828.ad3c714a29209b359e326ec4@linux-foundation.org>
+References: <20200515140023.25469-1-joro@8bytes.org>
+        <20200515140023.25469-3-joro@8bytes.org>
+        <20200515130142.4ca90ee590e9d8ab88497676@linux-foundation.org>
+        <20200516125641.GK8135@suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org>
-In-Reply-To: <20200423011312.GY4247@MiWiFi-R3L-srv>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+glpr-linux-riscv=m.gmane-mx.org@lists.infradead.org
-To: Baoquan He <bhe@redhat.com>, Mike Rapoport <rppt@kernel.org>
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-c6x-dev@linux-c6x.org, Brian Cain <bcain@codeaurora.org>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@intel.com>, Mike
+Return-path: <linux-acpi-owner@vger.kernel.org>
+In-Reply-To: <20200516125641.GK8135@suse.de>
+Sender: linux-acpi-owner@vger.kernel.org
+To: Joerg Roedel <jroedel@suse.de>
+Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Christoph Hellwig <hch@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Mike and Baoquan,
+On Sat, 16 May 2020 14:56:41 +0200 Joerg Roedel <jroedel@suse.de> wrote:
 
-On 4/22/20 6:13 PM, Baoquan He wrote:
-> On 04/12/20 at 10:48pm, Mike Rapoport wrote:
->> From: Mike Rapoport <rppt@linux.ibm.com>
->>
->> The commit f47ac088c406 ("mm: memmap_init: iterate over memblock regions
+> Hi Andrew,
 > 
-> This commit id should be a temporary one, will be changed when merged
-> into maintainer's tree and linus's tree. Only saying last patch plus the
-> patch subject is OK?
+> On Fri, May 15, 2020 at 01:01:42PM -0700, Andrew Morton wrote:
+> > On Fri, 15 May 2020 16:00:18 +0200 Joerg Roedel <joro@8bytes.org> wrote:
+> > Lots of collisions here with Christoph's "decruft the vmalloc API" series
+> > (http://lkml.kernel.org/r/20200414131348.444715-1-hch@lst.de).
+> > 
+> > I attempted to fix things up.
+> > 
+> > unmap_kernel_range_noflush() needed to be redone.
+> > 
+> > map_kernel_range_noflush() might need the arch_sync_kernel_mappings() call?
 > 
->> rather that check each PFN") made early_pfn_in_nid() obsolete and since
->> CONFIG_NODES_SPAN_OTHER_NODES is only used to pick a stub or a real
->> implementation of early_pfn_in_nid() it is also not needed anymore.
->>
->> Remove both early_pfn_in_nid() and the CONFIG_NODES_SPAN_OTHER_NODES.
->>
->> Co-developed-by: Hoan Tran <Hoan@os.amperecomputing.com>
->> Signed-off-by: Hoan Tran <Hoan@os.amperecomputing.com>
->> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
->> ---
->>   arch/powerpc/Kconfig |  9 ---------
->>   arch/sparc/Kconfig   |  9 ---------
->>   arch/x86/Kconfig     |  9 ---------
->>   mm/page_alloc.c      | 20 --------------------
->>   4 files changed, 47 deletions(-)
->>
->> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
->> index 5f86b22b7d2c..74f316deeae1 100644
->> --- a/arch/powerpc/Kconfig
->> +++ b/arch/powerpc/Kconfig
->> @@ -685,15 +685,6 @@ config ARCH_MEMORY_PROBE
->>   	def_bool y
->>   	depends on MEMORY_HOTPLUG
->>   
->> -# Some NUMA nodes have memory ranges that span
->> -# other nodes.  Even though a pfn is valid and
->> -# between a node's start and end pfns, it may not
->> -# reside on that node.  See memmap_init_zone()
->> -# for details.
->> -config NODES_SPAN_OTHER_NODES
->> -	def_bool y
->> -	depends on NEED_MULTIPLE_NODES
->> -
->>   config STDBINUTILS
->>   	bool "Using standard binutils settings"
->>   	depends on 44x
->> diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
->> index 795206b7b552..0e4f3891b904 100644
->> --- a/arch/sparc/Kconfig
->> +++ b/arch/sparc/Kconfig
->> @@ -286,15 +286,6 @@ config NODES_SHIFT
->>   	  Specify the maximum number of NUMA Nodes available on the target
->>   	  system.  Increases memory reserved to accommodate various tables.
->>   
->> -# Some NUMA nodes have memory ranges that span
->> -# other nodes.  Even though a pfn is valid and
->> -# between a node's start and end pfns, it may not
->> -# reside on that node.  See memmap_init_zone()
->> -# for details.
->> -config NODES_SPAN_OTHER_NODES
->> -	def_bool y
->> -	depends on NEED_MULTIPLE_NODES
->> -
->>   config ARCH_SPARSEMEM_ENABLE
->>   	def_bool y if SPARC64
->>   	select SPARSEMEM_VMEMMAP_ENABLE
->> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
->> index 9d3e95b4fb85..37dac095659e 100644
->> --- a/arch/x86/Kconfig
->> +++ b/arch/x86/Kconfig
->> @@ -1581,15 +1581,6 @@ config X86_64_ACPI_NUMA
->>   	---help---
->>   	  Enable ACPI SRAT based node topology detection.
->>   
->> -# Some NUMA nodes have memory ranges that span
->> -# other nodes.  Even though a pfn is valid and
->> -# between a node's start and end pfns, it may not
->> -# reside on that node.  See memmap_init_zone()
->> -# for details.
->> -config NODES_SPAN_OTHER_NODES
->> -	def_bool y
->> -	depends on X86_64_ACPI_NUMA
->> -
->>   config NUMA_EMU
->>   	bool "NUMA emulation"
->>   	depends on NUMA
->> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
->> index c43ce8709457..343d87b8697d 100644
->> --- a/mm/page_alloc.c
->> +++ b/mm/page_alloc.c
->> @@ -1541,26 +1541,6 @@ int __meminit early_pfn_to_nid(unsigned long pfn)
->>   }
->>   #endif /* CONFIG_NEED_MULTIPLE_NODES */
->>   
->> -#ifdef CONFIG_NODES_SPAN_OTHER_NODES
->> -/* Only safe to use early in boot when initialisation is single-threaded */
->> -static inline bool __meminit early_pfn_in_nid(unsigned long pfn, int node)
->> -{
->> -	int nid;
->> -
->> -	nid = __early_pfn_to_nid(pfn, &early_pfnnid_cache);
->> -	if (nid >= 0 && nid != node)
->> -		return false;
->> -	return true;
->> -}
->> -
->> -#else
->> -static inline bool __meminit early_pfn_in_nid(unsigned long pfn, int node)
->> -{
->> -	return true;
->> -}
->> -#endif
+> Yes, map_kernel_range_noflush() needs the arch_sync_kernel_mappings()
+> call as well.
 > 
-> And macro early_pfn_valid() is not needed either, we may need remove it
-> too.
-> 
-> Otherwise, removing NODES_SPAN_OTHER_NODES in this patch looks good.
-> 
-> Reviewed-by: Baoquan He <bhe@redhat.com>
 
-I have tested this patch set on Arm64, and it worked as expected with 
-the case where the node memory spans to other nodes or the old 
-NODES_SPAN_OTHER_NODES config.
+This?
 
-Hope to the whole patch set will be upstream soon.
+--- a/mm/vmalloc.c~mm-vmalloc-track-which-page-table-levels-were-modified-fix
++++ a/mm/vmalloc.c
+@@ -309,6 +309,9 @@ int map_kernel_range_noflush(unsigned lo
+ 			return err;
+ 	} while (pgd++, addr = next, addr != end);
+ 
++	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
++		arch_sync_kernel_mappings(start, end);
++
+ 	return 0;
+ }
+ 
 
-Thanks and Regards
-Hoan
-
-> 
->> -
->> -
->>   void __init memblock_free_pages(struct page *page, unsigned long pfn,
->>   							unsigned int order)
->>   {
->> -- 
->> 2.25.1
->>
-> 
+It would be nice to get all this (ie, linux-next) retested before we
+send it upstream, please.  
