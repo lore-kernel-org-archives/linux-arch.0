@@ -1,77 +1,69 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v4 24/26] arm64: mte: Introduce early param to disable
- MTE support
-Date: Mon, 18 May 2020 18:20:55 +0100
-Message-ID: <20200518172054.GL9862@gaia>
-References: <20200515171612.1020-1-catalin.marinas@arm.com>
- <20200515171612.1020-25-catalin.marinas@arm.com>
- <a2ad6cbf-2632-3cda-eb49-74ddfbed2cec@arm.com>
- <20200518113103.GA32394@willie-the-truck>
+From: Mark Salter <msalter@redhat.com>
+Subject: Re: [PATCH 10/29] c6x: use asm-generic/cacheflush.h
+Date: Mon, 18 May 2020 14:20:42 -0400
+Message-ID: <5260142047d0339e00d4a74865c2f0b7511c89f6.camel@redhat.com>
+References: <20200515143646.3857579-1-hch@lst.de>
+         <20200515143646.3857579-11-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:44874 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726958AbgERRVD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 May 2020 13:21:03 -0400
-Content-Disposition: inline
-In-Reply-To: <20200518113103.GA32394@willie-the-truck>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Vladimir Murzin <vladimir.murzin@arm.com>, linux-arch@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Peter Collingbourne <pcc@google.com>, Dave P Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <20200515143646.3857579-11-hch@lst.de>
+Sender: sparclinux-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
+Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, Jessica Yu <jeyu@kernel.org>, linux-ia64@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, x86@kernel.org, linux-um@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-riscv@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 18, 2020 at 12:31:03PM +0100, Will Deacon wrote:
-> On Mon, May 18, 2020 at 12:26:30PM +0100, Vladimir Murzin wrote:
-> > On 5/15/20 6:16 PM, Catalin Marinas wrote:
-> > > For performance analysis it may be desirable to disable MTE altogether
-> > > via an early param. Introduce arm64.mte_disable and, if true, filter out
-> > > the sanitised ID_AA64PFR1_EL1.MTE field to avoid exposing the HWCAP to
-> > > user.
-> > > 
-> > > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> > > Cc: Will Deacon <will@kernel.org>
-> > > ---
-> > > 
-> > > Notes:
-> > >     New in v4.
-> > > 
-> > >  Documentation/admin-guide/kernel-parameters.txt |  4 ++++
-> > >  arch/arm64/kernel/cpufeature.c                  | 11 +++++++++++
-> > >  2 files changed, 15 insertions(+)
-> > > 
-> > > diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-> > > index f2a93c8679e8..7436e7462b85 100644
-> > > --- a/Documentation/admin-guide/kernel-parameters.txt
-> > > +++ b/Documentation/admin-guide/kernel-parameters.txt
-> > > @@ -373,6 +373,10 @@
-> > >  	arcrimi=	[HW,NET] ARCnet - "RIM I" (entirely mem-mapped) cards
-> > >  			Format: <io>,<irq>,<nodeID>
-> > >  
-> > > +	arm64.mte_disable=
-> > > +			[ARM64] Disable Linux support for the Memory
-> > > +			Tagging Extension (both user and in-kernel).
-> > > +
-> > 
-> > Should it really to take parameter (on/off/true/false)? It may lead to expectation
-> > that arm64.mte_disable=false should enable MT and, yes, double negatives make it
-> > look ugly, so if we do need parameter, can it be arm64.mte=on/off/true/false?
+On Fri, 2020-05-15 at 16:36 +0200, Christoph Hellwig wrote:
+> C6x needs almost no cache flushing routines of its own.  Rely on
+> asm-generic/cacheflush.h for the defaults.
 > 
-> I don't think "performance analysis" is a good justification for this
-> parameter tbh. We don't tend to add these options for other architectural
-> features, and I don't see why MTE is any different in this regard.
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/c6x/include/asm/cacheflush.h | 19 +------------------
+>  1 file changed, 1 insertion(+), 18 deletions(-)
+> 
+> diff --git a/arch/c6x/include/asm/cacheflush.h b/arch/c6x/include/asm/cacheflush.h
+> index 4540b40475e6c..10922d528de6d 100644
+> --- a/arch/c6x/include/asm/cacheflush.h
+> +++ b/arch/c6x/include/asm/cacheflush.h
+> @@ -16,21 +16,6 @@
+>  #include <asm/page.h>
+>  #include <asm/string.h>
+>  
+> -/*
+> - * virtually-indexed cache management (our cache is physically indexed)
+> - */
+> -#define flush_cache_all()			do {} while (0)
+> -#define flush_cache_mm(mm)			do {} while (0)
+> -#define flush_cache_dup_mm(mm)			do {} while (0)
+> -#define flush_cache_range(mm, start, end)	do {} while (0)
+> -#define flush_cache_page(vma, vmaddr, pfn)	do {} while (0)
+> -#define flush_cache_vmap(start, end)		do {} while (0)
+> -#define flush_cache_vunmap(start, end)		do {} while (0)
+> -#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
+> -#define flush_dcache_page(page)			do {} while (0)
+> -#define flush_dcache_mmap_lock(mapping)		do {} while (0)
+> -#define flush_dcache_mmap_unlock(mapping)	do {} while (0)
+> -
+>  /*
+>   * physically-indexed cache management
+>   */
+> @@ -49,14 +34,12 @@ do {								  \
+>  			(unsigned long) page_address(page) + PAGE_SIZE)); \
+>  } while (0)
+>  
+> -
+>  #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+>  do {						     \
+>  	memcpy(dst, src, len);			     \
+>  	flush_icache_range((unsigned) (dst), (unsigned) (dst) + (len)); \
+>  } while (0)
+>  
+> -#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
+> -	memcpy(dst, src, len)
+> +#include <asm-generic/cacheflush.h>
+>  
+>  #endif /* _ASM_C6X_CACHEFLUSH_H */
 
-There is an expectation of performance impact with MTE enabled,
-especially if it's running in synchronous mode. For the in-kernel MTE,
-we could add a parameter which sets sync vs async at boot time rather
-than a big disable knob. It won't affect user space however.
-
-The other 'justification' is if your hardware has weird unexpected
-behaviour but I'd like this handled via errata workarounds.
-
-I'll let the people who asked for this to chip in ;). I agree with you
-that we rarely add these (and I rejected a similar option a few weeks
-ago on the AMU patchset).
-
--- 
-Catalin
+Acked-by: Mark Salter <msalter@redhat.com>
