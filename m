@@ -1,84 +1,98 @@
-From: Dave Hansen <dave.hansen-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
-Date: Sun, 17 May 2020 16:09:39 -0700
-Message-ID: <042a0b0e-bbf0-53d7-91b2-ea113ca8cca5@intel.com>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
- <20200429220732.31602-2-yu-cheng.yu@intel.com>
- <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
- <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
- <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
- <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
- <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
- <32235ffc-6e6c-fb3d-80c4-a0478e2d0e0f@intel.com>
- <b09658f92eb66c1d1be509813939b9ed827f9cf0.camel@intel.com>
- <631f071c-c755-a818-6a97-b333eb1fe21c@intel.com>
- <CAMe9rOq_pCUz4wTQUyGCjyLpSkj4i3YO0XpZecADEp5cF=FhsQ@mail.gmail.com>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: Re: [RFC PATCH v3 1/2] arm64: tlb: Detect the ARMv8.4 TLBI RANGE
+ feature
+Date: Mon, 18 May 2020 09:52:12 +0530
+Message-ID: <4d8cb48c-4f47-d966-f29b-3343bd966c5f@arm.com>
+References: <20200414112835.1121-1-yezhenyu2@huawei.com>
+ <20200414112835.1121-2-yezhenyu2@huawei.com>
+ <20200505101405.GB82424@C02TD0UTHF1T.local>
+ <cb9d32b6-a9d8-3737-e69d-df4191b7afa9@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <CAMe9rOq_pCUz4wTQUyGCjyLpSkj4i3YO0XpZecADEp5cF=FhsQ-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Content-Type: text/plain; charset=gbk
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:33200 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725280AbgEREWu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 May 2020 00:22:50 -0400
+In-Reply-To: <cb9d32b6-a9d8-3737-e69d-df4191b7afa9@huawei.com>
 Content-Language: en-US
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: "H.J. Lu" <hjl.tools-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Yu-cheng Yu <yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, the arch/x86 maintainers <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "open list:DOCUMENTATION" <linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux-MM <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Balbir Singh <bsingharora-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Cyrill Gorcunov <gorcunov-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Eugene Syromiatnikov <esyr-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Zhenyu Ye <yezhenyu2@huawei.com>, Mark Rutland <mark.rutland@arm.com>
+Cc: will@kernel.org, catalin.marinas@arm.com, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, xiexiangyou@huawei.com, zhangshaokun@hisilicon.com, linux-mm@kvack.org, arm@kernel.org, prime.zeng@hisilicon.com, kuhn.chenqun@huawei.com, linux-arm-kernel@lists.infradead.org
 
-On 5/15/20 7:51 PM, H.J. Lu wrote:
-> On Fri, May 15, 2020 at 4:56 PM Dave Hansen <dave.hansen-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org> wrote:
->> Let's say we have an app doing silly things like retpolines.  (Lots of
->> app do lots of silly things).  It gets compiled in a distro but never
->> runs on a system with CET.  The app gets run for the first time on a
->> system with CET.  App goes boom.  Not init, just some random app, say
->> /usr/bin/ldapsearch.
-> 
-> I designed and implemented CET toolchain and run-time in such a way
-> for it very difficult to happen.   Basically, CET won't be enabled on such
-> an app.
 
-Would you care to share any specifics about how this is implemented?
-That would be great information to include in the kernel documentation
-because it informs us about the reasons why we don't need a kernel-based
-"kill switch".
 
->> What's my recourse as an end user?  I want to run my app and turn off
->> CET for that app.  How can I do that?
-> 
-> The CET OS I designed turns CET off for you and you don't have to do
-> anything.
+On 05/11/2020 05:55 PM, Zhenyu Ye wrote:
+> On 2020/5/5 18:14, Mark Rutland wrote:
+>> On Tue, Apr 14, 2020 at 07:28:34PM +0800, Zhenyu Ye wrote:
+>>> ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
+>>> range of input addresses. This patch detect this feature.
+>>>
+>>> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+>>> ---
+>>>  arch/arm64/include/asm/cpucaps.h |  3 ++-
+>>>  arch/arm64/include/asm/sysreg.h  |  4 ++++
+>>>  arch/arm64/kernel/cpufeature.c   | 11 +++++++++++
+>>>  3 files changed, 17 insertions(+), 1 deletion(-)
+>>>
+>>> diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cpucaps.h
+>>> index 8eb5a088ae65..950095a72617 100644
+>>> --- a/arch/arm64/include/asm/cpucaps.h
+>>> +++ b/arch/arm64/include/asm/cpucaps.h
+>>> @@ -61,7 +61,8 @@
+>>>  #define ARM64_HAS_AMU_EXTN			51
+>>>  #define ARM64_HAS_ADDRESS_AUTH			52
+>>>  #define ARM64_HAS_GENERIC_AUTH			53
+>>> +#define ARM64_HAS_TLBI_RANGE			54
+>>>  
+>>> -#define ARM64_NCAPS				54
+>>> +#define ARM64_NCAPS				55
+>>>  
+>>>  #endif /* __ASM_CPUCAPS_H */
+>>> diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
+>>> index ebc622432831..ac1b98650234 100644
+>>> --- a/arch/arm64/include/asm/sysreg.h
+>>> +++ b/arch/arm64/include/asm/sysreg.h
+>>> @@ -592,6 +592,7 @@
+>>>  
+>>>  /* id_aa64isar0 */
+>>>  #define ID_AA64ISAR0_RNDR_SHIFT		60
+>>> +#define ID_AA64ISAR0_TLBI_RANGE_SHIFT	56
+>>>  #define ID_AA64ISAR0_TS_SHIFT		52
+>>>  #define ID_AA64ISAR0_FHM_SHIFT		48
+>>>  #define ID_AA64ISAR0_DP_SHIFT		44
+>>> @@ -605,6 +606,9 @@
+>>>  #define ID_AA64ISAR0_SHA1_SHIFT		8
+>>>  #define ID_AA64ISAR0_AES_SHIFT		4
+>>>  
+>>> +#define ID_AA64ISAR0_TLBI_RANGE_NI	0x0
+>>> +#define ID_AA64ISAR0_TLBI_RANGE		0x2
+>>> +
+>>>  /* id_aa64isar1 */
+>>>  #define ID_AA64ISAR1_I8MM_SHIFT		52
+>>>  #define ID_AA64ISAR1_DGH_SHIFT		48
+>>> diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+>>> index 9fac745aa7bb..31bcfd0722b5 100644
+>>> --- a/arch/arm64/kernel/cpufeature.c
+>>> +++ b/arch/arm64/kernel/cpufeature.c
+>>> @@ -124,6 +124,7 @@ static bool __system_matches_cap(unsigned int n);
+>>>   */
+>>>  static const struct arm64_ftr_bits ftr_id_aa64isar0[] = {
+>>>  	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_RNDR_SHIFT, 4, 0),
+>>> +	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_TLBI_RANGE_SHIFT, 4, 0),
 
-OK, cool!  Could you share some of the specifics about how it does that?
+Hello Zhenyu,
 
->>         Is it possible with the patches in this series to run a single-
->>         threaded binary which was has GNU_PROPERTY_X86_FEATURE_1_SHSTK
->>         unset to run with shadow stack protection?
-> 
-> Yes, you can.  I added such capabilities for testing purpose.  But
-> you application will crash as soon as there is a CET violation.  My
-> CET software design is very flexible. 
+This is already being added through another patch [1] in a series [2] which primarily
+has cpufeature changes. I will soon update the series making this feature FTR_HIDDEN.
 
-Yu-cheng speficially referred to the:
+[1] https://patchwork.kernel.org/patch/11523881/
+[2] https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=281211
 
-	GLIBC_TUNABLES=glibc.tune.hwcaps=-SHSTK,-IBT
+I am planning to respin the series (V4) based on arm64 tree (for-next/cpufeature). So
+could you please rebase this patch (probably dropping cpufeature related changes) on
+upcoming V4, so that all the changes will be based on arm64 tree (for-next/cpufeature).
 
-option.  Is that the option you're talking about?
-
->>> I have a quick test that checks shadow stack and ibt in both main program and in
->>> signals.  Currently it is public on Github.  If that is desired, I can submit it
->>> to the mailing list.
->>
->> Yes, that is desired.  It must accompany this submission.  It must also
->> exercise all of the new ABIs.
-> 
-> Our CET smoke test is for quick validation of CET OS, not just
-> kernel. It requires the complete CET implementation.   It does
-> nothing if your OS isn't CET enabled.
-I think requiring the complete CET implementation to be present for this
-test to work is a mistake.  We don't require anything other than an
-enabled kernel and the selftests that ship with that kernel.
-
-MPX required toolchain, library and compiler changes.  Yet, we had a
-totally standalone kernel test that found real bugs.  It sounds like
-this smoke test as it stands wouldn't be a great fit.  But, that
-shouldn't discourage us from finding something that _is_ a good fit for
-the kernel-shipped selftests.
+- Anshuman
