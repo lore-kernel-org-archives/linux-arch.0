@@ -1,42 +1,51 @@
-Return-Path: <SRS0=wOT8=6T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34444 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728497AbgEEMoO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 May 2020 08:44:14 -0400
-Date: Tue, 5 May 2020 13:43:51 +0100
-From: Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Subject: Re: RFC: Adding arch-specific user ABI documentation in linux-man
-Message-ID: <20200505124351.GF1551@shell.armlinux.org.uk>
-References: <20200504153214.GH30377@arm.com>
- <20200505104454.GC19710@willie-the-truck>
+Return-Path: <SRS0=z9eI=7A=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga18.intel.com ([134.134.136.126]:49255 "EHLO mga18.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727835AbgERXri (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 May 2020 19:47:38 -0400
+Message-ID: <075c5757d6c4d3813f7ae45288b765d76de8b6fc.camel@intel.com>
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Mon, 18 May 2020 16:47:42 -0700
+In-Reply-To: <0f751be6d25364c25ee4bddc425b61e626dcd942.camel@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+         <20200429220732.31602-2-yu-cheng.yu@intel.com>
+         <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
+         <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+         <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
+         <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
+         <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
+         <32235ffc-6e6c-fb3d-80c4-a0478e2d0e0f@intel.com>
+         <b09658f92eb66c1d1be509813939b9ed827f9cf0.camel@intel.com>
+         <631f071c-c755-a818-6a97-b333eb1fe21c@intel.com>
+         <0f751be6d25364c25ee4bddc425b61e626dcd942.camel@intel.com>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200505104454.GC19710@willie-the-truck>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Dave Martin <Dave.Martin@arm.com>, linux-arch@vger.kernel.org, linux-man@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200505124351.yLz9Fsapl1KZ9UQNd5ZxLQkyXGXBApWf5ML6Zi9EIiY@z>
+To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Message-ID: <20200518234742.kAum8gjulZCnDC3Y1swHkzJRDP5ErYErY94hKJ4mC3k@z>
 
-On Tue, May 05, 2020 at 11:44:55AM +0100, Will Deacon wrote:
-> Michael has been nagging me on and off about that for, what, 10 years now?
-> I would therefore be very much in favour of having our ptrace extensions
-> documented!
-> 
-> We could even put this stuff under Documentation/arm64/man/ if it's deemed
-> too CPU-specific for the man-pages project, but my preference would still
-> be for it to be hosted there alongside all the other man pages.
+On Fri, 2020-05-15 at 19:53 -0700, Yu-cheng Yu wrote:
+> On Fri, 2020-05-15 at 16:56 -0700, Dave Hansen wrote:
+> > On 5/15/20 4:29 PM, Yu-cheng Yu wrote:
+> > > [...]
+> > > I have run them with CET enabled.  All of them pass, except for the following:
+> > > Sigreturn from 64-bit to 32-bit fails, because shadow stack is at a 64-bit
+> > > address.  This is understandable.
+> > [...]
+> > One a separate topic: You ran the selftests and one failed.  This is a
+> > *MASSIVE* warning sign.  It should minimally be described in your cover
+> > letter, and accompanied by a fix to the test case.  It is absolutely
+> > unacceptable to introduce a kernel feature that causes a test to fail.
+> > You must either fix your kernel feature or you fix the test.
+> > 
+> > This code can not be accepted until this selftests issue is rectified.
 
-Stuffing random things into the kernel tree is painful for some people.
+The x86/sigreturn test constructs 32-bit ldt entries, and does sigreturn from
+64-bit to 32-bit context.  We do not have a way to construct a static 32-bit
+shadow stack.  Why do we want that?  I think we can simply run the test with CET
+disabled.
 
-For example, if you cross-build your kernel, then the stuff in the
-tools/ subdirectory is totally useless (I think everything except
-perf) because you can't build it.
-
-Let's stop making the mistake of constantly shoving stuff into the
-kernel source tree.
-
--- 
-RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line in suburbia: sync at 10.2Mbps down 587kbps up
+Yu-cheng
