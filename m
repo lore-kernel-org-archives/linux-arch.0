@@ -1,63 +1,93 @@
-Return-Path: <SRS0=qpv3=7J=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 27 May 2020 11:37:42 +0100
-From: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Subject: Re: [PATCH v4 24/26] arm64: mte: Introduce early param to disable
- MTE support
-Message-ID: <20200527103741.GB24512@arm.com>
-References: <20200515171612.1020-1-catalin.marinas@arm.com>
- <20200515171612.1020-25-catalin.marinas@arm.com>
- <a2ad6cbf-2632-3cda-eb49-74ddfbed2cec@arm.com>
- <20200518113103.GA32394@willie-the-truck>
- <20200518172054.GL9862@gaia>
- <20200522055710.GA25791@pdaly-linux.qualcomm.com>
- <20200522103714.GA26492@gaia>
- <20200527021153.GA24439@pdaly-linux.qualcomm.com>
- <20200527095504.GB11111@willie-the-truck>
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20200527095504.GB11111@willie-the-truck>
+Return-Path: <SRS0=dhoL=7A=vger.kernel.org=linux-doc-owner@kernel.org>
+Message-ID: <b3a0b0a404f1d1c588244889e71fe08508f0c31e.camel@intel.com>
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Mon, 18 May 2020 07:21:26 -0700
+In-Reply-To: <6f2ef0e5-d3bb-2b52-dc81-8228fec4a3f5@intel.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+         <20200429220732.31602-2-yu-cheng.yu@intel.com>
+         <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
+         <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+         <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
+         <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
+         <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
+         <32235ffc-6e6c-fb3d-80c4-a0478e2d0e0f@intel.com>
+         <b09658f92eb66c1d1be509813939b9ed827f9cf0.camel@intel.com>
+         <631f071c-c755-a818-6a97-b333eb1fe21c@intel.com>
+         <0f751be6d25364c25ee4bddc425b61e626dcd942.camel@intel.com>
+         <6f2ef0e5-d3bb-2b52-dc81-8228fec4a3f5@intel.com>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will@kernel.org>
-Cc: Patrick Daly <pdaly@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, Vladimir Murzin <vladimir.murzin@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, Vincenzo Frascino <vincenzo.frascino@arm.com>, Dave P Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org, nd@arm.com
+Content-Transfer-Encoding: 7bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Dave Hansen <dave.hansen@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200527103742.bDZnEfMQeUZdNvaR8nsND0jRfRBRjeAPYpl9xZl5EoE@z>
+Message-ID: <20200518142126.qCYQDTMrBVWf_mdXO1m7DCjgMyQQ2PdOW_gvvDZBQT8@z>
 
-The 05/27/2020 10:55, Will Deacon wrote:
-> On Tue, May 26, 2020 at 07:11:53PM -0700, Patrick Daly wrote:
-> > On Fri, May 22, 2020 at 11:37:15AM +0100, Catalin Marinas wrote:
-> > > The actual question here is what the on/off behaviour is needed for. We
-> > > can figure out the best mechanism for this once we know what we want to
-> > > achieve. My wild guess above was performance analysis but that can be
-> > > toggled by either kernel boot parameter or run-time sysctl (or just the
-> > > Kconfig option).
-> > > 
-> > > If it is about forcing user space not to use MTE, we may look into some
-> > > other sysctl controls (we already have one for the tagged address ABI).
+On Mon, 2020-05-18 at 06:41 -0700, Dave Hansen wrote:
+> On 5/15/20 7:53 PM, Yu-cheng Yu wrote:
+> > On Fri, 2020-05-15 at 16:56 -0700, Dave Hansen wrote:
+> > > What's my recourse as an end user?  I want to run my app and turn off
+> > > CET for that app.  How can I do that?
 > > 
-> > We want to allow the end user to be able to easily "opt out" of MTE in favour
-> > of better power, perf and battery life.
+> > GLIBC_TUNABLES=glibc.tune.hwcaps=-SHSTK,-IBT
 > 
-> Who is "the end user" in this case?
-> 
-> If MTE is bad enough for power, performance and battery life that we need a
-> kill switch, then perhaps we shouldn't enable it by default and the few
-> people that want to use it can build a kernel with it enabled. However, then
-> I don't really see what MTE buys you over the existing KASAN implementations.
-> 
-> I thought the general idea was that you could run in the (cheap) "async"
-> mode, and then re-run in the more expensive "sync" mode to further diagnose
-> any failures. That model seems to work well with these patches, since
-> reporting is disabled by default. Are you saying that there is a
-> significant penalty incurred even when reporting is not enabled?
-> 
-> Anyway, we don't offer global runtime/cmdline switches for the vast majority
-> of other architectural features -- instead, we choose a sensible default,
-> and I think we should do the same here.
+> Like I mentioned to H.J., this is something that we need to at least
+> acknowledge the existence of in the changelog and probably even the
+> Documentation/.
 
-i would not expect mte overhead if userspace processes
-don't map anything with PROT_MTE and don't enable tag
-checking with prctl. (i.e. userspace runtimes can "opt
-out" of mte for better power, perf and battery)
+Sure.  I will do that.
 
-is that not the case?
+> 
+> > > > >  I think you're saying that the CET-enabled binary would do
+> > > > > arch_setup_elf_property() when it was first exec()'d.  Later, it could
+> > > > > use the new prctl(ARCH_X86_CET_DISABLE) to disable its shadow stack,
+> > > > > then fork() and the child would not be using CET.  Right?
+> > > > > 
+> > > > > What is ARCH_X86_CET_DISABLE used for, anyway?
+> > > > 
+> > > > Both the parent and the child can do ARCH_X86_CET_DISABLE, if CET is
+> > > > not locked.
+> > > 
+> > > Could you please describe a real-world example of why
+> > > ARCH_X86_CET_DISABLE exists?  What kinds of apps will use it, or *are*
+> > > using it?  Why was it created in the first place?
+> > 
+> > Currently, ld-linux turns off CET if the binary being loaded does not support
+> > CET.
+> 
+> Great!  Could this please be immortalized in the documentation for the
+> prctl()?
+
+Yes.
+
+> 
+> > > > > > > Does this *code* work?  Could you please indicate which JITs have been
+> > > > > > > enabled to use the code in this series?  How much of the new ABI is in use?
+> > > > > > 
+> > > > > > JIT does not necessarily use all of the ABI.  The JIT changes mainly fix stack
+> > > > > > frames and insert ENDBRs.  I do not work on JIT.  What I found is LLVM JIT fixes
+> > > > > > are tested and in the master branch.  Sljit fixes are in the release.
+> > > > > 
+> > > > > Huh, so who is using the new prctl() ABIs?
+> > > > 
+> > > > Any code can use the ABI, but JIT code CET-enabling part mostly do not use these
+> > > > new prctl()'s, except, probably to get CET status.
+> > > 
+> > > Which applications specifically are going to use the new prctl()s which
+> > > this series adds?  How are they going to use them?
+> > > 
+> > > "Any code can use them" is not a specific enough answer.
+> > 
+> > We have four arch_ptctl() calls.  ARCH_X86_CET_DISABLE and ARCH_X86_CET_LOCK are
+> > used by ld-linux.  ARCH_X86_CET_STATUS are used in many places to determine if
+> > CET is on.  ARCH_X86_CET_ALLOC_SHSTK is used in ucontext related handling, but
+> > it can be use by any application to switch shadow stacks.
+> 
+> Could some of this information be added to the documentation, please?
+> It would also be nice to have some more details about how apps end up
+> using ARCH_X86_CET_STATUS.  Why would they care that CET is on?
+
+Yes.
+
+Yu-cheng
