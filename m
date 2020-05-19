@@ -1,45 +1,62 @@
-From: Joerg Roedel <jroedel@suse.de>
-Subject: Re: [PATCH v3 2/7] mm/vmalloc: Track which page-table levels were
- modified
-Date: Tue, 19 May 2020 17:25:12 +0200
-Message-ID: <20200519152512.GO8135@suse.de>
-References: <20200515140023.25469-1-joro@8bytes.org>
- <20200515140023.25469-3-joro@8bytes.org>
- <20200515130142.4ca90ee590e9d8ab88497676@linux-foundation.org>
- <20200516125641.GK8135@suse.de>
- <20200518151828.ad3c714a29209b359e326ec4@linux-foundation.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 19/23] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
+ support
+Date: Tue, 19 May 2020 17:10:58 +0100
+Message-ID: <20200519161057.GE20313@gaia>
+References: <20200421142603.3894-1-catalin.marinas@arm.com>
+ <20200421142603.3894-20-catalin.marinas@arm.com>
+ <a7569985-eb85-497b-e3b2-5dce0acb1332@linaro.org>
+ <20200513104849.GC2719@gaia>
+ <3d2621ac-9d08-53ea-6c22-c62532911377@linaro.org>
+ <20200513141147.GD2719@gaia>
+ <eec9ddae-8aa0-6cd1-9a23-16b06bb457c5@linaro.org>
+ <e7f995d6-d48b-1ea2-c9e6-d2533e8eadd5@linaro.org>
+ <20200518164723.GA5031@arm.com>
+ <55fe4d37-23ae-a6b7-8db1-884aaf4a9b9c@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-acpi-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:35664 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728953AbgESQLD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 May 2020 12:11:03 -0400
 Content-Disposition: inline
-In-Reply-To: <20200518151828.ad3c714a29209b359e326ec4@linux-foundation.org>
-Sender: linux-acpi-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Christoph Hellwig <hch@infradead.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <55fe4d37-23ae-a6b7-8db1-884aaf4a9b9c@linaro.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Luis Machado <luis.machado@linaro.org>
+Cc: Dave Martin <Dave.Martin@arm.com>, linux-arch@vger.kernel.org, Richard Earnshaw <Richard.Earnshaw@arm.com>, Will Deacon <will@kernel.org>, Omair Javaid <omair.javaid@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Peter Collingbourne <pcc@google.com>, Alan Hayward <Alan.Hayward@arm.com>, linux-arm-kernel@lists.infradead.org
 
-On Mon, May 18, 2020 at 03:18:28PM -0700, Andrew Morton wrote:
-> On Sat, 16 May 2020 14:56:41 +0200 Joerg Roedel <jroedel@suse.de> wrote:
-> --- a/mm/vmalloc.c~mm-vmalloc-track-which-page-table-levels-were-modified-fix
-> +++ a/mm/vmalloc.c
-> @@ -309,6 +309,9 @@ int map_kernel_range_noflush(unsigned lo
->  			return err;
->  	} while (pgd++, addr = next, addr != end);
->  
-> +	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-> +		arch_sync_kernel_mappings(start, end);
-> +
->  	return 0;
->  }
+On Mon, May 18, 2020 at 02:12:24PM -0300, Luis Machado wrote:
+> On 5/18/20 1:47 PM, Dave Martin wrote:
+> > Wrinkle: just because MTE is "off", pages might still be mapped with
+> > PROT_MTE and have arbitrary tags set on them, and the debugger perhaps
+> > needs a way to know that.  Currently grubbing around in /proc is the
+> > only way to discover that.  Dunno whether it matters.
+> 
+> That is the sort of thing that may confused the debugger.
+> 
+> If MTE is "off" (and thus the debugger doesn't need to validate tags), then
+> the pages mapped with PROT_MTE that show up in /proc/<pid>/smaps should be
+> ignored?
 
-Yes, this is the right call.
+There is no such thing as global MTE "off". If the HWCAP is present, a
+user program can map an address with PROT_MTE and access tags. Maybe it
+uses it for extra storage, you never know, doesn't have to be heap
+allocation related.
 
-> It would be nice to get all this (ie, linux-next) retested before we
-> send it upstream, please.
+> I'm looking for a precise way to tell if MTE is being used or not for a
+> particular process/thread. This, in turn, will tell debuggers when to look
+> for PROT_MTE mappings in /proc/<pid>/smaps and when to validate tagged
+> addresses.
+> 
+> So far my assumption was that MTE will always be "on" when HWCAP2_MTE is
+> present. So having HWCAP2_MTE means we have the NT_ARM_MTE regset and that
+> PROT_MTE pages have to be checked.
 
-Will do and report back.
+Yes. I haven't figured out what to put in the regset yet, most likely
+the prctl value as it has other software-only controls like the tagged
+address ABI.
 
-
-Thanks,
-
-	Joerg
+-- 
+Catalin
