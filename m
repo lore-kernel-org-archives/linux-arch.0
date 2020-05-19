@@ -1,94 +1,68 @@
-Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46382 "EHLO mail.kernel.org"
+Return-Path: <SRS0=UQCU=7B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga14.intel.com ([192.55.52.115]:25755 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729917AbgEMKQb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 May 2020 06:16:31 -0400
-From: guoren@kernel.org
-Subject: [PATCH 4/4] csky: Fixup remove unnecessary save/restore PSR code
-Date: Wed, 13 May 2020 18:16:17 +0800
-Message-ID: <20200513101617.11588-4-guoren@kernel.org>
-In-Reply-To: <20200513101617.11588-1-guoren@kernel.org>
-References: <20200513101617.11588-1-guoren@kernel.org>
+        id S1726696AbgESAiU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 May 2020 20:38:20 -0400
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+ <20200429220732.31602-2-yu-cheng.yu@intel.com>
+ <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
+ <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
+ <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
+ <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
+ <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
+ <32235ffc-6e6c-fb3d-80c4-a0478e2d0e0f@intel.com>
+ <b09658f92eb66c1d1be509813939b9ed827f9cf0.camel@intel.com>
+ <631f071c-c755-a818-6a97-b333eb1fe21c@intel.com>
+ <0f751be6d25364c25ee4bddc425b61e626dcd942.camel@intel.com>
+ <075c5757d6c4d3813f7ae45288b765d76de8b6fc.camel@intel.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <2eb98637-bd2d-dda6-7729-f06ea84256ca@intel.com>
+Date: Mon, 18 May 2020 17:38:13 -0700
+MIME-Version: 1.0
+In-Reply-To: <075c5757d6c4d3813f7ae45288b765d76de8b6fc.camel@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-csky@vger.kernel.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, guoren@kernel.org, Guo Ren <guoren@linux.alibaba.com>
-Message-ID: <20200513101617.0a61G594o4iyT_oZClnWvhMQF3Gqw9GtAxZO8SZU9vY@z>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Message-ID: <20200519003813.R2uRwiWVIfzPht8AE_3q1l4EWiOr10lRXiaeg0ojHJo@z>
 
-From: Guo Ren <guoren@linux.alibaba.com>
+On 5/18/20 4:47 PM, Yu-cheng Yu wrote:
+> On Fri, 2020-05-15 at 19:53 -0700, Yu-cheng Yu wrote:
+>> On Fri, 2020-05-15 at 16:56 -0700, Dave Hansen wrote:
+>>> On 5/15/20 4:29 PM, Yu-cheng Yu wrote:
+>>>> [...]
+>>>> I have run them with CET enabled.  All of them pass, except for the following:
+>>>> Sigreturn from 64-bit to 32-bit fails, because shadow stack is at a 64-bit
+>>>> address.  This is understandable.
+>>> [...]
+>>> One a separate topic: You ran the selftests and one failed.  This is a
+>>> *MASSIVE* warning sign.  It should minimally be described in your cover
+>>> letter, and accompanied by a fix to the test case.  It is absolutely
+>>> unacceptable to introduce a kernel feature that causes a test to fail.
+>>> You must either fix your kernel feature or you fix the test.
+>>>
+>>> This code can not be accepted until this selftests issue is rectified.
+> The x86/sigreturn test constructs 32-bit ldt entries, and does sigreturn from
+> 64-bit to 32-bit context.  We do not have a way to construct a static 32-bit
+> shadow stack.
 
-All processes' PSR could success from SETUP_MMU, so need set it
-in INIT_THREAD again.
+Why? What's the limiting factor?  Hardware architecture?  Something in
+the kernel?
 
-And use a3 instead of r7 in __switch_to for code convention.
+> Why do we want that?  I think we can simply run the test with CET
+> disabled.
 
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
----
- arch/csky/include/asm/processor.h |  2 --
- arch/csky/kernel/asm-offsets.c    |  1 -
- arch/csky/kernel/entry.S          | 10 ++--------
- 3 files changed, 2 insertions(+), 11 deletions(-)
+The sadistic parts of selftests/x86 come from real bugs.  Either bugs
+where the kernel fell over, or where behavior changed that broke apps.
+I'd suggest doing some research on where that particular test case came
+from.  Find the author of the test, look at the changelogs.
 
-diff --git a/arch/csky/include/asm/processor.h b/arch/csky/include/asm/processor.h
-index c6bcd7f7c720..79eaaaed3d23 100644
---- a/arch/csky/include/asm/processor.h
-+++ b/arch/csky/include/asm/processor.h
-@@ -42,7 +42,6 @@ extern struct cpuinfo_csky cpu_data[];
- 
- struct thread_struct {
- 	unsigned long  ksp;       /* kernel stack pointer */
--	unsigned long  sr;        /* saved status register */
- 	unsigned long  trap_no;   /* saved status register */
- 
- 	/* FPU regs */
-@@ -51,7 +50,6 @@ struct thread_struct {
- 
- #define INIT_THREAD  { \
- 	.ksp = sizeof(init_stack) + (unsigned long) &init_stack, \
--	.sr = DEFAULT_PSR_VALUE, \
- }
- 
- /*
-diff --git a/arch/csky/kernel/asm-offsets.c b/arch/csky/kernel/asm-offsets.c
-index f8be348df9e4..bbc259eed233 100644
---- a/arch/csky/kernel/asm-offsets.c
-+++ b/arch/csky/kernel/asm-offsets.c
-@@ -19,7 +19,6 @@ int main(void)
- 
- 	/* offsets into the thread struct */
- 	DEFINE(THREAD_KSP,        offsetof(struct thread_struct, ksp));
--	DEFINE(THREAD_SR,         offsetof(struct thread_struct, sr));
- 	DEFINE(THREAD_FESR,       offsetof(struct thread_struct, user_fp.fesr));
- 	DEFINE(THREAD_FCR,        offsetof(struct thread_struct, user_fp.fcr));
- 	DEFINE(THREAD_FPREG,      offsetof(struct thread_struct, user_fp.vr));
-diff --git a/arch/csky/kernel/entry.S b/arch/csky/kernel/entry.S
-index 6a468ff75432..3760397fdd3d 100644
---- a/arch/csky/kernel/entry.S
-+++ b/arch/csky/kernel/entry.S
-@@ -330,9 +330,6 @@ ENTRY(__switch_to)
- 	lrw	a3, TASK_THREAD
- 	addu	a3, a0
- 
--	mfcr	a2, psr			/* Save PSR value */
--	stw	a2, (a3, THREAD_SR)	/* Save PSR in task struct */
--
- 	SAVE_SWITCH_STACK
- 
- 	stw	sp, (a3, THREAD_KSP)
-@@ -343,12 +340,9 @@ ENTRY(__switch_to)
- 
- 	ldw	sp, (a3, THREAD_KSP)	/* Set next kernel sp */
- 
--	ldw	a2, (a3, THREAD_SR)	/* Set next PSR */
--	mtcr	a2, psr
--
- #if  defined(__CSKYABIV2__)
--	addi	r7, a1, TASK_THREAD_INFO
--	ldw	tls, (r7, TINFO_TP_VALUE)
-+	addi	a3, a1, TASK_THREAD_INFO
-+	ldw	tls, (a3, TINFO_TP_VALUE)
- #endif
- 
- 	RESTORE_SWITCH_STACK
--- 
-2.17.0
+If this is something that a real app does, this is a problem.  If it's a
+sadistic test that Andy L added because it was an attack vector against
+the entry code, it's a different story.
+
+I don't personally know the background, but the changelogs can help you
+find the person that does.
