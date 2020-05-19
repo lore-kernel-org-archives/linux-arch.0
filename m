@@ -1,79 +1,50 @@
-Return-Path: <SRS0=03B7=63=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 13 May 2020 11:48:50 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 19/23] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
- support
-Message-ID: <20200513104849.GC2719@gaia>
-References: <20200421142603.3894-1-catalin.marinas@arm.com>
- <20200421142603.3894-20-catalin.marinas@arm.com>
- <a7569985-eb85-497b-e3b2-5dce0acb1332@linaro.org>
+Return-Path: <SRS0=UQCU=7B=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:43100 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728773AbgESPZQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 May 2020 11:25:16 -0400
+Date: Tue, 19 May 2020 17:25:12 +0200
+From: Joerg Roedel <jroedel@suse.de>
+Subject: Re: [PATCH v3 2/7] mm/vmalloc: Track which page-table levels were
+ modified
+Message-ID: <20200519152512.GO8135@suse.de>
+References: <20200515140023.25469-1-joro@8bytes.org>
+ <20200515140023.25469-3-joro@8bytes.org>
+ <20200515130142.4ca90ee590e9d8ab88497676@linux-foundation.org>
+ <20200516125641.GK8135@suse.de>
+ <20200518151828.ad3c714a29209b359e326ec4@linux-foundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <a7569985-eb85-497b-e3b2-5dce0acb1332@linaro.org>
-Sender: owner-linux-mm@kvack.org
-To: Luis Machado <luis.machado@linaro.org>
-Cc: linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Alan Hayward <Alan.Hayward@arm.com>, Omair Javaid <omair.javaid@linaro.org>
+In-Reply-To: <20200518151828.ad3c714a29209b359e326ec4@linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200513104850.R2nRfExcZdyCmt-xM_Xfm0rDzsmM11E_9JPI3hkWS0g@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Christoph Hellwig <hch@infradead.org>
+Message-ID: <20200519152512.wzynitekaSh4eXbJvqwdfCpGw5--sYfSecClMOovuyc@z>
 
-Hi Luis,
+On Mon, May 18, 2020 at 03:18:28PM -0700, Andrew Morton wrote:
+> On Sat, 16 May 2020 14:56:41 +0200 Joerg Roedel <jroedel@suse.de> wrote:
+> --- a/mm/vmalloc.c~mm-vmalloc-track-which-page-table-levels-were-modified-fix
+> +++ a/mm/vmalloc.c
+> @@ -309,6 +309,9 @@ int map_kernel_range_noflush(unsigned lo
+>  			return err;
+>  	} while (pgd++, addr = next, addr != end);
+>  
+> +	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
+> +		arch_sync_kernel_mappings(start, end);
+> +
+>  	return 0;
+>  }
 
-On Tue, May 12, 2020 at 04:05:15PM -0300, Luis Machado wrote:
-> On 4/21/20 11:25 AM, Catalin Marinas wrote:
-> > Add support for bulk setting/getting of the MTE tags in a tracee's
-> > address space at 'addr' in the ptrace() syscall prototype. 'data' points
-> > to a struct iovec in the tracer's address space with iov_base
-> > representing the address of a tracer's buffer of length iov_len. The
-> > tags to be copied to/from the tracer's buffer are stored as one tag per
-> > byte.
-> > 
-> > On successfully copying at least one tag, ptrace() returns 0 and updates
-> > the tracer's iov_len with the number of tags copied. In case of error,
-> > either -EIO or -EFAULT is returned, trying to follow the ptrace() man
-> > page.
-> > 
-> > Note that the tag copying functions are not performance critical,
-> > therefore they lack optimisations found in typical memory copy routines.
-> > 
-> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> > Cc: Will Deacon <will@kernel.org>
-> > Cc: Alan Hayward <Alan.Hayward@arm.com>
-> > Cc: Luis Machado <luis.machado@linaro.org>
-> > Cc: Omair Javaid <omair.javaid@linaro.org>
-> > ---
-> > 
-> > Notes:
-> >      New in v3.
-> > 
-> >   arch/arm64/include/asm/mte.h         |  17 ++++
-> >   arch/arm64/include/uapi/asm/ptrace.h |   3 +
-> >   arch/arm64/kernel/mte.c              | 127 +++++++++++++++++++++++++++
-> >   arch/arm64/kernel/ptrace.c           |  15 +++-
-> >   arch/arm64/lib/mte.S                 |  50 +++++++++++
-> >   5 files changed, 211 insertions(+), 1 deletion(-)
-> > 
-> I started working on MTE support for GDB and I'm wondering if we've already
-> defined a way to check for runtime MTE support (as opposed to a HWCAP2-based
-> check) in a traced process.
-> 
-> Originally we were going to do it via empty-parameter ptrace calls, but you
-> had mentioned something about a proc-based method, if I'm not mistaken.
+Yes, this is the right call.
 
-We could expose more information via proc_pid_arch_status() but that
-would be the tagged address ABI and tag check fault mode and intended
-for human consumption mostly. We don't have any ptrace interface that
-exposes HWCAPs. Since the gdbserver runs on the same machine as the
-debugged process, it can check the HWCAPs itself, they are the same for
-all processes.
+> It would be nice to get all this (ie, linux-next) retested before we
+> send it upstream, please.
 
-BTW, in my pre-v4 patches (hopefully I'll post v4 this week), I changed
-the ptrace tag access slightly to return an error (and no tags copied)
-if the page has not been mapped with PROT_MTE. The other option would
-have been read-as-zero/write-ignored as per the hardware behaviour.
-Either option is fine by me but I thought the write-ignored part would
-be more confusing for the debugger. If you have any preference here,
-please let me know.
+Will do and report back.
 
--- 
-Catalin
+
+Thanks,
+
+	Joerg
