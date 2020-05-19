@@ -1,326 +1,89 @@
-Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58018 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726171AbgEOOA3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 10:00:29 -0400
-From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH v3 7/7] x86/mm: Remove vmalloc faulting
-Date: Fri, 15 May 2020 16:00:23 +0200
-Message-ID: <20200515140023.25469-8-joro@8bytes.org>
-In-Reply-To: <20200515140023.25469-1-joro@8bytes.org>
-References: <20200515140023.25469-1-joro@8bytes.org>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=VgvJ=7B=kvack.org=owner-linux-mm@kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+From: Andy Lutomirski <luto@amacapital.net>
+Mime-Version: 1.0 (1.0)
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+Date: Mon, 18 May 2020 18:35:21 -0700
+Message-ID: <58319765-891D-44B9-AF18-64492B01FF36@amacapital.net>
+References: <2eb98637-bd2d-dda6-7729-f06ea84256ca@intel.com>
+In-Reply-To: <2eb98637-bd2d-dda6-7729-f06ea84256ca@intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org
-Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20200515140023.MORU8Ldo9_Ch_JIdf-ZSXyyKn61-sFiDS-2mYJuZbio@z>
+Message-ID: <20200519013521.uY0JvkksO-YUVqyKfvzPmA1fkeP1arhlncngh8oNxzY@z>
 
-From: Joerg Roedel <jroedel@suse.de>
 
-Remove fault handling on vmalloc areas, as the vmalloc code now takes
-care of synchronizing changes to all page-tables in the system.
 
-Signed-off-by: Joerg Roedel <jroedel@suse.de>
-Acked-by: Andy Lutomirski <luto@kernel.org>
----
- arch/x86/include/asm/switch_to.h |  23 ------
- arch/x86/kernel/setup_percpu.c   |   6 +-
- arch/x86/mm/fault.c              | 134 -------------------------------
- arch/x86/mm/pti.c                |   8 +-
- arch/x86/mm/tlb.c                |  37 ---------
- 5 files changed, 4 insertions(+), 204 deletions(-)
+> On May 18, 2020, at 5:38 PM, Dave Hansen <dave.hansen@intel.com> wrote:
+>=20
+> =EF=BB=BFOn 5/18/20 4:47 PM, Yu-cheng Yu wrote:
+>>> On Fri, 2020-05-15 at 19:53 -0700, Yu-cheng Yu wrote:
+>>> On Fri, 2020-05-15 at 16:56 -0700, Dave Hansen wrote:
+>>>> On 5/15/20 4:29 PM, Yu-cheng Yu wrote:
+>>>>> [...]
+>>>>> I have run them with CET enabled.  All of them pass, except for the fo=
+llowing:
+>>>>> Sigreturn from 64-bit to 32-bit fails, because shadow stack is at a 64=
+-bit
+>>>>> address.  This is understandable.
+>>>> [...]
+>>>> One a separate topic: You ran the selftests and one failed.  This is a
+>>>> *MASSIVE* warning sign.  It should minimally be described in your cover=
 
-diff --git a/arch/x86/include/asm/switch_to.h b/arch/x86/include/asm/switch_to.h
-index 0e059b73437b..9f69cc497f4b 100644
---- a/arch/x86/include/asm/switch_to.h
-+++ b/arch/x86/include/asm/switch_to.h
-@@ -12,27 +12,6 @@ struct task_struct *__switch_to_asm(struct task_struct *prev,
- __visible struct task_struct *__switch_to(struct task_struct *prev,
- 					  struct task_struct *next);
- 
--/* This runs runs on the previous thread's stack. */
--static inline void prepare_switch_to(struct task_struct *next)
--{
--#ifdef CONFIG_VMAP_STACK
--	/*
--	 * If we switch to a stack that has a top-level paging entry
--	 * that is not present in the current mm, the resulting #PF will
--	 * will be promoted to a double-fault and we'll panic.  Probe
--	 * the new stack now so that vmalloc_fault can fix up the page
--	 * tables if needed.  This can only happen if we use a stack
--	 * in vmap space.
--	 *
--	 * We assume that the stack is aligned so that it never spans
--	 * more than one top-level paging entry.
--	 *
--	 * To minimize cache pollution, just follow the stack pointer.
--	 */
--	READ_ONCE(*(unsigned char *)next->thread.sp);
--#endif
--}
--
- asmlinkage void ret_from_fork(void);
- 
- /*
-@@ -67,8 +46,6 @@ struct fork_frame {
- 
- #define switch_to(prev, next, last)					\
- do {									\
--	prepare_switch_to(next);					\
--									\
- 	((last) = __switch_to_asm((prev), (next)));			\
- } while (0)
- 
-diff --git a/arch/x86/kernel/setup_percpu.c b/arch/x86/kernel/setup_percpu.c
-index e6d7894ad127..fd945ce78554 100644
---- a/arch/x86/kernel/setup_percpu.c
-+++ b/arch/x86/kernel/setup_percpu.c
-@@ -287,9 +287,9 @@ void __init setup_per_cpu_areas(void)
- 	/*
- 	 * Sync back kernel address range again.  We already did this in
- 	 * setup_arch(), but percpu data also needs to be available in
--	 * the smpboot asm.  We can't reliably pick up percpu mappings
--	 * using vmalloc_fault(), because exception dispatch needs
--	 * percpu data.
-+	 * the smpboot asm and arch_sync_kernel_mappings() doesn't sync to
-+	 * swapper_pg_dir on 32-bit. The per-cpu mappings need to be available
-+	 * there too.
- 	 *
- 	 * FIXME: Can the later sync in setup_cpu_entry_areas() replace
- 	 * this call?
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 255fc631b042..dffe8e4d3140 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -214,44 +214,6 @@ void arch_sync_kernel_mappings(unsigned long start, unsigned long end)
- 	}
- }
- 
--/*
-- * 32-bit:
-- *
-- *   Handle a fault on the vmalloc or module mapping area
-- */
--static noinline int vmalloc_fault(unsigned long address)
--{
--	unsigned long pgd_paddr;
--	pmd_t *pmd_k;
--	pte_t *pte_k;
--
--	/* Make sure we are in vmalloc area: */
--	if (!(address >= VMALLOC_START && address < VMALLOC_END))
--		return -1;
--
--	/*
--	 * Synchronize this task's top level page-table
--	 * with the 'reference' page table.
--	 *
--	 * Do _not_ use "current" here. We might be inside
--	 * an interrupt in the middle of a task switch..
--	 */
--	pgd_paddr = read_cr3_pa();
--	pmd_k = vmalloc_sync_one(__va(pgd_paddr), address);
--	if (!pmd_k)
--		return -1;
--
--	if (pmd_large(*pmd_k))
--		return 0;
--
--	pte_k = pte_offset_kernel(pmd_k, address);
--	if (!pte_present(*pte_k))
--		return -1;
--
--	return 0;
--}
--NOKPROBE_SYMBOL(vmalloc_fault);
--
- /*
-  * Did it hit the DOS screen memory VA from vm86 mode?
-  */
-@@ -316,79 +278,6 @@ static void dump_pagetable(unsigned long address)
- 
- #else /* CONFIG_X86_64: */
- 
--/*
-- * 64-bit:
-- *
-- *   Handle a fault on the vmalloc area
-- */
--static noinline int vmalloc_fault(unsigned long address)
--{
--	pgd_t *pgd, *pgd_k;
--	p4d_t *p4d, *p4d_k;
--	pud_t *pud;
--	pmd_t *pmd;
--	pte_t *pte;
--
--	/* Make sure we are in vmalloc area: */
--	if (!(address >= VMALLOC_START && address < VMALLOC_END))
--		return -1;
--
--	/*
--	 * Copy kernel mappings over when needed. This can also
--	 * happen within a race in page table update. In the later
--	 * case just flush:
--	 */
--	pgd = (pgd_t *)__va(read_cr3_pa()) + pgd_index(address);
--	pgd_k = pgd_offset_k(address);
--	if (pgd_none(*pgd_k))
--		return -1;
--
--	if (pgtable_l5_enabled()) {
--		if (pgd_none(*pgd)) {
--			set_pgd(pgd, *pgd_k);
--			arch_flush_lazy_mmu_mode();
--		} else {
--			BUG_ON(pgd_page_vaddr(*pgd) != pgd_page_vaddr(*pgd_k));
--		}
--	}
--
--	/* With 4-level paging, copying happens on the p4d level. */
--	p4d = p4d_offset(pgd, address);
--	p4d_k = p4d_offset(pgd_k, address);
--	if (p4d_none(*p4d_k))
--		return -1;
--
--	if (p4d_none(*p4d) && !pgtable_l5_enabled()) {
--		set_p4d(p4d, *p4d_k);
--		arch_flush_lazy_mmu_mode();
--	} else {
--		BUG_ON(p4d_pfn(*p4d) != p4d_pfn(*p4d_k));
--	}
--
--	BUILD_BUG_ON(CONFIG_PGTABLE_LEVELS < 4);
--
--	pud = pud_offset(p4d, address);
--	if (pud_none(*pud))
--		return -1;
--
--	if (pud_large(*pud))
--		return 0;
--
--	pmd = pmd_offset(pud, address);
--	if (pmd_none(*pmd))
--		return -1;
--
--	if (pmd_large(*pmd))
--		return 0;
--
--	pte = pte_offset_kernel(pmd, address);
--	if (!pte_present(*pte))
--		return -1;
--
--	return 0;
--}
--NOKPROBE_SYMBOL(vmalloc_fault);
--
- #ifdef CONFIG_CPU_SUP_AMD
- static const char errata93_warning[] =
- KERN_ERR 
-@@ -1227,29 +1116,6 @@ do_kern_addr_fault(struct pt_regs *regs, unsigned long hw_error_code,
- 	 */
- 	WARN_ON_ONCE(hw_error_code & X86_PF_PK);
- 
--	/*
--	 * We can fault-in kernel-space virtual memory on-demand. The
--	 * 'reference' page table is init_mm.pgd.
--	 *
--	 * NOTE! We MUST NOT take any locks for this case. We may
--	 * be in an interrupt or a critical region, and should
--	 * only copy the information from the master page table,
--	 * nothing more.
--	 *
--	 * Before doing this on-demand faulting, ensure that the
--	 * fault is not any of the following:
--	 * 1. A fault on a PTE with a reserved bit set.
--	 * 2. A fault caused by a user-mode access.  (Do not demand-
--	 *    fault kernel memory due to user-mode accesses).
--	 * 3. A fault caused by a page-level protection violation.
--	 *    (A demand fault would be on a non-present page which
--	 *     would have X86_PF_PROT==0).
--	 */
--	if (!(hw_error_code & (X86_PF_RSVD | X86_PF_USER | X86_PF_PROT))) {
--		if (vmalloc_fault(address) >= 0)
--			return;
--	}
--
- 	/* Was the fault spurious, caused by lazy TLB invalidation? */
- 	if (spurious_kernel_fault(hw_error_code, address))
- 		return;
-diff --git a/arch/x86/mm/pti.c b/arch/x86/mm/pti.c
-index 843aa10a4cb6..da0fb17a1a36 100644
---- a/arch/x86/mm/pti.c
-+++ b/arch/x86/mm/pti.c
-@@ -448,13 +448,7 @@ static void __init pti_clone_user_shared(void)
- 		 * the sp1 and sp2 slots.
- 		 *
- 		 * This is done for all possible CPUs during boot to ensure
--		 * that it's propagated to all mms.  If we were to add one of
--		 * these mappings during CPU hotplug, we would need to take
--		 * some measure to make sure that every mm that subsequently
--		 * ran on that CPU would have the relevant PGD entry in its
--		 * pagetables.  The usual vmalloc_fault() mechanism would not
--		 * work for page faults taken in entry_SYSCALL_64 before RSP
--		 * is set up.
-+		 * that it's propagated to all mms.
- 		 */
- 
- 		unsigned long va = (unsigned long)&per_cpu(cpu_tss_rw, cpu);
-diff --git a/arch/x86/mm/tlb.c b/arch/x86/mm/tlb.c
-index 66f96f21a7b6..f3fe261e5936 100644
---- a/arch/x86/mm/tlb.c
-+++ b/arch/x86/mm/tlb.c
-@@ -161,34 +161,6 @@ void switch_mm(struct mm_struct *prev, struct mm_struct *next,
- 	local_irq_restore(flags);
- }
- 
--static void sync_current_stack_to_mm(struct mm_struct *mm)
--{
--	unsigned long sp = current_stack_pointer;
--	pgd_t *pgd = pgd_offset(mm, sp);
--
--	if (pgtable_l5_enabled()) {
--		if (unlikely(pgd_none(*pgd))) {
--			pgd_t *pgd_ref = pgd_offset_k(sp);
--
--			set_pgd(pgd, *pgd_ref);
--		}
--	} else {
--		/*
--		 * "pgd" is faked.  The top level entries are "p4d"s, so sync
--		 * the p4d.  This compiles to approximately the same code as
--		 * the 5-level case.
--		 */
--		p4d_t *p4d = p4d_offset(pgd, sp);
--
--		if (unlikely(p4d_none(*p4d))) {
--			pgd_t *pgd_ref = pgd_offset_k(sp);
--			p4d_t *p4d_ref = p4d_offset(pgd_ref, sp);
--
--			set_p4d(p4d, *p4d_ref);
--		}
--	}
--}
--
- static inline unsigned long mm_mangle_tif_spec_ib(struct task_struct *next)
- {
- 	unsigned long next_tif = task_thread_info(next)->flags;
-@@ -377,15 +349,6 @@ void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
- 		 */
- 		cond_ibpb(tsk);
- 
--		if (IS_ENABLED(CONFIG_VMAP_STACK)) {
--			/*
--			 * If our current stack is in vmalloc space and isn't
--			 * mapped in the new pgd, we'll double-fault.  Forcibly
--			 * map it.
--			 */
--			sync_current_stack_to_mm(next);
--		}
--
- 		/*
- 		 * Stop remote flushes for the previous mm.
- 		 * Skip kernel threads; we never send init_mm TLB flushing IPIs,
--- 
-2.17.1
+>>>> letter, and accompanied by a fix to the test case.  It is absolutely
+>>>> unacceptable to introduce a kernel feature that causes a test to fail.
+>>>> You must either fix your kernel feature or you fix the test.
+>>>>=20
+>>>> This code can not be accepted until this selftests issue is rectified.
+>> The x86/sigreturn test constructs 32-bit ldt entries, and does sigreturn f=
+rom
+>> 64-bit to 32-bit context.  We do not have a way to construct a static 32-=
+bit
+>> shadow stack.
+>=20
+> Why? What's the limiting factor?  Hardware architecture?  Something in
+> the kernel?
+>=20
+>> Why do we want that?  I think we can simply run the test with CET
+>> disabled.
+>=20
+> The sadistic parts of selftests/x86 come from real bugs.  Either bugs
+> where the kernel fell over, or where behavior changed that broke apps.
+> I'd suggest doing some research on where that particular test case came
+> from.  Find the author of the test, look at the changelogs.
+>=20
+> If this is something that a real app does, this is a problem.  If it's a
+> sadistic test that Andy L added because it was an attack vector against
+> the entry code, it's a different story.
+
+There are quite a few tests that do these horrible things in there. IN my pe=
+rsonal opinion, sigreturn.c is one of the most important tests we have =E2=80=
+=94 it does every horrible thing to the entry code that I thought of and tha=
+t I could come up with a way of doing.  We have been saved from regressing m=
+any times by these tests.  CET, and especially the CPL0 version of CET, is i=
+ts own set of entry horror, and we need to keep these tests working.
+
+I assume the basic issue is that we call raise(), the context magically chan=
+ges to 32-bit, but SSP has a 64-bit value, and horrors happen.  So I think t=
+wo things need to happen:
+
+1. Someone needs to document what happens when IRET tries to put a 64-bit va=
+lue into SSP but CS is compat. Because Intel has plenty of history of doing c=
+olossally broken things here. IOW you could easily be hitting a hardware des=
+ign problem, not a software issue per se.
+
+2. The test needs to work. Assuming the hardware doesn=E2=80=99t do somethin=
+g utterly broken, either the 32-bit code needs to be adjusted to avoid any C=
+ALL
+or RET, or you need to write a little raise_on_32bit_shstk() func that switc=
+hes to an SSP that fits in 32 bits, calls raise(), and switches back.  =46rom=
+ memory, I didn=E2=80=99t think there was a CALl or RET, so I=E2=80=99m gues=
+sing that SSP is getting truncated when we round trip through CPL3 compat mo=
+de and the result is that the kernel invoked the signal handler with the wro=
+ng SSP.  Whoops.
+
+>=20
+> I don't personally know the background, but the changelogs can help you
+> find the person that does.
