@@ -1,97 +1,84 @@
-Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:44252 "EHLO foss.arm.com"
+Return-Path: <SRS0=MIV2=7C=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:60208 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725982AbgEMLwA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 May 2020 07:52:00 -0400
-Date: Wed, 13 May 2020 12:51:57 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 04/14] prctl.2: srcfix add comments for navigation
-Message-ID: <20200513115156.GN21779@arm.com>
-References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
- <1589301419-24459-5-git-send-email-Dave.Martin@arm.com>
- <8b882b6e-376b-111d-3c3c-7a042b0e91b5@gmail.com>
- <20200513105620.GE21779@arm.com>
- <9770249d-0d5a-1b02-4de1-bbb6343b5829@gmail.com>
- <20200513111557.GG21779@arm.com>
- <022b1d7f-8381-a9a8-b5aa-907143fd4831@gmail.com>
+        id S1726826AbgETRIG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 20 May 2020 13:08:06 -0400
+Date: Wed, 20 May 2020 18:08:00 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC PATCH v3 2/2] arm64: tlb: Use the TLBI RANGE feature in
+ arm64
+Message-ID: <20200520170759.GE18302@gaia>
+References: <20200414112835.1121-1-yezhenyu2@huawei.com>
+ <20200414112835.1121-3-yezhenyu2@huawei.com>
+ <20200514152840.GC1907@gaia>
+ <54468aae-dbb1-66bd-c633-82fc75936206@huawei.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <022b1d7f-8381-a9a8-b5aa-907143fd4831@gmail.com>
+In-Reply-To: <54468aae-dbb1-66bd-c633-82fc75936206@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200513115157.mj87lhqXQvnHIiRA-PSdsOpBmQmqlF5JvJu2-tGB7ec@z>
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: linux-arch@vger.kernel.org, suzuki.poulose@arm.com, maz@kernel.org, linux-kernel@vger.kernel.org, xiexiangyou@huawei.com, steven.price@arm.com, zhangshaokun@hisilicon.com, linux-mm@kvack.org, arm@kernel.org, prime.zeng@hisilicon.com, guohanjun@huawei.com, olof@lixom.net, kuhn.chenqun@huawei.com, will@kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20200520170800.asyY4jAQ6mraHoo32PMFPeb4se0wjJ2W1GBfPAieM0Q@z>
 
-On Wed, May 13, 2020 at 01:48:36PM +0200, Michael Kerrisk (man-pages) wrote:
-> Hi Dave,
-> 
-> On 5/13/20 1:15 PM, Dave Martin wrote:
-> > On Wed, May 13, 2020 at 01:03:27PM +0200, Michael Kerrisk (man-pages) wrote:
-> >> Hi Dave,
-> >>
-> >> On 5/13/20 12:56 PM, Dave Martin wrote:
-> >>> On Wed, May 13, 2020 at 12:09:27PM +0200, Michael Kerrisk (man-pages) wrote:
-> >>>> Hi Dave,
-> >>>>
-> >>>> On 5/12/20 6:36 PM, Dave Martin wrote:
-> >>>>> The prctl.2 source is unnecessarily hard to navigate, not least
-> >>>>> because prctl option flags are traditionally named PR_* and so look
-> >>>>> just like prctl names.
-> >>>>>
-> >>>>> For each actual prctl, add a comment of the form
-> >>>>>
-> >>>>> 	.\" prctl PR_FOO
-> >>>>>
-> >>>>> to make it move obvious where each top-level prctl starts.
-> >>>>>
-> >>>>> Of course, we could add some clever macros, but let's not confuse
-> >>>>> dumb parsers.
-> >>>>
-> >>>> A patch like this, which makes sweeping changes across the page,
-> >>>> should be best placed at the end of a series, I think.
-> >>>> The reason is that if I fail to apply this patch (and I am a
-> >>>> little dubious about it), then probably the rest of the patches
-> >>>> in the series won't apply. (Furthermore, it also forced me to
-> >>>> apply patch 02 already, which I wanted to reflect on a little.)
-> >>>
-> >>> Agreed, I'll try to do that in future.
-> >>>
-> >>>> That said, I'll apply it, so that the remaining patches
-> >>>> apply cleanly. I'll consider later whether to keep this
-> >>>> change. For example, I wonder if a visually distinctive 
-> >>>> source line that is always the same would be better than
-> >>>> these comments that repeat the PR_* names. For example, 
-> >>>> something like
-> >>>>
-> >>>> .\" ==========================
-> >>>>
-> >>>> I'll circle back to this later.
-> >>>
-> >>> I'd prefer to keep the name if we can, since navigating by search is
-> >>> otherwise bothersome due to false hits.
-> >>>
-> >>> Could we do both, say:
-> >>>
-> >>> .\" === PR_FOO ===
-> >>
-> >> Okay -- I'll give that some thought.
-> >>
-> >>> If you prefer to reject this patch, I'm happy to rebase and repost the
-> >>> series as appropriate.
-> >>>
-> >>> In any case, this one is nice to have rather than essential.
-> >>
-> >> For now, the patch is already committed and pushed.
+On Mon, May 18, 2020 at 08:21:02PM +0800, Zhenyu Ye wrote:
+> On 2020/5/14 23:28, Catalin Marinas wrote:
+> > On Tue, Apr 14, 2020 at 07:28:35PM +0800, Zhenyu Ye wrote:
+> >> +		}
+> >> +		scale++;
+> >> +		range_size >>= TLB_RANGE_MASK_SHIFT;
+> >> +	}
 > > 
-> > OK, thanks.  I'm happy to write a further patch when you've decided what
-> > to do, if it saves you work.
+> > So, you start from scale 0 and increment it until you reach the maximum.
+> > I think (haven't done the maths on paper) you could also start from the
+> > top with something like scale = ilog2(range_size) / 5. Not sure it's
+> > significantly better though, maybe avoiding the loop 3 times if your
+> > range is 2MB (which happens with huge pages).
 > 
-> Let's leave this for the moment. Once the dust settles on your 
-> remaining patches, I'll try to remember to circle back on this.
+> This optimization is only effective when the range is a multiple of 256KB
+> (when the page size is 4KB), and I'm worried about the performance
+> of ilog2().  I traced the __flush_tlb_range() last year and found that in
+> most cases the range is less than 256K (see details in [1]).
 
-OK, give me a should if you need anything from me.
+THP or hugetlbfs would exercise bigger strides but I guess it depends on
+the use-case. ilog2() should be reduced to a few instructions on arm64
+AFAICT (haven't tried but it should use the CLZ instruction).
 
-Cheers
----Dave
+> > Anyway, I think it would be more efficient if we combine the
+> > __flush_tlb_range() and the _directly one into the same function with a
+> > single loop for both. For example, if the stride is 2MB already, we can
+> > handle this with a single classic TLBI without all the calculations for
+> > the range operation. The hardware may also handle this better since the
+> > software already told it there can be only one entry in that 2MB range.
+> > So each loop iteration could figure which operation to use based on
+> > cpucaps, TLBI range ops, stride and reduce range_size accordingly.
+> 
+> Summarize your suggestion in one sentence: use 'stride' to optimize the
+> preformance of TLBI.  This can also be done by dividing into two functions,
+> and this should indeed be taken into account in the TLBI RANGE feature.
+> 
+> But if we figure which operation to use based on cpucaps in each loop
+> iteration, then cpus_have_const_cap() will be called frequently, which
+> may affect performance of TLBI.  In my opinion, we should do as few
+> judgments as possible in the loop, so judge the cpucaps outside the
+> loop maybe a good choice.
+
+cpus_have_const_cap() is a static label, so should be patched with a
+branch or nop. My point was that in the classic __flush_tlb_range()
+loop, instead of an addr += stride we could have something more dynamic
+depending on whether the CPU supports range TLBI ops or not. But we
+would indeed have more (static) branches in the loop, so possibly some
+performance degradation.
+
+If the code looks ok, I'd favour this and we can look at the
+optimisation later. But I can't really tell how the code would look
+without attempting to merge the two.
+
+Anyway, a first step would be to to add the the range and stride to the
+decision (i.e. (end-start)/stride > 1) before jumping to the range
+operations. You can avoid the additional checks in the new TLBI
+functions since we know we have at least two (huge)pages.
+
+-- 
+Catalin
