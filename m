@@ -1,126 +1,128 @@
-Return-Path: <SRS0=hh2G=62=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 12 May 2020 16:00:26 -0700 (PDT)
-Subject: Re: [PATCH 19/31] riscv: use asm-generic/cacheflush.h
-In-Reply-To: <20200510075510.987823-20-hch@lst.de>
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <mhng-8adbedbc-0f91-4291-9471-2df5eb7b802b@palmerdabbelt-glaptop1>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
+Return-Path: <SRS0=+Urr=7C=vger.kernel.org=linux-doc-owner@kernel.org>
+MIME-Version: 1.0
+References: <2eb98637-bd2d-dda6-7729-f06ea84256ca@intel.com> <58319765-891D-44B9-AF18-64492B01FF36@amacapital.net>
+In-Reply-To: <58319765-891D-44B9-AF18-64492B01FF36@amacapital.net>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Tue, 19 May 2020 18:04:11 -0700
+Message-ID: <CALCETrWavh1_Atk=VPQbOoB5tY=zGWGukW8qjF51msKTJSJgQQ@mail.gmail.com>
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: akpm@linux-foundation.org, Arnd Bergmann <arnd@arndb.de>, zippel@linux-m68k.org, linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, monstr@monstr.eu, jeyu@kernel.org, linux-ia64@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, x86@kernel.org, linux-um@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-riscv@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Sender: linux-doc-owner@vger.kernel.org
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200512230026.-4e4tu7HJ8Cqn3jsWFeku8VHrFSciKTJJLJv8udruBE@z>
+Message-ID: <20200520010411.QC4pVsAKGgg4ZLQZL0AemRDTSl7WNaLCKPI2YexXA-I@z>
 
-On Sun, 10 May 2020 00:54:58 PDT (-0700), Christoph Hellwig wrote:
-> RISC-V needs almost no cache flushing routines of its own.  Rely on
-> asm-generic/cacheflush.h for the defaults.
+On Mon, May 18, 2020 at 6:35 PM Andy Lutomirski <luto@amacapital.net> wrote=
+:
 >
-> Also remove the pointless __KERNEL__ ifdef while we're at it.
-> ---
->  arch/riscv/include/asm/cacheflush.h | 62 ++---------------------------
->  1 file changed, 3 insertions(+), 59 deletions(-)
 >
-> diff --git a/arch/riscv/include/asm/cacheflush.h b/arch/riscv/include/a=
-sm/cacheflush.h
-> index c8677c75f82cb..a167b4fbdf007 100644
-> --- a/arch/riscv/include/asm/cacheflush.h
-> +++ b/arch/riscv/include/asm/cacheflush.h
-> @@ -8,65 +8,6 @@
 >
->  #include <linux/mm.h>
+> > On May 18, 2020, at 5:38 PM, Dave Hansen <dave.hansen@intel.com> wrote:
+> >
+> > =EF=BB=BFOn 5/18/20 4:47 PM, Yu-cheng Yu wrote:
+> >>> On Fri, 2020-05-15 at 19:53 -0700, Yu-cheng Yu wrote:
+> >>> On Fri, 2020-05-15 at 16:56 -0700, Dave Hansen wrote:
+> >>>> On 5/15/20 4:29 PM, Yu-cheng Yu wrote:
+> >>>>> [...]
+> >>>>> I have run them with CET enabled.  All of them pass, except for the=
+ following:
+> >>>>> Sigreturn from 64-bit to 32-bit fails, because shadow stack is at a=
+ 64-bit
+> >>>>> address.  This is understandable.
+> >>>> [...]
+> >>>> One a separate topic: You ran the selftests and one failed.  This is=
+ a
+> >>>> *MASSIVE* warning sign.  It should minimally be described in your co=
+ver
+> >>>> letter, and accompanied by a fix to the test case.  It is absolutely
+> >>>> unacceptable to introduce a kernel feature that causes a test to fai=
+l.
+> >>>> You must either fix your kernel feature or you fix the test.
+> >>>>
+> >>>> This code can not be accepted until this selftests issue is rectifie=
+d.
+> >> The x86/sigreturn test constructs 32-bit ldt entries, and does sigretu=
+rn from
+> >> 64-bit to 32-bit context.  We do not have a way to construct a static =
+32-bit
+> >> shadow stack.
+> >
+> > Why? What's the limiting factor?  Hardware architecture?  Something in
+> > the kernel?
+> >
+> >> Why do we want that?  I think we can simply run the test with CET
+> >> disabled.
+> >
+> > The sadistic parts of selftests/x86 come from real bugs.  Either bugs
+> > where the kernel fell over, or where behavior changed that broke apps.
+> > I'd suggest doing some research on where that particular test case came
+> > from.  Find the author of the test, look at the changelogs.
+> >
+> > If this is something that a real app does, this is a problem.  If it's =
+a
+> > sadistic test that Andy L added because it was an attack vector against
+> > the entry code, it's a different story.
 >
-> -#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
-> -
-> -/*
-> - * The cache doesn't need to be flushed when TLB entries change when
-> - * the cache is mapped to physical memory, not virtual memory
-> - */
-> -static inline void flush_cache_all(void)
-> -{
-> -}
-> -
-> -static inline void flush_cache_mm(struct mm_struct *mm)
-> -{
-> -}
-> -
-> -static inline void flush_cache_dup_mm(struct mm_struct *mm)
-> -{
-> -}
-> -
-> -static inline void flush_cache_range(struct vm_area_struct *vma,
-> -				     unsigned long start,
-> -				     unsigned long end)
-> -{
-> -}
-> -
-> -static inline void flush_cache_page(struct vm_area_struct *vma,
-> -				    unsigned long vmaddr,
-> -				    unsigned long pfn)
-> -{
-> -}
-> -
-> -static inline void flush_dcache_mmap_lock(struct address_space *mappin=
-g)
-> -{
-> -}
-> -
-> -static inline void flush_dcache_mmap_unlock(struct address_space *mapp=
-ing)
-> -{
-> -}
-> -
-> -static inline void flush_icache_page(struct vm_area_struct *vma,
-> -				     struct page *page)
-> -{
-> -}
-> -
-> -static inline void flush_cache_vmap(unsigned long start, unsigned long=
- end)
-> -{
-> -}
-> -
-> -static inline void flush_cache_vunmap(unsigned long start, unsigned lo=
-ng end)
-> -{
-> -}
-> -
-> -#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
-> -	do { \
-> -		memcpy(dst, src, len); \
-> -		flush_icache_user_range(vma, page, vaddr, len); \
-> -	} while (0)
-> -#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
-> -	memcpy(dst, src, len)
-> -
->  static inline void local_flush_icache_all(void)
->  {
->  	asm volatile ("fence.i" ::: "memory");
-> @@ -79,6 +20,7 @@ static inline void flush_dcache_page(struct page *pag=
-e)
->  	if (test_bit(PG_dcache_clean, &page->flags))
->  		clear_bit(PG_dcache_clean, &page->flags);
->  }
-> +#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
+> There are quite a few tests that do these horrible things in there. IN my=
+ personal opinion, sigreturn.c is one of the most important tests we have =
+=E2=80=94 it does every horrible thing to the entry code that I thought of =
+and that I could come up with a way of doing.  We have been saved from regr=
+essing many times by these tests.  CET, and especially the CPL0 version of =
+CET, is its own set of entry horror, and we need to keep these tests workin=
+g.
 >
->  /*
->   * RISC-V doesn't have an instruction to flush parts of the instructio=
-n cache,
-> @@ -105,4 +47,6 @@ void flush_icache_mm(struct mm_struct *mm, bool loca=
-l);
->  #define SYS_RISCV_FLUSH_ICACHE_LOCAL 1UL
->  #define SYS_RISCV_FLUSH_ICACHE_ALL   (SYS_RISCV_FLUSH_ICACHE_LOCAL)
+> I assume the basic issue is that we call raise(), the context magically c=
+hanges to 32-bit, but SSP has a 64-bit value, and horrors happen.  So I thi=
+nk two things need to happen:
 >
-> +#include <asm-generic/cacheflush.h>
-> +
->  #endif /* _ASM_RISCV_CACHEFLUSH_H */
+> 1. Someone needs to document what happens when IRET tries to put a 64-bit=
+ value into SSP but CS is compat. Because Intel has plenty of history of do=
+ing colossally broken things here. IOW you could easily be hitting a hardwa=
+re design problem, not a software issue per se.
+>
+> 2. The test needs to work. Assuming the hardware doesn=E2=80=99t do somet=
+hing utterly broken, either the 32-bit code needs to be adjusted to avoid a=
+ny CALL
+> or RET, or you need to write a little raise_on_32bit_shstk() func that sw=
+itches to an SSP that fits in 32 bits, calls raise(), and switches back.  F=
+rom memory, I didn=E2=80=99t think there was a CALl or RET, so I=E2=80=99m =
+guessing that SSP is getting truncated when we round trip through CPL3 comp=
+at mode and the result is that the kernel invoked the signal handler with t=
+he wrong SSP.  Whoops.
+>
 
-Thanks!
+Following up here, I think this needs attention from the H/W architects.
 
-Reviewed-by: Palmer Dabbelt <palmerdabbelt@google.com>
-Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
+From the SDM:
 
-Were you trying to get these all in at once, or do you want me to take it=
- into
-my tree?
+SYSRET and SYSEXIT:
+
+IF ShadowStackEnabled(CPL)
+SSP =E2=86=90 IA32_PL3_SSP;
+FI;
+
+IRET:
+
+IF ShadowStackEnabled(CPL)
+IF CPL =3D 3
+THEN tempSSP =E2=86=90 IA32_PL3_SSP; FI;
+IF ((EFER.LMA AND CS.L) =3D 0 AND tempSSP[63:32] !=3D 0)
+THEN #GP(0); FI;
+SSP =E2=86=90 tempSSP
+
+The semantics of actually executing in compat mode with SSP >=3D 2^32
+are unclear.  If nothing else, VM exit will save the full SSP and a
+subsequent VM entry will fail.
+
+I don't know what the actual effect of operand-size-32 SYSRET or
+SYSEXIT with too big a PL3_SSP will be, but I think it needs to be
+documented.  Ideally it will not put the CPU in an invalid state.
+Ideally it will also not fault, because SYSRET faults in particular
+are fatal unless the vector uses IST, and please please please don't
+force more ISTs on anyone.
+
+So I think we may need to put this entire series on hold until we get
+some answers, because I suspect we're going to have a nice little root
+hole otherwise.
