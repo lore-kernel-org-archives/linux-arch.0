@@ -1,41 +1,80 @@
-From: Yu-cheng Yu <yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
-Date: Thu, 21 May 2020 08:57:57 -0700
-Message-ID: <a1e7c71c72de517a288e6273ba0c18dac2e937bc.camel@intel.com>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-         <20200521151556.pojijpmuc2rdd7ko@treble>
+From: Kristen Carlson Accardi <kristen@linux.intel.com>
+Subject: [PATCH v2 5/9] x86: Make sure _etext includes function sections
+Date: Thu, 21 May 2020 09:56:36 -0700
+Message-ID: <20200521165641.15940-6-kristen@linux.intel.com>
+References: <20200521165641.15940-1-kristen@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20200521151556.pojijpmuc2rdd7ko@treble>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Josh Poimboeuf <jpoimboe-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Balbir Singh <bsingharora-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Cyrill Gorcunov <gorcunov-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Eugene Syromiatnikov <esyr-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H.J. Lu" <hjl.tools-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Mike Kravetz <mike.kravetz-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Nadav Amit <nadav.amit-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga02.intel.com ([134.134.136.20]:46206 "EHLO mga02.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730138AbgEUQ5V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 21 May 2020 12:57:21 -0400
+In-Reply-To: <20200521165641.15940-1-kristen@linux.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: keescook@chromium.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: arjan@linux.intel.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, rick.p.edgecombe@intel.com, Kristen Carlson Accardi <kristen@linux.intel.com>, Tony Luck <tony.luck@intel.com>, linux-arch@vger.kernel.org
 
-On Thu, 2020-05-21 at 10:15 -0500, Josh Poimboeuf wrote:
-> On Wed, Apr 29, 2020 at 03:07:06PM -0700, Yu-cheng Yu wrote:
-> > Control-flow Enforcement (CET) is a new Intel processor feature that blocks
-> > return/jump-oriented programming attacks.  Details can be found in "Intel
-> > 64 and IA-32 Architectures Software Developer's Manual" [1].
-> > 
-> > This series depends on the XSAVES supervisor state series that was split
-> > out and submitted earlier [2].
-> > 
-> > I have gone through previous comments, and hope all concerns have been
-> > resolved now.  Please inform me if anything is overlooked.
-> > 
-> > Changes in v10:
-> 
-> Hi Yu-cheng,
-> 
-> Do you have a git branch with the latest Shadow Stack and IBT branches
-> applied?  I tried to apply IBT v9 on top of this, but I guess the SS
-> code has changed since then and it didn't apply cleanly.
+When using -ffunction-sections to place each function in
+it's own text section so it can be randomized at load time, the
+linker considers these .text.* sections "orphaned sections", and
+will place them after the first similar section (.text). In order
+to accurately represent the end of the text section and the
+orphaned sections, _etext must be moved so that it is after both
+.text and .text.* The text size must also be calculated to
+include .text AND .text.*
 
-It is here:
+Signed-off-by: Kristen Carlson Accardi <kristen@linux.intel.com>
+Reviewed-by: Tony Luck <tony.luck@intel.com>
+Tested-by: Tony Luck <tony.luck@intel.com>
+---
+ arch/x86/kernel/vmlinux.lds.S     | 18 +++++++++++++++++-
+ include/asm-generic/vmlinux.lds.h |  2 +-
+ 2 files changed, 18 insertions(+), 2 deletions(-)
 
-https://github.com/yyu168/linux_cet/commits/cet
-
-Yu-cheng
+diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+index 1bf7e312361f..044f7528a2f0 100644
+--- a/arch/x86/kernel/vmlinux.lds.S
++++ b/arch/x86/kernel/vmlinux.lds.S
+@@ -147,8 +147,24 @@ SECTIONS
+ #endif
+ 	} :text =0xcccc
+ 
+-	/* End of text section, which should occupy whole number of pages */
++#ifdef CONFIG_FG_KASLR
++	/*
++	 * -ffunction-sections creates .text.* sections, which are considered
++	 * "orphan sections" and added after the first similar section (.text).
++	 * Adding this ALIGN statement causes the address of _etext
++	 * to be below that of all the .text.* orphaned sections
++	 */
++	. = ALIGN(PAGE_SIZE);
++#endif
+ 	_etext = .;
++
++	/*
++	 * the size of the .text section is used to calculate the address
++	 * range for orc lookups. If we just use SIZEOF(.text), we will
++	 * miss all the .text.* sections. Calculate the size using _etext
++	 * and _stext and save the value for later.
++	 */
++	text_size = _etext - _stext;
+ 	. = ALIGN(PAGE_SIZE);
+ 
+ 	X86_ALIGN_RODATA_BEGIN
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 71e387a5fe90..f5baee74854c 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -813,7 +813,7 @@
+ 	. = ALIGN(4);							\
+ 	.orc_lookup : AT(ADDR(.orc_lookup) - LOAD_OFFSET) {		\
+ 		orc_lookup = .;						\
+-		. += (((SIZEOF(.text) + LOOKUP_BLOCK_SIZE - 1) /	\
++		. += (((text_size + LOOKUP_BLOCK_SIZE - 1) /	\
+ 			LOOKUP_BLOCK_SIZE) + 1) * 4;			\
+ 		orc_lookup_end = .;					\
+ 	}
+-- 
+2.20.1
