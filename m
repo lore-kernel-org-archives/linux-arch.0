@@ -1,158 +1,64 @@
-Return-Path: <SRS0=dppB=6S=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53286 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728486AbgEDOgx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2020 10:36:53 -0400
-Date: Mon, 4 May 2020 10:36:38 -0400
-From: William Breathitt Gray <vilhelm.gray@gmail.com>
-Subject: Re: [PATCH v5 0/4] Introduce the for_each_set_clump macro
-Message-ID: <20200504143638.GA4635@shinobu>
-References: <cover.1588460322.git.syednwaris@gmail.com>
- <20200504114109.GE185537@smile.fi.intel.com>
+Return-Path: <SRS0=V28G=7D=vger.kernel.org=linux-doc-owner@kernel.org>
+Message-ID: <84d0e6ad65b77b69854c9b0a53de7dc17d80efff.camel@intel.com>
+Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Thu, 21 May 2020 12:08:23 -0700
+In-Reply-To: <20200521185015.aopfkpwpfhzwd4hs@treble>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+         <20200521151556.pojijpmuc2rdd7ko@treble>
+         <a1e7c71c72de517a288e6273ba0c18dac2e937bc.camel@intel.com>
+         <20200521185015.aopfkpwpfhzwd4hs@treble>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="+HP7ph2BbKc20aGI"
-Content-Disposition: inline
-In-Reply-To: <20200504114109.GE185537@smile.fi.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Cc: Syed Nayyar Waris <syednwaris@gmail.com>, akpm@linux-foundation.org, michal.simek@xilinx.com, arnd@arndb.de, rrichter@marvell.com, linus.walleij@linaro.org, bgolaszewski@baylibre.com, yamada.masahiro@socionext.com, rui.zhang@intel.com, daniel.lezcano@linaro.org, amit.kucheria@verdurent.com, linux-arch@vger.kernel.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org
-Message-ID: <20200504143638.C4_1CCQZLjttw9VQwmgvMMYcQWVgvn3KgjkUTvJ2oQM@z>
+Message-ID: <20200521190823.pVYlqBmqMpdN2rdIxVCx_61ITwK55QvISXUmvqcEf3Y@z>
 
+On Thu, 2020-05-21 at 13:50 -0500, Josh Poimboeuf wrote:
+[...]
+> 
+> Thanks.  FYI, I got the following warning on an AMD system.
+> 
+> [   18.936979] get of unsupported state
+> [   18.936989] WARNING: CPU: 251 PID: 1794 at arch/x86/kernel/fpu/xstate.c:919 get_xsave_addr+0x83/0x90
+> [   18.949676] Modules linked in:
+> [   18.952731] CPU: 251 PID: 1794 Comm: dracut-rootfs-g Not tainted 5.7.0-rc6+ #162
+> [   18.960121] Hardware name: AMD Corporation DAYTONA_X/DAYTONA_X, BIOS RDY1005C 11/22/2019
+> [   18.968198] RIP: 0010:get_xsave_addr+0x83/0x90
+> [   18.972637] Code: 5b c3 48 83 c4 08 31 c0 5b c3 80 3d f9 c2 7a 01 00 75 bc 48 c7 c7 c4 cb 8f a9 89 74 24 04 c6 05 e5 c2 7a 01 01 e8 3f 49 0a 00 <0f> 0b 8b 74 24 04 eb 9d 31 c0 c3 66 90 0f 1f 44 00 00 48 89 fe 0f
+> [   18.991373] RSP: 0018:ffffb8db103cfcd8 EFLAGS: 00010286
+> [   18.996591] RAX: 0000000000000000 RBX: ffff947da1189440 RCX: 0000000000000000
+> [   19.003715] RDX: 0000000000000000 RSI: ffffffffaa6809d8 RDI: ffffffffaa67e58c
+> [   19.010839] RBP: ffff947da1188000 R08: 0000000468bb5e6c R09: 0000000000000018
+> [   19.017962] R10: 0000000000000002 R11: 00000000000000f0 R12: ffffb8db103cfd20
+> [   19.025087] R13: ffff947da1189400 R14: 0000000000000000 R15: 0000000000000007
+> [   19.032211] FS:  00007f0a81b15740(0000) GS:ffff947dcf8c0000(0000) knlGS:0000000000000000
+> [   19.040321] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+> [   19.046057] CR2: 00007f0a81b156c0 CR3: 0000003fa125a000 CR4: 0000000000340ee0
+> [   19.053183] Call Trace:
+> [   19.055637]  cet_restore_signal+0x26/0xf0
+> [   19.059649]  __fpu__restore_sig+0x4cc/0x6e0
+> [   19.063832]  ? remove_wait_queue+0x20/0x60
+> [   19.067928]  ? reuse_swap_page+0x6e/0x340
+> [   19.071939]  restore_sigcontext+0x162/0x1b0
+> [   19.076128]  ? recalc_sigpending+0x17/0x50
+> [   19.080223]  ? __set_task_blocked+0x34/0xa0
+> [   19.084401]  __do_sys_rt_sigreturn+0x92/0xde
+> [   19.088675]  do_syscall_64+0x55/0x1b0
+> [   19.092342]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+> [   19.097394] RIP: 0033:0x7f0a811389d1
+> [   19.100970] Code: 64 c7 00 16 00 00 00 b8 ff ff ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 f3 0f 1e fa 41 ba 08 00 00 00 b8 0e 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 07 c3 66 0f 1f 44 00 00 48 8b 15 81 44 38 00
+> [   19.119709] RSP: 002b:00007ffd643d5dd8 EFLAGS: 00000246
+> [   19.124933] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 00007f0a811389d1
+> [   19.132056] RDX: 0000000000000000 RSI: 00007ffd643d5e60 RDI: 0000000000000002
+> [   19.139182] RBP: 000055e140190e20 R08: 000055e14017a014 R09: 0000000000000001
+> [   19.146307] R10: 0000000000000008 R11: 0000000000000246 R12: 000055e13f47e4e0
+> [   19.153436] R13: 00007ffd643d5e60 R14: 0000000000000000 R15: 0000000000000000
+> 
 
---+HP7ph2BbKc20aGI
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Thanks!  I will fix it.
 
-On Mon, May 04, 2020 at 02:41:09PM +0300, Andy Shevchenko wrote:
-> On Sun, May 03, 2020 at 04:38:36AM +0530, Syed Nayyar Waris wrote:
-> > This patchset introduces a new generic version of for_each_set_clump.=
-=20
-> > The previous version of for_each_set_clump8 used a fixed size 8-bit
-> > clump, but the new generic version can work with clump of any size but
-> > less than or equal to BITS_PER_LONG. The patchset utilizes the new macr=
-o=20
-> > in several GPIO drivers.
-> >=20
-> > The earlier 8-bit for_each_set_clump8 facilitated a
-> > for-loop syntax that iterates over a memory region entire groups of set
-> > bits at a time.
-> >=20
-> > For example, suppose you would like to iterate over a 32-bit integer 8
-> > bits at a time, skipping over 8-bit groups with no set bit, where
-> > XXXXXXXX represents the current 8-bit group:
-> >=20
-> >     Example:        10111110 00000000 11111111 00110011
-> >     First loop:     10111110 00000000 11111111 XXXXXXXX
-> >     Second loop:    10111110 00000000 XXXXXXXX 00110011
-> >     Third loop:     XXXXXXXX 00000000 11111111 00110011
-> >=20
-> > Each iteration of the loop returns the next 8-bit group that has at
-> > least one set bit.
-> >=20
-> > But with the new for_each_set_clump the clump size can be different fro=
-m 8 bits.
-> > Moreover, the clump can be split at word boundary in situations where w=
-ord=20
-> > size is not multiple of clump size. Following are examples showing the =
-working=20
-> > of new macro for clump sizes of 24 bits and 6 bits.
-> >=20
-> > Example 1:
-> > clump size: 24 bits, Number of clumps (or ports): 10
-> > bitmap stores the bit information from where successive clumps are retr=
-ieved.
-> >=20
-> >      /* bitmap memory region */
-> >         0x00aa0000ff000000;  /* Most significant bits */
-> >         0xaaaaaa0000ff0000;
-> >         0x000000aa000000aa;
-> >         0xbbbbabcdeffedcba;  /* Least significant bits */
-> >=20
-> > Different iterations of for_each_set_clump:-
-> > 'offset' is the bit position and 'clump' is the 24 bit clump from the
-> > above bitmap.
-> > Iteration first:        offset: 0 clump: 0xfedcba
-> > Iteration second:       offset: 24 clump: 0xabcdef
-> > Iteration third:        offset: 48 clump: 0xaabbbb
-> > Iteration fourth:       offset: 96 clump: 0xaa
-> > Iteration fifth:        offset: 144 clump: 0xff
-> > Iteration sixth:        offset: 168 clump: 0xaaaaaa
-> > Iteration seventh:      offset: 216 clump: 0xff
-> > Loop breaks because in the end the remaining bits (0x00aa) size was less
-> > than clump size of 24 bits.
-> >=20
-> > In above example it can be seen that in iteration third, the 24 bit clu=
-mp
-> > that was retrieved was split between bitmap[0] and bitmap[1]. This exam=
-ple=20
-> > also shows that 24 bit zeroes if present in between, were skipped (pres=
-erving
-> > the previous for_each_set_macro8 behaviour).=20
-> >=20
-> > Example 2:
-> > clump size =3D 6 bits, Number of clumps (or ports) =3D 3.
-> >=20
-> >      /* bitmap memory region */
-> >         0x00aa0000ff000000;  /* Most significant bits */
-> >         0xaaaaaa0000ff0000;
-> >         0x0f00000000000000;
-> >         0x0000000000000ac0;  /* Least significant bits */
-> >=20
-> > Different iterations of for_each_set_clump:
-> > 'offset' is the bit position and 'clump' is the 6 bit clump from the
-> > above bitmap.
-> > Iteration first:        offset: 6 clump: 0x2b
-> > Loop breaks because 6 * 3 =3D 18 bits traversed in bitmap.
-> > Here 6 * 3 is clump size * no. of clumps.
->=20
-> Looking into the last patches where we have examples I still do not see a
-> benefit of variadic clump sizes. power of 2 sizes would make sense (and be
-> optimized accordingly (64-bit, 32-bit).
->=20
-> --=20
-> With Best Regards,
-> Andy Shevchenko
-
-There is of course benefit in defining for_each_set_clump with clump
-sizes of powers of 2 (we can optimize for 32 and 64 bit sizes and avoid
-boundary checks that we know will not occur), but at the very least the
-variable size bitmap_set_value and bitmap_get_value provide significant
-benefit for the readability of the gpio-xilinx code:
-
-	bitmap_set_value(old, state[0], 0, width[0]);
-	bitmap_set_value(old, state[1], width[0], width[1]);
-	...
-	state[0] =3D bitmap_get_value(new, 0, width[0]);
-	state[1] =3D bitmap_get_value(new, width[0], width[1]);
-
-These lines are simple and clear to read: we know immediately what they
-do. But if we did not have bitmap_set_value/bitmap_get_value, we'd have
-to use several bitwise operations for each line; the obfuscation of the
-code would be an obvious hinderance here.
-
-William Breathitt Gray
-
---+HP7ph2BbKc20aGI
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCgAdFiEEk5I4PDJ2w1cDf/bghvpINdm7VJIFAl6wKGIACgkQhvpINdm7
-VJKZaxAA563CCfH6P1WpErURHBsLjHAUFl6mWCySrxGYUSYQqsxhz1w30MzHhckw
-kQBx1mik+w14YUypQ7ISU8a8EWdkbHEW2xyKPKb7jnWnz/7SWf69BzkZJJBrzeXP
-89IGJNkWXg5sVx2AWPA5aY4aQqita5RAEbZvroQKQr3C264kV5lH86GxG9KRD5+E
-O71wWPdZ48+5sM9PXS6DH3F/BJ67g8Ii43WqNLrJ5C7JW370iYsaLiF/wspSFtpZ
-a7BNAOPhJB7qkBhl14KwotTAMkv7crq1WLKP8D/0ycsrZNGiMaS7rmYyWM5DSZOb
-zWmI082M3v3KL+XLtIHx59kjM3wkE6P1cMdRbh7ba06xn2Sx5Ml45wto1F0eVTwi
-Pl+FfnefRZ7GYp5Zi2HfAl7LciWArBiFQTjj+8AJivE5dAXQSkjbB0EjJGsrdBQG
-VgynevuG1Ni7wW99wO0LA/zv3EoZd7bqcZRmd/ntLZIUY2pw+llKODzUJYXxz3zh
-QIkppvkkaQMv9/0XksRNIRETvzEy5fI3eVD2LFZrndu3fYEHXdHuQiFRZuvjnjao
-8CG3LMAzfWjBy8fIApCXtYAScRxFw3lcwAl/G0VsI98rVZ6z1J7LhawStPRfG7FE
-NUjbshq/FN/pSVsTKkXCJiSXdgyckbjkeFry5GOyDcrncEzWH5Y=
-=mCyx
------END PGP SIGNATURE-----
-
---+HP7ph2BbKc20aGI--
+Yu-cheng
