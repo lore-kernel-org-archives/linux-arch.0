@@ -1,15 +1,15 @@
 From: Kees Cook <keescook@chromium.org>
 Subject: Re: [RFC PATCH 3/5] selftest/x86: Fix sigreturn_64 test.
-Date: Thu, 21 May 2020 15:47:15 -0700
-Message-ID: <202005211545.30156BFC4@keescook>
+Date: Thu, 21 May 2020 15:48:52 -0700
+Message-ID: <202005211547.793B36B@keescook>
 References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
  <20200521211720.20236-4-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
 In-Reply-To: <20200521211720.20236-4-yu-cheng.yu@intel.com>
-Sender: linux-doc-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Yu-cheng Yu <yu-cheng.yu@intel.com>
 Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel
 List-Id: linux-arch.vger.kernel.org
@@ -53,11 +53,6 @@ On Thu, May 21, 2020 at 02:17:18PM -0700, Yu-cheng Yu wrote:
 >  	unsigned short my_cs, my_ss;
 >  
 > +#ifdef __x86_64__
-
-I think this should also be gated by whether the compiler will know what
-to do with the shadow stack instructions. (Perhaps the earlier Makefile
-define can be exported and tested here.)
-
 > +	/* Alloc a shadow stack within 32-bit address range */
 > +	unsigned long arg, ssp_64, ssp_32;
 > +	ssp_64 = _get_ssp();
@@ -70,6 +65,11 @@ define can be exported and tested here.)
 > +		asm volatile("SAVEPREVSSP");
 > +	}
 > +#endif
+
+If the headers and code are going to be repeated, I would put that in a
+shared header so they're not copy/pasted between these two tests.
+
+-Kees
 
 -- 
 Kees Cook
