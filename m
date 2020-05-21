@@ -1,50 +1,31 @@
-Return-Path: <SRS0=eh2/=6Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38416 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729330AbgEJH4u (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2020 03:56:50 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 27/31] exec: only build read_code when needed
-Date: Sun, 10 May 2020 09:55:06 +0200
-Message-ID: <20200510075510.987823-28-hch@lst.de>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-References: <20200510075510.987823-1-hch@lst.de>
+Return-Path: <SRS0=V28G=7D=vger.kernel.org=linux-doc-owner@kernel.org>
+Message-ID: <b97aeac13967cfad5d6a962d29a87215c77996e8.camel@intel.com>
+Subject: Re: [RFC PATCH 2/5] selftest/x86: Enable CET for selftests/x86
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Thu, 21 May 2020 15:58:11 -0700
+In-Reply-To: <202005211544.26CD475832@keescook>
+References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
+         <20200521211720.20236-3-yu-cheng.yu@intel.com>
+         <202005211544.26CD475832@keescook>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200510075506.IJcqoKloG_a1pPb5pEJl01tnl7Nbtk7BN99pWrJofOY@z>
+Message-ID: <20200521225811.7IB6wrQHw_bGq_fcbRP_maYr2v5yDY8teN_XPkH7xKc@z>
 
-Only build read_code when binary formats that use it are built into the
-kernel.
+On Thu, 2020-05-21 at 15:44 -0700, Kees Cook wrote:
+> On Thu, May 21, 2020 at 02:17:17PM -0700, Yu-cheng Yu wrote:
+> > To build CET-enabled applications, GCC needs to support '-fcf-protection'.
+> > Update x86 selftest makefile to detect and enable CET for x86 selftest
+> > applications.
+> > 
+> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> 
+> Reviewed-by: Kees Cook <keescook@chromium.org>
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- fs/exec.c | 3 +++
- 1 file changed, 3 insertions(+)
+Thanks!  I will fix issues you pointed out in the series.
 
-diff --git a/fs/exec.c b/fs/exec.c
-index 06b4c550af5d9..a4f766f296f8f 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -1027,6 +1027,8 @@ int kernel_read_file_from_fd(int fd, void **buf, loff_t *size, loff_t max_size,
- }
- EXPORT_SYMBOL_GPL(kernel_read_file_from_fd);
- 
-+#if defined(CONFIG_HAVE_AOUT) || defined(CONFIG_BINFMT_FLAT) || \
-+    defined(CONFIG_BINFMT_ELF_FDPIC)
- ssize_t read_code(struct file *file, unsigned long addr, loff_t pos, size_t len)
- {
- 	ssize_t res = vfs_read(file, (void __user *)addr, len, &pos);
-@@ -1035,6 +1037,7 @@ ssize_t read_code(struct file *file, unsigned long addr, loff_t pos, size_t len)
- 	return res;
- }
- EXPORT_SYMBOL(read_code);
-+#endif
- 
- /*
-  * Maps the mm_struct mm into the current task struct.
--- 
-2.26.2
+Yu-cheng
