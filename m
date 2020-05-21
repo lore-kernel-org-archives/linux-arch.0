@@ -1,93 +1,76 @@
-Return-Path: <SRS0=eIWg=6U=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:56194 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726712AbgEFGNF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 6 May 2020 02:13:05 -0400
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: [PATCH V2 0/3] mm/hugetlb: Add some new generic fallbacks
-Date: Wed,  6 May 2020 11:42:11 +0530
-Message-ID: <1588745534-24418-1-git-send-email-anshuman.khandual@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=Ax4L=7D=kvack.org=owner-linux-mm@kernel.org>
+Date: Thu, 21 May 2020 15:48:52 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [RFC PATCH 3/5] selftest/x86: Fix sigreturn_64 test.
+Message-ID: <202005211547.793B36B@keescook>
+References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
+ <20200521211720.20236-4-yu-cheng.yu@intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200521211720.20236-4-yu-cheng.yu@intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org, akpm@linux-foundation.org
-Cc: Anshuman Khandual <anshuman.khandual@arm.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Mike Kravetz <mike.kravetz@oracle.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200506061211.WmLQfXExrEetWHWhrJOzGM-KbGhgffygPxwqylWTLQA@z>
+Message-ID: <20200521224852.Pf3jLf4NFLAEYAL3MU2hIlh8NZbCBOs4utWzBWFrtK8@z>
 
-This series adds the following new generic fallbacks. Before that it drops
-__HAVE_ARCH_HUGE_PTEP_GET from arm64 platform.
+On Thu, May 21, 2020 at 02:17:18PM -0700, Yu-cheng Yu wrote:
+> When shadow stack is enabled, selftests/x86/sigreturn_64 triggers a fault
+> when doing sigreturn to 32-bit context but the task's shadow stack pointer
+> is above 32-bit address range.  Fix it by:
+> 
+> - Allocate a small shadow stack below 32-bit address,
+> - Switch to the new shadow stack,
+> - Run tests,
+> - Switch back to the original 64-bit shadow stack.
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  tools/testing/selftests/x86/sigreturn.c | 28 +++++++++++++++++++++++++
+>  1 file changed, 28 insertions(+)
+> 
+> diff --git a/tools/testing/selftests/x86/sigreturn.c b/tools/testing/selftests/x86/sigreturn.c
+> index 57c4f67f16ef..5bcd74d416ff 100644
+> --- a/tools/testing/selftests/x86/sigreturn.c
+> +++ b/tools/testing/selftests/x86/sigreturn.c
+> @@ -45,6 +45,14 @@
+>  #include <stdbool.h>
+>  #include <sys/ptrace.h>
+>  #include <sys/user.h>
+> +#include <x86intrin.h>
+> +#include <asm/prctl.h>
+> +#include <sys/prctl.h>
+> +
+> +#ifdef __x86_64__
+> +int arch_prctl(int code, unsigned long *addr);
+> +#define ARCH_CET_ALLOC_SHSTK 0x3004
+> +#endif
+>  
+>  /* Pull in AR_xyz defines. */
+>  typedef unsigned int u32;
+> @@ -766,6 +774,20 @@ int main()
+>  	int total_nerrs = 0;
+>  	unsigned short my_cs, my_ss;
+>  
+> +#ifdef __x86_64__
+> +	/* Alloc a shadow stack within 32-bit address range */
+> +	unsigned long arg, ssp_64, ssp_32;
+> +	ssp_64 = _get_ssp();
+> +
+> +	if (ssp_64 != 0) {
+> +		arg = 0x1001;
+> +		arch_prctl(ARCH_CET_ALLOC_SHSTK, &arg);
+> +		ssp_32 = arg + 0x1000 - 8;
+> +		asm volatile("RSTORSSP (%0)\n":: "r" (ssp_32));
+> +		asm volatile("SAVEPREVSSP");
+> +	}
+> +#endif
 
-1. is_hugepage_only_range()
-2. arch_clear_hugepage_flags()
+If the headers and code are going to be repeated, I would put that in a
+shared header so they're not copy/pasted between these two tests.
 
-This has been boot tested on arm64 and x86 platforms but built tested on
-some more platforms including the changed ones here. This series applies
-on v5.7-rc4. After this arm (32 bit) remains the sole platform defining
-it's own huge_ptep_get() via __HAVE_ARCH_HUGE_PTEP_GET.
-
-Changes in V2:
-
-- Adopted "#ifndef func" method (adding a single symbol to namespace) per Andrew
-- Updated the commit messages in [PATCH 2/3] and [PATCH 3/3] as required
-
-Changes in V1: (https://patchwork.kernel.org/project/linux-mm/list/?series=270677)
-
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
-Cc: Helge Deller <deller@gmx.de>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Vasily Gorbik <gor@linux.ibm.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Mike Kravetz <mike.kravetz@oracle.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: x86@kernel.org
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: linux-ia64@vger.kernel.org
-Cc: linux-mips@vger.kernel.org
-Cc: linux-parisc@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-riscv@lists.infradead.org
-Cc: linux-s390@vger.kernel.org
-Cc: linux-sh@vger.kernel.org
-Cc: sparclinux@vger.kernel.org
-Cc: linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-
-Anshuman Khandual (3):
-  arm64/mm: Drop __HAVE_ARCH_HUGE_PTEP_GET
-  mm/hugetlb: Define a generic fallback for is_hugepage_only_range()
-  mm/hugetlb: Define a generic fallback for arch_clear_hugepage_flags()
-
- arch/arm/include/asm/hugetlb.h     |  7 +------
- arch/arm64/include/asm/hugetlb.h   | 13 +------------
- arch/ia64/include/asm/hugetlb.h    |  5 +----
- arch/mips/include/asm/hugetlb.h    | 11 -----------
- arch/parisc/include/asm/hugetlb.h  | 10 ----------
- arch/powerpc/include/asm/hugetlb.h |  5 +----
- arch/riscv/include/asm/hugetlb.h   | 10 ----------
- arch/s390/include/asm/hugetlb.h    |  8 +-------
- arch/sh/include/asm/hugetlb.h      |  7 +------
- arch/sparc/include/asm/hugetlb.h   | 10 ----------
- arch/x86/include/asm/hugetlb.h     | 10 ----------
- include/linux/hugetlb.h            | 14 ++++++++++++++
- 12 files changed, 20 insertions(+), 90 deletions(-)
+-Kees
 
 -- 
-2.20.1
+Kees Cook
