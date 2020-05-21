@@ -1,54 +1,144 @@
-Return-Path: <SRS0=z9eI=7A=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:45833 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726989AbgERO06 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 May 2020 10:26:58 -0400
-Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
- <20200429220732.31602-2-yu-cheng.yu@intel.com>
- <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
- <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
- <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
- <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
- <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
- <32235ffc-6e6c-fb3d-80c4-a0478e2d0e0f@intel.com>
- <b09658f92eb66c1d1be509813939b9ed827f9cf0.camel@intel.com>
- <631f071c-c755-a818-6a97-b333eb1fe21c@intel.com>
- <0f751be6d25364c25ee4bddc425b61e626dcd942.camel@intel.com>
- <6f2ef0e5-d3bb-2b52-dc81-8228fec4a3f5@intel.com>
- <CAMe9rOpX_6Zn69ZzwVt5Rdh5B9HwU7ccyoQLfyM067G8A=Eg-Q@mail.gmail.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <05b4dd11-eb30-5ed8-4249-0396c3136428@intel.com>
-Date: Mon, 18 May 2020 07:26:52 -0700
+Return-Path: <SRS0=Ax4L=7D=kvack.org=owner-linux-mm@kernel.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH 1/5] x86/cet/shstk: Modify ARCH_X86_CET_ALLOC_SHSTK for 32-bit address range
+Date: Thu, 21 May 2020 14:17:16 -0700
+Message-ID: <20200521211720.20236-2-yu-cheng.yu@intel.com>
+In-Reply-To: <20200521211720.20236-1-yu-cheng.yu@intel.com>
+References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-In-Reply-To: <CAMe9rOpX_6Zn69ZzwVt5Rdh5B9HwU7ccyoQLfyM067G8A=Eg-Q@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: "H.J. Lu" <hjl.tools@gmail.com>
-Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
-Message-ID: <20200518142652.sMX-qSJjqp3NSXUdjvJrpFCN1K0zo5nxxfYE-ylSDB4@z>
+Message-ID: <20200521211716.Bj90r9vvRMlWoI07yGfKWyY0VqVZvDqs7w9Hf25ZbiM@z>
 
-On 5/18/20 7:01 AM, H.J. Lu wrote:
->> Could some of this information be added to the documentation, please?
->> It would also be nice to have some more details about how apps end up
->> using ARCH_X86_CET_STATUS.  Why would they care that CET is on?
-> CET software spec is at
-> 
-> https://gitlab.com/x86-psABIs/x86-64-ABI/-/wikis/Intel-CET-extension
-> 
-> My CET presentation at 2018 LPC is at
-> 
-> https://www.linuxplumbersconf.org/event/2/contributions/147/attachments/72/83/CET-LPC-2018.pdf
-> 
-> I am working on an updated CET presentation for 2020 LPC.  Let me know
-> if you want to see the early draft.
+Sometimes a 64-bit task might need to have a shadow stack allocated from
+within 32-bit address range.  One example is selftests/x86/sigreturn.
 
-There's a lot of great information in there!
+Currently arch_prctl(ARCH_X86_CET_ALLOC_SHSTK) takes a input parameter fo=
+r
+the desired shadow stack size.  Modify it and use bit[0] of the parameter
+to indicate the desire to allocate from 32-bit address range.
 
-However, please remember that presentations are no substitute for old
-fashioned documentation in the kernel tree and changelogs.  The fact
-that we need to lean on them to answer basic questions about new
-interfaces is not a great sign.
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ arch/x86/include/asm/cet.h        |  2 +-
+ arch/x86/include/uapi/asm/prctl.h |  2 ++
+ arch/x86/kernel/cet.c             | 19 ++++++++++++-------
+ arch/x86/kernel/cet_prctl.c       |  6 +++++-
+ 4 files changed, 20 insertions(+), 9 deletions(-)
+
+diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+index f163c805a559..534b02785a39 100644
+--- a/arch/x86/include/asm/cet.h
++++ b/arch/x86/include/asm/cet.h
+@@ -22,7 +22,7 @@ struct cet_status {
+ int prctl_cet(int option, u64 arg2);
+ int cet_setup_shstk(void);
+ int cet_setup_thread_shstk(struct task_struct *p);
+-int cet_alloc_shstk(unsigned long *arg);
++int cet_alloc_shstk(unsigned long *arg, int map_32bit);
+ void cet_disable_free_shstk(struct task_struct *p);
+ int cet_verify_rstor_token(bool ia32, unsigned long ssp, unsigned long *=
+new_ssp);
+ void cet_restore_signal(struct sc_ext *sc);
+diff --git a/arch/x86/include/uapi/asm/prctl.h b/arch/x86/include/uapi/as=
+m/prctl.h
+index d962f0ec9ccf..e254c6a21475 100644
+--- a/arch/x86/include/uapi/asm/prctl.h
++++ b/arch/x86/include/uapi/asm/prctl.h
+@@ -19,4 +19,6 @@
+ #define ARCH_X86_CET_LOCK		0x3003
+ #define ARCH_X86_CET_ALLOC_SHSTK	0x3004
+=20
++#define ARCH_X86_CET_ALLOC_SHSTK_32BIT	0x1UL
++
+ #endif /* _ASM_X86_PRCTL_H */
+diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+index 92b8730c0b08..d6f93e1864b2 100644
+--- a/arch/x86/kernel/cet.c
++++ b/arch/x86/kernel/cet.c
+@@ -57,14 +57,19 @@ static unsigned long cet_get_shstk_addr(void)
+ 	return ssp;
+ }
+=20
+-static unsigned long alloc_shstk(unsigned long size)
++static unsigned long alloc_shstk(unsigned long size, int map_32bit)
+ {
+ 	struct mm_struct *mm =3D current->mm;
+ 	unsigned long addr, populate;
++	unsigned long map_flags;
++
++	map_flags =3D MAP_ANONYMOUS | MAP_PRIVATE;
++	if (map_32bit)
++		map_flags |=3D MAP_32BIT;
+=20
+ 	down_write(&mm->mmap_sem);
+-	addr =3D do_mmap(NULL, 0, size, PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE,
+-		       VM_SHSTK, 0, &populate, NULL);
++	addr =3D do_mmap(NULL, 0, size, PROT_READ, map_flags, VM_SHSTK, 0,
++		       &populate, NULL);
+ 	up_write(&mm->mmap_sem);
+=20
+ 	if (populate)
+@@ -147,14 +152,14 @@ static int create_rstor_token(bool ia32, unsigned l=
+ong ssp,
+ 	return 0;
+ }
+=20
+-int cet_alloc_shstk(unsigned long *arg)
++int cet_alloc_shstk(unsigned long *arg, int map_32bit)
+ {
+ 	unsigned long len =3D *arg;
+ 	unsigned long addr;
+ 	unsigned long token;
+ 	unsigned long ssp;
+=20
+-	addr =3D alloc_shstk(round_up(len, PAGE_SIZE));
++	addr =3D alloc_shstk(round_up(len, PAGE_SIZE), map_32bit);
+=20
+ 	if (IS_ERR((void *)addr))
+ 		return PTR_ERR((void *)addr);
+@@ -185,7 +190,7 @@ int cet_setup_shstk(void)
+ 		return -EOPNOTSUPP;
+=20
+ 	size =3D round_up(min(rlimit(RLIMIT_STACK), 1UL << 32), PAGE_SIZE);
+-	addr =3D alloc_shstk(size);
++	addr =3D alloc_shstk(size, 0);
+=20
+ 	if (IS_ERR((void *)addr))
+ 		return PTR_ERR((void *)addr);
+@@ -226,7 +231,7 @@ int cet_setup_thread_shstk(struct task_struct *tsk)
+ 	if (in_compat_syscall())
+ 		size /=3D 4;
+ 	size =3D round_up(size, PAGE_SIZE);
+-	addr =3D alloc_shstk(size);
++	addr =3D alloc_shstk(size, 0);
+=20
+ 	if (IS_ERR((void *)addr)) {
+ 		cet->shstk_base =3D 0;
+diff --git a/arch/x86/kernel/cet_prctl.c b/arch/x86/kernel/cet_prctl.c
+index a8e68fefd524..364ed2420202 100644
+--- a/arch/x86/kernel/cet_prctl.c
++++ b/arch/x86/kernel/cet_prctl.c
+@@ -35,12 +35,16 @@ static int handle_alloc_shstk(u64 arg2)
+ 	unsigned long arg;
+ 	unsigned long addr =3D 0;
+ 	unsigned long size =3D 0;
++	int map_32bit;
+=20
+ 	if (get_user(arg, (unsigned long __user *)arg2))
+ 		return -EFAULT;
+=20
++	map_32bit =3D (arg & ARCH_X86_CET_ALLOC_SHSTK_32BIT) ? 1 : 0;
++	arg &=3D ~(ARCH_X86_CET_ALLOC_SHSTK_32BIT);
++
+ 	size =3D arg;
+-	err =3D cet_alloc_shstk(&arg);
++	err =3D cet_alloc_shstk(&arg, map_32bit);
+ 	if (err)
+ 		return err;
+=20
+--=20
+2.21.0
