@@ -1,73 +1,38 @@
-Return-Path: <SRS0=eh2/=6Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38456 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729383AbgEJH5D (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2020 03:57:03 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 31/31] module: move the set_fs hack for flush_icache_range to m68k
-Date: Sun, 10 May 2020 09:55:10 +0200
-Message-ID: <20200510075510.987823-32-hch@lst.de>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-References: <20200510075510.987823-1-hch@lst.de>
+Return-Path: <SRS0=Ax4L=7D=kvack.org=owner-linux-mm@kernel.org>
+Message-ID: <35ce10628df75494569e5cf5bb6a3c537ff30cf2.camel@intel.com>
+Subject: Re: [RFC PATCH 4/5] selftest/x86: Fix sysret_rip with ENDBR
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Thu, 21 May 2020 15:59:23 -0700
+In-Reply-To: <878shlt1jw.fsf@nanos.tec.linutronix.de>
+References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
+	 <20200521211720.20236-5-yu-cheng.yu@intel.com>
+	 <878shlt1jw.fsf@nanos.tec.linutronix.de>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200510075510.pvD726DaL3uki-QABjGK6rLI6vZmhH8XSPy1wQLgYfk@z>
+Message-ID: <20200521225923.KuqwhhakC88KgXCap24Yahqt6ZfBf455PDzqEbPbTTE@z>
 
-flush_icache_range generally operates on kernel addresses, but for some
-reason m68k needed a set_fs override.  Move that into the m68k code
-insted of keeping it in the module loader.
+On Thu, 2020-05-21 at 23:34 +0200, Thomas Gleixner wrote:
+> Yu-cheng Yu <yu-cheng.yu@intel.com> writes:
+> 
+> > Insert endbr64 to assembly code of sysret_rip.
+> 
+> This changelog explains what the patch does, but not the WHY. It also
+> lacks any information why this is harmless for !CET enabled systems.
+> 
+> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> > ---
+> 
+> Please consult Dave Hansen about the void between your Signed-off-by
+> and the '---' line.
+> 
+> Thanks,
+> 
+>         tglx
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/m68k/mm/cache.c | 4 ++++
- kernel/module.c      | 8 --------
- 2 files changed, 4 insertions(+), 8 deletions(-)
+Thanks!  I will work on it.
 
-diff --git a/arch/m68k/mm/cache.c b/arch/m68k/mm/cache.c
-index 7915be3a09712..5ecb3310e8745 100644
---- a/arch/m68k/mm/cache.c
-+++ b/arch/m68k/mm/cache.c
-@@ -107,7 +107,11 @@ void flush_icache_user_range(unsigned long address, unsigned long endaddr)
- 
- void flush_icache_range(unsigned long address, unsigned long endaddr)
- {
-+	mm_segment_t old_fs = get_fs();
-+
-+	set_fs(KERNEL_DS);
- 	flush_icache_user_range(address, endaddr);
-+	set_fs(old_fs);
- }
- EXPORT_SYMBOL(flush_icache_range);
- 
-diff --git a/kernel/module.c b/kernel/module.c
-index 646f1e2330d2b..b1673ed49594f 100644
---- a/kernel/module.c
-+++ b/kernel/module.c
-@@ -3312,12 +3312,6 @@ static int check_module_license_and_versions(struct module *mod)
- 
- static void flush_module_icache(const struct module *mod)
- {
--	mm_segment_t old_fs;
--
--	/* flush the icache in correct context */
--	old_fs = get_fs();
--	set_fs(KERNEL_DS);
--
- 	/*
- 	 * Flush the instruction cache, since we've played with text.
- 	 * Do it before processing of module parameters, so the module
-@@ -3329,8 +3323,6 @@ static void flush_module_icache(const struct module *mod)
- 				   + mod->init_layout.size);
- 	flush_icache_range((unsigned long)mod->core_layout.base,
- 			   (unsigned long)mod->core_layout.base + mod->core_layout.size);
--
--	set_fs(old_fs);
- }
- 
- int __weak module_frob_arch_sections(Elf_Ehdr *hdr,
--- 
-2.26.2
+Yu-cheng
