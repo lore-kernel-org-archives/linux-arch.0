@@ -1,42 +1,42 @@
-Return-Path: <SRS0=Roe3=6Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:34052 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727873AbgEKUus (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 May 2020 16:50:48 -0400
-Date: Mon, 11 May 2020 16:50:45 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Message-ID: <20200511165045.36198080@gandalf.local.home>
-In-Reply-To: <20200511191414.GY8135@suse.de>
-References: <20200508144043.13893-1-joro@8bytes.org>
-        <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
-        <20200508213609.GU8135@suse.de>
-        <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
-        <20200509175217.GV8135@suse.de>
-        <CALCETrVU-+G3K5ABBRSEMiwnskL4mZsVcoTESZXnu34J7TaOqw@mail.gmail.com>
-        <20200511074243.GE2957@hirez.programming.kicks-ass.net>
-        <CALCETrVyoAXXOqm8cYs+31fjWK8mcnKR+wM0_HeJx9=bOaZC6Q@mail.gmail.com>
-        <20200511191414.GY8135@suse.de>
+Return-Path: <SRS0=V28G=7D=vger.kernel.org=linux-doc-owner@kernel.org>
+Message-ID: <a1e7c71c72de517a288e6273ba0c18dac2e937bc.camel@intel.com>
+Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Thu, 21 May 2020 08:57:57 -0700
+In-Reply-To: <20200521151556.pojijpmuc2rdd7ko@treble>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+         <20200521151556.pojijpmuc2rdd7ko@treble>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Sender: linux-arch-owner@vger.kernel.org
+Sender: linux-doc-owner@vger.kernel.org
+To: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Joerg Roedel <jroedel@suse.de>
-Cc: Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
-Message-ID: <20200511205045.cJmi3neS-Qv4hRTwYvT3VamnanIS6KUZh4yNMqEMQfg@z>
+Message-ID: <20200521155757.0dRJpyPq37zuC_FLDAaxVLeZnk1gIZUf_fVQFXcBq2I@z>
 
-On Mon, 11 May 2020 21:14:14 +0200
-Joerg Roedel <jroedel@suse.de> wrote:
-
-> > Or maybe we don't want to defeature this much, or maybe the memory hit
-> > from this preallocation will hurt little 2-level 32-bit systems too
-> > much.  
+On Thu, 2020-05-21 at 10:15 -0500, Josh Poimboeuf wrote:
+> On Wed, Apr 29, 2020 at 03:07:06PM -0700, Yu-cheng Yu wrote:
+> > Control-flow Enforcement (CET) is a new Intel processor feature that blocks
+> > return/jump-oriented programming attacks.  Details can be found in "Intel
+> > 64 and IA-32 Architectures Software Developer's Manual" [1].
+> > 
+> > This series depends on the XSAVES supervisor state series that was split
+> > out and submitted earlier [2].
+> > 
+> > I have gone through previous comments, and hope all concerns have been
+> > resolved now.  Please inform me if anything is overlooked.
+> > 
+> > Changes in v10:
 > 
-> It will certainly make Linux less likely to boot on low-memory x86-32
-> systems, whoever will be affected by this.
+> Hi Yu-cheng,
+> 
+> Do you have a git branch with the latest Shadow Stack and IBT branches
+> applied?  I tried to apply IBT v9 on top of this, but I guess the SS
+> code has changed since then and it didn't apply cleanly.
 
-That may be an issue, as I'm guessing the biggest users of x86-32, is
-probably small systems that uses Intel's attempts at the embedded space.
+It is here:
 
--- Steve
+https://github.com/yyu168/linux_cet/commits/cet
+
+Yu-cheng
