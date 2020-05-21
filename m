@@ -1,118 +1,88 @@
-Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42322 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727778AbgEMMGl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 08:06:41 -0400
-Subject: Re: [PATCH 10/14] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for
- SPECULATION_CTRL prctls
-References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
- <1589301419-24459-11-git-send-email-Dave.Martin@arm.com>
- <bd548916-11c8-a53f-67b5-876c79088258@gmail.com>
- <20200513114915.GL21779@arm.com>
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Message-ID: <604879eb-1c7e-d08b-a6b8-165e4259b60c@gmail.com>
-Date: Wed, 13 May 2020 14:06:38 +0200
+Return-Path: <SRS0=T8h9=7D=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga02.intel.com ([134.134.136.20]:63542 "EHLO mga02.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730662AbgEUVRk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 21 May 2020 17:17:40 -0400
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH 3/5] selftest/x86: Fix sigreturn_64 test.
+Date: Thu, 21 May 2020 14:17:18 -0700
+Message-ID: <20200521211720.20236-4-yu-cheng.yu@intel.com>
+In-Reply-To: <20200521211720.20236-1-yu-cheng.yu@intel.com>
+References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-In-Reply-To: <20200513114915.GL21779@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20200513120638.FDlTvTF4Gvn4rMvilUOtFcRb2sYyL-V0TSofxh044LA@z>
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Message-ID: <20200521211718.GBDakspQRB2UYTF1EIYMZVJ4wH-rfp7NqbHozF_mgHY@z>
 
-On 5/13/20 1:49 PM, Dave Martin wrote:
-> On Wed, May 13, 2020 at 01:21:12PM +0200, Michael Kerrisk (man-pages) wrote:
->> Hello Dave,
->>
->> On 5/12/20 6:36 PM, Dave Martin wrote:
->>> Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
->>> for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
->>>
->>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
->>> Cc: Tim Chen <tim.c.chen@linux.intel.com>
->>> Cc: Thomas Gleixner <tglx@linutronix.de>
->>
->> Thanks. Patch applied, but not yet pushed while I wait to see if any
->> Review/Ack arrives.
->>
->> Also, could you please check the tweaks I note below.
->>
->>> ---
->>>  man2/prctl.2 | 24 ++++++++++++++++++------
->>>  1 file changed, 18 insertions(+), 6 deletions(-)
->>>
->>> diff --git a/man2/prctl.2 b/man2/prctl.2
->>> index e8eaf95..66417cf 100644
->>> --- a/man2/prctl.2
->>> +++ b/man2/prctl.2
->>> @@ -1213,11 +1213,20 @@ arguments must be specified as 0; otherwise the call fails with the error
->>>  .\" commit 356e4bfff2c5489e016fdb925adbf12a1e3950ee
->>>  Sets the state of the speculation misfeature specified in
->>>  .IR arg2 .
->>> -Currently, the only permitted value for this argument is
->>> +Currently, this argument must be one of:
->>> +.RS
->>> +.TP
->>>  .B PR_SPEC_STORE_BYPASS
->>> -(otherwise the call fails with the error
->>> +speculative store bypass control, or
->>
->> s/speculative/enable speculative/
->>
->>> +.\" commit 9137bb27e60e554dab694eafa4cca241fa3a694f
->>> +.TP
->>> +.BR PR_SPEC_INDIRECT_BRANCH " (since Linux 4.20)"
->>> +indirect branch speculation control.
->>
->> s/indirect/enable indirect/
-> 
-> That doesn't seem quite right.
+When shadow stack is enabled, selftests/x86/sigreturn_64 triggers a fault
+when doing sigreturn to 32-bit context but the task's shadow stack pointer
+is above 32-bit address range.  Fix it by:
 
-My goof, not looking at the bigger context of the patch.
+- Allocate a small shadow stack below 32-bit address,
+- Switch to the new shadow stack,
+- Run tests,
+- Switch back to the original 64-bit shadow stack.
 
-> 
-> arg2 just identifies what behaviour to configure.
-> It's arg3 that says whether to disable / enable it or whatever.
-> 
-> 
-> While editing this I did wonder whether the "control" was helpful.
-> Maybe just dropping that word from these entries would help.
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+---
+ tools/testing/selftests/x86/sigreturn.c | 28 +++++++++++++++++++++++++
+ 1 file changed, 28 insertions(+)
 
-Okay I tried to fix things, and made also some other edits.
-How does the following look to you?
-
-      PR_SET_SPECULATION_CTRL (since Linux 4.17)
-              Sets the state of the speculation misfeature  specified  in
-              arg2.   The  speculation-misfeature settings are per-thread
-              attributes.
-
-              Currently, arg2 must be one of:
-
-              PR_SPEC_STORE_BYPASS
-                     Set the state of the speculative store  bypass  mis‐
-                     feature.
-
-              PR_SPEC_INDIRECT_BRANCH (since Linux 4.20)
-                     Set  the  state  of  the indirect branch speculation
-                     misfeature.
-
-              If arg2 does not have one of the  above  values,  then  the
-              call fails with the error ENODEV.
-
-              The  arg3  argument  is  used to hand in the control value,
-              which is one of the following:
-
-              ...
-
-Cheers,
-
-Michael
-
-
+diff --git a/tools/testing/selftests/x86/sigreturn.c b/tools/testing/selftests/x86/sigreturn.c
+index 57c4f67f16ef..5bcd74d416ff 100644
+--- a/tools/testing/selftests/x86/sigreturn.c
++++ b/tools/testing/selftests/x86/sigreturn.c
+@@ -45,6 +45,14 @@
+ #include <stdbool.h>
+ #include <sys/ptrace.h>
+ #include <sys/user.h>
++#include <x86intrin.h>
++#include <asm/prctl.h>
++#include <sys/prctl.h>
++
++#ifdef __x86_64__
++int arch_prctl(int code, unsigned long *addr);
++#define ARCH_CET_ALLOC_SHSTK 0x3004
++#endif
+ 
+ /* Pull in AR_xyz defines. */
+ typedef unsigned int u32;
+@@ -766,6 +774,20 @@ int main()
+ 	int total_nerrs = 0;
+ 	unsigned short my_cs, my_ss;
+ 
++#ifdef __x86_64__
++	/* Alloc a shadow stack within 32-bit address range */
++	unsigned long arg, ssp_64, ssp_32;
++	ssp_64 = _get_ssp();
++
++	if (ssp_64 != 0) {
++		arg = 0x1001;
++		arch_prctl(ARCH_CET_ALLOC_SHSTK, &arg);
++		ssp_32 = arg + 0x1000 - 8;
++		asm volatile("RSTORSSP (%0)\n":: "r" (ssp_32));
++		asm volatile("SAVEPREVSSP");
++	}
++#endif
++
+ 	asm volatile ("mov %%cs,%0" : "=r" (my_cs));
+ 	asm volatile ("mov %%ss,%0" : "=r" (my_ss));
+ 	setup_ldt();
+@@ -870,6 +892,12 @@ int main()
+ 
+ #ifdef __x86_64__
+ 	total_nerrs += test_nonstrict_ss();
++
++	if (ssp_64 != 0) {
++		ssp_64 -= 8;
++		asm volatile("RSTORSSP (%0)\n":: "r" (ssp_64));
++		asm volatile("SAVEPREVSSP");
++	}
+ #endif
+ 
+ 	return total_nerrs ? 1 : 0;
 -- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+2.21.0
