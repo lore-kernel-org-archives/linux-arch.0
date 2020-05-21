@@ -1,80 +1,65 @@
-Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 12/29] ia64: use asm-generic/cacheflush.h
-Date: Fri, 15 May 2020 16:36:29 +0200
-Message-ID: <20200515143646.3857579-13-hch@lst.de>
-In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-References: <20200515143646.3857579-1-hch@lst.de>
+Return-Path: <SRS0=Ax4L=7D=kvack.org=owner-linux-mm@kernel.org>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH 0/5] Update selftests/x86 for CET
+Date: Thu, 21 May 2020 14:17:15 -0700
+Message-ID: <20200521211720.20236-1-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515143629.j6yjA_oGizRrsfLSGcY8KPpNXZYR5fBa5JSSnmk8yOQ@z>
+Message-ID: <20200521211715.a-d-SUo-bIbJeDuf3ul2Aayn_LsChwWpCfHQZYycXYk@z>
 
-IA64 needs almost no cache flushing routines of its own.  Rely on
-asm-generic/cacheflush.h for the defaults.
+When CET is enabled for selftests/x86, two tests need updates.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/ia64/include/asm/cacheflush.h | 28 +++-------------------------
- 1 file changed, 3 insertions(+), 25 deletions(-)
+- The test 'sigreturn_64' does a sigreturn() from a 64-bit context into a
+  32-bit context.  The task's 64-bit shadow stack pointer certainly
+  triggers a fault.  Fix it by allocating and switching to a new shadow
+  stack in the 32-bit address range.
 
-diff --git a/arch/ia64/include/asm/cacheflush.h b/arch/ia64/include/asm/c=
-acheflush.h
-index 6d3478f8abc89..a8f1c86ac242a 100644
---- a/arch/ia64/include/asm/cacheflush.h
-+++ b/arch/ia64/include/asm/cacheflush.h
-@@ -12,44 +12,22 @@
-=20
- #include <asm/page.h>
-=20
--/*
-- * Cache flushing routines.  This is the kind of stuff that can be very =
-expensive, so try
-- * to avoid them whenever possible.
-- */
--
--#define flush_cache_all()			do { } while (0)
--#define flush_cache_mm(mm)			do { } while (0)
--#define flush_cache_dup_mm(mm)			do { } while (0)
--#define flush_cache_range(vma, start, end)	do { } while (0)
--#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
--#define flush_icache_page(vma,page)		do { } while (0)
--#define flush_cache_vmap(start, end)		do { } while (0)
--#define flush_cache_vunmap(start, end)		do { } while (0)
--
- #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
- #define flush_dcache_page(page)			\
- do {						\
- 	clear_bit(PG_arch_1, &(page)->flags);	\
- } while (0)
-=20
--#define flush_dcache_mmap_lock(mapping)		do { } while (0)
--#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
--
--extern void flush_icache_range (unsigned long start, unsigned long end);
-+extern void flush_icache_range(unsigned long start, unsigned long end);
-+#define flush_icache_range flush_icache_range
- extern void clflush_cache_range(void *addr, int size);
-=20
--
- #define flush_icache_user_range(vma, page, user_addr, len)					\
- do {												\
- 	unsigned long _addr =3D (unsigned long) page_address(page) + ((user_add=
-r) & ~PAGE_MASK);	\
- 	flush_icache_range(_addr, _addr + (len));						\
- } while (0)
-=20
--#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--do { memcpy(dst, src, len); \
--     flush_icache_user_range(vma, page, vaddr, len); \
--} while (0)
--#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+#include <asm-generic/cacheflush.h>
-=20
- #endif /* _ASM_IA64_CACHEFLUSH_H */
+  The arch_ptrcl(ARCH_X86_CET_ALLOC_SHSTK) is updated for taking a bit fr=
+om
+  the input parameter to indicate the desire of MAP_32BIT.  I am proposin=
+g
+  this change to minimize API changes, but open to any alternatives.
+
+- The test 'sysret_rip' fails because the assembly code needs ENDBR
+  opcodes.  Fix it by adding just that.  My latest CET submission (v10)
+  does not include the IBT patches.  My purpose of posting this now is to
+  show the changes needed in x86 tests.  Since ENDBR is nop when IBT is n=
+ot
+  enabled, this patch can be applied now or split out and merged with the
+  IBT patches.
+
+- The makefile changes add "-fcf-protection -mshstk" to the gcc command,
+  when those are available.
+
+- Introduce cet_quick_test that checks the system's CET capabilities.
+
+This series is based on my CET series:
+
+https://lore.kernel.org/lkml/20200429220732.31602-2-yu-cheng.yu@intel.com=
+/
+
+Yu-cheng Yu (5):
+  x86/cet/shstk: Modify ARCH_X86_CET_ALLOC_SHSTK for 32-bit address
+    range
+  selftest/x86: Enable CET for selftests/x86
+  selftest/x86: Fix sigreturn_64 test.
+  selftest/x86: Fix sysret_rip with ENDBR
+  selftest/x86: Add CET quick test
+
+ arch/x86/include/asm/cet.h                   |   2 +-
+ arch/x86/include/uapi/asm/prctl.h            |   2 +
+ arch/x86/kernel/cet.c                        |  19 ++-
+ arch/x86/kernel/cet_prctl.c                  |   6 +-
+ tools/testing/selftests/x86/Makefile         |   7 +-
+ tools/testing/selftests/x86/cet_quick_test.c | 128 +++++++++++++++++++
+ tools/testing/selftests/x86/sigreturn.c      |  28 ++++
+ tools/testing/selftests/x86/sysret_rip.c     |   5 +-
+ 8 files changed, 185 insertions(+), 12 deletions(-)
+ create mode 100644 tools/testing/selftests/x86/cet_quick_test.c
+
 --=20
-2.26.2
+2.21.0
