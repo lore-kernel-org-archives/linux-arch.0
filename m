@@ -1,83 +1,172 @@
-From: Yu-cheng Yu <yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-Subject: [RFC PATCH 3/5] selftest/x86: Fix sigreturn_64 test.
-Date: Thu, 21 May 2020 14:17:18 -0700
-Message-ID: <20200521211720.20236-4-yu-cheng.yu@intel.com>
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [RFC PATCH 5/5] selftest/x86: Add CET quick test
+Date: Thu, 21 May 2020 14:17:20 -0700
+Message-ID: <20200521211720.20236-6-yu-cheng.yu@intel.com>
 References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20200521211720.20236-1-yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Balbir Singh <bsingharora-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Cyrill Gorcunov <gorcunov-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Eugene Syromiatnikov <esyr-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H.J. Lu" <hjl.tools-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Mike Kravetz <mike.kravetz-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Nadav Amit <nadav.amit-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Yu-cheng Yu <yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200521211720.20236-1-yu-cheng.yu@intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-When shadow stack is enabled, selftests/x86/sigreturn_64 triggers a fault
-when doing sigreturn to 32-bit context but the task's shadow stack pointer
-is above 32-bit address range.  Fix it by:
+Introduce a quick test to verify shadow stack and IBT are working.
 
-- Allocate a small shadow stack below 32-bit address,
-- Switch to the new shadow stack,
-- Run tests,
-- Switch back to the original 64-bit shadow stack.
-
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 ---
- tools/testing/selftests/x86/sigreturn.c | 28 +++++++++++++++++++++++++
- 1 file changed, 28 insertions(+)
+ tools/testing/selftests/x86/Makefile         |   2 +-
+ tools/testing/selftests/x86/cet_quick_test.c | 128 +++++++++++++++++++
+ 2 files changed, 129 insertions(+), 1 deletion(-)
+ create mode 100644 tools/testing/selftests/x86/cet_quick_test.c
 
-diff --git a/tools/testing/selftests/x86/sigreturn.c b/tools/testing/selftests/x86/sigreturn.c
-index 57c4f67f16ef..5bcd74d416ff 100644
---- a/tools/testing/selftests/x86/sigreturn.c
-+++ b/tools/testing/selftests/x86/sigreturn.c
-@@ -45,6 +45,14 @@
- #include <stdbool.h>
- #include <sys/ptrace.h>
- #include <sys/user.h>
-+#include <x86intrin.h>
-+#include <asm/prctl.h>
-+#include <sys/prctl.h>
+diff --git a/tools/testing/selftests/x86/Makefile b/tools/testing/selftests/x86/Makefile
+index f1bf5ab87160..26e68272117a 100644
+--- a/tools/testing/selftests/x86/Makefile
++++ b/tools/testing/selftests/x86/Makefile
+@@ -14,7 +14,7 @@ CAN_BUILD_CET := $(shell ./check_cc.sh $(CC) trivial_program.c -fcf-protection)
+ TARGETS_C_BOTHBITS := single_step_syscall sysret_ss_attrs syscall_nt test_mremap_vdso \
+ 			check_initial_reg_state sigreturn iopl ioperm \
+ 			protection_keys test_vdso test_vsyscall mov_ss_trap \
+-			syscall_arg_fault
++			syscall_arg_fault cet_quick_test
+ TARGETS_C_32BIT_ONLY := entry_from_vm86 test_syscall_vdso unwind_vdso \
+ 			test_FCMOV test_FCOMI test_FISTTP \
+ 			vdso_restorer
+diff --git a/tools/testing/selftests/x86/cet_quick_test.c b/tools/testing/selftests/x86/cet_quick_test.c
+new file mode 100644
+index 000000000000..e84bbbcfd26f
+--- /dev/null
++++ b/tools/testing/selftests/x86/cet_quick_test.c
+@@ -0,0 +1,128 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Quick tests to verify Shadow Stack and IBT are working */
 +
-+#ifdef __x86_64__
-+int arch_prctl(int code, unsigned long *addr);
-+#define ARCH_CET_ALLOC_SHSTK 0x3004
++#include <stdio.h>
++#include <stdlib.h>
++#include <signal.h>
++#include <string.h>
++#include <ucontext.h>
++
++ucontext_t ucp;
++int result[4] = {-1, -1, -1, -1};
++int test_id;
++
++void stack_hacked(unsigned long x)
++{
++	result[test_id] = -1;
++	test_id++;
++	setcontext(&ucp);
++}
++
++#pragma GCC push_options
++#pragma GCC optimize ("O0")
++void ibt_violation(void)
++{
++#ifdef __i386__
++	asm volatile("lea 1f, %eax");
++	asm volatile("jmp *%eax");
++#else
++	asm volatile("lea 1f, %rax");
++	asm volatile("jmp *%rax");
 +#endif
- 
- /* Pull in AR_xyz defines. */
- typedef unsigned int u32;
-@@ -766,6 +774,20 @@ int main()
- 	int total_nerrs = 0;
- 	unsigned short my_cs, my_ss;
- 
-+#ifdef __x86_64__
-+	/* Alloc a shadow stack within 32-bit address range */
-+	unsigned long arg, ssp_64, ssp_32;
-+	ssp_64 = _get_ssp();
++	asm volatile("1:");
++	result[test_id] = -1;
++	test_id++;
++	setcontext(&ucp);
++}
 +
-+	if (ssp_64 != 0) {
-+		arg = 0x1001;
-+		arch_prctl(ARCH_CET_ALLOC_SHSTK, &arg);
-+		ssp_32 = arg + 0x1000 - 8;
-+		asm volatile("RSTORSSP (%0)\n":: "r" (ssp_32));
-+		asm volatile("SAVEPREVSSP");
-+	}
++void shstk_violation(void)
++{
++#ifdef __i386__
++	unsigned long x = 0;
++
++	((unsigned long *)&x)[2] = (unsigned long)stack_hacked;
++#else
++	unsigned long long x = 0;
++
++	((unsigned long long *)&x)[2] = (unsigned long)stack_hacked;
 +#endif
++}
++#pragma GCC pop_options
 +
- 	asm volatile ("mov %%cs,%0" : "=r" (my_cs));
- 	asm volatile ("mov %%ss,%0" : "=r" (my_ss));
- 	setup_ldt();
-@@ -870,6 +892,12 @@ int main()
- 
- #ifdef __x86_64__
- 	total_nerrs += test_nonstrict_ss();
++void segv_handler(int signum, siginfo_t *si, void *uc)
++{
++	result[test_id] = 0;
++	test_id++;
++	setcontext(&ucp);
++}
 +
-+	if (ssp_64 != 0) {
-+		ssp_64 -= 8;
-+		asm volatile("RSTORSSP (%0)\n":: "r" (ssp_64));
-+		asm volatile("SAVEPREVSSP");
-+	}
- #endif
- 
- 	return total_nerrs ? 1 : 0;
++void user1_handler(int signum, siginfo_t *si, void *uc)
++{
++	shstk_violation();
++}
++
++void user2_handler(int signum, siginfo_t *si, void *uc)
++{
++	ibt_violation();
++}
++
++int main(int argc, char *argv[])
++{
++	struct sigaction sa;
++	int r;
++
++	r = sigemptyset(&sa.sa_mask);
++	if (r)
++		return -1;
++
++	sa.sa_flags = SA_SIGINFO;
++
++	/*
++	 * Control protection fault handler
++	 */
++	sa.sa_sigaction = segv_handler;
++	r = sigaction(SIGSEGV, &sa, NULL);
++	if (r)
++		return -1;
++
++	/*
++	 * Handler to test Shadow stack
++	 */
++	sa.sa_sigaction = user1_handler;
++	r = sigaction(SIGUSR1, &sa, NULL);
++	if (r)
++		return -1;
++
++	/*
++	 * Handler to test IBT
++	 */
++	sa.sa_sigaction = user2_handler;
++	r = sigaction(SIGUSR2, &sa, NULL);
++	if (r)
++		return -1;
++
++	test_id = 0;
++	r = getcontext(&ucp);
++	if (r)
++		return -1;
++
++	if (test_id == 0)
++		shstk_violation();
++	else if (test_id == 1)
++		ibt_violation();
++	else if (test_id == 2)
++		raise(SIGUSR1);
++	else if (test_id == 3)
++		raise(SIGUSR2);
++
++	r = 0;
++	printf("[%s]\tShadow stack\n", result[0] ? "FAIL":"OK");
++	r += result[0];
++	printf("[%s]\tIBT\n", result[1] ? "FAIL":"OK");
++	r += result[1];
++	printf("[%s]\tShadow stack in signal\n", result[2] ? "FAIL":"OK");
++	r += result[2];
++	printf("[%s]\tIBT in signal\n", result[3] ? "FAIL":"OK");
++	r += result[3];
++	return r;
++}
 -- 
 2.21.0
