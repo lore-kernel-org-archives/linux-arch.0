@@ -1,151 +1,161 @@
-Return-Path: <SRS0=03B7=63=kvack.org=owner-linux-mm@kernel.org>
-From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH v2 1/7] mm: Add functions to track page directory modifications
-Date: Wed, 13 May 2020 17:21:31 +0200
-Message-ID: <20200513152137.32426-2-joro@8bytes.org>
-In-Reply-To: <20200513152137.32426-1-joro@8bytes.org>
-References: <20200513152137.32426-1-joro@8bytes.org>
+Return-Path: <SRS0=Ax4L=7D=kvack.org=owner-linux-mm@kernel.org>
+Date: Thu, 21 May 2020 15:43:44 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [RFC PATCH 1/5] x86/cet/shstk: Modify ARCH_X86_CET_ALLOC_SHSTK
+ for 32-bit address range
+Message-ID: <202005211542.35AB0A71C7@keescook>
+References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
+ <20200521211720.20236-2-yu-cheng.yu@intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200521211720.20236-2-yu-cheng.yu@intel.com>
 Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org
-Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200513152131.R9PR8VuQk-nx6DDwX9Q9C_BeCQXGTnwtQvHrmvWV5H0@z>
+Message-ID: <20200521224344.xtuRWoRDIyfyBKbte27oGitOoFfCdsyo5S1AeTp4eDg@z>
 
-From: Joerg Roedel <jroedel@suse.de>
+On Thu, May 21, 2020 at 02:17:16PM -0700, Yu-cheng Yu wrote:
+> Sometimes a 64-bit task might need to have a shadow stack allocated from
+> within 32-bit address range.  One example is selftests/x86/sigreturn.
+> 
+> Currently arch_prctl(ARCH_X86_CET_ALLOC_SHSTK) takes a input parameter for
+> the desired shadow stack size.  Modify it and use bit[0] of the parameter
+> to indicate the desire to allocate from 32-bit address range.
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
+>  arch/x86/include/asm/cet.h        |  2 +-
+>  arch/x86/include/uapi/asm/prctl.h |  2 ++
+>  arch/x86/kernel/cet.c             | 19 ++++++++++++-------
+>  arch/x86/kernel/cet_prctl.c       |  6 +++++-
+>  4 files changed, 20 insertions(+), 9 deletions(-)
+> 
+> diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
+> index f163c805a559..534b02785a39 100644
+> --- a/arch/x86/include/asm/cet.h
+> +++ b/arch/x86/include/asm/cet.h
+> @@ -22,7 +22,7 @@ struct cet_status {
+>  int prctl_cet(int option, u64 arg2);
+>  int cet_setup_shstk(void);
+>  int cet_setup_thread_shstk(struct task_struct *p);
+> -int cet_alloc_shstk(unsigned long *arg);
+> +int cet_alloc_shstk(unsigned long *arg, int map_32bit);
+>  void cet_disable_free_shstk(struct task_struct *p);
+>  int cet_verify_rstor_token(bool ia32, unsigned long ssp, unsigned long *new_ssp);
+>  void cet_restore_signal(struct sc_ext *sc);
+> diff --git a/arch/x86/include/uapi/asm/prctl.h b/arch/x86/include/uapi/asm/prctl.h
+> index d962f0ec9ccf..e254c6a21475 100644
+> --- a/arch/x86/include/uapi/asm/prctl.h
+> +++ b/arch/x86/include/uapi/asm/prctl.h
+> @@ -19,4 +19,6 @@
+>  #define ARCH_X86_CET_LOCK		0x3003
+>  #define ARCH_X86_CET_ALLOC_SHSTK	0x3004
+>  
+> +#define ARCH_X86_CET_ALLOC_SHSTK_32BIT	0x1UL
 
-Add page-table allocation functions which will keep track of changed
-directory entries. They are needed for new PGD, P4D, PUD, and PMD
-entries and will be used in vmalloc and ioremap code to decide whether
-any changes in the kernel mappings need to be synchronized between
-page-tables in the system.
+Perhaps declare a set of bits here to verify that they are zero into the
+future?
 
-Signed-off-by: Joerg Roedel <jroedel@suse.de>
----
- include/asm-generic/5level-fixup.h |  5 ++--
- include/asm-generic/pgtable.h      | 23 +++++++++++++++
- include/linux/mm.h                 | 46 ++++++++++++++++++++++++++++++
- 3 files changed, 72 insertions(+), 2 deletions(-)
+> +
+>  #endif /* _ASM_X86_PRCTL_H */
+> diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
+> index 92b8730c0b08..d6f93e1864b2 100644
+> --- a/arch/x86/kernel/cet.c
+> +++ b/arch/x86/kernel/cet.c
+> @@ -57,14 +57,19 @@ static unsigned long cet_get_shstk_addr(void)
+>  	return ssp;
+>  }
+>  
+> -static unsigned long alloc_shstk(unsigned long size)
+> +static unsigned long alloc_shstk(unsigned long size, int map_32bit)
+>  {
+>  	struct mm_struct *mm = current->mm;
+>  	unsigned long addr, populate;
+> +	unsigned long map_flags;
+> +
+> +	map_flags = MAP_ANONYMOUS | MAP_PRIVATE;
+> +	if (map_32bit)
+> +		map_flags |= MAP_32BIT;
+>  
+>  	down_write(&mm->mmap_sem);
+> -	addr = do_mmap(NULL, 0, size, PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE,
+> -		       VM_SHSTK, 0, &populate, NULL);
+> +	addr = do_mmap(NULL, 0, size, PROT_READ, map_flags, VM_SHSTK, 0,
+> +		       &populate, NULL);
+>  	up_write(&mm->mmap_sem);
+>  
+>  	if (populate)
+> @@ -147,14 +152,14 @@ static int create_rstor_token(bool ia32, unsigned long ssp,
+>  	return 0;
+>  }
+>  
+> -int cet_alloc_shstk(unsigned long *arg)
+> +int cet_alloc_shstk(unsigned long *arg, int map_32bit)
+>  {
+>  	unsigned long len = *arg;
+>  	unsigned long addr;
+>  	unsigned long token;
+>  	unsigned long ssp;
+>  
+> -	addr = alloc_shstk(round_up(len, PAGE_SIZE));
+> +	addr = alloc_shstk(round_up(len, PAGE_SIZE), map_32bit);
+>  
+>  	if (IS_ERR((void *)addr))
+>  		return PTR_ERR((void *)addr);
+> @@ -185,7 +190,7 @@ int cet_setup_shstk(void)
+>  		return -EOPNOTSUPP;
+>  
+>  	size = round_up(min(rlimit(RLIMIT_STACK), 1UL << 32), PAGE_SIZE);
+> -	addr = alloc_shstk(size);
+> +	addr = alloc_shstk(size, 0);
+>  
+>  	if (IS_ERR((void *)addr))
+>  		return PTR_ERR((void *)addr);
+> @@ -226,7 +231,7 @@ int cet_setup_thread_shstk(struct task_struct *tsk)
+>  	if (in_compat_syscall())
+>  		size /= 4;
+>  	size = round_up(size, PAGE_SIZE);
+> -	addr = alloc_shstk(size);
+> +	addr = alloc_shstk(size, 0);
+>  
+>  	if (IS_ERR((void *)addr)) {
+>  		cet->shstk_base = 0;
+> diff --git a/arch/x86/kernel/cet_prctl.c b/arch/x86/kernel/cet_prctl.c
+> index a8e68fefd524..364ed2420202 100644
+> --- a/arch/x86/kernel/cet_prctl.c
+> +++ b/arch/x86/kernel/cet_prctl.c
+> @@ -35,12 +35,16 @@ static int handle_alloc_shstk(u64 arg2)
+>  	unsigned long arg;
+>  	unsigned long addr = 0;
+>  	unsigned long size = 0;
+> +	int map_32bit;
+>  
+>  	if (get_user(arg, (unsigned long __user *)arg2))
+>  		return -EFAULT;
+>  
 
-diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
-index 4c74b1c1d13b..58046ddc08d0 100644
---- a/include/asm-generic/5level-fixup.h
-+++ b/include/asm-generic/5level-fixup.h
-@@ -17,8 +17,9 @@
- 	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
- 		NULL : pud_offset(p4d, address))
- 
--#define p4d_alloc(mm, pgd, address)	(pgd)
--#define p4d_offset(pgd, start)		(pgd)
-+#define p4d_alloc(mm, pgd, address)		(pgd)
-+#define p4d_alloc_track(mm, pgd, address, mask)	(pgd)
-+#define p4d_offset(pgd, start)			(pgd)
- 
- #ifndef __ASSEMBLY__
- static inline int p4d_none(p4d_t p4d)
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 329b8c8ca703..bf1418ae91a2 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1209,6 +1209,29 @@ static inline bool arch_has_pfn_modify_check(void)
- # define PAGE_KERNEL_EXEC PAGE_KERNEL
- #endif
- 
-+/*
-+ * Page Table Modification bits for pgtbl_mod_mask.
-+ *
-+ * These are used by the p?d_alloc_track*() set of functions an in the generic
-+ * vmalloc/ioremap code to track at which page-table levels entries have been
-+ * modified. Based on that the code can better decide when vmalloc and ioremap
-+ * mapping changes need to be synchronized to other page-tables in the system.
-+ */
-+#define		__PGTBL_PGD_MODIFIED	0
-+#define		__PGTBL_P4D_MODIFIED	1
-+#define		__PGTBL_PUD_MODIFIED	2
-+#define		__PGTBL_PMD_MODIFIED	3
-+#define		__PGTBL_PTE_MODIFIED	4
-+
-+#define		PGTBL_PGD_MODIFIED	BIT(__PGTBL_PGD_MODIFIED)
-+#define		PGTBL_P4D_MODIFIED	BIT(__PGTBL_P4D_MODIFIED)
-+#define		PGTBL_PUD_MODIFIED	BIT(__PGTBL_PUD_MODIFIED)
-+#define		PGTBL_PMD_MODIFIED	BIT(__PGTBL_PMD_MODIFIED)
-+#define		PGTBL_PTE_MODIFIED	BIT(__PGTBL_PTE_MODIFIED)
-+
-+/* Page-Table Modification Mask */
-+typedef unsigned int pgtbl_mod_mask;
-+
- #endif /* !__ASSEMBLY__ */
- 
- #ifndef io_remap_pfn_range
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 5a323422d783..022fe682af9e 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2078,13 +2078,54 @@ static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
- 	return (unlikely(p4d_none(*p4d)) && __pud_alloc(mm, p4d, address)) ?
- 		NULL : pud_offset(p4d, address);
- }
-+
-+static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
-+				     unsigned long address,
-+				     pgtbl_mod_mask *mod_mask)
-+
-+{
-+	if (unlikely(pgd_none(*pgd))) {
-+		if (__p4d_alloc(mm, pgd, address))
-+			return NULL;
-+		*mod_mask |= PGTBL_PGD_MODIFIED;
-+	}
-+
-+	return p4d_offset(pgd, address);
-+}
-+
- #endif /* !__ARCH_HAS_5LEVEL_HACK */
- 
-+static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
-+				     unsigned long address,
-+				     pgtbl_mod_mask *mod_mask)
-+{
-+	if (unlikely(p4d_none(*p4d))) {
-+		if (__pud_alloc(mm, p4d, address))
-+			return NULL;
-+		*mod_mask |= PGTBL_P4D_MODIFIED;
-+	}
-+
-+	return pud_offset(p4d, address);
-+}
-+
- static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
- {
- 	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address))?
- 		NULL: pmd_offset(pud, address);
- }
-+
-+static inline pmd_t *pmd_alloc_track(struct mm_struct *mm, pud_t *pud,
-+				     unsigned long address,
-+				     pgtbl_mod_mask *mod_mask)
-+{
-+	if (unlikely(pud_none(*pud))) {
-+		if (__pmd_alloc(mm, pud, address))
-+			return NULL;
-+		*mod_mask |= PGTBL_PUD_MODIFIED;
-+	}
-+
-+	return pmd_offset(pud, address);
-+}
- #endif /* CONFIG_MMU */
- 
- #if USE_SPLIT_PTE_PTLOCKS
-@@ -2200,6 +2241,11 @@ static inline void pgtable_pte_page_dtor(struct page *page)
- 	((unlikely(pmd_none(*(pmd))) && __pte_alloc_kernel(pmd))? \
- 		NULL: pte_offset_kernel(pmd, address))
- 
-+#define pte_alloc_kernel_track(pmd, address, mask)			\
-+	((unlikely(pmd_none(*(pmd))) &&					\
-+	  (__pte_alloc_kernel(pmd) || ({*(mask)|=PGTBL_PMD_MODIFIED;0;})))?\
-+		NULL: pte_offset_kernel(pmd, address))
-+
- #if USE_SPLIT_PMD_PTLOCKS
- 
- static struct page *pmd_to_page(pmd_t *pmd)
+i.e. reject arg if any bits besides ARCH_X86_CET_ALLOC_SHSTK_32BIT are
+set in the mask you pick.
+
+> +	map_32bit = (arg & ARCH_X86_CET_ALLOC_SHSTK_32BIT) ? 1 : 0;
+> +	arg &= ~(ARCH_X86_CET_ALLOC_SHSTK_32BIT);
+
+And then clear the whole mask here.
+
+-Kees
+
+> +
+>  	size = arg;
+> -	err = cet_alloc_shstk(&arg);
+> +	err = cet_alloc_shstk(&arg, map_32bit);
+>  	if (err)
+>  		return err;
+>  
+> -- 
+> 2.21.0
+> 
+
 -- 
-2.17.1
+Kees Cook
