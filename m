@@ -1,42 +1,28 @@
-Return-Path: <SRS0=dppB=6S=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtprelay0122.hostedemail.com ([216.40.44.122]:53038 "EHLO
-        smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726549AbgEDArR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 May 2020 20:47:17 -0400
-Message-ID: <a88be1298aa1600f46e868dd45f83a6075c7162e.camel@perches.com>
-Subject: Re: [PATCH 12/14] docs: move remaining stuff under
- Documentation/*.txt to Documentation/staging
-From: Joe Perches <joe@perches.com>
-Date: Sun, 03 May 2020 17:47:11 -0700
-In-Reply-To: <20200504085415.db8e0e3b40e795f2fb4af009@kernel.org>
-References: <cover.1588345503.git.mchehab+huawei@kernel.org>
-         <28687056965ff46c0e6c81663a419bc59cfb94b4.1588345503.git.mchehab+huawei@kernel.org>
-         <20200504085415.db8e0e3b40e795f2fb4af009@kernel.org>
-Content-Type: text/plain; charset="ISO-8859-1"
+Return-Path: <SRS0=Ax4L=7D=kvack.org=owner-linux-mm@kernel.org>
+Date: Thu, 21 May 2020 15:44:35 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [RFC PATCH 2/5] selftest/x86: Enable CET for selftests/x86
+Message-ID: <202005211544.26CD475832@keescook>
+References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
+ <20200521211720.20236-3-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200521211720.20236-3-yu-cheng.yu@intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Masami Hiramatsu <mhiramat@kernel.org>, Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-Cc: Linux Doc Mailing List <linux-doc@vger.kernel.org>, linux-kernel@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, "Naveen N. Rao" <naveen.n.rao@linux.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S. Miller" <davem@davemloft.net>, Ohad Ben-Cohen <ohad@wizery.com>, Bjorn Andersson <bjorn.andersson@linaro.org>, Jens Wiklander <jens.wiklander@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Lecopzer Chen <lecopzer.chen@mediatek.com>, Sameer Rahmani <lxsameer@gnu.org>, Rob Herring <robh@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Daniel Bristot de Oliveira <bristot@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-remoteproc@vger.kernel.org, tee-dev@lists.linaro.org, linux-arch@vger.kernel.org
-Message-ID: <20200504004711.ueVu61kBpCj95YB2stlInugAw-UgnwC40l5hJF6FMa0@z>
+Message-ID: <20200521224435.b3WtUkvskByF2GUAxe4a789XbmVENBBi4bVVAYZCj5A@z>
 
-On Mon, 2020-05-04 at 08:54 +0900, Masami Hiramatsu wrote:
-> On Fri,  1 May 2020 17:37:56 +0200
-> Mauro Carvalho Chehab <mchehab+huawei@kernel.org> wrote:
-[]
-> > diff --git a/MAINTAINERS b/MAINTAINERS
-[]
-> > @@ -9855,7 +9855,7 @@ L:	linux-kernel@vger.kernel.org
-> >  L:	linux-arch@vger.kernel.org
-> >  S:	Supported
-> >  T:	git git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git dev
-> > -F:	Documentation/atomic_bitops.txt
-> > +F:	Documentation/staging/atomic_bitops.txt
+On Thu, May 21, 2020 at 02:17:17PM -0700, Yu-cheng Yu wrote:
+> To build CET-enabled applications, GCC needs to support '-fcf-protection'.
+> Update x86 selftest makefile to detect and enable CET for x86 selftest
+> applications.
+> 
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 
-Can you please keep the file lists in alphabetic order
-and move this entry down appropriately?  Thanks.
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
-> >  F:	Documentation/atomic_t.txt
-> >  F:	Documentation/core-api/atomic_ops.rst
-> >  F:	Documentation/core-api/refcount-vs-atomic.rst
+-- 
+Kees Cook
