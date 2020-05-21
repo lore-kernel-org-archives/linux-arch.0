@@ -1,37 +1,30 @@
-Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=Ax4L=7D=kvack.org=owner-linux-mm@kernel.org>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [RFC PATCH 4/5] selftest/x86: Fix sysret_rip with ENDBR
+In-Reply-To: <20200521211720.20236-5-yu-cheng.yu@intel.com>
+References: <20200521211720.20236-1-yu-cheng.yu@intel.com> <20200521211720.20236-5-yu-cheng.yu@intel.com>
+Date: Thu, 21 May 2020 23:34:27 +0200
+Message-ID: <878shlt1jw.fsf@nanos.tec.linutronix.de>
 MIME-Version: 1.0
-References: <20200510075510.987823-1-hch@lst.de> <20200510075510.987823-32-hch@lst.de>
-In-Reply-To: <20200510075510.987823-32-hch@lst.de>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 11 May 2020 09:40:39 +0200
-Message-ID: <CAMuHMdU_OxNoKfO=i903kx0mgk0-i2h4u2ase3m9_dn6oFh_5g@mail.gmail.com>
-Subject: Re: [PATCH 31/31] module: move the set_fs hack for flush_icache_range
- to m68k
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Sender: owner-linux-mm@kvack.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, the arch/x86 maintainers <x86@kernel.org>, alpha <linux-alpha@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Openrisc <openrisc@lists.librecores.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-riscv@lists.infradead.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, linux-um <linux-um@lists.infradead.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200511074039.SoQB6PfUqx-az4iy21Z8YMo3QiRiTY90BjXO5QtjQIo@z>
+Message-ID: <20200521213427.O2VsC5zS5nX-P6gs6ZB0pO76pSFmC0ljMJHyuvIMHH4@z>
 
-On Sun, May 10, 2020 at 9:57 AM Christoph Hellwig <hch@lst.de> wrote:
->
-> flush_icache_range generally operates on kernel addresses, but for some
-> reason m68k needed a set_fs override.  Move that into the m68k code
-> insted of keeping it in the module loader.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+Yu-cheng Yu <yu-cheng.yu@intel.com> writes:
 
-Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Insert endbr64 to assembly code of sysret_rip.
 
-Gr{oetje,eeting}s,
+This changelog explains what the patch does, but not the WHY. It also
+lacks any information why this is harmless for !CET enabled systems.
 
-                        Geert
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> ---
 
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Please consult Dave Hansen about the void between your Signed-off-by
+and the '---' line.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Thanks,
+
+        tglx
