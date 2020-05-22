@@ -1,90 +1,47 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [RFC PATCH 5/5] selftest/x86: Add CET quick test
-Date: Fri, 22 May 2020 08:10:14 -0700
-Message-ID: <cc3d7668eb7dd738a85f0b0935624496efae43be.camel@intel.com>
-References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
-         <20200521211720.20236-6-yu-cheng.yu@intel.com>
-         <20200522092848.GJ325280@hirez.programming.kicks-ass.net>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 5/6] mm: tlb: Provide flush_*_tlb_range wrappers
+Date: Fri, 22 May 2020 16:42:55 +0100
+Message-ID: <20200522154254.GD26492@gaia>
+References: <20200423135656.2712-1-yezhenyu2@huawei.com>
+ <20200423135656.2712-6-yezhenyu2@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:38059 "EHLO mga12.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729931AbgEVPKK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 22 May 2020 11:10:10 -0400
-In-Reply-To: <20200522092848.GJ325280@hirez.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200423135656.2712-6-yezhenyu2@huawei.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2020-05-22 at 11:28 +0200, Peter Zijlstra wrote:
-> On Thu, May 21, 2020 at 02:17:20PM -0700, Yu-cheng Yu wrote:
-> 
-> > +#pragma GCC push_options
-> > +#pragma GCC optimize ("O0")
-> > +void ibt_violation(void)
-> > +{
-> > +#ifdef __i386__
-> > +	asm volatile("lea 1f, %eax");
-> > +	asm volatile("jmp *%eax");
-> > +#else
-> > +	asm volatile("lea 1f, %rax");
-> > +	asm volatile("jmp *%rax");
-> > +#endif
-> > +	asm volatile("1:");
-> > +	result[test_id] = -1;
-> > +	test_id++;
-> > +	setcontext(&ucp);
-> > +}
-> > +
-> > +void shstk_violation(void)
-> > +{
-> > +#ifdef __i386__
-> > +	unsigned long x = 0;
-> > +
-> > +	((unsigned long *)&x)[2] = (unsigned long)stack_hacked;
-> > +#else
-> > +	unsigned long long x = 0;
-> > +
-> > +	((unsigned long long *)&x)[2] = (unsigned long)stack_hacked;
-> > +#endif
-> > +}
-> > +#pragma GCC pop_options
-> 
-> This is absolutely atrocious.
-> 
-> The #pragma like Kees already said just need to go. Also, there's
-> absolutely no clue what so ever what it attempts to achieve.
-> 
-> The __i386__ ifdeffery is horrible crap. Splitting an asm with #ifdef
-> like that is also horrible crap.
-> 
-> This is not how you write code.
-> 
-> Get asm/asm.h into userspace and then write something like:
-> 
-> 
-> void ibt_violation(void)
-> {
-> 	asm volatile("lea  1f, %" _ASM_AX "\n\t"
-> 		     "jmp  *%" _ASM_AX "\n\t"
-> 		     "1:\n\t" ::: "a");
-> 
-> 	WRITE_ONCE(result[test_id], -1);
-> 	WRITE_ONCE(test_id, test_id+1);
-> 
-> 	setcontext(&ucp);
-> }
-> 
-> void shstk_violation(void)
-> {
-> 	unsigned long x = 0;
-> 
-> 	WRITE_ONCE(x[2], stack_hacked);
-> }
+On Thu, Apr 23, 2020 at 09:56:55PM +0800, Zhenyu Ye wrote:
+> diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
+> index 3d7c01e76efc..3eff199d3507 100644
+> --- a/mm/pgtable-generic.c
+> +++ b/mm/pgtable-generic.c
+> @@ -101,6 +101,28 @@ pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
+>  
+>  #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+>  
+> +#ifndef __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
+> +
+> +#define FLUSH_Pxx_TLB_RANGE(_pxx)					\
+> +void flush_##_pxx##_tlb_range(struct vm_area_struct *vma,		\
+> +			      unsigned long addr, unsigned long end)	\
+> +{									\
+> +		struct mmu_gather tlb;					\
+> +									\
+> +		tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);		\
+> +		tlb_start_vma(&tlb, vma);				\
+> +		tlb_flush_##_pxx##_range(&tlb, addr, end - addr);	\
+> +		tlb_end_vma(&tlb, vma);					\
+> +		tlb_finish_mmu(&tlb, addr, end);			\
+> +}
 
-Thanks!  I will change it.
+I may have confused myself (flush_p??_tlb_* vs. tlb_flush_p??_*) but do
+actually need this whole tlb_gather thing here? IIUC (by grep'ing),
+flush_p?d_tlb_range() is only called on huge pages, so we should know
+the level already.
 
-Yu-cheng
+-- 
+Catalin
