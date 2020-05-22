@@ -1,50 +1,38 @@
-Return-Path: <SRS0=03B7=63=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=yLSb=7E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:38368 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730058AbgEVPth (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 May 2020 11:49:37 -0400
+Date: Fri, 22 May 2020 16:49:25 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 3/6] arm64: Add tlbi_user_level TLB invalidation helper
+Message-ID: <20200522154925.GE26492@gaia>
+References: <20200423135656.2712-1-yezhenyu2@huawei.com>
+ <20200423135656.2712-4-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-References: <20200513152137.32426-1-joro@8bytes.org>
-In-Reply-To: <20200513152137.32426-1-joro@8bytes.org>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Wed, 13 May 2020 09:01:04 -0700
-Message-ID: <CALCETrW1Y2Q7dWwv4X7PHf3yxOGMcDaBG0NK7BWPAR=FiqsoPQ@mail.gmail.com>
-Subject: Re: [PATCH v2 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Content-Type: text/plain; charset="UTF-8"
-Sender: owner-linux-mm@kvack.org
-To: Joerg Roedel <joro@8bytes.org>
-Cc: X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200423135656.2712-4-yezhenyu2@huawei.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200513160104.TUNE7qEkbV9xu608XHuhwc9EK1EExT8G9_cMteNeQZQ@z>
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Message-ID: <20200522154925.SsY31MOkPltyXeuW7aG_WGK9Kul33g4LMZ_pF6KGpfY@z>
 
-On Wed, May 13, 2020 at 8:21 AM Joerg Roedel <joro@8bytes.org> wrote:
->
-> Hi,
->
-> here is the next post of this series with these changes to the first
-> version:
->
->         - Rebased to v5.7-rc5
->
->         - As a result of the rebase, also removed the
->           vmalloc_sync_mappings() call from tracing code
->
->         - Added a comment that we rely on the compiler optimizing calls
->           to arch_syn_kernel_mappings() away when
->           ARCH_PAGE_TABLE_SYNC_MASK is 0
->
-> The first version can be found here:
->
->         https://lore.kernel.org/lkml/20200508144043.13893-1-joro@8bytes.org/
->
-> The cover letter of the first post also has more details on the
-> motivation for this patch-set.
->
-> Please review.
->
+On Thu, Apr 23, 2020 at 09:56:53PM +0800, Zhenyu Ye wrote:
+> @@ -190,8 +196,8 @@ static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
+>  	unsigned long addr = __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
+>  
+>  	dsb(ishst);
+> -	__tlbi(vale1is, addr);
+> -	__tlbi_user(vale1is, addr);
+> +	__tlbi_level(vale1is, addr, 0);
+> +	__tlbi_user_level(vale1is, addr, 0);
+>  }
 
-Assuming the missing cleanup at the end gets done:
+This one remains with a level 0 throughout the series. Is this
+intentional? If we can't guarantee the level here, better to use the
+non-level __tlbi().
 
-Acked-by: Andy Lutomirski <luto@kernel.org>
-
-grumpily acked, anyway.
-
-I would love to see a followup patch that preallocates the vmalloc
-region on 64-bit and compiles out pgd_list and all of the associated
-gunk.
+-- 
+Catalin
