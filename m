@@ -1,74 +1,37 @@
-From: Andrew Cooper <andrew.cooper3@citrix.com>
-Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
-Date: Fri, 22 May 2020 18:48:08 +0100
-Message-ID: <ee1b03d8-bb0e-57dc-0a6e-c82622f17067@citrix.com>
-References: <20200429220732.31602-2-yu-cheng.yu@intel.com>
- <b5197a8d-5d8b-e1f7-68d4-58d80261904c@intel.com>
- <dd5b9bab31ecf247a0b4890e22bfbb486ff52001.camel@intel.com>
- <5cc163ff9058d1b27778e5f0a016c88a3b1a1598.camel@intel.com>
- <b0581ddc-0d99-cbcf-278e-0be55ba939a0@intel.com>
- <44c055342bda4fb4730703f987ae35195d1d0c38.camel@intel.com>
- <32235ffc-6e6c-fb3d-80c4-a0478e2d0e0f@intel.com>
- <6272c481-af90-05c5-7231-3ba44ff9bd02@citrix.com>
- <CAMe9rOqwbxis1xEWbOsftMB9Roxdb3=dp=_MgK8z2pwPP36uRw@mail.gmail.com>
- <f8ce9863-6ada-2bc4-5141-122f64292aba@citrix.com>
- <20200522164953.GA411971@hirez.programming.kicks-ass.net>
+From: Yu-cheng Yu <yu-cheng.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Subject: Re: [RFC PATCH 5/5] selftest/x86: Add CET quick test
+Date: Fri, 22 May 2020 11:07:49 -0700
+Message-ID: <02d825344b39891cf9c084edce44db168cce45fe.camel@intel.com>
+References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
+         <20200521211720.20236-6-yu-cheng.yu@intel.com>
+         <20200522092848.GJ325280@hirez.programming.kicks-ass.net>
+         <202005221020.B578B8C6@keescook>
+         <20200522172711.GA317569@hirez.programming.kicks-ass.net>
+         <202005221034.59F5DF75@keescook>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200522164953.GA411971@hirez.programming.kicks-ass.net>
-Content-Language: en-GB
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "H.J. Lu" <hjl.tools@gmail.com>, Dave Hansen <dave.hansen@intel.com>, Yu-cheng Yu <yu-cheng.yu@intel.com>, the arch/x86 maintainers <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <202005221034.59F5DF75@keescook>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Cc: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Balbir Singh <bsingharora-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Cyrill Gorcunov <gorcunov-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Eugene Syromiatnikov <esyr-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H.J. Lu" <hjl.tools-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Mike Kravetz <mike.kravetz-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Nadav Amit <nadav.amit-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Pavel
 List-Id: linux-arch.vger.kernel.org
 
-On 22/05/2020 17:49, Peter Zijlstra wrote:
-> On Sat, May 16, 2020 at 03:09:22PM +0100, Andrew Cooper wrote:
->
->> Sadly, the same is not true for kernel shadow stacks.
->>
->> SSP is 0 after SYSCALL, SYSENTER and CLRSSBSY, and you've got to be
->> careful to re-establish the shadow stack before a CALL, interrupt or
->> exception tries pushing a word onto the shadow stack at 0xfffffffffffffff8.
-> Oh man, I can only imagine the joy that brings to #NM and friends :-(
+On Fri, 2020-05-22 at 10:36 -0700, Kees Cook wrote:
+> On Fri, May 22, 2020 at 07:27:11PM +0200, Peter Zijlstra wrote:
+> > On Fri, May 22, 2020 at 10:22:51AM -0700, Kees Cook wrote:
+> > 
+> > > But yes, I think getting a copy of asm.h would be nice here. I don't
+> > > think the WRITE_ONCE() is needed in this particular case. Hmm.
+> > 
+> > Paranoia on my end because I had no clue wth he wanted with his -O0
+> > magic gunk.
+> 
+> Heh, yes, which is why I asked for many more comments. ;) I *think* it
+> was entirely to control the stack (and ssp) behavior (i.e. don't inline,
+> don't elide unused stack variables, etc).
 
-Establishing a supervisor shadow stack for the first time involves a
-large leap of faith, even by usual x86 standards.
+Yes, that was the reason.
 
-You need to have prepared MSR_PL0_SSP with correct mappings and
-supervisor tokens, such that when you enable CR4.CET and
-MSR_S_CET.SHSTK_EN, your SETSSBSY instruction succeeds at its atomic
-"check the token and set the busy bit" shadow stack access.  Any failure
-here tends to be a triple fault, and I didn't get around to figuring out
-why #DF wasn't taken cleanly.
-
-You also need to have prepared MSR_IST_SSP beforehand with the IST
-shadow stack pointers matching any IST configuration in the IDT, lest a
-NMI ruins your day on the instruction boundary before SETSSBSY.
-
-A less obvious side effect of these "windows with an SSP of 0" is that
-you're now forced to use IST for all non-maskable interrupts/exceptions,
-even if you choose not to use SYSCALL, and you no longer need IST to
-remove the risks of a userspace privilege escalation, and would prefer
-not to use IST because of its problematic reentrancy characteristics.
-
-For anyone counting the number of IST-necessary vectors across all
-potential configurations in modern hardware, its #DB, NMI, #DF, #MC,
-#VE, #HV, #VC and #SX, and an architectural limit of 7.
-
-There are several other amusing aspects, such as iret-to-self needing to
-use call-oriented-programming to keep itself shadow-stack-safe, or the
-fact that IRET to user mode doesn't fault if it fails to clear the
-supervisor busy bit, instead leaving you to double fault at some point
-in the future at the next syscall/interrupt/exception because the stack
-is still busy.
-
-~Andrew
-
-P.S. For anyone interested,
-https://lore.kernel.org/xen-devel/20200501225838.9866-1-andrew.cooper3@citrix.com/T/#u
-for getting supervisor shadow stacks working on Xen, which is far
-simpler to manage than Linux.  I do not envy whomever has the fun of
-trying to make this work for Linux.
+Yu-cheng
