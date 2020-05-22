@@ -1,70 +1,38 @@
-Return-Path: <SRS0=y3dn=6Y=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 08/31] asm-generic: don't include <linux/mm.h> in cacheflush.h
-Date: Sun, 10 May 2020 09:54:47 +0200
-Message-ID: <20200510075510.987823-9-hch@lst.de>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-References: <20200510075510.987823-1-hch@lst.de>
+Return-Path: <SRS0=yLSb=7E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:38408 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730058AbgEVPuJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 May 2020 11:50:09 -0400
+Date: Fri, 22 May 2020 16:50:02 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 1/6] arm64: Detect the ARMv8.4 TTL feature
+Message-ID: <20200522155002.GF26492@gaia>
+References: <20200423135656.2712-1-yezhenyu2@huawei.com>
+ <20200423135656.2712-2-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200423135656.2712-2-yezhenyu2@huawei.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200510075447.oc1X1qT_X8Lcnu7TPo5KwL1kBUNR-r8gohNTI8iHZy4@z>
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Message-ID: <20200522155002.gyIR8pojPhDH9hZDkvh3dM8uwCzukOl24TCkJWRURF8@z>
 
-This seems to lead to some crazy include loops when using
-asm-generic/cacheflush.h on more architectures, so leave it
-to the arch header for now.
+On Thu, Apr 23, 2020 at 09:56:51PM +0800, Zhenyu Ye wrote:
+> From: Marc Zyngier <maz@kernel.org>
+> 
+> In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+> feature allows TLBs to be issued with a level allowing for quicker
+> invalidation.
+> 
+> The TTL field indicates the level of page table walk
+> holding the leaf entry for the address being invalidated.
+> 
+> Let's detect the feature for now. Further patches will implement
+> its actual usage.
+> 
+> Signed-off-by: Marc Zyngier <maz@kernel.org>
+> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/um/include/asm/tlb.h         | 2 ++
- arch/x86/include/asm/cacheflush.h | 2 ++
- include/asm-generic/cacheflush.h  | 3 ---
- 3 files changed, 4 insertions(+), 3 deletions(-)
-
-diff --git a/arch/um/include/asm/tlb.h b/arch/um/include/asm/tlb.h
-index 70ee603839006..ff9c62828962c 100644
---- a/arch/um/include/asm/tlb.h
-+++ b/arch/um/include/asm/tlb.h
-@@ -2,6 +2,8 @@
- #ifndef __UM_TLB_H
- #define __UM_TLB_H
-=20
-+#include <linux/mm.h>
-+
- #include <asm/tlbflush.h>
- #include <asm-generic/cacheflush.h>
- #include <asm-generic/tlb.h>
-diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cac=
-heflush.h
-index 63feaf2a5f93d..b192d917a6d0b 100644
---- a/arch/x86/include/asm/cacheflush.h
-+++ b/arch/x86/include/asm/cacheflush.h
-@@ -2,6 +2,8 @@
- #ifndef _ASM_X86_CACHEFLUSH_H
- #define _ASM_X86_CACHEFLUSH_H
-=20
-+#include <linux/mm.h>
-+
- /* Caches aren't brain-dead on the intel. */
- #include <asm-generic/cacheflush.h>
- #include <asm/special_insns.h>
-diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cache=
-flush.h
-index 906277492ec59..bf9bb83e9fc8d 100644
---- a/include/asm-generic/cacheflush.h
-+++ b/include/asm-generic/cacheflush.h
-@@ -2,9 +2,6 @@
- #ifndef _ASM_GENERIC_CACHEFLUSH_H
- #define _ASM_GENERIC_CACHEFLUSH_H
-=20
--/* Keep includes the same across arches.  */
--#include <linux/mm.h>
--
- #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
-=20
- /*
---=20
-2.26.2
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
