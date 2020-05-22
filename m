@@ -1,81 +1,48 @@
-Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35660 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1727082AbgEOOhh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 10:37:37 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 08/29] alpha: use asm-generic/cacheflush.h
-Date: Fri, 15 May 2020 16:36:25 +0200
-Message-ID: <20200515143646.3857579-9-hch@lst.de>
-In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-References: <20200515143646.3857579-1-hch@lst.de>
+Return-Path: <SRS0=tTjP=7E=kvack.org=owner-linux-mm@kernel.org>
+Date: Fri, 22 May 2020 16:42:55 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 5/6] mm: tlb: Provide flush_*_tlb_range wrappers
+Message-ID: <20200522154254.GD26492@gaia>
+References: <20200423135656.2712-1-yezhenyu2@huawei.com>
+ <20200423135656.2712-6-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200423135656.2712-6-yezhenyu2@huawei.com>
+Sender: owner-linux-mm@kvack.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200515143625.94M7JFeXVvMQO1FX9vAREVtaseulaDQQIeGBdQ1UWD4@z>
+Message-ID: <20200522154255.r_Qc7N4hinr5seSEwjT461kvBie4ua1MoAyFwhwl6hw@z>
 
-Alpha needs almost no cache flushing routines of its own.  Rely on
-asm-generic/cacheflush.h for the defaults.
+On Thu, Apr 23, 2020 at 09:56:55PM +0800, Zhenyu Ye wrote:
+> diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
+> index 3d7c01e76efc..3eff199d3507 100644
+> --- a/mm/pgtable-generic.c
+> +++ b/mm/pgtable-generic.c
+> @@ -101,6 +101,28 @@ pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
+>  
+>  #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+>  
+> +#ifndef __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
+> +
+> +#define FLUSH_Pxx_TLB_RANGE(_pxx)					\
+> +void flush_##_pxx##_tlb_range(struct vm_area_struct *vma,		\
+> +			      unsigned long addr, unsigned long end)	\
+> +{									\
+> +		struct mmu_gather tlb;					\
+> +									\
+> +		tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);		\
+> +		tlb_start_vma(&tlb, vma);				\
+> +		tlb_flush_##_pxx##_range(&tlb, addr, end - addr);	\
+> +		tlb_end_vma(&tlb, vma);					\
+> +		tlb_finish_mmu(&tlb, addr, end);			\
+> +}
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/alpha/include/asm/cacheflush.h | 28 ++++++----------------------
- 1 file changed, 6 insertions(+), 22 deletions(-)
+I may have confused myself (flush_p??_tlb_* vs. tlb_flush_p??_*) but do
+actually need this whole tlb_gather thing here? IIUC (by grep'ing),
+flush_p?d_tlb_range() is only called on huge pages, so we should know
+the level already.
 
-diff --git a/arch/alpha/include/asm/cacheflush.h b/arch/alpha/include/asm/cacheflush.h
-index 89128489cb598..636d7ca0d05f6 100644
---- a/arch/alpha/include/asm/cacheflush.h
-+++ b/arch/alpha/include/asm/cacheflush.h
-@@ -4,19 +4,6 @@
- 
- #include <linux/mm.h>
- 
--/* Caches aren't brain-dead on the Alpha. */
--#define flush_cache_all()			do { } while (0)
--#define flush_cache_mm(mm)			do { } while (0)
--#define flush_cache_dup_mm(mm)			do { } while (0)
--#define flush_cache_range(vma, start, end)	do { } while (0)
--#define flush_cache_page(vma, vmaddr, pfn)	do { } while (0)
--#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
--#define flush_dcache_page(page)			do { } while (0)
--#define flush_dcache_mmap_lock(mapping)		do { } while (0)
--#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
--#define flush_cache_vmap(start, end)		do { } while (0)
--#define flush_cache_vunmap(start, end)		do { } while (0)
--
- /* Note that the following two definitions are _highly_ dependent
-    on the contexts in which they are used in the kernel.  I personally
-    think it is criminal how loosely defined these macros are.  */
-@@ -59,20 +46,17 @@ flush_icache_user_range(struct vm_area_struct *vma, struct page *page,
- 			mm->context[smp_processor_id()] = 0;
- 	}
- }
--#else
-+#define flush_icache_user_range flush_icache_user_range
-+#else /* CONFIG_SMP */
- extern void flush_icache_user_range(struct vm_area_struct *vma,
- 		struct page *page, unsigned long addr, int len);
--#endif
-+#define flush_icache_user_range flush_icache_user_range
-+#endif /* CONFIG_SMP */
- 
- /* This is used only in __do_fault and do_swap_page.  */
- #define flush_icache_page(vma, page) \
--  flush_icache_user_range((vma), (page), 0, 0)
-+	flush_icache_user_range((vma), (page), 0, 0)
- 
--#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--do { memcpy(dst, src, len); \
--     flush_icache_user_range(vma, page, vaddr, len); \
--} while (0)
--#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+#include <asm-generic/cacheflush.h>
- 
- #endif /* _ALPHA_CACHEFLUSH_H */
 -- 
-2.26.2
+Catalin
