@@ -1,37 +1,70 @@
-Return-Path: <SRS0=y3dn=6Y=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 02/31] arm64: fix the flush_icache_range arguments in machine_kexec
-Date: Sun, 10 May 2020 09:54:41 +0200
-Message-ID: <20200510075510.987823-3-hch@lst.de>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-References: <20200510075510.987823-1-hch@lst.de>
+Return-Path: <SRS0=R1OV=7E=vger.kernel.org=linux-doc-owner@kernel.org>
+Message-ID: <676f710b9747b091783aed38fb07259af3ca5b43.camel@intel.com>
+Subject: Re: [PATCH v10 26/26] x86/cet/shstk: Add arch_prctl functions for
+ shadow stack
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Fri, 22 May 2020 11:13:24 -0700
+In-Reply-To: <20200522172934.GI12341@asgard.redhat.com>
+References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+         <20200429220732.31602-27-yu-cheng.yu@intel.com>
+         <202005211528.A12B4AD@keescook>
+         <c9c9314374c7db0bf9b6e39670855afe5b0d4014.camel@intel.com>
+         <20200522172934.GI12341@asgard.redhat.com>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Eugene Syromiatnikov <esyr@redhat.com>
+Cc: Kees Cook <keescook@chromium.org>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>, mtk.manpages@gmail.com
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200510075441._OnUIwkDmJW4hyx2sPZRqcISycPCKmMUsspH7epsyAc@z>
+Message-ID: <20200522181324.DuLgGrEw7TZxp7W_MLTJMkFtZrbTwq6lmM7qf0LBqIM@z>
 
-The second argument is the end "pointer", not the length.
+On Fri, 2020-05-22 at 19:29 +0200, Eugene Syromiatnikov wrote:
+> On Fri, May 22, 2020 at 10:17:43AM -0700, Yu-cheng Yu wrote:
+> > On Thu, 2020-05-21 at 15:42 -0700, Kees Cook wrote:
+> > > On Wed, Apr 29, 2020 at 03:07:32PM -0700, Yu-cheng Yu wrote:
+> > [...]
+> > > > +
+> > > > +int prctl_cet(int option, u64 arg2)
+> > > > +{
+> > > > +	struct cet_status *cet;
+> > > > +
+> > > > +	if (!IS_ENABLED(CONFIG_X86_INTEL_CET))
+> > > > +		return -EINVAL;
+> > > 
+> > > Using -EINVAL here means userspace can't tell the difference between an
+> > > old kernel and a kernel not built with CONFIG_X86_INTEL_CET. Perhaps
+> > > -ENOTSUPP?
+> > 
+> > Looked into this.  The kernel and GLIBC are not in sync.  So maybe we still use
+> > EINVAL here?
+> > 
+> > Yu-cheng
+> > 
+> > 
+> > 
+> > In kernel:
+> > ----------
+> > 
+> > #define EOPNOTSUPP	95
+> > #define ENOTSUPP 	524
+> > 
+> > In GLIBC:
+> > ---------
+> > 
+> > printf("ENOTSUP=%d\n", ENOTSUP);
+> > printf("EOPNOTSUPP=%d\n", EOPNOTSUPP);
+> > printf("%s=524\n", strerror(524));
+> >  
+> > ENOTSUP=95
+> > EOPNOTSUPP=95
+> > Unknown error 524=524
+> 
+> EOPNOTSUPP/ENOTSUP/ENOTSUPP is actually a mess, it's summarized recently
+> by Michael Kerrisk[1].  From the kernel's point of view, I think it
+> would be reasonable to return EOPNOTSUPP, and expect that the userspace
+> would use ENOTSUP to match against it.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/arm64/kernel/machine_kexec.c | 1 +
- 1 file changed, 1 insertion(+)
+Ok, use EOPNOTSUPP and add a comment why.
 
-diff --git a/arch/arm64/kernel/machine_kexec.c b/arch/arm64/kernel/machin=
-e_kexec.c
-index 8e9c924423b4e..a0b144cfaea71 100644
---- a/arch/arm64/kernel/machine_kexec.c
-+++ b/arch/arm64/kernel/machine_kexec.c
-@@ -177,6 +177,7 @@ void machine_kexec(struct kimage *kimage)
- 	 * the offline CPUs. Therefore, we must use the __* variant here.
- 	 */
- 	__flush_icache_range((uintptr_t)reboot_code_buffer,
-+			     (uintptr_t)reboot_code_buffer +
- 			     arm64_relocate_new_kernel_size);
-=20
- 	/* Flush the kimage list and its buffers. */
---=20
-2.26.2
+Yu-cheng
