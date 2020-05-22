@@ -1,26 +1,23 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 4/6] tlb: mmu_gather: add tlb_flush_*_range APIs
-Date: Fri, 22 May 2020 16:50:56 +0100
-Message-ID: <20200522155056.GH26492@gaia>
-References: <20200423135656.2712-1-yezhenyu2@huawei.com>
- <20200423135656.2712-5-yezhenyu2@huawei.com>
+Subject: Re: [PATCH 09/29] arm64: use asm-generic/cacheflush.h
+Date: Fri, 22 May 2020 16:54:27 +0100
+Message-ID: <20200522155426.GI26492@gaia>
+References: <20200515143646.3857579-1-hch@lst.de>
+ <20200515143646.3857579-10-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-m68k-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200423135656.2712-5-yezhenyu2@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+In-Reply-To: <20200515143646.3857579-10-hch@lst.de>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>, Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 23, 2020 at 09:56:54PM +0800, Zhenyu Ye wrote:
-> From: "Peter Zijlstra (Intel)" <peterz@infradead.org>
+On Fri, May 15, 2020 at 04:36:26PM +0200, Christoph Hellwig wrote:
+> ARM64 needs almost no cache flushing routines of its own.  Rely on
+> asm-generic/cacheflush.h for the defaults.
 > 
-> tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and
-> tlb->end, then set corresponding cleared_*.
-> 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
 Acked-by: Catalin Marinas <catalin.marinas@arm.com>
