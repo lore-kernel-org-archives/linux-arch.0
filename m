@@ -1,175 +1,31 @@
-Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from 8bytes.org ([81.169.241.247]:42572 "EHLO theia.8bytes.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729327AbgEMPVn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 May 2020 11:21:43 -0400
-From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH v2 3/7] mm/ioremap: Track which page-table levels were modified
-Date: Wed, 13 May 2020 17:21:33 +0200
-Message-ID: <20200513152137.32426-4-joro@8bytes.org>
-In-Reply-To: <20200513152137.32426-1-joro@8bytes.org>
-References: <20200513152137.32426-1-joro@8bytes.org>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=R1OV=7E=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Fri, 22 May 2020 10:22:51 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [RFC PATCH 5/5] selftest/x86: Add CET quick test
+Message-ID: <202005221020.B578B8C6@keescook>
+References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
+ <20200521211720.20236-6-yu-cheng.yu@intel.com>
+ <20200522092848.GJ325280@hirez.programming.kicks-ass.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200522092848.GJ325280@hirez.programming.kicks-ass.net>
+Sender: linux-doc-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Yu-cheng Yu <yu-cheng.yu@intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org
-Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20200513152133.44ErdCSfkzCAJp3QdRgQcB2E7l3IPV8awDqlHldGYEo@z>
+Message-ID: <20200522172251.iguf0MDllaVC5tp4lfH-xSjhn5Vbsi-pWJkt-xYJFlM@z>
 
-From: Joerg Roedel <jroedel@suse.de>
+On Fri, May 22, 2020 at 11:28:48AM +0200, Peter Zijlstra wrote:
+> Get asm/asm.h into userspace and then write something like:
 
-Track at which levels in the page-table entries were modified by
-ioremap_page_range(). After the page-table has been modified, use that
-information do decide whether the new arch_sync_kernel_mappings()
-needs to be called. The iounmap path re-uses vunmap(), which has
-already been taken care of.
+Yeah, selftests is going to start suffering from the same "tools/ header
+duplication" problem. I've also had cases (see the logic in the Makefile
+in selftests/x86) where selftests is duplicating existing Kconfig and
+Makefile logic ("can I build this way?")
 
-Signed-off-by: Joerg Roedel <jroedel@suse.de>
----
- lib/ioremap.c | 46 +++++++++++++++++++++++++++++++---------------
- 1 file changed, 31 insertions(+), 15 deletions(-)
+But yes, I think getting a copy of asm.h would be nice here. I don't
+think the WRITE_ONCE() is needed in this particular case. Hmm.
 
-diff --git a/lib/ioremap.c b/lib/ioremap.c
-index 3f0e18543de8..ad485f08173b 100644
---- a/lib/ioremap.c
-+++ b/lib/ioremap.c
-@@ -61,13 +61,14 @@ static inline int ioremap_pmd_enabled(void) { return 0; }
- #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
- 
- static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
--		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
-+		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
-+		pgtbl_mod_mask *mask)
- {
- 	pte_t *pte;
- 	u64 pfn;
- 
- 	pfn = phys_addr >> PAGE_SHIFT;
--	pte = pte_alloc_kernel(pmd, addr);
-+	pte = pte_alloc_kernel_track(pmd, addr, mask);
- 	if (!pte)
- 		return -ENOMEM;
- 	do {
-@@ -75,6 +76,7 @@ static int ioremap_pte_range(pmd_t *pmd, unsigned long addr,
- 		set_pte_at(&init_mm, addr, pte, pfn_pte(pfn, prot));
- 		pfn++;
- 	} while (pte++, addr += PAGE_SIZE, addr != end);
-+	*mask |= PGTBL_PTE_MODIFIED;
- 	return 0;
- }
- 
-@@ -101,21 +103,24 @@ static int ioremap_try_huge_pmd(pmd_t *pmd, unsigned long addr,
- }
- 
- static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
--		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
-+		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
-+		pgtbl_mod_mask *mask)
- {
- 	pmd_t *pmd;
- 	unsigned long next;
- 
--	pmd = pmd_alloc(&init_mm, pud, addr);
-+	pmd = pmd_alloc_track(&init_mm, pud, addr, mask);
- 	if (!pmd)
- 		return -ENOMEM;
- 	do {
- 		next = pmd_addr_end(addr, end);
- 
--		if (ioremap_try_huge_pmd(pmd, addr, next, phys_addr, prot))
-+		if (ioremap_try_huge_pmd(pmd, addr, next, phys_addr, prot)) {
-+			*mask |= PGTBL_PMD_MODIFIED;
- 			continue;
-+		}
- 
--		if (ioremap_pte_range(pmd, addr, next, phys_addr, prot))
-+		if (ioremap_pte_range(pmd, addr, next, phys_addr, prot, mask))
- 			return -ENOMEM;
- 	} while (pmd++, phys_addr += (next - addr), addr = next, addr != end);
- 	return 0;
-@@ -144,21 +149,24 @@ static int ioremap_try_huge_pud(pud_t *pud, unsigned long addr,
- }
- 
- static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
--		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
-+		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
-+		pgtbl_mod_mask *mask)
- {
- 	pud_t *pud;
- 	unsigned long next;
- 
--	pud = pud_alloc(&init_mm, p4d, addr);
-+	pud = pud_alloc_track(&init_mm, p4d, addr, mask);
- 	if (!pud)
- 		return -ENOMEM;
- 	do {
- 		next = pud_addr_end(addr, end);
- 
--		if (ioremap_try_huge_pud(pud, addr, next, phys_addr, prot))
-+		if (ioremap_try_huge_pud(pud, addr, next, phys_addr, prot)) {
-+			*mask |= PGTBL_PUD_MODIFIED;
- 			continue;
-+		}
- 
--		if (ioremap_pmd_range(pud, addr, next, phys_addr, prot))
-+		if (ioremap_pmd_range(pud, addr, next, phys_addr, prot, mask))
- 			return -ENOMEM;
- 	} while (pud++, phys_addr += (next - addr), addr = next, addr != end);
- 	return 0;
-@@ -187,21 +195,24 @@ static int ioremap_try_huge_p4d(p4d_t *p4d, unsigned long addr,
- }
- 
- static inline int ioremap_p4d_range(pgd_t *pgd, unsigned long addr,
--		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
-+		unsigned long end, phys_addr_t phys_addr, pgprot_t prot,
-+		pgtbl_mod_mask *mask)
- {
- 	p4d_t *p4d;
- 	unsigned long next;
- 
--	p4d = p4d_alloc(&init_mm, pgd, addr);
-+	p4d = p4d_alloc_track(&init_mm, pgd, addr, mask);
- 	if (!p4d)
- 		return -ENOMEM;
- 	do {
- 		next = p4d_addr_end(addr, end);
- 
--		if (ioremap_try_huge_p4d(p4d, addr, next, phys_addr, prot))
-+		if (ioremap_try_huge_p4d(p4d, addr, next, phys_addr, prot)) {
-+			*mask |= PGTBL_P4D_MODIFIED;
- 			continue;
-+		}
- 
--		if (ioremap_pud_range(p4d, addr, next, phys_addr, prot))
-+		if (ioremap_pud_range(p4d, addr, next, phys_addr, prot, mask))
- 			return -ENOMEM;
- 	} while (p4d++, phys_addr += (next - addr), addr = next, addr != end);
- 	return 0;
-@@ -214,6 +225,7 @@ int ioremap_page_range(unsigned long addr,
- 	unsigned long start;
- 	unsigned long next;
- 	int err;
-+	pgtbl_mod_mask mask = 0;
- 
- 	might_sleep();
- 	BUG_ON(addr >= end);
-@@ -222,13 +234,17 @@ int ioremap_page_range(unsigned long addr,
- 	pgd = pgd_offset_k(addr);
- 	do {
- 		next = pgd_addr_end(addr, end);
--		err = ioremap_p4d_range(pgd, addr, next, phys_addr, prot);
-+		err = ioremap_p4d_range(pgd, addr, next, phys_addr, prot,
-+					&mask);
- 		if (err)
- 			break;
- 	} while (pgd++, phys_addr += (next - addr), addr = next, addr != end);
- 
- 	flush_cache_vmap(start, end);
- 
-+	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-+		arch_sync_kernel_mappings(start, end);
-+
- 	return err;
- }
- 
 -- 
-2.17.1
+Kees Cook
