@@ -1,80 +1,42 @@
-Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55698 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732606AbgEMKbK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2020 06:31:10 -0400
-Subject: Re: [PATCH 09/14] prctl.2: tfix minor punctuation in SPECULATION_CTRL
- prctls
-References: <1589301419-24459-1-git-send-email-Dave.Martin@arm.com>
- <1589301419-24459-10-git-send-email-Dave.Martin@arm.com>
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Message-ID: <6322d3db-75d0-7539-b61c-252d222f932f@gmail.com>
-Date: Wed, 13 May 2020 12:31:06 +0200
+Return-Path: <SRS0=yLSb=7E=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga06.intel.com ([134.134.136.31]:13909 "EHLO mga06.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726373AbgEVSIx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 May 2020 14:08:53 -0400
+Message-ID: <02d825344b39891cf9c084edce44db168cce45fe.camel@intel.com>
+Subject: Re: [RFC PATCH 5/5] selftest/x86: Add CET quick test
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Date: Fri, 22 May 2020 11:07:49 -0700
+In-Reply-To: <202005221034.59F5DF75@keescook>
+References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
+         <20200521211720.20236-6-yu-cheng.yu@intel.com>
+         <20200522092848.GJ325280@hirez.programming.kicks-ass.net>
+         <202005221020.B578B8C6@keescook>
+         <20200522172711.GA317569@hirez.programming.kicks-ass.net>
+         <202005221034.59F5DF75@keescook>
+Content-Type: text/plain; charset="UTF-8"
 MIME-Version: 1.0
-In-Reply-To: <1589301419-24459-10-git-send-email-Dave.Martin@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200513103106.X5Q8uueeCojpEJO79-bzs6bMcRQIujjKpyAKF8uUPGE@z>
+To: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Message-ID: <20200522180749.yYR8OhYkxZF1SxcqMSU92fwcFXZC3i0H0SaAqLmc7zs@z>
 
-On 5/12/20 6:36 PM, Dave Martin wrote:
-> Fix a few very minor bits of punctuation in
-> PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+On Fri, 2020-05-22 at 10:36 -0700, Kees Cook wrote:
+> On Fri, May 22, 2020 at 07:27:11PM +0200, Peter Zijlstra wrote:
+> > On Fri, May 22, 2020 at 10:22:51AM -0700, Kees Cook wrote:
+> > 
+> > > But yes, I think getting a copy of asm.h would be nice here. I don't
+> > > think the WRITE_ONCE() is needed in this particular case. Hmm.
+> > 
+> > Paranoia on my end because I had no clue wth he wanted with his -O0
+> > magic gunk.
 > 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Heh, yes, which is why I asked for many more comments. ;) I *think* it
+> was entirely to control the stack (and ssp) behavior (i.e. don't inline,
+> don't elide unused stack variables, etc).
 
-Thanks, Dave. Patch applied.
+Yes, that was the reason.
 
-Cheers,
-
-Michael
-
-> ---
->  man2/prctl.2 | 8 ++++----
->  1 file changed, 4 insertions(+), 4 deletions(-)
-> 
-> diff --git a/man2/prctl.2 b/man2/prctl.2
-> index 1e04859..e8eaf95 100644
-> --- a/man2/prctl.2
-> +++ b/man2/prctl.2
-> @@ -1175,13 +1175,13 @@ The return value uses bits 0-3 with the following meaning:
->  .TP
->  .BR PR_SPEC_PRCTL
->  Mitigation can be controlled per thread by
-> -.B PR_SET_SPECULATION_CTRL
-> +.BR PR_SET_SPECULATION_CTRL .
->  .TP
->  .BR PR_SPEC_ENABLE
->  The speculation feature is enabled, mitigation is disabled.
->  .TP
->  .BR PR_SPEC_DISABLE
-> -The speculation feature is disabled, mitigation is enabled
-> +The speculation feature is disabled, mitigation is enabled.
->  .TP
->  .BR PR_SPEC_FORCE_DISABLE
->  Same as
-> @@ -1228,11 +1228,11 @@ which is one of the following:
->  The speculation feature is enabled, mitigation is disabled.
->  .TP
->  .BR PR_SPEC_DISABLE
-> -The speculation feature is disabled, mitigation is enabled
-> +The speculation feature is disabled, mitigation is enabled.
->  .TP
->  .BR PR_SPEC_FORCE_DISABLE
->  Same as
-> -.B PR_SPEC_DISABLE
-> +.BR PR_SPEC_DISABLE ,
->  but cannot be undone.
->  A subsequent
->  .B
-> 
-
-
--- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+Yu-cheng
