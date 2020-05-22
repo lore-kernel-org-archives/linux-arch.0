@@ -1,69 +1,86 @@
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [PATCH v10 26/26] x86/cet/shstk: Add arch_prctl functions for
- shadow stack
-Date: Fri, 22 May 2020 11:13:24 -0700
-Message-ID: <676f710b9747b091783aed38fb07259af3ca5b43.camel@intel.com>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-         <20200429220732.31602-27-yu-cheng.yu@intel.com>
-         <202005211528.A12B4AD@keescook>
-         <c9c9314374c7db0bf9b6e39670855afe5b0d4014.camel@intel.com>
-         <20200522172934.GI12341@asgard.redhat.com>
+From: Andrii Nakryiko <andriin@fb.com>
+Subject: Re: Some -serious- BPF-related litmus tests
+Date: Fri, 22 May 2020 12:38:21 -0700
+Message-ID: <006e2bc6-7516-1584-3d8c-e253211c157e@fb.com>
+References: <20200522003850.GA32698@paulmck-ThinkPad-P72>
+ <20200522094407.GK325280@hirez.programming.kicks-ass.net>
+ <20200522143201.GB32434@rowland.harvard.edu>
+ <20200522174352.GJ2869@paulmck-ThinkPad-P72>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20200522172934.GI12341@asgard.redhat.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Eugene Syromiatnikov <esyr@redhat.com>
-Cc: Kees Cook <keescook@chromium.org>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-00082601.pphosted.com ([67.231.153.30]:33876 "EHLO
+        mx0b-00082601.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1730894AbgEVTjD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 22 May 2020 15:39:03 -0400
+In-Reply-To: <20200522174352.GJ2869@paulmck-ThinkPad-P72>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: paulmck@kernel.org, Alan Stern <stern@rowland.harvard.edu>
+Cc: Peter Zijlstra <peterz@infradead.org>, parri.andrea@gmail.com, will@kernel.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, dlustig@nvidia.com, joel@joelfernandes.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "andrii.nakryiko@gmail.com" <andrii.nakryiko@gmail.com>
 
-On Fri, 2020-05-22 at 19:29 +0200, Eugene Syromiatnikov wrote:
-> On Fri, May 22, 2020 at 10:17:43AM -0700, Yu-cheng Yu wrote:
-> > On Thu, 2020-05-21 at 15:42 -0700, Kees Cook wrote:
-> > > On Wed, Apr 29, 2020 at 03:07:32PM -0700, Yu-cheng Yu wrote:
-> > [...]
-> > > > +
-> > > > +int prctl_cet(int option, u64 arg2)
-> > > > +{
-> > > > +	struct cet_status *cet;
-> > > > +
-> > > > +	if (!IS_ENABLED(CONFIG_X86_INTEL_CET))
-> > > > +		return -EINVAL;
-> > > 
-> > > Using -EINVAL here means userspace can't tell the difference between an
-> > > old kernel and a kernel not built with CONFIG_X86_INTEL_CET. Perhaps
-> > > -ENOTSUPP?
-> > 
-> > Looked into this.  The kernel and GLIBC are not in sync.  So maybe we still use
-> > EINVAL here?
-> > 
-> > Yu-cheng
-> > 
-> > 
-> > 
-> > In kernel:
-> > ----------
-> > 
-> > #define EOPNOTSUPP	95
-> > #define ENOTSUPP 	524
-> > 
-> > In GLIBC:
-> > ---------
-> > 
-> > printf("ENOTSUP=%d\n", ENOTSUP);
-> > printf("EOPNOTSUPP=%d\n", EOPNOTSUPP);
-> > printf("%s=524\n", strerror(524));
-> >  
-> > ENOTSUP=95
-> > EOPNOTSUPP=95
-> > Unknown error 524=524
+On 5/22/20 10:43 AM, Paul E. McKenney wrote:
+> On Fri, May 22, 2020 at 10:32:01AM -0400, Alan Stern wrote:
+>> On Fri, May 22, 2020 at 11:44:07AM +0200, Peter Zijlstra wrote:
+>>> On Thu, May 21, 2020 at 05:38:50PM -0700, Paul E. McKenney wrote:
+>>>> Hello!
+>>>>
+>>>> Just wanted to call your attention to some pretty cool and pretty serious
+>>>> litmus tests that Andrii did as part of his BPF ring-buffer work:
+>>>>
+>>>> https://lore.kernel.org/bpf/20200517195727.279322-3-andriin@fb.com/
+>>>>
+>>>> Thoughts?
+>>>
+>>> I find:
+>>>
+>>> 	smp_wmb()
+>>> 	smp_store_release()
+>>>
+>>> a _very_ weird construct. What is that supposed to even do?
+>>
+>> Indeed, it looks like one or the other of those is redundant (depending
+>> on the context).
 > 
-> EOPNOTSUPP/ENOTSUP/ENOTSUPP is actually a mess, it's summarized recently
-> by Michael Kerrisk[1].  From the kernel's point of view, I think it
-> would be reasonable to return EOPNOTSUPP, and expect that the userspace
-> would use ENOTSUP to match against it.
+> Probably.  Peter instead asked what it was supposed to even do.  ;-)
 
-Ok, use EOPNOTSUPP and add a comment why.
+I agree, I think smp_wmb() is redundant here. Can't remember why I 
+thought that it's necessary, this algorithm went through a bunch of 
+iterations, starting as completely lockless, also using 
+READ_ONCE/WRITE_ONCE at some point, and settling on 
+smp_read_acquire/smp_store_release, eventually. Maybe there was some 
+reason, but might be that I was just over-cautious. See reply on patch 
+thread as well ([0]).
 
-Yu-cheng
+   [0] 
+https://lore.kernel.org/bpf/CAEf4Bza26AbRMtWcoD5+TFhnmnU6p5YJ8zO+SoAJCDtp1jVhcQ@mail.gmail.com/
+
+
+> 
+>> Also, what use is a spinlock that is accessed in only one thread?
+> 
+> Multiple writers synchronize via the spinlock in this case.  I am
+> guessing that his larger 16-hour test contended this spinlock.
+
+Yes, spinlock is for coordinating multiple producers. 2p1c cases 
+(bounded and unbounded) rely on this already. 1p1c cases are sort of 
+subsets (but very fast to verify) checking only consumer/producer 
+interaction.
+
+> 
+>> Finally, I doubt that these tests belong under tools/memory-model.
+>> Shouldn't they go under the new Documentation/ directory for litmus
+>> tests?  And shouldn't the patch update a README file?
+> 
+> Agreed, and I responded to that effect to his original patch:
+> 
+> https://lore.kernel.org/bpf/20200522003433.GG2869@paulmck-ThinkPad-P72/
+
+Yep, makes sense, I'll will move.
+
+> 
+> 							Thanx, Paul
+> 
