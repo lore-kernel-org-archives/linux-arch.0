@@ -1,56 +1,81 @@
-Return-Path: <SRS0=nKtn=64=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from namei.org ([65.99.196.166]:58830 "EHLO namei.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725895AbgENDKE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 May 2020 23:10:04 -0400
-Date: Thu, 14 May 2020 13:09:32 +1000 (AEST)
-From: James Morris <jmorris@namei.org>
-Subject: Re: [PATCH v17 02/10] landlock: Add ruleset and domain management
-In-Reply-To: <20200511192156.1618284-3-mic@digikod.net>
-Message-ID: <alpine.LRH.2.21.2005141302330.30052@namei.org>
-References: <20200511192156.1618284-1-mic@digikod.net> <20200511192156.1618284-3-mic@digikod.net>
+Return-Path: <SRS0=tTjP=7E=kvack.org=owner-linux-mm@kernel.org>
+Date: Fri, 22 May 2020 11:28:48 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH 5/5] selftest/x86: Add CET quick test
+Message-ID: <20200522092848.GJ325280@hirez.programming.kicks-ass.net>
+References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
+ <20200521211720.20236-6-yu-cheng.yu@intel.com>
 MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="1665246916-408680353-1589425772=:30052"
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200521211720.20236-6-yu-cheng.yu@intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: =?ISO-8859-15?Q?Micka=EBl_Sala=FCn?= <mic@digikod.net>
-Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?ISO-8859-15?Q?Micka=EBl_Sala=FCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
-Message-ID: <20200514030932.jctph-I_OFba2wORMzrKSjwkjEPY_BCuG7MMxTS73XI@z>
+Message-ID: <20200522092848.n-NCo8IuPg-kmxQf7Wa9YAVPqDqjCAgdSCT9UYOWkQE@z>
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
+On Thu, May 21, 2020 at 02:17:20PM -0700, Yu-cheng Yu wrote:
 
---1665246916-408680353-1589425772=:30052
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+> +#pragma GCC push_options
+> +#pragma GCC optimize ("O0")
+> +void ibt_violation(void)
+> +{
+> +#ifdef __i386__
+> +	asm volatile("lea 1f, %eax");
+> +	asm volatile("jmp *%eax");
+> +#else
+> +	asm volatile("lea 1f, %rax");
+> +	asm volatile("jmp *%rax");
+> +#endif
+> +	asm volatile("1:");
+> +	result[test_id] = -1;
+> +	test_id++;
+> +	setcontext(&ucp);
+> +}
+> +
+> +void shstk_violation(void)
+> +{
+> +#ifdef __i386__
+> +	unsigned long x = 0;
+> +
+> +	((unsigned long *)&x)[2] = (unsigned long)stack_hacked;
+> +#else
+> +	unsigned long long x = 0;
+> +
+> +	((unsigned long long *)&x)[2] = (unsigned long)stack_hacked;
+> +#endif
+> +}
+> +#pragma GCC pop_options
 
-On Mon, 11 May 2020, Mickaël Salaün wrote:
+This is absolutely atrocious.
 
-> + * .. warning::
-> + *
-> + *   It is currently not possible to restrict some file-related actions
-> + *   accessible through these syscall families: :manpage:`chdir(2)`,
-> + *   :manpage:`truncate(2)`, :manpage:`stat(2)`, :manpage:`flock(2)`,
-> + *   :manpage:`chmod(2)`, :manpage:`chown(2)`, :manpage:`setxattr(2)`,
-> + *   :manpage:`ioctl(2)`, :manpage:`fcntl(2)`.
-> + *   Future Landlock evolutions will enable to restrict them.
+The #pragma like Kees already said just need to go. Also, there's
+absolutely no clue what so ever what it attempts to achieve.
 
-I have to wonder how useful Landlock will be without more coverage per 
-the above.
+The __i386__ ifdeffery is horrible crap. Splitting an asm with #ifdef
+like that is also horrible crap.
 
-It would be helpful if you could outline a threat model for this initial 
-version, so people can get an idea of what kind of useful protection may
-be gained from it.
+This is not how you write code.
 
-Are there any distros or other major users who are planning on enabling or 
-at least investigating Landlock?
-
-Do you have any examples of a practical application of this scheme?
+Get asm/asm.h into userspace and then write something like:
 
 
+void ibt_violation(void)
+{
+	asm volatile("lea  1f, %" _ASM_AX "\n\t"
+		     "jmp  *%" _ASM_AX "\n\t"
+		     "1:\n\t" ::: "a");
 
--- 
-James Morris
-<jmorris@namei.org>
+	WRITE_ONCE(result[test_id], -1);
+	WRITE_ONCE(test_id, test_id+1);
 
---1665246916-408680353-1589425772=:30052--
+	setcontext(&ucp);
+}
+
+void shstk_violation(void)
+{
+	unsigned long x = 0;
+
+	WRITE_ONCE(x[2], stack_hacked);
+}
