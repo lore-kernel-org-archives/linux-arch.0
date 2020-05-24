@@ -1,40 +1,283 @@
-Return-Path: <SRS0=eh2/=6Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38182 "EHLO
+Return-Path: <SRS0=dWpV=7G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54572 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725839AbgEJHzk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2020 03:55:40 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 04/31] nds32: unexport flush_icache_page
-Date: Sun, 10 May 2020 09:54:43 +0200
-Message-ID: <20200510075510.987823-5-hch@lst.de>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-References: <20200510075510.987823-1-hch@lst.de>
+        with ESMTP id S1727916AbgEXMJU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 24 May 2020 08:09:20 -0400
+From: Akira Yokosawa <akiyks@gmail.com>
+Subject: Re: Some -serious- BPF-related litmus tests
+References: <20200522003850.GA32698@paulmck-ThinkPad-P72>
+ <20200522094407.GK325280@hirez.programming.kicks-ass.net>
+ <20200522143201.GB32434@rowland.harvard.edu>
+ <20200522174352.GJ2869@paulmck-ThinkPad-P72>
+ <006e2bc6-7516-1584-3d8c-e253211c157e@fb.com>
+Message-ID: <ac799c98-45dd-d056-386f-cbebc7270c0c@gmail.com>
+Date: Sun, 24 May 2020 21:09:14 +0900
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <006e2bc6-7516-1584-3d8c-e253211c157e@fb.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200510075443.ja-9ixNh2gMrkpOELmE5R4RbwNXQhGlVe4wBTB1EvRo@z>
+To: Andrii Nakryiko <andriin@fb.com>, paulmck@kernel.org
+Cc: Alan Stern <stern@rowland.harvard.edu>, Peter Zijlstra <peterz@infradead.org>, parri.andrea@gmail.com, will@kernel.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, dlustig@nvidia.com, joel@joelfernandes.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "andrii.nakryiko@gmail.com" <andrii.nakryiko@gmail.com>, Akira Yokosawa <akiyks@gmail.com>
+Message-ID: <20200524120914.e8QRfcCseoXuHWo7lKmYzD_aLgVin8-WIUnpSJQ9k3Y@z>
 
-flush_icache_page is only used by mm/memory.c.
+On Fri, 22 May 2020 12:38:21 -0700, Andrii Nakryiko wrote:
+> On 5/22/20 10:43 AM, Paul E. McKenney wrote:
+>> On Fri, May 22, 2020 at 10:32:01AM -0400, Alan Stern wrote:
+>>> On Fri, May 22, 2020 at 11:44:07AM +0200, Peter Zijlstra wrote:
+>>>> On Thu, May 21, 2020 at 05:38:50PM -0700, Paul E. McKenney wrote:
+>>>>> Hello!
+>>>>>
+>>>>> Just wanted to call your attention to some pretty cool and pretty s=
+erious
+>>>>> litmus tests that Andrii did as part of his BPF ring-buffer work:
+>>>>>
+>>>>> https://lore.kernel.org/bpf/20200517195727.279322-3-andriin@fb.com/=
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/nds32/mm/cacheflush.c | 1 -
- 1 file changed, 1 deletion(-)
+>>>>>
+>>>>> Thoughts?
+>>>>
+>>>> I find:
+>>>>
+>>>> =C2=A0=C2=A0=C2=A0=C2=A0smp_wmb()
+>>>> =C2=A0=C2=A0=C2=A0=C2=A0smp_store_release()
+>>>>
+>>>> a _very_ weird construct. What is that supposed to even do?
+>>>
+>>> Indeed, it looks like one or the other of those is redundant (dependi=
+ng
+>>> on the context).
+>>
+>> Probably.=C2=A0 Peter instead asked what it was supposed to even do.=C2=
+=A0 ;-)
+>=20
+> I agree, I think smp_wmb() is redundant here. Can't remember why I thou=
+ght that it's necessary, this algorithm went through a bunch of iteration=
+s, starting as completely lockless, also using READ_ONCE/WRITE_ONCE at so=
+me point, and settling on smp_read_acquire/smp_store_release, eventually.=
+ Maybe there was some reason, but might be that I was just over-cautious.=
+ See reply on patch thread as well ([0]).
+>=20
+> =C2=A0 [0] https://lore.kernel.org/bpf/CAEf4Bza26AbRMtWcoD5+TFhnmnU6p5Y=
+J8zO+SoAJCDtp1jVhcQ@mail.gmail.com/
+>=20
+>=20
+>>
+>>> Also, what use is a spinlock that is accessed in only one thread?
+>>
+>> Multiple writers synchronize via the spinlock in this case.=C2=A0 I am=
 
-diff --git a/arch/nds32/mm/cacheflush.c b/arch/nds32/mm/cacheflush.c
-index 254703653b6f5..8f168b33065fa 100644
---- a/arch/nds32/mm/cacheflush.c
-+++ b/arch/nds32/mm/cacheflush.c
-@@ -35,7 +35,6 @@ void flush_icache_page(struct vm_area_struct *vma, struct page *page)
- 	kunmap_atomic((void *)kaddr);
- 	local_irq_restore(flags);
+>> guessing that his larger 16-hour test contended this spinlock.
+>=20
+> Yes, spinlock is for coordinating multiple producers. 2p1c cases (bound=
+ed and unbounded) rely on this already. 1p1c cases are sort of subsets (b=
+ut very fast to verify) checking only consumer/producer interaction.
+>=20
+>>
+>>> Finally, I doubt that these tests belong under tools/memory-model.
+>>> Shouldn't they go under the new Documentation/ directory for litmus
+>>> tests?=C2=A0 And shouldn't the patch update a README file?
+>>
+>> Agreed, and I responded to that effect to his original patch:
+>>
+>> https://lore.kernel.org/bpf/20200522003433.GG2869@paulmck-ThinkPad-P72=
+/
+>=20
+> Yep, makes sense, I'll will move.
+
+Hi Andrii,
+
+Andrea reported off-the-list that your litmus tests are incompatible
+with the to-be-released version 7.56 of herd7 and currently available
+versions of klitmus7.
+
+This is due to a couple of C-language level issues.
+
+herd7 used to be fairly generous in parsing C litmus tests.
+On the other hand, klitmus7 converts a litmus test into a
+kernel module.  The converted code is built by an actual C compiler
+with kernel headers included, and can fail to build due to syntax errors
+or serious warnings.
+herd7 HEAD is getting slightly stricter on uninitialized variable and
+it emits an error to mpsc-rb+1p1c+bounded.litmus:
+
+Warning: File "mpsc-rb+1p1c+bounded.litmus": read on location 0 does not =
+match any write
+
+Converted code by klitmus7 fails to build with the following warning mess=
+ages:
+
+$ make
+make -C /lib/modules/5.3.0-53-generic/build/ M=3D/home/akira/bpf-rb/klitm=
+us modules
+make[1]: Entering directory '/usr/src/linux-headers-5.3.0-53-generic'
+  CC [M]  /home/akira/bpf-rb/klitmus/litmus000.o
+/home/akira/bpf-rb/klitmus/litmus000.c: In function =E2=80=98code1=E2=80=99=
+:
+/home/akira/bpf-rb/klitmus/litmus000.c:426:14: error: passing argument 1 =
+of =E2=80=98atomic_inc=E2=80=99
+  from incompatible pointer type [-Werror=3Dincompatible-pointer-types]
+   atomic_inc(dropped);
+              ^~~~~~~
+In file included from ./arch/x86/include/asm/atomic.h:265:0,
+                 from ./arch/x86/include/asm/msr.h:67,
+                 from ./arch/x86/include/asm/processor.h:21,
+                 from ./arch/x86/include/asm/cpufeature.h:5,
+                 from ./arch/x86/include/asm/thread_info.h:53,
+                 from ./include/linux/thread_info.h:38,
+                 from ./arch/x86/include/asm/preempt.h:7,
+                 from ./include/linux/preempt.h:78,
+                 from ./include/linux/spinlock.h:51,
+                 from ./include/linux/seqlock.h:36,
+                 from ./include/linux/time.h:6,
+                 from ./include/linux/stat.h:19,
+                 from ./include/linux/module.h:10,
+                 from /home/akira/bpf-rb/klitmus/litmus000.c:11:
+=2E/include/asm-generic/atomic-instrumented.h:237:1: note: expected =E2=80=
+=98atomic_t * {aka struct <anonymous> *}=E2=80=99 but argument is of type=
+ =E2=80=98int *=E2=80=99
+ atomic_inc(atomic_t *v)
+ ^~~~~~~~~~
+In file included from ./include/linux/export.h:45:0,
+                 from ./include/linux/linkage.h:7,
+                 from ./include/linux/kernel.h:8,
+                 from ./include/linux/list.h:9,
+                 from ./include/linux/module.h:9,
+                 from /home/akira/bpf-rb/klitmus/litmus000.c:11:
+/home/akira/bpf-rb/klitmus/litmus000.c: In function =E2=80=98thread0=E2=80=
+=99:
+=2E/include/linux/compiler.h:187:26: warning: =E2=80=98rLenPtr=E2=80=99 m=
+ay be used uninitialized in this function [-Wmaybe-uninitialized]
+  case 4: *(__u32 *)res =3D *(volatile __u32 *)p; break;  \
+                          ^
+/home/akira/bpf-rb/klitmus/litmus000.c:365:7: note: =E2=80=98rLenPtr=E2=80=
+=99 was declared here
+  int *rLenPtr;
+       ^~~~~~~
+In file included from ./include/linux/export.h:45:0,
+                 from ./include/linux/linkage.h:7,
+                 from ./include/linux/kernel.h:8,
+                 from ./include/linux/list.h:9,
+                 from ./include/linux/module.h:9,
+                 from /home/akira/bpf-rb/klitmus/litmus000.c:11:
+/home/akira/bpf-rb/klitmus/litmus000.c: In function =E2=80=98thread1=E2=80=
+=99:
+=2E/include/linux/compiler.h:225:31: warning: =E2=80=98rLenPtr=E2=80=99 m=
+ay be used uninitialized in this function [-Wmaybe-uninitialized]
+  case 4: *(volatile __u32 *)p =3D *(__u32 *)res; break;
+          ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~
+/home/akira/bpf-rb/klitmus/litmus000.c:417:7: note: =E2=80=98rLenPtr=E2=80=
+=99 was declared here
+  int *rLenPtr;
+       ^~~~~~~
+cc1: some warnings being treated as errors
+scripts/Makefile.build:288: recipe for target '/home/akira/bpf-rb/klitmus=
+/litmus000.o' failed
+make[2]: *** [/home/akira/bpf-rb/klitmus/litmus000.o] Error 1
+Makefile:1656: recipe for target '_module_/home/akira/bpf-rb/klitmus' fai=
+led
+make[1]: *** [_module_/home/akira/bpf-rb/klitmus] Error 2
+make[1]: Leaving directory '/usr/src/linux-headers-5.3.0-53-generic'
+Makefile:8: recipe for target 'all' failed
+make: *** [all] Error 2
+
+Appended below is a patch I applied to mpsc-rb+1p1c+bounded.litmus to mak=
+e
+herd7 HEAD and klitmus7 happy. (Give or take the redundant memory barrier=
+=2E)
+
+The other variants need similar changes.
+
+What I did here are:
+
+    - Remove unnecessary initialization (shared variables are 0 by defaul=
+t)
+    - Declare "dropped" as atomic_t
+    - Promote rLenPtr to a shared variable LenPtr
+
+Please note that if you are on Linux 5.6 (or later), you need an up-to-da=
+te
+klitmus7 due to a change in kernel API.
+
+Any question is welcome!
+
+        Thanks, Akira
+
+-----------------------
+diff --git a/mpsc-rb+1p1c+bounded.litmus b/mpsc-rb+1p1c+bounded.litmus
+index cafd17a..5af43c1 100644
+--- a/mpsc-rb+1p1c+bounded.litmus
++++ b/mpsc-rb+1p1c+bounded.litmus
+@@ -17,15 +17,11 @@ C mpsc-rb+1p1c+bounded
+=20
+ {
+ 	max_len =3D 1;
+-	len1 =3D 0;
+-	px =3D 0;
+-	cx =3D 0;
+-	dropped =3D 0;
++	atomic_t dropped;
  }
--EXPORT_SYMBOL(flush_icache_page);
- 
- void flush_icache_user_range(struct vm_area_struct *vma, struct page *page,
- 	                     unsigned long addr, int len)
--- 
-2.26.2
+=20
+-P0(int *len1, int *cx, int *px)
++P0(int *len1, int *cx, int *px, int *LenPtr)
+ {
+-	int *rLenPtr;
+ 	int rLen;
+ 	int rPx;
+ 	int rCx;
+@@ -37,11 +33,11 @@ P0(int *len1, int *cx, int *px)
+ 	rPx =3D smp_load_acquire(px);
+ 	if (rCx < rPx) {
+ 		if (rCx =3D=3D 0)
+-			rLenPtr =3D len1;
++			LenPtr =3D len1;
+ 		else
+ 			rFail =3D 1;
+=20
+-		rLen =3D smp_load_acquire(rLenPtr);
++		rLen =3D smp_load_acquire(LenPtr);
+ 		if (rLen =3D=3D 0) {
+ 			rFail =3D 1;
+ 		} else if (rLen =3D=3D 1) {
+@@ -51,12 +47,11 @@ P0(int *len1, int *cx, int *px)
+ 	}
+ }
+=20
+-P1(int *len1, spinlock_t *rb_lock, int *px, int *cx, int *dropped, int *=
+max_len)
++P1(int *len1, spinlock_t *rb_lock, int *px, int *cx, atomic_t *dropped, =
+int *max_len, int *LenPtr)
+ {
+ 	int rPx;
+ 	int rCx;
+ 	int rFail;
+-	int *rLenPtr;
+=20
+ 	rFail =3D 0;
+ 	rCx =3D smp_load_acquire(cx);
+@@ -69,17 +64,17 @@ P1(int *len1, spinlock_t *rb_lock, int *px, int *cx, =
+int *dropped, int *max_len)
+ 		spin_unlock(rb_lock);
+ 	} else {
+ 		if (rPx =3D=3D 0)
+-			rLenPtr =3D len1;
++			LenPtr =3D len1;
+ 		else
+ 			rFail =3D 1;
+=20
+-		*rLenPtr =3D -1;
++		*LenPtr =3D -1;
+ 		smp_wmb();
+ 		smp_store_release(px, rPx + 1);
+=20
+ 		spin_unlock(rb_lock);
+=20
+-		smp_store_release(rLenPtr, 1);
++		smp_store_release(LenPtr, 1);
+ 	}
+ }
+=20
+----------------
