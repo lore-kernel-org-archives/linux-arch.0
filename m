@@ -1,196 +1,215 @@
-Return-Path: <SRS0=Roe3=6Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtp-190d.mail.infomaniak.ch ([185.125.25.13]:53905 "EHLO
-        smtp-190d.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728613AbgEKTWJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 May 2020 15:22:09 -0400
-From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-Subject: [PATCH v17 00/10] Landlock LSM
-Date: Mon, 11 May 2020 21:21:46 +0200
-Message-ID: <20200511192156.1618284-1-mic@digikod.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Return-Path: <SRS0=dWpV=7G=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:48866 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727027AbgEXQAx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 24 May 2020 12:00:53 -0400
+From: guoren@kernel.org
+Subject: [PATCH 3/3] csky: Coding convention in entry.S
+Date: Sun, 24 May 2020 15:59:24 +0000
+Message-ID: <1590335964-79023-3-git-send-email-guoren@kernel.org>
+In-Reply-To: <1590335964-79023-1-git-send-email-guoren@kernel.org>
+References: <1590335964-79023-1-git-send-email-guoren@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
-Message-ID: <20200511192146.zJFcEj3N6HorAuUWR00Wzawk6YRrNa_W5mUr9bqVFTo@z>
+To: linux-csky@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arnd.de, Guo Ren <guoren@linux.alibaba.com>
+Message-ID: <20200524155924.ODmO3tFNp3lx-QJ8FTPXbjp7TaeR_i0kWoxT_FC60uc@z>
 
-Hi,
+From: Guo Ren <guoren@linux.alibaba.com>
 
-This new patch series brings some improvements and add new tests:
+There is no fixup or feature in the patch, we only cleanup with:
 
-Use smaller userspace structures (attributes) to save space, and check
-at built time that every attribute don't contain hole and are 8-bits
-aligned.
+ - Remove unnecessary reg used (r11, r12), just use r9 & r10 &
+   syscallid regs as temp useage.
+ - Add _TIF_SYSCALL_WORK and _TIF_WORK_MASK to gather macros.
 
-Allow enforcement of empty ruleset, which enables deny-all policies
-(useful for strict sandboxes).
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+---
+ arch/csky/abiv1/inc/abi/entry.h     |  5 ---
+ arch/csky/abiv2/inc/abi/entry.h     |  5 ---
+ arch/csky/include/asm/thread_info.h |  6 ++++
+ arch/csky/kernel/entry.S            | 66 ++++++++++++++++++++-----------------
+ 4 files changed, 42 insertions(+), 40 deletions(-)
 
-I found that UML may not keep the same internal struct inode for an open
-file.  Because the Landlock filesystem access-control relies on internal
-kernel states, special architectures such as UML can't support Landlock.
-Add a new ARCH_EPHEMERAL_STATES to identify such architectures.
-
-Add a size_attr_features field to struct landlock_attr_features for
-self-introspection
-
-Switch syscall attribute pointer and size arguments to follow similar
-syscalls argument order (e.g. bpf, clone3, openat2).
-
-
-The SLOC count is 1288 for security/landlock/ and 1740 for
-tools/testing/selftest/landlock/ .  Test coverage for security/landlock/
-is 93.6% of lines.  The code not covered only deals with internal kernel
-errors (e.g. memory allocation) and race conditions.
-
-The compiled documentation is available here:
-https://landlock.io/linux-doc/landlock-v17/security/landlock/index.html
-
-This series can be applied on top of v5.7-rc5.  This can be tested with
-CONFIG_SECURITY_LANDLOCK and CONFIG_SAMPLE_LANDLOCK.  This patch series
-can be found in a Git repository here:
-https://github.com/landlock-lsm/linux/commits/landlock-v17
-I would really appreciate constructive comments on this patch series.
-
-
-# Landlock LSM
-
-The goal of Landlock is to enable to restrict ambient rights (e.g.
-global filesystem access) for a set of processes.  Because Landlock is a
-stackable LSM [2], it makes possible to create safe security sandboxes
-as new security layers in addition to the existing system-wide
-access-controls. This kind of sandbox is expected to help mitigate the
-security impact of bugs or unexpected/malicious behaviors in user-space
-applications. Landlock empowers any process, including unprivileged
-ones, to securely restrict themselves.
-
-Landlock is inspired by seccomp-bpf but instead of filtering syscalls
-and their raw arguments, a Landlock rule can restrict the use of kernel
-objects like file hierarchies, according to the kernel semantic.
-Landlock also takes inspiration from other OS sandbox mechanisms: XNU
-Sandbox, FreeBSD Capsicum or OpenBSD Pledge/Unveil.
-
-
-Previous version:
-https://lore.kernel.org/lkml/20200416103955.145757-1-mic@digikod.net/
-
-
-[1] https://lore.kernel.org/lkml/e07fe473-1801-01cc-12ae-b3167f95250e@digikod.net/
-[2] https://lore.kernel.org/lkml/50db058a-7dde-441b-a7f9-f6837fe8b69f@schaufler-ca.com/
-
-Regards,
-
-Mickaël Salaün (10):
-  landlock: Add object management
-  landlock: Add ruleset and domain management
-  landlock: Set up the security framework and manage credentials
-  landlock: Add ptrace restrictions
-  fs,landlock: Support filesystem access-control
-  landlock: Add syscall implementation
-  arch: Wire up landlock() syscall
-  selftests/landlock: Add initial tests
-  samples/landlock: Add a sandbox manager example
-  landlock: Add user and kernel documentation
-
- Documentation/security/index.rst              |    1 +
- Documentation/security/landlock/index.rst     |   18 +
- Documentation/security/landlock/kernel.rst    |   69 +
- Documentation/security/landlock/user.rst      |  268 +++
- MAINTAINERS                                   |   12 +
- arch/Kconfig                                  |    7 +
- arch/alpha/kernel/syscalls/syscall.tbl        |    1 +
- arch/arm/tools/syscall.tbl                    |    1 +
- arch/arm64/include/asm/unistd.h               |    2 +-
- arch/arm64/include/asm/unistd32.h             |    2 +
- arch/ia64/kernel/syscalls/syscall.tbl         |    1 +
- arch/m68k/kernel/syscalls/syscall.tbl         |    1 +
- arch/microblaze/kernel/syscalls/syscall.tbl   |    1 +
- arch/mips/kernel/syscalls/syscall_n32.tbl     |    1 +
- arch/mips/kernel/syscalls/syscall_n64.tbl     |    1 +
- arch/mips/kernel/syscalls/syscall_o32.tbl     |    1 +
- arch/parisc/kernel/syscalls/syscall.tbl       |    1 +
- arch/powerpc/kernel/syscalls/syscall.tbl      |    1 +
- arch/s390/kernel/syscalls/syscall.tbl         |    1 +
- arch/sh/kernel/syscalls/syscall.tbl           |    1 +
- arch/sparc/kernel/syscalls/syscall.tbl        |    1 +
- arch/um/Kconfig                               |    1 +
- arch/x86/entry/syscalls/syscall_32.tbl        |    1 +
- arch/x86/entry/syscalls/syscall_64.tbl        |    1 +
- arch/xtensa/kernel/syscalls/syscall.tbl       |    1 +
- fs/super.c                                    |    2 +
- include/linux/fs.h                            |    5 +
- include/linux/landlock.h                      |   22 +
- include/linux/syscalls.h                      |    3 +
- include/uapi/asm-generic/unistd.h             |    4 +-
- include/uapi/linux/landlock.h                 |  302 +++
- kernel/sys_ni.c                               |    3 +
- samples/Kconfig                               |    7 +
- samples/Makefile                              |    1 +
- samples/landlock/.gitignore                   |    1 +
- samples/landlock/Makefile                     |   15 +
- samples/landlock/sandboxer.c                  |  228 +++
- security/Kconfig                              |   11 +-
- security/Makefile                             |    2 +
- security/landlock/Kconfig                     |   18 +
- security/landlock/Makefile                    |    4 +
- security/landlock/common.h                    |   20 +
- security/landlock/cred.c                      |   46 +
- security/landlock/cred.h                      |   58 +
- security/landlock/fs.c                        |  601 ++++++
- security/landlock/fs.h                        |   42 +
- security/landlock/object.c                    |   66 +
- security/landlock/object.h                    |   91 +
- security/landlock/ptrace.c                    |  120 ++
- security/landlock/ptrace.h                    |   14 +
- security/landlock/ruleset.c                   |  342 ++++
- security/landlock/ruleset.h                   |  161 ++
- security/landlock/setup.c                     |   39 +
- security/landlock/setup.h                     |   18 +
- security/landlock/syscall.c                   |  532 +++++
- tools/testing/selftests/Makefile              |    1 +
- tools/testing/selftests/landlock/.gitignore   |    2 +
- tools/testing/selftests/landlock/Makefile     |   29 +
- tools/testing/selftests/landlock/base_test.c  |  170 ++
- tools/testing/selftests/landlock/common.h     |  108 +
- tools/testing/selftests/landlock/config       |    5 +
- tools/testing/selftests/landlock/fs_test.c    | 1729 +++++++++++++++++
- .../testing/selftests/landlock/ptrace_test.c  |  293 +++
- tools/testing/selftests/landlock/true.c       |    5 +
- 64 files changed, 5509 insertions(+), 7 deletions(-)
- create mode 100644 Documentation/security/landlock/index.rst
- create mode 100644 Documentation/security/landlock/kernel.rst
- create mode 100644 Documentation/security/landlock/user.rst
- create mode 100644 include/linux/landlock.h
- create mode 100644 include/uapi/linux/landlock.h
- create mode 100644 samples/landlock/.gitignore
- create mode 100644 samples/landlock/Makefile
- create mode 100644 samples/landlock/sandboxer.c
- create mode 100644 security/landlock/Kconfig
- create mode 100644 security/landlock/Makefile
- create mode 100644 security/landlock/common.h
- create mode 100644 security/landlock/cred.c
- create mode 100644 security/landlock/cred.h
- create mode 100644 security/landlock/fs.c
- create mode 100644 security/landlock/fs.h
- create mode 100644 security/landlock/object.c
- create mode 100644 security/landlock/object.h
- create mode 100644 security/landlock/ptrace.c
- create mode 100644 security/landlock/ptrace.h
- create mode 100644 security/landlock/ruleset.c
- create mode 100644 security/landlock/ruleset.h
- create mode 100644 security/landlock/setup.c
- create mode 100644 security/landlock/setup.h
- create mode 100644 security/landlock/syscall.c
- create mode 100644 tools/testing/selftests/landlock/.gitignore
- create mode 100644 tools/testing/selftests/landlock/Makefile
- create mode 100644 tools/testing/selftests/landlock/base_test.c
- create mode 100644 tools/testing/selftests/landlock/common.h
- create mode 100644 tools/testing/selftests/landlock/config
- create mode 100644 tools/testing/selftests/landlock/fs_test.c
- create mode 100644 tools/testing/selftests/landlock/ptrace_test.c
- create mode 100644 tools/testing/selftests/landlock/true.c
-
+diff --git a/arch/csky/abiv1/inc/abi/entry.h b/arch/csky/abiv1/inc/abi/entry.h
+index b3559db..13c23e2 100644
+--- a/arch/csky/abiv1/inc/abi/entry.h
++++ b/arch/csky/abiv1/inc/abi/entry.h
+@@ -174,9 +174,4 @@
+ 	movi	r6, 0
+ 	cpwcr	r6, cpcr31
+ .endm
+-
+-.macro ANDI_R3 rx, imm
+-	lsri	\rx, 3
+-	andi	\rx, (\imm >> 3)
+-.endm
+ #endif /* __ASM_CSKY_ENTRY_H */
+diff --git a/arch/csky/abiv2/inc/abi/entry.h b/arch/csky/abiv2/inc/abi/entry.h
+index 6ee71bf..4fdd6c1 100644
+--- a/arch/csky/abiv2/inc/abi/entry.h
++++ b/arch/csky/abiv2/inc/abi/entry.h
+@@ -302,9 +302,4 @@
+ 	jmpi	3f /* jump to va */
+ 3:
+ .endm
+-
+-.macro ANDI_R3 rx, imm
+-	lsri	\rx, 3
+-	andi	\rx, (\imm >> 3)
+-.endm
+ #endif /* __ASM_CSKY_ENTRY_H */
+diff --git a/arch/csky/include/asm/thread_info.h b/arch/csky/include/asm/thread_info.h
+index 5c61e84..8980e4e 100644
+--- a/arch/csky/include/asm/thread_info.h
++++ b/arch/csky/include/asm/thread_info.h
+@@ -81,4 +81,10 @@ static inline struct thread_info *current_thread_info(void)
+ #define _TIF_RESTORE_SIGMASK	(1 << TIF_RESTORE_SIGMASK)
+ #define _TIF_SECCOMP		(1 << TIF_SECCOMP)
+ 
++#define _TIF_WORK_MASK		(_TIF_NEED_RESCHED | _TIF_SIGPENDING | \
++				 _TIF_NOTIFY_RESUME | _TIF_UPROBE)
++
++#define _TIF_SYSCALL_WORK	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | \
++				 _TIF_SYSCALL_TRACEPOINT)
++
+ #endif	/* _ASM_CSKY_THREAD_INFO_H */
+diff --git a/arch/csky/kernel/entry.S b/arch/csky/kernel/entry.S
+index 76dc729..9595e86 100644
+--- a/arch/csky/kernel/entry.S
++++ b/arch/csky/kernel/entry.S
+@@ -134,31 +134,32 @@ ENTRY(csky_systemcall)
+ #endif
+ 	psrset  ee, ie
+ 
+-	lrw     r11, __NR_syscalls
+-	cmphs   syscallid, r11		/* Check nr of syscall */
++	lrw     r9, __NR_syscalls
++	cmphs   syscallid, r9		/* Check nr of syscall */
+ 	bt      ret_from_exception
+ 
+-	lrw     r13, sys_call_table
+-	ixw     r13, syscallid
+-	ldw     r11, (r13)
+-	cmpnei  r11, 0
++	lrw     r9, sys_call_table
++	ixw     r9, syscallid
++	ldw     syscallid, (r9)
++	cmpnei  syscallid, 0
+ 	bf      ret_from_exception
+ 
+ 	mov     r9, sp
+ 	bmaski  r10, THREAD_SHIFT
+ 	andn    r9, r10
+-	ldw     r12, (r9, TINFO_FLAGS)
+-	ANDI_R3	r12, (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_AUDIT)
+-	cmpnei	r12, 0
++	ldw     r10, (r9, TINFO_FLAGS)
++	lrw	r9, _TIF_SYSCALL_WORK
++	and	r10, r9
++	cmpnei	r10, 0
+ 	bt      csky_syscall_trace
+ #if defined(__CSKYABIV2__)
+ 	subi    sp, 8
+ 	stw  	r5, (sp, 0x4)
+ 	stw  	r4, (sp, 0x0)
+-	jsr     r11                      /* Do system call */
++	jsr     syscallid                      /* Do system call */
+ 	addi 	sp, 8
+ #else
+-	jsr     r11
++	jsr     syscallid
+ #endif
+ 	stw     a0, (sp, LSAVE_A0)      /* Save return value */
+ 	jmpi    ret_from_exception
+@@ -177,13 +178,12 @@ csky_syscall_trace:
+ 	stw	r9, (sp, 0x0)
+ 	ldw	r9, (sp, LSAVE_A5)
+ 	stw	r9, (sp, 0x4)
++	jsr	syscallid                     /* Do system call */
++	addi	sp, 8
+ #else
+ 	ldw	r6, (sp, LSAVE_A4)
+ 	ldw	r7, (sp, LSAVE_A5)
+-#endif
+-	jsr	r11                     /* Do system call */
+-#if defined(__CSKYABIV2__)
+-	addi	sp, 8
++	jsr	syscallid                     /* Do system call */
+ #endif
+ 	stw	a0, (sp, LSAVE_A0)	/* Save return value */
+ 
+@@ -202,18 +202,20 @@ ENTRY(ret_from_fork)
+ 	mov	r9, sp
+ 	bmaski	r10, THREAD_SHIFT
+ 	andn	r9, r10
+-	ldw	r12, (r9, TINFO_FLAGS)
+-	ANDI_R3	r12, (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_AUDIT)
+-	cmpnei	r12, 0
++	ldw	r10, (r9, TINFO_FLAGS)
++	lrw	r9, _TIF_SYSCALL_WORK
++	and	r10, r9
++	cmpnei	r10, 0
+ 	bf	ret_from_exception
+ 	mov	a0, sp			/* sp = pt_regs pointer */
+ 	jbsr	syscall_trace_exit
+ 
+ ret_from_exception:
+ 	psrclr	ie
+-	ld	syscallid, (sp, LSAVE_PSR)
+-	btsti	syscallid, 31
++	ld	r9, (sp, LSAVE_PSR)
++	btsti	r9, 31
+ 
++	bt	1f
+ 	/*
+ 	 * Load address of current->thread_info, Then get address of task_struct
+ 	 * Get task_needreshed in task_struct
+@@ -222,15 +224,19 @@ ret_from_exception:
+ 	bmaski	r10, THREAD_SHIFT
+ 	andn	r9, r10
+ 
+-	bt	1f
+-	ldw	r12, (r9, TINFO_FLAGS)
+-	andi	r12, (_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_NEED_RESCHED | _TIF_UPROBE)
+-	cmpnei	r12, 0
++	ldw	r10, (r9, TINFO_FLAGS)
++	lrw	r9, _TIF_WORK_MASK
++	and	r10, r9
++	cmpnei	r10, 0
+ 	bt	exit_work
+ 1:
+ #ifdef CONFIG_PREEMPTION
+-	ldw	r12, (r9, TINFO_PREEMPT)
+-	cmpnei	r12, 0
++	mov	r9, sp
++	bmaski	r10, THREAD_SHIFT
++	andn	r9, r10
++
++	ldw	r10, (r9, TINFO_PREEMPT)
++	cmpnei	r10, 0
+ 	bt	2f
+ 	jbsr	preempt_schedule_irq	/* irq en/disable is done inside */
+ 2:
+@@ -246,15 +252,15 @@ ret_from_exception:
+ 	RESTORE_ALL
+ 
+ exit_work:
+-	lrw	syscallid, ret_from_exception
+-	mov	lr, syscallid
++	lrw	r9, ret_from_exception
++	mov	lr, r9
+ 
+-	btsti	r12, TIF_NEED_RESCHED
++	btsti	r10, TIF_NEED_RESCHED
+ 	bt	work_resched
+ 
+ 	psrset	ie
+ 	mov	a0, sp
+-	mov	a1, r12
++	mov	a1, r10
+ 	jmpi	do_notify_resume
+ 
+ work_resched:
 -- 
-2.26.2
+2.7.4
