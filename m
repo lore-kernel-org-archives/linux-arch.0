@@ -1,220 +1,278 @@
-From: Syed Nayyar Waris <syednwaris@gmail.com>
-Subject: [PATCH v7 1/4] bitops: Introduce the the for_each_set_clump macro
-Date: Sun, 24 May 2020 10:31:58 +0530
-Message-ID: <17cb2b080b9c4c36cf84436bc5690739590acc53.1590017578.git.syednwaris@gmail.com>
-References: <cover.1590017578.git.syednwaris@gmail.com>
+From: Akira Yokosawa <akiyks@gmail.com>
+Subject: Re: Some -serious- BPF-related litmus tests
+Date: Sun, 24 May 2020 21:09:14 +0900
+Message-ID: <ac799c98-45dd-d056-386f-cbebc7270c0c@gmail.com>
+References: <20200522003850.GA32698@paulmck-ThinkPad-P72>
+ <20200522094407.GK325280@hirez.programming.kicks-ass.net>
+ <20200522143201.GB32434@rowland.harvard.edu>
+ <20200522174352.GJ2869@paulmck-ThinkPad-P72>
+ <006e2bc6-7516-1584-3d8c-e253211c157e@fb.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <cover.1590017578.git.syednwaris@gmail.com>
+In-Reply-To: <006e2bc6-7516-1584-3d8c-e253211c157e@fb.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: linus.walleij@linaro.org, akpm@linux-foundation.org
-Cc: andriy.shevchenko@linux.intel.com, vilhelm.gray@gmail.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Andrii Nakryiko <andriin@fb.com>, paulmck@kernel.org
+Cc: Alan Stern <stern@rowland.harvard.edu>, Peter Zijlstra <peterz@infradead.org>, parri.andrea@gmail.com, will@kernel.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, dlustig@nvidia.com, joel@joelfernandes.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "andrii.nakryiko@gmail.com" <andrii.nakryiko@gmail.com>, Akira Yokosawa <akiyks@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-This macro iterates for each group of bits (clump) with set bits,
-within a bitmap memory region. For each iteration, "start" is set to
-the bit offset of the found clump, while the respective clump value is
-stored to the location pointed by "clump". Additionally, the
-bitmap_get_value and bitmap_set_value functions are introduced to
-respectively get and set a value of n-bits in a bitmap memory region.
-The n-bits can have any size less than or equal to BITS_PER_LONG.
-Moreover, during setting value of n-bit in bitmap, if a situation arise
-that the width of next n-bit is exceeding the word boundary, then it
-will divide itself such that some portion of it is stored in that word,
-while the remaining portion is stored in the next higher word. Similar
-situation occurs while retrieving value of n-bits from bitmap.
+On Fri, 22 May 2020 12:38:21 -0700, Andrii Nakryiko wrote:
+> On 5/22/20 10:43 AM, Paul E. McKenney wrote:
+>> On Fri, May 22, 2020 at 10:32:01AM -0400, Alan Stern wrote:
+>>> On Fri, May 22, 2020 at 11:44:07AM +0200, Peter Zijlstra wrote:
+>>>> On Thu, May 21, 2020 at 05:38:50PM -0700, Paul E. McKenney wrote:
+>>>>> Hello!
+>>>>>
+>>>>> Just wanted to call your attention to some pretty cool and pretty s=
+erious
+>>>>> litmus tests that Andrii did as part of his BPF ring-buffer work:
+>>>>>
+>>>>> https://lore.kernel.org/bpf/20200517195727.279322-3-andriin@fb.com/=
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Syed Nayyar Waris <syednwaris@gmail.com>
-Reviewed-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
----
-Changes in v7:
- - No change.
+>>>>>
+>>>>> Thoughts?
+>>>>
+>>>> I find:
+>>>>
+>>>> =C2=A0=C2=A0=C2=A0=C2=A0smp_wmb()
+>>>> =C2=A0=C2=A0=C2=A0=C2=A0smp_store_release()
+>>>>
+>>>> a _very_ weird construct. What is that supposed to even do?
+>>>
+>>> Indeed, it looks like one or the other of those is redundant (dependi=
+ng
+>>> on the context).
+>>
+>> Probably.=C2=A0 Peter instead asked what it was supposed to even do.=C2=
+=A0 ;-)
+>=20
+> I agree, I think smp_wmb() is redundant here. Can't remember why I thou=
+ght that it's necessary, this algorithm went through a bunch of iteration=
+s, starting as completely lockless, also using READ_ONCE/WRITE_ONCE at so=
+me point, and settling on smp_read_acquire/smp_store_release, eventually.=
+ Maybe there was some reason, but might be that I was just over-cautious.=
+ See reply on patch thread as well ([0]).
+>=20
+> =C2=A0 [0] https://lore.kernel.org/bpf/CAEf4Bza26AbRMtWcoD5+TFhnmnU6p5Y=
+J8zO+SoAJCDtp1jVhcQ@mail.gmail.com/
+>=20
+>=20
+>>
+>>> Also, what use is a spinlock that is accessed in only one thread?
+>>
+>> Multiple writers synchronize via the spinlock in this case.=C2=A0 I am=
 
-Changes in v6:
- - No change.
+>> guessing that his larger 16-hour test contended this spinlock.
+>=20
+> Yes, spinlock is for coordinating multiple producers. 2p1c cases (bound=
+ed and unbounded) rely on this already. 1p1c cases are sort of subsets (b=
+ut very fast to verify) checking only consumer/producer interaction.
+>=20
+>>
+>>> Finally, I doubt that these tests belong under tools/memory-model.
+>>> Shouldn't they go under the new Documentation/ directory for litmus
+>>> tests?=C2=A0 And shouldn't the patch update a README file?
+>>
+>> Agreed, and I responded to that effect to his original patch:
+>>
+>> https://lore.kernel.org/bpf/20200522003433.GG2869@paulmck-ThinkPad-P72=
+/
+>=20
+> Yep, makes sense, I'll will move.
 
-Changes in v5:
- - No change.
+Hi Andrii,
 
-Changes in v4:
- - No change.
+Andrea reported off-the-list that your litmus tests are incompatible
+with the to-be-released version 7.56 of herd7 and currently available
+versions of klitmus7.
 
-Changes in v3:
- - No change.
+This is due to a couple of C-language level issues.
 
-Changes in v2:
- - No change.
+herd7 used to be fairly generous in parsing C litmus tests.
+On the other hand, klitmus7 converts a litmus test into a
+kernel module.  The converted code is built by an actual C compiler
+with kernel headers included, and can fail to build due to syntax errors
+or serious warnings.
+herd7 HEAD is getting slightly stricter on uninitialized variable and
+it emits an error to mpsc-rb+1p1c+bounded.litmus:
 
- include/asm-generic/bitops/find.h | 19 ++++++++++
- include/linux/bitmap.h            | 61 +++++++++++++++++++++++++++++++
- include/linux/bitops.h            | 13 +++++++
- lib/find_bit.c                    | 14 +++++++
- 4 files changed, 107 insertions(+)
+Warning: File "mpsc-rb+1p1c+bounded.litmus": read on location 0 does not =
+match any write
 
-diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
-index 9fdf21302fdf..4e6600759455 100644
---- a/include/asm-generic/bitops/find.h
-+++ b/include/asm-generic/bitops/find.h
-@@ -97,4 +97,23 @@ extern unsigned long find_next_clump8(unsigned long *clump,
- #define find_first_clump8(clump, bits, size) \
- 	find_next_clump8((clump), (bits), (size), 0)
- 
-+/**
-+ * find_next_clump - find next clump with set bits in a memory region
-+ * @clump: location to store copy of found clump
-+ * @addr: address to base the search on
-+ * @size: bitmap size in number of bits
-+ * @offset: bit offset at which to start searching
-+ * @clump_size: clump size in bits
-+ *
-+ * Returns the bit offset for the next set clump; the found clump value is
-+ * copied to the location pointed by @clump. If no bits are set, returns @size.
-+ */
-+extern unsigned long find_next_clump(unsigned long *clump,
-+				      const unsigned long *addr,
-+				      unsigned long size, unsigned long offset,
-+				      unsigned long clump_size);
-+
-+#define find_first_clump(clump, bits, size, clump_size) \
-+	find_next_clump((clump), (bits), (size), 0, (clump_size))
-+
- #endif /*_ASM_GENERIC_BITOPS_FIND_H_ */
-diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
-index 99058eb81042..7ab2c65fc964 100644
---- a/include/linux/bitmap.h
-+++ b/include/linux/bitmap.h
-@@ -75,7 +75,11 @@
-  *  bitmap_from_arr32(dst, buf, nbits)          Copy nbits from u32[] buf to dst
-  *  bitmap_to_arr32(buf, src, nbits)            Copy nbits from buf to u32[] dst
-  *  bitmap_get_value8(map, start)               Get 8bit value from map at start
-+ *  bitmap_get_value(map, start, nbits)		Get bit value of size
-+ *						'nbits' from map at start
-  *  bitmap_set_value8(map, value, start)        Set 8bit value to map at start
-+ *  bitmap_set_value(map, value, start, nbits)	Set bit value of size 'nbits'
-+ *						of map at start
-  *
-  * Note, bitmap_zero() and bitmap_fill() operate over the region of
-  * unsigned longs, that is, bits behind bitmap till the unsigned long
-@@ -563,6 +567,34 @@ static inline unsigned long bitmap_get_value8(const unsigned long *map,
- 	return (map[index] >> offset) & 0xFF;
- }
- 
-+/**
-+ * bitmap_get_value - get a value of n-bits from the memory region
-+ * @map: address to the bitmap memory region
-+ * @start: bit offset of the n-bit value
-+ * @nbits: size of value in bits
-+ *
-+ * Returns value of nbits located at the @start bit offset within the @map
-+ * memory region.
-+ */
-+static inline unsigned long bitmap_get_value(const unsigned long *map,
-+					      unsigned long start,
-+					      unsigned long nbits)
-+{
-+	const size_t index = BIT_WORD(start);
-+	const unsigned long offset = start % BITS_PER_LONG;
-+	const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
-+	const unsigned long space = ceiling - start;
-+	unsigned long value_low, value_high;
-+
-+	if (space >= nbits)
-+		return (map[index] >> offset) & GENMASK(nbits - 1, 0);
-+	else {
-+		value_low = map[index] & BITMAP_FIRST_WORD_MASK(start);
-+		value_high = map[index + 1] & BITMAP_LAST_WORD_MASK(start + nbits);
-+		return (value_low >> offset) | (value_high << space);
-+	}
-+}
-+
- /**
-  * bitmap_set_value8 - set an 8-bit value within a memory region
-  * @map: address to the bitmap memory region
-@@ -579,6 +611,35 @@ static inline void bitmap_set_value8(unsigned long *map, unsigned long value,
- 	map[index] |= value << offset;
- }
- 
-+/**
-+ * bitmap_set_value - set n-bit value within a memory region
-+ * @map: address to the bitmap memory region
-+ * @value: value of nbits
-+ * @start: bit offset of the n-bit value
-+ * @nbits: size of value in bits
-+ */
-+static inline void bitmap_set_value(unsigned long *map,
-+				    unsigned long value,
-+				    unsigned long start, unsigned long nbits)
-+{
-+	const size_t index = BIT_WORD(start);
-+	const unsigned long offset = start % BITS_PER_LONG;
-+	const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
-+	const unsigned long space = ceiling - start;
-+
-+	value &= GENMASK(nbits - 1, 0);
-+
-+	if (space >= nbits) {
-+		map[index] &= ~(GENMASK(nbits + offset - 1, offset));
-+		map[index] |= value << offset;
-+	} else {
-+		map[index] &= ~BITMAP_FIRST_WORD_MASK(start);
-+		map[index] |= value << offset;
-+		map[index + 1] &= ~BITMAP_LAST_WORD_MASK(start + nbits);
-+		map[index + 1] |= (value >> space);
-+	}
-+}
-+
- #endif /* __ASSEMBLY__ */
- 
- #endif /* __LINUX_BITMAP_H */
-diff --git a/include/linux/bitops.h b/include/linux/bitops.h
-index 9acf654f0b19..41c2d9ce63e7 100644
---- a/include/linux/bitops.h
-+++ b/include/linux/bitops.h
-@@ -62,6 +62,19 @@ extern unsigned long __sw_hweight64(__u64 w);
- 	     (start) < (size); \
- 	     (start) = find_next_clump8(&(clump), (bits), (size), (start) + 8))
- 
-+/**
-+ * for_each_set_clump - iterate over bitmap for each clump with set bits
-+ * @start: bit offset to start search and to store the current iteration offset
-+ * @clump: location to store copy of current 8-bit clump
-+ * @bits: bitmap address to base the search on
-+ * @size: bitmap size in number of bits
-+ * @clump_size: clump size in bits
-+ */
-+#define for_each_set_clump(start, clump, bits, size, clump_size) \
-+	for ((start) = find_first_clump(&(clump), (bits), (size), (clump_size)); \
-+	     (start) < (size); \
-+	     (start) = find_next_clump(&(clump), (bits), (size), (start) + (clump_size), (clump_size)))
-+
- static inline int get_bitmask_order(unsigned int count)
+Converted code by klitmus7 fails to build with the following warning mess=
+ages:
+
+$ make
+make -C /lib/modules/5.3.0-53-generic/build/ M=3D/home/akira/bpf-rb/klitm=
+us modules
+make[1]: Entering directory '/usr/src/linux-headers-5.3.0-53-generic'
+  CC [M]  /home/akira/bpf-rb/klitmus/litmus000.o
+/home/akira/bpf-rb/klitmus/litmus000.c: In function =E2=80=98code1=E2=80=99=
+:
+/home/akira/bpf-rb/klitmus/litmus000.c:426:14: error: passing argument 1 =
+of =E2=80=98atomic_inc=E2=80=99
+  from incompatible pointer type [-Werror=3Dincompatible-pointer-types]
+   atomic_inc(dropped);
+              ^~~~~~~
+In file included from ./arch/x86/include/asm/atomic.h:265:0,
+                 from ./arch/x86/include/asm/msr.h:67,
+                 from ./arch/x86/include/asm/processor.h:21,
+                 from ./arch/x86/include/asm/cpufeature.h:5,
+                 from ./arch/x86/include/asm/thread_info.h:53,
+                 from ./include/linux/thread_info.h:38,
+                 from ./arch/x86/include/asm/preempt.h:7,
+                 from ./include/linux/preempt.h:78,
+                 from ./include/linux/spinlock.h:51,
+                 from ./include/linux/seqlock.h:36,
+                 from ./include/linux/time.h:6,
+                 from ./include/linux/stat.h:19,
+                 from ./include/linux/module.h:10,
+                 from /home/akira/bpf-rb/klitmus/litmus000.c:11:
+=2E/include/asm-generic/atomic-instrumented.h:237:1: note: expected =E2=80=
+=98atomic_t * {aka struct <anonymous> *}=E2=80=99 but argument is of type=
+ =E2=80=98int *=E2=80=99
+ atomic_inc(atomic_t *v)
+ ^~~~~~~~~~
+In file included from ./include/linux/export.h:45:0,
+                 from ./include/linux/linkage.h:7,
+                 from ./include/linux/kernel.h:8,
+                 from ./include/linux/list.h:9,
+                 from ./include/linux/module.h:9,
+                 from /home/akira/bpf-rb/klitmus/litmus000.c:11:
+/home/akira/bpf-rb/klitmus/litmus000.c: In function =E2=80=98thread0=E2=80=
+=99:
+=2E/include/linux/compiler.h:187:26: warning: =E2=80=98rLenPtr=E2=80=99 m=
+ay be used uninitialized in this function [-Wmaybe-uninitialized]
+  case 4: *(__u32 *)res =3D *(volatile __u32 *)p; break;  \
+                          ^
+/home/akira/bpf-rb/klitmus/litmus000.c:365:7: note: =E2=80=98rLenPtr=E2=80=
+=99 was declared here
+  int *rLenPtr;
+       ^~~~~~~
+In file included from ./include/linux/export.h:45:0,
+                 from ./include/linux/linkage.h:7,
+                 from ./include/linux/kernel.h:8,
+                 from ./include/linux/list.h:9,
+                 from ./include/linux/module.h:9,
+                 from /home/akira/bpf-rb/klitmus/litmus000.c:11:
+/home/akira/bpf-rb/klitmus/litmus000.c: In function =E2=80=98thread1=E2=80=
+=99:
+=2E/include/linux/compiler.h:225:31: warning: =E2=80=98rLenPtr=E2=80=99 m=
+ay be used uninitialized in this function [-Wmaybe-uninitialized]
+  case 4: *(volatile __u32 *)p =3D *(__u32 *)res; break;
+          ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~
+/home/akira/bpf-rb/klitmus/litmus000.c:417:7: note: =E2=80=98rLenPtr=E2=80=
+=99 was declared here
+  int *rLenPtr;
+       ^~~~~~~
+cc1: some warnings being treated as errors
+scripts/Makefile.build:288: recipe for target '/home/akira/bpf-rb/klitmus=
+/litmus000.o' failed
+make[2]: *** [/home/akira/bpf-rb/klitmus/litmus000.o] Error 1
+Makefile:1656: recipe for target '_module_/home/akira/bpf-rb/klitmus' fai=
+led
+make[1]: *** [_module_/home/akira/bpf-rb/klitmus] Error 2
+make[1]: Leaving directory '/usr/src/linux-headers-5.3.0-53-generic'
+Makefile:8: recipe for target 'all' failed
+make: *** [all] Error 2
+
+Appended below is a patch I applied to mpsc-rb+1p1c+bounded.litmus to mak=
+e
+herd7 HEAD and klitmus7 happy. (Give or take the redundant memory barrier=
+=2E)
+
+The other variants need similar changes.
+
+What I did here are:
+
+    - Remove unnecessary initialization (shared variables are 0 by defaul=
+t)
+    - Declare "dropped" as atomic_t
+    - Promote rLenPtr to a shared variable LenPtr
+
+Please note that if you are on Linux 5.6 (or later), you need an up-to-da=
+te
+klitmus7 due to a change in kernel API.
+
+Any question is welcome!
+
+        Thanks, Akira
+
+-----------------------
+diff --git a/mpsc-rb+1p1c+bounded.litmus b/mpsc-rb+1p1c+bounded.litmus
+index cafd17a..5af43c1 100644
+--- a/mpsc-rb+1p1c+bounded.litmus
++++ b/mpsc-rb+1p1c+bounded.litmus
+@@ -17,15 +17,11 @@ C mpsc-rb+1p1c+bounded
+=20
  {
- 	int order;
-diff --git a/lib/find_bit.c b/lib/find_bit.c
-index 49f875f1baf7..1341bd39b32a 100644
---- a/lib/find_bit.c
-+++ b/lib/find_bit.c
-@@ -190,3 +190,17 @@ unsigned long find_next_clump8(unsigned long *clump, const unsigned long *addr,
- 	return offset;
+ 	max_len =3D 1;
+-	len1 =3D 0;
+-	px =3D 0;
+-	cx =3D 0;
+-	dropped =3D 0;
++	atomic_t dropped;
  }
- EXPORT_SYMBOL(find_next_clump8);
-+
-+unsigned long find_next_clump(unsigned long *clump, const unsigned long *addr,
-+			       unsigned long size, unsigned long offset,
-+			       unsigned long clump_size)
-+{
-+	offset = find_next_bit(addr, size, offset);
-+	if (offset == size)
-+		return size;
-+
-+	offset = rounddown(offset, clump_size);
-+	*clump = bitmap_get_value(addr, offset, clump_size);
-+	return offset;
-+}
-+EXPORT_SYMBOL(find_next_clump);
--- 
-2.26.2
+=20
+-P0(int *len1, int *cx, int *px)
++P0(int *len1, int *cx, int *px, int *LenPtr)
+ {
+-	int *rLenPtr;
+ 	int rLen;
+ 	int rPx;
+ 	int rCx;
+@@ -37,11 +33,11 @@ P0(int *len1, int *cx, int *px)
+ 	rPx =3D smp_load_acquire(px);
+ 	if (rCx < rPx) {
+ 		if (rCx =3D=3D 0)
+-			rLenPtr =3D len1;
++			LenPtr =3D len1;
+ 		else
+ 			rFail =3D 1;
+=20
+-		rLen =3D smp_load_acquire(rLenPtr);
++		rLen =3D smp_load_acquire(LenPtr);
+ 		if (rLen =3D=3D 0) {
+ 			rFail =3D 1;
+ 		} else if (rLen =3D=3D 1) {
+@@ -51,12 +47,11 @@ P0(int *len1, int *cx, int *px)
+ 	}
+ }
+=20
+-P1(int *len1, spinlock_t *rb_lock, int *px, int *cx, int *dropped, int *=
+max_len)
++P1(int *len1, spinlock_t *rb_lock, int *px, int *cx, atomic_t *dropped, =
+int *max_len, int *LenPtr)
+ {
+ 	int rPx;
+ 	int rCx;
+ 	int rFail;
+-	int *rLenPtr;
+=20
+ 	rFail =3D 0;
+ 	rCx =3D smp_load_acquire(cx);
+@@ -69,17 +64,17 @@ P1(int *len1, spinlock_t *rb_lock, int *px, int *cx, =
+int *dropped, int *max_len)
+ 		spin_unlock(rb_lock);
+ 	} else {
+ 		if (rPx =3D=3D 0)
+-			rLenPtr =3D len1;
++			LenPtr =3D len1;
+ 		else
+ 			rFail =3D 1;
+=20
+-		*rLenPtr =3D -1;
++		*LenPtr =3D -1;
+ 		smp_wmb();
+ 		smp_store_release(px, rPx + 1);
+=20
+ 		spin_unlock(rb_lock);
+=20
+-		smp_store_release(rLenPtr, 1);
++		smp_store_release(LenPtr, 1);
+ 	}
+ }
+=20
+----------------
