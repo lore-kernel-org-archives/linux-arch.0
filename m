@@ -1,57 +1,63 @@
-Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 07/29] asm-generic: improve the flush_dcache_page stub
-Date: Fri, 15 May 2020 16:36:24 +0200
-Message-ID: <20200515143646.3857579-8-hch@lst.de>
-In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-References: <20200515143646.3857579-1-hch@lst.de>
+Return-Path: <SRS0=uIBl=7H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from jabberwock.ucw.cz ([46.255.230.98]:52540 "EHLO
+        jabberwock.ucw.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727894AbgEYIQ3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 May 2020 04:16:29 -0400
+Date: Mon, 25 May 2020 10:16:26 +0200
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [PATCH v2] Implement close-on-fork
+Message-ID: <20200525081626.GA16796@amd>
+References: <20200515152321.9280-1-nate.karstens@garmin.com>
+ <20200515155730.GF16070@bombadil.infradead.org>
+ <5b1929aa9f424e689c7f430663891827@garmin.com>
+ <1589559950.3653.11.camel@HansenPartnership.com>
+ <4964fe0ccdf7495daf4045c195b14ed6@garmin.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+        protocol="application/pgp-signature"; boundary="5vNYLRcllDrimb99"
+Content-Disposition: inline
+In-Reply-To: <4964fe0ccdf7495daf4045c195b14ed6@garmin.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515143624.gIVFF7BfgZO9wifV-dfvFIK0HtKzLfLxUTymG6v1f6U@z>
+To: "Karstens, Nate" <Nate.Karstens@garmin.com>
+Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, Matthew Wilcox <willy@infradead.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@kernel.org>, "J. Bruce Fields" <bfields@fieldses.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Eric Dumazet <edumazet@google.com>, David Laight <David.Laight@aculab.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Changli Gao <xiaosuo@gmail.com>, "a.josey@opengroup.org" <a.josey@opengroup.org>
+Message-ID: <20200525081626.D-TwaL2vfiz9JFEIl9Jq9-s-h3gNUsBxsZgrPjGTRMc@z>
 
-There is a magic ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE cpp symbol that
-guards non-stub availability of flush_dcache_pagge.  Use that to
-check if flush_dcache_pagg is implemented.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- include/asm-generic/cacheflush.h | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+--5vNYLRcllDrimb99
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cache=
-flush.h
-index bf9bb83e9fc8d..bbbb4d4ef6516 100644
---- a/include/asm-generic/cacheflush.h
-+++ b/include/asm-generic/cacheflush.h
-@@ -2,8 +2,6 @@
- #ifndef _ASM_GENERIC_CACHEFLUSH_H
- #define _ASM_GENERIC_CACHEFLUSH_H
-=20
--#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
--
- /*
-  * The cache doesn't need to be flushed when TLB entries change when
-  * the cache is mapped to physical memory, not virtual memory
-@@ -42,12 +40,14 @@ static inline void flush_cache_page(struct vm_area_st=
-ruct *vma,
- }
- #endif
-=20
--#ifndef flush_dcache_page
-+#ifndef ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE
- static inline void flush_dcache_page(struct page *page)
- {
- }
-+#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
- #endif
-=20
-+
- #ifndef flush_dcache_mmap_lock
- static inline void flush_dcache_mmap_lock(struct address_space *mapping)
- {
+Hi!
+
+>=20
+> If the feedback from the community is truly and finally that system() sho=
+uld not be used in these applications, then is there support for updating t=
+he man page to better communicate that?
+>=20
+
+Clarifying documenation might be the best way forward. Note you'd have
+to do that anyway, since people would not know about O_CLOFORK without
+pointers in documentation.
+
+Best regards,
+									Pavel
 --=20
-2.26.2
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
+
+--5vNYLRcllDrimb99
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iEYEARECAAYFAl7LftoACgkQMOfwapXb+vJqEACcD+lR3XKYglSp+Req63ZwDi9m
+e/8An0k5uMvqkwoEcFAXFS3vLQ/eJejy
+=GABB
+-----END PGP SIGNATURE-----
+
+--5vNYLRcllDrimb99--
