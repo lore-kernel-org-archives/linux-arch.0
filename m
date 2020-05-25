@@ -1,29 +1,48 @@
-Return-Path: <SRS0=UvJ8=6V=kvack.org=owner-linux-mm@kernel.org>
-Date: Thu, 7 May 2020 10:52:22 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2] mm: expand documentation over __read_mostly
-Message-ID: <202005071052.1522C624@keescook>
-References: <20200507161424.2584-1-mcgrof@kernel.org>
+Return-Path: <SRS0=uIBl=7H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56786 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2389421AbgEYJgr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 May 2020 05:36:47 -0400
+Received: from mail-qt1-x844.google.com (mail-qt1-x844.google.com [IPv6:2607:f8b0:4864:20::844])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F0567C08C5C1
+        for <linux-arch@vger.kernel.org>; Mon, 25 May 2020 02:36:46 -0700 (PDT)
+Received: by mail-qt1-x844.google.com with SMTP id y1so2698388qtv.12
+        for <linux-arch@vger.kernel.org>; Mon, 25 May 2020 02:36:46 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200507161424.2584-1-mcgrof@kernel.org>
-Sender: owner-linux-mm@kvack.org
-To: Luis Chamberlain <mcgrof@kernel.org>
-Cc: cl@linux.com, akpm@linux-foundation.org, arnd@arndb.de, willy@infradead.org, aquini@redhat.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+References: <cover.1590017578.git.syednwaris@gmail.com>
+In-Reply-To: <cover.1590017578.git.syednwaris@gmail.com>
+From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
+Date: Mon, 25 May 2020 11:36:35 +0200
+Message-ID: <CAMpxmJUrC270rgWcADYruqA_qVeh9-N8mCVPWgJkL-8kU2bO1A@mail.gmail.com>
+Subject: Re: [PATCH v7 0/4] Introduce the for_each_set_clump macro
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200507175222.U01Saq3KWYkHZPWoQ6iY82LOO3PpTI_1sERiRLBPC8Q@z>
+To: Syed Nayyar Waris <syednwaris@gmail.com>
+Cc: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, William Breathitt Gray <vilhelm.gray@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, rrichter@marvell.com, Masahiro Yamada <yamada.masahiro@socionext.com>, Zhang Rui <rui.zhang@intel.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Amit Kucheria <amit.kucheria@verdurent.com>, linux-arch@vger.kernel.org, linux-gpio <linux-gpio@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, arm-soc <linux-arm-kernel@lists.infradead.org>, linux-pm <linux-pm@vger.kernel.org>
+Message-ID: <20200525093635.-XHV-ma1Btug2divxE0j6E3Bx22Dn4FLLcxkT8f3fAY@z>
 
-On Thu, May 07, 2020 at 04:14:24PM +0000, Luis Chamberlain wrote:
-> __read_mostly can easily be misused by folks, its not meant for
-> just read-only data. There are performance reasons for using it, but
-> we also don't provide any guidance about its use. Provide a bit more
-> guidance over its use.
-> 
-> Acked-by: Christoph Lameter <cl@linux.com>
-> Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
+niedz., 24 maj 2020 o 07:00 Syed Nayyar Waris <syednwaris@gmail.com> napisa=
+=C5=82(a):
+>
+> Hello Linus,
+>
+> Since this patchset primarily affects GPIO drivers, would you like
+> to pick it up through your GPIO tree?
+>
+> This patchset introduces a new generic version of for_each_set_clump.
+> The previous version of for_each_set_clump8 used a fixed size 8-bit
+> clump, but the new generic version can work with clump of any size but
+> less than or equal to BITS_PER_LONG. The patchset utilizes the new macro
+> in several GPIO drivers.
+>
+> The earlier 8-bit for_each_set_clump8 facilitated a
+> for-loop syntax that iterates over a memory region entire groups of set
+> bits at a time.
+>
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
+The GPIO part looks good to me. Linus: how do we go about merging it
+given the bitops dependency?
 
--- 
-Kees Cook
+Bart
