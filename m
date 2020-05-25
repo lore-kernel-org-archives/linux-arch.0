@@ -1,38 +1,35 @@
-From: Bartosz Golaszewski <bgolaszewski@baylibre.com>
-Subject: Re: [PATCH v7 0/4] Introduce the for_each_set_clump macro
-Date: Mon, 25 May 2020 11:36:35 +0200
-Message-ID: <CAMpxmJUrC270rgWcADYruqA_qVeh9-N8mCVPWgJkL-8kU2bO1A@mail.gmail.com>
-References: <cover.1590017578.git.syednwaris@gmail.com>
+From: Joerg Roedel <jroedel@suse.de>
+Subject: Re: [PATCH v3 2/7] mm/vmalloc: Track which page-table levels were
+ modified
+Date: Mon, 25 May 2020 12:05:40 +0200
+Message-ID: <20200525100540.GB5075@suse.de>
+References: <20200515140023.25469-1-joro@8bytes.org>
+ <20200515140023.25469-3-joro@8bytes.org>
+ <20200515130142.4ca90ee590e9d8ab88497676@linux-foundation.org>
+ <20200516125641.GK8135@suse.de>
+ <20200518151828.ad3c714a29209b359e326ec4@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1590017578.git.syednwaris@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Syed Nayyar Waris <syednwaris@gmail.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, William Breathitt Gray <vilhelm.gray@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, rrichter@marvell.com, Masahiro Yamada <yamada.masahiro@socionext.com>, Zhang Rui <rui.zhang@intel.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Amit Kucheria <amit.kucheria@verdurent.com>, linux-arch@vger.kernel.org, linux-gpio <linux-gpio@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, arm-soc <linux-arm-kernel@lists.infradead.org>, linux-pm <linux-pm@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:40252 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2389302AbgEYKFo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 25 May 2020 06:05:44 -0400
+Content-Disposition: inline
+In-Reply-To: <20200518151828.ad3c714a29209b359e326ec4@linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Christoph Hellwig <hch@infradead.org>
 
-niedz., 24 maj 2020 o 07:00 Syed Nayyar Waris <syednwaris@gmail.com> napisa=
-=C5=82(a):
->
-> Hello Linus,
->
-> Since this patchset primarily affects GPIO drivers, would you like
-> to pick it up through your GPIO tree?
->
-> This patchset introduces a new generic version of for_each_set_clump.
-> The previous version of for_each_set_clump8 used a fixed size 8-bit
-> clump, but the new generic version can work with clump of any size but
-> less than or equal to BITS_PER_LONG. The patchset utilizes the new macro
-> in several GPIO drivers.
->
-> The earlier 8-bit for_each_set_clump8 facilitated a
-> for-loop syntax that iterates over a memory region entire groups of set
-> bits at a time.
->
+On Mon, May 18, 2020 at 03:18:28PM -0700, Andrew Morton wrote:
+> It would be nice to get all this (ie, linux-next) retested before we
+> send it upstream, please.
 
-The GPIO part looks good to me. Linus: how do we go about merging it
-given the bitops dependency?
+Tested these patches as in next-20200522, with three 2, 3, and 4-level
+paging. On 4-level (aka 64-bit) I also re-ran the Stevens trace-cmd
+reproducer, no issues found and the trace-cmd problem is still fixed.
 
-Bart
+Thanks,
+
+	Joerg
