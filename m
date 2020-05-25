@@ -1,96 +1,51 @@
-Return-Path: <SRS0=wOT8=6T=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37290 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728608AbgEELFX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 5 May 2020 07:05:23 -0400
-Date: Tue, 5 May 2020 12:05:19 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: RFC: Adding arch-specific user ABI documentation in linux-man
-Message-ID: <20200505110519.GM30377@arm.com>
-References: <20200504153214.GH30377@arm.com>
- <20200505104454.GC19710@willie-the-truck>
+Return-Path: <SRS0=uIBl=7H=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga05-in.huawei.com ([45.249.212.191]:5277 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S2388385AbgEYGzD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 25 May 2020 02:55:03 -0400
+Subject: Re: [PATCH v2 2/6] arm64: Add level-hinted TLB invalidation helper
+References: <20200423135656.2712-1-yezhenyu2@huawei.com>
+ <20200423135656.2712-3-yezhenyu2@huawei.com> <20200522155017.GG26492@gaia>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Message-ID: <3852291c-37cf-39b6-564d-8b4f50f9d86e@huawei.com>
+Date: Mon, 25 May 2020 14:54:51 +0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200505104454.GC19710@willie-the-truck>
+In-Reply-To: <20200522155017.GG26492@gaia>
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20200505110519.HzPguitbNJW-HsTmbNdC6uIhDNzUIgC_AH0hCqiR7BE@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Message-ID: <20200525065451.vn5QWErJPGtJN8ACJJjTuMl34PwyqszB7MUUTPrwAl4@z>
 
-On Tue, May 05, 2020 at 11:44:55AM +0100, Will Deacon wrote:
-> Hi Dave,
+On 2020/5/22 23:50, Catalin Marinas wrote:
+> On Thu, Apr 23, 2020 at 09:56:52PM +0800, Zhenyu Ye wrote:
+>> diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
+>> index bc3949064725..5f9f189bc6d2 100644
+>> --- a/arch/arm64/include/asm/tlbflush.h
+>> +++ b/arch/arm64/include/asm/tlbflush.h
+>> @@ -10,6 +10,7 @@
+>>  
+>>  #ifndef __ASSEMBLY__
+>>  
+>> +#include <linux/bitfield.h>
+>>  #include <linux/mm_types.h>
+>>  #include <linux/sched.h>
+>>  #include <asm/cputype.h>
+>> @@ -59,6 +60,35 @@
+>>  		__ta;						\
+>>  	})
+>>  
+>> +#define TLBI_TTL_MASK	GENMASK_ULL(47, 44)
+>> +
+>> +#define __tlbi_level(op, addr, level)					\
+>> +	do {								\
 > 
-> On Mon, May 04, 2020 at 04:32:35PM +0100, Dave Martin wrote:
-> > I considering trying to plug some gaps in the arch-specific ABI
-> > documentation in the linux man-pages, specifically for arm64 (and
-> > possibly arm, where compat means we have some overlap).
-> > 
-> > For arm64, there are now significant new extensions (Pointer
-> > authentication, SVE, MTE etc.)  Currently there is some user-facing
-> > documentation mixed in with the kernel-facing documentation in the
-> > kernel tree, but this situation isn't ideal.
-> > 
-> > Do you have an opinion on where in the man-pages documentation should be
-> > added, and how to structure it?
-> > 
-> > 
-> > Affected areas include:
-> > 
-> >  * exec interface
-> >  * aux vector, hwcaps
-> >  * arch-specific signals
-> >  * signal frame
-> >  * mmap/mprotect extensions
-> >  * prctl calls
-> >  * ptrace quirks and extensions
-> >  * coredump contents
-> > 
-> > 
-> > Not everything has an obvious home in an existing page, and adding
-> > specifics for every architecture could make some existing manpages very
-> > unwieldy.
-> > 
-> > I think for some arch features, we really need some "overview" pages
-> > too: just documenting the low-level details is of limited value
-> > without some guide as to how to use them together.
-> > 
-> > 
-> > Does the following sketch look reasonable?
-> > 
-> >  * man7/arm64.7: new page: overview of arm64-specific ABI extensions
-> > 
-> >  * man7/sve.7 (or man7/arm64-sve.7 or man7/sve.7arm64): new page:
-> >    overview of arm64 SVE ABI
-> > 
-> >  * man2/arm64-ptrace.2 (or man2/ptrace.2arm64): new page:
-> >    arm64 ptrace extensions
+> Nitpick: move "do {" on the same line as __tlbi_level() to reduce the
+> indentation levels of the whole block.
 > 
-> Michael has been nagging me on and off about that for, what, 10 years now?
-> I would therefore be very much in favour of having our ptrace extensions
-> documented!
+> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 > 
-> We could even put this stuff under Documentation/arm64/man/ if it's deemed
-> too CPU-specific for the man-pages project, but my preference would still
-> be for it to be hosted there alongside all the other man pages.
 
-Heh, perhaps we could build that into the kernel and mount it somewhere.
-
-
-Seriously though,
-
-I guess I can start off with straightforward small things for which the
-documentation has an obvious home (like prctls[*]) and then move on to
-the bigger stuff like ptrace.
-
-If people start shouting about a page getting too big or messy I can try
-to split it up.
-
-Make sense?
-
-Cheers
----Dave
-
-
-[*] "straightforward" was a joke, obviously
+OK.
