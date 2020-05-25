@@ -1,148 +1,68 @@
 From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v3 4/6] tlb: mmu_gather: add tlb_flush_*_range APIs
-Date: Mon, 25 May 2020 20:52:58 +0800
-Message-ID: <20200525125300.794-5-yezhenyu2@huawei.com>
-References: <20200525125300.794-1-yezhenyu2@huawei.com>
+Subject: [PATCH v3 0/6] arm64: tlb: add support for TTL feature
+Date: Mon, 25 May 2020 20:52:54 +0800
+Message-ID: <20200525125300.794-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200525125300.794-1-yezhenyu2@huawei.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
 Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-Id: linux-arch.vger.kernel.org
 
-From: "Peter Zijlstra (Intel)" <peterz@infradead.org>
+In order to reduce the cost of TLB invalidation, ARMv8.4 provides
+the TTL field in TLBI instruction.  The TTL field indicates the
+level of page table walk holding the leaf entry for the address
+being invalidated.  This series provide support for this feature.
 
-tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and
-tlb->end, then set corresponding cleared_*.
+When ARMv8.4-TTL is implemented, the operand for TLBIs looks like
+below:
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
----
- include/asm-generic/tlb.h | 55 ++++++++++++++++++++++++++++-----------
- 1 file changed, 40 insertions(+), 15 deletions(-)
+* +----------+-------+----------------------+
+* |   ASID   |  TTL  |        BADDR         |
+* +----------+-------+----------------------+
+* |63      48|47   44|43                   0|
 
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 3f1649a8cf55..ef75ec86f865 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -512,6 +512,38 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- }
- #endif
- 
-+/*
-+ * tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and tlb->end,
-+ * and set corresponding cleared_*.
-+ */
-+static inline void tlb_flush_pte_range(struct mmu_gather *tlb,
-+				     unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_ptes = 1;
-+}
-+
-+static inline void tlb_flush_pmd_range(struct mmu_gather *tlb,
-+				     unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_pmds = 1;
-+}
-+
-+static inline void tlb_flush_pud_range(struct mmu_gather *tlb,
-+				     unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_puds = 1;
-+}
-+
-+static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
-+				     unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_p4ds = 1;
-+}
-+
- #ifndef __tlb_remove_tlb_entry
- #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
- #endif
-@@ -525,19 +557,17 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
-  */
- #define tlb_remove_tlb_entry(tlb, ptep, address)		\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
--		tlb->cleared_ptes = 1;				\
-+		tlb_flush_pte_range(tlb, address, PAGE_SIZE);	\
- 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
- 	} while (0)
- 
- #define tlb_remove_huge_tlb_entry(h, tlb, ptep, address)	\
- 	do {							\
- 		unsigned long _sz = huge_page_size(h);		\
--		__tlb_adjust_range(tlb, address, _sz);		\
- 		if (_sz == PMD_SIZE)				\
--			tlb->cleared_pmds = 1;			\
-+			tlb_flush_pmd_range(tlb, address, _sz);	\
- 		else if (_sz == PUD_SIZE)			\
--			tlb->cleared_puds = 1;			\
-+			tlb_flush_pud_range(tlb, address, _sz);	\
- 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
- 	} while (0)
- 
-@@ -551,8 +581,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 
- #define tlb_remove_pmd_tlb_entry(tlb, pmdp, address)			\
- 	do {								\
--		__tlb_adjust_range(tlb, address, HPAGE_PMD_SIZE);	\
--		tlb->cleared_pmds = 1;					\
-+		tlb_flush_pmd_range(tlb, address, HPAGE_PMD_SIZE);	\
- 		__tlb_remove_pmd_tlb_entry(tlb, pmdp, address);		\
- 	} while (0)
- 
-@@ -566,8 +595,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- 
- #define tlb_remove_pud_tlb_entry(tlb, pudp, address)			\
- 	do {								\
--		__tlb_adjust_range(tlb, address, HPAGE_PUD_SIZE);	\
--		tlb->cleared_puds = 1;					\
-+		tlb_flush_pud_range(tlb, address, HPAGE_PUD_SIZE);	\
- 		__tlb_remove_pud_tlb_entry(tlb, pudp, address);		\
- 	} while (0)
- 
-@@ -592,9 +620,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- #ifndef pte_free_tlb
- #define pte_free_tlb(tlb, ptep, address)			\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
-+		tlb_flush_pmd_range(tlb, address, PAGE_SIZE);	\
- 		tlb->freed_tables = 1;				\
--		tlb->cleared_pmds = 1;				\
- 		__pte_free_tlb(tlb, ptep, address);		\
- 	} while (0)
- #endif
-@@ -602,9 +629,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- #ifndef pmd_free_tlb
- #define pmd_free_tlb(tlb, pmdp, address)			\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
-+		tlb_flush_pud_range(tlb, address, PAGE_SIZE);	\
- 		tlb->freed_tables = 1;				\
--		tlb->cleared_puds = 1;				\
- 		__pmd_free_tlb(tlb, pmdp, address);		\
- 	} while (0)
- #endif
-@@ -612,9 +638,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
- #ifndef pud_free_tlb
- #define pud_free_tlb(tlb, pudp, address)			\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
-+		tlb_flush_p4d_range(tlb, address, PAGE_SIZE);	\
- 		tlb->freed_tables = 1;				\
--		tlb->cleared_p4ds = 1;				\
- 		__pud_free_tlb(tlb, pudp, address);		\
- 	} while (0)
- #endif
+
+This version updates some codes implementation according to Peter's
+suggestion, and adds some commit msg.
+
+See patches for details, Thanks.
+
+--
+ChangeList:
+v3:
+minor changes: reduce the indentation levels of __tlbi_level().
+
+v2:
+rebase series on Linux 5.7-rc1 and simplify the code implementation.
+
+v1:
+add support for TTL feature in arm64.
+
+
+Marc Zyngier (2):
+  arm64: Detect the ARMv8.4 TTL feature
+  arm64: Add level-hinted TLB invalidation helper
+
+Peter Zijlstra (Intel) (1):
+  tlb: mmu_gather: add tlb_flush_*_range APIs
+
+Zhenyu Ye (3):
+  arm64: Add tlbi_user_level TLB invalidation helper
+  mm: tlb: Provide flush_*_tlb_range wrappers
+  arm64: tlb: Set the TTL field in flush_tlb_range
+
+ arch/arm64/include/asm/cpucaps.h  |  3 +-
+ arch/arm64/include/asm/sysreg.h   |  1 +
+ arch/arm64/include/asm/tlb.h      | 29 +++++++++++++++-
+ arch/arm64/include/asm/tlbflush.h | 49 +++++++++++++++++++++++----
+ arch/arm64/kernel/cpufeature.c    | 11 +++++++
+ include/asm-generic/pgtable.h     | 12 +++++--
+ include/asm-generic/tlb.h         | 55 ++++++++++++++++++++++---------
+ mm/pgtable-generic.c              | 22 +++++++++++++
+ 8 files changed, 157 insertions(+), 25 deletions(-)
+
 -- 
 2.19.1
