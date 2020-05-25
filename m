@@ -1,68 +1,92 @@
 From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v3 0/6] arm64: tlb: add support for TTL feature
-Date: Mon, 25 May 2020 20:52:54 +0800
-Message-ID: <20200525125300.794-1-yezhenyu2@huawei.com>
+Subject: [PATCH v3 5/6] mm: tlb: Provide flush_*_tlb_range wrappers
+Date: Mon, 25 May 2020 20:52:59 +0800
+Message-ID: <20200525125300.794-6-yezhenyu2@huawei.com>
+References: <20200525125300.794-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga07-in.huawei.com ([45.249.212.35]:45346 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S2390624AbgEYMxh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 25 May 2020 08:53:37 -0400
+In-Reply-To: <20200525125300.794-1-yezhenyu2@huawei.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
 Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-List-Id: linux-arch.vger.kernel.org
 
-In order to reduce the cost of TLB invalidation, ARMv8.4 provides
-the TTL field in TLBI instruction.  The TTL field indicates the
-level of page table walk holding the leaf entry for the address
-being invalidated.  This series provide support for this feature.
+This patch provides flush_{pte|pmd|pud|p4d}_tlb_range() in generic
+code, which are expressed through the mmu_gather APIs.  These
+interface set tlb->cleared_* and finally call tlb_flush(), so we
+can do the tlb invalidation according to the information in
+struct mmu_gather.
 
-When ARMv8.4-TTL is implemented, the operand for TLBIs looks like
-below:
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+---
+ include/asm-generic/pgtable.h | 12 ++++++++++--
+ mm/pgtable-generic.c          | 22 ++++++++++++++++++++++
+ 2 files changed, 32 insertions(+), 2 deletions(-)
 
-* +----------+-------+----------------------+
-* |   ASID   |  TTL  |        BADDR         |
-* +----------+-------+----------------------+
-* |63      48|47   44|43                   0|
-
-
-This version updates some codes implementation according to Peter's
-suggestion, and adds some commit msg.
-
-See patches for details, Thanks.
-
---
-ChangeList:
-v3:
-minor changes: reduce the indentation levels of __tlbi_level().
-
-v2:
-rebase series on Linux 5.7-rc1 and simplify the code implementation.
-
-v1:
-add support for TTL feature in arm64.
-
-
-Marc Zyngier (2):
-  arm64: Detect the ARMv8.4 TTL feature
-  arm64: Add level-hinted TLB invalidation helper
-
-Peter Zijlstra (Intel) (1):
-  tlb: mmu_gather: add tlb_flush_*_range APIs
-
-Zhenyu Ye (3):
-  arm64: Add tlbi_user_level TLB invalidation helper
-  mm: tlb: Provide flush_*_tlb_range wrappers
-  arm64: tlb: Set the TTL field in flush_tlb_range
-
- arch/arm64/include/asm/cpucaps.h  |  3 +-
- arch/arm64/include/asm/sysreg.h   |  1 +
- arch/arm64/include/asm/tlb.h      | 29 +++++++++++++++-
- arch/arm64/include/asm/tlbflush.h | 49 +++++++++++++++++++++++----
- arch/arm64/kernel/cpufeature.c    | 11 +++++++
- include/asm-generic/pgtable.h     | 12 +++++--
- include/asm-generic/tlb.h         | 55 ++++++++++++++++++++++---------
- mm/pgtable-generic.c              | 22 +++++++++++++
- 8 files changed, 157 insertions(+), 25 deletions(-)
-
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 329b8c8ca703..8c92122ded9b 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -1161,11 +1161,19 @@ static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+  * invalidate the entire TLB which is not desitable.
+  * e.g. see arch/arc: flush_pmd_tlb_range
+  */
+-#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
+-#define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
++extern void flush_pte_tlb_range(struct vm_area_struct *vma,
++				unsigned long addr, unsigned long end);
++extern void flush_pmd_tlb_range(struct vm_area_struct *vma,
++				unsigned long addr, unsigned long end);
++extern void flush_pud_tlb_range(struct vm_area_struct *vma,
++				unsigned long addr, unsigned long end);
++extern void flush_p4d_tlb_range(struct vm_area_struct *vma,
++				unsigned long addr, unsigned long end);
+ #else
++#define flush_pte_tlb_range(vma, addr, end)	BUILD_BUG()
+ #define flush_pmd_tlb_range(vma, addr, end)	BUILD_BUG()
+ #define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
++#define flush_p4d_tlb_range(vma, addr, end)	BUILD_BUG()
+ #endif
+ #endif
+ 
+diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
+index 3d7c01e76efc..3eff199d3507 100644
+--- a/mm/pgtable-generic.c
++++ b/mm/pgtable-generic.c
+@@ -101,6 +101,28 @@ pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
+ 
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ 
++#ifndef __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
++
++#define FLUSH_Pxx_TLB_RANGE(_pxx)					\
++void flush_##_pxx##_tlb_range(struct vm_area_struct *vma,		\
++			      unsigned long addr, unsigned long end)	\
++{									\
++		struct mmu_gather tlb;					\
++									\
++		tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);		\
++		tlb_start_vma(&tlb, vma);				\
++		tlb_flush_##_pxx##_range(&tlb, addr, end - addr);	\
++		tlb_end_vma(&tlb, vma);					\
++		tlb_finish_mmu(&tlb, addr, end);			\
++}
++
++FLUSH_Pxx_TLB_RANGE(pte)
++FLUSH_Pxx_TLB_RANGE(pmd)
++FLUSH_Pxx_TLB_RANGE(pud)
++FLUSH_Pxx_TLB_RANGE(p4d)
++
++#endif /* __HAVE_ARCH_FLUSH_PMD_TLB_RANGE */
++
+ #ifndef __HAVE_ARCH_PMDP_SET_ACCESS_FLAGS
+ int pmdp_set_access_flags(struct vm_area_struct *vma,
+ 			  unsigned long address, pmd_t *pmdp,
 -- 
 2.19.1
