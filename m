@@ -1,84 +1,78 @@
-Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 13/29] microblaze: use asm-generic/cacheflush.h
-Date: Fri, 15 May 2020 16:36:30 +0200
-Message-ID: <20200515143646.3857579-14-hch@lst.de>
-In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-References: <20200515143646.3857579-1-hch@lst.de>
+Return-Path: <SRS0=7Sat=7H=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [PATCH v3 2/6] arm64: Add level-hinted TLB invalidation helper
+Date: Mon, 25 May 2020 20:52:56 +0800
+Message-ID: <20200525125300.794-3-yezhenyu2@huawei.com>
+In-Reply-To: <20200525125300.794-1-yezhenyu2@huawei.com>
+References: <20200525125300.794-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
+Content-Type: text/plain
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515143630.DyU7OhM9B0YrYHxkALfFURXXyQP8l6j1D093yaTPvhw@z>
+Message-ID: <20200525125256.-rJyX_h1v0YWtqEUrjefrL9bdXLufqSxaHvqo7K5TjE@z>
 
-Microblaze needs almost no cache flushing routines of its own.  Rely on
-asm-generic/cacheflush.h for the defaults.
+From: Marc Zyngier <maz@kernel.org>
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+Add a level-hinted TLB invalidation helper that only gets used if
+ARMv8.4-TTL gets detected.
+
+Signed-off-by: Marc Zyngier <maz@kernel.org>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/microblaze/include/asm/cacheflush.h | 29 ++----------------------
- 1 file changed, 2 insertions(+), 27 deletions(-)
+ arch/arm64/include/asm/tlbflush.h | 29 +++++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
 
-diff --git a/arch/microblaze/include/asm/cacheflush.h b/arch/microblaze/i=
-nclude/asm/cacheflush.h
-index 11f56c85056bb..39f8fb6768d8b 100644
---- a/arch/microblaze/include/asm/cacheflush.h
-+++ b/arch/microblaze/include/asm/cacheflush.h
-@@ -57,9 +57,6 @@ void microblaze_cache_init(void);
- #define invalidate_icache()				mbc->iin();
- #define invalidate_icache_range(start, end)		mbc->iinr(start, end);
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
+lbflush.h
+index bc3949064725..8adbd6fd8489 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -10,6 +10,7 @@
 =20
--#define flush_icache_user_range(vma, pg, adr, len)	flush_icache();
--#define flush_icache_page(vma, pg)			do { } while (0)
--
- #define enable_dcache()					mbc->de();
- #define disable_dcache()				mbc->dd();
- /* FIXME for LL-temac driver */
-@@ -77,27 +74,9 @@ do { \
- 	flush_dcache_range((unsigned) (addr), (unsigned) (addr) + PAGE_SIZE); \
- } while (0);
+ #ifndef __ASSEMBLY__
 =20
--#define flush_dcache_mmap_lock(mapping)		do { } while (0)
--#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
--
--#define flush_cache_dup_mm(mm)				do { } while (0)
--#define flush_cache_vmap(start, end)			do { } while (0)
--#define flush_cache_vunmap(start, end)			do { } while (0)
--#define flush_cache_mm(mm)			do { } while (0)
--
- #define flush_cache_page(vma, vmaddr, pfn) \
- 	flush_dcache_range(pfn << PAGE_SHIFT, (pfn << PAGE_SHIFT) + PAGE_SIZE);
++#include <linux/bitfield.h>
+ #include <linux/mm_types.h>
+ #include <linux/sched.h>
+ #include <asm/cputype.h>
+@@ -59,6 +60,34 @@
+ 		__ta;						\
+ 	})
 =20
--/* MS: kgdb code use this macro, wrong len with FLASH */
--#if 0
--#define flush_cache_range(vma, start, len)	{	\
--	flush_icache_range((unsigned) (start), (unsigned) (start) + (len)); \
--	flush_dcache_range((unsigned) (start), (unsigned) (start) + (len)); \
--}
--#endif
--
--#define flush_cache_range(vma, start, len) do { } while (0)
--
- static inline void copy_to_user_page(struct vm_area_struct *vma,
- 				     struct page *page, unsigned long vaddr,
- 				     void *dst, void *src, int len)
-@@ -109,12 +88,8 @@ static inline void copy_to_user_page(struct vm_area_s=
-truct *vma,
- 		flush_dcache_range(addr, addr + PAGE_SIZE);
- 	}
- }
-+#define copy_to_user_page copy_to_user_page
-=20
--static inline void copy_from_user_page(struct vm_area_struct *vma,
--				       struct page *page, unsigned long vaddr,
--				       void *dst, void *src, int len)
--{
--	memcpy(dst, src, len);
--}
-+#include <asm-generic/cacheflush.h>
-=20
- #endif /* _ASM_MICROBLAZE_CACHEFLUSH_H */
++#define TLBI_TTL_MASK	GENMASK_ULL(47, 44)
++
++#define __tlbi_level(op, addr, level) do {			\
++	u64 arg =3D addr;						\
++								\
++	if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
++	    level) {						\
++		u64 ttl =3D level;				\
++								\
++		switch (PAGE_SIZE) {				\
++		case SZ_4K:					\
++			ttl |=3D 1 << 2;				\
++			break;					\
++		case SZ_16K:					\
++			ttl |=3D 2 << 2;				\
++			break;					\
++		case SZ_64K:					\
++			ttl |=3D 3 << 2;				\
++			break;					\
++		}						\
++								\
++		arg &=3D ~TLBI_TTL_MASK;				\
++		arg |=3D FIELD_PREP(TLBI_TTL_MASK, ttl);		\
++	}							\
++								\
++	__tlbi(op,  arg);					\
++} while (0)
++
+ /*
+  *	TLB Invalidation
+  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
 --=20
-2.26.2
+2.19.1
