@@ -1,38 +1,121 @@
-Return-Path: <SRS0=Ax4L=7D=kvack.org=owner-linux-mm@kernel.org>
-Message-ID: <35ce10628df75494569e5cf5bb6a3c537ff30cf2.camel@intel.com>
-Subject: Re: [RFC PATCH 4/5] selftest/x86: Fix sysret_rip with ENDBR
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Thu, 21 May 2020 15:59:23 -0700
-In-Reply-To: <878shlt1jw.fsf@nanos.tec.linutronix.de>
-References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
-	 <20200521211720.20236-5-yu-cheng.yu@intel.com>
-	 <878shlt1jw.fsf@nanos.tec.linutronix.de>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=tUtt=7I=vger.kernel.org=linux-doc-owner@kernel.org>
+From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
+Subject: [PATCH v18 06/12] fs,security: Add sb_delete hook
+Date: Tue, 26 May 2020 22:53:16 +0200
+Message-ID: <20200526205322.23465-7-mic@digikod.net>
+In-Reply-To: <20200526205322.23465-1-mic@digikod.net>
+References: <20200526205322.23465-1-mic@digikod.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200521225923.KuqwhhakC88KgXCap24Yahqt6ZfBf455PDzqEbPbTTE@z>
+Message-ID: <20200526205316.tEtVuPGZN4_OaxHdIa3O0qSRf5NUdorw6nV7HMfKhRk@z>
 
-On Thu, 2020-05-21 at 23:34 +0200, Thomas Gleixner wrote:
-> Yu-cheng Yu <yu-cheng.yu@intel.com> writes:
-> 
-> > Insert endbr64 to assembly code of sysret_rip.
-> 
-> This changelog explains what the patch does, but not the WHY. It also
-> lacks any information why this is harmless for !CET enabled systems.
-> 
-> > Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> > ---
-> 
-> Please consult Dave Hansen about the void between your Signed-off-by
-> and the '---' line.
-> 
-> Thanks,
-> 
->         tglx
+The sb_delete security hook is called when shutting down a superblock,
+which may be useful to release kernel objects tied to the superblock's
+lifetime (e.g. inodes).
 
-Thanks!  I will work on it.
+This new hook is needed by Landlock to release (ephemerally) tagged
+struct inodes.  This comes from the unprivileged nature of Landlock
+described in the next commit.
 
-Yu-cheng
+Signed-off-by: Mickaël Salaün <mic@digikod.net>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: James Morris <jmorris@namei.org>
+Cc: Jann Horn <jannh@google.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Serge E. Hallyn <serge@hallyn.com>
+---
+
+Changes since v17:
+* Initial patch to replace the direct call to landlock_release_inodes()
+  (requested by James Morris).
+  https://lore.kernel.org/lkml/alpine.LRH.2.21.2005150536440.7929@namei.org/
+---
+ fs/super.c                    | 1 +
+ include/linux/lsm_hook_defs.h | 1 +
+ include/linux/lsm_hooks.h     | 2 ++
+ include/linux/security.h      | 4 ++++
+ security/security.c           | 5 +++++
+ 5 files changed, 13 insertions(+)
+
+diff --git a/fs/super.c b/fs/super.c
+index a288cd60d2ae..3369b554fabe 100644
+--- a/fs/super.c
++++ b/fs/super.c
+@@ -454,6 +454,7 @@ void generic_shutdown_super(struct super_block *sb)
+ 		evict_inodes(sb);
+ 		/* only nonzero refcount inodes can have marks */
+ 		fsnotify_sb_delete(sb);
++		security_sb_delete(sb);
+ 
+ 		if (sb->s_dio_done_wq) {
+ 			destroy_workqueue(sb->s_dio_done_wq);
+diff --git a/include/linux/lsm_hook_defs.h b/include/linux/lsm_hook_defs.h
+index 5616b2567aa7..8ce0add3eab5 100644
+--- a/include/linux/lsm_hook_defs.h
++++ b/include/linux/lsm_hook_defs.h
+@@ -58,6 +58,7 @@ LSM_HOOK(int, 0, fs_context_dup, struct fs_context *fc,
+ LSM_HOOK(int, -ENOPARAM, fs_context_parse_param, struct fs_context *fc,
+ 	 struct fs_parameter *param)
+ LSM_HOOK(int, 0, sb_alloc_security, struct super_block *sb)
++LSM_HOOK(void, LSM_RET_VOID, sb_delete, struct super_block *sb)
+ LSM_HOOK(void, LSM_RET_VOID, sb_free_security, struct super_block *sb)
+ LSM_HOOK(void, LSM_RET_VOID, sb_free_mnt_opts, void *mnt_opts)
+ LSM_HOOK(int, 0, sb_eat_lsm_opts, char *orig, void **mnt_opts)
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index 4c6c5dc991c4..e9f267a78ecf 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -100,6 +100,8 @@
+  *	allocated.
+  *	@sb contains the super_block structure to be modified.
+  *	Return 0 if operation was successful.
++ * @sb_delete:
++ *	Release objects tied to a superblock (e.g. inodes).
+  * @sb_free_security:
+  *	Deallocate and clear the sb->s_security field.
+  *	@sb contains the super_block structure to be modified.
+diff --git a/include/linux/security.h b/include/linux/security.h
+index a8d9310472df..2747a0d12345 100644
+--- a/include/linux/security.h
++++ b/include/linux/security.h
+@@ -283,6 +283,7 @@ void security_bprm_committed_creds(struct linux_binprm *bprm);
+ int security_fs_context_dup(struct fs_context *fc, struct fs_context *src_fc);
+ int security_fs_context_parse_param(struct fs_context *fc, struct fs_parameter *param);
+ int security_sb_alloc(struct super_block *sb);
++void security_sb_delete(struct super_block *sb);
+ void security_sb_free(struct super_block *sb);
+ void security_free_mnt_opts(void **mnt_opts);
+ int security_sb_eat_lsm_opts(char *options, void **mnt_opts);
+@@ -603,6 +604,9 @@ static inline int security_sb_alloc(struct super_block *sb)
+ 	return 0;
+ }
+ 
++static inline void security_sb_delete(struct super_block *sb)
++{ }
++
+ static inline void security_sb_free(struct super_block *sb)
+ { }
+ 
+diff --git a/security/security.c b/security/security.c
+index 5adfaa529163..6bda9f9ab0a4 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -893,6 +893,11 @@ int security_sb_alloc(struct super_block *sb)
+ 	return rc;
+ }
+ 
++void security_sb_delete(struct super_block *sb)
++{
++	call_void_hook(sb_delete, sb);
++}
++
+ void security_sb_free(struct super_block *sb)
+ {
+ 	call_void_hook(sb_free_security, sb);
+-- 
+2.26.2
