@@ -1,94 +1,60 @@
-Return-Path: <SRS0=7Sat=7H=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v3 5/6] mm: tlb: Provide flush_*_tlb_range wrappers
-Date: Mon, 25 May 2020 20:52:59 +0800
-Message-ID: <20200525125300.794-6-yezhenyu2@huawei.com>
-In-Reply-To: <20200525125300.794-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=j6d5=7I=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:45820 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2388428AbgEZCjw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 25 May 2020 22:39:52 -0400
+Subject: Re: [PATCH v3 1/6] arm64: Detect the ARMv8.4 TTL feature
 References: <20200525125300.794-1-yezhenyu2@huawei.com>
+ <20200525125300.794-2-yezhenyu2@huawei.com>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Message-ID: <c6b6eb07-2606-9fc0-280a-e53b81a6491c@arm.com>
+Date: Tue, 26 May 2020 08:09:03 +0530
 MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+In-Reply-To: <20200525125300.794-2-yezhenyu2@huawei.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200525125259.WMWfrfxIpRlvALIU-j9hLUInp8CHgKbfh_zVYqZbIvU@z>
+To: Zhenyu Ye <yezhenyu2@huawei.com>, catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Message-ID: <20200526023903.-XquApwQmCGrr7YkvCwmInviKVLk5nUwZ_uVw7bzNCI@z>
 
-This patch provides flush_{pte|pmd|pud|p4d}_tlb_range() in generic
-code, which are expressed through the mmu_gather APIs.  These
-interface set tlb->cleared_* and finally call tlb_flush(), so we
-can do the tlb invalidation according to the information in
-struct mmu_gather.
+Hello Zhenyu,
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- include/asm-generic/pgtable.h | 12 ++++++++++--
- mm/pgtable-generic.c          | 22 ++++++++++++++++++++++
- 2 files changed, 32 insertions(+), 2 deletions(-)
+On 05/25/2020 06:22 PM, Zhenyu Ye wrote:
+> diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
+> index c4ac0ac25a00..477d84ba1056 100644
+> --- a/arch/arm64/include/asm/sysreg.h
+> +++ b/arch/arm64/include/asm/sysreg.h
+> @@ -725,6 +725,7 @@
+>  
+>  /* id_aa64mmfr2 */
+>  #define ID_AA64MMFR2_E0PD_SHIFT		60
+> +#define ID_AA64MMFR2_TTL_SHIFT		48
+>  #define ID_AA64MMFR2_FWB_SHIFT		40
+>  #define ID_AA64MMFR2_AT_SHIFT		32
+>  #define ID_AA64MMFR2_LVA_SHIFT		16
+> diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+> index 9fac745aa7bb..d993dc6dc7d5 100644
+> --- a/arch/arm64/kernel/cpufeature.c
+> +++ b/arch/arm64/kernel/cpufeature.c
+> @@ -244,6 +244,7 @@ static const struct arm64_ftr_bits ftr_id_aa64mmfr1[] = {
+>  
+>  static const struct arm64_ftr_bits ftr_id_aa64mmfr2[] = {
+>  	ARM64_FTR_BITS(FTR_HIDDEN, FTR_NONSTRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_E0PD_SHIFT, 4, 0),
+> +	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_TTL_SHIFT, 4, 0),
+>  	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_FWB_SHIFT, 4, 0),
+>  	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_AT_SHIFT, 4, 0),
+>  	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_LVA_SHIFT, 4, 0),
+> @@ -1622,6 +1623,16 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
+>  		.matches = has_cpuid_feature,
+>  		.cpu_enable = cpu_has_fwb,
+>  	},
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.=
-h
-index 329b8c8ca703..8c92122ded9b 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -1161,11 +1161,19 @@ static inline int pmd_free_pte_page(pmd_t *pmd, u=
-nsigned long addr)
-  * invalidate the entire TLB which is not desitable.
-  * e.g. see arch/arc: flush_pmd_tlb_range
-  */
--#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, e=
-nd)
--#define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, e=
-nd)
-+extern void flush_pte_tlb_range(struct vm_area_struct *vma,
-+				unsigned long addr, unsigned long end);
-+extern void flush_pmd_tlb_range(struct vm_area_struct *vma,
-+				unsigned long addr, unsigned long end);
-+extern void flush_pud_tlb_range(struct vm_area_struct *vma,
-+				unsigned long addr, unsigned long end);
-+extern void flush_p4d_tlb_range(struct vm_area_struct *vma,
-+				unsigned long addr, unsigned long end);
- #else
-+#define flush_pte_tlb_range(vma, addr, end)	BUILD_BUG()
- #define flush_pmd_tlb_range(vma, addr, end)	BUILD_BUG()
- #define flush_pud_tlb_range(vma, addr, end)	BUILD_BUG()
-+#define flush_p4d_tlb_range(vma, addr, end)	BUILD_BUG()
- #endif
- #endif
-=20
-diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
-index 3d7c01e76efc..3eff199d3507 100644
---- a/mm/pgtable-generic.c
-+++ b/mm/pgtable-generic.c
-@@ -101,6 +101,28 @@ pte_t ptep_clear_flush(struct vm_area_struct *vma, u=
-nsigned long address,
-=20
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
-=20
-+#ifndef __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
-+
-+#define FLUSH_Pxx_TLB_RANGE(_pxx)					\
-+void flush_##_pxx##_tlb_range(struct vm_area_struct *vma,		\
-+			      unsigned long addr, unsigned long end)	\
-+{									\
-+		struct mmu_gather tlb;					\
-+									\
-+		tlb_gather_mmu(&tlb, vma->vm_mm, addr, end);		\
-+		tlb_start_vma(&tlb, vma);				\
-+		tlb_flush_##_pxx##_range(&tlb, addr, end - addr);	\
-+		tlb_end_vma(&tlb, vma);					\
-+		tlb_finish_mmu(&tlb, addr, end);			\
-+}
-+
-+FLUSH_Pxx_TLB_RANGE(pte)
-+FLUSH_Pxx_TLB_RANGE(pmd)
-+FLUSH_Pxx_TLB_RANGE(pud)
-+FLUSH_Pxx_TLB_RANGE(p4d)
-+
-+#endif /* __HAVE_ARCH_FLUSH_PMD_TLB_RANGE */
-+
- #ifndef __HAVE_ARCH_PMDP_SET_ACCESS_FLAGS
- int pmdp_set_access_flags(struct vm_area_struct *vma,
- 			  unsigned long address, pmd_t *pmdp,
---=20
-2.19.1
+This patch (https://patchwork.kernel.org/patch/11557359/) is adding some
+more ID_AA64MMFR2 features including the TTL. I am going to respin parts
+of the V4 series patches along with the above mentioned patch. So please
+rebase this series accordingly, probably on latest next.
+
+- Anshuman
