@@ -1,45 +1,58 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 08/20] arm64: simplify detection of memory zone
- boundaries for UMA configs
-Date: Tue, 26 May 2020 18:15:17 +0100
-Message-ID: <20200526171516.GL17051@gaia>
-References: <20200429121126.17989-1-rppt@kernel.org>
- <20200429121126.17989-9-rppt@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20200429121126.17989-9-rppt@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane-mx.org@lists.infradead.org
-To: Mike Rapoport <rppt@kernel.org>
-Cc: Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@intel.co>
-List-Id: linux-arch.vger.kernel.org
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: [PATCH] topology: Fix cpumask_of_node macro for CONFIG_NEED_MULTIPLE_NODES=n
+Date: Tue, 26 May 2020 10:44:43 -0700
+Message-ID: <20200526174443.207610-1-linux@roeck-us.net>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49018 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726930AbgEZRov (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 May 2020 13:44:51 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Randy Dunlap <rdunlap@infradead.org>, Guenter Roeck <linux@roeck-us.net>, Tejun Heo <tj@kernel.org>
 
-On Wed, Apr 29, 2020 at 03:11:14PM +0300, Mike Rapoport wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
-> 
-> The free_area_init() function only requires the definition of maximal PFN
-> for each of the supported zone rater than calculation of actual zone sizes
-> and the sizes of the holes between the zones.
-> 
-> After removal of CONFIG_HAVE_MEMBLOCK_NODE_MAP the free_area_init() is
-> available to all architectures.
-> 
-> Using this function instead of free_area_init_node() simplifies the zone
-> detection.
-> 
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+The following compile error is seen in linux-next if
+NUMA=n and CONFIG_NEED_MULTIPLE_NODES=n.
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+  CC      drivers/hwmon/amd_energy.o
+In file included from ../arch/x86/include/asm/cpumask.h:5:0,
+                 from ../arch/x86/include/asm/msr.h:11,
+                 from ../arch/x86/include/asm/processor.h:22,
+                 from ../arch/x86/include/asm/cpu_device_id.h:16,
+                 from ../drivers/hwmon/amd_energy.c:6:
+../drivers/hwmon/amd_energy.c: In function 'amd_energy_read':
+../include/asm-generic/topology.h:51:36: error:
+			void value not ignored as it ought to be
+     #define cpumask_of_node(node) ((void)node, cpu_online_mask)
+../include/linux/cpumask.h:618:72: note:
+			in definition of macro 'cpumask_first_and'
+ #define cpumask_first_and(src1p, src2p) cpumask_next_and(-1, (src1p), (src2p))
+                                                                        ^~~~~
+../drivers/hwmon/amd_energy.c:194:6: note: in expansion of macro 'cpumask_of_node'
 
-(BTW, none of my acks so far made it to the linux-arm-kernel list
-because of the large number of people on cc)
+cpumask_of_node() is missing () around the 'node' parameter.
+
+Fixes: b339752d054f ("cpumask: fix spurious cpumask_of_node() on non-NUMA multi-node configs")
+Reported-by: Randy Dunlap <rdunlap@infradead.org>
+Cc: Tejun Heo <tj@kernel.org>
+Signed-off-by: Guenter Roeck <linux@roeck-us.net>
+---
+ include/asm-generic/topology.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/asm-generic/topology.h b/include/asm-generic/topology.h
+index 238873739550..5aa8705df87e 100644
+--- a/include/asm-generic/topology.h
++++ b/include/asm-generic/topology.h
+@@ -48,7 +48,7 @@
+   #ifdef CONFIG_NEED_MULTIPLE_NODES
+     #define cpumask_of_node(node)	((node) == 0 ? cpu_online_mask : cpu_none_mask)
+   #else
+-    #define cpumask_of_node(node)	((void)node, cpu_online_mask)
++    #define cpumask_of_node(node)	((void)(node), cpu_online_mask)
+   #endif
+ #endif
+ #ifndef pcibus_to_node
+-- 
+2.17.1
