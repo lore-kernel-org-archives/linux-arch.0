@@ -1,175 +1,189 @@
-Return-Path: <SRS0=Vpcj=6S=kvack.org=owner-linux-mm@kernel.org>
-Date: Mon, 4 May 2020 18:39:01 +0300
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH v2 17/20] mm: free_area_init: allow defining max_zone_pfn
- in descending order
-Message-ID: <20200504153901.GM14260@kernel.org>
-References: <20200429121126.17989-1-rppt@kernel.org>
- <20200429121126.17989-18-rppt@kernel.org>
- <20200503174138.GA114085@roeck-us.net>
- <20200503184300.GA154219@roeck-us.net>
+Return-Path: <SRS0=tUtt=7I=vger.kernel.org=linux-doc-owner@kernel.org>
+From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
+Subject: [PATCH v18 00/12] Landlock LSM
+Date: Tue, 26 May 2020 22:53:10 +0200
+Message-ID: <20200526205322.23465-1-mic@digikod.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200503184300.GA154219@roeck-us.net>
-Sender: owner-linux-mm@kvack.org
-To: Guenter Roeck <linux@roeck-us.net>
-Cc: linux-kernel@vger.kernel.org, Rich Felker <dalias@libc.org>, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@kernel.org>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Max Filippov <jcmvbkbc@gmail.com>, Guo Ren <guoren@kernel.org>, linux-csky@vger.kernel.org, linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-riscv@lists.infradead.org, Mike Rapoport <rppt@linux.ibm.com>, Greg Ungerer <gerg@linux-m68k.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ley Foon Tan <ley.foon.tan@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-arm-kernel@lists.infradead.org, Mark Salter <msalter@redhat.com>, Matt Turner <mattst88@gmail.com>, linux-snps-arc@lists.infradead.org, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, linux-alpha@vger.kernel.org, linux-um@lists.infradead.org, linux-m68k@lists.linux-m68k.org, Tony Luck <tony.luck@intel.com>, Qian Cai <cai@lca.pw>, Greentime Hu <green.hu@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Stafford Horne <shorne@gmail.com>, Guan Xuetao <gxt@pku.edu.cn>, Hoan Tran <Hoan@os.amperecomputing.com>, Michal Simek <monstr@monstr.eu>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Brian Cain <bcain@codeaurora.org>, Nick Hu <nickhu@andestech.com>, linux-mm@kvack.org, Vineet Gupta <vgupta@synopsys.com>, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, Richard Weinberger <richard@nod.at>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200504153901.dA3JZJCrX1XzQz1IAXnZPbSBfRVjUcveKH0yrduW0Zo@z>
+Message-ID: <20200526205310.0RKzorseJDiM3wULjmOdkvLa2P7eR-OxjIlYadJg9YE@z>
 
-On Sun, May 03, 2020 at 11:43:00AM -0700, Guenter Roeck wrote:
-> On Sun, May 03, 2020 at 10:41:38AM -0700, Guenter Roeck wrote:
-> > Hi,
-> > 
-> > On Wed, Apr 29, 2020 at 03:11:23PM +0300, Mike Rapoport wrote:
-> > > From: Mike Rapoport <rppt@linux.ibm.com>
-> > > 
-> > > Some architectures (e.g. ARC) have the ZONE_HIGHMEM zone below the
-> > > ZONE_NORMAL. Allowing free_area_init() parse max_zone_pfn array even it is
-> > > sorted in descending order allows using free_area_init() on such
-> > > architectures.
-> > > 
-> > > Add top -> down traversal of max_zone_pfn array in free_area_init() and use
-> > > the latter in ARC node/zone initialization.
-> > > 
-> > > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
-> > 
-> > This patch causes my microblazeel qemu boot test in linux-next to fail.
-> > Reverting it fixes the problem.
-> > 
-> The same problem is seen with s390 emulations.
+Hi,
 
-Yeah, this patch breaks some others as well :(
+This new patch series mainly extend the LSM framework and fixes some
+issues:
+* Replace landlock_release_inodes() with a new LSM hook
+  security_sb_delete() which is called at superblock shutdown (before
+  unmount).
+* Replace struct super_block->s_landlock_inode_refs with the LSM
+  infrastructure management of the superblock: Casey Schaufler's work on
+  LSM stacking.
 
-My assumption that max_zone_pfn defines architectural limit for maximal
-PFN that can belong to a zone was over-optimistic. Several arches
-actually do that, but others do
 
-	max_zone_pfn[ZONE_DMA] = MAX_DMA_PFN;
-	max_zone_pfn[ZONE_NORMAL] = max_pfn;
+The SLOC count is 1304 for security/landlock/ and 1733 for
+tools/testing/selftest/landlock/ .  Test coverage for security/landlock/
+is 93.6% of lines.  The code not covered only deals with internal kernel
+errors (e.g. memory allocation) and race conditions.
 
-where MAX_DMA_PFN is build-time constrain and max_pfn is run time limit
-for the current system.
+The compiled documentation is available here:
+https://landlock.io/linux-doc/landlock-v18/security/landlock/index.html
 
-So, when max_pfn is lower than MAX_DMA_PFN, the free_init_area() will
-consider max_zone_pfn as descending and will wrongly calculate zone
-extents.
+This series can be applied on top of v5.7-rc7.  This can be tested with
+CONFIG_SECURITY_LANDLOCK and CONFIG_SAMPLE_LANDLOCK.  This patch series
+can be found in a Git repository here:
+https://github.com/landlock-lsm/linux/commits/landlock-v18
+I would really appreciate constructive comments on this patch series.
 
-That said, instead of trying to create a generic way to special case
-ARC, I suggest to simply use the below patch instead.
 
-diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
-index 41eb9be1653c..386959bac3d2 100644
---- a/arch/arc/mm/init.c
-+++ b/arch/arc/mm/init.c
-@@ -77,6 +77,11 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
- 		base, TO_MB(size), !in_use ? "Not used":"");
- }
- 
-+bool arch_has_descending_max_zone_pfns(void)
-+{
-+	return true;
-+}
-+
- /*
-  * First memory setup routine called from setup_arch()
-  * 1. setup swapper's mm @init_mm
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index b990e9734474..114f0e027144 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -7307,6 +7307,15 @@ static void check_for_memory(pg_data_t *pgdat, int nid)
- 	}
- }
- 
-+/*
-+ * Some architecturs, e.g. ARC may have ZONE_HIGHMEM below ZONE_NORMAL. For
-+ * such cases we allow max_zone_pfn sorted in the descending order
-+ */
-+bool __weak arch_has_descending_max_zone_pfns(void)
-+{
-+	return false;
-+}
-+
- /**
-  * free_area_init - Initialise all pg_data_t and zone data
-  * @max_zone_pfn: an array of max PFNs for each zone
-@@ -7324,7 +7333,7 @@ void __init free_area_init(unsigned long *max_zone_pfn)
- {
- 	unsigned long start_pfn, end_pfn;
- 	int i, nid, zone;
--	bool descending = false;
-+	bool descending;
- 
- 	/* Record where the zone boundaries are */
- 	memset(arch_zone_lowest_possible_pfn, 0,
-@@ -7333,14 +7342,7 @@ void __init free_area_init(unsigned long *max_zone_pfn)
- 				sizeof(arch_zone_highest_possible_pfn));
- 
- 	start_pfn = find_min_pfn_with_active_regions();
--
--	/*
--	 * Some architecturs, e.g. ARC may have ZONE_HIGHMEM below
--	 * ZONE_NORMAL. For such cases we allow max_zone_pfn sorted in the
--	 * descending order
--	 */
--	if (MAX_NR_ZONES > 1 && max_zone_pfn[0] > max_zone_pfn[1])
--		descending = true;
-+	descending = arch_has_descending_max_zone_pfns();
- 
- 	for (i = 0; i < MAX_NR_ZONES; i++) {
- 		if (descending)
+# Landlock LSM
 
-> Guenter
-> 
-> > qemu command line:
-> > 
-> > qemu-system-microblazeel -M petalogix-ml605 -m 256 \
-> > 	-kernel arch/microblaze/boot/linux.bin -no-reboot \
-> > 	-initrd rootfs.cpio \
-> > 	-append 'panic=-1 slub_debug=FZPUA rdinit=/sbin/init console=ttyS0,115200' \
-> > 	-monitor none -serial stdio -nographic
-> > 
-> > initrd:
-> > 	https://github.com/groeck/linux-build-test/blob/master/rootfs/microblazeel/rootfs.cpio.gz
-> > configuration:
-> > 	https://github.com/groeck/linux-build-test/blob/master/rootfs/microblazeel/qemu_microblazeel_ml605_defconfig
-> > 
-> > Bisect log is below.
-> > 
-> > Guenter
-> > 
-> > ---
-> > # bad: [fb9d670f57e3f6478602328bbbf71138be06ca4f] Add linux-next specific files for 20200501
-> > # good: [6a8b55ed4056ea5559ebe4f6a4b247f627870d4c] Linux 5.7-rc3
-> > git bisect start 'HEAD' 'v5.7-rc3'
-> > # good: [068b80b68a670f0b17288c8a3d1ee751f35162ab] Merge remote-tracking branch 'drm/drm-next'
-> > git bisect good 068b80b68a670f0b17288c8a3d1ee751f35162ab
-> > # good: [46c70fc6a3ac35cd72ddad248dcbe4eee716d2a5] Merge remote-tracking branch 'drivers-x86/for-next'
-> > git bisect good 46c70fc6a3ac35cd72ddad248dcbe4eee716d2a5
-> > # good: [f39c4ad479a2f005f972a2b941b40efa6b9c9349] Merge remote-tracking branch 'rpmsg/for-next'
-> > git bisect good f39c4ad479a2f005f972a2b941b40efa6b9c9349
-> > # bad: [165d3ee0162fe28efc2c8180176633e33515df15] ipc-convert-ipcs_idr-to-xarray-update
-> > git bisect bad 165d3ee0162fe28efc2c8180176633e33515df15
-> > # good: [001f1d211ed2ed0f005838dc4390993930bbbd69] mm: remove early_pfn_in_nid() and CONFIG_NODES_SPAN_OTHER_NODES
-> > git bisect good 001f1d211ed2ed0f005838dc4390993930bbbd69
-> > # bad: [aaad7401bd32f10c1d591dd886b3a9b9595c6d77] mm/vmsan: fix some typos in comment
-> > git bisect bad aaad7401bd32f10c1d591dd886b3a9b9595c6d77
-> > # bad: [09f9d0ab1fbed85623b283995aa7a7d78daa1611] khugepaged: allow to collapse PTE-mapped compound pages
-> > git bisect bad 09f9d0ab1fbed85623b283995aa7a7d78daa1611
-> > # bad: [c942fc8a3e5088407bc32d94f554bab205175f8a] mm/vmstat.c: do not show lowmem reserve protection information of empty zone
-> > git bisect bad c942fc8a3e5088407bc32d94f554bab205175f8a
-> > # bad: [b29358d269ace3826d8521bea842fc2984cfc11b] mm/page_alloc.c: rename free_pages_check() to check_free_page()
-> > git bisect bad b29358d269ace3826d8521bea842fc2984cfc11b
-> > # bad: [be0fb591a1f1df20a00c8f023f9ca4891f177b0d] mm: simplify find_min_pfn_with_active_regions()
-> > git bisect bad be0fb591a1f1df20a00c8f023f9ca4891f177b0d
-> > # bad: [c17422a008d36dcf3e9f51469758c5762716cb0a] mm: rename free_area_init_node() to free_area_init_memoryless_node()
-> > git bisect bad c17422a008d36dcf3e9f51469758c5762716cb0a
-> > # bad: [51a2f644fd020d5f090044825c388444d11029d5] mm: free_area_init: allow defining max_zone_pfn in descending order
-> > git bisect bad 51a2f644fd020d5f090044825c388444d11029d5
-> > # first bad commit: [51a2f644fd020d5f090044825c388444d11029d5] mm: free_area_init: allow defining max_zone_pfn in descending order
+The goal of Landlock is to enable to restrict ambient rights (e.g.
+global filesystem access) for a set of processes.  Because Landlock is a
+stackable LSM [2], it makes possible to create safe security sandboxes
+as new security layers in addition to the existing system-wide
+access-controls. This kind of sandbox is expected to help mitigate the
+security impact of bugs or unexpected/malicious behaviors in user-space
+applications. Landlock empowers any process, including unprivileged
+ones, to securely restrict themselves.
+
+Landlock is inspired by seccomp-bpf but instead of filtering syscalls
+and their raw arguments, a Landlock rule can restrict the use of kernel
+objects like file hierarchies, according to the kernel semantic.
+Landlock also takes inspiration from other OS sandbox mechanisms: XNU
+Sandbox, FreeBSD Capsicum or OpenBSD Pledge/Unveil.
+
+
+Previous version:
+https://lore.kernel.org/lkml/20200511192156.1618284-1-mic@digikod.net/
+
+
+[1] https://lore.kernel.org/lkml/e07fe473-1801-01cc-12ae-b3167f95250e@digikod.net/
+[2] https://lore.kernel.org/lkml/50db058a-7dde-441b-a7f9-f6837fe8b69f@schaufler-ca.com/
+
+
+Casey Schaufler (1):
+  LSM: Infrastructure management of the superblock
+
+Mickaël Salaün (11):
+  landlock: Add object management
+  landlock: Add ruleset and domain management
+  landlock: Set up the security framework and manage credentials
+  landlock: Add ptrace restrictions
+  fs,security: Add sb_delete hook
+  landlock: Support filesystem access-control
+  landlock: Add syscall implementation
+  arch: Wire up landlock() syscall
+  selftests/landlock: Add initial tests
+  samples/landlock: Add a sandbox manager example
+  landlock: Add user and kernel documentation
+
+ Documentation/security/index.rst              |    1 +
+ Documentation/security/landlock/index.rst     |   18 +
+ Documentation/security/landlock/kernel.rst    |   69 +
+ Documentation/security/landlock/user.rst      |  268 +++
+ MAINTAINERS                                   |   12 +
+ arch/Kconfig                                  |    7 +
+ arch/alpha/kernel/syscalls/syscall.tbl        |    1 +
+ arch/arm/tools/syscall.tbl                    |    1 +
+ arch/arm64/include/asm/unistd.h               |    2 +-
+ arch/arm64/include/asm/unistd32.h             |    2 +
+ arch/ia64/kernel/syscalls/syscall.tbl         |    1 +
+ arch/m68k/kernel/syscalls/syscall.tbl         |    1 +
+ arch/microblaze/kernel/syscalls/syscall.tbl   |    1 +
+ arch/mips/kernel/syscalls/syscall_n32.tbl     |    1 +
+ arch/mips/kernel/syscalls/syscall_n64.tbl     |    1 +
+ arch/mips/kernel/syscalls/syscall_o32.tbl     |    1 +
+ arch/parisc/kernel/syscalls/syscall.tbl       |    1 +
+ arch/powerpc/kernel/syscalls/syscall.tbl      |    1 +
+ arch/s390/kernel/syscalls/syscall.tbl         |    1 +
+ arch/sh/kernel/syscalls/syscall.tbl           |    1 +
+ arch/sparc/kernel/syscalls/syscall.tbl        |    1 +
+ arch/um/Kconfig                               |    1 +
+ arch/x86/entry/syscalls/syscall_32.tbl        |    1 +
+ arch/x86/entry/syscalls/syscall_64.tbl        |    1 +
+ arch/xtensa/kernel/syscalls/syscall.tbl       |    1 +
+ fs/super.c                                    |    1 +
+ include/linux/lsm_hook_defs.h                 |    1 +
+ include/linux/lsm_hooks.h                     |    3 +
+ include/linux/security.h                      |    4 +
+ include/linux/syscalls.h                      |    3 +
+ include/uapi/asm-generic/unistd.h             |    4 +-
+ include/uapi/linux/landlock.h                 |  302 +++
+ kernel/sys_ni.c                               |    3 +
+ samples/Kconfig                               |    7 +
+ samples/Makefile                              |    1 +
+ samples/landlock/.gitignore                   |    1 +
+ samples/landlock/Makefile                     |   15 +
+ samples/landlock/sandboxer.c                  |  228 +++
+ security/Kconfig                              |   11 +-
+ security/Makefile                             |    2 +
+ security/landlock/Kconfig                     |   18 +
+ security/landlock/Makefile                    |    4 +
+ security/landlock/common.h                    |   20 +
+ security/landlock/cred.c                      |   46 +
+ security/landlock/cred.h                      |   58 +
+ security/landlock/fs.c                        |  610 ++++++
+ security/landlock/fs.h                        |   60 +
+ security/landlock/object.c                    |   66 +
+ security/landlock/object.h                    |   91 +
+ security/landlock/ptrace.c                    |  120 ++
+ security/landlock/ptrace.h                    |   14 +
+ security/landlock/ruleset.c                   |  342 ++++
+ security/landlock/ruleset.h                   |  157 ++
+ security/landlock/setup.c                     |   40 +
+ security/landlock/setup.h                     |   18 +
+ security/landlock/syscall.c                   |  532 +++++
+ security/security.c                           |   51 +-
+ security/selinux/hooks.c                      |   58 +-
+ security/selinux/include/objsec.h             |    6 +
+ security/selinux/ss/services.c                |    3 +-
+ security/smack/smack.h                        |    6 +
+ security/smack/smack_lsm.c                    |   35 +-
+ tools/testing/selftests/Makefile              |    1 +
+ tools/testing/selftests/landlock/.gitignore   |    2 +
+ tools/testing/selftests/landlock/Makefile     |   29 +
+ tools/testing/selftests/landlock/base_test.c  |  163 ++
+ tools/testing/selftests/landlock/common.h     |  108 +
+ tools/testing/selftests/landlock/config       |    5 +
+ tools/testing/selftests/landlock/fs_test.c    | 1730 +++++++++++++++++
+ .../testing/selftests/landlock/ptrace_test.c  |  293 +++
+ tools/testing/selftests/landlock/true.c       |    5 +
+ 71 files changed, 5596 insertions(+), 77 deletions(-)
+ create mode 100644 Documentation/security/landlock/index.rst
+ create mode 100644 Documentation/security/landlock/kernel.rst
+ create mode 100644 Documentation/security/landlock/user.rst
+ create mode 100644 include/uapi/linux/landlock.h
+ create mode 100644 samples/landlock/.gitignore
+ create mode 100644 samples/landlock/Makefile
+ create mode 100644 samples/landlock/sandboxer.c
+ create mode 100644 security/landlock/Kconfig
+ create mode 100644 security/landlock/Makefile
+ create mode 100644 security/landlock/common.h
+ create mode 100644 security/landlock/cred.c
+ create mode 100644 security/landlock/cred.h
+ create mode 100644 security/landlock/fs.c
+ create mode 100644 security/landlock/fs.h
+ create mode 100644 security/landlock/object.c
+ create mode 100644 security/landlock/object.h
+ create mode 100644 security/landlock/ptrace.c
+ create mode 100644 security/landlock/ptrace.h
+ create mode 100644 security/landlock/ruleset.c
+ create mode 100644 security/landlock/ruleset.h
+ create mode 100644 security/landlock/setup.c
+ create mode 100644 security/landlock/setup.h
+ create mode 100644 security/landlock/syscall.c
+ create mode 100644 tools/testing/selftests/landlock/.gitignore
+ create mode 100644 tools/testing/selftests/landlock/Makefile
+ create mode 100644 tools/testing/selftests/landlock/base_test.c
+ create mode 100644 tools/testing/selftests/landlock/common.h
+ create mode 100644 tools/testing/selftests/landlock/config
+ create mode 100644 tools/testing/selftests/landlock/fs_test.c
+ create mode 100644 tools/testing/selftests/landlock/ptrace_test.c
+ create mode 100644 tools/testing/selftests/landlock/true.c
 
 -- 
-Sincerely yours,
-Mike.
+2.26.2
