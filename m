@@ -1,56 +1,152 @@
-From: Marc Zyngier <maz@kernel.org>
-Subject: Re: [PATCH v3 1/6] arm64: Detect the ARMv8.4 TTL feature
-Date: Tue, 26 May 2020 11:06:41 +0100
-Message-ID: <872737c7e0690df3f42103365c651ad4@kernel.org>
-References: <20200525125300.794-1-yezhenyu2@huawei.com>
- <20200525125300.794-2-yezhenyu2@huawei.com>
- <c6b6eb07-2606-9fc0-280a-e53b81a6491c@arm.com>
- <050b7ee6-c7aa-5d61-4dff-4792a411464e@huawei.com>
+From: Akira Yokosawa <akiyks@gmail.com>
+Subject: Re: Some -serious- BPF-related litmus tests
+Date: Tue, 26 May 2020 19:50:47 +0900
+Message-ID: <d1113b47-a920-c0e4-9aa4-88781368a26f@gmail.com>
+References: <20200522003850.GA32698@paulmck-ThinkPad-P72>
+ <20200522094407.GK325280@hirez.programming.kicks-ass.net>
+ <20200522143201.GB32434@rowland.harvard.edu>
+ <20200522174352.GJ2869@paulmck-ThinkPad-P72>
+ <006e2bc6-7516-1584-3d8c-e253211c157e@fb.com>
+ <ac799c98-45dd-d056-386f-cbebc7270c0c@gmail.com>
+ <CAEf4BzYGbLfGA=NN=dP1RqDj7yp_Fnu0L-1bgQojPMt0-Y_X=g@mail.gmail.com>
+ <69ed3604-4275-d73e-a5d6-2b70dd877104@gmail.com>
+ <CAEf4BzajE6jCkbBQ+f0cG=Y+vAEPWGNhfOMFVVhoDZWjNV-oGA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII;
- format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43940 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728048AbgEZKGo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 26 May 2020 06:06:44 -0400
-In-Reply-To: <050b7ee6-c7aa-5d61-4dff-4792a411464e@huawei.com>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40808 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388524AbgEZKux (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 May 2020 06:50:53 -0400
+In-Reply-To: <CAEf4BzajE6jCkbBQ+f0cG=Y+vAEPWGNhfOMFVVhoDZWjNV-oGA@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: Anshuman Khandual <anshuman.khandual@arm.com>, catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+To: Andrii Nakryiko <andrii.nakryiko@gmail.com>, luc.maranget@inria.fr
+Cc: Andrii Nakryiko <andriin@fb.com>, "Paul E . McKenney" <paulmck@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Peter Zijlstra <peterz@infradead.org>, parri.andrea@gmail.com, will@kernel.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, dlustig@nvidia.com, Joel Fernandes <joel@joelfernandes.org>, open list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>
 
-On 2020-05-26 07:40, Zhenyu Ye wrote:
-> Hi Anshuman,
-> 
-> On 2020/5/26 10:39, Anshuman Khandual wrote:
->> This patch (https://patchwork.kernel.org/patch/11557359/) is adding 
->> some
->> more ID_AA64MMFR2 features including the TTL. I am going to respin 
->> parts
->> of the V4 series patches along with the above mentioned patch. So 
->> please
->> rebase this series accordingly, probably on latest next.
+On Mon, 25 May 2020 16:31:05 -0700, Andrii Nakryiko wrote:
+> On Mon, May 25, 2020 at 3:01 PM Akira Yokosawa <akiyks@gmail.com> wrote=
+:
+>>
+[...]
+>> Yes, that should work.
+>=20
+> Ok, assigning to zero didn't work (it still complained about
+> uninitialized read), but using a separate int *lenFail to assign to
+> rLenPtr worked. Curiously, if I used rLenPtr =3D len1; in error case, i=
+t
+> actually takes a bit more time to verify.
+>=20
+> So I've converted everything else as you suggested. I compiled latest
+> herd7 and it doesn't produce any warnings. But it's also extremely
+> slow, compared to the herd7 that I get by default. Validating simple
+> 1p1c cases takes about 2.5x times longer (0.03s vs 0.07), but trying
+> to validate 2p1c case, which normally validates in 42s (unbounded) and
+> 110s (bounded), it took more than 20 minutes and hasn't finished,
+> before I gave up. So I don't know what's going on there...
 
-No. Please.
+herdtools7 has recently been heavily restructured.
+On the performance regression, I must defer to Luc.
 
->> 
-> 
-> I noticed that some patches of your series have been merged into arm64
-> tree (for-next/cpufeature), such as TLB range, but this one not. Why?
-> 
-> BTW, this patch is provided by Marc in his NV series [1], maybe you
-> should also let him know.
-> 
-> I will rebase my series after your patch is merged.
+Luc, do you have any idea?
 
-Please don't rebase on -next. That's the worse thing to do. Always base
-your series on a well known -rc, and stick to that. Maintainers can
-always do the rebase and resolve conflicts.
+>=20
+> As for klitmus7, I managed to generate everything without warnings,
+> but couldn't make it build completely due to:
+>=20
+> $ make
+> make -C /lib/modules/5.6.13-01802-g938d64da97c6/build/
 
-Thanks,
+So you are on Linux 5.6.x which requires cutting-edge klitmus7.
 
-         M.
--- 
-Jazz is not dead. It just smells funny...
+> M=3D/home/andriin/local/linux-trees/tools/memory-model/mymodules module=
+s
+> make[1]: Entering directory `/data/users/andriin/linux-build/fb-config'=
+
+> make[2]: Entering directory `/data/users/andriin/linux-build/default-x8=
+6_64'
+>   CC [M]  /home/andriin/local/linux-trees/tools/memory-model/mymodules/=
+litmus000.o
+> /home/andriin/local/linux-trees/tools/memory-model/mymodules/litmus000.=
+c:
+> In function =E2=80=98zyva=E2=80=99:
+> /home/andriin/local/linux-trees/tools/memory-model/mymodules/litmus000.=
+c:507:12:
+> warning: ISO C90 forbids variable length array =E2=80=98th=E2=80=99 [-W=
+vla]
+>      struct task_struct *th[nth];
+>             ^~~~~~~~~~~
+> /home/andriin/local/linux-trees/tools/memory-model/mymodules/litmus000.=
+c:
+> In function =E2=80=98litmus_init=E2=80=99:
+> /home/andriin/local/linux-trees/tools/memory-model/mymodules/litmus000.=
+c:605:67:
+> error: passing argument 4 of =E2=80=98proc_create=E2=80=99 from incompa=
+tible pointer
+> type [-Werror=3Dincompatible-pointer-types]
+>    struct proc_dir_entry *litmus_pde =3D
+> proc_create("litmus",0,NULL,&litmus_proc_fops);
+>=20
+> ^~~~~~~~~~~~~~~~~
+> In file included from
+> /home/andriin/local/linux-trees/tools/memory-model/mymodules/litmus000.=
+c:15:
+> /data/users/andriin/linux-fb/include/linux/proc_fs.h:64:24: note:
+> expected =E2=80=98const struct proc_ops *=E2=80=99 but argument is of t=
+ype =E2=80=98const
+> struct file_operations *=E2=80=99
+>  struct proc_dir_entry *proc_create(const char *name, umode_t mode,
+> struct proc_dir_entry *parent, const struct proc_ops *proc_ops);
+>                         ^~~~~~~~~~~
+> cc1: some warnings being treated as errors
+> make[3]: *** [/home/andriin/local/linux-trees/tools/memory-model/mymodu=
+les/litmus000.o]
+> Error 1
+> make[2]: *** [/home/andriin/local/linux-trees/tools/memory-model/mymodu=
+les]
+> Error 2
+> make[2]: Leaving directory `/data/users/andriin/linux-build/default-x86=
+_64'
+> make[1]: *** [sub-make] Error 2
+> make[1]: Leaving directory `/data/users/andriin/linux-build/fb-config'
+> make: *** [all] Error 2
+>=20
+
+These errors suggest the klitmus7 you used is version 7.52 or some such.
+You said you have built herd7 from the source.  Have you also built klitm=
+us7?
+
+The up-to-date klitmus7 should generate code compatible with Linux 5.6.x.=
+
+
+Could you try with the latest one?
+
+        Thanks, Akira
+
+>=20
+> But at least it doesn't complain about atomic_t anymore. So anyways,
+> I'm going to post updated litmus tests separately from BPF ringbuf
+> patches, because Documentation/litmus-tests is not yet present in
+> bpf-next.
+>=20
+>>
+>> You can find a basic introduction of klitmus7 in tools/memory-model/RE=
+ADME.
+>>
+>>         Thanks, Akira
+>>
+>>>
+>>>>
+>>>> Please note that if you are on Linux 5.6 (or later), you need an up-=
+to-date
+>>>> klitmus7 due to a change in kernel API.
+>>>>
+>>>> Any question is welcome!
+>>>>
+>>>>         Thanks, Akira
+>>>>
+>=20
+> [...]
+>=20
