@@ -1,303 +1,72 @@
-Return-Path: <SRS0=Ax4L=7D=kvack.org=owner-linux-mm@kernel.org>
-Date: Thu, 21 May 2020 15:42:07 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v10 26/26] x86/cet/shstk: Add arch_prctl functions for
- shadow stack
-Message-ID: <202005211528.A12B4AD@keescook>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
- <20200429220732.31602-27-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=9CnN=7J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51876 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725893AbgE0DHm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 May 2020 23:07:42 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200429220732.31602-27-yu-cheng.yu@intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+References: <20200526205322.23465-1-mic@digikod.net> <20200526205322.23465-8-mic@digikod.net>
+In-Reply-To: <20200526205322.23465-8-mic@digikod.net>
+From: Amir Goldstein <amir73il@gmail.com>
+Date: Wed, 27 May 2020 06:07:29 +0300
+Message-ID: <CAOQ4uxibpDTyjCJWLGG9jr-Gv9PwO==o50b9O8HGQeUfVMDFag@mail.gmail.com>
+Subject: Re: [PATCH v18 07/12] landlock: Support filesystem access-control
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200521224207.wk5wS_FX99127vAYaIOndFp8gI_Wg8JexUChUTs0u_Q@z>
+To: =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
+Cc: linux-kernel <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, Linux API <linux-api@vger.kernel.org>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-kselftest@vger.kernel.org, LSM List <linux-security-module@vger.kernel.org>, x86@kernel.org
+Message-ID: <20200527030729.mdjvW9tZTY869qJQnJH6sWR0IKQICgqz1xcje73NRo8@z>
 
-On Wed, Apr 29, 2020 at 03:07:32PM -0700, Yu-cheng Yu wrote:
-> arch_prctl(ARCH_X86_CET_STATUS, u64 *args)
->     Get CET feature status.
-> 
->     The parameter 'args' is a pointer to a user buffer.  The kernel returns
->     the following information:
-> 
->     *args = shadow stack/IBT status
->     *(args + 1) = shadow stack base address
->     *(args + 2) = shadow stack size
-> 
-> arch_prctl(ARCH_X86_CET_DISABLE, u64 features)
->     Disable CET features specified in 'features'.  Return -EPERM if CET is
->     locked.
-> 
-> arch_prctl(ARCH_X86_CET_LOCK)
->     Lock in CET features.
-> 
-> arch_prctl(ARCH_X86_CET_ALLOC_SHSTK, u64 *args)
->     Allocate a new shadow stack.
-> 
->     The parameter 'args' is a pointer to a user buffer containing the
->     desired size to allocate.  The kernel returns the allocated shadow
->     stack address in *args.
+On Wed, May 27, 2020 at 3:36 AM Micka=C3=ABl Sala=C3=BCn <mic@digikod.net> =
+wrote:
+>
+> Thanks to the Landlock objects and ruleset, it is possible to identify
+> inodes according to a process's domain.  To enable an unprivileged
+> process to express a file hierarchy, it first needs to open a directory
+> (or a file) and pass this file descriptor to the kernel through
+> landlock(2).  When checking if a file access request is allowed, we walk
+> from the requested dentry to the real root, following the different
+> mount layers.  The access to each "tagged" inodes are collected
+> according to their rule layer level, and ANDed to create access to the
+> requested file hierarchy.  This makes possible to identify a lot of
+> files without tagging every inodes nor modifying the filesystem, while
+> still following the view and understanding the user has from the
+> filesystem.
+>
 
-Hi! Just a quick note about getting these designs right -- prctl() (and
-similar APIs) needs to make sure they're examining all "unknown" flags
-as zero, or we run the risk of breaking sloppy userspace callers who
-accidentally set flags and then later the kernel gives meaning to those
-flags. Notes below...
+Hi Mickael,
 
-> 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
-> v10:
-> - Verify CET is enabled before handling arch_prctl.
-> - Change input parameters from unsigned long to u64, to make it clear they
->   are 64-bit.
-> 
->  arch/x86/include/asm/cet.h        |  4 ++
->  arch/x86/include/uapi/asm/prctl.h |  5 ++
->  arch/x86/kernel/Makefile          |  2 +-
->  arch/x86/kernel/cet.c             | 29 +++++++++++
->  arch/x86/kernel/cet_prctl.c       | 87 +++++++++++++++++++++++++++++++
->  arch/x86/kernel/process.c         |  4 +-
->  6 files changed, 128 insertions(+), 3 deletions(-)
->  create mode 100644 arch/x86/kernel/cet_prctl.c
-> 
-> diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
-> index 71dc92acd2f2..99e6e741d28c 100644
-> --- a/arch/x86/include/asm/cet.h
-> +++ b/arch/x86/include/asm/cet.h
-> @@ -14,16 +14,20 @@ struct sc_ext;
->  struct cet_status {
->  	unsigned long	shstk_base;
->  	unsigned long	shstk_size;
-> +	unsigned int	locked:1;
->  };
->  
->  #ifdef CONFIG_X86_INTEL_CET
-> +int prctl_cet(int option, u64 arg2);
->  int cet_setup_shstk(void);
->  int cet_setup_thread_shstk(struct task_struct *p);
-> +int cet_alloc_shstk(unsigned long *arg);
->  void cet_disable_free_shstk(struct task_struct *p);
->  int cet_verify_rstor_token(bool ia32, unsigned long ssp, unsigned long *new_ssp);
->  void cet_restore_signal(struct sc_ext *sc);
->  int cet_setup_signal(bool ia32, unsigned long rstor, struct sc_ext *sc);
->  #else
-> +static inline int prctl_cet(int option, u64 arg2) { return -EINVAL; }
->  static inline int cet_setup_thread_shstk(struct task_struct *p) { return 0; }
->  static inline void cet_disable_free_shstk(struct task_struct *p) {}
->  static inline void cet_restore_signal(struct sc_ext *sc) { return; }
-> diff --git a/arch/x86/include/uapi/asm/prctl.h b/arch/x86/include/uapi/asm/prctl.h
-> index 5a6aac9fa41f..d962f0ec9ccf 100644
-> --- a/arch/x86/include/uapi/asm/prctl.h
-> +++ b/arch/x86/include/uapi/asm/prctl.h
-> @@ -14,4 +14,9 @@
->  #define ARCH_MAP_VDSO_32	0x2002
->  #define ARCH_MAP_VDSO_64	0x2003
->  
-> +#define ARCH_X86_CET_STATUS		0x3001
-> +#define ARCH_X86_CET_DISABLE		0x3002
-> +#define ARCH_X86_CET_LOCK		0x3003
-> +#define ARCH_X86_CET_ALLOC_SHSTK	0x3004
-> +
->  #endif /* _ASM_X86_PRCTL_H */
-> diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
-> index e9cc2551573b..0b621e2afbdc 100644
-> --- a/arch/x86/kernel/Makefile
-> +++ b/arch/x86/kernel/Makefile
-> @@ -144,7 +144,7 @@ obj-$(CONFIG_UNWINDER_ORC)		+= unwind_orc.o
->  obj-$(CONFIG_UNWINDER_FRAME_POINTER)	+= unwind_frame.o
->  obj-$(CONFIG_UNWINDER_GUESS)		+= unwind_guess.o
->  
-> -obj-$(CONFIG_X86_INTEL_CET)		+= cet.o
-> +obj-$(CONFIG_X86_INTEL_CET)		+= cet.o cet_prctl.o
->  
->  ###
->  # 64 bit specific files
-> diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
-> index 121552047b86..c1b9b540c03e 100644
-> --- a/arch/x86/kernel/cet.c
-> +++ b/arch/x86/kernel/cet.c
-> @@ -145,6 +145,35 @@ static int create_rstor_token(bool ia32, unsigned long ssp,
->  	return 0;
->  }
->  
-> +int cet_alloc_shstk(unsigned long *arg)
-> +{
-> +	unsigned long len = *arg;
-> +	unsigned long addr;
-> +	unsigned long token;
-> +	unsigned long ssp;
-> +
-> +	addr = alloc_shstk(round_up(len, PAGE_SIZE));
-> +
-> +	if (IS_ERR((void *)addr))
-> +		return PTR_ERR((void *)addr);
-> +
-> +	/* Restore token is 8 bytes and aligned to 8 bytes */
-> +	ssp = addr + len;
-> +	token = ssp;
-> +
-> +	if (!in_ia32_syscall())
-> +		token |= TOKEN_MODE_64;
-> +	ssp -= 8;
-> +
-> +	if (write_user_shstk_64(ssp, token)) {
-> +		vm_munmap(addr, len);
-> +		return -EINVAL;
-> +	}
-> +
-> +	*arg = addr;
-> +	return 0;
-> +}
-> +
->  int cet_setup_shstk(void)
->  {
->  	unsigned long addr, size;
-> diff --git a/arch/x86/kernel/cet_prctl.c b/arch/x86/kernel/cet_prctl.c
-> new file mode 100644
-> index 000000000000..0139c48f2215
-> --- /dev/null
-> +++ b/arch/x86/kernel/cet_prctl.c
-> @@ -0,0 +1,87 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +
-> +#include <linux/errno.h>
-> +#include <linux/uaccess.h>
-> +#include <linux/prctl.h>
-> +#include <linux/compat.h>
-> +#include <linux/mman.h>
-> +#include <linux/elfcore.h>
-> +#include <asm/processor.h>
-> +#include <asm/prctl.h>
-> +#include <asm/cet.h>
-> +
-> +/* See Documentation/x86/intel_cet.rst. */
-> +
-> +static int handle_get_status(u64 arg2)
-> +{
-> +	struct cet_status *cet = &current->thread.cet;
-> +	u64 buf[3] = {0, 0, 0};
-> +
-> +	if (cet->shstk_size) {
-> +		buf[0] |= GNU_PROPERTY_X86_FEATURE_1_SHSTK;
-> +		buf[1] = (u64)cet->shstk_base;
-> +		buf[2] = (u64)cet->shstk_size;
-> +	}
-> +
-> +	return copy_to_user((u64 __user *)arg2, buf, sizeof(buf));
-> +}
-> +
-> +static int handle_alloc_shstk(u64 arg2)
-> +{
-> +	int err = 0;
-> +	unsigned long arg;
-> +	unsigned long addr = 0;
-> +	unsigned long size = 0;
-> +
-> +	if (get_user(arg, (unsigned long __user *)arg2))
-> +		return -EFAULT;
-> +
-> +	size = arg;
-> +	err = cet_alloc_shstk(&arg);
-> +	if (err)
-> +		return err;
-> +
-> +	addr = arg;
-> +	if (put_user((u64)addr, (u64 __user *)arg2)) {
-> +		vm_munmap(addr, size);
-> +		return -EFAULT;
-> +	}
-> +
-> +	return 0;
-> +}
-> +
-> +int prctl_cet(int option, u64 arg2)
-> +{
-> +	struct cet_status *cet;
-> +
-> +	if (!IS_ENABLED(CONFIG_X86_INTEL_CET))
-> +		return -EINVAL;
+Nice work! I am interested in the problem of system wide file access
+rules based on directory hierarchy [1][2]. Not the same problem, but
+with obvious overlaps.
 
-Using -EINVAL here means userspace can't tell the difference between an
-old kernel and a kernel not built with CONFIG_X86_INTEL_CET. Perhaps
--ENOTSUPP?
+I sketched this untested POC [2] a while ago -
+It introduces the concept of "border control" LSM hooks to avoid the
+need to check which sections in the hierarchy an inode belongs to
+on every syscall.
 
-> +
-> +	if (option == ARCH_X86_CET_STATUS)
-> +		return handle_get_status(arg2);
-> +
-> +	if (!static_cpu_has(X86_FEATURE_SHSTK))
-> +		return -EINVAL;
+With this, you could cache a topology with id's per section and
+cache the section id + topology generation in the inode's security state.
+When inode crosses border control hooks, it's section id is updated.
+When directory hierarchy topology changes, some or all of the cached
+section id's are invalidated and rules <-> sections relations may need
+to be changed.
 
-Similar case: though this is now a kernel that knows how, but a CPU that
-doesn't.
+Do you think something like that could be useful for landlock?
 
-> +
-> +	cet = &current->thread.cet;
+Note that the POC is using d_mountpoint() as the only type of "fence"
+mark. It is sufficient for controlling rename in and out of containers, so
+I just used an already available dentry flag for "fence".
+If the border control hook concept is useful, this could be extended to
+a more generic d_border_passing(), with some internal kernel API
+to manage it and with all the bike shedding that comes with it...
 
-You get this both here and in handle_get_status(). Why not just get it
-once and pass it into handle_get_status()? (And perhaps rename it to
-"copy_status_to_user" or so?
+Thanks,
+Amir.
 
-> +
-> +	switch (option) {
-> +	case ARCH_X86_CET_DISABLE:
-
-This must check for unknown flags before doing anything else:
-
-		if (arg & ~(GNU_PROPERTY_X86_FEATURE_1_SHSTK))
-			return -EINVAL;
-
-> +		if (cet->locked)
-> +			return -EPERM;
-> +		if (arg2 & GNU_PROPERTY_X86_FEATURE_1_SHSTK)
-> +			cet_disable_free_shstk(current);
-> +
-> +		return 0;
-> +
-> +	case ARCH_X86_CET_LOCK:
-
-Same here.
-
-> +		cet->locked = 1;
-> +		return 0;
-> +
-> +	case ARCH_X86_CET_ALLOC_SHSTK:
-> +		return handle_alloc_shstk(arg2);
-> +
-> +	default:
-> +		return -EINVAL;
-> +	}
-> +}
-> diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
-> index ef1c2b8086a2..de6773dd6a16 100644
-> --- a/arch/x86/kernel/process.c
-> +++ b/arch/x86/kernel/process.c
-> @@ -996,7 +996,7 @@ long do_arch_prctl_common(struct task_struct *task, int option,
->  		return get_cpuid_mode();
->  	case ARCH_SET_CPUID:
->  		return set_cpuid_mode(task, cpuid_enabled);
-> +	default:
-> +		return prctl_cet(option, cpuid_enabled);
->  	}
-
-This is weird, but yeah, there's only the cpuid and cet handlers... I
-think do_arch_prctrl_common() should call the second arg "arg2" and
-there should be a series of calls:
-
-	ret = prctl_cpuid(task, option, args);
-	if (ret != -EINVAL)
-		return ret;
-	return prctl_cet(option, args);
-
-But that's just a style nit, I guess.
-
-And really, why is x86's arch prtcl return EINVAL for unknown options?
-It should use -ENOSYS for unknown options and -EINVAL for bad arguments,
-but I guess it's too late for that. :)
-
--- 
-Kees Cook
+[1] https://lore.kernel.org/linux-fsdevel/CAOQ4uxhBVhyyJv0+xSFQiGQEj60AbD3S=
+ADfKK40uAiC4GF2p9Q@mail.gmail.com/
+[2] https://lore.kernel.org/linux-fsdevel/CAOQ4uxgn=3DYNj8cJuccx2KqxEVGZy1z=
+3DBVYXrD=3DMc7Dc=3DJe+-w@mail.gmail.com/
+[3] https://github.com/amir73il/linux/commits/rename_xmnt
