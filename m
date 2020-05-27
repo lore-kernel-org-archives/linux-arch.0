@@ -1,291 +1,106 @@
-Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 19/29] mm: rename flush_icache_user_range to flush_icache_user_page
-Date: Fri, 15 May 2020 16:36:36 +0200
-Message-ID: <20200515143646.3857579-20-hch@lst.de>
-In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-References: <20200515143646.3857579-1-hch@lst.de>
+Return-Path: <SRS0=qpv3=7J=kvack.org=owner-linux-mm@kernel.org>
+Date: Wed, 27 May 2020 01:13:37 -0700
+From: Nathan Chancellor <natechancellor@gmail.com>
+Subject: Re: [PATCH] media: omap3isp: Shuffle cacheflush.h and include mm.h
+Message-ID: <20200527081337.GA3506499@ubuntu-s3-xlarge-x86>
+References: <20200515143646.3857579-7-hch@lst.de>
+ <20200527043426.3242439-1-natechancellor@gmail.com>
+ <CAMuHMdVSduTOi5bUgF9sLQdGADwyL1+qALWsKgin1TeOLGhAKQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdVSduTOi5bUgF9sLQdGADwyL1+qALWsKgin1TeOLGhAKQ@mail.gmail.com>
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Christoph Hellwig <hch@lst.de>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, Roman Zippel <zippel@linux-m68k.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, linux-riscv@lists.infradead.org, Linux-Arch <linux-arch@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Arnd Bergmann <arnd@arndb.de>, alpha <linux-alpha@vger.kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Openrisc <openrisc@lists.librecores.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Michal Simek <monstr@monstr.eu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jessica Yu <jeyu@kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515143636.d3BZX_LRq4mToFfHupyKOpIDe9_VtWEyzu4DiYZQthc@z>
+Message-ID: <20200527081337.wT2jmUcGJpII1YR6vNZs5ilLddF4u3UYKE9K7UTWJpY@z>
 
-The function currently known as flush_icache_user_range only operates
-on a single page.  Rename it to flush_icache_user_page as we'll need
-the name flush_icache_user_range for something else soon.
+Hi Geert,
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
----
- arch/alpha/include/asm/cacheflush.h    | 10 +++++-----
- arch/alpha/kernel/smp.c                |  2 +-
- arch/ia64/include/asm/cacheflush.h     |  2 +-
- arch/m68k/include/asm/cacheflush_mm.h  |  4 ++--
- arch/m68k/mm/cache.c                   |  2 +-
- arch/nds32/include/asm/cacheflush.h    |  4 ++--
- arch/nds32/mm/cacheflush.c             |  2 +-
- arch/openrisc/include/asm/cacheflush.h |  2 +-
- arch/powerpc/include/asm/cacheflush.h  |  4 ++--
- arch/powerpc/mm/mem.c                  |  2 +-
- arch/riscv/include/asm/cacheflush.h    |  3 ++-
- include/asm-generic/cacheflush.h       |  6 +++---
- kernel/events/uprobes.c                |  2 +-
- 13 files changed, 23 insertions(+), 22 deletions(-)
+On Wed, May 27, 2020 at 09:02:51AM +0200, Geert Uytterhoeven wrote:
+> Hi Nathan,
+> 
+> CC Laurent
+> 
+> On Wed, May 27, 2020 at 6:37 AM Nathan Chancellor
+> <natechancellor@gmail.com> wrote:
+> > After mm.h was removed from the asm-generic version of cacheflush.h,
+> > s390 allyesconfig shows several warnings of the following nature:
+> >
+> > In file included from ./arch/s390/include/generated/asm/cacheflush.h:1,
+> >                  from drivers/media/platform/omap3isp/isp.c:42:
+> > ./include/asm-generic/cacheflush.h:16:42: warning: 'struct mm_struct'
+> > declared inside parameter list will not be visible outside of this
+> > definition or declaration
+> >
+> > cacheflush.h does not include mm.h nor does it include any forward
+> > declaration of these structures hence the warning. To avoid this,
+> > include mm.h explicitly in this file and shuffle cacheflush.h below it.
+> >
+> > Fixes: 19c0054597a0 ("asm-generic: don't include <linux/mm.h> in cacheflush.h")
+> > Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
+> 
+> Thanks for your patch!
+> 
+> > I am aware the fixes tag is kind of irrelevant because that SHA will
+> > change in the next linux-next revision and this will probably get folded
+> > into the original patch anyways but still.
+> >
+> > The other solution would be to add forward declarations of these structs
+> > to the top of cacheflush.h, I just chose to do what Christoph did in the
+> > original patch. I am happy to do that instead if you all feel that is
+> > better.
+> 
+> That actually looks like a better solution to me, as it would address the
+> problem for all users.
+> 
+> >  drivers/media/platform/omap3isp/isp.c | 5 +++--
+> >  1 file changed, 3 insertions(+), 2 deletions(-)
+> >
+> > diff --git a/drivers/media/platform/omap3isp/isp.c b/drivers/media/platform/omap3isp/isp.c
+> > index a4ee6b86663e..54106a768e54 100644
+> > --- a/drivers/media/platform/omap3isp/isp.c
+> > +++ b/drivers/media/platform/omap3isp/isp.c
+> > @@ -39,8 +39,6 @@
+> >   *     Troy Laramy <t-laramy@ti.com>
+> >   */
+> >
+> > -#include <asm/cacheflush.h>
+> > -
+> >  #include <linux/clk.h>
+> >  #include <linux/clkdev.h>
+> >  #include <linux/delay.h>
+> > @@ -49,6 +47,7 @@
+> >  #include <linux/i2c.h>
+> >  #include <linux/interrupt.h>
+> >  #include <linux/mfd/syscon.h>
+> > +#include <linux/mm.h>
+> >  #include <linux/module.h>
+> >  #include <linux/omap-iommu.h>
+> >  #include <linux/platform_device.h>
+> > @@ -58,6 +57,8 @@
+> >  #include <linux/sched.h>
+> >  #include <linux/vmalloc.h>
+> >
+> > +#include <asm/cacheflush.h>
+> > +
+> >  #ifdef CONFIG_ARM_DMA_USE_IOMMU
+> >  #include <asm/dma-iommu.h>
+> >  #endif
+> 
+> Why does this file need <asm/cacheflush.h> at all?
+> It doesn't call any of the flush_*() functions, and seems to compile fine
+> without (on arm32).
+> 
+> Perhaps it was included at the top intentionally, to override the definitions
+> of copy_{to,from}_user_page()? Fortunately that doesn't seem to be the
+> case, from a quick look at the assembler output.
+> 
+> So let's just remove the #include instead?
 
-diff --git a/arch/alpha/include/asm/cacheflush.h b/arch/alpha/include/asm=
-/cacheflush.h
-index 636d7ca0d05f6..9945ff483eaf7 100644
---- a/arch/alpha/include/asm/cacheflush.h
-+++ b/arch/alpha/include/asm/cacheflush.h
-@@ -35,7 +35,7 @@ extern void smp_imb(void);
-=20
- extern void __load_new_mm_context(struct mm_struct *);
- static inline void
--flush_icache_user_range(struct vm_area_struct *vma, struct page *page,
-+flush_icache_user_page(struct vm_area_struct *vma, struct page *page,
- 			unsigned long addr, int len)
- {
- 	if (vma->vm_flags & VM_EXEC) {
-@@ -46,16 +46,16 @@ flush_icache_user_range(struct vm_area_struct *vma, s=
-truct page *page,
- 			mm->context[smp_processor_id()] =3D 0;
- 	}
- }
--#define flush_icache_user_range flush_icache_user_range
-+#define flush_icache_user_page flush_icache_user_page
- #else /* CONFIG_SMP */
--extern void flush_icache_user_range(struct vm_area_struct *vma,
-+extern void flush_icache_user_page(struct vm_area_struct *vma,
- 		struct page *page, unsigned long addr, int len);
--#define flush_icache_user_range flush_icache_user_range
-+#define flush_icache_user_page flush_icache_user_page
- #endif /* CONFIG_SMP */
-=20
- /* This is used only in __do_fault and do_swap_page.  */
- #define flush_icache_page(vma, page) \
--	flush_icache_user_range((vma), (page), 0, 0)
-+	flush_icache_user_page((vma), (page), 0, 0)
-=20
- #include <asm-generic/cacheflush.h>
-=20
-diff --git a/arch/alpha/kernel/smp.c b/arch/alpha/kernel/smp.c
-index 5f90df30be20a..52995bf413fea 100644
---- a/arch/alpha/kernel/smp.c
-+++ b/arch/alpha/kernel/smp.c
-@@ -740,7 +740,7 @@ ipi_flush_icache_page(void *x)
- }
-=20
- void
--flush_icache_user_range(struct vm_area_struct *vma, struct page *page,
-+flush_icache_user_page(struct vm_area_struct *vma, struct page *page,
- 			unsigned long addr, int len)
- {
- 	struct mm_struct *mm =3D vma->vm_mm;
-diff --git a/arch/ia64/include/asm/cacheflush.h b/arch/ia64/include/asm/c=
-acheflush.h
-index a8f1c86ac242a..708c0fa5d975e 100644
---- a/arch/ia64/include/asm/cacheflush.h
-+++ b/arch/ia64/include/asm/cacheflush.h
-@@ -22,7 +22,7 @@ extern void flush_icache_range(unsigned long start, uns=
-igned long end);
- #define flush_icache_range flush_icache_range
- extern void clflush_cache_range(void *addr, int size);
-=20
--#define flush_icache_user_range(vma, page, user_addr, len)					\
-+#define flush_icache_user_page(vma, page, user_addr, len)					\
- do {												\
- 	unsigned long _addr =3D (unsigned long) page_address(page) + ((user_add=
-r) & ~PAGE_MASK);	\
- 	flush_icache_range(_addr, _addr + (len));						\
-diff --git a/arch/m68k/include/asm/cacheflush_mm.h b/arch/m68k/include/as=
-m/cacheflush_mm.h
-index 1e2544ecaf88c..95376bf84faa5 100644
---- a/arch/m68k/include/asm/cacheflush_mm.h
-+++ b/arch/m68k/include/asm/cacheflush_mm.h
-@@ -254,7 +254,7 @@ static inline void __flush_page_to_ram(void *vaddr)
- #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
- #define flush_icache_page(vma, page)	__flush_page_to_ram(page_address(pa=
-ge))
-=20
--extern void flush_icache_user_range(struct vm_area_struct *vma, struct p=
-age *page,
-+extern void flush_icache_user_page(struct vm_area_struct *vma, struct pa=
-ge *page,
- 				    unsigned long addr, int len);
- extern void flush_icache_range(unsigned long address, unsigned long enda=
-ddr);
-=20
-@@ -264,7 +264,7 @@ static inline void copy_to_user_page(struct vm_area_s=
-truct *vma,
- {
- 	flush_cache_page(vma, vaddr, page_to_pfn(page));
- 	memcpy(dst, src, len);
--	flush_icache_user_range(vma, page, vaddr, len);
-+	flush_icache_user_page(vma, page, vaddr, len);
- }
- static inline void copy_from_user_page(struct vm_area_struct *vma,
- 				       struct page *page, unsigned long vaddr,
-diff --git a/arch/m68k/mm/cache.c b/arch/m68k/mm/cache.c
-index 079e64898e6a5..99057cd5ff7f1 100644
---- a/arch/m68k/mm/cache.c
-+++ b/arch/m68k/mm/cache.c
-@@ -106,7 +106,7 @@ void flush_icache_range(unsigned long address, unsign=
-ed long endaddr)
- }
- EXPORT_SYMBOL(flush_icache_range);
-=20
--void flush_icache_user_range(struct vm_area_struct *vma, struct page *pa=
-ge,
-+void flush_icache_user_page(struct vm_area_struct *vma, struct page *pag=
-e,
- 			     unsigned long addr, int len)
- {
- 	if (CPU_IS_COLDFIRE) {
-diff --git a/arch/nds32/include/asm/cacheflush.h b/arch/nds32/include/asm=
-/cacheflush.h
-index caddded56e77f..7d6824f7c0e8d 100644
---- a/arch/nds32/include/asm/cacheflush.h
-+++ b/arch/nds32/include/asm/cacheflush.h
-@@ -44,9 +44,9 @@ void invalidate_kernel_vmap_range(void *addr, int size)=
-;
- #define flush_dcache_mmap_unlock(mapping) xa_unlock_irq(&(mapping)->i_pa=
-ges)
-=20
- #else
--void flush_icache_user_range(struct vm_area_struct *vma, struct page *pa=
-ge,
-+void flush_icache_user_page(struct vm_area_struct *vma, struct page *pag=
-e,
- 	                     unsigned long addr, int len);
--#define flush_icache_user_range flush_icache_user_range
-+#define flush_icache_user_page flush_icache_user_page
-=20
- #include <asm-generic/cacheflush.h>
- #endif
-diff --git a/arch/nds32/mm/cacheflush.c b/arch/nds32/mm/cacheflush.c
-index 8f168b33065fa..6eb98a7ad27d2 100644
---- a/arch/nds32/mm/cacheflush.c
-+++ b/arch/nds32/mm/cacheflush.c
-@@ -36,7 +36,7 @@ void flush_icache_page(struct vm_area_struct *vma, stru=
-ct page *page)
- 	local_irq_restore(flags);
- }
-=20
--void flush_icache_user_range(struct vm_area_struct *vma, struct page *pa=
-ge,
-+void flush_icache_user_page(struct vm_area_struct *vma, struct page *pag=
-e,
- 	                     unsigned long addr, int len)
- {
- 	unsigned long kaddr;
-diff --git a/arch/openrisc/include/asm/cacheflush.h b/arch/openrisc/inclu=
-de/asm/cacheflush.h
-index 74d1fce4e8839..eeac40d4a8547 100644
---- a/arch/openrisc/include/asm/cacheflush.h
-+++ b/arch/openrisc/include/asm/cacheflush.h
-@@ -62,7 +62,7 @@ static inline void flush_dcache_page(struct page *page)
- 	clear_bit(PG_dc_clean, &page->flags);
- }
-=20
--#define flush_icache_user_range(vma, page, addr, len)	\
-+#define flush_icache_user_page(vma, page, addr, len)	\
- do {							\
- 	if (vma->vm_flags & VM_EXEC)			\
- 		sync_icache_dcache(page);		\
-diff --git a/arch/powerpc/include/asm/cacheflush.h b/arch/powerpc/include=
-/asm/cacheflush.h
-index e682c8e10e903..de600b915a3c5 100644
---- a/arch/powerpc/include/asm/cacheflush.h
-+++ b/arch/powerpc/include/asm/cacheflush.h
-@@ -28,9 +28,9 @@ extern void flush_dcache_page(struct page *page);
- void flush_icache_range(unsigned long start, unsigned long stop);
- #define flush_icache_range flush_icache_range
-=20
--void flush_icache_user_range(struct vm_area_struct *vma, struct page *pa=
-ge,
-+void flush_icache_user_page(struct vm_area_struct *vma, struct page *pag=
-e,
- 		unsigned long addr, int len);
--#define flush_icache_user_range flush_icache_user_range
-+#define flush_icache_user_page flush_icache_user_page
-=20
- void flush_dcache_icache_page(struct page *page);
- void __flush_dcache_icache(void *page);
-diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
-index f0d1bf0a8e14f..d1ad0b9b19281 100644
---- a/arch/powerpc/mm/mem.c
-+++ b/arch/powerpc/mm/mem.c
-@@ -578,7 +578,7 @@ void copy_user_page(void *vto, void *vfrom, unsigned =
-long vaddr,
- 	flush_dcache_page(pg);
- }
-=20
--void flush_icache_user_range(struct vm_area_struct *vma, struct page *pa=
-ge,
-+void flush_icache_user_page(struct vm_area_struct *vma, struct page *pag=
-e,
- 			     unsigned long addr, int len)
- {
- 	unsigned long maddr;
-diff --git a/arch/riscv/include/asm/cacheflush.h b/arch/riscv/include/asm=
-/cacheflush.h
-index a167b4fbdf007..23ff703509926 100644
---- a/arch/riscv/include/asm/cacheflush.h
-+++ b/arch/riscv/include/asm/cacheflush.h
-@@ -27,7 +27,8 @@ static inline void flush_dcache_page(struct page *page)
-  * so instead we just flush the whole thing.
-  */
- #define flush_icache_range(start, end) flush_icache_all()
--#define flush_icache_user_range(vma, pg, addr, len) flush_icache_mm(vma-=
->vm_mm, 0)
-+#define flush_icache_user_page(vma, pg, addr, len) \
-+	flush_icache_mm(vma->vm_mm, 0)
-=20
- #ifndef CONFIG_SMP
-=20
-diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cache=
-flush.h
-index bbbb4d4ef6516..2c9686fefb715 100644
---- a/include/asm-generic/cacheflush.h
-+++ b/include/asm-generic/cacheflush.h
-@@ -73,8 +73,8 @@ static inline void flush_icache_page(struct vm_area_str=
-uct *vma,
- }
- #endif
-=20
--#ifndef flush_icache_user_range
--static inline void flush_icache_user_range(struct vm_area_struct *vma,
-+#ifndef flush_icache_user_page
-+static inline void flush_icache_user_page(struct vm_area_struct *vma,
- 					   struct page *page,
- 					   unsigned long addr, int len)
- {
-@@ -97,7 +97,7 @@ static inline void flush_cache_vunmap(unsigned long sta=
-rt, unsigned long end)
- #define copy_to_user_page(vma, page, vaddr, dst, src, len)	\
- 	do { \
- 		memcpy(dst, src, len); \
--		flush_icache_user_range(vma, page, vaddr, len); \
-+		flush_icache_user_page(vma, page, vaddr, len); \
- 	} while (0)
- #endif
-=20
-diff --git a/kernel/events/uprobes.c b/kernel/events/uprobes.c
-index ece7e13f6e4ac..2e5effbda86b0 100644
---- a/kernel/events/uprobes.c
-+++ b/kernel/events/uprobes.c
-@@ -1674,7 +1674,7 @@ void __weak arch_uprobe_copy_ixol(struct page *page=
-, unsigned long vaddr,
- 	copy_to_page(page, vaddr, src, len);
-=20
- 	/*
--	 * We probably need flush_icache_user_range() but it needs vma.
-+	 * We probably need flush_icache_user_page() but it needs vma.
- 	 * This should work on most of architectures by default. If
- 	 * architecture needs to do something different it can define
- 	 * its own version of the function.
---=20
-2.26.2
+Sounds good to me. I can send a patch if needed or I suppose Andrew can
+just make a small fixup patch for it. Let me know what I should do.
+
+Cheers,
+Nathan
