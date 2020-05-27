@@ -1,35 +1,60 @@
-From: "Mrs.Judith Rice" <hamurafujimi@tmail.plala.or.jp>
-Subject: Spende
-Date: Wed, 27 May 2020 22:59:25 +0900
-Message-ID: <20200527225925.5C0N3.1031.root__33178.2237904676$1590587974$gmane$org@mwebp13>
-Reply-To: jonesevansje@gmail.com
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [PATCH] cpumask: guard cpumask_of_node() macro argument
+Date: Wed, 27 May 2020 07:51:38 -0700
+Message-ID: <20200527145138.GB209591@roeck-us.net>
+References: <20200527134623.930247-1-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-2022-jp
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39730 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47942 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388982AbgE0N71 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 May 2020 09:59:27 -0400
+        with ESMTP id S2388621AbgE0Ovk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 May 2020 10:51:40 -0400
+Content-Disposition: inline
+In-Reply-To: <20200527134623.930247-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Naveen Krishna Chatradhi <nchatrad@amd.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@redhat.com>, Tony Luck <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Richard Henderson <rth@twiddle.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Attn:
+On Wed, May 27, 2020 at 03:46:08PM +0200, Arnd Bergmann wrote:
+> drivers/hwmon/amd_energy.c:195:15: error: invalid operands to binary expression ('void' and 'int')
+>                                         (channel - data->nr_cpus));
+>                                         ~~~~~~~~~^~~~~~~~~~~~~~~~~
+> include/asm-generic/topology.h:51:42: note: expanded from macro 'cpumask_of_node'
+>     #define cpumask_of_node(node)       ((void)node, cpu_online_mask)
+>                                                ^~~~
+> include/linux/cpumask.h:618:72: note: expanded from macro 'cpumask_first_and'
+>  #define cpumask_first_and(src1p, src2p) cpumask_next_and(-1, (src1p), (src2p))
+>                                                                        ^~~~~
+> 
+> Fixes: f0b848ce6fe9 ("cpumask: Introduce cpumask_of_{node,pcibus} to replace {node,pcibus}_to_cpumask")
+> Fixes: 8abee9566b7e ("hwmon: Add amd_energy driver to report energy counters")
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-Es tut uns leid, dass wir Sie aufgrund eines Mismanagent of Beneficaries-Fonds von unseren ernannten Zonal Managern versp&#228;tet kontaktiert haben. Bitte beachten Sie, dass Sie qualifiziert sind, die Zahlung von 900.000,00 USD an der ATM-Karte mit neunhunderttausend Dollar zu erhalten.
+Didn't I Cc: you on the same patch I sent out earlier ? Never mind, though.
 
-Als Entsch&#228;digung von WORLD BANK / IWF (Internationaler W&#228;hrungsfonds) f&#252;r die automatisch &#252;ber einen E-Mail-Wahlautomaten gezogenen, die in der Vergangenheit noch nicht abgeschlossene Transaktionen hatten.
+Acked-by: Guenter Roeck <linux@roeck-us.net>
 
-F&#252;r weitere Informationen kontaktieren Sie bitte Rev.EVANS JONES ( jonesevansje@gmail.com )
+Guenter
 
-Bitte senden Sie ihm Ihre pers&#246;nlichen Daten wie:
-
-Vollst&#228;ndiger Name:
-Wohnanschrift:
-Telefonnummer:
-Herkunftsland:
-
-Gr&#252;&#223;e,
-Mrs. Judith Rice
-
-Spende
+> ---
+>  include/asm-generic/topology.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/include/asm-generic/topology.h b/include/asm-generic/topology.h
+> index 238873739550..5aa8705df87e 100644
+> --- a/include/asm-generic/topology.h
+> +++ b/include/asm-generic/topology.h
+> @@ -48,7 +48,7 @@
+>    #ifdef CONFIG_NEED_MULTIPLE_NODES
+>      #define cpumask_of_node(node)	((node) == 0 ? cpu_online_mask : cpu_none_mask)
+>    #else
+> -    #define cpumask_of_node(node)	((void)node, cpu_online_mask)
+> +    #define cpumask_of_node(node)	((void)(node), cpu_online_mask)
+>    #endif
+>  #endif
+>  #ifndef pcibus_to_node
+> -- 
+> 2.26.2
+> 
