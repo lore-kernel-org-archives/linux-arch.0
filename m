@@ -1,46 +1,105 @@
-Return-Path: <SRS0=y3dn=6Y=kvack.org=owner-linux-mm@kernel.org>
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 07/31] asm-generic: fix the inclusion guards for cacheflush.h
-Date: Sun, 10 May 2020 09:54:46 +0200
-Message-ID: <20200510075510.987823-8-hch@lst.de>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-References: <20200510075510.987823-1-hch@lst.de>
+Return-Path: <SRS0=qpv3=7J=kvack.org=owner-linux-mm@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
+References: <20200515143646.3857579-7-hch@lst.de> <20200527043426.3242439-1-natechancellor@gmail.com>
+In-Reply-To: <20200527043426.3242439-1-natechancellor@gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Wed, 27 May 2020 09:02:51 +0200
+Message-ID: <CAMuHMdVSduTOi5bUgF9sLQdGADwyL1+qALWsKgin1TeOLGhAKQ@mail.gmail.com>
+Subject: Re: [PATCH] media: omap3isp: Shuffle cacheflush.h and include mm.h
+Content-Type: text/plain; charset="UTF-8"
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
+To: Nathan Chancellor <natechancellor@gmail.com>
+Cc: Christoph Hellwig <hch@lst.de>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, Roman Zippel <zippel@linux-m68k.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, linux-riscv@lists.infradead.org, Linux-Arch <linux-arch@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Arnd Bergmann <arnd@arndb.de>, alpha <linux-alpha@vger.kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Openrisc <openrisc@lists.librecores.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Michal Simek <monstr@monstr.eu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jessica Yu <jeyu@kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200510075446.OcFitQKODhOzId66xmmjVsWTG7-zWt0bwf2hDePPjyA@z>
+Message-ID: <20200527070251.Ob0V6SJo8WQromGieV2RuWKC4pysqds13y2H_wVsiuQ@z>
 
-cacheflush.h uses a somewhat to generic include guard name that clashes
-with various arch files.  Use a more specific one.
+Hi Nathan,
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- include/asm-generic/cacheflush.h | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+CC Laurent
 
-diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cache=
-flush.h
-index cac7404b2bdd2..906277492ec59 100644
---- a/include/asm-generic/cacheflush.h
-+++ b/include/asm-generic/cacheflush.h
-@@ -1,6 +1,6 @@
- /* SPDX-License-Identifier: GPL-2.0 */
--#ifndef __ASM_CACHEFLUSH_H
--#define __ASM_CACHEFLUSH_H
-+#ifndef _ASM_GENERIC_CACHEFLUSH_H
-+#define _ASM_GENERIC_CACHEFLUSH_H
-=20
- /* Keep includes the same across arches.  */
- #include <linux/mm.h>
-@@ -109,4 +109,4 @@ static inline void flush_cache_vunmap(unsigned long s=
-tart, unsigned long end)
- 	memcpy(dst, src, len)
- #endif
-=20
--#endif /* __ASM_CACHEFLUSH_H */
-+#endif /* _ASM_GENERIC_CACHEFLUSH_H */
---=20
-2.26.2
+On Wed, May 27, 2020 at 6:37 AM Nathan Chancellor
+<natechancellor@gmail.com> wrote:
+> After mm.h was removed from the asm-generic version of cacheflush.h,
+> s390 allyesconfig shows several warnings of the following nature:
+>
+> In file included from ./arch/s390/include/generated/asm/cacheflush.h:1,
+>                  from drivers/media/platform/omap3isp/isp.c:42:
+> ./include/asm-generic/cacheflush.h:16:42: warning: 'struct mm_struct'
+> declared inside parameter list will not be visible outside of this
+> definition or declaration
+>
+> cacheflush.h does not include mm.h nor does it include any forward
+> declaration of these structures hence the warning. To avoid this,
+> include mm.h explicitly in this file and shuffle cacheflush.h below it.
+>
+> Fixes: 19c0054597a0 ("asm-generic: don't include <linux/mm.h> in cacheflush.h")
+> Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
+
+Thanks for your patch!
+
+> I am aware the fixes tag is kind of irrelevant because that SHA will
+> change in the next linux-next revision and this will probably get folded
+> into the original patch anyways but still.
+>
+> The other solution would be to add forward declarations of these structs
+> to the top of cacheflush.h, I just chose to do what Christoph did in the
+> original patch. I am happy to do that instead if you all feel that is
+> better.
+
+That actually looks like a better solution to me, as it would address the
+problem for all users.
+
+>  drivers/media/platform/omap3isp/isp.c | 5 +++--
+>  1 file changed, 3 insertions(+), 2 deletions(-)
+>
+> diff --git a/drivers/media/platform/omap3isp/isp.c b/drivers/media/platform/omap3isp/isp.c
+> index a4ee6b86663e..54106a768e54 100644
+> --- a/drivers/media/platform/omap3isp/isp.c
+> +++ b/drivers/media/platform/omap3isp/isp.c
+> @@ -39,8 +39,6 @@
+>   *     Troy Laramy <t-laramy@ti.com>
+>   */
+>
+> -#include <asm/cacheflush.h>
+> -
+>  #include <linux/clk.h>
+>  #include <linux/clkdev.h>
+>  #include <linux/delay.h>
+> @@ -49,6 +47,7 @@
+>  #include <linux/i2c.h>
+>  #include <linux/interrupt.h>
+>  #include <linux/mfd/syscon.h>
+> +#include <linux/mm.h>
+>  #include <linux/module.h>
+>  #include <linux/omap-iommu.h>
+>  #include <linux/platform_device.h>
+> @@ -58,6 +57,8 @@
+>  #include <linux/sched.h>
+>  #include <linux/vmalloc.h>
+>
+> +#include <asm/cacheflush.h>
+> +
+>  #ifdef CONFIG_ARM_DMA_USE_IOMMU
+>  #include <asm/dma-iommu.h>
+>  #endif
+
+Why does this file need <asm/cacheflush.h> at all?
+It doesn't call any of the flush_*() functions, and seems to compile fine
+without (on arm32).
+
+Perhaps it was included at the top intentionally, to override the definitions
+of copy_{to,from}_user_page()? Fortunately that doesn't seem to be the
+case, from a quick look at the assembler output.
+
+So let's just remove the #include instead?
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
