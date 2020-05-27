@@ -1,34 +1,80 @@
-Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43278 "EHLO mail.kernel.org"
+Return-Path: <SRS0=9CnN=7J=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:44778 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2389102AbgEMPrB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 May 2020 11:47:01 -0400
-Received: from mail-wm1-f48.google.com (mail-wm1-f48.google.com [209.85.128.48])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id D38EF207D3
-        for <linux-arch@vger.kernel.org>; Wed, 13 May 2020 15:47:00 +0000 (UTC)
-Received: by mail-wm1-f48.google.com with SMTP id h4so27080823wmb.4
-        for <linux-arch@vger.kernel.org>; Wed, 13 May 2020 08:47:00 -0700 (PDT)
-MIME-Version: 1.0
-References: <20200513152137.32426-1-joro@8bytes.org> <20200513152137.32426-8-joro@8bytes.org>
-In-Reply-To: <20200513152137.32426-8-joro@8bytes.org>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Wed, 13 May 2020 08:46:47 -0700
-Message-ID: <CALCETrUq=-huvWXJpVLvPRNwTiniQg8DP6R__J33gE8iSoEGAg@mail.gmail.com>
-Subject: Re: [PATCH v2 7/7] x86/mm: Remove vmalloc faulting
-Content-Type: text/plain; charset="UTF-8"
+        id S1726114AbgE0VS3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 27 May 2020 17:18:29 -0400
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [PATCH v2 3/6] prctl.2: Add PR_SPEC_DISABLE_NOEXEC for SPECULATION_CTRL prctls
+Date: Wed, 27 May 2020 22:17:35 +0100
+Message-ID: <1590614258-24728-4-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joerg Roedel <joro@8bytes.org>
-Cc: X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
-Message-ID: <20200513154647.c3T9pWKGgV-4pN8xk6dtiRkYAeR5es3Nq_BfNtVmH-s@z>
+To: Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Waiman Long <longman@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20200527211735.4l7-FTHXDOdwIKjy6mPmVLYj2nSYx0B63P9MDqAy47U@z>
 
-On Wed, May 13, 2020 at 8:21 AM Joerg Roedel <joro@8bytes.org> wrote:
->
-> From: Joerg Roedel <jroedel@suse.de>
->
-> Remove fault handling on vmalloc areas, as the vmalloc code now takes
-> care of synchronizing changes to all page-tables in the system.
+Add the PR_SPEC_DISABLE_NOEXEC mode added in Linux 5.1
+for the PR_SPEC_STORE_BYPASS "misfeature" of
+PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
 
-You should also remove sync_current_stack_to_mm().
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Cc: Waiman Long <longman@redhat.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+---
+ man2/prctl.2 | 22 ++++++++++++++++++++--
+ 1 file changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/man2/prctl.2 b/man2/prctl.2
+index b6fb51c..cab9915 100644
+--- a/man2/prctl.2
++++ b/man2/prctl.2
+@@ -1187,6 +1187,12 @@ The speculation feature is disabled, mitigation is enabled.
+ Same as
+ .B PR_SPEC_DISABLE
+ but cannot be undone.
++.TP
++.BR PR_SPEC_DISABLE_NOEXEC " (since Linux 5.1)"
++Same as
++.BR PR_SPEC_DISABLE ,
++but but the state will be cleared on
++.BR execve (2).
+ .RE
+ .IP
+ If all bits are 0,
+@@ -1251,6 +1257,17 @@ with the same value for
+ .I arg2
+ will fail with the error
+ .BR EPERM .
++.\" commit 71368af9027f18fe5d1c6f372cfdff7e4bde8b48
++.TP
++.BR PR_SPEC_DISABLE_NOEXEC " (since Linux 5.1)"
++Same as
++.BR PR_SPEC_DISABLE ,
++but but the state will be cleared on
++.BR execve (2).
++Currently only supported for
++.I arg2
++equal to
++.B PR_SPEC_STORE_BYPASS.
+ .RE
+ .IP
+ Any unsupported value in
+@@ -1899,11 +1916,12 @@ was
+ .BR PR_SET_SPECULATION_CTRL
+ and
+ .IR arg3
+-is neither
++is not
+ .BR PR_SPEC_ENABLE ,
+ .BR PR_SPEC_DISABLE ,
++.BR PR_SPEC_FORCE_DISABLE ,
+ nor
+-.BR PR_SPEC_FORCE_DISABLE .
++.BR PR_SPEC_DISABLE_NOEXEC .
+ .SH VERSIONS
+ The
+ .BR prctl ()
+-- 
+2.1.4
