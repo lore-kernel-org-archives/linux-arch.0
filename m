@@ -1,68 +1,107 @@
-Return-Path: <SRS0=84jE=65=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35702 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1726144AbgEOOhs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 15 May 2020 10:37:48 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 14/29] m68knommu: use asm-generic/cacheflush.h
-Date: Fri, 15 May 2020 16:36:31 +0200
-Message-ID: <20200515143646.3857579-15-hch@lst.de>
-In-Reply-To: <20200515143646.3857579-1-hch@lst.de>
-References: <20200515143646.3857579-1-hch@lst.de>
+Return-Path: <SRS0=qpv3=7J=kvack.org=owner-linux-mm@kernel.org>
+Date: Tue, 26 May 2020 19:11:53 -0700
+From: Patrick Daly <pdaly@codeaurora.org>
+Subject: Re: [PATCH v4 24/26] arm64: mte: Introduce early param to disable
+ MTE support
+Message-ID: <20200527021153.GA24439@pdaly-linux.qualcomm.com>
+References: <20200515171612.1020-1-catalin.marinas@arm.com>
+ <20200515171612.1020-25-catalin.marinas@arm.com>
+ <a2ad6cbf-2632-3cda-eb49-74ddfbed2cec@arm.com>
+ <20200518113103.GA32394@willie-the-truck>
+ <20200518172054.GL9862@gaia>
+ <20200522055710.GA25791@pdaly-linux.qualcomm.com>
+ <20200522103714.GA26492@gaia>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200522103714.GA26492@gaia>
+Sender: owner-linux-mm@kvack.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, Vladimir Murzin <vladimir.murzin@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org, Greg Ungerer <gerg@linux-m68k.org>
-Message-ID: <20200515143631.7Bi86PKVLsBA1-uwPRh5Gjh-Riq3n46fh010Q0ZeTgo@z>
+Message-ID: <20200527021153.Gh7ZXGyQ1LTc3YvtAbwqtm0TNuyaw_tZIeThIkxy-h0@z>
 
-m68knommu needs almost no cache flushing routines of its own.  Rely on
-asm-generic/cacheflush.h for the defaults.
+On Fri, May 22, 2020 at 11:37:15AM +0100, Catalin Marinas wrote:
+> Hi Patrick,
+> 
+> On Thu, May 21, 2020 at 10:57:10PM -0700, Patrick Daly wrote:
+> > On Mon, May 18, 2020 at 06:20:55PM +0100, Catalin Marinas wrote:
+> > > On Mon, May 18, 2020 at 12:31:03PM +0100, Will Deacon wrote:
+> > > > On Mon, May 18, 2020 at 12:26:30PM +0100, Vladimir Murzin wrote:
+> > > > > On 5/15/20 6:16 PM, Catalin Marinas wrote:
+> > > > > > diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+> > > > > > index f2a93c8679e8..7436e7462b85 100644
+> > > > > > --- a/Documentation/admin-guide/kernel-parameters.txt
+> > > > > > +++ b/Documentation/admin-guide/kernel-parameters.txt
+> > > > > > @@ -373,6 +373,10 @@
+> > > > > >  	arcrimi=	[HW,NET] ARCnet - "RIM I" (entirely mem-mapped) cards
+> > > > > >  			Format: <io>,<irq>,<nodeID>
+> > > > > >  
+> > > > > > +	arm64.mte_disable=
+> > > > > > +			[ARM64] Disable Linux support for the Memory
+> > > > > > +			Tagging Extension (both user and in-kernel).
+> > > > > > +
+> > > > > 
+> > > > > Should it really to take parameter (on/off/true/false)? It may lead to expectation
+> > > > > that arm64.mte_disable=false should enable MT and, yes, double negatives make it
+> > > > > look ugly, so if we do need parameter, can it be arm64.mte=on/off/true/false?
+> > > > 
+> > > > I don't think "performance analysis" is a good justification for this
+> > > > parameter tbh. We don't tend to add these options for other architectural
+> > > > features, and I don't see why MTE is any different in this regard.
+> > > 
+> > > There is an expectation of performance impact with MTE enabled,
+> > > especially if it's running in synchronous mode. For the in-kernel MTE,
+> > > we could add a parameter which sets sync vs async at boot time rather
+> > > than a big disable knob. It won't affect user space however.
+> > > 
+> > > The other 'justification' is if your hardware has weird unexpected
+> > > behaviour but I'd like this handled via errata workarounds.
+> > > 
+> > > I'll let the people who asked for this to chip in ;). I agree with you
+> > > that we rarely add these (and I rejected a similar option a few weeks
+> > > ago on the AMU patchset).
+> > 
+> > We've been looking into other ways this on/off behavior could be achieved.
+> 
+> The actual question here is what the on/off behaviour is needed for. We
+> can figure out the best mechanism for this once we know what we want to
+> achieve. My wild guess above was performance analysis but that can be
+> toggled by either kernel boot parameter or run-time sysctl (or just the
+> Kconfig option).
+> 
+> If it is about forcing user space not to use MTE, we may look into some
+> other sysctl controls (we already have one for the tagged address ABI).
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Greg Ungerer <gerg@linux-m68k.org>
----
- arch/m68k/include/asm/cacheflush_no.h | 19 ++-----------------
- 1 file changed, 2 insertions(+), 17 deletions(-)
+We want to allow the end user to be able to easily "opt out" of MTE in favour
+of better power, perf and battery life.
 
-diff --git a/arch/m68k/include/asm/cacheflush_no.h b/arch/m68k/include/asm/cacheflush_no.h
-index 11e9a9dcbfb24..2731f07e7be8c 100644
---- a/arch/m68k/include/asm/cacheflush_no.h
-+++ b/arch/m68k/include/asm/cacheflush_no.h
-@@ -9,25 +9,8 @@
- #include <asm/mcfsim.h>
- 
- #define flush_cache_all()			__flush_cache_all()
--#define flush_cache_mm(mm)			do { } while (0)
--#define flush_cache_dup_mm(mm)			do { } while (0)
--#define flush_cache_range(vma, start, end)	do { } while (0)
--#define flush_cache_page(vma, vmaddr)		do { } while (0)
- #define flush_dcache_range(start, len)		__flush_dcache_all()
--#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
--#define flush_dcache_page(page)			do { } while (0)
--#define flush_dcache_mmap_lock(mapping)		do { } while (0)
--#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
- #define flush_icache_range(start, len)		__flush_icache_all()
--#define flush_icache_page(vma,pg)		do { } while (0)
--#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
--#define flush_cache_vmap(start, end)		do { } while (0)
--#define flush_cache_vunmap(start, end)		do { } while (0)
--
--#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
--#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
- 
- void mcf_cache_push(void);
- 
-@@ -98,4 +81,6 @@ static inline void cache_clear(unsigned long paddr, int len)
- 	__clear_cache_all();
- }
- 
-+#include <asm-generic/cacheflush.h>
-+
- #endif /* _M68KNOMMU_CACHEFLUSH_H */
+In terms of deciding policy, a sysctl is much more accessible than
+reompiling with CONFIG_MTE=n, or replacing userspace libraries with
+equivalents which don't use PROT_MTE.
+
+--Patrick
+
+> 
+> If it is for working around hardware not supporting MTE (i.e. no
+> allocation tag storage), this should be handled differently, not by
+> kernel parameter.
+> 
+> > The "arm,armv8.5-memtag" DT flag already provides what we want - meaning
+> > that this flag could be removed if the system did not support MTE.
+> > 
+> > I did see your remark on "arm64: mte: Check the DT memory nodes for MTE support"
+> > questioning whether it was the right approach - is this still the case?
+> 
+> My plan is to remove the DT patch altogether _if_ I get confirmation
+> from the CPU designers. The idea is that if ID_AA64PFR1_EL1.MTE > 1,
+> Linux can assume system-wide MTE support. If an MTE-capable CPU is
+> deployed in an SoC without tag storage, a tie-off should change the ID
+> field to 1 (or 0). If we do find hardware with an ID field > 1 and no
+> tag storage, it will be handled as an SoC erratum in the kernel,
+> probably tied to the new SoC Id advertised by firmware (Sudeep had some
+> patches recently).
+
 -- 
-2.26.2
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+a Linux Foundation Collaborative Project
