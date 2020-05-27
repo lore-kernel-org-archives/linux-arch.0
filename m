@@ -1,42 +1,78 @@
-Return-Path: <SRS0=V28G=7D=vger.kernel.org=linux-doc-owner@kernel.org>
-Message-ID: <a1e7c71c72de517a288e6273ba0c18dac2e937bc.camel@intel.com>
-Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Thu, 21 May 2020 08:57:57 -0700
-In-Reply-To: <20200521151556.pojijpmuc2rdd7ko@treble>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-         <20200521151556.pojijpmuc2rdd7ko@treble>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=qpv3=7J=kvack.org=owner-linux-mm@kernel.org>
+From: Nathan Chancellor <natechancellor@gmail.com>
+Subject: [PATCH] media: omap3isp: Shuffle cacheflush.h and include mm.h
+Date: Tue, 26 May 2020 21:34:27 -0700
+Message-ID: <20200527043426.3242439-1-natechancellor@gmail.com>
+In-Reply-To: <20200515143646.3857579-7-hch@lst.de>
+References: <20200515143646.3857579-7-hch@lst.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: hch@lst.de
+Cc: akpm@linux-foundation.org, arnd@arndb.de, jeyu@kernel.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-fsdevel@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org, monstr@monstr.eu, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, x86@kernel.org, zippel@linux-m68k.org, Nathan Chancellor <natechancellor@gmail.com>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200521155757.0dRJpyPq37zuC_FLDAaxVLeZnk1gIZUf_fVQFXcBq2I@z>
+Message-ID: <20200527043427.uTmvJrl64s5DHFj9bDHRXpdDNrvz7gI6V94Rq1Ifyek@z>
 
-On Thu, 2020-05-21 at 10:15 -0500, Josh Poimboeuf wrote:
-> On Wed, Apr 29, 2020 at 03:07:06PM -0700, Yu-cheng Yu wrote:
-> > Control-flow Enforcement (CET) is a new Intel processor feature that blocks
-> > return/jump-oriented programming attacks.  Details can be found in "Intel
-> > 64 and IA-32 Architectures Software Developer's Manual" [1].
-> > 
-> > This series depends on the XSAVES supervisor state series that was split
-> > out and submitted earlier [2].
-> > 
-> > I have gone through previous comments, and hope all concerns have been
-> > resolved now.  Please inform me if anything is overlooked.
-> > 
-> > Changes in v10:
-> 
-> Hi Yu-cheng,
-> 
-> Do you have a git branch with the latest Shadow Stack and IBT branches
-> applied?  I tried to apply IBT v9 on top of this, but I guess the SS
-> code has changed since then and it didn't apply cleanly.
+After mm.h was removed from the asm-generic version of cacheflush.h,
+s390 allyesconfig shows several warnings of the following nature:
 
-It is here:
+In file included from ./arch/s390/include/generated/asm/cacheflush.h:1,
+                 from drivers/media/platform/omap3isp/isp.c:42:
+./include/asm-generic/cacheflush.h:16:42: warning: 'struct mm_struct'
+declared inside parameter list will not be visible outside of this
+definition or declaration
 
-https://github.com/yyu168/linux_cet/commits/cet
+cacheflush.h does not include mm.h nor does it include any forward
+declaration of these structures hence the warning. To avoid this,
+include mm.h explicitly in this file and shuffle cacheflush.h below it.
 
-Yu-cheng
+Fixes: 19c0054597a0 ("asm-generic: don't include <linux/mm.h> in cacheflu=
+sh.h")
+Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
+---
+
+I am aware the fixes tag is kind of irrelevant because that SHA will
+change in the next linux-next revision and this will probably get folded
+into the original patch anyways but still.
+
+The other solution would be to add forward declarations of these structs
+to the top of cacheflush.h, I just chose to do what Christoph did in the
+original patch. I am happy to do that instead if you all feel that is
+better.
+
+ drivers/media/platform/omap3isp/isp.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/omap3isp/isp.c b/drivers/media/platfo=
+rm/omap3isp/isp.c
+index a4ee6b86663e..54106a768e54 100644
+--- a/drivers/media/platform/omap3isp/isp.c
++++ b/drivers/media/platform/omap3isp/isp.c
+@@ -39,8 +39,6 @@
+  *	Troy Laramy <t-laramy@ti.com>
+  */
+=20
+-#include <asm/cacheflush.h>
+-
+ #include <linux/clk.h>
+ #include <linux/clkdev.h>
+ #include <linux/delay.h>
+@@ -49,6 +47,7 @@
+ #include <linux/i2c.h>
+ #include <linux/interrupt.h>
+ #include <linux/mfd/syscon.h>
++#include <linux/mm.h>
+ #include <linux/module.h>
+ #include <linux/omap-iommu.h>
+ #include <linux/platform_device.h>
+@@ -58,6 +57,8 @@
+ #include <linux/sched.h>
+ #include <linux/vmalloc.h>
+=20
++#include <asm/cacheflush.h>
++
+ #ifdef CONFIG_ARM_DMA_USE_IOMMU
+ #include <asm/dma-iommu.h>
+ #endif
+--=20
+2.27.0.rc0
