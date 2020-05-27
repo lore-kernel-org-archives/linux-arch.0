@@ -1,119 +1,48 @@
-From: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Subject: Re: [PATCH] media: omap3isp: Shuffle cacheflush.h and include mm.h
-Date: Wed, 27 May 2020 16:45:27 +0300
-Message-ID: <20200527134527.GD6171@pendragon.ideasonboard.com>
-References: <20200515143646.3857579-7-hch@lst.de>
- <20200527043426.3242439-1-natechancellor@gmail.com>
- <CAMuHMdVSduTOi5bUgF9sLQdGADwyL1+qALWsKgin1TeOLGhAKQ@mail.gmail.com>
- <20200527081337.GA3506499@ubuntu-s3-xlarge-x86>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH] cpumask: guard cpumask_of_node() macro argument
+Date: Wed, 27 May 2020 15:46:08 +0200
+Message-ID: <20200527134623.930247-1-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-m68k-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200527081337.GA3506499@ubuntu-s3-xlarge-x86>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Nathan Chancellor <natechancellor@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@lst.de>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, Roman Zippel <zippel@linux-m68k.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, linux-riscv@lists.infradead.org, Linux-Arch <linux-arch@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Arnd Bergmann <arnd@arndb.de>, alpha <linux-alpha@vger.kernel.org>, linux-um <linux-um@lists.infradead.org>linux-m68k <l>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.133]:38093 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388082AbgE0NrX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 May 2020 09:47:23 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Rusty Russell <rusty@rustcorp.com.au>, Guenter Roeck <linux@roeck-us.net>, Naveen Krishna Chatradhi <nchatrad@amd.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@redhat.com>, Tony Luck <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Richard Henderson <rth@twiddle.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Hi Nathan,
+drivers/hwmon/amd_energy.c:195:15: error: invalid operands to binary expression ('void' and 'int')
+                                        (channel - data->nr_cpus));
+                                        ~~~~~~~~~^~~~~~~~~~~~~~~~~
+include/asm-generic/topology.h:51:42: note: expanded from macro 'cpumask_of_node'
+    #define cpumask_of_node(node)       ((void)node, cpu_online_mask)
+                                               ^~~~
+include/linux/cpumask.h:618:72: note: expanded from macro 'cpumask_first_and'
+ #define cpumask_first_and(src1p, src2p) cpumask_next_and(-1, (src1p), (src2p))
+                                                                       ^~~~~
 
-(CC'ing Sakari Ailus and the linux-media mailing list)
+Fixes: f0b848ce6fe9 ("cpumask: Introduce cpumask_of_{node,pcibus} to replace {node,pcibus}_to_cpumask")
+Fixes: 8abee9566b7e ("hwmon: Add amd_energy driver to report energy counters")
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ include/asm-generic/topology.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-On Wed, May 27, 2020 at 01:13:37AM -0700, Nathan Chancellor wrote:
-> On Wed, May 27, 2020 at 09:02:51AM +0200, Geert Uytterhoeven wrote:
-> > On Wed, May 27, 2020 at 6:37 AM Nathan Chancellor wrote:
-> > > After mm.h was removed from the asm-generic version of cacheflush.h,
-> > > s390 allyesconfig shows several warnings of the following nature:
-> > >
-> > > In file included from ./arch/s390/include/generated/asm/cacheflush.h:1,
-> > >                  from drivers/media/platform/omap3isp/isp.c:42:
-> > > ./include/asm-generic/cacheflush.h:16:42: warning: 'struct mm_struct'
-> > > declared inside parameter list will not be visible outside of this
-> > > definition or declaration
-> > >
-> > > cacheflush.h does not include mm.h nor does it include any forward
-> > > declaration of these structures hence the warning. To avoid this,
-> > > include mm.h explicitly in this file and shuffle cacheflush.h below it.
-> > >
-> > > Fixes: 19c0054597a0 ("asm-generic: don't include <linux/mm.h> in cacheflush.h")
-> > > Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
-> > 
-> > Thanks for your patch!
-> > 
-> > > I am aware the fixes tag is kind of irrelevant because that SHA will
-> > > change in the next linux-next revision and this will probably get folded
-> > > into the original patch anyways but still.
-> > >
-> > > The other solution would be to add forward declarations of these structs
-> > > to the top of cacheflush.h, I just chose to do what Christoph did in the
-> > > original patch. I am happy to do that instead if you all feel that is
-> > > better.
-> > 
-> > That actually looks like a better solution to me, as it would address the
-> > problem for all users.
-
-Headers should be self-contained, so that would be the best fix in my
-opinion.
-
-This being said, as cacheflush.h isn't needed in isp.c, I think we
-should also drop it. It seems to have been included there since the
-first driver version, and was likely a left-over from the out-of-tree
-development. Manual cache handling was part of
-drivers/media/platform/omap3isp/ispqueue.c and has been removed in
-commit fbac1400bd1a ("[media] omap3isp: Move to videobuf2").
-
-cacheflush.h can also be dropped from ispvideo.c which suffers from the
-same issue.
-
-> > >  drivers/media/platform/omap3isp/isp.c | 5 +++--
-> > >  1 file changed, 3 insertions(+), 2 deletions(-)
-> > >
-> > > diff --git a/drivers/media/platform/omap3isp/isp.c b/drivers/media/platform/omap3isp/isp.c
-> > > index a4ee6b86663e..54106a768e54 100644
-> > > --- a/drivers/media/platform/omap3isp/isp.c
-> > > +++ b/drivers/media/platform/omap3isp/isp.c
-> > > @@ -39,8 +39,6 @@
-> > >   *     Troy Laramy <t-laramy@ti.com>
-> > >   */
-> > >
-> > > -#include <asm/cacheflush.h>
-> > > -
-> > >  #include <linux/clk.h>
-> > >  #include <linux/clkdev.h>
-> > >  #include <linux/delay.h>
-> > > @@ -49,6 +47,7 @@
-> > >  #include <linux/i2c.h>
-> > >  #include <linux/interrupt.h>
-> > >  #include <linux/mfd/syscon.h>
-> > > +#include <linux/mm.h>
-> > >  #include <linux/module.h>
-> > >  #include <linux/omap-iommu.h>
-> > >  #include <linux/platform_device.h>
-> > > @@ -58,6 +57,8 @@
-> > >  #include <linux/sched.h>
-> > >  #include <linux/vmalloc.h>
-> > >
-> > > +#include <asm/cacheflush.h>
-> > > +
-> > >  #ifdef CONFIG_ARM_DMA_USE_IOMMU
-> > >  #include <asm/dma-iommu.h>
-> > >  #endif
-> > 
-> > Why does this file need <asm/cacheflush.h> at all?
-> > It doesn't call any of the flush_*() functions, and seems to compile fine
-> > without (on arm32).
-> > 
-> > Perhaps it was included at the top intentionally, to override the definitions
-> > of copy_{to,from}_user_page()? Fortunately that doesn't seem to be the
-> > case, from a quick look at the assembler output.
-> > 
-> > So let's just remove the #include instead?
-> 
-> Sounds good to me. I can send a patch if needed or I suppose Andrew can
-> just make a small fixup patch for it. Let me know what I should do.
-
+diff --git a/include/asm-generic/topology.h b/include/asm-generic/topology.h
+index 238873739550..5aa8705df87e 100644
+--- a/include/asm-generic/topology.h
++++ b/include/asm-generic/topology.h
+@@ -48,7 +48,7 @@
+   #ifdef CONFIG_NEED_MULTIPLE_NODES
+     #define cpumask_of_node(node)	((node) == 0 ? cpu_online_mask : cpu_none_mask)
+   #else
+-    #define cpumask_of_node(node)	((void)node, cpu_online_mask)
++    #define cpumask_of_node(node)	((void)(node), cpu_online_mask)
+   #endif
+ #endif
+ #ifndef pcibus_to_node
 -- 
-Regards,
-
-Laurent Pinchart
+2.26.2
