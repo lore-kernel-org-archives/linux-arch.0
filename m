@@ -1,104 +1,71 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] media: omap3isp: Shuffle cacheflush.h and include mm.h
-Date: Wed, 27 May 2020 09:02:51 +0200
-Message-ID: <CAMuHMdVSduTOi5bUgF9sLQdGADwyL1+qALWsKgin1TeOLGhAKQ@mail.gmail.com>
-References: <20200515143646.3857579-7-hch@lst.de> <20200527043426.3242439-1-natechancellor@gmail.com>
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v4 15/26] arm64: mte: Allow user control of the tag check
+ mode via prctl()
+Date: Wed, 27 May 2020 08:46:59 +0100
+Message-ID: <20200527074658.GB9887@willie-the-truck>
+References: <20200515171612.1020-1-catalin.marinas@arm.com>
+ <20200515171612.1020-16-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <20200527043426.3242439-1-natechancellor@gmail.com>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Nathan Chancellor <natechancellor@gmail.com>
-Cc: Christoph Hellwig <hch@lst.de>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, Roman Zippel <zippel@linux-m68k.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, linux-riscv@lists.infradead.org, Linux-Arch <linux-arch@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Arnd Bergmann <arnd@arndb.de>, alpha <linux-alpha@vger.kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Openrisc
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:51472 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2387487AbgE0HrE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 27 May 2020 03:47:04 -0400
+Content-Disposition: inline
+In-Reply-To: <20200515171612.1020-16-catalin.marinas@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>
 
-Hi Nathan,
+On Fri, May 15, 2020 at 06:16:01PM +0100, Catalin Marinas wrote:
+> By default, even if PROT_MTE is set on a memory range, there is no tag
+> check fault reporting (SIGSEGV). Introduce a set of option to the
+> exiting prctl(PR_SET_TAGGED_ADDR_CTRL) to allow user control of the tag
+> check fault mode:
+> 
+>   PR_MTE_TCF_NONE  - no reporting (default)
+>   PR_MTE_TCF_SYNC  - synchronous tag check fault reporting
+>   PR_MTE_TCF_ASYNC - asynchronous tag check fault reporting
+> 
+> These options translate into the corresponding SCTLR_EL1.TCF0 bitfield,
+> context-switched by the kernel. Note that uaccess done by the kernel is
+> not checked and cannot be configured by the user.
+> 
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> ---
+> 
+> Notes:
+>     v3:
+>     - Use SCTLR_EL1_TCF0_NONE instead of 0 for consistency.
+>     - Move mte_thread_switch() in this patch from an earlier one. In
+>       addition, it is called after the dsb() in __switch_to() so that any
+>       asynchronous tag check faults have been registered in the TFSR_EL1
+>       registers (to be added with the in-kernel MTE support.
+>     
+>     v2:
+>     - Handle SCTLR_EL1_TCF0_NONE explicitly for consistency with PR_MTE_TCF_NONE.
+>     - Fix SCTLR_EL1 register setting in flush_mte_state() (thanks to Peter
+>       Collingbourne).
+>     - Added ISB to update_sctlr_el1_tcf0() since, with the latest
+>       architecture update/fix, the TCF0 field is used by the uaccess
+>       routines.
+> 
+>  arch/arm64/include/asm/mte.h       | 14 ++++++
+>  arch/arm64/include/asm/processor.h |  3 ++
+>  arch/arm64/kernel/mte.c            | 77 ++++++++++++++++++++++++++++++
+>  arch/arm64/kernel/process.c        | 26 ++++++++--
+>  include/uapi/linux/prctl.h         |  6 +++
+>  5 files changed, 123 insertions(+), 3 deletions(-)
 
-CC Laurent
+Dave is working on man pages for prctl() (and I think also ptrace). I think
+it would be /very/ useful for us to have some RFC patches on top of his work
+adding documentation for the MTE interactions, as we found some other minor
+issues/inconsistencies as a direct result of writing and reviewing the man
+page for our existing interfaces.
 
-On Wed, May 27, 2020 at 6:37 AM Nathan Chancellor
-<natechancellor@gmail.com> wrote:
-> After mm.h was removed from the asm-generic version of cacheflush.h,
-> s390 allyesconfig shows several warnings of the following nature:
->
-> In file included from ./arch/s390/include/generated/asm/cacheflush.h:1,
->                  from drivers/media/platform/omap3isp/isp.c:42:
-> ./include/asm-generic/cacheflush.h:16:42: warning: 'struct mm_struct'
-> declared inside parameter list will not be visible outside of this
-> definition or declaration
->
-> cacheflush.h does not include mm.h nor does it include any forward
-> declaration of these structures hence the warning. To avoid this,
-> include mm.h explicitly in this file and shuffle cacheflush.h below it.
->
-> Fixes: 19c0054597a0 ("asm-generic: don't include <linux/mm.h> in cacheflush.h")
-> Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
+Cheers,
 
-Thanks for your patch!
-
-> I am aware the fixes tag is kind of irrelevant because that SHA will
-> change in the next linux-next revision and this will probably get folded
-> into the original patch anyways but still.
->
-> The other solution would be to add forward declarations of these structs
-> to the top of cacheflush.h, I just chose to do what Christoph did in the
-> original patch. I am happy to do that instead if you all feel that is
-> better.
-
-That actually looks like a better solution to me, as it would address the
-problem for all users.
-
->  drivers/media/platform/omap3isp/isp.c | 5 +++--
->  1 file changed, 3 insertions(+), 2 deletions(-)
->
-> diff --git a/drivers/media/platform/omap3isp/isp.c b/drivers/media/platform/omap3isp/isp.c
-> index a4ee6b86663e..54106a768e54 100644
-> --- a/drivers/media/platform/omap3isp/isp.c
-> +++ b/drivers/media/platform/omap3isp/isp.c
-> @@ -39,8 +39,6 @@
->   *     Troy Laramy <t-laramy@ti.com>
->   */
->
-> -#include <asm/cacheflush.h>
-> -
->  #include <linux/clk.h>
->  #include <linux/clkdev.h>
->  #include <linux/delay.h>
-> @@ -49,6 +47,7 @@
->  #include <linux/i2c.h>
->  #include <linux/interrupt.h>
->  #include <linux/mfd/syscon.h>
-> +#include <linux/mm.h>
->  #include <linux/module.h>
->  #include <linux/omap-iommu.h>
->  #include <linux/platform_device.h>
-> @@ -58,6 +57,8 @@
->  #include <linux/sched.h>
->  #include <linux/vmalloc.h>
->
-> +#include <asm/cacheflush.h>
-> +
->  #ifdef CONFIG_ARM_DMA_USE_IOMMU
->  #include <asm/dma-iommu.h>
->  #endif
-
-Why does this file need <asm/cacheflush.h> at all?
-It doesn't call any of the flush_*() functions, and seems to compile fine
-without (on arm32).
-
-Perhaps it was included at the top intentionally, to override the definitions
-of copy_{to,from}_user_page()? Fortunately that doesn't seem to be the
-case, from a quick look at the assembler output.
-
-So let's just remove the #include instead?
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Will
