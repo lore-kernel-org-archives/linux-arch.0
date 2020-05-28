@@ -1,63 +1,88 @@
-Return-Path: <SRS0=Roe3=6Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:38788 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726173AbgEKPgp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 May 2020 11:36:45 -0400
-Received: from mail-wr1-f53.google.com (mail-wr1-f53.google.com [209.85.221.53])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 213BB20746
-        for <linux-arch@vger.kernel.org>; Mon, 11 May 2020 15:36:45 +0000 (UTC)
-Received: by mail-wr1-f53.google.com with SMTP id x17so11560538wrt.5
-        for <linux-arch@vger.kernel.org>; Mon, 11 May 2020 08:36:45 -0700 (PDT)
+Return-Path: <SRS0=7GPW=7K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-2.mimecast.com ([205.139.110.61]:58601 "EHLO
+        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S2390432AbgE1NpH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 28 May 2020 09:45:07 -0400
+Subject: Re: [PATCH v2 3/6] prctl.2: Add PR_SPEC_DISABLE_NOEXEC for
+ SPECULATION_CTRL prctls
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+ <1590614258-24728-4-git-send-email-Dave.Martin@arm.com>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <35acb48d-6703-bed5-8c6d-739411eea679@redhat.com>
+Date: Thu, 28 May 2020 09:45:00 -0400
 MIME-Version: 1.0
-References: <20200508144043.13893-1-joro@8bytes.org> <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
- <20200508213609.GU8135@suse.de> <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
- <20200509175217.GV8135@suse.de> <CALCETrVU-+G3K5ABBRSEMiwnskL4mZsVcoTESZXnu34J7TaOqw@mail.gmail.com>
- <20200511074243.GE2957@hirez.programming.kicks-ass.net>
-In-Reply-To: <20200511074243.GE2957@hirez.programming.kicks-ass.net>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Mon, 11 May 2020 08:36:31 -0700
-Message-ID: <CALCETrVyoAXXOqm8cYs+31fjWK8mcnKR+wM0_HeJx9=bOaZC6Q@mail.gmail.com>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <1590614258-24728-4-git-send-email-Dave.Martin@arm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Andy Lutomirski <luto@kernel.org>, Joerg Roedel <jroedel@suse.de>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
-Message-ID: <20200511153631.9O3top9ZGaxAv3D2hRzelq9kcyuXdQ2c7UYYcZybKXQ@z>
+To: Dave Martin <Dave.Martin@arm.com>, Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20200528134500.T1AG84GLQhgQk1s-j3UFC1AN3LiKb-M4UuH6QHbV9i4@z>
 
-On Mon, May 11, 2020 at 12:42 AM Peter Zijlstra <peterz@infradead.org> wrote:
+On 5/27/20 5:17 PM, Dave Martin wrote:
+> Add the PR_SPEC_DISABLE_NOEXEC mode added in Linux 5.1
+> for the PR_SPEC_STORE_BYPASS "misfeature" of
+> PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
 >
-> On Sat, May 09, 2020 at 12:05:29PM -0700, Andy Lutomirski wrote:
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Cc: Waiman Long <longman@redhat.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> ---
+>   man2/prctl.2 | 22 ++++++++++++++++++++--
+>   1 file changed, 20 insertions(+), 2 deletions(-)
 >
-> > On x86_64, the only real advantage is that the handful of corner cases
-> > that make vmalloc faults unpleasant (mostly relating to vmap stacks)
-> > go away.  On x86_32, a bunch of mind-bending stuff (everything your
-> > series deletes but also almost everything your series *adds*) goes
-> > away.  There may be a genuine tiny performance hit on 2-level systems
-> > due to the loss of huge pages in vmalloc space, but I'm not sure I
-> > care or that we use them anyway on these systems.  And PeterZ can stop
-> > even thinking about RCU.
-> >
-> > Am I making sense?
->
-> I think it'll work for x86_64 and that is really all I care about :-)
+> diff --git a/man2/prctl.2 b/man2/prctl.2
+> index b6fb51c..cab9915 100644
+> --- a/man2/prctl.2
+> +++ b/man2/prctl.2
+> @@ -1187,6 +1187,12 @@ The speculation feature is disabled, mitigation is enabled.
+>   Same as
+>   .B PR_SPEC_DISABLE
+>   but cannot be undone.
+> +.TP
+> +.BR PR_SPEC_DISABLE_NOEXEC " (since Linux 5.1)"
+> +Same as
+> +.BR PR_SPEC_DISABLE ,
+> +but but the state will be cleared on
+> +.BR execve (2).
+>   .RE
+>   .IP
+>   If all bits are 0,
+> @@ -1251,6 +1257,17 @@ with the same value for
+>   .I arg2
+>   will fail with the error
+>   .BR EPERM .
+> +.\" commit 71368af9027f18fe5d1c6f372cfdff7e4bde8b48
+> +.TP
+> +.BR PR_SPEC_DISABLE_NOEXEC " (since Linux 5.1)"
+> +Same as
+> +.BR PR_SPEC_DISABLE ,
+> +but but the state will be cleared on
+> +.BR execve (2).
+> +Currently only supported for
+> +.I arg2
+> +equal to
+> +.B PR_SPEC_STORE_BYPASS.
+>   .RE
+>   .IP
+>   Any unsupported value in
+> @@ -1899,11 +1916,12 @@ was
+>   .BR PR_SET_SPECULATION_CTRL
+>   and
+>   .IR arg3
+> -is neither
+> +is not
+>   .BR PR_SPEC_ENABLE ,
+>   .BR PR_SPEC_DISABLE ,
+> +.BR PR_SPEC_FORCE_DISABLE ,
+>   nor
+> -.BR PR_SPEC_FORCE_DISABLE .
+> +.BR PR_SPEC_DISABLE_NOEXEC .
+>   .SH VERSIONS
+>   The
+>   .BR prctl ()
 
-Sadly, I think that Joerg has convinced my that this doesn't really
-work for 32-bit unless we rework the LDT code or drop support for
-something that we might not want to drop support for.  So, last try --
-maybe we can start defeaturing 32-bit:
-
-What if we make 32-bit PTI depend on PAE?  And drop 32-bit Xen PV
-support?  And make 32-bit huge pages depend on PAE?  Then 32-bit
-non-PAE can use the direct-mapped LDT, 32-bit PTI (and optionally PAE
-non-PTI) can use the evil virtually mapped LDT.  And 32-bit non-PAE
-(the 2-level case) will only have pointers to page tables at the top
-level.  And then we can preallocate.
-
-Or maybe we don't want to defeature this much, or maybe the memory hit
-from this preallocation will hurt little 2-level 32-bit systems too
-much.
-
-(Xen 32-bit PV support seems to be on its way out upstream.)
+Acked-by: Waiman Long <longman@redhat.com>
