@@ -1,86 +1,100 @@
-Return-Path: <SRS0=eh2/=6Y=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38354 "EHLO
+Return-Path: <SRS0=7GPW=7K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57280 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729256AbgEJH4c (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 10 May 2020 03:56:32 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 20/31] arm,sparc,unicore32: remove flush_icache_user_range
-Date: Sun, 10 May 2020 09:54:59 +0200
-Message-ID: <20200510075510.987823-21-hch@lst.de>
-In-Reply-To: <20200510075510.987823-1-hch@lst.de>
-References: <20200510075510.987823-1-hch@lst.de>
+        with ESMTP id S1726080AbgE1HCM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 May 2020 03:02:12 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com> <1590614258-24728-3-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1590614258-24728-3-git-send-email-Dave.Martin@arm.com>
+Reply-To: mtk.manpages@gmail.com
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Date: Thu, 28 May 2020 09:01:59 +0200
+Message-ID: <CAKgNAkhwYASEM+wqaDZQ-ftcB3jnsVN2cXq4E_1ep1rqv+4aLw@mail.gmail.com>
+Subject: Re: [PATCH v2 2/6] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for
+ SPECULATION_CTRL prctls
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Roman Zippel <zippel@linux-m68k.org>
-Cc: Jessica Yu <jeyu@kernel.org>, Michal Simek <monstr@monstr.eu>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, openrisc@lists.librecores.org, linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20200510075459.EmLD-nIXHDEdH7IMdEt5Pg96-2P0bMM9o4IQuSn-nbc@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-man <linux-man@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20200528070159.XqIIsynXB6puFvc0cAMRXfJ_udGsOJnbGkRmQhVpMwM@z>
 
-flush_icache_user_range is only used by <asm-generic/cacheflush.h>, so
-remove it from the architectures that implement it, but don't use
-<asm-generic/cacheflush.h>.
+Hi Dave,
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/arm/include/asm/cacheflush.h       | 3 ---
- arch/sparc/include/asm/cacheflush_32.h  | 2 --
- arch/sparc/include/asm/cacheflush_64.h  | 1 -
- arch/unicore32/include/asm/cacheflush.h | 3 ---
- 4 files changed, 9 deletions(-)
+On Wed, 27 May 2020 at 23:18, Dave Martin <Dave.Martin@arm.com> wrote:
+>
+> Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
+> for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+>
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Cc: Tim Chen <tim.c.chen@linux.intel.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
 
-diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cacheflush.h
-index 7114b9aa46b87..c78e14fcfb5df 100644
---- a/arch/arm/include/asm/cacheflush.h
-+++ b/arch/arm/include/asm/cacheflush.h
-@@ -318,9 +318,6 @@ extern void flush_kernel_dcache_page(struct page *);
- #define flush_dcache_mmap_lock(mapping)		xa_lock_irq(&mapping->i_pages)
- #define flush_dcache_mmap_unlock(mapping)	xa_unlock_irq(&mapping->i_pages)
- 
--#define flush_icache_user_range(vma,page,addr,len) \
--	flush_dcache_page(page)
--
- /*
-  * We don't appear to need to do anything here.  In fact, if we did, we'd
-  * duplicate cache flushing elsewhere performed by flush_dcache_page().
-diff --git a/arch/sparc/include/asm/cacheflush_32.h b/arch/sparc/include/asm/cacheflush_32.h
-index fb66094a2c30c..41c6d734a4741 100644
---- a/arch/sparc/include/asm/cacheflush_32.h
-+++ b/arch/sparc/include/asm/cacheflush_32.h
-@@ -17,8 +17,6 @@
- #define flush_icache_range(start, end)		do { } while (0)
- #define flush_icache_page(vma, pg)		do { } while (0)
- 
--#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
--
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
- 	do {							\
- 		flush_cache_page(vma, vaddr, page_to_pfn(page));\
-diff --git a/arch/sparc/include/asm/cacheflush_64.h b/arch/sparc/include/asm/cacheflush_64.h
-index e7517434d1fa6..b9341836597ec 100644
---- a/arch/sparc/include/asm/cacheflush_64.h
-+++ b/arch/sparc/include/asm/cacheflush_64.h
-@@ -49,7 +49,6 @@ void __flush_dcache_range(unsigned long start, unsigned long end);
- void flush_dcache_page(struct page *page);
- 
- #define flush_icache_page(vma, pg)	do { } while(0)
--#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
- 
- void flush_ptrace_access(struct vm_area_struct *, struct page *,
- 			 unsigned long uaddr, void *kaddr,
-diff --git a/arch/unicore32/include/asm/cacheflush.h b/arch/unicore32/include/asm/cacheflush.h
-index 9393ca4047e93..ff0be92ebc320 100644
---- a/arch/unicore32/include/asm/cacheflush.h
-+++ b/arch/unicore32/include/asm/cacheflush.h
-@@ -162,9 +162,6 @@ extern void flush_dcache_page(struct page *);
- #define flush_dcache_mmap_lock(mapping)		do { } while (0)
- #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
- 
--#define flush_icache_user_range(vma, page, addr, len)	\
--	flush_dcache_page(page)
--
- /*
-  * We don't appear to need to do anything here.  In fact, if we did, we'd
-  * duplicate cache flushing elsewhere performed by flush_dcache_page().
+I had also applied this patch from the email you sent earlier. I've
+pushed those changes to master now.
+
+Thanks,
+
+Michael
+
+> ---
+>  man2/prctl.2 | 24 ++++++++++++++++++------
+>  1 file changed, 18 insertions(+), 6 deletions(-)
+>
+> diff --git a/man2/prctl.2 b/man2/prctl.2
+> index dc99218..b6fb51c 100644
+> --- a/man2/prctl.2
+> +++ b/man2/prctl.2
+> @@ -1213,11 +1213,20 @@ arguments must be specified as 0; otherwise the call fails with the error
+>  .\" commit 356e4bfff2c5489e016fdb925adbf12a1e3950ee
+>  Sets the state of the speculation misfeature specified in
+>  .IR arg2 .
+> -Currently, the only permitted value for this argument is
+> +Currently, this argument must be one of:
+> +.RS
+> +.TP
+>  .B PR_SPEC_STORE_BYPASS
+> -(otherwise the call fails with the error
+> +speculative store bypass control, or
+> +.\" commit 9137bb27e60e554dab694eafa4cca241fa3a694f
+> +.TP
+> +.BR PR_SPEC_INDIRECT_BRANCH " (since Linux 4.20)"
+> +indirect branch speculation control.
+> +.RE
+> +.IP
+> +(Otherwise the call fails with the error
+>  .BR ENODEV ).
+> -This setting is a per-thread attribute.
+> +These settings are per-thread attributes.
+>  The
+>  .IR arg3
+>  argument is used to hand in the control value,
+> @@ -1235,13 +1244,16 @@ Same as
+>  .BR PR_SPEC_DISABLE ,
+>  but cannot be undone.
+>  A subsequent
+> -.B
+> -prctl(..., PR_SPEC_ENABLE)
+> +.BR prctl (\c
+> +.IR arg2 ,
+> +.BR PR_SPEC_ENABLE )
+> +with the same value for
+> +.I arg2
+>  will fail with the error
+>  .BR EPERM .
+>  .RE
+>  .IP
+> -Any other value in
+> +Any unsupported value in
+>  .IR arg3
+>  will result in the call failing with the error
+>  .BR ERANGE .
+> --
+> 2.1.4
+>
+
+
 -- 
-2.26.2
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
