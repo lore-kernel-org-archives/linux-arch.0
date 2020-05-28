@@ -1,53 +1,84 @@
-Return-Path: <SRS0=nPx+=65=kvack.org=owner-linux-mm@kernel.org>
-Date: Fri, 15 May 2020 16:16:57 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Message-ID: <20200515141657.GF2940@hirez.programming.kicks-ass.net>
-References: <20200515140023.25469-1-joro@8bytes.org>
+Return-Path: <SRS0=7GPW=7K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58796 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725601AbgE1HLw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 May 2020 03:11:52 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200515140023.25469-1-joro@8bytes.org>
-Sender: owner-linux-mm@kvack.org
-To: Joerg Roedel <joro@8bytes.org>
-Cc: x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+Reply-To: mtk.manpages@gmail.com
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Date: Thu, 28 May 2020 09:11:40 +0200
+Message-ID: <CAKgNAkhHzrNHjpRAKo_cU7+0-OGP9eyvmdA=AD3OgvVDq8vjcQ@mail.gmail.com>
+Subject: Re: [PATCH v2 0/6] prctl.2 man page updates for Linux 5.6
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200515141657.0b4Cn4OZMJFZbUws-9hr5ybHKbLrDYc5ZIXqqj_kCVE@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-man <linux-man@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, Amit Daniel Kachhap <amit.kachhap@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Dave Hansen <dave.hansen@linux.intel.com>, Mark Rutland <mark.rutland@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Tim Chen <tim.c.chen@linux.intel.com>, Waiman Long <longman@redhat.com>, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <20200528071140.60Quh6Iq2YIIbxY4r1cY949OfBNfGgLgYjrEC-L7uuU@z>
 
-On Fri, May 15, 2020 at 04:00:16PM +0200, Joerg Roedel wrote:
-> Joerg Roedel (7):
->   mm: Add functions to track page directory modifications
->   mm/vmalloc: Track which page-table levels were modified
->   mm/ioremap: Track which page-table levels were modified
->   x86/mm/64: Implement arch_sync_kernel_mappings()
->   x86/mm/32: Implement arch_sync_kernel_mappings()
->   mm: Remove vmalloc_sync_(un)mappings()
->   x86/mm: Remove vmalloc faulting
-> 
->  arch/x86/include/asm/pgtable-2level_types.h |   2 +
->  arch/x86/include/asm/pgtable-3level_types.h |   2 +
->  arch/x86/include/asm/pgtable_64_types.h     |   2 +
->  arch/x86/include/asm/switch_to.h            |  23 ---
->  arch/x86/kernel/setup_percpu.c              |   6 +-
->  arch/x86/mm/fault.c                         | 176 +-------------------
->  arch/x86/mm/init_64.c                       |   5 +
->  arch/x86/mm/pti.c                           |   8 +-
->  arch/x86/mm/tlb.c                           |  37 ----
->  drivers/acpi/apei/ghes.c                    |   6 -
->  include/asm-generic/5level-fixup.h          |   5 +-
->  include/asm-generic/pgtable.h               |  23 +++
->  include/linux/mm.h                          |  46 +++++
->  include/linux/vmalloc.h                     |  18 +-
->  kernel/notifier.c                           |   1 -
->  kernel/trace/trace.c                        |  12 --
->  lib/ioremap.c                               |  46 +++--
->  mm/nommu.c                                  |  12 --
->  mm/vmalloc.c                                | 109 +++++++-----
->  19 files changed, 204 insertions(+), 335 deletions(-)
+Hi Dave
 
-I'm thinking this improves the status-quo, so:
+On Wed, 27 May 2020 at 23:17, Dave Martin <Dave.Martin@arm.com> wrote:
+>
+> A bunch of updates to the prctl(2) man page to fill in missing
+> prctls (mostly) up to Linux 5.6 (along with a few other tweaks and
+> fixes).
+>
+> Patches from the v1 series [1] that have been applied or rejected
+> already have been dropped.
+>
+> People not Cc'd on the whole series can find the whole series at
+> https://lore.kernel.org/linux-man/ .
+>
+> Patches:
+>
+>  * Patch 1 is a new (but trivial) formatting fix, unrelated to the new
+>    prctls.
 
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Applied.
 
-Like Andy, I think I'd like x86_64 to pre-populate, but that can easily
-be done on top and should not hold this back.
+>  * Patches 2-3 relate to the speculation control prctls.  These are
+>    unmodified from v1, but need review.
+
+Applied, and pushed (since there were no review comments from last version).
+
+>  * Patches 4-5 relate to the arm64 prctls from v1, with reviewer
+>    feedback incorporated.  (See notes in the patches.)
+
+I'll hold off on these patches, to see if review comments come in.
+
+>  * Patch 6 is *draft* wording for the arm64 address tagging prctls.
+>    The semantics of address tagging is particularly slippery, so
+>    this needs discussion before merging.
+
+Okay -- I'll hold off with that patch too.
+
+Cheers,
+
+Michael
+
+> [1] https://lore.kernel.org/linux-man/29a02b16-dd61-6186-1340-fcc7d5225ad0@gmail.com/T/#t
+>
+>
+> Dave Martin (6):
+>   prctl.2: ffix use literal hyphens when referencing kernel docs
+>   prctl.2: Add PR_SPEC_INDIRECT_BRANCH for SPECULATION_CTRL prctls
+>   prctl.2: Add PR_SPEC_DISABLE_NOEXEC for SPECULATION_CTRL prctls
+>   prctl.2: Add SVE prctls (arm64)
+>   prctl.2: Add PR_PAC_RESET_KEYS (arm64)
+>   prctl.2: Add tagged address ABI control prctls (arm64)
+>
+>  man2/prctl.2 | 444 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++--
+>  1 file changed, 435 insertions(+), 9 deletions(-)
+>
+> --
+> 2.1.4
+>
+
+
+--
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
