@@ -1,55 +1,103 @@
-Return-Path: <SRS0=pOir=6Z=kvack.org=owner-linux-mm@kernel.org>
-Date: Mon, 11 May 2020 21:14:14 +0200
-From: Joerg Roedel <jroedel@suse.de>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Message-ID: <20200511191414.GY8135@suse.de>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
- <20200508213609.GU8135@suse.de>
- <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
- <20200509175217.GV8135@suse.de>
- <CALCETrVU-+G3K5ABBRSEMiwnskL4mZsVcoTESZXnu34J7TaOqw@mail.gmail.com>
- <20200511074243.GE2957@hirez.programming.kicks-ass.net>
- <CALCETrVyoAXXOqm8cYs+31fjWK8mcnKR+wM0_HeJx9=bOaZC6Q@mail.gmail.com>
+Return-Path: <SRS0=7GPW=7K=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56626 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725308AbgE1G6B (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 May 2020 02:58:01 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALCETrVyoAXXOqm8cYs+31fjWK8mcnKR+wM0_HeJx9=bOaZC6Q@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com> <1590614258-24728-4-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1590614258-24728-4-git-send-email-Dave.Martin@arm.com>
+Reply-To: mtk.manpages@gmail.com
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Date: Thu, 28 May 2020 08:57:49 +0200
+Message-ID: <CAKgNAkg4P4GTVEoVXZd6yzpr97S0H+N8pdtwptJXaJBHfLAzKQ@mail.gmail.com>
+Subject: Re: [PATCH v2 3/6] prctl.2: Add PR_SPEC_DISABLE_NOEXEC for
+ SPECULATION_CTRL prctls
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200511191414.oMaIsA8CgfZFYMaRw8k-TU4uC9qQtpMtEIpliKoshQY@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-man <linux-man@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, Waiman Long <longman@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20200528065749.Q5jIFJpa5bfefA1eSbGMNdpNSDvahExa657c0T96iJE@z>
 
-On Mon, May 11, 2020 at 08:36:31AM -0700, Andy Lutomirski wrote:
-> What if we make 32-bit PTI depend on PAE?
+Hi Dave,
 
-It already does, PTI support for legacy paging had to be removed because
-there were memory corruption problems with THP. The reason was that huge
-PTEs in the user-space area were mapped in two page-tables (kernel and
-user), but A/D bits were only fetched from the kernel part. To not make
-things more complicated we agreed on just not supporting PTI without
-PAE.
+On Wed, 27 May 2020 at 23:18, Dave Martin <Dave.Martin@arm.com> wrote:
+>
+> Add the PR_SPEC_DISABLE_NOEXEC mode added in Linux 5.1
+> for the PR_SPEC_STORE_BYPASS "misfeature" of
+> PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+>
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Cc: Waiman Long <longman@redhat.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
 
-> And drop 32-bit Xen PV support?  And make 32-bit huge pages depend on
-> PAE?  Then 32-bit non-PAE can use the direct-mapped LDT, 32-bit PTI
-> (and optionally PAE non-PTI) can use the evil virtually mapped LDT.
-> And 32-bit non-PAE (the 2-level case) will only have pointers to page
-> tables at the top level.  And then we can preallocate.
+I had already applied your earlier send of this patch (in a private
+branch). I'll push those changes shortly.
 
-Not sure I can follow you here. How can 32-bit PTI with PAE use the LDT
-from the direct mapping? I am guessing you want to get rid of the
-SHARED_KERNEL_PMD==0 case for PAE kernels. This would indeed make
-syncing unneccessary on PAE, but pre-allocation would still be needed
-for 2-level paging. Just the amount of memory needed for the
-pre-allocated PTE pages is half as big as it would be with PAE.
+Cheers,
 
-> Or maybe we don't want to defeature this much, or maybe the memory hit
-> from this preallocation will hurt little 2-level 32-bit systems too
-> much.
+Michael
 
-It will certainly make Linux less likely to boot on low-memory x86-32
-systems, whoever will be affected by this.
+> ---
+>  man2/prctl.2 | 22 ++++++++++++++++++++--
+>  1 file changed, 20 insertions(+), 2 deletions(-)
+>
+> diff --git a/man2/prctl.2 b/man2/prctl.2
+> index b6fb51c..cab9915 100644
+> --- a/man2/prctl.2
+> +++ b/man2/prctl.2
+> @@ -1187,6 +1187,12 @@ The speculation feature is disabled, mitigation is enabled.
+>  Same as
+>  .B PR_SPEC_DISABLE
+>  but cannot be undone.
+> +.TP
+> +.BR PR_SPEC_DISABLE_NOEXEC " (since Linux 5.1)"
+> +Same as
+> +.BR PR_SPEC_DISABLE ,
+> +but but the state will be cleared on
+> +.BR execve (2).
+>  .RE
+>  .IP
+>  If all bits are 0,
+> @@ -1251,6 +1257,17 @@ with the same value for
+>  .I arg2
+>  will fail with the error
+>  .BR EPERM .
+> +.\" commit 71368af9027f18fe5d1c6f372cfdff7e4bde8b48
+> +.TP
+> +.BR PR_SPEC_DISABLE_NOEXEC " (since Linux 5.1)"
+> +Same as
+> +.BR PR_SPEC_DISABLE ,
+> +but but the state will be cleared on
+> +.BR execve (2).
+> +Currently only supported for
+> +.I arg2
+> +equal to
+> +.B PR_SPEC_STORE_BYPASS.
+>  .RE
+>  .IP
+>  Any unsupported value in
+> @@ -1899,11 +1916,12 @@ was
+>  .BR PR_SET_SPECULATION_CTRL
+>  and
+>  .IR arg3
+> -is neither
+> +is not
+>  .BR PR_SPEC_ENABLE ,
+>  .BR PR_SPEC_DISABLE ,
+> +.BR PR_SPEC_FORCE_DISABLE ,
+>  nor
+> -.BR PR_SPEC_FORCE_DISABLE .
+> +.BR PR_SPEC_DISABLE_NOEXEC .
+>  .SH VERSIONS
+>  The
+>  .BR prctl ()
+> --
+> 2.1.4
+>
 
 
-	Joerg
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
