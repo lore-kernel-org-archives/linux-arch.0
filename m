@@ -1,63 +1,82 @@
-From: MRS HEBA IBRAHIM <mrshebaibrahim1414@gmail.com>
-Subject: YOUR VISA CARD SUM OF US$1.200,000.00
-Date: Thu, 28 May 2020 12:29:12 +0100
-Message-ID: <CAANWZFz7pobOebD-iD9uDy+4M_TgnN9FBViWjMD-3VOuvj5Lxg@mail.gmail.com>
-Reply-To: iincc200@gmail.com
+From: Waiman Long <longman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH v2 3/6] prctl.2: Add PR_SPEC_DISABLE_NOEXEC for
+ SPECULATION_CTRL prctls
+Date: Thu, 28 May 2020 09:45:00 -0400
+Message-ID: <35acb48d-6703-bed5-8c6d-739411eea679@redhat.com>
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+ <1590614258-24728-4-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42158 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388380AbgE1L3N (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 May 2020 07:29:13 -0400
-Received: from mail-oi1-x244.google.com (mail-oi1-x244.google.com [IPv6:2607:f8b0:4864:20::244])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 55979C05BD1E
-        for <linux-arch@vger.kernel.org>; Thu, 28 May 2020 04:29:13 -0700 (PDT)
-Received: by mail-oi1-x244.google.com with SMTP id y85so24495238oie.11
-        for <linux-arch@vger.kernel.org>; Thu, 28 May 2020 04:29:13 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1590614258-24728-4-git-send-email-Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Content-Language: en-US
+Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
---=20
-Attention:Beneficiary
+On 5/27/20 5:17 PM, Dave Martin wrote:
+> Add the PR_SPEC_DISABLE_NOEXEC mode added in Linux 5.1
+> for the PR_SPEC_STORE_BYPASS "misfeature" of
+> PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+>
+> Signed-off-by: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+> Cc: Waiman Long <longman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+> Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+> ---
+>   man2/prctl.2 | 22 ++++++++++++++++++++--
+>   1 file changed, 20 insertions(+), 2 deletions(-)
+>
+> diff --git a/man2/prctl.2 b/man2/prctl.2
+> index b6fb51c..cab9915 100644
+> --- a/man2/prctl.2
+> +++ b/man2/prctl.2
+> @@ -1187,6 +1187,12 @@ The speculation feature is disabled, mitigation is enabled.
+>   Same as
+>   .B PR_SPEC_DISABLE
+>   but cannot be undone.
+> +.TP
+> +.BR PR_SPEC_DISABLE_NOEXEC " (since Linux 5.1)"
+> +Same as
+> +.BR PR_SPEC_DISABLE ,
+> +but but the state will be cleared on
+> +.BR execve (2).
+>   .RE
+>   .IP
+>   If all bits are 0,
+> @@ -1251,6 +1257,17 @@ with the same value for
+>   .I arg2
+>   will fail with the error
+>   .BR EPERM .
+> +.\" commit 71368af9027f18fe5d1c6f372cfdff7e4bde8b48
+> +.TP
+> +.BR PR_SPEC_DISABLE_NOEXEC " (since Linux 5.1)"
+> +Same as
+> +.BR PR_SPEC_DISABLE ,
+> +but but the state will be cleared on
+> +.BR execve (2).
+> +Currently only supported for
+> +.I arg2
+> +equal to
+> +.B PR_SPEC_STORE_BYPASS.
+>   .RE
+>   .IP
+>   Any unsupported value in
+> @@ -1899,11 +1916,12 @@ was
+>   .BR PR_SET_SPECULATION_CTRL
+>   and
+>   .IR arg3
+> -is neither
+> +is not
+>   .BR PR_SPEC_ENABLE ,
+>   .BR PR_SPEC_DISABLE ,
+> +.BR PR_SPEC_FORCE_DISABLE ,
+>   nor
+> -.BR PR_SPEC_FORCE_DISABLE .
+> +.BR PR_SPEC_DISABLE_NOEXEC .
+>   .SH VERSIONS
+>   The
+>   .BR prctl ()
 
-This is to official inform you that we have been having a meeting for
-the past Seven month which ended Two days ago with Dr. Robert B.
-Rollick the World Bank President and Hon. Mrs. Christine Laggard (IMF)
-Director General, in the meeting we treated on Scam victim problems.
-
-United Nation have agreed to compensate you with the sum of One
-million two Hundred  Thousand Dollars (USD$1.200,000.00) this also
-includes international businesses that failed due to Government
-problems etc?. We have arranged your payment through Master Card ATM
-which is the latest instruction from World Bank Group.
-
-For the collection of your Master Card ATM contact our representative
-Dr.Usman Mohammed and forward the following details to him.
-
-1. Full Name:.........
-2. Country:........
-3. Delivery Address:..........
-4. Telephone:..............& Occupation.......
-5. Your Age...... /Sex..........
-6: Your Nearest Airport..........
-
-Contact Dr.USMAN MOHAMMED with below email and phone number and
-forward all your details to him.
-
-Email:(  inforemitunitinfo@qq.com  )
-
-Telephone +226  61 10 85 06
-
-Note: for the immediate collection of your Master Card ATM contact our
-representative Agent. Usman Mohammed to enable you confirm your
-payment without further delay and note any other contact you made out
-side his office is at of your own risk.
-
-Thanks
-Mrs.Heba Ibrahim.
-
-CC: Hon. Mrs. Christine Lagarde
-CC: World Bank Group
-CC: Mr. Ant=C3=B3nio  Guterres Secretary-General
+Acked-by: Waiman Long <longman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
