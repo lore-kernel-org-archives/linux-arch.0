@@ -1,54 +1,55 @@
-From: guoren@kernel.org
-Subject: [GIT PULL] csky updates for v5.7-rc8
-Date: Thu, 28 May 2020 08:59:32 +0800
-Message-ID: <1590627572-10100-1-git-send-email-guoren@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:35564 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725267AbgE1A7p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 27 May 2020 20:59:45 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-csky@vger.kernel.org
+From: "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH v2 1/6] prctl.2: ffix use literal hyphens when referencing
+ kernel docs
+Date: Thu, 28 May 2020 08:05:02 +0200
+Message-ID: <43a7fb5b-7626-0f05-a13f-a4d35eb3289f@gmail.com>
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+ <1590614258-24728-2-git-send-email-Dave.Martin@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1590614258-24728-2-git-send-email-Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Content-Language: en-US
+Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Cc: mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi Linus,
+On 5/27/20 11:17 PM, Dave Martin wrote:
+> There is one case of a cross-reference to a kernel documentation
+> filename that uses unescaped hyphens.
+> 
+> To avoid misrendering, escape these as \- similarly to other
+> instances.
+> 
+> Signed-off-by: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+> ---
+>  man2/prctl.2 | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/man2/prctl.2 b/man2/prctl.2
+> index 968a75a..dc99218 100644
+> --- a/man2/prctl.2
+> +++ b/man2/prctl.2
+> @@ -1261,7 +1261,7 @@ This parameter may enforce a read-only policy which will result in the
+>  call failing with the error
+>  .BR ENXIO .
+>  For further details, see the kernel source file
+> -.IR Documentation/admin-guide/kernel-parameters.txt .
+> +.IR Documentation/admin\-guide/kernel\-parameters.txt .
+>  .\"
+>  .\" prctl PR_TASK_PERF_EVENTS_DISABLE
+>  .TP
 
-Please pull the 4 fixups for v5.7-rc8.
+Thanks, Dave. Applied.
 
-Best Regards
- Guo Ren
+Cheers,
 
-The following changes since commit 9cb1fd0efd195590b828b9b865421ad345a4a145:
+Michael
 
-  Linux 5.7-rc7 (2020-05-24 15:32:54 -0700)
 
-are available in the git repository at:
-
-  https://github.com/c-sky/csky-linux.git tags/csky-for-linus-5.7-rc8
-
-for you to fetch changes up to f36e0aab6f1f78d770ce859df3f07a9c5763ce5f:
-
-  csky: Fixup CONFIG_DEBUG_RSEQ (2020-05-28 00:18:36 +0000)
-
-----------------------------------------------------------------
-csky updates for 5.7-rc8
-
-Another 4 fixups for csky:
- - fixup req_syscall debug
- - fixup abiv2 syscall_trace
- - fixup preempt enable
- - Cleanup regs usage in entry.S
-
-----------------------------------------------------------------
-Guo Ren (4):
-      csky: Fixup CONFIG_PREEMPT panic
-      csky: Fixup abiv2 syscall_trace break a4 & a5
-      csky: Coding convention in entry.S
-      csky: Fixup CONFIG_DEBUG_RSEQ
-
- arch/csky/abiv1/inc/abi/entry.h     |   6 --
- arch/csky/abiv2/inc/abi/entry.h     |   8 +--
- arch/csky/include/asm/thread_info.h |   6 ++
- arch/csky/kernel/entry.S            | 117 ++++++++++++++++++------------------
- 4 files changed, 66 insertions(+), 71 deletions(-)
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
