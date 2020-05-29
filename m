@@ -1,245 +1,51 @@
-Return-Path: <SRS0=Roe3=6Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54996 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1729556AbgEKQIe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 May 2020 12:08:34 -0400
-Date: Mon, 11 May 2020 09:08:22 -0700
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Message-ID: <20200511160822.GX16070@bombadil.infradead.org>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <20200508192000.GB2957@hirez.programming.kicks-ass.net>
- <20200508213407.GT8135@suse.de>
- <20200509092516.GC2957@hirez.programming.kicks-ass.net>
- <20200510011157.GU16070@bombadil.infradead.org>
- <20200511073134.GD2957@hirez.programming.kicks-ass.net>
- <20200511155204.GW16070@bombadil.infradead.org>
-MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="wac7ysb48OaltWcw"
-Content-Disposition: inline
-In-Reply-To: <20200511155204.GW16070@bombadil.infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=ONGt=7L=kvack.org=owner-linux-mm@kernel.org>
+In-Reply-To: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
+From: Michael Ellerman <patch-notifications@ellerman.id.au>
+Subject: Re: [PATCH v2 1/5] uaccess: Add user_read_access_begin/end and user_write_access_begin/end
+Message-ID: <49YBF35KWQz9sSr@ozlabs.org>
+Date: Fri, 29 May 2020 14:20:23 +1000 (AEST)
+Sender: owner-linux-mm@kvack.org
+To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, intel-gfx@lists.freedesktop.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Joerg Roedel <jroedel@suse.de>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20200511160822.9S7lFoFqW-YTtQep5r5npuN2YWS0J6QU1AFUwbwSR-A@z>
+Message-ID: <20200529042023.-XN4cn__mp-5MUgSTufuwQkAZHDy-lBN7Wf-wB9aWsQ@z>
 
-
---wac7ysb48OaltWcw
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-
-On Mon, May 11, 2020 at 08:52:04AM -0700, Matthew Wilcox wrote:
-> On Mon, May 11, 2020 at 09:31:34AM +0200, Peter Zijlstra wrote:
-> > On Sat, May 09, 2020 at 06:11:57PM -0700, Matthew Wilcox wrote:
-> > > Iterating an XArray (whether the entire thing
-> > > or with marks) is RCU-safe and faster than iterating a linked list,
-> > > so this should solve the problem?
-> > 
-> > It can hardly be faster if you want all elements -- which is I think the
-> > case here. We only call into this if we change an entry, and then we
-> > need to propagate that change to all.
+On Fri, 2020-04-03 at 07:20:50 UTC, Christophe Leroy wrote:
+> Some architectures like powerpc64 have the capability to separate
+> read access and write access protection.
+> For get_user() and copy_from_user(), powerpc64 only open read access.
+> For put_user() and copy_to_user(), powerpc64 only open write access.
+> But when using unsafe_get_user() or unsafe_put_user(),
+> user_access_begin open both read and write.
 > 
-> Of course it can be faster.  Iterating an array is faster than iterating
-> a linked list because caches.  While an XArray is a segmented array
-> (so slower than a plain array), it's plainly going to be faster than
-> iterating a linked list.
+> Other architectures like powerpc book3s 32 bits only allow write
+> access protection. And on this architecture protection is an heavy
+> operation as it requires locking/unlocking per segment of 256Mbytes.
+> On those architecture it is therefore desirable to do the unlocking
+> only for write access. (Note that book3s/32 ranges from very old
+> powermac from the 90's with powerpc 601 processor, till modern
+> ADSL boxes with PowerQuicc II processors for instance so it
+> is still worth considering.)
+> 
+> In order to avoid any risk based of hacking some variable parameters
+> passed to user_access_begin/end that would allow hacking and
+> leaving user access open or opening too much, it is preferable to
+> use dedicated static functions that can't be overridden.
+> 
+> Add a user_read_access_begin and user_read_access_end to only open
+> read access.
+> 
+> Add a user_write_access_begin and user_write_access_end to only open
+> write access.
+> 
+> By default, when undefined, those new access helpers default on the
+> existing user_access_begin and user_access_end.
+> 
+> Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
+> Reviewed-by: Kees Cook <keescook@chromium.org>
 
-Quantifying this:
+Applied to powerpc topic/uaccess, thanks.
 
-$ ./array-vs-list 
-walked sequential array in 0.002039s
-walked sequential list in 0.002807s
-walked sequential array in 0.002017s
-walked shuffled list in 0.102367s
-walked shuffled array in 0.012114s
+https://git.kernel.org/powerpc/c/999a22890cb183b918e4372395d24426a755cef2
 
-Attached is the source code; above results on a Kaby Lake with
-CFLAGS="-O2 -W -Wall -g".
-
---wac7ysb48OaltWcw
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: attachment; filename="array-vs-list.c"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <unistd.h>
-
-unsigned long count = 1000 * 1000;
-unsigned int verbose;
-
-struct object {
-	struct object *next;
-	struct object *prev;
-	unsigned int value;
-};
-
-#define printv(level, fmt, ...) \
-	if (level <= verbose) { printf(fmt, ##__VA_ARGS__); }
-
-void check_total(unsigned long total)
-{
-	if (total * 2 != count * (count + 1))
-		printf("Check your staging! (%lu %lu)\n", total, count);
-}
-
-void alloc_objs(struct object **array)
-{
-	unsigned long i;
-
-	for (i = 0; i < count; i++) {
-		struct object *obj = malloc(sizeof(*obj));
-
-		obj->value = i + 1;
-		/* Add to the array */
-		array[i] = obj;
-	}
-}
-
-void shuffle(struct object **array, unsigned long seed)
-{
-	unsigned long i;
-
-	printv(1, "random seed %lu\n", seed);
-	srand48(seed);
-
-	/* Shuffle the array */
-	for (i = 1; i < count; i++) {
-		struct object *obj;
-		unsigned long j = (unsigned int)mrand48() % (i + 1);
-
-		if (i == j)
-			continue;
-		obj = array[j];
-		array[j] = array[i];
-		array[i] = obj;
-	}
-}
-
-void create_list(struct object **array, struct object *list)
-{
-	unsigned long i;
-
-	list->next = list;
-	list->prev = list;
-
-	for (i = 0; i < count; i++) {
-		struct object *obj = array[i];
-		/* Add to the tail of the list */
-		obj->next = list;
-		obj->prev = list->prev;
-		list->prev->next = obj;
-		list->prev = obj;
-	}
-}
-
-void walk_list(struct object *list)
-{
-	unsigned long total = 0;
-	struct object *obj;
-
-	for (obj = list->next; obj != list; obj = obj->next) {
-		total += obj->value;
-	}
-
-	check_total(total);
-}
-
-void walk_array(struct object **array)
-{
-	unsigned long total = 0;
-	unsigned long i;
-
-	for (i = 0; i < count; i++) {
-		total += array[i]->value;
-	}
-
-	check_total(total);
-}
-
-/* time2 - time1 */
-double diff_time(struct timespec *time1, struct timespec *time2)
-{
-	double result = time2->tv_nsec - time1->tv_nsec;
-
-	return time2->tv_sec - time1->tv_sec + result / 1000 / 1000 / 1000;
-}
-
-int main(int argc, char **argv)
-{
-	int opt;
-	unsigned long seed = time(NULL);
-	struct object **array;
-	struct object list;
-	struct timespec time1, time2;
-
-	while ((opt = getopt(argc, argv, "c:s:v")) != -1) {
-		if (opt == 'c')
-			count *= strtoul(optarg, NULL, 0);
-		else if (opt == 's')
-			seed = strtoul(optarg, NULL, 0);
-		else if (opt == 'v')
-			verbose++;
-	}
-
-	clock_gettime(CLOCK_MONOTONIC, &time1);
-	array = calloc(count, sizeof(void *));
-	alloc_objs(array);
-	clock_gettime(CLOCK_MONOTONIC, &time2);
-	printv(1, "allocated %lu items in %fs\n", count,
-			diff_time(&time1, &time2));
-
-	clock_gettime(CLOCK_MONOTONIC, &time1);
-	walk_array(array);
-	clock_gettime(CLOCK_MONOTONIC, &time2);
-	printf("walked sequential array in %fs\n",
-			diff_time(&time1, &time2));
-
-	clock_gettime(CLOCK_MONOTONIC, &time1);
-	create_list(array, &list);
-	clock_gettime(CLOCK_MONOTONIC, &time2);
-	printv(1, "created list in %fs\n",
-			diff_time(&time1, &time2));
-
-	clock_gettime(CLOCK_MONOTONIC, &time1);
-	walk_list(&list);
-	clock_gettime(CLOCK_MONOTONIC, &time2);
-	printf("walked sequential list in %fs\n",
-			diff_time(&time1, &time2));
-
-	clock_gettime(CLOCK_MONOTONIC, &time1);
-	walk_array(array);
-	clock_gettime(CLOCK_MONOTONIC, &time2);
-	printf("walked sequential array in %fs\n",
-			diff_time(&time1, &time2));
-
-	clock_gettime(CLOCK_MONOTONIC, &time1);
-	shuffle(array, seed);
-	clock_gettime(CLOCK_MONOTONIC, &time2);
-	printv(1, "shuffled array in %fs\n",
-			diff_time(&time1, &time2));
-
-	clock_gettime(CLOCK_MONOTONIC, &time1);
-	create_list(array, &list);
-	clock_gettime(CLOCK_MONOTONIC, &time2);
-	printv(1, "created list in %fs\n",
-			diff_time(&time1, &time2));
-
-	clock_gettime(CLOCK_MONOTONIC, &time1);
-	walk_list(&list);
-	clock_gettime(CLOCK_MONOTONIC, &time2);
-	printf("walked shuffled list in %fs\n",
-			diff_time(&time1, &time2));
-
-	clock_gettime(CLOCK_MONOTONIC, &time1);
-	walk_array(array);
-	clock_gettime(CLOCK_MONOTONIC, &time2);
-	printf("walked shuffled array in %fs\n",
-			diff_time(&time1, &time2));
-
-	return 0;
-}
-
---wac7ysb48OaltWcw--
+cheers
