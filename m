@@ -1,63 +1,25 @@
-Return-Path: <SRS0=hh2G=62=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [PATCH v3 19/23] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
- support
-References: <20200421142603.3894-1-catalin.marinas@arm.com>
- <20200421142603.3894-20-catalin.marinas@arm.com>
-From: Luis Machado <luis.machado@linaro.org>
-Message-ID: <a7569985-eb85-497b-e3b2-5dce0acb1332@linaro.org>
-Date: Tue, 12 May 2020 16:05:15 -0300
-MIME-Version: 1.0
-In-Reply-To: <20200421142603.3894-20-catalin.marinas@arm.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Return-Path: <SRS0=ONGt=7L=kvack.org=owner-linux-mm@kernel.org>
+In-Reply-To: <ebf1250b6d4f351469fb339e5399d8b92aa8a1c1.1585898438.git.christophe.leroy@c-s.fr>
+From: Michael Ellerman <patch-notifications@ellerman.id.au>
+Subject: Re: [PATCH v2 3/5] drm/i915/gem: Replace user_access_begin by user_write_access_begin
+Message-ID: <49YBF610M2z9sSw@ozlabs.org>
+Date: Fri, 29 May 2020 14:20:25 +1000 (AEST)
 Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
-Cc: Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Alan Hayward <Alan.Hayward@arm.com>, Omair Javaid <omair.javaid@linaro.org>
+To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, intel-gfx@lists.freedesktop.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200512190515.7bZCFUjXbKiV3yTiihCUoqHaSoYbbU9rH2zjWDNlLpQ@z>
+Message-ID: <20200529042025.FS0_vbNY3wErTtgKFLeAyi1EvDga7tE1mqSk5WSMRx0@z>
 
-Hi Catalin,
+On Fri, 2020-04-03 at 07:20:52 UTC, Christophe Leroy wrote:
+> When i915_gem_execbuffer2_ioctl() is using user_access_begin(),
+> that's only to perform unsafe_put_user() so use
+> user_write_access_begin() in order to only open write access.
+> 
+> Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
+> Reviewed-by: Kees Cook <keescook@chromium.org>
 
-On 4/21/20 11:25 AM, Catalin Marinas wrote:
-> Add support for bulk setting/getting of the MTE tags in a tracee's
-> address space at 'addr' in the ptrace() syscall prototype. 'data' points
-> to a struct iovec in the tracer's address space with iov_base
-> representing the address of a tracer's buffer of length iov_len. The
-> tags to be copied to/from the tracer's buffer are stored as one tag per
-> byte.
-> 
-> On successfully copying at least one tag, ptrace() returns 0 and updates
-> the tracer's iov_len with the number of tags copied. In case of error,
-> either -EIO or -EFAULT is returned, trying to follow the ptrace() man
-> page.
-> 
-> Note that the tag copying functions are not performance critical,
-> therefore they lack optimisations found in typical memory copy routines.
-> 
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: Alan Hayward <Alan.Hayward@arm.com>
-> Cc: Luis Machado <luis.machado@linaro.org>
-> Cc: Omair Javaid <omair.javaid@linaro.org>
-> ---
-> 
-> Notes:
->      New in v3.
-> 
->   arch/arm64/include/asm/mte.h         |  17 ++++
->   arch/arm64/include/uapi/asm/ptrace.h |   3 +
->   arch/arm64/kernel/mte.c              | 127 +++++++++++++++++++++++++++
->   arch/arm64/kernel/ptrace.c           |  15 +++-
->   arch/arm64/lib/mte.S                 |  50 +++++++++++
->   5 files changed, 211 insertions(+), 1 deletion(-)
->
-I started working on MTE support for GDB and I'm wondering if we've 
-already defined a way to check for runtime MTE support (as opposed to a 
-HWCAP2-based check) in a traced process.
+Applied to powerpc topic/uaccess, thanks.
 
-Originally we were going to do it via empty-parameter ptrace calls, but 
-you had mentioned something about a proc-based method, if I'm not mistaken.
+https://git.kernel.org/powerpc/c/b44f687386875b714dae2afa768e73401e45c21c
 
-Regards,
-Luis
+cheers
