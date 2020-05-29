@@ -1,92 +1,32 @@
-From: Syed Nayyar Waris <syednwaris@gmail.com>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
 Subject: Re: [PATCH v7 1/4] bitops: Introduce the the for_each_set_clump macro
-Date: Sat, 30 May 2020 03:23:27 +0530
-Message-ID: <CACG_h5oAAx7QbRGRUx=U__NO0g_K_bA2Y5emibsr-MwJDqBcAw@mail.gmail.com>
+Date: Sat, 30 May 2020 01:07:51 +0300
+Message-ID: <CAHp75VfGCLSOwPtygG7Vq8RLhvA3_3EcB-WRCXZzR=jzOP6DsA@mail.gmail.com>
 References: <17cb2b080b9c4c36cf84436bc5690739590acc53.1590017578.git.syednwaris@gmail.com>
  <202005242236.NtfLt1Ae%lkp@intel.com> <CACG_h5oOsThkSfdN_adWHxHfAWfg=W72o5RM6JwHGVT=Zq9MiQ@mail.gmail.com>
  <20200529183824.GW1634618@smile.fi.intel.com> <CACG_h5pcd-3NWgE29enXAX8=zS-RWQZrh56wKaFbm8fLoCRiiw@mail.gmail.com>
- <20200529213111.GA25882@shinobu>
+ <CAHp75Vdv4V5PLQxM1+ypHacso6rrR6CiXTX43M=6UuZ6xbYY7g@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53458 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55698 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726975AbgE2Vxj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 May 2020 17:53:39 -0400
-In-Reply-To: <20200529213111.GA25882@shinobu>
+        with ESMTP id S1728071AbgE2WII (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 May 2020 18:08:08 -0400
+In-Reply-To: <CAHp75Vdv4V5PLQxM1+ypHacso6rrR6CiXTX43M=6UuZ6xbYY7g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: William Breathitt Gray <vilhelm.gray@gmail.com>
-Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Syed Nayyar Waris <syednwaris@gmail.com>
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, William Breathitt Gray <vilhelm.gray@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 
-On Sat, May 30, 2020 at 3:01 AM William Breathitt Gray
-<vilhelm.gray@gmail.com> wrote:
->
-> On Sat, May 30, 2020 at 01:32:44AM +0530, Syed Nayyar Waris wrote:
+On Sat, May 30, 2020 at 12:42 AM Andy Shevchenko
+<andy.shevchenko@gmail.com> wrote:
+> On Fri, May 29, 2020 at 11:07 PM Syed Nayyar Waris <syednwaris@gmail.com> wrote:
 > > On Sat, May 30, 2020 at 12:08 AM Andy Shevchenko
 > > <andriy.shevchenko@linux.intel.com> wrote:
-> > >
-> > > On Fri, May 29, 2020 at 11:38:18PM +0530, Syed Nayyar Waris wrote:
-> > > > On Sun, May 24, 2020 at 8:15 PM kbuild test robot <lkp@intel.com> wrote:
-> > >
-> > > ...
-> > >
-> > > > >    579  static inline unsigned long bitmap_get_value(const unsigned long *map,
-> > > > >    580                                                unsigned long start,
-> > > > >    581                                                unsigned long nbits)
-> > > > >    582  {
-> > > > >    583          const size_t index = BIT_WORD(start);
-> > > > >    584          const unsigned long offset = start % BITS_PER_LONG;
-> > > > >    585          const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
-> > > > >    586          const unsigned long space = ceiling - start;
-> > > > >    587          unsigned long value_low, value_high;
-> > > > >    588
-> > > > >    589          if (space >= nbits)
-> > > > >  > 590                  return (map[index] >> offset) & GENMASK(nbits - 1, 0);
-> > > > >    591          else {
-> > > > >    592                  value_low = map[index] & BITMAP_FIRST_WORD_MASK(start);
-> > > > >    593                  value_high = map[index + 1] & BITMAP_LAST_WORD_MASK(start + nbits);
-> > > > >    594                  return (value_low >> offset) | (value_high << space);
-> > > > >    595          }
-> > > > >    596  }
-> > >
-> > > > Regarding the above compilation warnings. All the warnings are because
-> > > > of GENMASK usage in my patch.
-> > > > The warnings are coming because of sanity checks present for 'GENMASK'
-> > > > macro in include/linux/bits.h.
-> > > >
-> > > > Taking the example statement (in my patch) where compilation warning
-> > > > is getting reported:
-> > > > return (map[index] >> offset) & GENMASK(nbits - 1, 0);
-> > > >
-> > > > 'nbits' is of type 'unsigned long'.
-> > > > In above, the sanity check is comparing '0' with unsigned value. And
-> > > > unsigned value can't be less than '0' ever, hence the warning.
-> > > > But this warning will occur whenever there will be '0' as one of the
-> > > > 'argument' and an unsigned variable as another 'argument' for GENMASK.
-> > > >
-> > > > This warning is getting cleared if I cast the 'nbits' to 'long'.
-> > > >
-> > > > Let me know if I should submit a next patch with the casts applied.
-> > > > What do you guys think?
-> > >
-> > > Proper fix is to fix GENMASK(), but allowed workaround is to use
-> > >         (BIT(nbits) - 1)
-> > > instead.
-> > >
-> > > --
-> > > With Best Regards,
-> > > Andy Shevchenko
-> > >
-> >
-> > Hi Andy. Thank You for your comment.
-> >
-> > When I used BIT macro (earlier), I had faced a problem. I want to tell
-> > you about that.
-> >
-> > Inside functions 'bitmap_set_value' and 'bitmap_get_value' when nbits (or
-> > clump size) is BITS_PER_LONG, unexpected calculation happens.
-> >
+
+...
+
 > > Explanation:
 > > Actually when nbits (clump size) is 64 (BITS_PER_LONG is 64 on my computer),
 > > (BIT(nbits) - 1)
@@ -102,41 +42,32 @@ On Sat, May 30, 2020 at 3:01 AM William Breathitt Gray
 > > Since this macro is being used in both bitmap_get_value and
 > > bitmap_set_value functions, it will give unexpected results when nbits or clump
 > > size is BITS_PER_LONG (32 or 64 depending on arch).
-> >
-> > William also knows about this issue:
-> >
-> > "This is undefined behavior in the C standard (section 6.5.7 in the N1124)"
-> >
-> > Andy, William,
-> > Let me know what do you think ?
-> >
-> > Regards
-> > Syed Nayyar Waris
 >
-> We can't use BIT here because nbits could be equal to BITS_PER_LONG in
-> some cases. Casting to long should be fine because the nbits will never
-> be greater than BITS_PER_LONG, so long should be safe to use.
+> I see, something like
+> https://elixir.bootlin.com/linux/latest/source/include/linux/dma-mapping.h#L139
+> should be done.
+> But yes, let's try to fix GENMASK().
 >
-> However, I agree with Andy that the proper solution is to fix GENMASK so
-> that this warning does not come up. What's the actual line of code in
-> the GENMASK macro that is throwing this warning? I'd like to understand
-> better the logic of this sanity check.
+> So, if we modify the following
 >
-> William Breathitt Gray
+>   #define GENMASK_INPUT_CHECK(h, l) \
+>     (BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
+>     __builtin_constant_p((l) > (h)), (l) > (h), 0)))
+>
+> to be
+>
+>   #define GENMASK_INPUT_CHECK(h, l) \
+>     (BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
+>     __builtin_constant_p((l) > (h)), (l) ? (l) > (h) : 0, 0)))
+>
+> would it work?
 
-Here is the code snippet:
+Actually it needs an amendment for signed types...
 
-#define GENMASK_INPUT_CHECK(h, l) \
-        (BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
-        __builtin_constant_p((l) > (h)), (l) > (h), 0)))
+(l) ? (l) > (h) : !((h) > 0)
 
-Above you can see the comparisons are being done in the last line.
-And because of these comparisons, those compilation warnings are generated.
+...but today is Friday night, so, mistakes are warranted :-)
 
-For full code related to GENMASK macro:
-https://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-gpio.git/tree/include/linux/bits.h
-
-Yes I too agree, I can work on GENMASK.
-
-Regards
-Syed Nayyar Waris
+-- 
+With Best Regards,
+Andy Shevchenko
