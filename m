@@ -1,19 +1,90 @@
-From: "manuel franco" <manuel@info.com>
-Subject: Spende von 2.000.000,00 Euro
-Date: Thu, 28 May 2020 18:29:51 +0200
-Message-ID: <20200528163006.047A338E0A16@correo.bnv.gob.ve>
-Reply-To: manuelfrancospende11@gmail.com
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
+Date: Thu, 28 May 2020 19:08:28 -0700
+Message-ID: <ce66498068c42913150ee3f4928a0d8e3435316d.camel@intel.com>
+References: <2eb98637-bd2d-dda6-7729-f06ea84256ca@intel.com>
+         <58319765-891D-44B9-AF18-64492B01FF36@amacapital.net>
+         <CALCETrWavh1_Atk=VPQbOoB5tY=zGWGukW8qjF51msKTJSJgQQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.bnv.gob.ve ([201.249.200.115]:44422 "EHLO
-        correo.bnv.gob.ve" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S2437397AbgE1W7z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 28 May 2020 18:59:55 -0400
-Content-Description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <manuel@info.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <CALCETrWavh1_Atk=VPQbOoB5tY=zGWGukW8qjF51msKTJSJgQQ@mail.gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@intel.com>
+Cc: X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@or>
+List-Id: linux-arch.vger.kernel.org
 
-Ich bin Manuel Franco, ich spende Ihnen 2.000.000,00 Euro. Nehmen Sie jetzt Kontakt mit mir auf, damit wir fortfahren k�nnen.
+On Tue, 2020-05-19 at 18:04 -0700, Andy Lutomirski wrote:
+> On Mon, May 18, 2020 at 6:35 PM Andy Lutomirski <luto@amacapital.net> wrote:
+> > [...]
+> > > On May 18, 2020, at 5:38 PM, Dave Hansen <dave.hansen@intel.com> wrote:
+> > > [...]
+> > > The sadistic parts of selftests/x86 come from real bugs.  Either bugs
+> > > where the kernel fell over, or where behavior changed that broke apps.
+> > > I'd suggest doing some research on where that particular test case came
+> > > from.  Find the author of the test, look at the changelogs.
+> > > 
+> > > If this is something that a real app does, this is a problem.  If it's a
+> > > sadistic test that Andy L added because it was an attack vector against
+> > > the entry code, it's a different story.
+> > 
+> > There are quite a few tests that do these horrible things in there. IN my personal opinion, sigreturn.c is one of the most important tests we have — it does every horrible thing to the entry code that I thought of and that I could come up with a way of doing.  We have been saved from regressing many times by these tests.  CET, and especially the CPL0 version of CET, is its own set of entry horror, and we need to keep these tests working.
+> > 
+> > I assume the basic issue is that we call raise(), the context magically changes to 32-bit, but SSP has a 64-bit value, and horrors happen.  So I think two things need to happen:
+> > 
+> > 1. Someone needs to document what happens when IRET tries to put a 64-bit value into SSP but CS is compat. Because Intel has plenty of history of doing colossally broken things here. IOW you could easily be hitting a hardware design problem, not a software issue per se.
+> > 
+> > 2. The test needs to work. Assuming the hardware doesn’t do something utterly broken, either the 32-bit code needs to be adjusted to avoid any CALL
+> > or RET, or you need to write a little raise_on_32bit_shstk() func that switches to an SSP that fits in 32 bits, calls raise(), and switches back.  From memory, I didn’t think there was a CALl or RET, so I’m guessing that SSP is getting truncated when we round trip through CPL3 compat mode and the result is that the kernel invoked the signal handler with the wrong SSP.  Whoops.
+> > 
+> 
+> Following up here, I think this needs attention from the H/W architects.
+> 
+> From the SDM:
+> 
+> SYSRET and SYSEXIT:
+> 
+> IF ShadowStackEnabled(CPL)
+> SSP ← IA32_PL3_SSP;
+> FI;
+> 
+> IRET:
+> 
+> IF ShadowStackEnabled(CPL)
+> IF CPL = 3
+> THEN tempSSP ← IA32_PL3_SSP; FI;
+> IF ((EFER.LMA AND CS.L) = 0 AND tempSSP[63:32] != 0)
+> THEN #GP(0); FI;
+> SSP ← tempSSP
+> 
+> The semantics of actually executing in compat mode with SSP >= 2^32
+> are unclear.  If nothing else, VM exit will save the full SSP and a
+> subsequent VM entry will fail.
+
+Here is what I got after talking to the architect.
+
+If the guest is in 32-bit mode, but its VM guest state SSP field is 64-bit, the
+CPU only uses the lower 32 bits.
+
+The SDM currently states a consistency check of the guest SSP field, but that
+will be removed in the next version.  Upon VM entry, the CPU only requires the
+guest SSP to be pseudo-canonical like the RIP and RSP.
+
+> I don't know what the actual effect of operand-size-32 SYSRET or
+> SYSEXIT with too big a PL3_SSP will be, but I think it needs to be
+> documented.  Ideally it will not put the CPU in an invalid state.
+> Ideally it will also not fault, because SYSRET faults in particular
+> are fatal unless the vector uses IST, and please please please don't
+> force more ISTs on anyone.
+
+On SYSRET/SYSEXIT to a 32-bit context, the CPU only uses the lower 32 bits of
+the user-mode SSP, and will not go into an invalid state and will not fault. 
+The SDM will be explicit about this.
+
+Yu-cheng
+
+> 
+> So I think we may need to put this entire series on hold until we get
+> some answers, because I suspect we're going to have a nice little root
+> hole otherwise.
