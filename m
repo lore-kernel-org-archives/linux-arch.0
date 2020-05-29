@@ -1,281 +1,237 @@
-Return-Path: <SRS0=W/Kb=6W=kvack.org=owner-linux-mm@kernel.org>
-From: Joerg Roedel <joro@8bytes.org>
-Subject: [RFC PATCH 2/7] mm/vmalloc: Track which page-table levels were modified
-Date: Fri,  8 May 2020 16:40:38 +0200
-Message-ID: <20200508144043.13893-3-joro@8bytes.org>
-In-Reply-To: <20200508144043.13893-1-joro@8bytes.org>
-References: <20200508144043.13893-1-joro@8bytes.org>
-Sender: owner-linux-mm@kvack.org
-To: x86@kernel.org
-Cc: hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Joerg Roedel <jroedel@suse.de>, joro@8bytes.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Return-Path: <SRS0=EGju=7L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38628 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726878AbgE2US0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 May 2020 16:18:26 -0400
+MIME-Version: 1.0
+References: <20200528062408.547149-1-andriin@fb.com> <20200528225427.GA225299@google.com>
+ <CAEf4BzZ_g2RwOgaRL1Qa9yo-8dH4kpgNaBOWZznNxqxhJUM1aA@mail.gmail.com> <20200529173432.GC196085@google.com>
+In-Reply-To: <20200529173432.GC196085@google.com>
+From: Andrii Nakryiko <andrii.nakryiko@gmail.com>
+Date: Fri, 29 May 2020 13:18:13 -0700
+Message-ID: <CAEf4BzaPoG1LhE3oi+eQ1_8wa4=V7gEc-Fk5-tRyeLRfCAu3Dg@mail.gmail.com>
+Subject: Re: [PATCH linux-rcu] docs/litmus-tests: add BPF ringbuf MPSC litmus tests
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200508144038.8R4rAt1kHtFn5a-xwPYhXjN9ko93XSjjzCKQvAg8Xbc@z>
+To: Joel Fernandes <joel@joelfernandes.org>
+Cc: Andrii Nakryiko <andriin@fb.com>, bpf <bpf@vger.kernel.org>, Networking <netdev@vger.kernel.org>, "Paul E . McKenney" <paulmck@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, parri.andrea@gmail.com, will@kernel.org, Peter Ziljstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, Akira Yokosawa <akiyks@gmail.com>, dlustig@nvidia.com, open list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Kernel Team <kernel-team@fb.com>
+Message-ID: <20200529201813.bLkk7hjig2Jwl24RoqZND-IL1L3QLHoeCbyLrDCynxI@z>
 
-From: Joerg Roedel <jroedel@suse.de>
+On Fri, May 29, 2020 at 10:34 AM Joel Fernandes <joel@joelfernandes.org> wrote:
+>
+> Hi Andrii,
+>
+> On Thu, May 28, 2020 at 10:50:30PM -0700, Andrii Nakryiko wrote:
+> > > [...]
+> > > > diff --git a/Documentation/litmus-tests/bpf-rb/bpf-rb+1p1c+bounded.litmus b/Documentation/litmus-tests/bpf-rb/bpf-rb+1p1c+bounded.litmus
+> > > > new file mode 100644
+> > > > index 000000000000..558f054fb0b4
+> > > > --- /dev/null
+> > > > +++ b/Documentation/litmus-tests/bpf-rb/bpf-rb+1p1c+bounded.litmus
+> > > > @@ -0,0 +1,91 @@
+> > > > +C bpf-rb+1p1c+bounded
+> > > > +
+> > > > +(*
+> > > > + * Result: Always
+> > > > + *
+> > > > + * This litmus test validates BPF ring buffer implementation under the
+> > > > + * following assumptions:
+> > > > + * - 1 producer;
+> > > > + * - 1 consumer;
+> > > > + * - ring buffer has capacity for only 1 record.
+> > > > + *
+> > > > + * Expectations:
+> > > > + * - 1 record pushed into ring buffer;
+> > > > + * - 0 or 1 element is consumed.
+> > > > + * - no failures.
+> > > > + *)
+> > > > +
+> > > > +{
+> > > > +     atomic_t dropped;
+> > > > +}
+> > > > +
+> > > > +P0(int *lenFail, int *len1, int *cx, int *px)
+> > > > +{
+> > > > +     int *rLenPtr;
+> > > > +     int rLen;
+> > > > +     int rPx;
+> > > > +     int rCx;
+> > > > +     int rFail;
+> > > > +
+> > > > +     rFail = 0;
+> > > > +
+> > > > +     rCx = smp_load_acquire(cx);
+> > > > +     rPx = smp_load_acquire(px);
+> > >
+> > > Is it possible for you to put some more comments around which ACQUIRE is
+> > > paired with which RELEASE? And, in general more comments around the reason
+> > > for a certain memory barrier and what pairs with what. In the kernel sources,
+> > > the barriers needs a comment anyway.
+>
+> This was the comment earlier that was missed.
 
-Track at which levels in the page-table entries were modified by
-vmap/vunmap. After the page-table has been modified, use that
-information do decide whether the new arch_sync_kernel_mappings()
-needs to be called.
+Right, I'll follow up extending kernel implementation comments, and
+will add some more to litmus tests.
 
-Signed-off-by: Joerg Roedel <jroedel@suse.de>
----
- include/linux/vmalloc.h | 11 ++++++
- mm/vmalloc.c            | 88 ++++++++++++++++++++++++++++++-----------
- 2 files changed, 75 insertions(+), 24 deletions(-)
+>
+> > > > +     if (rCx < rPx) {
+> > > > +             if (rCx == 0) {
+> > > > +                     rLenPtr = len1;
+> > > > +             } else {
+> > > > +                     rLenPtr = lenFail;
+> > > > +                     rFail = 1;
+> > > > +             }
+> > > > +
+> > > > +             rLen = smp_load_acquire(rLenPtr);
+> > > > +             if (rLen == 0) {
+> > > > +                     rFail = 1;
+> > > > +             } else if (rLen == 1) {
+> > > > +                     rCx = rCx + 1;
+> > > > +                     smp_store_release(cx, rCx);
+> > > > +             }
+> > > > +     }
+> > > > +}
+> > > > +
+> > > > +P1(int *lenFail, int *len1, spinlock_t *rb_lock, int *px, int *cx, atomic_t *dropped)
+> > > > +{
+> > > > +     int rPx;
+> > > > +     int rCx;
+> > > > +     int rFail;
+> > > > +     int *rLenPtr;
+> > > > +
+> > > > +     rFail = 0;
+> > > > +
+> > > > +     rCx = smp_load_acquire(cx);
+> > > > +     spin_lock(rb_lock);
+> > > > +
+> > > > +     rPx = *px;
+> > > > +     if (rPx - rCx >= 1) {
+> > > > +             atomic_inc(dropped);
+> > >
+> > > Why does 'dropped' need to be atomic if you are always incrementing under a
+> > > lock?
+> >
+> > It doesn't, strictly speaking, but making it atomic in litmus test was
+> > just more convenient, especially that I initially also had a lock-less
+> > variant of this algorithm.
+>
+> Ok, that's fine.
+>
+> > >
+> > > > +             spin_unlock(rb_lock);
+> > > > +     } else {
+> > > > +             if (rPx == 0) {
+> > > > +                     rLenPtr = len1;
+> > > > +             } else {
+> > > > +                     rLenPtr = lenFail;
+> > > > +                     rFail = 1;
+> > > > +             }
+> > > > +
+> > > > +             *rLenPtr = -1;
+> > >
+> > > Clarify please the need to set the length intermittently to -1. Thanks.
+> >
+> > This corresponds to setting a "busy bit" in kernel implementation.
+> > These litmus tests are supposed to be correlated with in-kernel
+> > implementation, I'm not sure I want to maintain extra 4 copies of
+> > comments here and in kernel code. Especially for 2-producer cases,
+> > there are 2 identical P1 and P2, which is unfortunate, but I haven't
+> > figured out how to have a re-usable pieces of code with litmus tests
+> > :)
+>
+> I disagree that comments related to memory ordering are optional. IMHO, the
+> documentation should be clear from a memory ordering standpoint. After all,
+> good Documentation/ always clarifies something / some concept to the reader
+> right? :-) Please have mercy on me, I am just trying to learn *your*
+> Documentation ;-)
 
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
-index a95d3cc74d79..eb364000cb03 100644
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -144,6 +144,17 @@ extern int remap_vmalloc_range(struct vm_area_struct *vma, void *addr,
- void vmalloc_sync_mappings(void);
- void vmalloc_sync_unmappings(void);
- 
-+/*
-+ * Architectures can set this mask to a combination of PGTBL_P?D_MODIFIED values
-+ * and let generic vmalloc and ioremap code know when arch_sync_kernel_mappings()
-+ * needs to be called.
-+ */
-+#ifndef ARCH_PAGE_TABLE_SYNC_MASK
-+#define ARCH_PAGE_TABLE_SYNC_MASK 0
-+#endif
-+
-+void arch_sync_kernel_mappings(unsigned long start, unsigned long end);
-+
- /*
-  *	Lowlevel-APIs (not for driver use!)
-  */
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 9a8227afa073..184f5a556cf7 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -69,7 +69,8 @@ static void free_work(struct work_struct *w)
- 
- /*** Page table manipulation functions ***/
- 
--static void vunmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end)
-+static void vunmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
-+			     pgtbl_mod_mask *mask)
- {
- 	pte_t *pte;
- 
-@@ -78,73 +79,104 @@ static void vunmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end)
- 		pte_t ptent = ptep_get_and_clear(&init_mm, addr, pte);
- 		WARN_ON(!pte_none(ptent) && !pte_present(ptent));
- 	} while (pte++, addr += PAGE_SIZE, addr != end);
-+	*mask |= PGTBL_PTE_MODIFIED;
- }
- 
--static void vunmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end)
-+static void vunmap_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
-+			     pgtbl_mod_mask *mask)
- {
- 	pmd_t *pmd;
- 	unsigned long next;
-+	int cleared;
- 
- 	pmd = pmd_offset(pud, addr);
- 	do {
- 		next = pmd_addr_end(addr, end);
--		if (pmd_clear_huge(pmd))
-+
-+		cleared = pmd_clear_huge(pmd);
-+		if (cleared || pmd_bad(*pmd))
-+			*mask |= PGTBL_PMD_MODIFIED;
-+
-+		if (cleared)
- 			continue;
- 		if (pmd_none_or_clear_bad(pmd))
- 			continue;
--		vunmap_pte_range(pmd, addr, next);
-+		vunmap_pte_range(pmd, addr, next, mask);
- 	} while (pmd++, addr = next, addr != end);
- }
- 
--static void vunmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end)
-+static void vunmap_pud_range(p4d_t *p4d, unsigned long addr, unsigned long end,
-+			     pgtbl_mod_mask *mask)
- {
- 	pud_t *pud;
- 	unsigned long next;
-+	int cleared;
- 
- 	pud = pud_offset(p4d, addr);
- 	do {
- 		next = pud_addr_end(addr, end);
--		if (pud_clear_huge(pud))
-+
-+		cleared = pud_clear_huge(pud);
-+		if (cleared || pud_bad(*pud))
-+			*mask |= PGTBL_PUD_MODIFIED;
-+
-+		if (cleared)
- 			continue;
- 		if (pud_none_or_clear_bad(pud))
- 			continue;
--		vunmap_pmd_range(pud, addr, next);
-+		vunmap_pmd_range(pud, addr, next, mask);
- 	} while (pud++, addr = next, addr != end);
- }
- 
--static void vunmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end)
-+static void vunmap_p4d_range(pgd_t *pgd, unsigned long addr, unsigned long end,
-+			     pgtbl_mod_mask *mask)
- {
- 	p4d_t *p4d;
- 	unsigned long next;
-+	int cleared;
- 
- 	p4d = p4d_offset(pgd, addr);
- 	do {
- 		next = p4d_addr_end(addr, end);
--		if (p4d_clear_huge(p4d))
-+
-+		cleared = p4d_clear_huge(p4d);
-+		if (cleared || p4d_bad(*p4d))
-+			*mask |= PGTBL_P4D_MODIFIED;
-+
-+		if (cleared)
- 			continue;
- 		if (p4d_none_or_clear_bad(p4d))
- 			continue;
--		vunmap_pud_range(p4d, addr, next);
-+		vunmap_pud_range(p4d, addr, next, mask);
- 	} while (p4d++, addr = next, addr != end);
- }
- 
--static void vunmap_page_range(unsigned long addr, unsigned long end)
-+static void vunmap_page_range(unsigned long start, unsigned long end)
- {
- 	pgd_t *pgd;
-+	unsigned long addr = start;
- 	unsigned long next;
-+	pgtbl_mod_mask mask = 0;
- 
- 	BUG_ON(addr >= end);
-+	start = addr;
- 	pgd = pgd_offset_k(addr);
- 	do {
- 		next = pgd_addr_end(addr, end);
-+		if (pgd_bad(*pgd))
-+			mask |= PGTBL_PGD_MODIFIED;
- 		if (pgd_none_or_clear_bad(pgd))
- 			continue;
--		vunmap_p4d_range(pgd, addr, next);
-+		vunmap_p4d_range(pgd, addr, next, &mask);
- 	} while (pgd++, addr = next, addr != end);
-+
-+	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-+		arch_sync_kernel_mappings(start, end);
- }
- 
- static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
--		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
-+		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
-+		pgtbl_mod_mask *mask)
- {
- 	pte_t *pte;
- 
-@@ -153,7 +185,7 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
- 	 * callers keep track of where we're up to.
- 	 */
- 
--	pte = pte_alloc_kernel(pmd, addr);
-+	pte = pte_alloc_kernel_track(pmd, addr, mask);
- 	if (!pte)
- 		return -ENOMEM;
- 	do {
-@@ -166,55 +198,59 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr,
- 		set_pte_at(&init_mm, addr, pte, mk_pte(page, prot));
- 		(*nr)++;
- 	} while (pte++, addr += PAGE_SIZE, addr != end);
-+	*mask |= PGTBL_PTE_MODIFIED;
- 	return 0;
- }
- 
- static int vmap_pmd_range(pud_t *pud, unsigned long addr,
--		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
-+		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
-+		pgtbl_mod_mask *mask)
- {
- 	pmd_t *pmd;
- 	unsigned long next;
- 
--	pmd = pmd_alloc(&init_mm, pud, addr);
-+	pmd = pmd_alloc_track(&init_mm, pud, addr, mask);
- 	if (!pmd)
- 		return -ENOMEM;
- 	do {
- 		next = pmd_addr_end(addr, end);
--		if (vmap_pte_range(pmd, addr, next, prot, pages, nr))
-+		if (vmap_pte_range(pmd, addr, next, prot, pages, nr, mask))
- 			return -ENOMEM;
- 	} while (pmd++, addr = next, addr != end);
- 	return 0;
- }
- 
- static int vmap_pud_range(p4d_t *p4d, unsigned long addr,
--		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
-+		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
-+		pgtbl_mod_mask *mask)
- {
- 	pud_t *pud;
- 	unsigned long next;
- 
--	pud = pud_alloc(&init_mm, p4d, addr);
-+	pud = pud_alloc_track(&init_mm, p4d, addr, mask);
- 	if (!pud)
- 		return -ENOMEM;
- 	do {
- 		next = pud_addr_end(addr, end);
--		if (vmap_pmd_range(pud, addr, next, prot, pages, nr))
-+		if (vmap_pmd_range(pud, addr, next, prot, pages, nr, mask))
- 			return -ENOMEM;
- 	} while (pud++, addr = next, addr != end);
- 	return 0;
- }
- 
- static int vmap_p4d_range(pgd_t *pgd, unsigned long addr,
--		unsigned long end, pgprot_t prot, struct page **pages, int *nr)
-+		unsigned long end, pgprot_t prot, struct page **pages, int *nr,
-+		pgtbl_mod_mask *mask)
- {
- 	p4d_t *p4d;
- 	unsigned long next;
- 
--	p4d = p4d_alloc(&init_mm, pgd, addr);
-+	p4d = p4d_alloc_track(&init_mm, pgd, addr, mask);
- 	if (!p4d)
- 		return -ENOMEM;
- 	do {
- 		next = p4d_addr_end(addr, end);
--		if (vmap_pud_range(p4d, addr, next, prot, pages, nr))
-+		if (vmap_pud_range(p4d, addr, next, prot, pages, nr, mask))
- 			return -ENOMEM;
- 	} while (p4d++, addr = next, addr != end);
- 	return 0;
-@@ -234,16 +270,20 @@ static int vmap_page_range_noflush(unsigned long start, unsigned long end,
- 	unsigned long addr = start;
- 	int err = 0;
- 	int nr = 0;
-+	pgtbl_mod_mask mask = 0;
- 
- 	BUG_ON(addr >= end);
- 	pgd = pgd_offset_k(addr);
- 	do {
- 		next = pgd_addr_end(addr, end);
--		err = vmap_p4d_range(pgd, addr, next, prot, pages, &nr);
-+		err = vmap_p4d_range(pgd, addr, next, prot, pages, &nr, &mask);
- 		if (err)
- 			return err;
- 	} while (pgd++, addr = next, addr != end);
- 
-+	if (mask & ARCH_PAGE_TABLE_SYNC_MASK)
-+		arch_sync_kernel_mappings(start, end);
-+
- 	return nr;
- }
- 
--- 
-2.17.1
+My point was that reading litmus test without also reading ringbuf
+implementation is pointless and is harder than necessary. I'll add few
+comments to litmus tests, but ultimately I view kernel implementation
+as the source of truth and litmus test as a simplified model of it. So
+having extensive comments in litmus test is just a maintenance burden
+and more chance to get confusing, out-of-sync documentation.
+
+>
+> > > > diff --git a/Documentation/litmus-tests/bpf-rb/bpf-rb+2p1c+bounded.litmus b/Documentation/litmus-tests/bpf-rb/bpf-rb+2p1c+bounded.litmus
+> [...]
+> > > > +P1(int *lenFail, int *len1, spinlock_t *rb_lock, int *px, int *cx, atomic_t *dropped)
+> > > > +{
+> > > > +     int rPx;
+> > > > +     int rCx;
+> > > > +     int rFail;
+> > > > +     int *rLenPtr;
+> > > > +
+> > > > +     rFail = 0;
+> > > > +     rLenPtr = lenFail;
+> > > > +
+> > > > +     rCx = smp_load_acquire(cx);
+> > > > +     spin_lock(rb_lock);
+> > > > +
+> > > > +     rPx = *px;
+> > > > +     if (rPx - rCx >= 1) {
+> > > > +             atomic_inc(dropped);
+> > > > +             spin_unlock(rb_lock);
+> > > > +     } else {
+> > > > +             if (rPx == 0) {
+> > > > +                     rLenPtr = len1;
+> > > > +             } else if (rPx == 1) {
+> > > > +                     rLenPtr = len1;
+> > > > +             } else {
+> > > > +                     rLenPtr = lenFail;
+> > > > +                     rFail = 1;
+> > > > +             }
+> > > > +
+> > > > +             *rLenPtr = -1;
+> > > > +             smp_store_release(px, rPx + 1);
+> > > > +
+> > > > +             spin_unlock(rb_lock);
+> > > > +
+> > > > +             smp_store_release(rLenPtr, 1);
+> > >
+> > > I ran a test replacing the last 2 statements above with the following and it
+> > > still works:
+> > >
+> > >                 spin_unlock(rb_lock);
+> > >                 WRITE_ONCE(*rLenPtr, 1);
+> > >
+> > > Wouldn't you expect the test to catch an issue? The spin_unlock is already a
+> > > RELEASE barrier.
+> >
+> > Well, apparently it's not an issue and WRITE_ONCE would work as well
+> > :) My original version actually used WRITE_ONCE here. See [0] and
+> > discussion in [1] after which I removed all the WRITE_ONCE/READ_ONCE
+> > in favor of store_release/load_acquire for consistency.
+> >
+> >   [0] https://patchwork.ozlabs.org/project/netdev/patch/20200513192532.4058934-3-andriin@fb.com/
+> >   [1] https://patchwork.ozlabs.org/project/netdev/patch/20200513192532.4058934-2-andriin@fb.com/
+>
+> Huh. So you are replacing the test to use WRITE_ONCE instead? Why did you
+> favor the acquire/release memory barriers over the _ONCE annotations, if that
+> was not really needed then?
+
+I replaced WRITE_ONCE with store_release. There was a request on
+initial version to keep it simple and use store_release/load_acquire
+pairings consistently and not mix up WRITE_ONCE and load_acquire, so
+that's what I did. As I mentioned elsewhere, this might not be the
+weakest possible set of orderings and we might improve that, but it
+seems to work well.
+
+>
+> > > Suggestion: It is hard to review the patch because it is huge, it would be
+> > > good to split this up into 4 patches for each of the tests. But upto you :)
+> >
+> > Those 4 files are partial copies of each other, not sure splitting
+> > them actually would be easier. If anyone else thinks the same, though,
+> > I'll happily split.
+>
+> I personally disagree. It would be much easier IMHO to review 4 different
+> files since some of them are also quite dissimilar. I frequently keep jumping
+> between diffs to find a different file and it makes the review that much
+> harder. But anything the LKMM experts decide in this regard is acceptable to me :)
+>
+> thanks,
+>
+>  - Joel
+>
