@@ -1,124 +1,212 @@
 From: Joel Fernandes <joel@joelfernandes.org>
-Subject: Re: Some -serious- BPF-related litmus tests
-Date: Fri, 29 May 2020 13:23:01 -0400
-Message-ID: <20200529172301.GB196085@google.com>
-References: <20200522003850.GA32698@paulmck-ThinkPad-P72>
- <20200522094407.GK325280@hirez.programming.kicks-ass.net>
- <20200522143201.GB32434@rowland.harvard.edu>
- <20200522174352.GJ2869@paulmck-ThinkPad-P72>
- <006e2bc6-7516-1584-3d8c-e253211c157e@fb.com>
- <20200525145325.GB2066@tardis>
- <CAEf4BzYCjbnU=cNyLnYRoZdMPKnBP4w8t+VRkXrC1GW-aFVkEA@mail.gmail.com>
- <20200528214823.GA211369@google.com>
- <CAEf4BzbzyA0mn7O-+x2peGa9WUuaGSi0+Gpyy-6t5iJwVLYf5A@mail.gmail.com>
+Subject: Re: [PATCH linux-rcu] docs/litmus-tests: add BPF ringbuf MPSC litmus
+ tests
+Date: Fri, 29 May 2020 13:34:32 -0400
+Message-ID: <20200529173432.GC196085@google.com>
+References: <20200528062408.547149-1-andriin@fb.com>
+ <20200528225427.GA225299@google.com>
+ <CAEf4BzZ_g2RwOgaRL1Qa9yo-8dH4kpgNaBOWZznNxqxhJUM1aA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39422 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726968AbgE2RXG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 May 2020 13:23:06 -0400
-Received: from mail-qk1-x742.google.com (mail-qk1-x742.google.com [IPv6:2607:f8b0:4864:20::742])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7D362C08C5C8
-        for <linux-arch@vger.kernel.org>; Fri, 29 May 2020 10:23:03 -0700 (PDT)
-Received: by mail-qk1-x742.google.com with SMTP id f18so2940088qkh.1
-        for <linux-arch@vger.kernel.org>; Fri, 29 May 2020 10:23:03 -0700 (PDT)
+Return-path: <netdev-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAEf4BzbzyA0mn7O-+x2peGa9WUuaGSi0+Gpyy-6t5iJwVLYf5A@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <CAEf4BzZ_g2RwOgaRL1Qa9yo-8dH4kpgNaBOWZznNxqxhJUM1aA@mail.gmail.com>
+Sender: netdev-owner@vger.kernel.org
 To: Andrii Nakryiko <andrii.nakryiko@gmail.com>
-Cc: Boqun Feng <boqun.feng@gmail.com>, Andrii Nakryiko <andriin@fb.com>, "Paul E . McKenney" <paulmck@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Peter Zijlstra <peterz@infradead.org>, parri.andrea@gmail.com, will@kernel.org, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, Akira Yokosawa <akiyks@gmail.com>, dlustig@nvidia.com, open list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Cc: Andrii Nakryiko <andriin@fb.com>, bpf <bpf@vger.kernel.org>, Networking <netdev@vger.kernel.org>, "Paul E . McKenney" <paulmck@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, parri.andrea@gmail.com, will@kernel.org, Peter Ziljstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, Akira Yokosawa <akiyks@gmail.com>, dlustig@nvidia.com, open list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Kernel Team <kernel-team@fb.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 28, 2020 at 09:38:35PM -0700, Andrii Nakryiko wrote:
-> On Thu, May 28, 2020 at 2:48 PM Joel Fernandes <joel@joelfernandes.org> wrote:
+Hi Andrii,
+
+On Thu, May 28, 2020 at 10:50:30PM -0700, Andrii Nakryiko wrote:
+> > [...]
+> > > diff --git a/Documentation/litmus-tests/bpf-rb/bpf-rb+1p1c+bounded.litmus b/Documentation/litmus-tests/bpf-rb/bpf-rb+1p1c+bounded.litmus
+> > > new file mode 100644
+> > > index 000000000000..558f054fb0b4
+> > > --- /dev/null
+> > > +++ b/Documentation/litmus-tests/bpf-rb/bpf-rb+1p1c+bounded.litmus
+> > > @@ -0,0 +1,91 @@
+> > > +C bpf-rb+1p1c+bounded
+> > > +
+> > > +(*
+> > > + * Result: Always
+> > > + *
+> > > + * This litmus test validates BPF ring buffer implementation under the
+> > > + * following assumptions:
+> > > + * - 1 producer;
+> > > + * - 1 consumer;
+> > > + * - ring buffer has capacity for only 1 record.
+> > > + *
+> > > + * Expectations:
+> > > + * - 1 record pushed into ring buffer;
+> > > + * - 0 or 1 element is consumed.
+> > > + * - no failures.
+> > > + *)
+> > > +
+> > > +{
+> > > +     atomic_t dropped;
+> > > +}
+> > > +
+> > > +P0(int *lenFail, int *len1, int *cx, int *px)
+> > > +{
+> > > +     int *rLenPtr;
+> > > +     int rLen;
+> > > +     int rPx;
+> > > +     int rCx;
+> > > +     int rFail;
+> > > +
+> > > +     rFail = 0;
+> > > +
+> > > +     rCx = smp_load_acquire(cx);
+> > > +     rPx = smp_load_acquire(px);
 > >
-> > On Mon, May 25, 2020 at 11:38:23AM -0700, Andrii Nakryiko wrote:
-> > > On Mon, May 25, 2020 at 7:53 AM Boqun Feng <boqun.feng@gmail.com> wrote:
-> > > >
-> > > > Hi Andrii,
-> > > >
-> > > > On Fri, May 22, 2020 at 12:38:21PM -0700, Andrii Nakryiko wrote:
-> > > > > On 5/22/20 10:43 AM, Paul E. McKenney wrote:
-> > > > > > On Fri, May 22, 2020 at 10:32:01AM -0400, Alan Stern wrote:
-> > > > > > > On Fri, May 22, 2020 at 11:44:07AM +0200, Peter Zijlstra wrote:
-> > > > > > > > On Thu, May 21, 2020 at 05:38:50PM -0700, Paul E. McKenney wrote:
-> > > > > > > > > Hello!
-> > > > > > > > >
-> > > > > > > > > Just wanted to call your attention to some pretty cool and pretty serious
-> > > > > > > > > litmus tests that Andrii did as part of his BPF ring-buffer work:
-> > > > > > > > >
-> > > > > > > > > https://lore.kernel.org/bpf/20200517195727.279322-3-andriin@fb.com/
-> > > > > > > > >
-> > > > > > > > > Thoughts?
-> > > > > > > >
-> > > > > > > > I find:
-> > > > > > > >
-> > > > > > > >         smp_wmb()
-> > > > > > > >         smp_store_release()
-> > > > > > > >
-> > > > > > > > a _very_ weird construct. What is that supposed to even do?
-> > > > > > >
-> > > > > > > Indeed, it looks like one or the other of those is redundant (depending
-> > > > > > > on the context).
-> > > > > >
-> > > > > > Probably.  Peter instead asked what it was supposed to even do.  ;-)
-> > > > >
-> > > > > I agree, I think smp_wmb() is redundant here. Can't remember why I thought
-> > > > > that it's necessary, this algorithm went through a bunch of iterations,
-> > > > > starting as completely lockless, also using READ_ONCE/WRITE_ONCE at some
-> > > > > point, and settling on smp_read_acquire/smp_store_release, eventually. Maybe
-> > > > > there was some reason, but might be that I was just over-cautious. See reply
-> > > > > on patch thread as well ([0]).
-> > > > >
-> > > > >   [0] https://lore.kernel.org/bpf/CAEf4Bza26AbRMtWcoD5+TFhnmnU6p5YJ8zO+SoAJCDtp1jVhcQ@mail.gmail.com/
-> > > > >
-> > > >
-> > > > While we are at it, could you explain a bit on why you use
-> > > > smp_store_release() on consumer_pos? I ask because IIUC, consumer_pos is
-> > > > only updated at consumer side, and there is no other write at consumer
-> > > > side that we want to order with the write to consumer_pos. So I fail
-> > > > to find why smp_store_release() is necessary.
-> > > >
-> > > > I did the following modification on litmus tests, and I didn't see
-> > > > different results (on States) between two versions of litmus tests.
-> > > >
-> > >
-> > > This is needed to ensure that producer can reliably detect whether it
-> > > needs to trigger poll notification.
+> > Is it possible for you to put some more comments around which ACQUIRE is
+> > paired with which RELEASE? And, in general more comments around the reason
+> > for a certain memory barrier and what pairs with what. In the kernel sources,
+> > the barriers needs a comment anyway.
+
+This was the comment earlier that was missed.
+
+> > > +     if (rCx < rPx) {
+> > > +             if (rCx == 0) {
+> > > +                     rLenPtr = len1;
+> > > +             } else {
+> > > +                     rLenPtr = lenFail;
+> > > +                     rFail = 1;
+> > > +             }
+> > > +
+> > > +             rLen = smp_load_acquire(rLenPtr);
+> > > +             if (rLen == 0) {
+> > > +                     rFail = 1;
+> > > +             } else if (rLen == 1) {
+> > > +                     rCx = rCx + 1;
+> > > +                     smp_store_release(cx, rCx);
+> > > +             }
+> > > +     }
+> > > +}
+> > > +
+> > > +P1(int *lenFail, int *len1, spinlock_t *rb_lock, int *px, int *cx, atomic_t *dropped)
+> > > +{
+> > > +     int rPx;
+> > > +     int rCx;
+> > > +     int rFail;
+> > > +     int *rLenPtr;
+> > > +
+> > > +     rFail = 0;
+> > > +
+> > > +     rCx = smp_load_acquire(cx);
+> > > +     spin_lock(rb_lock);
+> > > +
+> > > +     rPx = *px;
+> > > +     if (rPx - rCx >= 1) {
+> > > +             atomic_inc(dropped);
 > >
-> > Boqun's question is on the consumer side though. Are you saying that on the
-> > consumer side, the loads prior to the smp_store_release() on the consumer
-> > side should have been seen by the consumer?  You are already using
-> > smp_load_acquire() so that should be satisified already because the
-> > smp_load_acquire() makes sure that the smp_load_acquire()'s happens before
-> > any future loads and stores.
+> > Why does 'dropped' need to be atomic if you are always incrementing under a
+> > lock?
 > 
-> Consumer is reading two things: producer_pos and each record's length
-> header, and writes consumer_pos. I re-read this paragraph many times,
-> but I'm still a bit confused on what exactly you are trying to say.
+> It doesn't, strictly speaking, but making it atomic in litmus test was
+> just more convenient, especially that I initially also had a lock-less
+> variant of this algorithm.
 
-This is what I was saying in the other thread. I think you missed that
-comment. If you are adding litmus documentation, at least it should be clear
-what memory ordering is being verified. Both me and Boqun tried to remove a
-memory barrier each and the test still passes. So what exactly are you
-verifying from a memory consistency standpoint? I know you have those various
-rFail things and conditions - but I am assuming the goal here is to verify
-memory consistency as well. Or are we just throwing enough memory barriers at
-the problem to make sure the test passes, without understanding exactly what
-ordering is needed?
+Ok, that's fine.
 
-> Can you please specify in each case release()/acquire() of which
-> variable you are talking about?
+> >
+> > > +             spin_unlock(rb_lock);
+> > > +     } else {
+> > > +             if (rPx == 0) {
+> > > +                     rLenPtr = len1;
+> > > +             } else {
+> > > +                     rLenPtr = lenFail;
+> > > +                     rFail = 1;
+> > > +             }
+> > > +
+> > > +             *rLenPtr = -1;
+> >
+> > Clarify please the need to set the length intermittently to -1. Thanks.
+> 
+> This corresponds to setting a "busy bit" in kernel implementation.
+> These litmus tests are supposed to be correlated with in-kernel
+> implementation, I'm not sure I want to maintain extra 4 copies of
+> comments here and in kernel code. Especially for 2-producer cases,
+> there are 2 identical P1 and P2, which is unfortunate, but I haven't
+> figured out how to have a re-usable pieces of code with litmus tests
+> :)
 
-I don't want to speculate and confuse the thread more. I am afraid the burden
-of specifying what the various release/acquire orders is on the author of the
-code introducing the memory barriers ;-). That is, IMHO you should probably add
-code comments in the test about why a certain memory barrier is needed.
+I disagree that comments related to memory ordering are optional. IMHO, the
+documentation should be clear from a memory ordering standpoint. After all,
+good Documentation/ always clarifies something / some concept to the reader
+right? :-) Please have mercy on me, I am just trying to learn *your*
+Documentation ;-)
 
-That said, I need to do more diligence and read the actual BPF ring buffer
-code to understand what you're modeling. I will try to make time to do that.
+> > > diff --git a/Documentation/litmus-tests/bpf-rb/bpf-rb+2p1c+bounded.litmus b/Documentation/litmus-tests/bpf-rb/bpf-rb+2p1c+bounded.litmus
+[...]
+> > > +P1(int *lenFail, int *len1, spinlock_t *rb_lock, int *px, int *cx, atomic_t *dropped)
+> > > +{
+> > > +     int rPx;
+> > > +     int rCx;
+> > > +     int rFail;
+> > > +     int *rLenPtr;
+> > > +
+> > > +     rFail = 0;
+> > > +     rLenPtr = lenFail;
+> > > +
+> > > +     rCx = smp_load_acquire(cx);
+> > > +     spin_lock(rb_lock);
+> > > +
+> > > +     rPx = *px;
+> > > +     if (rPx - rCx >= 1) {
+> > > +             atomic_inc(dropped);
+> > > +             spin_unlock(rb_lock);
+> > > +     } else {
+> > > +             if (rPx == 0) {
+> > > +                     rLenPtr = len1;
+> > > +             } else if (rPx == 1) {
+> > > +                     rLenPtr = len1;
+> > > +             } else {
+> > > +                     rLenPtr = lenFail;
+> > > +                     rFail = 1;
+> > > +             }
+> > > +
+> > > +             *rLenPtr = -1;
+> > > +             smp_store_release(px, rPx + 1);
+> > > +
+> > > +             spin_unlock(rb_lock);
+> > > +
+> > > +             smp_store_release(rLenPtr, 1);
+> >
+> > I ran a test replacing the last 2 statements above with the following and it
+> > still works:
+> >
+> >                 spin_unlock(rb_lock);
+> >                 WRITE_ONCE(*rLenPtr, 1);
+> >
+> > Wouldn't you expect the test to catch an issue? The spin_unlock is already a
+> > RELEASE barrier.
+> 
+> Well, apparently it's not an issue and WRITE_ONCE would work as well
+> :) My original version actually used WRITE_ONCE here. See [0] and
+> discussion in [1] after which I removed all the WRITE_ONCE/READ_ONCE
+> in favor of store_release/load_acquire for consistency.
+> 
+>   [0] https://patchwork.ozlabs.org/project/netdev/patch/20200513192532.4058934-3-andriin@fb.com/
+>   [1] https://patchwork.ozlabs.org/project/netdev/patch/20200513192532.4058934-2-andriin@fb.com/
 
-thanks!
+Huh. So you are replacing the test to use WRITE_ONCE instead? Why did you
+favor the acquire/release memory barriers over the _ONCE annotations, if that
+was not really needed then?
+
+> > Suggestion: It is hard to review the patch because it is huge, it would be
+> > good to split this up into 4 patches for each of the tests. But upto you :)
+> 
+> Those 4 files are partial copies of each other, not sure splitting
+> them actually would be easier. If anyone else thinks the same, though,
+> I'll happily split.
+
+I personally disagree. It would be much easier IMHO to review 4 different
+files since some of them are also quite dissimilar. I frequently keep jumping
+between diffs to find a different file and it makes the review that much
+harder. But anything the LKMM experts decide in this regard is acceptable to me :)
+
+thanks,
 
  - Joel
