@@ -1,7 +1,7 @@
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
+From: Syed Nayyar Waris <syednwaris@gmail.com>
 Subject: Re: [PATCH v7 1/4] bitops: Introduce the the for_each_set_clump macro
-Date: Sat, 30 May 2020 01:07:51 +0300
-Message-ID: <CAHp75VfGCLSOwPtygG7Vq8RLhvA3_3EcB-WRCXZzR=jzOP6DsA@mail.gmail.com>
+Date: Sat, 30 May 2020 03:41:46 +0530
+Message-ID: <CACG_h5qGEsyRBHj+O5nmwsHpi3rkVQd1hVMDnnauAmqqTa_pbg@mail.gmail.com>
 References: <17cb2b080b9c4c36cf84436bc5690739590acc53.1590017578.git.syednwaris@gmail.com>
  <202005242236.NtfLt1Ae%lkp@intel.com> <CACG_h5oOsThkSfdN_adWHxHfAWfg=W72o5RM6JwHGVT=Zq9MiQ@mail.gmail.com>
  <20200529183824.GW1634618@smile.fi.intel.com> <CACG_h5pcd-3NWgE29enXAX8=zS-RWQZrh56wKaFbm8fLoCRiiw@mail.gmail.com>
@@ -9,24 +9,47 @@ References: <17cb2b080b9c4c36cf84436bc5690739590acc53.1590017578.git.syednwaris@
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55698 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56288 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728071AbgE2WII (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 May 2020 18:08:08 -0400
+        with ESMTP id S1725808AbgE2WL6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 May 2020 18:11:58 -0400
 In-Reply-To: <CAHp75Vdv4V5PLQxM1+ypHacso6rrR6CiXTX43M=6UuZ6xbYY7g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Syed Nayyar Waris <syednwaris@gmail.com>
+To: Andy Shevchenko <andy.shevchenko@gmail.com>
 Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, William Breathitt Gray <vilhelm.gray@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 
-On Sat, May 30, 2020 at 12:42 AM Andy Shevchenko
+On Sat, May 30, 2020 at 3:13 AM Andy Shevchenko
 <andy.shevchenko@gmail.com> wrote:
+>
 > On Fri, May 29, 2020 at 11:07 PM Syed Nayyar Waris <syednwaris@gmail.com> wrote:
 > > On Sat, May 30, 2020 at 12:08 AM Andy Shevchenko
 > > <andriy.shevchenko@linux.intel.com> wrote:
-
-...
-
+> > > On Fri, May 29, 2020 at 11:38:18PM +0530, Syed Nayyar Waris wrote:
+> > > > On Sun, May 24, 2020 at 8:15 PM kbuild test robot <lkp@intel.com> wrote:
+>
+> ...
+>
+> > > > Taking the example statement (in my patch) where compilation warning
+> > > > is getting reported:
+> > > > return (map[index] >> offset) & GENMASK(nbits - 1, 0);
+> > > >
+> > > > 'nbits' is of type 'unsigned long'.
+> > > > In above, the sanity check is comparing '0' with unsigned value. And
+> > > > unsigned value can't be less than '0' ever, hence the warning.
+> > > > But this warning will occur whenever there will be '0' as one of the
+> > > > 'argument' and an unsigned variable as another 'argument' for GENMASK.
+>
+> > > Proper fix is to fix GENMASK(), but allowed workaround is to use
+> > >         (BIT(nbits) - 1)
+> > > instead.
+>
+> > When I used BIT macro (earlier), I had faced a problem. I want to tell
+> > you about that.
+> >
+> > Inside functions 'bitmap_set_value' and 'bitmap_get_value' when nbits (or
+> > clump size) is BITS_PER_LONG, unexpected calculation happens.
+> >
 > > Explanation:
 > > Actually when nbits (clump size) is 64 (BITS_PER_LONG is 64 on my computer),
 > > (BIT(nbits) - 1)
@@ -62,12 +85,26 @@ On Sat, May 30, 2020 at 12:42 AM Andy Shevchenko
 >
 > would it work?
 
-Actually it needs an amendment for signed types...
+Sorry Andy it is not working. Actually the warning will be thrown,
+whenever there will be comparison between 'h' and 'l'. If one of them
+is '0' and the other is unsigned variable.
+In above, still there is comparison being done between 'h' and 'l', so
+the warning is getting thrown.
 
-(l) ? (l) > (h) : !((h) > 0)
+>
+> > William also knows about this issue:
+> > "This is undefined behavior in the C standard (section 6.5.7 in the N1124)"
+>
+> I think it is about 6.5.7.3  here, 1U << 31 (or 63) is okay.
 
-...but today is Friday night, so, mistakes are warranted :-)
+Actually for:
+(BIT(nbits) - 1)
+When nbits will be BITS_PER_LONG it will be 1U << 32 (or 64). Isn't it ?
+The expression,
+BIT(64) - 1
+can become unexpectedly zero (incorrectly).
 
--- 
-With Best Regards,
-Andy Shevchenko
+>
+> --
+> With Best Regards,
+> Andy Shevchenko
