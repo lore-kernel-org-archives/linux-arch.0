@@ -1,432 +1,406 @@
-Return-Path: <SRS0=OnnN=63=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46318 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729917AbgEMKQ1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 May 2020 06:16:27 -0400
-From: guoren@kernel.org
-Subject: [PATCH 2/4] csky: Fixup calltrace panic
-Date: Wed, 13 May 2020 18:16:15 +0800
-Message-ID: <20200513101617.11588-2-guoren@kernel.org>
-In-Reply-To: <20200513101617.11588-1-guoren@kernel.org>
-References: <20200513101617.11588-1-guoren@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=ONGt=7L=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH v4 18/26] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
+ support
+References: <20200515171612.1020-1-catalin.marinas@arm.com>
+ <20200515171612.1020-19-catalin.marinas@arm.com>
+From: Luis Machado <luis.machado@linaro.org>
+Message-ID: <a6fb329c-b4ad-9ffa-5344-601348978c34@linaro.org>
+Date: Fri, 29 May 2020 18:25:14 -0300
+MIME-Version: 1.0
+In-Reply-To: <20200515171612.1020-19-catalin.marinas@arm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Alan Hayward <Alan.Hayward@arm.com>, Omair Javaid <omair.javaid@linaro.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-csky@vger.kernel.org
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, guoren@kernel.org, Guo Ren <guoren@linux.alibaba.com>
-Message-ID: <20200513101615.aNSsk43kZkO0GafSsHZdTZT-Z2AUlNjdMdjq8PeIdwY@z>
+Message-ID: <20200529212514.5kqK78LvJSuanzIEG8XFmsMODbE-9LZvuIfmJjOIhBM@z>
 
-From: Guo Ren <guoren@linux.alibaba.com>
+Hi Catalin,
 
-The implementation of show_stack will panic with wrong fp:
+I have a question about siginfo MTE information. I suppose SEGV_MTESERR 
+will be the most useful setting for debugging, right? Does si_addr 
+contain the tagged pointer with the logical tag, a zero-tagged memory 
+address or a tagged pointer with the allocation tag?
 
-addr    = *fp++;
+ From the debugger user's perspective, one would want to see both the 
+logical tag and the allocation tag. And it would be handy to have both 
+available in siginfo. Does that make sense?
 
-because the fp isn't checked properly.
+Also, when would we see SEGV_MTEAERR, for example? That would provide no 
+additional information about a particular memory address, which is not 
+that useful for the debugger.
 
-The current implementations of show_stack, wchan and stack_trace
-haven't been designed properly, so just deprecate them.
+Thanks,
+Luis
 
-This patch is a reference to riscv's way, all codes are modified from
-arm's. The patch is passed with:
-
- - cat /proc/<pid>/stack
- - cat /proc/<pid>/wchan
- - echo c > /proc/sysrq-trigger
-
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
----
- arch/csky/Kconfig                   |   2 +
- arch/csky/Makefile                  |   2 +-
- arch/csky/include/asm/ptrace.h      |  10 ++
- arch/csky/include/asm/thread_info.h |   6 +
- arch/csky/kernel/Makefile           |   2 +-
- arch/csky/kernel/dumpstack.c        |  49 --------
- arch/csky/kernel/process.c          |  31 -----
- arch/csky/kernel/stacktrace.c       | 176 ++++++++++++++++++++++------
- 8 files changed, 159 insertions(+), 119 deletions(-)
- delete mode 100644 arch/csky/kernel/dumpstack.c
-
-diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-index 94545d50d40f..bd31ab12f77d 100644
---- a/arch/csky/Kconfig
-+++ b/arch/csky/Kconfig
-@@ -8,6 +8,7 @@ config CSKY
- 	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
- 	select ARCH_USE_BUILTIN_BSWAP
- 	select ARCH_USE_QUEUED_RWLOCKS if NR_CPUS>2
-+	select ARCH_WANT_FRAME_POINTERS if !CPU_CK610
- 	select COMMON_CLK
- 	select CLKSRC_MMIO
- 	select CSKY_MPINTC if CPU_CK860
-@@ -38,6 +39,7 @@ config CSKY
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select HAVE_COPY_THREAD_TLS
-+	select HAVE_DEBUG_BUGVERBOSE
- 	select HAVE_DYNAMIC_FTRACE
- 	select HAVE_DYNAMIC_FTRACE_WITH_REGS
- 	select HAVE_FUNCTION_TRACER
-diff --git a/arch/csky/Makefile b/arch/csky/Makefile
-index fb1bbbd91954..37f593a4bf53 100644
---- a/arch/csky/Makefile
-+++ b/arch/csky/Makefile
-@@ -47,7 +47,7 @@ ifeq ($(CSKYABI),abiv2)
- KBUILD_CFLAGS += -mno-stack-size
- endif
- 
--ifdef CONFIG_STACKTRACE
-+ifdef CONFIG_FRAME_POINTER
- KBUILD_CFLAGS += -mbacktrace
- endif
- 
-diff --git a/arch/csky/include/asm/ptrace.h b/arch/csky/include/asm/ptrace.h
-index aae5aa96cf54..bcfb7070e48d 100644
---- a/arch/csky/include/asm/ptrace.h
-+++ b/arch/csky/include/asm/ptrace.h
-@@ -58,6 +58,16 @@ static inline unsigned long kernel_stack_pointer(struct pt_regs *regs)
- 	return regs->usp;
- }
- 
-+static inline unsigned long frame_pointer(struct pt_regs *regs)
-+{
-+	return regs->regs[4];
-+}
-+static inline void frame_pointer_set(struct pt_regs *regs,
-+				     unsigned long val)
-+{
-+	regs->regs[4] = val;
-+}
-+
- extern int regs_query_register_offset(const char *name);
- extern unsigned long regs_get_kernel_stack_nth(struct pt_regs *regs,
- 						unsigned int n);
-diff --git a/arch/csky/include/asm/thread_info.h b/arch/csky/include/asm/thread_info.h
-index 5d33fcfd7f2a..d381a5752f0e 100644
---- a/arch/csky/include/asm/thread_info.h
-+++ b/arch/csky/include/asm/thread_info.h
-@@ -40,6 +40,12 @@ struct thread_info {
- #define thread_saved_fp(tsk) \
- 	((unsigned long)(((struct switch_stack *)(tsk->thread.ksp))->r8))
- 
-+#define thread_saved_sp(tsk) \
-+	((unsigned long)(tsk->thread.ksp))
-+
-+#define thread_saved_lr(tsk) \
-+	((unsigned long)(((struct switch_stack *)(tsk->thread.ksp))->r15))
-+
- static inline struct thread_info *current_thread_info(void)
- {
- 	unsigned long sp;
-diff --git a/arch/csky/kernel/Makefile b/arch/csky/kernel/Makefile
-index fd6d9dc8b7f3..37f37c0e934a 100644
---- a/arch/csky/kernel/Makefile
-+++ b/arch/csky/kernel/Makefile
-@@ -3,7 +3,7 @@ extra-y := head.o vmlinux.lds
- 
- obj-y += entry.o atomic.o signal.o traps.o irq.o time.o vdso.o
- obj-y += power.o syscall.o syscall_table.o setup.o
--obj-y += process.o cpu-probe.o ptrace.o dumpstack.o
-+obj-y += process.o cpu-probe.o ptrace.o stacktrace.o
- obj-y += probes/
- 
- obj-$(CONFIG_MODULES)			+= module.o
-diff --git a/arch/csky/kernel/dumpstack.c b/arch/csky/kernel/dumpstack.c
-deleted file mode 100644
-index d67f9777cfd9..000000000000
---- a/arch/csky/kernel/dumpstack.c
-+++ /dev/null
-@@ -1,49 +0,0 @@
--// SPDX-License-Identifier: GPL-2.0
--// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
--
--#include <linux/ptrace.h>
--
--int kstack_depth_to_print = 48;
--
--void show_trace(unsigned long *stack)
--{
--	unsigned long *stack_end;
--	unsigned long *stack_start;
--	unsigned long *fp;
--	unsigned long addr;
--
--	addr = (unsigned long) stack & THREAD_MASK;
--	stack_start = (unsigned long *) addr;
--	stack_end = (unsigned long *) (addr + THREAD_SIZE);
--
--	fp = stack;
--	pr_info("\nCall Trace:");
--
--	while (fp > stack_start && fp < stack_end) {
--#ifdef CONFIG_STACKTRACE
--		addr	= fp[1];
--		fp	= (unsigned long *) fp[0];
--#else
--		addr	= *fp++;
--#endif
--		if (__kernel_text_address(addr))
--			pr_cont("\n[<%08lx>] %pS", addr, (void *)addr);
--	}
--	pr_cont("\n");
--}
--
--void show_stack(struct task_struct *task, unsigned long *stack)
--{
--	if (!stack) {
--		if (task)
--			stack = (unsigned long *)thread_saved_fp(task);
--		else
--#ifdef CONFIG_STACKTRACE
--			asm volatile("mov %0, r8\n":"=r"(stack)::"memory");
--#else
--			stack = (unsigned long *)&stack;
--#endif
--	}
--
--	show_trace(stack);
--}
-diff --git a/arch/csky/kernel/process.c b/arch/csky/kernel/process.c
-index f7b231ca269a..4ad6db56c3cd 100644
---- a/arch/csky/kernel/process.c
-+++ b/arch/csky/kernel/process.c
-@@ -98,37 +98,6 @@ int dump_task_regs(struct task_struct *tsk, elf_gregset_t *pr_regs)
- 	return 1;
- }
- 
--unsigned long get_wchan(struct task_struct *p)
--{
--	unsigned long lr;
--	unsigned long *fp, *stack_start, *stack_end;
--	int count = 0;
--
--	if (!p || p == current || p->state == TASK_RUNNING)
--		return 0;
--
--	stack_start = (unsigned long *)end_of_stack(p);
--	stack_end = (unsigned long *)(task_stack_page(p) + THREAD_SIZE);
--
--	fp = (unsigned long *) thread_saved_fp(p);
--	do {
--		if (fp < stack_start || fp > stack_end)
--			return 0;
--#ifdef CONFIG_STACKTRACE
--		lr = fp[1];
--		fp = (unsigned long *)fp[0];
--#else
--		lr = *fp++;
--#endif
--		if (!in_sched_functions(lr) &&
--		    __kernel_text_address(lr))
--			return lr;
--	} while (count++ < 16);
--
--	return 0;
--}
--EXPORT_SYMBOL(get_wchan);
--
- #ifndef CONFIG_CPU_PM_NONE
- void arch_cpu_idle(void)
- {
-diff --git a/arch/csky/kernel/stacktrace.c b/arch/csky/kernel/stacktrace.c
-index fec777a643f1..92809e1da723 100644
---- a/arch/csky/kernel/stacktrace.c
-+++ b/arch/csky/kernel/stacktrace.c
-@@ -1,57 +1,159 @@
- // SPDX-License-Identifier: GPL-2.0
--/* Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd. */
- 
- #include <linux/sched/debug.h>
- #include <linux/sched/task_stack.h>
- #include <linux/stacktrace.h>
- #include <linux/ftrace.h>
-+#include <linux/ptrace.h>
- 
--void save_stack_trace(struct stack_trace *trace)
-+#ifdef CONFIG_FRAME_POINTER
-+
-+struct stackframe {
-+	unsigned long fp;
-+	unsigned long ra;
-+};
-+
-+void notrace walk_stackframe(struct task_struct *task, struct pt_regs *regs,
-+			     bool (*fn)(unsigned long, void *), void *arg)
- {
--	save_stack_trace_tsk(current, trace);
-+	unsigned long fp, sp, pc;
-+
-+	if (regs) {
-+		fp = frame_pointer(regs);
-+		sp = user_stack_pointer(regs);
-+		pc = instruction_pointer(regs);
-+	} else if (task == NULL || task == current) {
-+		const register unsigned long current_sp __asm__ ("sp");
-+		const register unsigned long current_fp __asm__ ("r8");
-+		fp = current_fp;
-+		sp = current_sp;
-+		pc = (unsigned long)walk_stackframe;
-+	} else {
-+		/* task blocked in __switch_to */
-+		fp = thread_saved_fp(task);
-+		sp = thread_saved_sp(task);
-+		pc = thread_saved_lr(task);
-+	}
-+
-+	for (;;) {
-+		unsigned long low, high;
-+		struct stackframe *frame;
-+
-+		if (unlikely(!__kernel_text_address(pc) || fn(pc, arg)))
-+			break;
-+
-+		/* Validate frame pointer */
-+		low = sp;
-+		high = ALIGN(sp, THREAD_SIZE);
-+		if (unlikely(fp < low || fp > high || fp & 0x3))
-+			break;
-+		/* Unwind stack frame */
-+		frame = (struct stackframe *)fp;
-+		sp = fp;
-+		fp = frame->fp;
-+		pc = ftrace_graph_ret_addr(current, NULL, frame->ra,
-+					   (unsigned long *)(fp - 8));
-+	}
- }
--EXPORT_SYMBOL_GPL(save_stack_trace);
- 
--void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
-+#else /* !CONFIG_FRAME_POINTER */
-+
-+static void notrace walk_stackframe(struct task_struct *task,
-+	struct pt_regs *regs, bool (*fn)(unsigned long, void *), void *arg)
- {
--	unsigned long *fp, *stack_start, *stack_end;
--	unsigned long addr;
--	int skip = trace->skip;
--	int savesched;
--	int graph_idx = 0;
-+	unsigned long sp, pc;
-+	unsigned long *ksp;
- 
--	if (tsk == current) {
--		asm volatile("mov %0, r8\n":"=r"(fp));
--		savesched = 1;
-+	if (regs) {
-+		sp = user_stack_pointer(regs);
-+		pc = instruction_pointer(regs);
-+	} else if (task == NULL || task == current) {
-+		const register unsigned long current_sp __asm__ ("sp");
-+		sp = current_sp;
-+		pc = (unsigned long)walk_stackframe;
- 	} else {
--		fp = (unsigned long *)thread_saved_fp(tsk);
--		savesched = 0;
-+		/* task blocked in __switch_to */
-+		sp = thread_saved_sp(task);
-+		pc = thread_saved_lr(task);
- 	}
- 
--	addr = (unsigned long) fp & THREAD_MASK;
--	stack_start = (unsigned long *) addr;
--	stack_end = (unsigned long *) (addr + THREAD_SIZE);
--
--	while (fp > stack_start && fp < stack_end) {
--		unsigned long lpp, fpp;
-+	if (unlikely(sp & 0x3))
-+		return;
- 
--		fpp = fp[0];
--		lpp = fp[1];
--		if (!__kernel_text_address(lpp))
-+	ksp = (unsigned long *)sp;
-+	while (!kstack_end(ksp)) {
-+		if (__kernel_text_address(pc) && unlikely(fn(pc, arg)))
- 			break;
--		else
--			lpp = ftrace_graph_ret_addr(tsk, &graph_idx, lpp, NULL);
--
--		if (savesched || !in_sched_functions(lpp)) {
--			if (skip) {
--				skip--;
--			} else {
--				trace->entries[trace->nr_entries++] = lpp;
--				if (trace->nr_entries >= trace->max_entries)
--					break;
--			}
--		}
--		fp = (unsigned long *)fpp;
-+		pc = (*ksp++) - 0x4;
- 	}
- }
-+#endif /* CONFIG_FRAME_POINTER */
-+
-+static bool print_trace_address(unsigned long pc, void *arg)
-+{
-+	print_ip_sym(pc);
-+	return false;
-+}
-+
-+void show_stack(struct task_struct *task, unsigned long *sp)
-+{
-+	pr_cont("Call Trace:\n");
-+	walk_stackframe(task, NULL, print_trace_address, NULL);
-+}
-+
-+static bool save_wchan(unsigned long pc, void *arg)
-+{
-+	if (!in_sched_functions(pc)) {
-+		unsigned long *p = arg;
-+		*p = pc;
-+		return true;
-+	}
-+	return false;
-+}
-+
-+unsigned long get_wchan(struct task_struct *task)
-+{
-+	unsigned long pc = 0;
-+
-+	if (likely(task && task != current && task->state != TASK_RUNNING))
-+		walk_stackframe(task, NULL, save_wchan, &pc);
-+	return pc;
-+}
-+
-+#ifdef CONFIG_STACKTRACE
-+static bool __save_trace(unsigned long pc, void *arg, bool nosched)
-+{
-+	struct stack_trace *trace = arg;
-+
-+	if (unlikely(nosched && in_sched_functions(pc)))
-+		return false;
-+	if (unlikely(trace->skip > 0)) {
-+		trace->skip--;
-+		return false;
-+	}
-+
-+	trace->entries[trace->nr_entries++] = pc;
-+	return (trace->nr_entries >= trace->max_entries);
-+}
-+
-+static bool save_trace(unsigned long pc, void *arg)
-+{
-+	return __save_trace(pc, arg, false);
-+}
-+
-+/*
-+ * Save stack-backtrace addresses into a stack_trace buffer.
-+ */
-+void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
-+{
-+	walk_stackframe(tsk, NULL, save_trace, trace);
-+}
- EXPORT_SYMBOL_GPL(save_stack_trace_tsk);
-+
-+void save_stack_trace(struct stack_trace *trace)
-+{
-+	save_stack_trace_tsk(NULL, trace);
-+}
-+EXPORT_SYMBOL_GPL(save_stack_trace);
-+
-+#endif /* CONFIG_STACKTRACE */
--- 
-2.17.0
+On 5/15/20 2:16 PM, Catalin Marinas wrote:
+> Add support for bulk setting/getting of the MTE tags in a tracee's
+> address space at 'addr' in the ptrace() syscall prototype. 'data' points
+> to a struct iovec in the tracer's address space with iov_base
+> representing the address of a tracer's buffer of length iov_len. The
+> tags to be copied to/from the tracer's buffer are stored as one tag per
+> byte.
+> 
+> On successfully copying at least one tag, ptrace() returns 0 and updates
+> the tracer's iov_len with the number of tags copied. In case of error,
+> either -EIO or -EFAULT is returned, trying to follow the ptrace() man
+> page.
+> 
+> Note that the tag copying functions are not performance critical,
+> therefore they lack optimisations found in typical memory copy routines.
+> 
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Alan Hayward <Alan.Hayward@arm.com>
+> Cc: Luis Machado <luis.machado@linaro.org>
+> Cc: Omair Javaid <omair.javaid@linaro.org>
+> ---
+> 
+> Notes:
+>      v4:
+>      - Following the change to only clear the tags in a page if it is mapped
+>        to user with PROT_MTE, ptrace() now will refuse to access tags in
+>        pages not previously mapped with PROT_MTE (PG_mte_tagged set). This is
+>        primarily to avoid leaking uninitialised tags to user via ptrace().
+>      - Fix SYM_FUNC_END argument typo.
+>      - Rename MTE_ALLOC_* to MTE_GRANULE_*.
+>      - Use uao_user_alternative for the user access in case we ever want to
+>        call mte_copy_tags_* with a kernel buffer. It also matches the other
+>        uaccess routines in the kernel.
+>      - Simplify arch_ptrace() slightly.
+>      - Reorder down_write_killable() with access_ok() in
+>        __access_remote_tags().
+>      - Handle copy length 0 in mte_copy_tags_{to,from}_user().
+>      - Use put_user() instead of __put_user().
+>      
+>      New in v3.
+> 
+>   arch/arm64/include/asm/mte.h         |  17 ++++
+>   arch/arm64/include/uapi/asm/ptrace.h |   3 +
+>   arch/arm64/kernel/mte.c              | 139 +++++++++++++++++++++++++++
+>   arch/arm64/kernel/ptrace.c           |   7 ++
+>   arch/arm64/lib/mte.S                 |  53 ++++++++++
+>   5 files changed, 219 insertions(+)
+> 
+> diff --git a/arch/arm64/include/asm/mte.h b/arch/arm64/include/asm/mte.h
+> index 7435f6619bf1..9d4b1390d07d 100644
+> --- a/arch/arm64/include/asm/mte.h
+> +++ b/arch/arm64/include/asm/mte.h
+> @@ -5,6 +5,11 @@
+>   #ifndef __ASM_MTE_H
+>   #define __ASM_MTE_H
+>   
+> +#define MTE_GRANULE_SIZE	UL(16)
+> +#define MTE_GRANULE_MASK	(~(MTE_GRANULE_SIZE - 1))
+> +#define MTE_TAG_SHIFT		56
+> +#define MTE_TAG_SIZE		4
+> +
+>   #ifndef __ASSEMBLY__
+>   
+>   #include <linux/page-flags.h>
+> @@ -12,6 +17,10 @@
+>   #include <asm/pgtable-types.h>
+>   
+>   void mte_clear_page_tags(void *addr, size_t size);
+> +unsigned long mte_copy_tags_from_user(void *to, const void __user *from,
+> +				      unsigned long n);
+> +unsigned long mte_copy_tags_to_user(void __user *to, void *from,
+> +				    unsigned long n);
+>   
+>   #ifdef CONFIG_ARM64_MTE
+>   
+> @@ -25,6 +34,8 @@ void mte_thread_switch(struct task_struct *next);
+>   void mte_suspend_exit(void);
+>   long set_mte_ctrl(unsigned long arg);
+>   long get_mte_ctrl(void);
+> +int mte_ptrace_copy_tags(struct task_struct *child, long request,
+> +			 unsigned long addr, unsigned long data);
+>   
+>   #else
+>   
+> @@ -54,6 +65,12 @@ static inline long get_mte_ctrl(void)
+>   {
+>   	return 0;
+>   }
+> +static inline int mte_ptrace_copy_tags(struct task_struct *child,
+> +				       long request, unsigned long addr,
+> +				       unsigned long data)
+> +{
+> +	return -EIO;
+> +}
+>   
+>   #endif
+>   
+> diff --git a/arch/arm64/include/uapi/asm/ptrace.h b/arch/arm64/include/uapi/asm/ptrace.h
+> index 1daf6dda8af0..cd2a4a164de3 100644
+> --- a/arch/arm64/include/uapi/asm/ptrace.h
+> +++ b/arch/arm64/include/uapi/asm/ptrace.h
+> @@ -67,6 +67,9 @@
+>   /* syscall emulation path in ptrace */
+>   #define PTRACE_SYSEMU		  31
+>   #define PTRACE_SYSEMU_SINGLESTEP  32
+> +/* MTE allocation tag access */
+> +#define PTRACE_PEEKMTETAGS	  33
+> +#define PTRACE_POKEMTETAGS	  34
+>   
+>   #ifndef __ASSEMBLY__
+>   
+> diff --git a/arch/arm64/kernel/mte.c b/arch/arm64/kernel/mte.c
+> index cda09bc8caf4..6abd6a16a145 100644
+> --- a/arch/arm64/kernel/mte.c
+> +++ b/arch/arm64/kernel/mte.c
+> @@ -4,14 +4,18 @@
+>    */
+>   
+>   #include <linux/bitops.h>
+> +#include <linux/kernel.h>
+>   #include <linux/mm.h>
+>   #include <linux/prctl.h>
+>   #include <linux/sched.h>
+> +#include <linux/sched/mm.h>
+>   #include <linux/string.h>
+>   #include <linux/thread_info.h>
+> +#include <linux/uio.h>
+>   
+>   #include <asm/cpufeature.h>
+>   #include <asm/mte.h>
+> +#include <asm/ptrace.h>
+>   #include <asm/sysreg.h>
+>   
+>   void mte_sync_tags(pte_t *ptep, pte_t pte)
+> @@ -173,3 +177,138 @@ long get_mte_ctrl(void)
+>   
+>   	return ret;
+>   }
+> +
+> +/*
+> + * Access MTE tags in another process' address space as given in mm. Update
+> + * the number of tags copied. Return 0 if any tags copied, error otherwise.
+> + * Inspired by __access_remote_vm().
+> + */
+> +static int __access_remote_tags(struct task_struct *tsk, struct mm_struct *mm,
+> +				unsigned long addr, struct iovec *kiov,
+> +				unsigned int gup_flags)
+> +{
+> +	struct vm_area_struct *vma;
+> +	void __user *buf = kiov->iov_base;
+> +	size_t len = kiov->iov_len;
+> +	int ret;
+> +	int write = gup_flags & FOLL_WRITE;
+> +
+> +	if (!access_ok(buf, len))
+> +		return -EFAULT;
+> +
+> +	if (down_read_killable(&mm->mmap_sem))
+> +		return -EIO;
+> +
+> +	while (len) {
+> +		unsigned long tags, offset;
+> +		void *maddr;
+> +		struct page *page = NULL;
+> +
+> +		ret = get_user_pages_remote(tsk, mm, addr, 1, gup_flags,
+> +					    &page, &vma, NULL);
+> +		if (ret <= 0)
+> +			break;
+> +
+> +		/*
+> +		 * Only copy tags if the page has been mapped as PROT_MTE
+> +		 * (PG_mte_tagged set). Otherwise the tags are not valid and
+> +		 * not accessible to user. Moreover, an mprotect(PROT_MTE)
+> +		 * would cause the existing tags to be cleared if the page
+> +		 * was never mapped with PROT_MTE.
+> +		 */
+> +		if (!test_bit(PG_mte_tagged, &page->flags)) {
+> +			ret = -EOPNOTSUPP;
+> +			put_page(page);
+> +			break;
+> +		}
+> +
+> +		/* limit access to the end of the page */
+> +		offset = offset_in_page(addr);
+> +		tags = min(len, (PAGE_SIZE - offset) / MTE_GRANULE_SIZE);
+> +
+> +		maddr = page_address(page);
+> +		if (write) {
+> +			tags = mte_copy_tags_from_user(maddr + offset, buf, tags);
+> +			set_page_dirty_lock(page);
+> +		} else {
+> +			tags = mte_copy_tags_to_user(buf, maddr + offset, tags);
+> +		}
+> +		put_page(page);
+> +
+> +		/* error accessing the tracer's buffer */
+> +		if (!tags)
+> +			break;
+> +
+> +		len -= tags;
+> +		buf += tags;
+> +		addr += tags * MTE_GRANULE_SIZE;
+> +	}
+> +	up_read(&mm->mmap_sem);
+> +
+> +	/* return an error if no tags copied */
+> +	kiov->iov_len = buf - kiov->iov_base;
+> +	if (!kiov->iov_len) {
+> +		/* check for error accessing the tracee's address space */
+> +		if (ret <= 0)
+> +			return -EIO;
+> +		else
+> +			return -EFAULT;
+> +	}
+> +
+> +	return 0;
+> +}
+> +
+> +/*
+> + * Copy MTE tags in another process' address space at 'addr' to/from tracer's
+> + * iovec buffer. Return 0 on success. Inspired by ptrace_access_vm().
+> + */
+> +static int access_remote_tags(struct task_struct *tsk, unsigned long addr,
+> +			      struct iovec *kiov, unsigned int gup_flags)
+> +{
+> +	struct mm_struct *mm;
+> +	int ret;
+> +
+> +	mm = get_task_mm(tsk);
+> +	if (!mm)
+> +		return -EPERM;
+> +
+> +	if (!tsk->ptrace || (current != tsk->parent) ||
+> +	    ((get_dumpable(mm) != SUID_DUMP_USER) &&
+> +	     !ptracer_capable(tsk, mm->user_ns))) {
+> +		mmput(mm);
+> +		return -EPERM;
+> +	}
+> +
+> +	ret = __access_remote_tags(tsk, mm, addr, kiov, gup_flags);
+> +	mmput(mm);
+> +
+> +	return ret;
+> +}
+> +
+> +int mte_ptrace_copy_tags(struct task_struct *child, long request,
+> +			 unsigned long addr, unsigned long data)
+> +{
+> +	int ret;
+> +	struct iovec kiov;
+> +	struct iovec __user *uiov = (void __user *)data;
+> +	unsigned int gup_flags = FOLL_FORCE;
+> +
+> +	if (!system_supports_mte())
+> +		return -EIO;
+> +
+> +	if (get_user(kiov.iov_base, &uiov->iov_base) ||
+> +	    get_user(kiov.iov_len, &uiov->iov_len))
+> +		return -EFAULT;
+> +
+> +	if (request == PTRACE_POKEMTETAGS)
+> +		gup_flags |= FOLL_WRITE;
+> +
+> +	/* align addr to the MTE tag granule */
+> +	addr &= MTE_GRANULE_MASK;
+> +
+> +	ret = access_remote_tags(child, addr, &kiov, gup_flags);
+> +	if (!ret)
+> +		ret = put_user(kiov.iov_len, &uiov->iov_len);
+> +
+> +	return ret;
+> +}
+> diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+> index 077e352495eb..c8bda5f5b321 100644
+> --- a/arch/arm64/kernel/ptrace.c
+> +++ b/arch/arm64/kernel/ptrace.c
+> @@ -34,6 +34,7 @@
+>   #include <asm/cpufeature.h>
+>   #include <asm/debug-monitors.h>
+>   #include <asm/fpsimd.h>
+> +#include <asm/mte.h>
+>   #include <asm/pgtable.h>
+>   #include <asm/pointer_auth.h>
+>   #include <asm/stacktrace.h>
+> @@ -1797,6 +1798,12 @@ const struct user_regset_view *task_user_regset_view(struct task_struct *task)
+>   long arch_ptrace(struct task_struct *child, long request,
+>   		 unsigned long addr, unsigned long data)
+>   {
+> +	switch (request) {
+> +	case PTRACE_PEEKMTETAGS:
+> +	case PTRACE_POKEMTETAGS:
+> +		return mte_ptrace_copy_tags(child, request, addr, data);
+> +	}
+> +
+>   	return ptrace_request(child, request, addr, data);
+>   }
+>   
+> diff --git a/arch/arm64/lib/mte.S b/arch/arm64/lib/mte.S
+> index a531b52fa5ba..862655a36013 100644
+> --- a/arch/arm64/lib/mte.S
+> +++ b/arch/arm64/lib/mte.S
+> @@ -4,7 +4,9 @@
+>    */
+>   #include <linux/linkage.h>
+>   
+> +#include <asm/alternative.h>
+>   #include <asm/assembler.h>
+> +#include <asm/mte.h>
+>   #include <asm/page.h>
+>   
+>   	.arch	armv8.5-a+memtag
+> @@ -40,3 +42,54 @@ SYM_FUNC_START(mte_copy_page_tags)
+>   	b.ne	1b
+>   2:
+>   SYM_FUNC_END(mte_copy_page_tags)
+> +
+> +/*
+> + * Read tags from a user buffer (one tag per byte) and set the corresponding
+> + * tags at the given kernel address. Used by PTRACE_POKEMTETAGS.
+> + *   x0 - kernel address (to)
+> + *   x1 - user buffer (from)
+> + *   x2 - number of tags/bytes (n)
+> + * Returns:
+> + *   x0 - number of tags read/set
+> + */
+> +SYM_FUNC_START(mte_copy_tags_from_user)
+> +	mov	x3, x1
+> +	cbz	x2, 2f
+> +1:
+> +	uao_user_alternative 2f, ldrb, ldtrb, w4, x1, 0
+> +	lsl	x4, x4, #MTE_TAG_SHIFT
+> +	stg	x4, [x0], #MTE_GRANULE_SIZE
+> +	add	x1, x1, #1
+> +	subs	x2, x2, #1
+> +	b.ne	1b
+> +
+> +	// exception handling and function return
+> +2:	sub	x0, x1, x3		// update the number of tags set
+> +	ret
+> +SYM_FUNC_END(mte_copy_tags_from_user)
+> +
+> +/*
+> + * Get the tags from a kernel address range and write the tag values to the
+> + * given user buffer (one tag per byte). Used by PTRACE_PEEKMTETAGS.
+> + *   x0 - user buffer (to)
+> + *   x1 - kernel address (from)
+> + *   x2 - number of tags/bytes (n)
+> + * Returns:
+> + *   x0 - number of tags read/set
+> + */
+> +SYM_FUNC_START(mte_copy_tags_to_user)
+> +	mov	x3, x0
+> +	cbz	x2, 2f
+> +1:
+> +	ldg	x4, [x1]
+> +	ubfx	x4, x4, #MTE_TAG_SHIFT, #MTE_TAG_SIZE
+> +	uao_user_alternative 2f, strb, sttrb, w4, x0, 0
+> +	add	x0, x0, #1
+> +	add	x1, x1, #MTE_GRANULE_SIZE
+> +	subs	x2, x2, #1
+> +	b.ne	1b
+> +
+> +	// exception handling and function return
+> +2:	sub	x0, x0, x3		// update the number of tags copied
+> +	ret
+> +SYM_FUNC_END(mte_copy_tags_to_user)
+> 
