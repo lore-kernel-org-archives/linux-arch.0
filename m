@@ -1,91 +1,222 @@
-Return-Path: <SRS0=OG4P=7L=vger.kernel.org=linux-doc-owner@kernel.org>
-Message-ID: <ce66498068c42913150ee3f4928a0d8e3435316d.camel@intel.com>
-Subject: Re: [PATCH v10 01/26] Documentation/x86: Add CET description
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Thu, 28 May 2020 19:08:28 -0700
-In-Reply-To: <CALCETrWavh1_Atk=VPQbOoB5tY=zGWGukW8qjF51msKTJSJgQQ@mail.gmail.com>
-References: <2eb98637-bd2d-dda6-7729-f06ea84256ca@intel.com>
-         <58319765-891D-44B9-AF18-64492B01FF36@amacapital.net>
-         <CALCETrWavh1_Atk=VPQbOoB5tY=zGWGukW8qjF51msKTJSJgQQ@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=EGju=7L=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41220 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726974AbgE2Rei (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 May 2020 13:34:38 -0400
+Received: from mail-qk1-x744.google.com (mail-qk1-x744.google.com [IPv6:2607:f8b0:4864:20::744])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 35AC8C03E969
+        for <linux-arch@vger.kernel.org>; Fri, 29 May 2020 10:34:34 -0700 (PDT)
+Received: by mail-qk1-x744.google.com with SMTP id 205so2959612qkg.3
+        for <linux-arch@vger.kernel.org>; Fri, 29 May 2020 10:34:34 -0700 (PDT)
+Date: Fri, 29 May 2020 13:34:32 -0400
+From: Joel Fernandes <joel@joelfernandes.org>
+Subject: Re: [PATCH linux-rcu] docs/litmus-tests: add BPF ringbuf MPSC litmus
+ tests
+Message-ID: <20200529173432.GC196085@google.com>
+References: <20200528062408.547149-1-andriin@fb.com>
+ <20200528225427.GA225299@google.com>
+ <CAEf4BzZ_g2RwOgaRL1Qa9yo-8dH4kpgNaBOWZznNxqxhJUM1aA@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>, Dave Hansen <dave.hansen@intel.com>
-Cc: X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAEf4BzZ_g2RwOgaRL1Qa9yo-8dH4kpgNaBOWZznNxqxhJUM1aA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200529020828.wMExueEhvzuoMuNzDZjaMFqe3hHMm5HXdUxZzf9z8RU@z>
+To: Andrii Nakryiko <andrii.nakryiko@gmail.com>
+Cc: Andrii Nakryiko <andriin@fb.com>, bpf <bpf@vger.kernel.org>, Networking <netdev@vger.kernel.org>, "Paul E . McKenney" <paulmck@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, parri.andrea@gmail.com, will@kernel.org, Peter Ziljstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, Akira Yokosawa <akiyks@gmail.com>, dlustig@nvidia.com, open list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Kernel Team <kernel-team@fb.com>
+Message-ID: <20200529173432.yxnYyPvKav_Xwx-JYSKTlwJjnYAG9zB79HrgZl6haHk@z>
 
-On Tue, 2020-05-19 at 18:04 -0700, Andy Lutomirski wrote:
-> On Mon, May 18, 2020 at 6:35 PM Andy Lutomirski <luto@amacapital.net> wrote:
+Hi Andrii,
+
+On Thu, May 28, 2020 at 10:50:30PM -0700, Andrii Nakryiko wrote:
 > > [...]
-> > > On May 18, 2020, at 5:38 PM, Dave Hansen <dave.hansen@intel.com> wrote:
-> > > [...]
-> > > The sadistic parts of selftests/x86 come from real bugs.  Either bugs
-> > > where the kernel fell over, or where behavior changed that broke apps.
-> > > I'd suggest doing some research on where that particular test case came
-> > > from.  Find the author of the test, look at the changelogs.
-> > > 
-> > > If this is something that a real app does, this is a problem.  If it's a
-> > > sadistic test that Andy L added because it was an attack vector against
-> > > the entry code, it's a different story.
-> > 
-> > There are quite a few tests that do these horrible things in there. IN my personal opinion, sigreturn.c is one of the most important tests we have — it does every horrible thing to the entry code that I thought of and that I could come up with a way of doing.  We have been saved from regressing many times by these tests.  CET, and especially the CPL0 version of CET, is its own set of entry horror, and we need to keep these tests working.
-> > 
-> > I assume the basic issue is that we call raise(), the context magically changes to 32-bit, but SSP has a 64-bit value, and horrors happen.  So I think two things need to happen:
-> > 
-> > 1. Someone needs to document what happens when IRET tries to put a 64-bit value into SSP but CS is compat. Because Intel has plenty of history of doing colossally broken things here. IOW you could easily be hitting a hardware design problem, not a software issue per se.
-> > 
-> > 2. The test needs to work. Assuming the hardware doesn’t do something utterly broken, either the 32-bit code needs to be adjusted to avoid any CALL
-> > or RET, or you need to write a little raise_on_32bit_shstk() func that switches to an SSP that fits in 32 bits, calls raise(), and switches back.  From memory, I didn’t think there was a CALl or RET, so I’m guessing that SSP is getting truncated when we round trip through CPL3 compat mode and the result is that the kernel invoked the signal handler with the wrong SSP.  Whoops.
-> > 
-> 
-> Following up here, I think this needs attention from the H/W architects.
-> 
-> From the SDM:
-> 
-> SYSRET and SYSEXIT:
-> 
-> IF ShadowStackEnabled(CPL)
-> SSP ← IA32_PL3_SSP;
-> FI;
-> 
-> IRET:
-> 
-> IF ShadowStackEnabled(CPL)
-> IF CPL = 3
-> THEN tempSSP ← IA32_PL3_SSP; FI;
-> IF ((EFER.LMA AND CS.L) = 0 AND tempSSP[63:32] != 0)
-> THEN #GP(0); FI;
-> SSP ← tempSSP
-> 
-> The semantics of actually executing in compat mode with SSP >= 2^32
-> are unclear.  If nothing else, VM exit will save the full SSP and a
-> subsequent VM entry will fail.
+> > > diff --git a/Documentation/litmus-tests/bpf-rb/bpf-rb+1p1c+bounded.litmus b/Documentation/litmus-tests/bpf-rb/bpf-rb+1p1c+bounded.litmus
+> > > new file mode 100644
+> > > index 000000000000..558f054fb0b4
+> > > --- /dev/null
+> > > +++ b/Documentation/litmus-tests/bpf-rb/bpf-rb+1p1c+bounded.litmus
+> > > @@ -0,0 +1,91 @@
+> > > +C bpf-rb+1p1c+bounded
+> > > +
+> > > +(*
+> > > + * Result: Always
+> > > + *
+> > > + * This litmus test validates BPF ring buffer implementation under the
+> > > + * following assumptions:
+> > > + * - 1 producer;
+> > > + * - 1 consumer;
+> > > + * - ring buffer has capacity for only 1 record.
+> > > + *
+> > > + * Expectations:
+> > > + * - 1 record pushed into ring buffer;
+> > > + * - 0 or 1 element is consumed.
+> > > + * - no failures.
+> > > + *)
+> > > +
+> > > +{
+> > > +     atomic_t dropped;
+> > > +}
+> > > +
+> > > +P0(int *lenFail, int *len1, int *cx, int *px)
+> > > +{
+> > > +     int *rLenPtr;
+> > > +     int rLen;
+> > > +     int rPx;
+> > > +     int rCx;
+> > > +     int rFail;
+> > > +
+> > > +     rFail = 0;
+> > > +
+> > > +     rCx = smp_load_acquire(cx);
+> > > +     rPx = smp_load_acquire(px);
+> >
+> > Is it possible for you to put some more comments around which ACQUIRE is
+> > paired with which RELEASE? And, in general more comments around the reason
+> > for a certain memory barrier and what pairs with what. In the kernel sources,
+> > the barriers needs a comment anyway.
 
-Here is what I got after talking to the architect.
+This was the comment earlier that was missed.
 
-If the guest is in 32-bit mode, but its VM guest state SSP field is 64-bit, the
-CPU only uses the lower 32 bits.
-
-The SDM currently states a consistency check of the guest SSP field, but that
-will be removed in the next version.  Upon VM entry, the CPU only requires the
-guest SSP to be pseudo-canonical like the RIP and RSP.
-
-> I don't know what the actual effect of operand-size-32 SYSRET or
-> SYSEXIT with too big a PL3_SSP will be, but I think it needs to be
-> documented.  Ideally it will not put the CPU in an invalid state.
-> Ideally it will also not fault, because SYSRET faults in particular
-> are fatal unless the vector uses IST, and please please please don't
-> force more ISTs on anyone.
-
-On SYSRET/SYSEXIT to a 32-bit context, the CPU only uses the lower 32 bits of
-the user-mode SSP, and will not go into an invalid state and will not fault. 
-The SDM will be explicit about this.
-
-Yu-cheng
-
+> > > +     if (rCx < rPx) {
+> > > +             if (rCx == 0) {
+> > > +                     rLenPtr = len1;
+> > > +             } else {
+> > > +                     rLenPtr = lenFail;
+> > > +                     rFail = 1;
+> > > +             }
+> > > +
+> > > +             rLen = smp_load_acquire(rLenPtr);
+> > > +             if (rLen == 0) {
+> > > +                     rFail = 1;
+> > > +             } else if (rLen == 1) {
+> > > +                     rCx = rCx + 1;
+> > > +                     smp_store_release(cx, rCx);
+> > > +             }
+> > > +     }
+> > > +}
+> > > +
+> > > +P1(int *lenFail, int *len1, spinlock_t *rb_lock, int *px, int *cx, atomic_t *dropped)
+> > > +{
+> > > +     int rPx;
+> > > +     int rCx;
+> > > +     int rFail;
+> > > +     int *rLenPtr;
+> > > +
+> > > +     rFail = 0;
+> > > +
+> > > +     rCx = smp_load_acquire(cx);
+> > > +     spin_lock(rb_lock);
+> > > +
+> > > +     rPx = *px;
+> > > +     if (rPx - rCx >= 1) {
+> > > +             atomic_inc(dropped);
+> >
+> > Why does 'dropped' need to be atomic if you are always incrementing under a
+> > lock?
 > 
-> So I think we may need to put this entire series on hold until we get
-> some answers, because I suspect we're going to have a nice little root
-> hole otherwise.
+> It doesn't, strictly speaking, but making it atomic in litmus test was
+> just more convenient, especially that I initially also had a lock-less
+> variant of this algorithm.
+
+Ok, that's fine.
+
+> >
+> > > +             spin_unlock(rb_lock);
+> > > +     } else {
+> > > +             if (rPx == 0) {
+> > > +                     rLenPtr = len1;
+> > > +             } else {
+> > > +                     rLenPtr = lenFail;
+> > > +                     rFail = 1;
+> > > +             }
+> > > +
+> > > +             *rLenPtr = -1;
+> >
+> > Clarify please the need to set the length intermittently to -1. Thanks.
+> 
+> This corresponds to setting a "busy bit" in kernel implementation.
+> These litmus tests are supposed to be correlated with in-kernel
+> implementation, I'm not sure I want to maintain extra 4 copies of
+> comments here and in kernel code. Especially for 2-producer cases,
+> there are 2 identical P1 and P2, which is unfortunate, but I haven't
+> figured out how to have a re-usable pieces of code with litmus tests
+> :)
+
+I disagree that comments related to memory ordering are optional. IMHO, the
+documentation should be clear from a memory ordering standpoint. After all,
+good Documentation/ always clarifies something / some concept to the reader
+right? :-) Please have mercy on me, I am just trying to learn *your*
+Documentation ;-)
+
+> > > diff --git a/Documentation/litmus-tests/bpf-rb/bpf-rb+2p1c+bounded.litmus b/Documentation/litmus-tests/bpf-rb/bpf-rb+2p1c+bounded.litmus
+[...]
+> > > +P1(int *lenFail, int *len1, spinlock_t *rb_lock, int *px, int *cx, atomic_t *dropped)
+> > > +{
+> > > +     int rPx;
+> > > +     int rCx;
+> > > +     int rFail;
+> > > +     int *rLenPtr;
+> > > +
+> > > +     rFail = 0;
+> > > +     rLenPtr = lenFail;
+> > > +
+> > > +     rCx = smp_load_acquire(cx);
+> > > +     spin_lock(rb_lock);
+> > > +
+> > > +     rPx = *px;
+> > > +     if (rPx - rCx >= 1) {
+> > > +             atomic_inc(dropped);
+> > > +             spin_unlock(rb_lock);
+> > > +     } else {
+> > > +             if (rPx == 0) {
+> > > +                     rLenPtr = len1;
+> > > +             } else if (rPx == 1) {
+> > > +                     rLenPtr = len1;
+> > > +             } else {
+> > > +                     rLenPtr = lenFail;
+> > > +                     rFail = 1;
+> > > +             }
+> > > +
+> > > +             *rLenPtr = -1;
+> > > +             smp_store_release(px, rPx + 1);
+> > > +
+> > > +             spin_unlock(rb_lock);
+> > > +
+> > > +             smp_store_release(rLenPtr, 1);
+> >
+> > I ran a test replacing the last 2 statements above with the following and it
+> > still works:
+> >
+> >                 spin_unlock(rb_lock);
+> >                 WRITE_ONCE(*rLenPtr, 1);
+> >
+> > Wouldn't you expect the test to catch an issue? The spin_unlock is already a
+> > RELEASE barrier.
+> 
+> Well, apparently it's not an issue and WRITE_ONCE would work as well
+> :) My original version actually used WRITE_ONCE here. See [0] and
+> discussion in [1] after which I removed all the WRITE_ONCE/READ_ONCE
+> in favor of store_release/load_acquire for consistency.
+> 
+>   [0] https://patchwork.ozlabs.org/project/netdev/patch/20200513192532.4058934-3-andriin@fb.com/
+>   [1] https://patchwork.ozlabs.org/project/netdev/patch/20200513192532.4058934-2-andriin@fb.com/
+
+Huh. So you are replacing the test to use WRITE_ONCE instead? Why did you
+favor the acquire/release memory barriers over the _ONCE annotations, if that
+was not really needed then?
+
+> > Suggestion: It is hard to review the patch because it is huge, it would be
+> > good to split this up into 4 patches for each of the tests. But upto you :)
+> 
+> Those 4 files are partial copies of each other, not sure splitting
+> them actually would be easier. If anyone else thinks the same, though,
+> I'll happily split.
+
+I personally disagree. It would be much easier IMHO to review 4 different
+files since some of them are also quite dissimilar. I frequently keep jumping
+between diffs to find a different file and it makes the review that much
+harder. But anything the LKMM experts decide in this regard is acceptable to me :)
+
+thanks,
+
+ - Joel
