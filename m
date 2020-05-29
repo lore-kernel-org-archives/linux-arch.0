@@ -1,55 +1,29 @@
 From: Michael Ellerman <patch-notifications@ellerman.id.au>
-Subject: Re: [PATCH v2 1/5] uaccess: Add user_read_access_begin/end and user_write_access_begin/end
-Date: Fri, 29 May 2020 14:20:23 +1000 (AEST)
-Message-ID: <49YBF35KWQz9sSr@ozlabs.org>
-References: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
+Subject: Re: [PATCH v2 2/5] uaccess: Selectively open read or write user access
+Date: Fri, 29 May 2020 14:20:25 +1000 (AEST)
+Message-ID: <49YBF530k9z9sSs@ozlabs.org>
+References: <2e73bc57125c2c6ab12a587586a4eed3a47105fc.1585898438.git.christophe.leroy@c-s.fr>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bilbo.ozlabs.org ([203.11.71.1]:54603 "EHLO ozlabs.org"
+Received: from ozlabs.org ([203.11.71.1]:42083 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728916AbgE2EU1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1728918AbgE2EU1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Fri, 29 May 2020 00:20:27 -0400
-In-Reply-To: <36e43241c7f043a24b5069e78c6a7edd11043be5.1585898438.git.christophe.leroy@c-s.fr>
+In-Reply-To: <2e73bc57125c2c6ab12a587586a4eed3a47105fc.1585898438.git.christophe.leroy@c-s.fr>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, airlied@linux.ie, daniel@ffwll.ch, torvalds@linux-foundation.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, keescook@chromium.org, hpa@zytor.com
 Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, intel-gfx@lists.freedesktop.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org
 
-On Fri, 2020-04-03 at 07:20:50 UTC, Christophe Leroy wrote:
-> Some architectures like powerpc64 have the capability to separate
-> read access and write access protection.
-> For get_user() and copy_from_user(), powerpc64 only open read access.
-> For put_user() and copy_to_user(), powerpc64 only open write access.
-> But when using unsafe_get_user() or unsafe_put_user(),
-> user_access_begin open both read and write.
-> 
-> Other architectures like powerpc book3s 32 bits only allow write
-> access protection. And on this architecture protection is an heavy
-> operation as it requires locking/unlocking per segment of 256Mbytes.
-> On those architecture it is therefore desirable to do the unlocking
-> only for write access. (Note that book3s/32 ranges from very old
-> powermac from the 90's with powerpc 601 processor, till modern
-> ADSL boxes with PowerQuicc II processors for instance so it
-> is still worth considering.)
-> 
-> In order to avoid any risk based of hacking some variable parameters
-> passed to user_access_begin/end that would allow hacking and
-> leaving user access open or opening too much, it is preferable to
-> use dedicated static functions that can't be overridden.
-> 
-> Add a user_read_access_begin and user_read_access_end to only open
-> read access.
-> 
-> Add a user_write_access_begin and user_write_access_end to only open
-> write access.
-> 
-> By default, when undefined, those new access helpers default on the
-> existing user_access_begin and user_access_end.
+On Fri, 2020-04-03 at 07:20:51 UTC, Christophe Leroy wrote:
+> When opening user access to only perform reads, only open read access.
+> When opening user access to only perform writes, only open write
+> access.
 > 
 > Signed-off-by: Christophe Leroy <christophe.leroy@c-s.fr>
 > Reviewed-by: Kees Cook <keescook@chromium.org>
 
 Applied to powerpc topic/uaccess, thanks.
 
-https://git.kernel.org/powerpc/c/999a22890cb183b918e4372395d24426a755cef2
+https://git.kernel.org/powerpc/c/41cd780524674082b037e7c8461f90c5e42103f0
 
 cheers
