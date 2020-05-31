@@ -1,161 +1,110 @@
-Return-Path: <SRS0=Ax4L=7D=kvack.org=owner-linux-mm@kernel.org>
-Date: Thu, 21 May 2020 15:43:44 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC PATCH 1/5] x86/cet/shstk: Modify ARCH_X86_CET_ALLOC_SHSTK
- for 32-bit address range
-Message-ID: <202005211542.35AB0A71C7@keescook>
-References: <20200521211720.20236-1-yu-cheng.yu@intel.com>
- <20200521211720.20236-2-yu-cheng.yu@intel.com>
+Return-Path: <SRS0=+UIS=7N=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45728 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725912AbgEaPhZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 31 May 2020 11:37:25 -0400
+From: Akira Yokosawa <akiyks@gmail.com>
+Subject: [RFC PATCH -rcu lkmm] tools/memory-model/README: Expand dependency of
+ klitmus7
+Message-ID: <4a05e568-aa30-423a-badc-f79f0af815a0@gmail.com>
+Date: Mon, 1 Jun 2020 00:37:20 +0900
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200521211720.20236-2-yu-cheng.yu@intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200521224344.xtuRWoRDIyfyBKbte27oGitOoFfCdsyo5S1AeTp4eDg@z>
+To: "Paul E. McKenney" <paulmck@kernel.org>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Jade Alglave <jade.alglave@arm.com>, Luc Maranget <luc.maranget@inria.fr>, Joel Fernandes <joel@joelfernandes.org>
+Cc: Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>
+Message-ID: <20200531153720.esBmGiLEc9H5BqfQducXYWQjAEydOL1gvJHqJ2H7wek@z>
 
-On Thu, May 21, 2020 at 02:17:16PM -0700, Yu-cheng Yu wrote:
-> Sometimes a 64-bit task might need to have a shadow stack allocated from
-> within 32-bit address range.  One example is selftests/x86/sigreturn.
-> 
-> Currently arch_prctl(ARCH_X86_CET_ALLOC_SHSTK) takes a input parameter for
-> the desired shadow stack size.  Modify it and use bit[0] of the parameter
-> to indicate the desire to allocate from 32-bit address range.
-> 
-> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> ---
->  arch/x86/include/asm/cet.h        |  2 +-
->  arch/x86/include/uapi/asm/prctl.h |  2 ++
->  arch/x86/kernel/cet.c             | 19 ++++++++++++-------
->  arch/x86/kernel/cet_prctl.c       |  6 +++++-
->  4 files changed, 20 insertions(+), 9 deletions(-)
-> 
-> diff --git a/arch/x86/include/asm/cet.h b/arch/x86/include/asm/cet.h
-> index f163c805a559..534b02785a39 100644
-> --- a/arch/x86/include/asm/cet.h
-> +++ b/arch/x86/include/asm/cet.h
-> @@ -22,7 +22,7 @@ struct cet_status {
->  int prctl_cet(int option, u64 arg2);
->  int cet_setup_shstk(void);
->  int cet_setup_thread_shstk(struct task_struct *p);
-> -int cet_alloc_shstk(unsigned long *arg);
-> +int cet_alloc_shstk(unsigned long *arg, int map_32bit);
->  void cet_disable_free_shstk(struct task_struct *p);
->  int cet_verify_rstor_token(bool ia32, unsigned long ssp, unsigned long *new_ssp);
->  void cet_restore_signal(struct sc_ext *sc);
-> diff --git a/arch/x86/include/uapi/asm/prctl.h b/arch/x86/include/uapi/asm/prctl.h
-> index d962f0ec9ccf..e254c6a21475 100644
-> --- a/arch/x86/include/uapi/asm/prctl.h
-> +++ b/arch/x86/include/uapi/asm/prctl.h
-> @@ -19,4 +19,6 @@
->  #define ARCH_X86_CET_LOCK		0x3003
->  #define ARCH_X86_CET_ALLOC_SHSTK	0x3004
->  
-> +#define ARCH_X86_CET_ALLOC_SHSTK_32BIT	0x1UL
+From 87048d7212f6cb16b0a2b85fa6d2f34c28b078c0 Mon Sep 17 00:00:00 2001
+From: Akira Yokosawa <akiyks@gmail.com>
+Date: Sun, 31 May 2020 20:04:32 +0900
+Subject: [PATCH RFC] tools/memory-model/README: Expand dependency of klitmus7
 
-Perhaps declare a set of bits here to verify that they are zero into the
-future?
+klitmus7 is independent of the memory model but depends on the
+build-target kernel release.
+It occasionally lost compatibility due to kernel API changes [1, 2, 3].
+It was remedied in a backwards-compatible manner respectively [4, 5, 6].
 
-> +
->  #endif /* _ASM_X86_PRCTL_H */
-> diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
-> index 92b8730c0b08..d6f93e1864b2 100644
-> --- a/arch/x86/kernel/cet.c
-> +++ b/arch/x86/kernel/cet.c
-> @@ -57,14 +57,19 @@ static unsigned long cet_get_shstk_addr(void)
->  	return ssp;
->  }
->  
-> -static unsigned long alloc_shstk(unsigned long size)
-> +static unsigned long alloc_shstk(unsigned long size, int map_32bit)
->  {
->  	struct mm_struct *mm = current->mm;
->  	unsigned long addr, populate;
-> +	unsigned long map_flags;
-> +
-> +	map_flags = MAP_ANONYMOUS | MAP_PRIVATE;
-> +	if (map_32bit)
-> +		map_flags |= MAP_32BIT;
->  
->  	down_write(&mm->mmap_sem);
-> -	addr = do_mmap(NULL, 0, size, PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE,
-> -		       VM_SHSTK, 0, &populate, NULL);
-> +	addr = do_mmap(NULL, 0, size, PROT_READ, map_flags, VM_SHSTK, 0,
-> +		       &populate, NULL);
->  	up_write(&mm->mmap_sem);
->  
->  	if (populate)
-> @@ -147,14 +152,14 @@ static int create_rstor_token(bool ia32, unsigned long ssp,
->  	return 0;
->  }
->  
-> -int cet_alloc_shstk(unsigned long *arg)
-> +int cet_alloc_shstk(unsigned long *arg, int map_32bit)
->  {
->  	unsigned long len = *arg;
->  	unsigned long addr;
->  	unsigned long token;
->  	unsigned long ssp;
->  
-> -	addr = alloc_shstk(round_up(len, PAGE_SIZE));
-> +	addr = alloc_shstk(round_up(len, PAGE_SIZE), map_32bit);
->  
->  	if (IS_ERR((void *)addr))
->  		return PTR_ERR((void *)addr);
-> @@ -185,7 +190,7 @@ int cet_setup_shstk(void)
->  		return -EOPNOTSUPP;
->  
->  	size = round_up(min(rlimit(RLIMIT_STACK), 1UL << 32), PAGE_SIZE);
-> -	addr = alloc_shstk(size);
-> +	addr = alloc_shstk(size, 0);
->  
->  	if (IS_ERR((void *)addr))
->  		return PTR_ERR((void *)addr);
-> @@ -226,7 +231,7 @@ int cet_setup_thread_shstk(struct task_struct *tsk)
->  	if (in_compat_syscall())
->  		size /= 4;
->  	size = round_up(size, PAGE_SIZE);
-> -	addr = alloc_shstk(size);
-> +	addr = alloc_shstk(size, 0);
->  
->  	if (IS_ERR((void *)addr)) {
->  		cet->shstk_base = 0;
-> diff --git a/arch/x86/kernel/cet_prctl.c b/arch/x86/kernel/cet_prctl.c
-> index a8e68fefd524..364ed2420202 100644
-> --- a/arch/x86/kernel/cet_prctl.c
-> +++ b/arch/x86/kernel/cet_prctl.c
-> @@ -35,12 +35,16 @@ static int handle_alloc_shstk(u64 arg2)
->  	unsigned long arg;
->  	unsigned long addr = 0;
->  	unsigned long size = 0;
-> +	int map_32bit;
->  
->  	if (get_user(arg, (unsigned long __user *)arg2))
->  		return -EFAULT;
->  
+Reflect this fact in README.
 
-i.e. reject arg if any bits besides ARCH_X86_CET_ALLOC_SHSTK_32BIT are
-set in the mask you pick.
+[1]: b899a850431e ("compiler.h: Remove ACCESS_ONCE()")
+[2]: 0bb95f80a38f ("Makefile: Globally enable VLA warning")
+[3]: d56c0d45f0e2 ("proc: decouple proc from VFS with "struct proc_ops"")
+[4]: https://github.com/herd/herdtools7/commit/e87d7f9287d1
+     ("klitmus: Use WRITE_ONCE and READ_ONCE in place of deprecated ACCESS_ONCE")
+[5]: https://github.com/herd/herdtools7/commit/a0cbb10d02be
+     ("klitmus: Avoid variable length array")
+[6]: https://github.com/herd/herdtools7/commit/46b9412d3a58
+     ("klitmus: Linux kernel v5.6.x compat")
 
-> +	map_32bit = (arg & ARCH_X86_CET_ALLOC_SHSTK_32BIT) ? 1 : 0;
-> +	arg &= ~(ARCH_X86_CET_ALLOC_SHSTK_32BIT);
+NOTE: [5] was ahead of herdtools7 7.53, which did not make an
+official release.  Code generated by klitmus7 without [5] can still be
+built targeting Linux 4.20--5.5 if you don't care VLA warnings.
 
-And then clear the whole mask here.
+Signed-off-by: Akira Yokosawa <akiyks@gmail.com>
+---
+Hi all,
 
--Kees
+Recent struggle of Andrii with the use of klitmus7 on an up-to-date
+Linux system prompted me to add some explanation of klitmus7's dependency
+in README.
 
-> +
->  	size = arg;
-> -	err = cet_alloc_shstk(&arg);
-> +	err = cet_alloc_shstk(&arg, map_32bit);
->  	if (err)
->  		return err;
->  
-> -- 
-> 2.21.0
-> 
+As herdtools7 7.56 is still under development, I called out just HEAD
+in the compatibility table.  Once 7.56 is released, the table can be
+updated.
 
+I'm not sure if this is the right place to carry such info.
+Anyway, I'd be glad if this patch can trigger a meaningful update of
+README.
+
+        Thanks, Akira
+--
+ tools/memory-model/README | 30 ++++++++++++++++++++++++++++--
+ 1 file changed, 28 insertions(+), 2 deletions(-)
+
+diff --git a/tools/memory-model/README b/tools/memory-model/README
+index b9c562e92981..90af203c3cf1 100644
+--- a/tools/memory-model/README
++++ b/tools/memory-model/README
+@@ -28,8 +28,34 @@ downloaded separately:
+ See "herdtools7/INSTALL.md" for installation instructions.
+ 
+ Note that although these tools usually provide backwards compatibility,
+-this is not absolutely guaranteed.  Therefore, if a later version does
+-not work, please try using the exact version called out above.
++this is not absolutely guaranteed.
++
++For example, a future version of herd7 might not work with the model
++in this release.  A compatible model will likely be made available in
++a later release of Linux kernel.
++
++If you absolutely need to run the model in this particular release,
++please try using the exact version called out above.
++
++klitmus7 is independent of the model provided here.  It has its own
++dependency on a target kernel release where converted code is built
++and executed.  Any change in kernel APIs essential to klitmus7 will
++necessitate an upgrade of klitmus7.
++
++If you find any compatibility issues in klitmus7, please inform the
++memory model maintainers.
++
++klitmus7 Compatibility Table
++----------------------------
++
++	============  ==========
++	target Linux  herdtools7
++	------------  ----------
++	     -- 4.18  7.48 --
++	4.15 -- 4.19  7.49 --
++	4.20 -- 5.5   7.54 --
++	5.6  --       HEAD
++	============  ==========
+ 
+ 
+ ==================
 -- 
-Kees Cook
+2.17.1
