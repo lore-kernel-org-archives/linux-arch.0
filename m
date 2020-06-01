@@ -1,96 +1,49 @@
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: Re: [PATCH v2 5/6] mm: tlb: Provide flush_*_tlb_range wrappers
-Date: Mon, 1 Jun 2020 21:36:41 +0800
-Message-ID: <b9521ed4-2845-8986-38ee-23c6aee8acd4@huawei.com>
-References: <20200423135656.2712-1-yezhenyu2@huawei.com>
- <20200423135656.2712-6-yezhenyu2@huawei.com> <20200522154254.GD26492@gaia>
- <ddba6d98-29b5-0748-ba74-ec022f509270@huawei.com>
- <20200526145244.GG17051@gaia>
- <0c6f79e4-f29a-d373-2e43-c4f87cf78b49@huawei.com>
- <20200601115644.GA23419@gaia>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v2 2/6] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for
+ SPECULATION_CTRL prctls
+Date: Mon, 1 Jun 2020 14:51:13 +0100
+Message-ID: <20200601135112.GB5031@arm.com>
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+ <1590614258-24728-3-git-send-email-Dave.Martin@arm.com>
+ <CAKgNAkhwYASEM+wqaDZQ-ftcB3jnsVN2cXq4E_1ep1rqv+4aLw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="gbk"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga06-in.huawei.com ([45.249.212.32]:40796 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725847AbgFANgw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 1 Jun 2020 09:36:52 -0400
-In-Reply-To: <20200601115644.GA23419@gaia>
+Received: from foss.arm.com ([217.140.110.172]:38446 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725976AbgFANvR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 1 Jun 2020 09:51:17 -0400
+Content-Disposition: inline
+In-Reply-To: <CAKgNAkhwYASEM+wqaDZQ-ftcB3jnsVN2cXq4E_1ep1rqv+4aLw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Cc: linux-man <linux-man@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>
 
-On 2020/6/1 19:56, Catalin Marinas wrote:
-> Hi Zhenyu,
+On Thu, May 28, 2020 at 09:01:59AM +0200, Michael Kerrisk (man-pages) wrote:
+> Hi Dave,
 > 
-> On Sat, May 30, 2020 at 06:24:21PM +0800, Zhenyu Ye wrote:
->> On 2020/5/26 22:52, Catalin Marinas wrote:
->>> On Mon, May 25, 2020 at 03:19:42PM +0800, Zhenyu Ye wrote:
->>>> tlb_flush_##_pxx##_range() is used to set tlb->cleared_*,
->>>> flush_##_pxx##_tlb_range() will actually flush the TLB entry.
->>>>
->>>> In arch64, tlb_flush_p?d_range() is defined as:
->>>>
->>>> 	#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
->>>> 	#define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
->>>
->>> Currently, flush_p??_tlb_range() are generic and defined as above. I
->>> think in the generic code they can remain an alias for
->>> flush_tlb_range().
->>>
->>> On arm64, we can redefine them as:
->>>
->>> #define flush_pte_tlb_range(vma, addr, end)	__flush_tlb_range(vma, addr, end, 3)
->>> #define flush_pmd_tlb_range(vma, addr, end)	__flush_tlb_range(vma, addr, end, 2)
->>> #define flush_pud_tlb_range(vma, addr, end)	__flush_tlb_range(vma, addr, end, 1)
->>> #define flush_p4d_tlb_range(vma, addr, end)	__flush_tlb_range(vma, addr, end, 0)
->>>
->>> (unless the compiler optimises away all the mmu_gather stuff in your
->>> macro above but they don't look trivial to me)
->>
->> I changed generic code before considering that other structures may also
->> use this feature, such as Power9. And Peter may want to replace all
->> flush_tlb_range() by tlb_flush() in the future, see [1] for details.
->>
->> If only enable this feature on aarch64, your codes are better.
->>
->> [1] https://lore.kernel.org/linux-arm-kernel/20200402163849.GM20713@hirez.programming.kicks-ass.net/
+> On Wed, 27 May 2020 at 23:18, Dave Martin <Dave.Martin@arm.com> wrote:
+> >
+> > Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
+> > for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+> >
+> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > Cc: Tim Chen <tim.c.chen@linux.intel.com>
+> > Cc: Thomas Gleixner <tglx@linutronix.de>
 > 
-> But we change the semantics slightly if we implement these as
-> mmu_gather. For example, tlb_end_vma() -> tlb_flush_mmu_tlbonly() ends
-> up calling mmu_notifier_invalidate_range() which it didn't before. I
-> think we end up invoking the notifier unnecessarily in some cases (see
-> the comment in __split_huge_pmd()) or we end up calling the notifier
-> twice (e.g. pmdp_huge_clear_flush_notify()).
-> 
+> I had also applied this patch from the email you sent earlier. I've
+> pushed those changes to master now.
 
-Yes, so only enable this feature on aarch64 may be better.
-I will change this in V4 of this series. [the v3 only has some minor
-changes and can be ignored :)]
+Thanks for this.
 
->>> Also, I don't see the new flush_pte_* and flush_p4d_* macros used
->>> anywhere and I don't think they are needed. The pte equivalent is
->>> flush_tlb_page() (we need to make sure it's not used on a pmd in the
->>> hugetlb context).
->>
->> flush_tlb_page() is used to flush only one page.  If we add the
->> flush_pte_tlb_range(), then we can use it to flush a range of pages in
->> the future.
-> 
-> If we know flush_tlb_page() is only called on a small page, could we add
-> TTL information here as well?
-> 
+Do you publish a "development" branch somewhere, or similar?
 
-Yes, we could. I will add this in flush_tlb_page().
+If possible, it's nice to have git rebase work out which patches to drop
+for me rather than me doing it by hand.
 
->> But flush_pte_* and flush_p4d_* macros are really not used anywhere. I
->> will remove them in next version of series, and add them if someone
->> needs.
-> 
-> I think it makes sense.
-> 
+Don't bother if publishing an extra branch doesn't fit with your
+workflow, though.
 
-Thanks,
-Zhenyu
+Cheers
+---Dave
