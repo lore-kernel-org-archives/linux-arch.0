@@ -1,59 +1,96 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v4 18/26] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
- support
-Date: Mon, 1 Jun 2020 13:07:25 +0100
-Message-ID: <20200601120724.GB23419@gaia>
-References: <20200515171612.1020-1-catalin.marinas@arm.com>
- <20200515171612.1020-19-catalin.marinas@arm.com>
- <a6fb329c-b4ad-9ffa-5344-601348978c34@linaro.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: Re: [PATCH v2 5/6] mm: tlb: Provide flush_*_tlb_range wrappers
+Date: Mon, 1 Jun 2020 21:36:41 +0800
+Message-ID: <b9521ed4-2845-8986-38ee-23c6aee8acd4@huawei.com>
+References: <20200423135656.2712-1-yezhenyu2@huawei.com>
+ <20200423135656.2712-6-yezhenyu2@huawei.com> <20200522154254.GD26492@gaia>
+ <ddba6d98-29b5-0748-ba74-ec022f509270@huawei.com>
+ <20200526145244.GG17051@gaia>
+ <0c6f79e4-f29a-d373-2e43-c4f87cf78b49@huawei.com>
+ <20200601115644.GA23419@gaia>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:37536 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725838AbgFAMH3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 1 Jun 2020 08:07:29 -0400
-Content-Disposition: inline
-In-Reply-To: <a6fb329c-b4ad-9ffa-5344-601348978c34@linaro.org>
+Received: from szxga06-in.huawei.com ([45.249.212.32]:40796 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725847AbgFANgw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 1 Jun 2020 09:36:52 -0400
+In-Reply-To: <20200601115644.GA23419@gaia>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Luis Machado <luis.machado@linaro.org>
-Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Alan Hayward <Alan.Hayward@arm.com>, Omair Javaid <omair.javaid@linaro.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 
-On Fri, May 29, 2020 at 06:25:14PM -0300, Luis Machado wrote:
-> I have a question about siginfo MTE information. I suppose SEGV_MTESERR will
-> be the most useful setting for debugging, right? Does si_addr contain the
-> tagged pointer with the logical tag, a zero-tagged memory address or a
-> tagged pointer with the allocation tag?
+On 2020/6/1 19:56, Catalin Marinas wrote:
+> Hi Zhenyu,
+> 
+> On Sat, May 30, 2020 at 06:24:21PM +0800, Zhenyu Ye wrote:
+>> On 2020/5/26 22:52, Catalin Marinas wrote:
+>>> On Mon, May 25, 2020 at 03:19:42PM +0800, Zhenyu Ye wrote:
+>>>> tlb_flush_##_pxx##_range() is used to set tlb->cleared_*,
+>>>> flush_##_pxx##_tlb_range() will actually flush the TLB entry.
+>>>>
+>>>> In arch64, tlb_flush_p?d_range() is defined as:
+>>>>
+>>>> 	#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
+>>>> 	#define flush_pud_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
+>>>
+>>> Currently, flush_p??_tlb_range() are generic and defined as above. I
+>>> think in the generic code they can remain an alias for
+>>> flush_tlb_range().
+>>>
+>>> On arm64, we can redefine them as:
+>>>
+>>> #define flush_pte_tlb_range(vma, addr, end)	__flush_tlb_range(vma, addr, end, 3)
+>>> #define flush_pmd_tlb_range(vma, addr, end)	__flush_tlb_range(vma, addr, end, 2)
+>>> #define flush_pud_tlb_range(vma, addr, end)	__flush_tlb_range(vma, addr, end, 1)
+>>> #define flush_p4d_tlb_range(vma, addr, end)	__flush_tlb_range(vma, addr, end, 0)
+>>>
+>>> (unless the compiler optimises away all the mmu_gather stuff in your
+>>> macro above but they don't look trivial to me)
+>>
+>> I changed generic code before considering that other structures may also
+>> use this feature, such as Power9. And Peter may want to replace all
+>> flush_tlb_range() by tlb_flush() in the future, see [1] for details.
+>>
+>> If only enable this feature on aarch64, your codes are better.
+>>
+>> [1] https://lore.kernel.org/linux-arm-kernel/20200402163849.GM20713@hirez.programming.kicks-ass.net/
+> 
+> But we change the semantics slightly if we implement these as
+> mmu_gather. For example, tlb_end_vma() -> tlb_flush_mmu_tlbonly() ends
+> up calling mmu_notifier_invalidate_range() which it didn't before. I
+> think we end up invoking the notifier unnecessarily in some cases (see
+> the comment in __split_huge_pmd()) or we end up calling the notifier
+> twice (e.g. pmdp_huge_clear_flush_notify()).
+> 
 
-The si_addr is zero-tagged currently. We were planning to expose the tag
-in FAR_EL1 as a separate siginfo field. See these discussions:
+Yes, so only enable this feature on aarch64 may be better.
+I will change this in V4 of this series. [the v3 only has some minor
+changes and can be ignored :)]
 
-https://lore.kernel.org/linux-arm-kernel/20200513180914.50892-1-pcc@google.com/
-https://lore.kernel.org/linux-arm-kernel/20200521022943.195898-1-pcc@google.com/
+>>> Also, I don't see the new flush_pte_* and flush_p4d_* macros used
+>>> anywhere and I don't think they are needed. The pte equivalent is
+>>> flush_tlb_page() (we need to make sure it's not used on a pmd in the
+>>> hugetlb context).
+>>
+>> flush_tlb_page() is used to flush only one page.  If we add the
+>> flush_pte_tlb_range(), then we can use it to flush a range of pages in
+>> the future.
+> 
+> If we know flush_tlb_page() is only called on a small page, could we add
+> TTL information here as well?
+> 
 
-In theory, we could add the tag to si_addr for SEGV_MTESERR, it
-shouldn't break the existing ABI (well, it depends on how you look at
-it).
+Yes, we could. I will add this in flush_tlb_page().
 
-> From the debugger user's perspective, one would want to see both the logical
-> tag and the allocation tag. And it would be handy to have both available in
-> siginfo. Does that make sense?
+>> But flush_pte_* and flush_p4d_* macros are really not used anywhere. I
+>> will remove them in next version of series, and add them if someone
+>> needs.
+> 
+> I think it makes sense.
+> 
 
-The debugger can access the allocation tag via PTRACE_PEEKMTETAGS. I
-don't think the kernel should provide this in siginfo. Also, the signal
-handler can do an LDG and read the allocation tag directly, no need for
-it to be in siginfo.
-
-> Also, when would we see SEGV_MTEAERR, for example? That would provide no
-> additional information about a particular memory address, which is not that
-> useful for the debugger.
-
-Yeah, we can't really do much here since the hardware doesn't provide us
-such information. The async mode is only useful as a general test to see
-if your program has MTE faults but for actual debugging you'd have to
-switch to synchronous. For glibc at least, I think the mode can be
-driven by an environment variable.
-
--- 
-Catalin
+Thanks,
+Zhenyu
