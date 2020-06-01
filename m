@@ -1,123 +1,91 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v4 11/26] arm64: mte: Add PROT_MTE support to mmap() and
- mprotect()
-Date: Mon, 1 Jun 2020 16:04:02 +0100
-Message-ID: <20200601150402.GC5031@arm.com>
+From: Luis Machado <luis.machado@linaro.org>
+Subject: Re: [PATCH v4 18/26] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
+ support
+Date: Mon, 1 Jun 2020 12:17:27 -0300
+Message-ID: <48197e4c-0b77-5e35-c735-922aede425c5@linaro.org>
 References: <20200515171612.1020-1-catalin.marinas@arm.com>
- <20200515171612.1020-12-catalin.marinas@arm.com>
- <CAMn1gO5ApcHOgQ_oLjiGDdCx9znz7N50w-BbzGPYpAzPQC3OQQ@mail.gmail.com>
- <20200528091445.GA2961@gaia>
- <20200528110509.GA18623@arm.com>
- <20200528163412.GC2961@gaia>
- <20200601085536.GV5031@arm.com>
- <20200601144544.GC23419@gaia>
+ <20200515171612.1020-19-catalin.marinas@arm.com>
+ <a6fb329c-b4ad-9ffa-5344-601348978c34@linaro.org>
+ <20200601120724.GB23419@gaia>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:39244 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726073AbgFAPEH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 1 Jun 2020 11:04:07 -0400
-Content-Disposition: inline
-In-Reply-To: <20200601144544.GC23419@gaia>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39504 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726232AbgFAPRg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jun 2020 11:17:36 -0400
+Received: from mail-qk1-x741.google.com (mail-qk1-x741.google.com [IPv6:2607:f8b0:4864:20::741])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 56CFAC05BD43
+        for <linux-arch@vger.kernel.org>; Mon,  1 Jun 2020 08:17:35 -0700 (PDT)
+Received: by mail-qk1-x741.google.com with SMTP id c14so8331961qka.11
+        for <linux-arch@vger.kernel.org>; Mon, 01 Jun 2020 08:17:35 -0700 (PDT)
+In-Reply-To: <20200601120724.GB23419@gaia>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Linux ARM <linux-arm-kernel@lists.infradead.org>, nd@arm.com, Peter Collingbourne <pcc@google.com>, Evgenii Stepanov <eugenis@google.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Alan Hayward <Alan.Hayward@arm.com>, Omair Javaid <omair.javaid@linaro.org>
 
-On Mon, Jun 01, 2020 at 03:45:45PM +0100, Catalin Marinas wrote:
-> On Mon, Jun 01, 2020 at 09:55:38AM +0100, Dave P Martin wrote:
-> > On Thu, May 28, 2020 at 05:34:13PM +0100, Catalin Marinas wrote:
-> > > On Thu, May 28, 2020 at 12:05:09PM +0100, Szabolcs Nagy wrote:
-> > > > The 05/28/2020 10:14, Catalin Marinas wrote:
-> > > > > On Wed, May 27, 2020 at 11:57:39AM -0700, Peter Collingbourne wrote:
-> > > > > > Should the userspace stack always be mapped as if with PROT_MTE if the
-> > > > > > hardware supports it? Such a change would be invisible to non-MTE
-> > > > > > aware userspace since it would already need to opt in to tag checking
-> > > > > > via prctl. This would let userspace avoid a complex stack
-> > > > > > initialization sequence when running with stack tagging enabled on the
-> > > > > > main thread.
-> > > > > 
-> > > > > I don't think the stack initialisation is that difficult. On program
-> > > > > startup (can be the dynamic loader). Something like (untested):
-> > > > > 
-> > > > > 	register unsigned long stack asm ("sp");
-> > > > > 	unsigned long page_sz = sysconf(_SC_PAGESIZE);
-> > > > > 
-> > > > > 	mprotect((void *)(stack & ~(page_sz - 1)), page_sz,
-> > > > > 		 PROT_READ | PROT_WRITE | PROT_MTE | PROT_GROWSDOWN);
-> > > > > 
-> > > > > (the essential part it PROT_GROWSDOWN so that you don't have to specify
-> > > > > a stack lower limit)
-> > > > 
-> > > > does this work even if the currently mapped stack is more than page_sz?
-> > > > determining the mapped main stack area is i think non-trivial to do in
-> > > > userspace (requires parsing /proc/self/maps or similar).
-> > > 
-> > > Because of PROT_GROWSDOWN, the kernel adjusts the start of the range
-> > > down automatically. It is potentially problematic if the top of the
-> > > stack is more than a page away and you want the whole stack coloured. I
-> > > haven't run a test but my reading of the kernel code is that the stack
-> > > vma would be split in this scenario, so the range beyond sp+page_sz
-> > > won't have PROT_MTE set.
-> > > 
-> > > My assumption is that if you do this during program start, the stack is
-> > > smaller than a page. Alternatively, could we use argv or envp to
-> > > determine the top of the user stack (the bottom is taken care of by the
-> > > kernel)?
-> > 
-> > I don't think you can easily know when the stack ends, but perhaps it
-> > doesn't matter.
-> > 
-> > From memory, the initial stack looks like:
-> > 
-> > 	argv/env strings
-> > 	AT_NULL
-> > 	auxv
-> > 	NULL
-> > 	env
-> > 	NULL
-> > 	argv
-> > 	argc	<--- sp
-> > 
-> > If we don't care about tagging the strings correctly, we could step to
-> > the end of auxv and tag down from there.
-> > 
-> > If we do care about tagging the strings, there's probably no good way
-> > to find the end of the string area, other than looking up sp in
-> > /proc/self/maps.  I'm not sure we should trust all past and future
-> > kernels to spit out the strings in a predictable order.
+On 6/1/20 9:07 AM, Catalin Marinas wrote:
+> On Fri, May 29, 2020 at 06:25:14PM -0300, Luis Machado wrote:
+>> I have a question about siginfo MTE information. I suppose SEGV_MTESERR will
+>> be the most useful setting for debugging, right? Does si_addr contain the
+>> tagged pointer with the logical tag, a zero-tagged memory address or a
+>> tagged pointer with the allocation tag?
 > 
-> I don't think we care about tagging whatever the kernel places on the
-> stack since the argv/envp pointers are untagged. An mprotect(PROT_MTE)
-> may or may not cover the environment but it shouldn't matter as the
-> kernel clears the tags on the corresponding pages anyway.
-
-We have no match-all tag, right?  So we do rely on the tags being
-cleared for the initial stack contents so that using untagged pointers
-to access it works.
-
-> AFAIK stack tagging works by colouring a stack frame on function entry
-> and clearing the tags on return. We would only hit a problem if the
-> function issuing mprotect(sp, PROT_MTE) on and its callers already
-> assumed a PROT_MTE stack. Without PROT_MTE, an STG would be
-> write-ignore, so subsequently turning it on would lead to a mismatch
-> between the pointer and the allocation tags.
+> The si_addr is zero-tagged currently. We were planning to expose the tag
+> in FAR_EL1 as a separate siginfo field. See these discussions:
+> > 
+https://lore.kernel.org/linux-arm-kernel/20200513180914.50892-1-pcc@google.com/
+> https://lore.kernel.org/linux-arm-kernel/20200521022943.195898-1-pcc@google.com/
 > 
-> So PROT_MTE turning on should happen very early in the user process
-> startup code before any code with stack tagging enabled. Whether you
-> reach the top of the stack with such mprotect() doesn't really matter
-> since up to that point there should not be any use of stack tagging. If
-> that's not possible, for example the glibc code setting up the stack was
-> compiled to stack tagging itself, the kernel would have to enable it
-> when the user process starts. However, I'd only do this based on some
-> ELF note.
+> In theory, we could add the tag to si_addr for SEGV_MTESERR, it
+> shouldn't break the existing ABI (well, it depends on how you look at
+> it).
+> 
 
-Sounds fair.
+Having additional fields in siginfo that hold useful information is 
+probably best for debuggers. See my comment below about Intel MPX.
 
-This early on, the process shouldn't be exposed to arbitrary, untrusted
-data.  So it's probably not a problem that tagging isn't turned on right
-from the start.
+>>  From the debugger user's perspective, one would want to see both the logical
+>> tag and the allocation tag. And it would be handy to have both available in
+>> siginfo. Does that make sense?
+> 
+> The debugger can access the allocation tag via PTRACE_PEEKMTETAGS. I
+> don't think the kernel should provide this in siginfo. Also, the signal
+> handler can do an LDG and read the allocation tag directly, no need for
+> it to be in siginfo.
+> 
 
-Cheers
----Dave
+While the debugger can request this information from the kernel, the 
+debugger has already received a SIGSEGV signal and will have to fetch 
+siginfo for si_code. Having to do another PTRACE_PEEKMTETAGS call just 
+to fetch the allocation tag doesn't sound great. Remember this can 
+travel through TCP to gdbserver so it can call ptrace from the remote's 
+end. It would be best to avoid the round trip.
+
+Also, there seems to be past precedent to include more information in 
+siginfo. For example, Intel MPX includes upper/lower bounds violation 
+data in there.
+
+Regarding using LDG, are you suggesting force-running this particular 
+instruction in the traced process? If so, that isn't the way GDB (in 
+particular, not sure about LLDB) does things.
+
+>> Also, when would we see SEGV_MTEAERR, for example? That would provide no
+>> additional information about a particular memory address, which is not that
+>> useful for the debugger.
+> 
+> Yeah, we can't really do much here since the hardware doesn't provide us
+> such information. The async mode is only useful as a general test to see
+> if your program has MTE faults but for actual debugging you'd have to
+> switch to synchronous. For glibc at least, I think the mode can be
+> driven by an environment variable.
+> 
+
+I suspect SEGV_MTESERR would be a reasonable default then, for whoever 
+is responsible for setting the default settings.
+
+I'm assuming it is not the debugger, as it doesn't know how to toggle 
+prctl settings.
