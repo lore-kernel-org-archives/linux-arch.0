@@ -1,75 +1,53 @@
-Return-Path: <SRS0=g3ia=6X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:54418 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726214AbgEIRwW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 9 May 2020 13:52:22 -0400
-Date: Sat, 9 May 2020 19:52:17 +0200
-From: Joerg Roedel <jroedel@suse.de>
-Subject: Re: [RFC PATCH 0/7] mm: Get rid of vmalloc_sync_(un)mappings()
-Message-ID: <20200509175217.GV8135@suse.de>
-References: <20200508144043.13893-1-joro@8bytes.org>
- <CALCETrX0ubjc0Gf4hCY9RWH6cVEKF1hv3RzqToKMt9_bEXXBvw@mail.gmail.com>
- <20200508213609.GU8135@suse.de>
- <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
+Return-Path: <SRS0=za/P=7O=kvack.org=owner-linux-mm@kernel.org>
+From: Bharat Kumar Gogada <bharatku@xilinx.com>
+Subject: RE: [PATCH 00/10] Hi,
+Date: Mon, 1 Jun 2020 04:22:22 +0000
+Message-ID: 
+ <BYAPR02MB5559708A5A584D05516D77EBA58A0@BYAPR02MB5559.namprd02.prod.outlook.com>
+References: <cover.1581497860.git.michal.simek@xilinx.com>
+ <CAL_JsqJeXJ6zWvEUi=gyOV0eCcXsvNmkK9EstC9hg9AKfMXnKw@mail.gmail.com>
+ <0f8140c1-da6f-ef04-0809-252d6de6a5d7@xilinx.com>
+ <CAL_JsqLf2e3z+m14264WFcsQgiwKR35Rs9Rw0c_MgoFvKwO2Xg@mail.gmail.com>
+ <5dfa98df-8955-59fd-1d65-c0a988190acb@xilinx.com>
+In-Reply-To: <5dfa98df-8955-59fd-1d65-c0a988190acb@xilinx.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALCETrVxP87o2+aaf=RLW--DSpMrs=BXSQphN6bG5Y4X+OY8GQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
+To: Michal Simek <michals@xilinx.com>, Rob Herring <robh@kernel.org>Michal Simek <michals@xilinx.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "monstr@monstr.eu" <monstr@monstr.eu>, git <git@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>, Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Greg Ungerer <gerg@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mike Rapoport <rppt@linux.ibm.com>, Mubin Usman Sayyed <MUBINUSM@xilinx.com>, Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, Shubhrajyoti Datta <shubhraj@xilinx.com>, Siva Durga Prasad Paladugu <sivadur@xilinx.com>, Stefan Asserhall <stefana@xilinx.com>, Vladimir Murzin <vladimir.murzin@arm.com>, Will Deacon <will@kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Joerg Roedel <joro@8bytes.org>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
-Message-ID: <20200509175217.X0wyuO_vbdYGchCR0Whx7dVUz1z2Ox609xUt_-dLKaw@z>
 
-On Fri, May 08, 2020 at 04:49:17PM -0700, Andy Lutomirski wrote:
-> On Fri, May 8, 2020 at 2:36 PM Joerg Roedel <jroedel@suse.de> wrote:
-> >
-> > On Fri, May 08, 2020 at 02:33:19PM -0700, Andy Lutomirski wrote:
-> > > On Fri, May 8, 2020 at 7:40 AM Joerg Roedel <joro@8bytes.org> wrote:
-> >
-> > > What's the maximum on other system types?  It might make more sense to
-> > > take the memory hit and pre-populate all the tables at boot so we
-> > > never have to sync them.
-> >
-> > Need to look it up for 5-level paging, with 4-level paging its 64 pages
-> > to pre-populate the vmalloc area.
-> >
-> > But that would not solve the problem on x86-32, which needs to
-> > synchronize unmappings on the PMD level.
-> 
-> What changes in this series with x86-32?
-
-This series sets ARCH_PAGE_TABLE_SYNC_MASK to PGTBL_PMD_MODIFIED, so
-that the synchronization happens every time PMD(s) in the vmalloc areas
-are changed. Before this series this synchronization only happened at
-arbitrary places calling vmalloc_sync_(un)mappings().
-
-> We already do that synchronization, right?  IOW, in the cases where
-> the vmalloc *fault* code does anything at all, we should have a small
-> bound for how much memory to preallocate and, if we preallocate it,
-> then there is nothing to sync and nothing to fault.  And we have the
-> benefit that we never need to sync anything on 64-bit, which is kind
-> of nice.
-
-Don't really get you here, what is pre-allocated and why is there no
-need to sync and fault then?
-
-> Do we actually need PMD-level things for 32-bit?  What if we just
-> outlawed huge pages in the vmalloc space on 32-bit non-PAE?
-
-Disallowing huge-pages would at least remove the need to sync
-unmappings, but we still need to sync new PMD entries. Remember that the
-size of the vmalloc area on 32 bit is dynamic and depends on the VM-split
-and the actual amount of RAM on the system.
-
-A machine wit 512MB of RAM and a 1G/3G split will have around 2.5G of
-VMALLOC address space. And if we want to avoid vmalloc-faults there, we
-need to pre-allocate all PTE pages for that area (and the amount of PTE
-pages needed increases when RAM decreases).
-
-On a machine with 512M of RAM we would need ca. 1270+ PTE pages, which
-is around 5M (or 1% of total system memory).
-
-Regards,
-
-	Joerg
+PiBPbiAyNS4gMDIuIDIwIDE3OjMyLCBSb2IgSGVycmluZyB3cm90ZToNCj4gPiBPbiBNb24sIEZl
+YiAxNywgMjAyMCBhdCA4OjI4IEFNIE1pY2hhbCBTaW1layA8bWljaGFsLnNpbWVrQHhpbGlueC5j
+b20+DQo+IHdyb3RlOg0KPiA+Pg0KPiA+PiBIaSBSb2IsDQo+ID4+DQo+ID4+IE9uIDE0LiAwMi4g
+MjAgMDo0NywgUm9iIEhlcnJpbmcgd3JvdGU6DQo+ID4+PiBPbiBXZWQsIEZlYiAxMiwgMjAyMCBh
+dCAyOjU4IEFNIE1pY2hhbCBTaW1law0KPiA8bWljaGFsLnNpbWVrQHhpbGlueC5jb20+IHdyb3Rl
+Og0KPiA+Pj4+DQo+ID4+Pj4NCj4gPj4+PiBJIGFtIHNlbmRpbmcgdGhpcyBzZXJpZXMgYXMgYmVm
+b3JlIFNNUCBzdXBwb3J0Lg0KPiA+Pj4+IE1vc3Qgb2YgdGhlc2UgcGF0Y2hlcyBhcmUgY2xlYW4g
+dXBzIGFuZCBzaG91bGQgYmUgZWFzeSB0byByZXZpZXcNCj4gPj4+PiB0aGVtLiBJIGV4cGVjdCB0
+aGVyZSB3aWxsIGJlIG1vcmUgZGlzY3Vzc2lvbnMgYWJvdXQgU01QIHN1cHBvcnQuDQo+ID4+Pg0K
+PiA+Pj4gV2hpbGUgbm90IHJlYWxseSByZWxhdGVkIHRvIGFkZGluZyBTTVAsIGFueSBjaGFuY2Ug
+eW91IG9yIHNvbWVvbmUNCj4gPj4+IGNvdWxkIGxvb2sgYXQgbW92aW5nIG1pY3JvYmxhemUgUENJ
+IHN1cHBvcnQgdG8gZHJpdmVycy9wY2kvPyBJDQo+ID4+PiBzdXNwZWN0IG11Y2ggb2YgdGhlIGNv
+ZGUgc2hvdWxkIGRyb3Agb3V0IGFzIHdlIGhhdmUgY29tbW9uIGhlbHBlcnMNCj4gPj4+IGZvciBt
+dWNoIG9mIGl0IG5vdy4gVGhhdCB3b3VsZCBsZWF2ZSBvbmx5IHBvd2VycGMgYW5kIG1pcHMgZm9y
+IERUK1BDSQ0KPiBwbGF0Zm9ybXMuDQo+ID4+DQo+ID4+IGNhbiB5b3UgcGxlYXNlIHN1Z2dlc3Qg
+Y2hhbmdlcyB3aGljaCBjb3VsZCBiZSBkb25lPw0KPiA+PiBJIGhhdmUgQ0MgQmhhcmF0IGFuZCBo
+ZSBjb3VsZCBsb29rIGF0IGl0Lg0KPiA+DQo+ID4gTG9vayBhdCB0aGUgaG9zdCBjb250cm9sbGVy
+IGRyaXZlcnMgaW4gZHJpdmVycy9wY2kvY29udHJvbGxlci8uDQo+ID4gcGNpLWhvc3Qte2dlbmVy
+aWMsY29tbW9ufS5jIGlzIGEgZ29vZCB0ZW1wbGF0ZSB0byBzdGFydCB3aXRoIGFzIHRoYXQncw0K
+PiA+IGEgY29udHJvbGxlciB3aXRoIHN0YW5kYXJkIGNvbmZpZyBzcGFjZSBhY2Nlc3NlcyBhbmQg
+bm8gaC93IHNldHVwDQo+ID4gbmVlZGVkLiBFc3NlbnRpYWxseSB5b3UgbmVlZCB0byBjYWxsIGRl
+dm1fcGNpX2FsbG9jX2hvc3RfYnJpZGdlKCksDQo+ID4gcGNpX3BhcnNlX3JlcXVlc3Rfb2ZfcGNp
+X3JhbmdlcygpIGFuZCBwY2lfaG9zdF9wcm9iZSgpIHdpdGggd2hhdGV2ZXINCj4gPiBoL3cgc2V0
+dXAgeW91IG5lZWQgaW4gYmV0d2VlbiB0aG9zZSBjYWxscy4NCj4gPg0KPiA+IExvb2tpbmcgYXQg
+dGhlIG1pY3JvYmxhemUgUENJIGNvZGUsIGxvb2tzIGxpa2UgeW91IG1heSBuZWVkIGN1c3RvbQ0K
+PiA+IGNvbmZpZyBzcGFjZSBhY2Nlc3NvcnMgd2hpY2ggaXMgcXVpdGUgY29tbW9uLiBQcm9iYWJs
+eSBhbGwgdGhlDQo+ID4gcmVzb3VyY2UgYW5kIGRldmljZSBzY2FubmluZyBjYW4gYmUgcmVtb3Zl
+ZC4gSWYgeW91IGxvb2sgYXQgYXJtNjQsIGFsbA0KPiA+IHRoZSBhcmNoIFBDSSBjb2RlIGlzIGp1
+c3QgZm9yIEFDUEkuDQpIaSBSb2IsDQoNCkNhbiB5b3UgcGxlYXNlIGxldCB1cyBrbm93IHdoeSB3
+ZSBtaWdodCBuZWVkIGN1c3RvbSBjb25maWcgc3BhY2UgYWNjZXNzb3JzID8NCldlIHRlc3RlZCBw
+Y2lfZ2VuZXJpY19jb25maWdfcmVhZC93cml0ZSBhY2Nlc3NvcnMgb24gbWljcm9ibGF6ZSwgYW5k
+IHdlIA0KZGlkIG5vdCBzZWUgYW55IGlzc3Vlcy4NCg0KUmVnYXJkcywNCkJoYXJhdA0KDQo=
