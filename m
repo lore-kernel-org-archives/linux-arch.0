@@ -1,68 +1,111 @@
-From: Rob Herring <robh@kernel.org>
-Subject: Re: [PATCH 00/10] Hi,
-Date: Mon, 1 Jun 2020 08:05:59 -0600
-Message-ID: <CAL_JsqKs1AUxVsf=HhYwMY0Met8SFf0ZCfMQuS4EajTPRVcBag@mail.gmail.com>
-References: <cover.1581497860.git.michal.simek@xilinx.com> <CAL_JsqJeXJ6zWvEUi=gyOV0eCcXsvNmkK9EstC9hg9AKfMXnKw@mail.gmail.com>
- <0f8140c1-da6f-ef04-0809-252d6de6a5d7@xilinx.com> <CAL_JsqLf2e3z+m14264WFcsQgiwKR35Rs9Rw0c_MgoFvKwO2Xg@mail.gmail.com>
- <5dfa98df-8955-59fd-1d65-c0a988190acb@xilinx.com> <BYAPR02MB5559708A5A584D05516D77EBA58A0@BYAPR02MB5559.namprd02.prod.outlook.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v4 11/26] arm64: mte: Add PROT_MTE support to mmap() and
+ mprotect()
+Date: Mon, 1 Jun 2020 15:45:45 +0100
+Message-ID: <20200601144544.GC23419@gaia>
+References: <20200515171612.1020-1-catalin.marinas@arm.com>
+ <20200515171612.1020-12-catalin.marinas@arm.com>
+ <CAMn1gO5ApcHOgQ_oLjiGDdCx9znz7N50w-BbzGPYpAzPQC3OQQ@mail.gmail.com>
+ <20200528091445.GA2961@gaia>
+ <20200528110509.GA18623@arm.com>
+ <20200528163412.GC2961@gaia>
+ <20200601085536.GV5031@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:57784 "EHLO mail.kernel.org"
+Received: from foss.arm.com ([217.140.110.172]:38984 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726067AbgFAOGM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 1 Jun 2020 10:06:12 -0400
-In-Reply-To: <BYAPR02MB5559708A5A584D05516D77EBA58A0@BYAPR02MB5559.namprd02.prod.outlook.com>
+        id S1726110AbgFAOpu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 1 Jun 2020 10:45:50 -0400
+Content-Disposition: inline
+In-Reply-To: <20200601085536.GV5031@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bharat Kumar Gogada <bharatku@xilinx.com>
-Cc: Michal Simek <michals@xilinx.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "monstr@monstr.eu" <monstr@monstr.eu>, git <git@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>, Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Greg Ungerer <gerg@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mike Rapoport <rppt@linux.ibm.com>, Mubin Usman Sayyed <MUBINUSM@xilinx.com>, Nicholas Piggin <npiggin@gmail.com>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Szabolcs Nagy <szabolcs.nagy@arm.com>, linux-arch@vger.kernel.org, nd@arm.com, Peter Collingbourne <pcc@google.com>, Kevin Brodsky <kevin.brodsky@arm.com>, linux-mm@kvack.org, Evgenii Stepanov <eugenis@google.com>, Andrey Konovalov <andreyknvl@google.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Will Deacon <will@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 
-On Sun, May 31, 2020 at 10:22 PM Bharat Kumar Gogada
-<bharatku@xilinx.com> wrote:
->
-> > On 25. 02. 20 17:32, Rob Herring wrote:
-> > > On Mon, Feb 17, 2020 at 8:28 AM Michal Simek <michal.simek@xilinx.com>
-> > wrote:
-> > >>
-> > >> Hi Rob,
-> > >>
-> > >> On 14. 02. 20 0:47, Rob Herring wrote:
-> > >>> On Wed, Feb 12, 2020 at 2:58 AM Michal Simek
-> > <michal.simek@xilinx.com> wrote:
-> > >>>>
-> > >>>>
-> > >>>> I am sending this series as before SMP support.
-> > >>>> Most of these patches are clean ups and should be easy to review
-> > >>>> them. I expect there will be more discussions about SMP support.
-> > >>>
-> > >>> While not really related to adding SMP, any chance you or someone
-> > >>> could look at moving microblaze PCI support to drivers/pci/? I
-> > >>> suspect much of the code should drop out as we have common helpers
-> > >>> for much of it now. That would leave only powerpc and mips for DT+PCI
-> > platforms.
-> > >>
-> > >> can you please suggest changes which could be done?
-> > >> I have CC Bharat and he could look at it.
-> > >
-> > > Look at the host controller drivers in drivers/pci/controller/.
-> > > pci-host-{generic,common}.c is a good template to start with as that's
-> > > a controller with standard config space accesses and no h/w setup
-> > > needed. Essentially you need to call devm_pci_alloc_host_bridge(),
-> > > pci_parse_request_of_pci_ranges() and pci_host_probe() with whatever
-> > > h/w setup you need in between those calls.
-> > >
-> > > Looking at the microblaze PCI code, looks like you may need custom
-> > > config space accessors which is quite common. Probably all the
-> > > resource and device scanning can be removed. If you look at arm64, all
-> > > the arch PCI code is just for ACPI.
-> Hi Rob,
->
-> Can you please let us know why we might need custom config space accessors ?
-> We tested pci_generic_config_read/write accessors on microblaze, and we
-> did not see any issues.
+On Mon, Jun 01, 2020 at 09:55:38AM +0100, Dave P Martin wrote:
+> On Thu, May 28, 2020 at 05:34:13PM +0100, Catalin Marinas wrote:
+> > On Thu, May 28, 2020 at 12:05:09PM +0100, Szabolcs Nagy wrote:
+> > > The 05/28/2020 10:14, Catalin Marinas wrote:
+> > > > On Wed, May 27, 2020 at 11:57:39AM -0700, Peter Collingbourne wrote:
+> > > > > Should the userspace stack always be mapped as if with PROT_MTE if the
+> > > > > hardware supports it? Such a change would be invisible to non-MTE
+> > > > > aware userspace since it would already need to opt in to tag checking
+> > > > > via prctl. This would let userspace avoid a complex stack
+> > > > > initialization sequence when running with stack tagging enabled on the
+> > > > > main thread.
+> > > > 
+> > > > I don't think the stack initialisation is that difficult. On program
+> > > > startup (can be the dynamic loader). Something like (untested):
+> > > > 
+> > > > 	register unsigned long stack asm ("sp");
+> > > > 	unsigned long page_sz = sysconf(_SC_PAGESIZE);
+> > > > 
+> > > > 	mprotect((void *)(stack & ~(page_sz - 1)), page_sz,
+> > > > 		 PROT_READ | PROT_WRITE | PROT_MTE | PROT_GROWSDOWN);
+> > > > 
+> > > > (the essential part it PROT_GROWSDOWN so that you don't have to specify
+> > > > a stack lower limit)
+> > > 
+> > > does this work even if the currently mapped stack is more than page_sz?
+> > > determining the mapped main stack area is i think non-trivial to do in
+> > > userspace (requires parsing /proc/self/maps or similar).
+> > 
+> > Because of PROT_GROWSDOWN, the kernel adjusts the start of the range
+> > down automatically. It is potentially problematic if the top of the
+> > stack is more than a page away and you want the whole stack coloured. I
+> > haven't run a test but my reading of the kernel code is that the stack
+> > vma would be split in this scenario, so the range beyond sp+page_sz
+> > won't have PROT_MTE set.
+> > 
+> > My assumption is that if you do this during program start, the stack is
+> > smaller than a page. Alternatively, could we use argv or envp to
+> > determine the top of the user stack (the bottom is taken care of by the
+> > kernel)?
+> 
+> I don't think you can easily know when the stack ends, but perhaps it
+> doesn't matter.
+> 
+> From memory, the initial stack looks like:
+> 
+> 	argv/env strings
+> 	AT_NULL
+> 	auxv
+> 	NULL
+> 	env
+> 	NULL
+> 	argv
+> 	argc	<--- sp
+> 
+> If we don't care about tagging the strings correctly, we could step to
+> the end of auxv and tag down from there.
+> 
+> If we do care about tagging the strings, there's probably no good way
+> to find the end of the string area, other than looking up sp in
+> /proc/self/maps.  I'm not sure we should trust all past and future
+> kernels to spit out the strings in a predictable order.
 
-I was thinking maybe the indirect code might have to be custom, but
-maybe everything can be handled in .map_bus().
+I don't think we care about tagging whatever the kernel places on the
+stack since the argv/envp pointers are untagged. An mprotect(PROT_MTE)
+may or may not cover the environment but it shouldn't matter as the
+kernel clears the tags on the corresponding pages anyway.
 
-Rob
+AFAIK stack tagging works by colouring a stack frame on function entry
+and clearing the tags on return. We would only hit a problem if the
+function issuing mprotect(sp, PROT_MTE) on and its callers already
+assumed a PROT_MTE stack. Without PROT_MTE, an STG would be
+write-ignore, so subsequently turning it on would lead to a mismatch
+between the pointer and the allocation tags.
+
+So PROT_MTE turning on should happen very early in the user process
+startup code before any code with stack tagging enabled. Whether you
+reach the top of the stack with such mprotect() doesn't really matter
+since up to that point there should not be any use of stack tagging. If
+that's not possible, for example the glibc code setting up the stack was
+compiled to stack tagging itself, the kernel would have to enable it
+when the user process starts. However, I'd only do this based on some
+ELF note.
+
+-- 
+Catalin
