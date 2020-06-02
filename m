@@ -1,47 +1,78 @@
-Return-Path: <SRS0=wbd0=7X=lists.infradead.org=linux-riscv-bounces+rppt=kernel.org@kernel.org>
-Date: Wed, 10 Jun 2020 17:48:11 +0200
-From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Subject: Possible duplicate page fault accounting on some archs after commit
- 4064b9827063
-Message-ID: <20200610174811.44b94525@thinkpad>
+Return-Path: <SRS0=y6BJ=7P=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [PATCH v4 2/6] arm64: Add level-hinted TLB invalidation helper
+Date: Tue, 2 Jun 2020 21:58:32 +0800
+Message-ID: <20200602135836.1620-3-yezhenyu2@huawei.com>
+In-Reply-To: <20200602135836.1620-1-yezhenyu2@huawei.com>
+References: <20200602135836.1620-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+rppt=kernel.org@lists.infradead.org
-To: Peter Xu <peterx@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Andrea Arcangeli <aarcange@redhat.com>, linux-xtensa@linux-xtensa.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, Nick Hu <nickhu@andestech.com>, linux-sh@vger.kernel.org, linux-hexagon@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-um@lists.infradead.org, linux-mips@vger.kernel.org, Ley Foon Tan <ley.foon.tan@intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, Guan Xuetao <gxt@pku.edu.cn>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200610154811.Qp13J0YWKdZaQ8FsM7MDth1NWg1SEF7vwU8X2G12_Iw@z>
+Message-ID: <20200602135832.ap8P7AwmvpmxoL0YiFjphcj-Sdt4dcIaF6vgJTYQsWI@z>
 
-Hi,
+From: Marc Zyngier <maz@kernel.org>
 
-Some architectures have their page fault accounting code inside the fault
-retry loop, and rely on only going through that code once. Before commit
-4064b9827063 ("mm: allow VM_FAULT_RETRY for multiple times"), that was
-ensured by testing for and clearing FAULT_FLAG_ALLOW_RETRY.
+Add a level-hinted TLB invalidation helper that only gets used if
+ARMv8.4-TTL gets detected.
 
-That commit had to remove the clearing of FAULT_FLAG_ALLOW_RETRY for all
-architectures, and introduced a subtle change to page fault accounting
-logic in the affected archs. It is now possible to go through the retry
-loop multiple times, and the affected archs would then account multiple
-page faults instead of just one.
+Signed-off-by: Marc Zyngier <maz@kernel.org>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/include/asm/tlbflush.h | 29 +++++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
 
-This was found by coincidence in s390 code, and a quick check showed that
-there are quite a lot of other architectures that seem to be affected in a
-similar way. I'm preparing a fix for s390, by moving the accounting behind
-the retry loop, similar to x86. It is not completely straight-forward, so
-I leave the fix for other archs to the respective maintainers.
-
-Added the lists for possibly affected archs on cc, but no guarantee for
-completeness.
-
-Regards,
-Gerald
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
+lbflush.h
+index bc3949064725..8adbd6fd8489 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -10,6 +10,7 @@
+=20
+ #ifndef __ASSEMBLY__
+=20
++#include <linux/bitfield.h>
+ #include <linux/mm_types.h>
+ #include <linux/sched.h>
+ #include <asm/cputype.h>
+@@ -59,6 +60,34 @@
+ 		__ta;						\
+ 	})
+=20
++#define TLBI_TTL_MASK	GENMASK_ULL(47, 44)
++
++#define __tlbi_level(op, addr, level) do {			\
++	u64 arg =3D addr;						\
++								\
++	if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
++	    level) {						\
++		u64 ttl =3D level;				\
++								\
++		switch (PAGE_SIZE) {				\
++		case SZ_4K:					\
++			ttl |=3D 1 << 2;				\
++			break;					\
++		case SZ_16K:					\
++			ttl |=3D 2 << 2;				\
++			break;					\
++		case SZ_64K:					\
++			ttl |=3D 3 << 2;				\
++			break;					\
++		}						\
++								\
++		arg &=3D ~TLBI_TTL_MASK;				\
++		arg |=3D FIELD_PREP(TLBI_TTL_MASK, ttl);		\
++	}							\
++								\
++	__tlbi(op,  arg);					\
++} while (0)
++
+ /*
+  *	TLB Invalidation
+  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+--=20
+2.19.1
