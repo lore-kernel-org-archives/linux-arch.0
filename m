@@ -1,72 +1,157 @@
-Return-Path: <SRS0=dRn0=7X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:33814 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726254AbgFJRmO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 Jun 2020 13:42:14 -0400
-Date: Wed, 10 Jun 2020 18:42:05 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH v2 6/6] prctl.2: Add tagged address ABI control
- prctls (arm64)
-Message-ID: <20200610174205.GL26099@gaia>
-References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
- <1590614258-24728-7-git-send-email-Dave.Martin@arm.com>
- <20200609172232.GA63286@C02TF0J2HF1T.local>
- <20200610100641.GF25945@arm.com>
- <20200610152634.GJ26099@gaia>
- <20200610164209.GH25945@arm.com>
+Return-Path: <SRS0=y6BJ=7P=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [PATCH v4 4/6] tlb: mmu_gather: add tlb_flush_*_range APIs
+Date: Tue, 2 Jun 2020 21:58:34 +0800
+Message-ID: <20200602135836.1620-5-yezhenyu2@huawei.com>
+In-Reply-To: <20200602135836.1620-1-yezhenyu2@huawei.com>
+References: <20200602135836.1620-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200610164209.GH25945@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <20200610174205.bFgIR8NMtA17oDjE85LNYx8Jx7_f6rsFGmFysMpLllQ@z>
+Message-ID: <20200602135834.FvOpmKMF-vHdeiXt-OkXmxZ115LGdLkT5Romm7XiEhs@z>
 
-On Wed, Jun 10, 2020 at 05:42:09PM +0100, Dave P Martin wrote:
-> On Wed, Jun 10, 2020 at 04:26:34PM +0100, Catalin Marinas wrote:
-> > On Wed, Jun 10, 2020 at 11:06:42AM +0100, Dave P Martin wrote:
-> > > On Tue, Jun 09, 2020 at 06:22:32PM +0100, Catalin Marinas wrote:
-> > > > On Wed, May 27, 2020 at 10:17:38PM +0100, Dave P Martin wrote:
-> > > > > +.IP
-> > > > > +The level of support is selected by
-> > > > > +.IR "(unsigned int) arg2" ,
-> > > > 
-> > > > We use (unsigned long) for arg2.
-> > > 
-> > > Hmmm, not quite sure how I came up with unsigned int here.  I'll just
-> > > drop this: the type in the prctl() prototype is unsigned long anyway.
-> > > 
-> > > The type is actually moot in this case, since the valid values all fit
-> > > in an unsigned int.
-> > 
-> > Passing an int doesn't require that the top 32-bit of the long are
-> > zeroed (in case anyone writes the low-level SVC by hand).
-> 
-> Fair point, I was forgetting that wrinkle.  Anyway, the convention in
-> this page seems to be that if the type is unsigned long, we don't
-> mention it, because the prctl() prototype says that already.
-> 
-> Question: the glibc prototype for prctl is variadic, so surely any
-> calls that don't explicitly cast the args to unsigned long are already
-> theoretically broken?  The #defines (and 0) are all implicitly int.
-> This probably affects lots of prctls.
-> 
-> We may get away with it because the compiler is almost certainly going
-> to favour a mov over a ldr for getting small integers into regs, and mov
-> <Wd> fortunately zeroes the top bits for us anyway.
+From: "Peter Zijlstra (Intel)" <peterz@infradead.org>
 
-So does LDR Wd.
+tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and
+tlb->end, then set corresponding cleared_*.
 
-Anyway, I think glibc (or my reading of it) has something like like:
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ include/asm-generic/tlb.h | 55 ++++++++++++++++++++++++++++-----------
+ 1 file changed, 40 insertions(+), 15 deletions(-)
 
-  register long _x1 asm ("x1") = _x1tmp;
-
-before invoking the SVC. I assume this would do the right conversion to
-long. I can't tell about other libraries but I'd say it's their
-responsibility to convert the args to long before calling the kernel's
-prctl().
-
--- 
-Catalin
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 3f1649a8cf55..ef75ec86f865 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -512,6 +512,38 @@ static inline void tlb_end_vma(struct mmu_gather *tl=
+b, struct vm_area_struct *vm
+ }
+ #endif
+=20
++/*
++ * tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and tlb->en=
+d,
++ * and set corresponding cleared_*.
++ */
++static inline void tlb_flush_pte_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_ptes =3D 1;
++}
++
++static inline void tlb_flush_pmd_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_pmds =3D 1;
++}
++
++static inline void tlb_flush_pud_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_puds =3D 1;
++}
++
++static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_p4ds =3D 1;
++}
++
+ #ifndef __tlb_remove_tlb_entry
+ #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+ #endif
+@@ -525,19 +557,17 @@ static inline void tlb_end_vma(struct mmu_gather *t=
+lb, struct vm_area_struct *vm
+  */
+ #define tlb_remove_tlb_entry(tlb, ptep, address)		\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+-		tlb->cleared_ptes =3D 1;				\
++		tlb_flush_pte_range(tlb, address, PAGE_SIZE);	\
+ 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
+ 	} while (0)
+=20
+ #define tlb_remove_huge_tlb_entry(h, tlb, ptep, address)	\
+ 	do {							\
+ 		unsigned long _sz =3D huge_page_size(h);		\
+-		__tlb_adjust_range(tlb, address, _sz);		\
+ 		if (_sz =3D=3D PMD_SIZE)				\
+-			tlb->cleared_pmds =3D 1;			\
++			tlb_flush_pmd_range(tlb, address, _sz);	\
+ 		else if (_sz =3D=3D PUD_SIZE)			\
+-			tlb->cleared_puds =3D 1;			\
++			tlb_flush_pud_range(tlb, address, _sz);	\
+ 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
+ 	} while (0)
+=20
+@@ -551,8 +581,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
+, struct vm_area_struct *vm
+=20
+ #define tlb_remove_pmd_tlb_entry(tlb, pmdp, address)			\
+ 	do {								\
+-		__tlb_adjust_range(tlb, address, HPAGE_PMD_SIZE);	\
+-		tlb->cleared_pmds =3D 1;					\
++		tlb_flush_pmd_range(tlb, address, HPAGE_PMD_SIZE);	\
+ 		__tlb_remove_pmd_tlb_entry(tlb, pmdp, address);		\
+ 	} while (0)
+=20
+@@ -566,8 +595,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
+, struct vm_area_struct *vm
+=20
+ #define tlb_remove_pud_tlb_entry(tlb, pudp, address)			\
+ 	do {								\
+-		__tlb_adjust_range(tlb, address, HPAGE_PUD_SIZE);	\
+-		tlb->cleared_puds =3D 1;					\
++		tlb_flush_pud_range(tlb, address, HPAGE_PUD_SIZE);	\
+ 		__tlb_remove_pud_tlb_entry(tlb, pudp, address);		\
+ 	} while (0)
+=20
+@@ -592,9 +620,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
+, struct vm_area_struct *vm
+ #ifndef pte_free_tlb
+ #define pte_free_tlb(tlb, ptep, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
++		tlb_flush_pmd_range(tlb, address, PAGE_SIZE);	\
+ 		tlb->freed_tables =3D 1;				\
+-		tlb->cleared_pmds =3D 1;				\
+ 		__pte_free_tlb(tlb, ptep, address);		\
+ 	} while (0)
+ #endif
+@@ -602,9 +629,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
+, struct vm_area_struct *vm
+ #ifndef pmd_free_tlb
+ #define pmd_free_tlb(tlb, pmdp, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
++		tlb_flush_pud_range(tlb, address, PAGE_SIZE);	\
+ 		tlb->freed_tables =3D 1;				\
+-		tlb->cleared_puds =3D 1;				\
+ 		__pmd_free_tlb(tlb, pmdp, address);		\
+ 	} while (0)
+ #endif
+@@ -612,9 +638,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
+, struct vm_area_struct *vm
+ #ifndef pud_free_tlb
+ #define pud_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
++		tlb_flush_p4d_range(tlb, address, PAGE_SIZE);	\
+ 		tlb->freed_tables =3D 1;				\
+-		tlb->cleared_p4ds =3D 1;				\
+ 		__pud_free_tlb(tlb, pudp, address);		\
+ 	} while (0)
+ #endif
+--=20
+2.19.1
