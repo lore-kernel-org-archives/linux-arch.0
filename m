@@ -1,112 +1,128 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38392 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729145AbgF2Smw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 17/41] copy_regset_to_user(): do all copyout at once.
-Date: Mon, 29 Jun 2020 19:26:04 +0100
-Message-ID: <20200629182628.529995-17-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+Return-Path: <SRS0=y6BJ=7P=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [PATCH v4 5/6] arm64: tlb: Set the TTL field in flush_tlb_range
+Date: Tue, 2 Jun 2020 21:58:35 +0800
+Message-ID: <20200602135836.1620-6-yezhenyu2@huawei.com>
+In-Reply-To: <20200602135836.1620-1-yezhenyu2@huawei.com>
+References: <20200602135836.1620-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200629182604.-fsGc3kznJOSK23-jnX_NaUJfUXKzfgWIsEyhYDDq3M@z>
+Message-ID: <20200602135835.kbjQVK0fQWE-5F_in0P9p7GJ5CQin0qFLzuVO7T9txE@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+This patch uses the cleared_* in struct mmu_gather to set the
+TTL field in flush_tlb_range().
 
-Turn copy_regset_to_user() into regset_get_alloc() + copy_to_user().
-Now all ->get() calls have a kernel buffer as destination.
-
-Note that we'd already eliminated the callers of copy_regset_to_user()
-with non-zero offset; now that argument is simply unused.
-
-Uninlined, while we are at it.
-
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- include/linux/regset.h | 29 ++++-------------------------
- kernel/regset.c        | 26 ++++++++++++++++++++++++++
- 2 files changed, 30 insertions(+), 25 deletions(-)
+ arch/arm64/include/asm/tlb.h      | 29 ++++++++++++++++++++++++++++-
+ arch/arm64/include/asm/tlbflush.h | 14 ++++++++------
+ 2 files changed, 36 insertions(+), 7 deletions(-)
 
-diff --git a/include/linux/regset.h b/include/linux/regset.h
-index 968a032922d5..af57c1db1924 100644
---- a/include/linux/regset.h
-+++ b/include/linux/regset.h
-@@ -362,31 +362,10 @@ extern int regset_get_alloc(struct task_struct *target,
- 			    unsigned int size,
- 			    void **data);
- 
--/**
-- * copy_regset_to_user - fetch a thread's user_regset data into user memory
-- * @target:	thread to be examined
-- * @view:	&struct user_regset_view describing user thread machine state
-- * @setno:	index in @view->regsets
-- * @offset:	offset into the regset data, in bytes
-- * @size:	amount of data to copy, in bytes
-- * @data:	user-mode pointer to copy into
-- */
--static inline int copy_regset_to_user(struct task_struct *target,
--				      const struct user_regset_view *view,
--				      unsigned int setno,
--				      unsigned int offset, unsigned int size,
--				      void __user *data)
--{
--	const struct user_regset *regset = &view->regsets[setno];
--
--	if (!regset->get)
--		return -EOPNOTSUPP;
--
--	if (!access_ok(data, size))
--		return -EFAULT;
--
--	return regset->get(target, regset, offset, size, NULL, data);
--}
-+extern int copy_regset_to_user(struct task_struct *target,
-+			       const struct user_regset_view *view,
-+			       unsigned int setno, unsigned int offset,
-+			       unsigned int size, void __user *data);
- 
- /**
-  * copy_regset_from_user - store into thread's user_regset data from user memory
-diff --git a/kernel/regset.c b/kernel/regset.c
-index 6b39fa0993ec..0a610983ce43 100644
---- a/kernel/regset.c
-+++ b/kernel/regset.c
-@@ -52,3 +52,29 @@ int regset_get_alloc(struct task_struct *target,
- 	return __regset_get(target, regset, size, data);
- }
- EXPORT_SYMBOL(regset_get_alloc);
-+
-+/**
-+ * copy_regset_to_user - fetch a thread's user_regset data into user memory
-+ * @target:	thread to be examined
-+ * @view:	&struct user_regset_view describing user thread machine state
-+ * @setno:	index in @view->regsets
-+ * @offset:	offset into the regset data, in bytes
-+ * @size:	amount of data to copy, in bytes
-+ * @data:	user-mode pointer to copy into
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index b76df828e6b7..61c97d3b58c7 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -21,11 +21,37 @@ static void tlb_flush(struct mmu_gather *tlb);
+=20
+ #include <asm-generic/tlb.h>
+=20
++/*
++ * get the tlbi levels in arm64.  Default value is 0 if more than one
++ * of cleared_* is set or neither is set.
++ * Arm64 doesn't support p4ds now.
 + */
-+int copy_regset_to_user(struct task_struct *target,
-+			const struct user_regset_view *view,
-+			unsigned int setno,
-+			unsigned int offset, unsigned int size,
-+			void __user *data)
++static inline int tlb_get_level(struct mmu_gather *tlb)
 +{
-+	const struct user_regset *regset = &view->regsets[setno];
-+	void *buf;
-+	int ret;
++	if (tlb->cleared_ptes && !(tlb->cleared_pmds ||
++				   tlb->cleared_puds ||
++				   tlb->cleared_p4ds))
++		return 3;
 +
-+	ret = regset_get_alloc(target, regset, size, &buf);
-+	if (ret > 0)
-+		ret = copy_to_user(data, buf, ret) ? -EFAULT : 0;
-+	kfree(buf);
-+	return ret;
++	if (tlb->cleared_pmds && !(tlb->cleared_ptes ||
++				   tlb->cleared_puds ||
++				   tlb->cleared_p4ds))
++		return 2;
++
++	if (tlb->cleared_puds && !(tlb->cleared_ptes ||
++				   tlb->cleared_pmds ||
++				   tlb->cleared_p4ds))
++		return 1;
++
++	return 0;
 +}
--- 
-2.11.0
++
+ static inline void tlb_flush(struct mmu_gather *tlb)
+ {
+ 	struct vm_area_struct vma =3D TLB_FLUSH_VMA(tlb->mm, 0);
+ 	bool last_level =3D !tlb->freed_tables;
+ 	unsigned long stride =3D tlb_get_unmap_size(tlb);
++	int tlb_level =3D tlb_get_level(tlb);
+=20
+ 	/*
+ 	 * If we're tearing down the address space then we only care about
+@@ -38,7 +64,8 @@ static inline void tlb_flush(struct mmu_gather *tlb)
+ 		return;
+ 	}
+=20
+-	__flush_tlb_range(&vma, tlb->start, tlb->end, stride, last_level);
++	__flush_tlb_range(&vma, tlb->start, tlb->end, stride,
++			  last_level, tlb_level);
+ }
+=20
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
+lbflush.h
+index bfb58e62c127..84cb98b60b7b 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -215,7 +215,8 @@ static inline void flush_tlb_page(struct vm_area_stru=
+ct *vma,
+=20
+ static inline void __flush_tlb_range(struct vm_area_struct *vma,
+ 				     unsigned long start, unsigned long end,
+-				     unsigned long stride, bool last_level)
++				     unsigned long stride, bool last_level,
++				     int tlb_level)
+ {
+ 	unsigned long asid =3D ASID(vma->vm_mm);
+ 	unsigned long addr;
+@@ -237,11 +238,11 @@ static inline void __flush_tlb_range(struct vm_area=
+_struct *vma,
+ 	dsb(ishst);
+ 	for (addr =3D start; addr < end; addr +=3D stride) {
+ 		if (last_level) {
+-			__tlbi_level(vale1is, addr, 0);
+-			__tlbi_user_level(vale1is, addr, 0);
++			__tlbi_level(vale1is, addr, tlb_level);
++			__tlbi_user_level(vale1is, addr, tlb_level);
+ 		} else {
+-			__tlbi_level(vae1is, addr, 0);
+-			__tlbi_user_level(vae1is, addr, 0);
++			__tlbi_level(vae1is, addr, tlb_level);
++			__tlbi_user_level(vae1is, addr, tlb_level);
+ 		}
+ 	}
+ 	dsb(ish);
+@@ -253,8 +254,9 @@ static inline void flush_tlb_range(struct vm_area_str=
+uct *vma,
+ 	/*
+ 	 * We cannot use leaf-only invalidation here, since we may be invalidat=
+ing
+ 	 * table entries as part of collapsing hugepages or moving page tables.
++	 * Set the tlb_level to 0 because we can not get enough information her=
+e.
+ 	 */
+-	__flush_tlb_range(vma, start, end, PAGE_SIZE, false);
++	__flush_tlb_range(vma, start, end, PAGE_SIZE, false, 0);
+ }
+=20
+ static inline void flush_tlb_kernel_range(unsigned long start, unsigned =
+long end)
+--=20
+2.19.1
