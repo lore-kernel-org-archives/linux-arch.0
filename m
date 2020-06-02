@@ -1,172 +1,157 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: Regression bisected to f2f84b05e02b (bug: consolidate
- warn_slowpath_fmt() usage)
-Date: Tue, 2 Jun 2020 11:03:43 -0700
-Message-ID: <202006021052.E52618F@keescook>
-References: <20200602024804.GA3776630@p50-ethernet.mattst88.com>
+From: Rikard Falkeborn <rikard.falkeborn@gmail.com>
+Subject: Re: [PATCH v7 1/4] bitops: Introduce the the for_each_set_clump macro
+Date: Tue, 2 Jun 2020 21:01:36 +0200
+Message-ID: <20200602190136.GA913@rikard>
+References: <CACG_h5pcd-3NWgE29enXAX8=zS-RWQZrh56wKaFbm8fLoCRiiw@mail.gmail.com>
+ <CAHp75Vdv4V5PLQxM1+ypHacso6rrR6CiXTX43M=6UuZ6xbYY7g@mail.gmail.com>
+ <CACG_h5qGEsyRBHj+O5nmwsHpi3rkVQd1hVMDnnauAmqqTa_pbg@mail.gmail.com>
+ <CAHp75VdPcNOuV_JO4y3vSDmy7we3kiZL2kZQgFQYmwqb6x7NEQ@mail.gmail.com>
+ <CACG_h5pDHCp_b=UJ7QZCEDqmJgUdPSaNLR+0sR1Bgc4eCbqEKw@mail.gmail.com>
+ <CAHp75VfBe-LMiAi=E4Cy8OasmE8NdSqevp+dsZtTEOLwF-TgmA@mail.gmail.com>
+ <CACG_h5p1UpLRoA+ubE4NTFQEvg-oT6TFmsLXXTAtBvzN9z3iPg@mail.gmail.com>
+ <CAHp75Vdxa1_ANBLEOB6g25x3O0V5h3yjZve8qpz-xkisD3KTLg@mail.gmail.com>
+ <20200531223716.GA20752@rikard>
+ <20200601083330.GB1634618@smile.fi.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-alpha-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44970 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726174AbgFBTBo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jun 2020 15:01:44 -0400
 Content-Disposition: inline
-In-Reply-To: <20200602024804.GA3776630@p50-ethernet.mattst88.com>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Matt Turner <mattst88@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20200601083330.GB1634618@smile.fi.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: Rikard Falkeborn <rikard.falkeborn@gmail.com>, Emil Velikov <emil.l.velikov@gmail.com>, Syed Nayyar Waris <syednwaris@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Kees Cook <keescook@chromium.org>, Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, William Breathitt Gray <vilhelm.gray@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 
-On Mon, Jun 01, 2020 at 07:48:04PM -0700, Matt Turner wrote:
-> I bisected a regression on alpha to f2f84b05e02b (bug: consolidate
-> warn_slowpath_fmt() usage) which looks totally innocuous.
+On Mon, Jun 01, 2020 at 11:33:30AM +0300, Andy Shevchenko wrote:
+> On Mon, Jun 01, 2020 at 12:37:16AM +0200, Rikard Falkeborn wrote:
+> > + Emil who was working on a patch for this
+> > 
+> > On Sun, May 31, 2020 at 02:00:45PM +0300, Andy Shevchenko wrote:
+> > > On Sun, May 31, 2020 at 4:11 AM Syed Nayyar Waris <syednwaris@gmail.com> wrote:
+> > > > On Sat, May 30, 2020 at 2:50 PM Andy Shevchenko
+> > > > <andy.shevchenko@gmail.com> wrote:
+> > > > > On Sat, May 30, 2020 at 11:45 AM Syed Nayyar Waris <syednwaris@gmail.com> wrote:
+> > > > > > On Sat, May 30, 2020 at 3:49 AM Andy Shevchenko
+> > > > > > <andy.shevchenko@gmail.com> wrote:
+> > > 
+> > > ...
+> > > 
+> > Sorry about that, it seems it's only triggered by gcc-9, that's why I
+> > missed it.
 > 
-> Reverting it on master confirms that it somehow is the trigger. At or a
-> little after starting userspace, I'll see an oops like this:
+> I guess every compiler (more or less recent) will warn here.
+> (Sorry, there is a cut in the thread, the problem is with comparison unsigned
+>  type(s) to 0).
 > 
-> Unable to handle kernel paging request at virtual address 0000000000000000
-> CPU 0
-> kworker/u2:5(98): Oops -1
-> pc = [<0000000000000000>]  ra = [<0000000000000000>]  ps = 0000    Not tainted
-> pc is at 0x0
-
-^^^^ so, the instruction pointer is NULL. The only way I can imagine
-that happening would be from this line:
-
-        worker->current_func(work);
-
-> ra is at 0x0
-> v0 = 0000000000000007  t0 = 0000000000000001  t1 = 0000000000000001
-> t2 = 0000000000000000  t3 = fffffc00bfe68780  t4 = 0000000000000001
-> t5 = fffffc00bf8cc780  t6 = 00000000026f8000  t7 = fffffc00bfe70000
-> s0 = fffffc000250d310  s1 = fffffc000250d310  s2 = fffffc000250d310
-> s3 = fffffc000250ca40  s4 = fffffc000250caa0  s5 = 0000000000000000
-> s6 = fffffc000250ca40
-> a0 = fffffc00024f0488  a1 = fffffc00bfe73d98  a2 = fffffc00bfe68800
-> a3 = fffffc00bf881400  a4 = 0001000000000000  a5 = 0000000000000002
-> t8 = 0000000000000000  t9 = 0000000000000000  t10= 0000000001321800
-> t11= 000000000000ba4e  pv = fffffc000189ca00  at = 0000000000000000
-> gp = fffffc000253e430  sp = 0000000043a83c2e
-> Disabling lock debugging due to kernel taint
-> Trace:
-> [<fffffc000105c8ac>] process_one_work+0x25c/0x5a0
-
-Can you verify where this     ^^^^^^^^^^^^^^   is?
-
-> [<fffffc000105cc4c>] worker_thread+0x5c/0x7d0
-> [<fffffc0001066c88>] kthread+0x188/0x1f0
-> [<fffffc0001011b48>] ret_from_kernel_thread+0x18/0x20
-> [<fffffc0001066b00>] kthread+0x0/0x1f0
-> [<fffffc000105cbf0>] worker_thread+0x0/0x7d0
+> > > > #if (l) == 0
+> > > > #define GENMASK_INPUT_CHECK(h, l)  0
+> > > > #elif
+> > > > #define GENMASK_INPUT_CHECK(h, l) \
+> > > >         (BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
+> > > >                 __builtin_constant_p((l) > (h)), (l) > (h), 0)))
+> > > > #endif
+> > > >
+> > > > I have verified that this works. Basically this just avoids the sanity
+> > > > check when the 'lower' bound 'l' is zero. Let me know if it looks
+> > > > fine.
+> > 
+> > I don't understand how you mean this? You can't use l before you have
+> > defined GENMASK_INPUT_CHECK to take l as input? Am I missing something?
+> > 
+> > How about the following (with an added comment about why the casts are
+> > necessary):
+> > 
+> > diff --git a/include/linux/bits.h b/include/linux/bits.h
+> > index 4671fbf28842..5fdb9909fbff 100644
+> > --- a/include/linux/bits.h
+> > +++ b/include/linux/bits.h
+> > @@ -23,7 +23,7 @@
+> >  #include <linux/build_bug.h>
+> >  #define GENMASK_INPUT_CHECK(h, l) \
+> >         (BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
+> > -               __builtin_constant_p((l) > (h)), (l) > (h), 0)))
+> > +               __builtin_constant_p((int)(l) > (int)(h)), (int)(l) > (int)(h), 0)))
+> >  #else
+> >  /*
+> >   * BUILD_BUG_ON_ZERO is not available in h files included from asm files,
+> > 
+> > I can send a proper patch if this is ok.
+> > > 
+> > > Unfortunately, it's not enough. We need to take care about the following cases
+> > 
+> > The __GENMASK macro is only valid for values of h and l between 0 and 63
+> > (or 31, if unsigned long is 32 bits). Negative values or values >=
+> > sizeof(unsigned long) (or unsigned long long for GENMASK_ULL) result in
+> > compiler warnings (-Wshift-count-negative or -Wshift-count-overflow). So
+> > when I wrote the GENMASK_INPUT_CHECK macro, the intention was to catch
+> > cases where l and h were swapped and let the existing compiler warnings
+> > catch negative or too large values.
 > 
-> Code:
->  00000000
->  00000000
->  00063301
->  000012e2
->  00001111
->  0005ffde
+> GENAMSK sometimes is used with non-constant arguments that's why your check
+> made a regression.
 > 
-> It seems to cause a hard lock on an SMP system, but not on a system with
-> a single CPU. Similarly, if I boot the SMP system (2 CPUs) with
-> maxcpus=1 the oops doesn't happen. Until I tested on a non-SMP system
-> today I suspected that it was unaffected, but I saw the oops there too.
-> With the revert applied, I don't see a warning or an oops.
+> What I described below are the cases to consider w/o what should we do. What
+> you answered is the same what I implied. So, we are on the same page here.
 > 
-> Any clues how this patch could have triggered the oops?
+> > > 1) h or l negative;
+> > 
+> > Any of these cases will trigger a compiler warning (h negative triggers 
+> > Wshift-count-overflow, l negative triggers Wshift-count-negative).
+> > 
+> > > 2) h == 0, if l == 0, I dunno what is this. it's basically either 0 or warning;
+> > 
+> > h == l == 0 is a complicated way of saying 1 (or BIT(0)). l negative
+> > triggers compiler warning.
+> 
+> Oh, yes GENMASK(h, l), when h==l==0 should be equivalent to BIT(0) with no
+> warning given.
+> 
+> > > 3) l == 0;
+> > 
+> > if h is negative, compiler warning (see 1). If h == 0, see 2. If h is
+> > positive, there is no error in GENMASK_INPUT_CHECK.
+> > 
+> > > 4) h and l > 0.
+> > 
+> > The comparisson works as intended.
+> 
+> > > Now, on top of that (since it's a macro) we have to keep in mind that
+> > > h and l can be signed and / or unsigned types.
+> > > And macro shall work for all 4 cases (by type signedess).
+> > 
+> > If we cast to int, we don't need to worry about the signedness. If
+> > someone enters a value that can't be cast to int, there will still
+> > be a compiler warning about shift out of range.
+> 
+> If the argument unsigned long long will it be the warning (it should not)?
 
-I cannot begin to imagine. :P Compared to other things I've seen like
-this in the past maybe it's some kind of effect from the code size
-changing the location/alignment or timing of something else?
+No, there should be no warning there.
 
-Various questions ranging in degrees of sanity:
+The inputs to GENMASK() needs to be between 0 and 31 (or 63 depending on the
+size of unsigned long). For any other values, there will be undefined behaviour,
+since the operands to the shifts in __GENMASK will be too large (or negative).
 
-Does alpha use work queues for WARN?
-
-Which work queue is getting a NULL function? (And then things like "if
-WARN was much slower or much faster, is there a race to something
-setting itself to NULL?")
-
-Was there a WARN before the above Oops?
-
-Does WARN have side-effects on alpha?
-
-Does __WARN_printf() do something bad that warn_slowpath_null() doesn't?
-
-Does making incremental changes narrow anything down? (e.g. instead of
-this revert, remove the __warn() call in warn_slowpath_fmt() that was
-added? (I mean, that'll be quite broken for WARN, but will it not oops?)
-
-Does alpha have hardware breakpoints? When I had to track down a
-corruption in the io scheduler, I ended up setting breakpoints on the
-thing that went crazy (in this case, I assume the work queue function
-pointer) to figure out what touched it.
-
-... I can't think of anything else.
-
--Kees
+Rikard
 
 > 
-> Here's the revert, with a trivial conflict resolved, that I've used in
-> testing:
+> > > > Regarding min, max macro that you suggested I am also looking further into it.
+> > > 
+> > > Since this has been introduced in v5.7 and not only your code is
+> > > affected by this I think we need to ping original author either to fix
+> > > or revert.
+> > > 
+> > > So, I Cc'ed to the author and reviewers, because they probably know
+> > > better why that had been done in the first place and breaking existing
+> > > code.
 > 
-> From fdbdd0f606f0f412ee06c1152e33a22ca17102bc Mon Sep 17 00:00:00 2001
-> From: Matt Turner <mattst88@gmail.com>
-> Date: Sun, 24 May 2020 20:46:00 -0700
-> Subject: [PATCH] Revert "bug: consolidate warn_slowpath_fmt() usage"
+> Please, when you do something there, add a test case to test_bitops.c.
 > 
-> This reverts commit f2f84b05e02b7710a201f0017b3272ad7ef703d1.
-> ---
->  include/asm-generic/bug.h |  3 ++-
->  kernel/panic.c            | 15 +++++++--------
->  2 files changed, 9 insertions(+), 9 deletions(-)
-> 
-> diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-> index 384b5c835ced..a4a311d4b4b0 100644
-> --- a/include/asm-generic/bug.h
-> +++ b/include/asm-generic/bug.h
-> @@ -82,7 +82,8 @@ struct bug_entry {
->  extern __printf(4, 5)
->  void warn_slowpath_fmt(const char *file, const int line, unsigned taint,
->  		       const char *fmt, ...);
-> -#define __WARN()		__WARN_printf(TAINT_WARN, NULL)
-> +extern void warn_slowpath_null(const char *file, const int line);
-> +#define __WARN()		warn_slowpath_null(__FILE__, __LINE__)
->  #define __WARN_printf(taint, arg...)					\
->  	warn_slowpath_fmt(__FILE__, __LINE__, taint, arg)
->  #else
-> diff --git a/kernel/panic.c b/kernel/panic.c
-> index b69ee9e76cb2..c8ed8046b484 100644
-> --- a/kernel/panic.c
-> +++ b/kernel/panic.c
-> @@ -603,20 +603,19 @@ void warn_slowpath_fmt(const char *file, int line, unsigned taint,
->  {
->  	struct warn_args args;
-> -	pr_warn(CUT_HERE);
-> -
-> -	if (!fmt) {
-> -		__warn(file, line, __builtin_return_address(0), taint,
-> -		       NULL, NULL);
-> -		return;
-> -	}
-> -
->  	args.fmt = fmt;
->  	va_start(args.args, fmt);
->  	__warn(file, line, __builtin_return_address(0), taint, NULL, &args);
->  	va_end(args.args);
->  }
->  EXPORT_SYMBOL(warn_slowpath_fmt);
-> +
-> +void warn_slowpath_null(const char *file, int line)
-> +{
-> +	pr_warn(CUT_HERE);
-> +	__warn(file, line, __builtin_return_address(0), TAINT_WARN, NULL, NULL);
-> +}
-> +EXPORT_SYMBOL(warn_slowpath_null);
->  #else
->  void __warn_printk(const char *fmt, ...)
->  {
 > -- 
-> 2.26.2
-
-
-
--- 
-Kees Cook
+> With Best Regards,
+> Andy Shevchenko
+> 
+> 
