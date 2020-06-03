@@ -1,45 +1,63 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v8 0/8] powerpc: switch VDSO to C implementation
-Date: Wed, 03 Jun 2020 20:04:02 +1000
-Message-ID: <87zh9kh3e5.fsf@mpe.ellerman.id.au>
-References: <cover.1588079622.git.christophe.leroy@c-s.fr> <438ce3d7-aa0f-0284-7518-6c6339742aab@csgroup.eu>
+From: "Mrs.Susan Jones" <joneswife.susan@gmail.com>
+Subject: HELLO: I AM MRS SUSAN JONES
+Date: Wed, 3 Jun 2020 14:48:27 +0100
+Message-ID: <CALBhdBeX2Y4FkCAknXQzKBB4njye5Ybu7ih1JoB6KjFCr8v0Jw__28067.8837488935$1591192117$gmane$org@mail.gmail.com>
+Reply-To: susanjones.wife@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bilbo.ozlabs.org ([203.11.71.1]:54135 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725881AbgFCKDm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Jun 2020 06:03:42 -0400
-In-Reply-To: <438ce3d7-aa0f-0284-7518-6c6339742aab@csgroup.eu>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50036 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725834AbgFCNs3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2020 09:48:29 -0400
+Received: from mail-lf1-x142.google.com (mail-lf1-x142.google.com [IPv6:2a00:1450:4864:20::142])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 37855C08C5C0
+        for <linux-arch@vger.kernel.org>; Wed,  3 Jun 2020 06:48:29 -0700 (PDT)
+Received: by mail-lf1-x142.google.com with SMTP id 202so1366405lfe.5
+        for <linux-arch@vger.kernel.org>; Wed, 03 Jun 2020 06:48:29 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christophe Leroy <christophe.leroy@csgroup.eu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, nathanl@linux.ibm.com
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, luto@kernel.org, tglx@linutronix.de, vincenzo.frascino@arm.com, linuxppc-dev@lists.ozlabs.org
 
-Christophe Leroy <christophe.leroy@csgroup.eu> writes:
-> Hi Michael,
->
-> Le 28/04/2020 =C3=A0 15:16, Christophe Leroy a =C3=A9crit=C2=A0:
->> This is the seventh version of a series to switch powerpc VDSO to
->> generic C implementation.
->>=20
->> Main changes since v7 are:
->> - Added gettime64 on PPC32
->>=20
->> This series applies on today's powerpc/merge branch.
->>=20
->> See the last patches for details on changes and performance.
->
-> Do you have any plans for this series ?
+-- 
+OUR GOLDEN OPPORTUNITY
 
-Review it and merge it one day :/
+Hello Dear Friend,
 
-> Even if you don't feel like merging it this cycle, I think patches 1 to=20
-> 3 are worth it.
+Complement of the day, i hope you are doing great today. However, I am
+Mrs.Susan Jones, an auditor with one of the new generation banks here
+in Burkina Faso.
 
-I'd rather take the whole series for v5.9.
+I am writing you this letter based on the latest development at my
+Department. i discovered some abandoned huge amount of money, Ten
+Million, Five hundred thousand  United States Dollars.($10.500.000).
+Now I am only contacting you as a foreigner because this money cannot
+be approved to a local bank account here, but can only be approved to
+any foreign account and foreign beneficiary because the money is in US
+dollars
 
-Sorry it missed this window, I just didn't get time to look at it.
+This will be  a legitimate transaction once you accept to build trust
+with me and follow simple instruction doing the transfer process,
+until the total sum transfer out of the bank here to your own bank
+account any where in the world, and I agreed to share the total money
+50/50 with you once you successful confirmed it in your bank account.
+But any expenses doing the transfer process will be deduct from the
+amount before sharing, If you are interested to work with me and
+provide a good receiving bank account, get back to me as soon as
+possible with the following details below.
 
-cheers
+Your full name
+Your Profession
+Your direct mobile phone number
+Your Scanned International passport or any of your identity
+
+NOTE: PLEASE IT YOU ARE NOT INTERESTED DON'T BORDER TO RESPOND BACK TO
+AVOID TIME WASTED.
+
+As soon as I receive these data's, I will forward to you the
+application form which you will send to the bank for the claim and
+transfer of the fund into your bank account as the  new beneficial.
+
+I am waiting to hear from you soon
+
+Yours
+Mrs.Susan Jones
