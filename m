@@ -1,66 +1,56 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v4 08/14] powerpc: add support for folded p4d page
- tables
-Date: Wed, 3 Jun 2020 12:05:22 -0700
-Message-ID: <20200603120522.7646d56a23088416a7d3fc1a@linux-foundation.org>
-References: <20200414153455.21744-1-rppt@kernel.org>
-        <20200414153455.21744-9-rppt@kernel.org>
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: [RFC][PATCH 05/14] ia64: csum_partial_copy_nocheck(): don't
+ abuse csum_partial_copy_from_user()
+Date: Wed, 3 Jun 2020 20:10:38 +0100
+Message-ID: <20200603191038.GV23230@ZenIV.linux.org.uk>
+References: <20200327233006.GW23230@ZenIV.linux.org.uk>
+ <20200327233117.1031393-1-viro@ZenIV.linux.org.uk>
+ <20200327233117.1031393-5-viro@ZenIV.linux.org.uk>
+ <20200603153714.GA33147@roeck-us.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <kvm-ppc-owner@vger.kernel.org>
-In-Reply-To: <20200414153455.21744-9-rppt@kernel.org>
-Sender: kvm-ppc-owner@vger.kernel.org
-To: Mike Rapoport <rppt@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Brian Cain <bcain@codeaurora.org>, Catalin Marinas <catalin.marinas@arm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert+renesas@glider.be>, Guan Xuetao <gxt@pku.edu.cn>, James Morse <james.morse@arm.com>, Jonas Bonn <jonas@southpole.se>, Julien Thierry <julien.thierry.kdev@gmail.com>, Ley Foon Tan <ley.foon.tan@intel.com>, Marc Zyngier <maz@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Stafford Horne <shorne@gmail.com>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Suzuki
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43572 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725821AbgFCTKr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2020 15:10:47 -0400
+Content-Disposition: inline
+In-Reply-To: <20200603153714.GA33147@roeck-us.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Guenter Roeck <linux@roeck-us.net>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Tue, 14 Apr 2020 18:34:49 +0300 Mike Rapoport <rppt@kernel.org> wrote:
+On Wed, Jun 03, 2020 at 08:37:14AM -0700, Guenter Roeck wrote:
+> On Fri, Mar 27, 2020 at 11:31:08PM +0000, Al Viro wrote:
+> > From: Al Viro <viro@zeniv.linux.org.uk>
+> > 
+> > Just inline the call and use memcpy() instead of __copy_from_user() and
+> > note that the tail is precisely ia64 csum_partial().
+> > 
+> > Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+> 
+> This patch results in:
+> 
+> arch/ia64/lib/csum_partial_copy.c: In function 'csum_partial_copy_nocheck':
+> arch/ia64/lib/csum_partial_copy.c:110:9: error: implicit declaration of function 'csum_partial'
+> 
+> for ia64:{defconfig, allnoconfig, tinyconfig}.
 
-> Implement primitives necessary for the 4th level folding, add walks of p4d
-> level where appropriate and replace 5level-fixup.h with pgtable-nop4d.h.
+Argh...
 
-A bunch of new material just landed in linux-next/powerpc.
-
-The timing is awkward!  I trust this will be going into mainline during
-this merge window?  If not, please drop it and repull after -rc1.
-
-arch/powerpc/mm/ptdump/ptdump.c:walk_pagetables() was a problem. 
-Here's what I ended up with - please check.
-
-static void walk_pagetables(struct pg_state *st)
-{
-	unsigned int i;
-	unsigned long addr = st->start_address & PGDIR_MASK;
-	pgd_t *pgd = pgd_offset_k(addr);
-
-	/*
-	 * Traverse the linux pagetable structure and dump pages that are in
-	 * the hash pagetable.
-	 */
-	for (i = pgd_index(addr); i < PTRS_PER_PGD; i++, pgd++, addr += PGDIR_SIZE) {
-		p4d_t *p4d = p4d_offset(pgd, 0);
-
-		if (pgd_none(*pgd) || pgd_is_leaf(*pgd))
-			note_page(st, addr, 1, p4d_val(*p4d), PGDIR_SIZE);
-		else if (is_hugepd(__hugepd(p4d_val(*p4d))))
-			walk_hugepd(st, (hugepd_t *)pgd, addr, PGDIR_SHIFT, 1);
-		else
-			/* pgd exists */
-			walk_pud(st, p4d, addr);
-	}
-}
-
-Mike's series "mm: consolidate definitions of page table accessors"
-took quite a lot of damage as well.  Patches which needed rework as a
-result of this were:
-
-powerpc-add-support-for-folded-p4d-page-tables-fix.patch
-mm-introduce-include-linux-pgtableh.patch
-mm-reorder-includes-after-introduction-of-linux-pgtableh.patch
-mm-pgtable-add-shortcuts-for-accessing-kernel-pmd-and-pte.patch
-mm-pgtable-add-shortcuts-for-accessing-kernel-pmd-and-pte-fix-2.patch
-mm-consolidate-pte_index-and-pte_offset_-definitions.patch
-mm-consolidate-pmd_index-and-pmd_offset-definitions.patch
-mm-consolidate-pud_index-and-pud_offset-definitions.patch
-mm-consolidate-pgd_index-and-pgd_offset_k-definitions.patch
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+diff --git a/arch/ia64/lib/csum_partial_copy.c b/arch/ia64/lib/csum_partial_copy.c
+index 5d147a33d648..6e82e0be8040 100644
+--- a/arch/ia64/lib/csum_partial_copy.c
++++ b/arch/ia64/lib/csum_partial_copy.c
+@@ -12,7 +12,7 @@
+ #include <linux/types.h>
+ #include <linux/string.h>
+ 
+-#include <linux/uaccess.h>
++#include <net/checksum.h>
+ 
+ /*
+  * XXX Fixme: those 2 inlines are meant for debugging and will go away
