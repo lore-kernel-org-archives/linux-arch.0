@@ -1,52 +1,69 @@
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Subject: Re: [PATCH v7 1/4] bitops: Introduce the the for_each_set_clump macro
-Date: Thu, 4 Jun 2020 00:59:19 +0300
-Message-ID: <CAHp75VdVqKfGC1+yLOTORLXLRcLxXXUPW2v3iY0uGAS7CDUifQ@mail.gmail.com>
-References: <CACG_h5qGEsyRBHj+O5nmwsHpi3rkVQd1hVMDnnauAmqqTa_pbg@mail.gmail.com>
- <CAHp75VdPcNOuV_JO4y3vSDmy7we3kiZL2kZQgFQYmwqb6x7NEQ@mail.gmail.com>
- <CACG_h5pDHCp_b=UJ7QZCEDqmJgUdPSaNLR+0sR1Bgc4eCbqEKw@mail.gmail.com>
- <CAHp75VfBe-LMiAi=E4Cy8OasmE8NdSqevp+dsZtTEOLwF-TgmA@mail.gmail.com>
- <CACG_h5p1UpLRoA+ubE4NTFQEvg-oT6TFmsLXXTAtBvzN9z3iPg@mail.gmail.com>
- <CAHp75Vdxa1_ANBLEOB6g25x3O0V5h3yjZve8qpz-xkisD3KTLg@mail.gmail.com>
- <20200531223716.GA20752@rikard> <20200601083330.GB1634618@smile.fi.intel.com>
- <20200602190136.GA913@rikard> <CAHp75VdUf8=y+y4Q3OtWc7owxg0uX8LhZY4Nrgnezuv+aSyzUg@mail.gmail.com>
- <20200603215314.GA916134@rikard> <CAHp75VeQ+3rRAs+5Tmn=Tj_jkdKff=crwX9S3bPGLO6iVQ8Kqg@mail.gmail.com>
+From: Rikard Falkeborn <rikard.falkeborn@gmail.com>
+Subject: [PATCH] linux/bits.h: fix unsigned less than zero warnings
+Date: Thu,  4 Jun 2020 00:02:26 +0200
+Message-ID: <20200603220226.916269-1-rikard.falkeborn@gmail.com>
+References: <20200603215314.GA916134@rikard>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41322 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725922AbgFCV7g (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2020 17:59:36 -0400
-In-Reply-To: <CAHp75VeQ+3rRAs+5Tmn=Tj_jkdKff=crwX9S3bPGLO6iVQ8Kqg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Rikard Falkeborn <rikard.falkeborn@gmail.com>
-Cc: Emil Velikov <emil.l.velikov@gmail.com>, Syed Nayyar Waris <syednwaris@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, Kees Cook <keescook@chromium.org>, Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, William Breathitt Gray <vilhelm.gray@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200603215314.GA916134@rikard>
+Sender: linux-kernel-owner@vger.kernel.org
+To: rikard.falkeborn@gmail.com
+Cc: akpm@linux-foundation.org, andy.shevchenko@gmail.com, arnd@arndb.de, emil.l.velikov@gmail.com, keescook@chromium.org, linus.walleij@linaro.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, syednwaris@gmail.com, vilhelm.gray@gmail.com, yamada.masahiro@socionext.com, kbuild test robot <lkp@intel.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 4, 2020 at 12:58 AM Andy Shevchenko
-<andy.shevchenko@gmail.com> wrote:
->
-> On Thu, Jun 4, 2020 at 12:53 AM Rikard Falkeborn
-> <rikard.falkeborn@gmail.com> wrote:
-> > On Wed, Jun 03, 2020 at 11:49:37AM +0300, Andy Shevchenko wrote:
-> > > On Tue, Jun 2, 2020 at 10:01 PM Rikard Falkeborn
-> > > <rikard.falkeborn@gmail.com> wrote:
->
-> ...
->
-> > I'd be very surprised if compilers warned for explicit casts but  I'll
-> > send a proper patch soon to let the build robot try it.
->
-> I noticed that you should have received kbuild bot report about a
-> driver where it appears.
->
-> You patch broke all cases where (l) = 0 and (h) is type of unsigned
-> (not a const from compiler point of view).
+When calling the GENMASK and GENMASK_ULL macros with zero lower bit and
+an unsigned unknown high bit, some gcc versions warn due to the
+comparisons of the high and low bit in GENMASK_INPUT_CHECK.
 
-I will ask to revert for rc1 if there will be no fix.
+To silence the warnings, cast the inputs to int before doing the
+comparisons. The only valid inputs to GENMASK() and GENMASK_ULL() are
+are 0 to 31 or 63. Anything outside this is undefined due to the shifts
+in GENMASK()/GENMASK_ULL(). Therefore, casting the inputs to int do not
+change the values for valid known inputs. For unknown values, the check
+does not change anything since it's a compile-time check only.
 
+As an example of the warning, kindly reported by the kbuild test robot:
 
+from drivers/mfd/atmel-smc.c:11:
+drivers/mfd/atmel-smc.c: In function 'atmel_smc_cs_encode_ncycles':
+include/linux/bits.h:26:28: warning: comparison of unsigned expression < 0 is always false [-Wtype-limits]
+26 |   __builtin_constant_p((l) > (h)), (l) > (h), 0)))
+|                            ^
+include/linux/build_bug.h:16:62: note: in definition of macro 'BUILD_BUG_ON_ZERO'
+16 | #define BUILD_BUG_ON_ZERO(e) ((int)(sizeof(struct { int:(-!!(e)); })))
+|                                                              ^
+include/linux/bits.h:39:3: note: in expansion of macro 'GENMASK_INPUT_CHECK'
+39 |  (GENMASK_INPUT_CHECK(h, l) + __GENMASK(h, l))
+|   ^~~~~~~~~~~~~~~~~~~
+>> drivers/mfd/atmel-smc.c:49:25: note: in expansion of macro 'GENMASK'
+49 |  unsigned int lsbmask = GENMASK(msbpos - 1, 0);
+|                         ^~~~~~~
+
+Fixes: 295bcca84916 ("linux/bits.h: add compile time sanity check of GENMASK inputs")
+Reported-by: kbuild test robot <lkp@intel.com>
+Reported-by: Emil Velikov <emil.l.velikov@gmail.com>
+Reported-by: Syed Nayyar Waris <syednwaris@gmail.com>
+Signed-off-by: Rikard Falkeborn <rikard.falkeborn@gmail.com>
+---
+ include/linux/bits.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/bits.h b/include/linux/bits.h
+index 4671fbf28842..293d1ee71a48 100644
+--- a/include/linux/bits.h
++++ b/include/linux/bits.h
+@@ -21,9 +21,10 @@
+ #if !defined(__ASSEMBLY__) && \
+ 	(!defined(CONFIG_CC_IS_GCC) || CONFIG_GCC_VERSION >= 49000)
+ #include <linux/build_bug.h>
++/* Avoid Wtype-limits warnings by casting the inputs to int */
+ #define GENMASK_INPUT_CHECK(h, l) \
+ 	(BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
+-		__builtin_constant_p((l) > (h)), (l) > (h), 0)))
++		__builtin_constant_p((int)(l) > (int)(h)), (int)(l) > (int)(h), 0)))
+ #else
+ /*
+  * BUILD_BUG_ON_ZERO is not available in h files included from asm files,
 -- 
-With Best Regards,
-Andy Shevchenko
+2.27.0
