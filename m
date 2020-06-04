@@ -1,94 +1,104 @@
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Subject: Re: [PATCH] linux/bits.h: fix unsigned less than zero warnings
-Date: Thu, 4 Jun 2020 09:41:29 +0300
-Message-ID: <CAHp75VcNVOF6jHZ7gtpqskg9rDgwt3MmtGZJJOXE-GwvXRPOhw@mail.gmail.com>
-References: <20200603215314.GA916134@rikard> <20200603220226.916269-1-rikard.falkeborn@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Joerg Roedel <joro@8bytes.org>
+Subject: [PATCH] mm: Fix pud_alloc_track()
+Date: Thu,  4 Jun 2020 09:44:46 +0200
+Message-ID: <20200604074446.23944-1-joro@8bytes.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37310 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726248AbgFDGlr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jun 2020 02:41:47 -0400
-In-Reply-To: <20200603220226.916269-1-rikard.falkeborn@gmail.com>
+Received: from 8bytes.org ([81.169.241.247]:46146 "EHLO theia.8bytes.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726047AbgFDHou (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 4 Jun 2020 03:44:50 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rikard Falkeborn <rikard.falkeborn@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, emil.l.velikov@gmail.com, Kees Cook <keescook@chromium.org>, Linus Walleij <linus.walleij@linaro.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Syed Nayyar Waris <syednwaris@gmail.com>, William Breathitt Gray <vilhelm.gray@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, kbuild test robot <lkp@intel.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: peterz@infradead.org, jroedel@suse.de, Andy Lutomirski <luto@kernel.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, manvanth@linux.vnet.ibm.com, linux-next@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, linuxppc-dev@lists.ozlabs.org, hch@lst.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
 
-On Thu, Jun 4, 2020 at 1:03 AM Rikard Falkeborn
-<rikard.falkeborn@gmail.com> wrote:
->
-> When calling the GENMASK and GENMASK_ULL macros with zero lower bit and
-> an unsigned unknown high bit, some gcc versions warn due to the
-> comparisons of the high and low bit in GENMASK_INPUT_CHECK.
->
-> To silence the warnings, cast the inputs to int before doing the
-> comparisons. The only valid inputs to GENMASK() and GENMASK_ULL() are
-> are 0 to 31 or 63. Anything outside this is undefined due to the shifts
-> in GENMASK()/GENMASK_ULL(). Therefore, casting the inputs to int do not
-> change the values for valid known inputs. For unknown values, the check
-> does not change anything since it's a compile-time check only.
->
-> As an example of the warning, kindly reported by the kbuild test robot:
->
-> from drivers/mfd/atmel-smc.c:11:
-> drivers/mfd/atmel-smc.c: In function 'atmel_smc_cs_encode_ncycles':
-> include/linux/bits.h:26:28: warning: comparison of unsigned expression < 0 is always false [-Wtype-limits]
-> 26 |   __builtin_constant_p((l) > (h)), (l) > (h), 0)))
-> |                            ^
-> include/linux/build_bug.h:16:62: note: in definition of macro 'BUILD_BUG_ON_ZERO'
-> 16 | #define BUILD_BUG_ON_ZERO(e) ((int)(sizeof(struct { int:(-!!(e)); })))
-> |                                                              ^
-> include/linux/bits.h:39:3: note: in expansion of macro 'GENMASK_INPUT_CHECK'
-> 39 |  (GENMASK_INPUT_CHECK(h, l) + __GENMASK(h, l))
-> |   ^~~~~~~~~~~~~~~~~~~
-> >> drivers/mfd/atmel-smc.c:49:25: note: in expansion of macro 'GENMASK'
-> 49 |  unsigned int lsbmask = GENMASK(msbpos - 1, 0);
-> |                         ^~~~~~~
->
+From: Joerg Roedel <jroedel@suse.de>
 
-Thank you for the patch!
+The pud_alloc_track() needs to do different checks based on whether
+__ARCH_HAS_5LEVEL_HACK is defined, like it already does in
+pud_alloc(). Otherwise it causes boot failures on PowerPC.
 
-I think there is still a possibility to improve (as I mentioned there
-are test cases that are absent right now).
-What if we will have unsigned long value 0x100000001? Would it be 1
-after casting?
+Provide the correct implementations for both possible settings of
+__ARCH_HAS_5LEVEL_HACK to fix the boot problems.
 
-Maybe cast to (long) or (long long) more appropriate?
+Reported-by: Abdul Haleem <abdhalee@linux.vnet.ibm.com>
+Tested-by: Abdul Haleem <abdhalee@linux.vnet.ibm.com>
+Tested-by: Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>
+Fixes: d8626138009b ("mm: add functions to track page directory modifications")
+Signed-off-by: Joerg Roedel <jroedel@suse.de>
+---
+ include/asm-generic/5level-fixup.h |  5 +++++
+ include/linux/mm.h                 | 26 +++++++++++++-------------
+ 2 files changed, 18 insertions(+), 13 deletions(-)
 
-Please, add test cases.
-
-> Fixes: 295bcca84916 ("linux/bits.h: add compile time sanity check of GENMASK inputs")
-> Reported-by: kbuild test robot <lkp@intel.com>
-> Reported-by: Emil Velikov <emil.l.velikov@gmail.com>
-> Reported-by: Syed Nayyar Waris <syednwaris@gmail.com>
-> Signed-off-by: Rikard Falkeborn <rikard.falkeborn@gmail.com>
-> ---
->  include/linux/bits.h | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
->
-> diff --git a/include/linux/bits.h b/include/linux/bits.h
-> index 4671fbf28842..293d1ee71a48 100644
-> --- a/include/linux/bits.h
-> +++ b/include/linux/bits.h
-> @@ -21,9 +21,10 @@
->  #if !defined(__ASSEMBLY__) && \
->         (!defined(CONFIG_CC_IS_GCC) || CONFIG_GCC_VERSION >= 49000)
->  #include <linux/build_bug.h>
-> +/* Avoid Wtype-limits warnings by casting the inputs to int */
->  #define GENMASK_INPUT_CHECK(h, l) \
->         (BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
-> -               __builtin_constant_p((l) > (h)), (l) > (h), 0)))
-> +               __builtin_constant_p((int)(l) > (int)(h)), (int)(l) > (int)(h), 0)))
->  #else
->  /*
->   * BUILD_BUG_ON_ZERO is not available in h files included from asm files,
-> --
-> 2.27.0
->
-
-
+diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
+index 58046ddc08d0..afbab31fbd7e 100644
+--- a/include/asm-generic/5level-fixup.h
++++ b/include/asm-generic/5level-fixup.h
+@@ -17,6 +17,11 @@
+ 	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
+ 		NULL : pud_offset(p4d, address))
+ 
++#define pud_alloc_track(mm, p4d, address, mask)					\
++	((unlikely(pgd_none(*(p4d))) &&						\
++	  (__pud_alloc(mm, p4d, address) || ({*(mask)|=PGTBL_P4D_MODIFIED;0;})))?	\
++	  NULL : pud_offset(p4d, address))
++
+ #define p4d_alloc(mm, pgd, address)		(pgd)
+ #define p4d_alloc_track(mm, pgd, address, mask)	(pgd)
+ #define p4d_offset(pgd, start)			(pgd)
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 66e0977f970a..ad3b31c5bcc3 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -2088,35 +2088,35 @@ static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
+ 		NULL : pud_offset(p4d, address);
+ }
+ 
+-static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
++static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
+ 				     unsigned long address,
+ 				     pgtbl_mod_mask *mod_mask)
+-
+ {
+-	if (unlikely(pgd_none(*pgd))) {
+-		if (__p4d_alloc(mm, pgd, address))
++	if (unlikely(p4d_none(*p4d))) {
++		if (__pud_alloc(mm, p4d, address))
+ 			return NULL;
+-		*mod_mask |= PGTBL_PGD_MODIFIED;
++		*mod_mask |= PGTBL_P4D_MODIFIED;
+ 	}
+ 
+-	return p4d_offset(pgd, address);
++	return pud_offset(p4d, address);
+ }
+ 
+-#endif /* !__ARCH_HAS_5LEVEL_HACK */
+-
+-static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
++static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
+ 				     unsigned long address,
+ 				     pgtbl_mod_mask *mod_mask)
++
+ {
+-	if (unlikely(p4d_none(*p4d))) {
+-		if (__pud_alloc(mm, p4d, address))
++	if (unlikely(pgd_none(*pgd))) {
++		if (__p4d_alloc(mm, pgd, address))
+ 			return NULL;
+-		*mod_mask |= PGTBL_P4D_MODIFIED;
++		*mod_mask |= PGTBL_PGD_MODIFIED;
+ 	}
+ 
+-	return pud_offset(p4d, address);
++	return p4d_offset(pgd, address);
+ }
+ 
++#endif /* !__ARCH_HAS_5LEVEL_HACK */
++
+ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
+ {
+ 	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address))?
 -- 
-With Best Regards,
-Andy Shevchenko
+2.26.2
