@@ -1,92 +1,52 @@
-Return-Path: <SRS0=gWHa=AH=vger.kernel.org=linux-doc-owner@kernel.org>
-Date: Fri, 26 Jun 2020 14:09:13 -0700
-In-Reply-To: <20200626210917.358969-1-brendanhiggins@google.com>
-Message-ID: <20200626210917.358969-9-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200626210917.358969-1-brendanhiggins@google.com>
-Subject: [PATCH v5 08/12] init: main: add KUnit to kernel init
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-doc-owner@vger.kernel.org
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <SRS0=jayZ=7S=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH 1/2] MIPS: set page access bit with pgprot on some MIPS
+ platform
+References: <1591348266-28392-1-git-send-email-maobibo@loongson.cn>
+ <20200605173909.000018ff@flygoat.com>
+From: maobibo <maobibo@loongson.cn>
+Message-ID: <ce625c9d-a4bb-7138-c599-62b30b65c408@loongson.cn>
+Date: Fri, 5 Jun 2020 17:51:43 +0800
+MIME-Version: 1.0
+In-Reply-To: <20200605173909.000018ff@flygoat.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Jiaxun Yang <jiaxun.yang@flygoat.com>
+Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Andrew Morton <akpm@linux-foundation.org>, Paul Burton <paulburton@kernel.org>, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200626210913.Zg5kaisaGCju8nScdASw5bYxZQKnJ3m8lnSsQHBmuKY@z>
+Message-ID: <20200605095143.vipJ1HlK9Zq5h9z8zARnrFtI__K8CbeaFOhksyB4nDM@z>
 
-Remove KUnit from init calls entirely, instead call directly from
-kernel_init().
 
-Co-developed-by: Alan Maguire <alan.maguire@oracle.com>
-Signed-off-by: Alan Maguire <alan.maguire@oracle.com>
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
----
- include/kunit/test.h | 9 +++++++++
- init/main.c          | 4 ++++
- lib/kunit/executor.c | 4 +---
- 3 files changed, 14 insertions(+), 3 deletions(-)
 
-diff --git a/include/kunit/test.h b/include/kunit/test.h
-index f3e86c3953a2b..795039d9f1917 100644
---- a/include/kunit/test.h
-+++ b/include/kunit/test.h
-@@ -228,6 +228,15 @@ int __kunit_test_suites_init(struct kunit_suite * const * const suites);
- 
- void __kunit_test_suites_exit(struct kunit_suite **suites);
- 
-+#if IS_BUILTIN(CONFIG_KUNIT)
-+int kunit_run_all_tests(void);
-+#else
-+static inline int kunit_run_all_tests(void)
-+{
-+	return 0;
-+}
-+#endif /* IS_BUILTIN(CONFIG_KUNIT) */
-+
- /**
-  * kunit_test_suites() - used to register one or more &struct kunit_suite
-  *			 with KUnit.
-diff --git a/init/main.c b/init/main.c
-index 0ead83e86b5aa..d3101d8874dea 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -106,6 +106,8 @@
- #define CREATE_TRACE_POINTS
- #include <trace/events/initcall.h>
- 
-+#include <kunit/test.h>
-+
- static int kernel_init(void *);
- 
- extern void init_IRQ(void);
-@@ -1504,6 +1506,8 @@ static noinline void __init kernel_init_freeable(void)
- 
- 	do_basic_setup();
- 
-+	kunit_run_all_tests();
-+
- 	console_on_rootfs();
- 
- 	/*
-diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-index 7015e7328dce7..4aab7f70a88c3 100644
---- a/lib/kunit/executor.c
-+++ b/lib/kunit/executor.c
-@@ -11,7 +11,7 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
- 
- #if IS_BUILTIN(CONFIG_KUNIT)
- 
--static int kunit_run_all_tests(void)
-+int kunit_run_all_tests(void)
- {
- 	struct kunit_suite * const * const *suites;
- 
-@@ -23,6 +23,4 @@ static int kunit_run_all_tests(void)
- 	return 0;
- }
- 
--late_initcall(kunit_run_all_tests);
--
- #endif /* IS_BUILTIN(CONFIG_KUNIT) */
--- 
-2.27.0.212.ge8ba1cc988-goog
+On 06/05/2020 05:39 PM, Jiaxun Yang wrote:
+> On Fri,  5 Jun 2020 17:11:05 +0800
+> Bibo Mao <maobibo@loongson.cn> wrote:
+> 
+>> On MIPS system which has rixi hardware bit, page access bit is not
+>> set in pgrot. For memory reading, there will be one page fault to
+>> allocate physical page; however valid bit is not set, there will
+>> be the second fast tlb-miss fault handling to set valid/access bit.
+>>
+>> This patch set page access/valid bit with pgrot if there is reading
+>> access privilege. It will reduce one tlb-miss handling for memory
+>> reading access.
+>>
+>> The valid/access bit will be cleared in order to track memory
+>> accessing activity. If the page is accessed, tlb-miss fast handling
+>> will set valid/access bit, pte_sw_mkyoung is not necessary in slow
+>> page fault path. This patch removes pte_sw_mkyoung function which
+>> is defined as empty function except MIPS system.
+>>
+>> Signed-off-by: Bibo Mao <maobibo@loongson.cn>
+>> ---
+> 
+> Thanks for tracking it down.
+> 
+> Could you please make the patch tittle more clear?
+> "Some" looks confuse to me, "systems with RIXI" would be better.
+
+Sure, will add it.
+
+> 
+> - Jiaxun
+> 
