@@ -1,45 +1,35 @@
-Return-Path: <SRS0=T3Fa=7O=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:5833 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726017AbgFAOrb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 1 Jun 2020 10:47:31 -0400
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v3 0/2] arm64: tlb: add support for TLBI RANGE instructions
-Date: Mon, 1 Jun 2020 22:47:11 +0800
-Message-ID: <20200601144713.2222-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=l6dP=7S=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:54068 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726328AbgFELrA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Jun 2020 07:47:00 -0400
+Date: Fri, 5 Jun 2020 12:46:55 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 1/7] mm: Add functions to track page directory
+ modifications
+Message-ID: <20200605114654.GD31371@gaia>
+References: <20200515140023.25469-1-joro@8bytes.org>
+ <20200515140023.25469-2-joro@8bytes.org>
+ <20200605100813.GA31371@gaia>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200605100813.GA31371@gaia>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200601144711.j1KwvCe9Nseb7qXHf8Y2YaI94s2YCSBFEJ-dX-V2ufI@z>
+To: Joerg Roedel <joro@8bytes.org>
+Cc: x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Will Deacon <will@kernel.org>
+Message-ID: <20200605114655.GJZJ9EUzsgVsVM3hMxjPTHqIyhglWEm34BqI_Ft7hMQ@z>
 
-ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
-range of input addresses. This series add support for this feature.
+On Fri, Jun 05, 2020 at 11:08:13AM +0100, Catalin Marinas wrote:
+> This patch causes a kernel panic on arm64 (and possibly powerpc, I
+> haven't tried). arm64 still uses the 5level-fixup.h and pud_alloc()
+> checks for the empty p4d with pgd_none() instead of p4d_none().
 
---
-ChangeList:
-v4:
-combine the __flush_tlb_range() and the __directly into the same function
-with a single loop for both.
+Ah, should have checked the list first
+(https://lore.kernel.org/linux-mm/20200604074446.23944-1-joro@8bytes.org/).
 
-v3:
-rebase this series on Linux 5.7-rc1.
-
-v2:
-Link: https://lkml.org/lkml/2019/11/11/348
-
-Zhenyu Ye (2):
-  arm64: tlb: Detect the ARMv8.4 TLBI RANGE feature
-  arm64: tlb: Use the TLBI RANGE feature in arm64
-
- arch/arm64/include/asm/cpucaps.h  |   3 +-
- arch/arm64/include/asm/sysreg.h   |   4 ++
- arch/arm64/include/asm/tlbflush.h | 108 +++++++++++++++++++++++++++++-
- arch/arm64/kernel/cpufeature.c    |  11 +++
- 4 files changed, 124 insertions(+), 2 deletions(-)
+Please ignore my patch then.
 
 -- 
-2.19.1
+Catalin
