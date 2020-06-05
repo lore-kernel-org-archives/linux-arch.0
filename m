@@ -1,51 +1,130 @@
-From: maobibo <maobibo@loongson.cn>
-Subject: Re: [PATCH 1/2] MIPS: set page access bit with pgprot on some MIPS
- platform
-Date: Fri, 5 Jun 2020 17:51:43 +0800
-Message-ID: <ce625c9d-a4bb-7138-c599-62b30b65c408@loongson.cn>
-References: <1591348266-28392-1-git-send-email-maobibo@loongson.cn>
- <20200605173909.000018ff@flygoat.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 1/7] mm: Add functions to track page directory
+ modifications
+Date: Fri, 5 Jun 2020 11:08:13 +0100
+Message-ID: <20200605100813.GA31371@gaia>
+References: <20200515140023.25469-1-joro@8bytes.org>
+ <20200515140023.25469-2-joro@8bytes.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-mips-owner@vger.kernel.org>
-In-Reply-To: <20200605173909.000018ff@flygoat.com>
-Sender: linux-mips-owner@vger.kernel.org
-To: Jiaxun Yang <jiaxun.yang@flygoat.com>
-Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Andrew Morton <akpm@linux-foundation.org>, Paul Burton <paulburton@kernel.org>, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:53160 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725926AbgFEKIT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Jun 2020 06:08:19 -0400
+Content-Disposition: inline
+In-Reply-To: <20200515140023.25469-2-joro@8bytes.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Joerg Roedel <joro@8bytes.org>
+Cc: x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Will Deacon <will@kernel.org>
 
+Hi Joerg,
 
+On Fri, May 15, 2020 at 04:00:17PM +0200, Joerg Roedel wrote:
+> diff --git a/include/linux/mm.h b/include/linux/mm.h
+> index 5a323422d783..022fe682af9e 100644
+> --- a/include/linux/mm.h
+> +++ b/include/linux/mm.h
+> @@ -2078,13 +2078,54 @@ static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
+>  	return (unlikely(p4d_none(*p4d)) && __pud_alloc(mm, p4d, address)) ?
+>  		NULL : pud_offset(p4d, address);
+>  }
+> +
+> +static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
+> +				     unsigned long address,
+> +				     pgtbl_mod_mask *mod_mask)
+> +
+> +{
+> +	if (unlikely(pgd_none(*pgd))) {
+> +		if (__p4d_alloc(mm, pgd, address))
+> +			return NULL;
+> +		*mod_mask |= PGTBL_PGD_MODIFIED;
+> +	}
+> +
+> +	return p4d_offset(pgd, address);
+> +}
+> +
+>  #endif /* !__ARCH_HAS_5LEVEL_HACK */
+>  
+> +static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
+> +				     unsigned long address,
+> +				     pgtbl_mod_mask *mod_mask)
+> +{
+> +	if (unlikely(p4d_none(*p4d))) {
+> +		if (__pud_alloc(mm, p4d, address))
+> +			return NULL;
+> +		*mod_mask |= PGTBL_P4D_MODIFIED;
+> +	}
+> +
+> +	return pud_offset(p4d, address);
+> +}
 
-On 06/05/2020 05:39 PM, Jiaxun Yang wrote:
-> On Fri,  5 Jun 2020 17:11:05 +0800
-> Bibo Mao <maobibo@loongson.cn> wrote:
-> 
->> On MIPS system which has rixi hardware bit, page access bit is not
->> set in pgrot. For memory reading, there will be one page fault to
->> allocate physical page; however valid bit is not set, there will
->> be the second fast tlb-miss fault handling to set valid/access bit.
->>
->> This patch set page access/valid bit with pgrot if there is reading
->> access privilege. It will reduce one tlb-miss handling for memory
->> reading access.
->>
->> The valid/access bit will be cleared in order to track memory
->> accessing activity. If the page is accessed, tlb-miss fast handling
->> will set valid/access bit, pte_sw_mkyoung is not necessary in slow
->> page fault path. This patch removes pte_sw_mkyoung function which
->> is defined as empty function except MIPS system.
->>
->> Signed-off-by: Bibo Mao <maobibo@loongson.cn>
->> ---
-> 
-> Thanks for tracking it down.
-> 
-> Could you please make the patch tittle more clear?
-> "Some" looks confuse to me, "systems with RIXI" would be better.
+This patch causes a kernel panic on arm64 (and possibly powerpc, I
+haven't tried). arm64 still uses the 5level-fixup.h and pud_alloc()
+checks for the empty p4d with pgd_none() instead of p4d_none().
 
-Sure, will add it.
+The patch below fixes it:
 
-> 
-> - Jiaxun
-> 
+-----------------------8<-----------------------------------
+From 8fb5f4c1e0983bb501c8ec71f9bb9dd344b80e87 Mon Sep 17 00:00:00 2001
+From: Catalin Marinas <catalin.marinas@arm.com>
+Date: Fri, 5 Jun 2020 10:56:03 +0100
+Subject: [PATCH] mm: Use pgd_none() in pud_alloc_track() with
+ __ARCH_HAS_5LEVEL_HACK
+
+Commit d8626138009b ("mm: add functions to track page directory
+modifications") introduced the pud_alloc_track() function checking for
+an empty p4d using p4d_none(). However, when __ARCH_HAS_5LEVEL_HACK is
+defined, the pud_alloc() counterpart checks for an empty p4d using
+pgd_none(). Since p4d_none() is always 0 in this case, no pud would be
+allocated and the kernel panics during boot on arm64 (at least).
+
+Until all architectures are moved away from the 5level-fixup.h, define a
+pud_alloc_track() that matches the __ARCH_HAS_5LEVEL_HACK pud_alloc().
+
+Fixes: d8626138009b ("mm: add functions to track page directory modifications")
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Joerg Roedel <jroedel@suse.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+---
+ include/linux/mm.h | 19 +++++++++++++++++--
+ 1 file changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index fda41eb7f1c8..9d3761a1fad5 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -2106,8 +2106,6 @@ static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
+ 	return p4d_offset(pgd, address);
+ }
+ 
+-#endif /* !__ARCH_HAS_5LEVEL_HACK */
+-
+ static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
+ 				     unsigned long address,
+ 				     pgtbl_mod_mask *mod_mask)
+@@ -2121,6 +2119,23 @@ static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
+ 	return pud_offset(p4d, address);
+ }
+ 
++#else /* __ARCH_HAS_5LEVEL_HACK */
++
++static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
++				     unsigned long address,
++				     pgtbl_mod_mask *mod_mask)
++{
++	if (unlikely(pgd_none(*p4d))) {
++		if (__pud_alloc(mm, p4d, address))
++			return NULL;
++		*mod_mask |= PGTBL_P4D_MODIFIED;
++	}
++
++	return pud_offset(p4d, address);
++}
++
++#endif /* !__ARCH_HAS_5LEVEL_HACK */
++
+ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
+ {
+ 	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address))?
