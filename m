@@ -1,30 +1,46 @@
-Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52348 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729977AbgFONAh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 09:00:37 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: properly support exec and wait with kernel pointers
-Date: Mon, 15 Jun 2020 15:00:26 +0200
-Message-ID: <20200615130032.931285-1-hch@lst.de>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=jayZ=7S=kvack.org=owner-linux-mm@kernel.org>
+From: Bibo Mao <maobibo@loongson.cn>
+Subject: [PATCH 2/2] MIPS: Add writable-applies-readable policy with pgrot
+Date: Fri,  5 Jun 2020 17:11:06 +0800
+Message-ID: <1591348266-28392-2-git-send-email-maobibo@loongson.cn>
+In-Reply-To: <1591348266-28392-1-git-send-email-maobibo@loongson.cn>
+References: <1591348266-28392-1-git-send-email-maobibo@loongson.cn>
+Sender: owner-linux-mm@kvack.org
+To: Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Andrew Morton <akpm@linux-foundation.org>, Paul Burton <paulburton@kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>
+Cc: linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200615130026.Crnp4IX3ziHuceawWctB0xrynHOQseEEwIqc38HiUQ8@z>
+Message-ID: <20200605091106.2IDd4yT6qO3jjCWRHb-_bOrdTohZgziUiiP9wQooS4U@z>
 
-Hi all,
+On Linux system, writable applies readable privilege in most
+architectures, this patch adds this policy on MIPS platform
+where hardware rixi is supported.
 
-this series first cleans up the exec code and then adds proper
-kernel_execveat and kernel_wait callers instead of relying on the fact
-that the early init code and kernel threads implicitly run with
-the address limit set to KERNEL_DS.
+Signed-off-by: Bibo Mao <maobibo@loongson.cn>
+---
+ arch/mips/mm/cache.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-Note that the cleanup removes the compat execve(at) handlers (almost)
-entirely, as we can handle the compat difference very nicely in a
-unified codebase.  The only exception is x86 where this would list the
-handlers twice in the same syscall table due to the messed up x32
-design.  I had to add an extra compat handler just for that case, but
-maybe someone has a better idea.
+diff --git a/arch/mips/mm/cache.c b/arch/mips/mm/cache.c
+index f814e43..dae0617 100644
+--- a/arch/mips/mm/cache.c
++++ b/arch/mips/mm/cache.c
+@@ -160,7 +160,7 @@ static inline void setup_protection_map(void)
+ 	if (cpu_has_rixi) {
+ 		protection_map[0]  = __pgprot(__PC | __PP | __NX | __NR);
+ 		protection_map[1]  = __pgprot(__PC | __PP | __NX | ___R);
+-		protection_map[2]  = __pgprot(__PC | __PP | __NX | __NR);
++		protection_map[2]  = __pgprot(__PC | __PP | __NX | ___R);
+ 		protection_map[3]  = __pgprot(__PC | __PP | __NX | ___R);
+ 		protection_map[4]  = __pgprot(__PC | __PP | ___R);
+ 		protection_map[5]  = __pgprot(__PC | __PP | ___R);
+@@ -169,7 +169,7 @@ static inline void setup_protection_map(void)
+ 
+ 		protection_map[8]  = __pgprot(__PC | __PP | __NX | __NR);
+ 		protection_map[9]  = __pgprot(__PC | __PP | __NX | ___R);
+-		protection_map[10] = __pgprot(__PC | __PP | __NX | ___W | __NR);
++		protection_map[10] = __pgprot(__PC | __PP | __NX | ___W | ___R);
+ 		protection_map[11] = __pgprot(__PC | __PP | __NX | ___W | ___R);
+ 		protection_map[12] = __pgprot(__PC | __PP | ___R);
+ 		protection_map[13] = __pgprot(__PC | __PP | ___R);
+-- 
+1.8.3.1
