@@ -1,168 +1,168 @@
-Return-Path: <SRS0=NK3b=75=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47532 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730263AbgFPSzj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jun 2020 14:55:39 -0400
-Received: from mail-lf1-x143.google.com (mail-lf1-x143.google.com [IPv6:2a00:1450:4864:20::143])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 64D69C06174E
-        for <linux-arch@vger.kernel.org>; Tue, 16 Jun 2020 11:55:39 -0700 (PDT)
-Received: by mail-lf1-x143.google.com with SMTP id w15so12376714lfe.11
-        for <linux-arch@vger.kernel.org>; Tue, 16 Jun 2020 11:55:39 -0700 (PDT)
-Received: from mail-lj1-f174.google.com (mail-lj1-f174.google.com. [209.85.208.174])
-        by smtp.gmail.com with ESMTPSA id s18sm5399501ljj.63.2020.06.16.11.55.34
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 16 Jun 2020 11:55:34 -0700 (PDT)
-Received: by mail-lj1-f174.google.com with SMTP id y11so24907450ljm.9
-        for <linux-arch@vger.kernel.org>; Tue, 16 Jun 2020 11:55:34 -0700 (PDT)
-MIME-Version: 1.0
-References: <20200615221607.7764-1-peterx@redhat.com>
-In-Reply-To: <20200615221607.7764-1-peterx@redhat.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Tue, 16 Jun 2020 11:55:17 -0700
-Message-ID: <CAHk-=wiTjaXHu+uxMi0xCZQOm4KVr0MucECAK=Zm4p4YZZ1XEg@mail.gmail.com>
-Subject: Re: [PATCH 00/25] mm: Page fault accounting cleanups
-Content-Type: multipart/mixed; boundary="00000000000093703c05a8381612"
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=ZIJQ=7T=kvack.org=owner-linux-mm@kernel.org>
+From: Bibo Mao <maobibo@loongson.cn>
+Subject: [PATCH v2 1/2] MIPS: Set page access bit with pgprot on platforms with RIXI
+Date: Sat,  6 Jun 2020 12:02:48 +0800
+Message-ID: <1591416169-26666-1-git-send-email-maobibo@loongson.cn>
+Sender: owner-linux-mm@kvack.org
+To: Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Andrew Morton <akpm@linux-foundation.org>, Paul Burton <paulburton@kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>
+Cc: linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Xu <peterx@redhat.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>, openrisc@lists.librecores.org, linux-arch <linux-arch@vger.kernel.org>, Alexander Gordeev <agordeev@linux.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20200616185517.5QnbfPL7wj_aPrlWkUqsnq3ZCr5Pu6Mig7psyigSuiQ@z>
+Message-ID: <20200606040248.OKxiKuPYfb0078FRRlOvMJsxm4Ejx_heMKvh-uA0_f4@z>
 
---00000000000093703c05a8381612
-Content-Type: text/plain; charset="UTF-8"
+On MIPS system which has rixi hardware bit, page access bit is not
+set in pgrot. For memory reading, there will be one page fault to
+allocate physical page; however valid bit is not set, there will
+be the second fast tlb-miss fault handling to set valid/access bit.
 
-On Mon, Jun 15, 2020 at 3:16 PM Peter Xu <peterx@redhat.com> wrote:
->
-> This series tries to address all of them by introducing mm_fault_accounting()
-> first, so that we move all the page fault accounting into the common code base,
-> then call it properly from arch pf handlers just like handle_mm_fault().
+This patch set page access/valid bit with pgrot if there is reading
+access privilege. It will reduce one tlb-miss handling for memory
+reading access.
 
-Hmm.
+The valid/access bit will be cleared in order to track memory
+accessing activity. If the page is accessed, tlb-miss fast handling
+will set valid/access bit, pte_sw_mkyoung is not necessary in slow
+page fault path. This patch removes pte_sw_mkyoung function which
+is defined as empty function except MIPS system.
 
-So having looked at this a bit more, I'd actually like to go even
-further, and just get rid of the per-architecture code _entirely_.
+Signed-off-by: Bibo Mao <maobibo@loongson.cn>
+Acked-by: Andrew Morton <akpm@linux-foundation.org>
+---
+v2:
+- refine commit log title
+---
+ arch/mips/include/asm/pgtable.h | 10 ++++++++--
+ arch/mips/mm/cache.c            | 34 +++++++++++++++++-----------------
+ include/asm-generic/pgtable.h   | 16 ----------------
+ mm/memory.c                     |  3 ---
+ 4 files changed, 25 insertions(+), 38 deletions(-)
 
-Here's a straw-man patch to the generic code - the idea is mostly laid
-out in the comment that I'm just quoting here directly too:
-
-        /*
-         * Do accounting in the common code, to avoid unnecessary
-         * architecture differences or duplicated code.
-         *
-         * We arbitrarily make the rules be:
-         *
-         *  - faults that never even got here (because the address
-         *    wasn't valid). That includes arch_vma_access_permitted()
-         *    failing above.
-         *
-         *    So this is expressly not a "this many hardware page
-         *    faults" counter. Use the hw profiling for that.
-         *
-         *  - incomplete faults (ie RETRY) do not count (see above).
-         *    They will only count once completed.
-         *
-         *  - the fault counts as a "major" fault when the final
-         *    successful fault is VM_FAULT_MAJOR, or if it was a
-         *    retry (which implies that we couldn't handle it
-         *    immediately previously).
-         *
-         *  - if the fault is done for GUP, regs wil be NULL and
-         *    no accounting will be done (but you _could_ pass in
-         *    your own regs and it would be accounted to the thread
-         *    doing the fault, not to the target!)
-         */
-
-the code itself in the patch is
-
- (a) pretty trivial and self-evident
-
- (b) INCOMPLETE
-
-that (b) is worth noting: this patch won't compile on its own. It
-intentionally leaves all the users without the new 'regs' argument,
-because you obviously simply need to remove all the code that
-currently tries to do any accounting.
-
-Comments?
-
-This is a bigger change, but I think it might be worth it to _really_
-consolidate the major/minor logic.
-
-One detail worth noting: I do wonder if we should put the
-
-    perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, addr);
-
-just in the arch code at the top of the fault handling, and consider
-it entirely unrelated to the major/minor fault handling. The
-major/minor faults fundamnetally are about successes. But the plain
-PERF_COUNT_SW_PAGE_FAULTS could be about things that fail, including
-things that never even get to this point at all.
-
-I'm not convinced it's useful to have three SW events that are defined
-to be A=B+C.
-
-But this does *not* do that part. It' sreally just an RFC patch.
-
-                    Linus
-
---00000000000093703c05a8381612
-Content-Type: application/octet-stream; name=patch
-Content-Disposition: attachment; filename=patch
-Content-Transfer-Encoding: base64
-Content-ID: <f_kbiacfcm0>
-X-Attachment-Id: f_kbiacfcm0
-
-IGluY2x1ZGUvbGludXgvbW0uaCB8ICAzICsrLQogbW0vbWVtb3J5LmMgICAgICAgIHwgNDYgKysr
-KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrLQogMiBmaWxlcyBjaGFu
-Z2VkLCA0NyBpbnNlcnRpb25zKCspLCAyIGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2luY2x1
-ZGUvbGludXgvbW0uaCBiL2luY2x1ZGUvbGludXgvbW0uaAppbmRleCBkYzdiODczMTBjMTAuLmU4
-MmE2MDQzMzljMCAxMDA2NDQKLS0tIGEvaW5jbHVkZS9saW51eC9tbS5oCisrKyBiL2luY2x1ZGUv
-bGludXgvbW0uaApAQCAtMTY0OCw3ICsxNjQ4LDggQEAgaW50IGludmFsaWRhdGVfaW5vZGVfcGFn
-ZShzdHJ1Y3QgcGFnZSAqcGFnZSk7CiAKICNpZmRlZiBDT05GSUdfTU1VCiBleHRlcm4gdm1fZmF1
-bHRfdCBoYW5kbGVfbW1fZmF1bHQoc3RydWN0IHZtX2FyZWFfc3RydWN0ICp2bWEsCi0JCQl1bnNp
-Z25lZCBsb25nIGFkZHJlc3MsIHVuc2lnbmVkIGludCBmbGFncyk7CisJCQl1bnNpZ25lZCBsb25n
-IGFkZHJlc3MsIHVuc2lnbmVkIGludCBmbGFncywKKwkJCXN0cnVjdCBwdF9yZWdzICopOwogZXh0
-ZXJuIGludCBmaXh1cF91c2VyX2ZhdWx0KHN0cnVjdCB0YXNrX3N0cnVjdCAqdHNrLCBzdHJ1Y3Qg
-bW1fc3RydWN0ICptbSwKIAkJCSAgICB1bnNpZ25lZCBsb25nIGFkZHJlc3MsIHVuc2lnbmVkIGlu
-dCBmYXVsdF9mbGFncywKIAkJCSAgICBib29sICp1bmxvY2tlZCk7CmRpZmYgLS1naXQgYS9tbS9t
-ZW1vcnkuYyBiL21tL21lbW9yeS5jCmluZGV4IGRjN2YzNTQzYjFmZC4uZjE1MDU2MTUxZmIxIDEw
-MDY0NAotLS0gYS9tbS9tZW1vcnkuYworKysgYi9tbS9tZW1vcnkuYwpAQCAtNzIsNiArNzIsNyBA
-QAogI2luY2x1ZGUgPGxpbnV4L29vbS5oPgogI2luY2x1ZGUgPGxpbnV4L251bWEuaD4KIAorI2lu
-Y2x1ZGUgPGxpbnV4L3BlcmZfZXZlbnQuaD4KICNpbmNsdWRlIDx0cmFjZS9ldmVudHMva21lbS5o
-PgogCiAjaW5jbHVkZSA8YXNtL2lvLmg+CkBAIC00MzUzLDcgKzQzNTQsNyBAQCBzdGF0aWMgdm1f
-ZmF1bHRfdCBfX2hhbmRsZV9tbV9mYXVsdChzdHJ1Y3Qgdm1fYXJlYV9zdHJ1Y3QgKnZtYSwKICAq
-IHJldHVybiB2YWx1ZS4gIFNlZSBmaWxlbWFwX2ZhdWx0KCkgYW5kIF9fbG9ja19wYWdlX29yX3Jl
-dHJ5KCkuCiAgKi8KIHZtX2ZhdWx0X3QgaGFuZGxlX21tX2ZhdWx0KHN0cnVjdCB2bV9hcmVhX3N0
-cnVjdCAqdm1hLCB1bnNpZ25lZCBsb25nIGFkZHJlc3MsCi0JCXVuc2lnbmVkIGludCBmbGFncykK
-KwkJdW5zaWduZWQgaW50IGZsYWdzLCBzdHJ1Y3QgcHRfcmVncyAqcmVncykKIHsKIAl2bV9mYXVs
-dF90IHJldDsKIApAQCAtNDM5NCw2ICs0Mzk1LDQ5IEBAIHZtX2ZhdWx0X3QgaGFuZGxlX21tX2Zh
-dWx0KHN0cnVjdCB2bV9hcmVhX3N0cnVjdCAqdm1hLCB1bnNpZ25lZCBsb25nIGFkZHJlc3MsCiAJ
-CQltZW1fY2dyb3VwX29vbV9zeW5jaHJvbml6ZShmYWxzZSk7CiAJfQogCisJaWYgKHJldCAmIFZN
-X0ZBVUxUX1JFVFJZKQorCQlyZXR1cm4gcmV0OworCisJLyoKKwkgKiBEbyBhY2NvdW50aW5nIGlu
-IHRoZSBjb21tb24gY29kZSwgdG8gYXZvaWQgdW5uZWNlc3NhcnkKKwkgKiBhcmNoaXRlY3R1cmUg
-ZGlmZmVyZW5jZXMgb3IgZHVwbGljYXRlZCBjb2RlLgorCSAqCisJICogV2UgYXJiaXRyYXJpbHkg
-bWFrZSB0aGUgcnVsZXMgYmU6CisJICoKKwkgKiAgLSBmYXVsdHMgdGhhdCBuZXZlciBldmVuIGdv
-dCBoZXJlIChiZWNhdXNlIHRoZSBhZGRyZXNzCisJICogICAgd2Fzbid0IHZhbGlkKS4gVGhhdCBp
-bmNsdWRlcyBhcmNoX3ZtYV9hY2Nlc3NfcGVybWl0dGVkKCkKKwkgKiAgICBmYWlsaW5nIGFib3Zl
-LgorCSAqCisJICogICAgU28gdGhpcyBpcyBleHByZXNzbHkgbm90IGEgInRoaXMgbWFueSBoYXJk
-d2FyZSBwYWdlCisJICogICAgZmF1bHRzIiBjb3VudGVyLiBVc2UgdGhlIGh3IHByb2ZpbGluZyBm
-b3IgdGhhdC4KKwkgKgorCSAqICAtIGluY29tcGxldGUgZmF1bHRzIChpZSBSRVRSWSkgZG8gbm90
-IGNvdW50IChzZWUgYWJvdmUpLgorCSAqICAgIFRoZXkgd2lsbCBvbmx5IGNvdW50IG9uY2UgY29t
-cGxldGVkLgorCSAqCisJICogIC0gdGhlIGZhdWx0IGNvdW50cyBhcyBhICJtYWpvciIgZmF1bHQg
-d2hlbiB0aGUgZmluYWwKKwkgKiAgICBzdWNjZXNzZnVsIGZhdWx0IGlzIFZNX0ZBVUxUX01BSk9S
-LCBvciBpZiBpdCB3YXMgYQorCSAqICAgIHJldHJ5ICh3aGljaCBpbXBsaWVzIHRoYXQgd2UgY291
-bGRuJ3QgaGFuZGxlIGl0CisJICogICAgaW1tZWRpYXRlbHkgcHJldmlvdXNseSkuCisJICoKKwkg
-KiAgLSBpZiB0aGUgZmF1bHQgaXMgZG9uZSBmb3IgR1VQLCByZWdzIHdpbCBiZSBOVUxMIGFuZAor
-CSAqICAgIG5vIGFjY291bnRpbmcgd2lsbCBiZSBkb25lIChidXQgeW91IF9jb3VsZF8gcGFzcyBp
-bgorCSAqICAgIHlvdXIgb3duIHJlZ3MgYW5kIGl0IHdvdWxkIGJlIGFjY291bnRlZCB0byB0aGUg
-dGhyZWFkCisJICogICAgZG9pbmcgdGhlIGZhdWx0LCBub3QgdG8gdGhlIHRhcmdldCEpCisJICov
-CisKKwlpZiAoIXJlZ3MpCisJCXJldHVybiByZXQ7CisKKwlwZXJmX3N3X2V2ZW50KFBFUkZfQ09V
-TlRfU1dfUEFHRV9GQVVMVFMsIDEsIHJlZ3MsIGFkZHJlc3MpOworCisJaWYgKChyZXQgJiBWTV9G
-QVVMVF9NQUpPUikgfHwgKGZsYWdzICYgRkFVTFRfRkxBR19UUklFRCkpIHsKKwkJY3VycmVudC0+
-bWFqX2ZsdCsrOworCQlwZXJmX3N3X2V2ZW50KFBFUkZfQ09VTlRfU1dfUEFHRV9GQVVMVFNfTUFK
-LCAxLCByZWdzLCBhZGRyZXNzKTsKKwl9IGVsc2UgeworCQljdXJyZW50LT5taW5fZmx0Kys7CisJ
-CXBlcmZfc3dfZXZlbnQoUEVSRl9DT1VOVF9TV19QQUdFX0ZBVUxUU19NSU4sIDEsIHJlZ3MsIGFk
-ZHJlc3MpOworCX0KKwogCXJldHVybiByZXQ7CiB9CiBFWFBPUlRfU1lNQk9MX0dQTChoYW5kbGVf
-bW1fZmF1bHQpOwo=
---00000000000093703c05a8381612--
+diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
+index 85b39c9..d066469 100644
+--- a/arch/mips/include/asm/pgtable.h
++++ b/arch/mips/include/asm/pgtable.h
+@@ -25,6 +25,14 @@
+ struct mm_struct;
+ struct vm_area_struct;
+ 
++#define __PP	_PAGE_PRESENT
++#define __NX	_PAGE_NO_EXEC
++#define __NR	_PAGE_NO_READ
++#define ___W	_PAGE_WRITE
++#define ___A	_PAGE_ACCESSED
++#define ___R	(_PAGE_SILENT_READ | _PAGE_ACCESSED)
++#define __PC	_page_cachable_default
++
+ #define PAGE_NONE	__pgprot(_PAGE_PRESENT | _PAGE_NO_READ | \
+ 				 _page_cachable_default)
+ #define PAGE_SHARED	__pgprot(_PAGE_PRESENT | _PAGE_WRITE | \
+@@ -414,8 +422,6 @@ static inline pte_t pte_mkyoung(pte_t pte)
+ 	return pte;
+ }
+ 
+-#define pte_sw_mkyoung	pte_mkyoung
+-
+ #ifdef CONFIG_MIPS_HUGE_TLB_SUPPORT
+ static inline int pte_huge(pte_t pte)	{ return pte_val(pte) & _PAGE_HUGE; }
+ 
+diff --git a/arch/mips/mm/cache.c b/arch/mips/mm/cache.c
+index ad6df1c..f814e43 100644
+--- a/arch/mips/mm/cache.c
++++ b/arch/mips/mm/cache.c
+@@ -158,23 +158,23 @@ void __update_cache(unsigned long address, pte_t pte)
+ static inline void setup_protection_map(void)
+ {
+ 	if (cpu_has_rixi) {
+-		protection_map[0]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
+-		protection_map[1]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
+-		protection_map[2]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
+-		protection_map[3]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
+-		protection_map[4]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
+-		protection_map[5]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
+-		protection_map[6]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
+-		protection_map[7]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
+-
+-		protection_map[8]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
+-		protection_map[9]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
+-		protection_map[10] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_WRITE | _PAGE_NO_READ);
+-		protection_map[11] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_WRITE);
+-		protection_map[12] = __pgprot(_page_cachable_default | _PAGE_PRESENT);
+-		protection_map[13] = __pgprot(_page_cachable_default | _PAGE_PRESENT);
+-		protection_map[14] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_WRITE);
+-		protection_map[15] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_WRITE);
++		protection_map[0]  = __pgprot(__PC | __PP | __NX | __NR);
++		protection_map[1]  = __pgprot(__PC | __PP | __NX | ___R);
++		protection_map[2]  = __pgprot(__PC | __PP | __NX | __NR);
++		protection_map[3]  = __pgprot(__PC | __PP | __NX | ___R);
++		protection_map[4]  = __pgprot(__PC | __PP | ___R);
++		protection_map[5]  = __pgprot(__PC | __PP | ___R);
++		protection_map[6]  = __pgprot(__PC | __PP | ___R);
++		protection_map[7]  = __pgprot(__PC | __PP | ___R);
++
++		protection_map[8]  = __pgprot(__PC | __PP | __NX | __NR);
++		protection_map[9]  = __pgprot(__PC | __PP | __NX | ___R);
++		protection_map[10] = __pgprot(__PC | __PP | __NX | ___W | __NR);
++		protection_map[11] = __pgprot(__PC | __PP | __NX | ___W | ___R);
++		protection_map[12] = __pgprot(__PC | __PP | ___R);
++		protection_map[13] = __pgprot(__PC | __PP | ___R);
++		protection_map[14] = __pgprot(__PC | __PP | ___W | ___R);
++		protection_map[15] = __pgprot(__PC | __PP | ___W | ___R);
+ 
+ 	} else {
+ 		protection_map[0] = PAGE_NONE;
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index b5278ec..fa5c73f 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -244,22 +244,6 @@ static inline void ptep_set_wrprotect(struct mm_struct *mm, unsigned long addres
+ }
+ #endif
+ 
+-/*
+- * On some architectures hardware does not set page access bit when accessing
+- * memory page, it is responsibilty of software setting this bit. It brings
+- * out extra page fault penalty to track page access bit. For optimization page
+- * access bit can be set during all page fault flow on these arches.
+- * To be differentiate with macro pte_mkyoung, this macro is used on platforms
+- * where software maintains page access bit.
+- */
+-#ifndef pte_sw_mkyoung
+-static inline pte_t pte_sw_mkyoung(pte_t pte)
+-{
+-	return pte;
+-}
+-#define pte_sw_mkyoung	pte_sw_mkyoung
+-#endif
+-
+ #ifndef pte_savedwrite
+ #define pte_savedwrite pte_write
+ #endif
+diff --git a/mm/memory.c b/mm/memory.c
+index c7c8960..8bb31c4 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -2704,7 +2704,6 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
+ 		}
+ 		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+ 		entry = mk_pte(new_page, vma->vm_page_prot);
+-		entry = pte_sw_mkyoung(entry);
+ 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+ 		/*
+ 		 * Clear the pte entry and flush it first, before updating the
+@@ -3379,7 +3378,6 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ 	__SetPageUptodate(page);
+ 
+ 	entry = mk_pte(page, vma->vm_page_prot);
+-	entry = pte_sw_mkyoung(entry);
+ 	if (vma->vm_flags & VM_WRITE)
+ 		entry = pte_mkwrite(pte_mkdirty(entry));
+ 
+@@ -3662,7 +3660,6 @@ vm_fault_t alloc_set_pte(struct vm_fault *vmf, struct mem_cgroup *memcg,
+ 
+ 	flush_icache_page(vma, page);
+ 	entry = mk_pte(page, vma->vm_page_prot);
+-	entry = pte_sw_mkyoung(entry);
+ 	if (write)
+ 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+ 	/* copy-on-write page */
+-- 
+1.8.3.1
