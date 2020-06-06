@@ -1,43 +1,72 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 1/7] mm: Add functions to track page directory
- modifications
-Date: Sat, 6 Jun 2020 13:50:22 +0100
-Message-ID: <20200606125021.GA12556@gaia>
-References: <20200515140023.25469-1-joro@8bytes.org>
- <20200515140023.25469-2-joro@8bytes.org>
- <20200605100813.GA31371@gaia>
- <20200605114654.GD31371@gaia>
- <20200605180116.196116ea218df55f3252af57@linux-foundation.org>
+From: Rich Felker <dalias@libc.org>
+Subject: Re: [PATCH] sh: remove unneeded constructor.
+Date: Sat, 6 Jun 2020 12:32:45 -0400
+Message-ID: <20200606163244.GZ1079@brightrain.aerifal.cx>
+References: <20180731051519.101249-1-ysato@users.sourceforge.jp>
+ <CAMuHMdUQReuzR=x54gnC1XdP77RrT1TaWoFFXUhUQ02A+giPqQ@mail.gmail.com>
+ <87600us5k9.wl-ysato@users.sourceforge.jp>
+ <20180804103550.GA3183@bombadil.infradead.org>
+ <CAMuHMdXsz-+zsxouaLP5tTKA46G34iAACSce+RXrD8AiiQc2+A@mail.gmail.com>
+ <20180804105149.GB3183@bombadil.infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:36658 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728102AbgFFMu1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 6 Jun 2020 08:50:27 -0400
+Return-path: <linux-sh-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200605180116.196116ea218df55f3252af57@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Will Deacon <will@kernel.org>
+In-Reply-To: <20180804105149.GB3183@bombadil.infradead.org>
+Sender: linux-sh-owner@vger.kernel.org
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>, Rob Landley <rob@landley.net>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 05, 2020 at 06:01:16PM -0700, Andrew Morton wrote:
-> On Fri, 5 Jun 2020 12:46:55 +0100 Catalin Marinas <catalin.marinas@arm.com> wrote:
-> > On Fri, Jun 05, 2020 at 11:08:13AM +0100, Catalin Marinas wrote:
-> > > This patch causes a kernel panic on arm64 (and possibly powerpc, I
-> > > haven't tried). arm64 still uses the 5level-fixup.h and pud_alloc()
-> > > checks for the empty p4d with pgd_none() instead of p4d_none().
-> > 
-> > Ah, should have checked the list first
-> > (https://lore.kernel.org/linux-mm/20200604074446.23944-1-joro@8bytes.org/).
+On Sat, Aug 04, 2018 at 03:51:49AM -0700, Matthew Wilcox wrote:
+> On Sat, Aug 04, 2018 at 12:47:08PM +0200, Geert Uytterhoeven wrote:
+> > You do want to readd the __GFP_ZERO flag to the second user of PGALLOC_GFP,
+> > don't you?
 > 
-> Can you confirm that the merge of Mike's 5level_hack zappage has fixed
-> the arm64 wontboot?
+> I missed that!  Probably only relevant for SH-64.  But yes ... probably better
+> to make this explicit then:
+> 
+> +++ b/arch/sh/mm/pgtable.c
+> @@ -2,8 +2,6 @@
+>  #include <linux/mm.h>
+>  #include <linux/slab.h>
+>  
+> -#define PGALLOC_GFP GFP_KERNEL | __GFP_ZERO
+> -
+>  static struct kmem_cache *pgd_cachep;
+>  #if PAGETABLE_LEVELS > 2
+>  static struct kmem_cache *pmd_cachep;
+> @@ -13,6 +11,7 @@ void pgd_ctor(void *x)
+>  {
+>         pgd_t *pgd = x;
+>  
+> +       memset(pgd, 0, USER_PTRS_PER_PGD * sizeof(pgd_t));
+>         memcpy(pgd + USER_PTRS_PER_PGD,
+>                swapper_pg_dir + USER_PTRS_PER_PGD,
+>                (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
+> @@ -32,7 +31,7 @@ void pgtable_cache_init(void)
+>  
+>  pgd_t *pgd_alloc(struct mm_struct *mm)
+>  {
+> -       return kmem_cache_alloc(pgd_cachep, PGALLOC_GFP);
+> +       return kmem_cache_alloc(pgd_cachep, GFP_KERNEL);
+>  }
+>  
+>  void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+> @@ -48,7 +47,7 @@ void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
+>  
+>  pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
+>  {
+> -       return kmem_cache_alloc(pmd_cachep, PGALLOC_GFP);
+> +       return kmem_cache_alloc(pmd_cachep, GFP_KERNEL | __GFP_ZERO);
+>  }
+>  
+>  void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+> 
+> --
 
-Yes, it has. Mainline is booting again on arm64.
+I've been asked to include this in this or next pull request, and I
+think it's right to do so, but I don't have a complete patch from you.
+Can you resubmit with a commit message and signed-off-by?
 
-Thanks.
-
--- 
-Catalin
+Rich
