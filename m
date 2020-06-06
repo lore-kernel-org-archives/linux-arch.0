@@ -1,157 +1,46 @@
-Return-Path: <SRS0=nnJc=AG=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RESEND PATCH v5 4/6] tlb: mmu_gather: add tlb_flush_*_range APIs
-Date: Thu, 25 Jun 2020 16:03:12 +0800
-Message-ID: <20200625080314.230-5-yezhenyu2@huawei.com>
-In-Reply-To: <20200625080314.230-1-yezhenyu2@huawei.com>
-References: <20200625080314.230-1-yezhenyu2@huawei.com>
-MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
+Return-Path: <SRS0=ZIJQ=7T=kvack.org=owner-linux-mm@kernel.org>
+From: Bibo Mao <maobibo@loongson.cn>
+Subject: [PATCH v2 2/2] MIPS: Add writable-applies-readable policy with pgrot
+Date: Sat,  6 Jun 2020 12:02:49 +0800
+Message-ID: <1591416169-26666-2-git-send-email-maobibo@loongson.cn>
+In-Reply-To: <1591416169-26666-1-git-send-email-maobibo@loongson.cn>
+References: <1591416169-26666-1-git-send-email-maobibo@loongson.cn>
 Sender: owner-linux-mm@kvack.org
-To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+To: Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Andrew Morton <akpm@linux-foundation.org>, Paul Burton <paulburton@kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>
+Cc: linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200625080312.i0F_e_HjAIgAnx598qKPZ7t3Svv1eN_MWaHxgxVspwQ@z>
+Message-ID: <20200606040249.lDAPlACpbd6S4Ap2G6GEjvg4zv_yR6eAyf0dZHj30pQ@z>
 
-From: "Peter Zijlstra (Intel)" <peterz@infradead.org>
+On Linux system, writable applies readable privilege in most
+architectures, this patch adds this policy on MIPS platform
+where hardware rixi is supported.
 
-tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and
-tlb->end, then set corresponding cleared_*.
-
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Bibo Mao <maobibo@loongson.cn>
 ---
- include/asm-generic/tlb.h | 55 ++++++++++++++++++++++++++++-----------
- 1 file changed, 40 insertions(+), 15 deletions(-)
+ arch/mips/mm/cache.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 3f1649a8cf55..ef75ec86f865 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -512,6 +512,38 @@ static inline void tlb_end_vma(struct mmu_gather *tl=
-b, struct vm_area_struct *vm
- }
- #endif
-=20
-+/*
-+ * tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and tlb->en=
-d,
-+ * and set corresponding cleared_*.
-+ */
-+static inline void tlb_flush_pte_range(struct mmu_gather *tlb,
-+				     unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_ptes =3D 1;
-+}
-+
-+static inline void tlb_flush_pmd_range(struct mmu_gather *tlb,
-+				     unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_pmds =3D 1;
-+}
-+
-+static inline void tlb_flush_pud_range(struct mmu_gather *tlb,
-+				     unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_puds =3D 1;
-+}
-+
-+static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
-+				     unsigned long address, unsigned long size)
-+{
-+	__tlb_adjust_range(tlb, address, size);
-+	tlb->cleared_p4ds =3D 1;
-+}
-+
- #ifndef __tlb_remove_tlb_entry
- #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
- #endif
-@@ -525,19 +557,17 @@ static inline void tlb_end_vma(struct mmu_gather *t=
-lb, struct vm_area_struct *vm
-  */
- #define tlb_remove_tlb_entry(tlb, ptep, address)		\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
--		tlb->cleared_ptes =3D 1;				\
-+		tlb_flush_pte_range(tlb, address, PAGE_SIZE);	\
- 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
- 	} while (0)
-=20
- #define tlb_remove_huge_tlb_entry(h, tlb, ptep, address)	\
- 	do {							\
- 		unsigned long _sz =3D huge_page_size(h);		\
--		__tlb_adjust_range(tlb, address, _sz);		\
- 		if (_sz =3D=3D PMD_SIZE)				\
--			tlb->cleared_pmds =3D 1;			\
-+			tlb_flush_pmd_range(tlb, address, _sz);	\
- 		else if (_sz =3D=3D PUD_SIZE)			\
--			tlb->cleared_puds =3D 1;			\
-+			tlb_flush_pud_range(tlb, address, _sz);	\
- 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
- 	} while (0)
-=20
-@@ -551,8 +581,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
-, struct vm_area_struct *vm
-=20
- #define tlb_remove_pmd_tlb_entry(tlb, pmdp, address)			\
- 	do {								\
--		__tlb_adjust_range(tlb, address, HPAGE_PMD_SIZE);	\
--		tlb->cleared_pmds =3D 1;					\
-+		tlb_flush_pmd_range(tlb, address, HPAGE_PMD_SIZE);	\
- 		__tlb_remove_pmd_tlb_entry(tlb, pmdp, address);		\
- 	} while (0)
-=20
-@@ -566,8 +595,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
-, struct vm_area_struct *vm
-=20
- #define tlb_remove_pud_tlb_entry(tlb, pudp, address)			\
- 	do {								\
--		__tlb_adjust_range(tlb, address, HPAGE_PUD_SIZE);	\
--		tlb->cleared_puds =3D 1;					\
-+		tlb_flush_pud_range(tlb, address, HPAGE_PUD_SIZE);	\
- 		__tlb_remove_pud_tlb_entry(tlb, pudp, address);		\
- 	} while (0)
-=20
-@@ -592,9 +620,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
-, struct vm_area_struct *vm
- #ifndef pte_free_tlb
- #define pte_free_tlb(tlb, ptep, address)			\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
-+		tlb_flush_pmd_range(tlb, address, PAGE_SIZE);	\
- 		tlb->freed_tables =3D 1;				\
--		tlb->cleared_pmds =3D 1;				\
- 		__pte_free_tlb(tlb, ptep, address);		\
- 	} while (0)
- #endif
-@@ -602,9 +629,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
-, struct vm_area_struct *vm
- #ifndef pmd_free_tlb
- #define pmd_free_tlb(tlb, pmdp, address)			\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
-+		tlb_flush_pud_range(tlb, address, PAGE_SIZE);	\
- 		tlb->freed_tables =3D 1;				\
--		tlb->cleared_puds =3D 1;				\
- 		__pmd_free_tlb(tlb, pmdp, address);		\
- 	} while (0)
- #endif
-@@ -612,9 +638,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
-, struct vm_area_struct *vm
- #ifndef pud_free_tlb
- #define pud_free_tlb(tlb, pudp, address)			\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
-+		tlb_flush_p4d_range(tlb, address, PAGE_SIZE);	\
- 		tlb->freed_tables =3D 1;				\
--		tlb->cleared_p4ds =3D 1;				\
- 		__pud_free_tlb(tlb, pudp, address);		\
- 	} while (0)
- #endif
---=20
-2.26.2
+diff --git a/arch/mips/mm/cache.c b/arch/mips/mm/cache.c
+index f814e43..dae0617 100644
+--- a/arch/mips/mm/cache.c
++++ b/arch/mips/mm/cache.c
+@@ -160,7 +160,7 @@ static inline void setup_protection_map(void)
+ 	if (cpu_has_rixi) {
+ 		protection_map[0]  = __pgprot(__PC | __PP | __NX | __NR);
+ 		protection_map[1]  = __pgprot(__PC | __PP | __NX | ___R);
+-		protection_map[2]  = __pgprot(__PC | __PP | __NX | __NR);
++		protection_map[2]  = __pgprot(__PC | __PP | __NX | ___R);
+ 		protection_map[3]  = __pgprot(__PC | __PP | __NX | ___R);
+ 		protection_map[4]  = __pgprot(__PC | __PP | ___R);
+ 		protection_map[5]  = __pgprot(__PC | __PP | ___R);
+@@ -169,7 +169,7 @@ static inline void setup_protection_map(void)
+ 
+ 		protection_map[8]  = __pgprot(__PC | __PP | __NX | __NR);
+ 		protection_map[9]  = __pgprot(__PC | __PP | __NX | ___R);
+-		protection_map[10] = __pgprot(__PC | __PP | __NX | ___W | __NR);
++		protection_map[10] = __pgprot(__PC | __PP | __NX | ___W | ___R);
+ 		protection_map[11] = __pgprot(__PC | __PP | __NX | ___W | ___R);
+ 		protection_map[12] = __pgprot(__PC | __PP | ___R);
+ 		protection_map[13] = __pgprot(__PC | __PP | ___R);
+-- 
+1.8.3.1
