@@ -1,41 +1,77 @@
-Return-Path: <SRS0=lJ0G=AA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44782 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731128AbgFSTxv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jun 2020 15:53:51 -0400
-Received: from mail-pf1-x443.google.com (mail-pf1-x443.google.com [IPv6:2607:f8b0:4864:20::443])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E60F8C06174E
-        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 12:53:49 -0700 (PDT)
-Received: by mail-pf1-x443.google.com with SMTP id d66so4863565pfd.6
-        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 12:53:49 -0700 (PDT)
-Date: Fri, 19 Jun 2020 12:53:46 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH] seccomp: Use -1 marker for end of mode 1 syscall list
-Message-ID: <202006191253.B00874B22@keescook>
-References: <202006191236.AC3E22AAB@keescook>
- <CALCETrXM5gneAC40RLWyjnCeHE6JFVOKnM0ooKLooGGaVV1KOA@mail.gmail.com>
+Return-Path: <SRS0=bcqG=7T=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from brightrain.aerifal.cx ([216.12.86.13]:41736 "EHLO
+        brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727815AbgFFQrz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jun 2020 12:47:55 -0400
+Date: Sat, 6 Jun 2020 12:32:45 -0400
+From: Rich Felker <dalias@libc.org>
+Subject: Re: [PATCH] sh: remove unneeded constructor.
+Message-ID: <20200606163244.GZ1079@brightrain.aerifal.cx>
+References: <20180731051519.101249-1-ysato@users.sourceforge.jp>
+ <CAMuHMdUQReuzR=x54gnC1XdP77RrT1TaWoFFXUhUQ02A+giPqQ@mail.gmail.com>
+ <87600us5k9.wl-ysato@users.sourceforge.jp>
+ <20180804103550.GA3183@bombadil.infradead.org>
+ <CAMuHMdXsz-+zsxouaLP5tTKA46G34iAACSce+RXrD8AiiQc2+A@mail.gmail.com>
+ <20180804105149.GB3183@bombadil.infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CALCETrXM5gneAC40RLWyjnCeHE6JFVOKnM0ooKLooGGaVV1KOA@mail.gmail.com>
+In-Reply-To: <20180804105149.GB3183@bombadil.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Arnd Bergmann <arnd@arndb.de>, Will Drewry <wad@chromium.org>, "open list:MIPS" <linux-mips@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200619195346.q8Kyuw7lAHr9bERSjODZqkRlWgBHJCNDb1Unf3y0q-s@z>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>, Rob Landley <rob@landley.net>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20200606163245.Jvhc-phOJFRUvZlkFIyI3ympFEebCafeGt_5YnkAxTs@z>
 
-On Fri, Jun 19, 2020 at 12:42:14PM -0700, Andy Lutomirski wrote:
-> On Fri, Jun 19, 2020 at 12:37 PM Kees Cook <keescook@chromium.org> wrote:
-> >
-> > The terminator for the mode 1 syscalls list was a 0, but that could be
-> > a valid syscall number (e.g. x86_64 __NR_read). By luck, __NR_read was
-> > listed first and the loop construct would not test it, so there was no
-> > bug. However, this is fragile. Replace the terminator with -1 instead,
-> > and make the variable name for mode 1 syscall lists more descriptive.
+On Sat, Aug 04, 2018 at 03:51:49AM -0700, Matthew Wilcox wrote:
+> On Sat, Aug 04, 2018 at 12:47:08PM +0200, Geert Uytterhoeven wrote:
+> > You do want to readd the __GFP_ZERO flag to the second user of PGALLOC_GFP,
+> > don't you?
 > 
-> Could the architecture instead supply the length of the list?
+> I missed that!  Probably only relevant for SH-64.  But yes ... probably better
+> to make this explicit then:
+> 
+> +++ b/arch/sh/mm/pgtable.c
+> @@ -2,8 +2,6 @@
+>  #include <linux/mm.h>
+>  #include <linux/slab.h>
+>  
+> -#define PGALLOC_GFP GFP_KERNEL | __GFP_ZERO
+> -
+>  static struct kmem_cache *pgd_cachep;
+>  #if PAGETABLE_LEVELS > 2
+>  static struct kmem_cache *pmd_cachep;
+> @@ -13,6 +11,7 @@ void pgd_ctor(void *x)
+>  {
+>         pgd_t *pgd = x;
+>  
+> +       memset(pgd, 0, USER_PTRS_PER_PGD * sizeof(pgd_t));
+>         memcpy(pgd + USER_PTRS_PER_PGD,
+>                swapper_pg_dir + USER_PTRS_PER_PGD,
+>                (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
+> @@ -32,7 +31,7 @@ void pgtable_cache_init(void)
+>  
+>  pgd_t *pgd_alloc(struct mm_struct *mm)
+>  {
+> -       return kmem_cache_alloc(pgd_cachep, PGALLOC_GFP);
+> +       return kmem_cache_alloc(pgd_cachep, GFP_KERNEL);
+>  }
+>  
+>  void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+> @@ -48,7 +47,7 @@ void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
+>  
+>  pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
+>  {
+> -       return kmem_cache_alloc(pmd_cachep, PGALLOC_GFP);
+> +       return kmem_cache_alloc(pmd_cachep, GFP_KERNEL | __GFP_ZERO);
+>  }
+>  
+>  void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+> 
+> --
 
-It could, but I didn't like the way the plumbing for that looked.
+I've been asked to include this in this or next pull request, and I
+think it's right to do so, but I don't have a complete patch from you.
+Can you resubmit with a commit message and signed-off-by?
 
--- 
-Kees Cook
+Rich
