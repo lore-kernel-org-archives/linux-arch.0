@@ -1,72 +1,75 @@
-From: Rich Felker <dalias@libc.org>
-Subject: Re: [PATCH] sh: remove unneeded constructor.
-Date: Sat, 6 Jun 2020 12:32:45 -0400
-Message-ID: <20200606163244.GZ1079@brightrain.aerifal.cx>
-References: <20180731051519.101249-1-ysato@users.sourceforge.jp>
- <CAMuHMdUQReuzR=x54gnC1XdP77RrT1TaWoFFXUhUQ02A+giPqQ@mail.gmail.com>
- <87600us5k9.wl-ysato@users.sourceforge.jp>
- <20180804103550.GA3183@bombadil.infradead.org>
- <CAMuHMdXsz-+zsxouaLP5tTKA46G34iAACSce+RXrD8AiiQc2+A@mail.gmail.com>
- <20180804105149.GB3183@bombadil.infradead.org>
+From: Rikard Falkeborn <rikard.falkeborn@gmail.com>
+Subject: [PATCH v2 1/2] linux/bits.h: fix unsigned less than zero warnings
+Date: Sun,  7 Jun 2020 22:34:10 +0200
+Message-ID: <20200607203411.70913-1-rikard.falkeborn@gmail.com>
+References: <20200604233003.GA102768@rikard>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-sh-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180804105149.GB3183@bombadil.infradead.org>
-Sender: linux-sh-owner@vger.kernel.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Linux-sh list <linux-sh@vger.kernel.org>, Rob Landley <rob@landley.net>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43822 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726093AbgFGUeX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jun 2020 16:34:23 -0400
+In-Reply-To: <20200604233003.GA102768@rikard>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: rikard.falkeborn@gmail.com
+Cc: akpm@linux-foundation.org, andy.shevchenko@gmail.com, arnd@arndb.de, emil.l.velikov@gmail.com, keescook@chromium.org, linus.walleij@linaro.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lkp@intel.com, syednwaris@gmail.com, vilhelm.gray@gmail.com, yamada.masahiro@socionext.com
 
-On Sat, Aug 04, 2018 at 03:51:49AM -0700, Matthew Wilcox wrote:
-> On Sat, Aug 04, 2018 at 12:47:08PM +0200, Geert Uytterhoeven wrote:
-> > You do want to readd the __GFP_ZERO flag to the second user of PGALLOC_GFP,
-> > don't you?
-> 
-> I missed that!  Probably only relevant for SH-64.  But yes ... probably better
-> to make this explicit then:
-> 
-> +++ b/arch/sh/mm/pgtable.c
-> @@ -2,8 +2,6 @@
->  #include <linux/mm.h>
->  #include <linux/slab.h>
->  
-> -#define PGALLOC_GFP GFP_KERNEL | __GFP_ZERO
-> -
->  static struct kmem_cache *pgd_cachep;
->  #if PAGETABLE_LEVELS > 2
->  static struct kmem_cache *pmd_cachep;
-> @@ -13,6 +11,7 @@ void pgd_ctor(void *x)
->  {
->         pgd_t *pgd = x;
->  
-> +       memset(pgd, 0, USER_PTRS_PER_PGD * sizeof(pgd_t));
->         memcpy(pgd + USER_PTRS_PER_PGD,
->                swapper_pg_dir + USER_PTRS_PER_PGD,
->                (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
-> @@ -32,7 +31,7 @@ void pgtable_cache_init(void)
->  
->  pgd_t *pgd_alloc(struct mm_struct *mm)
->  {
-> -       return kmem_cache_alloc(pgd_cachep, PGALLOC_GFP);
-> +       return kmem_cache_alloc(pgd_cachep, GFP_KERNEL);
->  }
->  
->  void pgd_free(struct mm_struct *mm, pgd_t *pgd)
-> @@ -48,7 +47,7 @@ void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
->  
->  pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
->  {
-> -       return kmem_cache_alloc(pmd_cachep, PGALLOC_GFP);
-> +       return kmem_cache_alloc(pmd_cachep, GFP_KERNEL | __GFP_ZERO);
->  }
->  
->  void pmd_free(struct mm_struct *mm, pmd_t *pmd)
-> 
-> --
+When calling the GENMASK and GENMASK_ULL macros with zero lower bit and
+an unsigned unknown high bit, some gcc versions warn due to the
+comparisons of the high and low bit in GENMASK_INPUT_CHECK.
 
-I've been asked to include this in this or next pull request, and I
-think it's right to do so, but I don't have a complete patch from you.
-Can you resubmit with a commit message and signed-off-by?
+To silence the warnings, only perform the check if both inputs are
+known. This does not trigger any warnings, from the Wtype-limits help:
 
-Rich
+	Warn if a comparison is always true or always false due to the
+	limited range of the data type, but do not warn for constant
+	expressions.
+
+As an example of the warning, kindly reported by the kbuild test robot:
+
+from drivers/mfd/atmel-smc.c:11:
+drivers/mfd/atmel-smc.c: In function 'atmel_smc_cs_encode_ncycles':
+include/linux/bits.h:26:28: warning: comparison of unsigned expression < 0 is always false [-Wtype-limits]
+26 |   __builtin_constant_p((l) > (h)), (l) > (h), 0)))
+|                            ^
+include/linux/build_bug.h:16:62: note: in definition of macro 'BUILD_BUG_ON_ZERO'
+16 | #define BUILD_BUG_ON_ZERO(e) ((int)(sizeof(struct { int:(-!!(e)); })))
+|                                                              ^
+include/linux/bits.h:39:3: note: in expansion of macro 'GENMASK_INPUT_CHECK'
+39 |  (GENMASK_INPUT_CHECK(h, l) + __GENMASK(h, l))
+|   ^~~~~~~~~~~~~~~~~~~
+>> drivers/mfd/atmel-smc.c:49:25: note: in expansion of macro 'GENMASK'
+49 |  unsigned int lsbmask = GENMASK(msbpos - 1, 0);
+|                         ^~~~~~~
+
+Fixes: 295bcca84916 ("linux/bits.h: add compile time sanity check of GENMASK inputs")
+Reported-by: kbuild test robot <lkp@intel.com>
+Reported-by: Emil Velikov <emil.l.velikov@gmail.com>
+Reported-by: Syed Nayyar Waris <syednwaris@gmail.com>
+Signed-off-by: Rikard Falkeborn <rikard.falkeborn@gmail.com>
+---
+v1->v2
+* Change to require both high and low bit to be constant expressions
+  instead of introducing somewhat arbitrary casts
+
+ include/linux/bits.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/bits.h b/include/linux/bits.h
+index 4671fbf28842..35ca3f5d11a0 100644
+--- a/include/linux/bits.h
++++ b/include/linux/bits.h
+@@ -23,7 +23,8 @@
+ #include <linux/build_bug.h>
+ #define GENMASK_INPUT_CHECK(h, l) \
+ 	(BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
+-		__builtin_constant_p((l) > (h)), (l) > (h), 0)))
++		__builtin_constant_p(l) && __builtin_constant_p(h), \
++		(l) > (h), 0)))
+ #else
+ /*
+  * BUILD_BUG_ON_ZERO is not available in h files included from asm files,
+-- 
+2.27.0
