@@ -1,48 +1,79 @@
 From: Rikard Falkeborn <rikard.falkeborn@gmail.com>
-Subject: Re: [PATCH v2 2/2] bits: Add tests of GENMASK
-Date: Mon, 8 Jun 2020 20:44:26 +0200
-Message-ID: <20200608184426.GB899@rikard>
-References: <20200604233003.GA102768@rikard>
- <20200607203411.70913-1-rikard.falkeborn@gmail.com>
- <20200607203411.70913-2-rikard.falkeborn@gmail.com>
- <CAHp75Vd94PKFSYNQ6h+ju40TwtPvLpi5gt0kCec=SJJOcM3GYQ@mail.gmail.com>
+Subject: [PATCH v3 1/2] linux/bits.h: fix unsigned less than zero warnings
+Date: Tue,  9 Jun 2020 00:18:22 +0200
+Message-ID: <20200608221823.35799-1-rikard.falkeborn@gmail.com>
+References: <20200608184222.GA899@rikard>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53516 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58400 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725280AbgFHSoc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jun 2020 14:44:32 -0400
-Content-Disposition: inline
-In-Reply-To: <CAHp75Vd94PKFSYNQ6h+ju40TwtPvLpi5gt0kCec=SJJOcM3GYQ@mail.gmail.com>
+        with ESMTP id S1726723AbgFHWSb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jun 2020 18:18:31 -0400
+In-Reply-To: <20200608184222.GA899@rikard>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: Rikard Falkeborn <rikard.falkeborn@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Emil Velikov <emil.l.velikov@gmail.com>, Kees Cook <keescook@chromium.org>, Linus Walleij <linus.walleij@linaro.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, kbuild test robot <lkp@intel.com>, Syed Nayyar Waris <syednwaris@gmail.com>, William Breathitt Gray <vilhelm.gray@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>
+To: rikard.falkeborn@gmail.com
+Cc: akpm@linux-foundation.org, andy.shevchenko@gmail.com, arnd@arndb.de, emil.l.velikov@gmail.com, geert@linux-m68k.org, keescook@chromium.org, linus.walleij@linaro.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lkp@intel.com, syednwaris@gmail.com, vilhelm.gray@gmail.com, yamada.masahiro@socionext.com
 
-On Mon, Jun 08, 2020 at 11:08:04AM +0300, Andy Shevchenko wrote:
-> On Sun, Jun 7, 2020 at 11:34 PM Rikard Falkeborn
-> <rikard.falkeborn@gmail.com> wrote:
-> >
-> > Add tests of GENMASK and GENMASK_ULL.
-> >
-> > A few test cases that should fail compilation are provided under ifdef.
-> >
-> 
-> Thank you very much!
-> 
-> > * New patch. First time I wrote a KUnittest so may be room for
-> >   improvements...
-> 
-> Have you considered to unify them with existing test_bitops.h?
+When calling the GENMASK and GENMASK_ULL macros with zero lower bit and
+an unsigned unknown high bit, some gcc versions warn due to the
+comparisons of the high and low bit in GENMASK_INPUT_CHECK.
 
-test_bitops.c seems to be tests for macros/functions in bitops.h, so I
-figured it would make more sense to add tests of bits.h in test_bits.c.
-But I don't have a strong opinion about it. If you prefer, I'll move
-them to test_bitops.c.
+To silence the warnings, only perform the check if both inputs are
+known. This does not trigger any warnings, from the Wtype-limits help:
 
-Rikard
-> 
-> -- 
-> With Best Regards,
-> Andy Shevchenko
+	Warn if a comparison is always true or always false due to the
+	limited range of the data type, but do not warn for constant
+	expressions.
+
+As an example of the warning, kindly reported by the kbuild test robot:
+
+from drivers/mfd/atmel-smc.c:11:
+drivers/mfd/atmel-smc.c: In function 'atmel_smc_cs_encode_ncycles':
+include/linux/bits.h:26:28: warning: comparison of unsigned expression < 0 is always false [-Wtype-limits]
+26 |   __builtin_constant_p((l) > (h)), (l) > (h), 0)))
+|                            ^
+include/linux/build_bug.h:16:62: note: in definition of macro 'BUILD_BUG_ON_ZERO'
+16 | #define BUILD_BUG_ON_ZERO(e) ((int)(sizeof(struct { int:(-!!(e)); })))
+|                                                              ^
+include/linux/bits.h:39:3: note: in expansion of macro 'GENMASK_INPUT_CHECK'
+39 |  (GENMASK_INPUT_CHECK(h, l) + __GENMASK(h, l))
+|   ^~~~~~~~~~~~~~~~~~~
+>> drivers/mfd/atmel-smc.c:49:25: note: in expansion of macro 'GENMASK'
+49 |  unsigned int lsbmask = GENMASK(msbpos - 1, 0);
+|                         ^~~~~~~
+
+Fixes: 295bcca84916 ("linux/bits.h: add compile time sanity check of GENMASK inputs")
+Reported-by: kbuild test robot <lkp@intel.com>
+Reported-by: Emil Velikov <emil.l.velikov@gmail.com>
+Reported-by: Syed Nayyar Waris <syednwaris@gmail.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Signed-off-by: Rikard Falkeborn <rikard.falkeborn@gmail.com>
+---
+v2-v3
+Added Andys Reviewed-by.
+
+v1->v2
+Change to require both high and low bit to be constant expressions
+instead of introducing somewhat arbitrary casts
+
+ include/linux/bits.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/bits.h b/include/linux/bits.h
+index 4671fbf28842..35ca3f5d11a0 100644
+--- a/include/linux/bits.h
++++ b/include/linux/bits.h
+@@ -23,7 +23,8 @@
+ #include <linux/build_bug.h>
+ #define GENMASK_INPUT_CHECK(h, l) \
+ 	(BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
+-		__builtin_constant_p((l) > (h)), (l) > (h), 0)))
++		__builtin_constant_p(l) && __builtin_constant_p(h), \
++		(l) > (h), 0)))
+ #else
+ /*
+  * BUILD_BUG_ON_ZERO is not available in h files included from asm files,
+-- 
+2.27.0
