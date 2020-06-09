@@ -1,91 +1,61 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38382 "EHLO
+Return-Path: <SRS0=6fqV=7W=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34512 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729036AbgF2Smn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:43 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 37/41] xtensa: switch to ->get2()
-Date: Mon, 29 Jun 2020 19:26:24 +0100
-Message-ID: <20200629182628.529995-37-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+        with ESMTP id S1728622AbgFILAT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2020 07:00:19 -0400
+Subject: Re: [PATCH v2 2/6] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for
+ SPECULATION_CTRL prctls
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+ <1590614258-24728-3-git-send-email-Dave.Martin@arm.com>
+ <CAKgNAkhwYASEM+wqaDZQ-ftcB3jnsVN2cXq4E_1ep1rqv+4aLw@mail.gmail.com>
+ <20200601135112.GB5031@arm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Message-ID: <61446b0d-5c17-2cb7-79a6-770c931c4b2a@gmail.com>
+Date: Tue, 9 Jun 2020 13:00:13 +0200
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20200601135112.GB5031@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200629182624.-hrJbAKw3NGwEXBiwWxho4IK6IFtBG_h3Lr-43p64mM@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: mtk.manpages@gmail.com, linux-man <linux-man@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20200609110013.N98uUCW7tEHrjLl8MNPlunCWFlsNyMd6I18uxhgnyOk@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+On 6/1/20 3:51 PM, Dave Martin wrote:
+> On Thu, May 28, 2020 at 09:01:59AM +0200, Michael Kerrisk (man-pages) wrote:
+>> Hi Dave,
+>>
+>> On Wed, 27 May 2020 at 23:18, Dave Martin <Dave.Martin@arm.com> wrote:
+>>>
+>>> Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
+>>> for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
+>>>
+>>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+>>> Cc: Tim Chen <tim.c.chen@linux.intel.com>
+>>> Cc: Thomas Gleixner <tglx@linutronix.de>
+>>
+>> I had also applied this patch from the email you sent earlier. I've
+>> pushed those changes to master now.
+> 
+> Thanks for this.
+> 
+> Do you publish a "development" branch somewhere, or similar?
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/xtensa/kernel/ptrace.c | 16 ++++++----------
- 1 file changed, 6 insertions(+), 10 deletions(-)
+Ocassionally, I do this on a per-series basis.
 
-diff --git a/arch/xtensa/kernel/ptrace.c b/arch/xtensa/kernel/ptrace.c
-index b4c07bd890fe..d46180b69600 100644
---- a/arch/xtensa/kernel/ptrace.c
-+++ b/arch/xtensa/kernel/ptrace.c
-@@ -37,8 +37,7 @@
- 
- static int gpr_get(struct task_struct *target,
- 		   const struct user_regset *regset,
--		   unsigned int pos, unsigned int count,
--		   void *kbuf, void __user *ubuf)
-+		   struct membuf to)
- {
- 	struct pt_regs *regs = task_pt_regs(target);
- 	struct user_pt_regs newregs = {
-@@ -60,8 +59,7 @@ static int gpr_get(struct task_struct *target,
- 	       regs->areg,
- 	       (WSBITS - regs->windowbase) * 16);
- 
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--				   &newregs, 0, -1);
-+	return membuf_write(&to, &newregs, sizeof(newregs));
- }
- 
- static int gpr_set(struct task_struct *target,
-@@ -115,8 +113,7 @@ static int gpr_set(struct task_struct *target,
- 
- static int tie_get(struct task_struct *target,
- 		   const struct user_regset *regset,
--		   unsigned int pos, unsigned int count,
--		   void *kbuf, void __user *ubuf)
-+		   struct membuf to)
- {
- 	int ret;
- 	struct pt_regs *regs = task_pt_regs(target);
-@@ -141,8 +138,7 @@ static int tie_get(struct task_struct *target,
- 	newregs->cp6 = ti->xtregs_cp.cp6;
- 	newregs->cp7 = ti->xtregs_cp.cp7;
- #endif
--	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--				  newregs, 0, -1);
-+	ret = membuf_write(&to, newregs, sizeof(*newregs));
- 	kfree(newregs);
- 	return ret;
- }
-@@ -197,7 +193,7 @@ static const struct user_regset xtensa_regsets[] = {
- 		.n = sizeof(struct user_pt_regs) / sizeof(u32),
- 		.size = sizeof(u32),
- 		.align = sizeof(u32),
--		.get = gpr_get,
-+		.get2 = gpr_get,
- 		.set = gpr_set,
- 	},
- 	[REGSET_TIE] = {
-@@ -205,7 +201,7 @@ static const struct user_regset xtensa_regsets[] = {
- 		.n = sizeof(elf_xtregs_t) / sizeof(u32),
- 		.size = sizeof(u32),
- 		.align = sizeof(u32),
--		.get = tie_get,
-+		.get2 = tie_get,
- 		.set = tie_set,
- 	},
- };
+> 
+> If possible, it's nice to have git rebase work out which patches to drop
+> for me rather than me doing it by hand.
+
+Yuh, sorry about that. I'l try to do it bette rnext time.
+
+Thanks,
+
+Michael
+
 -- 
-2.11.0
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
