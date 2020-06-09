@@ -1,76 +1,178 @@
-Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:60214 "EHLO mga12.intel.com"
+Return-Path: <SRS0=6fqV=7W=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:59178 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730615AbgFVUJQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jun 2020 16:09:16 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 10/21] KVM: x86/mmu: Make __GFP_ZERO a property of the memory cache
-Date: Mon, 22 Jun 2020 13:08:11 -0700
-Message-ID: <20200622200822.4426-11-sean.j.christopherson@intel.com>
-In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
-References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+        id S1726765AbgFIJ5k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 9 Jun 2020 05:57:40 -0400
+Date: Tue, 9 Jun 2020 10:57:35 +0100
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v2 4/6] prctl.2: Add SVE prctls (arm64)
+Message-ID: <20200609095734.GA25362@willie-the-truck>
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+ <1590614258-24728-5-git-send-email-Dave.Martin@arm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1590614258-24728-5-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200622200811.FbCewep6yR_PAEfPlfNw1UV4Ube7t9Zqj7VHgfIP5k8@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>
+Message-ID: <20200609095735.lOY9Vt0R6_nRjtS1hRKL-RmS1v9DJPg93WiodFwHtvE@z>
 
-Add a gfp_zero flag to 'struct kvm_mmu_memory_cache' and use it to
-control __GFP_ZERO instead of hardcoding a call to kmem_cache_zalloc().
-A future patch needs such a flag for the __get_free_page() path, as
-gfn arrays do not need/want the allocator to zero the memory.  Convert
-the kmem_cache paths to __GFP_ZERO now so as to avoid a weird and
-inconsistent API in the future.
+Hi Dave,
 
-No functional change intended.
+On Wed, May 27, 2020 at 10:17:36PM +0100, Dave Martin wrote:
+> Add documentation for the the PR_SVE_SET_VL and PR_SVE_GET_VL
+> prctls added in Linux 4.15 for arm64.
 
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
----
- arch/x86/include/asm/kvm_host.h | 1 +
- arch/x86/kvm/mmu/mmu.c          | 7 ++++++-
- 2 files changed, 7 insertions(+), 1 deletion(-)
+Looks really good to me, thanks. Just a few comments inline.
 
-diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
-index 376e1653ac41..67b84aa2984e 100644
---- a/arch/x86/include/asm/kvm_host.h
-+++ b/arch/x86/include/asm/kvm_host.h
-@@ -251,6 +251,7 @@ struct kvm_kernel_irq_routing_entry;
-  */
- struct kvm_mmu_memory_cache {
- 	int nobjs;
-+	gfp_t gfp_zero;
- 	struct kmem_cache *kmem_cache;
- 	void *objects[KVM_NR_MEM_OBJS];
- };
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index d245acece3cd..6b0ec9060786 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1063,8 +1063,10 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
- static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
- 					       gfp_t gfp_flags)
- {
-+	gfp_flags |= mc->gfp_zero;
-+
- 	if (mc->kmem_cache)
--		return kmem_cache_zalloc(mc->kmem_cache, gfp_flags);
-+		return kmem_cache_alloc(mc->kmem_cache, gfp_flags);
- 	else
- 		return (void *)__get_free_page(gfp_flags);
- }
-@@ -5680,7 +5682,10 @@ int kvm_mmu_create(struct kvm_vcpu *vcpu)
- 	int ret;
- 
- 	vcpu->arch.mmu_pte_list_desc_cache.kmem_cache = pte_list_desc_cache;
-+	vcpu->arch.mmu_pte_list_desc_cache.gfp_zero = __GFP_ZERO;
-+
- 	vcpu->arch.mmu_page_header_cache.kmem_cache = mmu_page_header_cache;
-+	vcpu->arch.mmu_page_header_cache.gfp_zero = __GFP_ZERO;
- 
- 	vcpu->arch.mmu = &vcpu->arch.root_mmu;
- 	vcpu->arch.walk_mmu = &vcpu->arch.root_mmu;
--- 
-2.26.0
+> diff --git a/man2/prctl.2 b/man2/prctl.2
+> index cab9915..91df7c8 100644
+> --- a/man2/prctl.2
+> +++ b/man2/prctl.2
+> @@ -1291,6 +1291,148 @@ call failing with the error
+>  .BR ENXIO .
+>  For further details, see the kernel source file
+>  .IR Documentation/admin\-guide/kernel\-parameters.txt .
+> +.\" prctl PR_SVE_SET_VL
+> +.\" commit 2d2123bc7c7f843aa9db87720de159a049839862
+> +.\" linux-5.6/Documentation/arm64/sve.rst
+> +.TP
+> +.BR PR_SVE_SET_VL " (since Linux 4.15, only on arm64)"
+> +Configure the thread's SVE vector length,
+> +as specified by
+> +.IR "(int) arg2" .
+> +Arguments
+> +.IR arg3 ", " arg4 " and " arg5
+> +are ignored.
+> +.IP
+> +The bits of
+> +.I arg2
+> +corresponding to
+> +.B PR_SVE_VL_LEN_MASK
+> +must be set to the desired vector length in bytes.
+> +This is interpreted as an upper bound:
+> +the kernel will select the greatest available vector length
+> +that does not exceed the value specified.
+> +In particular, specifying
+> +.B SVE_VL_MAX
+> +(defined in
+> +.I <asm/sigcontext.h>)
+> +for the
+> +.B PR_SVE_VL_LEN_MASK
+> +bits requests the maximum supported vector length.
+> +.IP
+> +In addition,
+> +.I arg2
+> +must be set to one of the following combinations of flags:
+
+How about saying:
+
+  In addition, the other bits of arg2 must be set according to the following
+  combinations of flags:
+
+Otherwise I find it a bit fiddly to read, because it's valid to have
+flags of 0 and a non-zero length.
+
+> +.RS
+> +.TP
+> +.B 0
+> +Perform the change immediately.
+> +At the next
+> +.BR execve (2)
+> +in the thread,
+> +the vector length will be reset to the value configured in
+> +.IR /proc/sys/abi/sve_default_vector_length .
+
+(implementation note: does this mean that 'sve_default_vl' should be
+ an atomic_t, as it can be accessed concurrently? We probably need
+ {READ,WRITE}_ONCE() at the very least, as I'm not seeing any locks
+ that help us here...)
+
+> +.TP
+> +.B PR_SVE_VL_INHERIT
+> +Perform the change immediately.
+> +Subsequent
+> +.BR execve (2)
+> +calls will preserve the new vector length.
+> +.TP
+> +.B PR_SVE_SET_VL_ONEXEC
+> +Defer the change, so that it is performed at the next
+> +.BR execve (2)
+> +in the thread.
+> +Further
+> +.BR execve (2)
+> +calls will reset the vector length to the value configured in
+> +.IR /proc/sys/abi/sve_default_vector_length .
+> +.TP
+> +.B "PR_SVE_SET_VL_ONEXEC | PR_SVE_VL_INHERIT"
+> +Defer the change, so that it is performed at the next
+> +.BR execve (2)
+> +in the thread.
+> +Further
+> +.BR execve (2)
+> +calls will preserve the new vector length.
+> +.RE
+> +.IP
+> +In all cases,
+> +any previously pending deferred change is canceled.
+> +.IP
+> +The call fails with error
+> +.B EINVAL
+> +if SVE is not supported on the platform, if
+> +.I arg2
+> +is unrecognized or invalid, or the value in the bits of
+> +.I arg2
+> +corresponding to
+> +.B PR_SVE_VL_LEN_MASK
+> +is outside the range
+> +.BR SVE_VL_MIN .. SVE_VL_MAX
+> +or is not a multiple of 16.
+> +.IP
+> +On success,
+> +a nonnegative value is returned that describes the
+> +.I selected
+> +configuration,
+
+If I'm reading the kernel code correctly, this is slightly weird, as
+the returned value may contain the PR_SVE_VL_INHERIT flag but it will
+never contain the PR_SVE_SET_VL_ONEXEC flag. Is that right?
+
+If so, maybe just say something like:
+
+  On success, a nonnegative value is returned that describes the selected
+  configuration in the same way as PR_SVE_GET_VL.
+
+> +which may differ from the current configuration if
+> +.B PR_SVE_SET_VL_ONEXEC
+> +was specified.
+> +The value is encoded in the same way as the return value of
+> +.BR PR_SVE_GET_VL .
+> +.IP
+> +The configuration (including any pending deferred change)
+> +is inherited across
+> +.BR fork (2)
+> +and
+> +.BR clone (2).
+> +.IP
+> +.B Warning:
+> +Because the compiler or run-time environment
+> +may be using SVE, using this call without the
+> +.B PR_SVE_SET_VL_ONEXEC
+> +flag may crash the calling process.
+> +The conditions for using it safely are complex and system-dependent.
+> +Don't use it unless you really know what you are doing.
+> +.IP
+> +For more information, see the kernel source file
+> +.I Documentation/arm64/sve.rst
+> +.\"commit b693d0b372afb39432e1c49ad7b3454855bc6bed
+> +(or
+> +.I Documentation/arm64/sve.txt
+> +before Linux 5.3).
+
+I think I'd drop the kernel reference here, as it feels like we're saying
+"only do this if you know what you're doing" on one hand, but then "if you
+don't know what you're doing, see this other documentation" on the other.
+
+Will
