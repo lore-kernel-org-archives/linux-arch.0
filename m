@@ -1,47 +1,58 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43360 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731221AbgF2TM7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:12:59 -0400
-Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2347CC08EB02
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:51 -0700 (PDT)
-Received: by mail-pj1-x1041.google.com with SMTP id b92so7565286pjc.4
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:51 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 08/17] arm64/mm: Remove needless section quotes
-Date: Sun, 28 Jun 2020 23:18:31 -0700
-Message-ID: <20200629061840.4065483-9-keescook@chromium.org>
-In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
-References: <20200629061840.4065483-1-keescook@chromium.org>
+Return-Path: <SRS0=6fqV=7W=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:33844 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726286AbgFIKCH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 9 Jun 2020 06:02:07 -0400
+Date: Tue, 9 Jun 2020 11:02:03 +0100
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH v2 5/6] prctl.2: Add PR_PAC_RESET_KEYS (arm64)
+Message-ID: <20200609100202.GB25362@willie-the-truck>
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+ <1590614258-24728-6-git-send-email-Dave.Martin@arm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1590614258-24728-6-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200629061831.X1Yv1AM8TK6rFrzqLVxTwc-2GVINe5joJcSRYu3lCGk@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Amit Daniel Kachhap <amit.kachhap@arm.com>, Mark Rutland <mark.rutland@arm.com>
+Message-ID: <20200609100203.IfHKuz-jM5YnK4D1qFJUaZoIp7ffdRG8W1lK4JeOyFU@z>
 
-Fix a case of needless quotes in __section(), which Clang doesn't like.
+On Wed, May 27, 2020 at 10:17:37PM +0100, Dave Martin wrote:
+> Add documentation for the PR_PAC_RESET_KEYS ioctl added in Linux
+> 5.0 for arm64.
+
+[...]
+
+> +If the arguments are invalid,
+> +and in particular if
+> +.I arg2
+> +contains set bits that are unrecognized
+> +or that correspond to a key not available on this platform,
+> +the call fails with error
+> +.BR EINVAL .
+> +.IP
+> +.B Warning:
+> +Because the compiler or run-time environment
+> +may be using some or all of the keys,
+> +a successful
+> +.IP
+> +For more information, see the kernel source file
+> +.I Documentation/arm64/pointer\-authentication.rst
+> +.\"commit b693d0b372afb39432e1c49ad7b3454855bc6bed
+> +(or
+> +.I Documentation/arm64/pointer\-authentication.txt
+> +before Linux 5.3).
+> +.B PR_PAC_RESET_KEYS
+> +may crash the calling process.
+
+I might be misreading this, but this looks like the kernel reference appears
+mid-sentence. Regardless, I think we should drop the kernel doc reference,
+as I mentioned on the SVE patches.
+
+With that:
 
 Acked-by: Will Deacon <will@kernel.org>
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/arm64/mm/mmu.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index 1df25f26571d..dce024ea6084 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -42,7 +42,7 @@
- u64 idmap_t0sz = TCR_T0SZ(VA_BITS);
- u64 idmap_ptrs_per_pgd = PTRS_PER_PGD;
- 
--u64 __section(".mmuoff.data.write") vabits_actual;
-+u64 __section(.mmuoff.data.write) vabits_actual;
- EXPORT_SYMBOL(vabits_actual);
- 
- u64 kimage_voffset __ro_after_init;
--- 
-2.25.1
+Will
