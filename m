@@ -1,156 +1,173 @@
-From: Rikard Falkeborn <rikard.falkeborn@gmail.com>
-Subject: [PATCH v3 2/2] bits: Add tests of GENMASK
-Date: Tue,  9 Jun 2020 00:18:23 +0200
-Message-ID: <20200608221823.35799-2-rikard.falkeborn@gmail.com>
-References: <20200608184222.GA899@rikard>
- <20200608221823.35799-1-rikard.falkeborn@gmail.com>
+From: Will Deacon <will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Subject: Re: [PATCH v2 4/6] prctl.2: Add SVE prctls (arm64)
+Date: Tue, 9 Jun 2020 10:57:35 +0100
+Message-ID: <20200609095734.GA25362@willie-the-truck>
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+ <1590614258-24728-5-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58402 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726723AbgFHWSd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jun 2020 18:18:33 -0400
-In-Reply-To: <20200608221823.35799-1-rikard.falkeborn@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: rikard.falkeborn@gmail.com
-Cc: akpm@linux-foundation.org, andy.shevchenko@gmail.com, arnd@arndb.de, emil.l.velikov@gmail.com, geert@linux-m68k.org, keescook@chromium.org, linus.walleij@linaro.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lkp@intel.com, syednwaris@gmail.com, vilhelm.gray@gmail.com, yamada.masahiro@socionext.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <1590614258-24728-5-git-send-email-Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Cc: Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-Add tests of GENMASK and GENMASK_ULL.
+Hi Dave,
 
-A few test cases that should fail compilation are provided
-under #ifdef TEST_GENMASK_FAILURES
+On Wed, May 27, 2020 at 10:17:36PM +0100, Dave Martin wrote:
+> Add documentation for the the PR_SVE_SET_VL and PR_SVE_GET_VL
+> prctls added in Linux 4.15 for arm64.
 
-Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Signed-off-by: Rikard Falkeborn <rikard.falkeborn@gmail.com>
----
-I did not move it to test_bitops.c, because I think it makes more sense
-that test_bitops.c tests bitops.h and test_bits.c tests bits.h, but if
-you disagree, I can move it.
+Looks really good to me, thanks. Just a few comments inline.
 
-v2-v3
-Updated commit message and ifdef after suggestion fron Geert. Also fixed
-a typo in the description of the file.
+> diff --git a/man2/prctl.2 b/man2/prctl.2
+> index cab9915..91df7c8 100644
+> --- a/man2/prctl.2
+> +++ b/man2/prctl.2
+> @@ -1291,6 +1291,148 @@ call failing with the error
+>  .BR ENXIO .
+>  For further details, see the kernel source file
+>  .IR Documentation/admin\-guide/kernel\-parameters.txt .
+> +.\" prctl PR_SVE_SET_VL
+> +.\" commit 2d2123bc7c7f843aa9db87720de159a049839862
+> +.\" linux-5.6/Documentation/arm64/sve.rst
+> +.TP
+> +.BR PR_SVE_SET_VL " (since Linux 4.15, only on arm64)"
+> +Configure the thread's SVE vector length,
+> +as specified by
+> +.IR "(int) arg2" .
+> +Arguments
+> +.IR arg3 ", " arg4 " and " arg5
+> +are ignored.
+> +.IP
+> +The bits of
+> +.I arg2
+> +corresponding to
+> +.B PR_SVE_VL_LEN_MASK
+> +must be set to the desired vector length in bytes.
+> +This is interpreted as an upper bound:
+> +the kernel will select the greatest available vector length
+> +that does not exceed the value specified.
+> +In particular, specifying
+> +.B SVE_VL_MAX
+> +(defined in
+> +.I <asm/sigcontext.h>)
+> +for the
+> +.B PR_SVE_VL_LEN_MASK
+> +bits requests the maximum supported vector length.
+> +.IP
+> +In addition,
+> +.I arg2
+> +must be set to one of the following combinations of flags:
 
-v1-v2
-New patch.
+How about saying:
 
- lib/Kconfig.debug | 11 +++++++
- lib/Makefile      |  1 +
- lib/test_bits.c   | 73 +++++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 85 insertions(+)
- create mode 100644 lib/test_bits.c
+  In addition, the other bits of arg2 must be set according to the following
+  combinations of flags:
 
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 333e878d8af9..9557cb570fb9 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -2182,6 +2182,17 @@ config LINEAR_RANGES_TEST
- 
- 	  If unsure, say N.
- 
-+config BITS_TEST
-+	tristate "KUnit test for bits.h"
-+	depends on KUNIT
-+	help
-+	  This builds the bits unit test.
-+	  Tests the logic of macros defined in bits.h.
-+	  For more information on KUnit and unit tests in general please refer
-+	  to the KUnit documentation in Documentation/dev-tools/kunit/.
-+
-+	  If unsure, say N.
-+
- config TEST_UDELAY
- 	tristate "udelay test driver"
- 	help
-diff --git a/lib/Makefile b/lib/Makefile
-index 315516fa4ef4..2ce9892e3e63 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -314,3 +314,4 @@ obj-$(CONFIG_OBJAGG) += objagg.o
- # KUnit tests
- obj-$(CONFIG_LIST_KUNIT_TEST) += list-test.o
- obj-$(CONFIG_LINEAR_RANGES_TEST) += test_linear_ranges.o
-+obj-$(CONFIG_BITS_TEST) += test_bits.o
-diff --git a/lib/test_bits.c b/lib/test_bits.c
-new file mode 100644
-index 000000000000..e2fcf24463bf
---- /dev/null
-+++ b/lib/test_bits.c
-@@ -0,0 +1,73 @@
-+// SPDX-License-Identifier: GPL-2.0+
-+/*
-+ * Test cases for functions and macros in bits.h
-+ */
-+
-+#include <kunit/test.h>
-+#include <linux/bits.h>
-+
-+
-+void genmask_test(struct kunit *test)
-+{
-+	KUNIT_EXPECT_EQ(test, 1ul, GENMASK(0, 0));
-+	KUNIT_EXPECT_EQ(test, 3ul, GENMASK(1, 0));
-+	KUNIT_EXPECT_EQ(test, 6ul, GENMASK(2, 1));
-+	KUNIT_EXPECT_EQ(test, 0xFFFFFFFFul, GENMASK(31, 0));
-+
-+#ifdef TEST_GENMASK_FAILURES
-+	/* these should fail compilation */
-+	GENMASK(0, 1);
-+	GENMASK(0, 10);
-+	GENMASK(9, 10);
-+#endif
-+
-+
-+}
-+
-+void genmask_ull_test(struct kunit *test)
-+{
-+	KUNIT_EXPECT_EQ(test, 1ull, GENMASK_ULL(0, 0));
-+	KUNIT_EXPECT_EQ(test, 3ull, GENMASK_ULL(1, 0));
-+	KUNIT_EXPECT_EQ(test, 0x000000ffffe00000ull, GENMASK_ULL(39, 21));
-+	KUNIT_EXPECT_EQ(test, 0xffffffffffffffffull, GENMASK_ULL(63, 0));
-+
-+#ifdef TEST_GENMASK_FAILURES
-+	/* these should fail compilation */
-+	GENMASK_ULL(0, 1);
-+	GENMASK_ULL(0, 10);
-+	GENMASK_ULL(9, 10);
-+#endif
-+}
-+
-+void genmask_input_check_test(struct kunit *test)
-+{
-+	unsigned int x, y;
-+	int z, w;
-+
-+	/* Unknown input */
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(x, 0));
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(0, x));
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(x, y));
-+
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(z, 0));
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(0, z));
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(z, w));
-+
-+	/* Valid input */
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(1, 1));
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(39, 21));
-+}
-+
-+
-+static struct kunit_case bits_test_cases[] = {
-+	KUNIT_CASE(genmask_test),
-+	KUNIT_CASE(genmask_ull_test),
-+	KUNIT_CASE(genmask_input_check_test),
-+	{}
-+};
-+
-+static struct kunit_suite bits_test_suite = {
-+	.name = "bits-test",
-+	.test_cases = bits_test_cases,
-+};
-+kunit_test_suite(bits_test_suite);
--- 
-2.27.0
+Otherwise I find it a bit fiddly to read, because it's valid to have
+flags of 0 and a non-zero length.
+
+> +.RS
+> +.TP
+> +.B 0
+> +Perform the change immediately.
+> +At the next
+> +.BR execve (2)
+> +in the thread,
+> +the vector length will be reset to the value configured in
+> +.IR /proc/sys/abi/sve_default_vector_length .
+
+(implementation note: does this mean that 'sve_default_vl' should be
+ an atomic_t, as it can be accessed concurrently? We probably need
+ {READ,WRITE}_ONCE() at the very least, as I'm not seeing any locks
+ that help us here...)
+
+> +.TP
+> +.B PR_SVE_VL_INHERIT
+> +Perform the change immediately.
+> +Subsequent
+> +.BR execve (2)
+> +calls will preserve the new vector length.
+> +.TP
+> +.B PR_SVE_SET_VL_ONEXEC
+> +Defer the change, so that it is performed at the next
+> +.BR execve (2)
+> +in the thread.
+> +Further
+> +.BR execve (2)
+> +calls will reset the vector length to the value configured in
+> +.IR /proc/sys/abi/sve_default_vector_length .
+> +.TP
+> +.B "PR_SVE_SET_VL_ONEXEC | PR_SVE_VL_INHERIT"
+> +Defer the change, so that it is performed at the next
+> +.BR execve (2)
+> +in the thread.
+> +Further
+> +.BR execve (2)
+> +calls will preserve the new vector length.
+> +.RE
+> +.IP
+> +In all cases,
+> +any previously pending deferred change is canceled.
+> +.IP
+> +The call fails with error
+> +.B EINVAL
+> +if SVE is not supported on the platform, if
+> +.I arg2
+> +is unrecognized or invalid, or the value in the bits of
+> +.I arg2
+> +corresponding to
+> +.B PR_SVE_VL_LEN_MASK
+> +is outside the range
+> +.BR SVE_VL_MIN .. SVE_VL_MAX
+> +or is not a multiple of 16.
+> +.IP
+> +On success,
+> +a nonnegative value is returned that describes the
+> +.I selected
+> +configuration,
+
+If I'm reading the kernel code correctly, this is slightly weird, as
+the returned value may contain the PR_SVE_VL_INHERIT flag but it will
+never contain the PR_SVE_SET_VL_ONEXEC flag. Is that right?
+
+If so, maybe just say something like:
+
+  On success, a nonnegative value is returned that describes the selected
+  configuration in the same way as PR_SVE_GET_VL.
+
+> +which may differ from the current configuration if
+> +.B PR_SVE_SET_VL_ONEXEC
+> +was specified.
+> +The value is encoded in the same way as the return value of
+> +.BR PR_SVE_GET_VL .
+> +.IP
+> +The configuration (including any pending deferred change)
+> +is inherited across
+> +.BR fork (2)
+> +and
+> +.BR clone (2).
+> +.IP
+> +.B Warning:
+> +Because the compiler or run-time environment
+> +may be using SVE, using this call without the
+> +.B PR_SVE_SET_VL_ONEXEC
+> +flag may crash the calling process.
+> +The conditions for using it safely are complex and system-dependent.
+> +Don't use it unless you really know what you are doing.
+> +.IP
+> +For more information, see the kernel source file
+> +.I Documentation/arm64/sve.rst
+> +.\"commit b693d0b372afb39432e1c49ad7b3454855bc6bed
+> +(or
+> +.I Documentation/arm64/sve.txt
+> +before Linux 5.3).
+
+I think I'd drop the kernel reference here, as it feels like we're saying
+"only do this if you know what you're doing" on one hand, but then "if you
+don't know what you're doing, see this other documentation" on the other.
+
+Will
