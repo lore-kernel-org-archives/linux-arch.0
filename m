@@ -1,168 +1,181 @@
-Return-Path: <SRS0=ZIJQ=7T=kvack.org=owner-linux-mm@kernel.org>
-From: Bibo Mao <maobibo@loongson.cn>
-Subject: [PATCH v2 1/2] MIPS: Set page access bit with pgprot on platforms with RIXI
-Date: Sat,  6 Jun 2020 12:02:48 +0800
-Message-ID: <1591416169-26666-1-git-send-email-maobibo@loongson.cn>
-Sender: owner-linux-mm@kvack.org
-To: Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Andrew Morton <akpm@linux-foundation.org>, Paul Burton <paulburton@kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>
-Cc: linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Return-Path: <SRS0=6fqV=7W=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44618 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728051AbgFIMFq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2020 08:05:46 -0400
+From: Joerg Roedel <joro@8bytes.org>
+Subject: [PATCH] mm: Move p?d_alloc_track to separate header file
+Date: Tue,  9 Jun 2020 14:05:33 +0200
+Message-ID: <20200609120533.25867-1-joro@8bytes.org>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200606040248.OKxiKuPYfb0078FRRlOvMJsxm4Ejx_heMKvh-uA0_f4@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: peterz@infradead.org, jroedel@suse.de, Andy Lutomirski <luto@kernel.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, manvanth@linux.vnet.ibm.com, linux-next@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Mike Rapoport <rppt@linux.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, hch@lst.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20200609120533.NvPIhh28JAaL8ozi2QZ4F5JpuDBtACyc4Ql2pQLf1I0@z>
 
-On MIPS system which has rixi hardware bit, page access bit is not
-set in pgrot. For memory reading, there will be one page fault to
-allocate physical page; however valid bit is not set, there will
-be the second fast tlb-miss fault handling to set valid/access bit.
+From: Joerg Roedel <jroedel@suse.de>
 
-This patch set page access/valid bit with pgrot if there is reading
-access privilege. It will reduce one tlb-miss handling for memory
-reading access.
+The functions are only used in two source files, so there is no need
+for them to be in the global <linux/mm.h> header. Move them to the new
+<linux/pgalloc-track.h> header and include it only where needed.
 
-The valid/access bit will be cleared in order to track memory
-accessing activity. If the page is accessed, tlb-miss fast handling
-will set valid/access bit, pte_sw_mkyoung is not necessary in slow
-page fault path. This patch removes pte_sw_mkyoung function which
-is defined as empty function except MIPS system.
-
-Signed-off-by: Bibo Mao <maobibo@loongson.cn>
-Acked-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Joerg Roedel <jroedel@suse.de>
 ---
-v2:
-- refine commit log title
----
- arch/mips/include/asm/pgtable.h | 10 ++++++++--
- arch/mips/mm/cache.c            | 34 +++++++++++++++++-----------------
- include/asm-generic/pgtable.h   | 16 ----------------
- mm/memory.c                     |  3 ---
- 4 files changed, 25 insertions(+), 38 deletions(-)
+ include/linux/mm.h            | 45 -------------------------------
+ include/linux/pgalloc-track.h | 51 +++++++++++++++++++++++++++++++++++
+ lib/ioremap.c                 |  1 +
+ mm/vmalloc.c                  |  1 +
+ 4 files changed, 53 insertions(+), 45 deletions(-)
+ create mode 100644 include/linux/pgalloc-track.h
 
-diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
-index 85b39c9..d066469 100644
---- a/arch/mips/include/asm/pgtable.h
-+++ b/arch/mips/include/asm/pgtable.h
-@@ -25,6 +25,14 @@
- struct mm_struct;
- struct vm_area_struct;
- 
-+#define __PP	_PAGE_PRESENT
-+#define __NX	_PAGE_NO_EXEC
-+#define __NR	_PAGE_NO_READ
-+#define ___W	_PAGE_WRITE
-+#define ___A	_PAGE_ACCESSED
-+#define ___R	(_PAGE_SILENT_READ | _PAGE_ACCESSED)
-+#define __PC	_page_cachable_default
-+
- #define PAGE_NONE	__pgprot(_PAGE_PRESENT | _PAGE_NO_READ | \
- 				 _page_cachable_default)
- #define PAGE_SHARED	__pgprot(_PAGE_PRESENT | _PAGE_WRITE | \
-@@ -414,8 +422,6 @@ static inline pte_t pte_mkyoung(pte_t pte)
- 	return pte;
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 9d6042178ca7..22d8b2a2c9bc 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -2092,51 +2092,11 @@ static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
+ 		NULL : pud_offset(p4d, address);
  }
  
--#define pte_sw_mkyoung	pte_mkyoung
+-static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
+-				     unsigned long address,
+-				     pgtbl_mod_mask *mod_mask)
 -
- #ifdef CONFIG_MIPS_HUGE_TLB_SUPPORT
- static inline int pte_huge(pte_t pte)	{ return pte_val(pte) & _PAGE_HUGE; }
- 
-diff --git a/arch/mips/mm/cache.c b/arch/mips/mm/cache.c
-index ad6df1c..f814e43 100644
---- a/arch/mips/mm/cache.c
-+++ b/arch/mips/mm/cache.c
-@@ -158,23 +158,23 @@ void __update_cache(unsigned long address, pte_t pte)
- static inline void setup_protection_map(void)
- {
- 	if (cpu_has_rixi) {
--		protection_map[0]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
--		protection_map[1]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
--		protection_map[2]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
--		protection_map[3]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
--		protection_map[4]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
--		protection_map[5]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
--		protection_map[6]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
--		protection_map[7]  = __pgprot(_page_cachable_default | _PAGE_PRESENT);
--
--		protection_map[8]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_NO_READ);
--		protection_map[9]  = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC);
--		protection_map[10] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_WRITE | _PAGE_NO_READ);
--		protection_map[11] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_WRITE);
--		protection_map[12] = __pgprot(_page_cachable_default | _PAGE_PRESENT);
--		protection_map[13] = __pgprot(_page_cachable_default | _PAGE_PRESENT);
--		protection_map[14] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_WRITE);
--		protection_map[15] = __pgprot(_page_cachable_default | _PAGE_PRESENT | _PAGE_WRITE);
-+		protection_map[0]  = __pgprot(__PC | __PP | __NX | __NR);
-+		protection_map[1]  = __pgprot(__PC | __PP | __NX | ___R);
-+		protection_map[2]  = __pgprot(__PC | __PP | __NX | __NR);
-+		protection_map[3]  = __pgprot(__PC | __PP | __NX | ___R);
-+		protection_map[4]  = __pgprot(__PC | __PP | ___R);
-+		protection_map[5]  = __pgprot(__PC | __PP | ___R);
-+		protection_map[6]  = __pgprot(__PC | __PP | ___R);
-+		protection_map[7]  = __pgprot(__PC | __PP | ___R);
-+
-+		protection_map[8]  = __pgprot(__PC | __PP | __NX | __NR);
-+		protection_map[9]  = __pgprot(__PC | __PP | __NX | ___R);
-+		protection_map[10] = __pgprot(__PC | __PP | __NX | ___W | __NR);
-+		protection_map[11] = __pgprot(__PC | __PP | __NX | ___W | ___R);
-+		protection_map[12] = __pgprot(__PC | __PP | ___R);
-+		protection_map[13] = __pgprot(__PC | __PP | ___R);
-+		protection_map[14] = __pgprot(__PC | __PP | ___W | ___R);
-+		protection_map[15] = __pgprot(__PC | __PP | ___W | ___R);
- 
- 	} else {
- 		protection_map[0] = PAGE_NONE;
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index b5278ec..fa5c73f 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -244,22 +244,6 @@ static inline void ptep_set_wrprotect(struct mm_struct *mm, unsigned long addres
- }
- #endif
- 
--/*
-- * On some architectures hardware does not set page access bit when accessing
-- * memory page, it is responsibilty of software setting this bit. It brings
-- * out extra page fault penalty to track page access bit. For optimization page
-- * access bit can be set during all page fault flow on these arches.
-- * To be differentiate with macro pte_mkyoung, this macro is used on platforms
-- * where software maintains page access bit.
-- */
--#ifndef pte_sw_mkyoung
--static inline pte_t pte_sw_mkyoung(pte_t pte)
 -{
--	return pte;
--}
--#define pte_sw_mkyoung	pte_sw_mkyoung
--#endif
+-	if (unlikely(pgd_none(*pgd))) {
+-		if (__p4d_alloc(mm, pgd, address))
+-			return NULL;
+-		*mod_mask |= PGTBL_PGD_MODIFIED;
+-	}
 -
- #ifndef pte_savedwrite
- #define pte_savedwrite pte_write
- #endif
-diff --git a/mm/memory.c b/mm/memory.c
-index c7c8960..8bb31c4 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -2704,7 +2704,6 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
- 		}
- 		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
- 		entry = mk_pte(new_page, vma->vm_page_prot);
--		entry = pte_sw_mkyoung(entry);
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
- 		/*
- 		 * Clear the pte entry and flush it first, before updating the
-@@ -3379,7 +3378,6 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
- 	__SetPageUptodate(page);
+-	return p4d_offset(pgd, address);
+-}
+-
+-static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
+-				     unsigned long address,
+-				     pgtbl_mod_mask *mod_mask)
+-{
+-	if (unlikely(p4d_none(*p4d))) {
+-		if (__pud_alloc(mm, p4d, address))
+-			return NULL;
+-		*mod_mask |= PGTBL_P4D_MODIFIED;
+-	}
+-
+-	return pud_offset(p4d, address);
+-}
+-
+ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
+ {
+ 	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address))?
+ 		NULL: pmd_offset(pud, address);
+ }
+-
+-static inline pmd_t *pmd_alloc_track(struct mm_struct *mm, pud_t *pud,
+-				     unsigned long address,
+-				     pgtbl_mod_mask *mod_mask)
+-{
+-	if (unlikely(pud_none(*pud))) {
+-		if (__pmd_alloc(mm, pud, address))
+-			return NULL;
+-		*mod_mask |= PGTBL_PUD_MODIFIED;
+-	}
+-
+-	return pmd_offset(pud, address);
+-}
+ #endif /* CONFIG_MMU */
  
- 	entry = mk_pte(page, vma->vm_page_prot);
--	entry = pte_sw_mkyoung(entry);
- 	if (vma->vm_flags & VM_WRITE)
- 		entry = pte_mkwrite(pte_mkdirty(entry));
+ #if USE_SPLIT_PTE_PTLOCKS
+@@ -2252,11 +2212,6 @@ static inline void pgtable_pte_page_dtor(struct page *page)
+ 	((unlikely(pmd_none(*(pmd))) && __pte_alloc_kernel(pmd))? \
+ 		NULL: pte_offset_kernel(pmd, address))
  
-@@ -3662,7 +3660,6 @@ vm_fault_t alloc_set_pte(struct vm_fault *vmf, struct mem_cgroup *memcg,
+-#define pte_alloc_kernel_track(pmd, address, mask)			\
+-	((unlikely(pmd_none(*(pmd))) &&					\
+-	  (__pte_alloc_kernel(pmd) || ({*(mask)|=PGTBL_PMD_MODIFIED;0;})))?\
+-		NULL: pte_offset_kernel(pmd, address))
+-
+ #if USE_SPLIT_PMD_PTLOCKS
  
- 	flush_icache_page(vma, page);
- 	entry = mk_pte(page, vma->vm_page_prot);
--	entry = pte_sw_mkyoung(entry);
- 	if (write)
- 		entry = maybe_mkwrite(pte_mkdirty(entry), vma);
- 	/* copy-on-write page */
+ static struct page *pmd_to_page(pmd_t *pmd)
+diff --git a/include/linux/pgalloc-track.h b/include/linux/pgalloc-track.h
+new file mode 100644
+index 000000000000..1dcc865029a2
+--- /dev/null
++++ b/include/linux/pgalloc-track.h
+@@ -0,0 +1,51 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _LINUX_PGALLLC_TRACK_H
++#define _LINUX_PGALLLC_TRACK_H
++
++#if defined(CONFIG_MMU)
++static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
++				     unsigned long address,
++				     pgtbl_mod_mask *mod_mask)
++{
++	if (unlikely(pgd_none(*pgd))) {
++		if (__p4d_alloc(mm, pgd, address))
++			return NULL;
++		*mod_mask |= PGTBL_PGD_MODIFIED;
++	}
++
++	return p4d_offset(pgd, address);
++}
++
++static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
++				     unsigned long address,
++				     pgtbl_mod_mask *mod_mask)
++{
++	if (unlikely(p4d_none(*p4d))) {
++		if (__pud_alloc(mm, p4d, address))
++			return NULL;
++		*mod_mask |= PGTBL_P4D_MODIFIED;
++	}
++
++	return pud_offset(p4d, address);
++}
++
++static inline pmd_t *pmd_alloc_track(struct mm_struct *mm, pud_t *pud,
++				     unsigned long address,
++				     pgtbl_mod_mask *mod_mask)
++{
++	if (unlikely(pud_none(*pud))) {
++		if (__pmd_alloc(mm, pud, address))
++			return NULL;
++		*mod_mask |= PGTBL_PUD_MODIFIED;
++	}
++
++	return pmd_offset(pud, address);
++}
++#endif /* CONFIG_MMU */
++
++#define pte_alloc_kernel_track(pmd, address, mask)			\
++	((unlikely(pmd_none(*(pmd))) &&					\
++	  (__pte_alloc_kernel(pmd) || ({*(mask)|=PGTBL_PMD_MODIFIED;0;})))?\
++		NULL: pte_offset_kernel(pmd, address))
++
++#endif /* _LINUX_PGALLLC_TRACK_H */
+diff --git a/lib/ioremap.c b/lib/ioremap.c
+index ad485f08173b..608fcccd21c8 100644
+--- a/lib/ioremap.c
++++ b/lib/ioremap.c
+@@ -11,6 +11,7 @@
+ #include <linux/sched.h>
+ #include <linux/io.h>
+ #include <linux/export.h>
++#include <linux/pgalloc-track.h>
+ #include <asm/cacheflush.h>
+ #include <asm/pgtable.h>
+ 
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 3091c2ca60df..edc43f003165 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -35,6 +35,7 @@
+ #include <linux/bitops.h>
+ #include <linux/rbtree_augmented.h>
+ #include <linux/overflow.h>
++#include <linux/pgalloc-track.h>
+ 
+ #include <linux/uaccess.h>
+ #include <asm/tlbflush.h>
 -- 
-1.8.3.1
+2.26.2
