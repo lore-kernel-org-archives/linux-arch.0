@@ -1,82 +1,236 @@
-Return-Path: <SRS0=o+GD=73=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37556 "EHLO
+Return-Path: <SRS0=6fqV=7W=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35160 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727928AbgFNXHT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 Jun 2020 19:07:19 -0400
-Subject: Re: Good idea to rename files in include/uapi/ ?
-References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
- <20200614223456.13807a00@redhat.com>
-From: "Alexander A. Klimov" <grandmaster@al2klimov.de>
-Message-ID: <5033402c-d95c-eecd-db84-75195b159fab@al2klimov.de>
-Date: Mon, 15 Jun 2020 01:07:10 +0200
+        with ESMTP id S1727002AbgFILE1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2020 07:04:27 -0400
+Subject: Re: [RFC PATCH v2 6/6] prctl.2: Add tagged address ABI control prctls
+ (arm64)
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+ <1590614258-24728-7-git-send-email-Dave.Martin@arm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Message-ID: <88ac761e-64b3-e1e3-3cdc-1f413a6d69d6@gmail.com>
+Date: Tue, 9 Jun 2020 13:04:25 +0200
 MIME-Version: 1.0
-In-Reply-To: <20200614223456.13807a00@redhat.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
+In-Reply-To: <1590614258-24728-7-git-send-email-Dave.Martin@arm.com>
+Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stefano Brivio <sbrivio@redhat.com>
-Cc: Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200614230710.iVYKMmsYCS6LdYFWecNJIi8R0vtQF3U71MWgjhG0W58@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <20200609110425.G1g23-e1FvIdYwKln_IA-Bf4VHvNpvGF13AXMXIspnc@z>
+
+Hey folks,
+
+Do we have any review comments for this (extensive!) patch from Dave?
+
+Cheers,
+
+Michael
 
 
-
-Am 14.06.20 um 22:34 schrieb Stefano Brivio:
-> On Sun, 14 Jun 2020 21:41:17 +0200
-> "Alexander A. Klimov" <grandmaster@al2klimov.de> wrote:
+On 5/27/20 11:17 PM, Dave Martin wrote:
+> ** This patch is a draft for review and should not be applied before it
+>    has been discussed. **
 > 
->> Hello there!
->>
->> At the moment one can't checkout a clean working directory w/o any
->> changed files on a case-insensitive FS as the following file names have
->> lower-case duplicates:
+> Add documentation for the the PR_SET_TAGGED_ADDR_CTRL and
+> PR_GET_TAGGED_ADDR_CTRL prctls added in Linux 5.4 for arm64.
 > 
-> They are not duplicates: matching extensions are lowercase, target
-> extensions are uppercase. DSCP is the extension to set DSCP bits, dscp
-> is the extension to match on those packet bits.
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>
+> ---
 > 
->> ➜  linux git:(96144c58abe7) git ls-files |sort -f |uniq -id
->> include/uapi/linux/netfilter/xt_CONNMARK.h
->> include/uapi/linux/netfilter/xt_DSCP.h
->> include/uapi/linux/netfilter/xt_MARK.h
->> include/uapi/linux/netfilter/xt_RATEEST.h
->> include/uapi/linux/netfilter/xt_TCPMSS.h
->> include/uapi/linux/netfilter_ipv4/ipt_ECN.h
->> include/uapi/linux/netfilter_ipv4/ipt_TTL.h
->> include/uapi/linux/netfilter_ipv6/ip6t_HL.h
->> net/netfilter/xt_DSCP.c
->> net/netfilter/xt_HL.c
->> net/netfilter/xt_RATEEST.c
->> net/netfilter/xt_TCPMSS.c
->> tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus
->> ➜  linux git:(96144c58abe7)
->>
->> Also even on a case-sensitive one VIm seems to have trouble with editing
->> both case-insensitively equal files at the same time.
+>  man2/prctl.2 | 156 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+>  1 file changed, 156 insertions(+)
 > 
-> ...what trouble exactly?
-vi -O2 include/uapi/linux/netfilter/xt_CONNMARK.h 
-include/uapi/linux/netfilter/xt_connmark.h
+> diff --git a/man2/prctl.2 b/man2/prctl.2
+> index 3ee2702..062fd51 100644
+> --- a/man2/prctl.2
+> +++ b/man2/prctl.2
+> @@ -1504,6 +1504,143 @@ For more information, see the kernel source file
+>  (or
+>  .I Documentation/arm64/sve.txt
+>  before Linux 5.3).
+> +.\" prctl PR_SET_TAGGED_ADDR_CTRL
+> +.\" commit 63f0c60379650d82250f22e4cf4137ef3dc4f43d
+> +.TP
+> +.BR PR_SET_TAGGED_ADDR_CTRL " (since Linux 5.4, only on arm64)"
+> +Controls support for passing tagged userspace addresses to the kernel
+> +(i.e., addresses where bits 56\(em63 are not all zero).
+> +.IP
+> +The level of support is selected by
+> +.IR "(unsigned int) arg2" ,
+> +which can be one of the following:
+> +.RS
+> +.TP
+> +.B 0
+> +Addresses that are passed
+> +for the purpose of being dereferenced by the kernel
+> +must be untagged.
+> +.TP
+> +.B PR_TAGGED_ADDR_ENABLE
+> +Addresses that are passed
+> +for the purpose of being dereferenced by the kernel
+> +may be tagged, with the exceptions summarized below.
+> +.RE
+> +.IP
+> +The remaining arguments
+> +.IR arg3 ", " arg4 " and " arg5
+> +must all be zero.
+> +.IP
+> +On success, the mode specified in
+> +.I arg2
+> +is set for the calling thread and the the return value is 0.
+> +If the arguments are invalid,
+> +the mode specified in
+> +.I arg2
+> +is unrecognized,
+> +or if this feature is disabled or unsupported by the kernel,
+> +the call fails with
+> +.BR EINVAL .
+> +.IP
+> +In particular, if
+> +.BR prctl ( PR_SET_TAGGED_ADDR_CTRL ,
+> +0, 0, 0, 0)
+> +fails with
+> +.B EINVAL
+> +then all addresses passed to the kernel must be untagged.
+> +.IP
+> +Irrespective of which mode is set,
+> +addresses passed to certain interfaces
+> +must always be untagged:
+> +.RS
+> +.IP \(em
+> +.BR brk (2),
+> +.BR mmap (2),
+> +.BR shmat (2),
+> +and the
+> +.I new_address
+> +argument of
+> +.BR mremap (2).
+> +.IP
+> +(Prior to Linux 5.6 these accepted tagged addresses,
+> +but the behaviour may not be what you expect.
+> +Don't rely on it.)
+> +.IP \(em
+> +\(oqpolymorphic\(cq interfaces
+> +that accept pointers to arbitrary types cast to a
+> +.I void *
+> +or other generic type, specifically
+> +.BR prctl (2),
+> +.BR ioctl (2),
+> +and in general
+> +.BR setsockopt (2)
+> +(only certain specific
+> +.BR setsockopt (2)
+> +options allow tagged addresses).
+> +.IP \(em
+> +.BR shmdt (2).
+> +.RE
+> +.IP
+> +This list of exclusions may shrink
+> +when moving from one kernel version to a later kernel version.
+> +While the kernel may make some guarantees
+> +for backwards compatibility reasons,
+> +for the purposes of new software
+> +the effect of passing tagged addresses to these interfaces
+> +is unspecified.
+> +.IP
+> +The mode set by this call is inherited across
+> +.BR fork (2)
+> +and
+> +.BR clone (2).
+> +The mode is reset by
+> +.BR execve (2)
+> +to 0
+> +(i.e., tagged addresses not permitted in the user/kernel ABI).
+> +.IP
+> +.B Warning:
+> +Because the compiler or run-time environment
+> +may make use of address tagging,
+> +a successful
+> +.B PR_SET_TAGGED_ADDR_CTRL
+> +may crash the calling process.
+> +The conditions for using it safely are complex and system-dependent.
+> +Don't use it unless you know what you are doing.
+> +.IP
+> +For more information, see the kernel source file
+> +.IR Documentation/arm64/tagged\-address\-abi.rst .
+> +.\" prctl PR_GET_TAGGED_ADDR_CTRL
+> +.\" commit 63f0c60379650d82250f22e4cf4137ef3dc4f43d
+> +.TP
+> +.BR PR_GET_TAGGED_ADDR_CTRL " (since Linux 5.4, only on arm64)"
+> +Returns the current tagged address mode
+> +for the calling thread.
+> +.IP
+> +Arguments
+> +.IR arg2 ", " arg3 ", " arg4 " and " arg5
+> +must all be zero.
+> +.IP
+> +If the arguments are invalid
+> +or this feature is disabled or unsupported by the kernel,
+> +the call fails with
+> +.BR EINVAL .
+> +In particular, if
+> +.BR prctl ( PR_GET_TAGGED_ADDR_CTRL ,
+> +0, 0, 0, 0)
+> +fails with
+> +.BR EINVAL ,
+> +then this feature is definitely unsupported or disabled,
+> +and all addresses passed to the kernel must be untagged.
+> +.IP
+> +Otherwise, the call returns a nonnegative value
+> +describing the current tagged address mode,
+> +encoded in the same way as the
+> +.I arg2
+> +argument of
+> +.BR PR_SET_TAGGED_ADDR_CTRL .
+> +.IP
+> +For more information, see the kernel source file
+> +.IR Documentation/arm64/tagged\-address\-abi.rst .
+>  .\"
+>  .\" prctl PR_TASK_PERF_EVENTS_DISABLE
+>  .TP
+> @@ -1749,6 +1886,7 @@ On success,
+>  .BR PR_GET_SPECULATION_CTRL ,
+>  .BR PR_SVE_GET_VL ,
+>  .BR PR_SVE_SET_VL ,
+> +.BR PR_GET_TAGGED_ADDR_CTRL ,
+>  .BR PR_GET_THP_DISABLE ,
+>  .BR PR_GET_TIMING ,
+>  .BR PR_GET_TIMERSLACK ,
+> @@ -2057,6 +2195,24 @@ is
+>  .B PR_SVE_GET_VL
+>  and SVE is not available on this platform.
+>  .TP
+> +.B EINVAL
+> +.I option
+> +is
+> +.BR PR_SET_TAGGED_ADDR_CTRL
+> +and the arguments are invalid or unsupported.
+> +See the description of
+> +.B PR_SET_TAGGED_ADDR_CTRL
+> +above for details.
+> +.TP
+> +.B EINVAL
+> +.I option
+> +is
+> +.BR PR_GET_TAGGED_ADDR_CTRL
+> +and the arguments are invalid or unsupported.
+> +See the description of
+> +.B PR_GET_TAGGED_ADDR_CTRL
+> +above for details.
+> +.TP
+>  .B ENODEV
+>  .I option
+>  was
+> 
 
-... opens the first file two times.
 
-> 
->> I was going to make a patch renaming the respective duplicates, but I'm
->> not sure:
->>
->> *Is it a good idea to rename files in include/uapi/ ?*
-> 
-> I'm not sure it's a good idea to even use git on a case-insensitive
-> filesystem. I'm curious, what is your use case?
-My MacOS workstation. Now as I discovered the problem I've created a r/w 
-image with a c/s FS, but the need of that for a clean `git checkout .' 
-is IMAO pretty silly.
-
-Don't worry, I run Linux, but only on my servers.
-
-Also this issue should also apply to M$ Windows workstations. By the way 
-at work I actually use Git on Windows if needed and it also just works. 
-However the software I work on doesn't have this issue.
-
-> 
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
