@@ -1,72 +1,72 @@
-Return-Path: <SRS0=6RCf=AL=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:60194 "EHLO foss.arm.com"
+Return-Path: <SRS0=dRn0=7X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:33814 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726710AbgF3Dx6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 29 Jun 2020 23:53:58 -0400
-Subject: Re: [PATCH V3 0/4] mm/debug_vm_pgtable: Add some more tests
-References: <1592192277-8421-1-git-send-email-anshuman.khandual@arm.com>
- <70ddc7dd-b688-b73e-642a-6363178c8cdd@arm.com>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Message-ID: <1ed72a76-9f20-0169-4c16-c1d8808690eb@arm.com>
-Date: Tue, 30 Jun 2020 09:23:35 +0530
+        id S1726254AbgFJRmO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 Jun 2020 13:42:14 -0400
+Date: Wed, 10 Jun 2020 18:42:05 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC PATCH v2 6/6] prctl.2: Add tagged address ABI control
+ prctls (arm64)
+Message-ID: <20200610174205.GL26099@gaia>
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+ <1590614258-24728-7-git-send-email-Dave.Martin@arm.com>
+ <20200609172232.GA63286@C02TF0J2HF1T.local>
+ <20200610100641.GF25945@arm.com>
+ <20200610152634.GJ26099@gaia>
+ <20200610164209.GH25945@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <70ddc7dd-b688-b73e-642a-6363178c8cdd@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200610164209.GH25945@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: christophe.leroy@c-s.fr, ziy@nvidia.com, gerald.schaefer@de.ibm.com, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Christophe Leroy <christophe.leroy@csgroup.eu>Vineet Gupta <vgupta@synopsys.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Qian Cai <cai@lca.pw>
-Message-ID: <20200630035335.LnEkiqu4wW93aWcgX2EeF721J641Ik61EzwPKKtBdO8@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <20200610174205.bFgIR8NMtA17oDjE85LNYx8Jx7_f6rsFGmFysMpLllQ@z>
 
+On Wed, Jun 10, 2020 at 05:42:09PM +0100, Dave P Martin wrote:
+> On Wed, Jun 10, 2020 at 04:26:34PM +0100, Catalin Marinas wrote:
+> > On Wed, Jun 10, 2020 at 11:06:42AM +0100, Dave P Martin wrote:
+> > > On Tue, Jun 09, 2020 at 06:22:32PM +0100, Catalin Marinas wrote:
+> > > > On Wed, May 27, 2020 at 10:17:38PM +0100, Dave P Martin wrote:
+> > > > > +.IP
+> > > > > +The level of support is selected by
+> > > > > +.IR "(unsigned int) arg2" ,
+> > > > 
+> > > > We use (unsigned long) for arg2.
+> > > 
+> > > Hmmm, not quite sure how I came up with unsigned int here.  I'll just
+> > > drop this: the type in the prctl() prototype is unsigned long anyway.
+> > > 
+> > > The type is actually moot in this case, since the valid values all fit
+> > > in an unsigned int.
+> > 
+> > Passing an int doesn't require that the top 32-bit of the long are
+> > zeroed (in case anyone writes the low-level SVC by hand).
+> 
+> Fair point, I was forgetting that wrinkle.  Anyway, the convention in
+> this page seems to be that if the type is unsigned long, we don't
+> mention it, because the prctl() prototype says that already.
+> 
+> Question: the glibc prototype for prctl is variadic, so surely any
+> calls that don't explicitly cast the args to unsigned long are already
+> theoretically broken?  The #defines (and 0) are all implicitly int.
+> This probably affects lots of prctls.
+> 
+> We may get away with it because the compiler is almost certainly going
+> to favour a mov over a ldr for getting small integers into regs, and mov
+> <Wd> fortunately zeroes the top bits for us anyway.
 
+So does LDR Wd.
 
-On 06/24/2020 08:43 AM, Anshuman Khandual wrote:
-> 
-> 
-> On 06/15/2020 09:07 AM, Anshuman Khandual wrote:
->> This series adds some more arch page table helper validation tests which
->> are related to core and advanced memory functions. This also creates a
->> documentation, enlisting expected semantics for all page table helpers as
->> suggested by Mike Rapoport previously (https://lkml.org/lkml/2020/1/30/40).
->>
->> There are many TRANSPARENT_HUGEPAGE and ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD
->> ifdefs scattered across the test. But consolidating all the fallback stubs
->> is not very straight forward because ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD is
->> not explicitly dependent on ARCH_HAS_TRANSPARENT_HUGEPAGE.
->>
->> Tested on arm64, x86 platforms but only build tested on all other enabled
->> platforms through ARCH_HAS_DEBUG_VM_PGTABLE i.e powerpc, arc, s390. The
->> following failure on arm64 still exists which was mentioned previously. It
->> will be fixed with the upcoming THP migration on arm64 enablement series.
->>
->> WARNING .... mm/debug_vm_pgtable.c:860 debug_vm_pgtable+0x940/0xa54
->> WARN_ON(!pmd_present(pmd_mkinvalid(pmd_mkhuge(pmd))))
->>
->> This series is based on v5.8-rc1.
->>
->> Changes in V3:
->>
->> - Replaced HAVE_ARCH_SOFT_DIRTY with MEM_SOFT_DIRTY
->> - Added HAVE_ARCH_HUGE_VMAP checks in pxx_huge_tests() per Gerald
->> - Updated documentation for pmd_thp_tests() per Zi Yan
->> - Replaced READ_ONCE() with huge_ptep_get() per Gerald
->> - Added pte_mkhuge() and masking with PMD_MASK per Gerald
->> - Replaced pte_same() with holding pfn check in pxx_swap_tests()
->> - Added documentation for all (#ifdef #else #endif) per Gerald
->> - Updated pmd_protnone_tests() per Gerald
->> - Updated HugeTLB PTE creation in hugetlb_advanced_tests() per Gerald
->> - Replaced [pmd|pud]_mknotpresent() with [pmd|pud]_mkinvalid()
->> - Added has_transparent_hugepage() check for PMD and PUD tests
->> - Added a patch which debug prints all individual tests being executed
->> - Updated documentation for renamed [pmd|pud]_mkinvalid() helpers
-> 
-> Hello Gerald/Christophe/Vineet,
-> 
-> It would be really great if you could give this series a quick test
-> on s390/ppc/arc platforms respectively. Thank you.
+Anyway, I think glibc (or my reading of it) has something like like:
 
-Thanks Alexander, Gerald and Christophe for testing this out on s390
-and ppc32 platforms. Probably Vineet and Qian (any other volunteers)
-could help us with arc and ppc64 platforms, which I would appreciate.
+  register long _x1 asm ("x1") = _x1tmp;
+
+before invoking the SVC. I assume this would do the right conversion to
+long. I can't tell about other libraries but I'd say it's their
+responsibility to convert the args to long before calling the kernel's
+prctl().
+
+-- 
+Catalin
