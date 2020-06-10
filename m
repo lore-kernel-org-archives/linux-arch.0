@@ -1,45 +1,67 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: Possible duplicate page fault accounting on some archs after
- commit 4064b9827063
-Date: Wed, 10 Jun 2020 09:53:49 -0700
-Message-ID: <CAHk-=wgm0_0PjXaSVbrpDfgtn6UbDyWjSRnXvfdebweUYSZ+eA@mail.gmail.com>
-References: <20200610174811.44b94525@thinkpad>
+From: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [RFC PATCH v2 6/6] prctl.2: Add tagged address ABI control
+ prctls (arm64)
+Date: Wed, 10 Jun 2020 18:42:05 +0100
+Message-ID: <20200610174205.GL26099@gaia>
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+ <1590614258-24728-7-git-send-email-Dave.Martin@arm.com>
+ <20200609172232.GA63286@C02TF0J2HF1T.local>
+ <20200610100641.GF25945@arm.com>
+ <20200610152634.GJ26099@gaia>
+ <20200610164209.GH25945@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <20200610174811.44b94525@thinkpad>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Cc: Peter Xu <peterx@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, alpha <linux-alpha@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, Michal Simek <monstr@monstr.eu>, linux-mips@vger.kernel.org, Nick Hu <nickhu@andestech.com>, Ley Foon Tan <ley.foon.tan@intel.com>, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org, linux-um <linux-um@lists.infradead.org>, Guan Xuetao <gxt@pku.edu.cn>, linux-xtensa@linux-xtensa.org, Heiko Carstens <heiko.carstens@de.ibm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20200610164209.GH25945-5wv7dgnIgG8@public.gmane.org>
+Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Cc: Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Will Deacon <will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Vincenzo Frascino <vincenzo.frascino-5wv7dgnIgG8@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 10, 2020 at 8:48 AM Gerald Schaefer
-<gerald.schaefer@de.ibm.com> wrote:
->
-> This was found by coincidence in s390 code, and a quick check showed that
-> there are quite a lot of other architectures that seem to be affected in a
-> similar way. I'm preparing a fix for s390, by moving the accounting behind
-> the retry loop, similar to x86. It is not completely straight-forward, so
-> I leave the fix for other archs to the respective maintainers.
+On Wed, Jun 10, 2020 at 05:42:09PM +0100, Dave P Martin wrote:
+> On Wed, Jun 10, 2020 at 04:26:34PM +0100, Catalin Marinas wrote:
+> > On Wed, Jun 10, 2020 at 11:06:42AM +0100, Dave P Martin wrote:
+> > > On Tue, Jun 09, 2020 at 06:22:32PM +0100, Catalin Marinas wrote:
+> > > > On Wed, May 27, 2020 at 10:17:38PM +0100, Dave P Martin wrote:
+> > > > > +.IP
+> > > > > +The level of support is selected by
+> > > > > +.IR "(unsigned int) arg2" ,
+> > > > 
+> > > > We use (unsigned long) for arg2.
+> > > 
+> > > Hmmm, not quite sure how I came up with unsigned int here.  I'll just
+> > > drop this: the type in the prctl() prototype is unsigned long anyway.
+> > > 
+> > > The type is actually moot in this case, since the valid values all fit
+> > > in an unsigned int.
+> > 
+> > Passing an int doesn't require that the top 32-bit of the long are
+> > zeroed (in case anyone writes the low-level SVC by hand).
+> 
+> Fair point, I was forgetting that wrinkle.  Anyway, the convention in
+> this page seems to be that if the type is unsigned long, we don't
+> mention it, because the prctl() prototype says that already.
+> 
+> Question: the glibc prototype for prctl is variadic, so surely any
+> calls that don't explicitly cast the args to unsigned long are already
+> theoretically broken?  The #defines (and 0) are all implicitly int.
+> This probably affects lots of prctls.
+> 
+> We may get away with it because the compiler is almost certainly going
+> to favour a mov over a ldr for getting small integers into regs, and mov
+> <Wd> fortunately zeroes the top bits for us anyway.
 
-Hmm. I wonder if we could move the handling into  handle_mm_fault() itself.
+So does LDR Wd.
 
-It's _fairly_ trivial to do on the arch side, just as long as you
-remember to make the VM_FAULT_MAJOR bit sticky like x86 does with that
+Anyway, I think glibc (or my reading of it) has something like like:
 
-        major |= fault & VM_FAULT_MAJOR;
+  register long _x1 asm ("x1") = _x1tmp;
 
-right after handle_mm_fault(). But it certainly doesn't seem like it
-would be hard to move into common code in handle_mm_fault() either, by
-just not doing the accounting if it's about to return VM_FAULT_RETRY
-or VM_FAULT_ERROR.
+before invoking the SVC. I assume this would do the right conversion to
+long. I can't tell about other libraries but I'd say it's their
+responsibility to convert the args to long before calling the kernel's
+prctl().
 
-That said, we want that perf_sw_event() accounting too, so we'd have
-to pass in a 'struct regs *' as well. And it's not clear which way
-accounting should go for other callers of handle_mm_fault() (ie gup
-etc).
-
-So I guess just having architectures fix it up individually and make
-sure they don't do it for retry conditions is the right thing to do..
-
-             Linus
+-- 
+Catalin
