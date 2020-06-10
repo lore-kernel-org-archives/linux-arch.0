@@ -1,43 +1,54 @@
-Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:38635 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730707AbgFOOks (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 10:40:48 -0400
+Return-Path: <SRS0=wbd0=7X=lists.infradead.org=linux-riscv-bounces+rppt=kernel.org@kernel.org>
 MIME-Version: 1.0
-References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de>
- <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com> <20200615141239.GA12951@lst.de>
-In-Reply-To: <20200615141239.GA12951@lst.de>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 15 Jun 2020 16:40:28 +0200
-Message-ID: <CAK8P3a2MeZhayZWkPbd4Ckq3n410p_n808NJTwN=JjzqHRiAXg@mail.gmail.com>
-Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
+References: <20200610174811.44b94525@thinkpad>
+In-Reply-To: <20200610174811.44b94525@thinkpad>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Wed, 10 Jun 2020 09:53:49 -0700
+Message-ID: <CAHk-=wgm0_0PjXaSVbrpDfgtn6UbDyWjSRnXvfdebweUYSZ+eA@mail.gmail.com>
+Subject: Re: Possible duplicate page fault accounting on some archs after
+ commit 4064b9827063
 Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
+List-Post: <mailto:linux-riscv@lists.infradead.org>
+List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
+ <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
+Errors-To: linux-riscv-bounces+rppt=kernel.org@lists.infradead.org
+To: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Cc: linux-ia64@vger.kernel.org, Linux-sh list <linux-sh@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Peter Xu <peterx@redhat.com>, linux-mips@vger.kernel.org, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, linux-hexagon@vger.kernel.org, Ley Foon Tan <ley.foon.tan@intel.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-xtensa@linux-xtensa.org, linux-um <linux-um@lists.infradead.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, openrisc@lists.librecores.org, Guan Xuetao <gxt@pku.edu.cn>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, alpha <linux-alpha@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20200615144028.BrKixEIL7sx3mQL49n26cSWH6cDBsQ3Yps9Y_XhXZEA@z>
+Message-ID: <20200610165349.SCkyjbKcxcR3Dfc7h9AnciQbyVFnF6wh8nYx2NjrvTI@z>
 
-On Mon, Jun 15, 2020 at 4:12 PM Christoph Hellwig <hch@lst.de> wrote:
-> On Mon, Jun 15, 2020 at 03:31:35PM +0200, Arnd Bergmann wrote:
-
+On Wed, Jun 10, 2020 at 8:48 AM Gerald Schaefer
+<gerald.schaefer@de.ibm.com> wrote:
 >
-> > I don't really understand
-> > the comment, why can't this just use this?
->
-> That errors out with:
->
-> ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1040): undefined reference to
-> `__x32_sys_execve'
-> ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1108): undefined reference to
-> `__x32_sys_execveat'
-> make: *** [Makefile:1139: vmlinux] Error 1
+> This was found by coincidence in s390 code, and a quick check showed that
+> there are quite a lot of other architectures that seem to be affected in a
+> similar way. I'm preparing a fix for s390, by moving the accounting behind
+> the retry loop, similar to x86. It is not completely straight-forward, so
+> I leave the fix for other archs to the respective maintainers.
 
-Ah, I see: it's marked x32-only, so arch/x86/entry/syscall_x32.c
-uses the __x32 prefix instead of the __x64 one. Marking it 'common'
-instead would make it work, but also create an extra entry point
-for native processes, something that commit
-6365b842aae4 ("x86/syscalls: Split the x32 syscalls into their own table")
-was trying to avoid.
+Hmm. I wonder if we could move the handling into  handle_mm_fault() itself.
 
-      Arnd
+It's _fairly_ trivial to do on the arch side, just as long as you
+remember to make the VM_FAULT_MAJOR bit sticky like x86 does with that
+
+        major |= fault & VM_FAULT_MAJOR;
+
+right after handle_mm_fault(). But it certainly doesn't seem like it
+would be hard to move into common code in handle_mm_fault() either, by
+just not doing the accounting if it's about to return VM_FAULT_RETRY
+or VM_FAULT_ERROR.
+
+That said, we want that perf_sw_event() accounting too, so we'd have
+to pass in a 'struct regs *' as well. And it's not clear which way
+accounting should go for other callers of handle_mm_fault() (ie gup
+etc).
+
+So I guess just having architectures fix it up individually and make
+sure they don't do it for retry conditions is the right thing to do..
+
+             Linus
