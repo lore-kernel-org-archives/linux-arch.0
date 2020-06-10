@@ -1,102 +1,63 @@
-Return-Path: <SRS0=za/P=7O=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v4 1/2] arm64: tlb: Detect the ARMv8.4 TLBI RANGE feature
-Date: Mon, 1 Jun 2020 22:47:12 +0800
-Message-ID: <20200601144713.2222-2-yezhenyu2@huawei.com>
-In-Reply-To: <20200601144713.2222-1-yezhenyu2@huawei.com>
-References: <20200601144713.2222-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=dRn0=7X=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-2.mimecast.com ([205.139.110.61]:37146 "EHLO
+        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1729113AbgFJQuc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 Jun 2020 12:50:32 -0400
+Received: by mail-qv1-f72.google.com with SMTP id a8so2312194qvt.7
+        for <linux-arch@vger.kernel.org>; Wed, 10 Jun 2020 09:50:27 -0700 (PDT)
+Date: Wed, 10 Jun 2020 12:50:23 -0400
+From: Peter Xu <peterx@redhat.com>
+Subject: Re: Possible duplicate page fault accounting on some archs after
+ commit 4064b9827063
+Message-ID: <20200610165023.GA67179@xz-x1>
+References: <20200610174811.44b94525@thinkpad>
 MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20200610174811.44b94525@thinkpad>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200601144712.eKgTI3pnRf05b-LWBQQOWWV4lUItWJNTNeChmz7DF8U@z>
+To: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, Michal Simek <monstr@monstr.eu>, linux-mips@vger.kernel.org, Nick Hu <nickhu@andestech.com>, Ley Foon Tan <ley.foon.tan@intel.com>, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, Guan Xuetao <gxt@pku.edu.cn>, linux-xtensa@linux-xtensa.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>
+Message-ID: <20200610165023.WjSaL8JsQ5WIRVkPjCn4QV3Z-e8v7UILFn8jto17ElI@z>
 
-ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
-range of input addresses. This patch detect this feature.
+On Wed, Jun 10, 2020 at 05:48:11PM +0200, Gerald Schaefer wrote:
+> Hi,
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/cpucaps.h |  3 ++-
- arch/arm64/include/asm/sysreg.h  |  4 ++++
- arch/arm64/kernel/cpufeature.c   | 11 +++++++++++
- 3 files changed, 17 insertions(+), 1 deletion(-)
+Hi, Gerald,
 
-diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cp=
-ucaps.h
-index 8eb5a088ae65..950095a72617 100644
---- a/arch/arm64/include/asm/cpucaps.h
-+++ b/arch/arm64/include/asm/cpucaps.h
-@@ -61,7 +61,8 @@
- #define ARM64_HAS_AMU_EXTN			51
- #define ARM64_HAS_ADDRESS_AUTH			52
- #define ARM64_HAS_GENERIC_AUTH			53
-+#define ARM64_HAS_TLBI_RANGE			54
-=20
--#define ARM64_NCAPS				54
-+#define ARM64_NCAPS				55
-=20
- #endif /* __ASM_CPUCAPS_H */
-diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sys=
-reg.h
-index c4ac0ac25a00..4cc3efd633bc 100644
---- a/arch/arm64/include/asm/sysreg.h
-+++ b/arch/arm64/include/asm/sysreg.h
-@@ -594,6 +594,7 @@
-=20
- /* id_aa64isar0 */
- #define ID_AA64ISAR0_RNDR_SHIFT		60
-+#define ID_AA64ISAR0_TLBI_RANGE_SHIFT	56
- #define ID_AA64ISAR0_TS_SHIFT		52
- #define ID_AA64ISAR0_FHM_SHIFT		48
- #define ID_AA64ISAR0_DP_SHIFT		44
-@@ -607,6 +608,9 @@
- #define ID_AA64ISAR0_SHA1_SHIFT		8
- #define ID_AA64ISAR0_AES_SHIFT		4
-=20
-+#define ID_AA64ISAR0_TLBI_RANGE_NI	0x0
-+#define ID_AA64ISAR0_TLBI_RANGE		0x2
-+
- /* id_aa64isar1 */
- #define ID_AA64ISAR1_I8MM_SHIFT		52
- #define ID_AA64ISAR1_DGH_SHIFT		48
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeatur=
-e.c
-index 9fac745aa7bb..31bcfd0722b5 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -124,6 +124,7 @@ static bool __system_matches_cap(unsigned int n);
-  */
- static const struct arm64_ftr_bits ftr_id_aa64isar0[] =3D {
- 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_RN=
-DR_SHIFT, 4, 0),
-+	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_TLB=
-I_RANGE_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_TS=
-_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_FH=
-M_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64ISAR0_DP=
-_SHIFT, 4, 0),
-@@ -1779,6 +1780,16 @@ static const struct arm64_cpu_capabilities arm64_f=
-eatures[] =3D {
- 		.min_field_value =3D 1,
- 	},
- #endif
-+	{
-+		.desc =3D "TLB range maintenance instruction",
-+		.capability =3D ARM64_HAS_TLBI_RANGE,
-+		.type =3D ARM64_CPUCAP_SYSTEM_FEATURE,
-+		.matches =3D has_cpuid_feature,
-+		.sys_reg =3D SYS_ID_AA64ISAR0_EL1,
-+		.field_pos =3D ID_AA64ISAR0_TLBI_RANGE_SHIFT,
-+		.sign =3D FTR_UNSIGNED,
-+		.min_field_value =3D ID_AA64ISAR0_TLBI_RANGE,
-+	},
- 	{},
- };
-=20
---=20
-2.19.1
+> 
+> Some architectures have their page fault accounting code inside the fault
+> retry loop, and rely on only going through that code once. Before commit
+> 4064b9827063 ("mm: allow VM_FAULT_RETRY for multiple times"), that was
+> ensured by testing for and clearing FAULT_FLAG_ALLOW_RETRY.
+> 
+> That commit had to remove the clearing of FAULT_FLAG_ALLOW_RETRY for all
+> architectures, and introduced a subtle change to page fault accounting
+> logic in the affected archs. It is now possible to go through the retry
+> loop multiple times, and the affected archs would then account multiple
+> page faults instead of just one.
+> 
+> This was found by coincidence in s390 code, and a quick check showed that
+> there are quite a lot of other architectures that seem to be affected in a
+> similar way. I'm preparing a fix for s390, by moving the accounting behind
+> the retry loop, similar to x86. It is not completely straight-forward, so
+> I leave the fix for other archs to the respective maintainers.
+
+Sorry for not noticing this before.  The accounting part should definitely be
+put at least into a check against fault_flag_allow_retry_first() to mimic what
+was done before.  And I agree it would be even better to put it after the retry
+logic, so if any of the page faults gets a major fault, it'll be accounted as a
+major fault which makes more sense to me, just like what x86 is doing now with:
+
+	major |= fault & VM_FAULT_MAJOR;
+
+I'm not sure what's the preference of the arch maintainers, just let me know if
+it's preferred to use a single series to address this issue for all affected
+archs (or the archs besides s390), then I'll do.
+
+Thanks!
+
+-- 
+Peter Xu
