@@ -1,51 +1,132 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: Regression bisected to f2f84b05e02b (bug: consolidate
- warn_slowpath_fmt() usage)
-Date: Thu, 11 Jun 2020 22:07:05 -0700
-Message-ID: <202006112201.3B20AB28DC@keescook>
-References: <20200602024804.GA3776630@p50-ethernet.mattst88.com>
- <202006021052.E52618F@keescook>
- <CAEdQ38F2GP92xB2gMXTrEo-Adbbc9Cy1DWHU9yveGLzJNd2HrA@mail.gmail.com>
- <20200612044757.GA10703@tower>
+From: Jim Cromie <jim.cromie@gmail.com>
+Subject: [PATCH v2 05/24] dyndbg: rename __verbose section to __dyndbg
+Date: Sat, 13 Jun 2020 09:57:19 -0600
+Message-ID: <20200613155738.2249399-6-jim.cromie@gmail.com>
+References: <20200613155738.2249399-1-jim.cromie@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-alpha-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200612044757.GA10703@tower>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Michael Cree <mcree@orcon.net.nz>, Matt Turner <mattst88@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-alpha <linux-alpha@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35002 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726485AbgFMP6E (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 Jun 2020 11:58:04 -0400
+In-Reply-To: <20200613155738.2249399-1-jim.cromie@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: jbaron@akamai.com, linux-kernel@vger.kernel.org, akpm@linuxfoundation.org, gregkh@linuxfoundation.org
+Cc: linux@rasmusvillemoes.dk, Jim Cromie <jim.cromie@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Jessica Yu <jeyu@kernel.org>, linux-arch@vger.kernel.org
 
-On Fri, Jun 12, 2020 at 04:47:57PM +1200, Michael Cree wrote:
-> On Thu, Jun 11, 2020 at 09:23:52PM -0700, Matt Turner wrote:
-> > Since I noticed earlier that using maxcpus=1 on a 2-CPU system
-> > prevented the system from hanging, I tried disabling CONFIG_SMP on my
-> > 1-CPU system as well. In doing so, I discovered that the RCU torture
-> > module (RCU_TORTURE_TEST) triggers some null pointer dereferences on
-> > Alpha when CONFIG_SMP is set, but works successfully when CONFIG_SMP
-> > is unset.
-> > 
-> > That seems likely to be a symptom of the same underlying problem that
-> > started this thread, don't you think? If so, I'll focus my attention
-> > on that.
-> 
-> I wonder if that is related to user space segfaults we are now seeing
-> on SMP systems but not UP systems while building Alpha debian-ports.
-> It's happening in the test-suites of builds of certain software
-> (such as autogen and guile) but they always build successfully with
-> the test suite passing on a UP system.
-> 
-> When investigating I seem to recall it was a NULL (or near NULL)
-> pointer dereference but couldn't make any sense of how it might
-> have got into such an obviously wrong state.
+dyndbg populates its callsite info into __verbose section, change that
+to a more specific and descriptive name, __dyndbg.
 
-By some miracle, I have avoided any experience with RCU bugs. ;) If
-the RCU_TORTURE_TEST Oopses or the segfaults are repeatable and don't
-go away with the WARN patch reverted, then perhaps it might be used to
-bisect to something closer to the root cause?
+Also, per checkpatch:
+  simplify __attribute(..) to __section(__dyndbg) declaration.
 
-Given the similarity to the SMP vs UP stuff and the RCU tests, I'd agree
-that does seem like the best path to investigate.
+and 1 spelling fix, decriptor
+---
+ include/asm-generic/vmlinux.lds.h |  6 +++---
+ include/linux/dynamic_debug.h     |  4 ++--
+ kernel/module.c                   |  2 +-
+ lib/dynamic_debug.c               | 12 ++++++------
+ 4 files changed, 12 insertions(+), 12 deletions(-)
 
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index db600ef218d7..05af5cef1ad6 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -320,9 +320,9 @@
+ 	*(__tracepoints)						\
+ 	/* implement dynamic printk debug */				\
+ 	. = ALIGN(8);							\
+-	__start___verbose = .;						\
+-	KEEP(*(__verbose))                                              \
+-	__stop___verbose = .;						\
++	__start___dyndbg = .;						\
++	KEEP(*(__dyndbg))						\
++	__stop___dyndbg = .;						\
+ 	LIKELY_PROFILE()		       				\
+ 	BRANCH_PROFILE()						\
+ 	TRACE_PRINTKS()							\
+diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
+index abcd5fde30eb..aa9ff9e1c0b3 100644
+--- a/include/linux/dynamic_debug.h
++++ b/include/linux/dynamic_debug.h
+@@ -80,7 +80,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
+ 
+ #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt)		\
+ 	static struct _ddebug  __aligned(8)			\
+-	__attribute__((section("__verbose"))) name = {		\
++	__section(__dyndbg) name = {				\
+ 		.modname = KBUILD_MODNAME,			\
+ 		.function = __func__,				\
+ 		.filename = __FILE__,				\
+@@ -133,7 +133,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
+ 
+ /*
+  * "Factory macro" for generating a call to func, guarded by a
+- * DYNAMIC_DEBUG_BRANCH. The dynamic debug decriptor will be
++ * DYNAMIC_DEBUG_BRANCH. The dynamic debug descriptor will be
+  * initialized using the fmt argument. The function will be called with
+  * the address of the descriptor as first argument, followed by all
+  * the varargs. Note that fmt is repeated in invocations of this
+diff --git a/kernel/module.c b/kernel/module.c
+index e8a198588f26..1fb493167b9c 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -3232,7 +3232,7 @@ static int find_module_sections(struct module *mod, struct load_info *info)
+ 	if (section_addr(info, "__obsparm"))
+ 		pr_warn("%s: Ignoring obsolete parameters\n", mod->name);
+ 
+-	info->debug = section_objs(info, "__verbose",
++	info->debug = section_objs(info, "__dyndbg",
+ 				   sizeof(*info->debug), &info->num_debug);
+ 
+ 	return 0;
+diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
+index c97872cffc8e..66c0bdf06ce7 100644
+--- a/lib/dynamic_debug.c
++++ b/lib/dynamic_debug.c
+@@ -39,8 +39,8 @@
+ 
+ #include <rdma/ib_verbs.h>
+ 
+-extern struct _ddebug __start___verbose[];
+-extern struct _ddebug __stop___verbose[];
++extern struct _ddebug __start___dyndbg[];
++extern struct _ddebug __stop___dyndbg[];
+ 
+ struct ddebug_table {
+ 	struct list_head link;
+@@ -1019,7 +1019,7 @@ static int __init dynamic_debug_init(void)
+ 	int n = 0, entries = 0, modct = 0;
+ 	int verbose_bytes = 0;
+ 
+-	if (&__start___verbose == &__stop___verbose) {
++	if (&__start___dyndbg == &__stop___dyndbg) {
+ 		if (IS_ENABLED(CONFIG_DYNAMIC_DEBUG)) {
+ 			pr_warn("_ddebug table is empty in a CONFIG_DYNAMIC_DEBUG build\n");
+ 			return 1;
+@@ -1028,10 +1028,10 @@ static int __init dynamic_debug_init(void)
+ 		ddebug_init_success = 1;
+ 		return 0;
+ 	}
+-	iter = __start___verbose;
++	iter = __start___dyndbg;
+ 	modname = iter->modname;
+ 	iter_start = iter;
+-	for (; iter < __stop___verbose; iter++) {
++	for (; iter < __stop___dyndbg; iter++) {
+ 		entries++;
+ 		verbose_bytes += strlen(iter->modname) + strlen(iter->function)
+ 			+ strlen(iter->filename) + strlen(iter->format);
+@@ -1054,7 +1054,7 @@ static int __init dynamic_debug_init(void)
+ 	ddebug_init_success = 1;
+ 	vpr_info("%d modules, %d entries and %d bytes in ddebug tables, %d bytes in (readonly) verbose section\n",
+ 		 modct, entries, (int)(modct * sizeof(struct ddebug_table)),
+-		 verbose_bytes + (int)(__stop___verbose - __start___verbose));
++		 verbose_bytes + (int)(__stop___dyndbg - __start___dyndbg));
+ 
+ 	/* apply ddebug_query boot param, dont unload tables on err */
+ 	if (ddebug_setup_string[0] != '\0') {
 -- 
-Kees Cook
+2.26.2
