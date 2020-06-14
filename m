@@ -1,61 +1,50 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43370 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731513AbgF2TNs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:13:48 -0400
-Received: from mail-pf1-x441.google.com (mail-pf1-x441.google.com [IPv6:2607:f8b0:4864:20::441])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 647F9C08EAF9
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:49 -0700 (PDT)
-Received: by mail-pf1-x441.google.com with SMTP id u5so7455406pfn.7
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:49 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 05/17] ctype: Work around Clang -mbranch-protection=none bug
-Date: Sun, 28 Jun 2020 23:18:28 -0700
-Message-ID: <20200629061840.4065483-6-keescook@chromium.org>
-In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
-References: <20200629061840.4065483-1-keescook@chromium.org>
+Return-Path: <SRS0=o+GD=73=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from a3.inai.de ([88.198.85.195]:39502 "EHLO a3.inai.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726844AbgFNVIO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 14 Jun 2020 17:08:14 -0400
+Date: Sun, 14 Jun 2020 23:08:08 +0200 (CEST)
+From: Jan Engelhardt <jengelh@inai.de>
+Subject: Re: Good idea to rename files in include/uapi/ ?
+In-Reply-To: <174102.1592165965@warthog.procyon.org.uk>
+Message-ID: <nycvar.YFH.7.77.849.2006142244200.30230@n3.vanv.qr>
+References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de> <174102.1592165965@warthog.procyon.org.uk>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Ard Biesheuvel <ardb@kernel.org>, Dave Martin <Dave.Martin@arm.com>, clang-built-linux@googlegroups.com, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200629061828.0JepkpSt2XhQYNh0FvIylbnAgf6cT6ywouz2wsl-ZOE@z>
+To: David Howells <dhowells@redhat.com>
+Cc: "Alexander A. Klimov" <grandmaster@al2klimov.de>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200614210808.Zn_ztU9kZWmulCZPvqDVhH6Cbv4bD13Bk0RFOBgfyHI@z>
 
-In preparation for building efi/libstub with -mbranch-protection=none
-(EFI does not support branch protection features[1]), add no-op code
-to work around a Clang bug that emits an unwanted .note.gnu.property
-section for object files without code[2].
 
-[1] https://lore.kernel.org/lkml/CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com
-[2] https://bugs.llvm.org/show_bug.cgi?id=46480
+On Sunday 2020-06-14 22:19, David Howells wrote:
+>Alexander A. Klimov <grandmaster@al2klimov.de> wrote:
+>
+>> *Is it a good idea to rename files in include/uapi/ ?*
+>
+>Very likely not.  If programs out there are going to be built on a
+>case-sensitive filesystem (which happens all the time), they're going to break
+>if you rename the headers.  We're kind of stuck with them.
 
-Cc: Ard Biesheuvel <ardb@kernel.org>
-Cc: Will Deacon <will@kernel.org>
-Cc: Dave Martin <Dave.Martin@arm.com>
-Cc: clang-built-linux@googlegroups.com
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- lib/ctype.c | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+Netfilter has precedent for removing old headers, e.g.
+7200135bc1e61f1437dc326ae2ef2f310c50b4eb's ipt_ULOG.h.
 
-diff --git a/lib/ctype.c b/lib/ctype.c
-index c819fe269eb2..21245ed57d90 100644
---- a/lib/ctype.c
-+++ b/lib/ctype.c
-@@ -36,3 +36,13 @@ _L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,	/* 224-239 */
- _L,_L,_L,_L,_L,_L,_L,_P,_L,_L,_L,_L,_L,_L,_L,_L};	/* 240-255 */
- 
- EXPORT_SYMBOL(_ctype);
-+
-+/*
-+ * Clang will generate .note.gnu.property sections for object files
-+ * without code, even in the presence of -mbranch-protection=none.
-+ * To work around this, define an unused static function.
-+ * https://bugs.llvm.org/show_bug.cgi?id=46480
-+ */
-+#ifdef CONFIG_CC_IS_CLANG
-+void __maybe_unused __clang_needs_code_here(void) { }
-+#endif
--- 
-2.25.1
+Even if kernels would not remove such headers, the iptables userspace
+code wants to be buildable with all kinds of kernels, including past
+releases, which do not have modern headers like xt_l2tp.h.
+
+The mantra for userspace programs is therefore "copy the headers" —
+because you never know what /usr/include/linux you get. iptables and
+iproute2 are two example codebases that employ this. And when headers
+do get copied, header removals from the kernel side are no longer a
+big deal either.
+
+A header file rename is no problem. We even have dummy headers
+already because of this... or related changes. Just look at
+xt_MARK.h, all it does is include xt_mark.h. Cf.
+28b949885f80efb87d7cebdcf879c99db12c37bd .
+
+The boilerplate for xt_*h is quite high thanks to the miniscule
+splitting of headers. Does not feel right in this day and age.
