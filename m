@@ -1,46 +1,29 @@
-Return-Path: <SRS0=jayZ=7S=kvack.org=owner-linux-mm@kernel.org>
-From: Bibo Mao <maobibo@loongson.cn>
-Subject: [PATCH 2/2] MIPS: Add writable-applies-readable policy with pgrot
-Date: Fri,  5 Jun 2020 17:11:06 +0800
-Message-ID: <1591348266-28392-2-git-send-email-maobibo@loongson.cn>
-In-Reply-To: <1591348266-28392-1-git-send-email-maobibo@loongson.cn>
-References: <1591348266-28392-1-git-send-email-maobibo@loongson.cn>
-Sender: owner-linux-mm@kvack.org
-To: Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Andrew Morton <akpm@linux-foundation.org>, Paul Burton <paulburton@kernel.org>, Jiaxun Yang <jiaxun.yang@flygoat.com>
-Cc: linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Return-Path: <SRS0=o+GD=73=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-delivery-1.mimecast.com ([207.211.31.120]:20148 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1726857AbgFNUTk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 Jun 2020 16:19:40 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
+References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
+Subject: Re: Good idea to rename files in include/uapi/ ?
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <174101.1592165965.1@warthog.procyon.org.uk>
+Date: Sun, 14 Jun 2020 21:19:25 +0100
+Message-ID: <174102.1592165965@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200605091106.2IDd4yT6qO3jjCWRHb-_bOrdTohZgziUiiP9wQooS4U@z>
+To: "Alexander A. Klimov" <grandmaster@al2klimov.de>
+Cc: dhowells@redhat.com, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200614201925.yfz2_Kc_NIHtVK2s8Ne2Vsi2tRPSfNXUETtf9O-upN0@z>
 
-On Linux system, writable applies readable privilege in most
-architectures, this patch adds this policy on MIPS platform
-where hardware rixi is supported.
+Alexander A. Klimov <grandmaster@al2klimov.de> wrote:
 
-Signed-off-by: Bibo Mao <maobibo@loongson.cn>
----
- arch/mips/mm/cache.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+> *Is it a good idea to rename files in include/uapi/ ?*
 
-diff --git a/arch/mips/mm/cache.c b/arch/mips/mm/cache.c
-index f814e43..dae0617 100644
---- a/arch/mips/mm/cache.c
-+++ b/arch/mips/mm/cache.c
-@@ -160,7 +160,7 @@ static inline void setup_protection_map(void)
- 	if (cpu_has_rixi) {
- 		protection_map[0]  = __pgprot(__PC | __PP | __NX | __NR);
- 		protection_map[1]  = __pgprot(__PC | __PP | __NX | ___R);
--		protection_map[2]  = __pgprot(__PC | __PP | __NX | __NR);
-+		protection_map[2]  = __pgprot(__PC | __PP | __NX | ___R);
- 		protection_map[3]  = __pgprot(__PC | __PP | __NX | ___R);
- 		protection_map[4]  = __pgprot(__PC | __PP | ___R);
- 		protection_map[5]  = __pgprot(__PC | __PP | ___R);
-@@ -169,7 +169,7 @@ static inline void setup_protection_map(void)
- 
- 		protection_map[8]  = __pgprot(__PC | __PP | __NX | __NR);
- 		protection_map[9]  = __pgprot(__PC | __PP | __NX | ___R);
--		protection_map[10] = __pgprot(__PC | __PP | __NX | ___W | __NR);
-+		protection_map[10] = __pgprot(__PC | __PP | __NX | ___W | ___R);
- 		protection_map[11] = __pgprot(__PC | __PP | __NX | ___W | ___R);
- 		protection_map[12] = __pgprot(__PC | __PP | ___R);
- 		protection_map[13] = __pgprot(__PC | __PP | ___R);
--- 
-1.8.3.1
+Very likely not.  If programs out there are going to be built on a
+case-sensitive filesystem (which happens all the time), they're going to break
+if you rename the headers.  We're kind of stuck with them.
+
+David
