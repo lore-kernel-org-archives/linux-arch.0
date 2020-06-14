@@ -1,43 +1,45 @@
-From: Pablo Neira Ayuso <pablo@netfilter.org>
+From: Al Viro <viro@zeniv.linux.org.uk>
 Subject: Re: Good idea to rename files in include/uapi/ ?
-Date: Mon, 15 Jun 2020 00:01:01 +0200
-Message-ID: <20200614220101.GA9367@salvia>
+Date: Sun, 14 Jun 2020 23:47:15 +0100
+Message-ID: <20200614224715.GJ23230@ZenIV.linux.org.uk>
 References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
- <174102.1592165965@warthog.procyon.org.uk>
- <nycvar.YFH.7.77.849.2006142244200.30230@n3.vanv.qr>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from correo.us.es ([193.147.175.20]:33352 "EHLO mail.us.es"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727918AbgFNWBF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 14 Jun 2020 18:01:05 -0400
-Received: from antivirus1-rhel7.int (unknown [192.168.2.11])
-        by mail.us.es (Postfix) with ESMTP id EB525FF90D
-        for <linux-arch@vger.kernel.org>; Mon, 15 Jun 2020 00:01:04 +0200 (CEST)
-Received: from antivirus1-rhel7.int (localhost [127.0.0.1])
-        by antivirus1-rhel7.int (Postfix) with ESMTP id DE6FFDA86E
-        for <linux-arch@vger.kernel.org>; Mon, 15 Jun 2020 00:01:04 +0200 (CEST)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <nycvar.YFH.7.77.849.2006142244200.30230@n3.vanv.qr>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jan Engelhardt <jengelh@inai.de>
-Cc: David Howells <dhowells@redhat.com>, "Alexander A. Klimov" <grandmaster@al2klimov.de>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org
+In-Reply-To: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Alexander A. Klimov" <grandmaster@al2klimov.de>
+Cc: Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jun 14, 2020 at 11:08:08PM +0200, Jan Engelhardt wrote:
+On Sun, Jun 14, 2020 at 09:41:17PM +0200, Alexander A. Klimov wrote:
+> Hello there!
 > 
-> On Sunday 2020-06-14 22:19, David Howells wrote:
-> >Alexander A. Klimov <grandmaster@al2klimov.de> wrote:
-> >
-> >> *Is it a good idea to rename files in include/uapi/ ?*
-> >
-> >Very likely not.  If programs out there are going to be built on a
-> >case-sensitive filesystem (which happens all the time), they're going to break
-> >if you rename the headers.  We're kind of stuck with them.
-> 
-> Netfilter has precedent for removing old headers, e.g.
-> 7200135bc1e61f1437dc326ae2ef2f310c50b4eb's ipt_ULOG.h.
+> At the moment one can't checkout a clean working directory w/o any changed
+> files on a case-insensitive FS as the following file names have lower-case
+> duplicates:
 
-That's only because NFLOG has been there for ~10 years, so it was safe
-to remove ULOG support.
+And if you use a filesystem that is limited to 14 characters in name (or that
+weird 8 + 3 thing) you'll also have problems.  Doctor, it hurts when I do it...
+
+> Also even on a case-sensitive one VIm seems to have trouble with editing
+> both case-insensitively equal files at the same time.
+
+So file a bug report against vim.  Or use a vi variant without such a problem
+(FWIW, nvi has nothing of that sort).
+
+> I was going to make a patch renaming the respective duplicates, but I'm not
+> sure:
+> 
+> *Is it a good idea to rename files in include/uapi/ ?*
+
+It is not.  Strictly speaking, C99 allows implementation to consider the
+header names differing only in case as refering to the same file, but then
+it allows to ignore everything between the 8th character and the first
+dot in those.  Not done on Unices, so #include <Shite.h> is not going to
+pick /usr/include/shite.h
+
+If it's used by any userland code, that's it - changing the name (in any fashion)
+will break that userland code.  If it isn't, it shouldn't have been in include/uabi
+in the first place.
