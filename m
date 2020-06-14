@@ -1,74 +1,50 @@
-Return-Path: <SRS0=/X+0=AB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42588 "EHLO
+Return-Path: <SRS0=o+GD=73=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34584 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725835AbgFTH5g (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 20 Jun 2020 03:57:36 -0400
-Date: Sat, 20 Jun 2020 10:57:32 +0300
-From: Alexey Dobriyan <adobriyan@gmail.com>
-Subject: Re: [PATCH] linux++, this: rename "struct notifier_block *this"
-Message-ID: <20200620075732.GA468070@localhost.localdomain>
-References: <20200618210645.GB2212102@localhost.localdomain>
- <CAHk-=whz7xz1EBqfyS-C8zTx3_q54R1GuX9tDHdK1-TG91WH-Q@mail.gmail.com>
+        with ESMTP id S1727928AbgFNWrz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 Jun 2020 18:47:55 -0400
+Date: Sun, 14 Jun 2020 23:47:15 +0100
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: Good idea to rename files in include/uapi/ ?
+Message-ID: <20200614224715.GJ23230@ZenIV.linux.org.uk>
+References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAHk-=whz7xz1EBqfyS-C8zTx3_q54R1GuX9tDHdK1-TG91WH-Q@mail.gmail.com>
+In-Reply-To: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, NetFilter <netfilter-devel@vger.kernel.org>
-Message-ID: <20200620075732.GB5eNXjSxQhjUUoBWPmCQebpNp8Qd1g3Rh4I4oWO9HA@z>
+To: "Alexander A. Klimov" <grandmaster@al2klimov.de>
+Cc: Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200614224715.CNpTtlz3dcX6eUugpWC9MtlQJrUtRSHY3g2g8CZJPrQ@z>
 
-On Fri, Jun 19, 2020 at 11:37:47AM -0700, Linus Torvalds wrote:
-> On Thu, Jun 18, 2020 at 2:06 PM Alexey Dobriyan <adobriyan@gmail.com> wrote:
-> >
-> > Rename
-> >         struct notifier_block *this
-> > to
-> >         struct notifier_block *nb
-> >
-> > "nb" is arguably a better name for notifier block.
+On Sun, Jun 14, 2020 at 09:41:17PM +0200, Alexander A. Klimov wrote:
+> Hello there!
 > 
-> Maybe it's a better name. But it doesn't seem worth it.
+> At the moment one can't checkout a clean working directory w/o any changed
+> files on a case-insensitive FS as the following file names have lower-case
+> duplicates:
+
+And if you use a filesystem that is limited to 14 characters in name (or that
+weird 8 + 3 thing) you'll also have problems.  Doctor, it hurts when I do it...
+
+> Also even on a case-sensitive one VIm seems to have trouble with editing
+> both case-insensitively equal files at the same time.
+
+So file a bug report against vim.  Or use a vi variant without such a problem
+(FWIW, nvi has nothing of that sort).
+
+> I was going to make a patch renaming the respective duplicates, but I'm not
+> sure:
 > 
-> Because C++ reserved words are entirely irrelevant.
-> 
-> We did this same dance almost three decades ago, and the fact is, C++
-> has other reserved words that make it all pointless.
+> *Is it a good idea to rename files in include/uapi/ ?*
 
-The real problems are "class" and "new" indeed.
+It is not.  Strictly speaking, C99 allows implementation to consider the
+header names differing only in case as refering to the same file, but then
+it allows to ignore everything between the 8th character and the first
+dot in those.  Not done on Unices, so #include <Shite.h> is not going to
+pick /usr/include/shite.h
 
-> There is no way I will accept the renaming of various "new" variables.
-
-I'm not sending "new".
-
-> We did it, it was bad, we undid it, and we now have a _lot_ more uses
-> of 'new' and 'old', and no, we're not changing it for a braindead
-> language that isn't relevant to the kernel.
-> 
-> The fact is, C++ chose bad identifiers to make reserved words.
-> 
-> If you want to build the kernel with C++, you'd be a lot better off just doing
-> 
->    /* C++ braindamage */
->    #define this __this
->    #define new __new
-> 
-> and deal with that instead.
-
-Can't do this because of placement new.
-
-> Because no, the 'new' renaming will never happen, and while 'this'
-> isn't nearly as common or relevant a name, once you have the same
-> issue with 'new', what's the point of trying to deal with 'this'?
-
-I'm not sending "new".
-
-There is stuff which can be merge without breaking source compatibility
-and readability of C version:
-
-	private		=> priv
-	virtual		=> virt
-	this		=> self (in some contexts)
-
-and those which can not. I'm not sending the latter.
+If it's used by any userland code, that's it - changing the name (in any fashion)
+will break that userland code.  If it isn't, it shouldn't have been in include/uabi
+in the first place.
