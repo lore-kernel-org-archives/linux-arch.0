@@ -1,54 +1,50 @@
-Return-Path: <SRS0=wbd0=7X=lists.infradead.org=linux-riscv-bounces+rppt=kernel.org@kernel.org>
+Return-Path: <SRS0=o+GD=73=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35622 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726766AbgFNTtm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 Jun 2020 15:49:42 -0400
+From: "Alexander A. Klimov" <grandmaster@al2klimov.de>
+Subject: Good idea to rename files in include/uapi/ ?
+Message-ID: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
+Date: Sun, 14 Jun 2020 21:41:17 +0200
 MIME-Version: 1.0
-References: <20200610174811.44b94525@thinkpad>
-In-Reply-To: <20200610174811.44b94525@thinkpad>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Wed, 10 Jun 2020 09:53:49 -0700
-Message-ID: <CAHk-=wgm0_0PjXaSVbrpDfgtn6UbDyWjSRnXvfdebweUYSZ+eA@mail.gmail.com>
-Subject: Re: Possible duplicate page fault accounting on some archs after
- commit 4064b9827063
-Content-Type: text/plain; charset="UTF-8"
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-riscv/>
-List-Post: <mailto:linux-riscv@lists.infradead.org>
-List-Help: <mailto:linux-riscv-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-riscv>,
- <mailto:linux-riscv-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-riscv" <linux-riscv-bounces@lists.infradead.org>
-Errors-To: linux-riscv-bounces+rppt=kernel.org@lists.infradead.org
-To: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Cc: linux-ia64@vger.kernel.org, Linux-sh list <linux-sh@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Peter Xu <peterx@redhat.com>, linux-mips@vger.kernel.org, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, linux-hexagon@vger.kernel.org, Ley Foon Tan <ley.foon.tan@intel.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-xtensa@linux-xtensa.org, linux-um <linux-um@lists.infradead.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, openrisc@lists.librecores.org, Guan Xuetao <gxt@pku.edu.cn>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Michal Simek <monstr@monstr.eu>, Nick Hu <nickhu@andestech.com>, linux-parisc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, alpha <linux-alpha@vger.kernel.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200610165349.SCkyjbKcxcR3Dfc7h9AnciQbyVFnF6wh8nYx2NjrvTI@z>
+To: Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200614194117.3w4qGqe-BtQb_tNicXkj1alveVvZ3j8ehtofUldCYp0@z>
 
-On Wed, Jun 10, 2020 at 8:48 AM Gerald Schaefer
-<gerald.schaefer@de.ibm.com> wrote:
->
-> This was found by coincidence in s390 code, and a quick check showed that
-> there are quite a lot of other architectures that seem to be affected in a
-> similar way. I'm preparing a fix for s390, by moving the accounting behind
-> the retry loop, similar to x86. It is not completely straight-forward, so
-> I leave the fix for other archs to the respective maintainers.
+Hello there!
 
-Hmm. I wonder if we could move the handling into  handle_mm_fault() itself.
+At the moment one can't checkout a clean working directory w/o any 
+changed files on a case-insensitive FS as the following file names have 
+lower-case duplicates:
 
-It's _fairly_ trivial to do on the arch side, just as long as you
-remember to make the VM_FAULT_MAJOR bit sticky like x86 does with that
+➜  linux git:(96144c58abe7) git ls-files |sort -f |uniq -id
+include/uapi/linux/netfilter/xt_CONNMARK.h
+include/uapi/linux/netfilter/xt_DSCP.h
+include/uapi/linux/netfilter/xt_MARK.h
+include/uapi/linux/netfilter/xt_RATEEST.h
+include/uapi/linux/netfilter/xt_TCPMSS.h
+include/uapi/linux/netfilter_ipv4/ipt_ECN.h
+include/uapi/linux/netfilter_ipv4/ipt_TTL.h
+include/uapi/linux/netfilter_ipv6/ip6t_HL.h
+net/netfilter/xt_DSCP.c
+net/netfilter/xt_HL.c
+net/netfilter/xt_RATEEST.c
+net/netfilter/xt_TCPMSS.c
+tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus
+➜  linux git:(96144c58abe7)
 
-        major |= fault & VM_FAULT_MAJOR;
+Also even on a case-sensitive one VIm seems to have trouble with editing 
+both case-insensitively equal files at the same time.
 
-right after handle_mm_fault(). But it certainly doesn't seem like it
-would be hard to move into common code in handle_mm_fault() either, by
-just not doing the accounting if it's about to return VM_FAULT_RETRY
-or VM_FAULT_ERROR.
+I was going to make a patch renaming the respective duplicates, but I'm 
+not sure:
 
-That said, we want that perf_sw_event() accounting too, so we'd have
-to pass in a 'struct regs *' as well. And it's not clear which way
-accounting should go for other callers of handle_mm_fault() (ie gup
-etc).
+*Is it a good idea to rename files in include/uapi/ ?*
 
-So I guess just having architectures fix it up individually and make
-sure they don't do it for retry conditions is the right thing to do..
-
-             Linus
+Best,
+AK
