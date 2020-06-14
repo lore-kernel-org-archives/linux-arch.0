@@ -1,70 +1,44 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34082 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388700AbgFXDbr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2020 23:31:47 -0400
-Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 82704C0613ED
-        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 20:31:46 -0700 (PDT)
-Received: by mail-pj1-x1041.google.com with SMTP id i4so507972pjd.0
-        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 20:31:46 -0700 (PDT)
-Date: Tue, 23 Jun 2020 20:31:42 -0700
-From: Fangrui Song <maskray@google.com>
-Subject: Re: [PATCH v3 3/9] efi/libstub: Remove .note.gnu.property
-Message-ID: <20200624033142.cinvg6rbg252j46d@google.com>
-References: <20200624014940.1204448-1-keescook@chromium.org>
- <20200624014940.1204448-4-keescook@chromium.org>
+Return-Path: <SRS0=o+GD=73=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from correo.us.es ([193.147.175.20]:33352 "EHLO mail.us.es"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727918AbgFNWBF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 14 Jun 2020 18:01:05 -0400
+Received: from antivirus1-rhel7.int (unknown [192.168.2.11])
+        by mail.us.es (Postfix) with ESMTP id EB525FF90D
+        for <linux-arch@vger.kernel.org>; Mon, 15 Jun 2020 00:01:04 +0200 (CEST)
+Received: from antivirus1-rhel7.int (localhost [127.0.0.1])
+        by antivirus1-rhel7.int (Postfix) with ESMTP id DE6FFDA86E
+        for <linux-arch@vger.kernel.org>; Mon, 15 Jun 2020 00:01:04 +0200 (CEST)
+Date: Mon, 15 Jun 2020 00:01:01 +0200
+From: Pablo Neira Ayuso <pablo@netfilter.org>
+Subject: Re: Good idea to rename files in include/uapi/ ?
+Message-ID: <20200614220101.GA9367@salvia>
+References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
+ <174102.1592165965@warthog.procyon.org.uk>
+ <nycvar.YFH.7.77.849.2006142244200.30230@n3.vanv.qr>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200624014940.1204448-4-keescook@chromium.org>
+In-Reply-To: <nycvar.YFH.7.77.849.2006142244200.30230@n3.vanv.qr>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200624033142.qITlU5YkMUNDscG8_cLrg-Y5VHBPWf1nAOc31fKtdwg@z>
+To: Jan Engelhardt <jengelh@inai.de>
+Cc: David Howells <dhowells@redhat.com>, "Alexander A. Klimov" <grandmaster@al2klimov.de>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200614220101.6HH5oBLquIl8bWW18vBfklt_gYyYJm2QAhz8OZaCN_c@z>
 
-On 2020-06-23, Kees Cook wrote:
->In preparation for adding --orphan-handling=warn to more architectures,
->make sure unwanted sections don't end up appearing under the .init
->section prefix that libstub adds to itself during objcopy.
->
->Signed-off-by: Kees Cook <keescook@chromium.org>
->---
-> drivers/firmware/efi/libstub/Makefile | 3 +++
-> 1 file changed, 3 insertions(+)
->
->diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
->index 75daaf20374e..9d2d2e784bca 100644
->--- a/drivers/firmware/efi/libstub/Makefile
->+++ b/drivers/firmware/efi/libstub/Makefile
->@@ -66,6 +66,9 @@ lib-$(CONFIG_X86)		+= x86-stub.o
-> CFLAGS_arm32-stub.o		:= -DTEXT_OFFSET=$(TEXT_OFFSET)
-> CFLAGS_arm64-stub.o		:= -DTEXT_OFFSET=$(TEXT_OFFSET)
->
->+# Remove unwanted sections first.
->+STUBCOPY_FLAGS-y		+= --remove-section=.note.gnu.property
->+
-> #
-> # For x86, bootloaders like systemd-boot or grub-efi do not zero-initialize the
-> # .bss section, so the .bss section of the EFI stub needs to be included in the
+On Sun, Jun 14, 2020 at 11:08:08PM +0200, Jan Engelhardt wrote:
+> 
+> On Sunday 2020-06-14 22:19, David Howells wrote:
+> >Alexander A. Klimov <grandmaster@al2klimov.de> wrote:
+> >
+> >> *Is it a good idea to rename files in include/uapi/ ?*
+> >
+> >Very likely not.  If programs out there are going to be built on a
+> >case-sensitive filesystem (which happens all the time), they're going to break
+> >if you rename the headers.  We're kind of stuck with them.
+> 
+> Netfilter has precedent for removing old headers, e.g.
+> 7200135bc1e61f1437dc326ae2ef2f310c50b4eb's ipt_ULOG.h.
 
-arch/arm64/Kconfig enables ARM64_PTR_AUTH by default. When the config is on
-
-ifeq ($(CONFIG_ARM64_BTI_KERNEL),y)
-branch-prot-flags-$(CONFIG_CC_HAS_BRANCH_PROT_PAC_RET_BTI) := -mbranch-protection=pac-ret+leaf+bti
-else
-branch-prot-flags-$(CONFIG_CC_HAS_BRANCH_PROT_PAC_RET) := -mbranch-protection=pac-ret+leaf
-endif
-
-This option creates .note.gnu.property:
-
-% readelf -n drivers/firmware/efi/libstub/efi-stub.o
-
-Displaying notes found in: .note.gnu.property
-   Owner                Data size        Description
-   GNU                  0x00000010       NT_GNU_PROPERTY_TYPE_0
-       Properties: AArch64 feature: PAC
-
-If .note.gnu.property is not desired in drivers/firmware/efi/libstub, specifying
--mbranch-protection=none can override -mbranch-protection=pac-ret+leaf
+That's only because NFLOG has been there for ~10 years, so it was safe
+to remove ULOG support.
