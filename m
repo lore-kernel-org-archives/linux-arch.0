@@ -1,104 +1,79 @@
-Return-Path: <SRS0=gWHa=AH=vger.kernel.org=linux-doc-owner@kernel.org>
-Date: Fri, 26 Jun 2020 14:09:15 -0700
-In-Reply-To: <20200626210917.358969-1-brendanhiggins@google.com>
-Message-ID: <20200626210917.358969-11-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200626210917.358969-1-brendanhiggins@google.com>
-Subject: [PATCH v5 10/12] kunit: Add 'kunit_shutdown' option
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-doc-owner@vger.kernel.org
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:49770 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728304AbgFOOvU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 Jun 2020 10:51:20 -0400
+Date: Mon, 15 Jun 2020 15:51:16 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH v2 6/6] prctl.2: Add tagged address ABI control
+ prctls (arm64)
+Message-ID: <20200615145115.GL25945@arm.com>
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+ <1590614258-24728-7-git-send-email-Dave.Martin@arm.com>
+ <20200609172232.GA63286@C02TF0J2HF1T.local>
+ <20200610100641.GF25945@arm.com>
+ <20200610152634.GJ26099@gaia>
+ <20200610164209.GH25945@arm.com>
+ <20200610174205.GL26099@gaia>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200610174205.GL26099@gaia>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200626210915.MxSbzv9Fdz-DeUZb0IE02I2I8qV7zSE1f5Kud3R42kI@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>
+Message-ID: <20200615145116.IbM8xwutaJKW--T4FNsPGRqQUa-ODlq3mp7K0tortX0@z>
 
-From: David Gow <davidgow@google.com>
+On Wed, Jun 10, 2020 at 06:42:05PM +0100, Catalin Marinas wrote:
+> On Wed, Jun 10, 2020 at 05:42:09PM +0100, Dave P Martin wrote:
+> > On Wed, Jun 10, 2020 at 04:26:34PM +0100, Catalin Marinas wrote:
+> > > On Wed, Jun 10, 2020 at 11:06:42AM +0100, Dave P Martin wrote:
+> > > > On Tue, Jun 09, 2020 at 06:22:32PM +0100, Catalin Marinas wrote:
+> > > > > On Wed, May 27, 2020 at 10:17:38PM +0100, Dave P Martin wrote:
+> > > > > > +.IP
+> > > > > > +The level of support is selected by
+> > > > > > +.IR "(unsigned int) arg2" ,
+> > > > > 
+> > > > > We use (unsigned long) for arg2.
+> > > > 
+> > > > Hmmm, not quite sure how I came up with unsigned int here.  I'll just
+> > > > drop this: the type in the prctl() prototype is unsigned long anyway.
+> > > > 
+> > > > The type is actually moot in this case, since the valid values all fit
+> > > > in an unsigned int.
+> > > 
+> > > Passing an int doesn't require that the top 32-bit of the long are
+> > > zeroed (in case anyone writes the low-level SVC by hand).
+> > 
+> > Fair point, I was forgetting that wrinkle.  Anyway, the convention in
+> > this page seems to be that if the type is unsigned long, we don't
+> > mention it, because the prctl() prototype says that already.
+> > 
+> > Question: the glibc prototype for prctl is variadic, so surely any
+> > calls that don't explicitly cast the args to unsigned long are already
+> > theoretically broken?  The #defines (and 0) are all implicitly int.
+> > This probably affects lots of prctls.
+> > 
+> > We may get away with it because the compiler is almost certainly going
+> > to favour a mov over a ldr for getting small integers into regs, and mov
+> > <Wd> fortunately zeroes the top bits for us anyway.
+> 
+> So does LDR Wd.
+> 
+> Anyway, I think glibc (or my reading of it) has something like like:
+> 
+>   register long _x1 asm ("x1") = _x1tmp;
+> 
+> before invoking the SVC. I assume this would do the right conversion to
+> long. I can't tell about other libraries but I'd say it's their
+> responsibility to convert the args to long before calling the kernel's
+> prctl().
 
-Add a new kernel command-line option, 'kunit_shutdown', which allows the
-user to specify that the kernel poweroff, halt, or reboot after
-completing all KUnit tests; this is very handy for running KUnit tests
-on UML or a VM so that the UML/VM process exits cleanly immediately
-after running all tests without needing a special initramfs.
+Ignore me.  I was worrying that glibc would propagate junk in the high
+bits of int arguments, due to treating them as longs.  Actually, it
+will, but it doesn't matter where we explicitly cast the argument to int
+inside the kernel (thanks as usual to -fno-strict-overflow).
 
-Signed-off-by: David Gow <davidgow@google.com>
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
----
- lib/kunit/executor.c                | 20 ++++++++++++++++++++
- tools/testing/kunit/kunit_kernel.py |  2 +-
- tools/testing/kunit/kunit_parser.py |  2 +-
- 3 files changed, 22 insertions(+), 2 deletions(-)
-
-diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
-index a95742a4ece73..38061d456afb2 100644
---- a/lib/kunit/executor.c
-+++ b/lib/kunit/executor.c
-@@ -1,5 +1,6 @@
- // SPDX-License-Identifier: GPL-2.0
- 
-+#include <linux/reboot.h>
- #include <kunit/test.h>
- 
- /*
-@@ -11,6 +12,23 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
- 
- #if IS_BUILTIN(CONFIG_KUNIT)
- 
-+static char *kunit_shutdown;
-+core_param(kunit_shutdown, kunit_shutdown, charp, 0644);
-+
-+static void kunit_handle_shutdown(void)
-+{
-+	if (!kunit_shutdown)
-+		return;
-+
-+	if (!strcmp(kunit_shutdown, "poweroff"))
-+		kernel_power_off();
-+	else if (!strcmp(kunit_shutdown, "halt"))
-+		kernel_halt();
-+	else if (!strcmp(kunit_shutdown, "reboot"))
-+		kernel_restart(NULL);
-+
-+}
-+
- static void kunit_print_tap_header(void)
- {
- 	struct kunit_suite * const * const *suites, * const *subsuite;
-@@ -37,6 +55,8 @@ int kunit_run_all_tests(void)
- 	     suites++)
- 			__kunit_test_suites_init(*suites);
- 
-+	kunit_handle_shutdown();
-+
- 	return 0;
- }
- 
-diff --git a/tools/testing/kunit/kunit_kernel.py b/tools/testing/kunit/kunit_kernel.py
-index 63dbda2d029f6..d6a575f92317c 100644
---- a/tools/testing/kunit/kunit_kernel.py
-+++ b/tools/testing/kunit/kunit_kernel.py
-@@ -172,7 +172,7 @@ class LinuxSourceTree(object):
- 		return self.validate_config(build_dir)
- 
- 	def run_kernel(self, args=[], build_dir='', timeout=None):
--		args.extend(['mem=1G'])
-+		args.extend(['mem=1G', 'kunit_shutdown=halt'])
- 		outfile = 'test.log'
- 		self._ops.linux_bin(args, timeout, build_dir, outfile)
- 		subprocess.call(['stty', 'sane'])
-diff --git a/tools/testing/kunit/kunit_parser.py b/tools/testing/kunit/kunit_parser.py
-index 6d6d94a0ee7db..a8998a5effaad 100644
---- a/tools/testing/kunit/kunit_parser.py
-+++ b/tools/testing/kunit/kunit_parser.py
-@@ -49,7 +49,7 @@ class TestStatus(Enum):
- 
- kunit_start_re = re.compile(r'TAP version [0-9]+$')
- kunit_end_re = re.compile('(List of all partitions:|'
--			  'Kernel panic - not syncing: VFS:)')
-+			  'Kernel panic - not syncing: VFS:|reboot: System halted)')
- 
- def isolate_kunit_output(kernel_output):
- 	started = False
--- 
-2.27.0.212.ge8ba1cc988-goog
+Cheers
+---Dave
