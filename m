@@ -1,124 +1,106 @@
-From: Mauro Carvalho Chehab <mchehab+huawei-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: [PATCH 00/29] Documentation fixes
-Date: Mon, 15 Jun 2020 08:46:39 +0200
-Message-ID: <cover.1592203542.git.mchehab+huawei@kernel.org>
+From: Greg Ungerer <gerg@linux-m68k.org>
+Subject: Re: [PATCH 04/21] mm: free_area_init: use maximal zone PFNs rather
+ than zone sizes
+Date: Mon, 15 Jun 2020 17:17:28 +1000
+Message-ID: <24563231-ed19-6f4f-617e-4d6bfc7553e4@linux-m68k.org>
+References: <20200412194859.12663-5-rppt@kernel.org>
+ <f53e68db-ed81-6ef6-5087-c7246d010ea2@linux-m68k.org>
+ <20200615062234.GA7882@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
- <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Sender: "iommu" <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-To: Linux Doc Mailing List <linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Cc: =?UTF-8?q?Heiko=20St=C3=BCbner?= <heiko-4mtYJXux2i+zQB+pC5nmwQ@public.gmane.org>, Geert Uytterhoeven <geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Mike Snitzer <snitzer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Bartosz Golaszewski <bgolaszewski-rdvid1DuHRBWk0Htik3J/w@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Alan Stern <stern-nwvwT67g6+6dFdvTe/nMLpVzexx5G7lz@public.gmane.org>, NXP Linux Team <linux-imx-3arQi8VN3Tc@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Nicholas Piggin <npiggin-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-spi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Pen
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:36892 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726299AbgFOHRx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 Jun 2020 03:17:53 -0400
+In-Reply-To: <20200615062234.GA7882@kernel.org>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mike Rapoport <rppt@kernel.org>
+Cc: Hoan@os.amperecomputing.com, James.Bottomley@hansenpartnership.com, akpm@linux-foundation.org, bcain@codeaurora.org, bhe@redhat.com, catalin.marinas@arm.com, corbet@lwn.net, dalias@libc.org, davem@davemloft.net, deller@gmx.de, geert@linux-m68k.org, green.hu@gmail.com, guoren@kernel.org, gxt@pku.edu.cn, heiko.carstens@de.ibm.com, jcmvbkbc@gmail.com, ley.foon.tan@intel.com, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.orglinux
 
-Hi Jon,
+Hi Mike,
 
-That's a bunch of files I have to be applied on the top of v5.8-rc1 fixing
-documentation warnings. I already removed some duplicated stuff.
+On 15/6/20 4:22 pm, Mike Rapoport wrote:
+> On Mon, Jun 15, 2020 at 01:53:42PM +1000, Greg Ungerer wrote:
+>> From: Mike Rapoport <rppt@linux.ibm.com>
+>>> Currently, architectures that use free_area_init() to initialize memory map
+>>> and node and zone structures need to calculate zone and hole sizes. We can
+>>> use free_area_init_nodes() instead and let it detect the zone boundaries
+>>> while the architectures will only have to supply the possible limits for
+>>> the zones.
+>>>
+>>> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+>>
+>> This is causing some new warnings for me on boot on at least one non-MMU m68k target:
+> 
+> There were a couple of changes that cause this. The free_area_init()
+> now relies on memblock data and architectural limits for zone sizes
+> rather than on explisit pfns calculated by the arch code. I've update
+> motorola variant and missed coldfire. Angelo sent a fix for mcfmmu.c
+> [1] and I've updated it to include nommu as well
+> 
+> [1] https://lore.kernel.org/linux-m68k/20200614225119.777702-1-angelo.dureghello@timesys.com
+> 
+>>From 55b8523df2a5c4565b132c0691990f0821040fec Mon Sep 17 00:00:00 2001
+> From: Angelo Dureghello <angelo.dureghello@timesys.com>
+> Date: Mon, 15 Jun 2020 00:51:19 +0200
+> Subject: [PATCH] m68k: fix registration of memory regions with memblock
+> 
+> Commit 3f08a302f533 ("mm: remove CONFIG_HAVE_MEMBLOCK_NODE_MAP option")
+> introduced assumption that UMA systems have their memory at node 0 and
+> updated most of them, but it forgot nommu and coldfire variants of m68k.
+> 
+> The later change in free area initialization in commit fa3354e4ea39 ("mm:
+> free_area_init: use maximal zone PFNs rather than zone sizes") exposed that
+> and caused a lot of "BUG: Bad page state in process swapper" reports.
 
-Regards,
-Mauro
+Even with this patch applied I am still seeing the same messages.
 
-Mauro Carvalho Chehab (29):
-  mm: vmalloc.c: remove a kernel-doc annotation from a removed parameter
-  net: dev: add a missing kernel-doc annotation
-  net: netdevice.h: add a description for napi_defer_hard_irqs
-  scripts/kernel-doc: parse __ETHTOOL_DECLARE_LINK_MODE_MASK
-  net: pylink.h: add kernel-doc descriptions for new fields at
-    phylink_config
-  scripts/kernel-doc: handle function pointer prototypes
-  fs: fs.h: fix a kernel-doc parameter description
-  gpio: driver.h: fix kernel-doc markup
-  kcsan: fix a kernel-doc warning
-  rcu: fix some kernel-doc warnings
-  fs: docs: f2fs.rst: fix a broken table
-  dt: update a reference for reneases pcar file renamed to yaml
-  dt: fix broken links due to txt->yaml renames
-  dt: Fix broken references to renamed docs
-  dt: fix reference to olpc,xo1.75-ec.txt
-  selftests/vm/keys: fix a broken reference at protection_keys.c
-  docs: hugetlbpage.rst: fix some warnings
-  docs: powerpc: fix some issues at vas-api.rst
-  docs: driver-model: remove a duplicated markup at driver.rst
-  docs: watch_queue.rst: supress some Sphinx warnings and move to
-    core-api
-  docs: device-mapper: add dm-ebs.rst to an index file
-  docs: it_IT: add two missing references
-  docs: ABI: fix a typo when pointing to w1-generic.rst
-  docs: fs: locking.rst: fix a broken table
-  docs: add bus-virt-phys-mapping.txt to core-api
-  docs: fix references for DMA*.txt files
-  docs: dt: minor adjustments at writing-schema.rst
-  docs: fs: proc.rst: fix a warning due to a merge conflict
-  docs: fs: proc.rst: convert a new chapter to ReST
+Regards
+Greg
 
- .../ABI/testing/sysfs-driver-w1_therm         |   2 +-
- Documentation/PCI/pci.rst                     |   6 +-
- .../admin-guide/device-mapper/index.rst       |   1 +
- Documentation/admin-guide/mm/hugetlbpage.rst  |  25 ++-
- Documentation/block/biodoc.rst                |   2 +-
- .../bus-virt-phys-mapping.rst}                |   2 +-
- Documentation/core-api/dma-api.rst            |   6 +-
- Documentation/core-api/dma-isa-lpc.rst        |   2 +-
- Documentation/core-api/index.rst              |   2 +
- Documentation/{ => core-api}/watch_queue.rst  |  34 ++--
- .../bindings/arm/freescale/fsl,scu.txt        |   2 +-
- .../bindings/display/bridge/sii902x.txt       |   2 +-
- .../bindings/display/imx/fsl-imx-drm.txt      |   4 +-
- .../devicetree/bindings/display/imx/ldb.txt   |   4 +-
- .../display/rockchip/rockchip-drm.yaml        |   2 +-
- .../bindings/misc/olpc,xo1.75-ec.txt          |   2 +-
- .../bindings/net/mediatek-bluetooth.txt       |   2 +-
- .../bindings/pinctrl/renesas,pfc-pinctrl.txt  |   2 +-
- .../bindings/sound/audio-graph-card.txt       |   2 +-
- .../bindings/sound/st,sti-asoc-card.txt       |   2 +-
- .../bindings/spi/qcom,spi-geni-qcom.txt       |   2 +-
- Documentation/devicetree/writing-schema.rst   |   9 +-
- .../driver-api/driver-model/driver.rst        |   2 -
- Documentation/driver-api/usb/dma.rst          |   6 +-
- Documentation/filesystems/f2fs.rst            | 150 ++++++++++++------
- Documentation/filesystems/locking.rst         |   6 +-
- Documentation/filesystems/proc.rst            |  46 +++---
- Documentation/memory-barriers.txt             |   6 +-
- Documentation/mips/ingenic-tcu.rst            |   2 +-
- Documentation/powerpc/vas-api.rst             |  23 ++-
- Documentation/security/keys/core.rst          |   2 +-
- .../it_IT/process/management-style.rst        |   2 +
- .../it_IT/process/submitting-patches.rst      |   2 +
- .../translations/ko_KR/memory-barriers.txt    |   6 +-
- MAINTAINERS                                   |   8 +-
- arch/ia64/hp/common/sba_iommu.c               |  12 +-
- arch/parisc/kernel/pci-dma.c                  |   2 +-
- arch/x86/include/asm/dma-mapping.h            |   4 +-
- arch/x86/kernel/amd_gart_64.c                 |   2 +-
- drivers/parisc/sba_iommu.c                    |  14 +-
- include/linux/dma-mapping.h                   |   2 +-
- include/linux/fs.h                            |   2 +-
- include/linux/gpio/driver.h                   |   2 +-
- include/linux/kcsan-checks.h                  |  10 +-
- include/linux/netdevice.h                     |   2 +
- include/linux/phylink.h                       |   4 +
- include/linux/rculist.h                       |   2 +-
- include/linux/watch_queue.h                   |   2 +-
- include/media/videobuf-dma-sg.h               |   2 +-
- init/Kconfig                                  |   2 +-
- kernel/dma/debug.c                            |   2 +-
- kernel/watch_queue.c                          |   2 +-
- mm/vmalloc.c                                  |   1 -
- net/core/dev.c                                |   1 +
- scripts/kernel-doc                            |   7 +
- tools/testing/selftests/vm/protection_keys.c  |   2 +-
- 56 files changed, 282 insertions(+), 175 deletions(-)
- rename Documentation/{bus-virt-phys-mapping.txt => core-api/bus-virt-phys-mapping.rst} (99%)
- rename Documentation/{ => core-api}/watch_queue.rst (94%)
 
--- 
-2.26.2
+
+> Using memblock_add_node() with nid = 0 to register memory banks solves the
+> problem.
+> 
+> Fixes: 3f08a302f533 ("mm: remove CONFIG_HAVE_MEMBLOCK_NODE_MAP option")
+> Fixes: fa3354e4ea39 ("mm: free_area_init: use maximal zone PFNs rather than zone sizes")
+> Signed-off-by: Angelo Dureghello <angelo.dureghello@timesys.com>
+> Co-developed-by: Mike Rapoport <rppt@linux.ibm.com>
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+> ---
+>   arch/m68k/kernel/setup_no.c | 2 +-
+>   arch/m68k/mm/mcfmmu.c       | 2 +-
+>   2 files changed, 2 insertions(+), 2 deletions(-)
+> 
+> diff --git a/arch/m68k/kernel/setup_no.c b/arch/m68k/kernel/setup_no.c
+> index e779b19e0193..0c4589a39ba9 100644
+> --- a/arch/m68k/kernel/setup_no.c
+> +++ b/arch/m68k/kernel/setup_no.c
+> @@ -138,7 +138,7 @@ void __init setup_arch(char **cmdline_p)
+>   	pr_debug("MEMORY -> ROMFS=0x%p-0x%06lx MEM=0x%06lx-0x%06lx\n ",
+>   		 __bss_stop, memory_start, memory_start, memory_end);
+>   
+> -	memblock_add(memory_start, memory_end - memory_start);
+> +	memblock_add_node(memory_start, memory_end - memory_start, 0);
+>   
+>   	/* Keep a copy of command line */
+>   	*cmdline_p = &command_line[0];
+> diff --git a/arch/m68k/mm/mcfmmu.c b/arch/m68k/mm/mcfmmu.c
+> index 29f47923aa46..7d04210d34f0 100644
+> --- a/arch/m68k/mm/mcfmmu.c
+> +++ b/arch/m68k/mm/mcfmmu.c
+> @@ -174,7 +174,7 @@ void __init cf_bootmem_alloc(void)
+>   	m68k_memory[0].addr = _rambase;
+>   	m68k_memory[0].size = _ramend - _rambase;
+>   
+> -	memblock_add(m68k_memory[0].addr, m68k_memory[0].size);
+> +	memblock_add_node(m68k_memory[0].addr, m68k_memory[0].size, 0);
+>   
+>   	/* compute total pages in system */
+>   	num_pages = PFN_DOWN(_ramend - _rambase);
+> 
