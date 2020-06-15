@@ -1,109 +1,118 @@
-Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47020 "EHLO
+Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52414 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731098AbgFVW1u (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2020 18:27:50 -0400
-Received: from mail-pf1-x444.google.com (mail-pf1-x444.google.com [IPv6:2607:f8b0:4864:20::444])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3C145C061795
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 15:27:50 -0700 (PDT)
-Received: by mail-pf1-x444.google.com with SMTP id x22so9077073pfn.3
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 15:27:50 -0700 (PDT)
-Date: Mon, 22 Jun 2020 15:27:47 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 1/3] vmlinux.lds.h: Add .gnu.version* to DISCARDS
-Message-ID: <202006221524.CEB86E036B@keescook>
-References: <20200622205341.2987797-1-keescook@chromium.org>
- <20200622205341.2987797-2-keescook@chromium.org>
- <20200622220043.6j3vl6v7udmk2ppp@google.com>
+        with ESMTP id S1730251AbgFONA6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 09:00:58 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 6/6] kernel: add a kernel_wait helper
+Date: Mon, 15 Jun 2020 15:00:32 +0200
+Message-ID: <20200615130032.931285-7-hch@lst.de>
+In-Reply-To: <20200615130032.931285-1-hch@lst.de>
+References: <20200615130032.931285-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200622220043.6j3vl6v7udmk2ppp@google.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Fangrui Song <maskray@google.com>
-Cc: Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200622222747.ODvzgfRbaN_ywnyA2G8q-5a-kEfUkrQyA9IlYZqzaes@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200615130032.qKecOIOVIHEKxf5Wa4lPy_yEyH-_QJhBFsAmtRJGc94@z>
 
-On Mon, Jun 22, 2020 at 03:00:43PM -0700, Fangrui Song wrote:
-> On 2020-06-22, Kees Cook wrote:
-> > For vmlinux linking, no architecture uses the .gnu.version* section,
-> > so remove it via the common DISCARDS macro in preparation for adding
-> > --orphan-handling=warn more widely.
-> > 
-> > Signed-off-by: Kees Cook <keescook@chromium.org>
-> > ---
-> > include/asm-generic/vmlinux.lds.h | 1 +
-> > 1 file changed, 1 insertion(+)
-> > 
-> > diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> > index db600ef218d7..6fbe9ed10cdb 100644
-> > --- a/include/asm-generic/vmlinux.lds.h
-> > +++ b/include/asm-generic/vmlinux.lds.h
-> > @@ -934,6 +934,7 @@
-> > 	*(.discard)							\
-> > 	*(.discard.*)							\
-> > 	*(.modinfo)							\
-> > +	*(.gnu.version*)						\
-> > 	}
-> > 
-> > /**
-> > -- 
-> > 2.25.1
-> 
-> I wonder what lead to .gnu.version{,_d,_r} sections in the kernel.
+Add a helper that waits for a pid and stores the status in the passed
+in kernel pointer.  Use it to fix the usage of kernel_wait4 in
+call_usermodehelper_exec_sync that only happens to work due to the
+implicit set_fs(KERNEL_DS) for kernel threads.
 
-This looks like a bug in bfd.ld? There are no versioned symbols in any
-of the input files (and no output section either!)
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ include/linux/sched/task.h |  1 +
+ kernel/exit.c              | 16 ++++++++++++++++
+ kernel/umh.c               | 29 ++++-------------------------
+ 3 files changed, 21 insertions(+), 25 deletions(-)
 
-The link command is:
-$ ld -m elf_x86_64 --no-ld-generated-unwind-info -z noreloc-overflow -pie \
---no-dynamic-linker   --orphan-handling=warn -T \
-arch/x86/boot/compressed/vmlinux.lds \
-arch/x86/boot/compressed/kernel_info.o \
-arch/x86/boot/compressed/head_64.o arch/x86/boot/compressed/misc.o \
-arch/x86/boot/compressed/string.o arch/x86/boot/compressed/cmdline.o \
-arch/x86/boot/compressed/error.o arch/x86/boot/compressed/piggy.o \
-arch/x86/boot/compressed/cpuflags.o \
-arch/x86/boot/compressed/early_serial_console.o \
-arch/x86/boot/compressed/kaslr.o arch/x86/boot/compressed/kaslr_64.o \
-arch/x86/boot/compressed/mem_encrypt.o \
-arch/x86/boot/compressed/pgtable_64.o arch/x86/boot/compressed/acpi.o \
--o arch/x86/boot/compressed/vmlinux
-
-None of the inputs have the section:
-
-$ for i in arch/x86/boot/compressed/kernel_info.o \
-arch/x86/boot/compressed/head_64.o arch/x86/boot/compressed/misc.o \
-arch/x86/boot/compressed/string.o arch/x86/boot/compressed/cmdline.o \
-arch/x86/boot/compressed/error.o arch/x86/boot/compressed/piggy.o \
-arch/x86/boot/compressed/cpuflags.o \
-arch/x86/boot/compressed/early_serial_console.o \
-arch/x86/boot/compressed/kaslr.o arch/x86/boot/compressed/kaslr_64.o \
-arch/x86/boot/compressed/mem_encrypt.o \
-arch/x86/boot/compressed/pgtable_64.o arch/x86/boot/compressed/acpi.o \
-; do echo -n $i": "; readelf -Vs $i | grep 'version'; done
-arch/x86/boot/compressed/kernel_info.o: No version information found in this file.
-arch/x86/boot/compressed/head_64.o: No version information found in this file.
-arch/x86/boot/compressed/misc.o: No version information found in this file.
-arch/x86/boot/compressed/string.o: No version information found in this file.
-arch/x86/boot/compressed/cmdline.o: No version information found in this file.
-arch/x86/boot/compressed/error.o: No version information found in this file.
-arch/x86/boot/compressed/piggy.o: No version information found in this file.
-arch/x86/boot/compressed/cpuflags.o: No version information found in this file.
-arch/x86/boot/compressed/early_serial_console.o: No version information found in this file.
-arch/x86/boot/compressed/kaslr.o: No version information found in this file.
-arch/x86/boot/compressed/kaslr_64.o: No version information found in this file.
-arch/x86/boot/compressed/mem_encrypt.o: No version information found in this file.
-arch/x86/boot/compressed/pgtable_64.o: No version information found in this file.
-arch/x86/boot/compressed/acpi.o: No version information found in this file.
-
-And it's not in the output:
-
-$ readelf -Vs arch/x86/boot/compressed/vmlinux | grep version
-No version information found in this file.
-
-So... for the kernel we need to silence it right now.
-
+diff --git a/include/linux/sched/task.h b/include/linux/sched/task.h
+index 38359071236ad7..a80007df396e95 100644
+--- a/include/linux/sched/task.h
++++ b/include/linux/sched/task.h
+@@ -102,6 +102,7 @@ struct task_struct *fork_idle(int);
+ struct mm_struct *copy_init_mm(void);
+ extern pid_t kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
+ extern long kernel_wait4(pid_t, int __user *, int, struct rusage *);
++int kernel_wait(pid_t pid, int *stat);
+ 
+ extern void free_task(struct task_struct *tsk);
+ 
+diff --git a/kernel/exit.c b/kernel/exit.c
+index 727150f2810338..fd598846df0b17 100644
+--- a/kernel/exit.c
++++ b/kernel/exit.c
+@@ -1626,6 +1626,22 @@ long kernel_wait4(pid_t upid, int __user *stat_addr, int options,
+ 	return ret;
+ }
+ 
++int kernel_wait(pid_t pid, int *stat)
++{
++	struct wait_opts wo = {
++		.wo_type	= PIDTYPE_PID,
++		.wo_pid		= find_get_pid(pid),
++		.wo_flags	= WEXITED,
++	};
++	int ret;
++
++	ret = do_wait(&wo);
++	if (ret > 0 && wo.wo_stat)
++		*stat = wo.wo_stat;
++	put_pid(wo.wo_pid);
++	return ret;
++}
++
+ SYSCALL_DEFINE4(wait4, pid_t, upid, int __user *, stat_addr,
+ 		int, options, struct rusage __user *, ru)
+ {
+diff --git a/kernel/umh.c b/kernel/umh.c
+index 1284823dbad338..6fd948e478bec4 100644
+--- a/kernel/umh.c
++++ b/kernel/umh.c
+@@ -126,37 +126,16 @@ static void call_usermodehelper_exec_sync(struct subprocess_info *sub_info)
+ {
+ 	pid_t pid;
+ 
+-	/* If SIGCLD is ignored kernel_wait4 won't populate the status. */
++	/* If SIGCLD is ignored do_wait won't populate the status. */
+ 	kernel_sigaction(SIGCHLD, SIG_DFL);
+ 	pid = kernel_thread(call_usermodehelper_exec_async, sub_info, SIGCHLD);
+-	if (pid < 0) {
++	if (pid < 0)
+ 		sub_info->retval = pid;
+-	} else {
+-		int ret = -ECHILD;
+-		/*
+-		 * Normally it is bogus to call wait4() from in-kernel because
+-		 * wait4() wants to write the exit code to a userspace address.
+-		 * But call_usermodehelper_exec_sync() always runs as kernel
+-		 * thread (workqueue) and put_user() to a kernel address works
+-		 * OK for kernel threads, due to their having an mm_segment_t
+-		 * which spans the entire address space.
+-		 *
+-		 * Thus the __user pointer cast is valid here.
+-		 */
+-		kernel_wait4(pid, (int __user *)&ret, 0, NULL);
+-
+-		/*
+-		 * If ret is 0, either call_usermodehelper_exec_async failed and
+-		 * the real error code is already in sub_info->retval or
+-		 * sub_info->retval is 0 anyway, so don't mess with it then.
+-		 */
+-		if (ret)
+-			sub_info->retval = ret;
+-	}
++	else
++		kernel_wait(pid, &sub_info->retval);
+ 
+ 	/* Restore default kernel sig handler */
+ 	kernel_sigaction(SIGCHLD, SIG_IGN);
+-
+ 	umh_complete(sub_info);
+ }
+ 
 -- 
-Kees Cook
+2.26.2
