@@ -1,67 +1,105 @@
-Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52086 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731268AbgFVXAQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2020 19:00:16 -0400
-Received: from mail-pg1-x544.google.com (mail-pg1-x544.google.com [IPv6:2607:f8b0:4864:20::544])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 19285C061573
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:00:15 -0700 (PDT)
-Received: by mail-pg1-x544.google.com with SMTP id q22so6080915pgk.2
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:00:15 -0700 (PDT)
-Date: Mon, 22 Jun 2020 16:00:12 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 3/3] x86/boot: Warn on orphan section placement
-Message-ID: <202006221600.81F5586@keescook>
-References: <20200622205341.2987797-1-keescook@chromium.org>
- <20200622205341.2987797-4-keescook@chromium.org>
- <20200622220628.t5fklwmbtqoird5f@google.com>
- <202006221543.EA2FCFA2FF@keescook>
- <20200622224928.o2a7jkq33guxfci4@google.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200622224928.o2a7jkq33guxfci4@google.com>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=jz+U=74=vger.kernel.org=linux-doc-owner@kernel.org>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: [PATCH V3 0/4] mm/debug_vm_pgtable: Add some more tests
+Date: Mon, 15 Jun 2020 09:07:53 +0530
+Message-ID: <1592192277-8421-1-git-send-email-anshuman.khandual@arm.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: linux-mm@kvack.org
+Cc: christophe.leroy@c-s.fr, ziy@nvidia.com, gerald.schaefer@de.ibm.com, Anshuman Khandual <anshuman.khandual@arm.com>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Fangrui Song <maskray@google.com>
-Cc: Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200622230012.VrzyUhg26es1D5SXII-GKL_1dkBBsMb8Y2aVncClIqE@z>
+Message-ID: <20200615033753.AQlfZzBltyX1zf_NpTNfupWftjQGmzY5iomNdA6vuDc@z>
 
-On Mon, Jun 22, 2020 at 03:49:28PM -0700, Fangrui Song wrote:
-> On 2020-06-22, Kees Cook wrote:
-> > On Mon, Jun 22, 2020 at 03:06:28PM -0700, Fangrui Song wrote:
-> > > LLD may report warnings for 3 synthetic sections if they are orphans:
-> > > 
-> > > ld.lld: warning: <internal>:(.symtab) is being placed in '.symtab'
-> > > ld.lld: warning: <internal>:(.shstrtab) is being placed in '.shstrtab'
-> > > ld.lld: warning: <internal>:(.strtab) is being placed in '.strtab'
-> > > 
-> > > Are they described?
-> > 
-> > Perhaps:
-> > 
-> > diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> > index db600ef218d7..57e9c142e401 100644
-> > --- a/include/asm-generic/vmlinux.lds.h
-> > +++ b/include/asm-generic/vmlinux.lds.h
-> > @@ -792,6 +792,9 @@
-> > 		.stab.exclstr 0 : { *(.stab.exclstr) }			\
-> > 		.stab.index 0 : { *(.stab.index) }			\
-> > 		.stab.indexstr 0 : { *(.stab.indexstr) }		\
-> > +		.symtab 0 : { *(.symtab) }				\
-> > +		.strtab 0 : { *(.strtab) }				\
-> > +		.shstrtab 0 : { *(.shstrtab) }				\
-> > 		.comment 0 : { *(.comment) }
-> > 
-> > #ifdef CONFIG_GENERIC_BUG
-> 
-> This LGTM. Nit: .comment before .symtab is a more common order.
+This series adds some more arch page table helper validation tests which
+are related to core and advanced memory functions. This also creates a
+documentation, enlisting expected semantics for all page table helpers as
+suggested by Mike Rapoport previously (https://lkml.org/lkml/2020/1/30/40).
 
-Adjusted.
+There are many TRANSPARENT_HUGEPAGE and ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD
+ifdefs scattered across the test. But consolidating all the fallback stubs
+is not very straight forward because ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD is
+not explicitly dependent on ARCH_HAS_TRANSPARENT_HUGEPAGE.
 
-> Reviewed-by: Fangrui Song <maskray@google.com>
+Tested on arm64, x86 platforms but only build tested on all other enabled
+platforms through ARCH_HAS_DEBUG_VM_PGTABLE i.e powerpc, arc, s390. The
+following failure on arm64 still exists which was mentioned previously. It
+will be fixed with the upcoming THP migration on arm64 enablement series.
 
-Thanks!
+WARNING .... mm/debug_vm_pgtable.c:860 debug_vm_pgtable+0x940/0xa54
+WARN_ON(!pmd_present(pmd_mkinvalid(pmd_mkhuge(pmd))))
+
+This series is based on v5.8-rc1.
+
+Changes in V3:
+
+- Replaced HAVE_ARCH_SOFT_DIRTY with MEM_SOFT_DIRTY
+- Added HAVE_ARCH_HUGE_VMAP checks in pxx_huge_tests() per Gerald
+- Updated documentation for pmd_thp_tests() per Zi Yan
+- Replaced READ_ONCE() with huge_ptep_get() per Gerald
+- Added pte_mkhuge() and masking with PMD_MASK per Gerald
+- Replaced pte_same() with holding pfn check in pxx_swap_tests()
+- Added documentation for all (#ifdef #else #endif) per Gerald
+- Updated pmd_protnone_tests() per Gerald
+- Updated HugeTLB PTE creation in hugetlb_advanced_tests() per Gerald
+- Replaced [pmd|pud]_mknotpresent() with [pmd|pud]_mkinvalid()
+- Added has_transparent_hugepage() check for PMD and PUD tests
+- Added a patch which debug prints all individual tests being executed
+- Updated documentation for renamed [pmd|pud]_mkinvalid() helpers
+
+Changes in V2: (https://patchwork.kernel.org/project/linux-mm/list/?series=260573)
+
+- Dropped CONFIG_ARCH_HAS_PTE_SPECIAL per Christophe
+- Dropped CONFIG_NUMA_BALANCING per Christophe
+- Dropped CONFIG_HAVE_ARCH_SOFT_DIRTY per Christophe
+- Dropped CONFIG_MIGRATION per Christophe
+- Replaced CONFIG_S390 with __HAVE_ARCH_PMDP_INVALIDATE
+- Moved page allocation & free inside swap_migration_tests() per Christophe
+- Added CONFIG_TRANSPARENT_HUGEPAGE to protect pfn_pmd()
+- Added CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD to protect pfn_pud()
+- Added a patch for other arch advanced page table helper tests
+- Added a patch creating a documentation for page table helper semantics
+
+Changes in V1: (https://patchwork.kernel.org/patch/11408253/)
+
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Vasily Gorbik <gor@linux.ibm.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Kirill A. Shutemov <kirill@shutemov.name>
+Cc: Paul Walmsley <paul.walmsley@sifive.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: linux-snps-arc@lists.infradead.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-riscv@lists.infradead.org
+Cc: x86@kernel.org
+Cc: linux-mm@kvack.org
+Cc: linux-doc@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+
+Anshuman Khandual (4):
+  mm/debug_vm_pgtable: Add tests validating arch helpers for core MM features
+  mm/debug_vm_pgtable: Add tests validating advanced arch page table helpers
+  mm/debug_vm_pgtable: Add debug prints for individual tests
+  Documentation/mm: Add descriptions for arch page table helpers
+
+ Documentation/vm/arch_pgtable_helpers.rst | 258 +++++++++
+ mm/debug_vm_pgtable.c                     | 660 +++++++++++++++++++++-
+ 2 files changed, 916 insertions(+), 2 deletions(-)
+ create mode 100644 Documentation/vm/arch_pgtable_helpers.rst
 
 -- 
-Kees Cook
+2.20.1
