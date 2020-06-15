@@ -1,207 +1,240 @@
-Return-Path: <SRS0=NK3b=75=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from bilbo.ozlabs.org ([203.11.71.1]:55417 "EHLO ozlabs.org"
+Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga07.intel.com ([134.134.136.100]:41361 "EHLO mga07.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725849AbgFPXbW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 16 Jun 2020 19:31:22 -0400
-Date: Wed, 17 Jun 2020 09:26:14 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: [RFC Patch 0/2] fix up includes of linux/major.h
-Message-ID: <20200617092614.7897ccb2@canb.auug.org.au>
+        id S1730064AbgFON4d (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 Jun 2020 09:56:33 -0400
+Date: Mon, 15 Jun 2020 16:56:31 +0300
+From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Subject: Re: [PATCH v8 1/4] bitops: Introduce the for_each_set_clump macro
+Message-ID: <20200615135631.GF2428291@smile.fi.intel.com>
+References: <cover.1592224128.git.syednwaris@gmail.com>
+ <fe12eedf3666f4af5138de0e70b67a07c7f40338.1592224129.git.syednwaris@gmail.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed; boundary="Sig_/c1RdnDg/CwSxuJmBjtRxByn";
- protocol="application/pgp-signature"; micalg=pgp-sha256
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <fe12eedf3666f4af5138de0e70b67a07c7f40338.1592224129.git.syednwaris@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linux-kernel Mailing List <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Greg KH <greg@kroah.com>
-Message-ID: <20200616232614.sly31Vg9kPxycLbihTud9YkZsbT-NRMEWyr_WZrZPYQ@z>
+To: Syed Nayyar Waris <syednwaris@gmail.com>
+Cc: linus.walleij@linaro.org, akpm@linux-foundation.org, vilhelm.gray@gmail.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200615135631.eT-TBqScJJbwpX2qgBRgcnbauQoKLjv7NYgApmAnBmU@z>
 
---Sig_/c1RdnDg/CwSxuJmBjtRxByn
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+On Mon, Jun 15, 2020 at 06:21:18PM +0530, Syed Nayyar Waris wrote:
+> This macro iterates for each group of bits (clump) with set bits,
+> within a bitmap memory region. For each iteration, "start" is set to
+> the bit offset of the found clump, while the respective clump value is
+> stored to the location pointed by "clump". Additionally, the
+> bitmap_get_value and bitmap_set_value functions are introduced to
+> respectively get and set a value of n-bits in a bitmap memory region.
+> The n-bits can have any size less than or equal to BITS_PER_LONG.
+> Moreover, during setting value of n-bit in bitmap, if a situation arise
+> that the width of next n-bit is exceeding the word boundary, then it
+> will divide itself such that some portion of it is stored in that word,
+> while the remaining portion is stored in the next higher word. Similar
+> situation occurs while retrieving value of n-bits from bitmap.
+> 
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Syed Nayyar Waris <syednwaris@gmail.com>
+> Reviewed-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+> Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+> ---
+> Changes in v8:
+>  - No change.
+> 
+> Changes in v7:
+>  - No change.
+> 
+> Changes in v6:
+>  - No change.
+> 
+> Changes in v5:
+>  - No change.
+> 
+> Changes in v4:
+>  - No change.
+> 
+> Changes in v3:
+>  - No change.
+> 
+> Changes in v2:
+>  - No change.
+> 
+>  include/asm-generic/bitops/find.h | 19 ++++++++++
+>  include/linux/bitmap.h            | 61 +++++++++++++++++++++++++++++++
+>  include/linux/bitops.h            | 13 +++++++
+>  lib/find_bit.c                    | 14 +++++++
+>  4 files changed, 107 insertions(+)
+> 
+> diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
+> index 9fdf21302fdf..4e6600759455 100644
+> --- a/include/asm-generic/bitops/find.h
+> +++ b/include/asm-generic/bitops/find.h
+> @@ -97,4 +97,23 @@ extern unsigned long find_next_clump8(unsigned long *clump,
+>  #define find_first_clump8(clump, bits, size) \
+>  	find_next_clump8((clump), (bits), (size), 0)
+>  
+> +/**
+> + * find_next_clump - find next clump with set bits in a memory region
+> + * @clump: location to store copy of found clump
+> + * @addr: address to base the search on
+> + * @size: bitmap size in number of bits
+> + * @offset: bit offset at which to start searching
+> + * @clump_size: clump size in bits
+> + *
+> + * Returns the bit offset for the next set clump; the found clump value is
+> + * copied to the location pointed by @clump. If no bits are set, returns @size.
+> + */
+> +extern unsigned long find_next_clump(unsigned long *clump,
+> +				      const unsigned long *addr,
+> +				      unsigned long size, unsigned long offset,
+> +				      unsigned long clump_size);
+> +
+> +#define find_first_clump(clump, bits, size, clump_size) \
+> +	find_next_clump((clump), (bits), (size), 0, (clump_size))
+> +
+>  #endif /*_ASM_GENERIC_BITOPS_FIND_H_ */
+> diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
+> index 99058eb81042..7ab2c65fc964 100644
+> --- a/include/linux/bitmap.h
+> +++ b/include/linux/bitmap.h
+> @@ -75,7 +75,11 @@
+>   *  bitmap_from_arr32(dst, buf, nbits)          Copy nbits from u32[] buf to dst
+>   *  bitmap_to_arr32(buf, src, nbits)            Copy nbits from buf to u32[] dst
+>   *  bitmap_get_value8(map, start)               Get 8bit value from map at start
+> + *  bitmap_get_value(map, start, nbits)		Get bit value of size
+> + *						'nbits' from map at start
+>   *  bitmap_set_value8(map, value, start)        Set 8bit value to map at start
+> + *  bitmap_set_value(map, value, start, nbits)	Set bit value of size 'nbits'
+> + *						of map at start
+>   *
+>   * Note, bitmap_zero() and bitmap_fill() operate over the region of
+>   * unsigned longs, that is, bits behind bitmap till the unsigned long
+> @@ -563,6 +567,34 @@ static inline unsigned long bitmap_get_value8(const unsigned long *map,
+>  	return (map[index] >> offset) & 0xFF;
+>  }
+>  
+> +/**
+> + * bitmap_get_value - get a value of n-bits from the memory region
+> + * @map: address to the bitmap memory region
+> + * @start: bit offset of the n-bit value
+> + * @nbits: size of value in bits
+> + *
+> + * Returns value of nbits located at the @start bit offset within the @map
+> + * memory region.
+> + */
+> +static inline unsigned long bitmap_get_value(const unsigned long *map,
+> +					      unsigned long start,
+> +					      unsigned long nbits)
+> +{
+> +	const size_t index = BIT_WORD(start);
+> +	const unsigned long offset = start % BITS_PER_LONG;
+> +	const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
+> +	const unsigned long space = ceiling - start;
+> +	unsigned long value_low, value_high;
+> +
+> +	if (space >= nbits)
+> +		return (map[index] >> offset) & GENMASK(nbits - 1, 0);
 
-Hi all,
+Andrew, note that this requires to have GENMASK() fix [1] applied.
 
-[This is not cc'd very widely, but get_maintainers produces a very long
-list ...]
+[1]: https://lore.kernel.org/lkml/20200608221823.35799-1-rikard.falkeborn@gmail.com/
 
-I have been looking at our include file mess off and on over time and
-have finally decided to start with something easy.  linux/major.h
-(actually uapi/linux/major.h) is included in quite a few places that
-are unnecessary and not included in pleaces it should be.  It also does
-not include (or depend on) any other file.  I was lead here while
-looking at reducding the size of linux/tty.h (which this patch series
-accomplishes).
+> +	else {
+> +		value_low = map[index] & BITMAP_FIRST_WORD_MASK(start);
+> +		value_high = map[index + 1] & BITMAP_LAST_WORD_MASK(start + nbits);
+> +		return (value_low >> offset) | (value_high << space);
+> +	}
+> +}
+> +
+>  /**
+>   * bitmap_set_value8 - set an 8-bit value within a memory region
+>   * @map: address to the bitmap memory region
+> @@ -579,6 +611,35 @@ static inline void bitmap_set_value8(unsigned long *map, unsigned long value,
+>  	map[index] |= value << offset;
+>  }
+>  
+> +/**
+> + * bitmap_set_value - set n-bit value within a memory region
+> + * @map: address to the bitmap memory region
+> + * @value: value of nbits
+> + * @start: bit offset of the n-bit value
+> + * @nbits: size of value in bits
+> + */
+> +static inline void bitmap_set_value(unsigned long *map,
+> +				    unsigned long value,
+> +				    unsigned long start, unsigned long nbits)
+> +{
+> +	const size_t index = BIT_WORD(start);
+> +	const unsigned long offset = start % BITS_PER_LONG;
+> +	const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
+> +	const unsigned long space = ceiling - start;
+> +
+> +	value &= GENMASK(nbits - 1, 0);
+> +
+> +	if (space >= nbits) {
+> +		map[index] &= ~(GENMASK(nbits + offset - 1, offset));
+> +		map[index] |= value << offset;
+> +	} else {
+> +		map[index] &= ~BITMAP_FIRST_WORD_MASK(start);
+> +		map[index] |= value << offset;
+> +		map[index + 1] &= ~BITMAP_LAST_WORD_MASK(start + nbits);
+> +		map[index + 1] |= (value >> space);
+> +	}
+> +}
+> +
+>  #endif /* __ASSEMBLY__ */
+>  
+>  #endif /* __LINUX_BITMAP_H */
+> diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+> index 9acf654f0b19..41c2d9ce63e7 100644
+> --- a/include/linux/bitops.h
+> +++ b/include/linux/bitops.h
+> @@ -62,6 +62,19 @@ extern unsigned long __sw_hweight64(__u64 w);
+>  	     (start) < (size); \
+>  	     (start) = find_next_clump8(&(clump), (bits), (size), (start) + 8))
+>  
+> +/**
+> + * for_each_set_clump - iterate over bitmap for each clump with set bits
+> + * @start: bit offset to start search and to store the current iteration offset
+> + * @clump: location to store copy of current 8-bit clump
+> + * @bits: bitmap address to base the search on
+> + * @size: bitmap size in number of bits
+> + * @clump_size: clump size in bits
+> + */
+> +#define for_each_set_clump(start, clump, bits, size, clump_size) \
+> +	for ((start) = find_first_clump(&(clump), (bits), (size), (clump_size)); \
+> +	     (start) < (size); \
+> +	     (start) = find_next_clump(&(clump), (bits), (size), (start) + (clump_size), (clump_size)))
+> +
+>  static inline int get_bitmask_order(unsigned int count)
+>  {
+>  	int order;
+> diff --git a/lib/find_bit.c b/lib/find_bit.c
+> index 49f875f1baf7..1341bd39b32a 100644
+> --- a/lib/find_bit.c
+> +++ b/lib/find_bit.c
+> @@ -190,3 +190,17 @@ unsigned long find_next_clump8(unsigned long *clump, const unsigned long *addr,
+>  	return offset;
+>  }
+>  EXPORT_SYMBOL(find_next_clump8);
+> +
+> +unsigned long find_next_clump(unsigned long *clump, const unsigned long *addr,
+> +			       unsigned long size, unsigned long offset,
+> +			       unsigned long clump_size)
+> +{
+> +	offset = find_next_bit(addr, size, offset);
+> +	if (offset == size)
+> +		return size;
+> +
+> +	offset = rounddown(offset, clump_size);
+> +	*clump = bitmap_get_value(addr, offset, clump_size);
+> +	return offset;
+> +}
+> +EXPORT_SYMBOL(find_next_clump);
+> -- 
+> 2.26.2
+> 
 
-Just 2 patches currently:
-
-  1/2 Explicitly include linux/major.h where it is needed
-  2/2 Remove the include of linux/major.h from files that do not need it
-
- arch/alpha/kernel/osf_sys.c                      | 1 -
- arch/alpha/kernel/process.c                      | 1 -
- arch/arm/mach-iop32x/i2c.c                       | 1 -
- arch/arm/mach-omap1/board-h3.c                   | 1 -
- arch/arm/mach-pxa/corgi.c                        | 1 -
- arch/arm/mach-pxa/lubbock.c                      | 1 -
- arch/arm/mach-pxa/tosa.c                         | 1 -
- arch/arm/mach-pxa/viper.c                        | 1 -
- arch/m68k/atari/atasound.c                       | 1 -
- arch/m68k/atari/stram.c                          | 1 -
- arch/m68k/bvme6000/config.c                      | 1 -
- arch/m68k/mvme147/config.c                       | 1 -
- arch/m68k/mvme16x/config.c                       | 1 -
- arch/m68k/q40/config.c                           | 1 -
- arch/mips/fw/arc/arc_con.c                       | 1 -
- arch/powerpc/platforms/83xx/km83xx.c             | 1 -
- arch/powerpc/platforms/83xx/mpc832x_mds.c        | 1 -
- arch/powerpc/platforms/83xx/mpc834x_itx.c        | 1 -
- arch/powerpc/platforms/83xx/mpc834x_mds.c        | 1 -
- arch/powerpc/platforms/83xx/mpc836x_mds.c        | 1 -
- arch/powerpc/platforms/85xx/mpc85xx_cds.c        | 1 -
- arch/powerpc/platforms/85xx/mpc85xx_mds.c        | 1 -
- arch/powerpc/platforms/85xx/sbc8548.c            | 1 -
- arch/powerpc/platforms/chrp/setup.c              | 1 -
- arch/powerpc/platforms/maple/setup.c             | 1 -
- arch/powerpc/platforms/powermac/setup.c          | 1 -
- arch/powerpc/platforms/pseries/setup.c           | 1 -
- arch/powerpc/sysdev/fsl_soc.c                    | 1 -
- arch/powerpc/sysdev/tsi108_dev.c                 | 1 -
- arch/sparc/kernel/setup_32.c                     | 1 -
- arch/sparc/kernel/setup_64.c                     | 1 -
- arch/um/drivers/ubd_kern.c                       | 1 +
- arch/xtensa/platforms/xt2000/setup.c             | 1 -
- arch/xtensa/platforms/xtfpga/setup.c             | 1 -
- block/genhd.c                                    | 1 +
- block/partitions/efi.h                           | 1 -
- drivers/android/binderfs.c                       | 1 -
- drivers/block/amiflop.c                          | 1 +
- drivers/block/ataflop.c                          | 1 +
- drivers/block/drbd/drbd_int.h                    | 1 -
- drivers/block/drbd/drbd_main.c                   | 1 +
- drivers/block/floppy.c                           | 1 +
- drivers/block/swim.c                             | 1 +
- drivers/block/swim3.c                            | 1 +
- drivers/block/xen-blkfront.c                     | 1 +
- drivers/cdrom/cdrom.c                            | 1 -
- drivers/char/hpet.c                              | 1 -
- drivers/char/mem.c                               | 1 +
- drivers/char/mwave/mwavedd.c                     | 1 -
- drivers/char/pcmcia/synclink_cs.c                | 1 -
- drivers/char/random.c                            | 1 -
- drivers/char/ttyprintk.c                         | 1 +
- drivers/hid/hidraw.c                             | 1 -
- drivers/ide/ide-cs.c                             | 1 -
- drivers/ide/ide-disk.c                           | 1 -
- drivers/ide/ide-floppy.c                         | 1 -
- drivers/ide/ide-io.c                             | 1 -
- drivers/ide/ide-iops.c                           | 1 -
- drivers/ide/ide.c                                | 1 -
- drivers/input/serio/serio_raw.c                  | 1 -
- drivers/isdn/capi/capi.c                         | 1 -
- drivers/md/md.c                                  | 1 +
- drivers/message/fusion/mptctl.c                  | 1 +
- drivers/misc/vmw_vmci/vmci_host.c                | 1 +
- drivers/mmc/core/block.c                         | 1 +
- drivers/mmc/host/android-goldfish.c              | 1 -
- drivers/mtd/devices/pmc551.c                     | 1 -
- drivers/mtd/devices/slram.c                      | 1 -
- drivers/mtd/ftl.c                                | 1 -
- drivers/mtd/maps/uclinux.c                       | 1 -
- drivers/net/hamradio/mkiss.c                     | 1 -
- drivers/net/tun.c                                | 1 -
- drivers/parport/parport_cs.c                     | 1 -
- drivers/pcmcia/cistpl.c                          | 1 -
- drivers/pcmcia/cs.c                              | 1 -
- drivers/pcmcia/socket_sysfs.c                    | 1 -
- drivers/s390/block/dasd.c                        | 1 -
- drivers/s390/block/dasd_genhd.c                  | 1 +
- drivers/s390/block/dasd_ioctl.c                  | 1 -
- drivers/s390/block/xpram.c                       | 1 +
- drivers/s390/char/con3215.c                      | 1 +
- drivers/s390/char/fs3270.c                       | 1 +
- drivers/s390/char/raw3270.c                      | 1 -
- drivers/s390/char/sclp_tty.c                     | 1 +
- drivers/s390/char/tape_class.h                   | 1 -
- drivers/s390/char/tty3270.c                      | 1 +
- drivers/s390/scsi/zfcp_def.h                     | 1 -
- drivers/sbus/char/display7seg.c                  | 1 -
- drivers/scsi/nsp32.c                             | 1 -
- drivers/scsi/pcmcia/aha152x_stub.c               | 1 -
- drivers/scsi/pcmcia/nsp_cs.c                     | 1 -
- drivers/scsi/pcmcia/qlogic_stub.c                | 1 -
- drivers/scsi/sd.c                                | 1 +
- drivers/scsi/sg.c                                | 1 +
- drivers/scsi/sr.c                                | 1 +
- drivers/scsi/st.c                                | 1 +
- drivers/staging/kpc2000/kpc_dma/kpc_dma_driver.c | 1 +
- drivers/staging/speakup/devsynth.c               | 1 +
- drivers/tty/hvc/hvc_console.c                    | 1 -
- drivers/tty/hvc/hvcs.c                           | 1 -
- drivers/tty/hvc/hvsi.c                           | 1 -
- drivers/tty/moxa.c                               | 1 -
- drivers/tty/mxser.c                              | 1 -
- drivers/tty/n_gsm.c                              | 1 -
- drivers/tty/n_tty.c                              | 1 -
- drivers/tty/rocket.c                             | 1 -
- drivers/tty/serial/8250/8250_core.c              | 1 +
- drivers/tty/serial/8250/serial_cs.c              | 1 -
- drivers/tty/serial/apbuart.c                     | 1 +
- drivers/tty/serial/atmel_serial.c                | 1 +
- drivers/tty/serial/bcm63xx_uart.c                | 1 +
- drivers/tty/serial/icom.c                        | 1 -
- drivers/tty/serial/mcf.c                         | 1 +
- drivers/tty/serial/mux.c                         | 1 +
- drivers/tty/serial/pxa.c                         | 1 +
- drivers/tty/serial/serial_txx9.c                 | 1 +
- drivers/tty/serial/sh-sci.c                      | 1 -
- drivers/tty/synclink.c                           | 1 -
- drivers/tty/synclink_gt.c                        | 1 -
- drivers/tty/synclinkmp.c                         | 1 -
- drivers/tty/sysrq.c                              | 1 -
- drivers/tty/tty_ioctl.c                          | 1 -
- drivers/tty/vt/vt_ioctl.c                        | 1 -
- drivers/watchdog/cpwd.c                          | 1 -
- drivers/watchdog/watchdog_dev.c                  | 1 +
- drivers/xen/evtchn.c                             | 1 -
- drivers/xen/gntalloc.c                           | 1 +
- fs/block_dev.c                                   | 1 -
- fs/char_dev.c                                    | 1 -
- fs/coda/psdev.c                                  | 1 -
- fs/devpts/inode.c                                | 1 +
- fs/proc/proc_tty.c                               | 1 +
- fs/xfs/xfs_linux.h                               | 1 -
- include/linux/blkdev.h                           | 1 -
- include/linux/genhd.h                            | 1 -
- include/linux/tty.h                              | 1 -
- include/uapi/linux/raid/md_u.h                   | 2 ++
- init/do_mounts.c                                 | 1 +
- init/do_mounts.h                                 | 1 -
- init/do_mounts_md.c                              | 1 +
- init/do_mounts_rd.c                              | 1 +
- kernel/bpf/inode.c                               | 1 -
- net/ipv4/ipconfig.c                              | 1 -
- tools/hv/hv_vss_daemon.c                         | 1 -
- 144 files changed, 44 insertions(+), 101 deletions(-)
-
---=20
-Cheers,
-Stephen Rothwell
-
---Sig_/c1RdnDg/CwSxuJmBjtRxByn
-Content-Type: application/pgp-signature
-Content-Description: OpenPGP digital signature
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAEBCAAdFiEENIC96giZ81tWdLgKAVBC80lX0GwFAl7pVRYACgkQAVBC80lX
-0Gzlcwf/b25QCg0ykDaOMiVG+okZvg5BqDreuD+is6k4L9JLgZ+YkTTUj8lg5opd
-EDjrV49J+q5TR/H7aPFIbfqoqmuVKblGKJ595+Xmnr68XggwMexS+QFKQUZaGLkX
-ekK/iEyHjl2ry7DFRLCa12tHBkmUML8W893Bqk4yjDugP+kyZ1wBwlAsDSSIO7fU
-jLWGJO+PKpAsiHbsaINoSfMZa6WUJ19ClJeeO4s0v4SXXqeOmhIwcUQI3XrzQm5x
-kntG/FskFUS5Sh/CeAAJmeR+9k03cgttIIHDjr5bGZYuY5q0q68Q/P91R5t6eaIu
-k79hxhqy2VZjw76J/G/xf0wNBwmT/w==
-=0vtK
------END PGP SIGNATURE-----
-
---Sig_/c1RdnDg/CwSxuJmBjtRxByn--
+-- 
+With Best Regards,
+Andy Shevchenko
