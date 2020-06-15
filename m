@@ -1,83 +1,84 @@
-Return-Path: <SRS0=HbQn=76=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39292 "EHLO
+Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47990 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726758AbgFQV1J (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jun 2020 17:27:09 -0400
-Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 553CFC06174E
-        for <linux-arch@vger.kernel.org>; Wed, 17 Jun 2020 14:27:09 -0700 (PDT)
-Received: by mail-pg1-x542.google.com with SMTP id v14so1917752pgl.1
-        for <linux-arch@vger.kernel.org>; Wed, 17 Jun 2020 14:27:09 -0700 (PDT)
-Date: Wed, 17 Jun 2020 14:27:05 -0700
-From: =?utf-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>
-Subject: Re: [PATCH] vmlinux.lds: consider .text.{hot|unlikely}.* part of
- .text too
-Message-ID: <20200617212705.tq2q6bi446gydymo@google.com>
-References: <20200617210613.95432-1-ndesaulniers@google.com>
+        with ESMTP id S1729973AbgFOPeB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 11:34:01 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20200617210613.95432-1-ndesaulniers@google.com>
+References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de>
+ <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com>
+ <20200615141239.GA12951@lst.de> <CAK8P3a2MeZhayZWkPbd4Ckq3n410p_n808NJTwN=JjzqHRiAXg@mail.gmail.com>
+ <20200615144310.GA15101@lst.de> <CAK8P3a17h782gO65qJ9Mmz0EuiTSKQPEyr_=nvqOtnmQZuh9Kw@mail.gmail.com>
+ <20200615150926.GA17108@lst.de>
+In-Reply-To: <20200615150926.GA17108@lst.de>
+From: Brian Gerst <brgerst@gmail.com>
+Date: Mon, 15 Jun 2020 11:33:49 -0400
+Message-ID: <CAMzpN2htYX7s6pmRg-c8qwZL1f1_+sB=ztDG_L=617hWsm-=8g@mail.gmail.com>
+Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, clang-built-linux@googlegroups.com, Kees Cook <keescook@chromium.org>, stable@vger.kernel.org, Jian Cai <jiancai@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200617212705.6fXmVK13ZTBxcHzOCHnEvX-qG8oBWBPqbGXrdbUI6fs@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20200615153349.UQErkfZHcr7LMf_09xUpCE-cLPLDCWa4ululsABp9cg@z>
 
-
-On 2020-06-17, Nick Desaulniers wrote:
->ld.bfd's internal linker script considers .text.hot AND .text.hot.* to
->be part of .text, as well as .text.unlikely and .text.unlikely.*.
-
->ld.lld will produce .text.hot.*/.text.unlikely.* sections.
-
-Correction to this sentence. lld is not relevant here.
-
--ffunction-sections combined with profile-guided optimization can
-produce .text.hot.* .text.unlikely.* sections.  Newer clang may produce
-.text.hot. .text.unlikely. (without suffix, but with a trailing dot)
-when -fno-unique-section-names is specified, as an optimization to make
-.strtab smaller.
-
-We've already seen that GCC can place main in .text.startup without
--ffunction-sections. There may be other non -ffunction-sections cases
-for .text.hot.* or .text.unlikely.*. So it is definitely a good idea to
-be more specific even if we don't care about -ffunction-sections for
-now.
-
->Make sure to group these together.  Otherwise these orphan sections may
->be placed outside of the the _stext/_etext boundaries.
+On Mon, Jun 15, 2020 at 11:10 AM Christoph Hellwig <hch@lst.de> wrote:
 >
->Cc: stable@vger.kernel.org
->Link: https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=add44f8d5c5c05e08b11e033127a744d61c26aee
->Link: https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=1de778ed23ce7492c523d5850c6c6dbb34152655
->Link: https://reviews.llvm.org/D79600
->Reported-by: Jian Cai <jiancai@google.com>
->Debugged-by: Luis Lozano <llozano@google.com>
->Suggested-by: Fāng-ruì Sòng <maskray@google.com>
->Tested-by: Luis Lozano <llozano@google.com>
->Tested-by: Manoj Gupta <manojgupta@google.com>
->Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
->---
-> include/asm-generic/vmlinux.lds.h | 4 +++-
-> 1 file changed, 3 insertions(+), 1 deletion(-)
+> On Mon, Jun 15, 2020 at 04:46:15PM +0200, Arnd Bergmann wrote:
+> > How about this one:
+> >
+> > diff --git a/arch/x86/entry/syscall_x32.c b/arch/x86/entry/syscall_x32.=
+c
+> > index 3d8d70d3896c..0ce15807cf54 100644
+> > --- a/arch/x86/entry/syscall_x32.c
+> > +++ b/arch/x86/entry/syscall_x32.c
+> > @@ -16,6 +16,9 @@
+> >  #undef __SYSCALL_X32
+> >  #undef __SYSCALL_COMMON
+> >
+> > +#define __x32_sys_execve __x64_sys_execve
+> > +#define __x32_sys_execveat __x64_sys_execveat
+> > +
 >
->diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
->index d7c7c7f36c4a..fe5aaef169e3 100644
->--- a/include/asm-generic/vmlinux.lds.h
->+++ b/include/asm-generic/vmlinux.lds.h
->@@ -560,7 +560,9 @@
->  */
-> #define TEXT_TEXT							\
-> 		ALIGN_FUNCTION();					\
->-		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely)	\
->+		*(.text.hot .text.hot.*)				\
->+		*(TEXT_MAIN .text.fixup)				\
->+		*(.text.unlikely .text.unlikely.*)			\
-> 		NOINSTR_TEXT						\
-> 		*(.text..refcount)					\
-> 		*(.ref.text)						\
->-- 
->2.27.0.290.gba653c62da-goog
 >
+> arch/x86/entry/syscall_x32.c:19:26: error: =E2=80=98__x64_sys_execve=E2=
+=80=99 undeclared here (not in a function); did you mean =E2=80=98__x32_sys=
+_execve=E2=80=99?
+>    19 | #define __x32_sys_execve __x64_sys_execve
+>       |                          ^~~~~~~~~~~~~~~~
+> arch/x86/entry/syscall_x32.c:22:39: note: in expansion of macro =E2=80=98=
+__x32_sys_execve=E2=80=99
+>    22 | #define __SYSCALL_X32(nr, sym) [nr] =3D __x32_##sym,
+>       |                                       ^~~~~~
+> ./arch/x86/include/generated/asm/syscalls_64.h:344:1: note: in expansion =
+of macro =E2=80=98__SYSCALL_X32=E2=80=99
+>   344 | __SYSCALL_X32(520, sys_execve)
+>       | ^~~~~~~~~~~~~
+> arch/x86/entry/syscall_x32.c:20:28: error: =E2=80=98__x64_sys_execveat=E2=
+=80=99 undeclared here (not in a function); did you mean =E2=80=98__x32_sys=
+_execveat=E2=80=99?
+>    20 | #define __x32_sys_execveat __x64_sys_execveat
+>       |                            ^~~~~~~~~~~~~~~~~~
+> arch/x86/entry/syscall_x32.c:22:39: note: in expansion of macro =E2=80=98=
+__x32_sys_execveat=E2=80=99
+>    22 | #define __SYSCALL_X32(nr, sym) [nr] =3D __x32_##sym,
+>       |                                       ^~~~~~
+> ./arch/x86/include/generated/asm/syscalls_64.h:369:1: note: in expansion =
+of macro =E2=80=98__SYSCALL_X32=E2=80=99
+>   369 | __SYSCALL_X32(545, sys_execveat)
+>       | ^~~~~~~~~~~~~
+> make[2]: *** [scripts/Makefile.build:281: arch/x86/entry/syscall_x32.o] E=
+rror 1
+> make[1]: *** [scripts/Makefile.build:497: arch/x86/entry] Error 2
+> make[1]: *** Waiting for unfinished jobs....
+> kernel/exit.o: warning: objtool: __x64_sys_exit_group()+0x14: unreachable=
+ instruction
+> make: *** [Makefile:1764: arch/x86] Error 2
+> make: *** Waiting for unfinished jobs....
+
+If you move those aliases above all the __SYSCALL_* defines it will
+work, since that will get the forward declaration too.  This would be
+the simplest workaround.
+
+--
+Brian Gerst
