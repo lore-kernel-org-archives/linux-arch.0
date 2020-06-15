@@ -1,62 +1,23 @@
-From: Peter Xu <peterx@redhat.com>
-Subject: Re: Possible duplicate page fault accounting on some archs after
- commit 4064b9827063
-Date: Mon, 15 Jun 2020 17:34:31 -0400
-Message-ID: <20200615213431.GC111927@xz-x1>
-References: <20200610174811.44b94525@thinkpad>
- <20200610165023.GA67179@xz-x1>
+From: "manuel franco" <manuel@info.com>
+Subject: donation of Euro 2,000,000.00.
+Date: Mon, 15 Jun 2020 23:54:48 +0200
+Message-ID: <20200615215457.762A63633A6B__29265.3451486089$1592264196$gmane$org@correo.bnv.gob.ve>
+Reply-To: manuelfrancospende22@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200610165023.GA67179@xz-x1>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, Michal Simek <monstr@monstr.eu>, linux-mips@vger.kernel.org, Nick Hu <nickhu@andestech.com>, Ley Foon Tan <ley.foon.tan@intel.com>, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, Guan Xuetao <gxt@pku.edu.cn>, linux-xtensa@linux-xtensa.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.bnv.gob.ve ([201.249.200.115]:41330 "EHLO
+        correo.bnv.gob.ve" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1726763AbgFOXg1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 19:36:27 -0400
+Content-Description: Mail message body
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Recipients <manuel@info.com>
 
-On Wed, Jun 10, 2020 at 12:50:23PM -0400, Peter Xu wrote:
-> On Wed, Jun 10, 2020 at 05:48:11PM +0200, Gerald Schaefer wrote:
-> > Hi,
-> 
-> Hi, Gerald,
-> 
-> > 
-> > Some architectures have their page fault accounting code inside the fault
-> > retry loop, and rely on only going through that code once. Before commit
-> > 4064b9827063 ("mm: allow VM_FAULT_RETRY for multiple times"), that was
-> > ensured by testing for and clearing FAULT_FLAG_ALLOW_RETRY.
-> > 
-> > That commit had to remove the clearing of FAULT_FLAG_ALLOW_RETRY for all
-> > architectures, and introduced a subtle change to page fault accounting
-> > logic in the affected archs. It is now possible to go through the retry
-> > loop multiple times, and the affected archs would then account multiple
-> > page faults instead of just one.
-> > 
-> > This was found by coincidence in s390 code, and a quick check showed that
-> > there are quite a lot of other architectures that seem to be affected in a
-> > similar way. I'm preparing a fix for s390, by moving the accounting behind
-> > the retry loop, similar to x86. It is not completely straight-forward, so
-> > I leave the fix for other archs to the respective maintainers.
-> 
-> Sorry for not noticing this before.  The accounting part should definitely be
-> put at least into a check against fault_flag_allow_retry_first() to mimic what
-> was done before.  And I agree it would be even better to put it after the retry
-> logic, so if any of the page faults gets a major fault, it'll be accounted as a
-> major fault which makes more sense to me, just like what x86 is doing now with:
-> 
-> 	major |= fault & VM_FAULT_MAJOR;
-> 
-> I'm not sure what's the preference of the arch maintainers, just let me know if
-> it's preferred to use a single series to address this issue for all affected
-> archs (or the archs besides s390), then I'll do.
+You have a donation of Euro 2,000,000.00.
 
-To make sure this won't fall through the cracks... I'll give it a shot with a
-single series to address this issue for all archs.  Although it might not be
-easy to do accounting directly in handle_mm_fault(), it might be still a chance
-to introduce a helper so the accounting can be done in general code.
+My name is Manuel Franco from the United States.
 
-Thanks,
-
--- 
-Peter Xu
+I won the America lottery worth $768 million and I am donating a portion of it to just 5 lucky people and a few Orphanage homes as a memorandum of goodwill to humanity.email: manuelfrancospende@gmail.com
