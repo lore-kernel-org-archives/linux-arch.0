@@ -1,95 +1,48 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56080 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730127AbgF2Uah (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 16:30:37 -0400
-Date: Mon, 29 Jun 2020 21:30:28 +0100
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [PATCH 18/41] regset: new method and helpers for it
-Message-ID: <20200629203028.GB2786714@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
- <20200629182628.529995-18-viro@ZenIV.linux.org.uk>
- <CAHk-=wjd5HML-EuPGH7J8CjWJrbnMhst3NJbcUyt-P0RV649nA@mail.gmail.com>
+Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-ot1-f66.google.com ([209.85.210.66]:44602 "EHLO
+        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728285AbgFOLLf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 07:11:35 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wjd5HML-EuPGH7J8CjWJrbnMhst3NJbcUyt-P0RV649nA@mail.gmail.com>
+References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
+ <20200614223456.13807a00@redhat.com> <5033402c-d95c-eecd-db84-75195b159fab@al2klimov.de>
+In-Reply-To: <5033402c-d95c-eecd-db84-75195b159fab@al2klimov.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 15 Jun 2020 13:11:22 +0200
+Message-ID: <CAMuHMdVvYRzOA-cOj41_0g1OXw+xhJ29=FZNAL5v_fWsBjwm4g@mail.gmail.com>
+Subject: Re: Good idea to rename files in include/uapi/ ?
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200629203028.Y_nCEvLUHUlhykbMdpQn92wD2veQ5HdEhLtkcMWNs38@z>
+To: "Alexander A. Klimov" <grandmaster@al2klimov.de>
+Cc: Stefano Brivio <sbrivio@redhat.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, NetFilter <netfilter-devel@vger.kernel.org>, coreteam@netfilter.org, netdev <netdev@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20200615111122.9hj05VX1Rz8pWqDYqaU1uogeemnY4sogdjjyqlS_ZLU@z>
 
-On Mon, Jun 29, 2020 at 12:23:34PM -0700, Linus Torvalds wrote:
-> On Mon, Jun 29, 2020 at 11:28 AM Al Viro <viro@zeniv.linux.org.uk> wrote:
+Hi Alexander,
+
+On Mon, Jun 15, 2020 at 1:11 AM Alexander A. Klimov
+<grandmaster@al2klimov.de> wrote:
+> Am 14.06.20 um 22:34 schrieb Stefano Brivio:
+> > On Sun, 14 Jun 2020 21:41:17 +0200
+> >> Also even on a case-sensitive one VIm seems to have trouble with editing
+> >> both case-insensitively equal files at the same time.
 > >
-> > ->get2() takes task+regset+buffer, returns the amount of free space
-> > left in the buffer on success and -E... on error.
-> 
-> Can we please give it a better name than "get2"?
-> 
-> That's not a great name to begin with, and it's a completely
-> nonsensical name by the end of this series when you've removed the
-> original "get" function.
-> 
-> So either:
-> 
->  (a) add one final patch to rename "get2" all back to "get" after you
-> got rid of the old "get"
+> > ...what trouble exactly?
+> vi -O2 include/uapi/linux/netfilter/xt_CONNMARK.h
+> include/uapi/linux/netfilter/xt_connmark.h
+>
+> ... opens the first file two times.
 
-Bad idea, IMO...
+Works fine for me, using vim 2:8.0.1453-1ubuntu1.3.
+You must be using a buggy version.
 
->  (b) or just call it something better to begin with. Maybe just
-> "get_regset" instead?
+Gr{oetje,eeting}s,
 
-<nod>
+                        Geert
 
-Frankly, other field names there are also nasty - 'set' is not
-fun to grep for, but there are 'n' and 'size' as well.  There's
-also 'bias'  and 'align' (both completely unused)...
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-> I'd prefer (b) just because I think it will be a lot clearer if we
-> ever end up having old patches forward-ported (or, more likely,
-> newpatches back-ported), so having a "get" function that changed
-> semantics but got back the old name sounds bad to me.
-> 
-> Other than that, I can't really argue with the numbers:
-> 
->  41 files changed, 1368 insertions(+), 2347 deletions(-)
-> 
-> looks good to me, and the code seems more understandable.
-
-FWIW, there's also ->set() side of that thing.  Tons of boilerplate
-in those; I hadn't seriously looked into that part, but I suspect
-that "do copyin in the caller, pass the kernel buffer to the
-method, always start at offset 0" would also trim a lot of crap.
-I'd rather leave that one for later - this series had been painful
-enough.
-
-Other things in the same area: conversion of fdpic coredumps to
-regset (fairly easy, I've a patch series doing that in the local
-tree), conversion of the few remaining non-regset architectures
-to regset-based coredump (kill a large chunk of rotting code in
-fs/binfmt_elf.c, along with quite a few pieces of old per-arch
-coredump helpers), unification of compat ELF (done locally,
-mipsn32/mipso32 gone, all compat done via compat_binfmt_elf.c,
-x32 horrors sanitized - IMO
-#define PRSTATUS_SIZE \
-       (test_thread_flag(TIF_X32) \
-               ? sizeof(struct compat_elf_prstatus) \
-               : sizeof(struct i386_elf_prstatus))
-#define SET_PR_FPVALID(S) \
-       (*(test_thread_flag(TIF_X32) \
-               ? &(S)->pr_fpvalid      \
-               : &((struct i386_elf_prstatus *)(S))->pr_fpvalid) = 1)
-is much better than
-#define PRSTATUS_SIZE(S, R) (R != sizeof(S.pr_reg) ? 144 : 296)
-#define SET_PR_FPVALID(S, V, R) \
-  do { *(int *) (((void *) &((S)->pr_reg)) + R) = (V); } \
-  while (0)
-) and a bunch of assorted cleanups that got trimmed from the
-regset series...
-
-I'll probably post fdpic and compat series tonight and get
-back to uaccess and VFS stuff.
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
