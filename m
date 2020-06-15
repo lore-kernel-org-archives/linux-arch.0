@@ -1,100 +1,30 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43370 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731691AbgF2TOJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:14:09 -0400
-Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1B376C08EB0B
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:53 -0700 (PDT)
-Received: by mail-pl1-x643.google.com with SMTP id x11so6683757plo.7
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:53 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 11/17] arm64/build: Warn on orphan section placement
-Date: Sun, 28 Jun 2020 23:18:34 -0700
-Message-ID: <20200629061840.4065483-12-keescook@chromium.org>
-In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
-References: <20200629061840.4065483-1-keescook@chromium.org>
+Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from verein.lst.de ([213.95.11.211]:34309 "EHLO verein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730431AbgFOQlh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 Jun 2020 12:41:37 -0400
+Date: Mon, 15 Jun 2020 18:41:33 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
+Message-ID: <20200615164133.GA23493@lst.de>
+References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de> <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com> <20200615141239.GA12951@lst.de> <CAK8P3a2MeZhayZWkPbd4Ckq3n410p_n808NJTwN=JjzqHRiAXg@mail.gmail.com> <20200615144310.GA15101@lst.de> <CAK8P3a17h782gO65qJ9Mmz0EuiTSKQPEyr_=nvqOtnmQZuh9Kw@mail.gmail.com> <20200615150926.GA17108@lst.de> <CAMzpN2htYX7s6pmRg-c8qwZL1f1_+sB=ztDG_L=617hWsm-=8g@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAMzpN2htYX7s6pmRg-c8qwZL1f1_+sB=ztDG_L=617hWsm-=8g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200629061834.0I05gHwfDAqrGm84oVHfP9hHIl984QkUe8i6Rn9f3Lo@z>
+To: Brian Gerst <brgerst@gmail.com>
+Cc: Christoph Hellwig <hch@lst.de>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20200615164133.ghT1ChkUPmT6bN2Awj5UFXoQh16xgA2v3DQKY-OTm3k@z>
 
-We don't want to depend on the linker's orphan section placement
-heuristics as these can vary between linkers, and may change between
-versions. All sections need to be explicitly named in the linker
-script.
+On Mon, Jun 15, 2020 at 11:33:49AM -0400, Brian Gerst wrote:
+> If you move those aliases above all the __SYSCALL_* defines it will
+> work, since that will get the forward declaration too.  This would be
+> the simplest workaround.
 
-Remove .eh_frame, since there are none left.
+That compiles and also passes my exaustive x32 tests (chroot + ls -l).
 
-Add .plt, .data.rel.ro, .igot.*, and .iplt to discards as they are not
-actually used. While .got.plt is also not used, it must be included
-otherwise ld.bfd will fail to link with the error:
+This is the updated version:
 
-    aarch64-linux-gnu-ld: discarded output section: `.got.plt'
-
-However, as it'd be better to validate that it stays effectively empty,
-add an assert, as suggested by Ard Biesheuvel.
-
-Explicitly include debug sections when they're present.
-
-Finally, enable orphan section warnings.
-
-Acked-by: Will Deacon <will@kernel.org>
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/arm64/Makefile             |  4 ++++
- arch/arm64/kernel/vmlinux.lds.S | 11 ++++++++++-
- 2 files changed, 14 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
-index 895486606f74..fb3aa2d7de4d 100644
---- a/arch/arm64/Makefile
-+++ b/arch/arm64/Makefile
-@@ -29,6 +29,10 @@ LDFLAGS_vmlinux	+= --fix-cortex-a53-843419
-   endif
- endif
- 
-+# We never want expected sections to be placed heuristically by the
-+# linker. All sections should be explicitly named in the linker script.
-+LDFLAGS_vmlinux += --orphan-handling=warn
-+
- ifeq ($(CONFIG_ARM64_USE_LSE_ATOMICS), y)
-   ifneq ($(CONFIG_ARM64_LSE_ATOMICS), y)
- $(warning LSE atomics not supported by binutils)
-diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-index b5a94ec1eada..320ba5ec2adc 100644
---- a/arch/arm64/kernel/vmlinux.lds.S
-+++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -94,7 +94,8 @@ SECTIONS
- 	/DISCARD/ : {
- 		*(.interp .dynamic)
- 		*(.dynsym .dynstr .hash .gnu.hash)
--		*(.eh_frame)
-+		*(.plt) *(.data.rel.ro)
-+		*(.igot.*) *(.iplt)
- 	}
- 
- 	. = KIMAGE_VADDR + TEXT_OFFSET;
-@@ -244,9 +245,17 @@ SECTIONS
- 	_end = .;
- 
- 	STABS_DEBUG
-+	DWARF_DEBUG
- 	ELF_DETAILS
- 
- 	HEAD_SYMBOLS
-+
-+	/*
-+	 * Make sure that the .got.plt is either completely empty or it
-+	 * contains only the lazy dispatch entries.
-+	 */
-+	.got.plt (INFO) : { *(.got.plt) }
-+	ASSERT(SIZEOF(.got.plt) == 0 || SIZEOF(.got.plt) == 0x18, ".got.plt not empty")
- }
- 
- #include "image-vars.h"
--- 
-2.25.1
+http://git.infradead.org/users/hch/misc.git/commitdiff/c8d319711ad2f53be003ae8e9be08519068bdcee
