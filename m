@@ -1,65 +1,38 @@
-Return-Path: <SRS0=u+st=AI=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58538 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726065AbgF0H1f (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 Jun 2020 03:27:35 -0400
+Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from verein.lst.de ([213.95.11.211]:33796 "EHLO verein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730405AbgFOOnO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 Jun 2020 10:43:14 -0400
+Date: Mon, 15 Jun 2020 16:43:10 +0200
 From: Christoph Hellwig <hch@lst.de>
-Subject: properly support exec with kernel pointers v3
-Date: Sat, 27 Jun 2020 09:26:59 +0200
-Message-ID: <20200627072704.2447163-1-hch@lst.de>
+Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
+Message-ID: <20200615144310.GA15101@lst.de>
+References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de> <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com> <20200615141239.GA12951@lst.de> <CAK8P3a2MeZhayZWkPbd4Ckq3n410p_n808NJTwN=JjzqHRiAXg@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a2MeZhayZWkPbd4Ckq3n410p_n808NJTwN=JjzqHRiAXg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200627072659.6jbZMtZkV6n-YbYJ8L0JamLYGkXxEeJs2WpqC32NlfI@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20200615144310.1zfLIuhhrY9tYVPwXd5ySDTly2YpwbJBeJoDuCocHJk@z>
 
-Hi all,
+On Mon, Jun 15, 2020 at 04:40:28PM +0200, Arnd Bergmann wrote:
+> > ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1040): undefined reference to
+> > `__x32_sys_execve'
+> > ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1108): undefined reference to
+> > `__x32_sys_execveat'
+> > make: *** [Makefile:1139: vmlinux] Error 1
+> 
+> Ah, I see: it's marked x32-only, so arch/x86/entry/syscall_x32.c
+> uses the __x32 prefix instead of the __x64 one. Marking it 'common'
+> instead would make it work, but also create an extra entry point
+> for native processes, something that commit
+> 6365b842aae4 ("x86/syscalls: Split the x32 syscalls into their own table")
+> was trying to avoid.
 
-this series first cleans up the exec code and then adds proper
-kernel_execveat and kernel_wait callers instead of relying on the fact
-that the early init code and kernel threads implicitly run with
-the address limit set to KERNEL_DS.
-
-Note that the cleanup removes the compat execve(at) handlers entirely, as
-we can handle the compat difference very nicely in a unified codebase.
-x32 needs two hacky #defines for that for now, although those can go
-away if the x32 syscall rework from Brian gets merged.
-
-I think this is ready to get picked up.  What would the best tree be?
-Most important a git tree would be good, as I have other work building
-on top of it.
-
-
-Changes since v2:
- - drop the kernel_wait addition, as this interacts with a series
-   from Luis and should be merged together with that one
-
-Changes since v1:
- - remove a pointless ifdef from get_user_arg_ptr
- - remove the need for a compat syscall handler for x32
-
-
-Diffstat:
- arch/arm64/include/asm/unistd32.h                  |    4 
- arch/mips/kernel/syscalls/syscall_n32.tbl          |    4 
- arch/mips/kernel/syscalls/syscall_o32.tbl          |    4 
- arch/parisc/kernel/syscalls/syscall.tbl            |    4 
- arch/powerpc/kernel/syscalls/syscall.tbl           |    4 
- arch/s390/kernel/syscalls/syscall.tbl              |    4 
- arch/sparc/kernel/syscalls.S                       |    4 
- arch/x86/entry/syscall_x32.c                       |    7 
- arch/x86/entry/syscalls/syscall_32.tbl             |    4 
- arch/x86/entry/syscalls/syscall_64.tbl             |    4 
- fs/exec.c                                          |  248 ++++++++-------------
- include/linux/binfmts.h                            |   10 
- include/linux/compat.h                             |    7 
- include/uapi/asm-generic/unistd.h                  |    4 
- init/main.c                                        |    5 
- kernel/umh.c                                       |   14 -
- tools/include/uapi/asm-generic/unistd.h            |    4 
- tools/perf/arch/powerpc/entry/syscalls/syscall.tbl |    4 
- tools/perf/arch/s390/entry/syscalls/syscall.tbl    |    4 
- tools/perf/arch/x86/entry/syscalls/syscall_64.tbl  |    4 
- 20 files changed, 149 insertions(+), 198 deletions(-)
+Marking it common also doesn't compile at all because __NR_execve
+and __NR_execveat get redefined in unistd_64.h.  I then tried to rename
+the x32 versions, which failed in yet another way.  At that point I gave
+up instead of digging myself into a deeper hole..
