@@ -1,52 +1,50 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:41196 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2404137AbgFXPsy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 Jun 2020 11:48:54 -0400
+Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout.kundenserver.de ([217.72.192.75]:56425 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729124AbgFOSrW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 14:47:22 -0400
 MIME-Version: 1.0
-References: <20200624014940.1204448-1-keescook@chromium.org>
- <20200624014940.1204448-4-keescook@chromium.org> <20200624033142.cinvg6rbg252j46d@google.com>
- <202006232143.66828CD3@keescook> <20200624104356.GA6134@willie-the-truck>
- <CAMj1kXHBT4ei0xhyL4jD7=CNRsn1rh7w6jeYDLjVOv4na0Z38Q@mail.gmail.com>
- <202006240820.A3468F4@keescook> <CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com>
- <202006240844.7BE48D2B5@keescook>
-In-Reply-To: <202006240844.7BE48D2B5@keescook>
-From: Ard Biesheuvel <ardb@kernel.org>
-Date: Wed, 24 Jun 2020 17:48:41 +0200
-Message-ID: <CAMj1kXHqBs44uukRSdFwA_hcmX_yKVfjqdv9RoPbbu-6Wz+RaA@mail.gmail.com>
-Subject: Re: [PATCH v3 3/9] efi/libstub: Remove .note.gnu.property
+References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de>
+ <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com>
+ <20200615141239.GA12951@lst.de> <CAMzpN2heSzZzg16ws3yQkd7YZwmPPx_4RFCpb9JYfFWJ9gfPhA@mail.gmail.com>
+In-Reply-To: <CAMzpN2heSzZzg16ws3yQkd7YZwmPPx_4RFCpb9JYfFWJ9gfPhA@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 15 Jun 2020 20:47:02 +0200
+Message-ID: <CAK8P3a3q-hC7kZwLPbc+E5VYcqthQS4J4Rqo+rKkBRU2n071XA@mail.gmail.com>
+Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Will Deacon <will@kernel.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20200624154841.MEcxUl40l2yBZ_dExZecVqV3vkdZ0bQ_s48ELp7tTqU@z>
+To: Brian Gerst <brgerst@gmail.com>
+Cc: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20200615184702.5VrNeZRDHICzhwpZwcvUs2WuG0y5u9NmwoMvvvdM0LM@z>
 
-On Wed, 24 Jun 2020 at 17:45, Kees Cook <keescook@chromium.org> wrote:
->
-> On Wed, Jun 24, 2020 at 05:31:06PM +0200, Ard Biesheuvel wrote:
-> > On Wed, 24 Jun 2020 at 17:21, Kees Cook <keescook@chromium.org> wrote:
-> > >
-> > > On Wed, Jun 24, 2020 at 12:46:32PM +0200, Ard Biesheuvel wrote:
-> > > > I'm not sure if there is a point to having PAC and/or BTI in the EFI
-> > > > stub, given that it runs under the control of the firmware, with its
-> > > > memory mappings and PAC configuration etc.
-> > >
-> > > Is BTI being ignored when the firmware runs?
+On Mon, Jun 15, 2020 at 4:48 PM Brian Gerst <brgerst@gmail.com> wrote:
+> On Mon, Jun 15, 2020 at 10:13 AM Christoph Hellwig <hch@lst.de> wrote:
+> > On Mon, Jun 15, 2020 at 03:31:35PM +0200, Arnd Bergmann wrote:
+
 > >
-> > Given that it requires the 'guarded' attribute to be set in the page
-> > tables, and the fact that the UEFI spec does not require it for
-> > executables that it invokes, nor describes any means of annotating
-> > such executables as having been built with BTI annotations, I think we
-> > can safely assume that the EFI stub will execute with BTI disabled in
-> > the foreseeable future.
+> > I'd rather keep it in common code as that allows all the low-level
+> > exec stuff to be marked static, and avoid us growing new pointless
+> > compat variants through copy and paste.
+> > smart compiler to d
+> >
+> > > I don't really understand
+> > > the comment, why can't this just use this?
+> >
+> > That errors out with:
+> >
+> > ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1040): undefined reference to
+> > `__x32_sys_execve'
+> > ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1108): undefined reference to
+> > `__x32_sys_execveat'
+> > make: *** [Makefile:1139: vmlinux] Error 1
 >
-> yaaaaaay. *sigh* How long until EFI catches up?
->
-> That said, BTI shouldn't _hurt_, right? If EFI ever decides to enable
-> it, we'll be ready?
->
+> I think I have a fix for this, by modifying the syscall wrappers to
+> add an alias for the __x32 variant to the native __x64_sys_foo().
+> I'll get back to you with a patch.
 
-Sure. Although I anticipate that we'll need to set some flag in the
-PE/COFF header to enable it, and so any BTI opcodes we emit without
-that will never take effect in practice.
+Do we actually need the __x32 prefix any more, or could we just
+change all x32 specific calls to use __x64_compat_sys_foo()?
+
+      Arnd
