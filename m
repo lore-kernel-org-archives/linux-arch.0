@@ -1,78 +1,37 @@
-Return-Path: <SRS0=T3Fa=7O=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43162 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731408AbgFASmm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jun 2020 14:42:42 -0400
-Date: Mon, 1 Jun 2020 19:22:45 +0100
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: [git pull] uaccess csum
-Message-ID: <20200601182245.GA23230@ZenIV.linux.org.uk>
+Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-ot1-f67.google.com ([209.85.210.67]:37838 "EHLO
+        mail-ot1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728285AbgFOLMN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 07:12:13 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
+In-Reply-To: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 15 Jun 2020 13:12:00 +0200
+Message-ID: <CAMuHMdWixiv2NBQ8_Yo5LVv0wXsPaRAvL2mWYWBDF4p2moh_Og@mail.gmail.com>
+Subject: Re: Good idea to rename files in include/uapi/ ?
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200601182245.aNlpzygVhYHvQwfW-DhW6BgCZSgFNZlehXP8zGDJ_2o@z>
+To: "Alexander A. Klimov" <grandmaster@al2klimov.de>
+Cc: Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, NetFilter <netfilter-devel@vger.kernel.org>, coreteam@netfilter.org, netdev <netdev@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20200615111200.zKWZyf7LjeTTm4sThP18mrJwR1zNFQVuyqFnDG7mN3M@z>
 
-	Regularize the sitation with uaccess checksum primitives, fold
-csum_partial_... into csum_and_copy_..._user(), on x86 collapse several
-access_ok()/stac()/clac() into user_access_begin()/user_access_end()
+Hi Alexander,
 
-The following changes since commit 8f3d9f354286745c751374f5f1fcafee6b3f3136:
+On Sun, Jun 14, 2020 at 9:44 PM Alexander A. Klimov
+<grandmaster@al2klimov.de> wrote:
+> *Is it a good idea to rename files in include/uapi/ ?*
 
-  Linux 5.7-rc1 (2020-04-12 12:35:55 -0700)
+No it is not: include/uapi/ is append-only.
 
-are available in the git repository at:
+Gr{oetje,eeting}s,
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git uaccess.csum
+                        Geert
 
-for you to fetch changes up to 001c1a655f0a4e4ebe5d9beb47466dc5c6ab4871:
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-  default csum_and_copy_to_user(): don't bother with access_ok() (2020-05-29 16:11:50 -0400)
-
-----------------------------------------------------------------
-Al Viro (15):
-      get rid of csum_partial_copy_to_user()
-      x86_64: csum_..._copy_..._user(): switch to unsafe_..._user()
-      x86: switch both 32bit and 64bit to providing csum_and_copy_from_user()
-      x86: switch 32bit csum_and_copy_to_user() to user_access_{begin,end}()
-      ia64: csum_partial_copy_nocheck(): don't abuse csum_partial_copy_from_user()
-      ia64: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
-      alpha: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
-      parisc: turn csum_partial_copy_from_user() into csum_and_copy_from_user()
-      sparc: switch to providing csum_and_copy_from_user()
-      xtensa: switch to providing csum_and_copy_from_user()
-      m68k: convert to csum_and_copy_from_user()
-      sh32: convert to csum_and_copy_from_user()
-      arm: switch to csum_and_copy_from_user()
-      take the dummy csum_and_copy_from_user() into net/checksum.h
-      default csum_and_copy_to_user(): don't bother with access_ok()
-
- arch/alpha/include/asm/checksum.h    |  3 ++-
- arch/alpha/lib/csum_partial_copy.c   |  6 +++---
- arch/arm/include/asm/checksum.h      | 14 ++++++++++++++
- arch/c6x/lib/checksum.c              | 22 ----------------------
- arch/ia64/include/asm/checksum.h     | 10 ----------
- arch/ia64/lib/csum_partial_copy.c    | 32 ++------------------------------
- arch/m68k/include/asm/checksum.h     |  3 ++-
- arch/m68k/lib/checksum.c             |  4 ++--
- arch/nios2/include/asm/checksum.h    |  2 --
- arch/parisc/include/asm/checksum.h   |  7 -------
- arch/parisc/lib/checksum.c           | 20 --------------------
- arch/s390/include/asm/checksum.h     | 19 -------------------
- arch/sh/include/asm/checksum_32.h    |  9 +++++++--
- arch/sparc/include/asm/checksum.h    |  1 +
- arch/sparc/include/asm/checksum_32.h | 15 ++++++++++-----
- arch/sparc/include/asm/checksum_64.h |  2 +-
- arch/x86/include/asm/checksum.h      |  2 ++
- arch/x86/include/asm/checksum_32.h   | 21 +++++++++++----------
- arch/x86/include/asm/checksum_64.h   | 12 ++----------
- arch/x86/lib/csum-wrappers_64.c      | 35 ++++++++++++++++++-----------------
- arch/x86/um/asm/checksum.h           | 20 --------------------
- arch/xtensa/include/asm/checksum.h   | 11 +++++++----
- include/asm-generic/checksum.h       |  9 ---------
- include/net/checksum.h               | 14 ++++----------
- lib/checksum.c                       | 20 --------------------
- 25 files changed, 88 insertions(+), 225 deletions(-)
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
