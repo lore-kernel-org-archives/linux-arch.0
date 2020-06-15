@@ -1,52 +1,64 @@
-From: Brian Gerst <brgerst@gmail.com>
-Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
-Date: Mon, 15 Jun 2020 15:45:24 -0400
-Message-ID: <CAMzpN2iDPKatOqs+Uuw70ACbnB-D__dgSRZU0wBjOUBwTGOJ-A@mail.gmail.com>
-References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de>
- <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com>
- <20200615141239.GA12951@lst.de> <CAMzpN2heSzZzg16ws3yQkd7YZwmPPx_4RFCpb9JYfFWJ9gfPhA@mail.gmail.com>
- <CAK8P3a3q-hC7kZwLPbc+E5VYcqthQS4J4Rqo+rKkBRU2n071XA@mail.gmail.com>
+From: Emil Velikov <emil.l.velikov@gmail.com>
+Subject: Re: [PATCH v3 1/2] linux/bits.h: fix unsigned less than zero warnings
+Date: Mon, 15 Jun 2020 20:52:36 +0100
+Message-ID: <CACvgo51nGOeCtsCRaUuRGuFvV_EpHqWSph9AeA66Su2-_Fyy-A@mail.gmail.com>
+References: <20200608184222.GA899@rikard> <20200608221823.35799-1-rikard.falkeborn@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-mips-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a3q-hC7kZwLPbc+E5VYcqthQS4J4Rqo+rKkBRU2n071XA@mail.gmail.com>
-Sender: linux-mips-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60458 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728771AbgFOT4R (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 15:56:17 -0400
+In-Reply-To: <20200608221823.35799-1-rikard.falkeborn@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Rikard Falkeborn <rikard.falkeborn@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Kees Cook <keescook@chromium.org>, Linus Walleij <linus.walleij@linaro.org>, linux-arch@vger.kernel.org, "Linux-Kernel@Vger. Kernel. Org" <linux-kernel@vger.kernel.org>, lkp@intel.com, syednwaris@gmail.com, vilhelm.gray@gmail.com, Masahiro Yamada <yamada.masahiro@socionext.com>
 
-On Mon, Jun 15, 2020 at 2:47 PM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Mon, Jun 15, 2020 at 4:48 PM Brian Gerst <brgerst@gmail.com> wrote:
-> > On Mon, Jun 15, 2020 at 10:13 AM Christoph Hellwig <hch@lst.de> wrote:
-> > > On Mon, Jun 15, 2020 at 03:31:35PM +0200, Arnd Bergmann wrote:
->
-> > >
-> > > I'd rather keep it in common code as that allows all the low-level
-> > > exec stuff to be marked static, and avoid us growing new pointless
-> > > compat variants through copy and paste.
-> > > smart compiler to d
-> > >
-> > > > I don't really understand
-> > > > the comment, why can't this just use this?
-> > >
-> > > That errors out with:
-> > >
-> > > ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1040): undefined reference to
-> > > `__x32_sys_execve'
-> > > ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1108): undefined reference to
-> > > `__x32_sys_execveat'
-> > > make: *** [Makefile:1139: vmlinux] Error 1
-> >
-> > I think I have a fix for this, by modifying the syscall wrappers to
-> > add an alias for the __x32 variant to the native __x64_sys_foo().
-> > I'll get back to you with a patch.
->
-> Do we actually need the __x32 prefix any more, or could we just
-> change all x32 specific calls to use __x64_compat_sys_foo()?
+Hi Rikard,
 
-I suppose that would work too.  The prefix really describes the
-register mapping.
+On Mon, 8 Jun 2020 at 23:18, Rikard Falkeborn
+<rikard.falkeborn@gmail.com> wrote:
+>
+> When calling the GENMASK and GENMASK_ULL macros with zero lower bit and
+> an unsigned unknown high bit, some gcc versions warn due to the
+> comparisons of the high and low bit in GENMASK_INPUT_CHECK.
+>
+> To silence the warnings, only perform the check if both inputs are
+> known. This does not trigger any warnings, from the Wtype-limits help:
+>
+>         Warn if a comparison is always true or always false due to the
+>         limited range of the data type, but do not warn for constant
+>         expressions.
+>
+> As an example of the warning, kindly reported by the kbuild test robot:
+>
+> from drivers/mfd/atmel-smc.c:11:
+> drivers/mfd/atmel-smc.c: In function 'atmel_smc_cs_encode_ncycles':
+> include/linux/bits.h:26:28: warning: comparison of unsigned expression < 0 is always false [-Wtype-limits]
+> 26 |   __builtin_constant_p((l) > (h)), (l) > (h), 0)))
+> |                            ^
+> include/linux/build_bug.h:16:62: note: in definition of macro 'BUILD_BUG_ON_ZERO'
+> 16 | #define BUILD_BUG_ON_ZERO(e) ((int)(sizeof(struct { int:(-!!(e)); })))
+> |                                                              ^
+> include/linux/bits.h:39:3: note: in expansion of macro 'GENMASK_INPUT_CHECK'
+> 39 |  (GENMASK_INPUT_CHECK(h, l) + __GENMASK(h, l))
+> |   ^~~~~~~~~~~~~~~~~~~
+> >> drivers/mfd/atmel-smc.c:49:25: note: in expansion of macro 'GENMASK'
+> 49 |  unsigned int lsbmask = GENMASK(msbpos - 1, 0);
+> |                         ^~~~~~~
+>
+> Fixes: 295bcca84916 ("linux/bits.h: add compile time sanity check of GENMASK inputs")
+> Reported-by: kbuild test robot <lkp@intel.com>
+> Reported-by: Emil Velikov <emil.l.velikov@gmail.com>
+> Reported-by: Syed Nayyar Waris <syednwaris@gmail.com>
+> Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+> Signed-off-by: Rikard Falkeborn <rikard.falkeborn@gmail.com>
 
---
-Brian Gerst
+This version is far better than my approach. Fwiw:
+
+Reviewed-by: Emil Velikov <emil.l.velikov@gmail.com>
+
+Thanks
+Emil
