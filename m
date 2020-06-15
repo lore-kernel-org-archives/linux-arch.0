@@ -1,288 +1,158 @@
-Return-Path: <SRS0=dRn0=7X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:59992 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726979AbgFJP0j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 Jun 2020 11:26:39 -0400
-Date: Wed, 10 Jun 2020 16:26:34 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH v2 6/6] prctl.2: Add tagged address ABI control
- prctls (arm64)
-Message-ID: <20200610152634.GJ26099@gaia>
-References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
- <1590614258-24728-7-git-send-email-Dave.Martin@arm.com>
- <20200609172232.GA63286@C02TF0J2HF1T.local>
- <20200610100641.GF25945@arm.com>
+Return-Path: <SRS0=jz+U=74=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Mon, 15 Jun 2020 09:22:34 +0300
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH 04/21] mm: free_area_init: use maximal zone PFNs rather
+ than zone sizes
+Message-ID: <20200615062234.GA7882@kernel.org>
+References: <20200412194859.12663-5-rppt@kernel.org>
+ <f53e68db-ed81-6ef6-5087-c7246d010ea2@linux-m68k.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200610100641.GF25945@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <f53e68db-ed81-6ef6-5087-c7246d010ea2@linux-m68k.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: Greg Ungerer <gerg@linux-m68k.org>
+Cc: Hoan@os.amperecomputing.com, James.Bottomley@hansenpartnership.com, akpm@linux-foundation.org, bcain@codeaurora.org, bhe@redhat.com, catalin.marinas@arm.com, corbet@lwn.net, dalias@libc.org, davem@davemloft.net, deller@gmx.de, geert@linux-m68k.org, green.hu@gmail.com, guoren@kernel.org, gxt@pku.edu.cn, heiko.carstens@de.ibm.com, jcmvbkbc@gmail.com, ley.foon.tan@intel.com, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-csky@vger.kernel.org, linux-doc@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linux@armlinux.org.uk, linuxppc-dev@lists.ozlabs.org, mattst88@gmail.com, mhocko@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, msalter@redhat.com, nickhu@andestech.com, openrisc@lists.librecores.org, paul.walmsley@sifive.com, richard@nod.at, rppt@linux.ibm.com, shorne@gmail.com, sparclinux@vger.kernel.org, tony.luck@intel.com, tsbogend@alpha.franken.de, uclinux-h8-devel@lists.sourceforge.jp, vgupta@synopsys.com, x86@kernel.org, ysato@users.sourceforge.jp
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <20200610152634.eLTyHQJDUQA6RdYR-FVwzYAEueBu7PV_bdhgssoHwOo@z>
+Message-ID: <20200615062234.UhtukjbeoWwgM4hE0hTcg-KNK9iqv0GvDzHPfChNOAY@z>
 
-On Wed, Jun 10, 2020 at 11:06:42AM +0100, Dave P Martin wrote:
-> On Tue, Jun 09, 2020 at 06:22:32PM +0100, Catalin Marinas wrote:
-> > On Wed, May 27, 2020 at 10:17:38PM +0100, Dave P Martin wrote:
-> > > --- a/man2/prctl.2
-> > > +++ b/man2/prctl.2
-> > > @@ -1504,6 +1504,143 @@ For more information, see the kernel source file
-> > >  (or
-> > >  .I Documentation/arm64/sve.txt
-> > >  before Linux 5.3).
-> > > +.\" prctl PR_SET_TAGGED_ADDR_CTRL
-> > > +.\" commit 63f0c60379650d82250f22e4cf4137ef3dc4f43d
-> > > +.TP
-> > > +.BR PR_SET_TAGGED_ADDR_CTRL " (since Linux 5.4, only on arm64)"
-> > > +Controls support for passing tagged userspace addresses to the kernel
-> > > +(i.e., addresses where bits 56\(em63 are not all zero).
+Hi Greg,
+
+On Mon, Jun 15, 2020 at 01:53:42PM +1000, Greg Ungerer wrote:
+> Hi Mike,
+> 
+> From: Mike Rapoport <rppt@linux.ibm.com>
+> > Currently, architectures that use free_area_init() to initialize memory map
+> > and node and zone structures need to calculate zone and hole sizes. We can
+> > use free_area_init_nodes() instead and let it detect the zone boundaries
+> > while the architectures will only have to supply the possible limits for
+> > the zones.
 > > 
-> > Nitpick: maybe say "userspace addresses" again inside the brackets since
-> > kernel addresses have all top bits 1.
+> > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 > 
-> Happy to do that.  This is a user-facing interface though: userspace
-> addresses are the only kind of address there is.
+> This is causing some new warnings for me on boot on at least one non-MMU m68k target:
 
-Living in the kernel land for too long, it's hard to switch perspective ;).
-I think the original sentence makes sense anyway, it should be obvious
-that it refers to user addresses.
+There were a couple of changes that cause this. The free_area_init()
+now relies on memblock data and architectural limits for zone sizes
+rather than on explisit pfns calculated by the arch code. I've update
+motorola variant and missed coldfire. Angelo sent a fix for mcfmmu.c
+[1] and I've updated it to include nommu as well
 
-> > > +.IP
-> > > +The level of support is selected by
-> > > +.IR "(unsigned int) arg2" ,
-> > 
-> > We use (unsigned long) for arg2.
+[1] https://lore.kernel.org/linux-m68k/20200614225119.777702-1-angelo.dureghello@timesys.com
+
+From 55b8523df2a5c4565b132c0691990f0821040fec Mon Sep 17 00:00:00 2001
+From: Angelo Dureghello <angelo.dureghello@timesys.com>
+Date: Mon, 15 Jun 2020 00:51:19 +0200
+Subject: [PATCH] m68k: fix registration of memory regions with memblock
+
+Commit 3f08a302f533 ("mm: remove CONFIG_HAVE_MEMBLOCK_NODE_MAP option")
+introduced assumption that UMA systems have their memory at node 0 and
+updated most of them, but it forgot nommu and coldfire variants of m68k.
+
+The later change in free area initialization in commit fa3354e4ea39 ("mm:
+free_area_init: use maximal zone PFNs rather than zone sizes") exposed that
+and caused a lot of "BUG: Bad page state in process swapper" reports.
+
+Using memblock_add_node() with nid = 0 to register memory banks solves the
+problem.
+
+Fixes: 3f08a302f533 ("mm: remove CONFIG_HAVE_MEMBLOCK_NODE_MAP option")
+Fixes: fa3354e4ea39 ("mm: free_area_init: use maximal zone PFNs rather than zone sizes")
+Signed-off-by: Angelo Dureghello <angelo.dureghello@timesys.com>
+Co-developed-by: Mike Rapoport <rppt@linux.ibm.com>
+Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+---
+ arch/m68k/kernel/setup_no.c | 2 +-
+ arch/m68k/mm/mcfmmu.c       | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/m68k/kernel/setup_no.c b/arch/m68k/kernel/setup_no.c
+index e779b19e0193..0c4589a39ba9 100644
+--- a/arch/m68k/kernel/setup_no.c
++++ b/arch/m68k/kernel/setup_no.c
+@@ -138,7 +138,7 @@ void __init setup_arch(char **cmdline_p)
+ 	pr_debug("MEMORY -> ROMFS=0x%p-0x%06lx MEM=0x%06lx-0x%06lx\n ",
+ 		 __bss_stop, memory_start, memory_start, memory_end);
+ 
+-	memblock_add(memory_start, memory_end - memory_start);
++	memblock_add_node(memory_start, memory_end - memory_start, 0);
+ 
+ 	/* Keep a copy of command line */
+ 	*cmdline_p = &command_line[0];
+diff --git a/arch/m68k/mm/mcfmmu.c b/arch/m68k/mm/mcfmmu.c
+index 29f47923aa46..7d04210d34f0 100644
+--- a/arch/m68k/mm/mcfmmu.c
++++ b/arch/m68k/mm/mcfmmu.c
+@@ -174,7 +174,7 @@ void __init cf_bootmem_alloc(void)
+ 	m68k_memory[0].addr = _rambase;
+ 	m68k_memory[0].size = _ramend - _rambase;
+ 
+-	memblock_add(m68k_memory[0].addr, m68k_memory[0].size);
++	memblock_add_node(m68k_memory[0].addr, m68k_memory[0].size, 0);
+ 
+ 	/* compute total pages in system */
+ 	num_pages = PFN_DOWN(_ramend - _rambase);
+-- 
+2.26.2
+
+
+> ...
+> NET: Registered protocol family 17
+> BUG: Bad page state in process swapper  pfn:20165
+> page:41fe0ca0 refcount:0 mapcount:1 mapping:00000000 index:0x0
+> flags: 0x0()
+> raw: 00000000 00000100 00000122 00000000 00000000 00000000 00000000 00000000
+> page dumped because: nonzero mapcount
+> CPU: 0 PID: 1 Comm: swapper Not tainted 5.8.0-rc1-00001-g3a38f8a60c65-dirty #1
+> Stack from 404c9ebc:
+>         404c9ebc 4029ab28 4029ab28 40088470 41fe0ca0 40299e21 40299df1 404ba2a4
+>         00020165 00000000 41fd2c10 402c7ba0 41fd2c04 40088504 41fe0ca0 40299e21
+>         00000000 40088a12 41fe0ca0 41fe0ca4 0000020a 00000000 00000001 402ca000
+>         00000000 41fe0ca0 41fd2c10 41fd2c10 00000000 00000000 402b2388 00000001
+
+...
+
 > 
-> Hmmm, not quite sure how I came up with unsigned int here.  I'll just
-> drop this: the type in the prctl() prototype is unsigned long anyway.
+> System boots pretty much as normal through user space after this.
+> Seems to be fully operational despite all those BUGONs.
 > 
-> The type is actually moot in this case, since the valid values all fit
-> in an unsigned int.
-
-Passing an int doesn't require that the top 32-bit of the long are
-zeroed (in case anyone writes the low-level SVC by hand).
-
-> > > +which can be one of the following:
-> > > +.RS
-> > > +.TP
-> > > +.B 0
-> > > +Addresses that are passed
-> > > +for the purpose of being dereferenced by the kernel
-> > > +must be untagged.
-> > > +.TP
-> > > +.B PR_TAGGED_ADDR_ENABLE
-> > > +Addresses that are passed
-> > > +for the purpose of being dereferenced by the kernel
-> > > +may be tagged, with the exceptions summarized below.
-> > > +.RE
-> > > +.IP
-> > > +The remaining arguments
-> > > +.IR arg3 ", " arg4 " and " arg5
-> > > +must all be zero.
-> > 
-> > Indeed. The above commit didn't have this, we added it later in commit
-> > 3e91ec89f527b9870fe42dcbdb74fd389d123a95.
+> Specifically this is a M5208EVB target (arch/m68k/configs/m5208evb).
 > 
-> Ah, missed that.  Did any full kernel release expose the unchecked
-> behaviour?
-
-No, they both went into 5.4-rc1. I probably didn't want to rebase the
-series and just added a patch on top.
-
-> Mind you, there's probably no need to document in any case.
-
-I agree. Just mentioned it because I looked at the commit you mentioned
-and there was no check for the arg3..arg5, so went to check the history.
-
-> > > +.IP
-> > > +On success, the mode specified in
-> > > +.I arg2
-> > > +is set for the calling thread and the the return value is 0.
-> > > +If the arguments are invalid,
-> > > +the mode specified in
-> > > +.I arg2
-> > > +is unrecognized,
-> > > +or if this feature is disabled or unsupported by the kernel,
-> > > +the call fails with
-> > > +.BR EINVAL .
-> > > +.IP
-> > > +In particular, if
-> > > +.BR prctl ( PR_SET_TAGGED_ADDR_CTRL ,
-> > > +0, 0, 0, 0)
-> > > +fails with
-> > > +.B EINVAL
-> > > +then all addresses passed to the kernel must be untagged.
-> > > +.IP
-> > > +Irrespective of which mode is set,
-> > > +addresses passed to certain interfaces
-> > > +must always be untagged:
-> > 
-> > Maybe you could add some extra info from the kernel comment (commit
-> > b2a84de2a2deb76a6a51609845341f508c518c03) along the lines of "... to
-> > avoid the creation of aliasing mappings in userspace).
 > 
-> It depends.  It's useful if it helps people to guess highly accurately
-> the rule for in interface that is too new or that we don't explicitly
-> document (such as a random setsockopt or perf widget).
+> [snip]
+> > diff --git a/arch/m68k/mm/init.c b/arch/m68k/mm/init.c
+> > index b88d510d4fe3..6d3147662ff2 100644
+> > --- a/arch/m68k/mm/init.c
+> > +++ b/arch/m68k/mm/init.c
+> > @@ -84,7 +84,7 @@ void __init paging_init(void)
+> >  	 * page_alloc get different views of the world.
+> >  	 */
+> >  	unsigned long end_mem = memory_end & PAGE_MASK;
+> > -	unsigned long zones_size[MAX_NR_ZONES] = { 0, };
+> > +	unsigned long max_zone_pfn[MAX_NR_ZONES] = { 0, };
+> >  	high_memory = (void *) end_mem;
+> > @@ -98,8 +98,8 @@ void __init paging_init(void)
+> >  	 */
+> >  	set_fs (USER_DS);
+> > -	zones_size[ZONE_DMA] = (end_mem - PAGE_OFFSET) >> PAGE_SHIFT;
+> > -	free_area_init(zones_size);
+> > +	max_zone_pfn[ZONE_DMA] = end_mem >> PAGE_SHIFT;
+> > +	free_area_init(max_zone_pfn);
 > 
-> If not, it might be best to say nothing and make guarantees only about
-> the explicitly listed interfaces though.
+> This worries me a little. On this target PAGE_OFFSET will be non-0.
+> Thoughts?
 
-Fine by me to keep it as it is. We can always update the man page if new
-syscalls come into this category.
+The initialization in free_area_init() takes into account the actual
+physical memory sizing from memblock and max_zone_pfn as the
+architectural limit for possible zone extents. This (and the patch
+above) is enough to properly setup node and zones. 
 
-> > > +.RS
-> > > +.IP \(em
-> > > +.BR brk (2),
-> > > +.BR mmap (2),
-> > > +.BR shmat (2),
-> > > +and the
-> > > +.I new_address
-> > > +argument of
-> > > +.BR mremap (2).
-> > > +.IP
-> > > +(Prior to Linux 5.6 these accepted tagged addresses,
-> > > +but the behaviour may not be what you expect.
-> > > +Don't rely on it.)
-> > 
-> > shmat() was not part of the subsequent fix
-> > (dcde237319e626d1ec3c9d8b7613032f0fd4663a), it always rejected tagged
-> > address. But I guess it doesn't matter much, the user should not pass
-> > tagged addresses to these syscalls anyway.
-> > 
-> > You could move shmat() down together with shmdt().
+> Regards
+> Greg
 > 
-> I guess I was highlighting that shmdt() is a special case, because the
-> user would guess from the pattern of the other listed calls that shmdt()
-> should accept tagged addresses.  If you think separating it just adds to
-> the confusion, I'm happy not too call it out specially here.
 > 
-> OTOH, we could fix shmdt() and document the legacy behaviour as a bug in
-> specific kernel versions rather than the canonical behaviour.  But I
-> guess that's one for later.
-
-If we patch shmdt() to allow tagged addresses, then it makes sense to
-keep shmat() with the rest of the above. Just pointing out that shmat()
-never allowed tagged pointers
-
-> > > +.IP \(em
-> > > +\(oqpolymorphic\(cq interfaces
-> > > +that accept pointers to arbitrary types cast to a
-> > > +.I void *
-> > > +or other generic type, specifically
-> > > +.BR prctl (2),
-> > > +.BR ioctl (2),
-> > > +and in general
-> > > +.BR setsockopt (2)
-> > > +(only certain specific
-> > > +.BR setsockopt (2)
-> > > +options allow tagged addresses).
-> > > +.IP \(em
-> > > +.BR shmdt (2).
-> > > +.RE
-> > > +.IP
-> > > +This list of exclusions may shrink
-> > > +when moving from one kernel version to a later kernel version.
-> > > +While the kernel may make some guarantees
-> > > +for backwards compatibility reasons,
-> > > +for the purposes of new software
-> > > +the effect of passing tagged addresses to these interfaces
-> > > +is unspecified.
-> > > +.IP
-> > > +The mode set by this call is inherited across
-> > > +.BR fork (2)
-> > > +and
-> > > +.BR clone (2).
-> > > +The mode is reset by
-> > > +.BR execve (2)
-> > > +to 0
-> > > +(i.e., tagged addresses not permitted in the user/kernel ABI).
-> > > +.IP
-> > > +.B Warning:
-> > > +Because the compiler or run-time environment
-> > > +may make use of address tagging,
-> > > +a successful
-> > > +.B PR_SET_TAGGED_ADDR_CTRL
-> > > +may crash the calling process.
-> > 
-> > I don't think PR_SET_TAGGED_ADDR_CTRL could crash the calling process.
-> > Rather disabling tagged addresses would break it. If a process is using
 > 
-> This is precisely how PR_SET_TAGGED_ADDR_CTRL could crash the calling
-> process, no?
-
-I see your point. E.g. it was enabled by glibc but disabled by a user
-application.
-
-> Rather than try to explain the different cases in detail here and have
-> the reader take it as gospel, I thought it would be better to scare them
-> a bit and encourage them to so some homework.  Perhaps I'm being too
-> cautious.
-
-That's fine, leave the warning in place.
-
-> > tagged addresses but does not pass them to the kernel, it will continue
-> > to do so even when the syscalls accept such addresses.
-> > 
-> > > +The conditions for using it safely are complex and system-dependent.
-> > > +Don't use it unless you know what you are doing.
-> > 
-> > This syscall is intended for the C library if the heap allocator
-> > generates tagged addresses. So it's not a general purpose prctl() random
-> > application code could call. Anyway I'm fine with your warning of not
-> > doing it but you may want to clarify the intent.
-> 
-> Maybe add something like
-> 
-> "This call is primarily intended for use by the run-time environment."
-
-That works as well, maybe in addition to the warning. Up to you.
-
-> > > +.IP
-> > > +For more information, see the kernel source file
-> > > +.IR Documentation/arm64/tagged\-address\-abi.rst .
-> > > +.\" prctl PR_GET_TAGGED_ADDR_CTRL
-> > > +.\" commit 63f0c60379650d82250f22e4cf4137ef3dc4f43d
-> > > +.TP
-> > > +.BR PR_GET_TAGGED_ADDR_CTRL " (since Linux 5.4, only on arm64)"
-> > > +Returns the current tagged address mode
-> > > +for the calling thread.
-> > > +.IP
-> > > +Arguments
-> > > +.IR arg2 ", " arg3 ", " arg4 " and " arg5
-> > > +must all be zero.
-> > > +.IP
-> > > +If the arguments are invalid
-> > > +or this feature is disabled or unsupported by the kernel,
-> > > +the call fails with
-> > > +.BR EINVAL .
-> > > +In particular, if
-> > > +.BR prctl ( PR_GET_TAGGED_ADDR_CTRL ,
-> > > +0, 0, 0, 0)
-> > > +fails with
-> > > +.BR EINVAL ,
-> > > +then this feature is definitely unsupported or disabled,
-> > 
-> > I guess it's outside the scope of the prctl.2 to describe how the
-> > feature was disabled (e.g. sysctl).
-> 
-> We could include it here, but I'm thinking we might want a more
-> comprehensive separate page to describe how to use MTE in general.
-> 
-> For now, is referencing the kernel documentation enough?
-
-I think simply saying "unsupported or disabled" is sufficient in the man
-page. The sysctl is not aimed at the user sw/run-time developers but
-rather those controlling the system. For the latter, the kernel
-documentation is sufficient.
-
-So with the (unsigned int) fixed, feel free to add:
-
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-
-I don't have a strong opinion on the other nitpicks, so I'll leave the
-decision to you.
 
 -- 
-Catalin
+Sincerely yours,
+Mike.
