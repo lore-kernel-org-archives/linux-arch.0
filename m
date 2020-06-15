@@ -1,105 +1,61 @@
-Return-Path: <SRS0=jz+U=74=vger.kernel.org=linux-doc-owner@kernel.org>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: [PATCH V3 0/4] mm/debug_vm_pgtable: Add some more tests
-Date: Mon, 15 Jun 2020 09:07:53 +0530
-Message-ID: <1592192277-8421-1-git-send-email-anshuman.khandual@arm.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-mm@kvack.org
-Cc: christophe.leroy@c-s.fr, ziy@nvidia.com, gerald.schaefer@de.ibm.com, Anshuman Khandual <anshuman.khandual@arm.com>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from verein.lst.de ([213.95.11.211]:33935 "EHLO verein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729875AbgFOPJa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 Jun 2020 11:09:30 -0400
+Date: Mon, 15 Jun 2020 17:09:26 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
+Message-ID: <20200615150926.GA17108@lst.de>
+References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de> <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com> <20200615141239.GA12951@lst.de> <CAK8P3a2MeZhayZWkPbd4Ckq3n410p_n808NJTwN=JjzqHRiAXg@mail.gmail.com> <20200615144310.GA15101@lst.de> <CAK8P3a17h782gO65qJ9Mmz0EuiTSKQPEyr_=nvqOtnmQZuh9Kw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAK8P3a17h782gO65qJ9Mmz0EuiTSKQPEyr_=nvqOtnmQZuh9Kw@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200615033753.AQlfZzBltyX1zf_NpTNfupWftjQGmzY5iomNdA6vuDc@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20200615150926.YoxwN1g9Bu7227476GCGKwhsEXOea4tJKVGrNBL-PdY@z>
 
-This series adds some more arch page table helper validation tests which
-are related to core and advanced memory functions. This also creates a
-documentation, enlisting expected semantics for all page table helpers as
-suggested by Mike Rapoport previously (https://lkml.org/lkml/2020/1/30/40).
+On Mon, Jun 15, 2020 at 04:46:15PM +0200, Arnd Bergmann wrote:
+> How about this one:
+> 
+> diff --git a/arch/x86/entry/syscall_x32.c b/arch/x86/entry/syscall_x32.c
+> index 3d8d70d3896c..0ce15807cf54 100644
+> --- a/arch/x86/entry/syscall_x32.c
+> +++ b/arch/x86/entry/syscall_x32.c
+> @@ -16,6 +16,9 @@
+>  #undef __SYSCALL_X32
+>  #undef __SYSCALL_COMMON
+> 
+> +#define __x32_sys_execve __x64_sys_execve
+> +#define __x32_sys_execveat __x64_sys_execveat
+> +
 
-There are many TRANSPARENT_HUGEPAGE and ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD
-ifdefs scattered across the test. But consolidating all the fallback stubs
-is not very straight forward because ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD is
-not explicitly dependent on ARCH_HAS_TRANSPARENT_HUGEPAGE.
 
-Tested on arm64, x86 platforms but only build tested on all other enabled
-platforms through ARCH_HAS_DEBUG_VM_PGTABLE i.e powerpc, arc, s390. The
-following failure on arm64 still exists which was mentioned previously. It
-will be fixed with the upcoming THP migration on arm64 enablement series.
-
-WARNING .... mm/debug_vm_pgtable.c:860 debug_vm_pgtable+0x940/0xa54
-WARN_ON(!pmd_present(pmd_mkinvalid(pmd_mkhuge(pmd))))
-
-This series is based on v5.8-rc1.
-
-Changes in V3:
-
-- Replaced HAVE_ARCH_SOFT_DIRTY with MEM_SOFT_DIRTY
-- Added HAVE_ARCH_HUGE_VMAP checks in pxx_huge_tests() per Gerald
-- Updated documentation for pmd_thp_tests() per Zi Yan
-- Replaced READ_ONCE() with huge_ptep_get() per Gerald
-- Added pte_mkhuge() and masking with PMD_MASK per Gerald
-- Replaced pte_same() with holding pfn check in pxx_swap_tests()
-- Added documentation for all (#ifdef #else #endif) per Gerald
-- Updated pmd_protnone_tests() per Gerald
-- Updated HugeTLB PTE creation in hugetlb_advanced_tests() per Gerald
-- Replaced [pmd|pud]_mknotpresent() with [pmd|pud]_mkinvalid()
-- Added has_transparent_hugepage() check for PMD and PUD tests
-- Added a patch which debug prints all individual tests being executed
-- Updated documentation for renamed [pmd|pud]_mkinvalid() helpers
-
-Changes in V2: (https://patchwork.kernel.org/project/linux-mm/list/?series=260573)
-
-- Dropped CONFIG_ARCH_HAS_PTE_SPECIAL per Christophe
-- Dropped CONFIG_NUMA_BALANCING per Christophe
-- Dropped CONFIG_HAVE_ARCH_SOFT_DIRTY per Christophe
-- Dropped CONFIG_MIGRATION per Christophe
-- Replaced CONFIG_S390 with __HAVE_ARCH_PMDP_INVALIDATE
-- Moved page allocation & free inside swap_migration_tests() per Christophe
-- Added CONFIG_TRANSPARENT_HUGEPAGE to protect pfn_pmd()
-- Added CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD to protect pfn_pud()
-- Added a patch for other arch advanced page table helper tests
-- Added a patch creating a documentation for page table helper semantics
-
-Changes in V1: (https://patchwork.kernel.org/patch/11408253/)
-
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Vineet Gupta <vgupta@synopsys.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Vasily Gorbik <gor@linux.ibm.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Kirill A. Shutemov <kirill@shutemov.name>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: linux-snps-arc@lists.infradead.org
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-s390@vger.kernel.org
-Cc: linux-riscv@lists.infradead.org
-Cc: x86@kernel.org
-Cc: linux-mm@kvack.org
-Cc: linux-doc@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-
-Anshuman Khandual (4):
-  mm/debug_vm_pgtable: Add tests validating arch helpers for core MM features
-  mm/debug_vm_pgtable: Add tests validating advanced arch page table helpers
-  mm/debug_vm_pgtable: Add debug prints for individual tests
-  Documentation/mm: Add descriptions for arch page table helpers
-
- Documentation/vm/arch_pgtable_helpers.rst | 258 +++++++++
- mm/debug_vm_pgtable.c                     | 660 +++++++++++++++++++++-
- 2 files changed, 916 insertions(+), 2 deletions(-)
- create mode 100644 Documentation/vm/arch_pgtable_helpers.rst
-
--- 
-2.20.1
+arch/x86/entry/syscall_x32.c:19:26: error: ‘__x64_sys_execve’ undeclared here (not in a function); did you mean ‘__x32_sys_execve’?
+   19 | #define __x32_sys_execve __x64_sys_execve
+      |                          ^~~~~~~~~~~~~~~~
+arch/x86/entry/syscall_x32.c:22:39: note: in expansion of macro ‘__x32_sys_execve’
+   22 | #define __SYSCALL_X32(nr, sym) [nr] = __x32_##sym,
+      |                                       ^~~~~~
+./arch/x86/include/generated/asm/syscalls_64.h:344:1: note: in expansion of macro ‘__SYSCALL_X32’
+  344 | __SYSCALL_X32(520, sys_execve)
+      | ^~~~~~~~~~~~~
+arch/x86/entry/syscall_x32.c:20:28: error: ‘__x64_sys_execveat’ undeclared here (not in a function); did you mean ‘__x32_sys_execveat’?
+   20 | #define __x32_sys_execveat __x64_sys_execveat
+      |                            ^~~~~~~~~~~~~~~~~~
+arch/x86/entry/syscall_x32.c:22:39: note: in expansion of macro ‘__x32_sys_execveat’
+   22 | #define __SYSCALL_X32(nr, sym) [nr] = __x32_##sym,
+      |                                       ^~~~~~
+./arch/x86/include/generated/asm/syscalls_64.h:369:1: note: in expansion of macro ‘__SYSCALL_X32’
+  369 | __SYSCALL_X32(545, sys_execveat)
+      | ^~~~~~~~~~~~~
+make[2]: *** [scripts/Makefile.build:281: arch/x86/entry/syscall_x32.o] Error 1
+make[1]: *** [scripts/Makefile.build:497: arch/x86/entry] Error 2
+make[1]: *** Waiting for unfinished jobs....
+kernel/exit.o: warning: objtool: __x64_sys_exit_group()+0x14: unreachable instruction
+make: *** [Makefile:1764: arch/x86] Error 2
+make: *** Waiting for unfinished jobs....
