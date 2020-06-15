@@ -1,80 +1,74 @@
-From: Brian Gerst <brgerst@gmail.com>
-Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
-Date: Mon, 15 Jun 2020 10:48:26 -0400
-Message-ID: <CAMzpN2heSzZzg16ws3yQkd7YZwmPPx_4RFCpb9JYfFWJ9gfPhA@mail.gmail.com>
-References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de>
- <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com> <20200615141239.GA12951@lst.de>
+From: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [RFC PATCH v2 6/6] prctl.2: Add tagged address ABI control
+ prctls (arm64)
+Date: Mon, 15 Jun 2020 15:51:16 +0100
+Message-ID: <20200615145115.GL25945@arm.com>
+References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
+ <1590614258-24728-7-git-send-email-Dave.Martin@arm.com>
+ <20200609172232.GA63286@C02TF0J2HF1T.local>
+ <20200610100641.GF25945@arm.com>
+ <20200610152634.GJ26099@gaia>
+ <20200610164209.GH25945@arm.com>
+ <20200610174205.GL26099@gaia>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <20200615141239.GA12951@lst.de>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20200610174205.GL26099@gaia>
+Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>
+Cc: Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Will Deacon <will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Vincenzo Frascino <vincenzo.frascino-5wv7dgnIgG8@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 15, 2020 at 10:13 AM Christoph Hellwig <hch@lst.de> wrote:
->
-> On Mon, Jun 15, 2020 at 03:31:35PM +0200, Arnd Bergmann wrote:
-> > >  #ifdef CONFIG_COMPAT
-> > > -       if (unlikely(argv.is_compat)) {
-> > > +       if (in_compat_syscall()) {
-> > > +               const compat_uptr_t __user *compat_argv =
-> > > +                       compat_ptr((unsigned long)argv);
-> > >                 compat_uptr_t compat;
-> > >
-> > > -               if (get_user(compat, argv.ptr.compat + nr))
-> > > +               if (get_user(compat, compat_argv + nr))
-> > >                         return ERR_PTR(-EFAULT);
-> > >
-> > >                 return compat_ptr(compat);
-> > >         }
-> > >  #endif
-> >
-> > I would expect that the "#ifdef CONFIG_COMPAT" can be removed
-> > now, since compat_ptr() and in_compat_syscall() are now defined
-> > unconditionally. I have not tried that though.
->
-> True, I'll give it a spin.
->
-> > > +/*
-> > > + * x32 syscalls are listed in the same table as x86_64 ones, so we need to
-> > > + * define compat syscalls that are exactly the same as the native version for
-> > > + * the syscall table machinery to work.  Sigh..
-> > > + */
-> > > +#ifdef CONFIG_X86_X32
-> > >  COMPAT_SYSCALL_DEFINE3(execve, const char __user *, filename,
-> > > -       const compat_uptr_t __user *, argv,
-> > > -       const compat_uptr_t __user *, envp)
-> > > +                      const char __user *const __user *, argv,
-> > > +                      const char __user *const __user *, envp)
-> > >  {
-> > > -       return do_compat_execve(AT_FDCWD, getname(filename), argv, envp, 0);
-> > > +       return do_execveat(AT_FDCWD, getname(filename), argv, envp, 0, NULL);
-> > >  }
-> >
-> > Maybe move it to arch/x86/kernel/process_64.c or arch/x86/entry/syscall_x32.c
-> > to keep it out of the common code if this is needed.
->
-> I'd rather keep it in common code as that allows all the low-level
-> exec stuff to be marked static, and avoid us growing new pointless
-> compat variants through copy and paste.
-> smart compiler to d
->
-> > I don't really understand
-> > the comment, why can't this just use this?
->
-> That errors out with:
->
-> ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1040): undefined reference to
-> `__x32_sys_execve'
-> ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1108): undefined reference to
-> `__x32_sys_execveat'
-> make: *** [Makefile:1139: vmlinux] Error 1
+On Wed, Jun 10, 2020 at 06:42:05PM +0100, Catalin Marinas wrote:
+> On Wed, Jun 10, 2020 at 05:42:09PM +0100, Dave P Martin wrote:
+> > On Wed, Jun 10, 2020 at 04:26:34PM +0100, Catalin Marinas wrote:
+> > > On Wed, Jun 10, 2020 at 11:06:42AM +0100, Dave P Martin wrote:
+> > > > On Tue, Jun 09, 2020 at 06:22:32PM +0100, Catalin Marinas wrote:
+> > > > > On Wed, May 27, 2020 at 10:17:38PM +0100, Dave P Martin wrote:
+> > > > > > +.IP
+> > > > > > +The level of support is selected by
+> > > > > > +.IR "(unsigned int) arg2" ,
+> > > > > 
+> > > > > We use (unsigned long) for arg2.
+> > > > 
+> > > > Hmmm, not quite sure how I came up with unsigned int here.  I'll just
+> > > > drop this: the type in the prctl() prototype is unsigned long anyway.
+> > > > 
+> > > > The type is actually moot in this case, since the valid values all fit
+> > > > in an unsigned int.
+> > > 
+> > > Passing an int doesn't require that the top 32-bit of the long are
+> > > zeroed (in case anyone writes the low-level SVC by hand).
+> > 
+> > Fair point, I was forgetting that wrinkle.  Anyway, the convention in
+> > this page seems to be that if the type is unsigned long, we don't
+> > mention it, because the prctl() prototype says that already.
+> > 
+> > Question: the glibc prototype for prctl is variadic, so surely any
+> > calls that don't explicitly cast the args to unsigned long are already
+> > theoretically broken?  The #defines (and 0) are all implicitly int.
+> > This probably affects lots of prctls.
+> > 
+> > We may get away with it because the compiler is almost certainly going
+> > to favour a mov over a ldr for getting small integers into regs, and mov
+> > <Wd> fortunately zeroes the top bits for us anyway.
+> 
+> So does LDR Wd.
+> 
+> Anyway, I think glibc (or my reading of it) has something like like:
+> 
+>   register long _x1 asm ("x1") = _x1tmp;
+> 
+> before invoking the SVC. I assume this would do the right conversion to
+> long. I can't tell about other libraries but I'd say it's their
+> responsibility to convert the args to long before calling the kernel's
+> prctl().
 
-I think I have a fix for this, by modifying the syscall wrappers to
-add an alias for the __x32 variant to the native __x64_sys_foo().
-I'll get back to you with a patch.
+Ignore me.  I was worrying that glibc would propagate junk in the high
+bits of int arguments, due to treating them as longs.  Actually, it
+will, but it doesn't matter where we explicitly cast the argument to int
+inside the kernel (thanks as usual to -fno-strict-overflow).
 
---
-Brian Gerst
+Cheers
+---Dave
