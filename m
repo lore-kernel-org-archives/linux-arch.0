@@ -1,74 +1,56 @@
-From: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [RFC PATCH v2 6/6] prctl.2: Add tagged address ABI control
- prctls (arm64)
-Date: Mon, 15 Jun 2020 15:51:16 +0100
-Message-ID: <20200615145115.GL25945@arm.com>
-References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
- <1590614258-24728-7-git-send-email-Dave.Martin@arm.com>
- <20200609172232.GA63286@C02TF0J2HF1T.local>
- <20200610100641.GF25945@arm.com>
- <20200610152634.GJ26099@gaia>
- <20200610164209.GH25945@arm.com>
- <20200610174205.GL26099@gaia>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
+Date: Mon, 15 Jun 2020 17:09:26 +0200
+Message-ID: <20200615150926.GA17108@lst.de>
+References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de> <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com> <20200615141239.GA12951@lst.de> <CAK8P3a2MeZhayZWkPbd4Ckq3n410p_n808NJTwN=JjzqHRiAXg@mail.gmail.com> <20200615144310.GA15101@lst.de> <CAK8P3a17h782gO65qJ9Mmz0EuiTSKQPEyr_=nvqOtnmQZuh9Kw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-mips-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200610174205.GL26099@gaia>
-Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>
-Cc: Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Will Deacon <will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Vincenzo Frascino <vincenzo.frascino-5wv7dgnIgG8@public.gmane.org>
+In-Reply-To: <CAK8P3a17h782gO65qJ9Mmz0EuiTSKQPEyr_=nvqOtnmQZuh9Kw@mail.gmail.com>
+Sender: linux-mips-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 10, 2020 at 06:42:05PM +0100, Catalin Marinas wrote:
-> On Wed, Jun 10, 2020 at 05:42:09PM +0100, Dave P Martin wrote:
-> > On Wed, Jun 10, 2020 at 04:26:34PM +0100, Catalin Marinas wrote:
-> > > On Wed, Jun 10, 2020 at 11:06:42AM +0100, Dave P Martin wrote:
-> > > > On Tue, Jun 09, 2020 at 06:22:32PM +0100, Catalin Marinas wrote:
-> > > > > On Wed, May 27, 2020 at 10:17:38PM +0100, Dave P Martin wrote:
-> > > > > > +.IP
-> > > > > > +The level of support is selected by
-> > > > > > +.IR "(unsigned int) arg2" ,
-> > > > > 
-> > > > > We use (unsigned long) for arg2.
-> > > > 
-> > > > Hmmm, not quite sure how I came up with unsigned int here.  I'll just
-> > > > drop this: the type in the prctl() prototype is unsigned long anyway.
-> > > > 
-> > > > The type is actually moot in this case, since the valid values all fit
-> > > > in an unsigned int.
-> > > 
-> > > Passing an int doesn't require that the top 32-bit of the long are
-> > > zeroed (in case anyone writes the low-level SVC by hand).
-> > 
-> > Fair point, I was forgetting that wrinkle.  Anyway, the convention in
-> > this page seems to be that if the type is unsigned long, we don't
-> > mention it, because the prctl() prototype says that already.
-> > 
-> > Question: the glibc prototype for prctl is variadic, so surely any
-> > calls that don't explicitly cast the args to unsigned long are already
-> > theoretically broken?  The #defines (and 0) are all implicitly int.
-> > This probably affects lots of prctls.
-> > 
-> > We may get away with it because the compiler is almost certainly going
-> > to favour a mov over a ldr for getting small integers into regs, and mov
-> > <Wd> fortunately zeroes the top bits for us anyway.
+On Mon, Jun 15, 2020 at 04:46:15PM +0200, Arnd Bergmann wrote:
+> How about this one:
 > 
-> So does LDR Wd.
+> diff --git a/arch/x86/entry/syscall_x32.c b/arch/x86/entry/syscall_x32.c
+> index 3d8d70d3896c..0ce15807cf54 100644
+> --- a/arch/x86/entry/syscall_x32.c
+> +++ b/arch/x86/entry/syscall_x32.c
+> @@ -16,6 +16,9 @@
+>  #undef __SYSCALL_X32
+>  #undef __SYSCALL_COMMON
 > 
-> Anyway, I think glibc (or my reading of it) has something like like:
-> 
->   register long _x1 asm ("x1") = _x1tmp;
-> 
-> before invoking the SVC. I assume this would do the right conversion to
-> long. I can't tell about other libraries but I'd say it's their
-> responsibility to convert the args to long before calling the kernel's
-> prctl().
+> +#define __x32_sys_execve __x64_sys_execve
+> +#define __x32_sys_execveat __x64_sys_execveat
+> +
 
-Ignore me.  I was worrying that glibc would propagate junk in the high
-bits of int arguments, due to treating them as longs.  Actually, it
-will, but it doesn't matter where we explicitly cast the argument to int
-inside the kernel (thanks as usual to -fno-strict-overflow).
 
-Cheers
----Dave
+arch/x86/entry/syscall_x32.c:19:26: error: ‘__x64_sys_execve’ undeclared here (not in a function); did you mean ‘__x32_sys_execve’?
+   19 | #define __x32_sys_execve __x64_sys_execve
+      |                          ^~~~~~~~~~~~~~~~
+arch/x86/entry/syscall_x32.c:22:39: note: in expansion of macro ‘__x32_sys_execve’
+   22 | #define __SYSCALL_X32(nr, sym) [nr] = __x32_##sym,
+      |                                       ^~~~~~
+./arch/x86/include/generated/asm/syscalls_64.h:344:1: note: in expansion of macro ‘__SYSCALL_X32’
+  344 | __SYSCALL_X32(520, sys_execve)
+      | ^~~~~~~~~~~~~
+arch/x86/entry/syscall_x32.c:20:28: error: ‘__x64_sys_execveat’ undeclared here (not in a function); did you mean ‘__x32_sys_execveat’?
+   20 | #define __x32_sys_execveat __x64_sys_execveat
+      |                            ^~~~~~~~~~~~~~~~~~
+arch/x86/entry/syscall_x32.c:22:39: note: in expansion of macro ‘__x32_sys_execveat’
+   22 | #define __SYSCALL_X32(nr, sym) [nr] = __x32_##sym,
+      |                                       ^~~~~~
+./arch/x86/include/generated/asm/syscalls_64.h:369:1: note: in expansion of macro ‘__SYSCALL_X32’
+  369 | __SYSCALL_X32(545, sys_execveat)
+      | ^~~~~~~~~~~~~
+make[2]: *** [scripts/Makefile.build:281: arch/x86/entry/syscall_x32.o] Error 1
+make[1]: *** [scripts/Makefile.build:497: arch/x86/entry] Error 2
+make[1]: *** Waiting for unfinished jobs....
+kernel/exit.o: warning: objtool: __x64_sys_exit_group()+0x14: unreachable instruction
+make: *** [Makefile:1764: arch/x86] Error 2
+make: *** Waiting for unfinished jobs....
