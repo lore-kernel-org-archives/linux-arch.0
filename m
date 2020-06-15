@@ -1,51 +1,41 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54474 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389295AbgFXU6Q (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:58:16 -0400
-Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EE1F0C061796
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:58:14 -0700 (PDT)
-Received: by mail-yb1-xb4a.google.com with SMTP id z7so3619771ybz.1
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:58:14 -0700 (PDT)
-Date: Wed, 24 Jun 2020 13:55:42 -0700
-In-Reply-To: <20200624205550.215599-1-brendanhiggins@google.com>
-Message-ID: <20200624205550.215599-4-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200624205550.215599-1-brendanhiggins@google.com>
-Subject: [PATCH v4 03/11] arch: microblaze: add linker section for KUnit test suites
-From: Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout.kundenserver.de ([212.227.17.13]:37341 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729766AbgFONnL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 09:43:11 -0400
+MIME-Version: 1.0
+References: <20200615130032.931285-1-hch@lst.de>
+In-Reply-To: <20200615130032.931285-1-hch@lst.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 15 Jun 2020 15:42:51 +0200
+Message-ID: <CAK8P3a3CWhrfyR4taGip8xE3U6HcRMtKBY5A69_cqzJwU1N+Cw@mail.gmail.com>
+Subject: Re: properly support exec and wait with kernel pointers
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org, Brendan Higgins <brendanhiggins@google.com>
-Message-ID: <20200624205542.CcIag1IajsMsu56hGsW7JHRi2MbK65QcO8XZaFWw7KI@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20200615134251.iu9v81ggvx2ibVPGrziRTZZNBdpXpDxlS92P5s57YEQ@z>
 
-Add a linker section to microblaze where KUnit can put references to its
-test suites. This patch is an early step in transitioning to dispatching
-all KUnit tests from a centralized executor rather than having each as
-its own separate late_initcall.
+On Mon, Jun 15, 2020 at 3:00 PM Christoph Hellwig <hch@lst.de> wrote:
+>
+> Hi all,
+>
+> this series first cleans up the exec code and then adds proper
+> kernel_execveat and kernel_wait callers instead of relying on the fact
+> that the early init code and kernel threads implicitly run with
+> the address limit set to KERNEL_DS.
+>
+> Note that the cleanup removes the compat execve(at) handlers (almost)
+> entirely, as we can handle the compat difference very nicely in a
+> unified codebase.  The only exception is x86 where this would list the
+> handlers twice in the same syscall table due to the messed up x32
+> design.  I had to add an extra compat handler just for that case, but
+> maybe someone has a better idea.
 
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
----
- arch/microblaze/kernel/vmlinux.lds.S | 4 ++++
- 1 file changed, 4 insertions(+)
+I looked at all the patches and I like it a lot. I replied with some suggestions
+for x32, but maybe I misunderstood what its problem is, as I don't see
+anything preventing us from having two entries in the x32 table pointing
+to the same function.
 
-diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
-index df07b3d06cd6b..4fc32f8979a60 100644
---- a/arch/microblaze/kernel/vmlinux.lds.S
-+++ b/arch/microblaze/kernel/vmlinux.lds.S
-@@ -128,6 +128,10 @@ SECTIONS {
- 
- 	__init_end = .;
- 
-+	.kunit_test_suites : {
-+		KUNIT_TEST_SUITES
-+	}
-+
- 	.bss ALIGN (PAGE_SIZE) : AT(ADDR(.bss) - LOAD_OFFSET) {
- 		/* page aligned when MMU used */
- 		__bss_start = . ;
--- 
-2.27.0.212.ge8ba1cc988-goog
+       Arnd
