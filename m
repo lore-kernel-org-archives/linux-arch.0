@@ -1,88 +1,102 @@
-From: David Hildenbrand <david@redhat.com>
-Subject: Re: [PATCH] mm/pgtable: Move extern zero_pfn outside
- __HAVE_COLOR_ZERO_PAGE
-Date: Tue, 16 Jun 2020 09:39:07 +0200
-Message-ID: <f55dff2d-d32e-8de1-0177-e6ba713e0cd9@redhat.com>
-References: <1592280498-15442-1-git-send-email-anshuman.khandual@arm.com>
+From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Subject: Re: [PATCH v8 1/4] bitops: Introduce the for_each_set_clump macro
+Date: Tue, 16 Jun 2020 11:14:28 +0300
+Message-ID: <20200616081428.GP2428291@smile.fi.intel.com>
+References: <cover.1592224128.git.syednwaris@gmail.com>
+ <fe12eedf3666f4af5138de0e70b67a07c7f40338.1592224129.git.syednwaris@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:25062 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1725768AbgFPHjQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jun 2020 03:39:16 -0400
-In-Reply-To: <1592280498-15442-1-git-send-email-anshuman.khandual@arm.com>
-Content-Language: en-US
+Received: from mga07.intel.com ([134.134.136.100]:63987 "EHLO mga07.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726112AbgFPIO2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 16 Jun 2020 04:14:28 -0400
+Content-Disposition: inline
+In-Reply-To: <fe12eedf3666f4af5138de0e70b67a07c7f40338.1592224129.git.syednwaris@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Syed Nayyar Waris <syednwaris@gmail.com>
+Cc: linus.walleij@linaro.org, akpm@linux-foundation.org, vilhelm.gray@gmail.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On 16.06.20 06:08, Anshuman Khandual wrote:
-> zero_pfn variable is required whether __HAVE_COLOR_ZERO_PAGE is enabled
+On Mon, Jun 15, 2020 at 06:21:18PM +0530, Syed Nayyar Waris wrote:
+> This macro iterates for each group of bits (clump) with set bits,
+> within a bitmap memory region. For each iteration, "start" is set to
+> the bit offset of the found clump, while the respective clump value is
+> stored to the location pointed by "clump". Additionally, the
+> bitmap_get_value and bitmap_set_value functions are introduced to
+> respectively get and set a value of n-bits in a bitmap memory region.
+> The n-bits can have any size less than or equal to BITS_PER_LONG.
+> Moreover, during setting value of n-bit in bitmap, if a situation arise
+> that the width of next n-bit is exceeding the word boundary, then it
+> will divide itself such that some portion of it is stored in that word,
+> while the remaining portion is stored in the next higher word. Similar
+> situation occurs while retrieving value of n-bits from bitmap.
 
-Why is that relevant for this patch?
+On the second view...
 
-> or not. Also it should not really be declared individually in all functions
-> where it gets used. Just move the declaration outside, which also makes it
-> available for other potential users.
+> +static inline unsigned long bitmap_get_value(const unsigned long *map,
+> +					      unsigned long start,
+> +					      unsigned long nbits)
+> +{
+> +	const size_t index = BIT_WORD(start);
+> +	const unsigned long offset = start % BITS_PER_LONG;
 
-So, all you're essentially doing is exposing zero_pfn in pgtable.h now.
+> +	const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
 
-If everybody should just use my_zero_pfn(), I don't really see the
-benefit of this patch, sorry.
+This perhaps should use round_up()
 
-> 
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-mm@kvack.org
-> Cc: linux-kernel@vger.kernel.org
-> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
-> ---
-> Applies on 5.8-rc1. If the earlier motivation was to hide zero_pfn from
-> general visibility, we could just put in a comment and update the commit
-> message that my_zero_pfn() should always be used rather than zero_pfn.
-> Build tested on many platforms and boot tested on arm64, x86.
-> 
->  include/linux/pgtable.h | 5 ++---
->  1 file changed, 2 insertions(+), 3 deletions(-)
-> 
-> diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
-> index 32b6c52d41b9..078e9864abca 100644
-> --- a/include/linux/pgtable.h
-> +++ b/include/linux/pgtable.h
-> @@ -1020,10 +1020,11 @@ extern void untrack_pfn(struct vm_area_struct *vma, unsigned long pfn,
->  extern void untrack_pfn_moved(struct vm_area_struct *vma);
->  #endif
->  
-> +extern unsigned long zero_pfn;
+> +	const unsigned long space = ceiling - start;
+
+And I think I see a scenario to complain.
+
+If start == 0, then ceiling will be 64.
+space == 64. Not good.
+
+> +	unsigned long value_low, value_high;
 > +
->  #ifdef __HAVE_COLOR_ZERO_PAGE
->  static inline int is_zero_pfn(unsigned long pfn)
->  {
-> -	extern unsigned long zero_pfn;
->  	unsigned long offset_from_zero_pfn = pfn - zero_pfn;
->  	return offset_from_zero_pfn <= (zero_page_mask >> PAGE_SHIFT);
->  }
-> @@ -1033,13 +1034,11 @@ static inline int is_zero_pfn(unsigned long pfn)
->  #else
->  static inline int is_zero_pfn(unsigned long pfn)
->  {
-> -	extern unsigned long zero_pfn;
->  	return pfn == zero_pfn;
->  }
->  
->  static inline unsigned long my_zero_pfn(unsigned long addr)
->  {
-> -	extern unsigned long zero_pfn;
->  	return zero_pfn;
->  }
->  #endif
-> 
+> +	if (space >= nbits)
+> +		return (map[index] >> offset) & GENMASK(nbits - 1, 0);
+> +	else {
+> +		value_low = map[index] & BITMAP_FIRST_WORD_MASK(start);
+> +		value_high = map[index + 1] & BITMAP_LAST_WORD_MASK(start + nbits);
+> +		return (value_low >> offset) | (value_high << space);
+> +	}
+> +}
 
+...
+
+> +/**
+> + * bitmap_set_value - set n-bit value within a memory region
+> + * @map: address to the bitmap memory region
+> + * @value: value of nbits
+> + * @start: bit offset of the n-bit value
+> + * @nbits: size of value in bits
+> + */
+> +static inline void bitmap_set_value(unsigned long *map,
+> +				    unsigned long value,
+> +				    unsigned long start, unsigned long nbits)
+> +{
+> +	const size_t index = BIT_WORD(start);
+> +	const unsigned long offset = start % BITS_PER_LONG;
+
+> +	const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
+> +	const unsigned long space = ceiling - start;
+
+Ditto for both lines.
+
+> +	value &= GENMASK(nbits - 1, 0);
+> +
+> +	if (space >= nbits) {
+> +		map[index] &= ~(GENMASK(nbits + offset - 1, offset));
+> +		map[index] |= value << offset;
+> +	} else {
+> +		map[index] &= ~BITMAP_FIRST_WORD_MASK(start);
+> +		map[index] |= value << offset;
+> +		map[index + 1] &= ~BITMAP_LAST_WORD_MASK(start + nbits);
+> +		map[index + 1] |= (value >> space);
+> +	}
+> +}
 
 -- 
-Thanks,
-
-David / dhildenb
+With Best Regards,
+Andy Shevchenko
