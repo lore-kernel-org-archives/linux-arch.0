@@ -1,55 +1,90 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43390 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731292AbgF2TNL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:13:11 -0400
-Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CBE9CC08EAEE
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:45 -0700 (PDT)
-Received: by mail-pl1-x643.google.com with SMTP id x11so6683646plo.7
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:45 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 01/17] vmlinux.lds.h: Add .gnu.version* to DISCARDS
-Date: Sun, 28 Jun 2020 23:18:24 -0700
-Message-ID: <20200629061840.4065483-2-keescook@chromium.org>
-In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
-References: <20200629061840.4065483-1-keescook@chromium.org>
+Return-Path: <SRS0=hIPo=75=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH] mm/pgtable: Move extern zero_pfn outside
+ __HAVE_COLOR_ZERO_PAGE
+References: <1592280498-15442-1-git-send-email-anshuman.khandual@arm.com>
+From: David Hildenbrand <david@redhat.com>
+Message-ID: <f55dff2d-d32e-8de1-0177-e6ba713e0cd9@redhat.com>
+Date: Tue, 16 Jun 2020 09:39:07 +0200
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <1592280498-15442-1-git-send-email-anshuman.khandual@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200629061824.wL3D7Fh44KR2jpjizabSDOnZSsjT79qNR5P4ST4jd_M@z>
+Message-ID: <20200616073907.zlqz5zzWuJkYBDFNPSmaMyzJ1nHTy3guwPZvf6TrbD0@z>
 
-For vmlinux linking, no architecture uses the .gnu.version* sections,
-so remove it via the common DISCARDS macro in preparation for adding
---orphan-handling=warn more widely. This is a work-around for what
-appears to be a bug[1] in ld.bfd which warns for this synthetic section
-even when none is found in input objects, and even when no section is
-emitted for an output object[2].
+On 16.06.20 06:08, Anshuman Khandual wrote:
+> zero_pfn variable is required whether __HAVE_COLOR_ZERO_PAGE is enabled
 
-[1] https://sourceware.org/bugzilla/show_bug.cgi?id=26153
-[2] https://lore.kernel.org/lkml/202006221524.CEB86E036B@keescook/
+Why is that relevant for this patch?
 
-Reviewed-by: Fangrui Song <maskray@google.com>
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- include/asm-generic/vmlinux.lds.h | 2 ++
- 1 file changed, 2 insertions(+)
+> or not. Also it should not really be declared individually in all funct=
+ions
+> where it gets used. Just move the declaration outside, which also makes=
+ it
+> available for other potential users.
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index db600ef218d7..1248a206be8d 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -934,6 +934,8 @@
- 	*(.discard)							\
- 	*(.discard.*)							\
- 	*(.modinfo)							\
-+	/* ld.bfd warns about .gnu.version* even when not emitted */	\
-+	*(.gnu.version*)						\
- 	}
- 
- /**
--- 
-2.25.1
+So, all you're essentially doing is exposing zero_pfn in pgtable.h now.
+
+If everybody should just use my_zero_pfn(), I don't really see the
+benefit of this patch, sorry.
+
+>=20
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-mm@kvack.org
+> Cc: linux-kernel@vger.kernel.org
+> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
+> ---
+> Applies on 5.8-rc1. If the earlier motivation was to hide zero_pfn from
+> general visibility, we could just put in a comment and update the commi=
+t
+> message that my_zero_pfn() should always be used rather than zero_pfn.
+> Build tested on many platforms and boot tested on arm64, x86.
+>=20
+>  include/linux/pgtable.h | 5 ++---
+>  1 file changed, 2 insertions(+), 3 deletions(-)
+>=20
+> diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+> index 32b6c52d41b9..078e9864abca 100644
+> --- a/include/linux/pgtable.h
+> +++ b/include/linux/pgtable.h
+> @@ -1020,10 +1020,11 @@ extern void untrack_pfn(struct vm_area_struct *=
+vma, unsigned long pfn,
+>  extern void untrack_pfn_moved(struct vm_area_struct *vma);
+>  #endif
+> =20
+> +extern unsigned long zero_pfn;
+> +
+>  #ifdef __HAVE_COLOR_ZERO_PAGE
+>  static inline int is_zero_pfn(unsigned long pfn)
+>  {
+> -	extern unsigned long zero_pfn;
+>  	unsigned long offset_from_zero_pfn =3D pfn - zero_pfn;
+>  	return offset_from_zero_pfn <=3D (zero_page_mask >> PAGE_SHIFT);
+>  }
+> @@ -1033,13 +1034,11 @@ static inline int is_zero_pfn(unsigned long pfn=
+)
+>  #else
+>  static inline int is_zero_pfn(unsigned long pfn)
+>  {
+> -	extern unsigned long zero_pfn;
+>  	return pfn =3D=3D zero_pfn;
+>  }
+> =20
+>  static inline unsigned long my_zero_pfn(unsigned long addr)
+>  {
+> -	extern unsigned long zero_pfn;
+>  	return zero_pfn;
+>  }
+>  #endif
+>=20
+
+
+--=20
+Thanks,
+
+David / dhildenb
