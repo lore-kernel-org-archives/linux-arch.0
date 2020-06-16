@@ -1,83 +1,56 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50540 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2406476AbgFXUdN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:33:13 -0400
-Received: from mail-qt1-x84a.google.com (mail-qt1-x84a.google.com [IPv6:2607:f8b0:4864:20::84a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BCCFDC061798
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:11 -0700 (PDT)
-Received: by mail-qt1-x84a.google.com with SMTP id p9so2444943qtn.5
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:11 -0700 (PDT)
-Date: Wed, 24 Jun 2020 13:31:45 -0700
-In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
-Message-ID: <20200624203200.78870-8-samitolvanen@google.com>
-Mime-Version: 1.0
-References: <20200624203200.78870-1-samitolvanen@google.com>
-Subject: [PATCH 07/22] kbuild: lto: merge module sections
-From: Sami Tolvanen <samitolvanen@google.com>
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=hIPo=75=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH] mm/pgtable: Move extern zero_pfn outside
+ __HAVE_COLOR_ZERO_PAGE
+References: <1592280498-15442-1-git-send-email-anshuman.khandual@arm.com>
+ <f55dff2d-d32e-8de1-0177-e6ba713e0cd9@redhat.com>
+ <19858112-8f10-493c-9873-84f2000b00b0@arm.com>
+From: David Hildenbrand <david@redhat.com>
+Message-ID: <4ca94b8c-4817-828f-5452-aff547bc61f1@redhat.com>
+Date: Tue, 16 Jun 2020 12:04:51 +0200
+MIME-Version: 1.0
+In-Reply-To: <19858112-8f10-493c-9873-84f2000b00b0@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Sami Tolvanen <samitolvanen@google.com>
-Message-ID: <20200624203145.ahpegNCtxrsv0i9mjL_RMFWnOLXm8mOgmrO6NYZj-u0@z>
+Message-ID: <20200616100451.HaIOiSVHEOBS11uF8nt1UXO0tzaREHMpnon0vNMnAXU@z>
 
-LLD always splits sections with LTO, which increases module sizes. This
-change adds a linker script that merges the split sections in the final
-module and discards the .eh_frame section that LLD may generate.
+On 16.06.20 11:48, Anshuman Khandual wrote:
+> 
+> 
+> On 06/16/2020 01:09 PM, David Hildenbrand wrote:
+>> On 16.06.20 06:08, Anshuman Khandual wrote:
+>>> zero_pfn variable is required whether __HAVE_COLOR_ZERO_PAGE is enabled
+>>
+>> Why is that relevant for this patch?
+> 
+> That just states how it is organized right now wrt __HAVE_COLOR_ZERO_PAGE.
+> 
+>>
+>>> or not. Also it should not really be declared individually in all functions
+>>> where it gets used. Just move the declaration outside, which also makes it
+>>> available for other potential users.
+>>
+>> So, all you're essentially doing is exposing zero_pfn in pgtable.h now.
+> 
+> Right, but it just happens in the process of consolidating three different
+> instances of 'extern unsigned long zero_pfn' in the same file which are
+> redundant.
+> 
+>>
+>> If everybody should just use my_zero_pfn(), I don't really see the
+>> benefit of this patch, sorry.
+> 
+> It consolidates redundant declarations and reduces code. We could just have
+> a comment for zero_pfn stating that it should not be used directly.
+> 
 
-Suggested-by: Nick Desaulniers <ndesaulniers@google.com>
-Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
----
- Makefile               |  2 ++
- scripts/module-lto.lds | 26 ++++++++++++++++++++++++++
- 2 files changed, 28 insertions(+)
- create mode 100644 scripts/module-lto.lds
+... or just leave it as is and have self-documenting code.
 
-diff --git a/Makefile b/Makefile
-index ee66513a5b66..9ffec5fe1737 100644
---- a/Makefile
-+++ b/Makefile
-@@ -898,6 +898,8 @@ CC_FLAGS_LTO_CLANG += -fvisibility=default
- # Limit inlining across translation units to reduce binary size
- LD_FLAGS_LTO_CLANG := -mllvm -import-instr-limit=5
- KBUILD_LDFLAGS += $(LD_FLAGS_LTO_CLANG)
-+
-+KBUILD_LDS_MODULE += $(srctree)/scripts/module-lto.lds
- endif
- 
- ifdef CONFIG_LTO
-diff --git a/scripts/module-lto.lds b/scripts/module-lto.lds
-new file mode 100644
-index 000000000000..65884c652bf2
---- /dev/null
-+++ b/scripts/module-lto.lds
-@@ -0,0 +1,26 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * With CONFIG_LTO_CLANG, LLD always enables -fdata-sections and
-+ * -ffunction-sections, which increases the size of the final module.
-+ * Merge the split sections in the final binary.
-+ */
-+SECTIONS {
-+	__patchable_function_entries : { *(__patchable_function_entries) }
-+
-+	.bss : {
-+		*(.bss .bss.[0-9a-zA-Z_]*)
-+		*(.bss..L* .bss..compoundliteral*)
-+	}
-+
-+	.data : {
-+		*(.data .data.[0-9a-zA-Z_]*)
-+		*(.data..L* .data..compoundliteral*)
-+	}
-+
-+	.rodata : {
-+		*(.rodata .rodata.[0-9a-zA-Z_]*)
-+		*(.rodata..L* .rodata..compoundliteral*)
-+	}
-+
-+	.text : { *(.text .text.[0-9a-zA-Z_]*) }
-+}
 -- 
-2.27.0.212.ge8ba1cc988-goog
+Thanks,
+
+David / dhildenb
