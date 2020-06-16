@@ -1,29 +1,38 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
+From: David Hildenbrand <david@redhat.com>
 Subject: Re: [PATCH] mm/pgtable: Move extern zero_pfn outside
  __HAVE_COLOR_ZERO_PAGE
-Date: Tue, 16 Jun 2020 10:54:17 +0530
-Message-ID: <ca40ed5d-62e9-dff6-ef94-0ae4069ff84b@arm.com>
+Date: Tue, 16 Jun 2020 09:39:07 +0200
+Message-ID: <f55dff2d-d32e-8de1-0177-e6ba713e0cd9@redhat.com>
 References: <1592280498-15442-1-git-send-email-anshuman.khandual@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:59462 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726161AbgFPFYb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 16 Jun 2020 01:24:31 -0400
+Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:25062 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1725768AbgFPHjQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jun 2020 03:39:16 -0400
 In-Reply-To: <1592280498-15442-1-git-send-email-anshuman.khandual@arm.com>
 Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.vnet.ibm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
+To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On 06/16/2020 09:38 AM, Anshuman Khandual wrote:
+On 16.06.20 06:08, Anshuman Khandual wrote:
 > zero_pfn variable is required whether __HAVE_COLOR_ZERO_PAGE is enabled
+
+Why is that relevant for this patch?
+
 > or not. Also it should not really be declared individually in all functions
 > where it gets used. Just move the declaration outside, which also makes it
 > available for other potential users.
+
+So, all you're essentially doing is exposing zero_pfn in pgtable.h now.
+
+If everybody should just use my_zero_pfn(), I don't really see the
+benefit of this patch, sorry.
+
 > 
 > Cc: Arnd Bergmann <arnd@arndb.de>
 > Cc: linux-arch@vger.kernel.org
@@ -72,12 +81,8 @@ On 06/16/2020 09:38 AM, Anshuman Khandual wrote:
 >  #endif
 > 
 
-The CC list is incomplete. Adding Andrew, Mike and Kirill.
 
-+Cc: Andrew Morton <akpm@linux-foundation.org>
-+Cc: Mike Rapoport <rppt@linux.ibm.com>
-+Cc: Kirill A . Shutemov <kirill.shutemov@linux.intel.com>
+-- 
+Thanks,
 
-Will update the CC list next time around.
-
-- Anshuman
+David / dhildenb
