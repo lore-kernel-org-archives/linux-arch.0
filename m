@@ -1,81 +1,134 @@
-From: Peter Xu <peterx@redhat.com>
-Subject: Re: [PATCH 00/25] mm: Page fault accounting cleanups
-Date: Wed, 17 Jun 2020 12:10:49 -0400
-Message-ID: <20200617161049.GE76766@xz-x1>
-References: <20200615221607.7764-1-peterx@redhat.com>
- <CAHk-=wiTjaXHu+uxMi0xCZQOm4KVr0MucECAK=Zm4p4YZZ1XEg@mail.gmail.com>
- <87imfqecjx.fsf@mpe.ellerman.id.au>
- <20200617080405.GA3208@willie-the-truck>
+From: Jim Cromie <jim.cromie@gmail.com>
+Subject: [PATCH v3 05/21] dyndbg: rename __verbose section to __dyndbg
+Date: Wed, 17 Jun 2020 10:25:18 -0600
+Message-ID: <20200617162536.611386-6-jim.cromie@gmail.com>
+References: <20200617162536.611386-1-jim.cromie@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:55657 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1726329AbgFQQK4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jun 2020 12:10:56 -0400
-Received: by mail-qk1-f197.google.com with SMTP id v197so2179434qkb.16
-        for <linux-arch@vger.kernel.org>; Wed, 17 Jun 2020 09:10:52 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <20200617080405.GA3208@willie-the-truck>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48968 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726851AbgFQQ0F (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jun 2020 12:26:05 -0400
+In-Reply-To: <20200617162536.611386-1-jim.cromie@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>, openrisc@lists.librecores.org, linux-arch <linux-arch@vger.kernel.org>, Alexander Gordeev <agordeev@linux.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+To: jbaron@akamai.com, linux-kernel@vger.kernel.org, akpm@linuxfoundation.org, gregkh@linuxfoundation.org
+Cc: linux@rasmusvillemoes.dk, Jim Cromie <jim.cromie@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Jessica Yu <jeyu@kernel.org>, linux-arch@vger.kernel.org
 
-On Wed, Jun 17, 2020 at 09:04:06AM +0100, Will Deacon wrote:
-> On Wed, Jun 17, 2020 at 10:55:14AM +1000, Michael Ellerman wrote:
-> > Linus Torvalds <torvalds@linux-foundation.org> writes:
-> > > On Mon, Jun 15, 2020 at 3:16 PM Peter Xu <peterx@redhat.com> wrote:
-> > >> This series tries to address all of them by introducing mm_fault_accounting()
-> > >> first, so that we move all the page fault accounting into the common code base,
-> > >> then call it properly from arch pf handlers just like handle_mm_fault().
-> > >
-> > > Hmm.
-> > >
-> > > So having looked at this a bit more, I'd actually like to go even
-> > > further, and just get rid of the per-architecture code _entirely_.
-> > 
-> > <snip>
-> > 
-> > > One detail worth noting: I do wonder if we should put the
-> > >
-> > >     perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, addr);
-> > >
-> > > just in the arch code at the top of the fault handling, and consider
-> > > it entirely unrelated to the major/minor fault handling. The
-> > > major/minor faults fundamnetally are about successes. But the plain
-> > > PERF_COUNT_SW_PAGE_FAULTS could be about things that fail, including
-> > > things that never even get to this point at all.
-> > 
-> > Yeah I think we should keep it in the arch code at roughly the top.
-> 
-> I agree. It's a nice idea to consolidate the code, but I don't see that
-> it's really possible for PERF_COUNT_SW_PAGE_FAULTS without significantly
-> changing the semantics (and a potentially less useful way. Of course,
-> moving more of do_page_fault() out of the arch code would be great, but
-> that's a much bigger effort.
-> 
-> > If it's moved to the end you could have a process spinning taking bad
-> > page faults (and fixing them up), and see no sign of it from the perf
-> > page fault counters.
-> 
-> The current arm64 behaviour is that we record PERF_COUNT_SW_PAGE_FAULTS
-> if _all_ of the following are true:
-> 
->   1. The fault isn't handled by kprobes
->   2. The pagefault handler is enabled
->   3. We have an mm (current->mm)
->   4. The fault isn't an unexpected kernel fault on a user address (we oops
->      and kill the task in this case)
-> 
-> Which loosely corresponds to "we took a fault on a user address that it
-> looks like we can handle".
-> 
-> That said, I'm happy to tweak this if it brings us into line with other
-> architectures.
+dyndbg populates its callsite info into __verbose section, change that
+to a more specific and descriptive name, __dyndbg.
 
-I see.  I'll keep the semantics for PERF_COUNT_SW_PAGE_FAULTS in the next
-version.  Thanks for all the comments!
+Also, per checkpatch:
+  simplify __attribute(..) to __section(__dyndbg) declaration.
 
+and 1 spelling fix, decriptor
+
+Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+---
+ include/asm-generic/vmlinux.lds.h |  6 +++---
+ include/linux/dynamic_debug.h     |  4 ++--
+ kernel/module.c                   |  2 +-
+ lib/dynamic_debug.c               | 12 ++++++------
+ 4 files changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index db600ef218d7..05af5cef1ad6 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -320,9 +320,9 @@
+ 	*(__tracepoints)						\
+ 	/* implement dynamic printk debug */				\
+ 	. = ALIGN(8);							\
+-	__start___verbose = .;						\
+-	KEEP(*(__verbose))                                              \
+-	__stop___verbose = .;						\
++	__start___dyndbg = .;						\
++	KEEP(*(__dyndbg))						\
++	__stop___dyndbg = .;						\
+ 	LIKELY_PROFILE()		       				\
+ 	BRANCH_PROFILE()						\
+ 	TRACE_PRINTKS()							\
+diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
+index abcd5fde30eb..aa9ff9e1c0b3 100644
+--- a/include/linux/dynamic_debug.h
++++ b/include/linux/dynamic_debug.h
+@@ -80,7 +80,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
+ 
+ #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt)		\
+ 	static struct _ddebug  __aligned(8)			\
+-	__attribute__((section("__verbose"))) name = {		\
++	__section(__dyndbg) name = {				\
+ 		.modname = KBUILD_MODNAME,			\
+ 		.function = __func__,				\
+ 		.filename = __FILE__,				\
+@@ -133,7 +133,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
+ 
+ /*
+  * "Factory macro" for generating a call to func, guarded by a
+- * DYNAMIC_DEBUG_BRANCH. The dynamic debug decriptor will be
++ * DYNAMIC_DEBUG_BRANCH. The dynamic debug descriptor will be
+  * initialized using the fmt argument. The function will be called with
+  * the address of the descriptor as first argument, followed by all
+  * the varargs. Note that fmt is repeated in invocations of this
+diff --git a/kernel/module.c b/kernel/module.c
+index e8a198588f26..1fb493167b9c 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -3232,7 +3232,7 @@ static int find_module_sections(struct module *mod, struct load_info *info)
+ 	if (section_addr(info, "__obsparm"))
+ 		pr_warn("%s: Ignoring obsolete parameters\n", mod->name);
+ 
+-	info->debug = section_objs(info, "__verbose",
++	info->debug = section_objs(info, "__dyndbg",
+ 				   sizeof(*info->debug), &info->num_debug);
+ 
+ 	return 0;
+diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
+index c97872cffc8e..66c0bdf06ce7 100644
+--- a/lib/dynamic_debug.c
++++ b/lib/dynamic_debug.c
+@@ -39,8 +39,8 @@
+ 
+ #include <rdma/ib_verbs.h>
+ 
+-extern struct _ddebug __start___verbose[];
+-extern struct _ddebug __stop___verbose[];
++extern struct _ddebug __start___dyndbg[];
++extern struct _ddebug __stop___dyndbg[];
+ 
+ struct ddebug_table {
+ 	struct list_head link;
+@@ -1019,7 +1019,7 @@ static int __init dynamic_debug_init(void)
+ 	int n = 0, entries = 0, modct = 0;
+ 	int verbose_bytes = 0;
+ 
+-	if (&__start___verbose == &__stop___verbose) {
++	if (&__start___dyndbg == &__stop___dyndbg) {
+ 		if (IS_ENABLED(CONFIG_DYNAMIC_DEBUG)) {
+ 			pr_warn("_ddebug table is empty in a CONFIG_DYNAMIC_DEBUG build\n");
+ 			return 1;
+@@ -1028,10 +1028,10 @@ static int __init dynamic_debug_init(void)
+ 		ddebug_init_success = 1;
+ 		return 0;
+ 	}
+-	iter = __start___verbose;
++	iter = __start___dyndbg;
+ 	modname = iter->modname;
+ 	iter_start = iter;
+-	for (; iter < __stop___verbose; iter++) {
++	for (; iter < __stop___dyndbg; iter++) {
+ 		entries++;
+ 		verbose_bytes += strlen(iter->modname) + strlen(iter->function)
+ 			+ strlen(iter->filename) + strlen(iter->format);
+@@ -1054,7 +1054,7 @@ static int __init dynamic_debug_init(void)
+ 	ddebug_init_success = 1;
+ 	vpr_info("%d modules, %d entries and %d bytes in ddebug tables, %d bytes in (readonly) verbose section\n",
+ 		 modct, entries, (int)(modct * sizeof(struct ddebug_table)),
+-		 verbose_bytes + (int)(__stop___verbose - __start___verbose));
++		 verbose_bytes + (int)(__stop___dyndbg - __start___dyndbg));
+ 
+ 	/* apply ddebug_query boot param, dont unload tables on err */
+ 	if (ddebug_setup_string[0] != '\0') {
 -- 
-Peter Xu
+2.26.2
