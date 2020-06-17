@@ -1,86 +1,62 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:33472 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388516AbgFXKqp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 Jun 2020 06:46:45 -0400
+Return-Path: <SRS0=4wsg=76=kvack.org=owner-linux-mm@kernel.org>
+Date: Wed, 17 Jun 2020 13:01:41 +0300
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: Re: [PATCH V3 4/4] Documentation/mm: Add descriptions for arch page
+ table helpers
+Message-ID: <20200617100141.GC6493@linux.ibm.com>
+References: <1592192277-8421-1-git-send-email-anshuman.khandual@arm.com>
+ <1592192277-8421-5-git-send-email-anshuman.khandual@arm.com>
 MIME-Version: 1.0
-References: <20200624014940.1204448-1-keescook@chromium.org>
- <20200624014940.1204448-4-keescook@chromium.org> <20200624033142.cinvg6rbg252j46d@google.com>
- <202006232143.66828CD3@keescook> <20200624104356.GA6134@willie-the-truck>
-In-Reply-To: <20200624104356.GA6134@willie-the-truck>
-From: Ard Biesheuvel <ardb@kernel.org>
-Date: Wed, 24 Jun 2020 12:46:32 +0200
-Message-ID: <CAMj1kXHBT4ei0xhyL4jD7=CNRsn1rh7w6jeYDLjVOv4na0Z38Q@mail.gmail.com>
-Subject: Re: [PATCH v3 3/9] efi/libstub: Remove .note.gnu.property
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1592192277-8421-5-git-send-email-anshuman.khandual@arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>
+Cc: linux-mm@kvack.org, christophe.leroy@c-s.fr, ziy@nvidia.com, gerald.schaefer@de.ibm.com, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20200624104632.EgWm13L7vKbPazO0JoAICh6wAfw9nPWlORjSfF85Xns@z>
+Message-ID: <20200617100141.h9lxjp7S2gFCDGOvLHJy-7gnn05jbHR0ThZnJBdhO_Q@z>
 
-On Wed, 24 Jun 2020 at 12:44, Will Deacon <will@kernel.org> wrote:
->
-> On Tue, Jun 23, 2020 at 09:44:11PM -0700, Kees Cook wrote:
-> > On Tue, Jun 23, 2020 at 08:31:42PM -0700, 'Fangrui Song' via Clang Built Linux wrote:
-> > > On 2020-06-23, Kees Cook wrote:
-> > > > In preparation for adding --orphan-handling=warn to more architectures,
-> > > > make sure unwanted sections don't end up appearing under the .init
-> > > > section prefix that libstub adds to itself during objcopy.
-> > > >
-> > > > Signed-off-by: Kees Cook <keescook@chromium.org>
-> > > > ---
-> > > > drivers/firmware/efi/libstub/Makefile | 3 +++
-> > > > 1 file changed, 3 insertions(+)
-> > > >
-> > > > diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
-> > > > index 75daaf20374e..9d2d2e784bca 100644
-> > > > --- a/drivers/firmware/efi/libstub/Makefile
-> > > > +++ b/drivers/firmware/efi/libstub/Makefile
-> > > > @@ -66,6 +66,9 @@ lib-$(CONFIG_X86)               += x86-stub.o
-> > > > CFLAGS_arm32-stub.o               := -DTEXT_OFFSET=$(TEXT_OFFSET)
-> > > > CFLAGS_arm64-stub.o               := -DTEXT_OFFSET=$(TEXT_OFFSET)
-> > > >
-> > > > +# Remove unwanted sections first.
-> > > > +STUBCOPY_FLAGS-y         += --remove-section=.note.gnu.property
-> > > > +
-> > > > #
-> > > > # For x86, bootloaders like systemd-boot or grub-efi do not zero-initialize the
-> > > > # .bss section, so the .bss section of the EFI stub needs to be included in the
-> > >
-> > > arch/arm64/Kconfig enables ARM64_PTR_AUTH by default. When the config is on
-> > >
-> > > ifeq ($(CONFIG_ARM64_BTI_KERNEL),y)
-> > > branch-prot-flags-$(CONFIG_CC_HAS_BRANCH_PROT_PAC_RET_BTI) := -mbranch-protection=pac-ret+leaf+bti
-> > > else
-> > > branch-prot-flags-$(CONFIG_CC_HAS_BRANCH_PROT_PAC_RET) := -mbranch-protection=pac-ret+leaf
-> > > endif
-> > >
-> > > This option creates .note.gnu.property:
-> > >
-> > > % readelf -n drivers/firmware/efi/libstub/efi-stub.o
-> > >
-> > > Displaying notes found in: .note.gnu.property
-> > >   Owner                Data size        Description
-> > >   GNU                  0x00000010       NT_GNU_PROPERTY_TYPE_0
-> > >       Properties: AArch64 feature: PAC
-> > >
-> > > If .note.gnu.property is not desired in drivers/firmware/efi/libstub, specifying
-> > > -mbranch-protection=none can override -mbranch-protection=pac-ret+leaf
-> >
-> > We want to keep the branch protection enabled. But since it's not a
-> > "regular" ELF, we don't need to keep the property that identifies the
-> > feature.
->
-> For the kernel Image, how do we remove these sections? The objcopy flags
-> in arch/arm64/boot/Makefile look both insufficient and out of date. My
-> vmlinux ends up with both a ".notes" and a ".init.note.gnu.property"
-> segment.
->
+On Mon, Jun 15, 2020 at 09:07:57AM +0530, Anshuman Khandual wrote:
+> This adds a specific description file for all arch page table helpers which
+> is in sync with the semantics being tested via CONFIG_DEBUG_VM_PGTABLE. All
+> future changes either to these descriptions here or the debug test should
+> always remain in sync.
+> 
+> Cc: Jonathan Corbet <corbet@lwn.net>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Mike Rapoport <rppt@linux.ibm.com>
+> Cc: Vineet Gupta <vgupta@synopsys.com>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> Cc: Vasily Gorbik <gor@linux.ibm.com>
+> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Borislav Petkov <bp@alien8.de>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: Kirill A. Shutemov <kirill@shutemov.name>
+> Cc: Paul Walmsley <paul.walmsley@sifive.com>
+> Cc: Palmer Dabbelt <palmer@dabbelt.com>
+> Cc: linux-snps-arc@lists.infradead.org
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: linux-s390@vger.kernel.org
+> Cc: linux-riscv@lists.infradead.org
+> Cc: x86@kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-mm@kvack.org
+> Cc: linux-doc@vger.kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> Suggested-by: Mike Rapoport <rppt@kernel.org>
+> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
+> ---
+>  Documentation/vm/arch_pgtable_helpers.rst | 258 ++++++++++++++++++++++
+>  mm/debug_vm_pgtable.c                     |   6 +
+>  2 files changed, 264 insertions(+)
+>  create mode 100644 Documentation/vm/arch_pgtable_helpers.rst
 
-The latter is the fault of the libstub make rules, that prepend .init
-to all section names.
-
-I'm not sure if there is a point to having PAC and/or BTI in the EFI
-stub, given that it runs under the control of the firmware, with its
-memory mappings and PAC configuration etc.
+Acked-by: Mike Rapoport <rppt@linux.ibm.com>
