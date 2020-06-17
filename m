@@ -1,63 +1,83 @@
-Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:60199 "EHLO mga12.intel.com"
+Return-Path: <SRS0=HbQn=76=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from ozlabs.org ([203.11.71.1]:52297 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730238AbgFVUJN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jun 2020 16:09:13 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 07/21] KVM: x86/mmu: Topup memory caches after walking GVA->GPA
-Date: Mon, 22 Jun 2020 13:08:08 -0700
-Message-ID: <20200622200822.4426-8-sean.j.christopherson@intel.com>
-In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
-References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+        id S1726681AbgFQGSO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 17 Jun 2020 02:18:14 -0400
+Date: Wed, 17 Jun 2020 16:18:10 +1000
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [RFC PATCH 1/2] Explicitly include linux/major.h where it is
+ needed
+Message-ID: <20200617161810.256ff93f@canb.auug.org.au>
+In-Reply-To: <20200617055843.GB25631@kroah.com>
+References: <20200617092614.7897ccb2@canb.auug.org.au>
+        <20200617092747.0cadb2de@canb.auug.org.au>
+        <20200617055843.GB25631@kroah.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; boundary="Sig_/SR24Am7bJk6gmzp1XI0YNUE";
+ protocol="application/pgp-signature"; micalg=pgp-sha256
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200622200808.9c86mYBQO-2YymMONtg7QXst8Zykd_oPtS0zxb8z_UE@z>
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: Linux-kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20200617061810.PuVOjUeWxO9a21aatz25LrjocVDrWc-fUKU2Mmo-rg8@z>
 
-Topup memory caches after walking the GVA->GPA translation during a
-shadow page fault, there is no need to ensure the caches are full when
-walking the GVA.  As of commit f5a1e9f89504f ("KVM: MMU: remove call
-to kvm_mmu_pte_write from walk_addr"), the FNAME(walk_addr) flow no
-longer add rmaps via kvm_mmu_pte_write().
+--Sig_/SR24Am7bJk6gmzp1XI0YNUE
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: quoted-printable
 
-This avoids allocating memory in the case that the GVA is unmapped in
-the guest, and also provides a paper trail of why/when the memory caches
-need to be filled.
+Hi Greg,
 
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
----
- arch/x86/kvm/mmu/paging_tmpl.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+On Wed, 17 Jun 2020 07:58:43 +0200 Greg KH <gregkh@linuxfoundation.org> wro=
+te:
+>
+> On Wed, Jun 17, 2020 at 09:27:47AM +1000, Stephen Rothwell wrote:
+> > This is in preparation for removing the include of major.h where it is
+> > not needed.
+> >=20
+> > These files were found using
+> >=20
+> > 	grep -E -L '[<"](uapi/)?linux/major\.h' $(git grep -l -w -f /tmp/xx)
+> >=20
+> > where /tmp/xx contains all the symbols defined in major.h.  There were
+> > a couple of files in that list that did not need the include since the
+> > references are in comments.
+> >=20
+> > Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au> =20
+>=20
+> Any reason this had an RFC, but patch 2/2 did not?
 
-diff --git a/arch/x86/kvm/mmu/paging_tmpl.h b/arch/x86/kvm/mmu/paging_tmpl.h
-index 38c576495048..3de32122f601 100644
---- a/arch/x86/kvm/mmu/paging_tmpl.h
-+++ b/arch/x86/kvm/mmu/paging_tmpl.h
-@@ -791,10 +791,6 @@ static int FNAME(page_fault)(struct kvm_vcpu *vcpu, gpa_t addr, u32 error_code,
- 
- 	pgprintk("%s: addr %lx err %x\n", __func__, addr, error_code);
- 
--	r = mmu_topup_memory_caches(vcpu);
--	if (r)
--		return r;
--
- 	/*
- 	 * If PFEC.RSVD is set, this is a shadow page fault.
- 	 * The bit needs to be cleared before walking guest page tables.
-@@ -822,6 +818,10 @@ static int FNAME(page_fault)(struct kvm_vcpu *vcpu, gpa_t addr, u32 error_code,
- 		return RET_PF_EMULATE;
- 	}
- 
-+	r = mmu_topup_memory_caches(vcpu);
-+	if (r)
-+		return r;
-+
- 	vcpu->arch.write_fault_to_shadow_pgtable = false;
- 
- 	is_self_change_mapping = FNAME(is_self_change_mapping)(vcpu,
--- 
-2.26.0
+I forgot :-)  I added RFC just to hopefully get some attention as this
+is just the start of a long slow use of my "spare" time.
+
+> They look good to me, I will be glad to take these, but do you still
+> want reviews from others for this?  It seems simple enough to me...
+
+Yeah, well, we all know the simplest patches usually cause the most pain :-)
+
+However, I have been fairly careful and it is an easy include file to
+work with.  And I have done my usual build checks, so the linux-next
+maintainer won't complain about build problems :-)
+
+I would like to hear from Arnd, at least, as I don't want to step on
+his toes (he is having a larger look at our include files).
+--=20
+Cheers,
+Stephen Rothwell
+
+--Sig_/SR24Am7bJk6gmzp1XI0YNUE
+Content-Type: application/pgp-signature
+Content-Description: OpenPGP digital signature
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAEBCAAdFiEENIC96giZ81tWdLgKAVBC80lX0GwFAl7ptaIACgkQAVBC80lX
+0GzKewf8D3i2VcdXPYbwXP1LbIeTDCjjxRMksxmNwVqp+V+AnAGCrFNYjpXQ0XLG
+0gS30xMjpcoGedPZ7TlbKO2u8Gyz5VgUgicU+JXaDbCzkgcxtFEdIZCmkeWg9527
+WzQZzxpBeEscgR3FvLylhGKrYbdfQT14dQsbnRQhlm+wHANvZdAC1mpmUPjeS7vn
+IbG/sr4xzvnHiup3Vy2j0oqgroHqmqCHKUMKaJEdfFBQSHjWsvfvOBFwAiATow3o
+eq9imn6UvaSEHU/VFKLNHhYtQKt3a4liB9ScnxlFXFyyYgRx/0ZziBcU6ffHqubd
+in7WwTgUBtvePKUxSDd2tctZFT8VlQ==
+=YfaS
+-----END PGP SIGNATURE-----
+
+--Sig_/SR24Am7bJk6gmzp1XI0YNUE--
