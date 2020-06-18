@@ -1,152 +1,258 @@
-Return-Path: <SRS0=eK+U=AG=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42598 "EHLO
+Return-Path: <SRS0=1XNm=77=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57842 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388930AbgFYBrO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 21:47:14 -0400
-Received: from mail-wm1-x341.google.com (mail-wm1-x341.google.com [IPv6:2a00:1450:4864:20::341])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B07D0C061573
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 18:47:13 -0700 (PDT)
-Received: by mail-wm1-x341.google.com with SMTP id g75so3995205wme.5
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 18:47:13 -0700 (PDT)
+        with ESMTP id S1731261AbgFROq5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jun 2020 10:46:57 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 5/6] exec: add a kernel_execveat helper
+Date: Thu, 18 Jun 2020 16:46:26 +0200
+Message-ID: <20200618144627.114057-6-hch@lst.de>
+In-Reply-To: <20200618144627.114057-1-hch@lst.de>
+References: <20200618144627.114057-1-hch@lst.de>
 MIME-Version: 1.0
-References: <20200624205550.215599-1-brendanhiggins@google.com>
-In-Reply-To: <20200624205550.215599-1-brendanhiggins@google.com>
-From: David Gow <davidgow@google.com>
-Date: Thu, 25 Jun 2020 09:47:00 +0800
-Message-ID: <CABVgOSnkYfXZ1YELsXAjA0GzCQT9YWO8x+Tssw_+avkDdBB4aw@mail.gmail.com>
-Subject: Re: [PATCH v4 00/11] kunit: create a centralized executor to dispatch
- all KUnit tests
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Brendan Higgins <brendanhiggins@google.com>
-Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Frank Rowand <frowand.list@gmail.com>, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org
-Message-ID: <20200625014700.SMTL5DnTFwA6-UJJ2vTkM6JlpeHjHHkE-E2d85pkoCw@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200618144626.3nJvkDQYpERb8ne7W6K_cxlyu2-Ygw6Xw4ngWiKui0c@z>
 
-Glad this is back out there: a couple of minor nitpicks below:
+Add a kernel_execveat helper to execute a binary with kernel space argv
+and envp pointers.  Switch executing init and user mode helpers to this
+new helper instead of relying on the implicit set_fs(KERNEL_DS) for early
+init code and kernel threads, and move the getname call into the
+do_execve helper.
 
-On Thu, Jun 25, 2020 at 4:58 AM Brendan Higgins
-<brendanhiggins@google.com> wrote:
->
-> ## TL;DR
->
-> This patchset adds a centralized executor to dispatch tests rather than
-> relying on late_initcall to schedule each test suite separately along
-> with a couple of new features that depend on it.
->
-> Also, sorry for the extreme delay in getting this out. Part of the delay
-> came from finding that there were actually several architectures that
-> the previous revision of this patchset didn't work on, so I went through
-> and attempted to test this patchset on every architecture - more on that
-> later.
->
-> ## What am I trying to do?
->
-> Conceptually, I am trying to provide a mechanism by which test suites
-> can be grouped together so that they can be reasoned about collectively.
-> The last two of three patches in this series add features which depend
-> on this:
->
-> PATCH 8/11 Prints out a test plan[1] right before KUnit tests are run;
->            this is valuable because it makes it possible for a test
->            harness to detect whether the number of tests run matches the
->            number of tests expected to be run, ensuring that no tests
->            silently failed. The test plan includes a count of tests that
->            will run. With the centralized executor, the tests are
->            located in a single data structure and thus can be counted.
->
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ fs/exec.c               | 109 ++++++++++++++++++++++++++++++++--------
+ include/linux/binfmts.h |   6 +--
+ init/main.c             |   6 +--
+ kernel/umh.c            |   8 ++-
+ 4 files changed, 95 insertions(+), 34 deletions(-)
 
-This appears to actually be patch 9/11.
-
-> PATCH 9/11 Add a new kernel command-line option which allows the user to
->            specify that the kernel poweroff, halt, or reboot after
->            completing all KUnit tests; this is very handy for running
->            KUnit tests on UML or a VM so that the UML/VM process exits
->            cleanly immediately after running all tests without needing a
->            special initramfs. The centralized executor provides a
->            definitive point when all tests have completed and the
->            poweroff, halt, or reboot could occur.
-
-This seems to have been merged into the above patch (9/11).
-
-> In addition, by dispatching tests from a single location, we can
-> guarantee that all KUnit tests run after late_init is complete, which
-> was a concern during the initial KUnit patchset review (this has not
-> been a problem in practice, but resolving with certainty is nevertheless
-> desirable).
->
-> Other use cases for this exist, but the above features should provide an
-> idea of the value that this could provide.
->
-> ## Changes since last revision:
->  - On the last revision I got some messages from 0day that showed that
->    this patchset didn't work on several architectures, one issue that
->    this patchset addresses is that we were aligning both memory segments
->    as well as structures in the segments to specific byte boundaries
->    which was incorrect.
->  - The issue mentioned above also caused me to test on additional
->    architectures which revealed that some architectures other than UML
->    do not use the default init linker section macro that most
->    architectures use. There are now several new patches (2, 3, 4, and
->    6).
->  - Fixed a formatting consistency issue in the kernel params
->    documentation patch (9/9).
->  - Add a brief blurb on how and when the kunit_test_suite macro works.
->
-> ## Remaining work to be done:
->
-> The only architecture for which I was able to get a compiler, but was
-> apparently unable to get KUnit into a section that the executor to see
-> was m68k - not sure why.
->
-> Alan Maguire (1):
->   kunit: test: create a single centralized executor for all tests
->
-> Brendan Higgins (10):
->   vmlinux.lds.h: add linker section for KUnit test suites
->   arch: arm64: add linker section for KUnit test suites
->   arch: microblaze: add linker section for KUnit test suites
->   arch: powerpc: add linker section for KUnit test suites
->   arch: um: add linker section for KUnit test suites
->   arch: xtensa: add linker section for KUnit test suites
->   init: main: add KUnit to kernel init
->   kunit: test: add test plan to KUnit TAP format
->   Documentation: Add kunit_shutdown to kernel-parameters.txt
->   Documentation: kunit: add a brief blurb about kunit_test_suite
->
->  .../admin-guide/kernel-parameters.txt         |   8 ++
->  Documentation/dev-tools/kunit/usage.rst       |   5 ++
->  arch/arm64/kernel/vmlinux.lds.S               |   3 +
->  arch/microblaze/kernel/vmlinux.lds.S          |   4 +
->  arch/powerpc/kernel/vmlinux.lds.S             |   4 +
->  arch/um/include/asm/common.lds.S              |   4 +
->  arch/xtensa/kernel/vmlinux.lds.S              |   4 +
->  include/asm-generic/vmlinux.lds.h             |   8 ++
->  include/kunit/test.h                          |  73 ++++++++++++-----
->  init/main.c                                   |   4 +
->  lib/kunit/Makefile                            |   3 +-
->  lib/kunit/executor.c                          |  63 +++++++++++++++
->  lib/kunit/test.c                              |  13 +--
->  tools/testing/kunit/kunit_kernel.py           |   2 +-
->  tools/testing/kunit/kunit_parser.py           |  74 +++++++++++++++---
->  .../test_is_test_passed-all_passed.log        | Bin 1562 -> 1567 bytes
->  .../test_data/test_is_test_passed-crash.log   | Bin 3016 -> 3021 bytes
->  .../test_data/test_is_test_passed-failure.log | Bin 1700 -> 1705 bytes
->  18 files changed, 226 insertions(+), 46 deletions(-)
->  create mode 100644 lib/kunit/executor.c
->
->
-> base-commit: 4333a9b0b67bb4e8bcd91bdd80da80b0ec151162
-> prerequisite-patch-id: 2d4b5aa9fa8ada9ae04c8584b47c299a822b9455
-> prerequisite-patch-id: 582b6d9d28ce4b71628890ec832df6522ca68de0
->
-> These patches are available for download with dependencies here:
->
-> https://kunit-review.googlesource.com/c/linux/+/3829
->
-> [1] https://github.com/isaacs/testanything.github.io/blob/tap14/tap-version-14-specification.md#the-plan
-> [2] https://patchwork.kernel.org/patch/11383635/
->
-> --
-> 2.27.0.212.ge8ba1cc988-goog
->
+diff --git a/fs/exec.c b/fs/exec.c
+index 34781db6bf6889..7923b8334ae600 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -435,6 +435,21 @@ static int count_strings(const char __user *const __user *argv)
+ 	return i;
+ }
+ 
++static int count_kernel_strings(const char *const *argv)
++{
++	int i;
++
++	if (!argv)
++		return 0;
++
++	for (i = 0; argv[i]; i++) {
++		if (i >= MAX_ARG_STRINGS)
++			return -E2BIG;
++	}
++
++	return i;
++}
++
+ static int check_arg_limit(struct linux_binprm *bprm)
+ {
+ 	unsigned long limit, ptr_size;
+@@ -611,6 +626,19 @@ int copy_string_kernel(const char *arg, struct linux_binprm *bprm)
+ }
+ EXPORT_SYMBOL(copy_string_kernel);
+ 
++static int copy_strings_kernel(int argc, const char *const *argv,
++		struct linux_binprm *bprm)
++{
++	int ret;
++
++	while (argc-- > 0) {
++		ret = copy_string_kernel(argv[argc], bprm);
++		if (ret)
++			break;
++	}
++	return ret;
++}
++
+ #ifdef CONFIG_MMU
+ 
+ /*
+@@ -1793,9 +1821,11 @@ static int exec_binprm(struct linux_binprm *bprm)
+ 	return 0;
+ }
+ 
+-int do_execveat(int fd, struct filename *filename,
++static int __do_execveat(int fd, struct filename *filename,
+ 		const char __user *const __user *argv,
+ 		const char __user *const __user *envp,
++		const char *const *kernel_argv,
++		const char *const *kernel_envp,
+ 		int flags, struct file *file)
+ {
+ 	char *pathbuf = NULL;
+@@ -1876,16 +1906,30 @@ int do_execveat(int fd, struct filename *filename,
+ 	if (retval)
+ 		goto out_unmark;
+ 
+-	bprm->argc = count_strings(argv);
+-	if (bprm->argc < 0) {
+-		retval = bprm->argc;
+-		goto out;
+-	}
++	if (unlikely(kernel_argv)) {
++		bprm->argc = count_kernel_strings(kernel_argv);
++		if (bprm->argc < 0) {
++			retval = bprm->argc;
++			goto out;
++		}
+ 
+-	bprm->envc = count_strings(envp);
+-	if (bprm->envc < 0) {
+-		retval = bprm->envc;
+-		goto out;
++		bprm->envc = count_kernel_strings(kernel_envp);
++		if (bprm->envc < 0) {
++			retval = bprm->envc;
++			goto out;
++		}
++	} else {
++		bprm->argc = count_strings(argv);
++		if (bprm->argc < 0) {
++			retval = bprm->argc;
++			goto out;
++		}
++
++		bprm->envc = count_strings(envp);
++		if (bprm->envc < 0) {
++			retval = bprm->envc;
++			goto out;
++		}
+ 	}
+ 
+ 	retval = check_arg_limit(bprm);
+@@ -1902,13 +1946,22 @@ int do_execveat(int fd, struct filename *filename,
+ 		goto out;
+ 
+ 	bprm->exec = bprm->p;
+-	retval = copy_strings(bprm->envc, envp, bprm);
+-	if (retval < 0)
+-		goto out;
+ 
+-	retval = copy_strings(bprm->argc, argv, bprm);
+-	if (retval < 0)
+-		goto out;
++	if (unlikely(kernel_argv)) {
++		retval = copy_strings_kernel(bprm->envc, kernel_envp, bprm);
++		if (retval < 0)
++			goto out;
++		retval = copy_strings_kernel(bprm->argc, kernel_argv, bprm);
++		if (retval < 0)
++			goto out;
++	} else {
++		retval = copy_strings(bprm->envc, envp, bprm);
++		if (retval < 0)
++			goto out;
++		retval = copy_strings(bprm->argc, argv, bprm);
++		if (retval < 0)
++			goto out;
++	}
+ 
+ 	retval = exec_binprm(bprm);
+ 	if (retval < 0)
+@@ -1959,6 +2012,23 @@ int do_execveat(int fd, struct filename *filename,
+ 	return retval;
+ }
+ 
++static int do_execveat(int fd, const char *filename,
++		       const char __user *const __user *argv,
++		       const char __user *const __user *envp, int flags)
++{
++	int lookup_flags = (flags & AT_EMPTY_PATH) ? LOOKUP_EMPTY : 0;
++	struct filename *name = getname_flags(filename, lookup_flags, NULL);
++
++	return __do_execveat(fd, name, argv, envp, NULL, NULL, flags, NULL);
++}
++
++int kernel_execveat(int fd, const char *filename, const char *const *argv,
++		const char *const *envp, int flags, struct file *file)
++{
++	return __do_execveat(fd, getname_kernel(filename), NULL, NULL, argv,
++			     envp, flags, file);
++}
++
+ void set_binfmt(struct linux_binfmt *new)
+ {
+ 	struct mm_struct *mm = current->mm;
+@@ -1988,7 +2058,7 @@ SYSCALL_DEFINE3(execve,
+ 		const char __user *const __user *, argv,
+ 		const char __user *const __user *, envp)
+ {
+-	return do_execveat(AT_FDCWD, getname(filename), argv, envp, 0, NULL);
++	return do_execveat(AT_FDCWD, filename, argv, envp, 0);
+ }
+ 
+ SYSCALL_DEFINE5(execveat,
+@@ -1997,8 +2067,5 @@ SYSCALL_DEFINE5(execveat,
+ 		const char __user *const __user *, envp,
+ 		int, flags)
+ {
+-	int lookup_flags = (flags & AT_EMPTY_PATH) ? LOOKUP_EMPTY : 0;
+-	struct filename *name = getname_flags(filename, lookup_flags, NULL);
+-
+-	return do_execveat(fd, name, argv, envp, flags, NULL);
++	return do_execveat(fd, filename, argv, envp, flags);
+ }
+diff --git a/include/linux/binfmts.h b/include/linux/binfmts.h
+index bed702e4b1fbd9..1e61c980c16354 100644
+--- a/include/linux/binfmts.h
++++ b/include/linux/binfmts.h
+@@ -134,9 +134,7 @@ int copy_string_kernel(const char *arg, struct linux_binprm *bprm);
+ extern void set_binfmt(struct linux_binfmt *new);
+ extern ssize_t read_code(struct file *, unsigned long, loff_t, size_t);
+ 
+-int do_execveat(int fd, struct filename *filename,
+-		const char __user *const __user *__argv,
+-		const char __user *const __user *__envp,
+-		int flags, struct file *file);
++int kernel_execveat(int fd, const char *filename, const char *const *argv,
++		const char *const *envp, int flags, struct file *file);
+ 
+ #endif /* _LINUX_BINFMTS_H */
+diff --git a/init/main.c b/init/main.c
+index 838950ea7bca22..33de235dc2aa00 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -1329,10 +1329,8 @@ static int run_init_process(const char *init_filename)
+ 	pr_debug("  with environment:\n");
+ 	for (p = envp_init; *p; p++)
+ 		pr_debug("    %s\n", *p);
+-	return do_execveat(AT_FDCWD, getname_kernel(init_filename),
+-			(const char __user *const __user *)argv_init,
+-			(const char __user *const __user *)envp_init,
+-			0, NULL);
++	return kernel_execveat(AT_FDCWD, init_filename, argv_init, envp_init, 0,
++			       NULL);
+ }
+ 
+ static int try_to_run_init_process(const char *init_filename)
+diff --git a/kernel/umh.c b/kernel/umh.c
+index 7aa9a5817582ca..1284823dbad338 100644
+--- a/kernel/umh.c
++++ b/kernel/umh.c
+@@ -103,11 +103,9 @@ static int call_usermodehelper_exec_async(void *data)
+ 	commit_creds(new);
+ 
+ 	sub_info->pid = task_pid_nr(current);
+-	retval = do_execveat(AT_FDCWD,
+-			sub_info->path ? getname_kernel(sub_info->path) : NULL,
+-			(const char __user *const __user *)sub_info->argv,
+-			(const char __user *const __user *)sub_info->envp,
+-			0, sub_info->file);
++	retval = kernel_execveat(AT_FDCWD, sub_info->path,
++			(const char *const *)sub_info->argv,
++			(const char *const *)sub_info->envp, 0, sub_info->file);
+ 	if (sub_info->file && !retval)
+ 		current->flags |= PF_UMH;
+ out:
+-- 
+2.26.2
