@@ -1,52 +1,36 @@
-From: Mike Rapoport <rppt@linux.ibm.com>
-Subject: Re: [PATCH] mm: Move p?d_alloc_track to separate header file
-Date: Thu, 18 Jun 2020 12:17:59 +0300
-Message-ID: <20200618091759.GH6493@linux.ibm.com>
-References: <20200609120533.25867-1-joro@8bytes.org>
- <20200617181226.ab213ea1531b5dd6eca1b0b6@linux-foundation.org>
+From: Dr Samuel Cadwaladre <vivghanem@gmail.com>
+Subject: Dear friend
+Date: Thu, 18 Jun 2020 04:50:49 -0700
+Message-ID: <CAGbuYt47UzQEcuqV8+TghPQWy0dX-ig1OV_=SGqFp906aRY=Dw@mail.gmail.com>
+Reply-To: drsamuelco@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200617181226.ab213ea1531b5dd6eca1b0b6@linux-foundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Joerg Roedel <joro@8bytes.org>, peterz@infradead.org, jroedel@suse.de, Andy Lutomirski <luto@kernel.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, manvanth@linux.vnet.ibm.com, linux-next@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Linus Torvalds <torvalds@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, hch@lst.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58758 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728383AbgFRLuw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jun 2020 07:50:52 -0400
+Received: from mail-oi1-x242.google.com (mail-oi1-x242.google.com [IPv6:2607:f8b0:4864:20::242])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E7C45C0613ED
+        for <linux-arch@vger.kernel.org>; Thu, 18 Jun 2020 04:50:51 -0700 (PDT)
+Received: by mail-oi1-x242.google.com with SMTP id k4so4810486oik.2
+        for <linux-arch@vger.kernel.org>; Thu, 18 Jun 2020 04:50:51 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, Jun 17, 2020 at 06:12:26PM -0700, Andrew Morton wrote:
-> On Tue,  9 Jun 2020 14:05:33 +0200 Joerg Roedel <joro@8bytes.org> wrote:
-> 
-> > From: Joerg Roedel <jroedel@suse.de>
-> > 
-> > The functions are only used in two source files, so there is no need
-> > for them to be in the global <linux/mm.h> header. Move them to the new
-> > <linux/pgalloc-track.h> header and include it only where needed.
-> > 
-> > ...
-> >
-> > new file mode 100644
-> > index 000000000000..1dcc865029a2
-> > --- /dev/null
-> > +++ b/include/linux/pgalloc-track.h
-> > @@ -0,0 +1,51 @@
-> > +/* SPDX-License-Identifier: GPL-2.0 */
-> > +#ifndef _LINUX_PGALLLC_TRACK_H
-> > +#define _LINUX_PGALLLC_TRACK_H
-> 
-> hm, no #includes.  I guess this is OK, given the limited use.
-> 
-> But it does make one wonder whether ioremap.c should be moved from lib/
-> to mm/ and this file should be moved from include/linux/ to mm/.
+Dear Friend,
+I wish you and your family a blessed week!I have a confidential
+opportunity that is capable of changing our lives forever, if it
+interests you reply me for more details,I am a banker by profession
+here in my country, one of our customer(Late Engineer Andrew) who used
+to work with shell development company, On the 21st of April
+2012, our customer and his wife with their only daughter were involved
+in auto crash here in my country leaving the sum of (Ten million four
+hundred thousand united state dollars). I decided to contacted you for
+business negotiation so that the huge amount he left behind in a bank
+here will be transferred to your bank account before the bank
+confiscate it contact me on my private email for more
+detail(drsamuelco@gmail.com).
 
-It makes sense, but I am anyway planning consolidation of pgalloc.h, so
-most probably pgalloc-track will not survive until 5.9-rc1 :)
-
-If you think that it worth moving ioremap.c to mm/ regardless of chrun,
-I can send a patch for that.
-
-> Oh well.
-
--- 
-Sincerely yours,
-Mike.
+Best regards,
+Samuel Cadwaldre.
