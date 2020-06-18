@@ -1,46 +1,58 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50594 "EHLO
+Return-Path: <SRS0=1XNm=77=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57770 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2406545AbgFXUdX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:33:23 -0400
-Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 43E4CC061573
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:22 -0700 (PDT)
-Received: by mail-yb1-xb49.google.com with SMTP id m63so3470550ybc.13
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:22 -0700 (PDT)
-Date: Wed, 24 Jun 2020 13:31:51 -0700
-In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
-Message-ID: <20200624203200.78870-14-samitolvanen@google.com>
-Mime-Version: 1.0
-References: <20200624203200.78870-1-samitolvanen@google.com>
-Subject: [PATCH 13/22] scripts/mod: disable LTO for empty.c
-From: Sami Tolvanen <samitolvanen@google.com>
-Content-Type: text/plain; charset="UTF-8"
+        with ESMTP id S1730924AbgFROqe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jun 2020 10:46:34 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: properly support exec and wait with kernel pointers v2
+Date: Thu, 18 Jun 2020 16:46:21 +0200
+Message-ID: <20200618144627.114057-1-hch@lst.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Sami Tolvanen <samitolvanen@google.com>
-Message-ID: <20200624203151.t8DmPxQc8WpNVhJgKy3KYI5u4fRBFcxdfVAPVlqxRQk@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200618144621.E93x21Xj4GCxNmEIKLLpQ_JGTx0ruWXk9GD4NiIQAfk@z>
 
-With CONFIG_LTO_CLANG, clang generates LLVM IR instead of ELF object
-files. As empty.o is used for probing target properties, disable LTO
-for it to produce an object file instead.
+Hi all,
 
-Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
----
- scripts/mod/Makefile | 1 +
- 1 file changed, 1 insertion(+)
+this series first cleans up the exec code and then adds proper
+kernel_execveat and kernel_wait callers instead of relying on the fact
+that the early init code and kernel threads implicitly run with
+the address limit set to KERNEL_DS.
 
-diff --git a/scripts/mod/Makefile b/scripts/mod/Makefile
-index 296b6a3878b2..b6e3b40c6eeb 100644
---- a/scripts/mod/Makefile
-+++ b/scripts/mod/Makefile
-@@ -1,5 +1,6 @@
- # SPDX-License-Identifier: GPL-2.0
- OBJECT_FILES_NON_STANDARD := y
-+CFLAGS_REMOVE_empty.o += $(CC_FLAGS_LTO)
- 
- hostprogs	:= modpost mk_elfconfig
- always-y	:= $(hostprogs) empty.o
--- 
-2.27.0.212.ge8ba1cc988-goog
+Note that the cleanup removes the compat execve(at) handlers entirely, as
+we can handle the compat difference very nicely in a unified codebase.
+x32 needs two hacky #defines for that for now, although those can go
+away if the x32 syscall rework from Brian gets merged.
+
+Changes since v1:
+ - remove a pointless ifdef from get_user_arg_ptr
+ - remove the need for a compat syscall handler for x32
+
+
+Diffstat:
+ arch/arm64/include/asm/unistd32.h                  |    4 
+ arch/mips/kernel/syscalls/syscall_n32.tbl          |    4 
+ arch/mips/kernel/syscalls/syscall_o32.tbl          |    4 
+ arch/parisc/kernel/syscalls/syscall.tbl            |    4 
+ arch/powerpc/kernel/syscalls/syscall.tbl           |    4 
+ arch/s390/kernel/syscalls/syscall.tbl              |    4 
+ arch/sparc/kernel/syscalls.S                       |    4 
+ arch/x86/entry/syscall_x32.c                       |    7 
+ arch/x86/entry/syscalls/syscall_32.tbl             |    4 
+ arch/x86/entry/syscalls/syscall_64.tbl             |    4 
+ fs/exec.c                                          |  248 ++++++++-------------
+ include/linux/binfmts.h                            |   10 
+ include/linux/compat.h                             |    7 
+ include/linux/sched/task.h                         |    1 
+ include/uapi/asm-generic/unistd.h                  |    4 
+ init/main.c                                        |    5 
+ kernel/exit.c                                      |   16 +
+ kernel/umh.c                                       |   43 ---
+ tools/include/uapi/asm-generic/unistd.h            |    4 
+ tools/perf/arch/powerpc/entry/syscalls/syscall.tbl |    4 
+ tools/perf/arch/s390/entry/syscalls/syscall.tbl    |    4 
+ tools/perf/arch/x86/entry/syscalls/syscall_64.tbl  |    4 
+ 22 files changed, 170 insertions(+), 223 deletions(-)
