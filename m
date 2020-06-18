@@ -1,36 +1,53 @@
-From: Dr Samuel Cadwaladre <vivghanem@gmail.com>
-Subject: Dear friend
-Date: Thu, 18 Jun 2020 04:50:49 -0700
-Message-ID: <CAGbuYt47UzQEcuqV8+TghPQWy0dX-ig1OV_=SGqFp906aRY=Dw@mail.gmail.com>
-Reply-To: drsamuelco@gmail.com
+From: Christoph Hellwig <hch@lst.de>
+Subject: properly support exec and wait with kernel pointers v2
+Date: Thu, 18 Jun 2020 16:46:21 +0200
+Message-ID: <20200618144627.114057-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58758 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728383AbgFRLuw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jun 2020 07:50:52 -0400
-Received: from mail-oi1-x242.google.com (mail-oi1-x242.google.com [IPv6:2607:f8b0:4864:20::242])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E7C45C0613ED
-        for <linux-arch@vger.kernel.org>; Thu, 18 Jun 2020 04:50:51 -0700 (PDT)
-Received: by mail-oi1-x242.google.com with SMTP id k4so4810486oik.2
-        for <linux-arch@vger.kernel.org>; Thu, 18 Jun 2020 04:50:51 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-mips-owner@vger.kernel.org>
+Sender: linux-mips-owner@vger.kernel.org
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Dear Friend,
-I wish you and your family a blessed week!I have a confidential
-opportunity that is capable of changing our lives forever, if it
-interests you reply me for more details,I am a banker by profession
-here in my country, one of our customer(Late Engineer Andrew) who used
-to work with shell development company, On the 21st of April
-2012, our customer and his wife with their only daughter were involved
-in auto crash here in my country leaving the sum of (Ten million four
-hundred thousand united state dollars). I decided to contacted you for
-business negotiation so that the huge amount he left behind in a bank
-here will be transferred to your bank account before the bank
-confiscate it contact me on my private email for more
-detail(drsamuelco@gmail.com).
+Hi all,
 
-Best regards,
-Samuel Cadwaldre.
+this series first cleans up the exec code and then adds proper
+kernel_execveat and kernel_wait callers instead of relying on the fact
+that the early init code and kernel threads implicitly run with
+the address limit set to KERNEL_DS.
+
+Note that the cleanup removes the compat execve(at) handlers entirely, as
+we can handle the compat difference very nicely in a unified codebase.
+x32 needs two hacky #defines for that for now, although those can go
+away if the x32 syscall rework from Brian gets merged.
+
+Changes since v1:
+ - remove a pointless ifdef from get_user_arg_ptr
+ - remove the need for a compat syscall handler for x32
+
+
+Diffstat:
+ arch/arm64/include/asm/unistd32.h                  |    4 
+ arch/mips/kernel/syscalls/syscall_n32.tbl          |    4 
+ arch/mips/kernel/syscalls/syscall_o32.tbl          |    4 
+ arch/parisc/kernel/syscalls/syscall.tbl            |    4 
+ arch/powerpc/kernel/syscalls/syscall.tbl           |    4 
+ arch/s390/kernel/syscalls/syscall.tbl              |    4 
+ arch/sparc/kernel/syscalls.S                       |    4 
+ arch/x86/entry/syscall_x32.c                       |    7 
+ arch/x86/entry/syscalls/syscall_32.tbl             |    4 
+ arch/x86/entry/syscalls/syscall_64.tbl             |    4 
+ fs/exec.c                                          |  248 ++++++++-------------
+ include/linux/binfmts.h                            |   10 
+ include/linux/compat.h                             |    7 
+ include/linux/sched/task.h                         |    1 
+ include/uapi/asm-generic/unistd.h                  |    4 
+ init/main.c                                        |    5 
+ kernel/exit.c                                      |   16 +
+ kernel/umh.c                                       |   43 ---
+ tools/include/uapi/asm-generic/unistd.h            |    4 
+ tools/perf/arch/powerpc/entry/syscalls/syscall.tbl |    4 
+ tools/perf/arch/s390/entry/syscalls/syscall.tbl    |    4 
+ tools/perf/arch/x86/entry/syscalls/syscall_64.tbl  |    4 
+ 22 files changed, 170 insertions(+), 223 deletions(-)
