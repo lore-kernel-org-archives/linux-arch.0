@@ -1,122 +1,64 @@
-Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:60195 "EHLO mga12.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728545AbgFVUJI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jun 2020 16:09:08 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 01/21] KVM: x86/mmu: Track the associated kmem_cache in the MMU caches
-Date: Mon, 22 Jun 2020 13:08:02 -0700
-Message-ID: <20200622200822.4426-2-sean.j.christopherson@intel.com>
-In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
-References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+Return-Path: <SRS0=1XNm=77=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48072 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727960AbgFRTsm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jun 2020 15:48:42 -0400
+Received: from mail-lj1-x244.google.com (mail-lj1-x244.google.com [IPv6:2a00:1450:4864:20::244])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1638AC0613EE
+        for <linux-arch@vger.kernel.org>; Thu, 18 Jun 2020 12:48:42 -0700 (PDT)
+Received: by mail-lj1-x244.google.com with SMTP id z9so8714788ljh.13
+        for <linux-arch@vger.kernel.org>; Thu, 18 Jun 2020 12:48:41 -0700 (PDT)
+Received: from mail-lj1-f181.google.com (mail-lj1-f181.google.com. [209.85.208.181])
+        by smtp.gmail.com with ESMTPSA id w26sm795492ljj.114.2020.06.18.12.48.38
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 18 Jun 2020 12:48:38 -0700 (PDT)
+Received: by mail-lj1-f181.google.com with SMTP id c17so8715466lji.11
+        for <linux-arch@vger.kernel.org>; Thu, 18 Jun 2020 12:48:38 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20200617073755.8068-1-hch@lst.de>
+In-Reply-To: <20200617073755.8068-1-hch@lst.de>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 18 Jun 2020 12:48:22 -0700
+Message-ID: <CAHk-=wjpnu=882iD9ck9Ywt6R1LYX_Hv-oS7dBMsWZwDRGZ5jA@mail.gmail.com>
+Subject: Re: rename probe_kernel_* and probe_user_*
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200622200802.GVHhC5QrIGejyBcEAy8uGuvTs6GKKxjJ0wXIgvjrDrY@z>
+To: Christoph Hellwig <hch@lst.de>, Russell King <linux@armlinux.org.uk>, Tony Luck <tony.luck@intel.com>, Helge Deller <deller@gmx.de>, Michael Ellerman <mpe@ellerman.id.au>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, the arch/x86 maintainers <x86@kernel.org>
+Message-ID: <20200618194822.Hw8gY12LaNdmgNrXnzgA6wMRcTQ0qo5RJsoAooC3ZhU@z>
 
-Track the kmem_cache used for non-page KVM MMU memory caches instead of
-passing in the associated kmem_cache when filling the cache.  This will
-allow consolidating code and other cleanups.
+[ Explicitly added architecture lists and developers to the cc to make
+this more visible ]
 
-No functional change intended.
+On Wed, Jun 17, 2020 at 12:38 AM Christoph Hellwig <hch@lst.de> wrote:
+>
+> Andrew and I decided to drop the patches implementing your suggested
+> rename of the probe_kernel_* and probe_user_* helpers from -mm as there
+> were way to many conflicts.  After -rc1 might be a good time for this as
+> all the conflicts are resolved now.
 
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
----
- arch/x86/include/asm/kvm_host.h |  1 +
- arch/x86/kvm/mmu/mmu.c          | 24 +++++++++++-------------
- 2 files changed, 12 insertions(+), 13 deletions(-)
+So I've merged this renaming now, together with my changes to make
+'get_kernel_nofault()' look and act a lot more like 'get_user()'.
 
-diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
-index f8998e97457f..7b6ac8fad9c2 100644
---- a/arch/x86/include/asm/kvm_host.h
-+++ b/arch/x86/include/asm/kvm_host.h
-@@ -251,6 +251,7 @@ struct kvm_kernel_irq_routing_entry;
-  */
- struct kvm_mmu_memory_cache {
- 	int nobjs;
-+	struct kmem_cache *kmem_cache;
- 	void *objects[KVM_NR_MEM_OBJS];
- };
- 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index fdd05c233308..0830c195c9ed 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1060,15 +1060,14 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
- 	local_irq_enable();
- }
- 
--static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache,
--				  struct kmem_cache *base_cache, int min)
-+static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
- {
- 	void *obj;
- 
- 	if (cache->nobjs >= min)
- 		return 0;
- 	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
--		obj = kmem_cache_zalloc(base_cache, GFP_KERNEL_ACCOUNT);
-+		obj = kmem_cache_zalloc(cache->kmem_cache, GFP_KERNEL_ACCOUNT);
- 		if (!obj)
- 			return cache->nobjs >= min ? 0 : -ENOMEM;
- 		cache->objects[cache->nobjs++] = obj;
-@@ -1081,11 +1080,10 @@ static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *cache)
- 	return cache->nobjs;
- }
- 
--static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc,
--				  struct kmem_cache *cache)
-+static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
- {
- 	while (mc->nobjs)
--		kmem_cache_free(cache, mc->objects[--mc->nobjs]);
-+		kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
- }
- 
- static int mmu_topup_memory_cache_page(struct kvm_mmu_memory_cache *cache,
-@@ -1115,25 +1113,22 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
- 	int r;
- 
- 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
--				   pte_list_desc_cache, 8 + PTE_PREFETCH_NUM);
-+				   8 + PTE_PREFETCH_NUM);
- 	if (r)
- 		goto out;
- 	r = mmu_topup_memory_cache_page(&vcpu->arch.mmu_page_cache, 8);
- 	if (r)
- 		goto out;
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
--				   mmu_page_header_cache, 4);
-+	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
- out:
- 	return r;
- }
- 
- static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
- {
--	mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
--				pte_list_desc_cache);
-+	mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache);
- 	mmu_free_memory_cache_page(&vcpu->arch.mmu_page_cache);
--	mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache,
--				mmu_page_header_cache);
-+	mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
- }
- 
- static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
-@@ -5684,6 +5679,9 @@ int kvm_mmu_create(struct kvm_vcpu *vcpu)
- 	uint i;
- 	int ret;
- 
-+	vcpu->arch.mmu_pte_list_desc_cache.kmem_cache = pte_list_desc_cache;
-+	vcpu->arch.mmu_page_header_cache.kmem_cache = mmu_page_header_cache;
-+
- 	vcpu->arch.mmu = &vcpu->arch.root_mmu;
- 	vcpu->arch.walk_mmu = &vcpu->arch.root_mmu;
- 
--- 
-2.26.0
+It just felt wrong (and potentially dangerous) to me to have a
+'get_kernel_nofault()' naming that implied semantics that we're all
+familiar with from 'get_user()', but acting very differently.
+
+But part of the fixups I made for the type checking are for
+architectures where I didn't even compile-test the end result. I
+looked at every case individually, and the patch looks sane, but I
+could have screwed something up.
+
+Basically, 'get_kernel_nofault()' doesn't do the same automagic type
+munging from the pointer to the target that 'get_user()' does, but at
+least now it checks that the types are superficially compatible.
+There should be build failures if they aren't, but I hopefully fixed
+everything up properly for all architectures.
+
+This email is partly to ask people to double-check, but partly just as
+a heads-up so that _if_ I screwed something up, you'll have the
+background and it won't take you by surprise.
+
+               Linus
