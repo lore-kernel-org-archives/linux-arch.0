@@ -1,62 +1,53 @@
-Return-Path: <SRS0=/X+0=AB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:57570 "EHLO verein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725789AbgFTGfm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 20 Jun 2020 02:35:42 -0400
-Date: Sat, 20 Jun 2020 08:35:38 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 6/6] kernel: add a kernel_wait helper
-Message-ID: <20200620063538.GA2408@lst.de>
-References: <20200618144627.114057-1-hch@lst.de> <20200618144627.114057-7-hch@lst.de> <20200619211700.GS11244@42.do-not-panic.com>
+Return-Path: <SRS0=SYs/=77=kvack.org=owner-linux-mm@kernel.org>
+Date: Thu, 18 Jun 2020 12:17:59 +0300
+From: Mike Rapoport <rppt@linux.ibm.com>
+Subject: Re: [PATCH] mm: Move p?d_alloc_track to separate header file
+Message-ID: <20200618091759.GH6493@linux.ibm.com>
+References: <20200609120533.25867-1-joro@8bytes.org>
+ <20200617181226.ab213ea1531b5dd6eca1b0b6@linux-foundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200619211700.GS11244@42.do-not-panic.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200617181226.ab213ea1531b5dd6eca1b0b6@linux-foundation.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Joerg Roedel <joro@8bytes.org>, peterz@infradead.org, jroedel@suse.de, Andy Lutomirski <luto@kernel.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, manvanth@linux.vnet.ibm.com, linux-next@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Linus Torvalds <torvalds@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, hch@lst.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Luis Chamberlain <mcgrof@kernel.org>
-Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200620063538.ZWCxXWSyEdss0pd_7wYtsXo2wLA6Iz568HoZJvw32fI@z>
+Message-ID: <20200618091759.9L7htKHz8jydKmB3waQq7bDlZkkMhehciRf7IJn_eb0@z>
 
-On Fri, Jun 19, 2020 at 09:17:00PM +0000, Luis Chamberlain wrote:
-> On Thu, Jun 18, 2020 at 04:46:27PM +0200, Christoph Hellwig wrote:
-> > --- a/kernel/exit.c
-> > +++ b/kernel/exit.c
-> > @@ -1626,6 +1626,22 @@ long kernel_wait4(pid_t upid, int __user *stat_addr, int options,
-> >  	return ret;
-> >  }
-> >  
-> > +int kernel_wait(pid_t pid, int *stat)
-> > +{
-> > +	struct wait_opts wo = {
-> > +		.wo_type	= PIDTYPE_PID,
-> > +		.wo_pid		= find_get_pid(pid),
-> > +		.wo_flags	= WEXITED,
-> > +	};
-> > +	int ret;
-> > +
-> > +	ret = do_wait(&wo);
-> > +	if (ret > 0 && wo.wo_stat)
-> > +		*stat = wo.wo_stat;
+On Wed, Jun 17, 2020 at 06:12:26PM -0700, Andrew Morton wrote:
+> On Tue,  9 Jun 2020 14:05:33 +0200 Joerg Roedel <joro@8bytes.org> wrote:
 > 
-> Since all we care about is WEXITED, that could be simplified
-> to something like this:
+> > From: Joerg Roedel <jroedel@suse.de>
+> > 
+> > The functions are only used in two source files, so there is no need
+> > for them to be in the global <linux/mm.h> header. Move them to the new
+> > <linux/pgalloc-track.h> header and include it only where needed.
+> > 
+> > ...
+> >
+> > new file mode 100644
+> > index 000000000000..1dcc865029a2
+> > --- /dev/null
+> > +++ b/include/linux/pgalloc-track.h
+> > @@ -0,0 +1,51 @@
+> > +/* SPDX-License-Identifier: GPL-2.0 */
+> > +#ifndef _LINUX_PGALLLC_TRACK_H
+> > +#define _LINUX_PGALLLC_TRACK_H
 > 
-> if (ret > 0 && KWIFEXITED(wo.wo_stat)
->  	*stat = KWEXITSTATUS(wo.wo_stat)
+> hm, no #includes.  I guess this is OK, given the limited use.
 > 
-> Otherwise callers have to use W*() wrappers.
-> 
-> > +	put_pid(wo.wo_pid);
-> > +	return ret;
-> > +}
-> 
-> Then we don't get *any* in-kernel code dealing with the W*() crap.
-> I just unwrapped this for the umh [0], given that otherwise we'd
-> have to use KW*() callers elsewhere. Doing it upshot one level
-> further would be even better.
-> 
-> [0] https://lkml.kernel.org/r/20200610154923.27510-1-mcgrof@kernel.org              
-Do you just want to pick this patch up, add your suggested bits and
-add it to the beginning of your series?  That should clean the whole
-thing up a bit.  Nothing else in this series depends on the patch.
+> But it does make one wonder whether ioremap.c should be moved from lib/
+> to mm/ and this file should be moved from include/linux/ to mm/.
+
+It makes sense, but I am anyway planning consolidation of pgalloc.h, so
+most probably pgalloc-track will not survive until 5.9-rc1 :)
+
+If you think that it worth moving ioremap.c to mm/ regardless of chrun,
+I can send a patch for that.
+
+> Oh well.
+
+-- 
+Sincerely yours,
+Mike.
