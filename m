@@ -1,61 +1,77 @@
-Return-Path: <SRS0=6fqV=7W=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34512 "EHLO
+Return-Path: <SRS0=1XNm=77=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57838 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728622AbgFILAT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2020 07:00:19 -0400
-Subject: Re: [PATCH v2 2/6] prctl.2: Add PR_SPEC_INDIRECT_BRANCH for
- SPECULATION_CTRL prctls
-References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
- <1590614258-24728-3-git-send-email-Dave.Martin@arm.com>
- <CAKgNAkhwYASEM+wqaDZQ-ftcB3jnsVN2cXq4E_1ep1rqv+4aLw@mail.gmail.com>
- <20200601135112.GB5031@arm.com>
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Message-ID: <61446b0d-5c17-2cb7-79a6-770c931c4b2a@gmail.com>
-Date: Tue, 9 Jun 2020 13:00:13 +0200
+        with ESMTP id S1731024AbgFROq5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jun 2020 10:46:57 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 4/6] exec: split prepare_arg_pages
+Date: Thu, 18 Jun 2020 16:46:25 +0200
+Message-ID: <20200618144627.114057-5-hch@lst.de>
+In-Reply-To: <20200618144627.114057-1-hch@lst.de>
+References: <20200618144627.114057-1-hch@lst.de>
 MIME-Version: 1.0
-In-Reply-To: <20200601135112.GB5031@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: mtk.manpages@gmail.com, linux-man <linux-man@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, Tim Chen <tim.c.chen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20200609110013.N98uUCW7tEHrjLl8MNPlunCWFlsNyMd6I18uxhgnyOk@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200618144625.aS9ZQ-uhxiLVkMtC7GIYmO2l5k9X8yoSgsKwEsd71OA@z>
 
-On 6/1/20 3:51 PM, Dave Martin wrote:
-> On Thu, May 28, 2020 at 09:01:59AM +0200, Michael Kerrisk (man-pages) wrote:
->> Hi Dave,
->>
->> On Wed, 27 May 2020 at 23:18, Dave Martin <Dave.Martin@arm.com> wrote:
->>>
->>> Add the PR_SPEC_INDIRECT_BRANCH "misfeature" added in Linux 4.20
->>> for PR_SET_SPECULATION_CTRL and PR_GET_SPECULATION_CTRL.
->>>
->>> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
->>> Cc: Tim Chen <tim.c.chen@linux.intel.com>
->>> Cc: Thomas Gleixner <tglx@linutronix.de>
->>
->> I had also applied this patch from the email you sent earlier. I've
->> pushed those changes to master now.
-> 
-> Thanks for this.
-> 
-> Do you publish a "development" branch somewhere, or similar?
+Move counting the arguments and enviroment variables out of
+prepare_arg_pages and rename the rest of the function to check_arg_limit.
+This prepares for a version of do_execvat that takes kernel pointers.
 
-Ocassionally, I do this on a per-series basis.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ fs/exec.c | 26 ++++++++++++++------------
+ 1 file changed, 14 insertions(+), 12 deletions(-)
 
-> 
-> If possible, it's nice to have git rebase work out which patches to drop
-> for me rather than me doing it by hand.
-
-Yuh, sorry about that. I'l try to do it bette rnext time.
-
-Thanks,
-
-Michael
-
+diff --git a/fs/exec.c b/fs/exec.c
+index a5d91f8b1341d5..34781db6bf6889 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -435,20 +435,10 @@ static int count_strings(const char __user *const __user *argv)
+ 	return i;
+ }
+ 
+-static int prepare_arg_pages(struct linux_binprm *bprm,
+-		const char __user *const __user *argv,
+-		const char __user *const __user *envp)
++static int check_arg_limit(struct linux_binprm *bprm)
+ {
+ 	unsigned long limit, ptr_size;
+ 
+-	bprm->argc = count_strings(argv);
+-	if (bprm->argc < 0)
+-		return bprm->argc;
+-
+-	bprm->envc = count_strings(envp);
+-	if (bprm->envc < 0)
+-		return bprm->envc;
+-
+ 	/*
+ 	 * Limit to 1/4 of the max stack size or 3/4 of _STK_LIM
+ 	 * (whichever is smaller) for the argv+env strings.
+@@ -1886,7 +1876,19 @@ int do_execveat(int fd, struct filename *filename,
+ 	if (retval)
+ 		goto out_unmark;
+ 
+-	retval = prepare_arg_pages(bprm, argv, envp);
++	bprm->argc = count_strings(argv);
++	if (bprm->argc < 0) {
++		retval = bprm->argc;
++		goto out;
++	}
++
++	bprm->envc = count_strings(envp);
++	if (bprm->envc < 0) {
++		retval = bprm->envc;
++		goto out;
++	}
++
++	retval = check_arg_limit(bprm);
+ 	if (retval < 0)
+ 		goto out;
+ 
 -- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+2.26.2
