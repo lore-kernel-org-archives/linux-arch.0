@@ -1,42 +1,62 @@
-Return-Path: <SRS0=lJ0G=AA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from a3.inai.de ([88.198.85.195]:37880 "EHLO a3.inai.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732386AbgFSK2Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 Jun 2020 06:28:25 -0400
-Date: Fri, 19 Jun 2020 12:28:08 +0200 (CEST)
-From: Jan Engelhardt <jengelh@inai.de>
-Subject: Re: [PATCH] linux++, this: rename "struct notifier_block *this"
-In-Reply-To: <20200619074631.GA1427@infradead.org>
-Message-ID: <nycvar.YFH.7.77.849.2006191217280.9730@n3.vanv.qr>
-References: <20200618210645.GB2212102@localhost.localdomain> <20200619074631.GA1427@infradead.org>
+Return-Path: <SRS0=SYs/=77=kvack.org=owner-linux-mm@kernel.org>
+Date: Thu, 18 Jun 2020 11:19:25 +1000
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH] mm: Move p?d_alloc_track to separate header file
+Message-ID: <20200618111925.28100ec9@canb.auug.org.au>
+In-Reply-To: <20200609120533.25867-1-joro@8bytes.org>
+References: <20200609120533.25867-1-joro@8bytes.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: multipart/signed; boundary="Sig_/YCi/Nnb9cueQmER4WWU5i5W";
+ protocol="application/pgp-signature"; micalg=pgp-sha256
+Sender: owner-linux-mm@kvack.org
+To: Joerg Roedel <joro@8bytes.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, peterz@infradead.org, jroedel@suse.de, Andy Lutomirski <luto@kernel.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, manvanth@linux.vnet.ibm.com, linux-next@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Mike Rapoport <rppt@linux.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, hch@lst.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Alexey Dobriyan <adobriyan@gmail.com>, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, netfilter-devel@vger.kernel.org
-Message-ID: <20200619102808.WhsXfmAvpKPjetmltiWilq3wHeC3XZa3LWB18LceNRc@z>
+Message-ID: <20200618011925.I6NLHWFbS_miuUBo8KIf3G6dekq8YoPbRllGW7ygNEU@z>
 
-On Friday 2020-06-19 09:46, Christoph Hellwig wrote:
+--Sig_/YCi/Nnb9cueQmER4WWU5i5W
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: quoted-printable
 
->On Fri, Jun 19, 2020 at 12:06:45AM +0300, Alexey Dobriyan wrote:
->> Rename
->> 	struct notifier_block *this
->> to
->> 	struct notifier_block *nb
->> 
->> "nb" is arguably a better name for notifier block.
+Hi Joerg,
+
+Sorry for the late reply.
+
+On Tue,  9 Jun 2020 14:05:33 +0200 Joerg Roedel <joro@8bytes.org> wrote:
 >
->But not enough better to cause tons of pointless churn.  Feel free
->to use better naming in new code you write or do significant changes
->to, but stop these pointless renames.
+> diff --git a/include/linux/pgalloc-track.h b/include/linux/pgalloc-track.h
+> new file mode 100644
+> index 000000000000..1dcc865029a2
+> --- /dev/null
+> +++ b/include/linux/pgalloc-track.h
+> @@ -0,0 +1,51 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +#ifndef _LINUX_PGALLLC_TRACK_H
+> +#define _LINUX_PGALLLC_TRACK_H
+> +
 
-Well, judging from the mention of "linux++" in the subject, I figure 
-this is the old discussion of someone trying to make Linux code, or 
-parts thereof, work in a C++ environment. Since the patch does not just 
-touch headers but .c files, I deduce that there seems to be a project 
-trying to build Linux, or a subset thereof, as a C++ program for the fun 
-of it. UML could come to mind.
+Maybe this could have a comment that it should always be included after
+mm.h or we could add enough to make it standalone (even just an include
+of mm.h would probably be enough).
 
-Is it a hot potato? Definitely. But so was IPv6 NAT, and now we have it 
-anyway.
+--=20
+Cheers,
+Stephen Rothwell
+
+--Sig_/YCi/Nnb9cueQmER4WWU5i5W
+Content-Type: application/pgp-signature
+Content-Description: OpenPGP digital signature
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAEBCAAdFiEENIC96giZ81tWdLgKAVBC80lX0GwFAl7qwR0ACgkQAVBC80lX
+0GysAwf/ZNngUfjr8j+WzPw9diANohv/lSl2wn69fUe4dvCuORBkF0ItPZodhAX1
+8MaSeeYqtRt3Vh0xFgsA/rW4DxOxSQN87G1QBgSCA2BFkNs/sxDhMTs0CJmZR52y
+LtRaXmfro+7Z9Th1DBKbJA5Waw0Cw90U5muGvb/FFmjvKKGOX52g7lb8RWyeoNe0
+FcngH+KvpNBenHro9/87VSadAb5Ch7IoTx1x0eFF0oDtEBe8tOs/ZpLfTUKnql04
+FqVy/p1HMv0vNZyc4hFukB1IcPeCSK/YXKHleZ0nIWQ/Qeo6lwlEzboK3ixEBt5B
+4YrmmUYfdVq6Mk2Bhnp4uBIO8aYmMw==
+=bxHw
+-----END PGP SIGNATURE-----
+
+--Sig_/YCi/Nnb9cueQmER4WWU5i5W--
