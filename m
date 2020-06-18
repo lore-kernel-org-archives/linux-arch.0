@@ -1,69 +1,258 @@
-Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:60703 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1731566AbgFOVei (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 17:34:38 -0400
-Received: by mail-qt1-f197.google.com with SMTP id o11so15111170qtm.7
-        for <linux-arch@vger.kernel.org>; Mon, 15 Jun 2020 14:34:34 -0700 (PDT)
-Date: Mon, 15 Jun 2020 17:34:31 -0400
-From: Peter Xu <peterx@redhat.com>
-Subject: Re: Possible duplicate page fault accounting on some archs after
- commit 4064b9827063
-Message-ID: <20200615213431.GC111927@xz-x1>
-References: <20200610174811.44b94525@thinkpad>
- <20200610165023.GA67179@xz-x1>
+Return-Path: <SRS0=1XNm=77=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57782 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730924AbgFROqk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jun 2020 10:46:40 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 1/6] exec: cleanup the execve wrappers
+Date: Thu, 18 Jun 2020 16:46:22 +0200
+Message-ID: <20200618144627.114057-2-hch@lst.de>
+In-Reply-To: <20200618144627.114057-1-hch@lst.de>
+References: <20200618144627.114057-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20200610165023.GA67179@xz-x1>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, Michal Simek <monstr@monstr.eu>, linux-mips@vger.kernel.org, Nick Hu <nickhu@andestech.com>, Ley Foon Tan <ley.foon.tan@intel.com>, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, Guan Xuetao <gxt@pku.edu.cn>, linux-xtensa@linux-xtensa.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>
-Message-ID: <20200615213431.fOKoX2aFQJCNw6Eyv-Yy7OwMkiyi9b3Z2lO6lh4eU9E@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200618144622.suaLHYL5XWsHMOVzpEiYyUd6fRUnmLE4NBCb17fACX8@z>
 
-On Wed, Jun 10, 2020 at 12:50:23PM -0400, Peter Xu wrote:
-> On Wed, Jun 10, 2020 at 05:48:11PM +0200, Gerald Schaefer wrote:
-> > Hi,
-> 
-> Hi, Gerald,
-> 
-> > 
-> > Some architectures have their page fault accounting code inside the fault
-> > retry loop, and rely on only going through that code once. Before commit
-> > 4064b9827063 ("mm: allow VM_FAULT_RETRY for multiple times"), that was
-> > ensured by testing for and clearing FAULT_FLAG_ALLOW_RETRY.
-> > 
-> > That commit had to remove the clearing of FAULT_FLAG_ALLOW_RETRY for all
-> > architectures, and introduced a subtle change to page fault accounting
-> > logic in the affected archs. It is now possible to go through the retry
-> > loop multiple times, and the affected archs would then account multiple
-> > page faults instead of just one.
-> > 
-> > This was found by coincidence in s390 code, and a quick check showed that
-> > there are quite a lot of other architectures that seem to be affected in a
-> > similar way. I'm preparing a fix for s390, by moving the accounting behind
-> > the retry loop, similar to x86. It is not completely straight-forward, so
-> > I leave the fix for other archs to the respective maintainers.
-> 
-> Sorry for not noticing this before.  The accounting part should definitely be
-> put at least into a check against fault_flag_allow_retry_first() to mimic what
-> was done before.  And I agree it would be even better to put it after the retry
-> logic, so if any of the page faults gets a major fault, it'll be accounted as a
-> major fault which makes more sense to me, just like what x86 is doing now with:
-> 
-> 	major |= fault & VM_FAULT_MAJOR;
-> 
-> I'm not sure what's the preference of the arch maintainers, just let me know if
-> it's preferred to use a single series to address this issue for all affected
-> archs (or the archs besides s390), then I'll do.
+Remove a whole bunch of wrappers that eventually all call
+__do_execve_file, and consolidate the execvce helpers to:
 
-To make sure this won't fall through the cracks... I'll give it a shot with a
-single series to address this issue for all archs.  Although it might not be
-easy to do accounting directly in handle_mm_fault(), it might be still a chance
-to introduce a helper so the accounting can be done in general code.
+  (1) __do_execveat, which is the lowest level helper implementing the
+      actual functionality
+  (2) do_execvat, which is used by all callers that want native
+      pointers
+  (3) do_compat_execve, which is used by all compat syscalls
 
-Thanks,
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ fs/exec.c               | 98 +++++++++++------------------------------
+ include/linux/binfmts.h | 12 ++---
+ init/main.c             |  7 +--
+ kernel/umh.c            | 16 +++----
+ 4 files changed, 41 insertions(+), 92 deletions(-)
 
+diff --git a/fs/exec.c b/fs/exec.c
+index e6e8a9a7032784..354fdaa536ae7d 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1815,10 +1815,7 @@ static int exec_binprm(struct linux_binprm *bprm)
+ 	return 0;
+ }
+ 
+-/*
+- * sys_execve() executes a new program.
+- */
+-static int __do_execve_file(int fd, struct filename *filename,
++static int __do_execveat(int fd, struct filename *filename,
+ 			    struct user_arg_ptr argv,
+ 			    struct user_arg_ptr envp,
+ 			    int flags, struct file *file)
+@@ -1972,74 +1969,16 @@ static int __do_execve_file(int fd, struct filename *filename,
+ 	return retval;
+ }
+ 
+-static int do_execveat_common(int fd, struct filename *filename,
+-			      struct user_arg_ptr argv,
+-			      struct user_arg_ptr envp,
+-			      int flags)
+-{
+-	return __do_execve_file(fd, filename, argv, envp, flags, NULL);
+-}
+-
+-int do_execve_file(struct file *file, void *__argv, void *__envp)
+-{
+-	struct user_arg_ptr argv = { .ptr.native = __argv };
+-	struct user_arg_ptr envp = { .ptr.native = __envp };
+-
+-	return __do_execve_file(AT_FDCWD, NULL, argv, envp, 0, file);
+-}
+-
+-int do_execve(struct filename *filename,
+-	const char __user *const __user *__argv,
+-	const char __user *const __user *__envp)
+-{
+-	struct user_arg_ptr argv = { .ptr.native = __argv };
+-	struct user_arg_ptr envp = { .ptr.native = __envp };
+-	return do_execveat_common(AT_FDCWD, filename, argv, envp, 0);
+-}
+-
+ int do_execveat(int fd, struct filename *filename,
+ 		const char __user *const __user *__argv,
+ 		const char __user *const __user *__envp,
+-		int flags)
++		int flags, struct file *file)
+ {
+ 	struct user_arg_ptr argv = { .ptr.native = __argv };
+ 	struct user_arg_ptr envp = { .ptr.native = __envp };
+ 
+-	return do_execveat_common(fd, filename, argv, envp, flags);
+-}
+-
+-#ifdef CONFIG_COMPAT
+-static int compat_do_execve(struct filename *filename,
+-	const compat_uptr_t __user *__argv,
+-	const compat_uptr_t __user *__envp)
+-{
+-	struct user_arg_ptr argv = {
+-		.is_compat = true,
+-		.ptr.compat = __argv,
+-	};
+-	struct user_arg_ptr envp = {
+-		.is_compat = true,
+-		.ptr.compat = __envp,
+-	};
+-	return do_execveat_common(AT_FDCWD, filename, argv, envp, 0);
+-}
+-
+-static int compat_do_execveat(int fd, struct filename *filename,
+-			      const compat_uptr_t __user *__argv,
+-			      const compat_uptr_t __user *__envp,
+-			      int flags)
+-{
+-	struct user_arg_ptr argv = {
+-		.is_compat = true,
+-		.ptr.compat = __argv,
+-	};
+-	struct user_arg_ptr envp = {
+-		.is_compat = true,
+-		.ptr.compat = __envp,
+-	};
+-	return do_execveat_common(fd, filename, argv, envp, flags);
++	return __do_execveat(fd, filename, argv, envp, flags, file);
+ }
+-#endif
+ 
+ void set_binfmt(struct linux_binfmt *new)
+ {
+@@ -2070,7 +2009,7 @@ SYSCALL_DEFINE3(execve,
+ 		const char __user *const __user *, argv,
+ 		const char __user *const __user *, envp)
+ {
+-	return do_execve(getname(filename), argv, envp);
++	return do_execveat(AT_FDCWD, getname(filename), argv, envp, 0, NULL);
+ }
+ 
+ SYSCALL_DEFINE5(execveat,
+@@ -2080,18 +2019,34 @@ SYSCALL_DEFINE5(execveat,
+ 		int, flags)
+ {
+ 	int lookup_flags = (flags & AT_EMPTY_PATH) ? LOOKUP_EMPTY : 0;
++	struct filename *name = getname_flags(filename, lookup_flags, NULL);
+ 
+-	return do_execveat(fd,
+-			   getname_flags(filename, lookup_flags, NULL),
+-			   argv, envp, flags);
++	return do_execveat(fd, name, argv, envp, flags, NULL);
+ }
+ 
+ #ifdef CONFIG_COMPAT
++static int do_compat_execve(int fd, struct filename *filename,
++		const compat_uptr_t __user *__argv,
++		const compat_uptr_t __user *__envp,
++		int flags)
++{
++	struct user_arg_ptr argv = {
++		.is_compat = true,
++		.ptr.compat = __argv,
++	};
++	struct user_arg_ptr envp = {
++		.is_compat = true,
++		.ptr.compat = __envp,
++	};
++
++	return __do_execveat(fd, filename, argv, envp, flags, NULL);
++}
++
+ COMPAT_SYSCALL_DEFINE3(execve, const char __user *, filename,
+ 	const compat_uptr_t __user *, argv,
+ 	const compat_uptr_t __user *, envp)
+ {
+-	return compat_do_execve(getname(filename), argv, envp);
++	return do_compat_execve(AT_FDCWD, getname(filename), argv, envp, 0);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE5(execveat, int, fd,
+@@ -2101,9 +2056,8 @@ COMPAT_SYSCALL_DEFINE5(execveat, int, fd,
+ 		       int,  flags)
+ {
+ 	int lookup_flags = (flags & AT_EMPTY_PATH) ? LOOKUP_EMPTY : 0;
++	struct filename *name = getname_flags(filename, lookup_flags, NULL);
+ 
+-	return compat_do_execveat(fd,
+-				  getname_flags(filename, lookup_flags, NULL),
+-				  argv, envp, flags);
++	return do_compat_execve(fd, name, argv, envp, flags);
+ }
+ #endif
+diff --git a/include/linux/binfmts.h b/include/linux/binfmts.h
+index 4a20b7517dd036..bed702e4b1fbd9 100644
+--- a/include/linux/binfmts.h
++++ b/include/linux/binfmts.h
+@@ -134,13 +134,9 @@ int copy_string_kernel(const char *arg, struct linux_binprm *bprm);
+ extern void set_binfmt(struct linux_binfmt *new);
+ extern ssize_t read_code(struct file *, unsigned long, loff_t, size_t);
+ 
+-extern int do_execve(struct filename *,
+-		     const char __user * const __user *,
+-		     const char __user * const __user *);
+-extern int do_execveat(int, struct filename *,
+-		       const char __user * const __user *,
+-		       const char __user * const __user *,
+-		       int);
+-int do_execve_file(struct file *file, void *__argv, void *__envp);
++int do_execveat(int fd, struct filename *filename,
++		const char __user *const __user *__argv,
++		const char __user *const __user *__envp,
++		int flags, struct file *file);
+ 
+ #endif /* _LINUX_BINFMTS_H */
+diff --git a/init/main.c b/init/main.c
+index 0ead83e86b5aa2..838950ea7bca22 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -1329,9 +1329,10 @@ static int run_init_process(const char *init_filename)
+ 	pr_debug("  with environment:\n");
+ 	for (p = envp_init; *p; p++)
+ 		pr_debug("    %s\n", *p);
+-	return do_execve(getname_kernel(init_filename),
+-		(const char __user *const __user *)argv_init,
+-		(const char __user *const __user *)envp_init);
++	return do_execveat(AT_FDCWD, getname_kernel(init_filename),
++			(const char __user *const __user *)argv_init,
++			(const char __user *const __user *)envp_init,
++			0, NULL);
+ }
+ 
+ static int try_to_run_init_process(const char *init_filename)
+diff --git a/kernel/umh.c b/kernel/umh.c
+index 79f139a7ca03c6..7aa9a5817582ca 100644
+--- a/kernel/umh.c
++++ b/kernel/umh.c
+@@ -103,15 +103,13 @@ static int call_usermodehelper_exec_async(void *data)
+ 	commit_creds(new);
+ 
+ 	sub_info->pid = task_pid_nr(current);
+-	if (sub_info->file) {
+-		retval = do_execve_file(sub_info->file,
+-					sub_info->argv, sub_info->envp);
+-		if (!retval)
+-			current->flags |= PF_UMH;
+-	} else
+-		retval = do_execve(getname_kernel(sub_info->path),
+-				   (const char __user *const __user *)sub_info->argv,
+-				   (const char __user *const __user *)sub_info->envp);
++	retval = do_execveat(AT_FDCWD,
++			sub_info->path ? getname_kernel(sub_info->path) : NULL,
++			(const char __user *const __user *)sub_info->argv,
++			(const char __user *const __user *)sub_info->envp,
++			0, sub_info->file);
++	if (sub_info->file && !retval)
++		current->flags |= PF_UMH;
+ out:
+ 	sub_info->retval = retval;
+ 	/*
 -- 
-Peter Xu
+2.26.2
