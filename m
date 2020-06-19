@@ -1,99 +1,42 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55120 "EHLO
+Return-Path: <SRS0=lJ0G=AA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51772 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388706AbgFXVCM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 17:02:12 -0400
-Received: from mail-pf1-x441.google.com (mail-pf1-x441.google.com [IPv6:2607:f8b0:4864:20::441])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DFB5BC0613ED
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 14:02:11 -0700 (PDT)
-Received: by mail-pf1-x441.google.com with SMTP id u5so1784862pfn.7
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 14:02:11 -0700 (PDT)
+        with ESMTP id S1731271AbgFSI3C (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jun 2020 04:29:02 -0400
+Received: from mail-lf1-x144.google.com (mail-lf1-x144.google.com [IPv6:2a00:1450:4864:20::144])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 48295C0613EF
+        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 01:29:01 -0700 (PDT)
+Received: by mail-lf1-x144.google.com with SMTP id g139so4263118lfd.10
+        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 01:29:01 -0700 (PDT)
+Subject: Re: [PATCH 3/6] exec: cleanup the count() function
+References: <20200618144627.114057-1-hch@lst.de>
+ <20200618144627.114057-4-hch@lst.de>
+From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
+Message-ID: <04e7876b-a8f3-3f6e-939c-bb0764ece1ac@cogentembedded.com>
+Date: Fri, 19 Jun 2020 11:28:44 +0300
 MIME-Version: 1.0
-References: <20200624203200.78870-1-samitolvanen@google.com> <20200624203200.78870-8-samitolvanen@google.com>
-In-Reply-To: <20200624203200.78870-8-samitolvanen@google.com>
-From: Nick Desaulniers <ndesaulniers@google.com>
-Date: Wed, 24 Jun 2020 14:01:59 -0700
-Message-ID: <CAKwvOdkY2M9+BgA5FELK+7bjv1sZYMuTmVOztCYijas_OHfVDQ@mail.gmail.com>
-Subject: Re: [PATCH 07/22] kbuild: lto: merge module sections
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20200618144627.114057-4-hch@lst.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-Message-ID: <20200624210159.kTu1AlPrHRoGqEWHUxSO3fgA77130nUX3HF6RZL-6PA@z>
+To: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200619082844.DYx9DOk3xcGyEmwQTvl1b-ktcjC5aXm5mVLfOCI_NfE@z>
 
-On Wed, Jun 24, 2020 at 1:33 PM Sami Tolvanen <samitolvanen@google.com> wrote:
->
-> LLD always splits sections with LTO, which increases module sizes. This
-> change adds a linker script that merges the split sections in the final
-> module and discards the .eh_frame section that LLD may generate.
+Hello!
 
-For discarding .eh_frame, Kees is currently fighting with a series
-that I would really like to see land that enables warnings on orphan
-section placement.  I don't see any new flags to inhibit .eh_frame
-generation, or discard it in the linker script, so I'd expect it to be
-treated as an orphan section and kept.  Was that missed, or should
-that be removed from the commit message?
+On 18.06.2020 17:46, Christoph Hellwig wrote:
 
->
-> Suggested-by: Nick Desaulniers <ndesaulniers@google.com>
-> Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
-> ---
->  Makefile               |  2 ++
->  scripts/module-lto.lds | 26 ++++++++++++++++++++++++++
->  2 files changed, 28 insertions(+)
->  create mode 100644 scripts/module-lto.lds
->
-> diff --git a/Makefile b/Makefile
-> index ee66513a5b66..9ffec5fe1737 100644
-> --- a/Makefile
-> +++ b/Makefile
-> @@ -898,6 +898,8 @@ CC_FLAGS_LTO_CLANG += -fvisibility=default
->  # Limit inlining across translation units to reduce binary size
->  LD_FLAGS_LTO_CLANG := -mllvm -import-instr-limit=5
->  KBUILD_LDFLAGS += $(LD_FLAGS_LTO_CLANG)
-> +
-> +KBUILD_LDS_MODULE += $(srctree)/scripts/module-lto.lds
->  endif
->
->  ifdef CONFIG_LTO
-> diff --git a/scripts/module-lto.lds b/scripts/module-lto.lds
-> new file mode 100644
-> index 000000000000..65884c652bf2
-> --- /dev/null
-> +++ b/scripts/module-lto.lds
-> @@ -0,0 +1,26 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +/*
-> + * With CONFIG_LTO_CLANG, LLD always enables -fdata-sections and
-> + * -ffunction-sections, which increases the size of the final module.
-> + * Merge the split sections in the final binary.
-> + */
-> +SECTIONS {
-> +       __patchable_function_entries : { *(__patchable_function_entries) }
-> +
-> +       .bss : {
-> +               *(.bss .bss.[0-9a-zA-Z_]*)
-> +               *(.bss..L* .bss..compoundliteral*)
-> +       }
-> +
-> +       .data : {
-> +               *(.data .data.[0-9a-zA-Z_]*)
-> +               *(.data..L* .data..compoundliteral*)
-> +       }
-> +
-> +       .rodata : {
-> +               *(.rodata .rodata.[0-9a-zA-Z_]*)
-> +               *(.rodata..L* .rodata..compoundliteral*)
-> +       }
-> +
-> +       .text : { *(.text .text.[0-9a-zA-Z_]*) }
-> +}
-> --
-> 2.27.0.212.ge8ba1cc988-goog
->
+> Remove the max argument as it is hard wired to MAX_ARG_STRINGS, and
 
+    Technically, argument is what's actually passed to a function, you're 
+removing a function parameter.
 
--- 
-Thanks,
-~Nick Desaulniers
+> give the function a slightly less generic name.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+[...]
+
+MBR, Sergei
