@@ -1,32 +1,37 @@
-From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
-Subject: Re: [PATCH 3/6] exec: cleanup the count() function
-Date: Fri, 19 Jun 2020 11:28:44 +0300
-Message-ID: <04e7876b-a8f3-3f6e-939c-bb0764ece1ac@cogentembedded.com>
-References: <20200618144627.114057-1-hch@lst.de>
- <20200618144627.114057-4-hch@lst.de>
+From: Jan Engelhardt <jengelh@inai.de>
+Subject: Re: [PATCH] linux++, this: rename "struct notifier_block *this"
+Date: Fri, 19 Jun 2020 12:28:08 +0200 (CEST)
+Message-ID: <nycvar.YFH.7.77.849.2006191217280.9730@n3.vanv.qr>
+References: <20200618210645.GB2212102@localhost.localdomain> <20200619074631.GA1427@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
-In-Reply-To: <20200618144627.114057-4-hch@lst.de>
-Content-Language: en-US
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <netfilter-devel-owner@vger.kernel.org>
+In-Reply-To: <20200619074631.GA1427@infradead.org>
+Sender: netfilter-devel-owner@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Alexey Dobriyan <adobriyan@gmail.com>, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, netfilter-devel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hello!
+On Friday 2020-06-19 09:46, Christoph Hellwig wrote:
 
-On 18.06.2020 17:46, Christoph Hellwig wrote:
+>On Fri, Jun 19, 2020 at 12:06:45AM +0300, Alexey Dobriyan wrote:
+>> Rename
+>> 	struct notifier_block *this
+>> to
+>> 	struct notifier_block *nb
+>> 
+>> "nb" is arguably a better name for notifier block.
+>
+>But not enough better to cause tons of pointless churn.  Feel free
+>to use better naming in new code you write or do significant changes
+>to, but stop these pointless renames.
 
-> Remove the max argument as it is hard wired to MAX_ARG_STRINGS, and
+Well, judging from the mention of "linux++" in the subject, I figure 
+this is the old discussion of someone trying to make Linux code, or 
+parts thereof, work in a C++ environment. Since the patch does not just 
+touch headers but .c files, I deduce that there seems to be a project 
+trying to build Linux, or a subset thereof, as a C++ program for the fun 
+of it. UML could come to mind.
 
-    Technically, argument is what's actually passed to a function, you're 
-removing a function parameter.
-
-> give the function a slightly less generic name.
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-[...]
-
-MBR, Sergei
+Is it a hot potato? Definitely. But so was IPv6 NAT, and now we have it 
+anyway.
