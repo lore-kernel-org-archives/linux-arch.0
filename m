@@ -1,97 +1,25 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH] seccomp: Use -1 marker for end of mode 1 syscall list
-Date: Fri, 19 Jun 2020 12:37:20 -0700
-Message-ID: <202006191236.AC3E22AAB@keescook>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [PATCH] seccomp: Use -1 marker for end of mode 1 syscall list
+Date: Fri, 19 Jun 2020 12:42:14 -0700
+Message-ID: <CALCETrXM5gneAC40RLWyjnCeHE6JFVOKnM0ooKLooGGaVV1KOA@mail.gmail.com>
+References: <202006191236.AC3E22AAB@keescook>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-mips-owner@vger.kernel.org>
-Content-Disposition: inline
+In-Reply-To: <202006191236.AC3E22AAB@keescook>
 Sender: linux-mips-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Will Drewry <wad@chromium.org>, linux-mips@vger.kernel.org, linux-arch@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Arnd Bergmann <arnd@arndb.de>, Will Drewry <wad@chromium.org>, "open list:MIPS" <linux-mips@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-The terminator for the mode 1 syscalls list was a 0, but that could be
-a valid syscall number (e.g. x86_64 __NR_read). By luck, __NR_read was
-listed first and the loop construct would not test it, so there was no
-bug. However, this is fragile. Replace the terminator with -1 instead,
-and make the variable name for mode 1 syscall lists more descriptive.
+On Fri, Jun 19, 2020 at 12:37 PM Kees Cook <keescook@chromium.org> wrote:
+>
+> The terminator for the mode 1 syscalls list was a 0, but that could be
+> a valid syscall number (e.g. x86_64 __NR_read). By luck, __NR_read was
+> listed first and the loop construct would not test it, so there was no
+> bug. However, this is fragile. Replace the terminator with -1 instead,
+> and make the variable name for mode 1 syscall lists more descriptive.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
-I'll be putting this into my for-next/seccomp tree. I would love a MIPS
-ack, if someone's got a moment to double-check this. :)
----
- arch/mips/include/asm/seccomp.h |  4 ++--
- include/asm-generic/seccomp.h   |  2 +-
- kernel/seccomp.c                | 10 +++++-----
- 3 files changed, 8 insertions(+), 8 deletions(-)
+Could the architecture instead supply the length of the list?
 
-diff --git a/arch/mips/include/asm/seccomp.h b/arch/mips/include/asm/seccomp.h
-index e383d7e27b93..aa809589a181 100644
---- a/arch/mips/include/asm/seccomp.h
-+++ b/arch/mips/include/asm/seccomp.h
-@@ -9,12 +9,12 @@ static inline const int *get_compat_mode1_syscalls(void)
- 	static const int syscalls_O32[] = {
- 		__NR_O32_Linux + 3, __NR_O32_Linux + 4,
- 		__NR_O32_Linux + 1, __NR_O32_Linux + 193,
--		0, /* null terminated */
-+		-1, /* negative terminated */
- 	};
- 	static const int syscalls_N32[] = {
- 		__NR_N32_Linux + 0, __NR_N32_Linux + 1,
- 		__NR_N32_Linux + 58, __NR_N32_Linux + 211,
--		0, /* null terminated */
-+		-1, /* negative terminated */
- 	};
- 
- 	if (IS_ENABLED(CONFIG_MIPS32_O32) && test_thread_flag(TIF_32BIT_REGS))
-diff --git a/include/asm-generic/seccomp.h b/include/asm-generic/seccomp.h
-index 1321ac7821d7..6b6f42bc58f9 100644
---- a/include/asm-generic/seccomp.h
-+++ b/include/asm-generic/seccomp.h
-@@ -33,7 +33,7 @@ static inline const int *get_compat_mode1_syscalls(void)
- 	static const int mode1_syscalls_32[] = {
- 		__NR_seccomp_read_32, __NR_seccomp_write_32,
- 		__NR_seccomp_exit_32, __NR_seccomp_sigreturn_32,
--		0, /* null terminated */
-+		-1, /* negative terminated */
- 	};
- 	return mode1_syscalls_32;
- }
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 0ed57e8c49d0..866a432cd746 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -742,20 +742,20 @@ static inline void seccomp_log(unsigned long syscall, long signr, u32 action,
-  */
- static const int mode1_syscalls[] = {
- 	__NR_seccomp_read, __NR_seccomp_write, __NR_seccomp_exit, __NR_seccomp_sigreturn,
--	0, /* null terminated */
-+	-1, /* negative terminated */
- };
- 
- static void __secure_computing_strict(int this_syscall)
- {
--	const int *syscall_whitelist = mode1_syscalls;
-+	const int *allowed_syscalls = mode1_syscalls;
- #ifdef CONFIG_COMPAT
- 	if (in_compat_syscall())
--		syscall_whitelist = get_compat_mode1_syscalls();
-+		allowed_syscalls = get_compat_mode1_syscalls();
- #endif
- 	do {
--		if (*syscall_whitelist == this_syscall)
-+		if (*allowed_syscalls == this_syscall)
- 			return;
--	} while (*++syscall_whitelist);
-+	} while (*++allowed_syscalls != -1);
- 
- #ifdef SECCOMP_DEBUG
- 	dump_stack();
--- 
-2.25.1
-
-
--- 
-Kees Cook
+--Andy
