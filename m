@@ -1,46 +1,60 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [PATCH] seccomp: Use -1 marker for end of mode 1 syscall list
-Date: Fri, 19 Jun 2020 12:54:26 -0700
-Message-ID: <CALCETrUfsRy+SmQi9FCYKR-Nvm0=NKHXtk+O-ozk962B5-7Yyw@mail.gmail.com>
-References: <202006191236.AC3E22AAB@keescook> <CALCETrXM5gneAC40RLWyjnCeHE6JFVOKnM0ooKLooGGaVV1KOA@mail.gmail.com>
- <202006191253.B00874B22@keescook>
+From: Luis Chamberlain <mcgrof@kernel.org>
+Subject: Re: [PATCH 6/6] kernel: add a kernel_wait helper
+Date: Fri, 19 Jun 2020 21:17:00 +0000
+Message-ID: <20200619211700.GS11244@42.do-not-panic.com>
+References: <20200618144627.114057-1-hch@lst.de>
+ <20200618144627.114057-7-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:53754 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2391158AbgFSTyk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 Jun 2020 15:54:40 -0400
-Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com [209.85.128.52])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 2E1CB20DD4
-        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 19:54:39 +0000 (UTC)
-Received: by mail-wm1-f52.google.com with SMTP id r9so9495917wmh.2
-        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 12:54:39 -0700 (PDT)
-In-Reply-To: <202006191253.B00874B22@keescook>
+Received: from mail-pj1-f68.google.com ([209.85.216.68]:38222 "EHLO
+        mail-pj1-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726313AbgFSVRF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jun 2020 17:17:05 -0400
+Content-Disposition: inline
+In-Reply-To: <20200618144627.114057-7-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Andy Lutomirski <luto@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Arnd Bergmann <arnd@arndb.de>, Will Drewry <wad@chromium.org>, "open list:MIPS" <linux-mips@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, Jun 19, 2020 at 12:53 PM Kees Cook <keescook@chromium.org> wrote:
->
-> On Fri, Jun 19, 2020 at 12:42:14PM -0700, Andy Lutomirski wrote:
-> > On Fri, Jun 19, 2020 at 12:37 PM Kees Cook <keescook@chromium.org> wrote:
-> > >
-> > > The terminator for the mode 1 syscalls list was a 0, but that could be
-> > > a valid syscall number (e.g. x86_64 __NR_read). By luck, __NR_read was
-> > > listed first and the loop construct would not test it, so there was no
-> > > bug. However, this is fragile. Replace the terminator with -1 instead,
-> > > and make the variable name for mode 1 syscall lists more descriptive.
-> >
-> > Could the architecture instead supply the length of the list?
->
-> It could, but I didn't like the way the plumbing for that looked.
+On Thu, Jun 18, 2020 at 04:46:27PM +0200, Christoph Hellwig wrote:
+> --- a/kernel/exit.c
+> +++ b/kernel/exit.c
+> @@ -1626,6 +1626,22 @@ long kernel_wait4(pid_t upid, int __user *stat_addr, int options,
+>  	return ret;
+>  }
+>  
+> +int kernel_wait(pid_t pid, int *stat)
+> +{
+> +	struct wait_opts wo = {
+> +		.wo_type	= PIDTYPE_PID,
+> +		.wo_pid		= find_get_pid(pid),
+> +		.wo_flags	= WEXITED,
+> +	};
+> +	int ret;
+> +
+> +	ret = do_wait(&wo);
+> +	if (ret > 0 && wo.wo_stat)
+> +		*stat = wo.wo_stat;
 
-Fair enough.
+Since all we care about is WEXITED, that could be simplified
+to something like this:
 
->
-> --
-> Kees Cook
+if (ret > 0 && KWIFEXITED(wo.wo_stat)
+ 	*stat = KWEXITSTATUS(wo.wo_stat)
+
+Otherwise callers have to use W*() wrappers.
+
+> +	put_pid(wo.wo_pid);
+> +	return ret;
+> +}
+
+Then we don't get *any* in-kernel code dealing with the W*() crap.
+I just unwrapped this for the umh [0], given that otherwise we'd
+have to use KW*() callers elsewhere. Doing it upshot one level
+further would be even better.
+
+[0] https://lkml.kernel.org/r/20200610154923.27510-1-mcgrof@kernel.org              
+
+  Luis
