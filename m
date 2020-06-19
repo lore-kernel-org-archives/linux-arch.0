@@ -1,29 +1,41 @@
-Return-Path: <SRS0=o+GD=73=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([207.211.31.120]:20148 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1726857AbgFNUTk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 Jun 2020 16:19:40 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
-References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
-Subject: Re: Good idea to rename files in include/uapi/ ?
+Return-Path: <SRS0=lJ0G=AA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44782 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731128AbgFSTxv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jun 2020 15:53:51 -0400
+Received: from mail-pf1-x443.google.com (mail-pf1-x443.google.com [IPv6:2607:f8b0:4864:20::443])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E60F8C06174E
+        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 12:53:49 -0700 (PDT)
+Received: by mail-pf1-x443.google.com with SMTP id d66so4863565pfd.6
+        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 12:53:49 -0700 (PDT)
+Date: Fri, 19 Jun 2020 12:53:46 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH] seccomp: Use -1 marker for end of mode 1 syscall list
+Message-ID: <202006191253.B00874B22@keescook>
+References: <202006191236.AC3E22AAB@keescook>
+ <CALCETrXM5gneAC40RLWyjnCeHE6JFVOKnM0ooKLooGGaVV1KOA@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <174101.1592165965.1@warthog.procyon.org.uk>
-Date: Sun, 14 Jun 2020 21:19:25 +0100
-Message-ID: <174102.1592165965@warthog.procyon.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CALCETrXM5gneAC40RLWyjnCeHE6JFVOKnM0ooKLooGGaVV1KOA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Alexander A. Klimov" <grandmaster@al2klimov.de>
-Cc: dhowells@redhat.com, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200614201925.yfz2_Kc_NIHtVK2s8Ne2Vsi2tRPSfNXUETtf9O-upN0@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Arnd Bergmann <arnd@arndb.de>, Will Drewry <wad@chromium.org>, "open list:MIPS" <linux-mips@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20200619195346.q8Kyuw7lAHr9bERSjODZqkRlWgBHJCNDb1Unf3y0q-s@z>
 
-Alexander A. Klimov <grandmaster@al2klimov.de> wrote:
+On Fri, Jun 19, 2020 at 12:42:14PM -0700, Andy Lutomirski wrote:
+> On Fri, Jun 19, 2020 at 12:37 PM Kees Cook <keescook@chromium.org> wrote:
+> >
+> > The terminator for the mode 1 syscalls list was a 0, but that could be
+> > a valid syscall number (e.g. x86_64 __NR_read). By luck, __NR_read was
+> > listed first and the loop construct would not test it, so there was no
+> > bug. However, this is fragile. Replace the terminator with -1 instead,
+> > and make the variable name for mode 1 syscall lists more descriptive.
+> 
+> Could the architecture instead supply the length of the list?
 
-> *Is it a good idea to rename files in include/uapi/ ?*
+It could, but I didn't like the way the plumbing for that looked.
 
-Very likely not.  If programs out there are going to be built on a
-case-sensitive filesystem (which happens all the time), they're going to break
-if you rename the headers.  We're kind of stuck with them.
-
-David
+-- 
+Kees Cook
