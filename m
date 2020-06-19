@@ -1,50 +1,97 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH] linux++, this: rename "struct notifier_block *this"
-Date: Fri, 19 Jun 2020 11:37:47 -0700
-Message-ID: <CAHk-=whz7xz1EBqfyS-C8zTx3_q54R1GuX9tDHdK1-TG91WH-Q@mail.gmail.com>
-References: <20200618210645.GB2212102@localhost.localdomain>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH] seccomp: Use -1 marker for end of mode 1 syscall list
+Date: Fri, 19 Jun 2020 12:37:20 -0700
+Message-ID: <202006191236.AC3E22AAB@keescook>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <20200618210645.GB2212102@localhost.localdomain>
-Sender: netdev-owner@vger.kernel.org
-To: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, NetFilter <netfilter-devel@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-owner@vger.kernel.org>
+Content-Disposition: inline
+Sender: linux-mips-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Will Drewry <wad@chromium.org>, linux-mips@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 18, 2020 at 2:06 PM Alexey Dobriyan <adobriyan@gmail.com> wrote:
->
-> Rename
->         struct notifier_block *this
-> to
->         struct notifier_block *nb
->
-> "nb" is arguably a better name for notifier block.
+The terminator for the mode 1 syscalls list was a 0, but that could be
+a valid syscall number (e.g. x86_64 __NR_read). By luck, __NR_read was
+listed first and the loop construct would not test it, so there was no
+bug. However, this is fragile. Replace the terminator with -1 instead,
+and make the variable name for mode 1 syscall lists more descriptive.
 
-Maybe it's a better name. But it doesn't seem worth it.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+I'll be putting this into my for-next/seccomp tree. I would love a MIPS
+ack, if someone's got a moment to double-check this. :)
+---
+ arch/mips/include/asm/seccomp.h |  4 ++--
+ include/asm-generic/seccomp.h   |  2 +-
+ kernel/seccomp.c                | 10 +++++-----
+ 3 files changed, 8 insertions(+), 8 deletions(-)
 
-Because C++ reserved words are entirely irrelevant.
+diff --git a/arch/mips/include/asm/seccomp.h b/arch/mips/include/asm/seccomp.h
+index e383d7e27b93..aa809589a181 100644
+--- a/arch/mips/include/asm/seccomp.h
++++ b/arch/mips/include/asm/seccomp.h
+@@ -9,12 +9,12 @@ static inline const int *get_compat_mode1_syscalls(void)
+ 	static const int syscalls_O32[] = {
+ 		__NR_O32_Linux + 3, __NR_O32_Linux + 4,
+ 		__NR_O32_Linux + 1, __NR_O32_Linux + 193,
+-		0, /* null terminated */
++		-1, /* negative terminated */
+ 	};
+ 	static const int syscalls_N32[] = {
+ 		__NR_N32_Linux + 0, __NR_N32_Linux + 1,
+ 		__NR_N32_Linux + 58, __NR_N32_Linux + 211,
+-		0, /* null terminated */
++		-1, /* negative terminated */
+ 	};
+ 
+ 	if (IS_ENABLED(CONFIG_MIPS32_O32) && test_thread_flag(TIF_32BIT_REGS))
+diff --git a/include/asm-generic/seccomp.h b/include/asm-generic/seccomp.h
+index 1321ac7821d7..6b6f42bc58f9 100644
+--- a/include/asm-generic/seccomp.h
++++ b/include/asm-generic/seccomp.h
+@@ -33,7 +33,7 @@ static inline const int *get_compat_mode1_syscalls(void)
+ 	static const int mode1_syscalls_32[] = {
+ 		__NR_seccomp_read_32, __NR_seccomp_write_32,
+ 		__NR_seccomp_exit_32, __NR_seccomp_sigreturn_32,
+-		0, /* null terminated */
++		-1, /* negative terminated */
+ 	};
+ 	return mode1_syscalls_32;
+ }
+diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+index 0ed57e8c49d0..866a432cd746 100644
+--- a/kernel/seccomp.c
++++ b/kernel/seccomp.c
+@@ -742,20 +742,20 @@ static inline void seccomp_log(unsigned long syscall, long signr, u32 action,
+  */
+ static const int mode1_syscalls[] = {
+ 	__NR_seccomp_read, __NR_seccomp_write, __NR_seccomp_exit, __NR_seccomp_sigreturn,
+-	0, /* null terminated */
++	-1, /* negative terminated */
+ };
+ 
+ static void __secure_computing_strict(int this_syscall)
+ {
+-	const int *syscall_whitelist = mode1_syscalls;
++	const int *allowed_syscalls = mode1_syscalls;
+ #ifdef CONFIG_COMPAT
+ 	if (in_compat_syscall())
+-		syscall_whitelist = get_compat_mode1_syscalls();
++		allowed_syscalls = get_compat_mode1_syscalls();
+ #endif
+ 	do {
+-		if (*syscall_whitelist == this_syscall)
++		if (*allowed_syscalls == this_syscall)
+ 			return;
+-	} while (*++syscall_whitelist);
++	} while (*++allowed_syscalls != -1);
+ 
+ #ifdef SECCOMP_DEBUG
+ 	dump_stack();
+-- 
+2.25.1
 
-We did this same dance almost three decades ago, and the fact is, C++
-has other reserved words that make it all pointless.
 
-There is no way I will accept the renaming of various "new" variables.
-We did it, it was bad, we undid it, and we now have a _lot_ more uses
-of 'new' and 'old', and no, we're not changing it for a braindead
-language that isn't relevant to the kernel.
-
-The fact is, C++ chose bad identifiers to make reserved words.
-
-If you want to build the kernel with C++, you'd be a lot better off just doing
-
-   /* C++ braindamage */
-   #define this __this
-   #define new __new
-
-and deal with that instead.
-
-Because no, the 'new' renaming will never happen, and while 'this'
-isn't nearly as common or relevant a name, once you have the same
-issue with 'new', what's the point of trying to deal with 'this'?
-
-             Linus
+-- 
+Kees Cook
