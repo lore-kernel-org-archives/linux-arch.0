@@ -1,84 +1,67 @@
-Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47990 "EHLO
+Return-Path: <SRS0=lJ0G=AA=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:32914 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729973AbgFOPeB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 11:34:01 -0400
+        with ESMTP id S1732015AbgFSSiI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jun 2020 14:38:08 -0400
+Received: from mail-lj1-x244.google.com (mail-lj1-x244.google.com [IPv6:2a00:1450:4864:20::244])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CBD03C0613EF
+        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 11:38:06 -0700 (PDT)
+Received: by mail-lj1-x244.google.com with SMTP id a9so12615177ljn.6
+        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 11:38:06 -0700 (PDT)
+Received: from mail-lf1-f45.google.com (mail-lf1-f45.google.com. [209.85.167.45])
+        by smtp.gmail.com with ESMTPSA id 5sm1286398ljr.64.2020.06.19.11.38.03
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 19 Jun 2020 11:38:04 -0700 (PDT)
+Received: by mail-lf1-f45.google.com with SMTP id g139so5319233lfd.10
+        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 11:38:03 -0700 (PDT)
 MIME-Version: 1.0
-References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de>
- <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com>
- <20200615141239.GA12951@lst.de> <CAK8P3a2MeZhayZWkPbd4Ckq3n410p_n808NJTwN=JjzqHRiAXg@mail.gmail.com>
- <20200615144310.GA15101@lst.de> <CAK8P3a17h782gO65qJ9Mmz0EuiTSKQPEyr_=nvqOtnmQZuh9Kw@mail.gmail.com>
- <20200615150926.GA17108@lst.de>
-In-Reply-To: <20200615150926.GA17108@lst.de>
-From: Brian Gerst <brgerst@gmail.com>
-Date: Mon, 15 Jun 2020 11:33:49 -0400
-Message-ID: <CAMzpN2htYX7s6pmRg-c8qwZL1f1_+sB=ztDG_L=617hWsm-=8g@mail.gmail.com>
-Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
+References: <20200618210645.GB2212102@localhost.localdomain>
+In-Reply-To: <20200618210645.GB2212102@localhost.localdomain>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Fri, 19 Jun 2020 11:37:47 -0700
+Message-ID: <CAHk-=whz7xz1EBqfyS-C8zTx3_q54R1GuX9tDHdK1-TG91WH-Q@mail.gmail.com>
+Subject: Re: [PATCH] linux++, this: rename "struct notifier_block *this"
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20200615153349.UQErkfZHcr7LMf_09xUpCE-cLPLDCWa4ululsABp9cg@z>
+To: Alexey Dobriyan <adobriyan@gmail.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, NetFilter <netfilter-devel@vger.kernel.org>
+Message-ID: <20200619183747.FVSaV8qu-x7bcvekL9Gf007SaBaYORW7La4fNLd0Ur4@z>
 
-On Mon, Jun 15, 2020 at 11:10 AM Christoph Hellwig <hch@lst.de> wrote:
+On Thu, Jun 18, 2020 at 2:06 PM Alexey Dobriyan <adobriyan@gmail.com> wrote:
 >
-> On Mon, Jun 15, 2020 at 04:46:15PM +0200, Arnd Bergmann wrote:
-> > How about this one:
-> >
-> > diff --git a/arch/x86/entry/syscall_x32.c b/arch/x86/entry/syscall_x32.=
-c
-> > index 3d8d70d3896c..0ce15807cf54 100644
-> > --- a/arch/x86/entry/syscall_x32.c
-> > +++ b/arch/x86/entry/syscall_x32.c
-> > @@ -16,6 +16,9 @@
-> >  #undef __SYSCALL_X32
-> >  #undef __SYSCALL_COMMON
-> >
-> > +#define __x32_sys_execve __x64_sys_execve
-> > +#define __x32_sys_execveat __x64_sys_execveat
-> > +
+> Rename
+>         struct notifier_block *this
+> to
+>         struct notifier_block *nb
 >
->
-> arch/x86/entry/syscall_x32.c:19:26: error: =E2=80=98__x64_sys_execve=E2=
-=80=99 undeclared here (not in a function); did you mean =E2=80=98__x32_sys=
-_execve=E2=80=99?
->    19 | #define __x32_sys_execve __x64_sys_execve
->       |                          ^~~~~~~~~~~~~~~~
-> arch/x86/entry/syscall_x32.c:22:39: note: in expansion of macro =E2=80=98=
-__x32_sys_execve=E2=80=99
->    22 | #define __SYSCALL_X32(nr, sym) [nr] =3D __x32_##sym,
->       |                                       ^~~~~~
-> ./arch/x86/include/generated/asm/syscalls_64.h:344:1: note: in expansion =
-of macro =E2=80=98__SYSCALL_X32=E2=80=99
->   344 | __SYSCALL_X32(520, sys_execve)
->       | ^~~~~~~~~~~~~
-> arch/x86/entry/syscall_x32.c:20:28: error: =E2=80=98__x64_sys_execveat=E2=
-=80=99 undeclared here (not in a function); did you mean =E2=80=98__x32_sys=
-_execveat=E2=80=99?
->    20 | #define __x32_sys_execveat __x64_sys_execveat
->       |                            ^~~~~~~~~~~~~~~~~~
-> arch/x86/entry/syscall_x32.c:22:39: note: in expansion of macro =E2=80=98=
-__x32_sys_execveat=E2=80=99
->    22 | #define __SYSCALL_X32(nr, sym) [nr] =3D __x32_##sym,
->       |                                       ^~~~~~
-> ./arch/x86/include/generated/asm/syscalls_64.h:369:1: note: in expansion =
-of macro =E2=80=98__SYSCALL_X32=E2=80=99
->   369 | __SYSCALL_X32(545, sys_execveat)
->       | ^~~~~~~~~~~~~
-> make[2]: *** [scripts/Makefile.build:281: arch/x86/entry/syscall_x32.o] E=
-rror 1
-> make[1]: *** [scripts/Makefile.build:497: arch/x86/entry] Error 2
-> make[1]: *** Waiting for unfinished jobs....
-> kernel/exit.o: warning: objtool: __x64_sys_exit_group()+0x14: unreachable=
- instruction
-> make: *** [Makefile:1764: arch/x86] Error 2
-> make: *** Waiting for unfinished jobs....
+> "nb" is arguably a better name for notifier block.
 
-If you move those aliases above all the __SYSCALL_* defines it will
-work, since that will get the forward declaration too.  This would be
-the simplest workaround.
+Maybe it's a better name. But it doesn't seem worth it.
 
---
-Brian Gerst
+Because C++ reserved words are entirely irrelevant.
+
+We did this same dance almost three decades ago, and the fact is, C++
+has other reserved words that make it all pointless.
+
+There is no way I will accept the renaming of various "new" variables.
+We did it, it was bad, we undid it, and we now have a _lot_ more uses
+of 'new' and 'old', and no, we're not changing it for a braindead
+language that isn't relevant to the kernel.
+
+The fact is, C++ chose bad identifiers to make reserved words.
+
+If you want to build the kernel with C++, you'd be a lot better off just doing
+
+   /* C++ braindamage */
+   #define this __this
+   #define new __new
+
+and deal with that instead.
+
+Because no, the 'new' renaming will never happen, and while 'this'
+isn't nearly as common or relevant a name, once you have the same
+issue with 'new', what's the point of trying to deal with 'this'?
+
+             Linus
