@@ -1,84 +1,130 @@
-From: Luis Chamberlain <mcgrof@kernel.org>
-Subject: Re: [PATCH 6/6] kernel: add a kernel_wait helper
-Date: Sat, 20 Jun 2020 17:02:19 +0000
-Message-ID: <20200620170219.GT11244@42.do-not-panic.com>
-References: <20200618144627.114057-1-hch@lst.de>
- <20200618144627.114057-7-hch@lst.de>
- <20200619211700.GS11244@42.do-not-panic.com>
- <20200620063538.GA2408@lst.de>
+From: Jim Cromie <jim.cromie@gmail.com>
+Subject: [PATCH v4 05/17] dyndbg: rename __verbose section to __dyndbg
+Date: Sat, 20 Jun 2020 12:06:31 -0600
+Message-ID: <20200620180643.887546-6-jim.cromie@gmail.com>
+References: <20200620180643.887546-1-jim.cromie@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20200620063538.GA2408@lst.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-parisc@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Brian Gerst <brgerst@gmail.com>, sparclinux@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200620180643.887546-1-jim.cromie@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: jbaron@akamai.com, linux-kernel@vger.kernel.org, akpm@linuxfoundation.org, gregkh@linuxfoundation.org
+Cc: linux@rasmusvillemoes.dk, Jim Cromie <jim.cromie@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Jessica Yu <jeyu@kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jun 20, 2020 at 08:35:38AM +0200, Christoph Hellwig wrote:
-> On Fri, Jun 19, 2020 at 09:17:00PM +0000, Luis Chamberlain wrote:
-> > On Thu, Jun 18, 2020 at 04:46:27PM +0200, Christoph Hellwig wrote:
-> > > --- a/kernel/exit.c
-> > > +++ b/kernel/exit.c
-> > > @@ -1626,6 +1626,22 @@ long kernel_wait4(pid_t upid, int __user *stat_addr, int options,
-> > >  	return ret;
-> > >  }
-> > >  
-> > > +int kernel_wait(pid_t pid, int *stat)
-> > > +{
-> > > +	struct wait_opts wo = {
-> > > +		.wo_type	= PIDTYPE_PID,
-> > > +		.wo_pid		= find_get_pid(pid),
-> > > +		.wo_flags	= WEXITED,
-> > > +	};
-> > > +	int ret;
-> > > +
-> > > +	ret = do_wait(&wo);
-> > > +	if (ret > 0 && wo.wo_stat)
-> > > +		*stat = wo.wo_stat;
-> > 
-> > Since all we care about is WEXITED, that could be simplified
-> > to something like this:
-> > 
-> > if (ret > 0 && KWIFEXITED(wo.wo_stat)
-> >  	*stat = KWEXITSTATUS(wo.wo_stat)
-> > 
-> > Otherwise callers have to use W*() wrappers.
-> > 
-> > > +	put_pid(wo.wo_pid);
-> > > +	return ret;
-> > > +}
-> > 
-> > Then we don't get *any* in-kernel code dealing with the W*() crap.
-> > I just unwrapped this for the umh [0], given that otherwise we'd
-> > have to use KW*() callers elsewhere. Doing it upshot one level
-> > further would be even better.
-> > 
-> > [0] https://lkml.kernel.org/r/20200610154923.27510-1-mcgrof@kernel.org              
-> Do you just want to pick this patch up, add your suggested bits and
-> add it to the beginning of your series?  That should clean the whole
-> thing up a bit.  Nothing else in this series depends on the patch.
+dyndbg populates its callsite info into __verbose section, change that
+to a more specific and descriptive name, __dyndbg.
 
-Sure but let's wait to hear from the NFS folks.
+Also, per checkpatch:
+  simplify __attribute(..) to __section(__dyndbg) declaration.
 
-I'm waiting to hear from NFS folks if the one place where the UMH is
-fixed for the error code (on fs/nfsd/nfs4recover.c we never were
-disabling the upcall as the error code of -ENOENT or -EACCES was *never*
-properly checked for) to see how critical that was. If it can help
-stable kernels the fix can go in as I proposed, followed by this patch
-to further take the KWEXITSTATUS() up further, and ensure we *never*
-deal with this in-kernel. If its not a fix stable kernels should care
-for what you suggest of taking this patch first would be best and I'd be
-happy to do that.
+and 1 spelling fix, decriptor
 
-  Luis
+Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+---
+ include/asm-generic/vmlinux.lds.h |  6 +++---
+ include/linux/dynamic_debug.h     |  4 ++--
+ kernel/module.c                   |  2 +-
+ lib/dynamic_debug.c               | 12 ++++++------
+ 4 files changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index db600ef218d7..05af5cef1ad6 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -320,9 +320,9 @@
+ 	*(__tracepoints)						\
+ 	/* implement dynamic printk debug */				\
+ 	. = ALIGN(8);							\
+-	__start___verbose = .;						\
+-	KEEP(*(__verbose))                                              \
+-	__stop___verbose = .;						\
++	__start___dyndbg = .;						\
++	KEEP(*(__dyndbg))						\
++	__stop___dyndbg = .;						\
+ 	LIKELY_PROFILE()		       				\
+ 	BRANCH_PROFILE()						\
+ 	TRACE_PRINTKS()							\
+diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
+index abcd5fde30eb..aa9ff9e1c0b3 100644
+--- a/include/linux/dynamic_debug.h
++++ b/include/linux/dynamic_debug.h
+@@ -80,7 +80,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
+ 
+ #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt)		\
+ 	static struct _ddebug  __aligned(8)			\
+-	__attribute__((section("__verbose"))) name = {		\
++	__section(__dyndbg) name = {				\
+ 		.modname = KBUILD_MODNAME,			\
+ 		.function = __func__,				\
+ 		.filename = __FILE__,				\
+@@ -133,7 +133,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
+ 
+ /*
+  * "Factory macro" for generating a call to func, guarded by a
+- * DYNAMIC_DEBUG_BRANCH. The dynamic debug decriptor will be
++ * DYNAMIC_DEBUG_BRANCH. The dynamic debug descriptor will be
+  * initialized using the fmt argument. The function will be called with
+  * the address of the descriptor as first argument, followed by all
+  * the varargs. Note that fmt is repeated in invocations of this
+diff --git a/kernel/module.c b/kernel/module.c
+index e8a198588f26..1fb493167b9c 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -3232,7 +3232,7 @@ static int find_module_sections(struct module *mod, struct load_info *info)
+ 	if (section_addr(info, "__obsparm"))
+ 		pr_warn("%s: Ignoring obsolete parameters\n", mod->name);
+ 
+-	info->debug = section_objs(info, "__verbose",
++	info->debug = section_objs(info, "__dyndbg",
+ 				   sizeof(*info->debug), &info->num_debug);
+ 
+ 	return 0;
+diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
+index c97872cffc8e..66c0bdf06ce7 100644
+--- a/lib/dynamic_debug.c
++++ b/lib/dynamic_debug.c
+@@ -39,8 +39,8 @@
+ 
+ #include <rdma/ib_verbs.h>
+ 
+-extern struct _ddebug __start___verbose[];
+-extern struct _ddebug __stop___verbose[];
++extern struct _ddebug __start___dyndbg[];
++extern struct _ddebug __stop___dyndbg[];
+ 
+ struct ddebug_table {
+ 	struct list_head link;
+@@ -1019,7 +1019,7 @@ static int __init dynamic_debug_init(void)
+ 	int n = 0, entries = 0, modct = 0;
+ 	int verbose_bytes = 0;
+ 
+-	if (&__start___verbose == &__stop___verbose) {
++	if (&__start___dyndbg == &__stop___dyndbg) {
+ 		if (IS_ENABLED(CONFIG_DYNAMIC_DEBUG)) {
+ 			pr_warn("_ddebug table is empty in a CONFIG_DYNAMIC_DEBUG build\n");
+ 			return 1;
+@@ -1028,10 +1028,10 @@ static int __init dynamic_debug_init(void)
+ 		ddebug_init_success = 1;
+ 		return 0;
+ 	}
+-	iter = __start___verbose;
++	iter = __start___dyndbg;
+ 	modname = iter->modname;
+ 	iter_start = iter;
+-	for (; iter < __stop___verbose; iter++) {
++	for (; iter < __stop___dyndbg; iter++) {
+ 		entries++;
+ 		verbose_bytes += strlen(iter->modname) + strlen(iter->function)
+ 			+ strlen(iter->filename) + strlen(iter->format);
+@@ -1054,7 +1054,7 @@ static int __init dynamic_debug_init(void)
+ 	ddebug_init_success = 1;
+ 	vpr_info("%d modules, %d entries and %d bytes in ddebug tables, %d bytes in (readonly) verbose section\n",
+ 		 modct, entries, (int)(modct * sizeof(struct ddebug_table)),
+-		 verbose_bytes + (int)(__stop___verbose - __start___verbose));
++		 verbose_bytes + (int)(__stop___dyndbg - __start___dyndbg));
+ 
+ 	/* apply ddebug_query boot param, dont unload tables on err */
+ 	if (ddebug_setup_string[0] != '\0') {
+-- 
+2.26.2
