@@ -1,128 +1,84 @@
-From: Syed Nayyar Waris <syednwaris@gmail.com>
-Subject: Re: [PATCH v8 1/4] bitops: Introduce the for_each_set_clump macro
-Date: Sat, 20 Jun 2020 19:15:44 +0530
-Message-ID: <CACG_h5rDCX10qdbvtD93hL0-hNgJ-J_Orr6X_1WW-9u-CCU36g@mail.gmail.com>
-References: <cover.1592224128.git.syednwaris@gmail.com> <fe12eedf3666f4af5138de0e70b67a07c7f40338.1592224129.git.syednwaris@gmail.com>
- <20200616081428.GP2428291@smile.fi.intel.com>
+From: Luis Chamberlain <mcgrof@kernel.org>
+Subject: Re: [PATCH 6/6] kernel: add a kernel_wait helper
+Date: Sat, 20 Jun 2020 17:02:19 +0000
+Message-ID: <20200620170219.GT11244@42.do-not-panic.com>
+References: <20200618144627.114057-1-hch@lst.de>
+ <20200618144627.114057-7-hch@lst.de>
+ <20200619211700.GS11244@42.do-not-panic.com>
+ <20200620063538.GA2408@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39044 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728051AbgFTNp5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 20 Jun 2020 09:45:57 -0400
-In-Reply-To: <20200616081428.GP2428291@smile.fi.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, William Breathitt Gray <vilhelm.gray@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20200620063538.GA2408@lst.de>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane-mx.org@lists.infradead.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-parisc@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, x86@kernel.org, linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Brian Gerst <brgerst@gmail.com>, sparclinux@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 16, 2020 at 1:44 PM Andy Shevchenko
-<andriy.shevchenko@linux.intel.com> wrote:
->
-> On Mon, Jun 15, 2020 at 06:21:18PM +0530, Syed Nayyar Waris wrote:
-> > This macro iterates for each group of bits (clump) with set bits,
-> > within a bitmap memory region. For each iteration, "start" is set to
-> > the bit offset of the found clump, while the respective clump value is
-> > stored to the location pointed by "clump". Additionally, the
-> > bitmap_get_value and bitmap_set_value functions are introduced to
-> > respectively get and set a value of n-bits in a bitmap memory region.
-> > The n-bits can have any size less than or equal to BITS_PER_LONG.
-> > Moreover, during setting value of n-bit in bitmap, if a situation arise
-> > that the width of next n-bit is exceeding the word boundary, then it
-> > will divide itself such that some portion of it is stored in that word,
-> > while the remaining portion is stored in the next higher word. Similar
-> > situation occurs while retrieving value of n-bits from bitmap.
->
-> On the second view...
->
-> > +static inline unsigned long bitmap_get_value(const unsigned long *map,
-> > +                                           unsigned long start,
-> > +                                           unsigned long nbits)
-> > +{
-> > +     const size_t index = BIT_WORD(start);
-> > +     const unsigned long offset = start % BITS_PER_LONG;
->
-> > +     const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
->
-> This perhaps should use round_up()
+On Sat, Jun 20, 2020 at 08:35:38AM +0200, Christoph Hellwig wrote:
+> On Fri, Jun 19, 2020 at 09:17:00PM +0000, Luis Chamberlain wrote:
+> > On Thu, Jun 18, 2020 at 04:46:27PM +0200, Christoph Hellwig wrote:
+> > > --- a/kernel/exit.c
+> > > +++ b/kernel/exit.c
+> > > @@ -1626,6 +1626,22 @@ long kernel_wait4(pid_t upid, int __user *stat_addr, int options,
+> > >  	return ret;
+> > >  }
+> > >  
+> > > +int kernel_wait(pid_t pid, int *stat)
+> > > +{
+> > > +	struct wait_opts wo = {
+> > > +		.wo_type	= PIDTYPE_PID,
+> > > +		.wo_pid		= find_get_pid(pid),
+> > > +		.wo_flags	= WEXITED,
+> > > +	};
+> > > +	int ret;
+> > > +
+> > > +	ret = do_wait(&wo);
+> > > +	if (ret > 0 && wo.wo_stat)
+> > > +		*stat = wo.wo_stat;
+> > 
+> > Since all we care about is WEXITED, that could be simplified
+> > to something like this:
+> > 
+> > if (ret > 0 && KWIFEXITED(wo.wo_stat)
+> >  	*stat = KWEXITSTATUS(wo.wo_stat)
+> > 
+> > Otherwise callers have to use W*() wrappers.
+> > 
+> > > +	put_pid(wo.wo_pid);
+> > > +	return ret;
+> > > +}
+> > 
+> > Then we don't get *any* in-kernel code dealing with the W*() crap.
+> > I just unwrapped this for the umh [0], given that otherwise we'd
+> > have to use KW*() callers elsewhere. Doing it upshot one level
+> > further would be even better.
+> > 
+> > [0] https://lkml.kernel.org/r/20200610154923.27510-1-mcgrof@kernel.org              
+> Do you just want to pick this patch up, add your suggested bits and
+> add it to the beginning of your series?  That should clean the whole
+> thing up a bit.  Nothing else in this series depends on the patch.
 
-Hi Andy. I will see with round_up(). I will check and inform you.
-Further below ...
+Sure but let's wait to hear from the NFS folks.
 
->
-> > +     const unsigned long space = ceiling - start;
->
-> And I think I see a scenario to complain.
->
-> If start == 0, then ceiling will be 64.
-> space == 64. Not good.
+I'm waiting to hear from NFS folks if the one place where the UMH is
+fixed for the error code (on fs/nfsd/nfs4recover.c we never were
+disabling the upcall as the error code of -ENOENT or -EACCES was *never*
+properly checked for) to see how critical that was. If it can help
+stable kernels the fix can go in as I proposed, followed by this patch
+to further take the KWEXITSTATUS() up further, and ensure we *never*
+deal with this in-kernel. If its not a fix stable kernels should care
+for what you suggest of taking this patch first would be best and I'd be
+happy to do that.
 
-Yes, you are right, when the 'start' is '0', then 'space' will be 64
-(on arch where BITS_PER_LONG is 64).
-But actually I want this to happen. I need 'space' to hold value 64
-when 'start' is '0'. The reason is as follows:
-
-Taking the example of bitmap_set_value(). If the nbits is 16 (as
-example) and 'start' is zero, The 'if' condition will be executed
-inside bitmap_set_value() when 'start' is zero because space(64) >=
-nbits(16) is true. This 'if' condition is for the case when nbits
-falls completely into the first word and the nbits doesn't have to
-divide itself into another higher word of the bitmap.
-
-This is what I want to happen. I will think more about this and let
-you know further.
-
-Kindly let me know If I have misunderstood something. Thanks !
-
->
-> > +     unsigned long value_low, value_high;
-> > +
-> > +     if (space >= nbits)
-> > +             return (map[index] >> offset) & GENMASK(nbits - 1, 0);
-> > +     else {
-> > +             value_low = map[index] & BITMAP_FIRST_WORD_MASK(start);
-> > +             value_high = map[index + 1] & BITMAP_LAST_WORD_MASK(start + nbits);
-> > +             return (value_low >> offset) | (value_high << space);
-> > +     }
-> > +}
->
-> ...
->
-> > +/**
-> > + * bitmap_set_value - set n-bit value within a memory region
-> > + * @map: address to the bitmap memory region
-> > + * @value: value of nbits
-> > + * @start: bit offset of the n-bit value
-> > + * @nbits: size of value in bits
-> > + */
-> > +static inline void bitmap_set_value(unsigned long *map,
-> > +                                 unsigned long value,
-> > +                                 unsigned long start, unsigned long nbits)
-> > +{
-> > +     const size_t index = BIT_WORD(start);
-> > +     const unsigned long offset = start % BITS_PER_LONG;
->
-> > +     const unsigned long ceiling = roundup(start + 1, BITS_PER_LONG);
-> > +     const unsigned long space = ceiling - start;
->
-> Ditto for both lines.
->
-> > +     value &= GENMASK(nbits - 1, 0);
-> > +
-> > +     if (space >= nbits) {
-> > +             map[index] &= ~(GENMASK(nbits + offset - 1, offset));
-> > +             map[index] |= value << offset;
-> > +     } else {
-> > +             map[index] &= ~BITMAP_FIRST_WORD_MASK(start);
-> > +             map[index] |= value << offset;
-> > +             map[index + 1] &= ~BITMAP_LAST_WORD_MASK(start + nbits);
-> > +             map[index + 1] |= (value >> space);
-> > +     }
-> > +}
->
-> --
-> With Best Regards,
-> Andy Shevchenko
->
->
+  Luis
