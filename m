@@ -1,85 +1,164 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43382 "EHLO
+Return-Path: <SRS0=7JWk=AC=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37458 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731262AbgF2TNG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:13:06 -0400
-Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0690CC08EB21
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:27:31 -0700 (PDT)
-Received: by mail-pj1-x1042.google.com with SMTP id c1so316034pja.5
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:27:31 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 17/17] x86/boot: Warn on orphan section placement
-Date: Sun, 28 Jun 2020 23:18:40 -0700
-Message-ID: <20200629061840.4065483-18-keescook@chromium.org>
-In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
-References: <20200629061840.4065483-1-keescook@chromium.org>
+        with ESMTP id S1725928AbgFUFmT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 21 Jun 2020 01:42:19 -0400
+From: Rikard Falkeborn <rikard.falkeborn@gmail.com>
+Subject: [PATCH v4 2/2] bits: Add tests of GENMASK
+Date: Sun, 21 Jun 2020 07:42:10 +0200
+Message-ID: <20200621054210.14804-2-rikard.falkeborn@gmail.com>
+In-Reply-To: <20200621054210.14804-1-rikard.falkeborn@gmail.com>
+References: <20200620213632.60c2c6b99ec9cf9392fa128d@linux-foundation.org>
+ <20200621054210.14804-1-rikard.falkeborn@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200629061840.kQE277SNFuQTkdko-AVaTtcpkKGGIpdpx3xvCw6jenc@z>
+To: akpm@linux-foundation.org
+Cc: andy.shevchenko@gmail.com, arnd@arndb.de, emil.l.velikov@gmail.com, geert@linux-m68k.org, keescook@chromium.org, linus.walleij@linaro.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lkp@intel.com, rikard.falkeborn@gmail.com, syednwaris@gmail.com, vilhelm.gray@gmail.com, yamada.masahiro@socionext.com
+Message-ID: <20200621054210.qO_Ue4JzE0o5jzchRLgKFHE-h3XtEHO6Gi20A3C8U3s@z>
 
-We don't want to depend on the linker's orphan section placement
-heuristics as these can vary between linkers, and may change between
-versions. All sections need to be explicitly named in the linker
-script.
+Add tests of GENMASK and GENMASK_ULL.
 
-Add the common debugging sections. Discard the unused note, rel, plt,
-dyn, and hash sections that are not needed in the compressed vmlinux.
-Disable .eh_frame generation in the linker and enable orphan section
-warnings.
+A few test cases that should fail compilation are provided
+under #ifdef TEST_GENMASK_FAILURES
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
+Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Signed-off-by: Rikard Falkeborn <rikard.falkeborn@gmail.com>
 ---
- arch/x86/boot/compressed/Makefile      |  3 ++-
- arch/x86/boot/compressed/vmlinux.lds.S | 10 ++++++++++
- 2 files changed, 12 insertions(+), 1 deletion(-)
+Sorry about the missing MODULE_LICENSE. I assume you just will drop v3
+and use this instead, or should I have sent a patch with only
+MODULE_LICENSE added?
 
-diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
-index 7619742f91c9..646720a05f89 100644
---- a/arch/x86/boot/compressed/Makefile
-+++ b/arch/x86/boot/compressed/Makefile
-@@ -48,6 +48,7 @@ GCOV_PROFILE := n
- UBSAN_SANITIZE :=n
+v3-v4
+Added missing MODULE_LICENSE.
+
+v2-v3
+Updated commit message and ifdef after suggestion fron Geert. Also fixed
+a typo in the description of the file.
+
+v1-v2
+New patch.
+
+
+ lib/Kconfig.debug | 11 +++++++
+ lib/Makefile      |  1 +
+ lib/test_bits.c   | 75 +++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 87 insertions(+)
+ create mode 100644 lib/test_bits.c
+
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index d74ac0fd6b2d..628097773b13 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -2186,6 +2186,17 @@ config LINEAR_RANGES_TEST
  
- KBUILD_LDFLAGS := -m elf_$(UTS_MACHINE)
-+KBUILD_LDFLAGS += $(call ld-option,--no-ld-generated-unwind-info)
- # Compressed kernel should be built as PIE since it may be loaded at any
- # address by the bootloader.
- ifeq ($(CONFIG_X86_32),y)
-@@ -59,7 +60,7 @@ else
- KBUILD_LDFLAGS += $(shell $(LD) --help 2>&1 | grep -q "\-z noreloc-overflow" \
- 	&& echo "-z noreloc-overflow -pie --no-dynamic-linker")
- endif
--LDFLAGS_vmlinux := -T
-+LDFLAGS_vmlinux := --orphan-handling=warn -T
+ 	  If unsure, say N.
  
- hostprogs	:= mkpiggy
- HOST_EXTRACFLAGS += -I$(srctree)/tools/include
-diff --git a/arch/x86/boot/compressed/vmlinux.lds.S b/arch/x86/boot/compressed/vmlinux.lds.S
-index d88612e3091f..9afb8737896f 100644
---- a/arch/x86/boot/compressed/vmlinux.lds.S
-+++ b/arch/x86/boot/compressed/vmlinux.lds.S
-@@ -75,7 +75,17 @@ SECTIONS
- 	. = ALIGN(PAGE_SIZE);	/* keep ZO size page aligned */
- 	_end = .;
- 
-+	STABS_DEBUG
-+	DWARF_DEBUG
- 	ELF_DETAILS
- 
- 	DISCARDS
-+	/DISCARD/ : {
-+		*(.note.*)
-+		*(.rela.*) *(.rela_*)
-+		*(.rel.*) *(.rel_*)
-+		*(.plt) *(.plt.*)
-+		*(.dyn*)
-+		*(.hash) *(.gnu.hash)
-+	}
- }
++config BITS_TEST
++	tristate "KUnit test for bits.h"
++	depends on KUNIT
++	help
++	  This builds the bits unit test.
++	  Tests the logic of macros defined in bits.h.
++	  For more information on KUnit and unit tests in general please refer
++	  to the KUnit documentation in Documentation/dev-tools/kunit/.
++
++	  If unsure, say N.
++
+ config TEST_UDELAY
+ 	tristate "udelay test driver"
+ 	help
+diff --git a/lib/Makefile b/lib/Makefile
+index b1c42c10073b..d157f6c980f7 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -318,3 +318,4 @@ obj-$(CONFIG_OBJAGG) += objagg.o
+ # KUnit tests
+ obj-$(CONFIG_LIST_KUNIT_TEST) += list-test.o
+ obj-$(CONFIG_LINEAR_RANGES_TEST) += test_linear_ranges.o
++obj-$(CONFIG_BITS_TEST) += test_bits.o
+diff --git a/lib/test_bits.c b/lib/test_bits.c
+new file mode 100644
+index 000000000000..89e0ea83511f
+--- /dev/null
++++ b/lib/test_bits.c
+@@ -0,0 +1,75 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Test cases for functions and macros in bits.h
++ */
++
++#include <kunit/test.h>
++#include <linux/bits.h>
++
++
++void genmask_test(struct kunit *test)
++{
++	KUNIT_EXPECT_EQ(test, 1ul, GENMASK(0, 0));
++	KUNIT_EXPECT_EQ(test, 3ul, GENMASK(1, 0));
++	KUNIT_EXPECT_EQ(test, 6ul, GENMASK(2, 1));
++	KUNIT_EXPECT_EQ(test, 0xFFFFFFFFul, GENMASK(31, 0));
++
++#ifdef TEST_GENMASK_FAILURES
++	/* these should fail compilation */
++	GENMASK(0, 1);
++	GENMASK(0, 10);
++	GENMASK(9, 10);
++#endif
++
++
++}
++
++void genmask_ull_test(struct kunit *test)
++{
++	KUNIT_EXPECT_EQ(test, 1ull, GENMASK_ULL(0, 0));
++	KUNIT_EXPECT_EQ(test, 3ull, GENMASK_ULL(1, 0));
++	KUNIT_EXPECT_EQ(test, 0x000000ffffe00000ull, GENMASK_ULL(39, 21));
++	KUNIT_EXPECT_EQ(test, 0xffffffffffffffffull, GENMASK_ULL(63, 0));
++
++#ifdef TEST_GENMASK_FAILURES
++	/* these should fail compilation */
++	GENMASK_ULL(0, 1);
++	GENMASK_ULL(0, 10);
++	GENMASK_ULL(9, 10);
++#endif
++}
++
++void genmask_input_check_test(struct kunit *test)
++{
++	unsigned int x, y;
++	int z, w;
++
++	/* Unknown input */
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(x, 0));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(0, x));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(x, y));
++
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(z, 0));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(0, z));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(z, w));
++
++	/* Valid input */
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(1, 1));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(39, 21));
++}
++
++
++static struct kunit_case bits_test_cases[] = {
++	KUNIT_CASE(genmask_test),
++	KUNIT_CASE(genmask_ull_test),
++	KUNIT_CASE(genmask_input_check_test),
++	{}
++};
++
++static struct kunit_suite bits_test_suite = {
++	.name = "bits-test",
++	.test_cases = bits_test_cases,
++};
++kunit_test_suite(bits_test_suite);
++
++MODULE_LICENSE("GPL");
 -- 
-2.25.1
+2.27.0
