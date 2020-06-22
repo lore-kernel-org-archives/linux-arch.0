@@ -1,115 +1,96 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 12/21] KVM: x86/mmu: Skip filling the gfn cache for
- guaranteed direct MMU topups
-Date: Mon, 22 Jun 2020 13:08:13 -0700
-Message-ID: <20200622200822.4426-13-sean.j.christopherson@intel.com>
+Subject: [PATCH v2 17/21] KVM: arm64: Use common code's approach for __GFP_ZERO with memory caches
+Date: Mon, 22 Jun 2020 13:08:18 -0700
+Message-ID: <20200622200822.4426-18-sean.j.christopherson@intel.com>
 References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-mips-owner@vger.kernel.org>
 In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
+Sender: linux-mips-owner@vger.kernel.org
 To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, Junaid Shahid <junaids@google.com>, Wanpeng Li <wanpengli@tencent.com>, kvm@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Peter Shier <pshier@google.com>, linux-mips@vger.kernel.org, Sean Christopherson <sean.j.christopherson@intel.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Gardon <bgardon@google.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Peter Feiner <pfeiner@google.com>, kvmarm@lists.cs.columbia.edu, Jim Mattson <jmattson@google.com>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Don't bother filling the gfn array cache when the caller is a fully
-direct MMU, i.e. won't need a gfn array for shadow pages.
+Add a "gfp_zero" member to arm64's 'struct kvm_mmu_memory_cache' to make
+the struct and its usage compatible with the common 'struct
+kvm_mmu_memory_cache' in linux/kvm_host.h.  This will minimize code
+churn when arm64 moves to the common implementation in a future patch, at
+the cost of temporarily having somewhat silly code.
 
-Reviewed-by: Ben Gardon <bgardon@google.com>
+Note, GFP_PGTABLE_USER is equivalent to GFP_KERNEL_ACCOUNT | GFP_ZERO:
+
+  #define GFP_PGTABLE_USER  (GFP_PGTABLE_KERNEL | __GFP_ACCOUNT)
+  |
+  -> #define GFP_PGTABLE_KERNEL        (GFP_KERNEL | __GFP_ZERO)
+
+  == GFP_KERNEL | __GFP_ACCOUNT | __GFP_ZERO
+
+versus
+
+  #define GFP_KERNEL_ACCOUNT (GFP_KERNEL | __GFP_ACCOUNT)
+
+    with __GFP_ZERO explicitly OR'd in
+
+  == GFP_KERNEL | __GFP_ACCOUNT | __GFP_ZERO
+
+No functional change intended.
+
+Tested-by: Marc Zyngier <maz@kernel.org>
 Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- arch/x86/kvm/mmu/mmu.c         | 18 ++++++++++--------
- arch/x86/kvm/mmu/paging_tmpl.h |  4 ++--
- 2 files changed, 12 insertions(+), 10 deletions(-)
+ arch/arm64/include/asm/kvm_host.h | 1 +
+ arch/arm64/kvm/arm.c              | 2 ++
+ arch/arm64/kvm/mmu.c              | 5 +++--
+ 3 files changed, 6 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index a8f8eebf67df..8d66cf558f1b 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1101,7 +1101,7 @@ static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
- 	}
- }
+diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
+index c3e6fcc664b1..335170b59899 100644
+--- a/arch/arm64/include/asm/kvm_host.h
++++ b/arch/arm64/include/asm/kvm_host.h
+@@ -105,6 +105,7 @@ struct kvm_arch {
+  */
+ struct kvm_mmu_memory_cache {
+ 	int nobjs;
++	gfp_t gfp_zero;
+ 	void *objects[KVM_NR_MEM_OBJS];
+ };
  
--static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
-+static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu, bool maybe_indirect)
- {
- 	int r;
+diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
+index 90cb90561446..1016635b3782 100644
+--- a/arch/arm64/kvm/arm.c
++++ b/arch/arm64/kvm/arm.c
+@@ -270,6 +270,8 @@ int kvm_arch_vcpu_create(struct kvm_vcpu *vcpu)
+ 	vcpu->arch.target = -1;
+ 	bitmap_zero(vcpu->arch.features, KVM_VCPU_MAX_FEATURES);
  
-@@ -1114,10 +1114,12 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
- 				   PT64_ROOT_MAX_LEVEL);
- 	if (r)
- 		return r;
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
--				   PT64_ROOT_MAX_LEVEL);
--	if (r)
--		return r;
-+	if (maybe_indirect) {
-+		r = mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
-+					   PT64_ROOT_MAX_LEVEL);
-+		if (r)
-+			return r;
-+	}
- 	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
- 				      PT64_ROOT_MAX_LEVEL);
- }
-@@ -4107,7 +4109,7 @@ static int direct_page_fault(struct kvm_vcpu *vcpu, gpa_t gpa, u32 error_code,
- 	if (fast_page_fault(vcpu, gpa, error_code))
- 		return RET_PF_RETRY;
++	vcpu->arch.mmu_page_cache.gfp_zero = __GFP_ZERO;
++
+ 	/* Set up the timer */
+ 	kvm_timer_vcpu_init(vcpu);
  
--	r = mmu_topup_memory_caches(vcpu);
-+	r = mmu_topup_memory_caches(vcpu, false);
- 	if (r)
- 		return r;
+diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
+index 9398b66f8a87..688213ef34f0 100644
+--- a/arch/arm64/kvm/mmu.c
++++ b/arch/arm64/kvm/mmu.c
+@@ -131,7 +131,8 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
+ 	if (cache->nobjs >= min)
+ 		return 0;
+ 	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		page = (void *)__get_free_page(GFP_PGTABLE_USER);
++		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT |
++					       cache->gfp_zero);
+ 		if (!page)
+ 			return -ENOMEM;
+ 		cache->objects[cache->nobjs++] = page;
+@@ -1342,7 +1343,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
+ 	phys_addr_t addr, end;
+ 	int ret = 0;
+ 	unsigned long pfn;
+-	struct kvm_mmu_memory_cache cache = { 0, };
++	struct kvm_mmu_memory_cache cache = { 0, __GFP_ZERO, };
  
-@@ -5147,7 +5149,7 @@ int kvm_mmu_load(struct kvm_vcpu *vcpu)
- {
- 	int r;
- 
--	r = mmu_topup_memory_caches(vcpu);
-+	r = mmu_topup_memory_caches(vcpu, !vcpu->arch.mmu->direct_map);
- 	if (r)
- 		goto out;
- 	r = mmu_alloc_roots(vcpu);
-@@ -5341,7 +5343,7 @@ static void kvm_mmu_pte_write(struct kvm_vcpu *vcpu, gpa_t gpa,
- 	 * or not since pte prefetch is skiped if it does not have
- 	 * enough objects in the cache.
- 	 */
--	mmu_topup_memory_caches(vcpu);
-+	mmu_topup_memory_caches(vcpu, true);
- 
- 	spin_lock(&vcpu->kvm->mmu_lock);
- 
-diff --git a/arch/x86/kvm/mmu/paging_tmpl.h b/arch/x86/kvm/mmu/paging_tmpl.h
-index 3de32122f601..ac39710d0594 100644
---- a/arch/x86/kvm/mmu/paging_tmpl.h
-+++ b/arch/x86/kvm/mmu/paging_tmpl.h
-@@ -818,7 +818,7 @@ static int FNAME(page_fault)(struct kvm_vcpu *vcpu, gpa_t addr, u32 error_code,
- 		return RET_PF_EMULATE;
- 	}
- 
--	r = mmu_topup_memory_caches(vcpu);
-+	r = mmu_topup_memory_caches(vcpu, true);
- 	if (r)
- 		return r;
- 
-@@ -905,7 +905,7 @@ static void FNAME(invlpg)(struct kvm_vcpu *vcpu, gva_t gva, hpa_t root_hpa)
- 	 * No need to check return value here, rmap_can_add() can
- 	 * help us to skip pte prefetch later.
- 	 */
--	mmu_topup_memory_caches(vcpu);
-+	mmu_topup_memory_caches(vcpu, true);
- 
- 	if (!VALID_PAGE(root_hpa)) {
- 		WARN_ON(1);
+ 	end = (guest_ipa + size + PAGE_SIZE - 1) & PAGE_MASK;
+ 	pfn = __phys_to_pfn(pa);
 -- 
 2.26.0
