@@ -1,57 +1,105 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 3/3] x86/boot: Warn on orphan section placement
-Date: Mon, 22 Jun 2020 16:00:12 -0700
-Message-ID: <202006221600.81F5586@keescook>
-References: <20200622205341.2987797-1-keescook@chromium.org>
- <20200622205341.2987797-4-keescook@chromium.org>
- <20200622220628.t5fklwmbtqoird5f@google.com>
- <202006221543.EA2FCFA2FF@keescook>
- <20200622224928.o2a7jkq33guxfci4@google.com>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Subject: Re: [PATCH] vmlinux.lds: consider .text.{hot|unlikely}.* part of
+ .text too
+Date: Mon, 22 Jun 2020 16:04:07 -0700
+Message-ID: <CAKwvOdniambW9_nVbDnd4A_+bdDdZMd2V1Q=Xw5EJYDGeh=eyQ@mail.gmail.com>
+References: <20200617210613.95432-1-ndesaulniers@google.com> <20200617212705.tq2q6bi446gydymo@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200622224928.o2a7jkq33guxfci4@google.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Fangrui Song <maskray@google.com>
-Cc: Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52732 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730785AbgFVXEV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2020 19:04:21 -0400
+Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C1DF7C061573
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:04:20 -0700 (PDT)
+Received: by mail-pl1-x643.google.com with SMTP id 35so8264651ple.0
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:04:20 -0700 (PDT)
+In-Reply-To: <20200617212705.tq2q6bi446gydymo@google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: =?UTF-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>, Kees Cook <keescook@chromium.org>, "# 3.4.x" <stable@vger.kernel.org>, Jian Cai <jiancai@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
 
-On Mon, Jun 22, 2020 at 03:49:28PM -0700, Fangrui Song wrote:
-> On 2020-06-22, Kees Cook wrote:
-> > On Mon, Jun 22, 2020 at 03:06:28PM -0700, Fangrui Song wrote:
-> > > LLD may report warnings for 3 synthetic sections if they are orphans:
-> > > 
-> > > ld.lld: warning: <internal>:(.symtab) is being placed in '.symtab'
-> > > ld.lld: warning: <internal>:(.shstrtab) is being placed in '.shstrtab'
-> > > ld.lld: warning: <internal>:(.strtab) is being placed in '.strtab'
-> > > 
-> > > Are they described?
-> > 
-> > Perhaps:
-> > 
-> > diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> > index db600ef218d7..57e9c142e401 100644
-> > --- a/include/asm-generic/vmlinux.lds.h
-> > +++ b/include/asm-generic/vmlinux.lds.h
-> > @@ -792,6 +792,9 @@
-> > 		.stab.exclstr 0 : { *(.stab.exclstr) }			\
-> > 		.stab.index 0 : { *(.stab.index) }			\
-> > 		.stab.indexstr 0 : { *(.stab.indexstr) }		\
-> > +		.symtab 0 : { *(.symtab) }				\
-> > +		.strtab 0 : { *(.strtab) }				\
-> > +		.shstrtab 0 : { *(.shstrtab) }				\
-> > 		.comment 0 : { *(.comment) }
-> > 
-> > #ifdef CONFIG_GENERIC_BUG
-> 
-> This LGTM. Nit: .comment before .symtab is a more common order.
+On Wed, Jun 17, 2020 at 2:27 PM F=C4=81ng-ru=C3=AC S=C3=B2ng <maskray@googl=
+e.com> wrote:
+>
+>
+> On 2020-06-17, Nick Desaulniers wrote:
+> >ld.bfd's internal linker script considers .text.hot AND .text.hot.* to
+> >be part of .text, as well as .text.unlikely and .text.unlikely.*.
+>
+> >ld.lld will produce .text.hot.*/.text.unlikely.* sections.
+>
+> Correction to this sentence. lld is not relevant here.
+>
+> -ffunction-sections combined with profile-guided optimization can
+> produce .text.hot.* .text.unlikely.* sections.  Newer clang may produce
+> .text.hot. .text.unlikely. (without suffix, but with a trailing dot)
+> when -fno-unique-section-names is specified, as an optimization to make
+> .strtab smaller.
 
-Adjusted.
+Then why was the bug report reporting https://reviews.llvm.org/D79600
+as the result of a bisection, if LLD is not relevant?  Was the
+bisection wrong?
 
-> Reviewed-by: Fangrui Song <maskray@google.com>
+The upstream report wasn't initially public, for no good reason.  So I
+didn't include it, but if we end up taking v1, this should have
 
-Thanks!
+Link: https://bugs.chromium.org/p/chromium/issues/detail?id=3D1084760
 
--- 
-Kees Cook
+The kernel doesn't use -fno-unique-section-names; is that another flag
+that's added by CrOS' compiler wrapper?
+https://source.chromium.org/chromiumos/chromiumos/codesearch/+/master:src/t=
+hird_party/toolchain-utils/compiler_wrapper/config.go;l=3D110
+Looks like no.  It doesn't use `-fno-unique-section-names` or
+`-ffunction-sections`.
+
+
+>
+> We've already seen that GCC can place main in .text.startup without
+> -ffunction-sections. There may be other non -ffunction-sections cases
+> for .text.hot.* or .text.unlikely.*. So it is definitely a good idea to
+> be more specific even if we don't care about -ffunction-sections for
+> now.
+>
+> >Make sure to group these together.  Otherwise these orphan sections may
+> >be placed outside of the the _stext/_etext boundaries.
+> >
+> >Cc: stable@vger.kernel.org
+> >Link: https://sourceware.org/git/?p=3Dbinutils-gdb.git;a=3Dcommitdiff;h=
+=3Dadd44f8d5c5c05e08b11e033127a744d61c26aee
+> >Link: https://sourceware.org/git/?p=3Dbinutils-gdb.git;a=3Dcommitdiff;h=
+=3D1de778ed23ce7492c523d5850c6c6dbb34152655
+> >Link: https://reviews.llvm.org/D79600
+> >Reported-by: Jian Cai <jiancai@google.com>
+> >Debugged-by: Luis Lozano <llozano@google.com>
+> >Suggested-by: F=C4=81ng-ru=C3=AC S=C3=B2ng <maskray@google.com>
+> >Tested-by: Luis Lozano <llozano@google.com>
+> >Tested-by: Manoj Gupta <manojgupta@google.com>
+> >Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
+> >---
+> > include/asm-generic/vmlinux.lds.h | 4 +++-
+> > 1 file changed, 3 insertions(+), 1 deletion(-)
+> >
+> >diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vml=
+inux.lds.h
+> >index d7c7c7f36c4a..fe5aaef169e3 100644
+> >--- a/include/asm-generic/vmlinux.lds.h
+> >+++ b/include/asm-generic/vmlinux.lds.h
+> >@@ -560,7 +560,9 @@
+> >  */
+> > #define TEXT_TEXT                                                     \
+> >               ALIGN_FUNCTION();                                       \
+> >-              *(.text.hot TEXT_MAIN .text.fixup .text.unlikely)       \
+> >+              *(.text.hot .text.hot.*)                                \
+> >+              *(TEXT_MAIN .text.fixup)                                \
+> >+              *(.text.unlikely .text.unlikely.*)                      \
+> >               NOINSTR_TEXT                                            \
+> >               *(.text..refcount)                                      \
+> >               *(.ref.text)                                            \
+> >--
+> >2.27.0.290.gba653c62da-goog
+> >
