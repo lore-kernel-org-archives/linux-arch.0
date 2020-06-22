@@ -1,69 +1,55 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:60668 "EHLO mail.kernel.org"
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga12.intel.com ([192.55.52.136]:60195 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727114AbgF2SlJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 29 Jun 2020 14:41:09 -0400
+        id S1730308AbgFVUJN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 16:09:13 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v2 06/21] KVM: x86/mmu: Move fast_page_fault() call above mmu_topup_memory_caches()
+Date: Mon, 22 Jun 2020 13:08:07 -0700
+Message-ID: <20200622200822.4426-7-sean.j.christopherson@intel.com>
+In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
 MIME-Version: 1.0
-References: <20200629061840.4065483-1-keescook@chromium.org> <20200629061840.4065483-6-keescook@chromium.org>
-In-Reply-To: <20200629061840.4065483-6-keescook@chromium.org>
-From: Ard Biesheuvel <ardb@kernel.org>
-Date: Mon, 29 Jun 2020 10:15:47 +0200
-Message-ID: <CAMj1kXE+toCd=Bx-zw7D9bvDRNB2aPn5-_7CY7MOKcVGA-azVg@mail.gmail.com>
-Subject: Re: [PATCH v4 05/17] ctype: Work around Clang -mbranch-protection=none
- bug
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Will Deacon <will@kernel.org>, Dave Martin <Dave.Martin@arm.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20200629081547.PseOJxM_QQ2WwX0A21LOmdIlWUWMnSCxzC0sMDPlzVM@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200622200807.FcZPIkNxgdY5PmbBeaQa4LIvQ79T8aGWw-ZVsj-df6k@z>
 
-On Mon, 29 Jun 2020 at 08:18, Kees Cook <keescook@chromium.org> wrote:
->
-> In preparation for building efi/libstub with -mbranch-protection=none
-> (EFI does not support branch protection features[1]), add no-op code
-> to work around a Clang bug that emits an unwanted .note.gnu.property
-> section for object files without code[2].
->
-> [1] https://lore.kernel.org/lkml/CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com
-> [2] https://bugs.llvm.org/show_bug.cgi?id=46480
->
-> Cc: Ard Biesheuvel <ardb@kernel.org>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: Dave Martin <Dave.Martin@arm.com>
-> Cc: clang-built-linux@googlegroups.com
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  lib/ctype.c | 10 ++++++++++
->  1 file changed, 10 insertions(+)
->
-> diff --git a/lib/ctype.c b/lib/ctype.c
-> index c819fe269eb2..21245ed57d90 100644
-> --- a/lib/ctype.c
-> +++ b/lib/ctype.c
-> @@ -36,3 +36,13 @@ _L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,     /* 224-239 */
->  _L,_L,_L,_L,_L,_L,_L,_P,_L,_L,_L,_L,_L,_L,_L,_L};      /* 240-255 */
->
->  EXPORT_SYMBOL(_ctype);
-> +
-> +/*
-> + * Clang will generate .note.gnu.property sections for object files
-> + * without code, even in the presence of -mbranch-protection=none.
-> + * To work around this, define an unused static function.
-> + * https://bugs.llvm.org/show_bug.cgi?id=46480
-> + */
-> +#ifdef CONFIG_CC_IS_CLANG
-> +void __maybe_unused __clang_needs_code_here(void) { }
-> +#endif
-> --
-> 2.25.1
->
+Avoid refilling the memory caches and potentially slow reclaim/swap when
+handling a fast page fault, which does not need to allocate any new
+objects.
 
-I take it we don't need this horrible hack if we build the EFI stub
-with branch protections and filter out the .note.gnu.property section
-explicitly?
+Reviewed-by: Ben Gardon <bgardon@google.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+---
+ arch/x86/kvm/mmu/mmu.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-Sorry to backpedal, but that is probably a better approach after all,
-given that the instructions don't hurt, and we will hopefully be able
-to arm them once UEFI (as well as PE/COFF) gets around to describing
-this in a way that both the firmware and the OS can consume.
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index 5e773564ab20..4b4c3234d623 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -4095,6 +4095,9 @@ static int direct_page_fault(struct kvm_vcpu *vcpu, gpa_t gpa, u32 error_code,
+ 	if (page_fault_handle_page_track(vcpu, error_code, gfn))
+ 		return RET_PF_EMULATE;
+ 
++	if (fast_page_fault(vcpu, gpa, error_code))
++		return RET_PF_RETRY;
++
+ 	r = mmu_topup_memory_caches(vcpu);
+ 	if (r)
+ 		return r;
+@@ -4102,9 +4105,6 @@ static int direct_page_fault(struct kvm_vcpu *vcpu, gpa_t gpa, u32 error_code,
+ 	if (lpage_disallowed)
+ 		max_level = PG_LEVEL_4K;
+ 
+-	if (fast_page_fault(vcpu, gpa, error_code))
+-		return RET_PF_RETRY;
+-
+ 	mmu_seq = vcpu->kvm->mmu_notifier_seq;
+ 	smp_rmb();
+ 
+-- 
+2.26.0
