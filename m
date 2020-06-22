@@ -1,62 +1,62 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38358 "EHLO
+Return-Path: <SRS0=NZEn=AE=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39192 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729005AbgF2Smm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:42 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 07/41] [ia64] access_uarea(): stop bothering with gpregs_[gs]et()
-Date: Mon, 29 Jun 2020 19:25:54 +0100
-Message-ID: <20200629182628.529995-7-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+        with ESMTP id S1731682AbgFWAkO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2020 20:40:14 -0400
+From: Nathan Chancellor <natechancellor@gmail.com>
+Subject: [PATCH 2/2] asm-generic: Make cacheflush.h self-contained
+Date: Mon, 22 Jun 2020 16:47:40 -0700
+Message-ID: <20200622234740.72825-3-natechancellor@gmail.com>
+In-Reply-To: <20200622234740.72825-1-natechancellor@gmail.com>
+References: <20200622234740.72825-1-natechancellor@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200629182554.Jkrqawyx3F8jGzPjwUxsDWMkDpl-MTn70cKxd9AT_8k@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-media@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, clang-built-linux@googlegroups.com, Nathan Chancellor <natechancellor@gmail.com>
+Message-ID: <20200622234740.PgEMzUJliXykD7pWK81Mi-c-X3s_2X4B8DjqEhrNo_U@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+Currently, cacheflush.h has to be included after mm.h to avoid several
+-Wvisibility warnings:
 
-We know this won't be called for child == current, so we don't need
-to bother with callbacks, etc. - just do unw_init_from_blocked_task(),
-unw_unwind_to_user() and do the payload of gpregs_[gs]et().  For
-one register.  Which is to say, access_elf_reg().
+$ clang -Wvisibility -fsyntax-only include/asm-generic/cacheflush.h
+include/asm-generic/cacheflush.h:16:42: warning: declaration of 'struct
+mm_struct' will not be visible outside of this function [-Wvisibility]
+static inline void flush_cache_mm(struct mm_struct *mm)
+                                         ^
+...
+include/asm-generic/cacheflush.h:28:45: warning: declaration of 'struct
+vm_area_struct' will not be visible outside of this function
+[-Wvisibility]
+static inline void flush_cache_range(struct vm_area_struct *vma,
+                                            ^
+...
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+Add a few forward declarations should that there are no warnings and the
+ordering of the includes does not matter.
+
+Fixes: e0cf615d725c ("asm-generic: don't include <linux/mm.h> in cacheflush.h")
+Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
 ---
- arch/ia64/kernel/ptrace.c | 17 ++++++++---------
- 1 file changed, 8 insertions(+), 9 deletions(-)
+ include/asm-generic/cacheflush.h | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/arch/ia64/kernel/ptrace.c b/arch/ia64/kernel/ptrace.c
-index be635f6f93c9..e0813c8e4b47 100644
---- a/arch/ia64/kernel/ptrace.c
-+++ b/arch/ia64/kernel/ptrace.c
-@@ -1936,15 +1936,14 @@ access_uarea(struct task_struct *child, unsigned long addr,
- 	}
+diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
+index 907fa5d16494..093b743da596 100644
+--- a/include/asm-generic/cacheflush.h
++++ b/include/asm-generic/cacheflush.h
+@@ -2,6 +2,11 @@
+ #ifndef _ASM_GENERIC_CACHEFLUSH_H
+ #define _ASM_GENERIC_CACHEFLUSH_H
  
- 	if (pos != -1) {
--		if (write_access)
--			ret = gpregs_set(child, NULL, pos,
--				sizeof(unsigned long), data, NULL);
--		else
--			ret = gpregs_get(child, NULL, pos,
--				sizeof(unsigned long), data, NULL);
--		if (ret != 0)
--			return -1;
--		return 0;
-+		struct unw_frame_info info;
++struct address_space;
++struct mm_struct;
++struct page;
++struct vm_area_struct;
 +
-+		memset(&info, 0, sizeof(info));
-+		unw_init_from_blocked_task(&info, child);
-+		if (unw_unwind_to_user(&info) < 0)
-+			return 0;
-+
-+		return access_elf_reg(child, &info, pos, data, write_access);
- 	}
- 
- 	/* access debug registers */
+ /*
+  * The cache doesn't need to be flushed when TLB entries change when
+  * the cache is mapped to physical memory, not virtual memory
 -- 
-2.11.0
+2.27.0
