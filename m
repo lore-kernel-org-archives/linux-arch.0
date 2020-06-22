@@ -1,193 +1,177 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 15/21] KVM: Move x86's MMU memory cache helpers to common
- KVM code
-Date: Mon, 22 Jun 2020 13:08:16 -0700
-Message-ID: <20200622200822.4426-16-sean.j.christopherson@intel.com>
+Subject: [PATCH v2 14/21] KVM: Move x86's version of struct kvm_mmu_memory_cache to common code
+Date: Mon, 22 Jun 2020 13:08:15 -0700
+Message-ID: <20200622200822.4426-15-sean.j.christopherson@intel.com>
 References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
+Sender: linux-kernel-owner@vger.kernel.org
 To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, Junaid Shahid <junaids@google.com>, Wanpeng Li <wanpengli@tencent.com>, kvm@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Peter Shier <pshier@google.com>, linux-mips@vger.kernel.org, Sean Christopherson <sean.j.christopherson@intel.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Gardon <bgardon@google.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Peter Feiner <pfeiner@google.com>, kvmarm@lists.cs.columbia.edu, Jim Mattson <jmattson@google.com>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Move x86's memory cache helpers to common KVM code so that they can be
-reused by arm64 and MIPS in future patches.
+Move x86's 'struct kvm_mmu_memory_cache' to common code in anticipation
+of moving the entire x86 implementation code to common KVM and reusing
+it for arm64 and MIPS.  Add a new architecture specific asm/kvm_types.h
+to control the existence and parameters of the struct.  The new header
+is needed to avoid a chicken-and-egg problem with asm/kvm_host.h as all
+architectures define instances of the struct in their vCPU structs.
+
+Add an asm-generic version of kvm_types.h to avoid having empty files on
+PPC and s390 in the long term, and for arm64 and mips in the short term.
 
 Suggested-by: Christoffer Dall <christoffer.dall@arm.com>
-Reviewed-by: Ben Gardon <bgardon@google.com>
 Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- arch/x86/kvm/mmu/mmu.c   | 53 --------------------------------------
- include/linux/kvm_host.h |  7 +++++
- virt/kvm/kvm_main.c      | 55 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 62 insertions(+), 53 deletions(-)
+ arch/arm64/include/asm/Kbuild    |  1 +
+ arch/mips/include/asm/Kbuild     |  1 +
+ arch/powerpc/include/asm/Kbuild  |  1 +
+ arch/s390/include/asm/Kbuild     |  1 +
+ arch/x86/include/asm/kvm_host.h  | 13 -------------
+ arch/x86/include/asm/kvm_types.h |  7 +++++++
+ include/asm-generic/kvm_types.h  |  5 +++++
+ include/linux/kvm_types.h        | 19 +++++++++++++++++++
+ 8 files changed, 35 insertions(+), 13 deletions(-)
+ create mode 100644 arch/x86/include/asm/kvm_types.h
+ create mode 100644 include/asm-generic/kvm_types.h
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index b85d3e8e8403..a627437f73fd 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1060,47 +1060,6 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
- 	local_irq_enable();
- }
+diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
+index ff9cbb631212..35a68155cd0e 100644
+--- a/arch/arm64/include/asm/Kbuild
++++ b/arch/arm64/include/asm/Kbuild
+@@ -1,5 +1,6 @@
+ # SPDX-License-Identifier: GPL-2.0
+ generic-y += early_ioremap.h
++generic-y += kvm_types.h
+ generic-y += local64.h
+ generic-y += mcs_spinlock.h
+ generic-y += qrwlock.h
+diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
+index 8643d313890e..397e6d24d2ab 100644
+--- a/arch/mips/include/asm/Kbuild
++++ b/arch/mips/include/asm/Kbuild
+@@ -5,6 +5,7 @@ generated-y += syscall_table_64_n32.h
+ generated-y += syscall_table_64_n64.h
+ generated-y += syscall_table_64_o32.h
+ generic-y += export.h
++generic-y += kvm_types.h
+ generic-y += local64.h
+ generic-y += mcs_spinlock.h
+ generic-y += parport.h
+diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
+index dadbcf3a0b1e..2d444d09b553 100644
+--- a/arch/powerpc/include/asm/Kbuild
++++ b/arch/powerpc/include/asm/Kbuild
+@@ -4,6 +4,7 @@ generated-y += syscall_table_64.h
+ generated-y += syscall_table_c32.h
+ generated-y += syscall_table_spu.h
+ generic-y += export.h
++generic-y += kvm_types.h
+ generic-y += local64.h
+ generic-y += mcs_spinlock.h
+ generic-y += vtime.h
+diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
+index 83f6e85de7bc..319efa0e6d02 100644
+--- a/arch/s390/include/asm/Kbuild
++++ b/arch/s390/include/asm/Kbuild
+@@ -6,5 +6,6 @@ generated-y += unistd_nr.h
  
--static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
--					       gfp_t gfp_flags)
--{
--	gfp_flags |= mc->gfp_zero;
--
--	if (mc->kmem_cache)
--		return kmem_cache_alloc(mc->kmem_cache, gfp_flags);
--	else
--		return (void *)__get_free_page(gfp_flags);
--}
--
--static int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
--{
--	void *obj;
--
--	if (mc->nobjs >= min)
--		return 0;
--	while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
--		obj = mmu_memory_cache_alloc_obj(mc, GFP_KERNEL_ACCOUNT);
--		if (!obj)
--			return mc->nobjs >= min ? 0 : -ENOMEM;
--		mc->objects[mc->nobjs++] = obj;
--	}
--	return 0;
--}
--
--static int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc)
--{
--	return mc->nobjs;
--}
--
--static void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
--{
--	while (mc->nobjs) {
--		if (mc->kmem_cache)
--			kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
--		else
--			free_page((unsigned long)mc->objects[--mc->nobjs]);
--	}
--}
--
- static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu, bool maybe_indirect)
- {
- 	int r;
-@@ -1132,18 +1091,6 @@ static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
- 	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
- }
+ generic-y += asm-offsets.h
+ generic-y += export.h
++generic-y += kvm_types.h
+ generic-y += local64.h
+ generic-y += mcs_spinlock.h
+diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
+index 67b84aa2984e..70832aa762e5 100644
+--- a/arch/x86/include/asm/kvm_host.h
++++ b/arch/x86/include/asm/kvm_host.h
+@@ -193,8 +193,6 @@ struct x86_exception;
+ enum x86_intercept;
+ enum x86_intercept_stage;
  
--static void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
--{
--	void *p;
+-#define KVM_NR_MEM_OBJS 40
 -
--	if (WARN_ON(!mc->nobjs))
--		p = mmu_memory_cache_alloc_obj(mc, GFP_ATOMIC | __GFP_ACCOUNT);
--	else
--		p = mc->objects[--mc->nobjs];
--	BUG_ON(!p);
--	return p;
--}
+ #define KVM_NR_DB_REGS	4
+ 
+ #define DR6_BD		(1 << 13)
+@@ -245,17 +243,6 @@ enum x86_intercept_stage;
+ 
+ struct kvm_kernel_irq_routing_entry;
+ 
+-/*
+- * We don't want allocation failures within the mmu code, so we preallocate
+- * enough memory for a single page fault in a cache.
+- */
+-struct kvm_mmu_memory_cache {
+-	int nobjs;
+-	gfp_t gfp_zero;
+-	struct kmem_cache *kmem_cache;
+-	void *objects[KVM_NR_MEM_OBJS];
+-};
 -
- static struct pte_list_desc *mmu_alloc_pte_list_desc(struct kvm_vcpu *vcpu)
- {
- 	return kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_pte_list_desc_cache);
-diff --git a/include/linux/kvm_host.h b/include/linux/kvm_host.h
-index 62ec926c78a0..d35e397dad6a 100644
---- a/include/linux/kvm_host.h
-+++ b/include/linux/kvm_host.h
-@@ -816,6 +816,13 @@ void kvm_vcpu_on_spin(struct kvm_vcpu *vcpu, bool usermode_vcpu_not_eligible);
- void kvm_flush_remote_tlbs(struct kvm *kvm);
- void kvm_reload_remote_mmus(struct kvm *kvm);
+ /*
+  * the pages used as guest page table on soft mmu are tracked by
+  * kvm_memory_slot.arch.gfn_track which is 16 bits, so the role bits used
+diff --git a/arch/x86/include/asm/kvm_types.h b/arch/x86/include/asm/kvm_types.h
+new file mode 100644
+index 000000000000..08f1b57d3b62
+--- /dev/null
++++ b/arch/x86/include/asm/kvm_types.h
+@@ -0,0 +1,7 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_X86_KVM_TYPES_H
++#define _ASM_X86_KVM_TYPES_H
++
++#define KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE 40
++
++#endif /* _ASM_X86_KVM_TYPES_H */
+diff --git a/include/asm-generic/kvm_types.h b/include/asm-generic/kvm_types.h
+new file mode 100644
+index 000000000000..2a82daf110f1
+--- /dev/null
++++ b/include/asm-generic/kvm_types.h
+@@ -0,0 +1,5 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_GENERIC_KVM_TYPES_H
++#define _ASM_GENERIC_KVM_TYPES_H
++
++#endif
+diff --git a/include/linux/kvm_types.h b/include/linux/kvm_types.h
+index 68e84cf42a3f..a7580f69dda0 100644
+--- a/include/linux/kvm_types.h
++++ b/include/linux/kvm_types.h
+@@ -20,6 +20,8 @@ enum kvm_mr_change;
+ 
+ #include <linux/types.h>
+ 
++#include <asm/kvm_types.h>
++
+ /*
+  * Address types:
+  *
+@@ -58,4 +60,21 @@ struct gfn_to_pfn_cache {
+ 	bool dirty;
+ };
  
 +#ifdef KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE
-+int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min);
-+int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc);
-+void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc);
-+void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc);
++/*
++ * Memory caches are used to preallocate memory ahead of various MMU flows,
++ * e.g. page fault handlers.  Gracefully handling allocation failures deep in
++ * MMU flows is problematic, as is triggering reclaim, I/O, etc... while
++ * holding MMU locks.  Note, these caches act more like prefetch buffers than
++ * classical caches, i.e. objects are not returned to the cache on being freed.
++ */
++struct kvm_mmu_memory_cache {
++	int nobjs;
++	gfp_t gfp_zero;
++	struct kmem_cache *kmem_cache;
++	void *objects[KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE];
++};
 +#endif
 +
- bool kvm_make_vcpus_request_mask(struct kvm *kvm, unsigned int req,
- 				 struct kvm_vcpu *except,
- 				 unsigned long *vcpu_bitmap, cpumask_var_t tmp);
-diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
-index 7b6013f2ba19..9f019b552dcf 100644
---- a/virt/kvm/kvm_main.c
-+++ b/virt/kvm/kvm_main.c
-@@ -341,6 +341,61 @@ void kvm_reload_remote_mmus(struct kvm *kvm)
- 	kvm_make_all_cpus_request(kvm, KVM_REQ_MMU_RELOAD);
- }
- 
-+#ifdef KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE
-+static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
-+					       gfp_t gfp_flags)
-+{
-+	gfp_flags |= mc->gfp_zero;
 +
-+	if (mc->kmem_cache)
-+		return kmem_cache_alloc(mc->kmem_cache, gfp_flags);
-+	else
-+		return (void *)__get_free_page(gfp_flags);
-+}
-+
-+int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
-+{
-+	void *obj;
-+
-+	if (mc->nobjs >= min)
-+		return 0;
-+	while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
-+		obj = mmu_memory_cache_alloc_obj(mc, GFP_KERNEL_ACCOUNT);
-+		if (!obj)
-+			return mc->nobjs >= min ? 0 : -ENOMEM;
-+		mc->objects[mc->nobjs++] = obj;
-+	}
-+	return 0;
-+}
-+
-+int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc)
-+{
-+	return mc->nobjs;
-+}
-+
-+void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
-+{
-+	while (mc->nobjs) {
-+		if (mc->kmem_cache)
-+			kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
-+		else
-+			free_page((unsigned long)mc->objects[--mc->nobjs]);
-+	}
-+}
-+
-+void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
-+{
-+	void *p;
-+
-+	if (WARN_ON(!mc->nobjs))
-+		p = mmu_memory_cache_alloc_obj(mc, GFP_ATOMIC | __GFP_ACCOUNT);
-+	else
-+		p = mc->objects[--mc->nobjs];
-+	BUG_ON(!p);
-+	return p;
-+}
-+#endif
-+
- static void kvm_vcpu_init(struct kvm_vcpu *vcpu, struct kvm *kvm, unsigned id)
- {
- 	mutex_init(&vcpu->mutex);
+ #endif /* __KVM_TYPES_H__ */
 -- 
 2.26.0
