@@ -1,76 +1,47 @@
 Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:60223 "EHLO mga12.intel.com"
+Received: from correo.us.es ([193.147.175.20]:46800 "EHLO mail.us.es"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730669AbgFVUJU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jun 2020 16:09:20 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 16/21] KVM: arm64: Drop @max param from mmu_topup_memory_cache()
-Date: Mon, 22 Jun 2020 13:08:17 -0700
-Message-ID: <20200622200822.4426-17-sean.j.christopherson@intel.com>
-In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
-References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+        id S1728080AbgFVMHQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 08:07:16 -0400
+Received: from antivirus1-rhel7.int (unknown [192.168.2.11])
+        by mail.us.es (Postfix) with ESMTP id 9BDBFF23BA
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 14:07:14 +0200 (CEST)
+Received: from antivirus1-rhel7.int (localhost [127.0.0.1])
+        by antivirus1-rhel7.int (Postfix) with ESMTP id 8BE84DA78A
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 14:07:14 +0200 (CEST)
+Date: Mon, 22 Jun 2020 14:07:07 +0200
+From: Pablo Neira Ayuso <pablo@netfilter.org>
+Subject: Re: Good idea to rename files in include/uapi/ ?
+Message-ID: <20200622120707.GA17620@salvia>
+References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
+ <174102.1592165965@warthog.procyon.org.uk>
+ <nycvar.YFH.7.77.849.2006142244200.30230@n3.vanv.qr>
+ <ab88e504-c139-231a-0294-953ffd1a9442@al2klimov.de>
+ <nycvar.YFH.7.77.849.2006221336180.26495@n3.vanv.qr>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <nycvar.YFH.7.77.849.2006221336180.26495@n3.vanv.qr>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200622200817.n41So3rKY6oZYiYggiciKvQ1Jnuyxtf3zukUhwnns_g@z>
+To: Jan Engelhardt <jengelh@inai.de>
+Cc: "Alexander A. Klimov" <grandmaster@al2klimov.de>, David Howells <dhowells@redhat.com>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20200622120707.Xm097DM-sT6EILb-N4oRnzK4oOqhW6nWUwacnujprE4@z>
 
-Replace the @max param in mmu_topup_memory_cache() and instead use
-ARRAY_SIZE() to terminate the loop to fill the cache.  This removes a
-BUG_ON() and sets the stage for moving arm64 to the common memory cache
-implementation.
+On Mon, Jun 22, 2020 at 01:37:09PM +0200, Jan Engelhardt wrote:
+> 
+> On Monday 2020-06-15 01:34, Alexander A. Klimov wrote:
+> >> 
+> >> A header file rename is no problem. We even have dummy headers
+> > Hmm.. if I understand all of you correctly, David, Stefano, Pablo and Al say
+> > like no, not a good idea, but only you, Jan, say like should be no problem.
+> >
+> > Jan, do you have anything like commit messages in mainline or public emails
+> > from maintainers confirming your opinion?
+> 
+> I had already given the commit with the (email) message:
+> 
+> >> Just look at xt_MARK.h, all it does is include xt_mark.h. Cf.
+> >> 28b949885f80efb87d7cebdcf879c99db12c37bd .
 
-No functional change intended.
-
-Tested-by: Marc Zyngier <maz@kernel.org>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
----
- arch/arm64/kvm/mmu.c | 12 ++++--------
- 1 file changed, 4 insertions(+), 8 deletions(-)
-
-diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
-index a1f6bc70c4e4..9398b66f8a87 100644
---- a/arch/arm64/kvm/mmu.c
-+++ b/arch/arm64/kvm/mmu.c
-@@ -124,15 +124,13 @@ static void stage2_dissolve_pud(struct kvm *kvm, phys_addr_t addr, pud_t *pudp)
- 	put_page(virt_to_page(pudp));
- }
- 
--static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache,
--				  int min, int max)
-+static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
- {
- 	void *page;
- 
--	BUG_ON(max > KVM_NR_MEM_OBJS);
- 	if (cache->nobjs >= min)
- 		return 0;
--	while (cache->nobjs < max) {
-+	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
- 		page = (void *)__get_free_page(GFP_PGTABLE_USER);
- 		if (!page)
- 			return -ENOMEM;
-@@ -1356,8 +1354,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
- 			pte = kvm_s2pte_mkwrite(pte);
- 
- 		ret = mmu_topup_memory_cache(&cache,
--					     kvm_mmu_cache_min_pages(kvm),
--					     KVM_NR_MEM_OBJS);
-+					     kvm_mmu_cache_min_pages(kvm));
- 		if (ret)
- 			goto out;
- 		spin_lock(&kvm->mmu_lock);
-@@ -1737,8 +1734,7 @@ static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
- 	up_read(&current->mm->mmap_sem);
- 
- 	/* We need minimum second+third level pages */
--	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm),
--				     KVM_NR_MEM_OBJS);
-+	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm));
- 	if (ret)
- 		return ret;
- 
--- 
-2.26.0
+Why rename this in 2020 ?
