@@ -1,80 +1,103 @@
-Return-Path: <SRS0=eK+U=AG=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52072 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390330AbgFYI6T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jun 2020 04:58:19 -0400
-Date: Thu, 25 Jun 2020 10:57:45 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Message-ID: <20200625085745.GD117543@hirez.programming.kicks-ass.net>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624211540.GS4817@hirez.programming.kicks-ass.net>
- <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
- <20200625080313.GY4817@hirez.programming.kicks-ass.net>
- <20200625082433.GC117543@hirez.programming.kicks-ass.net>
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga12.intel.com ([192.55.52.136]:60199 "EHLO mga12.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730176AbgFVUJK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 16:09:10 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v2 02/21] KVM: x86/mmu: Consolidate "page" variant of memory cache helpers
+Date: Mon, 22 Jun 2020 13:08:03 -0700
+Message-ID: <20200622200822.4426-3-sean.j.christopherson@intel.com>
+In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200625082433.GC117543@hirez.programming.kicks-ass.net>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-Message-ID: <20200625085745.MP7QIq3OcdG6JjBuEhhgiHOEQ4WS-fMTdzrBcjLclvU@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200622200803.fuYRwKVkN-vWokV3NDslV2HH121fIfczMKNc-jAsj_8@z>
 
-On Thu, Jun 25, 2020 at 10:24:33AM +0200, Peter Zijlstra wrote:
-> On Thu, Jun 25, 2020 at 10:03:13AM +0200, Peter Zijlstra wrote:
+Drop the "page" variants of the topup/free memory cache helpers, using
+the existence of an associated kmem_cache to select the correct alloc
+or free routine.
 
-> > I'm sure Will will respond, but the basic issue is the trainwreck C11
-> > made of dependent loads.
-> > 
-> > Anyway, here's a link to the last time this came up:
-> > 
-> >   https://lore.kernel.org/linux-arm-kernel/20171116174830.GX3624@linux.vnet.ibm.com/
-> 
-> Another good read:
-> 
->   https://lore.kernel.org/lkml/20150520005510.GA23559@linux.vnet.ibm.com/
-> 
-> and having (partially) re-read that, I now worry intensily about things
-> like latch_tree_find(), cyc2ns_read_begin, __ktime_get_fast_ns().
-> 
-> It looks like kernel/time/sched_clock.c uses raw_read_seqcount() which
-> deviates from the above patterns by, for some reason, using a primitive
-> that includes an extra smp_rmb().
-> 
-> And this is just the few things I could remember off the top of my head,
-> who knows what else is out there.
+No functional change intended.
 
-As an example, let us consider __ktime_get_fast_ns(), the critical bit
-is:
+Reviewed-by: Ben Gardon <bgardon@google.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+---
+ arch/x86/kvm/mmu/mmu.c | 37 +++++++++++--------------------------
+ 1 file changed, 11 insertions(+), 26 deletions(-)
 
-		seq = raw_read_seqcount_latch(&tkf->seq);
-		tkr = tkf->base + (seq & 0x01);
-		now = tkr->base;
-
-And we hard rely on that being a dependent load, so:
-
-  LOAD	seq, (tkf->seq)
-  LOAD  tkr, tkf->base
-  AND   seq, 1
-  MUL   seq, sizeof(tk_read_base)
-  ADD	tkr, seq
-  LOAD  now, (tkr->base)
-
-Such that we obtain 'now' as a direct dependency on 'seq'. This ensures
-the loads are ordered.
-
-A compiler can wreck this by translating it into something like:
-
-  LOAD	seq, (tkf->seq)
-  LOAD  tkr, tkf->base
-  AND   seq, 1
-  CMP	seq, 0
-  JE	1f
-  ADD	tkr, sizeof(tk_read_base)
-1:
-  LOAD  now, (tkr->base)
-
-Because now the machine can speculate and load now before seq, breaking
-the ordering.
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index 0830c195c9ed..cbc101663a89 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -1067,7 +1067,10 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
+ 	if (cache->nobjs >= min)
+ 		return 0;
+ 	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		obj = kmem_cache_zalloc(cache->kmem_cache, GFP_KERNEL_ACCOUNT);
++		if (cache->kmem_cache)
++			obj = kmem_cache_zalloc(cache->kmem_cache, GFP_KERNEL_ACCOUNT);
++		else
++			obj = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
+ 		if (!obj)
+ 			return cache->nobjs >= min ? 0 : -ENOMEM;
+ 		cache->objects[cache->nobjs++] = obj;
+@@ -1082,30 +1085,12 @@ static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *cache)
+ 
+ static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
+ {
+-	while (mc->nobjs)
+-		kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
+-}
+-
+-static int mmu_topup_memory_cache_page(struct kvm_mmu_memory_cache *cache,
+-				       int min)
+-{
+-	void *page;
+-
+-	if (cache->nobjs >= min)
+-		return 0;
+-	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
+-		if (!page)
+-			return cache->nobjs >= min ? 0 : -ENOMEM;
+-		cache->objects[cache->nobjs++] = page;
++	while (mc->nobjs) {
++		if (mc->kmem_cache)
++			kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
++		else
++			free_page((unsigned long)mc->objects[--mc->nobjs]);
+ 	}
+-	return 0;
+-}
+-
+-static void mmu_free_memory_cache_page(struct kvm_mmu_memory_cache *mc)
+-{
+-	while (mc->nobjs)
+-		free_page((unsigned long)mc->objects[--mc->nobjs]);
+ }
+ 
+ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+@@ -1116,7 +1101,7 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+ 				   8 + PTE_PREFETCH_NUM);
+ 	if (r)
+ 		goto out;
+-	r = mmu_topup_memory_cache_page(&vcpu->arch.mmu_page_cache, 8);
++	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache, 8);
+ 	if (r)
+ 		goto out;
+ 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
+@@ -1127,7 +1112,7 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+ static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+ {
+ 	mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache);
+-	mmu_free_memory_cache_page(&vcpu->arch.mmu_page_cache);
++	mmu_free_memory_cache(&vcpu->arch.mmu_page_cache);
+ 	mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
+ }
+ 
+-- 
+2.26.0
