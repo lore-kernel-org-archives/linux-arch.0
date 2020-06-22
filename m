@@ -1,44 +1,112 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtprelay0235.hostedemail.com ([216.40.44.235]:52858 "EHLO
-        smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1732683AbgF2UDS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 29 Jun 2020 16:03:18 -0400
-Message-ID: <9b7f9c3aed7223e49def6e775d3b250aa780e562.camel@perches.com>
-Subject: Re: [PATCH v4 08/17] arm64/mm: Remove needless section quotes
-From: Joe Perches <joe@perches.com>
-Date: Mon, 29 Jun 2020 13:03:12 -0700
-In-Reply-To: <CAKwvOd=r6bsBfSZxVYrnbm1Utq==ApWBDjx+0Fxsm90Aq3Jghw@mail.gmail.com>
-References: <20200629061840.4065483-1-keescook@chromium.org>
-         <20200629061840.4065483-9-keescook@chromium.org>
-         <CAKwvOd=r6bsBfSZxVYrnbm1Utq==ApWBDjx+0Fxsm90Aq3Jghw@mail.gmail.com>
-Content-Type: text/plain; charset="ISO-8859-1"
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52732 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730785AbgFVXEV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2020 19:04:21 -0400
+Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C1DF7C061573
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:04:20 -0700 (PDT)
+Received: by mail-pl1-x643.google.com with SMTP id 35so8264651ple.0
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:04:20 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+References: <20200617210613.95432-1-ndesaulniers@google.com> <20200617212705.tq2q6bi446gydymo@google.com>
+In-Reply-To: <20200617212705.tq2q6bi446gydymo@google.com>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Date: Mon, 22 Jun 2020 16:04:07 -0700
+Message-ID: <CAKwvOdniambW9_nVbDnd4A_+bdDdZMd2V1Q=Xw5EJYDGeh=eyQ@mail.gmail.com>
+Subject: Re: [PATCH] vmlinux.lds: consider .text.{hot|unlikely}.* part of
+ .text too
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Desaulniers <ndesaulniers@google.com>, Kees Cook <keescook@chromium.org>
-Cc: Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20200629200312.H25OSa4sv0PV7lXsR62pyzxW6Z6lp7VJjLWg8WrTtrk@z>
+To: =?UTF-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>, Kees Cook <keescook@chromium.org>, "# 3.4.x" <stable@vger.kernel.org>, Jian Cai <jiancai@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20200622230407.cNEaW3E23ZhNQ-aVZSdGjJooK1gZcyrt5poA9ONV-5Y@z>
 
-On Mon, 2020-06-29 at 12:53 -0700, Nick Desaulniers wrote:
-> On Sun, Jun 28, 2020 at 11:18 PM Kees Cook <keescook@chromium.org> wrote:
-> > Fix a case of needless quotes in __section(), which Clang doesn't like.
-> > 
-> > Acked-by: Will Deacon <will@kernel.org>
-> > Signed-off-by: Kees Cook <keescook@chromium.org>
-> 
-> Yep, I remember bugs from this.  Probably should scan the kernel for
-> other instances of this.  +Joe for checkpatch.pl validation.
-> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+On Wed, Jun 17, 2020 at 2:27 PM F=C4=81ng-ru=C3=AC S=C3=B2ng <maskray@googl=
+e.com> wrote:
+>
+>
+> On 2020-06-17, Nick Desaulniers wrote:
+> >ld.bfd's internal linker script considers .text.hot AND .text.hot.* to
+> >be part of .text, as well as .text.unlikely and .text.unlikely.*.
+>
+> >ld.lld will produce .text.hot.*/.text.unlikely.* sections.
+>
+> Correction to this sentence. lld is not relevant here.
+>
+> -ffunction-sections combined with profile-guided optimization can
+> produce .text.hot.* .text.unlikely.* sections.  Newer clang may produce
+> .text.hot. .text.unlikely. (without suffix, but with a trailing dot)
+> when -fno-unique-section-names is specified, as an optimization to make
+> .strtab smaller.
 
-$ git grep -P -n '__section\s*\(\s*\"'
-arch/arm64/mm/mmu.c:45:u64 __section(".mmuoff.data.write") vabits_actual;
-include/linux/compiler.h:211:   __section("___kentry" "+" #sym )                        \
-include/linux/export.h:133:     static int __ksym_marker_##sym[0] __section(".discard.ksym") __used
-include/linux/srcutree.h:127:           __section("___srcu_struct_ptrs") = &name
+Then why was the bug report reporting https://reviews.llvm.org/D79600
+as the result of a bisection, if LLD is not relevant?  Was the
+bisection wrong?
 
-My recollection is I submitted a patch
-to _add_ quotes
+The upstream report wasn't initially public, for no good reason.  So I
+didn't include it, but if we end up taking v1, this should have
 
-https://lore.kernel.org/patchwork/patch/1125785/
+Link: https://bugs.chromium.org/p/chromium/issues/detail?id=3D1084760
+
+The kernel doesn't use -fno-unique-section-names; is that another flag
+that's added by CrOS' compiler wrapper?
+https://source.chromium.org/chromiumos/chromiumos/codesearch/+/master:src/t=
+hird_party/toolchain-utils/compiler_wrapper/config.go;l=3D110
+Looks like no.  It doesn't use `-fno-unique-section-names` or
+`-ffunction-sections`.
+
+
+>
+> We've already seen that GCC can place main in .text.startup without
+> -ffunction-sections. There may be other non -ffunction-sections cases
+> for .text.hot.* or .text.unlikely.*. So it is definitely a good idea to
+> be more specific even if we don't care about -ffunction-sections for
+> now.
+>
+> >Make sure to group these together.  Otherwise these orphan sections may
+> >be placed outside of the the _stext/_etext boundaries.
+> >
+> >Cc: stable@vger.kernel.org
+> >Link: https://sourceware.org/git/?p=3Dbinutils-gdb.git;a=3Dcommitdiff;h=
+=3Dadd44f8d5c5c05e08b11e033127a744d61c26aee
+> >Link: https://sourceware.org/git/?p=3Dbinutils-gdb.git;a=3Dcommitdiff;h=
+=3D1de778ed23ce7492c523d5850c6c6dbb34152655
+> >Link: https://reviews.llvm.org/D79600
+> >Reported-by: Jian Cai <jiancai@google.com>
+> >Debugged-by: Luis Lozano <llozano@google.com>
+> >Suggested-by: F=C4=81ng-ru=C3=AC S=C3=B2ng <maskray@google.com>
+> >Tested-by: Luis Lozano <llozano@google.com>
+> >Tested-by: Manoj Gupta <manojgupta@google.com>
+> >Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
+> >---
+> > include/asm-generic/vmlinux.lds.h | 4 +++-
+> > 1 file changed, 3 insertions(+), 1 deletion(-)
+> >
+> >diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vml=
+inux.lds.h
+> >index d7c7c7f36c4a..fe5aaef169e3 100644
+> >--- a/include/asm-generic/vmlinux.lds.h
+> >+++ b/include/asm-generic/vmlinux.lds.h
+> >@@ -560,7 +560,9 @@
+> >  */
+> > #define TEXT_TEXT                                                     \
+> >               ALIGN_FUNCTION();                                       \
+> >-              *(.text.hot TEXT_MAIN .text.fixup .text.unlikely)       \
+> >+              *(.text.hot .text.hot.*)                                \
+> >+              *(TEXT_MAIN .text.fixup)                                \
+> >+              *(.text.unlikely .text.unlikely.*)                      \
+> >               NOINSTR_TEXT                                            \
+> >               *(.text..refcount)                                      \
+> >               *(.ref.text)                                            \
+> >--
+> >2.27.0.290.gba653c62da-goog
+> >
+
+
+
+--
+Thanks,
+~Nick Desaulniers
