@@ -1,38 +1,79 @@
-Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:33796 "EHLO verein.lst.de"
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga12.intel.com ([192.55.52.136]:60212 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730405AbgFOOnO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 15 Jun 2020 10:43:14 -0400
-Date: Mon, 15 Jun 2020 16:43:10 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
-Message-ID: <20200615144310.GA15101@lst.de>
-References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de> <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com> <20200615141239.GA12951@lst.de> <CAK8P3a2MeZhayZWkPbd4Ckq3n410p_n808NJTwN=JjzqHRiAXg@mail.gmail.com>
+        id S1730228AbgFVUJN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 16:09:13 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v2 05/21] KVM: x86/mmu: Try to avoid crashing KVM if a MMU memory cache is empty
+Date: Mon, 22 Jun 2020 13:08:06 -0700
+Message-ID: <20200622200822.4426-6-sean.j.christopherson@intel.com>
+In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a2MeZhayZWkPbd4Ckq3n410p_n808NJTwN=JjzqHRiAXg@mail.gmail.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20200615144310.1zfLIuhhrY9tYVPwXd5ySDTly2YpwbJBeJoDuCocHJk@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200622200806.NsVAHNwRUJXbMC8bP0sP0pzlpved2cqo1GBlRwHRxRM@z>
 
-On Mon, Jun 15, 2020 at 04:40:28PM +0200, Arnd Bergmann wrote:
-> > ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1040): undefined reference to
-> > `__x32_sys_execve'
-> > ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1108): undefined reference to
-> > `__x32_sys_execveat'
-> > make: *** [Makefile:1139: vmlinux] Error 1
-> 
-> Ah, I see: it's marked x32-only, so arch/x86/entry/syscall_x32.c
-> uses the __x32 prefix instead of the __x64 one. Marking it 'common'
-> instead would make it work, but also create an extra entry point
-> for native processes, something that commit
-> 6365b842aae4 ("x86/syscalls: Split the x32 syscalls into their own table")
-> was trying to avoid.
+Attempt to allocate a new object instead of crashing KVM (and likely the
+kernel) if a memory cache is unexpectedly empty.  Use GFP_ATOMIC for the
+allocation as the caches are used while holding mmu_lock.  The immediate
+BUG_ON() makes the code unnecessarily explosive and led to confusing
+minimums being used in the past, e.g. allocating 4 objects where 1 would
+suffice.
 
-Marking it common also doesn't compile at all because __NR_execve
-and __NR_execveat get redefined in unistd_64.h.  I then tried to rename
-the x32 versions, which failed in yet another way.  At that point I gave
-up instead of digging myself into a deeper hole..
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+---
+ arch/x86/kvm/mmu/mmu.c | 21 +++++++++++++++------
+ 1 file changed, 15 insertions(+), 6 deletions(-)
+
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index ba70de24a5b0..5e773564ab20 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -1060,6 +1060,15 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
+ 	local_irq_enable();
+ }
+ 
++static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
++					       gfp_t gfp_flags)
++{
++	if (mc->kmem_cache)
++		return kmem_cache_zalloc(mc->kmem_cache, gfp_flags);
++	else
++		return (void *)__get_free_page(gfp_flags);
++}
++
+ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
+ {
+ 	void *obj;
+@@ -1067,10 +1076,7 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
+ 	if (mc->nobjs >= min)
+ 		return 0;
+ 	while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
+-		if (mc->kmem_cache)
+-			obj = kmem_cache_zalloc(mc->kmem_cache, GFP_KERNEL_ACCOUNT);
+-		else
+-			obj = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
++		obj = mmu_memory_cache_alloc_obj(mc, GFP_KERNEL_ACCOUNT);
+ 		if (!obj)
+ 			return mc->nobjs >= min ? 0 : -ENOMEM;
+ 		mc->objects[mc->nobjs++] = obj;
+@@ -1118,8 +1124,11 @@ static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
+ {
+ 	void *p;
+ 
+-	BUG_ON(!mc->nobjs);
+-	p = mc->objects[--mc->nobjs];
++	if (WARN_ON(!mc->nobjs))
++		p = mmu_memory_cache_alloc_obj(mc, GFP_ATOMIC | __GFP_ACCOUNT);
++	else
++		p = mc->objects[--mc->nobjs];
++	BUG_ON(!p);
+ 	return p;
+ }
+ 
+-- 
+2.26.0
