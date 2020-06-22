@@ -1,68 +1,110 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33248 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2404146AbgFXPje (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 11:39:34 -0400
-From: Arvind Sankar <nivedita@alum.mit.edu>
-Date: Wed, 24 Jun 2020 11:39:30 -0400
-Subject: Re: [PATCH v3 2/9] vmlinux.lds.h: Add .symtab, .strtab, and
- .shstrtab to STABS_DEBUG
-Message-ID: <20200624153930.GA1337895@rani.riverdale.lan>
-References: <20200624014940.1204448-1-keescook@chromium.org>
- <20200624014940.1204448-3-keescook@chromium.org>
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga12.intel.com ([192.55.52.136]:60195 "EHLO mga12.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730634AbgFVUJR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 16:09:17 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v2 12/21] KVM: x86/mmu: Skip filling the gfn cache for guaranteed direct MMU topups
+Date: Mon, 22 Jun 2020 13:08:13 -0700
+Message-ID: <20200622200822.4426-13-sean.j.christopherson@intel.com>
+In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20200624014940.1204448-3-keescook@chromium.org>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Will Deacon <will@kernel.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200624153930.dJAHUOfWXq5ysqH8byz0v38ABUyAZlk_FfW-fiNuXJM@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200622200813.hVQwV_8JqiEsfh8_MyJhgE5DCCZtQwWwwYF10Jwkn4k@z>
 
-On Tue, Jun 23, 2020 at 06:49:33PM -0700, Kees Cook wrote:
-> When linking vmlinux with LLD, the synthetic sections .symtab, .strtab,
-> and .shstrtab are listed as orphaned. Add them to the STABS_DEBUG section
-> so there will be no warnings when --orphan-handling=warn is used more
-> widely. (They are added above comment as it is the more common
+Don't bother filling the gfn array cache when the caller is a fully
+direct MMU, i.e. won't need a gfn array for shadow pages.
 
-Nit 1: is "after .comment" better than "above comment"? It's above in the
-sense of higher file offset, but it's below in readelf output.
-Nit 2: These aren't actually debugging sections, no? Is it better to add
-a new macro for it, and is there any plan to stop LLD from warning about
-them?
+Reviewed-by: Ben Gardon <bgardon@google.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+---
+ arch/x86/kvm/mmu/mmu.c         | 18 ++++++++++--------
+ arch/x86/kvm/mmu/paging_tmpl.h |  4 ++--
+ 2 files changed, 12 insertions(+), 10 deletions(-)
 
-> order[1].)
-> 
-> ld.lld: warning: <internal>:(.symtab) is being placed in '.symtab'
-> ld.lld: warning: <internal>:(.shstrtab) is being placed in '.shstrtab'
-> ld.lld: warning: <internal>:(.strtab) is being placed in '.strtab'
-> 
-> [1] https://lore.kernel.org/lkml/20200622224928.o2a7jkq33guxfci4@google.com/
-> 
-> Reported-by: Fangrui Song <maskray@google.com>
-> Reviewed-by: Fangrui Song <maskray@google.com>
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  include/asm-generic/vmlinux.lds.h | 5 ++++-
->  1 file changed, 4 insertions(+), 1 deletion(-)
-> 
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index 1248a206be8d..8e71757f485b 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -792,7 +792,10 @@
->  		.stab.exclstr 0 : { *(.stab.exclstr) }			\
->  		.stab.index 0 : { *(.stab.index) }			\
->  		.stab.indexstr 0 : { *(.stab.indexstr) }		\
-> -		.comment 0 : { *(.comment) }
-> +		.comment 0 : { *(.comment) }				\
-> +		.symtab 0 : { *(.symtab) }				\
-> +		.strtab 0 : { *(.strtab) }				\
-> +		.shstrtab 0 : { *(.shstrtab) }
->  
->  #ifdef CONFIG_GENERIC_BUG
->  #define BUG_TABLE							\
-> -- 
-> 2.25.1
-> 
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index a8f8eebf67df..8d66cf558f1b 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -1101,7 +1101,7 @@ static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
+ 	}
+ }
+ 
+-static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
++static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu, bool maybe_indirect)
+ {
+ 	int r;
+ 
+@@ -1114,10 +1114,12 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+ 				   PT64_ROOT_MAX_LEVEL);
+ 	if (r)
+ 		return r;
+-	r = mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
+-				   PT64_ROOT_MAX_LEVEL);
+-	if (r)
+-		return r;
++	if (maybe_indirect) {
++		r = mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
++					   PT64_ROOT_MAX_LEVEL);
++		if (r)
++			return r;
++	}
+ 	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
+ 				      PT64_ROOT_MAX_LEVEL);
+ }
+@@ -4107,7 +4109,7 @@ static int direct_page_fault(struct kvm_vcpu *vcpu, gpa_t gpa, u32 error_code,
+ 	if (fast_page_fault(vcpu, gpa, error_code))
+ 		return RET_PF_RETRY;
+ 
+-	r = mmu_topup_memory_caches(vcpu);
++	r = mmu_topup_memory_caches(vcpu, false);
+ 	if (r)
+ 		return r;
+ 
+@@ -5147,7 +5149,7 @@ int kvm_mmu_load(struct kvm_vcpu *vcpu)
+ {
+ 	int r;
+ 
+-	r = mmu_topup_memory_caches(vcpu);
++	r = mmu_topup_memory_caches(vcpu, !vcpu->arch.mmu->direct_map);
+ 	if (r)
+ 		goto out;
+ 	r = mmu_alloc_roots(vcpu);
+@@ -5341,7 +5343,7 @@ static void kvm_mmu_pte_write(struct kvm_vcpu *vcpu, gpa_t gpa,
+ 	 * or not since pte prefetch is skiped if it does not have
+ 	 * enough objects in the cache.
+ 	 */
+-	mmu_topup_memory_caches(vcpu);
++	mmu_topup_memory_caches(vcpu, true);
+ 
+ 	spin_lock(&vcpu->kvm->mmu_lock);
+ 
+diff --git a/arch/x86/kvm/mmu/paging_tmpl.h b/arch/x86/kvm/mmu/paging_tmpl.h
+index 3de32122f601..ac39710d0594 100644
+--- a/arch/x86/kvm/mmu/paging_tmpl.h
++++ b/arch/x86/kvm/mmu/paging_tmpl.h
+@@ -818,7 +818,7 @@ static int FNAME(page_fault)(struct kvm_vcpu *vcpu, gpa_t addr, u32 error_code,
+ 		return RET_PF_EMULATE;
+ 	}
+ 
+-	r = mmu_topup_memory_caches(vcpu);
++	r = mmu_topup_memory_caches(vcpu, true);
+ 	if (r)
+ 		return r;
+ 
+@@ -905,7 +905,7 @@ static void FNAME(invlpg)(struct kvm_vcpu *vcpu, gva_t gva, hpa_t root_hpa)
+ 	 * No need to check return value here, rmap_can_add() can
+ 	 * help us to skip pte prefetch later.
+ 	 */
+-	mmu_topup_memory_caches(vcpu);
++	mmu_topup_memory_caches(vcpu, true);
+ 
+ 	if (!VALID_PAGE(root_hpa)) {
+ 		WARN_ON(1);
+-- 
+2.26.0
