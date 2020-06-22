@@ -1,131 +1,143 @@
-Return-Path: <SRS0=l6dP=7S=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41046 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728082AbgFEQ1l (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jun 2020 12:27:41 -0400
-From: Jim Cromie <jim.cromie@gmail.com>
-Subject: [PATCH 04/16] dyndbg: rename __verbose section to __dyndbg
-Date: Fri,  5 Jun 2020 10:26:33 -0600
-Message-ID: <20200605162645.289174-5-jim.cromie@gmail.com>
-In-Reply-To: <20200605162645.289174-1-jim.cromie@gmail.com>
-References: <20200605162645.289174-1-jim.cromie@gmail.com>
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga12.intel.com ([192.55.52.136]:60223 "EHLO mga12.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728526AbgFVUJS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 16:09:18 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v2 13/21] KVM: x86/mmu: Prepend "kvm_" to memory cache helpers that will be global
+Date: Mon, 22 Jun 2020 13:08:14 -0700
+Message-ID: <20200622200822.4426-14-sean.j.christopherson@intel.com>
+In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: jbaron@akamai.com, linux-kernel@vger.kernel.org, akpm@linuxfoundation.org, gregkh@linuxfoundation.org
-Cc: linux@rasmusvillemoes.dk, Jim Cromie <jim.cromie@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Jessica Yu <jeyu@kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20200605162633.OD2bLQrfTf2Wlg89enO6oOg9imqVPbDPJj-QAou3ieg@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200622200814.nFAdrabQE6JWldRajZt3RNCefqSc3OHdUqc_4ThhlNI@z>
 
-dyndbg populates its callsite info into __verbose section, change that
-to a more specific and descriptive name, __dyndbg.
+Rename the memory helpers that will soon be moved to common code and be
+made globaly available via linux/kvm_host.h.  "mmu" alone is not a
+sufficient namespace for globally available KVM symbols.
 
-Also, per checkpatch:
-  simplify __attribute(..) to __section(__dyndbg) declaration.
+Opportunistically add "nr_" in mmu_memory_cache_free_objects() to make
+it clear the function returns the number of free objects, as opposed to
+freeing existing objects.
 
-and 1 spelling fix
-
-Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+Suggested-by: Christoffer Dall <christoffer.dall@arm.com>
+Reviewed-by: Ben Gardon <bgardon@google.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- include/asm-generic/vmlinux.lds.h |  6 +++---
- include/linux/dynamic_debug.h     |  4 ++--
- kernel/module.c                   |  2 +-
- lib/dynamic_debug.c               | 12 ++++++------
- 4 files changed, 12 insertions(+), 12 deletions(-)
+ arch/x86/kvm/mmu/mmu.c | 42 +++++++++++++++++++++---------------------
+ 1 file changed, 21 insertions(+), 21 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 71e387a5fe90..a117f2757a0d 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -320,9 +320,9 @@
- 	*(__tracepoints)						\
- 	/* implement dynamic printk debug */				\
- 	. = ALIGN(8);							\
--	__start___verbose = .;						\
--	KEEP(*(__verbose))                                              \
--	__stop___verbose = .;						\
-+	__start___dyndbg = .;						\
-+	KEEP(*(__dyndbg))						\
-+	__stop___dyndbg = .;						\
- 	LIKELY_PROFILE()		       				\
- 	BRANCH_PROFILE()						\
- 	TRACE_PRINTKS()							\
-diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index 4cf02ecd67de..802480ea8708 100644
---- a/include/linux/dynamic_debug.h
-+++ b/include/linux/dynamic_debug.h
-@@ -80,7 +80,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index 8d66cf558f1b..b85d3e8e8403 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -1071,7 +1071,7 @@ static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
+ 		return (void *)__get_free_page(gfp_flags);
+ }
  
- #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt)		\
- 	static struct _ddebug  __aligned(8)			\
--	__attribute__((section("__verbose"))) name = {		\
-+	__section(__dyndbg) name = {				\
- 		.modname = KBUILD_MODNAME,			\
- 		.function = __func__,				\
- 		.filename = __FILE__,				\
-@@ -133,7 +133,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
+-static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
++static int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
+ {
+ 	void *obj;
  
- /*
-  * "Factory macro" for generating a call to func, guarded by a
-- * DYNAMIC_DEBUG_BRANCH. The dynamic debug decriptor will be
-+ * DYNAMIC_DEBUG_BRANCH. The dynamic debug descriptor will be
-  * initialized using the fmt argument. The function will be called with
-  * the address of the descriptor as first argument, followed by all
-  * the varargs. Note that fmt is repeated in invocations of this
-diff --git a/kernel/module.c b/kernel/module.c
-index 646f1e2330d2..c66b18261a6e 100644
---- a/kernel/module.c
-+++ b/kernel/module.c
-@@ -3200,7 +3200,7 @@ static int find_module_sections(struct module *mod, struct load_info *info)
- 	if (section_addr(info, "__obsparm"))
- 		pr_warn("%s: Ignoring obsolete parameters\n", mod->name);
- 
--	info->debug = section_objs(info, "__verbose",
-+	info->debug = section_objs(info, "__dyndbg",
- 				   sizeof(*info->debug), &info->num_debug);
- 
+@@ -1086,12 +1086,12 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
  	return 0;
-diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index 5900c043e979..e17d4e2661d8 100644
---- a/lib/dynamic_debug.c
-+++ b/lib/dynamic_debug.c
-@@ -39,8 +39,8 @@
+ }
  
- #include <rdma/ib_verbs.h>
+-static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *mc)
++static int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc)
+ {
+ 	return mc->nobjs;
+ }
  
--extern struct _ddebug __start___verbose[];
--extern struct _ddebug __stop___verbose[];
-+extern struct _ddebug __start___dyndbg[];
-+extern struct _ddebug __stop___dyndbg[];
+-static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
++static void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
+ {
+ 	while (mc->nobjs) {
+ 		if (mc->kmem_cache)
+@@ -1106,33 +1106,33 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu, bool maybe_indirect)
+ 	int r;
  
- struct ddebug_table {
- 	struct list_head link;
-@@ -1019,14 +1019,14 @@ static int __init dynamic_debug_init(void)
- 	int n = 0, entries = 0, modct = 0;
- 	int verbose_bytes = 0;
- 
--	if (&__start___verbose == &__stop___verbose) {
-+	if (&__start___dyndbg == &__stop___dyndbg) {
- 		pr_warn("_ddebug table is empty in a CONFIG_DYNAMIC_DEBUG build\n");
- 		return 1;
+ 	/* 1 rmap, 1 parent PTE per level, and the prefetched rmaps. */
+-	r = mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
+-				   1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
++	r = kvm_mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
++				       1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
+ 	if (r)
+ 		return r;
+-	r = mmu_topup_memory_cache(&vcpu->arch.mmu_shadow_page_cache,
+-				   PT64_ROOT_MAX_LEVEL);
++	r = kvm_mmu_topup_memory_cache(&vcpu->arch.mmu_shadow_page_cache,
++				       PT64_ROOT_MAX_LEVEL);
+ 	if (r)
+ 		return r;
+ 	if (maybe_indirect) {
+-		r = mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
+-					   PT64_ROOT_MAX_LEVEL);
++		r = kvm_mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
++					       PT64_ROOT_MAX_LEVEL);
+ 		if (r)
+ 			return r;
  	}
--	iter = __start___verbose;
-+	iter = __start___dyndbg;
- 	modname = iter->modname;
- 	iter_start = iter;
--	for (; iter < __stop___verbose; iter++) {
-+	for (; iter < __stop___dyndbg; iter++) {
- 		entries++;
- 		verbose_bytes += strlen(iter->modname) + strlen(iter->function)
- 			+ strlen(iter->filename) + strlen(iter->format);
-@@ -1049,7 +1049,7 @@ static int __init dynamic_debug_init(void)
- 	ddebug_init_success = 1;
- 	vpr_info("%d modules, %d entries and %d bytes in ddebug tables, %d bytes in (readonly) verbose section\n",
- 		 modct, entries, (int)(modct * sizeof(struct ddebug_table)),
--		 verbose_bytes + (int)(__stop___verbose - __start___verbose));
-+		 verbose_bytes + (int)(__stop___dyndbg - __start___dyndbg));
+-	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
+-				      PT64_ROOT_MAX_LEVEL);
++	return kvm_mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
++					  PT64_ROOT_MAX_LEVEL);
+ }
  
- 	/* apply ddebug_query boot param, dont unload tables on err */
- 	if (ddebug_setup_string[0] != '\0') {
+ static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+ {
+-	mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache);
+-	mmu_free_memory_cache(&vcpu->arch.mmu_shadow_page_cache);
+-	mmu_free_memory_cache(&vcpu->arch.mmu_gfn_array_cache);
+-	mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
++	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache);
++	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_shadow_page_cache);
++	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_gfn_array_cache);
++	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
+ }
+ 
+-static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
++static void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
+ {
+ 	void *p;
+ 
+@@ -1146,7 +1146,7 @@ static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
+ 
+ static struct pte_list_desc *mmu_alloc_pte_list_desc(struct kvm_vcpu *vcpu)
+ {
+-	return mmu_memory_cache_alloc(&vcpu->arch.mmu_pte_list_desc_cache);
++	return kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_pte_list_desc_cache);
+ }
+ 
+ static void mmu_free_pte_list_desc(struct pte_list_desc *pte_list_desc)
+@@ -1417,7 +1417,7 @@ static bool rmap_can_add(struct kvm_vcpu *vcpu)
+ 	struct kvm_mmu_memory_cache *mc;
+ 
+ 	mc = &vcpu->arch.mmu_pte_list_desc_cache;
+-	return mmu_memory_cache_free_objects(mc);
++	return kvm_mmu_memory_cache_nr_free_objects(mc);
+ }
+ 
+ static int rmap_add(struct kvm_vcpu *vcpu, u64 *spte, gfn_t gfn)
+@@ -2104,10 +2104,10 @@ static struct kvm_mmu_page *kvm_mmu_alloc_page(struct kvm_vcpu *vcpu, int direct
+ {
+ 	struct kvm_mmu_page *sp;
+ 
+-	sp = mmu_memory_cache_alloc(&vcpu->arch.mmu_page_header_cache);
+-	sp->spt = mmu_memory_cache_alloc(&vcpu->arch.mmu_shadow_page_cache);
++	sp = kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_page_header_cache);
++	sp->spt = kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_shadow_page_cache);
+ 	if (!direct)
+-		sp->gfns = mmu_memory_cache_alloc(&vcpu->arch.mmu_gfn_array_cache);
++		sp->gfns = kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_gfn_array_cache);
+ 	set_page_private(virt_to_page(sp->spt), (unsigned long)sp);
+ 
+ 	/*
 -- 
-2.26.2
+2.26.0
