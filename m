@@ -1,63 +1,88 @@
-Return-Path: <SRS0=HbQn=76=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36090 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726945AbgFQVGY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jun 2020 17:06:24 -0400
-Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 829B7C061755
-        for <linux-arch@vger.kernel.org>; Wed, 17 Jun 2020 14:06:24 -0700 (PDT)
-Received: by mail-yb1-xb4a.google.com with SMTP id e82so4039598ybh.12
-        for <linux-arch@vger.kernel.org>; Wed, 17 Jun 2020 14:06:24 -0700 (PDT)
-Date: Wed, 17 Jun 2020 14:06:13 -0700
-Message-ID: <20200617210613.95432-1-ndesaulniers@google.com>
-Mime-Version: 1.0
-Subject: [PATCH] vmlinux.lds: consider .text.{hot|unlikely}.* part of .text too
-From: Nick Desaulniers <ndesaulniers@google.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga12.intel.com ([192.55.52.136]:60195 "EHLO mga12.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728414AbgFVUJK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 16:09:10 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v2 03/21] KVM: x86/mmu: Use consistent "mc" name for kvm_mmu_memory_cache locals
+Date: Mon, 22 Jun 2020 13:08:04 -0700
+Message-ID: <20200622200822.4426-4-sean.j.christopherson@intel.com>
+In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: clang-built-linux@googlegroups.com, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, stable@vger.kernel.org, Jian Cai <jiancai@google.com>, Luis Lozano <llozano@google.com>, =?UTF-8?q?F=C4=81ng-ru=C3=AC=20S=C3=B2ng?= <maskray@google.com>, Manoj Gupta <manojgupta@google.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200617210613.UDhXIzD0HPAA_ThDDQFi77PF2hnkc7jkaPMLYCMqY2M@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200622200804.jVyeRv9roS6FC6ZfGuEDcIUa36pVDpEa5kqjsPOnlj8@z>
 
-ld.bfd's internal linker script considers .text.hot AND .text.hot.* to
-be part of .text, as well as .text.unlikely and .text.unlikely.*. ld.lld
-will produce .text.hot.*/.text.unlikely.* sections. Make sure to group
-these together.  Otherwise these orphan sections may be placed outside
-of the the _stext/_etext boundaries.
+Use "mc" for local variables to shorten line lengths and provide
+consistent names, which will be especially helpful when some of the
+helpers are moved to common KVM code in future patches.
 
-Cc: stable@vger.kernel.org
-Link: https://sourceware.org/git/?p=3Dbinutils-gdb.git;a=3Dcommitdiff;h=3Da=
-dd44f8d5c5c05e08b11e033127a744d61c26aee
-Link: https://sourceware.org/git/?p=3Dbinutils-gdb.git;a=3Dcommitdiff;h=3D1=
-de778ed23ce7492c523d5850c6c6dbb34152655
-Link: https://reviews.llvm.org/D79600
-Reported-by: Jian Cai <jiancai@google.com>
-Debugged-by: Luis Lozano <llozano@google.com>
-Suggested-by: F=C4=81ng-ru=C3=AC S=C3=B2ng <maskray@google.com>
-Tested-by: Luis Lozano <llozano@google.com>
-Tested-by: Manoj Gupta <manojgupta@google.com>
-Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
+No functional change intended.
+
+Reviewed-by: Ben Gardon <bgardon@google.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- include/asm-generic/vmlinux.lds.h | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ arch/x86/kvm/mmu/mmu.c | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinu=
-x.lds.h
-index d7c7c7f36c4a..fe5aaef169e3 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -560,7 +560,9 @@
-  */
- #define TEXT_TEXT							\
- 		ALIGN_FUNCTION();					\
--		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely)	\
-+		*(.text.hot .text.hot.*)				\
-+		*(TEXT_MAIN .text.fixup)				\
-+		*(.text.unlikely .text.unlikely.*)			\
- 		NOINSTR_TEXT						\
- 		*(.text..refcount)					\
- 		*(.ref.text)						\
---=20
-2.27.0.290.gba653c62da-goog
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index cbc101663a89..36c90f004ef4 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -1060,27 +1060,27 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
+ 	local_irq_enable();
+ }
+ 
+-static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
++static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
+ {
+ 	void *obj;
+ 
+-	if (cache->nobjs >= min)
++	if (mc->nobjs >= min)
+ 		return 0;
+-	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		if (cache->kmem_cache)
+-			obj = kmem_cache_zalloc(cache->kmem_cache, GFP_KERNEL_ACCOUNT);
++	while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
++		if (mc->kmem_cache)
++			obj = kmem_cache_zalloc(mc->kmem_cache, GFP_KERNEL_ACCOUNT);
+ 		else
+ 			obj = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
+ 		if (!obj)
+-			return cache->nobjs >= min ? 0 : -ENOMEM;
+-		cache->objects[cache->nobjs++] = obj;
++			return mc->nobjs >= min ? 0 : -ENOMEM;
++		mc->objects[mc->nobjs++] = obj;
+ 	}
+ 	return 0;
+ }
+ 
+-static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *cache)
++static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *mc)
+ {
+-	return cache->nobjs;
++	return mc->nobjs;
+ }
+ 
+ static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
+@@ -1395,10 +1395,10 @@ static struct kvm_rmap_head *gfn_to_rmap(struct kvm *kvm, gfn_t gfn,
+ 
+ static bool rmap_can_add(struct kvm_vcpu *vcpu)
+ {
+-	struct kvm_mmu_memory_cache *cache;
++	struct kvm_mmu_memory_cache *mc;
+ 
+-	cache = &vcpu->arch.mmu_pte_list_desc_cache;
+-	return mmu_memory_cache_free_objects(cache);
++	mc = &vcpu->arch.mmu_pte_list_desc_cache;
++	return mmu_memory_cache_free_objects(mc);
+ }
+ 
+ static int rmap_add(struct kvm_vcpu *vcpu, u64 *spte, gfn_t gfn)
+-- 
+2.26.0
