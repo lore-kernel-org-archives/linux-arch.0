@@ -1,82 +1,64 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 1/3] vmlinux.lds.h: Add .gnu.version* to DISCARDS
-Date: Mon, 22 Jun 2020 16:30:18 -0700
-Message-ID: <202006221629.5C8CF8AE2@keescook>
-References: <20200622205341.2987797-1-keescook@chromium.org>
- <20200622205341.2987797-2-keescook@chromium.org>
- <20200622220043.6j3vl6v7udmk2ppp@google.com>
- <202006221524.CEB86E036B@keescook>
- <20200622225237.ybol4qmz4mhkmlqc@google.com>
- <202006221555.45BB6412F@keescook>
- <CAFP8O3KdGc9TtziFX7UzmxA-=wfPzm5oi6NCEwRiyyrp+JD3Xg@mail.gmail.com>
+From: Nathan Chancellor <natechancellor@gmail.com>
+Subject: [PATCH 1/2] media: omap3isp: Remove cacheflush.h
+Date: Mon, 22 Jun 2020 16:47:39 -0700
+Message-ID: <20200622234740.72825-2-natechancellor@gmail.com>
+References: <20200622234740.72825-1-natechancellor@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56736 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728131AbgFVXaW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2020 19:30:22 -0400
-Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0C80FC061795
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:30:21 -0700 (PDT)
-Received: by mail-pg1-x542.google.com with SMTP id e8so3736640pgc.5
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:30:21 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <CAFP8O3KdGc9TtziFX7UzmxA-=wfPzm5oi6NCEwRiyyrp+JD3Xg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: =?utf-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>
-Cc: Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
+Return-path: <linux-media-owner@vger.kernel.org>
+In-Reply-To: <20200622234740.72825-1-natechancellor@gmail.com>
+Sender: linux-media-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-media@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, clang-built-linux@googlegroups.com, Nathan Chancellor <natechancellor@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 22, 2020 at 04:04:40PM -0700, Fāng-ruì Sòng wrote:
-> On Mon, Jun 22, 2020 at 3:57 PM Kees Cook <keescook@chromium.org> wrote:
-> >
-> > On Mon, Jun 22, 2020 at 03:52:37PM -0700, Fangrui Song wrote:
-> > > > And it's not in the output:
-> > > >
-> > > > $ readelf -Vs arch/x86/boot/compressed/vmlinux | grep version
-> > > > No version information found in this file.
-> > > >
-> > > > So... for the kernel we need to silence it right now.
-> > >
-> > > Re-link with -M (or -Map file) to check where .gnu.version{,_d,_r} input
-> > > sections come from?
-> >
-> > It's not reporting it correctly:
-> >
-> > .gnu.version_d  0x00000000008966b0        0x0
-> >  .gnu.version_d
-> >                 0x00000000008966b0        0x0 arch/x86/boot/compressed/kernel_info.o
-> >
-> > .gnu.version    0x00000000008966b0        0x0
-> >  .gnu.version   0x00000000008966b0        0x0 arch/x86/boot/compressed/kernel_info.o
-> >
-> > .gnu.version_r  0x00000000008966b0        0x0
-> >  .gnu.version_r
-> >                 0x00000000008966b0        0x0 arch/x86/boot/compressed/kernel_info.o
-> >
-> > it just reports whatever file is listed on the link command line first.
-> >
-> > > If it is a bug, we should probably figure out which version of binutils
-> > > has fixed the bug.
-> >
-> > I see this with binutils 2.34...
-> >
-> > --
-> > Kees Cook
-> 
-> :( It deserves a binutils bug
-> (https://sourceware.org/bugzilla/enter_bug.cgi?product=binutils ) and
-> a comment..
+After mm.h was removed from the asm-generic version of cacheflush.h,
+s390 allyesconfig shows several warnings of the following nature:
 
-https://sourceware.org/bugzilla/show_bug.cgi?id=26153
+In file included from ./arch/s390/include/generated/asm/cacheflush.h:1,
+                 from drivers/media/platform/omap3isp/isp.c:42:
+./include/asm-generic/cacheflush.h:16:42: warning: 'struct mm_struct'
+declared inside parameter list will not be visible outside of this
+definition or declaration
 
-> With the description adjusted to say that this works around a bug
-> 
-> Reviewed-by: Fangrui Song <maskray@google.com>
+As Geert and Laurent point out, this driver does not need this header in
+the two files that include it. Remove it so there are no warnings.
 
-Adjusted, and thanks!
+Fixes: e0cf615d725c ("asm-generic: don't include <linux/mm.h> in cacheflush.h")
+Suggested-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Suggested-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
+---
+ drivers/media/platform/omap3isp/isp.c      | 2 --
+ drivers/media/platform/omap3isp/ispvideo.c | 1 -
+ 2 files changed, 3 deletions(-)
 
+diff --git a/drivers/media/platform/omap3isp/isp.c b/drivers/media/platform/omap3isp/isp.c
+index a4ee6b86663e..b91e472ee764 100644
+--- a/drivers/media/platform/omap3isp/isp.c
++++ b/drivers/media/platform/omap3isp/isp.c
+@@ -39,8 +39,6 @@
+  *	Troy Laramy <t-laramy@ti.com>
+  */
+ 
+-#include <asm/cacheflush.h>
+-
+ #include <linux/clk.h>
+ #include <linux/clkdev.h>
+ #include <linux/delay.h>
+diff --git a/drivers/media/platform/omap3isp/ispvideo.c b/drivers/media/platform/omap3isp/ispvideo.c
+index 10c214bd0903..1ac9aef70dff 100644
+--- a/drivers/media/platform/omap3isp/ispvideo.c
++++ b/drivers/media/platform/omap3isp/ispvideo.c
+@@ -18,7 +18,6 @@
+ #include <linux/sched.h>
+ #include <linux/slab.h>
+ #include <linux/vmalloc.h>
+-#include <asm/cacheflush.h>
+ 
+ #include <media/v4l2-dev.h>
+ #include <media/v4l2-ioctl.h>
+
+base-commit: 27f11fea33608cbd321a97cbecfa2ef97dcc1821
 -- 
-Kees Cook
+2.27.0
