@@ -1,56 +1,188 @@
-Return-Path: <SRS0=gWHa=AH=vger.kernel.org=linux-doc-owner@kernel.org>
-Date: Fri, 26 Jun 2020 14:09:06 -0700
-In-Reply-To: <20200626210917.358969-1-brendanhiggins@google.com>
-Message-ID: <20200626210917.358969-2-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200626210917.358969-1-brendanhiggins@google.com>
-Subject: [PATCH v5 01/12] vmlinux.lds.h: add linker section for KUnit test suites
-From: Brendan Higgins <brendanhiggins@google.com>
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-doc-owner@vger.kernel.org
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org, Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga12.intel.com ([192.55.52.136]:60228 "EHLO mga12.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730398AbgFVUJU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 16:09:20 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v2 15/21] KVM: Move x86's MMU memory cache helpers to common KVM code
+Date: Mon, 22 Jun 2020 13:08:16 -0700
+Message-ID: <20200622200822.4426-16-sean.j.christopherson@intel.com>
+In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200626210906.aac506GOEtlrunQsrCvGa7lTQK90Rog_FkHFV-nnHZM@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200622200816.fygW1UXqLKd2Bfw2La5WjwZHhUn8ReSn8ipyKs9YHaE@z>
 
-Add a linker section where KUnit can put references to its test suites.
-This patch is the first step in transitioning to dispatching all KUnit
-tests from a centralized executor rather than having each as its own
-separate late_initcall.
+Move x86's memory cache helpers to common KVM code so that they can be
+reused by arm64 and MIPS in future patches.
 
-Co-developed-by: Iurii Zaikin <yzaikin@google.com>
-Signed-off-by: Iurii Zaikin <yzaikin@google.com>
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+Suggested-by: Christoffer Dall <christoffer.dall@arm.com>
+Reviewed-by: Ben Gardon <bgardon@google.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- include/asm-generic/vmlinux.lds.h | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ arch/x86/kvm/mmu/mmu.c   | 53 --------------------------------------
+ include/linux/kvm_host.h |  7 +++++
+ virt/kvm/kvm_main.c      | 55 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 62 insertions(+), 53 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index db600ef218d7d..4f9b036fc9616 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -881,6 +881,13 @@
- 		KEEP(*(.con_initcall.init))				\
- 		__con_initcall_end = .;
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index b85d3e8e8403..a627437f73fd 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -1060,47 +1060,6 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
+ 	local_irq_enable();
+ }
  
-+/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
-+#define KUNIT_TEST_SUITES						\
-+		. = ALIGN(8);						\
-+		__kunit_suites_start = .;				\
-+		KEEP(*(.kunit_test_suites))				\
-+		__kunit_suites_end = .;
+-static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
+-					       gfp_t gfp_flags)
+-{
+-	gfp_flags |= mc->gfp_zero;
+-
+-	if (mc->kmem_cache)
+-		return kmem_cache_alloc(mc->kmem_cache, gfp_flags);
+-	else
+-		return (void *)__get_free_page(gfp_flags);
+-}
+-
+-static int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
+-{
+-	void *obj;
+-
+-	if (mc->nobjs >= min)
+-		return 0;
+-	while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
+-		obj = mmu_memory_cache_alloc_obj(mc, GFP_KERNEL_ACCOUNT);
+-		if (!obj)
+-			return mc->nobjs >= min ? 0 : -ENOMEM;
+-		mc->objects[mc->nobjs++] = obj;
+-	}
+-	return 0;
+-}
+-
+-static int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc)
+-{
+-	return mc->nobjs;
+-}
+-
+-static void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
+-{
+-	while (mc->nobjs) {
+-		if (mc->kmem_cache)
+-			kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
+-		else
+-			free_page((unsigned long)mc->objects[--mc->nobjs]);
+-	}
+-}
+-
+ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu, bool maybe_indirect)
+ {
+ 	int r;
+@@ -1132,18 +1091,6 @@ static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+ 	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
+ }
+ 
+-static void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
+-{
+-	void *p;
+-
+-	if (WARN_ON(!mc->nobjs))
+-		p = mmu_memory_cache_alloc_obj(mc, GFP_ATOMIC | __GFP_ACCOUNT);
+-	else
+-		p = mc->objects[--mc->nobjs];
+-	BUG_ON(!p);
+-	return p;
+-}
+-
+ static struct pte_list_desc *mmu_alloc_pte_list_desc(struct kvm_vcpu *vcpu)
+ {
+ 	return kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_pte_list_desc_cache);
+diff --git a/include/linux/kvm_host.h b/include/linux/kvm_host.h
+index 62ec926c78a0..d35e397dad6a 100644
+--- a/include/linux/kvm_host.h
++++ b/include/linux/kvm_host.h
+@@ -816,6 +816,13 @@ void kvm_vcpu_on_spin(struct kvm_vcpu *vcpu, bool usermode_vcpu_not_eligible);
+ void kvm_flush_remote_tlbs(struct kvm *kvm);
+ void kvm_reload_remote_mmus(struct kvm *kvm);
+ 
++#ifdef KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE
++int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min);
++int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc);
++void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc);
++void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc);
++#endif
 +
- #ifdef CONFIG_BLK_DEV_INITRD
- #define INIT_RAM_FS							\
- 	. = ALIGN(4);							\
-@@ -1056,6 +1063,7 @@
- 		INIT_CALLS						\
- 		CON_INITCALL						\
- 		INIT_RAM_FS						\
-+		KUNIT_TEST_SUITES					\
- 	}
+ bool kvm_make_vcpus_request_mask(struct kvm *kvm, unsigned int req,
+ 				 struct kvm_vcpu *except,
+ 				 unsigned long *vcpu_bitmap, cpumask_var_t tmp);
+diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
+index 7b6013f2ba19..9f019b552dcf 100644
+--- a/virt/kvm/kvm_main.c
++++ b/virt/kvm/kvm_main.c
+@@ -341,6 +341,61 @@ void kvm_reload_remote_mmus(struct kvm *kvm)
+ 	kvm_make_all_cpus_request(kvm, KVM_REQ_MMU_RELOAD);
+ }
  
- #define BSS_SECTION(sbss_align, bss_align, stop_align)			\
++#ifdef KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE
++static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
++					       gfp_t gfp_flags)
++{
++	gfp_flags |= mc->gfp_zero;
++
++	if (mc->kmem_cache)
++		return kmem_cache_alloc(mc->kmem_cache, gfp_flags);
++	else
++		return (void *)__get_free_page(gfp_flags);
++}
++
++int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
++{
++	void *obj;
++
++	if (mc->nobjs >= min)
++		return 0;
++	while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
++		obj = mmu_memory_cache_alloc_obj(mc, GFP_KERNEL_ACCOUNT);
++		if (!obj)
++			return mc->nobjs >= min ? 0 : -ENOMEM;
++		mc->objects[mc->nobjs++] = obj;
++	}
++	return 0;
++}
++
++int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc)
++{
++	return mc->nobjs;
++}
++
++void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
++{
++	while (mc->nobjs) {
++		if (mc->kmem_cache)
++			kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
++		else
++			free_page((unsigned long)mc->objects[--mc->nobjs]);
++	}
++}
++
++void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
++{
++	void *p;
++
++	if (WARN_ON(!mc->nobjs))
++		p = mmu_memory_cache_alloc_obj(mc, GFP_ATOMIC | __GFP_ACCOUNT);
++	else
++		p = mc->objects[--mc->nobjs];
++	BUG_ON(!p);
++	return p;
++}
++#endif
++
+ static void kvm_vcpu_init(struct kvm_vcpu *vcpu, struct kvm *kvm, unsigned id)
+ {
+ 	mutex_init(&vcpu->mutex);
 -- 
-2.27.0.212.ge8ba1cc988-goog
+2.26.0
