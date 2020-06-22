@@ -1,54 +1,33 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40020 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729807AbgF2Sww (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:52:52 -0400
-From: Arvind Sankar <nivedita@alum.mit.edu>
-Date: Mon, 29 Jun 2020 14:15:14 -0400
-Subject: Re: [PATCH v4 14/17] arm/build: Warn on orphan section placement
-Message-ID: <20200629181514.GA1046442@rani.riverdale.lan>
-References: <20200629061840.4065483-1-keescook@chromium.org>
- <20200629061840.4065483-15-keescook@chromium.org>
- <20200629155401.GB900899@rani.riverdale.lan>
- <20200629180703.GX1551@shell.armlinux.org.uk>
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from a3.inai.de ([88.198.85.195]:55430 "EHLO a3.inai.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727060AbgFVLhP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 07:37:15 -0400
+Date: Mon, 22 Jun 2020 13:37:09 +0200 (CEST)
+From: Jan Engelhardt <jengelh@inai.de>
+Subject: Re: Good idea to rename files in include/uapi/ ?
+In-Reply-To: <ab88e504-c139-231a-0294-953ffd1a9442@al2klimov.de>
+Message-ID: <nycvar.YFH.7.77.849.2006221336180.26495@n3.vanv.qr>
+References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de> <174102.1592165965@warthog.procyon.org.uk> <nycvar.YFH.7.77.849.2006142244200.30230@n3.vanv.qr> <ab88e504-c139-231a-0294-953ffd1a9442@al2klimov.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20200629180703.GX1551@shell.armlinux.org.uk>
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux admin <linux@armlinux.org.uk>
-Cc: Arvind Sankar <nivedita@alum.mit.edu>, Kees Cook <keescook@chromium.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200629181514.bPuBUp2taYp9OKNNtkFz98fJG7jECeFqLfNnDvmG2d0@z>
+To: "Alexander A. Klimov" <grandmaster@al2klimov.de>
+Cc: David Howells <dhowells@redhat.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20200622113709.bwZ9Ka3nrX5y7ZetOuS6R3voP5PCg85s9-ZE7EQocFo@z>
 
-On Mon, Jun 29, 2020 at 07:07:04PM +0100, Russell King - ARM Linux admin wrote:
-> On Mon, Jun 29, 2020 at 11:54:01AM -0400, Arvind Sankar wrote:
-> > On Sun, Jun 28, 2020 at 11:18:37PM -0700, Kees Cook wrote:
-> > > We don't want to depend on the linker's orphan section placement
-> > > heuristics as these can vary between linkers, and may change between
-> > > versions. All sections need to be explicitly named in the linker
-> > > script.
-> > > 
-> > > Specifically, this would have made a recently fixed bug very obvious:
-> > > 
-> > > ld: warning: orphan section `.fixup' from `arch/arm/lib/copy_from_user.o' being placed in section `.fixup'
-> > > 
-> > > Discard unneeded sections .iplt, .rel.iplt, .igot.plt, and .modinfo.
-> > > 
-> > > Add missing text stub sections .vfp11_veneer and .v4_bx.
-> > > 
-> > > Add debug sections explicitly.
-> > > 
-> > > Finally enable orphan section warning.
-> > 
-> > This is unrelated to this patch as such, but I noticed that ARM32/64 places
-> > the .got section inside .text -- is that expected on ARM?
-> 
-> Do you mean in general, in the kernel vmlinux, in the decompressor
-> vmlinux or ... ?
-> 
 
-Sorry, in the kernel vmlinux. ARM_TEXT includes *(.got) for 32-bit, and
-the 64-bit vmlinux.lds.S includes it in .text as well. The decompressor
-for 32-bit keeps it separate for non-EFI stub kernel and puts it inside
-.data for EFI stub.
+On Monday 2020-06-15 01:34, Alexander A. Klimov wrote:
+>> 
+>> A header file rename is no problem. We even have dummy headers
+> Hmm.. if I understand all of you correctly, David, Stefano, Pablo and Al say
+> like no, not a good idea, but only you, Jan, say like should be no problem.
+>
+> Jan, do you have anything like commit messages in mainline or public emails
+> from maintainers confirming your opinion?
+
+I had already given the commit with the (email) message:
+
+>> Just look at xt_MARK.h, all it does is include xt_mark.h. Cf.
+>> 28b949885f80efb87d7cebdcf879c99db12c37bd .
