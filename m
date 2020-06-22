@@ -1,110 +1,58 @@
 Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:60195 "EHLO mga12.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730634AbgFVUJR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jun 2020 16:09:17 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 12/21] KVM: x86/mmu: Skip filling the gfn cache for guaranteed direct MMU topups
-Date: Mon, 22 Jun 2020 13:08:13 -0700
-Message-ID: <20200622200822.4426-13-sean.j.christopherson@intel.com>
-In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
-References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50444 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730943AbgFVWtg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2020 18:49:36 -0400
+Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2888BC061573
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 15:49:32 -0700 (PDT)
+Received: by mail-pl1-x643.google.com with SMTP id y18so8234516plr.4
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 15:49:32 -0700 (PDT)
+Date: Mon, 22 Jun 2020 15:49:28 -0700
+From: Fangrui Song <maskray@google.com>
+Subject: Re: [PATCH v2 3/3] x86/boot: Warn on orphan section placement
+Message-ID: <20200622224928.o2a7jkq33guxfci4@google.com>
+References: <20200622205341.2987797-1-keescook@chromium.org>
+ <20200622205341.2987797-4-keescook@chromium.org>
+ <20200622220628.t5fklwmbtqoird5f@google.com>
+ <202006221543.EA2FCFA2FF@keescook>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Disposition: inline
+In-Reply-To: <202006221543.EA2FCFA2FF@keescook>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200622200813.hVQwV_8JqiEsfh8_MyJhgE5DCCZtQwWwwYF10Jwkn4k@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200622224928.ZgtS2x_EICFmCiewM5jyfXiefkuBgQhVgrwn4N5k6u4@z>
 
-Don't bother filling the gfn array cache when the caller is a fully
-direct MMU, i.e. won't need a gfn array for shadow pages.
+On 2020-06-22, Kees Cook wrote:
+>On Mon, Jun 22, 2020 at 03:06:28PM -0700, Fangrui Song wrote:
+>> LLD may report warnings for 3 synthetic sections if they are orphans:
+>>
+>> ld.lld: warning: <internal>:(.symtab) is being placed in '.symtab'
+>> ld.lld: warning: <internal>:(.shstrtab) is being placed in '.shstrtab'
+>> ld.lld: warning: <internal>:(.strtab) is being placed in '.strtab'
+>>
+>> Are they described?
+>
+>Perhaps:
+>
+>diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+>index db600ef218d7..57e9c142e401 100644
+>--- a/include/asm-generic/vmlinux.lds.h
+>+++ b/include/asm-generic/vmlinux.lds.h
+>@@ -792,6 +792,9 @@
+> 		.stab.exclstr 0 : { *(.stab.exclstr) }			\
+> 		.stab.index 0 : { *(.stab.index) }			\
+> 		.stab.indexstr 0 : { *(.stab.indexstr) }		\
+>+		.symtab 0 : { *(.symtab) }				\
+>+		.strtab 0 : { *(.strtab) }				\
+>+		.shstrtab 0 : { *(.shstrtab) }				\
+> 		.comment 0 : { *(.comment) }
+>
+> #ifdef CONFIG_GENERIC_BUG
 
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
----
- arch/x86/kvm/mmu/mmu.c         | 18 ++++++++++--------
- arch/x86/kvm/mmu/paging_tmpl.h |  4 ++--
- 2 files changed, 12 insertions(+), 10 deletions(-)
+This LGTM. Nit: .comment before .symtab is a more common order.
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index a8f8eebf67df..8d66cf558f1b 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1101,7 +1101,7 @@ static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
- 	}
- }
- 
--static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
-+static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu, bool maybe_indirect)
- {
- 	int r;
- 
-@@ -1114,10 +1114,12 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
- 				   PT64_ROOT_MAX_LEVEL);
- 	if (r)
- 		return r;
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
--				   PT64_ROOT_MAX_LEVEL);
--	if (r)
--		return r;
-+	if (maybe_indirect) {
-+		r = mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
-+					   PT64_ROOT_MAX_LEVEL);
-+		if (r)
-+			return r;
-+	}
- 	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
- 				      PT64_ROOT_MAX_LEVEL);
- }
-@@ -4107,7 +4109,7 @@ static int direct_page_fault(struct kvm_vcpu *vcpu, gpa_t gpa, u32 error_code,
- 	if (fast_page_fault(vcpu, gpa, error_code))
- 		return RET_PF_RETRY;
- 
--	r = mmu_topup_memory_caches(vcpu);
-+	r = mmu_topup_memory_caches(vcpu, false);
- 	if (r)
- 		return r;
- 
-@@ -5147,7 +5149,7 @@ int kvm_mmu_load(struct kvm_vcpu *vcpu)
- {
- 	int r;
- 
--	r = mmu_topup_memory_caches(vcpu);
-+	r = mmu_topup_memory_caches(vcpu, !vcpu->arch.mmu->direct_map);
- 	if (r)
- 		goto out;
- 	r = mmu_alloc_roots(vcpu);
-@@ -5341,7 +5343,7 @@ static void kvm_mmu_pte_write(struct kvm_vcpu *vcpu, gpa_t gpa,
- 	 * or not since pte prefetch is skiped if it does not have
- 	 * enough objects in the cache.
- 	 */
--	mmu_topup_memory_caches(vcpu);
-+	mmu_topup_memory_caches(vcpu, true);
- 
- 	spin_lock(&vcpu->kvm->mmu_lock);
- 
-diff --git a/arch/x86/kvm/mmu/paging_tmpl.h b/arch/x86/kvm/mmu/paging_tmpl.h
-index 3de32122f601..ac39710d0594 100644
---- a/arch/x86/kvm/mmu/paging_tmpl.h
-+++ b/arch/x86/kvm/mmu/paging_tmpl.h
-@@ -818,7 +818,7 @@ static int FNAME(page_fault)(struct kvm_vcpu *vcpu, gpa_t addr, u32 error_code,
- 		return RET_PF_EMULATE;
- 	}
- 
--	r = mmu_topup_memory_caches(vcpu);
-+	r = mmu_topup_memory_caches(vcpu, true);
- 	if (r)
- 		return r;
- 
-@@ -905,7 +905,7 @@ static void FNAME(invlpg)(struct kvm_vcpu *vcpu, gva_t gva, hpa_t root_hpa)
- 	 * No need to check return value here, rmap_can_add() can
- 	 * help us to skip pte prefetch later.
- 	 */
--	mmu_topup_memory_caches(vcpu);
-+	mmu_topup_memory_caches(vcpu, true);
- 
- 	if (!VALID_PAGE(root_hpa)) {
- 		WARN_ON(1);
--- 
-2.26.0
+Reviewed-by: Fangrui Song <maskray@google.com>
