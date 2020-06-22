@@ -1,8 +1,8 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 13/21] KVM: x86/mmu: Prepend "kvm_" to memory cache helpers
- that will be global
-Date: Mon, 22 Jun 2020 13:08:14 -0700
-Message-ID: <20200622200822.4426-14-sean.j.christopherson@intel.com>
+Subject: [PATCH v2 10/21] KVM: x86/mmu: Make __GFP_ZERO a property of the
+ memory cache
+Date: Mon, 22 Jun 2020 13:08:11 -0700
+Message-ID: <20200622200822.4426-11-sean.j.christopherson@intel.com>
 References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,127 +22,60 @@ To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Ber
 Cc: linux-arch@vger.kernel.org, Junaid Shahid <junaids@google.com>, Wanpeng Li <wanpengli@tencent.com>, kvm@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Peter Shier <pshier@google.com>, linux-mips@vger.kernel.org, Sean Christopherson <sean.j.christopherson@intel.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Gardon <bgardon@google.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Peter Feiner <pfeiner@google.com>, kvmarm@lists.cs.columbia.edu, Jim Mattson <jmattson@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Rename the memory helpers that will soon be moved to common code and be
-made globaly available via linux/kvm_host.h.  "mmu" alone is not a
-sufficient namespace for globally available KVM symbols.
+Add a gfp_zero flag to 'struct kvm_mmu_memory_cache' and use it to
+control __GFP_ZERO instead of hardcoding a call to kmem_cache_zalloc().
+A future patch needs such a flag for the __get_free_page() path, as
+gfn arrays do not need/want the allocator to zero the memory.  Convert
+the kmem_cache paths to __GFP_ZERO now so as to avoid a weird and
+inconsistent API in the future.
 
-Opportunistically add "nr_" in mmu_memory_cache_free_objects() to make
-it clear the function returns the number of free objects, as opposed to
-freeing existing objects.
+No functional change intended.
 
-Suggested-by: Christoffer Dall <christoffer.dall@arm.com>
 Reviewed-by: Ben Gardon <bgardon@google.com>
 Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- arch/x86/kvm/mmu/mmu.c | 42 +++++++++++++++++++++---------------------
- 1 file changed, 21 insertions(+), 21 deletions(-)
+ arch/x86/include/asm/kvm_host.h | 1 +
+ arch/x86/kvm/mmu/mmu.c          | 7 ++++++-
+ 2 files changed, 7 insertions(+), 1 deletion(-)
 
+diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
+index 376e1653ac41..67b84aa2984e 100644
+--- a/arch/x86/include/asm/kvm_host.h
++++ b/arch/x86/include/asm/kvm_host.h
+@@ -251,6 +251,7 @@ struct kvm_kernel_irq_routing_entry;
+  */
+ struct kvm_mmu_memory_cache {
+ 	int nobjs;
++	gfp_t gfp_zero;
+ 	struct kmem_cache *kmem_cache;
+ 	void *objects[KVM_NR_MEM_OBJS];
+ };
 diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index 8d66cf558f1b..b85d3e8e8403 100644
+index d245acece3cd..6b0ec9060786 100644
 --- a/arch/x86/kvm/mmu/mmu.c
 +++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1071,7 +1071,7 @@ static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
+@@ -1063,8 +1063,10 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
+ static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
+ 					       gfp_t gfp_flags)
+ {
++	gfp_flags |= mc->gfp_zero;
++
+ 	if (mc->kmem_cache)
+-		return kmem_cache_zalloc(mc->kmem_cache, gfp_flags);
++		return kmem_cache_alloc(mc->kmem_cache, gfp_flags);
+ 	else
  		return (void *)__get_free_page(gfp_flags);
  }
+@@ -5680,7 +5682,10 @@ int kvm_mmu_create(struct kvm_vcpu *vcpu)
+ 	int ret;
  
--static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
-+static int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
- {
- 	void *obj;
+ 	vcpu->arch.mmu_pte_list_desc_cache.kmem_cache = pte_list_desc_cache;
++	vcpu->arch.mmu_pte_list_desc_cache.gfp_zero = __GFP_ZERO;
++
+ 	vcpu->arch.mmu_page_header_cache.kmem_cache = mmu_page_header_cache;
++	vcpu->arch.mmu_page_header_cache.gfp_zero = __GFP_ZERO;
  
-@@ -1086,12 +1086,12 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
- 	return 0;
- }
- 
--static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *mc)
-+static int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc)
- {
- 	return mc->nobjs;
- }
- 
--static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
-+static void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
- {
- 	while (mc->nobjs) {
- 		if (mc->kmem_cache)
-@@ -1106,33 +1106,33 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu, bool maybe_indirect)
- 	int r;
- 
- 	/* 1 rmap, 1 parent PTE per level, and the prefetched rmaps. */
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
--				   1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
-+	r = kvm_mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
-+				       1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
- 	if (r)
- 		return r;
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_shadow_page_cache,
--				   PT64_ROOT_MAX_LEVEL);
-+	r = kvm_mmu_topup_memory_cache(&vcpu->arch.mmu_shadow_page_cache,
-+				       PT64_ROOT_MAX_LEVEL);
- 	if (r)
- 		return r;
- 	if (maybe_indirect) {
--		r = mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
--					   PT64_ROOT_MAX_LEVEL);
-+		r = kvm_mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
-+					       PT64_ROOT_MAX_LEVEL);
- 		if (r)
- 			return r;
- 	}
--	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
--				      PT64_ROOT_MAX_LEVEL);
-+	return kvm_mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
-+					  PT64_ROOT_MAX_LEVEL);
- }
- 
- static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
- {
--	mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache);
--	mmu_free_memory_cache(&vcpu->arch.mmu_shadow_page_cache);
--	mmu_free_memory_cache(&vcpu->arch.mmu_gfn_array_cache);
--	mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
-+	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache);
-+	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_shadow_page_cache);
-+	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_gfn_array_cache);
-+	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
- }
- 
--static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
-+static void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
- {
- 	void *p;
- 
-@@ -1146,7 +1146,7 @@ static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
- 
- static struct pte_list_desc *mmu_alloc_pte_list_desc(struct kvm_vcpu *vcpu)
- {
--	return mmu_memory_cache_alloc(&vcpu->arch.mmu_pte_list_desc_cache);
-+	return kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_pte_list_desc_cache);
- }
- 
- static void mmu_free_pte_list_desc(struct pte_list_desc *pte_list_desc)
-@@ -1417,7 +1417,7 @@ static bool rmap_can_add(struct kvm_vcpu *vcpu)
- 	struct kvm_mmu_memory_cache *mc;
- 
- 	mc = &vcpu->arch.mmu_pte_list_desc_cache;
--	return mmu_memory_cache_free_objects(mc);
-+	return kvm_mmu_memory_cache_nr_free_objects(mc);
- }
- 
- static int rmap_add(struct kvm_vcpu *vcpu, u64 *spte, gfn_t gfn)
-@@ -2104,10 +2104,10 @@ static struct kvm_mmu_page *kvm_mmu_alloc_page(struct kvm_vcpu *vcpu, int direct
- {
- 	struct kvm_mmu_page *sp;
- 
--	sp = mmu_memory_cache_alloc(&vcpu->arch.mmu_page_header_cache);
--	sp->spt = mmu_memory_cache_alloc(&vcpu->arch.mmu_shadow_page_cache);
-+	sp = kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_page_header_cache);
-+	sp->spt = kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_shadow_page_cache);
- 	if (!direct)
--		sp->gfns = mmu_memory_cache_alloc(&vcpu->arch.mmu_gfn_array_cache);
-+		sp->gfns = kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_gfn_array_cache);
- 	set_page_private(virt_to_page(sp->spt), (unsigned long)sp);
- 
- 	/*
+ 	vcpu->arch.mmu = &vcpu->arch.root_mmu;
+ 	vcpu->arch.walk_mmu = &vcpu->arch.root_mmu;
 -- 
 2.26.0
