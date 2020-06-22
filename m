@@ -1,134 +1,106 @@
-From: Peter Collingbourne <pcc@google.com>
-Subject: Re: [PATCH 20/22] arm64: mte: Allow user control of the excluded tags
- via prctl()
-Date: Mon, 22 Jun 2020 12:00:48 -0700
-Message-ID: <CAMn1gO5rhOG1W+nVe103v=smvARcFFp_Ct9XqH2Ca4BUMfpDdg@mail.gmail.com>
-References: <20191211184027.20130-1-catalin.marinas@arm.com>
- <20191211184027.20130-21-catalin.marinas@arm.com> <ef61bbc6-76d6-531d-2156-b57efc070da4@arm.com>
- <CAMn1gO6KGbeSkuEJB_j+WG8DAjbn81OdfA6DQQ+FFA5F6dcsVQ@mail.gmail.com> <20200622171716.GC10226@gaia>
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v2 00/21] KVM: Cleanup and unify kvm_mmu_memory_cache usage
+Date: Mon, 22 Jun 2020 13:08:01 -0700
+Message-ID: <20200622200822.4426-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42938 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730662AbgFVTBC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2020 15:01:02 -0400
-Received: from mail-vs1-xe44.google.com (mail-vs1-xe44.google.com [IPv6:2607:f8b0:4864:20::e44])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CDE9AC061573
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 12:01:01 -0700 (PDT)
-Received: by mail-vs1-xe44.google.com with SMTP id l10so10278002vsr.10
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 12:01:01 -0700 (PDT)
-In-Reply-To: <20200622171716.GC10226@gaia>
+Received: from mga12.intel.com ([192.55.52.136]:60195 "EHLO mga12.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728530AbgFVUJH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 16:09:07 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Kevin Brodsky <kevin.brodsky@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Richard Earnshaw <Richard.Earnshaw@arm.com>, Andrey Konovalov <andreyknvl@google.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Branislav Rankov <Branislav.Rankov@arm.com>, Dave P Martin <Dave.Martin@arm.com>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
 
-On Mon, Jun 22, 2020 at 10:17 AM Catalin Marinas
-<catalin.marinas@arm.com> wrote:
->
-> Hi Peter,
->
-> Revisiting the gcr_excl vs gcr_incl decision, so reviving an old thread.
->
-> On Mon, Dec 16, 2019 at 09:30:36AM -0800, Peter Collingbourne wrote:
-> > On Mon, Dec 16, 2019 at 6:20 AM Kevin Brodsky <kevin.brodsky@arm.com> wrote:
-> > > In this patch, the default exclusion mask remains 0 (i.e. all tags can be generated).
-> > > After some more discussions, Branislav and I think that it would be better to start
-> > > with the reverse, i.e. all tags but 0 excluded (mask = 0xfe or 0xff).
-> > >
-> > > This should simplify the MTE setup in the early C runtime quite a bit. Indeed, if all
-> > > tags can be generated, doing any heap or stack tagging before the
-> > > PR_SET_TAGGED_ADDR_CTRL prctl() is issued can cause problems, notably because tagged
-> > > addresses could end up being passed to syscalls. Conversely, if IRG and ADDG never
-> > > set the top byte by default, then tagging operations should be no-ops until the
-> > > prctl() is issued. This would be particularly useful given that it may not be
-> > > straightforward for the C runtime to issue the prctl() before doing anything else.
-> > >
-> > > Additionally, since the default tag checking mode is PR_MTE_TCF_NONE, it would make
-> > > perfect sense not to generate tags by default.
-> >
-> > This would indeed allow the early C runtime startup code to pass
-> > tagged addresses to syscalls,
->
-> I guess you meant that early C runtime code won't get tagged stack
-> addresses, hence they can be passed to syscalls. Prior to the prctl(),
-> the kernel doesn't accept tagged addresses anyway.
+Note, patch 18 will conflict with the p4d rework in 5.8.  I originally
+stated I would send v2 only after that got pulled into Paolo's tree, but
+I got my timing wrong, i.e. I was thinking that would have already
+happened.  I'll send v3 if necessary.  I wanted to get v2 out there now
+that I actually compile tested other architectures.
 
-Right.
+Marc, I interpreted your "nothing caught fire" as Tested-by for the arm64
+patches, let me know if that's not what you intended.
 
-> > but I don't think it would entirely free
-> > the code from the burden of worrying about stack tagging. Either way,
-> > any stack frames that are active at the point when the prctl() is
-> > issued would need to be compiled without stack tagging, because
-> > otherwise those stack frames may use ADDG to rematerialize a stack
-> > object address, which may produce a different address post-prctl.
->
-> If you want to guarantee that ADDG always returns tag 0, I guess that's
-> only possible with a default exclude mask of 0xffff (or if you are
-> careful enough with the start tag and offset passed).
->
-> > Setting the exclude mask to 0xffff would at least make it more likely
-> > for this problem to be detected, though.
->
-> I thought it would be detected if we didn't have a 0xffff default
-> exclude mask. With only tag 0 generated, any such problem could be
-> hidden.
 
-I don't think that's the case, as long as you aren't using 0 as a
-catch-all tag. Imagine that you have some hypothetical startup code
-that looks like this:
+This series resurrects Christoffer Dall's series[1] to provide a common
+MMU memory cache implementation that can be shared by x86, arm64 and MIPS.
 
-void init() {
-  bool called_prctl = false;
-  prctl(PR_SET_TAGGED_ADDR_CTRL, ...); // effect is to change
-GCR_EL1.Excl from 0xffff to 1
-  called_prctl = true;
-}
+It also picks up a suggested change from Ben Gardon[2] to clear shadow
+page tables during initial allocation so as to avoid clearing entire
+pages while holding mmu_lock.
 
-This may be compiled as something like (well, a real compiler wouldn't
-compile it like this but rather use sp-relative stores or eliminate
-the dead stores entirely, but imagine that the stores to called_prctl
-are obfuscated somehow, e.g. in another translation unit):
+The front half of the patches do house cleaning on x86's memory cache
+implementation in preparation for moving it to common code, along with a
+fair bit of cleanup on the usage.  The middle chunk moves the patches to
+common KVM, and the last two chunks convert arm64 and MIPS to the common
+implementation.
 
-sub x19, sp, #16
-irg x19, x19 // compute a tag base for the function
-addg x0, x19, #0, #1 // add tag offset for "called_prctl"
-stzg x0, [x0]
-bl prctl
-addg x0, x19, #0, #1 // rematerialize "called_prctl" address
-mov w1, #1
-strb w1, [x0]
-ret
+Fully tested on x86 only.  Compile tested patches 14-21 on arm64, MIPS,
+s390 and PowerPC.
 
-The first addg will materialize a tag of 0 due to the default Excl
-value, so the stzg will set the memory tag to 0. However, the second
-addg will materialize a tag of 1 because of the new Excl value, which
-will result in a tag fault in the strb instruction.
+v2:
+  - Rebase to kvm-5.8-2, commit 49b3deaad345 ("Merge tag ...").
+  - Use an asm-generic kvm_types.h for s390 and PowerPC instead of an
+    empty arch-specific file. [Marc]
+  - Explicit document "GFP_PGTABLE_USER == GFP_KERNEL_ACCOUNT | GFP_ZERO"
+    in the arm64 conversion patch. [Marc]
+  - Collect review tags. [Ben]
 
-This problem is less likely to be detected if we transition Excl from
-0 to 1. It will only be detected in the case where the irg instruction
-produces a tag of 0xf, which would be incremented to 0 by the first
-addg but to 1 by the second one.
+[1] https://lkml.kernel.org/r/20191105110357.8607-1-christoffer.dall@arm
+[2] https://lkml.kernel.org/r/20190926231824.149014-4-bgardon@google.com
 
-> > If we change the default in this way, maybe it would be worth
-> > considering flipping the meaning of the tag mask and have it be a mask
-> > of tags to allow. That would be consistent with the existing behaviour
-> > where userspace sets bits in tagged_addr_ctrl in order to enable
-> > tagging features.
->
-> The first question is whether the C runtime requires a default
-> GCR_EL1.Excl mask of 0xffff (or 0xfffe) so that IRG, ADDG, SUBG always
-> generate tag 0. If the runtime is fine with a default exclude mask of 0,
-> I'm tempted to go back to an exclude mask for prctl().
->
-> (to me it feels more natural to use an exclude mask as it matches the
-> ARM ARM definition but maybe I stare too much at the hardware specs ;))
+Sean Christopherson (21):
+  KVM: x86/mmu: Track the associated kmem_cache in the MMU caches
+  KVM: x86/mmu: Consolidate "page" variant of memory cache helpers
+  KVM: x86/mmu: Use consistent "mc" name for kvm_mmu_memory_cache locals
+  KVM: x86/mmu: Remove superfluous gotos from mmu_topup_memory_caches()
+  KVM: x86/mmu: Try to avoid crashing KVM if a MMU memory cache is empty
+  KVM: x86/mmu: Move fast_page_fault() call above
+    mmu_topup_memory_caches()
+  KVM: x86/mmu: Topup memory caches after walking GVA->GPA
+  KVM: x86/mmu: Clean up the gorilla math in mmu_topup_memory_caches()
+  KVM: x86/mmu: Separate the memory caches for shadow pages and gfn
+    arrays
+  KVM: x86/mmu: Make __GFP_ZERO a property of the memory cache
+  KVM: x86/mmu: Zero allocate shadow pages (outside of mmu_lock)
+  KVM: x86/mmu: Skip filling the gfn cache for guaranteed direct MMU
+    topups
+  KVM: x86/mmu: Prepend "kvm_" to memory cache helpers that will be
+    global
+  KVM: Move x86's version of struct kvm_mmu_memory_cache to common code
+  KVM: Move x86's MMU memory cache helpers to common KVM code
+  KVM: arm64: Drop @max param from mmu_topup_memory_cache()
+  KVM: arm64: Use common code's approach for __GFP_ZERO with memory
+    caches
+  KVM: arm64: Use common KVM implementation of MMU memory caches
+  KVM: MIPS: Drop @max param from mmu_topup_memory_cache()
+  KVM: MIPS: Account pages used for GPA page tables
+  KVM: MIPS: Use common KVM implementation of MMU memory caches
 
-I think that would be fine with me. With the transition from 0 to 1
-the above problem would still be detected, but only 1/16 of the time.
-But if the problem exists in the early startup code which will be
-executed many times during a typical system boot, it makes it likely
-that the problem will be detected eventually.
+ arch/arm64/include/asm/kvm_host.h  |  11 ---
+ arch/arm64/include/asm/kvm_types.h |   8 ++
+ arch/arm64/kvm/arm.c               |   2 +
+ arch/arm64/kvm/mmu.c               |  54 +++---------
+ arch/mips/include/asm/kvm_host.h   |  11 ---
+ arch/mips/include/asm/kvm_types.h  |   7 ++
+ arch/mips/kvm/mmu.c                |  44 ++--------
+ arch/powerpc/include/asm/Kbuild    |   1 +
+ arch/s390/include/asm/Kbuild       |   1 +
+ arch/x86/include/asm/kvm_host.h    |  14 +---
+ arch/x86/include/asm/kvm_types.h   |   7 ++
+ arch/x86/kvm/mmu/mmu.c             | 129 +++++++++--------------------
+ arch/x86/kvm/mmu/paging_tmpl.h     |  10 +--
+ include/asm-generic/kvm_types.h    |   5 ++
+ include/linux/kvm_host.h           |   7 ++
+ include/linux/kvm_types.h          |  19 +++++
+ virt/kvm/kvm_main.c                |  55 ++++++++++++
+ 17 files changed, 175 insertions(+), 210 deletions(-)
+ create mode 100644 arch/arm64/include/asm/kvm_types.h
+ create mode 100644 arch/mips/include/asm/kvm_types.h
+ create mode 100644 arch/x86/include/asm/kvm_types.h
+ create mode 100644 include/asm-generic/kvm_types.h
 
-Peter
+-- 
+2.26.0
