@@ -1,84 +1,70 @@
-Return-Path: <SRS0=6fqV=7W=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35030 "EHLO
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52822 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725950AbgFILDi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2020 07:03:38 -0400
-Subject: Re: [PATCH v2 5/6] prctl.2: Add PR_PAC_RESET_KEYS (arm64)
-References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
- <1590614258-24728-6-git-send-email-Dave.Martin@arm.com>
- <20200609100202.GB25362@willie-the-truck>
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Message-ID: <7571ba40-7b4e-ca6d-efb1-691b1c4a6d04@gmail.com>
-Date: Tue, 9 Jun 2020 13:03:35 +0200
+        with ESMTP id S1731282AbgFVXEx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2020 19:04:53 -0400
+Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 70368C061795
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:04:52 -0700 (PDT)
+Received: by mail-pj1-x1042.google.com with SMTP id h95so627123pje.4
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:04:52 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20200609100202.GB25362@willie-the-truck>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <20200622205341.2987797-1-keescook@chromium.org>
+ <20200622205341.2987797-2-keescook@chromium.org> <20200622220043.6j3vl6v7udmk2ppp@google.com>
+ <202006221524.CEB86E036B@keescook> <20200622225237.ybol4qmz4mhkmlqc@google.com>
+ <202006221555.45BB6412F@keescook>
+In-Reply-To: <202006221555.45BB6412F@keescook>
+From: =?UTF-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>
+Date: Mon, 22 Jun 2020 16:04:40 -0700
+Message-ID: <CAFP8O3KdGc9TtziFX7UzmxA-=wfPzm5oi6NCEwRiyyrp+JD3Xg@mail.gmail.com>
+Subject: Re: [PATCH v2 1/3] vmlinux.lds.h: Add .gnu.version* to DISCARDS
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>, Dave Martin <Dave.Martin@arm.com>
-Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Amit Daniel Kachhap <amit.kachhap@arm.com>, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20200609110335.1lSm4f8Nctz9ElkMzCpp3Fu90VBbAm2IvLJ5qPKj3cI@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20200622230440.fGJ-0B28pLY5W3aE36EWtmYLBQOwz8naSSBiZe5m4Hc@z>
 
-Hi Will,
+On Mon, Jun 22, 2020 at 3:57 PM Kees Cook <keescook@chromium.org> wrote:
+>
+> On Mon, Jun 22, 2020 at 03:52:37PM -0700, Fangrui Song wrote:
+> > > And it's not in the output:
+> > >
+> > > $ readelf -Vs arch/x86/boot/compressed/vmlinux | grep version
+> > > No version information found in this file.
+> > >
+> > > So... for the kernel we need to silence it right now.
+> >
+> > Re-link with -M (or -Map file) to check where .gnu.version{,_d,_r} input
+> > sections come from?
+>
+> It's not reporting it correctly:
+>
+> .gnu.version_d  0x00000000008966b0        0x0
+>  .gnu.version_d
+>                 0x00000000008966b0        0x0 arch/x86/boot/compressed/kernel_info.o
+>
+> .gnu.version    0x00000000008966b0        0x0
+>  .gnu.version   0x00000000008966b0        0x0 arch/x86/boot/compressed/kernel_info.o
+>
+> .gnu.version_r  0x00000000008966b0        0x0
+>  .gnu.version_r
+>                 0x00000000008966b0        0x0 arch/x86/boot/compressed/kernel_info.o
+>
+> it just reports whatever file is listed on the link command line first.
+>
+> > If it is a bug, we should probably figure out which version of binutils
+> > has fixed the bug.
+>
+> I see this with binutils 2.34...
+>
+> --
+> Kees Cook
 
-Thanks for reviewing.
+:( It deserves a binutils bug
+(https://sourceware.org/bugzilla/enter_bug.cgi?product=binutils ) and
+a comment..
 
-On 6/9/20 12:02 PM, Will Deacon wrote:
-> On Wed, May 27, 2020 at 10:17:37PM +0100, Dave Martin wrote:
->> Add documentation for the PR_PAC_RESET_KEYS ioctl added in Linux
->> 5.0 for arm64.
-> 
-> [...]
-> 
->> +If the arguments are invalid,
->> +and in particular if
->> +.I arg2
->> +contains set bits that are unrecognized
->> +or that correspond to a key not available on this platform,
->> +the call fails with error
->> +.BR EINVAL .
->> +.IP
->> +.B Warning:
->> +Because the compiler or run-time environment
->> +may be using some or all of the keys,
->> +a successful
->> +.IP
->> +For more information, see the kernel source file
->> +.I Documentation/arm64/pointer\-authentication.rst
->> +.\"commit b693d0b372afb39432e1c49ad7b3454855bc6bed
->> +(or
->> +.I Documentation/arm64/pointer\-authentication.txt
->> +before Linux 5.3).
->> +.B PR_PAC_RESET_KEYS
->> +may crash the calling process.
-> 
-> I might be misreading this, but this looks like the kernel reference appears
-> mid-sentence. 
+With the description adjusted to say that this works around a bug
 
-It's hidden as a comment (.\").
-
-> Regardless, I think we should drop the kernel doc reference,
-> as I mentioned on the SVE patches.
-
-I actually request that people add these kinds of comments in the source.
-It helps me verify details in patches, and is also handy when checking
-details in the future.
-
-> With that:
-> 
-> Acked-by: Will Deacon <will@kernel.org>
-
-Thanks.
-
-Cheers,
-
-Michael
-
-
-
--- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+Reviewed-by: Fangrui Song <maskray@google.com>
