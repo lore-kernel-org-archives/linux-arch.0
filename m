@@ -1,44 +1,81 @@
-Return-Path: <SRS0=o+GD=73=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from correo.us.es ([193.147.175.20]:33352 "EHLO mail.us.es"
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga12.intel.com ([192.55.52.136]:60195 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727918AbgFNWBF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 14 Jun 2020 18:01:05 -0400
-Received: from antivirus1-rhel7.int (unknown [192.168.2.11])
-        by mail.us.es (Postfix) with ESMTP id EB525FF90D
-        for <linux-arch@vger.kernel.org>; Mon, 15 Jun 2020 00:01:04 +0200 (CEST)
-Received: from antivirus1-rhel7.int (localhost [127.0.0.1])
-        by antivirus1-rhel7.int (Postfix) with ESMTP id DE6FFDA86E
-        for <linux-arch@vger.kernel.org>; Mon, 15 Jun 2020 00:01:04 +0200 (CEST)
-Date: Mon, 15 Jun 2020 00:01:01 +0200
-From: Pablo Neira Ayuso <pablo@netfilter.org>
-Subject: Re: Good idea to rename files in include/uapi/ ?
-Message-ID: <20200614220101.GA9367@salvia>
-References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
- <174102.1592165965@warthog.procyon.org.uk>
- <nycvar.YFH.7.77.849.2006142244200.30230@n3.vanv.qr>
+        id S1730383AbgFVUJO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 16:09:14 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v2 08/21] KVM: x86/mmu: Clean up the gorilla math in mmu_topup_memory_caches()
+Date: Mon, 22 Jun 2020 13:08:09 -0700
+Message-ID: <20200622200822.4426-9-sean.j.christopherson@intel.com>
+In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <nycvar.YFH.7.77.849.2006142244200.30230@n3.vanv.qr>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jan Engelhardt <jengelh@inai.de>
-Cc: David Howells <dhowells@redhat.com>, "Alexander A. Klimov" <grandmaster@al2klimov.de>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200614220101.6HH5oBLquIl8bWW18vBfklt_gYyYJm2QAhz8OZaCN_c@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200622200809.8F2FJNYz6E845Jhk2JQWl1b24hQXwVlrnaYZi4NulFs@z>
 
-On Sun, Jun 14, 2020 at 11:08:08PM +0200, Jan Engelhardt wrote:
-> 
-> On Sunday 2020-06-14 22:19, David Howells wrote:
-> >Alexander A. Klimov <grandmaster@al2klimov.de> wrote:
-> >
-> >> *Is it a good idea to rename files in include/uapi/ ?*
-> >
-> >Very likely not.  If programs out there are going to be built on a
-> >case-sensitive filesystem (which happens all the time), they're going to break
-> >if you rename the headers.  We're kind of stuck with them.
-> 
-> Netfilter has precedent for removing old headers, e.g.
-> 7200135bc1e61f1437dc326ae2ef2f310c50b4eb's ipt_ULOG.h.
+Clean up the minimums in mmu_topup_memory_caches() to document the
+driving mechanisms behind the minimums.  Now that encountering an empty
+cache is unlikely to trigger BUG_ON(), it is less dangerous to be more
+precise when defining the minimums.
 
-That's only because NFLOG has been there for ~10 years, so it was safe
-to remove ULOG support.
+For rmaps, the logic is 1 parent PTE per level, plus a single rmap, and
+prefetched rmaps.  The extra objects in the current '8 + PREFETCH'
+minimum came about due to an abundance of paranoia in commit
+c41ef344de212 ("KVM: MMU: increase per-vcpu rmap cache alloc size"),
+i.e. it could have increased the minimum to 2 rmaps.  Furthermore, the
+unexpected extra rmap case was killed off entirely by commits
+f759e2b4c728c ("KVM: MMU: avoid pte_list_desc running out in
+kvm_mmu_pte_write") and f5a1e9f89504f ("KVM: MMU: remove call to
+kvm_mmu_pte_write from walk_addr").
+
+For the so called page cache, replace '8' with 2*PT64_ROOT_MAX_LEVEL.
+The 2x multiplier is needed because the cache is used for both shadow
+pages and gfn arrays for indirect MMUs.
+
+And finally, for page headers, replace '4' with PT64_ROOT_MAX_LEVEL.
+
+Note, KVM now supports 5-level paging, i.e. the old minimums that used a
+baseline derived from 4-level paging were technically wrong.  But, KVM
+always allocates roots in a separate flow, e.g. it's impossible in the
+current implementation to actually need 5 new shadow pages in a single
+flow.  Use PT64_ROOT_MAX_LEVEL unmodified instead of subtracting 1, as
+the direct usage is likely more intuitive to uninformed readers, and the
+inflated minimum is unlikely to affect functionality in practice.
+
+Reviewed-by: Ben Gardon <bgardon@google.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+---
+ arch/x86/kvm/mmu/mmu.c | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index 4b4c3234d623..451e0365e5dd 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -1103,14 +1103,17 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+ {
+ 	int r;
+ 
++	/* 1 rmap, 1 parent PTE per level, and the prefetched rmaps. */
+ 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
+-				   8 + PTE_PREFETCH_NUM);
++				   1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
+ 	if (r)
+ 		return r;
+-	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache, 8);
++	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache,
++				   2 * PT64_ROOT_MAX_LEVEL);
+ 	if (r)
+ 		return r;
+-	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
++	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
++				      PT64_ROOT_MAX_LEVEL);
+ }
+ 
+ static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+-- 
+2.26.0
