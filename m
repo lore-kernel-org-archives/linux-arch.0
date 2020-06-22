@@ -1,70 +1,43 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34252 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2404700AbgFXVtc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 17:49:32 -0400
-Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BC9BDC061573
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 14:49:32 -0700 (PDT)
-Received: by mail-pj1-x1043.google.com with SMTP id ev7so1277445pjb.2
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 14:49:32 -0700 (PDT)
-Date: Wed, 24 Jun 2020 14:49:25 -0700
-From: Sami Tolvanen <samitolvanen@google.com>
-Subject: Re: [PATCH 05/22] kbuild: lto: postpone objtool
-Message-ID: <20200624214925.GB120457@google.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624203200.78870-6-samitolvanen@google.com>
- <20200624211908.GT4817@hirez.programming.kicks-ass.net>
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from smtp.al2klimov.de ([78.46.175.9]:56972 "EHLO smtp.al2klimov.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730099AbgFVSG3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 14:06:29 -0400
+Subject: Re: Good idea to rename files in include/uapi/ ?
+References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
+ <174102.1592165965@warthog.procyon.org.uk>
+ <nycvar.YFH.7.77.849.2006142244200.30230@n3.vanv.qr>
+ <ab88e504-c139-231a-0294-953ffd1a9442@al2klimov.de>
+ <nycvar.YFH.7.77.849.2006221336180.26495@n3.vanv.qr>
+From: "Alexander A. Klimov" <grandmaster@al2klimov.de>
+Message-ID: <482bbfe2-77c7-226c-98a9-d6505866123a@al2klimov.de>
+Date: Mon, 22 Jun 2020 20:06:19 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200624211908.GT4817@hirez.programming.kicks-ass.net>
+In-Reply-To: <nycvar.YFH.7.77.849.2006221336180.26495@n3.vanv.qr>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
-Message-ID: <20200624214925.K0MzNlW_SWEwO3M6trV7OLLOMxdc-6uU4KWk47vKcm0@z>
+To: Jan Engelhardt <jengelh@inai.de>
+Cc: David Howells <dhowells@redhat.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20200622180619.FoShnb2RoVhBq_h34dHH0OoVAz8WGSqsgkhZfXMfhcU@z>
 
-On Wed, Jun 24, 2020 at 11:19:08PM +0200, Peter Zijlstra wrote:
-> On Wed, Jun 24, 2020 at 01:31:43PM -0700, Sami Tolvanen wrote:
-> > diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-> > index 30827f82ad62..12b115152532 100644
-> > --- a/include/linux/compiler.h
-> > +++ b/include/linux/compiler.h
-> > @@ -120,7 +120,7 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
-> >  /* Annotate a C jump table to allow objtool to follow the code flow */
-> >  #define __annotate_jump_table __section(.rodata..c_jump_table)
-> >  
-> > -#ifdef CONFIG_DEBUG_ENTRY
-> > +#if defined(CONFIG_DEBUG_ENTRY) || defined(CONFIG_LTO_CLANG)
-> >  /* Begin/end of an instrumentation safe region */
-> >  #define instrumentation_begin() ({					\
-> >  	asm volatile("%c0:\n\t"						\
+
+
+Am 22.06.20 um 13:37 schrieb Jan Engelhardt:
 > 
-> Why would you be doing noinstr validation for lto builds? That doesn't
-> make sense.
-
-This is just to avoid a ton of noinstr warnings when we run objtool on
-vmlinux.o, but I'm also fine with skipping noinstr validation with LTO.
-
-> > +ifdef CONFIG_STACK_VALIDATION
-> > +ifneq ($(SKIP_STACK_VALIDATION),1)
-> > +cmd_ld_ko_o +=								\
-> > +	$(objtree)/tools/objtool/objtool				\
-> > +		$(if $(CONFIG_UNWINDER_ORC),orc generate,check)		\
-> > +		--module						\
-> > +		$(if $(CONFIG_FRAME_POINTER),,--no-fp)			\
-> > +		$(if $(CONFIG_GCOV_KERNEL),--no-unreachable,)		\
-> > +		$(if $(CONFIG_RETPOLINE),--retpoline,)			\
-> > +		$(if $(CONFIG_X86_SMAP),--uaccess,)			\
-> > +		$(@:.ko=$(prelink-ext).o);
-> > +
-> > +endif # SKIP_STACK_VALIDATION
-> > +endif # CONFIG_STACK_VALIDATION
+> On Monday 2020-06-15 01:34, Alexander A. Klimov wrote:
+>>>
+>>> A header file rename is no problem. We even have dummy headers
+>> Hmm.. if I understand all of you correctly, David, Stefano, Pablo and Al say
+>> like no, not a good idea, but only you, Jan, say like should be no problem.
+>>
+>> Jan, do you have anything like commit messages in mainline or public emails
+>> from maintainers confirming your opinion?
 > 
-> What about the objtool invocation from link-vmlinux.sh ?
-
-What about it? The existing objtool_link invocation in link-vmlinux.sh
-works fine for our purposes as well.
-
-Sami
+> I had already given the commit with the (email) message:
+> 
+>>> Just look at xt_MARK.h, all it does is include xt_mark.h. Cf.
+>>> 28b949885f80efb87d7cebdcf879c99db12c37bd .
+In that commit no .h file disappeared.
