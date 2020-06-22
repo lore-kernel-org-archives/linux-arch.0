@@ -1,258 +1,109 @@
-Return-Path: <SRS0=u+st=AI=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58582 "EHLO
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47020 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726412AbgF0H1t (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 Jun 2020 03:27:49 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 5/5] exec: add a kernel_execveat helper
-Date: Sat, 27 Jun 2020 09:27:04 +0200
-Message-ID: <20200627072704.2447163-6-hch@lst.de>
-In-Reply-To: <20200627072704.2447163-1-hch@lst.de>
-References: <20200627072704.2447163-1-hch@lst.de>
+        with ESMTP id S1731098AbgFVW1u (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2020 18:27:50 -0400
+Received: from mail-pf1-x444.google.com (mail-pf1-x444.google.com [IPv6:2607:f8b0:4864:20::444])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3C145C061795
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 15:27:50 -0700 (PDT)
+Received: by mail-pf1-x444.google.com with SMTP id x22so9077073pfn.3
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 15:27:50 -0700 (PDT)
+Date: Mon, 22 Jun 2020 15:27:47 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v2 1/3] vmlinux.lds.h: Add .gnu.version* to DISCARDS
+Message-ID: <202006221524.CEB86E036B@keescook>
+References: <20200622205341.2987797-1-keescook@chromium.org>
+ <20200622205341.2987797-2-keescook@chromium.org>
+ <20200622220043.6j3vl6v7udmk2ppp@google.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200622220043.6j3vl6v7udmk2ppp@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200627072704.sySYb5uL7hxzRqzXvKhHpl7RyIKFiyMzErTvx-y_Iz4@z>
+To: Fangrui Song <maskray@google.com>
+Cc: Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200622222747.ODvzgfRbaN_ywnyA2G8q-5a-kEfUkrQyA9IlYZqzaes@z>
 
-Add a kernel_execveat helper to execute a binary with kernel space argv
-and envp pointers.  Switch executing init and user mode helpers to this
-new helper instead of relying on the implicit set_fs(KERNEL_DS) for early
-init code and kernel threads, and move the getname call into the
-do_execve helper.
+On Mon, Jun 22, 2020 at 03:00:43PM -0700, Fangrui Song wrote:
+> On 2020-06-22, Kees Cook wrote:
+> > For vmlinux linking, no architecture uses the .gnu.version* section,
+> > so remove it via the common DISCARDS macro in preparation for adding
+> > --orphan-handling=warn more widely.
+> > 
+> > Signed-off-by: Kees Cook <keescook@chromium.org>
+> > ---
+> > include/asm-generic/vmlinux.lds.h | 1 +
+> > 1 file changed, 1 insertion(+)
+> > 
+> > diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> > index db600ef218d7..6fbe9ed10cdb 100644
+> > --- a/include/asm-generic/vmlinux.lds.h
+> > +++ b/include/asm-generic/vmlinux.lds.h
+> > @@ -934,6 +934,7 @@
+> > 	*(.discard)							\
+> > 	*(.discard.*)							\
+> > 	*(.modinfo)							\
+> > +	*(.gnu.version*)						\
+> > 	}
+> > 
+> > /**
+> > -- 
+> > 2.25.1
+> 
+> I wonder what lead to .gnu.version{,_d,_r} sections in the kernel.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- fs/exec.c               | 109 ++++++++++++++++++++++++++++++++--------
- include/linux/binfmts.h |   6 +--
- init/main.c             |   6 +--
- kernel/umh.c            |   8 ++-
- 4 files changed, 95 insertions(+), 34 deletions(-)
+This looks like a bug in bfd.ld? There are no versioned symbols in any
+of the input files (and no output section either!)
 
-diff --git a/fs/exec.c b/fs/exec.c
-index 34781db6bf6889..7923b8334ae600 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -435,6 +435,21 @@ static int count_strings(const char __user *const __user *argv)
- 	return i;
- }
- 
-+static int count_kernel_strings(const char *const *argv)
-+{
-+	int i;
-+
-+	if (!argv)
-+		return 0;
-+
-+	for (i = 0; argv[i]; i++) {
-+		if (i >= MAX_ARG_STRINGS)
-+			return -E2BIG;
-+	}
-+
-+	return i;
-+}
-+
- static int check_arg_limit(struct linux_binprm *bprm)
- {
- 	unsigned long limit, ptr_size;
-@@ -611,6 +626,19 @@ int copy_string_kernel(const char *arg, struct linux_binprm *bprm)
- }
- EXPORT_SYMBOL(copy_string_kernel);
- 
-+static int copy_strings_kernel(int argc, const char *const *argv,
-+		struct linux_binprm *bprm)
-+{
-+	int ret;
-+
-+	while (argc-- > 0) {
-+		ret = copy_string_kernel(argv[argc], bprm);
-+		if (ret)
-+			break;
-+	}
-+	return ret;
-+}
-+
- #ifdef CONFIG_MMU
- 
- /*
-@@ -1793,9 +1821,11 @@ static int exec_binprm(struct linux_binprm *bprm)
- 	return 0;
- }
- 
--int do_execveat(int fd, struct filename *filename,
-+static int __do_execveat(int fd, struct filename *filename,
- 		const char __user *const __user *argv,
- 		const char __user *const __user *envp,
-+		const char *const *kernel_argv,
-+		const char *const *kernel_envp,
- 		int flags, struct file *file)
- {
- 	char *pathbuf = NULL;
-@@ -1876,16 +1906,30 @@ int do_execveat(int fd, struct filename *filename,
- 	if (retval)
- 		goto out_unmark;
- 
--	bprm->argc = count_strings(argv);
--	if (bprm->argc < 0) {
--		retval = bprm->argc;
--		goto out;
--	}
-+	if (unlikely(kernel_argv)) {
-+		bprm->argc = count_kernel_strings(kernel_argv);
-+		if (bprm->argc < 0) {
-+			retval = bprm->argc;
-+			goto out;
-+		}
- 
--	bprm->envc = count_strings(envp);
--	if (bprm->envc < 0) {
--		retval = bprm->envc;
--		goto out;
-+		bprm->envc = count_kernel_strings(kernel_envp);
-+		if (bprm->envc < 0) {
-+			retval = bprm->envc;
-+			goto out;
-+		}
-+	} else {
-+		bprm->argc = count_strings(argv);
-+		if (bprm->argc < 0) {
-+			retval = bprm->argc;
-+			goto out;
-+		}
-+
-+		bprm->envc = count_strings(envp);
-+		if (bprm->envc < 0) {
-+			retval = bprm->envc;
-+			goto out;
-+		}
- 	}
- 
- 	retval = check_arg_limit(bprm);
-@@ -1902,13 +1946,22 @@ int do_execveat(int fd, struct filename *filename,
- 		goto out;
- 
- 	bprm->exec = bprm->p;
--	retval = copy_strings(bprm->envc, envp, bprm);
--	if (retval < 0)
--		goto out;
- 
--	retval = copy_strings(bprm->argc, argv, bprm);
--	if (retval < 0)
--		goto out;
-+	if (unlikely(kernel_argv)) {
-+		retval = copy_strings_kernel(bprm->envc, kernel_envp, bprm);
-+		if (retval < 0)
-+			goto out;
-+		retval = copy_strings_kernel(bprm->argc, kernel_argv, bprm);
-+		if (retval < 0)
-+			goto out;
-+	} else {
-+		retval = copy_strings(bprm->envc, envp, bprm);
-+		if (retval < 0)
-+			goto out;
-+		retval = copy_strings(bprm->argc, argv, bprm);
-+		if (retval < 0)
-+			goto out;
-+	}
- 
- 	retval = exec_binprm(bprm);
- 	if (retval < 0)
-@@ -1959,6 +2012,23 @@ int do_execveat(int fd, struct filename *filename,
- 	return retval;
- }
- 
-+static int do_execveat(int fd, const char *filename,
-+		       const char __user *const __user *argv,
-+		       const char __user *const __user *envp, int flags)
-+{
-+	int lookup_flags = (flags & AT_EMPTY_PATH) ? LOOKUP_EMPTY : 0;
-+	struct filename *name = getname_flags(filename, lookup_flags, NULL);
-+
-+	return __do_execveat(fd, name, argv, envp, NULL, NULL, flags, NULL);
-+}
-+
-+int kernel_execveat(int fd, const char *filename, const char *const *argv,
-+		const char *const *envp, int flags, struct file *file)
-+{
-+	return __do_execveat(fd, getname_kernel(filename), NULL, NULL, argv,
-+			     envp, flags, file);
-+}
-+
- void set_binfmt(struct linux_binfmt *new)
- {
- 	struct mm_struct *mm = current->mm;
-@@ -1988,7 +2058,7 @@ SYSCALL_DEFINE3(execve,
- 		const char __user *const __user *, argv,
- 		const char __user *const __user *, envp)
- {
--	return do_execveat(AT_FDCWD, getname(filename), argv, envp, 0, NULL);
-+	return do_execveat(AT_FDCWD, filename, argv, envp, 0);
- }
- 
- SYSCALL_DEFINE5(execveat,
-@@ -1997,8 +2067,5 @@ SYSCALL_DEFINE5(execveat,
- 		const char __user *const __user *, envp,
- 		int, flags)
- {
--	int lookup_flags = (flags & AT_EMPTY_PATH) ? LOOKUP_EMPTY : 0;
--	struct filename *name = getname_flags(filename, lookup_flags, NULL);
--
--	return do_execveat(fd, name, argv, envp, flags, NULL);
-+	return do_execveat(fd, filename, argv, envp, flags);
- }
-diff --git a/include/linux/binfmts.h b/include/linux/binfmts.h
-index bed702e4b1fbd9..1e61c980c16354 100644
---- a/include/linux/binfmts.h
-+++ b/include/linux/binfmts.h
-@@ -134,9 +134,7 @@ int copy_string_kernel(const char *arg, struct linux_binprm *bprm);
- extern void set_binfmt(struct linux_binfmt *new);
- extern ssize_t read_code(struct file *, unsigned long, loff_t, size_t);
- 
--int do_execveat(int fd, struct filename *filename,
--		const char __user *const __user *__argv,
--		const char __user *const __user *__envp,
--		int flags, struct file *file);
-+int kernel_execveat(int fd, const char *filename, const char *const *argv,
-+		const char *const *envp, int flags, struct file *file);
- 
- #endif /* _LINUX_BINFMTS_H */
-diff --git a/init/main.c b/init/main.c
-index 838950ea7bca22..33de235dc2aa00 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -1329,10 +1329,8 @@ static int run_init_process(const char *init_filename)
- 	pr_debug("  with environment:\n");
- 	for (p = envp_init; *p; p++)
- 		pr_debug("    %s\n", *p);
--	return do_execveat(AT_FDCWD, getname_kernel(init_filename),
--			(const char __user *const __user *)argv_init,
--			(const char __user *const __user *)envp_init,
--			0, NULL);
-+	return kernel_execveat(AT_FDCWD, init_filename, argv_init, envp_init, 0,
-+			       NULL);
- }
- 
- static int try_to_run_init_process(const char *init_filename)
-diff --git a/kernel/umh.c b/kernel/umh.c
-index 7aa9a5817582ca..1284823dbad338 100644
---- a/kernel/umh.c
-+++ b/kernel/umh.c
-@@ -103,11 +103,9 @@ static int call_usermodehelper_exec_async(void *data)
- 	commit_creds(new);
- 
- 	sub_info->pid = task_pid_nr(current);
--	retval = do_execveat(AT_FDCWD,
--			sub_info->path ? getname_kernel(sub_info->path) : NULL,
--			(const char __user *const __user *)sub_info->argv,
--			(const char __user *const __user *)sub_info->envp,
--			0, sub_info->file);
-+	retval = kernel_execveat(AT_FDCWD, sub_info->path,
-+			(const char *const *)sub_info->argv,
-+			(const char *const *)sub_info->envp, 0, sub_info->file);
- 	if (sub_info->file && !retval)
- 		current->flags |= PF_UMH;
- out:
+The link command is:
+$ ld -m elf_x86_64 --no-ld-generated-unwind-info -z noreloc-overflow -pie \
+--no-dynamic-linker   --orphan-handling=warn -T \
+arch/x86/boot/compressed/vmlinux.lds \
+arch/x86/boot/compressed/kernel_info.o \
+arch/x86/boot/compressed/head_64.o arch/x86/boot/compressed/misc.o \
+arch/x86/boot/compressed/string.o arch/x86/boot/compressed/cmdline.o \
+arch/x86/boot/compressed/error.o arch/x86/boot/compressed/piggy.o \
+arch/x86/boot/compressed/cpuflags.o \
+arch/x86/boot/compressed/early_serial_console.o \
+arch/x86/boot/compressed/kaslr.o arch/x86/boot/compressed/kaslr_64.o \
+arch/x86/boot/compressed/mem_encrypt.o \
+arch/x86/boot/compressed/pgtable_64.o arch/x86/boot/compressed/acpi.o \
+-o arch/x86/boot/compressed/vmlinux
+
+None of the inputs have the section:
+
+$ for i in arch/x86/boot/compressed/kernel_info.o \
+arch/x86/boot/compressed/head_64.o arch/x86/boot/compressed/misc.o \
+arch/x86/boot/compressed/string.o arch/x86/boot/compressed/cmdline.o \
+arch/x86/boot/compressed/error.o arch/x86/boot/compressed/piggy.o \
+arch/x86/boot/compressed/cpuflags.o \
+arch/x86/boot/compressed/early_serial_console.o \
+arch/x86/boot/compressed/kaslr.o arch/x86/boot/compressed/kaslr_64.o \
+arch/x86/boot/compressed/mem_encrypt.o \
+arch/x86/boot/compressed/pgtable_64.o arch/x86/boot/compressed/acpi.o \
+; do echo -n $i": "; readelf -Vs $i | grep 'version'; done
+arch/x86/boot/compressed/kernel_info.o: No version information found in this file.
+arch/x86/boot/compressed/head_64.o: No version information found in this file.
+arch/x86/boot/compressed/misc.o: No version information found in this file.
+arch/x86/boot/compressed/string.o: No version information found in this file.
+arch/x86/boot/compressed/cmdline.o: No version information found in this file.
+arch/x86/boot/compressed/error.o: No version information found in this file.
+arch/x86/boot/compressed/piggy.o: No version information found in this file.
+arch/x86/boot/compressed/cpuflags.o: No version information found in this file.
+arch/x86/boot/compressed/early_serial_console.o: No version information found in this file.
+arch/x86/boot/compressed/kaslr.o: No version information found in this file.
+arch/x86/boot/compressed/kaslr_64.o: No version information found in this file.
+arch/x86/boot/compressed/mem_encrypt.o: No version information found in this file.
+arch/x86/boot/compressed/pgtable_64.o: No version information found in this file.
+arch/x86/boot/compressed/acpi.o: No version information found in this file.
+
+And it's not in the output:
+
+$ readelf -Vs arch/x86/boot/compressed/vmlinux | grep version
+No version information found in this file.
+
+So... for the kernel we need to silence it right now.
+
 -- 
-2.26.2
+Kees Cook
