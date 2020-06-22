@@ -1,8 +1,8 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 08/21] KVM: x86/mmu: Clean up the gorilla math in
- mmu_topup_memory_caches()
-Date: Mon, 22 Jun 2020 13:08:09 -0700
-Message-ID: <20200622200822.4426-9-sean.j.christopherson@intel.com>
+Subject: [PATCH v2 16/21] KVM: arm64: Drop @max param from
+ mmu_topup_memory_cache()
+Date: Mon, 22 Jun 2020 13:08:17 -0700
+Message-ID: <20200622200822.4426-17-sean.j.christopherson@intel.com>
 References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,65 +22,60 @@ To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Ber
 Cc: linux-arch@vger.kernel.org, Junaid Shahid <junaids@google.com>, Wanpeng Li <wanpengli@tencent.com>, kvm@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Peter Shier <pshier@google.com>, linux-mips@vger.kernel.org, Sean Christopherson <sean.j.christopherson@intel.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Gardon <bgardon@google.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Peter Feiner <pfeiner@google.com>, kvmarm@lists.cs.columbia.edu, Jim Mattson <jmattson@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Clean up the minimums in mmu_topup_memory_caches() to document the
-driving mechanisms behind the minimums.  Now that encountering an empty
-cache is unlikely to trigger BUG_ON(), it is less dangerous to be more
-precise when defining the minimums.
+Replace the @max param in mmu_topup_memory_cache() and instead use
+ARRAY_SIZE() to terminate the loop to fill the cache.  This removes a
+BUG_ON() and sets the stage for moving arm64 to the common memory cache
+implementation.
 
-For rmaps, the logic is 1 parent PTE per level, plus a single rmap, and
-prefetched rmaps.  The extra objects in the current '8 + PREFETCH'
-minimum came about due to an abundance of paranoia in commit
-c41ef344de212 ("KVM: MMU: increase per-vcpu rmap cache alloc size"),
-i.e. it could have increased the minimum to 2 rmaps.  Furthermore, the
-unexpected extra rmap case was killed off entirely by commits
-f759e2b4c728c ("KVM: MMU: avoid pte_list_desc running out in
-kvm_mmu_pte_write") and f5a1e9f89504f ("KVM: MMU: remove call to
-kvm_mmu_pte_write from walk_addr").
+No functional change intended.
 
-For the so called page cache, replace '8' with 2*PT64_ROOT_MAX_LEVEL.
-The 2x multiplier is needed because the cache is used for both shadow
-pages and gfn arrays for indirect MMUs.
-
-And finally, for page headers, replace '4' with PT64_ROOT_MAX_LEVEL.
-
-Note, KVM now supports 5-level paging, i.e. the old minimums that used a
-baseline derived from 4-level paging were technically wrong.  But, KVM
-always allocates roots in a separate flow, e.g. it's impossible in the
-current implementation to actually need 5 new shadow pages in a single
-flow.  Use PT64_ROOT_MAX_LEVEL unmodified instead of subtracting 1, as
-the direct usage is likely more intuitive to uninformed readers, and the
-inflated minimum is unlikely to affect functionality in practice.
-
-Reviewed-by: Ben Gardon <bgardon@google.com>
+Tested-by: Marc Zyngier <maz@kernel.org>
 Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- arch/x86/kvm/mmu/mmu.c | 9 ++++++---
- 1 file changed, 6 insertions(+), 3 deletions(-)
+ arch/arm64/kvm/mmu.c | 12 ++++--------
+ 1 file changed, 4 insertions(+), 8 deletions(-)
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index 4b4c3234d623..451e0365e5dd 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1103,14 +1103,17 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
- {
- 	int r;
- 
-+	/* 1 rmap, 1 parent PTE per level, and the prefetched rmaps. */
- 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
--				   8 + PTE_PREFETCH_NUM);
-+				   1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
- 	if (r)
- 		return r;
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache, 8);
-+	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache,
-+				   2 * PT64_ROOT_MAX_LEVEL);
- 	if (r)
- 		return r;
--	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
-+	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
-+				      PT64_ROOT_MAX_LEVEL);
+diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
+index a1f6bc70c4e4..9398b66f8a87 100644
+--- a/arch/arm64/kvm/mmu.c
++++ b/arch/arm64/kvm/mmu.c
+@@ -124,15 +124,13 @@ static void stage2_dissolve_pud(struct kvm *kvm, phys_addr_t addr, pud_t *pudp)
+ 	put_page(virt_to_page(pudp));
  }
  
- static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+-static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache,
+-				  int min, int max)
++static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
+ {
+ 	void *page;
+ 
+-	BUG_ON(max > KVM_NR_MEM_OBJS);
+ 	if (cache->nobjs >= min)
+ 		return 0;
+-	while (cache->nobjs < max) {
++	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+ 		page = (void *)__get_free_page(GFP_PGTABLE_USER);
+ 		if (!page)
+ 			return -ENOMEM;
+@@ -1356,8 +1354,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
+ 			pte = kvm_s2pte_mkwrite(pte);
+ 
+ 		ret = mmu_topup_memory_cache(&cache,
+-					     kvm_mmu_cache_min_pages(kvm),
+-					     KVM_NR_MEM_OBJS);
++					     kvm_mmu_cache_min_pages(kvm));
+ 		if (ret)
+ 			goto out;
+ 		spin_lock(&kvm->mmu_lock);
+@@ -1737,8 +1734,7 @@ static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
+ 	up_read(&current->mm->mmap_sem);
+ 
+ 	/* We need minimum second+third level pages */
+-	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm),
+-				     KVM_NR_MEM_OBJS);
++	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm));
+ 	if (ret)
+ 		return ret;
+ 
 -- 
 2.26.0
