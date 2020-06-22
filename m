@@ -1,53 +1,63 @@
-Return-Path: <SRS0=za/P=7O=kvack.org=owner-linux-mm@kernel.org>
-From: Bharat Kumar Gogada <bharatku@xilinx.com>
-Subject: RE: [PATCH 00/10] Hi,
-Date: Mon, 1 Jun 2020 04:22:22 +0000
-Message-ID: 
- <BYAPR02MB5559708A5A584D05516D77EBA58A0@BYAPR02MB5559.namprd02.prod.outlook.com>
-References: <cover.1581497860.git.michal.simek@xilinx.com>
- <CAL_JsqJeXJ6zWvEUi=gyOV0eCcXsvNmkK9EstC9hg9AKfMXnKw@mail.gmail.com>
- <0f8140c1-da6f-ef04-0809-252d6de6a5d7@xilinx.com>
- <CAL_JsqLf2e3z+m14264WFcsQgiwKR35Rs9Rw0c_MgoFvKwO2Xg@mail.gmail.com>
- <5dfa98df-8955-59fd-1d65-c0a988190acb@xilinx.com>
-In-Reply-To: <5dfa98df-8955-59fd-1d65-c0a988190acb@xilinx.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga12.intel.com ([192.55.52.136]:60199 "EHLO mga12.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730238AbgFVUJN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 16:09:13 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v2 07/21] KVM: x86/mmu: Topup memory caches after walking GVA->GPA
+Date: Mon, 22 Jun 2020 13:08:08 -0700
+Message-ID: <20200622200822.4426-8-sean.j.christopherson@intel.com>
+In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
 MIME-Version: 1.0
-Sender: owner-linux-mm@kvack.org
-To: Michal Simek <michals@xilinx.com>, Rob Herring <robh@kernel.org>Michal Simek <michals@xilinx.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "monstr@monstr.eu" <monstr@monstr.eu>, git <git@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Borislav Petkov <bp@suse.de>, Cornelia Huck <cohuck@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Greg Ungerer <gerg@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kees Cook <keescook@chromium.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Mike Rapoport <rppt@linux.ibm.com>, Mubin Usman Sayyed <MUBINUSM@xilinx.com>, Nicholas Piggin <npiggin@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Palmer Dabbelt <palmer@dabbelt.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, Shubhrajyoti Datta <shubhraj@xilinx.com>, Siva Durga Prasad Paladugu <sivadur@xilinx.com>, Stefan Asserhall <stefana@xilinx.com>, Vladimir Murzin <vladimir.murzin@arm.com>, Will Deacon <will@kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200622200808.9c86mYBQO-2YymMONtg7QXst8Zykd_oPtS0zxb8z_UE@z>
 
-PiBPbiAyNS4gMDIuIDIwIDE3OjMyLCBSb2IgSGVycmluZyB3cm90ZToNCj4gPiBPbiBNb24sIEZl
-YiAxNywgMjAyMCBhdCA4OjI4IEFNIE1pY2hhbCBTaW1layA8bWljaGFsLnNpbWVrQHhpbGlueC5j
-b20+DQo+IHdyb3RlOg0KPiA+Pg0KPiA+PiBIaSBSb2IsDQo+ID4+DQo+ID4+IE9uIDE0LiAwMi4g
-MjAgMDo0NywgUm9iIEhlcnJpbmcgd3JvdGU6DQo+ID4+PiBPbiBXZWQsIEZlYiAxMiwgMjAyMCBh
-dCAyOjU4IEFNIE1pY2hhbCBTaW1law0KPiA8bWljaGFsLnNpbWVrQHhpbGlueC5jb20+IHdyb3Rl
-Og0KPiA+Pj4+DQo+ID4+Pj4NCj4gPj4+PiBJIGFtIHNlbmRpbmcgdGhpcyBzZXJpZXMgYXMgYmVm
-b3JlIFNNUCBzdXBwb3J0Lg0KPiA+Pj4+IE1vc3Qgb2YgdGhlc2UgcGF0Y2hlcyBhcmUgY2xlYW4g
-dXBzIGFuZCBzaG91bGQgYmUgZWFzeSB0byByZXZpZXcNCj4gPj4+PiB0aGVtLiBJIGV4cGVjdCB0
-aGVyZSB3aWxsIGJlIG1vcmUgZGlzY3Vzc2lvbnMgYWJvdXQgU01QIHN1cHBvcnQuDQo+ID4+Pg0K
-PiA+Pj4gV2hpbGUgbm90IHJlYWxseSByZWxhdGVkIHRvIGFkZGluZyBTTVAsIGFueSBjaGFuY2Ug
-eW91IG9yIHNvbWVvbmUNCj4gPj4+IGNvdWxkIGxvb2sgYXQgbW92aW5nIG1pY3JvYmxhemUgUENJ
-IHN1cHBvcnQgdG8gZHJpdmVycy9wY2kvPyBJDQo+ID4+PiBzdXNwZWN0IG11Y2ggb2YgdGhlIGNv
-ZGUgc2hvdWxkIGRyb3Agb3V0IGFzIHdlIGhhdmUgY29tbW9uIGhlbHBlcnMNCj4gPj4+IGZvciBt
-dWNoIG9mIGl0IG5vdy4gVGhhdCB3b3VsZCBsZWF2ZSBvbmx5IHBvd2VycGMgYW5kIG1pcHMgZm9y
-IERUK1BDSQ0KPiBwbGF0Zm9ybXMuDQo+ID4+DQo+ID4+IGNhbiB5b3UgcGxlYXNlIHN1Z2dlc3Qg
-Y2hhbmdlcyB3aGljaCBjb3VsZCBiZSBkb25lPw0KPiA+PiBJIGhhdmUgQ0MgQmhhcmF0IGFuZCBo
-ZSBjb3VsZCBsb29rIGF0IGl0Lg0KPiA+DQo+ID4gTG9vayBhdCB0aGUgaG9zdCBjb250cm9sbGVy
-IGRyaXZlcnMgaW4gZHJpdmVycy9wY2kvY29udHJvbGxlci8uDQo+ID4gcGNpLWhvc3Qte2dlbmVy
-aWMsY29tbW9ufS5jIGlzIGEgZ29vZCB0ZW1wbGF0ZSB0byBzdGFydCB3aXRoIGFzIHRoYXQncw0K
-PiA+IGEgY29udHJvbGxlciB3aXRoIHN0YW5kYXJkIGNvbmZpZyBzcGFjZSBhY2Nlc3NlcyBhbmQg
-bm8gaC93IHNldHVwDQo+ID4gbmVlZGVkLiBFc3NlbnRpYWxseSB5b3UgbmVlZCB0byBjYWxsIGRl
-dm1fcGNpX2FsbG9jX2hvc3RfYnJpZGdlKCksDQo+ID4gcGNpX3BhcnNlX3JlcXVlc3Rfb2ZfcGNp
-X3JhbmdlcygpIGFuZCBwY2lfaG9zdF9wcm9iZSgpIHdpdGggd2hhdGV2ZXINCj4gPiBoL3cgc2V0
-dXAgeW91IG5lZWQgaW4gYmV0d2VlbiB0aG9zZSBjYWxscy4NCj4gPg0KPiA+IExvb2tpbmcgYXQg
-dGhlIG1pY3JvYmxhemUgUENJIGNvZGUsIGxvb2tzIGxpa2UgeW91IG1heSBuZWVkIGN1c3RvbQ0K
-PiA+IGNvbmZpZyBzcGFjZSBhY2Nlc3NvcnMgd2hpY2ggaXMgcXVpdGUgY29tbW9uLiBQcm9iYWJs
-eSBhbGwgdGhlDQo+ID4gcmVzb3VyY2UgYW5kIGRldmljZSBzY2FubmluZyBjYW4gYmUgcmVtb3Zl
-ZC4gSWYgeW91IGxvb2sgYXQgYXJtNjQsIGFsbA0KPiA+IHRoZSBhcmNoIFBDSSBjb2RlIGlzIGp1
-c3QgZm9yIEFDUEkuDQpIaSBSb2IsDQoNCkNhbiB5b3UgcGxlYXNlIGxldCB1cyBrbm93IHdoeSB3
-ZSBtaWdodCBuZWVkIGN1c3RvbSBjb25maWcgc3BhY2UgYWNjZXNzb3JzID8NCldlIHRlc3RlZCBw
-Y2lfZ2VuZXJpY19jb25maWdfcmVhZC93cml0ZSBhY2Nlc3NvcnMgb24gbWljcm9ibGF6ZSwgYW5k
-IHdlIA0KZGlkIG5vdCBzZWUgYW55IGlzc3Vlcy4NCg0KUmVnYXJkcywNCkJoYXJhdA0KDQo=
+Topup memory caches after walking the GVA->GPA translation during a
+shadow page fault, there is no need to ensure the caches are full when
+walking the GVA.  As of commit f5a1e9f89504f ("KVM: MMU: remove call
+to kvm_mmu_pte_write from walk_addr"), the FNAME(walk_addr) flow no
+longer add rmaps via kvm_mmu_pte_write().
+
+This avoids allocating memory in the case that the GVA is unmapped in
+the guest, and also provides a paper trail of why/when the memory caches
+need to be filled.
+
+Reviewed-by: Ben Gardon <bgardon@google.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+---
+ arch/x86/kvm/mmu/paging_tmpl.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/x86/kvm/mmu/paging_tmpl.h b/arch/x86/kvm/mmu/paging_tmpl.h
+index 38c576495048..3de32122f601 100644
+--- a/arch/x86/kvm/mmu/paging_tmpl.h
++++ b/arch/x86/kvm/mmu/paging_tmpl.h
+@@ -791,10 +791,6 @@ static int FNAME(page_fault)(struct kvm_vcpu *vcpu, gpa_t addr, u32 error_code,
+ 
+ 	pgprintk("%s: addr %lx err %x\n", __func__, addr, error_code);
+ 
+-	r = mmu_topup_memory_caches(vcpu);
+-	if (r)
+-		return r;
+-
+ 	/*
+ 	 * If PFEC.RSVD is set, this is a shadow page fault.
+ 	 * The bit needs to be cleared before walking guest page tables.
+@@ -822,6 +818,10 @@ static int FNAME(page_fault)(struct kvm_vcpu *vcpu, gpa_t addr, u32 error_code,
+ 		return RET_PF_EMULATE;
+ 	}
+ 
++	r = mmu_topup_memory_caches(vcpu);
++	if (r)
++		return r;
++
+ 	vcpu->arch.write_fault_to_shadow_pgtable = false;
+ 
+ 	is_self_change_mapping = FNAME(is_self_change_mapping)(vcpu,
+-- 
+2.26.0
