@@ -1,81 +1,40 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 16/21] KVM: arm64: Drop @max param from
- mmu_topup_memory_cache()
-Date: Mon, 22 Jun 2020 13:08:17 -0700
-Message-ID: <20200622200822.4426-17-sean.j.christopherson@intel.com>
+Subject: [PATCH v2 20/21] KVM: MIPS: Account pages used for GPA page tables
+Date: Mon, 22 Jun 2020 13:08:21 -0700
+Message-ID: <20200622200822.4426-21-sean.j.christopherson@intel.com>
 References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-mips-owner@vger.kernel.org>
 In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
+Sender: linux-mips-owner@vger.kernel.org
 To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, Junaid Shahid <junaids@google.com>, Wanpeng Li <wanpengli@tencent.com>, kvm@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Peter Shier <pshier@google.com>, linux-mips@vger.kernel.org, Sean Christopherson <sean.j.christopherson@intel.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Gardon <bgardon@google.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Peter Feiner <pfeiner@google.com>, kvmarm@lists.cs.columbia.edu, Jim Mattson <jmattson@google.com>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Replace the @max param in mmu_topup_memory_cache() and instead use
-ARRAY_SIZE() to terminate the loop to fill the cache.  This removes a
-BUG_ON() and sets the stage for moving arm64 to the common memory cache
-implementation.
+Use GFP_KERNEL_ACCOUNT instead of GFP_KERNEL when allocating pages for
+the the GPA page tables.  The primary motivation for accounting the
+allocations is to align with the common KVM memory cache helpers in
+preparation for moving to the common implementation in a future patch.
+The actual accounting is a bonus side effect.
 
-No functional change intended.
-
-Tested-by: Marc Zyngier <maz@kernel.org>
 Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- arch/arm64/kvm/mmu.c | 12 ++++--------
- 1 file changed, 4 insertions(+), 8 deletions(-)
+ arch/mips/kvm/mmu.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
-index a1f6bc70c4e4..9398b66f8a87 100644
---- a/arch/arm64/kvm/mmu.c
-+++ b/arch/arm64/kvm/mmu.c
-@@ -124,15 +124,13 @@ static void stage2_dissolve_pud(struct kvm *kvm, phys_addr_t addr, pud_t *pudp)
- 	put_page(virt_to_page(pudp));
- }
- 
--static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache,
--				  int min, int max)
-+static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
- {
- 	void *page;
- 
--	BUG_ON(max > KVM_NR_MEM_OBJS);
+diff --git a/arch/mips/kvm/mmu.c b/arch/mips/kvm/mmu.c
+index 94562c54b930..41a4a063a730 100644
+--- a/arch/mips/kvm/mmu.c
++++ b/arch/mips/kvm/mmu.c
+@@ -32,7 +32,7 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
  	if (cache->nobjs >= min)
  		return 0;
--	while (cache->nobjs < max) {
-+	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
- 		page = (void *)__get_free_page(GFP_PGTABLE_USER);
+ 	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		page = (void *)__get_free_page(GFP_KERNEL);
++		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
  		if (!page)
  			return -ENOMEM;
-@@ -1356,8 +1354,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
- 			pte = kvm_s2pte_mkwrite(pte);
- 
- 		ret = mmu_topup_memory_cache(&cache,
--					     kvm_mmu_cache_min_pages(kvm),
--					     KVM_NR_MEM_OBJS);
-+					     kvm_mmu_cache_min_pages(kvm));
- 		if (ret)
- 			goto out;
- 		spin_lock(&kvm->mmu_lock);
-@@ -1737,8 +1734,7 @@ static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
- 	up_read(&current->mm->mmap_sem);
- 
- 	/* We need minimum second+third level pages */
--	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm),
--				     KVM_NR_MEM_OBJS);
-+	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm));
- 	if (ret)
- 		return ret;
- 
+ 		cache->objects[cache->nobjs++] = page;
 -- 
 2.26.0
