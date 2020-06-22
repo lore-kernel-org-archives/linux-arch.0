@@ -1,45 +1,126 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59714 "EHLO
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54476 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2403823AbgFXVbh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 17:31:37 -0400
-Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A929BC061796
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 14:31:35 -0700 (PDT)
-Received: by mail-pj1-x1042.google.com with SMTP id b7so2686819pju.0
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 14:31:35 -0700 (PDT)
-Date: Wed, 24 Jun 2020 14:31:29 -0700
-From: Sami Tolvanen <samitolvanen@google.com>
-Subject: Re: [PATCH 07/22] kbuild: lto: merge module sections
-Message-ID: <20200624213129.GC26253@google.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624203200.78870-8-samitolvanen@google.com>
- <CAKwvOdkY2M9+BgA5FELK+7bjv1sZYMuTmVOztCYijas_OHfVDQ@mail.gmail.com>
+        with ESMTP id S1730989AbgFVXPl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2020 19:15:41 -0400
+Received: from mail-pf1-x443.google.com (mail-pf1-x443.google.com [IPv6:2607:f8b0:4864:20::443])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E8058C061795
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:15:40 -0700 (PDT)
+Received: by mail-pf1-x443.google.com with SMTP id p11so440796pff.11
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:15:40 -0700 (PDT)
+Date: Mon, 22 Jun 2020 16:15:36 -0700
+From: =?utf-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>
+Subject: Re: [PATCH] vmlinux.lds: consider .text.{hot|unlikely}.* part of
+ .text too
+Message-ID: <20200622231536.7jcshis5mdn3vr54@google.com>
+References: <20200617210613.95432-1-ndesaulniers@google.com>
+ <20200617212705.tq2q6bi446gydymo@google.com>
+ <CAKwvOdniambW9_nVbDnd4A_+bdDdZMd2V1Q=Xw5EJYDGeh=eyQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Disposition: inline
-In-Reply-To: <CAKwvOdkY2M9+BgA5FELK+7bjv1sZYMuTmVOztCYijas_OHfVDQ@mail.gmail.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAKwvOdniambW9_nVbDnd4A_+bdDdZMd2V1Q=Xw5EJYDGeh=eyQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-Message-ID: <20200624213129.DiOy0tPy016JGlFkAvQ48WfVvi3Rd-RpEYdrqi8r2jg@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>, Kees Cook <keescook@chromium.org>, "# 3.4.x" <stable@vger.kernel.org>, Jian Cai <jiancai@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20200622231536.a2exOStfmw4wqhutjSPCY6j-iBW2YLizmgo5_xZDpL8@z>
 
-On Wed, Jun 24, 2020 at 02:01:59PM -0700, 'Nick Desaulniers' via Clang Built Linux wrote:
-> On Wed, Jun 24, 2020 at 1:33 PM Sami Tolvanen <samitolvanen@google.com> wrote:
-> >
-> > LLD always splits sections with LTO, which increases module sizes. This
-> > change adds a linker script that merges the split sections in the final
-> > module and discards the .eh_frame section that LLD may generate.
-> 
-> For discarding .eh_frame, Kees is currently fighting with a series
-> that I would really like to see land that enables warnings on orphan
-> section placement.  I don't see any new flags to inhibit .eh_frame
-> generation, or discard it in the linker script, so I'd expect it to be
-> treated as an orphan section and kept.  Was that missed, or should
-> that be removed from the commit message?
+On 2020-06-22, Nick Desaulniers wrote:
+>On Wed, Jun 17, 2020 at 2:27 PM Fāng-ruì Sòng <maskray@google.com> wrote:
+>>
+>>
+>> On 2020-06-17, Nick Desaulniers wrote:
+>> >ld.bfd's internal linker script considers .text.hot AND .text.hot.* to
+>> >be part of .text, as well as .text.unlikely and .text.unlikely.*.
+>>
+>> >ld.lld will produce .text.hot.*/.text.unlikely.* sections.
+>>
+>> Correction to this sentence. lld is not relevant here.
+>>
+>> -ffunction-sections combined with profile-guided optimization can
+>> produce .text.hot.* .text.unlikely.* sections.  Newer clang may produce
+>> .text.hot. .text.unlikely. (without suffix, but with a trailing dot)
+>> when -fno-unique-section-names is specified, as an optimization to make
+>> .strtab smaller.
+>
+>Then why was the bug report reporting https://reviews.llvm.org/D79600
+>as the result of a bisection, if LLD is not relevant?  Was the
+>bisection wrong?
 
-It should be removed from the commit message, thanks for pointing it
-out.
+https://reviews.llvm.org/D79600 is an LLVM codegen change, unrelated to LLD..
+(As described in the patch, LLD's -z keep-text-section-prefix only
+recognizes ".text.exit.*", not ".text.exit")
 
-Sami
+>The upstream report wasn't initially public, for no good reason.  So I
+>didn't include it, but if we end up taking v1, this should have
+>
+>Link: https://bugs.chromium.org/p/chromium/issues/detail?id=1084760
+
+Thanks for making it public.
+
+>The kernel doesn't use -fno-unique-section-names; is that another flag
+>that's added by CrOS' compiler wrapper?
+>https://source.chromium.org/chromiumos/chromiumos/codesearch/+/master:src/third_party/toolchain-utils/compiler_wrapper/config.go;l=110
+>Looks like no.  It doesn't use `-fno-unique-section-names` or
+>`-ffunction-sections`.
+
+-fno-unique-section-names is a very rare option. It is not supported by GCC (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95095 ).
+clang users use it very rarely, probably because not many people care
+about additional strings taken by section names ".text.hot.a" ".text.hot.b" ".text.hot.c"
+in the string table ".strtab" (clang since some point of 2018 uses
+.strtab instead of .shstrtab which enables more string sharing).
+
+>
+>
+
+>
+>>
+>> We've already seen that GCC can place main in .text.startup without
+>> -ffunction-sections. There may be other non -ffunction-sections cases
+>> for .text.hot.* or .text.unlikely.*. So it is definitely a good idea to
+>> be more specific even if we don't care about -ffunction-sections for
+>> now.
+>>
+>> >Make sure to group these together.  Otherwise these orphan sections may
+>> >be placed outside of the the _stext/_etext boundaries.
+>> >
+>> >Cc: stable@vger.kernel.org
+>> >Link: https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=add44f8d5c5c05e08b11e033127a744d61c26aee
+>> >Link: https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=1de778ed23ce7492c523d5850c6c6dbb34152655
+>> >Link: https://reviews.llvm.org/D79600
+>> >Reported-by: Jian Cai <jiancai@google.com>
+>> >Debugged-by: Luis Lozano <llozano@google.com>
+>> >Suggested-by: Fāng-ruì Sòng <maskray@google.com>
+>> >Tested-by: Luis Lozano <llozano@google.com>
+>> >Tested-by: Manoj Gupta <manojgupta@google.com>
+>> >Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
+>> >---
+>> > include/asm-generic/vmlinux.lds.h | 4 +++-
+>> > 1 file changed, 3 insertions(+), 1 deletion(-)
+>> >
+>> >diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+>> >index d7c7c7f36c4a..fe5aaef169e3 100644
+>> >--- a/include/asm-generic/vmlinux.lds.h
+>> >+++ b/include/asm-generic/vmlinux.lds.h
+>> >@@ -560,7 +560,9 @@
+>> >  */
+>> > #define TEXT_TEXT                                                     \
+>> >               ALIGN_FUNCTION();                                       \
+>> >-              *(.text.hot TEXT_MAIN .text.fixup .text.unlikely)       \
+>> >+              *(.text.hot .text.hot.*)                                \
+>> >+              *(TEXT_MAIN .text.fixup)                                \
+>> >+              *(.text.unlikely .text.unlikely.*)                      \
+>> >               NOINSTR_TEXT                                            \
+>> >               *(.text..refcount)                                      \
+>> >               *(.ref.text)                                            \
+>> >--
+>> >2.27.0.290.gba653c62da-goog
+>> >
+>
+>
+>
+>--
+>Thanks,
+>~Nick Desaulniers
