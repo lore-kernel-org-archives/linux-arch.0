@@ -1,134 +1,122 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50594 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2406518AbgFXUdV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:33:21 -0400
-Received: from mail-qt1-x84a.google.com (mail-qt1-x84a.google.com [IPv6:2607:f8b0:4864:20::84a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8BABAC06179A
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:20 -0700 (PDT)
-Received: by mail-qt1-x84a.google.com with SMTP id e6so1459049qtb.19
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:20 -0700 (PDT)
-Date: Wed, 24 Jun 2020 13:31:50 -0700
-In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
-Message-ID: <20200624203200.78870-13-samitolvanen@google.com>
-Mime-Version: 1.0
-References: <20200624203200.78870-1-samitolvanen@google.com>
-Subject: [PATCH 12/22] modpost: lto: strip .lto from module names
-From: Sami Tolvanen <samitolvanen@google.com>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga12.intel.com ([192.55.52.136]:60195 "EHLO mga12.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728545AbgFVUJI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 16:09:08 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v2 01/21] KVM: x86/mmu: Track the associated kmem_cache in the MMU caches
+Date: Mon, 22 Jun 2020 13:08:02 -0700
+Message-ID: <20200622200822.4426-2-sean.j.christopherson@intel.com>
+In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Sami Tolvanen <samitolvanen@google.com>, Bill Wendling <morbo@google.com>
-Message-ID: <20200624203150.V0P-6xAdPepNZa2eqrG9GuF6PT8TYPxAWiXRUugO0Ew@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200622200802.GVHhC5QrIGejyBcEAy8uGuvTs6GKKxjJ0wXIgvjrDrY@z>
 
-With LTO, everything is compiled into LLVM bitcode, so we have to link
-each module into native code before modpost. Kbuild uses the .lto.o
-suffix for these files, which also ends up in module information. This
-change strips the unnecessary .lto suffix from the module name.
+Track the kmem_cache used for non-page KVM MMU memory caches instead of
+passing in the associated kmem_cache when filling the cache.  This will
+allow consolidating code and other cleanups.
 
-Suggested-by: Bill Wendling <morbo@google.com>
-Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+No functional change intended.
+
+Reviewed-by: Ben Gardon <bgardon@google.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- scripts/mod/modpost.c    | 16 +++++++---------
- scripts/mod/modpost.h    |  9 +++++++++
- scripts/mod/sumversion.c |  6 +++++-
- 3 files changed, 21 insertions(+), 10 deletions(-)
+ arch/x86/include/asm/kvm_host.h |  1 +
+ arch/x86/kvm/mmu/mmu.c          | 24 +++++++++++-------------
+ 2 files changed, 12 insertions(+), 13 deletions(-)
 
-diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 6aea65c65745..8352f8a1a138 100644
---- a/scripts/mod/modpost.c
-+++ b/scripts/mod/modpost.c
-@@ -17,7 +17,6 @@
- #include <ctype.h>
- #include <string.h>
- #include <limits.h>
--#include <stdbool.h>
- #include <errno.h>
- #include "modpost.h"
- #include "../../include/linux/license.h"
-@@ -80,14 +79,6 @@ modpost_log(enum loglevel loglevel, const char *fmt, ...)
- 		exit(1);
+diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
+index f8998e97457f..7b6ac8fad9c2 100644
+--- a/arch/x86/include/asm/kvm_host.h
++++ b/arch/x86/include/asm/kvm_host.h
+@@ -251,6 +251,7 @@ struct kvm_kernel_irq_routing_entry;
+  */
+ struct kvm_mmu_memory_cache {
+ 	int nobjs;
++	struct kmem_cache *kmem_cache;
+ 	void *objects[KVM_NR_MEM_OBJS];
+ };
+ 
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index fdd05c233308..0830c195c9ed 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -1060,15 +1060,14 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
+ 	local_irq_enable();
  }
  
--static inline bool strends(const char *str, const char *postfix)
--{
--	if (strlen(str) < strlen(postfix))
--		return false;
--
--	return strcmp(str + strlen(str) - strlen(postfix), postfix) == 0;
--}
--
- void *do_nofail(void *ptr, const char *expr)
+-static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache,
+-				  struct kmem_cache *base_cache, int min)
++static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
  {
- 	if (!ptr)
-@@ -1975,6 +1966,10 @@ static char *remove_dot(char *s)
- 		size_t m = strspn(s + n + 1, "0123456789");
- 		if (m && (s[n + m] == '.' || s[n + m] == 0))
- 			s[n] = 0;
-+
-+		/* strip trailing .lto */
-+		if (strends(s, ".lto"))
-+			s[strlen(s) - 4] = '\0';
- 	}
- 	return s;
- }
-@@ -1998,6 +1993,9 @@ static void read_symbols(const char *modname)
- 		/* strip trailing .o */
- 		tmp = NOFAIL(strdup(modname));
- 		tmp[strlen(tmp) - 2] = '\0';
-+		/* strip trailing .lto */
-+		if (strends(tmp, ".lto"))
-+			tmp[strlen(tmp) - 4] = '\0';
- 		mod = new_module(tmp);
- 		free(tmp);
- 	}
-diff --git a/scripts/mod/modpost.h b/scripts/mod/modpost.h
-index 3aa052722233..fab30d201f9e 100644
---- a/scripts/mod/modpost.h
-+++ b/scripts/mod/modpost.h
-@@ -2,6 +2,7 @@
- #include <stdio.h>
- #include <stdlib.h>
- #include <stdarg.h>
-+#include <stdbool.h>
- #include <string.h>
- #include <sys/types.h>
- #include <sys/stat.h>
-@@ -180,6 +181,14 @@ static inline unsigned int get_secindex(const struct elf_info *info,
- 	return info->symtab_shndx_start[sym - info->symtab_start];
+ 	void *obj;
+ 
+ 	if (cache->nobjs >= min)
+ 		return 0;
+ 	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		obj = kmem_cache_zalloc(base_cache, GFP_KERNEL_ACCOUNT);
++		obj = kmem_cache_zalloc(cache->kmem_cache, GFP_KERNEL_ACCOUNT);
+ 		if (!obj)
+ 			return cache->nobjs >= min ? 0 : -ENOMEM;
+ 		cache->objects[cache->nobjs++] = obj;
+@@ -1081,11 +1080,10 @@ static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *cache)
+ 	return cache->nobjs;
  }
  
-+static inline bool strends(const char *str, const char *postfix)
-+{
-+	if (strlen(str) < strlen(postfix))
-+		return false;
-+
-+	return strcmp(str + strlen(str) - strlen(postfix), postfix) == 0;
-+}
-+
- /* file2alias.c */
- extern unsigned int cross_build;
- void handle_moddevtable(struct module *mod, struct elf_info *info,
-diff --git a/scripts/mod/sumversion.c b/scripts/mod/sumversion.c
-index d587f40f1117..760e6baa7eda 100644
---- a/scripts/mod/sumversion.c
-+++ b/scripts/mod/sumversion.c
-@@ -391,10 +391,14 @@ void get_src_version(const char *modname, char sum[], unsigned sumlen)
- 	struct md4_ctx md;
- 	char *fname;
- 	char filelist[PATH_MAX + 1];
-+	int postfix_len = 1;
-+
-+	if (strends(modname, ".lto.o"))
-+		postfix_len = 5;
+-static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc,
+-				  struct kmem_cache *cache)
++static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
+ {
+ 	while (mc->nobjs)
+-		kmem_cache_free(cache, mc->objects[--mc->nobjs]);
++		kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
+ }
  
- 	/* objects for a module are listed in the first line of *.mod file. */
- 	snprintf(filelist, sizeof(filelist), "%.*smod",
--		 (int)strlen(modname) - 1, modname);
-+		 (int)strlen(modname) - postfix_len, modname);
+ static int mmu_topup_memory_cache_page(struct kvm_mmu_memory_cache *cache,
+@@ -1115,25 +1113,22 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+ 	int r;
  
- 	buf = read_text_file(filelist);
+ 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
+-				   pte_list_desc_cache, 8 + PTE_PREFETCH_NUM);
++				   8 + PTE_PREFETCH_NUM);
+ 	if (r)
+ 		goto out;
+ 	r = mmu_topup_memory_cache_page(&vcpu->arch.mmu_page_cache, 8);
+ 	if (r)
+ 		goto out;
+-	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
+-				   mmu_page_header_cache, 4);
++	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
+ out:
+ 	return r;
+ }
+ 
+ static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+ {
+-	mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
+-				pte_list_desc_cache);
++	mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache);
+ 	mmu_free_memory_cache_page(&vcpu->arch.mmu_page_cache);
+-	mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache,
+-				mmu_page_header_cache);
++	mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
+ }
+ 
+ static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
+@@ -5684,6 +5679,9 @@ int kvm_mmu_create(struct kvm_vcpu *vcpu)
+ 	uint i;
+ 	int ret;
+ 
++	vcpu->arch.mmu_pte_list_desc_cache.kmem_cache = pte_list_desc_cache;
++	vcpu->arch.mmu_page_header_cache.kmem_cache = mmu_page_header_cache;
++
+ 	vcpu->arch.mmu = &vcpu->arch.root_mmu;
+ 	vcpu->arch.walk_mmu = &vcpu->arch.root_mmu;
  
 -- 
-2.27.0.212.ge8ba1cc988-goog
+2.26.0
