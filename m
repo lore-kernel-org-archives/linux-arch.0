@@ -1,65 +1,76 @@
-Return-Path: <SRS0=FJBn=AF=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 24 Jun 2020 11:36:11 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v5 11/25] mm: Introduce arch_calc_vm_flag_bits()
-Message-ID: <20200624113611.2cf12da3a325d03a862c0adf@linux-foundation.org>
-In-Reply-To: <20200624175244.25837-12-catalin.marinas@arm.com>
-References: <20200624175244.25837-1-catalin.marinas@arm.com>
-	<20200624175244.25837-12-catalin.marinas@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>
+Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga12.intel.com ([192.55.52.136]:60223 "EHLO mga12.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730669AbgFVUJU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 16:09:20 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v2 16/21] KVM: arm64: Drop @max param from mmu_topup_memory_cache()
+Date: Mon, 22 Jun 2020 13:08:17 -0700
+Message-ID: <20200622200822.4426-17-sean.j.christopherson@intel.com>
+In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200624183611.83SC0Z-f4XFGe31_ENkp-k7aZqTdp3Dg8j14k-VTIsw@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200622200817.n41So3rKY6oZYiYggiciKvQ1Jnuyxtf3zukUhwnns_g@z>
 
-On Wed, 24 Jun 2020 18:52:30 +0100 Catalin Marinas <catalin.marinas@arm.com> wrote:
+Replace the @max param in mmu_topup_memory_cache() and instead use
+ARRAY_SIZE() to terminate the loop to fill the cache.  This removes a
+BUG_ON() and sets the stage for moving arm64 to the common memory cache
+implementation.
 
-> From: Kevin Brodsky <Kevin.Brodsky@arm.com>
-> 
-> Similarly to arch_calc_vm_prot_bits(), introduce a dummy
-> arch_calc_vm_flag_bits() invoked from calc_vm_flag_bits(). This macro
-> can be overridden by architectures to insert specific VM_* flags derived
-> from the mmap() MAP_* flags.
-> 
-> ...
->
-> --- a/include/linux/mman.h
-> +++ b/include/linux/mman.h
-> @@ -74,13 +74,17 @@ static inline void vm_unacct_memory(long pages)
->  }
->  
->  /*
-> - * Allow architectures to handle additional protection bits
-> + * Allow architectures to handle additional protection and flag bits
->   */
->  
->  #ifndef arch_calc_vm_prot_bits
->  #define arch_calc_vm_prot_bits(prot, pkey) 0
->  #endif
->  
-> +#ifndef arch_calc_vm_flag_bits
-> +#define arch_calc_vm_flag_bits(flags) 0
-> +#endif
+No functional change intended.
 
-It would be helpful to add a comment specifying which arch header file
-is responsible for defining arch_calc_vm_flag_bits.  Because in the
-past we've messed this sort of thing up and had different architectures
-define things in different header files, resulting in build issues as
-code evolves.
+Tested-by: Marc Zyngier <maz@kernel.org>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+---
+ arch/arm64/kvm/mmu.c | 12 ++++--------
+ 1 file changed, 4 insertions(+), 8 deletions(-)
 
->  #ifndef arch_vm_get_page_prot
->  #define arch_vm_get_page_prot(vm_flags) __pgprot(0)
->  #endif
-> @@ -131,7 +135,8 @@ calc_vm_flag_bits(unsigned long flags)
->  	return _calc_vm_trans(flags, MAP_GROWSDOWN,  VM_GROWSDOWN ) |
->  	       _calc_vm_trans(flags, MAP_DENYWRITE,  VM_DENYWRITE ) |
->  	       _calc_vm_trans(flags, MAP_LOCKED,     VM_LOCKED    ) |
-> -	       _calc_vm_trans(flags, MAP_SYNC,	     VM_SYNC      );
-> +	       _calc_vm_trans(flags, MAP_SYNC,	     VM_SYNC      ) |
-> +	       arch_calc_vm_flag_bits(flags);
->  }
->  
->  unsigned long vm_commit_limit(void);
+diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
+index a1f6bc70c4e4..9398b66f8a87 100644
+--- a/arch/arm64/kvm/mmu.c
++++ b/arch/arm64/kvm/mmu.c
+@@ -124,15 +124,13 @@ static void stage2_dissolve_pud(struct kvm *kvm, phys_addr_t addr, pud_t *pudp)
+ 	put_page(virt_to_page(pudp));
+ }
+ 
+-static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache,
+-				  int min, int max)
++static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
+ {
+ 	void *page;
+ 
+-	BUG_ON(max > KVM_NR_MEM_OBJS);
+ 	if (cache->nobjs >= min)
+ 		return 0;
+-	while (cache->nobjs < max) {
++	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+ 		page = (void *)__get_free_page(GFP_PGTABLE_USER);
+ 		if (!page)
+ 			return -ENOMEM;
+@@ -1356,8 +1354,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
+ 			pte = kvm_s2pte_mkwrite(pte);
+ 
+ 		ret = mmu_topup_memory_cache(&cache,
+-					     kvm_mmu_cache_min_pages(kvm),
+-					     KVM_NR_MEM_OBJS);
++					     kvm_mmu_cache_min_pages(kvm));
+ 		if (ret)
+ 			goto out;
+ 		spin_lock(&kvm->mmu_lock);
+@@ -1737,8 +1734,7 @@ static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
+ 	up_read(&current->mm->mmap_sem);
+ 
+ 	/* We need minimum second+third level pages */
+-	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm),
+-				     KVM_NR_MEM_OBJS);
++	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm));
+ 	if (ret)
+ 		return ret;
+ 
+-- 
+2.26.0
