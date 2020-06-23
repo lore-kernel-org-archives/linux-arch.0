@@ -1,99 +1,200 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38392 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729076AbgF2Smp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:45 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 38/41] csky: switch to ->get2()
-Date: Mon, 29 Jun 2020 19:26:25 +0100
-Message-ID: <20200629182628.529995-38-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Return-Path: <SRS0=NZEn=AE=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:46462 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1732365AbgFWAwe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 20:52:34 -0400
+From: paulmck@kernel.org
+Subject: [PATCH tip/core/rcu 02/14] tools/memory-model: Fix "conflict" definition
+Date: Mon, 22 Jun 2020 17:52:19 -0700
+Message-ID: <20200623005231.27712-2-paulmck@kernel.org>
+In-Reply-To: <20200623005152.GA27459@paulmck-ThinkPad-P72>
+References: <20200623005152.GA27459@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200629182625.ZrR4Qyyc1QfgJVFi2bhr0dm-xhYOohdJa8HfxKMBL0I@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Marco Elver <elver@google.com>, "Paul E . McKenney" <paulmck@kernel.org>
+Message-ID: <20200623005219.ju7Dl7cONmwHFhkOZKgXFCFB1Pw32GB0WEYXRw0RXEU@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+From: Marco Elver <elver@google.com>
 
-NB: WTF is fpregs_get() playing at???
+The definition of "conflict" should not include the type of access nor
+whether the accesses are concurrent or not, which this patch addresses.
+The definition of "data race" remains unchanged.
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+The definition of "conflict" as we know it and is cited by various
+papers on memory consistency models appeared in [1]: "Two accesses to
+the same variable conflict if at least one is a write; two operations
+conflict if they execute conflicting accesses."
+
+The LKMM as well as the C11 memory model are adaptations of
+data-race-free, which are based on the work in [2]. Necessarily, we need
+both conflicting data operations (plain) and synchronization operations
+(marked). For example, C11's definition is based on [3], which defines a
+"data race" as: "Two memory operations conflict if they access the same
+memory location, and at least one of them is a store, atomic store, or
+atomic read-modify-write operation. In a sequentially consistent
+execution, two memory operations from different threads form a type 1
+data race if they conflict, at least one of them is a data operation,
+and they are adjacent in <T (i.e., they may be executed concurrently)."
+
+[1] D. Shasha, M. Snir, "Efficient and Correct Execution of Parallel
+    Programs that Share Memory", 1988.
+	URL: http://snir.cs.illinois.edu/listed/J21.pdf
+
+[2] S. Adve, "Designing Memory Consistency Models for Shared-Memory
+    Multiprocessors", 1993.
+	URL: http://sadve.cs.illinois.edu/Publications/thesis.pdf
+
+[3] H.-J. Boehm, S. Adve, "Foundations of the C++ Concurrency Memory
+    Model", 2008.
+	URL: https://www.hpl.hp.com/techreports/2008/HPL-2008-56.pdf
+
+Signed-off-by: Marco Elver <elver@google.com>
+Co-developed-by: Alan Stern <stern@rowland.harvard.edu>
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 ---
- arch/csky/kernel/ptrace.c | 24 ++++++++++--------------
- 1 file changed, 10 insertions(+), 14 deletions(-)
+ tools/memory-model/Documentation/explanation.txt | 83 +++++++++++++-----------
+ 1 file changed, 45 insertions(+), 38 deletions(-)
 
-diff --git a/arch/csky/kernel/ptrace.c b/arch/csky/kernel/ptrace.c
-index 944ca2fdcdd9..acd36aeb5222 100644
---- a/arch/csky/kernel/ptrace.c
-+++ b/arch/csky/kernel/ptrace.c
-@@ -76,17 +76,14 @@ enum csky_regset {
+diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
+index e91a2eb..993f800 100644
+--- a/tools/memory-model/Documentation/explanation.txt
++++ b/tools/memory-model/Documentation/explanation.txt
+@@ -1987,28 +1987,36 @@ outcome undefined.
  
- static int gpr_get(struct task_struct *target,
- 		   const struct user_regset *regset,
--		   unsigned int pos, unsigned int count,
--		   void *kbuf, void __user *ubuf)
-+		   struct membuf to)
- {
--	struct pt_regs *regs;
--
--	regs = task_pt_regs(target);
-+	struct pt_regs *regs = task_pt_regs(target);
+ In technical terms, the compiler is allowed to assume that when the
+ program executes, there will not be any data races.  A "data race"
+-occurs when two conflicting memory accesses execute concurrently;
+-two memory accesses "conflict" if:
++occurs when there are two memory accesses such that:
  
- 	/* Abiv1 regs->tls is fake and we need sync here. */
- 	regs->tls = task_thread_info(target)->tp_value;
+-	they access the same location,
++1.	they access the same location,
  
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
-+	return membuf_write(&to, regs, sizeof(regs));
- }
+-	they occur on different CPUs (or in different threads on the
+-	same CPU),
++2.	at least one of them is a store,
  
- static int gpr_set(struct task_struct *target,
-@@ -114,8 +111,7 @@ static int gpr_set(struct task_struct *target,
+-	at least one of them is a plain access,
++3.	at least one of them is plain,
  
- static int fpr_get(struct task_struct *target,
- 		   const struct user_regset *regset,
--		   unsigned int pos, unsigned int count,
--		   void *kbuf, void __user *ubuf)
-+		   struct membuf to)
- {
- 	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
+-	and at least one of them is a store.
++4.	they occur on different CPUs (or in different threads on the
++	same CPU), and
  
-@@ -131,9 +127,9 @@ static int fpr_get(struct task_struct *target,
- 	for (i = 0; i < 32; i++)
- 		tmp.vr[64 + i] = regs->vr[32 + i];
+-The LKMM tries to determine whether a program contains two conflicting
+-accesses which may execute concurrently; if it does then the LKMM says
+-there is a potential data race and makes no predictions about the
+-program's outcome.
++5.	they execute concurrently.
  
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
-+	return membuf_write(&to, &tmp, sizeof(tmp));
- #else
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
-+	return membuf_write(&to, regs, sizeof(*regs));
- #endif
- }
+-Determining whether two accesses conflict is easy; you can see that
+-all the concepts involved in the definition above are already part of
+-the memory model.  The hard part is telling whether they may execute
+-concurrently.  The LKMM takes a conservative attitude, assuming that
+-accesses may be concurrent unless it can prove they cannot.
++In the literature, two accesses are said to "conflict" if they satisfy
++1 and 2 above.  We'll go a little farther and say that two accesses
++are "race candidates" if they satisfy 1 - 4.  Thus, whether or not two
++race candidates actually do race in a given execution depends on
++whether they are concurrent.
++
++The LKMM tries to determine whether a program contains race candidates
++which may execute concurrently; if it does then the LKMM says there is
++a potential data race and makes no predictions about the program's
++outcome.
++
++Determining whether two accesses are race candidates is easy; you can
++see that all the concepts involved in the definition above are already
++part of the memory model.  The hard part is telling whether they may
++execute concurrently.  The LKMM takes a conservative attitude,
++assuming that accesses may be concurrent unless it can prove they
++are not.
  
-@@ -173,16 +169,16 @@ static const struct user_regset csky_regsets[] = {
- 		.n = sizeof(struct pt_regs) / sizeof(u32),
- 		.size = sizeof(u32),
- 		.align = sizeof(u32),
--		.get = &gpr_get,
--		.set = &gpr_set,
-+		.get2 = gpr_get,
-+		.set = gpr_set,
- 	},
- 	[REGSET_FPR] = {
- 		.core_note_type = NT_PRFPREG,
- 		.n = sizeof(struct user_fp) / sizeof(u32),
- 		.size = sizeof(u32),
- 		.align = sizeof(u32),
--		.get = &fpr_get,
--		.set = &fpr_set,
-+		.get2 = fpr_get,
-+		.set = fpr_set,
- 	},
- };
+ If two memory accesses aren't concurrent then one must execute before
+ the other.  Therefore the LKMM decides two accesses aren't concurrent
+@@ -2171,8 +2179,8 @@ again, now using plain accesses for buf:
+ 	}
  
+ This program does not contain a data race.  Although the U and V
+-accesses conflict, the LKMM can prove they are not concurrent as
+-follows:
++accesses are race candidates, the LKMM can prove they are not
++concurrent as follows:
+ 
+ 	The smp_wmb() fence in P0 is both a compiler barrier and a
+ 	cumul-fence.  It guarantees that no matter what hash of
+@@ -2326,12 +2334,11 @@ could now perform the load of x before the load of ptr (there might be
+ a control dependency but no address dependency at the machine level).
+ 
+ Finally, it turns out there is a situation in which a plain write does
+-not need to be w-post-bounded: when it is separated from the
+-conflicting access by a fence.  At first glance this may seem
+-impossible.  After all, to be conflicting the second access has to be
+-on a different CPU from the first, and fences don't link events on
+-different CPUs.  Well, normal fences don't -- but rcu-fence can!
+-Here's an example:
++not need to be w-post-bounded: when it is separated from the other
++race-candidate access by a fence.  At first glance this may seem
++impossible.  After all, to be race candidates the two accesses must
++be on different CPUs, and fences don't link events on different CPUs.
++Well, normal fences don't -- but rcu-fence can!  Here's an example:
+ 
+ 	int x, y;
+ 
+@@ -2367,7 +2374,7 @@ concurrent and there is no race, even though P1's plain store to y
+ isn't w-post-bounded by any marked accesses.
+ 
+ Putting all this material together yields the following picture.  For
+-two conflicting stores W and W', where W ->co W', the LKMM says the
++race-candidate stores W and W', where W ->co W', the LKMM says the
+ stores don't race if W can be linked to W' by a
+ 
+ 	w-post-bounded ; vis ; w-pre-bounded
+@@ -2380,8 +2387,8 @@ sequence, and if W' is plain then they also have to be linked by a
+ 
+ 	w-post-bounded ; vis ; r-pre-bounded
+ 
+-sequence.  For a conflicting load R and store W, the LKMM says the two
+-accesses don't race if R can be linked to W by an
++sequence.  For race-candidate load R and store W, the LKMM says the
++two accesses don't race if R can be linked to W by an
+ 
+ 	r-post-bounded ; xb* ; w-pre-bounded
+ 
+@@ -2413,20 +2420,20 @@ is, the rules governing the memory subsystem's choice of a store to
+ satisfy a load request and its determination of where a store will
+ fall in the coherence order):
+ 
+-	If R and W conflict and it is possible to link R to W by one
+-	of the xb* sequences listed above, then W ->rfe R is not
+-	allowed (i.e., a load cannot read from a store that it
++	If R and W are race candidates and it is possible to link R to
++	W by one of the xb* sequences listed above, then W ->rfe R is
++	not allowed (i.e., a load cannot read from a store that it
+ 	executes before, even if one or both is plain).
+ 
+-	If W and R conflict and it is possible to link W to R by one
+-	of the vis sequences listed above, then R ->fre W is not
+-	allowed (i.e., if a store is visible to a load then the load
+-	must read from that store or one coherence-after it).
++	If W and R are race candidates and it is possible to link W to
++	R by one of the vis sequences listed above, then R ->fre W is
++	not allowed (i.e., if a store is visible to a load then the
++	load must read from that store or one coherence-after it).
+ 
+-	If W and W' conflict and it is possible to link W to W' by one
+-	of the vis sequences listed above, then W' ->co W is not
+-	allowed (i.e., if one store is visible to a second then the
+-	second must come after the first in the coherence order).
++	If W and W' are race candidates and it is possible to link W
++	to W' by one of the vis sequences listed above, then W' ->co W
++	is not allowed (i.e., if one store is visible to a second then
++	the second must come after the first in the coherence order).
+ 
+ This is the extent to which the LKMM deals with plain accesses.
+ Perhaps it could say more (for example, plain accesses might
 -- 
-2.11.0
+2.9.5
