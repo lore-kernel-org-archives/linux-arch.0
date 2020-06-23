@@ -1,47 +1,72 @@
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 05/14] MAINTAINERS: Update maintainers for new Documentation/litmus-tests
-Date: Mon, 22 Jun 2020 17:52:22 -0700
-Message-ID: <20200623005231.27712-5-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 01/14] tools/memory-model: Add recent references
+Date: Mon, 22 Jun 2020 17:52:18 -0700
+Message-ID: <20200623005231.27712-1-paulmck@kernel.org>
 References: <20200623005152.GA27459@paulmck-ThinkPad-P72>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:46432 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1732334AbgFWAwd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 20:52:33 -0400
 In-Reply-To: <20200623005152.GA27459@paulmck-ThinkPad-P72>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Joel Fernandes (Google)" <joel@joelfernandes.org>, "Paul E . McKenney" <paulmck@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@kernel.org>
 
-From: "Joel Fernandes (Google)" <joel@joelfernandes.org>
+From: "Paul E. McKenney" <paulmck@kernel.org>
 
-This commit adds Joel Fernandes as official LKMM reviewer.
+This commit updates the list of LKMM-related publications in
+Documentation/references.txt.
 
-Acked-by: Boqun Feng <boqun.feng@gmail.com>
-Acked-by: Andrea Parri <parri.andrea@gmail.com>
-Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-[ paulmck: Apply Joe Perches alphabetization feedback. ]
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
 ---
- MAINTAINERS | 2 ++
- 1 file changed, 2 insertions(+)
+ tools/memory-model/Documentation/references.txt | 21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 68f21d4..696a02f 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -9960,6 +9960,7 @@ M:	Luc Maranget <luc.maranget@inria.fr>
- M:	"Paul E. McKenney" <paulmck@kernel.org>
- R:	Akira Yokosawa <akiyks@gmail.com>
- R:	Daniel Lustig <dlustig@nvidia.com>
-+R:	Joel Fernandes <joel@joelfernandes.org>
- L:	linux-kernel@vger.kernel.org
- L:	linux-arch@vger.kernel.org
- S:	Supported
-@@ -9968,6 +9969,7 @@ F:	Documentation/atomic_bitops.txt
- F:	Documentation/atomic_t.txt
- F:	Documentation/core-api/atomic_ops.rst
- F:	Documentation/core-api/refcount-vs-atomic.rst
-+F:	Documentation/litmus-tests/
- F:	Documentation/memory-barriers.txt
- F:	tools/memory-model/
+diff --git a/tools/memory-model/Documentation/references.txt b/tools/memory-model/Documentation/references.txt
+index b177f3e..ecbbaa5 100644
+--- a/tools/memory-model/Documentation/references.txt
++++ b/tools/memory-model/Documentation/references.txt
+@@ -73,6 +73,18 @@ o	Christopher Pulte, Shaked Flur, Will Deacon, Jon French,
+ Linux-kernel memory model
+ =========================
  
++o	Jade Alglave, Will Deacon, Boqun Feng, David Howells, Daniel
++	Lustig, Luc Maranget, Paul E. McKenney, Andrea Parri, Nicholas
++	Piggin, Alan Stern, Akira Yokosawa, and Peter Zijlstra.
++	2019. "Calibrating your fear of big bad optimizing compilers"
++	Linux Weekly News.  https://lwn.net/Articles/799218/
++
++o	Jade Alglave, Will Deacon, Boqun Feng, David Howells, Daniel
++	Lustig, Luc Maranget, Paul E. McKenney, Andrea Parri, Nicholas
++	Piggin, Alan Stern, Akira Yokosawa, and Peter Zijlstra.
++	2019. "Who's afraid of a big bad optimizing compiler?"
++	Linux Weekly News.  https://lwn.net/Articles/793253/
++
+ o	Jade Alglave, Luc Maranget, Paul E. McKenney, Andrea Parri, and
+ 	Alan Stern.  2018. "Frightening small children and disconcerting
+ 	grown-ups: Concurrency in the Linux kernel". In Proceedings of
+@@ -88,6 +100,11 @@ o	Jade Alglave, Luc Maranget, Paul E. McKenney, Andrea Parri, and
+ 	Alan Stern.  2017.  "A formal kernel memory-ordering model (part 2)"
+ 	Linux Weekly News.  https://lwn.net/Articles/720550/
+ 
++o	Jade Alglave, Luc Maranget, Paul E. McKenney, Andrea Parri, and
++	Alan Stern.  2017-2019.  "A Formal Model of Linux-Kernel Memory
++	Ordering" (backup material for the LWN articles)
++	https://mirrors.edge.kernel.org/pub/linux/kernel/people/paulmck/LWNLinuxMM/
++
+ 
+ Memory-model tooling
+ ====================
+@@ -110,5 +127,5 @@ Memory-model comparisons
+ ========================
+ 
+ o	Paul E. McKenney, Ulrich Weigand, Andrea Parri, and Boqun
+-	Feng. 2016. "Linux-Kernel Memory Model". (6 June 2016).
+-	http://open-std.org/JTC1/SC22/WG21/docs/papers/2016/p0124r2.html.
++	Feng. 2018. "Linux-Kernel Memory Model". (27 September 2018).
++	http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0124r6.html.
 -- 
 2.9.5
