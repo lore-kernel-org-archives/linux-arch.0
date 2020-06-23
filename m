@@ -1,78 +1,52 @@
-Return-Path: <SRS0=nnJc=AG=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RESEND PATCH v5 2/6] arm64: Add level-hinted TLB invalidation helper
-Date: Thu, 25 Jun 2020 16:03:10 +0800
-Message-ID: <20200625080314.230-3-yezhenyu2@huawei.com>
-In-Reply-To: <20200625080314.230-1-yezhenyu2@huawei.com>
-References: <20200625080314.230-1-yezhenyu2@huawei.com>
-MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Return-Path: <SRS0=NZEn=AE=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:46528 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1732378AbgFWAwe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 20:52:34 -0400
+From: paulmck@kernel.org
+Subject: [PATCH tip/core/rcu 05/14] MAINTAINERS: Update maintainers for new Documentation/litmus-tests
+Date: Mon, 22 Jun 2020 17:52:22 -0700
+Message-ID: <20200623005231.27712-5-paulmck@kernel.org>
+In-Reply-To: <20200623005152.GA27459@paulmck-ThinkPad-P72>
+References: <20200623005152.GA27459@paulmck-ThinkPad-P72>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200625080310.aQA1X0x7sUtm0WNzoGSZwfM69oQse6ALjGrZFaErtYc@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Joel Fernandes (Google)" <joel@joelfernandes.org>, "Paul E . McKenney" <paulmck@kernel.org>
+Message-ID: <20200623005222.YrFj3WGVhu1a4vHd_UwmwCL6aDBFogRV-716nOE72E0@z>
 
-From: Marc Zyngier <maz@kernel.org>
+From: "Joel Fernandes (Google)" <joel@joelfernandes.org>
 
-Add a level-hinted TLB invalidation helper that only gets used if
-ARMv8.4-TTL gets detected.
+This commit adds Joel Fernandes as official LKMM reviewer.
 
-Signed-off-by: Marc Zyngier <maz@kernel.org>
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Acked-by: Boqun Feng <boqun.feng@gmail.com>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
+Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+[ paulmck: Apply Joe Perches alphabetization feedback. ]
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 ---
- arch/arm64/include/asm/tlbflush.h | 29 +++++++++++++++++++++++++++++
- 1 file changed, 29 insertions(+)
+ MAINTAINERS | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
-lbflush.h
-index bc3949064725..8adbd6fd8489 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -10,6 +10,7 @@
-=20
- #ifndef __ASSEMBLY__
-=20
-+#include <linux/bitfield.h>
- #include <linux/mm_types.h>
- #include <linux/sched.h>
- #include <asm/cputype.h>
-@@ -59,6 +60,34 @@
- 		__ta;						\
- 	})
-=20
-+#define TLBI_TTL_MASK	GENMASK_ULL(47, 44)
-+
-+#define __tlbi_level(op, addr, level) do {			\
-+	u64 arg =3D addr;						\
-+								\
-+	if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
-+	    level) {						\
-+		u64 ttl =3D level;				\
-+								\
-+		switch (PAGE_SIZE) {				\
-+		case SZ_4K:					\
-+			ttl |=3D 1 << 2;				\
-+			break;					\
-+		case SZ_16K:					\
-+			ttl |=3D 2 << 2;				\
-+			break;					\
-+		case SZ_64K:					\
-+			ttl |=3D 3 << 2;				\
-+			break;					\
-+		}						\
-+								\
-+		arg &=3D ~TLBI_TTL_MASK;				\
-+		arg |=3D FIELD_PREP(TLBI_TTL_MASK, ttl);		\
-+	}							\
-+								\
-+	__tlbi(op,  arg);					\
-+} while (0)
-+
- /*
-  *	TLB Invalidation
-  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
---=20
-2.26.2
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 68f21d4..696a02f 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -9960,6 +9960,7 @@ M:	Luc Maranget <luc.maranget@inria.fr>
+ M:	"Paul E. McKenney" <paulmck@kernel.org>
+ R:	Akira Yokosawa <akiyks@gmail.com>
+ R:	Daniel Lustig <dlustig@nvidia.com>
++R:	Joel Fernandes <joel@joelfernandes.org>
+ L:	linux-kernel@vger.kernel.org
+ L:	linux-arch@vger.kernel.org
+ S:	Supported
+@@ -9968,6 +9969,7 @@ F:	Documentation/atomic_bitops.txt
+ F:	Documentation/atomic_t.txt
+ F:	Documentation/core-api/atomic_ops.rst
+ F:	Documentation/core-api/refcount-vs-atomic.rst
++F:	Documentation/litmus-tests/
+ F:	Documentation/memory-barriers.txt
+ F:	tools/memory-model/
+ 
+-- 
+2.9.5
