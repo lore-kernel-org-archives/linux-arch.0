@@ -1,88 +1,53 @@
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 11/14] Documentation/litmus-tests: Merge atomic's README into top-level one
-Date: Mon, 22 Jun 2020 17:52:28 -0700
-Message-ID: <20200623005231.27712-11-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 14/14] docs: fix references for DMA*.txt files
+Date: Mon, 22 Jun 2020 17:52:31 -0700
+Message-ID: <20200623005231.27712-14-paulmck@kernel.org>
 References: <20200623005152.GA27459@paulmck-ThinkPad-P72>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46650 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:46576 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732388AbgFWAwf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1732394AbgFWAwf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Mon, 22 Jun 2020 20:52:35 -0400
 In-Reply-To: <20200623005152.GA27459@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E . McKenney" <paulmck@kernel.org>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Mauro Carvalho Chehab <mchehab+huawei@kernel.org>, "Paul E . McKenney" <paulmck@kernel.org>
 
-From: Akira Yokosawa <akiyks@gmail.com>
+From: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 
-Where Documentation/litmus-tests/README lists RCU litmus tests,
-Documentation/litmus-tests/atomic/README lists atomic litmus tests.
-For symmetry, merge the latter into former, with some context
-adjustment in the introduction.
+As we moved those files to core-api, fix references to point
+to their newer locations.
 
-Acked-by: Andrea Parri <parri.andrea@gmail.com>
-Acked-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-Acked-by: Boqun Feng <boqun.feng@gmail.com>
-Signed-off-by: Akira Yokosawa <akiyks@gmail.com>
+Signed-off-by: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 ---
- Documentation/litmus-tests/README        | 19 +++++++++++++++++++
- Documentation/litmus-tests/atomic/README | 16 ----------------
- 2 files changed, 19 insertions(+), 16 deletions(-)
- delete mode 100644 Documentation/litmus-tests/atomic/README
+ Documentation/memory-barriers.txt | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/Documentation/litmus-tests/README b/Documentation/litmus-tests/README
-index c4307ea..ac0b270 100644
---- a/Documentation/litmus-tests/README
-+++ b/Documentation/litmus-tests/README
-@@ -2,6 +2,25 @@
- LITMUS TESTS
- ============
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index eaabc31..0e4947a 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -546,8 +546,8 @@ There are certain things that the Linux kernel memory barriers do not guarantee:
+ 	[*] For information on bus mastering DMA and coherency please read:
  
-+Each subdirectory contains litmus tests that are typical to describe the
-+semantics of respective kernel APIs.
-+For more information about how to "run" a litmus test or how to generate
-+a kernel test module based on a litmus test, please see
-+tools/memory-model/README.
-+
-+
-+atomic (/atomic derectory)
-+--------------------------
-+
-+Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
-+    Test that an atomic RMW followed by a smp_mb__after_atomic() is
-+    stronger than a normal acquire: both the read and write parts of
-+    the RMW are ordered before the subsequential memory accesses.
-+
-+Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
-+    Test that atomic_set() cannot break the atomicity of atomic RMWs.
-+
-+
- RCU (/rcu directory)
- --------------------
+ 	    Documentation/driver-api/pci/pci.rst
+-	    Documentation/DMA-API-HOWTO.txt
+-	    Documentation/DMA-API.txt
++	    Documentation/core-api/dma-api-howto.rst
++	    Documentation/core-api/dma-api.rst
  
-diff --git a/Documentation/litmus-tests/atomic/README b/Documentation/litmus-tests/atomic/README
-deleted file mode 100644
-index 714cf93..0000000
---- a/Documentation/litmus-tests/atomic/README
-+++ /dev/null
-@@ -1,16 +0,0 @@
--This directory contains litmus tests that are typical to describe the semantics
--of our atomic APIs. For more information about how to "run" a litmus test or
--how to generate a kernel test module based on a litmus test, please see
--tools/memory-model/README.
--
--============
--LITMUS TESTS
--============
--
--Atomic-RMW+mb__after_atomic-is-stronger-than-acquire
--	Test that an atomic RMW followed by a smp_mb__after_atomic() is
--	stronger than a normal acquire: both the read and write parts of
--	the RMW are ordered before the subsequential memory accesses.
--
--Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
--	Test that atomic_set() cannot break the atomicity of atomic RMWs.
+ 
+ DATA DEPENDENCY BARRIERS (HISTORICAL)
+@@ -1932,7 +1932,7 @@ There are some more advanced barrier functions:
+      here.
+ 
+      See the subsection "Kernel I/O barrier effects" for more information on
+-     relaxed I/O accessors and the Documentation/DMA-API.txt file for more
++     relaxed I/O accessors and the Documentation/core-api/dma-api.rst file for more
+      information on consistent memory.
+ 
+ 
 -- 
 2.9.5
