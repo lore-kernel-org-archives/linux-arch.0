@@ -1,53 +1,67 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] make asm-generic/cacheflush.h more standalone
-Date: Tue, 23 Jun 2020 08:56:23 +0200
-Message-ID: <CAK8P3a34mMnZa3FWaZ6tCRZBEQuhUNNaHsFjXZC+Xe_hnoxdxw@mail.gmail.com>
-References: <20200623135714.4dae4b8a@canb.auug.org.au>
+From: Sarah Koffi <paulwiliam782@gmail.com>
+Subject: Greetings From Mrs. Sarah Koffi
+Date: Tue, 23 Jun 2020 12:14:54 +0100
+Message-ID: <CAHqcnY0Xr+kmmQHWq1FbD3QCr3nXViQLWpysAVq0vzSqRqGj1g__24399.8239909828$1592910912$gmane$org@mail.gmail.com>
+Reply-To: sarahkoffi389@yahoo.co.jp
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:44947 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730765AbgFWG4l (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2020 02:56:41 -0400
-Received: from mail-qk1-f172.google.com ([209.85.222.172]) by
- mrelayeu.kundenserver.de (mreue011 [212.227.15.129]) with ESMTPSA (Nemesis)
- id 1M5fdC-1jm0260U2c-007CHn for <linux-arch@vger.kernel.org>; Tue, 23 Jun
- 2020 08:56:40 +0200
-Received: by mail-qk1-f172.google.com with SMTP id e11so8631318qkm.3
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 23:56:39 -0700 (PDT)
-In-Reply-To: <20200623135714.4dae4b8a@canb.auug.org.au>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52398 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732432AbgFWLO5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2020 07:14:57 -0400
+Received: from mail-wm1-x343.google.com (mail-wm1-x343.google.com [IPv6:2a00:1450:4864:20::343])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1BDA8C061573
+        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 04:14:56 -0700 (PDT)
+Received: by mail-wm1-x343.google.com with SMTP id f139so1368988wmf.5
+        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 04:14:56 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>
+To: sarahkoffi389@yahoo.co.jp
 
-On Tue, Jun 23, 2020 at 5:57 AM Stephen Rothwell <sfr@canb.auug.org.au> wrote:
->
-> Some s390 builds get these warnings:
->
-> include/asm-generic/cacheflush.h:16:42: warning: 'struct mm_struct' declared inside parameter list will not be visible outside of this definition or declaration
-> include/asm-generic/cacheflush.h:22:46: warning: 'struct mm_struct' declared inside parameter list will not be visible outside of this definition or declaration
-> include/asm-generic/cacheflush.h:28:45: warning: 'struct vm_area_struct' declared inside parameter list will not be visible outside of this definition or declaration
-> include/asm-generic/cacheflush.h:36:44: warning: 'struct vm_area_struct' declared inside parameter list will not be visible outside of this definition or declaration
-> include/asm-generic/cacheflush.h:44:45: warning: 'struct page' declared inside parameter list will not be visible outside of this definition or declaration
-> include/asm-generic/cacheflush.h:52:50: warning: 'struct address_space' declared inside parameter list will not be visible outside of this definition or declaration
-> include/asm-generic/cacheflush.h:58:52: warning: 'struct address_space' declared inside parameter list will not be visible outside of this definition or declaration
-> include/asm-generic/cacheflush.h:75:17: warning: 'struct page' declared inside parameter list will not be visible outside of this definition or declaration
-> include/asm-generic/cacheflush.h:74:45: warning: 'struct vm_area_struct' declared inside parameter list will not be visible outside of this definition or declaration
-> include/asm-generic/cacheflush.h:82:16: warning: 'struct page' declared inside parameter list will not be visible outside of this definition or declaration
-> include/asm-generic/cacheflush.h:81:50: warning: 'struct vm_area_struct' declared inside parameter list will not be visible outside of this definition or declaration
->
-> Forward declare the named structs to get rid of these.
->
-> Fixes: e0cf615d725c ("asm-generic: don't include <linux/mm.h> in cacheflush.h")
-> Cc: Christoph Hellwig <hch@lst.de>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: linux-arch@vger.kernel.org
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Cc: Vasily Gorbik <gor@linux.ibm.com>
-> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-> Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
+Greetings From Mrs. Sarah Koffi
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+I'm contacting you based on your good profiles I read and for a good
+reasons, I am in search of a property to buy in your country as I
+intended to come over to your
+country for investment, Though I have not meet with you before but I
+believe that one has to risk confiding in someone to succeed sometimes
+in life.
+
+My name is Mrs. Sarah Koffi. My late husband deals on Crude Oil with
+Federal Government of Sudan and he has a personal Oil firm in Bentiu
+Oil zone town and Upper
+Nile city. What I have experience physically, I don't wish to
+experience it again in my life due to the recent civil Ethnic war
+cause by our President Mr. Salva Kiir
+and the rebel leader Mr Riek Machar, I have been Under United Nation
+refuge camp in chad to save my life and that of my little daughter.
+
+Though, I do not know how you will feel to my proposal, but the truth
+is that I sneaked into Chad our neighboring country where I am living
+now as a refugee.
+I escaped with my little daughter when the rebels bust into our house
+and killed my husband as one of the big oil dealers in the country,
+ever since then, I have being on the run.
+
+I left my country and move to Chad our neighboring country with the
+little ceasefire we had, due to the face to face peace meeting accord
+coordinated by the US Secretary of State, Mr John Kerry and United
+Nations in Ethiopia (Addis Ababa) between our President Mr Salva Kiir
+and the rebel leader Mr Riek Machar to stop this war.
+
+I want to solicit for your partnership with trust to invest the $8
+million dollars deposited by my late husband in Bank because my life
+is no longer safe in our country, since the rebels are looking for the
+families of all the oil business men in the country to kill, saying
+that they are they one that is milking the country dry.
+
+I will offer you 20% of the total fund for your help while I will
+partner with you for the investment in your country.
+If I get your reply.
+
+I will wait to hear from you so as to give you details.With love from
+
+ i need you to contact me here sarahkoffi389@yahoo.co.jp
+
+Mrs. Sarah Koffi
