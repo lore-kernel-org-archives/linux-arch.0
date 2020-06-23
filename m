@@ -1,57 +1,81 @@
-From: Nathan Chancellor <natechancellor@gmail.com>
-Subject: [PATCH 2/2] asm-generic: Make cacheflush.h self-contained
-Date: Mon, 22 Jun 2020 16:47:40 -0700
-Message-ID: <20200622234740.72825-3-natechancellor@gmail.com>
-References: <20200622234740.72825-1-natechancellor@gmail.com>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: [PATCH memory-model 0/14] LKMM updates for v5.9
+Date: Mon, 22 Jun 2020 17:51:52 -0700
+Message-ID: <20200623005152.GA27459@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-media-owner@vger.kernel.org>
-In-Reply-To: <20200622234740.72825-1-natechancellor@gmail.com>
-Sender: linux-media-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>, Mauro Carvalho Chehab <mchehab@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-media@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, clang-built-linux@googlegroups.com, Nathan Chancellor <natechancellor@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:46144 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1731785AbgFWAvx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 20:51:53 -0400
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
 
-Currently, cacheflush.h has to be included after mm.h to avoid several
--Wvisibility warnings:
+Hello!
 
-$ clang -Wvisibility -fsyntax-only include/asm-generic/cacheflush.h
-include/asm-generic/cacheflush.h:16:42: warning: declaration of 'struct
-mm_struct' will not be visible outside of this function [-Wvisibility]
-static inline void flush_cache_mm(struct mm_struct *mm)
-                                         ^
-...
-include/asm-generic/cacheflush.h:28:45: warning: declaration of 'struct
-vm_area_struct' will not be visible outside of this function
-[-Wvisibility]
-static inline void flush_cache_range(struct vm_area_struct *vma,
-                                            ^
-...
+This series contains updates to the Linux-kernel memory model:
 
-Add a few forward declarations should that there are no warnings and the
-ordering of the includes does not matter.
+1.	tools/memory-model: Add recent references.
 
-Fixes: e0cf615d725c ("asm-generic: don't include <linux/mm.h> in cacheflush.h")
-Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
----
- include/asm-generic/cacheflush.h | 5 +++++
- 1 file changed, 5 insertions(+)
+2.	tools/memory-model: Fix "conflict" definition, courtesy of
+	Marco Elver.
 
-diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
-index 907fa5d16494..093b743da596 100644
---- a/include/asm-generic/cacheflush.h
-+++ b/include/asm-generic/cacheflush.h
-@@ -2,6 +2,11 @@
- #ifndef _ASM_GENERIC_CACHEFLUSH_H
- #define _ASM_GENERIC_CACHEFLUSH_H
- 
-+struct address_space;
-+struct mm_struct;
-+struct page;
-+struct vm_area_struct;
-+
- /*
-  * The cache doesn't need to be flushed when TLB entries change when
-  * the cache is mapped to physical memory, not virtual memory
--- 
-2.27.0
+3.	Documentation: LKMM: Add litmus test for RCU GP guarantee where
+	updater frees object, courtesy of Joel Fernandes.
+
+4.	Documentation: LKMM: Add litmus test for RCU GP guarantee where
+	reader stores, courtesy of Joel Fernandes.
+
+5.	MAINTAINERS: Update maintainers for new Documentation/litmus-tests,
+	courtesy of Joel Fernandes.
+
+6.	tools/memory-model: Add an exception for limitations on _unless()
+	family, courtesy of Boqun Feng.
+
+7.	Documentation/litmus-tests: Introduce atomic directory, courtesy of
+	Boqun Feng.
+
+8.	Documentation/litmus-tests/atomic: Add a test for atomic_set()
+	courtesy of Boqun Feng.
+
+9.	Documentation/litmus-tests/atomic: Add a test for
+	smp_mb__after_atomic(), courtesy of Boqun Feng.
+
+10.	tools/memory-model: Fix reference to litmus test in recipes.txt
+	courtesy of Akira Yokosawa.
+
+11.	Documentation/litmus-tests: Merge atomic's README into top-level
+	one, courtesy of Akira Yokosawa.
+
+12.	Documentation/litmus-tests: Cite an RCU litmus test, courtesy of
+	Joel Fernandes.
+
+13.	tools/memory-model/README: Expand dependency of klitmus7, courtesy
+	of Akira Yokosawa.
+
+14.	fix references for DMA*.txt files, courtesy of Mauro Carvalho Chehab.
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+ /Documentation/litmus-tests/atomic/README                                                       |   16 -
+ b/Documentation/atomic_t.txt                                                                    |   24 +-
+ b/Documentation/litmus-tests/README                                                             |   34 ++++
+ b/Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus |   32 +++
+ b/Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus             |   24 ++
+ b/Documentation/litmus-tests/atomic/README                                                      |   16 +
+ b/Documentation/litmus-tests/rcu/RCU+sync+free.litmus                                           |   42 +++++
+ b/Documentation/litmus-tests/rcu/RCU+sync+read.litmus                                           |   37 ++++
+ b/Documentation/memory-barriers.txt                                                             |    6 
+ b/MAINTAINERS                                                                                   |    2 
+ b/tools/memory-model/Documentation/explanation.txt                                              |   83 +++++-----
+ b/tools/memory-model/Documentation/recipes.txt                                                  |    2 
+ b/tools/memory-model/Documentation/references.txt                                               |   21 ++
+ b/tools/memory-model/README                                                                     |   40 ++++
+ 14 files changed, 302 insertions(+), 77 deletions(-)
