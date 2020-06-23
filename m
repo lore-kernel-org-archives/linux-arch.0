@@ -1,72 +1,81 @@
-From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 01/14] tools/memory-model: Add recent references
-Date: Mon, 22 Jun 2020 17:52:18 -0700
-Message-ID: <20200623005231.27712-1-paulmck@kernel.org>
-References: <20200623005152.GA27459@paulmck-ThinkPad-P72>
+From: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Subject: Re: [PATCH 1/2] media: omap3isp: Remove cacheflush.h
+Date: Tue, 23 Jun 2020 04:19:15 +0300
+Message-ID: <20200623011915.GP5852@pendragon.ideasonboard.com>
+References: <20200622234740.72825-1-natechancellor@gmail.com>
+ <20200622234740.72825-2-natechancellor@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46432 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732334AbgFWAwd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jun 2020 20:52:33 -0400
-In-Reply-To: <20200623005152.GA27459@paulmck-ThinkPad-P72>
+Received: from perceval.ideasonboard.com ([213.167.242.64]:55052 "EHLO
+        perceval.ideasonboard.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731667AbgFWBTm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2020 21:19:42 -0400
+Content-Disposition: inline
+In-Reply-To: <20200622234740.72825-2-natechancellor@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@kernel.org>
+To: Nathan Chancellor <natechancellor@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Mauro Carvalho Chehab <mchehab@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-media@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, clang-built-linux@googlegroups.com
 
-From: "Paul E. McKenney" <paulmck@kernel.org>
+Hi Nathan,
 
-This commit updates the list of LKMM-related publications in
-Documentation/references.txt.
+Thank you for the patch.
 
-Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
-Acked-by: Andrea Parri <parri.andrea@gmail.com>
----
- tools/memory-model/Documentation/references.txt | 21 +++++++++++++++++++--
- 1 file changed, 19 insertions(+), 2 deletions(-)
+On Mon, Jun 22, 2020 at 04:47:39PM -0700, Nathan Chancellor wrote:
+> After mm.h was removed from the asm-generic version of cacheflush.h,
+> s390 allyesconfig shows several warnings of the following nature:
+> 
+> In file included from ./arch/s390/include/generated/asm/cacheflush.h:1,
+>                  from drivers/media/platform/omap3isp/isp.c:42:
+> ./include/asm-generic/cacheflush.h:16:42: warning: 'struct mm_struct'
+> declared inside parameter list will not be visible outside of this
+> definition or declaration
+> 
+> As Geert and Laurent point out, this driver does not need this header in
+> the two files that include it. Remove it so there are no warnings.
+> 
+> Fixes: e0cf615d725c ("asm-generic: don't include <linux/mm.h> in cacheflush.h")
+> Suggested-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Suggested-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+> Signed-off-by: Nathan Chancellor <natechancellor@gmail.com>
 
-diff --git a/tools/memory-model/Documentation/references.txt b/tools/memory-model/Documentation/references.txt
-index b177f3e..ecbbaa5 100644
---- a/tools/memory-model/Documentation/references.txt
-+++ b/tools/memory-model/Documentation/references.txt
-@@ -73,6 +73,18 @@ o	Christopher Pulte, Shaked Flur, Will Deacon, Jon French,
- Linux-kernel memory model
- =========================
- 
-+o	Jade Alglave, Will Deacon, Boqun Feng, David Howells, Daniel
-+	Lustig, Luc Maranget, Paul E. McKenney, Andrea Parri, Nicholas
-+	Piggin, Alan Stern, Akira Yokosawa, and Peter Zijlstra.
-+	2019. "Calibrating your fear of big bad optimizing compilers"
-+	Linux Weekly News.  https://lwn.net/Articles/799218/
-+
-+o	Jade Alglave, Will Deacon, Boqun Feng, David Howells, Daniel
-+	Lustig, Luc Maranget, Paul E. McKenney, Andrea Parri, Nicholas
-+	Piggin, Alan Stern, Akira Yokosawa, and Peter Zijlstra.
-+	2019. "Who's afraid of a big bad optimizing compiler?"
-+	Linux Weekly News.  https://lwn.net/Articles/793253/
-+
- o	Jade Alglave, Luc Maranget, Paul E. McKenney, Andrea Parri, and
- 	Alan Stern.  2018. "Frightening small children and disconcerting
- 	grown-ups: Concurrency in the Linux kernel". In Proceedings of
-@@ -88,6 +100,11 @@ o	Jade Alglave, Luc Maranget, Paul E. McKenney, Andrea Parri, and
- 	Alan Stern.  2017.  "A formal kernel memory-ordering model (part 2)"
- 	Linux Weekly News.  https://lwn.net/Articles/720550/
- 
-+o	Jade Alglave, Luc Maranget, Paul E. McKenney, Andrea Parri, and
-+	Alan Stern.  2017-2019.  "A Formal Model of Linux-Kernel Memory
-+	Ordering" (backup material for the LWN articles)
-+	https://mirrors.edge.kernel.org/pub/linux/kernel/people/paulmck/LWNLinuxMM/
-+
- 
- Memory-model tooling
- ====================
-@@ -110,5 +127,5 @@ Memory-model comparisons
- ========================
- 
- o	Paul E. McKenney, Ulrich Weigand, Andrea Parri, and Boqun
--	Feng. 2016. "Linux-Kernel Memory Model". (6 June 2016).
--	http://open-std.org/JTC1/SC22/WG21/docs/papers/2016/p0124r2.html.
-+	Feng. 2018. "Linux-Kernel Memory Model". (27 September 2018).
-+	http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0124r6.html.
+Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+
+> ---
+>  drivers/media/platform/omap3isp/isp.c      | 2 --
+>  drivers/media/platform/omap3isp/ispvideo.c | 1 -
+>  2 files changed, 3 deletions(-)
+> 
+> diff --git a/drivers/media/platform/omap3isp/isp.c b/drivers/media/platform/omap3isp/isp.c
+> index a4ee6b86663e..b91e472ee764 100644
+> --- a/drivers/media/platform/omap3isp/isp.c
+> +++ b/drivers/media/platform/omap3isp/isp.c
+> @@ -39,8 +39,6 @@
+>   *	Troy Laramy <t-laramy@ti.com>
+>   */
+>  
+> -#include <asm/cacheflush.h>
+> -
+>  #include <linux/clk.h>
+>  #include <linux/clkdev.h>
+>  #include <linux/delay.h>
+> diff --git a/drivers/media/platform/omap3isp/ispvideo.c b/drivers/media/platform/omap3isp/ispvideo.c
+> index 10c214bd0903..1ac9aef70dff 100644
+> --- a/drivers/media/platform/omap3isp/ispvideo.c
+> +++ b/drivers/media/platform/omap3isp/ispvideo.c
+> @@ -18,7 +18,6 @@
+>  #include <linux/sched.h>
+>  #include <linux/slab.h>
+>  #include <linux/vmalloc.h>
+> -#include <asm/cacheflush.h>
+>  
+>  #include <media/v4l2-dev.h>
+>  #include <media/v4l2-ioctl.h>
+> 
+> base-commit: 27f11fea33608cbd321a97cbecfa2ef97dcc1821
+
 -- 
-2.9.5
+Regards,
+
+Laurent Pinchart
