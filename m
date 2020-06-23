@@ -1,12 +1,12 @@
 From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 03/14] Documentation: LKMM: Add litmus test for RCU GP guarantee where updater frees object
-Date: Mon, 22 Jun 2020 17:52:20 -0700
-Message-ID: <20200623005231.27712-3-paulmck@kernel.org>
+Subject: [PATCH tip/core/rcu 04/14] Documentation: LKMM: Add litmus test for RCU GP guarantee where reader stores
+Date: Mon, 22 Jun 2020 17:52:21 -0700
+Message-ID: <20200623005231.27712-4-paulmck@kernel.org>
 References: <20200623005152.GA27459@paulmck-ThinkPad-P72>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46480 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:46506 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732368AbgFWAwe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1732371AbgFWAwe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Mon, 22 Jun 2020 20:52:34 -0400
 In-Reply-To: <20200623005152.GA27459@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
@@ -23,57 +23,71 @@ Acked-by: Andrea Parri <parri.andrea@gmail.com>
 Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 ---
- .../litmus-tests/rcu/RCU+sync+free.litmus          | 42 ++++++++++++++++++++++
- 1 file changed, 42 insertions(+)
- create mode 100644 Documentation/litmus-tests/rcu/RCU+sync+free.litmus
+ Documentation/litmus-tests/README                  | 11 +++++++
+ .../litmus-tests/rcu/RCU+sync+read.litmus          | 37 ++++++++++++++++++++++
+ 2 files changed, 48 insertions(+)
+ create mode 100644 Documentation/litmus-tests/README
+ create mode 100644 Documentation/litmus-tests/rcu/RCU+sync+read.litmus
 
-diff --git a/Documentation/litmus-tests/rcu/RCU+sync+free.litmus b/Documentation/litmus-tests/rcu/RCU+sync+free.litmus
+diff --git a/Documentation/litmus-tests/README b/Documentation/litmus-tests/README
 new file mode 100644
-index 0000000..4ee67e1
+index 0000000..c4307ea
 --- /dev/null
-+++ b/Documentation/litmus-tests/rcu/RCU+sync+free.litmus
-@@ -0,0 +1,42 @@
-+C RCU+sync+free
++++ b/Documentation/litmus-tests/README
+@@ -0,0 +1,11 @@
++============
++LITMUS TESTS
++============
++
++RCU (/rcu directory)
++--------------------
++
++RCU+sync+read.litmus
++RCU+sync+free.litmus
++    Both the above litmus tests demonstrate the RCU grace period guarantee
++    that an RCU read-side critical section can never span a grace period.
+diff --git a/Documentation/litmus-tests/rcu/RCU+sync+read.litmus b/Documentation/litmus-tests/rcu/RCU+sync+read.litmus
+new file mode 100644
+index 0000000..f341767
+--- /dev/null
++++ b/Documentation/litmus-tests/rcu/RCU+sync+read.litmus
+@@ -0,0 +1,37 @@
++C RCU+sync+read
 +
 +(*
 + * Result: Never
 + *
-+ * This litmus test demonstrates that an RCU reader can never see a write that
-+ * follows a grace period, if it did not see writes that precede that grace
-+ * period.
-+ *
-+ * This is a typical pattern of RCU usage, where the write before the grace
-+ * period assigns a pointer, and the writes following the grace period destroy
-+ * the object that the pointer used to point to.
++ * This litmus test demonstrates that after a grace period, an RCU updater always
++ * sees all stores done in prior RCU read-side critical sections. Such
++ * read-side critical sections would have ended before the grace period ended.
 + *
 + * This is one implication of the RCU grace-period guarantee, which says (among
 + * other things) that an RCU read-side critical section cannot span a grace period.
 + *)
 +
 +{
-+int x = 1;
-+int *y = &x;
-+int z = 1;
++int x = 0;
++int y = 0;
 +}
 +
-+P0(int *x, int *z, int **y)
++P0(int *x, int *y)
 +{
-+	int *r0;
-+	int r1;
-+
 +	rcu_read_lock();
-+	r0 = rcu_dereference(*y);
-+	r1 = READ_ONCE(*r0);
++	WRITE_ONCE(*x, 1);
++	WRITE_ONCE(*y, 1);
 +	rcu_read_unlock();
 +}
 +
-+P1(int *x, int *z, int **y)
++P1(int *x, int *y)
 +{
-+	rcu_assign_pointer(*y, z);
++	int r0;
++	int r1;
++
++	r0 = READ_ONCE(*x);
 +	synchronize_rcu();
-+	WRITE_ONCE(*x, 0);
++	r1 = READ_ONCE(*y);
 +}
 +
-+exists (0:r0=x /\ 0:r1=0)
++exists (1:r0=1 /\ 1:r1=0)
 -- 
 2.9.5
