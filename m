@@ -1,81 +1,79 @@
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: [PATCH memory-model 0/14] LKMM updates for v5.9
-Date: Mon, 22 Jun 2020 17:51:52 -0700
-Message-ID: <20200623005152.GA27459@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: paulmck@kernel.org
+Subject: [PATCH tip/core/rcu 03/14] Documentation: LKMM: Add litmus test for RCU GP guarantee where updater frees object
+Date: Mon, 22 Jun 2020 17:52:20 -0700
+Message-ID: <20200623005231.27712-3-paulmck@kernel.org>
+References: <20200623005152.GA27459@paulmck-ThinkPad-P72>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46144 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:46480 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731785AbgFWAvx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jun 2020 20:51:53 -0400
-Content-Disposition: inline
+        id S1732368AbgFWAwe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jun 2020 20:52:34 -0400
+In-Reply-To: <20200623005152.GA27459@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Joel Fernandes (Google)" <joel@joelfernandes.org>, "Paul E . McKenney" <paulmck@kernel.org>
 
-Hello!
+From: "Joel Fernandes (Google)" <joel@joelfernandes.org>
 
-This series contains updates to the Linux-kernel memory model:
+This adds an example for the important RCU grace period guarantee, which
+shows an RCU reader can never span a grace period.
 
-1.	tools/memory-model: Add recent references.
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
+Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+---
+ .../litmus-tests/rcu/RCU+sync+free.litmus          | 42 ++++++++++++++++++++++
+ 1 file changed, 42 insertions(+)
+ create mode 100644 Documentation/litmus-tests/rcu/RCU+sync+free.litmus
 
-2.	tools/memory-model: Fix "conflict" definition, courtesy of
-	Marco Elver.
-
-3.	Documentation: LKMM: Add litmus test for RCU GP guarantee where
-	updater frees object, courtesy of Joel Fernandes.
-
-4.	Documentation: LKMM: Add litmus test for RCU GP guarantee where
-	reader stores, courtesy of Joel Fernandes.
-
-5.	MAINTAINERS: Update maintainers for new Documentation/litmus-tests,
-	courtesy of Joel Fernandes.
-
-6.	tools/memory-model: Add an exception for limitations on _unless()
-	family, courtesy of Boqun Feng.
-
-7.	Documentation/litmus-tests: Introduce atomic directory, courtesy of
-	Boqun Feng.
-
-8.	Documentation/litmus-tests/atomic: Add a test for atomic_set()
-	courtesy of Boqun Feng.
-
-9.	Documentation/litmus-tests/atomic: Add a test for
-	smp_mb__after_atomic(), courtesy of Boqun Feng.
-
-10.	tools/memory-model: Fix reference to litmus test in recipes.txt
-	courtesy of Akira Yokosawa.
-
-11.	Documentation/litmus-tests: Merge atomic's README into top-level
-	one, courtesy of Akira Yokosawa.
-
-12.	Documentation/litmus-tests: Cite an RCU litmus test, courtesy of
-	Joel Fernandes.
-
-13.	tools/memory-model/README: Expand dependency of klitmus7, courtesy
-	of Akira Yokosawa.
-
-14.	fix references for DMA*.txt files, courtesy of Mauro Carvalho Chehab.
-
-							Thanx, Paul
-
-------------------------------------------------------------------------
-
- /Documentation/litmus-tests/atomic/README                                                       |   16 -
- b/Documentation/atomic_t.txt                                                                    |   24 +-
- b/Documentation/litmus-tests/README                                                             |   34 ++++
- b/Documentation/litmus-tests/atomic/Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus |   32 +++
- b/Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus             |   24 ++
- b/Documentation/litmus-tests/atomic/README                                                      |   16 +
- b/Documentation/litmus-tests/rcu/RCU+sync+free.litmus                                           |   42 +++++
- b/Documentation/litmus-tests/rcu/RCU+sync+read.litmus                                           |   37 ++++
- b/Documentation/memory-barriers.txt                                                             |    6 
- b/MAINTAINERS                                                                                   |    2 
- b/tools/memory-model/Documentation/explanation.txt                                              |   83 +++++-----
- b/tools/memory-model/Documentation/recipes.txt                                                  |    2 
- b/tools/memory-model/Documentation/references.txt                                               |   21 ++
- b/tools/memory-model/README                                                                     |   40 ++++
- 14 files changed, 302 insertions(+), 77 deletions(-)
+diff --git a/Documentation/litmus-tests/rcu/RCU+sync+free.litmus b/Documentation/litmus-tests/rcu/RCU+sync+free.litmus
+new file mode 100644
+index 0000000..4ee67e1
+--- /dev/null
++++ b/Documentation/litmus-tests/rcu/RCU+sync+free.litmus
+@@ -0,0 +1,42 @@
++C RCU+sync+free
++
++(*
++ * Result: Never
++ *
++ * This litmus test demonstrates that an RCU reader can never see a write that
++ * follows a grace period, if it did not see writes that precede that grace
++ * period.
++ *
++ * This is a typical pattern of RCU usage, where the write before the grace
++ * period assigns a pointer, and the writes following the grace period destroy
++ * the object that the pointer used to point to.
++ *
++ * This is one implication of the RCU grace-period guarantee, which says (among
++ * other things) that an RCU read-side critical section cannot span a grace period.
++ *)
++
++{
++int x = 1;
++int *y = &x;
++int z = 1;
++}
++
++P0(int *x, int *z, int **y)
++{
++	int *r0;
++	int r1;
++
++	rcu_read_lock();
++	r0 = rcu_dereference(*y);
++	r1 = READ_ONCE(*r0);
++	rcu_read_unlock();
++}
++
++P1(int *x, int *z, int **y)
++{
++	rcu_assign_pointer(*y, z);
++	synchronize_rcu();
++	WRITE_ONCE(*x, 0);
++}
++
++exists (0:r0=x /\ 0:r1=0)
+-- 
+2.9.5
