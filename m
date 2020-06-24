@@ -1,101 +1,73 @@
-Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:60226 "EHLO mga12.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730682AbgFVUJV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jun 2020 16:09:21 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 17/21] KVM: arm64: Use common code's approach for __GFP_ZERO with memory caches
-Date: Mon, 22 Jun 2020 13:08:18 -0700
-Message-ID: <20200622200822.4426-18-sean.j.christopherson@intel.com>
-In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
-References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+Return-Path: <SRS0=SGxC=AF=vger.kernel.org=linux-doc-owner@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+References: <20200228012036.15682-5-brendanhiggins@google.com> <202003021439.A6B6FD8@keescook>
+In-Reply-To: <202003021439.A6B6FD8@keescook>
+From: Brendan Higgins <brendanhiggins@google.com>
+Date: Wed, 24 Jun 2020 13:20:35 -0700
+Message-ID: <CAFd5g45Jz-5wtO-YNuqPN2Zc_rJtoA1qbPLVs2wrJFQyZpd5QQ@mail.gmail.com>
+Subject: Re: [PATCH v3 4/7] init: main: add KUnit to kernel init
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-doc-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Frank Rowand <frowand.list@gmail.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200622200818.72Twa-7xsdQsFTrkVWuuW5ovL1D-cBLJ5Tou6AkGK9Y@z>
+Message-ID: <20200624202035.h-yHNAl6OMtuidT3ntxO30M0u5jCDglBXMdUjDr4gHQ@z>
 
-Add a "gfp_zero" member to arm64's 'struct kvm_mmu_memory_cache' to make
-the struct and its usage compatible with the common 'struct
-kvm_mmu_memory_cache' in linux/kvm_host.h.  This will minimize code
-churn when arm64 moves to the common implementation in a future patch, at
-the cost of temporarily having somewhat silly code.
+On Mon, Mar 2, 2020 at 2:45 PM Kees Cook <keescook@chromium.org> wrote:
 
-Note, GFP_PGTABLE_USER is equivalent to GFP_KERNEL_ACCOUNT | GFP_ZERO:
+Sorry it took so long to respond. I am reviving this patchset now,
+about to send out a new revision and I just saw this comment.
 
-  #define GFP_PGTABLE_USER  (GFP_PGTABLE_KERNEL | __GFP_ACCOUNT)
-  |
-  -> #define GFP_PGTABLE_KERNEL        (GFP_KERNEL | __GFP_ZERO)
+> On 2/27/20 7:20 PM, Brendan Higgins wrote:
+> > Remove KUnit from init calls entirely, instead call directly from
+> > kernel_init().
+> >
+> > Co-developed-by: Alan Maguire <alan.maguire@oracle.com>
+> > Signed-off-by: Alan Maguire <alan.maguire@oracle.com>
+> > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+> > Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+> > [...]
+> > diff --git a/init/main.c b/init/main.c
+> > index ee4947af823f3..7875a5c486dc4 100644
+> > --- a/init/main.c
+> > +++ b/init/main.c
+> > @@ -104,6 +104,8 @@
+> >  #define CREATE_TRACE_POINTS
+> >  #include <trace/events/initcall.h>
+> >
+> > +#include <kunit/test.h>
+> > +
+> >  static int kernel_init(void *);
+> >
+> >  extern void init_IRQ(void);
+> > @@ -1444,6 +1446,8 @@ static noinline void __init kernel_init_freeable(void)
+> >
+> >       do_basic_setup();
+> >
+> > +     kunit_run_all_tests();
+> > +
+> >       console_on_rootfs();
+> >
+> >       /*
+>
+> I'm nervous about this happening before two key pieces of the kernel
+> setup, which might lead to weird timing-sensitive bugs or false
+> positives:
+>         async_synchronize_full()
+>         mark_readonly()
+>
+> Now, I realize kunit tests _should_ be self-contained, but this seems
+> like a possible robustness problem. Is there any reason this can't be
+> moved after rcu_end_inkernel_boot() in kernel_init() instead?
 
-  == GFP_KERNEL | __GFP_ACCOUNT | __GFP_ZERO
+I tried that, but it doesn't work without an initramfs. We could add
+an initramfs for KUnit at some point if highly desired, but I think
+that is outside the scope of this patchset. Additionally, this patch
+actually moves running tests to later in the init process, which is
+still an improvement over the way KUnit works today.
 
-versus
+There are some other reasons I wouldn't want to make that change right
+now, which will become apparent in a patch that I will send out in
+short order.
 
-  #define GFP_KERNEL_ACCOUNT (GFP_KERNEL | __GFP_ACCOUNT)
-
-    with __GFP_ZERO explicitly OR'd in
-
-  == GFP_KERNEL | __GFP_ACCOUNT | __GFP_ZERO
-
-No functional change intended.
-
-Tested-by: Marc Zyngier <maz@kernel.org>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
----
- arch/arm64/include/asm/kvm_host.h | 1 +
- arch/arm64/kvm/arm.c              | 2 ++
- arch/arm64/kvm/mmu.c              | 5 +++--
- 3 files changed, 6 insertions(+), 2 deletions(-)
-
-diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
-index c3e6fcc664b1..335170b59899 100644
---- a/arch/arm64/include/asm/kvm_host.h
-+++ b/arch/arm64/include/asm/kvm_host.h
-@@ -105,6 +105,7 @@ struct kvm_arch {
-  */
- struct kvm_mmu_memory_cache {
- 	int nobjs;
-+	gfp_t gfp_zero;
- 	void *objects[KVM_NR_MEM_OBJS];
- };
- 
-diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
-index 90cb90561446..1016635b3782 100644
---- a/arch/arm64/kvm/arm.c
-+++ b/arch/arm64/kvm/arm.c
-@@ -270,6 +270,8 @@ int kvm_arch_vcpu_create(struct kvm_vcpu *vcpu)
- 	vcpu->arch.target = -1;
- 	bitmap_zero(vcpu->arch.features, KVM_VCPU_MAX_FEATURES);
- 
-+	vcpu->arch.mmu_page_cache.gfp_zero = __GFP_ZERO;
-+
- 	/* Set up the timer */
- 	kvm_timer_vcpu_init(vcpu);
- 
-diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
-index 9398b66f8a87..688213ef34f0 100644
---- a/arch/arm64/kvm/mmu.c
-+++ b/arch/arm64/kvm/mmu.c
-@@ -131,7 +131,8 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
- 	if (cache->nobjs >= min)
- 		return 0;
- 	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
--		page = (void *)__get_free_page(GFP_PGTABLE_USER);
-+		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT |
-+					       cache->gfp_zero);
- 		if (!page)
- 			return -ENOMEM;
- 		cache->objects[cache->nobjs++] = page;
-@@ -1342,7 +1343,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
- 	phys_addr_t addr, end;
- 	int ret = 0;
- 	unsigned long pfn;
--	struct kvm_mmu_memory_cache cache = { 0, };
-+	struct kvm_mmu_memory_cache cache = { 0, __GFP_ZERO, };
- 
- 	end = (guest_ipa + size + PAGE_SIZE - 1) & PAGE_MASK;
- 	pfn = __phys_to_pfn(pa);
--- 
-2.26.0
+Cheers
