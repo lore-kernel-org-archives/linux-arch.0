@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 8/9] arm64/build: Use common DISCARDS in linker script
-Date: Tue, 23 Jun 2020 18:49:39 -0700
-Message-ID: <20200624014940.1204448-9-keescook@chromium.org>
+Subject: [PATCH v3 1/9] vmlinux.lds.h: Add .gnu.version* to DISCARDS
+Date: Tue, 23 Jun 2020 18:49:32 -0700
+Message-ID: <20200624014940.1204448-2-keescook@chromium.org>
 References: <20200624014940.1204448-1-keescook@chromium.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
@@ -9,42 +9,37 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200624014940.1204448-1-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel
 List-Id: linux-arch.vger.kernel.org
 
-Use the common DISCARDS rule for the linker script in an effort to
-regularize the linker script to prepare for warning on orphaned
-sections. Additionally clean up left-over no-op macros.
+For vmlinux linking, no architecture uses the .gnu.version* sections,
+so remove it via the common DISCARDS macro in preparation for adding
+--orphan-handling=warn more widely. This is a work-around for what
+appears to be a bug[1] in ld.bfd which warns for this synthetic section
+even when none is found in input objects, and even when no section is
+emitted for an output object[2].
 
+[1] https://sourceware.org/bugzilla/show_bug.cgi?id=26153
+[2] https://lore.kernel.org/lkml/202006221524.CEB86E036B@keescook/
+
+Reviewed-by: Fangrui Song <maskray@google.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Will Deacon <will@kernel.org>
 ---
- arch/arm64/kernel/vmlinux.lds.S | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ include/asm-generic/vmlinux.lds.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-index 6827da7f3aa5..5427f502c3a6 100644
---- a/arch/arm64/kernel/vmlinux.lds.S
-+++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -6,6 +6,7 @@
-  */
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index db600ef218d7..1248a206be8d 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -934,6 +934,8 @@
+ 	*(.discard)							\
+ 	*(.discard.*)							\
+ 	*(.modinfo)							\
++	/* ld.bfd warns about .gnu.version* even when not emitted */	\
++	*(.gnu.version*)						\
+ 	}
  
- #define RO_EXCEPTION_TABLE_ALIGN	8
-+#define RUNTIME_DISCARD_EXIT
- 
- #include <asm-generic/vmlinux.lds.h>
- #include <asm/cache.h>
-@@ -89,10 +90,8 @@ SECTIONS
- 	 * matching the same input section name.  There is no documented
- 	 * order of matching.
- 	 */
-+	DISCARDS
- 	/DISCARD/ : {
--		EXIT_CALL
--		*(.discard)
--		*(.discard.*)
- 		*(.interp .dynamic)
- 		*(.dynsym .dynstr .hash .gnu.hash)
- 		*(.eh_frame)
+ /**
 -- 
 2.25.1
