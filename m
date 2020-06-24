@@ -1,55 +1,85 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55954 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731827AbgF2U3u (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 16:29:50 -0400
-Received: from mail-pg1-x544.google.com (mail-pg1-x544.google.com [IPv6:2607:f8b0:4864:20::544])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 302B5C03E979
-        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 13:29:50 -0700 (PDT)
-Received: by mail-pg1-x544.google.com with SMTP id j19so1964521pgm.11
-        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 13:29:50 -0700 (PDT)
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:40466 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2404691AbgFXQ1D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Jun 2020 12:27:03 -0400
+Date: Wed, 24 Jun 2020 17:26:58 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v3 3/9] efi/libstub: Remove .note.gnu.property
+Message-ID: <20200624162657.GG25945@arm.com>
+References: <20200624014940.1204448-1-keescook@chromium.org>
+ <20200624014940.1204448-4-keescook@chromium.org>
+ <20200624033142.cinvg6rbg252j46d@google.com>
+ <202006232143.66828CD3@keescook>
+ <20200624104356.GA6134@willie-the-truck>
+ <CAMj1kXHBT4ei0xhyL4jD7=CNRsn1rh7w6jeYDLjVOv4na0Z38Q@mail.gmail.com>
+ <20200624112647.GC6134@willie-the-truck>
+ <20200624134854.GF25945@arm.com>
+ <20200624152646.GA6768@willie-the-truck>
 MIME-Version: 1.0
-References: <20200629061840.4065483-1-keescook@chromium.org>
- <20200629061840.4065483-9-keescook@chromium.org> <CAKwvOd=r6bsBfSZxVYrnbm1Utq==ApWBDjx+0Fxsm90Aq3Jghw@mail.gmail.com>
- <9b7f9c3aed7223e49def6e775d3b250aa780e562.camel@perches.com>
-In-Reply-To: <9b7f9c3aed7223e49def6e775d3b250aa780e562.camel@perches.com>
-From: Nick Desaulniers <ndesaulniers@google.com>
-Date: Mon, 29 Jun 2020 13:29:38 -0700
-Message-ID: <CAKwvOdnOCEZ8LUEY6+gVcTcNuaabRnj4hXG6-pcb_6fcQJsr6w@mail.gmail.com>
-Subject: Re: [PATCH v4 08/17] arm64/mm: Remove needless section quotes
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200624152646.GA6768@willie-the-truck>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: Kees Cook <keescook@chromium.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20200629202938.Bpk-wu95d0qd08kJvaol3zeCNQAkVB2TuH-W5Zs3Efs@z>
+To: Will Deacon <will@kernel.org>
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-efi <linux-efi@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Fangrui Song <maskray@google.com>, Masahiro Yamada <masahiroy@kernel.org>, X86 ML <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, Ard Biesheuvel <ardb@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@suse.de>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Nathan Chancellor <natechancellor@gmail.com>, Peter Collingbourne <pcc@google.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Nick Desaulniers <ndesaulniers@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James Morse <james.morse@arm.com>
+Message-ID: <20200624162658.As22DRyY_gZ8cQizHPkfKpwuy_CbhEfP4YAdIeEikn8@z>
 
-On Mon, Jun 29, 2020 at 1:03 PM Joe Perches <joe@perches.com> wrote:
->
-> On Mon, 2020-06-29 at 12:53 -0700, Nick Desaulniers wrote:
-> > On Sun, Jun 28, 2020 at 11:18 PM Kees Cook <keescook@chromium.org> wrote:
-> > > Fix a case of needless quotes in __section(), which Clang doesn't like.
-> > >
-> > > Acked-by: Will Deacon <will@kernel.org>
-> > > Signed-off-by: Kees Cook <keescook@chromium.org>
-> >
-> > Yep, I remember bugs from this.  Probably should scan the kernel for
-> > other instances of this.  +Joe for checkpatch.pl validation.
-> > Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
->
-> $ git grep -P -n '__section\s*\(\s*\"'
-> arch/arm64/mm/mmu.c:45:u64 __section(".mmuoff.data.write") vabits_actual;
-> include/linux/compiler.h:211:   __section("___kentry" "+" #sym )                        \
-> include/linux/export.h:133:     static int __ksym_marker_##sym[0] __section(".discard.ksym") __used
-> include/linux/srcutree.h:127:           __section("___srcu_struct_ptrs") = &name
->
-> My recollection is I submitted a patch
-> to _add_ quotes
->
-> https://lore.kernel.org/patchwork/patch/1125785/
+On Wed, Jun 24, 2020 at 04:26:46PM +0100, Will Deacon wrote:
+> On Wed, Jun 24, 2020 at 02:48:55PM +0100, Dave Martin wrote:
+> > On Wed, Jun 24, 2020 at 12:26:47PM +0100, Will Deacon wrote:
+> > > On Wed, Jun 24, 2020 at 12:46:32PM +0200, Ard Biesheuvel wrote:
+> > > > On Wed, 24 Jun 2020 at 12:44, Will Deacon <will@kernel.org> wrote:
+> > > > > For the kernel Image, how do we remove these sections? The objcopy flags
+> > > > > in arch/arm64/boot/Makefile look both insufficient and out of date. My
+> > > > > vmlinux ends up with both a ".notes" and a ".init.note.gnu.property"
+> > > > > segment.
+> > > > 
+> > > > The latter is the fault of the libstub make rules, that prepend .init
+> > > > to all section names.
+> > > 
+> > > Hmm. I tried adding -mbranch-protection=none to arm64 cflags for the stub,
+> > > but I still see this note in vmlinux. It looks like it comes in via the
+> > > stub copy of lib-ctype.o, but I don't know why that would force the
+> > > note. The cflags look ok to me [1] and I confirmed that the note is
+> > > being generated by the compiler.
+> > > 
+> > > > I'm not sure if there is a point to having PAC and/or BTI in the EFI
+> > > > stub, given that it runs under the control of the firmware, with its
+> > > > memory mappings and PAC configuration etc.
+> > > 
+> > > Agreed, I just can't figure out how to get rid of the note.
+> > 
+> > Because this section is generated by the linker itself I think you might
+> > have to send it to /DISCARD/ in the link, or strip it explicitly after
+> > linking.
+> 
+> Right, but why is the linker generating that section in the first place? I'm
+> compiling with -mbranch-protection=none and all the other objects linked
+> into the stub do not have the section.
+> 
+> I wonder if it's because lib/ctype.c doesn't have any executable code...
 
-Hey, yeah!  Did you end up sending v2?
+What compiler and flags are you using for the affected object?  I don't
+see this with gcc so far.
 
--- 
-Thanks,
-~Nick Desaulniers
+I wonder if this is a hole in the specs: the property could logically
+be emitted in any codeless object, since turning on BTI will obviously
+not break that object.
+
+For different linkers and compilers to interoperate though, the specs
+would need to say what to do in that situation.
+
+Cheers
+---Dave
+
+
+
+> 
+> Will
+> 
+> _______________________________________________
+> linux-arm-kernel mailing list
+> linux-arm-kernel@lists.infradead.org
+> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
