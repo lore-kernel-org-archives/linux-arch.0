@@ -1,81 +1,52 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38396 "EHLO
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54484 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729143AbgF2Smw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 14/41] arm64: take fetching compat reg out of pt_regs into a new helper
-Date: Mon, 29 Jun 2020 19:26:01 +0100
-Message-ID: <20200629182628.529995-14-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        with ESMTP id S2389715AbgFXU6U (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:58:20 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A2DA5C0613ED
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:58:18 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id m63so3533150ybc.13
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:58:18 -0700 (PDT)
+Date: Wed, 24 Jun 2020 13:55:44 -0700
+In-Reply-To: <20200624205550.215599-1-brendanhiggins@google.com>
+Message-ID: <20200624205550.215599-6-brendanhiggins@google.com>
+Mime-Version: 1.0
+References: <20200624205550.215599-1-brendanhiggins@google.com>
+Subject: [PATCH v4 05/11] arch: um: add linker section for KUnit test suites
+From: Brendan Higgins <brendanhiggins@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200629182601.V827gYEKqKLD-_PQGox5DTICoIbR46MfOho1bV2Hsas@z>
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org, Brendan Higgins <brendanhiggins@google.com>
+Message-ID: <20200624205544.i9R7fC9doms3R05EgdwhKxfX9In8_v8W4UHUFT_ZQLc@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+Add a linker section to UML where KUnit can put references to its test
+suites. This patch is an early step in transitioning to dispatching all
+KUnit tests from a centralized executor rather than having each as its
+own separate late_initcall.
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+Reviewed-by: Stephen Boyd <sboyd@kernel.org>
 ---
- arch/arm64/kernel/ptrace.c | 34 +++++++++++++++++-----------------
- 1 file changed, 17 insertions(+), 17 deletions(-)
+ arch/um/include/asm/common.lds.S | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 68b7f34a08f5..5b837741ab76 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -1237,6 +1237,22 @@ enum compat_regset {
- 	REGSET_COMPAT_VFP,
- };
+diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
+index eca6c452a41bd..9a9c97f45694c 100644
+--- a/arch/um/include/asm/common.lds.S
++++ b/arch/um/include/asm/common.lds.S
+@@ -52,6 +52,10 @@
+ 	CON_INITCALL
+   }
  
-+static inline compat_ulong_t compat_get_user_reg(struct task_struct *task, int idx)
-+{
-+	struct pt_regs *regs = task_pt_regs(task);
++  .kunit_test_suites : {
++	KUNIT_TEST_SUITES
++  }
 +
-+	switch (idx) {
-+	case 15:
-+		return regs->pc;
-+	case 16:
-+		return pstate_to_compat_psr(regs->pstate);
-+	case 17:
-+		return regs->orig_x0;
-+	default:
-+		return regs->regs[idx];
-+	}
-+}
-+
- static int compat_gpr_get(struct task_struct *target,
- 			  const struct user_regset *regset,
- 			  unsigned int pos, unsigned int count,
-@@ -1255,23 +1271,7 @@ static int compat_gpr_get(struct task_struct *target,
- 		return -EIO;
- 
- 	for (i = 0; i < num_regs; ++i) {
--		unsigned int idx = start + i;
--		compat_ulong_t reg;
--
--		switch (idx) {
--		case 15:
--			reg = task_pt_regs(target)->pc;
--			break;
--		case 16:
--			reg = task_pt_regs(target)->pstate;
--			reg = pstate_to_compat_psr(reg);
--			break;
--		case 17:
--			reg = task_pt_regs(target)->orig_x0;
--			break;
--		default:
--			reg = task_pt_regs(target)->regs[idx];
--		}
-+		compat_ulong_t reg = compat_get_user_reg(target, start + i);
- 
- 		if (kbuf) {
- 			memcpy(kbuf, &reg, sizeof(reg));
+   .exitcall : {
+ 	__exitcall_begin = .;
+ 	*(.exitcall.exit)
 -- 
-2.11.0
+2.27.0.212.ge8ba1cc988-goog
