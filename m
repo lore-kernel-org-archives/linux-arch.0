@@ -1,67 +1,64 @@
-Return-Path: <SRS0=lJ0G=AA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:32914 "EHLO
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50662 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1732015AbgFSSiI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jun 2020 14:38:08 -0400
-Received: from mail-lj1-x244.google.com (mail-lj1-x244.google.com [IPv6:2a00:1450:4864:20::244])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CBD03C0613EF
-        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 11:38:06 -0700 (PDT)
-Received: by mail-lj1-x244.google.com with SMTP id a9so12615177ljn.6
-        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 11:38:06 -0700 (PDT)
-Received: from mail-lf1-f45.google.com (mail-lf1-f45.google.com. [209.85.167.45])
-        by smtp.gmail.com with ESMTPSA id 5sm1286398ljr.64.2020.06.19.11.38.03
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 19 Jun 2020 11:38:04 -0700 (PDT)
-Received: by mail-lf1-f45.google.com with SMTP id g139so5319233lfd.10
-        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 11:38:03 -0700 (PDT)
-MIME-Version: 1.0
-References: <20200618210645.GB2212102@localhost.localdomain>
-In-Reply-To: <20200618210645.GB2212102@localhost.localdomain>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 19 Jun 2020 11:37:47 -0700
-Message-ID: <CAHk-=whz7xz1EBqfyS-C8zTx3_q54R1GuX9tDHdK1-TG91WH-Q@mail.gmail.com>
-Subject: Re: [PATCH] linux++, this: rename "struct notifier_block *this"
+        with ESMTP id S2406582AbgFXUdd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:33:33 -0400
+Received: from mail-qt1-x849.google.com (mail-qt1-x849.google.com [IPv6:2607:f8b0:4864:20::849])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A8E6BC061797
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:33 -0700 (PDT)
+Received: by mail-qt1-x849.google.com with SMTP id 94so2105732qtb.21
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:33 -0700 (PDT)
+Date: Wed, 24 Jun 2020 13:31:57 -0700
+In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
+Message-ID: <20200624203200.78870-20-samitolvanen@google.com>
+Mime-Version: 1.0
+References: <20200624203200.78870-1-samitolvanen@google.com>
+Subject: [PATCH 19/22] x86, vdso: disable LTO only for vDSO
+From: Sami Tolvanen <samitolvanen@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Netdev <netdev@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, NetFilter <netfilter-devel@vger.kernel.org>
-Message-ID: <20200619183747.FVSaV8qu-x7bcvekL9Gf007SaBaYORW7La4fNLd0Ur4@z>
+To: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Sami Tolvanen <samitolvanen@google.com>
+Message-ID: <20200624203157.SAxouZILUF4CZYrPv0E8Ty_ULgIKWHDUD729vmntLbQ@z>
 
-On Thu, Jun 18, 2020 at 2:06 PM Alexey Dobriyan <adobriyan@gmail.com> wrote:
->
-> Rename
->         struct notifier_block *this
-> to
->         struct notifier_block *nb
->
-> "nb" is arguably a better name for notifier block.
+Remove the undefined DISABLE_LTO flag from the vDSO, and filter out
+CC_FLAGS_LTO flags instead where needed.
 
-Maybe it's a better name. But it doesn't seem worth it.
+Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+---
+ arch/x86/entry/vdso/Makefile | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
 
-Because C++ reserved words are entirely irrelevant.
-
-We did this same dance almost three decades ago, and the fact is, C++
-has other reserved words that make it all pointless.
-
-There is no way I will accept the renaming of various "new" variables.
-We did it, it was bad, we undid it, and we now have a _lot_ more uses
-of 'new' and 'old', and no, we're not changing it for a braindead
-language that isn't relevant to the kernel.
-
-The fact is, C++ chose bad identifiers to make reserved words.
-
-If you want to build the kernel with C++, you'd be a lot better off just doing
-
-   /* C++ braindamage */
-   #define this __this
-   #define new __new
-
-and deal with that instead.
-
-Because no, the 'new' renaming will never happen, and while 'this'
-isn't nearly as common or relevant a name, once you have the same
-issue with 'new', what's the point of trying to deal with 'this'?
-
-             Linus
+diff --git a/arch/x86/entry/vdso/Makefile b/arch/x86/entry/vdso/Makefile
+index 04e65f0698f6..67f60662830a 100644
+--- a/arch/x86/entry/vdso/Makefile
++++ b/arch/x86/entry/vdso/Makefile
+@@ -9,8 +9,6 @@ ARCH_REL_TYPE_ABS := R_X86_64_JUMP_SLOT|R_X86_64_GLOB_DAT|R_X86_64_RELATIVE|
+ ARCH_REL_TYPE_ABS += R_386_GLOB_DAT|R_386_JMP_SLOT|R_386_RELATIVE
+ include $(srctree)/lib/vdso/Makefile
+ 
+-KBUILD_CFLAGS += $(DISABLE_LTO)
+-
+ # Sanitizer runtimes are unavailable and cannot be linked here.
+ KASAN_SANITIZE			:= n
+ UBSAN_SANITIZE			:= n
+@@ -92,7 +90,7 @@ ifneq ($(RETPOLINE_VDSO_CFLAGS),)
+ endif
+ endif
+ 
+-$(vobjs): KBUILD_CFLAGS := $(filter-out $(GCC_PLUGINS_CFLAGS) $(RETPOLINE_CFLAGS),$(KBUILD_CFLAGS)) $(CFL)
++$(vobjs): KBUILD_CFLAGS := $(filter-out $(CC_FLAGS_LTO) $(GCC_PLUGINS_CFLAGS) $(RETPOLINE_CFLAGS),$(KBUILD_CFLAGS)) $(CFL)
+ 
+ #
+ # vDSO code runs in userspace and -pg doesn't help with profiling anyway.
+@@ -150,6 +148,7 @@ KBUILD_CFLAGS_32 := $(filter-out -fno-pic,$(KBUILD_CFLAGS_32))
+ KBUILD_CFLAGS_32 := $(filter-out -mfentry,$(KBUILD_CFLAGS_32))
+ KBUILD_CFLAGS_32 := $(filter-out $(GCC_PLUGINS_CFLAGS),$(KBUILD_CFLAGS_32))
+ KBUILD_CFLAGS_32 := $(filter-out $(RETPOLINE_CFLAGS),$(KBUILD_CFLAGS_32))
++KBUILD_CFLAGS_32 := $(filter-out $(CC_FLAGS_LTO),$(KBUILD_CFLAGS_32))
+ KBUILD_CFLAGS_32 += -m32 -msoft-float -mregparm=0 -fpic
+ KBUILD_CFLAGS_32 += $(call cc-option, -fno-stack-protector)
+ KBUILD_CFLAGS_32 += $(call cc-option, -foptimize-sibling-calls)
+-- 
+2.27.0.212.ge8ba1cc988-goog
