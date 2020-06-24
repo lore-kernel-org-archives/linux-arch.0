@@ -1,79 +1,68 @@
-Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:49770 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728304AbgFOOvU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 15 Jun 2020 10:51:20 -0400
-Date: Mon, 15 Jun 2020 15:51:16 +0100
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH v2 6/6] prctl.2: Add tagged address ABI control
- prctls (arm64)
-Message-ID: <20200615145115.GL25945@arm.com>
-References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
- <1590614258-24728-7-git-send-email-Dave.Martin@arm.com>
- <20200609172232.GA63286@C02TF0J2HF1T.local>
- <20200610100641.GF25945@arm.com>
- <20200610152634.GJ26099@gaia>
- <20200610164209.GH25945@arm.com>
- <20200610174205.GL26099@gaia>
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33248 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2404146AbgFXPje (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 11:39:34 -0400
+From: Arvind Sankar <nivedita@alum.mit.edu>
+Date: Wed, 24 Jun 2020 11:39:30 -0400
+Subject: Re: [PATCH v3 2/9] vmlinux.lds.h: Add .symtab, .strtab, and
+ .shstrtab to STABS_DEBUG
+Message-ID: <20200624153930.GA1337895@rani.riverdale.lan>
+References: <20200624014940.1204448-1-keescook@chromium.org>
+ <20200624014940.1204448-3-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20200610174205.GL26099@gaia>
+In-Reply-To: <20200624014940.1204448-3-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <20200615145116.IbM8xwutaJKW--T4FNsPGRqQUa-ODlq3mp7K0tortX0@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Will Deacon <will@kernel.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200624153930.dJAHUOfWXq5ysqH8byz0v38ABUyAZlk_FfW-fiNuXJM@z>
 
-On Wed, Jun 10, 2020 at 06:42:05PM +0100, Catalin Marinas wrote:
-> On Wed, Jun 10, 2020 at 05:42:09PM +0100, Dave P Martin wrote:
-> > On Wed, Jun 10, 2020 at 04:26:34PM +0100, Catalin Marinas wrote:
-> > > On Wed, Jun 10, 2020 at 11:06:42AM +0100, Dave P Martin wrote:
-> > > > On Tue, Jun 09, 2020 at 06:22:32PM +0100, Catalin Marinas wrote:
-> > > > > On Wed, May 27, 2020 at 10:17:38PM +0100, Dave P Martin wrote:
-> > > > > > +.IP
-> > > > > > +The level of support is selected by
-> > > > > > +.IR "(unsigned int) arg2" ,
-> > > > > 
-> > > > > We use (unsigned long) for arg2.
-> > > > 
-> > > > Hmmm, not quite sure how I came up with unsigned int here.  I'll just
-> > > > drop this: the type in the prctl() prototype is unsigned long anyway.
-> > > > 
-> > > > The type is actually moot in this case, since the valid values all fit
-> > > > in an unsigned int.
-> > > 
-> > > Passing an int doesn't require that the top 32-bit of the long are
-> > > zeroed (in case anyone writes the low-level SVC by hand).
-> > 
-> > Fair point, I was forgetting that wrinkle.  Anyway, the convention in
-> > this page seems to be that if the type is unsigned long, we don't
-> > mention it, because the prctl() prototype says that already.
-> > 
-> > Question: the glibc prototype for prctl is variadic, so surely any
-> > calls that don't explicitly cast the args to unsigned long are already
-> > theoretically broken?  The #defines (and 0) are all implicitly int.
-> > This probably affects lots of prctls.
-> > 
-> > We may get away with it because the compiler is almost certainly going
-> > to favour a mov over a ldr for getting small integers into regs, and mov
-> > <Wd> fortunately zeroes the top bits for us anyway.
-> 
-> So does LDR Wd.
-> 
-> Anyway, I think glibc (or my reading of it) has something like like:
-> 
->   register long _x1 asm ("x1") = _x1tmp;
-> 
-> before invoking the SVC. I assume this would do the right conversion to
-> long. I can't tell about other libraries but I'd say it's their
-> responsibility to convert the args to long before calling the kernel's
-> prctl().
+On Tue, Jun 23, 2020 at 06:49:33PM -0700, Kees Cook wrote:
+> When linking vmlinux with LLD, the synthetic sections .symtab, .strtab,
+> and .shstrtab are listed as orphaned. Add them to the STABS_DEBUG section
+> so there will be no warnings when --orphan-handling=warn is used more
+> widely. (They are added above comment as it is the more common
 
-Ignore me.  I was worrying that glibc would propagate junk in the high
-bits of int arguments, due to treating them as longs.  Actually, it
-will, but it doesn't matter where we explicitly cast the argument to int
-inside the kernel (thanks as usual to -fno-strict-overflow).
+Nit 1: is "after .comment" better than "above comment"? It's above in the
+sense of higher file offset, but it's below in readelf output.
+Nit 2: These aren't actually debugging sections, no? Is it better to add
+a new macro for it, and is there any plan to stop LLD from warning about
+them?
 
-Cheers
----Dave
+> order[1].)
+> 
+> ld.lld: warning: <internal>:(.symtab) is being placed in '.symtab'
+> ld.lld: warning: <internal>:(.shstrtab) is being placed in '.shstrtab'
+> ld.lld: warning: <internal>:(.strtab) is being placed in '.strtab'
+> 
+> [1] https://lore.kernel.org/lkml/20200622224928.o2a7jkq33guxfci4@google.com/
+> 
+> Reported-by: Fangrui Song <maskray@google.com>
+> Reviewed-by: Fangrui Song <maskray@google.com>
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  include/asm-generic/vmlinux.lds.h | 5 ++++-
+>  1 file changed, 4 insertions(+), 1 deletion(-)
+> 
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index 1248a206be8d..8e71757f485b 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -792,7 +792,10 @@
+>  		.stab.exclstr 0 : { *(.stab.exclstr) }			\
+>  		.stab.index 0 : { *(.stab.index) }			\
+>  		.stab.indexstr 0 : { *(.stab.indexstr) }		\
+> -		.comment 0 : { *(.comment) }
+> +		.comment 0 : { *(.comment) }				\
+> +		.symtab 0 : { *(.symtab) }				\
+> +		.strtab 0 : { *(.strtab) }				\
+> +		.shstrtab 0 : { *(.shstrtab) }
+>  
+>  #ifdef CONFIG_GENERIC_BUG
+>  #define BUG_TABLE							\
+> -- 
+> 2.25.1
+> 
