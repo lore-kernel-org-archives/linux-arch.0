@@ -1,69 +1,65 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38412 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728082AbgF2Smx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:53 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 03/41] x86: kill dump_fpu()
-Date: Mon, 29 Jun 2020 19:25:50 +0100
-Message-ID: <20200629182628.529995-3-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=FJBn=AF=kvack.org=owner-linux-mm@kernel.org>
+Date: Wed, 24 Jun 2020 11:36:11 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v5 11/25] mm: Introduce arch_calc_vm_flag_bits()
+Message-ID: <20200624113611.2cf12da3a325d03a862c0adf@linux-foundation.org>
+In-Reply-To: <20200624175244.25837-12-catalin.marinas@arm.com>
+References: <20200624175244.25837-1-catalin.marinas@arm.com>
+	<20200624175244.25837-12-catalin.marinas@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Kevin Brodsky <Kevin.Brodsky@arm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200629182550.M3YtoC4QYa27L0IWgk91QX2eBiSwhP3aq7PsDK1aESw@z>
+Message-ID: <20200624183611.83SC0Z-f4XFGe31_ENkp-k7aZqTdp3Dg8j14k-VTIsw@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+On Wed, 24 Jun 2020 18:52:30 +0100 Catalin Marinas <catalin.marinas@arm.com> wrote:
 
-dead since the removal of aout coredump support...
+> From: Kevin Brodsky <Kevin.Brodsky@arm.com>
+> 
+> Similarly to arch_calc_vm_prot_bits(), introduce a dummy
+> arch_calc_vm_flag_bits() invoked from calc_vm_flag_bits(). This macro
+> can be overridden by architectures to insert specific VM_* flags derived
+> from the mmap() MAP_* flags.
+> 
+> ...
+>
+> --- a/include/linux/mman.h
+> +++ b/include/linux/mman.h
+> @@ -74,13 +74,17 @@ static inline void vm_unacct_memory(long pages)
+>  }
+>  
+>  /*
+> - * Allow architectures to handle additional protection bits
+> + * Allow architectures to handle additional protection and flag bits
+>   */
+>  
+>  #ifndef arch_calc_vm_prot_bits
+>  #define arch_calc_vm_prot_bits(prot, pkey) 0
+>  #endif
+>  
+> +#ifndef arch_calc_vm_flag_bits
+> +#define arch_calc_vm_flag_bits(flags) 0
+> +#endif
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/x86/include/asm/fpu/internal.h |  1 -
- arch/x86/kernel/fpu/regset.c        | 16 ----------------
- 2 files changed, 17 deletions(-)
+It would be helpful to add a comment specifying which arch header file
+is responsible for defining arch_calc_vm_flag_bits.  Because in the
+past we've messed this sort of thing up and had different architectures
+define things in different header files, resulting in build issues as
+code evolves.
 
-diff --git a/arch/x86/include/asm/fpu/internal.h b/arch/x86/include/asm/fpu/internal.h
-index 42159f45bf9c..0c85a08176c0 100644
---- a/arch/x86/include/asm/fpu/internal.h
-+++ b/arch/x86/include/asm/fpu/internal.h
-@@ -34,7 +34,6 @@ extern int  fpu__copy(struct task_struct *dst, struct task_struct *src);
- extern void fpu__clear_user_states(struct fpu *fpu);
- extern void fpu__clear_all(struct fpu *fpu);
- extern int  fpu__exception_code(struct fpu *fpu, int trap_nr);
--extern int  dump_fpu(struct pt_regs *ptregs, struct user_i387_struct *fpstate);
- 
- /*
-  * Boot time FPU initialization functions:
-diff --git a/arch/x86/kernel/fpu/regset.c b/arch/x86/kernel/fpu/regset.c
-index bd1d0649f8ce..91f80aca27fb 100644
---- a/arch/x86/kernel/fpu/regset.c
-+++ b/arch/x86/kernel/fpu/regset.c
-@@ -356,20 +356,4 @@ int fpregs_set(struct task_struct *target, const struct user_regset *regset,
- 	return ret;
- }
- 
--/*
-- * FPU state for core dumps.
-- * This is only used for a.out dumps now.
-- * It is declared generically using elf_fpregset_t (which is
-- * struct user_i387_struct) but is in fact only used for 32-bit
-- * dumps, so on 64-bit it is really struct user_i387_ia32_struct.
-- */
--int dump_fpu(struct pt_regs *regs, struct user_i387_struct *ufpu)
--{
--	struct task_struct *tsk = current;
--
--	return !fpregs_get(tsk, NULL, 0, sizeof(struct user_i387_ia32_struct),
--			   ufpu, NULL);
--}
--EXPORT_SYMBOL(dump_fpu);
--
- #endif	/* CONFIG_X86_32 || CONFIG_IA32_EMULATION */
--- 
-2.11.0
+>  #ifndef arch_vm_get_page_prot
+>  #define arch_vm_get_page_prot(vm_flags) __pgprot(0)
+>  #endif
+> @@ -131,7 +135,8 @@ calc_vm_flag_bits(unsigned long flags)
+>  	return _calc_vm_trans(flags, MAP_GROWSDOWN,  VM_GROWSDOWN ) |
+>  	       _calc_vm_trans(flags, MAP_DENYWRITE,  VM_DENYWRITE ) |
+>  	       _calc_vm_trans(flags, MAP_LOCKED,     VM_LOCKED    ) |
+> -	       _calc_vm_trans(flags, MAP_SYNC,	     VM_SYNC      );
+> +	       _calc_vm_trans(flags, MAP_SYNC,	     VM_SYNC      ) |
+> +	       arch_calc_vm_flag_bits(flags);
+>  }
+>  
+>  unsigned long vm_commit_limit(void);
