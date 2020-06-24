@@ -1,140 +1,80 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v5 21/25] mm: Add arch hooks for saving/restoring tags
-Date: Wed, 24 Jun 2020 18:52:40 +0100
-Message-ID: <20200624175244.25837-22-catalin.marinas@arm.com>
+Subject: [PATCH v5 24/25] arm64: mte: Kconfig entry
+Date: Wed, 24 Jun 2020 18:52:43 +0100
+Message-ID: <20200624175244.25837-25-catalin.marinas@arm.com>
 References: <20200624175244.25837-1-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:55714 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:55914 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2405519AbgFXRxh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 Jun 2020 13:53:37 -0400
+        id S2405860AbgFXRxp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Jun 2020 13:53:45 -0400
 In-Reply-To: <20200624175244.25837-1-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Price <steven.price@arm.com>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>
 
-From: Steven Price <steven.price@arm.com>
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-Arm's Memory Tagging Extension (MTE) adds some metadata (tags) to
-every physical page, when swapping pages out to disk it is necessary to
-save these tags, and later restore them when reading the pages back.
+Add Memory Tagging Extension support to the arm64 kbuild.
 
-Add some hooks along with dummy implementations to enable the
-arch code to handle this.
-
-Three new hooks are added to the swap code:
- * arch_prepare_to_swap() and
- * arch_swap_invalidate_page() / arch_swap_invalidate_area().
-One new hook is added to shmem:
- * arch_swap_restore_tags()
-
-Signed-off-by: Steven Price <steven.price@arm.com>
-[catalin.marinas@arm.com: add unlock_page() on the error path]
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Will Deacon <will@kernel.org>
 ---
 
 Notes:
-    New in v4.
+    v5:
+    - Remove duplicate ARMv8.5 menu entry.
+    
+    v4:
+    - select ARCH_USES_PG_ARCH_2.
+    - remove ARCH_NO_SWAP.
+    - default y.
 
- include/linux/pgtable.h | 23 +++++++++++++++++++++++
- mm/page_io.c            | 10 ++++++++++
- mm/shmem.c              |  6 ++++++
- mm/swapfile.c           |  2 ++
- 4 files changed, 41 insertions(+)
+ arch/arm64/Kconfig | 29 +++++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
 
-diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
-index 56c1e8eb7bb0..5053d84ece04 100644
---- a/include/linux/pgtable.h
-+++ b/include/linux/pgtable.h
-@@ -631,6 +631,29 @@ static inline int arch_unmap_one(struct mm_struct *mm,
- }
- #endif
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index a4a094bedcb2..66f9b0805403 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -1664,6 +1664,35 @@ config ARCH_RANDOM
+ 	  provides a high bandwidth, cryptographically secure
+ 	  hardware random number generator.
  
-+#ifndef __HAVE_ARCH_PREPARE_TO_SWAP
-+static inline int arch_prepare_to_swap(struct page *page)
-+{
-+	return 0;
-+}
-+#endif
++config ARM64_AS_HAS_MTE
++	def_bool $(as-instr,.arch armv8.5-a+memtag)
 +
-+#ifndef __HAVE_ARCH_SWAP_INVALIDATE
-+static inline void arch_swap_invalidate_page(int type, pgoff_t offset)
-+{
-+}
++config ARM64_MTE
++	bool "Memory Tagging Extension support"
++	default y
++	depends on ARM64_AS_HAS_MTE && ARM64_TAGGED_ADDR_ABI
++	select ARCH_USES_HIGH_VMA_FLAGS
++	select ARCH_USES_PG_ARCH_2
++	help
++	  Memory Tagging (part of the ARMv8.5 Extensions) provides
++	  architectural support for run-time, always-on detection of
++	  various classes of memory error to aid with software debugging
++	  to eliminate vulnerabilities arising from memory-unsafe
++	  languages.
 +
-+static inline void arch_swap_invalidate_area(int type)
-+{
-+}
-+#endif
++	  This option enables the support for the Memory Tagging
++	  Extension at EL0 (i.e. for userspace).
 +
-+#ifndef __HAVE_ARCH_SWAP_RESTORE_TAGS
-+static inline void arch_swap_restore_tags(swp_entry_t entry, struct page *page)
-+{
-+}
-+#endif
++	  Selecting this option allows the feature to be detected at
++	  runtime. Any secondary CPU not implementing this feature will
++	  not be allowed a late bring-up.
 +
- #ifndef __HAVE_ARCH_PGD_OFFSET_GATE
- #define pgd_offset_gate(mm, addr)	pgd_offset(mm, addr)
- #endif
-diff --git a/mm/page_io.c b/mm/page_io.c
-index e8726f3e3820..9f3835161002 100644
---- a/mm/page_io.c
-+++ b/mm/page_io.c
-@@ -252,6 +252,16 @@ int swap_writepage(struct page *page, struct writeback_control *wbc)
- 		unlock_page(page);
- 		goto out;
- 	}
-+	/*
-+	 * Arch code may have to preserve more data than just the page
-+	 * contents, e.g. memory tags.
-+	 */
-+	ret = arch_prepare_to_swap(page);
-+	if (ret) {
-+		set_page_dirty(page);
-+		unlock_page(page);
-+		goto out;
-+	}
- 	if (frontswap_store(page) == 0) {
- 		set_page_writeback(page);
- 		unlock_page(page);
-diff --git a/mm/shmem.c b/mm/shmem.c
-index dacee627dae6..6cf6a1ed3d1c 100644
---- a/mm/shmem.c
-+++ b/mm/shmem.c
-@@ -1673,6 +1673,12 @@ static int shmem_swapin_page(struct inode *inode, pgoff_t index,
- 	}
- 	wait_on_page_writeback(page);
++	  Userspace binaries that want to use this feature must
++	  explicitly opt in. The mechanism for the userspace is
++	  described in:
++
++	  Documentation/arm64/memory-tagging-extension.rst.
++
+ endmenu
  
-+	/*
-+	 * Some architectures may have to restore extra metadata to the
-+	 * physical page after reading from swap.
-+	 */
-+	arch_swap_restore_tags(swap, page);
-+
- 	if (shmem_should_replace_page(page, gfp)) {
- 		error = shmem_replace_page(&page, gfp, info, index);
- 		if (error)
-diff --git a/mm/swapfile.c b/mm/swapfile.c
-index 987276c557d1..b7a3ed45e606 100644
---- a/mm/swapfile.c
-+++ b/mm/swapfile.c
-@@ -716,6 +716,7 @@ static void swap_range_free(struct swap_info_struct *si, unsigned long offset,
- 	else
- 		swap_slot_free_notify = NULL;
- 	while (offset <= end) {
-+		arch_swap_invalidate_page(si->type, offset);
- 		frontswap_invalidate_page(si->type, offset);
- 		if (swap_slot_free_notify)
- 			swap_slot_free_notify(si->bdev, offset);
-@@ -2675,6 +2676,7 @@ SYSCALL_DEFINE1(swapoff, const char __user *, specialfile)
- 	frontswap_map = frontswap_map_get(p);
- 	spin_unlock(&p->lock);
- 	spin_unlock(&swap_lock);
-+	arch_swap_invalidate_area(p->type);
- 	frontswap_invalidate_area(p->type);
- 	frontswap_map_set(p, NULL);
- 	mutex_unlock(&swapon_mutex);
+ config ARM64_SVE
