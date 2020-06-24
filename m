@@ -1,112 +1,91 @@
-Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52732 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730785AbgFVXEV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2020 19:04:21 -0400
-Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C1DF7C061573
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:04:20 -0700 (PDT)
-Received: by mail-pl1-x643.google.com with SMTP id 35so8264651ple.0
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 16:04:20 -0700 (PDT)
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:45398 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2405292AbgFXRQT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Jun 2020 13:16:19 -0400
+Date: Wed, 24 Jun 2020 18:16:13 +0100
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v3 3/9] efi/libstub: Remove .note.gnu.property
+Message-ID: <20200624171613.GJ25945@arm.com>
+References: <20200624033142.cinvg6rbg252j46d@google.com>
+ <202006232143.66828CD3@keescook>
+ <20200624104356.GA6134@willie-the-truck>
+ <CAMj1kXHBT4ei0xhyL4jD7=CNRsn1rh7w6jeYDLjVOv4na0Z38Q@mail.gmail.com>
+ <202006240820.A3468F4@keescook>
+ <CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com>
+ <202006240844.7BE48D2B5@keescook>
+ <CAMj1kXHqBs44uukRSdFwA_hcmX_yKVfjqdv9RoPbbu-6Wz+RaA@mail.gmail.com>
+ <20200624162919.GH25945@arm.com>
+ <CAMj1kXE1zWCjVt8iS4fv2gQHzrTF6=Ggd16nm+4TNWAG3zSWAQ@mail.gmail.com>
 MIME-Version: 1.0
-References: <20200617210613.95432-1-ndesaulniers@google.com> <20200617212705.tq2q6bi446gydymo@google.com>
-In-Reply-To: <20200617212705.tq2q6bi446gydymo@google.com>
-From: Nick Desaulniers <ndesaulniers@google.com>
-Date: Mon, 22 Jun 2020 16:04:07 -0700
-Message-ID: <CAKwvOdniambW9_nVbDnd4A_+bdDdZMd2V1Q=Xw5EJYDGeh=eyQ@mail.gmail.com>
-Subject: Re: [PATCH] vmlinux.lds: consider .text.{hot|unlikely}.* part of
- .text too
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAMj1kXE1zWCjVt8iS4fv2gQHzrTF6=Ggd16nm+4TNWAG3zSWAQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, clang-built-linux <clang-built-linux@googlegroups.com>, Kees Cook <keescook@chromium.org>, "# 3.4.x" <stable@vger.kernel.org>, Jian Cai <jiancai@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20200622230407.cNEaW3E23ZhNQ-aVZSdGjJooK1gZcyrt5poA9ONV-5Y@z>
+To: Ard Biesheuvel <ardb@kernel.org>
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-efi <linux-efi@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Arvind Sankar <nivedita@alum.mit.edu>, Will Deacon <will@kernel.org>, Nathan Chancellor <natechancellor@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Fangrui Song <maskray@google.com>, Masahiro Yamada <masahiroy@kernel.org>, X86 ML <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, clang-built-linux <clang-built-linux@googlegroups.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@suse.de>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Peter Collingbourne <pcc@google.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Nick Desaulniers <ndesaulniers@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, James Morse <james.morse@arm.com>
+Message-ID: <20200624171613.BnGoAm2sVFkAyb9laqcED9OyZqtM4tPSxlanWMuEyx0@z>
 
-On Wed, Jun 17, 2020 at 2:27 PM F=C4=81ng-ru=C3=AC S=C3=B2ng <maskray@googl=
-e.com> wrote:
->
->
-> On 2020-06-17, Nick Desaulniers wrote:
-> >ld.bfd's internal linker script considers .text.hot AND .text.hot.* to
-> >be part of .text, as well as .text.unlikely and .text.unlikely.*.
->
-> >ld.lld will produce .text.hot.*/.text.unlikely.* sections.
->
-> Correction to this sentence. lld is not relevant here.
->
-> -ffunction-sections combined with profile-guided optimization can
-> produce .text.hot.* .text.unlikely.* sections.  Newer clang may produce
-> .text.hot. .text.unlikely. (without suffix, but with a trailing dot)
-> when -fno-unique-section-names is specified, as an optimization to make
-> .strtab smaller.
-
-Then why was the bug report reporting https://reviews.llvm.org/D79600
-as the result of a bisection, if LLD is not relevant?  Was the
-bisection wrong?
-
-The upstream report wasn't initially public, for no good reason.  So I
-didn't include it, but if we end up taking v1, this should have
-
-Link: https://bugs.chromium.org/p/chromium/issues/detail?id=3D1084760
-
-The kernel doesn't use -fno-unique-section-names; is that another flag
-that's added by CrOS' compiler wrapper?
-https://source.chromium.org/chromiumos/chromiumos/codesearch/+/master:src/t=
-hird_party/toolchain-utils/compiler_wrapper/config.go;l=3D110
-Looks like no.  It doesn't use `-fno-unique-section-names` or
-`-ffunction-sections`.
-
-
->
-> We've already seen that GCC can place main in .text.startup without
-> -ffunction-sections. There may be other non -ffunction-sections cases
-> for .text.hot.* or .text.unlikely.*. So it is definitely a good idea to
-> be more specific even if we don't care about -ffunction-sections for
-> now.
->
-> >Make sure to group these together.  Otherwise these orphan sections may
-> >be placed outside of the the _stext/_etext boundaries.
+On Wed, Jun 24, 2020 at 06:40:48PM +0200, Ard Biesheuvel wrote:
+> On Wed, 24 Jun 2020 at 18:29, Dave Martin <Dave.Martin@arm.com> wrote:
 > >
-> >Cc: stable@vger.kernel.org
-> >Link: https://sourceware.org/git/?p=3Dbinutils-gdb.git;a=3Dcommitdiff;h=
-=3Dadd44f8d5c5c05e08b11e033127a744d61c26aee
-> >Link: https://sourceware.org/git/?p=3Dbinutils-gdb.git;a=3Dcommitdiff;h=
-=3D1de778ed23ce7492c523d5850c6c6dbb34152655
-> >Link: https://reviews.llvm.org/D79600
-> >Reported-by: Jian Cai <jiancai@google.com>
-> >Debugged-by: Luis Lozano <llozano@google.com>
-> >Suggested-by: F=C4=81ng-ru=C3=AC S=C3=B2ng <maskray@google.com>
-> >Tested-by: Luis Lozano <llozano@google.com>
-> >Tested-by: Manoj Gupta <manojgupta@google.com>
-> >Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
-> >---
-> > include/asm-generic/vmlinux.lds.h | 4 +++-
-> > 1 file changed, 3 insertions(+), 1 deletion(-)
+> > On Wed, Jun 24, 2020 at 05:48:41PM +0200, Ard Biesheuvel wrote:
+> > > On Wed, 24 Jun 2020 at 17:45, Kees Cook <keescook@chromium.org> wrote:
+> > > >
+> > > > On Wed, Jun 24, 2020 at 05:31:06PM +0200, Ard Biesheuvel wrote:
+> > > > > On Wed, 24 Jun 2020 at 17:21, Kees Cook <keescook@chromium.org> wrote:
+> > > > > >
+> > > > > > On Wed, Jun 24, 2020 at 12:46:32PM +0200, Ard Biesheuvel wrote:
+> > > > > > > I'm not sure if there is a point to having PAC and/or BTI in the EFI
+> > > > > > > stub, given that it runs under the control of the firmware, with its
+> > > > > > > memory mappings and PAC configuration etc.
+> > > > > >
+> > > > > > Is BTI being ignored when the firmware runs?
+> > > > >
+> > > > > Given that it requires the 'guarded' attribute to be set in the page
+> > > > > tables, and the fact that the UEFI spec does not require it for
+> > > > > executables that it invokes, nor describes any means of annotating
+> > > > > such executables as having been built with BTI annotations, I think we
+> > > > > can safely assume that the EFI stub will execute with BTI disabled in
+> > > > > the foreseeable future.
+> > > >
+> > > > yaaaaaay. *sigh* How long until EFI catches up?
+> > > >
+> > > > That said, BTI shouldn't _hurt_, right? If EFI ever decides to enable
+> > > > it, we'll be ready?
+> > > >
+> > >
+> > > Sure. Although I anticipate that we'll need to set some flag in the
+> > > PE/COFF header to enable it, and so any BTI opcodes we emit without
+> > > that will never take effect in practice.
 > >
-> >diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vml=
-inux.lds.h
-> >index d7c7c7f36c4a..fe5aaef169e3 100644
-> >--- a/include/asm-generic/vmlinux.lds.h
-> >+++ b/include/asm-generic/vmlinux.lds.h
-> >@@ -560,7 +560,9 @@
-> >  */
-> > #define TEXT_TEXT                                                     \
-> >               ALIGN_FUNCTION();                                       \
-> >-              *(.text.hot TEXT_MAIN .text.fixup .text.unlikely)       \
-> >+              *(.text.hot .text.hot.*)                                \
-> >+              *(TEXT_MAIN .text.fixup)                                \
-> >+              *(.text.unlikely .text.unlikely.*)                      \
-> >               NOINSTR_TEXT                                            \
-> >               *(.text..refcount)                                      \
-> >               *(.ref.text)                                            \
-> >--
-> >2.27.0.290.gba653c62da-goog
+> > In the meantime, it is possible to build all the in-tree parts of EFI
+> > for BTI, and just turn it off for out-of-tree EFI binaries?
 > >
+> 
+> Not sure I understand the question. What do you mean by out-of-tree
+> EFI binaries? And how would the firmware (which is out of tree itself,
+> and is in charge of the page tables, vector table, timer interrupt etc
+> when the EFI stub executes) distinguish such binaries from the EFI
+> stub?
 
+I'm not an EFI expert, but I'm guessing that you configure EFI with
+certain compiler flags and build it.  Possibly some standalone EFI
+executables are built out of the same tree and shipped with the
+firmware from the same build, but I'm speculating.  If not, we can just
+run all EFI executables with BTI off.
 
+> > If there's no easy way to do this though, I guess we should wait for /
+> > push for a PE/COFF flag to describe this properly.
+> >
+> 
+> Yeah good point. I will take this to the forum.
 
---
-Thanks,
-~Nick Desaulniers
+In the interim, we could set the GP bit in EFI's page tables for the
+executable code from the firmware image if we want this protection, but
+turn it off in pages mapping the executable code of EFI executables.
+This is better than nothing.
+
+Cheers
+---Dave
