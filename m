@@ -1,72 +1,102 @@
-From: Brendan Higgins <brendanhiggins@google.com>
-Subject: Re: [PATCH v3 4/7] init: main: add KUnit to kernel init
-Date: Wed, 24 Jun 2020 13:20:35 -0700
-Message-ID: <CAFd5g45Jz-5wtO-YNuqPN2Zc_rJtoA1qbPLVs2wrJFQyZpd5QQ@mail.gmail.com>
-References: <20200228012036.15682-5-brendanhiggins@google.com> <202003021439.A6B6FD8@keescook>
+From: Sami Tolvanen <samitolvanen@google.com>
+Subject: [PATCH 00/22] add support for Clang LTO
+Date: Wed, 24 Jun 2020 13:31:38 -0700
+Message-ID: <20200624203200.78870-1-samitolvanen@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <202003021439.A6B6FD8@keescook>
-Sender: linux-doc-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Frank Rowand <frowand.list@gmail.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50394 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727981AbgFXUcs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:32:48 -0400
+Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E107AC061573
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:32:47 -0700 (PDT)
+Received: by mail-yb1-xb49.google.com with SMTP id z7so3554887ybz.1
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:32:47 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Sami Tolvanen <samitolvanen@google.com>
 
-On Mon, Mar 2, 2020 at 2:45 PM Kees Cook <keescook@chromium.org> wrote:
+This patch series adds support for building x86_64 and arm64 kernels
+with Clang's Link Time Optimization (LTO).
 
-Sorry it took so long to respond. I am reviving this patchset now,
-about to send out a new revision and I just saw this comment.
+In addition to performance, the primary motivation for LTO is to allow
+Clang's Control-Flow Integrity (CFI) to be used in the kernel. Google's
+Pixel devices have shipped with LTO+CFI kernels since 2018.
 
-> On 2/27/20 7:20 PM, Brendan Higgins wrote:
-> > Remove KUnit from init calls entirely, instead call directly from
-> > kernel_init().
-> >
-> > Co-developed-by: Alan Maguire <alan.maguire@oracle.com>
-> > Signed-off-by: Alan Maguire <alan.maguire@oracle.com>
-> > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> > Reviewed-by: Stephen Boyd <sboyd@kernel.org>
-> > [...]
-> > diff --git a/init/main.c b/init/main.c
-> > index ee4947af823f3..7875a5c486dc4 100644
-> > --- a/init/main.c
-> > +++ b/init/main.c
-> > @@ -104,6 +104,8 @@
-> >  #define CREATE_TRACE_POINTS
-> >  #include <trace/events/initcall.h>
-> >
-> > +#include <kunit/test.h>
-> > +
-> >  static int kernel_init(void *);
-> >
-> >  extern void init_IRQ(void);
-> > @@ -1444,6 +1446,8 @@ static noinline void __init kernel_init_freeable(void)
-> >
-> >       do_basic_setup();
-> >
-> > +     kunit_run_all_tests();
-> > +
-> >       console_on_rootfs();
-> >
-> >       /*
->
-> I'm nervous about this happening before two key pieces of the kernel
-> setup, which might lead to weird timing-sensitive bugs or false
-> positives:
->         async_synchronize_full()
->         mark_readonly()
->
-> Now, I realize kunit tests _should_ be self-contained, but this seems
-> like a possible robustness problem. Is there any reason this can't be
-> moved after rcu_end_inkernel_boot() in kernel_init() instead?
+Most of the patches are build system changes for handling LLVM bitcode,
+which Clang produces with LTO instead of ELF object files, postponing
+ELF processing until a later stage, and ensuring initcall ordering.
 
-I tried that, but it doesn't work without an initramfs. We could add
-an initramfs for KUnit at some point if highly desired, but I think
-that is outside the scope of this patchset. Additionally, this patch
-actually moves running tests to later in the init process, which is
-still an improvement over the way KUnit works today.
+Note that first objtool patch in the series is already in linux-next,
+but as it's needed with LTO, I'm including it also here to make testing
+easier.
 
-There are some other reasons I wouldn't want to make that change right
-now, which will become apparent in a patch that I will send out in
-short order.
+Sami Tolvanen (22):
+  objtool: use sh_info to find the base for .rela sections
+  kbuild: add support for Clang LTO
+  kbuild: lto: fix module versioning
+  kbuild: lto: fix recordmcount
+  kbuild: lto: postpone objtool
+  kbuild: lto: limit inlining
+  kbuild: lto: merge module sections
+  kbuild: lto: remove duplicate dependencies from .mod files
+  init: lto: ensure initcall ordering
+  init: lto: fix PREL32 relocations
+  pci: lto: fix PREL32 relocations
+  modpost: lto: strip .lto from module names
+  scripts/mod: disable LTO for empty.c
+  efi/libstub: disable LTO
+  drivers/misc/lkdtm: disable LTO for rodata.o
+  arm64: export CC_USING_PATCHABLE_FUNCTION_ENTRY
+  arm64: vdso: disable LTO
+  arm64: allow LTO_CLANG and THINLTO to be selected
+  x86, vdso: disable LTO only for vDSO
+  x86, ftrace: disable recordmcount for ftrace_make_nop
+  x86, relocs: Ignore L4_PAGE_OFFSET relocations
+  x86, build: allow LTO_CLANG and THINLTO to be selected
 
-Cheers
+ .gitignore                            |   1 +
+ Makefile                              |  27 ++-
+ arch/Kconfig                          |  65 +++++++
+ arch/arm64/Kconfig                    |   2 +
+ arch/arm64/Makefile                   |   1 +
+ arch/arm64/kernel/vdso/Makefile       |   4 +-
+ arch/x86/Kconfig                      |   2 +
+ arch/x86/Makefile                     |   5 +
+ arch/x86/entry/vdso/Makefile          |   5 +-
+ arch/x86/kernel/ftrace.c              |   1 +
+ arch/x86/tools/relocs.c               |   1 +
+ drivers/firmware/efi/libstub/Makefile |   2 +
+ drivers/misc/lkdtm/Makefile           |   1 +
+ include/asm-generic/vmlinux.lds.h     |  12 +-
+ include/linux/compiler-clang.h        |   4 +
+ include/linux/compiler.h              |   2 +-
+ include/linux/compiler_types.h        |   4 +
+ include/linux/init.h                  |  78 +++++++-
+ include/linux/pci.h                   |  15 +-
+ kernel/trace/ftrace.c                 |   1 +
+ lib/Kconfig.debug                     |   2 +-
+ scripts/Makefile.build                |  55 +++++-
+ scripts/Makefile.lib                  |   6 +-
+ scripts/Makefile.modfinal             |  40 +++-
+ scripts/Makefile.modpost              |  26 ++-
+ scripts/generate_initcall_order.pl    | 270 ++++++++++++++++++++++++++
+ scripts/link-vmlinux.sh               | 100 +++++++++-
+ scripts/mod/Makefile                  |   1 +
+ scripts/mod/modpost.c                 |  16 +-
+ scripts/mod/modpost.h                 |   9 +
+ scripts/mod/sumversion.c              |   6 +-
+ scripts/module-lto.lds                |  26 +++
+ scripts/recordmcount.c                |   3 +-
+ tools/objtool/elf.c                   |   2 +-
+ 34 files changed, 737 insertions(+), 58 deletions(-)
+ create mode 100755 scripts/generate_initcall_order.pl
+ create mode 100644 scripts/module-lto.lds
+
+
+base-commit: 26e122e97a3d0390ebec389347f64f3730fdf48f
+-- 
+2.27.0.212.ge8ba1cc988-goog
