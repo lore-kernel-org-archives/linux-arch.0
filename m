@@ -1,107 +1,51 @@
-Return-Path: <SRS0=lJ0G=AA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42176 "EHLO
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54474 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389191AbgFSThX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jun 2020 15:37:23 -0400
-Received: from mail-pl1-x641.google.com (mail-pl1-x641.google.com [IPv6:2607:f8b0:4864:20::641])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6D59DC0613EF
-        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 12:37:23 -0700 (PDT)
-Received: by mail-pl1-x641.google.com with SMTP id k6so4293481pll.9
-        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 12:37:23 -0700 (PDT)
-Date: Fri, 19 Jun 2020 12:37:20 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH] seccomp: Use -1 marker for end of mode 1 syscall list
-Message-ID: <202006191236.AC3E22AAB@keescook>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+        with ESMTP id S2389295AbgFXU6Q (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:58:16 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EE1F0C061796
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:58:14 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id z7so3619771ybz.1
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:58:14 -0700 (PDT)
+Date: Wed, 24 Jun 2020 13:55:42 -0700
+In-Reply-To: <20200624205550.215599-1-brendanhiggins@google.com>
+Message-ID: <20200624205550.215599-4-brendanhiggins@google.com>
+Mime-Version: 1.0
+References: <20200624205550.215599-1-brendanhiggins@google.com>
+Subject: [PATCH v4 03/11] arch: microblaze: add linker section for KUnit test suites
+From: Brendan Higgins <brendanhiggins@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Will Drewry <wad@chromium.org>, linux-mips@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200619193720.dku8B6pW8J5SjclEZ5MQBntjGxnLNuTr5K_mzKbH7ZY@z>
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org, Brendan Higgins <brendanhiggins@google.com>
+Message-ID: <20200624205542.CcIag1IajsMsu56hGsW7JHRi2MbK65QcO8XZaFWw7KI@z>
 
-The terminator for the mode 1 syscalls list was a 0, but that could be
-a valid syscall number (e.g. x86_64 __NR_read). By luck, __NR_read was
-listed first and the loop construct would not test it, so there was no
-bug. However, this is fragile. Replace the terminator with -1 instead,
-and make the variable name for mode 1 syscall lists more descriptive.
+Add a linker section to microblaze where KUnit can put references to its
+test suites. This patch is an early step in transitioning to dispatching
+all KUnit tests from a centralized executor rather than having each as
+its own separate late_initcall.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
 ---
-I'll be putting this into my for-next/seccomp tree. I would love a MIPS
-ack, if someone's got a moment to double-check this. :)
----
- arch/mips/include/asm/seccomp.h |  4 ++--
- include/asm-generic/seccomp.h   |  2 +-
- kernel/seccomp.c                | 10 +++++-----
- 3 files changed, 8 insertions(+), 8 deletions(-)
+ arch/microblaze/kernel/vmlinux.lds.S | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/arch/mips/include/asm/seccomp.h b/arch/mips/include/asm/seccomp.h
-index e383d7e27b93..aa809589a181 100644
---- a/arch/mips/include/asm/seccomp.h
-+++ b/arch/mips/include/asm/seccomp.h
-@@ -9,12 +9,12 @@ static inline const int *get_compat_mode1_syscalls(void)
- 	static const int syscalls_O32[] = {
- 		__NR_O32_Linux + 3, __NR_O32_Linux + 4,
- 		__NR_O32_Linux + 1, __NR_O32_Linux + 193,
--		0, /* null terminated */
-+		-1, /* negative terminated */
- 	};
- 	static const int syscalls_N32[] = {
- 		__NR_N32_Linux + 0, __NR_N32_Linux + 1,
- 		__NR_N32_Linux + 58, __NR_N32_Linux + 211,
--		0, /* null terminated */
-+		-1, /* negative terminated */
- 	};
+diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
+index df07b3d06cd6b..4fc32f8979a60 100644
+--- a/arch/microblaze/kernel/vmlinux.lds.S
++++ b/arch/microblaze/kernel/vmlinux.lds.S
+@@ -128,6 +128,10 @@ SECTIONS {
  
- 	if (IS_ENABLED(CONFIG_MIPS32_O32) && test_thread_flag(TIF_32BIT_REGS))
-diff --git a/include/asm-generic/seccomp.h b/include/asm-generic/seccomp.h
-index 1321ac7821d7..6b6f42bc58f9 100644
---- a/include/asm-generic/seccomp.h
-+++ b/include/asm-generic/seccomp.h
-@@ -33,7 +33,7 @@ static inline const int *get_compat_mode1_syscalls(void)
- 	static const int mode1_syscalls_32[] = {
- 		__NR_seccomp_read_32, __NR_seccomp_write_32,
- 		__NR_seccomp_exit_32, __NR_seccomp_sigreturn_32,
--		0, /* null terminated */
-+		-1, /* negative terminated */
- 	};
- 	return mode1_syscalls_32;
- }
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 0ed57e8c49d0..866a432cd746 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -742,20 +742,20 @@ static inline void seccomp_log(unsigned long syscall, long signr, u32 action,
-  */
- static const int mode1_syscalls[] = {
- 	__NR_seccomp_read, __NR_seccomp_write, __NR_seccomp_exit, __NR_seccomp_sigreturn,
--	0, /* null terminated */
-+	-1, /* negative terminated */
- };
+ 	__init_end = .;
  
- static void __secure_computing_strict(int this_syscall)
- {
--	const int *syscall_whitelist = mode1_syscalls;
-+	const int *allowed_syscalls = mode1_syscalls;
- #ifdef CONFIG_COMPAT
- 	if (in_compat_syscall())
--		syscall_whitelist = get_compat_mode1_syscalls();
-+		allowed_syscalls = get_compat_mode1_syscalls();
- #endif
- 	do {
--		if (*syscall_whitelist == this_syscall)
-+		if (*allowed_syscalls == this_syscall)
- 			return;
--	} while (*++syscall_whitelist);
-+	} while (*++allowed_syscalls != -1);
- 
- #ifdef SECCOMP_DEBUG
- 	dump_stack();
++	.kunit_test_suites : {
++		KUNIT_TEST_SUITES
++	}
++
+ 	.bss ALIGN (PAGE_SIZE) : AT(ADDR(.bss) - LOAD_OFFSET) {
+ 		/* page aligned when MMU used */
+ 		__bss_start = . ;
 -- 
-2.25.1
-
-
--- 
-Kees Cook
+2.27.0.212.ge8ba1cc988-goog
