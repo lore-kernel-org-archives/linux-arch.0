@@ -1,137 +1,193 @@
-Return-Path: <SRS0=6RCf=AL=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:55222 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727082AbgF3UaR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 30 Jun 2020 16:30:17 -0400
-Date: Tue, 30 Jun 2020 13:30:16 -0700
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Message-ID: <20200630203016.GI9247@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624211540.GS4817@hirez.programming.kicks-ass.net>
- <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
- <20200625080313.GY4817@hirez.programming.kicks-ass.net>
- <20200625082433.GC117543@hirez.programming.kicks-ass.net>
- <20200625085745.GD117543@hirez.programming.kicks-ass.net>
- <20200630191931.GA884155@elver.google.com>
- <20200630201243.GD4817@hirez.programming.kicks-ass.net>
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56458 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2405077AbgFXSIU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 14:08:20 -0400
+Received: from mail-vs1-xe43.google.com (mail-vs1-xe43.google.com [IPv6:2607:f8b0:4864:20::e43])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6DD43C0613ED
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 11:08:20 -0700 (PDT)
+Received: by mail-vs1-xe43.google.com with SMTP id e15so1932533vsc.7
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 11:08:20 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200630201243.GD4817@hirez.programming.kicks-ass.net>
+References: <20200622200822.4426-1-sean.j.christopherson@intel.com> <20200622200822.4426-15-sean.j.christopherson@intel.com>
+In-Reply-To: <20200622200822.4426-15-sean.j.christopherson@intel.com>
+From: Ben Gardon <bgardon@google.com>
+Date: Wed, 24 Jun 2020 11:08:08 -0700
+Message-ID: <CANgfPd_K8PhM26T3GB7BFoDNTLCi+OcYp6DGhXuJcxKMwvZrFg@mail.gmail.com>
+Subject: Re: [PATCH v2 14/21] KVM: Move x86's version of struct
+ kvm_mmu_memory_cache to common code
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-Message-ID: <20200630203016.M82vryz6ecFM22SVRgiY5vRlv6VYX2HbGcABGHUDXo8@z>
+To: Sean Christopherson <sean.j.christopherson@intel.com>
+Cc: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>, James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200624180808.F0pLP8TNsPmFy4rb7tq0WOmE_r7W2fhMoXANHDqK3dk@z>
 
-On Tue, Jun 30, 2020 at 10:12:43PM +0200, Peter Zijlstra wrote:
-> On Tue, Jun 30, 2020 at 09:19:31PM +0200, Marco Elver wrote:
-> > I was asked for input on this, and after a few days digging through some
-> > history, thought I'd comment. Hope you don't mind.
-> 
-> Not at all, being the one that asked :-)
-> 
-> > First of all, I agree with the concerns, but not because of LTO.
-> > 
-> > To set the stage better, and summarize the fundamental problem again:
-> > we're in the unfortunate situation that no compiler today has a way to
-> > _efficiently_ deal with C11's memory_order_consume
-> > [https://lwn.net/Articles/588300/]. If we did, we could just use that
-> > and be done with it. But, sadly, that doesn't seem possible right now --
-> > compilers just say consume==acquire.
-> 
-> I'm not convinced C11 memory_order_consume would actually work for us,
-> even if it would work. That is, given:
-> 
->   https://lore.kernel.org/lkml/20150520005510.GA23559@linux.vnet.ibm.com/
-> 
-> only pointers can have consume, but like I pointed out, we have code
-> that relies on dependent loads from integers.
-
-I agree that C11 memory_order_consume is not normally what we want,
-given that it is universally promoted to memory_order_acquire.
-
-However, dependent loads from integers are, if anything, more difficult
-to defend from the compiler than are control dependencies.  This applies
-doubly to integers that are used to index two-element arrays, in which
-case you are just asking the compiler to destroy your dependent loads
-by converting them into control dependencies.
-
-> > Will suggests doing the same in the
-> > kernel: https://lkml.kernel.org/r/20200630173734.14057-19-will@kernel.org
-> 
-> PowerPC would need a similar thing, it too will not preserve causality
-> for control dependecies.
-> 
-> > What we're most worried about right now is the existence of compiler
-> > transformations that could break data dependencies by e.g. turning them
-> > into control dependencies.
-> 
-> Correct.
-> 
-> > If this is a real worry, I don't think LTO is the magical feature that
-> > will uncover those optimizations. If these compiler transformations are
-> > real, they also exist in a normal build! 
-> 
-> Agreed, _however_ with the caveat that LTO could make them more common.
-> 
-> After all, with whole program analysis, the compiler might be able to
-> more easily determine that our pointer @ptr is only ever assigned the
-> values of &A, &B or &C, while without that visibility it would not be
-> able to determine this.
-> 
-> Once it knows @ptr has a limited number of determined values, the
-> conversion into control dependencies becomes much more likely.
-
-Which would of course break dependent loads.
-
-> > And if we are worried about them, we need to stop relying on dependent
-> > load ordering across the board; or switch to -O0 for everything.
-> > Clearly, we don't want either.
-> 
-> Agreed.
-> 
-> > Why do we think LTO is special?
-> 
-> As argued above, whole-program analysis would make it more likely. But I
-> agree the fundamental problem exists independent from LTO.
-> 
-> > But as far as we can tell, there is no evidence of the dreaded "data
-> > dependency to control dependency" conversion with LTO that isn't there
-> > in non-LTO builds, if it's even there at all. Has the data to control
-> > dependency conversion been encountered in the wild? If not, is the
-> > resulting reaction an overreaction? If so, we need to be careful blaming
-> > LTO for something that it isn't even guilty of.
-> 
-> It is mostly paranoia; in a large part driven by the fact that even if
-> such a conversion were to be done, it could go a very long time without
-> actually causing problems, and longer still for such problems to be
-> traced back to such an 'optimization'.
-> 
-> That is, the collective hurt from debugging too many ordering issues.
-> 
-> > So, we are probably better off untangling LTO from the story:
-> > 
-> > 1. LTO or no LTO does not matter. The LTO series should not get tangled
-> >    up with memory model issues.
-> > 
-> > 2. The memory model question and problems need to be answered and
-> >    addressed separately.
-> > 
-> > Thoughts?
-> 
-> How hard would it be to creates something that analyzes a build and
-> looks for all 'dependent load -> control dependency' transformations
-> headed by a volatile (and/or from asm) load and issues a warning for
-> them?
-> 
-> This would give us an indication of how valuable this transformation is
-> for the kernel. I'm hoping/expecting it's vanishingly rare, but what do
-> I know.
-> 
-
-This could be quite useful!
-
-							Thanx, Paul
+On Mon, Jun 22, 2020 at 1:09 PM Sean Christopherson
+<sean.j.christopherson@intel.com> wrote:
+>
+> Move x86's 'struct kvm_mmu_memory_cache' to common code in anticipation
+> of moving the entire x86 implementation code to common KVM and reusing
+> it for arm64 and MIPS.  Add a new architecture specific asm/kvm_types.h
+> to control the existence and parameters of the struct.  The new header
+> is needed to avoid a chicken-and-egg problem with asm/kvm_host.h as all
+> architectures define instances of the struct in their vCPU structs.
+>
+> Add an asm-generic version of kvm_types.h to avoid having empty files on
+> PPC and s390 in the long term, and for arm64 and mips in the short term.
+>
+> Suggested-by: Christoffer Dall <christoffer.dall@arm.com>
+Reviewed-by: Ben Gardon <bgardon@google.com>
+> Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+> ---
+>  arch/arm64/include/asm/Kbuild    |  1 +
+>  arch/mips/include/asm/Kbuild     |  1 +
+>  arch/powerpc/include/asm/Kbuild  |  1 +
+>  arch/s390/include/asm/Kbuild     |  1 +
+>  arch/x86/include/asm/kvm_host.h  | 13 -------------
+>  arch/x86/include/asm/kvm_types.h |  7 +++++++
+>  include/asm-generic/kvm_types.h  |  5 +++++
+>  include/linux/kvm_types.h        | 19 +++++++++++++++++++
+>  8 files changed, 35 insertions(+), 13 deletions(-)
+>  create mode 100644 arch/x86/include/asm/kvm_types.h
+>  create mode 100644 include/asm-generic/kvm_types.h
+>
+> diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
+> index ff9cbb631212..35a68155cd0e 100644
+> --- a/arch/arm64/include/asm/Kbuild
+> +++ b/arch/arm64/include/asm/Kbuild
+> @@ -1,5 +1,6 @@
+>  # SPDX-License-Identifier: GPL-2.0
+>  generic-y += early_ioremap.h
+> +generic-y += kvm_types.h
+>  generic-y += local64.h
+>  generic-y += mcs_spinlock.h
+>  generic-y += qrwlock.h
+> diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
+> index 8643d313890e..397e6d24d2ab 100644
+> --- a/arch/mips/include/asm/Kbuild
+> +++ b/arch/mips/include/asm/Kbuild
+> @@ -5,6 +5,7 @@ generated-y += syscall_table_64_n32.h
+>  generated-y += syscall_table_64_n64.h
+>  generated-y += syscall_table_64_o32.h
+>  generic-y += export.h
+> +generic-y += kvm_types.h
+>  generic-y += local64.h
+>  generic-y += mcs_spinlock.h
+>  generic-y += parport.h
+> diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
+> index dadbcf3a0b1e..2d444d09b553 100644
+> --- a/arch/powerpc/include/asm/Kbuild
+> +++ b/arch/powerpc/include/asm/Kbuild
+> @@ -4,6 +4,7 @@ generated-y += syscall_table_64.h
+>  generated-y += syscall_table_c32.h
+>  generated-y += syscall_table_spu.h
+>  generic-y += export.h
+> +generic-y += kvm_types.h
+>  generic-y += local64.h
+>  generic-y += mcs_spinlock.h
+>  generic-y += vtime.h
+> diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
+> index 83f6e85de7bc..319efa0e6d02 100644
+> --- a/arch/s390/include/asm/Kbuild
+> +++ b/arch/s390/include/asm/Kbuild
+> @@ -6,5 +6,6 @@ generated-y += unistd_nr.h
+>
+>  generic-y += asm-offsets.h
+>  generic-y += export.h
+> +generic-y += kvm_types.h
+>  generic-y += local64.h
+>  generic-y += mcs_spinlock.h
+> diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
+> index 67b84aa2984e..70832aa762e5 100644
+> --- a/arch/x86/include/asm/kvm_host.h
+> +++ b/arch/x86/include/asm/kvm_host.h
+> @@ -193,8 +193,6 @@ struct x86_exception;
+>  enum x86_intercept;
+>  enum x86_intercept_stage;
+>
+> -#define KVM_NR_MEM_OBJS 40
+> -
+>  #define KVM_NR_DB_REGS 4
+>
+>  #define DR6_BD         (1 << 13)
+> @@ -245,17 +243,6 @@ enum x86_intercept_stage;
+>
+>  struct kvm_kernel_irq_routing_entry;
+>
+> -/*
+> - * We don't want allocation failures within the mmu code, so we preallocate
+> - * enough memory for a single page fault in a cache.
+> - */
+> -struct kvm_mmu_memory_cache {
+> -       int nobjs;
+> -       gfp_t gfp_zero;
+> -       struct kmem_cache *kmem_cache;
+> -       void *objects[KVM_NR_MEM_OBJS];
+> -};
+> -
+>  /*
+>   * the pages used as guest page table on soft mmu are tracked by
+>   * kvm_memory_slot.arch.gfn_track which is 16 bits, so the role bits used
+> diff --git a/arch/x86/include/asm/kvm_types.h b/arch/x86/include/asm/kvm_types.h
+> new file mode 100644
+> index 000000000000..08f1b57d3b62
+> --- /dev/null
+> +++ b/arch/x86/include/asm/kvm_types.h
+> @@ -0,0 +1,7 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +#ifndef _ASM_X86_KVM_TYPES_H
+> +#define _ASM_X86_KVM_TYPES_H
+> +
+> +#define KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE 40
+> +
+> +#endif /* _ASM_X86_KVM_TYPES_H */
+> diff --git a/include/asm-generic/kvm_types.h b/include/asm-generic/kvm_types.h
+> new file mode 100644
+> index 000000000000..2a82daf110f1
+> --- /dev/null
+> +++ b/include/asm-generic/kvm_types.h
+> @@ -0,0 +1,5 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +#ifndef _ASM_GENERIC_KVM_TYPES_H
+> +#define _ASM_GENERIC_KVM_TYPES_H
+> +
+> +#endif
+> diff --git a/include/linux/kvm_types.h b/include/linux/kvm_types.h
+> index 68e84cf42a3f..a7580f69dda0 100644
+> --- a/include/linux/kvm_types.h
+> +++ b/include/linux/kvm_types.h
+> @@ -20,6 +20,8 @@ enum kvm_mr_change;
+>
+>  #include <linux/types.h>
+>
+> +#include <asm/kvm_types.h>
+> +
+>  /*
+>   * Address types:
+>   *
+> @@ -58,4 +60,21 @@ struct gfn_to_pfn_cache {
+>         bool dirty;
+>  };
+>
+> +#ifdef KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE
+> +/*
+> + * Memory caches are used to preallocate memory ahead of various MMU flows,
+> + * e.g. page fault handlers.  Gracefully handling allocation failures deep in
+> + * MMU flows is problematic, as is triggering reclaim, I/O, etc... while
+> + * holding MMU locks.  Note, these caches act more like prefetch buffers than
+> + * classical caches, i.e. objects are not returned to the cache on being freed.
+> + */
+> +struct kvm_mmu_memory_cache {
+> +       int nobjs;
+> +       gfp_t gfp_zero;
+> +       struct kmem_cache *kmem_cache;
+> +       void *objects[KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE];
+> +};
+> +#endif
+> +
+> +
+>  #endif /* __KVM_TYPES_H__ */
+> --
+> 2.26.0
+>
