@@ -1,146 +1,70 @@
-Return-Path: <SRS0=NZEn=AE=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:61940 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1733115AbgFWRYe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 Jun 2020 13:24:34 -0400
-From: Kristen Carlson Accardi <kristen@linux.intel.com>
-Subject: [PATCH v3 04/10] x86: Makefile: Add build and config option for CONFIG_FG_KASLR
-Date: Tue, 23 Jun 2020 10:23:21 -0700
-Message-ID: <20200623172327.5701-5-kristen@linux.intel.com>
-In-Reply-To: <20200623172327.5701-1-kristen@linux.intel.com>
-References: <20200623172327.5701-1-kristen@linux.intel.com>
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34252 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2404700AbgFXVtc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 17:49:32 -0400
+Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BC9BDC061573
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 14:49:32 -0700 (PDT)
+Received: by mail-pj1-x1043.google.com with SMTP id ev7so1277445pjb.2
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 14:49:32 -0700 (PDT)
+Date: Wed, 24 Jun 2020 14:49:25 -0700
+From: Sami Tolvanen <samitolvanen@google.com>
+Subject: Re: [PATCH 05/22] kbuild: lto: postpone objtool
+Message-ID: <20200624214925.GB120457@google.com>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624203200.78870-6-samitolvanen@google.com>
+ <20200624211908.GT4817@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200624211908.GT4817@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: keescook@chromium.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: arjan@linux.intel.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, rick.p.edgecombe@intel.com, Kristen Carlson Accardi <kristen@linux.intel.com>, Tony Luck <tony.luck@intel.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200623172321.SLFs3hy5bEo-VdB9bYy3LBe81-EijfBT6n-rU9NflCw@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
+Message-ID: <20200624214925.K0MzNlW_SWEwO3M6trV7OLLOMxdc-6uU4KWk47vKcm0@z>
 
-Allow user to select CONFIG_FG_KASLR if dependencies are met. Change
-the make file to build with -ffunction-sections if CONFIG_FG_KASLR.
+On Wed, Jun 24, 2020 at 11:19:08PM +0200, Peter Zijlstra wrote:
+> On Wed, Jun 24, 2020 at 01:31:43PM -0700, Sami Tolvanen wrote:
+> > diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+> > index 30827f82ad62..12b115152532 100644
+> > --- a/include/linux/compiler.h
+> > +++ b/include/linux/compiler.h
+> > @@ -120,7 +120,7 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+> >  /* Annotate a C jump table to allow objtool to follow the code flow */
+> >  #define __annotate_jump_table __section(.rodata..c_jump_table)
+> >  
+> > -#ifdef CONFIG_DEBUG_ENTRY
+> > +#if defined(CONFIG_DEBUG_ENTRY) || defined(CONFIG_LTO_CLANG)
+> >  /* Begin/end of an instrumentation safe region */
+> >  #define instrumentation_begin() ({					\
+> >  	asm volatile("%c0:\n\t"						\
+> 
+> Why would you be doing noinstr validation for lto builds? That doesn't
+> make sense.
 
-While the only architecture that supports CONFIG_FG_KASLR does not
-currently enable HAVE_LD_DEAD_CODE_DATA_ELIMINATION, make sure these
-2 features play nicely together for the future by ensuring that if
-CONFIG_LD_DEAD_CODE_DATA_ELIMINATION is selected when used with
-CONFIG_FG_KASLR the function sections will not be consolidated back
-into .text. Thanks to Kees Cook for the dead code elimination changes.
+This is just to avoid a ton of noinstr warnings when we run objtool on
+vmlinux.o, but I'm also fine with skipping noinstr validation with LTO.
 
-Signed-off-by: Kristen Carlson Accardi <kristen@linux.intel.com>
-Reviewed-by: Tony Luck <tony.luck@intel.com>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-Tested-by: Tony Luck <tony.luck@intel.com>
----
- Makefile                          |  6 +++++-
- arch/x86/Kconfig                  |  4 ++++
- include/asm-generic/vmlinux.lds.h | 16 ++++++++++++++--
- init/Kconfig                      | 14 ++++++++++++++
- 4 files changed, 37 insertions(+), 3 deletions(-)
+> > +ifdef CONFIG_STACK_VALIDATION
+> > +ifneq ($(SKIP_STACK_VALIDATION),1)
+> > +cmd_ld_ko_o +=								\
+> > +	$(objtree)/tools/objtool/objtool				\
+> > +		$(if $(CONFIG_UNWINDER_ORC),orc generate,check)		\
+> > +		--module						\
+> > +		$(if $(CONFIG_FRAME_POINTER),,--no-fp)			\
+> > +		$(if $(CONFIG_GCOV_KERNEL),--no-unreachable,)		\
+> > +		$(if $(CONFIG_RETPOLINE),--retpoline,)			\
+> > +		$(if $(CONFIG_X86_SMAP),--uaccess,)			\
+> > +		$(@:.ko=$(prelink-ext).o);
+> > +
+> > +endif # SKIP_STACK_VALIDATION
+> > +endif # CONFIG_STACK_VALIDATION
+> 
+> What about the objtool invocation from link-vmlinux.sh ?
 
-diff --git a/Makefile b/Makefile
-index ac2c61c37a73..363f53798fca 100644
---- a/Makefile
-+++ b/Makefile
-@@ -872,7 +872,7 @@ KBUILD_CFLAGS += $(call cc-option, -fno-inline-functions-called-once)
- endif
- 
- ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
--KBUILD_CFLAGS_KERNEL += -ffunction-sections -fdata-sections
-+KBUILD_CFLAGS_KERNEL += -fdata-sections
- LDFLAGS_vmlinux += --gc-sections
- endif
- 
-@@ -880,6 +880,10 @@ ifdef CONFIG_LIVEPATCH
- KBUILD_CFLAGS += $(call cc-option, -flive-patching=inline-clone)
- endif
- 
-+ifneq ($(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION)$(CONFIG_FG_KASLR),)
-+KBUILD_CFLAGS += -ffunction-sections
-+endif
-+
- ifdef CONFIG_SHADOW_CALL_STACK
- CC_FLAGS_SCS	:= -fsanitize=shadow-call-stack
- KBUILD_CFLAGS	+= $(CC_FLAGS_SCS)
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 6a0cc524882d..932cbc327af0 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -372,6 +372,10 @@ config CC_HAS_SANE_STACKPROTECTOR
- 	   We have to make sure stack protector is unconditionally disabled if
- 	   the compiler produces broken code.
- 
-+config ARCH_HAS_FG_KASLR
-+	def_bool y
-+	depends on RANDOMIZE_BASE && X86_64
-+
- menu "Processor type and features"
- 
- config ZONE_DMA
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index db600ef218d7..a5552cf28d5d 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -93,14 +93,12 @@
-  * sections to be brought in with rodata.
-  */
- #ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
--#define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
- #define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX*
- #define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
- #define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]*
- #define BSS_MAIN .bss .bss.[0-9a-zA-Z_]*
- #define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
- #else
--#define TEXT_MAIN .text
- #define DATA_MAIN .data
- #define SDATA_MAIN .sdata
- #define RODATA_MAIN .rodata
-@@ -108,6 +106,20 @@
- #define SBSS_MAIN .sbss
- #endif
- 
-+/*
-+ * Both LD_DEAD_CODE_DATA_ELIMINATION and CONFIG_FG_KASLR options enable
-+ * -ffunction-sections, which produces separately named .text sections. In
-+ * the case of CONFIG_FG_KASLR, they need to stay distict so they can be
-+ * separately randomized. Without CONFIG_FG_KASLR, the separate .text
-+ * sections can be collected back into a common section, which makes the
-+ * resulting image slightly smaller
-+ */
-+#if defined(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION) && !defined(CONFIG_FG_KASLR)
-+#define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
-+#else
-+#define TEXT_MAIN .text
-+#endif
-+
- /*
-  * Align to a 32 byte boundary equal to the
-  * alignment gcc 4.5 uses for a struct
-diff --git a/init/Kconfig b/init/Kconfig
-index a46aa8f3174d..e29c032e4d66 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1990,6 +1990,20 @@ config PROFILING
- config TRACEPOINTS
- 	bool
- 
-+config FG_KASLR
-+	bool "Function Granular Kernel Address Space Layout Randomization"
-+	depends on $(cc-option, -ffunction-sections)
-+	depends on ARCH_HAS_FG_KASLR
-+	default n
-+	help
-+	  This option improves the randomness of the kernel text
-+	  over basic Kernel Address Space Layout Randomization (KASLR)
-+	  by reordering the kernel text at boot time. This feature
-+	  uses information generated at compile time to re-layout the
-+	  kernel text section at boot time at function level granularity.
-+
-+	  If unsure, say N.
-+
- endmenu		# General setup
- 
- source "arch/Kconfig"
--- 
-2.20.1
+What about it? The existing objtool_link invocation in link-vmlinux.sh
+works fine for our purposes as well.
+
+Sami
