@@ -1,47 +1,70 @@
-Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from correo.us.es ([193.147.175.20]:46800 "EHLO mail.us.es"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728080AbgFVMHQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jun 2020 08:07:16 -0400
-Received: from antivirus1-rhel7.int (unknown [192.168.2.11])
-        by mail.us.es (Postfix) with ESMTP id 9BDBFF23BA
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 14:07:14 +0200 (CEST)
-Received: from antivirus1-rhel7.int (localhost [127.0.0.1])
-        by antivirus1-rhel7.int (Postfix) with ESMTP id 8BE84DA78A
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jun 2020 14:07:14 +0200 (CEST)
-Date: Mon, 22 Jun 2020 14:07:07 +0200
-From: Pablo Neira Ayuso <pablo@netfilter.org>
-Subject: Re: Good idea to rename files in include/uapi/ ?
-Message-ID: <20200622120707.GA17620@salvia>
-References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
- <174102.1592165965@warthog.procyon.org.uk>
- <nycvar.YFH.7.77.849.2006142244200.30230@n3.vanv.qr>
- <ab88e504-c139-231a-0294-953ffd1a9442@al2klimov.de>
- <nycvar.YFH.7.77.849.2006221336180.26495@n3.vanv.qr>
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34082 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388700AbgFXDbr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2020 23:31:47 -0400
+Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 82704C0613ED
+        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 20:31:46 -0700 (PDT)
+Received: by mail-pj1-x1041.google.com with SMTP id i4so507972pjd.0
+        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 20:31:46 -0700 (PDT)
+Date: Tue, 23 Jun 2020 20:31:42 -0700
+From: Fangrui Song <maskray@google.com>
+Subject: Re: [PATCH v3 3/9] efi/libstub: Remove .note.gnu.property
+Message-ID: <20200624033142.cinvg6rbg252j46d@google.com>
+References: <20200624014940.1204448-1-keescook@chromium.org>
+ <20200624014940.1204448-4-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Disposition: inline
-In-Reply-To: <nycvar.YFH.7.77.849.2006221336180.26495@n3.vanv.qr>
+In-Reply-To: <20200624014940.1204448-4-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jan Engelhardt <jengelh@inai.de>
-Cc: "Alexander A. Klimov" <grandmaster@al2klimov.de>, David Howells <dhowells@redhat.com>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20200622120707.Xm097DM-sT6EILb-N4oRnzK4oOqhW6nWUwacnujprE4@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200624033142.qITlU5YkMUNDscG8_cLrg-Y5VHBPWf1nAOc31fKtdwg@z>
 
-On Mon, Jun 22, 2020 at 01:37:09PM +0200, Jan Engelhardt wrote:
-> 
-> On Monday 2020-06-15 01:34, Alexander A. Klimov wrote:
-> >> 
-> >> A header file rename is no problem. We even have dummy headers
-> > Hmm.. if I understand all of you correctly, David, Stefano, Pablo and Al say
-> > like no, not a good idea, but only you, Jan, say like should be no problem.
-> >
-> > Jan, do you have anything like commit messages in mainline or public emails
-> > from maintainers confirming your opinion?
-> 
-> I had already given the commit with the (email) message:
-> 
-> >> Just look at xt_MARK.h, all it does is include xt_mark.h. Cf.
-> >> 28b949885f80efb87d7cebdcf879c99db12c37bd .
+On 2020-06-23, Kees Cook wrote:
+>In preparation for adding --orphan-handling=warn to more architectures,
+>make sure unwanted sections don't end up appearing under the .init
+>section prefix that libstub adds to itself during objcopy.
+>
+>Signed-off-by: Kees Cook <keescook@chromium.org>
+>---
+> drivers/firmware/efi/libstub/Makefile | 3 +++
+> 1 file changed, 3 insertions(+)
+>
+>diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
+>index 75daaf20374e..9d2d2e784bca 100644
+>--- a/drivers/firmware/efi/libstub/Makefile
+>+++ b/drivers/firmware/efi/libstub/Makefile
+>@@ -66,6 +66,9 @@ lib-$(CONFIG_X86)		+= x86-stub.o
+> CFLAGS_arm32-stub.o		:= -DTEXT_OFFSET=$(TEXT_OFFSET)
+> CFLAGS_arm64-stub.o		:= -DTEXT_OFFSET=$(TEXT_OFFSET)
+>
+>+# Remove unwanted sections first.
+>+STUBCOPY_FLAGS-y		+= --remove-section=.note.gnu.property
+>+
+> #
+> # For x86, bootloaders like systemd-boot or grub-efi do not zero-initialize the
+> # .bss section, so the .bss section of the EFI stub needs to be included in the
 
-Why rename this in 2020 ?
+arch/arm64/Kconfig enables ARM64_PTR_AUTH by default. When the config is on
+
+ifeq ($(CONFIG_ARM64_BTI_KERNEL),y)
+branch-prot-flags-$(CONFIG_CC_HAS_BRANCH_PROT_PAC_RET_BTI) := -mbranch-protection=pac-ret+leaf+bti
+else
+branch-prot-flags-$(CONFIG_CC_HAS_BRANCH_PROT_PAC_RET) := -mbranch-protection=pac-ret+leaf
+endif
+
+This option creates .note.gnu.property:
+
+% readelf -n drivers/firmware/efi/libstub/efi-stub.o
+
+Displaying notes found in: .note.gnu.property
+   Owner                Data size        Description
+   GNU                  0x00000010       NT_GNU_PROPERTY_TYPE_0
+       Properties: AArch64 feature: PAC
+
+If .note.gnu.property is not desired in drivers/firmware/efi/libstub, specifying
+-mbranch-protection=none can override -mbranch-protection=pac-ret+leaf
