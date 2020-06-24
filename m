@@ -1,20 +1,20 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 5/9] x86/boot: Warn on orphan section placement
-Date: Tue, 23 Jun 2020 18:49:36 -0700
-Message-ID: <20200624014940.1204448-6-keescook@chromium.org>
+Subject: [PATCH v3 7/9] arm/boot: Warn on orphan section placement
+Date: Tue, 23 Jun 2020 18:49:38 -0700
+Message-ID: <20200624014940.1204448-8-keescook@chromium.org>
 References: <20200624014940.1204448-1-keescook@chromium.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46720 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46746 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388565AbgFXBty (ORCPT
+        with ESMTP id S2388575AbgFXBty (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2020 21:49:54 -0400
-Received: from mail-pj1-x1044.google.com (mail-pj1-x1044.google.com [IPv6:2607:f8b0:4864:20::1044])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BEE7DC061573
-        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:53 -0700 (PDT)
-Received: by mail-pj1-x1044.google.com with SMTP id i4so386721pjd.0
-        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:53 -0700 (PDT)
+Received: from mail-pg1-x543.google.com (mail-pg1-x543.google.com [IPv6:2607:f8b0:4864:20::543])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6A62DC06179B
+        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:54 -0700 (PDT)
+Received: by mail-pg1-x543.google.com with SMTP id e9so561785pgo.9
+        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:54 -0700 (PDT)
 In-Reply-To: <20200624014940.1204448-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -26,58 +26,78 @@ heuristics as these can vary between linkers, and may change between
 versions. All sections need to be explicitly named in the linker
 script.
 
-Add the common debugging sections. Discard the unused note, rel, plt,
-dyn, and hash sections that are not needed in the compressed vmlinux.
-Disable .eh_frame generation in the linker and enable orphan section
-warnings.
+Use common macros for debug sections, discards, and text stubs. Add
+discards for unwanted .note, and .rel sections. Finally, enable orphan
+section warning.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/boot/compressed/Makefile      |  3 ++-
- arch/x86/boot/compressed/vmlinux.lds.S | 11 +++++++++++
- 2 files changed, 13 insertions(+), 1 deletion(-)
+ arch/arm/boot/compressed/Makefile      |  2 ++
+ arch/arm/boot/compressed/vmlinux.lds.S | 17 +++++++----------
+ 2 files changed, 9 insertions(+), 10 deletions(-)
 
-diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
-index 7619742f91c9..646720a05f89 100644
---- a/arch/x86/boot/compressed/Makefile
-+++ b/arch/x86/boot/compressed/Makefile
-@@ -48,6 +48,7 @@ GCOV_PROFILE := n
- UBSAN_SANITIZE :=n
+diff --git a/arch/arm/boot/compressed/Makefile b/arch/arm/boot/compressed/Makefile
+index 00602a6fba04..b8a97d81662d 100644
+--- a/arch/arm/boot/compressed/Makefile
++++ b/arch/arm/boot/compressed/Makefile
+@@ -128,6 +128,8 @@ endif
+ LDFLAGS_vmlinux += --no-undefined
+ # Delete all temporary local symbols
+ LDFLAGS_vmlinux += -X
++# Report orphan sections
++LDFLAGS_vmlinux += --orphan-handling=warn
+ # Next argument is a linker script
+ LDFLAGS_vmlinux += -T
  
- KBUILD_LDFLAGS := -m elf_$(UTS_MACHINE)
-+KBUILD_LDFLAGS += $(call ld-option,--no-ld-generated-unwind-info)
- # Compressed kernel should be built as PIE since it may be loaded at any
- # address by the bootloader.
- ifeq ($(CONFIG_X86_32),y)
-@@ -59,7 +60,7 @@ else
- KBUILD_LDFLAGS += $(shell $(LD) --help 2>&1 | grep -q "\-z noreloc-overflow" \
- 	&& echo "-z noreloc-overflow -pie --no-dynamic-linker")
- endif
--LDFLAGS_vmlinux := -T
-+LDFLAGS_vmlinux := --orphan-handling=warn -T
+diff --git a/arch/arm/boot/compressed/vmlinux.lds.S b/arch/arm/boot/compressed/vmlinux.lds.S
+index 09ac33f52814..c2a8509f876f 100644
+--- a/arch/arm/boot/compressed/vmlinux.lds.S
++++ b/arch/arm/boot/compressed/vmlinux.lds.S
+@@ -2,6 +2,7 @@
+ /*
+  *  Copyright (C) 2000 Russell King
+  */
++#include <asm/vmlinux.lds.h>
  
- hostprogs	:= mkpiggy
- HOST_EXTRACFLAGS += -I$(srctree)/tools/include
-diff --git a/arch/x86/boot/compressed/vmlinux.lds.S b/arch/x86/boot/compressed/vmlinux.lds.S
-index 8f1025d1f681..6fe3ecdfd685 100644
---- a/arch/x86/boot/compressed/vmlinux.lds.S
-+++ b/arch/x86/boot/compressed/vmlinux.lds.S
-@@ -75,5 +75,16 @@ SECTIONS
- 	. = ALIGN(PAGE_SIZE);	/* keep ZO size page aligned */
- 	_end = .;
+ #ifdef CONFIG_CPU_ENDIAN_BE8
+ #define ZIMAGE_MAGIC(x) ( (((x) >> 24) & 0x000000ff) | \
+@@ -17,8 +18,11 @@ ENTRY(_start)
+ SECTIONS
+ {
+   /DISCARD/ : {
++    ARM_COMMON_DISCARD
+     *(.ARM.exidx*)
+     *(.ARM.extab*)
++    *(.note.*)
++    *(.rel.*)
+     /*
+      * Discard any r/w data - this produces a link error if we have any,
+      * which is required for PIC decompression.  Local data generates
+@@ -36,9 +40,7 @@ SECTIONS
+     *(.start)
+     *(.text)
+     *(.text.*)
+-    *(.gnu.warning)
+-    *(.glue_7t)
+-    *(.glue_7)
++    ARM_STUBS_TEXT
+   }
+   .table : ALIGN(4) {
+     _table_start = .;
+@@ -128,12 +130,7 @@ SECTIONS
+   PROVIDE(__pecoff_data_size = ALIGN(512) - ADDR(.data));
+   PROVIDE(__pecoff_end = ALIGN(512));
  
-+	STABS_DEBUG
-+	DWARF_DEBUG
-+
- 	DISCARDS
-+	/DISCARD/ : {
-+		*(.note.*)
-+		*(.rela.*) *(.rela_*)
-+		*(.rel.*) *(.rel_*)
-+		*(.plt) *(.plt.*)
-+		*(.dyn*)
-+		*(.hash) *(.gnu.hash)
-+	}
+-  .stab 0		: { *(.stab) }
+-  .stabstr 0		: { *(.stabstr) }
+-  .stab.excl 0		: { *(.stab.excl) }
+-  .stab.exclstr 0	: { *(.stab.exclstr) }
+-  .stab.index 0		: { *(.stab.index) }
+-  .stab.indexstr 0	: { *(.stab.indexstr) }
+-  .comment 0		: { *(.comment) }
++  STABS_DEBUG
++  DWARF_DEBUG
  }
+ ASSERT(_edata_real == _edata, "error: zImage file size is incorrect");
 -- 
 2.25.1
