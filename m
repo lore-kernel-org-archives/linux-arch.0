@@ -1,88 +1,43 @@
-Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:60195 "EHLO mga12.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728414AbgFVUJK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jun 2020 16:09:10 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 03/21] KVM: x86/mmu: Use consistent "mc" name for kvm_mmu_memory_cache locals
-Date: Mon, 22 Jun 2020 13:08:04 -0700
-Message-ID: <20200622200822.4426-4-sean.j.christopherson@intel.com>
-In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
-References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+Return-Path: <SRS0=FJBn=AF=kvack.org=owner-linux-mm@kernel.org>
+Date: Wed, 24 Jun 2020 13:48:08 +0200
+From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Subject: Re: [PATCH V3 0/4] mm/debug_vm_pgtable: Add some more tests
+Message-ID: <20200624134808.0c460862@thinkpad>
+In-Reply-To: <20200624110539.GC24934@oc3871087118.ibm.com>
+References: <1592192277-8421-1-git-send-email-anshuman.khandual@arm.com>
+	<70ddc7dd-b688-b73e-642a-6363178c8cdd@arm.com>
+	<20200624110539.GC24934@oc3871087118.ibm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Alexander Gordeev <agordeev@linux.ibm.com>, Anshuman Khandual <anshuman.khandual@arm.com>
+Cc: linux-mm@kvack.org, christophe.leroy@c-s.fr, ziy@nvidia.com, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter
+ Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Christophe Leroy <christophe.leroy@csgroup.eu>
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200622200804.jVyeRv9roS6FC6ZfGuEDcIUa36pVDpEa5kqjsPOnlj8@z>
+Message-ID: <20200624114808.q1lJ0xoSTTae7gd_zVS8GxP9xzHjnV7vp8foYAQHURk@z>
 
-Use "mc" for local variables to shorten line lengths and provide
-consistent names, which will be especially helpful when some of the
-helpers are moved to common KVM code in future patches.
+On Wed, 24 Jun 2020 13:05:39 +0200
+Alexander Gordeev <agordeev@linux.ibm.com> wrote:
 
-No functional change intended.
+> On Wed, Jun 24, 2020 at 08:43:10AM +0530, Anshuman Khandual wrote:
+> 
+> [...]
+> 
+> > Hello Gerald/Christophe/Vineet,
+> > 
+> > It would be really great if you could give this series a quick test
+> > on s390/ppc/arc platforms respectively. Thank you.
+> 
+> That worked for me with the default and debug s390 configurations.
+> Would you like to try with some particular options or combinations
+> of the options?
 
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
----
- arch/x86/kvm/mmu/mmu.c | 24 ++++++++++++------------
- 1 file changed, 12 insertions(+), 12 deletions(-)
+It will be enabled automatically on all archs that set
+ARCH_HAS_DEBUG_VM_PGTABLE, which we do for s390 unconditionally.
+Also, DEBUG_VM has to be set, which we have only in the debug config.
+So only the s390 debug config will have it enabled, you can check
+dmesg for "debug_vm_pgtable" to see when / where it was run, and if it
+triggered any warnings.
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index cbc101663a89..36c90f004ef4 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1060,27 +1060,27 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
- 	local_irq_enable();
- }
- 
--static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
-+static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
- {
- 	void *obj;
- 
--	if (cache->nobjs >= min)
-+	if (mc->nobjs >= min)
- 		return 0;
--	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
--		if (cache->kmem_cache)
--			obj = kmem_cache_zalloc(cache->kmem_cache, GFP_KERNEL_ACCOUNT);
-+	while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
-+		if (mc->kmem_cache)
-+			obj = kmem_cache_zalloc(mc->kmem_cache, GFP_KERNEL_ACCOUNT);
- 		else
- 			obj = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
- 		if (!obj)
--			return cache->nobjs >= min ? 0 : -ENOMEM;
--		cache->objects[cache->nobjs++] = obj;
-+			return mc->nobjs >= min ? 0 : -ENOMEM;
-+		mc->objects[mc->nobjs++] = obj;
- 	}
- 	return 0;
- }
- 
--static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *cache)
-+static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *mc)
- {
--	return cache->nobjs;
-+	return mc->nobjs;
- }
- 
- static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
-@@ -1395,10 +1395,10 @@ static struct kvm_rmap_head *gfn_to_rmap(struct kvm *kvm, gfn_t gfn,
- 
- static bool rmap_can_add(struct kvm_vcpu *vcpu)
- {
--	struct kvm_mmu_memory_cache *cache;
-+	struct kvm_mmu_memory_cache *mc;
- 
--	cache = &vcpu->arch.mmu_pte_list_desc_cache;
--	return mmu_memory_cache_free_objects(cache);
-+	mc = &vcpu->arch.mmu_pte_list_desc_cache;
-+	return mmu_memory_cache_free_objects(mc);
- }
- 
- static int rmap_add(struct kvm_vcpu *vcpu, u64 *spte, gfn_t gfn)
--- 
-2.26.0
+I also checked with the v3 series, and it works fine for s390.
