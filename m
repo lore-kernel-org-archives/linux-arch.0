@@ -1,31 +1,67 @@
-Return-Path: <SRS0=FJBn=AF=kvack.org=owner-linux-mm@kernel.org>
-Date: Wed, 24 Jun 2020 13:05:39 +0200
-From: Alexander Gordeev <agordeev@linux.ibm.com>
-Subject: Re: [PATCH V3 0/4] mm/debug_vm_pgtable: Add some more tests
-Message-ID: <20200624110539.GC24934@oc3871087118.ibm.com>
-References: <1592192277-8421-1-git-send-email-anshuman.khandual@arm.com>
- <70ddc7dd-b688-b73e-642a-6363178c8cdd@arm.com>
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56954 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2390034AbgFXVN7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 17:13:59 -0400
+Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5B04AC061795
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 14:13:59 -0700 (PDT)
+Received: by mail-pl1-x644.google.com with SMTP id d12so1651109ply.1
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 14:13:59 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <70ddc7dd-b688-b73e-642a-6363178c8cdd@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: linux-mm@kvack.org, christophe.leroy@c-s.fr, ziy@nvidia.com, gerald.schaefer@de.ibm.com, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Christophe Leroy <christophe.leroy@csgroup.eu>
+References: <20200624203200.78870-1-samitolvanen@google.com> <20200624203200.78870-9-samitolvanen@google.com>
+In-Reply-To: <20200624203200.78870-9-samitolvanen@google.com>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Date: Wed, 24 Jun 2020 14:13:46 -0700
+Message-ID: <CAKwvOdmcDxa+h9i6_XQc8ZDQjD9cTrD7s9eNU0fSxZbXciKhDQ@mail.gmail.com>
+Subject: Re: [PATCH 08/22] kbuild: lto: remove duplicate dependencies from
+ .mod files
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200624110539.qj86VqxoJUFwLFWAC58B5MPil4nh-fh1TQRFOhsC5uE@z>
+To: Sami Tolvanen <samitolvanen@google.com>
+Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200624211346.mRFuaNRA3Hqt9DZ0MfFSnITW846gAcPlfYP7L1hu8BM@z>
 
-On Wed, Jun 24, 2020 at 08:43:10AM +0530, Anshuman Khandual wrote:
+On Wed, Jun 24, 2020 at 1:33 PM Sami Tolvanen <samitolvanen@google.com> wrote:
+>
+> With LTO, llvm-nm prints out symbols for each archive member
+> separately, which results in a lot of duplicate dependencies in the
+> .mod file when CONFIG_TRIM_UNUSED_SYMS is enabled. When a module
+> consists of several compilation units, the output can exceed the
+> default xargs command size limit and split the dependency list to
+> multiple lines, which results in used symbols getting trimmed.
+>
+> This change removes duplicate dependencies, which will reduce the
+> probability of this happening and makes .mod files smaller and
+> easier to read.
+>
+> Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 
-[...]
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
 
-> Hello Gerald/Christophe/Vineet,
-> 
-> It would be really great if you could give this series a quick test
-> on s390/ppc/arc platforms respectively. Thank you.
+> ---
+>  scripts/Makefile.build | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+> index 82977350f5a6..82b465ce3ca0 100644
+> --- a/scripts/Makefile.build
+> +++ b/scripts/Makefile.build
+> @@ -291,7 +291,7 @@ endef
+>
+>  # List module undefined symbols (or empty line if not enabled)
+>  ifdef CONFIG_TRIM_UNUSED_KSYMS
+> -cmd_undef_syms = $(NM) $< | sed -n 's/^  *U //p' | xargs echo
+> +cmd_undef_syms = $(NM) $< | sed -n 's/^  *U //p' | sort -u | xargs echo
+>  else
+>  cmd_undef_syms = echo
+>  endif
+> --
+> 2.27.0.212.ge8ba1cc988-goog
+>
 
-That worked for me with the default and debug s390 configurations.
-Would you like to try with some particular options or combinations
-of the options?
 
-> - Anshuman
+-- 
+Thanks,
+~Nick Desaulniers
