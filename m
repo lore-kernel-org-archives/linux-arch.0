@@ -1,78 +1,90 @@
-Return-Path: <SRS0=y6BJ=7P=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v4 2/6] arm64: Add level-hinted TLB invalidation helper
-Date: Tue, 2 Jun 2020 21:58:32 +0800
-Message-ID: <20200602135836.1620-3-yezhenyu2@huawei.com>
-In-Reply-To: <20200602135836.1620-1-yezhenyu2@huawei.com>
-References: <20200602135836.1620-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55716 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2404941AbgFXSDp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 14:03:45 -0400
+Received: from mail-vs1-xe41.google.com (mail-vs1-xe41.google.com [IPv6:2607:f8b0:4864:20::e41])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1B27AC061573
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 11:03:45 -0700 (PDT)
+Received: by mail-vs1-xe41.google.com with SMTP id m62so1933191vsd.4
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 11:03:45 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+References: <20200622200822.4426-1-sean.j.christopherson@intel.com> <20200622200822.4426-6-sean.j.christopherson@intel.com>
+In-Reply-To: <20200622200822.4426-6-sean.j.christopherson@intel.com>
+From: Ben Gardon <bgardon@google.com>
+Date: Wed, 24 Jun 2020 11:03:32 -0700
+Message-ID: <CANgfPd8gYX1Fm1vEcfnEBXn_MjRxLHdgQAS=TAHQiOMNMrhFGA@mail.gmail.com>
+Subject: Re: [PATCH v2 05/21] KVM: x86/mmu: Try to avoid crashing KVM if a MMU
+ memory cache is empty
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200602135832.ap8P7AwmvpmxoL0YiFjphcj-Sdt4dcIaF6vgJTYQsWI@z>
+To: Sean Christopherson <sean.j.christopherson@intel.com>
+Cc: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>, James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200624180332.0X6nO9fy4lP34be9k6tn9xQUqy9GqDYB5tpjJ7zHgoQ@z>
 
-From: Marc Zyngier <maz@kernel.org>
-
-Add a level-hinted TLB invalidation helper that only gets used if
-ARMv8.4-TTL gets detected.
-
-Signed-off-by: Marc Zyngier <maz@kernel.org>
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
----
- arch/arm64/include/asm/tlbflush.h | 29 +++++++++++++++++++++++++++++
- 1 file changed, 29 insertions(+)
-
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
-lbflush.h
-index bc3949064725..8adbd6fd8489 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -10,6 +10,7 @@
-=20
- #ifndef __ASSEMBLY__
-=20
-+#include <linux/bitfield.h>
- #include <linux/mm_types.h>
- #include <linux/sched.h>
- #include <asm/cputype.h>
-@@ -59,6 +60,34 @@
- 		__ta;						\
- 	})
-=20
-+#define TLBI_TTL_MASK	GENMASK_ULL(47, 44)
-+
-+#define __tlbi_level(op, addr, level) do {			\
-+	u64 arg =3D addr;						\
-+								\
-+	if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
-+	    level) {						\
-+		u64 ttl =3D level;				\
-+								\
-+		switch (PAGE_SIZE) {				\
-+		case SZ_4K:					\
-+			ttl |=3D 1 << 2;				\
-+			break;					\
-+		case SZ_16K:					\
-+			ttl |=3D 2 << 2;				\
-+			break;					\
-+		case SZ_64K:					\
-+			ttl |=3D 3 << 2;				\
-+			break;					\
-+		}						\
-+								\
-+		arg &=3D ~TLBI_TTL_MASK;				\
-+		arg |=3D FIELD_PREP(TLBI_TTL_MASK, ttl);		\
-+	}							\
-+								\
-+	__tlbi(op,  arg);					\
-+} while (0)
-+
- /*
-  *	TLB Invalidation
-  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
---=20
-2.19.1
+On Mon, Jun 22, 2020 at 1:09 PM Sean Christopherson
+<sean.j.christopherson@intel.com> wrote:
+>
+> Attempt to allocate a new object instead of crashing KVM (and likely the
+> kernel) if a memory cache is unexpectedly empty.  Use GFP_ATOMIC for the
+> allocation as the caches are used while holding mmu_lock.  The immediate
+> BUG_ON() makes the code unnecessarily explosive and led to confusing
+> minimums being used in the past, e.g. allocating 4 objects where 1 would
+> suffice.
+>
+Reviewed-by: Ben Gardon <bgardon@google.com>
+> Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+> ---
+>  arch/x86/kvm/mmu/mmu.c | 21 +++++++++++++++------
+>  1 file changed, 15 insertions(+), 6 deletions(-)
+>
+> diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+> index ba70de24a5b0..5e773564ab20 100644
+> --- a/arch/x86/kvm/mmu/mmu.c
+> +++ b/arch/x86/kvm/mmu/mmu.c
+> @@ -1060,6 +1060,15 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
+>         local_irq_enable();
+>  }
+>
+> +static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
+> +                                              gfp_t gfp_flags)
+> +{
+> +       if (mc->kmem_cache)
+> +               return kmem_cache_zalloc(mc->kmem_cache, gfp_flags);
+> +       else
+> +               return (void *)__get_free_page(gfp_flags);
+> +}
+> +
+>  static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
+>  {
+>         void *obj;
+> @@ -1067,10 +1076,7 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
+>         if (mc->nobjs >= min)
+>                 return 0;
+>         while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
+> -               if (mc->kmem_cache)
+> -                       obj = kmem_cache_zalloc(mc->kmem_cache, GFP_KERNEL_ACCOUNT);
+> -               else
+> -                       obj = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
+> +               obj = mmu_memory_cache_alloc_obj(mc, GFP_KERNEL_ACCOUNT);
+>                 if (!obj)
+>                         return mc->nobjs >= min ? 0 : -ENOMEM;
+>                 mc->objects[mc->nobjs++] = obj;
+> @@ -1118,8 +1124,11 @@ static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
+>  {
+>         void *p;
+>
+> -       BUG_ON(!mc->nobjs);
+> -       p = mc->objects[--mc->nobjs];
+> +       if (WARN_ON(!mc->nobjs))
+> +               p = mmu_memory_cache_alloc_obj(mc, GFP_ATOMIC | __GFP_ACCOUNT);
+> +       else
+> +               p = mc->objects[--mc->nobjs];
+> +       BUG_ON(!p);
+>         return p;
+>  }
+>
+> --
+> 2.26.0
+>
