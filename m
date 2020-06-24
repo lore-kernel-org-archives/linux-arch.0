@@ -1,578 +1,460 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38398 "EHLO
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50562 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729113AbgF2Smu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:50 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 24/41] arm64: switch to ->get2()
-Date: Mon, 29 Jun 2020 19:26:11 +0100
-Message-ID: <20200629182628.529995-24-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        with ESMTP id S2406488AbgFXUdP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:33:15 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 54418C061796
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:15 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id f16so3545166ybp.5
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:15 -0700 (PDT)
+Date: Wed, 24 Jun 2020 13:31:47 -0700
+In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
+Message-ID: <20200624203200.78870-10-samitolvanen@google.com>
+Mime-Version: 1.0
+References: <20200624203200.78870-1-samitolvanen@google.com>
+Subject: [PATCH 09/22] init: lto: ensure initcall ordering
+From: Sami Tolvanen <samitolvanen@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200629182611.FG_n7y-CR0gVJZbRJasrvrXFh9iKtRNz_fCzzDzhv-8@z>
+To: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Sami Tolvanen <samitolvanen@google.com>
+Message-ID: <20200624203147.CCO13Z6NsQ-e-nvc3jwGnq_e3zTjy0i-6bji0Ubt8hM@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+With LTO, the compiler doesn't necessarily obey the link order for
+initcalls, and initcall variables need globally unique names to avoid
+collisions at link time.
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+This change exports __KBUILD_MODNAME and adds the initcall_id() macro,
+which uses it together with __COUNTER__ and __LINE__ to help ensure
+these variables have unique names, and moves each variable to its own
+section when LTO is enabled, so the correct order can be specified using
+a linker script.
+
+The generate_initcall_ordering.pl script uses nm to find initcalls from
+the object files passed to the linker, and generates a linker script
+that specifies the intended order. With LTO, the script is called in
+link-vmlinux.sh.
+
+Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 ---
- arch/arm64/kernel/ptrace.c | 225 +++++++++++++--------------------------------
- 1 file changed, 62 insertions(+), 163 deletions(-)
+ include/linux/init.h               |  52 +++++-
+ scripts/Makefile.lib               |   6 +-
+ scripts/generate_initcall_order.pl | 270 +++++++++++++++++++++++++++++
+ scripts/link-vmlinux.sh            |  14 ++
+ 4 files changed, 333 insertions(+), 9 deletions(-)
+ create mode 100755 scripts/generate_initcall_order.pl
 
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 9f769e862f68..8745aecffcae 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -474,11 +474,10 @@ static int ptrace_hbp_set_addr(unsigned int note_type,
- 
- static int hw_break_get(struct task_struct *target,
- 			const struct user_regset *regset,
--			unsigned int pos, unsigned int count,
--			void *kbuf, void __user *ubuf)
-+			struct membuf to)
- {
- 	unsigned int note_type = regset->core_note_type;
--	int ret, idx = 0, offset, limit;
-+	int ret, idx = 0;
- 	u32 info, ctrl;
- 	u64 addr;
- 
-@@ -487,49 +486,21 @@ static int hw_break_get(struct task_struct *target,
- 	if (ret)
- 		return ret;
- 
--	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, &info, 0,
--				  sizeof(info));
--	if (ret)
--		return ret;
--
--	/* Pad */
--	offset = offsetof(struct user_hwdebug_state, pad);
--	ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf, offset,
--				       offset + PTRACE_HBP_PAD_SZ);
--	if (ret)
--		return ret;
--
-+	membuf_write(&to, &info, sizeof(info));
-+	membuf_zero(&to, sizeof(u32));
- 	/* (address, ctrl) registers */
--	offset = offsetof(struct user_hwdebug_state, dbg_regs);
--	limit = regset->n * regset->size;
--	while (count && offset < limit) {
-+	while (to.left) {
- 		ret = ptrace_hbp_get_addr(note_type, target, idx, &addr);
- 		if (ret)
- 			return ret;
--		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, &addr,
--					  offset, offset + PTRACE_HBP_ADDR_SZ);
--		if (ret)
--			return ret;
--		offset += PTRACE_HBP_ADDR_SZ;
--
- 		ret = ptrace_hbp_get_ctrl(note_type, target, idx, &ctrl);
- 		if (ret)
- 			return ret;
--		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, &ctrl,
--					  offset, offset + PTRACE_HBP_CTRL_SZ);
--		if (ret)
--			return ret;
--		offset += PTRACE_HBP_CTRL_SZ;
--
--		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
--					       offset,
--					       offset + PTRACE_HBP_PAD_SZ);
--		if (ret)
--			return ret;
--		offset += PTRACE_HBP_PAD_SZ;
-+		membuf_store(&to, addr);
-+		membuf_store(&to, ctrl);
-+		membuf_zero(&to, sizeof(u32));
- 		idx++;
- 	}
--
- 	return 0;
- }
- 
-@@ -589,11 +560,10 @@ static int hw_break_set(struct task_struct *target,
- 
- static int gpr_get(struct task_struct *target,
- 		   const struct user_regset *regset,
--		   unsigned int pos, unsigned int count,
--		   void *kbuf, void __user *ubuf)
-+		   struct membuf to)
- {
- 	struct user_pt_regs *uregs = &task_pt_regs(target)->user_regs;
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs, 0, -1);
-+	return membuf_write(&to, uregs, sizeof(*uregs));
- }
- 
- static int gpr_set(struct task_struct *target, const struct user_regset *regset,
-@@ -626,8 +596,7 @@ static int fpr_active(struct task_struct *target, const struct user_regset *regs
+diff --git a/include/linux/init.h b/include/linux/init.h
+index 212fc9e2f691..af638cd6dd52 100644
+--- a/include/linux/init.h
++++ b/include/linux/init.h
+@@ -184,19 +184,57 @@ extern bool initcall_debug;
+  * as KEEP() in the linker script.
   */
- static int __fpr_get(struct task_struct *target,
- 		     const struct user_regset *regset,
--		     unsigned int pos, unsigned int count,
--		     void *kbuf, void __user *ubuf, unsigned int start_pos)
-+		     struct membuf to)
- {
- 	struct user_fpsimd_state *uregs;
  
-@@ -635,13 +604,11 @@ static int __fpr_get(struct task_struct *target,
- 
- 	uregs = &target->thread.uw.fpsimd_state;
- 
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs,
--				   start_pos, start_pos + sizeof(*uregs));
-+	return membuf_write(&to, uregs, sizeof(*uregs));
- }
- 
- static int fpr_get(struct task_struct *target, const struct user_regset *regset,
--		   unsigned int pos, unsigned int count,
--		   void *kbuf, void __user *ubuf)
-+		   struct membuf to)
- {
- 	if (!system_supports_fpsimd())
- 		return -EINVAL;
-@@ -649,7 +616,7 @@ static int fpr_get(struct task_struct *target, const struct user_regset *regset,
- 	if (target == current)
- 		fpsimd_preserve_current_state();
- 
--	return __fpr_get(target, regset, pos, count, kbuf, ubuf, 0);
-+	return __fpr_get(target, regset, to);
- }
- 
- static int __fpr_set(struct task_struct *target,
-@@ -699,15 +666,12 @@ static int fpr_set(struct task_struct *target, const struct user_regset *regset,
- }
- 
- static int tls_get(struct task_struct *target, const struct user_regset *regset,
--		   unsigned int pos, unsigned int count,
--		   void *kbuf, void __user *ubuf)
-+		   struct membuf to)
- {
--	unsigned long *tls = &target->thread.uw.tp_value;
--
- 	if (target == current)
- 		tls_preserve_current_state();
- 
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, tls, 0, -1);
-+	return membuf_store(&to, target->thread.uw.tp_value);
- }
- 
- static int tls_set(struct task_struct *target, const struct user_regset *regset,
-@@ -727,13 +691,9 @@ static int tls_set(struct task_struct *target, const struct user_regset *regset,
- 
- static int system_call_get(struct task_struct *target,
- 			   const struct user_regset *regset,
--			   unsigned int pos, unsigned int count,
--			   void *kbuf, void __user *ubuf)
-+			   struct membuf to)
- {
--	int syscallno = task_pt_regs(target)->syscallno;
--
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--				   &syscallno, 0, -1);
-+	return membuf_store(&to, task_pt_regs(target)->syscallno);
- }
- 
- static int system_call_set(struct task_struct *target,
-@@ -794,10 +754,8 @@ static unsigned int sve_get_size(struct task_struct *target,
- 
- static int sve_get(struct task_struct *target,
- 		   const struct user_regset *regset,
--		   unsigned int pos, unsigned int count,
--		   void *kbuf, void __user *ubuf)
-+		   struct membuf to)
- {
--	int ret;
- 	struct user_sve_header header;
- 	unsigned int vq;
- 	unsigned long start, end;
-@@ -809,10 +767,7 @@ static int sve_get(struct task_struct *target,
- 	sve_init_header_from_task(&header, target);
- 	vq = sve_vq_from_vl(header.vl);
- 
--	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, &header,
--				  0, sizeof(header));
--	if (ret)
--		return ret;
-+	membuf_write(&to, &header, sizeof(header));
- 
- 	if (target == current)
- 		fpsimd_preserve_current_state();
-@@ -821,26 +776,18 @@ static int sve_get(struct task_struct *target,
- 
- 	BUILD_BUG_ON(SVE_PT_FPSIMD_OFFSET != sizeof(header));
- 	if ((header.flags & SVE_PT_REGS_MASK) == SVE_PT_REGS_FPSIMD)
--		return __fpr_get(target, regset, pos, count, kbuf, ubuf,
--				 SVE_PT_FPSIMD_OFFSET);
-+		return __fpr_get(target, regset, to);
- 
- 	/* Otherwise: full SVE case */
- 
- 	BUILD_BUG_ON(SVE_PT_SVE_OFFSET != sizeof(header));
- 	start = SVE_PT_SVE_OFFSET;
- 	end = SVE_PT_SVE_FFR_OFFSET(vq) + SVE_PT_SVE_FFR_SIZE(vq);
--	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--				  target->thread.sve_state,
--				  start, end);
--	if (ret)
--		return ret;
-+	membuf_write(&to, target->thread.sve_state, end - start);
- 
- 	start = end;
- 	end = SVE_PT_SVE_FPSR_OFFSET(vq);
--	ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
--				       start, end);
--	if (ret)
--		return ret;
-+	membuf_zero(&to, end - start);
- 
- 	/*
- 	 * Copy fpsr, and fpcr which must follow contiguously in
-@@ -848,16 +795,11 @@ static int sve_get(struct task_struct *target,
- 	 */
- 	start = end;
- 	end = SVE_PT_SVE_FPCR_OFFSET(vq) + SVE_PT_SVE_FPCR_SIZE;
--	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--				  &target->thread.uw.fpsimd_state.fpsr,
--				  start, end);
--	if (ret)
--		return ret;
-+	membuf_write(&to, &target->thread.uw.fpsimd_state.fpsr, end - start);
- 
- 	start = end;
- 	end = sve_size_from_header(&header);
--	return user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
--					start, end);
-+	return membuf_zero(&to, end - start);
- }
- 
- static int sve_set(struct task_struct *target,
-@@ -961,8 +903,7 @@ static int sve_set(struct task_struct *target,
- #ifdef CONFIG_ARM64_PTR_AUTH
- static int pac_mask_get(struct task_struct *target,
- 			const struct user_regset *regset,
--			unsigned int pos, unsigned int count,
--			void *kbuf, void __user *ubuf)
-+			struct membuf to)
- {
- 	/*
- 	 * The PAC bits can differ across data and instruction pointers
-@@ -978,7 +919,7 @@ static int pac_mask_get(struct task_struct *target,
- 	if (!system_supports_address_auth())
- 		return -EINVAL;
- 
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, &uregs, 0, -1);
-+	return membuf_write(&to, &uregs, sizeof(uregs));
- }
- 
- #ifdef CONFIG_CHECKPOINT_RESTORE
-@@ -1017,8 +958,7 @@ static void pac_address_keys_from_user(struct ptrauth_keys_user *keys,
- 
- static int pac_address_keys_get(struct task_struct *target,
- 				const struct user_regset *regset,
--				unsigned int pos, unsigned int count,
--				void *kbuf, void __user *ubuf)
-+				struct membuf to)
- {
- 	struct ptrauth_keys_user *keys = &target->thread.keys_user;
- 	struct user_pac_address_keys user_keys;
-@@ -1028,8 +968,7 @@ static int pac_address_keys_get(struct task_struct *target,
- 
- 	pac_address_keys_to_user(&user_keys, keys);
- 
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--				   &user_keys, 0, -1);
-+	return membuf_write(&to, &user_keys, sizeof(user_keys));
- }
- 
- static int pac_address_keys_set(struct task_struct *target,
-@@ -1068,8 +1007,7 @@ static void pac_generic_keys_from_user(struct ptrauth_keys_user *keys,
- 
- static int pac_generic_keys_get(struct task_struct *target,
- 				const struct user_regset *regset,
--				unsigned int pos, unsigned int count,
--				void *kbuf, void __user *ubuf)
-+				struct membuf to)
- {
- 	struct ptrauth_keys_user *keys = &target->thread.keys_user;
- 	struct user_pac_generic_keys user_keys;
-@@ -1079,8 +1017,7 @@ static int pac_generic_keys_get(struct task_struct *target,
- 
- 	pac_generic_keys_to_user(&user_keys, keys);
- 
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--				   &user_keys, 0, -1);
-+	return membuf_write(&to, &user_keys, sizeof(user_keys));
- }
- 
- static int pac_generic_keys_set(struct task_struct *target,
-@@ -1134,7 +1071,7 @@ static const struct user_regset aarch64_regsets[] = {
- 		.n = sizeof(struct user_pt_regs) / sizeof(u64),
- 		.size = sizeof(u64),
- 		.align = sizeof(u64),
--		.get = gpr_get,
-+		.get2 = gpr_get,
- 		.set = gpr_set
- 	},
- 	[REGSET_FPR] = {
-@@ -1147,7 +1084,7 @@ static const struct user_regset aarch64_regsets[] = {
- 		.size = sizeof(u32),
- 		.align = sizeof(u32),
- 		.active = fpr_active,
--		.get = fpr_get,
-+		.get2 = fpr_get,
- 		.set = fpr_set
- 	},
- 	[REGSET_TLS] = {
-@@ -1155,7 +1092,7 @@ static const struct user_regset aarch64_regsets[] = {
- 		.n = 1,
- 		.size = sizeof(void *),
- 		.align = sizeof(void *),
--		.get = tls_get,
-+		.get2 = tls_get,
- 		.set = tls_set,
- 	},
- #ifdef CONFIG_HAVE_HW_BREAKPOINT
-@@ -1164,7 +1101,7 @@ static const struct user_regset aarch64_regsets[] = {
- 		.n = sizeof(struct user_hwdebug_state) / sizeof(u32),
- 		.size = sizeof(u32),
- 		.align = sizeof(u32),
--		.get = hw_break_get,
-+		.get2 = hw_break_get,
- 		.set = hw_break_set,
- 	},
- 	[REGSET_HW_WATCH] = {
-@@ -1172,7 +1109,7 @@ static const struct user_regset aarch64_regsets[] = {
- 		.n = sizeof(struct user_hwdebug_state) / sizeof(u32),
- 		.size = sizeof(u32),
- 		.align = sizeof(u32),
--		.get = hw_break_get,
-+		.get2 = hw_break_get,
- 		.set = hw_break_set,
- 	},
++/* Format: <modname>__<counter>_<line>_<fn> */
++#define __initcall_id(fn)					\
++	__PASTE(__KBUILD_MODNAME,				\
++	__PASTE(__,						\
++	__PASTE(__COUNTER__,					\
++	__PASTE(_,						\
++	__PASTE(__LINE__,					\
++	__PASTE(_, fn))))))
++
++/* Format: __<prefix>__<iid><id> */
++#define __initcall_name(prefix, __iid, id)			\
++	__PASTE(__,						\
++	__PASTE(prefix,						\
++	__PASTE(__,						\
++	__PASTE(__iid, id))))
++
++#ifdef CONFIG_LTO_CLANG
++/*
++ * With LTO, the compiler doesn't necessarily obey link order for
++ * initcalls. In order to preserve the correct order, we add each
++ * variable into its own section and generate a linker script (in
++ * scripts/link-vmlinux.sh) to specify the order of the sections.
++ */
++#define __initcall_section(__sec, __iid)			\
++	#__sec ".init.." #__iid
++#else
++#define __initcall_section(__sec, __iid)			\
++	#__sec ".init"
++#endif
++
+ #ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
+-#define ___define_initcall(fn, id, __sec)			\
++#define ____define_initcall(fn, __name, __sec)			\
+ 	__ADDRESSABLE(fn)					\
+-	asm(".section	\"" #__sec ".init\", \"a\"	\n"	\
+-	"__initcall_" #fn #id ":			\n"	\
++	asm(".section	\"" __sec "\", \"a\"		\n"	\
++	    __stringify(__name) ":			\n"	\
+ 	    ".long	" #fn " - .			\n"	\
+ 	    ".previous					\n");
+ #else
+-#define ___define_initcall(fn, id, __sec) \
+-	static initcall_t __initcall_##fn##id __used \
+-		__attribute__((__section__(#__sec ".init"))) = fn;
++#define ____define_initcall(fn, __name, __sec)			\
++	static initcall_t __name __used 			\
++		__attribute__((__section__(__sec))) = fn;
  #endif
-@@ -1181,7 +1118,7 @@ static const struct user_regset aarch64_regsets[] = {
- 		.n = 1,
- 		.size = sizeof(int),
- 		.align = sizeof(int),
--		.get = system_call_get,
-+		.get2 = system_call_get,
- 		.set = system_call_set,
- 	},
- #ifdef CONFIG_ARM64_SVE
-@@ -1191,7 +1128,7 @@ static const struct user_regset aarch64_regsets[] = {
- 				  SVE_VQ_BYTES),
- 		.size = SVE_VQ_BYTES,
- 		.align = SVE_VQ_BYTES,
--		.get = sve_get,
-+		.get2 = sve_get,
- 		.set = sve_set,
- 		.get_size = sve_get_size,
- 	},
-@@ -1202,7 +1139,7 @@ static const struct user_regset aarch64_regsets[] = {
- 		.n = sizeof(struct user_pac_mask) / sizeof(u64),
- 		.size = sizeof(u64),
- 		.align = sizeof(u64),
--		.get = pac_mask_get,
-+		.get2 = pac_mask_get,
- 		/* this cannot be set dynamically */
- 	},
- #ifdef CONFIG_CHECKPOINT_RESTORE
-@@ -1211,7 +1148,7 @@ static const struct user_regset aarch64_regsets[] = {
- 		.n = sizeof(struct user_pac_address_keys) / sizeof(__uint128_t),
- 		.size = sizeof(__uint128_t),
- 		.align = sizeof(__uint128_t),
--		.get = pac_address_keys_get,
-+		.get2 = pac_address_keys_get,
- 		.set = pac_address_keys_set,
- 	},
- 	[REGSET_PACG_KEYS] = {
-@@ -1219,7 +1156,7 @@ static const struct user_regset aarch64_regsets[] = {
- 		.n = sizeof(struct user_pac_generic_keys) / sizeof(__uint128_t),
- 		.size = sizeof(__uint128_t),
- 		.align = sizeof(__uint128_t),
--		.get = pac_generic_keys_get,
-+		.get2 = pac_generic_keys_get,
- 		.set = pac_generic_keys_set,
- 	},
- #endif
-@@ -1255,39 +1192,13 @@ static inline compat_ulong_t compat_get_user_reg(struct task_struct *task, int i
  
- static int compat_gpr_get(struct task_struct *target,
- 			  const struct user_regset *regset,
--			  unsigned int pos, unsigned int count,
--			  void *kbuf, void __user *ubuf)
-+			  struct membuf to)
++#define __unique_initcall(fn, id, __sec, __iid)			\
++	____define_initcall(fn,					\
++		__initcall_name(initcall, __iid, id),		\
++		__initcall_section(__sec, __iid))
++
++#define ___define_initcall(fn, id, __sec)			\
++	__unique_initcall(fn, id, __sec, __initcall_id(fn))
++
+ #define __define_initcall(fn, id) ___define_initcall(fn, id, .initcall##id)
+ 
+ /*
+@@ -236,7 +274,7 @@ extern bool initcall_debug;
+ #define __exitcall(fn)						\
+ 	static exitcall_t __exitcall_##fn __exit_call = fn
+ 
+-#define console_initcall(fn)	___define_initcall(fn,, .con_initcall)
++#define console_initcall(fn)	___define_initcall(fn, con, .con_initcall)
+ 
+ struct obs_kernel_param {
+ 	const char *str;
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 99ac59c59826..17447354b543 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -106,9 +106,11 @@ target-stem = $(basename $(patsubst $(obj)/%,%,$@))
+ # These flags are needed for modversions and compiling, so we define them here
+ # $(modname_flags) defines KBUILD_MODNAME as the name of the module it will
+ # end up in (or would, if it gets compiled in)
+-name-fix = $(call stringify,$(subst $(comma),_,$(subst -,_,$1)))
++name-fix-token = $(subst $(comma),_,$(subst -,_,$1))
++name-fix = $(call stringify,$(call name-fix-token,$1))
+ basename_flags = -DKBUILD_BASENAME=$(call name-fix,$(basetarget))
+-modname_flags  = -DKBUILD_MODNAME=$(call name-fix,$(modname))
++modname_flags  = -DKBUILD_MODNAME=$(call name-fix,$(modname)) \
++		 -D__KBUILD_MODNAME=$(call name-fix-token,$(modname))
+ modfile_flags  = -DKBUILD_MODFILE=$(call stringify,$(modfile))
+ 
+ orig_c_flags   = $(KBUILD_CPPFLAGS) $(KBUILD_CFLAGS) \
+diff --git a/scripts/generate_initcall_order.pl b/scripts/generate_initcall_order.pl
+new file mode 100755
+index 000000000000..fe83aec2b51e
+--- /dev/null
++++ b/scripts/generate_initcall_order.pl
+@@ -0,0 +1,270 @@
++#!/usr/bin/env perl
++# SPDX-License-Identifier: GPL-2.0
++#
++# Generates a linker script that specifies the correct initcall order.
++#
++# Copyright (C) 2019 Google LLC
++
++use strict;
++use warnings;
++use IO::Handle;
++use IO::Select;
++use POSIX ":sys_wait_h";
++
++my $nm = $ENV{'NM'} || die "$0: ERROR: NM not set?";
++my $objtree = $ENV{'objtree'} || '.';
++
++## currently active child processes
++my $jobs = {};		# child process pid -> file handle
++## results from child processes
++my $results = {};	# object index -> [ { level, secname }, ... ]
++
++## reads _NPROCESSORS_ONLN to determine the maximum number of processes to
++## start
++sub get_online_processors {
++	open(my $fh, "getconf _NPROCESSORS_ONLN 2>/dev/null |")
++		or die "$0: ERROR: failed to execute getconf: $!";
++	my $procs = <$fh>;
++	close($fh);
++
++	if (!($procs =~ /^\d+$/)) {
++		return 1;
++	}
++
++	return int($procs);
++}
++
++## writes results to the parent process
++## format: <file index> <initcall level> <base initcall section name>
++sub write_results {
++	my ($index, $initcalls) = @_;
++
++	# sort by the counter value to ensure the order of initcalls within
++	# each object file is correct
++	foreach my $counter (sort { $a <=> $b } keys(%{$initcalls})) {
++		my $level = $initcalls->{$counter}->{'level'};
++
++		# section name for the initcall function
++		my $secname = $initcalls->{$counter}->{'module'} . '__' .
++			      $counter . '_' .
++			      $initcalls->{$counter}->{'line'} . '_' .
++			      $initcalls->{$counter}->{'function'};
++
++		print "$index $level $secname\n";
++	}
++}
++
++## reads a result line from a child process and adds it to the $results array
++sub read_results{
++	my ($fh) = @_;
++
++	# each child prints out a full line w/ autoflush and exits after the
++	# last line, so even if buffered I/O blocks here, it shouldn't block
++	# very long
++	my $data = <$fh>;
++
++	if (!defined($data)) {
++		return 0;
++	}
++
++	chomp($data);
++
++	my ($index, $level, $secname) = $data =~
++		/^(\d+)\ ([^\ ]+)\ (.*)$/;
++
++	if (!defined($index) ||
++		!defined($level) ||
++		!defined($secname)) {
++		die "$0: ERROR: child process returned invalid data: $data\n";
++	}
++
++	$index = int($index);
++
++	if (!exists($results->{$index})) {
++		$results->{$index} = [];
++	}
++
++	push (@{$results->{$index}}, {
++		'level'   => $level,
++		'secname' => $secname
++	});
++
++	return 1;
++}
++
++## finds initcalls from an object file or all object files in an archive, and
++## writes results back to the parent process
++sub find_initcalls {
++	my ($index, $file) = @_;
++
++	die "$0: ERROR: file $file doesn't exist?" if (! -f $file);
++
++	open(my $fh, "\"$nm\" --defined-only \"$file\" 2>/dev/null |")
++		or die "$0: ERROR: failed to execute \"$nm\": $!";
++
++	my $initcalls = {};
++
++	while (<$fh>) {
++		chomp;
++
++		# check for the start of a new object file (if processing an
++		# archive)
++		my ($path)= $_ =~ /^(.+)\:$/;
++
++		if (defined($path)) {
++			write_results($index, $initcalls);
++			$initcalls = {};
++			next;
++		}
++
++		# look for an initcall
++		my ($module, $counter, $line, $symbol) = $_ =~
++			/[a-z]\s+__initcall__(\S*)__(\d+)_(\d+)_(.*)$/;
++
++		if (!defined($module)) {
++			$module = ''
++		}
++
++		if (!defined($counter) ||
++			!defined($line) ||
++			!defined($symbol)) {
++			next;
++		}
++
++		# parse initcall level
++		my ($function, $level) = $symbol =~
++			/^(.*)((early|rootfs|con|[0-9])s?)$/;
++
++		die "$0: ERROR: invalid initcall name $symbol in $file($path)"
++			if (!defined($function) || !defined($level));
++
++		$initcalls->{$counter} = {
++			'module'   => $module,
++			'line'     => $line,
++			'function' => $function,
++			'level'    => $level,
++		};
++	}
++
++	close($fh);
++	write_results($index, $initcalls);
++}
++
++## waits for any child process to complete, reads the results, and adds them to
++## the $results array for later processing
++sub wait_for_results {
++	my ($select) = @_;
++
++	my $pid = 0;
++	do {
++		# unblock children that may have a full write buffer
++		foreach my $fh ($select->can_read(0)) {
++			read_results($fh);
++		}
++
++		# check for children that have exited, read the remaining data
++		# from them, and clean up
++		$pid = waitpid(-1, WNOHANG);
++		if ($pid > 0) {
++			if (!exists($jobs->{$pid})) {
++				next;
++			}
++
++			my $fh = $jobs->{$pid};
++			$select->remove($fh);
++
++			while (read_results($fh)) {
++				# until eof
++			}
++
++			close($fh);
++			delete($jobs->{$pid});
++		}
++	} while ($pid > 0);
++}
++
++## forks a child to process each file passed in the command line and collects
++## the results
++sub process_files {
++	my $index = 0;
++	my $njobs = get_online_processors();
++	my $select = IO::Select->new();
++
++	while (my $file = shift(@ARGV)) {
++		# fork a child process and read it's stdout
++		my $pid = open(my $fh, '-|');
++
++		if (!defined($pid)) {
++			die "$0: ERROR: failed to fork: $!";
++		} elsif ($pid) {
++			# save the child process pid and the file handle
++			$select->add($fh);
++			$jobs->{$pid} = $fh;
++		} else {
++			# in the child process
++			STDOUT->autoflush(1);
++			find_initcalls($index, "$objtree/$file");
++			exit;
++		}
++
++		$index++;
++
++		# limit the number of children to $njobs
++		if (scalar(keys(%{$jobs})) >= $njobs) {
++			wait_for_results($select);
++		}
++	}
++
++	# wait for the remaining children to complete
++	while (scalar(keys(%{$jobs})) > 0) {
++		wait_for_results($select);
++	}
++}
++
++sub generate_initcall_lds() {
++	process_files();
++
++	my $sections = {};	# level -> [ secname, ...]
++
++	# sort results to retain link order and split to sections per
++	# initcall level
++	foreach my $index (sort { $a <=> $b } keys(%{$results})) {
++		foreach my $result (@{$results->{$index}}) {
++			my $level = $result->{'level'};
++
++			if (!exists($sections->{$level})) {
++				$sections->{$level} = [];
++			}
++
++			push(@{$sections->{$level}}, $result->{'secname'});
++		}
++	}
++
++	die "$0: ERROR: no initcalls?" if (!keys(%{$sections}));
++
++	# print out a linker script that defines the order of initcalls for
++	# each level
++	print "SECTIONS {\n";
++
++	foreach my $level (sort(keys(%{$sections}))) {
++		my $section;
++
++		if ($level eq 'con') {
++			$section = '.con_initcall.init';
++		} else {
++			$section = ".initcall${level}.init";
++		}
++
++		print "\t${section} : {\n";
++
++		foreach my $secname (@{$sections->{$level}}) {
++			print "\t\t*(${section}..${secname}) ;\n";
++		}
++
++		print "\t}\n";
++	}
++
++	print "}\n";
++}
++
++generate_initcall_lds();
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index c72f5d0238f1..42c73e24e820 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -39,6 +39,16 @@ info()
+ 	fi
+ }
+ 
++# Generate a linker script to ensure correct ordering of initcalls.
++gen_initcalls()
++{
++	info GEN .tmp_initcalls.lds
++
++	${srctree}/scripts/generate_initcall_order.pl \
++		${KBUILD_VMLINUX_OBJS} ${KBUILD_VMLINUX_LIBS} \
++		> .tmp_initcalls.lds
++}
++
+ # If CONFIG_LTO_CLANG is selected, collect generated symbol versions into
+ # .tmp_symversions.lds
+ gen_symversions()
+@@ -70,6 +80,9 @@ modpost_link()
+ 		--end-group"
+ 
+ 	if [ -n "${CONFIG_LTO_CLANG}" ]; then
++		gen_initcalls
++		lds="-T .tmp_initcalls.lds"
++
+ 		if [ -n "${CONFIG_MODVERSIONS}" ]; then
+ 			gen_symversions
+ 			lds="${lds} -T .tmp_symversions.lds"
+@@ -283,6 +296,7 @@ cleanup()
  {
--	int ret = 0;
--	unsigned int i, start, num_regs;
--
--	/* Calculate the number of AArch32 registers contained in count */
--	num_regs = count / regset->size;
--
--	/* Convert pos into an register number */
--	start = pos / regset->size;
--
--	if (start + num_regs > regset->n)
--		return -EIO;
--
--	for (i = 0; i < num_regs; ++i) {
--		compat_ulong_t reg = compat_get_user_reg(target, start + i);
--
--		if (kbuf) {
--			memcpy(kbuf, &reg, sizeof(reg));
--			kbuf += sizeof(reg);
--		} else {
--			ret = copy_to_user(ubuf, &reg, sizeof(reg));
--			if (ret) {
--				ret = -EFAULT;
--				break;
--			}
-+	int i = 0;
- 
--			ubuf += sizeof(reg);
--		}
--	}
--
--	return ret;
-+	while (to.left)
-+		membuf_store(&to, compat_get_user_reg(target, i++));
-+	return 0;
- }
- 
- static int compat_gpr_set(struct task_struct *target,
-@@ -1354,12 +1265,10 @@ static int compat_gpr_set(struct task_struct *target,
- 
- static int compat_vfp_get(struct task_struct *target,
- 			  const struct user_regset *regset,
--			  unsigned int pos, unsigned int count,
--			  void *kbuf, void __user *ubuf)
-+			  struct membuf to)
- {
- 	struct user_fpsimd_state *uregs;
- 	compat_ulong_t fpscr;
--	int ret, vregs_end_pos;
- 
- 	if (!system_supports_fpsimd())
- 		return -EINVAL;
-@@ -1373,19 +1282,10 @@ static int compat_vfp_get(struct task_struct *target,
- 	 * The VFP registers are packed into the fpsimd_state, so they all sit
- 	 * nicely together for us. We just need to create the fpscr separately.
- 	 */
--	vregs_end_pos = VFP_STATE_SIZE - sizeof(compat_ulong_t);
--	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs,
--				  0, vregs_end_pos);
--
--	if (count && !ret) {
--		fpscr = (uregs->fpsr & VFP_FPSCR_STAT_MASK) |
--			(uregs->fpcr & VFP_FPSCR_CTRL_MASK);
--
--		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, &fpscr,
--					  vregs_end_pos, VFP_STATE_SIZE);
--	}
--
--	return ret;
-+	membuf_write(&to, uregs, VFP_STATE_SIZE - sizeof(compat_ulong_t));
-+	fpscr = (uregs->fpsr & VFP_FPSCR_STAT_MASK) |
-+		(uregs->fpcr & VFP_FPSCR_CTRL_MASK);
-+	return membuf_store(&to, fpscr);
- }
- 
- static int compat_vfp_set(struct task_struct *target,
-@@ -1420,11 +1320,10 @@ static int compat_vfp_set(struct task_struct *target,
- }
- 
- static int compat_tls_get(struct task_struct *target,
--			  const struct user_regset *regset, unsigned int pos,
--			  unsigned int count, void *kbuf, void __user *ubuf)
-+			  const struct user_regset *regset,
-+			  struct membuf to)
- {
--	compat_ulong_t tls = (compat_ulong_t)target->thread.uw.tp_value;
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, &tls, 0, -1);
-+	return membuf_store(&to, (compat_ulong_t)target->thread.uw.tp_value);
- }
- 
- static int compat_tls_set(struct task_struct *target,
-@@ -1449,7 +1348,7 @@ static const struct user_regset aarch32_regsets[] = {
- 		.n = COMPAT_ELF_NGREG,
- 		.size = sizeof(compat_elf_greg_t),
- 		.align = sizeof(compat_elf_greg_t),
--		.get = compat_gpr_get,
-+		.get2 = compat_gpr_get,
- 		.set = compat_gpr_set
- 	},
- 	[REGSET_COMPAT_VFP] = {
-@@ -1458,7 +1357,7 @@ static const struct user_regset aarch32_regsets[] = {
- 		.size = sizeof(compat_ulong_t),
- 		.align = sizeof(compat_ulong_t),
- 		.active = fpr_active,
--		.get = compat_vfp_get,
-+		.get2 = compat_vfp_get,
- 		.set = compat_vfp_set
- 	},
- };
-@@ -1474,7 +1373,7 @@ static const struct user_regset aarch32_ptrace_regsets[] = {
- 		.n = COMPAT_ELF_NGREG,
- 		.size = sizeof(compat_elf_greg_t),
- 		.align = sizeof(compat_elf_greg_t),
--		.get = compat_gpr_get,
-+		.get2 = compat_gpr_get,
- 		.set = compat_gpr_set
- 	},
- 	[REGSET_FPR] = {
-@@ -1482,7 +1381,7 @@ static const struct user_regset aarch32_ptrace_regsets[] = {
- 		.n = VFP_STATE_SIZE / sizeof(compat_ulong_t),
- 		.size = sizeof(compat_ulong_t),
- 		.align = sizeof(compat_ulong_t),
--		.get = compat_vfp_get,
-+		.get2 = compat_vfp_get,
- 		.set = compat_vfp_set
- 	},
- 	[REGSET_TLS] = {
-@@ -1490,7 +1389,7 @@ static const struct user_regset aarch32_ptrace_regsets[] = {
- 		.n = 1,
- 		.size = sizeof(compat_ulong_t),
- 		.align = sizeof(compat_ulong_t),
--		.get = compat_tls_get,
-+		.get2 = compat_tls_get,
- 		.set = compat_tls_set,
- 	},
- #ifdef CONFIG_HAVE_HW_BREAKPOINT
-@@ -1499,7 +1398,7 @@ static const struct user_regset aarch32_ptrace_regsets[] = {
- 		.n = sizeof(struct user_hwdebug_state) / sizeof(u32),
- 		.size = sizeof(u32),
- 		.align = sizeof(u32),
--		.get = hw_break_get,
-+		.get2 = hw_break_get,
- 		.set = hw_break_set,
- 	},
- 	[REGSET_HW_WATCH] = {
-@@ -1507,7 +1406,7 @@ static const struct user_regset aarch32_ptrace_regsets[] = {
- 		.n = sizeof(struct user_hwdebug_state) / sizeof(u32),
- 		.size = sizeof(u32),
- 		.align = sizeof(u32),
--		.get = hw_break_get,
-+		.get2 = hw_break_get,
- 		.set = hw_break_set,
- 	},
- #endif
-@@ -1516,7 +1415,7 @@ static const struct user_regset aarch32_ptrace_regsets[] = {
- 		.n = 1,
- 		.size = sizeof(int),
- 		.align = sizeof(int),
--		.get = system_call_get,
-+		.get2 = system_call_get,
- 		.set = system_call_set,
- 	},
- };
+ 	rm -f .btf.*
+ 	rm -f .tmp_System.map
++	rm -f .tmp_initcalls.lds
+ 	rm -f .tmp_symversions.lds
+ 	rm -f .tmp_vmlinux*
+ 	rm -f System.map
 -- 
-2.11.0
+2.27.0.212.ge8ba1cc988-goog
