@@ -1,20 +1,20 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 7/9] arm/boot: Warn on orphan section placement
-Date: Tue, 23 Jun 2020 18:49:38 -0700
-Message-ID: <20200624014940.1204448-8-keescook@chromium.org>
+Subject: [PATCH v3 6/9] arm/build: Warn on orphan section placement
+Date: Tue, 23 Jun 2020 18:49:37 -0700
+Message-ID: <20200624014940.1204448-7-keescook@chromium.org>
 References: <20200624014940.1204448-1-keescook@chromium.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46746 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46724 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388575AbgFXBty (ORCPT
+        with ESMTP id S2388562AbgFXBty (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2020 21:49:54 -0400
-Received: from mail-pg1-x543.google.com (mail-pg1-x543.google.com [IPv6:2607:f8b0:4864:20::543])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6A62DC06179B
-        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:54 -0700 (PDT)
-Received: by mail-pg1-x543.google.com with SMTP id e9so561785pgo.9
-        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:54 -0700 (PDT)
+Received: from mail-pl1-x641.google.com (mail-pl1-x641.google.com [IPv6:2607:f8b0:4864:20::641])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8F41BC0613ED
+        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:52 -0700 (PDT)
+Received: by mail-pl1-x641.google.com with SMTP id k6so327103pll.9
+        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:52 -0700 (PDT)
 In-Reply-To: <20200624014940.1204448-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -26,78 +26,153 @@ heuristics as these can vary between linkers, and may change between
 versions. All sections need to be explicitly named in the linker
 script.
 
-Use common macros for debug sections, discards, and text stubs. Add
-discards for unwanted .note, and .rel sections. Finally, enable orphan
-section warning.
+Specifically, this would have made a recently fixed bug very obvious:
+
+ld: warning: orphan section `.fixup' from `arch/arm/lib/copy_from_user.o' being placed in section `.fixup'
+
+Refactor linker script include file for use in standard and XIP linker
+scripts, as well as in the coming boot linker script changes. Add debug
+sections explicitly. Create ARM_COMMON_DISCARD macro with unneeded
+sections .ARM.attributes, .iplt, .rel.iplt, .igot.plt, and .modinfo.
+Create ARM_STUBS_TEXT macro with missed text stub sections .vfp11_veneer,
+and .v4_bx. Finally enable orphan section warning.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm/boot/compressed/Makefile      |  2 ++
- arch/arm/boot/compressed/vmlinux.lds.S | 17 +++++++----------
- 2 files changed, 9 insertions(+), 10 deletions(-)
+ arch/arm/Makefile                             |  4 ++++
+ .../arm/{kernel => include/asm}/vmlinux.lds.h | 22 ++++++++++++++-----
+ arch/arm/kernel/vmlinux-xip.lds.S             |  5 ++---
+ arch/arm/kernel/vmlinux.lds.S                 |  5 ++---
+ 4 files changed, 25 insertions(+), 11 deletions(-)
+ rename arch/arm/{kernel => include/asm}/vmlinux.lds.h (92%)
 
-diff --git a/arch/arm/boot/compressed/Makefile b/arch/arm/boot/compressed/Makefile
-index 00602a6fba04..b8a97d81662d 100644
---- a/arch/arm/boot/compressed/Makefile
-+++ b/arch/arm/boot/compressed/Makefile
-@@ -128,6 +128,8 @@ endif
- LDFLAGS_vmlinux += --no-undefined
- # Delete all temporary local symbols
- LDFLAGS_vmlinux += -X
-+# Report orphan sections
+diff --git a/arch/arm/Makefile b/arch/arm/Makefile
+index 59fde2d598d8..e414e3732b3a 100644
+--- a/arch/arm/Makefile
++++ b/arch/arm/Makefile
+@@ -16,6 +16,10 @@ LDFLAGS_vmlinux	+= --be8
+ KBUILD_LDFLAGS_MODULE	+= --be8
+ endif
+ 
++# We never want expected sections to be placed heuristically by the
++# linker. All sections should be explicitly named in the linker script.
 +LDFLAGS_vmlinux += --orphan-handling=warn
- # Next argument is a linker script
- LDFLAGS_vmlinux += -T
++
+ ifeq ($(CONFIG_ARM_MODULE_PLTS),y)
+ KBUILD_LDS_MODULE	+= $(srctree)/arch/arm/kernel/module.lds
+ endif
+diff --git a/arch/arm/kernel/vmlinux.lds.h b/arch/arm/include/asm/vmlinux.lds.h
+similarity index 92%
+rename from arch/arm/kernel/vmlinux.lds.h
+rename to arch/arm/include/asm/vmlinux.lds.h
+index 381a8e105fa5..3d88ea74f4cd 100644
+--- a/arch/arm/kernel/vmlinux.lds.h
++++ b/arch/arm/include/asm/vmlinux.lds.h
+@@ -1,4 +1,5 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
++#include <asm-generic/vmlinux.lds.h>
  
-diff --git a/arch/arm/boot/compressed/vmlinux.lds.S b/arch/arm/boot/compressed/vmlinux.lds.S
-index 09ac33f52814..c2a8509f876f 100644
---- a/arch/arm/boot/compressed/vmlinux.lds.S
-+++ b/arch/arm/boot/compressed/vmlinux.lds.S
-@@ -2,6 +2,7 @@
- /*
-  *  Copyright (C) 2000 Russell King
-  */
+ #ifdef CONFIG_HOTPLUG_CPU
+ #define ARM_CPU_DISCARD(x)
+@@ -37,6 +38,13 @@
+ 		*(.idmap.text)						\
+ 		__idmap_text_end = .;					\
+ 
++#define ARM_COMMON_DISCARD						\
++		*(.ARM.attributes)					\
++		*(.iplt) *(.rel.iplt) *(.igot.plt)			\
++		*(.modinfo)						\
++		*(.discard)						\
++		*(.discard.*)
++
+ #define ARM_DISCARD							\
+ 		*(.ARM.exidx.exit.text)					\
+ 		*(.ARM.extab.exit.text)					\
+@@ -49,8 +57,14 @@
+ 		EXIT_CALL						\
+ 		ARM_MMU_DISCARD(*(.text.fixup))				\
+ 		ARM_MMU_DISCARD(*(__ex_table))				\
+-		*(.discard)						\
+-		*(.discard.*)
++		ARM_COMMON_DISCARD
++
++#define ARM_STUBS_TEXT							\
++		*(.gnu.warning)						\
++		*(.glue_7t)						\
++		*(.glue_7)						\
++		*(.vfp11_veneer)					\
++		*(.v4_bx)
+ 
+ #define ARM_TEXT							\
+ 		IDMAP_TEXT						\
+@@ -64,9 +78,7 @@
+ 		CPUIDLE_TEXT						\
+ 		LOCK_TEXT						\
+ 		KPROBES_TEXT						\
+-		*(.gnu.warning)						\
+-		*(.glue_7)						\
+-		*(.glue_7t)						\
++		ARM_STUBS_TEXT						\
+ 		. = ALIGN(4);						\
+ 		*(.got)			/* Global offset table */	\
+ 		ARM_CPU_KEEP(PROC_INFO)
+diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
+index 6d2be994ae58..0807f40844a2 100644
+--- a/arch/arm/kernel/vmlinux-xip.lds.S
++++ b/arch/arm/kernel/vmlinux-xip.lds.S
+@@ -9,15 +9,13 @@
+ 
+ #include <linux/sizes.h>
+ 
+-#include <asm-generic/vmlinux.lds.h>
 +#include <asm/vmlinux.lds.h>
+ #include <asm/cache.h>
+ #include <asm/thread_info.h>
+ #include <asm/memory.h>
+ #include <asm/mpu.h>
+ #include <asm/page.h>
  
- #ifdef CONFIG_CPU_ENDIAN_BE8
- #define ZIMAGE_MAGIC(x) ( (((x) >> 24) & 0x000000ff) | \
-@@ -17,8 +18,11 @@ ENTRY(_start)
- SECTIONS
- {
-   /DISCARD/ : {
-+    ARM_COMMON_DISCARD
-     *(.ARM.exidx*)
-     *(.ARM.extab*)
-+    *(.note.*)
-+    *(.rel.*)
-     /*
-      * Discard any r/w data - this produces a link error if we have any,
-      * which is required for PIC decompression.  Local data generates
-@@ -36,9 +40,7 @@ SECTIONS
-     *(.start)
-     *(.text)
-     *(.text.*)
--    *(.gnu.warning)
--    *(.glue_7t)
--    *(.glue_7)
-+    ARM_STUBS_TEXT
-   }
-   .table : ALIGN(4) {
-     _table_start = .;
-@@ -128,12 +130,7 @@ SECTIONS
-   PROVIDE(__pecoff_data_size = ALIGN(512) - ADDR(.data));
-   PROVIDE(__pecoff_end = ALIGN(512));
+-#include "vmlinux.lds.h"
+-
+ OUTPUT_ARCH(arm)
+ ENTRY(stext)
  
--  .stab 0		: { *(.stab) }
--  .stabstr 0		: { *(.stabstr) }
--  .stab.excl 0		: { *(.stab.excl) }
--  .stab.exclstr 0	: { *(.stab.exclstr) }
--  .stab.index 0		: { *(.stab.index) }
--  .stab.indexstr 0	: { *(.stab.indexstr) }
--  .comment 0		: { *(.comment) }
-+  STABS_DEBUG
-+  DWARF_DEBUG
+@@ -152,6 +150,7 @@ SECTIONS
+ 	_end = .;
+ 
+ 	STABS_DEBUG
++	DWARF_DEBUG
  }
- ASSERT(_edata_real == _edata, "error: zImage file size is incorrect");
+ 
+ /*
+diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+index 7f24bc08403e..969205f125ca 100644
+--- a/arch/arm/kernel/vmlinux.lds.S
++++ b/arch/arm/kernel/vmlinux.lds.S
+@@ -9,15 +9,13 @@
+ #else
+ 
+ #include <linux/pgtable.h>
+-#include <asm-generic/vmlinux.lds.h>
++#include <asm/vmlinux.lds.h>
+ #include <asm/cache.h>
+ #include <asm/thread_info.h>
+ #include <asm/memory.h>
+ #include <asm/mpu.h>
+ #include <asm/page.h>
+ 
+-#include "vmlinux.lds.h"
+-
+ OUTPUT_ARCH(arm)
+ ENTRY(stext)
+ 
+@@ -151,6 +149,7 @@ SECTIONS
+ 	_end = .;
+ 
+ 	STABS_DEBUG
++	DWARF_DEBUG
+ }
+ 
+ #ifdef CONFIG_STRICT_KERNEL_RWX
 -- 
 2.25.1
