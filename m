@@ -1,64 +1,89 @@
-From: Brendan Higgins <brendanhiggins@google.com>
-Subject: [PATCH v4 01/11] vmlinux.lds.h: add linker section for KUnit test suites
-Date: Wed, 24 Jun 2020 13:55:40 -0700
-Message-ID: <20200624205550.215599-2-brendanhiggins@google.com>
-References: <20200624205550.215599-1-brendanhiggins@google.com>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Subject: Re: [PATCH 07/22] kbuild: lto: merge module sections
+Date: Wed, 24 Jun 2020 14:01:59 -0700
+Message-ID: <CAKwvOdkY2M9+BgA5FELK+7bjv1sZYMuTmVOztCYijas_OHfVDQ@mail.gmail.com>
+References: <20200624203200.78870-1-samitolvanen@google.com> <20200624203200.78870-8-samitolvanen@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54448 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389045AbgFXU6L (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:58:11 -0400
-Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 64E13C061573
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:58:11 -0700 (PDT)
-Received: by mail-yb1-xb49.google.com with SMTP id j3so3603674yba.14
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:58:11 -0700 (PDT)
-In-Reply-To: <20200624205550.215599-1-brendanhiggins@google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org, Brendan Higgins <brendanhiggins@google.com>
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <20200624203200.78870-8-samitolvanen@google.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: Sami Tolvanen <samitolvanen@google.com>
+Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Add a linker section where KUnit can put references to its test suites.
-This patch is the first step in transitioning to dispatching all KUnit
-tests from a centralized executor rather than having each as its own
-separate late_initcall.
+On Wed, Jun 24, 2020 at 1:33 PM Sami Tolvanen <samitolvanen@google.com> wrote:
+>
+> LLD always splits sections with LTO, which increases module sizes. This
+> change adds a linker script that merges the split sections in the final
+> module and discards the .eh_frame section that LLD may generate.
 
-Co-developed-by: Iurii Zaikin <yzaikin@google.com>
-Signed-off-by: Iurii Zaikin <yzaikin@google.com>
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
----
- include/asm-generic/vmlinux.lds.h | 8 ++++++++
- 1 file changed, 8 insertions(+)
+For discarding .eh_frame, Kees is currently fighting with a series
+that I would really like to see land that enables warnings on orphan
+section placement.  I don't see any new flags to inhibit .eh_frame
+generation, or discard it in the linker script, so I'd expect it to be
+treated as an orphan section and kept.  Was that missed, or should
+that be removed from the commit message?
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index db600ef218d7d..4f9b036fc9616 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -881,6 +881,13 @@
- 		KEEP(*(.con_initcall.init))				\
- 		__con_initcall_end = .;
- 
-+/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
-+#define KUNIT_TEST_SUITES						\
-+		. = ALIGN(8);						\
-+		__kunit_suites_start = .;				\
-+		KEEP(*(.kunit_test_suites))				\
-+		__kunit_suites_end = .;
-+
- #ifdef CONFIG_BLK_DEV_INITRD
- #define INIT_RAM_FS							\
- 	. = ALIGN(4);							\
-@@ -1056,6 +1063,7 @@
- 		INIT_CALLS						\
- 		CON_INITCALL						\
- 		INIT_RAM_FS						\
-+		KUNIT_TEST_SUITES					\
- 	}
- 
- #define BSS_SECTION(sbss_align, bss_align, stop_align)			\
+>
+> Suggested-by: Nick Desaulniers <ndesaulniers@google.com>
+> Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+> ---
+>  Makefile               |  2 ++
+>  scripts/module-lto.lds | 26 ++++++++++++++++++++++++++
+>  2 files changed, 28 insertions(+)
+>  create mode 100644 scripts/module-lto.lds
+>
+> diff --git a/Makefile b/Makefile
+> index ee66513a5b66..9ffec5fe1737 100644
+> --- a/Makefile
+> +++ b/Makefile
+> @@ -898,6 +898,8 @@ CC_FLAGS_LTO_CLANG += -fvisibility=default
+>  # Limit inlining across translation units to reduce binary size
+>  LD_FLAGS_LTO_CLANG := -mllvm -import-instr-limit=5
+>  KBUILD_LDFLAGS += $(LD_FLAGS_LTO_CLANG)
+> +
+> +KBUILD_LDS_MODULE += $(srctree)/scripts/module-lto.lds
+>  endif
+>
+>  ifdef CONFIG_LTO
+> diff --git a/scripts/module-lto.lds b/scripts/module-lto.lds
+> new file mode 100644
+> index 000000000000..65884c652bf2
+> --- /dev/null
+> +++ b/scripts/module-lto.lds
+> @@ -0,0 +1,26 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +/*
+> + * With CONFIG_LTO_CLANG, LLD always enables -fdata-sections and
+> + * -ffunction-sections, which increases the size of the final module.
+> + * Merge the split sections in the final binary.
+> + */
+> +SECTIONS {
+> +       __patchable_function_entries : { *(__patchable_function_entries) }
+> +
+> +       .bss : {
+> +               *(.bss .bss.[0-9a-zA-Z_]*)
+> +               *(.bss..L* .bss..compoundliteral*)
+> +       }
+> +
+> +       .data : {
+> +               *(.data .data.[0-9a-zA-Z_]*)
+> +               *(.data..L* .data..compoundliteral*)
+> +       }
+> +
+> +       .rodata : {
+> +               *(.rodata .rodata.[0-9a-zA-Z_]*)
+> +               *(.rodata..L* .rodata..compoundliteral*)
+> +       }
+> +
+> +       .text : { *(.text .text.[0-9a-zA-Z_]*) }
+> +}
+> --
+> 2.27.0.212.ge8ba1cc988-goog
+>
+
+
 -- 
-2.27.0.212.ge8ba1cc988-goog
+Thanks,
+~Nick Desaulniers
