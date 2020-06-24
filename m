@@ -1,63 +1,45 @@
-From: Andrea Parri <parri.andrea@gmail.com>
-Subject: Re: LKMM patches for next merge window
-Date: Thu, 25 Jun 2020 01:24:02 +0200
-Message-ID: <20200624232402.GA465543@andrea>
-References: <20200624185400.GA13594@paulmck-ThinkPad-P72>
+From: Sami Tolvanen <samitolvanen@google.com>
+Subject: Re: [PATCH 06/22] kbuild: lto: limit inlining
+Date: Wed, 24 Jun 2020 16:37:24 -0700
+Message-ID: <20200624233724.GA94769@google.com>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624203200.78870-7-samitolvanen@google.com>
+ <20200624212055.GU4817@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48874 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50914 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729587AbgFXXYL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 19:24:11 -0400
+        with ESMTP id S2387981AbgFXXhb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 19:37:31 -0400
+Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8313CC061796
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 16:37:31 -0700 (PDT)
+Received: by mail-pl1-x643.google.com with SMTP id y18so1860844plr.4
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 16:37:31 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <20200624185400.GA13594@paulmck-ThinkPad-P72>
+In-Reply-To: <20200624212055.GU4817@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org, stern@rowland.harvard.edu, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Mauro Carvalho Chehab <mchehab+huawei@kernel.org>, Christoph Hellwig <hch@lst.de>, Jonathan Corbet <corbet@lwn.net>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, George Burgess IV <gbiv@google.com>
 
-On Wed, Jun 24, 2020 at 11:54:00AM -0700, Paul E. McKenney wrote:
-> Hello!
+On Wed, Jun 24, 2020 at 11:20:55PM +0200, Peter Zijlstra wrote:
+> On Wed, Jun 24, 2020 at 01:31:44PM -0700, Sami Tolvanen wrote:
+> > This change limits function inlining across translation unit
+> > boundaries in order to reduce the binary size with LTO.
+> > 
+> > The -import-instr-limit flag defines a size limit, as the number
+> > of LLVM IR instructions, for importing functions from other TUs.
+> > The default value is 100, and decreasing it to 5 reduces the size
+> > of a stripped arm64 defconfig vmlinux by 11%.
 > 
-> Here is the list of LKMM patches I am considering for the next merge
-> window and the status of each.  Any I am missing or any that need to
-> wait or be modified?
-> 
-> 						Thanx, Paul
-> 
-> ------------------------------------------------------------------------
-> 
-> 3ce5d69 docs: fix references for DMA*.txt files
-> 	Could someone please provide an ack?
+> Is that also the right number for x86? What about the effect on
+> performance? What did 6 do? or 4?
 
-Fixing the N-th commit "move docs without updating in-tree references".
-;-/
+This is the size limit we decided on for Android after testing on
+arm64, but the number is obviously a compromise between code size
+and performance. I'd be happy to benchmark this further once other
+concerns have been resolved.
 
-Most importantly there appears to be some on-going discussion about it,
-cf.
-
-  https://lkml.kernel.org/r/20200623072240.GA974@lst.de
-
-(could you please sort this out?)
-
-  Andrea
-
-
-> 
-> ac1a749 tools/memory-model: Add recent references
-> be1ce3e tools/memory-model: Fix "conflict" definition
-> 24dca63 Documentation: LKMM: Add litmus test for RCU GP guarantee where updater frees object
-> 47ec95b Documentation: LKMM: Add litmus test for RCU GP guarantee where reader stores
-> bb2c938 MAINTAINERS: Update maintainers for new Documentation/litmus-tests
-> 05bee9a tools/memory-model: Add an exception for limitations on _unless() family
-> dc76257 Documentation/litmus-tests: Introduce atomic directory
-> d059e50 Documentation/litmus-tests/atomic: Add a test for atomic_set()
-> 7eecf76 Documentation/litmus-tests/atomic: Add a test for smp_mb__after_atomic()
-> 116f054 tools/memory-model: Fix reference to litmus test in recipes.txt
-> ffd32d4 Documentation/litmus-tests: Merge atomic's README into top-level one
-> a08ae99 Documentation/litmus-tests: Cite an RCU litmus test
-> 843285eb tools/memory-model/README: Expand dependency of klitmus7
-> 0296c57 tools/memory-model/README: Mention herdtools7 7.56 in compatibility table
-> 47e4f0a Documentation/litmus-tests: Add note on herd7 7.56 in atomic litmus test
-> 	All ready to go.
+Sami
