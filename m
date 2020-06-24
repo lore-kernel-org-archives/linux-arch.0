@@ -1,69 +1,63 @@
-From: Sami Tolvanen <samitolvanen@google.com>
-Subject: Re: [PATCH 11/22] pci: lto: fix PREL32 relocations
-Date: Wed, 24 Jun 2020 16:21:37 -0700
-Message-ID: <20200624232137.GA243469@google.com>
-References: <20200624203200.78870-12-samitolvanen@google.com>
- <202006250618.DQj64eMK%lkp@intel.com>
- <CAKwvOdnREuOmN_Vinn8pn6fxEpjzCM1_=9tDzbd2z884GNLFeA@mail.gmail.com>
+From: Andrea Parri <parri.andrea@gmail.com>
+Subject: Re: LKMM patches for next merge window
+Date: Thu, 25 Jun 2020 01:24:02 +0200
+Message-ID: <20200624232402.GA465543@andrea>
+References: <20200624185400.GA13594@paulmck-ThinkPad-P72>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48482 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48874 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388711AbgFXXVp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 19:21:45 -0400
-Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 55C75C061573
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 16:21:44 -0700 (PDT)
-Received: by mail-pj1-x1041.google.com with SMTP id ev7so1436399pjb.2
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 16:21:44 -0700 (PDT)
+        with ESMTP id S1729587AbgFXXYL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 19:24:11 -0400
 Content-Disposition: inline
-In-Reply-To: <CAKwvOdnREuOmN_Vinn8pn6fxEpjzCM1_=9tDzbd2z884GNLFeA@mail.gmail.com>
+In-Reply-To: <20200624185400.GA13594@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: kernel test robot <lkp@intel.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, kbuild-all@lists.01.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org, stern@rowland.harvard.edu, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Mauro Carvalho Chehab <mchehab+huawei@kernel.org>, Christoph Hellwig <hch@lst.de>, Jonathan Corbet <corbet@lwn.net>
 
-On Wed, Jun 24, 2020 at 04:03:48PM -0700, Nick Desaulniers wrote:
-> On Wed, Jun 24, 2020 at 3:50 PM kernel test robot <lkp@intel.com> wrote:
-> >
-> > Hi Sami,
-> >
-> > Thank you for the patch! Perhaps something to improve:
-> >
-> > [auto build test WARNING on 26e122e97a3d0390ebec389347f64f3730fdf48f]
-> >
-> > url:    https://github.com/0day-ci/linux/commits/Sami-Tolvanen/add-support-for-Clang-LTO/20200625-043816
-> > base:    26e122e97a3d0390ebec389347f64f3730fdf48f
-> > config: i386-alldefconfig (attached as .config)
-> > compiler: gcc-9 (Debian 9.3.0-13) 9.3.0
-> > reproduce (this is a W=1 build):
-> >         # save the attached .config to linux build tree
-> >         make W=1 ARCH=i386
+On Wed, Jun 24, 2020 at 11:54:00AM -0700, Paul E. McKenney wrote:
+> Hello!
 > 
-> Note: W=1 ^
+> Here is the list of LKMM patches I am considering for the next merge
+> window and the status of each.  Any I am missing or any that need to
+> wait or be modified?
 > 
-> >
-> > If you fix the issue, kindly add following tag as appropriate
-> > Reported-by: kernel test robot <lkp@intel.com>
-> >
-> > All warnings (new ones prefixed by >>):
-> >
-> >    In file included from arch/x86/kernel/pci-dma.c:9:
-> > >> include/linux/compiler-gcc.h:72:45: warning: no previous prototype for '__UNIQUE_ID_via_no_dac190' [-Wmissing-prototypes]
-> >       72 | #define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __COUNTER__)
-> >          |                                             ^~~~~~~~~~~~
-> >    include/linux/pci.h:1914:7: note: in definition of macro '___DECLARE_PCI_FIXUP_SECTION'
-> >     1914 |  void stub(struct pci_dev *dev) { hook(dev); }   \
-> >          |       ^~~~
+> 						Thanx, Paul
 > 
-> Should `stub` be qualified as `static inline`? https://godbolt.org/z/cPBXxW
-> Or should stub be declared in this header, but implemented in a .c
-> file?  (I'm guessing the former, since the `hook` callback comes from
-> the macro).
+> ------------------------------------------------------------------------
+> 
+> 3ce5d69 docs: fix references for DMA*.txt files
+> 	Could someone please provide an ack?
 
-Does static inline guarantee that the compiler won't rename the symbol?
-The purpose of this change is to have a stable symbol name, which we can
-safely use in inline assembly.
+Fixing the N-th commit "move docs without updating in-tree references".
+;-/
 
-Sami
+Most importantly there appears to be some on-going discussion about it,
+cf.
+
+  https://lkml.kernel.org/r/20200623072240.GA974@lst.de
+
+(could you please sort this out?)
+
+  Andrea
+
+
+> 
+> ac1a749 tools/memory-model: Add recent references
+> be1ce3e tools/memory-model: Fix "conflict" definition
+> 24dca63 Documentation: LKMM: Add litmus test for RCU GP guarantee where updater frees object
+> 47ec95b Documentation: LKMM: Add litmus test for RCU GP guarantee where reader stores
+> bb2c938 MAINTAINERS: Update maintainers for new Documentation/litmus-tests
+> 05bee9a tools/memory-model: Add an exception for limitations on _unless() family
+> dc76257 Documentation/litmus-tests: Introduce atomic directory
+> d059e50 Documentation/litmus-tests/atomic: Add a test for atomic_set()
+> 7eecf76 Documentation/litmus-tests/atomic: Add a test for smp_mb__after_atomic()
+> 116f054 tools/memory-model: Fix reference to litmus test in recipes.txt
+> ffd32d4 Documentation/litmus-tests: Merge atomic's README into top-level one
+> a08ae99 Documentation/litmus-tests: Cite an RCU litmus test
+> 843285eb tools/memory-model/README: Expand dependency of klitmus7
+> 0296c57 tools/memory-model/README: Mention herdtools7 7.56 in compatibility table
+> 47e4f0a Documentation/litmus-tests: Add note on herd7 7.56 in atomic litmus test
+> 	All ready to go.
