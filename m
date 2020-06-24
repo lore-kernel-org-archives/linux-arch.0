@@ -1,55 +1,127 @@
 Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46716 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47738 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388547AbgFXBtv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2020 21:49:51 -0400
-Received: from mail-pg1-x543.google.com (mail-pg1-x543.google.com [IPv6:2607:f8b0:4864:20::543])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7F872C061755
-        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:50 -0700 (PDT)
-Received: by mail-pg1-x543.google.com with SMTP id l63so551556pge.12
-        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:50 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 1/9] vmlinux.lds.h: Add .gnu.version* to DISCARDS
-Date: Tue, 23 Jun 2020 18:49:32 -0700
-Message-ID: <20200624014940.1204448-2-keescook@chromium.org>
-In-Reply-To: <20200624014940.1204448-1-keescook@chromium.org>
-References: <20200624014940.1204448-1-keescook@chromium.org>
+        with ESMTP id S2406318AbgFXUP1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:15:27 -0400
+Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D9C1AC061573
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:15:26 -0700 (PDT)
+Received: by mail-pj1-x1043.google.com with SMTP id b92so1672324pjc.4
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:15:26 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20200228012036.15682-1-brendanhiggins@google.com>
+ <20200228012036.15682-5-brendanhiggins@google.com> <e5de96ed-fb76-d322-fa40-c6e870e76c36@gmail.com>
+In-Reply-To: <e5de96ed-fb76-d322-fa40-c6e870e76c36@gmail.com>
+From: Brendan Higgins <brendanhiggins@google.com>
+Date: Wed, 24 Jun 2020 13:15:14 -0700
+Message-ID: <CAFd5g45Fi8n9YsMqV0FNrz3+wtoVtvg_Hvo7yg-MdJwwqxXqTQ@mail.gmail.com>
+Subject: Re: [PATCH v3 4/7] init: main: add KUnit to kernel init
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200624014932.0ruLgeZcO9-bNEAyEihvyPLh10PymdUT0eaHsHGNZqM@z>
+To: Frank Rowand <frowand.list@gmail.com>
+Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
+Message-ID: <20200624201514.Qb93C01HFS-XlSbRNqblshBNPJl3GEeFIPI5SBBQch4@z>
 
-For vmlinux linking, no architecture uses the .gnu.version* sections,
-so remove it via the common DISCARDS macro in preparation for adding
---orphan-handling=warn more widely. This is a work-around for what
-appears to be a bug[1] in ld.bfd which warns for this synthetic section
-even when none is found in input objects, and even when no section is
-emitted for an output object[2].
+On Mon, Mar 2, 2020 at 11:13 AM Frank Rowand <frowand.list@gmail.com> wrote:
 
-[1] https://sourceware.org/bugzilla/show_bug.cgi?id=26153
-[2] https://lore.kernel.org/lkml/202006221524.CEB86E036B@keescook/
+Sorry it took so long to respond. I am reviving this patchset now,
+about to send out a new revision and I just saw this comment.
 
-Reviewed-by: Fangrui Song <maskray@google.com>
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- include/asm-generic/vmlinux.lds.h | 2 ++
- 1 file changed, 2 insertions(+)
+> On 2/27/20 7:20 PM, Brendan Higgins wrote:
+> > Remove KUnit from init calls entirely, instead call directly from
+> > kernel_init().
+> >
+> > Co-developed-by: Alan Maguire <alan.maguire@oracle.com>
+> > Signed-off-by: Alan Maguire <alan.maguire@oracle.com>
+> > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+> > Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+> > ---
+> >  include/kunit/test.h | 9 +++++++++
+> >  init/main.c          | 4 ++++
+> >  lib/kunit/executor.c | 4 +---
+> >  3 files changed, 14 insertions(+), 3 deletions(-)
+> >
+> > diff --git a/include/kunit/test.h b/include/kunit/test.h
+> > index 8a02f93a6b505..8689dd1459844 100644
+> > --- a/include/kunit/test.h
+> > +++ b/include/kunit/test.h
+> > @@ -197,6 +197,15 @@ void kunit_init_test(struct kunit *test, const char *name);
+> >
+> >  int kunit_run_tests(struct kunit_suite *suite);
+> >
+> > +#if IS_BUILTIN(CONFIG_KUNIT)
+>
+> I suspected this would not work if a unittest was builtin but CONFIG_KUNIT
+> was set to module.
+>
+> So I decided to experiment a bit to verify my assumptions (before applying
+> this patch series).  I tried to set CONFIG_KUNIT to module, then set
+> CONFIG_KUNIT_EXAMPLE_TEST to built in.  Kconfig does not let me do this
+> because KUNIT_EXAMPLE_TEST is inside a 'if KUNIT' in lib/kunit/Kconfig,
+> but instead switches KUNIT_EXAMPLE_TEST to a module, and warns that it
+> has done so.  This was a bit of a surprise, but seems reasonable.
+>
+> So my next assumption is that the architecture of KUnit expects
+> each individual unit test config option to depend upon CONFIG_KUNIT.
+> If this is the case, please clearly document that requirement in
+> the KUnit documentation.
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index db600ef218d7..1248a206be8d 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -934,6 +934,8 @@
- 	*(.discard)							\
- 	*(.discard.*)							\
- 	*(.modinfo)							\
-+	/* ld.bfd warns about .gnu.version* even when not emitted */	\
-+	*(.gnu.version*)						\
- 	}
- 
- /**
--- 
-2.25.1
+Your assumption is correct. I will fix this in the Kconfig
+documentation in a separate patch.
+
+> > +int kunit_run_all_tests(void);
+> > +#else
+> > +static inline int kunit_run_all_tests(void)
+> > +{
+> > +     return 0;
+> > +}
+> > +#endif /* IS_BUILTIN(CONFIG_KUNIT) */
+> > +
+> >  /*
+> >   * If a test suite is built-in, module_init() gets translated into
+> >   * an initcall which we don't want as the idea is that for builtins
+> > diff --git a/init/main.c b/init/main.c
+> > index ee4947af823f3..7875a5c486dc4 100644
+> > --- a/init/main.c
+> > +++ b/init/main.c
+> > @@ -104,6 +104,8 @@
+> >  #define CREATE_TRACE_POINTS
+> >  #include <trace/events/initcall.h>
+> >
+> > +#include <kunit/test.h>
+> > +
+> >  static int kernel_init(void *);
+> >
+> >  extern void init_IRQ(void);
+> > @@ -1444,6 +1446,8 @@ static noinline void __init kernel_init_freeable(void)
+> >
+> >       do_basic_setup();
+> >
+> > +     kunit_run_all_tests();
+> > +
+> >       console_on_rootfs();
+> >
+> >       /*
+> > diff --git a/lib/kunit/executor.c b/lib/kunit/executor.c
+> > index 6429927d598a5..b75a46c560847 100644
+> > --- a/lib/kunit/executor.c
+> > +++ b/lib/kunit/executor.c
+> > @@ -11,7 +11,7 @@ extern struct kunit_suite * const * const __kunit_suites_end[];
+> >
+> >  #if IS_BUILTIN(CONFIG_KUNIT)
+> >
+> > -static int kunit_run_all_tests(void)
+> > +int kunit_run_all_tests(void)
+> >  {
+> >       struct kunit_suite * const * const *suites, * const *subsuite;
+> >       bool has_test_failed = false;
+> > @@ -31,6 +31,4 @@ static int kunit_run_all_tests(void)
+> >       return 0;
+> >  }
+> >
+> > -late_initcall(kunit_run_all_tests);
+> > -
+> >  #endif /* IS_BUILTIN(CONFIG_KUNIT) */
+> >
+>
