@@ -1,121 +1,46 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38402 "EHLO
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50680 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729140AbgF2Smw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 33/41] hexagon: switch to ->get2()
-Date: Mon, 29 Jun 2020 19:26:20 +0100
-Message-ID: <20200629182628.529995-33-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        with ESMTP id S2406609AbgFXUdi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:33:38 -0400
+Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 12EDAC061795
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:37 -0700 (PDT)
+Received: by mail-yb1-xb49.google.com with SMTP id c17so3510047ybf.7
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:37 -0700 (PDT)
+Date: Wed, 24 Jun 2020 13:31:59 -0700
+In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
+Message-ID: <20200624203200.78870-22-samitolvanen@google.com>
+Mime-Version: 1.0
+References: <20200624203200.78870-1-samitolvanen@google.com>
+Subject: [PATCH 21/22] x86, relocs: Ignore L4_PAGE_OFFSET relocations
+From: Sami Tolvanen <samitolvanen@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200629182620.kLfH_MoYMcVki0aMwxrnnUrMQ_-g77OWZ_UjezsWLcU@z>
+To: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Sami Tolvanen <samitolvanen@google.com>
+Message-ID: <20200624203159.vd9Ld7cmiTbRQmsKuF61KeXLsI3yomo5xTcW2SlDYiU@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+L4_PAGE_OFFSET is a constant value, so don't warn about absolute
+relocations.
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 ---
- arch/hexagon/kernel/ptrace.c | 62 +++++++++++++++-----------------------------
- 1 file changed, 21 insertions(+), 41 deletions(-)
+ arch/x86/tools/relocs.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/hexagon/kernel/ptrace.c b/arch/hexagon/kernel/ptrace.c
-index dcbf7ea960cc..fa6287d1a061 100644
---- a/arch/hexagon/kernel/ptrace.c
-+++ b/arch/hexagon/kernel/ptrace.c
-@@ -35,58 +35,38 @@ void user_disable_single_step(struct task_struct *child)
+diff --git a/arch/x86/tools/relocs.c b/arch/x86/tools/relocs.c
+index ce7188cbdae5..8f3bf34840ce 100644
+--- a/arch/x86/tools/relocs.c
++++ b/arch/x86/tools/relocs.c
+@@ -47,6 +47,7 @@ static const char * const sym_regex_kernel[S_NSYMTYPES] = {
+ 	[S_ABS] =
+ 	"^(xen_irq_disable_direct_reloc$|"
+ 	"xen_save_fl_direct_reloc$|"
++	"L4_PAGE_OFFSET|"
+ 	"VDSO|"
+ 	"__crc_)",
  
- static int genregs_get(struct task_struct *target,
- 		   const struct user_regset *regset,
--		   unsigned int pos, unsigned int count,
--		   void *kbuf, void __user *ubuf)
-+		   srtuct membuf to)
- {
--	int ret;
--	unsigned int dummy;
- 	struct pt_regs *regs = task_pt_regs(target);
- 
--
--	if (!regs)
--		return -EIO;
--
- 	/* The general idea here is that the copyout must happen in
- 	 * exactly the same order in which the userspace expects these
- 	 * regs. Now, the sequence in userspace does not match the
- 	 * sequence in the kernel, so everything past the 32 gprs
- 	 * happens one at a time.
- 	 */
--	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--				  &regs->r00, 0, 32*sizeof(unsigned long));
--
--#define ONEXT(KPT_REG, USR_REG) \
--	if (!ret) \
--		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, \
--			KPT_REG, offsetof(struct user_regs_struct, USR_REG), \
--			offsetof(struct user_regs_struct, USR_REG) + \
--				 sizeof(unsigned long));
--
-+	membuf_write(&to, &regs->r00, 32*sizeof(unsigned long));
- 	/* Must be exactly same sequence as struct user_regs_struct */
--	ONEXT(&regs->sa0, sa0);
--	ONEXT(&regs->lc0, lc0);
--	ONEXT(&regs->sa1, sa1);
--	ONEXT(&regs->lc1, lc1);
--	ONEXT(&regs->m0, m0);
--	ONEXT(&regs->m1, m1);
--	ONEXT(&regs->usr, usr);
--	ONEXT(&regs->preds, p3_0);
--	ONEXT(&regs->gp, gp);
--	ONEXT(&regs->ugp, ugp);
--	ONEXT(&pt_elr(regs), pc);
--	dummy = pt_cause(regs);
--	ONEXT(&dummy, cause);
--	ONEXT(&pt_badva(regs), badva);
-+	membuf_store(&to, regs->sa0);
-+	membuf_store(&to, regs->lc0);
-+	membuf_store(&to, regs->sa1);
-+	membuf_store(&to, regs->lc1);
-+	membuf_store(&to, regs->m0);
-+	membuf_store(&to, regs->m1);
-+	membuf_store(&to, regs->usr);
-+	membuf_store(&to, regs->p3_0);
-+	membuf_store(&to, regs->gp);
-+	membuf_store(&to, regs->ugp);
-+	membuf_store(&to, pt_elr(regs)); // pc
-+	membuf_store(&to, (unsigned long)pt_cause(regs)); // cause
-+	membuf_store(&to, pt_badva(regs)); // badva
- #if CONFIG_HEXAGON_ARCH_VERSION >=4
--	ONEXT(&regs->cs0, cs0);
--	ONEXT(&regs->cs1, cs1);
-+	membuf_store(&to, regs->cs0);
-+	membuf_store(&to, regs->cs1);
-+	return membuf_zero(&to, sizeof(unsigned long));
-+#else
-+	return membuf_zero(&to, 3 * sizeof(unsigned long));
- #endif
--
--	/* Pad the rest with zeros, if needed */
--	if (!ret)
--		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
--					offsetof(struct user_regs_struct, pad1), -1);
--	return ret;
- }
- 
- static int genregs_set(struct task_struct *target,
-@@ -159,7 +139,7 @@ static const struct user_regset hexagon_regsets[] = {
- 		.n = ELF_NGREG,
- 		.size = sizeof(unsigned long),
- 		.align = sizeof(unsigned long),
--		.get = genregs_get,
-+		.get2 = genregs_get,
- 		.set = genregs_set,
- 	},
- };
 -- 
-2.11.0
+2.27.0.212.ge8ba1cc988-goog
