@@ -1,78 +1,67 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v3 9/9] arm64/build: Warn on orphan section placement
-Date: Wed, 24 Jun 2020 08:36:20 -0700
-Message-ID: <202006240835.E474048BBF@keescook>
+From: Arvind Sankar <nivedita@alum.mit.edu>
+Subject: Re: [PATCH v3 2/9] vmlinux.lds.h: Add .symtab, .strtab, and
+ .shstrtab to STABS_DEBUG
+Date: Wed, 24 Jun 2020 11:39:30 -0400
+Message-ID: <20200624153930.GA1337895@rani.riverdale.lan>
 References: <20200624014940.1204448-1-keescook@chromium.org>
- <20200624014940.1204448-10-keescook@chromium.org>
- <20200624075712.GB5853@willie-the-truck>
+ <20200624014940.1204448-3-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60996 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33248 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2403931AbgFXPgW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 11:36:22 -0400
-Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BD133C0613ED
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 08:36:22 -0700 (PDT)
-Received: by mail-pg1-x542.google.com with SMTP id e9so1582587pgo.9
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 08:36:22 -0700 (PDT)
+        with ESMTP id S2404146AbgFXPje (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 11:39:34 -0400
 Content-Disposition: inline
-In-Reply-To: <20200624075712.GB5853@willie-the-truck>
+In-Reply-To: <20200624014940.1204448-3-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Will Deacon <will@kernel.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel
 
-On Wed, Jun 24, 2020 at 08:57:12AM +0100, Will Deacon wrote:
-> On Tue, Jun 23, 2020 at 06:49:40PM -0700, Kees Cook wrote:
-> > We don't want to depend on the linker's orphan section placement
-> > heuristics as these can vary between linkers, and may change between
-> > versions. All sections need to be explicitly named in the linker
-> > script.
-> > 
-> > Avoid .eh_frame* by making sure both -fno-asychronous-unwind-tables and
-> > -fno-unwind-tables are present in both CFLAGS and AFLAGS. Remove one
-> > last instance of .eh_frame by removing the needless Call Frame Information
-> > annotations from arch/arm64/kernel/smccc-call.S.
-> > 
-> > Add .plt, .data.rel.ro, .igot.*, and .iplt to discards as they are not
-> > actually used. While .got.plt is also not used, it must be included
-> > otherwise ld.bfd will fail to link with the error:
-> > 
-> >     aarch64-linux-gnu-ld: discarded output section: `.got.plt'
-> > 
-> > However, as it'd be better to validate that it stays effectively empty,
-> > add an assert.
-> > 
-> > Explicitly include debug sections when they're present.
-> > 
-> > Fix a case of needless quotes in __section(), which Clang doesn't like.
-> > 
-> > Finally, enable orphan section warnings.
-> > 
-> > Thanks to Ard Biesheuvel for many hints on correct ways to handle
-> > mysterious sections. :)
+On Tue, Jun 23, 2020 at 06:49:33PM -0700, Kees Cook wrote:
+> When linking vmlinux with LLD, the synthetic sections .symtab, .strtab,
+> and .shstrtab are listed as orphaned. Add them to the STABS_DEBUG section
+> so there will be no warnings when --orphan-handling=warn is used more
+> widely. (They are added above comment as it is the more common
+
+Nit 1: is "after .comment" better than "above comment"? It's above in the
+sense of higher file offset, but it's below in readelf output.
+Nit 2: These aren't actually debugging sections, no? Is it better to add
+a new macro for it, and is there any plan to stop LLD from warning about
+them?
+
+> order[1].)
 > 
-> Sorry to be a pain, but this patch is doing 3 or 4 independent things at
-> once. Please could you split it up a bit?
-> e.g.
+> ld.lld: warning: <internal>:(.symtab) is being placed in '.symtab'
+> ld.lld: warning: <internal>:(.shstrtab) is being placed in '.shstrtab'
+> ld.lld: warning: <internal>:(.strtab) is being placed in '.strtab'
 > 
->  - Removal of cfi directives from smccc macro
->  - Removal of quotes around section name for clang
->  - Avoid generating .eh_frame
->  - Ensure all sections are accounted for in linker script and warn on orphans
+> [1] https://lore.kernel.org/lkml/20200622224928.o2a7jkq33guxfci4@google.com/
 > 
-> That way it's a bit easier to manage, we can revert/backport bits later if
-> necessary and you get more patches in the kernel ;)
-
-Yeah, this one patch did grow a bit. ;) I've split it up now.
-
-> You can also add my Ack on all the patches:
+> Reported-by: Fangrui Song <maskray@google.com>
+> Reviewed-by: Fangrui Song <maskray@google.com>
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  include/asm-generic/vmlinux.lds.h | 5 ++++-
+>  1 file changed, 4 insertions(+), 1 deletion(-)
 > 
-> Acked-by: Will Deacon <will@kernel.org>
-
-Thanks!
-
--- 
-Kees Cook
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index 1248a206be8d..8e71757f485b 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -792,7 +792,10 @@
+>  		.stab.exclstr 0 : { *(.stab.exclstr) }			\
+>  		.stab.index 0 : { *(.stab.index) }			\
+>  		.stab.indexstr 0 : { *(.stab.indexstr) }		\
+> -		.comment 0 : { *(.comment) }
+> +		.comment 0 : { *(.comment) }				\
+> +		.symtab 0 : { *(.symtab) }				\
+> +		.strtab 0 : { *(.strtab) }				\
+> +		.shstrtab 0 : { *(.shstrtab) }
+>  
+>  #ifdef CONFIG_GENERIC_BUG
+>  #define BUG_TABLE							\
+> -- 
+> 2.25.1
+> 
