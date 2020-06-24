@@ -1,37 +1,71 @@
-Return-Path: <SRS0=lJ0G=AA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:50694 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2389882AbgFSTm1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 Jun 2020 15:42:27 -0400
-Received: from mail-wr1-f42.google.com (mail-wr1-f42.google.com [209.85.221.42])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id A608220C09
-        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 19:42:26 +0000 (UTC)
-Received: by mail-wr1-f42.google.com with SMTP id h5so10822660wrc.7
-        for <linux-arch@vger.kernel.org>; Fri, 19 Jun 2020 12:42:26 -0700 (PDT)
-MIME-Version: 1.0
-References: <202006191236.AC3E22AAB@keescook>
-In-Reply-To: <202006191236.AC3E22AAB@keescook>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Fri, 19 Jun 2020 12:42:14 -0700
-Message-ID: <CALCETrXM5gneAC40RLWyjnCeHE6JFVOKnM0ooKLooGGaVV1KOA@mail.gmail.com>
-Subject: Re: [PATCH] seccomp: Use -1 marker for end of mode 1 syscall list
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50582 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2406504AbgFXUdT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:33:19 -0400
+Received: from mail-qt1-x849.google.com (mail-qt1-x849.google.com [IPv6:2607:f8b0:4864:20::849])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CB547C061796
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:18 -0700 (PDT)
+Received: by mail-qt1-x849.google.com with SMTP id l19so2423688qtp.12
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:18 -0700 (PDT)
+Date: Wed, 24 Jun 2020 13:31:49 -0700
+In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
+Message-ID: <20200624203200.78870-12-samitolvanen@google.com>
+Mime-Version: 1.0
+References: <20200624203200.78870-1-samitolvanen@google.com>
+Subject: [PATCH 11/22] pci: lto: fix PREL32 relocations
+From: Sami Tolvanen <samitolvanen@google.com>
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Arnd Bergmann <arnd@arndb.de>, Will Drewry <wad@chromium.org>, "open list:MIPS" <linux-mips@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20200619194214.XAoNZXtfni-UWIQeQdcL78ekiicOxcoAGWHLfg4z8Fs@z>
+To: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Sami Tolvanen <samitolvanen@google.com>
+Message-ID: <20200624203149.HHaj7ueXI9ELqzVoW5zR7TmOcUm8zW184Y8NQRHczp0@z>
 
-On Fri, Jun 19, 2020 at 12:37 PM Kees Cook <keescook@chromium.org> wrote:
->
-> The terminator for the mode 1 syscalls list was a 0, but that could be
-> a valid syscall number (e.g. x86_64 __NR_read). By luck, __NR_read was
-> listed first and the loop construct would not test it, so there was no
-> bug. However, this is fragile. Replace the terminator with -1 instead,
-> and make the variable name for mode 1 syscall lists more descriptive.
+With LTO, the compiler can rename static functions to avoid global
+naming collisions. As PCI fixup functions are typically static,
+renaming can break references to them in inline assembly. This
+change adds a global stub to DECLARE_PCI_FIXUP_SECTION to fix the
+issue when PREL32 relocations are used.
 
-Could the architecture instead supply the length of the list?
+Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+---
+ include/linux/pci.h | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
 
---Andy
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index c79d83304e52..1e65e16f165a 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1909,19 +1909,24 @@ enum pci_fixup_pass {
+ };
+ 
+ #ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
+-#define __DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
+-				    class_shift, hook)			\
+-	__ADDRESSABLE(hook)						\
++#define ___DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
++				    class_shift, hook, stub)		\
++	void stub(struct pci_dev *dev) { hook(dev); }			\
+ 	asm(".section "	#sec ", \"a\"				\n"	\
+ 	    ".balign	16					\n"	\
+ 	    ".short "	#vendor ", " #device "			\n"	\
+ 	    ".long "	#class ", " #class_shift "		\n"	\
+-	    ".long "	#hook " - .				\n"	\
++	    ".long "	#stub " - .				\n"	\
+ 	    ".previous						\n");
++
++#define __DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
++				  class_shift, hook, stub)		\
++	___DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
++				  class_shift, hook, stub)
+ #define DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
+ 				  class_shift, hook)			\
+ 	__DECLARE_PCI_FIXUP_SECTION(sec, name, vendor, device, class,	\
+-				  class_shift, hook)
++				  class_shift, hook, __UNIQUE_ID(hook))
+ #else
+ /* Anonymous variables would be nice... */
+ #define DECLARE_PCI_FIXUP_SECTION(section, name, vendor, device, class,	\
+-- 
+2.27.0.212.ge8ba1cc988-goog
