@@ -1,135 +1,240 @@
-Return-Path: <SRS0=/X+0=AB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-oo1-f67.google.com ([209.85.161.67]:44291 "EHLO
-        mail-oo1-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728433AbgFTSII (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 20 Jun 2020 14:08:08 -0400
-From: Jim Cromie <jim.cromie@gmail.com>
-Subject: [PATCH v4 05/17] dyndbg: rename __verbose section to __dyndbg
-Date: Sat, 20 Jun 2020 12:06:31 -0600
-Message-ID: <20200620180643.887546-6-jim.cromie@gmail.com>
-In-Reply-To: <20200620180643.887546-1-jim.cromie@gmail.com>
-References: <20200620180643.887546-1-jim.cromie@gmail.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:47444 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2405427AbgFXRgu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Jun 2020 13:36:50 -0400
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [PATCH v3 1/2] prctl.2: Add SVE prctls (arm64)
+Date: Wed, 24 Jun 2020 18:36:01 +0100
+Message-ID: <1593020162-9365-2-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1593020162-9365-1-git-send-email-Dave.Martin@arm.com>
+References: <1593020162-9365-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: jbaron@akamai.com, linux-kernel@vger.kernel.org, akpm@linuxfoundation.org, gregkh@linuxfoundation.org
-Cc: linux@rasmusvillemoes.dk, Jim Cromie <jim.cromie@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Jessica Yu <jeyu@kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20200620180631.eUW-s86vS8UJFL1GUppa3KGQrbdw0pbG00aqHQubNMw@z>
+To: Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200624173601.zz3Rk7Jenu8pUNZ9IOVIinZmxeiweuOiaxa-B0I_0eY@z>
 
-dyndbg populates its callsite info into __verbose section, change that
-to a more specific and descriptive name, __dyndbg.
+Add documentation for the the PR_SVE_SET_VL and PR_SVE_GET_VL
+prctls added in Linux 4.15 for arm64.
 
-Also, per checkpatch:
-  simplify __attribute(..) to __section(__dyndbg) declaration.
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
 
-and 1 spelling fix, decriptor
-
-Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
 ---
- include/asm-generic/vmlinux.lds.h |  6 +++---
- include/linux/dynamic_debug.h     |  4 ++--
- kernel/module.c                   |  2 +-
- lib/dynamic_debug.c               | 12 ++++++------
- 4 files changed, 12 insertions(+), 12 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index db600ef218d7..05af5cef1ad6 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -320,9 +320,9 @@
- 	*(__tracepoints)						\
- 	/* implement dynamic printk debug */				\
- 	. = ALIGN(8);							\
--	__start___verbose = .;						\
--	KEEP(*(__verbose))                                              \
--	__stop___verbose = .;						\
-+	__start___dyndbg = .;						\
-+	KEEP(*(__dyndbg))						\
-+	__stop___dyndbg = .;						\
- 	LIKELY_PROFILE()		       				\
- 	BRANCH_PROFILE()						\
- 	TRACE_PRINTKS()							\
-diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index abcd5fde30eb..aa9ff9e1c0b3 100644
---- a/include/linux/dynamic_debug.h
-+++ b/include/linux/dynamic_debug.h
-@@ -80,7 +80,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
- 
- #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt)		\
- 	static struct _ddebug  __aligned(8)			\
--	__attribute__((section("__verbose"))) name = {		\
-+	__section(__dyndbg) name = {				\
- 		.modname = KBUILD_MODNAME,			\
- 		.function = __func__,				\
- 		.filename = __FILE__,				\
-@@ -133,7 +133,7 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
- 
- /*
-  * "Factory macro" for generating a call to func, guarded by a
-- * DYNAMIC_DEBUG_BRANCH. The dynamic debug decriptor will be
-+ * DYNAMIC_DEBUG_BRANCH. The dynamic debug descriptor will be
-  * initialized using the fmt argument. The function will be called with
-  * the address of the descriptor as first argument, followed by all
-  * the varargs. Note that fmt is repeated in invocations of this
-diff --git a/kernel/module.c b/kernel/module.c
-index e8a198588f26..1fb493167b9c 100644
---- a/kernel/module.c
-+++ b/kernel/module.c
-@@ -3232,7 +3232,7 @@ static int find_module_sections(struct module *mod, struct load_info *info)
- 	if (section_addr(info, "__obsparm"))
- 		pr_warn("%s: Ignoring obsolete parameters\n", mod->name);
- 
--	info->debug = section_objs(info, "__verbose",
-+	info->debug = section_objs(info, "__dyndbg",
- 				   sizeof(*info->debug), &info->num_debug);
- 
- 	return 0;
-diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index c97872cffc8e..66c0bdf06ce7 100644
---- a/lib/dynamic_debug.c
-+++ b/lib/dynamic_debug.c
-@@ -39,8 +39,8 @@
- 
- #include <rdma/ib_verbs.h>
- 
--extern struct _ddebug __start___verbose[];
--extern struct _ddebug __stop___verbose[];
-+extern struct _ddebug __start___dyndbg[];
-+extern struct _ddebug __stop___dyndbg[];
- 
- struct ddebug_table {
- 	struct list_head link;
-@@ -1019,7 +1019,7 @@ static int __init dynamic_debug_init(void)
- 	int n = 0, entries = 0, modct = 0;
- 	int verbose_bytes = 0;
- 
--	if (&__start___verbose == &__stop___verbose) {
-+	if (&__start___dyndbg == &__stop___dyndbg) {
- 		if (IS_ENABLED(CONFIG_DYNAMIC_DEBUG)) {
- 			pr_warn("_ddebug table is empty in a CONFIG_DYNAMIC_DEBUG build\n");
- 			return 1;
-@@ -1028,10 +1028,10 @@ static int __init dynamic_debug_init(void)
- 		ddebug_init_success = 1;
- 		return 0;
- 	}
--	iter = __start___verbose;
-+	iter = __start___dyndbg;
- 	modname = iter->modname;
- 	iter_start = iter;
--	for (; iter < __stop___verbose; iter++) {
-+	for (; iter < __stop___dyndbg; iter++) {
- 		entries++;
- 		verbose_bytes += strlen(iter->modname) + strlen(iter->function)
- 			+ strlen(iter->filename) + strlen(iter->format);
-@@ -1054,7 +1054,7 @@ static int __init dynamic_debug_init(void)
- 	ddebug_init_success = 1;
- 	vpr_info("%d modules, %d entries and %d bytes in ddebug tables, %d bytes in (readonly) verbose section\n",
- 		 modct, entries, (int)(modct * sizeof(struct ddebug_table)),
--		 verbose_bytes + (int)(__stop___verbose - __start___verbose));
-+		 verbose_bytes + (int)(__stop___dyndbg - __start___dyndbg));
- 
- 	/* apply ddebug_query boot param, dont unload tables on err */
- 	if (ddebug_setup_string[0] != '\0') {
+Since v2:
+
+ * Clarify that the arg2 enumeration for PR_SVE_SET_VL applies to the
+   bith _other than_ the PR_SVE_VL_LEN_MASK bits, rather than to all the
+   bits.
+
+ * Clarify return value semantics for PR_SVE_SET_VL, to highlight that
+   there is no PR_SVE_SET_VL_ONEXEC in the return value and refer to
+   PR_SVE_GET_VL for the rest of the definition.  Also clarify when the
+   vector length given in the return value actually takes effect.
+
+ * Reorder some documentation cross-references to avoid ambiguity about
+   what they apply to.
+---
+ man2/prctl.2 | 170 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 170 insertions(+)
+
+diff --git a/man2/prctl.2 b/man2/prctl.2
+index 88b791b..46ea9d2 100644
+--- a/man2/prctl.2
++++ b/man2/prctl.2
+@@ -1370,6 +1370,158 @@ call failing with the error
+ .BR ENXIO .
+ For further details, see the kernel source file
+ .IR Documentation/admin\-guide/kernel\-parameters.txt .
++.\" prctl PR_SVE_SET_VL
++.\" commit 2d2123bc7c7f843aa9db87720de159a049839862
++.\" linux-5.6/Documentation/arm64/sve.rst
++.TP
++.BR PR_SVE_SET_VL " (since Linux 4.15, only on arm64)"
++Configure the thread's SVE vector length,
++as specified by
++.IR "(int) arg2" .
++Arguments
++.IR arg3 ", " arg4 " and " arg5
++are ignored.
++.IP
++The bits of
++.I arg2
++corresponding to
++.B PR_SVE_VL_LEN_MASK
++must be set to the desired vector length in bytes.
++This is interpreted as an upper bound:
++the kernel will select the greatest available vector length
++that does not exceed the value specified.
++In particular, specifying
++.B SVE_VL_MAX
++(defined in
++.I <asm/sigcontext.h>)
++for the
++.B PR_SVE_VL_LEN_MASK
++bits requests the maximum supported vector length.
++.IP
++In addition, the other bits of
++.I arg2
++must be set to one of the following combinations of flags:
++.RS
++.TP
++.B 0
++Perform the change immediately.
++At the next
++.BR execve (2)
++in the thread,
++the vector length will be reset to the value configured in
++.IR /proc/sys/abi/sve_default_vector_length .
++.TP
++.B PR_SVE_VL_INHERIT
++Perform the change immediately.
++Subsequent
++.BR execve (2)
++calls will preserve the new vector length.
++.TP
++.B PR_SVE_SET_VL_ONEXEC
++Defer the change, so that it is performed at the next
++.BR execve (2)
++in the thread.
++Further
++.BR execve (2)
++calls will reset the vector length to the value configured in
++.IR /proc/sys/abi/sve_default_vector_length .
++.TP
++.B "PR_SVE_SET_VL_ONEXEC | PR_SVE_VL_INHERIT"
++Defer the change, so that it is performed at the next
++.BR execve (2)
++in the thread.
++Further
++.BR execve (2)
++calls will preserve the new vector length.
++.RE
++.IP
++In all cases,
++any previously pending deferred change is canceled.
++.IP
++The call fails with error
++.B EINVAL
++if SVE is not supported on the platform, if
++.I arg2
++is unrecognized or invalid, or the value in the bits of
++.I arg2
++corresponding to
++.B PR_SVE_VL_LEN_MASK
++is outside the range
++.BR SVE_VL_MIN .. SVE_VL_MAX
++or is not a multiple of 16.
++.IP
++On success,
++a nonnegative value is returned that describes the
++.I selected
++configuration.
++If
++.B PR_SVE_SET_VL_ONEXEC
++was included in
++.IR arg2 ,
++then the configuration described by the return value
++will take effect at the next
++.BR execve ().
++Otherwise, the configuration is already in effect when the
++.B PR_SVE_SET_VL
++call returns.
++In either case, the value is encoded in the same way as the return value of
++.BR PR_SVE_GET_VL .
++Note that there is no explicit flag in the return value
++corresponding to
++.BR PR_SVE_SET_VL_ONEXEC .
++.IP
++The configuration (including any pending deferred change)
++is inherited across
++.BR fork (2)
++and
++.BR clone (2).
++.IP
++For more information, see the kernel source file
++.I Documentation/arm64/sve.rst
++.\"commit b693d0b372afb39432e1c49ad7b3454855bc6bed
++(or
++.I Documentation/arm64/sve.txt
++before Linux 5.3).
++.IP
++.B Warning:
++Because the compiler or run-time environment
++may be using SVE, using this call without the
++.B PR_SVE_SET_VL_ONEXEC
++flag may crash the calling process.
++The conditions for using it safely are complex and system-dependent.
++Don't use it unless you really know what you are doing.
++.\" prctl PR_SVE_GET_VL
++.TP
++.BR PR_SVE_GET_VL " (since Linux 4.15, only on arm64)"
++Get the thread's current SVE vector length configuration.
++.IP
++Arguments
++.IR arg2 ", " arg3 ", " arg4 " and " arg5
++are ignored.
++.IP
++Providing that the kernel and platform support SVE
++this operation always succeeds,
++returning a nonnegative value that describes the
++.I current
++configuration.
++The bits corresponding to
++.B PR_SVE_VL_LEN_MASK
++contain the currently configured vector length in bytes.
++The bit corresponding to
++.B PR_SVE_VL_INHERIT
++indicates whether the vector length will be inherited
++across
++.BR execve (2).
++.IP
++Note that there is no way to determine whether there is
++a pending vector length change that has not yet taken effect.
++.IP
++For more information, see the kernel source file
++.I Documentation/arm64/sve.rst
++.\"commit b693d0b372afb39432e1c49ad7b3454855bc6bed
++(or
++.I Documentation/arm64/sve.txt
++before Linux 5.3).
+ .\"
+ .\" prctl PR_TASK_PERF_EVENTS_DISABLE
+ .TP
+@@ -1613,6 +1765,8 @@ On success,
+ .BR PR_GET_NO_NEW_PRIVS ,
+ .BR PR_GET_SECUREBITS ,
+ .BR PR_GET_SPECULATION_CTRL ,
++.BR PR_SVE_GET_VL ,
++.BR PR_SVE_SET_VL ,
+ .BR PR_GET_THP_DISABLE ,
+ .BR PR_GET_TIMING ,
+ .BR PR_GET_TIMERSLACK ,
+@@ -1904,6 +2058,22 @@ See the description of
+ .B PR_PAC_RESET_KEYS
+ above for details.
+ .TP
++.B EINVAL
++.I option
++is
++.B PR_SVE_SET_VL
++and the arguments are invalid or unsupported,
++or SVE is not available on this platform.
++See the description of
++.B PR_SVE_SET_VL
++above for details.
++.TP
++.B EINVAL
++.I option
++is
++.B PR_SVE_GET_VL
++and SVE is not available on this platform.
++.TP
+ .B ENODEV
+ .I option
+ was
 -- 
-2.26.2
+2.1.4
