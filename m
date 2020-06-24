@@ -1,39 +1,69 @@
-From: Nick Desaulniers <ndesaulniers@google.com>
-Subject: Re: [PATCH 17/22] arm64: vdso: disable LTO
-Date: Wed, 24 Jun 2020 16:05:48 -0700
-Message-ID: <CAKwvOdnWfhU7n0VfoydC7epJPrj+ASZzyNRpBCNuvT_5E+=FcQ@mail.gmail.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624203200.78870-18-samitolvanen@google.com> <CAKwvOdnEbCfYZ9o=OF51oswyqDvN4iP-9syWUDhxfueq4q0xcw@mail.gmail.com>
- <20200624215231.GC120457@google.com>
+From: Sami Tolvanen <samitolvanen@google.com>
+Subject: Re: [PATCH 11/22] pci: lto: fix PREL32 relocations
+Date: Wed, 24 Jun 2020 16:21:37 -0700
+Message-ID: <20200624232137.GA243469@google.com>
+References: <20200624203200.78870-12-samitolvanen@google.com>
+ <202006250618.DQj64eMK%lkp@intel.com>
+ <CAKwvOdnREuOmN_Vinn8pn6fxEpjzCM1_=9tDzbd2z884GNLFeA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <20200624215231.GC120457@google.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48482 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388711AbgFXXVp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 19:21:45 -0400
+Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 55C75C061573
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 16:21:44 -0700 (PDT)
+Received: by mail-pj1-x1041.google.com with SMTP id ev7so1436399pjb.2
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 16:21:44 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <CAKwvOdnREuOmN_Vinn8pn6fxEpjzCM1_=9tDzbd2z884GNLFeA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nick Desaulniers <ndesaulniers@google.com>
+Cc: kernel test robot <lkp@intel.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, kbuild-all@lists.01.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 
-On Wed, Jun 24, 2020 at 2:52 PM Sami Tolvanen <samitolvanen@google.com> wrote:
->
-> On Wed, Jun 24, 2020 at 01:58:57PM -0700, 'Nick Desaulniers' via Clang Built Linux wrote:
-> > On Wed, Jun 24, 2020 at 1:33 PM Sami Tolvanen <samitolvanen@google.com> wrote:
-> > >
-> > > Filter out CC_FLAGS_LTO for the vDSO.
+On Wed, Jun 24, 2020 at 04:03:48PM -0700, Nick Desaulniers wrote:
+> On Wed, Jun 24, 2020 at 3:50 PM kernel test robot <lkp@intel.com> wrote:
 > >
-> > Just curious about this patch (and the following one for x86's vdso),
-> > do you happen to recall specifically what the issues with the vdso's
-> > are?
->
-> I recall the compiler optimizing away functions at some point, but as
-> LTO is not really needed in the vDSO, it's just easiest to disable it
-> there.
+> > Hi Sami,
+> >
+> > Thank you for the patch! Perhaps something to improve:
+> >
+> > [auto build test WARNING on 26e122e97a3d0390ebec389347f64f3730fdf48f]
+> >
+> > url:    https://github.com/0day-ci/linux/commits/Sami-Tolvanen/add-support-for-Clang-LTO/20200625-043816
+> > base:    26e122e97a3d0390ebec389347f64f3730fdf48f
+> > config: i386-alldefconfig (attached as .config)
+> > compiler: gcc-9 (Debian 9.3.0-13) 9.3.0
+> > reproduce (this is a W=1 build):
+> >         # save the attached .config to linux build tree
+> >         make W=1 ARCH=i386
+> 
+> Note: W=1 ^
+> 
+> >
+> > If you fix the issue, kindly add following tag as appropriate
+> > Reported-by: kernel test robot <lkp@intel.com>
+> >
+> > All warnings (new ones prefixed by >>):
+> >
+> >    In file included from arch/x86/kernel/pci-dma.c:9:
+> > >> include/linux/compiler-gcc.h:72:45: warning: no previous prototype for '__UNIQUE_ID_via_no_dac190' [-Wmissing-prototypes]
+> >       72 | #define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __COUNTER__)
+> >          |                                             ^~~~~~~~~~~~
+> >    include/linux/pci.h:1914:7: note: in definition of macro '___DECLARE_PCI_FIXUP_SECTION'
+> >     1914 |  void stub(struct pci_dev *dev) { hook(dev); }   \
+> >          |       ^~~~
+> 
+> Should `stub` be qualified as `static inline`? https://godbolt.org/z/cPBXxW
+> Or should stub be declared in this header, but implemented in a .c
+> file?  (I'm guessing the former, since the `hook` callback comes from
+> the macro).
 
-Sounds fishy; with extern linkage then I would think it's not safe to
-eliminate functions.  Probably unnecessary for the initial
-implementation, and something we can follow up on, but always good to
-have an answer to the inevitable question "why?" in the commit
-message.
--- 
-Thanks,
-~Nick Desaulniers
+Does static inline guarantee that the compiler won't rename the symbol?
+The purpose of this change is to have a stable symbol name, which we can
+safely use in inline assembly.
+
+Sami
