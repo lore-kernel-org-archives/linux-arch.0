@@ -1,130 +1,56 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43382 "EHLO
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34226 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731331AbgF2TNY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:13:24 -0400
-Received: from mail-pf1-x443.google.com (mail-pf1-x443.google.com [IPv6:2607:f8b0:4864:20::443])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DA65FC08EB0E
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:53 -0700 (PDT)
-Received: by mail-pf1-x443.google.com with SMTP id b16so7429581pfi.13
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:53 -0700 (PDT)
+        with ESMTP id S2404341AbgFXPpu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 11:45:50 -0400
+Received: from mail-pg1-x543.google.com (mail-pg1-x543.google.com [IPv6:2607:f8b0:4864:20::543])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 23294C061795
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 08:45:50 -0700 (PDT)
+Received: by mail-pg1-x543.google.com with SMTP id s10so1617355pgm.0
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 08:45:50 -0700 (PDT)
+Date: Wed, 24 Jun 2020 08:45:47 -0700
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 12/17] arm/build: Refactor linker script headers
-Date: Sun, 28 Jun 2020 23:18:35 -0700
-Message-ID: <20200629061840.4065483-13-keescook@chromium.org>
-In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
-References: <20200629061840.4065483-1-keescook@chromium.org>
+Subject: Re: [PATCH v3 3/9] efi/libstub: Remove .note.gnu.property
+Message-ID: <202006240844.7BE48D2B5@keescook>
+References: <20200624014940.1204448-1-keescook@chromium.org>
+ <20200624014940.1204448-4-keescook@chromium.org>
+ <20200624033142.cinvg6rbg252j46d@google.com>
+ <202006232143.66828CD3@keescook>
+ <20200624104356.GA6134@willie-the-truck>
+ <CAMj1kXHBT4ei0xhyL4jD7=CNRsn1rh7w6jeYDLjVOv4na0Z38Q@mail.gmail.com>
+ <202006240820.A3468F4@keescook>
+ <CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200629061835.53RqitYetg44D5KC7iMyvEH9xhirKhE5j2zySS1vo8s@z>
+To: Ard Biesheuvel <ardb@kernel.org>
+Cc: Will Deacon <will@kernel.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20200624154547.ofSExHwimfFeF6O5tv_g_BN9BzsSgREAl0lq4Lfw8tc@z>
 
-In preparation for adding --orphan-handling=warn, refactor the linker
-script header includes, and extract common macros. (The ARM_COMMON_DISCARD
-macro will be shared with the boot linker script in a future patch.)
+On Wed, Jun 24, 2020 at 05:31:06PM +0200, Ard Biesheuvel wrote:
+> On Wed, 24 Jun 2020 at 17:21, Kees Cook <keescook@chromium.org> wrote:
+> >
+> > On Wed, Jun 24, 2020 at 12:46:32PM +0200, Ard Biesheuvel wrote:
+> > > I'm not sure if there is a point to having PAC and/or BTI in the EFI
+> > > stub, given that it runs under the control of the firmware, with its
+> > > memory mappings and PAC configuration etc.
+> >
+> > Is BTI being ignored when the firmware runs?
+> 
+> Given that it requires the 'guarded' attribute to be set in the page
+> tables, and the fact that the UEFI spec does not require it for
+> executables that it invokes, nor describes any means of annotating
+> such executables as having been built with BTI annotations, I think we
+> can safely assume that the EFI stub will execute with BTI disabled in
+> the foreseeable future.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/arm/{kernel => include/asm}/vmlinux.lds.h | 17 ++++++++++++-----
- arch/arm/kernel/vmlinux-xip.lds.S              |  4 +---
- arch/arm/kernel/vmlinux.lds.S                  |  4 +---
- 3 files changed, 14 insertions(+), 11 deletions(-)
- rename arch/arm/{kernel => include/asm}/vmlinux.lds.h (95%)
+yaaaaaay. *sigh* How long until EFI catches up?
 
-diff --git a/arch/arm/kernel/vmlinux.lds.h b/arch/arm/include/asm/vmlinux.lds.h
-similarity index 95%
-rename from arch/arm/kernel/vmlinux.lds.h
-rename to arch/arm/include/asm/vmlinux.lds.h
-index 381a8e105fa5..142c038b2e97 100644
---- a/arch/arm/kernel/vmlinux.lds.h
-+++ b/arch/arm/include/asm/vmlinux.lds.h
-@@ -1,4 +1,5 @@
- /* SPDX-License-Identifier: GPL-2.0 */
-+#include <asm-generic/vmlinux.lds.h>
- 
- #ifdef CONFIG_HOTPLUG_CPU
- #define ARM_CPU_DISCARD(x)
-@@ -37,6 +38,10 @@
- 		*(.idmap.text)						\
- 		__idmap_text_end = .;					\
- 
-+#define ARM_COMMON_DISCARD						\
-+		*(.discard)						\
-+		*(.discard.*)
-+
- #define ARM_DISCARD							\
- 		*(.ARM.exidx.exit.text)					\
- 		*(.ARM.extab.exit.text)					\
-@@ -49,8 +54,12 @@
- 		EXIT_CALL						\
- 		ARM_MMU_DISCARD(*(.text.fixup))				\
- 		ARM_MMU_DISCARD(*(__ex_table))				\
--		*(.discard)						\
--		*(.discard.*)
-+		ARM_COMMON_DISCARD
-+
-+#define ARM_STUBS_TEXT							\
-+		*(.gnu.warning)						\
-+		*(.glue_7)						\
-+		*(.glue_7t)
- 
- #define ARM_TEXT							\
- 		IDMAP_TEXT						\
-@@ -64,9 +73,7 @@
- 		CPUIDLE_TEXT						\
- 		LOCK_TEXT						\
- 		KPROBES_TEXT						\
--		*(.gnu.warning)						\
--		*(.glue_7)						\
--		*(.glue_7t)						\
-+		ARM_STUBS_TEXT						\
- 		. = ALIGN(4);						\
- 		*(.got)			/* Global offset table */	\
- 		ARM_CPU_KEEP(PROC_INFO)
-diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
-index 3d4e88f08196..904c31fa20ed 100644
---- a/arch/arm/kernel/vmlinux-xip.lds.S
-+++ b/arch/arm/kernel/vmlinux-xip.lds.S
-@@ -9,15 +9,13 @@
- 
- #include <linux/sizes.h>
- 
--#include <asm-generic/vmlinux.lds.h>
-+#include <asm/vmlinux.lds.h>
- #include <asm/cache.h>
- #include <asm/thread_info.h>
- #include <asm/memory.h>
- #include <asm/mpu.h>
- #include <asm/page.h>
- 
--#include "vmlinux.lds.h"
--
- OUTPUT_ARCH(arm)
- ENTRY(stext)
- 
-diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
-index 5592f14b7e35..bb950c896a67 100644
---- a/arch/arm/kernel/vmlinux.lds.S
-+++ b/arch/arm/kernel/vmlinux.lds.S
-@@ -9,15 +9,13 @@
- #else
- 
- #include <linux/pgtable.h>
--#include <asm-generic/vmlinux.lds.h>
-+#include <asm/vmlinux.lds.h>
- #include <asm/cache.h>
- #include <asm/thread_info.h>
- #include <asm/memory.h>
- #include <asm/mpu.h>
- #include <asm/page.h>
- 
--#include "vmlinux.lds.h"
--
- OUTPUT_ARCH(arm)
- ENTRY(stext)
- 
+That said, BTI shouldn't _hurt_, right? If EFI ever decides to enable
+it, we'll be ready?
+
 -- 
-2.25.1
+Kees Cook
