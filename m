@@ -1,53 +1,54 @@
-Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:60212 "EHLO mga12.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728050AbgFVUJM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jun 2020 16:09:12 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 04/21] KVM: x86/mmu: Remove superfluous gotos from mmu_topup_memory_caches()
-Date: Mon, 22 Jun 2020 13:08:05 -0700
-Message-ID: <20200622200822.4426-5-sean.j.christopherson@intel.com>
-In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
-References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50442 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2391448AbgFXUcx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:32:53 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A6357C0613ED
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:32:53 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id z7so3555066ybz.1
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:32:53 -0700 (PDT)
+Date: Wed, 24 Jun 2020 13:31:39 -0700
+In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
+Message-ID: <20200624203200.78870-2-samitolvanen@google.com>
+Mime-Version: 1.0
+References: <20200624203200.78870-1-samitolvanen@google.com>
+Subject: [PATCH 01/22] objtool: use sh_info to find the base for .rela sections
+From: Sami Tolvanen <samitolvanen@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200622200805.gcFx0321TLBCh4kMe1yrWV1EQpEQPbCeBfsSIMh8YLk@z>
+To: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Sami Tolvanen <samitolvanen@google.com>, Josh Poimboeuf <jpoimboe@redhat.com>
+Message-ID: <20200624203139.ZThnBEHugD0l1VLlwaemcmc_abKH8scisAn-pEl7usk@z>
 
-Return errors directly from mmu_topup_memory_caches() instead of
-branching to a label that does the same.
+ELF doesn't require .rela section names to match the base section. Use
+the section index in sh_info to find the section instead of looking it
+up by name.
 
-No functional change intended.
+LLD, for example, generates a .rela section that doesn't match the base
+section name when we merge sections in a linker script for a binary
+compiled with -ffunction-sections.
 
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/kvm/mmu/mmu.c | 8 +++-----
- 1 file changed, 3 insertions(+), 5 deletions(-)
+ tools/objtool/elf.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index 36c90f004ef4..ba70de24a5b0 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1100,13 +1100,11 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
- 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
- 				   8 + PTE_PREFETCH_NUM);
- 	if (r)
--		goto out;
-+		return r;
- 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache, 8);
- 	if (r)
--		goto out;
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
--out:
--	return r;
-+		return r;
-+	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
- }
+diff --git a/tools/objtool/elf.c b/tools/objtool/elf.c
+index 84225679f96d..c1ba92abaa03 100644
+--- a/tools/objtool/elf.c
++++ b/tools/objtool/elf.c
+@@ -502,7 +502,7 @@ static int read_relas(struct elf *elf)
+ 		if (sec->sh.sh_type != SHT_RELA)
+ 			continue;
  
- static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+-		sec->base = find_section_by_name(elf, sec->name + 5);
++		sec->base = find_section_by_index(elf, sec->sh.sh_info);
+ 		if (!sec->base) {
+ 			WARN("can't find base section for rela section %s",
+ 			     sec->name);
 -- 
-2.26.0
+2.27.0.212.ge8ba1cc988-goog
