@@ -1,54 +1,86 @@
-Return-Path: <SRS0=444k=AH=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48750 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726436AbgFZVJp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Jun 2020 17:09:45 -0400
-Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 58D78C08C5E0
-        for <linux-arch@vger.kernel.org>; Fri, 26 Jun 2020 14:09:45 -0700 (PDT)
-Received: by mail-yb1-xb4a.google.com with SMTP id s9so11129088ybj.18
-        for <linux-arch@vger.kernel.org>; Fri, 26 Jun 2020 14:09:45 -0700 (PDT)
-Date: Fri, 26 Jun 2020 14:09:16 -0700
-In-Reply-To: <20200626210917.358969-1-brendanhiggins@google.com>
-Message-ID: <20200626210917.358969-12-brendanhiggins@google.com>
-Mime-Version: 1.0
-References: <20200626210917.358969-1-brendanhiggins@google.com>
-Subject: [PATCH v5 11/12] Documentation: Add kunit_shutdown to kernel-parameters.txt
-From: Brendan Higgins <brendanhiggins@google.com>
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:33472 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S2388516AbgFXKqp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Jun 2020 06:46:45 -0400
+MIME-Version: 1.0
+References: <20200624014940.1204448-1-keescook@chromium.org>
+ <20200624014940.1204448-4-keescook@chromium.org> <20200624033142.cinvg6rbg252j46d@google.com>
+ <202006232143.66828CD3@keescook> <20200624104356.GA6134@willie-the-truck>
+In-Reply-To: <20200624104356.GA6134@willie-the-truck>
+From: Ard Biesheuvel <ardb@kernel.org>
+Date: Wed, 24 Jun 2020 12:46:32 +0200
+Message-ID: <CAMj1kXHBT4ei0xhyL4jD7=CNRsn1rh7w6jeYDLjVOv4na0Z38Q@mail.gmail.com>
+Subject: Re: [PATCH v3 3/9] efi/libstub: Remove .note.gnu.property
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com
-Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org, Brendan Higgins <brendanhiggins@google.com>
-Message-ID: <20200626210916.ZJ4Daw6NATYrBKIf7l8-w195jbhODzkmRsETaw5E99g@z>
+To: Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20200624104632.EgWm13L7vKbPazO0JoAICh6wAfw9nPWlORjSfF85Xns@z>
 
-Add kunit_shutdown, an option to specify that the kernel shutsdown after
-running KUnit tests, to the kernel-parameters.txt documentation.
+On Wed, 24 Jun 2020 at 12:44, Will Deacon <will@kernel.org> wrote:
+>
+> On Tue, Jun 23, 2020 at 09:44:11PM -0700, Kees Cook wrote:
+> > On Tue, Jun 23, 2020 at 08:31:42PM -0700, 'Fangrui Song' via Clang Built Linux wrote:
+> > > On 2020-06-23, Kees Cook wrote:
+> > > > In preparation for adding --orphan-handling=warn to more architectures,
+> > > > make sure unwanted sections don't end up appearing under the .init
+> > > > section prefix that libstub adds to itself during objcopy.
+> > > >
+> > > > Signed-off-by: Kees Cook <keescook@chromium.org>
+> > > > ---
+> > > > drivers/firmware/efi/libstub/Makefile | 3 +++
+> > > > 1 file changed, 3 insertions(+)
+> > > >
+> > > > diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
+> > > > index 75daaf20374e..9d2d2e784bca 100644
+> > > > --- a/drivers/firmware/efi/libstub/Makefile
+> > > > +++ b/drivers/firmware/efi/libstub/Makefile
+> > > > @@ -66,6 +66,9 @@ lib-$(CONFIG_X86)               += x86-stub.o
+> > > > CFLAGS_arm32-stub.o               := -DTEXT_OFFSET=$(TEXT_OFFSET)
+> > > > CFLAGS_arm64-stub.o               := -DTEXT_OFFSET=$(TEXT_OFFSET)
+> > > >
+> > > > +# Remove unwanted sections first.
+> > > > +STUBCOPY_FLAGS-y         += --remove-section=.note.gnu.property
+> > > > +
+> > > > #
+> > > > # For x86, bootloaders like systemd-boot or grub-efi do not zero-initialize the
+> > > > # .bss section, so the .bss section of the EFI stub needs to be included in the
+> > >
+> > > arch/arm64/Kconfig enables ARM64_PTR_AUTH by default. When the config is on
+> > >
+> > > ifeq ($(CONFIG_ARM64_BTI_KERNEL),y)
+> > > branch-prot-flags-$(CONFIG_CC_HAS_BRANCH_PROT_PAC_RET_BTI) := -mbranch-protection=pac-ret+leaf+bti
+> > > else
+> > > branch-prot-flags-$(CONFIG_CC_HAS_BRANCH_PROT_PAC_RET) := -mbranch-protection=pac-ret+leaf
+> > > endif
+> > >
+> > > This option creates .note.gnu.property:
+> > >
+> > > % readelf -n drivers/firmware/efi/libstub/efi-stub.o
+> > >
+> > > Displaying notes found in: .note.gnu.property
+> > >   Owner                Data size        Description
+> > >   GNU                  0x00000010       NT_GNU_PROPERTY_TYPE_0
+> > >       Properties: AArch64 feature: PAC
+> > >
+> > > If .note.gnu.property is not desired in drivers/firmware/efi/libstub, specifying
+> > > -mbranch-protection=none can override -mbranch-protection=pac-ret+leaf
+> >
+> > We want to keep the branch protection enabled. But since it's not a
+> > "regular" ELF, we don't need to keep the property that identifies the
+> > feature.
+>
+> For the kernel Image, how do we remove these sections? The objcopy flags
+> in arch/arm64/boot/Makefile look both insufficient and out of date. My
+> vmlinux ends up with both a ".notes" and a ".init.note.gnu.property"
+> segment.
+>
 
-Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-Reviewed-by: Stephen Boyd <sboyd@kernel.org>
----
- Documentation/admin-guide/kernel-parameters.txt | 8 ++++++++
- 1 file changed, 8 insertions(+)
+The latter is the fault of the libstub make rules, that prepend .init
+to all section names.
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index fb95fad81c79a..e7d5eb7249e7f 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -2183,6 +2183,14 @@
- 			0: force disabled
- 			1: force enabled
- 
-+	kunit_shutdown=[KERNEL UNIT TESTING FRAMEWORK] Shutdown kernel after
-+			running built-in tests. Tests configured as modules will
-+			not be run.
-+			Default:	(flag not present) don't shutdown
-+			poweroff:	poweroff the kernel after running tests
-+			halt:		halt the kernel after running tests
-+			reboot:		reboot the kernel after running tests
-+
- 	kvm.ignore_msrs=[KVM] Ignore guest accesses to unhandled MSRs.
- 			Default is 0 (don't ignore, but inject #GP)
- 
--- 
-2.27.0.212.ge8ba1cc988-goog
+I'm not sure if there is a point to having PAC and/or BTI in the EFI
+stub, given that it runs under the control of the firmware, with its
+memory mappings and PAC configuration etc.
