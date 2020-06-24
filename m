@@ -1,51 +1,64 @@
-From: Nick Desaulniers <ndesaulniers@google.com>
-Subject: Re: [PATCH 17/22] arm64: vdso: disable LTO
-Date: Wed, 24 Jun 2020 13:58:57 -0700
-Message-ID: <CAKwvOdnEbCfYZ9o=OF51oswyqDvN4iP-9syWUDhxfueq4q0xcw@mail.gmail.com>
-References: <20200624203200.78870-1-samitolvanen@google.com> <20200624203200.78870-18-samitolvanen@google.com>
+From: Brendan Higgins <brendanhiggins@google.com>
+Subject: [PATCH v4 01/11] vmlinux.lds.h: add linker section for KUnit test suites
+Date: Wed, 24 Jun 2020 13:55:40 -0700
+Message-ID: <20200624205550.215599-2-brendanhiggins@google.com>
+References: <20200624205550.215599-1-brendanhiggins@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20200624203200.78870-18-samitolvanen@google.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54448 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2389045AbgFXU6L (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:58:11 -0400
+Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 64E13C061573
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:58:11 -0700 (PDT)
+Received: by mail-yb1-xb49.google.com with SMTP id j3so3603674yba.14
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:58:11 -0700 (PDT)
+In-Reply-To: <20200624205550.215599-1-brendanhiggins@google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org, Brendan Higgins <brendanhiggins@google.com>
 
-On Wed, Jun 24, 2020 at 1:33 PM Sami Tolvanen <samitolvanen@google.com> wrote:
->
-> Filter out CC_FLAGS_LTO for the vDSO.
+Add a linker section where KUnit can put references to its test suites.
+This patch is the first step in transitioning to dispatching all KUnit
+tests from a centralized executor rather than having each as its own
+separate late_initcall.
 
-Just curious about this patch (and the following one for x86's vdso),
-do you happen to recall specifically what the issues with the vdso's
-are?
+Co-developed-by: Iurii Zaikin <yzaikin@google.com>
+Signed-off-by: Iurii Zaikin <yzaikin@google.com>
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+---
+ include/asm-generic/vmlinux.lds.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
->
-> Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
-> ---
->  arch/arm64/kernel/vdso/Makefile | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
->
-> diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makefile
-> index 556d424c6f52..cfad4c296ca1 100644
-> --- a/arch/arm64/kernel/vdso/Makefile
-> +++ b/arch/arm64/kernel/vdso/Makefile
-> @@ -29,8 +29,8 @@ ldflags-y := -shared -nostdlib -soname=linux-vdso.so.1 --hash-style=sysv \
->  ccflags-y := -fno-common -fno-builtin -fno-stack-protector -ffixed-x18
->  ccflags-y += -DDISABLE_BRANCH_PROFILING
->
-> -CFLAGS_REMOVE_vgettimeofday.o = $(CC_FLAGS_FTRACE) -Os $(CC_FLAGS_SCS)
-> -KBUILD_CFLAGS                  += $(DISABLE_LTO)
-> +CFLAGS_REMOVE_vgettimeofday.o = $(CC_FLAGS_FTRACE) -Os $(CC_FLAGS_SCS) \
-> +                               $(CC_FLAGS_LTO)
->  KASAN_SANITIZE                 := n
->  UBSAN_SANITIZE                 := n
->  OBJECT_FILES_NON_STANDARD      := y
-> --
-> 2.27.0.212.ge8ba1cc988-goog
->
-
-
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index db600ef218d7d..4f9b036fc9616 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -881,6 +881,13 @@
+ 		KEEP(*(.con_initcall.init))				\
+ 		__con_initcall_end = .;
+ 
++/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
++#define KUNIT_TEST_SUITES						\
++		. = ALIGN(8);						\
++		__kunit_suites_start = .;				\
++		KEEP(*(.kunit_test_suites))				\
++		__kunit_suites_end = .;
++
+ #ifdef CONFIG_BLK_DEV_INITRD
+ #define INIT_RAM_FS							\
+ 	. = ALIGN(4);							\
+@@ -1056,6 +1063,7 @@
+ 		INIT_CALLS						\
+ 		CON_INITCALL						\
+ 		INIT_RAM_FS						\
++		KUNIT_TEST_SUITES					\
+ 	}
+ 
+ #define BSS_SECTION(sbss_align, bss_align, stop_align)			\
 -- 
-Thanks,
-~Nick Desaulniers
+2.27.0.212.ge8ba1cc988-goog
