@@ -1,105 +1,46 @@
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH v3 3/9] efi/libstub: Remove .note.gnu.property
-Date: Wed, 24 Jun 2020 12:26:47 +0100
-Message-ID: <20200624112647.GC6134@willie-the-truck>
-References: <20200624014940.1204448-1-keescook@chromium.org>
- <20200624014940.1204448-4-keescook@chromium.org>
- <20200624033142.cinvg6rbg252j46d@google.com>
- <202006232143.66828CD3@keescook>
- <20200624104356.GA6134@willie-the-truck>
- <CAMj1kXHBT4ei0xhyL4jD7=CNRsn1rh7w6jeYDLjVOv4na0Z38Q@mail.gmail.com>
+From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Subject: Re: [PATCH V3 0/4] mm/debug_vm_pgtable: Add some more tests
+Date: Wed, 24 Jun 2020 13:48:08 +0200
+Message-ID: <20200624134808.0c460862@thinkpad>
+References: <1592192277-8421-1-git-send-email-anshuman.khandual@arm.com>
+        <70ddc7dd-b688-b73e-642a-6363178c8cdd@arm.com>
+        <20200624110539.GC24934@oc3871087118.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:43634 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2388811AbgFXL0z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 Jun 2020 07:26:55 -0400
-Content-Disposition: inline
-In-Reply-To: <CAMj1kXHBT4ei0xhyL4jD7=CNRsn1rh7w6jeYDLjVOv4na0Z38Q@mail.gmail.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:38180 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S2403784AbgFXLtK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Jun 2020 07:49:10 -0400
+In-Reply-To: <20200624110539.GC24934@oc3871087118.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ard Biesheuvel <ardb@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@li>
+To: Alexander Gordeev <agordeev@linux.ibm.com>, Anshuman Khandual <anshuman.khandual@arm.com>
+Cc: linux-mm@kvack.org, christophe.leroy@c-s.fr, ziy@nvidia.com, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>
 
-On Wed, Jun 24, 2020 at 12:46:32PM +0200, Ard Biesheuvel wrote:
-> On Wed, 24 Jun 2020 at 12:44, Will Deacon <will@kernel.org> wrote:
-> > On Tue, Jun 23, 2020 at 09:44:11PM -0700, Kees Cook wrote:
-> > > On Tue, Jun 23, 2020 at 08:31:42PM -0700, 'Fangrui Song' via Clang Bu=
-ilt Linux wrote:
-> > > > arch/arm64/Kconfig enables ARM64_PTR_AUTH by default. When the conf=
-ig is on
-> > > >
-> > > > ifeq ($(CONFIG_ARM64_BTI_KERNEL),y)
-> > > > branch-prot-flags-$(CONFIG_CC_HAS_BRANCH_PROT_PAC_RET_BTI) :=3D -mb=
-ranch-protection=3Dpac-ret+leaf+bti
-> > > > else
-> > > > branch-prot-flags-$(CONFIG_CC_HAS_BRANCH_PROT_PAC_RET) :=3D -mbranc=
-h-protection=3Dpac-ret+leaf
-> > > > endif
-> > > >
-> > > > This option creates .note.gnu.property:
-> > > >
-> > > > % readelf -n drivers/firmware/efi/libstub/efi-stub.o
-> > > >
-> > > > Displaying notes found in: .note.gnu.property
-> > > >   Owner                Data size        Description
-> > > >   GNU                  0x00000010       NT_GNU_PROPERTY_TYPE_0
-> > > >       Properties: AArch64 feature: PAC
-> > > >
-> > > > If .note.gnu.property is not desired in drivers/firmware/efi/libstu=
-b, specifying
-> > > > -mbranch-protection=3Dnone can override -mbranch-protection=3Dpac-r=
-et+leaf
-> > >
-> > > We want to keep the branch protection enabled. But since it's not a
-> > > "regular" ELF, we don't need to keep the property that identifies the
-> > > feature.
-> >
-> > For the kernel Image, how do we remove these sections? The objcopy flags
-> > in arch/arm64/boot/Makefile look both insufficient and out of date. My
-> > vmlinux ends up with both a ".notes" and a ".init.note.gnu.property"
-> > segment.
-> >
->=20
-> The latter is the fault of the libstub make rules, that prepend .init
-> to all section names.
+On Wed, 24 Jun 2020 13:05:39 +0200
+Alexander Gordeev <agordeev@linux.ibm.com> wrote:
 
-Hmm. I tried adding -mbranch-protection=3Dnone to arm64 cflags for the stub,
-but I still see this note in vmlinux. It looks like it comes in via the
-stub copy of lib-ctype.o, but I don't know why that would force the
-note. The cflags look ok to me [1] and I confirmed that the note is
-being generated by the compiler.
+> On Wed, Jun 24, 2020 at 08:43:10AM +0530, Anshuman Khandual wrote:
+> 
+> [...]
+> 
+> > Hello Gerald/Christophe/Vineet,
+> > 
+> > It would be really great if you could give this series a quick test
+> > on s390/ppc/arc platforms respectively. Thank you.
+> 
+> That worked for me with the default and debug s390 configurations.
+> Would you like to try with some particular options or combinations
+> of the options?
 
-> I'm not sure if there is a point to having PAC and/or BTI in the EFI
-> stub, given that it runs under the control of the firmware, with its
-> memory mappings and PAC configuration etc.
+It will be enabled automatically on all archs that set
+ARCH_HAS_DEBUG_VM_PGTABLE, which we do for s390 unconditionally.
+Also, DEBUG_VM has to be set, which we have only in the debug config.
+So only the s390 debug config will have it enabled, you can check
+dmesg for "debug_vm_pgtable" to see when / where it was run, and if it
+triggered any warnings.
 
-Agreed, I just can't figure out how to get rid of the note.
-
-Will
-
-[1] -mlittle-endian -DKASAN_SHADOW_SCALE_SHIFT=3D3 -Qunused-arguments -Wall=
- -Wundef -Werror=3Dstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -f=
-no-common -fshort-wchar -fno-PIE -Werror=3Dimplicit-function-declaration -W=
-error=3Dimplicit-int -Wno-format-security -std=3Dgnu89 --target=3Daarch64-l=
-inux-gnu --prefix=3D/usr/local/google/home/willdeacon/bin/ --gcc-toolchain=
-=3D/usr/local/google/home/willdeacon -no-integrated-as -Werror=3Dunknown-wa=
-rning-option -mgeneral-regs-only -DCONFIG_CC_HAS_K_CONSTRAINT=3D1 -fno-asyn=
-chronous-unwind-tables -mbranch-protection=3Dpac-ret+leaf+bti -Wa,-march=3D=
-armv8.3-a -DKASAN_SHADOW_SCALE_SHIFT=3D3 -fno-delete-null-pointer-checks -W=
-no-address-of-packed-member -O2 -Wframe-larger-than=3D2048 -fstack-protecto=
-r-strong -Wno-format-invalid-specifier -Wno-gnu -mno-global-merge -Wno-unus=
-ed-const-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -g -W=
-declaration-after-statement -Wvla -Wno-pointer-sign -Wno-array-bounds -fno-=
-strict-overflow -fno-merge-all-constants -fno-stack-check -Werror=3Ddate-ti=
-me -Werror=3Dincompatible-pointer-types -fmacro-prefix-map=3D./=3D -Wno-ini=
-tializer-overrides -Wno-format -Wno-sign-compare -Wno-format-zero-length -W=
-no-tautological-constant-out-of-range-compare -fpie -mbranch-protection=3Dn=
-one -I./scripts/dtc/libfdt -Os -DDISABLE_BRANCH_PROFILING -include ./driver=
-s/firmware/efi/libstub/hidden.h -D__NO_FORTIFY -ffreestanding -fno-stack-pr=
-otector -fno-addrsig -D__DISABLE_EXPORTS    -DKBUILD_MODFILE=3D'"drivers/fi=
-rmware/efi/libstub/lib-ctype"' -DKBUILD_BASENAME=3D'"lib_ctype"' -DKBUILD_M=
-ODNAME=3D'"lib_ctype"' -c -o drivers/firmware/efi/libstub/lib-ctype.o lib/c=
-type.c
+I also checked with the v3 series, and it works fine for s390.
