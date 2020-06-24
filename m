@@ -1,57 +1,99 @@
-Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58820 "EHLO
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39116 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728773AbgFOTph (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 15:45:37 -0400
+        with ESMTP id S2404829AbgFXQQr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 12:16:47 -0400
+Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A0B27C0613ED
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 09:16:47 -0700 (PDT)
+Received: by mail-pl1-x643.google.com with SMTP id g17so1224272plq.12
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 09:16:47 -0700 (PDT)
+Date: Wed, 24 Jun 2020 09:16:43 -0700
+From: Fangrui Song <maskray@google.com>
+Subject: Re: [PATCH v3 2/9] vmlinux.lds.h: Add .symtab, .strtab, and
+ .shstrtab to STABS_DEBUG
+Message-ID: <20200624161643.73x6navnwryckuit@google.com>
+References: <20200624014940.1204448-1-keescook@chromium.org>
+ <20200624014940.1204448-3-keescook@chromium.org>
+ <20200624153930.GA1337895@rani.riverdale.lan>
 MIME-Version: 1.0
-References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de>
- <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com>
- <20200615141239.GA12951@lst.de> <CAMzpN2heSzZzg16ws3yQkd7YZwmPPx_4RFCpb9JYfFWJ9gfPhA@mail.gmail.com>
- <CAK8P3a3q-hC7kZwLPbc+E5VYcqthQS4J4Rqo+rKkBRU2n071XA@mail.gmail.com>
-In-Reply-To: <CAK8P3a3q-hC7kZwLPbc+E5VYcqthQS4J4Rqo+rKkBRU2n071XA@mail.gmail.com>
-From: Brian Gerst <brgerst@gmail.com>
-Date: Mon, 15 Jun 2020 15:45:24 -0400
-Message-ID: <CAMzpN2iDPKatOqs+Uuw70ACbnB-D__dgSRZU0wBjOUBwTGOJ-A@mail.gmail.com>
-Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Disposition: inline
+In-Reply-To: <20200624153930.GA1337895@rani.riverdale.lan>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20200615194524.uHr537Hq8m8Bcryb70OzRTazHgjvURDzi7q688_D6kA@z>
+To: Arvind Sankar <nivedita@alum.mit.edu>
+Cc: Kees Cook <keescook@chromium.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200624161643.Yi1nnXL0cQeHl2aC4klA_z7XWr_xKV4PAv1d4xl_XEI@z>
 
-On Mon, Jun 15, 2020 at 2:47 PM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Mon, Jun 15, 2020 at 4:48 PM Brian Gerst <brgerst@gmail.com> wrote:
-> > On Mon, Jun 15, 2020 at 10:13 AM Christoph Hellwig <hch@lst.de> wrote:
-> > > On Mon, Jun 15, 2020 at 03:31:35PM +0200, Arnd Bergmann wrote:
->
-> > >
-> > > I'd rather keep it in common code as that allows all the low-level
-> > > exec stuff to be marked static, and avoid us growing new pointless
-> > > compat variants through copy and paste.
-> > > smart compiler to d
-> > >
-> > > > I don't really understand
-> > > > the comment, why can't this just use this?
-> > >
-> > > That errors out with:
-> > >
-> > > ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1040): undefined reference to
-> > > `__x32_sys_execve'
-> > > ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1108): undefined reference to
-> > > `__x32_sys_execveat'
-> > > make: *** [Makefile:1139: vmlinux] Error 1
-> >
-> > I think I have a fix for this, by modifying the syscall wrappers to
-> > add an alias for the __x32 variant to the native __x64_sys_foo().
-> > I'll get back to you with a patch.
->
-> Do we actually need the __x32 prefix any more, or could we just
-> change all x32 specific calls to use __x64_compat_sys_foo()?
 
-I suppose that would work too.  The prefix really describes the
-register mapping.
+On 2020-06-24, Arvind Sankar wrote:
+>On Tue, Jun 23, 2020 at 06:49:33PM -0700, Kees Cook wrote:
+>> When linking vmlinux with LLD, the synthetic sections .symtab, .strtab,
+>> and .shstrtab are listed as orphaned. Add them to the STABS_DEBUG section
+>> so there will be no warnings when --orphan-handling=warn is used more
+>> widely. (They are added above comment as it is the more common
+>
+>Nit 1: is "after .comment" better than "above comment"? It's above in the
+>sense of higher file offset, but it's below in readelf output.
 
---
-Brian Gerst
+I mean this order:)
+
+   .comment
+   .symtab
+   .shstrtab
+   .strtab
+
+This is the case in the absence of a linker script if at least one object file has .comment (mostly for GCC/clang version information) or the linker is LLD which adds a .comment
+
+>Nit 2: These aren't actually debugging sections, no? Is it better to add
+>a new macro for it, and is there any plan to stop LLD from warning about
+>them?
+
+https://reviews.llvm.org/D75149 "[ELF] --orphan-handling=: don't warn/error for unused synthesized sections"
+described that .symtab .shstrtab .strtab are different in GNU ld.
+Since many other GNU ld synthesized sections (.rela.dyn .plt ...) can be renamed or dropped
+via output section descriptions, I don't understand why the 3 sections
+can't be customized.
+
+I created a feature request: https://sourceware.org/bugzilla/show_bug.cgi?id=26168
+(If this is supported, it is a consistent behavior to warn for orphan
+.symtab/.strtab/.shstrtab
+
+There may be 50% chance that the maintainer decides that "LLD diverges"
+I would disagree: there is no fundamental problems with .symtab/.strtab/.shstrtab which make them special in output section descriptions or orphan handling.)
+
+>> order[1].)
+>>
+>> ld.lld: warning: <internal>:(.symtab) is being placed in '.symtab'
+>> ld.lld: warning: <internal>:(.shstrtab) is being placed in '.shstrtab'
+>> ld.lld: warning: <internal>:(.strtab) is being placed in '.strtab'
+>>
+>> [1] https://lore.kernel.org/lkml/20200622224928.o2a7jkq33guxfci4@google.com/
+>>
+>> Reported-by: Fangrui Song <maskray@google.com>
+>> Reviewed-by: Fangrui Song <maskray@google.com>
+>> Signed-off-by: Kees Cook <keescook@chromium.org>
+>> ---
+>>  include/asm-generic/vmlinux.lds.h | 5 ++++-
+>>  1 file changed, 4 insertions(+), 1 deletion(-)
+>>
+>> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+>> index 1248a206be8d..8e71757f485b 100644
+>> --- a/include/asm-generic/vmlinux.lds.h
+>> +++ b/include/asm-generic/vmlinux.lds.h
+>> @@ -792,7 +792,10 @@
+>>  		.stab.exclstr 0 : { *(.stab.exclstr) }			\
+>>  		.stab.index 0 : { *(.stab.index) }			\
+>>  		.stab.indexstr 0 : { *(.stab.indexstr) }		\
+>> -		.comment 0 : { *(.comment) }
+>> +		.comment 0 : { *(.comment) }				\
+>> +		.symtab 0 : { *(.symtab) }				\
+>> +		.strtab 0 : { *(.strtab) }				\
+>> +		.shstrtab 0 : { *(.shstrtab) }
+>>
+>>  #ifdef CONFIG_GENERIC_BUG
+>>  #define BUG_TABLE							\
+>> --
+>> 2.25.1
+>>
