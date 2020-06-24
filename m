@@ -1,73 +1,84 @@
 From: Sami Tolvanen <samitolvanen@google.com>
-Subject: [PATCH 07/22] kbuild: lto: merge module sections
-Date: Wed, 24 Jun 2020 13:31:45 -0700
-Message-ID: <20200624203200.78870-8-samitolvanen@google.com>
+Subject: [PATCH 10/22] init: lto: fix PREL32 relocations
+Date: Wed, 24 Jun 2020 13:31:48 -0700
+Message-ID: <20200624203200.78870-11-samitolvanen@google.com>
 References: <20200624203200.78870-1-samitolvanen@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kbuild-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
-Sender: linux-kbuild-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Sami Tolvanen <samitolvanen@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-LLD always splits sections with LTO, which increases module sizes. This
-change adds a linker script that merges the split sections in the final
-module and discards the .eh_frame section that LLD may generate.
+With LTO, the compiler can rename static functions to avoid global
+naming collisions. As initcall functions are typically static,
+renaming can break references to them in inline assembly. This
+change adds a global stub with a stable name for each initcall to
+fix the issue when PREL32 relocations are used.
 
-Suggested-by: Nick Desaulniers <ndesaulniers@google.com>
 Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
 ---
- Makefile               |  2 ++
- scripts/module-lto.lds | 26 ++++++++++++++++++++++++++
- 2 files changed, 28 insertions(+)
- create mode 100644 scripts/module-lto.lds
+ include/linux/init.h | 30 ++++++++++++++++++++++++++----
+ 1 file changed, 26 insertions(+), 4 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index ee66513a5b66..9ffec5fe1737 100644
---- a/Makefile
-+++ b/Makefile
-@@ -898,6 +898,8 @@ CC_FLAGS_LTO_CLANG += -fvisibility=default
- # Limit inlining across translation units to reduce binary size
- LD_FLAGS_LTO_CLANG := -mllvm -import-instr-limit=5
- KBUILD_LDFLAGS += $(LD_FLAGS_LTO_CLANG)
+diff --git a/include/linux/init.h b/include/linux/init.h
+index af638cd6dd52..5b4bdc5a8399 100644
+--- a/include/linux/init.h
++++ b/include/linux/init.h
+@@ -209,26 +209,48 @@ extern bool initcall_debug;
+  */
+ #define __initcall_section(__sec, __iid)			\
+ 	#__sec ".init.." #__iid
 +
-+KBUILD_LDS_MODULE += $(srctree)/scripts/module-lto.lds
- endif
- 
- ifdef CONFIG_LTO
-diff --git a/scripts/module-lto.lds b/scripts/module-lto.lds
-new file mode 100644
-index 000000000000..65884c652bf2
---- /dev/null
-+++ b/scripts/module-lto.lds
-@@ -0,0 +1,26 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
 +/*
-+ * With CONFIG_LTO_CLANG, LLD always enables -fdata-sections and
-+ * -ffunction-sections, which increases the size of the final module.
-+ * Merge the split sections in the final binary.
++ * With LTO, the compiler can rename static functions to avoid
++ * global naming collisions. We use a global stub function for
++ * initcalls to create a stable symbol name whose address can be
++ * taken in inline assembly when PREL32 relocations are used.
 + */
-+SECTIONS {
-+	__patchable_function_entries : { *(__patchable_function_entries) }
++#define __initcall_stub(fn, __iid, id)				\
++	__initcall_name(initstub, __iid, id)
 +
-+	.bss : {
-+		*(.bss .bss.[0-9a-zA-Z_]*)
-+		*(.bss..L* .bss..compoundliteral*)
-+	}
++#define __define_initcall_stub(__stub, fn)			\
++	int __init __stub(void)					\
++	{ 							\
++		return fn();					\
++	}							\
++	__ADDRESSABLE(__stub)
+ #else
+ #define __initcall_section(__sec, __iid)			\
+ 	#__sec ".init"
 +
-+	.data : {
-+		*(.data .data.[0-9a-zA-Z_]*)
-+		*(.data..L* .data..compoundliteral*)
-+	}
++#define __initcall_stub(fn, __iid, id)	fn
 +
-+	.rodata : {
-+		*(.rodata .rodata.[0-9a-zA-Z_]*)
-+		*(.rodata..L* .rodata..compoundliteral*)
-+	}
-+
-+	.text : { *(.text .text.[0-9a-zA-Z_]*) }
-+}
++#define __define_initcall_stub(__stub, fn)			\
++	__ADDRESSABLE(fn)
+ #endif
+ 
+ #ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
+-#define ____define_initcall(fn, __name, __sec)			\
+-	__ADDRESSABLE(fn)					\
++#define ____define_initcall(fn, __stub, __name, __sec)		\
++	__define_initcall_stub(__stub, fn)			\
+ 	asm(".section	\"" __sec "\", \"a\"		\n"	\
+ 	    __stringify(__name) ":			\n"	\
+-	    ".long	" #fn " - .			\n"	\
++	    ".long	" __stringify(__stub) " - .	\n"	\
+ 	    ".previous					\n");
+ #else
+-#define ____define_initcall(fn, __name, __sec)			\
++#define ____define_initcall(fn, __unused, __name, __sec)	\
+ 	static initcall_t __name __used 			\
+ 		__attribute__((__section__(__sec))) = fn;
+ #endif
+ 
+ #define __unique_initcall(fn, id, __sec, __iid)			\
+ 	____define_initcall(fn,					\
++		__initcall_stub(fn, __iid, id),			\
+ 		__initcall_name(initcall, __iid, id),		\
+ 		__initcall_section(__sec, __iid))
+ 
 -- 
 2.27.0.212.ge8ba1cc988-goog
