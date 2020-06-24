@@ -1,76 +1,63 @@
-Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:33670 "EHLO verein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730111AbgFOOMo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 15 Jun 2020 10:12:44 -0400
-Date: Mon, 15 Jun 2020 16:12:39 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
-Message-ID: <20200615141239.GA12951@lst.de>
-References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de> <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com>
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50672 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2406618AbgFXUdk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:33:40 -0400
+Received: from mail-qt1-x849.google.com (mail-qt1-x849.google.com [IPv6:2607:f8b0:4864:20::849])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C2BE4C061796
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:38 -0700 (PDT)
+Received: by mail-qt1-x849.google.com with SMTP id y5so2427045qto.10
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:38 -0700 (PDT)
+Date: Wed, 24 Jun 2020 13:32:00 -0700
+In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
+Message-ID: <20200624203200.78870-23-samitolvanen@google.com>
+Mime-Version: 1.0
+References: <20200624203200.78870-1-samitolvanen@google.com>
+Subject: [PATCH 22/22] x86, build: allow LTO_CLANG and THINLTO to be selected
+From: Sami Tolvanen <samitolvanen@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20200615141239.GIXzyj2wGm1FRFi_1UtU_U71lrbu53qCgwUiPr0SwDo@z>
+To: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Sami Tolvanen <samitolvanen@google.com>
+Message-ID: <20200624203200.lVLTMSj8q5yQSwXN7hnM-dkMrSAD5k0KfbE9LjQgqBA@z>
 
-On Mon, Jun 15, 2020 at 03:31:35PM +0200, Arnd Bergmann wrote:
-> >  #ifdef CONFIG_COMPAT
-> > -       if (unlikely(argv.is_compat)) {
-> > +       if (in_compat_syscall()) {
-> > +               const compat_uptr_t __user *compat_argv =
-> > +                       compat_ptr((unsigned long)argv);
-> >                 compat_uptr_t compat;
-> >
-> > -               if (get_user(compat, argv.ptr.compat + nr))
-> > +               if (get_user(compat, compat_argv + nr))
-> >                         return ERR_PTR(-EFAULT);
-> >
-> >                 return compat_ptr(compat);
-> >         }
-> >  #endif
-> 
-> I would expect that the "#ifdef CONFIG_COMPAT" can be removed
-> now, since compat_ptr() and in_compat_syscall() are now defined
-> unconditionally. I have not tried that though.
+Allow CONFIG_LTO_CLANG and CONFIG_THINLTO to be enabled.
 
-True, I'll give it a spin.
+Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+---
+ arch/x86/Kconfig  | 2 ++
+ arch/x86/Makefile | 5 +++++
+ 2 files changed, 7 insertions(+)
 
-> > +/*
-> > + * x32 syscalls are listed in the same table as x86_64 ones, so we need to
-> > + * define compat syscalls that are exactly the same as the native version for
-> > + * the syscall table machinery to work.  Sigh..
-> > + */
-> > +#ifdef CONFIG_X86_X32
-> >  COMPAT_SYSCALL_DEFINE3(execve, const char __user *, filename,
-> > -       const compat_uptr_t __user *, argv,
-> > -       const compat_uptr_t __user *, envp)
-> > +                      const char __user *const __user *, argv,
-> > +                      const char __user *const __user *, envp)
-> >  {
-> > -       return do_compat_execve(AT_FDCWD, getname(filename), argv, envp, 0);
-> > +       return do_execveat(AT_FDCWD, getname(filename), argv, envp, 0, NULL);
-> >  }
-> 
-> Maybe move it to arch/x86/kernel/process_64.c or arch/x86/entry/syscall_x32.c
-> to keep it out of the common code if this is needed.
-
-I'd rather keep it in common code as that allows all the low-level
-exec stuff to be marked static, and avoid us growing new pointless
-compat variants through copy and paste.
-smart compiler to d
-
-> I don't really understand
-> the comment, why can't this just use this?
-
-That errors out with:
-
-ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1040): undefined reference to
-`__x32_sys_execve'
-ld: arch/x86/entry/syscall_x32.o:(.rodata+0x1108): undefined reference to
-`__x32_sys_execveat'
-make: *** [Makefile:1139: vmlinux] Error 1
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 6a0cc524882d..df335b1f9c31 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -92,6 +92,8 @@ config X86
+ 	select ARCH_SUPPORTS_ACPI
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
+ 	select ARCH_SUPPORTS_NUMA_BALANCING	if X86_64
++	select ARCH_SUPPORTS_LTO_CLANG		if X86_64
++	select ARCH_SUPPORTS_THINLTO		if X86_64
+ 	select ARCH_USE_BUILTIN_BSWAP
+ 	select ARCH_USE_QUEUED_RWLOCKS
+ 	select ARCH_USE_QUEUED_SPINLOCKS
+diff --git a/arch/x86/Makefile b/arch/x86/Makefile
+index 00e378de8bc0..a1abc1e081ad 100644
+--- a/arch/x86/Makefile
++++ b/arch/x86/Makefile
+@@ -188,6 +188,11 @@ ifdef CONFIG_X86_64
+ KBUILD_LDFLAGS += $(call ld-option, -z max-page-size=0x200000)
+ endif
+ 
++ifdef CONFIG_LTO_CLANG
++KBUILD_LDFLAGS	+= -plugin-opt=-code-model=kernel \
++		   -plugin-opt=-stack-alignment=$(if $(CONFIG_X86_32),4,8)
++endif
++
+ # Workaround for a gcc prelease that unfortunately was shipped in a suse release
+ KBUILD_CFLAGS += -Wno-sign-compare
+ #
+-- 
+2.27.0.212.ge8ba1cc988-goog
