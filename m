@@ -1,84 +1,48 @@
-From: Andrea Parri <parri.andrea@gmail.com>
-Subject: Re: [PATCH 2/2] Documentation/litmus-tests: Add note on herd7 7.56
- in atomic litmus test
-Date: Wed, 24 Jun 2020 01:24:25 +0200
-Message-ID: <20200623232425.GB418699@andrea>
-References: <20200623005152.GA27459@paulmck-ThinkPad-P72>
- <20200623005231.27712-13-paulmck@kernel.org>
- <e3693dec-213a-3f65-eb1c-284bf8ca6e13@gmail.com>
- <20200623155419.GI9247@paulmck-ThinkPad-P72>
- <b3433b44-29af-4ef4-d047-b0b0d51a9fbd@gmail.com>
- <9e1d448a-cf3c-523d-e0a6-f46ac4706c48@gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v3 3/9] efi/libstub: Remove .note.gnu.property
+Date: Tue, 23 Jun 2020 18:49:34 -0700
+Message-ID: <20200624014940.1204448-4-keescook@chromium.org>
+References: <20200624014940.1204448-1-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52574 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46706 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388200AbgFWXYa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2020 19:24:30 -0400
-Content-Disposition: inline
-In-Reply-To: <9e1d448a-cf3c-523d-e0a6-f46ac4706c48@gmail.com>
+        with ESMTP id S2387778AbgFXBts (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2020 21:49:48 -0400
+Received: from mail-pl1-x641.google.com (mail-pl1-x641.google.com [IPv6:2607:f8b0:4864:20::641])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0DEE2C061573
+        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:48 -0700 (PDT)
+Received: by mail-pl1-x641.google.com with SMTP id x11so330644plo.7
+        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:48 -0700 (PDT)
+In-Reply-To: <20200624014940.1204448-1-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akira Yokosawa <akiyks@gmail.com>
-Cc: paulmck@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org, stern@rowland.harvard.edu, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr
+To: Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
 
-On Wed, Jun 24, 2020 at 07:09:01AM +0900, Akira Yokosawa wrote:
-> From f808c371075d2f92b955da1a83ecb3828db1972e Mon Sep 17 00:00:00 2001
-> From: Akira Yokosawa <akiyks@gmail.com>
-> Date: Wed, 24 Jun 2020 06:59:26 +0900
-> Subject: [PATCH 2/2] Documentation/litmus-tests: Add note on herd7 7.56 in atomic litmus test
-> 
-> herdtools 7.56 has enhanced herd7's C parser so that the "(void)expr"
-> construct in Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus is
-> accepted.
-> 
-> This is independent of LKMM's cat model, so mention the required
-> version in the header of the litmus test and its entry in README.
-> 
-> CC: Boqun Feng <boqun.feng@gmail.com>
-> Reported-by: Andrea Parri <parri.andrea@gmail.com>
-> Signed-off-by: Akira Yokosawa <akiyks@gmail.com>
+In preparation for adding --orphan-handling=warn to more architectures,
+make sure unwanted sections don't end up appearing under the .init
+section prefix that libstub adds to itself during objcopy.
 
-Frankly, I was hoping that we could simply bump the herd7 version in
-tools/memory-model/README; I understand your point, but I admit that
-I haven't being playing with 7.52 for a while now...
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ drivers/firmware/efi/libstub/Makefile | 3 +++
+ 1 file changed, 3 insertions(+)
 
-Acked-by: Andrea Parri <parri.andrea@gmail.com>
-
-  Andrea
-
-
-> ---
->  Documentation/litmus-tests/README                                | 1 +
->  .../atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus       | 1 +
->  2 files changed, 2 insertions(+)
-> 
-> diff --git a/Documentation/litmus-tests/README b/Documentation/litmus-tests/README
-> index b79e640214b9..7f5c6c3ed6c3 100644
-> --- a/Documentation/litmus-tests/README
-> +++ b/Documentation/litmus-tests/README
-> @@ -19,6 +19,7 @@ Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
->  
->  Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
->      Test that atomic_set() cannot break the atomicity of atomic RMWs.
-> +    NOTE: Require herd7 7.56 or later which supports "(void)expr".
->  
->  
->  RCU (/rcu directory)
-> diff --git a/Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus b/Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
-> index 49385314d911..ffd4d3e79c4a 100644
-> --- a/Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
-> +++ b/Documentation/litmus-tests/atomic/Atomic-RMW-ops-are-atomic-WRT-atomic_set.litmus
-> @@ -4,6 +4,7 @@ C Atomic-RMW-ops-are-atomic-WRT-atomic_set
->   * Result: Never
->   *
->   * Test that atomic_set() cannot break the atomicity of atomic RMWs.
-> + * NOTE: This requires herd7 7.56 or later which supports "(void)expr".
->   *)
->  
->  {
-> -- 
-> 2.17.1
-> 
-> 
+diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
+index 75daaf20374e..9d2d2e784bca 100644
+--- a/drivers/firmware/efi/libstub/Makefile
++++ b/drivers/firmware/efi/libstub/Makefile
+@@ -66,6 +66,9 @@ lib-$(CONFIG_X86)		+= x86-stub.o
+ CFLAGS_arm32-stub.o		:= -DTEXT_OFFSET=$(TEXT_OFFSET)
+ CFLAGS_arm64-stub.o		:= -DTEXT_OFFSET=$(TEXT_OFFSET)
+ 
++# Remove unwanted sections first.
++STUBCOPY_FLAGS-y		+= --remove-section=.note.gnu.property
++
+ #
+ # For x86, bootloaders like systemd-boot or grub-efi do not zero-initialize the
+ # .bss section, so the .bss section of the EFI stub needs to be included in the
+-- 
+2.25.1
