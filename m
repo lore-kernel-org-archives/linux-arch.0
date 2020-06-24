@@ -1,57 +1,37 @@
-From: Nick Desaulniers <ndesaulniers@google.com>
-Subject: Re: [PATCH 08/22] kbuild: lto: remove duplicate dependencies from
- .mod files
-Date: Wed, 24 Jun 2020 14:13:46 -0700
-Message-ID: <CAKwvOdmcDxa+h9i6_XQc8ZDQjD9cTrD7s9eNU0fSxZbXciKhDQ@mail.gmail.com>
-References: <20200624203200.78870-1-samitolvanen@google.com> <20200624203200.78870-9-samitolvanen@google.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Date: Wed, 24 Jun 2020 23:15:40 +0200
+Message-ID: <20200624211540.GS4817@hirez.programming.kicks-ass.net>
+References: <20200624203200.78870-1-samitolvanen@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20200624203200.78870-9-samitolvanen@google.com>
-Sender: linux-kbuild-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57274 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2390317AbgFXVQF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 17:16:05 -0400
+Content-Disposition: inline
+In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
 
-On Wed, Jun 24, 2020 at 1:33 PM Sami Tolvanen <samitolvanen@google.com> wrote:
->
-> With LTO, llvm-nm prints out symbols for each archive member
-> separately, which results in a lot of duplicate dependencies in the
-> .mod file when CONFIG_TRIM_UNUSED_SYMS is enabled. When a module
-> consists of several compilation units, the output can exceed the
-> default xargs command size limit and split the dependency list to
-> multiple lines, which results in used symbols getting trimmed.
->
-> This change removes duplicate dependencies, which will reduce the
-> probability of this happening and makes .mod files smaller and
-> easier to read.
->
-> Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+On Wed, Jun 24, 2020 at 01:31:38PM -0700, Sami Tolvanen wrote:
+> This patch series adds support for building x86_64 and arm64 kernels
+> with Clang's Link Time Optimization (LTO).
+> 
+> In addition to performance, the primary motivation for LTO is to allow
+> Clang's Control-Flow Integrity (CFI) to be used in the kernel. Google's
+> Pixel devices have shipped with LTO+CFI kernels since 2018.
+> 
+> Most of the patches are build system changes for handling LLVM bitcode,
+> which Clang produces with LTO instead of ELF object files, postponing
+> ELF processing until a later stage, and ensuring initcall ordering.
+> 
+> Note that first objtool patch in the series is already in linux-next,
+> but as it's needed with LTO, I'm including it also here to make testing
+> easier.
 
-Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-
-> ---
->  scripts/Makefile.build | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-> index 82977350f5a6..82b465ce3ca0 100644
-> --- a/scripts/Makefile.build
-> +++ b/scripts/Makefile.build
-> @@ -291,7 +291,7 @@ endef
->
->  # List module undefined symbols (or empty line if not enabled)
->  ifdef CONFIG_TRIM_UNUSED_KSYMS
-> -cmd_undef_syms = $(NM) $< | sed -n 's/^  *U //p' | xargs echo
-> +cmd_undef_syms = $(NM) $< | sed -n 's/^  *U //p' | sort -u | xargs echo
->  else
->  cmd_undef_syms = echo
->  endif
-> --
-> 2.27.0.212.ge8ba1cc988-goog
->
-
-
--- 
-Thanks,
-~Nick Desaulniers
+I'm very sad that yet again, memory ordering isn't addressed. LTO vastly
+increases the range of the optimizer to wreck things.
