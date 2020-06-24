@@ -1,54 +1,38 @@
-From: Alexander Gordeev <agordeev@linux.ibm.com>
-Subject: Re: [PATCH V3 0/4] mm/debug_vm_pgtable: Add some more tests
-Date: Wed, 24 Jun 2020 16:40:16 +0200
-Message-ID: <20200624144015.GD24934@oc3871087118.ibm.com>
-References: <1592192277-8421-1-git-send-email-anshuman.khandual@arm.com>
- <70ddc7dd-b688-b73e-642a-6363178c8cdd@arm.com>
- <20200624110539.GC24934@oc3871087118.ibm.com>
- <20200624134808.0c460862@thinkpad>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v3 3/9] efi/libstub: Remove .note.gnu.property
+Date: Wed, 24 Jun 2020 08:21:26 -0700
+Message-ID: <202006240820.A3468F4@keescook>
+References: <20200624014940.1204448-1-keescook@chromium.org>
+ <20200624014940.1204448-4-keescook@chromium.org>
+ <20200624033142.cinvg6rbg252j46d@google.com>
+ <202006232143.66828CD3@keescook>
+ <20200624104356.GA6134@willie-the-truck>
+ <CAMj1kXHBT4ei0xhyL4jD7=CNRsn1rh7w6jeYDLjVOv4na0Z38Q@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:2384 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S2389836AbgFXOlZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 Jun 2020 10:41:25 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58664 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2404296AbgFXPVa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 11:21:30 -0400
+Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DB820C061573
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 08:21:28 -0700 (PDT)
+Received: by mail-pl1-x643.google.com with SMTP id d12so1192729ply.1
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 08:21:28 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <20200624134808.0c460862@thinkpad>
+In-Reply-To: <CAMj1kXHBT4ei0xhyL4jD7=CNRsn1rh7w6jeYDLjVOv4na0Z38Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Cc: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org, christophe.leroy@c-s.fr, ziy@nvidia.com, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.na>
+To: Ard Biesheuvel <ardb@kernel.org>
+Cc: Will Deacon <will@kernel.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradea>
 
-On Wed, Jun 24, 2020 at 01:48:08PM +0200, Gerald Schaefer wrote:
-> On Wed, 24 Jun 2020 13:05:39 +0200
-> Alexander Gordeev <agordeev@linux.ibm.com> wrote:
-> 
-> > On Wed, Jun 24, 2020 at 08:43:10AM +0530, Anshuman Khandual wrote:
-> > 
-> > [...]
-> > 
-> > > Hello Gerald/Christophe/Vineet,
-> > > 
-> > > It would be really great if you could give this series a quick test
-> > > on s390/ppc/arc platforms respectively. Thank you.
-> > 
-> > That worked for me with the default and debug s390 configurations.
-> > Would you like to try with some particular options or combinations
-> > of the options?
-> 
-> It will be enabled automatically on all archs that set
-> ARCH_HAS_DEBUG_VM_PGTABLE, which we do for s390 unconditionally.
-> Also, DEBUG_VM has to be set, which we have only in the debug config.
-> So only the s390 debug config will have it enabled, you can check
-> dmesg for "debug_vm_pgtable" to see when / where it was run, and if it
-> triggered any warnings.
+On Wed, Jun 24, 2020 at 12:46:32PM +0200, Ard Biesheuvel wrote:
+> I'm not sure if there is a point to having PAC and/or BTI in the EFI
+> stub, given that it runs under the control of the firmware, with its
+> memory mappings and PAC configuration etc.
 
-Yes, that is what I did ;)
+Is BTI being ignored when the firmware runs?
 
-I should have been more clear. I wonder whether Anshuman has in
-mind other options which possibly makes sense to set or unset
-and check how it goes with non-standard configurations.
-
-> I also checked with the v3 series, and it works fine for s390.
+-- 
+Kees Cook
