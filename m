@@ -1,47 +1,60 @@
-Return-Path: <SRS0=mQnE=7Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtp-1.orcon.net.nz ([60.234.4.34]:34317 "EHLO
-        smtp-1.orcon.net.nz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725858AbgFLFIb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jun 2020 01:08:31 -0400
-Date: Fri, 12 Jun 2020 16:47:57 +1200
-From: Michael Cree <mcree@orcon.net.nz>
-Subject: Re: Regression bisected to f2f84b05e02b (bug: consolidate
- warn_slowpath_fmt() usage)
-Message-ID: <20200612044757.GA10703@tower>
-References: <20200602024804.GA3776630@p50-ethernet.mattst88.com>
- <202006021052.E52618F@keescook>
- <CAEdQ38F2GP92xB2gMXTrEo-Adbbc9Cy1DWHU9yveGLzJNd2HrA@mail.gmail.com>
+Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46750 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388590AbgFXBt4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2020 21:49:56 -0400
+Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 01039C061796
+        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:55 -0700 (PDT)
+Received: by mail-pl1-x644.google.com with SMTP id x11so330788plo.7
+        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:54 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v3 8/9] arm64/build: Use common DISCARDS in linker script
+Date: Tue, 23 Jun 2020 18:49:39 -0700
+Message-ID: <20200624014940.1204448-9-keescook@chromium.org>
+In-Reply-To: <20200624014940.1204448-1-keescook@chromium.org>
+References: <20200624014940.1204448-1-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAEdQ38F2GP92xB2gMXTrEo-Adbbc9Cy1DWHU9yveGLzJNd2HrA@mail.gmail.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Turner <mattst88@gmail.com>
-Cc: Kees Cook <keescook@chromium.org>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-alpha <linux-alpha@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Message-ID: <20200612044757.tbfNi9i_h76VMzw_s7oGgq4A7Y1qPsKqrMM-xMajuhw@z>
+To: Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200624014939.73zhG4GfQXvSJOktrvqmXYwfbhx-FUDN_BQe-PqlVZ0@z>
 
-On Thu, Jun 11, 2020 at 09:23:52PM -0700, Matt Turner wrote:
-> Since I noticed earlier that using maxcpus=1 on a 2-CPU system
-> prevented the system from hanging, I tried disabling CONFIG_SMP on my
-> 1-CPU system as well. In doing so, I discovered that the RCU torture
-> module (RCU_TORTURE_TEST) triggers some null pointer dereferences on
-> Alpha when CONFIG_SMP is set, but works successfully when CONFIG_SMP
-> is unset.
-> 
-> That seems likely to be a symptom of the same underlying problem that
-> started this thread, don't you think? If so, I'll focus my attention
-> on that.
+Use the common DISCARDS rule for the linker script in an effort to
+regularize the linker script to prepare for warning on orphaned
+sections. Additionally clean up left-over no-op macros.
 
-I wonder if that is related to user space segfaults we are now seeing
-on SMP systems but not UP systems while building Alpha debian-ports.
-It's happening in the test-suites of builds of certain software
-(such as autogen and guile) but they always build successfully with
-the test suite passing on a UP system.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Will Deacon <will@kernel.org>
+---
+ arch/arm64/kernel/vmlinux.lds.S | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
 
-When investigating I seem to recall it was a NULL (or near NULL)
-pointer dereference but couldn't make any sense of how it might
-have got into such an obviously wrong state.
-
-Cheers,
-Michael.
+diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+index 6827da7f3aa5..5427f502c3a6 100644
+--- a/arch/arm64/kernel/vmlinux.lds.S
++++ b/arch/arm64/kernel/vmlinux.lds.S
+@@ -6,6 +6,7 @@
+  */
+ 
+ #define RO_EXCEPTION_TABLE_ALIGN	8
++#define RUNTIME_DISCARD_EXIT
+ 
+ #include <asm-generic/vmlinux.lds.h>
+ #include <asm/cache.h>
+@@ -89,10 +90,8 @@ SECTIONS
+ 	 * matching the same input section name.  There is no documented
+ 	 * order of matching.
+ 	 */
++	DISCARDS
+ 	/DISCARD/ : {
+-		EXIT_CALL
+-		*(.discard)
+-		*(.discard.*)
+ 		*(.interp .dynamic)
+ 		*(.dynsym .dynstr .hash .gnu.hash)
+ 		*(.eh_frame)
+-- 
+2.25.1
