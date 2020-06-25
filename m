@@ -1,45 +1,77 @@
-Return-Path: <SRS0=NZEn=AE=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46624 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1732386AbgFWAwf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jun 2020 20:52:35 -0400
-From: paulmck@kernel.org
-Subject: [PATCH tip/core/rcu 10/14] tools/memory-model: Fix reference to litmus test in recipes.txt
-Date: Mon, 22 Jun 2020 17:52:27 -0700
-Message-ID: <20200623005231.27712-10-paulmck@kernel.org>
-In-Reply-To: <20200623005152.GA27459@paulmck-ThinkPad-P72>
-References: <20200623005152.GA27459@paulmck-ThinkPad-P72>
+Return-Path: <SRS0=eK+U=AG=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35158 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2390589AbgFYQPL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jun 2020 12:15:11 -0400
+Received: from mail-pg1-x544.google.com (mail-pg1-x544.google.com [IPv6:2607:f8b0:4864:20::544])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5803EC08C5DD
+        for <linux-arch@vger.kernel.org>; Thu, 25 Jun 2020 09:15:11 -0700 (PDT)
+Received: by mail-pg1-x544.google.com with SMTP id l63so3481463pge.12
+        for <linux-arch@vger.kernel.org>; Thu, 25 Jun 2020 09:15:11 -0700 (PDT)
+Date: Thu, 25 Jun 2020 09:15:03 -0700
+From: Sami Tolvanen <samitolvanen@google.com>
+Subject: Re: [PATCH 04/22] kbuild: lto: fix recordmcount
+Message-ID: <20200625161503.GB173089@google.com>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624203200.78870-5-samitolvanen@google.com>
+ <20200624212737.GV4817@hirez.programming.kicks-ass.net>
+ <20200624214530.GA120457@google.com>
+ <20200625074530.GW4817@hirez.programming.kicks-ass.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200625074530.GW4817@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E . McKenney" <paulmck@kernel.org>
-Message-ID: <20200623005227.I11Qz8fGomxPe3IPpof1TlFCGNlmwIelned1JmCK240@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
+Message-ID: <20200625161503.cSYRUa2aawCoWNGMkPsy_wtSEeD2onPWYIlGIvBy6TU@z>
 
-From: Akira Yokosawa <akiyks@gmail.com>
+On Thu, Jun 25, 2020 at 09:45:30AM +0200, Peter Zijlstra wrote:
+> On Wed, Jun 24, 2020 at 02:45:30PM -0700, Sami Tolvanen wrote:
+> > On Wed, Jun 24, 2020 at 11:27:37PM +0200, Peter Zijlstra wrote:
+> > > On Wed, Jun 24, 2020 at 01:31:42PM -0700, Sami Tolvanen wrote:
+> > > > With LTO, LLVM bitcode won't be compiled into native code until
+> > > > modpost_link. This change postpones calls to recordmcount until after
+> > > > this step.
+> > > > 
+> > > > In order to exclude specific functions from inspection, we add a new
+> > > > code section .text..nomcount, which we tell recordmcount to ignore, and
+> > > > a __nomcount attribute for moving functions to this section.
+> > > 
+> > > I'm confused, you only add this to functions in ftrace itself, which is
+> > > compiled with:
+> > > 
+> > >  KBUILD_CFLAGS = $(subst $(CC_FLAGS_FTRACE),,$(ORIG_CFLAGS))
+> > > 
+> > > and so should not have mcount/fentry sites anyway. So what's the point
+> > > of ignoring them further?
+> > > 
+> > > This Changelog does not explain.
+> > 
+> > Normally, recordmcount ignores each ftrace.o file, but since we are
+> > running it on vmlinux.o, we need another way to stop it from looking
+> > at references to mcount/fentry that are not calls. Here's a comment
+> > from recordmcount.c:
+> > 
+> >   /*
+> >    * The file kernel/trace/ftrace.o references the mcount
+> >    * function but does not call it. Since ftrace.o should
+> >    * not be traced anyway, we just skip it.
+> >    */
+> > 
+> > But I agree, the commit message could use more defails. Also +Steven
+> > for thoughts about this approach.
+> 
+> Ah, is thi because recordmcount isn't smart enough to know the
+> difference between "CALL $mcount" and any other RELA that has mcount?
 
-The name of litmus test doesn't match the one described below.
-Fix the name of litmus test.
+Yes.
 
-Acked-by: Andrea Parri <parri.andrea@gmail.com>
-Acked-by: Joel Fernandes (Google) <joel@joelfernandes.org>
-Signed-off-by: Akira Yokosawa <akiyks@gmail.com>
-Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
----
- tools/memory-model/Documentation/recipes.txt | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+> At least for x86_64 I can do a really quick take for a recordmcount pass
+> in objtool, but I suppose you also need this for ARM64 ?
 
-diff --git a/tools/memory-model/Documentation/recipes.txt b/tools/memory-model/Documentation/recipes.txt
-index 7fe8d7a..63c4adf 100644
---- a/tools/memory-model/Documentation/recipes.txt
-+++ b/tools/memory-model/Documentation/recipes.txt
-@@ -126,7 +126,7 @@ However, it is not necessarily the case that accesses ordered by
- locking will be seen as ordered by CPUs not holding that lock.
- Consider this example:
- 
--	/* See Z6.0+pooncerelease+poacquirerelease+fencembonceonce.litmus. */
-+	/* See Z6.0+pooncelock+pooncelock+pombonce.litmus. */
- 	void CPU0(void)
- 	{
- 		spin_lock(&mylock);
--- 
-2.9.5
+Sure, sounds good. arm64 uses -fpatchable-function-entry with clang, so we
+don't need recordmcount there.
+
+Sami
