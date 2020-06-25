@@ -1,176 +1,152 @@
-Return-Path: <SRS0=za/P=7O=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RFC PATCH v4 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
-Date: Mon, 1 Jun 2020 22:47:13 +0800
-Message-ID: <20200601144713.2222-3-yezhenyu2@huawei.com>
-In-Reply-To: <20200601144713.2222-1-yezhenyu2@huawei.com>
-References: <20200601144713.2222-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=eK+U=AG=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42598 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388930AbgFYBrO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 21:47:14 -0400
+Received: from mail-wm1-x341.google.com (mail-wm1-x341.google.com [IPv6:2a00:1450:4864:20::341])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B07D0C061573
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 18:47:13 -0700 (PDT)
+Received: by mail-wm1-x341.google.com with SMTP id g75so3995205wme.5
+        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 18:47:13 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+References: <20200624205550.215599-1-brendanhiggins@google.com>
+In-Reply-To: <20200624205550.215599-1-brendanhiggins@google.com>
+From: David Gow <davidgow@google.com>
+Date: Thu, 25 Jun 2020 09:47:00 +0800
+Message-ID: <CABVgOSnkYfXZ1YELsXAjA0GzCQT9YWO8x+Tssw_+avkDdBB4aw@mail.gmail.com>
+Subject: Re: [PATCH v4 00/11] kunit: create a centralized executor to dispatch
+ all KUnit tests
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200601144713.N-QntJReNuXATmpFfKUnajWVSMwlp5R8b0f0Gpy8JII@z>
+To: Brendan Higgins <brendanhiggins@google.com>
+Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Frank Rowand <frowand.list@gmail.com>, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org
+Message-ID: <20200625014700.SMTL5DnTFwA6-UJJ2vTkM6JlpeHjHHkE-E2d85pkoCw@z>
 
-Add __TLBI_VADDR_RANGE macro and rewrite __flush_tlb_range().
+Glad this is back out there: a couple of minor nitpicks below:
 
-In this patch, we only use the TLBI RANGE feature if the stride =3D=3D PA=
-GE_SIZE,
-because when stride > PAGE_SIZE, usually only a small number of pages nee=
-d
-to be flushed and classic tlbi intructions are more effective.
+On Thu, Jun 25, 2020 at 4:58 AM Brendan Higgins
+<brendanhiggins@google.com> wrote:
+>
+> ## TL;DR
+>
+> This patchset adds a centralized executor to dispatch tests rather than
+> relying on late_initcall to schedule each test suite separately along
+> with a couple of new features that depend on it.
+>
+> Also, sorry for the extreme delay in getting this out. Part of the delay
+> came from finding that there were actually several architectures that
+> the previous revision of this patchset didn't work on, so I went through
+> and attempted to test this patchset on every architecture - more on that
+> later.
+>
+> ## What am I trying to do?
+>
+> Conceptually, I am trying to provide a mechanism by which test suites
+> can be grouped together so that they can be reasoned about collectively.
+> The last two of three patches in this series add features which depend
+> on this:
+>
+> PATCH 8/11 Prints out a test plan[1] right before KUnit tests are run;
+>            this is valuable because it makes it possible for a test
+>            harness to detect whether the number of tests run matches the
+>            number of tests expected to be run, ensuring that no tests
+>            silently failed. The test plan includes a count of tests that
+>            will run. With the centralized executor, the tests are
+>            located in a single data structure and thus can be counted.
+>
 
-We can also use 'end - start < threshold number' to decide which way
-to go, however, different hardware may have different thresholds, so
-I'm not sure if this is feasible.
+This appears to actually be patch 9/11.
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/tlbflush.h | 98 +++++++++++++++++++++++++++----
- 1 file changed, 86 insertions(+), 12 deletions(-)
+> PATCH 9/11 Add a new kernel command-line option which allows the user to
+>            specify that the kernel poweroff, halt, or reboot after
+>            completing all KUnit tests; this is very handy for running
+>            KUnit tests on UML or a VM so that the UML/VM process exits
+>            cleanly immediately after running all tests without needing a
+>            special initramfs. The centralized executor provides a
+>            definitive point when all tests have completed and the
+>            poweroff, halt, or reboot could occur.
 
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
-lbflush.h
-index bc3949064725..818f27c82024 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -50,6 +50,16 @@
- 		__tlbi(op, (arg) | USER_ASID_FLAG);				\
- } while (0)
-=20
-+#define __tlbi_last_level(op1, op2, arg, last_level) do {		\
-+	if (last_level)	{						\
-+		__tlbi(op1, arg);					\
-+		__tlbi_user(op1, arg);					\
-+	} else {							\
-+		__tlbi(op2, arg);					\
-+		__tlbi_user(op2, arg);					\
-+	}								\
-+} while (0)
-+
- /* This macro creates a properly formatted VA operand for the TLBI */
- #define __TLBI_VADDR(addr, asid)				\
- 	({							\
-@@ -59,6 +69,47 @@
- 		__ta;						\
- 	})
-=20
-+/*
-+ * __TG defines translation granule of the system, which is decided by
-+ * PAGE_SHIFT.  Used by TTL.
-+ *  - 4KB	: 1
-+ *  - 16KB	: 2
-+ *  - 64KB	: 3
-+ */
-+#define __TG	((PAGE_SHIFT - 12) / 2 + 1)
-+
-+/*
-+ * This macro creates a properly formatted VA operand for the TLBI RANGE=
-.
-+ * The value bit assignments are:
-+ *
-+ * +----------+------+-------+-------+-------+----------------------+
-+ * |   ASID   |  TG  | SCALE |  NUM  |  TTL  |        BADDR         |
-+ * +-----------------+-------+-------+-------+----------------------+
-+ * |63      48|47  46|45   44|43   39|38   37|36                   0|
-+ *
-+ * The address range is determined by below formula:
-+ * [BADDR, BADDR + (NUM + 1) * 2^(5*SCALE + 1) * PAGESIZE)
-+ *
-+ */
-+#define __TLBI_VADDR_RANGE(addr, asid, scale, num, ttl)		\
-+	({							\
-+		unsigned long __ta =3D (addr) >> PAGE_SHIFT;	\
-+		__ta &=3D GENMASK_ULL(36, 0);			\
-+		__ta |=3D (unsigned long)(ttl) << 37;		\
-+		__ta |=3D (unsigned long)(num) << 39;		\
-+		__ta |=3D (unsigned long)(scale) << 44;		\
-+		__ta |=3D (unsigned long)(__TG) << 46;		\
-+		__ta |=3D (unsigned long)(asid) << 48;		\
-+		__ta;						\
-+	})
-+
-+/* This macro defines the range pages of the TLBI RANGE. */
-+#define __TLBI_RANGE_SIZES(num, scale)	((num + 1) << (5 * scale + 1) << =
-PAGE_SHIFT)
-+
-+#define TLB_RANGE_MASK_SHIFT 5
-+#define TLB_RANGE_MASK GENMASK_ULL(TLB_RANGE_MASK_SHIFT - 1, 0)
-+
-+
- /*
-  *	TLB Invalidation
-  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-@@ -181,32 +232,55 @@ static inline void __flush_tlb_range(struct vm_area=
-_struct *vma,
- 				     unsigned long start, unsigned long end,
- 				     unsigned long stride, bool last_level)
- {
-+	int num =3D 0;
-+	int scale =3D 0;
- 	unsigned long asid =3D ASID(vma->vm_mm);
- 	unsigned long addr;
-+	unsigned long range_pages;
-=20
- 	start =3D round_down(start, stride);
- 	end =3D round_up(end, stride);
-+	range_pages =3D (end - start) >> PAGE_SHIFT;
-=20
- 	if ((end - start) >=3D (MAX_TLBI_OPS * stride)) {
- 		flush_tlb_mm(vma->vm_mm);
- 		return;
- 	}
-=20
--	/* Convert the stride into units of 4k */
--	stride >>=3D 12;
-+	dsb(ishst);
-=20
--	start =3D __TLBI_VADDR(start, asid);
--	end =3D __TLBI_VADDR(end, asid);
-+	/*
-+	 * The minimum size of TLB RANGE is 2 pages;
-+	 * Use normal TLB instruction to handle odd pages.
-+	 * If the stride !=3D PAGE_SIZE, this will never happen.
-+	 */
-+	if (range_pages % 2 =3D=3D 1) {
-+		addr =3D __TLBI_VADDR(start, asid);
-+		__tlbi_last_level(vale1is, vae1is, addr, last_level);
-+		start +=3D 1 << PAGE_SHIFT;
-+		range_pages >>=3D 1;
-+	}
-=20
--	dsb(ishst);
--	for (addr =3D start; addr < end; addr +=3D stride) {
--		if (last_level) {
--			__tlbi(vale1is, addr);
--			__tlbi_user(vale1is, addr);
--		} else {
--			__tlbi(vae1is, addr);
--			__tlbi_user(vae1is, addr);
-+	while (range_pages > 0) {
-+		if (cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
-+		    stride =3D=3D PAGE_SIZE) {
-+			num =3D (range_pages & TLB_RANGE_MASK) - 1;
-+			if (num >=3D 0) {
-+				addr =3D __TLBI_VADDR_RANGE(start, asid, scale,
-+							  num, 0);
-+				__tlbi_last_level(rvale1is, rvae1is, addr,
-+						  last_level);
-+				start +=3D __TLBI_RANGE_SIZES(num, scale);
-+			}
-+			scale++;
-+			range_pages >>=3D TLB_RANGE_MASK_SHIFT;
-+			continue;
- 		}
-+
-+		addr =3D __TLBI_VADDR(start, asid);
-+		__tlbi_last_level(vale1is, vae1is, addr, last_level);
-+		start +=3D stride;
-+		range_pages -=3D stride >> 12;
- 	}
- 	dsb(ish);
- }
---=20
-2.19.1
+This seems to have been merged into the above patch (9/11).
+
+> In addition, by dispatching tests from a single location, we can
+> guarantee that all KUnit tests run after late_init is complete, which
+> was a concern during the initial KUnit patchset review (this has not
+> been a problem in practice, but resolving with certainty is nevertheless
+> desirable).
+>
+> Other use cases for this exist, but the above features should provide an
+> idea of the value that this could provide.
+>
+> ## Changes since last revision:
+>  - On the last revision I got some messages from 0day that showed that
+>    this patchset didn't work on several architectures, one issue that
+>    this patchset addresses is that we were aligning both memory segments
+>    as well as structures in the segments to specific byte boundaries
+>    which was incorrect.
+>  - The issue mentioned above also caused me to test on additional
+>    architectures which revealed that some architectures other than UML
+>    do not use the default init linker section macro that most
+>    architectures use. There are now several new patches (2, 3, 4, and
+>    6).
+>  - Fixed a formatting consistency issue in the kernel params
+>    documentation patch (9/9).
+>  - Add a brief blurb on how and when the kunit_test_suite macro works.
+>
+> ## Remaining work to be done:
+>
+> The only architecture for which I was able to get a compiler, but was
+> apparently unable to get KUnit into a section that the executor to see
+> was m68k - not sure why.
+>
+> Alan Maguire (1):
+>   kunit: test: create a single centralized executor for all tests
+>
+> Brendan Higgins (10):
+>   vmlinux.lds.h: add linker section for KUnit test suites
+>   arch: arm64: add linker section for KUnit test suites
+>   arch: microblaze: add linker section for KUnit test suites
+>   arch: powerpc: add linker section for KUnit test suites
+>   arch: um: add linker section for KUnit test suites
+>   arch: xtensa: add linker section for KUnit test suites
+>   init: main: add KUnit to kernel init
+>   kunit: test: add test plan to KUnit TAP format
+>   Documentation: Add kunit_shutdown to kernel-parameters.txt
+>   Documentation: kunit: add a brief blurb about kunit_test_suite
+>
+>  .../admin-guide/kernel-parameters.txt         |   8 ++
+>  Documentation/dev-tools/kunit/usage.rst       |   5 ++
+>  arch/arm64/kernel/vmlinux.lds.S               |   3 +
+>  arch/microblaze/kernel/vmlinux.lds.S          |   4 +
+>  arch/powerpc/kernel/vmlinux.lds.S             |   4 +
+>  arch/um/include/asm/common.lds.S              |   4 +
+>  arch/xtensa/kernel/vmlinux.lds.S              |   4 +
+>  include/asm-generic/vmlinux.lds.h             |   8 ++
+>  include/kunit/test.h                          |  73 ++++++++++++-----
+>  init/main.c                                   |   4 +
+>  lib/kunit/Makefile                            |   3 +-
+>  lib/kunit/executor.c                          |  63 +++++++++++++++
+>  lib/kunit/test.c                              |  13 +--
+>  tools/testing/kunit/kunit_kernel.py           |   2 +-
+>  tools/testing/kunit/kunit_parser.py           |  74 +++++++++++++++---
+>  .../test_is_test_passed-all_passed.log        | Bin 1562 -> 1567 bytes
+>  .../test_data/test_is_test_passed-crash.log   | Bin 3016 -> 3021 bytes
+>  .../test_data/test_is_test_passed-failure.log | Bin 1700 -> 1705 bytes
+>  18 files changed, 226 insertions(+), 46 deletions(-)
+>  create mode 100644 lib/kunit/executor.c
+>
+>
+> base-commit: 4333a9b0b67bb4e8bcd91bdd80da80b0ec151162
+> prerequisite-patch-id: 2d4b5aa9fa8ada9ae04c8584b47c299a822b9455
+> prerequisite-patch-id: 582b6d9d28ce4b71628890ec832df6522ca68de0
+>
+> These patches are available for download with dependencies here:
+>
+> https://kunit-review.googlesource.com/c/linux/+/3829
+>
+> [1] https://github.com/isaacs/testanything.github.io/blob/tap14/tap-version-14-specification.md#the-plan
+> [2] https://patchwork.kernel.org/patch/11383635/
+>
+> --
+> 2.27.0.212.ge8ba1cc988-goog
+>
