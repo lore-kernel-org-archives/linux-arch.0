@@ -1,181 +1,83 @@
-Return-Path: <SRS0=6fqV=7W=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44618 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728051AbgFIMFq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2020 08:05:46 -0400
-From: Joerg Roedel <joro@8bytes.org>
-Subject: [PATCH] mm: Move p?d_alloc_track to separate header file
-Date: Tue,  9 Jun 2020 14:05:33 +0200
-Message-ID: <20200609120533.25867-1-joro@8bytes.org>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=nnJc=AG=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RESEND PATCH v5 3/6] arm64: Add tlbi_user_level TLB invalidation helper
+Date: Thu, 25 Jun 2020 16:03:11 +0800
+Message-ID: <20200625080314.230-4-yezhenyu2@huawei.com>
+In-Reply-To: <20200625080314.230-1-yezhenyu2@huawei.com>
+References: <20200625080314.230-1-yezhenyu2@huawei.com>
+MIME-Version: 1.0
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: peterz@infradead.org, jroedel@suse.de, Andy Lutomirski <luto@kernel.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, manvanth@linux.vnet.ibm.com, linux-next@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Mike Rapoport <rppt@linux.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, hch@lst.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20200609120533.NvPIhh28JAaL8ozi2QZ4F5JpuDBtACyc4Ql2pQLf1I0@z>
+Message-ID: <20200625080311.Pc2eMNe8PWGAo1i0iv4uiwoTB-VzRK7fBVfhdvRSXW8@z>
 
-From: Joerg Roedel <jroedel@suse.de>
+Add a level-hinted parameter to __tlbi_user, which only gets used
+if ARMv8.4-TTL gets detected.
 
-The functions are only used in two source files, so there is no need
-for them to be in the global <linux/mm.h> header. Move them to the new
-<linux/pgalloc-track.h> header and include it only where needed.
+ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
+the level of translation table walk holding the leaf entry for the
+address that is being invalidated.
 
-Signed-off-by: Joerg Roedel <jroedel@suse.de>
+This patch set the default level value of flush_tlb_range() to 0,
+which will be updated in future patches.  And set the ttl value of
+flush_tlb_page_nosync() to 3 because it is only called to flush a
+single pte page.
+
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 ---
- include/linux/mm.h            | 45 -------------------------------
- include/linux/pgalloc-track.h | 51 +++++++++++++++++++++++++++++++++++
- lib/ioremap.c                 |  1 +
- mm/vmalloc.c                  |  1 +
- 4 files changed, 53 insertions(+), 45 deletions(-)
- create mode 100644 include/linux/pgalloc-track.h
+ arch/arm64/include/asm/tlbflush.h | 19 +++++++++++++------
+ 1 file changed, 13 insertions(+), 6 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 9d6042178ca7..22d8b2a2c9bc 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2092,51 +2092,11 @@ static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
- 		NULL : pud_offset(p4d, address);
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
+lbflush.h
+index 8adbd6fd8489..bfb58e62c127 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -88,6 +88,12 @@
+ 	__tlbi(op,  arg);					\
+ } while (0)
+=20
++#define __tlbi_user_level(op, arg, level) do {				\
++	if (arm64_kernel_unmapped_at_el0())				\
++		__tlbi_level(op, (arg | USER_ASID_FLAG), level);	\
++} while (0)
++
++
+ /*
+  *	TLB Invalidation
+  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+@@ -189,8 +195,9 @@ static inline void flush_tlb_page_nosync(struct vm_ar=
+ea_struct *vma,
+ 	unsigned long addr =3D __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
+=20
+ 	dsb(ishst);
+-	__tlbi(vale1is, addr);
+-	__tlbi_user(vale1is, addr);
++	/* This function is only called on a small page */
++	__tlbi_level(vale1is, addr, 3);
++	__tlbi_user_level(vale1is, addr, 3);
  }
- 
--static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
--				     unsigned long address,
--				     pgtbl_mod_mask *mod_mask)
--
--{
--	if (unlikely(pgd_none(*pgd))) {
--		if (__p4d_alloc(mm, pgd, address))
--			return NULL;
--		*mod_mask |= PGTBL_PGD_MODIFIED;
--	}
--
--	return p4d_offset(pgd, address);
--}
--
--static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
--				     unsigned long address,
--				     pgtbl_mod_mask *mod_mask)
--{
--	if (unlikely(p4d_none(*p4d))) {
--		if (__pud_alloc(mm, p4d, address))
--			return NULL;
--		*mod_mask |= PGTBL_P4D_MODIFIED;
--	}
--
--	return pud_offset(p4d, address);
--}
--
- static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
- {
- 	return (unlikely(pud_none(*pud)) && __pmd_alloc(mm, pud, address))?
- 		NULL: pmd_offset(pud, address);
- }
--
--static inline pmd_t *pmd_alloc_track(struct mm_struct *mm, pud_t *pud,
--				     unsigned long address,
--				     pgtbl_mod_mask *mod_mask)
--{
--	if (unlikely(pud_none(*pud))) {
--		if (__pmd_alloc(mm, pud, address))
--			return NULL;
--		*mod_mask |= PGTBL_PUD_MODIFIED;
--	}
--
--	return pmd_offset(pud, address);
--}
- #endif /* CONFIG_MMU */
- 
- #if USE_SPLIT_PTE_PTLOCKS
-@@ -2252,11 +2212,6 @@ static inline void pgtable_pte_page_dtor(struct page *page)
- 	((unlikely(pmd_none(*(pmd))) && __pte_alloc_kernel(pmd))? \
- 		NULL: pte_offset_kernel(pmd, address))
- 
--#define pte_alloc_kernel_track(pmd, address, mask)			\
--	((unlikely(pmd_none(*(pmd))) &&					\
--	  (__pte_alloc_kernel(pmd) || ({*(mask)|=PGTBL_PMD_MODIFIED;0;})))?\
--		NULL: pte_offset_kernel(pmd, address))
--
- #if USE_SPLIT_PMD_PTLOCKS
- 
- static struct page *pmd_to_page(pmd_t *pmd)
-diff --git a/include/linux/pgalloc-track.h b/include/linux/pgalloc-track.h
-new file mode 100644
-index 000000000000..1dcc865029a2
---- /dev/null
-+++ b/include/linux/pgalloc-track.h
-@@ -0,0 +1,51 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _LINUX_PGALLLC_TRACK_H
-+#define _LINUX_PGALLLC_TRACK_H
-+
-+#if defined(CONFIG_MMU)
-+static inline p4d_t *p4d_alloc_track(struct mm_struct *mm, pgd_t *pgd,
-+				     unsigned long address,
-+				     pgtbl_mod_mask *mod_mask)
-+{
-+	if (unlikely(pgd_none(*pgd))) {
-+		if (__p4d_alloc(mm, pgd, address))
-+			return NULL;
-+		*mod_mask |= PGTBL_PGD_MODIFIED;
-+	}
-+
-+	return p4d_offset(pgd, address);
-+}
-+
-+static inline pud_t *pud_alloc_track(struct mm_struct *mm, p4d_t *p4d,
-+				     unsigned long address,
-+				     pgtbl_mod_mask *mod_mask)
-+{
-+	if (unlikely(p4d_none(*p4d))) {
-+		if (__pud_alloc(mm, p4d, address))
-+			return NULL;
-+		*mod_mask |= PGTBL_P4D_MODIFIED;
-+	}
-+
-+	return pud_offset(p4d, address);
-+}
-+
-+static inline pmd_t *pmd_alloc_track(struct mm_struct *mm, pud_t *pud,
-+				     unsigned long address,
-+				     pgtbl_mod_mask *mod_mask)
-+{
-+	if (unlikely(pud_none(*pud))) {
-+		if (__pmd_alloc(mm, pud, address))
-+			return NULL;
-+		*mod_mask |= PGTBL_PUD_MODIFIED;
-+	}
-+
-+	return pmd_offset(pud, address);
-+}
-+#endif /* CONFIG_MMU */
-+
-+#define pte_alloc_kernel_track(pmd, address, mask)			\
-+	((unlikely(pmd_none(*(pmd))) &&					\
-+	  (__pte_alloc_kernel(pmd) || ({*(mask)|=PGTBL_PMD_MODIFIED;0;})))?\
-+		NULL: pte_offset_kernel(pmd, address))
-+
-+#endif /* _LINUX_PGALLLC_TRACK_H */
-diff --git a/lib/ioremap.c b/lib/ioremap.c
-index ad485f08173b..608fcccd21c8 100644
---- a/lib/ioremap.c
-+++ b/lib/ioremap.c
-@@ -11,6 +11,7 @@
- #include <linux/sched.h>
- #include <linux/io.h>
- #include <linux/export.h>
-+#include <linux/pgalloc-track.h>
- #include <asm/cacheflush.h>
- #include <asm/pgtable.h>
- 
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 3091c2ca60df..edc43f003165 100644
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -35,6 +35,7 @@
- #include <linux/bitops.h>
- #include <linux/rbtree_augmented.h>
- #include <linux/overflow.h>
-+#include <linux/pgalloc-track.h>
- 
- #include <linux/uaccess.h>
- #include <asm/tlbflush.h>
--- 
+=20
+ static inline void flush_tlb_page(struct vm_area_struct *vma,
+@@ -230,11 +237,11 @@ static inline void __flush_tlb_range(struct vm_area=
+_struct *vma,
+ 	dsb(ishst);
+ 	for (addr =3D start; addr < end; addr +=3D stride) {
+ 		if (last_level) {
+-			__tlbi(vale1is, addr);
+-			__tlbi_user(vale1is, addr);
++			__tlbi_level(vale1is, addr, 0);
++			__tlbi_user_level(vale1is, addr, 0);
+ 		} else {
+-			__tlbi(vae1is, addr);
+-			__tlbi_user(vae1is, addr);
++			__tlbi_level(vae1is, addr, 0);
++			__tlbi_user_level(vae1is, addr, 0);
+ 		}
+ 	}
+ 	dsb(ish);
+--=20
 2.26.2
