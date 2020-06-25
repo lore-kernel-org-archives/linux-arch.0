@@ -1,39 +1,78 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:47362 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2404908AbgFXRgI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 Jun 2020 13:36:08 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v3 0/2] prctl.2 man page updates for Linux 5.6
-Date: Wed, 24 Jun 2020 18:36:00 +0100
-Message-ID: <1593020162-9365-1-git-send-email-Dave.Martin@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=nnJc=AG=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RESEND PATCH v5 2/6] arm64: Add level-hinted TLB invalidation helper
+Date: Thu, 25 Jun 2020 16:03:10 +0800
+Message-ID: <20200625080314.230-3-yezhenyu2@huawei.com>
+In-Reply-To: <20200625080314.230-1-yezhenyu2@huawei.com>
+References: <20200625080314.230-1-yezhenyu2@huawei.com>
+MIME-Version: 1.0
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will@kernel.org>, Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <20200624173600.AmoQT1czks4orCQIvfkoKNZzTrRKSWSA3mc8J57QZ14@z>
+Message-ID: <20200625080310.aQA1X0x7sUtm0WNzoGSZwfM69oQse6ALjGrZFaErtYc@z>
 
-A bunch of updates to the prctl(2) man page to fill in missing
-prctls (mostly) up to Linux 5.6 (along with a few other tweaks and
-fixes).
+From: Marc Zyngier <maz@kernel.org>
 
-Patches from the v2 series [1] that have been applied or rejected
-already have been dropped.
+Add a level-hinted TLB invalidation helper that only gets used if
+ARMv8.4-TTL gets detected.
 
-All that remain here now are the SVE and tagged address ABI controls
-for arm64.
+Signed-off-by: Marc Zyngier <maz@kernel.org>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/include/asm/tlbflush.h | 29 +++++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
 
-
-
-[1] https://lore.kernel.org/linux-man/1590614258-24728-1-git-send-email-Dave.Martin@arm.com/
-
-
-Dave Martin (2):
-  prctl.2: Add SVE prctls (arm64)
-  prctl.2: Add tagged address ABI control prctls (arm64)
-
- man2/prctl.2 | 331 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 331 insertions(+)
-
--- 
-2.1.4
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
+lbflush.h
+index bc3949064725..8adbd6fd8489 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -10,6 +10,7 @@
+=20
+ #ifndef __ASSEMBLY__
+=20
++#include <linux/bitfield.h>
+ #include <linux/mm_types.h>
+ #include <linux/sched.h>
+ #include <asm/cputype.h>
+@@ -59,6 +60,34 @@
+ 		__ta;						\
+ 	})
+=20
++#define TLBI_TTL_MASK	GENMASK_ULL(47, 44)
++
++#define __tlbi_level(op, addr, level) do {			\
++	u64 arg =3D addr;						\
++								\
++	if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
++	    level) {						\
++		u64 ttl =3D level;				\
++								\
++		switch (PAGE_SIZE) {				\
++		case SZ_4K:					\
++			ttl |=3D 1 << 2;				\
++			break;					\
++		case SZ_16K:					\
++			ttl |=3D 2 << 2;				\
++			break;					\
++		case SZ_64K:					\
++			ttl |=3D 3 << 2;				\
++			break;					\
++		}						\
++								\
++		arg &=3D ~TLBI_TTL_MASK;				\
++		arg |=3D FIELD_PREP(TLBI_TTL_MASK, ttl);		\
++	}							\
++								\
++	__tlbi(op,  arg);					\
++} while (0)
++
+ /*
+  *	TLB Invalidation
+  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+--=20
+2.26.2
