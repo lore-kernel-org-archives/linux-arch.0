@@ -1,73 +1,71 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43376 "EHLO
+Return-Path: <SRS0=eK+U=AG=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46954 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1730871AbgF2TN2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:13:28 -0400
-Received: from mail-pf1-x441.google.com (mail-pf1-x441.google.com [IPv6:2607:f8b0:4864:20::441])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 458DAC08EAD0
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:45 -0700 (PDT)
-Received: by mail-pf1-x441.google.com with SMTP id 67so3379161pfg.5
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:45 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 02/17] vmlinux.lds.h: Avoid KASAN and KCSAN's unwanted sections
-Date: Sun, 28 Jun 2020 23:18:25 -0700
-Message-ID: <20200629061840.4065483-3-keescook@chromium.org>
-In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
-References: <20200629061840.4065483-1-keescook@chromium.org>
+        with ESMTP id S2389522AbgFYIY4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jun 2020 04:24:56 -0400
+Date: Thu, 25 Jun 2020 10:24:33 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200625082433.GC117543@hirez.programming.kicks-ass.net>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624211540.GS4817@hirez.programming.kicks-ass.net>
+ <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
+ <20200625080313.GY4817@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200625080313.GY4817@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200629061825.7Iu_dpgF_teYDij-tORJ0Ps3NE_SDkH2jym8RX7ZmEs@z>
+To: Nick Desaulniers <ndesaulniers@google.com>
+Cc: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200625082433.jaujDklBNq6gmR6Knh373i3UOBk7_hnLKURfHwKynxY@z>
 
-KASAN (-fsanitize=kernel-address) and KCSAN (-fsanitize=thread) produce
-unwanted[1] .eh_frame and .init_array.* sections. Add them to DISCARDS,
-except with CONFIG_CONSTRUCTORS, which wants to keep .init_array.*
-sections.
+On Thu, Jun 25, 2020 at 10:03:13AM +0200, Peter Zijlstra wrote:
+> On Wed, Jun 24, 2020 at 02:31:36PM -0700, Nick Desaulniers wrote:
+> > On Wed, Jun 24, 2020 at 2:15 PM Peter Zijlstra <peterz@infradead.org> wrote:
+> > >
+> > > On Wed, Jun 24, 2020 at 01:31:38PM -0700, Sami Tolvanen wrote:
+> > > > This patch series adds support for building x86_64 and arm64 kernels
+> > > > with Clang's Link Time Optimization (LTO).
+> > > >
+> > > > In addition to performance, the primary motivation for LTO is to allow
+> > > > Clang's Control-Flow Integrity (CFI) to be used in the kernel. Google's
+> > > > Pixel devices have shipped with LTO+CFI kernels since 2018.
+> > > >
+> > > > Most of the patches are build system changes for handling LLVM bitcode,
+> > > > which Clang produces with LTO instead of ELF object files, postponing
+> > > > ELF processing until a later stage, and ensuring initcall ordering.
+> > > >
+> > > > Note that first objtool patch in the series is already in linux-next,
+> > > > but as it's needed with LTO, I'm including it also here to make testing
+> > > > easier.
+> > >
+> > > I'm very sad that yet again, memory ordering isn't addressed. LTO vastly
+> > > increases the range of the optimizer to wreck things.
+> > 
+> > Hi Peter, could you expand on the issue for the folks on the thread?
+> > I'm happy to try to hack something up in LLVM if we check that X does
+> > or does not happen; maybe we can even come up with some concrete test
+> > cases that can be added to LLVM's codebase?
+> 
+> I'm sure Will will respond, but the basic issue is the trainwreck C11
+> made of dependent loads.
+> 
+> Anyway, here's a link to the last time this came up:
+> 
+>   https://lore.kernel.org/linux-arm-kernel/20171116174830.GX3624@linux.vnet.ibm.com/
 
-[1] https://bugs.llvm.org/show_bug.cgi?id=46478
+Another good read:
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- include/asm-generic/vmlinux.lds.h | 20 ++++++++++++++++++++
- 1 file changed, 20 insertions(+)
+  https://lore.kernel.org/lkml/20150520005510.GA23559@linux.vnet.ibm.com/
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 1248a206be8d..e53a2d4f47f6 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -927,10 +927,30 @@
- 	EXIT_DATA
- #endif
- 
-+/*
-+ * Clang's -fsanitize=kernel-address and -fsanitize=thread produce
-+ * unwanted sections (.eh_frame and .init_array.*), but
-+ * CONFIG_CONSTRUCTORS wants to keep any .init_array.* sections.
-+ * https://bugs.llvm.org/show_bug.cgi?id=46478
-+ */
-+#if defined(CONFIG_KASAN_GENERIC) || defined(CONFIG_KCSAN)
-+# ifdef CONFIG_CONSTRUCTORS
-+#  define KASAN_DISCARDS						\
-+	*(.eh_frame)
-+# else
-+#  define KASAN_DISCARDS						\
-+	*(.init_array) *(.init_array.*)					\
-+	*(.eh_frame)
-+# endif
-+#else
-+# define KASAN_DISCARDS
-+#endif
-+
- #define DISCARDS							\
- 	/DISCARD/ : {							\
- 	EXIT_DISCARDS							\
- 	EXIT_CALL							\
-+	KASAN_DISCARDS							\
- 	*(.discard)							\
- 	*(.discard.*)							\
- 	*(.modinfo)							\
--- 
-2.25.1
+and having (partially) re-read that, I now worry intensily about things
+like latch_tree_find(), cyc2ns_read_begin, __ktime_get_fast_ns().
+
+It looks like kernel/time/sched_clock.c uses raw_read_seqcount() which
+deviates from the above patterns by, for some reason, using a primitive
+that includes an extra smp_rmb().
+
+And this is just the few things I could remember off the top of my head,
+who knows what else is out there.
