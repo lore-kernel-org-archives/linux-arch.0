@@ -1,60 +1,50 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46750 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2388590AbgFXBt4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2020 21:49:56 -0400
-Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 01039C061796
-        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:55 -0700 (PDT)
-Received: by mail-pl1-x644.google.com with SMTP id x11so330788plo.7
-        for <linux-arch@vger.kernel.org>; Tue, 23 Jun 2020 18:49:54 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 8/9] arm64/build: Use common DISCARDS in linker script
-Date: Tue, 23 Jun 2020 18:49:39 -0700
-Message-ID: <20200624014940.1204448-9-keescook@chromium.org>
-In-Reply-To: <20200624014940.1204448-1-keescook@chromium.org>
-References: <20200624014940.1204448-1-keescook@chromium.org>
+Return-Path: <SRS0=nnJc=AG=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RESEND PATCH v5 6/6] arm64: tlb: Set the TTL field in flush_*_tlb_range
+Date: Thu, 25 Jun 2020 16:03:14 +0800
+Message-ID: <20200625080314.230-7-yezhenyu2@huawei.com>
+In-Reply-To: <20200625080314.230-1-yezhenyu2@huawei.com>
+References: <20200625080314.230-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200624014939.73zhG4GfQXvSJOktrvqmXYwfbhx-FUDN_BQe-PqlVZ0@z>
+Message-ID: <20200625080314.tie-iyaukWBVxgXMt7BWReW_fWp4pBXaUDG_iYKY3n0@z>
 
-Use the common DISCARDS rule for the linker script in an effort to
-regularize the linker script to prepare for warning on orphaned
-sections. Additionally clean up left-over no-op macros.
+This patch implement flush_{pmd|pud}_tlb_range() in arm64 by
+calling __flush_tlb_range() with the corresponding stride and
+tlb_level values.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Will Deacon <will@kernel.org>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
 ---
- arch/arm64/kernel/vmlinux.lds.S | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ arch/arm64/include/asm/pgtable.h | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-index 6827da7f3aa5..5427f502c3a6 100644
---- a/arch/arm64/kernel/vmlinux.lds.S
-+++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -6,6 +6,7 @@
-  */
- 
- #define RO_EXCEPTION_TABLE_ALIGN	8
-+#define RUNTIME_DISCARD_EXIT
- 
- #include <asm-generic/vmlinux.lds.h>
- #include <asm/cache.h>
-@@ -89,10 +90,8 @@ SECTIONS
- 	 * matching the same input section name.  There is no documented
- 	 * order of matching.
- 	 */
-+	DISCARDS
- 	/DISCARD/ : {
--		EXIT_CALL
--		*(.discard)
--		*(.discard.*)
- 		*(.interp .dynamic)
- 		*(.dynsym .dynstr .hash .gnu.hash)
- 		*(.eh_frame)
--- 
-2.25.1
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pg=
+table.h
+index 758e2d1577d0..d5d3fbe73953 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -40,6 +40,16 @@ extern void __pmd_error(const char *file, int line, un=
+signed long val);
+ extern void __pud_error(const char *file, int line, unsigned long val);
+ extern void __pgd_error(const char *file, int line, unsigned long val);
+=20
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++#define __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
++
++/* Set stride and tlb_level in flush_*_tlb_range */
++#define flush_pmd_tlb_range(vma, addr, end)	\
++	__flush_tlb_range(vma, addr, end, PMD_SIZE, false, 2)
++#define flush_pud_tlb_range(vma, addr, end)	\
++	__flush_tlb_range(vma, addr, end, PUD_SIZE, false, 1)
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++
+ /*
+  * ZERO_PAGE is a global shared page that is always zero: used
+  * for zero-mapped memory areas etc..
+--=20
+2.26.2
