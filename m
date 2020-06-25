@@ -1,85 +1,157 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51314 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2404908AbgFXRfN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 13:35:13 -0400
-From: Arvind Sankar <nivedita@alum.mit.edu>
-Date: Wed, 24 Jun 2020 13:35:09 -0400
-Subject: Re: [PATCH v3 2/9] vmlinux.lds.h: Add .symtab, .strtab, and
- .shstrtab to STABS_DEBUG
-Message-ID: <20200624173509.GA1460341@rani.riverdale.lan>
-References: <20200624014940.1204448-1-keescook@chromium.org>
- <20200624014940.1204448-3-keescook@chromium.org>
- <20200624153930.GA1337895@rani.riverdale.lan>
- <20200624161643.73x6navnwryckuit@google.com>
- <20200624171121.GA1377921@rani.riverdale.lan>
- <20200624172620.654hhjetiyzpgoxw@google.com>
+Return-Path: <SRS0=nnJc=AG=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RESEND PATCH v5 4/6] tlb: mmu_gather: add tlb_flush_*_range APIs
+Date: Thu, 25 Jun 2020 16:03:12 +0800
+Message-ID: <20200625080314.230-5-yezhenyu2@huawei.com>
+In-Reply-To: <20200625080314.230-1-yezhenyu2@huawei.com>
+References: <20200625080314.230-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20200624172620.654hhjetiyzpgoxw@google.com>
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Fangrui Song <maskray@google.com>
-Cc: Arvind Sankar <nivedita@alum.mit.edu>, Kees Cook <keescook@chromium.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200624173509.-6Jzuvu3ESF5sk1zefH2mdO_gQ4-qJB75HEUvEyMZz0@z>
+Message-ID: <20200625080312.i0F_e_HjAIgAnx598qKPZ7t3Svv1eN_MWaHxgxVspwQ@z>
 
-On Wed, Jun 24, 2020 at 10:26:20AM -0700, Fangrui Song wrote:
-> 
-> On 2020-06-24, Arvind Sankar wrote:
-> >On Wed, Jun 24, 2020 at 09:16:43AM -0700, Fangrui Song wrote:
-> >>
-> >> On 2020-06-24, Arvind Sankar wrote:
-> >> >On Tue, Jun 23, 2020 at 06:49:33PM -0700, Kees Cook wrote:
-> >> >> When linking vmlinux with LLD, the synthetic sections .symtab, .strtab,
-> >> >> and .shstrtab are listed as orphaned. Add them to the STABS_DEBUG section
-> >> >> so there will be no warnings when --orphan-handling=warn is used more
-> >> >> widely. (They are added above comment as it is the more common
-> >> >
-> >> >Nit 1: is "after .comment" better than "above comment"? It's above in the
-> >> >sense of higher file offset, but it's below in readelf output.
-> >>
-> >> I mean this order:)
-> >>
-> >>    .comment
-> >>    .symtab
-> >>    .shstrtab
-> >>    .strtab
-> >>
-> >> This is the case in the absence of a linker script if at least one object file has .comment (mostly for GCC/clang version information) or the linker is LLD which adds a .comment
-> >>
-> >> >Nit 2: These aren't actually debugging sections, no? Is it better to add
-> >> >a new macro for it, and is there any plan to stop LLD from warning about
-> >> >them?
-> >>
-> >> https://reviews.llvm.org/D75149 "[ELF] --orphan-handling=: don't warn/error for unused synthesized sections"
-> >> described that .symtab .shstrtab .strtab are different in GNU ld.
-> >> Since many other GNU ld synthesized sections (.rela.dyn .plt ...) can be renamed or dropped
-> >> via output section descriptions, I don't understand why the 3 sections
-> >> can't be customized.
-> >
-> >So IIUC, lld will now warn about .rela.dyn etc only if they're non-empty?
-> 
-> HEAD and future 11.0.0 will not warn about unused synthesized sections
-> like .rela.dyn
-> 
-> For most synthesized sections, empty = unused.
-> 
-> >>
-> >> I created a feature request: https://sourceware.org/bugzilla/show_bug.cgi?id=26168
-> >> (If this is supported, it is a consistent behavior to warn for orphan
-> >> .symtab/.strtab/.shstrtab
-> >>
-> >> There may be 50% chance that the maintainer decides that "LLD diverges"
-> >> I would disagree: there is no fundamental problems with .symtab/.strtab/.shstrtab which make them special in output section descriptions or orphan handling.)
-> >>
-> >
-> >.shstrtab is a little special in that it can't be discarded if the ELF
-> >file contains any sections at all. But yeah, there's no reason they
-> >can't be renamed or placed in a custom location in the file.
-> 
-> https://sourceware.org/pipermail/binutils/2020-March/000179.html
-> proposes -z nosectionheader. With this option, I believe .shstrtab is
-> not needed. /DISCARD/ : { *(.shstrtab) }  should achieve a similar effect.
+From: "Peter Zijlstra (Intel)" <peterz@infradead.org>
 
-oh wow.
+tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and
+tlb->end, then set corresponding cleared_*.
+
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ include/asm-generic/tlb.h | 55 ++++++++++++++++++++++++++++-----------
+ 1 file changed, 40 insertions(+), 15 deletions(-)
+
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 3f1649a8cf55..ef75ec86f865 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -512,6 +512,38 @@ static inline void tlb_end_vma(struct mmu_gather *tl=
+b, struct vm_area_struct *vm
+ }
+ #endif
+=20
++/*
++ * tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and tlb->en=
+d,
++ * and set corresponding cleared_*.
++ */
++static inline void tlb_flush_pte_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_ptes =3D 1;
++}
++
++static inline void tlb_flush_pmd_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_pmds =3D 1;
++}
++
++static inline void tlb_flush_pud_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_puds =3D 1;
++}
++
++static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_p4ds =3D 1;
++}
++
+ #ifndef __tlb_remove_tlb_entry
+ #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+ #endif
+@@ -525,19 +557,17 @@ static inline void tlb_end_vma(struct mmu_gather *t=
+lb, struct vm_area_struct *vm
+  */
+ #define tlb_remove_tlb_entry(tlb, ptep, address)		\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+-		tlb->cleared_ptes =3D 1;				\
++		tlb_flush_pte_range(tlb, address, PAGE_SIZE);	\
+ 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
+ 	} while (0)
+=20
+ #define tlb_remove_huge_tlb_entry(h, tlb, ptep, address)	\
+ 	do {							\
+ 		unsigned long _sz =3D huge_page_size(h);		\
+-		__tlb_adjust_range(tlb, address, _sz);		\
+ 		if (_sz =3D=3D PMD_SIZE)				\
+-			tlb->cleared_pmds =3D 1;			\
++			tlb_flush_pmd_range(tlb, address, _sz);	\
+ 		else if (_sz =3D=3D PUD_SIZE)			\
+-			tlb->cleared_puds =3D 1;			\
++			tlb_flush_pud_range(tlb, address, _sz);	\
+ 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
+ 	} while (0)
+=20
+@@ -551,8 +581,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
+, struct vm_area_struct *vm
+=20
+ #define tlb_remove_pmd_tlb_entry(tlb, pmdp, address)			\
+ 	do {								\
+-		__tlb_adjust_range(tlb, address, HPAGE_PMD_SIZE);	\
+-		tlb->cleared_pmds =3D 1;					\
++		tlb_flush_pmd_range(tlb, address, HPAGE_PMD_SIZE);	\
+ 		__tlb_remove_pmd_tlb_entry(tlb, pmdp, address);		\
+ 	} while (0)
+=20
+@@ -566,8 +595,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
+, struct vm_area_struct *vm
+=20
+ #define tlb_remove_pud_tlb_entry(tlb, pudp, address)			\
+ 	do {								\
+-		__tlb_adjust_range(tlb, address, HPAGE_PUD_SIZE);	\
+-		tlb->cleared_puds =3D 1;					\
++		tlb_flush_pud_range(tlb, address, HPAGE_PUD_SIZE);	\
+ 		__tlb_remove_pud_tlb_entry(tlb, pudp, address);		\
+ 	} while (0)
+=20
+@@ -592,9 +620,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
+, struct vm_area_struct *vm
+ #ifndef pte_free_tlb
+ #define pte_free_tlb(tlb, ptep, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
++		tlb_flush_pmd_range(tlb, address, PAGE_SIZE);	\
+ 		tlb->freed_tables =3D 1;				\
+-		tlb->cleared_pmds =3D 1;				\
+ 		__pte_free_tlb(tlb, ptep, address);		\
+ 	} while (0)
+ #endif
+@@ -602,9 +629,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
+, struct vm_area_struct *vm
+ #ifndef pmd_free_tlb
+ #define pmd_free_tlb(tlb, pmdp, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
++		tlb_flush_pud_range(tlb, address, PAGE_SIZE);	\
+ 		tlb->freed_tables =3D 1;				\
+-		tlb->cleared_puds =3D 1;				\
+ 		__pmd_free_tlb(tlb, pmdp, address);		\
+ 	} while (0)
+ #endif
+@@ -612,9 +638,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb=
+, struct vm_area_struct *vm
+ #ifndef pud_free_tlb
+ #define pud_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
++		tlb_flush_p4d_range(tlb, address, PAGE_SIZE);	\
+ 		tlb->freed_tables =3D 1;				\
+-		tlb->cleared_p4ds =3D 1;				\
+ 		__pud_free_tlb(tlb, pudp, address);		\
+ 	} while (0)
+ #endif
+--=20
+2.26.2
