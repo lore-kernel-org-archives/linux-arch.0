@@ -1,60 +1,164 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43388 "EHLO
+Return-Path: <SRS0=eK+U=AG=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48668 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731179AbgF2TM7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:12:59 -0400
-Received: from mail-pf1-x442.google.com (mail-pf1-x442.google.com [IPv6:2607:f8b0:4864:20::442])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 24874C08EAF5
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:47 -0700 (PDT)
-Received: by mail-pf1-x442.google.com with SMTP id u185so5417567pfu.1
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:47 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 04/17] vmlinux.lds.h: Add .symtab, .strtab, and .shstrtab to ELF_DETAILS
-Date: Sun, 28 Jun 2020 23:18:27 -0700
-Message-ID: <20200629061840.4065483-5-keescook@chromium.org>
-In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
-References: <20200629061840.4065483-1-keescook@chromium.org>
+        with ESMTP id S2388930AbgFYC0u (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 22:26:50 -0400
+Date: Wed, 24 Jun 2020 19:26:47 -0700
+From: Nathan Chancellor <natechancellor@gmail.com>
+Subject: Re: [PATCH 02/22] kbuild: add support for Clang LTO
+Message-ID: <20200625022647.GB2871607@ubuntu-n2-xlarge-x86>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624203200.78870-3-samitolvanen@google.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200624203200.78870-3-samitolvanen@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200629061827.-VVXtEzLWhLQzSiM5vZmRh72eoTlBskf-Idta0p9JbI@z>
+To: Sami Tolvanen <samitolvanen@google.com>
+Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
+Message-ID: <20200625022647.DbqQsnSAiWv6gUCZXekYazGQO7bX-odhspo9BTIQALI@z>
 
-When linking vmlinux with LLD, the synthetic sections .symtab, .strtab,
-and .shstrtab are listed as orphaned. Add them to the ELF_DETAILS section
-so there will be no warnings when --orphan-handling=warn is used more
-widely. (They are added above comment as it is the more common
-order[1].)
+Hi Sami,
 
-ld.lld: warning: <internal>:(.symtab) is being placed in '.symtab'
-ld.lld: warning: <internal>:(.shstrtab) is being placed in '.shstrtab'
-ld.lld: warning: <internal>:(.strtab) is being placed in '.strtab'
+On Wed, Jun 24, 2020 at 01:31:40PM -0700, 'Sami Tolvanen' via Clang Built Linux wrote:
+> This change adds build system support for Clang's Link Time
+> Optimization (LTO). With -flto, instead of ELF object files, Clang
+> produces LLVM bitcode, which is compiled into native code at link
+> time, allowing the final binary to be optimized globally. For more
+> details, see:
+> 
+>   https://llvm.org/docs/LinkTimeOptimization.html
+> 
+> The Kconfig option CONFIG_LTO_CLANG is implemented as a choice,
+> which defaults to LTO being disabled. To use LTO, the architecture
+> must select ARCH_SUPPORTS_LTO_CLANG and support:
+> 
+>   - compiling with Clang,
+>   - compiling inline assembly with Clang's integrated assembler,
+>   - and linking with LLD.
+> 
+> While using full LTO results in the best runtime performance, the
+> compilation is not scalable in time or memory. CONFIG_THINLTO
+> enables ThinLTO, which allows parallel optimization and faster
+> incremental builds. ThinLTO is used by default if the architecture
+> also selects ARCH_SUPPORTS_THINLTO:
+> 
+>   https://clang.llvm.org/docs/ThinLTO.html
+> 
+> To enable LTO, LLVM tools must be used to handle bitcode files. The
+> easiest way is to pass the LLVM=1 option to make:
+> 
+>   $ make LLVM=1 defconfig
+>   $ scripts/config -e LTO_CLANG
+>   $ make LLVM=1
+> 
+> Alternatively, at least the following LLVM tools must be used:
+> 
+>   CC=clang LD=ld.lld AR=llvm-ar NM=llvm-nm
+> 
+> To prepare for LTO support with other compilers, common parts are
+> gated behind the CONFIG_LTO option, and LTO can be disabled for
+> specific files by filtering out CC_FLAGS_LTO.
+> 
+> Note that support for DYNAMIC_FTRACE and MODVERSIONS are added in
+> follow-up patches.
+> 
+> Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+> ---
+>  Makefile                          | 16 ++++++++
+>  arch/Kconfig                      | 66 +++++++++++++++++++++++++++++++
+>  include/asm-generic/vmlinux.lds.h | 11 ++++--
+>  scripts/Makefile.build            |  9 ++++-
+>  scripts/Makefile.modfinal         |  9 ++++-
+>  scripts/Makefile.modpost          | 24 ++++++++++-
+>  scripts/link-vmlinux.sh           | 32 +++++++++++----
+>  7 files changed, 151 insertions(+), 16 deletions(-)
+> 
+> diff --git a/Makefile b/Makefile
+> index ac2c61c37a73..0c7fe6fb2143 100644
+> --- a/Makefile
+> +++ b/Makefile
+> @@ -886,6 +886,22 @@ KBUILD_CFLAGS	+= $(CC_FLAGS_SCS)
+>  export CC_FLAGS_SCS
+>  endif
+>  
+> +ifdef CONFIG_LTO_CLANG
+> +ifdef CONFIG_THINLTO
+> +CC_FLAGS_LTO_CLANG := -flto=thin $(call cc-option, -fsplit-lto-unit)
+> +KBUILD_LDFLAGS	+= --thinlto-cache-dir=.thinlto-cache
+> +else
+> +CC_FLAGS_LTO_CLANG := -flto
+> +endif
+> +CC_FLAGS_LTO_CLANG += -fvisibility=default
+> +endif
+> +
+> +ifdef CONFIG_LTO
+> +CC_FLAGS_LTO	:= $(CC_FLAGS_LTO_CLANG)
+> +KBUILD_CFLAGS	+= $(CC_FLAGS_LTO)
+> +export CC_FLAGS_LTO
+> +endif
+> +
+>  # arch Makefile may override CC so keep this after arch Makefile is included
+>  NOSTDINC_FLAGS += -nostdinc -isystem $(shell $(CC) -print-file-name=include)
+>  
+> diff --git a/arch/Kconfig b/arch/Kconfig
+> index 8cc35dc556c7..e00b122293f8 100644
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -552,6 +552,72 @@ config SHADOW_CALL_STACK
+>  	  reading and writing arbitrary memory may be able to locate them
+>  	  and hijack control flow by modifying the stacks.
+>  
+> +config LTO
+> +	bool
+> +
+> +config ARCH_SUPPORTS_LTO_CLANG
+> +	bool
+> +	help
+> +	  An architecture should select this option if it supports:
+> +	  - compiling with Clang,
+> +	  - compiling inline assembly with Clang's integrated assembler,
+> +	  - and linking with LLD.
+> +
+> +config ARCH_SUPPORTS_THINLTO
+> +	bool
+> +	help
+> +	  An architecture should select this option if it supports Clang's
+> +	  ThinLTO.
+> +
+> +config THINLTO
+> +	bool "Clang ThinLTO"
+> +	depends on LTO_CLANG && ARCH_SUPPORTS_THINLTO
+> +	default y
+> +	help
+> +	  This option enables Clang's ThinLTO, which allows for parallel
+> +	  optimization and faster incremental compiles. More information
+> +	  can be found from Clang's documentation:
+> +
+> +	    https://clang.llvm.org/docs/ThinLTO.html
+> +
+> +choice
+> +	prompt "Link Time Optimization (LTO)"
+> +	default LTO_NONE
+> +	help
+> +	  This option enables Link Time Optimization (LTO), which allows the
+> +	  compiler to optimize binaries globally.
+> +
+> +	  If unsure, select LTO_NONE.
+> +
+> +config LTO_NONE
+> +	bool "None"
+> +
+> +config LTO_CLANG
+> +	bool "Clang's Link Time Optimization (EXPERIMENTAL)"
+> +	depends on CC_IS_CLANG && CLANG_VERSION >= 110000 && LD_IS_LLD
 
-[1] https://lore.kernel.org/lkml/20200622224928.o2a7jkq33guxfci4@google.com/
+I am curious, what is the reason for gating this at clang 11.0.0?
 
-Reported-by: Fangrui Song <maskray@google.com>
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- include/asm-generic/vmlinux.lds.h | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+Presumably this? https://github.com/ClangBuiltLinux/linux/issues/510
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index c5d10bc53996..9477359278a2 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -796,7 +796,10 @@
- 
- /* Required sections not related to debugging. */
- #define ELF_DETAILS							\
--		.comment 0 : { *(.comment) }
-+		.comment 0 : { *(.comment) }				\
-+		.symtab 0 : { *(.symtab) }				\
-+		.strtab 0 : { *(.strtab) }				\
-+		.shstrtab 0 : { *(.shstrtab) }
- 
- #ifdef CONFIG_GENERIC_BUG
- #define BUG_TABLE							\
--- 
-2.25.1
+It might be nice to notate this so that we do not have to wonder :)
+
+Cheers,
+Nathan
