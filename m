@@ -1,235 +1,78 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:47454 "EHLO foss.arm.com"
+Return-Path: <SRS0=eK+U=AG=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:59136 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2405456AbgFXRgu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 Jun 2020 13:36:50 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v3 2/2] prctl.2: Add tagged address ABI control prctls (arm64)
-Date: Wed, 24 Jun 2020 18:36:02 +0100
-Message-ID: <1593020162-9365-3-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1593020162-9365-1-git-send-email-Dave.Martin@arm.com>
-References: <1593020162-9365-1-git-send-email-Dave.Martin@arm.com>
+        id S2390052AbgFYQdH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 Jun 2020 12:33:07 -0400
+Date: Thu, 25 Jun 2020 09:33:06 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: LKMM patches for next merge window
+Message-ID: <20200625163306.GR9247@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200624185400.GA13594@paulmck-ThinkPad-P72>
+ <20200624232402.GA465543@andrea>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200624232402.GA465543@andrea>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <20200624173602.CiTmpIwJ68Ny6Jv48zroJeBXCHKEcOQVi3ZMRxbOt2k@z>
+To: Andrea Parri <parri.andrea@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org, stern@rowland.harvard.edu, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Mauro Carvalho Chehab <mchehab+huawei@kernel.org>, Christoph Hellwig <hch@lst.de>, Jonathan Corbet <corbet@lwn.net>
+Message-ID: <20200625163306.mQ41bT5rSo2l3zU3TtPRT0uimOy2v-YgRg5xFDdPD8U@z>
 
-Add documentation for the the PR_SET_TAGGED_ADDR_CTRL and
-PR_GET_TAGGED_ADDR_CTRL prctls added in Linux 5.4 for arm64.
+On Thu, Jun 25, 2020 at 01:24:02AM +0200, Andrea Parri wrote:
+> On Wed, Jun 24, 2020 at 11:54:00AM -0700, Paul E. McKenney wrote:
+> > Hello!
+> > 
+> > Here is the list of LKMM patches I am considering for the next merge
+> > window and the status of each.  Any I am missing or any that need to
+> > wait or be modified?
+> > 
+> > 						Thanx, Paul
+> > 
+> > ------------------------------------------------------------------------
+> > 
+> > 3ce5d69 docs: fix references for DMA*.txt files
+> > 	Could someone please provide an ack?
+> 
+> Fixing the N-th commit "move docs without updating in-tree references".
+> ;-/
+> 
+> Most importantly there appears to be some on-going discussion about it,
+> cf.
+> 
+>   https://lkml.kernel.org/r/20200623072240.GA974@lst.de
+> 
+> (could you please sort this out?)
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>
+I doubt that anything I can say or do will have much effect on those
+who love to hate and who hate to love .rst, and vice versa.  It could
+be worse -- I could jump into the fray advocating *TYPO, which was the
+first text-formatting package that I ever used.  And good luck finding
+any information on *TYPO at this point.  ;-)
 
----
+But good point, I will adjust my branches to keep Mauro's commit off
+the list for v5.9 for the moment.
 
-Kept Catalin's Reviewed-by, since the changes are pretty minor.
+							Thanx, Paul
 
-Changes since v2:
-
- * Clarified type of PR_SET_TAGGED_ADDR_CTRL arg2.
-
- * Added Linux commit where enforecement of zeroing reserved args was
-   added for PR_SET_TAGGED_ADDR_CTRL.
-
- * Added explicit text regarding how to disable the tagged-address ABI
-   globally through sysctl.
-
- * Rearrange the tagged argument syscall exclusion list so that shmdt()
-   isn't called out specially.  The reader probably doesn't care about
-   this history here.
-
- * Minor rewordings.
----
- man2/prctl.2 | 161 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 161 insertions(+)
-
-diff --git a/man2/prctl.2 b/man2/prctl.2
-index 46ea9d2..cf92f3b 100644
---- a/man2/prctl.2
-+++ b/man2/prctl.2
-@@ -1522,6 +1522,148 @@ For more information, see the kernel source file
- (or
- .I Documentation/arm64/sve.txt
- before Linux 5.3).
-+.\" prctl PR_SET_TAGGED_ADDR_CTRL
-+.\" commit 63f0c60379650d82250f22e4cf4137ef3dc4f43d
-+.TP
-+.BR PR_SET_TAGGED_ADDR_CTRL " (since Linux 5.4, only on arm64)"
-+Controls support for passing tagged userspace addresses to the kernel
-+(i.e., addresses where bits 56\(em63 are not all zero).
-+.IP
-+The level of support is selected by
-+.IR "arg2" ,
-+which can be one of the following:
-+.RS
-+.TP
-+.B 0
-+Addresses that are passed
-+for the purpose of being dereferenced by the kernel
-+must be untagged.
-+.TP
-+.B PR_TAGGED_ADDR_ENABLE
-+Addresses that are passed
-+for the purpose of being dereferenced by the kernel
-+may be tagged, with the exceptions summarized below.
-+.RE
-+.IP
-+The remaining arguments
-+.IR arg3 ", " arg4 " and " arg5
-+must all be zero.
-+.\" Enforcement added in
-+.\" commit 3e91ec89f527b9870fe42dcbdb74fd389d123a95
-+.IP
-+On success, the mode specified in
-+.I arg2
-+is set for the calling thread and the the return value is 0.
-+If the arguments are invalid,
-+the mode specified in
-+.I arg2
-+is unrecognized,
-+or if this feature is unsupported by the kernel
-+or disabled via
-+.IR /proc/sys/abi/tagged_addr_disabled ,
-+the call fails with
-+.BR EINVAL .
-+.IP
-+In particular, if
-+.BR prctl ( PR_SET_TAGGED_ADDR_CTRL ,
-+0, 0, 0, 0)
-+fails with
-+.B EINVAL
-+then all addresses passed to the kernel must be untagged.
-+.IP
-+Irrespective of which mode is set,
-+addresses passed to certain interfaces
-+must always be untagged:
-+.RS
-+.IP \(em
-+.BR brk (2),
-+.BR mmap (2),
-+.BR shmat (2),
-+.BR shmdt (2),
-+and the
-+.I new_address
-+argument of
-+.BR mremap (2).
-+.IP
-+(Prior to Linux 5.6 these accepted tagged addresses,
-+but the behaviour may not be what you expect.
-+Don't rely on it.)
-+.IP \(em
-+\(oqpolymorphic\(cq interfaces
-+that accept pointers to arbitrary types cast to a
-+.I void *
-+or other generic type, specifically
-+.BR prctl (2),
-+.BR ioctl (2),
-+and in general
-+.BR setsockopt (2)
-+(only certain specific
-+.BR setsockopt (2)
-+options allow tagged addresses).
-+.RE
-+.IP
-+This list of exclusions may shrink
-+when moving from one kernel version to a later kernel version.
-+While the kernel may make some guarantees
-+for backwards compatibility reasons,
-+for the purposes of new software
-+the effect of passing tagged addresses to these interfaces
-+is unspecified.
-+.IP
-+The mode set by this call is inherited across
-+.BR fork (2)
-+and
-+.BR clone (2).
-+The mode is reset by
-+.BR execve (2)
-+to 0
-+(i.e., tagged addresses not permitted in the user/kernel ABI).
-+.IP
-+For more information, see the kernel source file
-+.IR Documentation/arm64/tagged\-address\-abi.rst .
-+.IP
-+.B Warning:
-+This call is primarily intended for use by the run-time environment.
-+A successful
-+.B PR_SET_TAGGED_ADDR_CTRL
-+call elsewhere may crash the calling process.
-+The conditions for using it safely are complex and system-dependent;
-+Don't use it unless you know what you are doing.
-+.\" prctl PR_GET_TAGGED_ADDR_CTRL
-+.\" commit 63f0c60379650d82250f22e4cf4137ef3dc4f43d
-+.TP
-+.BR PR_GET_TAGGED_ADDR_CTRL " (since Linux 5.4, only on arm64)"
-+Returns the current tagged address mode
-+for the calling thread.
-+.IP
-+Arguments
-+.IR arg2 ", " arg3 ", " arg4 " and " arg5
-+must all be zero.
-+.IP
-+If the arguments are invalid
-+or this feature is disabled or unsupported by the kernel,
-+the call fails with
-+.BR EINVAL .
-+In particular, if
-+.BR prctl ( PR_GET_TAGGED_ADDR_CTRL ,
-+0, 0, 0, 0)
-+fails with
-+.BR EINVAL ,
-+then this feature is definitely either unsupported,
-+or disabled via
-+.IR /proc/sys/abi/tagged_addr_disabled .
-+In this case,
-+all addresses passed to the kernel must be untagged.
-+.IP
-+Otherwise, the call returns a nonnegative value
-+describing the current tagged address mode,
-+encoded in the same way as the
-+.I arg2
-+argument of
-+.BR PR_SET_TAGGED_ADDR_CTRL .
-+.IP
-+For more information, see the kernel source file
-+.IR Documentation/arm64/tagged\-address\-abi.rst .
- .\"
- .\" prctl PR_TASK_PERF_EVENTS_DISABLE
- .TP
-@@ -1767,6 +1909,7 @@ On success,
- .BR PR_GET_SPECULATION_CTRL ,
- .BR PR_SVE_GET_VL ,
- .BR PR_SVE_SET_VL ,
-+.BR PR_GET_TAGGED_ADDR_CTRL ,
- .BR PR_GET_THP_DISABLE ,
- .BR PR_GET_TIMING ,
- .BR PR_GET_TIMERSLACK ,
-@@ -2074,6 +2217,24 @@ is
- .B PR_SVE_GET_VL
- and SVE is not available on this platform.
- .TP
-+.B EINVAL
-+.I option
-+is
-+.BR PR_SET_TAGGED_ADDR_CTRL
-+and the arguments are invalid or unsupported.
-+See the description of
-+.B PR_SET_TAGGED_ADDR_CTRL
-+above for details.
-+.TP
-+.B EINVAL
-+.I option
-+is
-+.BR PR_GET_TAGGED_ADDR_CTRL
-+and the arguments are invalid or unsupported.
-+See the description of
-+.B PR_GET_TAGGED_ADDR_CTRL
-+above for details.
-+.TP
- .B ENODEV
- .I option
- was
--- 
-2.1.4
+>   Andrea
+> 
+> 
+> > 
+> > ac1a749 tools/memory-model: Add recent references
+> > be1ce3e tools/memory-model: Fix "conflict" definition
+> > 24dca63 Documentation: LKMM: Add litmus test for RCU GP guarantee where updater frees object
+> > 47ec95b Documentation: LKMM: Add litmus test for RCU GP guarantee where reader stores
+> > bb2c938 MAINTAINERS: Update maintainers for new Documentation/litmus-tests
+> > 05bee9a tools/memory-model: Add an exception for limitations on _unless() family
+> > dc76257 Documentation/litmus-tests: Introduce atomic directory
+> > d059e50 Documentation/litmus-tests/atomic: Add a test for atomic_set()
+> > 7eecf76 Documentation/litmus-tests/atomic: Add a test for smp_mb__after_atomic()
+> > 116f054 tools/memory-model: Fix reference to litmus test in recipes.txt
+> > ffd32d4 Documentation/litmus-tests: Merge atomic's README into top-level one
+> > a08ae99 Documentation/litmus-tests: Cite an RCU litmus test
+> > 843285eb tools/memory-model/README: Expand dependency of klitmus7
+> > 0296c57 tools/memory-model/README: Mention herdtools7 7.56 in compatibility table
+> > 47e4f0a Documentation/litmus-tests: Add note on herd7 7.56 in atomic litmus test
+> > 	All ready to go.
