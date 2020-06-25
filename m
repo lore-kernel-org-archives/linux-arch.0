@@ -1,62 +1,65 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v5 11/25] mm: Introduce arch_calc_vm_flag_bits()
-Date: Thu, 25 Jun 2020 18:34:02 +0100
-Message-ID: <20200625173344.GF14812@gaia>
-References: <20200624175244.25837-1-catalin.marinas@arm.com>
- <20200624175244.25837-12-catalin.marinas@arm.com>
- <20200624113611.2cf12da3a325d03a862c0adf@linux-foundation.org>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 05/22] kbuild: lto: postpone objtool
+Date: Thu, 25 Jun 2020 20:33:51 +0200
+Message-ID: <20200625183351.GH4800@hirez.programming.kicks-ass.net>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624203200.78870-6-samitolvanen@google.com>
+ <20200624211908.GT4817@hirez.programming.kicks-ass.net>
+ <20200624214925.GB120457@google.com>
+ <20200625074716.GX4817@hirez.programming.kicks-ass.net>
+ <20200625162226.GC173089@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:52676 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2404938AbgFYReG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 Jun 2020 13:34:06 -0400
+Return-path: <kernel-hardening-return-19169-glkh-kernel-hardening=m.gmane-mx.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 Content-Disposition: inline
-In-Reply-To: <20200624113611.2cf12da3a325d03a862c0adf@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>
+In-Reply-To: <20200625162226.GC173089@google.com>
+To: Sami Tolvanen <samitolvanen@google.com>
+Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 24, 2020 at 11:36:11AM -0700, Andrew Morton wrote:
-> On Wed, 24 Jun 2020 18:52:30 +0100 Catalin Marinas <catalin.marinas@arm.com> wrote:
-> > From: Kevin Brodsky <Kevin.Brodsky@arm.com>
-> > Similarly to arch_calc_vm_prot_bits(), introduce a dummy
-> > arch_calc_vm_flag_bits() invoked from calc_vm_flag_bits(). This macro
-> > can be overridden by architectures to insert specific VM_* flags derived
-> > from the mmap() MAP_* flags.
-> > 
-> > ...
-> >
-> > --- a/include/linux/mman.h
-> > +++ b/include/linux/mman.h
-> > @@ -74,13 +74,17 @@ static inline void vm_unacct_memory(long pages)
-> >  }
-> >  
-> >  /*
-> > - * Allow architectures to handle additional protection bits
-> > + * Allow architectures to handle additional protection and flag bits
-> >   */
-> >  
-> >  #ifndef arch_calc_vm_prot_bits
-> >  #define arch_calc_vm_prot_bits(prot, pkey) 0
-> >  #endif
-> >  
-> > +#ifndef arch_calc_vm_flag_bits
-> > +#define arch_calc_vm_flag_bits(flags) 0
-> > +#endif
+On Thu, Jun 25, 2020 at 09:22:26AM -0700, Sami Tolvanen wrote:
+> On Thu, Jun 25, 2020 at 09:47:16AM +0200, Peter Zijlstra wrote:
+
+> > Right, then we need to make --no-vmlinux work properly when
+> > !DEBUG_ENTRY, which I think might be buggered due to us overriding the
+> > argument when the objname ends with "vmlinux.o".
 > 
-> It would be helpful to add a comment specifying which arch header file
-> is responsible for defining arch_calc_vm_flag_bits.  Because in the
-> past we've messed this sort of thing up and had different architectures
-> define things in different header files, resulting in build issues as
-> code evolves.
+> Right. Can we just remove that and  pass --vmlinux to objtool in
+> link-vmlinux.sh, or is the override necessary somewhere else?
 
-I'll add a comment that the overriding definitions need to go in the
-arch asm/mman.h file.
+Think we can remove it; it was just convenient when running manually.
 
-Thanks.
+> > > > > +ifdef CONFIG_STACK_VALIDATION
+> > > > > +ifneq ($(SKIP_STACK_VALIDATION),1)
+> > > > > +cmd_ld_ko_o +=								\
+> > > > > +	$(objtree)/tools/objtool/objtool				\
+> > > > > +		$(if $(CONFIG_UNWINDER_ORC),orc generate,check)		\
+> > > > > +		--module						\
+> > > > > +		$(if $(CONFIG_FRAME_POINTER),,--no-fp)			\
+> > > > > +		$(if $(CONFIG_GCOV_KERNEL),--no-unreachable,)		\
+> > > > > +		$(if $(CONFIG_RETPOLINE),--retpoline,)			\
+> > > > > +		$(if $(CONFIG_X86_SMAP),--uaccess,)			\
+> > > > > +		$(@:.ko=$(prelink-ext).o);
+> > > > > +
+> > > > > +endif # SKIP_STACK_VALIDATION
+> > > > > +endif # CONFIG_STACK_VALIDATION
+> > > > 
+> > > > What about the objtool invocation from link-vmlinux.sh ?
+> > > 
+> > > What about it? The existing objtool_link invocation in link-vmlinux.sh
+> > > works fine for our purposes as well.
+> > 
+> > Well, I was wondering why you're adding yet another objtool invocation
+> > while we already have one.
+> 
+> Because we can't run objtool until we have compiled bitcode to native
+> code, so for modules, we're need another invocation after everything has
+> been compiled.
 
--- 
-Catalin
+Well, that I understand, my question was why we need one in
+scripts/link-vmlinux.sh and an additional one. I think we're just
+talking past one another and agree we only need one.
