@@ -1,87 +1,73 @@
-From: Sami Tolvanen <samitolvanen@google.com>
-Subject: Re: [PATCH 05/22] kbuild: lto: postpone objtool
-Date: Thu, 25 Jun 2020 09:22:26 -0700
-Message-ID: <20200625162226.GC173089@google.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624203200.78870-6-samitolvanen@google.com>
- <20200624211908.GT4817@hirez.programming.kicks-ass.net>
- <20200624214925.GB120457@google.com>
- <20200625074716.GX4817@hirez.programming.kicks-ass.net>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: LKMM patches for next merge window
+Date: Thu, 25 Jun 2020 09:33:06 -0700
+Message-ID: <20200625163306.GR9247@paulmck-ThinkPad-P72>
+References: <20200624185400.GA13594@paulmck-ThinkPad-P72>
+ <20200624232402.GA465543@andrea>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36274 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389522AbgFYQWe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jun 2020 12:22:34 -0400
-Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9BDEDC08C5C1
-        for <linux-arch@vger.kernel.org>; Thu, 25 Jun 2020 09:22:34 -0700 (PDT)
-Received: by mail-pg1-x542.google.com with SMTP id o13so547406pgf.0
-        for <linux-arch@vger.kernel.org>; Thu, 25 Jun 2020 09:22:34 -0700 (PDT)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200625074716.GX4817@hirez.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
+In-Reply-To: <20200624232402.GA465543@andrea>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrea Parri <parri.andrea@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@fb.com, mingo@kernel.org, stern@rowland.harvard.edu, will@kernel.org, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, Mauro Carvalho Chehab <mchehab+huawei@kernel.org>, Christoph Hellwig <hch@lst.de>, Jonathan Corbet <corbet@lwn.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 25, 2020 at 09:47:16AM +0200, Peter Zijlstra wrote:
-> On Wed, Jun 24, 2020 at 02:49:25PM -0700, Sami Tolvanen wrote:
-> > On Wed, Jun 24, 2020 at 11:19:08PM +0200, Peter Zijlstra wrote:
-> > > On Wed, Jun 24, 2020 at 01:31:43PM -0700, Sami Tolvanen wrote:
-> > > > diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-> > > > index 30827f82ad62..12b115152532 100644
-> > > > --- a/include/linux/compiler.h
-> > > > +++ b/include/linux/compiler.h
-> > > > @@ -120,7 +120,7 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
-> > > >  /* Annotate a C jump table to allow objtool to follow the code flow */
-> > > >  #define __annotate_jump_table __section(.rodata..c_jump_table)
-> > > >  
-> > > > -#ifdef CONFIG_DEBUG_ENTRY
-> > > > +#if defined(CONFIG_DEBUG_ENTRY) || defined(CONFIG_LTO_CLANG)
-> > > >  /* Begin/end of an instrumentation safe region */
-> > > >  #define instrumentation_begin() ({					\
-> > > >  	asm volatile("%c0:\n\t"						\
-> > > 
-> > > Why would you be doing noinstr validation for lto builds? That doesn't
-> > > make sense.
+On Thu, Jun 25, 2020 at 01:24:02AM +0200, Andrea Parri wrote:
+> On Wed, Jun 24, 2020 at 11:54:00AM -0700, Paul E. McKenney wrote:
+> > Hello!
 > > 
-> > This is just to avoid a ton of noinstr warnings when we run objtool on
-> > vmlinux.o, but I'm also fine with skipping noinstr validation with LTO.
-> 
-> Right, then we need to make --no-vmlinux work properly when
-> !DEBUG_ENTRY, which I think might be buggered due to us overriding the
-> argument when the objname ends with "vmlinux.o".
-
-Right. Can we just remove that and  pass --vmlinux to objtool in
-link-vmlinux.sh, or is the override necessary somewhere else?
-
-> > > > +ifdef CONFIG_STACK_VALIDATION
-> > > > +ifneq ($(SKIP_STACK_VALIDATION),1)
-> > > > +cmd_ld_ko_o +=								\
-> > > > +	$(objtree)/tools/objtool/objtool				\
-> > > > +		$(if $(CONFIG_UNWINDER_ORC),orc generate,check)		\
-> > > > +		--module						\
-> > > > +		$(if $(CONFIG_FRAME_POINTER),,--no-fp)			\
-> > > > +		$(if $(CONFIG_GCOV_KERNEL),--no-unreachable,)		\
-> > > > +		$(if $(CONFIG_RETPOLINE),--retpoline,)			\
-> > > > +		$(if $(CONFIG_X86_SMAP),--uaccess,)			\
-> > > > +		$(@:.ko=$(prelink-ext).o);
-> > > > +
-> > > > +endif # SKIP_STACK_VALIDATION
-> > > > +endif # CONFIG_STACK_VALIDATION
-> > > 
-> > > What about the objtool invocation from link-vmlinux.sh ?
+> > Here is the list of LKMM patches I am considering for the next merge
+> > window and the status of each.  Any I am missing or any that need to
+> > wait or be modified?
 > > 
-> > What about it? The existing objtool_link invocation in link-vmlinux.sh
-> > works fine for our purposes as well.
+> > 						Thanx, Paul
+> > 
+> > ------------------------------------------------------------------------
+> > 
+> > 3ce5d69 docs: fix references for DMA*.txt files
+> > 	Could someone please provide an ack?
 > 
-> Well, I was wondering why you're adding yet another objtool invocation
-> while we already have one.
+> Fixing the N-th commit "move docs without updating in-tree references".
+> ;-/
+> 
+> Most importantly there appears to be some on-going discussion about it,
+> cf.
+> 
+>   https://lkml.kernel.org/r/20200623072240.GA974@lst.de
+> 
+> (could you please sort this out?)
 
-Because we can't run objtool until we have compiled bitcode to native
-code, so for modules, we're need another invocation after everything has
-been compiled.
+I doubt that anything I can say or do will have much effect on those
+who love to hate and who hate to love .rst, and vice versa.  It could
+be worse -- I could jump into the fray advocating *TYPO, which was the
+first text-formatting package that I ever used.  And good luck finding
+any information on *TYPO at this point.  ;-)
 
-Sami
+But good point, I will adjust my branches to keep Mauro's commit off
+the list for v5.9 for the moment.
+
+							Thanx, Paul
+
+>   Andrea
+> 
+> 
+> > 
+> > ac1a749 tools/memory-model: Add recent references
+> > be1ce3e tools/memory-model: Fix "conflict" definition
+> > 24dca63 Documentation: LKMM: Add litmus test for RCU GP guarantee where updater frees object
+> > 47ec95b Documentation: LKMM: Add litmus test for RCU GP guarantee where reader stores
+> > bb2c938 MAINTAINERS: Update maintainers for new Documentation/litmus-tests
+> > 05bee9a tools/memory-model: Add an exception for limitations on _unless() family
+> > dc76257 Documentation/litmus-tests: Introduce atomic directory
+> > d059e50 Documentation/litmus-tests/atomic: Add a test for atomic_set()
+> > 7eecf76 Documentation/litmus-tests/atomic: Add a test for smp_mb__after_atomic()
+> > 116f054 tools/memory-model: Fix reference to litmus test in recipes.txt
+> > ffd32d4 Documentation/litmus-tests: Merge atomic's README into top-level one
+> > a08ae99 Documentation/litmus-tests: Cite an RCU litmus test
+> > 843285eb tools/memory-model/README: Expand dependency of klitmus7
+> > 0296c57 tools/memory-model/README: Mention herdtools7 7.56 in compatibility table
+> > 47e4f0a Documentation/litmus-tests: Add note on herd7 7.56 in atomic litmus test
+> > 	All ready to go.
