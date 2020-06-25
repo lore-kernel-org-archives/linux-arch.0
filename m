@@ -1,62 +1,71 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 04/22] kbuild: lto: fix recordmcount
-Date: Thu, 25 Jun 2020 09:45:30 +0200
-Message-ID: <20200625074530.GW4817@hirez.programming.kicks-ass.net>
+Subject: Re: [PATCH 05/22] kbuild: lto: postpone objtool
+Date: Thu, 25 Jun 2020 09:47:16 +0200
+Message-ID: <20200625074716.GX4817@hirez.programming.kicks-ass.net>
 References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624203200.78870-5-samitolvanen@google.com>
- <20200624212737.GV4817@hirez.programming.kicks-ass.net>
- <20200624214530.GA120457@google.com>
+ <20200624203200.78870-6-samitolvanen@google.com>
+ <20200624211908.GT4817@hirez.programming.kicks-ass.net>
+ <20200624214925.GB120457@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41064 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41256 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390410AbgFYHq2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jun 2020 03:46:28 -0400
+        with ESMTP id S2390237AbgFYHrn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jun 2020 03:47:43 -0400
 Content-Disposition: inline
-In-Reply-To: <20200624214530.GA120457@google.com>
+In-Reply-To: <20200624214925.GB120457@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
+Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
 
-On Wed, Jun 24, 2020 at 02:45:30PM -0700, Sami Tolvanen wrote:
-> On Wed, Jun 24, 2020 at 11:27:37PM +0200, Peter Zijlstra wrote:
-> > On Wed, Jun 24, 2020 at 01:31:42PM -0700, Sami Tolvanen wrote:
-> > > With LTO, LLVM bitcode won't be compiled into native code until
-> > > modpost_link. This change postpones calls to recordmcount until after
-> > > this step.
-> > > 
-> > > In order to exclude specific functions from inspection, we add a new
-> > > code section .text..nomcount, which we tell recordmcount to ignore, and
-> > > a __nomcount attribute for moving functions to this section.
+On Wed, Jun 24, 2020 at 02:49:25PM -0700, Sami Tolvanen wrote:
+> On Wed, Jun 24, 2020 at 11:19:08PM +0200, Peter Zijlstra wrote:
+> > On Wed, Jun 24, 2020 at 01:31:43PM -0700, Sami Tolvanen wrote:
+> > > diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+> > > index 30827f82ad62..12b115152532 100644
+> > > --- a/include/linux/compiler.h
+> > > +++ b/include/linux/compiler.h
+> > > @@ -120,7 +120,7 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+> > >  /* Annotate a C jump table to allow objtool to follow the code flow */
+> > >  #define __annotate_jump_table __section(.rodata..c_jump_table)
+> > >  
+> > > -#ifdef CONFIG_DEBUG_ENTRY
+> > > +#if defined(CONFIG_DEBUG_ENTRY) || defined(CONFIG_LTO_CLANG)
+> > >  /* Begin/end of an instrumentation safe region */
+> > >  #define instrumentation_begin() ({					\
+> > >  	asm volatile("%c0:\n\t"						\
 > > 
-> > I'm confused, you only add this to functions in ftrace itself, which is
-> > compiled with:
-> > 
-> >  KBUILD_CFLAGS = $(subst $(CC_FLAGS_FTRACE),,$(ORIG_CFLAGS))
-> > 
-> > and so should not have mcount/fentry sites anyway. So what's the point
-> > of ignoring them further?
-> > 
-> > This Changelog does not explain.
+> > Why would you be doing noinstr validation for lto builds? That doesn't
+> > make sense.
 > 
-> Normally, recordmcount ignores each ftrace.o file, but since we are
-> running it on vmlinux.o, we need another way to stop it from looking
-> at references to mcount/fentry that are not calls. Here's a comment
-> from recordmcount.c:
-> 
->   /*
->    * The file kernel/trace/ftrace.o references the mcount
->    * function but does not call it. Since ftrace.o should
->    * not be traced anyway, we just skip it.
->    */
-> 
-> But I agree, the commit message could use more defails. Also +Steven
-> for thoughts about this approach.
+> This is just to avoid a ton of noinstr warnings when we run objtool on
+> vmlinux.o, but I'm also fine with skipping noinstr validation with LTO.
 
-Ah, is thi because recordmcount isn't smart enough to know the
-difference between "CALL $mcount" and any other RELA that has mcount?
+Right, then we need to make --no-vmlinux work properly when
+!DEBUG_ENTRY, which I think might be buggered due to us overriding the
+argument when the objname ends with "vmlinux.o".
 
-At least for x86_64 I can do a really quick take for a recordmcount pass
-in objtool, but I suppose you also need this for ARM64 ?
+> > > +ifdef CONFIG_STACK_VALIDATION
+> > > +ifneq ($(SKIP_STACK_VALIDATION),1)
+> > > +cmd_ld_ko_o +=								\
+> > > +	$(objtree)/tools/objtool/objtool				\
+> > > +		$(if $(CONFIG_UNWINDER_ORC),orc generate,check)		\
+> > > +		--module						\
+> > > +		$(if $(CONFIG_FRAME_POINTER),,--no-fp)			\
+> > > +		$(if $(CONFIG_GCOV_KERNEL),--no-unreachable,)		\
+> > > +		$(if $(CONFIG_RETPOLINE),--retpoline,)			\
+> > > +		$(if $(CONFIG_X86_SMAP),--uaccess,)			\
+> > > +		$(@:.ko=$(prelink-ext).o);
+> > > +
+> > > +endif # SKIP_STACK_VALIDATION
+> > > +endif # CONFIG_STACK_VALIDATION
+> > 
+> > What about the objtool invocation from link-vmlinux.sh ?
+> 
+> What about it? The existing objtool_link invocation in link-vmlinux.sh
+> works fine for our purposes as well.
+
+Well, I was wondering why you're adding yet another objtool invocation
+while we already have one.
