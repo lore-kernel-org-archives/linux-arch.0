@@ -1,83 +1,72 @@
 From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RESEND PATCH v5 3/6] arm64: Add tlbi_user_level TLB invalidation helper
-Date: Thu, 25 Jun 2020 16:03:11 +0800
-Message-ID: <20200625080314.230-4-yezhenyu2@huawei.com>
-References: <20200625080314.230-1-yezhenyu2@huawei.com>
+Subject: [RESEND PATCH v5 0/6] arm64: tlb: add support for TTL feature
+Date: Thu, 25 Jun 2020 16:03:08 +0800
+Message-ID: <20200625080314.230-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:53562 "EHLO huawei.com"
+Received: from szxga05-in.huawei.com ([45.249.212.191]:6317 "EHLO huawei.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S2390571AbgFYIDk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 Jun 2020 04:03:40 -0400
-In-Reply-To: <20200625080314.230-1-yezhenyu2@huawei.com>
+        id S2390531AbgFYIDg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 Jun 2020 04:03:36 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
 Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 
-Add a level-hinted parameter to __tlbi_user, which only gets used
-if ARMv8.4-TTL gets detected.
+In order to reduce the cost of TLB invalidation, ARMv8.4 provides
+the TTL field in TLBI instruction.  The TTL field indicates the
+level of page table walk holding the leaf entry for the address
+being invalidated.  This series provide support for this feature.
 
-ARMv8.4-TTL provides the TTL field in tlbi instruction to indicate
-the level of translation table walk holding the leaf entry for the
-address that is being invalidated.
+When ARMv8.4-TTL is implemented, the operand for TLBIs looks like
+below:
 
-This patch set the default level value of flush_tlb_range() to 0,
-which will be updated in future patches.  And set the ttl value of
-flush_tlb_page_nosync() to 3 because it is only called to flush a
-single pte page.
+* +----------+-------+----------------------+
+* |   ASID   |  TTL  |        BADDR         |
+* +----------+-------+----------------------+
+* |63      48|47   44|43                   0|
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/tlbflush.h | 19 +++++++++++++------
- 1 file changed, 13 insertions(+), 6 deletions(-)
+See patches for details, Thanks.
 
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-index 8adbd6fd8489..bfb58e62c127 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -88,6 +88,12 @@
- 	__tlbi(op,  arg);					\
- } while (0)
- 
-+#define __tlbi_user_level(op, arg, level) do {				\
-+	if (arm64_kernel_unmapped_at_el0())				\
-+		__tlbi_level(op, (arg | USER_ASID_FLAG), level);	\
-+} while (0)
-+
-+
- /*
-  *	TLB Invalidation
-  *	================
-@@ -189,8 +195,9 @@ static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
- 	unsigned long addr = __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
- 
- 	dsb(ishst);
--	__tlbi(vale1is, addr);
--	__tlbi_user(vale1is, addr);
-+	/* This function is only called on a small page */
-+	__tlbi_level(vale1is, addr, 3);
-+	__tlbi_user_level(vale1is, addr, 3);
- }
- 
- static inline void flush_tlb_page(struct vm_area_struct *vma,
-@@ -230,11 +237,11 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
- 	dsb(ishst);
- 	for (addr = start; addr < end; addr += stride) {
- 		if (last_level) {
--			__tlbi(vale1is, addr);
--			__tlbi_user(vale1is, addr);
-+			__tlbi_level(vale1is, addr, 0);
-+			__tlbi_user_level(vale1is, addr, 0);
- 		} else {
--			__tlbi(vae1is, addr);
--			__tlbi_user(vae1is, addr);
-+			__tlbi_level(vae1is, addr, 0);
-+			__tlbi_user_level(vae1is, addr, 0);
- 		}
- 	}
- 	dsb(ish);
+--
+ChangeList:
+v5:
+rebase the series on Linux 5.8-rc2.
+
+v4:
+implement flush_*_tlb_range only on arm64.
+
+v3:
+minor changes: reduce the indentation levels of __tlbi_level().
+
+v2:
+rebase series on Linux 5.7-rc1 and simplify the code implementation.
+
+v1:
+add support for TTL feature in arm64.
+
+Marc Zyngier (2):
+  arm64: Detect the ARMv8.4 TTL feature
+  arm64: Add level-hinted TLB invalidation helper
+
+Peter Zijlstra (Intel) (1):
+  tlb: mmu_gather: add tlb_flush_*_range APIs
+
+Zhenyu Ye (3):
+  arm64: Add tlbi_user_level TLB invalidation helper
+  arm64: tlb: Set the TTL field in flush_tlb_range
+  arm64: tlb: Set the TTL field in flush_*_tlb_range
+
+ arch/arm64/include/asm/cpucaps.h  |  3 +-
+ arch/arm64/include/asm/pgtable.h  | 10 ++++++
+ arch/arm64/include/asm/sysreg.h   |  1 +
+ arch/arm64/include/asm/tlb.h      | 29 +++++++++++++++-
+ arch/arm64/include/asm/tlbflush.h | 54 +++++++++++++++++++++++++-----
+ arch/arm64/kernel/cpufeature.c    | 11 +++++++
+ include/asm-generic/tlb.h         | 55 ++++++++++++++++++++++---------
+ 7 files changed, 138 insertions(+), 25 deletions(-)
+
 -- 
 2.26.2
