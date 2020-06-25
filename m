@@ -1,7 +1,7 @@
 From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RESEND PATCH v5 2/6] arm64: Add level-hinted TLB invalidation helper
-Date: Thu, 25 Jun 2020 16:03:10 +0800
-Message-ID: <20200625080314.230-3-yezhenyu2@huawei.com>
+Subject: [RESEND PATCH v5 6/6] arm64: tlb: Set the TTL field in flush_*_tlb_range
+Date: Thu, 25 Jun 2020 16:03:14 +0800
+Message-ID: <20200625080314.230-7-yezhenyu2@huawei.com>
 References: <20200625080314.230-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
@@ -13,64 +13,35 @@ To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@ke
 Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-Id: linux-arch.vger.kernel.org
 
-From: Marc Zyngier <maz@kernel.org>
+This patch implement flush_{pmd|pud}_tlb_range() in arm64 by
+calling __flush_tlb_range() with the corresponding stride and
+tlb_level values.
 
-Add a level-hinted TLB invalidation helper that only gets used if
-ARMv8.4-TTL gets detected.
-
-Signed-off-by: Marc Zyngier <maz@kernel.org>
 Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/tlbflush.h | 29 +++++++++++++++++++++++++++++
- 1 file changed, 29 insertions(+)
+ arch/arm64/include/asm/pgtable.h | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-index bc3949064725..8adbd6fd8489 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -10,6 +10,7 @@
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index 758e2d1577d0..d5d3fbe73953 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -40,6 +40,16 @@ extern void __pmd_error(const char *file, int line, unsigned long val);
+ extern void __pud_error(const char *file, int line, unsigned long val);
+ extern void __pgd_error(const char *file, int line, unsigned long val);
  
- #ifndef __ASSEMBLY__
- 
-+#include <linux/bitfield.h>
- #include <linux/mm_types.h>
- #include <linux/sched.h>
- #include <asm/cputype.h>
-@@ -59,6 +60,34 @@
- 		__ta;						\
- 	})
- 
-+#define TLBI_TTL_MASK	GENMASK_ULL(47, 44)
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++#define __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
 +
-+#define __tlbi_level(op, addr, level) do {			\
-+	u64 arg = addr;						\
-+								\
-+	if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&	\
-+	    level) {						\
-+		u64 ttl = level;				\
-+								\
-+		switch (PAGE_SIZE) {				\
-+		case SZ_4K:					\
-+			ttl |= 1 << 2;				\
-+			break;					\
-+		case SZ_16K:					\
-+			ttl |= 2 << 2;				\
-+			break;					\
-+		case SZ_64K:					\
-+			ttl |= 3 << 2;				\
-+			break;					\
-+		}						\
-+								\
-+		arg &= ~TLBI_TTL_MASK;				\
-+		arg |= FIELD_PREP(TLBI_TTL_MASK, ttl);		\
-+	}							\
-+								\
-+	__tlbi(op,  arg);					\
-+} while (0)
++/* Set stride and tlb_level in flush_*_tlb_range */
++#define flush_pmd_tlb_range(vma, addr, end)	\
++	__flush_tlb_range(vma, addr, end, PMD_SIZE, false, 2)
++#define flush_pud_tlb_range(vma, addr, end)	\
++	__flush_tlb_range(vma, addr, end, PUD_SIZE, false, 1)
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 +
  /*
-  *	TLB Invalidation
-  *	================
+  * ZERO_PAGE is a global shared page that is always zero: used
+  * for zero-mapped memory areas etc..
 -- 
 2.26.2
