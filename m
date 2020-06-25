@@ -1,273 +1,281 @@
-Return-Path: <SRS0=6fqV=7W=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40504 "EHLO
+Return-Path: <SRS0=eK+U=AG=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42206 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729014AbgFILjH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2020 07:39:07 -0400
-Subject: Re: [PATCH v2 4/6] prctl.2: Add SVE prctls (arm64)
-References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
- <1590614258-24728-5-git-send-email-Dave.Martin@arm.com>
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Message-ID: <77b02e4a-bfcf-90ef-90ca-73e878b7b649@gmail.com>
-Date: Tue, 9 Jun 2020 13:39:03 +0200
+        with ESMTP id S2406569AbgFYUDY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jun 2020 16:03:24 -0400
+Date: Thu, 25 Jun 2020 22:02:35 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
+Message-ID: <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624203200.78870-5-samitolvanen@google.com>
+ <20200624212737.GV4817@hirez.programming.kicks-ass.net>
+ <20200624214530.GA120457@google.com>
+ <20200625074530.GW4817@hirez.programming.kicks-ass.net>
+ <20200625161503.GB173089@google.com>
 MIME-Version: 1.0
-In-Reply-To: <1590614258-24728-5-git-send-email-Dave.Martin@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200625161503.GB173089@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200609113903.gz2pWYPXN8wNYmFfHBMb_p69Ahn6PWaiuPds281mFzM@z>
+To: Sami Tolvanen <samitolvanen@google.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>, mhelsley@vmware.com
+Message-ID: <20200625200235.CKRXvFTxVlNxF2n1rTAgPSKTiEEFyNWkXbT8JIdtGyw@z>
 
-Hi Dave,
+On Thu, Jun 25, 2020 at 09:15:03AM -0700, Sami Tolvanen wrote:
+> On Thu, Jun 25, 2020 at 09:45:30AM +0200, Peter Zijlstra wrote:
 
-I've not applied this patch yet, in case you want to make
-some changes in response to Will's comments.
+> > At least for x86_64 I can do a really quick take for a recordmcount pass
+> > in objtool, but I suppose you also need this for ARM64 ?
+> 
+> Sure, sounds good. arm64 uses -fpatchable-function-entry with clang, so we
+> don't need recordmcount there.
 
-I think all of the rest of the patches in the series are now
-applied (and pushed to master).
+This is on top of my local pile:
 
-Thanks,
+  git://git.kernel.org/pub/scm/linux/kernel/git/peterz/queue.git master
 
-Michael
+which notably includes the static_call series.
 
-On 5/27/20 11:17 PM, Dave Martin wrote:
-> Add documentation for the the PR_SVE_SET_VL and PR_SVE_GET_VL
-> prctls added in Linux 4.15 for arm64.
-> 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> 
-> ---
-> 
-> Since v1:
-> 
->  * Minor rewordings and typo fixes.
-> 
->  * Fix typo'd #define names.
-> 
->  * Add type annotation for PR_SVE_SET_VL arg2.
-> 
->  * Clarify return value semantics of PR_SVE_SET_VL
-> 
->  * Add note to say that the args for PR_SVE_GET_VL are ignored.
-> 
->  * Note for PR_SVE_SET_VL that the PR_SVE_VL_LEN_MASK field specifies
->    an upper bound on what vector length to set, not an exact value.
-> 
->  * Rework PR_SVE_SET_VL arg2 description to enumerate all possible flag
->    combinations rather than describing the flags independently.
-> 
->    Coming up with a clear description of each flag that is independent
->    of the description of the other flag turns out to be hard.
-> 
->  * In lieu of having a separate man page to cross reference for detailed
->    guidance, cross-reference the kernel documentation.
-> 
->  * Avoid confusing cross-reference to PR_SVE_SET_VL when describing the
->    return value of PR_SVE_GET_VL.
-> 
->  * Clarify error conditions for PR_SVE_SET_VL and PR_SVE_GET_VL, and
->    move detail to the individual prctl descriptions to keep related
->    content close together while minimising duplication.
-> 
->  * Add safety warning.  This is deliberately vague, pending ongoing
->    discussions with libc folks.
-> ---
->  man2/prctl.2 | 160 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 160 insertions(+)
-> 
-> diff --git a/man2/prctl.2 b/man2/prctl.2
-> index cab9915..91df7c8 100644
-> --- a/man2/prctl.2
-> +++ b/man2/prctl.2
-> @@ -1291,6 +1291,148 @@ call failing with the error
->  .BR ENXIO .
->  For further details, see the kernel source file
->  .IR Documentation/admin\-guide/kernel\-parameters.txt .
-> +.\" prctl PR_SVE_SET_VL
-> +.\" commit 2d2123bc7c7f843aa9db87720de159a049839862
-> +.\" linux-5.6/Documentation/arm64/sve.rst
-> +.TP
-> +.BR PR_SVE_SET_VL " (since Linux 4.15, only on arm64)"
-> +Configure the thread's SVE vector length,
-> +as specified by
-> +.IR "(int) arg2" .
-> +Arguments
-> +.IR arg3 ", " arg4 " and " arg5
-> +are ignored.
-> +.IP
-> +The bits of
-> +.I arg2
-> +corresponding to
-> +.B PR_SVE_VL_LEN_MASK
-> +must be set to the desired vector length in bytes.
-> +This is interpreted as an upper bound:
-> +the kernel will select the greatest available vector length
-> +that does not exceed the value specified.
-> +In particular, specifying
-> +.B SVE_VL_MAX
-> +(defined in
-> +.I <asm/sigcontext.h>)
-> +for the
-> +.B PR_SVE_VL_LEN_MASK
-> +bits requests the maximum supported vector length.
-> +.IP
-> +In addition,
-> +.I arg2
-> +must be set to one of the following combinations of flags:
-> +.RS
-> +.TP
-> +.B 0
-> +Perform the change immediately.
-> +At the next
-> +.BR execve (2)
-> +in the thread,
-> +the vector length will be reset to the value configured in
-> +.IR /proc/sys/abi/sve_default_vector_length .
-> +.TP
-> +.B PR_SVE_VL_INHERIT
-> +Perform the change immediately.
-> +Subsequent
-> +.BR execve (2)
-> +calls will preserve the new vector length.
-> +.TP
-> +.B PR_SVE_SET_VL_ONEXEC
-> +Defer the change, so that it is performed at the next
-> +.BR execve (2)
-> +in the thread.
-> +Further
-> +.BR execve (2)
-> +calls will reset the vector length to the value configured in
-> +.IR /proc/sys/abi/sve_default_vector_length .
-> +.TP
-> +.B "PR_SVE_SET_VL_ONEXEC | PR_SVE_VL_INHERIT"
-> +Defer the change, so that it is performed at the next
-> +.BR execve (2)
-> +in the thread.
-> +Further
-> +.BR execve (2)
-> +calls will preserve the new vector length.
-> +.RE
-> +.IP
-> +In all cases,
-> +any previously pending deferred change is canceled.
-> +.IP
-> +The call fails with error
-> +.B EINVAL
-> +if SVE is not supported on the platform, if
-> +.I arg2
-> +is unrecognized or invalid, or the value in the bits of
-> +.I arg2
-> +corresponding to
-> +.B PR_SVE_VL_LEN_MASK
-> +is outside the range
-> +.BR SVE_VL_MIN .. SVE_VL_MAX
-> +or is not a multiple of 16.
-> +.IP
-> +On success,
-> +a nonnegative value is returned that describes the
-> +.I selected
-> +configuration,
-> +which may differ from the current configuration if
-> +.B PR_SVE_SET_VL_ONEXEC
-> +was specified.
-> +The value is encoded in the same way as the return value of
-> +.BR PR_SVE_GET_VL .
-> +.IP
-> +The configuration (including any pending deferred change)
-> +is inherited across
-> +.BR fork (2)
-> +and
-> +.BR clone (2).
-> +.IP
-> +.B Warning:
-> +Because the compiler or run-time environment
-> +may be using SVE, using this call without the
-> +.B PR_SVE_SET_VL_ONEXEC
-> +flag may crash the calling process.
-> +The conditions for using it safely are complex and system-dependent.
-> +Don't use it unless you really know what you are doing.
-> +.IP
-> +For more information, see the kernel source file
-> +.I Documentation/arm64/sve.rst
-> +.\"commit b693d0b372afb39432e1c49ad7b3454855bc6bed
-> +(or
-> +.I Documentation/arm64/sve.txt
-> +before Linux 5.3).
-> +.\" prctl PR_SVE_GET_VL
-> +.TP
-> +.BR PR_SVE_GET_VL " (since Linux 4.15, only on arm64)"
-> +Get the thread's current SVE vector length configuration.
-> +.IP
-> +Arguments
-> +.IR arg2 ", " arg3 ", " arg4 " and " arg5
-> +are ignored.
-> +.IP
-> +Providing that the kernel and platform support SVE
-> +this operation always succeeds,
-> +returning a nonnegative value that describes the
-> +.I current
-> +configuration.
-> +The bits corresponding to
-> +.B PR_SVE_VL_LEN_MASK
-> +contain the currently configured vector length in bytes.
-> +The bit corresponding to
-> +.B PR_SVE_VL_INHERIT
-> +indicates whether the vector length will be inherited
-> +across
-> +.BR execve (2).
-> +.IP
-> +Note that there is no way to determine whether there is
-> +a pending vector length change that has not yet taken effect.
-> +.IP
-> +For more information, see the kernel source file
-> +.I Documentation/arm64/sve.rst
-> +.\"commit b693d0b372afb39432e1c49ad7b3454855bc6bed
-> +(or
-> +.I Documentation/arm64/sve.txt
-> +before Linux 5.3).
->  .\"
->  .\" prctl PR_TASK_PERF_EVENTS_DISABLE
->  .TP
-> @@ -1534,6 +1676,8 @@ On success,
->  .BR PR_GET_NO_NEW_PRIVS ,
->  .BR PR_GET_SECUREBITS ,
->  .BR PR_GET_SPECULATION_CTRL ,
-> +.BR PR_SVE_GET_VL ,
-> +.BR PR_SVE_SET_VL ,
->  .BR PR_GET_THP_DISABLE ,
->  .BR PR_GET_TIMING ,
->  .BR PR_GET_TIMERSLACK ,
-> @@ -1817,6 +1961,22 @@ and unused arguments to
->  .BR prctl ()
->  are not 0.
->  .TP
-> +.B EINVAL
-> +.I option
-> +is
-> +.B PR_SVE_SET_VL
-> +and the arguments are invalid or unsupported,
-> +or SVE is not available on this platform.
-> +See the description of
-> +.B PR_SVE_SET_VL
-> +above for details.
-> +.TP
-> +.B EINVAL
-> +.I option
-> +is
-> +.B PR_SVE_GET_VL
-> +and SVE is not available on this platform.
-> +.TP
->  .B ENODEV
->  .I option
->  was
-> 
+Not boot tested, but it generates the required sections and they look
+more or less as expected, ymmv.
 
+---
+ arch/x86/Kconfig              |  1 -
+ scripts/Makefile.build        |  3 ++
+ scripts/link-vmlinux.sh       |  2 +-
+ tools/objtool/builtin-check.c |  9 ++---
+ tools/objtool/builtin.h       |  2 +-
+ tools/objtool/check.c         | 81 +++++++++++++++++++++++++++++++++++++++++++
+ tools/objtool/check.h         |  1 +
+ tools/objtool/objtool.h       |  1 +
+ 8 files changed, 91 insertions(+), 9 deletions(-)
 
--- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index a291823f3f26..189575c12434 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -174,7 +174,6 @@ config X86
+ 	select HAVE_EXIT_THREAD
+ 	select HAVE_FAST_GUP
+ 	select HAVE_FENTRY			if X86_64 || DYNAMIC_FTRACE
+-	select HAVE_FTRACE_MCOUNT_RECORD
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+ 	select HAVE_FUNCTION_TRACER
+ 	select HAVE_GCC_PLUGINS
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index 2e8810b7e5ed..c774befc57da 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -227,6 +227,9 @@ endif
+ ifdef CONFIG_X86_SMAP
+   objtool_args += --uaccess
+ endif
++ifdef CONFIG_DYNAMIC_FTRACE
++  objtool_args += --mcount
++endif
+ 
+ # 'OBJECT_FILES_NON_STANDARD := y': skip objtool checking for a directory
+ # 'OBJECT_FILES_NON_STANDARD_foo.o := 'y': skip objtool checking for a file
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 92dd745906f4..00c6e4f28a1a 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -60,7 +60,7 @@ objtool_link()
+ 	local objtoolopt;
+ 
+ 	if [ -n "${CONFIG_VMLINUX_VALIDATION}" ]; then
+-		objtoolopt="check"
++		objtoolopt="check --vmlinux"
+ 		if [ -z "${CONFIG_FRAME_POINTER}" ]; then
+ 			objtoolopt="${objtoolopt} --no-fp"
+ 		fi
+diff --git a/tools/objtool/builtin-check.c b/tools/objtool/builtin-check.c
+index 4896c5a89702..a6c3a3fba67d 100644
+--- a/tools/objtool/builtin-check.c
++++ b/tools/objtool/builtin-check.c
+@@ -18,7 +18,7 @@
+ #include "builtin.h"
+ #include "objtool.h"
+ 
+-bool no_fp, no_unreachable, retpoline, module, backtrace, uaccess, stats, validate_dup, vmlinux, fpu;
++bool no_fp, no_unreachable, retpoline, module, backtrace, uaccess, stats, validate_dup, vmlinux, fpu, mcount;
+ 
+ static const char * const check_usage[] = {
+ 	"objtool check [<options>] file.o",
+@@ -36,12 +36,13 @@ const struct option check_options[] = {
+ 	OPT_BOOLEAN('d', "duplicate", &validate_dup, "duplicate validation for vmlinux.o"),
+ 	OPT_BOOLEAN('l', "vmlinux", &vmlinux, "vmlinux.o validation"),
+ 	OPT_BOOLEAN('F', "fpu", &fpu, "validate FPU context"),
++	OPT_BOOLEAN('M', "mcount", &mcount, "generate __mcount_loc"),
+ 	OPT_END(),
+ };
+ 
+ int cmd_check(int argc, const char **argv)
+ {
+-	const char *objname, *s;
++	const char *objname;
+ 
+ 	argc = parse_options(argc, argv, check_options, check_usage, 0);
+ 
+@@ -50,9 +51,5 @@ int cmd_check(int argc, const char **argv)
+ 
+ 	objname = argv[0];
+ 
+-	s = strstr(objname, "vmlinux.o");
+-	if (s && !s[9])
+-		vmlinux = true;
+-
+ 	return check(objname, false);
+ }
+diff --git a/tools/objtool/builtin.h b/tools/objtool/builtin.h
+index 7158e09d4cc9..b51d883ec245 100644
+--- a/tools/objtool/builtin.h
++++ b/tools/objtool/builtin.h
+@@ -8,7 +8,7 @@
+ #include <subcmd/parse-options.h>
+ 
+ extern const struct option check_options[];
+-extern bool no_fp, no_unreachable, retpoline, module, backtrace, uaccess, stats, validate_dup, vmlinux, fpu;
++extern bool no_fp, no_unreachable, retpoline, module, backtrace, uaccess, stats, validate_dup, vmlinux, fpu, mcount;
+ 
+ extern int cmd_check(int argc, const char **argv);
+ extern int cmd_orc(int argc, const char **argv);
+diff --git a/tools/objtool/check.c b/tools/objtool/check.c
+index 6647a8d1545b..ee99566bdae9 100644
+--- a/tools/objtool/check.c
++++ b/tools/objtool/check.c
+@@ -533,6 +533,65 @@ static int create_static_call_sections(struct objtool_file *file)
+ 	return 0;
+ }
+ 
++static int create_mcount_loc_sections(struct objtool_file *file)
++{
++	struct section *sec, *reloc_sec;
++	struct reloc *reloc;
++	unsigned long *loc;
++	struct instruction *insn;
++	int idx;
++
++	sec = find_section_by_name(file->elf, "__mcount_loc");
++	if (sec) {
++		INIT_LIST_HEAD(&file->mcount_loc_list);
++		WARN("file already has __mcount_loc section, skipping");
++		return 0;
++	}
++
++	if (list_empty(&file->mcount_loc_list))
++		return 0;
++
++	idx = 0;
++	list_for_each_entry(insn, &file->mcount_loc_list, mcount_loc_node)
++		idx++;
++
++	sec = elf_create_section(file->elf, "__mcount_loc", 0, sizeof(unsigned long), idx);
++	if (!sec)
++		return -1;
++
++	reloc_sec = elf_create_reloc_section(file->elf, sec, SHT_RELA);
++	if (!reloc_sec)
++		return -1;
++
++	idx = 0;
++	list_for_each_entry(insn, &file->mcount_loc_list, mcount_loc_node) {
++
++		loc = (unsigned long *)sec->data->d_buf + idx;
++		memset(loc, 0, sizeof(unsigned long));
++
++		reloc = malloc(sizeof(*reloc));
++		if (!reloc) {
++			perror("malloc");
++			return -1;
++		}
++		memset(reloc, 0, sizeof(*reloc));
++
++		reloc->sym = insn->sec->sym;
++		reloc->addend = insn->offset;
++		reloc->type = R_X86_64_64;
++		reloc->offset = idx * sizeof(unsigned long);
++		reloc->sec = reloc_sec;
++		elf_add_reloc(file->elf, reloc);
++
++		idx++;
++	}
++
++	if (elf_rebuild_reloc_section(file->elf, reloc_sec))
++		return -1;
++
++	return 0;
++}
++
+ /*
+  * Warnings shouldn't be reported for ignored functions.
+  */
+@@ -892,6 +951,22 @@ static int add_call_destinations(struct objtool_file *file)
+ 			insn->type = INSN_NOP;
+ 		}
+ 
++		if (mcount && !strcmp(insn->call_dest->name, "__fentry__")) {
++			if (reloc) {
++				reloc->type = R_NONE;
++				elf_write_reloc(file->elf, reloc);
++			}
++
++			elf_write_insn(file->elf, insn->sec,
++				       insn->offset, insn->len,
++				       arch_nop_insn(insn->len));
++
++			insn->type = INSN_NOP;
++
++			list_add_tail(&insn->mcount_loc_node,
++				      &file->mcount_loc_list);
++		}
++
+ 		/*
+ 		 * Whatever stack impact regular CALLs have, should be undone
+ 		 * by the RETURN of the called function.
+@@ -3004,6 +3079,7 @@ int check(const char *_objname, bool orc)
+ 	INIT_LIST_HEAD(&file.insn_list);
+ 	hash_init(file.insn_hash);
+ 	INIT_LIST_HEAD(&file.static_call_list);
++	INIT_LIST_HEAD(&file.mcount_loc_list);
+ 	file.c_file = !vmlinux && find_section_by_name(file.elf, ".comment");
+ 	file.ignore_unreachables = no_unreachable;
+ 	file.hints = false;
+@@ -3056,6 +3132,11 @@ int check(const char *_objname, bool orc)
+ 		goto out;
+ 	warnings += ret;
+ 
++	ret = create_mcount_loc_sections(&file);
++	if (ret < 0)
++		goto out;
++	warnings += ret;
++
+ 	if (orc) {
+ 		ret = create_orc(&file);
+ 		if (ret < 0)
+diff --git a/tools/objtool/check.h b/tools/objtool/check.h
+index cd95fca0d237..01f11b5da5dd 100644
+--- a/tools/objtool/check.h
++++ b/tools/objtool/check.h
+@@ -24,6 +24,7 @@ struct instruction {
+ 	struct list_head list;
+ 	struct hlist_node hash;
+ 	struct list_head static_call_node;
++	struct list_head mcount_loc_node;
+ 	struct section *sec;
+ 	unsigned long offset;
+ 	unsigned int len;
+diff --git a/tools/objtool/objtool.h b/tools/objtool/objtool.h
+index 9a7cd0b88bd8..f604b22d22cc 100644
+--- a/tools/objtool/objtool.h
++++ b/tools/objtool/objtool.h
+@@ -17,6 +17,7 @@ struct objtool_file {
+ 	struct list_head insn_list;
+ 	DECLARE_HASHTABLE(insn_hash, 20);
+ 	struct list_head static_call_list;
++	struct list_head mcount_loc_list;
+ 	bool ignore_unreachables, c_file, hints, rodata;
+ };
+ 
