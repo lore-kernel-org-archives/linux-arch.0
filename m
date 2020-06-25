@@ -1,49 +1,78 @@
-From: Will Deacon <will@kernel.org>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH 00/22] add support for Clang LTO
-Date: Thu, 25 Jun 2020 09:27:06 +0100
-Message-ID: <20200625082706.GA7584@willie-the-truck>
+Date: Thu, 25 Jun 2020 10:57:45 +0200
+Message-ID: <20200625085745.GD117543@hirez.programming.kicks-ass.net>
 References: <20200624203200.78870-1-samitolvanen@google.com>
  <20200624211540.GS4817@hirez.programming.kicks-ass.net>
- <20200624213014.GB26253@google.com>
+ <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
+ <20200625080313.GY4817@hirez.programming.kicks-ass.net>
+ <20200625082433.GC117543@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:41500 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S2389747AbgFYI1M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 Jun 2020 04:27:12 -0400
+Return-path: <kernel-hardening-return-19164-glkh-kernel-hardening=m.gmane-mx.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 Content-Disposition: inline
-In-Reply-To: <20200624213014.GB26253@google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Masahiro Yamada <masahiroy@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
+In-Reply-To: <20200625082433.GC117543@hirez.programming.kicks-ass.net>
+To: Nick Desaulniers <ndesaulniers@google.com>
+Cc: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 24, 2020 at 02:30:14PM -0700, Sami Tolvanen wrote:
-> On Wed, Jun 24, 2020 at 11:15:40PM +0200, Peter Zijlstra wrote:
-> > On Wed, Jun 24, 2020 at 01:31:38PM -0700, Sami Tolvanen wrote:
-> > > This patch series adds support for building x86_64 and arm64 kernels
-> > > with Clang's Link Time Optimization (LTO).
-> > > 
-> > > In addition to performance, the primary motivation for LTO is to allow
-> > > Clang's Control-Flow Integrity (CFI) to be used in the kernel. Google's
-> > > Pixel devices have shipped with LTO+CFI kernels since 2018.
-> > > 
-> > > Most of the patches are build system changes for handling LLVM bitcode,
-> > > which Clang produces with LTO instead of ELF object files, postponing
-> > > ELF processing until a later stage, and ensuring initcall ordering.
-> > > 
-> > > Note that first objtool patch in the series is already in linux-next,
-> > > but as it's needed with LTO, I'm including it also here to make testing
-> > > easier.
+On Thu, Jun 25, 2020 at 10:24:33AM +0200, Peter Zijlstra wrote:
+> On Thu, Jun 25, 2020 at 10:03:13AM +0200, Peter Zijlstra wrote:
+
+> > I'm sure Will will respond, but the basic issue is the trainwreck C11
+> > made of dependent loads.
 > > 
-> > I'm very sad that yet again, memory ordering isn't addressed. LTO vastly
-> > increases the range of the optimizer to wreck things.
+> > Anyway, here's a link to the last time this came up:
+> > 
+> >   https://lore.kernel.org/linux-arm-kernel/20171116174830.GX3624@linux.vnet.ibm.com/
 > 
-> I believe Will has some thoughts about this, and patches, but I'll let
-> him talk about it.
+> Another good read:
+> 
+>   https://lore.kernel.org/lkml/20150520005510.GA23559@linux.vnet.ibm.com/
+> 
+> and having (partially) re-read that, I now worry intensily about things
+> like latch_tree_find(), cyc2ns_read_begin, __ktime_get_fast_ns().
+> 
+> It looks like kernel/time/sched_clock.c uses raw_read_seqcount() which
+> deviates from the above patterns by, for some reason, using a primitive
+> that includes an extra smp_rmb().
+> 
+> And this is just the few things I could remember off the top of my head,
+> who knows what else is out there.
 
-Thanks for reminding me! I will get patches out ASAP (I've been avoiding the
-rebase from hell, but this is the motivation I need).
+As an example, let us consider __ktime_get_fast_ns(), the critical bit
+is:
 
-Will
+		seq = raw_read_seqcount_latch(&tkf->seq);
+		tkr = tkf->base + (seq & 0x01);
+		now = tkr->base;
+
+And we hard rely on that being a dependent load, so:
+
+  LOAD	seq, (tkf->seq)
+  LOAD  tkr, tkf->base
+  AND   seq, 1
+  MUL   seq, sizeof(tk_read_base)
+  ADD	tkr, seq
+  LOAD  now, (tkr->base)
+
+Such that we obtain 'now' as a direct dependency on 'seq'. This ensures
+the loads are ordered.
+
+A compiler can wreck this by translating it into something like:
+
+  LOAD	seq, (tkf->seq)
+  LOAD  tkr, tkf->base
+  AND   seq, 1
+  CMP	seq, 0
+  JE	1f
+  ADD	tkr, sizeof(tk_read_base)
+1:
+  LOAD  now, (tkr->base)
+
+Because now the machine can speculate and load now before seq, breaking
+the ordering.
