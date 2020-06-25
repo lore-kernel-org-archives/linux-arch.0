@@ -1,79 +1,101 @@
-Return-Path: <SRS0=IIFs=AI=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [PATCH V3 0/4] mm/debug_vm_pgtable: Add some more tests
-References: <1592192277-8421-1-git-send-email-anshuman.khandual@arm.com>
- <70ddc7dd-b688-b73e-642a-6363178c8cdd@arm.com>
-From: Christophe Leroy <christophe.leroy@csgroup.eu>
-Message-ID: <0ed75013-6ac4-3902-391a-1f7152510c6d@csgroup.eu>
-Date: Sat, 27 Jun 2020 10:17:27 +0200
+Return-Path: <SRS0=nnJc=AG=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [RESEND PATCH v5 1/6] arm64: Detect the ARMv8.4 TTL feature
+Date: Thu, 25 Jun 2020 16:03:09 +0800
+Message-ID: <20200625080314.230-2-yezhenyu2@huawei.com>
+In-Reply-To: <20200625080314.230-1-yezhenyu2@huawei.com>
+References: <20200625080314.230-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-In-Reply-To: <70ddc7dd-b688-b73e-642a-6363178c8cdd@arm.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: fr
+Content-Type: text/plain
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
-Cc: christophe.leroy@c-s.fr, ziy@nvidia.com, gerald.schaefer@de.ibm.com, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200627081727.3l0N0rPvwFOhpl0sJlpuayRH7YWoNqmPFOcF8xIXdV0@z>
+Message-ID: <20200625080309.djH6LAKXhaQ3LNgzdsJv-yiBGXgYazA82e4sf0EVCLg@z>
 
+From: Marc Zyngier <maz@kernel.org>
 
+In order to reduce the cost of TLB invalidation, the ARMv8.4 TTL
+feature allows TLBs to be issued with a level allowing for quicker
+invalidation.
 
-Le 24/06/2020 =C3=A0 05:13, Anshuman Khandual a =C3=A9crit=C2=A0:
->=20
->=20
-> On 06/15/2020 09:07 AM, Anshuman Khandual wrote:
->> This series adds some more arch page table helper validation tests whi=
-ch
->> are related to core and advanced memory functions. This also creates a
->> documentation, enlisting expected semantics for all page table helpers=
- as
->> suggested by Mike Rapoport previously (https://lkml.org/lkml/2020/1/30=
-/40).
->>
->> There are many TRANSPARENT_HUGEPAGE and ARCH_HAS_TRANSPARENT_HUGEPAGE_=
-PUD
->> ifdefs scattered across the test. But consolidating all the fallback s=
-tubs
->> is not very straight forward because ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD=
- is
->> not explicitly dependent on ARCH_HAS_TRANSPARENT_HUGEPAGE.
->>
->> Tested on arm64, x86 platforms but only build tested on all other enab=
-led
->> platforms through ARCH_HAS_DEBUG_VM_PGTABLE i.e powerpc, arc, s390. Th=
-e
->> following failure on arm64 still exists which was mentioned previously=
-. It
->> will be fixed with the upcoming THP migration on arm64 enablement seri=
-es.
->>
->> WARNING .... mm/debug_vm_pgtable.c:860 debug_vm_pgtable+0x940/0xa54
->> WARN_ON(!pmd_present(pmd_mkinvalid(pmd_mkhuge(pmd))))
->>
->> This series is based on v5.8-rc1.
->>
->> Changes in V3:
->>
->> - Replaced HAVE_ARCH_SOFT_DIRTY with MEM_SOFT_DIRTY
->> - Added HAVE_ARCH_HUGE_VMAP checks in pxx_huge_tests() per Gerald
->> - Updated documentation for pmd_thp_tests() per Zi Yan
->> - Replaced READ_ONCE() with huge_ptep_get() per Gerald
->> - Added pte_mkhuge() and masking with PMD_MASK per Gerald
->> - Replaced pte_same() with holding pfn check in pxx_swap_tests()
->> - Added documentation for all (#ifdef #else #endif) per Gerald
->> - Updated pmd_protnone_tests() per Gerald
->> - Updated HugeTLB PTE creation in hugetlb_advanced_tests() per Gerald
->> - Replaced [pmd|pud]_mknotpresent() with [pmd|pud]_mkinvalid()
->> - Added has_transparent_hugepage() check for PMD and PUD tests
->> - Added a patch which debug prints all individual tests being executed
->> - Updated documentation for renamed [pmd|pud]_mkinvalid() helpers
->=20
-> Hello Gerald/Christophe/Vineet,
->=20
-> It would be really great if you could give this series a quick test
-> on s390/ppc/arc platforms respectively. Thank you.
->=20
+Let's detect the feature for now. Further patches will implement
+its actual usage.
 
-Running ok on powerpc 8xx after fixing build failures.
+Signed-off-by: Marc Zyngier <maz@kernel.org>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/include/asm/cpucaps.h |  3 ++-
+ arch/arm64/include/asm/sysreg.h  |  1 +
+ arch/arm64/kernel/cpufeature.c   | 11 +++++++++++
+ 3 files changed, 14 insertions(+), 1 deletion(-)
 
-Christophe
+diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cp=
+ucaps.h
+index d7b3bb0cb180..d44ba903d11d 100644
+--- a/arch/arm64/include/asm/cpucaps.h
++++ b/arch/arm64/include/asm/cpucaps.h
+@@ -62,7 +62,8 @@
+ #define ARM64_HAS_GENERIC_AUTH			52
+ #define ARM64_HAS_32BIT_EL1			53
+ #define ARM64_BTI				54
++#define ARM64_HAS_ARMv8_4_TTL			55
+=20
+-#define ARM64_NCAPS				55
++#define ARM64_NCAPS				56
+=20
+ #endif /* __ASM_CPUCAPS_H */
+diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sys=
+reg.h
+index 463175f80341..8c209aa17273 100644
+--- a/arch/arm64/include/asm/sysreg.h
++++ b/arch/arm64/include/asm/sysreg.h
+@@ -746,6 +746,7 @@
+=20
+ /* id_aa64mmfr2 */
+ #define ID_AA64MMFR2_E0PD_SHIFT		60
++#define ID_AA64MMFR2_TTL_SHIFT		48
+ #define ID_AA64MMFR2_FWB_SHIFT		40
+ #define ID_AA64MMFR2_AT_SHIFT		32
+ #define ID_AA64MMFR2_LVA_SHIFT		16
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeatur=
+e.c
+index 4ae41670c2e6..bda002078ec5 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -323,6 +323,7 @@ static const struct arm64_ftr_bits ftr_id_aa64mmfr1[]=
+ =3D {
+=20
+ static const struct arm64_ftr_bits ftr_id_aa64mmfr2[] =3D {
+ 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_NONSTRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_=
+E0PD_SHIFT, 4, 0),
++	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_TTL=
+_SHIFT, 4, 0),
+ 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_FWB=
+_SHIFT, 4, 0),
+ 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_AT=
+_SHIFT, 4, 0),
+ 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64MMFR2_LVA=
+_SHIFT, 4, 0),
+@@ -1880,6 +1881,16 @@ static const struct arm64_cpu_capabilities arm64_f=
+eatures[] =3D {
+ 		.matches =3D has_cpuid_feature,
+ 		.cpu_enable =3D cpu_has_fwb,
+ 	},
++	{
++		.desc =3D "ARMv8.4 Translation Table Level",
++		.type =3D ARM64_CPUCAP_SYSTEM_FEATURE,
++		.capability =3D ARM64_HAS_ARMv8_4_TTL,
++		.sys_reg =3D SYS_ID_AA64MMFR2_EL1,
++		.sign =3D FTR_UNSIGNED,
++		.field_pos =3D ID_AA64MMFR2_TTL_SHIFT,
++		.min_field_value =3D 1,
++		.matches =3D has_cpuid_feature,
++	},
+ #ifdef CONFIG_ARM64_HW_AFDBM
+ 	{
+ 		/*
+--=20
+2.26.2
