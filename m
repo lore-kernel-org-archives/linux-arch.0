@@ -1,65 +1,102 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 05/22] kbuild: lto: postpone objtool
-Date: Thu, 25 Jun 2020 20:33:51 +0200
-Message-ID: <20200625183351.GH4800@hirez.programming.kicks-ass.net>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624203200.78870-6-samitolvanen@google.com>
- <20200624211908.GT4817@hirez.programming.kicks-ass.net>
- <20200624214925.GB120457@google.com>
- <20200625074716.GX4817@hirez.programming.kicks-ass.net>
- <20200625162226.GC173089@google.com>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Subject: [PATCH v2] vmlinux.lds: add PGO and AutoFDO input sections
+Date: Thu, 25 Jun 2020 11:47:52 -0700
+Message-ID: <20200625184752.73095-1-ndesaulniers@google.com>
+References: <20200622231536.7jcshis5mdn3vr54@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <kernel-hardening-return-19169-glkh-kernel-hardening=m.gmane-mx.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Content-Disposition: inline
-In-Reply-To: <20200625162226.GC173089@google.com>
-To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <20200622231536.7jcshis5mdn3vr54@google.com>
+Sender: stable-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: =?UTF-8?q?F=C4=81ng-ru=C3=AC=20S=C3=B2ng?= <maskray@google.com>, Nick Desaulniers <ndesaulniers@google.com>, stable@vger.kernel.org, Jian Cai <jiancai@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 25, 2020 at 09:22:26AM -0700, Sami Tolvanen wrote:
-> On Thu, Jun 25, 2020 at 09:47:16AM +0200, Peter Zijlstra wrote:
+Basically, consider .text.{hot|unlikely|unknown}.* part of .text, too.
 
-> > Right, then we need to make --no-vmlinux work properly when
-> > !DEBUG_ENTRY, which I think might be buggered due to us overriding the
-> > argument when the objname ends with "vmlinux.o".
-> 
-> Right. Can we just remove that and  pass --vmlinux to objtool in
-> link-vmlinux.sh, or is the override necessary somewhere else?
+When compiling with profiling information (collected via PGO
+instrumentations or AutoFDO sampling), Clang will separate code into
+.text.hot, .text.unlikely, or .text.unknown sections based on profiling
+information. After D79600 (clang-11), these sections will have a
+trailing `.` suffix, ie.  .text.hot., .text.unlikely., .text.unknown..
 
-Think we can remove it; it was just convenient when running manually.
+When using -ffunction-sections together with profiling infomation,
+either explicitly (FGKASLR) or implicitly (LTO), code may be placed in
+sections following the convention:
+.text.hot.<foo>, .text.unlikely.<bar>, .text.unknown.<baz>
+where <foo>, <bar>, and <baz> are functions.  (This produces one section
+per function; we generally try to merge these all back via linker script
+so that we don't have 50k sections).
 
-> > > > > +ifdef CONFIG_STACK_VALIDATION
-> > > > > +ifneq ($(SKIP_STACK_VALIDATION),1)
-> > > > > +cmd_ld_ko_o +=								\
-> > > > > +	$(objtree)/tools/objtool/objtool				\
-> > > > > +		$(if $(CONFIG_UNWINDER_ORC),orc generate,check)		\
-> > > > > +		--module						\
-> > > > > +		$(if $(CONFIG_FRAME_POINTER),,--no-fp)			\
-> > > > > +		$(if $(CONFIG_GCOV_KERNEL),--no-unreachable,)		\
-> > > > > +		$(if $(CONFIG_RETPOLINE),--retpoline,)			\
-> > > > > +		$(if $(CONFIG_X86_SMAP),--uaccess,)			\
-> > > > > +		$(@:.ko=$(prelink-ext).o);
-> > > > > +
-> > > > > +endif # SKIP_STACK_VALIDATION
-> > > > > +endif # CONFIG_STACK_VALIDATION
-> > > > 
-> > > > What about the objtool invocation from link-vmlinux.sh ?
-> > > 
-> > > What about it? The existing objtool_link invocation in link-vmlinux.sh
-> > > works fine for our purposes as well.
-> > 
-> > Well, I was wondering why you're adding yet another objtool invocation
-> > while we already have one.
-> 
-> Because we can't run objtool until we have compiled bitcode to native
-> code, so for modules, we're need another invocation after everything has
-> been compiled.
+For the above cases, we need to teach our linker scripts that such
+sections might exist and that we'd explicitly like them grouped
+together, otherwise we can wind up with code outside of the
+_stext/_etext boundaries that might not be mapped properly for some
+architectures, resulting in boot failures.
 
-Well, that I understand, my question was why we need one in
-scripts/link-vmlinux.sh and an additional one. I think we're just
-talking past one another and agree we only need one.
+If the linker script is not told about possible input sections, then
+where the section is placed as output is a heuristic-laiden mess that's
+non-portable between linkers (ie. BFD and LLD), and has resulted in many
+hard to debug bugs.  Kees Cook is working on cleaning this up by adding
+--orphan-handling=3Dwarn linker flag used in ARCH=3Dpowerpc to additional
+architectures. In the case of linker scripts, borrowing from the Zen of
+Python: explicit is better than implicit.
+
+Also, ld.bfd's internal linker script considers .text.hot AND
+.text.hot.* to be part of .text, as well as .text.unlikely and
+.text.unlikely.*. I didn't see support for .text.unknown.*, and didn't
+see Clang producing such code in our kernel builds, but I see code in
+LLVM that can produce such section names if profiling information is
+missing. That may point to a larger issue with generating or collecting
+profiles, but I would much rather be safe and explicit than have to
+debug yet another issue related to orphan section placement.
+
+Cc: stable@vger.kernel.org
+Link: https://sourceware.org/git/?p=3Dbinutils-gdb.git;a=3Dcommitdiff;h=3Da=
+dd44f8d5c5c05e08b11e033127a744d61c26aee
+Link: https://sourceware.org/git/?p=3Dbinutils-gdb.git;a=3Dcommitdiff;h=3D1=
+de778ed23ce7492c523d5850c6c6dbb34152655
+Link: https://reviews.llvm.org/D79600
+Link: https://bugs.chromium.org/p/chromium/issues/detail?id=3D1084760
+Reported-by: Jian Cai <jiancai@google.com>
+Debugged-by: Luis Lozano <llozano@google.com>
+Suggested-by: F=C4=81ng-ru=C3=AC S=C3=B2ng <maskray@google.com>
+Tested-by: Luis Lozano <llozano@google.com>
+Tested-by: Manoj Gupta <manojgupta@google.com>
+Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
+---
+Changes V1 -> V2:
+* Add .text.unknown.*.  It's not strictly necessary for us yet, but I
+  really worry that it could become a problem for us. Either way, I'm
+  happy to drop for a V3, but I'm suggesting we not.
+* Beef up commit message.
+* Drop references to LLD; the LLVM change had nothing to do with LLD.
+  I've realized I have a Pavlovian-response to changes from F=C4=81ng-ru=C3=
+=AC
+  that I associate with LLD.  I'm seeking professional help for my
+  ailment. Forgive me.
+* Add link to now public CrOS bug.
+
+ include/asm-generic/vmlinux.lds.h | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinu=
+x.lds.h
+index d7c7c7f36c4a..245c1af4c057 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -560,7 +560,10 @@
+  */
+ #define TEXT_TEXT							\
+ 		ALIGN_FUNCTION();					\
+-		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely)	\
++		*(.text.hot .text.hot.*)				\
++		*(TEXT_MAIN .text.fixup)				\
++		*(.text.unlikely .text.unlikely.*)			\
++		*(.text.unknown .text.unknown.*)			\
+ 		NOINSTR_TEXT						\
+ 		*(.text..refcount)					\
+ 		*(.ref.text)						\
+--=20
+2.27.0.111.gc72c7da667-goog
