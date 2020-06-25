@@ -1,47 +1,152 @@
 From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [RESEND PATCH v5 6/6] arm64: tlb: Set the TTL field in flush_*_tlb_range
-Date: Thu, 25 Jun 2020 16:03:14 +0800
-Message-ID: <20200625080314.230-7-yezhenyu2@huawei.com>
+Subject: [RESEND PATCH v5 4/6] tlb: mmu_gather: add tlb_flush_*_range APIs
+Date: Thu, 25 Jun 2020 16:03:12 +0800
+Message-ID: <20200625080314.230-5-yezhenyu2@huawei.com>
 References: <20200625080314.230-1-yezhenyu2@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga07-in.huawei.com ([45.249.212.35]:53586 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S2390577AbgFYIDk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 Jun 2020 04:03:40 -0400
 In-Reply-To: <20200625080314.230-1-yezhenyu2@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: catalin.marinas@arm.com, peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com
 Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-List-Id: linux-arch.vger.kernel.org
 
-This patch implement flush_{pmd|pud}_tlb_range() in arm64 by
-calling __flush_tlb_range() with the corresponding stride and
-tlb_level values.
+From: "Peter Zijlstra (Intel)" <peterz@infradead.org>
 
+tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and
+tlb->end, then set corresponding cleared_*.
+
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/pgtable.h | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+ include/asm-generic/tlb.h | 55 ++++++++++++++++++++++++++++-----------
+ 1 file changed, 40 insertions(+), 15 deletions(-)
 
-diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index 758e2d1577d0..d5d3fbe73953 100644
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -40,6 +40,16 @@ extern void __pmd_error(const char *file, int line, unsigned long val);
- extern void __pud_error(const char *file, int line, unsigned long val);
- extern void __pgd_error(const char *file, int line, unsigned long val);
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 3f1649a8cf55..ef75ec86f865 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -512,6 +512,38 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ }
+ #endif
  
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+#define __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
++/*
++ * tlb_flush_{pte|pmd|pud|p4d}_range() adjust the tlb->start and tlb->end,
++ * and set corresponding cleared_*.
++ */
++static inline void tlb_flush_pte_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_ptes = 1;
++}
 +
-+/* Set stride and tlb_level in flush_*_tlb_range */
-+#define flush_pmd_tlb_range(vma, addr, end)	\
-+	__flush_tlb_range(vma, addr, end, PMD_SIZE, false, 2)
-+#define flush_pud_tlb_range(vma, addr, end)	\
-+	__flush_tlb_range(vma, addr, end, PUD_SIZE, false, 1)
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++static inline void tlb_flush_pmd_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_pmds = 1;
++}
 +
- /*
-  * ZERO_PAGE is a global shared page that is always zero: used
-  * for zero-mapped memory areas etc..
++static inline void tlb_flush_pud_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_puds = 1;
++}
++
++static inline void tlb_flush_p4d_range(struct mmu_gather *tlb,
++				     unsigned long address, unsigned long size)
++{
++	__tlb_adjust_range(tlb, address, size);
++	tlb->cleared_p4ds = 1;
++}
++
+ #ifndef __tlb_remove_tlb_entry
+ #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+ #endif
+@@ -525,19 +557,17 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+  */
+ #define tlb_remove_tlb_entry(tlb, ptep, address)		\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
+-		tlb->cleared_ptes = 1;				\
++		tlb_flush_pte_range(tlb, address, PAGE_SIZE);	\
+ 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
+ 	} while (0)
+ 
+ #define tlb_remove_huge_tlb_entry(h, tlb, ptep, address)	\
+ 	do {							\
+ 		unsigned long _sz = huge_page_size(h);		\
+-		__tlb_adjust_range(tlb, address, _sz);		\
+ 		if (_sz == PMD_SIZE)				\
+-			tlb->cleared_pmds = 1;			\
++			tlb_flush_pmd_range(tlb, address, _sz);	\
+ 		else if (_sz == PUD_SIZE)			\
+-			tlb->cleared_puds = 1;			\
++			tlb_flush_pud_range(tlb, address, _sz);	\
+ 		__tlb_remove_tlb_entry(tlb, ptep, address);	\
+ 	} while (0)
+ 
+@@ -551,8 +581,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ 
+ #define tlb_remove_pmd_tlb_entry(tlb, pmdp, address)			\
+ 	do {								\
+-		__tlb_adjust_range(tlb, address, HPAGE_PMD_SIZE);	\
+-		tlb->cleared_pmds = 1;					\
++		tlb_flush_pmd_range(tlb, address, HPAGE_PMD_SIZE);	\
+ 		__tlb_remove_pmd_tlb_entry(tlb, pmdp, address);		\
+ 	} while (0)
+ 
+@@ -566,8 +595,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ 
+ #define tlb_remove_pud_tlb_entry(tlb, pudp, address)			\
+ 	do {								\
+-		__tlb_adjust_range(tlb, address, HPAGE_PUD_SIZE);	\
+-		tlb->cleared_puds = 1;					\
++		tlb_flush_pud_range(tlb, address, HPAGE_PUD_SIZE);	\
+ 		__tlb_remove_pud_tlb_entry(tlb, pudp, address);		\
+ 	} while (0)
+ 
+@@ -592,9 +620,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ #ifndef pte_free_tlb
+ #define pte_free_tlb(tlb, ptep, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
++		tlb_flush_pmd_range(tlb, address, PAGE_SIZE);	\
+ 		tlb->freed_tables = 1;				\
+-		tlb->cleared_pmds = 1;				\
+ 		__pte_free_tlb(tlb, ptep, address);		\
+ 	} while (0)
+ #endif
+@@ -602,9 +629,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ #ifndef pmd_free_tlb
+ #define pmd_free_tlb(tlb, pmdp, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
++		tlb_flush_pud_range(tlb, address, PAGE_SIZE);	\
+ 		tlb->freed_tables = 1;				\
+-		tlb->cleared_puds = 1;				\
+ 		__pmd_free_tlb(tlb, pmdp, address);		\
+ 	} while (0)
+ #endif
+@@ -612,9 +638,8 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+ #ifndef pud_free_tlb
+ #define pud_free_tlb(tlb, pudp, address)			\
+ 	do {							\
+-		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
++		tlb_flush_p4d_range(tlb, address, PAGE_SIZE);	\
+ 		tlb->freed_tables = 1;				\
+-		tlb->cleared_p4ds = 1;				\
+ 		__pud_free_tlb(tlb, pudp, address);		\
+ 	} while (0)
+ #endif
 -- 
 2.26.2
