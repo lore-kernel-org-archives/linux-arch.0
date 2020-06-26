@@ -1,178 +1,97 @@
-Return-Path: <SRS0=6fqV=7W=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:59178 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726765AbgFIJ5k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 9 Jun 2020 05:57:40 -0400
-Date: Tue, 9 Jun 2020 10:57:35 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH v2 4/6] prctl.2: Add SVE prctls (arm64)
-Message-ID: <20200609095734.GA25362@willie-the-truck>
-References: <1590614258-24728-1-git-send-email-Dave.Martin@arm.com>
- <1590614258-24728-5-git-send-email-Dave.Martin@arm.com>
+Return-Path: <SRS0=444k=AH=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45928 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725836AbgFZLnW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Jun 2020 07:43:22 -0400
+Date: Fri, 26 Jun 2020 13:42:26 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
+Message-ID: <20200626114226.GH4817@hirez.programming.kicks-ass.net>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624203200.78870-5-samitolvanen@google.com>
+ <20200624212737.GV4817@hirez.programming.kicks-ass.net>
+ <20200624214530.GA120457@google.com>
+ <20200625074530.GW4817@hirez.programming.kicks-ass.net>
+ <20200625161503.GB173089@google.com>
+ <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
+ <20200625224042.GA169781@google.com>
+ <20200626112931.GF4817@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1590614258-24728-5-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <20200626112931.GF4817@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>
-Message-ID: <20200609095735.lOY9Vt0R6_nRjtS1hRKL-RmS1v9DJPg93WiodFwHtvE@z>
+To: Sami Tolvanen <samitolvanen@google.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>, mhelsley@vmware.com
+Message-ID: <20200626114226.Khg3vvw0fBCfTDtmLtMMAtA92QKJ3T8_P-N5X8oG_x4@z>
 
-Hi Dave,
+On Fri, Jun 26, 2020 at 01:29:31PM +0200, Peter Zijlstra wrote:
+> On Thu, Jun 25, 2020 at 03:40:42PM -0700, Sami Tolvanen wrote:
 
-On Wed, May 27, 2020 at 10:17:36PM +0100, Dave Martin wrote:
-> Add documentation for the the PR_SVE_SET_VL and PR_SVE_GET_VL
-> prctls added in Linux 4.15 for arm64.
+> > Anyway, since objtool is run before recordmcount, I just left this unchanged
+> > for testing and ignored the recordmcount warnings about __mcount_loc already
+> > existing. Something is a bit off still though, I see this at boot:
+> > 
+> >   ------------[ ftrace bug ]------------
+> >   ftrace failed to modify
+> >   [<ffffffff81000660>] __tracepoint_iter_initcall_level+0x0/0x40
+> >    actual:   0f:1f:44:00:00
+> >   Initializing ftrace call sites
+> >   ftrace record flags: 0
+> >    (0)
+> >    expected tramp: ffffffff81056500
+> >   ------------[ cut here ]------------
+> > 
+> > Otherwise, this looks pretty good.
+> 
+> Ha! it is trying to convert the "CALL __fentry__" into a NOP and not
+> finding the CALL -- because objtool already made it a NOP...
+> 
+> Weird, I thought recordmcount would also write NOPs, it certainly has
+> code for that. I suppose we can use CC_USING_NOP_MCOUNT to avoid those,
+> but I'd rather Steve explain this before I wreck things further.
 
-Looks really good to me, thanks. Just a few comments inline.
+Something like so would ignore whatever text is there and rewrite it
+with ideal_nop.
 
-> diff --git a/man2/prctl.2 b/man2/prctl.2
-> index cab9915..91df7c8 100644
-> --- a/man2/prctl.2
-> +++ b/man2/prctl.2
-> @@ -1291,6 +1291,148 @@ call failing with the error
->  .BR ENXIO .
->  For further details, see the kernel source file
->  .IR Documentation/admin\-guide/kernel\-parameters.txt .
-> +.\" prctl PR_SVE_SET_VL
-> +.\" commit 2d2123bc7c7f843aa9db87720de159a049839862
-> +.\" linux-5.6/Documentation/arm64/sve.rst
-> +.TP
-> +.BR PR_SVE_SET_VL " (since Linux 4.15, only on arm64)"
-> +Configure the thread's SVE vector length,
-> +as specified by
-> +.IR "(int) arg2" .
-> +Arguments
-> +.IR arg3 ", " arg4 " and " arg5
-> +are ignored.
-> +.IP
-> +The bits of
-> +.I arg2
-> +corresponding to
-> +.B PR_SVE_VL_LEN_MASK
-> +must be set to the desired vector length in bytes.
-> +This is interpreted as an upper bound:
-> +the kernel will select the greatest available vector length
-> +that does not exceed the value specified.
-> +In particular, specifying
-> +.B SVE_VL_MAX
-> +(defined in
-> +.I <asm/sigcontext.h>)
-> +for the
-> +.B PR_SVE_VL_LEN_MASK
-> +bits requests the maximum supported vector length.
-> +.IP
-> +In addition,
-> +.I arg2
-> +must be set to one of the following combinations of flags:
-
-How about saying:
-
-  In addition, the other bits of arg2 must be set according to the following
-  combinations of flags:
-
-Otherwise I find it a bit fiddly to read, because it's valid to have
-flags of 0 and a non-zero length.
-
-> +.RS
-> +.TP
-> +.B 0
-> +Perform the change immediately.
-> +At the next
-> +.BR execve (2)
-> +in the thread,
-> +the vector length will be reset to the value configured in
-> +.IR /proc/sys/abi/sve_default_vector_length .
-
-(implementation note: does this mean that 'sve_default_vl' should be
- an atomic_t, as it can be accessed concurrently? We probably need
- {READ,WRITE}_ONCE() at the very least, as I'm not seeing any locks
- that help us here...)
-
-> +.TP
-> +.B PR_SVE_VL_INHERIT
-> +Perform the change immediately.
-> +Subsequent
-> +.BR execve (2)
-> +calls will preserve the new vector length.
-> +.TP
-> +.B PR_SVE_SET_VL_ONEXEC
-> +Defer the change, so that it is performed at the next
-> +.BR execve (2)
-> +in the thread.
-> +Further
-> +.BR execve (2)
-> +calls will reset the vector length to the value configured in
-> +.IR /proc/sys/abi/sve_default_vector_length .
-> +.TP
-> +.B "PR_SVE_SET_VL_ONEXEC | PR_SVE_VL_INHERIT"
-> +Defer the change, so that it is performed at the next
-> +.BR execve (2)
-> +in the thread.
-> +Further
-> +.BR execve (2)
-> +calls will preserve the new vector length.
-> +.RE
-> +.IP
-> +In all cases,
-> +any previously pending deferred change is canceled.
-> +.IP
-> +The call fails with error
-> +.B EINVAL
-> +if SVE is not supported on the platform, if
-> +.I arg2
-> +is unrecognized or invalid, or the value in the bits of
-> +.I arg2
-> +corresponding to
-> +.B PR_SVE_VL_LEN_MASK
-> +is outside the range
-> +.BR SVE_VL_MIN .. SVE_VL_MAX
-> +or is not a multiple of 16.
-> +.IP
-> +On success,
-> +a nonnegative value is returned that describes the
-> +.I selected
-> +configuration,
-
-If I'm reading the kernel code correctly, this is slightly weird, as
-the returned value may contain the PR_SVE_VL_INHERIT flag but it will
-never contain the PR_SVE_SET_VL_ONEXEC flag. Is that right?
-
-If so, maybe just say something like:
-
-  On success, a nonnegative value is returned that describes the selected
-  configuration in the same way as PR_SVE_GET_VL.
-
-> +which may differ from the current configuration if
-> +.B PR_SVE_SET_VL_ONEXEC
-> +was specified.
-> +The value is encoded in the same way as the return value of
-> +.BR PR_SVE_GET_VL .
-> +.IP
-> +The configuration (including any pending deferred change)
-> +is inherited across
-> +.BR fork (2)
-> +and
-> +.BR clone (2).
-> +.IP
-> +.B Warning:
-> +Because the compiler or run-time environment
-> +may be using SVE, using this call without the
-> +.B PR_SVE_SET_VL_ONEXEC
-> +flag may crash the calling process.
-> +The conditions for using it safely are complex and system-dependent.
-> +Don't use it unless you really know what you are doing.
-> +.IP
-> +For more information, see the kernel source file
-> +.I Documentation/arm64/sve.rst
-> +.\"commit b693d0b372afb39432e1c49ad7b3454855bc6bed
-> +(or
-> +.I Documentation/arm64/sve.txt
-> +before Linux 5.3).
-
-I think I'd drop the kernel reference here, as it feels like we're saying
-"only do this if you know what you're doing" on one hand, but then "if you
-don't know what you're doing, see this other documentation" on the other.
-
-Will
+---
+diff --git a/arch/x86/kernel/ftrace.c b/arch/x86/kernel/ftrace.c
+index c84d28e90a58..98a6a93d7615 100644
+--- a/arch/x86/kernel/ftrace.c
++++ b/arch/x86/kernel/ftrace.c
+@@ -109,9 +109,11 @@ static int __ref
+ ftrace_modify_code_direct(unsigned long ip, const char *old_code,
+ 			  const char *new_code)
+ {
+-	int ret = ftrace_verify_code(ip, old_code);
+-	if (ret)
+-		return ret;
++	if (old_code) {
++		int ret = ftrace_verify_code(ip, old_code);
++		if (ret)
++			return ret;
++	}
+ 
+ 	/* replace the text with the new text */
+ 	if (ftrace_poke_late)
+@@ -124,9 +126,8 @@ ftrace_modify_code_direct(unsigned long ip, const char *old_code,
+ int ftrace_make_nop(struct module *mod, struct dyn_ftrace *rec, unsigned long addr)
+ {
+ 	unsigned long ip = rec->ip;
+-	const char *new, *old;
++	const char *new;
+ 
+-	old = ftrace_call_replace(ip, addr);
+ 	new = ftrace_nop_replace();
+ 
+ 	/*
+@@ -138,7 +139,7 @@ int ftrace_make_nop(struct module *mod, struct dyn_ftrace *rec, unsigned long ad
+ 	 * just modify the code directly.
+ 	 */
+ 	if (addr == MCOUNT_ADDR)
+-		return ftrace_modify_code_direct(ip, old, new);
++		return ftrace_modify_code_direct(ip, NULL, new);
+ 
+ 	/*
+ 	 * x86 overrides ftrace_replace_code -- this function will never be used
