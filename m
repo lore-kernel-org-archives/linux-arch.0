@@ -1,85 +1,56 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46788 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733224AbgF2Tcn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:32:43 -0400
-Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CEEB9C02F004
-        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 07:43:38 -0700 (PDT)
-Received: by mail-pj1-x1042.google.com with SMTP id q90so7352159pjh.3
-        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 07:43:38 -0700 (PDT)
-Date: Mon, 29 Jun 2020 07:43:36 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v4 05/17] ctype: Work around Clang
- -mbranch-protection=none bug
-Message-ID: <202006290742.92EC7235@keescook>
-References: <20200629061840.4065483-1-keescook@chromium.org>
- <20200629061840.4065483-6-keescook@chromium.org>
- <CAMj1kXE+toCd=Bx-zw7D9bvDRNB2aPn5-_7CY7MOKcVGA-azVg@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAMj1kXE+toCd=Bx-zw7D9bvDRNB2aPn5-_7CY7MOKcVGA-azVg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=gWHa=AH=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Fri, 26 Jun 2020 14:09:06 -0700
+In-Reply-To: <20200626210917.358969-1-brendanhiggins@google.com>
+Message-ID: <20200626210917.358969-2-brendanhiggins@google.com>
+Mime-Version: 1.0
+References: <20200626210917.358969-1-brendanhiggins@google.com>
+Subject: [PATCH v5 01/12] vmlinux.lds.h: add linker section for KUnit test suites
+From: Brendan Higgins <brendanhiggins@google.com>
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-doc-owner@vger.kernel.org
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org, Brendan Higgins <brendanhiggins@google.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Ard Biesheuvel <ardb@kernel.org>
-Cc: Will Deacon <will@kernel.org>, Dave Martin <Dave.Martin@arm.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20200629144336.dsgp3PiuwiFg4ykwOYYK9VdiBDgvkEcqgwHtJixfP_M@z>
+Message-ID: <20200626210906.aac506GOEtlrunQsrCvGa7lTQK90Rog_FkHFV-nnHZM@z>
 
-On Mon, Jun 29, 2020 at 10:15:47AM +0200, Ard Biesheuvel wrote:
-> On Mon, 29 Jun 2020 at 08:18, Kees Cook <keescook@chromium.org> wrote:
-> >
-> > In preparation for building efi/libstub with -mbranch-protection=none
-> > (EFI does not support branch protection features[1]), add no-op code
-> > to work around a Clang bug that emits an unwanted .note.gnu.property
-> > section for object files without code[2].
-> >
-> > [1] https://lore.kernel.org/lkml/CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com
-> > [2] https://bugs.llvm.org/show_bug.cgi?id=46480
-> >
-> > Cc: Ard Biesheuvel <ardb@kernel.org>
-> > Cc: Will Deacon <will@kernel.org>
-> > Cc: Dave Martin <Dave.Martin@arm.com>
-> > Cc: clang-built-linux@googlegroups.com
-> > Signed-off-by: Kees Cook <keescook@chromium.org>
-> > ---
-> >  lib/ctype.c | 10 ++++++++++
-> >  1 file changed, 10 insertions(+)
-> >
-> > diff --git a/lib/ctype.c b/lib/ctype.c
-> > index c819fe269eb2..21245ed57d90 100644
-> > --- a/lib/ctype.c
-> > +++ b/lib/ctype.c
-> > @@ -36,3 +36,13 @@ _L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,     /* 224-239 */
-> >  _L,_L,_L,_L,_L,_L,_L,_P,_L,_L,_L,_L,_L,_L,_L,_L};      /* 240-255 */
-> >
-> >  EXPORT_SYMBOL(_ctype);
-> > +
-> > +/*
-> > + * Clang will generate .note.gnu.property sections for object files
-> > + * without code, even in the presence of -mbranch-protection=none.
-> > + * To work around this, define an unused static function.
-> > + * https://bugs.llvm.org/show_bug.cgi?id=46480
-> > + */
-> > +#ifdef CONFIG_CC_IS_CLANG
-> > +void __maybe_unused __clang_needs_code_here(void) { }
-> > +#endif
-> > --
-> > 2.25.1
-> >
-> 
-> I take it we don't need this horrible hack if we build the EFI stub
-> with branch protections and filter out the .note.gnu.property section
-> explicitly?
+Add a linker section where KUnit can put references to its test suites.
+This patch is the first step in transitioning to dispatching all KUnit
+tests from a centralized executor rather than having each as its own
+separate late_initcall.
 
-Correct.
+Co-developed-by: Iurii Zaikin <yzaikin@google.com>
+Signed-off-by: Iurii Zaikin <yzaikin@google.com>
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+---
+ include/asm-generic/vmlinux.lds.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-> Sorry to backpedal, but that is probably a better approach after all,
-> given that the instructions don't hurt, and we will hopefully be able
-> to arm them once UEFI (as well as PE/COFF) gets around to describing
-> this in a way that both the firmware and the OS can consume.
-
-Okay, will revert to the v3 solution.
-
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index db600ef218d7d..4f9b036fc9616 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -881,6 +881,13 @@
+ 		KEEP(*(.con_initcall.init))				\
+ 		__con_initcall_end = .;
+ 
++/* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
++#define KUNIT_TEST_SUITES						\
++		. = ALIGN(8);						\
++		__kunit_suites_start = .;				\
++		KEEP(*(.kunit_test_suites))				\
++		__kunit_suites_end = .;
++
+ #ifdef CONFIG_BLK_DEV_INITRD
+ #define INIT_RAM_FS							\
+ 	. = ALIGN(4);							\
+@@ -1056,6 +1063,7 @@
+ 		INIT_CALLS						\
+ 		CON_INITCALL						\
+ 		INIT_RAM_FS						\
++		KUNIT_TEST_SUITES					\
+ 	}
+ 
+ #define BSS_SECTION(sbss_align, bss_align, stop_align)			\
 -- 
-Kees Cook
+2.27.0.212.ge8ba1cc988-goog
