@@ -1,77 +1,42 @@
-Return-Path: <SRS0=eK+U=AG=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35158 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390589AbgFYQPL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jun 2020 12:15:11 -0400
-Received: from mail-pg1-x544.google.com (mail-pg1-x544.google.com [IPv6:2607:f8b0:4864:20::544])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5803EC08C5DD
-        for <linux-arch@vger.kernel.org>; Thu, 25 Jun 2020 09:15:11 -0700 (PDT)
-Received: by mail-pg1-x544.google.com with SMTP id l63so3481463pge.12
-        for <linux-arch@vger.kernel.org>; Thu, 25 Jun 2020 09:15:11 -0700 (PDT)
-Date: Thu, 25 Jun 2020 09:15:03 -0700
-From: Sami Tolvanen <samitolvanen@google.com>
-Subject: Re: [PATCH 04/22] kbuild: lto: fix recordmcount
-Message-ID: <20200625161503.GB173089@google.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624203200.78870-5-samitolvanen@google.com>
- <20200624212737.GV4817@hirez.programming.kicks-ass.net>
- <20200624214530.GA120457@google.com>
- <20200625074530.GW4817@hirez.programming.kicks-ass.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200625074530.GW4817@hirez.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=gWHa=AH=vger.kernel.org=linux-doc-owner@kernel.org>
+Date: Fri, 26 Jun 2020 14:09:09 -0700
+In-Reply-To: <20200626210917.358969-1-brendanhiggins@google.com>
+Message-ID: <20200626210917.358969-5-brendanhiggins@google.com>
+Mime-Version: 1.0
+References: <20200626210917.358969-1-brendanhiggins@google.com>
+Subject: [PATCH v5 04/12] arch: powerpc: add linker section for KUnit test suites
+From: Brendan Higgins <brendanhiggins@google.com>
+Content-Type: text/plain; charset="UTF-8"
+Sender: linux-doc-owner@vger.kernel.org
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org, Brendan Higgins <brendanhiggins@google.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
-Message-ID: <20200625161503.cSYRUa2aawCoWNGMkPsy_wtSEeD2onPWYIlGIvBy6TU@z>
+Message-ID: <20200626210909.fwYA1VA9MBEC-G1cGlWuFsoL6pos6fm6t7HdJD3tgpw@z>
 
-On Thu, Jun 25, 2020 at 09:45:30AM +0200, Peter Zijlstra wrote:
-> On Wed, Jun 24, 2020 at 02:45:30PM -0700, Sami Tolvanen wrote:
-> > On Wed, Jun 24, 2020 at 11:27:37PM +0200, Peter Zijlstra wrote:
-> > > On Wed, Jun 24, 2020 at 01:31:42PM -0700, Sami Tolvanen wrote:
-> > > > With LTO, LLVM bitcode won't be compiled into native code until
-> > > > modpost_link. This change postpones calls to recordmcount until after
-> > > > this step.
-> > > > 
-> > > > In order to exclude specific functions from inspection, we add a new
-> > > > code section .text..nomcount, which we tell recordmcount to ignore, and
-> > > > a __nomcount attribute for moving functions to this section.
-> > > 
-> > > I'm confused, you only add this to functions in ftrace itself, which is
-> > > compiled with:
-> > > 
-> > >  KBUILD_CFLAGS = $(subst $(CC_FLAGS_FTRACE),,$(ORIG_CFLAGS))
-> > > 
-> > > and so should not have mcount/fentry sites anyway. So what's the point
-> > > of ignoring them further?
-> > > 
-> > > This Changelog does not explain.
-> > 
-> > Normally, recordmcount ignores each ftrace.o file, but since we are
-> > running it on vmlinux.o, we need another way to stop it from looking
-> > at references to mcount/fentry that are not calls. Here's a comment
-> > from recordmcount.c:
-> > 
-> >   /*
-> >    * The file kernel/trace/ftrace.o references the mcount
-> >    * function but does not call it. Since ftrace.o should
-> >    * not be traced anyway, we just skip it.
-> >    */
-> > 
-> > But I agree, the commit message could use more defails. Also +Steven
-> > for thoughts about this approach.
-> 
-> Ah, is thi because recordmcount isn't smart enough to know the
-> difference between "CALL $mcount" and any other RELA that has mcount?
+Add a linker section to powerpc where KUnit can put references to its test
+suites. This patch is an early step in transitioning to dispatching all
+KUnit tests from a centralized executor rather than having each as its
+own separate late_initcall.
 
-Yes.
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+---
+ arch/powerpc/kernel/vmlinux.lds.S | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-> At least for x86_64 I can do a really quick take for a recordmcount pass
-> in objtool, but I suppose you also need this for ARM64 ?
-
-Sure, sounds good. arm64 uses -fpatchable-function-entry with clang, so we
-don't need recordmcount there.
-
-Sami
+diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+index 326e113d2e456..0cc97dbfde0ad 100644
+--- a/arch/powerpc/kernel/vmlinux.lds.S
++++ b/arch/powerpc/kernel/vmlinux.lds.S
+@@ -202,6 +202,10 @@ SECTIONS
+ 		CON_INITCALL
+ 	}
+ 
++	.kunit_test_suites : {
++		KUNIT_TEST_SUITES
++	}
++
+ 	. = ALIGN(8);
+ 	__ftr_fixup : AT(ADDR(__ftr_fixup) - LOAD_OFFSET) {
+ 		__start___ftr_fixup = .;
+-- 
+2.27.0.212.ge8ba1cc988-goog
