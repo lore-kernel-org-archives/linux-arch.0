@@ -1,230 +1,132 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v5 25/25] arm64: mte: Add Memory Tagging Extension
- documentation
-Date: Fri, 26 Jun 2020 15:54:41 +0100
-Message-ID: <20200626145439.GB25805@gaia>
-References: <20200624175244.25837-1-catalin.marinas@arm.com>
- <20200624175244.25837-26-catalin.marinas@arm.com>
- <20200625122216.GJ16726@arm.com>
+From: Brendan Higgins <brendanhiggins@google.com>
+Subject: [PATCH v5 00/12] kunit: create a centralized executor to dispatch all
+ KUnit tests
+Date: Fri, 26 Jun 2020 14:09:05 -0700
+Message-ID: <20200626210917.358969-1-brendanhiggins@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:50250 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726139AbgFZOyr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 26 Jun 2020 10:54:47 -0400
-Content-Disposition: inline
-In-Reply-To: <20200625122216.GJ16726@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>, Richard Earnshaw <rearnsha@arm.com>, libc-alpha@sourceware.org, nd@arm.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-doc-owner@vger.kernel.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org, Brendan Higgins <brendanhiggins@google.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Szabolcs,
+## TL;DR
 
-On Thu, Jun 25, 2020 at 01:22:17PM +0100, Szabolcs Nagy wrote:
-> The 06/24/2020 18:52, Catalin Marinas wrote:
-> > From: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> > 
-> > Memory Tagging Extension (part of the ARMv8.5 Extensions) provides
-> > a mechanism to detect the sources of memory related errors which
-> > may be vulnerable to exploitation, including bounds violations,
-> > use-after-free, use-after-return, use-out-of-scope and use before
-> > initialization errors.
-> > 
-> > Add Memory Tagging Extension documentation for the arm64 linux
-> > kernel support.
-> > 
-> > Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-> > Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
-> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> > Cc: Will Deacon <will@kernel.org>
-> 
-> there are are still libc side discussions, but the
-> linux abi looks ok to me from user space pov.
-> i'm adding libc-alpha on cc, the patch set is e.g. at
-> http://lists.infradead.org/pipermail/linux-arm-kernel/2020-June/579787.html
-> 
-> Acked-by: Szabolcs Nagy <szabolcs.nagy@arm.com>
+This patchset adds a centralized executor to dispatch tests rather than
+relying on late_initcall to schedule each test suite separately along
+with a couple of new features that depend on it.
 
-Thanks for the review. If there are any ABI changes required as a result
-of the libc-alpha discussions, please let me know.
+## What am I trying to do?
 
-> > +PROT_MTE
-> > +--------
-> > +
-> > +To access the allocation tags, a user process must enable the Tagged
-> > +memory attribute on an address range using a new ``prot`` flag for
-> > +``mmap()`` and ``mprotect()``:
-> > +
-> > +``PROT_MTE`` - Pages allow access to the MTE allocation tags.
-> > +
-> > +The allocation tag is set to 0 when such pages are first mapped in the
-> > +user address space and preserved on copy-on-write. ``MAP_SHARED`` is
-> > +supported and the allocation tags can be shared between processes.
-> > +
-> > +**Note**: ``PROT_MTE`` is only supported on ``MAP_ANONYMOUS`` and
-> > +RAM-based file mappings (``tmpfs``, ``memfd``). Passing it to other
-> > +types of mapping will result in ``-EINVAL`` returned by these system
-> > +calls.
-> > +
-> > +**Note**: The ``PROT_MTE`` flag (and corresponding memory type) cannot
-> > +be cleared by ``mprotect()``.
-> > +
-> > +**Note**: ``madvise()`` memory ranges with ``MADV_DONTNEED`` and
-> > +``MADV_FREE`` may have the allocation tags cleared (set to 0) at any
-> > +point after the system call.
-> 
-> OK.
-> 
-> I expect in the future to have a way to query the
-> PROT_MTE status of mappings (e.g. via /proc/self).
+Conceptually, I am trying to provide a mechanism by which test suites
+can be grouped together so that they can be reasoned about collectively.
+The last two of three patches in this series add features which depend
+on this:
 
-Currently you can do this via /proc/<pid>/smaps.
+PATCH 09/12 Prints out a test plan[1] right before KUnit tests are run;
+            this is valuable because it makes it possible for a test
+            harness to detect whether the number of tests run matches
+            the number of tests expected to be run, ensuring that no
+            tests silently failed. The test plan includes a count of
+            tests that will run. With the centralized executor, the
+            tests are located in a single data structure and thus can be
+            counted.
 
-> The MAP_SHARED behaviour is not entirely clear here
-> but i guess it's possible to have PROT_MTE in one
-> process and no PROT_MTE in others on the same mapping.
+PATCH 10/12 Add a new kernel command-line option which allows the user
+            to specify that the kernel poweroff, halt, or reboot after
+            completing all KUnit tests; this is very handy for running
+            KUnit tests on UML or a VM so that the UML/VM process exits
+            cleanly immediately after running all tests without needing
+            a special initramfs. The centralized executor provides a
+            definitive point when all tests have completed and the
+            poweroff, halt, or reboot could occur.
 
-Yes, it is.
+In addition, by dispatching tests from a single location, we can
+guarantee that all KUnit tests run after late_init is complete, which
+was a concern during the initial KUnit patchset review (this has not
+been a problem in practice, but resolving with certainty is nevertheless
+desirable).
 
-> then allocation tags only affect the process where
-> PROT_MTE was used, later on another process may set
-> PROT_MTE and then the shared allocation tags affect
-> that process too.
+Other use cases for this exist, but the above features should provide an
+idea of the value that this could provide.
 
-Yes. Since PROT_MTE allows access to the allocation tags, each process
-can control it independently.
+## Changes since last revision:
+ - Fixed a compilation error in the centralized executor patch (07/12).
+   I had forgotten to test the patches when building as modules. I
+   verified that works now.
+ - I accidentally merged patches 09/12 and 10/12 in the previous
+   revision (v4), and made them separate patches again.
 
-> The madvise behaviour looks a bit risky from user
-> space pov since now it's not just the memory content
-> that can disappear after a MADV_DONTNEED, but pointer
-> to that memory can become invalid too. but i think
-> this is OK: in libc we will have to say that madvise
-> on memory returned by malloc is not valid.
+## Changes since v3:
+ - On the last revision I got some messages from 0day that showed that
+   this patchset didn't work on several architectures, one issue that
+   this patchset addresses is that we were aligning both memory segments
+   as well as structures in the segments to specific byte boundaries
+   which was incorrect.
+ - The issue mentioned above also caused me to test on additional
+   architectures which revealed that some architectures other than UML
+   do not use the default init linker section macro that most
+   architectures use. There are now several new patches (2, 3, 4, and
+   6).
+ - Fixed a formatting consistency issue in the kernel params
+   documentation patch (11/12).
+ - Add a brief blurb on how and when the kunit_test_suite macro works.
 
-From a kernel perspective, it never returned a tagged pointer on mmap(),
-so reverting the allocation tag to 0 is fine. I don't really have a
-better solution here other than not calling madvise() on malloc'ed
-memory.
+## Remaining work to be done:
 
-A more invasive option may be to return tagged pointers on mmap() and
-guarantee that the libc will not change them. A subsequent access on
-DONTNEED memory would restore the original colour.
+The only architecture for which I was able to get a compiler, but was
+apparently unable to get KUnit into a section that the executor to see
+was m68k - not sure why.
 
-> As noted before, this design is not ideal for stack
-> tagging (mprotecting the initial stack with PROT_MTE
-> may be problematic if we don't know the bounds),
+Alan Maguire (1):
+  kunit: test: create a single centralized executor for all tests
 
-I don't think you need the bounds (with PROT_GROWSDOWN). Maybe the upper
-one but functions up the call chain should not use stack tagging anyway.
+Brendan Higgins (10):
+  vmlinux.lds.h: add linker section for KUnit test suites
+  arch: arm64: add linker section for KUnit test suites
+  arch: microblaze: add linker section for KUnit test suites
+  arch: powerpc: add linker section for KUnit test suites
+  arch: um: add linker section for KUnit test suites
+  arch: xtensa: add linker section for KUnit test suites
+  init: main: add KUnit to kernel init
+  kunit: test: add test plan to KUnit TAP format
+  Documentation: Add kunit_shutdown to kernel-parameters.txt
+  Documentation: kunit: add a brief blurb about kunit_test_suite
 
-> but
-> the expectation is to introduce some ELF marking and
-> then linux can just start the process with PROT_MTE
-> stack if the dynamic linker has the marking. Same for
-> the brk area (default PROT_MTE based on ELF marking).
+David Gow (1):
+  kunit: Add 'kunit_shutdown' option
 
-This should work. Since stack tagging cannot use instructions in the NOP
-space anyway and the program needs recompiling, having an ELF marking
-would help (for heap tagging, you only need to change the libc and
-dynamic loader). I think we do similar checks for BTI.
+ .../admin-guide/kernel-parameters.txt         |   8 ++
+ Documentation/dev-tools/kunit/usage.rst       |   5 ++
+ arch/arm64/kernel/vmlinux.lds.S               |   3 +
+ arch/microblaze/kernel/vmlinux.lds.S          |   4 +
+ arch/powerpc/kernel/vmlinux.lds.S             |   4 +
+ arch/um/include/asm/common.lds.S              |   4 +
+ arch/xtensa/kernel/vmlinux.lds.S              |   4 +
+ include/asm-generic/vmlinux.lds.h             |   8 ++
+ include/kunit/test.h                          |  76 +++++++++++++-----
+ init/main.c                                   |   4 +
+ lib/kunit/Makefile                            |   3 +-
+ lib/kunit/executor.c                          |  63 +++++++++++++++
+ lib/kunit/test.c                              |  13 +--
+ tools/testing/kunit/kunit_kernel.py           |   2 +-
+ tools/testing/kunit/kunit_parser.py           |  74 ++++++++++++++---
+ .../test_is_test_passed-all_passed.log        | Bin 1562 -> 1567 bytes
+ .../test_data/test_is_test_passed-crash.log   | Bin 3016 -> 3021 bytes
+ .../test_data/test_is_test_passed-failure.log | Bin 1700 -> 1705 bytes
+ 18 files changed, 227 insertions(+), 48 deletions(-)
+ create mode 100644 lib/kunit/executor.c
 
-> > +Tag Check Faults
-> > +----------------
-> > +
-> > +When ``PROT_MTE`` is enabled on an address range and a mismatch between
-> > +the logical and allocation tags occurs on access, there are three
-> > +configurable behaviours:
-> > +
-> > +- *Ignore* - This is the default mode. The CPU (and kernel) ignores the
-> > +  tag check fault.
-> > +
-> > +- *Synchronous* - The kernel raises a ``SIGSEGV`` synchronously, with
-> > +  ``.si_code = SEGV_MTESERR`` and ``.si_addr = <fault-address>``. The
-> > +  memory access is not performed. If ``SIGSEGV`` is ignored or blocked
-> > +  by the offending thread, the containing process is terminated with a
-> > +  ``coredump``.
-> > +
-> > +- *Asynchronous* - The kernel raises a ``SIGSEGV``, in the offending
-> > +  thread, asynchronously following one or multiple tag check faults,
-> > +  with ``.si_code = SEGV_MTEAERR`` and ``.si_addr = 0`` (the faulting
-> > +  address is unknown).
-> > +
-> > +The user can select the above modes, per thread, using the
-> > +``prctl(PR_SET_TAGGED_ADDR_CTRL, flags, 0, 0, 0)`` system call where
-> > +``flags`` contain one of the following values in the ``PR_MTE_TCF_MASK``
-> > +bit-field:
-> > +
-> > +- ``PR_MTE_TCF_NONE``  - *Ignore* tag check faults
-> > +- ``PR_MTE_TCF_SYNC``  - *Synchronous* tag check fault mode
-> > +- ``PR_MTE_TCF_ASYNC`` - *Asynchronous* tag check fault mode
-> > +
-> > +The current tag check fault mode can be read using the
-> > +``prctl(PR_GET_TAGGED_ADDR_CTRL, 0, 0, 0, 0)`` system call.
-> > +
-> > +Tag checking can also be disabled for a user thread by setting the
-> > +``PSTATE.TCO`` bit with ``MSR TCO, #1``.
-> > +
-> > +**Note**: Signal handlers are always invoked with ``PSTATE.TCO = 0``,
-> > +irrespective of the interrupted context. ``PSTATE.TCO`` is restored on
-> > +``sigreturn()``.
-> > +
-> > +**Note**: There are no *match-all* logical tags available for user
-> > +applications.
-> > +
-> > +**Note**: Kernel accesses to the user address space (e.g. ``read()``
-> > +system call) are not checked if the user thread tag checking mode is
-> > +``PR_MTE_TCF_NONE`` or ``PR_MTE_TCF_ASYNC``. If the tag checking mode is
-> > +``PR_MTE_TCF_SYNC``, the kernel makes a best effort to check its user
-> > +address accesses, however it cannot always guarantee it.
-> 
-> OK.
-> 
-> i know the kernel likes to operate on os-threads,
-> but in userspace this causes the slight wart that if
-> somebody wants to use heap tagging with LD_PRELOADed
-> malloc and the first malloc is called after a thread
-> is already created then the malloc implementation
-> cannot set up the prctl right for all threads in the
-> process.
+These patches are available for download with dependencies here:
 
-Ah, so you can't have a constructor called with LD_PRELOAD.
+https://kunit-review.googlesource.com/c/linux/+/3829
 
-> (for userspace i think it is only useful to
-> allow threads with different MTE settings if there
-> are some threads in a process that are not managed by
-> the c runtime and don't call into libc, so as far as
-> normal c code is concerned a per process setting
-> would be nicer).
+[1] https://github.com/isaacs/testanything.github.io/blob/tap14/tap-version-14-specification.md#the-plan
+[2] https://patchwork.kernel.org/patch/11383635/
 
-My assumption was that the c runtime would set this up and all threads
-inherit the initial configuration. How important is the LD_PRELOAD
-use-case?
-
-The slight trouble with having this setting global is synchronising all
-the threads. Maybe if we only allow single global configuration (rather
-than having the option of per-thread and global), user-space could force
-the synchronisation with something like membarrier().
-
-> for interposers the workaround is
-> to interpose thread creating libc apis, which is not
-> perfect (libc internally may create threads in not
-> interposable ways e.g. for implementing aio and then
-> use heap memory in such threads), but i think early
-> threads before an LD_PRELOAD initializer may run is
-> not a common scenario and this type of MTE usage is
-> for debugging, i.e. does not have to be perfect.
-
-Feedback welcome, both from the glibc and the bionic/Android camps.
-
-> as noted before (i think by Kevin) it would be nice
-> to query the tag check status of other threads e.g.
-> via a /proc/ thing (but i don't see an immediate need
-> for this other than debugging MTE faults).
-
-I have a plan to add some information in /proc/<pid>/status at some
-point.
-
+base-commit: 4333a9b0b67bb4e8bcd91bdd80da80b0ec151162
+prerequisite-patch-id: 2d4b5aa9fa8ada9ae04c8584b47c299a822b9455
+prerequisite-patch-id: 582b6d9d28ce4b71628890ec832df6522ca68de0
 -- 
-Catalin
+2.27.0.212.ge8ba1cc988-goog
