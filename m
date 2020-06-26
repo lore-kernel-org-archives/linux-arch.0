@@ -1,63 +1,54 @@
-Return-Path: <SRS0=dRn0=7X=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-2.mimecast.com ([205.139.110.61]:37146 "EHLO
-        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1729113AbgFJQuc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 Jun 2020 12:50:32 -0400
-Received: by mail-qv1-f72.google.com with SMTP id a8so2312194qvt.7
-        for <linux-arch@vger.kernel.org>; Wed, 10 Jun 2020 09:50:27 -0700 (PDT)
-Date: Wed, 10 Jun 2020 12:50:23 -0400
-From: Peter Xu <peterx@redhat.com>
-Subject: Re: Possible duplicate page fault accounting on some archs after
- commit 4064b9827063
-Message-ID: <20200610165023.GA67179@xz-x1>
-References: <20200610174811.44b94525@thinkpad>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20200610174811.44b94525@thinkpad>
+Return-Path: <SRS0=444k=AH=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48750 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726436AbgFZVJp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Jun 2020 17:09:45 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 58D78C08C5E0
+        for <linux-arch@vger.kernel.org>; Fri, 26 Jun 2020 14:09:45 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id s9so11129088ybj.18
+        for <linux-arch@vger.kernel.org>; Fri, 26 Jun 2020 14:09:45 -0700 (PDT)
+Date: Fri, 26 Jun 2020 14:09:16 -0700
+In-Reply-To: <20200626210917.358969-1-brendanhiggins@google.com>
+Message-ID: <20200626210917.358969-12-brendanhiggins@google.com>
+Mime-Version: 1.0
+References: <20200626210917.358969-1-brendanhiggins@google.com>
+Subject: [PATCH v5 11/12] Documentation: Add kunit_shutdown to kernel-parameters.txt
+From: Brendan Higgins <brendanhiggins@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, Michal Simek <monstr@monstr.eu>, linux-mips@vger.kernel.org, Nick Hu <nickhu@andestech.com>, Ley Foon Tan <ley.foon.tan@intel.com>, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-um@lists.infradead.org, Guan Xuetao <gxt@pku.edu.cn>, linux-xtensa@linux-xtensa.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>
-Message-ID: <20200610165023.WjSaL8JsQ5WIRVkPjCn4QV3Z-e8v7UILFn8jto17ElI@z>
+To: jdike@addtoit.com, richard@nod.at, anton.ivanov@cambridgegreys.com, arnd@arndb.de, keescook@chromium.org, skhan@linuxfoundation.org, alan.maguire@oracle.com, yzaikin@google.com, davidgow@google.com, akpm@linux-foundation.org, rppt@linux.ibm.com, frowand.list@gmail.com, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com
+Cc: gregkh@linuxfoundation.org, sboyd@kernel.org, logang@deltatee.com, mcgrof@kernel.org, linux-um@lists.infradead.org, linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org, Brendan Higgins <brendanhiggins@google.com>
+Message-ID: <20200626210916.ZJ4Daw6NATYrBKIf7l8-w195jbhODzkmRsETaw5E99g@z>
 
-On Wed, Jun 10, 2020 at 05:48:11PM +0200, Gerald Schaefer wrote:
-> Hi,
+Add kunit_shutdown, an option to specify that the kernel shutsdown after
+running KUnit tests, to the kernel-parameters.txt documentation.
 
-Hi, Gerald,
+Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
+Reviewed-by: Stephen Boyd <sboyd@kernel.org>
+---
+ Documentation/admin-guide/kernel-parameters.txt | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-> 
-> Some architectures have their page fault accounting code inside the fault
-> retry loop, and rely on only going through that code once. Before commit
-> 4064b9827063 ("mm: allow VM_FAULT_RETRY for multiple times"), that was
-> ensured by testing for and clearing FAULT_FLAG_ALLOW_RETRY.
-> 
-> That commit had to remove the clearing of FAULT_FLAG_ALLOW_RETRY for all
-> architectures, and introduced a subtle change to page fault accounting
-> logic in the affected archs. It is now possible to go through the retry
-> loop multiple times, and the affected archs would then account multiple
-> page faults instead of just one.
-> 
-> This was found by coincidence in s390 code, and a quick check showed that
-> there are quite a lot of other architectures that seem to be affected in a
-> similar way. I'm preparing a fix for s390, by moving the accounting behind
-> the retry loop, similar to x86. It is not completely straight-forward, so
-> I leave the fix for other archs to the respective maintainers.
-
-Sorry for not noticing this before.  The accounting part should definitely be
-put at least into a check against fault_flag_allow_retry_first() to mimic what
-was done before.  And I agree it would be even better to put it after the retry
-logic, so if any of the page faults gets a major fault, it'll be accounted as a
-major fault which makes more sense to me, just like what x86 is doing now with:
-
-	major |= fault & VM_FAULT_MAJOR;
-
-I'm not sure what's the preference of the arch maintainers, just let me know if
-it's preferred to use a single series to address this issue for all affected
-archs (or the archs besides s390), then I'll do.
-
-Thanks!
-
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index fb95fad81c79a..e7d5eb7249e7f 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -2183,6 +2183,14 @@
+ 			0: force disabled
+ 			1: force enabled
+ 
++	kunit_shutdown=[KERNEL UNIT TESTING FRAMEWORK] Shutdown kernel after
++			running built-in tests. Tests configured as modules will
++			not be run.
++			Default:	(flag not present) don't shutdown
++			poweroff:	poweroff the kernel after running tests
++			halt:		halt the kernel after running tests
++			reboot:		reboot the kernel after running tests
++
+ 	kvm.ignore_msrs=[KVM] Ignore guest accesses to unhandled MSRs.
+ 			Default is 0 (don't ignore, but inject #GP)
+ 
 -- 
-Peter Xu
+2.27.0.212.ge8ba1cc988-goog
