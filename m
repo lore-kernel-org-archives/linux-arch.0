@@ -1,59 +1,78 @@
-Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38404 "EHLO
+Return-Path: <SRS0=444k=AH=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43920 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729137AbgF2Smw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 29/41] c6x: switch to ->get2()
-Date: Mon, 29 Jun 2020 19:26:16 +0100
-Message-ID: <20200629182628.529995-29-viro@ZenIV.linux.org.uk>
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+        with ESMTP id S1728467AbgFZLaU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Jun 2020 07:30:20 -0400
+Date: Fri, 26 Jun 2020 13:29:31 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
+Message-ID: <20200626112931.GF4817@hirez.programming.kicks-ass.net>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624203200.78870-5-samitolvanen@google.com>
+ <20200624212737.GV4817@hirez.programming.kicks-ass.net>
+ <20200624214530.GA120457@google.com>
+ <20200625074530.GW4817@hirez.programming.kicks-ass.net>
+ <20200625161503.GB173089@google.com>
+ <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
+ <20200625224042.GA169781@google.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200625224042.GA169781@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
-Message-ID: <20200629182616.NXdMujmABL6-l7uoG8jIOicbQnOjnjAxl6fLl3ExfZc@z>
+To: Sami Tolvanen <samitolvanen@google.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>, mhelsley@vmware.com
+Message-ID: <20200626112931.fSIoncvVhsw_np_gVdynRz_YMjFEPLQErT2HHXvZHiU@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+On Thu, Jun 25, 2020 at 03:40:42PM -0700, Sami Tolvanen wrote:
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/c6x/kernel/ptrace.c | 11 +++--------
- 1 file changed, 3 insertions(+), 8 deletions(-)
+> > Not boot tested, but it generates the required sections and they look
+> > more or less as expected, ymmv.
 
-diff --git a/arch/c6x/kernel/ptrace.c b/arch/c6x/kernel/ptrace.c
-index 67af1562da86..d2402de2bc14 100644
---- a/arch/c6x/kernel/ptrace.c
-+++ b/arch/c6x/kernel/ptrace.c
-@@ -57,14 +57,9 @@ static inline int put_reg(struct task_struct *task,
- 
- static int gpr_get(struct task_struct *target,
- 		   const struct user_regset *regset,
--		   unsigned int pos, unsigned int count,
--		   void *kbuf, void __user *ubuf)
-+		   struct membuf to)
- {
--	struct pt_regs *regs = task_pt_regs(target);
--
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--				   regs,
--				   0, sizeof(*regs));
-+	return membuf_write(&to, task_pt_regs(target), sizeof(struct pt_regs));
- }
- 
- enum c6x_regset {
-@@ -77,7 +72,7 @@ static const struct user_regset c6x_regsets[] = {
- 		.n = ELF_NGREG,
- 		.size = sizeof(u32),
- 		.align = sizeof(u32),
--		.get = gpr_get,
-+		.get2 = gpr_get,
- 	},
- };
- 
--- 
-2.11.0
+> > diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> > index a291823f3f26..189575c12434 100644
+> > --- a/arch/x86/Kconfig
+> > +++ b/arch/x86/Kconfig
+> > @@ -174,7 +174,6 @@ config X86
+> >  	select HAVE_EXIT_THREAD
+> >  	select HAVE_FAST_GUP
+> >  	select HAVE_FENTRY			if X86_64 || DYNAMIC_FTRACE
+> > -	select HAVE_FTRACE_MCOUNT_RECORD
+> >  	select HAVE_FUNCTION_GRAPH_TRACER
+> >  	select HAVE_FUNCTION_TRACER
+> >  	select HAVE_GCC_PLUGINS
+> 
+> This breaks DYNAMIC_FTRACE according to kernel/trace/ftrace.c:
+> 
+>   #ifndef CONFIG_FTRACE_MCOUNT_RECORD
+>   # error Dynamic ftrace depends on MCOUNT_RECORD
+>   #endif
+> 
+> And the build errors after that seem to confirm this. It looks like we might
+> need another flag to skip recordmcount.
+
+Hurm, Steve, how you want to do that?
+
+> Anyway, since objtool is run before recordmcount, I just left this unchanged
+> for testing and ignored the recordmcount warnings about __mcount_loc already
+> existing. Something is a bit off still though, I see this at boot:
+> 
+>   ------------[ ftrace bug ]------------
+>   ftrace failed to modify
+>   [<ffffffff81000660>] __tracepoint_iter_initcall_level+0x0/0x40
+>    actual:   0f:1f:44:00:00
+>   Initializing ftrace call sites
+>   ftrace record flags: 0
+>    (0)
+>    expected tramp: ffffffff81056500
+>   ------------[ cut here ]------------
+> 
+> Otherwise, this looks pretty good.
+
+Ha! it is trying to convert the "CALL __fentry__" into a NOP and not
+finding the CALL -- because objtool already made it a NOP...
+
+Weird, I thought recordmcount would also write NOPs, it certainly has
+code for that. I suppose we can use CC_USING_NOP_MCOUNT to avoid those,
+but I'd rather Steve explain this before I wreck things further.
