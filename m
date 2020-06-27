@@ -1,40 +1,36 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH 4/8] asm-generic: pgalloc: provide generic
- pmd_alloc_one() and pmd_free_one()
-Date: Sat, 27 Jun 2020 20:03:04 +0100
-Message-ID: <20200627190304.GG25039@casper.infradead.org>
+From: Stafford Horne <shorne@gmail.com>
+Subject: Re: [PATCH 2/8] opeinrisc: switch to generic version of pte
+ allocation
+Date: Sun, 28 Jun 2020 06:23:35 +0900
+Message-ID: <20200627212335.GJ1401039@lianli.shorne-pla.net>
 References: <20200627143453.31835-1-rppt@kernel.org>
- <20200627143453.31835-5-rppt@kernel.org>
+ <20200627143453.31835-3-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-alpha-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44620 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725907AbgF0VXj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 Jun 2020 17:23:39 -0400
 Content-Disposition: inline
-In-Reply-To: <20200627143453.31835-5-rppt@kernel.org>
-Sender: linux-alpha-owner@vger.kernel.org
+In-Reply-To: <20200627143453.31835-3-rppt@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Mike Rapoport <rppt@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christophe Leroy <christophe.leroy@csgroup.eu>, Joerg Roedel <joro@8bytes.org>, Max Filippov <jcmvbkbc@gmail.com>, Mike Rapoport <rppt@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Stafford Horne <shorne@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mi
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christophe Leroy <christophe.leroy@csgroup.eu>, Joerg Roedel <joro@8bytes.org>, Max Filippov <jcmvbkbc@gmail.com>, Mike Rapoport <rppt@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.
 
-On Sat, Jun 27, 2020 at 05:34:49PM +0300, Mike Rapoport wrote:
-> More elaborate versions on arm64 and x86 account memory for the user page
-> tables and call to pgtable_pmd_page_ctor() as the part of PMD page
-> initialization.
+On Sat, Jun 27, 2020 at 05:34:47PM +0300, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
 > 
-> Move the arm64 version to include/asm-generic/pgalloc.h and use the generic
-> version on several architectures.
+> Replace pte_alloc_one(), pte_free() and pte_free_kernel() with the generic
+> implementation. The only actual functional change is the addition of
+> __GFP_ACCOUT for the allocation of the user page tables.
 > 
-> The pgtable_pmd_page_ctor() is a NOP when ARCH_ENABLE_SPLIT_PMD_PTLOCK is
-> not enabled, so there is no functional change for most architectures except
-> of the addition of __GFP_ACCOUNT for allocation of user page tables.
+> The pte_alloc_one_kernel() is kept back because its implementation on
+> openrisc is different than the generic one.
+> 
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 
-Thanks for including this line; it reminded me that we're not setting
-the PageTable flag on the page, nor accounting it to the zone page stats.
-Hope you don't mind me tagging a patch to do that on as 9/8.
+Thank's for this.
 
-We could also do with a pud_page_[cd]tor and maybe even p4d/pgd versions.
-But that brings me to the next question -- could/should some of this
-be moved over to asm-generic/pgalloc.h?  The ctor/dtor aren't called
-from anywhere else, and there's value to reducing the total amount of
-code in mm.h, but then there's also value to keeping all the ifdef
-ARCH_ENABLE_SPLIT_PMD_PTLOCK code together too.  So I'm a bit torn.
-What do you think?
+Acked-by: Stafford Horne <shorne@gmail.com>
