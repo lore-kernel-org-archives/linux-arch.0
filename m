@@ -1,81 +1,77 @@
-Return-Path: <SRS0=TrJs=AD=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:60195 "EHLO mga12.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1730383AbgFVUJO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jun 2020 16:09:14 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v2 08/21] KVM: x86/mmu: Clean up the gorilla math in mmu_topup_memory_caches()
-Date: Mon, 22 Jun 2020 13:08:09 -0700
-Message-ID: <20200622200822.4426-9-sean.j.christopherson@intel.com>
-In-Reply-To: <20200622200822.4426-1-sean.j.christopherson@intel.com>
-References: <20200622200822.4426-1-sean.j.christopherson@intel.com>
+Return-Path: <SRS0=u+st=AI=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58580 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726410AbgF0H1t (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 Jun 2020 03:27:49 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 4/5] exec: split prepare_arg_pages
+Date: Sat, 27 Jun 2020 09:27:03 +0200
+Message-ID: <20200627072704.2447163-5-hch@lst.de>
+In-Reply-To: <20200627072704.2447163-1-hch@lst.de>
+References: <20200627072704.2447163-1-hch@lst.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200622200809.8F2FJNYz6E845Jhk2JQWl1b24hQXwVlrnaYZi4NulFs@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200627072703.4BbWC-AYUWzb7tJLRJGy4b9Tkg-PbxmBjnQVOZMqGU0@z>
 
-Clean up the minimums in mmu_topup_memory_caches() to document the
-driving mechanisms behind the minimums.  Now that encountering an empty
-cache is unlikely to trigger BUG_ON(), it is less dangerous to be more
-precise when defining the minimums.
+Move counting the arguments and enviroment variables out of
+prepare_arg_pages and rename the rest of the function to check_arg_limit.
+This prepares for a version of do_execvat that takes kernel pointers.
 
-For rmaps, the logic is 1 parent PTE per level, plus a single rmap, and
-prefetched rmaps.  The extra objects in the current '8 + PREFETCH'
-minimum came about due to an abundance of paranoia in commit
-c41ef344de212 ("KVM: MMU: increase per-vcpu rmap cache alloc size"),
-i.e. it could have increased the minimum to 2 rmaps.  Furthermore, the
-unexpected extra rmap case was killed off entirely by commits
-f759e2b4c728c ("KVM: MMU: avoid pte_list_desc running out in
-kvm_mmu_pte_write") and f5a1e9f89504f ("KVM: MMU: remove call to
-kvm_mmu_pte_write from walk_addr").
-
-For the so called page cache, replace '8' with 2*PT64_ROOT_MAX_LEVEL.
-The 2x multiplier is needed because the cache is used for both shadow
-pages and gfn arrays for indirect MMUs.
-
-And finally, for page headers, replace '4' with PT64_ROOT_MAX_LEVEL.
-
-Note, KVM now supports 5-level paging, i.e. the old minimums that used a
-baseline derived from 4-level paging were technically wrong.  But, KVM
-always allocates roots in a separate flow, e.g. it's impossible in the
-current implementation to actually need 5 new shadow pages in a single
-flow.  Use PT64_ROOT_MAX_LEVEL unmodified instead of subtracting 1, as
-the direct usage is likely more intuitive to uninformed readers, and the
-inflated minimum is unlikely to affect functionality in practice.
-
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/x86/kvm/mmu/mmu.c | 9 ++++++---
- 1 file changed, 6 insertions(+), 3 deletions(-)
+ fs/exec.c | 26 ++++++++++++++------------
+ 1 file changed, 14 insertions(+), 12 deletions(-)
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index 4b4c3234d623..451e0365e5dd 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1103,14 +1103,17 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
- {
- 	int r;
- 
-+	/* 1 rmap, 1 parent PTE per level, and the prefetched rmaps. */
- 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
--				   8 + PTE_PREFETCH_NUM);
-+				   1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
- 	if (r)
- 		return r;
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache, 8);
-+	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache,
-+				   2 * PT64_ROOT_MAX_LEVEL);
- 	if (r)
- 		return r;
--	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
-+	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
-+				      PT64_ROOT_MAX_LEVEL);
+diff --git a/fs/exec.c b/fs/exec.c
+index a5d91f8b1341d5..34781db6bf6889 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -435,20 +435,10 @@ static int count_strings(const char __user *const __user *argv)
+ 	return i;
  }
  
- static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+-static int prepare_arg_pages(struct linux_binprm *bprm,
+-		const char __user *const __user *argv,
+-		const char __user *const __user *envp)
++static int check_arg_limit(struct linux_binprm *bprm)
+ {
+ 	unsigned long limit, ptr_size;
+ 
+-	bprm->argc = count_strings(argv);
+-	if (bprm->argc < 0)
+-		return bprm->argc;
+-
+-	bprm->envc = count_strings(envp);
+-	if (bprm->envc < 0)
+-		return bprm->envc;
+-
+ 	/*
+ 	 * Limit to 1/4 of the max stack size or 3/4 of _STK_LIM
+ 	 * (whichever is smaller) for the argv+env strings.
+@@ -1886,7 +1876,19 @@ int do_execveat(int fd, struct filename *filename,
+ 	if (retval)
+ 		goto out_unmark;
+ 
+-	retval = prepare_arg_pages(bprm, argv, envp);
++	bprm->argc = count_strings(argv);
++	if (bprm->argc < 0) {
++		retval = bprm->argc;
++		goto out;
++	}
++
++	bprm->envc = count_strings(envp);
++	if (bprm->envc < 0) {
++		retval = bprm->envc;
++		goto out;
++	}
++
++	retval = check_arg_limit(bprm);
+ 	if (retval < 0)
+ 		goto out;
+ 
 -- 
-2.26.0
+2.26.2
