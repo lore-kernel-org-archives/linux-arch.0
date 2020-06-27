@@ -1,60 +1,63 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: properly support exec with kernel pointers v3
-Date: Sat, 27 Jun 2020 09:26:59 +0200
-Message-ID: <20200627072704.2447163-1-hch@lst.de>
+Subject: [PATCH 3/5] exec: cleanup the count() function
+Date: Sat, 27 Jun 2020 09:27:02 +0200
+Message-ID: <20200627072704.2447163-4-hch@lst.de>
+References: <20200627072704.2447163-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <20200627072704.2447163-1-hch@lst.de>
+Sender: sparclinux-owner@vger.kernel.org
 To: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi all,
+Remove the max argument as it is hard wired to MAX_ARG_STRINGS, and
+give the function a slightly less generic name.
 
-this series first cleans up the exec code and then adds proper
-kernel_execveat and kernel_wait callers instead of relying on the fact
-that the early init code and kernel threads implicitly run with
-the address limit set to KERNEL_DS.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ fs/exec.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-Note that the cleanup removes the compat execve(at) handlers entirely, as
-we can handle the compat difference very nicely in a unified codebase.
-x32 needs two hacky #defines for that for now, although those can go
-away if the x32 syscall rework from Brian gets merged.
-
-I think this is ready to get picked up.  What would the best tree be?
-Most important a git tree would be good, as I have other work building
-on top of it.
-
-
-Changes since v2:
- - drop the kernel_wait addition, as this interacts with a series
-   from Luis and should be merged together with that one
-
-Changes since v1:
- - remove a pointless ifdef from get_user_arg_ptr
- - remove the need for a compat syscall handler for x32
-
-
-Diffstat:
- arch/arm64/include/asm/unistd32.h                  |    4 
- arch/mips/kernel/syscalls/syscall_n32.tbl          |    4 
- arch/mips/kernel/syscalls/syscall_o32.tbl          |    4 
- arch/parisc/kernel/syscalls/syscall.tbl            |    4 
- arch/powerpc/kernel/syscalls/syscall.tbl           |    4 
- arch/s390/kernel/syscalls/syscall.tbl              |    4 
- arch/sparc/kernel/syscalls.S                       |    4 
- arch/x86/entry/syscall_x32.c                       |    7 
- arch/x86/entry/syscalls/syscall_32.tbl             |    4 
- arch/x86/entry/syscalls/syscall_64.tbl             |    4 
- fs/exec.c                                          |  248 ++++++++-------------
- include/linux/binfmts.h                            |   10 
- include/linux/compat.h                             |    7 
- include/uapi/asm-generic/unistd.h                  |    4 
- init/main.c                                        |    5 
- kernel/umh.c                                       |   14 -
- tools/include/uapi/asm-generic/unistd.h            |    4 
- tools/perf/arch/powerpc/entry/syscalls/syscall.tbl |    4 
- tools/perf/arch/s390/entry/syscalls/syscall.tbl    |    4 
- tools/perf/arch/x86/entry/syscalls/syscall_64.tbl  |    4 
- 20 files changed, 149 insertions(+), 198 deletions(-)
+diff --git a/fs/exec.c b/fs/exec.c
+index 4e5db0e35797a5..a5d91f8b1341d5 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -407,9 +407,9 @@ get_user_arg_ptr(const char __user *const __user *argv, int nr)
+ }
+ 
+ /*
+- * count() counts the number of strings in array ARGV.
++ * count_strings() counts the number of strings in array ARGV.
+  */
+-static int count(const char __user *const __user *argv, int max)
++static int count_strings(const char __user *const __user *argv)
+ {
+ 	int i = 0;
+ 
+@@ -423,7 +423,7 @@ static int count(const char __user *const __user *argv, int max)
+ 			if (IS_ERR(p))
+ 				return -EFAULT;
+ 
+-			if (i >= max)
++			if (i >= MAX_ARG_STRINGS)
+ 				return -E2BIG;
+ 			++i;
+ 
+@@ -441,11 +441,11 @@ static int prepare_arg_pages(struct linux_binprm *bprm,
+ {
+ 	unsigned long limit, ptr_size;
+ 
+-	bprm->argc = count(argv, MAX_ARG_STRINGS);
++	bprm->argc = count_strings(argv);
+ 	if (bprm->argc < 0)
+ 		return bprm->argc;
+ 
+-	bprm->envc = count(envp, MAX_ARG_STRINGS);
++	bprm->envc = count_strings(envp);
+ 	if (bprm->envc < 0)
+ 		return bprm->envc;
+ 
+-- 
+2.26.2
