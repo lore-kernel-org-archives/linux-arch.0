@@ -1,253 +1,142 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 1/5] exec: cleanup the execve wrappers
-Date: Sat, 27 Jun 2020 09:27:00 +0200
-Message-ID: <20200627072704.2447163-2-hch@lst.de>
-References: <20200627072704.2447163-1-hch@lst.de>
+From: Syed Nayyar Waris <syednwaris@gmail.com>
+Subject: [PATCH v9 0/4] Introduce the for_each_set_clump macro
+Date: Sat, 27 Jun 2020 13:39:42 +0530
+Message-ID: <cover.1593243079.git.syednwaris@gmail.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200627072704.2447163-1-hch@lst.de>
+Content-Disposition: inline
 Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: andriy.shevchenko@linux.intel.com, vilhelm.gray@gmail.com, michal.simek@xilinx.com, arnd@arndb.de, rrichter@marvell.com, linus.walleij@linaro.org, bgolaszewski@baylibre.com, yamada.masahiro@socionext.com, rui.zhang@intel.com, daniel.lezcano@linaro.org, amit.kucheria@verdurent.com, linux-arch@vger.kernel.org, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Remove a whole bunch of wrappers that eventually all call
-__do_execve_file, and consolidate the execvce helpers to:
+Hello Linus,
 
-  (1) __do_execveat, which is the lowest level helper implementing the
-      actual functionality
-  (2) do_execvat, which is used by all callers that want native
-      pointers
-  (3) do_compat_execve, which is used by all compat syscalls
+Since this patchset primarily affects GPIO drivers, would you like
+to pick it up through your GPIO tree?
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- fs/exec.c               | 98 +++++++++++------------------------------
- include/linux/binfmts.h | 12 ++---
- init/main.c             |  7 +--
- kernel/umh.c            | 16 +++----
- 4 files changed, 41 insertions(+), 92 deletions(-)
+This patchset introduces a new generic version of for_each_set_clump. 
+The previous version of for_each_set_clump8 used a fixed size 8-bit
+clump, but the new generic version can work with clump of any size but
+less than or equal to BITS_PER_LONG. The patchset utilizes the new macro 
+in several GPIO drivers.
 
-diff --git a/fs/exec.c b/fs/exec.c
-index e6e8a9a7032784..354fdaa536ae7d 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -1815,10 +1815,7 @@ static int exec_binprm(struct linux_binprm *bprm)
- 	return 0;
- }
- 
--/*
-- * sys_execve() executes a new program.
-- */
--static int __do_execve_file(int fd, struct filename *filename,
-+static int __do_execveat(int fd, struct filename *filename,
- 			    struct user_arg_ptr argv,
- 			    struct user_arg_ptr envp,
- 			    int flags, struct file *file)
-@@ -1972,74 +1969,16 @@ static int __do_execve_file(int fd, struct filename *filename,
- 	return retval;
- }
- 
--static int do_execveat_common(int fd, struct filename *filename,
--			      struct user_arg_ptr argv,
--			      struct user_arg_ptr envp,
--			      int flags)
--{
--	return __do_execve_file(fd, filename, argv, envp, flags, NULL);
--}
--
--int do_execve_file(struct file *file, void *__argv, void *__envp)
--{
--	struct user_arg_ptr argv = { .ptr.native = __argv };
--	struct user_arg_ptr envp = { .ptr.native = __envp };
--
--	return __do_execve_file(AT_FDCWD, NULL, argv, envp, 0, file);
--}
--
--int do_execve(struct filename *filename,
--	const char __user *const __user *__argv,
--	const char __user *const __user *__envp)
--{
--	struct user_arg_ptr argv = { .ptr.native = __argv };
--	struct user_arg_ptr envp = { .ptr.native = __envp };
--	return do_execveat_common(AT_FDCWD, filename, argv, envp, 0);
--}
--
- int do_execveat(int fd, struct filename *filename,
- 		const char __user *const __user *__argv,
- 		const char __user *const __user *__envp,
--		int flags)
-+		int flags, struct file *file)
- {
- 	struct user_arg_ptr argv = { .ptr.native = __argv };
- 	struct user_arg_ptr envp = { .ptr.native = __envp };
- 
--	return do_execveat_common(fd, filename, argv, envp, flags);
--}
--
--#ifdef CONFIG_COMPAT
--static int compat_do_execve(struct filename *filename,
--	const compat_uptr_t __user *__argv,
--	const compat_uptr_t __user *__envp)
--{
--	struct user_arg_ptr argv = {
--		.is_compat = true,
--		.ptr.compat = __argv,
--	};
--	struct user_arg_ptr envp = {
--		.is_compat = true,
--		.ptr.compat = __envp,
--	};
--	return do_execveat_common(AT_FDCWD, filename, argv, envp, 0);
--}
--
--static int compat_do_execveat(int fd, struct filename *filename,
--			      const compat_uptr_t __user *__argv,
--			      const compat_uptr_t __user *__envp,
--			      int flags)
--{
--	struct user_arg_ptr argv = {
--		.is_compat = true,
--		.ptr.compat = __argv,
--	};
--	struct user_arg_ptr envp = {
--		.is_compat = true,
--		.ptr.compat = __envp,
--	};
--	return do_execveat_common(fd, filename, argv, envp, flags);
-+	return __do_execveat(fd, filename, argv, envp, flags, file);
- }
--#endif
- 
- void set_binfmt(struct linux_binfmt *new)
- {
-@@ -2070,7 +2009,7 @@ SYSCALL_DEFINE3(execve,
- 		const char __user *const __user *, argv,
- 		const char __user *const __user *, envp)
- {
--	return do_execve(getname(filename), argv, envp);
-+	return do_execveat(AT_FDCWD, getname(filename), argv, envp, 0, NULL);
- }
- 
- SYSCALL_DEFINE5(execveat,
-@@ -2080,18 +2019,34 @@ SYSCALL_DEFINE5(execveat,
- 		int, flags)
- {
- 	int lookup_flags = (flags & AT_EMPTY_PATH) ? LOOKUP_EMPTY : 0;
-+	struct filename *name = getname_flags(filename, lookup_flags, NULL);
- 
--	return do_execveat(fd,
--			   getname_flags(filename, lookup_flags, NULL),
--			   argv, envp, flags);
-+	return do_execveat(fd, name, argv, envp, flags, NULL);
- }
- 
- #ifdef CONFIG_COMPAT
-+static int do_compat_execve(int fd, struct filename *filename,
-+		const compat_uptr_t __user *__argv,
-+		const compat_uptr_t __user *__envp,
-+		int flags)
-+{
-+	struct user_arg_ptr argv = {
-+		.is_compat = true,
-+		.ptr.compat = __argv,
-+	};
-+	struct user_arg_ptr envp = {
-+		.is_compat = true,
-+		.ptr.compat = __envp,
-+	};
-+
-+	return __do_execveat(fd, filename, argv, envp, flags, NULL);
-+}
-+
- COMPAT_SYSCALL_DEFINE3(execve, const char __user *, filename,
- 	const compat_uptr_t __user *, argv,
- 	const compat_uptr_t __user *, envp)
- {
--	return compat_do_execve(getname(filename), argv, envp);
-+	return do_compat_execve(AT_FDCWD, getname(filename), argv, envp, 0);
- }
- 
- COMPAT_SYSCALL_DEFINE5(execveat, int, fd,
-@@ -2101,9 +2056,8 @@ COMPAT_SYSCALL_DEFINE5(execveat, int, fd,
- 		       int,  flags)
- {
- 	int lookup_flags = (flags & AT_EMPTY_PATH) ? LOOKUP_EMPTY : 0;
-+	struct filename *name = getname_flags(filename, lookup_flags, NULL);
- 
--	return compat_do_execveat(fd,
--				  getname_flags(filename, lookup_flags, NULL),
--				  argv, envp, flags);
-+	return do_compat_execve(fd, name, argv, envp, flags);
- }
- #endif
-diff --git a/include/linux/binfmts.h b/include/linux/binfmts.h
-index 4a20b7517dd036..bed702e4b1fbd9 100644
---- a/include/linux/binfmts.h
-+++ b/include/linux/binfmts.h
-@@ -134,13 +134,9 @@ int copy_string_kernel(const char *arg, struct linux_binprm *bprm);
- extern void set_binfmt(struct linux_binfmt *new);
- extern ssize_t read_code(struct file *, unsigned long, loff_t, size_t);
- 
--extern int do_execve(struct filename *,
--		     const char __user * const __user *,
--		     const char __user * const __user *);
--extern int do_execveat(int, struct filename *,
--		       const char __user * const __user *,
--		       const char __user * const __user *,
--		       int);
--int do_execve_file(struct file *file, void *__argv, void *__envp);
-+int do_execveat(int fd, struct filename *filename,
-+		const char __user *const __user *__argv,
-+		const char __user *const __user *__envp,
-+		int flags, struct file *file);
- 
- #endif /* _LINUX_BINFMTS_H */
-diff --git a/init/main.c b/init/main.c
-index 0ead83e86b5aa2..838950ea7bca22 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -1329,9 +1329,10 @@ static int run_init_process(const char *init_filename)
- 	pr_debug("  with environment:\n");
- 	for (p = envp_init; *p; p++)
- 		pr_debug("    %s\n", *p);
--	return do_execve(getname_kernel(init_filename),
--		(const char __user *const __user *)argv_init,
--		(const char __user *const __user *)envp_init);
-+	return do_execveat(AT_FDCWD, getname_kernel(init_filename),
-+			(const char __user *const __user *)argv_init,
-+			(const char __user *const __user *)envp_init,
-+			0, NULL);
- }
- 
- static int try_to_run_init_process(const char *init_filename)
-diff --git a/kernel/umh.c b/kernel/umh.c
-index 79f139a7ca03c6..7aa9a5817582ca 100644
---- a/kernel/umh.c
-+++ b/kernel/umh.c
-@@ -103,15 +103,13 @@ static int call_usermodehelper_exec_async(void *data)
- 	commit_creds(new);
- 
- 	sub_info->pid = task_pid_nr(current);
--	if (sub_info->file) {
--		retval = do_execve_file(sub_info->file,
--					sub_info->argv, sub_info->envp);
--		if (!retval)
--			current->flags |= PF_UMH;
--	} else
--		retval = do_execve(getname_kernel(sub_info->path),
--				   (const char __user *const __user *)sub_info->argv,
--				   (const char __user *const __user *)sub_info->envp);
-+	retval = do_execveat(AT_FDCWD,
-+			sub_info->path ? getname_kernel(sub_info->path) : NULL,
-+			(const char __user *const __user *)sub_info->argv,
-+			(const char __user *const __user *)sub_info->envp,
-+			0, sub_info->file);
-+	if (sub_info->file && !retval)
-+		current->flags |= PF_UMH;
- out:
- 	sub_info->retval = retval;
- 	/*
+The earlier 8-bit for_each_set_clump8 facilitated a
+for-loop syntax that iterates over a memory region entire groups of set
+bits at a time.
+
+For example, suppose you would like to iterate over a 32-bit integer 8
+bits at a time, skipping over 8-bit groups with no set bit, where
+XXXXXXXX represents the current 8-bit group:
+
+    Example:        10111110 00000000 11111111 00110011
+    First loop:     10111110 00000000 11111111 XXXXXXXX
+    Second loop:    10111110 00000000 XXXXXXXX 00110011
+    Third loop:     XXXXXXXX 00000000 11111111 00110011
+
+Each iteration of the loop returns the next 8-bit group that has at
+least one set bit.
+
+But with the new for_each_set_clump the clump size can be different from 8 bits.
+Moreover, the clump can be split at word boundary in situations where word 
+size is not multiple of clump size. Following are examples showing the working 
+of new macro for clump sizes of 24 bits and 6 bits.
+
+Example 1:
+clump size: 24 bits, Number of clumps (or ports): 10
+bitmap stores the bit information from where successive clumps are retrieved.
+
+     /* bitmap memory region */
+        0x00aa0000ff000000;  /* Most significant bits */
+        0xaaaaaa0000ff0000;
+        0x000000aa000000aa;
+        0xbbbbabcdeffedcba;  /* Least significant bits */
+
+Different iterations of for_each_set_clump:-
+'offset' is the bit position and 'clump' is the 24 bit clump from the
+above bitmap.
+Iteration first:        offset: 0 clump: 0xfedcba
+Iteration second:       offset: 24 clump: 0xabcdef
+Iteration third:        offset: 48 clump: 0xaabbbb
+Iteration fourth:       offset: 96 clump: 0xaa
+Iteration fifth:        offset: 144 clump: 0xff
+Iteration sixth:        offset: 168 clump: 0xaaaaaa
+Iteration seventh:      offset: 216 clump: 0xff
+Loop breaks because in the end the remaining bits (0x00aa) size was less
+than clump size of 24 bits.
+
+In above example it can be seen that in iteration third, the 24 bit clump
+that was retrieved was split between bitmap[0] and bitmap[1]. This example 
+also shows that 24 bit zeroes if present in between, were skipped (preserving
+the previous for_each_set_macro8 behaviour). 
+
+Example 2:
+clump size = 6 bits, Number of clumps (or ports) = 3.
+
+     /* bitmap memory region */
+        0x00aa0000ff000000;  /* Most significant bits */
+        0xaaaaaa0000ff0000;
+        0x0f00000000000000;
+        0x0000000000000ac0;  /* Least significant bits */
+
+Different iterations of for_each_set_clump:
+'offset' is the bit position and 'clump' is the 6 bit clump from the
+above bitmap.
+Iteration first:        offset: 6 clump: 0x2b
+Loop breaks because 6 * 3 = 18 bits traversed in bitmap.
+Here 6 * 3 is clump size * no. of clumps.
+
+Changes in v9:
+ - [Patch 4/4]: Remove looping of 'for_each_set_clump' and instead process two 
+   halves of a 64-bit bitmap separately or individually. Use normal spin_lock 
+   call for second inner lock. And take the spin_lock_init call outside the 'if'
+   condition in the probe function of driver.
+
+Changes in v8:
+ - [Patch 2/4]: Minor change: Use '__initdata' for correct section mismatch
+   in 'clump_test_data' array.
+
+Changes in v7:
+ - [Patch 2/4]: Minor changes: Use macro 'DECLARE_BITMAP()' and split 'struct'
+   definition and test data.
+
+Changes in v6:
+ - [Patch 2/4]: Make 'for loop' inside test_for_each_set_clump more
+   succinct.
+
+Changes in v5:
+ - [Patch 4/4]: Minor change: Hardcode value for better code readability.
+
+Changes in v4:
+ - [Patch 2/4]: Use 'for' loop in test function of for_each_set_clump.
+ - [Patch 3/4]: Minor change: Inline value for better code readability.
+ - [Patch 4/4]: Minor change: Inline value for better code readability.
+
+Changes in v3:
+ - [Patch 3/4]: Change datatype of some variables from u64 to unsigned long
+   in function thunderx_gpio_set_multiple.
+
+CHanges in v2:
+ - [Patch 2/4]: Unify different tests for 'for_each_set_clump'. Pass test data as
+   function parameters.
+ - [Patch 2/4]: Remove unnecessary bitmap_zero calls.
+
+Syed Nayyar Waris (4):
+  bitops: Introduce the for_each_set_clump macro
+  lib/test_bitmap.c: Add for_each_set_clump test cases
+  gpio: thunderx: Utilize for_each_set_clump macro
+  gpio: xilinx: Utilize generic bitmap_get_value and _set_value.
+
+ drivers/gpio/gpio-thunderx.c      |  11 ++-
+ drivers/gpio/gpio-xilinx.c        |  66 +++++++-------
+ include/asm-generic/bitops/find.h |  19 ++++
+ include/linux/bitmap.h            |  61 +++++++++++++
+ include/linux/bitops.h            |  13 +++
+ lib/find_bit.c                    |  14 +++
+ lib/test_bitmap.c                 | 145 ++++++++++++++++++++++++++++++
+ 7 files changed, 292 insertions(+), 37 deletions(-)
+
+
+base-commit: b3a9e3b9622ae10064826dccb4f7a52bd88c7407
 -- 
 2.26.2
