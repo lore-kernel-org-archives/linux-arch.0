@@ -1,24 +1,29 @@
 From: Christophe Leroy <christophe.leroy@csgroup.eu>
 Subject: Re: [PATCH V3 2/4] mm/debug_vm_pgtable: Add tests validating advanced
  arch page table helpers
-Date: Sat, 27 Jun 2020 09:18:41 +0200
-Message-ID: <6da177e6-9219-9ccf-a402-f4293c7564f7@csgroup.eu>
+Date: Sat, 27 Jun 2020 09:26:55 +0200
+Message-ID: <4da41eee-5ce0-2a5e-40eb-4424655b3489@csgroup.eu>
 References: <1592192277-8421-1-git-send-email-anshuman.khandual@arm.com>
  <1592192277-8421-3-git-send-email-anshuman.khandual@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pegase1.c-s.fr ([93.17.236.30]:59605 "EHLO pegase1.c-s.fr"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725926AbgF0HTM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 27 Jun 2020 03:19:12 -0400
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
 In-Reply-To: <1592192277-8421-3-git-send-email-anshuman.khandual@arm.com>
 Content-Language: fr
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
 To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
-Cc: christophe.leroy@c-s.fr, ziy@nvidia.com, gerald.schaefer@de.ibm.com, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>Palmer Dabbelt <pa>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, gerald.schaefer@de.ibm.com, ziy@nvidia.com, Catalin Marinas <catalin.marinas@arm.com>, linux-snps-arc@lists.infradead.org, Vasily Gorbik <gor@linux.ibm.com>, Borislav Petkov <bp@alien8.de>, Paul Walmsley <paul.walmsley@sifive.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Vineet Gupta <vgupta@synopsys.com>, linux-kernel@vger.kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@list
+List-Id: linux-arch.vger.kernel.org
 
 
 
@@ -97,6 +102,9 @@ Le 15/06/2020 à 05:37, Anshuman Khandual a écrit :
 > +static void __init pte_advanced_tests(struct mm_struct *mm,
 > +			struct vm_area_struct *vma, pte_t *ptep,
 > +			unsigned long pfn, unsigned long vaddr, pgprot_t prot)
+
+Align args properly.
+
 > +{
 > +	pte_t pte = pfn_pte(pfn, prot);
 > +
@@ -104,18 +112,12 @@ Le 15/06/2020 à 05:37, Anshuman Khandual a écrit :
 > +	set_pte_at(mm, vaddr, ptep, pte);
 > +	ptep_set_wrprotect(mm, vaddr, ptep);
 > +	pte = READ_ONCE(*ptep);
-
-same
-
 > +	WARN_ON(pte_write(pte));
 > +
 > +	pte = pfn_pte(pfn, prot);
 > +	set_pte_at(mm, vaddr, ptep, pte);
 > +	ptep_get_and_clear(mm, vaddr, ptep);
 > +	pte = READ_ONCE(*ptep);
-
-same
-
 > +	WARN_ON(!pte_none(pte));
 > +
 > +	pte = pfn_pte(pfn, prot);
@@ -126,27 +128,18 @@ same
 > +	pte = pte_mkdirty(pte);
 > +	ptep_set_access_flags(vma, vaddr, ptep, pte, 1);
 > +	pte = READ_ONCE(*ptep);
-
-same
-
 > +	WARN_ON(!(pte_write(pte) && pte_dirty(pte)));
 > +
 > +	pte = pfn_pte(pfn, prot);
 > +	set_pte_at(mm, vaddr, ptep, pte);
 > +	ptep_get_and_clear_full(mm, vaddr, ptep, 1);
 > +	pte = READ_ONCE(*ptep);
-
-same
-
 > +	WARN_ON(!pte_none(pte));
 > +
 > +	pte = pte_mkyoung(pte);
 > +	set_pte_at(mm, vaddr, ptep, pte);
 > +	ptep_test_and_clear_young(vma, vaddr, ptep);
 > +	pte = READ_ONCE(*ptep);
-
-same
-
 > +	WARN_ON(pte_young(pte));
 > +}
 > +
@@ -167,6 +160,9 @@ same
 > +static void __init pmd_advanced_tests(struct mm_struct *mm,
 > +		struct vm_area_struct *vma, pmd_t *pmdp,
 > +		unsigned long pfn, unsigned long vaddr, pgprot_t prot)
+
+Align args properly
+
 > +{
 > +	pmd_t pmd = pfn_pmd(pfn, prot);
 > +
@@ -258,6 +254,9 @@ same
 > +static void pud_advanced_tests(struct mm_struct *mm,
 > +		struct vm_area_struct *vma, pud_t *pudp,
 > +		unsigned long pfn, unsigned long vaddr, pgprot_t prot)
+
+Align args properly
+
 > +{
 > +	pud_t pud = pfn_pud(pfn, prot);
 > +
@@ -334,6 +333,9 @@ same
 > +static void pud_advanced_tests(struct mm_struct *mm,
 > +		struct vm_area_struct *vma, pud_t *pudp,
 > +		unsigned long pfn, unsigned long vaddr, pgprot_t prot)
+
+Align args properly
+
 > +{
 > +}
 > +static void __init pud_leaf_tests(unsigned long pfn, pgprot_t prot) { }
@@ -347,11 +349,17 @@ same
 > +static void __init pmd_advanced_tests(struct mm_struct *mm,
 > +		struct vm_area_struct *vma, pmd_t *pmdp,
 > +		unsigned long pfn, unsigned long vaddr, pgprot_t prot)
+
+Align args properly
+
 > +{
 > +}
 > +static void __init pud_advanced_tests(struct mm_struct *mm,
 > +		struct vm_area_struct *vma, pud_t *pudp,
 > +		unsigned long pfn, unsigned long vaddr, pgprot_t prot)
+
+Align args properly
+
 > +{
 > +}
 > +static void __init pmd_leaf_tests(unsigned long pfn, pgprot_t prot) { }
@@ -378,9 +386,6 @@ same
 > +{
 > +	struct page *page = pfn_to_page(pfn);
 > +	pte_t pte = READ_ONCE(*ptep);
-
-Remplace with ptep_get() to avoid build failure on powerpc 8xx.
-
 > +	unsigned long paddr = (__pfn_to_phys(pfn) | RANDOM_ORVALUE) & PMD_MASK;
 > +
 > +	pte = pte_mkhuge(mk_pte(pfn_to_page(PHYS_PFN(paddr)), prot));
