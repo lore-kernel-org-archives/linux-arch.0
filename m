@@ -1,63 +1,258 @@
-Return-Path: <SRS0=444k=AH=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50894 "EHLO
+Return-Path: <SRS0=u+st=AI=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58536 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725833AbgFZVXN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Jun 2020 17:23:13 -0400
-Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8948FC03E97B
-        for <linux-arch@vger.kernel.org>; Fri, 26 Jun 2020 14:23:12 -0700 (PDT)
-Received: by mail-pl1-x643.google.com with SMTP id x8so3817970plm.10
-        for <linux-arch@vger.kernel.org>; Fri, 26 Jun 2020 14:23:12 -0700 (PDT)
+        with ESMTP id S1725885AbgF0H1f (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 Jun 2020 03:27:35 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 1/5] exec: cleanup the execve wrappers
+Date: Sat, 27 Jun 2020 09:27:00 +0200
+Message-ID: <20200627072704.2447163-2-hch@lst.de>
+In-Reply-To: <20200627072704.2447163-1-hch@lst.de>
+References: <20200627072704.2447163-1-hch@lst.de>
 MIME-Version: 1.0
-References: <20200626210917.358969-1-brendanhiggins@google.com>
- <20200626210917.358969-3-brendanhiggins@google.com> <202006261420.02E8E62@keescook>
-In-Reply-To: <202006261420.02E8E62@keescook>
-From: Brendan Higgins <brendanhiggins@google.com>
-Date: Fri, 26 Jun 2020 14:23:00 -0700
-Message-ID: <CAFd5g47ZKJHzseyZT73uYB+EpAkyfN+gBj5X8ufZVnD6eG19eQ@mail.gmail.com>
-Subject: Re: [PATCH v5 02/12] arch: arm64: add linker section for KUnit test suites
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Frank Rowand <frowand.list@gmail.com>, catalin.marinas@arm.com, will@kernel.org, monstr@monstr.eu, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, paulus@samba.org, chris@zankel.net, jcmvbkbc@gmail.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linuxppc-dev@lists.ozlabs.org, linux-xtensa@linux-xtensa.org
-Message-ID: <20200626212300.E2FqOY7brlFAir4IhxP2UHF7zHebKQjBu5ob1gnzjsc@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200627072700.cujQ24dXgARv24UI2qMaYp0d4b2PxkrQnhy1HsoPIkc@z>
 
-On Fri, Jun 26, 2020 at 2:20 PM Kees Cook <keescook@chromium.org> wrote:
->
-> On Fri, Jun 26, 2020 at 02:09:07PM -0700, Brendan Higgins wrote:
-> > Add a linker section to arm64 where KUnit can put references to its test
-> > suites. This patch is an early step in transitioning to dispatching all
-> > KUnit tests from a centralized executor rather than having each as its
-> > own separate late_initcall.
-> >
-> > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> > ---
-> >  arch/arm64/kernel/vmlinux.lds.S | 3 +++
-> >  1 file changed, 3 insertions(+)
-> >
-> > diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-> > index 6827da7f3aa54..a1cae9cc655d7 100644
-> > --- a/arch/arm64/kernel/vmlinux.lds.S
-> > +++ b/arch/arm64/kernel/vmlinux.lds.S
-> > @@ -181,6 +181,9 @@ SECTIONS
-> >               INIT_RAM_FS
-> >               *(.init.rodata.* .init.bss)     /* from the EFI stub */
-> >       }
-> > +     .kunit_test_suites : {
-> > +             KUNIT_TEST_SUITES
-> > +     }
->
-> See my reply to 01/12. Then this patch can be dropped. :)
+Remove a whole bunch of wrappers that eventually all call
+__do_execve_file, and consolidate the execvce helpers to:
 
-Sweet, presumably this one and others.
+  (1) __do_execveat, which is the lowest level helper implementing the
+      actual functionality
+  (2) do_execvat, which is used by all callers that want native
+      pointers
+  (3) do_compat_execve, which is used by all compat syscalls
 
-> >       .exit.data : {
-> >               EXIT_DATA
-> >       }
-> > --
-> > 2.27.0.212.ge8ba1cc988-goog
-> >
->
-> --
-> Kees Cook
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ fs/exec.c               | 98 +++++++++++------------------------------
+ include/linux/binfmts.h | 12 ++---
+ init/main.c             |  7 +--
+ kernel/umh.c            | 16 +++----
+ 4 files changed, 41 insertions(+), 92 deletions(-)
+
+diff --git a/fs/exec.c b/fs/exec.c
+index e6e8a9a7032784..354fdaa536ae7d 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1815,10 +1815,7 @@ static int exec_binprm(struct linux_binprm *bprm)
+ 	return 0;
+ }
+ 
+-/*
+- * sys_execve() executes a new program.
+- */
+-static int __do_execve_file(int fd, struct filename *filename,
++static int __do_execveat(int fd, struct filename *filename,
+ 			    struct user_arg_ptr argv,
+ 			    struct user_arg_ptr envp,
+ 			    int flags, struct file *file)
+@@ -1972,74 +1969,16 @@ static int __do_execve_file(int fd, struct filename *filename,
+ 	return retval;
+ }
+ 
+-static int do_execveat_common(int fd, struct filename *filename,
+-			      struct user_arg_ptr argv,
+-			      struct user_arg_ptr envp,
+-			      int flags)
+-{
+-	return __do_execve_file(fd, filename, argv, envp, flags, NULL);
+-}
+-
+-int do_execve_file(struct file *file, void *__argv, void *__envp)
+-{
+-	struct user_arg_ptr argv = { .ptr.native = __argv };
+-	struct user_arg_ptr envp = { .ptr.native = __envp };
+-
+-	return __do_execve_file(AT_FDCWD, NULL, argv, envp, 0, file);
+-}
+-
+-int do_execve(struct filename *filename,
+-	const char __user *const __user *__argv,
+-	const char __user *const __user *__envp)
+-{
+-	struct user_arg_ptr argv = { .ptr.native = __argv };
+-	struct user_arg_ptr envp = { .ptr.native = __envp };
+-	return do_execveat_common(AT_FDCWD, filename, argv, envp, 0);
+-}
+-
+ int do_execveat(int fd, struct filename *filename,
+ 		const char __user *const __user *__argv,
+ 		const char __user *const __user *__envp,
+-		int flags)
++		int flags, struct file *file)
+ {
+ 	struct user_arg_ptr argv = { .ptr.native = __argv };
+ 	struct user_arg_ptr envp = { .ptr.native = __envp };
+ 
+-	return do_execveat_common(fd, filename, argv, envp, flags);
+-}
+-
+-#ifdef CONFIG_COMPAT
+-static int compat_do_execve(struct filename *filename,
+-	const compat_uptr_t __user *__argv,
+-	const compat_uptr_t __user *__envp)
+-{
+-	struct user_arg_ptr argv = {
+-		.is_compat = true,
+-		.ptr.compat = __argv,
+-	};
+-	struct user_arg_ptr envp = {
+-		.is_compat = true,
+-		.ptr.compat = __envp,
+-	};
+-	return do_execveat_common(AT_FDCWD, filename, argv, envp, 0);
+-}
+-
+-static int compat_do_execveat(int fd, struct filename *filename,
+-			      const compat_uptr_t __user *__argv,
+-			      const compat_uptr_t __user *__envp,
+-			      int flags)
+-{
+-	struct user_arg_ptr argv = {
+-		.is_compat = true,
+-		.ptr.compat = __argv,
+-	};
+-	struct user_arg_ptr envp = {
+-		.is_compat = true,
+-		.ptr.compat = __envp,
+-	};
+-	return do_execveat_common(fd, filename, argv, envp, flags);
++	return __do_execveat(fd, filename, argv, envp, flags, file);
+ }
+-#endif
+ 
+ void set_binfmt(struct linux_binfmt *new)
+ {
+@@ -2070,7 +2009,7 @@ SYSCALL_DEFINE3(execve,
+ 		const char __user *const __user *, argv,
+ 		const char __user *const __user *, envp)
+ {
+-	return do_execve(getname(filename), argv, envp);
++	return do_execveat(AT_FDCWD, getname(filename), argv, envp, 0, NULL);
+ }
+ 
+ SYSCALL_DEFINE5(execveat,
+@@ -2080,18 +2019,34 @@ SYSCALL_DEFINE5(execveat,
+ 		int, flags)
+ {
+ 	int lookup_flags = (flags & AT_EMPTY_PATH) ? LOOKUP_EMPTY : 0;
++	struct filename *name = getname_flags(filename, lookup_flags, NULL);
+ 
+-	return do_execveat(fd,
+-			   getname_flags(filename, lookup_flags, NULL),
+-			   argv, envp, flags);
++	return do_execveat(fd, name, argv, envp, flags, NULL);
+ }
+ 
+ #ifdef CONFIG_COMPAT
++static int do_compat_execve(int fd, struct filename *filename,
++		const compat_uptr_t __user *__argv,
++		const compat_uptr_t __user *__envp,
++		int flags)
++{
++	struct user_arg_ptr argv = {
++		.is_compat = true,
++		.ptr.compat = __argv,
++	};
++	struct user_arg_ptr envp = {
++		.is_compat = true,
++		.ptr.compat = __envp,
++	};
++
++	return __do_execveat(fd, filename, argv, envp, flags, NULL);
++}
++
+ COMPAT_SYSCALL_DEFINE3(execve, const char __user *, filename,
+ 	const compat_uptr_t __user *, argv,
+ 	const compat_uptr_t __user *, envp)
+ {
+-	return compat_do_execve(getname(filename), argv, envp);
++	return do_compat_execve(AT_FDCWD, getname(filename), argv, envp, 0);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE5(execveat, int, fd,
+@@ -2101,9 +2056,8 @@ COMPAT_SYSCALL_DEFINE5(execveat, int, fd,
+ 		       int,  flags)
+ {
+ 	int lookup_flags = (flags & AT_EMPTY_PATH) ? LOOKUP_EMPTY : 0;
++	struct filename *name = getname_flags(filename, lookup_flags, NULL);
+ 
+-	return compat_do_execveat(fd,
+-				  getname_flags(filename, lookup_flags, NULL),
+-				  argv, envp, flags);
++	return do_compat_execve(fd, name, argv, envp, flags);
+ }
+ #endif
+diff --git a/include/linux/binfmts.h b/include/linux/binfmts.h
+index 4a20b7517dd036..bed702e4b1fbd9 100644
+--- a/include/linux/binfmts.h
++++ b/include/linux/binfmts.h
+@@ -134,13 +134,9 @@ int copy_string_kernel(const char *arg, struct linux_binprm *bprm);
+ extern void set_binfmt(struct linux_binfmt *new);
+ extern ssize_t read_code(struct file *, unsigned long, loff_t, size_t);
+ 
+-extern int do_execve(struct filename *,
+-		     const char __user * const __user *,
+-		     const char __user * const __user *);
+-extern int do_execveat(int, struct filename *,
+-		       const char __user * const __user *,
+-		       const char __user * const __user *,
+-		       int);
+-int do_execve_file(struct file *file, void *__argv, void *__envp);
++int do_execveat(int fd, struct filename *filename,
++		const char __user *const __user *__argv,
++		const char __user *const __user *__envp,
++		int flags, struct file *file);
+ 
+ #endif /* _LINUX_BINFMTS_H */
+diff --git a/init/main.c b/init/main.c
+index 0ead83e86b5aa2..838950ea7bca22 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -1329,9 +1329,10 @@ static int run_init_process(const char *init_filename)
+ 	pr_debug("  with environment:\n");
+ 	for (p = envp_init; *p; p++)
+ 		pr_debug("    %s\n", *p);
+-	return do_execve(getname_kernel(init_filename),
+-		(const char __user *const __user *)argv_init,
+-		(const char __user *const __user *)envp_init);
++	return do_execveat(AT_FDCWD, getname_kernel(init_filename),
++			(const char __user *const __user *)argv_init,
++			(const char __user *const __user *)envp_init,
++			0, NULL);
+ }
+ 
+ static int try_to_run_init_process(const char *init_filename)
+diff --git a/kernel/umh.c b/kernel/umh.c
+index 79f139a7ca03c6..7aa9a5817582ca 100644
+--- a/kernel/umh.c
++++ b/kernel/umh.c
+@@ -103,15 +103,13 @@ static int call_usermodehelper_exec_async(void *data)
+ 	commit_creds(new);
+ 
+ 	sub_info->pid = task_pid_nr(current);
+-	if (sub_info->file) {
+-		retval = do_execve_file(sub_info->file,
+-					sub_info->argv, sub_info->envp);
+-		if (!retval)
+-			current->flags |= PF_UMH;
+-	} else
+-		retval = do_execve(getname_kernel(sub_info->path),
+-				   (const char __user *const __user *)sub_info->argv,
+-				   (const char __user *const __user *)sub_info->envp);
++	retval = do_execveat(AT_FDCWD,
++			sub_info->path ? getname_kernel(sub_info->path) : NULL,
++			(const char __user *const __user *)sub_info->argv,
++			(const char __user *const __user *)sub_info->envp,
++			0, sub_info->file);
++	if (sub_info->file && !retval)
++		current->flags |= PF_UMH;
+ out:
+ 	sub_info->retval = retval;
+ 	/*
+-- 
+2.26.2
