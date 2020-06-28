@@ -1,151 +1,52 @@
-From: Masahiro Yamada <masahiroy@kernel.org>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Date: Mon, 29 Jun 2020 01:56:19 +0900
-Message-ID: <CAK7LNASvb0UDJ0U5wkYYRzTAdnEs64HjXpEUL7d=V0CXiAXcNw@mail.gmail.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
+From: John Scott Younger <william1noah12@gmail.com>
+Subject: Your attention to this news update.
+Date: Sun, 28 Jun 2020 18:38:41 +0100
+Message-ID: <CANHFD5_deBPaA8fm6D5kW=LvS1zY2dxVm6ShER3SGELz3T+5vw@mail.gmail.com>
+Reply-To: mrjohnscottyounger35@gmail.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-04.nifty.com ([210.131.2.83]:22233 "EHLO
-        conssluserg-04.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726040AbgF1Q5W (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 28 Jun 2020 12:57:22 -0400
-In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60304 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726622AbgF1Rio (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 28 Jun 2020 13:38:44 -0400
+Received: from mail-lj1-x244.google.com (mail-lj1-x244.google.com [IPv6:2a00:1450:4864:20::244])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B52DDC03E97A
+        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 10:38:43 -0700 (PDT)
+Received: by mail-lj1-x244.google.com with SMTP id n24so15538422lji.10
+        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 10:38:43 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>
 
-On Thu, Jun 25, 2020 at 5:32 AM 'Sami Tolvanen' via Clang Built Linux
-<clang-built-linux@googlegroups.com> wrote:
->
-> This patch series adds support for building x86_64 and arm64 kernels
-> with Clang's Link Time Optimization (LTO).
->
-> In addition to performance, the primary motivation for LTO is to allow
-> Clang's Control-Flow Integrity (CFI) to be used in the kernel. Google's
-> Pixel devices have shipped with LTO+CFI kernels since 2018.
->
-> Most of the patches are build system changes for handling LLVM bitcode,
-> which Clang produces with LTO instead of ELF object files, postponing
-> ELF processing until a later stage, and ensuring initcall ordering.
->
-> Note that first objtool patch in the series is already in linux-next,
-> but as it's needed with LTO, I'm including it also here to make testing
-> easier.
+-- 
+Your attention to this news update.
 
+The report / analysis received from our correspondence shows that you
+have NOT received your PAYMENT, due to administrative injustice from
+unpatriotic and uncivil payment officials. Following the resolution of
+the U.S Department of State, you are mandated to kindly reinstate your
+fund acquisition details for accreditation.
 
-I put this series on a testing branch,
-and 0-day bot started reporting some issues.
+Sequel to the joint /collaborative effort by United Nations and US
+Department of State, to review, nullify and release all STOP ORDER on
+beneficiary transferred sum and consignment HELD at custom port
+authorities. At this juncture, you are advised to forward information
+of agencies that has put a HOLD on your consignment or STOP ORDER on
+your transferred sum.
 
-(but 0-day bot is quieter than I expected.
-Perhaps, 0-day bot does not turn on LLVM=1 ?)
+This office is commission to investigate/rectify ISSUES affecting
+beneficiaries whose payment is HELD/STOP unjustly with the intent of
+demanding un-official fees/levies. Be informed that all administrative
+injustice imposed on beneficiaries by some dubious person(s) has come
+to the knowledge of oversight committee of United Nations and US
+Department of State.
 
+Thus our objective is to resolve all challenges facing release of your
+payment. Therefore get back to my office with the required information
+for assessment.
 
+Our in service,
 
-I also got an error for
-ARCH=arm64 allyesconfig + CONFIG_LTO_CLANG=y
-
-
-
-$ make ARCH=arm64 LLVM=1 LLVM_IAS=1
-CROSS_COMPILE=~/tools/aarch64-linaro-7.5/bin/aarch64-linux-gnu-
--j24
-
-  ...
-
-  GEN     .version
-  CHK     include/generated/compile.h
-  UPD     include/generated/compile.h
-  CC      init/version.o
-  AR      init/built-in.a
-  GEN     .tmp_initcalls.lds
-  GEN     .tmp_symversions.lds
-  LTO     vmlinux.o
-  MODPOST vmlinux.symvers
-  MODINFO modules.builtin.modinfo
-  GEN     modules.builtin
-  LD      .tmp_vmlinux.kallsyms1
-ld.lld: error: undefined symbol: __compiletime_assert_905
->>> referenced by irqbypass.c
->>>               vmlinux.o:(jeq_imm)
-make: *** [Makefile:1161: vmlinux] Error 1
-
-
-
-
-
-
-
-
-> Sami Tolvanen (22):
->   objtool: use sh_info to find the base for .rela sections
->   kbuild: add support for Clang LTO
->   kbuild: lto: fix module versioning
->   kbuild: lto: fix recordmcount
->   kbuild: lto: postpone objtool
->   kbuild: lto: limit inlining
->   kbuild: lto: merge module sections
->   kbuild: lto: remove duplicate dependencies from .mod files
->   init: lto: ensure initcall ordering
->   init: lto: fix PREL32 relocations
->   pci: lto: fix PREL32 relocations
->   modpost: lto: strip .lto from module names
->   scripts/mod: disable LTO for empty.c
->   efi/libstub: disable LTO
->   drivers/misc/lkdtm: disable LTO for rodata.o
->   arm64: export CC_USING_PATCHABLE_FUNCTION_ENTRY
->   arm64: vdso: disable LTO
->   arm64: allow LTO_CLANG and THINLTO to be selected
->   x86, vdso: disable LTO only for vDSO
->   x86, ftrace: disable recordmcount for ftrace_make_nop
->   x86, relocs: Ignore L4_PAGE_OFFSET relocations
->   x86, build: allow LTO_CLANG and THINLTO to be selected
->
->  .gitignore                            |   1 +
->  Makefile                              |  27 ++-
->  arch/Kconfig                          |  65 +++++++
->  arch/arm64/Kconfig                    |   2 +
->  arch/arm64/Makefile                   |   1 +
->  arch/arm64/kernel/vdso/Makefile       |   4 +-
->  arch/x86/Kconfig                      |   2 +
->  arch/x86/Makefile                     |   5 +
->  arch/x86/entry/vdso/Makefile          |   5 +-
->  arch/x86/kernel/ftrace.c              |   1 +
->  arch/x86/tools/relocs.c               |   1 +
->  drivers/firmware/efi/libstub/Makefile |   2 +
->  drivers/misc/lkdtm/Makefile           |   1 +
->  include/asm-generic/vmlinux.lds.h     |  12 +-
->  include/linux/compiler-clang.h        |   4 +
->  include/linux/compiler.h              |   2 +-
->  include/linux/compiler_types.h        |   4 +
->  include/linux/init.h                  |  78 +++++++-
->  include/linux/pci.h                   |  15 +-
->  kernel/trace/ftrace.c                 |   1 +
->  lib/Kconfig.debug                     |   2 +-
->  scripts/Makefile.build                |  55 +++++-
->  scripts/Makefile.lib                  |   6 +-
->  scripts/Makefile.modfinal             |  40 +++-
->  scripts/Makefile.modpost              |  26 ++-
->  scripts/generate_initcall_order.pl    | 270 ++++++++++++++++++++++++++
->  scripts/link-vmlinux.sh               | 100 +++++++++-
->  scripts/mod/Makefile                  |   1 +
->  scripts/mod/modpost.c                 |  16 +-
->  scripts/mod/modpost.h                 |   9 +
->  scripts/mod/sumversion.c              |   6 +-
->  scripts/module-lto.lds                |  26 +++
->  scripts/recordmcount.c                |   3 +-
->  tools/objtool/elf.c                   |   2 +-
->  34 files changed, 737 insertions(+), 58 deletions(-)
->  create mode 100755 scripts/generate_initcall_order.pl
->  create mode 100644 scripts/module-lto.lds
->
->
-> base-commit: 26e122e97a3d0390ebec389347f64f3730fdf48f
-> --
-> 2.27.0.212.ge8ba1cc988-goog
->
-> --
-> You received this message because you are subscribed to the Google Groups "Clang Built Linux" group.
-> To unsubscribe from this group and stop receiving emails from it, send an email to clang-built-linux+unsubscribe@googlegroups.com.
-> To view this discussion on the web visit https://groups.google.com/d/msgid/clang-built-linux/20200624203200.78870-1-samitolvanen%40google.com.
+John Scott Younger
+Human Right Activist
+Tel:- + 44 770 002 8251
