@@ -1,15 +1,15 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 02/41] x86: copy_fpstate_to_sigframe(): have fpregs_soft_get() use kernel buffer
-Date: Mon, 29 Jun 2020 19:25:49 +0100
-Message-ID: <20200629182628.529995-2-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 10/41] sparc32: get rid of odd callers of copy_regset_to_user()
+Date: Mon, 29 Jun 2020 19:25:57 +0100
+Message-ID: <20200629182628.529995-10-viro@ZenIV.linux.org.uk>
 References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
  <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38382 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38368 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729056AbgF2Smo (ORCPT
+        with ESMTP id S1728164AbgF2Smo (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:44 -0400
 In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
@@ -19,37 +19,172 @@ Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <dave
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-... then copy_to_user() the results
+the life is much simpler if copy_regset_to_user() (and ->get())
+gets called only with pos == 0; sparc32 PTRACE_GETREGS and
+PTRACE_GETFPREGS are among the few things that use it to fetch
+pieces of regset _not_ starting at the beginning.  It's actually
+easier to define a separate regset that would provide what
+we need, rather than trying to cobble that from the one
+PTRACE_GETREGSET uses.
+
+Extra ->get() instances do not amount to much code and once
+we get the conversion of ->get() to new API (dependent upon the
+lack of weird callers of ->get()) they'll shrink a lot, along
+with the rest of ->get() instances...
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/x86/kernel/fpu/signal.c | 12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+ arch/sparc/kernel/ptrace_32.c | 117 +++++++++++++++++++++++++++++-------------
+ 1 file changed, 82 insertions(+), 35 deletions(-)
 
-diff --git a/arch/x86/kernel/fpu/signal.c b/arch/x86/kernel/fpu/signal.c
-index 9393a445d73c..e0b832df7404 100644
---- a/arch/x86/kernel/fpu/signal.c
-+++ b/arch/x86/kernel/fpu/signal.c
-@@ -170,14 +170,14 @@ int copy_fpstate_to_sigframe(void __user *buf, void __user *buf_fx, int size)
- 	ia32_fxstate &= (IS_ENABLED(CONFIG_X86_32) ||
- 			 IS_ENABLED(CONFIG_IA32_EMULATION));
+diff --git a/arch/sparc/kernel/ptrace_32.c b/arch/sparc/kernel/ptrace_32.c
+index 47eb315d411c..f72b7d2c4716 100644
+--- a/arch/sparc/kernel/ptrace_32.c
++++ b/arch/sparc/kernel/ptrace_32.c
+@@ -99,15 +99,13 @@ static int genregs32_get(struct task_struct *target,
+ 	if (ret || !count)
+ 		return ret;
  
-+	if (!static_cpu_has(X86_FEATURE_FPU)) {
-+		struct user_i387_ia32_struct fp;
-+		fpregs_soft_get(current, NULL, 0, sizeof(fp), &fp, NULL);
-+		return copy_to_user(buf, &fp, sizeof(fp)) ? -EFAULT : 0;
-+	}
+-	if (pos < 32 * sizeof(u32)) {
+-		if (regwindow32_get(target, regs, uregs))
+-			return -EFAULT;
+-		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
+-					  uregs,
+-					  16 * sizeof(u32), 32 * sizeof(u32));
+-		if (ret || !count)
+-			return ret;
+-	}
++	if (regwindow32_get(target, regs, uregs))
++		return -EFAULT;
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  uregs,
++				  16 * sizeof(u32), 32 * sizeof(u32));
++	if (ret)
++		return ret;
+ 
+ 	uregs[0] = regs->psr;
+ 	uregs[1] = regs->pc;
+@@ -288,6 +286,73 @@ static const struct user_regset sparc32_regsets[] = {
+ 	},
+ };
+ 
++static int getregs_get(struct task_struct *target,
++			 const struct user_regset *regset,
++			 unsigned int pos, unsigned int count,
++			 void *kbuf, void __user *ubuf)
++{
++	const struct pt_regs *regs = target->thread.kregs;
++	u32 v[4];
++	int ret;
 +
- 	if (!access_ok(buf, size))
- 		return -EACCES;
++	if (target == current)
++		flush_user_windows();
++
++	v[0] = regs->psr;
++	v[1] = regs->pc;
++	v[2] = regs->npc;
++	v[3] = regs->y;
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  v,
++				  0 * sizeof(u32), 4 * sizeof(u32));
++	if (ret)
++		return ret;
++
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  regs->u_regs + 1,
++				  4 * sizeof(u32), 19 * sizeof(u32));
++}
++
++static int getfpregs_get(struct task_struct *target,
++			const struct user_regset *regset,
++			unsigned int pos, unsigned int count,
++			void *kbuf, void __user *ubuf)
++{
++	const unsigned long *fpregs = target->thread.float_regs;
++	int ret = 0;
++
++#if 0
++	if (target == current)
++		save_and_clear_fpu();
++#endif
++
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  fpregs,
++				  0, 32 * sizeof(u32));
++	if (ret)
++		return ret;
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  &target->thread.fsr,
++				  32 * sizeof(u32), 33 * sizeof(u32));
++	if (ret)
++		return ret;
++	return user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
++				  33 * sizeof(u32), 68 * sizeof(u32));
++}
++
++static const struct user_regset ptrace32_regsets[] = {
++	[REGSET_GENERAL] = {
++		.n = 19, .size = sizeof(u32), .get = getregs_get,
++	},
++	[REGSET_FP] = {
++		.n = 68, .size = sizeof(u32), .get = getfpregs_get,
++	},
++};
++
++static const struct user_regset_view ptrace32_view = {
++	.regsets = ptrace32_regsets, .n = ARRAY_SIZE(ptrace32_regsets)
++};
++
+ static const struct user_regset_view user_sparc32_view = {
+ 	.name = "sparc", .e_machine = EM_SPARC,
+ 	.regsets = sparc32_regsets, .n = ARRAY_SIZE(sparc32_regsets)
+@@ -327,15 +392,10 @@ long arch_ptrace(struct task_struct *child, long request,
+ 
+ 	switch(request) {
+ 	case PTRACE_GETREGS: {
+-		ret = copy_regset_to_user(child, view, REGSET_GENERAL,
+-					  32 * sizeof(u32),
+-					  4 * sizeof(u32),
+-					  &pregs->psr);
+-		if (!ret)
+-			copy_regset_to_user(child, view, REGSET_GENERAL,
+-					    1 * sizeof(u32),
+-					    15 * sizeof(u32),
+-					    &pregs->u_regs[0]);
++		ret = copy_regset_to_user(child, &ptrace32_view,
++					  REGSET_GENERAL, 0,
++					  19 * sizeof(u32),
++					  pregs);
+ 		break;
+ 	}
+ 
+@@ -353,23 +413,10 @@ long arch_ptrace(struct task_struct *child, long request,
+ 	}
+ 
+ 	case PTRACE_GETFPREGS: {
+-		ret = copy_regset_to_user(child, view, REGSET_FP,
+-					  0 * sizeof(u32),
+-					  32 * sizeof(u32),
+-					  &fps->regs[0]);
+-		if (!ret)
+-			ret = copy_regset_to_user(child, view, REGSET_FP,
+-						  33 * sizeof(u32),
+-						  1 * sizeof(u32),
+-						  &fps->fsr);
 -
--	if (!static_cpu_has(X86_FEATURE_FPU))
--		return fpregs_soft_get(current, NULL, 0,
--			sizeof(struct user_i387_ia32_struct), NULL,
--			(struct _fpstate_32 __user *) buf) ? -1 : 1;
--
- retry:
- 	/*
- 	 * Load the FPU registers if they are not valid for the current task.
+-		if (!ret) {
+-			if (__put_user(0, &fps->fpqd) ||
+-			    __put_user(0, &fps->flags) ||
+-			    __put_user(0, &fps->extra) ||
+-			    clear_user(fps->fpq, sizeof(fps->fpq)))
+-				ret = -EFAULT;
+-		}
++		ret = copy_regset_to_user(child, &ptrace32_view,
++					  REGSET_FP, 0,
++					  68 * sizeof(u32),
++					  fps);
+ 		break;
+ 	}
+ 
 -- 
 2.11.0
