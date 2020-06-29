@@ -1,61 +1,74 @@
-Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:33935 "EHLO verein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729875AbgFOPJa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 15 Jun 2020 11:09:30 -0400
-Date: Mon, 15 Jun 2020 17:09:26 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 2/6] exec: simplify the compat syscall handling
-Message-ID: <20200615150926.GA17108@lst.de>
-References: <20200615130032.931285-1-hch@lst.de> <20200615130032.931285-3-hch@lst.de> <CAK8P3a0bRD3RzE_X6Tjzu9Tj+OhHhP+S=k6+VYODBGko8oQhew@mail.gmail.com> <20200615141239.GA12951@lst.de> <CAK8P3a2MeZhayZWkPbd4Ckq3n410p_n808NJTwN=JjzqHRiAXg@mail.gmail.com> <20200615144310.GA15101@lst.de> <CAK8P3a17h782gO65qJ9Mmz0EuiTSKQPEyr_=nvqOtnmQZuh9Kw@mail.gmail.com>
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60092 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729267AbgF2Uyw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 16:54:52 -0400
+From: Arvind Sankar <nivedita@alum.mit.edu>
+Date: Mon, 29 Jun 2020 16:54:48 -0400
+Subject: Re: [PATCH v4 08/17] arm64/mm: Remove needless section quotes
+Message-ID: <20200629205448.GA1474367@rani.riverdale.lan>
+References: <20200629061840.4065483-1-keescook@chromium.org>
+ <20200629061840.4065483-9-keescook@chromium.org>
+ <CAKwvOd=r6bsBfSZxVYrnbm1Utq==ApWBDjx+0Fxsm90Aq3Jghw@mail.gmail.com>
+ <202006291301.46FEF3B7@keescook>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAK8P3a17h782gO65qJ9Mmz0EuiTSKQPEyr_=nvqOtnmQZuh9Kw@mail.gmail.com>
+In-Reply-To: <202006291301.46FEF3B7@keescook>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@lst.de>, Al Viro <viro@zeniv.linux.org.uk>, Luis Chamberlain <mcgrof@kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, the arch/x86 maintainers <x86@kernel.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20200615150926.YoxwN1g9Bu7227476GCGKwhsEXOea4tJKVGrNBL-PdY@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Nick Desaulniers <ndesaulniers@google.com>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, Joe Perches <joe@perches.com>
+Message-ID: <20200629205448.fHqpvtf07AfL5IumTBI9ls7_IBnLnW1hLS0UnsSaknI@z>
 
-On Mon, Jun 15, 2020 at 04:46:15PM +0200, Arnd Bergmann wrote:
-> How about this one:
+On Mon, Jun 29, 2020 at 01:04:31PM -0700, Kees Cook wrote:
+> On Mon, Jun 29, 2020 at 12:53:47PM -0700, Nick Desaulniers wrote:
+> > On Sun, Jun 28, 2020 at 11:18 PM Kees Cook <keescook@chromium.org> wrote:
+> > >
+> > > Fix a case of needless quotes in __section(), which Clang doesn't like.
+> > >
+> > > Acked-by: Will Deacon <will@kernel.org>
+> > > Signed-off-by: Kees Cook <keescook@chromium.org>
+> > 
+> > Yep, I remember bugs from this.  Probably should scan the kernel for
+> > other instances of this.  +Joe for checkpatch.pl validation.
 > 
-> diff --git a/arch/x86/entry/syscall_x32.c b/arch/x86/entry/syscall_x32.c
-> index 3d8d70d3896c..0ce15807cf54 100644
-> --- a/arch/x86/entry/syscall_x32.c
-> +++ b/arch/x86/entry/syscall_x32.c
-> @@ -16,6 +16,9 @@
->  #undef __SYSCALL_X32
->  #undef __SYSCALL_COMMON
+> I think the others are safe because they're in macros:
+
+Why does that make it safe -- the commit msg is a bit sparse, but I
+assume the problem is that it generates
+	__attribute__((__section__("\".foo\"")))
+from
+	__section(".foo")
+after preprocessing, and clang keeps the quotes in the section name when
+generating assembly, while gcc appears to strip them off.
+
+It does that even if nested in another macro, no?
+
 > 
-> +#define __x32_sys_execve __x64_sys_execve
-> +#define __x32_sys_execveat __x64_sys_execveat
-> +
+> $ git grep -4 '__section("'
+> include/linux/compiler.h-# define KENTRY(sym)                                           \
 
+Am I missing something, or is KENTRY unused in the tree?
 
-arch/x86/entry/syscall_x32.c:19:26: error: ‘__x64_sys_execve’ undeclared here (not in a function); did you mean ‘__x32_sys_execve’?
-   19 | #define __x32_sys_execve __x64_sys_execve
-      |                          ^~~~~~~~~~~~~~~~
-arch/x86/entry/syscall_x32.c:22:39: note: in expansion of macro ‘__x32_sys_execve’
-   22 | #define __SYSCALL_X32(nr, sym) [nr] = __x32_##sym,
-      |                                       ^~~~~~
-./arch/x86/include/generated/asm/syscalls_64.h:344:1: note: in expansion of macro ‘__SYSCALL_X32’
-  344 | __SYSCALL_X32(520, sys_execve)
-      | ^~~~~~~~~~~~~
-arch/x86/entry/syscall_x32.c:20:28: error: ‘__x64_sys_execveat’ undeclared here (not in a function); did you mean ‘__x32_sys_execveat’?
-   20 | #define __x32_sys_execveat __x64_sys_execveat
-      |                            ^~~~~~~~~~~~~~~~~~
-arch/x86/entry/syscall_x32.c:22:39: note: in expansion of macro ‘__x32_sys_execveat’
-   22 | #define __SYSCALL_X32(nr, sym) [nr] = __x32_##sym,
-      |                                       ^~~~~~
-./arch/x86/include/generated/asm/syscalls_64.h:369:1: note: in expansion of macro ‘__SYSCALL_X32’
-  369 | __SYSCALL_X32(545, sys_execveat)
-      | ^~~~~~~~~~~~~
-make[2]: *** [scripts/Makefile.build:281: arch/x86/entry/syscall_x32.o] Error 1
-make[1]: *** [scripts/Makefile.build:497: arch/x86/entry] Error 2
-make[1]: *** Waiting for unfinished jobs....
-kernel/exit.o: warning: objtool: __x64_sys_exit_group()+0x14: unreachable instruction
-make: *** [Makefile:1764: arch/x86] Error 2
-make: *** Waiting for unfinished jobs....
+> include/linux/compiler.h-       extern typeof(sym) sym;                                 \
+> include/linux/compiler.h-       static const unsigned long __kentry_##sym               \
+> include/linux/compiler.h-       __used                                                  \
+> include/linux/compiler.h:       __section("___kentry" "+" #sym )                        \
+> include/linux/compiler.h-       = (unsigned long)&sym;
+> --
+> include/linux/export.h-#define __ksym_marker(sym)       \
+> include/linux/export.h: static int __ksym_marker_##sym[0] __section(".discard.ksym") __used
+> --
+> include/linux/srcutree.h-# define __DEFINE_SRCU(name, is_static)                                \
+> include/linux/srcutree.h-       is_static struct srcu_struct name;                              \
+> include/linux/srcutree.h-       struct srcu_struct * const __srcu_struct_##name                 \
+> include/linux/srcutree.h:               __section("___srcu_struct_ptrs") = &name
+> 
+> 
+> > Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+> 
+> Thanks!
+> 
+> -- 
+> Kees Cook
