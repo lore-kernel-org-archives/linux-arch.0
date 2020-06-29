@@ -1,90 +1,192 @@
-Return-Path: <SRS0=hIPo=75=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [PATCH] mm/pgtable: Move extern zero_pfn outside
- __HAVE_COLOR_ZERO_PAGE
-References: <1592280498-15442-1-git-send-email-anshuman.khandual@arm.com>
-From: David Hildenbrand <david@redhat.com>
-Message-ID: <f55dff2d-d32e-8de1-0177-e6ba713e0cd9@redhat.com>
-Date: Tue, 16 Jun 2020 09:39:07 +0200
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38374 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729087AbgF2Smr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:47 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 12/41] sparc32: get rid of odd callers of copy_regset_from_user()
+Date: Mon, 29 Jun 2020 19:25:59 +0100
+Message-ID: <20200629182628.529995-12-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
+ <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-In-Reply-To: <1592280498-15442-1-git-send-email-anshuman.khandual@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200616073907.zlqz5zzWuJkYBDFNPSmaMyzJ1nHTy3guwPZvf6TrbD0@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200629182559.UGTKBPj_SUSnK2U9rpP3rSC0sqLDrPSrEX0Ve6ck0BY@z>
 
-On 16.06.20 06:08, Anshuman Khandual wrote:
-> zero_pfn variable is required whether __HAVE_COLOR_ZERO_PAGE is enabled
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-Why is that relevant for this patch?
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/sparc/kernel/ptrace_32.c | 109 ++++++++++++++++++++++++++++--------------
+ 1 file changed, 73 insertions(+), 36 deletions(-)
 
-> or not. Also it should not really be declared individually in all funct=
-ions
-> where it gets used. Just move the declaration outside, which also makes=
- it
-> available for other potential users.
-
-So, all you're essentially doing is exposing zero_pfn in pgtable.h now.
-
-If everybody should just use my_zero_pfn(), I don't really see the
-benefit of this patch, sorry.
-
->=20
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-mm@kvack.org
-> Cc: linux-kernel@vger.kernel.org
-> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
-> ---
-> Applies on 5.8-rc1. If the earlier motivation was to hide zero_pfn from
-> general visibility, we could just put in a comment and update the commi=
-t
-> message that my_zero_pfn() should always be used rather than zero_pfn.
-> Build tested on many platforms and boot tested on arm64, x86.
->=20
->  include/linux/pgtable.h | 5 ++---
->  1 file changed, 2 insertions(+), 3 deletions(-)
->=20
-> diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
-> index 32b6c52d41b9..078e9864abca 100644
-> --- a/include/linux/pgtable.h
-> +++ b/include/linux/pgtable.h
-> @@ -1020,10 +1020,11 @@ extern void untrack_pfn(struct vm_area_struct *=
-vma, unsigned long pfn,
->  extern void untrack_pfn_moved(struct vm_area_struct *vma);
->  #endif
-> =20
-> +extern unsigned long zero_pfn;
-> +
->  #ifdef __HAVE_COLOR_ZERO_PAGE
->  static inline int is_zero_pfn(unsigned long pfn)
->  {
-> -	extern unsigned long zero_pfn;
->  	unsigned long offset_from_zero_pfn =3D pfn - zero_pfn;
->  	return offset_from_zero_pfn <=3D (zero_page_mask >> PAGE_SHIFT);
->  }
-> @@ -1033,13 +1034,11 @@ static inline int is_zero_pfn(unsigned long pfn=
-)
->  #else
->  static inline int is_zero_pfn(unsigned long pfn)
->  {
-> -	extern unsigned long zero_pfn;
->  	return pfn =3D=3D zero_pfn;
->  }
-> =20
->  static inline unsigned long my_zero_pfn(unsigned long addr)
->  {
-> -	extern unsigned long zero_pfn;
->  	return zero_pfn;
->  }
->  #endif
->=20
-
-
---=20
-Thanks,
-
-David / dhildenb
+diff --git a/arch/sparc/kernel/ptrace_32.c b/arch/sparc/kernel/ptrace_32.c
+index f72b7d2c4716..0856e0104539 100644
+--- a/arch/sparc/kernel/ptrace_32.c
++++ b/arch/sparc/kernel/ptrace_32.c
+@@ -137,19 +137,18 @@ static int genregs32_set(struct task_struct *target,
+ 	if (ret || !count)
+ 		return ret;
+ 
+-	if (pos < 32 * sizeof(u32)) {
+-		if (regwindow32_get(target, regs, uregs))
+-			return -EFAULT;
+-		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
+-					 uregs,
+-					 16 * sizeof(u32), 32 * sizeof(u32));
+-		if (ret)
+-			return ret;
+-		if (regwindow32_set(target, regs, uregs))
+-			return -EFAULT;
+-		if (!count)
+-			return 0;
+-	}
++	if (regwindow32_get(target, regs, uregs))
++		return -EFAULT;
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 uregs,
++				 16 * sizeof(u32), 32 * sizeof(u32));
++	if (ret)
++		return ret;
++	if (regwindow32_set(target, regs, uregs))
++		return -EFAULT;
++	if (!count)
++		return 0;
++
+ 	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
+ 				 &psr,
+ 				 32 * sizeof(u32), 33 * sizeof(u32));
+@@ -241,13 +240,11 @@ static int fpregs32_set(struct task_struct *target,
+ 		user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
+ 					  32 * sizeof(u32),
+ 					  33 * sizeof(u32));
+-	if (!ret && count > 0) {
++	if (!ret)
+ 		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
+ 					 &target->thread.fsr,
+ 					 33 * sizeof(u32),
+ 					 34 * sizeof(u32));
+-	}
+-
+ 	if (!ret)
+ 		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
+ 						34 * sizeof(u32), -1);
+@@ -313,6 +310,31 @@ static int getregs_get(struct task_struct *target,
+ 				  4 * sizeof(u32), 19 * sizeof(u32));
+ }
+ 
++static int setregs_set(struct task_struct *target,
++			 const struct user_regset *regset,
++			 unsigned int pos, unsigned int count,
++			 const void *kbuf, const void __user *ubuf)
++{
++	struct pt_regs *regs = target->thread.kregs;
++	u32 v[4];
++	int ret;
++
++	if (target == current)
++		flush_user_windows();
++
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 v,
++				 0, 4 * sizeof(u32));
++	regs->psr = (regs->psr & ~(PSR_ICC | PSR_SYSCALL)) |
++		    (v[0] & (PSR_ICC | PSR_SYSCALL));
++	regs->pc = v[1];
++	regs->npc = v[2];
++	regs->y = v[3];
++	return user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 regs->u_regs + 1,
++				 4 * sizeof(u32) , 19 * sizeof(u32));
++}
++
+ static int getfpregs_get(struct task_struct *target,
+ 			const struct user_regset *regset,
+ 			unsigned int pos, unsigned int count,
+@@ -340,12 +362,37 @@ static int getfpregs_get(struct task_struct *target,
+ 				  33 * sizeof(u32), 68 * sizeof(u32));
+ }
+ 
++static int setfpregs_set(struct task_struct *target,
++			const struct user_regset *regset,
++			unsigned int pos, unsigned int count,
++			const void *kbuf, const void __user *ubuf)
++{
++	unsigned long *fpregs = target->thread.float_regs;
++	int ret;
++
++#if 0
++	if (target == current)
++		save_and_clear_fpu();
++#endif
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 fpregs,
++				 0, 32 * sizeof(u32));
++	if (ret)
++		return ret;
++	return user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &target->thread.fsr,
++				 32 * sizeof(u32),
++				 33 * sizeof(u32));
++}
++
+ static const struct user_regset ptrace32_regsets[] = {
+ 	[REGSET_GENERAL] = {
+-		.n = 19, .size = sizeof(u32), .get = getregs_get,
++		.n = 19, .size = sizeof(u32),
++		.get = getregs_get, .set = setregs_set,
+ 	},
+ 	[REGSET_FP] = {
+-		.n = 68, .size = sizeof(u32), .get = getfpregs_get,
++		.n = 68, .size = sizeof(u32),
++		.get = getfpregs_get, .set = setfpregs_set,
+ 	},
+ };
+ 
+@@ -400,15 +447,10 @@ long arch_ptrace(struct task_struct *child, long request,
+ 	}
+ 
+ 	case PTRACE_SETREGS: {
+-		ret = copy_regset_from_user(child, view, REGSET_GENERAL,
+-					    32 * sizeof(u32),
+-					    4 * sizeof(u32),
+-					    &pregs->psr);
+-		if (!ret)
+-			copy_regset_from_user(child, view, REGSET_GENERAL,
+-					      1 * sizeof(u32),
+-					      15 * sizeof(u32),
+-					      &pregs->u_regs[0]);
++		ret = copy_regset_from_user(child, &ptrace32_view,
++					    REGSET_GENERAL, 0,
++					    19 * sizeof(u32),
++					    pregs);
+ 		break;
+ 	}
+ 
+@@ -421,15 +463,10 @@ long arch_ptrace(struct task_struct *child, long request,
+ 	}
+ 
+ 	case PTRACE_SETFPREGS: {
+-		ret = copy_regset_from_user(child, view, REGSET_FP,
+-					    0 * sizeof(u32),
+-					    32 * sizeof(u32),
+-					    &fps->regs[0]);
+-		if (!ret)
+-			ret = copy_regset_from_user(child, view, REGSET_FP,
+-						    33 * sizeof(u32),
+-						    1 * sizeof(u32),
+-						    &fps->fsr);
++		ret = copy_regset_from_user(child, &ptrace32_view,
++					  REGSET_FP, 0,
++					  33 * sizeof(u32),
++					  fps);
+ 		break;
+ 	}
+ 
+-- 
+2.11.0
