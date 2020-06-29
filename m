@@ -1,62 +1,113 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 05/41] [ia64] teach elf_access_reg() to handle the missing range (r16..r31)
-Date: Mon, 29 Jun 2020 19:25:52 +0100
-Message-ID: <20200629182628.529995-5-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 39/41] regset: kill ->get()
+Date: Mon, 29 Jun 2020 19:26:26 +0100
+Message-ID: <20200629182628.529995-39-viro@ZenIV.linux.org.uk>
 References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
  <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38402 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729099AbgF2Sms (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:48 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-Now it's easy to make elf_access_gpreg() handle the rest of global
-registers (r16..r31).  That gets rid of the hole in the registers
-elf_access_reg() can handle, which will allow to simplify its callers
-later in the series.
+no instances left
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/ia64/kernel/ptrace.c | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ include/linux/regset.h | 22 ----------------------
+ kernel/regset.c        | 24 +++++-------------------
+ 2 files changed, 5 insertions(+), 41 deletions(-)
 
-diff --git a/arch/ia64/kernel/ptrace.c b/arch/ia64/kernel/ptrace.c
-index b9d068903b98..37b5140d0dfe 100644
---- a/arch/ia64/kernel/ptrace.c
-+++ b/arch/ia64/kernel/ptrace.c
-@@ -1273,12 +1273,14 @@ struct regset_getset {
- 	int ret;
- };
+diff --git a/include/linux/regset.h b/include/linux/regset.h
+index 567a4b63f469..eeabf5cbbbd7 100644
+--- a/include/linux/regset.h
++++ b/include/linux/regset.h
+@@ -82,27 +82,6 @@ static inline int membuf_write(struct membuf *s, const void *v, size_t size)
+ typedef int user_regset_active_fn(struct task_struct *target,
+ 				  const struct user_regset *regset);
  
--static const ptrdiff_t pt_offsets[16] =
-+static const ptrdiff_t pt_offsets[32] =
- {
- #define R(n) offsetof(struct pt_regs, r##n)
- 	[0] = -1, R(1), R(2), R(3),
- 	[4] = -1, [5] = -1, [6] = -1, [7] = -1,
- 	R(8), R(9), R(10), R(11), R(12), R(13), R(14), R(15),
-+	R(16), R(17), R(18), R(19), R(20), R(21), R(22), R(23),
-+	R(24), R(25), R(26), R(27), R(28), R(29), R(30), R(31),
- #undef R
- };
+-/**
+- * user_regset_get_fn - type of @get function in &struct user_regset
+- * @target:	thread being examined
+- * @regset:	regset being examined
+- * @pos:	offset into the regset data to access, in bytes
+- * @count:	amount of data to copy, in bytes
+- * @kbuf:	if not %NULL, a kernel-space pointer to copy into
+- * @ubuf:	if @kbuf is %NULL, a user-space pointer to copy into
+- *
+- * Fetch register values.  Return %0 on success; -%EIO or -%ENODEV
+- * are usual failure returns.  The @pos and @count values are in
+- * bytes, but must be properly aligned.  If @kbuf is non-null, that
+- * buffer is used and @ubuf is ignored.  If @kbuf is %NULL, then
+- * ubuf gives a userland pointer to access directly, and an -%EFAULT
+- * return value is possible.
+- */
+-typedef int user_regset_get_fn(struct task_struct *target,
+-			       const struct user_regset *regset,
+-			       unsigned int pos, unsigned int count,
+-			       void *kbuf, void __user *ubuf);
+-
+ typedef int user_regset_get2_fn(struct task_struct *target,
+ 			       const struct user_regset *regset,
+ 			       struct membuf to);
+@@ -235,7 +214,6 @@ typedef unsigned int user_regset_get_size_fn(struct task_struct *target,
+  * omitted when there is an @active function and it returns zero.
+  */
+ struct user_regset {
+-	user_regset_get_fn		*get;
+ 	user_regset_get2_fn		*get2;
+ 	user_regset_set_fn		*set;
+ 	user_regset_active_fn		*active;
+diff --git a/kernel/regset.c b/kernel/regset.c
+index c548fb9f0943..592d90fc13f9 100644
+--- a/kernel/regset.c
++++ b/kernel/regset.c
+@@ -11,7 +11,7 @@ static int __regset_get(struct task_struct *target,
+ 	void *p = *data, *to_free = NULL;
+ 	int res;
  
-@@ -1479,7 +1481,7 @@ static int
- access_elf_reg(struct task_struct *target, struct unw_frame_info *info,
- 		unsigned long addr, unsigned long *data, int write_access)
- {
--	if (addr >= ELF_GR_OFFSET(1) && addr <= ELF_GR_OFFSET(15))
-+	if (addr >= ELF_GR_OFFSET(1) && addr <= ELF_GR_OFFSET(31))
- 		return access_elf_gpreg(target, info, addr, data, write_access);
- 	else if (addr >= ELF_BR_OFFSET(0) && addr <= ELF_BR_OFFSET(7))
- 		return access_elf_breg(target, info, addr, data, write_access);
+-	if (!regset->get && !regset->get2)
++	if (!regset->get2)
+ 		return -EOPNOTSUPP;
+ 	if (size > regset->n * regset->size)
+ 		size = regset->n * regset->size;
+@@ -20,28 +20,14 @@ static int __regset_get(struct task_struct *target,
+ 		if (!p)
+ 			return -ENOMEM;
+ 	}
+-	if (regset->get2) {
+-		res = regset->get2(target, regset,
+-				   (struct membuf){.p = p, .left = size});
+-		if (res < 0) {
+-			kfree(to_free);
+-			return res;
+-		}
+-		*data = p;
+-		return size - res;
+-	}
+-	res = regset->get(target, regset, 0, size, p, NULL);
+-	if (unlikely(res < 0)) {
++	res = regset->get2(target, regset,
++			   (struct membuf){.p = p, .left = size});
++	if (res < 0) {
+ 		kfree(to_free);
+ 		return res;
+ 	}
+ 	*data = p;
+-	if (regset->get_size) { // arm64-only kludge, will go away
+-		unsigned max_size = regset->get_size(target, regset);
+-		if (size > max_size)
+-			size = max_size;
+-	}
+-	return size;
++	return size - res;
+ }
+ 
+ int regset_get(struct task_struct *target,
 -- 
 2.11.0
