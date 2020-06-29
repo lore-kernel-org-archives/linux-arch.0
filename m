@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 29/41] c6x: switch to ->get2()
-Date: Mon, 29 Jun 2020 19:26:16 +0100
-Message-ID: <20200629182628.529995-29-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 33/41] hexagon: switch to ->get2()
+Date: Mon, 29 Jun 2020 19:26:20 +0100
+Message-ID: <20200629182628.529995-33-viro@ZenIV.linux.org.uk>
 References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
  <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
@@ -17,38 +17,100 @@ From: Al Viro <viro@zeniv.linux.org.uk>
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/c6x/kernel/ptrace.c | 11 +++--------
- 1 file changed, 3 insertions(+), 8 deletions(-)
+ arch/hexagon/kernel/ptrace.c | 62 +++++++++++++++-----------------------------
+ 1 file changed, 21 insertions(+), 41 deletions(-)
 
-diff --git a/arch/c6x/kernel/ptrace.c b/arch/c6x/kernel/ptrace.c
-index 67af1562da86..d2402de2bc14 100644
---- a/arch/c6x/kernel/ptrace.c
-+++ b/arch/c6x/kernel/ptrace.c
-@@ -57,14 +57,9 @@ static inline int put_reg(struct task_struct *task,
+diff --git a/arch/hexagon/kernel/ptrace.c b/arch/hexagon/kernel/ptrace.c
+index dcbf7ea960cc..fa6287d1a061 100644
+--- a/arch/hexagon/kernel/ptrace.c
++++ b/arch/hexagon/kernel/ptrace.c
+@@ -35,58 +35,38 @@ void user_disable_single_step(struct task_struct *child)
  
- static int gpr_get(struct task_struct *target,
+ static int genregs_get(struct task_struct *target,
  		   const struct user_regset *regset,
 -		   unsigned int pos, unsigned int count,
 -		   void *kbuf, void __user *ubuf)
-+		   struct membuf to)
++		   srtuct membuf to)
  {
--	struct pt_regs *regs = task_pt_regs(target);
+-	int ret;
+-	unsigned int dummy;
+ 	struct pt_regs *regs = task_pt_regs(target);
+ 
 -
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--				   regs,
--				   0, sizeof(*regs));
-+	return membuf_write(&to, task_pt_regs(target), sizeof(struct pt_regs));
+-	if (!regs)
+-		return -EIO;
+-
+ 	/* The general idea here is that the copyout must happen in
+ 	 * exactly the same order in which the userspace expects these
+ 	 * regs. Now, the sequence in userspace does not match the
+ 	 * sequence in the kernel, so everything past the 32 gprs
+ 	 * happens one at a time.
+ 	 */
+-	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
+-				  &regs->r00, 0, 32*sizeof(unsigned long));
+-
+-#define ONEXT(KPT_REG, USR_REG) \
+-	if (!ret) \
+-		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, \
+-			KPT_REG, offsetof(struct user_regs_struct, USR_REG), \
+-			offsetof(struct user_regs_struct, USR_REG) + \
+-				 sizeof(unsigned long));
+-
++	membuf_write(&to, &regs->r00, 32*sizeof(unsigned long));
+ 	/* Must be exactly same sequence as struct user_regs_struct */
+-	ONEXT(&regs->sa0, sa0);
+-	ONEXT(&regs->lc0, lc0);
+-	ONEXT(&regs->sa1, sa1);
+-	ONEXT(&regs->lc1, lc1);
+-	ONEXT(&regs->m0, m0);
+-	ONEXT(&regs->m1, m1);
+-	ONEXT(&regs->usr, usr);
+-	ONEXT(&regs->preds, p3_0);
+-	ONEXT(&regs->gp, gp);
+-	ONEXT(&regs->ugp, ugp);
+-	ONEXT(&pt_elr(regs), pc);
+-	dummy = pt_cause(regs);
+-	ONEXT(&dummy, cause);
+-	ONEXT(&pt_badva(regs), badva);
++	membuf_store(&to, regs->sa0);
++	membuf_store(&to, regs->lc0);
++	membuf_store(&to, regs->sa1);
++	membuf_store(&to, regs->lc1);
++	membuf_store(&to, regs->m0);
++	membuf_store(&to, regs->m1);
++	membuf_store(&to, regs->usr);
++	membuf_store(&to, regs->p3_0);
++	membuf_store(&to, regs->gp);
++	membuf_store(&to, regs->ugp);
++	membuf_store(&to, pt_elr(regs)); // pc
++	membuf_store(&to, (unsigned long)pt_cause(regs)); // cause
++	membuf_store(&to, pt_badva(regs)); // badva
+ #if CONFIG_HEXAGON_ARCH_VERSION >=4
+-	ONEXT(&regs->cs0, cs0);
+-	ONEXT(&regs->cs1, cs1);
++	membuf_store(&to, regs->cs0);
++	membuf_store(&to, regs->cs1);
++	return membuf_zero(&to, sizeof(unsigned long));
++#else
++	return membuf_zero(&to, 3 * sizeof(unsigned long));
+ #endif
+-
+-	/* Pad the rest with zeros, if needed */
+-	if (!ret)
+-		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
+-					offsetof(struct user_regs_struct, pad1), -1);
+-	return ret;
  }
  
- enum c6x_regset {
-@@ -77,7 +72,7 @@ static const struct user_regset c6x_regsets[] = {
+ static int genregs_set(struct task_struct *target,
+@@ -159,7 +139,7 @@ static const struct user_regset hexagon_regsets[] = {
  		.n = ELF_NGREG,
- 		.size = sizeof(u32),
- 		.align = sizeof(u32),
--		.get = gpr_get,
-+		.get2 = gpr_get,
+ 		.size = sizeof(unsigned long),
+ 		.align = sizeof(unsigned long),
+-		.get = genregs_get,
++		.get2 = genregs_get,
+ 		.set = genregs_set,
  	},
  };
- 
 -- 
 2.11.0
