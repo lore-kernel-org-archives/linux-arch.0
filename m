@@ -1,57 +1,64 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 07/41] [ia64] access_uarea(): stop bothering with gpregs_[gs]et()
-Date: Mon, 29 Jun 2020 19:25:54 +0100
-Message-ID: <20200629182628.529995-7-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+From: Ard Biesheuvel <ardb@kernel.org>
+Subject: Re: [PATCH v4 05/17] ctype: Work around Clang -mbranch-protection=none
+ bug
+Date: Mon, 29 Jun 2020 10:15:47 +0200
+Message-ID: <CAMj1kXE+toCd=Bx-zw7D9bvDRNB2aPn5-_7CY7MOKcVGA-azVg@mail.gmail.com>
+References: <20200629061840.4065483-1-keescook@chromium.org> <20200629061840.4065483-6-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200629061840.4065483-6-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: Will Deacon <will@kernel.org>, Dave Martin <Dave.Martin@arm.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradea>
 List-Id: linux-arch.vger.kernel.org
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+On Mon, 29 Jun 2020 at 08:18, Kees Cook <keescook@chromium.org> wrote:
+>
+> In preparation for building efi/libstub with -mbranch-protection=none
+> (EFI does not support branch protection features[1]), add no-op code
+> to work around a Clang bug that emits an unwanted .note.gnu.property
+> section for object files without code[2].
+>
+> [1] https://lore.kernel.org/lkml/CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com
+> [2] https://bugs.llvm.org/show_bug.cgi?id=46480
+>
+> Cc: Ard Biesheuvel <ardb@kernel.org>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Dave Martin <Dave.Martin@arm.com>
+> Cc: clang-built-linux@googlegroups.com
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  lib/ctype.c | 10 ++++++++++
+>  1 file changed, 10 insertions(+)
+>
+> diff --git a/lib/ctype.c b/lib/ctype.c
+> index c819fe269eb2..21245ed57d90 100644
+> --- a/lib/ctype.c
+> +++ b/lib/ctype.c
+> @@ -36,3 +36,13 @@ _L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,     /* 224-239 */
+>  _L,_L,_L,_L,_L,_L,_L,_P,_L,_L,_L,_L,_L,_L,_L,_L};      /* 240-255 */
+>
+>  EXPORT_SYMBOL(_ctype);
+> +
+> +/*
+> + * Clang will generate .note.gnu.property sections for object files
+> + * without code, even in the presence of -mbranch-protection=none.
+> + * To work around this, define an unused static function.
+> + * https://bugs.llvm.org/show_bug.cgi?id=46480
+> + */
+> +#ifdef CONFIG_CC_IS_CLANG
+> +void __maybe_unused __clang_needs_code_here(void) { }
+> +#endif
+> --
+> 2.25.1
+>
 
-We know this won't be called for child == current, so we don't need
-to bother with callbacks, etc. - just do unw_init_from_blocked_task(),
-unw_unwind_to_user() and do the payload of gpregs_[gs]et().  For
-one register.  Which is to say, access_elf_reg().
+I take it we don't need this horrible hack if we build the EFI stub
+with branch protections and filter out the .note.gnu.property section
+explicitly?
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/ia64/kernel/ptrace.c | 17 ++++++++---------
- 1 file changed, 8 insertions(+), 9 deletions(-)
-
-diff --git a/arch/ia64/kernel/ptrace.c b/arch/ia64/kernel/ptrace.c
-index be635f6f93c9..e0813c8e4b47 100644
---- a/arch/ia64/kernel/ptrace.c
-+++ b/arch/ia64/kernel/ptrace.c
-@@ -1936,15 +1936,14 @@ access_uarea(struct task_struct *child, unsigned long addr,
- 	}
- 
- 	if (pos != -1) {
--		if (write_access)
--			ret = gpregs_set(child, NULL, pos,
--				sizeof(unsigned long), data, NULL);
--		else
--			ret = gpregs_get(child, NULL, pos,
--				sizeof(unsigned long), data, NULL);
--		if (ret != 0)
--			return -1;
--		return 0;
-+		struct unw_frame_info info;
-+
-+		memset(&info, 0, sizeof(info));
-+		unw_init_from_blocked_task(&info, child);
-+		if (unw_unwind_to_user(&info) < 0)
-+			return 0;
-+
-+		return access_elf_reg(child, &info, pos, data, write_access);
- 	}
- 
- 	/* access debug registers */
--- 
-2.11.0
+Sorry to backpedal, but that is probably a better approach after all,
+given that the instructions don't hurt, and we will hopefully be able
+to arm them once UEFI (as well as PE/COFF) gets around to describing
+this in a way that both the firmware and the OS can consume.
