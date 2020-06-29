@@ -1,13 +1,13 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 1/8] mm: remove unneeded includes of <asm/pgalloc.h>
-Date: Mon, 29 Jun 2020 17:41:43 +0200
-Message-ID: <CAMuHMdUOrrrtKuhtWJvzKNNLXY1fx+Ym1oXGN2J_CZ7RqByGHQ@mail.gmail.com>
+Subject: Re: [PATCH 6/8] asm-generic: pgalloc: provide generic pgd_free()
+Date: Mon, 29 Jun 2020 17:42:28 +0200
+Message-ID: <CAMuHMdWP07XqvgrXjCG+n5FssH3BwdDEWA4fD9TQgvVy93uMhQ@mail.gmail.com>
 References: <20200627143453.31835-1-rppt@kernel.org>
- <20200627143453.31835-2-rppt@kernel.org>
+ <20200627143453.31835-7-rppt@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-In-Reply-To: <20200627143453.31835-2-rppt@kernel.org>
+In-Reply-To: <20200627143453.31835-7-rppt@kernel.org>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -22,25 +22,13 @@ To: Mike Rapoport <rppt@kernel.org>
 Cc: "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Max Filippov <jcmvbkbc@gmail.com>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, linux-csky@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linux-riscv <linux-riscv@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, Joerg Roedel <joro@8bytes.org>, Mike Rapoport <rppt@linux.ibm.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, arcml <linux-snps-arc@lists.infradead.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Arnd Bergmann <arnd@arndb.de>, linux-s390 <linux-s390@vger.kernel.org>, linux-um <linux-um@lis>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jun 27, 2020 at 4:35 PM Mike Rapoport <rppt@kernel.org> wrote:
+On Sat, Jun 27, 2020 at 4:36 PM Mike Rapoport <rppt@kernel.org> wrote:
 > From: Mike Rapoport <rppt@linux.ibm.com>
 >
-> In the most cases <asm/pgalloc.h> header is required only for allocations
-> of page table memory. Most of the .c files that include that header do not
-> use symbols declared in <asm/pgalloc.h> and do not require that header.
+> Most architectures define pgd_free() as a wrapper for free_page().
 >
-> As for the other header files that used to include <asm/pgalloc.h>, it is
-> possible to move that include into the .c file that actually uses symbols
-> from <asm/pgalloc.h> and drop the include from the header file.
->
-> The process was somewhat automated using
->
->         sed -i -E '/[<"]asm\/pgalloc\.h/d' \
->                 $(grep -L -w -f /tmp/xx \
->                         $(git grep -E -l '[<"]asm/pgalloc\.h'))
->
-> where /tmp/xx contains all the symbols defined in
-> arch/*/include/asm/pgalloc.h.
+> Provide a generic version in asm-generic/pgalloc.h and enable its use for
+> most architectures.
 >
 > Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 
