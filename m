@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 39/41] regset: kill ->get()
-Date: Mon, 29 Jun 2020 19:26:26 +0100
-Message-ID: <20200629182628.529995-39-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 06/41] [ia64] regularize do_gpregs_[gs]et()
+Date: Mon, 29 Jun 2020 19:25:53 +0100
+Message-ID: <20200629182628.529995-6-viro@ZenIV.linux.org.uk>
 References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
  <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
@@ -15,99 +15,220 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-no instances left
+now access_elf_reg() does the right thing for everything other than
+r0, we can simplify do_grepgs_[gs]et()
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- include/linux/regset.h | 22 ----------------------
- kernel/regset.c        | 24 +++++-------------------
- 2 files changed, 5 insertions(+), 41 deletions(-)
+ arch/ia64/kernel/ptrace.c | 155 ++++++++++------------------------------------
+ 1 file changed, 31 insertions(+), 124 deletions(-)
 
-diff --git a/include/linux/regset.h b/include/linux/regset.h
-index 567a4b63f469..eeabf5cbbbd7 100644
---- a/include/linux/regset.h
-+++ b/include/linux/regset.h
-@@ -82,27 +82,6 @@ static inline int membuf_write(struct membuf *s, const void *v, size_t size)
- typedef int user_regset_active_fn(struct task_struct *target,
- 				  const struct user_regset *regset);
+diff --git a/arch/ia64/kernel/ptrace.c b/arch/ia64/kernel/ptrace.c
+index 37b5140d0dfe..be635f6f93c9 100644
+--- a/arch/ia64/kernel/ptrace.c
++++ b/arch/ia64/kernel/ptrace.c
+@@ -1491,10 +1491,7 @@ access_elf_reg(struct task_struct *target, struct unw_frame_info *info,
  
--/**
-- * user_regset_get_fn - type of @get function in &struct user_regset
-- * @target:	thread being examined
-- * @regset:	regset being examined
-- * @pos:	offset into the regset data to access, in bytes
-- * @count:	amount of data to copy, in bytes
-- * @kbuf:	if not %NULL, a kernel-space pointer to copy into
-- * @ubuf:	if @kbuf is %NULL, a user-space pointer to copy into
-- *
-- * Fetch register values.  Return %0 on success; -%EIO or -%ENODEV
-- * are usual failure returns.  The @pos and @count values are in
-- * bytes, but must be properly aligned.  If @kbuf is non-null, that
-- * buffer is used and @ubuf is ignored.  If @kbuf is %NULL, then
-- * ubuf gives a userland pointer to access directly, and an -%EFAULT
-- * return value is possible.
-- */
--typedef int user_regset_get_fn(struct task_struct *target,
--			       const struct user_regset *regset,
--			       unsigned int pos, unsigned int count,
--			       void *kbuf, void __user *ubuf);
+ void do_gpregs_get(struct unw_frame_info *info, void *arg)
+ {
+-	struct pt_regs *pt;
+ 	struct regset_getset *dst = arg;
+-	elf_greg_t tmp[16];
+-	unsigned int i, index, min_copy;
+ 
+ 	if (unw_unwind_to_user(info) < 0)
+ 		return;
+@@ -1517,160 +1514,70 @@ void do_gpregs_get(struct unw_frame_info *info, void *arg)
+ 						      &dst->u.get.kbuf,
+ 						      &dst->u.get.ubuf,
+ 						      0, ELF_GR_OFFSET(1));
+-		if (dst->ret || dst->count == 0)
+-			return;
+-	}
 -
- typedef int user_regset_get2_fn(struct task_struct *target,
- 			       const struct user_regset *regset,
- 			       struct membuf to);
-@@ -235,7 +214,6 @@ typedef unsigned int user_regset_get_size_fn(struct task_struct *target,
-  * omitted when there is an @active function and it returns zero.
-  */
- struct user_regset {
--	user_regset_get_fn		*get;
- 	user_regset_get2_fn		*get2;
- 	user_regset_set_fn		*set;
- 	user_regset_active_fn		*active;
-diff --git a/kernel/regset.c b/kernel/regset.c
-index c548fb9f0943..592d90fc13f9 100644
---- a/kernel/regset.c
-+++ b/kernel/regset.c
-@@ -11,7 +11,7 @@ static int __regset_get(struct task_struct *target,
- 	void *p = *data, *to_free = NULL;
- 	int res;
+-	/* gr1 - gr15 */
+-	if (dst->count > 0 && dst->pos < ELF_GR_OFFSET(16)) {
+-		index = (dst->pos - ELF_GR_OFFSET(1)) / sizeof(elf_greg_t);
+-		min_copy = ELF_GR_OFFSET(16) > (dst->pos + dst->count) ?
+-			 (dst->pos + dst->count) : ELF_GR_OFFSET(16);
+-		for (i = dst->pos; i < min_copy; i += sizeof(elf_greg_t),
+-				index++)
+-			if (access_elf_reg(dst->target, info, i,
+-						&tmp[index], 0) < 0) {
+-				dst->ret = -EIO;
+-				return;
+-			}
+-		dst->ret = user_regset_copyout(&dst->pos, &dst->count,
+-				&dst->u.get.kbuf, &dst->u.get.ubuf, tmp,
+-				ELF_GR_OFFSET(1), ELF_GR_OFFSET(16));
+-		if (dst->ret || dst->count == 0)
+-			return;
+-	}
+-
+-	/* r16-r31 */
+-	if (dst->count > 0 && dst->pos < ELF_NAT_OFFSET) {
+-		pt = task_pt_regs(dst->target);
+-		dst->ret = user_regset_copyout(&dst->pos, &dst->count,
+-				&dst->u.get.kbuf, &dst->u.get.ubuf, &pt->r16,
+-				ELF_GR_OFFSET(16), ELF_NAT_OFFSET);
+-		if (dst->ret || dst->count == 0)
++		if (dst->ret)
+ 			return;
+ 	}
  
--	if (!regset->get && !regset->get2)
-+	if (!regset->get2)
- 		return -EOPNOTSUPP;
- 	if (size > regset->n * regset->size)
- 		size = regset->n * regset->size;
-@@ -20,28 +20,14 @@ static int __regset_get(struct task_struct *target,
- 		if (!p)
- 			return -ENOMEM;
+-	/* nat, pr, b0 - b7 */
+-	if (dst->count > 0 && dst->pos < ELF_CR_IIP_OFFSET) {
+-		index = (dst->pos - ELF_NAT_OFFSET) / sizeof(elf_greg_t);
+-		min_copy = ELF_CR_IIP_OFFSET > (dst->pos + dst->count) ?
+-			 (dst->pos + dst->count) : ELF_CR_IIP_OFFSET;
+-		for (i = dst->pos; i < min_copy; i += sizeof(elf_greg_t),
+-				index++)
+-			if (access_elf_reg(dst->target, info, i,
+-						&tmp[index], 0) < 0) {
++	while (dst->count && dst->pos < ELF_AR_END_OFFSET) {
++		unsigned int n, from, to;
++		elf_greg_t tmp[16];
++
++		from = dst->pos;
++		to = from + min(dst->count, (unsigned)sizeof(tmp));
++		if (to > ELF_AR_END_OFFSET)
++			to = ELF_AR_END_OFFSET;
++		for (n = 0; from < to; from += sizeof(elf_greg_t), n++) {
++			if (access_elf_reg(dst->target, info, from,
++						&tmp[n], 0) < 0) {
+ 				dst->ret = -EIO;
+ 				return;
+ 			}
++		}
+ 		dst->ret = user_regset_copyout(&dst->pos, &dst->count,
+ 				&dst->u.get.kbuf, &dst->u.get.ubuf, tmp,
+-				ELF_NAT_OFFSET, ELF_CR_IIP_OFFSET);
+-		if (dst->ret || dst->count == 0)
++				dst->pos, to);
++		if (dst->ret)
+ 			return;
  	}
--	if (regset->get2) {
--		res = regset->get2(target, regset,
--				   (struct membuf){.p = p, .left = size});
--		if (res < 0) {
--			kfree(to_free);
--			return res;
--		}
--		*data = p;
--		return size - res;
+-
+-	/* ip cfm psr ar.rsc ar.bsp ar.bspstore ar.rnat
+-	 * ar.ccv ar.unat ar.fpsr ar.pfs ar.lc ar.ec ar.csd ar.ssd
+-	 */
+-	if (dst->count > 0 && dst->pos < (ELF_AR_END_OFFSET)) {
+-		index = (dst->pos - ELF_CR_IIP_OFFSET) / sizeof(elf_greg_t);
+-		min_copy = ELF_AR_END_OFFSET > (dst->pos + dst->count) ?
+-			 (dst->pos + dst->count) : ELF_AR_END_OFFSET;
+-		for (i = dst->pos; i < min_copy; i += sizeof(elf_greg_t),
+-				index++)
+-			if (access_elf_reg(dst->target, info, i,
+-						&tmp[index], 0) < 0) {
+-				dst->ret = -EIO;
+-				return;
+-			}
+-		dst->ret = user_regset_copyout(&dst->pos, &dst->count,
+-				&dst->u.get.kbuf, &dst->u.get.ubuf, tmp,
+-				ELF_CR_IIP_OFFSET, ELF_AR_END_OFFSET);
 -	}
--	res = regset->get(target, regset, 0, size, p, NULL);
--	if (unlikely(res < 0)) {
-+	res = regset->get2(target, regset,
-+			   (struct membuf){.p = p, .left = size});
-+	if (res < 0) {
- 		kfree(to_free);
- 		return res;
- 	}
- 	*data = p;
--	if (regset->get_size) { // arm64-only kludge, will go away
--		unsigned max_size = regset->get_size(target, regset);
--		if (size > max_size)
--			size = max_size;
--	}
--	return size;
-+	return size - res;
  }
  
- int regset_get(struct task_struct *target,
+ void do_gpregs_set(struct unw_frame_info *info, void *arg)
+ {
+-	struct pt_regs *pt;
+ 	struct regset_getset *dst = arg;
+-	elf_greg_t tmp[16];
+-	unsigned int i, index;
+ 
+ 	if (unw_unwind_to_user(info) < 0)
+ 		return;
+ 
++	if (!dst->count)
++		return;
+ 	/* Skip r0 */
+-	if (dst->count > 0 && dst->pos < ELF_GR_OFFSET(1)) {
++	if (dst->pos < ELF_GR_OFFSET(1)) {
+ 		dst->ret = user_regset_copyin_ignore(&dst->pos, &dst->count,
+ 						       &dst->u.set.kbuf,
+ 						       &dst->u.set.ubuf,
+ 						       0, ELF_GR_OFFSET(1));
+-		if (dst->ret || dst->count == 0)
+-			return;
+-	}
+-
+-	/* gr1-gr15 */
+-	if (dst->count > 0 && dst->pos < ELF_GR_OFFSET(16)) {
+-		i = dst->pos;
+-		index = (dst->pos - ELF_GR_OFFSET(1)) / sizeof(elf_greg_t);
+-		dst->ret = user_regset_copyin(&dst->pos, &dst->count,
+-				&dst->u.set.kbuf, &dst->u.set.ubuf, tmp,
+-				ELF_GR_OFFSET(1), ELF_GR_OFFSET(16));
+ 		if (dst->ret)
+ 			return;
+-		for ( ; i < dst->pos; i += sizeof(elf_greg_t), index++)
+-			if (access_elf_reg(dst->target, info, i,
+-						&tmp[index], 1) < 0) {
+-				dst->ret = -EIO;
+-				return;
+-			}
+-		if (dst->count == 0)
+-			return;
+-	}
+-
+-	/* gr16-gr31 */
+-	if (dst->count > 0 && dst->pos < ELF_NAT_OFFSET) {
+-		pt = task_pt_regs(dst->target);
+-		dst->ret = user_regset_copyin(&dst->pos, &dst->count,
+-				&dst->u.set.kbuf, &dst->u.set.ubuf, &pt->r16,
+-				ELF_GR_OFFSET(16), ELF_NAT_OFFSET);
+-		if (dst->ret || dst->count == 0)
+-			return;
+ 	}
+ 
+-	/* nat, pr, b0 - b7 */
+-	if (dst->count > 0 && dst->pos < ELF_CR_IIP_OFFSET) {
+-		i = dst->pos;
+-		index = (dst->pos - ELF_NAT_OFFSET) / sizeof(elf_greg_t);
+-		dst->ret = user_regset_copyin(&dst->pos, &dst->count,
+-				&dst->u.set.kbuf, &dst->u.set.ubuf, tmp,
+-				ELF_NAT_OFFSET, ELF_CR_IIP_OFFSET);
+-		if (dst->ret)
+-			return;
+-		for (; i < dst->pos; i += sizeof(elf_greg_t), index++)
+-			if (access_elf_reg(dst->target, info, i,
+-						&tmp[index], 1) < 0) {
+-				dst->ret = -EIO;
+-				return;
+-			}
+-		if (dst->count == 0)
+-			return;
+-	}
++	while (dst->count && dst->pos < ELF_AR_END_OFFSET) {
++		unsigned int n, from, to;
++		elf_greg_t tmp[16];
+ 
+-	/* ip cfm psr ar.rsc ar.bsp ar.bspstore ar.rnat
+-	 * ar.ccv ar.unat ar.fpsr ar.pfs ar.lc ar.ec ar.csd ar.ssd
+-	 */
+-	if (dst->count > 0 && dst->pos < (ELF_AR_END_OFFSET)) {
+-		i = dst->pos;
+-		index = (dst->pos - ELF_CR_IIP_OFFSET) / sizeof(elf_greg_t);
++		from = dst->pos;
++		to = from + sizeof(tmp);
++		if (to > ELF_AR_END_OFFSET)
++			to = ELF_AR_END_OFFSET;
++		/* get up to 16 values */
+ 		dst->ret = user_regset_copyin(&dst->pos, &dst->count,
+ 				&dst->u.set.kbuf, &dst->u.set.ubuf, tmp,
+-				ELF_CR_IIP_OFFSET, ELF_AR_END_OFFSET);
++				from, to);
+ 		if (dst->ret)
+ 			return;
+-		for ( ; i < dst->pos; i += sizeof(elf_greg_t), index++)
+-			if (access_elf_reg(dst->target, info, i,
+-						&tmp[index], 1) < 0) {
++		/* now copy them into registers */
++		for (n = 0; from < dst->pos; from += sizeof(elf_greg_t), n++)
++			if (access_elf_reg(dst->target, info, from,
++						&tmp[n], 1) < 0) {
+ 				dst->ret = -EIO;
+ 				return;
+ 			}
 -- 
 2.11.0
