@@ -1,101 +1,76 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 34/41] nios2: switch to ->get2()
-Date: Mon, 29 Jun 2020 19:26:21 +0100
-Message-ID: <20200629182628.529995-34-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 14/41] arm64: take fetching compat reg out of pt_regs into a new helper
+Date: Mon, 29 Jun 2020 19:26:01 +0100
+Message-ID: <20200629182628.529995-14-viro@ZenIV.linux.org.uk>
 References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
  <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38406 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729139AbgF2Smw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/nios2/kernel/ptrace.c | 51 ++++++++++++++--------------------------------
- 1 file changed, 15 insertions(+), 36 deletions(-)
+ arch/arm64/kernel/ptrace.c | 34 +++++++++++++++++-----------------
+ 1 file changed, 17 insertions(+), 17 deletions(-)
 
-diff --git a/arch/nios2/kernel/ptrace.c b/arch/nios2/kernel/ptrace.c
-index de97bcb7dd44..2214f95847cd 100644
---- a/arch/nios2/kernel/ptrace.c
-+++ b/arch/nios2/kernel/ptrace.c
-@@ -21,45 +21,24 @@
- 
- static int genregs_get(struct task_struct *target,
- 		       const struct user_regset *regset,
--		       unsigned int pos, unsigned int count,
--		       void *kbuf, void __user *ubuf)
-+		       struct membuf to)
- {
- 	const struct pt_regs *regs = task_pt_regs(target);
- 	const struct switch_stack *sw = (struct switch_stack *)regs - 1;
--	int ret = 0;
--
--#define REG_O_ZERO_RANGE(START, END)		\
--	if (!ret)					\
--		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf, \
--			START * 4, (END * 4) + 4);
--
--#define REG_O_ONE(PTR, LOC)	\
--	if (!ret)			\
--		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
--			LOC * 4, (LOC * 4) + 4);
- 
--#define REG_O_RANGE(PTR, START, END)	\
--	if (!ret)				\
--		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
--			START * 4, (END * 4) + 4);
--
--	REG_O_ZERO_RANGE(PTR_R0, PTR_R0);
--	REG_O_RANGE(&regs->r1, PTR_R1, PTR_R7);
--	REG_O_RANGE(&regs->r8, PTR_R8, PTR_R15);
--	REG_O_RANGE(sw, PTR_R16, PTR_R23);
--	REG_O_ZERO_RANGE(PTR_R24, PTR_R25); /* et and bt */
--	REG_O_ONE(&regs->gp, PTR_GP);
--	REG_O_ONE(&regs->sp, PTR_SP);
--	REG_O_ONE(&regs->fp, PTR_FP);
--	REG_O_ONE(&regs->ea, PTR_EA);
--	REG_O_ZERO_RANGE(PTR_BA, PTR_BA);
--	REG_O_ONE(&regs->ra, PTR_RA);
--	REG_O_ONE(&regs->ea, PTR_PC); /* use ea for PC */
--	if (!ret)
--		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
--					 PTR_STATUS * 4, -1);
--
--	return ret;
-+	membuf_zero(&to, 4); // R0
-+	membuf_write(&to, &regs->r1, 7 * 4); // R1..R7
-+	membuf_write(&to, &regs->r8, 8 * 4); // R8..R15
-+	membuf_write(&to, sw, 8 * 4); // R16..R23
-+	membuf_zero(&to, 2 * 4); /* et and bt */
-+	membuf_store(&to, regs->gp);
-+	membuf_store(&to, regs->sp);
-+	membuf_store(&to, regs->fp);
-+	membuf_store(&to, regs->ea);
-+	membuf_zero(&to, 4); // PTR_BA
-+	membuf_store(&to, regs->ra);
-+	membuf_store(&to, regs->ea); /* use ea for PC */
-+	return membuf_zero(&to, (NUM_PTRACE_REG - PTR_PC) * 4);
- }
- 
- /*
-@@ -121,7 +100,7 @@ static const struct user_regset nios2_regsets[] = {
- 		.n = NUM_PTRACE_REG,
- 		.size = sizeof(unsigned long),
- 		.align = sizeof(unsigned long),
--		.get = genregs_get,
-+		.get2 = genregs_get,
- 		.set = genregs_set,
- 	}
+diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+index 68b7f34a08f5..5b837741ab76 100644
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -1237,6 +1237,22 @@ enum compat_regset {
+ 	REGSET_COMPAT_VFP,
  };
+ 
++static inline compat_ulong_t compat_get_user_reg(struct task_struct *task, int idx)
++{
++	struct pt_regs *regs = task_pt_regs(task);
++
++	switch (idx) {
++	case 15:
++		return regs->pc;
++	case 16:
++		return pstate_to_compat_psr(regs->pstate);
++	case 17:
++		return regs->orig_x0;
++	default:
++		return regs->regs[idx];
++	}
++}
++
+ static int compat_gpr_get(struct task_struct *target,
+ 			  const struct user_regset *regset,
+ 			  unsigned int pos, unsigned int count,
+@@ -1255,23 +1271,7 @@ static int compat_gpr_get(struct task_struct *target,
+ 		return -EIO;
+ 
+ 	for (i = 0; i < num_regs; ++i) {
+-		unsigned int idx = start + i;
+-		compat_ulong_t reg;
+-
+-		switch (idx) {
+-		case 15:
+-			reg = task_pt_regs(target)->pc;
+-			break;
+-		case 16:
+-			reg = task_pt_regs(target)->pstate;
+-			reg = pstate_to_compat_psr(reg);
+-			break;
+-		case 17:
+-			reg = task_pt_regs(target)->orig_x0;
+-			break;
+-		default:
+-			reg = task_pt_regs(target)->regs[idx];
+-		}
++		compat_ulong_t reg = compat_get_user_reg(target, start + i);
+ 
+ 		if (kbuf) {
+ 			memcpy(kbuf, &reg, sizeof(reg));
 -- 
 2.11.0
