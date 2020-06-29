@@ -1,156 +1,57 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 25/41] sh: convert to ->get2()
-Date: Mon, 29 Jun 2020 19:26:12 +0100
-Message-ID: <20200629182628.529995-25-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 07/41] [ia64] access_uarea(): stop bothering with gpregs_[gs]et()
+Date: Mon, 29 Jun 2020 19:25:54 +0100
+Message-ID: <20200629182628.529995-7-viro@ZenIV.linux.org.uk>
 References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
  <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38374 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726033AbgF2Smm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:42 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-NB: there's a direct call of fpregs_get() left in dump_fpu().
-To be taken out once we convert ELF_FDPIC to use of regset.
+We know this won't be called for child == current, so we don't need
+to bother with callbacks, etc. - just do unw_init_from_blocked_task(),
+unw_unwind_to_user() and do the payload of gpregs_[gs]et().  For
+one register.  Which is to say, access_elf_reg().
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/sh/kernel/process_32.c |  5 ++---
- arch/sh/kernel/ptrace_32.c  | 48 ++++++++++-----------------------------------
- 2 files changed, 12 insertions(+), 41 deletions(-)
+ arch/ia64/kernel/ptrace.c | 17 ++++++++---------
+ 1 file changed, 8 insertions(+), 9 deletions(-)
 
-diff --git a/arch/sh/kernel/process_32.c b/arch/sh/kernel/process_32.c
-index 456cc8d171f7..6ab397bc47ed 100644
---- a/arch/sh/kernel/process_32.c
-+++ b/arch/sh/kernel/process_32.c
-@@ -103,9 +103,8 @@ int dump_fpu(struct pt_regs *regs, elf_fpregset_t *fpu)
+diff --git a/arch/ia64/kernel/ptrace.c b/arch/ia64/kernel/ptrace.c
+index be635f6f93c9..e0813c8e4b47 100644
+--- a/arch/ia64/kernel/ptrace.c
++++ b/arch/ia64/kernel/ptrace.c
+@@ -1936,15 +1936,14 @@ access_uarea(struct task_struct *child, unsigned long addr,
+ 	}
  
- 	fpvalid = !!tsk_used_math(tsk);
- 	if (fpvalid)
--		fpvalid = !fpregs_get(tsk, NULL, 0,
--				      sizeof(struct user_fpu_struct),
--				      fpu, NULL);
-+		fpvalid = !fpregs_get(tsk, NULL,
-+				      (struct membuf){fpu, sizeof(*fpu)});
- #endif
+ 	if (pos != -1) {
+-		if (write_access)
+-			ret = gpregs_set(child, NULL, pos,
+-				sizeof(unsigned long), data, NULL);
+-		else
+-			ret = gpregs_get(child, NULL, pos,
+-				sizeof(unsigned long), data, NULL);
+-		if (ret != 0)
+-			return -1;
+-		return 0;
++		struct unw_frame_info info;
++
++		memset(&info, 0, sizeof(info));
++		unw_init_from_blocked_task(&info, child);
++		if (unw_unwind_to_user(&info) < 0)
++			return 0;
++
++		return access_elf_reg(child, &info, pos, data, write_access);
+ 	}
  
- 	return fpvalid;
-diff --git a/arch/sh/kernel/ptrace_32.c b/arch/sh/kernel/ptrace_32.c
-index 64bfb714943e..7aa5e61ccb7b 100644
---- a/arch/sh/kernel/ptrace_32.c
-+++ b/arch/sh/kernel/ptrace_32.c
-@@ -134,26 +134,11 @@ void ptrace_disable(struct task_struct *child)
- 
- static int genregs_get(struct task_struct *target,
- 		       const struct user_regset *regset,
--		       unsigned int pos, unsigned int count,
--		       void *kbuf, void __user *ubuf)
-+		       struct membuf to)
- {
- 	const struct pt_regs *regs = task_pt_regs(target);
--	int ret;
- 
--	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--				  regs->regs,
--				  0, 16 * sizeof(unsigned long));
--	if (!ret)
--		/* PC, PR, SR, GBR, MACH, MACL, TRA */
--		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--					  &regs->pc,
--					  offsetof(struct pt_regs, pc),
--					  sizeof(struct pt_regs));
--	if (!ret)
--		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
--					       sizeof(struct pt_regs), -1);
--
--	return ret;
-+	return membuf_write(&to, regs, sizeof(struct pt_regs));
- }
- 
- static int genregs_set(struct task_struct *target,
-@@ -182,8 +167,7 @@ static int genregs_set(struct task_struct *target,
- #ifdef CONFIG_SH_FPU
- int fpregs_get(struct task_struct *target,
- 	       const struct user_regset *regset,
--	       unsigned int pos, unsigned int count,
--	       void *kbuf, void __user *ubuf)
-+	       struct membuf to)
- {
- 	int ret;
- 
-@@ -191,12 +175,8 @@ int fpregs_get(struct task_struct *target,
- 	if (ret)
- 		return ret;
- 
--	if ((boot_cpu_data.flags & CPU_HAS_FPU))
--		return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--					   &target->thread.xstate->hardfpu, 0, -1);
--
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--				   &target->thread.xstate->softfpu, 0, -1);
-+	return membuf_write(&to, target->thread.xstate,
-+			    sizeof(struct user_fpu_struct));
- }
- 
- static int fpregs_set(struct task_struct *target,
-@@ -230,20 +210,12 @@ static int fpregs_active(struct task_struct *target,
- #ifdef CONFIG_SH_DSP
- static int dspregs_get(struct task_struct *target,
- 		       const struct user_regset *regset,
--		       unsigned int pos, unsigned int count,
--		       void *kbuf, void __user *ubuf)
-+		       struct membuf to)
- {
- 	const struct pt_dspregs *regs =
- 		(struct pt_dspregs *)&target->thread.dsp_status.dsp_regs;
--	int ret;
- 
--	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs,
--				  0, sizeof(struct pt_dspregs));
--	if (!ret)
--		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
--					       sizeof(struct pt_dspregs), -1);
--
--	return ret;
-+	return membuf_write(&to, regs, sizeof(struct pt_dspregs));
- }
- 
- static int dspregs_set(struct task_struct *target,
-@@ -324,7 +296,7 @@ static const struct user_regset sh_regsets[] = {
- 		.n		= ELF_NGREG,
- 		.size		= sizeof(long),
- 		.align		= sizeof(long),
--		.get		= genregs_get,
-+		.get2		= genregs_get,
- 		.set		= genregs_set,
- 	},
- 
-@@ -334,7 +306,7 @@ static const struct user_regset sh_regsets[] = {
- 		.n		= sizeof(struct user_fpu_struct) / sizeof(long),
- 		.size		= sizeof(long),
- 		.align		= sizeof(long),
--		.get		= fpregs_get,
-+		.get2		= fpregs_get,
- 		.set		= fpregs_set,
- 		.active		= fpregs_active,
- 	},
-@@ -345,7 +317,7 @@ static const struct user_regset sh_regsets[] = {
- 		.n		= sizeof(struct pt_dspregs) / sizeof(long),
- 		.size		= sizeof(long),
- 		.align		= sizeof(long),
--		.get		= dspregs_get,
-+		.get2		= dspregs_get,
- 		.set		= dspregs_set,
- 		.active		= dspregs_active,
- 	},
+ 	/* access debug registers */
 -- 
 2.11.0
