@@ -1,16 +1,16 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 40/41] regset(): kill ->get_size()
-Date: Mon, 29 Jun 2020 19:26:27 +0100
-Message-ID: <20200629182628.529995-40-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 18/41] regset: new method and helpers for it
+Date: Mon, 29 Jun 2020 19:26:05 +0100
+Message-ID: <20200629182628.529995-18-viro@ZenIV.linux.org.uk>
 References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
  <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38364 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38384 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728961AbgF2Smm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:42 -0400
+        with ESMTP id S1729126AbgF2Smw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
 In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -19,129 +19,157 @@ Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <dave
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-not used anymore
+->get2() takes task+regset+buffer, returns the amount of free space
+left in the buffer on success and -E... on error.
+
+buffer is represented as struct membuf - a pair of (kernel) pointer
+and amount of space left
+
+Primitives for writing to such:
+	* membuf_write(buf, data, size)
+	* membuf_zero(buf, size)
+	* membuf_store(buf, value)
+
+These are implemented as inlines (in case of membuf_store - a macro).
+All writes are sequential; they become no-ops when there's no space
+left.  Return value of all primitives is the amount of space left
+after the operation, so they can be used as return values of ->get2().
+
+Example of use:
+
+// stores pt_regs of task + 64 bytes worth of zeroes + 32bit PID of task
+int foo_get(struct task_struct *task, const struct regset *regset,
+	    struct membuf to)
+{
+	membuf_write(&to, task_pt_regs(task), sizeof(struct pt_regs));
+	membuf_zero(&to, 64);
+	return membuf_store(&to, (u32)task_tgid_vnr(task));
+}
+
+regset_get()/regset_get_alloc() taught to use that thing if present.
+By the end of the series all users of ->get() will be converted;
+then ->get() and ->get_size() can go.
+
+Note that unlike ->get() this thing always starts at offset 0 and,
+since it only writes to kernel buffer, can't fail on copyout.
+It can, of course, fail for other reasons, but those tend to
+be less numerous.
+
+The caller guarantees that the buffer size won't be bigger than
+regset->n * regset->size.  That simplifies life for quite a few
+instances.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/arm64/kernel/ptrace.c | 13 -------------
- include/linux/regset.h     | 48 +---------------------------------------------
- 2 files changed, 1 insertion(+), 60 deletions(-)
+ include/linux/regset.h | 51 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ kernel/regset.c        | 12 +++++++++++-
+ 2 files changed, 62 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 8745aecffcae..5fb2623b7f13 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -740,18 +740,6 @@ static unsigned int sve_size_from_header(struct user_sve_header const *header)
- 	return ALIGN(header->size, SVE_VQ_BYTES);
- }
- 
--static unsigned int sve_get_size(struct task_struct *target,
--				 const struct user_regset *regset)
--{
--	struct user_sve_header header;
--
--	if (!system_supports_sve())
--		return 0;
--
--	sve_init_header_from_task(&header, target);
--	return sve_size_from_header(&header);
--}
--
- static int sve_get(struct task_struct *target,
- 		   const struct user_regset *regset,
- 		   struct membuf to)
-@@ -1130,7 +1118,6 @@ static const struct user_regset aarch64_regsets[] = {
- 		.align = SVE_VQ_BYTES,
- 		.get2 = sve_get,
- 		.set = sve_set,
--		.get_size = sve_get_size,
- 	},
- #endif
- #ifdef CONFIG_ARM64_PTR_AUTH
 diff --git a/include/linux/regset.h b/include/linux/regset.h
-index eeabf5cbbbd7..d82bb32e434c 100644
+index af57c1db1924..567a4b63f469 100644
 --- a/include/linux/regset.h
 +++ b/include/linux/regset.h
-@@ -133,28 +133,6 @@ typedef int user_regset_writeback_fn(struct task_struct *target,
- 				     int immediate);
+@@ -17,6 +17,52 @@
+ struct task_struct;
+ struct user_regset;
+ 
++struct membuf {
++	void *p;
++	size_t left;
++};
++
++static inline int membuf_zero(struct membuf *s, size_t size)
++{
++	if (s->left) {
++		if (size > s->left)
++			size = s->left;
++		memset(s->p, 0, size);
++		s->p += size;
++		s->left -= size;
++	}
++	return s->left;
++}
++
++static inline int membuf_write(struct membuf *s, const void *v, size_t size)
++{
++	if (s->left) {
++		if (size > s->left)
++			size = s->left;
++		memcpy(s->p, v, size);
++		s->p += size;
++		s->left -= size;
++	}
++	return s->left;
++}
++
++/* current s->p must be aligned for v; v must be a scalar */
++#define membuf_store(s, v)				\
++({							\
++	struct membuf *__s = (s);			\
++        if (__s->left) {				\
++		typeof(v) __v = (v);			\
++		size_t __size = sizeof(__v);		\
++		if (unlikely(__size > __s->left)) {	\
++			__size = __s->left;		\
++			memcpy(__s->p, &__v, __size);	\
++		} else {				\
++			*(typeof(__v + 0) *)__s->p = __v;	\
++		}					\
++		__s->p += __size;			\
++		__s->left -= __size;			\
++	}						\
++	__s->left;})
  
  /**
-- * user_regset_get_size_fn - type of @get_size function in &struct user_regset
-- * @target:	thread being examined
-- * @regset:	regset being examined
-- *
-- * This call is optional; usually the pointer is %NULL.
-- *
-- * When provided, this function must return the current size of regset
-- * data, as observed by the @get function in &struct user_regset.  The
-- * value returned must be a multiple of @size.  The returned size is
-- * required to be valid only until the next time (if any) @regset is
-- * modified for @target.
-- *
-- * This function is intended for dynamically sized regsets.  A regset
-- * that is statically sized does not need to implement it.
-- *
-- * This function should not be called directly: instead, callers should
-- * call regset_size() to determine the current size of a regset.
-- */
--typedef unsigned int user_regset_get_size_fn(struct task_struct *target,
--					     const struct user_regset *regset);
--
--/**
-  * struct user_regset - accessible thread CPU state
-  * @n:			Number of slots (registers).
-  * @size:		Size in bytes of a slot (register).
-@@ -165,7 +143,6 @@ typedef unsigned int user_regset_get_size_fn(struct task_struct *target,
-  * @set:		Function to store values.
-  * @active:		Function to report if regset is active, or %NULL.
-  * @writeback:		Function to write data back to user memory, or %NULL.
-- * @get_size:		Function to return the regset's size, or %NULL.
-  *
-  * This data structure describes a machine resource we call a register set.
-  * This is part of the state of an individual thread, not necessarily
-@@ -173,12 +150,7 @@ typedef unsigned int user_regset_get_size_fn(struct task_struct *target,
-  * similar slots, given by @n.  Each slot is @size bytes, and aligned to
-  * @align bytes (which is at least @size).  For dynamically-sized
-  * regsets, @n must contain the maximum possible number of slots for the
-- * regset, and @get_size must point to a function that returns the
-- * current regset size.
-- *
-- * Callers that need to know only the current size of the regset and do
-- * not care about its internal structure should call regset_size()
-- * instead of inspecting @n or calling @get_size.
-+ * regset.
-  *
-  * For backward compatibility, the @get and @set methods must pad to, or
-  * accept, @n * @size bytes, even if the current regset size is smaller.
-@@ -218,7 +190,6 @@ struct user_regset {
+  * user_regset_active_fn - type of @active function in &struct user_regset
+@@ -57,6 +103,10 @@ typedef int user_regset_get_fn(struct task_struct *target,
+ 			       unsigned int pos, unsigned int count,
+ 			       void *kbuf, void __user *ubuf);
+ 
++typedef int user_regset_get2_fn(struct task_struct *target,
++			       const struct user_regset *regset,
++			       struct membuf to);
++
+ /**
+  * user_regset_set_fn - type of @set function in &struct user_regset
+  * @target:	thread being examined
+@@ -186,6 +236,7 @@ typedef unsigned int user_regset_get_size_fn(struct task_struct *target,
+  */
+ struct user_regset {
+ 	user_regset_get_fn		*get;
++	user_regset_get2_fn		*get2;
  	user_regset_set_fn		*set;
  	user_regset_active_fn		*active;
  	user_regset_writeback_fn	*writeback;
--	user_regset_get_size_fn		*get_size;
- 	unsigned int			n;
- 	unsigned int 			size;
- 	unsigned int 			align;
-@@ -422,21 +393,4 @@ static inline int copy_regset_from_user(struct task_struct *target,
- 	return regset->set(target, regset, offset, size, NULL, data);
- }
+diff --git a/kernel/regset.c b/kernel/regset.c
+index 0a610983ce43..c548fb9f0943 100644
+--- a/kernel/regset.c
++++ b/kernel/regset.c
+@@ -11,7 +11,7 @@ static int __regset_get(struct task_struct *target,
+ 	void *p = *data, *to_free = NULL;
+ 	int res;
  
--/**
-- * regset_size - determine the current size of a regset
-- * @target:	thread to be examined
-- * @regset:	regset to be examined
-- *
-- * Note that the returned size is valid only until the next time
-- * (if any) @regset is modified for @target.
-- */
--static inline unsigned int regset_size(struct task_struct *target,
--				       const struct user_regset *regset)
--{
--	if (!regset->get_size)
--		return regset->n * regset->size;
--	else
--		return regset->get_size(target, regset);
--}
--
- #endif	/* <linux/regset.h> */
+-	if (!regset->get)
++	if (!regset->get && !regset->get2)
+ 		return -EOPNOTSUPP;
+ 	if (size > regset->n * regset->size)
+ 		size = regset->n * regset->size;
+@@ -20,6 +20,16 @@ static int __regset_get(struct task_struct *target,
+ 		if (!p)
+ 			return -ENOMEM;
+ 	}
++	if (regset->get2) {
++		res = regset->get2(target, regset,
++				   (struct membuf){.p = p, .left = size});
++		if (res < 0) {
++			kfree(to_free);
++			return res;
++		}
++		*data = p;
++		return size - res;
++	}
+ 	res = regset->get(target, regset, 0, size, p, NULL);
+ 	if (unlikely(res < 0)) {
+ 		kfree(to_free);
 -- 
 2.11.0
