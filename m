@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 33/41] hexagon: switch to ->get2()
-Date: Mon, 29 Jun 2020 19:26:20 +0100
-Message-ID: <20200629182628.529995-33-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 17/41] copy_regset_to_user(): do all copyout at once.
+Date: Mon, 29 Jun 2020 19:26:04 +0100
+Message-ID: <20200629182628.529995-17-viro@ZenIV.linux.org.uk>
 References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
  <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
@@ -15,102 +15,93 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
+Turn copy_regset_to_user() into regset_get_alloc() + copy_to_user().
+Now all ->get() calls have a kernel buffer as destination.
+
+Note that we'd already eliminated the callers of copy_regset_to_user()
+with non-zero offset; now that argument is simply unused.
+
+Uninlined, while we are at it.
+
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/hexagon/kernel/ptrace.c | 62 +++++++++++++++-----------------------------
- 1 file changed, 21 insertions(+), 41 deletions(-)
+ include/linux/regset.h | 29 ++++-------------------------
+ kernel/regset.c        | 26 ++++++++++++++++++++++++++
+ 2 files changed, 30 insertions(+), 25 deletions(-)
 
-diff --git a/arch/hexagon/kernel/ptrace.c b/arch/hexagon/kernel/ptrace.c
-index dcbf7ea960cc..fa6287d1a061 100644
---- a/arch/hexagon/kernel/ptrace.c
-+++ b/arch/hexagon/kernel/ptrace.c
-@@ -35,58 +35,38 @@ void user_disable_single_step(struct task_struct *child)
+diff --git a/include/linux/regset.h b/include/linux/regset.h
+index 968a032922d5..af57c1db1924 100644
+--- a/include/linux/regset.h
++++ b/include/linux/regset.h
+@@ -362,31 +362,10 @@ extern int regset_get_alloc(struct task_struct *target,
+ 			    unsigned int size,
+ 			    void **data);
  
- static int genregs_get(struct task_struct *target,
- 		   const struct user_regset *regset,
--		   unsigned int pos, unsigned int count,
--		   void *kbuf, void __user *ubuf)
-+		   srtuct membuf to)
- {
--	int ret;
--	unsigned int dummy;
- 	struct pt_regs *regs = task_pt_regs(target);
+-/**
+- * copy_regset_to_user - fetch a thread's user_regset data into user memory
+- * @target:	thread to be examined
+- * @view:	&struct user_regset_view describing user thread machine state
+- * @setno:	index in @view->regsets
+- * @offset:	offset into the regset data, in bytes
+- * @size:	amount of data to copy, in bytes
+- * @data:	user-mode pointer to copy into
+- */
+-static inline int copy_regset_to_user(struct task_struct *target,
+-				      const struct user_regset_view *view,
+-				      unsigned int setno,
+-				      unsigned int offset, unsigned int size,
+-				      void __user *data)
+-{
+-	const struct user_regset *regset = &view->regsets[setno];
+-
+-	if (!regset->get)
+-		return -EOPNOTSUPP;
+-
+-	if (!access_ok(data, size))
+-		return -EFAULT;
+-
+-	return regset->get(target, regset, offset, size, NULL, data);
+-}
++extern int copy_regset_to_user(struct task_struct *target,
++			       const struct user_regset_view *view,
++			       unsigned int setno, unsigned int offset,
++			       unsigned int size, void __user *data);
  
--
--	if (!regs)
--		return -EIO;
--
- 	/* The general idea here is that the copyout must happen in
- 	 * exactly the same order in which the userspace expects these
- 	 * regs. Now, the sequence in userspace does not match the
- 	 * sequence in the kernel, so everything past the 32 gprs
- 	 * happens one at a time.
- 	 */
--	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
--				  &regs->r00, 0, 32*sizeof(unsigned long));
--
--#define ONEXT(KPT_REG, USR_REG) \
--	if (!ret) \
--		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, \
--			KPT_REG, offsetof(struct user_regs_struct, USR_REG), \
--			offsetof(struct user_regs_struct, USR_REG) + \
--				 sizeof(unsigned long));
--
-+	membuf_write(&to, &regs->r00, 32*sizeof(unsigned long));
- 	/* Must be exactly same sequence as struct user_regs_struct */
--	ONEXT(&regs->sa0, sa0);
--	ONEXT(&regs->lc0, lc0);
--	ONEXT(&regs->sa1, sa1);
--	ONEXT(&regs->lc1, lc1);
--	ONEXT(&regs->m0, m0);
--	ONEXT(&regs->m1, m1);
--	ONEXT(&regs->usr, usr);
--	ONEXT(&regs->preds, p3_0);
--	ONEXT(&regs->gp, gp);
--	ONEXT(&regs->ugp, ugp);
--	ONEXT(&pt_elr(regs), pc);
--	dummy = pt_cause(regs);
--	ONEXT(&dummy, cause);
--	ONEXT(&pt_badva(regs), badva);
-+	membuf_store(&to, regs->sa0);
-+	membuf_store(&to, regs->lc0);
-+	membuf_store(&to, regs->sa1);
-+	membuf_store(&to, regs->lc1);
-+	membuf_store(&to, regs->m0);
-+	membuf_store(&to, regs->m1);
-+	membuf_store(&to, regs->usr);
-+	membuf_store(&to, regs->p3_0);
-+	membuf_store(&to, regs->gp);
-+	membuf_store(&to, regs->ugp);
-+	membuf_store(&to, pt_elr(regs)); // pc
-+	membuf_store(&to, (unsigned long)pt_cause(regs)); // cause
-+	membuf_store(&to, pt_badva(regs)); // badva
- #if CONFIG_HEXAGON_ARCH_VERSION >=4
--	ONEXT(&regs->cs0, cs0);
--	ONEXT(&regs->cs1, cs1);
-+	membuf_store(&to, regs->cs0);
-+	membuf_store(&to, regs->cs1);
-+	return membuf_zero(&to, sizeof(unsigned long));
-+#else
-+	return membuf_zero(&to, 3 * sizeof(unsigned long));
- #endif
--
--	/* Pad the rest with zeros, if needed */
--	if (!ret)
--		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
--					offsetof(struct user_regs_struct, pad1), -1);
--	return ret;
+ /**
+  * copy_regset_from_user - store into thread's user_regset data from user memory
+diff --git a/kernel/regset.c b/kernel/regset.c
+index 6b39fa0993ec..0a610983ce43 100644
+--- a/kernel/regset.c
++++ b/kernel/regset.c
+@@ -52,3 +52,29 @@ int regset_get_alloc(struct task_struct *target,
+ 	return __regset_get(target, regset, size, data);
  }
- 
- static int genregs_set(struct task_struct *target,
-@@ -159,7 +139,7 @@ static const struct user_regset hexagon_regsets[] = {
- 		.n = ELF_NGREG,
- 		.size = sizeof(unsigned long),
- 		.align = sizeof(unsigned long),
--		.get = genregs_get,
-+		.get2 = genregs_get,
- 		.set = genregs_set,
- 	},
- };
+ EXPORT_SYMBOL(regset_get_alloc);
++
++/**
++ * copy_regset_to_user - fetch a thread's user_regset data into user memory
++ * @target:	thread to be examined
++ * @view:	&struct user_regset_view describing user thread machine state
++ * @setno:	index in @view->regsets
++ * @offset:	offset into the regset data, in bytes
++ * @size:	amount of data to copy, in bytes
++ * @data:	user-mode pointer to copy into
++ */
++int copy_regset_to_user(struct task_struct *target,
++			const struct user_regset_view *view,
++			unsigned int setno,
++			unsigned int offset, unsigned int size,
++			void __user *data)
++{
++	const struct user_regset *regset = &view->regsets[setno];
++	void *buf;
++	int ret;
++
++	ret = regset_get_alloc(target, regset, size, &buf);
++	if (ret > 0)
++		ret = copy_to_user(data, buf, ret) ? -EFAULT : 0;
++	kfree(buf);
++	return ret;
++}
 -- 
 2.11.0
