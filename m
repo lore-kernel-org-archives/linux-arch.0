@@ -1,75 +1,115 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v4 05/17] ctype: Work around Clang
- -mbranch-protection=none bug
-Date: Mon, 29 Jun 2020 07:43:36 -0700
-Message-ID: <202006290742.92EC7235@keescook>
-References: <20200629061840.4065483-1-keescook@chromium.org>
- <20200629061840.4065483-6-keescook@chromium.org>
- <CAMj1kXE+toCd=Bx-zw7D9bvDRNB2aPn5-_7CY7MOKcVGA-azVg@mail.gmail.com>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Subject: Re: [PATCH v4 14/17] arm/build: Warn on orphan section placement
+Date: Mon, 29 Jun 2020 12:47:03 -0700
+Message-ID: <CAKwvOdnErUWrJUaw9gm3ZSOpD2JepZKod3REBctzBr4QuHLiAA@mail.gmail.com>
+References: <20200629061840.4065483-1-keescook@chromium.org> <20200629061840.4065483-15-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAMj1kXE+toCd=Bx-zw7D9bvDRNB2aPn5-_7CY7MOKcVGA-azVg@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ard Biesheuvel <ardb@kernel.org>
-Cc: Will Deacon <will@kernel.org>, Dave Martin <Dave.Martin@arm.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradea>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49274 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S2388014AbgF2TrP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:47:15 -0400
+Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 054E3C03E979
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 12:47:16 -0700 (PDT)
+Received: by mail-pl1-x643.google.com with SMTP id d10so7496448pls.5
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 12:47:16 -0700 (PDT)
+In-Reply-To: <20200629061840.4065483-15-keescook@chromium.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.in>
 
-On Mon, Jun 29, 2020 at 10:15:47AM +0200, Ard Biesheuvel wrote:
-> On Mon, 29 Jun 2020 at 08:18, Kees Cook <keescook@chromium.org> wrote:
-> >
-> > In preparation for building efi/libstub with -mbranch-protection=none
-> > (EFI does not support branch protection features[1]), add no-op code
-> > to work around a Clang bug that emits an unwanted .note.gnu.property
-> > section for object files without code[2].
-> >
-> > [1] https://lore.kernel.org/lkml/CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com
-> > [2] https://bugs.llvm.org/show_bug.cgi?id=46480
-> >
-> > Cc: Ard Biesheuvel <ardb@kernel.org>
-> > Cc: Will Deacon <will@kernel.org>
-> > Cc: Dave Martin <Dave.Martin@arm.com>
-> > Cc: clang-built-linux@googlegroups.com
-> > Signed-off-by: Kees Cook <keescook@chromium.org>
-> > ---
-> >  lib/ctype.c | 10 ++++++++++
-> >  1 file changed, 10 insertions(+)
-> >
-> > diff --git a/lib/ctype.c b/lib/ctype.c
-> > index c819fe269eb2..21245ed57d90 100644
-> > --- a/lib/ctype.c
-> > +++ b/lib/ctype.c
-> > @@ -36,3 +36,13 @@ _L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,     /* 224-239 */
-> >  _L,_L,_L,_L,_L,_L,_L,_P,_L,_L,_L,_L,_L,_L,_L,_L};      /* 240-255 */
-> >
-> >  EXPORT_SYMBOL(_ctype);
-> > +
-> > +/*
-> > + * Clang will generate .note.gnu.property sections for object files
-> > + * without code, even in the presence of -mbranch-protection=none.
-> > + * To work around this, define an unused static function.
-> > + * https://bugs.llvm.org/show_bug.cgi?id=46480
-> > + */
-> > +#ifdef CONFIG_CC_IS_CLANG
-> > +void __maybe_unused __clang_needs_code_here(void) { }
-> > +#endif
-> > --
-> > 2.25.1
-> >
-> 
-> I take it we don't need this horrible hack if we build the EFI stub
-> with branch protections and filter out the .note.gnu.property section
-> explicitly?
+On Sun, Jun 28, 2020 at 11:18 PM Kees Cook <keescook@chromium.org> wrote:
+>
+> We don't want to depend on the linker's orphan section placement
+> heuristics as these can vary between linkers, and may change between
+> versions. All sections need to be explicitly named in the linker
+> script.
+>
+> Specifically, this would have made a recently fixed bug very obvious:
+>
+> ld: warning: orphan section `.fixup' from `arch/arm/lib/copy_from_user.o' being placed in section `.fixup'
+>
+> Discard unneeded sections .iplt, .rel.iplt, .igot.plt, and .modinfo.
+>
+> Add missing text stub sections .vfp11_veneer and .v4_bx.
+>
+> Add debug sections explicitly.
+>
+> Finally enable orphan section warning.
+>
+> Signed-off-by: Kees Cook <keescook@chromium.org>
 
-Correct.
+Thanks for following up on the previous suggestion regarding .glu_7 /
+.glu_7t ordering. LGTM
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
 
-> Sorry to backpedal, but that is probably a better approach after all,
-> given that the instructions don't hurt, and we will hopefully be able
-> to arm them once UEFI (as well as PE/COFF) gets around to describing
-> this in a way that both the firmware and the OS can consume.
+> ---
+>  arch/arm/include/asm/vmlinux.lds.h | 6 +++++-
+>  arch/arm/kernel/vmlinux-xip.lds.S  | 1 +
+>  arch/arm/kernel/vmlinux.lds.S      | 1 +
+>  3 files changed, 7 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/arm/include/asm/vmlinux.lds.h b/arch/arm/include/asm/vmlinux.lds.h
+> index c66b16cd8837..d44fae722e7a 100644
+> --- a/arch/arm/include/asm/vmlinux.lds.h
+> +++ b/arch/arm/include/asm/vmlinux.lds.h
+> @@ -39,6 +39,8 @@
+>                 __idmap_text_end = .;                                   \
+>
+>  #define ARM_COMMON_DISCARD                                             \
+> +               *(.iplt) *(.rel.iplt) *(.igot.plt)                      \
+> +               *(.modinfo)                                             \
+>                 *(.discard)                                             \
+>                 *(.discard.*)
+>
+> @@ -63,7 +65,9 @@
+>  #define ARM_STUBS_TEXT                                                 \
+>                 *(.gnu.warning)                                         \
+>                 *(.glue_7)                                              \
+> -               *(.glue_7t)
+> +               *(.glue_7t)                                             \
+> +               *(.vfp11_veneer)                                        \
+> +               *(.v4_bx)
+>
+>  #define ARM_TEXT                                                       \
+>                 IDMAP_TEXT                                              \
+> diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
+> index 57fcbf55f913..11ffa79751da 100644
+> --- a/arch/arm/kernel/vmlinux-xip.lds.S
+> +++ b/arch/arm/kernel/vmlinux-xip.lds.S
+> @@ -150,6 +150,7 @@ SECTIONS
+>         _end = .;
+>
+>         STABS_DEBUG
+> +       DWARF_DEBUG
+>         ARM_DETAILS
+>  }
+>
+> diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+> index 1d3d3b599635..dc672fe35de3 100644
+> --- a/arch/arm/kernel/vmlinux.lds.S
+> +++ b/arch/arm/kernel/vmlinux.lds.S
+> @@ -149,6 +149,7 @@ SECTIONS
+>         _end = .;
+>
+>         STABS_DEBUG
+> +       DWARF_DEBUG
+>         ARM_DETAILS
+>  }
+>
+> --
+> 2.25.1
+>
+> --
+> You received this message because you are subscribed to the Google Groups "Clang Built Linux" group.
+> To unsubscribe from this group and stop receiving emails from it, send an email to clang-built-linux+unsubscribe@googlegroups.com.
+> To view this discussion on the web visit https://groups.google.com/d/msgid/clang-built-linux/20200629061840.4065483-15-keescook%40chromium.org.
 
-Okay, will revert to the v3 solution.
+
 
 -- 
-Kees Cook
+Thanks,
+~Nick Desaulniers
