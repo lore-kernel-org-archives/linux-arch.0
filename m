@@ -1,49 +1,105 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46076 "EHLO
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43354 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728399AbgFXXGB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 19:06:01 -0400
-Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CA308C0613ED
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 16:06:01 -0700 (PDT)
-Received: by mail-pj1-x1042.google.com with SMTP id d6so1995621pjs.3
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 16:06:01 -0700 (PDT)
+        with ESMTP id S1729360AbgF2TMp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:12:45 -0400
+Received: from mail-pf1-x442.google.com (mail-pf1-x442.google.com [IPv6:2607:f8b0:4864:20::442])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8D202C08EB1B
+        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:27:29 -0700 (PDT)
+Received: by mail-pf1-x442.google.com with SMTP id a127so7440300pfa.12
+        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:27:29 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v4 15/17] arm/boot: Warn on orphan section placement
+Date: Sun, 28 Jun 2020 23:18:38 -0700
+Message-ID: <20200629061840.4065483-16-keescook@chromium.org>
+In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
+References: <20200629061840.4065483-1-keescook@chromium.org>
 MIME-Version: 1.0
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624203200.78870-18-samitolvanen@google.com> <CAKwvOdnEbCfYZ9o=OF51oswyqDvN4iP-9syWUDhxfueq4q0xcw@mail.gmail.com>
- <20200624215231.GC120457@google.com>
-In-Reply-To: <20200624215231.GC120457@google.com>
-From: Nick Desaulniers <ndesaulniers@google.com>
-Date: Wed, 24 Jun 2020 16:05:48 -0700
-Message-ID: <CAKwvOdnWfhU7n0VfoydC7epJPrj+ASZzyNRpBCNuvT_5E+=FcQ@mail.gmail.com>
-Subject: Re: [PATCH 17/22] arm64: vdso: disable LTO
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-Message-ID: <20200624230548.Y8wS4KDb5tYZUQyb4txuWwhMjYLOcuLJbvnekPjHUCQ@z>
+To: Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200629061838.Dvx0mVgfHSSjs_bf4hpTYCxsqd_wZrb1Okc0PiLSvAM@z>
 
-On Wed, Jun 24, 2020 at 2:52 PM Sami Tolvanen <samitolvanen@google.com> wrote:
->
-> On Wed, Jun 24, 2020 at 01:58:57PM -0700, 'Nick Desaulniers' via Clang Built Linux wrote:
-> > On Wed, Jun 24, 2020 at 1:33 PM Sami Tolvanen <samitolvanen@google.com> wrote:
-> > >
-> > > Filter out CC_FLAGS_LTO for the vDSO.
-> >
-> > Just curious about this patch (and the following one for x86's vdso),
-> > do you happen to recall specifically what the issues with the vdso's
-> > are?
->
-> I recall the compiler optimizing away functions at some point, but as
-> LTO is not really needed in the vDSO, it's just easiest to disable it
-> there.
+We don't want to depend on the linker's orphan section placement
+heuristics as these can vary between linkers, and may change between
+versions. All sections need to be explicitly named in the linker
+script.
 
-Sounds fishy; with extern linkage then I would think it's not safe to
-eliminate functions.  Probably unnecessary for the initial
-implementation, and something we can follow up on, but always good to
-have an answer to the inevitable question "why?" in the commit
-message.
+Use common macros for debug sections, discards, and text stubs. Add
+discards for unwanted .note, and .rel sections. Finally, enable orphan
+section warning.
+
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm/boot/compressed/Makefile      |  2 ++
+ arch/arm/boot/compressed/vmlinux.lds.S | 18 ++++++++----------
+ 2 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/arch/arm/boot/compressed/Makefile b/arch/arm/boot/compressed/Makefile
+index 00602a6fba04..b8a97d81662d 100644
+--- a/arch/arm/boot/compressed/Makefile
++++ b/arch/arm/boot/compressed/Makefile
+@@ -128,6 +128,8 @@ endif
+ LDFLAGS_vmlinux += --no-undefined
+ # Delete all temporary local symbols
+ LDFLAGS_vmlinux += -X
++# Report orphan sections
++LDFLAGS_vmlinux += --orphan-handling=warn
+ # Next argument is a linker script
+ LDFLAGS_vmlinux += -T
+ 
+diff --git a/arch/arm/boot/compressed/vmlinux.lds.S b/arch/arm/boot/compressed/vmlinux.lds.S
+index 09ac33f52814..636e9ceb79ec 100644
+--- a/arch/arm/boot/compressed/vmlinux.lds.S
++++ b/arch/arm/boot/compressed/vmlinux.lds.S
+@@ -2,6 +2,7 @@
+ /*
+  *  Copyright (C) 2000 Russell King
+  */
++#include <asm/vmlinux.lds.h>
+ 
+ #ifdef CONFIG_CPU_ENDIAN_BE8
+ #define ZIMAGE_MAGIC(x) ( (((x) >> 24) & 0x000000ff) | \
+@@ -17,8 +18,11 @@ ENTRY(_start)
+ SECTIONS
+ {
+   /DISCARD/ : {
++    ARM_COMMON_DISCARD
+     *(.ARM.exidx*)
+     *(.ARM.extab*)
++    *(.note.*)
++    *(.rel.*)
+     /*
+      * Discard any r/w data - this produces a link error if we have any,
+      * which is required for PIC decompression.  Local data generates
+@@ -36,9 +40,7 @@ SECTIONS
+     *(.start)
+     *(.text)
+     *(.text.*)
+-    *(.gnu.warning)
+-    *(.glue_7t)
+-    *(.glue_7)
++    ARM_STUBS_TEXT
+   }
+   .table : ALIGN(4) {
+     _table_start = .;
+@@ -128,12 +130,8 @@ SECTIONS
+   PROVIDE(__pecoff_data_size = ALIGN(512) - ADDR(.data));
+   PROVIDE(__pecoff_end = ALIGN(512));
+ 
+-  .stab 0		: { *(.stab) }
+-  .stabstr 0		: { *(.stabstr) }
+-  .stab.excl 0		: { *(.stab.excl) }
+-  .stab.exclstr 0	: { *(.stab.exclstr) }
+-  .stab.index 0		: { *(.stab.index) }
+-  .stab.indexstr 0	: { *(.stab.indexstr) }
+-  .comment 0		: { *(.comment) }
++  STABS_DEBUG
++  DWARF_DEBUG
++  ARM_DETAILS
+ }
+ ASSERT(_edata_real == _edata, "error: zImage file size is incorrect");
 -- 
-Thanks,
-~Nick Desaulniers
+2.25.1
