@@ -1,35 +1,44 @@
-Return-Path: <SRS0=ZIJQ=7T=kvack.org=owner-linux-mm@kernel.org>
-Date: Fri, 5 Jun 2020 18:01:16 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v3 1/7] mm: Add functions to track page directory
- modifications
-Message-ID: <20200605180116.196116ea218df55f3252af57@linux-foundation.org>
-In-Reply-To: <20200605114654.GD31371@gaia>
-References: <20200515140023.25469-1-joro@8bytes.org>
-	<20200515140023.25469-2-joro@8bytes.org>
-	<20200605100813.GA31371@gaia>
-	<20200605114654.GD31371@gaia>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from smtprelay0235.hostedemail.com ([216.40.44.235]:52858 "EHLO
+        smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1732683AbgF2UDS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 29 Jun 2020 16:03:18 -0400
+Message-ID: <9b7f9c3aed7223e49def6e775d3b250aa780e562.camel@perches.com>
+Subject: Re: [PATCH v4 08/17] arm64/mm: Remove needless section quotes
+From: Joe Perches <joe@perches.com>
+Date: Mon, 29 Jun 2020 13:03:12 -0700
+In-Reply-To: <CAKwvOd=r6bsBfSZxVYrnbm1Utq==ApWBDjx+0Fxsm90Aq3Jghw@mail.gmail.com>
+References: <20200629061840.4065483-1-keescook@chromium.org>
+         <20200629061840.4065483-9-keescook@chromium.org>
+         <CAKwvOd=r6bsBfSZxVYrnbm1Utq==ApWBDjx+0Fxsm90Aq3Jghw@mail.gmail.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Joerg Roedel <joro@8bytes.org>, x86@kernel.org, hpa@zytor.com, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, rjw@rjwysocki.net, Arnd Bergmann <arnd@arndb.de>, Steven Rostedt <rostedt@goodmis.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@kernel.org>, Matthew Wilcox <willy@infradead.org>, Joerg Roedel <jroedel@suse.de>, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Will Deacon <will@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200606010116.ojMjua28P8WTPQxf2lhKQkz-YM5Q5BkRk-AqaVIOkBo@z>
+To: Nick Desaulniers <ndesaulniers@google.com>, Kees Cook <keescook@chromium.org>
+Cc: Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20200629200312.H25OSa4sv0PV7lXsR62pyzxW6Z6lp7VJjLWg8WrTtrk@z>
 
-On Fri, 5 Jun 2020 12:46:55 +0100 Catalin Marinas <catalin.marinas@arm.com> wrote:
-
-> On Fri, Jun 05, 2020 at 11:08:13AM +0100, Catalin Marinas wrote:
-> > This patch causes a kernel panic on arm64 (and possibly powerpc, I
-> > haven't tried). arm64 still uses the 5level-fixup.h and pud_alloc()
-> > checks for the empty p4d with pgd_none() instead of p4d_none().
+On Mon, 2020-06-29 at 12:53 -0700, Nick Desaulniers wrote:
+> On Sun, Jun 28, 2020 at 11:18 PM Kees Cook <keescook@chromium.org> wrote:
+> > Fix a case of needless quotes in __section(), which Clang doesn't like.
+> > 
+> > Acked-by: Will Deacon <will@kernel.org>
+> > Signed-off-by: Kees Cook <keescook@chromium.org>
 > 
-> Ah, should have checked the list first
-> (https://lore.kernel.org/linux-mm/20200604074446.23944-1-joro@8bytes.org/).
-> 
+> Yep, I remember bugs from this.  Probably should scan the kernel for
+> other instances of this.  +Joe for checkpatch.pl validation.
+> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
 
-Sorry about that.
+$ git grep -P -n '__section\s*\(\s*\"'
+arch/arm64/mm/mmu.c:45:u64 __section(".mmuoff.data.write") vabits_actual;
+include/linux/compiler.h:211:   __section("___kentry" "+" #sym )                        \
+include/linux/export.h:133:     static int __ksym_marker_##sym[0] __section(".discard.ksym") __used
+include/linux/srcutree.h:127:           __section("___srcu_struct_ptrs") = &name
 
-Can you confirm that the merge of Mike's 5level_hack zappage has fixed
-the arm64 wontboot?
+My recollection is I submitted a patch
+to _add_ quotes
+
+https://lore.kernel.org/patchwork/patch/1125785/
