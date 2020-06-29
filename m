@@ -1,107 +1,52 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 17/41] copy_regset_to_user(): do all copyout at once.
-Date: Mon, 29 Jun 2020 19:26:04 +0100
-Message-ID: <20200629182628.529995-17-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v4 05/17] ctype: Work around Clang
+ -mbranch-protection=none bug
+Date: Mon, 29 Jun 2020 11:37:16 -0700
+Message-ID: <202006291136.E6DF8242@keescook>
+References: <20200629061840.4065483-1-keescook@chromium.org>
+ <20200629061840.4065483-6-keescook@chromium.org>
+ <CAMj1kXE+toCd=Bx-zw7D9bvDRNB2aPn5-_7CY7MOKcVGA-azVg@mail.gmail.com>
+ <202006290806.3BDE2A8@keescook>
+ <CAKwvOd=DMfmvfiEX7KDPLs75SbNz+LAGSwC3V_=LgGH3kjtE=g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38394 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729138AbgF2Smw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
+Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5BDBEC033C3C
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 11:37:18 -0700 (PDT)
+Received: by mail-pl1-x644.google.com with SMTP id d10so7429368pls.5
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 11:37:18 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <CAKwvOd=DMfmvfiEX7KDPLs75SbNz+LAGSwC3V_=LgGH3kjtE=g@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nick Desaulniers <ndesaulniers@google.com>
+Cc: Ard Biesheuvel <ardb@kernel.org>, Will Deacon <will@kernel.org>, Dave Martin <Dave.Martin@arm.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+On Mon, Jun 29, 2020 at 11:02:51AM -0700, Nick Desaulniers wrote:
+> This is definitely better than the empty function.  Though a patch is
+> posted for fixing this in LLVM. Assuming that lands before this, we
+> might not actually need this workaround?
+> 
+> arch/arm64/Kconfig
+> 1625 config ARM64_BTI_KERNEL
+> ...
+> 1633   # https://reviews.llvm.org/rGb8ae3fdfa579dbf366b1bb1cbfdbf8c51db7fa55
+> 1634   depends on !CC_IS_CLANG || CLANG_VERSION >= 100001
+> 
+> So if Daniel's patch lands AND is backported into the clang 10.0.1
+> release, then we might not need to carry this workaround?  Either way,
 
-Turn copy_regset_to_user() into regset_get_alloc() + copy_to_user().
-Now all ->get() calls have a kernel buffer as destination.
+True, though as I mentioned in the review, I don't think it's quite
+right -- the warning getting removed is actually quite valuable.
 
-Note that we'd already eliminated the callers of copy_regset_to_user()
-with non-zero offset; now that argument is simply unused.
+> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
 
-Uninlined, while we are at it.
+Thanks!
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- include/linux/regset.h | 29 ++++-------------------------
- kernel/regset.c        | 26 ++++++++++++++++++++++++++
- 2 files changed, 30 insertions(+), 25 deletions(-)
-
-diff --git a/include/linux/regset.h b/include/linux/regset.h
-index 968a032922d5..af57c1db1924 100644
---- a/include/linux/regset.h
-+++ b/include/linux/regset.h
-@@ -362,31 +362,10 @@ extern int regset_get_alloc(struct task_struct *target,
- 			    unsigned int size,
- 			    void **data);
- 
--/**
-- * copy_regset_to_user - fetch a thread's user_regset data into user memory
-- * @target:	thread to be examined
-- * @view:	&struct user_regset_view describing user thread machine state
-- * @setno:	index in @view->regsets
-- * @offset:	offset into the regset data, in bytes
-- * @size:	amount of data to copy, in bytes
-- * @data:	user-mode pointer to copy into
-- */
--static inline int copy_regset_to_user(struct task_struct *target,
--				      const struct user_regset_view *view,
--				      unsigned int setno,
--				      unsigned int offset, unsigned int size,
--				      void __user *data)
--{
--	const struct user_regset *regset = &view->regsets[setno];
--
--	if (!regset->get)
--		return -EOPNOTSUPP;
--
--	if (!access_ok(data, size))
--		return -EFAULT;
--
--	return regset->get(target, regset, offset, size, NULL, data);
--}
-+extern int copy_regset_to_user(struct task_struct *target,
-+			       const struct user_regset_view *view,
-+			       unsigned int setno, unsigned int offset,
-+			       unsigned int size, void __user *data);
- 
- /**
-  * copy_regset_from_user - store into thread's user_regset data from user memory
-diff --git a/kernel/regset.c b/kernel/regset.c
-index 6b39fa0993ec..0a610983ce43 100644
---- a/kernel/regset.c
-+++ b/kernel/regset.c
-@@ -52,3 +52,29 @@ int regset_get_alloc(struct task_struct *target,
- 	return __regset_get(target, regset, size, data);
- }
- EXPORT_SYMBOL(regset_get_alloc);
-+
-+/**
-+ * copy_regset_to_user - fetch a thread's user_regset data into user memory
-+ * @target:	thread to be examined
-+ * @view:	&struct user_regset_view describing user thread machine state
-+ * @setno:	index in @view->regsets
-+ * @offset:	offset into the regset data, in bytes
-+ * @size:	amount of data to copy, in bytes
-+ * @data:	user-mode pointer to copy into
-+ */
-+int copy_regset_to_user(struct task_struct *target,
-+			const struct user_regset_view *view,
-+			unsigned int setno,
-+			unsigned int offset, unsigned int size,
-+			void __user *data)
-+{
-+	const struct user_regset *regset = &view->regsets[setno];
-+	void *buf;
-+	int ret;
-+
-+	ret = regset_get_alloc(target, regset, size, &buf);
-+	if (ret > 0)
-+		ret = copy_to_user(data, buf, ret) ? -EFAULT : 0;
-+	kfree(buf);
-+	return ret;
-+}
 -- 
-2.11.0
+Kees Cook
