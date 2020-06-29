@@ -1,164 +1,112 @@
-Return-Path: <SRS0=7JWk=AC=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37458 "EHLO
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38392 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725928AbgFUFmT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 21 Jun 2020 01:42:19 -0400
-From: Rikard Falkeborn <rikard.falkeborn@gmail.com>
-Subject: [PATCH v4 2/2] bits: Add tests of GENMASK
-Date: Sun, 21 Jun 2020 07:42:10 +0200
-Message-ID: <20200621054210.14804-2-rikard.falkeborn@gmail.com>
-In-Reply-To: <20200621054210.14804-1-rikard.falkeborn@gmail.com>
-References: <20200620213632.60c2c6b99ec9cf9392fa128d@linux-foundation.org>
- <20200621054210.14804-1-rikard.falkeborn@gmail.com>
+        with ESMTP id S1729145AbgF2Smw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 17/41] copy_regset_to_user(): do all copyout at once.
+Date: Mon, 29 Jun 2020 19:26:04 +0100
+Message-ID: <20200629182628.529995-17-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
+ <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: andy.shevchenko@gmail.com, arnd@arndb.de, emil.l.velikov@gmail.com, geert@linux-m68k.org, keescook@chromium.org, linus.walleij@linaro.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lkp@intel.com, rikard.falkeborn@gmail.com, syednwaris@gmail.com, vilhelm.gray@gmail.com, yamada.masahiro@socionext.com
-Message-ID: <20200621054210.qO_Ue4JzE0o5jzchRLgKFHE-h3XtEHO6Gi20A3C8U3s@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200629182604.-fsGc3kznJOSK23-jnX_NaUJfUXKzfgWIsEyhYDDq3M@z>
 
-Add tests of GENMASK and GENMASK_ULL.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-A few test cases that should fail compilation are provided
-under #ifdef TEST_GENMASK_FAILURES
+Turn copy_regset_to_user() into regset_get_alloc() + copy_to_user().
+Now all ->get() calls have a kernel buffer as destination.
 
-Suggested-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Signed-off-by: Rikard Falkeborn <rikard.falkeborn@gmail.com>
+Note that we'd already eliminated the callers of copy_regset_to_user()
+with non-zero offset; now that argument is simply unused.
+
+Uninlined, while we are at it.
+
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
-Sorry about the missing MODULE_LICENSE. I assume you just will drop v3
-and use this instead, or should I have sent a patch with only
-MODULE_LICENSE added?
+ include/linux/regset.h | 29 ++++-------------------------
+ kernel/regset.c        | 26 ++++++++++++++++++++++++++
+ 2 files changed, 30 insertions(+), 25 deletions(-)
 
-v3-v4
-Added missing MODULE_LICENSE.
-
-v2-v3
-Updated commit message and ifdef after suggestion fron Geert. Also fixed
-a typo in the description of the file.
-
-v1-v2
-New patch.
-
-
- lib/Kconfig.debug | 11 +++++++
- lib/Makefile      |  1 +
- lib/test_bits.c   | 75 +++++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 87 insertions(+)
- create mode 100644 lib/test_bits.c
-
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index d74ac0fd6b2d..628097773b13 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -2186,6 +2186,17 @@ config LINEAR_RANGES_TEST
+diff --git a/include/linux/regset.h b/include/linux/regset.h
+index 968a032922d5..af57c1db1924 100644
+--- a/include/linux/regset.h
++++ b/include/linux/regset.h
+@@ -362,31 +362,10 @@ extern int regset_get_alloc(struct task_struct *target,
+ 			    unsigned int size,
+ 			    void **data);
  
- 	  If unsure, say N.
+-/**
+- * copy_regset_to_user - fetch a thread's user_regset data into user memory
+- * @target:	thread to be examined
+- * @view:	&struct user_regset_view describing user thread machine state
+- * @setno:	index in @view->regsets
+- * @offset:	offset into the regset data, in bytes
+- * @size:	amount of data to copy, in bytes
+- * @data:	user-mode pointer to copy into
+- */
+-static inline int copy_regset_to_user(struct task_struct *target,
+-				      const struct user_regset_view *view,
+-				      unsigned int setno,
+-				      unsigned int offset, unsigned int size,
+-				      void __user *data)
+-{
+-	const struct user_regset *regset = &view->regsets[setno];
+-
+-	if (!regset->get)
+-		return -EOPNOTSUPP;
+-
+-	if (!access_ok(data, size))
+-		return -EFAULT;
+-
+-	return regset->get(target, regset, offset, size, NULL, data);
+-}
++extern int copy_regset_to_user(struct task_struct *target,
++			       const struct user_regset_view *view,
++			       unsigned int setno, unsigned int offset,
++			       unsigned int size, void __user *data);
  
-+config BITS_TEST
-+	tristate "KUnit test for bits.h"
-+	depends on KUNIT
-+	help
-+	  This builds the bits unit test.
-+	  Tests the logic of macros defined in bits.h.
-+	  For more information on KUnit and unit tests in general please refer
-+	  to the KUnit documentation in Documentation/dev-tools/kunit/.
+ /**
+  * copy_regset_from_user - store into thread's user_regset data from user memory
+diff --git a/kernel/regset.c b/kernel/regset.c
+index 6b39fa0993ec..0a610983ce43 100644
+--- a/kernel/regset.c
++++ b/kernel/regset.c
+@@ -52,3 +52,29 @@ int regset_get_alloc(struct task_struct *target,
+ 	return __regset_get(target, regset, size, data);
+ }
+ EXPORT_SYMBOL(regset_get_alloc);
 +
-+	  If unsure, say N.
-+
- config TEST_UDELAY
- 	tristate "udelay test driver"
- 	help
-diff --git a/lib/Makefile b/lib/Makefile
-index b1c42c10073b..d157f6c980f7 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -318,3 +318,4 @@ obj-$(CONFIG_OBJAGG) += objagg.o
- # KUnit tests
- obj-$(CONFIG_LIST_KUNIT_TEST) += list-test.o
- obj-$(CONFIG_LINEAR_RANGES_TEST) += test_linear_ranges.o
-+obj-$(CONFIG_BITS_TEST) += test_bits.o
-diff --git a/lib/test_bits.c b/lib/test_bits.c
-new file mode 100644
-index 000000000000..89e0ea83511f
---- /dev/null
-+++ b/lib/test_bits.c
-@@ -0,0 +1,75 @@
-+// SPDX-License-Identifier: GPL-2.0+
-+/*
-+ * Test cases for functions and macros in bits.h
++/**
++ * copy_regset_to_user - fetch a thread's user_regset data into user memory
++ * @target:	thread to be examined
++ * @view:	&struct user_regset_view describing user thread machine state
++ * @setno:	index in @view->regsets
++ * @offset:	offset into the regset data, in bytes
++ * @size:	amount of data to copy, in bytes
++ * @data:	user-mode pointer to copy into
 + */
-+
-+#include <kunit/test.h>
-+#include <linux/bits.h>
-+
-+
-+void genmask_test(struct kunit *test)
++int copy_regset_to_user(struct task_struct *target,
++			const struct user_regset_view *view,
++			unsigned int setno,
++			unsigned int offset, unsigned int size,
++			void __user *data)
 +{
-+	KUNIT_EXPECT_EQ(test, 1ul, GENMASK(0, 0));
-+	KUNIT_EXPECT_EQ(test, 3ul, GENMASK(1, 0));
-+	KUNIT_EXPECT_EQ(test, 6ul, GENMASK(2, 1));
-+	KUNIT_EXPECT_EQ(test, 0xFFFFFFFFul, GENMASK(31, 0));
++	const struct user_regset *regset = &view->regsets[setno];
++	void *buf;
++	int ret;
 +
-+#ifdef TEST_GENMASK_FAILURES
-+	/* these should fail compilation */
-+	GENMASK(0, 1);
-+	GENMASK(0, 10);
-+	GENMASK(9, 10);
-+#endif
-+
-+
++	ret = regset_get_alloc(target, regset, size, &buf);
++	if (ret > 0)
++		ret = copy_to_user(data, buf, ret) ? -EFAULT : 0;
++	kfree(buf);
++	return ret;
 +}
-+
-+void genmask_ull_test(struct kunit *test)
-+{
-+	KUNIT_EXPECT_EQ(test, 1ull, GENMASK_ULL(0, 0));
-+	KUNIT_EXPECT_EQ(test, 3ull, GENMASK_ULL(1, 0));
-+	KUNIT_EXPECT_EQ(test, 0x000000ffffe00000ull, GENMASK_ULL(39, 21));
-+	KUNIT_EXPECT_EQ(test, 0xffffffffffffffffull, GENMASK_ULL(63, 0));
-+
-+#ifdef TEST_GENMASK_FAILURES
-+	/* these should fail compilation */
-+	GENMASK_ULL(0, 1);
-+	GENMASK_ULL(0, 10);
-+	GENMASK_ULL(9, 10);
-+#endif
-+}
-+
-+void genmask_input_check_test(struct kunit *test)
-+{
-+	unsigned int x, y;
-+	int z, w;
-+
-+	/* Unknown input */
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(x, 0));
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(0, x));
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(x, y));
-+
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(z, 0));
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(0, z));
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(z, w));
-+
-+	/* Valid input */
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(1, 1));
-+	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(39, 21));
-+}
-+
-+
-+static struct kunit_case bits_test_cases[] = {
-+	KUNIT_CASE(genmask_test),
-+	KUNIT_CASE(genmask_ull_test),
-+	KUNIT_CASE(genmask_input_check_test),
-+	{}
-+};
-+
-+static struct kunit_suite bits_test_suite = {
-+	.name = "bits-test",
-+	.test_cases = bits_test_cases,
-+};
-+kunit_test_suite(bits_test_suite);
-+
-+MODULE_LICENSE("GPL");
 -- 
-2.27.0
+2.11.0
