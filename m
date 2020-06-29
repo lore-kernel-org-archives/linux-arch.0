@@ -1,257 +1,157 @@
-Return-Path: <SRS0=444k=AH=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42864 "EHLO
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38406 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728381AbgFZLX3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Jun 2020 07:23:29 -0400
-Subject: Re: [PATCH v3 2/2] prctl.2: Add tagged address ABI control prctls
- (arm64)
-References: <1593020162-9365-1-git-send-email-Dave.Martin@arm.com>
- <1593020162-9365-3-git-send-email-Dave.Martin@arm.com>
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Message-ID: <660e8900-ca23-d022-79bd-3b16c70d36d2@gmail.com>
-Date: Fri, 26 Jun 2020 13:23:26 +0200
+        with ESMTP id S1729071AbgF2Smo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:44 -0400
+Received: from mail-pf1-x443.google.com (mail-pf1-x443.google.com [IPv6:2607:f8b0:4864:20::443])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 42231C031C6F
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 11:03:03 -0700 (PDT)
+Received: by mail-pf1-x443.google.com with SMTP id t11so3363888pfq.11
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 11:03:03 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <1593020162-9365-3-git-send-email-Dave.Martin@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+References: <20200629061840.4065483-1-keescook@chromium.org>
+ <20200629061840.4065483-6-keescook@chromium.org> <CAMj1kXE+toCd=Bx-zw7D9bvDRNB2aPn5-_7CY7MOKcVGA-azVg@mail.gmail.com>
+ <202006290806.3BDE2A8@keescook>
+In-Reply-To: <202006290806.3BDE2A8@keescook>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Date: Mon, 29 Jun 2020 11:02:51 -0700
+Message-ID: <CAKwvOd=DMfmvfiEX7KDPLs75SbNz+LAGSwC3V_=LgGH3kjtE=g@mail.gmail.com>
+Subject: Re: [PATCH v4 05/17] ctype: Work around Clang -mbranch-protection=none
+ bug
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: mtk.manpages@gmail.com, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Vincenzo Frascino <vincenzo.frascino@arm.com>
-Message-ID: <20200626112326.GRbgQd-5AwMTjAzI32LpIAwe5LMoVng85m1gJzRTGkM@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Ard Biesheuvel <ardb@kernel.org>, Will Deacon <will@kernel.org>, Dave Martin <Dave.Martin@arm.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Daniel Kiss <daniel.kiss@arm.com>
+Message-ID: <20200629180251.a5RhWokyvmxcTGRw7JUdatXz3OhyLnfQZ544SwDpt4M@z>
 
-Hi Dave,
+On Mon, Jun 29, 2020 at 8:06 AM Kees Cook <keescook@chromium.org> wrote:
+>
+> On Mon, Jun 29, 2020 at 10:15:47AM +0200, Ard Biesheuvel wrote:
+> > On Mon, 29 Jun 2020 at 08:18, Kees Cook <keescook@chromium.org> wrote:
+> > >
+> > > In preparation for building efi/libstub with -mbranch-protection=none
+> > > (EFI does not support branch protection features[1]), add no-op code
+> > > to work around a Clang bug that emits an unwanted .note.gnu.property
+> > > section for object files without code[2].
+> > >
+> > > [1] https://lore.kernel.org/lkml/CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com
+> > > [2] https://bugs.llvm.org/show_bug.cgi?id=46480
+> > >
+> > > Cc: Ard Biesheuvel <ardb@kernel.org>
+> > > Cc: Will Deacon <will@kernel.org>
+> > > Cc: Dave Martin <Dave.Martin@arm.com>
+> > > Cc: clang-built-linux@googlegroups.com
+> > > Signed-off-by: Kees Cook <keescook@chromium.org>
+> > > ---
+> > >  lib/ctype.c | 10 ++++++++++
+> > >  1 file changed, 10 insertions(+)
+> > >
+> > > diff --git a/lib/ctype.c b/lib/ctype.c
+> > > index c819fe269eb2..21245ed57d90 100644
+> > > --- a/lib/ctype.c
+> > > +++ b/lib/ctype.c
+> > > @@ -36,3 +36,13 @@ _L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,     /* 224-239 */
+> > >  _L,_L,_L,_L,_L,_L,_L,_P,_L,_L,_L,_L,_L,_L,_L,_L};      /* 240-255 */
+> > >
+> > >  EXPORT_SYMBOL(_ctype);
+> > > +
+> > > +/*
+> > > + * Clang will generate .note.gnu.property sections for object files
+> > > + * without code, even in the presence of -mbranch-protection=none.
+> > > + * To work around this, define an unused static function.
+> > > + * https://bugs.llvm.org/show_bug.cgi?id=46480
+> > > + */
+> > > +#ifdef CONFIG_CC_IS_CLANG
+> > > +void __maybe_unused __clang_needs_code_here(void) { }
+> > > +#endif
+> > > --
+> > > 2.25.1
+> > >
+> >
+> > I take it we don't need this horrible hack if we build the EFI stub
+> > with branch protections and filter out the .note.gnu.property section
+> > explicitly?
+> >
+> > Sorry to backpedal, but that is probably a better approach after all,
+> > given that the instructions don't hurt, and we will hopefully be able
+> > to arm them once UEFI (as well as PE/COFF) gets around to describing
+> > this in a way that both the firmware and the OS can consume.
+>
+> How does this look?
+>
+>
+> commit 051ef0b75a386c3fe2f216d16246468147a48c5b
+> Author: Kees Cook <keescook@chromium.org>
+> Date:   Tue Jun 23 18:02:56 2020 -0700
+>
+>     efi/libstub: Disable -mbranch-protection
+>
+>     In preparation for adding --orphan-handling=warn to more architectures,
+>     disable -mbranch-protection, as EFI does not yet support it[1].  This was
+>     noticed due to it producing unwanted .note.gnu.property sections (prefixed
+>     with .init due to the objcopy build step).
+>
+>     However, we must also work around a bug in Clang where the section is
+>     still emitted for code-less object files[2], so also remove the section
+>     during the objcopy.
+>
+>     [1] https://lore.kernel.org/lkml/CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com
+>     [2] https://bugs.llvm.org/show_bug.cgi?id=46480
+>
+>     Cc: Ard Biesheuvel <ardb@kernel.org>
+>     Cc: Arvind Sankar <nivedita@alum.mit.edu>
+>     Cc: Atish Patra <atish.patra@wdc.com>
+>     Cc: linux-efi@vger.kernel.org
+>     Signed-off-by: Kees Cook <keescook@chromium.org>
+>
+> diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
+> index 75daaf20374e..f9f1922f8f28 100644
+> --- a/drivers/firmware/efi/libstub/Makefile
+> +++ b/drivers/firmware/efi/libstub/Makefile
+> @@ -18,7 +18,8 @@ cflags-$(CONFIG_X86)          += -m$(BITS) -D__KERNEL__ \
+>  # arm64 uses the full KBUILD_CFLAGS so it's necessary to explicitly
+>  # disable the stackleak plugin
+>  cflags-$(CONFIG_ARM64)         := $(subst $(CC_FLAGS_FTRACE),,$(KBUILD_CFLAGS)) \
+> -                                  -fpie $(DISABLE_STACKLEAK_PLUGIN)
+> +                                  -fpie $(DISABLE_STACKLEAK_PLUGIN) \
+> +                                  $(call cc-option,-mbranch-protection=none)
+>  cflags-$(CONFIG_ARM)           := $(subst $(CC_FLAGS_FTRACE),,$(KBUILD_CFLAGS)) \
+>                                    -fno-builtin -fpic \
+>                                    $(call cc-option,-mno-single-pic-base)
+> @@ -66,6 +67,12 @@ lib-$(CONFIG_X86)            += x86-stub.o
+>  CFLAGS_arm32-stub.o            := -DTEXT_OFFSET=$(TEXT_OFFSET)
+>  CFLAGS_arm64-stub.o            := -DTEXT_OFFSET=$(TEXT_OFFSET)
+>
+> +# Even when -mbranch-protection=none is set, Clang will generate a
+> +# .note.gnu.property for code-less object files (like lib/ctype.c),
+> +# so work around this by explicitly removing the unwanted section.
+> +# https://bugs.llvm.org/show_bug.cgi?id=46480
+> +STUBCOPY_FLAGS-y               += --remove-section=.note.gnu.property
 
-On 6/24/20 7:36 PM, Dave Martin wrote:
-> Add documentation for the the PR_SET_TAGGED_ADDR_CTRL and
-> PR_GET_TAGGED_ADDR_CTRL prctls added in Linux 5.4 for arm64.
-> 
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>
+This is definitely better than the empty function.  Though a patch is
+posted for fixing this in LLVM. Assuming that lands before this, we
+might not actually need this workaround?
 
-Thanks for another nicely written patch! I've applied locally, 
-but won't push just yet, to allow for some (more) reviews/acks
-to come in.
+arch/arm64/Kconfig
+1625 config ARM64_BTI_KERNEL
+...
+1633   # https://reviews.llvm.org/rGb8ae3fdfa579dbf366b1bb1cbfdbf8c51db7fa55
+1634   depends on !CC_IS_CLANG || CLANG_VERSION >= 100001
 
-Thanks,
+So if Daniel's patch lands AND is backported into the clang 10.0.1
+release, then we might not need to carry this workaround?  Either way,
 
-Michael
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
 
-> ---
-> 
-> Kept Catalin's Reviewed-by, since the changes are pretty minor.
-> 
-> Changes since v2:
-> 
->  * Clarified type of PR_SET_TAGGED_ADDR_CTRL arg2.
-> 
->  * Added Linux commit where enforecement of zeroing reserved args was
->    added for PR_SET_TAGGED_ADDR_CTRL.
-> 
->  * Added explicit text regarding how to disable the tagged-address ABI
->    globally through sysctl.
-> 
->  * Rearrange the tagged argument syscall exclusion list so that shmdt()
->    isn't called out specially.  The reader probably doesn't care about
->    this history here.
-> 
->  * Minor rewordings.
-> ---
->  man2/prctl.2 | 161 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 161 insertions(+)
-> 
-> diff --git a/man2/prctl.2 b/man2/prctl.2
-> index 46ea9d2..cf92f3b 100644
-> --- a/man2/prctl.2
-> +++ b/man2/prctl.2
-> @@ -1522,6 +1522,148 @@ For more information, see the kernel source file
->  (or
->  .I Documentation/arm64/sve.txt
->  before Linux 5.3).
-> +.\" prctl PR_SET_TAGGED_ADDR_CTRL
-> +.\" commit 63f0c60379650d82250f22e4cf4137ef3dc4f43d
-> +.TP
-> +.BR PR_SET_TAGGED_ADDR_CTRL " (since Linux 5.4, only on arm64)"
-> +Controls support for passing tagged userspace addresses to the kernel
-> +(i.e., addresses where bits 56\(em63 are not all zero).
-> +.IP
-> +The level of support is selected by
-> +.IR "arg2" ,
-> +which can be one of the following:
-> +.RS
-> +.TP
-> +.B 0
-> +Addresses that are passed
-> +for the purpose of being dereferenced by the kernel
-> +must be untagged.
-> +.TP
-> +.B PR_TAGGED_ADDR_ENABLE
-> +Addresses that are passed
-> +for the purpose of being dereferenced by the kernel
-> +may be tagged, with the exceptions summarized below.
-> +.RE
-> +.IP
-> +The remaining arguments
-> +.IR arg3 ", " arg4 " and " arg5
-> +must all be zero.
-> +.\" Enforcement added in
-> +.\" commit 3e91ec89f527b9870fe42dcbdb74fd389d123a95
-> +.IP
-> +On success, the mode specified in
-> +.I arg2
-> +is set for the calling thread and the the return value is 0.
-> +If the arguments are invalid,
-> +the mode specified in
-> +.I arg2
-> +is unrecognized,
-> +or if this feature is unsupported by the kernel
-> +or disabled via
-> +.IR /proc/sys/abi/tagged_addr_disabled ,
-> +the call fails with
-> +.BR EINVAL .
-> +.IP
-> +In particular, if
-> +.BR prctl ( PR_SET_TAGGED_ADDR_CTRL ,
-> +0, 0, 0, 0)
-> +fails with
-> +.B EINVAL
-> +then all addresses passed to the kernel must be untagged.
-> +.IP
-> +Irrespective of which mode is set,
-> +addresses passed to certain interfaces
-> +must always be untagged:
-> +.RS
-> +.IP \(em
-> +.BR brk (2),
-> +.BR mmap (2),
-> +.BR shmat (2),
-> +.BR shmdt (2),
-> +and the
-> +.I new_address
-> +argument of
-> +.BR mremap (2).
-> +.IP
-> +(Prior to Linux 5.6 these accepted tagged addresses,
-> +but the behaviour may not be what you expect.
-> +Don't rely on it.)
-> +.IP \(em
-> +\(oqpolymorphic\(cq interfaces
-> +that accept pointers to arbitrary types cast to a
-> +.I void *
-> +or other generic type, specifically
-> +.BR prctl (2),
-> +.BR ioctl (2),
-> +and in general
-> +.BR setsockopt (2)
-> +(only certain specific
-> +.BR setsockopt (2)
-> +options allow tagged addresses).
-> +.RE
-> +.IP
-> +This list of exclusions may shrink
-> +when moving from one kernel version to a later kernel version.
-> +While the kernel may make some guarantees
-> +for backwards compatibility reasons,
-> +for the purposes of new software
-> +the effect of passing tagged addresses to these interfaces
-> +is unspecified.
-> +.IP
-> +The mode set by this call is inherited across
-> +.BR fork (2)
-> +and
-> +.BR clone (2).
-> +The mode is reset by
-> +.BR execve (2)
-> +to 0
-> +(i.e., tagged addresses not permitted in the user/kernel ABI).
-> +.IP
-> +For more information, see the kernel source file
-> +.IR Documentation/arm64/tagged\-address\-abi.rst .
-> +.IP
-> +.B Warning:
-> +This call is primarily intended for use by the run-time environment.
-> +A successful
-> +.B PR_SET_TAGGED_ADDR_CTRL
-> +call elsewhere may crash the calling process.
-> +The conditions for using it safely are complex and system-dependent;
-> +Don't use it unless you know what you are doing.
-> +.\" prctl PR_GET_TAGGED_ADDR_CTRL
-> +.\" commit 63f0c60379650d82250f22e4cf4137ef3dc4f43d
-> +.TP
-> +.BR PR_GET_TAGGED_ADDR_CTRL " (since Linux 5.4, only on arm64)"
-> +Returns the current tagged address mode
-> +for the calling thread.
-> +.IP
-> +Arguments
-> +.IR arg2 ", " arg3 ", " arg4 " and " arg5
-> +must all be zero.
-> +.IP
-> +If the arguments are invalid
-> +or this feature is disabled or unsupported by the kernel,
-> +the call fails with
-> +.BR EINVAL .
-> +In particular, if
-> +.BR prctl ( PR_GET_TAGGED_ADDR_CTRL ,
-> +0, 0, 0, 0)
-> +fails with
-> +.BR EINVAL ,
-> +then this feature is definitely either unsupported,
-> +or disabled via
-> +.IR /proc/sys/abi/tagged_addr_disabled .
-> +In this case,
-> +all addresses passed to the kernel must be untagged.
-> +.IP
-> +Otherwise, the call returns a nonnegative value
-> +describing the current tagged address mode,
-> +encoded in the same way as the
-> +.I arg2
-> +argument of
-> +.BR PR_SET_TAGGED_ADDR_CTRL .
-> +.IP
-> +For more information, see the kernel source file
-> +.IR Documentation/arm64/tagged\-address\-abi.rst .
->  .\"
->  .\" prctl PR_TASK_PERF_EVENTS_DISABLE
->  .TP
-> @@ -1767,6 +1909,7 @@ On success,
->  .BR PR_GET_SPECULATION_CTRL ,
->  .BR PR_SVE_GET_VL ,
->  .BR PR_SVE_SET_VL ,
-> +.BR PR_GET_TAGGED_ADDR_CTRL ,
->  .BR PR_GET_THP_DISABLE ,
->  .BR PR_GET_TIMING ,
->  .BR PR_GET_TIMERSLACK ,
-> @@ -2074,6 +2217,24 @@ is
->  .B PR_SVE_GET_VL
->  and SVE is not available on this platform.
->  .TP
-> +.B EINVAL
-> +.I option
-> +is
-> +.BR PR_SET_TAGGED_ADDR_CTRL
-> +and the arguments are invalid or unsupported.
-> +See the description of
-> +.B PR_SET_TAGGED_ADDR_CTRL
-> +above for details.
-> +.TP
-> +.B EINVAL
-> +.I option
-> +is
-> +.BR PR_GET_TAGGED_ADDR_CTRL
-> +and the arguments are invalid or unsupported.
-> +See the description of
-> +.B PR_GET_TAGGED_ADDR_CTRL
-> +above for details.
-> +.TP
->  .B ENODEV
->  .I option
->  was
-> 
-
+> +
+>  #
+>  # For x86, bootloaders like systemd-boot or grub-efi do not zero-initialize the
+>  # .bss section, so the .bss section of the EFI stub needs to be included in the
+>
+> --
+> Kees Cook
 
 -- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+Thanks,
+~Nick Desaulniers
