@@ -1,48 +1,60 @@
-Return-Path: <SRS0=nbOu=74=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-ot1-f66.google.com ([209.85.210.66]:44602 "EHLO
-        mail-ot1-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728285AbgFOLLf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2020 07:11:35 -0400
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50322 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731850AbgF2Tx7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:53:59 -0400
+Received: from mail-pf1-x444.google.com (mail-pf1-x444.google.com [IPv6:2607:f8b0:4864:20::444])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 51374C03E97A
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 12:53:59 -0700 (PDT)
+Received: by mail-pf1-x444.google.com with SMTP id j12so8333119pfn.10
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 12:53:59 -0700 (PDT)
 MIME-Version: 1.0
-References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
- <20200614223456.13807a00@redhat.com> <5033402c-d95c-eecd-db84-75195b159fab@al2klimov.de>
-In-Reply-To: <5033402c-d95c-eecd-db84-75195b159fab@al2klimov.de>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 15 Jun 2020 13:11:22 +0200
-Message-ID: <CAMuHMdVvYRzOA-cOj41_0g1OXw+xhJ29=FZNAL5v_fWsBjwm4g@mail.gmail.com>
-Subject: Re: Good idea to rename files in include/uapi/ ?
+References: <20200629061840.4065483-1-keescook@chromium.org> <20200629061840.4065483-9-keescook@chromium.org>
+In-Reply-To: <20200629061840.4065483-9-keescook@chromium.org>
+From: Nick Desaulniers <ndesaulniers@google.com>
+Date: Mon, 29 Jun 2020 12:53:47 -0700
+Message-ID: <CAKwvOd=r6bsBfSZxVYrnbm1Utq==ApWBDjx+0Fxsm90Aq3Jghw@mail.gmail.com>
+Subject: Re: [PATCH v4 08/17] arm64/mm: Remove needless section quotes
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Alexander A. Klimov" <grandmaster@al2klimov.de>
-Cc: Stefano Brivio <sbrivio@redhat.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, NetFilter <netfilter-devel@vger.kernel.org>, coreteam@netfilter.org, netdev <netdev@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20200615111122.9hj05VX1Rz8pWqDYqaU1uogeemnY4sogdjjyqlS_ZLU@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, Joe Perches <joe@perches.com>
+Message-ID: <20200629195347.zsfjQnJ8-RJzTVW5_DoDWeW101nv5NIdbSXh85FWg-w@z>
 
-Hi Alexander,
-
-On Mon, Jun 15, 2020 at 1:11 AM Alexander A. Klimov
-<grandmaster@al2klimov.de> wrote:
-> Am 14.06.20 um 22:34 schrieb Stefano Brivio:
-> > On Sun, 14 Jun 2020 21:41:17 +0200
-> >> Also even on a case-sensitive one VIm seems to have trouble with editing
-> >> both case-insensitively equal files at the same time.
-> >
-> > ...what trouble exactly?
-> vi -O2 include/uapi/linux/netfilter/xt_CONNMARK.h
-> include/uapi/linux/netfilter/xt_connmark.h
+On Sun, Jun 28, 2020 at 11:18 PM Kees Cook <keescook@chromium.org> wrote:
 >
-> ... opens the first file two times.
+> Fix a case of needless quotes in __section(), which Clang doesn't like.
+>
+> Acked-by: Will Deacon <will@kernel.org>
+> Signed-off-by: Kees Cook <keescook@chromium.org>
 
-Works fine for me, using vim 2:8.0.1453-1ubuntu1.3.
-You must be using a buggy version.
+Yep, I remember bugs from this.  Probably should scan the kernel for
+other instances of this.  +Joe for checkpatch.pl validation.
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
 
-Gr{oetje,eeting}s,
+> ---
+>  arch/arm64/mm/mmu.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+> index 1df25f26571d..dce024ea6084 100644
+> --- a/arch/arm64/mm/mmu.c
+> +++ b/arch/arm64/mm/mmu.c
+> @@ -42,7 +42,7 @@
+>  u64 idmap_t0sz = TCR_T0SZ(VA_BITS);
+>  u64 idmap_ptrs_per_pgd = PTRS_PER_PGD;
+>
+> -u64 __section(".mmuoff.data.write") vabits_actual;
+> +u64 __section(.mmuoff.data.write) vabits_actual;
+>  EXPORT_SYMBOL(vabits_actual);
+>
+>  u64 kimage_voffset __ro_after_init;
+> --
+> 2.25.1
+>
 
-                        Geert
 
 -- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Thanks,
+~Nick Desaulniers
