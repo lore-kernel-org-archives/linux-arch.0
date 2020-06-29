@@ -1,50 +1,85 @@
-Return-Path: <SRS0=o+GD=73=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35622 "EHLO
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43382 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726766AbgFNTtm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 Jun 2020 15:49:42 -0400
-From: "Alexander A. Klimov" <grandmaster@al2klimov.de>
-Subject: Good idea to rename files in include/uapi/ ?
-Message-ID: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
-Date: Sun, 14 Jun 2020 21:41:17 +0200
+        with ESMTP id S1731262AbgF2TNG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:13:06 -0400
+Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0690CC08EB21
+        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:27:31 -0700 (PDT)
+Received: by mail-pj1-x1042.google.com with SMTP id c1so316034pja.5
+        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:27:31 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v4 17/17] x86/boot: Warn on orphan section placement
+Date: Sun, 28 Jun 2020 23:18:40 -0700
+Message-ID: <20200629061840.4065483-18-keescook@chromium.org>
+In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
+References: <20200629061840.4065483-1-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200614194117.3w4qGqe-BtQb_tNicXkj1alveVvZ3j8ehtofUldCYp0@z>
+To: Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200629061840.kQE277SNFuQTkdko-AVaTtcpkKGGIpdpx3xvCw6jenc@z>
 
-Hello there!
+We don't want to depend on the linker's orphan section placement
+heuristics as these can vary between linkers, and may change between
+versions. All sections need to be explicitly named in the linker
+script.
 
-At the moment one can't checkout a clean working directory w/o any 
-changed files on a case-insensitive FS as the following file names have 
-lower-case duplicates:
+Add the common debugging sections. Discard the unused note, rel, plt,
+dyn, and hash sections that are not needed in the compressed vmlinux.
+Disable .eh_frame generation in the linker and enable orphan section
+warnings.
 
-➜  linux git:(96144c58abe7) git ls-files |sort -f |uniq -id
-include/uapi/linux/netfilter/xt_CONNMARK.h
-include/uapi/linux/netfilter/xt_DSCP.h
-include/uapi/linux/netfilter/xt_MARK.h
-include/uapi/linux/netfilter/xt_RATEEST.h
-include/uapi/linux/netfilter/xt_TCPMSS.h
-include/uapi/linux/netfilter_ipv4/ipt_ECN.h
-include/uapi/linux/netfilter_ipv4/ipt_TTL.h
-include/uapi/linux/netfilter_ipv6/ip6t_HL.h
-net/netfilter/xt_DSCP.c
-net/netfilter/xt_HL.c
-net/netfilter/xt_RATEEST.c
-net/netfilter/xt_TCPMSS.c
-tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus
-➜  linux git:(96144c58abe7)
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/x86/boot/compressed/Makefile      |  3 ++-
+ arch/x86/boot/compressed/vmlinux.lds.S | 10 ++++++++++
+ 2 files changed, 12 insertions(+), 1 deletion(-)
 
-Also even on a case-sensitive one VIm seems to have trouble with editing 
-both case-insensitively equal files at the same time.
-
-I was going to make a patch renaming the respective duplicates, but I'm 
-not sure:
-
-*Is it a good idea to rename files in include/uapi/ ?*
-
-Best,
-AK
+diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
+index 7619742f91c9..646720a05f89 100644
+--- a/arch/x86/boot/compressed/Makefile
++++ b/arch/x86/boot/compressed/Makefile
+@@ -48,6 +48,7 @@ GCOV_PROFILE := n
+ UBSAN_SANITIZE :=n
+ 
+ KBUILD_LDFLAGS := -m elf_$(UTS_MACHINE)
++KBUILD_LDFLAGS += $(call ld-option,--no-ld-generated-unwind-info)
+ # Compressed kernel should be built as PIE since it may be loaded at any
+ # address by the bootloader.
+ ifeq ($(CONFIG_X86_32),y)
+@@ -59,7 +60,7 @@ else
+ KBUILD_LDFLAGS += $(shell $(LD) --help 2>&1 | grep -q "\-z noreloc-overflow" \
+ 	&& echo "-z noreloc-overflow -pie --no-dynamic-linker")
+ endif
+-LDFLAGS_vmlinux := -T
++LDFLAGS_vmlinux := --orphan-handling=warn -T
+ 
+ hostprogs	:= mkpiggy
+ HOST_EXTRACFLAGS += -I$(srctree)/tools/include
+diff --git a/arch/x86/boot/compressed/vmlinux.lds.S b/arch/x86/boot/compressed/vmlinux.lds.S
+index d88612e3091f..9afb8737896f 100644
+--- a/arch/x86/boot/compressed/vmlinux.lds.S
++++ b/arch/x86/boot/compressed/vmlinux.lds.S
+@@ -75,7 +75,17 @@ SECTIONS
+ 	. = ALIGN(PAGE_SIZE);	/* keep ZO size page aligned */
+ 	_end = .;
+ 
++	STABS_DEBUG
++	DWARF_DEBUG
+ 	ELF_DETAILS
+ 
+ 	DISCARDS
++	/DISCARD/ : {
++		*(.note.*)
++		*(.rela.*) *(.rela_*)
++		*(.rel.*) *(.rel_*)
++		*(.plt) *(.plt.*)
++		*(.dyn*)
++		*(.hash) *(.gnu.hash)
++	}
+ }
+-- 
+2.25.1
