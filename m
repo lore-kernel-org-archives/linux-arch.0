@@ -1,169 +1,27 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 36/41] parisc: switch to ->get2()
-Date: Mon, 29 Jun 2020 19:26:23 +0100
-Message-ID: <20200629182628.529995-36-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+From: Pekka Enberg <penberg@gmail.com>
+Subject: Re: [PATCH 0/8] mm: cleanup usage of <asm/pgalloc.h>
+Date: Mon, 29 Jun 2020 17:01:14 +0300
+Message-ID: <CAOJsxLE47WP9aMY3nh=E7C1a_esHt=sBFWCnsVA2umZ7TZ6TTA@mail.gmail.com>
+References: <20200627143453.31835-1-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38398 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729133AbgF2Smw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <20200627143453.31835-1-rppt@kernel.org>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Mike Rapoport <rppt@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christophe Leroy <christophe.leroy@csgroup.eu>, Joerg Roedel <joro@8bytes.org>, Max Filippov <jcmvbkbc@gmail.com>, Mike Rapoport <rppt@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Stafford Horne <shorne@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, linux-alpha@vger.kernel.org, "list@ebiederm.org:DOCUMENTATION <linux-doc@vger.kernel.org>,
+        list@ebiederm.org:MEMORY MANAGEMENT <linux-mm@kvack.org>," <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm>
+List-Id: linux-arch.vger.kernel.org
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+On Sat, Jun 27, 2020 at 5:35 PM Mike Rapoport <rppt@kernel.org> wrote:
+> Most architectures have very similar versions of pXd_alloc_one() and
+> pXd_free_one() for intermediate levels of page table.
+> These patches add generic versions of these functions in
+> <asm-generic/pgalloc.h> and enable use of the generic functions where
+> appropriate.
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/parisc/kernel/ptrace.c | 84 +++++++++------------------------------------
- 1 file changed, 16 insertions(+), 68 deletions(-)
+Very nice cleanup series to the page table code!
 
-diff --git a/arch/parisc/kernel/ptrace.c b/arch/parisc/kernel/ptrace.c
-index b51418ad8655..6dd7a4debb9c 100644
---- a/arch/parisc/kernel/ptrace.c
-+++ b/arch/parisc/kernel/ptrace.c
-@@ -391,31 +391,11 @@ void do_syscall_trace_exit(struct pt_regs *regs)
- 
- static int fpr_get(struct task_struct *target,
- 		     const struct user_regset *regset,
--		     unsigned int pos, unsigned int count,
--		     void *kbuf, void __user *ubuf)
-+		     struct membuf to)
- {
- 	struct pt_regs *regs = task_regs(target);
--	__u64 *k = kbuf;
--	__u64 __user *u = ubuf;
--	__u64 reg;
--
--	pos /= sizeof(reg);
--	count /= sizeof(reg);
--
--	if (kbuf)
--		for (; count > 0 && pos < ELF_NFPREG; --count)
--			*k++ = regs->fr[pos++];
--	else
--		for (; count > 0 && pos < ELF_NFPREG; --count)
--			if (__put_user(regs->fr[pos++], u++))
--				return -EFAULT;
- 
--	kbuf = k;
--	ubuf = u;
--	pos *= sizeof(reg);
--	count *= sizeof(reg);
--	return user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
--					ELF_NFPREG * sizeof(reg), -1);
-+	return membuf_write(&to, regs->fr, ELF_NFPREG * sizeof(__u64));
- }
- 
- static int fpr_set(struct task_struct *target,
-@@ -527,30 +507,14 @@ static void set_reg(struct pt_regs *regs, int num, unsigned long val)
- 
- static int gpr_get(struct task_struct *target,
- 		     const struct user_regset *regset,
--		     unsigned int pos, unsigned int count,
--		     void *kbuf, void __user *ubuf)
-+		     struct membuf to)
- {
- 	struct pt_regs *regs = task_regs(target);
--	unsigned long *k = kbuf;
--	unsigned long __user *u = ubuf;
--	unsigned long reg;
-+	unsigned int pos;
- 
--	pos /= sizeof(reg);
--	count /= sizeof(reg);
--
--	if (kbuf)
--		for (; count > 0 && pos < ELF_NGREG; --count)
--			*k++ = get_reg(regs, pos++);
--	else
--		for (; count > 0 && pos < ELF_NGREG; --count)
--			if (__put_user(get_reg(regs, pos++), u++))
--				return -EFAULT;
--	kbuf = k;
--	ubuf = u;
--	pos *= sizeof(reg);
--	count *= sizeof(reg);
--	return user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
--					ELF_NGREG * sizeof(reg), -1);
-+	for (pos = 0; pos < ELF_NGREG; pos++)
-+		membuf_store(&to, get_reg(regs, pos));
-+	return 0;
- }
- 
- static int gpr_set(struct task_struct *target,
-@@ -588,12 +552,12 @@ static const struct user_regset native_regsets[] = {
- 	[REGSET_GENERAL] = {
- 		.core_note_type = NT_PRSTATUS, .n = ELF_NGREG,
- 		.size = sizeof(long), .align = sizeof(long),
--		.get = gpr_get, .set = gpr_set
-+		.get2 = gpr_get, .set = gpr_set
- 	},
- 	[REGSET_FP] = {
- 		.core_note_type = NT_PRFPREG, .n = ELF_NFPREG,
- 		.size = sizeof(__u64), .align = sizeof(__u64),
--		.get = fpr_get, .set = fpr_set
-+		.get2 = fpr_get, .set = fpr_set
- 	}
- };
- 
-@@ -607,31 +571,15 @@ static const struct user_regset_view user_parisc_native_view = {
- 
- static int gpr32_get(struct task_struct *target,
- 		     const struct user_regset *regset,
--		     unsigned int pos, unsigned int count,
--		     void *kbuf, void __user *ubuf)
-+		     struct membuf to)
- {
- 	struct pt_regs *regs = task_regs(target);
--	compat_ulong_t *k = kbuf;
--	compat_ulong_t __user *u = ubuf;
--	compat_ulong_t reg;
-+	unsigned int pos;
- 
--	pos /= sizeof(reg);
--	count /= sizeof(reg);
-+	for (pos = 0; pos < ELF_NGREG; pos++)
-+		membuf_store(&to, (compat_ulong_t)get_reg(regs, pos));
- 
--	if (kbuf)
--		for (; count > 0 && pos < ELF_NGREG; --count)
--			*k++ = get_reg(regs, pos++);
--	else
--		for (; count > 0 && pos < ELF_NGREG; --count)
--			if (__put_user((compat_ulong_t) get_reg(regs, pos++), u++))
--				return -EFAULT;
--
--	kbuf = k;
--	ubuf = u;
--	pos *= sizeof(reg);
--	count *= sizeof(reg);
--	return user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
--					ELF_NGREG * sizeof(reg), -1);
-+	return 0;
- }
- 
- static int gpr32_set(struct task_struct *target,
-@@ -672,12 +620,12 @@ static const struct user_regset compat_regsets[] = {
- 	[REGSET_GENERAL] = {
- 		.core_note_type = NT_PRSTATUS, .n = ELF_NGREG,
- 		.size = sizeof(compat_long_t), .align = sizeof(compat_long_t),
--		.get = gpr32_get, .set = gpr32_set
-+		.get2 = gpr32_get, .set = gpr32_set
- 	},
- 	[REGSET_FP] = {
- 		.core_note_type = NT_PRFPREG, .n = ELF_NFPREG,
- 		.size = sizeof(__u64), .align = sizeof(__u64),
--		.get = fpr_get, .set = fpr_set
-+		.get2 = fpr_get, .set = fpr_set
- 	}
- };
- 
--- 
-2.11.0
+FWIW:
+
+Reviewed-by: Pekka Enberg <penberg@kernel.org>
