@@ -1,50 +1,99 @@
-Return-Path: <SRS0=o+GD=73=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34584 "EHLO
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38392 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727928AbgFNWrz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 Jun 2020 18:47:55 -0400
-Date: Sun, 14 Jun 2020 23:47:15 +0100
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: Good idea to rename files in include/uapi/ ?
-Message-ID: <20200614224715.GJ23230@ZenIV.linux.org.uk>
-References: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
+        with ESMTP id S1729076AbgF2Smp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:45 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 38/41] csky: switch to ->get2()
+Date: Mon, 29 Jun 2020 19:26:25 +0100
+Message-ID: <20200629182628.529995-38-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
+ <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <9feded75-4b45-2821-287b-af00ec5f910f@al2klimov.de>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Alexander A. Klimov" <grandmaster@al2klimov.de>
-Cc: Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, "Paul E. McKenney" <paulmck@kernel.org>, Akira Yokosawa <akiyks@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, linux-kernel@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200614224715.CNpTtlz3dcX6eUugpWC9MtlQJrUtRSHY3g2g8CZJPrQ@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200629182625.ZrR4Qyyc1QfgJVFi2bhr0dm-xhYOohdJa8HfxKMBL0I@z>
 
-On Sun, Jun 14, 2020 at 09:41:17PM +0200, Alexander A. Klimov wrote:
-> Hello there!
-> 
-> At the moment one can't checkout a clean working directory w/o any changed
-> files on a case-insensitive FS as the following file names have lower-case
-> duplicates:
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-And if you use a filesystem that is limited to 14 characters in name (or that
-weird 8 + 3 thing) you'll also have problems.  Doctor, it hurts when I do it...
+NB: WTF is fpregs_get() playing at???
 
-> Also even on a case-sensitive one VIm seems to have trouble with editing
-> both case-insensitively equal files at the same time.
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/csky/kernel/ptrace.c | 24 ++++++++++--------------
+ 1 file changed, 10 insertions(+), 14 deletions(-)
 
-So file a bug report against vim.  Or use a vi variant without such a problem
-(FWIW, nvi has nothing of that sort).
-
-> I was going to make a patch renaming the respective duplicates, but I'm not
-> sure:
-> 
-> *Is it a good idea to rename files in include/uapi/ ?*
-
-It is not.  Strictly speaking, C99 allows implementation to consider the
-header names differing only in case as refering to the same file, but then
-it allows to ignore everything between the 8th character and the first
-dot in those.  Not done on Unices, so #include <Shite.h> is not going to
-pick /usr/include/shite.h
-
-If it's used by any userland code, that's it - changing the name (in any fashion)
-will break that userland code.  If it isn't, it shouldn't have been in include/uabi
-in the first place.
+diff --git a/arch/csky/kernel/ptrace.c b/arch/csky/kernel/ptrace.c
+index 944ca2fdcdd9..acd36aeb5222 100644
+--- a/arch/csky/kernel/ptrace.c
++++ b/arch/csky/kernel/ptrace.c
+@@ -76,17 +76,14 @@ enum csky_regset {
+ 
+ static int gpr_get(struct task_struct *target,
+ 		   const struct user_regset *regset,
+-		   unsigned int pos, unsigned int count,
+-		   void *kbuf, void __user *ubuf)
++		   struct membuf to)
+ {
+-	struct pt_regs *regs;
+-
+-	regs = task_pt_regs(target);
++	struct pt_regs *regs = task_pt_regs(target);
+ 
+ 	/* Abiv1 regs->tls is fake and we need sync here. */
+ 	regs->tls = task_thread_info(target)->tp_value;
+ 
+-	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
++	return membuf_write(&to, regs, sizeof(regs));
+ }
+ 
+ static int gpr_set(struct task_struct *target,
+@@ -114,8 +111,7 @@ static int gpr_set(struct task_struct *target,
+ 
+ static int fpr_get(struct task_struct *target,
+ 		   const struct user_regset *regset,
+-		   unsigned int pos, unsigned int count,
+-		   void *kbuf, void __user *ubuf)
++		   struct membuf to)
+ {
+ 	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
+ 
+@@ -131,9 +127,9 @@ static int fpr_get(struct task_struct *target,
+ 	for (i = 0; i < 32; i++)
+ 		tmp.vr[64 + i] = regs->vr[32 + i];
+ 
+-	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
++	return membuf_write(&to, &tmp, sizeof(tmp));
+ #else
+-	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
++	return membuf_write(&to, regs, sizeof(*regs));
+ #endif
+ }
+ 
+@@ -173,16 +169,16 @@ static const struct user_regset csky_regsets[] = {
+ 		.n = sizeof(struct pt_regs) / sizeof(u32),
+ 		.size = sizeof(u32),
+ 		.align = sizeof(u32),
+-		.get = &gpr_get,
+-		.set = &gpr_set,
++		.get2 = gpr_get,
++		.set = gpr_set,
+ 	},
+ 	[REGSET_FPR] = {
+ 		.core_note_type = NT_PRFPREG,
+ 		.n = sizeof(struct user_fp) / sizeof(u32),
+ 		.size = sizeof(u32),
+ 		.align = sizeof(u32),
+-		.get = &fpr_get,
+-		.set = &fpr_set,
++		.get2 = fpr_get,
++		.set = fpr_set,
+ 	},
+ };
+ 
+-- 
+2.11.0
