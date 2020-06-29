@@ -1,74 +1,41 @@
 Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60092 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46780 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729267AbgF2Uyw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 16:54:52 -0400
+        with ESMTP id S1733227AbgF2Tco (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:32:44 -0400
 From: Arvind Sankar <nivedita@alum.mit.edu>
-Date: Mon, 29 Jun 2020 16:54:48 -0400
-Subject: Re: [PATCH v4 08/17] arm64/mm: Remove needless section quotes
-Message-ID: <20200629205448.GA1474367@rani.riverdale.lan>
+Date: Mon, 29 Jun 2020 11:54:01 -0400
+Subject: Re: [PATCH v4 14/17] arm/build: Warn on orphan section placement
+Message-ID: <20200629155401.GB900899@rani.riverdale.lan>
 References: <20200629061840.4065483-1-keescook@chromium.org>
- <20200629061840.4065483-9-keescook@chromium.org>
- <CAKwvOd=r6bsBfSZxVYrnbm1Utq==ApWBDjx+0Fxsm90Aq3Jghw@mail.gmail.com>
- <202006291301.46FEF3B7@keescook>
+ <20200629061840.4065483-15-keescook@chromium.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <202006291301.46FEF3B7@keescook>
+In-Reply-To: <20200629061840.4065483-15-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
-Cc: Nick Desaulniers <ndesaulniers@google.com>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, Joe Perches <joe@perches.com>
-Message-ID: <20200629205448.fHqpvtf07AfL5IumTBI9ls7_IBnLnW1hLS0UnsSaknI@z>
+Cc: Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200629155401.AnQTIBapXa47hivejIG72dC3ToWFtIsDUJHm92srGkc@z>
 
-On Mon, Jun 29, 2020 at 01:04:31PM -0700, Kees Cook wrote:
-> On Mon, Jun 29, 2020 at 12:53:47PM -0700, Nick Desaulniers wrote:
-> > On Sun, Jun 28, 2020 at 11:18 PM Kees Cook <keescook@chromium.org> wrote:
-> > >
-> > > Fix a case of needless quotes in __section(), which Clang doesn't like.
-> > >
-> > > Acked-by: Will Deacon <will@kernel.org>
-> > > Signed-off-by: Kees Cook <keescook@chromium.org>
-> > 
-> > Yep, I remember bugs from this.  Probably should scan the kernel for
-> > other instances of this.  +Joe for checkpatch.pl validation.
+On Sun, Jun 28, 2020 at 11:18:37PM -0700, Kees Cook wrote:
+> We don't want to depend on the linker's orphan section placement
+> heuristics as these can vary between linkers, and may change between
+> versions. All sections need to be explicitly named in the linker
+> script.
 > 
-> I think the others are safe because they're in macros:
+> Specifically, this would have made a recently fixed bug very obvious:
+> 
+> ld: warning: orphan section `.fixup' from `arch/arm/lib/copy_from_user.o' being placed in section `.fixup'
+> 
+> Discard unneeded sections .iplt, .rel.iplt, .igot.plt, and .modinfo.
+> 
+> Add missing text stub sections .vfp11_veneer and .v4_bx.
+> 
+> Add debug sections explicitly.
+> 
+> Finally enable orphan section warning.
 
-Why does that make it safe -- the commit msg is a bit sparse, but I
-assume the problem is that it generates
-	__attribute__((__section__("\".foo\"")))
-from
-	__section(".foo")
-after preprocessing, and clang keeps the quotes in the section name when
-generating assembly, while gcc appears to strip them off.
-
-It does that even if nested in another macro, no?
-
-> 
-> $ git grep -4 '__section("'
-> include/linux/compiler.h-# define KENTRY(sym)                                           \
-
-Am I missing something, or is KENTRY unused in the tree?
-
-> include/linux/compiler.h-       extern typeof(sym) sym;                                 \
-> include/linux/compiler.h-       static const unsigned long __kentry_##sym               \
-> include/linux/compiler.h-       __used                                                  \
-> include/linux/compiler.h:       __section("___kentry" "+" #sym )                        \
-> include/linux/compiler.h-       = (unsigned long)&sym;
-> --
-> include/linux/export.h-#define __ksym_marker(sym)       \
-> include/linux/export.h: static int __ksym_marker_##sym[0] __section(".discard.ksym") __used
-> --
-> include/linux/srcutree.h-# define __DEFINE_SRCU(name, is_static)                                \
-> include/linux/srcutree.h-       is_static struct srcu_struct name;                              \
-> include/linux/srcutree.h-       struct srcu_struct * const __srcu_struct_##name                 \
-> include/linux/srcutree.h:               __section("___srcu_struct_ptrs") = &name
-> 
-> 
-> > Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-> 
-> Thanks!
-> 
-> -- 
-> Kees Cook
+This is unrelated to this patch as such, but I noticed that ARM32/64 places
+the .got section inside .text -- is that expected on ARM?
