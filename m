@@ -1,73 +1,45 @@
-From: Arvind Sankar <nivedita@alum.mit.edu>
-Subject: Re: [PATCH v4 08/17] arm64/mm: Remove needless section quotes
-Date: Mon, 29 Jun 2020 16:54:48 -0400
-Message-ID: <20200629205448.GA1474367@rani.riverdale.lan>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v4 01/17] vmlinux.lds.h: Add .gnu.version* to DISCARDS
+Date: Sun, 28 Jun 2020 23:18:24 -0700
+Message-ID: <20200629061840.4065483-2-keescook@chromium.org>
 References: <20200629061840.4065483-1-keescook@chromium.org>
- <20200629061840.4065483-9-keescook@chromium.org>
- <CAKwvOd=r6bsBfSZxVYrnbm1Utq==ApWBDjx+0Fxsm90Aq3Jghw@mail.gmail.com>
- <202006291301.46FEF3B7@keescook>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60092 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729267AbgF2Uyw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 16:54:52 -0400
-Content-Disposition: inline
-In-Reply-To: <202006291301.46FEF3B7@keescook>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Nick Desaulniers <ndesaulniers@google.com>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kerne>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 29, 2020 at 01:04:31PM -0700, Kees Cook wrote:
-> On Mon, Jun 29, 2020 at 12:53:47PM -0700, Nick Desaulniers wrote:
-> > On Sun, Jun 28, 2020 at 11:18 PM Kees Cook <keescook@chromium.org> wrote:
-> > >
-> > > Fix a case of needless quotes in __section(), which Clang doesn't like.
-> > >
-> > > Acked-by: Will Deacon <will@kernel.org>
-> > > Signed-off-by: Kees Cook <keescook@chromium.org>
-> > 
-> > Yep, I remember bugs from this.  Probably should scan the kernel for
-> > other instances of this.  +Joe for checkpatch.pl validation.
-> 
-> I think the others are safe because they're in macros:
+For vmlinux linking, no architecture uses the .gnu.version* sections,
+so remove it via the common DISCARDS macro in preparation for adding
+--orphan-handling=warn more widely. This is a work-around for what
+appears to be a bug[1] in ld.bfd which warns for this synthetic section
+even when none is found in input objects, and even when no section is
+emitted for an output object[2].
 
-Why does that make it safe -- the commit msg is a bit sparse, but I
-assume the problem is that it generates
-	__attribute__((__section__("\".foo\"")))
-from
-	__section(".foo")
-after preprocessing, and clang keeps the quotes in the section name when
-generating assembly, while gcc appears to strip them off.
+[1] https://sourceware.org/bugzilla/show_bug.cgi?id=26153
+[2] https://lore.kernel.org/lkml/202006221524.CEB86E036B@keescook/
 
-It does that even if nested in another macro, no?
+Reviewed-by: Fangrui Song <maskray@google.com>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ include/asm-generic/vmlinux.lds.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-> 
-> $ git grep -4 '__section("'
-> include/linux/compiler.h-# define KENTRY(sym)                                           \
-
-Am I missing something, or is KENTRY unused in the tree?
-
-> include/linux/compiler.h-       extern typeof(sym) sym;                                 \
-> include/linux/compiler.h-       static const unsigned long __kentry_##sym               \
-> include/linux/compiler.h-       __used                                                  \
-> include/linux/compiler.h:       __section("___kentry" "+" #sym )                        \
-> include/linux/compiler.h-       = (unsigned long)&sym;
-> --
-> include/linux/export.h-#define __ksym_marker(sym)       \
-> include/linux/export.h: static int __ksym_marker_##sym[0] __section(".discard.ksym") __used
-> --
-> include/linux/srcutree.h-# define __DEFINE_SRCU(name, is_static)                                \
-> include/linux/srcutree.h-       is_static struct srcu_struct name;                              \
-> include/linux/srcutree.h-       struct srcu_struct * const __srcu_struct_##name                 \
-> include/linux/srcutree.h:               __section("___srcu_struct_ptrs") = &name
-> 
-> 
-> > Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-> 
-> Thanks!
-> 
-> -- 
-> Kees Cook
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index db600ef218d7..1248a206be8d 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -934,6 +934,8 @@
+ 	*(.discard)							\
+ 	*(.discard.*)							\
+ 	*(.modinfo)							\
++	/* ld.bfd warns about .gnu.version* even when not emitted */	\
++	*(.gnu.version*)						\
+ 	}
+ 
+ /**
+-- 
+2.25.1
