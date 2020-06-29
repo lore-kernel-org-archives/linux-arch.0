@@ -1,46 +1,50 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50636 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2406574AbgFXUdc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:33:32 -0400
-Received: from mail-qv1-xf49.google.com (mail-qv1-xf49.google.com [IPv6:2607:f8b0:4864:20::f49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B71DEC061573
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:31 -0700 (PDT)
-Received: by mail-qv1-xf49.google.com with SMTP id j4so2482767qvt.20
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:33:31 -0700 (PDT)
-Date: Wed, 24 Jun 2020 13:31:56 -0700
-In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
-Message-ID: <20200624203200.78870-19-samitolvanen@google.com>
-Mime-Version: 1.0
-References: <20200624203200.78870-1-samitolvanen@google.com>
-Subject: [PATCH 18/22] arm64: allow LTO_CLANG and THINLTO to be selected
-From: Sami Tolvanen <samitolvanen@google.com>
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=KGKx=AK=kvack.org=owner-linux-mm@kernel.org>
+Date: Mon, 29 Jun 2020 18:59:20 +0300
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH 4/8] asm-generic: pgalloc: provide generic
+ pmd_alloc_one() and pmd_free_one()
+Message-ID: <20200629155920.GD1492837@kernel.org>
+References: <20200627143453.31835-1-rppt@kernel.org>
+ <20200627143453.31835-5-rppt@kernel.org>
+ <20200627190304.GG25039@casper.infradead.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200627190304.GG25039@casper.infradead.org>
+Sender: owner-linux-mm@kvack.org
+To: Matthew Wilcox <willy@infradead.org>
+Cc: linux-kernel@vger.kernel.org, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christophe Leroy <christophe.leroy@csgroup.eu>, Joerg Roedel <joro@8bytes.org>, Max Filippov <jcmvbkbc@gmail.com>, Mike Rapoport <rppt@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Stafford Horne <shorne@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Sami Tolvanen <samitolvanen@google.com>
-Message-ID: <20200624203156.99URsBQ3L_A50ijtDWK0HrdYBK46na8ipzAwITTUoF0@z>
+Message-ID: <20200629155920.X7WYY_oOvPC2WtCafA0UNvDcqIsgm2ZhWawsY06VM1I@z>
 
-Allow CONFIG_LTO_CLANG and CONFIG_THINLTO to be enabled.
+On Sat, Jun 27, 2020 at 08:03:04PM +0100, Matthew Wilcox wrote:
+> On Sat, Jun 27, 2020 at 05:34:49PM +0300, Mike Rapoport wrote:
+> > More elaborate versions on arm64 and x86 account memory for the user page
+> > tables and call to pgtable_pmd_page_ctor() as the part of PMD page
+> > initialization.
+> > 
+> > Move the arm64 version to include/asm-generic/pgalloc.h and use the generic
+> > version on several architectures.
+> > 
+> > The pgtable_pmd_page_ctor() is a NOP when ARCH_ENABLE_SPLIT_PMD_PTLOCK is
+> > not enabled, so there is no functional change for most architectures except
+> > of the addition of __GFP_ACCOUNT for allocation of user page tables.
+> 
+> Thanks for including this line; it reminded me that we're not setting
+> the PageTable flag on the page, nor accounting it to the zone page stats.
+> Hope you don't mind me tagging a patch to do that on as 9/8.
 
-Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
----
- arch/arm64/Kconfig | 2 ++
- 1 file changed, 2 insertions(+)
+We also never set PageTable flag for early page tables and for the page
+tables allocated directly with get_free_page(), e.g PTI, KASAN.
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index a4a094bedcb2..e1961653964d 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -72,6 +72,8 @@ config ARM64
- 	select ARCH_USE_SYM_ANNOTATIONS
- 	select ARCH_SUPPORTS_MEMORY_FAILURE
- 	select ARCH_SUPPORTS_SHADOW_CALL_STACK if CC_HAVE_SHADOW_CALL_STACK
-+	select ARCH_SUPPORTS_LTO_CLANG
-+	select ARCH_SUPPORTS_THINLTO
- 	select ARCH_SUPPORTS_ATOMIC_RMW
- 	select ARCH_SUPPORTS_INT128 if CC_HAS_INT128 && (GCC_VERSION >= 50000 || CC_IS_CLANG)
- 	select ARCH_SUPPORTS_NUMA_BALANCING
+> We could also do with a pud_page_[cd]tor and maybe even p4d/pgd versions.
+> But that brings me to the next question -- could/should some of this
+> be moved over to asm-generic/pgalloc.h?  The ctor/dtor aren't called
+> from anywhere else, and there's value to reducing the total amount of
+> code in mm.h, but then there's also value to keeping all the ifdef
+> ARCH_ENABLE_SPLIT_PMD_PTLOCK code together too.  So I'm a bit torn.
+> What do you think?
+
 -- 
-2.27.0.212.ge8ba1cc988-goog
+Sincerely yours,
+Mike.
