@@ -1,266 +1,45 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 11/41] sparc64: get rid of odd callers of copy_regset_to_user()
-Date: Mon, 29 Jun 2020 19:25:58 +0100
-Message-ID: <20200629182628.529995-11-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+From: Russell King - ARM Linux admin <linux@armlinux.org.uk>
+Subject: Re: [PATCH v4 14/17] arm/build: Warn on orphan section placement
+Date: Mon, 29 Jun 2020 19:07:04 +0100
+Message-ID: <20200629180703.GX1551@shell.armlinux.org.uk>
+References: <20200629061840.4065483-1-keescook@chromium.org>
+ <20200629061840.4065483-15-keescook@chromium.org>
+ <20200629155401.GB900899@rani.riverdale.lan>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38376 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729063AbgF2Smo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:44 -0400
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200629155401.GB900899@rani.riverdale.lan>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arvind Sankar <nivedita@alum.mit.edu>
+Cc: Kees Cook <keescook@chromium.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+On Mon, Jun 29, 2020 at 11:54:01AM -0400, Arvind Sankar wrote:
+> On Sun, Jun 28, 2020 at 11:18:37PM -0700, Kees Cook wrote:
+> > We don't want to depend on the linker's orphan section placement
+> > heuristics as these can vary between linkers, and may change between
+> > versions. All sections need to be explicitly named in the linker
+> > script.
+> > 
+> > Specifically, this would have made a recently fixed bug very obvious:
+> > 
+> > ld: warning: orphan section `.fixup' from `arch/arm/lib/copy_from_user.o' being placed in section `.fixup'
+> > 
+> > Discard unneeded sections .iplt, .rel.iplt, .igot.plt, and .modinfo.
+> > 
+> > Add missing text stub sections .vfp11_veneer and .v4_bx.
+> > 
+> > Add debug sections explicitly.
+> > 
+> > Finally enable orphan section warning.
+> 
+> This is unrelated to this patch as such, but I noticed that ARM32/64 places
+> the .got section inside .text -- is that expected on ARM?
 
-same as for sparc32, and that's it - no more caller of ->get() with
-non-zero pos.
+Do you mean in general, in the kernel vmlinux, in the decompressor
+vmlinux or ... ?
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/sparc/kernel/ptrace_64.c | 175 ++++++++++++++++++++++++++++++++----------
- 1 file changed, 136 insertions(+), 39 deletions(-)
-
-diff --git a/arch/sparc/kernel/ptrace_64.c b/arch/sparc/kernel/ptrace_64.c
-index f7b2ddfc81d6..1b1910b67ca4 100644
---- a/arch/sparc/kernel/ptrace_64.c
-+++ b/arch/sparc/kernel/ptrace_64.c
-@@ -258,7 +258,7 @@ static int genregs64_get(struct task_struct *target,
- 	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
- 				  regs->u_regs,
- 				  0, 16 * sizeof(u64));
--	if (!ret && count && pos < (32 * sizeof(u64))) {
-+	if (!ret && count) {
- 		struct reg_window window;
- 
- 		if (regwindow64_get(target, regs, &window))
-@@ -506,6 +506,57 @@ static const struct user_regset sparc64_regsets[] = {
- 	},
- };
- 
-+static int getregs64_get(struct task_struct *target,
-+			 const struct user_regset *regset,
-+			 unsigned int pos, unsigned int count,
-+			 void *kbuf, void __user *ubuf)
-+{
-+	const struct pt_regs *regs = task_pt_regs(target);
-+	int ret;
-+
-+	if (target == current)
-+		flushw_user();
-+
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  regs->u_regs + 1,
-+				  0, 15 * sizeof(u64));
-+	if (!ret)
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+				  15 * sizeof(u64), 16 * sizeof(u64));
-+	if (!ret) {
-+		/* TSTATE, TPC, TNPC */
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+					  &regs->tstate,
-+					  16 * sizeof(u64),
-+					  19 * sizeof(u64));
-+	}
-+	if (!ret) {
-+		unsigned long y = regs->y;
-+
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+					  &y,
-+					  19 * sizeof(u64),
-+					  20 * sizeof(u64));
-+	}
-+	return ret;
-+}
-+
-+static const struct user_regset ptrace64_regsets[] = {
-+	/* Format is:
-+	 *      G1 --> G7
-+	 *      O0 --> O7
-+	 *	0
-+	 *      TSTATE, TPC, TNPC, Y
-+	 */
-+	[REGSET_GENERAL] = {
-+		.n = 20, .size = sizeof(u64), .get = getregs64_get,
-+	},
-+};
-+
-+static const struct user_regset_view ptrace64_view = {
-+	.regsets = ptrace64_regsets, .n = ARRAY_SIZE(ptrace64_regsets)
-+};
-+
- static const struct user_regset_view user_sparc64_view = {
- 	.name = "sparc64", .e_machine = EM_SPARCV9,
- 	.regsets = sparc64_regsets, .n = ARRAY_SIZE(sparc64_regsets)
-@@ -533,7 +584,7 @@ static int genregs32_get(struct task_struct *target,
- 		for (; count > 0 && pos < 16; count--)
- 			*k++ = regs->u_regs[pos++];
- 
--		if (count && pos < 32) {
-+		if (count) {
- 			if (get_from_target(target, regs->u_regs[UREG_I6],
- 					uregs, sizeof(uregs)))
- 				return -EFAULT;
-@@ -545,7 +596,7 @@ static int genregs32_get(struct task_struct *target,
- 		for (; count > 0 && pos < 16; count--)
- 			if (put_user((compat_ulong_t) regs->u_regs[pos++], u++))
- 				return -EFAULT;
--		if (count && pos < 32) {
-+		if (count) {
- 			if (get_from_target(target, regs->u_regs[UREG_I6],
- 					uregs, sizeof(uregs)))
- 				return -EFAULT;
-@@ -840,6 +891,76 @@ static const struct user_regset sparc32_regsets[] = {
- 	},
- };
- 
-+static int getregs_get(struct task_struct *target,
-+		       const struct user_regset *regset,
-+		       unsigned int pos, unsigned int count,
-+		       void *kbuf, void __user *ubuf)
-+{
-+	const struct pt_regs *regs = task_pt_regs(target);
-+	u32 uregs[19];
-+	int i;
-+
-+	if (target == current)
-+		flushw_user();
-+
-+	uregs[0] = tstate_to_psr(regs->tstate);
-+	uregs[1] = regs->tpc;
-+	uregs[2] = regs->tnpc;
-+	uregs[3] = regs->y;
-+	for (i = 1; i < 16; i++)
-+		uregs[3 + i] = regs->u_regs[i];
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				   uregs,
-+				   0, 19 * sizeof(u32));
-+}
-+
-+static int getfpregs_get(struct task_struct *target,
-+			const struct user_regset *regset,
-+			unsigned int pos, unsigned int count,
-+			void *kbuf, void __user *ubuf)
-+{
-+	const unsigned long *fpregs = task_thread_info(target)->fpregs;
-+	unsigned long fprs;
-+	compat_ulong_t fsr;
-+	int ret = 0;
-+
-+	if (target == current)
-+		save_and_clear_fpu();
-+
-+	fprs = task_thread_info(target)->fpsaved[0];
-+	if (fprs & FPRS_FEF) {
-+		fsr = task_thread_info(target)->xfsr[0];
-+	} else {
-+		fsr = 0;
-+	}
-+
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  fpregs,
-+				  0, 32 * sizeof(u32));
-+	if (!ret)
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+					  &fsr,
-+					  32 * sizeof(u32),
-+					  33 * sizeof(u32));
-+	if (!ret)
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+					  33 * sizeof(u32), 68 * sizeof(u32));
-+	return ret;
-+}
-+
-+static const struct user_regset ptrace32_regsets[] = {
-+	[REGSET_GENERAL] = {
-+		.n = 19, .size = sizeof(u32), .get = getregs_get,
-+	},
-+	[REGSET_FP] = {
-+		.n = 68, .size = sizeof(u32), .get = getfpregs_get,
-+	},
-+};
-+
-+static const struct user_regset_view ptrace32_view = {
-+	.regsets = ptrace32_regsets, .n = ARRAY_SIZE(ptrace32_regsets)
-+};
-+
- static const struct user_regset_view user_sparc32_view = {
- 	.name = "sparc", .e_machine = EM_SPARC,
- 	.regsets = sparc32_regsets, .n = ARRAY_SIZE(sparc32_regsets)
-@@ -889,15 +1010,10 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
- 		break;
- 
- 	case PTRACE_GETREGS:
--		ret = copy_regset_to_user(child, view, REGSET_GENERAL,
--					  32 * sizeof(u32),
--					  4 * sizeof(u32),
--					  &pregs->psr);
--		if (!ret)
--			ret = copy_regset_to_user(child, view, REGSET_GENERAL,
--						  1 * sizeof(u32),
--						  15 * sizeof(u32),
--						  &pregs->u_regs[0]);
-+		ret = copy_regset_to_user(child, &ptrace32_view,
-+					  REGSET_GENERAL, 0,
-+					  19 * sizeof(u32),
-+					  pregs);
- 		break;
- 
- 	case PTRACE_SETREGS:
-@@ -913,22 +1029,10 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
- 		break;
- 
- 	case PTRACE_GETFPREGS:
--		ret = copy_regset_to_user(child, view, REGSET_FP,
--					  0 * sizeof(u32),
--					  32 * sizeof(u32),
--					  &fps->regs[0]);
--		if (!ret)
--			ret = copy_regset_to_user(child, view, REGSET_FP,
--						  33 * sizeof(u32),
--						  1 * sizeof(u32),
--						  &fps->fsr);
--		if (!ret) {
--			if (__put_user(0, &fps->flags) ||
--			    __put_user(0, &fps->extra) ||
--			    __put_user(0, &fps->fpqd) ||
--			    clear_user(&fps->fpq[0], 32 * sizeof(unsigned int)))
--				ret = -EFAULT;
--		}
-+		ret = copy_regset_to_user(child, &ptrace32_view,
-+					  REGSET_FP, 0,
-+					  68 * sizeof(u32),
-+					  fps);
- 		break;
- 
- 	case PTRACE_SETFPREGS:
-@@ -999,17 +1103,10 @@ long arch_ptrace(struct task_struct *child, long request,
- 		break;
- 
- 	case PTRACE_GETREGS64:
--		ret = copy_regset_to_user(child, view, REGSET_GENERAL,
--					  1 * sizeof(u64),
--					  15 * sizeof(u64),
--					  &pregs->u_regs[0]);
--		if (!ret) {
--			/* XXX doesn't handle 'y' register correctly XXX */
--			ret = copy_regset_to_user(child, view, REGSET_GENERAL,
--						  32 * sizeof(u64),
--						  4 * sizeof(u64),
--						  &pregs->tstate);
--		}
-+		ret = copy_regset_to_user(child, &ptrace64_view,
-+					  REGSET_GENERAL, 0,
-+					  19 * sizeof(u64),
-+					  pregs);
- 		break;
- 
- 	case PTRACE_SETREGS64:
 -- 
-2.11.0
+RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
+FTTP is here! 40Mbps down 10Mbps up. Decent connectivity at last!
