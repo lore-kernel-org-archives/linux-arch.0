@@ -1,61 +1,63 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54644 "EHLO
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51976 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389550AbgFXU7L (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 16:59:11 -0400
-Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B7759C061573
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:59:10 -0700 (PDT)
-Received: by mail-pl1-x644.google.com with SMTP id n2so1598393pld.13
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 13:59:10 -0700 (PDT)
+        with ESMTP id S2388810AbgF2UEe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 16:04:34 -0400
+Received: from mail-pf1-x442.google.com (mail-pf1-x442.google.com [IPv6:2607:f8b0:4864:20::442])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F37FCC03E97A
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 13:04:33 -0700 (PDT)
+Received: by mail-pf1-x442.google.com with SMTP id a127so8336925pfa.12
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 13:04:33 -0700 (PDT)
+Date: Mon, 29 Jun 2020 13:04:31 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v4 08/17] arm64/mm: Remove needless section quotes
+Message-ID: <202006291301.46FEF3B7@keescook>
+References: <20200629061840.4065483-1-keescook@chromium.org>
+ <20200629061840.4065483-9-keescook@chromium.org>
+ <CAKwvOd=r6bsBfSZxVYrnbm1Utq==ApWBDjx+0Fxsm90Aq3Jghw@mail.gmail.com>
 MIME-Version: 1.0
-References: <20200624203200.78870-1-samitolvanen@google.com> <20200624203200.78870-18-samitolvanen@google.com>
-In-Reply-To: <20200624203200.78870-18-samitolvanen@google.com>
-From: Nick Desaulniers <ndesaulniers@google.com>
-Date: Wed, 24 Jun 2020 13:58:57 -0700
-Message-ID: <CAKwvOdnEbCfYZ9o=OF51oswyqDvN4iP-9syWUDhxfueq4q0xcw@mail.gmail.com>
-Subject: Re: [PATCH 17/22] arm64: vdso: disable LTO
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAKwvOd=r6bsBfSZxVYrnbm1Utq==ApWBDjx+0Fxsm90Aq3Jghw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-Message-ID: <20200624205857.ehubvhwG4BK1my1Wx3rhJxf0mg-tCbOZhHzXmCyNWRQ@z>
+To: Nick Desaulniers <ndesaulniers@google.com>
+Cc: Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, Joe Perches <joe@perches.com>
+Message-ID: <20200629200431.cZssPr_yNf2KVhA4aU4MutE4kMgAf_GSBEyJDlsJ5QE@z>
 
-On Wed, Jun 24, 2020 at 1:33 PM Sami Tolvanen <samitolvanen@google.com> wrote:
->
-> Filter out CC_FLAGS_LTO for the vDSO.
+On Mon, Jun 29, 2020 at 12:53:47PM -0700, Nick Desaulniers wrote:
+> On Sun, Jun 28, 2020 at 11:18 PM Kees Cook <keescook@chromium.org> wrote:
+> >
+> > Fix a case of needless quotes in __section(), which Clang doesn't like.
+> >
+> > Acked-by: Will Deacon <will@kernel.org>
+> > Signed-off-by: Kees Cook <keescook@chromium.org>
+> 
+> Yep, I remember bugs from this.  Probably should scan the kernel for
+> other instances of this.  +Joe for checkpatch.pl validation.
 
-Just curious about this patch (and the following one for x86's vdso),
-do you happen to recall specifically what the issues with the vdso's
-are?
+I think the others are safe because they're in macros:
 
->
-> Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
-> ---
->  arch/arm64/kernel/vdso/Makefile | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
->
-> diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makefile
-> index 556d424c6f52..cfad4c296ca1 100644
-> --- a/arch/arm64/kernel/vdso/Makefile
-> +++ b/arch/arm64/kernel/vdso/Makefile
-> @@ -29,8 +29,8 @@ ldflags-y := -shared -nostdlib -soname=linux-vdso.so.1 --hash-style=sysv \
->  ccflags-y := -fno-common -fno-builtin -fno-stack-protector -ffixed-x18
->  ccflags-y += -DDISABLE_BRANCH_PROFILING
->
-> -CFLAGS_REMOVE_vgettimeofday.o = $(CC_FLAGS_FTRACE) -Os $(CC_FLAGS_SCS)
-> -KBUILD_CFLAGS                  += $(DISABLE_LTO)
-> +CFLAGS_REMOVE_vgettimeofday.o = $(CC_FLAGS_FTRACE) -Os $(CC_FLAGS_SCS) \
-> +                               $(CC_FLAGS_LTO)
->  KASAN_SANITIZE                 := n
->  UBSAN_SANITIZE                 := n
->  OBJECT_FILES_NON_STANDARD      := y
-> --
-> 2.27.0.212.ge8ba1cc988-goog
->
+$ git grep -4 '__section("'
+include/linux/compiler.h-# define KENTRY(sym)                                           \
+include/linux/compiler.h-       extern typeof(sym) sym;                                 \
+include/linux/compiler.h-       static const unsigned long __kentry_##sym               \
+include/linux/compiler.h-       __used                                                  \
+include/linux/compiler.h:       __section("___kentry" "+" #sym )                        \
+include/linux/compiler.h-       = (unsigned long)&sym;
+--
+include/linux/export.h-#define __ksym_marker(sym)       \
+include/linux/export.h: static int __ksym_marker_##sym[0] __section(".discard.ksym") __used
+--
+include/linux/srcutree.h-# define __DEFINE_SRCU(name, is_static)                                \
+include/linux/srcutree.h-       is_static struct srcu_struct name;                              \
+include/linux/srcutree.h-       struct srcu_struct * const __srcu_struct_##name                 \
+include/linux/srcutree.h:               __section("___srcu_struct_ptrs") = &name
 
+
+> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+
+Thanks!
 
 -- 
-Thanks,
-~Nick Desaulniers
+Kees Cook
