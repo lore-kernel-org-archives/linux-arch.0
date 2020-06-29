@@ -1,90 +1,60 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55716 "EHLO
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43362 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2404941AbgFXSDp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 14:03:45 -0400
-Received: from mail-vs1-xe41.google.com (mail-vs1-xe41.google.com [IPv6:2607:f8b0:4864:20::e41])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1B27AC061573
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 11:03:45 -0700 (PDT)
-Received: by mail-vs1-xe41.google.com with SMTP id m62so1933191vsd.4
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 11:03:45 -0700 (PDT)
+        with ESMTP id S1731518AbgF2TN4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:13:56 -0400
+Received: from mail-pg1-x544.google.com (mail-pg1-x544.google.com [IPv6:2607:f8b0:4864:20::544])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7D35DC08EB00
+        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:50 -0700 (PDT)
+Received: by mail-pg1-x544.google.com with SMTP id w2so7020862pgg.10
+        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:50 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v4 07/17] arm64/build: Use common DISCARDS in linker script
+Date: Sun, 28 Jun 2020 23:18:30 -0700
+Message-ID: <20200629061840.4065483-8-keescook@chromium.org>
+In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
+References: <20200629061840.4065483-1-keescook@chromium.org>
 MIME-Version: 1.0
-References: <20200622200822.4426-1-sean.j.christopherson@intel.com> <20200622200822.4426-6-sean.j.christopherson@intel.com>
-In-Reply-To: <20200622200822.4426-6-sean.j.christopherson@intel.com>
-From: Ben Gardon <bgardon@google.com>
-Date: Wed, 24 Jun 2020 11:03:32 -0700
-Message-ID: <CANgfPd8gYX1Fm1vEcfnEBXn_MjRxLHdgQAS=TAHQiOMNMrhFGA@mail.gmail.com>
-Subject: Re: [PATCH v2 05/21] KVM: x86/mmu: Try to avoid crashing KVM if a MMU
- memory cache is empty
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sean Christopherson <sean.j.christopherson@intel.com>
-Cc: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>, James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200624180332.0X6nO9fy4lP34be9k6tn9xQUqy9GqDYB5tpjJ7zHgoQ@z>
+To: Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200629061830.Xj6l-LzqVsVYZfLbZqumkUnVyobDH6Y5HpuG5Uv3VQI@z>
 
-On Mon, Jun 22, 2020 at 1:09 PM Sean Christopherson
-<sean.j.christopherson@intel.com> wrote:
->
-> Attempt to allocate a new object instead of crashing KVM (and likely the
-> kernel) if a memory cache is unexpectedly empty.  Use GFP_ATOMIC for the
-> allocation as the caches are used while holding mmu_lock.  The immediate
-> BUG_ON() makes the code unnecessarily explosive and led to confusing
-> minimums being used in the past, e.g. allocating 4 objects where 1 would
-> suffice.
->
-Reviewed-by: Ben Gardon <bgardon@google.com>
-> Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
-> ---
->  arch/x86/kvm/mmu/mmu.c | 21 +++++++++++++++------
->  1 file changed, 15 insertions(+), 6 deletions(-)
->
-> diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-> index ba70de24a5b0..5e773564ab20 100644
-> --- a/arch/x86/kvm/mmu/mmu.c
-> +++ b/arch/x86/kvm/mmu/mmu.c
-> @@ -1060,6 +1060,15 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
->         local_irq_enable();
->  }
->
-> +static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
-> +                                              gfp_t gfp_flags)
-> +{
-> +       if (mc->kmem_cache)
-> +               return kmem_cache_zalloc(mc->kmem_cache, gfp_flags);
-> +       else
-> +               return (void *)__get_free_page(gfp_flags);
-> +}
-> +
->  static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
->  {
->         void *obj;
-> @@ -1067,10 +1076,7 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
->         if (mc->nobjs >= min)
->                 return 0;
->         while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
-> -               if (mc->kmem_cache)
-> -                       obj = kmem_cache_zalloc(mc->kmem_cache, GFP_KERNEL_ACCOUNT);
-> -               else
-> -                       obj = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
-> +               obj = mmu_memory_cache_alloc_obj(mc, GFP_KERNEL_ACCOUNT);
->                 if (!obj)
->                         return mc->nobjs >= min ? 0 : -ENOMEM;
->                 mc->objects[mc->nobjs++] = obj;
-> @@ -1118,8 +1124,11 @@ static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
->  {
->         void *p;
->
-> -       BUG_ON(!mc->nobjs);
-> -       p = mc->objects[--mc->nobjs];
-> +       if (WARN_ON(!mc->nobjs))
-> +               p = mmu_memory_cache_alloc_obj(mc, GFP_ATOMIC | __GFP_ACCOUNT);
-> +       else
-> +               p = mc->objects[--mc->nobjs];
-> +       BUG_ON(!p);
->         return p;
->  }
->
-> --
-> 2.26.0
->
+Use the common DISCARDS rule for the linker script in an effort to
+regularize the linker script to prepare for warning on orphaned
+sections. Additionally clean up left-over no-op macros.
+
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Will Deacon <will@kernel.org>
+---
+ arch/arm64/kernel/vmlinux.lds.S | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+index 55ae731b6368..b5a94ec1eada 100644
+--- a/arch/arm64/kernel/vmlinux.lds.S
++++ b/arch/arm64/kernel/vmlinux.lds.S
+@@ -6,6 +6,7 @@
+  */
+ 
+ #define RO_EXCEPTION_TABLE_ALIGN	8
++#define RUNTIME_DISCARD_EXIT
+ 
+ #include <asm-generic/vmlinux.lds.h>
+ #include <asm/cache.h>
+@@ -89,10 +90,8 @@ SECTIONS
+ 	 * matching the same input section name.  There is no documented
+ 	 * order of matching.
+ 	 */
++	DISCARDS
+ 	/DISCARD/ : {
+-		EXIT_CALL
+-		*(.discard)
+-		*(.discard.*)
+ 		*(.interp .dynamic)
+ 		*(.dynsym .dynstr .hash .gnu.hash)
+ 		*(.eh_frame)
+-- 
+2.25.1
