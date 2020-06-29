@@ -1,58 +1,129 @@
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH 4/8] asm-generic: pgalloc: provide generic
- pmd_alloc_one() and pmd_free_one()
-Date: Mon, 29 Jun 2020 18:59:20 +0300
-Message-ID: <20200629155920.GD1492837@kernel.org>
-References: <20200627143453.31835-1-rppt@kernel.org>
- <20200627143453.31835-5-rppt@kernel.org>
- <20200627190304.GG25039@casper.infradead.org>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 04/41] [ia64] sanitize elf_access_gpreg()
+Date: Mon, 29 Jun 2020 19:25:51 +0100
+Message-ID: <20200629182628.529995-4-viro@ZenIV.linux.org.uk>
+References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
+ <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-Content-Disposition: inline
-In-Reply-To: <20200627190304.GG25039@casper.infradead.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, linux-mips@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, linux-csky@vger.kernel.org, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, linux-hexagon@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Mike Rapoport <rppt@linux.ibm.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, linux-snps-arc@lists.infradead.org, linux-xtensa@linux-xtensa.org, Arnd Bergmann <arnd@arndb.de>, linux-s390@vger.kernel.org, linux-um@lists.infradead.org, Steven Rostedt <rostedt@goodmis.org>, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Andy Lutomirski <luto@kernel.org>, Stafford Horne <shorne@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-pari
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38362 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729011AbgF2Smm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:42 -0400
+In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
 
-On Sat, Jun 27, 2020 at 08:03:04PM +0100, Matthew Wilcox wrote:
-> On Sat, Jun 27, 2020 at 05:34:49PM +0300, Mike Rapoport wrote:
-> > More elaborate versions on arm64 and x86 account memory for the user page
-> > tables and call to pgtable_pmd_page_ctor() as the part of PMD page
-> > initialization.
-> > 
-> > Move the arm64 version to include/asm-generic/pgalloc.h and use the generic
-> > version on several architectures.
-> > 
-> > The pgtable_pmd_page_ctor() is a NOP when ARCH_ENABLE_SPLIT_PMD_PTLOCK is
-> > not enabled, so there is no functional change for most architectures except
-> > of the addition of __GFP_ACCOUNT for allocation of user page tables.
-> 
-> Thanks for including this line; it reminded me that we're not setting
-> the PageTable flag on the page, nor accounting it to the zone page stats.
-> Hope you don't mind me tagging a patch to do that on as 9/8.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-We also never set PageTable flag for early page tables and for the page
-tables allocated directly with get_free_page(), e.g PTI, KASAN.
+The function takes the register number, finds the corresponding field
+of pt_regs for registers that are saved there or does the unwind for the
+registers that end up spilled on the kernel stack.  Then it reads from
+or writes to the resulting location.
 
-> We could also do with a pud_page_[cd]tor and maybe even p4d/pgd versions.
-> But that brings me to the next question -- could/should some of this
-> be moved over to asm-generic/pgalloc.h?  The ctor/dtor aren't called
-> from anywhere else, and there's value to reducing the total amount of
-> code in mm.h, but then there's also value to keeping all the ifdef
-> ARCH_ENABLE_SPLIT_PMD_PTLOCK code together too.  So I'm a bit torn.
-> What do you think?
+Unfortunately, finding the required pt_regs field is done by rather
+horrible switch.  It's microoptimized in all the wrong places - it
+even uses the knowledge that fields for r8..r11 follow each other
+in pt_regs layout, while r12..r13 are not adjacent to those, etc.
 
+All of that is to encode the mapping from register numbers to offsets +
+the information that r4..r7 are not to be found in pt_regs.
+
+It's deeply in nasal demon territory, at that - the games it plays
+with pointer arithmetics on addresses of structure members are
+undefined behaviour.
+
+Valid C ends up with better code in this case: just initialize a constant
+array with offsets of relevant pt_regs fields and we don't need that
+switch anymore.
+
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/ia64/kernel/ptrace.c | 57 +++++++++++++++++++----------------------------
+ 1 file changed, 23 insertions(+), 34 deletions(-)
+
+diff --git a/arch/ia64/kernel/ptrace.c b/arch/ia64/kernel/ptrace.c
+index 82aaacf64583..b9d068903b98 100644
+--- a/arch/ia64/kernel/ptrace.c
++++ b/arch/ia64/kernel/ptrace.c
+@@ -1273,52 +1273,41 @@ struct regset_getset {
+ 	int ret;
+ };
+ 
++static const ptrdiff_t pt_offsets[16] =
++{
++#define R(n) offsetof(struct pt_regs, r##n)
++	[0] = -1, R(1), R(2), R(3),
++	[4] = -1, [5] = -1, [6] = -1, [7] = -1,
++	R(8), R(9), R(10), R(11), R(12), R(13), R(14), R(15),
++#undef R
++};
++
+ static int
+ access_elf_gpreg(struct task_struct *target, struct unw_frame_info *info,
+ 		unsigned long addr, unsigned long *data, int write_access)
+ {
+-	struct pt_regs *pt;
+-	unsigned long *ptr = NULL;
+-	int ret;
+-	char nat = 0;
++	struct pt_regs *pt = task_pt_regs(target);
++	unsigned reg = addr / sizeof(unsigned long);
++	ptrdiff_t d = pt_offsets[reg];
+ 
+-	pt = task_pt_regs(target);
+-	switch (addr) {
+-	case ELF_GR_OFFSET(1):
+-		ptr = &pt->r1;
+-		break;
+-	case ELF_GR_OFFSET(2):
+-	case ELF_GR_OFFSET(3):
+-		ptr = (void *)&pt->r2 + (addr - ELF_GR_OFFSET(2));
+-		break;
+-	case ELF_GR_OFFSET(4) ... ELF_GR_OFFSET(7):
++	if (d >= 0) {
++		unsigned long *ptr = (void *)pt + d;
++		if (write_access)
++			*ptr = *data;
++		else
++			*data = *ptr;
++		return 0;
++	} else {
++		char nat = 0;
+ 		if (write_access) {
+ 			/* read NaT bit first: */
+ 			unsigned long dummy;
+-
+-			ret = unw_get_gr(info, addr/8, &dummy, &nat);
++			int ret = unw_get_gr(info, reg, &dummy, &nat);
+ 			if (ret < 0)
+ 				return ret;
+ 		}
+-		return unw_access_gr(info, addr/8, data, &nat, write_access);
+-	case ELF_GR_OFFSET(8) ... ELF_GR_OFFSET(11):
+-		ptr = (void *)&pt->r8 + addr - ELF_GR_OFFSET(8);
+-		break;
+-	case ELF_GR_OFFSET(12):
+-	case ELF_GR_OFFSET(13):
+-		ptr = (void *)&pt->r12 + addr - ELF_GR_OFFSET(12);
+-		break;
+-	case ELF_GR_OFFSET(14):
+-		ptr = &pt->r14;
+-		break;
+-	case ELF_GR_OFFSET(15):
+-		ptr = &pt->r15;
++		return unw_access_gr(info, reg, data, &nat, write_access);
+ 	}
+-	if (write_access)
+-		*ptr = *data;
+-	else
+-		*data = *ptr;
+-	return 0;
+ }
+ 
+ static int
 -- 
-Sincerely yours,
-Mike.
+2.11.0
