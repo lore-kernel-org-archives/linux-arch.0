@@ -1,39 +1,121 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59116 "EHLO
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38402 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390437AbgFXV16 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 17:27:58 -0400
-Date: Wed, 24 Jun 2020 23:27:37 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 04/22] kbuild: lto: fix recordmcount
-Message-ID: <20200624212737.GV4817@hirez.programming.kicks-ass.net>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624203200.78870-5-samitolvanen@google.com>
+        with ESMTP id S1729140AbgF2Smw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 33/41] hexagon: switch to ->get2()
+Date: Mon, 29 Jun 2020 19:26:20 +0100
+Message-ID: <20200629182628.529995-33-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
+ <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200624203200.78870-5-samitolvanen@google.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
-Message-ID: <20200624212737.TEZmkhus4BcXv526BzAOWfr-t8H69QZeh5oEDsnK_Nw@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200629182620.kLfH_MoYMcVki0aMwxrnnUrMQ_-g77OWZ_UjezsWLcU@z>
 
-On Wed, Jun 24, 2020 at 01:31:42PM -0700, Sami Tolvanen wrote:
-> With LTO, LLVM bitcode won't be compiled into native code until
-> modpost_link. This change postpones calls to recordmcount until after
-> this step.
-> 
-> In order to exclude specific functions from inspection, we add a new
-> code section .text..nomcount, which we tell recordmcount to ignore, and
-> a __nomcount attribute for moving functions to this section.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-I'm confused, you only add this to functions in ftrace itself, which is
-compiled with:
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/hexagon/kernel/ptrace.c | 62 +++++++++++++++-----------------------------
+ 1 file changed, 21 insertions(+), 41 deletions(-)
 
- KBUILD_CFLAGS = $(subst $(CC_FLAGS_FTRACE),,$(ORIG_CFLAGS))
-
-and so should not have mcount/fentry sites anyway. So what's the point
-of ignoring them further?
-
-This Changelog does not explain.
+diff --git a/arch/hexagon/kernel/ptrace.c b/arch/hexagon/kernel/ptrace.c
+index dcbf7ea960cc..fa6287d1a061 100644
+--- a/arch/hexagon/kernel/ptrace.c
++++ b/arch/hexagon/kernel/ptrace.c
+@@ -35,58 +35,38 @@ void user_disable_single_step(struct task_struct *child)
+ 
+ static int genregs_get(struct task_struct *target,
+ 		   const struct user_regset *regset,
+-		   unsigned int pos, unsigned int count,
+-		   void *kbuf, void __user *ubuf)
++		   srtuct membuf to)
+ {
+-	int ret;
+-	unsigned int dummy;
+ 	struct pt_regs *regs = task_pt_regs(target);
+ 
+-
+-	if (!regs)
+-		return -EIO;
+-
+ 	/* The general idea here is that the copyout must happen in
+ 	 * exactly the same order in which the userspace expects these
+ 	 * regs. Now, the sequence in userspace does not match the
+ 	 * sequence in the kernel, so everything past the 32 gprs
+ 	 * happens one at a time.
+ 	 */
+-	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
+-				  &regs->r00, 0, 32*sizeof(unsigned long));
+-
+-#define ONEXT(KPT_REG, USR_REG) \
+-	if (!ret) \
+-		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, \
+-			KPT_REG, offsetof(struct user_regs_struct, USR_REG), \
+-			offsetof(struct user_regs_struct, USR_REG) + \
+-				 sizeof(unsigned long));
+-
++	membuf_write(&to, &regs->r00, 32*sizeof(unsigned long));
+ 	/* Must be exactly same sequence as struct user_regs_struct */
+-	ONEXT(&regs->sa0, sa0);
+-	ONEXT(&regs->lc0, lc0);
+-	ONEXT(&regs->sa1, sa1);
+-	ONEXT(&regs->lc1, lc1);
+-	ONEXT(&regs->m0, m0);
+-	ONEXT(&regs->m1, m1);
+-	ONEXT(&regs->usr, usr);
+-	ONEXT(&regs->preds, p3_0);
+-	ONEXT(&regs->gp, gp);
+-	ONEXT(&regs->ugp, ugp);
+-	ONEXT(&pt_elr(regs), pc);
+-	dummy = pt_cause(regs);
+-	ONEXT(&dummy, cause);
+-	ONEXT(&pt_badva(regs), badva);
++	membuf_store(&to, regs->sa0);
++	membuf_store(&to, regs->lc0);
++	membuf_store(&to, regs->sa1);
++	membuf_store(&to, regs->lc1);
++	membuf_store(&to, regs->m0);
++	membuf_store(&to, regs->m1);
++	membuf_store(&to, regs->usr);
++	membuf_store(&to, regs->p3_0);
++	membuf_store(&to, regs->gp);
++	membuf_store(&to, regs->ugp);
++	membuf_store(&to, pt_elr(regs)); // pc
++	membuf_store(&to, (unsigned long)pt_cause(regs)); // cause
++	membuf_store(&to, pt_badva(regs)); // badva
+ #if CONFIG_HEXAGON_ARCH_VERSION >=4
+-	ONEXT(&regs->cs0, cs0);
+-	ONEXT(&regs->cs1, cs1);
++	membuf_store(&to, regs->cs0);
++	membuf_store(&to, regs->cs1);
++	return membuf_zero(&to, sizeof(unsigned long));
++#else
++	return membuf_zero(&to, 3 * sizeof(unsigned long));
+ #endif
+-
+-	/* Pad the rest with zeros, if needed */
+-	if (!ret)
+-		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
+-					offsetof(struct user_regs_struct, pad1), -1);
+-	return ret;
+ }
+ 
+ static int genregs_set(struct task_struct *target,
+@@ -159,7 +139,7 @@ static const struct user_regset hexagon_regsets[] = {
+ 		.n = ELF_NGREG,
+ 		.size = sizeof(unsigned long),
+ 		.align = sizeof(unsigned long),
+-		.get = genregs_get,
++		.get2 = genregs_get,
+ 		.set = genregs_set,
+ 	},
+ };
+-- 
+2.11.0
