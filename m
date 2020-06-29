@@ -1,18 +1,13 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH V3 0/4] mm/debug_vm_pgtable: Add some more tests
-Date: Mon, 29 Jun 2020 14:02:31 +0530
-Message-ID: <c4a8b4fe-b9f4-b2ec-12ea-7143e4ca0464@arm.com>
-References: <1592192277-8421-1-git-send-email-anshuman.khandual@arm.com>
- <70ddc7dd-b688-b73e-642a-6363178c8cdd@arm.com>
- <20200624110539.GC24934@oc3871087118.ibm.com>
- <20200624134808.0c460862@thinkpad>
- <20200624144015.GD24934@oc3871087118.ibm.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 1/8] mm: remove unneeded includes of <asm/pgalloc.h>
+Date: Mon, 29 Jun 2020 17:41:43 +0200
+Message-ID: <CAMuHMdUOrrrtKuhtWJvzKNNLXY1fx+Ym1oXGN2J_CZ7RqByGHQ@mail.gmail.com>
+References: <20200627143453.31835-1-rppt@kernel.org>
+ <20200627143453.31835-2-rppt@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-In-Reply-To: <20200624144015.GD24934@oc3871087118.ibm.com>
-Content-Language: en-US
+In-Reply-To: <20200627143453.31835-2-rppt@kernel.org>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -23,51 +18,42 @@ List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
 Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org
 Sender: "Linuxppc-dev"
  <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-To: Alexander Gordeev <agordeev@linux.ibm.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Cc: linux-doc@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-riscv@lists.infradead.org, Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, x86@kernel.org, Mike Rapoport <rppt@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, ziy@nvidia.com, Catalin Marinas <catalin.marinas@arm.com>, linux-snps-arc@lists.infradead.org, Vasily Gorbik <gor@linux.ibm.com>, Borislav Petkov <bp@alien8.de>, Paul Walmsley <paul.walmsley@sifive.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, christophe.leroy@c-s.fr, Vineet Gupta <vgupta@synopsys.com>, linux-kernel@vger.kernel.org, Palmer Dabbelt <palm>
+To: Mike Rapoport <rppt@kernel.org>
+Cc: "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Max Filippov <jcmvbkbc@gmail.com>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, linux-csky@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linux-riscv <linux-riscv@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, Joerg Roedel <joro@8bytes.org>, Mike Rapoport <rppt@linux.ibm.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, arcml <linux-snps-arc@lists.infradead.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Arnd Bergmann <arnd@arndb.de>, linux-s390 <linux-s390@vger.kernel.org>, linux-um <linux-um@lis>
 List-Id: linux-arch.vger.kernel.org
 
+On Sat, Jun 27, 2020 at 4:35 PM Mike Rapoport <rppt@kernel.org> wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
+>
+> In the most cases <asm/pgalloc.h> header is required only for allocations
+> of page table memory. Most of the .c files that include that header do not
+> use symbols declared in <asm/pgalloc.h> and do not require that header.
+>
+> As for the other header files that used to include <asm/pgalloc.h>, it is
+> possible to move that include into the .c file that actually uses symbols
+> from <asm/pgalloc.h> and drop the include from the header file.
+>
+> The process was somewhat automated using
+>
+>         sed -i -E '/[<"]asm\/pgalloc\.h/d' \
+>                 $(grep -L -w -f /tmp/xx \
+>                         $(git grep -E -l '[<"]asm/pgalloc\.h'))
+>
+> where /tmp/xx contains all the symbols defined in
+> arch/*/include/asm/pgalloc.h.
+>
+> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
 
+For the m68k part:
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-On 06/24/2020 08:10 PM, Alexander Gordeev wrote:
-> On Wed, Jun 24, 2020 at 01:48:08PM +0200, Gerald Schaefer wrote:
->> On Wed, 24 Jun 2020 13:05:39 +0200
->> Alexander Gordeev <agordeev@linux.ibm.com> wrote:
->>
->>> On Wed, Jun 24, 2020 at 08:43:10AM +0530, Anshuman Khandual wrote:
->>>
->>> [...]
->>>
->>>> Hello Gerald/Christophe/Vineet,
->>>>
->>>> It would be really great if you could give this series a quick test
->>>> on s390/ppc/arc platforms respectively. Thank you.
->>>
->>> That worked for me with the default and debug s390 configurations.
->>> Would you like to try with some particular options or combinations
->>> of the options?
->>
->> It will be enabled automatically on all archs that set
->> ARCH_HAS_DEBUG_VM_PGTABLE, which we do for s390 unconditionally.
->> Also, DEBUG_VM has to be set, which we have only in the debug config.
->> So only the s390 debug config will have it enabled, you can check
->> dmesg for "debug_vm_pgtable" to see when / where it was run, and if it
->> triggered any warnings.
-> 
-> Yes, that is what I did ;)
-> 
-> I should have been more clear. I wonder whether Anshuman has in
-> mind other options which possibly makes sense to set or unset
-> and check how it goes with non-standard configurations.
+Gr{oetje,eeting}s,
 
-After enabling CONFIG_DEBUG_VM either explicitly or via DEBUG_VM, ideally
-any memory config combination on s390 which can change platform page table
-helpers (validated with CONFIG_DEBUG_VM) should also get tested. Recently,
-there was a kernel crash on ppc64 [1] and a build failure on ppc32 [2] for
-some particular configs. Hence it will be great if you could run this test
-on multiple s390 configurations.
+                        Geert
 
-[1] 787d563b8642f35c5 ("mm/debug_vm_pgtable: fix kernel crash by checking for THP support")
-[2] 9449c9cb420b249eb ("mm/debug_vm_pgtable: fix build failure with powerpc 8xx")
+-- 
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-- Anshuman
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
