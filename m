@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 14/41] arm64: take fetching compat reg out of pt_regs into a new helper
-Date: Mon, 29 Jun 2020 19:26:01 +0100
-Message-ID: <20200629182628.529995-14-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 29/41] c6x: switch to ->get2()
+Date: Mon, 29 Jun 2020 19:26:16 +0100
+Message-ID: <20200629182628.529995-29-viro@ZenIV.linux.org.uk>
 References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
  <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
@@ -17,60 +17,38 @@ From: Al Viro <viro@zeniv.linux.org.uk>
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/arm64/kernel/ptrace.c | 34 +++++++++++++++++-----------------
- 1 file changed, 17 insertions(+), 17 deletions(-)
+ arch/c6x/kernel/ptrace.c | 11 +++--------
+ 1 file changed, 3 insertions(+), 8 deletions(-)
 
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 68b7f34a08f5..5b837741ab76 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -1237,6 +1237,22 @@ enum compat_regset {
- 	REGSET_COMPAT_VFP,
+diff --git a/arch/c6x/kernel/ptrace.c b/arch/c6x/kernel/ptrace.c
+index 67af1562da86..d2402de2bc14 100644
+--- a/arch/c6x/kernel/ptrace.c
++++ b/arch/c6x/kernel/ptrace.c
+@@ -57,14 +57,9 @@ static inline int put_reg(struct task_struct *task,
+ 
+ static int gpr_get(struct task_struct *target,
+ 		   const struct user_regset *regset,
+-		   unsigned int pos, unsigned int count,
+-		   void *kbuf, void __user *ubuf)
++		   struct membuf to)
+ {
+-	struct pt_regs *regs = task_pt_regs(target);
+-
+-	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
+-				   regs,
+-				   0, sizeof(*regs));
++	return membuf_write(&to, task_pt_regs(target), sizeof(struct pt_regs));
+ }
+ 
+ enum c6x_regset {
+@@ -77,7 +72,7 @@ static const struct user_regset c6x_regsets[] = {
+ 		.n = ELF_NGREG,
+ 		.size = sizeof(u32),
+ 		.align = sizeof(u32),
+-		.get = gpr_get,
++		.get2 = gpr_get,
+ 	},
  };
  
-+static inline compat_ulong_t compat_get_user_reg(struct task_struct *task, int idx)
-+{
-+	struct pt_regs *regs = task_pt_regs(task);
-+
-+	switch (idx) {
-+	case 15:
-+		return regs->pc;
-+	case 16:
-+		return pstate_to_compat_psr(regs->pstate);
-+	case 17:
-+		return regs->orig_x0;
-+	default:
-+		return regs->regs[idx];
-+	}
-+}
-+
- static int compat_gpr_get(struct task_struct *target,
- 			  const struct user_regset *regset,
- 			  unsigned int pos, unsigned int count,
-@@ -1255,23 +1271,7 @@ static int compat_gpr_get(struct task_struct *target,
- 		return -EIO;
- 
- 	for (i = 0; i < num_regs; ++i) {
--		unsigned int idx = start + i;
--		compat_ulong_t reg;
--
--		switch (idx) {
--		case 15:
--			reg = task_pt_regs(target)->pc;
--			break;
--		case 16:
--			reg = task_pt_regs(target)->pstate;
--			reg = pstate_to_compat_psr(reg);
--			break;
--		case 17:
--			reg = task_pt_regs(target)->orig_x0;
--			break;
--		default:
--			reg = task_pt_regs(target)->regs[idx];
--		}
-+		compat_ulong_t reg = compat_get_user_reg(target, start + i);
- 
- 		if (kbuf) {
- 			memcpy(kbuf, &reg, sizeof(reg));
 -- 
 2.11.0
