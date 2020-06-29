@@ -1,56 +1,54 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34226 "EHLO
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40020 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2404341AbgFXPpu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 11:45:50 -0400
-Received: from mail-pg1-x543.google.com (mail-pg1-x543.google.com [IPv6:2607:f8b0:4864:20::543])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 23294C061795
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 08:45:50 -0700 (PDT)
-Received: by mail-pg1-x543.google.com with SMTP id s10so1617355pgm.0
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 08:45:50 -0700 (PDT)
-Date: Wed, 24 Jun 2020 08:45:47 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v3 3/9] efi/libstub: Remove .note.gnu.property
-Message-ID: <202006240844.7BE48D2B5@keescook>
-References: <20200624014940.1204448-1-keescook@chromium.org>
- <20200624014940.1204448-4-keescook@chromium.org>
- <20200624033142.cinvg6rbg252j46d@google.com>
- <202006232143.66828CD3@keescook>
- <20200624104356.GA6134@willie-the-truck>
- <CAMj1kXHBT4ei0xhyL4jD7=CNRsn1rh7w6jeYDLjVOv4na0Z38Q@mail.gmail.com>
- <202006240820.A3468F4@keescook>
- <CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com>
+        with ESMTP id S1729807AbgF2Sww (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:52:52 -0400
+From: Arvind Sankar <nivedita@alum.mit.edu>
+Date: Mon, 29 Jun 2020 14:15:14 -0400
+Subject: Re: [PATCH v4 14/17] arm/build: Warn on orphan section placement
+Message-ID: <20200629181514.GA1046442@rani.riverdale.lan>
+References: <20200629061840.4065483-1-keescook@chromium.org>
+ <20200629061840.4065483-15-keescook@chromium.org>
+ <20200629155401.GB900899@rani.riverdale.lan>
+ <20200629180703.GX1551@shell.armlinux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com>
+In-Reply-To: <20200629180703.GX1551@shell.armlinux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ard Biesheuvel <ardb@kernel.org>
-Cc: Will Deacon <will@kernel.org>, Fangrui Song <maskray@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20200624154547.ofSExHwimfFeF6O5tv_g_BN9BzsSgREAl0lq4Lfw8tc@z>
+To: Russell King - ARM Linux admin <linux@armlinux.org.uk>
+Cc: Arvind Sankar <nivedita@alum.mit.edu>, Kees Cook <keescook@chromium.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Message-ID: <20200629181514.bPuBUp2taYp9OKNNtkFz98fJG7jECeFqLfNnDvmG2d0@z>
 
-On Wed, Jun 24, 2020 at 05:31:06PM +0200, Ard Biesheuvel wrote:
-> On Wed, 24 Jun 2020 at 17:21, Kees Cook <keescook@chromium.org> wrote:
-> >
-> > On Wed, Jun 24, 2020 at 12:46:32PM +0200, Ard Biesheuvel wrote:
-> > > I'm not sure if there is a point to having PAC and/or BTI in the EFI
-> > > stub, given that it runs under the control of the firmware, with its
-> > > memory mappings and PAC configuration etc.
-> >
-> > Is BTI being ignored when the firmware runs?
+On Mon, Jun 29, 2020 at 07:07:04PM +0100, Russell King - ARM Linux admin wrote:
+> On Mon, Jun 29, 2020 at 11:54:01AM -0400, Arvind Sankar wrote:
+> > On Sun, Jun 28, 2020 at 11:18:37PM -0700, Kees Cook wrote:
+> > > We don't want to depend on the linker's orphan section placement
+> > > heuristics as these can vary between linkers, and may change between
+> > > versions. All sections need to be explicitly named in the linker
+> > > script.
+> > > 
+> > > Specifically, this would have made a recently fixed bug very obvious:
+> > > 
+> > > ld: warning: orphan section `.fixup' from `arch/arm/lib/copy_from_user.o' being placed in section `.fixup'
+> > > 
+> > > Discard unneeded sections .iplt, .rel.iplt, .igot.plt, and .modinfo.
+> > > 
+> > > Add missing text stub sections .vfp11_veneer and .v4_bx.
+> > > 
+> > > Add debug sections explicitly.
+> > > 
+> > > Finally enable orphan section warning.
+> > 
+> > This is unrelated to this patch as such, but I noticed that ARM32/64 places
+> > the .got section inside .text -- is that expected on ARM?
 > 
-> Given that it requires the 'guarded' attribute to be set in the page
-> tables, and the fact that the UEFI spec does not require it for
-> executables that it invokes, nor describes any means of annotating
-> such executables as having been built with BTI annotations, I think we
-> can safely assume that the EFI stub will execute with BTI disabled in
-> the foreseeable future.
+> Do you mean in general, in the kernel vmlinux, in the decompressor
+> vmlinux or ... ?
+> 
 
-yaaaaaay. *sigh* How long until EFI catches up?
-
-That said, BTI shouldn't _hurt_, right? If EFI ever decides to enable
-it, we'll be ready?
-
--- 
-Kees Cook
+Sorry, in the kernel vmlinux. ARM_TEXT includes *(.got) for 32-bit, and
+the 64-bit vmlinux.lds.S includes it in .text as well. The decompressor
+for 32-bit keeps it separate for non-EFI stub kernel and puts it inside
+.data for EFI stub.
