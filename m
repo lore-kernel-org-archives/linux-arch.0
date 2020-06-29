@@ -1,57 +1,53 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58076 "EHLO
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38394 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2389773AbgFXVVR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 17:21:17 -0400
-Date: Wed, 24 Jun 2020 23:20:55 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 06/22] kbuild: lto: limit inlining
-Message-ID: <20200624212055.GU4817@hirez.programming.kicks-ass.net>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624203200.78870-7-samitolvanen@google.com>
+        with ESMTP id S1729138AbgF2Smw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
+Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5BDBEC033C3C
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 11:37:18 -0700 (PDT)
+Received: by mail-pl1-x644.google.com with SMTP id d10so7429368pls.5
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 11:37:18 -0700 (PDT)
+Date: Mon, 29 Jun 2020 11:37:16 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v4 05/17] ctype: Work around Clang
+ -mbranch-protection=none bug
+Message-ID: <202006291136.E6DF8242@keescook>
+References: <20200629061840.4065483-1-keescook@chromium.org>
+ <20200629061840.4065483-6-keescook@chromium.org>
+ <CAMj1kXE+toCd=Bx-zw7D9bvDRNB2aPn5-_7CY7MOKcVGA-azVg@mail.gmail.com>
+ <202006290806.3BDE2A8@keescook>
+ <CAKwvOd=DMfmvfiEX7KDPLs75SbNz+LAGSwC3V_=LgGH3kjtE=g@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200624203200.78870-7-samitolvanen@google.com>
+In-Reply-To: <CAKwvOd=DMfmvfiEX7KDPLs75SbNz+LAGSwC3V_=LgGH3kjtE=g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, George Burgess IV <gbiv@google.com>
-Message-ID: <20200624212055.ZERTu6IQ4x-0ZQ1CDTGAhOdl8NZoLeXCo2Unu7o14qs@z>
+To: Nick Desaulniers <ndesaulniers@google.com>
+Cc: Ard Biesheuvel <ardb@kernel.org>, Will Deacon <will@kernel.org>, Dave Martin <Dave.Martin@arm.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Daniel Kiss <daniel.kiss@arm.com>
+Message-ID: <20200629183716.1iXAxw4HPcvdYaX8Gw9yKwGGLS3asaVFATTWLDQYJLs@z>
 
-On Wed, Jun 24, 2020 at 01:31:44PM -0700, Sami Tolvanen wrote:
-> This change limits function inlining across translation unit
-> boundaries in order to reduce the binary size with LTO.
+On Mon, Jun 29, 2020 at 11:02:51AM -0700, Nick Desaulniers wrote:
+> This is definitely better than the empty function.  Though a patch is
+> posted for fixing this in LLVM. Assuming that lands before this, we
+> might not actually need this workaround?
 > 
-> The -import-instr-limit flag defines a size limit, as the number
-> of LLVM IR instructions, for importing functions from other TUs.
-> The default value is 100, and decreasing it to 5 reduces the size
-> of a stripped arm64 defconfig vmlinux by 11%.
+> arch/arm64/Kconfig
+> 1625 config ARM64_BTI_KERNEL
+> ...
+> 1633   # https://reviews.llvm.org/rGb8ae3fdfa579dbf366b1bb1cbfdbf8c51db7fa55
+> 1634   depends on !CC_IS_CLANG || CLANG_VERSION >= 100001
+> 
+> So if Daniel's patch lands AND is backported into the clang 10.0.1
+> release, then we might not need to carry this workaround?  Either way,
 
-Is that also the right number for x86? What about the effect on
-performance? What did 6 do? or 4?
+True, though as I mentioned in the review, I don't think it's quite
+right -- the warning getting removed is actually quite valuable.
 
-> Suggested-by: George Burgess IV <gbiv@google.com>
-> Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
-> ---
->  Makefile | 4 ++++
->  1 file changed, 4 insertions(+)
-> 
-> diff --git a/Makefile b/Makefile
-> index 3a7e5e5c17b9..ee66513a5b66 100644
-> --- a/Makefile
-> +++ b/Makefile
-> @@ -894,6 +894,10 @@ else
->  CC_FLAGS_LTO_CLANG := -flto
->  endif
->  CC_FLAGS_LTO_CLANG += -fvisibility=default
-> +
-> +# Limit inlining across translation units to reduce binary size
-> +LD_FLAGS_LTO_CLANG := -mllvm -import-instr-limit=5
-> +KBUILD_LDFLAGS += $(LD_FLAGS_LTO_CLANG)
->  endif
->  
->  ifdef CONFIG_LTO
-> -- 
-> 2.27.0.212.ge8ba1cc988-goog
-> 
+> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+
+Thanks!
+
+-- 
+Kees Cook
