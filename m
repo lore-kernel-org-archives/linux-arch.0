@@ -1,61 +1,239 @@
-Return-Path: <SRS0=mQnE=7Z=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53928 "EHLO
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38406 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726379AbgFLFHI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jun 2020 01:07:08 -0400
-Received: from mail-pg1-x541.google.com (mail-pg1-x541.google.com [IPv6:2607:f8b0:4864:20::541])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D5BBDC08C5C1
-        for <linux-arch@vger.kernel.org>; Thu, 11 Jun 2020 22:07:07 -0700 (PDT)
-Received: by mail-pg1-x541.google.com with SMTP id t7so3593987pgt.3
-        for <linux-arch@vger.kernel.org>; Thu, 11 Jun 2020 22:07:07 -0700 (PDT)
-Date: Thu, 11 Jun 2020 22:07:05 -0700
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: Regression bisected to f2f84b05e02b (bug: consolidate
- warn_slowpath_fmt() usage)
-Message-ID: <202006112201.3B20AB28DC@keescook>
-References: <20200602024804.GA3776630@p50-ethernet.mattst88.com>
- <202006021052.E52618F@keescook>
- <CAEdQ38F2GP92xB2gMXTrEo-Adbbc9Cy1DWHU9yveGLzJNd2HrA@mail.gmail.com>
- <20200612044757.GA10703@tower>
+        with ESMTP id S1729006AbgF2Sms (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:48 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 06/41] [ia64] regularize do_gpregs_[gs]et()
+Date: Mon, 29 Jun 2020 19:25:53 +0100
+Message-ID: <20200629182628.529995-6-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
+ <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200612044757.GA10703@tower>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Cree <mcree@orcon.net.nz>, Matt Turner <mattst88@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-alpha <linux-alpha@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Message-ID: <20200612050705.09wAOvX2_yNZW1X2MadsZ5BOqgVwPb9bnfSGdZrU4ww@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200629182553.LEp-bkUtY8mDcC6_wvrjmQvKrtzFYm_15TY5GdRzSZI@z>
 
-On Fri, Jun 12, 2020 at 04:47:57PM +1200, Michael Cree wrote:
-> On Thu, Jun 11, 2020 at 09:23:52PM -0700, Matt Turner wrote:
-> > Since I noticed earlier that using maxcpus=1 on a 2-CPU system
-> > prevented the system from hanging, I tried disabling CONFIG_SMP on my
-> > 1-CPU system as well. In doing so, I discovered that the RCU torture
-> > module (RCU_TORTURE_TEST) triggers some null pointer dereferences on
-> > Alpha when CONFIG_SMP is set, but works successfully when CONFIG_SMP
-> > is unset.
-> > 
-> > That seems likely to be a symptom of the same underlying problem that
-> > started this thread, don't you think? If so, I'll focus my attention
-> > on that.
-> 
-> I wonder if that is related to user space segfaults we are now seeing
-> on SMP systems but not UP systems while building Alpha debian-ports.
-> It's happening in the test-suites of builds of certain software
-> (such as autogen and guile) but they always build successfully with
-> the test suite passing on a UP system.
-> 
-> When investigating I seem to recall it was a NULL (or near NULL)
-> pointer dereference but couldn't make any sense of how it might
-> have got into such an obviously wrong state.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-By some miracle, I have avoided any experience with RCU bugs. ;) If
-the RCU_TORTURE_TEST Oopses or the segfaults are repeatable and don't
-go away with the WARN patch reverted, then perhaps it might be used to
-bisect to something closer to the root cause?
+now access_elf_reg() does the right thing for everything other than
+r0, we can simplify do_grepgs_[gs]et()
 
-Given the similarity to the SMP vs UP stuff and the RCU tests, I'd agree
-that does seem like the best path to investigate.
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/ia64/kernel/ptrace.c | 155 ++++++++++------------------------------------
+ 1 file changed, 31 insertions(+), 124 deletions(-)
 
+diff --git a/arch/ia64/kernel/ptrace.c b/arch/ia64/kernel/ptrace.c
+index 37b5140d0dfe..be635f6f93c9 100644
+--- a/arch/ia64/kernel/ptrace.c
++++ b/arch/ia64/kernel/ptrace.c
+@@ -1491,10 +1491,7 @@ access_elf_reg(struct task_struct *target, struct unw_frame_info *info,
+ 
+ void do_gpregs_get(struct unw_frame_info *info, void *arg)
+ {
+-	struct pt_regs *pt;
+ 	struct regset_getset *dst = arg;
+-	elf_greg_t tmp[16];
+-	unsigned int i, index, min_copy;
+ 
+ 	if (unw_unwind_to_user(info) < 0)
+ 		return;
+@@ -1517,160 +1514,70 @@ void do_gpregs_get(struct unw_frame_info *info, void *arg)
+ 						      &dst->u.get.kbuf,
+ 						      &dst->u.get.ubuf,
+ 						      0, ELF_GR_OFFSET(1));
+-		if (dst->ret || dst->count == 0)
+-			return;
+-	}
+-
+-	/* gr1 - gr15 */
+-	if (dst->count > 0 && dst->pos < ELF_GR_OFFSET(16)) {
+-		index = (dst->pos - ELF_GR_OFFSET(1)) / sizeof(elf_greg_t);
+-		min_copy = ELF_GR_OFFSET(16) > (dst->pos + dst->count) ?
+-			 (dst->pos + dst->count) : ELF_GR_OFFSET(16);
+-		for (i = dst->pos; i < min_copy; i += sizeof(elf_greg_t),
+-				index++)
+-			if (access_elf_reg(dst->target, info, i,
+-						&tmp[index], 0) < 0) {
+-				dst->ret = -EIO;
+-				return;
+-			}
+-		dst->ret = user_regset_copyout(&dst->pos, &dst->count,
+-				&dst->u.get.kbuf, &dst->u.get.ubuf, tmp,
+-				ELF_GR_OFFSET(1), ELF_GR_OFFSET(16));
+-		if (dst->ret || dst->count == 0)
+-			return;
+-	}
+-
+-	/* r16-r31 */
+-	if (dst->count > 0 && dst->pos < ELF_NAT_OFFSET) {
+-		pt = task_pt_regs(dst->target);
+-		dst->ret = user_regset_copyout(&dst->pos, &dst->count,
+-				&dst->u.get.kbuf, &dst->u.get.ubuf, &pt->r16,
+-				ELF_GR_OFFSET(16), ELF_NAT_OFFSET);
+-		if (dst->ret || dst->count == 0)
++		if (dst->ret)
+ 			return;
+ 	}
+ 
+-	/* nat, pr, b0 - b7 */
+-	if (dst->count > 0 && dst->pos < ELF_CR_IIP_OFFSET) {
+-		index = (dst->pos - ELF_NAT_OFFSET) / sizeof(elf_greg_t);
+-		min_copy = ELF_CR_IIP_OFFSET > (dst->pos + dst->count) ?
+-			 (dst->pos + dst->count) : ELF_CR_IIP_OFFSET;
+-		for (i = dst->pos; i < min_copy; i += sizeof(elf_greg_t),
+-				index++)
+-			if (access_elf_reg(dst->target, info, i,
+-						&tmp[index], 0) < 0) {
++	while (dst->count && dst->pos < ELF_AR_END_OFFSET) {
++		unsigned int n, from, to;
++		elf_greg_t tmp[16];
++
++		from = dst->pos;
++		to = from + min(dst->count, (unsigned)sizeof(tmp));
++		if (to > ELF_AR_END_OFFSET)
++			to = ELF_AR_END_OFFSET;
++		for (n = 0; from < to; from += sizeof(elf_greg_t), n++) {
++			if (access_elf_reg(dst->target, info, from,
++						&tmp[n], 0) < 0) {
+ 				dst->ret = -EIO;
+ 				return;
+ 			}
++		}
+ 		dst->ret = user_regset_copyout(&dst->pos, &dst->count,
+ 				&dst->u.get.kbuf, &dst->u.get.ubuf, tmp,
+-				ELF_NAT_OFFSET, ELF_CR_IIP_OFFSET);
+-		if (dst->ret || dst->count == 0)
++				dst->pos, to);
++		if (dst->ret)
+ 			return;
+ 	}
+-
+-	/* ip cfm psr ar.rsc ar.bsp ar.bspstore ar.rnat
+-	 * ar.ccv ar.unat ar.fpsr ar.pfs ar.lc ar.ec ar.csd ar.ssd
+-	 */
+-	if (dst->count > 0 && dst->pos < (ELF_AR_END_OFFSET)) {
+-		index = (dst->pos - ELF_CR_IIP_OFFSET) / sizeof(elf_greg_t);
+-		min_copy = ELF_AR_END_OFFSET > (dst->pos + dst->count) ?
+-			 (dst->pos + dst->count) : ELF_AR_END_OFFSET;
+-		for (i = dst->pos; i < min_copy; i += sizeof(elf_greg_t),
+-				index++)
+-			if (access_elf_reg(dst->target, info, i,
+-						&tmp[index], 0) < 0) {
+-				dst->ret = -EIO;
+-				return;
+-			}
+-		dst->ret = user_regset_copyout(&dst->pos, &dst->count,
+-				&dst->u.get.kbuf, &dst->u.get.ubuf, tmp,
+-				ELF_CR_IIP_OFFSET, ELF_AR_END_OFFSET);
+-	}
+ }
+ 
+ void do_gpregs_set(struct unw_frame_info *info, void *arg)
+ {
+-	struct pt_regs *pt;
+ 	struct regset_getset *dst = arg;
+-	elf_greg_t tmp[16];
+-	unsigned int i, index;
+ 
+ 	if (unw_unwind_to_user(info) < 0)
+ 		return;
+ 
++	if (!dst->count)
++		return;
+ 	/* Skip r0 */
+-	if (dst->count > 0 && dst->pos < ELF_GR_OFFSET(1)) {
++	if (dst->pos < ELF_GR_OFFSET(1)) {
+ 		dst->ret = user_regset_copyin_ignore(&dst->pos, &dst->count,
+ 						       &dst->u.set.kbuf,
+ 						       &dst->u.set.ubuf,
+ 						       0, ELF_GR_OFFSET(1));
+-		if (dst->ret || dst->count == 0)
+-			return;
+-	}
+-
+-	/* gr1-gr15 */
+-	if (dst->count > 0 && dst->pos < ELF_GR_OFFSET(16)) {
+-		i = dst->pos;
+-		index = (dst->pos - ELF_GR_OFFSET(1)) / sizeof(elf_greg_t);
+-		dst->ret = user_regset_copyin(&dst->pos, &dst->count,
+-				&dst->u.set.kbuf, &dst->u.set.ubuf, tmp,
+-				ELF_GR_OFFSET(1), ELF_GR_OFFSET(16));
+ 		if (dst->ret)
+ 			return;
+-		for ( ; i < dst->pos; i += sizeof(elf_greg_t), index++)
+-			if (access_elf_reg(dst->target, info, i,
+-						&tmp[index], 1) < 0) {
+-				dst->ret = -EIO;
+-				return;
+-			}
+-		if (dst->count == 0)
+-			return;
+-	}
+-
+-	/* gr16-gr31 */
+-	if (dst->count > 0 && dst->pos < ELF_NAT_OFFSET) {
+-		pt = task_pt_regs(dst->target);
+-		dst->ret = user_regset_copyin(&dst->pos, &dst->count,
+-				&dst->u.set.kbuf, &dst->u.set.ubuf, &pt->r16,
+-				ELF_GR_OFFSET(16), ELF_NAT_OFFSET);
+-		if (dst->ret || dst->count == 0)
+-			return;
+ 	}
+ 
+-	/* nat, pr, b0 - b7 */
+-	if (dst->count > 0 && dst->pos < ELF_CR_IIP_OFFSET) {
+-		i = dst->pos;
+-		index = (dst->pos - ELF_NAT_OFFSET) / sizeof(elf_greg_t);
+-		dst->ret = user_regset_copyin(&dst->pos, &dst->count,
+-				&dst->u.set.kbuf, &dst->u.set.ubuf, tmp,
+-				ELF_NAT_OFFSET, ELF_CR_IIP_OFFSET);
+-		if (dst->ret)
+-			return;
+-		for (; i < dst->pos; i += sizeof(elf_greg_t), index++)
+-			if (access_elf_reg(dst->target, info, i,
+-						&tmp[index], 1) < 0) {
+-				dst->ret = -EIO;
+-				return;
+-			}
+-		if (dst->count == 0)
+-			return;
+-	}
++	while (dst->count && dst->pos < ELF_AR_END_OFFSET) {
++		unsigned int n, from, to;
++		elf_greg_t tmp[16];
+ 
+-	/* ip cfm psr ar.rsc ar.bsp ar.bspstore ar.rnat
+-	 * ar.ccv ar.unat ar.fpsr ar.pfs ar.lc ar.ec ar.csd ar.ssd
+-	 */
+-	if (dst->count > 0 && dst->pos < (ELF_AR_END_OFFSET)) {
+-		i = dst->pos;
+-		index = (dst->pos - ELF_CR_IIP_OFFSET) / sizeof(elf_greg_t);
++		from = dst->pos;
++		to = from + sizeof(tmp);
++		if (to > ELF_AR_END_OFFSET)
++			to = ELF_AR_END_OFFSET;
++		/* get up to 16 values */
+ 		dst->ret = user_regset_copyin(&dst->pos, &dst->count,
+ 				&dst->u.set.kbuf, &dst->u.set.ubuf, tmp,
+-				ELF_CR_IIP_OFFSET, ELF_AR_END_OFFSET);
++				from, to);
+ 		if (dst->ret)
+ 			return;
+-		for ( ; i < dst->pos; i += sizeof(elf_greg_t), index++)
+-			if (access_elf_reg(dst->target, info, i,
+-						&tmp[index], 1) < 0) {
++		/* now copy them into registers */
++		for (n = 0; from < dst->pos; from += sizeof(elf_greg_t), n++)
++			if (access_elf_reg(dst->target, info, from,
++						&tmp[n], 1) < 0) {
+ 				dst->ret = -EIO;
+ 				return;
+ 			}
 -- 
-Kees Cook
+2.11.0
