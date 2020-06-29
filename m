@@ -1,13 +1,16 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 6/8] asm-generic: pgalloc: provide generic pgd_free()
-Date: Mon, 29 Jun 2020 17:42:28 +0200
-Message-ID: <CAMuHMdWP07XqvgrXjCG+n5FssH3BwdDEWA4fD9TQgvVy93uMhQ@mail.gmail.com>
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH 4/8] asm-generic: pgalloc: provide generic
+ pmd_alloc_one() and pmd_free_one()
+Date: Mon, 29 Jun 2020 18:59:20 +0300
+Message-ID: <20200629155920.GD1492837@kernel.org>
 References: <20200627143453.31835-1-rppt@kernel.org>
- <20200627143453.31835-7-rppt@kernel.org>
+ <20200627143453.31835-5-rppt@kernel.org>
+ <20200627190304.GG25039@casper.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-In-Reply-To: <20200627143453.31835-7-rppt@kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200627190304.GG25039@casper.infradead.org>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -18,30 +21,38 @@ List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
 Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org
 Sender: "Linuxppc-dev"
  <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane-mx.org@lists.ozlabs.org>
-To: Mike Rapoport <rppt@kernel.org>
-Cc: "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>, Max Filippov <jcmvbkbc@gmail.com>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, linux-csky@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, linux-riscv <linux-riscv@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, Joerg Roedel <joro@8bytes.org>, Mike Rapoport <rppt@linux.ibm.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, arcml <linux-snps-arc@lists.infradead.org>, "open list:TENSILICA XTENSA PORT (xtensa)" <linux-xtensa@linux-xtensa.org>, Arnd Bergmann <arnd@arndb.de>, linux-s390 <linux-s390@vger.kernel.org>, linux-um <linux-um@lis>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, linux-mips@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, linux-csky@vger.kernel.org, sparclinux@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, linux-hexagon@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Mike Rapoport <rppt@linux.ibm.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, linux-snps-arc@lists.infradead.org, linux-xtensa@linux-xtensa.org, Arnd Bergmann <arnd@arndb.de>, linux-s390@vger.kernel.org, linux-um@lists.infradead.org, Steven Rostedt <rostedt@goodmis.org>, linux-m68k@lists.linux-m68k.org, openrisc@lists.librecores.org, Andy Lutomirski <luto@kernel.org>, Stafford Horne <shorne@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-pari
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jun 27, 2020 at 4:36 PM Mike Rapoport <rppt@kernel.org> wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
->
-> Most architectures define pgd_free() as a wrapper for free_page().
->
-> Provide a generic version in asm-generic/pgalloc.h and enable its use for
-> most architectures.
->
-> Signed-off-by: Mike Rapoport <rppt@linux.ibm.com>
+On Sat, Jun 27, 2020 at 08:03:04PM +0100, Matthew Wilcox wrote:
+> On Sat, Jun 27, 2020 at 05:34:49PM +0300, Mike Rapoport wrote:
+> > More elaborate versions on arm64 and x86 account memory for the user page
+> > tables and call to pgtable_pmd_page_ctor() as the part of PMD page
+> > initialization.
+> > 
+> > Move the arm64 version to include/asm-generic/pgalloc.h and use the generic
+> > version on several architectures.
+> > 
+> > The pgtable_pmd_page_ctor() is a NOP when ARCH_ENABLE_SPLIT_PMD_PTLOCK is
+> > not enabled, so there is no functional change for most architectures except
+> > of the addition of __GFP_ACCOUNT for allocation of user page tables.
+> 
+> Thanks for including this line; it reminded me that we're not setting
+> the PageTable flag on the page, nor accounting it to the zone page stats.
+> Hope you don't mind me tagging a patch to do that on as 9/8.
 
-For the m68k part:
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+We also never set PageTable flag for early page tables and for the page
+tables allocated directly with get_free_page(), e.g PTI, KASAN.
 
-Gr{oetje,eeting}s,
-
-                        Geert
+> We could also do with a pud_page_[cd]tor and maybe even p4d/pgd versions.
+> But that brings me to the next question -- could/should some of this
+> be moved over to asm-generic/pgalloc.h?  The ctor/dtor aren't called
+> from anywhere else, and there's value to reducing the total amount of
+> code in mm.h, but then there's also value to keeping all the ifdef
+> ARCH_ENABLE_SPLIT_PMD_PTLOCK code together too.  So I'm a bit torn.
+> What do you think?
 
 -- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Sincerely yours,
+Mike.
