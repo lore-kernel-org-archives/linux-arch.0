@@ -1,52 +1,169 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v4 05/17] ctype: Work around Clang
- -mbranch-protection=none bug
-Date: Mon, 29 Jun 2020 11:37:16 -0700
-Message-ID: <202006291136.E6DF8242@keescook>
-References: <20200629061840.4065483-1-keescook@chromium.org>
- <20200629061840.4065483-6-keescook@chromium.org>
- <CAMj1kXE+toCd=Bx-zw7D9bvDRNB2aPn5-_7CY7MOKcVGA-azVg@mail.gmail.com>
- <202006290806.3BDE2A8@keescook>
- <CAKwvOd=DMfmvfiEX7KDPLs75SbNz+LAGSwC3V_=LgGH3kjtE=g@mail.gmail.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 36/41] parisc: switch to ->get2()
+Date: Mon, 29 Jun 2020 19:26:23 +0100
+Message-ID: <20200629182628.529995-36-viro@ZenIV.linux.org.uk>
+References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
+ <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38394 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38398 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729138AbgF2Smw (ORCPT
+        with ESMTP id S1729133AbgF2Smw (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
-Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5BDBEC033C3C
-        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 11:37:18 -0700 (PDT)
-Received: by mail-pl1-x644.google.com with SMTP id d10so7429368pls.5
-        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 11:37:18 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <CAKwvOd=DMfmvfiEX7KDPLs75SbNz+LAGSwC3V_=LgGH3kjtE=g@mail.gmail.com>
+In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: Ard Biesheuvel <ardb@kernel.org>, Will Deacon <will@kernel.org>, Dave Martin <Dave.Martin@arm.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
 
-On Mon, Jun 29, 2020 at 11:02:51AM -0700, Nick Desaulniers wrote:
-> This is definitely better than the empty function.  Though a patch is
-> posted for fixing this in LLVM. Assuming that lands before this, we
-> might not actually need this workaround?
-> 
-> arch/arm64/Kconfig
-> 1625 config ARM64_BTI_KERNEL
-> ...
-> 1633   # https://reviews.llvm.org/rGb8ae3fdfa579dbf366b1bb1cbfdbf8c51db7fa55
-> 1634   depends on !CC_IS_CLANG || CLANG_VERSION >= 100001
-> 
-> So if Daniel's patch lands AND is backported into the clang 10.0.1
-> release, then we might not need to carry this workaround?  Either way,
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-True, though as I mentioned in the review, I don't think it's quite
-right -- the warning getting removed is actually quite valuable.
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/parisc/kernel/ptrace.c | 84 +++++++++------------------------------------
+ 1 file changed, 16 insertions(+), 68 deletions(-)
 
-> Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
-
-Thanks!
-
+diff --git a/arch/parisc/kernel/ptrace.c b/arch/parisc/kernel/ptrace.c
+index b51418ad8655..6dd7a4debb9c 100644
+--- a/arch/parisc/kernel/ptrace.c
++++ b/arch/parisc/kernel/ptrace.c
+@@ -391,31 +391,11 @@ void do_syscall_trace_exit(struct pt_regs *regs)
+ 
+ static int fpr_get(struct task_struct *target,
+ 		     const struct user_regset *regset,
+-		     unsigned int pos, unsigned int count,
+-		     void *kbuf, void __user *ubuf)
++		     struct membuf to)
+ {
+ 	struct pt_regs *regs = task_regs(target);
+-	__u64 *k = kbuf;
+-	__u64 __user *u = ubuf;
+-	__u64 reg;
+-
+-	pos /= sizeof(reg);
+-	count /= sizeof(reg);
+-
+-	if (kbuf)
+-		for (; count > 0 && pos < ELF_NFPREG; --count)
+-			*k++ = regs->fr[pos++];
+-	else
+-		for (; count > 0 && pos < ELF_NFPREG; --count)
+-			if (__put_user(regs->fr[pos++], u++))
+-				return -EFAULT;
+ 
+-	kbuf = k;
+-	ubuf = u;
+-	pos *= sizeof(reg);
+-	count *= sizeof(reg);
+-	return user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
+-					ELF_NFPREG * sizeof(reg), -1);
++	return membuf_write(&to, regs->fr, ELF_NFPREG * sizeof(__u64));
+ }
+ 
+ static int fpr_set(struct task_struct *target,
+@@ -527,30 +507,14 @@ static void set_reg(struct pt_regs *regs, int num, unsigned long val)
+ 
+ static int gpr_get(struct task_struct *target,
+ 		     const struct user_regset *regset,
+-		     unsigned int pos, unsigned int count,
+-		     void *kbuf, void __user *ubuf)
++		     struct membuf to)
+ {
+ 	struct pt_regs *regs = task_regs(target);
+-	unsigned long *k = kbuf;
+-	unsigned long __user *u = ubuf;
+-	unsigned long reg;
++	unsigned int pos;
+ 
+-	pos /= sizeof(reg);
+-	count /= sizeof(reg);
+-
+-	if (kbuf)
+-		for (; count > 0 && pos < ELF_NGREG; --count)
+-			*k++ = get_reg(regs, pos++);
+-	else
+-		for (; count > 0 && pos < ELF_NGREG; --count)
+-			if (__put_user(get_reg(regs, pos++), u++))
+-				return -EFAULT;
+-	kbuf = k;
+-	ubuf = u;
+-	pos *= sizeof(reg);
+-	count *= sizeof(reg);
+-	return user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
+-					ELF_NGREG * sizeof(reg), -1);
++	for (pos = 0; pos < ELF_NGREG; pos++)
++		membuf_store(&to, get_reg(regs, pos));
++	return 0;
+ }
+ 
+ static int gpr_set(struct task_struct *target,
+@@ -588,12 +552,12 @@ static const struct user_regset native_regsets[] = {
+ 	[REGSET_GENERAL] = {
+ 		.core_note_type = NT_PRSTATUS, .n = ELF_NGREG,
+ 		.size = sizeof(long), .align = sizeof(long),
+-		.get = gpr_get, .set = gpr_set
++		.get2 = gpr_get, .set = gpr_set
+ 	},
+ 	[REGSET_FP] = {
+ 		.core_note_type = NT_PRFPREG, .n = ELF_NFPREG,
+ 		.size = sizeof(__u64), .align = sizeof(__u64),
+-		.get = fpr_get, .set = fpr_set
++		.get2 = fpr_get, .set = fpr_set
+ 	}
+ };
+ 
+@@ -607,31 +571,15 @@ static const struct user_regset_view user_parisc_native_view = {
+ 
+ static int gpr32_get(struct task_struct *target,
+ 		     const struct user_regset *regset,
+-		     unsigned int pos, unsigned int count,
+-		     void *kbuf, void __user *ubuf)
++		     struct membuf to)
+ {
+ 	struct pt_regs *regs = task_regs(target);
+-	compat_ulong_t *k = kbuf;
+-	compat_ulong_t __user *u = ubuf;
+-	compat_ulong_t reg;
++	unsigned int pos;
+ 
+-	pos /= sizeof(reg);
+-	count /= sizeof(reg);
++	for (pos = 0; pos < ELF_NGREG; pos++)
++		membuf_store(&to, (compat_ulong_t)get_reg(regs, pos));
+ 
+-	if (kbuf)
+-		for (; count > 0 && pos < ELF_NGREG; --count)
+-			*k++ = get_reg(regs, pos++);
+-	else
+-		for (; count > 0 && pos < ELF_NGREG; --count)
+-			if (__put_user((compat_ulong_t) get_reg(regs, pos++), u++))
+-				return -EFAULT;
+-
+-	kbuf = k;
+-	ubuf = u;
+-	pos *= sizeof(reg);
+-	count *= sizeof(reg);
+-	return user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
+-					ELF_NGREG * sizeof(reg), -1);
++	return 0;
+ }
+ 
+ static int gpr32_set(struct task_struct *target,
+@@ -672,12 +620,12 @@ static const struct user_regset compat_regsets[] = {
+ 	[REGSET_GENERAL] = {
+ 		.core_note_type = NT_PRSTATUS, .n = ELF_NGREG,
+ 		.size = sizeof(compat_long_t), .align = sizeof(compat_long_t),
+-		.get = gpr32_get, .set = gpr32_set
++		.get2 = gpr32_get, .set = gpr32_set
+ 	},
+ 	[REGSET_FP] = {
+ 		.core_note_type = NT_PRFPREG, .n = ELF_NFPREG,
+ 		.size = sizeof(__u64), .align = sizeof(__u64),
+-		.get = fpr_get, .set = fpr_set
++		.get2 = fpr_get, .set = fpr_set
+ 	}
+ };
+ 
 -- 
-Kees Cook
+2.11.0
