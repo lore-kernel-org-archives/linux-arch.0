@@ -1,58 +1,80 @@
 Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43372 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38380 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1731124AbgF2TMp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:12:45 -0400
-Received: from mail-pg1-x543.google.com (mail-pg1-x543.google.com [IPv6:2607:f8b0:4864:20::543])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 893FAC08EB08
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:52 -0700 (PDT)
-Received: by mail-pg1-x543.google.com with SMTP id p3so7831663pgh.3
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:52 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 09/17] arm64/build: Remove .eh_frame* sections due to unwind tables
-Date: Sun, 28 Jun 2020 23:18:32 -0700
-Message-ID: <20200629061840.4065483-10-keescook@chromium.org>
-In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
-References: <20200629061840.4065483-1-keescook@chromium.org>
+        with ESMTP id S1729062AbgF2Smo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:44 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 16/41] arm64: sanitize compat_ptrace_write_user()
+Date: Mon, 29 Jun 2020 19:26:03 +0100
+Message-ID: <20200629182628.529995-16-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
+ <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Ard Biesheuvel <ardb@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200629061832.TXgjaKef3KmGkZtxcXLq2BC6LHcTZ4awsRg6OWdGT3c@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200629182603.u8YBVMckYjOX8F4U5p0QePQgKkY340No_AKTyArlgdU@z>
 
-Avoid .eh_frame* section generation by making sure both CFLAGS and AFLAGS
-contain -fno-asychronous-unwind-tables and -fno-unwind-tables.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-Suggested-by: Ard Biesheuvel <ardb@kernel.org>
-Acked-by: Will Deacon <will@kernel.org>
-Signed-off-by: Kees Cook <keescook@chromium.org>
+don't bother with copy_regset_from_user() (not to mention
+set_fs())
+
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/arm64/Makefile | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ arch/arm64/kernel/ptrace.c | 29 ++++++++++++++++++++---------
+ 1 file changed, 20 insertions(+), 9 deletions(-)
 
-diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
-index a0d94d063fa8..895486606f74 100644
---- a/arch/arm64/Makefile
-+++ b/arch/arm64/Makefile
-@@ -47,13 +47,16 @@ endif
+diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+index d5f3da5197a1..9f769e862f68 100644
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -1553,8 +1553,8 @@ static int compat_ptrace_read_user(struct task_struct *tsk, compat_ulong_t off,
+ static int compat_ptrace_write_user(struct task_struct *tsk, compat_ulong_t off,
+ 				    compat_ulong_t val)
+ {
+-	int ret;
+-	mm_segment_t old_fs = get_fs();
++	struct pt_regs newregs = *task_pt_regs(tsk);
++	unsigned int idx = off / 4;
  
- KBUILD_CFLAGS	+= -mgeneral-regs-only	\
- 		   $(compat_vdso) $(cc_has_k_constraint)
--KBUILD_CFLAGS	+= -fno-asynchronous-unwind-tables
- KBUILD_CFLAGS	+= $(call cc-disable-warning, psabi)
- KBUILD_AFLAGS	+= $(compat_vdso)
+ 	if (off & 3 || off >= COMPAT_USER_SZ)
+ 		return -EIO;
+@@ -1562,14 +1562,25 @@ static int compat_ptrace_write_user(struct task_struct *tsk, compat_ulong_t off,
+ 	if (off >= sizeof(compat_elf_gregset_t))
+ 		return 0;
  
- KBUILD_CFLAGS	+= $(call cc-option,-mabi=lp64)
- KBUILD_AFLAGS	+= $(call cc-option,-mabi=lp64)
- 
-+# Avoid generating .eh_frame* sections.
-+KBUILD_CFLAGS	+= -fno-asynchronous-unwind-tables -fno-unwind-tables
-+KBUILD_AFLAGS	+= -fno-asynchronous-unwind-tables -fno-unwind-tables
+-	set_fs(KERNEL_DS);
+-	ret = copy_regset_from_user(tsk, &user_aarch32_view,
+-				    REGSET_COMPAT_GPR, off,
+-				    sizeof(compat_ulong_t),
+-				    &val);
+-	set_fs(old_fs);
++	switch (idx) {
++	case 15:
++		newregs.pc = val;
++		break;
++	case 16:
++		newregs.pstate = compat_psr_to_pstate(val);
++		break;
++	case 17:
++		newregs.orig_x0 = val;
++		break;
++	default:
++		newregs.regs[idx] = val;
++	}
 +
- ifeq ($(CONFIG_STACKPROTECTOR_PER_TASK),y)
- prepare: stack_protector_prepare
- stack_protector_prepare: prepare0
++	if (!valid_user_regs(&newregs.user_regs, tsk))
++		return -EINVAL;
+ 
+-	return ret;
++	*task_pt_regs(tsk) = newregs;
++	return 0;
+ }
+ 
+ #ifdef CONFIG_HAVE_HW_BREAKPOINT
 -- 
-2.25.1
+2.11.0
