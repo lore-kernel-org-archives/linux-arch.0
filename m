@@ -1,64 +1,115 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 03/41] x86: kill dump_fpu()
-Date: Mon, 29 Jun 2020 19:25:50 +0100
-Message-ID: <20200629182628.529995-3-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 41/41] regset: kill user_regset_copyout{,_zero}()
+Date: Mon, 29 Jun 2020 19:26:28 +0100
+Message-ID: <20200629182628.529995-41-viro@ZenIV.linux.org.uk>
 References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
  <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38368 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729144AbgF2Smw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
 In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-dead since the removal of aout coredump support...
+no callers left
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/x86/include/asm/fpu/internal.h |  1 -
- arch/x86/kernel/fpu/regset.c        | 16 ----------------
- 2 files changed, 17 deletions(-)
+ include/linux/regset.h | 67 --------------------------------------------------
+ 1 file changed, 67 deletions(-)
 
-diff --git a/arch/x86/include/asm/fpu/internal.h b/arch/x86/include/asm/fpu/internal.h
-index 42159f45bf9c..0c85a08176c0 100644
---- a/arch/x86/include/asm/fpu/internal.h
-+++ b/arch/x86/include/asm/fpu/internal.h
-@@ -34,7 +34,6 @@ extern int  fpu__copy(struct task_struct *dst, struct task_struct *src);
- extern void fpu__clear_user_states(struct fpu *fpu);
- extern void fpu__clear_all(struct fpu *fpu);
- extern int  fpu__exception_code(struct fpu *fpu, int trap_nr);
--extern int  dump_fpu(struct pt_regs *ptregs, struct user_i387_struct *fpstate);
+diff --git a/include/linux/regset.h b/include/linux/regset.h
+index d82bb32e434c..facfaf300b44 100644
+--- a/include/linux/regset.h
++++ b/include/linux/regset.h
+@@ -238,44 +238,6 @@ struct user_regset_view {
+  */
+ const struct user_regset_view *task_user_regset_view(struct task_struct *tsk);
  
- /*
-  * Boot time FPU initialization functions:
-diff --git a/arch/x86/kernel/fpu/regset.c b/arch/x86/kernel/fpu/regset.c
-index bd1d0649f8ce..91f80aca27fb 100644
---- a/arch/x86/kernel/fpu/regset.c
-+++ b/arch/x86/kernel/fpu/regset.c
-@@ -356,20 +356,4 @@ int fpregs_set(struct task_struct *target, const struct user_regset *regset,
- 	return ret;
+-
+-/*
+- * These are helpers for writing regset get/set functions in arch code.
+- * Because @start_pos and @end_pos are always compile-time constants,
+- * these are inlined into very little code though they look large.
+- *
+- * Use one or more calls sequentially for each chunk of regset data stored
+- * contiguously in memory.  Call with constants for @start_pos and @end_pos,
+- * giving the range of byte positions in the regset that data corresponds
+- * to; @end_pos can be -1 if this chunk is at the end of the regset layout.
+- * Each call updates the arguments to point past its chunk.
+- */
+-
+-static inline int user_regset_copyout(unsigned int *pos, unsigned int *count,
+-				      void **kbuf,
+-				      void __user **ubuf, const void *data,
+-				      const int start_pos, const int end_pos)
+-{
+-	if (*count == 0)
+-		return 0;
+-	BUG_ON(*pos < start_pos);
+-	if (end_pos < 0 || *pos < end_pos) {
+-		unsigned int copy = (end_pos < 0 ? *count
+-				     : min(*count, end_pos - *pos));
+-		data += *pos - start_pos;
+-		if (*kbuf) {
+-			memcpy(*kbuf, data, copy);
+-			*kbuf += copy;
+-		} else if (__copy_to_user(*ubuf, data, copy))
+-			return -EFAULT;
+-		else
+-			*ubuf += copy;
+-		*pos += copy;
+-		*count -= copy;
+-	}
+-	return 0;
+-}
+-
+ static inline int user_regset_copyin(unsigned int *pos, unsigned int *count,
+ 				     const void **kbuf,
+ 				     const void __user **ubuf, void *data,
+@@ -301,35 +263,6 @@ static inline int user_regset_copyin(unsigned int *pos, unsigned int *count,
+ 	return 0;
  }
  
 -/*
-- * FPU state for core dumps.
-- * This is only used for a.out dumps now.
-- * It is declared generically using elf_fpregset_t (which is
-- * struct user_i387_struct) but is in fact only used for 32-bit
-- * dumps, so on 64-bit it is really struct user_i387_ia32_struct.
+- * These two parallel the two above, but for portions of a regset layout
+- * that always read as all-zero or for which writes are ignored.
 - */
--int dump_fpu(struct pt_regs *regs, struct user_i387_struct *ufpu)
+-static inline int user_regset_copyout_zero(unsigned int *pos,
+-					   unsigned int *count,
+-					   void **kbuf, void __user **ubuf,
+-					   const int start_pos,
+-					   const int end_pos)
 -{
--	struct task_struct *tsk = current;
--
--	return !fpregs_get(tsk, NULL, 0, sizeof(struct user_i387_ia32_struct),
--			   ufpu, NULL);
+-	if (*count == 0)
+-		return 0;
+-	BUG_ON(*pos < start_pos);
+-	if (end_pos < 0 || *pos < end_pos) {
+-		unsigned int copy = (end_pos < 0 ? *count
+-				     : min(*count, end_pos - *pos));
+-		if (*kbuf) {
+-			memset(*kbuf, 0, copy);
+-			*kbuf += copy;
+-		} else if (clear_user(*ubuf, copy))
+-			return -EFAULT;
+-		else
+-			*ubuf += copy;
+-		*pos += copy;
+-		*count -= copy;
+-	}
+-	return 0;
 -}
--EXPORT_SYMBOL(dump_fpu);
 -
- #endif	/* CONFIG_X86_32 || CONFIG_IA32_EMULATION */
+ static inline int user_regset_copyin_ignore(unsigned int *pos,
+ 					    unsigned int *count,
+ 					    const void **kbuf,
 -- 
 2.11.0
