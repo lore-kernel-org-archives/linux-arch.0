@@ -1,50 +1,81 @@
-Return-Path: <SRS0=KGKx=AK=kvack.org=owner-linux-mm@kernel.org>
-Date: Mon, 29 Jun 2020 18:59:20 +0300
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH 4/8] asm-generic: pgalloc: provide generic
- pmd_alloc_one() and pmd_free_one()
-Message-ID: <20200629155920.GD1492837@kernel.org>
-References: <20200627143453.31835-1-rppt@kernel.org>
- <20200627143453.31835-5-rppt@kernel.org>
- <20200627190304.GG25039@casper.infradead.org>
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38396 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729143AbgF2Smw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 14/41] arm64: take fetching compat reg out of pt_regs into a new helper
+Date: Mon, 29 Jun 2020 19:26:01 +0100
+Message-ID: <20200629182628.529995-14-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
+ <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200627190304.GG25039@casper.infradead.org>
-Sender: owner-linux-mm@kvack.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: linux-kernel@vger.kernel.org, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christophe Leroy <christophe.leroy@csgroup.eu>, Joerg Roedel <joro@8bytes.org>, Max Filippov <jcmvbkbc@gmail.com>, Mike Rapoport <rppt@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Stafford Horne <shorne@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200629155920.X7WYY_oOvPC2WtCafA0UNvDcqIsgm2ZhWawsY06VM1I@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200629182601.V827gYEKqKLD-_PQGox5DTICoIbR46MfOho1bV2Hsas@z>
 
-On Sat, Jun 27, 2020 at 08:03:04PM +0100, Matthew Wilcox wrote:
-> On Sat, Jun 27, 2020 at 05:34:49PM +0300, Mike Rapoport wrote:
-> > More elaborate versions on arm64 and x86 account memory for the user page
-> > tables and call to pgtable_pmd_page_ctor() as the part of PMD page
-> > initialization.
-> > 
-> > Move the arm64 version to include/asm-generic/pgalloc.h and use the generic
-> > version on several architectures.
-> > 
-> > The pgtable_pmd_page_ctor() is a NOP when ARCH_ENABLE_SPLIT_PMD_PTLOCK is
-> > not enabled, so there is no functional change for most architectures except
-> > of the addition of __GFP_ACCOUNT for allocation of user page tables.
-> 
-> Thanks for including this line; it reminded me that we're not setting
-> the PageTable flag on the page, nor accounting it to the zone page stats.
-> Hope you don't mind me tagging a patch to do that on as 9/8.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-We also never set PageTable flag for early page tables and for the page
-tables allocated directly with get_free_page(), e.g PTI, KASAN.
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/arm64/kernel/ptrace.c | 34 +++++++++++++++++-----------------
+ 1 file changed, 17 insertions(+), 17 deletions(-)
 
-> We could also do with a pud_page_[cd]tor and maybe even p4d/pgd versions.
-> But that brings me to the next question -- could/should some of this
-> be moved over to asm-generic/pgalloc.h?  The ctor/dtor aren't called
-> from anywhere else, and there's value to reducing the total amount of
-> code in mm.h, but then there's also value to keeping all the ifdef
-> ARCH_ENABLE_SPLIT_PMD_PTLOCK code together too.  So I'm a bit torn.
-> What do you think?
-
+diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+index 68b7f34a08f5..5b837741ab76 100644
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -1237,6 +1237,22 @@ enum compat_regset {
+ 	REGSET_COMPAT_VFP,
+ };
+ 
++static inline compat_ulong_t compat_get_user_reg(struct task_struct *task, int idx)
++{
++	struct pt_regs *regs = task_pt_regs(task);
++
++	switch (idx) {
++	case 15:
++		return regs->pc;
++	case 16:
++		return pstate_to_compat_psr(regs->pstate);
++	case 17:
++		return regs->orig_x0;
++	default:
++		return regs->regs[idx];
++	}
++}
++
+ static int compat_gpr_get(struct task_struct *target,
+ 			  const struct user_regset *regset,
+ 			  unsigned int pos, unsigned int count,
+@@ -1255,23 +1271,7 @@ static int compat_gpr_get(struct task_struct *target,
+ 		return -EIO;
+ 
+ 	for (i = 0; i < num_regs; ++i) {
+-		unsigned int idx = start + i;
+-		compat_ulong_t reg;
+-
+-		switch (idx) {
+-		case 15:
+-			reg = task_pt_regs(target)->pc;
+-			break;
+-		case 16:
+-			reg = task_pt_regs(target)->pstate;
+-			reg = pstate_to_compat_psr(reg);
+-			break;
+-		case 17:
+-			reg = task_pt_regs(target)->orig_x0;
+-			break;
+-		default:
+-			reg = task_pt_regs(target)->regs[idx];
+-		}
++		compat_ulong_t reg = compat_get_user_reg(target, start + i);
+ 
+ 		if (kbuf) {
+ 			memcpy(kbuf, &reg, sizeof(reg));
 -- 
-Sincerely yours,
-Mike.
+2.11.0
