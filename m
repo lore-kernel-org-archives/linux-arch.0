@@ -1,90 +1,79 @@
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [PATCH 18/41] regset: new method and helpers for it
-Date: Mon, 29 Jun 2020 21:30:28 +0100
-Message-ID: <20200629203028.GB2786714@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
- <20200629182628.529995-18-viro@ZenIV.linux.org.uk>
- <CAHk-=wjd5HML-EuPGH7J8CjWJrbnMhst3NJbcUyt-P0RV649nA@mail.gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v4 13/17] arm/build: Explicitly keep .ARM.attributes sections
+Date: Sun, 28 Jun 2020 23:18:36 -0700
+Message-ID: <20200629061840.4065483-14-keescook@chromium.org>
+References: <20200629061840.4065483-1-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wjd5HML-EuPGH7J8CjWJrbnMhst3NJbcUyt-P0RV649nA@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43354 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1731747AbgF2TOS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:14:18 -0400
+Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B2198C08EB12
+        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:54 -0700 (PDT)
+Received: by mail-pj1-x1043.google.com with SMTP id h22so7569435pjf.1
+        for <linux-arch@vger.kernel.org>; Sun, 28 Jun 2020 23:18:54 -0700 (PDT)
+In-Reply-To: <20200629061840.4065483-1-keescook@chromium.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
 
-On Mon, Jun 29, 2020 at 12:23:34PM -0700, Linus Torvalds wrote:
-> On Mon, Jun 29, 2020 at 11:28 AM Al Viro <viro@zeniv.linux.org.uk> wrote:
-> >
-> > ->get2() takes task+regset+buffer, returns the amount of free space
-> > left in the buffer on success and -E... on error.
-> 
-> Can we please give it a better name than "get2"?
-> 
-> That's not a great name to begin with, and it's a completely
-> nonsensical name by the end of this series when you've removed the
-> original "get" function.
-> 
-> So either:
-> 
->  (a) add one final patch to rename "get2" all back to "get" after you
-> got rid of the old "get"
+In preparation for adding --orphan-handling=warn, explicitly keep the
+.ARM.attributes section by expanding the existing ELF_DETAILS macro into
+ARM_DETAILS.
 
-Bad idea, IMO...
+Suggested-by: Nick Desaulniers <ndesaulniers@google.com>
+Link: https://lore.kernel.org/lkml/CAKwvOdk-racgq5pxsoGS6Vtifbtrk5fmkmnoLxrQMaOvV0nPWw@mail.gmail.com/
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm/include/asm/vmlinux.lds.h | 4 ++++
+ arch/arm/kernel/vmlinux-xip.lds.S  | 2 +-
+ arch/arm/kernel/vmlinux.lds.S      | 2 +-
+ 3 files changed, 6 insertions(+), 2 deletions(-)
 
->  (b) or just call it something better to begin with. Maybe just
-> "get_regset" instead?
-
-<nod>
-
-Frankly, other field names there are also nasty - 'set' is not
-fun to grep for, but there are 'n' and 'size' as well.  There's
-also 'bias'  and 'align' (both completely unused)...
-
-> I'd prefer (b) just because I think it will be a lot clearer if we
-> ever end up having old patches forward-ported (or, more likely,
-> newpatches back-ported), so having a "get" function that changed
-> semantics but got back the old name sounds bad to me.
-> 
-> Other than that, I can't really argue with the numbers:
-> 
->  41 files changed, 1368 insertions(+), 2347 deletions(-)
-> 
-> looks good to me, and the code seems more understandable.
-
-FWIW, there's also ->set() side of that thing.  Tons of boilerplate
-in those; I hadn't seriously looked into that part, but I suspect
-that "do copyin in the caller, pass the kernel buffer to the
-method, always start at offset 0" would also trim a lot of crap.
-I'd rather leave that one for later - this series had been painful
-enough.
-
-Other things in the same area: conversion of fdpic coredumps to
-regset (fairly easy, I've a patch series doing that in the local
-tree), conversion of the few remaining non-regset architectures
-to regset-based coredump (kill a large chunk of rotting code in
-fs/binfmt_elf.c, along with quite a few pieces of old per-arch
-coredump helpers), unification of compat ELF (done locally,
-mipsn32/mipso32 gone, all compat done via compat_binfmt_elf.c,
-x32 horrors sanitized - IMO
-#define PRSTATUS_SIZE \
-       (test_thread_flag(TIF_X32) \
-               ? sizeof(struct compat_elf_prstatus) \
-               : sizeof(struct i386_elf_prstatus))
-#define SET_PR_FPVALID(S) \
-       (*(test_thread_flag(TIF_X32) \
-               ? &(S)->pr_fpvalid      \
-               : &((struct i386_elf_prstatus *)(S))->pr_fpvalid) = 1)
-is much better than
-#define PRSTATUS_SIZE(S, R) (R != sizeof(S.pr_reg) ? 144 : 296)
-#define SET_PR_FPVALID(S, V, R) \
-  do { *(int *) (((void *) &((S)->pr_reg)) + R) = (V); } \
-  while (0)
-) and a bunch of assorted cleanups that got trimmed from the
-regset series...
-
-I'll probably post fdpic and compat series tonight and get
-back to uaccess and VFS stuff.
+diff --git a/arch/arm/include/asm/vmlinux.lds.h b/arch/arm/include/asm/vmlinux.lds.h
+index 142c038b2e97..c66b16cd8837 100644
+--- a/arch/arm/include/asm/vmlinux.lds.h
++++ b/arch/arm/include/asm/vmlinux.lds.h
+@@ -56,6 +56,10 @@
+ 		ARM_MMU_DISCARD(*(__ex_table))				\
+ 		ARM_COMMON_DISCARD
+ 
++#define ARM_DETAILS							\
++		ELF_DETAILS						\
++		.ARM.attributes 0 : { *(.ARM.attributes) }
++
+ #define ARM_STUBS_TEXT							\
+ 		*(.gnu.warning)						\
+ 		*(.glue_7)						\
+diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
+index 904c31fa20ed..57fcbf55f913 100644
+--- a/arch/arm/kernel/vmlinux-xip.lds.S
++++ b/arch/arm/kernel/vmlinux-xip.lds.S
+@@ -150,7 +150,7 @@ SECTIONS
+ 	_end = .;
+ 
+ 	STABS_DEBUG
+-	ELF_DETAILS
++	ARM_DETAILS
+ }
+ 
+ /*
+diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+index bb950c896a67..1d3d3b599635 100644
+--- a/arch/arm/kernel/vmlinux.lds.S
++++ b/arch/arm/kernel/vmlinux.lds.S
+@@ -149,7 +149,7 @@ SECTIONS
+ 	_end = .;
+ 
+ 	STABS_DEBUG
+-	ELF_DETAILS
++	ARM_DETAILS
+ }
+ 
+ #ifdef CONFIG_STRICT_KERNEL_RWX
+-- 
+2.25.1
