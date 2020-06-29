@@ -1,100 +1,49 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 30/41] riscv: switch to ->get2()
-Date: Mon, 29 Jun 2020 19:26:17 +0100
-Message-ID: <20200629182628.529995-30-viro@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+From: Arvind Sankar <nivedita@alum.mit.edu>
+Subject: Re: [PATCH v4 14/17] arm/build: Warn on orphan section placement
+Date: Mon, 29 Jun 2020 14:15:14 -0400
+Message-ID: <20200629181514.GA1046442@rani.riverdale.lan>
+References: <20200629061840.4065483-1-keescook@chromium.org>
+ <20200629061840.4065483-15-keescook@chromium.org>
+ <20200629155401.GB900899@rani.riverdale.lan>
+ <20200629180703.GX1551@shell.armlinux.org.uk>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38374 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729127AbgF2Smw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 14:42:52 -0400
-In-Reply-To: <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200629180703.GX1551@shell.armlinux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Russell King - ARM Linux admin <linux@armlinux.org.uk>
+Cc: Arvind Sankar <nivedita@alum.mit.edu>, Kees Cook <keescook@chromium.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+On Mon, Jun 29, 2020 at 07:07:04PM +0100, Russell King - ARM Linux admin wrote:
+> On Mon, Jun 29, 2020 at 11:54:01AM -0400, Arvind Sankar wrote:
+> > On Sun, Jun 28, 2020 at 11:18:37PM -0700, Kees Cook wrote:
+> > > We don't want to depend on the linker's orphan section placement
+> > > heuristics as these can vary between linkers, and may change between
+> > > versions. All sections need to be explicitly named in the linker
+> > > script.
+> > > 
+> > > Specifically, this would have made a recently fixed bug very obvious:
+> > > 
+> > > ld: warning: orphan section `.fixup' from `arch/arm/lib/copy_from_user.o' being placed in section `.fixup'
+> > > 
+> > > Discard unneeded sections .iplt, .rel.iplt, .igot.plt, and .modinfo.
+> > > 
+> > > Add missing text stub sections .vfp11_veneer and .v4_bx.
+> > > 
+> > > Add debug sections explicitly.
+> > > 
+> > > Finally enable orphan section warning.
+> > 
+> > This is unrelated to this patch as such, but I noticed that ARM32/64 places
+> > the .got section inside .text -- is that expected on ARM?
+> 
+> Do you mean in general, in the kernel vmlinux, in the decompressor
+> vmlinux or ... ?
+> 
 
-Note: riscv_fpr_get() used to forget to zero-pad at the end.
-Not worth -stable...
-
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/riscv/kernel/ptrace.c | 33 +++++++++++----------------------
- 1 file changed, 11 insertions(+), 22 deletions(-)
-
-diff --git a/arch/riscv/kernel/ptrace.c b/arch/riscv/kernel/ptrace.c
-index 444dc7b0fd78..a6896449eff8 100644
---- a/arch/riscv/kernel/ptrace.c
-+++ b/arch/riscv/kernel/ptrace.c
-@@ -30,13 +30,10 @@ enum riscv_regset {
- 
- static int riscv_gpr_get(struct task_struct *target,
- 			 const struct user_regset *regset,
--			 unsigned int pos, unsigned int count,
--			 void *kbuf, void __user *ubuf)
-+			 struct membuf to)
- {
--	struct pt_regs *regs;
--
--	regs = task_pt_regs(target);
--	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
-+	return membuf_write(&to, task_pt_regs(target),
-+			    sizeof(struct user_regs_struct));
- }
- 
- static int riscv_gpr_set(struct task_struct *target,
-@@ -55,21 +52,13 @@ static int riscv_gpr_set(struct task_struct *target,
- #ifdef CONFIG_FPU
- static int riscv_fpr_get(struct task_struct *target,
- 			 const struct user_regset *regset,
--			 unsigned int pos, unsigned int count,
--			 void *kbuf, void __user *ubuf)
-+			 struct membuf to)
- {
--	int ret;
- 	struct __riscv_d_ext_state *fstate = &target->thread.fstate;
- 
--	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, fstate, 0,
--				  offsetof(struct __riscv_d_ext_state, fcsr));
--	if (!ret) {
--		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, fstate, 0,
--					  offsetof(struct __riscv_d_ext_state, fcsr) +
--					  sizeof(fstate->fcsr));
--	}
--
--	return ret;
-+	membuf_write(&to, fstate, offsetof(struct __riscv_d_ext_state, fcsr));
-+	membuf_store(&to, fstate->fcsr);
-+	return membuf_zero(&to, 4);	// explicitly pad
- }
- 
- static int riscv_fpr_set(struct task_struct *target,
-@@ -98,8 +87,8 @@ static const struct user_regset riscv_user_regset[] = {
- 		.n = ELF_NGREG,
- 		.size = sizeof(elf_greg_t),
- 		.align = sizeof(elf_greg_t),
--		.get = &riscv_gpr_get,
--		.set = &riscv_gpr_set,
-+		.get2 = riscv_gpr_get,
-+		.set = riscv_gpr_set,
- 	},
- #ifdef CONFIG_FPU
- 	[REGSET_F] = {
-@@ -107,8 +96,8 @@ static const struct user_regset riscv_user_regset[] = {
- 		.n = ELF_NFPREG,
- 		.size = sizeof(elf_fpreg_t),
- 		.align = sizeof(elf_fpreg_t),
--		.get = &riscv_fpr_get,
--		.set = &riscv_fpr_set,
-+		.get2 = riscv_fpr_get,
-+		.set = riscv_fpr_set,
- 	},
- #endif
- };
--- 
-2.11.0
+Sorry, in the kernel vmlinux. ARM_TEXT includes *(.got) for 32-bit, and
+the 64-bit vmlinux.lds.S includes it in .text as well. The decompressor
+for 32-bit keeps it separate for non-EFI stub kernel and puts it inside
+.data for EFI stub.
