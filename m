@@ -1,67 +1,85 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56954 "EHLO
+Return-Path: <SRS0=AQMQ=AK=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46788 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2390034AbgFXVN7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 17:13:59 -0400
-Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5B04AC061795
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 14:13:59 -0700 (PDT)
-Received: by mail-pl1-x644.google.com with SMTP id d12so1651109ply.1
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 14:13:59 -0700 (PDT)
+        with ESMTP id S1733224AbgF2Tcn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jun 2020 15:32:43 -0400
+Received: from mail-pj1-x1042.google.com (mail-pj1-x1042.google.com [IPv6:2607:f8b0:4864:20::1042])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CEEB9C02F004
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 07:43:38 -0700 (PDT)
+Received: by mail-pj1-x1042.google.com with SMTP id q90so7352159pjh.3
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jun 2020 07:43:38 -0700 (PDT)
+Date: Mon, 29 Jun 2020 07:43:36 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v4 05/17] ctype: Work around Clang
+ -mbranch-protection=none bug
+Message-ID: <202006290742.92EC7235@keescook>
+References: <20200629061840.4065483-1-keescook@chromium.org>
+ <20200629061840.4065483-6-keescook@chromium.org>
+ <CAMj1kXE+toCd=Bx-zw7D9bvDRNB2aPn5-_7CY7MOKcVGA-azVg@mail.gmail.com>
 MIME-Version: 1.0
-References: <20200624203200.78870-1-samitolvanen@google.com> <20200624203200.78870-9-samitolvanen@google.com>
-In-Reply-To: <20200624203200.78870-9-samitolvanen@google.com>
-From: Nick Desaulniers <ndesaulniers@google.com>
-Date: Wed, 24 Jun 2020 14:13:46 -0700
-Message-ID: <CAKwvOdmcDxa+h9i6_XQc8ZDQjD9cTrD7s9eNU0fSxZbXciKhDQ@mail.gmail.com>
-Subject: Re: [PATCH 08/22] kbuild: lto: remove duplicate dependencies from
- .mod files
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAMj1kXE+toCd=Bx-zw7D9bvDRNB2aPn5-_7CY7MOKcVGA-azVg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-Message-ID: <20200624211346.mRFuaNRA3Hqt9DZ0MfFSnITW846gAcPlfYP7L1hu8BM@z>
+To: Ard Biesheuvel <ardb@kernel.org>
+Cc: Will Deacon <will@kernel.org>, Dave Martin <Dave.Martin@arm.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-efi <linux-efi@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20200629144336.dsgp3PiuwiFg4ykwOYYK9VdiBDgvkEcqgwHtJixfP_M@z>
 
-On Wed, Jun 24, 2020 at 1:33 PM Sami Tolvanen <samitolvanen@google.com> wrote:
->
-> With LTO, llvm-nm prints out symbols for each archive member
-> separately, which results in a lot of duplicate dependencies in the
-> .mod file when CONFIG_TRIM_UNUSED_SYMS is enabled. When a module
-> consists of several compilation units, the output can exceed the
-> default xargs command size limit and split the dependency list to
-> multiple lines, which results in used symbols getting trimmed.
->
-> This change removes duplicate dependencies, which will reduce the
-> probability of this happening and makes .mod files smaller and
-> easier to read.
->
-> Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+On Mon, Jun 29, 2020 at 10:15:47AM +0200, Ard Biesheuvel wrote:
+> On Mon, 29 Jun 2020 at 08:18, Kees Cook <keescook@chromium.org> wrote:
+> >
+> > In preparation for building efi/libstub with -mbranch-protection=none
+> > (EFI does not support branch protection features[1]), add no-op code
+> > to work around a Clang bug that emits an unwanted .note.gnu.property
+> > section for object files without code[2].
+> >
+> > [1] https://lore.kernel.org/lkml/CAMj1kXHck12juGi=E=P4hWP_8vQhQ+-x3vBMc3TGeRWdQ-XkxQ@mail.gmail.com
+> > [2] https://bugs.llvm.org/show_bug.cgi?id=46480
+> >
+> > Cc: Ard Biesheuvel <ardb@kernel.org>
+> > Cc: Will Deacon <will@kernel.org>
+> > Cc: Dave Martin <Dave.Martin@arm.com>
+> > Cc: clang-built-linux@googlegroups.com
+> > Signed-off-by: Kees Cook <keescook@chromium.org>
+> > ---
+> >  lib/ctype.c | 10 ++++++++++
+> >  1 file changed, 10 insertions(+)
+> >
+> > diff --git a/lib/ctype.c b/lib/ctype.c
+> > index c819fe269eb2..21245ed57d90 100644
+> > --- a/lib/ctype.c
+> > +++ b/lib/ctype.c
+> > @@ -36,3 +36,13 @@ _L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,_L,     /* 224-239 */
+> >  _L,_L,_L,_L,_L,_L,_L,_P,_L,_L,_L,_L,_L,_L,_L,_L};      /* 240-255 */
+> >
+> >  EXPORT_SYMBOL(_ctype);
+> > +
+> > +/*
+> > + * Clang will generate .note.gnu.property sections for object files
+> > + * without code, even in the presence of -mbranch-protection=none.
+> > + * To work around this, define an unused static function.
+> > + * https://bugs.llvm.org/show_bug.cgi?id=46480
+> > + */
+> > +#ifdef CONFIG_CC_IS_CLANG
+> > +void __maybe_unused __clang_needs_code_here(void) { }
+> > +#endif
+> > --
+> > 2.25.1
+> >
+> 
+> I take it we don't need this horrible hack if we build the EFI stub
+> with branch protections and filter out the .note.gnu.property section
+> explicitly?
 
-Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+Correct.
 
-> ---
->  scripts/Makefile.build | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-> index 82977350f5a6..82b465ce3ca0 100644
-> --- a/scripts/Makefile.build
-> +++ b/scripts/Makefile.build
-> @@ -291,7 +291,7 @@ endef
->
->  # List module undefined symbols (or empty line if not enabled)
->  ifdef CONFIG_TRIM_UNUSED_KSYMS
-> -cmd_undef_syms = $(NM) $< | sed -n 's/^  *U //p' | xargs echo
-> +cmd_undef_syms = $(NM) $< | sed -n 's/^  *U //p' | sort -u | xargs echo
->  else
->  cmd_undef_syms = echo
->  endif
-> --
-> 2.27.0.212.ge8ba1cc988-goog
->
+> Sorry to backpedal, but that is probably a better approach after all,
+> given that the instructions don't hurt, and we will hopefully be able
+> to arm them once UEFI (as well as PE/COFF) gets around to describing
+> this in a way that both the firmware and the OS can consume.
 
+Okay, will revert to the v3 solution.
 
 -- 
-Thanks,
-~Nick Desaulniers
+Kees Cook
