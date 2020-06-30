@@ -1,100 +1,113 @@
-From: Al Viro <viro@zeniv.linux.org.uk>
-Subject: Re: [PATCH 18/41] regset: new method and helpers for it
-Date: Tue, 30 Jun 2020 20:40:12 +0100
-Message-ID: <20200630194012.GH2786714@ZenIV.linux.org.uk>
-References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
- <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
- <20200629182628.529995-18-viro@ZenIV.linux.org.uk>
- <CAHk-=wjd5HML-EuPGH7J8CjWJrbnMhst3NJbcUyt-P0RV649nA@mail.gmail.com>
- <20200629203028.GB2786714@ZenIV.linux.org.uk>
- <20200630132508.GF2786714@ZenIV.linux.org.uk>
- <CAHk-=whAuAEXw1s2jF01nmT7iPWEeRv+ggKgCJ1U96-6KGgCmg@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Date: Tue, 30 Jun 2020 22:12:43 +0200
+Message-ID: <20200630201243.GD4817@hirez.programming.kicks-ass.net>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624211540.GS4817@hirez.programming.kicks-ass.net>
+ <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
+ <20200625080313.GY4817@hirez.programming.kicks-ass.net>
+ <20200625082433.GC117543@hirez.programming.kicks-ass.net>
+ <20200625085745.GD117543@hirez.programming.kicks-ass.net>
+ <20200630191931.GA884155@elver.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45144 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727104AbgF3Tk0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jun 2020 15:40:26 -0400
+Return-path: <linux-kbuild-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAHk-=whAuAEXw1s2jF01nmT7iPWEeRv+ggKgCJ1U96-6KGgCmg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+In-Reply-To: <20200630191931.GA884155@elver.google.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Marco Elver <elver@google.com>
+Cc: Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 30, 2020 at 09:53:12AM -0700, Linus Torvalds wrote:
-> On Tue, Jun 30, 2020 at 6:25 AM Al Viro <viro@zeniv.linux.org.uk> wrote:
-> >
-> > How about ->regset_get()?
+On Tue, Jun 30, 2020 at 09:19:31PM +0200, Marco Elver wrote:
+> I was asked for input on this, and after a few days digging through some
+> history, thought I'd comment. Hope you don't mind.
+
+Not at all, being the one that asked :-)
+
+> First of all, I agree with the concerns, but not because of LTO.
 > 
-> Sounds good to me. And if you ever do something similar for 'set', you
-> have a natural name to pick.
+> To set the stage better, and summarize the fundamental problem again:
+> we're in the unfortunate situation that no compiler today has a way to
+> _efficiently_ deal with C11's memory_order_consume
+> [https://lwn.net/Articles/588300/]. If we did, we could just use that
+> and be done with it. But, sadly, that doesn't seem possible right now --
+> compilers just say consume==acquire.
 
-Umm...  Something similar for 'set' would, AFAICS, work reasonably well
-with the following primitives.
-membuf_read(&from, data, size) -- copy min(size, amount left)
-membuf_fetch(&from, data) -- copy min(sizeof(data), amount left) into data
-			(obviously a macro)
-membuf_skip(&from, size) -- obvious
-membuf_pick(&from, size), along the lines of
-	if (unlikely(size > p->left)
-		return ERR_PTR(-EINVAL);
-	res = p->p;
-	p->p += size;
-	p->left -= size;
-	return res;
+I'm not convinced C11 memory_order_consume would actually work for us,
+even if it would work. That is, given:
 
-So it would be something like
+  https://lore.kernel.org/lkml/20150520005510.GA23559@linux.vnet.ibm.com/
 
-int regset_tls_set(struct task_struct *target, const struct user_regset *regset,
-                   struct membuf from)
-{
-        const struct user_desc *info;
-	int n = from.left / sizeof(*info);
-        int i;
+only pointers can have consume, but like I pointed out, we have code
+that relies on dependent loads from integers.
 
-	info = membuf_pick(&from, n * sizeof(*info)); // can't fail here
-        for (i = 0; i < n; i++)
-                if (!tls_desc_okay(info + i))
-                        return -EINVAL;
+> Will suggests doing the same in the
+> kernel: https://lkml.kernel.org/r/20200630173734.14057-19-will@kernel.org
 
-        set_tls_desc(target, GDT_ENTRY_TLS_MIN, info, n);
-        return 0;
-}
+PowerPC would need a similar thing, it too will not preserve causality
+for control dependecies.
 
-and
+> What we're most worried about right now is the existence of compiler
+> transformations that could break data dependencies by e.g. turning them
+> into control dependencies.
 
-static int genregs32_set(struct task_struct *target,
-                         const struct user_regset *regset,
-                         struct membuf from)
-{
-	int err;
-	unsigned pos, v;
+Correct.
 
-	for (pos = 0; from.left; pos += sizeof(u32)) {
-		membuf_fetch(&from, v);
-		err = putreg32(target, pos, v);
-		if (err)
-			return err;
-	}
-	return 0;
-}
+> If this is a real worry, I don't think LTO is the magical feature that
+> will uncover those optimizations. If these compiler transformations are
+> real, they also exist in a normal build! 
 
-or
+Agreed, _however_ with the caveat that LTO could make them more common.
 
-/*
- * Copy the supplied 64-bit NT_MIPS_DSP buffer to the DSP context.
- */
-static int dsp64_set(struct task_struct *target,
-                     const struct user_regset *regset,
-                     struct membuf from)
-{
-        if (!cpu_has_dsp)
-                return -EIO;
+After all, with whole program analysis, the compiler might be able to
+more easily determine that our pointer @ptr is only ever assigned the
+values of &A, &B or &C, while without that visibility it would not be
+able to determine this.
 
-	membuf_read(&from, target->thread.dsp.dspr, NUM_DSP_REGS * sizeof(u64));
-	return membuf_read(&from, target->thread.dsp.dspcontrol, sizeof(u64));
-}
+Once it knows @ptr has a limited number of determined values, the
+conversion into control dependencies becomes much more likely.
 
-etc.
+> And if we are worried about them, we need to stop relying on dependent
+> load ordering across the board; or switch to -O0 for everything.
+> Clearly, we don't want either.
+
+Agreed.
+
+> Why do we think LTO is special?
+
+As argued above, whole-program analysis would make it more likely. But I
+agree the fundamental problem exists independent from LTO.
+
+> But as far as we can tell, there is no evidence of the dreaded "data
+> dependency to control dependency" conversion with LTO that isn't there
+> in non-LTO builds, if it's even there at all. Has the data to control
+> dependency conversion been encountered in the wild? If not, is the
+> resulting reaction an overreaction? If so, we need to be careful blaming
+> LTO for something that it isn't even guilty of.
+
+It is mostly paranoia; in a large part driven by the fact that even if
+such a conversion were to be done, it could go a very long time without
+actually causing problems, and longer still for such problems to be
+traced back to such an 'optimization'.
+
+That is, the collective hurt from debugging too many ordering issues.
+
+> So, we are probably better off untangling LTO from the story:
+> 
+> 1. LTO or no LTO does not matter. The LTO series should not get tangled
+>    up with memory model issues.
+> 
+> 2. The memory model question and problems need to be answered and
+>    addressed separately.
+> 
+> Thoughts?
+
+How hard would it be to creates something that analyzes a build and
+looks for all 'dependent load -> control dependency' transformations
+headed by a volatile (and/or from asm) load and issues a warning for
+them?
+
+This would give us an indication of how valuable this transformation is
+for the kernel. I'm hoping/expecting it's vanishingly rare, but what do
+I know.
