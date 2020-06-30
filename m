@@ -1,71 +1,55 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH V3 0/4] mm/debug_vm_pgtable: Add some more tests
-Date: Tue, 30 Jun 2020 09:23:35 +0530
-Message-ID: <1ed72a76-9f20-0169-4c16-c1d8808690eb@arm.com>
-References: <1592192277-8421-1-git-send-email-anshuman.khandual@arm.com>
- <70ddc7dd-b688-b73e-642a-6363178c8cdd@arm.com>
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [RFC PATCH 1/2] Explicitly include linux/major.h where it is
+ needed
+Date: Tue, 30 Jun 2020 10:45:22 +0200
+Message-ID: <20200630084522.GB637565@kroah.com>
+References: <20200617092614.7897ccb2@canb.auug.org.au>
+ <20200617092747.0cadb2de@canb.auug.org.au>
+ <20200617055843.GB25631@kroah.com>
+ <20200630091203.55cdd5d9@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:60194 "EHLO foss.arm.com"
+Received: from mail.kernel.org ([198.145.29.99]:54140 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726710AbgF3Dx6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 29 Jun 2020 23:53:58 -0400
-In-Reply-To: <70ddc7dd-b688-b73e-642a-6363178c8cdd@arm.com>
-Content-Language: en-US
+        id S1731592AbgF3Ip0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 30 Jun 2020 04:45:26 -0400
+Content-Disposition: inline
+In-Reply-To: <20200630091203.55cdd5d9@canb.auug.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: christophe.leroy@c-s.fr, ziy@nvidia.com, gerald.schaefer@de.ibm.com, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifiv>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Linux-kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
+On Tue, Jun 30, 2020 at 09:12:03AM +1000, Stephen Rothwell wrote:
+> Hi Greg,
+> 
+> On Wed, 17 Jun 2020 07:58:43 +0200 Greg KH <gregkh@linuxfoundation.org> wrote:
+> >
+> > On Wed, Jun 17, 2020 at 09:27:47AM +1000, Stephen Rothwell wrote:
+> > > This is in preparation for removing the include of major.h where it is
+> > > not needed.
+> > > 
+> > > These files were found using
+> > > 
+> > > 	grep -E -L '[<"](uapi/)?linux/major\.h' $(git grep -l -w -f /tmp/xx)
+> > > 
+> > > where /tmp/xx contains all the symbols defined in major.h.  There were
+> > > a couple of files in that list that did not need the include since the
+> > > references are in comments.
+> > > 
+> > > Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>  
+> > 
+> > Any reason this had an RFC, but patch 2/2 did not?
+> > 
+> > They look good to me, I will be glad to take these, but do you still
+> > want reviews from others for this?  It seems simple enough to me...
+> 
+> I am going to do another round of this patchset splitting out most of
+> the "safe" removals that can be done anytime so other maintainers can
+> take them.  Then there will be the left over order dependent changes at
+> the end.
 
+Ok, I'll wait for the next round of patches, thanks.
 
-On 06/24/2020 08:43 AM, Anshuman Khandual wrote:
-> 
-> 
-> On 06/15/2020 09:07 AM, Anshuman Khandual wrote:
->> This series adds some more arch page table helper validation tests which
->> are related to core and advanced memory functions. This also creates a
->> documentation, enlisting expected semantics for all page table helpers as
->> suggested by Mike Rapoport previously (https://lkml.org/lkml/2020/1/30/40).
->>
->> There are many TRANSPARENT_HUGEPAGE and ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD
->> ifdefs scattered across the test. But consolidating all the fallback stubs
->> is not very straight forward because ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD is
->> not explicitly dependent on ARCH_HAS_TRANSPARENT_HUGEPAGE.
->>
->> Tested on arm64, x86 platforms but only build tested on all other enabled
->> platforms through ARCH_HAS_DEBUG_VM_PGTABLE i.e powerpc, arc, s390. The
->> following failure on arm64 still exists which was mentioned previously. It
->> will be fixed with the upcoming THP migration on arm64 enablement series.
->>
->> WARNING .... mm/debug_vm_pgtable.c:860 debug_vm_pgtable+0x940/0xa54
->> WARN_ON(!pmd_present(pmd_mkinvalid(pmd_mkhuge(pmd))))
->>
->> This series is based on v5.8-rc1.
->>
->> Changes in V3:
->>
->> - Replaced HAVE_ARCH_SOFT_DIRTY with MEM_SOFT_DIRTY
->> - Added HAVE_ARCH_HUGE_VMAP checks in pxx_huge_tests() per Gerald
->> - Updated documentation for pmd_thp_tests() per Zi Yan
->> - Replaced READ_ONCE() with huge_ptep_get() per Gerald
->> - Added pte_mkhuge() and masking with PMD_MASK per Gerald
->> - Replaced pte_same() with holding pfn check in pxx_swap_tests()
->> - Added documentation for all (#ifdef #else #endif) per Gerald
->> - Updated pmd_protnone_tests() per Gerald
->> - Updated HugeTLB PTE creation in hugetlb_advanced_tests() per Gerald
->> - Replaced [pmd|pud]_mknotpresent() with [pmd|pud]_mkinvalid()
->> - Added has_transparent_hugepage() check for PMD and PUD tests
->> - Added a patch which debug prints all individual tests being executed
->> - Updated documentation for renamed [pmd|pud]_mkinvalid() helpers
-> 
-> Hello Gerald/Christophe/Vineet,
-> 
-> It would be really great if you could give this series a quick test
-> on s390/ppc/arc platforms respectively. Thank you.
-
-Thanks Alexander, Gerald and Christophe for testing this out on s390
-and ppc32 platforms. Probably Vineet and Qian (any other volunteers)
-could help us with arc and ppc64 platforms, which I would appreciate.
+greg k-h
