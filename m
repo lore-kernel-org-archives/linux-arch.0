@@ -1,73 +1,68 @@
-Return-Path: <SRS0=SGxC=AF=vger.kernel.org=linux-doc-owner@kernel.org>
+Return-Path: <SRS0=6RCf=AL=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42288 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726008AbgF3NQu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jun 2020 09:16:50 -0400
+Date: Tue, 30 Jun 2020 14:16:40 +0100
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: [PATCH 22/41] sparc: switch to ->get2()
+Message-ID: <20200630131640.GE2786714@ZenIV.linux.org.uk>
+References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
+ <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+ <20200629182628.529995-22-viro@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-References: <20200228012036.15682-5-brendanhiggins@google.com> <202003021439.A6B6FD8@keescook>
-In-Reply-To: <202003021439.A6B6FD8@keescook>
-From: Brendan Higgins <brendanhiggins@google.com>
-Date: Wed, 24 Jun 2020 13:20:35 -0700
-Message-ID: <CAFd5g45Jz-5wtO-YNuqPN2Zc_rJtoA1qbPLVs2wrJFQyZpd5QQ@mail.gmail.com>
-Subject: Re: [PATCH v3 4/7] init: main: add KUnit to kernel init
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-doc-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Frank Rowand <frowand.list@gmail.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <skhan@linuxfoundation.org>, Alan Maguire <alan.maguire@oracle.com>, Iurii Zaikin <yzaikin@google.com>, David Gow <davidgow@google.com>, Andrew Morton <akpm@linux-foundation.org>, rppt@linux.ibm.com, Greg KH <gregkh@linuxfoundation.org>, Stephen Boyd <sboyd@kernel.org>, Logan Gunthorpe <logang@deltatee.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-um <linux-um@lists.infradead.org>, linux-arch@vger.kernel.org, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, KUnit Development <kunit-dev@googlegroups.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200629182628.529995-22-viro@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200624202035.h-yHNAl6OMtuidT3ntxO30M0u5jCDglBXMdUjDr4gHQ@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
+Message-ID: <20200630131640.2yWvPNj4c0BBFlxH3gAFRDDqb6TlGvkOPAgTPk_GWhU@z>
 
-On Mon, Mar 2, 2020 at 2:45 PM Kees Cook <keescook@chromium.org> wrote:
+On Mon, Jun 29, 2020 at 07:26:09PM +0100, Al Viro wrote:
+  
+>  static int getregs64_get(struct task_struct *target,
+>  			 const struct user_regset *regset,
+> -			 unsigned int pos, unsigned int count,
+> -			 void *kbuf, void __user *ubuf)
+> +			 struct membuf to)
+>  {
+>  	const struct pt_regs *regs = task_pt_regs(target);
+> -	int ret;
+>  
+>  	if (target == current)
+>  		flushw_user();
+>  
+> -	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
+> -				  regs->u_regs + 1,
+> -				  0, 15 * sizeof(u64));
+> -	if (!ret)
+> -		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
+> -				  15 * sizeof(u64), 16 * sizeof(u64));
+> -	if (!ret) {
+> -		/* TSTATE, TPC, TNPC */
+> -		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
+> -					  &regs->tstate,
+> -					  16 * sizeof(u64),
+> -					  19 * sizeof(u64));
+> -	}
+> -	if (!ret) {
+> -		unsigned long y = regs->y;
+> -
+> -		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
+> -					  &y,
+> -					  19 * sizeof(u64),
+> -					  20 * sizeof(u64));
+> -	}
+> -	return ret;
+> +	membuf_write(&to, regs->u_regs + 1, 15 * sizeof(u64));
+> +	return membuf_store(&to, (u64)0);
+	^^^^^^
+Er...  That should be simply
 
-Sorry it took so long to respond. I am reviving this patchset now,
-about to send out a new revision and I just saw this comment.
++	membuf_store(&to, (u64)0);
 
-> On 2/27/20 7:20 PM, Brendan Higgins wrote:
-> > Remove KUnit from init calls entirely, instead call directly from
-> > kernel_init().
-> >
-> > Co-developed-by: Alan Maguire <alan.maguire@oracle.com>
-> > Signed-off-by: Alan Maguire <alan.maguire@oracle.com>
-> > Signed-off-by: Brendan Higgins <brendanhiggins@google.com>
-> > Reviewed-by: Stephen Boyd <sboyd@kernel.org>
-> > [...]
-> > diff --git a/init/main.c b/init/main.c
-> > index ee4947af823f3..7875a5c486dc4 100644
-> > --- a/init/main.c
-> > +++ b/init/main.c
-> > @@ -104,6 +104,8 @@
-> >  #define CREATE_TRACE_POINTS
-> >  #include <trace/events/initcall.h>
-> >
-> > +#include <kunit/test.h>
-> > +
-> >  static int kernel_init(void *);
-> >
-> >  extern void init_IRQ(void);
-> > @@ -1444,6 +1446,8 @@ static noinline void __init kernel_init_freeable(void)
-> >
-> >       do_basic_setup();
-> >
-> > +     kunit_run_all_tests();
-> > +
-> >       console_on_rootfs();
-> >
-> >       /*
->
-> I'm nervous about this happening before two key pieces of the kernel
-> setup, which might lead to weird timing-sensitive bugs or false
-> positives:
->         async_synchronize_full()
->         mark_readonly()
->
-> Now, I realize kunit tests _should_ be self-contained, but this seems
-> like a possible robustness problem. Is there any reason this can't be
-> moved after rcu_end_inkernel_boot() in kernel_init() instead?
-
-I tried that, but it doesn't work without an initramfs. We could add
-an initramfs for KUnit at some point if highly desired, but I think
-that is outside the scope of this patchset. Additionally, this patch
-actually moves running tests to later in the init process, which is
-still an improvement over the way KUnit works today.
-
-There are some other reasons I wouldn't want to make that change right
-now, which will become apparent in a patch that I will send out in
-short order.
-
-Cheers
+> +	membuf_write(&to, &regs->tstate, 3 * sizeof(u64));
+> +	return membuf_store(&to, (u64)regs->y);
+>  }
