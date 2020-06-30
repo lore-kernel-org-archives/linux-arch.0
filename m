@@ -1,91 +1,100 @@
-From: Marco Elver <elver@google.com>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Date: Tue, 30 Jun 2020 21:19:31 +0200
-Message-ID: <20200630191931.GA884155@elver.google.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624211540.GS4817@hirez.programming.kicks-ass.net>
- <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
- <20200625080313.GY4817@hirez.programming.kicks-ass.net>
- <20200625082433.GC117543@hirez.programming.kicks-ass.net>
- <20200625085745.GD117543@hirez.programming.kicks-ass.net>
+From: Al Viro <viro@zeniv.linux.org.uk>
+Subject: Re: [PATCH 18/41] regset: new method and helpers for it
+Date: Tue, 30 Jun 2020 20:40:12 +0100
+Message-ID: <20200630194012.GH2786714@ZenIV.linux.org.uk>
+References: <20200629182349.GA2786714@ZenIV.linux.org.uk>
+ <20200629182628.529995-1-viro@ZenIV.linux.org.uk>
+ <20200629182628.529995-18-viro@ZenIV.linux.org.uk>
+ <CAHk-=wjd5HML-EuPGH7J8CjWJrbnMhst3NJbcUyt-P0RV649nA@mail.gmail.com>
+ <20200629203028.GB2786714@ZenIV.linux.org.uk>
+ <20200630132508.GF2786714@ZenIV.linux.org.uk>
+ <CAHk-=whAuAEXw1s2jF01nmT7iPWEeRv+ggKgCJ1U96-6KGgCmg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45144 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727104AbgF3Tk0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jun 2020 15:40:26 -0400
 Content-Disposition: inline
-In-Reply-To: <20200625085745.GD117543@hirez.programming.kicks-ass.net>
-Sender: linux-pci-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <CAHk-=whAuAEXw1s2jF01nmT7iPWEeRv+ggKgCJ1U96-6KGgCmg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Will Deacon <will@kernel.org>
 
-I was asked for input on this, and after a few days digging through some
-history, thought I'd comment. Hope you don't mind.
+On Tue, Jun 30, 2020 at 09:53:12AM -0700, Linus Torvalds wrote:
+> On Tue, Jun 30, 2020 at 6:25 AM Al Viro <viro@zeniv.linux.org.uk> wrote:
+> >
+> > How about ->regset_get()?
+> 
+> Sounds good to me. And if you ever do something similar for 'set', you
+> have a natural name to pick.
 
-On Thu, Jun 25, 2020 at 10:57AM +0200, Peter Zijlstra wrote:
-> On Thu, Jun 25, 2020 at 10:24:33AM +0200, Peter Zijlstra wrote:
-> > On Thu, Jun 25, 2020 at 10:03:13AM +0200, Peter Zijlstra wrote:
-> > > I'm sure Will will respond, but the basic issue is the trainwreck C11
-> > > made of dependent loads.
-> > > 
-> > > Anyway, here's a link to the last time this came up:
-> > > 
-> > >   https://lore.kernel.org/linux-arm-kernel/20171116174830.GX3624@linux.vnet.ibm.com/
-> > 
-> > Another good read:
-> > 
-> >   https://lore.kernel.org/lkml/20150520005510.GA23559@linux.vnet.ibm.com/
-[...]
-> Because now the machine can speculate and load now before seq, breaking
-> the ordering.
+Umm...  Something similar for 'set' would, AFAICS, work reasonably well
+with the following primitives.
+membuf_read(&from, data, size) -- copy min(size, amount left)
+membuf_fetch(&from, data) -- copy min(sizeof(data), amount left) into data
+			(obviously a macro)
+membuf_skip(&from, size) -- obvious
+membuf_pick(&from, size), along the lines of
+	if (unlikely(size > p->left)
+		return ERR_PTR(-EINVAL);
+	res = p->p;
+	p->p += size;
+	p->left -= size;
+	return res;
 
-First of all, I agree with the concerns, but not because of LTO.
+So it would be something like
 
-To set the stage better, and summarize the fundamental problem again:
-we're in the unfortunate situation that no compiler today has a way to
-_efficiently_ deal with C11's memory_order_consume
-[https://lwn.net/Articles/588300/]. If we did, we could just use that
-and be done with it. But, sadly, that doesn't seem possible right now --
-compilers just say consume==acquire. Will suggests doing the same in the
-kernel: https://lkml.kernel.org/r/20200630173734.14057-19-will@kernel.org
+int regset_tls_set(struct task_struct *target, const struct user_regset *regset,
+                   struct membuf from)
+{
+        const struct user_desc *info;
+	int n = from.left / sizeof(*info);
+        int i;
 
-What we're most worried about right now is the existence of compiler
-transformations that could break data dependencies by e.g. turning them
-into control dependencies.
+	info = membuf_pick(&from, n * sizeof(*info)); // can't fail here
+        for (i = 0; i < n; i++)
+                if (!tls_desc_okay(info + i))
+                        return -EINVAL;
 
-If this is a real worry, I don't think LTO is the magical feature that
-will uncover those optimizations. If these compiler transformations are
-real, they also exist in a normal build! And if we are worried about
-them, we need to stop relying on dependent load ordering across the
-board; or switch to -O0 for everything. Clearly, we don't want either.
+        set_tls_desc(target, GDT_ENTRY_TLS_MIN, info, n);
+        return 0;
+}
 
-Why do we think LTO is special?
+and
 
-With LTO, Clang just emits LLVM bitcode instead of ELF objects, and
-during the linker stage intermodular optimizations across translation
-unit boundaries are done that might not be possible otherwise
-[https://llvm.org/docs/LinkTimeOptimization.html]. From the memory model
-side of things, if we could fully convey our intent to the compiler (the
-imaginary consume), there would be no problem, because all optimization
-stages from bitcode generation to the final machine code generation
-after LTO know about the intended semantics. (Also, keep in mind that
-LTO is _not_ doing post link optimization of machine code binaries!)
+static int genregs32_set(struct task_struct *target,
+                         const struct user_regset *regset,
+                         struct membuf from)
+{
+	int err;
+	unsigned pos, v;
 
-But as far as we can tell, there is no evidence of the dreaded "data
-dependency to control dependency" conversion with LTO that isn't there
-in non-LTO builds, if it's even there at all. Has the data to control
-dependency conversion been encountered in the wild? If not, is the
-resulting reaction an overreaction? If so, we need to be careful blaming
-LTO for something that it isn't even guilty of.
+	for (pos = 0; from.left; pos += sizeof(u32)) {
+		membuf_fetch(&from, v);
+		err = putreg32(target, pos, v);
+		if (err)
+			return err;
+	}
+	return 0;
+}
 
-So, we are probably better off untangling LTO from the story:
+or
 
-1. LTO or no LTO does not matter. The LTO series should not get tangled
-   up with memory model issues.
+/*
+ * Copy the supplied 64-bit NT_MIPS_DSP buffer to the DSP context.
+ */
+static int dsp64_set(struct task_struct *target,
+                     const struct user_regset *regset,
+                     struct membuf from)
+{
+        if (!cpu_has_dsp)
+                return -EIO;
 
-2. The memory model question and problems need to be answered and
-   addressed separately.
+	membuf_read(&from, target->thread.dsp.dspr, NUM_DSP_REGS * sizeof(u64));
+	return membuf_read(&from, target->thread.dsp.dspcontrol, sizeof(u64));
+}
 
-Thoughts?
-
-Thanks,
--- Marco
+etc.
