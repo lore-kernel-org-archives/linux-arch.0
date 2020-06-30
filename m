@@ -1,68 +1,137 @@
-Return-Path: <SRS0=u+st=AI=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58568 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726065AbgF0H1p (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 Jun 2020 03:27:45 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 3/5] exec: cleanup the count() function
-Date: Sat, 27 Jun 2020 09:27:02 +0200
-Message-ID: <20200627072704.2447163-4-hch@lst.de>
-In-Reply-To: <20200627072704.2447163-1-hch@lst.de>
-References: <20200627072704.2447163-1-hch@lst.de>
+Return-Path: <SRS0=6RCf=AL=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:55222 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727082AbgF3UaR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 30 Jun 2020 16:30:17 -0400
+Date: Tue, 30 Jun 2020 13:30:16 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200630203016.GI9247@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624211540.GS4817@hirez.programming.kicks-ass.net>
+ <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
+ <20200625080313.GY4817@hirez.programming.kicks-ass.net>
+ <20200625082433.GC117543@hirez.programming.kicks-ass.net>
+ <20200625085745.GD117543@hirez.programming.kicks-ass.net>
+ <20200630191931.GA884155@elver.google.com>
+ <20200630201243.GD4817@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200630201243.GD4817@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, Brian Gerst <brgerst@gmail.com>, Luis Chamberlain <mcgrof@kernel.org>, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200627072702.bQtEqdXily_QcjJYHWhqWr1_HAvYH5FrJxAg9UqjDX0@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200630203016.M82vryz6ecFM22SVRgiY5vRlv6VYX2HbGcABGHUDXo8@z>
 
-Remove the max argument as it is hard wired to MAX_ARG_STRINGS, and
-give the function a slightly less generic name.
+On Tue, Jun 30, 2020 at 10:12:43PM +0200, Peter Zijlstra wrote:
+> On Tue, Jun 30, 2020 at 09:19:31PM +0200, Marco Elver wrote:
+> > I was asked for input on this, and after a few days digging through some
+> > history, thought I'd comment. Hope you don't mind.
+> 
+> Not at all, being the one that asked :-)
+> 
+> > First of all, I agree with the concerns, but not because of LTO.
+> > 
+> > To set the stage better, and summarize the fundamental problem again:
+> > we're in the unfortunate situation that no compiler today has a way to
+> > _efficiently_ deal with C11's memory_order_consume
+> > [https://lwn.net/Articles/588300/]. If we did, we could just use that
+> > and be done with it. But, sadly, that doesn't seem possible right now --
+> > compilers just say consume==acquire.
+> 
+> I'm not convinced C11 memory_order_consume would actually work for us,
+> even if it would work. That is, given:
+> 
+>   https://lore.kernel.org/lkml/20150520005510.GA23559@linux.vnet.ibm.com/
+> 
+> only pointers can have consume, but like I pointed out, we have code
+> that relies on dependent loads from integers.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- fs/exec.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+I agree that C11 memory_order_consume is not normally what we want,
+given that it is universally promoted to memory_order_acquire.
 
-diff --git a/fs/exec.c b/fs/exec.c
-index 4e5db0e35797a5..a5d91f8b1341d5 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -407,9 +407,9 @@ get_user_arg_ptr(const char __user *const __user *argv, int nr)
- }
- 
- /*
-- * count() counts the number of strings in array ARGV.
-+ * count_strings() counts the number of strings in array ARGV.
-  */
--static int count(const char __user *const __user *argv, int max)
-+static int count_strings(const char __user *const __user *argv)
- {
- 	int i = 0;
- 
-@@ -423,7 +423,7 @@ static int count(const char __user *const __user *argv, int max)
- 			if (IS_ERR(p))
- 				return -EFAULT;
- 
--			if (i >= max)
-+			if (i >= MAX_ARG_STRINGS)
- 				return -E2BIG;
- 			++i;
- 
-@@ -441,11 +441,11 @@ static int prepare_arg_pages(struct linux_binprm *bprm,
- {
- 	unsigned long limit, ptr_size;
- 
--	bprm->argc = count(argv, MAX_ARG_STRINGS);
-+	bprm->argc = count_strings(argv);
- 	if (bprm->argc < 0)
- 		return bprm->argc;
- 
--	bprm->envc = count(envp, MAX_ARG_STRINGS);
-+	bprm->envc = count_strings(envp);
- 	if (bprm->envc < 0)
- 		return bprm->envc;
- 
--- 
-2.26.2
+However, dependent loads from integers are, if anything, more difficult
+to defend from the compiler than are control dependencies.  This applies
+doubly to integers that are used to index two-element arrays, in which
+case you are just asking the compiler to destroy your dependent loads
+by converting them into control dependencies.
+
+> > Will suggests doing the same in the
+> > kernel: https://lkml.kernel.org/r/20200630173734.14057-19-will@kernel.org
+> 
+> PowerPC would need a similar thing, it too will not preserve causality
+> for control dependecies.
+> 
+> > What we're most worried about right now is the existence of compiler
+> > transformations that could break data dependencies by e.g. turning them
+> > into control dependencies.
+> 
+> Correct.
+> 
+> > If this is a real worry, I don't think LTO is the magical feature that
+> > will uncover those optimizations. If these compiler transformations are
+> > real, they also exist in a normal build! 
+> 
+> Agreed, _however_ with the caveat that LTO could make them more common.
+> 
+> After all, with whole program analysis, the compiler might be able to
+> more easily determine that our pointer @ptr is only ever assigned the
+> values of &A, &B or &C, while without that visibility it would not be
+> able to determine this.
+> 
+> Once it knows @ptr has a limited number of determined values, the
+> conversion into control dependencies becomes much more likely.
+
+Which would of course break dependent loads.
+
+> > And if we are worried about them, we need to stop relying on dependent
+> > load ordering across the board; or switch to -O0 for everything.
+> > Clearly, we don't want either.
+> 
+> Agreed.
+> 
+> > Why do we think LTO is special?
+> 
+> As argued above, whole-program analysis would make it more likely. But I
+> agree the fundamental problem exists independent from LTO.
+> 
+> > But as far as we can tell, there is no evidence of the dreaded "data
+> > dependency to control dependency" conversion with LTO that isn't there
+> > in non-LTO builds, if it's even there at all. Has the data to control
+> > dependency conversion been encountered in the wild? If not, is the
+> > resulting reaction an overreaction? If so, we need to be careful blaming
+> > LTO for something that it isn't even guilty of.
+> 
+> It is mostly paranoia; in a large part driven by the fact that even if
+> such a conversion were to be done, it could go a very long time without
+> actually causing problems, and longer still for such problems to be
+> traced back to such an 'optimization'.
+> 
+> That is, the collective hurt from debugging too many ordering issues.
+> 
+> > So, we are probably better off untangling LTO from the story:
+> > 
+> > 1. LTO or no LTO does not matter. The LTO series should not get tangled
+> >    up with memory model issues.
+> > 
+> > 2. The memory model question and problems need to be answered and
+> >    addressed separately.
+> > 
+> > Thoughts?
+> 
+> How hard would it be to creates something that analyzes a build and
+> looks for all 'dependent load -> control dependency' transformations
+> headed by a volatile (and/or from asm) load and issues a warning for
+> them?
+> 
+> This would give us an indication of how valuable this transformation is
+> for the kernel. I'm hoping/expecting it's vanishingly rare, but what do
+> I know.
+> 
+
+This could be quite useful!
+
+							Thanx, Paul
