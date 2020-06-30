@@ -1,99 +1,118 @@
-Return-Path: <SRS0=MbEv=AF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39116 "EHLO
+Return-Path: <SRS0=6RCf=AL=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50158 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S2404829AbgFXQQr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2020 12:16:47 -0400
-Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A0B27C0613ED
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 09:16:47 -0700 (PDT)
-Received: by mail-pl1-x643.google.com with SMTP id g17so1224272plq.12
-        for <linux-arch@vger.kernel.org>; Wed, 24 Jun 2020 09:16:47 -0700 (PDT)
-Date: Wed, 24 Jun 2020 09:16:43 -0700
-From: Fangrui Song <maskray@google.com>
-Subject: Re: [PATCH v3 2/9] vmlinux.lds.h: Add .symtab, .strtab, and
- .shstrtab to STABS_DEBUG
-Message-ID: <20200624161643.73x6navnwryckuit@google.com>
-References: <20200624014940.1204448-1-keescook@chromium.org>
- <20200624014940.1204448-3-keescook@chromium.org>
- <20200624153930.GA1337895@rani.riverdale.lan>
+        with ESMTP id S1726642AbgF3UMy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jun 2020 16:12:54 -0400
+Date: Tue, 30 Jun 2020 22:12:43 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200630201243.GD4817@hirez.programming.kicks-ass.net>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624211540.GS4817@hirez.programming.kicks-ass.net>
+ <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
+ <20200625080313.GY4817@hirez.programming.kicks-ass.net>
+ <20200625082433.GC117543@hirez.programming.kicks-ass.net>
+ <20200625085745.GD117543@hirez.programming.kicks-ass.net>
+ <20200630191931.GA884155@elver.google.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200624153930.GA1337895@rani.riverdale.lan>
+In-Reply-To: <20200630191931.GA884155@elver.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arvind Sankar <nivedita@alum.mit.edu>
-Cc: Kees Cook <keescook@chromium.org>, Will Deacon <will@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200624161643.Yi1nnXL0cQeHl2aC4klA_z7XWr_xKV4PAv1d4xl_XEI@z>
+To: Marco Elver <elver@google.com>
+Cc: Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200630201243.4h-tDP5t_uURxQBDl5Ij0Q6SHqoAxVNI4wvBT_XbLPU@z>
 
+On Tue, Jun 30, 2020 at 09:19:31PM +0200, Marco Elver wrote:
+> I was asked for input on this, and after a few days digging through some
+> history, thought I'd comment. Hope you don't mind.
 
-On 2020-06-24, Arvind Sankar wrote:
->On Tue, Jun 23, 2020 at 06:49:33PM -0700, Kees Cook wrote:
->> When linking vmlinux with LLD, the synthetic sections .symtab, .strtab,
->> and .shstrtab are listed as orphaned. Add them to the STABS_DEBUG section
->> so there will be no warnings when --orphan-handling=warn is used more
->> widely. (They are added above comment as it is the more common
->
->Nit 1: is "after .comment" better than "above comment"? It's above in the
->sense of higher file offset, but it's below in readelf output.
+Not at all, being the one that asked :-)
 
-I mean this order:)
+> First of all, I agree with the concerns, but not because of LTO.
+> 
+> To set the stage better, and summarize the fundamental problem again:
+> we're in the unfortunate situation that no compiler today has a way to
+> _efficiently_ deal with C11's memory_order_consume
+> [https://lwn.net/Articles/588300/]. If we did, we could just use that
+> and be done with it. But, sadly, that doesn't seem possible right now --
+> compilers just say consume==acquire.
 
-   .comment
-   .symtab
-   .shstrtab
-   .strtab
+I'm not convinced C11 memory_order_consume would actually work for us,
+even if it would work. That is, given:
 
-This is the case in the absence of a linker script if at least one object file has .comment (mostly for GCC/clang version information) or the linker is LLD which adds a .comment
+  https://lore.kernel.org/lkml/20150520005510.GA23559@linux.vnet.ibm.com/
 
->Nit 2: These aren't actually debugging sections, no? Is it better to add
->a new macro for it, and is there any plan to stop LLD from warning about
->them?
+only pointers can have consume, but like I pointed out, we have code
+that relies on dependent loads from integers.
 
-https://reviews.llvm.org/D75149 "[ELF] --orphan-handling=: don't warn/error for unused synthesized sections"
-described that .symtab .shstrtab .strtab are different in GNU ld.
-Since many other GNU ld synthesized sections (.rela.dyn .plt ...) can be renamed or dropped
-via output section descriptions, I don't understand why the 3 sections
-can't be customized.
+> Will suggests doing the same in the
+> kernel: https://lkml.kernel.org/r/20200630173734.14057-19-will@kernel.org
 
-I created a feature request: https://sourceware.org/bugzilla/show_bug.cgi?id=26168
-(If this is supported, it is a consistent behavior to warn for orphan
-.symtab/.strtab/.shstrtab
+PowerPC would need a similar thing, it too will not preserve causality
+for control dependecies.
 
-There may be 50% chance that the maintainer decides that "LLD diverges"
-I would disagree: there is no fundamental problems with .symtab/.strtab/.shstrtab which make them special in output section descriptions or orphan handling.)
+> What we're most worried about right now is the existence of compiler
+> transformations that could break data dependencies by e.g. turning them
+> into control dependencies.
 
->> order[1].)
->>
->> ld.lld: warning: <internal>:(.symtab) is being placed in '.symtab'
->> ld.lld: warning: <internal>:(.shstrtab) is being placed in '.shstrtab'
->> ld.lld: warning: <internal>:(.strtab) is being placed in '.strtab'
->>
->> [1] https://lore.kernel.org/lkml/20200622224928.o2a7jkq33guxfci4@google.com/
->>
->> Reported-by: Fangrui Song <maskray@google.com>
->> Reviewed-by: Fangrui Song <maskray@google.com>
->> Signed-off-by: Kees Cook <keescook@chromium.org>
->> ---
->>  include/asm-generic/vmlinux.lds.h | 5 ++++-
->>  1 file changed, 4 insertions(+), 1 deletion(-)
->>
->> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
->> index 1248a206be8d..8e71757f485b 100644
->> --- a/include/asm-generic/vmlinux.lds.h
->> +++ b/include/asm-generic/vmlinux.lds.h
->> @@ -792,7 +792,10 @@
->>  		.stab.exclstr 0 : { *(.stab.exclstr) }			\
->>  		.stab.index 0 : { *(.stab.index) }			\
->>  		.stab.indexstr 0 : { *(.stab.indexstr) }		\
->> -		.comment 0 : { *(.comment) }
->> +		.comment 0 : { *(.comment) }				\
->> +		.symtab 0 : { *(.symtab) }				\
->> +		.strtab 0 : { *(.strtab) }				\
->> +		.shstrtab 0 : { *(.shstrtab) }
->>
->>  #ifdef CONFIG_GENERIC_BUG
->>  #define BUG_TABLE							\
->> --
->> 2.25.1
->>
+Correct.
+
+> If this is a real worry, I don't think LTO is the magical feature that
+> will uncover those optimizations. If these compiler transformations are
+> real, they also exist in a normal build! 
+
+Agreed, _however_ with the caveat that LTO could make them more common.
+
+After all, with whole program analysis, the compiler might be able to
+more easily determine that our pointer @ptr is only ever assigned the
+values of &A, &B or &C, while without that visibility it would not be
+able to determine this.
+
+Once it knows @ptr has a limited number of determined values, the
+conversion into control dependencies becomes much more likely.
+
+> And if we are worried about them, we need to stop relying on dependent
+> load ordering across the board; or switch to -O0 for everything.
+> Clearly, we don't want either.
+
+Agreed.
+
+> Why do we think LTO is special?
+
+As argued above, whole-program analysis would make it more likely. But I
+agree the fundamental problem exists independent from LTO.
+
+> But as far as we can tell, there is no evidence of the dreaded "data
+> dependency to control dependency" conversion with LTO that isn't there
+> in non-LTO builds, if it's even there at all. Has the data to control
+> dependency conversion been encountered in the wild? If not, is the
+> resulting reaction an overreaction? If so, we need to be careful blaming
+> LTO for something that it isn't even guilty of.
+
+It is mostly paranoia; in a large part driven by the fact that even if
+such a conversion were to be done, it could go a very long time without
+actually causing problems, and longer still for such problems to be
+traced back to such an 'optimization'.
+
+That is, the collective hurt from debugging too many ordering issues.
+
+> So, we are probably better off untangling LTO from the story:
+> 
+> 1. LTO or no LTO does not matter. The LTO series should not get tangled
+>    up with memory model issues.
+> 
+> 2. The memory model question and problems need to be answered and
+>    addressed separately.
+> 
+> Thoughts?
+
+How hard would it be to creates something that analyzes a build and
+looks for all 'dependent load -> control dependency' transformations
+headed by a volatile (and/or from asm) load and issues a warning for
+them?
+
+This would give us an indication of how valuable this transformation is
+for the kernel. I'm hoping/expecting it's vanishingly rare, but what do
+I know.
