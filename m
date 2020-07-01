@@ -1,60 +1,62 @@
-Return-Path: <SRS0=ixnu=AY=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:56962 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1729644AbgGMOjM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 Jul 2020 10:39:12 -0400
-Subject: Re: [PATCH v2 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
-References: <20200710094420.517-1-yezhenyu2@huawei.com>
- <20200710094420.517-3-yezhenyu2@huawei.com>
- <4040f429-21c8-0825-2ad4-97786c3fe7c1@nvidia.com>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Message-ID: <cee60718-ced2-069f-8dad-48941c6fc09b@huawei.com>
-Date: Mon, 13 Jul 2020 22:39:00 +0800
+Return-Path: <SRS0=f/HW=AM=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57626 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729571AbgGAJLG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Jul 2020 05:11:06 -0400
+Date: Wed, 1 Jul 2020 11:10:54 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200701091054.GW4781@hirez.programming.kicks-ass.net>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624211540.GS4817@hirez.programming.kicks-ass.net>
+ <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
+ <20200625080313.GY4817@hirez.programming.kicks-ass.net>
+ <20200625082433.GC117543@hirez.programming.kicks-ass.net>
+ <20200625085745.GD117543@hirez.programming.kicks-ass.net>
+ <20200630191931.GA884155@elver.google.com>
+ <20200630201243.GD4817@hirez.programming.kicks-ass.net>
+ <20200630203016.GI9247@paulmck-ThinkPad-P72>
 MIME-Version: 1.0
-In-Reply-To: <4040f429-21c8-0825-2ad4-97786c3fe7c1@nvidia.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200630203016.GI9247@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jon Hunter <jonathanh@nvidia.com>, catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com, linux-tegra <linux-tegra@vger.kernel.org>
-Message-ID: <20200713143900.EDtG2eCKMoXUksZrvuhaMU78FXMIYAWnbhpilVmsrMM@z>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200701091054.QX3_iq3u-CNsdboCE1WkLzsGTG3hImWELOYPCGz-jnY@z>
 
-Hi Jon,
+On Tue, Jun 30, 2020 at 01:30:16PM -0700, Paul E. McKenney wrote:
+> On Tue, Jun 30, 2020 at 10:12:43PM +0200, Peter Zijlstra wrote:
 
-On 2020/7/13 22:27, Jon Hunter wrote:
-> After this change I am seeing the following build errors ...
+> > I'm not convinced C11 memory_order_consume would actually work for us,
+> > even if it would work. That is, given:
+> > 
+> >   https://lore.kernel.org/lkml/20150520005510.GA23559@linux.vnet.ibm.com/
+> > 
+> > only pointers can have consume, but like I pointed out, we have code
+> > that relies on dependent loads from integers.
 > 
-> /tmp/cckzq3FT.s: Assembler messages:
-> /tmp/cckzq3FT.s:854: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> /tmp/cckzq3FT.s:870: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> /tmp/cckzq3FT.s:1095: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> /tmp/cckzq3FT.s:1111: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> /tmp/cckzq3FT.s:1964: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> /tmp/cckzq3FT.s:1980: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> /tmp/cckzq3FT.s:2286: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> /tmp/cckzq3FT.s:2302: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> /tmp/cckzq3FT.s:4833: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
-> /tmp/cckzq3FT.s:4849: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
-> /tmp/cckzq3FT.s:5090: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
-> /tmp/cckzq3FT.s:5106: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
-> /tmp/cckzq3FT.s:874: Error: attempt to move .org backwards
-> /tmp/cckzq3FT.s:1115: Error: attempt to move .org backwards
-> /tmp/cckzq3FT.s:1984: Error: attempt to move .org backwards
-> /tmp/cckzq3FT.s:2306: Error: attempt to move .org backwards
-> /tmp/cckzq3FT.s:4853: Error: attempt to move .org backwards
-> /tmp/cckzq3FT.s:5110: Error: attempt to move .org backwards
-> scripts/Makefile.build:280: recipe for target 'arch/arm64/mm/hugetlbpage.o' failed
-> make[3]: *** [arch/arm64/mm/hugetlbpage.o] Error 1
-> scripts/Makefile.build:497: recipe for target 'arch/arm64/mm' failed
-> make[2]: *** [arch/arm64/mm] Error 2
+> I agree that C11 memory_order_consume is not normally what we want,
+> given that it is universally promoted to memory_order_acquire.
 > 
-> Cheers
-> Jon
-> 
+> However, dependent loads from integers are, if anything, more difficult
+> to defend from the compiler than are control dependencies.  This applies
+> doubly to integers that are used to index two-element arrays, in which
+> case you are just asking the compiler to destroy your dependent loads
+> by converting them into control dependencies.
 
-The code must be built with binutils >= 2.30.
-Maybe I should add  a check on whether binutils supports ARMv8.4-a instructions...
+Yes, I'm aware. However, as you might know, I'm firmly in the 'C is a
+glorified assembler' camp (as I expect most actual OS people are, out of
+necessity if nothing else) and if I wanted a control dependency I
+would've bloody well written one.
 
-Thanks,
-Zhenyu
+I think an optimizing compiler is awesome, but only in so far as that
+optimization is actually helpful -- and yes, I just stepped into a giant
+twilight zone there. That is, any optimization that has _any_
+controversy should be controllable (like -fno-strict-overflow
+-fno-strict-aliasing) and I'd very much like the same here.
+
+In a larger context, I still think that eliminating speculative stores
+is both necessary and sufficient to avoid out-of-thin-air. So I'd also
+love to get some control on that.
