@@ -1,13 +1,15 @@
-Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46576 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726089AbgGBIUs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 04:20:48 -0400
-Date: Thu, 2 Jul 2020 10:20:40 +0200
-From: Peter Zijlstra <peterz@infradead.org>
+Return-Path: <SRS0=f/HW=AM=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:40324 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1731672AbgGAQDi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 1 Jul 2020 12:03:38 -0400
+Date: Wed, 1 Jul 2020 09:03:38 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
 Subject: Re: [PATCH 00/22] add support for Clang LTO
-Message-ID: <20200702082040.GB4781@hirez.programming.kicks-ass.net>
-References: <20200625082433.GC117543@hirez.programming.kicks-ass.net>
+Message-ID: <20200701160338.GN9247@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200625080313.GY4817@hirez.programming.kicks-ass.net>
+ <20200625082433.GC117543@hirez.programming.kicks-ass.net>
  <20200625085745.GD117543@hirez.programming.kicks-ass.net>
  <20200630191931.GA884155@elver.google.com>
  <20200630201243.GD4817@hirez.programming.kicks-ass.net>
@@ -16,20 +18,45 @@ References: <20200625082433.GC117543@hirez.programming.kicks-ass.net>
  <20200701114027.GO4800@hirez.programming.kicks-ass.net>
  <20200701140654.GL9247@paulmck-ThinkPad-P72>
  <20200701150512.GH4817@hirez.programming.kicks-ass.net>
- <20200701160338.GN9247@paulmck-ThinkPad-P72>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200701160338.GN9247@paulmck-ThinkPad-P72>
+In-Reply-To: <20200701150512.GH4817@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-Message-ID: <20200702082040.DdQMw4cRM-ztPnDmUYKxGbzuPB-FN8jkjdVrWU70ZQk@z>
+Message-ID: <20200701160338.MM7G7OxTmo7akly0BNTq3Dlpn4ALttmpYNaau7N584s@z>
 
-On Wed, Jul 01, 2020 at 09:03:38AM -0700, Paul E. McKenney wrote:
+On Wed, Jul 01, 2020 at 05:05:12PM +0200, Peter Zijlstra wrote:
+> On Wed, Jul 01, 2020 at 07:06:54AM -0700, Paul E. McKenney wrote:
+> 
+> > The current state in the C++ committee is that marking variables
+> > carrying dependencies is the way forward.  This is of course not what
+> > the Linux kernel community does, but it should not be hard to have a
+> > -fall-variables-dependent or some such that causes all variables to be
+> > treated as if they were marked.  Though I was hoping for only pointers.
+> > Are they -sure- that they -absolutely- need to carry dependencies
+> > through integers???
+> 
+> What's 'need'? :-)
 
-> But it looks like we are going to have to tell the compiler.
+Turning off all dependency-killing optimizations on all pointers is
+likely a non-event.  Turning off all dependency-killing optimizations
+on all integers is not the road to happiness.
 
-What does the current proposal look like? I can certainly annotate the
-seqcount latch users, but who knows what other code is out there....
+So whatever "need" might be, it would need to be rather earthshaking.  ;-)
+It is probably not -that- hard to convert to pointers, even if they
+are indexing multiple arrays.
+
+> I'm thinking __ktime_get_fast_ns() is better off with a dependent load
+> than it is with an extra smp_rmb().
+> 
+> Yes we can stick an smp_rmb() in there, but I don't like it. Like I
+> wrote earlier, if I wanted a control dependency, I'd have written one.
+
+No argument here.
+
+But it looks like we are going to have to tell the compiler.
+
+							Thanx, Paul
