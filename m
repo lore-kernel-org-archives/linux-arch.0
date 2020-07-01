@@ -1,8 +1,9 @@
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Date: Wed, 1 Jul 2020 07:06:54 -0700
-Message-ID: <20200701140654.GL9247@paulmck-ThinkPad-P72>
-References: <20200624211540.GS4817@hirez.programming.kicks-ass.net>
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH 00/22] add support for Clang LTO
+Date: Wed, 1 Jul 2020 14:20:13 +0000
+Message-ID: <4427b0f825324da4b1640e32265b04bd@AcuMS.aculab.com>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <20200624211540.GS4817@hirez.programming.kicks-ass.net>
  <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
  <20200625080313.GY4817@hirez.programming.kicks-ass.net>
  <20200625082433.GC117543@hirez.programming.kicks-ass.net>
@@ -10,94 +11,70 @@ References: <20200624211540.GS4817@hirez.programming.kicks-ass.net>
  <20200630191931.GA884155@elver.google.com>
  <20200630201243.GD4817@hirez.programming.kicks-ass.net>
  <20200630203016.GI9247@paulmck-ThinkPad-P72>
- <CANpmjNP+7TtE0WPU=nX5zs3T2+4hPkkm08meUm2VDVY3RgsHDw@mail.gmail.com>
- <20200701114027.GO4800@hirez.programming.kicks-ass.net>
-Reply-To: paulmck@kernel.org
+ <20200701091054.GW4781@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:58518 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728021AbgGAOGz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 1 Jul 2020 10:06:55 -0400
-Content-Disposition: inline
-In-Reply-To: <20200701114027.GO4800@hirez.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200701091054.GW4781@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: 'Peter Zijlstra' <peterz@infradead.org>, "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 01, 2020 at 01:40:27PM +0200, Peter Zijlstra wrote:
-> On Wed, Jul 01, 2020 at 11:41:17AM +0200, Marco Elver wrote:
-> > On Tue, 30 Jun 2020 at 22:30, Paul E. McKenney <paulmck@kernel.org> wrote:
-> > > On Tue, Jun 30, 2020 at 10:12:43PM +0200, Peter Zijlstra wrote:
-> > > > On Tue, Jun 30, 2020 at 09:19:31PM +0200, Marco Elver wrote:
+From: Peter Zijlstra
+> Sent: 01 July 2020 10:11
+> On Tue, Jun 30, 2020 at 01:30:16PM -0700, Paul E. McKenney wrote:
+> > On Tue, Jun 30, 2020 at 10:12:43PM +0200, Peter Zijlstra wrote:
 > 
-> > > > > Thoughts?
-> > > >
-> > > > How hard would it be to creates something that analyzes a build and
-> > > > looks for all 'dependent load -> control dependency' transformations
-> > > > headed by a volatile (and/or from asm) load and issues a warning for
-> > > > them?
-> > 
-> > I was thinking about this, but in the context of the "auto-promote to
-> > acquire" which you didn't like. Issuing a warning should certainly be
-> > simpler.
-> > 
-> > I think there is no one place where we know these transformations
-> > happen, but rather, need to analyze the IR before transformations,
-> > take note of all the dependent loads headed by volatile+asm, and then
-> > run an analysis after optimizations checking the dependencies are
-> > still there.
-> 
-> Urgh, that sounds nasty. The thing is, as I've hinted at in my other
-> reply, I would really like a compiler switch to disable this
-> optimization entirely -- knowing how relevant the trnaformation is, is
-> simply a first step towards that.
-> 
-> In order to control the tranformation, you have to actually know where
-> in the optimization passes it happens.
-> 
-> Also, if (big if in my book) we find the optimization is actually
-> beneficial, we can invert the warning when using the switch and warn
-> about lost optimization possibilities and manually re-write the code to
-> use control deps.
-
-There are lots of optimization passes and any of them might decide to
-destroy dependencies.  :-(
-
-> > > > This would give us an indication of how valuable this transformation is
-> > > > for the kernel. I'm hoping/expecting it's vanishingly rare, but what do
-> > > > I know.
+> > > I'm not convinced C11 memory_order_consume would actually work for us,
+> > > even if it would work. That is, given:
 > > >
-> > > This could be quite useful!
-> > 
-> > We might then even be able to say, "if you get this warning, turn on
-> > CONFIG_ACQUIRE_READ_DEPENDENCIES" (or however the option will be
-> > named). 
+> > >   https://lore.kernel.org/lkml/20150520005510.GA23559@linux.vnet.ibm.com/
+> > >
+> > > only pointers can have consume, but like I pointed out, we have code
+> > > that relies on dependent loads from integers.
+> >
+> > I agree that C11 memory_order_consume is not normally what we want,
+> > given that it is universally promoted to memory_order_acquire.
+> >
+> > However, dependent loads from integers are, if anything, more difficult
+> > to defend from the compiler than are control dependencies.  This applies
+> > doubly to integers that are used to index two-element arrays, in which
+> > case you are just asking the compiler to destroy your dependent loads
+> > by converting them into control dependencies.
 > 
-> I was going to suggest: if this happens, employ -fno-wreck-dependencies
-> :-)
+> Yes, I'm aware. However, as you might know, I'm firmly in the 'C is a
+> glorified assembler' camp (as I expect most actual OS people are, out of
+> necessity if nothing else) and if I wanted a control dependency I
+> would've bloody well written one.
 
-The current state in the C++ committee is that marking variables
-carrying dependencies is the way forward.  This is of course not what
-the Linux kernel community does, but it should not be hard to have a
--fall-variables-dependent or some such that causes all variables to be
-treated as if they were marked.  Though I was hoping for only pointers.
-Are they -sure- that they -absolutely- need to carry dependencies
-through integers???
+I write in C because doing register tracking is hard :-)
+I've got an hdlc implementation in C that is carefully adjusted
+so that the worst case path is bounded.
+I probably know every one of the 1000 instructions in it.
 
-Anyway, the next step is to provide this functionality in one of the
-major compilers.  Akshat Garg started this in GCC as a GSoC project
-by duplicating "volatile" functionality with a _Dependent_ptr keyword.
-Next steps would include removing "volatile" functionality not required
-for dependencies.  Here is a random posting, which if I remember correctly
-raised some doubts as to whether "volatile" was really carried through
-everywhere that it needs to for things like LTO:
+Would an asm statement that uses the same 'register' for input and
+output but doesn't actually do anything help?
+It won't generate any code, but the compiler ought to assume that
+it might change the value - so can't do optimisations that track
+the value across the call.
 
-https://gcc.gnu.org/legacy-ml/gcc/2019-07/msg00139.html
+> I think an optimizing compiler is awesome, but only in so far as that
+> optimization is actually helpful -- and yes, I just stepped into a giant
+> twilight zone there. That is, any optimization that has _any_
+> controversy should be controllable (like -fno-strict-overflow
+> -fno-strict-aliasing) and I'd very much like the same here.
 
-What happened to this effort?  Akshat graduated and got an unrelated
-job, you know, the usual.  ;-)
+I'm fed up of gcc generating the code that uses SIMD instructions
+for the 'tail' loop at the end of a function that is already doing
+SIMD operations for the main part of the loop.
+And compilers that convert a byte copy loop to 'rep movsb'.
+If I'm copying 3 or 4 bytes I don't want a 40 clock overhead.
 
-							Thanx, Paul
+	David
+
+-
+Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
+Registration No: 1397386 (Wales)
