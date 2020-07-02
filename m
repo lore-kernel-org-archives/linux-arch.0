@@ -1,55 +1,30 @@
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Date: Thu, 2 Jul 2020 11:00:42 -0700
-Message-ID: <20200702180042.GW9247@paulmck-ThinkPad-P72>
-References: <20200625080313.GY4817@hirez.programming.kicks-ass.net>
- <20200625082433.GC117543@hirez.programming.kicks-ass.net>
- <20200625085745.GD117543@hirez.programming.kicks-ass.net>
- <20200630191931.GA884155@elver.google.com>
- <20200630201243.GD4817@hirez.programming.kicks-ass.net>
- <20200630203016.GI9247@paulmck-ThinkPad-P72>
- <20200701091054.GW4781@hirez.programming.kicks-ass.net>
- <4427b0f825324da4b1640e32265b04bd@AcuMS.aculab.com>
- <20200701160624.GO9247@paulmck-ThinkPad-P72>
- <aeed740a4d86470d84ae7d5f1cf07951@AcuMS.aculab.com>
-Reply-To: paulmck@kernel.org
+From: Barr Anthony Calder <jessicaw2261@gmail.com>
+Subject: (unknown)
+Date: Thu, 2 Jul 2020 19:43:47 +0000
+Message-ID: <CAFPdKTYyFhRDfDmEXmEmAEc=uk_377qnfagKnQ_EMZWr0hS0=w@mail.gmail.com>
+Reply-To: barranthonycald@yahoo.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-pci-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <aeed740a4d86470d84ae7d5f1cf07951@AcuMS.aculab.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: David Laight <David.Laight@ACULAB.COM>
-Cc: 'Peter Zijlstra' <peterz@infradead.org>, Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39618 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726074AbgGBTns (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 15:43:48 -0400
+Received: from mail-pg1-x543.google.com (mail-pg1-x543.google.com [IPv6:2607:f8b0:4864:20::543])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E9DCCC08C5C1
+        for <linux-arch@vger.kernel.org>; Thu,  2 Jul 2020 12:43:47 -0700 (PDT)
+Received: by mail-pg1-x543.google.com with SMTP id d4so13948095pgk.4
+        for <linux-arch@vger.kernel.org>; Thu, 02 Jul 2020 12:43:47 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Jul 02, 2020 at 09:37:26AM +0000, David Laight wrote:
-> From: Paul E. McKenney
-> > Sent: 01 July 2020 17:06
-> ...
-> > > Would an asm statement that uses the same 'register' for input and
-> > > output but doesn't actually do anything help?
-> > > It won't generate any code, but the compiler ought to assume that
-> > > it might change the value - so can't do optimisations that track
-> > > the value across the call.
-> > 
-> > It might replace the volatile load, but there are optimizations that
-> > apply to the downstream code as well.
-> > 
-> > Or are you suggesting periodically pushing the dependent variable
-> > through this asm?  That might work, but it would be easier and
-> > more maintainable to just mark the variable.
-> 
-> Marking the variable requires compiler support.
-> Although what 'volatile register int foo;' means might be interesting.
-> 
-> So I was thinking that in the case mentioned earlier you do:
-> 	ptr += LAUNDER(offset & 1);
-> to ensure the compiler didn't convert to:
-> 	if (offset & 1) ptr++;
-> (Which is probably a pessimisation - the reverse is likely better.)
-
-Indeed, Akshat's prototype follows the "volatile" qualifier in many
-ways.  https://github.com/AKG001/gcc/
-
-							Thanx, Paul
+Dobr=C3=BD den
+Jsem Anthony Calder, pr=C3=A1vn=C3=AD z=C3=A1stupce z Toga. Obr=C3=A1til js=
+em se na v=C3=A1s
+ohledn=C4=9B m=C3=A9ho pozdn=C3=ADho klienta, Dr. Edwin, majetek fondu ve v=
+=C3=BD=C5=A1i 2,5
+milionu dolar=C5=AF, kter=C3=BD bude vr=C3=A1cen na v=C3=A1=C5=A1 =C3=BA=C4=
+=8Det. Krom=C4=9B toho v t=C3=A9to
+transakci chci, abyste odpov=C4=9Bd=C4=9Bli d=C5=AFv=C4=9Brn=C4=9B.
+Anthony Calder
