@@ -1,54 +1,35 @@
-Return-Path: <SRS0=tLCE=AR=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:45228 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728381AbgGFBMq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 5 Jul 2020 21:12:46 -0400
-Subject: Re: [PATCH V4 0/4] mm/debug_vm_pgtable: Add some more tests
-References: <1593996516-7186-1-git-send-email-anshuman.khandual@arm.com>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Message-ID: <3e03e6da-139f-94df-73aa-4aaf174f71f5@arm.com>
-Date: Mon, 6 Jul 2020 06:41:42 +0530
+Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46576 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726089AbgGBIUs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 04:20:48 -0400
+Date: Thu, 2 Jul 2020 10:20:40 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200702082040.GB4781@hirez.programming.kicks-ass.net>
+References: <20200625082433.GC117543@hirez.programming.kicks-ass.net>
+ <20200625085745.GD117543@hirez.programming.kicks-ass.net>
+ <20200630191931.GA884155@elver.google.com>
+ <20200630201243.GD4817@hirez.programming.kicks-ass.net>
+ <20200630203016.GI9247@paulmck-ThinkPad-P72>
+ <CANpmjNP+7TtE0WPU=nX5zs3T2+4hPkkm08meUm2VDVY3RgsHDw@mail.gmail.com>
+ <20200701114027.GO4800@hirez.programming.kicks-ass.net>
+ <20200701140654.GL9247@paulmck-ThinkPad-P72>
+ <20200701150512.GH4817@hirez.programming.kicks-ass.net>
+ <20200701160338.GN9247@paulmck-ThinkPad-P72>
 MIME-Version: 1.0
-In-Reply-To: <1593996516-7186-1-git-send-email-anshuman.khandual@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200701160338.GN9247@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Zi Yan <ziy@nvidia.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Christophe Leroy <christophe.leroy@csgroup.eu>
-Message-ID: <20200706011142.P1jgePuV-3hVZfyenfDllzGsvcyY2DWp-ok5XhDQeLw@z>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200702082040.DdQMw4cRM-ztPnDmUYKxGbzuPB-FN8jkjdVrWU70ZQk@z>
 
+On Wed, Jul 01, 2020 at 09:03:38AM -0700, Paul E. McKenney wrote:
 
-On 07/06/2020 06:18 AM, Anshuman Khandual wrote:
-> This series adds some more arch page table helper validation tests which
-> are related to core and advanced memory functions. This also creates a
-> documentation, enlisting expected semantics for all page table helpers as
-> suggested by Mike Rapoport previously (https://lkml.org/lkml/2020/1/30/40).
-> 
-> There are many TRANSPARENT_HUGEPAGE and ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD
-> ifdefs scattered across the test. But consolidating all the fallback stubs
-> is not very straight forward because ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD is
-> not explicitly dependent on ARCH_HAS_TRANSPARENT_HUGEPAGE.
-> 
-> Tested on arm64, x86 platforms but only build tested on all other enabled
-> platforms through ARCH_HAS_DEBUG_VM_PGTABLE i.e powerpc, arc, s390. The
-> following failure on arm64 still exists which was mentioned previously. It
-> will be fixed with the upcoming THP migration on arm64 enablement series.
-> 
-> WARNING .... mm/debug_vm_pgtable.c:860 debug_vm_pgtable+0x940/0xa54
-> WARN_ON(!pmd_present(pmd_mkinvalid(pmd_mkhuge(pmd))))
-> 
-> This series is based on v5.8-rc4.
-> 
-> Changes in V4:
-> 
-> - Replaced READ_ONCE() with ptep_get() while accessing PTE pointers per Christophe
-> - Fixed function argument alignments per Christophe
+> But it looks like we are going to have to tell the compiler.
 
-+Cc - Zi Yan, Gerald Schaefer, Christophe Leroy
-
-The Cc list was not complete. Please do let me know if you could
-not retrieve all the four patches of the series from the list.
-
-- Anshuman
+What does the current proposal look like? I can certainly annotate the
+seqcount latch users, but who knows what other code is out there....
