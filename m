@@ -1,56 +1,52 @@
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH 00/22] add support for Clang LTO
-Date: Thu, 2 Jul 2020 09:37:26 +0000
-Message-ID: <aeed740a4d86470d84ae7d5f1cf07951@AcuMS.aculab.com>
-References: <20200624211540.GS4817@hirez.programming.kicks-ass.net>
- <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
- <20200625080313.GY4817@hirez.programming.kicks-ass.net>
- <20200625082433.GC117543@hirez.programming.kicks-ass.net>
- <20200625085745.GD117543@hirez.programming.kicks-ass.net>
- <20200630191931.GA884155@elver.google.com>
- <20200630201243.GD4817@hirez.programming.kicks-ass.net>
- <20200630203016.GI9247@paulmck-ThinkPad-P72>
- <20200701091054.GW4781@hirez.programming.kicks-ass.net>
- <4427b0f825324da4b1640e32265b04bd@AcuMS.aculab.com>
- <20200701160624.GO9247@paulmck-ThinkPad-P72>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 5/8] powerpc/64s: implement queued spinlocks and rwlocks
+Date: Thu, 02 Jul 2020 20:25:43 +1000
+Message-ID: <1593685459.r2tfxtfdp6.astroid@bobo.none>
+References: <20200702074839.1057733-1-npiggin@gmail.com>
+        <20200702074839.1057733-6-npiggin@gmail.com>
+        <20200702080219.GB16113@willie-the-truck>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <20200701160624.GO9247@paulmck-ThinkPad-P72>
-Content-Language: en-US
-Sender: linux-pci-owner@vger.kernel.org
-To: "'paulmck@kernel.org'" <paulmck@kernel.org>
-Cc: 'Peter Zijlstra' <peterz@infradead.org>, Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Content-Transfer-Encoding: quoted-printable
+Return-path: <kvm-ppc-owner@vger.kernel.org>
+In-Reply-To: <20200702080219.GB16113@willie-the-truck>
+Sender: kvm-ppc-owner@vger.kernel.org
+To: Will Deacon <will@kernel.org>
+Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Waiman Long <longman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Paul E. McKenney
-> Sent: 01 July 2020 17:06
-...
-> > Would an asm statement that uses the same 'register' for input and
-> > output but doesn't actually do anything help?
-> > It won't generate any code, but the compiler ought to assume that
-> > it might change the value - so can't do optimisations that track
-> > the value across the call.
-> 
-> It might replace the volatile load, but there are optimizations that
-> apply to the downstream code as well.
-> 
-> Or are you suggesting periodically pushing the dependent variable
-> through this asm?  That might work, but it would be easier and
-> more maintainable to just mark the variable.
+Excerpts from Will Deacon's message of July 2, 2020 6:02 pm:
+> On Thu, Jul 02, 2020 at 05:48:36PM +1000, Nicholas Piggin wrote:
+>> diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include=
+/asm/qspinlock.h
+>> new file mode 100644
+>> index 000000000000..f84da77b6bb7
+>> --- /dev/null
+>> +++ b/arch/powerpc/include/asm/qspinlock.h
+>> @@ -0,0 +1,20 @@
+>> +/* SPDX-License-Identifier: GPL-2.0 */
+>> +#ifndef _ASM_POWERPC_QSPINLOCK_H
+>> +#define _ASM_POWERPC_QSPINLOCK_H
+>> +
+>> +#include <asm-generic/qspinlock_types.h>
+>> +
+>> +#define _Q_PENDING_LOOPS	(1 << 9) /* not tuned */
+>> +
+>> +#define smp_mb__after_spinlock()   smp_mb()
+>> +
+>> +static __always_inline int queued_spin_is_locked(struct qspinlock *lock=
+)
+>> +{
+>> +	smp_mb();
+>> +	return atomic_read(&lock->val);
+>> +}
+>=20
+> Why do you need the smp_mb() here?
 
-Marking the variable requires compiler support.
-Although what 'volatile register int foo;' means might be interesting.
+A long and sad tale that ends here 51d7d5205d338
 
-So I was thinking that in the case mentioned earlier you do:
-	ptr += LAUNDER(offset & 1);
-to ensure the compiler didn't convert to:
-	if (offset & 1) ptr++;
-(Which is probably a pessimisation - the reverse is likely better.)
+Should probably at least refer to that commit from here, since this one=20
+is not going to git blame back there. I'll add something.
 
-	David
-
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
+Thanks,
+Nick
