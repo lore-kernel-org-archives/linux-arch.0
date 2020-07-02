@@ -1,45 +1,61 @@
-Return-Path: <SRS0=HA2T=AT=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.130]:42745 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725787AbgGHHrx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2020 03:47:53 -0400
+Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from eu-smtp-delivery-151.mimecast.com ([207.82.80.151]:41541 "EHLO
+        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728244AbgGBJha (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 05:37:30 -0400
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH 00/22] add support for Clang LTO
+Date: Thu, 2 Jul 2020 09:37:26 +0000
+Message-ID: <aeed740a4d86470d84ae7d5f1cf07951@AcuMS.aculab.com>
+References: <20200624211540.GS4817@hirez.programming.kicks-ass.net>
+ <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
+ <20200625080313.GY4817@hirez.programming.kicks-ass.net>
+ <20200625082433.GC117543@hirez.programming.kicks-ass.net>
+ <20200625085745.GD117543@hirez.programming.kicks-ass.net>
+ <20200630191931.GA884155@elver.google.com>
+ <20200630201243.GD4817@hirez.programming.kicks-ass.net>
+ <20200630203016.GI9247@paulmck-ThinkPad-P72>
+ <20200701091054.GW4781@hirez.programming.kicks-ass.net>
+ <4427b0f825324da4b1640e32265b04bd@AcuMS.aculab.com>
+ <20200701160624.GO9247@paulmck-ThinkPad-P72>
+In-Reply-To: <20200701160624.GO9247@paulmck-ThinkPad-P72>
+Content-Language: en-US
 MIME-Version: 1.0
-References: <20200707180955.53024-1-mic@digikod.net> <20200707180955.53024-10-mic@digikod.net>
- <CAK8P3a0docCqHkEn9C7=e0GC_ieN1dsYgKQ9PbUmSZYxh9MRnw@mail.gmail.com> <8d2dab03-289e-2872-db66-ce80ce5c189f@digikod.net>
-In-Reply-To: <8d2dab03-289e-2872-db66-ce80ce5c189f@digikod.net>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 8 Jul 2020 09:47:33 +0200
-Message-ID: <CAK8P3a3Mf_+-MY5kdeY7sqwUgCUi=PksWz1pGDy+o0ZfgF93Zw@mail.gmail.com>
-Subject: Re: [PATCH v19 09/12] arch: Wire up landlock() syscall
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20200708074733.f5AjmPWp3K4L1KATVTFF75Clz88iTREmwZOC8WvPA2I@z>
+To: "'paulmck@kernel.org'" <paulmck@kernel.org>
+Cc: 'Peter Zijlstra' <peterz@infradead.org>, Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200702093726.MBAbWdjSm9iHV_tgedYevvX1g5KH7mARxGFVed_2QEA@z>
 
-On Wed, Jul 8, 2020 at 9:31 AM Mickaël Salaün <mic@digikod.net> wrote:
-> On 08/07/2020 09:22, Arnd Bergmann wrote:
-> > On Tue, Jul 7, 2020 at 8:10 PM Mickaël Salaün <mic@digikod.net> wrote:
-> >
-> >> index f4a01305d9a6..a63a411a74d5 100644
-> >> --- a/include/uapi/asm-generic/unistd.h
-> >> +++ b/include/uapi/asm-generic/unistd.h
->
-> OK, I'll rebase the next series on linux-next.
+From: Paul E. McKenney
+> Sent: 01 July 2020 17:06
+...
+> > Would an asm statement that uses the same 'register' for input and
+> > output but doesn't actually do anything help?
+> > It won't generate any code, but the compiler ought to assume that
+> > it might change the value - so can't do optimisations that track
+> > the value across the call.
+> 
+> It might replace the volatile load, but there are optimizations that
+> apply to the downstream code as well.
+> 
+> Or are you suggesting periodically pushing the dependent variable
+> through this asm?  That might work, but it would be easier and
+> more maintainable to just mark the variable.
 
-Just change the number to the next free one, without actually rebasing.
-It's always a bit messy to have multiple syscalls added, but I think that
-causes the least confusion.
+Marking the variable requires compiler support.
+Although what 'volatile register int foo;' means might be interesting.
 
-> Do you know if there is other syscalls on their way to linux-next?
+So I was thinking that in the case mentioned earlier you do:
+	ptr += LAUNDER(offset & 1);
+to ensure the compiler didn't convert to:
+	if (offset & 1) ptr++;
+(Which is probably a pessimisation - the reverse is likely better.)
 
-None that I'm aware of.
+	David
 
-> Are the other parts of arch/syscall OK for you?
-
-The arch/* and include/uapi/asm-generic changes look ok to me.
-I'll reply to the syscall implementation separately/
-
-     Arnd
+-
+Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
+Registration No: 1397386 (Wales)
