@@ -1,76 +1,266 @@
-Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:3198 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726319AbgGCCgN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 22:36:13 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 16/21] KVM: arm64: Drop @max param from mmu_topup_memory_cache()
-Date: Thu,  2 Jul 2020 19:35:40 -0700
-Message-ID: <20200703023545.8771-17-sean.j.christopherson@intel.com>
-In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
-References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41798 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727065AbgGBHtf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 03:49:35 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 8/8] powerpc/64s: remove paravirt from simple spinlocks (RFC only)
+Date: Thu,  2 Jul 2020 17:48:39 +1000
+Message-ID: <20200702074839.1057733-9-npiggin@gmail.com>
+In-Reply-To: <20200702074839.1057733-1-npiggin@gmail.com>
+References: <20200702074839.1057733-1-npiggin@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200703023540.OURCcDSYgMI12Ca9zcaA-vDkVRV4zfsLWrAV_pOwRy8@z>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200702074839.DVJ2-fcu86oiuV73mwv8R3g14g4vKw_Q6AOKYU0nFEA@z>
 
-Replace the @max param in mmu_topup_memory_cache() and instead use
-ARRAY_SIZE() to terminate the loop to fill the cache.  This removes a
-BUG_ON() and sets the stage for moving arm64 to the common memory cache
-implementation.
-
-No functional change intended.
-
-Tested-by: Marc Zyngier <maz@kernel.org>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+RFC until we settle on queued spinlocks for 64s and remove the
+option to go back to simple locks. If other sub-archs want to keep
+simple spinlocks, the code can be nicely simplified.
 ---
- arch/arm64/kvm/mmu.c | 12 ++++--------
- 1 file changed, 4 insertions(+), 8 deletions(-)
+ arch/powerpc/include/asm/simple_spinlock.h | 61 +-------------------
+ arch/powerpc/kvm/book3s_hv_rm_mmu.c        |  6 --
+ arch/powerpc/lib/Makefile                  |  4 --
+ arch/powerpc/lib/locks.c                   | 65 ----------------------
+ 4 files changed, 2 insertions(+), 134 deletions(-)
+ delete mode 100644 arch/powerpc/lib/locks.c
 
-diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
-index 8c0035cab6b6..f78aa3e269e9 100644
---- a/arch/arm64/kvm/mmu.c
-+++ b/arch/arm64/kvm/mmu.c
-@@ -124,15 +124,13 @@ static void stage2_dissolve_pud(struct kvm *kvm, phys_addr_t addr, pud_t *pudp)
- 	put_page(virt_to_page(pudp));
+diff --git a/arch/powerpc/include/asm/simple_spinlock.h b/arch/powerpc/include/asm/simple_spinlock.h
+index e048c041c4a9..5f0980dea001 100644
+--- a/arch/powerpc/include/asm/simple_spinlock.h
++++ b/arch/powerpc/include/asm/simple_spinlock.h
+@@ -16,23 +16,10 @@
+  * (the type definitions are in asm/simple_spinlock_types.h)
+  */
+ #include <linux/irqflags.h>
+-#include <asm/paravirt.h>
+-#ifdef CONFIG_PPC64
+-#include <asm/paca.h>
+-#endif
+ #include <asm/synch.h>
+ #include <asm/ppc-opcode.h>
+ 
+-#ifdef CONFIG_PPC64
+-/* use 0x800000yy when locked, where yy == CPU number */
+-#ifdef __BIG_ENDIAN__
+-#define LOCK_TOKEN	(*(u32 *)(&get_paca()->lock_token))
+-#else
+-#define LOCK_TOKEN	(*(u32 *)(&get_paca()->paca_index))
+-#endif
+-#else
+ #define LOCK_TOKEN	1
+-#endif
+ 
+ static __always_inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+ {
+@@ -74,43 +61,14 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
+ 	return __arch_spin_trylock(lock) == 0;
  }
  
--static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache,
--				  int min, int max)
-+static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
+-/*
+- * On a system with shared processors (that is, where a physical
+- * processor is multiplexed between several virtual processors),
+- * there is no point spinning on a lock if the holder of the lock
+- * isn't currently scheduled on a physical processor.  Instead
+- * we detect this situation and ask the hypervisor to give the
+- * rest of our timeslice to the lock holder.
+- *
+- * So that we can tell which virtual processor is holding a lock,
+- * we put 0x80000000 | smp_processor_id() in the lock when it is
+- * held.  Conveniently, we have a word in the paca that holds this
+- * value.
+- */
+-
+-#if defined(CONFIG_PPC_SPLPAR)
+-/* We only yield to the hypervisor if we are in shared processor mode */
+-void splpar_spin_yield(arch_spinlock_t *lock);
+-void splpar_rw_yield(arch_rwlock_t *lock);
+-#else /* SPLPAR */
+-static inline void splpar_spin_yield(arch_spinlock_t *lock) {};
+-static inline void splpar_rw_yield(arch_rwlock_t *lock) {};
+-#endif
+-
+ static inline void spin_yield(arch_spinlock_t *lock)
  {
- 	void *page;
+-	if (is_shared_processor())
+-		splpar_spin_yield(lock);
+-	else
+-		barrier();
++	barrier();
+ }
  
--	BUG_ON(max > KVM_NR_MEM_OBJS);
- 	if (cache->nobjs >= min)
- 		return 0;
--	while (cache->nobjs < max) {
-+	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
- 		page = (void *)__get_free_page(GFP_PGTABLE_USER);
- 		if (!page)
- 			return -ENOMEM;
-@@ -1481,8 +1479,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
- 			pte = kvm_s2pte_mkwrite(pte);
+ static inline void rw_yield(arch_rwlock_t *lock)
+ {
+-	if (is_shared_processor())
+-		splpar_rw_yield(lock);
+-	else
+-		barrier();
++	barrier();
+ }
  
- 		ret = mmu_topup_memory_cache(&cache,
--					     kvm_mmu_cache_min_pages(kvm),
--					     KVM_NR_MEM_OBJS);
-+					     kvm_mmu_cache_min_pages(kvm));
- 		if (ret)
- 			goto out;
- 		spin_lock(&kvm->mmu_lock);
-@@ -1882,8 +1879,7 @@ static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
- 	mmap_read_unlock(current->mm);
+ static inline void arch_spin_lock(arch_spinlock_t *lock)
+@@ -120,8 +78,6 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
+ 			break;
+ 		do {
+ 			HMT_low();
+-			if (is_shared_processor())
+-				splpar_spin_yield(lock);
+ 		} while (unlikely(lock->slock != 0));
+ 		HMT_medium();
+ 	}
+@@ -139,8 +95,6 @@ void arch_spin_lock_flags(arch_spinlock_t *lock, unsigned long flags)
+ 		local_irq_restore(flags);
+ 		do {
+ 			HMT_low();
+-			if (is_shared_processor())
+-				splpar_spin_yield(lock);
+ 		} while (unlikely(lock->slock != 0));
+ 		HMT_medium();
+ 		local_irq_restore(flags_dis);
+@@ -166,13 +120,7 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
+  * read-locks.
+  */
  
- 	/* We need minimum second+third level pages */
--	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm),
--				     KVM_NR_MEM_OBJS);
-+	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm));
- 	if (ret)
- 		return ret;
+-#ifdef CONFIG_PPC64
+-#define __DO_SIGN_EXTEND	"extsw	%0,%0\n"
+-#define WRLOCK_TOKEN		LOCK_TOKEN	/* it's negative */
+-#else
+-#define __DO_SIGN_EXTEND
+ #define WRLOCK_TOKEN		(-1)
+-#endif
  
+ /*
+  * This returns the old value in the lock + 1,
+@@ -184,7 +132,6 @@ static inline long __arch_read_trylock(arch_rwlock_t *rw)
+ 
+ 	__asm__ __volatile__(
+ "1:	" PPC_LWARX(%0,0,%1,1) "\n"
+-	__DO_SIGN_EXTEND
+ "	addic.		%0,%0,1\n\
+ 	ble-		2f\n"
+ "	stwcx.		%0,0,%1\n\
+@@ -227,8 +174,6 @@ static inline void arch_read_lock(arch_rwlock_t *rw)
+ 			break;
+ 		do {
+ 			HMT_low();
+-			if (is_shared_processor())
+-				splpar_rw_yield(rw);
+ 		} while (unlikely(rw->lock < 0));
+ 		HMT_medium();
+ 	}
+@@ -241,8 +186,6 @@ static inline void arch_write_lock(arch_rwlock_t *rw)
+ 			break;
+ 		do {
+ 			HMT_low();
+-			if (is_shared_processor())
+-				splpar_rw_yield(rw);
+ 		} while (unlikely(rw->lock != 0));
+ 		HMT_medium();
+ 	}
+diff --git a/arch/powerpc/kvm/book3s_hv_rm_mmu.c b/arch/powerpc/kvm/book3s_hv_rm_mmu.c
+index 88da2764c1bb..909025083161 100644
+--- a/arch/powerpc/kvm/book3s_hv_rm_mmu.c
++++ b/arch/powerpc/kvm/book3s_hv_rm_mmu.c
+@@ -410,12 +410,6 @@ long kvmppc_h_enter(struct kvm_vcpu *vcpu, unsigned long flags,
+ 				 &vcpu->arch.regs.gpr[4]);
+ }
+ 
+-#ifdef __BIG_ENDIAN__
+-#define LOCK_TOKEN	(*(u32 *)(&get_paca()->lock_token))
+-#else
+-#define LOCK_TOKEN	(*(u32 *)(&get_paca()->paca_index))
+-#endif
+-
+ static inline int is_mmio_hpte(unsigned long v, unsigned long r)
+ {
+ 	return ((v & HPTE_V_ABSENT) &&
+diff --git a/arch/powerpc/lib/Makefile b/arch/powerpc/lib/Makefile
+index d66a645503eb..158e71abc14c 100644
+--- a/arch/powerpc/lib/Makefile
++++ b/arch/powerpc/lib/Makefile
+@@ -41,10 +41,6 @@ obj-$(CONFIG_PPC_BOOK3S_64) += copyuser_power7.o copypage_power7.o \
+ obj64-y	+= copypage_64.o copyuser_64.o mem_64.o hweight_64.o \
+ 	   memcpy_64.o memcpy_mcsafe_64.o
+ 
+-ifndef CONFIG_PPC_QUEUED_SPINLOCKS
+-obj64-$(CONFIG_SMP)	+= locks.o
+-endif
+-
+ obj64-$(CONFIG_ALTIVEC)	+= vmx-helper.o
+ obj64-$(CONFIG_KPROBES_SANITY_TEST)	+= test_emulate_step.o \
+ 					   test_emulate_step_exec_instr.o
+diff --git a/arch/powerpc/lib/locks.c b/arch/powerpc/lib/locks.c
+deleted file mode 100644
+index e35fd1a16992..000000000000
+--- a/arch/powerpc/lib/locks.c
++++ /dev/null
+@@ -1,65 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0-or-later
+-/*
+- * Spin and read/write lock operations.
+- *
+- * Copyright (C) 2001-2004 Paul Mackerras <paulus@au.ibm.com>, IBM
+- * Copyright (C) 2001 Anton Blanchard <anton@au.ibm.com>, IBM
+- * Copyright (C) 2002 Dave Engebretsen <engebret@us.ibm.com>, IBM
+- *   Rework to support virtual processors
+- */
+-
+-#include <linux/kernel.h>
+-#include <linux/spinlock.h>
+-#include <linux/export.h>
+-#include <linux/smp.h>
+-
+-/* waiting for a spinlock... */
+-#if defined(CONFIG_PPC_SPLPAR)
+-#include <asm/hvcall.h>
+-#include <asm/smp.h>
+-
+-void splpar_spin_yield(arch_spinlock_t *lock)
+-{
+-	unsigned int lock_value, holder_cpu, yield_count;
+-
+-	lock_value = lock->slock;
+-	if (lock_value == 0)
+-		return;
+-	holder_cpu = lock_value & 0xffff;
+-	BUG_ON(holder_cpu >= NR_CPUS);
+-
+-	yield_count = yield_count_of(holder_cpu);
+-	if ((yield_count & 1) == 0)
+-		return;		/* virtual cpu is currently running */
+-	smp_rmb();
+-	if (lock->slock != lock_value)
+-		return;		/* something has changed */
+-	yield_to_preempted(holder_cpu, yield_count);
+-}
+-EXPORT_SYMBOL_GPL(splpar_spin_yield);
+-
+-/*
+- * Waiting for a read lock or a write lock on a rwlock...
+- * This turns out to be the same for read and write locks, since
+- * we only know the holder if it is write-locked.
+- */
+-void splpar_rw_yield(arch_rwlock_t *rw)
+-{
+-	int lock_value;
+-	unsigned int holder_cpu, yield_count;
+-
+-	lock_value = rw->lock;
+-	if (lock_value >= 0)
+-		return;		/* no write lock at present */
+-	holder_cpu = lock_value & 0xffff;
+-	BUG_ON(holder_cpu >= NR_CPUS);
+-
+-	yield_count = yield_count_of(holder_cpu);
+-	if ((yield_count & 1) == 0)
+-		return;		/* virtual cpu is currently running */
+-	smp_rmb();
+-	if (rw->lock != lock_value)
+-		return;		/* something has changed */
+-	yield_to_preempted(holder_cpu, yield_count);
+-}
+-#endif
 -- 
-2.26.0
+2.23.0
