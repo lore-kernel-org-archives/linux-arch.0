@@ -1,126 +1,69 @@
-From: Nick Desaulniers <ndesaulniers@google.com>
-Subject: Re: [PATCH v2] vmlinux.lds: add PGO and AutoFDO input sections
-Date: Wed, 1 Jul 2020 14:54:02 -0700
-Message-ID: <CAKwvOd=cum+BNHOk2djXx5JtAcCBwq2Bxy=j5ucRd2RcLWwDZQ@mail.gmail.com>
-References: <20200622231536.7jcshis5mdn3vr54@google.com> <20200625184752.73095-1-ndesaulniers@google.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 0/8] powerpc: queued spinlocks and rwlocks
+Date: Thu,  2 Jul 2020 17:48:31 +1000
+Message-ID: <20200702074839.1057733-1-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35236 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41674 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726109AbgGAVyP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Jul 2020 17:54:15 -0400
-Received: from mail-pg1-x541.google.com (mail-pg1-x541.google.com [IPv6:2607:f8b0:4864:20::541])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B518EC08C5DB
-        for <linux-arch@vger.kernel.org>; Wed,  1 Jul 2020 14:54:15 -0700 (PDT)
-Received: by mail-pg1-x541.google.com with SMTP id t6so12399690pgq.1
-        for <linux-arch@vger.kernel.org>; Wed, 01 Jul 2020 14:54:15 -0700 (PDT)
-In-Reply-To: <20200625184752.73095-1-ndesaulniers@google.com>
+        with ESMTP id S1725287AbgGBHsy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 03:48:54 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: =?UTF-8?B?RsSBbmctcnXDrCBTw7JuZw==?= <maskray@google.com>, "# 3.4.x" <stable@vger.kernel.org>, Jian Cai <jiancai@google.com>, Luis Lozano <llozano@google.com>, Manoj Gupta <manojgupta@google.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, clang-built-linux <clang-built-linux@googlegroups.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
 
-Hi Arnd,
-I usually wait longer to bump threads for review, but we have a
-holiday in the US so we're off tomorrow and Friday.
-scripts/get_maintainer.pl recommend you for this patch.  Would you
-take a look at it for us, please?
+This series adds an option to use queued spinlocks for powerpc, and
+makes it the default for the Book3S-64 subarch.
 
-On Thu, Jun 25, 2020 at 11:48 AM Nick Desaulniers
-<ndesaulniers@google.com> wrote:
->
-> Basically, consider .text.{hot|unlikely|unknown}.* part of .text, too.
->
-> When compiling with profiling information (collected via PGO
-> instrumentations or AutoFDO sampling), Clang will separate code into
-> .text.hot, .text.unlikely, or .text.unknown sections based on profiling
-> information. After D79600 (clang-11), these sections will have a
-> trailing `.` suffix, ie.  .text.hot., .text.unlikely., .text.unknown..
->
-> When using -ffunction-sections together with profiling infomation,
-> either explicitly (FGKASLR) or implicitly (LTO), code may be placed in
-> sections following the convention:
-> .text.hot.<foo>, .text.unlikely.<bar>, .text.unknown.<baz>
-> where <foo>, <bar>, and <baz> are functions.  (This produces one section
-> per function; we generally try to merge these all back via linker script
-> so that we don't have 50k sections).
->
-> For the above cases, we need to teach our linker scripts that such
-> sections might exist and that we'd explicitly like them grouped
-> together, otherwise we can wind up with code outside of the
-> _stext/_etext boundaries that might not be mapped properly for some
-> architectures, resulting in boot failures.
->
-> If the linker script is not told about possible input sections, then
-> where the section is placed as output is a heuristic-laiden mess that's
-> non-portable between linkers (ie. BFD and LLD), and has resulted in many
-> hard to debug bugs.  Kees Cook is working on cleaning this up by adding
-> --orphan-handling=3Dwarn linker flag used in ARCH=3Dpowerpc to additional
-> architectures. In the case of linker scripts, borrowing from the Zen of
-> Python: explicit is better than implicit.
->
-> Also, ld.bfd's internal linker script considers .text.hot AND
-> .text.hot.* to be part of .text, as well as .text.unlikely and
-> .text.unlikely.*. I didn't see support for .text.unknown.*, and didn't
-> see Clang producing such code in our kernel builds, but I see code in
-> LLVM that can produce such section names if profiling information is
-> missing. That may point to a larger issue with generating or collecting
-> profiles, but I would much rather be safe and explicit than have to
-> debug yet another issue related to orphan section placement.
->
-> Cc: stable@vger.kernel.org
-> Link: https://sourceware.org/git/?p=3Dbinutils-gdb.git;a=3Dcommitdiff;h=
-=3Dadd44f8d5c5c05e08b11e033127a744d61c26aee
-> Link: https://sourceware.org/git/?p=3Dbinutils-gdb.git;a=3Dcommitdiff;h=
-=3D1de778ed23ce7492c523d5850c6c6dbb34152655
-> Link: https://reviews.llvm.org/D79600
-> Link: https://bugs.chromium.org/p/chromium/issues/detail?id=3D1084760
-> Reported-by: Jian Cai <jiancai@google.com>
-> Debugged-by: Luis Lozano <llozano@google.com>
-> Suggested-by: F=C4=81ng-ru=C3=AC S=C3=B2ng <maskray@google.com>
-> Tested-by: Luis Lozano <llozano@google.com>
-> Tested-by: Manoj Gupta <manojgupta@google.com>
-> Signed-off-by: Nick Desaulniers <ndesaulniers@google.com>
-> ---
-> Changes V1 -> V2:
-> * Add .text.unknown.*.  It's not strictly necessary for us yet, but I
->   really worry that it could become a problem for us. Either way, I'm
->   happy to drop for a V3, but I'm suggesting we not.
-> * Beef up commit message.
-> * Drop references to LLD; the LLVM change had nothing to do with LLD.
->   I've realized I have a Pavlovian-response to changes from F=C4=81ng-ru=
-=C3=AC
->   that I associate with LLD.  I'm seeking professional help for my
->   ailment. Forgive me.
-> * Add link to now public CrOS bug.
->
->  include/asm-generic/vmlinux.lds.h | 5 ++++-
->  1 file changed, 4 insertions(+), 1 deletion(-)
->
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmli=
-nux.lds.h
-> index d7c7c7f36c4a..245c1af4c057 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -560,7 +560,10 @@
->   */
->  #define TEXT_TEXT                                                      \
->                 ALIGN_FUNCTION();                                       \
-> -               *(.text.hot TEXT_MAIN .text.fixup .text.unlikely)       \
-> +               *(.text.hot .text.hot.*)                                \
-> +               *(TEXT_MAIN .text.fixup)                                \
-> +               *(.text.unlikely .text.unlikely.*)                      \
-> +               *(.text.unknown .text.unknown.*)                        \
->                 NOINSTR_TEXT                                            \
->                 *(.text..refcount)                                      \
->                 *(.ref.text)                                            \
-> --
-> 2.27.0.111.gc72c7da667-goog
->
+This effort starts with the generic code so it's very simple but
+still very performant. There are optimisations that can be made to
+slowpaths, but I think it's better to attack those incrementally
+if/when we find things, and try to add the improvements to generic
+code as much as possible.
 
+Still in the process of getting numbers and testing, but the
+implementation turned out to be surprisingly simple and we have a
+config option, so I think we could merge it fairly soon.
 
---=20
 Thanks,
-~Nick Desaulniers
+Nick
+
+Nicholas Piggin (8):
+  powerpc/powernv: must include hvcall.h to get PAPR defines
+  powerpc/pseries: use smp_rmb() in H_CONFER spin yield
+  powerpc/pseries: move some PAPR paravirt functions to their own file
+  powerpc: move spinlock implementation to simple_spinlock
+  powerpc/64s: implement queued spinlocks and rwlocks
+  powerpc/pseries: implement paravirt qspinlocks for SPLPAR
+  powerpc/qspinlock: optimised atomic_try_cmpxchg_lock that adds the
+    lock hint
+  powerpc/64s: remove paravirt from simple spinlocks (RFC only)
+
+ arch/powerpc/Kconfig                          |  13 +
+ arch/powerpc/include/asm/Kbuild               |   2 +
+ arch/powerpc/include/asm/atomic.h             |  28 ++
+ arch/powerpc/include/asm/paravirt.h           |  84 +++++
+ arch/powerpc/include/asm/qspinlock.h          |  75 +++++
+ arch/powerpc/include/asm/qspinlock_paravirt.h |   5 +
+ arch/powerpc/include/asm/simple_spinlock.h    | 235 +++++++++++++
+ .../include/asm/simple_spinlock_types.h       |  21 ++
+ arch/powerpc/include/asm/spinlock.h           | 308 +-----------------
+ arch/powerpc/include/asm/spinlock_types.h     |  17 +-
+ arch/powerpc/kvm/book3s_hv_rm_mmu.c           |   6 -
+ arch/powerpc/lib/Makefile                     |   1 -
+ arch/powerpc/lib/locks.c                      |  65 ----
+ arch/powerpc/platforms/powernv/pci-ioda-tce.c |   1 +
+ arch/powerpc/platforms/pseries/Kconfig        |   5 +
+ arch/powerpc/platforms/pseries/setup.c        |   6 +-
+ include/asm-generic/qspinlock.h               |   4 +
+ 17 files changed, 488 insertions(+), 388 deletions(-)
+ create mode 100644 arch/powerpc/include/asm/paravirt.h
+ create mode 100644 arch/powerpc/include/asm/qspinlock.h
+ create mode 100644 arch/powerpc/include/asm/qspinlock_paravirt.h
+ create mode 100644 arch/powerpc/include/asm/simple_spinlock.h
+ create mode 100644 arch/powerpc/include/asm/simple_spinlock_types.h
+ delete mode 100644 arch/powerpc/lib/locks.c
+
+-- 
+2.23.0
