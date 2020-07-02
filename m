@@ -1,44 +1,49 @@
-Return-Path: <SRS0=HA2T=AT=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from casper.infradead.org ([90.155.50.34]:57900 "EHLO
-        casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726144AbgGHIpK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2020 04:45:10 -0400
-Date: Wed, 8 Jul 2020 10:32:10 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
-Message-ID: <20200708083210.GD597537@hirez.programming.kicks-ass.net>
-References: <20200706043540.1563616-1-npiggin@gmail.com>
- <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
- <1594101082.hfq9x5yact.astroid@bobo.none>
- <de3ead58-7f81-8ebd-754d-244f6be24af4@redhat.com>
+Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41704 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725287AbgGBHtE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 03:49:04 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 2/8] powerpc/pseries: use smp_rmb() in H_CONFER spin yield
+Date: Thu,  2 Jul 2020 17:48:33 +1000
+Message-ID: <20200702074839.1057733-3-npiggin@gmail.com>
+In-Reply-To: <20200702074839.1057733-1-npiggin@gmail.com>
+References: <20200702074839.1057733-1-npiggin@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <de3ead58-7f81-8ebd-754d-244f6be24af4@redhat.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
-Message-ID: <20200708083210.YaKnbYhBr1mDlFBMk-e2iKDDkeNQ9Xv6vawgLI7Kzu8@z>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200702074833.JpWEaaQZUN6XHfd1qSnVpEkrVR80PmmJ94y86tZSMWU@z>
 
-On Tue, Jul 07, 2020 at 11:33:45PM -0400, Waiman Long wrote:
-> From 5d7941a498935fb225b2c7a3108cbf590114c3db Mon Sep 17 00:00:00 2001
-> From: Waiman Long <longman@redhat.com>
-> Date: Tue, 7 Jul 2020 22:29:16 -0400
-> Subject: [PATCH 2/9] locking/pvqspinlock: Introduce
->  CONFIG_PARAVIRT_QSPINLOCKS_LITE
-> 
-> Add a new PARAVIRT_QSPINLOCKS_LITE config option that allows
-> architectures to use the PV qspinlock code without the need to use or
-> implement a pv_kick() function, thus eliminating the atomic unlock
-> overhead. The non-atomic queued_spin_unlock() can be used instead.
-> The pv_wait() function will still be needed, but it can be a dummy
-> function.
-> 
-> With that option set, the hybrid PV queued/unfair locking code should
-> still be able to make it performant enough in a paravirtualized
+There is no need for rmb(), this allows faster lwsync here.
 
-How is this supposed to work? If there is no kick, you have no control
-over who wakes up and fairness goes out the window entirely.
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ arch/powerpc/lib/locks.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-You don't even begin to explain...
+diff --git a/arch/powerpc/lib/locks.c b/arch/powerpc/lib/locks.c
+index 6440d5943c00..47a530de733e 100644
+--- a/arch/powerpc/lib/locks.c
++++ b/arch/powerpc/lib/locks.c
+@@ -30,7 +30,7 @@ void splpar_spin_yield(arch_spinlock_t *lock)
+ 	yield_count = be32_to_cpu(lppaca_of(holder_cpu).yield_count);
+ 	if ((yield_count & 1) == 0)
+ 		return;		/* virtual cpu is currently running */
+-	rmb();
++	smp_rmb();
+ 	if (lock->slock != lock_value)
+ 		return;		/* something has changed */
+ 	plpar_hcall_norets(H_CONFER,
+@@ -56,7 +56,7 @@ void splpar_rw_yield(arch_rwlock_t *rw)
+ 	yield_count = be32_to_cpu(lppaca_of(holder_cpu).yield_count);
+ 	if ((yield_count & 1) == 0)
+ 		return;		/* virtual cpu is currently running */
+-	rmb();
++	smp_rmb();
+ 	if (rw->lock != lock_value)
+ 		return;		/* something has changed */
+ 	plpar_hcall_norets(H_CONFER,
+-- 
+2.23.0
