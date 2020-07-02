@@ -1,110 +1,94 @@
-Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:3198 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726281AbgGCCgM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 22:36:12 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 12/21] KVM: x86/mmu: Skip filling the gfn cache for guaranteed direct MMU topups
-Date: Thu,  2 Jul 2020 19:35:36 -0700
-Message-ID: <20200703023545.8771-13-sean.j.christopherson@intel.com>
-In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
-References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from new3-smtp.messagingengine.com ([66.111.4.229]:50395 "EHLO
+        new3-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726568AbgGBX1U (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 19:27:20 -0400
+From: Danny Lin <danny@kdrag0n.dev>
+Subject: [PATCH v2] vmlinux.lds.h: Coalesce transient LLVM dead code elimination sections
+Date: Thu,  2 Jul 2020 16:27:13 -0700
+Message-ID: <20200702232713.123893-1-danny@kdrag0n.dev>
+In-Reply-To: <7304fdf3-23d7-442b-b870-e88ae6f37004@localhost>
+References: <7304fdf3-23d7-442b-b870-e88ae6f37004@localhost>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200703023536.2pC7nqyyEaf8dJ-4_ERkkYETj5nT3_4gDUgRV8b878o@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Nathan Chancellor <natechancellor@gmail.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Kees Cook <keescook@chromium.org>, Fangrui Song <maskray@google.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, Danny Lin <danny@kdrag0n.dev>, stable@vger.kernel.org
+Message-ID: <20200702232713.R5d514196BSbcdRpHlv1I_IERsfrt-QAHUVdwXN466g@z>
 
-Don't bother filling the gfn array cache when the caller is a fully
-direct MMU, i.e. won't need a gfn array for shadow pages.
+A recent LLVM 11 commit [1] made LLD stop implicitly coalescing some
+temporary LLVM sections, namely .{data,bss}..compoundliteral.XXX:
 
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+  [30] .data..compoundli PROGBITS         ffffffff9ac9a000  19e9a000
+       000000000000cea0  0000000000000000  WA       0     0     32
+  [31] .rela.data..compo RELA             0000000000000000  40965440
+       0000000000001d88  0000000000000018   I      2238    30     8
+  [32] .data..compoundli PROGBITS         ffffffff9aca6ea0  19ea6ea0
+       00000000000033c0  0000000000000000  WA       0     0     32
+  [33] .rela.data..compo RELA             0000000000000000  409671c8
+       0000000000000948  0000000000000018   I      2238    32     8
+  [...]
+  [2213] .bss..compoundlit NOBITS           ffffffffa3000000  1d85c000
+       00000000000000a0  0000000000000000  WA       0     0     32
+  [2214] .bss..compoundlit NOBITS           ffffffffa30000a0  1d85c000
+       0000000000000040  0000000000000000  WA       0     0     32
+  [...]
+
+.{data,bss}..L<symbol name> sections are also created in some cases.
+While there aren't any in this example, they should also be coalesced to
+be safe in case some config or future LLVM change makes it start
+creating more of those sections in the future. For example, enabling
+global merging causes ..L_MergedGlobals sections to be created, but it's
+likely that other changes will result in such sections as well.
+
+While these extra sections don't typically cause any breakage, they do
+inflate the vmlinux size due to the overhead of storing metadata for
+thousands of extra sections.
+
+It's also worth noting that for some reason, some downstream Android
+kernels can't boot at all if these sections aren't coalesced.
+
+This issue isn't limited to any specific architecture; it affects arm64
+and x86 if CONFIG_LD_DEAD_CODE_DATA_ELIMINATION is forced on.
+
+Example on x86 allyesconfig:
+    Before: 2241 sections, 1171169 KiB
+    After:    56 sections, 1170972 KiB
+
+[1] https://github.com/llvm/llvm-project/commit/9e33c096476ab5e02ab1c8442cc3cb4e32e29f17
+
+Link: https://github.com/ClangBuiltLinux/linux/issues/958
+Cc: stable@vger.kernel.org # v4.4+
+Suggested-by: Fangrui Song <maskray@google.com>
+Signed-off-by: Danny Lin <danny@kdrag0n.dev>
+Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
 ---
- arch/x86/kvm/mmu/mmu.c         | 18 ++++++++++--------
- arch/x86/kvm/mmu/paging_tmpl.h |  4 ++--
- 2 files changed, 12 insertions(+), 10 deletions(-)
+v2:
+  - Fixed swapped example sizes
+  - Added .{data,bss}..L* sections, since it looks like they're emitted
+    in some cases even when LTO is disabled
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index 60b0d460bbf5..586d63de0e78 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1101,7 +1101,7 @@ static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
- 	}
- }
- 
--static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
-+static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu, bool maybe_indirect)
- {
- 	int r;
- 
-@@ -1114,10 +1114,12 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
- 				   PT64_ROOT_MAX_LEVEL);
- 	if (r)
- 		return r;
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
--				   PT64_ROOT_MAX_LEVEL);
--	if (r)
--		return r;
-+	if (maybe_indirect) {
-+		r = mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
-+					   PT64_ROOT_MAX_LEVEL);
-+		if (r)
-+			return r;
-+	}
- 	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
- 				      PT64_ROOT_MAX_LEVEL);
- }
-@@ -4107,7 +4109,7 @@ static int direct_page_fault(struct kvm_vcpu *vcpu, gpa_t gpa, u32 error_code,
- 	if (fast_page_fault(vcpu, gpa, error_code))
- 		return RET_PF_RETRY;
- 
--	r = mmu_topup_memory_caches(vcpu);
-+	r = mmu_topup_memory_caches(vcpu, false);
- 	if (r)
- 		return r;
- 
-@@ -5142,7 +5144,7 @@ int kvm_mmu_load(struct kvm_vcpu *vcpu)
- {
- 	int r;
- 
--	r = mmu_topup_memory_caches(vcpu);
-+	r = mmu_topup_memory_caches(vcpu, !vcpu->arch.mmu->direct_map);
- 	if (r)
- 		goto out;
- 	r = mmu_alloc_roots(vcpu);
-@@ -5336,7 +5338,7 @@ static void kvm_mmu_pte_write(struct kvm_vcpu *vcpu, gpa_t gpa,
- 	 * or not since pte prefetch is skiped if it does not have
- 	 * enough objects in the cache.
- 	 */
--	mmu_topup_memory_caches(vcpu);
-+	mmu_topup_memory_caches(vcpu, true);
- 
- 	spin_lock(&vcpu->kvm->mmu_lock);
- 
-diff --git a/arch/x86/kvm/mmu/paging_tmpl.h b/arch/x86/kvm/mmu/paging_tmpl.h
-index 451d7aa7d959..8d2159ae3bdf 100644
---- a/arch/x86/kvm/mmu/paging_tmpl.h
-+++ b/arch/x86/kvm/mmu/paging_tmpl.h
-@@ -815,7 +815,7 @@ static int FNAME(page_fault)(struct kvm_vcpu *vcpu, gpa_t addr, u32 error_code,
- 		return RET_PF_EMULATE;
- 	}
- 
--	r = mmu_topup_memory_caches(vcpu);
-+	r = mmu_topup_memory_caches(vcpu, true);
- 	if (r)
- 		return r;
- 
-@@ -902,7 +902,7 @@ static void FNAME(invlpg)(struct kvm_vcpu *vcpu, gva_t gva, hpa_t root_hpa)
- 	 * No need to check return value here, rmap_can_add() can
- 	 * help us to skip pte prefetch later.
- 	 */
--	mmu_topup_memory_caches(vcpu);
-+	mmu_topup_memory_caches(vcpu, true);
- 
- 	if (!VALID_PAGE(root_hpa)) {
- 		WARN_ON(1);
+ include/asm-generic/vmlinux.lds.h | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index db600ef218d7..737ecf782229 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -94,10 +94,11 @@
+  */
+ #ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+ #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
+-#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX*
++#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX* \
++		  .data..compoundliteral* .data..L*
+ #define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
+ #define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]*
+-#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]*
++#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]* .bss..compoundliteral* .bss..L*
+ #define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
+ #else
+ #define TEXT_MAIN .text
 -- 
-2.26.0
+2.27.0
