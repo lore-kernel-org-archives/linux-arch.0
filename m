@@ -1,96 +1,78 @@
-Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43042 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726794AbgGIUIR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 16:08:17 -0400
-Received: from mail-pf1-x442.google.com (mail-pf1-x442.google.com [IPv6:2607:f8b0:4864:20::442])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 42895C08C5DC
-        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 13:08:17 -0700 (PDT)
-Received: by mail-pf1-x442.google.com with SMTP id t11so1460911pfq.11
-        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 13:08:17 -0700 (PDT)
-Subject: [PATCH 3/5] arm: Use the generic devmem_is_allowed()
-Date: Thu,  9 Jul 2020 13:05:50 -0700
-Message-ID: <20200709200552.1910298-4-palmer@dabbelt.com>
-In-Reply-To: <20200709200552.1910298-1-palmer@dabbelt.com>
-References: <20200709200552.1910298-1-palmer@dabbelt.com>
+Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from wnew1-smtp.messagingengine.com ([64.147.123.26]:46763 "EHLO
+        wnew1-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726810AbgGBI5Q (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 04:57:16 -0400
+From: Danny Lin <danny@kdrag0n.dev>
+Subject: [PATCH] vmlinux.lds.h: Coalesce transient LLVM dead code elimination sections
+Date: Thu,  2 Jul 2020 01:54:00 -0700
+Message-ID: <20200702085400.2643527-1-danny@kdrag0n.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-From: Palmer Dabbelt <palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: zong.li@sifive.com
-Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, aou@eecs.berkeley.edu, gxt@pku.edu.cn, Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linus.walleij@linaro.org, rppt@linux.ibm.com, mchehab+samsung@kernel.org, gregory.0xf0@gmail.com, masahiroy@kernel.org, Nick Desaulniers <ndesaulniers@google.com>, bgolaszewski@baylibre.com, tglx@linutronix.de, steve@sk2.org, keescook@chromium.org, mcgrof@kernel.org, alex@ghiti.fr, mark.rutland@arm.com, james.morse@arm.com, andriy.shevchenko@linux.intel.com, alex.shi@linux.alibaba.com, davem@davemloft.net, rdunlap@infradead.org, broonie@kernel.org, uwe@kleine-koenig.org, rostedt@goodmis.org, dan.j.williams@intel.com, mhiramat@kernel.org, matti.vaittinen@fi.rohmeurope.com, zaslonko@linux.ibm.com, krzk@kernel.org, willy@infradead.org, paulmck@kernel.org, pmladek@suse.com, glider@google.com, elver@google.com, davidgow@google.com, ardb@kernel.org, takahiro.akashi@linaro.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, kernel-team@android.com, Palmer Dabbelt <palmerdabbelt@google.com>
-Message-ID: <20200709200550.X51okKMMGTUSj7JXIsmM0A9Q36k0lGRhdTBBGiMsDzk@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Nathan Chancellor <natechancellor@gmail.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Kees Cook <keescook@chromium.org>, Fangrui Song <maskray@google.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, Danny Lin <danny@kdrag0n.dev>, stable@vger.kernel.org
+Message-ID: <20200702085400.vwFJ2aoQwhTEEH7DOl5zD5cZNZ9LBvo8vqRwtGgpm24@z>
 
-From: Palmer Dabbelt <palmerdabbelt@google.com>
+A recent LLVM 11 commit [1] made LLD stop implicitly coalescing some
+temporary LLVM sections, namely .{data,bss}..compoundliteral.XXX:
 
-This is exactly the same as the arm64 version, which I recently copied
-into lib/ for use by the RISC-V port.
+  [30] .data..compoundli PROGBITS         ffffffff9ac9a000  19e9a000
+       000000000000cea0  0000000000000000  WA       0     0     32
+  [31] .rela.data..compo RELA             0000000000000000  40965440
+       0000000000001d88  0000000000000018   I      2238    30     8
+  [32] .data..compoundli PROGBITS         ffffffff9aca6ea0  19ea6ea0
+       00000000000033c0  0000000000000000  WA       0     0     32
+  [33] .rela.data..compo RELA             0000000000000000  409671c8
+       0000000000000948  0000000000000018   I      2238    32     8
+  [...]
+  [2213] .bss..compoundlit NOBITS           ffffffffa3000000  1d85c000
+       00000000000000a0  0000000000000000  WA       0     0     32
+  [2214] .bss..compoundlit NOBITS           ffffffffa30000a0  1d85c000
+       0000000000000040  0000000000000000  WA       0     0     32
+  [...]
 
-[I haven't even build tested this.  The lib/ patch is on riscv/for-next,
-which I'm targeting for 5.9, so this won't work alone.  See the cover
-letter for more details.]
+While these extra sections don't typically cause any breakage, they do
+inflate the vmlinux size due to the overhead of storing metadata for
+thousands of extra sections.
 
-Signed-off-by: Palmer Dabbelt <palmerdabbelt@google.com>
+It's also worth noting that for some reason, some downstream Android
+kernels can't boot at all if these sections aren't coalesced.
+
+This issue isn't limited to any specific architecture; it affects arm64
+and x86 if CONFIG_LD_DEAD_CODE_DATA_ELIMINATION is forced on.
+
+Example on x86 allyesconfig:
+    Before: 2241 sections, 1170972 KiB
+    After:    56 sections, 1171169 KiB
+
+[1] https://github.com/llvm/llvm-project/commit/9e33c096476ab5e02ab1c8442cc3cb4e32e29f17
+
+Link: https://github.com/ClangBuiltLinux/linux/issues/958
+Cc: stable@vger.kernel.org # v4.4+
+Suggested-by: Fangrui Song <maskray@google.com>
+Signed-off-by: Danny Lin <danny@kdrag0n.dev>
 ---
- arch/arm/Kconfig          |  1 +
- arch/arm/include/asm/io.h |  1 -
- arch/arm/mm/mmap.c        | 22 ----------------------
- 3 files changed, 1 insertion(+), 23 deletions(-)
+ include/asm-generic/vmlinux.lds.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 2ac74904a3ce..0c9da68835c2 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -54,6 +54,7 @@ config ARM
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_IRQ_SHOW_LEVEL
-+	select GENERIC_LIB_DEVMEM_IS_ALLOWED
- 	select GENERIC_PCI_IOMAP
- 	select GENERIC_SCHED_CLOCK
- 	select GENERIC_SMP_IDLE_THREAD
-diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
-index ab2b654084fa..fc748122f1e0 100644
---- a/arch/arm/include/asm/io.h
-+++ b/arch/arm/include/asm/io.h
-@@ -441,7 +441,6 @@ extern void pci_iounmap(struct pci_dev *dev, void __iomem *addr);
- #define ARCH_HAS_VALID_PHYS_ADDR_RANGE
- extern int valid_phys_addr_range(phys_addr_t addr, size_t size);
- extern int valid_mmap_phys_addr_range(unsigned long pfn, size_t size);
--extern int devmem_is_allowed(unsigned long pfn);
- #endif
- 
- /*
-diff --git a/arch/arm/mm/mmap.c b/arch/arm/mm/mmap.c
-index b8d912ac9e61..a0f8a0ca0788 100644
---- a/arch/arm/mm/mmap.c
-+++ b/arch/arm/mm/mmap.c
-@@ -165,25 +165,3 @@ int valid_mmap_phys_addr_range(unsigned long pfn, size_t size)
- {
- 	return (pfn + (size >> PAGE_SHIFT)) <= (1 + (PHYS_MASK >> PAGE_SHIFT));
- }
--
--#ifdef CONFIG_STRICT_DEVMEM
--
--#include <linux/ioport.h>
--
--/*
-- * devmem_is_allowed() checks to see if /dev/mem access to a certain
-- * address is valid. The argument is a physical page number.
-- * We mimic x86 here by disallowing access to system RAM as well as
-- * device-exclusive MMIO regions. This effectively disable read()/write()
-- * on /dev/mem.
-- */
--int devmem_is_allowed(unsigned long pfn)
--{
--	if (iomem_is_exclusive(pfn << PAGE_SHIFT))
--		return 0;
--	if (!page_is_ram(pfn))
--		return 1;
--	return 0;
--}
--
--#endif
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index db600ef218d7..18968cba87c7 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -94,10 +94,10 @@
+  */
+ #ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+ #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
+-#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX*
++#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX* .data..compoundliteral*
+ #define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
+ #define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]*
+-#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]*
++#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]* .bss..compoundliteral*
+ #define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
+ #else
+ #define TEXT_MAIN .text
 -- 
-2.27.0.383.g050319c2ae-goog
+2.27.0
