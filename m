@@ -1,163 +1,60 @@
-Return-Path: <SRS0=hCR/=AV=kvack.org=owner-linux-mm@kernel.org>
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [RFC PATCH 7/7] lazy tlb: shoot lazies, a non-refcounting lazy tlb option
-Date: Fri, 10 Jul 2020 11:56:46 +1000
-Message-ID: <20200710015646.2020871-8-npiggin@gmail.com>
-In-Reply-To: <20200710015646.2020871-1-npiggin@gmail.com>
-References: <20200710015646.2020871-1-npiggin@gmail.com>
+Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:52846 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1727927AbgGBSAn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Jul 2020 14:00:43 -0400
+Date: Thu, 2 Jul 2020 11:00:42 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200702180042.GW9247@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200625080313.GY4817@hirez.programming.kicks-ass.net>
+ <20200625082433.GC117543@hirez.programming.kicks-ass.net>
+ <20200625085745.GD117543@hirez.programming.kicks-ass.net>
+ <20200630191931.GA884155@elver.google.com>
+ <20200630201243.GD4817@hirez.programming.kicks-ass.net>
+ <20200630203016.GI9247@paulmck-ThinkPad-P72>
+ <20200701091054.GW4781@hirez.programming.kicks-ass.net>
+ <4427b0f825324da4b1640e32265b04bd@AcuMS.aculab.com>
+ <20200701160624.GO9247@paulmck-ThinkPad-P72>
+ <aeed740a4d86470d84ae7d5f1cf07951@AcuMS.aculab.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <aeed740a4d86470d84ae7d5f1cf07951@AcuMS.aculab.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200710015646.UjC8ivg62tft8meTS1DZxRy_jvVegu0mrklVBFP4Hgw@z>
+To: David Laight <David.Laight@ACULAB.COM>
+Cc: 'Peter Zijlstra' <peterz@infradead.org>, Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200702180042.bHEllZwXa5v0qu9aOBsyYOqv6-hxuGOrXligUU3UxgE@z>
 
-On big systems, the mm refcount can become highly contented when doing
-a lot of context switching with threaded applications (particularly
-switching between the idle thread and an application thread).
+On Thu, Jul 02, 2020 at 09:37:26AM +0000, David Laight wrote:
+> From: Paul E. McKenney
+> > Sent: 01 July 2020 17:06
+> ...
+> > > Would an asm statement that uses the same 'register' for input and
+> > > output but doesn't actually do anything help?
+> > > It won't generate any code, but the compiler ought to assume that
+> > > it might change the value - so can't do optimisations that track
+> > > the value across the call.
+> > 
+> > It might replace the volatile load, but there are optimizations that
+> > apply to the downstream code as well.
+> > 
+> > Or are you suggesting periodically pushing the dependent variable
+> > through this asm?  That might work, but it would be easier and
+> > more maintainable to just mark the variable.
+> 
+> Marking the variable requires compiler support.
+> Although what 'volatile register int foo;' means might be interesting.
+> 
+> So I was thinking that in the case mentioned earlier you do:
+> 	ptr += LAUNDER(offset & 1);
+> to ensure the compiler didn't convert to:
+> 	if (offset & 1) ptr++;
+> (Which is probably a pessimisation - the reverse is likely better.)
 
-Abandoning lazy tlb slows switching down quite a bit in the important
-user->idle->user cases, so so instead implement a non-refcounted scheme
-that causes __mmdrop() to IPI all CPUs in the mm_cpumask and shoot down
-any remaining lazy ones.
+Indeed, Akshat's prototype follows the "volatile" qualifier in many
+ways.  https://github.com/AKG001/gcc/
 
-On a 16-socket 192-core POWER8 system, a context switching benchmark
-with as many software threads as CPUs (so each switch will go in and
-out of idle), upstream can achieve a rate of about 1 million context
-switches per second. After this patch it goes up to 118 million.
-
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/Kconfig             | 16 ++++++++++++++++
- arch/powerpc/Kconfig     |  1 +
- include/linux/sched/mm.h |  6 +++---
- kernel/fork.c            | 39 +++++++++++++++++++++++++++++++++++++++
- 4 files changed, 59 insertions(+), 3 deletions(-)
-
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 2daf8fe6146a..edf69437a971 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -418,6 +418,22 @@ config MMU_LAZY_TLB
- 	help
- 	  Enable "lazy TLB" mmu context switching for kernel threads.
-=20
-+config MMU_LAZY_TLB_REFCOUNT
-+	def_bool y
-+	depends on MMU_LAZY_TLB
-+	depends on !MMU_LAZY_TLB_SHOOTDOWN
-+
-+config MMU_LAZY_TLB_SHOOTDOWN
-+	bool
-+	depends on MMU_LAZY_TLB
-+	help
-+	  Instead of refcounting the "lazy tlb" mm struct, which can cause
-+	  contention with multi-threaded apps on large multiprocessor systems,
-+	  this option causes __mmdrop to IPI all CPUs in the mm_cpumask and
-+	  switch to init_mm if they were using the to-be-freed mm as the lazy
-+	  tlb. Architectures which do not track all possible lazy tlb CPUs in
-+	  mm_cpumask can not use this (without modification).
-+
- config ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	bool
-=20
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 920c4e3ca4ef..24ac85c868db 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -225,6 +225,7 @@ config PPC
- 	select HAVE_PERF_USER_STACK_DUMP
- 	select MMU_GATHER_RCU_TABLE_FREE
- 	select MMU_GATHER_PAGE_SIZE
-+	select MMU_LAZY_TLB_SHOOTDOWN
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
- 	select HAVE_SYSCALL_TRACEPOINTS
-diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
-index 2c2b20e2ccc7..1067af8039bd 100644
---- a/include/linux/sched/mm.h
-+++ b/include/linux/sched/mm.h
-@@ -53,19 +53,19 @@ void mmdrop(struct mm_struct *mm);
- /* Helpers for lazy TLB mm refcounting */
- static inline void mmgrab_lazy_tlb(struct mm_struct *mm)
- {
--	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB))
-+	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB_REFCOUNT))
- 		mmgrab(mm);
- }
-=20
- static inline void mmdrop_lazy_tlb(struct mm_struct *mm)
- {
--	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB))
-+	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB_REFCOUNT))
- 		mmdrop(mm);
- }
-=20
- static inline void mmdrop_lazy_tlb_smp_mb(struct mm_struct *mm)
- {
--	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB))
-+	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB_REFCOUNT))
- 		mmdrop(mm); /* This depends on mmdrop providing a full smp_mb() */
- 	else
- 		smp_mb();
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 142b23645d82..da0fba9e6079 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -685,6 +685,40 @@ static void check_mm(struct mm_struct *mm)
- #define allocate_mm()	(kmem_cache_alloc(mm_cachep, GFP_KERNEL))
- #define free_mm(mm)	(kmem_cache_free(mm_cachep, (mm)))
-=20
-+static void do_shoot_lazy_tlb(void *arg)
-+{
-+	struct mm_struct *mm =3D arg;
-+
-+	if (current->active_mm =3D=3D mm) {
-+		BUG_ON(current->mm);
-+		switch_mm(mm, &init_mm, current);
-+		current->active_mm =3D &init_mm;
-+	}
-+}
-+
-+static void do_check_lazy_tlb(void *arg)
-+{
-+	struct mm_struct *mm =3D arg;
-+
-+	BUG_ON(current->active_mm =3D=3D mm);
-+}
-+
-+static void shoot_lazy_tlbs(struct mm_struct *mm)
-+{
-+	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB_SHOOTDOWN)) {
-+		smp_call_function_many(mm_cpumask(mm), do_shoot_lazy_tlb, (void *)mm, =
-1);
-+		do_shoot_lazy_tlb(mm);
-+	}
-+}
-+
-+static void check_lazy_tlbs(struct mm_struct *mm)
-+{
-+	if (IS_ENABLED(CONFIG_DEBUG_VM)) {
-+		smp_call_function(do_check_lazy_tlb, (void *)mm, 1);
-+		do_check_lazy_tlb(mm);
-+	}
-+}
-+
- /*
-  * Called when the last reference to the mm
-  * is dropped: either by a lazy thread or by
-@@ -695,6 +729,11 @@ void __mmdrop(struct mm_struct *mm)
- 	BUG_ON(mm =3D=3D &init_mm);
- 	WARN_ON_ONCE(mm =3D=3D current->mm);
- 	WARN_ON_ONCE(mm =3D=3D current->active_mm);
-+
-+	/* Ensure no CPUs are using this as their lazy tlb mm */
-+	shoot_lazy_tlbs(mm);
-+	check_lazy_tlbs(mm);
-+
- 	mm_free_pgd(mm);
- 	destroy_context(mm);
- 	mmu_notifier_subscriptions_destroy(mm);
---=20
-2.23.0
+							Thanx, Paul
