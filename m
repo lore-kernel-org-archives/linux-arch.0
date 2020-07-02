@@ -1,73 +1,56 @@
-From: Danny Lin <danny@kdrag0n.dev>
-Subject: [PATCH] vmlinux.lds.h: Coalesce transient LLVM dead code elimination sections
-Date: Thu,  2 Jul 2020 01:54:00 -0700
-Message-ID: <20200702085400.2643527-1-danny@kdrag0n.dev>
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH 00/22] add support for Clang LTO
+Date: Thu, 2 Jul 2020 09:37:26 +0000
+Message-ID: <aeed740a4d86470d84ae7d5f1cf07951@AcuMS.aculab.com>
+References: <20200624211540.GS4817@hirez.programming.kicks-ass.net>
+ <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
+ <20200625080313.GY4817@hirez.programming.kicks-ass.net>
+ <20200625082433.GC117543@hirez.programming.kicks-ass.net>
+ <20200625085745.GD117543@hirez.programming.kicks-ass.net>
+ <20200630191931.GA884155@elver.google.com>
+ <20200630201243.GD4817@hirez.programming.kicks-ass.net>
+ <20200630203016.GI9247@paulmck-ThinkPad-P72>
+ <20200701091054.GW4781@hirez.programming.kicks-ass.net>
+ <4427b0f825324da4b1640e32265b04bd@AcuMS.aculab.com>
+ <20200701160624.GO9247@paulmck-ThinkPad-P72>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <stable-owner@vger.kernel.org>
-Sender: stable-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Nathan Chancellor <natechancellor@gmail.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Kees Cook <keescook@chromium.org>, Fangrui Song <maskray@google.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, Danny Lin <danny@kdrag0n.dev>, stable@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <20200701160624.GO9247@paulmck-ThinkPad-P72>
+Content-Language: en-US
+Sender: linux-pci-owner@vger.kernel.org
+To: "'paulmck@kernel.org'" <paulmck@kernel.org>
+Cc: 'Peter Zijlstra' <peterz@infradead.org>, Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-A recent LLVM 11 commit [1] made LLD stop implicitly coalescing some
-temporary LLVM sections, namely .{data,bss}..compoundliteral.XXX:
+From: Paul E. McKenney
+> Sent: 01 July 2020 17:06
+...
+> > Would an asm statement that uses the same 'register' for input and
+> > output but doesn't actually do anything help?
+> > It won't generate any code, but the compiler ought to assume that
+> > it might change the value - so can't do optimisations that track
+> > the value across the call.
+> 
+> It might replace the volatile load, but there are optimizations that
+> apply to the downstream code as well.
+> 
+> Or are you suggesting periodically pushing the dependent variable
+> through this asm?  That might work, but it would be easier and
+> more maintainable to just mark the variable.
 
-  [30] .data..compoundli PROGBITS         ffffffff9ac9a000  19e9a000
-       000000000000cea0  0000000000000000  WA       0     0     32
-  [31] .rela.data..compo RELA             0000000000000000  40965440
-       0000000000001d88  0000000000000018   I      2238    30     8
-  [32] .data..compoundli PROGBITS         ffffffff9aca6ea0  19ea6ea0
-       00000000000033c0  0000000000000000  WA       0     0     32
-  [33] .rela.data..compo RELA             0000000000000000  409671c8
-       0000000000000948  0000000000000018   I      2238    32     8
-  [...]
-  [2213] .bss..compoundlit NOBITS           ffffffffa3000000  1d85c000
-       00000000000000a0  0000000000000000  WA       0     0     32
-  [2214] .bss..compoundlit NOBITS           ffffffffa30000a0  1d85c000
-       0000000000000040  0000000000000000  WA       0     0     32
-  [...]
+Marking the variable requires compiler support.
+Although what 'volatile register int foo;' means might be interesting.
 
-While these extra sections don't typically cause any breakage, they do
-inflate the vmlinux size due to the overhead of storing metadata for
-thousands of extra sections.
+So I was thinking that in the case mentioned earlier you do:
+	ptr += LAUNDER(offset & 1);
+to ensure the compiler didn't convert to:
+	if (offset & 1) ptr++;
+(Which is probably a pessimisation - the reverse is likely better.)
 
-It's also worth noting that for some reason, some downstream Android
-kernels can't boot at all if these sections aren't coalesced.
+	David
 
-This issue isn't limited to any specific architecture; it affects arm64
-and x86 if CONFIG_LD_DEAD_CODE_DATA_ELIMINATION is forced on.
-
-Example on x86 allyesconfig:
-    Before: 2241 sections, 1170972 KiB
-    After:    56 sections, 1171169 KiB
-
-[1] https://github.com/llvm/llvm-project/commit/9e33c096476ab5e02ab1c8442cc3cb4e32e29f17
-
-Link: https://github.com/ClangBuiltLinux/linux/issues/958
-Cc: stable@vger.kernel.org # v4.4+
-Suggested-by: Fangrui Song <maskray@google.com>
-Signed-off-by: Danny Lin <danny@kdrag0n.dev>
----
- include/asm-generic/vmlinux.lds.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index db600ef218d7..18968cba87c7 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -94,10 +94,10 @@
-  */
- #ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
- #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
--#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX*
-+#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX* .data..compoundliteral*
- #define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
- #define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]*
--#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]*
-+#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]* .bss..compoundliteral*
- #define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
- #else
- #define TEXT_MAIN .text
--- 
-2.27.0
+-
+Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
+Registration No: 1397386 (Wales)
