@@ -1,62 +1,77 @@
-Return-Path: <SRS0=f/HW=AM=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:40324 "EHLO mail.kernel.org"
+Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:38092 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1731672AbgGAQDi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 1 Jul 2020 12:03:38 -0400
-Date: Wed, 1 Jul 2020 09:03:38 -0700
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Message-ID: <20200701160338.GN9247@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-References: <20200625080313.GY4817@hirez.programming.kicks-ass.net>
- <20200625082433.GC117543@hirez.programming.kicks-ass.net>
- <20200625085745.GD117543@hirez.programming.kicks-ass.net>
- <20200630191931.GA884155@elver.google.com>
- <20200630201243.GD4817@hirez.programming.kicks-ass.net>
- <20200630203016.GI9247@paulmck-ThinkPad-P72>
- <CANpmjNP+7TtE0WPU=nX5zs3T2+4hPkkm08meUm2VDVY3RgsHDw@mail.gmail.com>
- <20200701114027.GO4800@hirez.programming.kicks-ass.net>
- <20200701140654.GL9247@paulmck-ThinkPad-P72>
- <20200701150512.GH4817@hirez.programming.kicks-ass.net>
+        id S1726483AbgGBKsv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Jul 2020 06:48:51 -0400
+Date: Thu, 2 Jul 2020 11:48:46 +0100
+From: Will Deacon <will@kernel.org>
+Subject: Re: [PATCH 5/8] powerpc/64s: implement queued spinlocks and rwlocks
+Message-ID: <20200702104845.GB16418@willie-the-truck>
+References: <20200702074839.1057733-1-npiggin@gmail.com>
+ <20200702074839.1057733-6-npiggin@gmail.com>
+ <20200702080219.GB16113@willie-the-truck>
+ <1593685459.r2tfxtfdp6.astroid@bobo.none>
+ <20200702103506.GA16418@willie-the-truck>
+ <1593686722.w9psaqk7yp.astroid@bobo.none>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200701150512.GH4817@hirez.programming.kicks-ass.net>
+In-Reply-To: <1593686722.w9psaqk7yp.astroid@bobo.none>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-Message-ID: <20200701160338.MM7G7OxTmo7akly0BNTq3Dlpn4ALttmpYNaau7N584s@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Waiman Long <longman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org
+Message-ID: <20200702104846.sInnYoao-aVLY2cqyoRke7Lw3PgjJNMHyiimvT53r5g@z>
 
-On Wed, Jul 01, 2020 at 05:05:12PM +0200, Peter Zijlstra wrote:
-> On Wed, Jul 01, 2020 at 07:06:54AM -0700, Paul E. McKenney wrote:
+On Thu, Jul 02, 2020 at 08:47:05PM +1000, Nicholas Piggin wrote:
+> Excerpts from Will Deacon's message of July 2, 2020 8:35 pm:
+> > On Thu, Jul 02, 2020 at 08:25:43PM +1000, Nicholas Piggin wrote:
+> >> Excerpts from Will Deacon's message of July 2, 2020 6:02 pm:
+> >> > On Thu, Jul 02, 2020 at 05:48:36PM +1000, Nicholas Piggin wrote:
+> >> >> diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include/asm/qspinlock.h
+> >> >> new file mode 100644
+> >> >> index 000000000000..f84da77b6bb7
+> >> >> --- /dev/null
+> >> >> +++ b/arch/powerpc/include/asm/qspinlock.h
+> >> >> @@ -0,0 +1,20 @@
+> >> >> +/* SPDX-License-Identifier: GPL-2.0 */
+> >> >> +#ifndef _ASM_POWERPC_QSPINLOCK_H
+> >> >> +#define _ASM_POWERPC_QSPINLOCK_H
+> >> >> +
+> >> >> +#include <asm-generic/qspinlock_types.h>
+> >> >> +
+> >> >> +#define _Q_PENDING_LOOPS	(1 << 9) /* not tuned */
+> >> >> +
+> >> >> +#define smp_mb__after_spinlock()   smp_mb()
+> >> >> +
+> >> >> +static __always_inline int queued_spin_is_locked(struct qspinlock *lock)
+> >> >> +{
+> >> >> +	smp_mb();
+> >> >> +	return atomic_read(&lock->val);
+> >> >> +}
+> >> > 
+> >> > Why do you need the smp_mb() here?
+> >> 
+> >> A long and sad tale that ends here 51d7d5205d338
+> >> 
+> >> Should probably at least refer to that commit from here, since this one 
+> >> is not going to git blame back there. I'll add something.
+> > 
+> > Is this still an issue, though?
+> > 
+> > See 38b850a73034 (where we added a similar barrier on arm64) and then
+> > c6f5d02b6a0f (where we removed it).
+> > 
 > 
-> > The current state in the C++ committee is that marking variables
-> > carrying dependencies is the way forward.  This is of course not what
-> > the Linux kernel community does, but it should not be hard to have a
-> > -fall-variables-dependent or some such that causes all variables to be
-> > treated as if they were marked.  Though I was hoping for only pointers.
-> > Are they -sure- that they -absolutely- need to carry dependencies
-> > through integers???
+> Oh nice, I didn't know that went away. Thanks for the heads up.
 > 
-> What's 'need'? :-)
+> I'm going to say I'm too scared to remove it while changing the
+> spinlock algorithm, but I'll open an issue and we should look at 
+> removing it.
 
-Turning off all dependency-killing optimizations on all pointers is
-likely a non-event.  Turning off all dependency-killing optimizations
-on all integers is not the road to happiness.
+Makes sense to me -- it certainly needs a deeper look! In the meantime,
+please put some of this in a comment next to the barrier.
 
-So whatever "need" might be, it would need to be rather earthshaking.  ;-)
-It is probably not -that- hard to convert to pointers, even if they
-are indexing multiple arrays.
+Cheers,
 
-> I'm thinking __ktime_get_fast_ns() is better off with a dependent load
-> than it is with an extra smp_rmb().
-> 
-> Yes we can stick an smp_rmb() in there, but I don't like it. Like I
-> wrote earlier, if I wanted a control dependency, I'd have written one.
-
-No argument here.
-
-But it looks like we are going to have to tell the compiler.
-
-							Thanx, Paul
+Will
