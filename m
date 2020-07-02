@@ -1,213 +1,131 @@
-From: Mike Rapoport <rppt@kernel.org>
-Subject: Re: [PATCH 0/8] mm: cleanup usage of <asm/pgalloc.h>
-Date: Fri, 3 Jul 2020 00:46:54 +0300
-Message-ID: <20200702214654.GB2999148@kernel.org>
-References: <20200627143453.31835-1-rppt@kernel.org>
+From: "Danny Lin" <danny@kdrag0n.dev>
+Subject: =?UTF-8?Q?Re:_[PATCH]_vmlinux.lds.h:_Coalesce_transient_LLVM_dead_code_e?=
+ =?UTF-8?Q?limination_sections?=
+Date: Thu, 02 Jul 2020 15:01:25 -0700
+Message-ID: <7304fdf3-23d7-442b-b870-e88ae6f37004@localhost>
+References: <20200702085400.2643527-1-danny@kdrag0n.dev>
+ <202007020853.5F15B5DDD@keescook>
+ <20200702160420.GA3512364@ubuntu-s3-xlarge-x86>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-alpha-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20200627143453.31835-1-rppt@kernel.org>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christophe Leroy <christophe.leroy@csgroup.eu>, Joerg Roedel <joro@8bytes.org>, Max Filippov <jcmvbkbc@gmail.com>, Mike Rapoport <rppt@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Stafford Horne <shorne@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.orglin
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from out5-smtp.messagingengine.com ([66.111.4.29]:44131 "EHLO
+        out5-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1726347AbgGBWBs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 18:01:48 -0400
+In-Reply-To: <20200702160420.GA3512364@ubuntu-s3-xlarge-x86>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nathan Chancellor <natechancellor@gmail.com>
+Cc: Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Fangrui Song <maskray@google.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, stable@vger.kernel.org
 
-Gentle ping.
+Jul 2, 2020 9:04:25 AM Nathan Chancellor <natechancellor@gmail.com>:
 
-On Sat, Jun 27, 2020 at 05:34:45PM +0300, Mike Rapoport wrote:
-> From: Mike Rapoport <rppt@linux.ibm.com>
-> 
-> Hi,
-> 
-> Most architectures have very similar versions of pXd_alloc_one() and
-> pXd_free_one() for intermediate levels of page table. 
-> These patches add generic versions of these functions in
-> <asm-generic/pgalloc.h> and enable use of the generic functions where
-> appropriate.
-> 
-> In addition, functions declared and defined in <asm/pgalloc.h> headers
-> are used mostly by core mm and early mm initialization in arch and there is
-> no actual reason to have the <asm/pgalloc.h> included all over the place.
-> The first patch in this series removes unneeded includes of <asm/pgalloc.h>
-> 
-> In the end it didn't work out as neatly as I hoped and moving
-> pXd_alloc_track() definitions to <asm-generic/pgalloc.h> would require
-> unnecessary changes to arches that have custom page table allocations, so
-> I've decided to move lib/ioremap.c to mm/ and make pgalloc-track.h local to
-> mm/.
-> 
-> Joerg Roedel (1):
->   mm: move p?d_alloc_track to separate header file
-> 
-> Mike Rapoport (7):
->   mm: remove unneeded includes of <asm/pgalloc.h>
->   opeinrisc: switch to generic version of pte allocation
->   xtensa: switch to generic version of pte allocation
->   asm-generic: pgalloc: provide generic pmd_alloc_one() and pmd_free_one()
->   asm-generic: pgalloc: provide generic pud_alloc_one() and pud_free_one()
->   asm-generic: pgalloc: provide generic pgd_free()
->   mm: move lib/ioremap.c to mm/
-> 
->  arch/alpha/include/asm/pgalloc.h             | 21 +----
->  arch/alpha/include/asm/tlbflush.h            |  1 -
->  arch/alpha/kernel/core_irongate.c            |  1 -
->  arch/alpha/kernel/core_marvel.c              |  1 -
->  arch/alpha/kernel/core_titan.c               |  1 -
->  arch/alpha/kernel/machvec_impl.h             |  2 -
->  arch/alpha/kernel/smp.c                      |  1 -
->  arch/alpha/mm/numa.c                         |  1 -
->  arch/arc/mm/fault.c                          |  1 -
->  arch/arc/mm/init.c                           |  1 -
->  arch/arm/include/asm/pgalloc.h               | 12 +--
->  arch/arm/include/asm/tlb.h                   |  1 -
->  arch/arm/kernel/machine_kexec.c              |  1 -
->  arch/arm/kernel/smp.c                        |  1 -
->  arch/arm/kernel/suspend.c                    |  1 -
->  arch/arm/mach-omap2/omap-mpuss-lowpower.c    |  1 -
->  arch/arm/mm/hugetlbpage.c                    |  1 -
->  arch/arm/mm/mmu.c                            |  1 +
->  arch/arm64/include/asm/pgalloc.h             | 39 +---------
->  arch/arm64/kernel/smp.c                      |  1 -
->  arch/arm64/mm/hugetlbpage.c                  |  1 -
->  arch/arm64/mm/ioremap.c                      |  1 -
->  arch/arm64/mm/mmu.c                          |  1 +
->  arch/csky/include/asm/pgalloc.h              |  7 +-
->  arch/csky/kernel/smp.c                       |  1 -
->  arch/hexagon/include/asm/pgalloc.h           |  7 +-
->  arch/ia64/include/asm/pgalloc.h              | 24 ------
->  arch/ia64/include/asm/tlb.h                  |  1 -
->  arch/ia64/kernel/process.c                   |  1 -
->  arch/ia64/kernel/smp.c                       |  1 -
->  arch/ia64/kernel/smpboot.c                   |  1 -
->  arch/ia64/mm/contig.c                        |  1 -
->  arch/ia64/mm/discontig.c                     |  1 -
->  arch/ia64/mm/hugetlbpage.c                   |  1 -
->  arch/ia64/mm/tlb.c                           |  1 -
->  arch/m68k/include/asm/mmu_context.h          |  2 +-
->  arch/m68k/include/asm/sun3_pgalloc.h         |  7 +-
->  arch/m68k/kernel/dma.c                       |  2 +-
->  arch/m68k/kernel/traps.c                     |  3 +-
->  arch/m68k/mm/cache.c                         |  2 +-
->  arch/m68k/mm/fault.c                         |  1 -
->  arch/m68k/mm/kmap.c                          |  2 +-
->  arch/m68k/mm/mcfmmu.c                        |  1 +
->  arch/m68k/mm/memory.c                        |  1 -
->  arch/m68k/sun3x/dvma.c                       |  2 +-
->  arch/microblaze/include/asm/pgalloc.h        |  6 --
->  arch/microblaze/include/asm/tlbflush.h       |  1 -
->  arch/microblaze/kernel/process.c             |  1 -
->  arch/microblaze/kernel/signal.c              |  1 -
->  arch/mips/include/asm/pgalloc.h              | 19 +----
->  arch/mips/sgi-ip32/ip32-memory.c             |  1 -
->  arch/nds32/mm/mm-nds32.c                     |  2 +
->  arch/nios2/include/asm/pgalloc.h             |  7 +-
->  arch/openrisc/include/asm/pgalloc.h          | 33 +-------
->  arch/openrisc/include/asm/tlbflush.h         |  1 -
->  arch/openrisc/kernel/or32_ksyms.c            |  1 -
->  arch/parisc/include/asm/mmu_context.h        |  1 -
->  arch/parisc/include/asm/pgalloc.h            | 12 +--
->  arch/parisc/kernel/cache.c                   |  1 -
->  arch/parisc/kernel/pci-dma.c                 |  1 -
->  arch/parisc/kernel/process.c                 |  1 -
->  arch/parisc/kernel/signal.c                  |  1 -
->  arch/parisc/kernel/smp.c                     |  1 -
->  arch/parisc/mm/hugetlbpage.c                 |  1 -
->  arch/parisc/mm/ioremap.c                     |  2 +-
->  arch/powerpc/include/asm/tlb.h               |  1 -
->  arch/powerpc/mm/book3s64/hash_hugetlbpage.c  |  1 -
->  arch/powerpc/mm/book3s64/hash_pgtable.c      |  1 -
->  arch/powerpc/mm/book3s64/hash_tlb.c          |  1 -
->  arch/powerpc/mm/book3s64/radix_hugetlbpage.c |  1 -
->  arch/powerpc/mm/init_32.c                    |  1 -
->  arch/powerpc/mm/kasan/8xx.c                  |  1 -
->  arch/powerpc/mm/kasan/book3s_32.c            |  1 -
->  arch/powerpc/mm/mem.c                        |  1 -
->  arch/powerpc/mm/nohash/40x.c                 |  1 -
->  arch/powerpc/mm/nohash/8xx.c                 |  1 -
->  arch/powerpc/mm/nohash/fsl_booke.c           |  1 -
->  arch/powerpc/mm/nohash/kaslr_booke.c         |  1 -
->  arch/powerpc/mm/pgtable.c                    |  1 -
->  arch/powerpc/mm/pgtable_64.c                 |  1 -
->  arch/powerpc/mm/ptdump/hashpagetable.c       |  2 +-
->  arch/powerpc/mm/ptdump/ptdump.c              |  1 -
->  arch/powerpc/platforms/pseries/cmm.c         |  1 -
->  arch/riscv/include/asm/pgalloc.h             | 18 +----
->  arch/riscv/mm/fault.c                        |  1 -
->  arch/s390/include/asm/tlb.h                  |  1 -
->  arch/s390/include/asm/tlbflush.h             |  1 -
->  arch/s390/kernel/machine_kexec.c             |  1 -
->  arch/s390/kernel/ptrace.c                    |  1 -
->  arch/s390/kvm/diag.c                         |  1 -
->  arch/s390/kvm/priv.c                         |  1 -
->  arch/s390/kvm/pv.c                           |  1 -
->  arch/s390/mm/cmm.c                           |  1 -
->  arch/s390/mm/mmap.c                          |  1 -
->  arch/s390/mm/pgtable.c                       |  1 -
->  arch/sh/include/asm/pgalloc.h                |  4 +
->  arch/sh/kernel/idle.c                        |  1 -
->  arch/sh/kernel/machine_kexec.c               |  1 -
->  arch/sh/mm/cache-sh3.c                       |  1 -
->  arch/sh/mm/cache-sh7705.c                    |  1 -
->  arch/sh/mm/hugetlbpage.c                     |  1 -
->  arch/sh/mm/init.c                            |  1 +
->  arch/sh/mm/ioremap_fixed.c                   |  1 -
->  arch/sh/mm/tlb-sh3.c                         |  1 -
->  arch/sparc/include/asm/ide.h                 |  1 -
->  arch/sparc/include/asm/tlb_64.h              |  1 -
->  arch/sparc/kernel/leon_smp.c                 |  1 -
->  arch/sparc/kernel/process_32.c               |  1 -
->  arch/sparc/kernel/signal_32.c                |  1 -
->  arch/sparc/kernel/smp_32.c                   |  1 -
->  arch/sparc/kernel/smp_64.c                   |  1 +
->  arch/sparc/kernel/sun4m_irq.c                |  1 -
->  arch/sparc/mm/highmem.c                      |  1 -
->  arch/sparc/mm/io-unit.c                      |  1 -
->  arch/sparc/mm/iommu.c                        |  1 -
->  arch/sparc/mm/tlb.c                          |  1 -
->  arch/um/include/asm/pgalloc.h                |  9 +--
->  arch/um/include/asm/pgtable-3level.h         |  3 -
->  arch/um/kernel/mem.c                         | 17 -----
->  arch/x86/ia32/ia32_aout.c                    |  1 -
->  arch/x86/include/asm/mmu_context.h           |  1 -
->  arch/x86/include/asm/pgalloc.h               | 42 +---------
->  arch/x86/kernel/alternative.c                |  1 +
->  arch/x86/kernel/apic/apic.c                  |  1 -
->  arch/x86/kernel/mpparse.c                    |  1 -
->  arch/x86/kernel/traps.c                      |  1 -
->  arch/x86/mm/fault.c                          |  1 -
->  arch/x86/mm/hugetlbpage.c                    |  1 -
->  arch/x86/mm/kaslr.c                          |  1 -
->  arch/x86/mm/pgtable_32.c                     |  1 -
->  arch/x86/mm/pti.c                            |  1 -
->  arch/x86/platform/uv/bios_uv.c               |  1 +
->  arch/xtensa/include/asm/pgalloc.h            | 40 ++++------
->  arch/xtensa/kernel/xtensa_ksyms.c            |  1 -
->  arch/xtensa/mm/cache.c                       |  1 -
->  arch/xtensa/mm/fault.c                       |  1 -
->  drivers/block/xen-blkback/common.h           |  1 -
->  drivers/iommu/ipmmu-vmsa.c                   |  1 -
->  drivers/xen/balloon.c                        |  1 -
->  drivers/xen/privcmd.c                        |  1 -
->  fs/binfmt_elf_fdpic.c                        |  1 -
->  include/asm-generic/pgalloc.h                | 80 ++++++++++++++++++++
->  include/asm-generic/tlb.h                    |  1 -
->  include/linux/mm.h                           | 45 -----------
->  lib/Makefile                                 |  1 -
->  mm/Makefile                                  |  2 +-
->  mm/hugetlb.c                                 |  1 +
->  {lib => mm}/ioremap.c                        |  2 +
->  mm/pgalloc-track.h                           | 51 +++++++++++++
->  mm/sparse.c                                  |  1 -
->  mm/vmalloc.c                                 |  1 +
->  151 files changed, 194 insertions(+), 451 deletions(-)
->  rename {lib => mm}/ioremap.c (99%)
->  create mode 100644 mm/pgalloc-track.h
-> 
-> -- 
-> 2.26.2
-> 
+> On Thu, Jul 02, 2020 at 08:54:53AM -0700, Kees Cook wrote:
+>> On Thu, Jul 02, 2020 at 01:54:00AM -0700, Danny Lin wrote:
+>>> A recent LLVM 11 commit [1] made LLD stop implicitly coalescing some
+>>> temporary LLVM sections, namely .{data,bss}..compoundliteral.XXX:
+>>>
+>>> [30] .data..compoundli PROGBITS         ffffffff9ac9a000  19e9a000
+>>> 000000000000cea0  0000000000000000  WA       0     0     32
+>>> [31] .rela.data..compo RELA             0000000000000000  40965440
+>>> 0000000000001d88  0000000000000018   I      2238    30     8
+>>> [32] .data..compoundli PROGBITS         ffffffff9aca6ea0  19ea6ea0
+>>> 00000000000033c0  0000000000000000  WA       0     0     32
+>>> [33] .rela.data..compo RELA             0000000000000000  409671c8
+>>> 0000000000000948  0000000000000018   I      2238    32     8
+>>> [...]
+>>> [2213] .bss..compoundlit NOBITS           ffffffffa3000000  1d85c000
+>>> 00000000000000a0  0000000000000000  WA       0     0     32
+>>> [2214] .bss..compoundlit NOBITS           ffffffffa30000a0  1d85c000
+>>> 0000000000000040  0000000000000000  WA       0     0     32
+>>> [...]
+>>>
+>>> While these extra sections don't typically cause any breakage, they do
+>>> inflate the vmlinux size due to the overhead of storing metadata for
+>>> thousands of extra sections.
+>>>
+>>> It's also worth noting that for some reason, some downstream Android
+>>> kernels can't boot at all if these sections aren't coalesced.
+>>>
+>>> This issue isn't limited to any specific architecture; it affects arm64
+>>> and x86 if CONFIG_LD_DEAD_CODE_DATA_ELIMINATION is forced on.
+>
+> It might be worth noting that this happens explicitly because of
+> -fdata-sections, which is currently only used with
+> CONFIG_LD_DEAD_CODE_DATA_ELIMINATION but there are other features such
+> as LTO that will enable this and make this relevant in the future.
+>
+> https://android-review.googlesource.com/c/kernel/common/+/1329278/6#message-81b191e92ef4e98e017fa9ded5ef63ef6e60db3a
+>
+> It is also worth noting that those commits add .bss..L* and .data..L*
+> and rodata variants. Do you know if those are relevant here?
 
--- 
-Sincerely yours,
-Mike.
+As far as I can tell, those sections are exclusive to LTO which isn't in
+mainline yet. I don't see any sections like that in my DCE-only vmlinux.
+
+>
+>>> Example on x86 allyesconfig:
+>>> Before: 2241 sections, 1170972 KiB
+>>> After:    56 sections, 1171169 KiB
+>
+> Am I reading this right that coalescing those sections increases the
+> image size? Kind of interesting.
+
+Oops, I accidentally swapped the numbers in the commit message.
+Coalescing the sections makes the image smaller as expected.
+
+>
+>>> [1] https://github.com/llvm/llvm-project/commit/9e33c096476ab5e02ab1c8442cc3cb4e32e29f17
+>>>
+>>> Link: https://github.com/ClangBuiltLinux/linux/issues/958
+>>> Cc: stable@vger.kernel.org # v4.4+
+>>> Suggested-by: Fangrui Song <maskray@google.com>
+>>> Signed-off-by: Danny Lin <danny@kdrag0n.dev>
+>
+> Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
+>
+>>> ---
+>>> include/asm-generic/vmlinux.lds.h | 4 ++--
+>>> 1 file changed, 2 insertions(+), 2 deletions(-)
+>>>
+>>> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+>>> index db600ef218d7..18968cba87c7 100644
+>>> --- a/include/asm-generic/vmlinux.lds.h
+>>> +++ b/include/asm-generic/vmlinux.lds.h
+>>> @@ -94,10 +94,10 @@
+>>> */
+>>> #ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+>>> #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
+>>> -#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX*
+>>> +#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX* .data..compoundliteral*
+>
+> I am fairly certain this will fix a PowerPC warning that we had
+> recently so good!
+>
+> https://lore.kernel.org/lkml/202006180904.TVUXCf6H%25lkp@intel.com/
+>
+> Unfortunately, I forgot to reply to that thread...
+>
+>>> #define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
+>>> #define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]*
+>>> -#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]*
+>>> +#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]* .bss..compoundliteral*
+>>
+>> Are there .data.. and .bss.. sections we do NOT want to collect? i.e.
+>> why not include .data..* and .bss..* ?
+>
+> At one point Android was doing that for modules but stopped:
+>
+> https://android-review.googlesource.com/c/kernel/common/+/1266787
+>
+> I wonder if that is a problem for the main kernel image.
+
+A comment above the code in question explicitly states that not all
+.data..* sections should be coalesced. There's a .data..percpu section
+in my x86 vmlinux which should probably remain separate.
+
+>
+> Cheers,
+> Nathan
+>
