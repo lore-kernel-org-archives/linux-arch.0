@@ -1,266 +1,40 @@
 Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41798 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39406 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727065AbgGBHtf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 03:49:35 -0400
+        with ESMTP id S1727769AbgGBKge (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 06:36:34 -0400
+Date: Thu, 02 Jul 2020 20:36:27 +1000
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 8/8] powerpc/64s: remove paravirt from simple spinlocks (RFC only)
-Date: Thu,  2 Jul 2020 17:48:39 +1000
-Message-ID: <20200702074839.1057733-9-npiggin@gmail.com>
-In-Reply-To: <20200702074839.1057733-1-npiggin@gmail.com>
+Subject: Re: [PATCH 2/8] powerpc/pseries: use smp_rmb() in H_CONFER spin yield
 References: <20200702074839.1057733-1-npiggin@gmail.com>
+        <20200702074839.1057733-3-npiggin@gmail.com>
+        <20200702082840.GC4781@hirez.programming.kicks-ass.net>
+In-Reply-To: <20200702082840.GC4781@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Message-ID: <1593685552.uh4kepm08t.astroid@bobo.none>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200702074839.DVJ2-fcu86oiuV73mwv8R3g14g4vKw_Q6AOKYU0nFEA@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Waiman Long <longman@redhat.com>, Ingo Molnar <mingo@redhat.com>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
+Message-ID: <20200702103627.rbq1onHJSnMiO7TWFoJBvSAEle8BWz8ELaZDjvL2Mzc@z>
 
-RFC until we settle on queued spinlocks for 64s and remove the
-option to go back to simple locks. If other sub-archs want to keep
-simple spinlocks, the code can be nicely simplified.
----
- arch/powerpc/include/asm/simple_spinlock.h | 61 +-------------------
- arch/powerpc/kvm/book3s_hv_rm_mmu.c        |  6 --
- arch/powerpc/lib/Makefile                  |  4 --
- arch/powerpc/lib/locks.c                   | 65 ----------------------
- 4 files changed, 2 insertions(+), 134 deletions(-)
- delete mode 100644 arch/powerpc/lib/locks.c
+Excerpts from Peter Zijlstra's message of July 2, 2020 6:28 pm:
+> On Thu, Jul 02, 2020 at 05:48:33PM +1000, Nicholas Piggin wrote:
+>> There is no need for rmb(), this allows faster lwsync here.
+>=20
+> Since you determined this; I'm thinking you actually understand the
+> ordering here. How about recording this understanding in a comment?
+>=20
+> Also, should the lock->slock load not use READ_ONCE() ?
 
-diff --git a/arch/powerpc/include/asm/simple_spinlock.h b/arch/powerpc/include/asm/simple_spinlock.h
-index e048c041c4a9..5f0980dea001 100644
---- a/arch/powerpc/include/asm/simple_spinlock.h
-+++ b/arch/powerpc/include/asm/simple_spinlock.h
-@@ -16,23 +16,10 @@
-  * (the type definitions are in asm/simple_spinlock_types.h)
-  */
- #include <linux/irqflags.h>
--#include <asm/paravirt.h>
--#ifdef CONFIG_PPC64
--#include <asm/paca.h>
--#endif
- #include <asm/synch.h>
- #include <asm/ppc-opcode.h>
- 
--#ifdef CONFIG_PPC64
--/* use 0x800000yy when locked, where yy == CPU number */
--#ifdef __BIG_ENDIAN__
--#define LOCK_TOKEN	(*(u32 *)(&get_paca()->lock_token))
--#else
--#define LOCK_TOKEN	(*(u32 *)(&get_paca()->paca_index))
--#endif
--#else
- #define LOCK_TOKEN	1
--#endif
- 
- static __always_inline int arch_spin_value_unlocked(arch_spinlock_t lock)
- {
-@@ -74,43 +61,14 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
- 	return __arch_spin_trylock(lock) == 0;
- }
- 
--/*
-- * On a system with shared processors (that is, where a physical
-- * processor is multiplexed between several virtual processors),
-- * there is no point spinning on a lock if the holder of the lock
-- * isn't currently scheduled on a physical processor.  Instead
-- * we detect this situation and ask the hypervisor to give the
-- * rest of our timeslice to the lock holder.
-- *
-- * So that we can tell which virtual processor is holding a lock,
-- * we put 0x80000000 | smp_processor_id() in the lock when it is
-- * held.  Conveniently, we have a word in the paca that holds this
-- * value.
-- */
--
--#if defined(CONFIG_PPC_SPLPAR)
--/* We only yield to the hypervisor if we are in shared processor mode */
--void splpar_spin_yield(arch_spinlock_t *lock);
--void splpar_rw_yield(arch_rwlock_t *lock);
--#else /* SPLPAR */
--static inline void splpar_spin_yield(arch_spinlock_t *lock) {};
--static inline void splpar_rw_yield(arch_rwlock_t *lock) {};
--#endif
--
- static inline void spin_yield(arch_spinlock_t *lock)
- {
--	if (is_shared_processor())
--		splpar_spin_yield(lock);
--	else
--		barrier();
-+	barrier();
- }
- 
- static inline void rw_yield(arch_rwlock_t *lock)
- {
--	if (is_shared_processor())
--		splpar_rw_yield(lock);
--	else
--		barrier();
-+	barrier();
- }
- 
- static inline void arch_spin_lock(arch_spinlock_t *lock)
-@@ -120,8 +78,6 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
- 			break;
- 		do {
- 			HMT_low();
--			if (is_shared_processor())
--				splpar_spin_yield(lock);
- 		} while (unlikely(lock->slock != 0));
- 		HMT_medium();
- 	}
-@@ -139,8 +95,6 @@ void arch_spin_lock_flags(arch_spinlock_t *lock, unsigned long flags)
- 		local_irq_restore(flags);
- 		do {
- 			HMT_low();
--			if (is_shared_processor())
--				splpar_spin_yield(lock);
- 		} while (unlikely(lock->slock != 0));
- 		HMT_medium();
- 		local_irq_restore(flags_dis);
-@@ -166,13 +120,7 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
-  * read-locks.
-  */
- 
--#ifdef CONFIG_PPC64
--#define __DO_SIGN_EXTEND	"extsw	%0,%0\n"
--#define WRLOCK_TOKEN		LOCK_TOKEN	/* it's negative */
--#else
--#define __DO_SIGN_EXTEND
- #define WRLOCK_TOKEN		(-1)
--#endif
- 
- /*
-  * This returns the old value in the lock + 1,
-@@ -184,7 +132,6 @@ static inline long __arch_read_trylock(arch_rwlock_t *rw)
- 
- 	__asm__ __volatile__(
- "1:	" PPC_LWARX(%0,0,%1,1) "\n"
--	__DO_SIGN_EXTEND
- "	addic.		%0,%0,1\n\
- 	ble-		2f\n"
- "	stwcx.		%0,0,%1\n\
-@@ -227,8 +174,6 @@ static inline void arch_read_lock(arch_rwlock_t *rw)
- 			break;
- 		do {
- 			HMT_low();
--			if (is_shared_processor())
--				splpar_rw_yield(rw);
- 		} while (unlikely(rw->lock < 0));
- 		HMT_medium();
- 	}
-@@ -241,8 +186,6 @@ static inline void arch_write_lock(arch_rwlock_t *rw)
- 			break;
- 		do {
- 			HMT_low();
--			if (is_shared_processor())
--				splpar_rw_yield(rw);
- 		} while (unlikely(rw->lock != 0));
- 		HMT_medium();
- 	}
-diff --git a/arch/powerpc/kvm/book3s_hv_rm_mmu.c b/arch/powerpc/kvm/book3s_hv_rm_mmu.c
-index 88da2764c1bb..909025083161 100644
---- a/arch/powerpc/kvm/book3s_hv_rm_mmu.c
-+++ b/arch/powerpc/kvm/book3s_hv_rm_mmu.c
-@@ -410,12 +410,6 @@ long kvmppc_h_enter(struct kvm_vcpu *vcpu, unsigned long flags,
- 				 &vcpu->arch.regs.gpr[4]);
- }
- 
--#ifdef __BIG_ENDIAN__
--#define LOCK_TOKEN	(*(u32 *)(&get_paca()->lock_token))
--#else
--#define LOCK_TOKEN	(*(u32 *)(&get_paca()->paca_index))
--#endif
--
- static inline int is_mmio_hpte(unsigned long v, unsigned long r)
- {
- 	return ((v & HPTE_V_ABSENT) &&
-diff --git a/arch/powerpc/lib/Makefile b/arch/powerpc/lib/Makefile
-index d66a645503eb..158e71abc14c 100644
---- a/arch/powerpc/lib/Makefile
-+++ b/arch/powerpc/lib/Makefile
-@@ -41,10 +41,6 @@ obj-$(CONFIG_PPC_BOOK3S_64) += copyuser_power7.o copypage_power7.o \
- obj64-y	+= copypage_64.o copyuser_64.o mem_64.o hweight_64.o \
- 	   memcpy_64.o memcpy_mcsafe_64.o
- 
--ifndef CONFIG_PPC_QUEUED_SPINLOCKS
--obj64-$(CONFIG_SMP)	+= locks.o
--endif
--
- obj64-$(CONFIG_ALTIVEC)	+= vmx-helper.o
- obj64-$(CONFIG_KPROBES_SANITY_TEST)	+= test_emulate_step.o \
- 					   test_emulate_step_exec_instr.o
-diff --git a/arch/powerpc/lib/locks.c b/arch/powerpc/lib/locks.c
-deleted file mode 100644
-index e35fd1a16992..000000000000
---- a/arch/powerpc/lib/locks.c
-+++ /dev/null
-@@ -1,65 +0,0 @@
--// SPDX-License-Identifier: GPL-2.0-or-later
--/*
-- * Spin and read/write lock operations.
-- *
-- * Copyright (C) 2001-2004 Paul Mackerras <paulus@au.ibm.com>, IBM
-- * Copyright (C) 2001 Anton Blanchard <anton@au.ibm.com>, IBM
-- * Copyright (C) 2002 Dave Engebretsen <engebret@us.ibm.com>, IBM
-- *   Rework to support virtual processors
-- */
--
--#include <linux/kernel.h>
--#include <linux/spinlock.h>
--#include <linux/export.h>
--#include <linux/smp.h>
--
--/* waiting for a spinlock... */
--#if defined(CONFIG_PPC_SPLPAR)
--#include <asm/hvcall.h>
--#include <asm/smp.h>
--
--void splpar_spin_yield(arch_spinlock_t *lock)
--{
--	unsigned int lock_value, holder_cpu, yield_count;
--
--	lock_value = lock->slock;
--	if (lock_value == 0)
--		return;
--	holder_cpu = lock_value & 0xffff;
--	BUG_ON(holder_cpu >= NR_CPUS);
--
--	yield_count = yield_count_of(holder_cpu);
--	if ((yield_count & 1) == 0)
--		return;		/* virtual cpu is currently running */
--	smp_rmb();
--	if (lock->slock != lock_value)
--		return;		/* something has changed */
--	yield_to_preempted(holder_cpu, yield_count);
--}
--EXPORT_SYMBOL_GPL(splpar_spin_yield);
--
--/*
-- * Waiting for a read lock or a write lock on a rwlock...
-- * This turns out to be the same for read and write locks, since
-- * we only know the holder if it is write-locked.
-- */
--void splpar_rw_yield(arch_rwlock_t *rw)
--{
--	int lock_value;
--	unsigned int holder_cpu, yield_count;
--
--	lock_value = rw->lock;
--	if (lock_value >= 0)
--		return;		/* no write lock at present */
--	holder_cpu = lock_value & 0xffff;
--	BUG_ON(holder_cpu >= NR_CPUS);
--
--	yield_count = yield_count_of(holder_cpu);
--	if ((yield_count & 1) == 0)
--		return;		/* virtual cpu is currently running */
--	smp_rmb();
--	if (rw->lock != lock_value)
--		return;		/* something has changed */
--	yield_to_preempted(holder_cpu, yield_count);
--}
--#endif
--- 
-2.23.0
+Yeah, good point. Maybe I'll drop it from this series, doesn't really=20
+belong I just saw the cleanup and didn't want to forget it.
+
+We we just ordering the two loads in this function, and !SMP isn't a=20
+concern (i.e., no issues of !SMP guest on SMP HV), but yeah fixing
+the lack of comment is warranted, thanks.
+
+Thanks,
+Nick
