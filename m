@@ -1,61 +1,40 @@
 Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from eu-smtp-delivery-151.mimecast.com ([207.82.80.151]:41541 "EHLO
-        eu-smtp-delivery-151.mimecast.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728244AbgGBJha (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 05:37:30 -0400
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH 00/22] add support for Clang LTO
-Date: Thu, 2 Jul 2020 09:37:26 +0000
-Message-ID: <aeed740a4d86470d84ae7d5f1cf07951@AcuMS.aculab.com>
-References: <20200624211540.GS4817@hirez.programming.kicks-ass.net>
- <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
- <20200625080313.GY4817@hirez.programming.kicks-ass.net>
- <20200625082433.GC117543@hirez.programming.kicks-ass.net>
- <20200625085745.GD117543@hirez.programming.kicks-ass.net>
- <20200630191931.GA884155@elver.google.com>
- <20200630201243.GD4817@hirez.programming.kicks-ass.net>
- <20200630203016.GI9247@paulmck-ThinkPad-P72>
- <20200701091054.GW4781@hirez.programming.kicks-ass.net>
- <4427b0f825324da4b1640e32265b04bd@AcuMS.aculab.com>
- <20200701160624.GO9247@paulmck-ThinkPad-P72>
-In-Reply-To: <20200701160624.GO9247@paulmck-ThinkPad-P72>
-Content-Language: en-US
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41688 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725287AbgGBHs7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 03:48:59 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 1/8] powerpc/powernv: must include hvcall.h to get PAPR defines
+Date: Thu,  2 Jul 2020 17:48:32 +1000
+Message-ID: <20200702074839.1057733-2-npiggin@gmail.com>
+In-Reply-To: <20200702074839.1057733-1-npiggin@gmail.com>
+References: <20200702074839.1057733-1-npiggin@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "'paulmck@kernel.org'" <paulmck@kernel.org>
-Cc: 'Peter Zijlstra' <peterz@infradead.org>, Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-Message-ID: <20200702093726.MBAbWdjSm9iHV_tgedYevvX1g5KH7mARxGFVed_2QEA@z>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200702074832.zz_PxGSidSA_TH-n9JDVE9HTRqNIK6zzhPCc2DYd7cw@z>
 
-From: Paul E. McKenney
-> Sent: 01 July 2020 17:06
-...
-> > Would an asm statement that uses the same 'register' for input and
-> > output but doesn't actually do anything help?
-> > It won't generate any code, but the compiler ought to assume that
-> > it might change the value - so can't do optimisations that track
-> > the value across the call.
-> 
-> It might replace the volatile load, but there are optimizations that
-> apply to the downstream code as well.
-> 
-> Or are you suggesting periodically pushing the dependent variable
-> through this asm?  That might work, but it would be easier and
-> more maintainable to just mark the variable.
+An include goes away in future patches which breaks compilation
+without this.
 
-Marking the variable requires compiler support.
-Although what 'volatile register int foo;' means might be interesting.
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ arch/powerpc/platforms/powernv/pci-ioda-tce.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-So I was thinking that in the case mentioned earlier you do:
-	ptr += LAUNDER(offset & 1);
-to ensure the compiler didn't convert to:
-	if (offset & 1) ptr++;
-(Which is probably a pessimisation - the reverse is likely better.)
-
-	David
-
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
+diff --git a/arch/powerpc/platforms/powernv/pci-ioda-tce.c b/arch/powerpc/platforms/powernv/pci-ioda-tce.c
+index f923359d8afc..8eba6ece7808 100644
+--- a/arch/powerpc/platforms/powernv/pci-ioda-tce.c
++++ b/arch/powerpc/platforms/powernv/pci-ioda-tce.c
+@@ -15,6 +15,7 @@
+ 
+ #include <asm/iommu.h>
+ #include <asm/tce.h>
++#include <asm/hvcall.h> /* share error returns with PAPR */
+ #include "pci.h"
+ 
+ unsigned long pnv_ioda_parse_tce_sizes(struct pnv_phb *phb)
+-- 
+2.23.0
