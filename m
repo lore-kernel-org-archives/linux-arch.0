@@ -1,101 +1,75 @@
-Return-Path: <SRS0=hCR/=AV=kvack.org=owner-linux-mm@kernel.org>
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [RFC PATCH 3/7] mm: introduce exit_lazy_tlb
-Date: Fri, 10 Jul 2020 11:56:42 +1000
-Message-ID: <20200710015646.2020871-4-npiggin@gmail.com>
-In-Reply-To: <20200710015646.2020871-1-npiggin@gmail.com>
-References: <20200710015646.2020871-1-npiggin@gmail.com>
+Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:52286 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726349AbgGBR7t (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Jul 2020 13:59:49 -0400
+Date: Thu, 2 Jul 2020 10:59:48 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200702175948.GV9247@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200625085745.GD117543@hirez.programming.kicks-ass.net>
+ <20200630191931.GA884155@elver.google.com>
+ <20200630201243.GD4817@hirez.programming.kicks-ass.net>
+ <20200630203016.GI9247@paulmck-ThinkPad-P72>
+ <CANpmjNP+7TtE0WPU=nX5zs3T2+4hPkkm08meUm2VDVY3RgsHDw@mail.gmail.com>
+ <20200701114027.GO4800@hirez.programming.kicks-ass.net>
+ <20200701140654.GL9247@paulmck-ThinkPad-P72>
+ <20200701150512.GH4817@hirez.programming.kicks-ass.net>
+ <20200701160338.GN9247@paulmck-ThinkPad-P72>
+ <20200702082040.GB4781@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200702082040.GB4781@hirez.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200710015642.Fzz8KE-mUUXNqY6H0i0KG6rVCDX_ln5MEmzGDn2Rucw@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200702175948.vtIXP2GM0Q143Hjw4veTvW9MQKSZwp5iPPm0RQUoVrc@z>
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- fs/exec.c                         |  5 +++--
- include/asm-generic/mmu_context.h | 20 ++++++++++++++++++++
- kernel/kthread.c                  |  1 +
- kernel/sched/core.c               |  2 ++
- 4 files changed, 26 insertions(+), 2 deletions(-)
+On Thu, Jul 02, 2020 at 10:20:40AM +0200, Peter Zijlstra wrote:
+> On Wed, Jul 01, 2020 at 09:03:38AM -0700, Paul E. McKenney wrote:
+> 
+> > But it looks like we are going to have to tell the compiler.
+> 
+> What does the current proposal look like? I can certainly annotate the
+> seqcount latch users, but who knows what other code is out there....
 
-diff --git a/fs/exec.c b/fs/exec.c
-index e6e8a9a70327..e2ab71e88293 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -1117,9 +1117,10 @@ static int exec_mmap(struct mm_struct *mm)
- 		setmax_mm_hiwater_rss(&tsk->signal->maxrss, old_mm);
- 		mm_update_next_owner(old_mm);
- 		mmput(old_mm);
--		return 0;
-+	} else {
-+		exit_lazy_tlb(active_mm, tsk);
-+		mmdrop(active_mm);
- 	}
--	mmdrop(active_mm);
- 	return 0;
- }
-=20
-diff --git a/include/asm-generic/mmu_context.h b/include/asm-generic/mmu_=
-context.h
-index 86cea80a50df..3fc4c3879b79 100644
---- a/include/asm-generic/mmu_context.h
-+++ b/include/asm-generic/mmu_context.h
-@@ -24,6 +24,26 @@ static inline void enter_lazy_tlb(struct mm_struct *mm=
-,
- }
- #endif
-=20
-+/*
-+ * exit_lazy_tlb - Called after switching away from a lazy TLB mode mm.
-+ *
-+ * mm:  the lazy mm context that was switched away from
-+ * tsk: the task that was switched to non-lazy mm
-+ *
-+ * tsk->mm will not be NULL.
-+ *
-+ * Note this is not symmetrical to enter_lazy_tlb, this is not
-+ * called when tasks switch into the lazy mm, it's called after the
-+ * lazy mm becomes non-lazy (either switched to a different mm or the
-+ * owner of the mm returns).
-+ */
-+#ifndef exit_lazy_tlb
-+static inline void exit_lazy_tlb(struct mm_struct *mm,
-+			struct task_struct *tsk)
-+{
-+}
-+#endif
-+
- /**
-  * init_new_context - Initialize context of a new mm_struct.
-  * @tsk: task struct for the mm
-diff --git a/kernel/kthread.c b/kernel/kthread.c
-index 132f84a5fde3..e813d92f2eab 100644
---- a/kernel/kthread.c
-+++ b/kernel/kthread.c
-@@ -1253,6 +1253,7 @@ void kthread_use_mm(struct mm_struct *mm)
-=20
- 	if (active_mm !=3D mm)
- 		mmdrop(active_mm);
-+	exit_lazy_tlb(active_mm, tsk);
-=20
- 	to_kthread(tsk)->oldfs =3D get_fs();
- 	set_fs(USER_DS);
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index ca5db40392d4..debc917bc69b 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -3439,6 +3439,8 @@ context_switch(struct rq *rq, struct task_struct *p=
-rev,
- 		switch_mm_irqs_off(prev->active_mm, next->mm, next);
-=20
- 		if (!prev->mm) {                        // from kernel
-+			exit_lazy_tlb(prev->active_mm, next);
-+
- 			/* will mmdrop() in finish_task_switch(). */
- 			rq->prev_mm =3D prev->active_mm;
- 			prev->active_mm =3D NULL;
---=20
-2.23.0
+For pointers, yes, within the Linux kernel it is hopeless, thus the
+thought of a -fall-dependent-ptr or some such that makes the compiler
+pretend that each and every pointer is marked with the _Dependent_ptr
+qualifier.
+
+New non-Linux-kernel code might want to use his qualifier explicitly,
+perhaps something like the following:
+
+	_Dependent_ptr struct foo *p;  // Or maybe after the "*"?
+
+	rcu_read_lock();
+	p = rcu_dereference(gp);
+	// And so on...
+
+If a function is to take a dependent pointer as a function argument,
+then the corresponding parameter need the _Dependent_ptr marking.
+Ditto for return values.
+
+The proposal did not cover integers due to concerns about the number of
+optimization passes that would need to be reviewed to make that work.
+Nevertheless, using a marked integer would be safer than using an unmarked
+one, and if the review can be carried out, why not?  Maybe something
+like this:
+
+	_Dependent_ptr int idx;
+
+	rcu_read_lock();
+	idx = READ_ONCE(gidx);
+	d = rcuarray[idx];
+	rcu_read_unlock();
+	do_something_with(d);
+
+So use of this qualifier is quite reasonable.
+
+The prototype for GCC is here: https://github.com/AKG001/gcc/
+
+							Thanx, Paul
