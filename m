@@ -1,68 +1,218 @@
-Return-Path: <SRS0=ZlxX=AT=vger.kernel.org=linux-doc-owner@kernel.org>
-Subject: Re: [PATCH v19 07/12] landlock: Support filesystem access-control
-References: <20200707180955.53024-1-mic@digikod.net>
- <20200707180955.53024-8-mic@digikod.net>
- <6a80b712-a7b9-7b47-083a-08b7769016f8@infradead.org>
-From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
-Message-ID: <b5d5326f-cf37-36f0-7bce-8494c5a65cb5@digikod.net>
-Date: Wed, 8 Jul 2020 09:03:46 +0200
+Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:49354 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725937AbgGBVrK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Jul 2020 17:47:10 -0400
+Date: Fri, 3 Jul 2020 00:46:54 +0300
+From: Mike Rapoport <rppt@kernel.org>
+Subject: Re: [PATCH 0/8] mm: cleanup usage of <asm/pgalloc.h>
+Message-ID: <20200702214654.GB2999148@kernel.org>
+References: <20200627143453.31835-1-rppt@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <6a80b712-a7b9-7b47-083a-08b7769016f8@infradead.org>
-Content-Type: text/plain; charset=utf-8
-Content-Language: fr
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Randy Dunlap <rdunlap@infradead.org>, linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200627143453.31835-1-rppt@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200708070346.G2fmYw5YKiu3sGRYSCbx1GhSSuBscqzpgqPtDf5wd8M@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christophe Leroy <christophe.leroy@csgroup.eu>, Joerg Roedel <joro@8bytes.org>, Max Filippov <jcmvbkbc@gmail.com>, Mike Rapoport <rppt@linux.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>, Stafford Horne <shorne@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, linux-mm@kvack.org, linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org, openrisc@lists.librecores.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200702214654.nhuVGy7EI722DQsi-wjX7wBLBhXenYBvGqBeYGqsqGc@z>
 
+Gentle ping.
 
-On 07/07/2020 22:11, Randy Dunlap wrote:
-> Hi--
+On Sat, Jun 27, 2020 at 05:34:45PM +0300, Mike Rapoport wrote:
+> From: Mike Rapoport <rppt@linux.ibm.com>
 > 
-> On 7/7/20 11:09 AM, Mickaël Salaün wrote:
->> ---
->>  arch/Kconfig                  |   7 +
->>  arch/um/Kconfig               |   1 +
->>  include/uapi/linux/landlock.h |  78 +++++
->>  security/landlock/Kconfig     |   2 +-
->>  security/landlock/Makefile    |   2 +-
->>  security/landlock/fs.c        | 609 ++++++++++++++++++++++++++++++++++
->>  security/landlock/fs.h        |  60 ++++
->>  security/landlock/setup.c     |   7 +
->>  security/landlock/setup.h     |   2 +
->>  9 files changed, 766 insertions(+), 2 deletions(-)
->>  create mode 100644 include/uapi/linux/landlock.h
->>  create mode 100644 security/landlock/fs.c
->>  create mode 100644 security/landlock/fs.h
->>
->> diff --git a/arch/Kconfig b/arch/Kconfig
->> index 8cc35dc556c7..483b7476ac69 100644
->> --- a/arch/Kconfig
->> +++ b/arch/Kconfig
->> @@ -845,6 +845,13 @@ config COMPAT_32BIT_TIME
->>  config ARCH_NO_PREEMPT
->>  	bool
->>  
->> +config ARCH_EPHEMERAL_STATES
->> +	def_bool n
->> +	help
->> +	  An arch should select this symbol if it do not keep an internal kernel
+> Hi,
 > 
-> 	                                       it does not
+> Most architectures have very similar versions of pXd_alloc_one() and
+> pXd_free_one() for intermediate levels of page table. 
+> These patches add generic versions of these functions in
+> <asm-generic/pgalloc.h> and enable use of the generic functions where
+> appropriate.
 > 
->> +	  state for kernel objects such as inodes, but instead rely on something
+> In addition, functions declared and defined in <asm/pgalloc.h> headers
+> are used mostly by core mm and early mm initialization in arch and there is
+> no actual reason to have the <asm/pgalloc.h> included all over the place.
+> The first patch in this series removes unneeded includes of <asm/pgalloc.h>
 > 
-> 	                                               instead relies on
+> In the end it didn't work out as neatly as I hoped and moving
+> pXd_alloc_track() definitions to <asm-generic/pgalloc.h> would require
+> unnecessary changes to arches that have custom page table allocations, so
+> I've decided to move lib/ioremap.c to mm/ and make pgalloc-track.h local to
+> mm/.
 > 
->> +	  else (e.g. the host kernel for an UML kernel).
->> +
->>  config ARCH_SUPPORTS_RT
->>  	bool
->>  
+> Joerg Roedel (1):
+>   mm: move p?d_alloc_track to separate header file
 > 
-> thanks.
+> Mike Rapoport (7):
+>   mm: remove unneeded includes of <asm/pgalloc.h>
+>   opeinrisc: switch to generic version of pte allocation
+>   xtensa: switch to generic version of pte allocation
+>   asm-generic: pgalloc: provide generic pmd_alloc_one() and pmd_free_one()
+>   asm-generic: pgalloc: provide generic pud_alloc_one() and pud_free_one()
+>   asm-generic: pgalloc: provide generic pgd_free()
+>   mm: move lib/ioremap.c to mm/
+> 
+>  arch/alpha/include/asm/pgalloc.h             | 21 +----
+>  arch/alpha/include/asm/tlbflush.h            |  1 -
+>  arch/alpha/kernel/core_irongate.c            |  1 -
+>  arch/alpha/kernel/core_marvel.c              |  1 -
+>  arch/alpha/kernel/core_titan.c               |  1 -
+>  arch/alpha/kernel/machvec_impl.h             |  2 -
+>  arch/alpha/kernel/smp.c                      |  1 -
+>  arch/alpha/mm/numa.c                         |  1 -
+>  arch/arc/mm/fault.c                          |  1 -
+>  arch/arc/mm/init.c                           |  1 -
+>  arch/arm/include/asm/pgalloc.h               | 12 +--
+>  arch/arm/include/asm/tlb.h                   |  1 -
+>  arch/arm/kernel/machine_kexec.c              |  1 -
+>  arch/arm/kernel/smp.c                        |  1 -
+>  arch/arm/kernel/suspend.c                    |  1 -
+>  arch/arm/mach-omap2/omap-mpuss-lowpower.c    |  1 -
+>  arch/arm/mm/hugetlbpage.c                    |  1 -
+>  arch/arm/mm/mmu.c                            |  1 +
+>  arch/arm64/include/asm/pgalloc.h             | 39 +---------
+>  arch/arm64/kernel/smp.c                      |  1 -
+>  arch/arm64/mm/hugetlbpage.c                  |  1 -
+>  arch/arm64/mm/ioremap.c                      |  1 -
+>  arch/arm64/mm/mmu.c                          |  1 +
+>  arch/csky/include/asm/pgalloc.h              |  7 +-
+>  arch/csky/kernel/smp.c                       |  1 -
+>  arch/hexagon/include/asm/pgalloc.h           |  7 +-
+>  arch/ia64/include/asm/pgalloc.h              | 24 ------
+>  arch/ia64/include/asm/tlb.h                  |  1 -
+>  arch/ia64/kernel/process.c                   |  1 -
+>  arch/ia64/kernel/smp.c                       |  1 -
+>  arch/ia64/kernel/smpboot.c                   |  1 -
+>  arch/ia64/mm/contig.c                        |  1 -
+>  arch/ia64/mm/discontig.c                     |  1 -
+>  arch/ia64/mm/hugetlbpage.c                   |  1 -
+>  arch/ia64/mm/tlb.c                           |  1 -
+>  arch/m68k/include/asm/mmu_context.h          |  2 +-
+>  arch/m68k/include/asm/sun3_pgalloc.h         |  7 +-
+>  arch/m68k/kernel/dma.c                       |  2 +-
+>  arch/m68k/kernel/traps.c                     |  3 +-
+>  arch/m68k/mm/cache.c                         |  2 +-
+>  arch/m68k/mm/fault.c                         |  1 -
+>  arch/m68k/mm/kmap.c                          |  2 +-
+>  arch/m68k/mm/mcfmmu.c                        |  1 +
+>  arch/m68k/mm/memory.c                        |  1 -
+>  arch/m68k/sun3x/dvma.c                       |  2 +-
+>  arch/microblaze/include/asm/pgalloc.h        |  6 --
+>  arch/microblaze/include/asm/tlbflush.h       |  1 -
+>  arch/microblaze/kernel/process.c             |  1 -
+>  arch/microblaze/kernel/signal.c              |  1 -
+>  arch/mips/include/asm/pgalloc.h              | 19 +----
+>  arch/mips/sgi-ip32/ip32-memory.c             |  1 -
+>  arch/nds32/mm/mm-nds32.c                     |  2 +
+>  arch/nios2/include/asm/pgalloc.h             |  7 +-
+>  arch/openrisc/include/asm/pgalloc.h          | 33 +-------
+>  arch/openrisc/include/asm/tlbflush.h         |  1 -
+>  arch/openrisc/kernel/or32_ksyms.c            |  1 -
+>  arch/parisc/include/asm/mmu_context.h        |  1 -
+>  arch/parisc/include/asm/pgalloc.h            | 12 +--
+>  arch/parisc/kernel/cache.c                   |  1 -
+>  arch/parisc/kernel/pci-dma.c                 |  1 -
+>  arch/parisc/kernel/process.c                 |  1 -
+>  arch/parisc/kernel/signal.c                  |  1 -
+>  arch/parisc/kernel/smp.c                     |  1 -
+>  arch/parisc/mm/hugetlbpage.c                 |  1 -
+>  arch/parisc/mm/ioremap.c                     |  2 +-
+>  arch/powerpc/include/asm/tlb.h               |  1 -
+>  arch/powerpc/mm/book3s64/hash_hugetlbpage.c  |  1 -
+>  arch/powerpc/mm/book3s64/hash_pgtable.c      |  1 -
+>  arch/powerpc/mm/book3s64/hash_tlb.c          |  1 -
+>  arch/powerpc/mm/book3s64/radix_hugetlbpage.c |  1 -
+>  arch/powerpc/mm/init_32.c                    |  1 -
+>  arch/powerpc/mm/kasan/8xx.c                  |  1 -
+>  arch/powerpc/mm/kasan/book3s_32.c            |  1 -
+>  arch/powerpc/mm/mem.c                        |  1 -
+>  arch/powerpc/mm/nohash/40x.c                 |  1 -
+>  arch/powerpc/mm/nohash/8xx.c                 |  1 -
+>  arch/powerpc/mm/nohash/fsl_booke.c           |  1 -
+>  arch/powerpc/mm/nohash/kaslr_booke.c         |  1 -
+>  arch/powerpc/mm/pgtable.c                    |  1 -
+>  arch/powerpc/mm/pgtable_64.c                 |  1 -
+>  arch/powerpc/mm/ptdump/hashpagetable.c       |  2 +-
+>  arch/powerpc/mm/ptdump/ptdump.c              |  1 -
+>  arch/powerpc/platforms/pseries/cmm.c         |  1 -
+>  arch/riscv/include/asm/pgalloc.h             | 18 +----
+>  arch/riscv/mm/fault.c                        |  1 -
+>  arch/s390/include/asm/tlb.h                  |  1 -
+>  arch/s390/include/asm/tlbflush.h             |  1 -
+>  arch/s390/kernel/machine_kexec.c             |  1 -
+>  arch/s390/kernel/ptrace.c                    |  1 -
+>  arch/s390/kvm/diag.c                         |  1 -
+>  arch/s390/kvm/priv.c                         |  1 -
+>  arch/s390/kvm/pv.c                           |  1 -
+>  arch/s390/mm/cmm.c                           |  1 -
+>  arch/s390/mm/mmap.c                          |  1 -
+>  arch/s390/mm/pgtable.c                       |  1 -
+>  arch/sh/include/asm/pgalloc.h                |  4 +
+>  arch/sh/kernel/idle.c                        |  1 -
+>  arch/sh/kernel/machine_kexec.c               |  1 -
+>  arch/sh/mm/cache-sh3.c                       |  1 -
+>  arch/sh/mm/cache-sh7705.c                    |  1 -
+>  arch/sh/mm/hugetlbpage.c                     |  1 -
+>  arch/sh/mm/init.c                            |  1 +
+>  arch/sh/mm/ioremap_fixed.c                   |  1 -
+>  arch/sh/mm/tlb-sh3.c                         |  1 -
+>  arch/sparc/include/asm/ide.h                 |  1 -
+>  arch/sparc/include/asm/tlb_64.h              |  1 -
+>  arch/sparc/kernel/leon_smp.c                 |  1 -
+>  arch/sparc/kernel/process_32.c               |  1 -
+>  arch/sparc/kernel/signal_32.c                |  1 -
+>  arch/sparc/kernel/smp_32.c                   |  1 -
+>  arch/sparc/kernel/smp_64.c                   |  1 +
+>  arch/sparc/kernel/sun4m_irq.c                |  1 -
+>  arch/sparc/mm/highmem.c                      |  1 -
+>  arch/sparc/mm/io-unit.c                      |  1 -
+>  arch/sparc/mm/iommu.c                        |  1 -
+>  arch/sparc/mm/tlb.c                          |  1 -
+>  arch/um/include/asm/pgalloc.h                |  9 +--
+>  arch/um/include/asm/pgtable-3level.h         |  3 -
+>  arch/um/kernel/mem.c                         | 17 -----
+>  arch/x86/ia32/ia32_aout.c                    |  1 -
+>  arch/x86/include/asm/mmu_context.h           |  1 -
+>  arch/x86/include/asm/pgalloc.h               | 42 +---------
+>  arch/x86/kernel/alternative.c                |  1 +
+>  arch/x86/kernel/apic/apic.c                  |  1 -
+>  arch/x86/kernel/mpparse.c                    |  1 -
+>  arch/x86/kernel/traps.c                      |  1 -
+>  arch/x86/mm/fault.c                          |  1 -
+>  arch/x86/mm/hugetlbpage.c                    |  1 -
+>  arch/x86/mm/kaslr.c                          |  1 -
+>  arch/x86/mm/pgtable_32.c                     |  1 -
+>  arch/x86/mm/pti.c                            |  1 -
+>  arch/x86/platform/uv/bios_uv.c               |  1 +
+>  arch/xtensa/include/asm/pgalloc.h            | 40 ++++------
+>  arch/xtensa/kernel/xtensa_ksyms.c            |  1 -
+>  arch/xtensa/mm/cache.c                       |  1 -
+>  arch/xtensa/mm/fault.c                       |  1 -
+>  drivers/block/xen-blkback/common.h           |  1 -
+>  drivers/iommu/ipmmu-vmsa.c                   |  1 -
+>  drivers/xen/balloon.c                        |  1 -
+>  drivers/xen/privcmd.c                        |  1 -
+>  fs/binfmt_elf_fdpic.c                        |  1 -
+>  include/asm-generic/pgalloc.h                | 80 ++++++++++++++++++++
+>  include/asm-generic/tlb.h                    |  1 -
+>  include/linux/mm.h                           | 45 -----------
+>  lib/Makefile                                 |  1 -
+>  mm/Makefile                                  |  2 +-
+>  mm/hugetlb.c                                 |  1 +
+>  {lib => mm}/ioremap.c                        |  2 +
+>  mm/pgalloc-track.h                           | 51 +++++++++++++
+>  mm/sparse.c                                  |  1 -
+>  mm/vmalloc.c                                 |  1 +
+>  151 files changed, 194 insertions(+), 451 deletions(-)
+>  rename {lib => mm}/ioremap.c (99%)
+>  create mode 100644 mm/pgalloc-track.h
+> 
+> -- 
+> 2.26.2
 > 
 
-Thanks Randy!
+-- 
+Sincerely yours,
+Mike.
