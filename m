@@ -1,81 +1,65 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v2 6/6] powerpc/qspinlock: optimised atomic_try_cmpxchg_lock that adds the lock hint
-Date: Fri,  3 Jul 2020 17:35:16 +1000
-Message-ID: <20200703073516.1354108-7-npiggin@gmail.com>
-References: <20200703073516.1354108-1-npiggin@gmail.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 5/8] powerpc/64s: implement queued spinlocks and rwlocks
+Date: Fri, 03 Jul 2020 20:52:02 +1000
+Message-ID: <878sg07twt.fsf@mpe.ellerman.id.au>
+References: <20200702074839.1057733-1-npiggin@gmail.com> <20200702074839.1057733-6-npiggin@gmail.com> <20200702080219.GB16113@willie-the-truck> <1593685459.r2tfxtfdp6.astroid@bobo.none> <20200702103506.GA16418@willie-the-truck> <1593686722.w9psaqk7yp.astroid@bobo.none>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36068 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725764AbgGCHf7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Jul 2020 03:35:59 -0400
-In-Reply-To: <20200703073516.1354108-1-npiggin@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain
+Return-path: <kvm-ppc-owner@vger.kernel.org>
+In-Reply-To: <1593686722.w9psaqk7yp.astroid@bobo.none>
+Sender: kvm-ppc-owner@vger.kernel.org
+To: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>
+Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Waiman Long <longman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-This brings the behaviour of the uncontended fast path back to
-roughly equivalent to simple spinlocks -- a single atomic op with
-lock hint.
+Nicholas Piggin <npiggin@gmail.com> writes:
+> Excerpts from Will Deacon's message of July 2, 2020 8:35 pm:
+>> On Thu, Jul 02, 2020 at 08:25:43PM +1000, Nicholas Piggin wrote:
+>>> Excerpts from Will Deacon's message of July 2, 2020 6:02 pm:
+>>> > On Thu, Jul 02, 2020 at 05:48:36PM +1000, Nicholas Piggin wrote:
+>>> >> diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include/asm/qspinlock.h
+>>> >> new file mode 100644
+>>> >> index 000000000000..f84da77b6bb7
+>>> >> --- /dev/null
+>>> >> +++ b/arch/powerpc/include/asm/qspinlock.h
+>>> >> @@ -0,0 +1,20 @@
+>>> >> +/* SPDX-License-Identifier: GPL-2.0 */
+>>> >> +#ifndef _ASM_POWERPC_QSPINLOCK_H
+>>> >> +#define _ASM_POWERPC_QSPINLOCK_H
+>>> >> +
+>>> >> +#include <asm-generic/qspinlock_types.h>
+>>> >> +
+>>> >> +#define _Q_PENDING_LOOPS	(1 << 9) /* not tuned */
+>>> >> +
+>>> >> +#define smp_mb__after_spinlock()   smp_mb()
+>>> >> +
+>>> >> +static __always_inline int queued_spin_is_locked(struct qspinlock *lock)
+>>> >> +{
+>>> >> +	smp_mb();
+>>> >> +	return atomic_read(&lock->val);
+>>> >> +}
+>>> > 
+>>> > Why do you need the smp_mb() here?
+>>> 
+>>> A long and sad tale that ends here 51d7d5205d338
+>>> 
+>>> Should probably at least refer to that commit from here, since this one 
+>>> is not going to git blame back there. I'll add something.
+>> 
+>> Is this still an issue, though?
+>> 
+>> See 38b850a73034 (where we added a similar barrier on arm64) and then
+>> c6f5d02b6a0f (where we removed it).
+>> 
+>
+> Oh nice, I didn't know that went away. Thanks for the heads up.
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/powerpc/include/asm/atomic.h    | 28 ++++++++++++++++++++++++++++
- arch/powerpc/include/asm/qspinlock.h |  2 +-
- 2 files changed, 29 insertions(+), 1 deletion(-)
+Argh! I spent so much time chasing that damn bug in the ipc code.
 
-diff --git a/arch/powerpc/include/asm/atomic.h b/arch/powerpc/include/asm/atomic.h
-index 498785ffc25f..f6a3d145ffb7 100644
---- a/arch/powerpc/include/asm/atomic.h
-+++ b/arch/powerpc/include/asm/atomic.h
-@@ -193,6 +193,34 @@ static __inline__ int atomic_dec_return_relaxed(atomic_t *v)
- #define atomic_xchg(v, new) (xchg(&((v)->counter), new))
- #define atomic_xchg_relaxed(v, new) xchg_relaxed(&((v)->counter), (new))
- 
-+/*
-+ * Don't want to override the generic atomic_try_cmpxchg_acquire, because
-+ * we add a lock hint to the lwarx, which may not be wanted for the
-+ * _acquire case (and is not used by the other _acquire variants so it
-+ * would be a surprise).
-+ */
-+static __always_inline bool
-+atomic_try_cmpxchg_lock(atomic_t *v, int *old, int new)
-+{
-+	int r, o = *old;
-+
-+	__asm__ __volatile__ (
-+"1:\t"	PPC_LWARX(%0,0,%2,1) "	# atomic_try_cmpxchg_acquire	\n"
-+"	cmpw	0,%0,%3							\n"
-+"	bne-	2f							\n"
-+"	stwcx.	%4,0,%2							\n"
-+"	bne-	1b							\n"
-+"\t"	PPC_ACQUIRE_BARRIER "						\n"
-+"2:									\n"
-+	: "=&r" (r), "+m" (v->counter)
-+	: "r" (&v->counter), "r" (o), "r" (new)
-+	: "cr0", "memory");
-+
-+	if (unlikely(r != o))
-+		*old = r;
-+	return likely(r == o);
-+}
-+
- /**
-  * atomic_fetch_add_unless - add unless the number is a given value
-  * @v: pointer of type atomic_t
-diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include/asm/qspinlock.h
-index 0960a0de2467..beb6aa4628e7 100644
---- a/arch/powerpc/include/asm/qspinlock.h
-+++ b/arch/powerpc/include/asm/qspinlock.h
-@@ -26,7 +26,7 @@ static __always_inline void queued_spin_lock(struct qspinlock *lock)
- {
- 	u32 val = 0;
- 
--	if (likely(atomic_try_cmpxchg_acquire(&lock->val, &val, _Q_LOCKED_VAL)))
-+	if (likely(atomic_try_cmpxchg_lock(&lock->val, &val, _Q_LOCKED_VAL)))
- 		return;
- 
- 	queued_spin_lock_slowpath(lock, val);
--- 
-2.23.0
+> I'm going to say I'm too scared to remove it while changing the
+> spinlock algorithm, but I'll open an issue and we should look at 
+> removing it.
+
+Sounds good.
+
+cheers
