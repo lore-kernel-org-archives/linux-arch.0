@@ -1,187 +1,103 @@
-Return-Path: <SRS0=tLCE=AR=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49138 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728756AbgGFEgF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jul 2020 00:36:05 -0400
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v3 2/6] powerpc/pseries: move some PAPR paravirt functions to their own file
-Date: Mon,  6 Jul 2020 14:35:36 +1000
-Message-ID: <20200706043540.1563616-3-npiggin@gmail.com>
-In-Reply-To: <20200706043540.1563616-1-npiggin@gmail.com>
-References: <20200706043540.1563616-1-npiggin@gmail.com>
+Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga11.intel.com ([192.55.52.93]:52027 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726152AbgGCCgG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Jul 2020 22:36:06 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v3 02/21] KVM: x86/mmu: Consolidate "page" variant of memory cache helpers
+Date: Thu,  2 Jul 2020 19:35:26 -0700
+Message-ID: <20200703023545.8771-3-sean.j.christopherson@intel.com>
+In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200706043536.MJeen2bjHZQB1l_EwonOHKZC1ila-2_DhLksYZinBaw@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200703023526.vA-lhLfp1YLK7yoUYDbungxd67byh-i96PzXtD0msrg@z>
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+Drop the "page" variants of the topup/free memory cache helpers, using
+the existence of an associated kmem_cache to select the correct alloc
+or free routine.
+
+No functional change intended.
+
+Reviewed-by: Ben Gardon <bgardon@google.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- arch/powerpc/include/asm/paravirt.h | 61 +++++++++++++++++++++++++++++
- arch/powerpc/include/asm/spinlock.h | 24 +-----------
- arch/powerpc/lib/locks.c            | 12 +++---
- 3 files changed, 68 insertions(+), 29 deletions(-)
- create mode 100644 arch/powerpc/include/asm/paravirt.h
+ arch/x86/kvm/mmu/mmu.c | 37 +++++++++++--------------------------
+ 1 file changed, 11 insertions(+), 26 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/paravirt.h b/arch/powerpc/include/asm/paravirt.h
-new file mode 100644
-index 000000000000..7a8546660a63
---- /dev/null
-+++ b/arch/powerpc/include/asm/paravirt.h
-@@ -0,0 +1,61 @@
-+/* SPDX-License-Identifier: GPL-2.0-or-later */
-+#ifndef __ASM_PARAVIRT_H
-+#define __ASM_PARAVIRT_H
-+#ifdef __KERNEL__
-+
-+#include <linux/jump_label.h>
-+#include <asm/smp.h>
-+#ifdef CONFIG_PPC64
-+#include <asm/paca.h>
-+#include <asm/hvcall.h>
-+#endif
-+
-+#ifdef CONFIG_PPC_SPLPAR
-+DECLARE_STATIC_KEY_FALSE(shared_processor);
-+
-+static inline bool is_shared_processor(void)
-+{
-+	return static_branch_unlikely(&shared_processor);
-+}
-+
-+/* If bit 0 is set, the cpu has been preempted */
-+static inline u32 yield_count_of(int cpu)
-+{
-+	__be32 yield_count = READ_ONCE(lppaca_of(cpu).yield_count);
-+	return be32_to_cpu(yield_count);
-+}
-+
-+static inline void yield_to_preempted(int cpu, u32 yield_count)
-+{
-+	plpar_hcall_norets(H_CONFER, get_hard_smp_processor_id(cpu), yield_count);
-+}
-+#else
-+static inline bool is_shared_processor(void)
-+{
-+	return false;
-+}
-+
-+static inline u32 yield_count_of(int cpu)
-+{
-+	return 0;
-+}
-+
-+extern void ___bad_yield_to_preempted(void);
-+static inline void yield_to_preempted(int cpu, u32 yield_count)
-+{
-+	___bad_yield_to_preempted(); /* This would be a bug */
-+}
-+#endif
-+
-+#define vcpu_is_preempted vcpu_is_preempted
-+static inline bool vcpu_is_preempted(int cpu)
-+{
-+	if (!is_shared_processor())
-+		return false;
-+	if (yield_count_of(cpu) & 1)
-+		return true;
-+	return false;
-+}
-+
-+#endif /* __KERNEL__ */
-+#endif /* __ASM_PARAVIRT_H */
-diff --git a/arch/powerpc/include/asm/spinlock.h b/arch/powerpc/include/asm/spinlock.h
-index 2d620896cdae..79be9bb10bbb 100644
---- a/arch/powerpc/include/asm/spinlock.h
-+++ b/arch/powerpc/include/asm/spinlock.h
-@@ -15,11 +15,10 @@
-  *
-  * (the type definitions are in asm/spinlock_types.h)
-  */
--#include <linux/jump_label.h>
- #include <linux/irqflags.h>
-+#include <asm/paravirt.h>
- #ifdef CONFIG_PPC64
- #include <asm/paca.h>
--#include <asm/hvcall.h>
- #endif
- #include <asm/synch.h>
- #include <asm/ppc-opcode.h>
-@@ -35,18 +34,6 @@
- #define LOCK_TOKEN	1
- #endif
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index 2c62cc1d0353..d6612af6c056 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -1067,7 +1067,10 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
+ 	if (cache->nobjs >= min)
+ 		return 0;
+ 	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		obj = kmem_cache_zalloc(cache->kmem_cache, GFP_KERNEL_ACCOUNT);
++		if (cache->kmem_cache)
++			obj = kmem_cache_zalloc(cache->kmem_cache, GFP_KERNEL_ACCOUNT);
++		else
++			obj = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
+ 		if (!obj)
+ 			return cache->nobjs >= min ? 0 : -ENOMEM;
+ 		cache->objects[cache->nobjs++] = obj;
+@@ -1082,30 +1085,12 @@ static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *cache)
  
--#ifdef CONFIG_PPC_PSERIES
--DECLARE_STATIC_KEY_FALSE(shared_processor);
--
--#define vcpu_is_preempted vcpu_is_preempted
--static inline bool vcpu_is_preempted(int cpu)
--{
--	if (!static_branch_unlikely(&shared_processor))
--		return false;
--	return !!(be32_to_cpu(lppaca_of(cpu).yield_count) & 1);
--}
--#endif
--
- static __always_inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+ static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
  {
- 	return lock.slock == 0;
-@@ -110,15 +97,6 @@ static inline void splpar_spin_yield(arch_spinlock_t *lock) {};
- static inline void splpar_rw_yield(arch_rwlock_t *lock) {};
- #endif
- 
--static inline bool is_shared_processor(void)
--{
--#ifdef CONFIG_PPC_SPLPAR
--	return static_branch_unlikely(&shared_processor);
--#else
--	return false;
--#endif
+-	while (mc->nobjs)
+-		kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
 -}
 -
- static inline void spin_yield(arch_spinlock_t *lock)
- {
- 	if (is_shared_processor())
-diff --git a/arch/powerpc/lib/locks.c b/arch/powerpc/lib/locks.c
-index 6440d5943c00..04165b7a163f 100644
---- a/arch/powerpc/lib/locks.c
-+++ b/arch/powerpc/lib/locks.c
-@@ -27,14 +27,14 @@ void splpar_spin_yield(arch_spinlock_t *lock)
- 		return;
- 	holder_cpu = lock_value & 0xffff;
- 	BUG_ON(holder_cpu >= NR_CPUS);
--	yield_count = be32_to_cpu(lppaca_of(holder_cpu).yield_count);
-+
-+	yield_count = yield_count_of(holder_cpu);
- 	if ((yield_count & 1) == 0)
- 		return;		/* virtual cpu is currently running */
- 	rmb();
- 	if (lock->slock != lock_value)
- 		return;		/* something has changed */
--	plpar_hcall_norets(H_CONFER,
--		get_hard_smp_processor_id(holder_cpu), yield_count);
-+	yield_to_preempted(holder_cpu, yield_count);
+-static int mmu_topup_memory_cache_page(struct kvm_mmu_memory_cache *cache,
+-				       int min)
+-{
+-	void *page;
+-
+-	if (cache->nobjs >= min)
+-		return 0;
+-	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
+-		if (!page)
+-			return cache->nobjs >= min ? 0 : -ENOMEM;
+-		cache->objects[cache->nobjs++] = page;
++	while (mc->nobjs) {
++		if (mc->kmem_cache)
++			kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
++		else
++			free_page((unsigned long)mc->objects[--mc->nobjs]);
+ 	}
+-	return 0;
+-}
+-
+-static void mmu_free_memory_cache_page(struct kvm_mmu_memory_cache *mc)
+-{
+-	while (mc->nobjs)
+-		free_page((unsigned long)mc->objects[--mc->nobjs]);
  }
- EXPORT_SYMBOL_GPL(splpar_spin_yield);
  
-@@ -53,13 +53,13 @@ void splpar_rw_yield(arch_rwlock_t *rw)
- 		return;		/* no write lock at present */
- 	holder_cpu = lock_value & 0xffff;
- 	BUG_ON(holder_cpu >= NR_CPUS);
--	yield_count = be32_to_cpu(lppaca_of(holder_cpu).yield_count);
-+
-+	yield_count = yield_count_of(holder_cpu);
- 	if ((yield_count & 1) == 0)
- 		return;		/* virtual cpu is currently running */
- 	rmb();
- 	if (rw->lock != lock_value)
- 		return;		/* something has changed */
--	plpar_hcall_norets(H_CONFER,
--		get_hard_smp_processor_id(holder_cpu), yield_count);
-+	yield_to_preempted(holder_cpu, yield_count);
+ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+@@ -1116,7 +1101,7 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+ 				   8 + PTE_PREFETCH_NUM);
+ 	if (r)
+ 		goto out;
+-	r = mmu_topup_memory_cache_page(&vcpu->arch.mmu_page_cache, 8);
++	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache, 8);
+ 	if (r)
+ 		goto out;
+ 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
+@@ -1127,7 +1112,7 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+ static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+ {
+ 	mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache);
+-	mmu_free_memory_cache_page(&vcpu->arch.mmu_page_cache);
++	mmu_free_memory_cache(&vcpu->arch.mmu_page_cache);
+ 	mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
  }
- #endif
+ 
 -- 
-2.23.0
+2.26.0
