@@ -1,54 +1,92 @@
-Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47670 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726151AbgGIIb2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 04:31:28 -0400
-Date: Thu, 9 Jul 2020 10:31:13 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
-Message-ID: <20200709083113.GI597537@hirez.programming.kicks-ass.net>
-References: <20200706043540.1563616-1-npiggin@gmail.com>
- <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
- <1594101082.hfq9x5yact.astroid@bobo.none>
- <20200708084106.GE597537@hirez.programming.kicks-ass.net>
- <a9834278-25bf-90e9-10f2-cd10e5407ff6@redhat.com>
+Return-Path: <SRS0=YdXP=AO=kvack.org=owner-linux-mm@kernel.org>
+Date: Fri, 3 Jul 2020 11:50:49 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v5 19/25] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
+ support
+Message-ID: <20200703104412.GB14950@gaia>
+References: <20200624175244.25837-1-catalin.marinas@arm.com>
+ <20200624175244.25837-20-catalin.marinas@arm.com>
+ <7fd536af-f9fa-aa10-a4c3-001e80dd7d7b@linaro.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <a9834278-25bf-90e9-10f2-cd10e5407ff6@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <7fd536af-f9fa-aa10-a4c3-001e80dd7d7b@linaro.org>
+Sender: owner-linux-mm@kvack.org
+To: Luis Machado <luis.machado@linaro.org>
+Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>, Alan Hayward <Alan.Hayward@arm.com>, Omair Javaid <omair.javaid@linaro.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
-Message-ID: <20200709083113.3QR0XdD3nqUikHHEvbF8GgwVQHa7B8LBTcS2gRlUdOY@z>
+Message-ID: <20200703105049.fGcfaOdYbM0c8fTtH-ARd7Amk3vc8wucOIbdrFVX73Q@z>
 
-On Wed, Jul 08, 2020 at 07:54:34PM -0400, Waiman Long wrote:
-> On 7/8/20 4:41 AM, Peter Zijlstra wrote:
-> > On Tue, Jul 07, 2020 at 03:57:06PM +1000, Nicholas Piggin wrote:
-> > > Yes, powerpc could certainly get more performance out of the slow
-> > > paths, and then there are a few parameters to tune.
-> > Can you clarify? The slow path is already in use on ARM64 which is weak,
-> > so I doubt there's superfluous serialization present. And Will spend a
-> > fair amount of time on making that thing guarantee forward progressm, so
-> > there just isn't too much room to play.
-> > 
-> > > We don't have a good alternate patching for function calls yet, but
-> > > that would be something to do for native vs pv.
-> > Going by your jump_label implementation, support for static_call should
-> > be fairly straight forward too, no?
-> > 
-> >    https://lkml.kernel.org/r/20200624153024.794671356@infradead.org
-> > 
-> Speaking of static_call, I am also looking forward to it. Do you have an
-> idea when that will be merged?
+Hi Luis,
 
-0day had one crash on the last round, I think Steve send a fix for that
-last night and I'll go look at it.
+On Thu, Jun 25, 2020 at 02:10:10PM -0300, Luis Machado wrote:
+> On 6/24/20 2:52 PM, Catalin Marinas wrote:
+> > +/*
+> > + * Access MTE tags in another process' address space as given in mm. Update
+> > + * the number of tags copied. Return 0 if any tags copied, error otherwise.
+> > + * Inspired by __access_remote_vm().
+> > + */
+> > +static int __access_remote_tags(struct task_struct *tsk, struct mm_struct *mm,
+> > +				unsigned long addr, struct iovec *kiov,
+> > +				unsigned int gup_flags)
+> > +{
+> > +	struct vm_area_struct *vma;
+> > +	void __user *buf = kiov->iov_base;
+> > +	size_t len = kiov->iov_len;
+> > +	int ret;
+> > +	int write = gup_flags & FOLL_WRITE;
+> > +
+> > +	if (!access_ok(buf, len))
+> > +		return -EFAULT;
+> > +
+> > +	if (mmap_read_lock_killable(mm))
+> > +		return -EIO;
+> > +
+> > +	while (len) {
+> > +		unsigned long tags, offset;
+> > +		void *maddr;
+> > +		struct page *page = NULL;
+> > +
+> > +		ret = get_user_pages_remote(tsk, mm, addr, 1, gup_flags,
+> > +					    &page, &vma, NULL);
+> > +		if (ret <= 0)
+> > +			break;
+> > +
+> > +		/*
+> > +		 * Only copy tags if the page has been mapped as PROT_MTE
+> > +		 * (PG_mte_tagged set). Otherwise the tags are not valid and
+> > +		 * not accessible to user. Moreover, an mprotect(PROT_MTE)
+> > +		 * would cause the existing tags to be cleared if the page
+> > +		 * was never mapped with PROT_MTE.
+> > +		 */
+> > +		if (!test_bit(PG_mte_tagged, &page->flags)) {
+> > +			ret = -EOPNOTSUPP;
+> > +			put_page(page);
+> > +			break;
+> > +		}
+[...]
+> My understanding is that both the PEEKMTETAGS and POKEMTETAGS can
+> potentially read/write less tags than requested, right? The iov_len field
+> will be updated accordingly.
 
-That said, the last posting got 0 feedback, so either everybody is
-really happy with it, or not interested. So let us know in the thread,
-with some review feedback.
+Yes.
 
-Once I get through enough of the inbox to actually find the fix and test
-it, I'll also update the thread, and maybe threaten to merge it if
-everybody stays silent :-)
+(I missed this part due to the mix of top/bottom-posting)
+
+> So the ptrace caller would need to loop and make sure all the tags were
+> read/written, right?
+
+Yes. As per the documentation patch, if the ptrace call returns 0,
+iov_len is updated to the number of tags copied. The caller can retry
+until it gets a negative return (error) or everything was copied.
+
+> I'm considering the situation where the kernel reads/writes 0 tags (when
+> requested to read/write 1 or more tags) an error we can't recover from. So
+> this may indicate a page without PROT_MTE or an invalid address.
+
+For this case, it should return -EOPNOTSUPP (see the documentation
+patch; and, of course, also test the syscall in case I got anything
+wrong).
+
+-- 
+Catalin
