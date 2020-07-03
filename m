@@ -1,8 +1,8 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 18/21] KVM: arm64: Use common KVM implementation of MMU
- memory caches
-Date: Thu,  2 Jul 2020 19:35:42 -0700
-Message-ID: <20200703023545.8771-19-sean.j.christopherson@intel.com>
+Subject: [PATCH v3 08/21] KVM: x86/mmu: Clean up the gorilla math in
+ mmu_topup_memory_caches()
+Date: Thu,  2 Jul 2020 19:35:32 -0700
+Message-ID: <20200703023545.8771-9-sean.j.christopherson@intel.com>
 References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,203 +22,65 @@ To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Ber
 Cc: linux-arch@vger.kernel.org, Junaid Shahid <junaids@google.com>, Wanpeng Li <wanpengli@tencent.com>, kvm@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Peter Shier <pshier@google.com>, linux-mips@vger.kernel.org, Sean Christopherson <sean.j.christopherson@intel.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Gardon <bgardon@google.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Peter Feiner <pfeiner@google.com>, kvmarm@lists.cs.columbia.edu, Jim Mattson <jmattson@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Move to the common MMU memory cache implementation now that the common
-code and arm64's existing code are semantically compatible.
+Clean up the minimums in mmu_topup_memory_caches() to document the
+driving mechanisms behind the minimums.  Now that encountering an empty
+cache is unlikely to trigger BUG_ON(), it is less dangerous to be more
+precise when defining the minimums.
 
-No functional change intended.
+For rmaps, the logic is 1 parent PTE per level, plus a single rmap, and
+prefetched rmaps.  The extra objects in the current '8 + PREFETCH'
+minimum came about due to an abundance of paranoia in commit
+c41ef344de212 ("KVM: MMU: increase per-vcpu rmap cache alloc size"),
+i.e. it could have increased the minimum to 2 rmaps.  Furthermore, the
+unexpected extra rmap case was killed off entirely by commits
+f759e2b4c728c ("KVM: MMU: avoid pte_list_desc running out in
+kvm_mmu_pte_write") and f5a1e9f89504f ("KVM: MMU: remove call to
+kvm_mmu_pte_write from walk_addr").
 
-Cc: Marc Zyngier <maz@kernel.org>
-Suggested-by: Christoffer Dall <christoffer.dall@arm.com>
+For the so called page cache, replace '8' with 2*PT64_ROOT_MAX_LEVEL.
+The 2x multiplier is needed because the cache is used for both shadow
+pages and gfn arrays for indirect MMUs.
+
+And finally, for page headers, replace '4' with PT64_ROOT_MAX_LEVEL.
+
+Note, KVM now supports 5-level paging, i.e. the old minimums that used a
+baseline derived from 4-level paging were technically wrong.  But, KVM
+always allocates roots in a separate flow, e.g. it's impossible in the
+current implementation to actually need 5 new shadow pages in a single
+flow.  Use PT64_ROOT_MAX_LEVEL unmodified instead of subtracting 1, as
+the direct usage is likely more intuitive to uninformed readers, and the
+inflated minimum is unlikely to affect functionality in practice.
+
+Reviewed-by: Ben Gardon <bgardon@google.com>
 Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- arch/arm64/include/asm/Kbuild      |  1 -
- arch/arm64/include/asm/kvm_host.h  | 12 -------
- arch/arm64/include/asm/kvm_types.h |  8 +++++
- arch/arm64/kvm/mmu.c               | 53 +++++++-----------------------
- 4 files changed, 19 insertions(+), 55 deletions(-)
- create mode 100644 arch/arm64/include/asm/kvm_types.h
+ arch/x86/kvm/mmu/mmu.c | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
-index 35a68155cd0e..ff9cbb631212 100644
---- a/arch/arm64/include/asm/Kbuild
-+++ b/arch/arm64/include/asm/Kbuild
-@@ -1,6 +1,5 @@
- # SPDX-License-Identifier: GPL-2.0
- generic-y += early_ioremap.h
--generic-y += kvm_types.h
- generic-y += local64.h
- generic-y += mcs_spinlock.h
- generic-y += qrwlock.h
-diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
-index 335170b59899..23d1f41548f5 100644
---- a/arch/arm64/include/asm/kvm_host.h
-+++ b/arch/arm64/include/asm/kvm_host.h
-@@ -97,18 +97,6 @@ struct kvm_arch {
- 	bool return_nisv_io_abort_to_user;
- };
- 
--#define KVM_NR_MEM_OBJS     40
--
--/*
-- * We don't want allocation failures within the mmu code, so we preallocate
-- * enough memory for a single page fault in a cache.
-- */
--struct kvm_mmu_memory_cache {
--	int nobjs;
--	gfp_t gfp_zero;
--	void *objects[KVM_NR_MEM_OBJS];
--};
--
- struct kvm_vcpu_fault_info {
- 	u32 esr_el2;		/* Hyp Syndrom Register */
- 	u64 far_el2;		/* Hyp Fault Address Register */
-diff --git a/arch/arm64/include/asm/kvm_types.h b/arch/arm64/include/asm/kvm_types.h
-new file mode 100644
-index 000000000000..9a126b9e2d7c
---- /dev/null
-+++ b/arch/arm64/include/asm/kvm_types.h
-@@ -0,0 +1,8 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _ASM_ARM64_KVM_TYPES_H
-+#define _ASM_ARM64_KVM_TYPES_H
-+
-+#define KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE 40
-+
-+#endif /* _ASM_ARM64_KVM_TYPES_H */
-+
-diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
-index 5220623a4efb..ba66e9a9bd3c 100644
---- a/arch/arm64/kvm/mmu.c
-+++ b/arch/arm64/kvm/mmu.c
-@@ -124,37 +124,6 @@ static void stage2_dissolve_pud(struct kvm *kvm, phys_addr_t addr, pud_t *pudp)
- 	put_page(virt_to_page(pudp));
- }
- 
--static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
--{
--	void *page;
--
--	if (cache->nobjs >= min)
--		return 0;
--	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
--		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT |
--					       cache->gfp_zero);
--		if (!page)
--			return -ENOMEM;
--		cache->objects[cache->nobjs++] = page;
--	}
--	return 0;
--}
--
--static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
--{
--	while (mc->nobjs)
--		free_page((unsigned long)mc->objects[--mc->nobjs]);
--}
--
--static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
--{
--	void *p;
--
--	BUG_ON(!mc || !mc->nobjs);
--	p = mc->objects[--mc->nobjs];
--	return p;
--}
--
- static void clear_stage2_pgd_entry(struct kvm *kvm, pgd_t *pgd, phys_addr_t addr)
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index 3d0768e16463..cf02ad93c249 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -1103,14 +1103,17 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
  {
- 	p4d_t *p4d_table __maybe_unused = stage2_p4d_offset(kvm, pgd, 0UL);
-@@ -1131,7 +1100,7 @@ static p4d_t *stage2_get_p4d(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
- 	if (stage2_pgd_none(kvm, *pgd)) {
- 		if (!cache)
- 			return NULL;
--		p4d = mmu_memory_cache_alloc(cache);
-+		p4d = kvm_mmu_memory_cache_alloc(cache);
- 		stage2_pgd_populate(kvm, pgd, p4d);
- 		get_page(virt_to_page(pgd));
- 	}
-@@ -1149,7 +1118,7 @@ static pud_t *stage2_get_pud(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
- 	if (stage2_p4d_none(kvm, *p4d)) {
- 		if (!cache)
- 			return NULL;
--		pud = mmu_memory_cache_alloc(cache);
-+		pud = kvm_mmu_memory_cache_alloc(cache);
- 		stage2_p4d_populate(kvm, p4d, pud);
- 		get_page(virt_to_page(p4d));
- 	}
-@@ -1170,7 +1139,7 @@ static pmd_t *stage2_get_pmd(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
- 	if (stage2_pud_none(kvm, *pud)) {
- 		if (!cache)
- 			return NULL;
--		pmd = mmu_memory_cache_alloc(cache);
-+		pmd = kvm_mmu_memory_cache_alloc(cache);
- 		stage2_pud_populate(kvm, pud, pmd);
- 		get_page(virt_to_page(pud));
- 	}
-@@ -1376,7 +1345,7 @@ static int stage2_set_pte(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
- 	if (stage2_pud_none(kvm, *pud)) {
- 		if (!cache)
- 			return 0; /* ignore calls from kvm_set_spte_hva */
--		pmd = mmu_memory_cache_alloc(cache);
-+		pmd = kvm_mmu_memory_cache_alloc(cache);
- 		stage2_pud_populate(kvm, pud, pmd);
- 		get_page(virt_to_page(pud));
- 	}
-@@ -1401,7 +1370,7 @@ static int stage2_set_pte(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
- 	if (pmd_none(*pmd)) {
- 		if (!cache)
- 			return 0; /* ignore calls from kvm_set_spte_hva */
--		pte = mmu_memory_cache_alloc(cache);
-+		pte = kvm_mmu_memory_cache_alloc(cache);
- 		kvm_pmd_populate(pmd, pte);
- 		get_page(virt_to_page(pmd));
- 	}
-@@ -1468,7 +1437,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
- 	phys_addr_t addr, end;
- 	int ret = 0;
- 	unsigned long pfn;
--	struct kvm_mmu_memory_cache cache = { 0, __GFP_ZERO, };
-+	struct kvm_mmu_memory_cache cache = { 0, __GFP_ZERO, NULL, };
+ 	int r;
  
- 	end = (guest_ipa + size + PAGE_SIZE - 1) & PAGE_MASK;
- 	pfn = __phys_to_pfn(pa);
-@@ -1479,8 +1448,8 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
- 		if (writable)
- 			pte = kvm_s2pte_mkwrite(pte);
- 
--		ret = mmu_topup_memory_cache(&cache,
--					     kvm_mmu_cache_min_pages(kvm));
-+		ret = kvm_mmu_topup_memory_cache(&cache,
-+						 kvm_mmu_cache_min_pages(kvm));
- 		if (ret)
- 			goto out;
- 		spin_lock(&kvm->mmu_lock);
-@@ -1494,7 +1463,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
- 	}
- 
- out:
--	mmu_free_memory_cache(&cache);
-+	kvm_mmu_free_memory_cache(&cache);
- 	return ret;
++	/* 1 rmap, 1 parent PTE per level, and the prefetched rmaps. */
+ 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
+-				   8 + PTE_PREFETCH_NUM);
++				   1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
+ 	if (r)
+ 		return r;
+-	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache, 8);
++	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache,
++				   2 * PT64_ROOT_MAX_LEVEL);
+ 	if (r)
+ 		return r;
+-	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
++	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
++				      PT64_ROOT_MAX_LEVEL);
  }
  
-@@ -1880,7 +1849,7 @@ static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
- 	mmap_read_unlock(current->mm);
- 
- 	/* We need minimum second+third level pages */
--	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm));
-+	ret = kvm_mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm));
- 	if (ret)
- 		return ret;
- 
-@@ -2303,7 +2272,7 @@ int kvm_test_age_hva(struct kvm *kvm, unsigned long hva)
- 
- void kvm_mmu_free_memory_caches(struct kvm_vcpu *vcpu)
- {
--	mmu_free_memory_cache(&vcpu->arch.mmu_page_cache);
-+	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_page_cache);
- }
- 
- phys_addr_t kvm_mmu_get_httbr(void)
+ static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
 -- 
 2.26.0
