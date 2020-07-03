@@ -1,164 +1,194 @@
 From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: [PATCH 2/5] powerpc: Allow 4096 bytes of stack expansion for the signal frame
-Date: Sat,  4 Jul 2020 00:13:24 +1000
-Message-ID: <20200703141327.1732550-2-mpe@ellerman.id.au>
+Subject: [RFC PATCH 4/5] powerpc/mm: Remove custom stack expansion checking
+Date: Sat,  4 Jul 2020 00:13:26 +1000
+Message-ID: <20200703141327.1732550-4-mpe@ellerman.id.au>
 References: <20200703141327.1732550-1-mpe@ellerman.id.au>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40508 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726513AbgGCOMs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Jul 2020 10:12:48 -0400
 In-Reply-To: <20200703141327.1732550-1-mpe@ellerman.id.au>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@ozlabs.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, hughd@google.com
-List-Id: linux-arch.vger.kernel.org
 
 We have powerpc specific logic in our page fault handling to decide if
 an access to an unmapped address below the stack pointer should expand
 the stack VMA.
 
-The code was originally added in 2004 "ported from 2.4". The rough
-logic is that the stack is allowed to grow to 1MB with no extra
-checking. Over 1MB the access must be within 2048 bytes of the stack
-pointer, or be from a user instruction that updates the stack pointer.
+The logic aims to prevent userspace from doing bad accesses below the
+stack pointer. However as long as the stack is < 1MB in size, we allow
+all accesses without further checks. Adding some debug I see that I
+can do a full kernel build and LTP run, and not a single process has
+used more than 1MB of stack. So for the majority of processes the
+logic never even fires.
 
-The 2048 byte allowance below the stack pointer is there to cover the
-288 "red zone" as well as the "about 1.5kB" needed by the signal
-delivery code.
+We also recently found a nasty bug in this code which could cause
+userspace programs to be killed during signal delivery. It went
+unnoticed presumably because most processes use < 1MB of stack.
 
-Unfortunately since then the signal frame has expanded, and is now
-4096 bytes on 64-bit kernels with transactional memory enabled. This
-means if a process has consumed more than 1MB of stack, and its stack
-pointer lies less than 4096 bytes from the next page boundary, signal
-delivery will fault when trying to expand the stack and the process
-will see a SEGV.
+The generic mm code has also grown support for stack guard pages since
+this code was originally written, so the most heinous case of the
+stack expanding into other mappings is now handled for us.
 
-The 2048 allowance was sufficient until 2008 as the signal frame was:
+Finally although some other arches have special logic in this path,
+from what I can tell none of x86, arm64, arm and s390 impose any extra
+checks other than those in expand_stack().
 
-struct rt_sigframe {
-        struct ucontext    uc;                           /*     0  1440 */
-        /* --- cacheline 11 boundary (1408 bytes) was 32 bytes ago --- */
-        long unsigned int          _unused[2];           /*  1440    16 */
-        unsigned int               tramp[6];             /*  1456    24 */
-        struct siginfo *           pinfo;                /*  1480     8 */
-        void *                     puc;                  /*  1488     8 */
-        struct siginfo     info;                         /*  1496   128 */
-        /* --- cacheline 12 boundary (1536 bytes) was 88 bytes ago --- */
-        char                       abigap[288];          /*  1624   288 */
+So drop our complicated logic and like other architectures just let
+the stack expand as long as its within the rlimit.
 
-        /* size: 1920, cachelines: 15, members: 7 */
-        /* padding: 8 */
-};
-
-Then in commit ce48b2100785 ("powerpc: Add VSX context save/restore,
-ptrace and signal support") (Jul 2008) the signal frame expanded to
-2176 bytes:
-
-struct rt_sigframe {
-        struct ucontext    uc;                           /*     0  1696 */	<--
-        /* --- cacheline 13 boundary (1664 bytes) was 32 bytes ago --- */
-        long unsigned int          _unused[2];           /*  1696    16 */
-        unsigned int               tramp[6];             /*  1712    24 */
-        struct siginfo *           pinfo;                /*  1736     8 */
-        void *                     puc;                  /*  1744     8 */
-        struct siginfo     info;                         /*  1752   128 */
-        /* --- cacheline 14 boundary (1792 bytes) was 88 bytes ago --- */
-        char                       abigap[288];          /*  1880   288 */
-
-        /* size: 2176, cachelines: 17, members: 7 */
-        /* padding: 8 */
-};
-
-At this point we should have been exposed to the bug, though as far as
-I know it was never reported. I no longer have a system old enough to
-easily test on.
-
-Then in 2010 commit 320b2b8de126 ("mm: keep a guard page below a
-grow-down stack segment") caused our stack expansion code to never
-trigger, as there was always a VMA found for a write up to PAGE_SIZE
-below r1.
-
-That meant the bug was hidden as we continued to expand the signal
-frame in commit 2b0a576d15e0 ("powerpc: Add new transactional memory
-state to the signal context") (Feb 2013):
-
-struct rt_sigframe {
-        struct ucontext    uc;                           /*     0  1696 */
-        /* --- cacheline 13 boundary (1664 bytes) was 32 bytes ago --- */
-        struct ucontext    uc_transact;                  /*  1696  1696 */	<--
-        /* --- cacheline 26 boundary (3328 bytes) was 64 bytes ago --- */
-        long unsigned int          _unused[2];           /*  3392    16 */
-        unsigned int               tramp[6];             /*  3408    24 */
-        struct siginfo *           pinfo;                /*  3432     8 */
-        void *                     puc;                  /*  3440     8 */
-        struct siginfo     info;                         /*  3448   128 */
-        /* --- cacheline 27 boundary (3456 bytes) was 120 bytes ago --- */
-        char                       abigap[288];          /*  3576   288 */
-
-        /* size: 3872, cachelines: 31, members: 8 */
-        /* padding: 8 */
-        /* last cacheline: 32 bytes */
-};
-
-And commit 573ebfa6601f ("powerpc: Increase stack redzone for 64-bit
-userspace to 512 bytes") (Feb 2014):
-
-struct rt_sigframe {
-        struct ucontext    uc;                           /*     0  1696 */
-        /* --- cacheline 13 boundary (1664 bytes) was 32 bytes ago --- */
-        struct ucontext    uc_transact;                  /*  1696  1696 */
-        /* --- cacheline 26 boundary (3328 bytes) was 64 bytes ago --- */
-        long unsigned int          _unused[2];           /*  3392    16 */
-        unsigned int               tramp[6];             /*  3408    24 */
-        struct siginfo *           pinfo;                /*  3432     8 */
-        void *                     puc;                  /*  3440     8 */
-        struct siginfo     info;                         /*  3448   128 */
-        /* --- cacheline 27 boundary (3456 bytes) was 120 bytes ago --- */
-        char                       abigap[512];          /*  3576   512 */	<--
-
-        /* size: 4096, cachelines: 32, members: 8 */
-        /* padding: 8 */
-};
-
-Then finally in 2017 commit 1be7107fbe18 ("mm: larger stack guard gap,
-between vmas") exposed us to the existing bug, because it changed the
-stack VMA to be the correct/real size, meaning our stack expansion
-code is now triggered.
-
-Fix it by increasing the allowance to 4096 bytes.
-
-Hard-coding 4096 is obviously unsafe against future expansions of the
-signal frame in the same way as the existing code. We can't easily use
-sizeof() because the signal frame structure is not in a header. We
-will either fix that, or rip out all the custom stack expansion
-checking logic entirely.
-
-Reported-by: Tom Lane <tgl@sss.pgh.pa.us>
 Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
 ---
- arch/powerpc/mm/fault.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/powerpc/mm/fault.c | 106 ++--------------------------------------
+ 1 file changed, 5 insertions(+), 101 deletions(-)
 
 diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
-index 641fc5f3d7dd..ed01329dd12b 100644
+index ed01329dd12b..925a7231abb3 100644
 --- a/arch/powerpc/mm/fault.c
 +++ b/arch/powerpc/mm/fault.c
-@@ -274,7 +274,7 @@ static bool bad_stack_expansion(struct pt_regs *regs, unsigned long address,
- 	/*
- 	 * N.B. The POWER/Open ABI allows programs to access up to
- 	 * 288 bytes below the stack pointer.
--	 * The kernel signal delivery code writes up to about 1.5kB
-+	 * The kernel signal delivery code writes up to 4KB
- 	 * below the stack pointer (r1) before decrementing it.
- 	 * The exec code can write slightly over 640kB to the stack
- 	 * before setting the user r1.  Thus we allow the stack to
-@@ -299,7 +299,7 @@ static bool bad_stack_expansion(struct pt_regs *regs, unsigned long address,
- 		 * between the last mapped region and the stack will
- 		 * expand the stack rather than segfaulting.
- 		 */
--		if (address + 2048 >= uregs->gpr[1])
-+		if (address + 4096 >= uregs->gpr[1])
- 			return false;
+@@ -42,39 +42,7 @@
+ #include <asm/kup.h>
+ #include <asm/inst.h>
  
- 		if ((flags & FAULT_FLAG_WRITE) && (flags & FAULT_FLAG_USER) &&
+-/*
+- * Check whether the instruction inst is a store using
+- * an update addressing form which will update r1.
+- */
+-static bool store_updates_sp(struct ppc_inst inst)
+-{
+-	/* check for 1 in the rA field */
+-	if (((ppc_inst_val(inst) >> 16) & 0x1f) != 1)
+-		return false;
+-	/* check major opcode */
+-	switch (ppc_inst_primary_opcode(inst)) {
+-	case OP_STWU:
+-	case OP_STBU:
+-	case OP_STHU:
+-	case OP_STFSU:
+-	case OP_STFDU:
+-		return true;
+-	case OP_STD:	/* std or stdu */
+-		return (ppc_inst_val(inst) & 3) == 1;
+-	case OP_31:
+-		/* check minor opcode */
+-		switch ((ppc_inst_val(inst) >> 1) & 0x3ff) {
+-		case OP_31_XOP_STDUX:
+-		case OP_31_XOP_STWUX:
+-		case OP_31_XOP_STBUX:
+-		case OP_31_XOP_STHUX:
+-		case OP_31_XOP_STFSUX:
+-		case OP_31_XOP_STFDUX:
+-			return true;
+-		}
+-	}
+-	return false;
+-}
++
+ /*
+  * do_page_fault error handling helpers
+  */
+@@ -267,54 +235,6 @@ static bool bad_kernel_fault(struct pt_regs *regs, unsigned long error_code,
+ 	return false;
+ }
+ 
+-static bool bad_stack_expansion(struct pt_regs *regs, unsigned long address,
+-				struct vm_area_struct *vma, unsigned int flags,
+-				bool *must_retry)
+-{
+-	/*
+-	 * N.B. The POWER/Open ABI allows programs to access up to
+-	 * 288 bytes below the stack pointer.
+-	 * The kernel signal delivery code writes up to 4KB
+-	 * below the stack pointer (r1) before decrementing it.
+-	 * The exec code can write slightly over 640kB to the stack
+-	 * before setting the user r1.  Thus we allow the stack to
+-	 * expand to 1MB without further checks.
+-	 */
+-	if (address + 0x100000 < vma->vm_end) {
+-		struct ppc_inst __user *nip = (struct ppc_inst __user *)regs->nip;
+-		/* get user regs even if this fault is in kernel mode */
+-		struct pt_regs *uregs = current->thread.regs;
+-		if (uregs == NULL)
+-			return true;
+-
+-		/*
+-		 * A user-mode access to an address a long way below
+-		 * the stack pointer is only valid if the instruction
+-		 * is one which would update the stack pointer to the
+-		 * address accessed if the instruction completed,
+-		 * i.e. either stwu rs,n(r1) or stwux rs,r1,rb
+-		 * (or the byte, halfword, float or double forms).
+-		 *
+-		 * If we don't check this then any write to the area
+-		 * between the last mapped region and the stack will
+-		 * expand the stack rather than segfaulting.
+-		 */
+-		if (address + 4096 >= uregs->gpr[1])
+-			return false;
+-
+-		if ((flags & FAULT_FLAG_WRITE) && (flags & FAULT_FLAG_USER) &&
+-		    access_ok(nip, sizeof(*nip))) {
+-			struct ppc_inst inst;
+-
+-			if (!probe_user_read_inst(&inst, nip))
+-				return !store_updates_sp(inst);
+-			*must_retry = true;
+-		}
+-		return true;
+-	}
+-	return false;
+-}
+-
+ #ifdef CONFIG_PPC_MEM_KEYS
+ static bool access_pkey_error(bool is_write, bool is_exec, bool is_pkey,
+ 			      struct vm_area_struct *vma)
+@@ -480,7 +400,6 @@ static int __do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	int is_user = user_mode(regs);
+ 	int is_write = page_fault_is_write(error_code);
+ 	vm_fault_t fault, major = 0;
+-	bool must_retry = false;
+ 	bool kprobe_fault = kprobe_page_fault(regs, 11);
+ 
+ 	if (unlikely(debugger_fault_handler(regs) || kprobe_fault))
+@@ -569,30 +488,15 @@ static int __do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	vma = find_vma(mm, address);
+ 	if (unlikely(!vma))
+ 		return bad_area(regs, address);
+-	if (likely(vma->vm_start <= address))
+-		goto good_area;
+-	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN)))
+-		return bad_area(regs, address);
+ 
+-	/* The stack is being expanded, check if it's valid */
+-	if (unlikely(bad_stack_expansion(regs, address, vma, flags,
+-					 &must_retry))) {
+-		if (!must_retry)
++	if (unlikely(vma->vm_start > address)) {
++		if (unlikely(!(vma->vm_flags & VM_GROWSDOWN)))
+ 			return bad_area(regs, address);
+ 
+-		mmap_read_unlock(mm);
+-		if (fault_in_pages_readable((const char __user *)regs->nip,
+-					    sizeof(unsigned int)))
+-			return bad_area_nosemaphore(regs, address);
+-		goto retry;
++		if (unlikely(expand_stack(vma, address)))
++			return bad_area(regs, address);
+ 	}
+ 
+-	/* Try to expand it */
+-	if (unlikely(expand_stack(vma, address)))
+-		return bad_area(regs, address);
+-
+-good_area:
+-
+ #ifdef CONFIG_PPC_MEM_KEYS
+ 	if (unlikely(access_pkey_error(is_write, is_exec,
+ 				       (error_code & DSISR_KEYFAULT), vma)))
 -- 
 2.25.1
