@@ -1,89 +1,61 @@
-From: Danny Lin <danny@kdrag0n.dev>
-Subject: [PATCH v2] vmlinux.lds.h: Coalesce transient LLVM dead code elimination sections
-Date: Thu,  2 Jul 2020 16:27:13 -0700
-Message-ID: <20200702232713.123893-1-danny@kdrag0n.dev>
-References: <7304fdf3-23d7-442b-b870-e88ae6f37004@localhost>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
+Date: Fri, 03 Jul 2020 10:15:34 +1000
+Message-ID: <1593735251.svr5r5cxle.astroid@bobo.none>
+References: <20200413125303.423864-1-npiggin@gmail.com>
+        <20200413125303.423864-5-npiggin@gmail.com>
+        <d148f86c-b27b-63fb-31d2-35b8f52ec540@huawei.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <7304fdf3-23d7-442b-b870-e88ae6f37004@localhost>
-Sender: stable-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Nathan Chancellor <natechancellor@gmail.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Kees Cook <keescook@chromium.org>, Fangrui Song <maskray@google.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, clang-built-linux@googlegroups.com, Danny Lin <danny@kdrag0n.dev>, stable@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53428 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725937AbgGCAPm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 20:15:42 -0400
+In-Reply-To: <d148f86c-b27b-63fb-31d2-35b8f52ec540@huawei.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-mm@kvack.org, Zefan Li <lizefan@huawei.com>
+Cc: =?iso-8859-1?q?Borislav=0A?= Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, =?iso-8859-1?q?Thomas=0A?= Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, x86@kernel.org
 
-A recent LLVM 11 commit [1] made LLD stop implicitly coalescing some
-temporary LLVM sections, namely .{data,bss}..compoundliteral.XXX:
+Excerpts from Zefan Li's message of July 1, 2020 5:10 pm:
+>>  static void *__vmalloc_node(unsigned long size, unsigned long align,
+>> -			    gfp_t gfp_mask, pgprot_t prot,
+>> -			    int node, const void *caller);
+>> +			gfp_t gfp_mask, pgprot_t prot, unsigned long vm_flags,
+>> +			int node, const void *caller);
+>>  static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask=
+,
+>> -				 pgprot_t prot, int node)
+>> +				 pgprot_t prot, unsigned int page_shift,
+>> +				 int node)
+>>  {
+>>  	struct page **pages;
+>> +	unsigned long addr =3D (unsigned long)area->addr;
+>> +	unsigned long size =3D get_vm_area_size(area);
+>> +	unsigned int page_order =3D page_shift - PAGE_SHIFT;
+>>  	unsigned int nr_pages, array_size, i;
+>>  	const gfp_t nested_gfp =3D (gfp_mask & GFP_RECLAIM_MASK) | __GFP_ZERO;
+>>  	const gfp_t alloc_mask =3D gfp_mask | __GFP_NOWARN;
+>>  	const gfp_t highmem_mask =3D (gfp_mask & (GFP_DMA | GFP_DMA32)) ?
+>> -					0 :
+>> -					__GFP_HIGHMEM;
+>> +					0 : __GFP_HIGHMEM;
+>> =20
+>> -	nr_pages =3D get_vm_area_size(area) >> PAGE_SHIFT;
+>> +	nr_pages =3D size >> page_shift;
+>=20
+> while try out this patchset, we encountered a BUG_ON in account_kernel_st=
+ack()
+> in kernel/fork.c.
+>=20
+> BUG_ON(vm->nr_pages !=3D THREAD_SIZE / PAGE_SIZE);
+>=20
+> which obviously should be updated accordingly.
 
-  [30] .data..compoundli PROGBITS         ffffffff9ac9a000  19e9a000
-       000000000000cea0  0000000000000000  WA       0     0     32
-  [31] .rela.data..compo RELA             0000000000000000  40965440
-       0000000000001d88  0000000000000018   I      2238    30     8
-  [32] .data..compoundli PROGBITS         ffffffff9aca6ea0  19ea6ea0
-       00000000000033c0  0000000000000000  WA       0     0     32
-  [33] .rela.data..compo RELA             0000000000000000  409671c8
-       0000000000000948  0000000000000018   I      2238    32     8
-  [...]
-  [2213] .bss..compoundlit NOBITS           ffffffffa3000000  1d85c000
-       00000000000000a0  0000000000000000  WA       0     0     32
-  [2214] .bss..compoundlit NOBITS           ffffffffa30000a0  1d85c000
-       0000000000000040  0000000000000000  WA       0     0     32
-  [...]
+Thanks for finding that. We may have to change this around a bit so=20
+nr_pages still appears to be in PAGE_SIZE units for anybody looking.
 
-.{data,bss}..L<symbol name> sections are also created in some cases.
-While there aren't any in this example, they should also be coalesced to
-be safe in case some config or future LLVM change makes it start
-creating more of those sections in the future. For example, enabling
-global merging causes ..L_MergedGlobals sections to be created, but it's
-likely that other changes will result in such sections as well.
-
-While these extra sections don't typically cause any breakage, they do
-inflate the vmlinux size due to the overhead of storing metadata for
-thousands of extra sections.
-
-It's also worth noting that for some reason, some downstream Android
-kernels can't boot at all if these sections aren't coalesced.
-
-This issue isn't limited to any specific architecture; it affects arm64
-and x86 if CONFIG_LD_DEAD_CODE_DATA_ELIMINATION is forced on.
-
-Example on x86 allyesconfig:
-    Before: 2241 sections, 1171169 KiB
-    After:    56 sections, 1170972 KiB
-
-[1] https://github.com/llvm/llvm-project/commit/9e33c096476ab5e02ab1c8442cc3cb4e32e29f17
-
-Link: https://github.com/ClangBuiltLinux/linux/issues/958
-Cc: stable@vger.kernel.org # v4.4+
-Suggested-by: Fangrui Song <maskray@google.com>
-Signed-off-by: Danny Lin <danny@kdrag0n.dev>
-Reviewed-by: Nathan Chancellor <natechancellor@gmail.com>
----
-v2:
-  - Fixed swapped example sizes
-  - Added .{data,bss}..L* sections, since it looks like they're emitted
-    in some cases even when LTO is disabled
-
- include/asm-generic/vmlinux.lds.h | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index db600ef218d7..737ecf782229 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -94,10 +94,11 @@
-  */
- #ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
- #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
--#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX*
-+#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX* \
-+		  .data..compoundliteral* .data..L*
- #define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
- #define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]*
--#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]*
-+#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]* .bss..compoundliteral* .bss..L*
- #define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
- #else
- #define TEXT_MAIN .text
--- 
-2.27.0
+Thanks,
+Nick
