@@ -1,121 +1,161 @@
-Return-Path: <SRS0=3gwW=AS=vger.kernel.org=linux-doc-owner@kernel.org>
-From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-Subject: [PATCH v19 06/12] fs,security: Add sb_delete hook
-Date: Tue,  7 Jul 2020 20:09:49 +0200
-Message-ID: <20200707180955.53024-7-mic@digikod.net>
-In-Reply-To: <20200707180955.53024-1-mic@digikod.net>
-References: <20200707180955.53024-1-mic@digikod.net>
+Return-Path: <SRS0=YdXP=AO=kvack.org=owner-linux-mm@kernel.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: [PATCH v6 00/26]  arm64: Memory Tagging Extension user-space support
+Date: Fri,  3 Jul 2020 16:36:52 +0100
+Message-ID: <20200703153718.16973-1-catalin.marinas@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200707180949.z0doECwavYWpAI5sYGI7HuUWU1bbpRjPqMZ87fHGypQ@z>
+Message-ID: <20200703153652.OtItrH4nXmFODYLzuC27xefD56OJKPOt3DwfH36UIM4@z>
 
-The sb_delete security hook is called when shutting down a superblock,
-which may be useful to release kernel objects tied to the superblock's
-lifetime (e.g. inodes).
+This is version 6 (5th version here [1]) of the series adding user-space
+support for the ARMv8.5 Memory Tagging Extension ([2], [3]). The patches
+are also available on this branch:
 
-This new hook is needed by Landlock to release (ephemerally) tagged
-struct inodes.  This comes from the unprivileged nature of Landlock
-described in the next commit.
+  git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux for-next/mte
 
-Signed-off-by: Mickaël Salaün <mic@digikod.net>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: James Morris <jmorris@namei.org>
-Cc: Jann Horn <jannh@google.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Serge E. Hallyn <serge@hallyn.com>
----
+There are no ABI changes since v4/v5. I'll push these patches into
+linux-next for wider coverage, aiming for merging into 5.9. There are
+still some acks needed on the core mm and fs patches in the series.
+Thanks for the review/acks on v5.
 
-Changes since v17:
-* Initial patch to replace the direct call to landlock_release_inodes()
-  (requested by James Morris).
-  https://lore.kernel.org/lkml/alpine.LRH.2.21.2005150536440.7929@namei.org/
----
- fs/super.c                    | 1 +
- include/linux/lsm_hook_defs.h | 1 +
- include/linux/lsm_hooks.h     | 2 ++
- include/linux/security.h      | 4 ++++
- security/security.c           | 5 +++++
- 5 files changed, 13 insertions(+)
+An important note, patch 7 introduces a core mm change to
+__split_huge_page_tail() so that it transfers the PG_arch_* flags from
+the head page to the tail ones. My understanding is that it shouldn't
+break anything but a more informed opinion from the mm folk is needed.
 
-diff --git a/fs/super.c b/fs/super.c
-index 904459b35119..d5517e49ccdf 100644
---- a/fs/super.c
-+++ b/fs/super.c
-@@ -454,6 +454,7 @@ void generic_shutdown_super(struct super_block *sb)
- 		evict_inodes(sb);
- 		/* only nonzero refcount inodes can have marks */
- 		fsnotify_sb_delete(sb);
-+		security_sb_delete(sb);
- 
- 		if (sb->s_dio_done_wq) {
- 			destroy_workqueue(sb->s_dio_done_wq);
-diff --git a/include/linux/lsm_hook_defs.h b/include/linux/lsm_hook_defs.h
-index af998f93d256..2b855d6a299e 100644
---- a/include/linux/lsm_hook_defs.h
-+++ b/include/linux/lsm_hook_defs.h
-@@ -59,6 +59,7 @@ LSM_HOOK(int, 0, fs_context_dup, struct fs_context *fc,
- LSM_HOOK(int, -ENOPARAM, fs_context_parse_param, struct fs_context *fc,
- 	 struct fs_parameter *param)
- LSM_HOOK(int, 0, sb_alloc_security, struct super_block *sb)
-+LSM_HOOK(void, LSM_RET_VOID, sb_delete, struct super_block *sb)
- LSM_HOOK(void, LSM_RET_VOID, sb_free_security, struct super_block *sb)
- LSM_HOOK(void, LSM_RET_VOID, sb_free_mnt_opts, void *mnt_opts)
- LSM_HOOK(int, 0, sb_eat_lsm_opts, char *orig, void **mnt_opts)
-diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
-index 80c629d8a2ad..499f19a70a19 100644
---- a/include/linux/lsm_hooks.h
-+++ b/include/linux/lsm_hooks.h
-@@ -108,6 +108,8 @@
-  *	allocated.
-  *	@sb contains the super_block structure to be modified.
-  *	Return 0 if operation was successful.
-+ * @sb_delete:
-+ *	Release objects tied to a superblock (e.g. inodes).
-  * @sb_free_security:
-  *	Deallocate and clear the sb->s_security field.
-  *	@sb contains the super_block structure to be modified.
-diff --git a/include/linux/security.h b/include/linux/security.h
-index 0a0a03b36a3b..28b0ee6c7239 100644
---- a/include/linux/security.h
-+++ b/include/linux/security.h
-@@ -286,6 +286,7 @@ void security_bprm_committed_creds(struct linux_binprm *bprm);
- int security_fs_context_dup(struct fs_context *fc, struct fs_context *src_fc);
- int security_fs_context_parse_param(struct fs_context *fc, struct fs_parameter *param);
- int security_sb_alloc(struct super_block *sb);
-+void security_sb_delete(struct super_block *sb);
- void security_sb_free(struct super_block *sb);
- void security_free_mnt_opts(void **mnt_opts);
- int security_sb_eat_lsm_opts(char *options, void **mnt_opts);
-@@ -614,6 +615,9 @@ static inline int security_sb_alloc(struct super_block *sb)
- 	return 0;
- }
- 
-+static inline void security_sb_delete(struct super_block *sb)
-+{ }
-+
- static inline void security_sb_free(struct super_block *sb)
- { }
- 
-diff --git a/security/security.c b/security/security.c
-index d60aa835b670..9337b511306c 100644
---- a/security/security.c
-+++ b/security/security.c
-@@ -898,6 +898,11 @@ int security_sb_alloc(struct super_block *sb)
- 	return rc;
- }
- 
-+void security_sb_delete(struct super_block *sb)
-+{
-+	call_void_hook(sb_delete, sb);
-+}
-+
- void security_sb_free(struct super_block *sb)
- {
- 	call_void_hook(sb_free_security, sb);
--- 
-2.27.0
+Changes in this version:
+
+- __split_huge_page_tail() function update to preserve the PG_arch_*
+  flags.
+
+- copy_mount_options() simplified with a fall-back to byte-by-byte
+  copying. It turns out we arm64 can't guarantee an exact
+  copy_from_user() with intra-page (tag) faults.
+
+- Dropped CONFIG_ARCH_USES_PG_ARCH_2 in favour of simply guarding
+  PG_arch_2 by CONFIG_64BIT.
+
+- Added comments on where the new arch_swap_* and __HAVE_ARCH_SWAP_*
+  macros should be defined by the arch code if they need to be
+  overridden.
+
+- Fixed broken rebase conflict resolution in v5 re-introducing
+  asm-generic/pgtable.h.
+
+- Added the acks received so far.
+
+[1] https://lore.kernel.org/linux-arm-kernel/20200624175244.25837-1-catal=
+in.marinas@arm.com/
+[2] https://community.arm.com/developer/ip-products/processors/b/processo=
+rs-ip-blog/posts/enhancing-memory-safety
+[3] https://developer.arm.com/-/media/Arm%20Developer%20Community/PDF/Arm=
+_Memory_Tagging_Extension_Whitepaper.pdf
+[4] https://sourceware.org/pipermail/libc-alpha/2020-June/115039.html
+
+Catalin Marinas (14):
+  arm64: mte: Use Normal Tagged attributes for the linear map
+  mm: Preserve the PG_arch_* flags in __split_huge_page_tail()
+  arm64: mte: Clear the tags when a page is mapped in user-space with
+    PROT_MTE
+  arm64: Avoid unnecessary clear_user_page() indirection
+  arm64: mte: Tags-aware aware memcmp_pages() implementation
+  arm64: mte: Add PROT_MTE support to mmap() and mprotect()
+  mm: Introduce arch_validate_flags()
+  arm64: mte: Validate the PROT_MTE request via arch_validate_flags()
+  mm: Allow arm64 mmap(PROT_MTE) on RAM-based files
+  arm64: mte: Allow user control of the tag check mode via prctl()
+  arm64: mte: Allow user control of the generated random tags via
+    prctl()
+  arm64: mte: Restore the GCR_EL1 register after a suspend
+  arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS support
+  fs: Handle intra-page faults in copy_mount_options()
+
+Kevin Brodsky (1):
+  mm: Introduce arch_calc_vm_flag_bits()
+
+Steven Price (4):
+  mm: Add PG_arch_2 page flag
+  mm: Add arch hooks for saving/restoring tags
+  arm64: mte: Enable swap of tagged pages
+  arm64: mte: Save tags when hibernating
+
+Vincenzo Frascino (7):
+  arm64: mte: system register definitions
+  arm64: mte: CPU feature detection and initial sysreg configuration
+  arm64: mte: Add specific SIGSEGV codes
+  arm64: mte: Handle synchronous and asynchronous tag check faults
+  arm64: mte: Tags-aware copy_{user_,}highpage() implementations
+  arm64: mte: Kconfig entry
+  arm64: mte: Add Memory Tagging Extension documentation
+
+ Documentation/arm64/cpu-feature-registers.rst |   2 +
+ Documentation/arm64/elf_hwcaps.rst            |   4 +
+ Documentation/arm64/index.rst                 |   1 +
+ .../arm64/memory-tagging-extension.rst        | 297 ++++++++++++++++
+ arch/arm64/Kconfig                            |  28 ++
+ arch/arm64/include/asm/cpucaps.h              |   3 +-
+ arch/arm64/include/asm/cpufeature.h           |   6 +
+ arch/arm64/include/asm/hwcap.h                |   1 +
+ arch/arm64/include/asm/kvm_arm.h              |   3 +-
+ arch/arm64/include/asm/memory.h               |  17 +-
+ arch/arm64/include/asm/mman.h                 |  56 ++-
+ arch/arm64/include/asm/mte.h                  |  86 +++++
+ arch/arm64/include/asm/page.h                 |  19 +-
+ arch/arm64/include/asm/pgtable-prot.h         |   2 +
+ arch/arm64/include/asm/pgtable.h              |  46 ++-
+ arch/arm64/include/asm/processor.h            |   4 +
+ arch/arm64/include/asm/sysreg.h               |  61 ++++
+ arch/arm64/include/asm/thread_info.h          |   4 +-
+ arch/arm64/include/uapi/asm/hwcap.h           |   1 +
+ arch/arm64/include/uapi/asm/mman.h            |   1 +
+ arch/arm64/include/uapi/asm/ptrace.h          |   4 +
+ arch/arm64/kernel/Makefile                    |   1 +
+ arch/arm64/kernel/cpufeature.c                |  61 ++++
+ arch/arm64/kernel/cpuinfo.c                   |   1 +
+ arch/arm64/kernel/entry.S                     |  37 ++
+ arch/arm64/kernel/hibernate.c                 | 118 +++++++
+ arch/arm64/kernel/mte.c                       | 331 ++++++++++++++++++
+ arch/arm64/kernel/process.c                   |  31 +-
+ arch/arm64/kernel/ptrace.c                    |   9 +-
+ arch/arm64/kernel/signal.c                    |   9 +
+ arch/arm64/kernel/suspend.c                   |   4 +
+ arch/arm64/kernel/syscall.c                   |  10 +
+ arch/arm64/lib/Makefile                       |   2 +
+ arch/arm64/lib/mte.S                          | 151 ++++++++
+ arch/arm64/mm/Makefile                        |   1 +
+ arch/arm64/mm/copypage.c                      |  25 +-
+ arch/arm64/mm/dump.c                          |   4 +
+ arch/arm64/mm/fault.c                         |   9 +-
+ arch/arm64/mm/mmu.c                           |  22 +-
+ arch/arm64/mm/mteswap.c                       |  83 +++++
+ arch/arm64/mm/proc.S                          |   8 +-
+ arch/x86/kernel/signal_compat.c               |   2 +-
+ fs/namespace.c                                |  25 +-
+ fs/proc/page.c                                |   3 +
+ fs/proc/task_mmu.c                            |   4 +
+ include/linux/kernel-page-flags.h             |   1 +
+ include/linux/mm.h                            |   8 +
+ include/linux/mman.h                          |  23 +-
+ include/linux/page-flags.h                    |   3 +
+ include/linux/pgtable.h                       |  28 ++
+ include/trace/events/mmflags.h                |   9 +-
+ include/uapi/asm-generic/siginfo.h            |   4 +-
+ include/uapi/linux/prctl.h                    |   9 +
+ mm/huge_memory.c                              |   4 +
+ mm/mmap.c                                     |   9 +
+ mm/mprotect.c                                 |   6 +
+ mm/page_io.c                                  |  10 +
+ mm/shmem.c                                    |   9 +
+ mm/swapfile.c                                 |   2 +
+ mm/util.c                                     |   2 +-
+ tools/vm/page-types.c                         |   2 +
+ 61 files changed, 1678 insertions(+), 48 deletions(-)
+ create mode 100644 Documentation/arm64/memory-tagging-extension.rst
+ create mode 100644 arch/arm64/include/asm/mte.h
+ create mode 100644 arch/arm64/kernel/mte.c
+ create mode 100644 arch/arm64/lib/mte.S
+ create mode 100644 arch/arm64/mm/mteswap.c
