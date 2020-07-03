@@ -1,8 +1,8 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 15/21] KVM: Move x86's MMU memory cache helpers to common
- KVM code
-Date: Thu,  2 Jul 2020 19:35:39 -0700
-Message-ID: <20200703023545.8771-16-sean.j.christopherson@intel.com>
+Subject: [PATCH v3 19/21] KVM: MIPS: Drop @max param from
+ mmu_topup_memory_cache()
+Date: Thu,  2 Jul 2020 19:35:43 -0700
+Message-ID: <20200703023545.8771-20-sean.j.christopherson@intel.com>
 References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,172 +22,59 @@ To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Ber
 Cc: linux-arch@vger.kernel.org, Junaid Shahid <junaids@google.com>, Wanpeng Li <wanpengli@tencent.com>, kvm@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Peter Shier <pshier@google.com>, linux-mips@vger.kernel.org, Sean Christopherson <sean.j.christopherson@intel.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Gardon <bgardon@google.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Peter Feiner <pfeiner@google.com>, kvmarm@lists.cs.columbia.edu, Jim Mattson <jmattson@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Move x86's memory cache helpers to common KVM code so that they can be
-reused by arm64 and MIPS in future patches.
+Replace the @max param in mmu_topup_memory_cache() and instead use
+ARRAY_SIZE() to terminate the loop to fill the cache.  This removes a
+BUG_ON() and sets the stage for moving MIPS to the common memory cache
+implementation.
 
-Suggested-by: Christoffer Dall <christoffer.dall@arm.com>
-Reviewed-by: Ben Gardon <bgardon@google.com>
+No functional change intended.
+
 Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- arch/x86/kvm/mmu/mmu.c   | 53 --------------------------------------
- include/linux/kvm_host.h |  7 +++++
- virt/kvm/kvm_main.c      | 55 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 62 insertions(+), 53 deletions(-)
+ arch/mips/kvm/mmu.c | 12 ++++--------
+ 1 file changed, 4 insertions(+), 8 deletions(-)
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index f4c8dae476bb..5b7782d92faf 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1060,47 +1060,6 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
- 	local_irq_enable();
- }
+diff --git a/arch/mips/kvm/mmu.c b/arch/mips/kvm/mmu.c
+index 49bd160f4d85..d1f148db2449 100644
+--- a/arch/mips/kvm/mmu.c
++++ b/arch/mips/kvm/mmu.c
+@@ -25,15 +25,13 @@
+ #define KVM_MMU_CACHE_MIN_PAGES 2
+ #endif
  
--static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
--					       gfp_t gfp_flags)
--{
--	gfp_flags |= mc->gfp_zero;
--
--	if (mc->kmem_cache)
--		return kmem_cache_alloc(mc->kmem_cache, gfp_flags);
--	else
--		return (void *)__get_free_page(gfp_flags);
--}
--
--static int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
--{
--	void *obj;
--
--	if (mc->nobjs >= min)
--		return 0;
--	while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
--		obj = mmu_memory_cache_alloc_obj(mc, GFP_KERNEL_ACCOUNT);
--		if (!obj)
--			return mc->nobjs >= min ? 0 : -ENOMEM;
--		mc->objects[mc->nobjs++] = obj;
--	}
--	return 0;
--}
--
--static int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc)
--{
--	return mc->nobjs;
--}
--
--static void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
--{
--	while (mc->nobjs) {
--		if (mc->kmem_cache)
--			kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
--		else
--			free_page((unsigned long)mc->objects[--mc->nobjs]);
--	}
--}
--
- static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu, bool maybe_indirect)
+-static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache,
+-				  int min, int max)
++static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
  {
- 	int r;
-@@ -1132,18 +1091,6 @@ static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
- 	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
- }
+ 	void *page;
  
--static void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
--{
--	void *p;
--
--	if (WARN_ON(!mc->nobjs))
--		p = mmu_memory_cache_alloc_obj(mc, GFP_ATOMIC | __GFP_ACCOUNT);
--	else
--		p = mc->objects[--mc->nobjs];
--	BUG_ON(!p);
--	return p;
--}
--
- static struct pte_list_desc *mmu_alloc_pte_list_desc(struct kvm_vcpu *vcpu)
- {
- 	return kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_pte_list_desc_cache);
-diff --git a/include/linux/kvm_host.h b/include/linux/kvm_host.h
-index 9edc6fc71a89..283df0fed4a8 100644
---- a/include/linux/kvm_host.h
-+++ b/include/linux/kvm_host.h
-@@ -816,6 +816,13 @@ void kvm_vcpu_on_spin(struct kvm_vcpu *vcpu, bool usermode_vcpu_not_eligible);
- void kvm_flush_remote_tlbs(struct kvm *kvm);
- void kvm_reload_remote_mmus(struct kvm *kvm);
+-	BUG_ON(max > KVM_NR_MEM_OBJS);
+ 	if (cache->nobjs >= min)
+ 		return 0;
+-	while (cache->nobjs < max) {
++	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+ 		page = (void *)__get_free_page(GFP_KERNEL);
+ 		if (!page)
+ 			return -ENOMEM;
+@@ -711,8 +709,7 @@ static int kvm_mips_map_page(struct kvm_vcpu *vcpu, unsigned long gpa,
+ 		goto out;
  
-+#ifdef KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE
-+int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min);
-+int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc);
-+void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc);
-+void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc);
-+#endif
-+
- bool kvm_make_vcpus_request_mask(struct kvm *kvm, unsigned int req,
- 				 struct kvm_vcpu *except,
- 				 unsigned long *vcpu_bitmap, cpumask_var_t tmp);
-diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
-index a852af5c3214..e70d75de185d 100644
---- a/virt/kvm/kvm_main.c
-+++ b/virt/kvm/kvm_main.c
-@@ -340,6 +340,61 @@ void kvm_reload_remote_mmus(struct kvm *kvm)
- 	kvm_make_all_cpus_request(kvm, KVM_REQ_MMU_RELOAD);
- }
+ 	/* We need a minimum of cached pages ready for page table creation */
+-	err = mmu_topup_memory_cache(memcache, KVM_MMU_CACHE_MIN_PAGES,
+-				     KVM_NR_MEM_OBJS);
++	err = mmu_topup_memory_cache(memcache, KVM_MMU_CACHE_MIN_PAGES);
+ 	if (err)
+ 		goto out;
  
-+#ifdef KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE
-+static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
-+					       gfp_t gfp_flags)
-+{
-+	gfp_flags |= mc->gfp_zero;
-+
-+	if (mc->kmem_cache)
-+		return kmem_cache_alloc(mc->kmem_cache, gfp_flags);
-+	else
-+		return (void *)__get_free_page(gfp_flags);
-+}
-+
-+int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
-+{
-+	void *obj;
-+
-+	if (mc->nobjs >= min)
-+		return 0;
-+	while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
-+		obj = mmu_memory_cache_alloc_obj(mc, GFP_KERNEL_ACCOUNT);
-+		if (!obj)
-+			return mc->nobjs >= min ? 0 : -ENOMEM;
-+		mc->objects[mc->nobjs++] = obj;
-+	}
-+	return 0;
-+}
-+
-+int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc)
-+{
-+	return mc->nobjs;
-+}
-+
-+void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
-+{
-+	while (mc->nobjs) {
-+		if (mc->kmem_cache)
-+			kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
-+		else
-+			free_page((unsigned long)mc->objects[--mc->nobjs]);
-+	}
-+}
-+
-+void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
-+{
-+	void *p;
-+
-+	if (WARN_ON(!mc->nobjs))
-+		p = mmu_memory_cache_alloc_obj(mc, GFP_ATOMIC | __GFP_ACCOUNT);
-+	else
-+		p = mc->objects[--mc->nobjs];
-+	BUG_ON(!p);
-+	return p;
-+}
-+#endif
-+
- static void kvm_vcpu_init(struct kvm_vcpu *vcpu, struct kvm *kvm, unsigned id)
- {
- 	mutex_init(&vcpu->mutex);
+@@ -796,8 +793,7 @@ static pte_t *kvm_trap_emul_pte_for_gva(struct kvm_vcpu *vcpu,
+ 	int ret;
+ 
+ 	/* We need a minimum of cached pages ready for page table creation */
+-	ret = mmu_topup_memory_cache(memcache, KVM_MMU_CACHE_MIN_PAGES,
+-				     KVM_NR_MEM_OBJS);
++	ret = mmu_topup_memory_cache(memcache, KVM_MMU_CACHE_MIN_PAGES);
+ 	if (ret)
+ 		return NULL;
+ 
 -- 
 2.26.0
