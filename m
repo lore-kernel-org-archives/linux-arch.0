@@ -1,142 +1,224 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 13/21] KVM: x86/mmu: Prepend "kvm_" to memory cache helpers that will be global
-Date: Thu,  2 Jul 2020 19:35:37 -0700
-Message-ID: <20200703023545.8771-14-sean.j.christopherson@intel.com>
+Subject: [PATCH v3 18/21] KVM: arm64: Use common KVM implementation of MMU
+ memory caches
+Date: Thu,  2 Jul 2020 19:35:42 -0700
+Message-ID: <20200703023545.8771-19-sean.j.christopherson@intel.com>
 References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:3198 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726352AbgGCCgO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 22:36:14 -0400
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
 In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
 To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Cc: linux-arch@vger.kernel.org, Junaid Shahid <junaids@google.com>, Wanpeng Li <wanpengli@tencent.com>, kvm@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Peter Shier <pshier@google.com>, linux-mips@vger.kernel.org, Sean Christopherson <sean.j.christopherson@intel.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Gardon <bgardon@google.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Peter Feiner <pfeiner@google.com>, kvmarm@lists.cs.columbia.edu, Jim Mattson <jmattson@google.com>
+List-Id: linux-arch.vger.kernel.org
 
-Rename the memory helpers that will soon be moved to common code and be
-made globaly available via linux/kvm_host.h.  "mmu" alone is not a
-sufficient namespace for globally available KVM symbols.
+Move to the common MMU memory cache implementation now that the common
+code and arm64's existing code are semantically compatible.
 
-Opportunistically add "nr_" in mmu_memory_cache_free_objects() to make
-it clear the function returns the number of free objects, as opposed to
-freeing existing objects.
+No functional change intended.
 
+Cc: Marc Zyngier <maz@kernel.org>
 Suggested-by: Christoffer Dall <christoffer.dall@arm.com>
-Reviewed-by: Ben Gardon <bgardon@google.com>
 Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- arch/x86/kvm/mmu/mmu.c | 42 +++++++++++++++++++++---------------------
- 1 file changed, 21 insertions(+), 21 deletions(-)
+ arch/arm64/include/asm/Kbuild      |  1 -
+ arch/arm64/include/asm/kvm_host.h  | 12 -------
+ arch/arm64/include/asm/kvm_types.h |  8 +++++
+ arch/arm64/kvm/mmu.c               | 53 +++++++-----------------------
+ 4 files changed, 19 insertions(+), 55 deletions(-)
+ create mode 100644 arch/arm64/include/asm/kvm_types.h
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index 586d63de0e78..f4c8dae476bb 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1071,7 +1071,7 @@ static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
- 		return (void *)__get_free_page(gfp_flags);
+diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
+index 35a68155cd0e..ff9cbb631212 100644
+--- a/arch/arm64/include/asm/Kbuild
++++ b/arch/arm64/include/asm/Kbuild
+@@ -1,6 +1,5 @@
+ # SPDX-License-Identifier: GPL-2.0
+ generic-y += early_ioremap.h
+-generic-y += kvm_types.h
+ generic-y += local64.h
+ generic-y += mcs_spinlock.h
+ generic-y += qrwlock.h
+diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
+index 335170b59899..23d1f41548f5 100644
+--- a/arch/arm64/include/asm/kvm_host.h
++++ b/arch/arm64/include/asm/kvm_host.h
+@@ -97,18 +97,6 @@ struct kvm_arch {
+ 	bool return_nisv_io_abort_to_user;
+ };
+ 
+-#define KVM_NR_MEM_OBJS     40
+-
+-/*
+- * We don't want allocation failures within the mmu code, so we preallocate
+- * enough memory for a single page fault in a cache.
+- */
+-struct kvm_mmu_memory_cache {
+-	int nobjs;
+-	gfp_t gfp_zero;
+-	void *objects[KVM_NR_MEM_OBJS];
+-};
+-
+ struct kvm_vcpu_fault_info {
+ 	u32 esr_el2;		/* Hyp Syndrom Register */
+ 	u64 far_el2;		/* Hyp Fault Address Register */
+diff --git a/arch/arm64/include/asm/kvm_types.h b/arch/arm64/include/asm/kvm_types.h
+new file mode 100644
+index 000000000000..9a126b9e2d7c
+--- /dev/null
++++ b/arch/arm64/include/asm/kvm_types.h
+@@ -0,0 +1,8 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_ARM64_KVM_TYPES_H
++#define _ASM_ARM64_KVM_TYPES_H
++
++#define KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE 40
++
++#endif /* _ASM_ARM64_KVM_TYPES_H */
++
+diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
+index 5220623a4efb..ba66e9a9bd3c 100644
+--- a/arch/arm64/kvm/mmu.c
++++ b/arch/arm64/kvm/mmu.c
+@@ -124,37 +124,6 @@ static void stage2_dissolve_pud(struct kvm *kvm, phys_addr_t addr, pud_t *pudp)
+ 	put_page(virt_to_page(pudp));
  }
  
--static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
-+static int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
- {
- 	void *obj;
- 
-@@ -1086,12 +1086,12 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
- 	return 0;
- }
- 
--static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *mc)
-+static int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc)
- {
- 	return mc->nobjs;
- }
- 
+-static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
+-{
+-	void *page;
+-
+-	if (cache->nobjs >= min)
+-		return 0;
+-	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT |
+-					       cache->gfp_zero);
+-		if (!page)
+-			return -ENOMEM;
+-		cache->objects[cache->nobjs++] = page;
+-	}
+-	return 0;
+-}
+-
 -static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
-+static void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
- {
- 	while (mc->nobjs) {
- 		if (mc->kmem_cache)
-@@ -1106,33 +1106,33 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu, bool maybe_indirect)
- 	int r;
- 
- 	/* 1 rmap, 1 parent PTE per level, and the prefetched rmaps. */
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
--				   1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
-+	r = kvm_mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
-+				       1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
- 	if (r)
- 		return r;
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_shadow_page_cache,
--				   PT64_ROOT_MAX_LEVEL);
-+	r = kvm_mmu_topup_memory_cache(&vcpu->arch.mmu_shadow_page_cache,
-+				       PT64_ROOT_MAX_LEVEL);
- 	if (r)
- 		return r;
- 	if (maybe_indirect) {
--		r = mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
--					   PT64_ROOT_MAX_LEVEL);
-+		r = kvm_mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
-+					       PT64_ROOT_MAX_LEVEL);
- 		if (r)
- 			return r;
- 	}
--	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
--				      PT64_ROOT_MAX_LEVEL);
-+	return kvm_mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
-+					  PT64_ROOT_MAX_LEVEL);
- }
- 
- static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
- {
--	mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache);
--	mmu_free_memory_cache(&vcpu->arch.mmu_shadow_page_cache);
--	mmu_free_memory_cache(&vcpu->arch.mmu_gfn_array_cache);
--	mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
-+	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache);
-+	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_shadow_page_cache);
-+	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_gfn_array_cache);
-+	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
- }
- 
+-{
+-	while (mc->nobjs)
+-		free_page((unsigned long)mc->objects[--mc->nobjs]);
+-}
+-
 -static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
-+static void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
+-{
+-	void *p;
+-
+-	BUG_ON(!mc || !mc->nobjs);
+-	p = mc->objects[--mc->nobjs];
+-	return p;
+-}
+-
+ static void clear_stage2_pgd_entry(struct kvm *kvm, pgd_t *pgd, phys_addr_t addr)
  {
- 	void *p;
+ 	p4d_t *p4d_table __maybe_unused = stage2_p4d_offset(kvm, pgd, 0UL);
+@@ -1131,7 +1100,7 @@ static p4d_t *stage2_get_p4d(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
+ 	if (stage2_pgd_none(kvm, *pgd)) {
+ 		if (!cache)
+ 			return NULL;
+-		p4d = mmu_memory_cache_alloc(cache);
++		p4d = kvm_mmu_memory_cache_alloc(cache);
+ 		stage2_pgd_populate(kvm, pgd, p4d);
+ 		get_page(virt_to_page(pgd));
+ 	}
+@@ -1149,7 +1118,7 @@ static pud_t *stage2_get_pud(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
+ 	if (stage2_p4d_none(kvm, *p4d)) {
+ 		if (!cache)
+ 			return NULL;
+-		pud = mmu_memory_cache_alloc(cache);
++		pud = kvm_mmu_memory_cache_alloc(cache);
+ 		stage2_p4d_populate(kvm, p4d, pud);
+ 		get_page(virt_to_page(p4d));
+ 	}
+@@ -1170,7 +1139,7 @@ static pmd_t *stage2_get_pmd(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
+ 	if (stage2_pud_none(kvm, *pud)) {
+ 		if (!cache)
+ 			return NULL;
+-		pmd = mmu_memory_cache_alloc(cache);
++		pmd = kvm_mmu_memory_cache_alloc(cache);
+ 		stage2_pud_populate(kvm, pud, pmd);
+ 		get_page(virt_to_page(pud));
+ 	}
+@@ -1376,7 +1345,7 @@ static int stage2_set_pte(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
+ 	if (stage2_pud_none(kvm, *pud)) {
+ 		if (!cache)
+ 			return 0; /* ignore calls from kvm_set_spte_hva */
+-		pmd = mmu_memory_cache_alloc(cache);
++		pmd = kvm_mmu_memory_cache_alloc(cache);
+ 		stage2_pud_populate(kvm, pud, pmd);
+ 		get_page(virt_to_page(pud));
+ 	}
+@@ -1401,7 +1370,7 @@ static int stage2_set_pte(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
+ 	if (pmd_none(*pmd)) {
+ 		if (!cache)
+ 			return 0; /* ignore calls from kvm_set_spte_hva */
+-		pte = mmu_memory_cache_alloc(cache);
++		pte = kvm_mmu_memory_cache_alloc(cache);
+ 		kvm_pmd_populate(pmd, pte);
+ 		get_page(virt_to_page(pmd));
+ 	}
+@@ -1468,7 +1437,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
+ 	phys_addr_t addr, end;
+ 	int ret = 0;
+ 	unsigned long pfn;
+-	struct kvm_mmu_memory_cache cache = { 0, __GFP_ZERO, };
++	struct kvm_mmu_memory_cache cache = { 0, __GFP_ZERO, NULL, };
  
-@@ -1146,7 +1146,7 @@ static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
+ 	end = (guest_ipa + size + PAGE_SIZE - 1) & PAGE_MASK;
+ 	pfn = __phys_to_pfn(pa);
+@@ -1479,8 +1448,8 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
+ 		if (writable)
+ 			pte = kvm_s2pte_mkwrite(pte);
  
- static struct pte_list_desc *mmu_alloc_pte_list_desc(struct kvm_vcpu *vcpu)
- {
--	return mmu_memory_cache_alloc(&vcpu->arch.mmu_pte_list_desc_cache);
-+	return kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_pte_list_desc_cache);
+-		ret = mmu_topup_memory_cache(&cache,
+-					     kvm_mmu_cache_min_pages(kvm));
++		ret = kvm_mmu_topup_memory_cache(&cache,
++						 kvm_mmu_cache_min_pages(kvm));
+ 		if (ret)
+ 			goto out;
+ 		spin_lock(&kvm->mmu_lock);
+@@ -1494,7 +1463,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
+ 	}
+ 
+ out:
+-	mmu_free_memory_cache(&cache);
++	kvm_mmu_free_memory_cache(&cache);
+ 	return ret;
  }
  
- static void mmu_free_pte_list_desc(struct pte_list_desc *pte_list_desc)
-@@ -1417,7 +1417,7 @@ static bool rmap_can_add(struct kvm_vcpu *vcpu)
- 	struct kvm_mmu_memory_cache *mc;
+@@ -1880,7 +1849,7 @@ static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
+ 	mmap_read_unlock(current->mm);
  
- 	mc = &vcpu->arch.mmu_pte_list_desc_cache;
--	return mmu_memory_cache_free_objects(mc);
-+	return kvm_mmu_memory_cache_nr_free_objects(mc);
+ 	/* We need minimum second+third level pages */
+-	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm));
++	ret = kvm_mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm));
+ 	if (ret)
+ 		return ret;
+ 
+@@ -2303,7 +2272,7 @@ int kvm_test_age_hva(struct kvm *kvm, unsigned long hva)
+ 
+ void kvm_mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+ {
+-	mmu_free_memory_cache(&vcpu->arch.mmu_page_cache);
++	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_page_cache);
  }
  
- static int rmap_add(struct kvm_vcpu *vcpu, u64 *spte, gfn_t gfn)
-@@ -2104,10 +2104,10 @@ static struct kvm_mmu_page *kvm_mmu_alloc_page(struct kvm_vcpu *vcpu, int direct
- {
- 	struct kvm_mmu_page *sp;
- 
--	sp = mmu_memory_cache_alloc(&vcpu->arch.mmu_page_header_cache);
--	sp->spt = mmu_memory_cache_alloc(&vcpu->arch.mmu_shadow_page_cache);
-+	sp = kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_page_header_cache);
-+	sp->spt = kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_shadow_page_cache);
- 	if (!direct)
--		sp->gfns = mmu_memory_cache_alloc(&vcpu->arch.mmu_gfn_array_cache);
-+		sp->gfns = kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_gfn_array_cache);
- 	set_page_private(virt_to_page(sp->spt), (unsigned long)sp);
- 
- 	/*
+ phys_addr_t kvm_mmu_get_httbr(void)
 -- 
 2.26.0
