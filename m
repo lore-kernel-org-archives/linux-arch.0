@@ -1,54 +1,106 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 11/21] KVM: x86/mmu: Zero allocate shadow pages (outside of mmu_lock)
-Date: Thu,  2 Jul 2020 19:35:35 -0700
-Message-ID: <20200703023545.8771-12-sean.j.christopherson@intel.com>
+Subject: [PATCH v3 17/21] KVM: arm64: Use common code's approach for
+ __GFP_ZERO with memory caches
+Date: Thu,  2 Jul 2020 19:35:41 -0700
+Message-ID: <20200703023545.8771-18-sean.j.christopherson@intel.com>
 References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
 In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
 To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Cc: linux-arch@vger.kernel.org, Junaid Shahid <junaids@google.com>, Wanpeng Li <wanpengli@tencent.com>, kvm@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Peter Shier <pshier@google.com>, linux-mips@vger.kernel.org, Sean Christopherson <sean.j.christopherson@intel.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Gardon <bgardon@google.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Peter Feiner <pfeiner@google.com>, kvmarm@lists.cs.columbia.edu, Jim Mattson <jmattson@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Set __GFP_ZERO for the shadow page memory cache and drop the explicit
-clear_page() from kvm_mmu_get_page().  This moves the cost of zeroing a
-page to the allocation time of the physical page, i.e. when topping up
-the memory caches, and thus avoids having to zero out an entire page
-while holding mmu_lock.
+Add a "gfp_zero" member to arm64's 'struct kvm_mmu_memory_cache' to make
+the struct and its usage compatible with the common 'struct
+kvm_mmu_memory_cache' in linux/kvm_host.h.  This will minimize code
+churn when arm64 moves to the common implementation in a future patch, at
+the cost of temporarily having somewhat silly code.
 
-Cc: Peter Feiner <pfeiner@google.com>
-Cc: Peter Shier <pshier@google.com>
-Cc: Junaid Shahid <junaids@google.com>
-Cc: Jim Mattson <jmattson@google.com>
-Suggested-by: Ben Gardon <bgardon@google.com>
-Reviewed-by: Ben Gardon <bgardon@google.com>
+Note, GFP_PGTABLE_USER is equivalent to GFP_KERNEL_ACCOUNT | GFP_ZERO:
+
+  #define GFP_PGTABLE_USER  (GFP_PGTABLE_KERNEL | __GFP_ACCOUNT)
+  |
+  -> #define GFP_PGTABLE_KERNEL        (GFP_KERNEL | __GFP_ZERO)
+
+  == GFP_KERNEL | __GFP_ACCOUNT | __GFP_ZERO
+
+versus
+
+  #define GFP_KERNEL_ACCOUNT (GFP_KERNEL | __GFP_ACCOUNT)
+
+    with __GFP_ZERO explicitly OR'd in
+
+  == GFP_KERNEL | __GFP_ACCOUNT | __GFP_ZERO
+
+No functional change intended.
+
+Tested-by: Marc Zyngier <maz@kernel.org>
 Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- arch/x86/kvm/mmu/mmu.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ arch/arm64/include/asm/kvm_host.h | 1 +
+ arch/arm64/kvm/arm.c              | 2 ++
+ arch/arm64/kvm/mmu.c              | 5 +++--
+ 3 files changed, 6 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index ed36f5e63863..60b0d460bbf5 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -2545,7 +2545,6 @@ static struct kvm_mmu_page *kvm_mmu_get_page(struct kvm_vcpu *vcpu,
- 		if (level > PG_LEVEL_4K && need_sync)
- 			flush |= kvm_sync_pages(vcpu, gfn, &invalid_list);
- 	}
--	clear_page(sp->spt);
- 	trace_kvm_mmu_get_page(sp, true);
+diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
+index c3e6fcc664b1..335170b59899 100644
+--- a/arch/arm64/include/asm/kvm_host.h
++++ b/arch/arm64/include/asm/kvm_host.h
+@@ -105,6 +105,7 @@ struct kvm_arch {
+  */
+ struct kvm_mmu_memory_cache {
+ 	int nobjs;
++	gfp_t gfp_zero;
+ 	void *objects[KVM_NR_MEM_OBJS];
+ };
  
- 	kvm_mmu_flush_or_zap(vcpu, &invalid_list, false, flush);
-@@ -5682,6 +5681,8 @@ int kvm_mmu_create(struct kvm_vcpu *vcpu)
- 	vcpu->arch.mmu_page_header_cache.kmem_cache = mmu_page_header_cache;
- 	vcpu->arch.mmu_page_header_cache.gfp_zero = __GFP_ZERO;
+diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
+index 90cb90561446..1016635b3782 100644
+--- a/arch/arm64/kvm/arm.c
++++ b/arch/arm64/kvm/arm.c
+@@ -270,6 +270,8 @@ int kvm_arch_vcpu_create(struct kvm_vcpu *vcpu)
+ 	vcpu->arch.target = -1;
+ 	bitmap_zero(vcpu->arch.features, KVM_VCPU_MAX_FEATURES);
  
-+	vcpu->arch.mmu_shadow_page_cache.gfp_zero = __GFP_ZERO;
++	vcpu->arch.mmu_page_cache.gfp_zero = __GFP_ZERO;
 +
- 	vcpu->arch.mmu = &vcpu->arch.root_mmu;
- 	vcpu->arch.walk_mmu = &vcpu->arch.root_mmu;
+ 	/* Set up the timer */
+ 	kvm_timer_vcpu_init(vcpu);
  
+diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
+index f78aa3e269e9..5220623a4efb 100644
+--- a/arch/arm64/kvm/mmu.c
++++ b/arch/arm64/kvm/mmu.c
+@@ -131,7 +131,8 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
+ 	if (cache->nobjs >= min)
+ 		return 0;
+ 	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		page = (void *)__get_free_page(GFP_PGTABLE_USER);
++		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT |
++					       cache->gfp_zero);
+ 		if (!page)
+ 			return -ENOMEM;
+ 		cache->objects[cache->nobjs++] = page;
+@@ -1467,7 +1468,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
+ 	phys_addr_t addr, end;
+ 	int ret = 0;
+ 	unsigned long pfn;
+-	struct kvm_mmu_memory_cache cache = { 0, };
++	struct kvm_mmu_memory_cache cache = { 0, __GFP_ZERO, };
+ 
+ 	end = (guest_ipa + size + PAGE_SIZE - 1) & PAGE_MASK;
+ 	pfn = __phys_to_pfn(pa);
 -- 
 2.26.0
