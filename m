@@ -1,8 +1,8 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 17/21] KVM: arm64: Use common code's approach for
- __GFP_ZERO with memory caches
-Date: Thu,  2 Jul 2020 19:35:41 -0700
-Message-ID: <20200703023545.8771-18-sean.j.christopherson@intel.com>
+Subject: [PATCH v3 07/21] KVM: x86/mmu: Topup memory caches after walking
+ GVA->GPA
+Date: Thu,  2 Jul 2020 19:35:31 -0700
+Message-ID: <20200703023545.8771-8-sean.j.christopherson@intel.com>
 References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,85 +22,47 @@ To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Ber
 Cc: linux-arch@vger.kernel.org, Junaid Shahid <junaids@google.com>, Wanpeng Li <wanpengli@tencent.com>, kvm@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Peter Shier <pshier@google.com>, linux-mips@vger.kernel.org, Sean Christopherson <sean.j.christopherson@intel.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Gardon <bgardon@google.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Peter Feiner <pfeiner@google.com>, kvmarm@lists.cs.columbia.edu, Jim Mattson <jmattson@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Add a "gfp_zero" member to arm64's 'struct kvm_mmu_memory_cache' to make
-the struct and its usage compatible with the common 'struct
-kvm_mmu_memory_cache' in linux/kvm_host.h.  This will minimize code
-churn when arm64 moves to the common implementation in a future patch, at
-the cost of temporarily having somewhat silly code.
+Topup memory caches after walking the GVA->GPA translation during a
+shadow page fault, there is no need to ensure the caches are full when
+walking the GVA.  As of commit f5a1e9f89504f ("KVM: MMU: remove call
+to kvm_mmu_pte_write from walk_addr"), the FNAME(walk_addr) flow no
+longer add rmaps via kvm_mmu_pte_write().
 
-Note, GFP_PGTABLE_USER is equivalent to GFP_KERNEL_ACCOUNT | GFP_ZERO:
+This avoids allocating memory in the case that the GVA is unmapped in
+the guest, and also provides a paper trail of why/when the memory caches
+need to be filled.
 
-  #define GFP_PGTABLE_USER  (GFP_PGTABLE_KERNEL | __GFP_ACCOUNT)
-  |
-  -> #define GFP_PGTABLE_KERNEL        (GFP_KERNEL | __GFP_ZERO)
-
-  == GFP_KERNEL | __GFP_ACCOUNT | __GFP_ZERO
-
-versus
-
-  #define GFP_KERNEL_ACCOUNT (GFP_KERNEL | __GFP_ACCOUNT)
-
-    with __GFP_ZERO explicitly OR'd in
-
-  == GFP_KERNEL | __GFP_ACCOUNT | __GFP_ZERO
-
-No functional change intended.
-
-Tested-by: Marc Zyngier <maz@kernel.org>
+Reviewed-by: Ben Gardon <bgardon@google.com>
 Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- arch/arm64/include/asm/kvm_host.h | 1 +
- arch/arm64/kvm/arm.c              | 2 ++
- arch/arm64/kvm/mmu.c              | 5 +++--
- 3 files changed, 6 insertions(+), 2 deletions(-)
+ arch/x86/kvm/mmu/paging_tmpl.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
-index c3e6fcc664b1..335170b59899 100644
---- a/arch/arm64/include/asm/kvm_host.h
-+++ b/arch/arm64/include/asm/kvm_host.h
-@@ -105,6 +105,7 @@ struct kvm_arch {
-  */
- struct kvm_mmu_memory_cache {
- 	int nobjs;
-+	gfp_t gfp_zero;
- 	void *objects[KVM_NR_MEM_OBJS];
- };
+diff --git a/arch/x86/kvm/mmu/paging_tmpl.h b/arch/x86/kvm/mmu/paging_tmpl.h
+index 58234bfaca07..451d7aa7d959 100644
+--- a/arch/x86/kvm/mmu/paging_tmpl.h
++++ b/arch/x86/kvm/mmu/paging_tmpl.h
+@@ -788,10 +788,6 @@ static int FNAME(page_fault)(struct kvm_vcpu *vcpu, gpa_t addr, u32 error_code,
  
-diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
-index 90cb90561446..1016635b3782 100644
---- a/arch/arm64/kvm/arm.c
-+++ b/arch/arm64/kvm/arm.c
-@@ -270,6 +270,8 @@ int kvm_arch_vcpu_create(struct kvm_vcpu *vcpu)
- 	vcpu->arch.target = -1;
- 	bitmap_zero(vcpu->arch.features, KVM_VCPU_MAX_FEATURES);
+ 	pgprintk("%s: addr %lx err %x\n", __func__, addr, error_code);
  
-+	vcpu->arch.mmu_page_cache.gfp_zero = __GFP_ZERO;
+-	r = mmu_topup_memory_caches(vcpu);
+-	if (r)
+-		return r;
+-
+ 	/*
+ 	 * If PFEC.RSVD is set, this is a shadow page fault.
+ 	 * The bit needs to be cleared before walking guest page tables.
+@@ -819,6 +815,10 @@ static int FNAME(page_fault)(struct kvm_vcpu *vcpu, gpa_t addr, u32 error_code,
+ 		return RET_PF_EMULATE;
+ 	}
+ 
++	r = mmu_topup_memory_caches(vcpu);
++	if (r)
++		return r;
 +
- 	/* Set up the timer */
- 	kvm_timer_vcpu_init(vcpu);
+ 	vcpu->arch.write_fault_to_shadow_pgtable = false;
  
-diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
-index f78aa3e269e9..5220623a4efb 100644
---- a/arch/arm64/kvm/mmu.c
-+++ b/arch/arm64/kvm/mmu.c
-@@ -131,7 +131,8 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
- 	if (cache->nobjs >= min)
- 		return 0;
- 	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
--		page = (void *)__get_free_page(GFP_PGTABLE_USER);
-+		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT |
-+					       cache->gfp_zero);
- 		if (!page)
- 			return -ENOMEM;
- 		cache->objects[cache->nobjs++] = page;
-@@ -1467,7 +1468,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
- 	phys_addr_t addr, end;
- 	int ret = 0;
- 	unsigned long pfn;
--	struct kvm_mmu_memory_cache cache = { 0, };
-+	struct kvm_mmu_memory_cache cache = { 0, __GFP_ZERO, };
- 
- 	end = (guest_ipa + size + PAGE_SIZE - 1) & PAGE_MASK;
- 	pfn = __phys_to_pfn(pa);
+ 	is_self_change_mapping = FNAME(is_self_change_mapping)(vcpu,
 -- 
 2.26.0
