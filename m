@@ -1,8 +1,8 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 06/21] KVM: x86/mmu: Move fast_page_fault() call above
- mmu_topup_memory_caches()
-Date: Thu,  2 Jul 2020 19:35:30 -0700
-Message-ID: <20200703023545.8771-7-sean.j.christopherson@intel.com>
+Subject: [PATCH v3 02/21] KVM: x86/mmu: Consolidate "page" variant of memory
+ cache helpers
+Date: Thu,  2 Jul 2020 19:35:26 -0700
+Message-ID: <20200703023545.8771-3-sean.j.christopherson@intel.com>
 References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,39 +22,87 @@ To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Ber
 Cc: linux-arch@vger.kernel.org, Junaid Shahid <junaids@google.com>, Wanpeng Li <wanpengli@tencent.com>, kvm@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Peter Shier <pshier@google.com>, linux-mips@vger.kernel.org, Sean Christopherson <sean.j.christopherson@intel.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Gardon <bgardon@google.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Peter Feiner <pfeiner@google.com>, kvmarm@lists.cs.columbia.edu, Jim Mattson <jmattson@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Avoid refilling the memory caches and potentially slow reclaim/swap when
-handling a fast page fault, which does not need to allocate any new
-objects.
+Drop the "page" variants of the topup/free memory cache helpers, using
+the existence of an associated kmem_cache to select the correct alloc
+or free routine.
+
+No functional change intended.
 
 Reviewed-by: Ben Gardon <bgardon@google.com>
 Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- arch/x86/kvm/mmu/mmu.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/x86/kvm/mmu/mmu.c | 37 +++++++++++--------------------------
+ 1 file changed, 11 insertions(+), 26 deletions(-)
 
 diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index 748235877def..3d0768e16463 100644
+index 2c62cc1d0353..d6612af6c056 100644
 --- a/arch/x86/kvm/mmu/mmu.c
 +++ b/arch/x86/kvm/mmu/mmu.c
-@@ -4095,6 +4095,9 @@ static int direct_page_fault(struct kvm_vcpu *vcpu, gpa_t gpa, u32 error_code,
- 	if (page_fault_handle_page_track(vcpu, error_code, gfn))
- 		return RET_PF_EMULATE;
+@@ -1067,7 +1067,10 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
+ 	if (cache->nobjs >= min)
+ 		return 0;
+ 	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		obj = kmem_cache_zalloc(cache->kmem_cache, GFP_KERNEL_ACCOUNT);
++		if (cache->kmem_cache)
++			obj = kmem_cache_zalloc(cache->kmem_cache, GFP_KERNEL_ACCOUNT);
++		else
++			obj = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
+ 		if (!obj)
+ 			return cache->nobjs >= min ? 0 : -ENOMEM;
+ 		cache->objects[cache->nobjs++] = obj;
+@@ -1082,30 +1085,12 @@ static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *cache)
  
-+	if (fast_page_fault(vcpu, gpa, error_code))
-+		return RET_PF_RETRY;
-+
- 	r = mmu_topup_memory_caches(vcpu);
- 	if (r)
- 		return r;
-@@ -4102,9 +4105,6 @@ static int direct_page_fault(struct kvm_vcpu *vcpu, gpa_t gpa, u32 error_code,
- 	if (lpage_disallowed)
- 		max_level = PG_LEVEL_4K;
- 
--	if (fast_page_fault(vcpu, gpa, error_code))
--		return RET_PF_RETRY;
+ static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
+ {
+-	while (mc->nobjs)
+-		kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
+-}
 -
- 	mmu_seq = vcpu->kvm->mmu_notifier_seq;
- 	smp_rmb();
+-static int mmu_topup_memory_cache_page(struct kvm_mmu_memory_cache *cache,
+-				       int min)
+-{
+-	void *page;
+-
+-	if (cache->nobjs >= min)
+-		return 0;
+-	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
+-		if (!page)
+-			return cache->nobjs >= min ? 0 : -ENOMEM;
+-		cache->objects[cache->nobjs++] = page;
++	while (mc->nobjs) {
++		if (mc->kmem_cache)
++			kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
++		else
++			free_page((unsigned long)mc->objects[--mc->nobjs]);
+ 	}
+-	return 0;
+-}
+-
+-static void mmu_free_memory_cache_page(struct kvm_mmu_memory_cache *mc)
+-{
+-	while (mc->nobjs)
+-		free_page((unsigned long)mc->objects[--mc->nobjs]);
+ }
+ 
+ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+@@ -1116,7 +1101,7 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+ 				   8 + PTE_PREFETCH_NUM);
+ 	if (r)
+ 		goto out;
+-	r = mmu_topup_memory_cache_page(&vcpu->arch.mmu_page_cache, 8);
++	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache, 8);
+ 	if (r)
+ 		goto out;
+ 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
+@@ -1127,7 +1112,7 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+ static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+ {
+ 	mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache);
+-	mmu_free_memory_cache_page(&vcpu->arch.mmu_page_cache);
++	mmu_free_memory_cache(&vcpu->arch.mmu_page_cache);
+ 	mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
+ }
  
 -- 
 2.26.0
