@@ -1,94 +1,186 @@
-Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54850 "EHLO
+Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36006 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726766AbgGIVUf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 17:20:35 -0400
-Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C423CC08C5CE
-        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 14:20:34 -0700 (PDT)
-Received: by mail-pj1-x1043.google.com with SMTP id o22so1659360pjw.2
-        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 14:20:34 -0700 (PDT)
-Subject: [PATCH v2 5/5] unicore32: Use the generic devmem_is_allowed()
-Date: Thu,  9 Jul 2020 14:19:25 -0700
-Message-ID: <20200709211925.1926557-6-palmer@dabbelt.com>
-In-Reply-To: <20200709211925.1926557-1-palmer@dabbelt.com>
-References: <20200709211925.1926557-1-palmer@dabbelt.com>
+        with ESMTP id S1725764AbgGCHfj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Jul 2020 03:35:39 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH v2 2/6] powerpc/pseries: move some PAPR paravirt functions to their own file
+Date: Fri,  3 Jul 2020 17:35:12 +1000
+Message-ID: <20200703073516.1354108-3-npiggin@gmail.com>
+In-Reply-To: <20200703073516.1354108-1-npiggin@gmail.com>
+References: <20200703073516.1354108-1-npiggin@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-From: Palmer Dabbelt <palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: zong.li@sifive.com, rppt@linux.ibm.com
-Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, aou@eecs.berkeley.edu, gxt@pku.edu.cn, Arnd Bergmann <arnd@arndb.de>, linus.walleij@linaro.org, akpm@linux-foundation.org, mchehab+samsung@kernel.org, gregory.0xf0@gmail.com, masahiroy@kernel.org, Nick Desaulniers <ndesaulniers@google.com>, bgolaszewski@baylibre.com, steve@sk2.org, tglx@linutronix.de, keescook@chromium.org, alex@ghiti.fr, mcgrof@kernel.org, mark.rutland@arm.com, james.morse@arm.com, alex.shi@linux.alibaba.com, andriy.shevchenko@linux.intel.com, broonie@kernel.org, rdunlap@infradead.org, davem@davemloft.net, rostedt@goodmis.org, dan.j.williams@intel.com, mhiramat@kernel.org, krzk@kernel.org, zaslonko@linux.ibm.com, matti.vaittinen@fi.rohmeurope.com, uwe@kleine-koenig.org, clabbe@baylibre.com, changbin.du@intel.com, Greg KH <gregkh@linuxfoundation.org>, paulmck@kernel.org, pmladek@suse.com, brendanhiggins@google.com, glider@google.com, elver@google.com, davidgow@google.com, ardb@kernel.org, takahiro.akashi@linaro.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, kernel-team@android.com, Palmer Dabbelt <palmerdabbelt@google.com>
-Message-ID: <20200709211925.7z8EoKL6083ZmJGYMf8TzmkkihXl_Q7IYB9G2pZ0Tdk@z>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200703073512.Ln7WsUN8LKHY0ZK47cOKe8IN42ApYl9QndstAc262n8@z>
 
-From: Palmer Dabbelt <palmerdabbelt@google.com>
-
-Aside from being inlineable, this is exactly the same as the arm64
-version, which I recently copied into lib/ for use by the RISC-V port.
-
-[I haven't even build tested this.  The lib/ patch is on riscv/for-next,
-which I'm targeting for 5.9, so this won't work alone.  See the cover
-letter for more details.]
-
-Signed-off-by: Palmer Dabbelt <palmerdabbelt@google.com>
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/unicore32/Kconfig          |  2 +-
- arch/unicore32/include/asm/io.h | 23 -----------------------
- 2 files changed, 1 insertion(+), 24 deletions(-)
+ arch/powerpc/include/asm/paravirt.h | 61 +++++++++++++++++++++++++++++
+ arch/powerpc/include/asm/spinlock.h | 24 +-----------
+ arch/powerpc/lib/locks.c            | 12 +++---
+ 3 files changed, 68 insertions(+), 29 deletions(-)
+ create mode 100644 arch/powerpc/include/asm/paravirt.h
 
-diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
-index 11ba1839d198..7610571044f4 100644
---- a/arch/unicore32/Kconfig
-+++ b/arch/unicore32/Kconfig
-@@ -2,7 +2,6 @@
- config UNICORE32
- 	def_bool y
- 	select ARCH_32BIT_OFF_T
--	select ARCH_HAS_DEVMEM_IS_ALLOWED
- 	select ARCH_HAS_KEEPINITRD
- 	select ARCH_MIGHT_HAVE_PC_PARPORT
- 	select ARCH_MIGHT_HAVE_PC_SERIO
-@@ -12,6 +11,7 @@ config UNICORE32
- 	select HAVE_KERNEL_LZO
- 	select HAVE_KERNEL_LZMA
- 	select HAVE_PCI
-+	select GENERIC_LIB_DEVMEM_IS_ALLOWED
- 	select VIRT_TO_BUS
- 	select ARCH_HAVE_CUSTOM_GPIO_H
- 	select GENERIC_FIND_FIRST_BIT
-diff --git a/arch/unicore32/include/asm/io.h b/arch/unicore32/include/asm/io.h
-index bd4e7c332f85..4560d2531655 100644
---- a/arch/unicore32/include/asm/io.h
-+++ b/arch/unicore32/include/asm/io.h
-@@ -42,28 +42,5 @@ extern void __uc32_iounmap(volatile void __iomem *addr);
- #define PIO_MASK		(unsigned int)(IO_SPACE_LIMIT)
- #define PIO_RESERVED		(PIO_OFFSET + PIO_MASK + 1)
+diff --git a/arch/powerpc/include/asm/paravirt.h b/arch/powerpc/include/asm/paravirt.h
+new file mode 100644
+index 000000000000..7a8546660a63
+--- /dev/null
++++ b/arch/powerpc/include/asm/paravirt.h
+@@ -0,0 +1,61 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++#ifndef __ASM_PARAVIRT_H
++#define __ASM_PARAVIRT_H
++#ifdef __KERNEL__
++
++#include <linux/jump_label.h>
++#include <asm/smp.h>
++#ifdef CONFIG_PPC64
++#include <asm/paca.h>
++#include <asm/hvcall.h>
++#endif
++
++#ifdef CONFIG_PPC_SPLPAR
++DECLARE_STATIC_KEY_FALSE(shared_processor);
++
++static inline bool is_shared_processor(void)
++{
++	return static_branch_unlikely(&shared_processor);
++}
++
++/* If bit 0 is set, the cpu has been preempted */
++static inline u32 yield_count_of(int cpu)
++{
++	__be32 yield_count = READ_ONCE(lppaca_of(cpu).yield_count);
++	return be32_to_cpu(yield_count);
++}
++
++static inline void yield_to_preempted(int cpu, u32 yield_count)
++{
++	plpar_hcall_norets(H_CONFER, get_hard_smp_processor_id(cpu), yield_count);
++}
++#else
++static inline bool is_shared_processor(void)
++{
++	return false;
++}
++
++static inline u32 yield_count_of(int cpu)
++{
++	return 0;
++}
++
++extern void ___bad_yield_to_preempted(void);
++static inline void yield_to_preempted(int cpu, u32 yield_count)
++{
++	___bad_yield_to_preempted(); /* This would be a bug */
++}
++#endif
++
++#define vcpu_is_preempted vcpu_is_preempted
++static inline bool vcpu_is_preempted(int cpu)
++{
++	if (!is_shared_processor())
++		return false;
++	if (yield_count_of(cpu) & 1)
++		return true;
++	return false;
++}
++
++#endif /* __KERNEL__ */
++#endif /* __ASM_PARAVIRT_H */
+diff --git a/arch/powerpc/include/asm/spinlock.h b/arch/powerpc/include/asm/spinlock.h
+index 2d620896cdae..79be9bb10bbb 100644
+--- a/arch/powerpc/include/asm/spinlock.h
++++ b/arch/powerpc/include/asm/spinlock.h
+@@ -15,11 +15,10 @@
+  *
+  * (the type definitions are in asm/spinlock_types.h)
+  */
+-#include <linux/jump_label.h>
+ #include <linux/irqflags.h>
++#include <asm/paravirt.h>
+ #ifdef CONFIG_PPC64
+ #include <asm/paca.h>
+-#include <asm/hvcall.h>
+ #endif
+ #include <asm/synch.h>
+ #include <asm/ppc-opcode.h>
+@@ -35,18 +34,6 @@
+ #define LOCK_TOKEN	1
+ #endif
  
--#ifdef CONFIG_STRICT_DEVMEM
+-#ifdef CONFIG_PPC_PSERIES
+-DECLARE_STATIC_KEY_FALSE(shared_processor);
 -
--#include <linux/ioport.h>
--#include <linux/mm.h>
--
--/*
-- * devmem_is_allowed() checks to see if /dev/mem access to a certain
-- * address is valid. The argument is a physical page number.
-- * We mimic x86 here by disallowing access to system RAM as well as
-- * device-exclusive MMIO regions. This effectively disable read()/write()
-- * on /dev/mem.
-- */
--static inline int devmem_is_allowed(unsigned long pfn)
+-#define vcpu_is_preempted vcpu_is_preempted
+-static inline bool vcpu_is_preempted(int cpu)
 -{
--	if (iomem_is_exclusive(pfn << PAGE_SHIFT))
--		return 0;
--	if (!page_is_ram(pfn))
--		return 1;
--	return 0;
+-	if (!static_branch_unlikely(&shared_processor))
+-		return false;
+-	return !!(be32_to_cpu(lppaca_of(cpu).yield_count) & 1);
+-}
+-#endif
+-
+ static __always_inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+ {
+ 	return lock.slock == 0;
+@@ -110,15 +97,6 @@ static inline void splpar_spin_yield(arch_spinlock_t *lock) {};
+ static inline void splpar_rw_yield(arch_rwlock_t *lock) {};
+ #endif
+ 
+-static inline bool is_shared_processor(void)
+-{
+-#ifdef CONFIG_PPC_SPLPAR
+-	return static_branch_unlikely(&shared_processor);
+-#else
+-	return false;
+-#endif
 -}
 -
--#endif /* CONFIG_STRICT_DEVMEM */
--
- #endif	/* __KERNEL__ */
- #endif	/* __UNICORE_IO_H__ */
+ static inline void spin_yield(arch_spinlock_t *lock)
+ {
+ 	if (is_shared_processor())
+diff --git a/arch/powerpc/lib/locks.c b/arch/powerpc/lib/locks.c
+index 6440d5943c00..04165b7a163f 100644
+--- a/arch/powerpc/lib/locks.c
++++ b/arch/powerpc/lib/locks.c
+@@ -27,14 +27,14 @@ void splpar_spin_yield(arch_spinlock_t *lock)
+ 		return;
+ 	holder_cpu = lock_value & 0xffff;
+ 	BUG_ON(holder_cpu >= NR_CPUS);
+-	yield_count = be32_to_cpu(lppaca_of(holder_cpu).yield_count);
++
++	yield_count = yield_count_of(holder_cpu);
+ 	if ((yield_count & 1) == 0)
+ 		return;		/* virtual cpu is currently running */
+ 	rmb();
+ 	if (lock->slock != lock_value)
+ 		return;		/* something has changed */
+-	plpar_hcall_norets(H_CONFER,
+-		get_hard_smp_processor_id(holder_cpu), yield_count);
++	yield_to_preempted(holder_cpu, yield_count);
+ }
+ EXPORT_SYMBOL_GPL(splpar_spin_yield);
+ 
+@@ -53,13 +53,13 @@ void splpar_rw_yield(arch_rwlock_t *rw)
+ 		return;		/* no write lock at present */
+ 	holder_cpu = lock_value & 0xffff;
+ 	BUG_ON(holder_cpu >= NR_CPUS);
+-	yield_count = be32_to_cpu(lppaca_of(holder_cpu).yield_count);
++
++	yield_count = yield_count_of(holder_cpu);
+ 	if ((yield_count & 1) == 0)
+ 		return;		/* virtual cpu is currently running */
+ 	rmb();
+ 	if (rw->lock != lock_value)
+ 		return;		/* something has changed */
+-	plpar_hcall_norets(H_CONFER,
+-		get_hard_smp_processor_id(holder_cpu), yield_count);
++	yield_to_preempted(holder_cpu, yield_count);
+ }
+ #endif
 -- 
-2.27.0.383.g050319c2ae-goog
+2.23.0
