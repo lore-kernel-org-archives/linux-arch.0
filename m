@@ -1,106 +1,219 @@
-Return-Path: <SRS0=hCR/=AV=kvack.org=owner-linux-mm@kernel.org>
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [RFC PATCH 0/7] mmu context cleanup, lazy tlb cleanup,
-Date: Fri, 10 Jul 2020 11:56:39 +1000
-Message-ID: <20200710015646.2020871-1-npiggin@gmail.com>
+Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga05.intel.com ([192.55.52.43]:33746 "EHLO mga05.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726187AbgGCCgK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Jul 2020 22:36:10 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v3 18/21] KVM: arm64: Use common KVM implementation of MMU memory caches
+Date: Thu,  2 Jul 2020 19:35:42 -0700
+Message-ID: <20200703023545.8771-19-sean.j.christopherson@intel.com>
+In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200710015639.lXhwrtSaaw6zRyLClVmK5CecbK2Teb7LQFvI0vAKN-Y@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200703023542.hSByAZK6E7qjyV_nQuv3i2SycrLxZgvGNWa5PYVL4yI@z>
 
-This blew up a bit bigger than I thought, so I'd like to get some
-comments as to whether people agree with the direction it's going.
+Move to the common MMU memory cache implementation now that the common
+code and arm64's existing code are semantically compatible.
 
-The patches aren't cleanly split out by arch, but as it is now it's
-probably easier to get a quick overview of the changes at a glance
-anyway.
+No functional change intended.
 
-So there's a few different things here.
+Cc: Marc Zyngier <maz@kernel.org>
+Suggested-by: Christoffer Dall <christoffer.dall@arm.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+---
+ arch/arm64/include/asm/Kbuild      |  1 -
+ arch/arm64/include/asm/kvm_host.h  | 12 -------
+ arch/arm64/include/asm/kvm_types.h |  8 +++++
+ arch/arm64/kvm/mmu.c               | 53 +++++++-----------------------
+ 4 files changed, 19 insertions(+), 55 deletions(-)
+ create mode 100644 arch/arm64/include/asm/kvm_types.h
 
-1. Clean up and use asm-generic for no-op mmu context functions (so
-   not just for nommu architectures). This should be functionally a
-   no-op for everybody. This allows exit_lazy_tlb to easily be added.
-
-2. Add exit_lazy_tlb and use it for x86, so this is x86 and membarrier
-   specific changes. I _may_ have spotted a small membarrier / core sync
-   bug here when adding exit_lazy_tlb.
-
-3. Tidy up lazy tlb a little bit, have its own refcount function and
-   allow it to be selected out. We can audit the nommu archs and
-   deselect it for those.
-
-4. Add a non-refcounting lazy mmu mode, to help scalability when the
-   same mm is used for a lot of lazy mmu switching.
-
-Comments, questions on anything would be much appreciated.
-
-Thanks,
-Nick
-
-Nicholas Piggin (7):
-  asm-generic: add generic MMU versions of mmu context functions
-  arch: use asm-generic mmu context for no-op implementations
-  mm: introduce exit_lazy_tlb
-  x86: use exit_lazy_tlb rather than
-    membarrier_mm_sync_core_before_usermode
-  lazy tlb: introduce lazy mm refcount helper functions
-  lazy tlb: allow lazy tlb mm switching to be configurable
-  lazy tlb: shoot lazies, a non-refcounting lazy tlb option
-
- .../membarrier-sync-core/arch-support.txt     |  6 +-
- arch/Kconfig                                  | 23 +++++
- arch/alpha/include/asm/mmu_context.h          | 12 +--
- arch/arc/include/asm/mmu_context.h            | 16 ++--
- arch/arm/include/asm/mmu_context.h            | 26 +-----
- arch/arm64/include/asm/mmu_context.h          |  7 +-
- arch/csky/include/asm/mmu_context.h           |  8 +-
- arch/hexagon/include/asm/mmu_context.h        | 33 ++------
- arch/ia64/include/asm/mmu_context.h           | 17 +---
- arch/m68k/include/asm/mmu_context.h           | 47 ++---------
- arch/microblaze/include/asm/mmu_context.h     |  2 +-
- arch/microblaze/include/asm/mmu_context_mm.h  |  8 +-
- arch/microblaze/include/asm/processor.h       |  3 -
- arch/mips/include/asm/mmu_context.h           | 11 +--
- arch/nds32/include/asm/mmu_context.h          | 10 +--
- arch/nios2/include/asm/mmu_context.h          | 21 +----
- arch/nios2/mm/mmu_context.c                   |  1 +
- arch/openrisc/include/asm/mmu_context.h       |  8 +-
- arch/openrisc/mm/tlb.c                        |  2 +
- arch/parisc/include/asm/mmu_context.h         | 12 +--
- arch/powerpc/Kconfig                          |  1 +
- arch/powerpc/include/asm/mmu_context.h        | 22 ++---
- arch/powerpc/kernel/smp.c                     |  2 +-
- arch/powerpc/mm/book3s64/radix_tlb.c          |  4 +-
- arch/riscv/include/asm/mmu_context.h          | 22 +----
- arch/s390/include/asm/mmu_context.h           |  9 +-
- arch/sh/include/asm/mmu_context.h             |  7 +-
- arch/sh/include/asm/mmu_context_32.h          |  9 --
- arch/sparc/include/asm/mmu_context_32.h       | 10 +--
- arch/sparc/include/asm/mmu_context_64.h       | 10 +--
- arch/um/include/asm/mmu_context.h             | 12 ++-
- arch/unicore32/include/asm/mmu_context.h      | 24 +-----
- arch/x86/include/asm/mmu_context.h            | 41 +++++++++
- arch/x86/include/asm/sync_core.h              | 28 -------
- arch/xtensa/include/asm/mmu_context.h         | 11 +--
- arch/xtensa/include/asm/nommu_context.h       | 26 +-----
- fs/exec.c                                     |  5 +-
- include/asm-generic/mmu_context.h             | 77 +++++++++++++----
- include/asm-generic/nommu_context.h           | 19 +++++
- include/linux/sched/mm.h                      | 35 ++++----
- include/linux/sync_core.h                     | 21 -----
- kernel/cpu.c                                  |  6 +-
- kernel/exit.c                                 |  2 +-
- kernel/fork.c                                 | 39 +++++++++
- kernel/kthread.c                              | 12 ++-
- kernel/sched/core.c                           | 84 ++++++++++++-------
- kernel/sched/sched.h                          |  4 +-
- 47 files changed, 388 insertions(+), 427 deletions(-)
- delete mode 100644 arch/x86/include/asm/sync_core.h
- create mode 100644 include/asm-generic/nommu_context.h
- delete mode 100644 include/linux/sync_core.h
-
---=20
-2.23.0
+diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
+index 35a68155cd0e..ff9cbb631212 100644
+--- a/arch/arm64/include/asm/Kbuild
++++ b/arch/arm64/include/asm/Kbuild
+@@ -1,6 +1,5 @@
+ # SPDX-License-Identifier: GPL-2.0
+ generic-y += early_ioremap.h
+-generic-y += kvm_types.h
+ generic-y += local64.h
+ generic-y += mcs_spinlock.h
+ generic-y += qrwlock.h
+diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
+index 335170b59899..23d1f41548f5 100644
+--- a/arch/arm64/include/asm/kvm_host.h
++++ b/arch/arm64/include/asm/kvm_host.h
+@@ -97,18 +97,6 @@ struct kvm_arch {
+ 	bool return_nisv_io_abort_to_user;
+ };
+ 
+-#define KVM_NR_MEM_OBJS     40
+-
+-/*
+- * We don't want allocation failures within the mmu code, so we preallocate
+- * enough memory for a single page fault in a cache.
+- */
+-struct kvm_mmu_memory_cache {
+-	int nobjs;
+-	gfp_t gfp_zero;
+-	void *objects[KVM_NR_MEM_OBJS];
+-};
+-
+ struct kvm_vcpu_fault_info {
+ 	u32 esr_el2;		/* Hyp Syndrom Register */
+ 	u64 far_el2;		/* Hyp Fault Address Register */
+diff --git a/arch/arm64/include/asm/kvm_types.h b/arch/arm64/include/asm/kvm_types.h
+new file mode 100644
+index 000000000000..9a126b9e2d7c
+--- /dev/null
++++ b/arch/arm64/include/asm/kvm_types.h
+@@ -0,0 +1,8 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_ARM64_KVM_TYPES_H
++#define _ASM_ARM64_KVM_TYPES_H
++
++#define KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE 40
++
++#endif /* _ASM_ARM64_KVM_TYPES_H */
++
+diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
+index 5220623a4efb..ba66e9a9bd3c 100644
+--- a/arch/arm64/kvm/mmu.c
++++ b/arch/arm64/kvm/mmu.c
+@@ -124,37 +124,6 @@ static void stage2_dissolve_pud(struct kvm *kvm, phys_addr_t addr, pud_t *pudp)
+ 	put_page(virt_to_page(pudp));
+ }
+ 
+-static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
+-{
+-	void *page;
+-
+-	if (cache->nobjs >= min)
+-		return 0;
+-	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT |
+-					       cache->gfp_zero);
+-		if (!page)
+-			return -ENOMEM;
+-		cache->objects[cache->nobjs++] = page;
+-	}
+-	return 0;
+-}
+-
+-static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
+-{
+-	while (mc->nobjs)
+-		free_page((unsigned long)mc->objects[--mc->nobjs]);
+-}
+-
+-static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
+-{
+-	void *p;
+-
+-	BUG_ON(!mc || !mc->nobjs);
+-	p = mc->objects[--mc->nobjs];
+-	return p;
+-}
+-
+ static void clear_stage2_pgd_entry(struct kvm *kvm, pgd_t *pgd, phys_addr_t addr)
+ {
+ 	p4d_t *p4d_table __maybe_unused = stage2_p4d_offset(kvm, pgd, 0UL);
+@@ -1131,7 +1100,7 @@ static p4d_t *stage2_get_p4d(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
+ 	if (stage2_pgd_none(kvm, *pgd)) {
+ 		if (!cache)
+ 			return NULL;
+-		p4d = mmu_memory_cache_alloc(cache);
++		p4d = kvm_mmu_memory_cache_alloc(cache);
+ 		stage2_pgd_populate(kvm, pgd, p4d);
+ 		get_page(virt_to_page(pgd));
+ 	}
+@@ -1149,7 +1118,7 @@ static pud_t *stage2_get_pud(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
+ 	if (stage2_p4d_none(kvm, *p4d)) {
+ 		if (!cache)
+ 			return NULL;
+-		pud = mmu_memory_cache_alloc(cache);
++		pud = kvm_mmu_memory_cache_alloc(cache);
+ 		stage2_p4d_populate(kvm, p4d, pud);
+ 		get_page(virt_to_page(p4d));
+ 	}
+@@ -1170,7 +1139,7 @@ static pmd_t *stage2_get_pmd(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
+ 	if (stage2_pud_none(kvm, *pud)) {
+ 		if (!cache)
+ 			return NULL;
+-		pmd = mmu_memory_cache_alloc(cache);
++		pmd = kvm_mmu_memory_cache_alloc(cache);
+ 		stage2_pud_populate(kvm, pud, pmd);
+ 		get_page(virt_to_page(pud));
+ 	}
+@@ -1376,7 +1345,7 @@ static int stage2_set_pte(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
+ 	if (stage2_pud_none(kvm, *pud)) {
+ 		if (!cache)
+ 			return 0; /* ignore calls from kvm_set_spte_hva */
+-		pmd = mmu_memory_cache_alloc(cache);
++		pmd = kvm_mmu_memory_cache_alloc(cache);
+ 		stage2_pud_populate(kvm, pud, pmd);
+ 		get_page(virt_to_page(pud));
+ 	}
+@@ -1401,7 +1370,7 @@ static int stage2_set_pte(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
+ 	if (pmd_none(*pmd)) {
+ 		if (!cache)
+ 			return 0; /* ignore calls from kvm_set_spte_hva */
+-		pte = mmu_memory_cache_alloc(cache);
++		pte = kvm_mmu_memory_cache_alloc(cache);
+ 		kvm_pmd_populate(pmd, pte);
+ 		get_page(virt_to_page(pmd));
+ 	}
+@@ -1468,7 +1437,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
+ 	phys_addr_t addr, end;
+ 	int ret = 0;
+ 	unsigned long pfn;
+-	struct kvm_mmu_memory_cache cache = { 0, __GFP_ZERO, };
++	struct kvm_mmu_memory_cache cache = { 0, __GFP_ZERO, NULL, };
+ 
+ 	end = (guest_ipa + size + PAGE_SIZE - 1) & PAGE_MASK;
+ 	pfn = __phys_to_pfn(pa);
+@@ -1479,8 +1448,8 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
+ 		if (writable)
+ 			pte = kvm_s2pte_mkwrite(pte);
+ 
+-		ret = mmu_topup_memory_cache(&cache,
+-					     kvm_mmu_cache_min_pages(kvm));
++		ret = kvm_mmu_topup_memory_cache(&cache,
++						 kvm_mmu_cache_min_pages(kvm));
+ 		if (ret)
+ 			goto out;
+ 		spin_lock(&kvm->mmu_lock);
+@@ -1494,7 +1463,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
+ 	}
+ 
+ out:
+-	mmu_free_memory_cache(&cache);
++	kvm_mmu_free_memory_cache(&cache);
+ 	return ret;
+ }
+ 
+@@ -1880,7 +1849,7 @@ static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
+ 	mmap_read_unlock(current->mm);
+ 
+ 	/* We need minimum second+third level pages */
+-	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm));
++	ret = kvm_mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm));
+ 	if (ret)
+ 		return ret;
+ 
+@@ -2303,7 +2272,7 @@ int kvm_test_age_hva(struct kvm *kvm, unsigned long hva)
+ 
+ void kvm_mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+ {
+-	mmu_free_memory_cache(&vcpu->arch.mmu_page_cache);
++	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_page_cache);
+ }
+ 
+ phys_addr_t kvm_mmu_get_httbr(void)
+-- 
+2.26.0
