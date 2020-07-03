@@ -1,72 +1,89 @@
-Return-Path: <SRS0=G4+M=AW=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx3.molgen.mpg.de ([141.14.17.11]:51923 "EHLO mx1.molgen.mpg.de"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1728412AbgGKQcr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 11 Jul 2020 12:32:47 -0400
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-References: <20200624203200.78870-1-samitolvanen@google.com>
-From: Paul Menzel <pmenzel@molgen.mpg.de>
-Message-ID: <671d8923-ed43-4600-2628-33ae7cb82ccb@molgen.mpg.de>
-Date: Sat, 11 Jul 2020 18:32:41 +0200
+Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga09.intel.com ([134.134.136.24]:3199 "EHLO mga09.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726345AbgGCCgO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Jul 2020 22:36:14 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v3 09/21] KVM: x86/mmu: Separate the memory caches for shadow pages and gfn arrays
+Date: Thu,  2 Jul 2020 19:35:33 -0700
+Message-ID: <20200703023545.8771-10-sean.j.christopherson@intel.com>
+In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
 MIME-Version: 1.0
-In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
-Message-ID: <20200711163241.WRSohW2Toh0Qg6Dl3Kp8KYLS3vL_Z0jCKwDOrUOeMLQ@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200703023533.GxVuBQggg5XpyISGFmAvIDyijhDQVZXI-FDhA4ALPt8@z>
 
-Dear Sami,
+Use separate caches for allocating shadow pages versus gfn arrays.  This
+sets the stage for specifying __GFP_ZERO when allocating shadow pages
+without incurring extra cost for gfn arrays.
 
+No functional change intended.
 
-Am 24.06.20 um 22:31 schrieb Sami Tolvanen:
-> This patch series adds support for building x86_64 and arm64 kernels
-> with Clang's Link Time Optimization (LTO).
-> 
-> In addition to performance, the primary motivation for LTO is to allow
-> Clang's Control-Flow Integrity (CFI) to be used in the kernel. Google's
-> Pixel devices have shipped with LTO+CFI kernels since 2018.
-> 
-> Most of the patches are build system changes for handling LLVM bitcode,
-> which Clang produces with LTO instead of ELF object files, postponing
-> ELF processing until a later stage, and ensuring initcall ordering.
-> 
-> Note that first objtool patch in the series is already in linux-next,
-> but as it's needed with LTO, I'm including it also here to make testing
-> easier.
+Reviewed-by: Ben Gardon <bgardon@google.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+---
+ arch/x86/include/asm/kvm_host.h |  3 ++-
+ arch/x86/kvm/mmu/mmu.c          | 15 ++++++++++-----
+ 2 files changed, 12 insertions(+), 6 deletions(-)
 
-[…]
-
-Thank you very much for sending these changes.
-
-Do you have a branch, where your current work can be pulled from? Your 
-branch on GitHub [1] seems 15 months old.
-
-Out of curiosity, I applied the changes, allowed the selection for i386 
-(x86), and with Clang 1:11~++20200701093119+ffee8040534-1~exp1 from 
-Debian experimental, it failed with `Invalid absolute R_386_32 
-relocation: KERNEL_PAGES`:
-
-> make -f ./scripts/Makefile.build obj=arch/x86/boot arch/x86/boot/bzImage
-> make -f ./scripts/Makefile.build obj=arch/x86/boot/compressed arch/x86/boot/compressed/vmlinux
->   llvm-nm vmlinux | sed -n -e 's/^\([0-9a-fA-F]*\) [ABCDGRSTVW] \(_text\|__bss_start\|_end\)$/#define VO_ _AC(0x,UL)/p' > arch/x86/boot/compressed/../voffset.h
->   clang -Wp,-MMD,arch/x86/boot/compressed/.misc.o.d -nostdinc -isystem /usr/lib/llvm-11/lib/clang/11.0.0/include -I./arch/x86/include -I./arch/x86/include/generated  -I./include -I./arch/x86/include/uapi -I./arch/x86/include/generated/uapi -I./include/uapi -I./include/generated/uapi -include ./include/linux/kconfig.h -include ./include/linux/compiler_types.h -D__KERNEL__ -Qunused-arguments -m32 -O2 -fno-strict-aliasing -fPIE -DDISABLE_BRANCH_PROFILING -march=i386 -mno-mmx -mno-sse -ffreestanding -fno-stack-protector -Wno-address-of-packed-member -Wno-gnu -Wno-pointer-sign -fmacro-prefix-map=./= -fno-asynchronous-unwind-tables    -DKBUILD_MODFILE='"arch/x86/boot/compressed/misc"' -DKBUILD_BASENAME='"misc"' -DKBUILD_MODNAME='"misc"' -D__KBUILD_MODNAME=misc -c -o arch/x86/boot/compressed/misc.o arch/x86/boot/compressed/misc.c
->   llvm-objcopy  -R .comment -S vmlinux arch/x86/boot/compressed/vmlinux.bin
->   arch/x86/tools/relocs vmlinux > arch/x86/boot/compressed/vmlinux.relocs;arch/x86/tools/relocs --abs-relocs vmlinux
-> Invalid absolute R_386_32 relocation: KERNEL_PAGES
-> make[2]: *** [arch/x86/boot/compressed/Makefile:134: arch/x86/boot/compressed/vmlinux.relocs] Error 1
-> make[2]: *** Deleting file 'arch/x86/boot/compressed/vmlinux.relocs'
-> make[1]: *** [arch/x86/boot/Makefile:115: arch/x86/boot/compressed/vmlinux] Error 2
-> make: *** [arch/x86/Makefile:268: bzImage] Error 2
-
-
-Kind regards,
-
-Paul
-
-
-
-[1]: https://github.com/samitolvanen/linux/tree/clang-lto
+diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
+index 71bc32e00d7e..b71a4e77f65a 100644
+--- a/arch/x86/include/asm/kvm_host.h
++++ b/arch/x86/include/asm/kvm_host.h
+@@ -636,7 +636,8 @@ struct kvm_vcpu_arch {
+ 	struct kvm_mmu *walk_mmu;
+ 
+ 	struct kvm_mmu_memory_cache mmu_pte_list_desc_cache;
+-	struct kvm_mmu_memory_cache mmu_page_cache;
++	struct kvm_mmu_memory_cache mmu_shadow_page_cache;
++	struct kvm_mmu_memory_cache mmu_gfn_array_cache;
+ 	struct kvm_mmu_memory_cache mmu_page_header_cache;
+ 
+ 	/*
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index cf02ad93c249..8e1b55d8a728 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -1108,8 +1108,12 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+ 				   1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
+ 	if (r)
+ 		return r;
+-	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache,
+-				   2 * PT64_ROOT_MAX_LEVEL);
++	r = mmu_topup_memory_cache(&vcpu->arch.mmu_shadow_page_cache,
++				   PT64_ROOT_MAX_LEVEL);
++	if (r)
++		return r;
++	r = mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
++				   PT64_ROOT_MAX_LEVEL);
+ 	if (r)
+ 		return r;
+ 	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
+@@ -1119,7 +1123,8 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+ static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+ {
+ 	mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache);
+-	mmu_free_memory_cache(&vcpu->arch.mmu_page_cache);
++	mmu_free_memory_cache(&vcpu->arch.mmu_shadow_page_cache);
++	mmu_free_memory_cache(&vcpu->arch.mmu_gfn_array_cache);
+ 	mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
+ }
+ 
+@@ -2096,9 +2101,9 @@ static struct kvm_mmu_page *kvm_mmu_alloc_page(struct kvm_vcpu *vcpu, int direct
+ 	struct kvm_mmu_page *sp;
+ 
+ 	sp = mmu_memory_cache_alloc(&vcpu->arch.mmu_page_header_cache);
+-	sp->spt = mmu_memory_cache_alloc(&vcpu->arch.mmu_page_cache);
++	sp->spt = mmu_memory_cache_alloc(&vcpu->arch.mmu_shadow_page_cache);
+ 	if (!direct)
+-		sp->gfns = mmu_memory_cache_alloc(&vcpu->arch.mmu_page_cache);
++		sp->gfns = mmu_memory_cache_alloc(&vcpu->arch.mmu_gfn_array_cache);
+ 	set_page_private(virt_to_page(sp->spt), (unsigned long)sp);
+ 
+ 	/*
+-- 
+2.26.0
