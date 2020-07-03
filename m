@@ -1,58 +1,59 @@
-Return-Path: <SRS0=GmBk=AY=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga09.intel.com ([134.134.136.24]:3196 "EHLO mga09.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726276AbgGCCgM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Jul 2020 22:36:12 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v3 11/21] KVM: x86/mmu: Zero allocate shadow pages (outside of mmu_lock)
+Date: Thu,  2 Jul 2020 19:35:35 -0700
+Message-ID: <20200703023545.8771-12-sean.j.christopherson@intel.com>
+In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
 MIME-Version: 1.0
-References: <20200710015646.2020871-1-npiggin@gmail.com> <20200710015646.2020871-8-npiggin@gmail.com>
-In-Reply-To: <20200710015646.2020871-8-npiggin@gmail.com>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Mon, 13 Jul 2020 08:59:04 -0700
-Message-ID: <CALCETrWbD=3SUOuq9P7Syb+a1DoBjjem8hq9_HCvn7wyqETkpw@mail.gmail.com>
-Subject: Re: [RFC PATCH 7/7] lazy tlb: shoot lazies, a non-refcounting lazy
- tlb option
-Content-Type: text/plain; charset="UTF-8"
-Sender: owner-linux-mm@kvack.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux-MM <linux-mm@kvack.org>, Anton Blanchard <anton@ozlabs.org>
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200713155904.pCrjPAAH_r5jjcOjh8MpcZPRP9Au0m6jKpJysNge6Q0@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200703023535.W2F7Pc1TqvlbpJpfuE5zU707TBBoNKOSkWRFrOZI5G4@z>
 
-On Thu, Jul 9, 2020 at 6:57 PM Nicholas Piggin <npiggin@gmail.com> wrote:
->
-> On big systems, the mm refcount can become highly contented when doing
-> a lot of context switching with threaded applications (particularly
-> switching between the idle thread and an application thread).
->
-> Abandoning lazy tlb slows switching down quite a bit in the important
-> user->idle->user cases, so so instead implement a non-refcounted scheme
-> that causes __mmdrop() to IPI all CPUs in the mm_cpumask and shoot down
-> any remaining lazy ones.
->
-> On a 16-socket 192-core POWER8 system, a context switching benchmark
-> with as many software threads as CPUs (so each switch will go in and
-> out of idle), upstream can achieve a rate of about 1 million context
-> switches per second. After this patch it goes up to 118 million.
->
+Set __GFP_ZERO for the shadow page memory cache and drop the explicit
+clear_page() from kvm_mmu_get_page().  This moves the cost of zeroing a
+page to the allocation time of the physical page, i.e. when topping up
+the memory caches, and thus avoids having to zero out an entire page
+while holding mmu_lock.
 
-I read the patch a couple of times, and I have a suggestion that could
-be nonsense.  You are, effectively, using mm_cpumask() as a sort of
-refcount.  You're saying "hey, this mm has no more references, but it
-still has nonempty mm_cpumask(), so let's send an IPI and shoot down
-those references too."  I'm wondering whether you actually need the
-IPI.  What if, instead, you actually treated mm_cpumask as a refcount
-for real?  Roughly, in __mmdrop(), you would only free the page tables
-if mm_cpumask() is empty.  And, in the code that removes a CPU from
-mm_cpumask(), you would check if mm_users == 0 and, if so, check if
-you just removed the last bit from mm_cpumask and potentially free the
-mm.
+Cc: Peter Feiner <pfeiner@google.com>
+Cc: Peter Shier <pshier@google.com>
+Cc: Junaid Shahid <junaids@google.com>
+Cc: Jim Mattson <jmattson@google.com>
+Suggested-by: Ben Gardon <bgardon@google.com>
+Reviewed-by: Ben Gardon <bgardon@google.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+---
+ arch/x86/kvm/mmu/mmu.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-Getting the locking right here could be a bit tricky -- you need to
-avoid two CPUs simultaneously exiting lazy TLB and thinking they
-should free the mm, and you also need to avoid an mm with mm_users
-hitting zero concurrently with the last remote CPU using it lazily
-exiting lazy TLB.  Perhaps this could be resolved by having mm_count
-== 1 mean "mm_cpumask() is might contain bits and, if so, it owns the
-mm" and mm_count == 0 meaning "now it's dead" and using some careful
-cmpxchg or dec_return to make sure that only one CPU frees it.
-
-Or maybe you'd need a lock or RCU for this, but the idea would be to
-only ever take the lock after mm_users goes to zero.
-
---Andy
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index ed36f5e63863..60b0d460bbf5 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -2545,7 +2545,6 @@ static struct kvm_mmu_page *kvm_mmu_get_page(struct kvm_vcpu *vcpu,
+ 		if (level > PG_LEVEL_4K && need_sync)
+ 			flush |= kvm_sync_pages(vcpu, gfn, &invalid_list);
+ 	}
+-	clear_page(sp->spt);
+ 	trace_kvm_mmu_get_page(sp, true);
+ 
+ 	kvm_mmu_flush_or_zap(vcpu, &invalid_list, false, flush);
+@@ -5682,6 +5681,8 @@ int kvm_mmu_create(struct kvm_vcpu *vcpu)
+ 	vcpu->arch.mmu_page_header_cache.kmem_cache = mmu_page_header_cache;
+ 	vcpu->arch.mmu_page_header_cache.gfp_zero = __GFP_ZERO;
+ 
++	vcpu->arch.mmu_shadow_page_cache.gfp_zero = __GFP_ZERO;
++
+ 	vcpu->arch.mmu = &vcpu->arch.root_mmu;
+ 	vcpu->arch.walk_mmu = &vcpu->arch.root_mmu;
+ 
+-- 
+2.26.0
