@@ -1,8 +1,7 @@
 From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 07/21] KVM: x86/mmu: Topup memory caches after walking
- GVA->GPA
-Date: Thu,  2 Jul 2020 19:35:31 -0700
-Message-ID: <20200703023545.8771-8-sean.j.christopherson@intel.com>
+Subject: [PATCH v3 20/21] KVM: MIPS: Account pages used for GPA page tables
+Date: Thu,  2 Jul 2020 19:35:44 -0700
+Message-ID: <20200703023545.8771-21-sean.j.christopherson@intel.com>
 References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,47 +21,29 @@ To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Ber
 Cc: linux-arch@vger.kernel.org, Junaid Shahid <junaids@google.com>, Wanpeng Li <wanpengli@tencent.com>, kvm@vger.kernel.org, Joerg Roedel <joro@8bytes.org>, Peter Shier <pshier@google.com>, linux-mips@vger.kernel.org, Sean Christopherson <sean.j.christopherson@intel.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Gardon <bgardon@google.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Peter Feiner <pfeiner@google.com>, kvmarm@lists.cs.columbia.edu, Jim Mattson <jmattson@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Topup memory caches after walking the GVA->GPA translation during a
-shadow page fault, there is no need to ensure the caches are full when
-walking the GVA.  As of commit f5a1e9f89504f ("KVM: MMU: remove call
-to kvm_mmu_pte_write from walk_addr"), the FNAME(walk_addr) flow no
-longer add rmaps via kvm_mmu_pte_write().
+Use GFP_KERNEL_ACCOUNT instead of GFP_KERNEL when allocating pages for
+the the GPA page tables.  The primary motivation for accounting the
+allocations is to align with the common KVM memory cache helpers in
+preparation for moving to the common implementation in a future patch.
+The actual accounting is a bonus side effect.
 
-This avoids allocating memory in the case that the GVA is unmapped in
-the guest, and also provides a paper trail of why/when the memory caches
-need to be filled.
-
-Reviewed-by: Ben Gardon <bgardon@google.com>
 Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- arch/x86/kvm/mmu/paging_tmpl.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/mips/kvm/mmu.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/x86/kvm/mmu/paging_tmpl.h b/arch/x86/kvm/mmu/paging_tmpl.h
-index 58234bfaca07..451d7aa7d959 100644
---- a/arch/x86/kvm/mmu/paging_tmpl.h
-+++ b/arch/x86/kvm/mmu/paging_tmpl.h
-@@ -788,10 +788,6 @@ static int FNAME(page_fault)(struct kvm_vcpu *vcpu, gpa_t addr, u32 error_code,
- 
- 	pgprintk("%s: addr %lx err %x\n", __func__, addr, error_code);
- 
--	r = mmu_topup_memory_caches(vcpu);
--	if (r)
--		return r;
--
- 	/*
- 	 * If PFEC.RSVD is set, this is a shadow page fault.
- 	 * The bit needs to be cleared before walking guest page tables.
-@@ -819,6 +815,10 @@ static int FNAME(page_fault)(struct kvm_vcpu *vcpu, gpa_t addr, u32 error_code,
- 		return RET_PF_EMULATE;
- 	}
- 
-+	r = mmu_topup_memory_caches(vcpu);
-+	if (r)
-+		return r;
-+
- 	vcpu->arch.write_fault_to_shadow_pgtable = false;
- 
- 	is_self_change_mapping = FNAME(is_self_change_mapping)(vcpu,
+diff --git a/arch/mips/kvm/mmu.c b/arch/mips/kvm/mmu.c
+index d1f148db2449..9d3c8c025624 100644
+--- a/arch/mips/kvm/mmu.c
++++ b/arch/mips/kvm/mmu.c
+@@ -32,7 +32,7 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
+ 	if (cache->nobjs >= min)
+ 		return 0;
+ 	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
+-		page = (void *)__get_free_page(GFP_KERNEL);
++		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
+ 		if (!page)
+ 			return -ENOMEM;
+ 		cache->objects[cache->nobjs++] = page;
 -- 
 2.26.0
