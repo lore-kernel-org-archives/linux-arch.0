@@ -1,59 +1,56 @@
 Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:3196 "EHLO mga09.intel.com"
+Received: from ozlabs.org ([203.11.71.1]:49655 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726276AbgGCCgM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 22:36:12 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 11/21] KVM: x86/mmu: Zero allocate shadow pages (outside of mmu_lock)
-Date: Thu,  2 Jul 2020 19:35:35 -0700
-Message-ID: <20200703023545.8771-12-sean.j.christopherson@intel.com>
-In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
-References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+        id S1726048AbgGCOMk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 3 Jul 2020 10:12:40 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: [PATCH 3/5] selftests/powerpc: Update the stack expansion test
+Date: Sat,  4 Jul 2020 00:13:25 +1000
+Message-ID: <20200703141327.1732550-3-mpe@ellerman.id.au>
+In-Reply-To: <20200703141327.1732550-1-mpe@ellerman.id.au>
+References: <20200703141327.1732550-1-mpe@ellerman.id.au>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200703023535.W2F7Pc1TqvlbpJpfuE5zU707TBBoNKOSkWRFrOZI5G4@z>
+To: linuxppc-dev@ozlabs.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, hughd@google.com
+Message-ID: <20200703141325.sqgsFMzp3_wxr3sId_gKUDZrZXfDkFgvfTWUo2WN9AU@z>
 
-Set __GFP_ZERO for the shadow page memory cache and drop the explicit
-clear_page() from kvm_mmu_get_page().  This moves the cost of zeroing a
-page to the allocation time of the physical page, i.e. when topping up
-the memory caches, and thus avoids having to zero out an entire page
-while holding mmu_lock.
+Update the stack expansion load/store test to take into account the
+new allowance of 4096 bytes below the stack pointer.
 
-Cc: Peter Feiner <pfeiner@google.com>
-Cc: Peter Shier <pshier@google.com>
-Cc: Junaid Shahid <junaids@google.com>
-Cc: Jim Mattson <jmattson@google.com>
-Suggested-by: Ben Gardon <bgardon@google.com>
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
 ---
- arch/x86/kvm/mmu/mmu.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ .../selftests/powerpc/mm/stack_expansion_ldst.c        | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index ed36f5e63863..60b0d460bbf5 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -2545,7 +2545,6 @@ static struct kvm_mmu_page *kvm_mmu_get_page(struct kvm_vcpu *vcpu,
- 		if (level > PG_LEVEL_4K && need_sync)
- 			flush |= kvm_sync_pages(vcpu, gfn, &invalid_list);
- 	}
--	clear_page(sp->spt);
- 	trace_kvm_mmu_get_page(sp, true);
+diff --git a/tools/testing/selftests/powerpc/mm/stack_expansion_ldst.c b/tools/testing/selftests/powerpc/mm/stack_expansion_ldst.c
+index 0587e11437f5..95c3f3de16a1 100644
+--- a/tools/testing/selftests/powerpc/mm/stack_expansion_ldst.c
++++ b/tools/testing/selftests/powerpc/mm/stack_expansion_ldst.c
+@@ -186,17 +186,17 @@ static void test_one_type(enum access_type type, unsigned long page_size, unsign
+ 	// But if we go past the rlimit it should fail
+ 	assert(test_one(DEFAULT_SIZE, rlim_cur + 1, type) != 0);
  
- 	kvm_mmu_flush_or_zap(vcpu, &invalid_list, false, flush);
-@@ -5682,6 +5681,8 @@ int kvm_mmu_create(struct kvm_vcpu *vcpu)
- 	vcpu->arch.mmu_page_header_cache.kmem_cache = mmu_page_header_cache;
- 	vcpu->arch.mmu_page_header_cache.gfp_zero = __GFP_ZERO;
+-	// Above 1MB powerpc only allows accesses within 2048 bytes of
++	// Above 1MB powerpc only allows accesses within 4096 bytes of
+ 	// r1 for accesses that aren't stdu
+-	assert(test_one(1 * _MB + page_size - 128, -2048, type) == 0);
++	assert(test_one(1 * _MB + page_size - 128, -4096, type) == 0);
+ #ifdef __powerpc__
+-	assert(test_one(1 * _MB + page_size - 128, -2049, type) != 0);
++	assert(test_one(1 * _MB + page_size - 128, -4097, type) != 0);
+ #else
+-	assert(test_one(1 * _MB + page_size - 128, -2049, type) == 0);
++	assert(test_one(1 * _MB + page_size - 128, -4097, type) == 0);
+ #endif
  
-+	vcpu->arch.mmu_shadow_page_cache.gfp_zero = __GFP_ZERO;
-+
- 	vcpu->arch.mmu = &vcpu->arch.root_mmu;
- 	vcpu->arch.walk_mmu = &vcpu->arch.root_mmu;
+ 	// By consuming 2MB of stack we test the stdu case
+-	assert(test_one(2 * _MB + page_size - 128, -2048, type) == 0);
++	assert(test_one(2 * _MB + page_size - 128, -4096, type) == 0);
+ }
  
+ static int test(void)
 -- 
-2.26.0
+2.25.1
