@@ -1,61 +1,102 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v2 4/4] mm/vmalloc: Hugepage vmalloc mappings
-Date: Fri, 03 Jul 2020 10:15:34 +1000
-Message-ID: <1593735251.svr5r5cxle.astroid@bobo.none>
-References: <20200413125303.423864-1-npiggin@gmail.com>
-        <20200413125303.423864-5-npiggin@gmail.com>
-        <d148f86c-b27b-63fb-31d2-35b8f52ec540@huawei.com>
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v3 00/21] KVM: Cleanup and unify kvm_mmu_memory_cache usage
+Date: Thu,  2 Jul 2020 19:35:24 -0700
+Message-ID: <20200703023545.8771-1-sean.j.christopherson@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53428 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725937AbgGCAPm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 20:15:42 -0400
-In-Reply-To: <d148f86c-b27b-63fb-31d2-35b8f52ec540@huawei.com>
+Received: from mga11.intel.com ([192.55.52.93]:52027 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725915AbgGCCgF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Jul 2020 22:36:05 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org, Zefan Li <lizefan@huawei.com>
-Cc: =?iso-8859-1?q?Borislav=0A?= Petkov <bp@alien8.de>, Catalin Marinas <catalin.marinas@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, =?iso-8859-1?q?Thomas=0A?= Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>, x86@kernel.org
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
 
-Excerpts from Zefan Li's message of July 1, 2020 5:10 pm:
->>  static void *__vmalloc_node(unsigned long size, unsigned long align,
->> -			    gfp_t gfp_mask, pgprot_t prot,
->> -			    int node, const void *caller);
->> +			gfp_t gfp_mask, pgprot_t prot, unsigned long vm_flags,
->> +			int node, const void *caller);
->>  static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask=
-,
->> -				 pgprot_t prot, int node)
->> +				 pgprot_t prot, unsigned int page_shift,
->> +				 int node)
->>  {
->>  	struct page **pages;
->> +	unsigned long addr =3D (unsigned long)area->addr;
->> +	unsigned long size =3D get_vm_area_size(area);
->> +	unsigned int page_order =3D page_shift - PAGE_SHIFT;
->>  	unsigned int nr_pages, array_size, i;
->>  	const gfp_t nested_gfp =3D (gfp_mask & GFP_RECLAIM_MASK) | __GFP_ZERO;
->>  	const gfp_t alloc_mask =3D gfp_mask | __GFP_NOWARN;
->>  	const gfp_t highmem_mask =3D (gfp_mask & (GFP_DMA | GFP_DMA32)) ?
->> -					0 :
->> -					__GFP_HIGHMEM;
->> +					0 : __GFP_HIGHMEM;
->> =20
->> -	nr_pages =3D get_vm_area_size(area) >> PAGE_SHIFT;
->> +	nr_pages =3D size >> page_shift;
->=20
-> while try out this patchset, we encountered a BUG_ON in account_kernel_st=
-ack()
-> in kernel/fork.c.
->=20
-> BUG_ON(vm->nr_pages !=3D THREAD_SIZE / PAGE_SIZE);
->=20
-> which obviously should be updated accordingly.
+The only interesting delta from v2 is that patch 18 is updated to handle
+a conflict with arm64's p4d rework.  Resolution was straightforward
+(famous last words).
 
-Thanks for finding that. We may have to change this around a bit so=20
-nr_pages still appears to be in PAGE_SIZE units for anybody looking.
 
-Thanks,
-Nick
+This series resurrects Christoffer Dall's series[1] to provide a common
+MMU memory cache implementation that can be shared by x86, arm64 and MIPS.
+
+It also picks up a suggested change from Ben Gardon[2] to clear shadow
+page tables during initial allocation so as to avoid clearing entire
+pages while holding mmu_lock.
+
+The front half of the patches do house cleaning on x86's memory cache
+implementation in preparation for moving it to common code, along with a
+fair bit of cleanup on the usage.  The middle chunk moves the patches to
+common KVM, and the last two chunks convert arm64 and MIPS to the common
+implementation.
+
+Fully tested on x86 only.  Compile tested patches 14-21 on arm64, MIPS,
+s390 and PowerPC.
+
+v3:
+  - Rebased to kvm/queue, commit a037ff353ba6 ("Merge ... into HEAD")
+  - Collect more review tags. [Ben]
+
+v2:
+  - Rebase to kvm-5.8-2, commit 49b3deaad345 ("Merge tag ...").
+  - Use an asm-generic kvm_types.h for s390 and PowerPC instead of an
+    empty arch-specific file. [Marc]
+  - Explicit document "GFP_PGTABLE_USER == GFP_KERNEL_ACCOUNT | GFP_ZERO"
+    in the arm64 conversion patch. [Marc]
+  - Collect review tags. [Ben]
+
+Sean Christopherson (21):
+  KVM: x86/mmu: Track the associated kmem_cache in the MMU caches
+  KVM: x86/mmu: Consolidate "page" variant of memory cache helpers
+  KVM: x86/mmu: Use consistent "mc" name for kvm_mmu_memory_cache locals
+  KVM: x86/mmu: Remove superfluous gotos from mmu_topup_memory_caches()
+  KVM: x86/mmu: Try to avoid crashing KVM if a MMU memory cache is empty
+  KVM: x86/mmu: Move fast_page_fault() call above
+    mmu_topup_memory_caches()
+  KVM: x86/mmu: Topup memory caches after walking GVA->GPA
+  KVM: x86/mmu: Clean up the gorilla math in mmu_topup_memory_caches()
+  KVM: x86/mmu: Separate the memory caches for shadow pages and gfn
+    arrays
+  KVM: x86/mmu: Make __GFP_ZERO a property of the memory cache
+  KVM: x86/mmu: Zero allocate shadow pages (outside of mmu_lock)
+  KVM: x86/mmu: Skip filling the gfn cache for guaranteed direct MMU
+    topups
+  KVM: x86/mmu: Prepend "kvm_" to memory cache helpers that will be
+    global
+  KVM: Move x86's version of struct kvm_mmu_memory_cache to common code
+  KVM: Move x86's MMU memory cache helpers to common KVM code
+  KVM: arm64: Drop @max param from mmu_topup_memory_cache()
+  KVM: arm64: Use common code's approach for __GFP_ZERO with memory
+    caches
+  KVM: arm64: Use common KVM implementation of MMU memory caches
+  KVM: MIPS: Drop @max param from mmu_topup_memory_cache()
+  KVM: MIPS: Account pages used for GPA page tables
+  KVM: MIPS: Use common KVM implementation of MMU memory caches
+
+ arch/arm64/include/asm/kvm_host.h  |  11 ---
+ arch/arm64/include/asm/kvm_types.h |   8 ++
+ arch/arm64/kvm/arm.c               |   2 +
+ arch/arm64/kvm/mmu.c               |  56 +++----------
+ arch/mips/include/asm/kvm_host.h   |  11 ---
+ arch/mips/include/asm/kvm_types.h  |   7 ++
+ arch/mips/kvm/mmu.c                |  44 ++--------
+ arch/powerpc/include/asm/Kbuild    |   1 +
+ arch/s390/include/asm/Kbuild       |   1 +
+ arch/x86/include/asm/kvm_host.h    |  14 +---
+ arch/x86/include/asm/kvm_types.h   |   7 ++
+ arch/x86/kvm/mmu/mmu.c             | 129 +++++++++--------------------
+ arch/x86/kvm/mmu/paging_tmpl.h     |  10 +--
+ include/asm-generic/kvm_types.h    |   5 ++
+ include/linux/kvm_host.h           |   7 ++
+ include/linux/kvm_types.h          |  19 +++++
+ virt/kvm/kvm_main.c                |  55 ++++++++++++
+ 17 files changed, 176 insertions(+), 211 deletions(-)
+ create mode 100644 arch/arm64/include/asm/kvm_types.h
+ create mode 100644 arch/mips/include/asm/kvm_types.h
+ create mode 100644 arch/x86/include/asm/kvm_types.h
+ create mode 100644 include/asm-generic/kvm_types.h
+
+-- 
+2.26.0
