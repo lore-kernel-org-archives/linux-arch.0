@@ -1,219 +1,44 @@
 Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:33746 "EHLO mga05.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726187AbgGCCgK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 22:36:10 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 18/21] KVM: arm64: Use common KVM implementation of MMU memory caches
-Date: Thu,  2 Jul 2020 19:35:42 -0700
-Message-ID: <20200703023545.8771-19-sean.j.christopherson@intel.com>
-In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
-References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33270 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726022AbgGCNZe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Jul 2020 09:25:34 -0400
+Date: Fri, 3 Jul 2020 15:25:23 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200703132523.GM117543@hirez.programming.kicks-ass.net>
+References: <20200630201243.GD4817@hirez.programming.kicks-ass.net>
+ <20200630203016.GI9247@paulmck-ThinkPad-P72>
+ <CANpmjNP+7TtE0WPU=nX5zs3T2+4hPkkm08meUm2VDVY3RgsHDw@mail.gmail.com>
+ <20200701114027.GO4800@hirez.programming.kicks-ass.net>
+ <20200701140654.GL9247@paulmck-ThinkPad-P72>
+ <20200701150512.GH4817@hirez.programming.kicks-ass.net>
+ <20200701160338.GN9247@paulmck-ThinkPad-P72>
+ <20200702082040.GB4781@hirez.programming.kicks-ass.net>
+ <20200702175948.GV9247@paulmck-ThinkPad-P72>
+ <20200703131330.GX4800@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200703131330.GX4800@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200703023542.hSByAZK6E7qjyV_nQuv3i2SycrLxZgvGNWa5PYVL4yI@z>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200703132523.lUMBxBBxhL02rECE2t2w0Elcgi9ZxCvCmx0BuZAgLDw@z>
 
-Move to the common MMU memory cache implementation now that the common
-code and arm64's existing code are semantically compatible.
+On Fri, Jul 03, 2020 at 03:13:30PM +0200, Peter Zijlstra wrote:
+> > The prototype for GCC is here: https://github.com/AKG001/gcc/
+> 
+> Thanks! Those test cases are somewhat over qualified though:
+> 
+>        static volatile _Atomic (TYPE) * _Dependent_ptr a;     		\
 
-No functional change intended.
+One question though; since its a qualifier, and we've recently spend a
+whole lot of effort to strip qualifiers in say READ_ONCE(), how does,
+and how do we want, this qualifier to behave.
 
-Cc: Marc Zyngier <maz@kernel.org>
-Suggested-by: Christoffer Dall <christoffer.dall@arm.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
----
- arch/arm64/include/asm/Kbuild      |  1 -
- arch/arm64/include/asm/kvm_host.h  | 12 -------
- arch/arm64/include/asm/kvm_types.h |  8 +++++
- arch/arm64/kvm/mmu.c               | 53 +++++++-----------------------
- 4 files changed, 19 insertions(+), 55 deletions(-)
- create mode 100644 arch/arm64/include/asm/kvm_types.h
-
-diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
-index 35a68155cd0e..ff9cbb631212 100644
---- a/arch/arm64/include/asm/Kbuild
-+++ b/arch/arm64/include/asm/Kbuild
-@@ -1,6 +1,5 @@
- # SPDX-License-Identifier: GPL-2.0
- generic-y += early_ioremap.h
--generic-y += kvm_types.h
- generic-y += local64.h
- generic-y += mcs_spinlock.h
- generic-y += qrwlock.h
-diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
-index 335170b59899..23d1f41548f5 100644
---- a/arch/arm64/include/asm/kvm_host.h
-+++ b/arch/arm64/include/asm/kvm_host.h
-@@ -97,18 +97,6 @@ struct kvm_arch {
- 	bool return_nisv_io_abort_to_user;
- };
- 
--#define KVM_NR_MEM_OBJS     40
--
--/*
-- * We don't want allocation failures within the mmu code, so we preallocate
-- * enough memory for a single page fault in a cache.
-- */
--struct kvm_mmu_memory_cache {
--	int nobjs;
--	gfp_t gfp_zero;
--	void *objects[KVM_NR_MEM_OBJS];
--};
--
- struct kvm_vcpu_fault_info {
- 	u32 esr_el2;		/* Hyp Syndrom Register */
- 	u64 far_el2;		/* Hyp Fault Address Register */
-diff --git a/arch/arm64/include/asm/kvm_types.h b/arch/arm64/include/asm/kvm_types.h
-new file mode 100644
-index 000000000000..9a126b9e2d7c
---- /dev/null
-+++ b/arch/arm64/include/asm/kvm_types.h
-@@ -0,0 +1,8 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _ASM_ARM64_KVM_TYPES_H
-+#define _ASM_ARM64_KVM_TYPES_H
-+
-+#define KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE 40
-+
-+#endif /* _ASM_ARM64_KVM_TYPES_H */
-+
-diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
-index 5220623a4efb..ba66e9a9bd3c 100644
---- a/arch/arm64/kvm/mmu.c
-+++ b/arch/arm64/kvm/mmu.c
-@@ -124,37 +124,6 @@ static void stage2_dissolve_pud(struct kvm *kvm, phys_addr_t addr, pud_t *pudp)
- 	put_page(virt_to_page(pudp));
- }
- 
--static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
--{
--	void *page;
--
--	if (cache->nobjs >= min)
--		return 0;
--	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
--		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT |
--					       cache->gfp_zero);
--		if (!page)
--			return -ENOMEM;
--		cache->objects[cache->nobjs++] = page;
--	}
--	return 0;
--}
--
--static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
--{
--	while (mc->nobjs)
--		free_page((unsigned long)mc->objects[--mc->nobjs]);
--}
--
--static void *mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
--{
--	void *p;
--
--	BUG_ON(!mc || !mc->nobjs);
--	p = mc->objects[--mc->nobjs];
--	return p;
--}
--
- static void clear_stage2_pgd_entry(struct kvm *kvm, pgd_t *pgd, phys_addr_t addr)
- {
- 	p4d_t *p4d_table __maybe_unused = stage2_p4d_offset(kvm, pgd, 0UL);
-@@ -1131,7 +1100,7 @@ static p4d_t *stage2_get_p4d(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
- 	if (stage2_pgd_none(kvm, *pgd)) {
- 		if (!cache)
- 			return NULL;
--		p4d = mmu_memory_cache_alloc(cache);
-+		p4d = kvm_mmu_memory_cache_alloc(cache);
- 		stage2_pgd_populate(kvm, pgd, p4d);
- 		get_page(virt_to_page(pgd));
- 	}
-@@ -1149,7 +1118,7 @@ static pud_t *stage2_get_pud(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
- 	if (stage2_p4d_none(kvm, *p4d)) {
- 		if (!cache)
- 			return NULL;
--		pud = mmu_memory_cache_alloc(cache);
-+		pud = kvm_mmu_memory_cache_alloc(cache);
- 		stage2_p4d_populate(kvm, p4d, pud);
- 		get_page(virt_to_page(p4d));
- 	}
-@@ -1170,7 +1139,7 @@ static pmd_t *stage2_get_pmd(struct kvm *kvm, struct kvm_mmu_memory_cache *cache
- 	if (stage2_pud_none(kvm, *pud)) {
- 		if (!cache)
- 			return NULL;
--		pmd = mmu_memory_cache_alloc(cache);
-+		pmd = kvm_mmu_memory_cache_alloc(cache);
- 		stage2_pud_populate(kvm, pud, pmd);
- 		get_page(virt_to_page(pud));
- 	}
-@@ -1376,7 +1345,7 @@ static int stage2_set_pte(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
- 	if (stage2_pud_none(kvm, *pud)) {
- 		if (!cache)
- 			return 0; /* ignore calls from kvm_set_spte_hva */
--		pmd = mmu_memory_cache_alloc(cache);
-+		pmd = kvm_mmu_memory_cache_alloc(cache);
- 		stage2_pud_populate(kvm, pud, pmd);
- 		get_page(virt_to_page(pud));
- 	}
-@@ -1401,7 +1370,7 @@ static int stage2_set_pte(struct kvm *kvm, struct kvm_mmu_memory_cache *cache,
- 	if (pmd_none(*pmd)) {
- 		if (!cache)
- 			return 0; /* ignore calls from kvm_set_spte_hva */
--		pte = mmu_memory_cache_alloc(cache);
-+		pte = kvm_mmu_memory_cache_alloc(cache);
- 		kvm_pmd_populate(pmd, pte);
- 		get_page(virt_to_page(pmd));
- 	}
-@@ -1468,7 +1437,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
- 	phys_addr_t addr, end;
- 	int ret = 0;
- 	unsigned long pfn;
--	struct kvm_mmu_memory_cache cache = { 0, __GFP_ZERO, };
-+	struct kvm_mmu_memory_cache cache = { 0, __GFP_ZERO, NULL, };
- 
- 	end = (guest_ipa + size + PAGE_SIZE - 1) & PAGE_MASK;
- 	pfn = __phys_to_pfn(pa);
-@@ -1479,8 +1448,8 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
- 		if (writable)
- 			pte = kvm_s2pte_mkwrite(pte);
- 
--		ret = mmu_topup_memory_cache(&cache,
--					     kvm_mmu_cache_min_pages(kvm));
-+		ret = kvm_mmu_topup_memory_cache(&cache,
-+						 kvm_mmu_cache_min_pages(kvm));
- 		if (ret)
- 			goto out;
- 		spin_lock(&kvm->mmu_lock);
-@@ -1494,7 +1463,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
- 	}
- 
- out:
--	mmu_free_memory_cache(&cache);
-+	kvm_mmu_free_memory_cache(&cache);
- 	return ret;
- }
- 
-@@ -1880,7 +1849,7 @@ static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
- 	mmap_read_unlock(current->mm);
- 
- 	/* We need minimum second+third level pages */
--	ret = mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm));
-+	ret = kvm_mmu_topup_memory_cache(memcache, kvm_mmu_cache_min_pages(kvm));
- 	if (ret)
- 		return ret;
- 
-@@ -2303,7 +2272,7 @@ int kvm_test_age_hva(struct kvm *kvm, unsigned long hva)
- 
- void kvm_mmu_free_memory_caches(struct kvm_vcpu *vcpu)
- {
--	mmu_free_memory_cache(&vcpu->arch.mmu_page_cache);
-+	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_page_cache);
- }
- 
- phys_addr_t kvm_mmu_get_httbr(void)
--- 
-2.26.0
+C++ has very convenient means of manipulating qualifiers, so it's not
+much of a problem there, but for C it is, as we've found, really quite
+cumbersome. Even with _Generic() we can't manipulate individual
+qualifiers afaict.
