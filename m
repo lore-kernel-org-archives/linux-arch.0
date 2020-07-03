@@ -1,63 +1,81 @@
-Return-Path: <SRS0=GDSS=AV=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38942 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727820AbgGJN5U (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2020 09:57:20 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 6/6] exec: use force_uaccess_begin during exec and exit
-Date: Fri, 10 Jul 2020 15:57:06 +0200
-Message-ID: <20200710135706.537715-7-hch@lst.de>
-In-Reply-To: <20200710135706.537715-1-hch@lst.de>
-References: <20200710135706.537715-1-hch@lst.de>
+Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga09.intel.com ([134.134.136.24]:3198 "EHLO mga09.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726265AbgGCCgL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Jul 2020 22:36:11 -0400
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Subject: [PATCH v3 08/21] KVM: x86/mmu: Clean up the gorilla math in mmu_topup_memory_caches()
+Date: Thu,  2 Jul 2020 19:35:32 -0700
+Message-ID: <20200703023545.8771-9-sean.j.christopherson@intel.com>
+In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200710135706.-Wv83JNsfQOit0wmxrrytgKnBXZFwdSX-8tPc9C07f0@z>
+To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
+Message-ID: <20200703023532.Ynkz4f-R7LQaCwIRNu9PTqSEuoCEo8rGr3So-X7BsoA@z>
 
-Both exec and exit want to ensure that the uaccess routines actually do
-access user pointers.  Use the newly added force_uaccess_begin helper
-instead of an open coded set_fs for that to prepare for kernel builds
-where set_fs() does not exist.
+Clean up the minimums in mmu_topup_memory_caches() to document the
+driving mechanisms behind the minimums.  Now that encountering an empty
+cache is unlikely to trigger BUG_ON(), it is less dangerous to be more
+precise when defining the minimums.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+For rmaps, the logic is 1 parent PTE per level, plus a single rmap, and
+prefetched rmaps.  The extra objects in the current '8 + PREFETCH'
+minimum came about due to an abundance of paranoia in commit
+c41ef344de212 ("KVM: MMU: increase per-vcpu rmap cache alloc size"),
+i.e. it could have increased the minimum to 2 rmaps.  Furthermore, the
+unexpected extra rmap case was killed off entirely by commits
+f759e2b4c728c ("KVM: MMU: avoid pte_list_desc running out in
+kvm_mmu_pte_write") and f5a1e9f89504f ("KVM: MMU: remove call to
+kvm_mmu_pte_write from walk_addr").
+
+For the so called page cache, replace '8' with 2*PT64_ROOT_MAX_LEVEL.
+The 2x multiplier is needed because the cache is used for both shadow
+pages and gfn arrays for indirect MMUs.
+
+And finally, for page headers, replace '4' with PT64_ROOT_MAX_LEVEL.
+
+Note, KVM now supports 5-level paging, i.e. the old minimums that used a
+baseline derived from 4-level paging were technically wrong.  But, KVM
+always allocates roots in a separate flow, e.g. it's impossible in the
+current implementation to actually need 5 new shadow pages in a single
+flow.  Use PT64_ROOT_MAX_LEVEL unmodified instead of subtracting 1, as
+the direct usage is likely more intuitive to uninformed readers, and the
+inflated minimum is unlikely to affect functionality in practice.
+
+Reviewed-by: Ben Gardon <bgardon@google.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
 ---
- fs/exec.c     | 7 ++++++-
- kernel/exit.c | 2 +-
- 2 files changed, 7 insertions(+), 2 deletions(-)
+ arch/x86/kvm/mmu/mmu.c | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
 
-diff --git a/fs/exec.c b/fs/exec.c
-index e6e8a9a7032784..769af470b69124 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -1380,7 +1380,12 @@ int begin_new_exec(struct linux_binprm * bprm)
- 	if (retval)
- 		goto out_unlock;
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index 3d0768e16463..cf02ad93c249 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -1103,14 +1103,17 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
+ {
+ 	int r;
  
--	set_fs(USER_DS);
-+	/*
-+	 * Ensure that the uaccess routines can actually operate on userspace
-+	 * pointers:
-+	 */
-+	force_uaccess_begin();
-+
- 	me->flags &= ~(PF_RANDOMIZE | PF_FORKNOEXEC | PF_KTHREAD |
- 					PF_NOFREEZE | PF_NO_SETAFFINITY);
- 	flush_thread();
-diff --git a/kernel/exit.c b/kernel/exit.c
-index 727150f2810338..17d486a20f0dc6 100644
---- a/kernel/exit.c
-+++ b/kernel/exit.c
-@@ -731,7 +731,7 @@ void __noreturn do_exit(long code)
- 	 * mm_release()->clear_child_tid() from writing to a user-controlled
- 	 * kernel address.
- 	 */
--	set_fs(USER_DS);
-+	force_uaccess_begin();
++	/* 1 rmap, 1 parent PTE per level, and the prefetched rmaps. */
+ 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
+-				   8 + PTE_PREFETCH_NUM);
++				   1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
+ 	if (r)
+ 		return r;
+-	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache, 8);
++	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache,
++				   2 * PT64_ROOT_MAX_LEVEL);
+ 	if (r)
+ 		return r;
+-	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
++	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
++				      PT64_ROOT_MAX_LEVEL);
+ }
  
- 	if (unlikely(in_atomic())) {
- 		pr_info("note: %s[%d] exited with preempt_count %d\n",
+ static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
 -- 
-2.26.2
+2.26.0
