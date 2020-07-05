@@ -1,52 +1,59 @@
-From: Theresa Han <serena@lantermo.it>
-Subject: =?UTF-8?Q?Ich_gr=C3=BC=C3=9Fe_dich_im_Namen_des_Herrn?=
-Date: Sat, 4 Jul 2020 18:59:30 +0000 (UTC)
-Message-ID: <1469227910.4479605.1593889170815__26825.427652669$1593889183$gmane$org@mail.yahoo.com>
-References: <1469227910.4479605.1593889170815.ref@mail.yahoo.com>
-Reply-To: theresahan21@hotmail.com
+From: "Alexander A. Klimov" <grandmaster@al2klimov.de>
+Subject: [PATCH] Replace HTTP links with HTTPS ones: MMU gather and TLB invalidation
+Date: Sun,  5 Jul 2020 12:54:24 +0200
+Message-ID: <20200705105424.24727-1-grandmaster@al2klimov.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sonic301-22.consmr.mail.ir2.yahoo.com ([77.238.176.99]:34847
-        "EHLO sonic301-22.consmr.mail.ir2.yahoo.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726922AbgGDS7g (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 4 Jul 2020 14:59:36 -0400
+Received: from smtp.al2klimov.de ([78.46.175.9]:45050 "EHLO smtp.al2klimov.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726454AbgGEKyk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 5 Jul 2020 06:54:40 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, peterz@infradead.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Cc: "Alexander A. Klimov" <grandmaster@al2klimov.de>
 
-Ich gr=C3=BC=C3=9Fe dich im Namen des Herrn
+Rationale:
+Reduces attack surface on kernel devs opening the links for MITM
+as HTTPS traffic is much harder to manipulate.
 
-Ich kann mir nicht vorstellen wie du dich f=C3=BChlen wirst Sie einen pl=C3=
-=B6tzlichen Brief aus einem abgelegenen Land in der fernen Elfenbeink=C3=BC=
-ste erhalten werden und wahrscheinlich von jemandem, mit dem Sie nicht gut =
-verwandt sind. Ich appelliere an Sie, etwas Geduld zu =C3=BCben und meinen =
-Brief zu lesen Umgang mit Ihnen in dieser wichtigen Transaktion
-=20
-Ich bin Frau Theresa Han, 65 Jahre alt, in der Elfenbeink=C3=BCste, an Kreb=
-sleiden leidend. Ich war mit Herrn Johnson Han verheiratet, der bei der Reg=
-ierung von Elfenbeink=C3=BCste als Auftragnehmer t=C3=A4tig war, bevor er n=
-ach einigen Tagen im Krankenhaus starb
-=20
-Mein verstorbener Ehemann hat die Summe von US$2,5 Millionen (zwei Millione=
-n f=C3=BCnfhunderttausend USD) bei einer Bank in der Elfenbeink=C3=BCste hi=
-nterlegt. Ich habe an Krebs gelitten. K=C3=BCrzlich sagte mir mein Arzt, da=
-ss ich aufgrund der Krebserkrankungen, an denen ich leide, nur noch begrenz=
-te Lebenstage habe. Ich m=C3=B6chte wissen, ob ich Ihnen vertrauen kann, di=
-ese Mittel f=C3=BCr Wohlt=C3=A4tigkeit / Waisenhaus zu verwenden, und 20 Pr=
-ozent werden f=C3=BCr Sie als Entsch=C3=A4digung sein
-=20
-Ich habe diese Entscheidung getroffen, weil ich kein Kind habe, das dieses =
-Geld erben w=C3=BCrde, und mein Ehemann Verwandte sind b=C3=BCrgerliche und=
- sehr wohlhabende Personen und ich m=C3=B6chte nicht, dass mein Ehemann har=
-t verdientes Geld missbraucht wird
-=20
-Bitte nehmen Sie Kontakt mit mir auf, damit ich Ihnen weitere Einzelheiten =
-mitteilen kann und jede Verz=C3=B6gerung Ihrer Antwort mir Raum geben wird,=
- eine weitere gute Person f=C3=BCr diesen Zweck zu gewinnen
-=20
-Warten auf Ihre dringende Antwort Mit Gott sind alle Dinge m=C3=B6glich
-=20
-Deine Schwester in Christus
-=20
-Frau Theresa Han
+Deterministic algorithm:
+For each file:
+  If not .svg:
+    For each line:
+      If doesn't contain `\bxmlns\b`:
+        For each link, `\bhttp://[^# \t\r\n]*(?:\w|/)`:
+          If both the HTTP and HTTPS versions
+          return 200 OK and serve the same content:
+            Replace HTTP with HTTPS.
+
+Signed-off-by: Alexander A. Klimov <grandmaster@al2klimov.de>
+---
+ Continuing my work started at 93431e0607e5.
+
+ If there are any URLs to be removed completely or at least not HTTPSified:
+ Just clearly say so and I'll *undo my change*.
+ See also https://lkml.org/lkml/2020/6/27/64
+
+ If there are any valid, but yet not changed URLs:
+ See https://lkml.org/lkml/2020/6/26/837
+
+ include/asm-generic/tlb.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 3f1649a8cf55..f27861f2df4a 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -584,7 +584,7 @@ static inline void tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vm
+  * So if we ever find an architecture
+  * that would want something that odd, I think it is up to that
+  * architecture to do its own odd thing, not cause pain for others
+- * http://lkml.kernel.org/r/CA+55aFzBggoXtNXQeng5d_mRoDnaMBE5Y+URs+PHR67nUpMtaw@mail.gmail.com
++ * https://lkml.kernel.org/r/CA+55aFzBggoXtNXQeng5d_mRoDnaMBE5Y+URs+PHR67nUpMtaw@mail.gmail.com
+  *
+  * For now w.r.t page table cache, mark the range_size as PAGE_SIZE
+  */
+-- 
+2.27.0
