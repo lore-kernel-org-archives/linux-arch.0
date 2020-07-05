@@ -1,159 +1,214 @@
-From: Emil Renner Berthing <kernel@esmil.dk>
-Subject: Re: [PATCH] asm-generic/mmiowb: Get cpu in mmiowb_set_pending
-Date: Sun, 5 Jul 2020 19:09:29 +0200
-Message-ID: <CANBLGcx1BeMTMBTS4YQUN=qrQqg9g3A_tw_F7xRngY0Lh9VGrQ@mail.gmail.com>
-References: <20200705142640.279439-1-kernel@esmil.dk> <CAJF2gTSi+2qxfzWxa5xvZnyJBFi5WcdSc-LDrqavB-hZ9-e9-Q@mail.gmail.com>
- <CANBLGcxWuO=xGfwwKPp7Faw1ZU=Z3p37KbopgQnB5HLg=CXTdg@mail.gmail.com> <CAJF2gTQhax2ZR8fvfm-HwK2wZinXoVRS8Var5y1AkrinDFHzUQ@mail.gmail.com>
+From: Christophe Leroy <christophe.leroy@csgroup.eu>
+Subject: Re: [RFC PATCH 4/5] powerpc/mm: Remove custom stack expansion
+ checking
+Date: Sun, 5 Jul 2020 19:49:17 +0200
+Message-ID: <fb3aad5f-17a1-93cc-1a3a-c50fe16ab711@csgroup.eu>
+References: <20200703141327.1732550-1-mpe@ellerman.id.au>
+ <20200703141327.1732550-4-mpe@ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb1-f193.google.com ([209.85.219.193]:36738 "EHLO
-        mail-yb1-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726956AbgGERJm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 5 Jul 2020 13:09:42 -0400
-Received: by mail-yb1-f193.google.com with SMTP id h39so17900717ybj.3
-        for <linux-arch@vger.kernel.org>; Sun, 05 Jul 2020 10:09:41 -0700 (PDT)
-In-Reply-To: <CAJF2gTQhax2ZR8fvfm-HwK2wZinXoVRS8Var5y1AkrinDFHzUQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <guoren@kernel.org>
-Cc: linux-riscv <linux-riscv@lists.infradead.org>, Arnd Bergmann <arnd@arndb.de>, Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <paul.walmsley@sifive.com>, linux-arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200703141327.1732550-4-mpe@ellerman.id.au>
+Content-Language: fr
+Sender: linux-kernel-owner@vger.kernel.org
+To: Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@ozlabs.org
+Cc: linux-arch@vger.kernel.org, hughd@google.com, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, 5 Jul 2020 at 17:52, Guo Ren <guoren@kernel.org> wrote:
-> On Sun, Jul 5, 2020 at 11:03 PM Emil Renner Berthing <kernel@esmil.dk> wrote:
-> > On Sun, 5 Jul 2020 at 16:44, Guo Ren <guoren@kernel.org> wrote:
-> > >
-> > > Hi Emil,
-> > >
-> > > On Sun, Jul 5, 2020 at 10:27 PM Emil Renner Berthing <kernel@esmil.dk> wrote:
-> > > >
-> > > > Without this enabling CONFIG_PREEMPT and CONFIG_DEBUG_PREEMPT
-> > > > results in many errors like this on the HiFive Unleashed
-> > > > RISC-V board:
-> > > >
-> > > > BUG: using smp_processor_id() in preemptible [00000000] code: swapper/0/1
-> > > > caller is regmap_mmio_write32le+0x1c/0x46
-> > > > CPU: 3 PID: 1 Comm: swapper/0 Not tainted 5.8.0-rc3-hfu+ #1
-> > > > Call Trace:
-> > > > [<ffffffe000201f6e>] walk_stackframe+0x0/0x7a
-> > > > [<ffffffe0005b290e>] dump_stack+0x6e/0x88
-> > > > [<ffffffe00047365e>] regmap_mmio_write32le+0x18/0x46
-> > > > [<ffffffe0005c4c26>] check_preemption_disabled+0xa4/0xaa
-> > > > [<ffffffe00047365e>] regmap_mmio_write32le+0x18/0x46
-> > > > [<ffffffe0004737c8>] regmap_mmio_write+0x26/0x44
-> > > > [<ffffffe0004715c4>] regmap_write+0x28/0x48
-> > > > [<ffffffe00043dccc>] sifive_gpio_probe+0xc0/0x1da
-> > > > [<ffffffe00000113e>] rdinit_setup+0x22/0x26
-> > > > [<ffffffe000469054>] platform_drv_probe+0x24/0x52
-> > > > [<ffffffe000467e16>] really_probe+0x92/0x21a
-> > > > [<ffffffe0004683a8>] device_driver_attach+0x42/0x4a
-> > > > [<ffffffe0004683ac>] device_driver_attach+0x46/0x4a
-> > > > [<ffffffe0004683f0>] __driver_attach+0x40/0xac
-> > > > [<ffffffe0004683ac>] device_driver_attach+0x46/0x4a
-> > > > [<ffffffe000466a3e>] bus_for_each_dev+0x3c/0x64
-> > > > [<ffffffe000467118>] bus_add_driver+0x11e/0x184
-> > > > [<ffffffe00046889a>] driver_register+0x32/0xc6
-> > > > [<ffffffe00000e5ac>] gpiolib_sysfs_init+0xaa/0xae
-> > > > [<ffffffe0000019ec>] do_one_initcall+0x50/0xfc
-> > > > [<ffffffe00000113e>] rdinit_setup+0x22/0x26
-> > > > [<ffffffe000001bea>] kernel_init_freeable+0x152/0x1da
-> > > > [<ffffffe0005c4d28>] rest_init+0xde/0xe2
-> > > > [<ffffffe0005c4d36>] kernel_init+0xa/0x11a
-> > > > [<ffffffe0005c4d28>] rest_init+0xde/0xe2
-> > > > [<ffffffe000200ff6>] ret_from_syscall_rejected+0x8/0xc
-> > > >
-> > > > Signed-off-by: Emil Renner Berthing <kernel@esmil.dk>
-> > > > ---
-> > > > This patch fixes it, but my guess is that it's not the right
-> > > > fix. Do anyone have a better idea?
-> > > >
-> > > >  include/asm-generic/mmiowb.h | 6 +++++-
-> > > >  1 file changed, 5 insertions(+), 1 deletion(-)
-> > > >
-> > > > diff --git a/include/asm-generic/mmiowb.h b/include/asm-generic/mmiowb.h
-> > > > index 9439ff037b2d..31a21cdfbbcf 100644
-> > > > --- a/include/asm-generic/mmiowb.h
-> > > > +++ b/include/asm-generic/mmiowb.h
-> > > > @@ -34,8 +34,12 @@ DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
-> > > >
-> > > >  static inline void mmiowb_set_pending(void)
-> > > >  {
-> > > > -       struct mmiowb_state *ms = __mmiowb_state();
-> > > > +       struct mmiowb_state *ms;
-> > > > +
-> > > > +       get_cpu();
-> > > > +       ms = __mmiowb_state();
-> > > >         ms->mmiowb_pending = ms->nesting_count;
-> > > > +       put_cpu();
-> > > >  }
-> > >
-> > > #define __mmiowb_state()        this_cpu_ptr(&__mmiowb_state)
-> > >
-> > > The ptr is a fixed address, so don't worry about the change, and just
-> > > use an atomic_read is enough.
-> > > static inline void mmiowb_set_pending(void)
-> > > {
-> > >         struct mmiowb_state *ms = __mmiowb_state();
-> > > -       ms->mmiowb_pending = ms->nesting_count;
-> > > +      ms->mmiowb_pending = atomic_read(ms->nesting_count);
-> > > }
-> >
-> > You may be right, but it doesn't fix the BUG. As far as I can tell it
-> > happens in __mmiowb_state() which expands through this_cpu_ptr and
-> > arch_raw_cpu_ptr to SHIFT_PERCPU_PTR(ptr, __my_cpu_offset), where
-> > __my_cpu_offset is per_cpu_offset(smp_processor_id()) and with
-> > CONFIG_DEBUG_PREEMPT smp_processor_id is actually
-> > debug_smp_processor_id, which eventually checks that preemption is
-> > disabled in check_preemption_disabled.
-> Thx for explaining.
->
-> Seems we need to find who disable preemption during:
-> > > > [<ffffffe000201f6e>] walk_stackframe+0x0/0x7a
-> > > > [<ffffffe0005b290e>] dump_stack+0x6e/0x88
-> > > > [<ffffffe00047365e>] regmap_mmio_write32le+0x18/0x46
-> > > > [<ffffffe0005c4c26>] check_preemption_disabled+0xa4/0xaa
-> > > > [<ffffffe00047365e>] regmap_mmio_write32le+0x18/0x46
-> > > > [<ffffffe0004737c8>] regmap_mmio_write+0x26/0x44
-> > > > [<ffffffe0004715c4>] regmap_write+0x28/0x48
-> > > > [<ffffffe00043dccc>] sifive_gpio_probe+0xc0/0x1da
-> > > > [<ffffffe00000113e>] rdinit_setup+0x22/0x26
-> > > > [<ffffffe000469054>] platform_drv_probe+0x24/0x52
-> > > > [<ffffffe000467e16>] really_probe+0x92/0x21a
-> > > > [<ffffffe0004683a8>] device_driver_attach+0x42/0x4a
-> > > > [<ffffffe0004683ac>] device_driver_attach+0x46/0x4a
-> > > > [<ffffffe0004683f0>] __driver_attach+0x40/0xac
-> > > > [<ffffffe0004683ac>] device_driver_attach+0x46/0x4a
-> > > > [<ffffffe000466a3e>] bus_for_each_dev+0x3c/0x64
-> > > > [<ffffffe000467118>] bus_add_driver+0x11e/0x184
-> > > > [<ffffffe00046889a>] driver_register+0x32/0xc6
-> > > > [<ffffffe00000e5ac>] gpiolib_sysfs_init+0xaa/0xae
-> > > > [<ffffffe0000019ec>] do_one_initcall+0x50/0xfc
 
-Hmm.. the problem is that preemption is *not* disabled when
-smp_processor_id is called, right?
 
-> do_one_initcall's preempt_count = 0
-> (gdb) bt
-> #0  do_one_initcall (fn=0xffffffe000003b0e
-> <trace_init_flags_sys_exit>) at init/main.c:1190
-> #1  0xffffffe000001f20 in do_pre_smp_initcalls () at ./include/linux/init.h:131
->
-> #2  kernel_init_freeable () at init/main.c:1494
-> #3  0xffffffe0009d6ea6 in kernel_init (unused=<optimized out>) a
->    t init/main.c:1399
-> #4  0xffffffe000201c2a in handle_exception () at arch/riscv/kernel/entry.S:188
-> Backtrace stopped: frame did not save the PC
-> (gdb) p *(struct task_struct*)$tp
-> $2 = {thread_info = {flags = 0, preempt_count = 0,
->
-> Can you debug like this ? to see which function's preempt_count = 0 in
-> your backtrace.
+Le 03/07/2020 à 16:13, Michael Ellerman a écrit :
+> We have powerpc specific logic in our page fault handling to decide if
+> an access to an unmapped address below the stack pointer should expand
+> the stack VMA.
+> 
+> The logic aims to prevent userspace from doing bad accesses below the
+> stack pointer. However as long as the stack is < 1MB in size, we allow
+> all accesses without further checks. Adding some debug I see that I
+> can do a full kernel build and LTP run, and not a single process has
+> used more than 1MB of stack. So for the majority of processes the
+> logic never even fires.
+> 
+> We also recently found a nasty bug in this code which could cause
+> userspace programs to be killed during signal delivery. It went
+> unnoticed presumably because most processes use < 1MB of stack.
+> 
+> The generic mm code has also grown support for stack guard pages since
+> this code was originally written, so the most heinous case of the
+> stack expanding into other mappings is now handled for us.
+> 
+> Finally although some other arches have special logic in this path,
+> from what I can tell none of x86, arm64, arm and s390 impose any extra
+> checks other than those in expand_stack().
+> 
+> So drop our complicated logic and like other architectures just let
+> the stack expand as long as its within the rlimit.
 
-I'm sorry, I'm not exactly sure what you mean by this, but it seems to
-happen multiple places in writel-like functions. Both at probe time in
-sifive_gpio_probe and sifive_spi_probe and when the spi driver is
-running. Here is the full log:
+I agree that's probably not worth a so complicated logic that is nowhere 
+documented.
 
-http://sprunge.us/rgfC3r
+This patch looks good to me, minor comments below.
 
-/Emil
+> 
+> Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
+> ---
+>   arch/powerpc/mm/fault.c | 106 ++--------------------------------------
+>   1 file changed, 5 insertions(+), 101 deletions(-)
+> 
+> diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
+> index ed01329dd12b..925a7231abb3 100644
+> --- a/arch/powerpc/mm/fault.c
+> +++ b/arch/powerpc/mm/fault.c
+> @@ -42,39 +42,7 @@
+>   #include <asm/kup.h>
+>   #include <asm/inst.h>
+>   
+> -/*
+> - * Check whether the instruction inst is a store using
+> - * an update addressing form which will update r1.
+> - */
+> -static bool store_updates_sp(struct ppc_inst inst)
+> -{
+> -	/* check for 1 in the rA field */
+> -	if (((ppc_inst_val(inst) >> 16) & 0x1f) != 1)
+> -		return false;
+> -	/* check major opcode */
+> -	switch (ppc_inst_primary_opcode(inst)) {
+> -	case OP_STWU:
+> -	case OP_STBU:
+> -	case OP_STHU:
+> -	case OP_STFSU:
+> -	case OP_STFDU:
+> -		return true;
+> -	case OP_STD:	/* std or stdu */
+> -		return (ppc_inst_val(inst) & 3) == 1;
+> -	case OP_31:
+> -		/* check minor opcode */
+> -		switch ((ppc_inst_val(inst) >> 1) & 0x3ff) {
+> -		case OP_31_XOP_STDUX:
+> -		case OP_31_XOP_STWUX:
+> -		case OP_31_XOP_STBUX:
+> -		case OP_31_XOP_STHUX:
+> -		case OP_31_XOP_STFSUX:
+> -		case OP_31_XOP_STFDUX:
+> -			return true;
+> -		}
+> -	}
+> -	return false;
+> -}
+> +
+
+Do we need this additional blank line ?
+
+>   /*
+>    * do_page_fault error handling helpers
+>    */
+> @@ -267,54 +235,6 @@ static bool bad_kernel_fault(struct pt_regs *regs, unsigned long error_code,
+>   	return false;
+>   }
+>   
+> -static bool bad_stack_expansion(struct pt_regs *regs, unsigned long address,
+> -				struct vm_area_struct *vma, unsigned int flags,
+> -				bool *must_retry)
+> -{
+> -	/*
+> -	 * N.B. The POWER/Open ABI allows programs to access up to
+> -	 * 288 bytes below the stack pointer.
+> -	 * The kernel signal delivery code writes up to 4KB
+> -	 * below the stack pointer (r1) before decrementing it.
+> -	 * The exec code can write slightly over 640kB to the stack
+> -	 * before setting the user r1.  Thus we allow the stack to
+> -	 * expand to 1MB without further checks.
+> -	 */
+> -	if (address + 0x100000 < vma->vm_end) {
+> -		struct ppc_inst __user *nip = (struct ppc_inst __user *)regs->nip;
+> -		/* get user regs even if this fault is in kernel mode */
+> -		struct pt_regs *uregs = current->thread.regs;
+> -		if (uregs == NULL)
+> -			return true;
+> -
+> -		/*
+> -		 * A user-mode access to an address a long way below
+> -		 * the stack pointer is only valid if the instruction
+> -		 * is one which would update the stack pointer to the
+> -		 * address accessed if the instruction completed,
+> -		 * i.e. either stwu rs,n(r1) or stwux rs,r1,rb
+> -		 * (or the byte, halfword, float or double forms).
+> -		 *
+> -		 * If we don't check this then any write to the area
+> -		 * between the last mapped region and the stack will
+> -		 * expand the stack rather than segfaulting.
+> -		 */
+> -		if (address + 4096 >= uregs->gpr[1])
+> -			return false;
+> -
+> -		if ((flags & FAULT_FLAG_WRITE) && (flags & FAULT_FLAG_USER) &&
+> -		    access_ok(nip, sizeof(*nip))) {
+> -			struct ppc_inst inst;
+> -
+> -			if (!probe_user_read_inst(&inst, nip))
+> -				return !store_updates_sp(inst);
+> -			*must_retry = true;
+> -		}
+> -		return true;
+> -	}
+> -	return false;
+> -}
+> -
+>   #ifdef CONFIG_PPC_MEM_KEYS
+>   static bool access_pkey_error(bool is_write, bool is_exec, bool is_pkey,
+>   			      struct vm_area_struct *vma)
+> @@ -480,7 +400,6 @@ static int __do_page_fault(struct pt_regs *regs, unsigned long address,
+>   	int is_user = user_mode(regs);
+>   	int is_write = page_fault_is_write(error_code);
+>   	vm_fault_t fault, major = 0;
+> -	bool must_retry = false;
+>   	bool kprobe_fault = kprobe_page_fault(regs, 11);
+>   
+>   	if (unlikely(debugger_fault_handler(regs) || kprobe_fault))
+> @@ -569,30 +488,15 @@ static int __do_page_fault(struct pt_regs *regs, unsigned long address,
+>   	vma = find_vma(mm, address);
+>   	if (unlikely(!vma))
+>   		return bad_area(regs, address);
+> -	if (likely(vma->vm_start <= address))
+> -		goto good_area;
+> -	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN)))
+> -		return bad_area(regs, address);
+>   
+> -	/* The stack is being expanded, check if it's valid */
+> -	if (unlikely(bad_stack_expansion(regs, address, vma, flags,
+> -					 &must_retry))) {
+> -		if (!must_retry)
+> +	if (unlikely(vma->vm_start > address)) {
+> +		if (unlikely(!(vma->vm_flags & VM_GROWSDOWN)))
+
+We are already in an unlikely() branch, I don't think it is worth having 
+a second level of unlikely(), better let gcc decide what's most efficient.
+
+>   			return bad_area(regs, address);
+>   
+> -		mmap_read_unlock(mm);
+> -		if (fault_in_pages_readable((const char __user *)regs->nip,
+> -					    sizeof(unsigned int)))
+> -			return bad_area_nosemaphore(regs, address);
+> -		goto retry;
+> +		if (unlikely(expand_stack(vma, address)))
+
+Same.
+
+> +			return bad_area(regs, address);
+>   	}
+>   
+> -	/* Try to expand it */
+> -	if (unlikely(expand_stack(vma, address)))
+> -		return bad_area(regs, address);
+> -
+> -good_area:
+> -
+>   #ifdef CONFIG_PPC_MEM_KEYS
+>   	if (unlikely(access_pkey_error(is_write, is_exec,
+>   				       (error_code & DSISR_KEYFAULT), vma)))
+> 
+
+Christophe
