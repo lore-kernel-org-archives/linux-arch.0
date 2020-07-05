@@ -1,47 +1,134 @@
-Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54818 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726629AbgGIVUZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 17:20:25 -0400
-Received: from mail-pf1-x444.google.com (mail-pf1-x444.google.com [IPv6:2607:f8b0:4864:20::444])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AEB73C08C5DC
-        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 14:20:25 -0700 (PDT)
-Received: by mail-pf1-x444.google.com with SMTP id a14so1560904pfi.2
-        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 14:20:25 -0700 (PDT)
-Subject: [PATCH v2 2/5] RISC-V: Use the new generic devmem_is_allowed()
-Date: Thu,  9 Jul 2020 14:19:22 -0700
-Message-ID: <20200709211925.1926557-3-palmer@dabbelt.com>
-In-Reply-To: <20200709211925.1926557-1-palmer@dabbelt.com>
-References: <20200709211925.1926557-1-palmer@dabbelt.com>
+Return-Path: <SRS0=sCZJ=AQ=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-2.mimecast.com ([205.139.110.61]:44784 "EHLO
+        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1728071AbgGETAb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 5 Jul 2020 15:00:31 -0400
+Subject: Re: [PATCH v2 5/6] powerpc/pseries: implement paravirt qspinlocks for
+ SPLPAR
+References: <20200703073516.1354108-1-npiggin@gmail.com>
+ <20200703073516.1354108-6-npiggin@gmail.com>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <81d9981b-8a20-729c-b861-c7229e40bb65@redhat.com>
+Date: Sun, 5 Jul 2020 15:00:21 -0400
 MIME-Version: 1.0
+In-Reply-To: <20200703073516.1354108-6-npiggin@gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
-From: Palmer Dabbelt <palmer@dabbelt.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: zong.li@sifive.com, rppt@linux.ibm.com
-Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, aou@eecs.berkeley.edu, gxt@pku.edu.cn, Arnd Bergmann <arnd@arndb.de>, linus.walleij@linaro.org, akpm@linux-foundation.org, mchehab+samsung@kernel.org, gregory.0xf0@gmail.com, masahiroy@kernel.org, Nick Desaulniers <ndesaulniers@google.com>, bgolaszewski@baylibre.com, steve@sk2.org, tglx@linutronix.de, keescook@chromium.org, alex@ghiti.fr, mcgrof@kernel.org, mark.rutland@arm.com, james.morse@arm.com, alex.shi@linux.alibaba.com, andriy.shevchenko@linux.intel.com, broonie@kernel.org, rdunlap@infradead.org, davem@davemloft.net, rostedt@goodmis.org, dan.j.williams@intel.com, mhiramat@kernel.org, krzk@kernel.org, zaslonko@linux.ibm.com, matti.vaittinen@fi.rohmeurope.com, uwe@kleine-koenig.org, clabbe@baylibre.com, changbin.du@intel.com, Greg KH <gregkh@linuxfoundation.org>, paulmck@kernel.org, pmladek@suse.com, brendanhiggins@google.com, glider@google.com, elver@google.com, davidgow@google.com, ardb@kernel.org, takahiro.akashi@linaro.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, kernel-team@android.com, Palmer Dabbelt <palmerdabbelt@google.com>
-Message-ID: <20200709211922.uM3bf8XqZc_OvGkcOKEWW2K-U_ArifgmRJ2Q9N8qA7M@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200705190021.MKNwyKvrO3MAQjCma4RwVIAgEqs6Dud8ZvHh7Ph_lZc@z>
 
-From: Palmer Dabbelt <palmerdabbelt@google.com>
+On 7/3/20 3:35 AM, Nicholas Piggin wrote:
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> ---
+>   arch/powerpc/include/asm/paravirt.h           | 28 ++++++++++
+>   arch/powerpc/include/asm/qspinlock.h          | 55 +++++++++++++++++++
+>   arch/powerpc/include/asm/qspinlock_paravirt.h |  5 ++
+>   arch/powerpc/platforms/pseries/Kconfig        |  5 ++
+>   arch/powerpc/platforms/pseries/setup.c        |  6 +-
+>   include/asm-generic/qspinlock.h               |  2 +
+>   6 files changed, 100 insertions(+), 1 deletion(-)
+>   create mode 100644 arch/powerpc/include/asm/qspinlock_paravirt.h
+>
+> diff --git a/arch/powerpc/include/asm/paravirt.h b/arch/powerpc/include/asm/paravirt.h
+> index 7a8546660a63..f2d51f929cf5 100644
+> --- a/arch/powerpc/include/asm/paravirt.h
+> +++ b/arch/powerpc/include/asm/paravirt.h
+> @@ -29,6 +29,16 @@ static inline void yield_to_preempted(int cpu, u32 yield_count)
+>   {
+>   	plpar_hcall_norets(H_CONFER, get_hard_smp_processor_id(cpu), yield_count);
+>   }
+> +
+> +static inline void prod_cpu(int cpu)
+> +{
+> +	plpar_hcall_norets(H_PROD, get_hard_smp_processor_id(cpu));
+> +}
+> +
+> +static inline void yield_to_any(void)
+> +{
+> +	plpar_hcall_norets(H_CONFER, -1, 0);
+> +}
+>   #else
+>   static inline bool is_shared_processor(void)
+>   {
+> @@ -45,6 +55,19 @@ static inline void yield_to_preempted(int cpu, u32 yield_count)
+>   {
+>   	___bad_yield_to_preempted(); /* This would be a bug */
+>   }
+> +
+> +extern void ___bad_yield_to_any(void);
+> +static inline void yield_to_any(void)
+> +{
+> +	___bad_yield_to_any(); /* This would be a bug */
+> +}
+> +
+> +extern void ___bad_prod_cpu(void);
+> +static inline void prod_cpu(int cpu)
+> +{
+> +	___bad_prod_cpu(); /* This would be a bug */
+> +}
+> +
+>   #endif
+>   
+>   #define vcpu_is_preempted vcpu_is_preempted
+> @@ -57,5 +80,10 @@ static inline bool vcpu_is_preempted(int cpu)
+>   	return false;
+>   }
+>   
+> +static inline bool pv_is_native_spin_unlock(void)
+> +{
+> +     return !is_shared_processor();
+> +}
+> +
+>   #endif /* __KERNEL__ */
+>   #endif /* __ASM_PARAVIRT_H */
+> diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include/asm/qspinlock.h
+> index c49e33e24edd..0960a0de2467 100644
+> --- a/arch/powerpc/include/asm/qspinlock.h
+> +++ b/arch/powerpc/include/asm/qspinlock.h
+> @@ -3,9 +3,36 @@
+>   #define _ASM_POWERPC_QSPINLOCK_H
+>   
+>   #include <asm-generic/qspinlock_types.h>
+> +#include <asm/paravirt.h>
+>   
+>   #define _Q_PENDING_LOOPS	(1 << 9) /* not tuned */
+>   
+> +#ifdef CONFIG_PARAVIRT_SPINLOCKS
+> +extern void native_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
+> +extern void __pv_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
+> +
+> +static __always_inline void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+> +{
+> +	if (!is_shared_processor())
+> +		native_queued_spin_lock_slowpath(lock, val);
+> +	else
+> +		__pv_queued_spin_lock_slowpath(lock, val);
+> +}
 
-This allows us to enable STRICT_DEVMEM.
+In a previous mail, I said that:
 
-Signed-off-by: Palmer Dabbelt <palmerdabbelt@google.com>
----
- arch/riscv/Kconfig | 1 +
- 1 file changed, 1 insertion(+)
+You may need to match the use of __pv_queued_spin_lock_slowpath() with 
+the corresponding __pv_queued_spin_unlock(), e.g.
 
-diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 089293e4ad46..8ff368a65a07 100644
---- a/arch/riscv/Kconfig
-+++ b/arch/riscv/Kconfig
-@@ -37,6 +37,7 @@ config RISCV
- 	select GENERIC_IOREMAP
- 	select GENERIC_IRQ_MULTI_HANDLER
- 	select GENERIC_IRQ_SHOW
-+	select GENERIC_LIB_DEVMEM_IS_ALLOWED
- 	select GENERIC_PCI_IOMAP
- 	select GENERIC_PTDUMP if MMU
- 	select GENERIC_SCHED_CLOCK
--- 
-2.27.0.383.g050319c2ae-goog
+#define queued_spin_unlock queued_spin_unlock
+static inline queued_spin_unlock(struct qspinlock *lock)
+{
+         if (!is_shared_processor())
+                 smp_store_release(&lock->locked, 0);
+         else
+                 __pv_queued_spin_unlock(lock);
+}
+
+Otherwise, pv_kick() will never be called.
+
+Maybe PowerPC HMT is different that the shared cpus can still process 
+instruction, though slower, that cpu kicking like what was done in kvm 
+is not really necessary. If that is the case, I think we should document 
+that.
+
+Cheers,
+Longman
