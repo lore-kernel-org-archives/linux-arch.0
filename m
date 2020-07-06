@@ -1,73 +1,45 @@
-From: David Hildenbrand <david@redhat.com>
-Subject: Re: [PATCH v6 07/26] mm: Preserve the PG_arch_* flags in
- __split_huge_page_tail()
-Date: Mon, 6 Jul 2020 19:56:43 +0200
-Message-ID: <bed8d086-8ed5-d72a-7a1f-327ef982d1a5@redhat.com>
-References: <20200703153718.16973-1-catalin.marinas@arm.com>
- <20200703153718.16973-8-catalin.marinas@arm.com>
- <16aeea8c-b5c4-0d19-2fde-f95ef8dfddc6@redhat.com>
- <20200706163012.GH28170@gaia>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Date: Mon, 6 Jul 2020 20:29:26 +0200
+Message-ID: <20200706182926.GH4800@hirez.programming.kicks-ass.net>
+References: <CANpmjNP+7TtE0WPU=nX5zs3T2+4hPkkm08meUm2VDVY3RgsHDw@mail.gmail.com>
+ <20200701114027.GO4800@hirez.programming.kicks-ass.net>
+ <20200701140654.GL9247@paulmck-ThinkPad-P72>
+ <20200701150512.GH4817@hirez.programming.kicks-ass.net>
+ <20200701160338.GN9247@paulmck-ThinkPad-P72>
+ <20200702082040.GB4781@hirez.programming.kicks-ass.net>
+ <20200702175948.GV9247@paulmck-ThinkPad-P72>
+ <20200703131330.GX4800@hirez.programming.kicks-ass.net>
+ <20200703144228.GF9247@paulmck-ThinkPad-P72>
+ <20200706162633.GA13288@paulmck-ThinkPad-P72>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us-smtp-1.mimecast.com ([207.211.31.81]:25566 "EHLO
-        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1729413AbgGFR4z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jul 2020 13:56:55 -0400
-In-Reply-To: <20200706163012.GH28170@gaia>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>, Christian Borntraeger <borntraeger@de.ibm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200706162633.GA13288@paulmck-ThinkPad-P72>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 06.07.20 18:30, Catalin Marinas wrote:
-> On Mon, Jul 06, 2020 at 04:16:13PM +0200, David Hildenbrand wrote:
->> On 03.07.20 17:36, Catalin Marinas wrote:
->>> When a huge page is split into normal pages, part of the head page flags
->>> are transferred to the tail pages. However, the PG_arch_* flags are not
->>> part of the preserved set.
->>>
->>> PG_arch_1 is currently used by the arch code to handle cache maintenance
->>> for user space (either for I-D cache coherency or for D-cache aliases
->>> consistent with the kernel mapping). Since splitting a huge page does
->>> not change the physical or virtual address of a mapping, additional
->>> cache maintenance for the tail pages is unnecessary. Preserving the
->>> PG_arch_1 flag from the head page in the tail pages would not break the
->>> current use-cases.
->>
->> ^ is fairly arm64 specific, no? (I remember that the semantics are
->> different e.g., on s390x).
+On Mon, Jul 06, 2020 at 09:26:33AM -0700, Paul E. McKenney wrote:
+
+> And perhaps more constructively, we do need to prioritize address and data
+> dependencies over control dependencies.  For one thing, there are a lot
+> more address/data dependencies in existing code than there are control
+> dependencies, and (sadly, perhaps more importantly) there are a lot more
+> people who are convinced that address/data dependencies are important.
+
+If they do not consider their Linux OS running correctly :-)
+
+> For another (admittedly more theoretical) thing, the OOTA scenarios
+> stemming from control dependencies are a lot less annoying than those
+> from address/data dependencies.
 > 
-> Not entirely arm64 specific. Apart from s390 and x86, I think all the
-> other architectures use this flag for cache maintenance (I guess they
-> followed the cachetlb.rst suggestion). My understanding of the s390 and
-> x86 is that transferring this flag from the head of a compound page to
-> the tail pages should not cause any issue. We don't even document
-> anywhere that this flag is meant to disappear on huge page splitting. I
-> guess no-one noticed because clearing it is relatively benign.
-
-On s390x, PG_arch_1 indicates (s390/kernel/uv.c:arch_make_page_accessible())
-- kernel page tables
-- for hugetlbfs pages, that storage keys are initialized for that page
-  (IIRC KVM only)
-- a user space page might be encrypted/secure (KVM only)
-
-The latter does not support hugetlbfs/THP. KVM does not support THP. So
-on s390x the bit should never be set in that context and, therefore,
-also won't be affected by this change.
-
+> And address/data dependencies are as far as I know vulnerable to things
+> like conditional-move instructions that can cause problems for control
+> dependencies.
 > 
-> But if there are concerns, I'm happy to guard it with something like
-> __ARCH_WANT_PG_ARCH_HEAD_TAIL (I need to think of a more suggestive
-> name).
+> Nevertheless, yes, control dependencies also need attention.
 
-I guess we can avoid that if we properly check+document all users.
-(ignoring x86 and s390x behavior here might be dangerous, although my
-gut feeling is that it's ok for both)
-
--- 
-Thanks,
-
-David / dhildenb
+Today I added one more \o/
