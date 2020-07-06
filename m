@@ -1,9 +1,8 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: "Paul E. McKenney" <paulmck@kernel.org>
 Subject: Re: [PATCH 00/22] add support for Clang LTO
-Date: Mon, 6 Jul 2020 20:29:26 +0200
-Message-ID: <20200706182926.GH4800@hirez.programming.kicks-ass.net>
-References: <CANpmjNP+7TtE0WPU=nX5zs3T2+4hPkkm08meUm2VDVY3RgsHDw@mail.gmail.com>
- <20200701114027.GO4800@hirez.programming.kicks-ass.net>
+Date: Mon, 6 Jul 2020 11:39:33 -0700
+Message-ID: <20200706183933.GE9247@paulmck-ThinkPad-P72>
+References: <20200701114027.GO4800@hirez.programming.kicks-ass.net>
  <20200701140654.GL9247@paulmck-ThinkPad-P72>
  <20200701150512.GH4817@hirez.programming.kicks-ass.net>
  <20200701160338.GN9247@paulmck-ThinkPad-P72>
@@ -12,34 +11,45 @@ References: <CANpmjNP+7TtE0WPU=nX5zs3T2+4hPkkm08meUm2VDVY3RgsHDw@mail.gmail.com>
  <20200703131330.GX4800@hirez.programming.kicks-ass.net>
  <20200703144228.GF9247@paulmck-ThinkPad-P72>
  <20200706162633.GA13288@paulmck-ThinkPad-P72>
+ <20200706182926.GH4800@hirez.programming.kicks-ass.net>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kbuild-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20200706162633.GA13288@paulmck-ThinkPad-P72>
+In-Reply-To: <20200706182926.GH4800@hirez.programming.kicks-ass.net>
 Sender: linux-kbuild-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 06, 2020 at 09:26:33AM -0700, Paul E. McKenney wrote:
-
-> And perhaps more constructively, we do need to prioritize address and data
-> dependencies over control dependencies.  For one thing, there are a lot
-> more address/data dependencies in existing code than there are control
-> dependencies, and (sadly, perhaps more importantly) there are a lot more
-> people who are convinced that address/data dependencies are important.
-
-If they do not consider their Linux OS running correctly :-)
-
-> For another (admittedly more theoretical) thing, the OOTA scenarios
-> stemming from control dependencies are a lot less annoying than those
-> from address/data dependencies.
+On Mon, Jul 06, 2020 at 08:29:26PM +0200, Peter Zijlstra wrote:
+> On Mon, Jul 06, 2020 at 09:26:33AM -0700, Paul E. McKenney wrote:
 > 
-> And address/data dependencies are as far as I know vulnerable to things
-> like conditional-move instructions that can cause problems for control
-> dependencies.
+> > And perhaps more constructively, we do need to prioritize address and data
+> > dependencies over control dependencies.  For one thing, there are a lot
+> > more address/data dependencies in existing code than there are control
+> > dependencies, and (sadly, perhaps more importantly) there are a lot more
+> > people who are convinced that address/data dependencies are important.
 > 
-> Nevertheless, yes, control dependencies also need attention.
+> If they do not consider their Linux OS running correctly :-)
 
-Today I added one more \o/
+Many of them really do not care at all.  In fact, some would consider
+Linux failing to run as an added bonus.
+
+> > For another (admittedly more theoretical) thing, the OOTA scenarios
+> > stemming from control dependencies are a lot less annoying than those
+> > from address/data dependencies.
+> > 
+> > And address/data dependencies are as far as I know vulnerable to things
+> > like conditional-move instructions that can cause problems for control
+> > dependencies.
+> > 
+> > Nevertheless, yes, control dependencies also need attention.
+> 
+> Today I added one more \o/
+
+Just make sure you continually check to make sure that compilers
+don't break it, along with the others you have added.  ;-)
+
+							Thanx, Paul
