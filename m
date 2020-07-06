@@ -1,40 +1,60 @@
-Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35992 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725764AbgGCHfe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Jul 2020 03:35:34 -0400
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v2 1/6] powerpc/powernv: must include hvcall.h to get PAPR defines
-Date: Fri,  3 Jul 2020 17:35:11 +1000
-Message-ID: <20200703073516.1354108-2-npiggin@gmail.com>
-In-Reply-To: <20200703073516.1354108-1-npiggin@gmail.com>
-References: <20200703073516.1354108-1-npiggin@gmail.com>
+Return-Path: <SRS0=tLCE=AR=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:39754 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1730051AbgGFSje (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 Jul 2020 14:39:34 -0400
+Date: Mon, 6 Jul 2020 11:39:33 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200706183933.GE9247@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200701114027.GO4800@hirez.programming.kicks-ass.net>
+ <20200701140654.GL9247@paulmck-ThinkPad-P72>
+ <20200701150512.GH4817@hirez.programming.kicks-ass.net>
+ <20200701160338.GN9247@paulmck-ThinkPad-P72>
+ <20200702082040.GB4781@hirez.programming.kicks-ass.net>
+ <20200702175948.GV9247@paulmck-ThinkPad-P72>
+ <20200703131330.GX4800@hirez.programming.kicks-ass.net>
+ <20200703144228.GF9247@paulmck-ThinkPad-P72>
+ <20200706162633.GA13288@paulmck-ThinkPad-P72>
+ <20200706182926.GH4800@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200706182926.GH4800@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200703073511.WK_P5_hTP_3M6lAuO-B5KOPeRYNeGKWgeZspF58ORTo@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200706183933.HPW3TCe5t-8bVumOOdoBp0Or8KcPKN_hyuvQw43sLB8@z>
 
-An include goes away in future patches which breaks compilation
-without this.
+On Mon, Jul 06, 2020 at 08:29:26PM +0200, Peter Zijlstra wrote:
+> On Mon, Jul 06, 2020 at 09:26:33AM -0700, Paul E. McKenney wrote:
+> 
+> > And perhaps more constructively, we do need to prioritize address and data
+> > dependencies over control dependencies.  For one thing, there are a lot
+> > more address/data dependencies in existing code than there are control
+> > dependencies, and (sadly, perhaps more importantly) there are a lot more
+> > people who are convinced that address/data dependencies are important.
+> 
+> If they do not consider their Linux OS running correctly :-)
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/powerpc/platforms/powernv/pci-ioda-tce.c | 1 +
- 1 file changed, 1 insertion(+)
+Many of them really do not care at all.  In fact, some would consider
+Linux failing to run as an added bonus.
 
-diff --git a/arch/powerpc/platforms/powernv/pci-ioda-tce.c b/arch/powerpc/platforms/powernv/pci-ioda-tce.c
-index f923359d8afc..8eba6ece7808 100644
---- a/arch/powerpc/platforms/powernv/pci-ioda-tce.c
-+++ b/arch/powerpc/platforms/powernv/pci-ioda-tce.c
-@@ -15,6 +15,7 @@
- 
- #include <asm/iommu.h>
- #include <asm/tce.h>
-+#include <asm/hvcall.h> /* share error returns with PAPR */
- #include "pci.h"
- 
- unsigned long pnv_ioda_parse_tce_sizes(struct pnv_phb *phb)
--- 
-2.23.0
+> > For another (admittedly more theoretical) thing, the OOTA scenarios
+> > stemming from control dependencies are a lot less annoying than those
+> > from address/data dependencies.
+> > 
+> > And address/data dependencies are as far as I know vulnerable to things
+> > like conditional-move instructions that can cause problems for control
+> > dependencies.
+> > 
+> > Nevertheless, yes, control dependencies also need attention.
+> 
+> Today I added one more \o/
+
+Just make sure you continually check to make sure that compilers
+don't break it, along with the others you have added.  ;-)
+
+							Thanx, Paul
