@@ -1,55 +1,63 @@
-Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:3196 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726298AbgGCCgM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 22:36:12 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 06/21] KVM: x86/mmu: Move fast_page_fault() call above mmu_topup_memory_caches()
-Date: Thu,  2 Jul 2020 19:35:30 -0700
-Message-ID: <20200703023545.8771-7-sean.j.christopherson@intel.com>
-In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
-References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+Return-Path: <SRS0=B4xR=AR=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH v6 06/26] mm: Add PG_arch_2 page flag
+References: <20200703153718.16973-1-catalin.marinas@arm.com>
+ <20200703153718.16973-7-catalin.marinas@arm.com>
+ <27fe044a-8315-5394-575e-8f763696b0cd@redhat.com>
+ <20200706112057.GA6432@gaia>
+From: David Hildenbrand <david@redhat.com>
+Message-ID: <2f77487a-e92e-1a38-ffd9-e5506441d25d@redhat.com>
+Date: Mon, 6 Jul 2020 14:42:59 +0200
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200706112057.GA6432@gaia>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Price <steven.price@arm.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200703023530.j_VHeN9GYOOih_keIbWVWb6yCtHxW1b3hyj1sF8sUnM@z>
+Message-ID: <20200706124259.Q1_UyQ41_CRUxV5TX8inWeMXSkIclHxw_1foGuEonSk@z>
 
-Avoid refilling the memory caches and potentially slow reclaim/swap when
-handling a fast page fault, which does not need to allocate any new
-objects.
+On 06.07.20 13:21, Catalin Marinas wrote:
+> On Mon, Jul 06, 2020 at 10:24:04AM +0200, David Hildenbrand wrote:
+>> On 03.07.20 17:36, Catalin Marinas wrote:
+>>> diff --git a/include/linux/page-flags.h b/include/linux/page-flags.h
+>>> index 6be1aa559b1e..276140c94f4a 100644
+>>> --- a/include/linux/page-flags.h
+>>> +++ b/include/linux/page-flags.h
+>>> @@ -135,6 +135,9 @@ enum pageflags {
+>>>  #if defined(CONFIG_IDLE_PAGE_TRACKING) && defined(CONFIG_64BIT)
+>>>  	PG_young,
+>>>  	PG_idle,
+>>> +#endif
+>>> +#ifdef CONFIG_64BIT
+>>> +	PG_arch_2,
+>>>  #endif
+>>>  	__NR_PAGEFLAGS,
+>>
+>> People are usually *very* picky when it comes to new page flags. It
+>> somewhat concerns me that we bump up __NR_PAGEFLAGS for any 64bit arch=
+.
+>> That feels wrong.
+>=20
+> It was guarded by a specific config option initially but the comments
+> suggested that it could be dropped for 64-bit architectures:
+>=20
+> https://lore.kernel.org/linux-arm-kernel/20200624113307.6165b3db2404c9d=
+37b870a90@linux-foundation.org/
+>=20
+> The page flags is indeed a pretty limited resource as it also includes
+> the sparsemem section, node and zone fields. However, on 64-bit this
+> should be fine (the sparsemem section is gone with vmemmap support).
 
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
----
- arch/x86/kvm/mmu/mmu.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+Right, so 64bit architectures/configs with SPARSEMEM &&
+!SPARSEMEM_VMEMMAP could be affected only. I think mips would be one
+example where we don't have VMEMMAP support. For most other 64bit
+architectures (x86_64, s390x, powerpc, ...) SPARSEMEM_VMEMMAP should be
+the default (although I've seen bug reports/configs where VMEMMAP was
+disabled).
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index 748235877def..3d0768e16463 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -4095,6 +4095,9 @@ static int direct_page_fault(struct kvm_vcpu *vcpu, gpa_t gpa, u32 error_code,
- 	if (page_fault_handle_page_track(vcpu, error_code, gfn))
- 		return RET_PF_EMULATE;
- 
-+	if (fast_page_fault(vcpu, gpa, error_code))
-+		return RET_PF_RETRY;
-+
- 	r = mmu_topup_memory_caches(vcpu);
- 	if (r)
- 		return r;
-@@ -4102,9 +4105,6 @@ static int direct_page_fault(struct kvm_vcpu *vcpu, gpa_t gpa, u32 error_code,
- 	if (lpage_disallowed)
- 		max_level = PG_LEVEL_4K;
- 
--	if (fast_page_fault(vcpu, gpa, error_code))
--		return RET_PF_RETRY;
--
- 	mmu_seq = vcpu->kvm->mmu_notifier_seq;
- 	smp_rmb();
- 
--- 
-2.26.0
+--=20
+Thanks,
+
+David / dhildenb
