@@ -1,70 +1,54 @@
-Return-Path: <SRS0=vM59=AS=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:48430 "EHLO mail.kernel.org"
+Return-Path: <SRS0=tLCE=AR=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from foss.arm.com ([217.140.110.172]:45228 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728110AbgGGQ4y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 7 Jul 2020 12:56:54 -0400
-Date: Tue, 7 Jul 2020 09:56:51 -0700
-From: Jakub Kicinski <kuba@kernel.org>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Message-ID: <20200707095651.422f0b22@kicinski-fedora-pc1c0hjn.dhcp.thefacebook.com>
-In-Reply-To: <20200707160528.GA1300535@google.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
-        <CAK7LNASvb0UDJ0U5wkYYRzTAdnEs64HjXpEUL7d=V0CXiAXcNw@mail.gmail.com>
-        <20200629232059.GA3787278@google.com>
-        <20200707155107.GA3357035@google.com>
-        <20200707160528.GA1300535@google.com>
+        id S1728381AbgGFBMq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 5 Jul 2020 21:12:46 -0400
+Subject: Re: [PATCH V4 0/4] mm/debug_vm_pgtable: Add some more tests
+References: <1593996516-7186-1-git-send-email-anshuman.khandual@arm.com>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Message-ID: <3e03e6da-139f-94df-73aa-4aaf174f71f5@arm.com>
+Date: Mon, 6 Jul 2020 06:41:42 +0530
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+In-Reply-To: <1593996516-7186-1-git-send-email-anshuman.khandual@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sami Tolvanen <samitolvanen@google.com>
-Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>
-Message-ID: <20200707165651.d2m63C9HUvj6To3Ewppd8tFvUP5mWmVTufe83PN2XO4@z>
+To: linux-mm@kvack.org
+Cc: Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Zi Yan <ziy@nvidia.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, Christophe Leroy <christophe.leroy@c-s.fr>, Christophe Leroy <christophe.leroy@csgroup.eu>
+Message-ID: <20200706011142.P1jgePuV-3hVZfyenfDllzGsvcyY2DWp-ok5XhDQeLw@z>
 
-On Tue, 7 Jul 2020 09:05:28 -0700 Sami Tolvanen wrote:
-> On Tue, Jul 07, 2020 at 08:51:07AM -0700, Sami Tolvanen wrote:
-> > After spending some time debugging this with Nick, it looks like the
-> > error is caused by a recent optimization change in LLVM, which together
-> > with the inlining of ur_load_imm_any into jeq_imm, changes a runtime
-> > check in FIELD_FIT that would always fail, to a compile-time check that
-> > breaks the build. In jeq_imm, we have:
-> > 
-> >     /* struct bpf_insn: _s32 imm */
-> >     u64 imm = insn->imm; /* sign extend */
-> >     ...
-> >     if (imm >> 32) { /* non-zero only if insn->imm is negative */
-> >     	/* inlined from ur_load_imm_any */
-> > 	u32 __imm = imm >> 32; /* therefore, always 0xffffffff */
-> > 
-> >         /*
-> > 	 * __imm has a value known at compile-time, which means
-> > 	 * __builtin_constant_p(__imm) is true and we end up with
-> > 	 * essentially this in __BF_FIELD_CHECK:
-> > 	 */
-> > 	if (__builtin_constant_p(__imm) && __imm <= 255)  
+
+On 07/06/2020 06:18 AM, Anshuman Khandual wrote:
+> This series adds some more arch page table helper validation tests which
+> are related to core and advanced memory functions. This also creates a
+> documentation, enlisting expected semantics for all page table helpers as
+> suggested by Mike Rapoport previously (https://lkml.org/lkml/2020/1/30/40).
 > 
-> Should be __imm > 255, of course, which means the compiler will generate
-> a call to __compiletime_assert.
+> There are many TRANSPARENT_HUGEPAGE and ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD
+> ifdefs scattered across the test. But consolidating all the fallback stubs
+> is not very straight forward because ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD is
+> not explicitly dependent on ARCH_HAS_TRANSPARENT_HUGEPAGE.
+> 
+> Tested on arm64, x86 platforms but only build tested on all other enabled
+> platforms through ARCH_HAS_DEBUG_VM_PGTABLE i.e powerpc, arc, s390. The
+> following failure on arm64 still exists which was mentioned previously. It
+> will be fixed with the upcoming THP migration on arm64 enablement series.
+> 
+> WARNING .... mm/debug_vm_pgtable.c:860 debug_vm_pgtable+0x940/0xa54
+> WARN_ON(!pmd_present(pmd_mkinvalid(pmd_mkhuge(pmd))))
+> 
+> This series is based on v5.8-rc4.
+> 
+> Changes in V4:
+> 
+> - Replaced READ_ONCE() with ptep_get() while accessing PTE pointers per Christophe
+> - Fixed function argument alignments per Christophe
 
-I think FIELD_FIT() should not pass the value into __BF_FIELD_CHECK().
++Cc - Zi Yan, Gerald Schaefer, Christophe Leroy
 
-So:
+The Cc list was not complete. Please do let me know if you could
+not retrieve all the four patches of the series from the list.
 
-diff --git a/include/linux/bitfield.h b/include/linux/bitfield.h
-index 48ea093ff04c..4e035aca6f7e 100644
---- a/include/linux/bitfield.h
-+++ b/include/linux/bitfield.h
-@@ -77,7 +77,7 @@
-  */
- #define FIELD_FIT(_mask, _val)                                         \
-        ({                                                              \
--               __BF_FIELD_CHECK(_mask, 0ULL, _val, "FIELD_FIT: ");     \
-+               __BF_FIELD_CHECK(_mask, 0ULL, 0ULL, "FIELD_FIT: ");     \
-                !((((typeof(_mask))_val) << __bf_shf(_mask)) & ~(_mask)); \
-        })
- 
-It's perfectly legal to pass a constant which does not fit, in which
-case FIELD_FIT() should just return false not break the build.
-
-Right?
+- Anshuman
