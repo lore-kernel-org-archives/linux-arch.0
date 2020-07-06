@@ -1,86 +1,69 @@
-From: David Hildenbrand <david@redhat.com>
-Subject: Re: [PATCH v6 07/26] mm: Preserve the PG_arch_* flags in
- __split_huge_page_tail()
-Date: Mon, 6 Jul 2020 16:16:13 +0200
-Message-ID: <16aeea8c-b5c4-0d19-2fde-f95ef8dfddc6@redhat.com>
-References: <20200703153718.16973-1-catalin.marinas@arm.com>
- <20200703153718.16973-8-catalin.marinas@arm.com>
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Date: Mon, 6 Jul 2020 09:26:33 -0700
+Message-ID: <20200706162633.GA13288@paulmck-ThinkPad-P72>
+References: <20200630203016.GI9247@paulmck-ThinkPad-P72>
+ <CANpmjNP+7TtE0WPU=nX5zs3T2+4hPkkm08meUm2VDVY3RgsHDw@mail.gmail.com>
+ <20200701114027.GO4800@hirez.programming.kicks-ass.net>
+ <20200701140654.GL9247@paulmck-ThinkPad-P72>
+ <20200701150512.GH4817@hirez.programming.kicks-ass.net>
+ <20200701160338.GN9247@paulmck-ThinkPad-P72>
+ <20200702082040.GB4781@hirez.programming.kicks-ass.net>
+ <20200702175948.GV9247@paulmck-ThinkPad-P72>
+ <20200703131330.GX4800@hirez.programming.kicks-ass.net>
+ <20200703144228.GF9247@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us-smtp-1.mimecast.com ([205.139.110.61]:23958 "EHLO
-        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1729214AbgGFOQ2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jul 2020 10:16:28 -0400
-In-Reply-To: <20200703153718.16973-8-catalin.marinas@arm.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200703144228.GF9247@paulmck-ThinkPad-P72>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 03.07.20 17:36, Catalin Marinas wrote:
-> When a huge page is split into normal pages, part of the head page flags
-> are transferred to the tail pages. However, the PG_arch_* flags are not
-> part of the preserved set.
+On Fri, Jul 03, 2020 at 07:42:28AM -0700, Paul E. McKenney wrote:
+> On Fri, Jul 03, 2020 at 03:13:30PM +0200, Peter Zijlstra wrote:
+> > On Thu, Jul 02, 2020 at 10:59:48AM -0700, Paul E. McKenney wrote:
+> > > On Thu, Jul 02, 2020 at 10:20:40AM +0200, Peter Zijlstra wrote:
+> > > > On Wed, Jul 01, 2020 at 09:03:38AM -0700, Paul E. McKenney wrote:
+
+[ . . . ]
+
+> > Also, if C goes and specifies load dependencies, in any form, is then
+> > not the corrolary that they need to specify control dependencies? How
+> > else can they exclude the transformation.
 > 
-> PG_arch_1 is currently used by the arch code to handle cache maintenance
-> for user space (either for I-D cache coherency or for D-cache aliases
-> consistent with the kernel mapping). Since splitting a huge page does
-> not change the physical or virtual address of a mapping, additional
-> cache maintenance for the tail pages is unnecessary. Preserving the
-> PG_arch_1 flag from the head page in the tail pages would not break the
-> current use-cases.
-
-^ is fairly arm64 specific, no? (I remember that the semantics are
-different e.g., on s390x).
-
-Did you check if this is actually safe to do on other architectures?
-Maybe rephrase the description to make this clearer.
-
+> By requiring that any temporaries generated from variables that are
+> marked _Dependent_ptr also be marked _Dependent_ptr.  This is of course
+> one divergence of _Dependent_ptr from the volatile keyword.
 > 
-> PG_arch_2 is currently used for arm64 MTE support to mark pages that
-> have valid tags. The absence of such flag causes the arm64 set_pte_at()
-> to clear the tags in order to avoid stale tags exposed to user or the
-> swapping out hooks to ignore the tags. Not preserving PG_arch_2 on huge
-> page splitting leads to tag corruption in the tail pages.
+> > And of course, once we're there, can we get explicit support for control
+> > dependencies too? :-) :-)
+> 
+> Keep talking like this and I am going to make sure that you attend a
+> standards committee meeting.  If need be, by arranging for you to be
+> physically dragged there.  ;-)
+> 
+> More seriously, for control dependencies, the variable that would need
+> to be marked would be the program counter, which might require some
+> additional syntax.
 
-"currently"? I don't think so - isn't it follow-up patches in this series?
+And perhaps more constructively, we do need to prioritize address and data
+dependencies over control dependencies.  For one thing, there are a lot
+more address/data dependencies in existing code than there are control
+dependencies, and (sadly, perhaps more importantly) there are a lot more
+people who are convinced that address/data dependencies are important.
 
-> 
-> To avoid the above and for consistency between the two PG_arch_* flags,
-> preserve both PG_arch_1 and PG_arch_2 in __split_huge_page_tail().
-> 
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> ---
-> 
-> Notes:
->     New in v6.
-> 
->  mm/huge_memory.c | 4 ++++
->  1 file changed, 4 insertions(+)
-> 
-> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-> index 78c84bee7e29..22b3236a6dd8 100644
-> --- a/mm/huge_memory.c
-> +++ b/mm/huge_memory.c
-> @@ -2364,6 +2364,10 @@ static void __split_huge_page_tail(struct page *head, int tail,
->  			 (1L << PG_workingset) |
->  			 (1L << PG_locked) |
->  			 (1L << PG_unevictable) |
-> +			 (1L << PG_arch_1) |
-> +#ifdef CONFIG_64BIT
-> +			 (1L << PG_arch_2) |
-> +#endif
->  			 (1L << PG_dirty)));
->  
->  	/* ->mapping in first tail page is compound_mapcount */
-> 
+For another (admittedly more theoretical) thing, the OOTA scenarios
+stemming from control dependencies are a lot less annoying than those
+from address/data dependencies.
 
+And address/data dependencies are as far as I know vulnerable to things
+like conditional-move instructions that can cause problems for control
+dependencies.
 
--- 
-Thanks,
+Nevertheless, yes, control dependencies also need attention.
 
-David / dhildenb
+							Thanx, Paul
