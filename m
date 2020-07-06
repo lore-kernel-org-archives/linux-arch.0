@@ -1,55 +1,83 @@
-Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38382 "EHLO
+Return-Path: <SRS0=tLCE=AR=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49206 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726357AbgGIKdr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 06:33:47 -0400
-Date: Thu, 9 Jul 2020 12:33:38 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 4/6] powerpc/64s: implement queued spinlocks and
- rwlocks
-Message-ID: <20200709103338.GQ597537@hirez.programming.kicks-ass.net>
+        with ESMTP id S1728466AbgGFEg2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jul 2020 00:36:28 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH v3 6/6] powerpc/qspinlock: optimised atomic_try_cmpxchg_lock that adds the lock hint
+Date: Mon,  6 Jul 2020 14:35:40 +1000
+Message-ID: <20200706043540.1563616-7-npiggin@gmail.com>
+In-Reply-To: <20200706043540.1563616-1-npiggin@gmail.com>
 References: <20200706043540.1563616-1-npiggin@gmail.com>
- <20200706043540.1563616-5-npiggin@gmail.com>
- <877dvdvvkm.fsf@mpe.ellerman.id.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <877dvdvvkm.fsf@mpe.ellerman.id.au>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200709103338.5CuLnKj03GkQHrICJSkcl65jTKCY_mYWskifKVexdls@z>
+To: linuxppc-dev@lists.ozlabs.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200706043540.R__X2H17YDGmJhcqpoNGxSsA6kmfdBKtBkQX0RnIr5g@z>
 
-On Thu, Jul 09, 2020 at 08:20:25PM +1000, Michael Ellerman wrote:
-> Nicholas Piggin <npiggin@gmail.com> writes:
-> > These have shown significantly improved performance and fairness when
-> > spinlock contention is moderate to high on very large systems.
-> >
-> >  [ Numbers hopefully forthcoming after more testing, but initial
-> >    results look good ]
-> 
-> Would be good to have something here, even if it's preliminary.
-> 
-> > Thanks to the fast path, single threaded performance is not noticably
-> > hurt.
-> >
-> > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
-> > ---
-> >  arch/powerpc/Kconfig                      | 13 ++++++++++++
-> >  arch/powerpc/include/asm/Kbuild           |  2 ++
-> >  arch/powerpc/include/asm/qspinlock.h      | 25 +++++++++++++++++++++++
-> >  arch/powerpc/include/asm/spinlock.h       |  5 +++++
-> >  arch/powerpc/include/asm/spinlock_types.h |  5 +++++
-> >  arch/powerpc/lib/Makefile                 |  3 +++
-> 
-> >  include/asm-generic/qspinlock.h           |  2 ++
-> 
-> Who's ack do we need for that part?
+This brings the behaviour of the uncontended fast path back to
+roughly equivalent to simple spinlocks -- a single atomic op with
+lock hint.
 
-Mine I suppose would do, as discussed earlier, it probably isn't
-required anymore, but I understand the paranoia of not wanting to change
-too many things at once :-)
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ arch/powerpc/include/asm/atomic.h    | 28 ++++++++++++++++++++++++++++
+ arch/powerpc/include/asm/qspinlock.h |  2 +-
+ 2 files changed, 29 insertions(+), 1 deletion(-)
 
-
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+diff --git a/arch/powerpc/include/asm/atomic.h b/arch/powerpc/include/asm/atomic.h
+index 498785ffc25f..f6a3d145ffb7 100644
+--- a/arch/powerpc/include/asm/atomic.h
++++ b/arch/powerpc/include/asm/atomic.h
+@@ -193,6 +193,34 @@ static __inline__ int atomic_dec_return_relaxed(atomic_t *v)
+ #define atomic_xchg(v, new) (xchg(&((v)->counter), new))
+ #define atomic_xchg_relaxed(v, new) xchg_relaxed(&((v)->counter), (new))
+ 
++/*
++ * Don't want to override the generic atomic_try_cmpxchg_acquire, because
++ * we add a lock hint to the lwarx, which may not be wanted for the
++ * _acquire case (and is not used by the other _acquire variants so it
++ * would be a surprise).
++ */
++static __always_inline bool
++atomic_try_cmpxchg_lock(atomic_t *v, int *old, int new)
++{
++	int r, o = *old;
++
++	__asm__ __volatile__ (
++"1:\t"	PPC_LWARX(%0,0,%2,1) "	# atomic_try_cmpxchg_acquire	\n"
++"	cmpw	0,%0,%3							\n"
++"	bne-	2f							\n"
++"	stwcx.	%4,0,%2							\n"
++"	bne-	1b							\n"
++"\t"	PPC_ACQUIRE_BARRIER "						\n"
++"2:									\n"
++	: "=&r" (r), "+m" (v->counter)
++	: "r" (&v->counter), "r" (o), "r" (new)
++	: "cr0", "memory");
++
++	if (unlikely(r != o))
++		*old = r;
++	return likely(r == o);
++}
++
+ /**
+  * atomic_fetch_add_unless - add unless the number is a given value
+  * @v: pointer of type atomic_t
+diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include/asm/qspinlock.h
+index f5066f00a08c..b752d34517b3 100644
+--- a/arch/powerpc/include/asm/qspinlock.h
++++ b/arch/powerpc/include/asm/qspinlock.h
+@@ -37,7 +37,7 @@ static __always_inline void queued_spin_lock(struct qspinlock *lock)
+ {
+ 	u32 val = 0;
+ 
+-	if (likely(atomic_try_cmpxchg_acquire(&lock->val, &val, _Q_LOCKED_VAL)))
++	if (likely(atomic_try_cmpxchg_lock(&lock->val, &val, _Q_LOCKED_VAL)))
+ 		return;
+ 
+ 	queued_spin_lock_slowpath(lock, val);
+-- 
+2.23.0
