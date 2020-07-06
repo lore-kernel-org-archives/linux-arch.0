@@ -1,45 +1,187 @@
-Return-Path: <SRS0=hCR/=AV=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RESEND PATCH v5 3/6] arm64: Add tlbi_user_level TLB invalidation
- helper
-References: <20200625080314.230-1-yezhenyu2@huawei.com>
- <20200625080314.230-4-yezhenyu2@huawei.com> <20200709164845.GB6579@gaia>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Message-ID: <33a5dc75-8209-e198-bb41-8b4ab82c000e@huawei.com>
-Date: Fri, 10 Jul 2020 09:20:59 +0800
+Return-Path: <SRS0=tLCE=AR=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49138 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728756AbgGFEgF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jul 2020 00:36:05 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH v3 2/6] powerpc/pseries: move some PAPR paravirt functions to their own file
+Date: Mon,  6 Jul 2020 14:35:36 +1000
+Message-ID: <20200706043540.1563616-3-npiggin@gmail.com>
+In-Reply-To: <20200706043540.1563616-1-npiggin@gmail.com>
+References: <20200706043540.1563616-1-npiggin@gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20200709164845.GB6579@gaia>
-Content-Type: text/plain; charset="gbk"
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Content-Transfer-Encoding: 8bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200710012059.9ZIVzELLycYPwolDyJDfWbrvPa0rNJp7rNIfKC3mK_U@z>
+To: linuxppc-dev@lists.ozlabs.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200706043536.MJeen2bjHZQB1l_EwonOHKZC1ila-2_DhLksYZinBaw@z>
 
-Hi Catalin,
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ arch/powerpc/include/asm/paravirt.h | 61 +++++++++++++++++++++++++++++
+ arch/powerpc/include/asm/spinlock.h | 24 +-----------
+ arch/powerpc/lib/locks.c            | 12 +++---
+ 3 files changed, 68 insertions(+), 29 deletions(-)
+ create mode 100644 arch/powerpc/include/asm/paravirt.h
 
-On 2020/7/10 0:48, Catalin Marinas wrote:
-> On Thu, Jun 25, 2020 at 04:03:11PM +0800, Zhenyu Ye wrote:
->> @@ -189,8 +195,9 @@ static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
->>  	unsigned long addr = __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
->>  
->>  	dsb(ishst);
->> -	__tlbi(vale1is, addr);
->> -	__tlbi_user(vale1is, addr);
->> +	/* This function is only called on a small page */
->> +	__tlbi_level(vale1is, addr, 3);
->> +	__tlbi_user_level(vale1is, addr, 3);
->>  }
-> 
-> Actually, that's incorrect. It was ok in v2 of your patches when I
-> suggested to drop level 0, just leave the function unchanged but I
-> missed that you updated it to pass level 3.
-> 
-> pmdp_set_access_flags -> ptep_set_access_flags ->
-> flush_tlb_fix_spurious_fault -> flush_tlb_page -> flush_tlb_page_nosync.
-
-How do you want to fix this error? I notice that this series have been applied
-to arm64 (for-next/tlbi).  Should I send a new series based on arm64 (for-next/tlbi)?
-
-Thanks,
-Zhenyu
+diff --git a/arch/powerpc/include/asm/paravirt.h b/arch/powerpc/include/asm/paravirt.h
+new file mode 100644
+index 000000000000..7a8546660a63
+--- /dev/null
++++ b/arch/powerpc/include/asm/paravirt.h
+@@ -0,0 +1,61 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++#ifndef __ASM_PARAVIRT_H
++#define __ASM_PARAVIRT_H
++#ifdef __KERNEL__
++
++#include <linux/jump_label.h>
++#include <asm/smp.h>
++#ifdef CONFIG_PPC64
++#include <asm/paca.h>
++#include <asm/hvcall.h>
++#endif
++
++#ifdef CONFIG_PPC_SPLPAR
++DECLARE_STATIC_KEY_FALSE(shared_processor);
++
++static inline bool is_shared_processor(void)
++{
++	return static_branch_unlikely(&shared_processor);
++}
++
++/* If bit 0 is set, the cpu has been preempted */
++static inline u32 yield_count_of(int cpu)
++{
++	__be32 yield_count = READ_ONCE(lppaca_of(cpu).yield_count);
++	return be32_to_cpu(yield_count);
++}
++
++static inline void yield_to_preempted(int cpu, u32 yield_count)
++{
++	plpar_hcall_norets(H_CONFER, get_hard_smp_processor_id(cpu), yield_count);
++}
++#else
++static inline bool is_shared_processor(void)
++{
++	return false;
++}
++
++static inline u32 yield_count_of(int cpu)
++{
++	return 0;
++}
++
++extern void ___bad_yield_to_preempted(void);
++static inline void yield_to_preempted(int cpu, u32 yield_count)
++{
++	___bad_yield_to_preempted(); /* This would be a bug */
++}
++#endif
++
++#define vcpu_is_preempted vcpu_is_preempted
++static inline bool vcpu_is_preempted(int cpu)
++{
++	if (!is_shared_processor())
++		return false;
++	if (yield_count_of(cpu) & 1)
++		return true;
++	return false;
++}
++
++#endif /* __KERNEL__ */
++#endif /* __ASM_PARAVIRT_H */
+diff --git a/arch/powerpc/include/asm/spinlock.h b/arch/powerpc/include/asm/spinlock.h
+index 2d620896cdae..79be9bb10bbb 100644
+--- a/arch/powerpc/include/asm/spinlock.h
++++ b/arch/powerpc/include/asm/spinlock.h
+@@ -15,11 +15,10 @@
+  *
+  * (the type definitions are in asm/spinlock_types.h)
+  */
+-#include <linux/jump_label.h>
+ #include <linux/irqflags.h>
++#include <asm/paravirt.h>
+ #ifdef CONFIG_PPC64
+ #include <asm/paca.h>
+-#include <asm/hvcall.h>
+ #endif
+ #include <asm/synch.h>
+ #include <asm/ppc-opcode.h>
+@@ -35,18 +34,6 @@
+ #define LOCK_TOKEN	1
+ #endif
+ 
+-#ifdef CONFIG_PPC_PSERIES
+-DECLARE_STATIC_KEY_FALSE(shared_processor);
+-
+-#define vcpu_is_preempted vcpu_is_preempted
+-static inline bool vcpu_is_preempted(int cpu)
+-{
+-	if (!static_branch_unlikely(&shared_processor))
+-		return false;
+-	return !!(be32_to_cpu(lppaca_of(cpu).yield_count) & 1);
+-}
+-#endif
+-
+ static __always_inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+ {
+ 	return lock.slock == 0;
+@@ -110,15 +97,6 @@ static inline void splpar_spin_yield(arch_spinlock_t *lock) {};
+ static inline void splpar_rw_yield(arch_rwlock_t *lock) {};
+ #endif
+ 
+-static inline bool is_shared_processor(void)
+-{
+-#ifdef CONFIG_PPC_SPLPAR
+-	return static_branch_unlikely(&shared_processor);
+-#else
+-	return false;
+-#endif
+-}
+-
+ static inline void spin_yield(arch_spinlock_t *lock)
+ {
+ 	if (is_shared_processor())
+diff --git a/arch/powerpc/lib/locks.c b/arch/powerpc/lib/locks.c
+index 6440d5943c00..04165b7a163f 100644
+--- a/arch/powerpc/lib/locks.c
++++ b/arch/powerpc/lib/locks.c
+@@ -27,14 +27,14 @@ void splpar_spin_yield(arch_spinlock_t *lock)
+ 		return;
+ 	holder_cpu = lock_value & 0xffff;
+ 	BUG_ON(holder_cpu >= NR_CPUS);
+-	yield_count = be32_to_cpu(lppaca_of(holder_cpu).yield_count);
++
++	yield_count = yield_count_of(holder_cpu);
+ 	if ((yield_count & 1) == 0)
+ 		return;		/* virtual cpu is currently running */
+ 	rmb();
+ 	if (lock->slock != lock_value)
+ 		return;		/* something has changed */
+-	plpar_hcall_norets(H_CONFER,
+-		get_hard_smp_processor_id(holder_cpu), yield_count);
++	yield_to_preempted(holder_cpu, yield_count);
+ }
+ EXPORT_SYMBOL_GPL(splpar_spin_yield);
+ 
+@@ -53,13 +53,13 @@ void splpar_rw_yield(arch_rwlock_t *rw)
+ 		return;		/* no write lock at present */
+ 	holder_cpu = lock_value & 0xffff;
+ 	BUG_ON(holder_cpu >= NR_CPUS);
+-	yield_count = be32_to_cpu(lppaca_of(holder_cpu).yield_count);
++
++	yield_count = yield_count_of(holder_cpu);
+ 	if ((yield_count & 1) == 0)
+ 		return;		/* virtual cpu is currently running */
+ 	rmb();
+ 	if (rw->lock != lock_value)
+ 		return;		/* something has changed */
+-	plpar_hcall_norets(H_CONFER,
+-		get_hard_smp_processor_id(holder_cpu), yield_count);
++	yield_to_preempted(holder_cpu, yield_count);
+ }
+ #endif
+-- 
+2.23.0
