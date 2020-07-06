@@ -1,102 +1,194 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v2 5/6] powerpc/pseries: implement paravirt qspinlocks for
- SPLPAR
-Date: Mon, 06 Jul 2020 10:30:05 +1000
-Message-ID: <1593994632.syt8hwimv9.astroid@bobo.none>
-References: <20200703073516.1354108-1-npiggin@gmail.com>
- <20200703073516.1354108-6-npiggin@gmail.com>
- <81d9981b-8a20-729c-b861-c7229e40bb65@redhat.com>
+From: Guo Ren <guoren@kernel.org>
+Subject: Re: [PATCH] asm-generic/mmiowb: Get cpu in mmiowb_set_pending
+Date: Mon, 6 Jul 2020 08:47:40 +0800
+Message-ID: <CAJF2gTTa+rDb2OX0evh30v3oCH=Oih3OGdvQK8CyqnrGBf=J=w@mail.gmail.com>
+References: <20200705142640.279439-1-kernel@esmil.dk> <CAJF2gTSi+2qxfzWxa5xvZnyJBFi5WcdSc-LDrqavB-hZ9-e9-Q@mail.gmail.com>
+ <CANBLGcxWuO=xGfwwKPp7Faw1ZU=Z3p37KbopgQnB5HLg=CXTdg@mail.gmail.com>
+ <CAJF2gTQhax2ZR8fvfm-HwK2wZinXoVRS8Var5y1AkrinDFHzUQ@mail.gmail.com> <CANBLGcx1BeMTMBTS4YQUN=qrQqg9g3A_tw_F7xRngY0Lh9VGrQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <81d9981b-8a20-729c-b861-c7229e40bb65@redhat.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
- <mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
- <mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-Sender: "Virtualization" <virtualization-bounces@lists.linux-foundation.org>
-To: Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:41650 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1728053AbgGFAr6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 5 Jul 2020 20:47:58 -0400
+Received: from mail-lj1-f177.google.com (mail-lj1-f177.google.com [209.85.208.177])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id DB01720715
+        for <linux-arch@vger.kernel.org>; Mon,  6 Jul 2020 00:47:56 +0000 (UTC)
+Received: by mail-lj1-f177.google.com with SMTP id n23so43409453ljh.7
+        for <linux-arch@vger.kernel.org>; Sun, 05 Jul 2020 17:47:56 -0700 (PDT)
+In-Reply-To: <CANBLGcx1BeMTMBTS4YQUN=qrQqg9g3A_tw_F7xRngY0Lh9VGrQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Emil Renner Berthing <kernel@esmil.dk>
+Cc: linux-riscv <linux-riscv@lists.infradead.org>, Arnd Bergmann <arnd@arndb.de>, Palmer Dabbelt <palmer@dabbelt.com>, Paul Walmsley <paul.walmsley@sifive.com>, linux-arch <linux-arch@vger.kernel.org>
 
-RXhjZXJwdHMgZnJvbSBXYWltYW4gTG9uZydzIG1lc3NhZ2Ugb2YgSnVseSA2LCAyMDIwIDU6MDAg
-YW06Cj4gT24gNy8zLzIwIDM6MzUgQU0sIE5pY2hvbGFzIFBpZ2dpbiB3cm90ZToKPj4gU2lnbmVk
-LW9mZi1ieTogTmljaG9sYXMgUGlnZ2luIDxucGlnZ2luQGdtYWlsLmNvbT4KPj4gLS0tCj4+ICAg
-YXJjaC9wb3dlcnBjL2luY2x1ZGUvYXNtL3BhcmF2aXJ0LmggICAgICAgICAgIHwgMjggKysrKysr
-KysrKwo+PiAgIGFyY2gvcG93ZXJwYy9pbmNsdWRlL2FzbS9xc3BpbmxvY2suaCAgICAgICAgICB8
-IDU1ICsrKysrKysrKysrKysrKysrKysKPj4gICBhcmNoL3Bvd2VycGMvaW5jbHVkZS9hc20vcXNw
-aW5sb2NrX3BhcmF2aXJ0LmggfCAgNSArKwo+PiAgIGFyY2gvcG93ZXJwYy9wbGF0Zm9ybXMvcHNl
-cmllcy9LY29uZmlnICAgICAgICB8ICA1ICsrCj4+ICAgYXJjaC9wb3dlcnBjL3BsYXRmb3Jtcy9w
-c2VyaWVzL3NldHVwLmMgICAgICAgIHwgIDYgKy0KPj4gICBpbmNsdWRlL2FzbS1nZW5lcmljL3Fz
-cGlubG9jay5oICAgICAgICAgICAgICAgfCAgMiArCj4+ICAgNiBmaWxlcyBjaGFuZ2VkLCAxMDAg
-aW5zZXJ0aW9ucygrKSwgMSBkZWxldGlvbigtKQo+PiAgIGNyZWF0ZSBtb2RlIDEwMDY0NCBhcmNo
-L3Bvd2VycGMvaW5jbHVkZS9hc20vcXNwaW5sb2NrX3BhcmF2aXJ0LmgKPj4KPj4gZGlmZiAtLWdp
-dCBhL2FyY2gvcG93ZXJwYy9pbmNsdWRlL2FzbS9wYXJhdmlydC5oIGIvYXJjaC9wb3dlcnBjL2lu
-Y2x1ZGUvYXNtL3BhcmF2aXJ0LmgKPj4gaW5kZXggN2E4NTQ2NjYwYTYzLi5mMmQ1MWY5MjljZjUg
-MTAwNjQ0Cj4+IC0tLSBhL2FyY2gvcG93ZXJwYy9pbmNsdWRlL2FzbS9wYXJhdmlydC5oCj4+ICsr
-KyBiL2FyY2gvcG93ZXJwYy9pbmNsdWRlL2FzbS9wYXJhdmlydC5oCj4+IEBAIC0yOSw2ICsyOSwx
-NiBAQCBzdGF0aWMgaW5saW5lIHZvaWQgeWllbGRfdG9fcHJlZW1wdGVkKGludCBjcHUsIHUzMiB5
-aWVsZF9jb3VudCkKPj4gICB7Cj4+ICAgCXBscGFyX2hjYWxsX25vcmV0cyhIX0NPTkZFUiwgZ2V0
-X2hhcmRfc21wX3Byb2Nlc3Nvcl9pZChjcHUpLCB5aWVsZF9jb3VudCk7Cj4+ICAgfQo+PiArCj4+
-ICtzdGF0aWMgaW5saW5lIHZvaWQgcHJvZF9jcHUoaW50IGNwdSkKPj4gK3sKPj4gKwlwbHBhcl9o
-Y2FsbF9ub3JldHMoSF9QUk9ELCBnZXRfaGFyZF9zbXBfcHJvY2Vzc29yX2lkKGNwdSkpOwo+PiAr
-fQo+PiArCj4+ICtzdGF0aWMgaW5saW5lIHZvaWQgeWllbGRfdG9fYW55KHZvaWQpCj4+ICt7Cj4+
-ICsJcGxwYXJfaGNhbGxfbm9yZXRzKEhfQ09ORkVSLCAtMSwgMCk7Cj4+ICt9Cj4+ICAgI2Vsc2UK
-Pj4gICBzdGF0aWMgaW5saW5lIGJvb2wgaXNfc2hhcmVkX3Byb2Nlc3Nvcih2b2lkKQo+PiAgIHsK
-Pj4gQEAgLTQ1LDYgKzU1LDE5IEBAIHN0YXRpYyBpbmxpbmUgdm9pZCB5aWVsZF90b19wcmVlbXB0
-ZWQoaW50IGNwdSwgdTMyIHlpZWxkX2NvdW50KQo+PiAgIHsKPj4gICAJX19fYmFkX3lpZWxkX3Rv
-X3ByZWVtcHRlZCgpOyAvKiBUaGlzIHdvdWxkIGJlIGEgYnVnICovCj4+ICAgfQo+PiArCj4+ICtl
-eHRlcm4gdm9pZCBfX19iYWRfeWllbGRfdG9fYW55KHZvaWQpOwo+PiArc3RhdGljIGlubGluZSB2
-b2lkIHlpZWxkX3RvX2FueSh2b2lkKQo+PiArewo+PiArCV9fX2JhZF95aWVsZF90b19hbnkoKTsg
-LyogVGhpcyB3b3VsZCBiZSBhIGJ1ZyAqLwo+PiArfQo+PiArCj4+ICtleHRlcm4gdm9pZCBfX19i
-YWRfcHJvZF9jcHUodm9pZCk7Cj4+ICtzdGF0aWMgaW5saW5lIHZvaWQgcHJvZF9jcHUoaW50IGNw
-dSkKPj4gK3sKPj4gKwlfX19iYWRfcHJvZF9jcHUoKTsgLyogVGhpcyB3b3VsZCBiZSBhIGJ1ZyAq
-Lwo+PiArfQo+PiArCj4+ICAgI2VuZGlmCj4+ICAgCj4+ICAgI2RlZmluZSB2Y3B1X2lzX3ByZWVt
-cHRlZCB2Y3B1X2lzX3ByZWVtcHRlZAo+PiBAQCAtNTcsNSArODAsMTAgQEAgc3RhdGljIGlubGlu
-ZSBib29sIHZjcHVfaXNfcHJlZW1wdGVkKGludCBjcHUpCj4+ICAgCXJldHVybiBmYWxzZTsKPj4g
-ICB9Cj4+ICAgCj4+ICtzdGF0aWMgaW5saW5lIGJvb2wgcHZfaXNfbmF0aXZlX3NwaW5fdW5sb2Nr
-KHZvaWQpCj4+ICt7Cj4+ICsgICAgIHJldHVybiAhaXNfc2hhcmVkX3Byb2Nlc3NvcigpOwo+PiAr
-fQo+PiArCj4+ICAgI2VuZGlmIC8qIF9fS0VSTkVMX18gKi8KPj4gICAjZW5kaWYgLyogX19BU01f
-UEFSQVZJUlRfSCAqLwo+PiBkaWZmIC0tZ2l0IGEvYXJjaC9wb3dlcnBjL2luY2x1ZGUvYXNtL3Fz
-cGlubG9jay5oIGIvYXJjaC9wb3dlcnBjL2luY2x1ZGUvYXNtL3FzcGlubG9jay5oCj4+IGluZGV4
-IGM0OWUzM2UyNGVkZC4uMDk2MGEwZGUyNDY3IDEwMDY0NAo+PiAtLS0gYS9hcmNoL3Bvd2VycGMv
-aW5jbHVkZS9hc20vcXNwaW5sb2NrLmgKPj4gKysrIGIvYXJjaC9wb3dlcnBjL2luY2x1ZGUvYXNt
-L3FzcGlubG9jay5oCj4+IEBAIC0zLDkgKzMsMzYgQEAKPj4gICAjZGVmaW5lIF9BU01fUE9XRVJQ
-Q19RU1BJTkxPQ0tfSAo+PiAgIAo+PiAgICNpbmNsdWRlIDxhc20tZ2VuZXJpYy9xc3BpbmxvY2tf
-dHlwZXMuaD4KPj4gKyNpbmNsdWRlIDxhc20vcGFyYXZpcnQuaD4KPj4gICAKPj4gICAjZGVmaW5l
-IF9RX1BFTkRJTkdfTE9PUFMJKDEgPDwgOSkgLyogbm90IHR1bmVkICovCj4+ICAgCj4+ICsjaWZk
-ZWYgQ09ORklHX1BBUkFWSVJUX1NQSU5MT0NLUwo+PiArZXh0ZXJuIHZvaWQgbmF0aXZlX3F1ZXVl
-ZF9zcGluX2xvY2tfc2xvd3BhdGgoc3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZhbCk7Cj4+
-ICtleHRlcm4gdm9pZCBfX3B2X3F1ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgoc3RydWN0IHFzcGlu
-bG9jayAqbG9jaywgdTMyIHZhbCk7Cj4+ICsKPj4gK3N0YXRpYyBfX2Fsd2F5c19pbmxpbmUgdm9p
-ZCBxdWV1ZWRfc3Bpbl9sb2NrX3Nsb3dwYXRoKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2ssIHUzMiB2
-YWwpCj4+ICt7Cj4+ICsJaWYgKCFpc19zaGFyZWRfcHJvY2Vzc29yKCkpCj4+ICsJCW5hdGl2ZV9x
-dWV1ZWRfc3Bpbl9sb2NrX3Nsb3dwYXRoKGxvY2ssIHZhbCk7Cj4+ICsJZWxzZQo+PiArCQlfX3B2
-X3F1ZXVlZF9zcGluX2xvY2tfc2xvd3BhdGgobG9jaywgdmFsKTsKPj4gK30KPiAKPiBJbiBhIHBy
-ZXZpb3VzIG1haWwsIEkgc2FpZCB0aGF0OgoKSGV5LCB5ZWFoIEkgcmVhZCB0aGF0IHJpZ2h0IGFm
-dGVyIHNlbmRpbmcgdGhlIHNlcmllcyBvdXQuIFRoYW5rcyBmb3IgdGhlIAp0aG9yb3VnaCByZXZp
-ZXcuCgo+IFlvdSBtYXkgbmVlZCB0byBtYXRjaCB0aGUgdXNlIG9mIF9fcHZfcXVldWVkX3NwaW5f
-bG9ja19zbG93cGF0aCgpIHdpdGggCj4gdGhlIGNvcnJlc3BvbmRpbmcgX19wdl9xdWV1ZWRfc3Bp
-bl91bmxvY2soKSwgZS5nLgo+IAo+ICNkZWZpbmUgcXVldWVkX3NwaW5fdW5sb2NrIHF1ZXVlZF9z
-cGluX3VubG9jawo+IHN0YXRpYyBpbmxpbmUgcXVldWVkX3NwaW5fdW5sb2NrKHN0cnVjdCBxc3Bp
-bmxvY2sgKmxvY2spCj4gewo+ICDCoMKgwqDCoMKgwqDCoCBpZiAoIWlzX3NoYXJlZF9wcm9jZXNz
-b3IoKSkKPiAgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIHNtcF9zdG9yZV9yZWxlYXNl
-KCZsb2NrLT5sb2NrZWQsIDApOwo+ICDCoMKgwqDCoMKgwqDCoCBlbHNlCj4gIMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoCBfX3B2X3F1ZXVlZF9zcGluX3VubG9jayhsb2NrKTsKPiB9Cj4g
-Cj4gT3RoZXJ3aXNlLCBwdl9raWNrKCkgd2lsbCBuZXZlciBiZSBjYWxsZWQuCj4gCj4gTWF5YmUg
-UG93ZXJQQyBITVQgaXMgZGlmZmVyZW50IHRoYXQgdGhlIHNoYXJlZCBjcHVzIGNhbiBzdGlsbCBw
-cm9jZXNzIAo+IGluc3RydWN0aW9uLCB0aG91Z2ggc2xvd2VyLCB0aGF0IGNwdSBraWNraW5nIGxp
-a2Ugd2hhdCB3YXMgZG9uZSBpbiBrdm0gCj4gaXMgbm90IHJlYWxseSBuZWNlc3NhcnkuIElmIHRo
-YXQgaXMgdGhlIGNhc2UsIEkgdGhpbmsgd2Ugc2hvdWxkIGRvY3VtZW50IAo+IHRoYXQuCgpJdCBk
-b2VzIHN0b3AgZGlzcGF0Y2gsIGJ1dCBpdCB3aWxsIHdha2UgdXAgYnkgaXRzZWxmIGFmdGVyIGFs
-bCBvdGhlciAKdkNQVXMgaGF2ZSBoYWQgYSBjaGFuY2UgdG8gZGlzcGF0Y2guIEkgd2lsbCByZS10
-ZXN0IHdpdGggdGhlIGZpeCBpbgpwbGFjZSBhbmQgc2VlIGlmIHRoZXJlJ3MgYW55IHNpZ25pZmlj
-YW50IHBlcmZvcm1hbmNlIGRpZmZlcmVuY2VzLgoKVGhhbmtzLApOaWNrCgpfX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpWaXJ0dWFsaXphdGlvbiBtYWlsaW5n
-IGxpc3QKVmlydHVhbGl6YXRpb25AbGlzdHMubGludXgtZm91bmRhdGlvbi5vcmcKaHR0cHM6Ly9s
-aXN0cy5saW51eGZvdW5kYXRpb24ub3JnL21haWxtYW4vbGlzdGluZm8vdmlydHVhbGl6YXRpb24=
+On Mon, Jul 6, 2020 at 1:09 AM Emil Renner Berthing <kernel@esmil.dk> wrote:
+>
+> On Sun, 5 Jul 2020 at 17:52, Guo Ren <guoren@kernel.org> wrote:
+> > On Sun, Jul 5, 2020 at 11:03 PM Emil Renner Berthing <kernel@esmil.dk> wrote:
+> > > On Sun, 5 Jul 2020 at 16:44, Guo Ren <guoren@kernel.org> wrote:
+> > > >
+> > > > Hi Emil,
+> > > >
+> > > > On Sun, Jul 5, 2020 at 10:27 PM Emil Renner Berthing <kernel@esmil.dk> wrote:
+> > > > >
+> > > > > Without this enabling CONFIG_PREEMPT and CONFIG_DEBUG_PREEMPT
+> > > > > results in many errors like this on the HiFive Unleashed
+> > > > > RISC-V board:
+> > > > >
+> > > > > BUG: using smp_processor_id() in preemptible [00000000] code: swapper/0/1
+> > > > > caller is regmap_mmio_write32le+0x1c/0x46
+> > > > > CPU: 3 PID: 1 Comm: swapper/0 Not tainted 5.8.0-rc3-hfu+ #1
+> > > > > Call Trace:
+> > > > > [<ffffffe000201f6e>] walk_stackframe+0x0/0x7a
+> > > > > [<ffffffe0005b290e>] dump_stack+0x6e/0x88
+> > > > > [<ffffffe00047365e>] regmap_mmio_write32le+0x18/0x46
+> > > > > [<ffffffe0005c4c26>] check_preemption_disabled+0xa4/0xaa
+> > > > > [<ffffffe00047365e>] regmap_mmio_write32le+0x18/0x46
+> > > > > [<ffffffe0004737c8>] regmap_mmio_write+0x26/0x44
+> > > > > [<ffffffe0004715c4>] regmap_write+0x28/0x48
+> > > > > [<ffffffe00043dccc>] sifive_gpio_probe+0xc0/0x1da
+> > > > > [<ffffffe00000113e>] rdinit_setup+0x22/0x26
+> > > > > [<ffffffe000469054>] platform_drv_probe+0x24/0x52
+> > > > > [<ffffffe000467e16>] really_probe+0x92/0x21a
+> > > > > [<ffffffe0004683a8>] device_driver_attach+0x42/0x4a
+> > > > > [<ffffffe0004683ac>] device_driver_attach+0x46/0x4a
+> > > > > [<ffffffe0004683f0>] __driver_attach+0x40/0xac
+> > > > > [<ffffffe0004683ac>] device_driver_attach+0x46/0x4a
+> > > > > [<ffffffe000466a3e>] bus_for_each_dev+0x3c/0x64
+> > > > > [<ffffffe000467118>] bus_add_driver+0x11e/0x184
+> > > > > [<ffffffe00046889a>] driver_register+0x32/0xc6
+> > > > > [<ffffffe00000e5ac>] gpiolib_sysfs_init+0xaa/0xae
+> > > > > [<ffffffe0000019ec>] do_one_initcall+0x50/0xfc
+> > > > > [<ffffffe00000113e>] rdinit_setup+0x22/0x26
+> > > > > [<ffffffe000001bea>] kernel_init_freeable+0x152/0x1da
+> > > > > [<ffffffe0005c4d28>] rest_init+0xde/0xe2
+> > > > > [<ffffffe0005c4d36>] kernel_init+0xa/0x11a
+> > > > > [<ffffffe0005c4d28>] rest_init+0xde/0xe2
+> > > > > [<ffffffe000200ff6>] ret_from_syscall_rejected+0x8/0xc
+> > > > >
+> > > > > Signed-off-by: Emil Renner Berthing <kernel@esmil.dk>
+> > > > > ---
+> > > > > This patch fixes it, but my guess is that it's not the right
+> > > > > fix. Do anyone have a better idea?
+> > > > >
+> > > > >  include/asm-generic/mmiowb.h | 6 +++++-
+> > > > >  1 file changed, 5 insertions(+), 1 deletion(-)
+> > > > >
+> > > > > diff --git a/include/asm-generic/mmiowb.h b/include/asm-generic/mmiowb.h
+> > > > > index 9439ff037b2d..31a21cdfbbcf 100644
+> > > > > --- a/include/asm-generic/mmiowb.h
+> > > > > +++ b/include/asm-generic/mmiowb.h
+> > > > > @@ -34,8 +34,12 @@ DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
+> > > > >
+> > > > >  static inline void mmiowb_set_pending(void)
+> > > > >  {
+> > > > > -       struct mmiowb_state *ms = __mmiowb_state();
+> > > > > +       struct mmiowb_state *ms;
+> > > > > +
+> > > > > +       get_cpu();
+> > > > > +       ms = __mmiowb_state();
+> > > > >         ms->mmiowb_pending = ms->nesting_count;
+> > > > > +       put_cpu();
+> > > > >  }
+> > > >
+> > > > #define __mmiowb_state()        this_cpu_ptr(&__mmiowb_state)
+> > > >
+> > > > The ptr is a fixed address, so don't worry about the change, and just
+> > > > use an atomic_read is enough.
+> > > > static inline void mmiowb_set_pending(void)
+> > > > {
+> > > >         struct mmiowb_state *ms = __mmiowb_state();
+> > > > -       ms->mmiowb_pending = ms->nesting_count;
+> > > > +      ms->mmiowb_pending = atomic_read(ms->nesting_count);
+> > > > }
+> > >
+> > > You may be right, but it doesn't fix the BUG. As far as I can tell it
+> > > happens in __mmiowb_state() which expands through this_cpu_ptr and
+> > > arch_raw_cpu_ptr to SHIFT_PERCPU_PTR(ptr, __my_cpu_offset), where
+> > > __my_cpu_offset is per_cpu_offset(smp_processor_id()) and with
+> > > CONFIG_DEBUG_PREEMPT smp_processor_id is actually
+> > > debug_smp_processor_id, which eventually checks that preemption is
+> > > disabled in check_preemption_disabled.
+> > Thx for explaining.
+> >
+> > Seems we need to find who disable preemption during:
+> > > > > [<ffffffe000201f6e>] walk_stackframe+0x0/0x7a
+> > > > > [<ffffffe0005b290e>] dump_stack+0x6e/0x88
+> > > > > [<ffffffe00047365e>] regmap_mmio_write32le+0x18/0x46
+> > > > > [<ffffffe0005c4c26>] check_preemption_disabled+0xa4/0xaa
+> > > > > [<ffffffe00047365e>] regmap_mmio_write32le+0x18/0x46
+> > > > > [<ffffffe0004737c8>] regmap_mmio_write+0x26/0x44
+> > > > > [<ffffffe0004715c4>] regmap_write+0x28/0x48
+> > > > > [<ffffffe00043dccc>] sifive_gpio_probe+0xc0/0x1da
+> > > > > [<ffffffe00000113e>] rdinit_setup+0x22/0x26
+> > > > > [<ffffffe000469054>] platform_drv_probe+0x24/0x52
+> > > > > [<ffffffe000467e16>] really_probe+0x92/0x21a
+> > > > > [<ffffffe0004683a8>] device_driver_attach+0x42/0x4a
+> > > > > [<ffffffe0004683ac>] device_driver_attach+0x46/0x4a
+> > > > > [<ffffffe0004683f0>] __driver_attach+0x40/0xac
+> > > > > [<ffffffe0004683ac>] device_driver_attach+0x46/0x4a
+> > > > > [<ffffffe000466a3e>] bus_for_each_dev+0x3c/0x64
+> > > > > [<ffffffe000467118>] bus_add_driver+0x11e/0x184
+> > > > > [<ffffffe00046889a>] driver_register+0x32/0xc6
+> > > > > [<ffffffe00000e5ac>] gpiolib_sysfs_init+0xaa/0xae
+> > > > > [<ffffffe0000019ec>] do_one_initcall+0x50/0xfc
+>
+> Hmm.. the problem is that preemption is *not* disabled when
+> smp_processor_id is called, right?
+
+Yes!
+
+smp_processor_id is defined as:
+
+ * This is the normal accessor to the CPU id and should be used
+ * whenever possible.
+ *
+ * The CPU id is stable when:
+ *
+ *  - IRQs are disabled;
+ *  - preemption is disabled;
+ *  - the task is CPU affine.
+ *
+ * When CONFIG_DEBUG_PREEMPT; we verify these assumption and WARN
+ * when smp_processor_id() is used when the CPU id is not stable.
+
+So regmap_write->regmap_mmio_write should be PREEMPT disabled in
+sifive_gpio_probe().
+
+>
+> > do_one_initcall's preempt_count = 0
+> > (gdb) bt
+> > #0  do_one_initcall (fn=0xffffffe000003b0e
+> > <trace_init_flags_sys_exit>) at init/main.c:1190
+> > #1  0xffffffe000001f20 in do_pre_smp_initcalls () at ./include/linux/init.h:131
+> >
+> > #2  kernel_init_freeable () at init/main.c:1494
+> > #3  0xffffffe0009d6ea6 in kernel_init (unused=<optimized out>) a
+> >    t init/main.c:1399
+> > #4  0xffffffe000201c2a in handle_exception () at arch/riscv/kernel/entry.S:188
+> > Backtrace stopped: frame did not save the PC
+> > (gdb) p *(struct task_struct*)$tp
+> > $2 = {thread_info = {flags = 0, preempt_count = 0,
+> >
+> > Can you debug like this ? to see which function's preempt_count = 0 in
+> > your backtrace.
+>
+> I'm sorry, I'm not exactly sure what you mean by this, but it seems to
+> happen multiple places in writel-like functions. Both at probe time in
+> sifive_gpio_probe and sifive_spi_probe and when the spi driver is
+> running. Here is the full log:
+>
+I mean Use jtag + gdb to detect  preempt_count = 0 in parent function.
+I do this in qemu :)
+
+If couldn't use jtag, then just add printk preempt_count trace, or kgdb.
+
+-- 
+Best Regards
+ Guo Ren
+
+ML: https://lore.kernel.org/linux-csky/
