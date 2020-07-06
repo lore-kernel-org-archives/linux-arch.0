@@ -1,115 +1,74 @@
 Return-Path: <SRS0=tLCE=AR=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:43272 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727996AbgGFAtS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 5 Jul 2020 20:49:18 -0400
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: [PATCH V4 0/4] mm/debug_vm_pgtable: Add some more tests
-Date: Mon,  6 Jul 2020 06:18:32 +0530
-Message-ID: <1593996516-7186-1-git-send-email-anshuman.khandual@arm.com>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47594 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725860AbgGFTkZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jul 2020 15:40:25 -0400
+Date: Mon, 6 Jul 2020 21:40:12 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200706194012.GA5523@worktop.programming.kicks-ass.net>
+References: <20200701140654.GL9247@paulmck-ThinkPad-P72>
+ <20200701150512.GH4817@hirez.programming.kicks-ass.net>
+ <20200701160338.GN9247@paulmck-ThinkPad-P72>
+ <20200702082040.GB4781@hirez.programming.kicks-ass.net>
+ <20200702175948.GV9247@paulmck-ThinkPad-P72>
+ <20200703131330.GX4800@hirez.programming.kicks-ass.net>
+ <20200703144228.GF9247@paulmck-ThinkPad-P72>
+ <20200706162633.GA13288@paulmck-ThinkPad-P72>
+ <20200706182926.GH4800@hirez.programming.kicks-ass.net>
+ <20200706183933.GE9247@paulmck-ThinkPad-P72>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200706183933.GE9247@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: Anshuman Khandual <anshuman.khandual@arm.com>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20200706004832.AsPK24tuwVYp9aGThAbj1kWyM6zSSGkle-NVVHyYSsw@z>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200706194012.LGhAMw0l5etAgrTlBumGVO_QiPWzKIdLGvSuElldEcY@z>
 
-This series adds some more arch page table helper validation tests which
-are related to core and advanced memory functions. This also creates a
-documentation, enlisting expected semantics for all page table helpers as
-suggested by Mike Rapoport previously (https://lkml.org/lkml/2020/1/30/40).
+On Mon, Jul 06, 2020 at 11:39:33AM -0700, Paul E. McKenney wrote:
+> On Mon, Jul 06, 2020 at 08:29:26PM +0200, Peter Zijlstra wrote:
+> > On Mon, Jul 06, 2020 at 09:26:33AM -0700, Paul E. McKenney wrote:
 
-There are many TRANSPARENT_HUGEPAGE and ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD
-ifdefs scattered across the test. But consolidating all the fallback stubs
-is not very straight forward because ARCH_HAS_TRANSPARENT_HUGEPAGE_PUD is
-not explicitly dependent on ARCH_HAS_TRANSPARENT_HUGEPAGE.
+> > If they do not consider their Linux OS running correctly :-)
+> 
+> Many of them really do not care at all.  In fact, some would consider
+> Linux failing to run as an added bonus.
 
-Tested on arm64, x86 platforms but only build tested on all other enabled
-platforms through ARCH_HAS_DEBUG_VM_PGTABLE i.e powerpc, arc, s390. The
-following failure on arm64 still exists which was mentioned previously. It
-will be fixed with the upcoming THP migration on arm64 enablement series.
+This I think is why we have compiler people in the thread that care a
+lot more.
 
-WARNING .... mm/debug_vm_pgtable.c:860 debug_vm_pgtable+0x940/0xa54
-WARN_ON(!pmd_present(pmd_mkinvalid(pmd_mkhuge(pmd))))
+> > > Nevertheless, yes, control dependencies also need attention.
+> > 
+> > Today I added one more \o/
+> 
+> Just make sure you continually check to make sure that compilers
+> don't break it, along with the others you have added.  ;-)
 
-This series is based on v5.8-rc4.
+There's:
 
-Changes in V4:
+kernel/locking/mcs_spinlock.h:  smp_cond_load_acquire(l, VAL);                          \
+kernel/sched/core.c:                    smp_cond_load_acquire(&p->on_cpu, !VAL);
+kernel/smp.c:   smp_cond_load_acquire(&csd->node.u_flags, !(VAL & CSD_FLAG_LOCK));
 
-- Replaced READ_ONCE() with ptep_get() while accessing PTE pointers per Christophe
-- Fixed function argument alignments per Christophe
+arch/x86/kernel/alternative.c:          atomic_cond_read_acquire(&desc.refs, !VAL);
+kernel/locking/qrwlock.c:               atomic_cond_read_acquire(&lock->cnts, !(VAL & _QW_LOCKED));
+kernel/locking/qrwlock.c:       atomic_cond_read_acquire(&lock->cnts, !(VAL & _QW_LOCKED));
+kernel/locking/qrwlock.c:               atomic_cond_read_acquire(&lock->cnts, VAL == _QW_WAITING);
+kernel/locking/qspinlock.c:             atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_MASK));
+kernel/locking/qspinlock.c:     val = atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_PENDING_MASK));
 
-Changes in V3: (https://patchwork.kernel.org/project/linux-mm/list/?series=302483)
+include/linux/refcount.h:               smp_acquire__after_ctrl_dep();
+ipc/mqueue.c:                   smp_acquire__after_ctrl_dep();
+ipc/msg.c:                      smp_acquire__after_ctrl_dep();
+ipc/sem.c:                      smp_acquire__after_ctrl_dep();
+kernel/locking/rwsem.c:                 smp_acquire__after_ctrl_dep();
+kernel/sched/core.c:    smp_acquire__after_ctrl_dep();
 
-- Replaced HAVE_ARCH_SOFT_DIRTY with MEM_SOFT_DIRTY
-- Added HAVE_ARCH_HUGE_VMAP checks in pxx_huge_tests() per Gerald
-- Updated documentation for pmd_thp_tests() per Zi Yan
-- Replaced READ_ONCE() with huge_ptep_get() per Gerald
-- Added pte_mkhuge() and masking with PMD_MASK per Gerald
-- Replaced pte_same() with holding pfn check in pxx_swap_tests()
-- Added documentation for all (#ifdef #else #endif) per Gerald
-- Updated pmd_protnone_tests() per Gerald
-- Updated HugeTLB PTE creation in hugetlb_advanced_tests() per Gerald
-- Replaced [pmd|pud]_mknotpresent() with [pmd|pud]_mkinvalid()
-- Added has_transparent_hugepage() check for PMD and PUD tests
-- Added a patch which debug prints all individual tests being executed
-- Updated documentation for renamed [pmd|pud]_mkinvalid() helpers
+kernel/events/ring_buffer.c:__perf_output_begin()
 
-Changes in V2: (https://patchwork.kernel.org/project/linux-mm/list/?series=260573)
+And I'm fairly sure I'm forgetting some... One could argue there's too
+many of them to check already.
 
-- Dropped CONFIG_ARCH_HAS_PTE_SPECIAL per Christophe
-- Dropped CONFIG_NUMA_BALANCING per Christophe
-- Dropped CONFIG_HAVE_ARCH_SOFT_DIRTY per Christophe
-- Dropped CONFIG_MIGRATION per Christophe
-- Replaced CONFIG_S390 with __HAVE_ARCH_PMDP_INVALIDATE
-- Moved page allocation & free inside swap_migration_tests() per Christophe
-- Added CONFIG_TRANSPARENT_HUGEPAGE to protect pfn_pmd()
-- Added CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD to protect pfn_pud()
-- Added a patch for other arch advanced page table helper tests
-- Added a patch creating a documentation for page table helper semantics
-
-Changes in V1: (https://patchwork.kernel.org/patch/11408253/)
-
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mike Rapoport <rppt@linux.ibm.com>
-Cc: Vineet Gupta <vgupta@synopsys.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Vasily Gorbik <gor@linux.ibm.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Kirill A. Shutemov <kirill@shutemov.name>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: linux-snps-arc@lists.infradead.org
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-s390@vger.kernel.org
-Cc: linux-riscv@lists.infradead.org
-Cc: x86@kernel.org
-Cc: linux-mm@kvack.org
-Cc: linux-doc@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-
-
-Anshuman Khandual (4):
-  mm/debug_vm_pgtable: Add tests validating arch helpers for core MM features
-  mm/debug_vm_pgtable: Add tests validating advanced arch page table helpers
-  mm/debug_vm_pgtable: Add debug prints for individual tests
-  Documentation/mm: Add descriptions for arch page table helpers
-
- Documentation/vm/arch_pgtable_helpers.rst | 258 +++++++++
- mm/debug_vm_pgtable.c                     | 666 +++++++++++++++++++++-
- 2 files changed, 922 insertions(+), 2 deletions(-)
- create mode 100644 Documentation/vm/arch_pgtable_helpers.rst
-
--- 
-2.20.1
+Both GCC and CLANG had better think about it.
