@@ -1,65 +1,50 @@
-Return-Path: <SRS0=ixnu=AY=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:49842 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729644AbgGMRWE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 Jul 2020 13:22:04 -0400
-Date: Mon, 13 Jul 2020 18:21:59 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
-Message-ID: <20200713172158.GE15829@gaia>
-References: <20200710094420.517-1-yezhenyu2@huawei.com>
- <20200710094420.517-3-yezhenyu2@huawei.com>
- <4040f429-21c8-0825-2ad4-97786c3fe7c1@nvidia.com>
- <cee60718-ced2-069f-8dad-48941c6fc09b@huawei.com>
- <7237888d-2168-cd8b-c83d-c8e54871793d@nvidia.com>
+Return-Path: <SRS0=tLCE=AR=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36772 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729713AbgGFS3p (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jul 2020 14:29:45 -0400
+Date: Mon, 6 Jul 2020 20:29:26 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200706182926.GH4800@hirez.programming.kicks-ass.net>
+References: <CANpmjNP+7TtE0WPU=nX5zs3T2+4hPkkm08meUm2VDVY3RgsHDw@mail.gmail.com>
+ <20200701114027.GO4800@hirez.programming.kicks-ass.net>
+ <20200701140654.GL9247@paulmck-ThinkPad-P72>
+ <20200701150512.GH4817@hirez.programming.kicks-ass.net>
+ <20200701160338.GN9247@paulmck-ThinkPad-P72>
+ <20200702082040.GB4781@hirez.programming.kicks-ass.net>
+ <20200702175948.GV9247@paulmck-ThinkPad-P72>
+ <20200703131330.GX4800@hirez.programming.kicks-ass.net>
+ <20200703144228.GF9247@paulmck-ThinkPad-P72>
+ <20200706162633.GA13288@paulmck-ThinkPad-P72>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <7237888d-2168-cd8b-c83d-c8e54871793d@nvidia.com>
+In-Reply-To: <20200706162633.GA13288@paulmck-ThinkPad-P72>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jon Hunter <jonathanh@nvidia.com>
-Cc: Zhenyu Ye <yezhenyu2@huawei.com>, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com, linux-tegra <linux-tegra@vger.kernel.org>
-Message-ID: <20200713172159.1kGHEujfjpBhBlXmC8FvfGBue408eZhGLYuw3W3UlYg@z>
+To: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200706182926.pbHoGe1-7_t5W7_R4qtVqvO0rmmJONMYvaGB9A-O8fk@z>
 
-On Mon, Jul 13, 2020 at 03:44:16PM +0100, Jon Hunter wrote:
-> On 13/07/2020 15:39, Zhenyu Ye wrote:
-> > On 2020/7/13 22:27, Jon Hunter wrote:
-> >> After this change I am seeing the following build errors ...
-> >>
-> >> /tmp/cckzq3FT.s: Assembler messages:
-> >> /tmp/cckzq3FT.s:854: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> >> /tmp/cckzq3FT.s:870: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> >> /tmp/cckzq3FT.s:1095: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> >> /tmp/cckzq3FT.s:1111: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> >> /tmp/cckzq3FT.s:1964: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> >> /tmp/cckzq3FT.s:1980: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> >> /tmp/cckzq3FT.s:2286: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> >> /tmp/cckzq3FT.s:2302: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-> >> /tmp/cckzq3FT.s:4833: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
-> >> /tmp/cckzq3FT.s:4849: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
-> >> /tmp/cckzq3FT.s:5090: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
-> >> /tmp/cckzq3FT.s:5106: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
-> >> /tmp/cckzq3FT.s:874: Error: attempt to move .org backwards
-> >> /tmp/cckzq3FT.s:1115: Error: attempt to move .org backwards
-> >> /tmp/cckzq3FT.s:1984: Error: attempt to move .org backwards
-> >> /tmp/cckzq3FT.s:2306: Error: attempt to move .org backwards
-> >> /tmp/cckzq3FT.s:4853: Error: attempt to move .org backwards
-> >> /tmp/cckzq3FT.s:5110: Error: attempt to move .org backwards
-> >> scripts/Makefile.build:280: recipe for target 'arch/arm64/mm/hugetlbpage.o' failed
-> >> make[3]: *** [arch/arm64/mm/hugetlbpage.o] Error 1
-> >> scripts/Makefile.build:497: recipe for target 'arch/arm64/mm' failed
-> >> make[2]: *** [arch/arm64/mm] Error 2
-> > 
-> > The code must be built with binutils >= 2.30.
-> > Maybe I should add  a check on whether binutils supports ARMv8.4-a instructions...
+On Mon, Jul 06, 2020 at 09:26:33AM -0700, Paul E. McKenney wrote:
+
+> And perhaps more constructively, we do need to prioritize address and data
+> dependencies over control dependencies.  For one thing, there are a lot
+> more address/data dependencies in existing code than there are control
+> dependencies, and (sadly, perhaps more importantly) there are a lot more
+> people who are convinced that address/data dependencies are important.
+
+If they do not consider their Linux OS running correctly :-)
+
+> For another (admittedly more theoretical) thing, the OOTA scenarios
+> stemming from control dependencies are a lot less annoying than those
+> from address/data dependencies.
 > 
-> Yes I believe so.
+> And address/data dependencies are as far as I know vulnerable to things
+> like conditional-move instructions that can cause problems for control
+> dependencies.
+> 
+> Nevertheless, yes, control dependencies also need attention.
 
-The binutils guys in Arm confirmed that assembling "tlbi rvae1is"
-without -march=armv8.4-a is a bug. When it gets fixed, checking for the
-binutils version is not sufficient without passing -march. I think we
-are better off with a manual encoding of the instruction.
-
--- 
-Catalin
+Today I added one more \o/
