@@ -1,63 +1,74 @@
-Return-Path: <SRS0=B4xR=AR=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [PATCH v6 06/26] mm: Add PG_arch_2 page flag
-References: <20200703153718.16973-1-catalin.marinas@arm.com>
- <20200703153718.16973-7-catalin.marinas@arm.com>
- <27fe044a-8315-5394-575e-8f763696b0cd@redhat.com>
- <20200706112057.GA6432@gaia>
-From: David Hildenbrand <david@redhat.com>
-Message-ID: <2f77487a-e92e-1a38-ffd9-e5506441d25d@redhat.com>
-Date: Mon, 6 Jul 2020 14:42:59 +0200
+Return-Path: <SRS0=tLCE=AR=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:59546 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1729358AbgGFQ0e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 Jul 2020 12:26:34 -0400
+Date: Mon, 6 Jul 2020 09:26:33 -0700
+From: "Paul E. McKenney" <paulmck@kernel.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200706162633.GA13288@paulmck-ThinkPad-P72>
+Reply-To: paulmck@kernel.org
+References: <20200630203016.GI9247@paulmck-ThinkPad-P72>
+ <CANpmjNP+7TtE0WPU=nX5zs3T2+4hPkkm08meUm2VDVY3RgsHDw@mail.gmail.com>
+ <20200701114027.GO4800@hirez.programming.kicks-ass.net>
+ <20200701140654.GL9247@paulmck-ThinkPad-P72>
+ <20200701150512.GH4817@hirez.programming.kicks-ass.net>
+ <20200701160338.GN9247@paulmck-ThinkPad-P72>
+ <20200702082040.GB4781@hirez.programming.kicks-ass.net>
+ <20200702175948.GV9247@paulmck-ThinkPad-P72>
+ <20200703131330.GX4800@hirez.programming.kicks-ass.net>
+ <20200703144228.GF9247@paulmck-ThinkPad-P72>
 MIME-Version: 1.0
-In-Reply-To: <20200706112057.GA6432@gaia>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Price <steven.price@arm.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200703144228.GF9247@paulmck-ThinkPad-P72>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200706124259.Q1_UyQ41_CRUxV5TX8inWeMXSkIclHxw_1foGuEonSk@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+Message-ID: <20200706162633.OoLvoJYzVunUKTf8xzZO5_IR_EjqMIyoolSo0nOnrco@z>
 
-On 06.07.20 13:21, Catalin Marinas wrote:
-> On Mon, Jul 06, 2020 at 10:24:04AM +0200, David Hildenbrand wrote:
->> On 03.07.20 17:36, Catalin Marinas wrote:
->>> diff --git a/include/linux/page-flags.h b/include/linux/page-flags.h
->>> index 6be1aa559b1e..276140c94f4a 100644
->>> --- a/include/linux/page-flags.h
->>> +++ b/include/linux/page-flags.h
->>> @@ -135,6 +135,9 @@ enum pageflags {
->>>  #if defined(CONFIG_IDLE_PAGE_TRACKING) && defined(CONFIG_64BIT)
->>>  	PG_young,
->>>  	PG_idle,
->>> +#endif
->>> +#ifdef CONFIG_64BIT
->>> +	PG_arch_2,
->>>  #endif
->>>  	__NR_PAGEFLAGS,
->>
->> People are usually *very* picky when it comes to new page flags. It
->> somewhat concerns me that we bump up __NR_PAGEFLAGS for any 64bit arch=
-.
->> That feels wrong.
->=20
-> It was guarded by a specific config option initially but the comments
-> suggested that it could be dropped for 64-bit architectures:
->=20
-> https://lore.kernel.org/linux-arm-kernel/20200624113307.6165b3db2404c9d=
-37b870a90@linux-foundation.org/
->=20
-> The page flags is indeed a pretty limited resource as it also includes
-> the sparsemem section, node and zone fields. However, on 64-bit this
-> should be fine (the sparsemem section is gone with vmemmap support).
+On Fri, Jul 03, 2020 at 07:42:28AM -0700, Paul E. McKenney wrote:
+> On Fri, Jul 03, 2020 at 03:13:30PM +0200, Peter Zijlstra wrote:
+> > On Thu, Jul 02, 2020 at 10:59:48AM -0700, Paul E. McKenney wrote:
+> > > On Thu, Jul 02, 2020 at 10:20:40AM +0200, Peter Zijlstra wrote:
+> > > > On Wed, Jul 01, 2020 at 09:03:38AM -0700, Paul E. McKenney wrote:
 
-Right, so 64bit architectures/configs with SPARSEMEM &&
-!SPARSEMEM_VMEMMAP could be affected only. I think mips would be one
-example where we don't have VMEMMAP support. For most other 64bit
-architectures (x86_64, s390x, powerpc, ...) SPARSEMEM_VMEMMAP should be
-the default (although I've seen bug reports/configs where VMEMMAP was
-disabled).
+[ . . . ]
 
---=20
-Thanks,
+> > Also, if C goes and specifies load dependencies, in any form, is then
+> > not the corrolary that they need to specify control dependencies? How
+> > else can they exclude the transformation.
+> 
+> By requiring that any temporaries generated from variables that are
+> marked _Dependent_ptr also be marked _Dependent_ptr.  This is of course
+> one divergence of _Dependent_ptr from the volatile keyword.
+> 
+> > And of course, once we're there, can we get explicit support for control
+> > dependencies too? :-) :-)
+> 
+> Keep talking like this and I am going to make sure that you attend a
+> standards committee meeting.  If need be, by arranging for you to be
+> physically dragged there.  ;-)
+> 
+> More seriously, for control dependencies, the variable that would need
+> to be marked would be the program counter, which might require some
+> additional syntax.
 
-David / dhildenb
+And perhaps more constructively, we do need to prioritize address and data
+dependencies over control dependencies.  For one thing, there are a lot
+more address/data dependencies in existing code than there are control
+dependencies, and (sadly, perhaps more importantly) there are a lot more
+people who are convinced that address/data dependencies are important.
+
+For another (admittedly more theoretical) thing, the OOTA scenarios
+stemming from control dependencies are a lot less annoying than those
+from address/data dependencies.
+
+And address/data dependencies are as far as I know vulnerable to things
+like conditional-move instructions that can cause problems for control
+dependencies.
+
+Nevertheless, yes, control dependencies also need attention.
+
+							Thanx, Paul
