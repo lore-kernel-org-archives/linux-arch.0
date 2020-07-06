@@ -1,349 +1,457 @@
-Return-Path: <SRS0=vM59=AS=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from smtp-8faa.mail.infomaniak.ch ([83.166.143.170]:39159 "EHLO
-        smtp-8faa.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1728536AbgGGSQW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jul 2020 14:16:22 -0400
-From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-Subject: [PATCH v19 01/12] landlock: Add object management
-Date: Tue,  7 Jul 2020 20:09:44 +0200
-Message-ID: <20200707180955.53024-2-mic@digikod.net>
-In-Reply-To: <20200707180955.53024-1-mic@digikod.net>
-References: <20200707180955.53024-1-mic@digikod.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Return-Path: <SRS0=B4xR=AR=kvack.org=owner-linux-mm@kernel.org>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: [PATCH V4 2/4] mm/debug_vm_pgtable: Add tests validating advanced arch page table helpers
+Date: Mon,  6 Jul 2020 06:18:34 +0530
+Message-ID: <1593996516-7186-3-git-send-email-anshuman.khandual@arm.com>
+In-Reply-To: <1593996516-7186-1-git-send-email-anshuman.khandual@arm.com>
+References: <1593996516-7186-1-git-send-email-anshuman.khandual@arm.com>
+Sender: owner-linux-mm@kvack.org
+To: linux-mm@kvack.org
+Cc: Anshuman Khandual <anshuman.khandual@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
-Message-ID: <20200707180944.4y4DyNdf0XVUc_YCh6XWytgS0l2fOtiFKU49Gz3HvKg@z>
+Message-ID: <20200706004834.ZcL_bXeH2U0tI86QKIFUNTLXHxCusnlOUeAiJyrM3TI@z>
 
-A Landlock object enables to identify a kernel object (e.g. an inode).
-A Landlock rule is a set of access rights allowed on an object.  Rules
-are grouped in rulesets that may be tied to a set of processes (i.e.
-subjects) to enforce a scoped access-control (i.e. a domain).
+This adds new tests validating for these following arch advanced page table
+helpers. These tests create and test specific mapping types at various page
+table levels.
 
-Because Landlock's goal is to empower any process (especially
-unprivileged ones) to sandbox themselves, we can't rely on a system-wide
-object identification such as file extended attributes.  Indeed, we need
-innocuous, composable and modular access-controls.
+1. pxxp_set_wrprotect()
+2. pxxp_get_and_clear()
+3. pxxp_set_access_flags()
+4. pxxp_get_and_clear_full()
+5. pxxp_test_and_clear_young()
+6. pxx_leaf()
+7. pxx_set_huge()
+8. pxx_(clear|mk)_savedwrite()
+9. huge_pxxp_xxx()
 
-The main challenge with these constraints is to identify kernel objects
-while this identification is useful (i.e. when a security policy makes
-use of this object).  But this identification data should be freed once
-no policy is using it.  This ephemeral tagging should not and may not be
-written in the filesystem.  We then need to manage the lifetime of a
-rule according to the lifetime of its object.  To avoid a global lock,
-this implementation make use of RCU and counters to safely reference
-objects.
-
-A following commit uses this generic object management for inodes.
-
-Signed-off-by: Mickaël Salaün <mic@digikod.net>
-Cc: James Morris <jmorris@namei.org>
-Cc: Jann Horn <jannh@google.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Serge E. Hallyn <serge@hallyn.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Vasily Gorbik <gor@linux.ibm.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Kirill A. Shutemov <kirill@shutemov.name>
+Cc: Paul Walmsley <paul.walmsley@sifive.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: linux-snps-arc@lists.infradead.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-riscv@lists.infradead.org
+Cc: x86@kernel.org
+Cc: linux-mm@kvack.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Tested-by: Vineet Gupta <vgupta@synopsys.com>	#arc
+Suggested-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
 ---
+ mm/debug_vm_pgtable.c | 312 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 312 insertions(+)
 
-Changes since v18:
-* Account objects to kmemcg.
-
-Changes since v14:
-* Simplify the object, rule and ruleset management at the expense of a
-  less aggressive memory freeing (contributed by Jann Horn, with
-  additional modifications):
-  - Remove object->list aggregating the rules tied to an object.
-  - Remove landlock_get_object(), landlock_drop_object(),
-    {get,put}_object_cleaner() and landlock_rule_is_disabled().
-  - Rewrite landlock_put_object() to use a more simple mechanism
-    (no tricky RCU).
-  - Replace enum landlock_object_type and landlock_release_object() with
-    landlock_object_underops->release()
-  - Adjust unions and Sparse annotations.
-  Cf. https://lore.kernel.org/lkml/CAG48ez21bEn0wL1bbmTiiu8j9jP5iEWtHOwz4tURUJ+ki0ydYw@mail.gmail.com/
-* Merge struct landlock_rule into landlock_ruleset_elem to simplify the
-  rule management.
-* Constify variables.
-* Improve kernel documentation.
-* Cosmetic variable renames.
-* Remove the "default" in the Kconfig (suggested by Jann Horn).
-* Only use refcount_inc() through getter helpers.
-* Update Kconfig description.
-
-Changes since v13:
-* New dedicated implementation, removing the need for eBPF.
-
-Previous changes:
-https://lore.kernel.org/lkml/20190721213116.23476-6-mic@digikod.net/
----
- MAINTAINERS                | 10 +++++
- security/Kconfig           |  1 +
- security/Makefile          |  2 +
- security/landlock/Kconfig  | 18 ++++++++
- security/landlock/Makefile |  3 ++
- security/landlock/object.c | 66 +++++++++++++++++++++++++++
- security/landlock/object.h | 91 ++++++++++++++++++++++++++++++++++++++
- 7 files changed, 191 insertions(+)
- create mode 100644 security/landlock/Kconfig
- create mode 100644 security/landlock/Makefile
- create mode 100644 security/landlock/object.c
- create mode 100644 security/landlock/object.h
-
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 1d4aa7f942de..4c229c961d0d 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -9630,6 +9630,16 @@ F:	net/core/sock_map.c
- F:	net/ipv4/tcp_bpf.c
- F:	net/ipv4/udp_bpf.c
+diff --git a/mm/debug_vm_pgtable.c b/mm/debug_vm_pgtable.c
+index 2fac47db3eb7..dc72825f94a4 100644
+--- a/mm/debug_vm_pgtable.c
++++ b/mm/debug_vm_pgtable.c
+@@ -21,6 +21,7 @@
+ #include <linux/module.h>
+ #include <linux/pfn_t.h>
+ #include <linux/printk.h>
++#include <linux/pgtable.h>
+ #include <linux/random.h>
+ #include <linux/spinlock.h>
+ #include <linux/swap.h>
+@@ -28,6 +29,7 @@
+ #include <linux/start_kernel.h>
+ #include <linux/sched/mm.h>
+ #include <asm/pgalloc.h>
++#include <asm/tlbflush.h>
  
-+LANDLOCK SECURITY MODULE
-+M:	Mickaël Salaün <mic@digikod.net>
-+L:	linux-security-module@vger.kernel.org
-+S:	Supported
-+W:	https://landlock.io
-+T:	git https://github.com/landlock-lsm/linux.git
-+F:	security/landlock/
-+K:	landlock
-+K:	LANDLOCK
-+
- LANTIQ / INTEL Ethernet drivers
- M:	Hauke Mehrtens <hauke@hauke-m.de>
- L:	netdev@vger.kernel.org
-diff --git a/security/Kconfig b/security/Kconfig
-index cd3cc7da3a55..582fd777a757 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -238,6 +238,7 @@ source "security/loadpin/Kconfig"
- source "security/yama/Kconfig"
- source "security/safesetid/Kconfig"
- source "security/lockdown/Kconfig"
-+source "security/landlock/Kconfig"
+ #define VMFLAGS	(VM_READ|VM_WRITE|VM_EXEC)
  
- source "security/integrity/Kconfig"
+@@ -55,6 +57,55 @@ static void __init pte_basic_tests(unsigned long pfn, pgprot_t prot)
+ 	WARN_ON(pte_write(pte_wrprotect(pte_mkwrite(pte))));
+ }
  
-diff --git a/security/Makefile b/security/Makefile
-index 3baf435de541..c688f4907a1b 100644
---- a/security/Makefile
-+++ b/security/Makefile
-@@ -13,6 +13,7 @@ subdir-$(CONFIG_SECURITY_LOADPIN)	+= loadpin
- subdir-$(CONFIG_SECURITY_SAFESETID)    += safesetid
- subdir-$(CONFIG_SECURITY_LOCKDOWN_LSM)	+= lockdown
- subdir-$(CONFIG_BPF_LSM)		+= bpf
-+subdir-$(CONFIG_SECURITY_LANDLOCK)		+= landlock
- 
- # always enable default capabilities
- obj-y					+= commoncap.o
-@@ -32,6 +33,7 @@ obj-$(CONFIG_SECURITY_SAFESETID)       += safesetid/
- obj-$(CONFIG_SECURITY_LOCKDOWN_LSM)	+= lockdown/
- obj-$(CONFIG_CGROUPS)			+= device_cgroup.o
- obj-$(CONFIG_BPF_LSM)			+= bpf/
-+obj-$(CONFIG_SECURITY_LANDLOCK)	+= landlock/
- 
- # Object integrity file lists
- subdir-$(CONFIG_INTEGRITY)		+= integrity
-diff --git a/security/landlock/Kconfig b/security/landlock/Kconfig
-new file mode 100644
-index 000000000000..9ec7593a534a
---- /dev/null
-+++ b/security/landlock/Kconfig
-@@ -0,0 +1,18 @@
-+# SPDX-License-Identifier: GPL-2.0-only
-+
-+config SECURITY_LANDLOCK
-+	bool "Landlock support"
-+	depends on SECURITY
-+	select SECURITY_PATH
-+	help
-+	  Landlock is a safe sandboxing mechanism which enables processes to
-+	  restrict themselves (and their future children) by gradually
-+	  enforcing tailored access control policies.  A security policy is a
-+	  set of access rights (e.g. open a file in read-only, make a
-+	  directory) tied to a file hierarchy.  The configuration can be set by
-+	  any processes, including unprivileged ones, thanks to the landlock()
-+	  system call.
-+
-+	  See Documentation/security/landlock/ for further information.
-+
-+	  If you are unsure how to answer this question, answer N.
-diff --git a/security/landlock/Makefile b/security/landlock/Makefile
-new file mode 100644
-index 000000000000..cb6deefbf4c0
---- /dev/null
-+++ b/security/landlock/Makefile
-@@ -0,0 +1,3 @@
-+obj-$(CONFIG_SECURITY_LANDLOCK) := landlock.o
-+
-+landlock-y := object.o
-diff --git a/security/landlock/object.c b/security/landlock/object.c
-new file mode 100644
-index 000000000000..67937650885b
---- /dev/null
-+++ b/security/landlock/object.c
-@@ -0,0 +1,66 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * Landlock LSM - Object management
-+ *
-+ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2018-2020 ANSSI
-+ */
-+
-+#include <linux/bug.h>
-+#include <linux/compiler_types.h>
-+#include <linux/kernel.h>
-+#include <linux/rcupdate.h>
-+#include <linux/refcount.h>
-+#include <linux/slab.h>
-+#include <linux/spinlock.h>
-+
-+#include "object.h"
-+
-+struct landlock_object *landlock_create_object(
-+		const struct landlock_object_underops *underops,
-+		void *const underobj)
++static void __init pte_advanced_tests(struct mm_struct *mm,
++				      struct vm_area_struct *vma, pte_t *ptep,
++				      unsigned long pfn, unsigned long vaddr,
++				      pgprot_t prot)
 +{
-+	struct landlock_object *new_object;
++	pte_t pte = pfn_pte(pfn, prot);
 +
-+	if (WARN_ON_ONCE(!underops || !underobj))
-+		return NULL;
-+	new_object = kzalloc(sizeof(*new_object), GFP_KERNEL_ACCOUNT);
-+	if (!new_object)
-+		return NULL;
-+	refcount_set(&new_object->usage, 1);
-+	spin_lock_init(&new_object->lock);
-+	new_object->underops = underops;
-+	new_object->underobj = underobj;
-+	return new_object;
++	pte = pfn_pte(pfn, prot);
++	set_pte_at(mm, vaddr, ptep, pte);
++	ptep_set_wrprotect(mm, vaddr, ptep);
++	pte = ptep_get(ptep);
++	WARN_ON(pte_write(pte));
++
++	pte = pfn_pte(pfn, prot);
++	set_pte_at(mm, vaddr, ptep, pte);
++	ptep_get_and_clear(mm, vaddr, ptep);
++	pte = ptep_get(ptep);
++	WARN_ON(!pte_none(pte));
++
++	pte = pfn_pte(pfn, prot);
++	pte = pte_wrprotect(pte);
++	pte = pte_mkclean(pte);
++	set_pte_at(mm, vaddr, ptep, pte);
++	pte = pte_mkwrite(pte);
++	pte = pte_mkdirty(pte);
++	ptep_set_access_flags(vma, vaddr, ptep, pte, 1);
++	pte = ptep_get(ptep);
++	WARN_ON(!(pte_write(pte) && pte_dirty(pte)));
++
++	pte = pfn_pte(pfn, prot);
++	set_pte_at(mm, vaddr, ptep, pte);
++	ptep_get_and_clear_full(mm, vaddr, ptep, 1);
++	pte = ptep_get(ptep);
++	WARN_ON(!pte_none(pte));
++
++	pte = pte_mkyoung(pte);
++	set_pte_at(mm, vaddr, ptep, pte);
++	ptep_test_and_clear_young(vma, vaddr, ptep);
++	pte = ptep_get(ptep);
++	WARN_ON(pte_young(pte));
 +}
 +
-+/*
-+ * The caller must own the object (i.e. thanks to object->usage) to safely put
-+ * it.
-+ */
-+void landlock_put_object(struct landlock_object *const object)
++static void __init pte_savedwrite_tests(unsigned long pfn, pgprot_t prot)
 +{
-+	/*
-+	 * The call to @object->underops->release(object) might sleep e.g.,
-+	 * because of iput().
-+	 */
-+	might_sleep();
-+	if (!object)
++	pte_t pte = pfn_pte(pfn, prot);
++
++	WARN_ON(!pte_savedwrite(pte_mk_savedwrite(pte_clear_savedwrite(pte))));
++	WARN_ON(pte_savedwrite(pte_clear_savedwrite(pte_mk_savedwrite(pte))));
++}
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ static void __init pmd_basic_tests(unsigned long pfn, pgprot_t prot)
+ {
+@@ -77,6 +128,90 @@ static void __init pmd_basic_tests(unsigned long pfn, pgprot_t prot)
+ 	WARN_ON(!pmd_bad(pmd_mkhuge(pmd)));
+ }
+ 
++static void __init pmd_advanced_tests(struct mm_struct *mm,
++				      struct vm_area_struct *vma, pmd_t *pmdp,
++				      unsigned long pfn, unsigned long vaddr,
++				      pgprot_t prot)
++{
++	pmd_t pmd = pfn_pmd(pfn, prot);
++
++	if (!has_transparent_hugepage())
 +		return;
 +
-+	/*
-+	 * If the @object's refcount can't drop to zero, we can just decrement
-+	 * the refcount without holding a lock. Otherwise, the decrement must
-+	 * happen under @object->lock for synchronization with things like
-+	 * get_inode_object().
-+	 */
-+	if (refcount_dec_and_lock(&object->usage, &object->lock)) {
-+		__acquire(&object->lock);
-+		/*
-+		 * With @object->lock initially held, remove the reference from
-+		 * @object->underobj to @object (if it still exists).
-+		 */
-+		object->underops->release(object);
-+		kfree_rcu(object, rcu_free);
-+	}
++	/* Align the address wrt HPAGE_PMD_SIZE */
++	vaddr = (vaddr & HPAGE_PMD_MASK) + HPAGE_PMD_SIZE;
++
++	pmd = pfn_pmd(pfn, prot);
++	set_pmd_at(mm, vaddr, pmdp, pmd);
++	pmdp_set_wrprotect(mm, vaddr, pmdp);
++	pmd = READ_ONCE(*pmdp);
++	WARN_ON(pmd_write(pmd));
++
++	pmd = pfn_pmd(pfn, prot);
++	set_pmd_at(mm, vaddr, pmdp, pmd);
++	pmdp_huge_get_and_clear(mm, vaddr, pmdp);
++	pmd = READ_ONCE(*pmdp);
++	WARN_ON(!pmd_none(pmd));
++
++	pmd = pfn_pmd(pfn, prot);
++	pmd = pmd_wrprotect(pmd);
++	pmd = pmd_mkclean(pmd);
++	set_pmd_at(mm, vaddr, pmdp, pmd);
++	pmd = pmd_mkwrite(pmd);
++	pmd = pmd_mkdirty(pmd);
++	pmdp_set_access_flags(vma, vaddr, pmdp, pmd, 1);
++	pmd = READ_ONCE(*pmdp);
++	WARN_ON(!(pmd_write(pmd) && pmd_dirty(pmd)));
++
++	pmd = pmd_mkhuge(pfn_pmd(pfn, prot));
++	set_pmd_at(mm, vaddr, pmdp, pmd);
++	pmdp_huge_get_and_clear_full(vma, vaddr, pmdp, 1);
++	pmd = READ_ONCE(*pmdp);
++	WARN_ON(!pmd_none(pmd));
++
++	pmd = pmd_mkyoung(pmd);
++	set_pmd_at(mm, vaddr, pmdp, pmd);
++	pmdp_test_and_clear_young(vma, vaddr, pmdp);
++	pmd = READ_ONCE(*pmdp);
++	WARN_ON(pmd_young(pmd));
 +}
-diff --git a/security/landlock/object.h b/security/landlock/object.h
-new file mode 100644
-index 000000000000..942bc0e18064
---- /dev/null
-+++ b/security/landlock/object.h
-@@ -0,0 +1,91 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Landlock LSM - Object management
-+ *
-+ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2018-2020 ANSSI
-+ */
 +
-+#ifndef _SECURITY_LANDLOCK_OBJECT_H
-+#define _SECURITY_LANDLOCK_OBJECT_H
-+
-+#include <linux/compiler_types.h>
-+#include <linux/refcount.h>
-+#include <linux/spinlock.h>
-+
-+struct landlock_object;
-+
-+/**
-+ * struct landlock_object_underops - Operations on an underlying object
-+ */
-+struct landlock_object_underops {
-+	/**
-+	 * @release: Releases the underlying object (e.g. iput() for an inode).
-+	 */
-+	void (*release)(struct landlock_object *const object)
-+		__releases(object->lock);
-+};
-+
-+/**
-+ * struct landlock_object - Security blob tied to a kernel object
-+ *
-+ * The goal of this structure is to enable to tie a set of ephemeral access
-+ * rights (pertaining to different domains) to a kernel object (e.g an inode)
-+ * in a safe way.  This imply to handle concurrent use and modification.
-+ *
-+ * The lifetime of a &struct landlock_object depends of the rules referring to
-+ * it.
-+ */
-+struct landlock_object {
-+	/**
-+	 * @usage: This counter is used to tie an object to the rules matching
-+	 * it or to keep it alive while adding a new rule.  If this counter
-+	 * reaches zero, this struct must not be modified, but this counter can
-+	 * still be read from within an RCU read-side critical section.  When
-+	 * adding a new rule to an object with a usage counter of zero, we must
-+	 * wait until the pointer to this object is set to NULL (or recycled).
-+	 */
-+	refcount_t usage;
-+	/**
-+	 * @lock: Guards against concurrent modifications.  This lock must be
-+	 * from the time @usage drops to zero until any weak references from
-+	 * @underobj to this object have been cleaned up.
-+	 *
-+	 * Lock ordering: inode->i_lock nests inside this.
-+	 */
-+	spinlock_t lock;
-+	/**
-+	 * @underobj: Used when cleaning up an object and to mark an object as
-+	 * tied to its underlying kernel structure.  This pointer is protected
-+	 * by @lock.  Cf. landlock_release_inodes() and release_inode().
-+	 */
-+	void *underobj;
-+	union {
-+		/**
-+		 * @rcu_free: Enables lockless use of @usage, @lock and
-+		 * @underobj from within an RCU read-side critical section.
-+		 * @rcu_free and @underops are only used by
-+		 * landlock_put_object().
-+		 */
-+		struct rcu_head rcu_free;
-+		/**
-+		 * @underops: Enables landlock_put_object() to release the
-+		 * underlying object (e.g. inode).
-+		 */
-+		const struct landlock_object_underops *underops;
-+	};
-+};
-+
-+struct landlock_object *landlock_create_object(
-+		const struct landlock_object_underops *const underops,
-+		void *const underojb);
-+
-+void landlock_put_object(struct landlock_object *const object);
-+
-+static inline void landlock_get_object(struct landlock_object *const object)
++static void __init pmd_leaf_tests(unsigned long pfn, pgprot_t prot)
 +{
-+	if (object)
-+		refcount_inc(&object->usage);
++	pmd_t pmd = pfn_pmd(pfn, prot);
++
++	/*
++	 * PMD based THP is a leaf entry.
++	 */
++	pmd = pmd_mkhuge(pmd);
++	WARN_ON(!pmd_leaf(pmd));
 +}
 +
-+#endif /* _SECURITY_LANDLOCK_OBJECT_H */
++static void __init pmd_huge_tests(pmd_t *pmdp, unsigned long pfn, pgprot_t prot)
++{
++	pmd_t pmd;
++
++	if (!IS_ENABLED(CONFIG_HAVE_ARCH_HUGE_VMAP))
++		return;
++	/*
++	 * X86 defined pmd_set_huge() verifies that the given
++	 * PMD is not a populated non-leaf entry.
++	 */
++	WRITE_ONCE(*pmdp, __pmd(0));
++	WARN_ON(!pmd_set_huge(pmdp, __pfn_to_phys(pfn), prot));
++	WARN_ON(!pmd_clear_huge(pmdp));
++	pmd = READ_ONCE(*pmdp);
++	WARN_ON(!pmd_none(pmd));
++}
++
++static void __init pmd_savedwrite_tests(unsigned long pfn, pgprot_t prot)
++{
++	pmd_t pmd = pfn_pmd(pfn, prot);
++
++	WARN_ON(!pmd_savedwrite(pmd_mk_savedwrite(pmd_clear_savedwrite(pmd))));
++	WARN_ON(pmd_savedwrite(pmd_clear_savedwrite(pmd_mk_savedwrite(pmd))));
++}
++
+ #ifdef CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD
+ static void __init pud_basic_tests(unsigned long pfn, pgprot_t prot)
+ {
+@@ -100,12 +235,119 @@ static void __init pud_basic_tests(unsigned long pfn, pgprot_t prot)
+ 	 */
+ 	WARN_ON(!pud_bad(pud_mkhuge(pud)));
+ }
++
++static void __init pud_advanced_tests(struct mm_struct *mm,
++				      struct vm_area_struct *vma, pud_t *pudp,
++				      unsigned long pfn, unsigned long vaddr,
++				      pgprot_t prot)
++{
++	pud_t pud = pfn_pud(pfn, prot);
++
++	if (!has_transparent_hugepage())
++		return;
++
++	/* Align the address wrt HPAGE_PUD_SIZE */
++	vaddr = (vaddr & HPAGE_PUD_MASK) + HPAGE_PUD_SIZE;
++
++	set_pud_at(mm, vaddr, pudp, pud);
++	pudp_set_wrprotect(mm, vaddr, pudp);
++	pud = READ_ONCE(*pudp);
++	WARN_ON(pud_write(pud));
++
++#ifndef __PAGETABLE_PMD_FOLDED
++	pud = pfn_pud(pfn, prot);
++	set_pud_at(mm, vaddr, pudp, pud);
++	pudp_huge_get_and_clear(mm, vaddr, pudp);
++	pud = READ_ONCE(*pudp);
++	WARN_ON(!pud_none(pud));
++
++	pud = pfn_pud(pfn, prot);
++	set_pud_at(mm, vaddr, pudp, pud);
++	pudp_huge_get_and_clear_full(mm, vaddr, pudp, 1);
++	pud = READ_ONCE(*pudp);
++	WARN_ON(!pud_none(pud));
++#endif /* __PAGETABLE_PMD_FOLDED */
++	pud = pfn_pud(pfn, prot);
++	pud = pud_wrprotect(pud);
++	pud = pud_mkclean(pud);
++	set_pud_at(mm, vaddr, pudp, pud);
++	pud = pud_mkwrite(pud);
++	pud = pud_mkdirty(pud);
++	pudp_set_access_flags(vma, vaddr, pudp, pud, 1);
++	pud = READ_ONCE(*pudp);
++	WARN_ON(!(pud_write(pud) && pud_dirty(pud)));
++
++	pud = pud_mkyoung(pud);
++	set_pud_at(mm, vaddr, pudp, pud);
++	pudp_test_and_clear_young(vma, vaddr, pudp);
++	pud = READ_ONCE(*pudp);
++	WARN_ON(pud_young(pud));
++}
++
++static void __init pud_leaf_tests(unsigned long pfn, pgprot_t prot)
++{
++	pud_t pud = pfn_pud(pfn, prot);
++
++	/*
++	 * PUD based THP is a leaf entry.
++	 */
++	pud = pud_mkhuge(pud);
++	WARN_ON(!pud_leaf(pud));
++}
++
++static void __init pud_huge_tests(pud_t *pudp, unsigned long pfn, pgprot_t prot)
++{
++	pud_t pud;
++
++	if (!IS_ENABLED(CONFIG_HAVE_ARCH_HUGE_VMAP))
++		return;
++	/*
++	 * X86 defined pud_set_huge() verifies that the given
++	 * PUD is not a populated non-leaf entry.
++	 */
++	WRITE_ONCE(*pudp, __pud(0));
++	WARN_ON(!pud_set_huge(pudp, __pfn_to_phys(pfn), prot));
++	WARN_ON(!pud_clear_huge(pudp));
++	pud = READ_ONCE(*pudp);
++	WARN_ON(!pud_none(pud));
++}
+ #else  /* !CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD */
+ static void __init pud_basic_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pud_advanced_tests(struct mm_struct *mm,
++				      struct vm_area_struct *vma, pud_t *pudp,
++				      unsigned long pfn, unsigned long vaddr,
++				      pgprot_t prot)
++{
++}
++static void __init pud_leaf_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pud_huge_tests(pud_t *pudp, unsigned long pfn, pgprot_t prot)
++{
++}
+ #endif /* CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD */
+ #else  /* !CONFIG_TRANSPARENT_HUGEPAGE */
+ static void __init pmd_basic_tests(unsigned long pfn, pgprot_t prot) { }
+ static void __init pud_basic_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pmd_advanced_tests(struct mm_struct *mm,
++				      struct vm_area_struct *vma, pmd_t *pmdp,
++				      unsigned long pfn, unsigned long vaddr,
++				      pgprot_t prot)
++{
++}
++static void __init pud_advanced_tests(struct mm_struct *mm,
++				      struct vm_area_struct *vma, pud_t *pudp,
++				      unsigned long pfn, unsigned long vaddr,
++				      pgprot_t prot)
++{
++}
++static void __init pmd_leaf_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pud_leaf_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init pmd_huge_tests(pmd_t *pmdp, unsigned long pfn, pgprot_t prot)
++{
++}
++static void __init pud_huge_tests(pud_t *pudp, unsigned long pfn, pgprot_t prot)
++{
++}
++static void __init pmd_savedwrite_tests(unsigned long pfn, pgprot_t prot) { }
+ #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ 
+ static void __init p4d_basic_tests(unsigned long pfn, pgprot_t prot)
+@@ -495,8 +737,56 @@ static void __init hugetlb_basic_tests(unsigned long pfn, pgprot_t prot)
+ 	WARN_ON(!pte_huge(pte_mkhuge(pte)));
+ #endif /* CONFIG_ARCH_WANT_GENERAL_HUGETLB */
+ }
++
++static void __init hugetlb_advanced_tests(struct mm_struct *mm,
++					  struct vm_area_struct *vma,
++					  pte_t *ptep, unsigned long pfn,
++					  unsigned long vaddr, pgprot_t prot)
++{
++	struct page *page = pfn_to_page(pfn);
++	pte_t pte = ptep_get(ptep);
++	unsigned long paddr = (__pfn_to_phys(pfn) | RANDOM_ORVALUE) & PMD_MASK;
++
++	pte = pte_mkhuge(mk_pte(pfn_to_page(PHYS_PFN(paddr)), prot));
++	set_huge_pte_at(mm, vaddr, ptep, pte);
++	barrier();
++	WARN_ON(!pte_same(pte, huge_ptep_get(ptep)));
++	huge_pte_clear(mm, vaddr, ptep, PMD_SIZE);
++	pte = huge_ptep_get(ptep);
++	WARN_ON(!huge_pte_none(pte));
++
++	pte = mk_huge_pte(page, prot);
++	set_huge_pte_at(mm, vaddr, ptep, pte);
++	barrier();
++	huge_ptep_set_wrprotect(mm, vaddr, ptep);
++	pte = huge_ptep_get(ptep);
++	WARN_ON(huge_pte_write(pte));
++
++	pte = mk_huge_pte(page, prot);
++	set_huge_pte_at(mm, vaddr, ptep, pte);
++	barrier();
++	huge_ptep_get_and_clear(mm, vaddr, ptep);
++	pte = huge_ptep_get(ptep);
++	WARN_ON(!huge_pte_none(pte));
++
++	pte = mk_huge_pte(page, prot);
++	pte = huge_pte_wrprotect(pte);
++	set_huge_pte_at(mm, vaddr, ptep, pte);
++	barrier();
++	pte = huge_pte_mkwrite(pte);
++	pte = huge_pte_mkdirty(pte);
++	huge_ptep_set_access_flags(vma, vaddr, ptep, pte, 1);
++	pte = huge_ptep_get(ptep);
++	WARN_ON(!(huge_pte_write(pte) && huge_pte_dirty(pte)));
++}
+ #else  /* !CONFIG_HUGETLB_PAGE */
+ static void __init hugetlb_basic_tests(unsigned long pfn, pgprot_t prot) { }
++static void __init hugetlb_advanced_tests(struct mm_struct *mm,
++					  struct vm_area_struct *vma,
++					  pte_t *ptep, unsigned long pfn,
++					  unsigned long vaddr, pgprot_t prot)
++{
++}
+ #endif /* CONFIG_HUGETLB_PAGE */
+ 
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+@@ -568,6 +858,7 @@ static unsigned long __init get_random_vaddr(void)
+ 
+ static int __init debug_vm_pgtable(void)
+ {
++	struct vm_area_struct *vma;
+ 	struct mm_struct *mm;
+ 	pgd_t *pgdp;
+ 	p4d_t *p4dp, *saved_p4dp;
+@@ -596,6 +887,12 @@ static int __init debug_vm_pgtable(void)
+ 	 */
+ 	protnone = __P000;
+ 
++	vma = vm_area_alloc(mm);
++	if (!vma) {
++		pr_err("vma allocation failed\n");
++		return 1;
++	}
++
+ 	/*
+ 	 * PFN for mapping at PTE level is determined from a standard kernel
+ 	 * text symbol. But pfns for higher page table levels are derived by
+@@ -644,6 +941,20 @@ static int __init debug_vm_pgtable(void)
+ 	p4d_clear_tests(mm, p4dp);
+ 	pgd_clear_tests(mm, pgdp);
+ 
++	pte_advanced_tests(mm, vma, ptep, pte_aligned, vaddr, prot);
++	pmd_advanced_tests(mm, vma, pmdp, pmd_aligned, vaddr, prot);
++	pud_advanced_tests(mm, vma, pudp, pud_aligned, vaddr, prot);
++	hugetlb_advanced_tests(mm, vma, ptep, pte_aligned, vaddr, prot);
++
++	pmd_leaf_tests(pmd_aligned, prot);
++	pud_leaf_tests(pud_aligned, prot);
++
++	pmd_huge_tests(pmdp, pmd_aligned, prot);
++	pud_huge_tests(pudp, pud_aligned, prot);
++
++	pte_savedwrite_tests(pte_aligned, prot);
++	pmd_savedwrite_tests(pmd_aligned, prot);
++
+ 	pte_unmap_unlock(ptep, ptl);
+ 
+ 	pmd_populate_tests(mm, pmdp, saved_ptep);
+@@ -678,6 +989,7 @@ static int __init debug_vm_pgtable(void)
+ 	pmd_free(mm, saved_pmdp);
+ 	pte_free(mm, saved_ptep);
+ 
++	vm_area_free(vma);
+ 	mm_dec_nr_puds(mm);
+ 	mm_dec_nr_pmds(mm);
+ 	mm_dec_nr_ptes(mm);
 -- 
-2.27.0
+2.20.1
