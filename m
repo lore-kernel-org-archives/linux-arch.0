@@ -1,85 +1,82 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [RFC PATCH 4/5] powerpc/mm: Remove custom stack expansion
- checking
-Date: Mon, 06 Jul 2020 11:15:22 +1000
-Message-ID: <1593997323.8pwn48yz8u.astroid@bobo.none>
-References: <20200703141327.1732550-1-mpe@ellerman.id.au>
-        <20200703141327.1732550-4-mpe@ellerman.id.au>
-        <fb3aad5f-17a1-93cc-1a3a-c50fe16ab711@csgroup.eu>
+Subject: [PATCH] powerpc: select ARCH_HAS_MEMBARRIER_SYNC_CORE
+Date: Mon,  6 Jul 2020 12:18:22 +1000
+Message-ID: <20200706021822.1515189-1-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46864 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56490 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728280AbgGFBP2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 5 Jul 2020 21:15:28 -0400
-In-Reply-To: <fb3aad5f-17a1-93cc-1a3a-c50fe16ab711@csgroup.eu>
+        with ESMTP id S1728579AbgGFCSg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 5 Jul 2020 22:18:36 -0400
+Received: from mail-wm1-x342.google.com (mail-wm1-x342.google.com [IPv6:2a00:1450:4864:20::342])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D698EC061794
+        for <linux-arch@vger.kernel.org>; Sun,  5 Jul 2020 19:18:35 -0700 (PDT)
+Received: by mail-wm1-x342.google.com with SMTP id o8so37643463wmh.4
+        for <linux-arch@vger.kernel.org>; Sun, 05 Jul 2020 19:18:35 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christophe Leroy <christophe.leroy@csgroup.eu>, linuxppc-dev@ozlabs.org, Michael Ellerman <mpe@ellerman.id.au>
-Cc: hughd@google.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: linuxppc-dev@lists.ozlabs.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, linux-arch@vger.kernel.org
 
-Excerpts from Christophe Leroy's message of July 6, 2020 3:49 am:
->=20
->=20
-> Le 03/07/2020 =C3=A0 16:13, Michael Ellerman a =C3=A9crit=C2=A0:
->> We have powerpc specific logic in our page fault handling to decide if
->> an access to an unmapped address below the stack pointer should expand
->> the stack VMA.
->>=20
->> The logic aims to prevent userspace from doing bad accesses below the
->> stack pointer. However as long as the stack is < 1MB in size, we allow
->> all accesses without further checks. Adding some debug I see that I
->> can do a full kernel build and LTP run, and not a single process has
->> used more than 1MB of stack. So for the majority of processes the
->> logic never even fires.
->>=20
->> We also recently found a nasty bug in this code which could cause
->> userspace programs to be killed during signal delivery. It went
->> unnoticed presumably because most processes use < 1MB of stack.
->>=20
->> The generic mm code has also grown support for stack guard pages since
->> this code was originally written, so the most heinous case of the
->> stack expanding into other mappings is now handled for us.
->>=20
->> Finally although some other arches have special logic in this path,
->> from what I can tell none of x86, arm64, arm and s390 impose any extra
->> checks other than those in expand_stack().
->>=20
->> So drop our complicated logic and like other architectures just let
->> the stack expand as long as its within the rlimit.
->=20
-> I agree that's probably not worth a so complicated logic that is nowhere=20
-> documented.
+powerpc return from interrupt and return from system call sequences are
+context synchronising.
 
-Agreed.
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ .../features/sched/membarrier-sync-core/arch-support.txt      | 4 ++--
+ arch/powerpc/Kconfig                                          | 1 +
+ arch/powerpc/include/asm/exception-64s.h                      | 4 ++++
+ 3 files changed, 7 insertions(+), 2 deletions(-)
 
->> @@ -569,30 +488,15 @@ static int __do_page_fault(struct pt_regs *regs, u=
-nsigned long address,
->>   	vma =3D find_vma(mm, address);
->>   	if (unlikely(!vma))
->>   		return bad_area(regs, address);
->> -	if (likely(vma->vm_start <=3D address))
->> -		goto good_area;
->> -	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN)))
->> -		return bad_area(regs, address);
->>  =20
->> -	/* The stack is being expanded, check if it's valid */
->> -	if (unlikely(bad_stack_expansion(regs, address, vma, flags,
->> -					 &must_retry))) {
->> -		if (!must_retry)
->> +	if (unlikely(vma->vm_start > address)) {
->> +		if (unlikely(!(vma->vm_flags & VM_GROWSDOWN)))
->=20
-> We are already in an unlikely() branch, I don't think it is worth having=20
-> a second level of unlikely(), better let gcc decide what's most efficient=
-.
-
-I'm not sure being nested matters. It does in terms of how the code is=20
-generated and how much it might acutally matter, but if we say we=20
-optimise the expand stack case rather than the segfault case, then=20
-unlikely is fine here. I find it can be a readability aid as well.
-
-Thanks,
-Nick
+diff --git a/Documentation/features/sched/membarrier-sync-core/arch-support.txt b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
+index 8a521a622966..52ad74a25f54 100644
+--- a/Documentation/features/sched/membarrier-sync-core/arch-support.txt
++++ b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
+@@ -5,7 +5,7 @@
+ #
+ # Architecture requirements
+ #
+-# * arm/arm64
++# * arm/arm64/powerpc
+ #
+ # Rely on implicit context synchronization as a result of exception return
+ # when returning from IPI handler, and when returning to user-space.
+@@ -45,7 +45,7 @@
+     |       nios2: | TODO |
+     |    openrisc: | TODO |
+     |      parisc: | TODO |
+-    |     powerpc: | TODO |
++    |     powerpc: |  ok  |
+     |       riscv: | TODO |
+     |        s390: | TODO |
+     |          sh: | TODO |
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 9fa23eb320ff..920c4e3ca4ef 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -131,6 +131,7 @@ config PPC
+ 	select ARCH_HAS_PTE_DEVMAP		if PPC_BOOK3S_64
+ 	select ARCH_HAS_PTE_SPECIAL
+ 	select ARCH_HAS_MEMBARRIER_CALLBACKS
++	select ARCH_HAS_MEMBARRIER_SYNC_CORE
+ 	select ARCH_HAS_SCALED_CPUTIME		if VIRT_CPU_ACCOUNTING_NATIVE && PPC_BOOK3S_64
+ 	select ARCH_HAS_STRICT_KERNEL_RWX	if (PPC32 && !HIBERNATION)
+ 	select ARCH_HAS_TICK_BROADCAST		if GENERIC_CLOCKEVENTS_BROADCAST
+diff --git a/arch/powerpc/include/asm/exception-64s.h b/arch/powerpc/include/asm/exception-64s.h
+index 47bd4ea0837d..b88cb3a989b6 100644
+--- a/arch/powerpc/include/asm/exception-64s.h
++++ b/arch/powerpc/include/asm/exception-64s.h
+@@ -68,6 +68,10 @@
+  *
+  * The nop instructions allow us to insert one or more instructions to flush the
+  * L1-D cache when returning to userspace or a guest.
++ *
++ * powerpc relies on return from interrupt/syscall being context synchronising
++ * (which hrfid, rfid, and rfscv are) to support ARCH_HAS_MEMBARRIER_SYNC_CORE
++ * without additional additional synchronisation instructions.
+  */
+ #define RFI_FLUSH_SLOT							\
+ 	RFI_FLUSH_FIXUP_SECTION;					\
+-- 
+2.23.0
