@@ -1,47 +1,94 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RESEND PATCH v5 0/6] arm64: tlb: add support for TTL feature
-Date: Tue,  7 Jul 2020 14:49:54 +0100
-Message-ID: <159412959457.30282.6936734936058648673.b4-ty@arm.com>
-References: <20200625080314.230-1-yezhenyu2@huawei.com>
+From: Sami Tolvanen <samitolvanen@google.com>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Date: Tue, 7 Jul 2020 08:51:07 -0700
+Message-ID: <20200707155107.GA3357035@google.com>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <CAK7LNASvb0UDJ0U5wkYYRzTAdnEs64HjXpEUL7d=V0CXiAXcNw@mail.gmail.com>
+ <20200629232059.GA3787278@google.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:33116 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725944AbgGGNuA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 7 Jul 2020 09:50:00 -0400
-In-Reply-To: <20200625080314.230-1-yezhenyu2@huawei.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, broonie@kernel.org, guohanjun@huawei.com, suzuki.poulose@arm.com, npiggin@gmail.com, maz@kernel.org, steven.price@arm.com, aneesh.kumar@linux.ibm.com, peterz@infradead.org, Zhenyu Ye <yezhenyu2@huawei.com>, mark.rutland@arm.com, Dave.Martin@arm.com, will@kernel.org, yuzhao@google.com, akpm@linux-foundation.org, tglx@linutronix.de, rostedt@goodmis.org
-Cc: xiexiangyou@huawei.com, kuhn.chenqun@huawei.com, zhangshaokun@hisilicon.com, linux-kernel@vger.kernel.org, arm@kernel.org, linux-arch@vger.kernel.org, prime.zeng@hisilicon.com, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200629232059.GA3787278@google.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Masahiro Yamada <masahiroy@kernel.org>, Jiong Wang <jiong.wang@netronome.com>, Jakub Kicinski <kuba@kernel.org>
+Cc: Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 25 Jun 2020 16:03:08 +0800, Zhenyu Ye wrote:
-> In order to reduce the cost of TLB invalidation, ARMv8.4 provides
-> the TTL field in TLBI instruction.  The TTL field indicates the
-> level of page table walk holding the leaf entry for the address
-> being invalidated.  This series provide support for this feature.
+On Mon, Jun 29, 2020 at 04:20:59PM -0700, Sami Tolvanen wrote:
+> Hi Masahiro,
 > 
-> When ARMv8.4-TTL is implemented, the operand for TLBIs looks like
-> below:
+> On Mon, Jun 29, 2020 at 01:56:19AM +0900, Masahiro Yamada wrote:
+> > I also got an error for
+> > ARCH=arm64 allyesconfig + CONFIG_LTO_CLANG=y
+> > 
+> > 
+> > 
+> > $ make ARCH=arm64 LLVM=1 LLVM_IAS=1
+> > CROSS_COMPILE=~/tools/aarch64-linaro-7.5/bin/aarch64-linux-gnu-
+> > -j24
+> > 
+> >   ...
+> > 
+> >   GEN     .version
+> >   CHK     include/generated/compile.h
+> >   UPD     include/generated/compile.h
+> >   CC      init/version.o
+> >   AR      init/built-in.a
+> >   GEN     .tmp_initcalls.lds
+> >   GEN     .tmp_symversions.lds
+> >   LTO     vmlinux.o
+> >   MODPOST vmlinux.symvers
+> >   MODINFO modules.builtin.modinfo
+> >   GEN     modules.builtin
+> >   LD      .tmp_vmlinux.kallsyms1
+> > ld.lld: error: undefined symbol: __compiletime_assert_905
+> > >>> referenced by irqbypass.c
+> > >>>               vmlinux.o:(jeq_imm)
+> > make: *** [Makefile:1161: vmlinux] Error 1
 > 
-> [...]
+> I can reproduce this with ToT LLVM and it's BUILD_BUG_ON_MSG(..., "value
+> too large for the field") in drivers/net/ethernet/netronome/nfp/bpf/jit.c.
+> Specifically, the FIELD_FIT / __BF_FIELD_CHECK macro in ur_load_imm_any.
+> 
+> This compiles just fine with an earlier LLVM revision, so it could be a
+> relatively recent regression. I'll take a look. Thanks for catching this!
 
-Applied to arm64 (for-next/tlbi), thanks!
+After spending some time debugging this with Nick, it looks like the
+error is caused by a recent optimization change in LLVM, which together
+with the inlining of ur_load_imm_any into jeq_imm, changes a runtime
+check in FIELD_FIT that would always fail, to a compile-time check that
+breaks the build. In jeq_imm, we have:
 
-[3/6] arm64: Add tlbi_user_level TLB invalidation helper
-      https://git.kernel.org/arm64/c/e735b98a5fe0
-[4/6] tlb: mmu_gather: add tlb_flush_*_range APIs
-      https://git.kernel.org/arm64/c/2631ed00b049
-[5/6] arm64: tlb: Set the TTL field in flush_tlb_range
-      https://git.kernel.org/arm64/c/c4ab2cbc1d87
-[6/6] arm64: tlb: Set the TTL field in flush_*_tlb_range
-      https://git.kernel.org/arm64/c/a7ac1cfa4c05
+    /* struct bpf_insn: _s32 imm */
+    u64 imm = insn->imm; /* sign extend */
+    ...
+    if (imm >> 32) { /* non-zero only if insn->imm is negative */
+    	/* inlined from ur_load_imm_any */
+	u32 __imm = imm >> 32; /* therefore, always 0xffffffff */
 
-I haven't included the first 2 patches as I rebased the above on top of
-Marc's TTL branch:
+        /*
+	 * __imm has a value known at compile-time, which means
+	 * __builtin_constant_p(__imm) is true and we end up with
+	 * essentially this in __BF_FIELD_CHECK:
+	 */
+	if (__builtin_constant_p(__imm) && __imm <= 255)
+	      __compiletime_assert_N();
 
-git://git.kernel.org/pub/scm/linux/kernel/git/maz/arm-platforms.git kvm-arm64/ttl-for-arm64
+The compile-time check comes from the following BUILD_BUG_ON_MSG:
 
--- 
-Catalin
+    #define __BF_FIELD_CHECK(_mask, _reg, _val, _pfx)		\
+    ...
+	BUILD_BUG_ON_MSG(__builtin_constant_p(_val) ?		\
+			 ~((_mask) >> __bf_shf(_mask)) & (_val) : 0, \
+			 _pfx "value too large for the field"); \
+
+While we could stop the compiler from performing this optimization by
+telling it to never inline ur_load_imm_any, we feel like a better fix
+might be to replace FIELD_FIT(UR_REG_IMM_MAX, imm) with a simple imm
+<= UR_REG_IMM_MAX check that won't trip a compile-time assertion even
+when the condition is known to fail.
+
+Jiong, Jakub, do you see any issues here?
+
+Sami
