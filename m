@@ -1,94 +1,119 @@
-From: Jakub Kicinski <kuba@kernel.org>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Date: Tue, 7 Jul 2020 10:30:11 -0700
-Message-ID: <20200707103011.173d38c1@kicinski-fedora-pc1c0hjn.dhcp.thefacebook.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
-        <CAK7LNASvb0UDJ0U5wkYYRzTAdnEs64HjXpEUL7d=V0CXiAXcNw@mail.gmail.com>
-        <20200629232059.GA3787278@google.com>
-        <20200707155107.GA3357035@google.com>
-        <20200707160528.GA1300535@google.com>
-        <20200707095651.422f0b22@kicinski-fedora-pc1c0hjn.dhcp.thefacebook.com>
-        <CAKwvOd=z0n2+1voMCzC6Hft9EBdLM+6PUi9qBVTVvea_3kM91w@mail.gmail.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC PATCH v4 2/2] arm64: tlb: Use the TLBI RANGE feature in
+ arm64
+Date: Tue, 7 Jul 2020 18:36:17 +0100
+Message-ID: <20200707173617.GA32331@gaia>
+References: <20200601144713.2222-1-yezhenyu2@huawei.com>
+ <20200601144713.2222-3-yezhenyu2@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAKwvOd=z0n2+1voMCzC6Hft9EBdLM+6PUi9qBVTVvea_3kM91w@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Nick Desaulniers <ndesaulniers@google.com>
-Cc: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200601144713.2222-3-yezhenyu2@huawei.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 7 Jul 2020 10:17:25 -0700 Nick Desaulniers wrote:
-> On Tue, Jul 7, 2020 at 9:56 AM Jakub Kicinski <kuba@kernel.org> wrote:
-> >  
-> > > On Tue, Jul 07, 2020 at 08:51:07AM -0700, Sami Tolvanen wrote:  
-> > > > After spending some time debugging this with Nick, it looks like the
-> > > > error is caused by a recent optimization change in LLVM, which together
-> > > > with the inlining of ur_load_imm_any into jeq_imm, changes a runtime
-> > > > check in FIELD_FIT that would always fail, to a compile-time check that
-> > > > breaks the build. In jeq_imm, we have:
-> > > >
-> > > >     /* struct bpf_insn: _s32 imm */
-> > > >     u64 imm = insn->imm; /* sign extend */
-> > > >     ...
-> > > >     if (imm >> 32) { /* non-zero only if insn->imm is negative */
-> > > >             /* inlined from ur_load_imm_any */
-> > > >     u32 __imm = imm >> 32; /* therefore, always 0xffffffff */
-> > > >
-> > > >         /*
-> > > >      * __imm has a value known at compile-time, which means
-> > > >      * __builtin_constant_p(__imm) is true and we end up with
-> > > >      * essentially this in __BF_FIELD_CHECK:
-> > > >      */
-> > > >     if (__builtin_constant_p(__imm) && __imm > 255)  
-> >
-> > I think FIELD_FIT() should not pass the value into __BF_FIELD_CHECK().
-> >
-> > So:
-> >
-> > diff --git a/include/linux/bitfield.h b/include/linux/bitfield.h
-> > index 48ea093ff04c..4e035aca6f7e 100644
-> > --- a/include/linux/bitfield.h
-> > +++ b/include/linux/bitfield.h
-> > @@ -77,7 +77,7 @@
-> >   */
-> >  #define FIELD_FIT(_mask, _val)                                         \
-> >         ({                                                              \
-> > -               __BF_FIELD_CHECK(_mask, 0ULL, _val, "FIELD_FIT: ");     \
-> > +               __BF_FIELD_CHECK(_mask, 0ULL, 0ULL, "FIELD_FIT: ");     \
-> >                 !((((typeof(_mask))_val) << __bf_shf(_mask)) & ~(_mask)); \
-> >         })
-> >
-> > It's perfectly legal to pass a constant which does not fit, in which
-> > case FIELD_FIT() should just return false not break the build.
-> >
-> > Right?  
-> 
-> I see the value of the __builtin_constant_p check; this is just a very
-> interesting case where rather than an integer literal appearing in the
-> source, the compiler is able to deduce that the parameter can only
-> have one value in one case, and allows __builtin_constant_p to
-> evaluate to true for it.
-> 
-> I had definitely asked Sami about the comment above FIELD_FIT:
-> """
->  76  * Return: true if @_val can fit inside @_mask, false if @_val is
-> too big.
-> """
-> in which FIELD_FIT doesn't return false if @_val is too big and a
-> compile time constant. (Rather it breaks the build).
-> 
-> Of the 14 expansion sites of FIELD_FIT I see in mainline, it doesn't
-> look like any integral literals are passed, so maybe the compile time
-> checks of _val are of little value for FIELD_FIT.
+On Mon, Jun 01, 2020 at 10:47:13PM +0800, Zhenyu Ye wrote:
+> @@ -59,6 +69,47 @@
+>  		__ta;						\
+>  	})
+>  
+> +/*
+> + * __TG defines translation granule of the system, which is decided by
+> + * PAGE_SHIFT.  Used by TTL.
+> + *  - 4KB	: 1
+> + *  - 16KB	: 2
+> + *  - 64KB	: 3
+> + */
+> +#define __TG	((PAGE_SHIFT - 12) / 2 + 1)
 
-Also I just double checked and all FIELD_FIT() uses check the return
-value.
+Nitpick: maybe something like __TLBI_TG to avoid clashes in case someone
+else defines a __TG macro.
 
-> So I think your suggested diff is the most concise fix.
+> @@ -181,32 +232,55 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
+>  				     unsigned long start, unsigned long end,
+>  				     unsigned long stride, bool last_level)
+>  {
+> +	int num = 0;
+> +	int scale = 0;
+>  	unsigned long asid = ASID(vma->vm_mm);
+>  	unsigned long addr;
+> +	unsigned long range_pages;
+>  
+>  	start = round_down(start, stride);
+>  	end = round_up(end, stride);
+> +	range_pages = (end - start) >> PAGE_SHIFT;
+>  
+>  	if ((end - start) >= (MAX_TLBI_OPS * stride)) {
+>  		flush_tlb_mm(vma->vm_mm);
+>  		return;
+>  	}
+>  
+> -	/* Convert the stride into units of 4k */
+> -	stride >>= 12;
+> +	dsb(ishst);
+>  
+> -	start = __TLBI_VADDR(start, asid);
+> -	end = __TLBI_VADDR(end, asid);
+> +	/*
+> +	 * The minimum size of TLB RANGE is 2 pages;
+> +	 * Use normal TLB instruction to handle odd pages.
+> +	 * If the stride != PAGE_SIZE, this will never happen.
+> +	 */
+> +	if (range_pages % 2 == 1) {
+> +		addr = __TLBI_VADDR(start, asid);
+> +		__tlbi_last_level(vale1is, vae1is, addr, last_level);
+> +		start += 1 << PAGE_SHIFT;
+> +		range_pages >>= 1;
+> +	}
 
-Feel free to submit that officially as a patch if it fixes the build
-for you, here's my sign-off:
+Shouldn't this be range_pages-- or -= stride >> 12? Your goto follow-up
+fixes this, though I'm not a big fan of gotos jumping in the middle of a
+loop.
 
-Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+> -	dsb(ishst);
+> -	for (addr = start; addr < end; addr += stride) {
+> -		if (last_level) {
+> -			__tlbi(vale1is, addr);
+> -			__tlbi_user(vale1is, addr);
+> -		} else {
+> -			__tlbi(vae1is, addr);
+> -			__tlbi_user(vae1is, addr);
+> +	while (range_pages > 0) {
+> +		if (cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
+> +		    stride == PAGE_SIZE) {
+
+I think we could have the odd range_pages check here:
+
+		if (cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
+		    stride == PAGE_SIZE && range_pages % 2 == 0) {
+
+and avoid the one outside the loop.
+
+> +			num = (range_pages & TLB_RANGE_MASK) - 1;
+> +			if (num >= 0) {
+> +				addr = __TLBI_VADDR_RANGE(start, asid, scale,
+> +							  num, 0);
+> +				__tlbi_last_level(rvale1is, rvae1is, addr,
+> +						  last_level);
+> +				start += __TLBI_RANGE_SIZES(num, scale);
+> +			}
+> +			scale++;
+> +			range_pages >>= TLB_RANGE_MASK_SHIFT;
+> +			continue;
+>  		}
+> +
+> +		addr = __TLBI_VADDR(start, asid);
+> +		__tlbi_last_level(vale1is, vae1is, addr, last_level);
+> +		start += stride;
+> +		range_pages -= stride >> 12;
+>  	}
+>  	dsb(ish);
+>  }
+> -- 
+> 2.19.1
+
+-- 
+Catalin
