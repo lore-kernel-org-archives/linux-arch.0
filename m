@@ -1,102 +1,255 @@
-Return-Path: <SRS0=JYYx=A2=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40236 "EHLO
+Return-Path: <SRS0=vM59=AS=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59864 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726965AbgGOBEc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jul 2020 21:04:32 -0400
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v8 5/8] powerpc/vdso: Prepare for switching VDSO to generic C implementation.
-In-Reply-To: <2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr>
-References: <cover.1588079622.git.christophe.leroy@c-s.fr> <2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr>
-Date: Wed, 15 Jul 2020 11:04:26 +1000
-Message-ID: <878sflvbad.fsf@mpe.ellerman.id.au>
+        with ESMTP id S1728661AbgGGSRJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jul 2020 14:17:09 -0400
+Received: from smtp-42a9.mail.infomaniak.ch (smtp-42a9.mail.infomaniak.ch [IPv6:2001:1600:3:17::42a9])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AF266C08C5F6
+        for <linux-arch@vger.kernel.org>; Tue,  7 Jul 2020 11:17:06 -0700 (PDT)
+From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
+Subject: [PATCH v19 09/12] arch: Wire up landlock() syscall
+Date: Tue,  7 Jul 2020 20:09:52 +0200
+Message-ID: <20200707180955.53024-10-mic@digikod.net>
+In-Reply-To: <20200707180955.53024-1-mic@digikod.net>
+References: <20200707180955.53024-1-mic@digikod.net>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, nathanl@linux.ibm.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org, Tulio Magno Quites Machado Filho <tuliom@linux.ibm.com>
-Message-ID: <20200715010426.uSmuw0qPllulRENN0Mcp56933MLFxdNgoc78uOgLkCs@z>
+To: linux-kernel@vger.kernel.org
+Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Message-ID: <20200707180952.AZvxEeLITEJWw4HcAV2Gi9XGbDQyMwFVOw89YKZawrk@z>
 
-Christophe Leroy <christophe.leroy@c-s.fr> writes:
-> Prepare for switching VDSO to generic C implementation in following
-> patch. Here, we:
-> - Modify __get_datapage() to take an offset
-> - Prepare the helpers to call the C VDSO functions
-> - Prepare the required callbacks for the C VDSO functions
-> - Prepare the clocksource.h files to define VDSO_ARCH_CLOCKMODES
-> - Add the C trampolines to the generic C VDSO functions
->
-> powerpc is a bit special for VDSO as well as system calls in the
-> way that it requires setting CR SO bit which cannot be done in C.
-> Therefore, entry/exit needs to be performed in ASM.
->
-> Implementing __arch_get_vdso_data() would clobber the link register,
-> requiring the caller to save it. As the ASM calling function already
-> has to set a stack frame and saves the link register before calling
-> the C vdso function, retriving the vdso data pointer there is lighter.
-...
+Wire up the landlock() system call for all architectures.
 
-> diff --git a/arch/powerpc/include/asm/vdso/gettimeofday.h b/arch/powerpc/include/asm/vdso/gettimeofday.h
-> new file mode 100644
-> index 000000000000..4452897f9bd8
-> --- /dev/null
-> +++ b/arch/powerpc/include/asm/vdso/gettimeofday.h
-> @@ -0,0 +1,175 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +#ifndef __ASM_VDSO_GETTIMEOFDAY_H
-> +#define __ASM_VDSO_GETTIMEOFDAY_H
-> +
-> +#include <asm/ptrace.h>
-> +
-> +#ifdef __ASSEMBLY__
-> +
-> +.macro cvdso_call funct
-> +  .cfi_startproc
-> +	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
-> +	mflr		r0
-> +  .cfi_register lr, r0
-> +	PPC_STL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
+Signed-off-by: Mickaël Salaün <mic@digikod.net>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: James Morris <jmorris@namei.org>
+Cc: Jann Horn <jannh@google.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Serge E. Hallyn <serge@hallyn.com>
+---
 
-This doesn't work for me on ppc64(le) with glibc.
+Changes since v18:
+* Increase the syscall number because of the new faccessat2(2).
 
-glibc doesn't create a stack frame before making the VDSO call, so the
-store of r0 (LR) goes into the caller's frame, corrupting the saved LR,
-leading to an infinite loop.
+Changes since v14:
+* Add all architectures.
 
-This is an example from a statically built program that calls
-clock_gettime():
+Changes since v13:
+* New implementation.
+---
+ arch/alpha/kernel/syscalls/syscall.tbl      | 1 +
+ arch/arm/tools/syscall.tbl                  | 1 +
+ arch/arm64/include/asm/unistd.h             | 2 +-
+ arch/arm64/include/asm/unistd32.h           | 2 ++
+ arch/ia64/kernel/syscalls/syscall.tbl       | 1 +
+ arch/m68k/kernel/syscalls/syscall.tbl       | 1 +
+ arch/microblaze/kernel/syscalls/syscall.tbl | 1 +
+ arch/mips/kernel/syscalls/syscall_n32.tbl   | 1 +
+ arch/mips/kernel/syscalls/syscall_n64.tbl   | 1 +
+ arch/mips/kernel/syscalls/syscall_o32.tbl   | 1 +
+ arch/parisc/kernel/syscalls/syscall.tbl     | 1 +
+ arch/powerpc/kernel/syscalls/syscall.tbl    | 1 +
+ arch/s390/kernel/syscalls/syscall.tbl       | 1 +
+ arch/sh/kernel/syscalls/syscall.tbl         | 1 +
+ arch/sparc/kernel/syscalls/syscall.tbl      | 1 +
+ arch/x86/entry/syscalls/syscall_32.tbl      | 1 +
+ arch/x86/entry/syscalls/syscall_64.tbl      | 1 +
+ arch/xtensa/kernel/syscalls/syscall.tbl     | 1 +
+ include/uapi/asm-generic/unistd.h           | 4 +++-
+ 19 files changed, 22 insertions(+), 2 deletions(-)
 
-0000000010030cb0 <__clock_gettime>:
-    10030cb0:   0e 10 40 3c     lis     r2,4110
-    10030cb4:   00 7a 42 38     addi    r2,r2,31232
-    10030cb8:   a6 02 08 7c     mflr    r0
-    10030cbc:   ff ff 22 3d     addis   r9,r2,-1
-    10030cc0:   58 6d 29 39     addi    r9,r9,27992
-    10030cc4:   f0 ff c1 fb     std     r30,-16(r1)			<-- redzone store
-    10030cc8:   78 23 9e 7c     mr      r30,r4
-    10030ccc:   f8 ff e1 fb     std     r31,-8(r1)			<-- redzone store
-    10030cd0:   78 1b 7f 7c     mr      r31,r3
-    10030cd4:   10 00 01 f8     std     r0,16(r1)			<-- save LR to caller's frame
-    10030cd8:   00 00 09 e8     ld      r0,0(r9)
-    10030cdc:   00 00 20 2c     cmpdi   r0,0
-    10030ce0:   50 00 82 41     beq     10030d30 <__clock_gettime+0x80>
-    10030ce4:   a6 03 09 7c     mtctr   r0
-    10030ce8:   21 04 80 4e     bctrl					<-- vdso call
-    10030cec:   26 00 00 7c     mfcr    r0
-    10030cf0:   00 10 09 74     andis.  r9,r0,4096
-    10030cf4:   78 1b 69 7c     mr      r9,r3
-    10030cf8:   28 00 82 40     bne     10030d20 <__clock_gettime+0x70>
-    10030cfc:   b4 07 23 7d     extsw   r3,r9
-    10030d00:   10 00 01 e8     ld      r0,16(r1)			<-- load saved LR, since clobbered by the VDSO
-    10030d04:   f0 ff c1 eb     ld      r30,-16(r1)
-    10030d08:   f8 ff e1 eb     ld      r31,-8(r1)
-    10030d0c:   a6 03 08 7c     mtlr    r0				<-- restore LR
-    10030d10:   20 00 80 4e     blr					<-- jumps to 10030cec
-
-
-I'm kind of confused how it worked for you on 32-bit.
-
-There's also no code to load/restore the TOC pointer on BE, which I
-think we'll need to handle.
-
-cheers
+diff --git a/arch/alpha/kernel/syscalls/syscall.tbl b/arch/alpha/kernel/syscalls/syscall.tbl
+index 5ddd128d4b7a..f11e690e0419 100644
+--- a/arch/alpha/kernel/syscalls/syscall.tbl
++++ b/arch/alpha/kernel/syscalls/syscall.tbl
+@@ -478,3 +478,4 @@
+ 547	common	openat2				sys_openat2
+ 548	common	pidfd_getfd			sys_pidfd_getfd
+ 549	common	faccessat2			sys_faccessat2
++550	common	landlock			sys_landlock
+diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
+index d5cae5ffede0..1ebac2411785 100644
+--- a/arch/arm/tools/syscall.tbl
++++ b/arch/arm/tools/syscall.tbl
+@@ -452,3 +452,4 @@
+ 437	common	openat2				sys_openat2
+ 438	common	pidfd_getfd			sys_pidfd_getfd
+ 439	common	faccessat2			sys_faccessat2
++440	common	landlock			sys_landlock
+diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
+index 3b859596840d..b3b2019f8d16 100644
+--- a/arch/arm64/include/asm/unistd.h
++++ b/arch/arm64/include/asm/unistd.h
+@@ -38,7 +38,7 @@
+ #define __ARM_NR_compat_set_tls		(__ARM_NR_COMPAT_BASE + 5)
+ #define __ARM_NR_COMPAT_END		(__ARM_NR_COMPAT_BASE + 0x800)
+ 
+-#define __NR_compat_syscalls		440
++#define __NR_compat_syscalls		441
+ #endif
+ 
+ #define __ARCH_WANT_SYS_CLONE
+diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+index 6d95d0c8bf2f..083f7994d924 100644
+--- a/arch/arm64/include/asm/unistd32.h
++++ b/arch/arm64/include/asm/unistd32.h
+@@ -885,6 +885,8 @@ __SYSCALL(__NR_openat2, sys_openat2)
+ __SYSCALL(__NR_pidfd_getfd, sys_pidfd_getfd)
+ #define __NR_faccessat2 439
+ __SYSCALL(__NR_faccessat2, sys_faccessat2)
++#define __NR_landlock 440
++__SYSCALL(__NR_landlock, sys_landlock)
+ 
+ /*
+  * Please add new compat syscalls above this comment and update
+diff --git a/arch/ia64/kernel/syscalls/syscall.tbl b/arch/ia64/kernel/syscalls/syscall.tbl
+index 49e325b604b3..210692084aff 100644
+--- a/arch/ia64/kernel/syscalls/syscall.tbl
++++ b/arch/ia64/kernel/syscalls/syscall.tbl
+@@ -359,3 +359,4 @@
+ 437	common	openat2				sys_openat2
+ 438	common	pidfd_getfd			sys_pidfd_getfd
+ 439	common	faccessat2			sys_faccessat2
++440	common	landlock			sys_landlock
+diff --git a/arch/m68k/kernel/syscalls/syscall.tbl b/arch/m68k/kernel/syscalls/syscall.tbl
+index f71b1bbcc198..31ed52871053 100644
+--- a/arch/m68k/kernel/syscalls/syscall.tbl
++++ b/arch/m68k/kernel/syscalls/syscall.tbl
+@@ -438,3 +438,4 @@
+ 437	common	openat2				sys_openat2
+ 438	common	pidfd_getfd			sys_pidfd_getfd
+ 439	common	faccessat2			sys_faccessat2
++440	common	landlock			sys_landlock
+diff --git a/arch/microblaze/kernel/syscalls/syscall.tbl b/arch/microblaze/kernel/syscalls/syscall.tbl
+index edacc4561f2b..56a1d49884a5 100644
+--- a/arch/microblaze/kernel/syscalls/syscall.tbl
++++ b/arch/microblaze/kernel/syscalls/syscall.tbl
+@@ -444,3 +444,4 @@
+ 437	common	openat2				sys_openat2
+ 438	common	pidfd_getfd			sys_pidfd_getfd
+ 439	common	faccessat2			sys_faccessat2
++440	common	landlock			sys_landlock
+diff --git a/arch/mips/kernel/syscalls/syscall_n32.tbl b/arch/mips/kernel/syscalls/syscall_n32.tbl
+index f777141f5256..37457511334a 100644
+--- a/arch/mips/kernel/syscalls/syscall_n32.tbl
++++ b/arch/mips/kernel/syscalls/syscall_n32.tbl
+@@ -377,3 +377,4 @@
+ 437	n32	openat2				sys_openat2
+ 438	n32	pidfd_getfd			sys_pidfd_getfd
+ 439	n32	faccessat2			sys_faccessat2
++440	n32	landlock			sys_landlock
+diff --git a/arch/mips/kernel/syscalls/syscall_n64.tbl b/arch/mips/kernel/syscalls/syscall_n64.tbl
+index da8c76394e17..0c68b01f47d2 100644
+--- a/arch/mips/kernel/syscalls/syscall_n64.tbl
++++ b/arch/mips/kernel/syscalls/syscall_n64.tbl
+@@ -353,3 +353,4 @@
+ 437	n64	openat2				sys_openat2
+ 438	n64	pidfd_getfd			sys_pidfd_getfd
+ 439	n64	faccessat2			sys_faccessat2
++440	n64	landlock			sys_landlock
+diff --git a/arch/mips/kernel/syscalls/syscall_o32.tbl b/arch/mips/kernel/syscalls/syscall_o32.tbl
+index 13280625d312..7e4ba2c41f8c 100644
+--- a/arch/mips/kernel/syscalls/syscall_o32.tbl
++++ b/arch/mips/kernel/syscalls/syscall_o32.tbl
+@@ -426,3 +426,4 @@
+ 437	o32	openat2				sys_openat2
+ 438	o32	pidfd_getfd			sys_pidfd_getfd
+ 439	o32	faccessat2			sys_faccessat2
++440	o32	landlock			sys_landlock
+diff --git a/arch/parisc/kernel/syscalls/syscall.tbl b/arch/parisc/kernel/syscalls/syscall.tbl
+index 5a758fa6ec52..40d14e1480cb 100644
+--- a/arch/parisc/kernel/syscalls/syscall.tbl
++++ b/arch/parisc/kernel/syscalls/syscall.tbl
+@@ -436,3 +436,4 @@
+ 437	common	openat2				sys_openat2
+ 438	common	pidfd_getfd			sys_pidfd_getfd
+ 439	common	faccessat2			sys_faccessat2
++440	common	landlock			sys_landlock
+diff --git a/arch/powerpc/kernel/syscalls/syscall.tbl b/arch/powerpc/kernel/syscalls/syscall.tbl
+index f833a3190822..1615462665e1 100644
+--- a/arch/powerpc/kernel/syscalls/syscall.tbl
++++ b/arch/powerpc/kernel/syscalls/syscall.tbl
+@@ -528,3 +528,4 @@
+ 437	common	openat2				sys_openat2
+ 438	common	pidfd_getfd			sys_pidfd_getfd
+ 439	common	faccessat2			sys_faccessat2
++440	common	landlock			sys_landlock
+diff --git a/arch/s390/kernel/syscalls/syscall.tbl b/arch/s390/kernel/syscalls/syscall.tbl
+index bfdcb7633957..5f0835738e90 100644
+--- a/arch/s390/kernel/syscalls/syscall.tbl
++++ b/arch/s390/kernel/syscalls/syscall.tbl
+@@ -441,3 +441,4 @@
+ 437  common	openat2			sys_openat2			sys_openat2
+ 438  common	pidfd_getfd		sys_pidfd_getfd			sys_pidfd_getfd
+ 439  common	faccessat2		sys_faccessat2			sys_faccessat2
++440  common	landlock		sys_landlock			sys_landlock
+diff --git a/arch/sh/kernel/syscalls/syscall.tbl b/arch/sh/kernel/syscalls/syscall.tbl
+index acc35daa1b79..6e7414763f10 100644
+--- a/arch/sh/kernel/syscalls/syscall.tbl
++++ b/arch/sh/kernel/syscalls/syscall.tbl
+@@ -441,3 +441,4 @@
+ 437	common	openat2				sys_openat2
+ 438	common	pidfd_getfd			sys_pidfd_getfd
+ 439	common	faccessat2			sys_faccessat2
++440	common	landlock			sys_landlock
+diff --git a/arch/sparc/kernel/syscalls/syscall.tbl b/arch/sparc/kernel/syscalls/syscall.tbl
+index 8004a276cb74..b9996e1f70f0 100644
+--- a/arch/sparc/kernel/syscalls/syscall.tbl
++++ b/arch/sparc/kernel/syscalls/syscall.tbl
+@@ -484,3 +484,4 @@
+ 437	common	openat2			sys_openat2
+ 438	common	pidfd_getfd			sys_pidfd_getfd
+ 439	common	faccessat2			sys_faccessat2
++440	common	landlock			sys_landlock
+diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+index d8f8a1a69ed1..1673c287f2e6 100644
+--- a/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -443,3 +443,4 @@
+ 437	i386	openat2			sys_openat2
+ 438	i386	pidfd_getfd		sys_pidfd_getfd
+ 439	i386	faccessat2		sys_faccessat2
++440	i386	landlock		sys_landlock
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index 78847b32e137..b3bae66a2c7c 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -360,6 +360,7 @@
+ 437	common	openat2			sys_openat2
+ 438	common	pidfd_getfd		sys_pidfd_getfd
+ 439	common	faccessat2		sys_faccessat2
++440	common	landlock		sys_landlock
+ 
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+diff --git a/arch/xtensa/kernel/syscalls/syscall.tbl b/arch/xtensa/kernel/syscalls/syscall.tbl
+index 69d0d73876b3..ea0f0b186e8e 100644
+--- a/arch/xtensa/kernel/syscalls/syscall.tbl
++++ b/arch/xtensa/kernel/syscalls/syscall.tbl
+@@ -409,3 +409,4 @@
+ 437	common	openat2				sys_openat2
+ 438	common	pidfd_getfd			sys_pidfd_getfd
+ 439	common	faccessat2			sys_faccessat2
++440	common	landlock			sys_landlock
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index f4a01305d9a6..a63a411a74d5 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -857,9 +857,11 @@ __SYSCALL(__NR_openat2, sys_openat2)
+ __SYSCALL(__NR_pidfd_getfd, sys_pidfd_getfd)
+ #define __NR_faccessat2 439
+ __SYSCALL(__NR_faccessat2, sys_faccessat2)
++#define __NR_landlock 440
++__SYSCALL(__NR_landlock, sys_landlock)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 440
++#define __NR_syscalls 441
+ 
+ /*
+  * 32 bit systems traditionally used different
+-- 
+2.27.0
