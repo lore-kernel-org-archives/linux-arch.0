@@ -1,95 +1,191 @@
-Return-Path: <SRS0=GDSS=AV=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:53940 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725943AbgGJGrt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jul 2020 02:47:49 -0400
-Subject: Re: [mm/debug_vm_pgtable] a97a171093:
- BUG:unable_to_handle_page_fault_for_address
-References: <20200709061122.GN3874@shao2-debian>
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Message-ID: <686d83dc-d49f-77f2-1581-8f2be1a5fc60@arm.com>
-Date: Fri, 10 Jul 2020 12:17:14 +0530
+Return-Path: <SRS0=vM59=AS=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from smtp-190c.mail.infomaniak.ch ([185.125.25.12]:46889 "EHLO
+        smtp-190c.mail.infomaniak.ch" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1728238AbgGGSQW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jul 2020 14:16:22 -0400
+From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
+Subject: [PATCH v19 00/12] Landlock LSM
+Date: Tue,  7 Jul 2020 20:09:43 +0200
+Message-ID: <20200707180955.53024-1-mic@digikod.net>
 MIME-Version: 1.0
-In-Reply-To: <20200709061122.GN3874@shao2-debian>
-Content-Type: text/plain; charset=windows-1252
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kernel test robot <lkp@intel.com>
-Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lkp@lists.01.org
-Message-ID: <20200710064714.ig_PI4sce9aZb0WcpBgOs1bUBxrzgRu5L0D5cCHA-Qg@z>
+To: linux-kernel@vger.kernel.org
+Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Message-ID: <20200707180943.j6Wiq85ZwGF-oBvig22H_3mP20_x3VF3T45jEzfPsMs@z>
+
+Hi,
+
+This new patch series is a light update of the previous one, with some
+minor fixes and cosmetic changes.  All reviews have been taken into
+account.
+
+The SLOC count is 1299 for security/landlock/ and 1752 for
+tools/testing/selftest/landlock/ .  Test coverage for security/landlock/
+is 93.6% of lines.  The code not covered only deals with internal kernel
+errors (e.g. memory allocation) and race conditions.
+
+The compiled documentation is available here:
+https://landlock.io/linux-doc/landlock-v19/security/landlock/index.html
+
+This series can be applied on top of v5.8-rc4 .  This can be tested with
+CONFIG_SECURITY_LANDLOCK and CONFIG_SAMPLE_LANDLOCK.  This patch series
+can be found in a Git repository here:
+https://github.com/landlock-lsm/linux/commits/landlock-v19
+I would really appreciate constructive comments on this patch series.
 
 
+# Landlock LSM
 
-On 07/09/2020 11:41 AM, kernel test robot wrote:
-> [   94.349598] BUG: unable to handle page fault for address: ffffed10a7ffddff
-> [   94.351039] #PF: supervisor read access in kernel mode
-> [   94.352172] #PF: error_code(0x0000) - not-present page
-> [   94.353256] PGD 43ffed067 P4D 43ffed067 PUD 43fdee067 PMD 0 
-> [   94.354484] Oops: 0000 [#1] SMP KASAN
-> [   94.355238] CPU: 1 PID: 1 Comm: swapper/0 Not tainted 5.8.0-rc4-00002-ga97a17109332c #1
-> [   94.360456] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
-> [   94.361950] RIP: 0010:hugetlb_advanced_tests+0x137/0x699
-> [   94.363026] Code: 8b 13 4d 85 f6 75 0b 48 ff 05 2c e4 6a 01 31 ed eb 41 bf f8 ff ff ff ba ff ff 37 00 4c 01 f7 48 c1 e2 2a 48 89 f9 48 c1 e9 03 <80> 3c 11 00 74 05 e8 cd c0 67 fa ba f8 ff ff ff 49 8b 2c 16 48 85
-> [   94.366592] RSP: 0000:ffffc90000047d30 EFLAGS: 00010a06
-> [   94.367693] RAX: 1ffffffff1049b80 RBX: ffff888380525308 RCX: 1ffff110a7ffddff
-> [   94.369215] RDX: dffffc0000000000 RSI: 1ffff11087ffdc00 RDI: ffff88853ffeeff8
-> [   94.370693] RBP: 000000000018e510 R08: 0000000000000025 R09: 0000000000000001
-> [   94.372165] R10: ffff888380523c07 R11: ffffed10700a4780 R12: ffff88843208e510
-> [   94.373674] R13: 0000000000000025 R14: ffff88843ffef000 R15: 000031e01ae61000
-> [   94.375147] FS:  0000000000000000(0000) GS:ffff8883a3800000(0000) knlGS:0000000000000000
-> [   94.376883] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-> [   94.378051] CR2: ffffed10a7ffddff CR3: 0000000004e15000 CR4: 00000000000406a0
-> [   94.379522] Call Trace:
-> [   94.380073]  debug_vm_pgtable+0xd81/0x2029
-> [   94.380871]  ? pmd_advanced_tests+0x621/0x621
-> [   94.381819]  do_one_initcall+0x1eb/0xbd0
-> [   94.382551]  ? trace_event_raw_event_initcall_finish+0x240/0x240
-> [   94.383634]  ? rcu_read_lock_sched_held+0xb9/0x110
-> [   94.388727]  ? rcu_read_lock_held+0xd0/0xd0
-> [   94.389604]  ? __kasan_check_read+0x1d/0x30
-> [   94.390485]  kernel_init_freeable+0x430/0x4f8
-> [   94.391416]  ? rest_init+0x3f8/0x3f8
-> [   94.392185]  kernel_init+0x14/0x1e8
-> [   94.392918]  ret_from_fork+0x22/0x30
-> [   94.393662] Modules linked in:
-> [   94.394289] CR2: ffffed10a7ffddff
-> [   94.395000] ---[ end trace 8ca5a1655dfb8c39 ]---
+The goal of Landlock is to enable to restrict ambient rights (e.g.
+global filesystem access) for a set of processes.  Because Landlock is a
+stackable LSM [1], it makes possible to create safe security sandboxes
+as new security layers in addition to the existing system-wide
+access-controls. This kind of sandbox is expected to help mitigate the
+security impact of bugs or unexpected/malicious behaviors in user-space
+applications. Landlock empowers any process, including unprivileged
+ones, to securely restrict themselves.
 
-This bug is caused from here.
+Landlock is inspired by seccomp-bpf but instead of filtering syscalls
+and their raw arguments, a Landlock rule can restrict the use of kernel
+objects like file hierarchies, according to the kernel semantic.
+Landlock also takes inspiration from other OS sandbox mechanisms: XNU
+Sandbox, FreeBSD Capsicum or OpenBSD Pledge/Unveil.
 
-static inline struct mem_section *__nr_to_section(unsigned long nr)
-{
-#ifdef CONFIG_SPARSEMEM_EXTREME
-        if (!mem_section)
-                return NULL;
-#endif
-        if (!mem_section[SECTION_NR_TO_ROOT(nr)]) <-------- BUG
-                return NULL;
-        return &mem_section[SECTION_NR_TO_ROOT(nr)][nr & SECTION_ROOT_MASK];
-}
+In this current form, Landlock misses some access-control features.
+This enables to minimize this patch series and ease review.  This series
+still addresses multiple use cases, especially with the combined use of
+seccomp-bpf: applications with built-in sandboxing, init systems,
+security sandbox tools and security-oriented APIs [2].
 
-static inline struct mem_section *__pfn_to_section(unsigned long pfn)
-{
-        return __nr_to_section(pfn_to_section_nr(pfn));
-}
+Previous version:
+https://lore.kernel.org/lkml/20200526205322.23465-1-mic@digikod.net/
 
-#define __pfn_to_page(pfn)                              \
-({      unsigned long __pfn = (pfn);                    \
-        struct mem_section *__sec = __pfn_to_section(__pfn);    \
-        __section_mem_map_addr(__sec) + __pfn;          \
-})
+[1] https://lore.kernel.org/lkml/50db058a-7dde-441b-a7f9-f6837fe8b69f@schaufler-ca.com/
+[2] https://lore.kernel.org/lkml/f646e1c7-33cf-333f-070c-0a40ad0468cd@digikod.net/
 
-which is called via hugetlb_advanced_tests().
 
-paddr = (__pfn_to_phys(pfn) | RANDOM_ORVALUE) & PMD_MASK;
-pte = pte_mkhuge(mk_pte(pfn_to_page(PHYS_PFN(paddr)), prot));
+Casey Schaufler (1):
+  LSM: Infrastructure management of the superblock
 
-Primary reason being RANDOM_ORVALUE, which is added to the paddr before
-being masked with PMD_MASK. This clobbers up the pfn value which cannot
-be searched in relevant memory sections. This problem stays hidden on
-other configs where pfn_to_page() does not go via memory section search.
-Dropping off RANDOM_ORVALUE solves the problem. Probably, just wanted to
-drop that off during V2 series (https://lkml.org/lkml/2020/4/8/997) but
-dont remember why ended up keeping it again.
+Mickaël Salaün (11):
+  landlock: Add object management
+  landlock: Add ruleset and domain management
+  landlock: Set up the security framework and manage credentials
+  landlock: Add ptrace restrictions
+  fs,security: Add sb_delete hook
+  landlock: Support filesystem access-control
+  landlock: Add syscall implementation
+  arch: Wire up landlock() syscall
+  selftests/landlock: Add initial tests
+  samples/landlock: Add a sandbox manager example
+  landlock: Add user and kernel documentation
+
+ Documentation/security/index.rst              |    1 +
+ Documentation/security/landlock/index.rst     |   18 +
+ Documentation/security/landlock/kernel.rst    |   69 +
+ Documentation/security/landlock/user.rst      |  268 +++
+ MAINTAINERS                                   |   11 +
+ arch/Kconfig                                  |    7 +
+ arch/alpha/kernel/syscalls/syscall.tbl        |    1 +
+ arch/arm/tools/syscall.tbl                    |    1 +
+ arch/arm64/include/asm/unistd.h               |    2 +-
+ arch/arm64/include/asm/unistd32.h             |    2 +
+ arch/ia64/kernel/syscalls/syscall.tbl         |    1 +
+ arch/m68k/kernel/syscalls/syscall.tbl         |    1 +
+ arch/microblaze/kernel/syscalls/syscall.tbl   |    1 +
+ arch/mips/kernel/syscalls/syscall_n32.tbl     |    1 +
+ arch/mips/kernel/syscalls/syscall_n64.tbl     |    1 +
+ arch/mips/kernel/syscalls/syscall_o32.tbl     |    1 +
+ arch/parisc/kernel/syscalls/syscall.tbl       |    1 +
+ arch/powerpc/kernel/syscalls/syscall.tbl      |    1 +
+ arch/s390/kernel/syscalls/syscall.tbl         |    1 +
+ arch/sh/kernel/syscalls/syscall.tbl           |    1 +
+ arch/sparc/kernel/syscalls/syscall.tbl        |    1 +
+ arch/um/Kconfig                               |    1 +
+ arch/x86/entry/syscalls/syscall_32.tbl        |    1 +
+ arch/x86/entry/syscalls/syscall_64.tbl        |    1 +
+ arch/xtensa/kernel/syscalls/syscall.tbl       |    1 +
+ fs/super.c                                    |    1 +
+ include/linux/lsm_hook_defs.h                 |    1 +
+ include/linux/lsm_hooks.h                     |    3 +
+ include/linux/security.h                      |    4 +
+ include/linux/syscalls.h                      |    3 +
+ include/uapi/asm-generic/unistd.h             |    4 +-
+ include/uapi/linux/landlock.h                 |  302 +++
+ kernel/sys_ni.c                               |    3 +
+ samples/Kconfig                               |    7 +
+ samples/Makefile                              |    1 +
+ samples/landlock/.gitignore                   |    1 +
+ samples/landlock/Makefile                     |   15 +
+ samples/landlock/sandboxer.c                  |  228 +++
+ security/Kconfig                              |   11 +-
+ security/Makefile                             |    2 +
+ security/landlock/Kconfig                     |   18 +
+ security/landlock/Makefile                    |    4 +
+ security/landlock/common.h                    |   20 +
+ security/landlock/cred.c                      |   46 +
+ security/landlock/cred.h                      |   58 +
+ security/landlock/fs.c                        |  609 ++++++
+ security/landlock/fs.h                        |   60 +
+ security/landlock/object.c                    |   66 +
+ security/landlock/object.h                    |   91 +
+ security/landlock/ptrace.c                    |  120 ++
+ security/landlock/ptrace.h                    |   14 +
+ security/landlock/ruleset.c                   |  342 ++++
+ security/landlock/ruleset.h                   |  157 ++
+ security/landlock/setup.c                     |   40 +
+ security/landlock/setup.h                     |   18 +
+ security/landlock/syscall.c                   |  526 +++++
+ security/security.c                           |   51 +-
+ security/selinux/hooks.c                      |   58 +-
+ security/selinux/include/objsec.h             |    6 +
+ security/selinux/ss/services.c                |    3 +-
+ security/smack/smack.h                        |    6 +
+ security/smack/smack_lsm.c                    |   35 +-
+ tools/testing/selftests/Makefile              |    1 +
+ tools/testing/selftests/landlock/.gitignore   |    2 +
+ tools/testing/selftests/landlock/Makefile     |   29 +
+ tools/testing/selftests/landlock/base_test.c  |  163 ++
+ tools/testing/selftests/landlock/common.h     |   93 +
+ tools/testing/selftests/landlock/config       |    5 +
+ tools/testing/selftests/landlock/fs_test.c    | 1740 +++++++++++++++++
+ .../testing/selftests/landlock/ptrace_test.c  |  321 +++
+ tools/testing/selftests/landlock/true.c       |    5 +
+ 71 files changed, 5611 insertions(+), 77 deletions(-)
+ create mode 100644 Documentation/security/landlock/index.rst
+ create mode 100644 Documentation/security/landlock/kernel.rst
+ create mode 100644 Documentation/security/landlock/user.rst
+ create mode 100644 include/uapi/linux/landlock.h
+ create mode 100644 samples/landlock/.gitignore
+ create mode 100644 samples/landlock/Makefile
+ create mode 100644 samples/landlock/sandboxer.c
+ create mode 100644 security/landlock/Kconfig
+ create mode 100644 security/landlock/Makefile
+ create mode 100644 security/landlock/common.h
+ create mode 100644 security/landlock/cred.c
+ create mode 100644 security/landlock/cred.h
+ create mode 100644 security/landlock/fs.c
+ create mode 100644 security/landlock/fs.h
+ create mode 100644 security/landlock/object.c
+ create mode 100644 security/landlock/object.h
+ create mode 100644 security/landlock/ptrace.c
+ create mode 100644 security/landlock/ptrace.h
+ create mode 100644 security/landlock/ruleset.c
+ create mode 100644 security/landlock/ruleset.h
+ create mode 100644 security/landlock/setup.c
+ create mode 100644 security/landlock/setup.h
+ create mode 100644 security/landlock/syscall.c
+ create mode 100644 tools/testing/selftests/landlock/.gitignore
+ create mode 100644 tools/testing/selftests/landlock/Makefile
+ create mode 100644 tools/testing/selftests/landlock/base_test.c
+ create mode 100644 tools/testing/selftests/landlock/common.h
+ create mode 100644 tools/testing/selftests/landlock/config
+ create mode 100644 tools/testing/selftests/landlock/fs_test.c
+ create mode 100644 tools/testing/selftests/landlock/ptrace_test.c
+ create mode 100644 tools/testing/selftests/landlock/true.c
+
+-- 
+2.27.0
