@@ -1,88 +1,70 @@
-Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:52028 "EHLO mga11.intel.com"
+Return-Path: <SRS0=vM59=AS=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:48430 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726171AbgGCCgG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 22:36:06 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 03/21] KVM: x86/mmu: Use consistent "mc" name for kvm_mmu_memory_cache locals
-Date: Thu,  2 Jul 2020 19:35:27 -0700
-Message-ID: <20200703023545.8771-4-sean.j.christopherson@intel.com>
-In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
-References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+        id S1728110AbgGGQ4y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 7 Jul 2020 12:56:54 -0400
+Date: Tue, 7 Jul 2020 09:56:51 -0700
+From: Jakub Kicinski <kuba@kernel.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200707095651.422f0b22@kicinski-fedora-pc1c0hjn.dhcp.thefacebook.com>
+In-Reply-To: <20200707160528.GA1300535@google.com>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+        <CAK7LNASvb0UDJ0U5wkYYRzTAdnEs64HjXpEUL7d=V0CXiAXcNw@mail.gmail.com>
+        <20200629232059.GA3787278@google.com>
+        <20200707155107.GA3357035@google.com>
+        <20200707160528.GA1300535@google.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200703023527.fOg71KSXqHoSWkwb6ne-aAk4krCqdVlR7ZTFk86HUiQ@z>
+To: Sami Tolvanen <samitolvanen@google.com>
+Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>
+Message-ID: <20200707165651.d2m63C9HUvj6To3Ewppd8tFvUP5mWmVTufe83PN2XO4@z>
 
-Use "mc" for local variables to shorten line lengths and provide
-consistent names, which will be especially helpful when some of the
-helpers are moved to common KVM code in future patches.
+On Tue, 7 Jul 2020 09:05:28 -0700 Sami Tolvanen wrote:
+> On Tue, Jul 07, 2020 at 08:51:07AM -0700, Sami Tolvanen wrote:
+> > After spending some time debugging this with Nick, it looks like the
+> > error is caused by a recent optimization change in LLVM, which together
+> > with the inlining of ur_load_imm_any into jeq_imm, changes a runtime
+> > check in FIELD_FIT that would always fail, to a compile-time check that
+> > breaks the build. In jeq_imm, we have:
+> > 
+> >     /* struct bpf_insn: _s32 imm */
+> >     u64 imm = insn->imm; /* sign extend */
+> >     ...
+> >     if (imm >> 32) { /* non-zero only if insn->imm is negative */
+> >     	/* inlined from ur_load_imm_any */
+> > 	u32 __imm = imm >> 32; /* therefore, always 0xffffffff */
+> > 
+> >         /*
+> > 	 * __imm has a value known at compile-time, which means
+> > 	 * __builtin_constant_p(__imm) is true and we end up with
+> > 	 * essentially this in __BF_FIELD_CHECK:
+> > 	 */
+> > 	if (__builtin_constant_p(__imm) && __imm <= 255)  
+> 
+> Should be __imm > 255, of course, which means the compiler will generate
+> a call to __compiletime_assert.
 
-No functional change intended.
+I think FIELD_FIT() should not pass the value into __BF_FIELD_CHECK().
 
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
----
- arch/x86/kvm/mmu/mmu.c | 24 ++++++++++++------------
- 1 file changed, 12 insertions(+), 12 deletions(-)
+So:
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index d6612af6c056..b6df4525e86c 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1060,27 +1060,27 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
- 	local_irq_enable();
- }
+diff --git a/include/linux/bitfield.h b/include/linux/bitfield.h
+index 48ea093ff04c..4e035aca6f7e 100644
+--- a/include/linux/bitfield.h
++++ b/include/linux/bitfield.h
+@@ -77,7 +77,7 @@
+  */
+ #define FIELD_FIT(_mask, _val)                                         \
+        ({                                                              \
+-               __BF_FIELD_CHECK(_mask, 0ULL, _val, "FIELD_FIT: ");     \
++               __BF_FIELD_CHECK(_mask, 0ULL, 0ULL, "FIELD_FIT: ");     \
+                !((((typeof(_mask))_val) << __bf_shf(_mask)) & ~(_mask)); \
+        })
  
--static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
-+static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
- {
- 	void *obj;
- 
--	if (cache->nobjs >= min)
-+	if (mc->nobjs >= min)
- 		return 0;
--	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
--		if (cache->kmem_cache)
--			obj = kmem_cache_zalloc(cache->kmem_cache, GFP_KERNEL_ACCOUNT);
-+	while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
-+		if (mc->kmem_cache)
-+			obj = kmem_cache_zalloc(mc->kmem_cache, GFP_KERNEL_ACCOUNT);
- 		else
- 			obj = (void *)__get_free_page(GFP_KERNEL_ACCOUNT);
- 		if (!obj)
--			return cache->nobjs >= min ? 0 : -ENOMEM;
--		cache->objects[cache->nobjs++] = obj;
-+			return mc->nobjs >= min ? 0 : -ENOMEM;
-+		mc->objects[mc->nobjs++] = obj;
- 	}
- 	return 0;
- }
- 
--static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *cache)
-+static int mmu_memory_cache_free_objects(struct kvm_mmu_memory_cache *mc)
- {
--	return cache->nobjs;
-+	return mc->nobjs;
- }
- 
- static void mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
-@@ -1395,10 +1395,10 @@ static struct kvm_rmap_head *gfn_to_rmap(struct kvm *kvm, gfn_t gfn,
- 
- static bool rmap_can_add(struct kvm_vcpu *vcpu)
- {
--	struct kvm_mmu_memory_cache *cache;
-+	struct kvm_mmu_memory_cache *mc;
- 
--	cache = &vcpu->arch.mmu_pte_list_desc_cache;
--	return mmu_memory_cache_free_objects(cache);
-+	mc = &vcpu->arch.mmu_pte_list_desc_cache;
-+	return mmu_memory_cache_free_objects(mc);
- }
- 
- static int rmap_add(struct kvm_vcpu *vcpu, u64 *spte, gfn_t gfn)
--- 
-2.26.0
+It's perfectly legal to pass a constant which does not fit, in which
+case FIELD_FIT() should just return false not break the build.
+
+Right?
