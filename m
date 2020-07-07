@@ -1,89 +1,104 @@
-Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:3199 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726345AbgGCCgO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 22:36:14 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 09/21] KVM: x86/mmu: Separate the memory caches for shadow pages and gfn arrays
-Date: Thu,  2 Jul 2020 19:35:33 -0700
-Message-ID: <20200703023545.8771-10-sean.j.christopherson@intel.com>
-In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
-References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+Return-Path: <SRS0=vM59=AS=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36952 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728425AbgGGPvQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jul 2020 11:51:16 -0400
+Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EC9EFC08C5E2
+        for <linux-arch@vger.kernel.org>; Tue,  7 Jul 2020 08:51:15 -0700 (PDT)
+Received: by mail-pl1-x643.google.com with SMTP id x8so16013382plm.10
+        for <linux-arch@vger.kernel.org>; Tue, 07 Jul 2020 08:51:15 -0700 (PDT)
+Date: Tue, 7 Jul 2020 08:51:07 -0700
+From: Sami Tolvanen <samitolvanen@google.com>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200707155107.GA3357035@google.com>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <CAK7LNASvb0UDJ0U5wkYYRzTAdnEs64HjXpEUL7d=V0CXiAXcNw@mail.gmail.com>
+ <20200629232059.GA3787278@google.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200629232059.GA3787278@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200703023533.GxVuBQggg5XpyISGFmAvIDyijhDQVZXI-FDhA4ALPt8@z>
+To: Masahiro Yamada <masahiroy@kernel.org>, Jiong Wang <jiong.wang@netronome.com>, Jakub Kicinski <kuba@kernel.org>
+Cc: Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>
+Message-ID: <20200707155107.H6IUsOXGlD7W3By-qMEfuubAN7xF0Onm_5uHgcmt2xo@z>
 
-Use separate caches for allocating shadow pages versus gfn arrays.  This
-sets the stage for specifying __GFP_ZERO when allocating shadow pages
-without incurring extra cost for gfn arrays.
+On Mon, Jun 29, 2020 at 04:20:59PM -0700, Sami Tolvanen wrote:
+> Hi Masahiro,
+> 
+> On Mon, Jun 29, 2020 at 01:56:19AM +0900, Masahiro Yamada wrote:
+> > I also got an error for
+> > ARCH=arm64 allyesconfig + CONFIG_LTO_CLANG=y
+> > 
+> > 
+> > 
+> > $ make ARCH=arm64 LLVM=1 LLVM_IAS=1
+> > CROSS_COMPILE=~/tools/aarch64-linaro-7.5/bin/aarch64-linux-gnu-
+> > -j24
+> > 
+> >   ...
+> > 
+> >   GEN     .version
+> >   CHK     include/generated/compile.h
+> >   UPD     include/generated/compile.h
+> >   CC      init/version.o
+> >   AR      init/built-in.a
+> >   GEN     .tmp_initcalls.lds
+> >   GEN     .tmp_symversions.lds
+> >   LTO     vmlinux.o
+> >   MODPOST vmlinux.symvers
+> >   MODINFO modules.builtin.modinfo
+> >   GEN     modules.builtin
+> >   LD      .tmp_vmlinux.kallsyms1
+> > ld.lld: error: undefined symbol: __compiletime_assert_905
+> > >>> referenced by irqbypass.c
+> > >>>               vmlinux.o:(jeq_imm)
+> > make: *** [Makefile:1161: vmlinux] Error 1
+> 
+> I can reproduce this with ToT LLVM and it's BUILD_BUG_ON_MSG(..., "value
+> too large for the field") in drivers/net/ethernet/netronome/nfp/bpf/jit.c.
+> Specifically, the FIELD_FIT / __BF_FIELD_CHECK macro in ur_load_imm_any.
+> 
+> This compiles just fine with an earlier LLVM revision, so it could be a
+> relatively recent regression. I'll take a look. Thanks for catching this!
 
-No functional change intended.
+After spending some time debugging this with Nick, it looks like the
+error is caused by a recent optimization change in LLVM, which together
+with the inlining of ur_load_imm_any into jeq_imm, changes a runtime
+check in FIELD_FIT that would always fail, to a compile-time check that
+breaks the build. In jeq_imm, we have:
 
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
----
- arch/x86/include/asm/kvm_host.h |  3 ++-
- arch/x86/kvm/mmu/mmu.c          | 15 ++++++++++-----
- 2 files changed, 12 insertions(+), 6 deletions(-)
+    /* struct bpf_insn: _s32 imm */
+    u64 imm = insn->imm; /* sign extend */
+    ...
+    if (imm >> 32) { /* non-zero only if insn->imm is negative */
+    	/* inlined from ur_load_imm_any */
+	u32 __imm = imm >> 32; /* therefore, always 0xffffffff */
 
-diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
-index 71bc32e00d7e..b71a4e77f65a 100644
---- a/arch/x86/include/asm/kvm_host.h
-+++ b/arch/x86/include/asm/kvm_host.h
-@@ -636,7 +636,8 @@ struct kvm_vcpu_arch {
- 	struct kvm_mmu *walk_mmu;
- 
- 	struct kvm_mmu_memory_cache mmu_pte_list_desc_cache;
--	struct kvm_mmu_memory_cache mmu_page_cache;
-+	struct kvm_mmu_memory_cache mmu_shadow_page_cache;
-+	struct kvm_mmu_memory_cache mmu_gfn_array_cache;
- 	struct kvm_mmu_memory_cache mmu_page_header_cache;
- 
- 	/*
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index cf02ad93c249..8e1b55d8a728 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1108,8 +1108,12 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
- 				   1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
- 	if (r)
- 		return r;
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache,
--				   2 * PT64_ROOT_MAX_LEVEL);
-+	r = mmu_topup_memory_cache(&vcpu->arch.mmu_shadow_page_cache,
-+				   PT64_ROOT_MAX_LEVEL);
-+	if (r)
-+		return r;
-+	r = mmu_topup_memory_cache(&vcpu->arch.mmu_gfn_array_cache,
-+				   PT64_ROOT_MAX_LEVEL);
- 	if (r)
- 		return r;
- 	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
-@@ -1119,7 +1123,8 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
- static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
- {
- 	mmu_free_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache);
--	mmu_free_memory_cache(&vcpu->arch.mmu_page_cache);
-+	mmu_free_memory_cache(&vcpu->arch.mmu_shadow_page_cache);
-+	mmu_free_memory_cache(&vcpu->arch.mmu_gfn_array_cache);
- 	mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
- }
- 
-@@ -2096,9 +2101,9 @@ static struct kvm_mmu_page *kvm_mmu_alloc_page(struct kvm_vcpu *vcpu, int direct
- 	struct kvm_mmu_page *sp;
- 
- 	sp = mmu_memory_cache_alloc(&vcpu->arch.mmu_page_header_cache);
--	sp->spt = mmu_memory_cache_alloc(&vcpu->arch.mmu_page_cache);
-+	sp->spt = mmu_memory_cache_alloc(&vcpu->arch.mmu_shadow_page_cache);
- 	if (!direct)
--		sp->gfns = mmu_memory_cache_alloc(&vcpu->arch.mmu_page_cache);
-+		sp->gfns = mmu_memory_cache_alloc(&vcpu->arch.mmu_gfn_array_cache);
- 	set_page_private(virt_to_page(sp->spt), (unsigned long)sp);
- 
- 	/*
--- 
-2.26.0
+        /*
+	 * __imm has a value known at compile-time, which means
+	 * __builtin_constant_p(__imm) is true and we end up with
+	 * essentially this in __BF_FIELD_CHECK:
+	 */
+	if (__builtin_constant_p(__imm) && __imm <= 255)
+	      __compiletime_assert_N();
+
+The compile-time check comes from the following BUILD_BUG_ON_MSG:
+
+    #define __BF_FIELD_CHECK(_mask, _reg, _val, _pfx)		\
+    ...
+	BUILD_BUG_ON_MSG(__builtin_constant_p(_val) ?		\
+			 ~((_mask) >> __bf_shf(_mask)) & (_val) : 0, \
+			 _pfx "value too large for the field"); \
+
+While we could stop the compiler from performing this optimization by
+telling it to never inline ur_load_imm_any, we feel like a better fix
+might be to replace FIELD_FIT(UR_REG_IMM_MAX, imm) with a simple imm
+<= UR_REG_IMM_MAX check that won't trip a compile-time assertion even
+when the condition is known to fail.
+
+Jiong, Jakub, do you see any issues here?
+
+Sami
