@@ -1,75 +1,120 @@
-Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:52286 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726349AbgGBR7t (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 13:59:49 -0400
-Date: Thu, 2 Jul 2020 10:59:48 -0700
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Message-ID: <20200702175948.GV9247@paulmck-ThinkPad-P72>
-Reply-To: paulmck@kernel.org
-References: <20200625085745.GD117543@hirez.programming.kicks-ass.net>
- <20200630191931.GA884155@elver.google.com>
- <20200630201243.GD4817@hirez.programming.kicks-ass.net>
- <20200630203016.GI9247@paulmck-ThinkPad-P72>
- <CANpmjNP+7TtE0WPU=nX5zs3T2+4hPkkm08meUm2VDVY3RgsHDw@mail.gmail.com>
- <20200701114027.GO4800@hirez.programming.kicks-ass.net>
- <20200701140654.GL9247@paulmck-ThinkPad-P72>
- <20200701150512.GH4817@hirez.programming.kicks-ass.net>
- <20200701160338.GN9247@paulmck-ThinkPad-P72>
- <20200702082040.GB4781@hirez.programming.kicks-ass.net>
+Return-Path: <SRS0=oiSc=AS=kvack.org=owner-linux-mm@kernel.org>
+Date: Tue, 7 Jul 2020 18:36:17 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC PATCH v4 2/2] arm64: tlb: Use the TLBI RANGE feature in
+ arm64
+Message-ID: <20200707173617.GA32331@gaia>
+References: <20200601144713.2222-1-yezhenyu2@huawei.com>
+ <20200601144713.2222-3-yezhenyu2@huawei.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200702082040.GB4781@hirez.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200601144713.2222-3-yezhenyu2@huawei.com>
+Sender: owner-linux-mm@kvack.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-Message-ID: <20200702175948.vtIXP2GM0Q143Hjw4veTvW9MQKSZwp5iPPm0RQUoVrc@z>
+Message-ID: <20200707173617.xh6CTxOnyo8-5pMCnLMXCBtTtzMdrSTxlIauQl37Ps0@z>
 
-On Thu, Jul 02, 2020 at 10:20:40AM +0200, Peter Zijlstra wrote:
-> On Wed, Jul 01, 2020 at 09:03:38AM -0700, Paul E. McKenney wrote:
-> 
-> > But it looks like we are going to have to tell the compiler.
-> 
-> What does the current proposal look like? I can certainly annotate the
-> seqcount latch users, but who knows what other code is out there....
+On Mon, Jun 01, 2020 at 10:47:13PM +0800, Zhenyu Ye wrote:
+> @@ -59,6 +69,47 @@
+>  		__ta;						\
+>  	})
+>  
+> +/*
+> + * __TG defines translation granule of the system, which is decided by
+> + * PAGE_SHIFT.  Used by TTL.
+> + *  - 4KB	: 1
+> + *  - 16KB	: 2
+> + *  - 64KB	: 3
+> + */
+> +#define __TG	((PAGE_SHIFT - 12) / 2 + 1)
 
-For pointers, yes, within the Linux kernel it is hopeless, thus the
-thought of a -fall-dependent-ptr or some such that makes the compiler
-pretend that each and every pointer is marked with the _Dependent_ptr
-qualifier.
+Nitpick: maybe something like __TLBI_TG to avoid clashes in case someone
+else defines a __TG macro.
 
-New non-Linux-kernel code might want to use his qualifier explicitly,
-perhaps something like the following:
+> @@ -181,32 +232,55 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
+>  				     unsigned long start, unsigned long end,
+>  				     unsigned long stride, bool last_level)
+>  {
+> +	int num = 0;
+> +	int scale = 0;
+>  	unsigned long asid = ASID(vma->vm_mm);
+>  	unsigned long addr;
+> +	unsigned long range_pages;
+>  
+>  	start = round_down(start, stride);
+>  	end = round_up(end, stride);
+> +	range_pages = (end - start) >> PAGE_SHIFT;
+>  
+>  	if ((end - start) >= (MAX_TLBI_OPS * stride)) {
+>  		flush_tlb_mm(vma->vm_mm);
+>  		return;
+>  	}
+>  
+> -	/* Convert the stride into units of 4k */
+> -	stride >>= 12;
+> +	dsb(ishst);
+>  
+> -	start = __TLBI_VADDR(start, asid);
+> -	end = __TLBI_VADDR(end, asid);
+> +	/*
+> +	 * The minimum size of TLB RANGE is 2 pages;
+> +	 * Use normal TLB instruction to handle odd pages.
+> +	 * If the stride != PAGE_SIZE, this will never happen.
+> +	 */
+> +	if (range_pages % 2 == 1) {
+> +		addr = __TLBI_VADDR(start, asid);
+> +		__tlbi_last_level(vale1is, vae1is, addr, last_level);
+> +		start += 1 << PAGE_SHIFT;
+> +		range_pages >>= 1;
+> +	}
 
-	_Dependent_ptr struct foo *p;  // Or maybe after the "*"?
+Shouldn't this be range_pages-- or -= stride >> 12? Your goto follow-up
+fixes this, though I'm not a big fan of gotos jumping in the middle of a
+loop.
 
-	rcu_read_lock();
-	p = rcu_dereference(gp);
-	// And so on...
+> -	dsb(ishst);
+> -	for (addr = start; addr < end; addr += stride) {
+> -		if (last_level) {
+> -			__tlbi(vale1is, addr);
+> -			__tlbi_user(vale1is, addr);
+> -		} else {
+> -			__tlbi(vae1is, addr);
+> -			__tlbi_user(vae1is, addr);
+> +	while (range_pages > 0) {
+> +		if (cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
+> +		    stride == PAGE_SIZE) {
 
-If a function is to take a dependent pointer as a function argument,
-then the corresponding parameter need the _Dependent_ptr marking.
-Ditto for return values.
+I think we could have the odd range_pages check here:
 
-The proposal did not cover integers due to concerns about the number of
-optimization passes that would need to be reviewed to make that work.
-Nevertheless, using a marked integer would be safer than using an unmarked
-one, and if the review can be carried out, why not?  Maybe something
-like this:
+		if (cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
+		    stride == PAGE_SIZE && range_pages % 2 == 0) {
 
-	_Dependent_ptr int idx;
+and avoid the one outside the loop.
 
-	rcu_read_lock();
-	idx = READ_ONCE(gidx);
-	d = rcuarray[idx];
-	rcu_read_unlock();
-	do_something_with(d);
+> +			num = (range_pages & TLB_RANGE_MASK) - 1;
+> +			if (num >= 0) {
+> +				addr = __TLBI_VADDR_RANGE(start, asid, scale,
+> +							  num, 0);
+> +				__tlbi_last_level(rvale1is, rvae1is, addr,
+> +						  last_level);
+> +				start += __TLBI_RANGE_SIZES(num, scale);
+> +			}
+> +			scale++;
+> +			range_pages >>= TLB_RANGE_MASK_SHIFT;
+> +			continue;
+>  		}
+> +
+> +		addr = __TLBI_VADDR(start, asid);
+> +		__tlbi_last_level(vale1is, vae1is, addr, last_level);
+> +		start += stride;
+> +		range_pages -= stride >> 12;
+>  	}
+>  	dsb(ish);
+>  }
+> -- 
+> 2.19.1
 
-So use of this qualifier is quite reasonable.
-
-The prototype for GCC is here: https://github.com/AKG001/gcc/
-
-							Thanx, Paul
+-- 
+Catalin
