@@ -1,84 +1,69 @@
-From: "Paul E. McKenney" <paulmck@kernel.org>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Date: Mon, 6 Jul 2020 16:41:36 -0700
-Message-ID: <20200706234136.GS9247@paulmck-ThinkPad-P72>
-References: <20200701150512.GH4817@hirez.programming.kicks-ass.net>
- <20200701160338.GN9247@paulmck-ThinkPad-P72>
- <20200702082040.GB4781@hirez.programming.kicks-ass.net>
- <20200702175948.GV9247@paulmck-ThinkPad-P72>
- <20200703131330.GX4800@hirez.programming.kicks-ass.net>
- <20200703144228.GF9247@paulmck-ThinkPad-P72>
- <20200706162633.GA13288@paulmck-ThinkPad-P72>
- <20200706182926.GH4800@hirez.programming.kicks-ass.net>
- <20200706183933.GE9247@paulmck-ThinkPad-P72>
- <20200706194012.GA5523@worktop.programming.kicks-ass.net>
-Reply-To: paulmck@kernel.org
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH] powerpc: select ARCH_HAS_MEMBARRIER_SYNC_CORE
+Date: Tue, 07 Jul 2020 15:50:57 +1000
+Message-ID: <1594098302.nadnq2txti.astroid@bobo.none>
+References: <20200706021822.1515189-1-npiggin@gmail.com>
+        <cf10b0bc-de79-1b2b-8355-fc7bbeec47c3@csgroup.eu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:37638 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726280AbgGFXlh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 6 Jul 2020 19:41:37 -0400
-Content-Disposition: inline
-In-Reply-To: <20200706194012.GA5523@worktop.programming.kicks-ass.net>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56904 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727789AbgGGFvD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jul 2020 01:51:03 -0400
+Received: from mail-pl1-x644.google.com (mail-pl1-x644.google.com [IPv6:2607:f8b0:4864:20::644])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A7C29C061755
+        for <linux-arch@vger.kernel.org>; Mon,  6 Jul 2020 22:51:03 -0700 (PDT)
+Received: by mail-pl1-x644.google.com with SMTP id k4so2133266pld.12
+        for <linux-arch@vger.kernel.org>; Mon, 06 Jul 2020 22:51:03 -0700 (PDT)
+In-Reply-To: <cf10b0bc-de79-1b2b-8355-fc7bbeec47c3@csgroup.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
+To: Christophe Leroy <christophe.leroy@csgroup.eu>, linuxppc-dev@lists.ozlabs.org
+Cc: linux-arch@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 
-On Mon, Jul 06, 2020 at 09:40:12PM +0200, Peter Zijlstra wrote:
-> On Mon, Jul 06, 2020 at 11:39:33AM -0700, Paul E. McKenney wrote:
-> > On Mon, Jul 06, 2020 at 08:29:26PM +0200, Peter Zijlstra wrote:
-> > > On Mon, Jul 06, 2020 at 09:26:33AM -0700, Paul E. McKenney wrote:
-> 
-> > > If they do not consider their Linux OS running correctly :-)
-> > 
-> > Many of them really do not care at all.  In fact, some would consider
-> > Linux failing to run as an added bonus.
-> 
-> This I think is why we have compiler people in the thread that care a
-> lot more.
+Excerpts from Christophe Leroy's message of July 6, 2020 7:53 pm:
+>=20
+>=20
+> Le 06/07/2020 =C3=A0 04:18, Nicholas Piggin a =C3=A9crit=C2=A0:
+>> diff --git a/arch/powerpc/include/asm/exception-64s.h b/arch/powerpc/inc=
+lude/asm/exception-64s.h
+>> index 47bd4ea0837d..b88cb3a989b6 100644
+>> --- a/arch/powerpc/include/asm/exception-64s.h
+>> +++ b/arch/powerpc/include/asm/exception-64s.h
+>> @@ -68,6 +68,10 @@
+>>    *
+>>    * The nop instructions allow us to insert one or more instructions to=
+ flush the
+>>    * L1-D cache when returning to userspace or a guest.
+>> + *
+>> + * powerpc relies on return from interrupt/syscall being context synchr=
+onising
+>> + * (which hrfid, rfid, and rfscv are) to support ARCH_HAS_MEMBARRIER_SY=
+NC_CORE
+>> + * without additional additional synchronisation instructions.
+>=20
+> This file is dedicated to BOOK3S/64. What about other ones ?
+>=20
+> On 32 bits, this is also valid as 'rfi' is also context synchronising,=20
+> but then why just add some comment in exception-64s.h and only there ?
 
-Here is hoping! ;-)
+Yeah you're right, I basically wanted to keep a note there just in case,
+because it's possible we would get a less synchronising return (maybe
+unlikely with meltdown) or even return from a kernel interrupt using a
+something faster (e.g., bctar if we don't use tar register in the kernel
+anywhere).
 
-> > > > Nevertheless, yes, control dependencies also need attention.
-> > > 
-> > > Today I added one more \o/
-> > 
-> > Just make sure you continually check to make sure that compilers
-> > don't break it, along with the others you have added.  ;-)
-> 
-> There's:
-> 
-> kernel/locking/mcs_spinlock.h:  smp_cond_load_acquire(l, VAL);                          \
-> kernel/sched/core.c:                    smp_cond_load_acquire(&p->on_cpu, !VAL);
-> kernel/smp.c:   smp_cond_load_acquire(&csd->node.u_flags, !(VAL & CSD_FLAG_LOCK));
-> 
-> arch/x86/kernel/alternative.c:          atomic_cond_read_acquire(&desc.refs, !VAL);
-> kernel/locking/qrwlock.c:               atomic_cond_read_acquire(&lock->cnts, !(VAL & _QW_LOCKED));
-> kernel/locking/qrwlock.c:       atomic_cond_read_acquire(&lock->cnts, !(VAL & _QW_LOCKED));
-> kernel/locking/qrwlock.c:               atomic_cond_read_acquire(&lock->cnts, VAL == _QW_WAITING);
-> kernel/locking/qspinlock.c:             atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_MASK));
-> kernel/locking/qspinlock.c:     val = atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_PENDING_MASK));
-> 
-> include/linux/refcount.h:               smp_acquire__after_ctrl_dep();
-> ipc/mqueue.c:                   smp_acquire__after_ctrl_dep();
-> ipc/msg.c:                      smp_acquire__after_ctrl_dep();
-> ipc/sem.c:                      smp_acquire__after_ctrl_dep();
-> kernel/locking/rwsem.c:                 smp_acquire__after_ctrl_dep();
-> kernel/sched/core.c:    smp_acquire__after_ctrl_dep();
-> 
-> kernel/events/ring_buffer.c:__perf_output_begin()
-> 
-> And I'm fairly sure I'm forgetting some... One could argue there's too
-> many of them to check already.
-> 
-> Both GCC and CLANG had better think about it.
+So I wonder where to add the note, entry_32.S and 64e.h as well?
 
-That would be good!
+I should actually change the comment for 64-bit because soft masked=20
+interrupt replay is an interesting case. I thought it was okay (because=20
+the IPI would cause a hard interrupt which does do the rfi) but that=20
+should at least be written. The context synchronisation happens before
+the Linux IPI function is called, but for the purpose of membarrier I=20
+think that is okay (the membarrier just needs to have caused a memory
+barrier + context synchronistaion by the time it has done).
 
-I won't list the number of address/data dependencies given that there
-are well over a thousand of them.
-
-							Thanx, Paul
+Thanks,
+Nick
