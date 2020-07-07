@@ -1,77 +1,99 @@
-Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:38092 "EHLO mail.kernel.org"
+Return-Path: <SRS0=vM59=AS=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:33158 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726483AbgGBKsv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 06:48:51 -0400
-Date: Thu, 2 Jul 2020 11:48:46 +0100
-From: Will Deacon <will@kernel.org>
-Subject: Re: [PATCH 5/8] powerpc/64s: implement queued spinlocks and rwlocks
-Message-ID: <20200702104845.GB16418@willie-the-truck>
-References: <20200702074839.1057733-1-npiggin@gmail.com>
- <20200702074839.1057733-6-npiggin@gmail.com>
- <20200702080219.GB16113@willie-the-truck>
- <1593685459.r2tfxtfdp6.astroid@bobo.none>
- <20200702103506.GA16418@willie-the-truck>
- <1593686722.w9psaqk7yp.astroid@bobo.none>
+        id S1727834AbgGGRaO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 7 Jul 2020 13:30:14 -0400
+Date: Tue, 7 Jul 2020 10:30:11 -0700
+From: Jakub Kicinski <kuba@kernel.org>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Message-ID: <20200707103011.173d38c1@kicinski-fedora-pc1c0hjn.dhcp.thefacebook.com>
+In-Reply-To: <CAKwvOd=z0n2+1voMCzC6Hft9EBdLM+6PUi9qBVTVvea_3kM91w@mail.gmail.com>
+References: <20200624203200.78870-1-samitolvanen@google.com>
+        <CAK7LNASvb0UDJ0U5wkYYRzTAdnEs64HjXpEUL7d=V0CXiAXcNw@mail.gmail.com>
+        <20200629232059.GA3787278@google.com>
+        <20200707155107.GA3357035@google.com>
+        <20200707160528.GA1300535@google.com>
+        <20200707095651.422f0b22@kicinski-fedora-pc1c0hjn.dhcp.thefacebook.com>
+        <CAKwvOd=z0n2+1voMCzC6Hft9EBdLM+6PUi9qBVTVvea_3kM91w@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1593686722.w9psaqk7yp.astroid@bobo.none>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Waiman Long <longman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org
-Message-ID: <20200702104846.sInnYoao-aVLY2cqyoRke7Lw3PgjJNMHyiimvT53r5g@z>
+To: Nick Desaulniers <ndesaulniers@google.com>
+Cc: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>
+Message-ID: <20200707173011.-JVt1fME2vpX5Q5AMDk5fvxoQj7Ays-ROBm5zHe3jyE@z>
 
-On Thu, Jul 02, 2020 at 08:47:05PM +1000, Nicholas Piggin wrote:
-> Excerpts from Will Deacon's message of July 2, 2020 8:35 pm:
-> > On Thu, Jul 02, 2020 at 08:25:43PM +1000, Nicholas Piggin wrote:
-> >> Excerpts from Will Deacon's message of July 2, 2020 6:02 pm:
-> >> > On Thu, Jul 02, 2020 at 05:48:36PM +1000, Nicholas Piggin wrote:
-> >> >> diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include/asm/qspinlock.h
-> >> >> new file mode 100644
-> >> >> index 000000000000..f84da77b6bb7
-> >> >> --- /dev/null
-> >> >> +++ b/arch/powerpc/include/asm/qspinlock.h
-> >> >> @@ -0,0 +1,20 @@
-> >> >> +/* SPDX-License-Identifier: GPL-2.0 */
-> >> >> +#ifndef _ASM_POWERPC_QSPINLOCK_H
-> >> >> +#define _ASM_POWERPC_QSPINLOCK_H
-> >> >> +
-> >> >> +#include <asm-generic/qspinlock_types.h>
-> >> >> +
-> >> >> +#define _Q_PENDING_LOOPS	(1 << 9) /* not tuned */
-> >> >> +
-> >> >> +#define smp_mb__after_spinlock()   smp_mb()
-> >> >> +
-> >> >> +static __always_inline int queued_spin_is_locked(struct qspinlock *lock)
-> >> >> +{
-> >> >> +	smp_mb();
-> >> >> +	return atomic_read(&lock->val);
-> >> >> +}
-> >> > 
-> >> > Why do you need the smp_mb() here?
-> >> 
-> >> A long and sad tale that ends here 51d7d5205d338
-> >> 
-> >> Should probably at least refer to that commit from here, since this one 
-> >> is not going to git blame back there. I'll add something.
-> > 
-> > Is this still an issue, though?
-> > 
-> > See 38b850a73034 (where we added a similar barrier on arm64) and then
-> > c6f5d02b6a0f (where we removed it).
-> > 
+On Tue, 7 Jul 2020 10:17:25 -0700 Nick Desaulniers wrote:
+> On Tue, Jul 7, 2020 at 9:56 AM Jakub Kicinski <kuba@kernel.org> wrote:
+> >  
+> > > On Tue, Jul 07, 2020 at 08:51:07AM -0700, Sami Tolvanen wrote:  
+> > > > After spending some time debugging this with Nick, it looks like the
+> > > > error is caused by a recent optimization change in LLVM, which together
+> > > > with the inlining of ur_load_imm_any into jeq_imm, changes a runtime
+> > > > check in FIELD_FIT that would always fail, to a compile-time check that
+> > > > breaks the build. In jeq_imm, we have:
+> > > >
+> > > >     /* struct bpf_insn: _s32 imm */
+> > > >     u64 imm = insn->imm; /* sign extend */
+> > > >     ...
+> > > >     if (imm >> 32) { /* non-zero only if insn->imm is negative */
+> > > >             /* inlined from ur_load_imm_any */
+> > > >     u32 __imm = imm >> 32; /* therefore, always 0xffffffff */
+> > > >
+> > > >         /*
+> > > >      * __imm has a value known at compile-time, which means
+> > > >      * __builtin_constant_p(__imm) is true and we end up with
+> > > >      * essentially this in __BF_FIELD_CHECK:
+> > > >      */
+> > > >     if (__builtin_constant_p(__imm) && __imm > 255)  
+> >
+> > I think FIELD_FIT() should not pass the value into __BF_FIELD_CHECK().
+> >
+> > So:
+> >
+> > diff --git a/include/linux/bitfield.h b/include/linux/bitfield.h
+> > index 48ea093ff04c..4e035aca6f7e 100644
+> > --- a/include/linux/bitfield.h
+> > +++ b/include/linux/bitfield.h
+> > @@ -77,7 +77,7 @@
+> >   */
+> >  #define FIELD_FIT(_mask, _val)                                         \
+> >         ({                                                              \
+> > -               __BF_FIELD_CHECK(_mask, 0ULL, _val, "FIELD_FIT: ");     \
+> > +               __BF_FIELD_CHECK(_mask, 0ULL, 0ULL, "FIELD_FIT: ");     \
+> >                 !((((typeof(_mask))_val) << __bf_shf(_mask)) & ~(_mask)); \
+> >         })
+> >
+> > It's perfectly legal to pass a constant which does not fit, in which
+> > case FIELD_FIT() should just return false not break the build.
+> >
+> > Right?  
 > 
-> Oh nice, I didn't know that went away. Thanks for the heads up.
+> I see the value of the __builtin_constant_p check; this is just a very
+> interesting case where rather than an integer literal appearing in the
+> source, the compiler is able to deduce that the parameter can only
+> have one value in one case, and allows __builtin_constant_p to
+> evaluate to true for it.
 > 
-> I'm going to say I'm too scared to remove it while changing the
-> spinlock algorithm, but I'll open an issue and we should look at 
-> removing it.
+> I had definitely asked Sami about the comment above FIELD_FIT:
+> """
+>  76  * Return: true if @_val can fit inside @_mask, false if @_val is
+> too big.
+> """
+> in which FIELD_FIT doesn't return false if @_val is too big and a
+> compile time constant. (Rather it breaks the build).
+> 
+> Of the 14 expansion sites of FIELD_FIT I see in mainline, it doesn't
+> look like any integral literals are passed, so maybe the compile time
+> checks of _val are of little value for FIELD_FIT.
 
-Makes sense to me -- it certainly needs a deeper look! In the meantime,
-please put some of this in a comment next to the barrier.
+Also I just double checked and all FIELD_FIT() uses check the return
+value.
 
-Cheers,
+> So I think your suggested diff is the most concise fix.
 
-Will
+Feel free to submit that officially as a patch if it fixes the build
+for you, here's my sign-off:
+
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
