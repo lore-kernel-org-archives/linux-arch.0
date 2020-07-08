@@ -1,73 +1,53 @@
-Return-Path: <SRS0=ixnu=AY=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43616 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726523AbgGMKFs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2020 06:05:48 -0400
+Return-Path: <SRS0=ZlxX=AT=vger.kernel.org=linux-doc-owner@kernel.org>
+Subject: Re: [PATCH v19 09/12] arch: Wire up landlock() syscall
+References: <20200707180955.53024-1-mic@digikod.net>
+ <20200707180955.53024-10-mic@digikod.net>
+ <CAK8P3a0docCqHkEn9C7=e0GC_ieN1dsYgKQ9PbUmSZYxh9MRnw@mail.gmail.com>
+From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
+Message-ID: <8d2dab03-289e-2872-db66-ce80ce5c189f@digikod.net>
+Date: Wed, 8 Jul 2020 09:31:26 +0200
 MIME-Version: 1.0
-References: <20200710135706.537715-1-hch@lst.de> <20200710135706.537715-5-hch@lst.de>
-In-Reply-To: <20200710135706.537715-5-hch@lst.de>
-From: Greentime Hu <green.hu@gmail.com>
-Date: Mon, 13 Jul 2020 18:05:10 +0800
-Message-ID: <CAEbi=3dSkAcTey8WeRuxN7oYq_O47QAZffLwruQRbpGpmqT-yA@mail.gmail.com>
-Subject: Re: [PATCH 4/6] uaccess: remove segment_eq
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <CAK8P3a0docCqHkEn9C7=e0GC_ieN1dsYgKQ9PbUmSZYxh9MRnw@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
+Sender: linux-doc-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Nick Hu <nickhu@andestech.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20200713100510.cf2N3tSkxEO0AN6iSYKubxieHp4KKLSJdtWxqnZeC-k@z>
+Message-ID: <20200708073126._p4CRTT1kCLgJiJMiEGdU3hyMoZ276BfsbnD8KdFzC8@z>
 
-Christoph Hellwig <hch@lst.de> =E6=96=BC 2020=E5=B9=B47=E6=9C=8810=E6=97=A5=
- =E9=80=B1=E4=BA=94 =E4=B8=8B=E5=8D=889:57=E5=AF=AB=E9=81=93=EF=BC=9A
->
-> segment_eq is only used to implement uaccess_kernel.  Just open code
-> uaccess_kernel in the arch uaccess headers and remove one layer of
-> indirection.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  arch/alpha/include/asm/uaccess.h      | 2 +-
->  arch/arc/include/asm/segment.h        | 3 +--
->  arch/arm/include/asm/uaccess.h        | 4 ++--
->  arch/arm64/include/asm/uaccess.h      | 2 +-
->  arch/csky/include/asm/segment.h       | 2 +-
->  arch/h8300/include/asm/segment.h      | 2 +-
->  arch/ia64/include/asm/uaccess.h       | 2 +-
->  arch/m68k/include/asm/segment.h       | 2 +-
->  arch/microblaze/include/asm/uaccess.h | 2 +-
->  arch/mips/include/asm/uaccess.h       | 2 +-
->  arch/nds32/include/asm/uaccess.h      | 2 +-
->  arch/nios2/include/asm/uaccess.h      | 2 +-
->  arch/openrisc/include/asm/uaccess.h   | 2 +-
->  arch/parisc/include/asm/uaccess.h     | 2 +-
->  arch/powerpc/include/asm/uaccess.h    | 3 +--
->  arch/riscv/include/asm/uaccess.h      | 4 +---
->  arch/s390/include/asm/uaccess.h       | 2 +-
->  arch/sh/include/asm/segment.h         | 3 +--
->  arch/sparc/include/asm/uaccess_32.h   | 2 +-
->  arch/sparc/include/asm/uaccess_64.h   | 2 +-
->  arch/x86/include/asm/uaccess.h        | 2 +-
->  arch/xtensa/include/asm/uaccess.h     | 2 +-
->  include/asm-generic/uaccess.h         | 4 ++--
->  include/linux/uaccess.h               | 2 --
->  24 files changed, 25 insertions(+), 32 deletions(-)
->
-[...]
-> diff --git a/arch/nds32/include/asm/uaccess.h b/arch/nds32/include/asm/ua=
-ccess.h
-> index 3a9219f53ee0d8..010ba5f1d7dd6b 100644
-> --- a/arch/nds32/include/asm/uaccess.h
-> +++ b/arch/nds32/include/asm/uaccess.h
-> @@ -44,7 +44,7 @@ static inline void set_fs(mm_segment_t fs)
->         current_thread_info()->addr_limit =3D fs;
->  }
->
-> -#define segment_eq(a, b)       ((a) =3D=3D (b))
-> +#define uaccess_kernel()       (get_fs() =3D=3D KERNEL_DS)
->
->  #define __range_ok(addr, size) (size <=3D get_fs() && addr <=3D (get_fs(=
-) -size))
->
-Hi Christoph, Thank you.
-Acked-by: Greentime Hu <green.hu@gmail.com>
+
+On 08/07/2020 09:22, Arnd Bergmann wrote:
+> On Tue, Jul 7, 2020 at 8:10 PM Mickaël Salaün <mic@digikod.net> wrote:
+> 
+>> index f4a01305d9a6..a63a411a74d5 100644
+>> --- a/include/uapi/asm-generic/unistd.h
+>> +++ b/include/uapi/asm-generic/unistd.h
+>> @@ -857,9 +857,11 @@ __SYSCALL(__NR_openat2, sys_openat2)
+>>  __SYSCALL(__NR_pidfd_getfd, sys_pidfd_getfd)
+>>  #define __NR_faccessat2 439
+>>  __SYSCALL(__NR_faccessat2, sys_faccessat2)
+>> +#define __NR_landlock 440
+>> +__SYSCALL(__NR_landlock, sys_landlock)
+>>
+>>  #undef __NR_syscalls
+>> -#define __NR_syscalls 440
+>> +#define __NR_syscalls 441
+> 
+> In linux-next, we already have:
+> 
+> +#define __NR_watch_mount 440
+> +#define __NR_watch_sb 441
+> +#define __NR_fsinfo 442
+> +#define __NR_process_madvise 443
+> 
+> You may want to increase the number again.
+> 
+>       Arnd
+> 
+
+OK, I'll rebase the next series on linux-next. Do you know if there is
+other syscalls on their way to linux-next?
+
+Are the other parts of arch/syscall OK for you?
