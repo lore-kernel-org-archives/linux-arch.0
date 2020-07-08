@@ -1,74 +1,124 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
-Date: Wed, 08 Jul 2020 15:10:52 +1000
-Message-ID: <1594184204.ncuq7vstsz.astroid@bobo.none>
-References: <20200706043540.1563616-1-npiggin@gmail.com>
-        <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
-        <1594101082.hfq9x5yact.astroid@bobo.none>
-        <de3ead58-7f81-8ebd-754d-244f6be24af4@redhat.com>
+Subject: Re: [PATCH] powerpc: select ARCH_HAS_MEMBARRIER_SYNC_CORE
+Date: Wed, 08 Jul 2020 15:17:49 +1000
+Message-ID: <1594185107.e130s0d92x.astroid@bobo.none>
+References: <20200706021822.1515189-1-npiggin@gmail.com>
+        <cf10b0bc-de79-1b2b-8355-fc7bbeec47c3@csgroup.eu>
+        <1594098302.nadnq2txti.astroid@bobo.none>
+        <638683144.970.1594121101349.JavaMail.zimbra@efficios.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
-Return-path: <kvm-ppc-owner@vger.kernel.org>
-In-Reply-To: <de3ead58-7f81-8ebd-754d-244f6be24af4@redhat.com>
-Sender: kvm-ppc-owner@vger.kernel.org
-To: linuxppc-dev@lists.ozlabs.org, Waiman Long <longman@redhat.com>
-Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48834 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725848AbgGHFRz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2020 01:17:55 -0400
+Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2D692C061755
+        for <linux-arch@vger.kernel.org>; Tue,  7 Jul 2020 22:17:55 -0700 (PDT)
+Received: by mail-pj1-x1043.google.com with SMTP id t15so664025pjq.5
+        for <linux-arch@vger.kernel.org>; Tue, 07 Jul 2020 22:17:55 -0700 (PDT)
+In-Reply-To: <638683144.970.1594121101349.JavaMail.zimbra@efficios.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: Christophe Leroy <christophe.leroy@csgroup.eu>, linux-arch <linux-arch@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
 
-Excerpts from Waiman Long's message of July 8, 2020 1:33 pm:
-> On 7/7/20 1:57 AM, Nicholas Piggin wrote:
->> Yes, powerpc could certainly get more performance out of the slow
->> paths, and then there are a few parameters to tune.
->>
->> We don't have a good alternate patching for function calls yet, but
->> that would be something to do for native vs pv.
->>
->> And then there seem to be one or two tunable parameters we could
->> experiment with.
->>
->> The paravirt locks may need a bit more tuning. Some simple testing
->> under KVM shows we might be a bit slower in some cases. Whether this
->> is fairness or something else I'm not sure. The current simple pv
->> spinlock code can do a directed yield to the lock holder CPU, whereas
->> the pv qspl here just does a general yield. I think we might actually
->> be able to change that to also support directed yield. Though I'm
->> not sure if this is actually the cause of the slowdown yet.
+Excerpts from Mathieu Desnoyers's message of July 7, 2020 9:25 pm:
+> ----- On Jul 7, 2020, at 1:50 AM, Nicholas Piggin npiggin@gmail.com wrote=
+:
 >=20
-> Regarding the paravirt lock, I have taken a further look into the=20
-> current PPC spinlock code. There is an equivalent of pv_wait() but no=20
-> pv_kick(). Maybe PPC doesn't really need that.
-
-So powerpc has two types of wait, either undirected "all processors" or=20
-directed to a specific processor which has been preempted by the=20
-hypervisor.
-
-The simple spinlock code does a directed wait, because it knows the CPU=20
-which is holding the lock. In this case, there is a sequence that is=20
-used to ensure we don't wait if the condition has become true, and the
-target CPU does not need to kick the waiter it will happen automatically
-(see splpar_spin_yield). This is preferable because we only wait as=20
-needed and don't require the kick operation.
-
-The pv spinlock code I did uses the undirected wait, because we don't
-know the CPU number which we are waiting on. This is undesirable because=20
-it's higher overhead and the wait is not so accurate.
-
-I think perhaps we could change things so we wait on the correct CPU=20
-when queued, which might be good enough (we could also put the lock
-owner CPU in the spinlock word, if we add another format).
-
-> Attached are two=20
-> additional qspinlock patches that adds a CONFIG_PARAVIRT_QSPINLOCKS_LITE=20
-> option to not require pv_kick(). There is also a fixup patch to be=20
-> applied after your patchset.
+>> Excerpts from Christophe Leroy's message of July 6, 2020 7:53 pm:
+>>>=20
+>>>=20
+>>> Le 06/07/2020 =C3=A0 04:18, Nicholas Piggin a =C3=A9crit=C2=A0:
+>>>> diff --git a/arch/powerpc/include/asm/exception-64s.h
+>>>> b/arch/powerpc/include/asm/exception-64s.h
+>>>> index 47bd4ea0837d..b88cb3a989b6 100644
+>>>> --- a/arch/powerpc/include/asm/exception-64s.h
+>>>> +++ b/arch/powerpc/include/asm/exception-64s.h
+>>>> @@ -68,6 +68,10 @@
+>>>>    *
+>>>>    * The nop instructions allow us to insert one or more instructions =
+to flush the
+>>>>    * L1-D cache when returning to userspace or a guest.
+>>>> + *
+>>>> + * powerpc relies on return from interrupt/syscall being context sync=
+hronising
+>>>> + * (which hrfid, rfid, and rfscv are) to support ARCH_HAS_MEMBARRIER_=
+SYNC_CORE
+>>>> + * without additional additional synchronisation instructions.
+>>>=20
+>>> This file is dedicated to BOOK3S/64. What about other ones ?
+>>>=20
+>>> On 32 bits, this is also valid as 'rfi' is also context synchronising,
+>>> but then why just add some comment in exception-64s.h and only there ?
+>>=20
+>> Yeah you're right, I basically wanted to keep a note there just in case,
+>> because it's possible we would get a less synchronising return (maybe
+>> unlikely with meltdown) or even return from a kernel interrupt using a
+>> something faster (e.g., bctar if we don't use tar register in the kernel
+>> anywhere).
+>>=20
+>> So I wonder where to add the note, entry_32.S and 64e.h as well?
+>>=20
 >=20
-> I don't have access to a PPC LPAR with shared processor at the moment,=20
-> so I can't test the performance of the paravirt code. Would you mind=20
-> adding my patches and do some performance test on your end to see if it=20
-> gives better result?
+> For 64-bit powerpc, I would be tempted to either place the comment in the=
+ header
+> implementing the RFI_TO_USER and RFI_TO_USER_OR_KERNEL macros or the .S f=
+iles
+> using them, e.g. either:
+>=20
+> arch/powerpc/include/asm/exception-64e.h
+> arch/powerpc/include/asm/exception-64s.h
+>=20
+> or
+>=20
+> arch/powerpc/kernel/exceptions-64s.S
+> arch/powerpc/kernel/entry_64.S
+>=20
+> And for 32-bit powerpc, AFAIU
+>=20
+> arch/powerpc/kernel/entry_32.S
+>=20
+> uses SYNC + RFI to return to user-space. RFI is defined in
+>=20
+> arch/powerpc/include/asm/ppc_asm.h
+>=20
+> So a comment either near the RFI define and its uses should work.
+>=20
+>> I should actually change the comment for 64-bit because soft masked
+>> interrupt replay is an interesting case. I thought it was okay (because
+>> the IPI would cause a hard interrupt which does do the rfi) but that
+>> should at least be written.
+>=20
+> Yes.
+>=20
+>> The context synchronisation happens before
+>> the Linux IPI function is called, but for the purpose of membarrier I
+>> think that is okay (the membarrier just needs to have caused a memory
+>> barrier + context synchronistaion by the time it has done).
+>=20
+> Can you point me to the code implementing this logic ?
 
-Great, I'll do some tests. Any suggestions for what to try?
+It's mostly in arch/powerpc/kernel/exception-64s.S and=20
+powerpc/kernel/irq.c, but a lot of asm so easier to explain.
+
+When any Linux code does local_irq_disable(), we set interrupts as=20
+software-masked in a per-cpu flag. When interrupts (including IPIs) come
+in, the first thing we do is check that flag and if we are masked, then
+record that the interrupt needs to be "replayed" in another per-cpu=20
+flag. The interrupt handler then exits back using RFI (which is context=20
+synchronising the CPU). Later, when the kernel code does=20
+local_irq_enable(), it checks the replay flag to see if anything needs=20
+to be done. At that point we basically just call the interrupt handler=20
+code like a normal function, and when that returns there is no context
+synchronising instruction.
+
+So membarrier IPI will always cause target CPUs to perform a context
+synchronising instruction, but sometimes it happens before the IPI=20
+handler function runs.
 
 Thanks,
 Nick
