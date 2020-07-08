@@ -1,74 +1,74 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [PATCH -next] Documentation/vm: fix tables in
- arch_pgtable_helpers
-Date: Wed, 8 Jul 2020 10:39:38 +0530
-Message-ID: <b738eae9-79b7-60d6-0d8e-0c57d23d4e41@arm.com>
-References: <02ee60d0-e836-2237-4881-5c57ccac5551@infradead.org>
- <b9dfad77-8dee-4628-a9f3-43417568a0e5@arm.com>
- <13943665-f1c8-dc34-37cc-a1f56ae57a5b@infradead.org>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
+Date: Wed, 08 Jul 2020 15:10:52 +1000
+Message-ID: <1594184204.ncuq7vstsz.astroid@bobo.none>
+References: <20200706043540.1563616-1-npiggin@gmail.com>
+        <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
+        <1594101082.hfq9x5yact.astroid@bobo.none>
+        <de3ead58-7f81-8ebd-754d-244f6be24af4@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:42080 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728589AbgGHFKM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Jul 2020 01:10:12 -0400
-In-Reply-To: <13943665-f1c8-dc34-37cc-a1f56ae57a5b@infradead.org>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Randy Dunlap <rdunlap@infradead.org>, Linux MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>
-Cc: Mike Rapoport <rppt@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <kvm-ppc-owner@vger.kernel.org>
+In-Reply-To: <de3ead58-7f81-8ebd-754d-244f6be24af4@redhat.com>
+Sender: kvm-ppc-owner@vger.kernel.org
+To: linuxppc-dev@lists.ozlabs.org, Waiman Long <longman@redhat.com>
+Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-
-
-On 07/08/2020 07:36 AM, Randy Dunlap wrote:
-> On 7/7/20 6:22 PM, Anshuman Khandual wrote:
+Excerpts from Waiman Long's message of July 8, 2020 1:33 pm:
+> On 7/7/20 1:57 AM, Nicholas Piggin wrote:
+>> Yes, powerpc could certainly get more performance out of the slow
+>> paths, and then there are a few parameters to tune.
 >>
+>> We don't have a good alternate patching for function calls yet, but
+>> that would be something to do for native vs pv.
 >>
->> On 07/08/2020 06:37 AM, Randy Dunlap wrote:
->>> From: Randy Dunlap <rdunlap@infradead.org>
->>>
->>> Make the tables be presented as tables in the generated output files
->>> (the line drawing did not present well).
->>>
->>> Signed-off-by: Randy Dunlap <rdunlap@infradead.org>
->>> Cc: Jonathan Corbet <corbet@lwn.net>
->>> Cc: linux-doc@vger.kernel.org
->>> Cc: Anshuman Khandual <anshuman.khandual@arm.com>
->>> Cc: Mike Rapoport <rppt@kernel.org>
->>> Cc: linux-arch@vger.kernel.org
->>> Cc: linux-mm@kvack.org
->>> Cc: Andrew Morton <akpm@linux-foundation.org>
->>> ---
->>>  Documentation/vm/arch_pgtable_helpers.rst |  333 ++++++--------------
->>>  1 file changed, 116 insertions(+), 217 deletions(-)
+>> And then there seem to be one or two tunable parameters we could
+>> experiment with.
 >>
->> Do you have a git URL some where to see these new output ? This
->> documentation is also useful when reading from a terminal where
->> these manual line drawing tables make sense.
->>
-> 
-> No, I don't have a git URL.
-> You can go to
-> https://drive.google.com/file/d/1FO6lCRKldzESwLdylvY8tw10dOBvwz84/view?usp=sharing
-> 
-> I had to Download the file and then view it locally. I couldn't get Google Drive
-> to display it for me as html (only as text).
+>> The paravirt locks may need a bit more tuning. Some simple testing
+>> under KVM shows we might be a bit slower in some cases. Whether this
+>> is fairness or something else I'm not sure. The current simple pv
+>> spinlock code can do a directed yield to the lock holder CPU, whereas
+>> the pv qspl here just does a general yield. I think we might actually
+>> be able to change that to also support directed yield. Though I'm
+>> not sure if this is actually the cause of the slowdown yet.
+>=20
+> Regarding the paravirt lock, I have taken a further look into the=20
+> current PPC spinlock code. There is an equivalent of pv_wait() but no=20
+> pv_kick(). Maybe PPC doesn't really need that.
 
-I could see it locally as well on a browser and the table looks the same
-way like those current manual ones on a terminal, so looks good to me.
+So powerpc has two types of wait, either undirected "all processors" or=20
+directed to a specific processor which has been preempted by the=20
+hypervisor.
 
-> 
-> I understand about reading tables at a terminal.
-> This file could have been a txt file for that, but it's not. It's a RsT file.
+The simple spinlock code does a directed wait, because it knows the CPU=20
+which is holding the lock. In this case, there is a sequence that is=20
+used to ensure we don't wait if the condition has become true, and the
+target CPU does not need to kick the waiter it will happen automatically
+(see splpar_spin_yield). This is preferable because we only wait as=20
+needed and don't require the kick operation.
 
-Thats right. All files in Documentation/vm/ are .rst type, hence would
-not like to have a .txt type in there.
+The pv spinlock code I did uses the undirected wait, because we don't
+know the CPU number which we are waiting on. This is undesirable because=20
+it's higher overhead and the wait is not so accurate.
 
-> 
-> If you want to leave it as is, please fix these warnings:
+I think perhaps we could change things so we wait on the correct CPU=20
+when queued, which might be good enough (we could also put the lock
+owner CPU in the spinlock word, if we add another format).
 
-Thats right. Can not have in both ways. Lets stick with .rst and change
-as required.
+> Attached are two=20
+> additional qspinlock patches that adds a CONFIG_PARAVIRT_QSPINLOCKS_LITE=20
+> option to not require pv_kick(). There is also a fixup patch to be=20
+> applied after your patchset.
+>=20
+> I don't have access to a PPC LPAR with shared processor at the moment,=20
+> so I can't test the performance of the paravirt code. Would you mind=20
+> adding my patches and do some performance test on your end to see if it=20
+> gives better result?
+
+Great, I'll do some tests. Any suggestions for what to try?
+
+Thanks,
+Nick
