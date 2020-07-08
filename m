@@ -1,172 +1,81 @@
-Return-Path: <SRS0=hqH0=AX=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:50592 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725765AbgGLMDm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 12 Jul 2020 08:03:42 -0400
-Date: Sun, 12 Jul 2020 13:03:36 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
-Message-ID: <20200712120335.GA30896@gaia>
-References: <20200710094420.517-1-yezhenyu2@huawei.com>
- <20200710094420.517-3-yezhenyu2@huawei.com>
- <20200710183158.GE11839@gaia>
- <b34e3d42-faaa-73ba-9b54-8e4017514ee0@huawei.com>
+Return-Path: <SRS0=HA2T=AT=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:59572 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1726117AbgGHX6s (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2020 19:58:48 -0400
+Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
+From: Waiman Long <longman@redhat.com>
+References: <20200706043540.1563616-1-npiggin@gmail.com>
+ <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
+ <1594101082.hfq9x5yact.astroid@bobo.none>
+ <de3ead58-7f81-8ebd-754d-244f6be24af4@redhat.com>
+ <1594184204.ncuq7vstsz.astroid@bobo.none>
+ <62fa6343-e084-75c3-01c9-349a4617e67c@redhat.com>
+Message-ID: <808a262d-8863-5986-082d-1088b66714df@redhat.com>
+Date: Wed, 8 Jul 2020 19:58:40 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <b34e3d42-faaa-73ba-9b54-8e4017514ee0@huawei.com>
+In-Reply-To: <62fa6343-e084-75c3-01c9-349a4617e67c@redhat.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200712120336.aaOe_AT2AVuvYghdiNbSqW2Lr6yAmcYR9Rgp6QEKJwU@z>
+To: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org
+Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
+Message-ID: <20200708235840.ZRTCmD6fmNte3o6jZZdgLAMu7u_GxCVd5lN1u6sfdU8@z>
 
-On Sat, Jul 11, 2020 at 02:50:46PM +0800, Zhenyu Ye wrote:
-> On 2020/7/11 2:31, Catalin Marinas wrote:
-> > On Fri, Jul 10, 2020 at 05:44:20PM +0800, Zhenyu Ye wrote:
-> >> -	if ((end - start) >= (MAX_TLBI_OPS * stride)) {
-> >> +	if ((!cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
-> >> +	    (end - start) >= (MAX_TLBI_OPS * stride)) ||
-> >> +	    pages >= MAX_TLBI_RANGE_PAGES) {
-> >>  		flush_tlb_mm(vma->vm_mm);
-> >>  		return;
-> >>  	}
-> > 
-> > I think we can use strictly greater here rather than greater or equal.
-> > MAX_TLBI_RANGE_PAGES can be encoded as num 31, scale 3.
-> 
-> Sorry, we can't.
-> For a boundary value (such as 2^6), we have two way to express it
-> in TLBI RANGE operations:
-> 1. scale = 0, num = 31.
-> 2. scale = 1, num = 0.
-> 
-> I used the second way in following implementation.  However, for the
-> MAX_TLBI_RANGE_PAGES, we can only use scale = 3, num = 31.
-> So if use strictly greater here, ERROR will happen when range pages
-> equal to MAX_TLBI_RANGE_PAGES.
+On 7/8/20 7:50 PM, Waiman Long wrote:
+> On 7/8/20 1:10 AM, Nicholas Piggin wrote:
+>> Excerpts from Waiman Long's message of July 8, 2020 1:33 pm:
+>>> On 7/7/20 1:57 AM, Nicholas Piggin wrote:
+>>>> Yes, powerpc could certainly get more performance out of the slow
+>>>> paths, and then there are a few parameters to tune.
+>>>>
+>>>> We don't have a good alternate patching for function calls yet, but
+>>>> that would be something to do for native vs pv.
+>>>>
+>>>> And then there seem to be one or two tunable parameters we could
+>>>> experiment with.
+>>>>
+>>>> The paravirt locks may need a bit more tuning. Some simple testing
+>>>> under KVM shows we might be a bit slower in some cases. Whether this
+>>>> is fairness or something else I'm not sure. The current simple pv
+>>>> spinlock code can do a directed yield to the lock holder CPU, whereas
+>>>> the pv qspl here just does a general yield. I think we might actually
+>>>> be able to change that to also support directed yield. Though I'm
+>>>> not sure if this is actually the cause of the slowdown yet.
+>>> Regarding the paravirt lock, I have taken a further look into the
+>>> current PPC spinlock code. There is an equivalent of pv_wait() but no
+>>> pv_kick(). Maybe PPC doesn't really need that.
+>> So powerpc has two types of wait, either undirected "all processors" or
+>> directed to a specific processor which has been preempted by the
+>> hypervisor.
+>>
+>> The simple spinlock code does a directed wait, because it knows the CPU
+>> which is holding the lock. In this case, there is a sequence that is
+>> used to ensure we don't wait if the condition has become true, and the
+>> target CPU does not need to kick the waiter it will happen automatically
+>> (see splpar_spin_yield). This is preferable because we only wait as
+>> needed and don't require the kick operation.
+> Thanks for the explanation.
+>>
+>> The pv spinlock code I did uses the undirected wait, because we don't
+>> know the CPU number which we are waiting on. This is undesirable because
+>> it's higher overhead and the wait is not so accurate.
+>>
+>> I think perhaps we could change things so we wait on the correct CPU
+>> when queued, which might be good enough (we could also put the lock
+>> owner CPU in the spinlock word, if we add another format).
+>
+> The LS byte of the lock word is used to indicate locking status. If we 
+> have less than 255 cpus, we can put the (cpu_nr + 1) into the lock 
+> byte. The special 0xff value can be used to indicate a cpu number >= 
+> 255 for indirect yield. The required change to the qspinlock code will 
+> be minimal, I think. 
 
-You are right, I got confused by the __TLBI_RANGE_NUM() macro which
-doesn't return the actual 'num' for the TLBI argument as it would go
-from 0 to 31. After subtracting 1, num end sup from -1 to 30, so we
-never get the maximum range. I think for scale 3 and num 31, this would
-be 8GB with 4K pages, so the maximum we'd cover 8GB - 64K * 4K.
+BTW, we can also keep track of the previous cpu in the waiting queue. 
+Due to lock stealing, that may not be the cpu that is holding the lock. 
+Maybe we can use this, if available, in case the cpu number is >= 255.
 
-> There are two ways to avoid this bug:
-> 1. Just keep 'greater or equal' here.  The ARM64 specification does
-> not specify how we flush tlb entries in this case, flush_tlb_mm()
-> is also a good choice for such a wide range of pages.
-
-I'll go for this option, I don't think it would make much difference in
-practice if we stop at 8GB - 256M range.
-
-> 2. Add check in the loop, just like: (this may cause the codes a bit ugly)
-> 
-> 	num = __TLBI_RANGE_NUM(pages, scale) - 1;
-> 
-> 	/* scale = 4, num = 0 is equal to scale = 3, num = 31. */
-> 	if (scale == 4 && num == 0) {
-> 		scale = 3;
-> 		num = 31;
-> 	}
-> 
-> 	if (num >= 0) {
-> 	...
-> 
-> Which one do you prefer and how do you want to fix this error? Just
-> a fix patch again?
-
-I'll fold the diff below and refresh the patch:
-
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-index 1eb0588718fb..0300e433ffe6 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -147,9 +147,13 @@ static inline unsigned long get_trans_granule(void)
- #define __TLBI_RANGE_PAGES(num, scale)	(((num) + 1) << (5 * (scale) + 1))
- #define MAX_TLBI_RANGE_PAGES		__TLBI_RANGE_PAGES(31, 3)
- 
-+/*
-+ * Generate 'num' values from -1 to 30 with -1 rejected by the
-+ * __flush_tlb_range() loop below.
-+ */
- #define TLBI_RANGE_MASK			GENMASK_ULL(4, 0)
- #define __TLBI_RANGE_NUM(range, scale)	\
--	(((range) >> (5 * (scale) + 1)) & TLBI_RANGE_MASK)
-+	((((range) >> (5 * (scale) + 1)) & TLBI_RANGE_MASK) - 1)
- 
- /*
-  *	TLB Invalidation
-@@ -285,8 +289,8 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
- 	pages = (end - start) >> PAGE_SHIFT;
- 
- 	if ((!cpus_have_const_cap(ARM64_HAS_TLB_RANGE) &&
--	     (end - start) > (MAX_TLBI_OPS * stride)) ||
--	    pages > MAX_TLBI_RANGE_PAGES) {
-+	     (end - start) >= (MAX_TLBI_OPS * stride)) ||
-+	    pages >= MAX_TLBI_RANGE_PAGES) {
- 		flush_tlb_mm(vma->vm_mm);
- 		return;
- 	}
-@@ -306,6 +310,10 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
- 	 *    Start from scale = 0, flush the corresponding number of pages
- 	 *    ((num+1)*2^(5*scale+1) starting from 'addr'), then increase it
- 	 *    until no pages left.
-+	 *
-+	 * Note that certain ranges can be represented by either num = 31 and
-+	 * scale or num = 0 and scale + 1. The loop below favours the latter
-+	 * since num is limited to 30 by the __TLBI_RANGE_NUM() macro.
- 	 */
- 	while (pages > 0) {
- 		if (!cpus_have_const_cap(ARM64_HAS_TLB_RANGE) ||
-@@ -323,7 +331,7 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
- 			continue;
- 		}
- 
--		num = __TLBI_RANGE_NUM(pages, scale) - 1;
-+		num = __TLBI_RANGE_NUM(pages, scale);
- 		if (num >= 0) {
- 			addr = __TLBI_VADDR_RANGE(start, asid, scale,
- 						  num, tlb_level);
-
-> >> -	/* Convert the stride into units of 4k */
-> >> -	stride >>= 12;
-> >> +	dsb(ishst);
-> >>  
-> >> -	start = __TLBI_VADDR(start, asid);
-> >> -	end = __TLBI_VADDR(end, asid);
-> >> +	/*
-> >> +	 * When cpu does not support TLBI RANGE feature, we flush the tlb
-> >> +	 * entries one by one at the granularity of 'stride'.
-> >> +	 * When cpu supports the TLBI RANGE feature, then:
-> >> +	 * 1. If pages is odd, flush the first page through non-RANGE
-> >> +	 *    instruction;
-> >> +	 * 2. For remaining pages: The minimum range granularity is decided
-> >> +	 *    by 'scale', so we can not flush all pages by one instruction
-> >> +	 *    in some cases.
-> >> +	 *    Here, we start from scale = 0, flush corresponding pages
-> >> +	 *    (from 2^(5*scale + 1) to 2^(5*(scale + 1) + 1)), and increase
-> >> +	 *    it until no pages left.
-> >> +	 */
-> >> +	while (pages > 0) {
-> > 
-> > I did some simple checks on ((end - start) % stride) and never
-> > triggered. I had a slight worry that pages could become negative (and
-> > we'd loop forever since it's unsigned long) for some mismatched stride
-> > and flush size. It doesn't seem like.
-> 
-> The start and end are round_down/up in the function:
-> 
-> 	start = round_down(start, stride);
->  	end = round_up(end, stride);
-> 
-> So the flush size and stride will never mismatch.
-
-Right.
-
-To make sure we don't miss any corner cases, I'll try to through the
-algorithm above at CBMC (model checker; hopefully next week if I find
-some time).
-
--- 
-Catalin
+Regards,
+Longman
