@@ -1,65 +1,45 @@
-Return-Path: <SRS0=GDSS=AV=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mailgate-2.ics.forth.gr ([139.91.1.5]:51344 "EHLO
-        mailgate-2.ics.forth.gr" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725966AbgGJHUs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2020 03:20:48 -0400
+Return-Path: <SRS0=HA2T=AT=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.130]:42745 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725787AbgGHHrx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2020 03:47:53 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8;
- format=flowed
-Content-Transfer-Encoding: 8bit
-Date: Fri, 10 Jul 2020 08:48:17 +0300
-From: Nick Kossifidis <mick@ics.forth.gr>
-Subject: Re: [PATCH 1/5] lib: Add a generic version of devmem_is_allowed()
-In-Reply-To: <20200710053850.GA27019@infradead.org>
-References: <20200709200552.1910298-1-palmer@dabbelt.com>
- <20200709200552.1910298-2-palmer@dabbelt.com>
- <20200709204921.GJ781326@linux.ibm.com>
- <20200710053850.GA27019@infradead.org>
-Message-ID: <a037dac961c989d027eab293a0280643@mailhost.ics.forth.gr>
+References: <20200707180955.53024-1-mic@digikod.net> <20200707180955.53024-10-mic@digikod.net>
+ <CAK8P3a0docCqHkEn9C7=e0GC_ieN1dsYgKQ9PbUmSZYxh9MRnw@mail.gmail.com> <8d2dab03-289e-2872-db66-ce80ce5c189f@digikod.net>
+In-Reply-To: <8d2dab03-289e-2872-db66-ce80ce5c189f@digikod.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 8 Jul 2020 09:47:33 +0200
+Message-ID: <CAK8P3a3Mf_+-MY5kdeY7sqwUgCUi=PksWz1pGDy+o0ZfgF93Zw@mail.gmail.com>
+Subject: Re: [PATCH v19 09/12] arch: Wire up landlock() syscall
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Mike Rapoport <rppt@linux.ibm.com>, mark.rutland@arm.com, steve@sk2.org, gregory.0xf0@gmail.com, catalin.marinas@arm.com, linus.walleij@linaro.org, Palmer Dabbelt <palmerdabbelt@google.com>, zaslonko@linux.ibm.com, glider@google.com, krzk@kernel.org, zong.li@sifive.com, mchehab+samsung@kernel.org, linux-riscv@lists.infradead.org, alex.shi@linux.alibaba.com, will@kernel.org, ardb@kernel.org, linux-arch@vger.kernel.org, paulmck@kernel.org, alex@ghiti.fr, bgolaszewski@baylibre.com, masahiroy@kernel.org, linux@armlinux.org.uk, willy@infradead.org, takahiro.akashi@linaro.org, james.morse@arm.com, kernel-team@android.com, Arnd Bergmann <arnd@arndb.de>, pmladek@suse.com, elver@google.com, aou@eecs.berkeley.edu, keescook@chromium.org, uwe@kleine-koenig.org, rostedt@goodmis.org, broonie@kernel.org, davidgow@google.com, Paul Walmsley <paul.walmsley@sifive.com>, dan.j.williams@intel.com, andriy.shevchenko@linux.intel.com, gxt@pku.edu.cn, linux-arm-kernel@lists.infradead.org, Nick Desaulniers <ndesaulniers@google.com>, tglx@linutronix.de, rdunlap@infradead.org, matti.vaittinen@fi.rohmeurope.com, linux-kernel@vger.kernel.org, mcgrof@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, mhiramat@kernel.org, akpm@linux-foundation.org, davem@davemloft.net
-Message-ID: <20200710054817.YL03ebyRHBwblHIQXMDXW13wb5pDZVtD8mzzLTA55Zw@z>
+To: =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
+Message-ID: <20200708074733.f5AjmPWp3K4L1KATVTFF75Clz88iTREmwZOC8WvPA2I@z>
 
-Στις 2020-07-10 08:38, Christoph Hellwig έγραψε:
-> On Thu, Jul 09, 2020 at 11:49:21PM +0300, Mike Rapoport wrote:
->> > +#ifndef CONFIG_GENERIC_DEVMEM_IS_ALLOWED
->> > +extern int devmem_is_allowed(unsigned long pfn);
->> > +#endif
-> 
-> Nit: no need for the extern here.
-> 
->> > +config GENERIC_LIB_DEVMEM_IS_ALLOWED
->> > +	bool
->> > +	select ARCH_HAS_DEVMEM_IS_ALLOWED
->> 
->> This seems to work the other way around from the usual Kconfig chains.
->> In the most cases ARCH_HAS_SOMETHING selects GENERIC_SOMETHING.
->> 
->> I believe nicer way would be to make
->> 
->> config STRICT_DEVMEM
->> 	bool "Filter access to /dev/mem"
->> 	depends on MMU && DEVMEM
->> 	depends on ARCH_HAS_DEVMEM_IS_ALLOWED || 
->> GENERIC_LIB_DEVMEM_IS_ALLOWED
->> 
->> config GENERIC_LIB_DEVMEM_IS_ALLOWED
->> 	bool
->> 
->> and then s/select ARCH_HAS_DEVMEM_IS_ALLOWED/select 
->> GENERIC_LIB_DEVMEM_IS_ALLOWED/
->> in the arch Kconfigs and drop ARCH_HAS_DEVMEM_IS_ALLOWED in the end.
-> 
-> To take a step back:  Is there any reason to not just always
-> STRICT_DEVMEM? Maybe for a few architectures that don't currently
-> support a strict /dev/mem the generic version isn't quite correct, but
-> someone selecting the option and finding the issue is the best way to
-> figure that out..
-> 
+On Wed, Jul 8, 2020 at 9:31 AM Mickaël Salaün <mic@digikod.net> wrote:
+> On 08/07/2020 09:22, Arnd Bergmann wrote:
+> > On Tue, Jul 7, 2020 at 8:10 PM Mickaël Salaün <mic@digikod.net> wrote:
+> >
+> >> index f4a01305d9a6..a63a411a74d5 100644
+> >> --- a/include/uapi/asm-generic/unistd.h
+> >> +++ b/include/uapi/asm-generic/unistd.h
+>
+> OK, I'll rebase the next series on linux-next.
 
-During prototyping / testing having full access to all physical memory 
-through /dev/mem is very useful. We should have it enabled by default 
-but leave the config option there so that users / developers can disable 
-it if needed IMHO.
+Just change the number to the next free one, without actually rebasing.
+It's always a bit messy to have multiple syscalls added, but I think that
+causes the least confusion.
+
+> Do you know if there is other syscalls on their way to linux-next?
+
+None that I'm aware of.
+
+> Are the other parts of arch/syscall OK for you?
+
+The arch/* and include/uapi/asm-generic changes look ok to me.
+I'll reply to the syscall implementation separately/
+
+     Arnd
