@@ -1,92 +1,90 @@
-Return-Path: <SRS0=YdXP=AO=kvack.org=owner-linux-mm@kernel.org>
-Date: Fri, 3 Jul 2020 11:50:49 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v5 19/25] arm64: mte: Add PTRACE_{PEEK,POKE}MTETAGS
- support
-Message-ID: <20200703104412.GB14950@gaia>
-References: <20200624175244.25837-1-catalin.marinas@arm.com>
- <20200624175244.25837-20-catalin.marinas@arm.com>
- <7fd536af-f9fa-aa10-a4c3-001e80dd7d7b@linaro.org>
+Return-Path: <SRS0=HA2T=AT=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-1.mimecast.com ([205.139.110.61]:54928 "EHLO
+        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1725972AbgGHXuR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2020 19:50:17 -0400
+Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
+References: <20200706043540.1563616-1-npiggin@gmail.com>
+ <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
+ <1594101082.hfq9x5yact.astroid@bobo.none>
+ <de3ead58-7f81-8ebd-754d-244f6be24af4@redhat.com>
+ <1594184204.ncuq7vstsz.astroid@bobo.none>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <62fa6343-e084-75c3-01c9-349a4617e67c@redhat.com>
+Date: Wed, 8 Jul 2020 19:50:05 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <7fd536af-f9fa-aa10-a4c3-001e80dd7d7b@linaro.org>
-Sender: owner-linux-mm@kvack.org
-To: Luis Machado <luis.machado@linaro.org>
-Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>, Alan Hayward <Alan.Hayward@arm.com>, Omair Javaid <omair.javaid@linaro.org>
+In-Reply-To: <1594184204.ncuq7vstsz.astroid@bobo.none>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200703105049.fGcfaOdYbM0c8fTtH-ARd7Amk3vc8wucOIbdrFVX73Q@z>
+To: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org
+Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
+Message-ID: <20200708235005.jIbmxOvIC9w1LgPiW-xt1pW9FME9loC6XVXeJPJC-oo@z>
 
-Hi Luis,
+On 7/8/20 1:10 AM, Nicholas Piggin wrote:
+> Excerpts from Waiman Long's message of July 8, 2020 1:33 pm:
+>> On 7/7/20 1:57 AM, Nicholas Piggin wrote:
+>>> Yes, powerpc could certainly get more performance out of the slow
+>>> paths, and then there are a few parameters to tune.
+>>>
+>>> We don't have a good alternate patching for function calls yet, but
+>>> that would be something to do for native vs pv.
+>>>
+>>> And then there seem to be one or two tunable parameters we could
+>>> experiment with.
+>>>
+>>> The paravirt locks may need a bit more tuning. Some simple testing
+>>> under KVM shows we might be a bit slower in some cases. Whether this
+>>> is fairness or something else I'm not sure. The current simple pv
+>>> spinlock code can do a directed yield to the lock holder CPU, whereas
+>>> the pv qspl here just does a general yield. I think we might actually
+>>> be able to change that to also support directed yield. Though I'm
+>>> not sure if this is actually the cause of the slowdown yet.
+>> Regarding the paravirt lock, I have taken a further look into the
+>> current PPC spinlock code. There is an equivalent of pv_wait() but no
+>> pv_kick(). Maybe PPC doesn't really need that.
+> So powerpc has two types of wait, either undirected "all processors" or
+> directed to a specific processor which has been preempted by the
+> hypervisor.
+>
+> The simple spinlock code does a directed wait, because it knows the CPU
+> which is holding the lock. In this case, there is a sequence that is
+> used to ensure we don't wait if the condition has become true, and the
+> target CPU does not need to kick the waiter it will happen automatically
+> (see splpar_spin_yield). This is preferable because we only wait as
+> needed and don't require the kick operation.
+Thanks for the explanation.
+>
+> The pv spinlock code I did uses the undirected wait, because we don't
+> know the CPU number which we are waiting on. This is undesirable because
+> it's higher overhead and the wait is not so accurate.
+>
+> I think perhaps we could change things so we wait on the correct CPU
+> when queued, which might be good enough (we could also put the lock
+> owner CPU in the spinlock word, if we add another format).
 
-On Thu, Jun 25, 2020 at 02:10:10PM -0300, Luis Machado wrote:
-> On 6/24/20 2:52 PM, Catalin Marinas wrote:
-> > +/*
-> > + * Access MTE tags in another process' address space as given in mm. Update
-> > + * the number of tags copied. Return 0 if any tags copied, error otherwise.
-> > + * Inspired by __access_remote_vm().
-> > + */
-> > +static int __access_remote_tags(struct task_struct *tsk, struct mm_struct *mm,
-> > +				unsigned long addr, struct iovec *kiov,
-> > +				unsigned int gup_flags)
-> > +{
-> > +	struct vm_area_struct *vma;
-> > +	void __user *buf = kiov->iov_base;
-> > +	size_t len = kiov->iov_len;
-> > +	int ret;
-> > +	int write = gup_flags & FOLL_WRITE;
-> > +
-> > +	if (!access_ok(buf, len))
-> > +		return -EFAULT;
-> > +
-> > +	if (mmap_read_lock_killable(mm))
-> > +		return -EIO;
-> > +
-> > +	while (len) {
-> > +		unsigned long tags, offset;
-> > +		void *maddr;
-> > +		struct page *page = NULL;
-> > +
-> > +		ret = get_user_pages_remote(tsk, mm, addr, 1, gup_flags,
-> > +					    &page, &vma, NULL);
-> > +		if (ret <= 0)
-> > +			break;
-> > +
-> > +		/*
-> > +		 * Only copy tags if the page has been mapped as PROT_MTE
-> > +		 * (PG_mte_tagged set). Otherwise the tags are not valid and
-> > +		 * not accessible to user. Moreover, an mprotect(PROT_MTE)
-> > +		 * would cause the existing tags to be cleared if the page
-> > +		 * was never mapped with PROT_MTE.
-> > +		 */
-> > +		if (!test_bit(PG_mte_tagged, &page->flags)) {
-> > +			ret = -EOPNOTSUPP;
-> > +			put_page(page);
-> > +			break;
-> > +		}
-[...]
-> My understanding is that both the PEEKMTETAGS and POKEMTETAGS can
-> potentially read/write less tags than requested, right? The iov_len field
-> will be updated accordingly.
+The LS byte of the lock word is used to indicate locking status. If we 
+have less than 255 cpus, we can put the (cpu_nr + 1) into the lock byte. 
+The special 0xff value can be used to indicate a cpu number >= 255 for 
+indirect yield. The required change to the qspinlock code will be 
+minimal, I think.
 
-Yes.
 
-(I missed this part due to the mix of top/bottom-posting)
+>> Attached are two
+>> additional qspinlock patches that adds a CONFIG_PARAVIRT_QSPINLOCKS_LITE
+>> option to not require pv_kick(). There is also a fixup patch to be
+>> applied after your patchset.
+>>
+>> I don't have access to a PPC LPAR with shared processor at the moment,
+>> so I can't test the performance of the paravirt code. Would you mind
+>> adding my patches and do some performance test on your end to see if it
+>> gives better result?
+> Great, I'll do some tests. Any suggestions for what to try?
 
-> So the ptrace caller would need to loop and make sure all the tags were
-> read/written, right?
+I will just like to see if it will produce some better performance 
+result compared with your current version.
 
-Yes. As per the documentation patch, if the ptrace call returns 0,
-iov_len is updated to the number of tags copied. The caller can retry
-until it gets a negative return (error) or everything was copied.
-
-> I'm considering the situation where the kernel reads/writes 0 tags (when
-> requested to read/write 1 or more tags) an error we can't recover from. So
-> this may indicate a page without PROT_MTE or an invalid address.
-
-For this case, it should return -EOPNOTSUPP (see the documentation
-patch; and, of course, also test the syscall in case I got anything
-wrong).
-
--- 
-Catalin
+Cheers,
+Longman
