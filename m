@@ -1,67 +1,41 @@
-From: =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mic@digikod.net>
-Subject: Re: [PATCH v19 07/12] landlock: Support filesystem access-control
-Date: Wed, 8 Jul 2020 09:03:46 +0200
-Message-ID: <b5d5326f-cf37-36f0-7bce-8494c5a65cb5@digikod.net>
-References: <20200707180955.53024-1-mic@digikod.net>
- <20200707180955.53024-8-mic@digikod.net>
- <6a80b712-a7b9-7b47-083a-08b7769016f8@infradead.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v19 09/12] arch: Wire up landlock() syscall
+Date: Wed, 8 Jul 2020 09:22:39 +0200
+Message-ID: <CAK8P3a0docCqHkEn9C7=e0GC_ieN1dsYgKQ9PbUmSZYxh9MRnw@mail.gmail.com>
+References: <20200707180955.53024-1-mic@digikod.net> <20200707180955.53024-10-mic@digikod.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-security-module-owner@vger.kernel.org>
-In-Reply-To: <6a80b712-a7b9-7b47-083a-08b7769016f8@infradead.org>
-Content-Language: fr
-Sender: owner-linux-security-module@vger.kernel.org
-To: Randy Dunlap <rdunlap@infradead.org>, linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?Q?Micka=c3=abl_Sala=c3=bcn?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@v
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20200707180955.53024-10-mic@digikod.net>
+Sender: linux-doc-owner@vger.kernel.org
+To: =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>linux-a
 List-Id: linux-arch.vger.kernel.org
 
+On Tue, Jul 7, 2020 at 8:10 PM Mickaël Salaün <mic@digikod.net> wrote:
 
-On 07/07/2020 22:11, Randy Dunlap wrote:
-> Hi--
-> 
-> On 7/7/20 11:09 AM, Mickaël Salaün wrote:
->> ---
->>  arch/Kconfig                  |   7 +
->>  arch/um/Kconfig               |   1 +
->>  include/uapi/linux/landlock.h |  78 +++++
->>  security/landlock/Kconfig     |   2 +-
->>  security/landlock/Makefile    |   2 +-
->>  security/landlock/fs.c        | 609 ++++++++++++++++++++++++++++++++++
->>  security/landlock/fs.h        |  60 ++++
->>  security/landlock/setup.c     |   7 +
->>  security/landlock/setup.h     |   2 +
->>  9 files changed, 766 insertions(+), 2 deletions(-)
->>  create mode 100644 include/uapi/linux/landlock.h
->>  create mode 100644 security/landlock/fs.c
->>  create mode 100644 security/landlock/fs.h
->>
->> diff --git a/arch/Kconfig b/arch/Kconfig
->> index 8cc35dc556c7..483b7476ac69 100644
->> --- a/arch/Kconfig
->> +++ b/arch/Kconfig
->> @@ -845,6 +845,13 @@ config COMPAT_32BIT_TIME
->>  config ARCH_NO_PREEMPT
->>  	bool
->>  
->> +config ARCH_EPHEMERAL_STATES
->> +	def_bool n
->> +	help
->> +	  An arch should select this symbol if it do not keep an internal kernel
-> 
-> 	                                       it does not
-> 
->> +	  state for kernel objects such as inodes, but instead rely on something
-> 
-> 	                                               instead relies on
-> 
->> +	  else (e.g. the host kernel for an UML kernel).
->> +
->>  config ARCH_SUPPORTS_RT
->>  	bool
->>  
-> 
-> thanks.
-> 
+> index f4a01305d9a6..a63a411a74d5 100644
+> --- a/include/uapi/asm-generic/unistd.h
+> +++ b/include/uapi/asm-generic/unistd.h
+> @@ -857,9 +857,11 @@ __SYSCALL(__NR_openat2, sys_openat2)
+>  __SYSCALL(__NR_pidfd_getfd, sys_pidfd_getfd)
+>  #define __NR_faccessat2 439
+>  __SYSCALL(__NR_faccessat2, sys_faccessat2)
+> +#define __NR_landlock 440
+> +__SYSCALL(__NR_landlock, sys_landlock)
+>
+>  #undef __NR_syscalls
+> -#define __NR_syscalls 440
+> +#define __NR_syscalls 441
 
-Thanks Randy!
+In linux-next, we already have:
+
++#define __NR_watch_mount 440
++#define __NR_watch_sb 441
++#define __NR_fsinfo 442
++#define __NR_process_madvise 443
+
+You may want to increase the number again.
+
+      Arnd
