@@ -1,44 +1,69 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v19 09/12] arch: Wire up landlock() syscall
-Date: Wed, 8 Jul 2020 10:58:49 +0200
-Message-ID: <CAK8P3a0RKEb0jcisgaXVd6wJU6GaEsDAJp+jDFyJBdMPDE__ZQ@mail.gmail.com>
-References: <20200707180955.53024-1-mic@digikod.net> <20200707180955.53024-10-mic@digikod.net>
- <CAK8P3a0docCqHkEn9C7=e0GC_ieN1dsYgKQ9PbUmSZYxh9MRnw@mail.gmail.com>
- <8d2dab03-289e-2872-db66-ce80ce5c189f@digikod.net> <CAK8P3a3Mf_+-MY5kdeY7sqwUgCUi=PksWz1pGDy+o0ZfgF93Zw@mail.gmail.com>
- <956a05c8-529b-bf97-99ac-8958cceb35f3@digikod.net>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: Re: [RFC PATCH v4 2/2] arm64: tlb: Use the TLBI RANGE feature in
+ arm64
+Date: Wed, 8 Jul 2020 17:01:08 +0800
+Message-ID: <f362680d-b16f-e713-153d-2e026fa8bfd4@huawei.com>
+References: <20200601144713.2222-1-yezhenyu2@huawei.com>
+ <20200601144713.2222-3-yezhenyu2@huawei.com> <20200707173617.GA32331@gaia>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <956a05c8-529b-bf97-99ac-8958cceb35f3@digikod.net>
-Sender: linux-doc-owner@vger.kernel.org
-To: =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>linux-a
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga06-in.huawei.com ([45.249.212.32]:58014 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725789AbgGHJBW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Jul 2020 05:01:22 -0400
+In-Reply-To: <20200707173617.GA32331@gaia>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 
-On Wed, Jul 8, 2020 at 10:23 AM Mickaël Salaün <mic@digikod.net> wrote:
-> On 08/07/2020 09:47, Arnd Bergmann wrote:
-> > On Wed, Jul 8, 2020 at 9:31 AM Mickaël Salaün <mic@digikod.net> wrote:
-> >> On 08/07/2020 09:22, Arnd Bergmann wrote:
-> >>> On Tue, Jul 7, 2020 at 8:10 PM Mickaël Salaün <mic@digikod.net> wrote:
-> >>>
-> >>>> index f4a01305d9a6..a63a411a74d5 100644
-> >>>> --- a/include/uapi/asm-generic/unistd.h
-> >>>> +++ b/include/uapi/asm-generic/unistd.h
-> >>
-> >> OK, I'll rebase the next series on linux-next.
-> >
-> > Just change the number to the next free one, without actually rebasing.
-> > It's always a bit messy to have multiple syscalls added, but I think that
-> > causes the least confusion.
->
-> OK, but this will lead to two merge conflicts: patch 8 (asmlinkage) and
-> patch 9 (tbl files).
+Hi Catalin,
 
-Yes, there isn't really much one can do about that.
+On 2020/7/8 1:36, Catalin Marinas wrote:
+> On Mon, Jun 01, 2020 at 10:47:13PM +0800, Zhenyu Ye wrote:
+>> @@ -59,6 +69,47 @@
+>>  		__ta;						\
+>>  	})
+>>  
+>> +/*
+>> + * __TG defines translation granule of the system, which is decided by
+>> + * PAGE_SHIFT.  Used by TTL.
+>> + *  - 4KB	: 1
+>> + *  - 16KB	: 2
+>> + *  - 64KB	: 3
+>> + */
+>> +#define __TG	((PAGE_SHIFT - 12) / 2 + 1)
+> 
+> Nitpick: maybe something like __TLBI_TG to avoid clashes in case someone
+> else defines a __TG macro.
+> 
 
-> Do you want me to update the tools/perf/arch/*.tbl too?
+Thanks for your review. According to Marc and Robin's suggestion, I will remove this
+macro.
+I'd like implement this in a function beacause it's used in both TTL and TLB RANGE.
 
-No, I would leave them unchanged.
+>> -	for (addr = start; addr < end; addr += stride) {
+>> -		if (last_level) {
+>> -			__tlbi(vale1is, addr);
+>> -			__tlbi_user(vale1is, addr);
+>> -		} else {
+>> -			__tlbi(vae1is, addr);
+>> -			__tlbi_user(vae1is, addr);
+>> +	while (range_pages > 0) {
+>> +		if (cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
+>> +		    stride == PAGE_SIZE) {
+> 
+> I think we could have the odd range_pages check here:
+> 
+> 		if (cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
+> 		    stride == PAGE_SIZE && range_pages % 2 == 0) {
+> 
+> and avoid the one outside the loop.
+> 
 
-     Arnd
+This may need some other necessary changes to do this. See in next version series.
+
+Thanks,
+Zhenyu
