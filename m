@@ -1,178 +1,79 @@
-Return-Path: <SRS0=hCR/=AV=kvack.org=owner-linux-mm@kernel.org>
+Return-Path: <SRS0=HA2T=AT=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47786 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726174AbgGHFK6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2020 01:10:58 -0400
+Date: Wed, 08 Jul 2020 15:10:52 +1000
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [RFC PATCH 1/7] asm-generic: add generic MMU versions of mmu context functions
-Date: Fri, 10 Jul 2020 11:56:40 +1000
-Message-ID: <20200710015646.2020871-2-npiggin@gmail.com>
-In-Reply-To: <20200710015646.2020871-1-npiggin@gmail.com>
-References: <20200710015646.2020871-1-npiggin@gmail.com>
+Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
+References: <20200706043540.1563616-1-npiggin@gmail.com>
+        <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
+        <1594101082.hfq9x5yact.astroid@bobo.none>
+        <de3ead58-7f81-8ebd-754d-244f6be24af4@redhat.com>
+In-Reply-To: <de3ead58-7f81-8ebd-754d-244f6be24af4@redhat.com>
 MIME-Version: 1.0
+Message-ID: <1594184204.ncuq7vstsz.astroid@bobo.none>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>, Remis Lima Baima <remis.developer@googlemail.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200710015640.9uZtDbVTfYSy-dyJrv5C34Q2TJEr77rjLjMMYKeEFgw@z>
+To: linuxppc-dev@lists.ozlabs.org, Waiman Long <longman@redhat.com>
+Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
+Message-ID: <20200708051052.faCFXAXRKeFhfvYh8A4FO9WOKTjJd8RrQKL-DjTuw5s@z>
 
-Many of these are no-ops on many architectures, so extend mmu_context.h
-to cover MMU and NOMMU, and split the NOMMU bits out to nommu_context.h
+Excerpts from Waiman Long's message of July 8, 2020 1:33 pm:
+> On 7/7/20 1:57 AM, Nicholas Piggin wrote:
+>> Yes, powerpc could certainly get more performance out of the slow
+>> paths, and then there are a few parameters to tune.
+>>
+>> We don't have a good alternate patching for function calls yet, but
+>> that would be something to do for native vs pv.
+>>
+>> And then there seem to be one or two tunable parameters we could
+>> experiment with.
+>>
+>> The paravirt locks may need a bit more tuning. Some simple testing
+>> under KVM shows we might be a bit slower in some cases. Whether this
+>> is fairness or something else I'm not sure. The current simple pv
+>> spinlock code can do a directed yield to the lock holder CPU, whereas
+>> the pv qspl here just does a general yield. I think we might actually
+>> be able to change that to also support directed yield. Though I'm
+>> not sure if this is actually the cause of the slowdown yet.
+>=20
+> Regarding the paravirt lock, I have taken a further look into the=20
+> current PPC spinlock code. There is an equivalent of pv_wait() but no=20
+> pv_kick(). Maybe PPC doesn't really need that.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Remis Lima Baima <remis.developer@googlemail.com>
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/microblaze/include/asm/mmu_context.h |  2 +-
- arch/sh/include/asm/mmu_context.h         |  2 +-
- include/asm-generic/mmu_context.h         | 57 +++++++++++++++++------
- include/asm-generic/nommu_context.h       | 19 ++++++++
- 4 files changed, 64 insertions(+), 16 deletions(-)
- create mode 100644 include/asm-generic/nommu_context.h
+So powerpc has two types of wait, either undirected "all processors" or=20
+directed to a specific processor which has been preempted by the=20
+hypervisor.
 
-diff --git a/arch/microblaze/include/asm/mmu_context.h b/arch/microblaze/=
-include/asm/mmu_context.h
-index f74f9da07fdc..34004efb3def 100644
---- a/arch/microblaze/include/asm/mmu_context.h
-+++ b/arch/microblaze/include/asm/mmu_context.h
-@@ -2,5 +2,5 @@
- #ifdef CONFIG_MMU
- # include <asm/mmu_context_mm.h>
- #else
--# include <asm-generic/mmu_context.h>
-+# include <asm-generic/nommu_context.h>
- #endif
-diff --git a/arch/sh/include/asm/mmu_context.h b/arch/sh/include/asm/mmu_=
-context.h
-index 48e67d544d53..9470d17c71c2 100644
---- a/arch/sh/include/asm/mmu_context.h
-+++ b/arch/sh/include/asm/mmu_context.h
-@@ -134,7 +134,7 @@ static inline void switch_mm(struct mm_struct *prev,
- #define set_TTB(pgd)			do { } while (0)
- #define get_TTB()			(0)
-=20
--#include <asm-generic/mmu_context.h>
-+#include <asm-generic/nommu_context.h>
-=20
- #endif /* CONFIG_MMU */
-=20
-diff --git a/include/asm-generic/mmu_context.h b/include/asm-generic/mmu_=
-context.h
-index 6be9106fb6fb..86cea80a50df 100644
---- a/include/asm-generic/mmu_context.h
-+++ b/include/asm-generic/mmu_context.h
-@@ -3,44 +3,73 @@
- #define __ASM_GENERIC_MMU_CONTEXT_H
-=20
- /*
-- * Generic hooks for NOMMU architectures, which do not need to do
-- * anything special here.
-+ * Generic hooks to implement no-op functionality.
-  */
-=20
--#include <asm-generic/mm_hooks.h>
--
- struct task_struct;
- struct mm_struct;
-=20
-+/*
-+ * enter_lazy_tlb - Called when "tsk" is about to enter lazy TLB mode.
-+ *
-+ * @mm:  the currently active mm context which is becoming lazy
-+ * @tsk: task which is entering lazy tlb
-+ *
-+ * tsk->mm will be NULL
-+ */
-+#ifndef enter_lazy_tlb
- static inline void enter_lazy_tlb(struct mm_struct *mm,
- 			struct task_struct *tsk)
- {
- }
-+#endif
-=20
-+/**
-+ * init_new_context - Initialize context of a new mm_struct.
-+ * @tsk: task struct for the mm
-+ * @mm:  the new mm struct
-+ */
-+#ifndef init_new_context
- static inline int init_new_context(struct task_struct *tsk,
- 			struct mm_struct *mm)
- {
- 	return 0;
- }
-+#endif
-=20
-+/**
-+ * destroy_context - Undo init_new_context when the mm is going away
-+ * @mm: old mm struct
-+ */
-+#ifndef destroy_context
- static inline void destroy_context(struct mm_struct *mm)
- {
- }
-+#endif
-=20
--static inline void deactivate_mm(struct task_struct *task,
--			struct mm_struct *mm)
--{
--}
--
--static inline void switch_mm(struct mm_struct *prev,
--			struct mm_struct *next,
--			struct task_struct *tsk)
-+/**
-+ * activate_mm - called after exec switches the current task to a new mm=
-, to switch to it
-+ * @prev_mm: previous mm of this task
-+ * @next_mm: new mm
-+ */
-+#ifndef activate_mm
-+static inline void activate_mm(struct mm_struct *prev_mm,
-+			       struct mm_struct *next_mm)
- {
-+	switch_mm(prev_mm, next_mm, current);
- }
-+#endif
-=20
--static inline void activate_mm(struct mm_struct *prev_mm,
--			       struct mm_struct *next_mm)
-+/**
-+ * dectivate_mm - called when an mm is released after exit or exec switc=
-hes away from it
-+ * @tsk: the task
-+ * @mm:  the old mm
-+ */
-+#ifndef deactivate_mm
-+static inline void deactivate_mm(struct task_struct *tsk,
-+			struct mm_struct *mm)
- {
- }
-+#endif
-=20
- #endif /* __ASM_GENERIC_MMU_CONTEXT_H */
-diff --git a/include/asm-generic/nommu_context.h b/include/asm-generic/no=
-mmu_context.h
-new file mode 100644
-index 000000000000..72b8d8b1d81e
---- /dev/null
-+++ b/include/asm-generic/nommu_context.h
-@@ -0,0 +1,19 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __ASM_GENERIC_NOMMU_H
-+#define __ASM_GENERIC_NOMMU_H
-+
-+/*
-+ * Generic hooks for NOMMU architectures, which do not need to do
-+ * anything special here.
-+ */
-+
-+#include <asm-generic/mm_hooks.h>
-+#include <asm-generic/mmu_context.h>
-+
-+static inline void switch_mm(struct mm_struct *prev,
-+			struct mm_struct *next,
-+			struct task_struct *tsk)
-+{
-+}
-+
-+#endif /* __ASM_GENERIC_NOMMU_H */
---=20
-2.23.0
+The simple spinlock code does a directed wait, because it knows the CPU=20
+which is holding the lock. In this case, there is a sequence that is=20
+used to ensure we don't wait if the condition has become true, and the
+target CPU does not need to kick the waiter it will happen automatically
+(see splpar_spin_yield). This is preferable because we only wait as=20
+needed and don't require the kick operation.
+
+The pv spinlock code I did uses the undirected wait, because we don't
+know the CPU number which we are waiting on. This is undesirable because=20
+it's higher overhead and the wait is not so accurate.
+
+I think perhaps we could change things so we wait on the correct CPU=20
+when queued, which might be good enough (we could also put the lock
+owner CPU in the spinlock word, if we add another format).
+
+> Attached are two=20
+> additional qspinlock patches that adds a CONFIG_PARAVIRT_QSPINLOCKS_LITE=20
+> option to not require pv_kick(). There is also a fixup patch to be=20
+> applied after your patchset.
+>=20
+> I don't have access to a PPC LPAR with shared processor at the moment,=20
+> so I can't test the performance of the paravirt code. Would you mind=20
+> adding my patches and do some performance test on your end to see if it=20
+> gives better result?
+
+Great, I'll do some tests. Any suggestions for what to try?
+
+Thanks,
+Nick
