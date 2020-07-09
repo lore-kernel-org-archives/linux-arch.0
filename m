@@ -1,20 +1,20 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 5/5] unicore32: Use the generic devmem_is_allowed()
-Date: Thu,  9 Jul 2020 13:05:52 -0700
-Message-ID: <20200709200552.1910298-6-palmer@dabbelt.com>
+Subject: [PATCH 3/5] arm: Use the generic devmem_is_allowed()
+Date: Thu,  9 Jul 2020 13:05:50 -0700
+Message-ID: <20200709200552.1910298-4-palmer@dabbelt.com>
 References: <20200709200552.1910298-1-palmer@dabbelt.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43056 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43042 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726183AbgGIUIU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 16:08:20 -0400
-Received: from mail-pf1-x444.google.com (mail-pf1-x444.google.com [IPv6:2607:f8b0:4864:20::444])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 35182C08C5DC
-        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 13:08:20 -0700 (PDT)
-Received: by mail-pf1-x444.google.com with SMTP id s26so1478647pfm.4
-        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 13:08:20 -0700 (PDT)
+        with ESMTP id S1726794AbgGIUIR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 16:08:17 -0400
+Received: from mail-pf1-x442.google.com (mail-pf1-x442.google.com [IPv6:2607:f8b0:4864:20::442])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 42895C08C5DC
+        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 13:08:17 -0700 (PDT)
+Received: by mail-pf1-x442.google.com with SMTP id t11so1460911pfq.11
+        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 13:08:17 -0700 (PDT)
 In-Reply-To: <20200709200552.1910298-1-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -23,8 +23,8 @@ Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, Paul Walmsl
 
 From: Palmer Dabbelt <palmerdabbelt@google.com>
 
-Aside from being inlineable, this is exactly the same as the arm64
-version, which I recently copied into lib/ for use by the RISC-V port.
+This is exactly the same as the arm64 version, which I recently copied
+into lib/ for use by the RISC-V port.
 
 [I haven't even build tested this.  The lib/ patch is on riscv/for-next,
 which I'm targeting for 5.9, so this won't work alone.  See the cover
@@ -32,34 +32,47 @@ letter for more details.]
 
 Signed-off-by: Palmer Dabbelt <palmerdabbelt@google.com>
 ---
- arch/unicore32/Kconfig          |  1 +
- arch/unicore32/include/asm/io.h | 23 -----------------------
- 2 files changed, 1 insertion(+), 23 deletions(-)
+ arch/arm/Kconfig          |  1 +
+ arch/arm/include/asm/io.h |  1 -
+ arch/arm/mm/mmap.c        | 22 ----------------------
+ 3 files changed, 1 insertion(+), 23 deletions(-)
 
-diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
-index 11ba1839d198..5334f51614a5 100644
---- a/arch/unicore32/Kconfig
-+++ b/arch/unicore32/Kconfig
-@@ -12,6 +12,7 @@ config UNICORE32
- 	select HAVE_KERNEL_LZO
- 	select HAVE_KERNEL_LZMA
- 	select HAVE_PCI
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 2ac74904a3ce..0c9da68835c2 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -54,6 +54,7 @@ config ARM
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_IRQ_SHOW_LEVEL
 +	select GENERIC_LIB_DEVMEM_IS_ALLOWED
- 	select VIRT_TO_BUS
- 	select ARCH_HAVE_CUSTOM_GPIO_H
- 	select GENERIC_FIND_FIRST_BIT
-diff --git a/arch/unicore32/include/asm/io.h b/arch/unicore32/include/asm/io.h
-index bd4e7c332f85..4560d2531655 100644
---- a/arch/unicore32/include/asm/io.h
-+++ b/arch/unicore32/include/asm/io.h
-@@ -42,28 +42,5 @@ extern void __uc32_iounmap(volatile void __iomem *addr);
- #define PIO_MASK		(unsigned int)(IO_SPACE_LIMIT)
- #define PIO_RESERVED		(PIO_OFFSET + PIO_MASK + 1)
+ 	select GENERIC_PCI_IOMAP
+ 	select GENERIC_SCHED_CLOCK
+ 	select GENERIC_SMP_IDLE_THREAD
+diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
+index ab2b654084fa..fc748122f1e0 100644
+--- a/arch/arm/include/asm/io.h
++++ b/arch/arm/include/asm/io.h
+@@ -441,7 +441,6 @@ extern void pci_iounmap(struct pci_dev *dev, void __iomem *addr);
+ #define ARCH_HAS_VALID_PHYS_ADDR_RANGE
+ extern int valid_phys_addr_range(phys_addr_t addr, size_t size);
+ extern int valid_mmap_phys_addr_range(unsigned long pfn, size_t size);
+-extern int devmem_is_allowed(unsigned long pfn);
+ #endif
  
+ /*
+diff --git a/arch/arm/mm/mmap.c b/arch/arm/mm/mmap.c
+index b8d912ac9e61..a0f8a0ca0788 100644
+--- a/arch/arm/mm/mmap.c
++++ b/arch/arm/mm/mmap.c
+@@ -165,25 +165,3 @@ int valid_mmap_phys_addr_range(unsigned long pfn, size_t size)
+ {
+ 	return (pfn + (size >> PAGE_SHIFT)) <= (1 + (PHYS_MASK >> PAGE_SHIFT));
+ }
+-
 -#ifdef CONFIG_STRICT_DEVMEM
 -
 -#include <linux/ioport.h>
--#include <linux/mm.h>
 -
 -/*
 - * devmem_is_allowed() checks to see if /dev/mem access to a certain
@@ -68,7 +81,7 @@ index bd4e7c332f85..4560d2531655 100644
 - * device-exclusive MMIO regions. This effectively disable read()/write()
 - * on /dev/mem.
 - */
--static inline int devmem_is_allowed(unsigned long pfn)
+-int devmem_is_allowed(unsigned long pfn)
 -{
 -	if (iomem_is_exclusive(pfn << PAGE_SHIFT))
 -		return 0;
@@ -77,9 +90,6 @@ index bd4e7c332f85..4560d2531655 100644
 -	return 0;
 -}
 -
--#endif /* CONFIG_STRICT_DEVMEM */
--
- #endif	/* __KERNEL__ */
- #endif	/* __UNICORE_IO_H__ */
+-#endif
 -- 
 2.27.0.383.g050319c2ae-goog
