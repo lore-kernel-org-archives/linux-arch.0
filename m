@@ -1,43 +1,48 @@
 From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v3 1/6] powerpc/powernv: must include hvcall.h to get PAPR defines
-Date: Thu, 09 Jul 2020 20:05:18 +1000
-Message-ID: <87fta1vw9t.fsf@mpe.ellerman.id.au>
-References: <20200706043540.1563616-1-npiggin@gmail.com> <20200706043540.1563616-2-npiggin@gmail.com>
+Subject: Re: [PATCH v3 2/6] powerpc/pseries: move some PAPR paravirt functions to their own file
+Date: Thu, 09 Jul 2020 20:11:29 +1000
+Message-ID: <87d055vvzi.fsf@mpe.ellerman.id.au>
+References: <20200706043540.1563616-1-npiggin@gmail.com> <20200706043540.1563616-3-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200706043540.1563616-2-npiggin@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bilbo.ozlabs.org ([203.11.71.1]:43361 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726323AbgGIKJS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 9 Jul 2020 06:09:18 -0400
+In-Reply-To: <20200706043540.1563616-3-npiggin@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org
 Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 Nicholas Piggin <npiggin@gmail.com> writes:
-> An include goes away in future patches which breaks compilation
-> without this.
 >
+
+Little bit of changelog would be nice :D
+
 > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 > ---
->  arch/powerpc/platforms/powernv/pci-ioda-tce.c | 1 +
->  1 file changed, 1 insertion(+)
+>  arch/powerpc/include/asm/paravirt.h | 61 +++++++++++++++++++++++++++++
+>  arch/powerpc/include/asm/spinlock.h | 24 +-----------
+>  arch/powerpc/lib/locks.c            | 12 +++---
+>  3 files changed, 68 insertions(+), 29 deletions(-)
+>  create mode 100644 arch/powerpc/include/asm/paravirt.h
 >
-> diff --git a/arch/powerpc/platforms/powernv/pci-ioda-tce.c b/arch/powerpc/platforms/powernv/pci-ioda-tce.c
-> index f923359d8afc..8eba6ece7808 100644
-> --- a/arch/powerpc/platforms/powernv/pci-ioda-tce.c
-> +++ b/arch/powerpc/platforms/powernv/pci-ioda-tce.c
-> @@ -15,6 +15,7 @@
->  
->  #include <asm/iommu.h>
->  #include <asm/tce.h>
-> +#include <asm/hvcall.h> /* share error returns with PAPR */
->  #include "pci.h"
->  
->  unsigned long pnv_ioda_parse_tce_sizes(struct pnv_phb *phb)
-> -- 
-> 2.23.0
+> diff --git a/arch/powerpc/include/asm/paravirt.h b/arch/powerpc/include/asm/paravirt.h
+> new file mode 100644
+> index 000000000000..7a8546660a63
+> --- /dev/null
+> +++ b/arch/powerpc/include/asm/paravirt.h
+> @@ -0,0 +1,61 @@
+> +/* SPDX-License-Identifier: GPL-2.0-or-later */
+> +#ifndef __ASM_PARAVIRT_H
+> +#define __ASM_PARAVIRT_H
 
-This isn't needed anymore AFAICS, since:
+Should be _ASM_POWERPC_PARAVIRT_H
 
-5f202c1a1d42 ("powerpc/powernv/ioda: Return correct error if TCE level allocation failed")
+> +#ifdef __KERNEL__
+
+We shouldn't need __KERNEL__ in here, it's not a uapi header.
 
 cheers
