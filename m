@@ -1,125 +1,104 @@
 Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54806 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726228AbgGIVUW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 17:20:22 -0400
-Received: from mail-pg1-x541.google.com (mail-pg1-x541.google.com [IPv6:2607:f8b0:4864:20::541])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BDF6FC08C5DC
-        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 14:20:22 -0700 (PDT)
-Received: by mail-pg1-x541.google.com with SMTP id e18so1522719pgn.7
-        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 14:20:22 -0700 (PDT)
-Subject: [PATCH v2 1/5] lib: Add a generic version of devmem_is_allowed()
-Date: Thu,  9 Jul 2020 14:19:21 -0700
-Message-ID: <20200709211925.1926557-2-palmer@dabbelt.com>
-In-Reply-To: <20200709211925.1926557-1-palmer@dabbelt.com>
-References: <20200709211925.1926557-1-palmer@dabbelt.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-From: Palmer Dabbelt <palmer@dabbelt.com>
+Received: from mail.kernel.org ([198.145.29.99]:42088 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726006AbgGIH2t (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 9 Jul 2020 03:28:49 -0400
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: [PATCH v3 0/4] iomap: Constify ioreadX() iomem argument
+Date: Thu,  9 Jul 2020 09:28:33 +0200
+Message-ID: <20200709072837.5869-1-krzk@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: zong.li@sifive.com, rppt@linux.ibm.com
-Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, aou@eecs.berkeley.edu, gxt@pku.edu.cn, Arnd Bergmann <arnd@arndb.de>, linus.walleij@linaro.org, akpm@linux-foundation.org, mchehab+samsung@kernel.org, gregory.0xf0@gmail.com, masahiroy@kernel.org, Nick Desaulniers <ndesaulniers@google.com>, bgolaszewski@baylibre.com, steve@sk2.org, tglx@linutronix.de, keescook@chromium.org, alex@ghiti.fr, mcgrof@kernel.org, mark.rutland@arm.com, james.morse@arm.com, alex.shi@linux.alibaba.com, andriy.shevchenko@linux.intel.com, broonie@kernel.org, rdunlap@infradead.org, davem@davemloft.net, rostedt@goodmis.org, dan.j.williams@intel.com, mhiramat@kernel.org, krzk@kernel.org, zaslonko@linux.ibm.com, matti.vaittinen@fi.rohmeurope.com, uwe@kleine-koenig.org, clabbe@baylibre.com, changbin.du@intel.com, Greg KH <gregkh@linuxfoundation.org>, paulmck@kernel.org, pmladek@suse.com, brendanhiggins@google.com, glider@google.com, elver@google.com, davidgow@google.com, ardb@kernel.org, takahiro.akashi@linaro.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, kernel-team@android.com, Palmer Dabbelt <palmerdabbelt@google.com>
-Message-ID: <20200709211921.rWrA5-eqskH7yoJbqtMoKJJggnJOPO1UweAxjt6kiIY@z>
+To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
+Cc: Krzysztof Kozlowski <krzk@kernel.org>
+Message-ID: <20200709072833.46NDbBLFnV2tAovMfa7H59yBMv1ls_Oa55UYDIEopDg@z>
 
-From: Palmer Dabbelt <palmerdabbelt@google.com>
+Hi,
 
-As part of adding support for STRICT_DEVMEM to the RISC-V port, Zong
-provided a devmem_is_allowed() implementation that's exactly the same as
-all the others I checked.  Instead I'm adding a generic version, which
-will soon be used.
+Multiple architectures are affected in the first patch and all further
+patches depend on the first.
 
-Signed-off-by: Palmer Dabbelt <palmerdabbelt@google.com>
----
- include/asm-generic/io.h |  4 ++++
- lib/Kconfig              |  3 +++
- lib/Kconfig.debug        |  2 +-
- lib/Makefile             |  2 ++
- lib/devmem_is_allowed.c  | 27 +++++++++++++++++++++++++++
- 5 files changed, 37 insertions(+), 1 deletion(-)
- create mode 100644 lib/devmem_is_allowed.c
+Maybe this could go in through Andrew Morton's tree?
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 8b1e020e9a03..69e3db65fba0 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -1122,6 +1122,10 @@ static inline void memcpy_toio(volatile void __iomem *addr, const void *buffer,
- }
- #endif
- 
-+#ifndef CONFIG_GENERIC_DEVMEM_IS_ALLOWED
-+extern int devmem_is_allowed(unsigned long pfn);
-+#endif
-+
- #endif /* __KERNEL__ */
- 
- #endif /* __ASM_GENERIC_IO_H */
-diff --git a/lib/Kconfig b/lib/Kconfig
-index df3f3da95990..610c16ecbb7c 100644
---- a/lib/Kconfig
-+++ b/lib/Kconfig
-@@ -676,3 +676,6 @@ config GENERIC_LIB_CMPDI2
- 
- config GENERIC_LIB_UCMPDI2
- 	bool
-+
-+config GENERIC_LIB_DEVMEM_IS_ALLOWED
-+	bool
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 9ad9210d70a1..e095bd631ba1 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -1577,7 +1577,7 @@ config ARCH_HAS_DEVMEM_IS_ALLOWED
- config STRICT_DEVMEM
- 	bool "Filter access to /dev/mem"
- 	depends on MMU && DEVMEM
--	depends on ARCH_HAS_DEVMEM_IS_ALLOWED
-+	depends on ARCH_HAS_DEVMEM_IS_ALLOWED || GENERIC_LIB_DEVMEM_IS_ALLOWED
- 	default y if PPC || X86 || ARM64
- 	help
- 	  If this option is disabled, you allow userspace (root) access to all
-diff --git a/lib/Makefile b/lib/Makefile
-index b1c42c10073b..554ef14f9be5 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -318,3 +318,5 @@ obj-$(CONFIG_OBJAGG) += objagg.o
- # KUnit tests
- obj-$(CONFIG_LIST_KUNIT_TEST) += list-test.o
- obj-$(CONFIG_LINEAR_RANGES_TEST) += test_linear_ranges.o
-+
-+obj-$(CONFIG_GENERIC_LIB_DEVMEM_IS_ALLOWED) += devmem_is_allowed.o
-diff --git a/lib/devmem_is_allowed.c b/lib/devmem_is_allowed.c
-new file mode 100644
-index 000000000000..c0d67c541849
---- /dev/null
-+++ b/lib/devmem_is_allowed.c
-@@ -0,0 +1,27 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * A generic version of devmem_is_allowed.
-+ *
-+ * Based on arch/arm64/mm/mmap.c
-+ *
-+ * Copyright (C) 2020 Google, Inc.
-+ * Copyright (C) 2012 ARM Ltd.
-+ */
-+
-+#include <linux/mm.h>
-+#include <linux/ioport.h>
-+
-+/*
-+ * devmem_is_allowed() checks to see if /dev/mem access to a certain address
-+ * is valid. The argument is a physical page number.  We mimic x86 here by
-+ * disallowing access to system RAM as well as device-exclusive MMIO regions.
-+ * This effectively disable read()/write() on /dev/mem.
-+ */
-+int devmem_is_allowed(unsigned long pfn)
-+{
-+	if (iomem_is_exclusive(pfn << PAGE_SHIFT))
-+		return 0;
-+	if (!page_is_ram(pfn))
-+		return 1;
-+	return 0;
-+}
+
+Changes since v2
+================
+1. Drop all non-essential patches (cleanups),
+2. Update also drivers/sh/clk/cpg.c .
+
+
+Changes since v1
+================
+https://lore.kernel.org/lkml/1578415992-24054-1-git-send-email-krzk@kernel.org/
+1. Constify also ioreadX_rep() and mmio_insX(),
+2. Squash lib+alpha+powerpc+parisc+sh into one patch for bisectability,
+3. Add acks and reviews,
+4. Re-order patches so all optional driver changes are at the end.
+
+
+Description
+===========
+The ioread8/16/32() and others have inconsistent interface among the
+architectures: some taking address as const, some not.
+
+It seems there is nothing really stopping all of them to take
+pointer to const.
+
+Patchset was only compile tested on affected architectures.  No real
+testing.
+
+
+volatile
+========
+There is still interface inconsistency between architectures around
+"volatile" qualifier:
+ - include/asm-generic/io.h:static inline u32 ioread32(const volatile void __iomem *addr)
+ - include/asm-generic/iomap.h:extern unsigned int ioread32(const void __iomem *);
+
+This is still discussed and out of scope of this patchset.
+
+
+Best regards,
+Krzysztof
+
+
+Krzysztof Kozlowski (4):
+  iomap: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  rtl818x: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  ntb: intel: Constify ioreadX() iomem argument (as in generic
+    implementation)
+  virtio: pci: Constify ioreadX() iomem argument (as in generic
+    implementation)
+
+ arch/alpha/include/asm/core_apecs.h           |  6 +-
+ arch/alpha/include/asm/core_cia.h             |  6 +-
+ arch/alpha/include/asm/core_lca.h             |  6 +-
+ arch/alpha/include/asm/core_marvel.h          |  4 +-
+ arch/alpha/include/asm/core_mcpcia.h          |  6 +-
+ arch/alpha/include/asm/core_t2.h              |  2 +-
+ arch/alpha/include/asm/io.h                   | 12 ++--
+ arch/alpha/include/asm/io_trivial.h           | 16 ++---
+ arch/alpha/include/asm/jensen.h               |  2 +-
+ arch/alpha/include/asm/machvec.h              |  6 +-
+ arch/alpha/kernel/core_marvel.c               |  2 +-
+ arch/alpha/kernel/io.c                        | 12 ++--
+ arch/parisc/include/asm/io.h                  |  4 +-
+ arch/parisc/lib/iomap.c                       | 72 +++++++++----------
+ arch/powerpc/kernel/iomap.c                   | 28 ++++----
+ arch/sh/kernel/iomap.c                        | 22 +++---
+ .../realtek/rtl818x/rtl8180/rtl8180.h         |  6 +-
+ drivers/ntb/hw/intel/ntb_hw_gen1.c            |  2 +-
+ drivers/ntb/hw/intel/ntb_hw_gen3.h            |  2 +-
+ drivers/ntb/hw/intel/ntb_hw_intel.h           |  2 +-
+ drivers/sh/clk/cpg.c                          |  2 +-
+ drivers/virtio/virtio_pci_modern.c            |  6 +-
+ include/asm-generic/iomap.h                   | 28 ++++----
+ include/linux/io-64-nonatomic-hi-lo.h         |  4 +-
+ include/linux/io-64-nonatomic-lo-hi.h         |  4 +-
+ lib/iomap.c                                   | 30 ++++----
+ 26 files changed, 146 insertions(+), 146 deletions(-)
+
 -- 
-2.27.0.383.g050319c2ae-goog
+2.17.1
