@@ -1,13 +1,13 @@
 From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: [PATCH v3 2/4] rtl818x: Constify ioreadX() iomem argument (as in generic implementation)
-Date: Thu,  9 Jul 2020 09:28:35 +0200
-Message-ID: <20200709072837.5869-3-krzk__46853.3333319769$1594279763$gmane$org@kernel.org>
+Subject: [PATCH v3 4/4] virtio: pci: Constify ioreadX() iomem argument (as in generic implementation)
+Date: Thu,  9 Jul 2020 09:28:37 +0200
+Message-ID: <20200709072837.5869-5-krzk__43105.9970682085$1594279777$gmane$org@kernel.org>
 References: <20200709072837.5869-1-krzk@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:42290 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:42590 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726006AbgGIH3C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 9 Jul 2020 03:29:02 -0400
+        id S1726006AbgGIH3O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 9 Jul 2020 03:29:14 -0400
 In-Reply-To: <20200709072837.5869-1-krzk@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -23,33 +23,31 @@ consistency among architectures.
 
 Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
 Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
-Acked-by: Kalle Valo <kvalo@codeaurora.org>
 ---
- drivers/net/wireless/realtek/rtl818x/rtl8180/rtl8180.h | 6 +++---
+ drivers/virtio/virtio_pci_modern.c | 6 +++---
  1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/net/wireless/realtek/rtl818x/rtl8180/rtl8180.h b/drivers/net/wireless/realtek/rtl818x/rtl8180/rtl8180.h
-index 7948a2da195a..2ff00800d45b 100644
---- a/drivers/net/wireless/realtek/rtl818x/rtl8180/rtl8180.h
-+++ b/drivers/net/wireless/realtek/rtl818x/rtl8180/rtl8180.h
-@@ -150,17 +150,17 @@ void rtl8180_write_phy(struct ieee80211_hw *dev, u8 addr, u32 data);
- void rtl8180_set_anaparam(struct rtl8180_priv *priv, u32 anaparam);
- void rtl8180_set_anaparam2(struct rtl8180_priv *priv, u32 anaparam2);
- 
--static inline u8 rtl818x_ioread8(struct rtl8180_priv *priv, u8 __iomem *addr)
-+static inline u8 rtl818x_ioread8(struct rtl8180_priv *priv, const u8 __iomem *addr)
+diff --git a/drivers/virtio/virtio_pci_modern.c b/drivers/virtio/virtio_pci_modern.c
+index db93cedd262f..90eff165a719 100644
+--- a/drivers/virtio/virtio_pci_modern.c
++++ b/drivers/virtio/virtio_pci_modern.c
+@@ -27,16 +27,16 @@
+  * method, i.e. 32-bit accesses for 32-bit fields, 16-bit accesses
+  * for 16-bit fields and 8-bit accesses for 8-bit fields.
+  */
+-static inline u8 vp_ioread8(u8 __iomem *addr)
++static inline u8 vp_ioread8(const u8 __iomem *addr)
  {
  	return ioread8(addr);
  }
- 
--static inline u16 rtl818x_ioread16(struct rtl8180_priv *priv, __le16 __iomem *addr)
-+static inline u16 rtl818x_ioread16(struct rtl8180_priv *priv, const __le16 __iomem *addr)
+-static inline u16 vp_ioread16 (__le16 __iomem *addr)
++static inline u16 vp_ioread16 (const __le16 __iomem *addr)
  {
  	return ioread16(addr);
  }
  
--static inline u32 rtl818x_ioread32(struct rtl8180_priv *priv, __le32 __iomem *addr)
-+static inline u32 rtl818x_ioread32(struct rtl8180_priv *priv, const __le32 __iomem *addr)
+-static inline u32 vp_ioread32(__le32 __iomem *addr)
++static inline u32 vp_ioread32(const __le32 __iomem *addr)
  {
  	return ioread32(addr);
  }
