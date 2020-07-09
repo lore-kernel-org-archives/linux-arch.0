@@ -1,41 +1,48 @@
 Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-ed1-f65.google.com ([209.85.208.65]:39018 "EHLO
-        mail-ed1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726184AbgGIHc4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 03:32:56 -0400
-Date: Thu, 9 Jul 2020 09:32:49 +0200
-From: Krzysztof Kozlowski <krzk@kernel.org>
-Subject: Re: [PATCH v3 1/4] iomap: Constify ioreadX() iomem argument (as in
- generic implementation)
-Message-ID: <20200709073249.GA6335@kozik-lap>
-References: <20200709072837.5869-1-krzk@kernel.org>
- <20200709072837.5869-2-krzk@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33564 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727052AbgGIKDL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 06:03:11 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v3 1/6] powerpc/powernv: must include hvcall.h to get PAPR defines
+In-Reply-To: <20200706043540.1563616-2-npiggin@gmail.com>
+References: <20200706043540.1563616-1-npiggin@gmail.com> <20200706043540.1563616-2-npiggin@gmail.com>
+Date: Thu, 09 Jul 2020 20:05:18 +1000
+Message-ID: <87fta1vw9t.fsf@mpe.ellerman.id.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20200709072837.5869-2-krzk@kernel.org>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
+To: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org
+Cc: Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200709100518.MROjEUxvwOkyTQjCU4SThq30dqeGzYzzNvgZ7Lk13rs@z>
 
-On Thu, Jul 09, 2020 at 09:28:34AM +0200, Krzysztof Kozlowski wrote:
-> The ioreadX() and ioreadX_rep() helpers have inconsistent interface.  On
-> some architectures void *__iomem address argument is a pointer to const,
-> on some not.
-> 
-> Implementations of ioreadX() do not modify the memory under the address
-> so they can be converted to a "const" version for const-safety and
-> consistency among architectures.
-> 
-> Suggested-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
-> Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
-> Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+Nicholas Piggin <npiggin@gmail.com> writes:
+> An include goes away in future patches which breaks compilation
+> without this.
+>
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> ---
+>  arch/powerpc/platforms/powernv/pci-ioda-tce.c | 1 +
+>  1 file changed, 1 insertion(+)
+>
+> diff --git a/arch/powerpc/platforms/powernv/pci-ioda-tce.c b/arch/powerpc/platforms/powernv/pci-ioda-tce.c
+> index f923359d8afc..8eba6ece7808 100644
+> --- a/arch/powerpc/platforms/powernv/pci-ioda-tce.c
+> +++ b/arch/powerpc/platforms/powernv/pci-ioda-tce.c
+> @@ -15,6 +15,7 @@
+>  
+>  #include <asm/iommu.h>
+>  #include <asm/tce.h>
+> +#include <asm/hvcall.h> /* share error returns with PAPR */
+>  #include "pci.h"
+>  
+>  unsigned long pnv_ioda_parse_tce_sizes(struct pnv_phb *phb)
+> -- 
+> 2.23.0
 
-I forgot to put here one more Ack, for PowerPC:
-Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
+This isn't needed anymore AFAICS, since:
 
-https://lore.kernel.org/lkml/87ftedj0zz.fsf@mpe.ellerman.id.au/
+5f202c1a1d42 ("powerpc/powernv/ioda: Return correct error if TCE level allocation failed")
 
-Best regards,
-Krzysztof
+cheers
