@@ -1,20 +1,20 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH v2 3/5] arm: Use the generic devmem_is_allowed()
-Date: Thu,  9 Jul 2020 14:19:23 -0700
-Message-ID: <20200709211925.1926557-4-palmer@dabbelt.com>
+Subject: [PATCH v2 4/5] arm64: Use the generic devmem_is_allowed()
+Date: Thu,  9 Jul 2020 14:19:24 -0700
+Message-ID: <20200709211925.1926557-5-palmer@dabbelt.com>
 References: <20200709211925.1926557-1-palmer@dabbelt.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54828 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54842 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726671AbgGIVU2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 17:20:28 -0400
-Received: from mail-pl1-x641.google.com (mail-pl1-x641.google.com [IPv6:2607:f8b0:4864:20::641])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6EB61C08E6DC
-        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 14:20:28 -0700 (PDT)
-Received: by mail-pl1-x641.google.com with SMTP id d10so1341915pll.3
-        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 14:20:28 -0700 (PDT)
+        with ESMTP id S1726766AbgGIVUb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 17:20:31 -0400
+Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6403EC08C5DC
+        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 14:20:31 -0700 (PDT)
+Received: by mail-pg1-x542.google.com with SMTP id g67so1515616pgc.8
+        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 14:20:31 -0700 (PDT)
 In-Reply-To: <20200709211925.1926557-1-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -23,8 +23,7 @@ Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, Paul Walmsl
 
 From: Palmer Dabbelt <palmerdabbelt@google.com>
 
-This is exactly the same as the arm64 version, which I recently copied
-into lib/ for use by the RISC-V port.
+I recently copied this into lib/ for use by the RISC-V port.
 
 [I haven't even build tested this.  The lib/ patch is on riscv/for-next,
 which I'm targeting for 5.9, so this won't work alone.  See the cover
@@ -32,50 +31,49 @@ letter for more details.]
 
 Signed-off-by: Palmer Dabbelt <palmerdabbelt@google.com>
 ---
- arch/arm/Kconfig          |  2 +-
- arch/arm/include/asm/io.h |  1 -
- arch/arm/mm/mmap.c        | 22 ----------------------
+ arch/arm64/Kconfig          |  2 +-
+ arch/arm64/include/asm/io.h |  2 --
+ arch/arm64/mm/mmap.c        | 21 ---------------------
  3 files changed, 1 insertion(+), 24 deletions(-)
 
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 2ac74904a3ce..da0f88f6c196 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -5,7 +5,6 @@ config ARM
- 	select ARCH_32BIT_OFF_T
- 	select ARCH_HAS_BINFMT_FLAT
- 	select ARCH_HAS_DEBUG_VIRTUAL if MMU
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 66dc41fd49f2..0682672cb244 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -13,7 +13,6 @@ config ARM64
+ 	select ARCH_BINFMT_ELF_STATE
+ 	select ARCH_HAS_DEBUG_VIRTUAL
+ 	select ARCH_HAS_DEBUG_VM_PGTABLE
 -	select ARCH_HAS_DEVMEM_IS_ALLOWED
- 	select ARCH_HAS_DMA_WRITE_COMBINE if !ARM_DMA_MEM_BUFFERABLE
- 	select ARCH_HAS_ELF_RANDOMIZE
- 	select ARCH_HAS_FORTIFY_SOURCE
-@@ -54,6 +53,7 @@ config ARM
+ 	select ARCH_HAS_DMA_PREP_COHERENT
+ 	select ARCH_HAS_ACPI_TABLE_UPGRADE if ACPI
+ 	select ARCH_HAS_FAST_MULTIPLIER
+@@ -110,6 +109,7 @@ config ARM64
  	select GENERIC_IRQ_PROBE
  	select GENERIC_IRQ_SHOW
  	select GENERIC_IRQ_SHOW_LEVEL
 +	select GENERIC_LIB_DEVMEM_IS_ALLOWED
  	select GENERIC_PCI_IOMAP
+ 	select GENERIC_PTDUMP
  	select GENERIC_SCHED_CLOCK
- 	select GENERIC_SMP_IDLE_THREAD
-diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
-index ab2b654084fa..fc748122f1e0 100644
---- a/arch/arm/include/asm/io.h
-+++ b/arch/arm/include/asm/io.h
-@@ -441,7 +441,6 @@ extern void pci_iounmap(struct pci_dev *dev, void __iomem *addr);
- #define ARCH_HAS_VALID_PHYS_ADDR_RANGE
+diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
+index ff50dd731852..c53eba1a7fd2 100644
+--- a/arch/arm64/include/asm/io.h
++++ b/arch/arm64/include/asm/io.h
+@@ -200,6 +200,4 @@ extern void __iomem *ioremap_cache(phys_addr_t phys_addr, size_t size);
  extern int valid_phys_addr_range(phys_addr_t addr, size_t size);
  extern int valid_mmap_phys_addr_range(unsigned long pfn, size_t size);
--extern int devmem_is_allowed(unsigned long pfn);
- #endif
  
- /*
-diff --git a/arch/arm/mm/mmap.c b/arch/arm/mm/mmap.c
-index b8d912ac9e61..a0f8a0ca0788 100644
---- a/arch/arm/mm/mmap.c
-+++ b/arch/arm/mm/mmap.c
-@@ -165,25 +165,3 @@ int valid_mmap_phys_addr_range(unsigned long pfn, size_t size)
+-extern int devmem_is_allowed(unsigned long pfn);
+-
+ #endif	/* __ASM_IO_H */
+diff --git a/arch/arm64/mm/mmap.c b/arch/arm64/mm/mmap.c
+index 3028bacbc4e9..07937b49cb88 100644
+--- a/arch/arm64/mm/mmap.c
++++ b/arch/arm64/mm/mmap.c
+@@ -47,24 +47,3 @@ int valid_mmap_phys_addr_range(unsigned long pfn, size_t size)
  {
- 	return (pfn + (size >> PAGE_SHIFT)) <= (1 + (PHYS_MASK >> PAGE_SHIFT));
+ 	return !(((pfn << PAGE_SHIFT) + size) & ~PHYS_MASK);
  }
 -
 -#ifdef CONFIG_STRICT_DEVMEM
@@ -83,11 +81,10 @@ index b8d912ac9e61..a0f8a0ca0788 100644
 -#include <linux/ioport.h>
 -
 -/*
-- * devmem_is_allowed() checks to see if /dev/mem access to a certain
-- * address is valid. The argument is a physical page number.
-- * We mimic x86 here by disallowing access to system RAM as well as
-- * device-exclusive MMIO regions. This effectively disable read()/write()
-- * on /dev/mem.
+- * devmem_is_allowed() checks to see if /dev/mem access to a certain address
+- * is valid. The argument is a physical page number.  We mimic x86 here by
+- * disallowing access to system RAM as well as device-exclusive MMIO regions.
+- * This effectively disable read()/write() on /dev/mem.
 - */
 -int devmem_is_allowed(unsigned long pfn)
 -{
