@@ -1,71 +1,84 @@
 From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v3 3/6] powerpc: move spinlock implementation to simple_spinlock
-Date: Thu, 09 Jul 2020 20:15:51 +1000
-Message-ID: <87a709vvs8.fsf@mpe.ellerman.id.au>
-References: <20200706043540.1563616-1-npiggin@gmail.com> <20200706043540.1563616-4-npiggin@gmail.com>
+Subject: Re: [PATCH v3 4/6] powerpc/64s: implement queued spinlocks and rwlocks
+Date: Thu, 09 Jul 2020 20:20:25 +1000
+Message-ID: <877dvdvvkm.fsf@mpe.ellerman.id.au>
+References: <20200706043540.1563616-1-npiggin@gmail.com> <20200706043540.1563616-5-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.11.71.1]:57885 "EHLO ozlabs.org"
+Received: from bilbo.ozlabs.org ([203.11.71.1]:48913 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726347AbgGIKNh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 9 Jul 2020 06:13:37 -0400
-In-Reply-To: <20200706043540.1563616-4-npiggin@gmail.com>
+        id S1726313AbgGIKSL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 9 Jul 2020 06:18:11 -0400
+In-Reply-To: <20200706043540.1563616-5-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linuxppc-dev@lists.ozlabs.org
 Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
 
 Nicholas Piggin <npiggin@gmail.com> writes:
-> To prepare for queued spinlocks. This is a simple rename except to update
-> preprocessor guard name and a file reference.
+> These have shown significantly improved performance and fairness when
+> spinlock contention is moderate to high on very large systems.
+>
+>  [ Numbers hopefully forthcoming after more testing, but initial
+>    results look good ]
+
+Would be good to have something here, even if it's preliminary.
+
+> Thanks to the fast path, single threaded performance is not noticably
+> hurt.
 >
 > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 > ---
->  arch/powerpc/include/asm/simple_spinlock.h    | 292 ++++++++++++++++++
->  .../include/asm/simple_spinlock_types.h       |  21 ++
->  arch/powerpc/include/asm/spinlock.h           | 285 +----------------
->  arch/powerpc/include/asm/spinlock_types.h     |  12 +-
->  4 files changed, 315 insertions(+), 295 deletions(-)
->  create mode 100644 arch/powerpc/include/asm/simple_spinlock.h
->  create mode 100644 arch/powerpc/include/asm/simple_spinlock_types.h
->
-> diff --git a/arch/powerpc/include/asm/simple_spinlock.h b/arch/powerpc/include/asm/simple_spinlock.h
-> new file mode 100644
-> index 000000000000..e048c041c4a9
-> --- /dev/null
-> +++ b/arch/powerpc/include/asm/simple_spinlock.h
-> @@ -0,0 +1,292 @@
-> +/* SPDX-License-Identifier: GPL-2.0-or-later */
-> +#ifndef __ASM_SIMPLE_SPINLOCK_H
-> +#define __ASM_SIMPLE_SPINLOCK_H
+>  arch/powerpc/Kconfig                      | 13 ++++++++++++
+>  arch/powerpc/include/asm/Kbuild           |  2 ++
+>  arch/powerpc/include/asm/qspinlock.h      | 25 +++++++++++++++++++++++
+>  arch/powerpc/include/asm/spinlock.h       |  5 +++++
+>  arch/powerpc/include/asm/spinlock_types.h |  5 +++++
+>  arch/powerpc/lib/Makefile                 |  3 +++
 
-_ASM_POWERPC_SIMPLE_SPINLOCK_H
+>  include/asm-generic/qspinlock.h           |  2 ++
 
-> +#ifdef __KERNEL__
+Who's ack do we need for that part?
 
-Shouldn't be necessary.
+> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+> index 24ac85c868db..17663ea57697 100644
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -492,6 +494,17 @@ config HOTPLUG_CPU
+>  
+>  	  Say N if you are unsure.
+>  
+> +config PPC_QUEUED_SPINLOCKS
+> +	bool "Queued spinlocks"
+> +	depends on SMP
+> +	default "y" if PPC_BOOK3S_64
 
-> +/*
-> + * Simple spin lock operations.  
-> + *
-> + * Copyright (C) 2001-2004 Paul Mackerras <paulus@au.ibm.com>, IBM
-> + * Copyright (C) 2001 Anton Blanchard <anton@au.ibm.com>, IBM
-> + * Copyright (C) 2002 Dave Engebretsen <engebret@us.ibm.com>, IBM
-> + *	Rework to support virtual processors
-> + *
-> + * Type of int is used as a full 64b word is not necessary.
-> + *
-> + * (the type definitions are in asm/simple_spinlock_types.h)
-> + */
-> +#include <linux/irqflags.h>
-> +#include <asm/paravirt.h>
-> +#ifdef CONFIG_PPC64
-> +#include <asm/paca.h>
-> +#endif
+Not sure about default y? At least until we've got a better idea of the
+perf impact on a range of small/big new/old systems.
 
-I don't think paca.h needs a CONFIG_PPC64 guard, it contains one. I know
-you're just moving the code, but still nice to cleanup slightly along
-the way.
+> +	help
+> +	  Say Y here to use to use queued spinlocks which are more complex
+> +	  but give better salability and fairness on large SMP and NUMA
+> +	  systems.
+> +
+> +	  If unsure, say "Y" if you have lots of cores, otherwise "N".
+
+Would be nice if we could give a range for "lots".
+
+> diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
+> index dadbcf3a0b1e..1dd8b6adff5e 100644
+> --- a/arch/powerpc/include/asm/Kbuild
+> +++ b/arch/powerpc/include/asm/Kbuild
+> @@ -6,5 +6,7 @@ generated-y += syscall_table_spu.h
+>  generic-y += export.h
+>  generic-y += local64.h
+>  generic-y += mcs_spinlock.h
+> +generic-y += qrwlock.h
+> +generic-y += qspinlock.h
+
+The 2nd line spits a warning about a redundant entry. I think you want
+to just drop it.
+
 
 cheers
