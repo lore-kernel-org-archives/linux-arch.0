@@ -1,104 +1,47 @@
-Return-Path: <SRS0=GmBk=AY=kvack.org=owner-linux-mm@kernel.org>
-Date: Mon, 13 Jul 2020 17:59:04 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 0/2] arm64: tlb: add support for TLBI RANGE
- instructions
-Message-ID: <20200713165903.GD15829@gaia>
-References: <20200710094420.517-1-yezhenyu2@huawei.com>
- <159440712962.27784.4664678472466095995.b4-ty@arm.com>
- <20200713122123.GC15829@gaia>
- <2edcf1ce-38d4-82b2-e500-51f742cae357@huawei.com>
+Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54818 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726629AbgGIVUZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 17:20:25 -0400
+Received: from mail-pf1-x444.google.com (mail-pf1-x444.google.com [IPv6:2607:f8b0:4864:20::444])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AEB73C08C5DC
+        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 14:20:25 -0700 (PDT)
+Received: by mail-pf1-x444.google.com with SMTP id a14so1560904pfi.2
+        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 14:20:25 -0700 (PDT)
+Subject: [PATCH v2 2/5] RISC-V: Use the new generic devmem_is_allowed()
+Date: Thu,  9 Jul 2020 14:19:22 -0700
+Message-ID: <20200709211925.1926557-3-palmer@dabbelt.com>
+In-Reply-To: <20200709211925.1926557-1-palmer@dabbelt.com>
+References: <20200709211925.1926557-1-palmer@dabbelt.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <2edcf1ce-38d4-82b2-e500-51f742cae357@huawei.com>
-Sender: owner-linux-mm@kvack.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, will@kernel.org, olof@lixom.net, suzuki.poulose@arm.com, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, zhangshaokun@hisilicon.com, prime.zeng@hisilicon.com, linux-arch@vger.kernel.org, kuhn.chenqun@huawei.com, xiexiangyou@huawei.com, linux-mm@kvack.org, arm@kernel.org
+Content-Transfer-Encoding: 8bit
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200713165904.cMLbHj-0jTPIs_4qCQllG_o51utqpkv9Lqa7sp4pHLk@z>
+To: zong.li@sifive.com, rppt@linux.ibm.com
+Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, aou@eecs.berkeley.edu, gxt@pku.edu.cn, Arnd Bergmann <arnd@arndb.de>, linus.walleij@linaro.org, akpm@linux-foundation.org, mchehab+samsung@kernel.org, gregory.0xf0@gmail.com, masahiroy@kernel.org, Nick Desaulniers <ndesaulniers@google.com>, bgolaszewski@baylibre.com, steve@sk2.org, tglx@linutronix.de, keescook@chromium.org, alex@ghiti.fr, mcgrof@kernel.org, mark.rutland@arm.com, james.morse@arm.com, alex.shi@linux.alibaba.com, andriy.shevchenko@linux.intel.com, broonie@kernel.org, rdunlap@infradead.org, davem@davemloft.net, rostedt@goodmis.org, dan.j.williams@intel.com, mhiramat@kernel.org, krzk@kernel.org, zaslonko@linux.ibm.com, matti.vaittinen@fi.rohmeurope.com, uwe@kleine-koenig.org, clabbe@baylibre.com, changbin.du@intel.com, Greg KH <gregkh@linuxfoundation.org>, paulmck@kernel.org, pmladek@suse.com, brendanhiggins@google.com, glider@google.com, elver@google.com, davidgow@google.com, ardb@kernel.org, takahiro.akashi@linaro.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, kernel-team@android.com, Palmer Dabbelt <palmerdabbelt@google.com>
+Message-ID: <20200709211922.uM3bf8XqZc_OvGkcOKEWW2K-U_ArifgmRJ2Q9N8qA7M@z>
 
-On Mon, Jul 13, 2020 at 08:41:31PM +0800, Zhenyu Ye wrote:
-> On 2020/7/13 20:21, Catalin Marinas wrote:
-> > On Fri, Jul 10, 2020 at 08:11:19PM +0100, Catalin Marinas wrote:
-> >> On Fri, 10 Jul 2020 17:44:18 +0800, Zhenyu Ye wrote:
-> >>> NOTICE: this series are based on the arm64 for-next/tlbi branch:
-> >>> git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git for-next/tlbi
-> >>>
-> >>> --
-> >>> ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
-> >>> range of input addresses. This series add support for this feature.
-> >>>
-> >>> [...]
-> >>
-> >> Applied to arm64 (for-next/tlbi), thanks!
-> >>
-> >> [1/2] arm64: tlb: Detect the ARMv8.4 TLBI RANGE feature
-> >>       https://git.kernel.org/arm64/c/a2fd755f77ff
-> >> [2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
-> >>       https://git.kernel.org/arm64/c/db34a081d273
-> > 
-> > I'm dropping these two patches from for-next/tlbi and for-next/core.
-> > They need a check on whether binutils supports the new "tlbi rva*"
-> > instructions, otherwise the build mail fail.
-> > 
-> > I kept the latest incarnation of these patches on devel/tlbi-range for
-> > reference.
-> 
-> Should we add a check for the binutils version? Just like:
-> 
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index fad573883e89..d5fb6567e0d2 100644
-> --- a/arch/arm64/Kconfig
-> +++ b/arch/arm64/Kconfig
-> @@ -1300,6 +1300,20 @@ config ARM64_AMU_EXTN
->  	  correctly reflect reality. Most commonly, the value read will be 0,
->  	  indicating that the counter is not enabled.
-> 
-> +config ARM64_TLBI_RANGE
-> +	bool "Enable support for tlbi range feature"
-> +	default y
-> +	depends on AS_HAS_TLBI_RANGE
-> +	help
-> +	  ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
-> +	  range of input addresses.
-> +
-> +	  The feature introduces new assembly instructions, and they were
-> +	  support when binutils >= 2.30.
+From: Palmer Dabbelt <palmerdabbelt@google.com>
 
-It looks like 2.30. I tracked it down to this commit:
+This allows us to enable STRICT_DEVMEM.
 
-https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=793a194839bc8add71fdc7429c58b10f0667a6f6;hp=1a7ed57c840dcb0401f1a67c6763a89f7d2686d2
+Signed-off-by: Palmer Dabbelt <palmerdabbelt@google.com>
+---
+ arch/riscv/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
 
-> +config AS_HAS_TLBI_RANGE
-> +	def_bool $(as-option, -Wa$(comma)-march=armv8.4-a)
-> +
->  endmenu
-
-The problem is that we don't pass -Wa,-march=armv8.4-a to gas. AFAICT,
-we only set an 8.3 for PAC but I'm not sure how passing two such options
-goes.
-
-I'm slightly surprised that my toolchains (and yours) did not complain
-about these instructions. Looking at the binutils code, I think it
-should have complained if -march=armv8.4-a wasn't passed but works fine.
-I thought gas doesn't enable the maximum arch feature by default.
-
-An alternative would be to check for a specific instruction (untested):
-
-	def_bool $(as-instr,tlbi rvae1is, x0)
-
-but we need to figure out whether gas not requiring -march=armv8.4-a is
-a bug (which may be fixed) or that gas accepts all TLBI instructions.
-
-A safer bet may be to simply encode the instructions by hand:
-
-#define SYS_TLBI_RVAE1IS(Rt) \
-	__emit_inst(0xd5000000 | sys_insn(1, 0, 8, 2, 1) | ((Rt) & 0x1f))
-#define SYS_TLBI_RVALE1IS(Rt) \
-	__emit_inst(0xd5000000 | sys_insn(1, 0, 8, 2, 5) | ((Rt) & 0x1f))
-
-(please check that they are correct)
-
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index 089293e4ad46..8ff368a65a07 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -37,6 +37,7 @@ config RISCV
+ 	select GENERIC_IOREMAP
+ 	select GENERIC_IRQ_MULTI_HANDLER
+ 	select GENERIC_IRQ_SHOW
++	select GENERIC_LIB_DEVMEM_IS_ALLOWED
+ 	select GENERIC_PCI_IOMAP
+ 	select GENERIC_PTDUMP if MMU
+ 	select GENERIC_SCHED_CLOCK
 -- 
-Catalin
+2.27.0.383.g050319c2ae-goog
