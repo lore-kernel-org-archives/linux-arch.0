@@ -1,87 +1,101 @@
-Return-Path: <SRS0=B4xR=AR=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [PATCH v6 07/26] mm: Preserve the PG_arch_* flags in
- __split_huge_page_tail()
-References: <20200703153718.16973-1-catalin.marinas@arm.com>
- <20200703153718.16973-8-catalin.marinas@arm.com>
-From: David Hildenbrand <david@redhat.com>
-Message-ID: <16aeea8c-b5c4-0d19-2fde-f95ef8dfddc6@redhat.com>
-Date: Mon, 6 Jul 2020 16:16:13 +0200
+Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54842 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726766AbgGIVUb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 17:20:31 -0400
+Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6403EC08C5DC
+        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 14:20:31 -0700 (PDT)
+Received: by mail-pg1-x542.google.com with SMTP id g67so1515616pgc.8
+        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 14:20:31 -0700 (PDT)
+Subject: [PATCH v2 4/5] arm64: Use the generic devmem_is_allowed()
+Date: Thu,  9 Jul 2020 14:19:24 -0700
+Message-ID: <20200709211925.1926557-5-palmer@dabbelt.com>
+In-Reply-To: <20200709211925.1926557-1-palmer@dabbelt.com>
+References: <20200709211925.1926557-1-palmer@dabbelt.com>
 MIME-Version: 1.0
-In-Reply-To: <20200703153718.16973-8-catalin.marinas@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>
+Content-Transfer-Encoding: 8bit
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200706141613.6_BVYVqvMsY4JzyG78zL0kczSOC0dmyrIxUi86cvGqE@z>
+To: zong.li@sifive.com, rppt@linux.ibm.com
+Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, aou@eecs.berkeley.edu, gxt@pku.edu.cn, Arnd Bergmann <arnd@arndb.de>, linus.walleij@linaro.org, akpm@linux-foundation.org, mchehab+samsung@kernel.org, gregory.0xf0@gmail.com, masahiroy@kernel.org, Nick Desaulniers <ndesaulniers@google.com>, bgolaszewski@baylibre.com, steve@sk2.org, tglx@linutronix.de, keescook@chromium.org, alex@ghiti.fr, mcgrof@kernel.org, mark.rutland@arm.com, james.morse@arm.com, alex.shi@linux.alibaba.com, andriy.shevchenko@linux.intel.com, broonie@kernel.org, rdunlap@infradead.org, davem@davemloft.net, rostedt@goodmis.org, dan.j.williams@intel.com, mhiramat@kernel.org, krzk@kernel.org, zaslonko@linux.ibm.com, matti.vaittinen@fi.rohmeurope.com, uwe@kleine-koenig.org, clabbe@baylibre.com, changbin.du@intel.com, Greg KH <gregkh@linuxfoundation.org>, paulmck@kernel.org, pmladek@suse.com, brendanhiggins@google.com, glider@google.com, elver@google.com, davidgow@google.com, ardb@kernel.org, takahiro.akashi@linaro.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, kernel-team@android.com, Palmer Dabbelt <palmerdabbelt@google.com>
+Message-ID: <20200709211924.YBWM7EXvjqZ8Xu0rNctQVgdrQmKDkiIzgSbbKFoT-t0@z>
 
-On 03.07.20 17:36, Catalin Marinas wrote:
-> When a huge page is split into normal pages, part of the head page flag=
-s
-> are transferred to the tail pages. However, the PG_arch_* flags are not
-> part of the preserved set.
->=20
-> PG_arch_1 is currently used by the arch code to handle cache maintenanc=
-e
-> for user space (either for I-D cache coherency or for D-cache aliases
-> consistent with the kernel mapping). Since splitting a huge page does
-> not change the physical or virtual address of a mapping, additional
-> cache maintenance for the tail pages is unnecessary. Preserving the
-> PG_arch_1 flag from the head page in the tail pages would not break the
-> current use-cases.
+From: Palmer Dabbelt <palmerdabbelt@google.com>
 
-^ is fairly arm64 specific, no? (I remember that the semantics are
-different e.g., on s390x).
+I recently copied this into lib/ for use by the RISC-V port.
 
-Did you check if this is actually safe to do on other architectures?
-Maybe rephrase the description to make this clearer.
+[I haven't even build tested this.  The lib/ patch is on riscv/for-next,
+which I'm targeting for 5.9, so this won't work alone.  See the cover
+letter for more details.]
 
->=20
-> PG_arch_2 is currently used for arm64 MTE support to mark pages that
-> have valid tags. The absence of such flag causes the arm64 set_pte_at()
-> to clear the tags in order to avoid stale tags exposed to user or the
-> swapping out hooks to ignore the tags. Not preserving PG_arch_2 on huge
-> page splitting leads to tag corruption in the tail pages.
+Signed-off-by: Palmer Dabbelt <palmerdabbelt@google.com>
+---
+ arch/arm64/Kconfig          |  2 +-
+ arch/arm64/include/asm/io.h |  2 --
+ arch/arm64/mm/mmap.c        | 21 ---------------------
+ 3 files changed, 1 insertion(+), 24 deletions(-)
 
-"currently"? I don't think so - isn't it follow-up patches in this series=
-?
-
->=20
-> To avoid the above and for consistency between the two PG_arch_* flags,
-> preserve both PG_arch_1 and PG_arch_2 in __split_huge_page_tail().
->=20
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> ---
->=20
-> Notes:
->     New in v6.
->=20
->  mm/huge_memory.c | 4 ++++
->  1 file changed, 4 insertions(+)
->=20
-> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-> index 78c84bee7e29..22b3236a6dd8 100644
-> --- a/mm/huge_memory.c
-> +++ b/mm/huge_memory.c
-> @@ -2364,6 +2364,10 @@ static void __split_huge_page_tail(struct page *=
-head, int tail,
->  			 (1L << PG_workingset) |
->  			 (1L << PG_locked) |
->  			 (1L << PG_unevictable) |
-> +			 (1L << PG_arch_1) |
-> +#ifdef CONFIG_64BIT
-> +			 (1L << PG_arch_2) |
-> +#endif
->  			 (1L << PG_dirty)));
-> =20
->  	/* ->mapping in first tail page is compound_mapcount */
->=20
-
-
---=20
-Thanks,
-
-David / dhildenb
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 66dc41fd49f2..0682672cb244 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -13,7 +13,6 @@ config ARM64
+ 	select ARCH_BINFMT_ELF_STATE
+ 	select ARCH_HAS_DEBUG_VIRTUAL
+ 	select ARCH_HAS_DEBUG_VM_PGTABLE
+-	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAS_DMA_PREP_COHERENT
+ 	select ARCH_HAS_ACPI_TABLE_UPGRADE if ACPI
+ 	select ARCH_HAS_FAST_MULTIPLIER
+@@ -110,6 +109,7 @@ config ARM64
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_IRQ_SHOW_LEVEL
++	select GENERIC_LIB_DEVMEM_IS_ALLOWED
+ 	select GENERIC_PCI_IOMAP
+ 	select GENERIC_PTDUMP
+ 	select GENERIC_SCHED_CLOCK
+diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
+index ff50dd731852..c53eba1a7fd2 100644
+--- a/arch/arm64/include/asm/io.h
++++ b/arch/arm64/include/asm/io.h
+@@ -200,6 +200,4 @@ extern void __iomem *ioremap_cache(phys_addr_t phys_addr, size_t size);
+ extern int valid_phys_addr_range(phys_addr_t addr, size_t size);
+ extern int valid_mmap_phys_addr_range(unsigned long pfn, size_t size);
+ 
+-extern int devmem_is_allowed(unsigned long pfn);
+-
+ #endif	/* __ASM_IO_H */
+diff --git a/arch/arm64/mm/mmap.c b/arch/arm64/mm/mmap.c
+index 3028bacbc4e9..07937b49cb88 100644
+--- a/arch/arm64/mm/mmap.c
++++ b/arch/arm64/mm/mmap.c
+@@ -47,24 +47,3 @@ int valid_mmap_phys_addr_range(unsigned long pfn, size_t size)
+ {
+ 	return !(((pfn << PAGE_SHIFT) + size) & ~PHYS_MASK);
+ }
+-
+-#ifdef CONFIG_STRICT_DEVMEM
+-
+-#include <linux/ioport.h>
+-
+-/*
+- * devmem_is_allowed() checks to see if /dev/mem access to a certain address
+- * is valid. The argument is a physical page number.  We mimic x86 here by
+- * disallowing access to system RAM as well as device-exclusive MMIO regions.
+- * This effectively disable read()/write() on /dev/mem.
+- */
+-int devmem_is_allowed(unsigned long pfn)
+-{
+-	if (iomem_is_exclusive(pfn << PAGE_SHIFT))
+-		return 0;
+-	if (!page_is_ram(pfn))
+-		return 1;
+-	return 0;
+-}
+-
+-#endif
+-- 
+2.27.0.383.g050319c2ae-goog
