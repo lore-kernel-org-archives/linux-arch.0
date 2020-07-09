@@ -1,40 +1,55 @@
-Return-Path: <SRS0=qOhU=AN=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39406 "EHLO
+Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38382 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727769AbgGBKge (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2020 06:36:34 -0400
-Date: Thu, 02 Jul 2020 20:36:27 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 2/8] powerpc/pseries: use smp_rmb() in H_CONFER spin yield
-References: <20200702074839.1057733-1-npiggin@gmail.com>
-        <20200702074839.1057733-3-npiggin@gmail.com>
-        <20200702082840.GC4781@hirez.programming.kicks-ass.net>
-In-Reply-To: <20200702082840.GC4781@hirez.programming.kicks-ass.net>
+        with ESMTP id S1726357AbgGIKdr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 06:33:47 -0400
+Date: Thu, 9 Jul 2020 12:33:38 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 4/6] powerpc/64s: implement queued spinlocks and
+ rwlocks
+Message-ID: <20200709103338.GQ597537@hirez.programming.kicks-ass.net>
+References: <20200706043540.1563616-1-npiggin@gmail.com>
+ <20200706043540.1563616-5-npiggin@gmail.com>
+ <877dvdvvkm.fsf@mpe.ellerman.id.au>
 MIME-Version: 1.0
-Message-ID: <1593685552.uh4kepm08t.astroid@bobo.none>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <877dvdvvkm.fsf@mpe.ellerman.id.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Waiman Long <longman@redhat.com>, Ingo Molnar <mingo@redhat.com>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
-Message-ID: <20200702103627.rbq1onHJSnMiO7TWFoJBvSAEle8BWz8ELaZDjvL2Mzc@z>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Will Deacon <will@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200709103338.5CuLnKj03GkQHrICJSkcl65jTKCY_mYWskifKVexdls@z>
 
-Excerpts from Peter Zijlstra's message of July 2, 2020 6:28 pm:
-> On Thu, Jul 02, 2020 at 05:48:33PM +1000, Nicholas Piggin wrote:
->> There is no need for rmb(), this allows faster lwsync here.
->=20
-> Since you determined this; I'm thinking you actually understand the
-> ordering here. How about recording this understanding in a comment?
->=20
-> Also, should the lock->slock load not use READ_ONCE() ?
+On Thu, Jul 09, 2020 at 08:20:25PM +1000, Michael Ellerman wrote:
+> Nicholas Piggin <npiggin@gmail.com> writes:
+> > These have shown significantly improved performance and fairness when
+> > spinlock contention is moderate to high on very large systems.
+> >
+> >  [ Numbers hopefully forthcoming after more testing, but initial
+> >    results look good ]
+> 
+> Would be good to have something here, even if it's preliminary.
+> 
+> > Thanks to the fast path, single threaded performance is not noticably
+> > hurt.
+> >
+> > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> > ---
+> >  arch/powerpc/Kconfig                      | 13 ++++++++++++
+> >  arch/powerpc/include/asm/Kbuild           |  2 ++
+> >  arch/powerpc/include/asm/qspinlock.h      | 25 +++++++++++++++++++++++
+> >  arch/powerpc/include/asm/spinlock.h       |  5 +++++
+> >  arch/powerpc/include/asm/spinlock_types.h |  5 +++++
+> >  arch/powerpc/lib/Makefile                 |  3 +++
+> 
+> >  include/asm-generic/qspinlock.h           |  2 ++
+> 
+> Who's ack do we need for that part?
 
-Yeah, good point. Maybe I'll drop it from this series, doesn't really=20
-belong I just saw the cleanup and didn't want to forget it.
+Mine I suppose would do, as discussed earlier, it probably isn't
+required anymore, but I understand the paranoia of not wanting to change
+too many things at once :-)
 
-We we just ordering the two loads in this function, and !SMP isn't a=20
-concern (i.e., no issues of !SMP guest on SMP HV), but yeah fixing
-the lack of comment is warranted, thanks.
 
-Thanks,
-Nick
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
