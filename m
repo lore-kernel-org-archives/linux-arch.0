@@ -1,101 +1,69 @@
-Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:3199 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726358AbgGCCgP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 22:36:15 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 17/21] KVM: arm64: Use common code's approach for __GFP_ZERO with memory caches
-Date: Thu,  2 Jul 2020 19:35:41 -0700
-Message-ID: <20200703023545.8771-18-sean.j.christopherson@intel.com>
-In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
-References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga04-in.huawei.com ([45.249.212.190]:7826 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726140AbgGIJLN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 9 Jul 2020 05:11:13 -0400
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [PATCH v1 0/2] arm64: tlb: add support for TLBI RANGE instructions
+Date: Thu, 9 Jul 2020 17:10:52 +0800
+Message-ID: <20200709091054.1698-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200703023541.OZCyxUqOPk8MePy1N5ynPmspjGRHyzbMBuboBrh8HS0@z>
+To: catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Message-ID: <20200709091052.vmOYznKKKUt8UXWNjqA3gHjJl4kACexKUt6s_CINz90@z>
 
-Add a "gfp_zero" member to arm64's 'struct kvm_mmu_memory_cache' to make
-the struct and its usage compatible with the common 'struct
-kvm_mmu_memory_cache' in linux/kvm_host.h.  This will minimize code
-churn when arm64 moves to the common implementation in a future patch, at
-the cost of temporarily having somewhat silly code.
+NOTICE: this series are based on the arm64 for-next/tlbi branch:
+git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git for-next/tlbi
 
-Note, GFP_PGTABLE_USER is equivalent to GFP_KERNEL_ACCOUNT | GFP_ZERO:
+--
+ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
+range of input addresses. This series add support for this feature.
 
-  #define GFP_PGTABLE_USER  (GFP_PGTABLE_KERNEL | __GFP_ACCOUNT)
-  |
-  -> #define GFP_PGTABLE_KERNEL        (GFP_KERNEL | __GFP_ZERO)
+I tested this feature on a FPGA machine whose cpus support the tlbi range.
+As the page num increases, the performance is improved significantly. When
+page num = 256, the performance is improved by about 10 times.
 
-  == GFP_KERNEL | __GFP_ACCOUNT | __GFP_ZERO
+Below is the test data when the stride = PTE:
 
-versus
+	[page num]	[classic]		[tlbi range]
+	1		16051			13524
+	2		11366			11146
+	3		11582			12171
+	4		11694			11101
+	5		12138			12267
+	6		12290			11105
+	7		12400			12002
+	8		12837			11097
+	9		14791			12140
+	10		15461			11087
+	16		18233			11094
+	32		26983			11079
+	64		43840			11092
+	128		77754			11098
+	256		145514			11089
+	512		280932			11111
 
-  #define GFP_KERNEL_ACCOUNT (GFP_KERNEL | __GFP_ACCOUNT)
+See more details in:
 
-    with __GFP_ZERO explicitly OR'd in
+https://lore.kernel.org/linux-arm-kernel/504c7588-97e5-e014-fca0-c5511ae0d256@huawei.com/
 
-  == GFP_KERNEL | __GFP_ACCOUNT | __GFP_ZERO
+--
+RFC patches:
+- Link: https://lore.kernel.org/linux-arm-kernel/20200708124031.1414-1-yezhenyu2@huawei.com/
 
-No functional change intended.
+Zhenyu Ye (2):
+  arm64: tlb: Detect the ARMv8.4 TLBI RANGE feature
+  arm64: tlb: Use the TLBI RANGE feature in arm64
 
-Tested-by: Marc Zyngier <maz@kernel.org>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
----
- arch/arm64/include/asm/kvm_host.h | 1 +
- arch/arm64/kvm/arm.c              | 2 ++
- arch/arm64/kvm/mmu.c              | 5 +++--
- 3 files changed, 6 insertions(+), 2 deletions(-)
+ arch/arm64/include/asm/cpucaps.h  |   3 +-
+ arch/arm64/include/asm/sysreg.h   |   3 +
+ arch/arm64/include/asm/tlbflush.h | 156 ++++++++++++++++++++++++------
+ arch/arm64/kernel/cpufeature.c    |  10 ++
+ 4 files changed, 141 insertions(+), 31 deletions(-)
 
-diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
-index c3e6fcc664b1..335170b59899 100644
---- a/arch/arm64/include/asm/kvm_host.h
-+++ b/arch/arm64/include/asm/kvm_host.h
-@@ -105,6 +105,7 @@ struct kvm_arch {
-  */
- struct kvm_mmu_memory_cache {
- 	int nobjs;
-+	gfp_t gfp_zero;
- 	void *objects[KVM_NR_MEM_OBJS];
- };
- 
-diff --git a/arch/arm64/kvm/arm.c b/arch/arm64/kvm/arm.c
-index 90cb90561446..1016635b3782 100644
---- a/arch/arm64/kvm/arm.c
-+++ b/arch/arm64/kvm/arm.c
-@@ -270,6 +270,8 @@ int kvm_arch_vcpu_create(struct kvm_vcpu *vcpu)
- 	vcpu->arch.target = -1;
- 	bitmap_zero(vcpu->arch.features, KVM_VCPU_MAX_FEATURES);
- 
-+	vcpu->arch.mmu_page_cache.gfp_zero = __GFP_ZERO;
-+
- 	/* Set up the timer */
- 	kvm_timer_vcpu_init(vcpu);
- 
-diff --git a/arch/arm64/kvm/mmu.c b/arch/arm64/kvm/mmu.c
-index f78aa3e269e9..5220623a4efb 100644
---- a/arch/arm64/kvm/mmu.c
-+++ b/arch/arm64/kvm/mmu.c
-@@ -131,7 +131,8 @@ static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache, int min)
- 	if (cache->nobjs >= min)
- 		return 0;
- 	while (cache->nobjs < ARRAY_SIZE(cache->objects)) {
--		page = (void *)__get_free_page(GFP_PGTABLE_USER);
-+		page = (void *)__get_free_page(GFP_KERNEL_ACCOUNT |
-+					       cache->gfp_zero);
- 		if (!page)
- 			return -ENOMEM;
- 		cache->objects[cache->nobjs++] = page;
-@@ -1467,7 +1468,7 @@ int kvm_phys_addr_ioremap(struct kvm *kvm, phys_addr_t guest_ipa,
- 	phys_addr_t addr, end;
- 	int ret = 0;
- 	unsigned long pfn;
--	struct kvm_mmu_memory_cache cache = { 0, };
-+	struct kvm_mmu_memory_cache cache = { 0, __GFP_ZERO, };
- 
- 	end = (guest_ipa + size + PAGE_SIZE - 1) & PAGE_MASK;
- 	pfn = __phys_to_pfn(pa);
 -- 
-2.26.0
+2.19.1
