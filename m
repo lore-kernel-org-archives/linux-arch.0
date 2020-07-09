@@ -1,43 +1,36 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH v4 1/2] linux/bits.h: fix unsigned less than zero warnings
-Date: Thu, 9 Jul 2020 11:13:31 -0700
-Message-ID: <CAHk-=wibAAcH2+hk+X9mBp0h1B6oYv+Pjzq1XB+EXJhgshu-Xg@mail.gmail.com>
-References: <20200621054210.14804-1-rikard.falkeborn@gmail.com> <20200709123011.GA18734@gondor.apana.org.au>
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Add and use a generic version of devmem_is_allowed()
+Date: Thu,  9 Jul 2020 13:05:47 -0700
+Message-ID: <20200709200552.1910298-1-palmer@dabbelt.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53240 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43016 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726660AbgGISNv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 14:13:51 -0400
-Received: from mail-lj1-x242.google.com (mail-lj1-x242.google.com [IPv6:2a00:1450:4864:20::242])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 304F8C08C5CE
-        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 11:13:51 -0700 (PDT)
-Received: by mail-lj1-x242.google.com with SMTP id z24so3455373ljn.8
-        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 11:13:51 -0700 (PDT)
-Received: from mail-lf1-f53.google.com (mail-lf1-f53.google.com. [209.85.167.53])
-        by smtp.gmail.com with ESMTPSA id b16sm1032215ljp.124.2020.07.09.11.13.47
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 09 Jul 2020 11:13:48 -0700 (PDT)
-Received: by mail-lf1-f53.google.com with SMTP id m26so1691983lfo.13
-        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 11:13:47 -0700 (PDT)
-In-Reply-To: <20200709123011.GA18734@gondor.apana.org.au>
+        with ESMTP id S1726196AbgGIUIM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 16:08:12 -0400
+Received: from mail-pg1-x542.google.com (mail-pg1-x542.google.com [IPv6:2607:f8b0:4864:20::542])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DA27EC08C5CE
+        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 13:08:12 -0700 (PDT)
+Received: by mail-pg1-x542.google.com with SMTP id k27so1454915pgm.2
+        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 13:08:12 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: Rikard Falkeborn <rikard.falkeborn@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Emil Velikov <emil.l.velikov@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Kees Cook <keescook@chromium.org>, Linus Walleij <linus.walleij@linaro.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, kernel test robot <lkp@intel.com>, Syed Nayyar Waris <syednwaris@gmail.com>, William Breathitt Gray <vilhelm.gray@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>
+To: linux-riscv@lists.infradead.org, zong.li@sifive.com
+Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, aou@eecs.berkeley.edu, gxt@pku.edu.cn, Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linus.walleij@linaro.org, rppt@linux.ibm.com, mchehab+samsung@kernel.org, gregory.0xf0@gmail.com, masahiroy@kernel.org, Nick Desaulniers <ndesaulniers@google.com>, bgolaszewski@baylibre.com, tglx@linutronix.de, steve@sk2.org, keescook@chromium.org, mcgrof@kernel.org, alex@ghiti.fr, mark.rutland@arm.com, james.morse@arm.com, andriy.shevchenko@linux.intel.com, alex.shi@linux.alibaba.com, davem@davemloft.net, rdunlap@infradead.org, broonie@kernel.org, uwe@kleine-koenig.org, rostedt@goodmis.org, dan.j.williams@intel.com, mhiramat@kernel.org
 
-On Thu, Jul 9, 2020 at 5:30 AM Herbert Xu <herbert@gondor.apana.org.au> wrote:
->
-> I'm still getting the same warning even with the patch, for example:
+As part of adding STRICT_DEVMEM support to the RISC-V port, Zong provided an
+implementation of devmem_is_allowed() that's exactly the same as the version in
+a handful of other ports.  Rather than duplicate code, I've put a generic
+version of this in lib/ and used it for the RISC-V port.
 
-Are you building with W=1?
+I've put those first two patches on riscv/for-next, which I'm targeting for 5.9
+(though this is the first version, so they're unreviewed).  The other three
+obviously depend on the first one going on, but I'm not putting them in the
+RISC-V tree as I don't want to step on anyone's toes.  If you want me to take
+yours along with the others then please say something, as otherwise I'll
+probably forget.
 
-There's a patch to move that broken -Wtype-limits thing to W=2.
-
-    https://lore.kernel.org/lkml/20200708190756.16810-1-rikard.falkeborn@gmail.com/
-
-does that work for you?
-
-              Linus
+I've put the whole thing at
+ssh://gitolite.kernel.org/pub/scm/linux/kernel/git/palmer/linux.git -b
+generic-devmem .
