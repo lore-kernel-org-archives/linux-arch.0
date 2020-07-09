@@ -1,83 +1,54 @@
-Return-Path: <SRS0=tLCE=AR=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49206 "EHLO
+Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47670 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728466AbgGFEg2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jul 2020 00:36:28 -0400
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH v3 6/6] powerpc/qspinlock: optimised atomic_try_cmpxchg_lock that adds the lock hint
-Date: Mon,  6 Jul 2020 14:35:40 +1000
-Message-ID: <20200706043540.1563616-7-npiggin@gmail.com>
-In-Reply-To: <20200706043540.1563616-1-npiggin@gmail.com>
+        with ESMTP id S1726151AbgGIIb2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 04:31:28 -0400
+Date: Thu, 9 Jul 2020 10:31:13 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
+Message-ID: <20200709083113.GI597537@hirez.programming.kicks-ass.net>
 References: <20200706043540.1563616-1-npiggin@gmail.com>
+ <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
+ <1594101082.hfq9x5yact.astroid@bobo.none>
+ <20200708084106.GE597537@hirez.programming.kicks-ass.net>
+ <a9834278-25bf-90e9-10f2-cd10e5407ff6@redhat.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <a9834278-25bf-90e9-10f2-cd10e5407ff6@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200706043540.R__X2H17YDGmJhcqpoNGxSsA6kmfdBKtBkQX0RnIr5g@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
+Message-ID: <20200709083113.3QR0XdD3nqUikHHEvbF8GgwVQHa7B8LBTcS2gRlUdOY@z>
 
-This brings the behaviour of the uncontended fast path back to
-roughly equivalent to simple spinlocks -- a single atomic op with
-lock hint.
+On Wed, Jul 08, 2020 at 07:54:34PM -0400, Waiman Long wrote:
+> On 7/8/20 4:41 AM, Peter Zijlstra wrote:
+> > On Tue, Jul 07, 2020 at 03:57:06PM +1000, Nicholas Piggin wrote:
+> > > Yes, powerpc could certainly get more performance out of the slow
+> > > paths, and then there are a few parameters to tune.
+> > Can you clarify? The slow path is already in use on ARM64 which is weak,
+> > so I doubt there's superfluous serialization present. And Will spend a
+> > fair amount of time on making that thing guarantee forward progressm, so
+> > there just isn't too much room to play.
+> > 
+> > > We don't have a good alternate patching for function calls yet, but
+> > > that would be something to do for native vs pv.
+> > Going by your jump_label implementation, support for static_call should
+> > be fairly straight forward too, no?
+> > 
+> >    https://lkml.kernel.org/r/20200624153024.794671356@infradead.org
+> > 
+> Speaking of static_call, I am also looking forward to it. Do you have an
+> idea when that will be merged?
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/powerpc/include/asm/atomic.h    | 28 ++++++++++++++++++++++++++++
- arch/powerpc/include/asm/qspinlock.h |  2 +-
- 2 files changed, 29 insertions(+), 1 deletion(-)
+0day had one crash on the last round, I think Steve send a fix for that
+last night and I'll go look at it.
 
-diff --git a/arch/powerpc/include/asm/atomic.h b/arch/powerpc/include/asm/atomic.h
-index 498785ffc25f..f6a3d145ffb7 100644
---- a/arch/powerpc/include/asm/atomic.h
-+++ b/arch/powerpc/include/asm/atomic.h
-@@ -193,6 +193,34 @@ static __inline__ int atomic_dec_return_relaxed(atomic_t *v)
- #define atomic_xchg(v, new) (xchg(&((v)->counter), new))
- #define atomic_xchg_relaxed(v, new) xchg_relaxed(&((v)->counter), (new))
- 
-+/*
-+ * Don't want to override the generic atomic_try_cmpxchg_acquire, because
-+ * we add a lock hint to the lwarx, which may not be wanted for the
-+ * _acquire case (and is not used by the other _acquire variants so it
-+ * would be a surprise).
-+ */
-+static __always_inline bool
-+atomic_try_cmpxchg_lock(atomic_t *v, int *old, int new)
-+{
-+	int r, o = *old;
-+
-+	__asm__ __volatile__ (
-+"1:\t"	PPC_LWARX(%0,0,%2,1) "	# atomic_try_cmpxchg_acquire	\n"
-+"	cmpw	0,%0,%3							\n"
-+"	bne-	2f							\n"
-+"	stwcx.	%4,0,%2							\n"
-+"	bne-	1b							\n"
-+"\t"	PPC_ACQUIRE_BARRIER "						\n"
-+"2:									\n"
-+	: "=&r" (r), "+m" (v->counter)
-+	: "r" (&v->counter), "r" (o), "r" (new)
-+	: "cr0", "memory");
-+
-+	if (unlikely(r != o))
-+		*old = r;
-+	return likely(r == o);
-+}
-+
- /**
-  * atomic_fetch_add_unless - add unless the number is a given value
-  * @v: pointer of type atomic_t
-diff --git a/arch/powerpc/include/asm/qspinlock.h b/arch/powerpc/include/asm/qspinlock.h
-index f5066f00a08c..b752d34517b3 100644
---- a/arch/powerpc/include/asm/qspinlock.h
-+++ b/arch/powerpc/include/asm/qspinlock.h
-@@ -37,7 +37,7 @@ static __always_inline void queued_spin_lock(struct qspinlock *lock)
- {
- 	u32 val = 0;
- 
--	if (likely(atomic_try_cmpxchg_acquire(&lock->val, &val, _Q_LOCKED_VAL)))
-+	if (likely(atomic_try_cmpxchg_lock(&lock->val, &val, _Q_LOCKED_VAL)))
- 		return;
- 
- 	queued_spin_lock_slowpath(lock, val);
--- 
-2.23.0
+That said, the last posting got 0 feedback, so either everybody is
+really happy with it, or not interested. So let us know in the thread,
+with some review feedback.
+
+Once I get through enough of the inbox to actually find the fix and test
+it, I'll also update the thread, and maybe threaten to merge it if
+everybody stays silent :-)
