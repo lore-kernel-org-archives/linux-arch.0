@@ -1,46 +1,41 @@
-Return-Path: <SRS0=GDSS=AV=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:50678 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726664AbgGJJoj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jul 2020 05:44:39 -0400
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v2 0/2] arm64: tlb: add support for TLBI RANGE instructions
-Date: Fri, 10 Jul 2020 17:44:18 +0800
-Message-ID: <20200710094420.517-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-ed1-f65.google.com ([209.85.208.65]:39018 "EHLO
+        mail-ed1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726184AbgGIHc4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 03:32:56 -0400
+Date: Thu, 9 Jul 2020 09:32:49 +0200
+From: Krzysztof Kozlowski <krzk@kernel.org>
+Subject: Re: [PATCH v3 1/4] iomap: Constify ioreadX() iomem argument (as in
+ generic implementation)
+Message-ID: <20200709073249.GA6335@kozik-lap>
+References: <20200709072837.5869-1-krzk@kernel.org>
+ <20200709072837.5869-2-krzk@kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7BIT
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20200709072837.5869-2-krzk@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200710094418.4QEN8iN7Tc0z4bY0YaK4-PQIgaRfQ3EznqujlVtnsFw@z>
+To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Kalle Valo <kvalo@codeaurora.org>, "David S. Miller" <davem@davemloft.net>, Jakub Kicinski <kuba@kernel.org>, Dave Jiang <dave.jiang@intel.com>, Jon Mason <jdmason@kudzu.us>, Allen Hubbe <allenbh@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Jason Wang <jasowang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-wireless@vger.kernel.org, netdev@vger.kernel.org, linux-ntb@googlegroups.com, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org
 
-NOTICE: this series are based on the arm64 for-next/tlbi branch:
-git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git for-next/tlbi
+On Thu, Jul 09, 2020 at 09:28:34AM +0200, Krzysztof Kozlowski wrote:
+> The ioreadX() and ioreadX_rep() helpers have inconsistent interface.  On
+> some architectures void *__iomem address argument is a pointer to const,
+> on some not.
+> 
+> Implementations of ioreadX() do not modify the memory under the address
+> so they can be converted to a "const" version for const-safety and
+> consistency among architectures.
+> 
+> Suggested-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Signed-off-by: Krzysztof Kozlowski <krzk@kernel.org>
+> Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
+> Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 
---
-ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
-range of input addresses. This series add support for this feature.
+I forgot to put here one more Ack, for PowerPC:
+Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
 
---
-ChangeList:
-v2:
-- remove the __tlbi_last_level() macro.
-- add check for parameters in __TLBI_VADDR_RANGE macro.
+https://lore.kernel.org/lkml/87ftedj0zz.fsf@mpe.ellerman.id.au/
 
-RFC patches:
-- Link: https://lore.kernel.org/linux-arm-kernel/20200708124031.1414-1-yezhenyu2@huawei.com/
-
-Zhenyu Ye (2):
-  arm64: tlb: Detect the ARMv8.4 TLBI RANGE feature
-  arm64: tlb: Use the TLBI RANGE feature in arm64
-
- arch/arm64/include/asm/cpucaps.h  |   3 +-
- arch/arm64/include/asm/sysreg.h   |   3 +
- arch/arm64/include/asm/tlbflush.h | 138 +++++++++++++++++++++++-------
- arch/arm64/kernel/cpufeature.c    |  10 +++
- 4 files changed, 124 insertions(+), 30 deletions(-)
-
--- 
-2.19.1
+Best regards,
+Krzysztof
