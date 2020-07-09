@@ -1,41 +1,43 @@
-From: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Subject: Re: [PATCH v6 26/26] arm64: mte: Add Memory Tagging Extension
- documentation
-Date: Thu, 9 Jul 2020 10:32:54 +0100
-Message-ID: <20200709093253.GI32219@arm.com>
-References: <20200703153718.16973-1-catalin.marinas@arm.com>
- <20200703153718.16973-27-catalin.marinas@arm.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v3 1/6] powerpc/powernv: must include hvcall.h to get PAPR defines
+Date: Thu, 09 Jul 2020 20:05:18 +1000
+Message-ID: <87fta1vw9t.fsf@mpe.ellerman.id.au>
+References: <20200706043540.1563616-1-npiggin@gmail.com> <20200706043540.1563616-2-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-eopbgr20044.outbound.protection.outlook.com ([40.107.2.44]:35201
-        "EHLO EUR02-VE1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726211AbgGIJdH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 9 Jul 2020 05:33:07 -0400
-Content-Disposition: inline
-In-Reply-To: <20200703153718.16973-27-catalin.marinas@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>, libc-alpha@sourceware.org, nd@arm.com
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200706043540.1563616-2-npiggin@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linuxppc-dev@lists.ozlabs.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Ingo Molnar <mingo@redhat.com>, Waiman Long <longman@redhat.com>, Anton Blanchard <anton@ozlabs.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-The 07/03/2020 16:37, Catalin Marinas wrote:
-> +    /*
-> +     * To be compiled with -march=armv8.5-a+memtag
-> +     */
-> +    #include <errno.h>
-> +    #include <stdio.h>
-> +    #include <stdlib.h>
-> +    #include <unistd.h>
-> +    #include <sys/auxv.h>
-> +    #include <sys/mman.h>
-> +    #include <sys/prctl.h>
+Nicholas Piggin <npiggin@gmail.com> writes:
+> An include goes away in future patches which breaks compilation
+> without this.
+>
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> ---
+>  arch/powerpc/platforms/powernv/pci-ioda-tce.c | 1 +
+>  1 file changed, 1 insertion(+)
+>
+> diff --git a/arch/powerpc/platforms/powernv/pci-ioda-tce.c b/arch/powerpc/platforms/powernv/pci-ioda-tce.c
+> index f923359d8afc..8eba6ece7808 100644
+> --- a/arch/powerpc/platforms/powernv/pci-ioda-tce.c
+> +++ b/arch/powerpc/platforms/powernv/pci-ioda-tce.c
+> @@ -15,6 +15,7 @@
+>  
+>  #include <asm/iommu.h>
+>  #include <asm/tce.h>
+> +#include <asm/hvcall.h> /* share error returns with PAPR */
+>  #include "pci.h"
+>  
+>  unsigned long pnv_ioda_parse_tce_sizes(struct pnv_phb *phb)
+> -- 
+> 2.23.0
 
-the example should now include stdint.h
+This isn't needed anymore AFAICS, since:
 
-> +    #define insert_random_tag(ptr) ({                       \
-> +            uint64_t __val;                                 \
-> +            asm("irg %0, %1" : "=r" (__val) : "r" (ptr));   \
-> +            __val;                                          \
-> +    })
+5f202c1a1d42 ("powerpc/powernv/ioda: Return correct error if TCE level allocation failed")
+
+cheers
