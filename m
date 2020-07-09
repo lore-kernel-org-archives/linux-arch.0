@@ -1,75 +1,125 @@
-Return-Path: <SRS0=Q31O=AZ=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([207.211.31.120]:34687 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1726372AbgGNCsK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2020 22:48:10 -0400
-Subject: Re: [PATCH 2/2] locking/pvqspinlock: Optionally store lock holder cpu
- into lock
-References: <20200711182128.29130-1-longman@redhat.com>
- <20200711182128.29130-3-longman@redhat.com>
- <20200712173452.GB10769@hirez.programming.kicks-ass.net>
- <bed22603-e347-8bff-f586-072a18987946@redhat.com>
- <1594613637.ds7pt1by9l.astroid@bobo.none>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <e850b327-d747-fbe8-95db-4e2fbb1d7871@redhat.com>
-Date: Mon, 13 Jul 2020 22:48:00 -0400
+Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54806 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726228AbgGIVUW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 17:20:22 -0400
+Received: from mail-pg1-x541.google.com (mail-pg1-x541.google.com [IPv6:2607:f8b0:4864:20::541])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BDF6FC08C5DC
+        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 14:20:22 -0700 (PDT)
+Received: by mail-pg1-x541.google.com with SMTP id e18so1522719pgn.7
+        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 14:20:22 -0700 (PDT)
+Subject: [PATCH v2 1/5] lib: Add a generic version of devmem_is_allowed()
+Date: Thu,  9 Jul 2020 14:19:21 -0700
+Message-ID: <20200709211925.1926557-2-palmer@dabbelt.com>
+In-Reply-To: <20200709211925.1926557-1-palmer@dabbelt.com>
+References: <20200709211925.1926557-1-palmer@dabbelt.com>
 MIME-Version: 1.0
-In-Reply-To: <1594613637.ds7pt1by9l.astroid@bobo.none>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+From: Palmer Dabbelt <palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Davidlohr Bueso <dave@stgolabs.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, x86@kernel.org
-Message-ID: <20200714024800.Dnl5MKoX9JfyoQcIPIef4oB4KMuoxfGVXqNev1Kbad0@z>
+To: zong.li@sifive.com, rppt@linux.ibm.com
+Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, aou@eecs.berkeley.edu, gxt@pku.edu.cn, Arnd Bergmann <arnd@arndb.de>, linus.walleij@linaro.org, akpm@linux-foundation.org, mchehab+samsung@kernel.org, gregory.0xf0@gmail.com, masahiroy@kernel.org, Nick Desaulniers <ndesaulniers@google.com>, bgolaszewski@baylibre.com, steve@sk2.org, tglx@linutronix.de, keescook@chromium.org, alex@ghiti.fr, mcgrof@kernel.org, mark.rutland@arm.com, james.morse@arm.com, alex.shi@linux.alibaba.com, andriy.shevchenko@linux.intel.com, broonie@kernel.org, rdunlap@infradead.org, davem@davemloft.net, rostedt@goodmis.org, dan.j.williams@intel.com, mhiramat@kernel.org, krzk@kernel.org, zaslonko@linux.ibm.com, matti.vaittinen@fi.rohmeurope.com, uwe@kleine-koenig.org, clabbe@baylibre.com, changbin.du@intel.com, Greg KH <gregkh@linuxfoundation.org>, paulmck@kernel.org, pmladek@suse.com, brendanhiggins@google.com, glider@google.com, elver@google.com, davidgow@google.com, ardb@kernel.org, takahiro.akashi@linaro.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, kernel-team@android.com, Palmer Dabbelt <palmerdabbelt@google.com>
+Message-ID: <20200709211921.rWrA5-eqskH7yoJbqtMoKJJggnJOPO1UweAxjt6kiIY@z>
 
-On 7/13/20 12:17 AM, Nicholas Piggin wrote:
-> Excerpts from Waiman Long's message of July 13, 2020 9:05 am:
->> On 7/12/20 1:34 PM, Peter Zijlstra wrote:
->>> On Sat, Jul 11, 2020 at 02:21:28PM -0400, Waiman Long wrote:
->>>> The previous patch enables native qspinlock to store lock holder cpu
->>>> number into the lock word when the lock is acquired via the slowpath.
->>>> Since PV qspinlock uses atomic unlock, allowing the fastpath and
->>>> slowpath to put different values into the lock word will further slow
->>>> down the performance. This is certainly undesirable.
->>>>
->>>> The only way we can do that without too much performance impact is to
->>>> make fastpath and slowpath put in the same value. Still there is a slight
->>>> performance overhead in the additional access to a percpu variable in the
->>>> fastpath as well as the less optimized x86-64 PV qspinlock unlock path.
->>>>
->>>> A new config option QUEUED_SPINLOCKS_CPUINFO is now added to enable
->>>> distros to decide if they want to enable lock holder cpu information in
->>>> the lock itself for both native and PV qspinlocks across both fastpath
->>>> and slowpath. If this option is not configureed, only native qspinlocks
->>>> in the slowpath will put the lock holder cpu information in the lock
->>>> word.
->>> And this kills it,.. if it doesn't make unconditional sense, we're not
->>> going to do this. It's just too ugly.
->>>
->> You mean it has to be unconditional, no option config if we want to do
->> it. Right?
->>
->> It can certainly be made unconditional after I figure out how to make
->> the optimized PV unlock code work.
-> Sorry I've not had a lot of time to get back to this thread and test
-> things -- don't spend loads of effort or complexity on it until we get
-> some more numbers. I did see some worse throughput results (with no
-> attention to fairness) with the PV spin lock, but it was a really quick
-> limited few tests, I need to get something a bit more substantial.
->
-> I do very much appreciate your help with the powerpc patches, and
-> interest in the PV issues though. I'll try to find more time to help
-> out.
+From: Palmer Dabbelt <palmerdabbelt@google.com>
 
-Native qspinlock is usually not a problem performance-wise. PV 
-qspinlock, however, is usually the challenging part. It took me a long 
-time to get the PV code right so that I can merge qspinlock upstream. I 
-do some interest to get qspinlock used by ppc, though.
+As part of adding support for STRICT_DEVMEM to the RISC-V port, Zong
+provided a devmem_is_allowed() implementation that's exactly the same as
+all the others I checked.  Instead I'm adding a generic version, which
+will soon be used.
 
-Storing the cpu number into the lock can be useful for other reason too. 
-It is not totally related to PPC support.
+Signed-off-by: Palmer Dabbelt <palmerdabbelt@google.com>
+---
+ include/asm-generic/io.h |  4 ++++
+ lib/Kconfig              |  3 +++
+ lib/Kconfig.debug        |  2 +-
+ lib/Makefile             |  2 ++
+ lib/devmem_is_allowed.c  | 27 +++++++++++++++++++++++++++
+ 5 files changed, 37 insertions(+), 1 deletion(-)
+ create mode 100644 lib/devmem_is_allowed.c
 
-Cheers,
-Longman
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 8b1e020e9a03..69e3db65fba0 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -1122,6 +1122,10 @@ static inline void memcpy_toio(volatile void __iomem *addr, const void *buffer,
+ }
+ #endif
+ 
++#ifndef CONFIG_GENERIC_DEVMEM_IS_ALLOWED
++extern int devmem_is_allowed(unsigned long pfn);
++#endif
++
+ #endif /* __KERNEL__ */
+ 
+ #endif /* __ASM_GENERIC_IO_H */
+diff --git a/lib/Kconfig b/lib/Kconfig
+index df3f3da95990..610c16ecbb7c 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -676,3 +676,6 @@ config GENERIC_LIB_CMPDI2
+ 
+ config GENERIC_LIB_UCMPDI2
+ 	bool
++
++config GENERIC_LIB_DEVMEM_IS_ALLOWED
++	bool
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 9ad9210d70a1..e095bd631ba1 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1577,7 +1577,7 @@ config ARCH_HAS_DEVMEM_IS_ALLOWED
+ config STRICT_DEVMEM
+ 	bool "Filter access to /dev/mem"
+ 	depends on MMU && DEVMEM
+-	depends on ARCH_HAS_DEVMEM_IS_ALLOWED
++	depends on ARCH_HAS_DEVMEM_IS_ALLOWED || GENERIC_LIB_DEVMEM_IS_ALLOWED
+ 	default y if PPC || X86 || ARM64
+ 	help
+ 	  If this option is disabled, you allow userspace (root) access to all
+diff --git a/lib/Makefile b/lib/Makefile
+index b1c42c10073b..554ef14f9be5 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -318,3 +318,5 @@ obj-$(CONFIG_OBJAGG) += objagg.o
+ # KUnit tests
+ obj-$(CONFIG_LIST_KUNIT_TEST) += list-test.o
+ obj-$(CONFIG_LINEAR_RANGES_TEST) += test_linear_ranges.o
++
++obj-$(CONFIG_GENERIC_LIB_DEVMEM_IS_ALLOWED) += devmem_is_allowed.o
+diff --git a/lib/devmem_is_allowed.c b/lib/devmem_is_allowed.c
+new file mode 100644
+index 000000000000..c0d67c541849
+--- /dev/null
++++ b/lib/devmem_is_allowed.c
+@@ -0,0 +1,27 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * A generic version of devmem_is_allowed.
++ *
++ * Based on arch/arm64/mm/mmap.c
++ *
++ * Copyright (C) 2020 Google, Inc.
++ * Copyright (C) 2012 ARM Ltd.
++ */
++
++#include <linux/mm.h>
++#include <linux/ioport.h>
++
++/*
++ * devmem_is_allowed() checks to see if /dev/mem access to a certain address
++ * is valid. The argument is a physical page number.  We mimic x86 here by
++ * disallowing access to system RAM as well as device-exclusive MMIO regions.
++ * This effectively disable read()/write() on /dev/mem.
++ */
++int devmem_is_allowed(unsigned long pfn)
++{
++	if (iomem_is_exclusive(pfn << PAGE_SHIFT))
++		return 0;
++	if (!page_is_ram(pfn))
++		return 1;
++	return 0;
++}
+-- 
+2.27.0.383.g050319c2ae-goog
