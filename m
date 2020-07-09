@@ -1,53 +1,86 @@
-Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:52028 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726258AbgGCCgK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 22:36:10 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 04/21] KVM: x86/mmu: Remove superfluous gotos from mmu_topup_memory_caches()
-Date: Thu,  2 Jul 2020 19:35:28 -0700
-Message-ID: <20200703023545.8771-5-sean.j.christopherson@intel.com>
-In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
-References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43056 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726183AbgGIUIU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 16:08:20 -0400
+Received: from mail-pf1-x444.google.com (mail-pf1-x444.google.com [IPv6:2607:f8b0:4864:20::444])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 35182C08C5DC
+        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 13:08:20 -0700 (PDT)
+Received: by mail-pf1-x444.google.com with SMTP id s26so1478647pfm.4
+        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 13:08:20 -0700 (PDT)
+Subject: [PATCH 5/5] unicore32: Use the generic devmem_is_allowed()
+Date: Thu,  9 Jul 2020 13:05:52 -0700
+Message-ID: <20200709200552.1910298-6-palmer@dabbelt.com>
+In-Reply-To: <20200709200552.1910298-1-palmer@dabbelt.com>
+References: <20200709200552.1910298-1-palmer@dabbelt.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
+From: Palmer Dabbelt <palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200703023528.b17j_m-_CdftUTwSOfff7Vt_V7jt2rIANbvEh7fsJmY@z>
+To: zong.li@sifive.com
+Cc: linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, aou@eecs.berkeley.edu, gxt@pku.edu.cn, Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linus.walleij@linaro.org, rppt@linux.ibm.com, mchehab+samsung@kernel.org, gregory.0xf0@gmail.com, masahiroy@kernel.org, Nick Desaulniers <ndesaulniers@google.com>, bgolaszewski@baylibre.com, tglx@linutronix.de, steve@sk2.org, keescook@chromium.org, mcgrof@kernel.org, alex@ghiti.fr, mark.rutland@arm.com, james.morse@arm.com, andriy.shevchenko@linux.intel.com, alex.shi@linux.alibaba.com, davem@davemloft.net, rdunlap@infradead.org, broonie@kernel.org, uwe@kleine-koenig.org, rostedt@goodmis.org, dan.j.williams@intel.com, mhiramat@kernel.org, matti.vaittinen@fi.rohmeurope.com, zaslonko@linux.ibm.com, krzk@kernel.org, willy@infradead.org, paulmck@kernel.org, pmladek@suse.com, glider@google.com, elver@google.com, davidgow@google.com, ardb@kernel.org, takahiro.akashi@linaro.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, kernel-team@android.com, Palmer Dabbelt <palmerdabbelt@google.com>
+Message-ID: <20200709200552.jcp_MnBKOPS6OnXx8IbwYrqtMtpvuniaExLVZLlvhoA@z>
 
-Return errors directly from mmu_topup_memory_caches() instead of
-branching to a label that does the same.
+From: Palmer Dabbelt <palmerdabbelt@google.com>
 
-No functional change intended.
+Aside from being inlineable, this is exactly the same as the arm64
+version, which I recently copied into lib/ for use by the RISC-V port.
 
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+[I haven't even build tested this.  The lib/ patch is on riscv/for-next,
+which I'm targeting for 5.9, so this won't work alone.  See the cover
+letter for more details.]
+
+Signed-off-by: Palmer Dabbelt <palmerdabbelt@google.com>
 ---
- arch/x86/kvm/mmu/mmu.c | 8 +++-----
- 1 file changed, 3 insertions(+), 5 deletions(-)
+ arch/unicore32/Kconfig          |  1 +
+ arch/unicore32/include/asm/io.h | 23 -----------------------
+ 2 files changed, 1 insertion(+), 23 deletions(-)
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index b6df4525e86c..94b27adab6ba 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1100,13 +1100,11 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
- 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
- 				   8 + PTE_PREFETCH_NUM);
- 	if (r)
--		goto out;
-+		return r;
- 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache, 8);
- 	if (r)
--		goto out;
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
--out:
--	return r;
-+		return r;
-+	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
- }
+diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
+index 11ba1839d198..5334f51614a5 100644
+--- a/arch/unicore32/Kconfig
++++ b/arch/unicore32/Kconfig
+@@ -12,6 +12,7 @@ config UNICORE32
+ 	select HAVE_KERNEL_LZO
+ 	select HAVE_KERNEL_LZMA
+ 	select HAVE_PCI
++	select GENERIC_LIB_DEVMEM_IS_ALLOWED
+ 	select VIRT_TO_BUS
+ 	select ARCH_HAVE_CUSTOM_GPIO_H
+ 	select GENERIC_FIND_FIRST_BIT
+diff --git a/arch/unicore32/include/asm/io.h b/arch/unicore32/include/asm/io.h
+index bd4e7c332f85..4560d2531655 100644
+--- a/arch/unicore32/include/asm/io.h
++++ b/arch/unicore32/include/asm/io.h
+@@ -42,28 +42,5 @@ extern void __uc32_iounmap(volatile void __iomem *addr);
+ #define PIO_MASK		(unsigned int)(IO_SPACE_LIMIT)
+ #define PIO_RESERVED		(PIO_OFFSET + PIO_MASK + 1)
  
- static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
+-#ifdef CONFIG_STRICT_DEVMEM
+-
+-#include <linux/ioport.h>
+-#include <linux/mm.h>
+-
+-/*
+- * devmem_is_allowed() checks to see if /dev/mem access to a certain
+- * address is valid. The argument is a physical page number.
+- * We mimic x86 here by disallowing access to system RAM as well as
+- * device-exclusive MMIO regions. This effectively disable read()/write()
+- * on /dev/mem.
+- */
+-static inline int devmem_is_allowed(unsigned long pfn)
+-{
+-	if (iomem_is_exclusive(pfn << PAGE_SHIFT))
+-		return 0;
+-	if (!page_is_ram(pfn))
+-		return 1;
+-	return 0;
+-}
+-
+-#endif /* CONFIG_STRICT_DEVMEM */
+-
+ #endif	/* __KERNEL__ */
+ #endif	/* __UNICORE_IO_H__ */
 -- 
-2.26.0
+2.27.0.383.g050319c2ae-goog
