@@ -1,48 +1,109 @@
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: Re: [RESEND PATCH v5 3/6] arm64: Add tlbi_user_level TLB invalidation
- helper
-Date: Fri, 10 Jul 2020 09:20:59 +0800
-Message-ID: <33a5dc75-8209-e198-bb41-8b4ab82c000e@huawei.com>
-References: <20200625080314.230-1-yezhenyu2@huawei.com>
- <20200625080314.230-4-yezhenyu2@huawei.com> <20200709164845.GB6579@gaia>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [RFC PATCH 0/7] mmu context cleanup, lazy tlb cleanup,
+Date: Fri, 10 Jul 2020 11:56:39 +1000
+Message-ID: <20200710015646.2020871-1-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="gbk"
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:58348 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1726265AbgGJBVO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 9 Jul 2020 21:21:14 -0400
-In-Reply-To: <20200709164845.GB6579@gaia>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40864 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726323AbgGJB5J (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 21:57:09 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+To: linux-arch@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>
 
-Hi Catalin,
+This blew up a bit bigger than I thought, so I'd like to get some
+comments as to whether people agree with the direction it's going.
 
-On 2020/7/10 0:48, Catalin Marinas wrote:
-> On Thu, Jun 25, 2020 at 04:03:11PM +0800, Zhenyu Ye wrote:
->> @@ -189,8 +195,9 @@ static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
->>  	unsigned long addr = __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
->>  
->>  	dsb(ishst);
->> -	__tlbi(vale1is, addr);
->> -	__tlbi_user(vale1is, addr);
->> +	/* This function is only called on a small page */
->> +	__tlbi_level(vale1is, addr, 3);
->> +	__tlbi_user_level(vale1is, addr, 3);
->>  }
-> 
-> Actually, that's incorrect. It was ok in v2 of your patches when I
-> suggested to drop level 0, just leave the function unchanged but I
-> missed that you updated it to pass level 3.
-> 
-> pmdp_set_access_flags -> ptep_set_access_flags ->
-> flush_tlb_fix_spurious_fault -> flush_tlb_page -> flush_tlb_page_nosync.
+The patches aren't cleanly split out by arch, but as it is now it's
+probably easier to get a quick overview of the changes at a glance
+anyway.
 
-How do you want to fix this error? I notice that this series have been applied
-to arm64 (for-next/tlbi).  Should I send a new series based on arm64 (for-next/tlbi)?
+So there's a few different things here.
+
+1. Clean up and use asm-generic for no-op mmu context functions (so
+   not just for nommu architectures). This should be functionally a
+   no-op for everybody. This allows exit_lazy_tlb to easily be added.
+
+2. Add exit_lazy_tlb and use it for x86, so this is x86 and membarrier
+   specific changes. I _may_ have spotted a small membarrier / core sync
+   bug here when adding exit_lazy_tlb.
+
+3. Tidy up lazy tlb a little bit, have its own refcount function and
+   allow it to be selected out. We can audit the nommu archs and
+   deselect it for those.
+
+4. Add a non-refcounting lazy mmu mode, to help scalability when the
+   same mm is used for a lot of lazy mmu switching.
+
+Comments, questions on anything would be much appreciated.
 
 Thanks,
-Zhenyu
+Nick
+
+Nicholas Piggin (7):
+  asm-generic: add generic MMU versions of mmu context functions
+  arch: use asm-generic mmu context for no-op implementations
+  mm: introduce exit_lazy_tlb
+  x86: use exit_lazy_tlb rather than
+    membarrier_mm_sync_core_before_usermode
+  lazy tlb: introduce lazy mm refcount helper functions
+  lazy tlb: allow lazy tlb mm switching to be configurable
+  lazy tlb: shoot lazies, a non-refcounting lazy tlb option
+
+ .../membarrier-sync-core/arch-support.txt     |  6 +-
+ arch/Kconfig                                  | 23 +++++
+ arch/alpha/include/asm/mmu_context.h          | 12 +--
+ arch/arc/include/asm/mmu_context.h            | 16 ++--
+ arch/arm/include/asm/mmu_context.h            | 26 +-----
+ arch/arm64/include/asm/mmu_context.h          |  7 +-
+ arch/csky/include/asm/mmu_context.h           |  8 +-
+ arch/hexagon/include/asm/mmu_context.h        | 33 ++------
+ arch/ia64/include/asm/mmu_context.h           | 17 +---
+ arch/m68k/include/asm/mmu_context.h           | 47 ++---------
+ arch/microblaze/include/asm/mmu_context.h     |  2 +-
+ arch/microblaze/include/asm/mmu_context_mm.h  |  8 +-
+ arch/microblaze/include/asm/processor.h       |  3 -
+ arch/mips/include/asm/mmu_context.h           | 11 +--
+ arch/nds32/include/asm/mmu_context.h          | 10 +--
+ arch/nios2/include/asm/mmu_context.h          | 21 +----
+ arch/nios2/mm/mmu_context.c                   |  1 +
+ arch/openrisc/include/asm/mmu_context.h       |  8 +-
+ arch/openrisc/mm/tlb.c                        |  2 +
+ arch/parisc/include/asm/mmu_context.h         | 12 +--
+ arch/powerpc/Kconfig                          |  1 +
+ arch/powerpc/include/asm/mmu_context.h        | 22 ++---
+ arch/powerpc/kernel/smp.c                     |  2 +-
+ arch/powerpc/mm/book3s64/radix_tlb.c          |  4 +-
+ arch/riscv/include/asm/mmu_context.h          | 22 +----
+ arch/s390/include/asm/mmu_context.h           |  9 +-
+ arch/sh/include/asm/mmu_context.h             |  7 +-
+ arch/sh/include/asm/mmu_context_32.h          |  9 --
+ arch/sparc/include/asm/mmu_context_32.h       | 10 +--
+ arch/sparc/include/asm/mmu_context_64.h       | 10 +--
+ arch/um/include/asm/mmu_context.h             | 12 ++-
+ arch/unicore32/include/asm/mmu_context.h      | 24 +-----
+ arch/x86/include/asm/mmu_context.h            | 41 +++++++++
+ arch/x86/include/asm/sync_core.h              | 28 -------
+ arch/xtensa/include/asm/mmu_context.h         | 11 +--
+ arch/xtensa/include/asm/nommu_context.h       | 26 +-----
+ fs/exec.c                                     |  5 +-
+ include/asm-generic/mmu_context.h             | 77 +++++++++++++----
+ include/asm-generic/nommu_context.h           | 19 +++++
+ include/linux/sched/mm.h                      | 35 ++++----
+ include/linux/sync_core.h                     | 21 -----
+ kernel/cpu.c                                  |  6 +-
+ kernel/exit.c                                 |  2 +-
+ kernel/fork.c                                 | 39 +++++++++
+ kernel/kthread.c                              | 12 ++-
+ kernel/sched/core.c                           | 84 ++++++++++++-------
+ kernel/sched/sched.h                          |  4 +-
+ 47 files changed, 388 insertions(+), 427 deletions(-)
+ delete mode 100644 arch/x86/include/asm/sync_core.h
+ create mode 100644 include/asm-generic/nommu_context.h
+ delete mode 100644 include/linux/sync_core.h
+
+-- 
+2.23.0
