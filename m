@@ -1,189 +1,178 @@
-Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:55053 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726765AbgGIR0l (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 13:26:41 -0400
+Return-Path: <SRS0=hCR/=AV=kvack.org=owner-linux-mm@kernel.org>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [RFC PATCH 1/7] asm-generic: add generic MMU versions of mmu context functions
+Date: Fri, 10 Jul 2020 11:56:40 +1000
+Message-ID: <20200710015646.2020871-2-npiggin@gmail.com>
+In-Reply-To: <20200710015646.2020871-1-npiggin@gmail.com>
+References: <20200710015646.2020871-1-npiggin@gmail.com>
 MIME-Version: 1.0
-References: <20200707180955.53024-1-mic@digikod.net> <20200707180955.53024-9-mic@digikod.net>
- <CAK8P3a0FkoxFtcQJ2jSqyLbDCOp3R8-1JoY8CWAgbSZ9hH9wdQ@mail.gmail.com>
- <7f407b67-d470-25fd-1287-f4f55f18e74a@digikod.net> <CAK8P3a1ehWZErD2a0iBqn37s-LTAtW0AbV_gt32iX3cQkXbpOQ@mail.gmail.com>
- <ec79f6ad-1c11-d69f-724b-622baa28f19f@digikod.net>
-In-Reply-To: <ec79f6ad-1c11-d69f-724b-622baa28f19f@digikod.net>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 9 Jul 2020 19:26:18 +0200
-Message-ID: <CAK8P3a34X1qfDhn8u3nR+aQA_g+V2i35L0oTnvhNAs83YJPB_w@mail.gmail.com>
-Subject: Re: [PATCH v19 08/12] landlock: Add syscall implementation
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: linux-arch@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>, Remis Lima Baima <remis.developer@googlemail.com>
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mic@digikod.net>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?B?TWlja2HDq2wgU2FsYcO8bg==?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, "open list:KERNEL SELFTEST FRAMEWORK" <linux-kselftest@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20200709172618.5Pu2ZdQImv7Lb5RhAcCH8WF6Ahx_OhsoB6XcAneGTJA@z>
+Message-ID: <20200710015640.9uZtDbVTfYSy-dyJrv5C34Q2TJEr77rjLjMMYKeEFgw@z>
 
-On Wed, Jul 8, 2020 at 7:50 PM Mickaël Salaün <mic@digikod.net> wrote:
-> On 08/07/2020 15:49, Arnd Bergmann wrote:
-> > On Wed, Jul 8, 2020 at 3:04 PM Mickaël Salaün <mic@digikod.net> wrote:
-> >> On 08/07/2020 10:57, Arnd Bergmann wrote:
-> >>> On Tue, Jul 7, 2020 at 8:10 PM Mickaël Salaün <mic@digikod.net> wrote:
-> >>>
-> >>> It looks like all you need here today is a single argument bit, plus
-> >>> possibly some room for extensibility. I would suggest removing all
-> >>> the extra bits and using a syscall like
-> >>>
-> >>> SYSCALL_DEFINE1(landlock_create_ruleset, u32, flags);
-> >>>
-> >>> I don't really see how this needs any variable-length arguments,
-> >>> it really doesn't do much.
-> >>
-> >> We need the attr_ptr/attr_size pattern because the number of ruleset
-> >> properties will increase (e.g. network access mask).
-> >
-> > But how many bits do you think you will *actually* need in total that
-> > this needs to be a two-dimensional set of flags? At the moment you
-> > only have a single bit that you interpret.
->
-> I think there is a misunderstanding. For this syscall I wasn't talking
-> about the "options" field but about the "handled_access_fs" field which
-> has 14 bits dedicated to control access to the file system:
-> https://landlock.io/linux-doc/landlock-v19/security/landlock/user.html#filesystem-flags
+Many of these are no-ops on many architectures, so extend mmu_context.h
+to cover MMU and NOMMU, and split the NOMMU bits out to nommu_context.h
 
-Ok, got it. I didn't read far enough there.
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Remis Lima Baima <remis.developer@googlemail.com>
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ arch/microblaze/include/asm/mmu_context.h |  2 +-
+ arch/sh/include/asm/mmu_context.h         |  2 +-
+ include/asm-generic/mmu_context.h         | 57 +++++++++++++++++------
+ include/asm-generic/nommu_context.h       | 19 ++++++++
+ 4 files changed, 64 insertions(+), 16 deletions(-)
+ create mode 100644 include/asm-generic/nommu_context.h
 
-> The idea is to add other handled_access_* fields for other kernel object
-> types (e.g. network, process, etc.).
->
-> The "options" field is fine as a raw __u32 syscall argument.
-
-I'd still like to avoid having it variable-length and structured though.
-How about having a __u32 "options" flag, plus an indirect argument
-with 32 fixed-length (all 32 bit or all 64 bit) flag words, each of which
-corresponds to one of the option bits?
-
-It's still fairly complex that way, but not as much as the version
-you have right now that can be extended in multiple dimensions.
-
-This could possibly also help avoid the need for the get_features
-syscall: If user space just passes the bitmap of all the access flags
-it wants to use in a fixed-size structure, the kernel can update the
-bits to mask out the ones it does not understand and write back
-that bitmap as the result of create_ruleset().
-
-> >>> To be on the safe side, you might split up the flags into either the
-> >>> upper/lower 16 bits or two u32 arguments, to allow both compatible
-> >>> (ignored by older kernels if flag is set) and incompatible (return error
-> >>> when an unknown flag is set) bits.
-> >>
-> >> This may be a good idea in general, but in the case of Landlock, because
-> >> this kind of (discretionary) sandboxing should be a best-effort security
-> >> feature, we should avoid incompatible behavior. In practice, every
-> >> unknown bit returns an error because userland can probe for available
-> >> bits thanks to the get_features command. This kind of (in)compatibility
-> >> can then be handled by userland.
-> >
-> > If there are not going to be incompatible extensions, then just ignore
-> > all unknown bits and never return an error but get rid of the user
-> > space probing that just complicates the interface.
->
-> There was multiple discussions about ABI compatibility, especially
-> inspired by open(2) vs. openat2(2), and ignoring flags seems to be a bad
-> idea. In the "sandboxer" example, we first probe the supported features
-> and then mask unknown bits (i.e. access rights) at run time in userland.
-> This strategy is quite straightforward, backward compatible and
-> future-proof.
-
-For behavior changing flags, I agree they should be seen as
-incompatible flags (i.e. return an error if an unknown bit is set).
-
-However, for the flags you pass in in an allowlist, treating them
-as compatible (i.e. ignore any unknown flags, allowing everything
-you are not forbidding already) seems completely reasonable
-to me. Do you foresee user space doing anything other than masking
-out the bits that the kernel doesn't know about? If not, then doing
-it in the  kernel should always be simpler.
-
-> >> I suggest this syscall signature:
-> >> SYSCALL_DEFINE3(landlock_create_ruleset, __u32, options, const struct
-> >> landlock_attr_ruleset __user *, ruleset_ptr, size_t, ruleset_size);
-> >
-> > The other problem here is that indirect variable-size structured arguments
-> > are a pain to instrument with things like strace or seccomp, so you
-> > should first try to use a fixed argument list, and fall back to a fixed
-> > structure if that fails.
->
-> I agree that it is not perfect with the current tools but this kind of
-> extensible structs are becoming common and well defined (e.g. openat2).
-> Moreover there is some work going on for seccomp to support "extensible
-> argument" syscalls: https://lwn.net/Articles/822256/
-
-openat2() is already more complex than we'd ideally want, I think we
-should try hard to make new syscalls simpler than that, following the
-rule that any interface should be as simple as possible, but no simpler.
-
-> >>>> +static int syscall_add_rule_path_beneath(const void __user *const attr_ptr,
-> >>>> +               const size_t attr_size)
-> >>>> +{
-> >>>> +       struct landlock_attr_path_beneath attr_path_beneath;
-> >>>> +       struct path path;
-> >>>> +       struct landlock_ruleset *ruleset;
-> >>>> +       int err;
-> >>>
-> >>> Similarly, it looks like this wants to be
-> >>>
-> >>> SYSCALL_DEFINE3(landlock_add_rule_path_beneath, int, ruleset, int,
-> >>> path, __u32, flags)
-> >>>
-> >>> I don't see any need to extend this in a way that wouldn't already
-> >>> be served better by adding another system call. You might argue
-> >>> that 'flags' and 'allowed_access' could be separate, with the latter
-> >>> being an indirect in/out argument here, like
-> >>>
-> >>> SYSCALL_DEFINE4(landlock_add_rule_path_beneath, int, ruleset, int, path,
-> >>>                            __u64 *, allowed_acces, __u32, flags)
-> >>
-> >> To avoid adding a new syscall for each new rule type (e.g. path_beneath,
-> >> path_range, net_ipv4_range, etc.), I think it would be better to keep
-> >> the attr_ptr/attr_size pattern and to explicitely set a dedicated option
-> >> flag to specify the attr type.
-> >>
-> >> This would look like this:
-> >> SYSCALL_DEFINE4(landlock_add_rule, __u32, options, int, ruleset, const
-> >> void __user *, rule_ptr, size_t, rule_size);
-> >>
-> >> The rule_ptr could then point to multiple types like struct
-> >> landlock_attr_path_beneath (without the current ruleset_fd field).
-> >
-> > This again introduces variable-sized structured data. How many different
-> > kinds of rule types do you think there will be (most likely, and maybe an
-> > upper bound)?
->
-> I don't know how many rule types will come, but right now I think it may
-> be less than 10.
-
-Ok,
-
-> > Could (some of) these be generalized to use the same data structure?
->
-> I don't think so, file path and network addresses are an example of very
-> different types.
-
-Clearly the target object is something different, but maybe there is
-enough commonality to still make them fit into a more regular form.
-
-For the file system case, you have an identify for an object
-(the file descriptor) and the  '__u64 allowed_access'. I would
-expect that the 'allowed_access' concept is generic enough that
-you can make it a direct argument (32 bit register arg, or pointer
-to a __u64). Do you expect others to need something besides
-an object identifier and a permission bitmask? Maybe it could
-be something like
-
- SYSCALL_DEFINE4(landlock_add_rule, int, ruleset, __u32, options,
-                       const void __user *, object, const __u64 __user
-*, allowed_access,
-                       __u32, flags);
-
-with a fixed-length 'object' identifier type (file descriptor,
-sockaddr_storage, ...) for each option.
-
-    Arnd
+diff --git a/arch/microblaze/include/asm/mmu_context.h b/arch/microblaze/=
+include/asm/mmu_context.h
+index f74f9da07fdc..34004efb3def 100644
+--- a/arch/microblaze/include/asm/mmu_context.h
++++ b/arch/microblaze/include/asm/mmu_context.h
+@@ -2,5 +2,5 @@
+ #ifdef CONFIG_MMU
+ # include <asm/mmu_context_mm.h>
+ #else
+-# include <asm-generic/mmu_context.h>
++# include <asm-generic/nommu_context.h>
+ #endif
+diff --git a/arch/sh/include/asm/mmu_context.h b/arch/sh/include/asm/mmu_=
+context.h
+index 48e67d544d53..9470d17c71c2 100644
+--- a/arch/sh/include/asm/mmu_context.h
++++ b/arch/sh/include/asm/mmu_context.h
+@@ -134,7 +134,7 @@ static inline void switch_mm(struct mm_struct *prev,
+ #define set_TTB(pgd)			do { } while (0)
+ #define get_TTB()			(0)
+=20
+-#include <asm-generic/mmu_context.h>
++#include <asm-generic/nommu_context.h>
+=20
+ #endif /* CONFIG_MMU */
+=20
+diff --git a/include/asm-generic/mmu_context.h b/include/asm-generic/mmu_=
+context.h
+index 6be9106fb6fb..86cea80a50df 100644
+--- a/include/asm-generic/mmu_context.h
++++ b/include/asm-generic/mmu_context.h
+@@ -3,44 +3,73 @@
+ #define __ASM_GENERIC_MMU_CONTEXT_H
+=20
+ /*
+- * Generic hooks for NOMMU architectures, which do not need to do
+- * anything special here.
++ * Generic hooks to implement no-op functionality.
+  */
+=20
+-#include <asm-generic/mm_hooks.h>
+-
+ struct task_struct;
+ struct mm_struct;
+=20
++/*
++ * enter_lazy_tlb - Called when "tsk" is about to enter lazy TLB mode.
++ *
++ * @mm:  the currently active mm context which is becoming lazy
++ * @tsk: task which is entering lazy tlb
++ *
++ * tsk->mm will be NULL
++ */
++#ifndef enter_lazy_tlb
+ static inline void enter_lazy_tlb(struct mm_struct *mm,
+ 			struct task_struct *tsk)
+ {
+ }
++#endif
+=20
++/**
++ * init_new_context - Initialize context of a new mm_struct.
++ * @tsk: task struct for the mm
++ * @mm:  the new mm struct
++ */
++#ifndef init_new_context
+ static inline int init_new_context(struct task_struct *tsk,
+ 			struct mm_struct *mm)
+ {
+ 	return 0;
+ }
++#endif
+=20
++/**
++ * destroy_context - Undo init_new_context when the mm is going away
++ * @mm: old mm struct
++ */
++#ifndef destroy_context
+ static inline void destroy_context(struct mm_struct *mm)
+ {
+ }
++#endif
+=20
+-static inline void deactivate_mm(struct task_struct *task,
+-			struct mm_struct *mm)
+-{
+-}
+-
+-static inline void switch_mm(struct mm_struct *prev,
+-			struct mm_struct *next,
+-			struct task_struct *tsk)
++/**
++ * activate_mm - called after exec switches the current task to a new mm=
+, to switch to it
++ * @prev_mm: previous mm of this task
++ * @next_mm: new mm
++ */
++#ifndef activate_mm
++static inline void activate_mm(struct mm_struct *prev_mm,
++			       struct mm_struct *next_mm)
+ {
++	switch_mm(prev_mm, next_mm, current);
+ }
++#endif
+=20
+-static inline void activate_mm(struct mm_struct *prev_mm,
+-			       struct mm_struct *next_mm)
++/**
++ * dectivate_mm - called when an mm is released after exit or exec switc=
+hes away from it
++ * @tsk: the task
++ * @mm:  the old mm
++ */
++#ifndef deactivate_mm
++static inline void deactivate_mm(struct task_struct *tsk,
++			struct mm_struct *mm)
+ {
+ }
++#endif
+=20
+ #endif /* __ASM_GENERIC_MMU_CONTEXT_H */
+diff --git a/include/asm-generic/nommu_context.h b/include/asm-generic/no=
+mmu_context.h
+new file mode 100644
+index 000000000000..72b8d8b1d81e
+--- /dev/null
++++ b/include/asm-generic/nommu_context.h
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_GENERIC_NOMMU_H
++#define __ASM_GENERIC_NOMMU_H
++
++/*
++ * Generic hooks for NOMMU architectures, which do not need to do
++ * anything special here.
++ */
++
++#include <asm-generic/mm_hooks.h>
++#include <asm-generic/mmu_context.h>
++
++static inline void switch_mm(struct mm_struct *prev,
++			struct mm_struct *next,
++			struct task_struct *tsk)
++{
++}
++
++#endif /* __ASM_GENERIC_NOMMU_H */
+--=20
+2.23.0
