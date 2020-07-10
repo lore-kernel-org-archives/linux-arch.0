@@ -1,240 +1,322 @@
-Return-Path: <SRS0=v7fS=AU=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v1 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
-Date: Thu, 9 Jul 2020 17:10:54 +0800
-Message-ID: <20200709091054.1698-3-yezhenyu2@huawei.com>
-In-Reply-To: <20200709091054.1698-1-yezhenyu2@huawei.com>
-References: <20200709091054.1698-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=hCR/=AV=kvack.org=owner-linux-mm@kernel.org>
+Date: Fri, 10 Jul 2020 10:02:20 -0400 (EDT)
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Message-ID: <1650470150.8264.1594389740219.JavaMail.zimbra@efficios.com>
+In-Reply-To: <20200710015646.2020871-5-npiggin@gmail.com>
+References: <20200710015646.2020871-1-npiggin@gmail.com> <20200710015646.2020871-5-npiggin@gmail.com>
+Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
+ membarrier_mm_sync_core_before_usermode
 MIME-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: owner-linux-mm@kvack.org
-To: catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, x86 <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-mm <linux-mm@kvack.org>, Anton Blanchard <anton@ozlabs.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200709091054.WHaM_8AiwM9MYv4vpaBc8Of28yvUd1EI_UauRy3KYnA@z>
+Message-ID: <20200710140220.mJt6xkrJmSPRYJXkWPvQiKzQ_vPzoITbKvt1aJ2ekfY@z>
 
-Add __TLBI_VADDR_RANGE macro and rewrite __flush_tlb_range().
+----- On Jul 9, 2020, at 9:56 PM, Nicholas Piggin npiggin@gmail.com wrote:
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
----
- arch/arm64/include/asm/tlbflush.h | 156 ++++++++++++++++++++++++------
- 1 file changed, 126 insertions(+), 30 deletions(-)
+> And get rid of the generic sync_core_before_usermode facility.
+> 
+> This helper is the wrong way around I think. The idea that membarrier
+> state requires a core sync before returning to user is the easy one
+> that does not need hiding behind membarrier calls. The gap in core
+> synchronization due to x86's sysret/sysexit and lazy tlb mode, is the
+> tricky detail that is better put in x86 lazy tlb code.
+> 
+> Consider if an arch did not synchronize core in switch_mm either, then
+> membarrier_mm_sync_core_before_usermode would be in the wrong place
+> but arch specific mmu context functions would still be the right place.
+> There is also a exit_lazy_tlb case that is not covered by this call, which
+> could be a bugs (kthread use mm the membarrier process's mm then context
+> switch back to the process without switching mm or lazy mm switch).
+> 
+> This makes lazy tlb code a bit more modular.
 
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
-lbflush.h
-index 39aed2efd21b..30e52eae973b 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -60,6 +60,31 @@
- 		__ta;						\
- 	})
-=20
-+/*
-+ * Get translation granule of the system, which is decided by
-+ * PAGE_SIZE.  Used by TTL.
-+ *  - 4KB	: 1
-+ *  - 16KB	: 2
-+ *  - 64KB	: 3
-+ */
-+#define TLBI_TTL_TG_4K		1
-+#define TLBI_TTL_TG_16K		2
-+#define TLBI_TTL_TG_64K		3
-+
-+static inline unsigned long get_trans_granule(void)
-+{
-+	switch (PAGE_SIZE) {
-+	case SZ_4K:
-+		return TLBI_TTL_TG_4K;
-+	case SZ_16K:
-+		return TLBI_TTL_TG_16K;
-+	case SZ_64K:
-+		return TLBI_TTL_TG_64K;
-+	default:
-+		return 0;
-+	}
-+}
-+
- /*
-  * Level-based TLBI operations.
-  *
-@@ -73,29 +98,15 @@
-  * in asm/stage2_pgtable.h.
-  */
- #define TLBI_TTL_MASK		GENMASK_ULL(47, 44)
--#define TLBI_TTL_TG_4K		1
--#define TLBI_TTL_TG_16K		2
--#define TLBI_TTL_TG_64K		3
-=20
- #define __tlbi_level(op, addr, level) do {				\
- 	u64 arg =3D addr;							\
- 									\
- 	if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&		\
-+	    !cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&		\
- 	    level) {							\
- 		u64 ttl =3D level & 3;					\
--									\
--		switch (PAGE_SIZE) {					\
--		case SZ_4K:						\
--			ttl |=3D TLBI_TTL_TG_4K << 2;			\
--			break;						\
--		case SZ_16K:						\
--			ttl |=3D TLBI_TTL_TG_16K << 2;			\
--			break;						\
--		case SZ_64K:						\
--			ttl |=3D TLBI_TTL_TG_64K << 2;			\
--			break;						\
--		}							\
--									\
-+		ttl |=3D get_trans_granule() << 2;			\
- 		arg &=3D ~TLBI_TTL_MASK;					\
- 		arg |=3D FIELD_PREP(TLBI_TTL_MASK, ttl);			\
- 	}								\
-@@ -108,6 +119,49 @@
- 		__tlbi_level(op, (arg | USER_ASID_FLAG), level);	\
- } while (0)
-=20
-+#define __tlbi_last_level(op1, op2, arg, last_level, tlb_level) do {	\
-+	if (last_level)	{						\
-+		__tlbi_level(op1, arg, tlb_level);			\
-+		__tlbi_user_level(op1, arg, tlb_level);			\
-+	} else {							\
-+		__tlbi_level(op2, arg, tlb_level);			\
-+		__tlbi_user_level(op2, arg, tlb_level);			\
-+	}								\
-+} while (0)
-+
-+/*
-+ * This macro creates a properly formatted VA operand for the TLBI RANGE=
-.
-+ * The value bit assignments are:
-+ *
-+ * +----------+------+-------+-------+-------+----------------------+
-+ * |   ASID   |  TG  | SCALE |  NUM  |  TTL  |        BADDR         |
-+ * +-----------------+-------+-------+-------+----------------------+
-+ * |63      48|47  46|45   44|43   39|38   37|36                   0|
-+ *
-+ * The address range is determined by below formula:
-+ * [BADDR, BADDR + (NUM + 1) * 2^(5*SCALE + 1) * PAGESIZE)
-+ *
-+ */
-+#define __TLBI_VADDR_RANGE(addr, asid, scale, num, ttl)		\
-+	({							\
-+		unsigned long __ta =3D (addr) >> PAGE_SHIFT;	\
-+		__ta &=3D GENMASK_ULL(36, 0);			\
-+		__ta |=3D (unsigned long)(ttl) << 37;		\
-+		__ta |=3D (unsigned long)(num) << 39;		\
-+		__ta |=3D (unsigned long)(scale) << 44;		\
-+		__ta |=3D get_trans_granule() << 46;		\
-+		__ta |=3D (unsigned long)(asid) << 48;		\
-+		__ta;						\
-+	})
-+
-+/* These macros are used by the TLBI RANGE feature. */
-+#define __TLBI_RANGE_PAGES(num, scale)	(((num) + 1) << (5 * (scale) + 1)=
-)
-+#define MAX_TLBI_RANGE_PAGES		__TLBI_RANGE_PAGES(31, 3)
-+
-+#define TLBI_RANGE_MASK			GENMASK_ULL(4, 0)
-+#define __TLBI_RANGE_NUM(range, scale)	\
-+	(((range) >> (5 * (scale) + 1)) & TLBI_RANGE_MASK)
-+
- /*
-  *	TLB Invalidation
-  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-@@ -232,32 +286,74 @@ static inline void __flush_tlb_range(struct vm_area=
-_struct *vma,
- 				     unsigned long stride, bool last_level,
- 				     int tlb_level)
- {
-+	int num =3D 0;
-+	int scale =3D 0;
- 	unsigned long asid =3D ASID(vma->vm_mm);
- 	unsigned long addr;
-+	unsigned long pages;
-=20
- 	start =3D round_down(start, stride);
- 	end =3D round_up(end, stride);
-+	pages =3D (end - start) >> PAGE_SHIFT;
-=20
--	if ((end - start) >=3D (MAX_TLBI_OPS * stride)) {
-+	if ((!cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
-+	    (end - start) >=3D (MAX_TLBI_OPS * stride)) ||
-+	    pages >=3D MAX_TLBI_RANGE_PAGES) {
- 		flush_tlb_mm(vma->vm_mm);
- 		return;
- 	}
-=20
--	/* Convert the stride into units of 4k */
--	stride >>=3D 12;
--
--	start =3D __TLBI_VADDR(start, asid);
--	end =3D __TLBI_VADDR(end, asid);
--
- 	dsb(ishst);
--	for (addr =3D start; addr < end; addr +=3D stride) {
--		if (last_level) {
--			__tlbi_level(vale1is, addr, tlb_level);
--			__tlbi_user_level(vale1is, addr, tlb_level);
--		} else {
--			__tlbi_level(vae1is, addr, tlb_level);
--			__tlbi_user_level(vae1is, addr, tlb_level);
-+
-+	/*
-+	 * When cpu does not support TLBI RANGE feature, we flush the tlb
-+	 * entries one by one at the granularity of 'stride'.
-+	 * When cpu supports the TLBI RANGE feature, then:
-+	 * 1. If pages is odd, flush the first page through non-RANGE
-+	 *    instruction;
-+	 * 2. For remaining pages: The minimum range granularity is decided
-+	 *    by 'scale', so we can not flush all pages by one instruction
-+	 *    in some cases.
-+	 *
-+	 * For example, when the pages =3D 0xe81a, let's start 'scale' from
-+	 * maximum, and find right 'num' for each 'scale':
-+	 *
-+	 *  When scale =3D 3, we can flush no pages because the minumum
-+	 * range is 2^(5*3 + 1) =3D 0x10000.
-+	 *  When scale =3D 2, the minimum range is 2^(5*2 + 1) =3D 0x800, we ca=
-n
-+	 * flush 0xe800 pages this time, the num =3D 0xe800/0x800 - 1 =3D 0x1c.
-+	 * Remain pages is 0x1a;
-+	 *  When scale =3D 1, the minimum range is 2^(5*1 + 1) =3D 0x40, no pag=
-e
-+	 * can be flushed.
-+	 *  When scale =3D 0, we flush the remaining 0x1a pages, the num =3D
-+	 * 0x1a/0x2 - 1 =3D 0xd.
-+	 *
-+	 * However, in most scenarios, the pages =3D 1 when flush_tlb_range() i=
-s
-+	 * called. Start from scale =3D 3 or other proper value (such as scale =
-=3D
-+	 * ilog2(pages)), will incur extra overhead.
-+	 * So increase 'scale' from 0 to maximum, the flush order is exactly
-+	 * opposite to the example.
-+	 */
-+	while (pages > 0) {
-+		if (cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
-+		    pages % 2 =3D=3D 0) {
-+			num =3D __TLBI_RANGE_NUM(pages, scale) - 1;
-+			if (num >=3D 0) {
-+				addr =3D __TLBI_VADDR_RANGE(start, asid, scale,
-+							  num, tlb_level);
-+				__tlbi_last_level(rvale1is, rvae1is, addr,
-+						  last_level, tlb_level);
-+				start +=3D __TLBI_RANGE_PAGES(num, scale) << PAGE_SHIFT;
-+				pages -=3D __TLBI_RANGE_PAGES(num, scale);
-+			}
-+			scale++;
-+			continue;
- 		}
-+
-+		addr =3D __TLBI_VADDR(start, asid);
-+		__tlbi_last_level(vale1is, vae1is, addr, last_level, tlb_level);
-+		start +=3D stride;
-+		pages -=3D stride >> PAGE_SHIFT;
- 	}
- 	dsb(ish);
- }
---=20
-2.19.1
+I agree that moving this logic to exit_lazy_tlb is much more modular and
+cleaner.
+
+Thanks,
+
+Mathieu
+
+
+> 
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> ---
+> .../membarrier-sync-core/arch-support.txt     |  6 +++-
+> arch/x86/include/asm/mmu_context.h            | 35 +++++++++++++++++++
+> arch/x86/include/asm/sync_core.h              | 28 ---------------
+> include/linux/sched/mm.h                      | 14 --------
+> include/linux/sync_core.h                     | 21 -----------
+> kernel/cpu.c                                  |  4 ++-
+> kernel/kthread.c                              |  2 +-
+> kernel/sched/core.c                           | 16 ++++-----
+> 8 files changed, 51 insertions(+), 75 deletions(-)
+> delete mode 100644 arch/x86/include/asm/sync_core.h
+> delete mode 100644 include/linux/sync_core.h
+> 
+> diff --git a/Documentation/features/sched/membarrier-sync-core/arch-support.txt
+> b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
+> index 52ad74a25f54..bd43fb1f5986 100644
+> --- a/Documentation/features/sched/membarrier-sync-core/arch-support.txt
+> +++ b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
+> @@ -5,6 +5,10 @@
+> #
+> # Architecture requirements
+> #
+> +# If your architecture returns to user-space through non-core-serializing
+> +# instructions, you need to ensure these are done in switch_mm and
+> exit_lazy_tlb
+> +# (if lazy tlb switching is implemented).
+> +#
+> # * arm/arm64/powerpc
+> #
+> # Rely on implicit context synchronization as a result of exception return
+> @@ -24,7 +28,7 @@
+> # instead on write_cr3() performed by switch_mm() to provide core serialization
+> # after changing the current mm, and deal with the special case of kthread ->
+> # uthread (temporarily keeping current mm into active_mm) by issuing a
+> -# sync_core_before_usermode() in that specific case.
+> +# serializing instruction in exit_lazy_mm() in that specific case.
+> #
+>     -----------------------
+>     |         arch |status|
+> diff --git a/arch/x86/include/asm/mmu_context.h
+> b/arch/x86/include/asm/mmu_context.h
+> index 255750548433..5263863a9be8 100644
+> --- a/arch/x86/include/asm/mmu_context.h
+> +++ b/arch/x86/include/asm/mmu_context.h
+> @@ -6,6 +6,7 @@
+> #include <linux/atomic.h>
+> #include <linux/mm_types.h>
+> #include <linux/pkeys.h>
+> +#include <linux/sched/mm.h>
+> 
+> #include <trace/events/tlb.h>
+> 
+> @@ -95,6 +96,40 @@ static inline void switch_ldt(struct mm_struct *prev, struct
+> mm_struct *next)
+> #define enter_lazy_tlb enter_lazy_tlb
+> extern void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk);
+> 
+> +#ifdef CONFIG_MEMBARRIER
+> +/*
+> + * Ensure that a core serializing instruction is issued before returning
+> + * to user-mode, if a SYNC_CORE was requested. x86 implements return to
+> + * user-space through sysexit, sysrel, and sysretq, which are not core
+> + * serializing.
+> + *
+> + * See the membarrier comment in finish_task_switch as to why this is done
+> + * in exit_lazy_tlb.
+> + */
+> +#define exit_lazy_tlb exit_lazy_tlb
+> +static inline void exit_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
+> +{
+> +	/* Switching mm is serializing with write_cr3 */
+> +        if (tsk->mm != mm)
+> +                return;
+> +
+> +        if (likely(!(atomic_read(&mm->membarrier_state) &
+> +                     MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE)))
+> +                return;
+> +
+> +	/* With PTI, we unconditionally serialize before running user code. */
+> +	if (static_cpu_has(X86_FEATURE_PTI))
+> +		return;
+> +	/*
+> +	 * Return from interrupt and NMI is done through iret, which is core
+> +	 * serializing.
+> +	 */
+> +	if (in_irq() || in_nmi())
+> +		return;
+> +	sync_core();
+> +}
+> +#endif
+> +
+> /*
+>  * Init a new mm.  Used on mm copies, like at fork()
+>  * and on mm's that are brand-new, like at execve().
+> diff --git a/arch/x86/include/asm/sync_core.h b/arch/x86/include/asm/sync_core.h
+> deleted file mode 100644
+> index c67caafd3381..000000000000
+> --- a/arch/x86/include/asm/sync_core.h
+> +++ /dev/null
+> @@ -1,28 +0,0 @@
+> -/* SPDX-License-Identifier: GPL-2.0 */
+> -#ifndef _ASM_X86_SYNC_CORE_H
+> -#define _ASM_X86_SYNC_CORE_H
+> -
+> -#include <linux/preempt.h>
+> -#include <asm/processor.h>
+> -#include <asm/cpufeature.h>
+> -
+> -/*
+> - * Ensure that a core serializing instruction is issued before returning
+> - * to user-mode. x86 implements return to user-space through sysexit,
+> - * sysrel, and sysretq, which are not core serializing.
+> - */
+> -static inline void sync_core_before_usermode(void)
+> -{
+> -	/* With PTI, we unconditionally serialize before running user code. */
+> -	if (static_cpu_has(X86_FEATURE_PTI))
+> -		return;
+> -	/*
+> -	 * Return from interrupt and NMI is done through iret, which is core
+> -	 * serializing.
+> -	 */
+> -	if (in_irq() || in_nmi())
+> -		return;
+> -	sync_core();
+> -}
+> -
+> -#endif /* _ASM_X86_SYNC_CORE_H */
+> diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
+> index 480a4d1b7dd8..9b026264b445 100644
+> --- a/include/linux/sched/mm.h
+> +++ b/include/linux/sched/mm.h
+> @@ -7,7 +7,6 @@
+> #include <linux/sched.h>
+> #include <linux/mm_types.h>
+> #include <linux/gfp.h>
+> -#include <linux/sync_core.h>
+> 
+> /*
+>  * Routines for handling mm_structs
+> @@ -364,16 +363,6 @@ enum {
+> #include <asm/membarrier.h>
+> #endif
+> 
+> -static inline void membarrier_mm_sync_core_before_usermode(struct mm_struct
+> *mm)
+> -{
+> -	if (current->mm != mm)
+> -		return;
+> -	if (likely(!(atomic_read(&mm->membarrier_state) &
+> -		     MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE)))
+> -		return;
+> -	sync_core_before_usermode();
+> -}
+> -
+> extern void membarrier_exec_mmap(struct mm_struct *mm);
+> 
+> #else
+> @@ -387,9 +376,6 @@ static inline void membarrier_arch_switch_mm(struct
+> mm_struct *prev,
+> static inline void membarrier_exec_mmap(struct mm_struct *mm)
+> {
+> }
+> -static inline void membarrier_mm_sync_core_before_usermode(struct mm_struct
+> *mm)
+> -{
+> -}
+> #endif
+> 
+> #endif /* _LINUX_SCHED_MM_H */
+> diff --git a/include/linux/sync_core.h b/include/linux/sync_core.h
+> deleted file mode 100644
+> index 013da4b8b327..000000000000
+> --- a/include/linux/sync_core.h
+> +++ /dev/null
+> @@ -1,21 +0,0 @@
+> -/* SPDX-License-Identifier: GPL-2.0 */
+> -#ifndef _LINUX_SYNC_CORE_H
+> -#define _LINUX_SYNC_CORE_H
+> -
+> -#ifdef CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
+> -#include <asm/sync_core.h>
+> -#else
+> -/*
+> - * This is a dummy sync_core_before_usermode() implementation that can be used
+> - * on all architectures which return to user-space through core serializing
+> - * instructions.
+> - * If your architecture returns to user-space through non-core-serializing
+> - * instructions, you need to write your own functions.
+> - */
+> -static inline void sync_core_before_usermode(void)
+> -{
+> -}
+> -#endif
+> -
+> -#endif /* _LINUX_SYNC_CORE_H */
+> -
+> diff --git a/kernel/cpu.c b/kernel/cpu.c
+> index 6ff2578ecf17..134688d79589 100644
+> --- a/kernel/cpu.c
+> +++ b/kernel/cpu.c
+> @@ -572,7 +572,9 @@ static int finish_cpu(unsigned int cpu)
+> 
+> 	/*
+> 	 * idle_task_exit() will have switched to &init_mm, now
+> -	 * clean up any remaining active_mm state.
+> +	 * clean up any remaining active_mm state. exit_lazy_tlb
+> +	 * is not done, if an arch did any accounting in these
+> +	 * functions it would have to be added.
+> 	 */
+> 	if (mm != &init_mm)
+> 		idle->active_mm = &init_mm;
+> diff --git a/kernel/kthread.c b/kernel/kthread.c
+> index e813d92f2eab..6f93c649aa97 100644
+> --- a/kernel/kthread.c
+> +++ b/kernel/kthread.c
+> @@ -1251,9 +1251,9 @@ void kthread_use_mm(struct mm_struct *mm)
+> 	finish_arch_post_lock_switch();
+> #endif
+> 
+> +	exit_lazy_tlb(active_mm, tsk);
+> 	if (active_mm != mm)
+> 		mmdrop(active_mm);
+> -	exit_lazy_tlb(active_mm, tsk);
+> 
+> 	to_kthread(tsk)->oldfs = get_fs();
+> 	set_fs(USER_DS);
+> diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+> index debc917bc69b..31e22c79826c 100644
+> --- a/kernel/sched/core.c
+> +++ b/kernel/sched/core.c
+> @@ -3294,22 +3294,19 @@ static struct rq *finish_task_switch(struct task_struct
+> *prev)
+> 	kcov_finish_switch(current);
+> 
+> 	fire_sched_in_preempt_notifiers(current);
+> +
+> 	/*
+> 	 * When switching through a kernel thread, the loop in
+> 	 * membarrier_{private,global}_expedited() may have observed that
+> 	 * kernel thread and not issued an IPI. It is therefore possible to
+> 	 * schedule between user->kernel->user threads without passing though
+> -	 * switch_mm(). Membarrier requires a barrier after storing to
+> -	 * rq->curr, before returning to userspace, so provide them here:
+> -	 *
+> -	 * - a full memory barrier for {PRIVATE,GLOBAL}_EXPEDITED, implicitly
+> -	 *   provided by mmdrop(),
+> -	 * - a sync_core for SYNC_CORE.
+> +	 * switch_mm(). Membarrier requires a full barrier after storing to
+> +	 * rq->curr, before returning to userspace, for
+> +	 * {PRIVATE,GLOBAL}_EXPEDITED. This is implicitly provided by mmdrop().
+> 	 */
+> -	if (mm) {
+> -		membarrier_mm_sync_core_before_usermode(mm);
+> +	if (mm)
+> 		mmdrop(mm);
+> -	}
+> +
+> 	if (unlikely(prev_state == TASK_DEAD)) {
+> 		if (prev->sched_class->task_dead)
+> 			prev->sched_class->task_dead(prev);
+> @@ -6292,6 +6289,7 @@ void idle_task_exit(void)
+> 	BUG_ON(current != this_rq()->idle);
+> 
+> 	if (mm != &init_mm) {
+> +		/* enter_lazy_tlb is not done because we're about to go down */
+> 		switch_mm(mm, &init_mm, current);
+> 		finish_arch_post_lock_switch();
+> 	}
+> --
+> 2.23.0
+
+-- 
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
