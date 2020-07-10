@@ -1,97 +1,53 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [RFC PATCH 3/7] mm: introduce exit_lazy_tlb
-Date: Fri, 10 Jul 2020 11:56:42 +1000
-Message-ID: <20200710015646.2020871-4-npiggin@gmail.com>
-References: <20200710015646.2020871-1-npiggin@gmail.com>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH 1/5] lib: Add a generic version of devmem_is_allowed()
+Date: Fri, 10 Jul 2020 06:38:50 +0100
+Message-ID: <20200710053850.GA27019@infradead.org>
+References: <20200709200552.1910298-1-palmer@dabbelt.com>
+ <20200709200552.1910298-2-palmer@dabbelt.com>
+ <20200709204921.GJ781326@linux.ibm.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200710015646.2020871-1-npiggin@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46654 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725966AbgGJFjT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2020 01:39:19 -0400
+Content-Disposition: inline
+In-Reply-To: <20200709204921.GJ781326@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>, mark.rutland@arm.com, steve@sk2.org, davidgow@google.com, catalin.marinas@arm.com, linus.walleij@linaro.org, Palmer Dabbelt <palmerdabbelt@google.com>, elver@google.com, glider@google.com, willy@infradead.org, zong.li@sifive.com, mchehab+samsung@kernel.org, linux-riscv@lists.infradead.org, alex.shi@linux.alibaba.com, will@kernel.org, dan.j.williams@intel.com, linux-arch@vger.kernel.org, uwe@kleine-koenig.org, alex@ghiti.fr, takahiro.akashi@linaro.org, paulmck@kernel.org, masahiroy@kernel.org, linux@armlinux.org.uk, krzk@kernel.org, ardb@kernel.org, bgolaszewski@baylibre.com, kernel-team@android.com, pmladek@suse.com, zaslonko@linux.ibm.com, aou@eecs.berkeley.edu, keescook@chromium.org, Arnd Bergmann <arnd@arndb.de>, rostedt@goodmis.org
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- fs/exec.c                         |  5 +++--
- include/asm-generic/mmu_context.h | 20 ++++++++++++++++++++
- kernel/kthread.c                  |  1 +
- kernel/sched/core.c               |  2 ++
- 4 files changed, 26 insertions(+), 2 deletions(-)
+On Thu, Jul 09, 2020 at 11:49:21PM +0300, Mike Rapoport wrote:
+> > +#ifndef CONFIG_GENERIC_DEVMEM_IS_ALLOWED
+> > +extern int devmem_is_allowed(unsigned long pfn);
+> > +#endif
 
-diff --git a/fs/exec.c b/fs/exec.c
-index e6e8a9a70327..e2ab71e88293 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -1117,9 +1117,10 @@ static int exec_mmap(struct mm_struct *mm)
- 		setmax_mm_hiwater_rss(&tsk->signal->maxrss, old_mm);
- 		mm_update_next_owner(old_mm);
- 		mmput(old_mm);
--		return 0;
-+	} else {
-+		exit_lazy_tlb(active_mm, tsk);
-+		mmdrop(active_mm);
- 	}
--	mmdrop(active_mm);
- 	return 0;
- }
- 
-diff --git a/include/asm-generic/mmu_context.h b/include/asm-generic/mmu_context.h
-index 86cea80a50df..3fc4c3879b79 100644
---- a/include/asm-generic/mmu_context.h
-+++ b/include/asm-generic/mmu_context.h
-@@ -24,6 +24,26 @@ static inline void enter_lazy_tlb(struct mm_struct *mm,
- }
- #endif
- 
-+/*
-+ * exit_lazy_tlb - Called after switching away from a lazy TLB mode mm.
-+ *
-+ * mm:  the lazy mm context that was switched away from
-+ * tsk: the task that was switched to non-lazy mm
-+ *
-+ * tsk->mm will not be NULL.
-+ *
-+ * Note this is not symmetrical to enter_lazy_tlb, this is not
-+ * called when tasks switch into the lazy mm, it's called after the
-+ * lazy mm becomes non-lazy (either switched to a different mm or the
-+ * owner of the mm returns).
-+ */
-+#ifndef exit_lazy_tlb
-+static inline void exit_lazy_tlb(struct mm_struct *mm,
-+			struct task_struct *tsk)
-+{
-+}
-+#endif
-+
- /**
-  * init_new_context - Initialize context of a new mm_struct.
-  * @tsk: task struct for the mm
-diff --git a/kernel/kthread.c b/kernel/kthread.c
-index 132f84a5fde3..e813d92f2eab 100644
---- a/kernel/kthread.c
-+++ b/kernel/kthread.c
-@@ -1253,6 +1253,7 @@ void kthread_use_mm(struct mm_struct *mm)
- 
- 	if (active_mm != mm)
- 		mmdrop(active_mm);
-+	exit_lazy_tlb(active_mm, tsk);
- 
- 	to_kthread(tsk)->oldfs = get_fs();
- 	set_fs(USER_DS);
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index ca5db40392d4..debc917bc69b 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -3439,6 +3439,8 @@ context_switch(struct rq *rq, struct task_struct *prev,
- 		switch_mm_irqs_off(prev->active_mm, next->mm, next);
- 
- 		if (!prev->mm) {                        // from kernel
-+			exit_lazy_tlb(prev->active_mm, next);
-+
- 			/* will mmdrop() in finish_task_switch(). */
- 			rq->prev_mm = prev->active_mm;
- 			prev->active_mm = NULL;
--- 
-2.23.0
+Nit: no need for the extern here.
+
+> > +config GENERIC_LIB_DEVMEM_IS_ALLOWED
+> > +	bool
+> > +	select ARCH_HAS_DEVMEM_IS_ALLOWED
+> 
+> This seems to work the other way around from the usual Kconfig chains.
+> In the most cases ARCH_HAS_SOMETHING selects GENERIC_SOMETHING.
+> 
+> I believe nicer way would be to make 
+> 
+> config STRICT_DEVMEM
+> 	bool "Filter access to /dev/mem"
+> 	depends on MMU && DEVMEM
+> 	depends on ARCH_HAS_DEVMEM_IS_ALLOWED || GENERIC_LIB_DEVMEM_IS_ALLOWED
+> 
+> config GENERIC_LIB_DEVMEM_IS_ALLOWED
+> 	bool
+> 
+> and then s/select ARCH_HAS_DEVMEM_IS_ALLOWED/select GENERIC_LIB_DEVMEM_IS_ALLOWED/
+> in the arch Kconfigs and drop ARCH_HAS_DEVMEM_IS_ALLOWED in the end.
+
+To take a step back:  Is there any reason to not just always
+STRICT_DEVMEM? Maybe for a few architectures that don't currently
+support a strict /dev/mem the generic version isn't quite correct, but
+someone selecting the option and finding the issue is the best way to
+figure that out..
