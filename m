@@ -1,62 +1,50 @@
-Return-Path: <SRS0=f/HW=AM=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57626 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729571AbgGAJLG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Jul 2020 05:11:06 -0400
-Date: Wed, 1 Jul 2020 11:10:54 +0200
+Return-Path: <SRS0=hCR/=AV=kvack.org=owner-linux-mm@kernel.org>
+Date: Fri, 10 Jul 2020 11:35:56 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Message-ID: <20200701091054.GW4781@hirez.programming.kicks-ass.net>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624211540.GS4817@hirez.programming.kicks-ass.net>
- <CAKwvOdmxz91c-M8egR9GdR1uOjeZv7-qoTP=pQ55nU8TCpkK6g@mail.gmail.com>
- <20200625080313.GY4817@hirez.programming.kicks-ass.net>
- <20200625082433.GC117543@hirez.programming.kicks-ass.net>
- <20200625085745.GD117543@hirez.programming.kicks-ass.net>
- <20200630191931.GA884155@elver.google.com>
- <20200630201243.GD4817@hirez.programming.kicks-ass.net>
- <20200630203016.GI9247@paulmck-ThinkPad-P72>
+Subject: Re: [RFC PATCH 7/7] lazy tlb: shoot lazies, a non-refcounting lazy
+ tlb option
+Message-ID: <20200710093556.GY4800@hirez.programming.kicks-ass.net>
+References: <20200710015646.2020871-1-npiggin@gmail.com>
+ <20200710015646.2020871-8-npiggin@gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20200630203016.GI9247@paulmck-ThinkPad-P72>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <20200710015646.2020871-8-npiggin@gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-Message-ID: <20200701091054.QX3_iq3u-CNsdboCE1WkLzsGTG3hImWELOYPCGz-jnY@z>
+Message-ID: <20200710093556.loEuOClP9tzdgtyptlNb5rdVcpTJeiqsBlp1r0FWCDM@z>
 
-On Tue, Jun 30, 2020 at 01:30:16PM -0700, Paul E. McKenney wrote:
-> On Tue, Jun 30, 2020 at 10:12:43PM +0200, Peter Zijlstra wrote:
-
-> > I'm not convinced C11 memory_order_consume would actually work for us,
-> > even if it would work. That is, given:
-> > 
-> >   https://lore.kernel.org/lkml/20150520005510.GA23559@linux.vnet.ibm.com/
-> > 
-> > only pointers can have consume, but like I pointed out, we have code
-> > that relies on dependent loads from integers.
+On Fri, Jul 10, 2020 at 11:56:46AM +1000, Nicholas Piggin wrote:
+> On big systems, the mm refcount can become highly contented when doing
+> a lot of context switching with threaded applications (particularly
+> switching between the idle thread and an application thread).
 > 
-> I agree that C11 memory_order_consume is not normally what we want,
-> given that it is universally promoted to memory_order_acquire.
+> Abandoning lazy tlb slows switching down quite a bit in the important
+> user->idle->user cases, so so instead implement a non-refcounted scheme
+> that causes __mmdrop() to IPI all CPUs in the mm_cpumask and shoot down
+> any remaining lazy ones.
 > 
-> However, dependent loads from integers are, if anything, more difficult
-> to defend from the compiler than are control dependencies.  This applies
-> doubly to integers that are used to index two-element arrays, in which
-> case you are just asking the compiler to destroy your dependent loads
-> by converting them into control dependencies.
+> On a 16-socket 192-core POWER8 system, a context switching benchmark
+> with as many software threads as CPUs (so each switch will go in and
+> out of idle), upstream can achieve a rate of about 1 million context
+> switches per second. After this patch it goes up to 118 million.
 
-Yes, I'm aware. However, as you might know, I'm firmly in the 'C is a
-glorified assembler' camp (as I expect most actual OS people are, out of
-necessity if nothing else) and if I wanted a control dependency I
-would've bloody well written one.
+That's mighty impressive, however:
 
-I think an optimizing compiler is awesome, but only in so far as that
-optimization is actually helpful -- and yes, I just stepped into a giant
-twilight zone there. That is, any optimization that has _any_
-controversy should be controllable (like -fno-strict-overflow
--fno-strict-aliasing) and I'd very much like the same here.
+> +static void shoot_lazy_tlbs(struct mm_struct *mm)
+> +{
+> +	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB_SHOOTDOWN)) {
+> +		smp_call_function_many(mm_cpumask(mm), do_shoot_lazy_tlb, (void *)mm, 1);
+> +		do_shoot_lazy_tlb(mm);
+> +	}
+> +}
 
-In a larger context, I still think that eliminating speculative stores
-is both necessary and sufficient to avoid out-of-thin-air. So I'd also
-love to get some control on that.
+IIRC you (power) never clear a CPU from that mask, so for other
+workloads I can see this resulting in massive amounts of IPIs.
+
+For instance, take as many processes as you have CPUs. For each,
+manually walk the task across all CPUs and exit. Again.
+
+Clearly, that's an extreme, but still...
