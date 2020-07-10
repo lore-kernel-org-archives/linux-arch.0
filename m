@@ -1,109 +1,171 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [RFC PATCH 0/7] mmu context cleanup, lazy tlb cleanup,
-Date: Fri, 10 Jul 2020 11:56:39 +1000
-Message-ID: <20200710015646.2020871-1-npiggin@gmail.com>
+Subject: [RFC PATCH 1/7] asm-generic: add generic MMU versions of mmu context functions
+Date: Fri, 10 Jul 2020 11:56:40 +1000
+Message-ID: <20200710015646.2020871-2-npiggin@gmail.com>
+References: <20200710015646.2020871-1-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40864 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726323AbgGJB5J (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 21:57:09 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200710015646.2020871-1-npiggin@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>, Remis Lima Baima <remis.developer@googlemail.com>
+List-Id: linux-arch.vger.kernel.org
 
-This blew up a bit bigger than I thought, so I'd like to get some
-comments as to whether people agree with the direction it's going.
+Many of these are no-ops on many architectures, so extend mmu_context.h
+to cover MMU and NOMMU, and split the NOMMU bits out to nommu_context.h
 
-The patches aren't cleanly split out by arch, but as it is now it's
-probably easier to get a quick overview of the changes at a glance
-anyway.
-
-So there's a few different things here.
-
-1. Clean up and use asm-generic for no-op mmu context functions (so
-   not just for nommu architectures). This should be functionally a
-   no-op for everybody. This allows exit_lazy_tlb to easily be added.
-
-2. Add exit_lazy_tlb and use it for x86, so this is x86 and membarrier
-   specific changes. I _may_ have spotted a small membarrier / core sync
-   bug here when adding exit_lazy_tlb.
-
-3. Tidy up lazy tlb a little bit, have its own refcount function and
-   allow it to be selected out. We can audit the nommu archs and
-   deselect it for those.
-
-4. Add a non-refcounting lazy mmu mode, to help scalability when the
-   same mm is used for a lot of lazy mmu switching.
-
-Comments, questions on anything would be much appreciated.
-
-Thanks,
-Nick
-
-Nicholas Piggin (7):
-  asm-generic: add generic MMU versions of mmu context functions
-  arch: use asm-generic mmu context for no-op implementations
-  mm: introduce exit_lazy_tlb
-  x86: use exit_lazy_tlb rather than
-    membarrier_mm_sync_core_before_usermode
-  lazy tlb: introduce lazy mm refcount helper functions
-  lazy tlb: allow lazy tlb mm switching to be configurable
-  lazy tlb: shoot lazies, a non-refcounting lazy tlb option
-
- .../membarrier-sync-core/arch-support.txt     |  6 +-
- arch/Kconfig                                  | 23 +++++
- arch/alpha/include/asm/mmu_context.h          | 12 +--
- arch/arc/include/asm/mmu_context.h            | 16 ++--
- arch/arm/include/asm/mmu_context.h            | 26 +-----
- arch/arm64/include/asm/mmu_context.h          |  7 +-
- arch/csky/include/asm/mmu_context.h           |  8 +-
- arch/hexagon/include/asm/mmu_context.h        | 33 ++------
- arch/ia64/include/asm/mmu_context.h           | 17 +---
- arch/m68k/include/asm/mmu_context.h           | 47 ++---------
- arch/microblaze/include/asm/mmu_context.h     |  2 +-
- arch/microblaze/include/asm/mmu_context_mm.h  |  8 +-
- arch/microblaze/include/asm/processor.h       |  3 -
- arch/mips/include/asm/mmu_context.h           | 11 +--
- arch/nds32/include/asm/mmu_context.h          | 10 +--
- arch/nios2/include/asm/mmu_context.h          | 21 +----
- arch/nios2/mm/mmu_context.c                   |  1 +
- arch/openrisc/include/asm/mmu_context.h       |  8 +-
- arch/openrisc/mm/tlb.c                        |  2 +
- arch/parisc/include/asm/mmu_context.h         | 12 +--
- arch/powerpc/Kconfig                          |  1 +
- arch/powerpc/include/asm/mmu_context.h        | 22 ++---
- arch/powerpc/kernel/smp.c                     |  2 +-
- arch/powerpc/mm/book3s64/radix_tlb.c          |  4 +-
- arch/riscv/include/asm/mmu_context.h          | 22 +----
- arch/s390/include/asm/mmu_context.h           |  9 +-
- arch/sh/include/asm/mmu_context.h             |  7 +-
- arch/sh/include/asm/mmu_context_32.h          |  9 --
- arch/sparc/include/asm/mmu_context_32.h       | 10 +--
- arch/sparc/include/asm/mmu_context_64.h       | 10 +--
- arch/um/include/asm/mmu_context.h             | 12 ++-
- arch/unicore32/include/asm/mmu_context.h      | 24 +-----
- arch/x86/include/asm/mmu_context.h            | 41 +++++++++
- arch/x86/include/asm/sync_core.h              | 28 -------
- arch/xtensa/include/asm/mmu_context.h         | 11 +--
- arch/xtensa/include/asm/nommu_context.h       | 26 +-----
- fs/exec.c                                     |  5 +-
- include/asm-generic/mmu_context.h             | 77 +++++++++++++----
- include/asm-generic/nommu_context.h           | 19 +++++
- include/linux/sched/mm.h                      | 35 ++++----
- include/linux/sync_core.h                     | 21 -----
- kernel/cpu.c                                  |  6 +-
- kernel/exit.c                                 |  2 +-
- kernel/fork.c                                 | 39 +++++++++
- kernel/kthread.c                              | 12 ++-
- kernel/sched/core.c                           | 84 ++++++++++++-------
- kernel/sched/sched.h                          |  4 +-
- 47 files changed, 388 insertions(+), 427 deletions(-)
- delete mode 100644 arch/x86/include/asm/sync_core.h
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Remis Lima Baima <remis.developer@googlemail.com>
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ arch/microblaze/include/asm/mmu_context.h |  2 +-
+ arch/sh/include/asm/mmu_context.h         |  2 +-
+ include/asm-generic/mmu_context.h         | 57 +++++++++++++++++------
+ include/asm-generic/nommu_context.h       | 19 ++++++++
+ 4 files changed, 64 insertions(+), 16 deletions(-)
  create mode 100644 include/asm-generic/nommu_context.h
- delete mode 100644 include/linux/sync_core.h
 
+diff --git a/arch/microblaze/include/asm/mmu_context.h b/arch/microblaze/include/asm/mmu_context.h
+index f74f9da07fdc..34004efb3def 100644
+--- a/arch/microblaze/include/asm/mmu_context.h
++++ b/arch/microblaze/include/asm/mmu_context.h
+@@ -2,5 +2,5 @@
+ #ifdef CONFIG_MMU
+ # include <asm/mmu_context_mm.h>
+ #else
+-# include <asm-generic/mmu_context.h>
++# include <asm-generic/nommu_context.h>
+ #endif
+diff --git a/arch/sh/include/asm/mmu_context.h b/arch/sh/include/asm/mmu_context.h
+index 48e67d544d53..9470d17c71c2 100644
+--- a/arch/sh/include/asm/mmu_context.h
++++ b/arch/sh/include/asm/mmu_context.h
+@@ -134,7 +134,7 @@ static inline void switch_mm(struct mm_struct *prev,
+ #define set_TTB(pgd)			do { } while (0)
+ #define get_TTB()			(0)
+ 
+-#include <asm-generic/mmu_context.h>
++#include <asm-generic/nommu_context.h>
+ 
+ #endif /* CONFIG_MMU */
+ 
+diff --git a/include/asm-generic/mmu_context.h b/include/asm-generic/mmu_context.h
+index 6be9106fb6fb..86cea80a50df 100644
+--- a/include/asm-generic/mmu_context.h
++++ b/include/asm-generic/mmu_context.h
+@@ -3,44 +3,73 @@
+ #define __ASM_GENERIC_MMU_CONTEXT_H
+ 
+ /*
+- * Generic hooks for NOMMU architectures, which do not need to do
+- * anything special here.
++ * Generic hooks to implement no-op functionality.
+  */
+ 
+-#include <asm-generic/mm_hooks.h>
+-
+ struct task_struct;
+ struct mm_struct;
+ 
++/*
++ * enter_lazy_tlb - Called when "tsk" is about to enter lazy TLB mode.
++ *
++ * @mm:  the currently active mm context which is becoming lazy
++ * @tsk: task which is entering lazy tlb
++ *
++ * tsk->mm will be NULL
++ */
++#ifndef enter_lazy_tlb
+ static inline void enter_lazy_tlb(struct mm_struct *mm,
+ 			struct task_struct *tsk)
+ {
+ }
++#endif
+ 
++/**
++ * init_new_context - Initialize context of a new mm_struct.
++ * @tsk: task struct for the mm
++ * @mm:  the new mm struct
++ */
++#ifndef init_new_context
+ static inline int init_new_context(struct task_struct *tsk,
+ 			struct mm_struct *mm)
+ {
+ 	return 0;
+ }
++#endif
+ 
++/**
++ * destroy_context - Undo init_new_context when the mm is going away
++ * @mm: old mm struct
++ */
++#ifndef destroy_context
+ static inline void destroy_context(struct mm_struct *mm)
+ {
+ }
++#endif
+ 
+-static inline void deactivate_mm(struct task_struct *task,
+-			struct mm_struct *mm)
+-{
+-}
+-
+-static inline void switch_mm(struct mm_struct *prev,
+-			struct mm_struct *next,
+-			struct task_struct *tsk)
++/**
++ * activate_mm - called after exec switches the current task to a new mm, to switch to it
++ * @prev_mm: previous mm of this task
++ * @next_mm: new mm
++ */
++#ifndef activate_mm
++static inline void activate_mm(struct mm_struct *prev_mm,
++			       struct mm_struct *next_mm)
+ {
++	switch_mm(prev_mm, next_mm, current);
+ }
++#endif
+ 
+-static inline void activate_mm(struct mm_struct *prev_mm,
+-			       struct mm_struct *next_mm)
++/**
++ * dectivate_mm - called when an mm is released after exit or exec switches away from it
++ * @tsk: the task
++ * @mm:  the old mm
++ */
++#ifndef deactivate_mm
++static inline void deactivate_mm(struct task_struct *tsk,
++			struct mm_struct *mm)
+ {
+ }
++#endif
+ 
+ #endif /* __ASM_GENERIC_MMU_CONTEXT_H */
+diff --git a/include/asm-generic/nommu_context.h b/include/asm-generic/nommu_context.h
+new file mode 100644
+index 000000000000..72b8d8b1d81e
+--- /dev/null
++++ b/include/asm-generic/nommu_context.h
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_GENERIC_NOMMU_H
++#define __ASM_GENERIC_NOMMU_H
++
++/*
++ * Generic hooks for NOMMU architectures, which do not need to do
++ * anything special here.
++ */
++
++#include <asm-generic/mm_hooks.h>
++#include <asm-generic/mmu_context.h>
++
++static inline void switch_mm(struct mm_struct *prev,
++			struct mm_struct *next,
++			struct task_struct *tsk)
++{
++}
++
++#endif /* __ASM_GENERIC_NOMMU_H */
 -- 
 2.23.0
