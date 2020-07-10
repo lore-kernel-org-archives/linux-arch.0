@@ -1,165 +1,97 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [RFC PATCH 7/7] lazy tlb: shoot lazies, a non-refcounting lazy tlb option
-Date: Fri, 10 Jul 2020 11:56:46 +1000
-Message-ID: <20200710015646.2020871-8-npiggin@gmail.com>
+Subject: [RFC PATCH 3/7] mm: introduce exit_lazy_tlb
+Date: Fri, 10 Jul 2020 11:56:42 +1000
+Message-ID: <20200710015646.2020871-4-npiggin@gmail.com>
 References: <20200710015646.2020871-1-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40962 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727827AbgGJB5l (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 21:57:41 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200710015646.2020871-1-npiggin@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>
-
-On big systems, the mm refcount can become highly contented when doing
-a lot of context switching with threaded applications (particularly
-switching between the idle thread and an application thread).
-
-Abandoning lazy tlb slows switching down quite a bit in the important
-user->idle->user cases, so so instead implement a non-refcounted scheme
-that causes __mmdrop() to IPI all CPUs in the mm_cpumask and shoot down
-any remaining lazy ones.
-
-On a 16-socket 192-core POWER8 system, a context switching benchmark
-with as many software threads as CPUs (so each switch will go in and
-out of idle), upstream can achieve a rate of about 1 million context
-switches per second. After this patch it goes up to 118 million.
+List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/Kconfig             | 16 ++++++++++++++++
- arch/powerpc/Kconfig     |  1 +
- include/linux/sched/mm.h |  6 +++---
- kernel/fork.c            | 39 +++++++++++++++++++++++++++++++++++++++
- 4 files changed, 59 insertions(+), 3 deletions(-)
+ fs/exec.c                         |  5 +++--
+ include/asm-generic/mmu_context.h | 20 ++++++++++++++++++++
+ kernel/kthread.c                  |  1 +
+ kernel/sched/core.c               |  2 ++
+ 4 files changed, 26 insertions(+), 2 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 2daf8fe6146a..edf69437a971 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -418,6 +418,22 @@ config MMU_LAZY_TLB
- 	help
- 	  Enable "lazy TLB" mmu context switching for kernel threads.
- 
-+config MMU_LAZY_TLB_REFCOUNT
-+	def_bool y
-+	depends on MMU_LAZY_TLB
-+	depends on !MMU_LAZY_TLB_SHOOTDOWN
-+
-+config MMU_LAZY_TLB_SHOOTDOWN
-+	bool
-+	depends on MMU_LAZY_TLB
-+	help
-+	  Instead of refcounting the "lazy tlb" mm struct, which can cause
-+	  contention with multi-threaded apps on large multiprocessor systems,
-+	  this option causes __mmdrop to IPI all CPUs in the mm_cpumask and
-+	  switch to init_mm if they were using the to-be-freed mm as the lazy
-+	  tlb. Architectures which do not track all possible lazy tlb CPUs in
-+	  mm_cpumask can not use this (without modification).
-+
- config ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	bool
- 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 920c4e3ca4ef..24ac85c868db 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -225,6 +225,7 @@ config PPC
- 	select HAVE_PERF_USER_STACK_DUMP
- 	select MMU_GATHER_RCU_TABLE_FREE
- 	select MMU_GATHER_PAGE_SIZE
-+	select MMU_LAZY_TLB_SHOOTDOWN
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_RELIABLE_STACKTRACE		if PPC_BOOK3S_64 && CPU_LITTLE_ENDIAN
- 	select HAVE_SYSCALL_TRACEPOINTS
-diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
-index 2c2b20e2ccc7..1067af8039bd 100644
---- a/include/linux/sched/mm.h
-+++ b/include/linux/sched/mm.h
-@@ -53,19 +53,19 @@ void mmdrop(struct mm_struct *mm);
- /* Helpers for lazy TLB mm refcounting */
- static inline void mmgrab_lazy_tlb(struct mm_struct *mm)
- {
--	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB))
-+	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB_REFCOUNT))
- 		mmgrab(mm);
+diff --git a/fs/exec.c b/fs/exec.c
+index e6e8a9a70327..e2ab71e88293 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1117,9 +1117,10 @@ static int exec_mmap(struct mm_struct *mm)
+ 		setmax_mm_hiwater_rss(&tsk->signal->maxrss, old_mm);
+ 		mm_update_next_owner(old_mm);
+ 		mmput(old_mm);
+-		return 0;
++	} else {
++		exit_lazy_tlb(active_mm, tsk);
++		mmdrop(active_mm);
+ 	}
+-	mmdrop(active_mm);
+ 	return 0;
  }
  
- static inline void mmdrop_lazy_tlb(struct mm_struct *mm)
- {
--	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB))
-+	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB_REFCOUNT))
- 		mmdrop(mm);
+diff --git a/include/asm-generic/mmu_context.h b/include/asm-generic/mmu_context.h
+index 86cea80a50df..3fc4c3879b79 100644
+--- a/include/asm-generic/mmu_context.h
++++ b/include/asm-generic/mmu_context.h
+@@ -24,6 +24,26 @@ static inline void enter_lazy_tlb(struct mm_struct *mm,
  }
+ #endif
  
- static inline void mmdrop_lazy_tlb_smp_mb(struct mm_struct *mm)
- {
--	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB))
-+	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB_REFCOUNT))
- 		mmdrop(mm); /* This depends on mmdrop providing a full smp_mb() */
- 	else
- 		smp_mb();
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 142b23645d82..da0fba9e6079 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -685,6 +685,40 @@ static void check_mm(struct mm_struct *mm)
- #define allocate_mm()	(kmem_cache_alloc(mm_cachep, GFP_KERNEL))
- #define free_mm(mm)	(kmem_cache_free(mm_cachep, (mm)))
++/*
++ * exit_lazy_tlb - Called after switching away from a lazy TLB mode mm.
++ *
++ * mm:  the lazy mm context that was switched away from
++ * tsk: the task that was switched to non-lazy mm
++ *
++ * tsk->mm will not be NULL.
++ *
++ * Note this is not symmetrical to enter_lazy_tlb, this is not
++ * called when tasks switch into the lazy mm, it's called after the
++ * lazy mm becomes non-lazy (either switched to a different mm or the
++ * owner of the mm returns).
++ */
++#ifndef exit_lazy_tlb
++static inline void exit_lazy_tlb(struct mm_struct *mm,
++			struct task_struct *tsk)
++{
++}
++#endif
++
+ /**
+  * init_new_context - Initialize context of a new mm_struct.
+  * @tsk: task struct for the mm
+diff --git a/kernel/kthread.c b/kernel/kthread.c
+index 132f84a5fde3..e813d92f2eab 100644
+--- a/kernel/kthread.c
++++ b/kernel/kthread.c
+@@ -1253,6 +1253,7 @@ void kthread_use_mm(struct mm_struct *mm)
  
-+static void do_shoot_lazy_tlb(void *arg)
-+{
-+	struct mm_struct *mm = arg;
+ 	if (active_mm != mm)
+ 		mmdrop(active_mm);
++	exit_lazy_tlb(active_mm, tsk);
+ 
+ 	to_kthread(tsk)->oldfs = get_fs();
+ 	set_fs(USER_DS);
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index ca5db40392d4..debc917bc69b 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -3439,6 +3439,8 @@ context_switch(struct rq *rq, struct task_struct *prev,
+ 		switch_mm_irqs_off(prev->active_mm, next->mm, next);
+ 
+ 		if (!prev->mm) {                        // from kernel
++			exit_lazy_tlb(prev->active_mm, next);
 +
-+	if (current->active_mm == mm) {
-+		BUG_ON(current->mm);
-+		switch_mm(mm, &init_mm, current);
-+		current->active_mm = &init_mm;
-+	}
-+}
-+
-+static void do_check_lazy_tlb(void *arg)
-+{
-+	struct mm_struct *mm = arg;
-+
-+	BUG_ON(current->active_mm == mm);
-+}
-+
-+static void shoot_lazy_tlbs(struct mm_struct *mm)
-+{
-+	if (IS_ENABLED(CONFIG_MMU_LAZY_TLB_SHOOTDOWN)) {
-+		smp_call_function_many(mm_cpumask(mm), do_shoot_lazy_tlb, (void *)mm, 1);
-+		do_shoot_lazy_tlb(mm);
-+	}
-+}
-+
-+static void check_lazy_tlbs(struct mm_struct *mm)
-+{
-+	if (IS_ENABLED(CONFIG_DEBUG_VM)) {
-+		smp_call_function(do_check_lazy_tlb, (void *)mm, 1);
-+		do_check_lazy_tlb(mm);
-+	}
-+}
-+
- /*
-  * Called when the last reference to the mm
-  * is dropped: either by a lazy thread or by
-@@ -695,6 +729,11 @@ void __mmdrop(struct mm_struct *mm)
- 	BUG_ON(mm == &init_mm);
- 	WARN_ON_ONCE(mm == current->mm);
- 	WARN_ON_ONCE(mm == current->active_mm);
-+
-+	/* Ensure no CPUs are using this as their lazy tlb mm */
-+	shoot_lazy_tlbs(mm);
-+	check_lazy_tlbs(mm);
-+
- 	mm_free_pgd(mm);
- 	destroy_context(mm);
- 	mmu_notifier_subscriptions_destroy(mm);
+ 			/* will mmdrop() in finish_task_switch(). */
+ 			rq->prev_mm = prev->active_mm;
+ 			prev->active_mm = NULL;
 -- 
 2.23.0
