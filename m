@@ -1,108 +1,259 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than membarrier_mm_sync_core_before_usermode
-Date: Fri, 10 Jul 2020 10:04:54 -0700
-Message-ID: <CALCETrVqHDLo09HcaoeOoAVK8w+cNWkSNTLkDDU=evUhaXkyhQ@mail.gmail.com>
-References: <20200710015646.2020871-1-npiggin@gmail.com> <20200710015646.2020871-5-npiggin@gmail.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
+Date: Fri, 10 Jul 2020 19:31:59 +0100
+Message-ID: <20200710183158.GE11839@gaia>
+References: <20200710094420.517-1-yezhenyu2@huawei.com>
+ <20200710094420.517-3-yezhenyu2@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:39588 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1728439AbgGJRFJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jul 2020 13:05:09 -0400
-Received: from mail-wr1-f52.google.com (mail-wr1-f52.google.com [209.85.221.52])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 00A692080D
-        for <linux-arch@vger.kernel.org>; Fri, 10 Jul 2020 17:05:08 +0000 (UTC)
-Received: by mail-wr1-f52.google.com with SMTP id q5so6699038wru.6
-        for <linux-arch@vger.kernel.org>; Fri, 10 Jul 2020 10:05:07 -0700 (PDT)
-In-Reply-To: <20200710015646.2020871-5-npiggin@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux-MM <linux-mm@kvack.org>, Anton Blanchard <anton@ozlabs.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200710094420.517-3-yezhenyu2@huawei.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 9, 2020 at 6:57 PM Nicholas Piggin <npiggin@gmail.com> wrote:
->
-> And get rid of the generic sync_core_before_usermode facility.
->
-> This helper is the wrong way around I think. The idea that membarrier
-> state requires a core sync before returning to user is the easy one
-> that does not need hiding behind membarrier calls. The gap in core
-> synchronization due to x86's sysret/sysexit and lazy tlb mode, is the
-> tricky detail that is better put in x86 lazy tlb code.
->
-> Consider if an arch did not synchronize core in switch_mm either, then
-> membarrier_mm_sync_core_before_usermode would be in the wrong place
-> but arch specific mmu context functions would still be the right place.
-> There is also a exit_lazy_tlb case that is not covered by this call, which
-> could be a bugs (kthread use mm the membarrier process's mm then context
-> switch back to the process without switching mm or lazy mm switch).
->
-> This makes lazy tlb code a bit more modular.
-
-The mm-switching and TLB-management has often had the regrettable
-property that it gets wired up in a way that seems to work at the time
-but doesn't have clear semantics, and I'm a bit concerned that this
-patch is in that category.  If I'm understanding right, you're trying
-to enforce the property that exiting lazy TLB mode will promise to
-sync the core eventually.  But this has all kinds of odd properties:
-
- - Why is exit_lazy_tlb() getting called at all in the relevant cases?
- When is it permissible to call it?  I look at your new code and see:
-
+On Fri, Jul 10, 2020 at 05:44:20PM +0800, Zhenyu Ye wrote:
+> Add __TLBI_VADDR_RANGE macro and rewrite __flush_tlb_range().
+> 
+> When cpu supports TLBI feature, the minimum range granularity is
+> decided by 'scale', so we can not flush all pages by one instruction
+> in some cases.
+> 
+> For example, when the pages = 0xe81a, let's start 'scale' from
+> maximum, and find right 'num' for each 'scale':
+> 
+> 1. scale = 3, we can flush no pages because the minimum range is
+>    2^(5*3 + 1) = 0x10000.
+> 2. scale = 2, the minimum range is 2^(5*2 + 1) = 0x800, we can
+>    flush 0xe800 pages this time, the num = 0xe800/0x800 - 1 = 0x1c.
+>    Remaining pages is 0x1a;
+> 3. scale = 1, the minimum range is 2^(5*1 + 1) = 0x40, no page
+>    can be flushed.
+> 4. scale = 0, we flush the remaining 0x1a pages, the num =
+>    0x1a/0x2 - 1 = 0xd.
+> 
+> However, in most scenarios, the pages = 1 when flush_tlb_range() is
+> called. Start from scale = 3 or other proper value (such as scale =
+> ilog2(pages)), will incur extra overhead.
+> So increase 'scale' from 0 to maximum, the flush order is exactly
+> opposite to the example.
+> 
+> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+> ---
+>  arch/arm64/include/asm/tlbflush.h | 138 +++++++++++++++++++++++-------
+>  1 file changed, 109 insertions(+), 29 deletions(-)
+> 
+> diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
+> index 39aed2efd21b..edfec8139ef8 100644
+> --- a/arch/arm64/include/asm/tlbflush.h
+> +++ b/arch/arm64/include/asm/tlbflush.h
+> @@ -60,6 +60,31 @@
+>  		__ta;						\
+>  	})
+>  
 > +/*
-> + * Ensure that a core serializing instruction is issued before returning
-> + * to user-mode, if a SYNC_CORE was requested. x86 implements return to
-> + * user-space through sysexit, sysrel, and sysretq, which are not core
-> + * serializing.
-> + *
-> + * See the membarrier comment in finish_task_switch as to why this is done
-> + * in exit_lazy_tlb.
+> + * Get translation granule of the system, which is decided by
+> + * PAGE_SIZE.  Used by TTL.
+> + *  - 4KB	: 1
+> + *  - 16KB	: 2
+> + *  - 64KB	: 3
 > + */
-> +#define exit_lazy_tlb exit_lazy_tlb
-> +static inline void exit_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
+> +#define TLBI_TTL_TG_4K		1
+> +#define TLBI_TTL_TG_16K		2
+> +#define TLBI_TTL_TG_64K		3
+> +
+> +static inline unsigned long get_trans_granule(void)
 > +{
-> +       /* Switching mm is serializing with write_cr3 */
-> +        if (tsk->mm != mm)
-> +                return;
+> +	switch (PAGE_SIZE) {
+> +	case SZ_4K:
+> +		return TLBI_TTL_TG_4K;
+> +	case SZ_16K:
+> +		return TLBI_TTL_TG_16K;
+> +	case SZ_64K:
+> +		return TLBI_TTL_TG_64K;
+> +	default:
+> +		return 0;
+> +	}
+> +}
+> +
+>  /*
+>   * Level-based TLBI operations.
+>   *
+> @@ -73,9 +98,6 @@
+>   * in asm/stage2_pgtable.h.
+>   */
+>  #define TLBI_TTL_MASK		GENMASK_ULL(47, 44)
+> -#define TLBI_TTL_TG_4K		1
+> -#define TLBI_TTL_TG_16K		2
+> -#define TLBI_TTL_TG_64K		3
+>  
+>  #define __tlbi_level(op, addr, level) do {				\
+>  	u64 arg = addr;							\
+> @@ -83,19 +105,7 @@
+>  	if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&		\
+>  	    level) {							\
+>  		u64 ttl = level & 3;					\
+> -									\
+> -		switch (PAGE_SIZE) {					\
+> -		case SZ_4K:						\
+> -			ttl |= TLBI_TTL_TG_4K << 2;			\
+> -			break;						\
+> -		case SZ_16K:						\
+> -			ttl |= TLBI_TTL_TG_16K << 2;			\
+> -			break;						\
+> -		case SZ_64K:						\
+> -			ttl |= TLBI_TTL_TG_64K << 2;			\
+> -			break;						\
+> -		}							\
+> -									\
+> +		ttl |= get_trans_granule() << 2;			\
+>  		arg &= ~TLBI_TTL_MASK;					\
+>  		arg |= FIELD_PREP(TLBI_TTL_MASK, ttl);			\
+>  	}								\
+> @@ -108,6 +118,39 @@
+>  		__tlbi_level(op, (arg | USER_ASID_FLAG), level);	\
+>  } while (0)
+>  
+> +/*
+> + * This macro creates a properly formatted VA operand for the TLBI RANGE.
+> + * The value bit assignments are:
+> + *
+> + * +----------+------+-------+-------+-------+----------------------+
+> + * |   ASID   |  TG  | SCALE |  NUM  |  TTL  |        BADDR         |
+> + * +-----------------+-------+-------+-------+----------------------+
+> + * |63      48|47  46|45   44|43   39|38   37|36                   0|
+> + *
+> + * The address range is determined by below formula:
+> + * [BADDR, BADDR + (NUM + 1) * 2^(5*SCALE + 1) * PAGESIZE)
+> + *
+> + */
+> +#define __TLBI_VADDR_RANGE(addr, asid, scale, num, ttl)		\
+> +	({							\
+> +		unsigned long __ta = (addr) >> PAGE_SHIFT;	\
+> +		__ta &= GENMASK_ULL(36, 0);			\
+> +		__ta |= (unsigned long)(ttl & 3) << 37;		\
+> +		__ta |= (unsigned long)(num & 31) << 39;	\
+> +		__ta |= (unsigned long)(scale & 3) << 44;	\
+> +		__ta |= (get_trans_granule() & 3) << 46;	\
+> +		__ta |= (unsigned long)(asid) << 48;		\
+> +		__ta;						\
+> +	})
 
-And my brain says WTF?  Surely you meant something like if
-(WARN_ON_ONCE(tsk->mm != mm)) { /* egads, what even happened?  how do
-we try to recover well enough to get a crashed logged at least? */ }
+Nitpick: we don't need the additional masking here (e.g. ttl & 3) since
+the values are capped anyway.
 
-So this needs actual documentation, preferably in comments near the
-function, of what the preconditions are and what this mm parameter is.
-Once that's done, then we could consider whether it's appropriate to
-have this function promise to sync the core under some conditions.
+> +
+> +/* These macros are used by the TLBI RANGE feature. */
+> +#define __TLBI_RANGE_PAGES(num, scale)	(((num) + 1) << (5 * (scale) + 1))
+> +#define MAX_TLBI_RANGE_PAGES		__TLBI_RANGE_PAGES(31, 3)
+> +
+> +#define TLBI_RANGE_MASK			GENMASK_ULL(4, 0)
+> +#define __TLBI_RANGE_NUM(range, scale)	\
+> +	(((range) >> (5 * (scale) + 1)) & TLBI_RANGE_MASK)
+> +
+>  /*
+>   *	TLB Invalidation
+>   *	================
+> @@ -232,32 +275,69 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
+>  				     unsigned long stride, bool last_level,
+>  				     int tlb_level)
+>  {
+> +	int num = 0;
+> +	int scale = 0;
+>  	unsigned long asid = ASID(vma->vm_mm);
+>  	unsigned long addr;
+> +	unsigned long pages;
+>  
+>  	start = round_down(start, stride);
+>  	end = round_up(end, stride);
+> +	pages = (end - start) >> PAGE_SHIFT;
+>  
+> -	if ((end - start) >= (MAX_TLBI_OPS * stride)) {
+> +	if ((!cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
+> +	    (end - start) >= (MAX_TLBI_OPS * stride)) ||
+> +	    pages >= MAX_TLBI_RANGE_PAGES) {
+>  		flush_tlb_mm(vma->vm_mm);
+>  		return;
+>  	}
 
- - This whole structure seems to rely on the idea that switching mm
-syncs something.  I periodically ask chip vendor for non-serializing
-mm switches.  Specifically, in my dream world, we have totally
-separate user and kernel page tables.  Changing out the user tables
-doesn't serialize or even create a fence.  Instead it creates the
-minimum required pipeline hazard such that user memory access and
-switches to usermode will make sure they access memory through the
-correct page tables.  I haven't convinced a chip vendor yet, but there
-are quite a few hundreds of cycles to be saved here.  With this in
-mind, I see the fencing aspects of the TLB handling code as somewhat
-of an accident.  I'm fine with documenting them and using them to
-optimize other paths, but I think it should be explicit.  For example:
+I think we can use strictly greater here rather than greater or equal.
+MAX_TLBI_RANGE_PAGES can be encoded as num 31, scale 3.
 
-/* Also does a full barrier?  (Or a sync_core()-style barrier.)
-However, if you rely on this, you must document it in a comment where
-you call this function. *?
-void switch_mm_irqs_off()
-{
-}
+>  
+> -	/* Convert the stride into units of 4k */
+> -	stride >>= 12;
+> +	dsb(ishst);
+>  
+> -	start = __TLBI_VADDR(start, asid);
+> -	end = __TLBI_VADDR(end, asid);
+> +	/*
+> +	 * When cpu does not support TLBI RANGE feature, we flush the tlb
+> +	 * entries one by one at the granularity of 'stride'.
+> +	 * When cpu supports the TLBI RANGE feature, then:
+> +	 * 1. If pages is odd, flush the first page through non-RANGE
+> +	 *    instruction;
+> +	 * 2. For remaining pages: The minimum range granularity is decided
+> +	 *    by 'scale', so we can not flush all pages by one instruction
+> +	 *    in some cases.
+> +	 *    Here, we start from scale = 0, flush corresponding pages
+> +	 *    (from 2^(5*scale + 1) to 2^(5*(scale + 1) + 1)), and increase
+> +	 *    it until no pages left.
+> +	 */
+> +	while (pages > 0) {
 
-This is kind of like how we strongly encourage anyone using smp_?mb()
-to document what they are fencing against.
+I did some simple checks on ((end - start) % stride) and never
+triggered. I had a slight worry that pages could become negative (and
+we'd loop forever since it's unsigned long) for some mismatched stride
+and flush size. It doesn't seem like.
 
-Also, as it stands, I can easily see in_irq() ceasing to promise to
-serialize.  There are older kernels for which it does not promise to
-serialize.  And I have plans to make it stop serializing in the
-nearish future.
+> +		if (!cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) ||
+> +		    pages % 2 == 1) {
+> +			addr = __TLBI_VADDR(start, asid);
+> +			if (last_level) {
+> +				__tlbi_level(vale1is, addr, tlb_level);
+> +				__tlbi_user_level(vale1is, addr, tlb_level);
+> +			} else {
+> +				__tlbi_level(vae1is, addr, tlb_level);
+> +				__tlbi_user_level(vae1is, addr, tlb_level);
+> +			}
+> +			start += stride;
+> +			pages -= stride >> PAGE_SHIFT;
+> +			continue;
+> +		}
+>  
+> -	dsb(ishst);
+> -	for (addr = start; addr < end; addr += stride) {
+> -		if (last_level) {
+> -			__tlbi_level(vale1is, addr, tlb_level);
+> -			__tlbi_user_level(vale1is, addr, tlb_level);
+> -		} else {
+> -			__tlbi_level(vae1is, addr, tlb_level);
+> -			__tlbi_user_level(vae1is, addr, tlb_level);
+> +		num = __TLBI_RANGE_NUM(pages, scale) - 1;
+> +		if (num >= 0) {
+> +			addr = __TLBI_VADDR_RANGE(start, asid, scale,
+> +						  num, tlb_level);
+> +			if (last_level) {
+> +				__tlbi(rvale1is, addr);
+> +				__tlbi_user(rvale1is, addr);
+> +			} else {
+> +				__tlbi(rvae1is, addr);
+> +				__tlbi_user(rvae1is, addr);
+> +			}
+> +			start += __TLBI_RANGE_PAGES(num, scale) << PAGE_SHIFT;
+> +			pages -= __TLBI_RANGE_PAGES(num, scale);
+>  		}
+> +		scale++;
+>  	}
+>  	dsb(ish);
 
---Andy
+The logic looks fine to me now. I can fix the above nitpicks myself and
+maybe adjust the comment a bit. I plan to push them into next to see if
+anything explodes.
+
+Thanks.
+
+-- 
+Catalin
