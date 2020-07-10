@@ -1,60 +1,115 @@
-From: Nick Kossifidis <mick@ics.forth.gr>
-Subject: Re: [PATCH 1/5] lib: Add a generic version of devmem_is_allowed()
-Date: Fri, 10 Jul 2020 08:48:17 +0300
-Message-ID: <a037dac961c989d027eab293a0280643@mailhost.ics.forth.gr>
-References: <20200709200552.1910298-1-palmer@dabbelt.com>
- <20200709200552.1910298-2-palmer@dabbelt.com>
- <20200709204921.GJ781326@linux.ibm.com>
- <20200710053850.GA27019@infradead.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: Re: [PATCH v1 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
+Date: Fri, 10 Jul 2020 14:07:32 +0800
+Message-ID: <8ada2e1b-19d8-58cc-e9cb-e52ddeafd876@huawei.com>
+References: <20200709091054.1698-1-yezhenyu2@huawei.com>
+ <20200709091054.1698-3-yezhenyu2@huawei.com> <20200709173616.GC6579@gaia>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8;
- format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200710053850.GA27019@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Mike Rapoport <rppt@linux.ibm.com>, mark.rutland@arm.com, steve@sk2.org, gregory.0xf0@gmail.com, catalin.marinas@arm.com, linus.walleij@linaro.org, Palmer Dabbelt <palmerdabbelt@google.com>, zaslonko@linux.ibm.com, glider@google.com, krzk@kernel.org, zong.li@sifive.com, mchehab+samsung@kernel.org, linux-riscv@lists.infradead.org, alex.shi@linux.alibaba.com, will@kernel.org, ardb@kernel.org, linux-arch@vger.kernel.org, paulmck@kernel.org, alex@ghiti.fr, bgolaszewski@baylibre.com, masahiroy@kernel.org, linux@armlinux.org.uk, willy@infradead.org, takahiro.akashi@linaro.org, james.morse@arm.com, kernel-team@android.com, Arnd Bergmann <arnd@arndb.de>, pmladek@suse.com, elver@google.com, aou@eecs.berkeley.edu, keescook@chromium.org, uwe@kleine-koenig.org, rostedt@goodmis.org, bro
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga06-in.huawei.com ([45.249.212.32]:42238 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1725851AbgGJGHr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Jul 2020 02:07:47 -0400
+In-Reply-To: <20200709173616.GC6579@gaia>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 
-Στις 2020-07-10 08:38, Christoph Hellwig έγραψε:
-> On Thu, Jul 09, 2020 at 11:49:21PM +0300, Mike Rapoport wrote:
->> > +#ifndef CONFIG_GENERIC_DEVMEM_IS_ALLOWED
->> > +extern int devmem_is_allowed(unsigned long pfn);
->> > +#endif
+Hi Catalin,
+
+On 2020/7/10 1:36, Catalin Marinas wrote:
+> On Thu, Jul 09, 2020 at 05:10:54PM +0800, Zhenyu Ye wrote:
+>>  #define __tlbi_level(op, addr, level) do {				\
+>>  	u64 arg = addr;							\
+>>  									\
+>>  	if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&		\
+>> +	    !cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&		\
+>>  	    level) {							\
+>>  		u64 ttl = level & 3;					\
+>> -									\
+>> -		switch (PAGE_SIZE) {					\
+>> -		case SZ_4K:						\
+>> -			ttl |= TLBI_TTL_TG_4K << 2;			\
+>> -			break;						\
+>> -		case SZ_16K:						\
+>> -			ttl |= TLBI_TTL_TG_16K << 2;			\
+>> -			break;						\
+>> -		case SZ_64K:						\
+>> -			ttl |= TLBI_TTL_TG_64K << 2;			\
+>> -			break;						\
+>> -		}							\
+>> -									\
+>> +		ttl |= get_trans_granule() << 2;			\
+>>  		arg &= ~TLBI_TTL_MASK;					\
+>>  		arg |= FIELD_PREP(TLBI_TTL_MASK, ttl);			\
+>>  	}								\
 > 
-> Nit: no need for the extern here.
-> 
->> > +config GENERIC_LIB_DEVMEM_IS_ALLOWED
->> > +	bool
->> > +	select ARCH_HAS_DEVMEM_IS_ALLOWED
->> 
->> This seems to work the other way around from the usual Kconfig chains.
->> In the most cases ARCH_HAS_SOMETHING selects GENERIC_SOMETHING.
->> 
->> I believe nicer way would be to make
->> 
->> config STRICT_DEVMEM
->> 	bool "Filter access to /dev/mem"
->> 	depends on MMU && DEVMEM
->> 	depends on ARCH_HAS_DEVMEM_IS_ALLOWED || 
->> GENERIC_LIB_DEVMEM_IS_ALLOWED
->> 
->> config GENERIC_LIB_DEVMEM_IS_ALLOWED
->> 	bool
->> 
->> and then s/select ARCH_HAS_DEVMEM_IS_ALLOWED/select 
->> GENERIC_LIB_DEVMEM_IS_ALLOWED/
->> in the arch Kconfigs and drop ARCH_HAS_DEVMEM_IS_ALLOWED in the end.
-> 
-> To take a step back:  Is there any reason to not just always
-> STRICT_DEVMEM? Maybe for a few architectures that don't currently
-> support a strict /dev/mem the generic version isn't quite correct, but
-> someone selecting the option and finding the issue is the best way to
-> figure that out..
+> I think checking for !ARM64_HAS_TLBI_RANGE here is incorrect. I can see
+> why you attempted this since the range and classic ops have a different
+> position for the level but now you are not passing the TTL at all for
+> the classic TLBI. It's also inconsistent to have the range ops get the
+> level in the addr argument while the classic ops added in the
+> __tlbi_level macro.
 > 
 
-During prototyping / testing having full access to all physical memory 
-through /dev/mem is very useful. We should have it enabled by default 
-but leave the config option there so that users / developers can disable 
-it if needed IMHO.
+You are right, this is really a serious problem.  But this can be avoided
+after removing the check for ARM64_HAS_TLBI_RANGE and dropping the
+__tlbi_last_level.
+Just call __tlbi() and __tlbi_user() when doing range ops.
+
+> I'd rather have two sets of macros, __tlbi_level and __tlbi_range_level,
+> called depending on whether you use classic or range ops.
+> 
+
+Then we have to add __tlbi_user_range_level, too. And if we move the num
+and scale out of __TLBI_VADDR_RANGE, the __TLBI_VADDR_RANGE macro will make
+little sense (addr and asid also can be moved out).
+
+__TLBI_VADDR macro is defined to create a properly formatted VA operand for
+the TLBI, then how about add the level to __TLBI_VADDR, just like:
+
+	#define __TLBI_VADDR(addr, asid, level)				\
+	({								\
+		unsigned long __ta = (addr) >> 12;			\
+		__ta &= GENMASK_ULL(43, 0);				\
+		__ta |= (unsigned long)(asid) << 48;			\
+		if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL)) {	\
+			u64 ttl = get_trans_granule() << 2 + level & 3;	\
+			__ta |= ttl << 44;				\
+		}							\
+		__ta;							\
+	})
+
+Then we should make sure __TLBI_VADDR is used for all TLBI operands. But
+the related code has changed a lot in this merge window, so I perfer to
+do this in the future, after all below be merged:
+
+git://git.kernel.org/pub/scm/linux/kernel/git/maz/arm-platforms.git kvm-arm64/el2-obj-v4.1
+git://git.kernel.org/pub/scm/linux/kernel/git/maz/arm-platforms.git kvm-arm64/pre-nv-5.9
+git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git for-next/tlbi
+
+Currently, keep the range ops get the level in the addr argument, the classic
+ops added the level in the __tlbi_level macro.
+
+>> @@ -108,6 +119,49 @@
+>>  		__tlbi_level(op, (arg | USER_ASID_FLAG), level);	\
+>>  } while (0)
+>>  
+>> +#define __tlbi_last_level(op1, op2, arg, last_level, tlb_level) do {	\
+>> +	if (last_level)	{						\
+>> +		__tlbi_level(op1, arg, tlb_level);			\
+>> +		__tlbi_user_level(op1, arg, tlb_level);			\
+>> +	} else {							\
+>> +		__tlbi_level(op2, arg, tlb_level);			\
+>> +		__tlbi_user_level(op2, arg, tlb_level);			\
+>> +	}								\
+>> +} while (0)
+> 
+> And you could drop this altogether. I know it's slightly more lines of
+> code but keeping it expanded in __flush_tlb_range() would be clearer.
+
+Thanks,
+Zhenyu
