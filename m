@@ -1,90 +1,63 @@
-Return-Path: <SRS0=HA2T=AT=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-1.mimecast.com ([205.139.110.61]:54928 "EHLO
-        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1725972AbgGHXuR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2020 19:50:17 -0400
-Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
-References: <20200706043540.1563616-1-npiggin@gmail.com>
- <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
- <1594101082.hfq9x5yact.astroid@bobo.none>
- <de3ead58-7f81-8ebd-754d-244f6be24af4@redhat.com>
- <1594184204.ncuq7vstsz.astroid@bobo.none>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <62fa6343-e084-75c3-01c9-349a4617e67c@redhat.com>
-Date: Wed, 8 Jul 2020 19:50:05 -0400
+Return-Path: <SRS0=GDSS=AV=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38942 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727820AbgGJN5U (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2020 09:57:20 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 6/6] exec: use force_uaccess_begin during exec and exit
+Date: Fri, 10 Jul 2020 15:57:06 +0200
+Message-ID: <20200710135706.537715-7-hch@lst.de>
+In-Reply-To: <20200710135706.537715-1-hch@lst.de>
+References: <20200710135706.537715-1-hch@lst.de>
 MIME-Version: 1.0
-In-Reply-To: <1594184204.ncuq7vstsz.astroid@bobo.none>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org
-Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
-Message-ID: <20200708235005.jIbmxOvIC9w1LgPiW-xt1pW9FME9loC6XVXeJPJC-oo@z>
+To: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20200710135706.-Wv83JNsfQOit0wmxrrytgKnBXZFwdSX-8tPc9C07f0@z>
 
-On 7/8/20 1:10 AM, Nicholas Piggin wrote:
-> Excerpts from Waiman Long's message of July 8, 2020 1:33 pm:
->> On 7/7/20 1:57 AM, Nicholas Piggin wrote:
->>> Yes, powerpc could certainly get more performance out of the slow
->>> paths, and then there are a few parameters to tune.
->>>
->>> We don't have a good alternate patching for function calls yet, but
->>> that would be something to do for native vs pv.
->>>
->>> And then there seem to be one or two tunable parameters we could
->>> experiment with.
->>>
->>> The paravirt locks may need a bit more tuning. Some simple testing
->>> under KVM shows we might be a bit slower in some cases. Whether this
->>> is fairness or something else I'm not sure. The current simple pv
->>> spinlock code can do a directed yield to the lock holder CPU, whereas
->>> the pv qspl here just does a general yield. I think we might actually
->>> be able to change that to also support directed yield. Though I'm
->>> not sure if this is actually the cause of the slowdown yet.
->> Regarding the paravirt lock, I have taken a further look into the
->> current PPC spinlock code. There is an equivalent of pv_wait() but no
->> pv_kick(). Maybe PPC doesn't really need that.
-> So powerpc has two types of wait, either undirected "all processors" or
-> directed to a specific processor which has been preempted by the
-> hypervisor.
->
-> The simple spinlock code does a directed wait, because it knows the CPU
-> which is holding the lock. In this case, there is a sequence that is
-> used to ensure we don't wait if the condition has become true, and the
-> target CPU does not need to kick the waiter it will happen automatically
-> (see splpar_spin_yield). This is preferable because we only wait as
-> needed and don't require the kick operation.
-Thanks for the explanation.
->
-> The pv spinlock code I did uses the undirected wait, because we don't
-> know the CPU number which we are waiting on. This is undesirable because
-> it's higher overhead and the wait is not so accurate.
->
-> I think perhaps we could change things so we wait on the correct CPU
-> when queued, which might be good enough (we could also put the lock
-> owner CPU in the spinlock word, if we add another format).
+Both exec and exit want to ensure that the uaccess routines actually do
+access user pointers.  Use the newly added force_uaccess_begin helper
+instead of an open coded set_fs for that to prepare for kernel builds
+where set_fs() does not exist.
 
-The LS byte of the lock word is used to indicate locking status. If we 
-have less than 255 cpus, we can put the (cpu_nr + 1) into the lock byte. 
-The special 0xff value can be used to indicate a cpu number >= 255 for 
-indirect yield. The required change to the qspinlock code will be 
-minimal, I think.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ fs/exec.c     | 7 ++++++-
+ kernel/exit.c | 2 +-
+ 2 files changed, 7 insertions(+), 2 deletions(-)
 
-
->> Attached are two
->> additional qspinlock patches that adds a CONFIG_PARAVIRT_QSPINLOCKS_LITE
->> option to not require pv_kick(). There is also a fixup patch to be
->> applied after your patchset.
->>
->> I don't have access to a PPC LPAR with shared processor at the moment,
->> so I can't test the performance of the paravirt code. Would you mind
->> adding my patches and do some performance test on your end to see if it
->> gives better result?
-> Great, I'll do some tests. Any suggestions for what to try?
-
-I will just like to see if it will produce some better performance 
-result compared with your current version.
-
-Cheers,
-Longman
+diff --git a/fs/exec.c b/fs/exec.c
+index e6e8a9a7032784..769af470b69124 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1380,7 +1380,12 @@ int begin_new_exec(struct linux_binprm * bprm)
+ 	if (retval)
+ 		goto out_unlock;
+ 
+-	set_fs(USER_DS);
++	/*
++	 * Ensure that the uaccess routines can actually operate on userspace
++	 * pointers:
++	 */
++	force_uaccess_begin();
++
+ 	me->flags &= ~(PF_RANDOMIZE | PF_FORKNOEXEC | PF_KTHREAD |
+ 					PF_NOFREEZE | PF_NO_SETAFFINITY);
+ 	flush_thread();
+diff --git a/kernel/exit.c b/kernel/exit.c
+index 727150f2810338..17d486a20f0dc6 100644
+--- a/kernel/exit.c
++++ b/kernel/exit.c
+@@ -731,7 +731,7 @@ void __noreturn do_exit(long code)
+ 	 * mm_release()->clear_child_tid() from writing to a user-controlled
+ 	 * kernel address.
+ 	 */
+-	set_fs(USER_DS);
++	force_uaccess_begin();
+ 
+ 	if (unlikely(in_atomic())) {
+ 		pr_info("note: %s[%d] exited with preempt_count %d\n",
+-- 
+2.26.2
