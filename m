@@ -1,79 +1,69 @@
-Return-Path: <SRS0=GmBk=AY=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [PATCH v2 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
-References: <20200710094420.517-1-yezhenyu2@huawei.com>
- <20200710094420.517-3-yezhenyu2@huawei.com>
-From: Jon Hunter <jonathanh@nvidia.com>
-Message-ID: <4040f429-21c8-0825-2ad4-97786c3fe7c1@nvidia.com>
-Date: Mon, 13 Jul 2020 15:27:50 +0100
+Return-Path: <SRS0=GDSS=AV=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48546 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725802AbgGJFvo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2020 01:51:44 -0400
+Date: Fri, 10 Jul 2020 06:51:24 +0100
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH 1/5] lib: Add a generic version of devmem_is_allowed()
+Message-ID: <20200710055124.GA30265@infradead.org>
+References: <20200709200552.1910298-1-palmer@dabbelt.com>
+ <20200709200552.1910298-2-palmer@dabbelt.com>
+ <20200709204921.GJ781326@linux.ibm.com>
+ <20200710053850.GA27019@infradead.org>
+ <a037dac961c989d027eab293a0280643@mailhost.ics.forth.gr>
 MIME-Version: 1.0
-In-Reply-To: <20200710094420.517-3-yezhenyu2@huawei.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: Zhenyu Ye <yezhenyu2@huawei.com>, catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com, linux-tegra <linux-tegra@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <a037dac961c989d027eab293a0280643@mailhost.ics.forth.gr>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200713142750.S4nzLV-l1p-_PhwxtSwbrMHPZ7GRQzt0vgCo928WNoA@z>
+To: Nick Kossifidis <mick@ics.forth.gr>
+Cc: Christoph Hellwig <hch@infradead.org>, Mike Rapoport <rppt@linux.ibm.com>, mark.rutland@arm.com, steve@sk2.org, gregory.0xf0@gmail.com, catalin.marinas@arm.com, linus.walleij@linaro.org, Palmer Dabbelt <palmerdabbelt@google.com>, zaslonko@linux.ibm.com, glider@google.com, krzk@kernel.org, zong.li@sifive.com, mchehab+samsung@kernel.org, linux-riscv@lists.infradead.org, alex.shi@linux.alibaba.com, will@kernel.org, ardb@kernel.org, linux-arch@vger.kernel.org, paulmck@kernel.org, alex@ghiti.fr, bgolaszewski@baylibre.com, masahiroy@kernel.org, linux@armlinux.org.uk, willy@infradead.org, takahiro.akashi@linaro.org, james.morse@arm.com, kernel-team@android.com, Arnd Bergmann <arnd@arndb.de>, pmladek@suse.com, elver@google.com, aou@eecs.berkeley.edu, keescook@chromium.org, uwe@kleine-koenig.org, rostedt@goodmis.org, broonie@kernel.org, davidgow@google.com, Paul Walmsley <paul.walmsley@sifive.com>, dan.j.williams@intel.com, andriy.shevchenko@linux.intel.com, gxt@pku.edu.cn, linux-arm-kernel@lists.infradead.org, Nick Desaulniers <ndesaulniers@google.com>, tglx@linutronix.de, rdunlap@infradead.org, matti.vaittinen@fi.rohmeurope.com, linux-kernel@vger.kernel.org, mcgrof@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>, mhiramat@kernel.org, akpm@linux-foundation.org, davem@davemloft.net
+Message-ID: <20200710055124.i_us-lSOoSFMwn9TTLBjEi8JEOWp4W7g1y9iYr1G8gk@z>
 
-
-On 10/07/2020 10:44, Zhenyu Ye wrote:
-> Add __TLBI_VADDR_RANGE macro and rewrite __flush_tlb_range().
+On Fri, Jul 10, 2020 at 08:48:17AM +0300, Nick Kossifidis wrote:
+> ???????? 2020-07-10 08:38, Christoph Hellwig ????????????:
+> > On Thu, Jul 09, 2020 at 11:49:21PM +0300, Mike Rapoport wrote:
+> > > > +#ifndef CONFIG_GENERIC_DEVMEM_IS_ALLOWED
+> > > > +extern int devmem_is_allowed(unsigned long pfn);
+> > > > +#endif
+> > 
+> > Nit: no need for the extern here.
+> > 
+> > > > +config GENERIC_LIB_DEVMEM_IS_ALLOWED
+> > > > +	bool
+> > > > +	select ARCH_HAS_DEVMEM_IS_ALLOWED
+> > > 
+> > > This seems to work the other way around from the usual Kconfig chains.
+> > > In the most cases ARCH_HAS_SOMETHING selects GENERIC_SOMETHING.
+> > > 
+> > > I believe nicer way would be to make
+> > > 
+> > > config STRICT_DEVMEM
+> > > 	bool "Filter access to /dev/mem"
+> > > 	depends on MMU && DEVMEM
+> > > 	depends on ARCH_HAS_DEVMEM_IS_ALLOWED ||
+> > > GENERIC_LIB_DEVMEM_IS_ALLOWED
+> > > 
+> > > config GENERIC_LIB_DEVMEM_IS_ALLOWED
+> > > 	bool
+> > > 
+> > > and then s/select ARCH_HAS_DEVMEM_IS_ALLOWED/select
+> > > GENERIC_LIB_DEVMEM_IS_ALLOWED/
+> > > in the arch Kconfigs and drop ARCH_HAS_DEVMEM_IS_ALLOWED in the end.
+> > 
+> > To take a step back:  Is there any reason to not just always
+> > STRICT_DEVMEM? Maybe for a few architectures that don't currently
+> > support a strict /dev/mem the generic version isn't quite correct, but
+> > someone selecting the option and finding the issue is the best way to
+> > figure that out..
+> > 
 > 
-> When cpu supports TLBI feature, the minimum range granularity is
-> decided by 'scale', so we can not flush all pages by one instruction
-> in some cases.
-> 
-> For example, when the pages = 0xe81a, let's start 'scale' from
-> maximum, and find right 'num' for each 'scale':
-> 
-> 1. scale = 3, we can flush no pages because the minimum range is
->    2^(5*3 + 1) = 0x10000.
-> 2. scale = 2, the minimum range is 2^(5*2 + 1) = 0x800, we can
->    flush 0xe800 pages this time, the num = 0xe800/0x800 - 1 = 0x1c.
->    Remaining pages is 0x1a;
-> 3. scale = 1, the minimum range is 2^(5*1 + 1) = 0x40, no page
->    can be flushed.
-> 4. scale = 0, we flush the remaining 0x1a pages, the num =
->    0x1a/0x2 - 1 = 0xd.
-> 
-> However, in most scenarios, the pages = 1 when flush_tlb_range() is
-> called. Start from scale = 3 or other proper value (such as scale =
-> ilog2(pages)), will incur extra overhead.
-> So increase 'scale' from 0 to maximum, the flush order is exactly
-> opposite to the example.
-> 
-> Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+> During prototyping / testing having full access to all physical memory
+> through /dev/mem is very useful. We should have it enabled by default but
+> leave the config option there so that users / developers can disable it if
+> needed IMHO.
 
-
-After this change I am seeing the following build errors ...
-
-/tmp/cckzq3FT.s: Assembler messages:
-/tmp/cckzq3FT.s:854: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-/tmp/cckzq3FT.s:870: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-/tmp/cckzq3FT.s:1095: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-/tmp/cckzq3FT.s:1111: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-/tmp/cckzq3FT.s:1964: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-/tmp/cckzq3FT.s:1980: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-/tmp/cckzq3FT.s:2286: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-/tmp/cckzq3FT.s:2302: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
-/tmp/cckzq3FT.s:4833: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
-/tmp/cckzq3FT.s:4849: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
-/tmp/cckzq3FT.s:5090: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
-/tmp/cckzq3FT.s:5106: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
-/tmp/cckzq3FT.s:874: Error: attempt to move .org backwards
-/tmp/cckzq3FT.s:1115: Error: attempt to move .org backwards
-/tmp/cckzq3FT.s:1984: Error: attempt to move .org backwards
-/tmp/cckzq3FT.s:2306: Error: attempt to move .org backwards
-/tmp/cckzq3FT.s:4853: Error: attempt to move .org backwards
-/tmp/cckzq3FT.s:5110: Error: attempt to move .org backwards
-scripts/Makefile.build:280: recipe for target 'arch/arm64/mm/hugetlbpage.o' failed
-make[3]: *** [arch/arm64/mm/hugetlbpage.o] Error 1
-scripts/Makefile.build:497: recipe for target 'arch/arm64/mm' failed
-make[2]: *** [arch/arm64/mm] Error 2
-
-Cheers
-Jon
-
--- 
-nvpublic
+I did not suggest to take the config option away.  Just to
+unconditionally allow enabling the option on all architectures.
