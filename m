@@ -1,94 +1,158 @@
-From: Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: Re: [mm/debug_vm_pgtable] a97a171093:
- BUG:unable_to_handle_page_fault_for_address
-Date: Fri, 10 Jul 2020 12:17:14 +0530
-Message-ID: <686d83dc-d49f-77f2-1581-8f2be1a5fc60@arm.com>
-References: <20200709061122.GN3874@shao2-debian>
+From: Syed Nayyar Waris <syednwaris@gmail.com>
+Subject: Re: [PATCH v9 0/4] Introduce the for_each_set_clump macro
+Date: Fri, 10 Jul 2020 13:34:57 +0530
+Message-ID: <CACG_h5q9UJcAx9q7guqH1nKhrg+k2CbWSDuFF4kBab8z6jdPhg@mail.gmail.com>
+References: <cover.1593243079.git.syednwaris@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.110.172]:53940 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725943AbgGJGrt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jul 2020 02:47:49 -0400
-In-Reply-To: <20200709061122.GN3874@shao2-debian>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: kernel test robot <lkp@intel.com>
-Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-gpio-owner@vger.kernel.org>
+In-Reply-To: <cover.1593243079.git.syednwaris@gmail.com>
+Sender: linux-gpio-owner@vger.kernel.org
+To: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, William Breathitt Gray <vilhelm.gray@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, rrichter@marvell.com, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, "Zhang, Rui" <rui.zhang@intel.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Amit Kucheria <amit.kucheria@verdurent.com>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, Linux PM <linux-pm@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
+
+On Sat, Jun 27, 2020 at 1:40 PM Syed Nayyar Waris <syednwaris@gmail.com> wrote:
+>
+> Hello Linus,
+>
+> Since this patchset primarily affects GPIO drivers, would you like
+> to pick it up through your GPIO tree?
+>
+> This patchset introduces a new generic version of for_each_set_clump.
+> The previous version of for_each_set_clump8 used a fixed size 8-bit
+> clump, but the new generic version can work with clump of any size but
+> less than or equal to BITS_PER_LONG. The patchset utilizes the new macro
+> in several GPIO drivers.
+>
+> The earlier 8-bit for_each_set_clump8 facilitated a
+> for-loop syntax that iterates over a memory region entire groups of set
+> bits at a time.
+>
+> For example, suppose you would like to iterate over a 32-bit integer 8
+> bits at a time, skipping over 8-bit groups with no set bit, where
+> XXXXXXXX represents the current 8-bit group:
+>
+>     Example:        10111110 00000000 11111111 00110011
+>     First loop:     10111110 00000000 11111111 XXXXXXXX
+>     Second loop:    10111110 00000000 XXXXXXXX 00110011
+>     Third loop:     XXXXXXXX 00000000 11111111 00110011
+>
+> Each iteration of the loop returns the next 8-bit group that has at
+> least one set bit.
+>
+> But with the new for_each_set_clump the clump size can be different from 8 bits.
+> Moreover, the clump can be split at word boundary in situations where word
+> size is not multiple of clump size. Following are examples showing the working
+> of new macro for clump sizes of 24 bits and 6 bits.
+>
+> Example 1:
+> clump size: 24 bits, Number of clumps (or ports): 10
+> bitmap stores the bit information from where successive clumps are retrieved.
+>
+>      /* bitmap memory region */
+>         0x00aa0000ff000000;  /* Most significant bits */
+>         0xaaaaaa0000ff0000;
+>         0x000000aa000000aa;
+>         0xbbbbabcdeffedcba;  /* Least significant bits */
+>
+> Different iterations of for_each_set_clump:-
+> 'offset' is the bit position and 'clump' is the 24 bit clump from the
+> above bitmap.
+> Iteration first:        offset: 0 clump: 0xfedcba
+> Iteration second:       offset: 24 clump: 0xabcdef
+> Iteration third:        offset: 48 clump: 0xaabbbb
+> Iteration fourth:       offset: 96 clump: 0xaa
+> Iteration fifth:        offset: 144 clump: 0xff
+> Iteration sixth:        offset: 168 clump: 0xaaaaaa
+> Iteration seventh:      offset: 216 clump: 0xff
+> Loop breaks because in the end the remaining bits (0x00aa) size was less
+> than clump size of 24 bits.
+>
+> In above example it can be seen that in iteration third, the 24 bit clump
+> that was retrieved was split between bitmap[0] and bitmap[1]. This example
+> also shows that 24 bit zeroes if present in between, were skipped (preserving
+> the previous for_each_set_macro8 behaviour).
+>
+> Example 2:
+> clump size = 6 bits, Number of clumps (or ports) = 3.
+>
+>      /* bitmap memory region */
+>         0x00aa0000ff000000;  /* Most significant bits */
+>         0xaaaaaa0000ff0000;
+>         0x0f00000000000000;
+>         0x0000000000000ac0;  /* Least significant bits */
+>
+> Different iterations of for_each_set_clump:
+> 'offset' is the bit position and 'clump' is the 6 bit clump from the
+> above bitmap.
+> Iteration first:        offset: 6 clump: 0x2b
+> Loop breaks because 6 * 3 = 18 bits traversed in bitmap.
+> Here 6 * 3 is clump size * no. of clumps.
+>
+> Changes in v9:
+>  - [Patch 4/4]: Remove looping of 'for_each_set_clump' and instead process two
+>    halves of a 64-bit bitmap separately or individually. Use normal spin_lock
+>    call for second inner lock. And take the spin_lock_init call outside the 'if'
+>    condition in the probe function of driver.
+>
+> Changes in v8:
+>  - [Patch 2/4]: Minor change: Use '__initdata' for correct section mismatch
+>    in 'clump_test_data' array.
+>
+> Changes in v7:
+>  - [Patch 2/4]: Minor changes: Use macro 'DECLARE_BITMAP()' and split 'struct'
+>    definition and test data.
+>
+> Changes in v6:
+>  - [Patch 2/4]: Make 'for loop' inside test_for_each_set_clump more
+>    succinct.
+>
+> Changes in v5:
+>  - [Patch 4/4]: Minor change: Hardcode value for better code readability.
+>
+> Changes in v4:
+>  - [Patch 2/4]: Use 'for' loop in test function of for_each_set_clump.
+>  - [Patch 3/4]: Minor change: Inline value for better code readability.
+>  - [Patch 4/4]: Minor change: Inline value for better code readability.
+>
+> Changes in v3:
+>  - [Patch 3/4]: Change datatype of some variables from u64 to unsigned long
+>    in function thunderx_gpio_set_multiple.
+>
+> CHanges in v2:
+>  - [Patch 2/4]: Unify different tests for 'for_each_set_clump'. Pass test data as
+>    function parameters.
+>  - [Patch 2/4]: Remove unnecessary bitmap_zero calls.
+>
+> Syed Nayyar Waris (4):
+>   bitops: Introduce the for_each_set_clump macro
+>   lib/test_bitmap.c: Add for_each_set_clump test cases
+>   gpio: thunderx: Utilize for_each_set_clump macro
+>   gpio: xilinx: Utilize generic bitmap_get_value and _set_value.
+>
+>  drivers/gpio/gpio-thunderx.c      |  11 ++-
+>  drivers/gpio/gpio-xilinx.c        |  66 +++++++-------
+>  include/asm-generic/bitops/find.h |  19 ++++
+>  include/linux/bitmap.h            |  61 +++++++++++++
+>  include/linux/bitops.h            |  13 +++
+>  lib/find_bit.c                    |  14 +++
+>  lib/test_bitmap.c                 | 145 ++++++++++++++++++++++++++++++
+>  7 files changed, 292 insertions(+), 37 deletions(-)
+>
+>
+> base-commit: b3a9e3b9622ae10064826dccb4f7a52bd88c7407
+> --
+> 2.26.2
+>
 
 
+Hi Andrew, Linus
 
-On 07/09/2020 11:41 AM, kernel test robot wrote:
-> [   94.349598] BUG: unable to handle page fault for address: ffffed10a7ffddff
-> [   94.351039] #PF: supervisor read access in kernel mode
-> [   94.352172] #PF: error_code(0x0000) - not-present page
-> [   94.353256] PGD 43ffed067 P4D 43ffed067 PUD 43fdee067 PMD 0 
-> [   94.354484] Oops: 0000 [#1] SMP KASAN
-> [   94.355238] CPU: 1 PID: 1 Comm: swapper/0 Not tainted 5.8.0-rc4-00002-ga97a17109332c #1
-> [   94.360456] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
-> [   94.361950] RIP: 0010:hugetlb_advanced_tests+0x137/0x699
-> [   94.363026] Code: 8b 13 4d 85 f6 75 0b 48 ff 05 2c e4 6a 01 31 ed eb 41 bf f8 ff ff ff ba ff ff 37 00 4c 01 f7 48 c1 e2 2a 48 89 f9 48 c1 e9 03 <80> 3c 11 00 74 05 e8 cd c0 67 fa ba f8 ff ff ff 49 8b 2c 16 48 85
-> [   94.366592] RSP: 0000:ffffc90000047d30 EFLAGS: 00010a06
-> [   94.367693] RAX: 1ffffffff1049b80 RBX: ffff888380525308 RCX: 1ffff110a7ffddff
-> [   94.369215] RDX: dffffc0000000000 RSI: 1ffff11087ffdc00 RDI: ffff88853ffeeff8
-> [   94.370693] RBP: 000000000018e510 R08: 0000000000000025 R09: 0000000000000001
-> [   94.372165] R10: ffff888380523c07 R11: ffffed10700a4780 R12: ffff88843208e510
-> [   94.373674] R13: 0000000000000025 R14: ffff88843ffef000 R15: 000031e01ae61000
-> [   94.375147] FS:  0000000000000000(0000) GS:ffff8883a3800000(0000) knlGS:0000000000000000
-> [   94.376883] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-> [   94.378051] CR2: ffffed10a7ffddff CR3: 0000000004e15000 CR4: 00000000000406a0
-> [   94.379522] Call Trace:
-> [   94.380073]  debug_vm_pgtable+0xd81/0x2029
-> [   94.380871]  ? pmd_advanced_tests+0x621/0x621
-> [   94.381819]  do_one_initcall+0x1eb/0xbd0
-> [   94.382551]  ? trace_event_raw_event_initcall_finish+0x240/0x240
-> [   94.383634]  ? rcu_read_lock_sched_held+0xb9/0x110
-> [   94.388727]  ? rcu_read_lock_held+0xd0/0xd0
-> [   94.389604]  ? __kasan_check_read+0x1d/0x30
-> [   94.390485]  kernel_init_freeable+0x430/0x4f8
-> [   94.391416]  ? rest_init+0x3f8/0x3f8
-> [   94.392185]  kernel_init+0x14/0x1e8
-> [   94.392918]  ret_from_fork+0x22/0x30
-> [   94.393662] Modules linked in:
-> [   94.394289] CR2: ffffed10a7ffddff
-> [   94.395000] ---[ end trace 8ca5a1655dfb8c39 ]---
+What do you think about this patchset on 'for_each_set_clump' ?
 
-This bug is caused from here.
+if there's anything else you think that should be changed in this, or if this
+version looks good to you to pick up, kindly, let me know.
 
-static inline struct mem_section *__nr_to_section(unsigned long nr)
-{
-#ifdef CONFIG_SPARSEMEM_EXTREME
-        if (!mem_section)
-                return NULL;
-#endif
-        if (!mem_section[SECTION_NR_TO_ROOT(nr)]) <-------- BUG
-                return NULL;
-        return &mem_section[SECTION_NR_TO_ROOT(nr)][nr & SECTION_ROOT_MASK];
-}
-
-static inline struct mem_section *__pfn_to_section(unsigned long pfn)
-{
-        return __nr_to_section(pfn_to_section_nr(pfn));
-}
-
-#define __pfn_to_page(pfn)                              \
-({      unsigned long __pfn = (pfn);                    \
-        struct mem_section *__sec = __pfn_to_section(__pfn);    \
-        __section_mem_map_addr(__sec) + __pfn;          \
-})
-
-which is called via hugetlb_advanced_tests().
-
-paddr = (__pfn_to_phys(pfn) | RANDOM_ORVALUE) & PMD_MASK;
-pte = pte_mkhuge(mk_pte(pfn_to_page(PHYS_PFN(paddr)), prot));
-
-Primary reason being RANDOM_ORVALUE, which is added to the paddr before
-being masked with PMD_MASK. This clobbers up the pfn value which cannot
-be searched in relevant memory sections. This problem stays hidden on
-other configs where pfn_to_page() does not go via memory section search.
-Dropping off RANDOM_ORVALUE solves the problem. Probably, just wanted to
-drop that off during V2 series (https://lkml.org/lkml/2020/4/8/997) but
-dont remember why ended up keeping it again.
+Regards
+Syed Nayyar Waris
