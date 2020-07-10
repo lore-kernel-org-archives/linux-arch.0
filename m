@@ -1,109 +1,242 @@
-Return-Path: <SRS0=ixnu=AY=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail-ot1-f65.google.com ([209.85.210.65]:40381 "EHLO
-        mail-ot1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729523AbgGMNTy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2020 09:19:54 -0400
+Return-Path: <SRS0=hCR/=AV=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [PATCH v2 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
+Date: Fri, 10 Jul 2020 17:44:20 +0800
+Message-ID: <20200710094420.517-3-yezhenyu2@huawei.com>
+In-Reply-To: <20200710094420.517-1-yezhenyu2@huawei.com>
+References: <20200710094420.517-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-References: <20200710135706.537715-1-hch@lst.de> <20200710135706.537715-6-hch@lst.de>
- <20200713122148.GA51007@lakrids.cambridge.arm.com>
-In-Reply-To: <20200713122148.GA51007@lakrids.cambridge.arm.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 13 Jul 2020 15:19:42 +0200
-Message-ID: <CAMuHMdUCmEeU0G9wkUxZKm5tC9YoB-KXSSCLKwpSia746Myebw@mail.gmail.com>
-Subject: Re: [PATCH 5/6] uaccess: add force_uaccess_{begin,end} helpers
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Christoph Hellwig <hch@lst.de>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv <linux-riscv@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20200713131942.DbM8b9ob4vjajqz6eY7ZHk7hdPwIrzvzVuKhhftxRyE@z>
+Message-ID: <20200710094420.sTyuz67DnSXBJwHjBtAkpE8kZYIud8HkcjTPwHBj_U0@z>
 
-Hi Mark,
+Add __TLBI_VADDR_RANGE macro and rewrite __flush_tlb_range().
 
-On Mon, Jul 13, 2020 at 2:21 PM Mark Rutland <mark.rutland@arm.com> wrote:
-> On Fri, Jul 10, 2020 at 03:57:05PM +0200, Christoph Hellwig wrote:
-> > Add helpers to wraper the get_fs/set_fs magic for undoing any damange
-> > done by set_fs(KERNEL_DS).  There is no real functional benefit, but this
-> > documents the intent of these calls better, and will allow stubbing the
-> > functions out easily for kernels builds that do not allow address space
-> > overrides in the future.
->
-> > diff --git a/arch/m68k/include/asm/tlbflush.h b/arch/m68k/include/asm/tlbflush.h
-> > index 191e75a6bb249e..30471549e1e224 100644
-> > --- a/arch/m68k/include/asm/tlbflush.h
-> > +++ b/arch/m68k/include/asm/tlbflush.h
-> > @@ -13,13 +13,13 @@ static inline void flush_tlb_kernel_page(void *addr)
-> >       if (CPU_IS_COLDFIRE) {
-> >               mmu_write(MMUOR, MMUOR_CNL);
-> >       } else if (CPU_IS_040_OR_060) {
-> > -             mm_segment_t old_fs = get_fs();
-> > -             set_fs(KERNEL_DS);
-> > +             mm_segment_t old_fs = force_uaccess_begin();
-> > +
->
-> This used to set KERNEL_DS, and now it sets USER_DS, which looks wrong
-> superficially.
+When cpu supports TLBI feature, the minimum range granularity is
+decided by 'scale', so we can not flush all pages by one instruction
+in some cases.
 
-Thanks for noticing, and sorry for missing that myself.
+For example, when the pages =3D 0xe81a, let's start 'scale' from
+maximum, and find right 'num' for each 'scale':
 
-The same issue is present for SuperH:
+1. scale =3D 3, we can flush no pages because the minimum range is
+   2^(5*3 + 1) =3D 0x10000.
+2. scale =3D 2, the minimum range is 2^(5*2 + 1) =3D 0x800, we can
+   flush 0xe800 pages this time, the num =3D 0xe800/0x800 - 1 =3D 0x1c.
+   Remaining pages is 0x1a;
+3. scale =3D 1, the minimum range is 2^(5*1 + 1) =3D 0x40, no page
+   can be flushed.
+4. scale =3D 0, we flush the remaining 0x1a pages, the num =3D
+   0x1a/0x2 - 1 =3D 0xd.
 
-    -               set_fs(KERNEL_DS);
-    +               oldfs = force_uaccess_begin();
+However, in most scenarios, the pages =3D 1 when flush_tlb_range() is
+called. Start from scale =3D 3 or other proper value (such as scale =3D
+ilog2(pages)), will incur extra overhead.
+So increase 'scale' from 0 to maximum, the flush order is exactly
+opposite to the example.
 
-So the patch description should be:
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+---
+ arch/arm64/include/asm/tlbflush.h | 138 +++++++++++++++++++++++-------
+ 1 file changed, 109 insertions(+), 29 deletions(-)
 
-    "Add helpers to wraper the get_fs/set_fs magic for undoing any damage
-     done by set_fs(USER_DS)."
-
-and leave alone users setting KERNEL_DS?
-
-> If the new behaviour is fine it suggests that the old behaviour was
-> wrong, or that this is superfluous and could go entirely.
->
-> Geert?
-
-Nope, on m68k, TLB cache operations operate on the current address space.
-Hence to flush a kernel TLB entry, you have to switch to KERNEL_DS first.
-
-If we're guaranteed to be already using KERNEL_DS, I guess the
-address space handling can be removed.  But can we be sure?
-
-
-> >               __asm__ __volatile__(".chip 68040\n\t"
-> >                                    "pflush (%0)\n\t"
-> >                                    ".chip 68k"
-> >                                    : : "a" (addr));
-> > -             set_fs(old_fs);
-> > +             force_uaccess_end(old_fs);
-> >       } else if (CPU_IS_020_OR_030)
-> >               __asm__ __volatile__("pflush #4,#4,(%0)" : : "a" (addr));
->
-> > +/*
-> > + * Force the uaccess routines to be wired up for actual userspace access,
-> > + * overriding any possible set_fs(KERNEL_DS) still lingering around.  Undone
-> > + * using force_uaccess_end below.
-> > + */
-> > +static inline mm_segment_t force_uaccess_begin(void)
-> > +{
-> > +     mm_segment_t fs = get_fs();
-> > +
-> > +     set_fs(USER_DS);
-> > +     return fs;
-> > +}
-> > +
-> > +static inline void force_uaccess_end(mm_segment_t oldfs)
-> > +{
-> > +     set_fs(oldfs);
-> > +}
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/t=
+lbflush.h
+index 39aed2efd21b..edfec8139ef8 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -60,6 +60,31 @@
+ 		__ta;						\
+ 	})
+=20
++/*
++ * Get translation granule of the system, which is decided by
++ * PAGE_SIZE.  Used by TTL.
++ *  - 4KB	: 1
++ *  - 16KB	: 2
++ *  - 64KB	: 3
++ */
++#define TLBI_TTL_TG_4K		1
++#define TLBI_TTL_TG_16K		2
++#define TLBI_TTL_TG_64K		3
++
++static inline unsigned long get_trans_granule(void)
++{
++	switch (PAGE_SIZE) {
++	case SZ_4K:
++		return TLBI_TTL_TG_4K;
++	case SZ_16K:
++		return TLBI_TTL_TG_16K;
++	case SZ_64K:
++		return TLBI_TTL_TG_64K;
++	default:
++		return 0;
++	}
++}
++
+ /*
+  * Level-based TLBI operations.
+  *
+@@ -73,9 +98,6 @@
+  * in asm/stage2_pgtable.h.
+  */
+ #define TLBI_TTL_MASK		GENMASK_ULL(47, 44)
+-#define TLBI_TTL_TG_4K		1
+-#define TLBI_TTL_TG_16K		2
+-#define TLBI_TTL_TG_64K		3
+=20
+ #define __tlbi_level(op, addr, level) do {				\
+ 	u64 arg =3D addr;							\
+@@ -83,19 +105,7 @@
+ 	if (cpus_have_const_cap(ARM64_HAS_ARMv8_4_TTL) &&		\
+ 	    level) {							\
+ 		u64 ttl =3D level & 3;					\
+-									\
+-		switch (PAGE_SIZE) {					\
+-		case SZ_4K:						\
+-			ttl |=3D TLBI_TTL_TG_4K << 2;			\
+-			break;						\
+-		case SZ_16K:						\
+-			ttl |=3D TLBI_TTL_TG_16K << 2;			\
+-			break;						\
+-		case SZ_64K:						\
+-			ttl |=3D TLBI_TTL_TG_64K << 2;			\
+-			break;						\
+-		}							\
+-									\
++		ttl |=3D get_trans_granule() << 2;			\
+ 		arg &=3D ~TLBI_TTL_MASK;					\
+ 		arg |=3D FIELD_PREP(TLBI_TTL_MASK, ttl);			\
+ 	}								\
+@@ -108,6 +118,39 @@
+ 		__tlbi_level(op, (arg | USER_ASID_FLAG), level);	\
+ } while (0)
+=20
++/*
++ * This macro creates a properly formatted VA operand for the TLBI RANGE=
+.
++ * The value bit assignments are:
++ *
++ * +----------+------+-------+-------+-------+----------------------+
++ * |   ASID   |  TG  | SCALE |  NUM  |  TTL  |        BADDR         |
++ * +-----------------+-------+-------+-------+----------------------+
++ * |63      48|47  46|45   44|43   39|38   37|36                   0|
++ *
++ * The address range is determined by below formula:
++ * [BADDR, BADDR + (NUM + 1) * 2^(5*SCALE + 1) * PAGESIZE)
++ *
++ */
++#define __TLBI_VADDR_RANGE(addr, asid, scale, num, ttl)		\
++	({							\
++		unsigned long __ta =3D (addr) >> PAGE_SHIFT;	\
++		__ta &=3D GENMASK_ULL(36, 0);			\
++		__ta |=3D (unsigned long)(ttl & 3) << 37;		\
++		__ta |=3D (unsigned long)(num & 31) << 39;	\
++		__ta |=3D (unsigned long)(scale & 3) << 44;	\
++		__ta |=3D (get_trans_granule() & 3) << 46;	\
++		__ta |=3D (unsigned long)(asid) << 48;		\
++		__ta;						\
++	})
++
++/* These macros are used by the TLBI RANGE feature. */
++#define __TLBI_RANGE_PAGES(num, scale)	(((num) + 1) << (5 * (scale) + 1)=
+)
++#define MAX_TLBI_RANGE_PAGES		__TLBI_RANGE_PAGES(31, 3)
++
++#define TLBI_RANGE_MASK			GENMASK_ULL(4, 0)
++#define __TLBI_RANGE_NUM(range, scale)	\
++	(((range) >> (5 * (scale) + 1)) & TLBI_RANGE_MASK)
++
+ /*
+  *	TLB Invalidation
+  *	=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+@@ -232,32 +275,69 @@ static inline void __flush_tlb_range(struct vm_area=
+_struct *vma,
+ 				     unsigned long stride, bool last_level,
+ 				     int tlb_level)
+ {
++	int num =3D 0;
++	int scale =3D 0;
+ 	unsigned long asid =3D ASID(vma->vm_mm);
+ 	unsigned long addr;
++	unsigned long pages;
+=20
+ 	start =3D round_down(start, stride);
+ 	end =3D round_up(end, stride);
++	pages =3D (end - start) >> PAGE_SHIFT;
+=20
+-	if ((end - start) >=3D (MAX_TLBI_OPS * stride)) {
++	if ((!cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
++	    (end - start) >=3D (MAX_TLBI_OPS * stride)) ||
++	    pages >=3D MAX_TLBI_RANGE_PAGES) {
+ 		flush_tlb_mm(vma->vm_mm);
+ 		return;
+ 	}
+=20
+-	/* Convert the stride into units of 4k */
+-	stride >>=3D 12;
++	dsb(ishst);
+=20
+-	start =3D __TLBI_VADDR(start, asid);
+-	end =3D __TLBI_VADDR(end, asid);
++	/*
++	 * When cpu does not support TLBI RANGE feature, we flush the tlb
++	 * entries one by one at the granularity of 'stride'.
++	 * When cpu supports the TLBI RANGE feature, then:
++	 * 1. If pages is odd, flush the first page through non-RANGE
++	 *    instruction;
++	 * 2. For remaining pages: The minimum range granularity is decided
++	 *    by 'scale', so we can not flush all pages by one instruction
++	 *    in some cases.
++	 *    Here, we start from scale =3D 0, flush corresponding pages
++	 *    (from 2^(5*scale + 1) to 2^(5*(scale + 1) + 1)), and increase
++	 *    it until no pages left.
++	 */
++	while (pages > 0) {
++		if (!cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) ||
++		    pages % 2 =3D=3D 1) {
++			addr =3D __TLBI_VADDR(start, asid);
++			if (last_level) {
++				__tlbi_level(vale1is, addr, tlb_level);
++				__tlbi_user_level(vale1is, addr, tlb_level);
++			} else {
++				__tlbi_level(vae1is, addr, tlb_level);
++				__tlbi_user_level(vae1is, addr, tlb_level);
++			}
++			start +=3D stride;
++			pages -=3D stride >> PAGE_SHIFT;
++			continue;
++		}
+=20
+-	dsb(ishst);
+-	for (addr =3D start; addr < end; addr +=3D stride) {
+-		if (last_level) {
+-			__tlbi_level(vale1is, addr, tlb_level);
+-			__tlbi_user_level(vale1is, addr, tlb_level);
+-		} else {
+-			__tlbi_level(vae1is, addr, tlb_level);
+-			__tlbi_user_level(vae1is, addr, tlb_level);
++		num =3D __TLBI_RANGE_NUM(pages, scale) - 1;
++		if (num >=3D 0) {
++			addr =3D __TLBI_VADDR_RANGE(start, asid, scale,
++						  num, tlb_level);
++			if (last_level) {
++				__tlbi(rvale1is, addr);
++				__tlbi_user(rvale1is, addr);
++			} else {
++				__tlbi(rvae1is, addr);
++				__tlbi_user(rvae1is, addr);
++			}
++			start +=3D __TLBI_RANGE_PAGES(num, scale) << PAGE_SHIFT;
++			pages -=3D __TLBI_RANGE_PAGES(num, scale);
+ 		}
++		scale++;
+ 	}
+ 	dsb(ish);
+ }
+--=20
+2.19.1
