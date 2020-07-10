@@ -1,188 +1,101 @@
-Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:3196 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726343AbgGCCgO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 22:36:14 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 15/21] KVM: Move x86's MMU memory cache helpers to common KVM code
-Date: Thu,  2 Jul 2020 19:35:39 -0700
-Message-ID: <20200703023545.8771-16-sean.j.christopherson@intel.com>
-In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
-References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+Return-Path: <SRS0=hCR/=AV=kvack.org=owner-linux-mm@kernel.org>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [RFC PATCH 3/7] mm: introduce exit_lazy_tlb
+Date: Fri, 10 Jul 2020 11:56:42 +1000
+Message-ID: <20200710015646.2020871-4-npiggin@gmail.com>
+In-Reply-To: <20200710015646.2020871-1-npiggin@gmail.com>
+References: <20200710015646.2020871-1-npiggin@gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: linux-arch@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, Anton Blanchard <anton@ozlabs.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200703023539.6PJLKDs2qyBhidbRjEE485syjfRzsx05KWNWi2gv-CM@z>
+Message-ID: <20200710015642.Fzz8KE-mUUXNqY6H0i0KG6rVCDX_ln5MEmzGDn2Rucw@z>
 
-Move x86's memory cache helpers to common KVM code so that they can be
-reused by arm64 and MIPS in future patches.
-
-Suggested-by: Christoffer Dall <christoffer.dall@arm.com>
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/x86/kvm/mmu/mmu.c   | 53 --------------------------------------
- include/linux/kvm_host.h |  7 +++++
- virt/kvm/kvm_main.c      | 55 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 62 insertions(+), 53 deletions(-)
+ fs/exec.c                         |  5 +++--
+ include/asm-generic/mmu_context.h | 20 ++++++++++++++++++++
+ kernel/kthread.c                  |  1 +
+ kernel/sched/core.c               |  2 ++
+ 4 files changed, 26 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index f4c8dae476bb..5b7782d92faf 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1060,47 +1060,6 @@ static void walk_shadow_page_lockless_end(struct kvm_vcpu *vcpu)
- 	local_irq_enable();
- }
- 
--static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
--					       gfp_t gfp_flags)
--{
--	gfp_flags |= mc->gfp_zero;
--
--	if (mc->kmem_cache)
--		return kmem_cache_alloc(mc->kmem_cache, gfp_flags);
--	else
--		return (void *)__get_free_page(gfp_flags);
--}
--
--static int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
--{
--	void *obj;
--
--	if (mc->nobjs >= min)
+diff --git a/fs/exec.c b/fs/exec.c
+index e6e8a9a70327..e2ab71e88293 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1117,9 +1117,10 @@ static int exec_mmap(struct mm_struct *mm)
+ 		setmax_mm_hiwater_rss(&tsk->signal->maxrss, old_mm);
+ 		mm_update_next_owner(old_mm);
+ 		mmput(old_mm);
 -		return 0;
--	while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
--		obj = mmu_memory_cache_alloc_obj(mc, GFP_KERNEL_ACCOUNT);
--		if (!obj)
--			return mc->nobjs >= min ? 0 : -ENOMEM;
--		mc->objects[mc->nobjs++] = obj;
--	}
--	return 0;
--}
--
--static int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc)
--{
--	return mc->nobjs;
--}
--
--static void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
--{
--	while (mc->nobjs) {
--		if (mc->kmem_cache)
--			kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
--		else
--			free_page((unsigned long)mc->objects[--mc->nobjs]);
--	}
--}
--
- static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu, bool maybe_indirect)
- {
- 	int r;
-@@ -1132,18 +1091,6 @@ static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
- 	kvm_mmu_free_memory_cache(&vcpu->arch.mmu_page_header_cache);
++	} else {
++		exit_lazy_tlb(active_mm, tsk);
++		mmdrop(active_mm);
+ 	}
+-	mmdrop(active_mm);
+ 	return 0;
  }
- 
--static void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
--{
--	void *p;
--
--	if (WARN_ON(!mc->nobjs))
--		p = mmu_memory_cache_alloc_obj(mc, GFP_ATOMIC | __GFP_ACCOUNT);
--	else
--		p = mc->objects[--mc->nobjs];
--	BUG_ON(!p);
--	return p;
--}
--
- static struct pte_list_desc *mmu_alloc_pte_list_desc(struct kvm_vcpu *vcpu)
- {
- 	return kvm_mmu_memory_cache_alloc(&vcpu->arch.mmu_pte_list_desc_cache);
-diff --git a/include/linux/kvm_host.h b/include/linux/kvm_host.h
-index 9edc6fc71a89..283df0fed4a8 100644
---- a/include/linux/kvm_host.h
-+++ b/include/linux/kvm_host.h
-@@ -816,6 +816,13 @@ void kvm_vcpu_on_spin(struct kvm_vcpu *vcpu, bool usermode_vcpu_not_eligible);
- void kvm_flush_remote_tlbs(struct kvm *kvm);
- void kvm_reload_remote_mmus(struct kvm *kvm);
- 
-+#ifdef KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE
-+int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min);
-+int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc);
-+void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc);
-+void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc);
-+#endif
-+
- bool kvm_make_vcpus_request_mask(struct kvm *kvm, unsigned int req,
- 				 struct kvm_vcpu *except,
- 				 unsigned long *vcpu_bitmap, cpumask_var_t tmp);
-diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
-index a852af5c3214..e70d75de185d 100644
---- a/virt/kvm/kvm_main.c
-+++ b/virt/kvm/kvm_main.c
-@@ -340,6 +340,61 @@ void kvm_reload_remote_mmus(struct kvm *kvm)
- 	kvm_make_all_cpus_request(kvm, KVM_REQ_MMU_RELOAD);
+=20
+diff --git a/include/asm-generic/mmu_context.h b/include/asm-generic/mmu_=
+context.h
+index 86cea80a50df..3fc4c3879b79 100644
+--- a/include/asm-generic/mmu_context.h
++++ b/include/asm-generic/mmu_context.h
+@@ -24,6 +24,26 @@ static inline void enter_lazy_tlb(struct mm_struct *mm=
+,
  }
- 
-+#ifdef KVM_ARCH_NR_OBJS_PER_MEMORY_CACHE
-+static inline void *mmu_memory_cache_alloc_obj(struct kvm_mmu_memory_cache *mc,
-+					       gfp_t gfp_flags)
+ #endif
+=20
++/*
++ * exit_lazy_tlb - Called after switching away from a lazy TLB mode mm.
++ *
++ * mm:  the lazy mm context that was switched away from
++ * tsk: the task that was switched to non-lazy mm
++ *
++ * tsk->mm will not be NULL.
++ *
++ * Note this is not symmetrical to enter_lazy_tlb, this is not
++ * called when tasks switch into the lazy mm, it's called after the
++ * lazy mm becomes non-lazy (either switched to a different mm or the
++ * owner of the mm returns).
++ */
++#ifndef exit_lazy_tlb
++static inline void exit_lazy_tlb(struct mm_struct *mm,
++			struct task_struct *tsk)
 +{
-+	gfp_flags |= mc->gfp_zero;
-+
-+	if (mc->kmem_cache)
-+		return kmem_cache_alloc(mc->kmem_cache, gfp_flags);
-+	else
-+		return (void *)__get_free_page(gfp_flags);
-+}
-+
-+int kvm_mmu_topup_memory_cache(struct kvm_mmu_memory_cache *mc, int min)
-+{
-+	void *obj;
-+
-+	if (mc->nobjs >= min)
-+		return 0;
-+	while (mc->nobjs < ARRAY_SIZE(mc->objects)) {
-+		obj = mmu_memory_cache_alloc_obj(mc, GFP_KERNEL_ACCOUNT);
-+		if (!obj)
-+			return mc->nobjs >= min ? 0 : -ENOMEM;
-+		mc->objects[mc->nobjs++] = obj;
-+	}
-+	return 0;
-+}
-+
-+int kvm_mmu_memory_cache_nr_free_objects(struct kvm_mmu_memory_cache *mc)
-+{
-+	return mc->nobjs;
-+}
-+
-+void kvm_mmu_free_memory_cache(struct kvm_mmu_memory_cache *mc)
-+{
-+	while (mc->nobjs) {
-+		if (mc->kmem_cache)
-+			kmem_cache_free(mc->kmem_cache, mc->objects[--mc->nobjs]);
-+		else
-+			free_page((unsigned long)mc->objects[--mc->nobjs]);
-+	}
-+}
-+
-+void *kvm_mmu_memory_cache_alloc(struct kvm_mmu_memory_cache *mc)
-+{
-+	void *p;
-+
-+	if (WARN_ON(!mc->nobjs))
-+		p = mmu_memory_cache_alloc_obj(mc, GFP_ATOMIC | __GFP_ACCOUNT);
-+	else
-+		p = mc->objects[--mc->nobjs];
-+	BUG_ON(!p);
-+	return p;
 +}
 +#endif
 +
- static void kvm_vcpu_init(struct kvm_vcpu *vcpu, struct kvm *kvm, unsigned id)
- {
- 	mutex_init(&vcpu->mutex);
--- 
-2.26.0
+ /**
+  * init_new_context - Initialize context of a new mm_struct.
+  * @tsk: task struct for the mm
+diff --git a/kernel/kthread.c b/kernel/kthread.c
+index 132f84a5fde3..e813d92f2eab 100644
+--- a/kernel/kthread.c
++++ b/kernel/kthread.c
+@@ -1253,6 +1253,7 @@ void kthread_use_mm(struct mm_struct *mm)
+=20
+ 	if (active_mm !=3D mm)
+ 		mmdrop(active_mm);
++	exit_lazy_tlb(active_mm, tsk);
+=20
+ 	to_kthread(tsk)->oldfs =3D get_fs();
+ 	set_fs(USER_DS);
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index ca5db40392d4..debc917bc69b 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -3439,6 +3439,8 @@ context_switch(struct rq *rq, struct task_struct *p=
+rev,
+ 		switch_mm_irqs_off(prev->active_mm, next->mm, next);
+=20
+ 		if (!prev->mm) {                        // from kernel
++			exit_lazy_tlb(prev->active_mm, next);
++
+ 			/* will mmdrop() in finish_task_switch(). */
+ 			rq->prev_mm =3D prev->active_mm;
+ 			prev->active_mm =3D NULL;
+--=20
+2.23.0
