@@ -1,297 +1,54 @@
-Return-Path: <SRS0=3gwW=AS=vger.kernel.org=linux-doc-owner@kernel.org>
-From: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>
-Subject: [PATCH v19 03/12] landlock: Set up the security framework and manage credentials
-Date: Tue,  7 Jul 2020 20:09:46 +0200
-Message-ID: <20200707180955.53024-4-mic@digikod.net>
-In-Reply-To: <20200707180955.53024-1-mic@digikod.net>
-References: <20200707180955.53024-1-mic@digikod.net>
+Return-Path: <SRS0=GDSS=AV=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46654 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725966AbgGJFjT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2020 01:39:19 -0400
+Date: Fri, 10 Jul 2020 06:38:50 +0100
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH 1/5] lib: Add a generic version of devmem_is_allowed()
+Message-ID: <20200710053850.GA27019@infradead.org>
+References: <20200709200552.1910298-1-palmer@dabbelt.com>
+ <20200709200552.1910298-2-palmer@dabbelt.com>
+ <20200709204921.GJ781326@linux.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mic@digikod.net>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Anton Ivanov <anton.ivanov@cambridgegreys.com>, Arnd Bergmann <arnd@arndb.de>, Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, Jann Horn <jannh@google.com>, Jeff Dike <jdike@addtoit.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Michael Kerrisk <mtk.manpages@gmail.com>, =?UTF-8?q?Micka=C3=ABl=20Sala=C3=BCn?= <mickael.salaun@ssi.gouv.fr>, Richard Weinberger <richard@nod.at>, "Serge E . Hallyn" <serge@hallyn.com>, Shuah Khan <shuah@kernel.org>, Vincent Dagonneau <vincent.dagonneau@ssi.gouv.fr>, kernel-hardening@lists.openwall.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-security-module@vger.kernel.org, x86@kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200709204921.GJ781326@linux.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200707180946.As21898LzJg3CGb_4NWE_TLR0_VxCwAhbQqDWDeKwok@z>
+To: Mike Rapoport <rppt@linux.ibm.com>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>, mark.rutland@arm.com, steve@sk2.org, davidgow@google.com, catalin.marinas@arm.com, linus.walleij@linaro.org, Palmer Dabbelt <palmerdabbelt@google.com>, elver@google.com, glider@google.com, willy@infradead.org, zong.li@sifive.com, mchehab+samsung@kernel.org, linux-riscv@lists.infradead.org, alex.shi@linux.alibaba.com, will@kernel.org, dan.j.williams@intel.com, linux-arch@vger.kernel.org, uwe@kleine-koenig.org, alex@ghiti.fr, takahiro.akashi@linaro.org, paulmck@kernel.org, masahiroy@kernel.org, linux@armlinux.org.uk, krzk@kernel.org, ardb@kernel.org, bgolaszewski@baylibre.com, kernel-team@android.com, pmladek@suse.com, zaslonko@linux.ibm.com, aou@eecs.berkeley.edu, keescook@chromium.org, Arnd Bergmann <arnd@arndb.de>, rostedt@goodmis.org, broonie@kernel.org, matti.vaittinen@fi.rohmeurope.com, gregory.0xf0@gmail.com, Paul Walmsley <paul.walmsley@sifive.com>, tglx@linutronix.de, andriy.shevchenko@linux.intel.com, gxt@pku.edu.cn, linux-arm-kernel@lists.infradead.org, rdunlap@infradead.org, Nick Desaulniers <ndesaulniers@google.com>, linux-kernel@vger.kernel.org, mcgrof@kernel.org, james.morse@arm.com, mhiramat@kernel.org, akpm@linux-foundation.org, davem@davemloft.net
+Message-ID: <20200710053850.LX7yZROi_DvKaGazVhouqtC3dL7r-FydZ48GtodmvBM@z>
 
-A process credentials point to a Landlock domain, which is underneath
-implemented with a ruleset.  In the following commits, this domain is
-used to check and enforce the ptrace and filesystem security policies.
-A domain is inherited from a parent to its child the same way a thread
-inherits a seccomp policy.
+On Thu, Jul 09, 2020 at 11:49:21PM +0300, Mike Rapoport wrote:
+> > +#ifndef CONFIG_GENERIC_DEVMEM_IS_ALLOWED
+> > +extern int devmem_is_allowed(unsigned long pfn);
+> > +#endif
 
-Signed-off-by: Mickaël Salaün <mic@digikod.net>
-Cc: James Morris <jmorris@namei.org>
-Cc: Jann Horn <jannh@google.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Serge E. Hallyn <serge@hallyn.com>
----
+Nit: no need for the extern here.
 
-Changes since v17:
-* Constify returned domain pointers from landlock_get_current_domain()
-  and landlock_get_task_domain() helpers.
+> > +config GENERIC_LIB_DEVMEM_IS_ALLOWED
+> > +	bool
+> > +	select ARCH_HAS_DEVMEM_IS_ALLOWED
+> 
+> This seems to work the other way around from the usual Kconfig chains.
+> In the most cases ARCH_HAS_SOMETHING selects GENERIC_SOMETHING.
+> 
+> I believe nicer way would be to make 
+> 
+> config STRICT_DEVMEM
+> 	bool "Filter access to /dev/mem"
+> 	depends on MMU && DEVMEM
+> 	depends on ARCH_HAS_DEVMEM_IS_ALLOWED || GENERIC_LIB_DEVMEM_IS_ALLOWED
+> 
+> config GENERIC_LIB_DEVMEM_IS_ALLOWED
+> 	bool
+> 
+> and then s/select ARCH_HAS_DEVMEM_IS_ALLOWED/select GENERIC_LIB_DEVMEM_IS_ALLOWED/
+> in the arch Kconfigs and drop ARCH_HAS_DEVMEM_IS_ALLOWED in the end.
 
-Changes since v15:
-* Optimize landlocked() for current thread.
-* Display the greeting message when everything is initialized.
-
-Changes since v14:
-* Uses pr_fmt from common.h .
-* Constify variables.
-* Remove useless NULL initialization.
-
-Changes since v13:
-* totally get ride of the seccomp dependency
-* only keep credential management and LSM setup.
-
-Previous changes:
-https://lore.kernel.org/lkml/20191104172146.30797-4-mic@digikod.net/
----
- security/Kconfig           | 10 +++----
- security/landlock/Makefile |  3 +-
- security/landlock/common.h | 20 +++++++++++++
- security/landlock/cred.c   | 46 ++++++++++++++++++++++++++++++
- security/landlock/cred.h   | 58 ++++++++++++++++++++++++++++++++++++++
- security/landlock/setup.c  | 31 ++++++++++++++++++++
- security/landlock/setup.h  | 16 +++++++++++
- 7 files changed, 178 insertions(+), 6 deletions(-)
- create mode 100644 security/landlock/common.h
- create mode 100644 security/landlock/cred.c
- create mode 100644 security/landlock/cred.h
- create mode 100644 security/landlock/setup.c
- create mode 100644 security/landlock/setup.h
-
-diff --git a/security/Kconfig b/security/Kconfig
-index 582fd777a757..a96ee1c7fd25 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -278,11 +278,11 @@ endchoice
- 
- config LSM
- 	string "Ordered list of enabled LSMs"
--	default "lockdown,yama,loadpin,safesetid,integrity,smack,selinux,tomoyo,apparmor,bpf" if DEFAULT_SECURITY_SMACK
--	default "lockdown,yama,loadpin,safesetid,integrity,apparmor,selinux,smack,tomoyo,bpf" if DEFAULT_SECURITY_APPARMOR
--	default "lockdown,yama,loadpin,safesetid,integrity,tomoyo,bpf" if DEFAULT_SECURITY_TOMOYO
--	default "lockdown,yama,loadpin,safesetid,integrity,bpf" if DEFAULT_SECURITY_DAC
--	default "lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor,bpf"
-+	default "landlock,lockdown,yama,loadpin,safesetid,integrity,smack,selinux,tomoyo,apparmor,bpf" if DEFAULT_SECURITY_SMACK
-+	default "landlock,lockdown,yama,loadpin,safesetid,integrity,apparmor,selinux,smack,tomoyo,bpf" if DEFAULT_SECURITY_APPARMOR
-+	default "landlock,lockdown,yama,loadpin,safesetid,integrity,tomoyo,bpf" if DEFAULT_SECURITY_TOMOYO
-+	default "landlock,lockdown,yama,loadpin,safesetid,integrity,bpf" if DEFAULT_SECURITY_DAC
-+	default "landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor,bpf"
- 	help
- 	  A comma-separated list of LSMs, in initialization order.
- 	  Any LSMs left off this list will be ignored. This can be
-diff --git a/security/landlock/Makefile b/security/landlock/Makefile
-index d846eba445bb..041ea242e627 100644
---- a/security/landlock/Makefile
-+++ b/security/landlock/Makefile
-@@ -1,3 +1,4 @@
- obj-$(CONFIG_SECURITY_LANDLOCK) := landlock.o
- 
--landlock-y := object.o ruleset.o
-+landlock-y := setup.o object.o ruleset.o \
-+	cred.o
-diff --git a/security/landlock/common.h b/security/landlock/common.h
-new file mode 100644
-index 000000000000..5dc0fe15707d
---- /dev/null
-+++ b/security/landlock/common.h
-@@ -0,0 +1,20 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Landlock LSM - Common constants and helpers
-+ *
-+ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2018-2020 ANSSI
-+ */
-+
-+#ifndef _SECURITY_LANDLOCK_COMMON_H
-+#define _SECURITY_LANDLOCK_COMMON_H
-+
-+#define LANDLOCK_NAME "landlock"
-+
-+#ifdef pr_fmt
-+#undef pr_fmt
-+#endif
-+
-+#define pr_fmt(fmt) LANDLOCK_NAME ": " fmt
-+
-+#endif /* _SECURITY_LANDLOCK_COMMON_H */
-diff --git a/security/landlock/cred.c b/security/landlock/cred.c
-new file mode 100644
-index 000000000000..7074149d2517
---- /dev/null
-+++ b/security/landlock/cred.c
-@@ -0,0 +1,46 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * Landlock LSM - Credential hooks
-+ *
-+ * Copyright © 2017-2020 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2018-2020 ANSSI
-+ */
-+
-+#include <linux/cred.h>
-+#include <linux/lsm_hooks.h>
-+
-+#include "common.h"
-+#include "cred.h"
-+#include "ruleset.h"
-+#include "setup.h"
-+
-+static int hook_cred_prepare(struct cred *const new,
-+		const struct cred *const old, const gfp_t gfp)
-+{
-+	const struct landlock_cred_security *cred_old = landlock_cred(old);
-+	struct landlock_cred_security *cred_new = landlock_cred(new);
-+	struct landlock_ruleset *dom_old;
-+
-+	dom_old = cred_old->domain;
-+	if (dom_old) {
-+		landlock_get_ruleset(dom_old);
-+		cred_new->domain = dom_old;
-+	}
-+	return 0;
-+}
-+
-+static void hook_cred_free(struct cred *const cred)
-+{
-+	landlock_put_ruleset_deferred(landlock_cred(cred)->domain);
-+}
-+
-+static struct security_hook_list landlock_hooks[] __lsm_ro_after_init = {
-+	LSM_HOOK_INIT(cred_prepare, hook_cred_prepare),
-+	LSM_HOOK_INIT(cred_free, hook_cred_free),
-+};
-+
-+__init void landlock_add_hooks_cred(void)
-+{
-+	security_add_hooks(landlock_hooks, ARRAY_SIZE(landlock_hooks),
-+			LANDLOCK_NAME);
-+}
-diff --git a/security/landlock/cred.h b/security/landlock/cred.h
-new file mode 100644
-index 000000000000..2983dd4dda46
---- /dev/null
-+++ b/security/landlock/cred.h
-@@ -0,0 +1,58 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Landlock LSM - Credential hooks
-+ *
-+ * Copyright © 2019 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2019 ANSSI
-+ */
-+
-+#ifndef _SECURITY_LANDLOCK_CRED_H
-+#define _SECURITY_LANDLOCK_CRED_H
-+
-+#include <linux/cred.h>
-+#include <linux/init.h>
-+#include <linux/rcupdate.h>
-+
-+#include "ruleset.h"
-+#include "setup.h"
-+
-+struct landlock_cred_security {
-+	struct landlock_ruleset *domain;
-+};
-+
-+static inline struct landlock_cred_security *landlock_cred(
-+		const struct cred *cred)
-+{
-+	return cred->security + landlock_blob_sizes.lbs_cred;
-+}
-+
-+static inline const struct landlock_ruleset *landlock_get_current_domain(void)
-+{
-+	return landlock_cred(current_cred())->domain;
-+}
-+
-+/*
-+ * The call needs to come from an RCU read-side critical section.
-+ */
-+static inline const struct landlock_ruleset *landlock_get_task_domain(
-+		const struct task_struct *const task)
-+{
-+	return landlock_cred(__task_cred(task))->domain;
-+}
-+
-+static inline bool landlocked(const struct task_struct *const task)
-+{
-+	bool has_dom;
-+
-+	if (task == current)
-+		return !!landlock_get_current_domain();
-+
-+	rcu_read_lock();
-+	has_dom = !!landlock_get_task_domain(task);
-+	rcu_read_unlock();
-+	return has_dom;
-+}
-+
-+__init void landlock_add_hooks_cred(void);
-+
-+#endif /* _SECURITY_LANDLOCK_CRED_H */
-diff --git a/security/landlock/setup.c b/security/landlock/setup.c
-new file mode 100644
-index 000000000000..39ee1766f175
---- /dev/null
-+++ b/security/landlock/setup.c
-@@ -0,0 +1,31 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * Landlock LSM - Security framework setup
-+ *
-+ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2018-2020 ANSSI
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/lsm_hooks.h>
-+
-+#include "common.h"
-+#include "cred.h"
-+#include "setup.h"
-+
-+struct lsm_blob_sizes landlock_blob_sizes __lsm_ro_after_init = {
-+	.lbs_cred = sizeof(struct landlock_cred_security),
-+};
-+
-+static int __init landlock_init(void)
-+{
-+	landlock_add_hooks_cred();
-+	pr_info("Up and running.\n");
-+	return 0;
-+}
-+
-+DEFINE_LSM(LANDLOCK_NAME) = {
-+	.name = LANDLOCK_NAME,
-+	.init = landlock_init,
-+	.blobs = &landlock_blob_sizes,
-+};
-diff --git a/security/landlock/setup.h b/security/landlock/setup.h
-new file mode 100644
-index 000000000000..9fdbf33fcc33
---- /dev/null
-+++ b/security/landlock/setup.h
-@@ -0,0 +1,16 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Landlock LSM - Security framework setup
-+ *
-+ * Copyright © 2016-2020 Mickaël Salaün <mic@digikod.net>
-+ * Copyright © 2018-2020 ANSSI
-+ */
-+
-+#ifndef _SECURITY_LANDLOCK_SETUP_H
-+#define _SECURITY_LANDLOCK_SETUP_H
-+
-+#include <linux/lsm_hooks.h>
-+
-+extern struct lsm_blob_sizes landlock_blob_sizes;
-+
-+#endif /* _SECURITY_LANDLOCK_SETUP_H */
--- 
-2.27.0
+To take a step back:  Is there any reason to not just always
+STRICT_DEVMEM? Maybe for a few architectures that don't currently
+support a strict /dev/mem the generic version isn't quite correct, but
+someone selecting the option and finding the issue is the best way to
+figure that out..
