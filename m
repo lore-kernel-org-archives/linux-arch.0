@@ -1,74 +1,163 @@
-Return-Path: <SRS0=tLCE=AR=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47594 "EHLO
+Return-Path: <SRS0=GDSS=AV=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40802 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725860AbgGFTkZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jul 2020 15:40:25 -0400
-Date: Mon, 6 Jul 2020 21:40:12 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Message-ID: <20200706194012.GA5523@worktop.programming.kicks-ass.net>
-References: <20200701140654.GL9247@paulmck-ThinkPad-P72>
- <20200701150512.GH4817@hirez.programming.kicks-ass.net>
- <20200701160338.GN9247@paulmck-ThinkPad-P72>
- <20200702082040.GB4781@hirez.programming.kicks-ass.net>
- <20200702175948.GV9247@paulmck-ThinkPad-P72>
- <20200703131330.GX4800@hirez.programming.kicks-ass.net>
- <20200703144228.GF9247@paulmck-ThinkPad-P72>
- <20200706162633.GA13288@paulmck-ThinkPad-P72>
- <20200706182926.GH4800@hirez.programming.kicks-ass.net>
- <20200706183933.GE9247@paulmck-ThinkPad-P72>
+        with ESMTP id S1726004AbgGJIFJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2020 04:05:09 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200706183933.GE9247@paulmck-ThinkPad-P72>
+References: <cover.1593243079.git.syednwaris@gmail.com>
+In-Reply-To: <cover.1593243079.git.syednwaris@gmail.com>
+From: Syed Nayyar Waris <syednwaris@gmail.com>
+Date: Fri, 10 Jul 2020 13:34:57 +0530
+Message-ID: <CACG_h5q9UJcAx9q7guqH1nKhrg+k2CbWSDuFF4kBab8z6jdPhg@mail.gmail.com>
+Subject: Re: [PATCH v9 0/4] Introduce the for_each_set_clump macro
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: Marco Elver <elver@google.com>, Nick Desaulniers <ndesaulniers@google.com>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kees Cook <keescook@chromium.org>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>
-Message-ID: <20200706194012.LGhAMw0l5etAgrTlBumGVO_QiPWzKIdLGvSuElldEcY@z>
+To: Linus Walleij <linus.walleij@linaro.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, William Breathitt Gray <vilhelm.gray@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, rrichter@marvell.com, Bartosz Golaszewski <bgolaszewski@baylibre.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, "Zhang, Rui" <rui.zhang@intel.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Amit Kucheria <amit.kucheria@verdurent.com>, Linux-Arch <linux-arch@vger.kernel.org>, "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, Linux PM <linux-pm@vger.kernel.org>
+Message-ID: <20200710080457.z9g_RpwGvw13UfpFWhJ5VYwq5ckwD0w25ZuYvoz70UE@z>
 
-On Mon, Jul 06, 2020 at 11:39:33AM -0700, Paul E. McKenney wrote:
-> On Mon, Jul 06, 2020 at 08:29:26PM +0200, Peter Zijlstra wrote:
-> > On Mon, Jul 06, 2020 at 09:26:33AM -0700, Paul E. McKenney wrote:
+On Sat, Jun 27, 2020 at 1:40 PM Syed Nayyar Waris <syednwaris@gmail.com> wrote:
+>
+> Hello Linus,
+>
+> Since this patchset primarily affects GPIO drivers, would you like
+> to pick it up through your GPIO tree?
+>
+> This patchset introduces a new generic version of for_each_set_clump.
+> The previous version of for_each_set_clump8 used a fixed size 8-bit
+> clump, but the new generic version can work with clump of any size but
+> less than or equal to BITS_PER_LONG. The patchset utilizes the new macro
+> in several GPIO drivers.
+>
+> The earlier 8-bit for_each_set_clump8 facilitated a
+> for-loop syntax that iterates over a memory region entire groups of set
+> bits at a time.
+>
+> For example, suppose you would like to iterate over a 32-bit integer 8
+> bits at a time, skipping over 8-bit groups with no set bit, where
+> XXXXXXXX represents the current 8-bit group:
+>
+>     Example:        10111110 00000000 11111111 00110011
+>     First loop:     10111110 00000000 11111111 XXXXXXXX
+>     Second loop:    10111110 00000000 XXXXXXXX 00110011
+>     Third loop:     XXXXXXXX 00000000 11111111 00110011
+>
+> Each iteration of the loop returns the next 8-bit group that has at
+> least one set bit.
+>
+> But with the new for_each_set_clump the clump size can be different from 8 bits.
+> Moreover, the clump can be split at word boundary in situations where word
+> size is not multiple of clump size. Following are examples showing the working
+> of new macro for clump sizes of 24 bits and 6 bits.
+>
+> Example 1:
+> clump size: 24 bits, Number of clumps (or ports): 10
+> bitmap stores the bit information from where successive clumps are retrieved.
+>
+>      /* bitmap memory region */
+>         0x00aa0000ff000000;  /* Most significant bits */
+>         0xaaaaaa0000ff0000;
+>         0x000000aa000000aa;
+>         0xbbbbabcdeffedcba;  /* Least significant bits */
+>
+> Different iterations of for_each_set_clump:-
+> 'offset' is the bit position and 'clump' is the 24 bit clump from the
+> above bitmap.
+> Iteration first:        offset: 0 clump: 0xfedcba
+> Iteration second:       offset: 24 clump: 0xabcdef
+> Iteration third:        offset: 48 clump: 0xaabbbb
+> Iteration fourth:       offset: 96 clump: 0xaa
+> Iteration fifth:        offset: 144 clump: 0xff
+> Iteration sixth:        offset: 168 clump: 0xaaaaaa
+> Iteration seventh:      offset: 216 clump: 0xff
+> Loop breaks because in the end the remaining bits (0x00aa) size was less
+> than clump size of 24 bits.
+>
+> In above example it can be seen that in iteration third, the 24 bit clump
+> that was retrieved was split between bitmap[0] and bitmap[1]. This example
+> also shows that 24 bit zeroes if present in between, were skipped (preserving
+> the previous for_each_set_macro8 behaviour).
+>
+> Example 2:
+> clump size = 6 bits, Number of clumps (or ports) = 3.
+>
+>      /* bitmap memory region */
+>         0x00aa0000ff000000;  /* Most significant bits */
+>         0xaaaaaa0000ff0000;
+>         0x0f00000000000000;
+>         0x0000000000000ac0;  /* Least significant bits */
+>
+> Different iterations of for_each_set_clump:
+> 'offset' is the bit position and 'clump' is the 6 bit clump from the
+> above bitmap.
+> Iteration first:        offset: 6 clump: 0x2b
+> Loop breaks because 6 * 3 = 18 bits traversed in bitmap.
+> Here 6 * 3 is clump size * no. of clumps.
+>
+> Changes in v9:
+>  - [Patch 4/4]: Remove looping of 'for_each_set_clump' and instead process two
+>    halves of a 64-bit bitmap separately or individually. Use normal spin_lock
+>    call for second inner lock. And take the spin_lock_init call outside the 'if'
+>    condition in the probe function of driver.
+>
+> Changes in v8:
+>  - [Patch 2/4]: Minor change: Use '__initdata' for correct section mismatch
+>    in 'clump_test_data' array.
+>
+> Changes in v7:
+>  - [Patch 2/4]: Minor changes: Use macro 'DECLARE_BITMAP()' and split 'struct'
+>    definition and test data.
+>
+> Changes in v6:
+>  - [Patch 2/4]: Make 'for loop' inside test_for_each_set_clump more
+>    succinct.
+>
+> Changes in v5:
+>  - [Patch 4/4]: Minor change: Hardcode value for better code readability.
+>
+> Changes in v4:
+>  - [Patch 2/4]: Use 'for' loop in test function of for_each_set_clump.
+>  - [Patch 3/4]: Minor change: Inline value for better code readability.
+>  - [Patch 4/4]: Minor change: Inline value for better code readability.
+>
+> Changes in v3:
+>  - [Patch 3/4]: Change datatype of some variables from u64 to unsigned long
+>    in function thunderx_gpio_set_multiple.
+>
+> CHanges in v2:
+>  - [Patch 2/4]: Unify different tests for 'for_each_set_clump'. Pass test data as
+>    function parameters.
+>  - [Patch 2/4]: Remove unnecessary bitmap_zero calls.
+>
+> Syed Nayyar Waris (4):
+>   bitops: Introduce the for_each_set_clump macro
+>   lib/test_bitmap.c: Add for_each_set_clump test cases
+>   gpio: thunderx: Utilize for_each_set_clump macro
+>   gpio: xilinx: Utilize generic bitmap_get_value and _set_value.
+>
+>  drivers/gpio/gpio-thunderx.c      |  11 ++-
+>  drivers/gpio/gpio-xilinx.c        |  66 +++++++-------
+>  include/asm-generic/bitops/find.h |  19 ++++
+>  include/linux/bitmap.h            |  61 +++++++++++++
+>  include/linux/bitops.h            |  13 +++
+>  lib/find_bit.c                    |  14 +++
+>  lib/test_bitmap.c                 | 145 ++++++++++++++++++++++++++++++
+>  7 files changed, 292 insertions(+), 37 deletions(-)
+>
+>
+> base-commit: b3a9e3b9622ae10064826dccb4f7a52bd88c7407
+> --
+> 2.26.2
+>
 
-> > If they do not consider their Linux OS running correctly :-)
-> 
-> Many of them really do not care at all.  In fact, some would consider
-> Linux failing to run as an added bonus.
 
-This I think is why we have compiler people in the thread that care a
-lot more.
+Hi Andrew, Linus
 
-> > > Nevertheless, yes, control dependencies also need attention.
-> > 
-> > Today I added one more \o/
-> 
-> Just make sure you continually check to make sure that compilers
-> don't break it, along with the others you have added.  ;-)
+What do you think about this patchset on 'for_each_set_clump' ?
 
-There's:
+if there's anything else you think that should be changed in this, or if this
+version looks good to you to pick up, kindly, let me know.
 
-kernel/locking/mcs_spinlock.h:  smp_cond_load_acquire(l, VAL);                          \
-kernel/sched/core.c:                    smp_cond_load_acquire(&p->on_cpu, !VAL);
-kernel/smp.c:   smp_cond_load_acquire(&csd->node.u_flags, !(VAL & CSD_FLAG_LOCK));
-
-arch/x86/kernel/alternative.c:          atomic_cond_read_acquire(&desc.refs, !VAL);
-kernel/locking/qrwlock.c:               atomic_cond_read_acquire(&lock->cnts, !(VAL & _QW_LOCKED));
-kernel/locking/qrwlock.c:       atomic_cond_read_acquire(&lock->cnts, !(VAL & _QW_LOCKED));
-kernel/locking/qrwlock.c:               atomic_cond_read_acquire(&lock->cnts, VAL == _QW_WAITING);
-kernel/locking/qspinlock.c:             atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_MASK));
-kernel/locking/qspinlock.c:     val = atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_PENDING_MASK));
-
-include/linux/refcount.h:               smp_acquire__after_ctrl_dep();
-ipc/mqueue.c:                   smp_acquire__after_ctrl_dep();
-ipc/msg.c:                      smp_acquire__after_ctrl_dep();
-ipc/sem.c:                      smp_acquire__after_ctrl_dep();
-kernel/locking/rwsem.c:                 smp_acquire__after_ctrl_dep();
-kernel/sched/core.c:    smp_acquire__after_ctrl_dep();
-
-kernel/events/ring_buffer.c:__perf_output_begin()
-
-And I'm fairly sure I'm forgetting some... One could argue there's too
-many of them to check already.
-
-Both GCC and CLANG had better think about it.
+Regards
+Syed Nayyar Waris
