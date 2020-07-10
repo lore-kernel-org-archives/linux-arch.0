@@ -1,39 +1,94 @@
-From: Herbert Xu <herbert@gondor.apana.org.au>
-Subject: Re: [PATCH v4 1/2] linux/bits.h: fix unsigned less than zero warnings
-Date: Fri, 10 Jul 2020 16:38:51 +1000
-Message-ID: <20200710063851.GA2056@gondor.apana.org.au>
-References: <20200621054210.14804-1-rikard.falkeborn@gmail.com>
- <20200709123011.GA18734@gondor.apana.org.au>
- <CAHk-=wibAAcH2+hk+X9mBp0h1B6oYv+Pjzq1XB+EXJhgshu-Xg@mail.gmail.com>
+From: Anshuman Khandual <anshuman.khandual@arm.com>
+Subject: Re: [mm/debug_vm_pgtable] a97a171093:
+ BUG:unable_to_handle_page_fault_for_address
+Date: Fri, 10 Jul 2020 12:17:14 +0530
+Message-ID: <686d83dc-d49f-77f2-1581-8f2be1a5fc60@arm.com>
+References: <20200709061122.GN3874@shao2-debian>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from helcar.hmeau.com ([216.24.177.18]:38310 "EHLO fornost.hmeau.com"
+Received: from foss.arm.com ([217.140.110.172]:53940 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725851AbgGJGjN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jul 2020 02:39:13 -0400
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wibAAcH2+hk+X9mBp0h1B6oYv+Pjzq1XB+EXJhgshu-Xg@mail.gmail.com>
+        id S1725943AbgGJGrt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Jul 2020 02:47:49 -0400
+In-Reply-To: <20200709061122.GN3874@shao2-debian>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Rikard Falkeborn <rikard.falkeborn@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Emil Velikov <emil.l.velikov@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Kees Cook <keescook@chromium.org>, Linus Walleij <linus.walleij@linaro.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, kernel test robot <lkp@intel.com>, Syed Nayyar Waris <syednwaris@gmail.com>, William Breathitt Gray <vilhelm.gray@gmail.com>, Masahiro Yamada <yamada.masahiro@socionext.com>
+To: kernel test robot <lkp@intel.com>
+Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org
 
-On Thu, Jul 09, 2020 at 11:13:31AM -0700, Linus Torvalds wrote:
-> On Thu, Jul 9, 2020 at 5:30 AM Herbert Xu <herbert@gondor.apana.org.au> wrote:
-> >
-> > I'm still getting the same warning even with the patch, for example:
-> 
-> Are you building with W=1?
-> 
-> There's a patch to move that broken -Wtype-limits thing to W=2.
-> 
->     https://lore.kernel.org/lkml/20200708190756.16810-1-rikard.falkeborn@gmail.com/
-> 
-> does that work for you?
 
-Yes that should work too.  Thanks!
--- 
-Email: Herbert Xu <herbert@gondor.apana.org.au>
-Home Page: http://gondor.apana.org.au/~herbert/
-PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
+
+On 07/09/2020 11:41 AM, kernel test robot wrote:
+> [   94.349598] BUG: unable to handle page fault for address: ffffed10a7ffddff
+> [   94.351039] #PF: supervisor read access in kernel mode
+> [   94.352172] #PF: error_code(0x0000) - not-present page
+> [   94.353256] PGD 43ffed067 P4D 43ffed067 PUD 43fdee067 PMD 0 
+> [   94.354484] Oops: 0000 [#1] SMP KASAN
+> [   94.355238] CPU: 1 PID: 1 Comm: swapper/0 Not tainted 5.8.0-rc4-00002-ga97a17109332c #1
+> [   94.360456] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+> [   94.361950] RIP: 0010:hugetlb_advanced_tests+0x137/0x699
+> [   94.363026] Code: 8b 13 4d 85 f6 75 0b 48 ff 05 2c e4 6a 01 31 ed eb 41 bf f8 ff ff ff ba ff ff 37 00 4c 01 f7 48 c1 e2 2a 48 89 f9 48 c1 e9 03 <80> 3c 11 00 74 05 e8 cd c0 67 fa ba f8 ff ff ff 49 8b 2c 16 48 85
+> [   94.366592] RSP: 0000:ffffc90000047d30 EFLAGS: 00010a06
+> [   94.367693] RAX: 1ffffffff1049b80 RBX: ffff888380525308 RCX: 1ffff110a7ffddff
+> [   94.369215] RDX: dffffc0000000000 RSI: 1ffff11087ffdc00 RDI: ffff88853ffeeff8
+> [   94.370693] RBP: 000000000018e510 R08: 0000000000000025 R09: 0000000000000001
+> [   94.372165] R10: ffff888380523c07 R11: ffffed10700a4780 R12: ffff88843208e510
+> [   94.373674] R13: 0000000000000025 R14: ffff88843ffef000 R15: 000031e01ae61000
+> [   94.375147] FS:  0000000000000000(0000) GS:ffff8883a3800000(0000) knlGS:0000000000000000
+> [   94.376883] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+> [   94.378051] CR2: ffffed10a7ffddff CR3: 0000000004e15000 CR4: 00000000000406a0
+> [   94.379522] Call Trace:
+> [   94.380073]  debug_vm_pgtable+0xd81/0x2029
+> [   94.380871]  ? pmd_advanced_tests+0x621/0x621
+> [   94.381819]  do_one_initcall+0x1eb/0xbd0
+> [   94.382551]  ? trace_event_raw_event_initcall_finish+0x240/0x240
+> [   94.383634]  ? rcu_read_lock_sched_held+0xb9/0x110
+> [   94.388727]  ? rcu_read_lock_held+0xd0/0xd0
+> [   94.389604]  ? __kasan_check_read+0x1d/0x30
+> [   94.390485]  kernel_init_freeable+0x430/0x4f8
+> [   94.391416]  ? rest_init+0x3f8/0x3f8
+> [   94.392185]  kernel_init+0x14/0x1e8
+> [   94.392918]  ret_from_fork+0x22/0x30
+> [   94.393662] Modules linked in:
+> [   94.394289] CR2: ffffed10a7ffddff
+> [   94.395000] ---[ end trace 8ca5a1655dfb8c39 ]---
+
+This bug is caused from here.
+
+static inline struct mem_section *__nr_to_section(unsigned long nr)
+{
+#ifdef CONFIG_SPARSEMEM_EXTREME
+        if (!mem_section)
+                return NULL;
+#endif
+        if (!mem_section[SECTION_NR_TO_ROOT(nr)]) <-------- BUG
+                return NULL;
+        return &mem_section[SECTION_NR_TO_ROOT(nr)][nr & SECTION_ROOT_MASK];
+}
+
+static inline struct mem_section *__pfn_to_section(unsigned long pfn)
+{
+        return __nr_to_section(pfn_to_section_nr(pfn));
+}
+
+#define __pfn_to_page(pfn)                              \
+({      unsigned long __pfn = (pfn);                    \
+        struct mem_section *__sec = __pfn_to_section(__pfn);    \
+        __section_mem_map_addr(__sec) + __pfn;          \
+})
+
+which is called via hugetlb_advanced_tests().
+
+paddr = (__pfn_to_phys(pfn) | RANDOM_ORVALUE) & PMD_MASK;
+pte = pte_mkhuge(mk_pte(pfn_to_page(PHYS_PFN(paddr)), prot));
+
+Primary reason being RANDOM_ORVALUE, which is added to the paddr before
+being masked with PMD_MASK. This clobbers up the pfn value which cannot
+be searched in relevant memory sections. This problem stays hidden on
+other configs where pfn_to_page() does not go via memory section search.
+Dropping off RANDOM_ORVALUE solves the problem. Probably, just wanted to
+drop that off during V2 series (https://lkml.org/lkml/2020/4/8/997) but
+dont remember why ended up keeping it again.
