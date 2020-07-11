@@ -1,37 +1,104 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 0/2] arm64: tlb: add support for TLBI RANGE instructions
-Date: Fri, 10 Jul 2020 20:11:19 +0100
-Message-ID: <159440712962.27784.4664678472466095995.b4-ty@arm.com>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: Re: [PATCH v2 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
+Date: Sat, 11 Jul 2020 14:50:46 +0800
+Message-ID: <b34e3d42-faaa-73ba-9b54-8e4017514ee0@huawei.com>
 References: <20200710094420.517-1-yezhenyu2@huawei.com>
+ <20200710094420.517-3-yezhenyu2@huawei.com> <20200710183158.GE11839@gaia>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="gbk"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:46024 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726872AbgGJTLX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 10 Jul 2020 15:11:23 -0400
-In-Reply-To: <20200710094420.517-1-yezhenyu2@huawei.com>
+Received: from szxga06-in.huawei.com ([45.249.212.32]:54364 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1726963AbgGKGvB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 11 Jul 2020 02:51:01 -0400
+In-Reply-To: <20200710183158.GE11839@gaia>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, Zhenyu Ye <yezhenyu2@huawei.com>, will@kernel.org, olof@lixom.net, suzuki.poulose@arm.com
-Cc: linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, zhangshaokun@hisilicon.com, prime.zeng@hisilicon.com, linux-arch@vger.kernel.org, kuhn.chenqun@huawei.com, xiexiangyou@huawei.com, linux-mm@kvack.org, arm@kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 
-On Fri, 10 Jul 2020 17:44:18 +0800, Zhenyu Ye wrote:
-> NOTICE: this series are based on the arm64 for-next/tlbi branch:
-> git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git for-next/tlbi
+Hi Catalin,
+
+On 2020/7/11 2:31, Catalin Marinas wrote:
+> On Fri, Jul 10, 2020 at 05:44:20PM +0800, Zhenyu Ye wrote:
+>> -	if ((end - start) >= (MAX_TLBI_OPS * stride)) {
+>> +	if ((!cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
+>> +	    (end - start) >= (MAX_TLBI_OPS * stride)) ||
+>> +	    pages >= MAX_TLBI_RANGE_PAGES) {
+>>  		flush_tlb_mm(vma->vm_mm);
+>>  		return;
+>>  	}
 > 
-> --
-> ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
-> range of input addresses. This series add support for this feature.
+> I think we can use strictly greater here rather than greater or equal.
+> MAX_TLBI_RANGE_PAGES can be encoded as num 31, scale 3.
+
+Sorry, we can't.
+For a boundary value (such as 2^6), we have two way to express it
+in TLBI RANGE operations:
+1. scale = 0, num = 31.
+2. scale = 1, num = 0.
+
+I used the second way in following implementation.  However, for the
+MAX_TLBI_RANGE_PAGES, we can only use scale = 3, num = 31.
+So if use strictly greater here, ERROR will happen when range pages
+equal to MAX_TLBI_RANGE_PAGES.
+
+There are two ways to avoid this bug:
+1. Just keep 'greater or equal' here.  The ARM64 specification does
+not specify how we flush tlb entries in this case, flush_tlb_mm()
+is also a good choice for such a wide range of pages.
+2. Add check in the loop, just like: (this may cause the codes a bit ugly)
+
+	num = __TLBI_RANGE_NUM(pages, scale) - 1;
+
+	/* scale = 4, num = 0 is equal to scale = 3, num = 31. */
+	if (scale == 4 && num == 0) {
+		scale = 3;
+		num = 31;
+	}
+
+	if (num >= 0) {
+	...
+
+Which one do you prefer and how do you want to fix this error? Just
+a fix patch again?
+
 > 
-> [...]
+>>  
+>> -	/* Convert the stride into units of 4k */
+>> -	stride >>= 12;
+>> +	dsb(ishst);
+>>  
+>> -	start = __TLBI_VADDR(start, asid);
+>> -	end = __TLBI_VADDR(end, asid);
+>> +	/*
+>> +	 * When cpu does not support TLBI RANGE feature, we flush the tlb
+>> +	 * entries one by one at the granularity of 'stride'.
+>> +	 * When cpu supports the TLBI RANGE feature, then:
+>> +	 * 1. If pages is odd, flush the first page through non-RANGE
+>> +	 *    instruction;
+>> +	 * 2. For remaining pages: The minimum range granularity is decided
+>> +	 *    by 'scale', so we can not flush all pages by one instruction
+>> +	 *    in some cases.
+>> +	 *    Here, we start from scale = 0, flush corresponding pages
+>> +	 *    (from 2^(5*scale + 1) to 2^(5*(scale + 1) + 1)), and increase
+>> +	 *    it until no pages left.
+>> +	 */
+>> +	while (pages > 0) {
+> 
+> I did some simple checks on ((end - start) % stride) and never
+> triggered. I had a slight worry that pages could become negative (and
+> we'd loop forever since it's unsigned long) for some mismatched stride
+> and flush size. It doesn't seem like.
+> 
 
-Applied to arm64 (for-next/tlbi), thanks!
+The start and end are round_down/up in the function:
 
-[1/2] arm64: tlb: Detect the ARMv8.4 TLBI RANGE feature
-      https://git.kernel.org/arm64/c/a2fd755f77ff
-[2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
-      https://git.kernel.org/arm64/c/db34a081d273
+	start = round_down(start, stride);
+ 	end = round_up(end, stride);
 
--- 
-Catalin
+So the flush size and stride will never mismatch.
+
+Thanks,
+Zhenyu
