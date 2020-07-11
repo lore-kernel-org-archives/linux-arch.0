@@ -1,43 +1,72 @@
-Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:41656 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726890AbgGIQsw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 9 Jul 2020 12:48:52 -0400
-Date: Thu, 9 Jul 2020 17:48:46 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RESEND PATCH v5 3/6] arm64: Add tlbi_user_level TLB
- invalidation helper
-Message-ID: <20200709164845.GB6579@gaia>
-References: <20200625080314.230-1-yezhenyu2@huawei.com>
- <20200625080314.230-4-yezhenyu2@huawei.com>
+Return-Path: <SRS0=G4+M=AW=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx3.molgen.mpg.de ([141.14.17.11]:51923 "EHLO mx1.molgen.mpg.de"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1728412AbgGKQcr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 11 Jul 2020 12:32:47 -0400
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+References: <20200624203200.78870-1-samitolvanen@google.com>
+From: Paul Menzel <pmenzel@molgen.mpg.de>
+Message-ID: <671d8923-ed43-4600-2628-33ae7cb82ccb@molgen.mpg.de>
+Date: Sat, 11 Jul 2020 18:32:41 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200625080314.230-4-yezhenyu2@huawei.com>
+In-Reply-To: <20200624203200.78870-1-samitolvanen@google.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: peterz@infradead.org, mark.rutland@arm.com, will@kernel.org, aneesh.kumar@linux.ibm.com, akpm@linux-foundation.org, npiggin@gmail.com, arnd@arndb.de, rostedt@goodmis.org, maz@kernel.org, suzuki.poulose@arm.com, tglx@linutronix.de, yuzhao@google.com, Dave.Martin@arm.com, steven.price@arm.com, broonie@kernel.org, guohanjun@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
-Message-ID: <20200709164846._JoPu38QbQ2xcRSGHX98nlLwkhbFQX_QtTfr-FIX5Vw@z>
+To: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
+Message-ID: <20200711163241.WRSohW2Toh0Qg6Dl3Kp8KYLS3vL_Z0jCKwDOrUOeMLQ@z>
 
-On Thu, Jun 25, 2020 at 04:03:11PM +0800, Zhenyu Ye wrote:
-> @@ -189,8 +195,9 @@ static inline void flush_tlb_page_nosync(struct vm_area_struct *vma,
->  	unsigned long addr = __TLBI_VADDR(uaddr, ASID(vma->vm_mm));
->  
->  	dsb(ishst);
-> -	__tlbi(vale1is, addr);
-> -	__tlbi_user(vale1is, addr);
-> +	/* This function is only called on a small page */
-> +	__tlbi_level(vale1is, addr, 3);
-> +	__tlbi_user_level(vale1is, addr, 3);
->  }
+Dear Sami,
 
-Actually, that's incorrect. It was ok in v2 of your patches when I
-suggested to drop level 0, just leave the function unchanged but I
-missed that you updated it to pass level 3.
 
-pmdp_set_access_flags -> ptep_set_access_flags ->
-flush_tlb_fix_spurious_fault -> flush_tlb_page -> flush_tlb_page_nosync.
+Am 24.06.20 um 22:31 schrieb Sami Tolvanen:
+> This patch series adds support for building x86_64 and arm64 kernels
+> with Clang's Link Time Optimization (LTO).
+> 
+> In addition to performance, the primary motivation for LTO is to allow
+> Clang's Control-Flow Integrity (CFI) to be used in the kernel. Google's
+> Pixel devices have shipped with LTO+CFI kernels since 2018.
+> 
+> Most of the patches are build system changes for handling LLVM bitcode,
+> which Clang produces with LTO instead of ELF object files, postponing
+> ELF processing until a later stage, and ensuring initcall ordering.
+> 
+> Note that first objtool patch in the series is already in linux-next,
+> but as it's needed with LTO, I'm including it also here to make testing
+> easier.
 
--- 
-Catalin
+[…]
+
+Thank you very much for sending these changes.
+
+Do you have a branch, where your current work can be pulled from? Your 
+branch on GitHub [1] seems 15 months old.
+
+Out of curiosity, I applied the changes, allowed the selection for i386 
+(x86), and with Clang 1:11~++20200701093119+ffee8040534-1~exp1 from 
+Debian experimental, it failed with `Invalid absolute R_386_32 
+relocation: KERNEL_PAGES`:
+
+> make -f ./scripts/Makefile.build obj=arch/x86/boot arch/x86/boot/bzImage
+> make -f ./scripts/Makefile.build obj=arch/x86/boot/compressed arch/x86/boot/compressed/vmlinux
+>   llvm-nm vmlinux | sed -n -e 's/^\([0-9a-fA-F]*\) [ABCDGRSTVW] \(_text\|__bss_start\|_end\)$/#define VO_ _AC(0x,UL)/p' > arch/x86/boot/compressed/../voffset.h
+>   clang -Wp,-MMD,arch/x86/boot/compressed/.misc.o.d -nostdinc -isystem /usr/lib/llvm-11/lib/clang/11.0.0/include -I./arch/x86/include -I./arch/x86/include/generated  -I./include -I./arch/x86/include/uapi -I./arch/x86/include/generated/uapi -I./include/uapi -I./include/generated/uapi -include ./include/linux/kconfig.h -include ./include/linux/compiler_types.h -D__KERNEL__ -Qunused-arguments -m32 -O2 -fno-strict-aliasing -fPIE -DDISABLE_BRANCH_PROFILING -march=i386 -mno-mmx -mno-sse -ffreestanding -fno-stack-protector -Wno-address-of-packed-member -Wno-gnu -Wno-pointer-sign -fmacro-prefix-map=./= -fno-asynchronous-unwind-tables    -DKBUILD_MODFILE='"arch/x86/boot/compressed/misc"' -DKBUILD_BASENAME='"misc"' -DKBUILD_MODNAME='"misc"' -D__KBUILD_MODNAME=misc -c -o arch/x86/boot/compressed/misc.o arch/x86/boot/compressed/misc.c
+>   llvm-objcopy  -R .comment -S vmlinux arch/x86/boot/compressed/vmlinux.bin
+>   arch/x86/tools/relocs vmlinux > arch/x86/boot/compressed/vmlinux.relocs;arch/x86/tools/relocs --abs-relocs vmlinux
+> Invalid absolute R_386_32 relocation: KERNEL_PAGES
+> make[2]: *** [arch/x86/boot/compressed/Makefile:134: arch/x86/boot/compressed/vmlinux.relocs] Error 1
+> make[2]: *** Deleting file 'arch/x86/boot/compressed/vmlinux.relocs'
+> make[1]: *** [arch/x86/boot/Makefile:115: arch/x86/boot/compressed/vmlinux] Error 2
+> make: *** [arch/x86/Makefile:268: bzImage] Error 2
+
+
+Kind regards,
+
+Paul
+
+
+
+[1]: https://github.com/samitolvanen/linux/tree/clang-lto
