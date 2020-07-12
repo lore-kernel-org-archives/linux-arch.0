@@ -1,55 +1,50 @@
-Return-Path: <SRS0=HA2T=AT=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:25017 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1725982AbgGHXxL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2020 19:53:11 -0400
-Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
-References: <20200706043540.1563616-1-npiggin@gmail.com>
- <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
- <1594101082.hfq9x5yact.astroid@bobo.none>
- <de3ead58-7f81-8ebd-754d-244f6be24af4@redhat.com>
- <20200708083210.GD597537@hirez.programming.kicks-ass.net>
-From: Waiman Long <longman@redhat.com>
-Message-ID: <72f7df33-ab58-2e58-7981-cf02b6638c5b@redhat.com>
-Date: Wed, 8 Jul 2020 19:53:04 -0400
+Return-Path: <SRS0=hqH0=AX=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59864 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728093AbgGLXex (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 12 Jul 2020 19:34:53 -0400
+Received: from mail-ej1-x642.google.com (mail-ej1-x642.google.com [IPv6:2a00:1450:4864:20::642])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A2789C08C5DE
+        for <linux-arch@vger.kernel.org>; Sun, 12 Jul 2020 16:34:52 -0700 (PDT)
+Received: by mail-ej1-x642.google.com with SMTP id dr13so13397018ejc.3
+        for <linux-arch@vger.kernel.org>; Sun, 12 Jul 2020 16:34:52 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20200708083210.GD597537@hirez.programming.kicks-ass.net>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+References: <20200624203200.78870-1-samitolvanen@google.com> <671d8923-ed43-4600-2628-33ae7cb82ccb@molgen.mpg.de>
+In-Reply-To: <671d8923-ed43-4600-2628-33ae7cb82ccb@molgen.mpg.de>
+From: Sami Tolvanen <samitolvanen@google.com>
+Date: Sun, 12 Jul 2020 16:34:39 -0700
+Message-ID: <CABCJKuedpxAqndgL=jHT22KtjnLkb1dsYaM6hQYyhqrWjkEe6A@mail.gmail.com>
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
-Message-ID: <20200708235304.ULgb3g5zzhW5Puj985qLbINbPWejrkkuA7mIOXyEmzo@z>
+To: Paul Menzel <pmenzel@molgen.mpg.de>
+Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>
+Message-ID: <20200712233439.Ov3W652RPynoC0GPvXwwoC5JF3T1kSJuLyzDnbHk27k@z>
 
-On 7/8/20 4:32 AM, Peter Zijlstra wrote:
-> On Tue, Jul 07, 2020 at 11:33:45PM -0400, Waiman Long wrote:
->>  From 5d7941a498935fb225b2c7a3108cbf590114c3db Mon Sep 17 00:00:00 2001
->> From: Waiman Long <longman@redhat.com>
->> Date: Tue, 7 Jul 2020 22:29:16 -0400
->> Subject: [PATCH 2/9] locking/pvqspinlock: Introduce
->>   CONFIG_PARAVIRT_QSPINLOCKS_LITE
->>
->> Add a new PARAVIRT_QSPINLOCKS_LITE config option that allows
->> architectures to use the PV qspinlock code without the need to use or
->> implement a pv_kick() function, thus eliminating the atomic unlock
->> overhead. The non-atomic queued_spin_unlock() can be used instead.
->> The pv_wait() function will still be needed, but it can be a dummy
->> function.
->>
->> With that option set, the hybrid PV queued/unfair locking code should
->> still be able to make it performant enough in a paravirtualized
-> How is this supposed to work? If there is no kick, you have no control
-> over who wakes up and fairness goes out the window entirely.
+On Sat, Jul 11, 2020 at 9:32 AM Paul Menzel <pmenzel@molgen.mpg.de> wrote:
+> Thank you very much for sending these changes.
 >
-> You don't even begin to explain...
->
-I don't have a full understanding of how the PPC hypervisor work myself. 
-Apparently, a cpu kick may not be needed.
+> Do you have a branch, where your current work can be pulled from? Your
+> branch on GitHub [1] seems 15 months old.
 
-This is just a test patch to see if it yields better result. It is 
-subjected to further modifcation.
+The clang-lto branch is rebased regularly on top of Linus' tree.
+GitHub just looks at the commit date of the last commit in the tree,
+which isn't all that informative.
 
-Cheers,
-Longman
+> Out of curiosity, I applied the changes, allowed the selection for i386
+> (x86), and with Clang 1:11~++20200701093119+ffee8040534-1~exp1 from
+> Debian experimental, it failed with `Invalid absolute R_386_32
+> relocation: KERNEL_PAGES`:
+
+I haven't looked at getting this to work on i386, which is why we only
+select ARCH_SUPPORTS_LTO for x86_64. I would expect there to be a few
+issues to address.
+
+> >   arch/x86/tools/relocs vmlinux > arch/x86/boot/compressed/vmlinux.relocs;arch/x86/tools/relocs --abs-relocs vmlinux
+> > Invalid absolute R_386_32 relocation: KERNEL_PAGES
+
+KERNEL_PAGES looks like a constant, so it's probably safe to ignore
+the absolute relocation in tools/relocs.c.
+
+Sami
