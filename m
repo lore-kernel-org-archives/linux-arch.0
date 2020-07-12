@@ -1,142 +1,172 @@
-Return-Path: <SRS0=IHIJ=AU=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50804 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726196AbgGIUye (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2020 16:54:34 -0400
-Received: from mail-pl1-x641.google.com (mail-pl1-x641.google.com [IPv6:2607:f8b0:4864:20::641])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 613C3C08C5CE
-        for <linux-arch@vger.kernel.org>; Thu,  9 Jul 2020 13:54:34 -0700 (PDT)
-Received: by mail-pl1-x641.google.com with SMTP id p1so1313176pls.4
-        for <linux-arch@vger.kernel.org>; Thu, 09 Jul 2020 13:54:34 -0700 (PDT)
-Date: Thu, 09 Jul 2020 13:54:33 -0700 (PDT)
-Subject: Re: [PATCH 1/5] lib: Add a generic version of devmem_is_allowed()
-In-Reply-To: <20200709204921.GJ781326@linux.ibm.com>
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <mhng-809d2d2d-add0-4f43-9225-610485ee46d5@palmerdabbelt-glaptop1>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Return-Path: <SRS0=hqH0=AX=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:50592 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725765AbgGLMDm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 12 Jul 2020 08:03:42 -0400
+Date: Sun, 12 Jul 2020 13:03:36 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
+Message-ID: <20200712120335.GA30896@gaia>
+References: <20200710094420.517-1-yezhenyu2@huawei.com>
+ <20200710094420.517-3-yezhenyu2@huawei.com>
+ <20200710183158.GE11839@gaia>
+ <b34e3d42-faaa-73ba-9b54-8e4017514ee0@huawei.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <b34e3d42-faaa-73ba-9b54-8e4017514ee0@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: rppt@linux.ibm.com
-Cc: linux-riscv@lists.infradead.org, zong.li@sifive.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, aou@eecs.berkeley.edu, gxt@pku.edu.cn, Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linus.walleij@linaro.org, mchehab+samsung@kernel.org, gregory.0xf0@gmail.com, masahiroy@kernel.org, Nick Desaulniers <ndesaulniers@google.com>, bgolaszewski@baylibre.com, tglx@linutronix.de, steve@sk2.org, keescook@chromium.org, mcgrof@kernel.org, alex@ghiti.fr, mark.rutland@arm.com, james.morse@arm.com, andriy.shevchenko@linux.intel.com, alex.shi@linux.alibaba.com, davem@davemloft.net, rdunlap@infradead.org, broonie@kernel.org, uwe@kleine-koenig.org, rostedt@goodmis.org, dan.j.williams@intel.com, mhiramat@kernel.org, matti.vaittinen@fi.rohmeurope.com, zaslonko@linux.ibm.com, krzk@kernel.org, willy@infradead.org, paulmck@kernel.org, pmladek@suse.com, glider@google.com, elver@google.com, davidgow@google.com, ardb@kernel.org, takahiro.akashi@linaro.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@android.com
-Message-ID: <20200709205433.K8jANoyEIk4sJuDYjTlJIqhD0_JTzbV3Stn1UE7QhZM@z>
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Message-ID: <20200712120336.aaOe_AT2AVuvYghdiNbSqW2Lr6yAmcYR9Rgp6QEKJwU@z>
 
-On Thu, 09 Jul 2020 13:49:21 PDT (-0700), rppt@linux.ibm.com wrote:
-> Hi Palmer,
->
-> On Thu, Jul 09, 2020 at 01:05:48PM -0700, Palmer Dabbelt wrote:
->> From: Palmer Dabbelt <palmerdabbelt@google.com>
->>
->> As part of adding support for STRICT_DEVMEM to the RISC-V port, Zong
->> provided a devmem_is_allowed() implementation that's exactly the same as
->> all the others I checked.  Instead I'm adding a generic version, which
->> will soon be used.
->>
->> Signed-off-by: Palmer Dabbelt <palmerdabbelt@google.com>
->> ---
->>  include/asm-generic/io.h |  4 ++++
->>  lib/Kconfig              |  4 ++++
->>  lib/Makefile             |  2 ++
->>  lib/devmem_is_allowed.c  | 27 +++++++++++++++++++++++++++
->>  4 files changed, 37 insertions(+)
->>  create mode 100644 lib/devmem_is_allowed.c
->>
->> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
->> index 8b1e020e9a03..69e3db65fba0 100644
->> --- a/include/asm-generic/io.h
->> +++ b/include/asm-generic/io.h
->> @@ -1122,6 +1122,10 @@ static inline void memcpy_toio(volatile void __iomem *addr, const void *buffer,
->>  }
->>  #endif
->>
->> +#ifndef CONFIG_GENERIC_DEVMEM_IS_ALLOWED
->> +extern int devmem_is_allowed(unsigned long pfn);
->> +#endif
->> +
->>  #endif /* __KERNEL__ */
->>
->>  #endif /* __ASM_GENERIC_IO_H */
->> diff --git a/lib/Kconfig b/lib/Kconfig
->> index df3f3da95990..3b1b6481e073 100644
->> --- a/lib/Kconfig
->> +++ b/lib/Kconfig
->> @@ -676,3 +676,7 @@ config GENERIC_LIB_CMPDI2
->>
->>  config GENERIC_LIB_UCMPDI2
->>  	bool
->> +
->> +config GENERIC_LIB_DEVMEM_IS_ALLOWED
->> +	bool
->> +	select ARCH_HAS_DEVMEM_IS_ALLOWED
->
-> This seems to work the other way around from the usual Kconfig chains.
-> In the most cases ARCH_HAS_SOMETHING selects GENERIC_SOMETHING.
+On Sat, Jul 11, 2020 at 02:50:46PM +0800, Zhenyu Ye wrote:
+> On 2020/7/11 2:31, Catalin Marinas wrote:
+> > On Fri, Jul 10, 2020 at 05:44:20PM +0800, Zhenyu Ye wrote:
+> >> -	if ((end - start) >= (MAX_TLBI_OPS * stride)) {
+> >> +	if ((!cpus_have_const_cap(ARM64_HAS_TLBI_RANGE) &&
+> >> +	    (end - start) >= (MAX_TLBI_OPS * stride)) ||
+> >> +	    pages >= MAX_TLBI_RANGE_PAGES) {
+> >>  		flush_tlb_mm(vma->vm_mm);
+> >>  		return;
+> >>  	}
+> > 
+> > I think we can use strictly greater here rather than greater or equal.
+> > MAX_TLBI_RANGE_PAGES can be encoded as num 31, scale 3.
+> 
+> Sorry, we can't.
+> For a boundary value (such as 2^6), we have two way to express it
+> in TLBI RANGE operations:
+> 1. scale = 0, num = 31.
+> 2. scale = 1, num = 0.
+> 
+> I used the second way in following implementation.  However, for the
+> MAX_TLBI_RANGE_PAGES, we can only use scale = 3, num = 31.
+> So if use strictly greater here, ERROR will happen when range pages
+> equal to MAX_TLBI_RANGE_PAGES.
 
-Ya, it seemed kind of odd.
+You are right, I got confused by the __TLBI_RANGE_NUM() macro which
+doesn't return the actual 'num' for the TLBI argument as it would go
+from 0 to 31. After subtracting 1, num end sup from -1 to 30, so we
+never get the maximum range. I think for scale 3 and num 31, this would
+be 8GB with 4K pages, so the maximum we'd cover 8GB - 64K * 4K.
 
->
-> I believe nicer way would be to make
->
-> config STRICT_DEVMEM
-> 	bool "Filter access to /dev/mem"
-> 	depends on MMU && DEVMEM
-> 	depends on ARCH_HAS_DEVMEM_IS_ALLOWED || GENERIC_LIB_DEVMEM_IS_ALLOWED
->
-> config GENERIC_LIB_DEVMEM_IS_ALLOWED
-> 	bool
->
-> and then s/select ARCH_HAS_DEVMEM_IS_ALLOWED/select GENERIC_LIB_DEVMEM_IS_ALLOWED/
-> in the arch Kconfigs and drop ARCH_HAS_DEVMEM_IS_ALLOWED in the end.
+> There are two ways to avoid this bug:
+> 1. Just keep 'greater or equal' here.  The ARM64 specification does
+> not specify how we flush tlb entries in this case, flush_tlb_mm()
+> is also a good choice for such a wide range of pages.
 
-There's some arches that can't be converted to the generic version, at least
-not trivially, so we wouldn't drop it.  I think it's still cleaner, though.
-I'll send a v2.
+I'll go for this option, I don't think it would make much difference in
+practice if we stop at 8GB - 256M range.
 
->
->> diff --git a/lib/Makefile b/lib/Makefile
->> index b1c42c10073b..554ef14f9be5 100644
->> --- a/lib/Makefile
->> +++ b/lib/Makefile
->> @@ -318,3 +318,5 @@ obj-$(CONFIG_OBJAGG) += objagg.o
->>  # KUnit tests
->>  obj-$(CONFIG_LIST_KUNIT_TEST) += list-test.o
->>  obj-$(CONFIG_LINEAR_RANGES_TEST) += test_linear_ranges.o
->> +
->> +obj-$(CONFIG_GENERIC_LIB_DEVMEM_IS_ALLOWED) += devmem_is_allowed.o
->> diff --git a/lib/devmem_is_allowed.c b/lib/devmem_is_allowed.c
->> new file mode 100644
->> index 000000000000..c0d67c541849
->> --- /dev/null
->> +++ b/lib/devmem_is_allowed.c
->> @@ -0,0 +1,27 @@
->> +// SPDX-License-Identifier: GPL-2.0-only
->> +/*
->> + * A generic version of devmem_is_allowed.
->> + *
->> + * Based on arch/arm64/mm/mmap.c
->> + *
->> + * Copyright (C) 2020 Google, Inc.
->> + * Copyright (C) 2012 ARM Ltd.
->> + */
->> +
->> +#include <linux/mm.h>
->> +#include <linux/ioport.h>
->> +
->> +/*
->> + * devmem_is_allowed() checks to see if /dev/mem access to a certain address
->> + * is valid. The argument is a physical page number.  We mimic x86 here by
->> + * disallowing access to system RAM as well as device-exclusive MMIO regions.
->> + * This effectively disable read()/write() on /dev/mem.
->> + */
->> +int devmem_is_allowed(unsigned long pfn)
->> +{
->> +	if (iomem_is_exclusive(pfn << PAGE_SHIFT))
->> +		return 0;
->> +	if (!page_is_ram(pfn))
->> +		return 1;
->> +	return 0;
->> +}
->> --
->> 2.27.0.383.g050319c2ae-goog
->>
+> 2. Add check in the loop, just like: (this may cause the codes a bit ugly)
+> 
+> 	num = __TLBI_RANGE_NUM(pages, scale) - 1;
+> 
+> 	/* scale = 4, num = 0 is equal to scale = 3, num = 31. */
+> 	if (scale == 4 && num == 0) {
+> 		scale = 3;
+> 		num = 31;
+> 	}
+> 
+> 	if (num >= 0) {
+> 	...
+> 
+> Which one do you prefer and how do you want to fix this error? Just
+> a fix patch again?
+
+I'll fold the diff below and refresh the patch:
+
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
+index 1eb0588718fb..0300e433ffe6 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -147,9 +147,13 @@ static inline unsigned long get_trans_granule(void)
+ #define __TLBI_RANGE_PAGES(num, scale)	(((num) + 1) << (5 * (scale) + 1))
+ #define MAX_TLBI_RANGE_PAGES		__TLBI_RANGE_PAGES(31, 3)
+ 
++/*
++ * Generate 'num' values from -1 to 30 with -1 rejected by the
++ * __flush_tlb_range() loop below.
++ */
+ #define TLBI_RANGE_MASK			GENMASK_ULL(4, 0)
+ #define __TLBI_RANGE_NUM(range, scale)	\
+-	(((range) >> (5 * (scale) + 1)) & TLBI_RANGE_MASK)
++	((((range) >> (5 * (scale) + 1)) & TLBI_RANGE_MASK) - 1)
+ 
+ /*
+  *	TLB Invalidation
+@@ -285,8 +289,8 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
+ 	pages = (end - start) >> PAGE_SHIFT;
+ 
+ 	if ((!cpus_have_const_cap(ARM64_HAS_TLB_RANGE) &&
+-	     (end - start) > (MAX_TLBI_OPS * stride)) ||
+-	    pages > MAX_TLBI_RANGE_PAGES) {
++	     (end - start) >= (MAX_TLBI_OPS * stride)) ||
++	    pages >= MAX_TLBI_RANGE_PAGES) {
+ 		flush_tlb_mm(vma->vm_mm);
+ 		return;
+ 	}
+@@ -306,6 +310,10 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
+ 	 *    Start from scale = 0, flush the corresponding number of pages
+ 	 *    ((num+1)*2^(5*scale+1) starting from 'addr'), then increase it
+ 	 *    until no pages left.
++	 *
++	 * Note that certain ranges can be represented by either num = 31 and
++	 * scale or num = 0 and scale + 1. The loop below favours the latter
++	 * since num is limited to 30 by the __TLBI_RANGE_NUM() macro.
+ 	 */
+ 	while (pages > 0) {
+ 		if (!cpus_have_const_cap(ARM64_HAS_TLB_RANGE) ||
+@@ -323,7 +331,7 @@ static inline void __flush_tlb_range(struct vm_area_struct *vma,
+ 			continue;
+ 		}
+ 
+-		num = __TLBI_RANGE_NUM(pages, scale) - 1;
++		num = __TLBI_RANGE_NUM(pages, scale);
+ 		if (num >= 0) {
+ 			addr = __TLBI_VADDR_RANGE(start, asid, scale,
+ 						  num, tlb_level);
+
+> >> -	/* Convert the stride into units of 4k */
+> >> -	stride >>= 12;
+> >> +	dsb(ishst);
+> >>  
+> >> -	start = __TLBI_VADDR(start, asid);
+> >> -	end = __TLBI_VADDR(end, asid);
+> >> +	/*
+> >> +	 * When cpu does not support TLBI RANGE feature, we flush the tlb
+> >> +	 * entries one by one at the granularity of 'stride'.
+> >> +	 * When cpu supports the TLBI RANGE feature, then:
+> >> +	 * 1. If pages is odd, flush the first page through non-RANGE
+> >> +	 *    instruction;
+> >> +	 * 2. For remaining pages: The minimum range granularity is decided
+> >> +	 *    by 'scale', so we can not flush all pages by one instruction
+> >> +	 *    in some cases.
+> >> +	 *    Here, we start from scale = 0, flush corresponding pages
+> >> +	 *    (from 2^(5*scale + 1) to 2^(5*(scale + 1) + 1)), and increase
+> >> +	 *    it until no pages left.
+> >> +	 */
+> >> +	while (pages > 0) {
+> > 
+> > I did some simple checks on ((end - start) % stride) and never
+> > triggered. I had a slight worry that pages could become negative (and
+> > we'd loop forever since it's unsigned long) for some mismatched stride
+> > and flush size. It doesn't seem like.
+> 
+> The start and end are round_down/up in the function:
+> 
+> 	start = round_down(start, stride);
+>  	end = round_up(end, stride);
+> 
+> So the flush size and stride will never mismatch.
+
+Right.
+
+To make sure we don't miss any corner cases, I'll try to through the
+algorithm above at CBMC (model checker; hopefully next week if I find
+some time).
+
+-- 
+Catalin
