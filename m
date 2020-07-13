@@ -1,63 +1,109 @@
-Return-Path: <SRS0=hqH0=AX=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39114 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725765AbgGLI7a (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 12 Jul 2020 04:59:30 -0400
+Return-Path: <SRS0=ixnu=AY=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mail-ot1-f65.google.com ([209.85.210.65]:40381 "EHLO
+        mail-ot1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729523AbgGMNTy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2020 09:19:54 -0400
 MIME-Version: 1.0
-References: <20200624203200.78870-1-samitolvanen@google.com> <671d8923-ed43-4600-2628-33ae7cb82ccb@molgen.mpg.de>
-In-Reply-To: <671d8923-ed43-4600-2628-33ae7cb82ccb@molgen.mpg.de>
-Reply-To: sedat.dilek@gmail.com
-From: Sedat Dilek <sedat.dilek@gmail.com>
-Date: Sun, 12 Jul 2020 10:59:17 +0200
-Message-ID: <CA+icZUXPB_C1bjA13zi3OLFCpiZh+GsgHT0y6kumzVRavs4LkQ@mail.gmail.com>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
+References: <20200710135706.537715-1-hch@lst.de> <20200710135706.537715-6-hch@lst.de>
+ <20200713122148.GA51007@lakrids.cambridge.arm.com>
+In-Reply-To: <20200713122148.GA51007@lakrids.cambridge.arm.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 13 Jul 2020 15:19:42 +0200
+Message-ID: <CAMuHMdUCmEeU0G9wkUxZKm5tC9YoB-KXSSCLKwpSia746Myebw@mail.gmail.com>
+Subject: Re: [PATCH 5/6] uaccess: add force_uaccess_{begin,end} helpers
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Menzel <pmenzel@molgen.mpg.de>
-Cc: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, Clang-Built-Linux ML <clang-built-linux@googlegroups.com>, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
-Message-ID: <20200712085917.qIPf4j9arPftJNRui_XpnjTQcDH9jMr2Mj2s6TBuQZE@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Christoph Hellwig <hch@lst.de>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv <linux-riscv@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20200713131942.DbM8b9ob4vjajqz6eY7ZHk7hdPwIrzvzVuKhhftxRyE@z>
 
-On Sat, Jul 11, 2020 at 6:32 PM Paul Menzel <pmenzel@molgen.mpg.de> wrote:
->
-> Dear Sami,
->
->
-> Am 24.06.20 um 22:31 schrieb Sami Tolvanen:
-> > This patch series adds support for building x86_64 and arm64 kernels
-> > with Clang's Link Time Optimization (LTO).
-> >
-> > In addition to performance, the primary motivation for LTO is to allow
-> > Clang's Control-Flow Integrity (CFI) to be used in the kernel. Google's
-> > Pixel devices have shipped with LTO+CFI kernels since 2018.
-> >
-> > Most of the patches are build system changes for handling LLVM bitcode,
-> > which Clang produces with LTO instead of ELF object files, postponing
-> > ELF processing until a later stage, and ensuring initcall ordering.
-> >
-> > Note that first objtool patch in the series is already in linux-next,
-> > but as it's needed with LTO, I'm including it also here to make testing
-> > easier.
->
-> [=E2=80=A6]
->
-> Thank you very much for sending these changes.
->
-> Do you have a branch, where your current work can be pulled from? Your
-> branch on GitHub [1] seems 15 months old.
->
+Hi Mark,
 
-Agreed it's easier to git-pull.
-I have seen [1] - not sure if this is the latest version.
-Alternatively, you can check patchwork LKML by searching for $submitter.
-( You can open patch 01/22 and download the whole patch-series by
-following the link "series", see [3]. )
+On Mon, Jul 13, 2020 at 2:21 PM Mark Rutland <mark.rutland@arm.com> wrote:
+> On Fri, Jul 10, 2020 at 03:57:05PM +0200, Christoph Hellwig wrote:
+> > Add helpers to wraper the get_fs/set_fs magic for undoing any damange
+> > done by set_fs(KERNEL_DS).  There is no real functional benefit, but this
+> > documents the intent of these calls better, and will allow stubbing the
+> > functions out easily for kernels builds that do not allow address space
+> > overrides in the future.
+>
+> > diff --git a/arch/m68k/include/asm/tlbflush.h b/arch/m68k/include/asm/tlbflush.h
+> > index 191e75a6bb249e..30471549e1e224 100644
+> > --- a/arch/m68k/include/asm/tlbflush.h
+> > +++ b/arch/m68k/include/asm/tlbflush.h
+> > @@ -13,13 +13,13 @@ static inline void flush_tlb_kernel_page(void *addr)
+> >       if (CPU_IS_COLDFIRE) {
+> >               mmu_write(MMUOR, MMUOR_CNL);
+> >       } else if (CPU_IS_040_OR_060) {
+> > -             mm_segment_t old_fs = get_fs();
+> > -             set_fs(KERNEL_DS);
+> > +             mm_segment_t old_fs = force_uaccess_begin();
+> > +
+>
+> This used to set KERNEL_DS, and now it sets USER_DS, which looks wrong
+> superficially.
 
-- Sedat -
+Thanks for noticing, and sorry for missing that myself.
 
-[1] https://git.kernel.org/pub/scm/linux/kernel/git/masahiroy/linux-kbuild.=
-git/log/?h=3Dlto
-[2] https://lore.kernel.org/patchwork/project/lkml/list/?series=3D&submitte=
-r=3D19676
-[3] https://lore.kernel.org/patchwork/series/450026/mbox/
+The same issue is present for SuperH:
+
+    -               set_fs(KERNEL_DS);
+    +               oldfs = force_uaccess_begin();
+
+So the patch description should be:
+
+    "Add helpers to wraper the get_fs/set_fs magic for undoing any damage
+     done by set_fs(USER_DS)."
+
+and leave alone users setting KERNEL_DS?
+
+> If the new behaviour is fine it suggests that the old behaviour was
+> wrong, or that this is superfluous and could go entirely.
+>
+> Geert?
+
+Nope, on m68k, TLB cache operations operate on the current address space.
+Hence to flush a kernel TLB entry, you have to switch to KERNEL_DS first.
+
+If we're guaranteed to be already using KERNEL_DS, I guess the
+address space handling can be removed.  But can we be sure?
+
+
+> >               __asm__ __volatile__(".chip 68040\n\t"
+> >                                    "pflush (%0)\n\t"
+> >                                    ".chip 68k"
+> >                                    : : "a" (addr));
+> > -             set_fs(old_fs);
+> > +             force_uaccess_end(old_fs);
+> >       } else if (CPU_IS_020_OR_030)
+> >               __asm__ __volatile__("pflush #4,#4,(%0)" : : "a" (addr));
+>
+> > +/*
+> > + * Force the uaccess routines to be wired up for actual userspace access,
+> > + * overriding any possible set_fs(KERNEL_DS) still lingering around.  Undone
+> > + * using force_uaccess_end below.
+> > + */
+> > +static inline mm_segment_t force_uaccess_begin(void)
+> > +{
+> > +     mm_segment_t fs = get_fs();
+> > +
+> > +     set_fs(USER_DS);
+> > +     return fs;
+> > +}
+> > +
+> > +static inline void force_uaccess_end(mm_segment_t oldfs)
+> > +{
+> > +     set_fs(oldfs);
+> > +}
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
