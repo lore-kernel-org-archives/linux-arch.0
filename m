@@ -1,59 +1,78 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
- membarrier_mm_sync_core_before_usermode
-Date: Mon, 13 Jul 2020 10:13:21 -0400 (EDT)
-Message-ID: <284592761.9860.1594649601492.JavaMail.zimbra@efficios.com>
-References: <20200710015646.2020871-1-npiggin@gmail.com> <20200710015646.2020871-5-npiggin@gmail.com> <CALCETrVqHDLo09HcaoeOoAVK8w+cNWkSNTLkDDU=evUhaXkyhQ@mail.gmail.com> <1594613902.1wzayj0p15.astroid@bobo.none> <1594647408.wmrazhwjzb.astroid@bobo.none>
+From: Jon Hunter <jonathanh-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH v2 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
+Date: Mon, 13 Jul 2020 15:27:50 +0100
+Message-ID: <4040f429-21c8-0825-2ad4-97786c3fe7c1@nvidia.com>
+References: <20200710094420.517-1-yezhenyu2@huawei.com>
+ <20200710094420.517-3-yezhenyu2@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.26.124]:37366 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729649AbgGMONW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2020 10:13:22 -0400
-In-Reply-To: <1594647408.wmrazhwjzb.astroid@bobo.none>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Peter Zijlstra <peterz@infradead.org>, x86 <x86@kernel.org>
+Return-path: <linux-tegra-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20200710094420.517-3-yezhenyu2-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+Content-Language: en-US
+Sender: linux-tegra-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Zhenyu Ye <yezhenyu2-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, catalin.marinas-5wv7dgnIgG8@public.gmane.org, will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, suzuki.poulose-5wv7dgnIgG8@public.gmane.org, maz-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, steven.price-5wv7dgnIgG8@public.gmane.org, guohanjun-hv44wF8Li93QT0dZR+AlfA@public.gmane.org, olof-nZhT3qVonbNeoWH0uzbU5w@public.gmane.org
+Cc: linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, arm-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, xiexiangyou-hv44wF8Li93QT0dZR+AlfA@public.gmane.org, prime.zeng-C8/M+/jPZTeaMJb+Lgu22Q@public.gmane.org, zhangshaokun-C8/M+/jPZTeaMJb+Lgu22Q@public.gmane.org, kuhn.chenqun-hv44wF8Li93QT0dZR+AlfA@public.gmane.org, linux-tegra <linux-tegra-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
------ On Jul 13, 2020, at 9:47 AM, Nicholas Piggin npiggin@gmail.com wrote:
 
-> Excerpts from Nicholas Piggin's message of July 13, 2020 2:45 pm:
->> Excerpts from Andy Lutomirski's message of July 11, 2020 3:04 am:
->>> Also, as it stands, I can easily see in_irq() ceasing to promise to
->>> serialize.  There are older kernels for which it does not promise to
->>> serialize.  And I have plans to make it stop serializing in the
->>> nearish future.
->> 
->> You mean x86's return from interrupt? Sounds fun... you'll konw where to
->> update the membarrier sync code, at least :)
+On 10/07/2020 10:44, Zhenyu Ye wrote:
+> Add __TLBI_VADDR_RANGE macro and rewrite __flush_tlb_range().
 > 
-> Oh, I should actually say Mathieu recently clarified a return from
-> interrupt doesn't fundamentally need to serialize in order to support
-> membarrier sync core.
-
-Clarification to your statement:
-
-Return from interrupt to kernel code does not need to be context serializing
-as long as kernel serializes before returning to user-space.
-
-However, return from interrupt to user-space needs to be context serializing.
-
-Thanks,
-
-Mathieu
-
+> When cpu supports TLBI feature, the minimum range granularity is
+> decided by 'scale', so we can not flush all pages by one instruction
+> in some cases.
 > 
-> https://lists.ozlabs.org/pipermail/linuxppc-dev/2020-July/214171.html
+> For example, when the pages = 0xe81a, let's start 'scale' from
+> maximum, and find right 'num' for each 'scale':
 > 
-> So you may not need to do anything more if you relaxed it.
+> 1. scale = 3, we can flush no pages because the minimum range is
+>    2^(5*3 + 1) = 0x10000.
+> 2. scale = 2, the minimum range is 2^(5*2 + 1) = 0x800, we can
+>    flush 0xe800 pages this time, the num = 0xe800/0x800 - 1 = 0x1c.
+>    Remaining pages is 0x1a;
+> 3. scale = 1, the minimum range is 2^(5*1 + 1) = 0x40, no page
+>    can be flushed.
+> 4. scale = 0, we flush the remaining 0x1a pages, the num =
+>    0x1a/0x2 - 1 = 0xd.
 > 
-> Thanks,
-> Nick
+> However, in most scenarios, the pages = 1 when flush_tlb_range() is
+> called. Start from scale = 3 or other proper value (such as scale =
+> ilog2(pages)), will incur extra overhead.
+> So increase 'scale' from 0 to maximum, the flush order is exactly
+> opposite to the example.
+> 
+> Signed-off-by: Zhenyu Ye <yezhenyu2-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+
+
+After this change I am seeing the following build errors ...
+
+/tmp/cckzq3FT.s: Assembler messages:
+/tmp/cckzq3FT.s:854: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+/tmp/cckzq3FT.s:870: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+/tmp/cckzq3FT.s:1095: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+/tmp/cckzq3FT.s:1111: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+/tmp/cckzq3FT.s:1964: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+/tmp/cckzq3FT.s:1980: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+/tmp/cckzq3FT.s:2286: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+/tmp/cckzq3FT.s:2302: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+/tmp/cckzq3FT.s:4833: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
+/tmp/cckzq3FT.s:4849: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
+/tmp/cckzq3FT.s:5090: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
+/tmp/cckzq3FT.s:5106: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
+/tmp/cckzq3FT.s:874: Error: attempt to move .org backwards
+/tmp/cckzq3FT.s:1115: Error: attempt to move .org backwards
+/tmp/cckzq3FT.s:1984: Error: attempt to move .org backwards
+/tmp/cckzq3FT.s:2306: Error: attempt to move .org backwards
+/tmp/cckzq3FT.s:4853: Error: attempt to move .org backwards
+/tmp/cckzq3FT.s:5110: Error: attempt to move .org backwards
+scripts/Makefile.build:280: recipe for target 'arch/arm64/mm/hugetlbpage.o' failed
+make[3]: *** [arch/arm64/mm/hugetlbpage.o] Error 1
+scripts/Makefile.build:497: recipe for target 'arch/arm64/mm' failed
+make[2]: *** [arch/arm64/mm] Error 2
+
+Cheers
+Jon
 
 -- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+nvpublic
