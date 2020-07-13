@@ -1,34 +1,58 @@
-Return-Path: <SRS0=ixnu=AY=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36828 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726360AbgGMJV4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2020 05:21:56 -0400
-Date: Mon, 13 Jul 2020 11:21:35 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 2/2] locking/pvqspinlock: Optionally store lock holder
- cpu into lock
-Message-ID: <20200713092135.GC10769@hirez.programming.kicks-ass.net>
-References: <20200711182128.29130-1-longman@redhat.com>
- <20200711182128.29130-3-longman@redhat.com>
- <20200712173452.GB10769@hirez.programming.kicks-ass.net>
- <bed22603-e347-8bff-f586-072a18987946@redhat.com>
+Return-Path: <SRS0=GmBk=AY=kvack.org=owner-linux-mm@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <bed22603-e347-8bff-f586-072a18987946@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
+References: <20200710015646.2020871-1-npiggin@gmail.com> <20200710015646.2020871-5-npiggin@gmail.com>
+ <CALCETrVqHDLo09HcaoeOoAVK8w+cNWkSNTLkDDU=evUhaXkyhQ@mail.gmail.com>
+ <1594613902.1wzayj0p15.astroid@bobo.none> <1594647408.wmrazhwjzb.astroid@bobo.none>
+ <284592761.9860.1594649601492.JavaMail.zimbra@efficios.com>
+In-Reply-To: <284592761.9860.1594649601492.JavaMail.zimbra@efficios.com>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Mon, 13 Jul 2020 08:48:16 -0700
+Message-ID: <CALCETrUHsYp0oGAiy3N-yAauPyx2nKqp1AiETgSJWc77GwO-Sg@mail.gmail.com>
+Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than membarrier_mm_sync_core_before_usermode
+Content-Type: text/plain; charset="UTF-8"
+Sender: owner-linux-mm@kvack.org
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Andy Lutomirski <luto@kernel.org>, Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Peter Zijlstra <peterz@infradead.org>, x86 <x86@kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>
-Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Davidlohr Bueso <dave@stgolabs.net>
-Message-ID: <20200713092135.Iudf-niKhT3vWjNgJvMj_6fdJfBb6Y46d0G15WY-uBM@z>
+Message-ID: <20200713154816.uYjvEYHFZYDOi6GoaKVBrTIZ_HvDgDQXYw1s55vB0ug@z>
 
-On Sun, Jul 12, 2020 at 07:05:36PM -0400, Waiman Long wrote:
-> On 7/12/20 1:34 PM, Peter Zijlstra wrote:
+On Mon, Jul 13, 2020 at 7:13 AM Mathieu Desnoyers
+<mathieu.desnoyers@efficios.com> wrote:
+>
+> ----- On Jul 13, 2020, at 9:47 AM, Nicholas Piggin npiggin@gmail.com wrote:
+>
+> > Excerpts from Nicholas Piggin's message of July 13, 2020 2:45 pm:
+> >> Excerpts from Andy Lutomirski's message of July 11, 2020 3:04 am:
+> >>> Also, as it stands, I can easily see in_irq() ceasing to promise to
+> >>> serialize.  There are older kernels for which it does not promise to
+> >>> serialize.  And I have plans to make it stop serializing in the
+> >>> nearish future.
+> >>
+> >> You mean x86's return from interrupt? Sounds fun... you'll konw where to
+> >> update the membarrier sync code, at least :)
+> >
+> > Oh, I should actually say Mathieu recently clarified a return from
+> > interrupt doesn't fundamentally need to serialize in order to support
+> > membarrier sync core.
+>
+> Clarification to your statement:
+>
+> Return from interrupt to kernel code does not need to be context serializing
+> as long as kernel serializes before returning to user-space.
+>
+> However, return from interrupt to user-space needs to be context serializing.
+>
 
-> > And this kills it,.. if it doesn't make unconditional sense, we're not
-> > going to do this. It's just too ugly.
-> > 
-> You mean it has to be unconditional, no option config if we want to do it.
-> Right?
+Indeed, and I figured this out on the first read through because I'm
+quite familiar with the x86 entry code.  But Nick somehow missed this,
+and Nick is the one who wrote the patch.
 
-Yeah, the very last thing we need in this code is spurious complexity.
+Nick, I think this helps prove my point.  The code you're submitting
+may well be correct, but it's unmaintainable.  At the very least, this
+needs a comment explaining, from the perspective of x86, *exactly*
+what exit_lazy_tlb() is promising, why it's promising it, how it
+achieves that promise, and what code cares about it.  Or we could do
+something with TIF flags and make this all less magical, although that
+will probably end up very slightly slower.
+
+--Andy
