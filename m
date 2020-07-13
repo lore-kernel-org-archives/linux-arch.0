@@ -1,104 +1,65 @@
-Return-Path: <SRS0=vM59=AS=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36952 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728425AbgGGPvQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jul 2020 11:51:16 -0400
-Received: from mail-pl1-x643.google.com (mail-pl1-x643.google.com [IPv6:2607:f8b0:4864:20::643])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EC9EFC08C5E2
-        for <linux-arch@vger.kernel.org>; Tue,  7 Jul 2020 08:51:15 -0700 (PDT)
-Received: by mail-pl1-x643.google.com with SMTP id x8so16013382plm.10
-        for <linux-arch@vger.kernel.org>; Tue, 07 Jul 2020 08:51:15 -0700 (PDT)
-Date: Tue, 7 Jul 2020 08:51:07 -0700
-From: Sami Tolvanen <samitolvanen@google.com>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Message-ID: <20200707155107.GA3357035@google.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <CAK7LNASvb0UDJ0U5wkYYRzTAdnEs64HjXpEUL7d=V0CXiAXcNw@mail.gmail.com>
- <20200629232059.GA3787278@google.com>
+Return-Path: <SRS0=GmBk=AY=kvack.org=owner-linux-mm@kernel.org>
+Subject: Re: [PATCH v2 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
+References: <20200710094420.517-1-yezhenyu2@huawei.com>
+ <20200710094420.517-3-yezhenyu2@huawei.com>
+ <4040f429-21c8-0825-2ad4-97786c3fe7c1@nvidia.com>
+ <cee60718-ced2-069f-8dad-48941c6fc09b@huawei.com>
+From: Jon Hunter <jonathanh@nvidia.com>
+Message-ID: <7237888d-2168-cd8b-c83d-c8e54871793d@nvidia.com>
+Date: Mon, 13 Jul 2020 15:44:16 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200629232059.GA3787278@google.com>
-Sender: linux-arch-owner@vger.kernel.org
+In-Reply-To: <cee60718-ced2-069f-8dad-48941c6fc09b@huawei.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: owner-linux-mm@kvack.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>, catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com, linux-tegra <linux-tegra@vger.kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <masahiroy@kernel.org>, Jiong Wang <jiong.wang@netronome.com>, Jakub Kicinski <kuba@kernel.org>
-Cc: Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>
-Message-ID: <20200707155107.H6IUsOXGlD7W3By-qMEfuubAN7xF0Onm_5uHgcmt2xo@z>
+Message-ID: <20200713144416.kztIaGdaJl06zFdEkZHHvhO9WMbzMOacjRdfcbds4f0@z>
 
-On Mon, Jun 29, 2020 at 04:20:59PM -0700, Sami Tolvanen wrote:
-> Hi Masahiro,
+
+On 13/07/2020 15:39, Zhenyu Ye wrote:
+> Hi Jon,
 > 
-> On Mon, Jun 29, 2020 at 01:56:19AM +0900, Masahiro Yamada wrote:
-> > I also got an error for
-> > ARCH=arm64 allyesconfig + CONFIG_LTO_CLANG=y
-> > 
-> > 
-> > 
-> > $ make ARCH=arm64 LLVM=1 LLVM_IAS=1
-> > CROSS_COMPILE=~/tools/aarch64-linaro-7.5/bin/aarch64-linux-gnu-
-> > -j24
-> > 
-> >   ...
-> > 
-> >   GEN     .version
-> >   CHK     include/generated/compile.h
-> >   UPD     include/generated/compile.h
-> >   CC      init/version.o
-> >   AR      init/built-in.a
-> >   GEN     .tmp_initcalls.lds
-> >   GEN     .tmp_symversions.lds
-> >   LTO     vmlinux.o
-> >   MODPOST vmlinux.symvers
-> >   MODINFO modules.builtin.modinfo
-> >   GEN     modules.builtin
-> >   LD      .tmp_vmlinux.kallsyms1
-> > ld.lld: error: undefined symbol: __compiletime_assert_905
-> > >>> referenced by irqbypass.c
-> > >>>               vmlinux.o:(jeq_imm)
-> > make: *** [Makefile:1161: vmlinux] Error 1
+> On 2020/7/13 22:27, Jon Hunter wrote:
+>> After this change I am seeing the following build errors ...
+>>
+>> /tmp/cckzq3FT.s: Assembler messages:
+>> /tmp/cckzq3FT.s:854: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+>> /tmp/cckzq3FT.s:870: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+>> /tmp/cckzq3FT.s:1095: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+>> /tmp/cckzq3FT.s:1111: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+>> /tmp/cckzq3FT.s:1964: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+>> /tmp/cckzq3FT.s:1980: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+>> /tmp/cckzq3FT.s:2286: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+>> /tmp/cckzq3FT.s:2302: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
+>> /tmp/cckzq3FT.s:4833: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
+>> /tmp/cckzq3FT.s:4849: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
+>> /tmp/cckzq3FT.s:5090: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
+>> /tmp/cckzq3FT.s:5106: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
+>> /tmp/cckzq3FT.s:874: Error: attempt to move .org backwards
+>> /tmp/cckzq3FT.s:1115: Error: attempt to move .org backwards
+>> /tmp/cckzq3FT.s:1984: Error: attempt to move .org backwards
+>> /tmp/cckzq3FT.s:2306: Error: attempt to move .org backwards
+>> /tmp/cckzq3FT.s:4853: Error: attempt to move .org backwards
+>> /tmp/cckzq3FT.s:5110: Error: attempt to move .org backwards
+>> scripts/Makefile.build:280: recipe for target 'arch/arm64/mm/hugetlbpage.o' failed
+>> make[3]: *** [arch/arm64/mm/hugetlbpage.o] Error 1
+>> scripts/Makefile.build:497: recipe for target 'arch/arm64/mm' failed
+>> make[2]: *** [arch/arm64/mm] Error 2
+>>
+>> Cheers
+>> Jon
+>>
 > 
-> I can reproduce this with ToT LLVM and it's BUILD_BUG_ON_MSG(..., "value
-> too large for the field") in drivers/net/ethernet/netronome/nfp/bpf/jit.c.
-> Specifically, the FIELD_FIT / __BF_FIELD_CHECK macro in ur_load_imm_any.
-> 
-> This compiles just fine with an earlier LLVM revision, so it could be a
-> relatively recent regression. I'll take a look. Thanks for catching this!
+> The code must be built with binutils >= 2.30.
+> Maybe I should add  a check on whether binutils supports ARMv8.4-a instructions...
 
-After spending some time debugging this with Nick, it looks like the
-error is caused by a recent optimization change in LLVM, which together
-with the inlining of ur_load_imm_any into jeq_imm, changes a runtime
-check in FIELD_FIT that would always fail, to a compile-time check that
-breaks the build. In jeq_imm, we have:
+Yes I believe so.
 
-    /* struct bpf_insn: _s32 imm */
-    u64 imm = insn->imm; /* sign extend */
-    ...
-    if (imm >> 32) { /* non-zero only if insn->imm is negative */
-    	/* inlined from ur_load_imm_any */
-	u32 __imm = imm >> 32; /* therefore, always 0xffffffff */
+Cheers
+Jon
 
-        /*
-	 * __imm has a value known at compile-time, which means
-	 * __builtin_constant_p(__imm) is true and we end up with
-	 * essentially this in __BF_FIELD_CHECK:
-	 */
-	if (__builtin_constant_p(__imm) && __imm <= 255)
-	      __compiletime_assert_N();
-
-The compile-time check comes from the following BUILD_BUG_ON_MSG:
-
-    #define __BF_FIELD_CHECK(_mask, _reg, _val, _pfx)		\
-    ...
-	BUILD_BUG_ON_MSG(__builtin_constant_p(_val) ?		\
-			 ~((_mask) >> __bf_shf(_mask)) & (_val) : 0, \
-			 _pfx "value too large for the field"); \
-
-While we could stop the compiler from performing this optimization by
-telling it to never inline ur_load_imm_any, we feel like a better fix
-might be to replace FIELD_FIT(UR_REG_IMM_MAX, imm) with a simple imm
-<= UR_REG_IMM_MAX check that won't trip a compile-time assertion even
-when the condition is known to fail.
-
-Jiong, Jakub, do you see any issues here?
-
-Sami
+-- 
+nvpublic
