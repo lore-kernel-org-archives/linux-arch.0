@@ -1,64 +1,57 @@
-From: Jon Hunter <jonathanh-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH v2 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
-Date: Mon, 13 Jul 2020 15:44:16 +0100
-Message-ID: <7237888d-2168-cd8b-c83d-c8e54871793d@nvidia.com>
-References: <20200710094420.517-1-yezhenyu2@huawei.com>
- <20200710094420.517-3-yezhenyu2@huawei.com>
- <4040f429-21c8-0825-2ad4-97786c3fe7c1@nvidia.com>
- <cee60718-ced2-069f-8dad-48941c6fc09b@huawei.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than membarrier_mm_sync_core_before_usermode
+Date: Mon, 13 Jul 2020 08:48:16 -0700
+Message-ID: <CALCETrUHsYp0oGAiy3N-yAauPyx2nKqp1AiETgSJWc77GwO-Sg@mail.gmail.com>
+References: <20200710015646.2020871-1-npiggin@gmail.com> <20200710015646.2020871-5-npiggin@gmail.com>
+ <CALCETrVqHDLo09HcaoeOoAVK8w+cNWkSNTLkDDU=evUhaXkyhQ@mail.gmail.com>
+ <1594613902.1wzayj0p15.astroid@bobo.none> <1594647408.wmrazhwjzb.astroid@bobo.none>
+ <284592761.9860.1594649601492.JavaMail.zimbra@efficios.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-tegra-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <cee60718-ced2-069f-8dad-48941c6fc09b-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-Content-Language: en-US
-Sender: linux-tegra-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Zhenyu Ye <yezhenyu2-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, catalin.marinas-5wv7dgnIgG8@public.gmane.org, will-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, suzuki.poulose-5wv7dgnIgG8@public.gmane.org, maz-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, steven.price-5wv7dgnIgG8@public.gmane.org, guohanjun-hv44wF8Li93QT0dZR+AlfA@public.gmane.org, olof-nZhT3qVonbNeoWH0uzbU5w@public.gmane.org
-Cc: linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, arm-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, xiexiangyou-hv44wF8Li93QT0dZR+AlfA@public.gmane.org, prime.zeng-C8/M+/jPZTeaMJb+Lgu22Q@public.gmane.org, zhangshaokun-C8/M+/jPZTeaMJb+Lgu22Q@public.gmane.org, kuhn.chenqun-hv44wF8Li93QT0dZR+AlfA@public.gmane.org, linux-tegra <linux-tegra-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <284592761.9860.1594649601492.JavaMail.zimbra@efficios.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Andy Lutomirski <luto@kernel.org>, Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Peter Zijlstra <peterz@infradead.org>, x86 <x86@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+On Mon, Jul 13, 2020 at 7:13 AM Mathieu Desnoyers
+<mathieu.desnoyers@efficios.com> wrote:
+>
+> ----- On Jul 13, 2020, at 9:47 AM, Nicholas Piggin npiggin@gmail.com wrote:
+>
+> > Excerpts from Nicholas Piggin's message of July 13, 2020 2:45 pm:
+> >> Excerpts from Andy Lutomirski's message of July 11, 2020 3:04 am:
+> >>> Also, as it stands, I can easily see in_irq() ceasing to promise to
+> >>> serialize.  There are older kernels for which it does not promise to
+> >>> serialize.  And I have plans to make it stop serializing in the
+> >>> nearish future.
+> >>
+> >> You mean x86's return from interrupt? Sounds fun... you'll konw where to
+> >> update the membarrier sync code, at least :)
+> >
+> > Oh, I should actually say Mathieu recently clarified a return from
+> > interrupt doesn't fundamentally need to serialize in order to support
+> > membarrier sync core.
+>
+> Clarification to your statement:
+>
+> Return from interrupt to kernel code does not need to be context serializing
+> as long as kernel serializes before returning to user-space.
+>
+> However, return from interrupt to user-space needs to be context serializing.
+>
 
-On 13/07/2020 15:39, Zhenyu Ye wrote:
-> Hi Jon,
-> 
-> On 2020/7/13 22:27, Jon Hunter wrote:
->> After this change I am seeing the following build errors ...
->>
->> /tmp/cckzq3FT.s: Assembler messages:
->> /tmp/cckzq3FT.s:854: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
->> /tmp/cckzq3FT.s:870: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
->> /tmp/cckzq3FT.s:1095: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
->> /tmp/cckzq3FT.s:1111: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
->> /tmp/cckzq3FT.s:1964: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
->> /tmp/cckzq3FT.s:1980: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
->> /tmp/cckzq3FT.s:2286: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
->> /tmp/cckzq3FT.s:2302: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x7'
->> /tmp/cckzq3FT.s:4833: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
->> /tmp/cckzq3FT.s:4849: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
->> /tmp/cckzq3FT.s:5090: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
->> /tmp/cckzq3FT.s:5106: Error: unknown or missing operation name at operand 1 -- `tlbi rvae1is,x6'
->> /tmp/cckzq3FT.s:874: Error: attempt to move .org backwards
->> /tmp/cckzq3FT.s:1115: Error: attempt to move .org backwards
->> /tmp/cckzq3FT.s:1984: Error: attempt to move .org backwards
->> /tmp/cckzq3FT.s:2306: Error: attempt to move .org backwards
->> /tmp/cckzq3FT.s:4853: Error: attempt to move .org backwards
->> /tmp/cckzq3FT.s:5110: Error: attempt to move .org backwards
->> scripts/Makefile.build:280: recipe for target 'arch/arm64/mm/hugetlbpage.o' failed
->> make[3]: *** [arch/arm64/mm/hugetlbpage.o] Error 1
->> scripts/Makefile.build:497: recipe for target 'arch/arm64/mm' failed
->> make[2]: *** [arch/arm64/mm] Error 2
->>
->> Cheers
->> Jon
->>
-> 
-> The code must be built with binutils >= 2.30.
-> Maybe I should add  a check on whether binutils supports ARMv8.4-a instructions...
+Indeed, and I figured this out on the first read through because I'm
+quite familiar with the x86 entry code.  But Nick somehow missed this,
+and Nick is the one who wrote the patch.
 
-Yes I believe so.
+Nick, I think this helps prove my point.  The code you're submitting
+may well be correct, but it's unmaintainable.  At the very least, this
+needs a comment explaining, from the perspective of x86, *exactly*
+what exit_lazy_tlb() is promising, why it's promising it, how it
+achieves that promise, and what code cares about it.  Or we could do
+something with TIF flags and make this all less magical, although that
+will probably end up very slightly slower.
 
-Cheers
-Jon
-
--- 
-nvpublic
+--Andy
