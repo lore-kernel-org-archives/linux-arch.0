@@ -1,57 +1,93 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [RFC PATCH 7/7] lazy tlb: shoot lazies, a non-refcounting lazy
- tlb option
-Date: Mon, 13 Jul 2020 08:59:04 -0700
-Message-ID: <CALCETrWbD=3SUOuq9P7Syb+a1DoBjjem8hq9_HCvn7wyqETkpw@mail.gmail.com>
-References: <20200710015646.2020871-1-npiggin@gmail.com> <20200710015646.2020871-8-npiggin@gmail.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
+ membarrier_mm_sync_core_before_usermode
+Date: Tue, 14 Jul 2020 02:37:52 +1000
+Message-ID: <1594657848.8og86nopq6.astroid@bobo.none>
+References: <20200710015646.2020871-1-npiggin@gmail.com>
+        <20200710015646.2020871-5-npiggin@gmail.com>
+        <CALCETrVqHDLo09HcaoeOoAVK8w+cNWkSNTLkDDU=evUhaXkyhQ@mail.gmail.com>
+        <1594613902.1wzayj0p15.astroid@bobo.none>
+        <1594647408.wmrazhwjzb.astroid@bobo.none>
+        <284592761.9860.1594649601492.JavaMail.zimbra@efficios.com>
+        <CALCETrUHsYp0oGAiy3N-yAauPyx2nKqp1AiETgSJWc77GwO-Sg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200710015646.2020871-8-npiggin@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Linux-MM <linux-mm@kvack.org>, Anton Blanchard <anton@ozlabs.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49526 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730409AbgGMQh7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2020 12:37:59 -0400
+In-Reply-To: <CALCETrUHsYp0oGAiy3N-yAauPyx2nKqp1AiETgSJWc77GwO-Sg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Peter Zijlstra <peterz@infradead.org>, x86 <x86@kernel.org>
 
-On Thu, Jul 9, 2020 at 6:57 PM Nicholas Piggin <npiggin@gmail.com> wrote:
->
-> On big systems, the mm refcount can become highly contented when doing
-> a lot of context switching with threaded applications (particularly
-> switching between the idle thread and an application thread).
->
-> Abandoning lazy tlb slows switching down quite a bit in the important
-> user->idle->user cases, so so instead implement a non-refcounted scheme
-> that causes __mmdrop() to IPI all CPUs in the mm_cpumask and shoot down
-> any remaining lazy ones.
->
-> On a 16-socket 192-core POWER8 system, a context switching benchmark
-> with as many software threads as CPUs (so each switch will go in and
-> out of idle), upstream can achieve a rate of about 1 million context
-> switches per second. After this patch it goes up to 118 million.
->
+Excerpts from Andy Lutomirski's message of July 14, 2020 1:48 am:
+> On Mon, Jul 13, 2020 at 7:13 AM Mathieu Desnoyers
+> <mathieu.desnoyers@efficios.com> wrote:
+>>
+>> ----- On Jul 13, 2020, at 9:47 AM, Nicholas Piggin npiggin@gmail.com wro=
+te:
+>>
+>> > Excerpts from Nicholas Piggin's message of July 13, 2020 2:45 pm:
+>> >> Excerpts from Andy Lutomirski's message of July 11, 2020 3:04 am:
+>> >>> Also, as it stands, I can easily see in_irq() ceasing to promise to
+>> >>> serialize.  There are older kernels for which it does not promise to
+>> >>> serialize.  And I have plans to make it stop serializing in the
+>> >>> nearish future.
+>> >>
+>> >> You mean x86's return from interrupt? Sounds fun... you'll konw where=
+ to
+>> >> update the membarrier sync code, at least :)
+>> >
+>> > Oh, I should actually say Mathieu recently clarified a return from
+>> > interrupt doesn't fundamentally need to serialize in order to support
+>> > membarrier sync core.
+>>
+>> Clarification to your statement:
+>>
+>> Return from interrupt to kernel code does not need to be context seriali=
+zing
+>> as long as kernel serializes before returning to user-space.
+>>
+>> However, return from interrupt to user-space needs to be context seriali=
+zing.
+>>
+>=20
+> Indeed, and I figured this out on the first read through because I'm
+> quite familiar with the x86 entry code.  But Nick somehow missed this,
+> and Nick is the one who wrote the patch.
+>=20
+> Nick, I think this helps prove my point.  The code you're submitting
+> may well be correct, but it's unmaintainable.
 
-I read the patch a couple of times, and I have a suggestion that could
-be nonsense.  You are, effectively, using mm_cpumask() as a sort of
-refcount.  You're saying "hey, this mm has no more references, but it
-still has nonempty mm_cpumask(), so let's send an IPI and shoot down
-those references too."  I'm wondering whether you actually need the
-IPI.  What if, instead, you actually treated mm_cpumask as a refcount
-for real?  Roughly, in __mmdrop(), you would only free the page tables
-if mm_cpumask() is empty.  And, in the code that removes a CPU from
-mm_cpumask(), you would check if mm_users == 0 and, if so, check if
-you just removed the last bit from mm_cpumask and potentially free the
-mm.
+It's not. The patch I wrote for x86 is a no-op, it just moves existing
+x86 hook and code that's already there to a different name.
 
-Getting the locking right here could be a bit tricky -- you need to
-avoid two CPUs simultaneously exiting lazy TLB and thinking they
-should free the mm, and you also need to avoid an mm with mm_users
-hitting zero concurrently with the last remote CPU using it lazily
-exiting lazy TLB.  Perhaps this could be resolved by having mm_count
-== 1 mean "mm_cpumask() is might contain bits and, if so, it owns the
-mm" and mm_count == 0 meaning "now it's dead" and using some careful
-cmpxchg or dec_return to make sure that only one CPU frees it.
+Actually it's not quite a no-op, it't changes it to use hooks that are
+actually called in the right places. Because previously it was
+unmaintainable from point of view of generic mm -- it was not clear at
+all that the old one should have been called in other places where the
+mm goes non-lazy. Now with the exit_lazy_tlb hook, it can quite easily
+be spotted where it is missing.
 
-Or maybe you'd need a lock or RCU for this, but the idea would be to
-only ever take the lock after mm_users goes to zero.
+And x86 keeps their membarrier code in x86, and uses nice well defined
+lazy tlb mm hooks.
 
---Andy
+> At the very least, this
+> needs a comment explaining, from the perspective of x86, *exactly*
+> what exit_lazy_tlb() is promising, why it's promising it, how it
+> achieves that promise, and what code cares about it.  Or we could do
+> something with TIF flags and make this all less magical, although that
+> will probably end up very slightly slower.
+
+It's all documented there in existing comments plus the asm-generic
+exit_lazy_tlb specification added AFAIKS.
+
+Is the membarrier comment in finish_task_switch plus these ones not
+enough?
+
+Thanks,
+Nick
