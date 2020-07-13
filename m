@@ -1,27 +1,34 @@
-Return-Path: <SRS0=B4xR=AR=kvack.org=owner-linux-mm@kernel.org>
-Date: Mon, 6 Jul 2020 14:06:34 +0200
-From: Alexander Gordeev <agordeev@linux.ibm.com>
-Subject: Re: [PATCH V4 0/4] mm/debug_vm_pgtable: Add some more tests
-Message-ID: <20200706120633.GA32473@oc3871087118.ibm.com>
-References: <1593996516-7186-1-git-send-email-anshuman.khandual@arm.com>
+Return-Path: <SRS0=ixnu=AY=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36828 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726360AbgGMJV4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2020 05:21:56 -0400
+Date: Mon, 13 Jul 2020 11:21:35 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 2/2] locking/pvqspinlock: Optionally store lock holder
+ cpu into lock
+Message-ID: <20200713092135.GC10769@hirez.programming.kicks-ass.net>
+References: <20200711182128.29130-1-longman@redhat.com>
+ <20200711182128.29130-3-longman@redhat.com>
+ <20200712173452.GB10769@hirez.programming.kicks-ass.net>
+ <bed22603-e347-8bff-f586-072a18987946@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1593996516-7186-1-git-send-email-anshuman.khandual@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Anshuman Khandual <anshuman.khandual@arm.com>
-Cc: linux-mm@kvack.org, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, "Kirill A . Shutemov" <kirill@shutemov.name>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-riscv@lists.infradead.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+In-Reply-To: <bed22603-e347-8bff-f586-072a18987946@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200706120634.z9KZW_AQfEBTTDtu28suxtjjy-gedeKjMdqGZ1kO6w8@z>
+To: Waiman Long <longman@redhat.com>
+Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Davidlohr Bueso <dave@stgolabs.net>
+Message-ID: <20200713092135.Iudf-niKhT3vWjNgJvMj_6fdJfBb6Y46d0G15WY-uBM@z>
 
-On Mon, Jul 06, 2020 at 06:18:32AM +0530, Anshuman Khandual wrote:
+On Sun, Jul 12, 2020 at 07:05:36PM -0400, Waiman Long wrote:
+> On 7/12/20 1:34 PM, Peter Zijlstra wrote:
 
-[...]
+> > And this kills it,.. if it doesn't make unconditional sense, we're not
+> > going to do this. It's just too ugly.
+> > 
+> You mean it has to be unconditional, no option config if we want to do it.
+> Right?
 
-> Tested on arm64, x86 platforms but only build tested on all other enabled
-> platforms through ARCH_HAS_DEBUG_VM_PGTABLE i.e powerpc, arc, s390. The
-
-Sorry for missing to test earlier. Works for me on s390. Also, tried with
-few relevant config options to set/unset.
-
-Thanks!
+Yeah, the very last thing we need in this code is spurious complexity.
