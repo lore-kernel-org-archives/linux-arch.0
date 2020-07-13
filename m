@@ -1,101 +1,43 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 5/6] uaccess: add force_uaccess_{begin,end} helpers
-Date: Mon, 13 Jul 2020 15:19:42 +0200
-Message-ID: <CAMuHMdUCmEeU0G9wkUxZKm5tC9YoB-KXSSCLKwpSia746Myebw@mail.gmail.com>
-References: <20200710135706.537715-1-hch@lst.de> <20200710135706.537715-6-hch@lst.de>
- <20200713122148.GA51007@lakrids.cambridge.arm.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
+ membarrier_mm_sync_core_before_usermode
+Date: Mon, 13 Jul 2020 23:47:14 +1000
+Message-ID: <1594647408.wmrazhwjzb.astroid@bobo.none>
+References: <20200710015646.2020871-1-npiggin@gmail.com>
+        <20200710015646.2020871-5-npiggin@gmail.com>
+        <CALCETrVqHDLo09HcaoeOoAVK8w+cNWkSNTLkDDU=evUhaXkyhQ@mail.gmail.com>
+        <1594613902.1wzayj0p15.astroid@bobo.none>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot1-f65.google.com ([209.85.210.65]:40381 "EHLO
-        mail-ot1-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729523AbgGMNTy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2020 09:19:54 -0400
-In-Reply-To: <20200713122148.GA51007@lakrids.cambridge.arm.com>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51350 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728950AbgGMNrX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2020 09:47:23 -0400
+In-Reply-To: <1594613902.1wzayj0p15.astroid@bobo.none>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Christoph Hellwig <hch@lst.de>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv <linux-riscv@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Peter Zijlstra <peterz@infradead.org>, X86 ML <x86@kernel.org>
 
-Hi Mark,
+Excerpts from Nicholas Piggin's message of July 13, 2020 2:45 pm:
+> Excerpts from Andy Lutomirski's message of July 11, 2020 3:04 am:
+>> Also, as it stands, I can easily see in_irq() ceasing to promise to
+>> serialize.  There are older kernels for which it does not promise to
+>> serialize.  And I have plans to make it stop serializing in the
+>> nearish future.
+>=20
+> You mean x86's return from interrupt? Sounds fun... you'll konw where to=20
+> update the membarrier sync code, at least :)
 
-On Mon, Jul 13, 2020 at 2:21 PM Mark Rutland <mark.rutland@arm.com> wrote:
-> On Fri, Jul 10, 2020 at 03:57:05PM +0200, Christoph Hellwig wrote:
-> > Add helpers to wraper the get_fs/set_fs magic for undoing any damange
-> > done by set_fs(KERNEL_DS).  There is no real functional benefit, but this
-> > documents the intent of these calls better, and will allow stubbing the
-> > functions out easily for kernels builds that do not allow address space
-> > overrides in the future.
->
-> > diff --git a/arch/m68k/include/asm/tlbflush.h b/arch/m68k/include/asm/tlbflush.h
-> > index 191e75a6bb249e..30471549e1e224 100644
-> > --- a/arch/m68k/include/asm/tlbflush.h
-> > +++ b/arch/m68k/include/asm/tlbflush.h
-> > @@ -13,13 +13,13 @@ static inline void flush_tlb_kernel_page(void *addr)
-> >       if (CPU_IS_COLDFIRE) {
-> >               mmu_write(MMUOR, MMUOR_CNL);
-> >       } else if (CPU_IS_040_OR_060) {
-> > -             mm_segment_t old_fs = get_fs();
-> > -             set_fs(KERNEL_DS);
-> > +             mm_segment_t old_fs = force_uaccess_begin();
-> > +
->
-> This used to set KERNEL_DS, and now it sets USER_DS, which looks wrong
-> superficially.
+Oh, I should actually say Mathieu recently clarified a return from
+interrupt doesn't fundamentally need to serialize in order to support
+membarrier sync core.
 
-Thanks for noticing, and sorry for missing that myself.
+https://lists.ozlabs.org/pipermail/linuxppc-dev/2020-July/214171.html
 
-The same issue is present for SuperH:
+So you may not need to do anything more if you relaxed it.
 
-    -               set_fs(KERNEL_DS);
-    +               oldfs = force_uaccess_begin();
-
-So the patch description should be:
-
-    "Add helpers to wraper the get_fs/set_fs magic for undoing any damage
-     done by set_fs(USER_DS)."
-
-and leave alone users setting KERNEL_DS?
-
-> If the new behaviour is fine it suggests that the old behaviour was
-> wrong, or that this is superfluous and could go entirely.
->
-> Geert?
-
-Nope, on m68k, TLB cache operations operate on the current address space.
-Hence to flush a kernel TLB entry, you have to switch to KERNEL_DS first.
-
-If we're guaranteed to be already using KERNEL_DS, I guess the
-address space handling can be removed.  But can we be sure?
-
-
-> >               __asm__ __volatile__(".chip 68040\n\t"
-> >                                    "pflush (%0)\n\t"
-> >                                    ".chip 68k"
-> >                                    : : "a" (addr));
-> > -             set_fs(old_fs);
-> > +             force_uaccess_end(old_fs);
-> >       } else if (CPU_IS_020_OR_030)
-> >               __asm__ __volatile__("pflush #4,#4,(%0)" : : "a" (addr));
->
-> > +/*
-> > + * Force the uaccess routines to be wired up for actual userspace access,
-> > + * overriding any possible set_fs(KERNEL_DS) still lingering around.  Undone
-> > + * using force_uaccess_end below.
-> > + */
-> > +static inline mm_segment_t force_uaccess_begin(void)
-> > +{
-> > +     mm_segment_t fs = get_fs();
-> > +
-> > +     set_fs(USER_DS);
-> > +     return fs;
-> > +}
-> > +
-> > +static inline void force_uaccess_end(mm_segment_t oldfs)
-> > +{
-> > +     set_fs(oldfs);
-> > +}
-
-Gr{oetje,eeting}s,
-
-                        Geert
+Thanks,
+Nick
