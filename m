@@ -1,39 +1,29 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 4/6] uaccess: remove segment_eq
-Date: Mon, 13 Jul 2020 11:16:24 +0200
-Message-ID: <CAMuHMdXQGj=ic_8U4GRmpPtECsC=2pVi-Mjrek9RoC-126yDRg@mail.gmail.com>
-References: <20200710135706.537715-1-hch@lst.de> <20200710135706.537715-5-hch@lst.de>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 2/2] locking/pvqspinlock: Optionally store lock holder
+ cpu into lock
+Date: Mon, 13 Jul 2020 11:21:35 +0200
+Message-ID: <20200713092135.GC10769@hirez.programming.kicks-ass.net>
+References: <20200711182128.29130-1-longman@redhat.com>
+ <20200711182128.29130-3-longman@redhat.com>
+ <20200712173452.GB10769@hirez.programming.kicks-ass.net>
+ <bed22603-e347-8bff-f586-072a18987946@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi1-f194.google.com ([209.85.167.194]:39662 "EHLO
-        mail-oi1-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726360AbgGMJQg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2020 05:16:36 -0400
-In-Reply-To: <20200710135706.537715-5-hch@lst.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv <linux-riscv@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <bed22603-e347-8bff-f586-072a18987946@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Waiman Long <longman@redhat.com>
+Cc: Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Davidlohr Bueso <dave@stgolabs.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 10, 2020 at 3:58 PM Christoph Hellwig <hch@lst.de> wrote:
-> segment_eq is only used to implement uaccess_kernel.  Just open code
-> uaccess_kernel in the arch uaccess headers and remove one layer of
-> indirection.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+On Sun, Jul 12, 2020 at 07:05:36PM -0400, Waiman Long wrote:
+> On 7/12/20 1:34 PM, Peter Zijlstra wrote:
 
->  arch/m68k/include/asm/segment.h       | 2 +-
+> > And this kills it,.. if it doesn't make unconditional sense, we're not
+> > going to do this. It's just too ugly.
+> > 
+> You mean it has to be unconditional, no option config if we want to do it.
+> Right?
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Yeah, the very last thing we need in this code is spurious complexity.
