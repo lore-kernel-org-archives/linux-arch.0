@@ -1,117 +1,147 @@
-From: Sedat Dilek <sedat.dilek@gmail.com>
-Subject: Re: [PATCH 00/22] add support for Clang LTO
-Date: Tue, 14 Jul 2020 11:44:10 +0200
-Message-ID: <CA+icZUWyqb8jdzTAophvBKuX3e2NvG7vQPnMW+SRW5v0PmU7TA@mail.gmail.com>
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <671d8923-ed43-4600-2628-33ae7cb82ccb@molgen.mpg.de> <CA+icZUXPB_C1bjA13zi3OLFCpiZh+GsgHT0y6kumzVRavs4LkQ@mail.gmail.com>
- <20200712184041.GA1838@Ryzen-9-3900X.localdomain>
-Reply-To: sedat.dilek@gmail.com
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
+Date: Tue, 14 Jul 2020 11:36:30 +0100
+Message-ID: <20200714103629.GA18793@gaia>
+References: <20200710094420.517-1-yezhenyu2@huawei.com>
+ <20200710094420.517-3-yezhenyu2@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37936 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725816AbgGNJoW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jul 2020 05:44:22 -0400
-In-Reply-To: <20200712184041.GA1838@Ryzen-9-3900X.localdomain>
+Received: from mail.kernel.org ([198.145.29.99]:44686 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725841AbgGNKgg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 14 Jul 2020 06:36:36 -0400
+Content-Disposition: inline
+In-Reply-To: <20200710094420.517-3-yezhenyu2@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nathan Chancellor <natechancellor@gmail.com>
-Cc: Paul Menzel <pmenzel@molgen.mpg.de>, Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, Clang-Built-Linux ML <clang-built-linux@googlegroups.com>, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org
+To: Zhenyu Ye <yezhenyu2@huawei.com>
+Cc: will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 
-On Sun, Jul 12, 2020 at 8:40 PM Nathan Chancellor
-<natechancellor@gmail.com> wrote:
->
-> On Sun, Jul 12, 2020 at 10:59:17AM +0200, Sedat Dilek wrote:
-> > On Sat, Jul 11, 2020 at 6:32 PM Paul Menzel <pmenzel@molgen.mpg.de> wro=
-te:
-> > >
-> > > Dear Sami,
-> > >
-> > >
-> > > Am 24.06.20 um 22:31 schrieb Sami Tolvanen:
-> > > > This patch series adds support for building x86_64 and arm64 kernel=
-s
-> > > > with Clang's Link Time Optimization (LTO).
-> > > >
-> > > > In addition to performance, the primary motivation for LTO is to al=
-low
-> > > > Clang's Control-Flow Integrity (CFI) to be used in the kernel. Goog=
-le's
-> > > > Pixel devices have shipped with LTO+CFI kernels since 2018.
-> > > >
-> > > > Most of the patches are build system changes for handling LLVM bitc=
-ode,
-> > > > which Clang produces with LTO instead of ELF object files, postponi=
-ng
-> > > > ELF processing until a later stage, and ensuring initcall ordering.
-> > > >
-> > > > Note that first objtool patch in the series is already in linux-nex=
-t,
-> > > > but as it's needed with LTO, I'm including it also here to make tes=
-ting
-> > > > easier.
-> > >
-> > > [=E2=80=A6]
-> > >
-> > > Thank you very much for sending these changes.
-> > >
-> > > Do you have a branch, where your current work can be pulled from? You=
-r
-> > > branch on GitHub [1] seems 15 months old.
-> > >
-> >
-> > Agreed it's easier to git-pull.
-> > I have seen [1] - not sure if this is the latest version.
-> > Alternatively, you can check patchwork LKML by searching for $submitter=
-.
-> > ( You can open patch 01/22 and download the whole patch-series by
-> > following the link "series", see [3]. )
-> >
-> > - Sedat -
-> >
-> > [1] https://git.kernel.org/pub/scm/linux/kernel/git/masahiroy/linux-kbu=
-ild.git/log/?h=3Dlto
-> > [2] https://lore.kernel.org/patchwork/project/lkml/list/?series=3D&subm=
-itter=3D19676
-> > [3] https://lore.kernel.org/patchwork/series/450026/mbox/
-> >
->
-> Sami tagged this series on his GitHub:
->
-> https://github.com/samitolvanen/linux/releases/tag/lto-v1
->
-> git pull https://github.com/samitolvanen/linux lto-v1
->
-> Otherwise, he is updating the clang-cfi branch that includes both the
-> LTO and CFI patchsets. You can pull that and just turn on
-> CONFIG_LTO_CLANG.
->
-> Lastly, for the future, I would recommend grabbing b4 to easily apply
-> patches (specifically full series) from lore.kernel.org.
->
-> https://git.kernel.org/pub/scm/utils/b4/b4.git/
-> https://git.kernel.org/pub/scm/utils/b4/b4.git/tree/README.rst
->
-> You could grab this series and apply it easily by either downloading the
-> mbox file and following the instructions it gives for applying the mbox
-> file:
->
-> $ b4 am 20200624203200.78870-1-samitolvanen@google.com
->
-> or I prefer piping so that I don't have to clean up later:
->
-> $ b4 am -o - 20200624203200.78870-1-samitolvanen@google.com | git am
->
+On Fri, Jul 10, 2020 at 05:44:20PM +0800, Zhenyu Ye wrote:
+> +#define __TLBI_RANGE_PAGES(num, scale)	(((num) + 1) << (5 * (scale) + 1))
+> +#define MAX_TLBI_RANGE_PAGES		__TLBI_RANGE_PAGES(31, 3)
+> +
+> +#define TLBI_RANGE_MASK			GENMASK_ULL(4, 0)
+> +#define __TLBI_RANGE_NUM(range, scale)	\
+> +	(((range) >> (5 * (scale) + 1)) & TLBI_RANGE_MASK)
+[...]
+> +	int num = 0;
+> +	int scale = 0;
+[...]
+> +			start += __TLBI_RANGE_PAGES(num, scale) << PAGE_SHIFT;
+[...]
 
-It is always a pleasure to read your replies and enrich my know-how
-beyond Linux-kernel hacking :-).
+Since num is an int, __TLBI_RANGE_PAGES is still an int. Shifting it by
+PAGE_SHIFT can overflow as the maximum would be 8GB for 4K pages (or
+128GB for 64K pages). I think we probably get away with this because of
+some implicit type conversion but I'd rather make __TLBI_RANGE_PAGES an
+explicit unsigned long:
 
-Thanks for the tip with "b4" tool.
-Might add this to our ClangBuiltLinux wiki "Command line tips and tricks"?
+#define __TLBI_RANGE_PAGES(num, scale)	((unsigned long)((num) + 1) << (5 * (scale) + 1))
 
-- Sedat -
+Without this change, the CBMC check fails (see below for the test). In
+the kernel, we don't have this problem as we encode the address via
+__TLBI_VADDR_RANGE and it doesn't overflow.
 
-[1] https://github.com/ClangBuiltLinux/linux/wiki/Command-line-tips-and-tri=
-cks
+The good part is that CBMC reckons the algorithm is correct ;).
+
+---------------8<------tlbinval.c---------------------------
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Check with:
+ *   cbmc --unwind 6 tlbinval.c
+ */
+
+#define PAGE_SHIFT	(12)
+#define PAGE_SIZE	(1 << PAGE_SHIFT)
+#define VA_RANGE	(1UL << 48)
+
+#define __round_mask(x, y) ((__typeof__(x))((y)-1))
+#define round_up(x, y) ((((x)-1) | __round_mask(x, y))+1)
+#define round_down(x, y) ((x) & ~__round_mask(x, y))
+
+#define __TLBI_RANGE_PAGES(num, scale)	((unsigned long)((num) + 1) << (5 * (scale) + 1))
+#define MAX_TLBI_RANGE_PAGES		__TLBI_RANGE_PAGES(31, 3)
+
+#define TLBI_RANGE_MASK			0x1fUL
+#define __TLBI_RANGE_NUM(pages, scale)	\
+	((((pages) >> (5 * (scale) + 1)) & TLBI_RANGE_MASK) - 1)
+
+static unsigned long inval_start;
+static unsigned long inval_end;
+
+static void tlbi(unsigned long start, unsigned long size)
+{
+	unsigned long end = start + size;
+
+	if (inval_end == 0) {
+		inval_start = start;
+		inval_end = end;
+		return;
+	}
+
+	/* contiguous ranges in ascending order only */
+	__CPROVER_assert(start == inval_end, "Contiguous TLBI ranges");
+
+	inval_end = end;
+}
+
+static void __flush_tlb_range(unsigned long start, unsigned long end,
+			      unsigned long stride)
+{
+	int num = 0;
+	int scale = 0;
+	unsigned long pages;
+
+	start = round_down(start, stride);
+	end = round_up(end, stride);
+	pages = (end - start) >> PAGE_SHIFT;
+
+	if (pages >= MAX_TLBI_RANGE_PAGES) {
+		tlbi(0, VA_RANGE);
+		return;
+	}
+
+	while (pages > 0) {
+		__CPROVER_assert(scale <= 3, "Scale in range");
+		if (pages % 2 == 1) {
+			tlbi(start, stride);
+			start += stride;
+			pages -= stride >> PAGE_SHIFT;
+			continue;
+		}
+
+		num = __TLBI_RANGE_NUM(pages, scale);
+		__CPROVER_assert(num <= 30, "Num in range");
+		if (num >= 0) {
+			tlbi(start, __TLBI_RANGE_PAGES(num, scale) << PAGE_SHIFT);
+			start += __TLBI_RANGE_PAGES(num, scale) << PAGE_SHIFT;
+			pages -= __TLBI_RANGE_PAGES(num, scale);
+		}
+		scale++;
+	}
+}
+
+static unsigned long nondet_ulong(void);
+
+int main(void)
+{
+	unsigned long stride = nondet_ulong();
+	unsigned long start = round_down(nondet_ulong(), stride);
+	unsigned long end = round_up(nondet_ulong(), stride);
+
+	__CPROVER_assume(stride == PAGE_SIZE ||
+			 stride == PAGE_SIZE << (PAGE_SHIFT - 3) ||
+			 stride == PAGE_SIZE << (2 * (PAGE_SHIFT - 3)));
+	__CPROVER_assume(start < end);
+	__CPROVER_assume(end <= VA_RANGE);
+
+	__flush_tlb_range(start, end, stride);
+
+	__CPROVER_assert((inval_start == 0 && inval_end == VA_RANGE) ||
+			 (inval_start == start && inval_end == end),
+			 "Correct invalidation");
+
+	return 0;
+}
