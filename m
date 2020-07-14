@@ -1,52 +1,33 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 5/6] uaccess: add force_uaccess_{begin,end} helpers
-Date: Tue, 14 Jul 2020 09:12:11 +0200
-Message-ID: <20200714071211.GC776@lst.de>
-References: <20200710135706.537715-1-hch@lst.de> <20200710135706.537715-6-hch@lst.de> <20200713122148.GA51007@lakrids.cambridge.arm.com> <CAMuHMdUCmEeU0G9wkUxZKm5tC9YoB-KXSSCLKwpSia746Myebw@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 2/2] locking/pvqspinlock: Optionally store lock holder
+ cpu into lock
+Date: Tue, 14 Jul 2020 11:01:26 +0200
+Message-ID: <20200714090126.GR10769@hirez.programming.kicks-ass.net>
+References: <20200711182128.29130-1-longman@redhat.com>
+ <20200711182128.29130-3-longman@redhat.com>
+ <20200712173452.GB10769@hirez.programming.kicks-ass.net>
+ <bed22603-e347-8bff-f586-072a18987946@redhat.com>
+ <1594613637.ds7pt1by9l.astroid@bobo.none>
+ <e850b327-d747-fbe8-95db-4e2fbb1d7871@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:53045 "EHLO verein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725876AbgGNHMP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jul 2020 03:12:15 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59656 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725816AbgGNJBq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jul 2020 05:01:46 -0400
 Content-Disposition: inline
-In-Reply-To: <CAMuHMdUCmEeU0G9wkUxZKm5tC9YoB-KXSSCLKwpSia746Myebw@mail.gmail.com>
+In-Reply-To: <e850b327-d747-fbe8-95db-4e2fbb1d7871@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Mark Rutland <mark.rutland@arm.com>, Christoph Hellwig <hch@lst.de>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv <linux-riscv@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Waiman Long <longman@redhat.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Davidlohr Bueso <dave@stgolabs.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, x86@kernel.org
 
-On Mon, Jul 13, 2020 at 03:19:42PM +0200, Geert Uytterhoeven wrote:
-> > This used to set KERNEL_DS, and now it sets USER_DS, which looks wrong
-> > superficially.
-> 
-> Thanks for noticing, and sorry for missing that myself.
-> 
-> The same issue is present for SuperH:
-> 
->     -               set_fs(KERNEL_DS);
->     +               oldfs = force_uaccess_begin();
-> 
-> So the patch description should be:
-> 
->     "Add helpers to wraper the get_fs/set_fs magic for undoing any damage
->      done by set_fs(USER_DS)."
-> 
-> and leave alone users setting KERNEL_DS?
+On Mon, Jul 13, 2020 at 10:48:00PM -0400, Waiman Long wrote:
+> Storing the cpu number into the lock can be useful for other reason too. It
+> is not totally related to PPC support.
 
-Yes, this was broken.  Fixed for the next version.
-
-> > If the new behaviour is fine it suggests that the old behaviour was
-> > wrong, or that this is superfluous and could go entirely.
-> >
-> > Geert?
-> 
-> Nope, on m68k, TLB cache operations operate on the current address space.
-> Hence to flush a kernel TLB entry, you have to switch to KERNEL_DS first.
-> 
-> If we're guaranteed to be already using KERNEL_DS, I guess the
-> address space handling can be removed.  But can we be sure?
-
-We can't be sure yet.  But with a lot of my pending work we should be
-able to get there in the not too far future.
+Well, the thing you did only works for 'small' (<253 CPU) systems.
+There's a number of Power systems that's distinctly larger than that. So
+it simply cannot work as anything other than a suggestion/hint. It must
+not be a correctness thing.
