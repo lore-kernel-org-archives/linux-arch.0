@@ -1,28 +1,78 @@
-Return-Path: <SRS0=jIX+=AZ=kvack.org=owner-linux-mm@kernel.org>
-Date: Tue, 14 Jul 2020 15:23:41 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH 7/7] lazy tlb: shoot lazies, a non-refcounting lazy
- tlb option
-Message-ID: <20200714132341.GY10769@hirez.programming.kicks-ass.net>
-References: <1594708054.04iuyxuyb5.astroid@bobo.none>
- <6D3D1346-DB1E-43EB-812A-184918CCC16A@amacapital.net>
+Return-Path: <SRS0=Q31O=AZ=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mx3.molgen.mpg.de ([141.14.17.11]:40297 "EHLO mx1.molgen.mpg.de"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1728471AbgGNMQs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 14 Jul 2020 08:16:48 -0400
+Subject: Re: [PATCH 00/22] add support for Clang LTO
+References: <20200624203200.78870-1-samitolvanen@google.com>
+ <671d8923-ed43-4600-2628-33ae7cb82ccb@molgen.mpg.de>
+ <CABCJKuedpxAqndgL=jHT22KtjnLkb1dsYaM6hQYyhqrWjkEe6A@mail.gmail.com>
+From: Paul Menzel <pmenzel@molgen.mpg.de>
+Message-ID: <2ac9e722-949b-aa92-3553-df1bf69bf9e5@molgen.mpg.de>
+Date: Tue, 14 Jul 2020 14:16:44 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <6D3D1346-DB1E-43EB-812A-184918CCC16A@amacapital.net>
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, X86 ML <x86@kernel.org>
+In-Reply-To: <CABCJKuedpxAqndgL=jHT22KtjnLkb1dsYaM6hQYyhqrWjkEe6A@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200714132341.aYRhrSxmw566u5gqL9offV8e0bA6qfqWd8VQd8Z43IE@z>
+To: Sami Tolvanen <samitolvanen@google.com>
+Cc: Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, x86@kernel.org
+Message-ID: <20200714121644.-JnR5AD1_AQyvGUIDCg3HHV5ntVWWoDnlcDGH2ppqOQ@z>
 
-On Tue, Jul 14, 2020 at 05:46:05AM -0700, Andy Lutomirski wrote:
-> x86 has this exact problem. At least no more than 64*8 CPUs share the cache line :)
+Dear Sami,
 
-I've seen patches for a 'sparse' bitmap to solve related problems.
 
-It's basically the same code, except it multiplies everything (size,
-bit-nr) by a constant to reduce the number of active bits per line.
+Am 13.07.20 um 01:34 schrieb Sami Tolvanen:
+> On Sat, Jul 11, 2020 at 9:32 AM Paul Menzel <pmenzel@molgen.mpg.de> wrote:
+>> Thank you very much for sending these changes.
+>>
+>> Do you have a branch, where your current work can be pulled from? Your
+>> branch on GitHub [1] seems 15 months old.
+> 
+> The clang-lto branch is rebased regularly on top of Linus' tree.
+> GitHub just looks at the commit date of the last commit in the tree,
+> which isn't all that informative.
 
-This sadly doesn't take topology into account, but reducing contention
-is still good ofcourse.
+Thank you for clearing this up, and sorry for not checking myself.
+
+>> Out of curiosity, I applied the changes, allowed the selection for i386
+>> (x86), and with Clang 1:11~++20200701093119+ffee8040534-1~exp1 from
+>> Debian experimental, it failed with `Invalid absolute R_386_32
+>> relocation: KERNEL_PAGES`:
+> 
+> I haven't looked at getting this to work on i386, which is why we only
+> select ARCH_SUPPORTS_LTO for x86_64. I would expect there to be a few
+> issues to address.
+> 
+>>>    arch/x86/tools/relocs vmlinux > arch/x86/boot/compressed/vmlinux.relocs;arch/x86/tools/relocs --abs-relocs vmlinux
+>>> Invalid absolute R_386_32 relocation: KERNEL_PAGES
+> 
+> KERNEL_PAGES looks like a constant, so it's probably safe to ignore
+> the absolute relocation in tools/relocs.c.
+
+Thank you for pointing me to the right direction. I am happy to report, 
+that with the diff below (no idea to what list to add the string), Linux 
+5.8-rc5 with the LLVM/Clang/LTO patches on top, builds and boots on the 
+ASRock E350M1.
+
+```
+diff --git a/arch/x86/tools/relocs.c b/arch/x86/tools/relocs.c
+index 8f3bf34840cef..e91af127ed3c0 100644
+--- a/arch/x86/tools/relocs.c
++++ b/arch/x86/tools/relocs.c
+@@ -79,6 +79,7 @@ static const char * const 
+sym_regex_kernel[S_NSYMTYPES] = {
+         "__end_rodata_hpage_align|"
+  #endif
+         "__vvar_page|"
++       "KERNEL_PAGES|"
+         "_end)$"
+  };
+```
+
+
+Kind regards,
+
+Paul
