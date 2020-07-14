@@ -1,15 +1,15 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 1/6] syscalls: use uaccess_kernel in addr_limit_user_check
-Date: Tue, 14 Jul 2020 12:55:00 +0200
-Message-ID: <20200714105505.935079-2-hch@lst.de>
+Subject: [PATCH 2/6] nds32: use uaccess_kernel in show_regs
+Date: Tue, 14 Jul 2020 12:55:01 +0200
+Message-ID: <20200714105505.935079-3-hch@lst.de>
 References: <20200714105505.935079-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49586 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49928 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726041AbgGNK7c (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jul 2020 06:59:32 -0400
+        with ESMTP id S1726370AbgGNLBo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jul 2020 07:01:44 -0400
 In-Reply-To: <20200714105505.935079-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -19,22 +19,23 @@ Cc: linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vg
 Use the uaccess_kernel helper instead of duplicating it.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Greentime Hu <green.hu@gmail.com>
 ---
- include/linux/syscalls.h | 2 +-
+ arch/nds32/kernel/process.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index b951a87da9877c..e933a43d4a69ac 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -263,7 +263,7 @@ static inline void addr_limit_user_check(void)
- 		return;
- #endif
+diff --git a/arch/nds32/kernel/process.c b/arch/nds32/kernel/process.c
+index 9712fd474f2ca3..f06265949ec28b 100644
+--- a/arch/nds32/kernel/process.c
++++ b/arch/nds32/kernel/process.c
+@@ -121,7 +121,7 @@ void show_regs(struct pt_regs *regs)
+ 		regs->uregs[3], regs->uregs[2], regs->uregs[1], regs->uregs[0]);
+ 	pr_info("  IRQs o%s  Segment %s\n",
+ 		interrupts_enabled(regs) ? "n" : "ff",
+-		segment_eq(get_fs(), KERNEL_DS)? "kernel" : "user");
++		uaccess_kernel() ? "kernel" : "user");
+ }
  
--	if (CHECK_DATA_CORRUPTION(!segment_eq(get_fs(), USER_DS),
-+	if (CHECK_DATA_CORRUPTION(uaccess_kernel(),
- 				  "Invalid address limit on user-mode return"))
- 		force_sig(SIGKILL);
- 
+ EXPORT_SYMBOL(show_regs);
 -- 
 2.26.2
