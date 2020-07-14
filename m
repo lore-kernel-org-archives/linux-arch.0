@@ -1,147 +1,65 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 2/2] arm64: tlb: Use the TLBI RANGE feature in arm64
-Date: Tue, 14 Jul 2020 11:36:30 +0100
-Message-ID: <20200714103629.GA18793@gaia>
-References: <20200710094420.517-1-yezhenyu2@huawei.com>
- <20200710094420.517-3-yezhenyu2@huawei.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: clean up address limit helpers v2
+Date: Tue, 14 Jul 2020 12:54:59 +0200
+Message-ID: <20200714105505.935079-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:44686 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1725841AbgGNKgg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jul 2020 06:36:36 -0400
-Content-Disposition: inline
-In-Reply-To: <20200710094420.517-3-yezhenyu2@huawei.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Zhenyu Ye <yezhenyu2@huawei.com>
-Cc: will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 10, 2020 at 05:44:20PM +0800, Zhenyu Ye wrote:
-> +#define __TLBI_RANGE_PAGES(num, scale)	(((num) + 1) << (5 * (scale) + 1))
-> +#define MAX_TLBI_RANGE_PAGES		__TLBI_RANGE_PAGES(31, 3)
-> +
-> +#define TLBI_RANGE_MASK			GENMASK_ULL(4, 0)
-> +#define __TLBI_RANGE_NUM(range, scale)	\
-> +	(((range) >> (5 * (scale) + 1)) & TLBI_RANGE_MASK)
-[...]
-> +	int num = 0;
-> +	int scale = 0;
-[...]
-> +			start += __TLBI_RANGE_PAGES(num, scale) << PAGE_SHIFT;
-[...]
+Hi all,
 
-Since num is an int, __TLBI_RANGE_PAGES is still an int. Shifting it by
-PAGE_SHIFT can overflow as the maximum would be 8GB for 4K pages (or
-128GB for 64K pages). I think we probably get away with this because of
-some implicit type conversion but I'd rather make __TLBI_RANGE_PAGES an
-explicit unsigned long:
+in preparation for eventually phasing out direct use of set_fs(), this
+series removes the segment_eq() arch helper that is only used to
+implement or duplicate the uaccess_kernel() API, and then adds
+descriptive helpers to force the kernel address limit.
 
-#define __TLBI_RANGE_PAGES(num, scale)	((unsigned long)((num) + 1) << (5 * (scale) + 1))
 
-Without this change, the CBMC check fails (see below for the test). In
-the kernel, we don't have this problem as we encode the address via
-__TLBI_VADDR_RANGE and it doesn't overflow.
+Changes since v1:
+ - drop to incorrect hunks
+ - fix a commit log typo
 
-The good part is that CBMC reckons the algorithm is correct ;).
-
----------------8<------tlbinval.c---------------------------
-// SPDX-License-Identifier: GPL-2.0-only
-/*
- * Check with:
- *   cbmc --unwind 6 tlbinval.c
- */
-
-#define PAGE_SHIFT	(12)
-#define PAGE_SIZE	(1 << PAGE_SHIFT)
-#define VA_RANGE	(1UL << 48)
-
-#define __round_mask(x, y) ((__typeof__(x))((y)-1))
-#define round_up(x, y) ((((x)-1) | __round_mask(x, y))+1)
-#define round_down(x, y) ((x) & ~__round_mask(x, y))
-
-#define __TLBI_RANGE_PAGES(num, scale)	((unsigned long)((num) + 1) << (5 * (scale) + 1))
-#define MAX_TLBI_RANGE_PAGES		__TLBI_RANGE_PAGES(31, 3)
-
-#define TLBI_RANGE_MASK			0x1fUL
-#define __TLBI_RANGE_NUM(pages, scale)	\
-	((((pages) >> (5 * (scale) + 1)) & TLBI_RANGE_MASK) - 1)
-
-static unsigned long inval_start;
-static unsigned long inval_end;
-
-static void tlbi(unsigned long start, unsigned long size)
-{
-	unsigned long end = start + size;
-
-	if (inval_end == 0) {
-		inval_start = start;
-		inval_end = end;
-		return;
-	}
-
-	/* contiguous ranges in ascending order only */
-	__CPROVER_assert(start == inval_end, "Contiguous TLBI ranges");
-
-	inval_end = end;
-}
-
-static void __flush_tlb_range(unsigned long start, unsigned long end,
-			      unsigned long stride)
-{
-	int num = 0;
-	int scale = 0;
-	unsigned long pages;
-
-	start = round_down(start, stride);
-	end = round_up(end, stride);
-	pages = (end - start) >> PAGE_SHIFT;
-
-	if (pages >= MAX_TLBI_RANGE_PAGES) {
-		tlbi(0, VA_RANGE);
-		return;
-	}
-
-	while (pages > 0) {
-		__CPROVER_assert(scale <= 3, "Scale in range");
-		if (pages % 2 == 1) {
-			tlbi(start, stride);
-			start += stride;
-			pages -= stride >> PAGE_SHIFT;
-			continue;
-		}
-
-		num = __TLBI_RANGE_NUM(pages, scale);
-		__CPROVER_assert(num <= 30, "Num in range");
-		if (num >= 0) {
-			tlbi(start, __TLBI_RANGE_PAGES(num, scale) << PAGE_SHIFT);
-			start += __TLBI_RANGE_PAGES(num, scale) << PAGE_SHIFT;
-			pages -= __TLBI_RANGE_PAGES(num, scale);
-		}
-		scale++;
-	}
-}
-
-static unsigned long nondet_ulong(void);
-
-int main(void)
-{
-	unsigned long stride = nondet_ulong();
-	unsigned long start = round_down(nondet_ulong(), stride);
-	unsigned long end = round_up(nondet_ulong(), stride);
-
-	__CPROVER_assume(stride == PAGE_SIZE ||
-			 stride == PAGE_SIZE << (PAGE_SHIFT - 3) ||
-			 stride == PAGE_SIZE << (2 * (PAGE_SHIFT - 3)));
-	__CPROVER_assume(start < end);
-	__CPROVER_assume(end <= VA_RANGE);
-
-	__flush_tlb_range(start, end, stride);
-
-	__CPROVER_assert((inval_start == 0 && inval_end == VA_RANGE) ||
-			 (inval_start == start && inval_end == end),
-			 "Correct invalidation");
-
-	return 0;
-}
+Diffstat:
+ arch/alpha/include/asm/uaccess.h      |    2 +-
+ arch/arc/include/asm/segment.h        |    3 +--
+ arch/arm/include/asm/uaccess.h        |    4 ++--
+ arch/arm64/include/asm/uaccess.h      |    2 +-
+ arch/arm64/kernel/sdei.c              |    2 +-
+ arch/csky/include/asm/segment.h       |    2 +-
+ arch/h8300/include/asm/segment.h      |    2 +-
+ arch/ia64/include/asm/uaccess.h       |    2 +-
+ arch/m68k/include/asm/segment.h       |    2 +-
+ arch/m68k/include/asm/tlbflush.h      |    6 +++---
+ arch/microblaze/include/asm/uaccess.h |    2 +-
+ arch/mips/include/asm/uaccess.h       |    2 +-
+ arch/mips/kernel/unaligned.c          |   27 +++++++++++++--------------
+ arch/nds32/include/asm/uaccess.h      |    2 +-
+ arch/nds32/kernel/process.c           |    2 +-
+ arch/nds32/mm/alignment.c             |    7 +++----
+ arch/nios2/include/asm/uaccess.h      |    2 +-
+ arch/openrisc/include/asm/uaccess.h   |    2 +-
+ arch/parisc/include/asm/uaccess.h     |    2 +-
+ arch/powerpc/include/asm/uaccess.h    |    3 +--
+ arch/riscv/include/asm/uaccess.h      |    6 +++---
+ arch/s390/include/asm/uaccess.h       |    2 +-
+ arch/sh/include/asm/segment.h         |    3 +--
+ arch/sh/kernel/traps_32.c             |   12 +++++-------
+ arch/sparc/include/asm/uaccess_32.h   |    2 +-
+ arch/sparc/include/asm/uaccess_64.h   |    2 +-
+ arch/x86/include/asm/uaccess.h        |    2 +-
+ arch/xtensa/include/asm/uaccess.h     |    2 +-
+ drivers/firmware/arm_sdei.c           |    5 ++---
+ fs/exec.c                             |    7 ++++++-
+ include/asm-generic/uaccess.h         |    4 ++--
+ include/linux/syscalls.h              |    2 +-
+ include/linux/uaccess.h               |   20 ++++++++++++++++++--
+ kernel/events/callchain.c             |    5 ++---
+ kernel/events/core.c                  |    5 ++---
+ kernel/exit.c                         |    2 +-
+ kernel/kthread.c                      |    5 ++---
+ kernel/stacktrace.c                   |    5 ++---
+ mm/maccess.c                          |   22 ++++++++++------------
+ 39 files changed, 99 insertions(+), 92 deletions(-)
