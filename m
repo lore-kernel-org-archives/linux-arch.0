@@ -1,81 +1,75 @@
-Return-Path: <SRS0=KQoP=AO=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:3198 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726265AbgGCCgL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Jul 2020 22:36:11 -0400
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: [PATCH v3 08/21] KVM: x86/mmu: Clean up the gorilla math in mmu_topup_memory_caches()
-Date: Thu,  2 Jul 2020 19:35:32 -0700
-Message-ID: <20200703023545.8771-9-sean.j.christopherson@intel.com>
-In-Reply-To: <20200703023545.8771-1-sean.j.christopherson@intel.com>
-References: <20200703023545.8771-1-sean.j.christopherson@intel.com>
+Return-Path: <SRS0=Q31O=AZ=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-delivery-1.mimecast.com ([207.211.31.120]:34687 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1726372AbgGNCsK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2020 22:48:10 -0400
+Subject: Re: [PATCH 2/2] locking/pvqspinlock: Optionally store lock holder cpu
+ into lock
+References: <20200711182128.29130-1-longman@redhat.com>
+ <20200711182128.29130-3-longman@redhat.com>
+ <20200712173452.GB10769@hirez.programming.kicks-ass.net>
+ <bed22603-e347-8bff-f586-072a18987946@redhat.com>
+ <1594613637.ds7pt1by9l.astroid@bobo.none>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <e850b327-d747-fbe8-95db-4e2fbb1d7871@redhat.com>
+Date: Mon, 13 Jul 2020 22:48:00 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <1594613637.ds7pt1by9l.astroid@bobo.none>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: James Morse <james.morse@arm.com>, Julien Thierry <julien.thierry.kdev@gmail.com>, Suzuki K Poulose <suzuki.poulose@arm.com>, Sean Christopherson <sean.j.christopherson@intel.com>, Vitaly Kuznetsov <vkuznets@redhat.com>, Wanpeng Li <wanpengli@tencent.com>, Jim Mattson <jmattson@google.com>, Joerg Roedel <joro@8bytes.org>, linux-arm-kernel@lists.infradead.org, kvmarm@lists.cs.columbia.edu, linux-mips@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ben Gardon <bgardon@google.com>, Peter Feiner <pfeiner@google.com>, Peter Shier <pshier@google.com>, Junaid Shahid <junaids@google.com>, Christoffer Dall <christoffer.dall@arm.com>
-Message-ID: <20200703023532.Ynkz4f-R7LQaCwIRNu9PTqSEuoCEo8rGr3So-X7BsoA@z>
+To: Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Davidlohr Bueso <dave@stgolabs.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, x86@kernel.org
+Message-ID: <20200714024800.Dnl5MKoX9JfyoQcIPIef4oB4KMuoxfGVXqNev1Kbad0@z>
 
-Clean up the minimums in mmu_topup_memory_caches() to document the
-driving mechanisms behind the minimums.  Now that encountering an empty
-cache is unlikely to trigger BUG_ON(), it is less dangerous to be more
-precise when defining the minimums.
+On 7/13/20 12:17 AM, Nicholas Piggin wrote:
+> Excerpts from Waiman Long's message of July 13, 2020 9:05 am:
+>> On 7/12/20 1:34 PM, Peter Zijlstra wrote:
+>>> On Sat, Jul 11, 2020 at 02:21:28PM -0400, Waiman Long wrote:
+>>>> The previous patch enables native qspinlock to store lock holder cpu
+>>>> number into the lock word when the lock is acquired via the slowpath.
+>>>> Since PV qspinlock uses atomic unlock, allowing the fastpath and
+>>>> slowpath to put different values into the lock word will further slow
+>>>> down the performance. This is certainly undesirable.
+>>>>
+>>>> The only way we can do that without too much performance impact is to
+>>>> make fastpath and slowpath put in the same value. Still there is a slight
+>>>> performance overhead in the additional access to a percpu variable in the
+>>>> fastpath as well as the less optimized x86-64 PV qspinlock unlock path.
+>>>>
+>>>> A new config option QUEUED_SPINLOCKS_CPUINFO is now added to enable
+>>>> distros to decide if they want to enable lock holder cpu information in
+>>>> the lock itself for both native and PV qspinlocks across both fastpath
+>>>> and slowpath. If this option is not configureed, only native qspinlocks
+>>>> in the slowpath will put the lock holder cpu information in the lock
+>>>> word.
+>>> And this kills it,.. if it doesn't make unconditional sense, we're not
+>>> going to do this. It's just too ugly.
+>>>
+>> You mean it has to be unconditional, no option config if we want to do
+>> it. Right?
+>>
+>> It can certainly be made unconditional after I figure out how to make
+>> the optimized PV unlock code work.
+> Sorry I've not had a lot of time to get back to this thread and test
+> things -- don't spend loads of effort or complexity on it until we get
+> some more numbers. I did see some worse throughput results (with no
+> attention to fairness) with the PV spin lock, but it was a really quick
+> limited few tests, I need to get something a bit more substantial.
+>
+> I do very much appreciate your help with the powerpc patches, and
+> interest in the PV issues though. I'll try to find more time to help
+> out.
 
-For rmaps, the logic is 1 parent PTE per level, plus a single rmap, and
-prefetched rmaps.  The extra objects in the current '8 + PREFETCH'
-minimum came about due to an abundance of paranoia in commit
-c41ef344de212 ("KVM: MMU: increase per-vcpu rmap cache alloc size"),
-i.e. it could have increased the minimum to 2 rmaps.  Furthermore, the
-unexpected extra rmap case was killed off entirely by commits
-f759e2b4c728c ("KVM: MMU: avoid pte_list_desc running out in
-kvm_mmu_pte_write") and f5a1e9f89504f ("KVM: MMU: remove call to
-kvm_mmu_pte_write from walk_addr").
+Native qspinlock is usually not a problem performance-wise. PV 
+qspinlock, however, is usually the challenging part. It took me a long 
+time to get the PV code right so that I can merge qspinlock upstream. I 
+do some interest to get qspinlock used by ppc, though.
 
-For the so called page cache, replace '8' with 2*PT64_ROOT_MAX_LEVEL.
-The 2x multiplier is needed because the cache is used for both shadow
-pages and gfn arrays for indirect MMUs.
+Storing the cpu number into the lock can be useful for other reason too. 
+It is not totally related to PPC support.
 
-And finally, for page headers, replace '4' with PT64_ROOT_MAX_LEVEL.
-
-Note, KVM now supports 5-level paging, i.e. the old minimums that used a
-baseline derived from 4-level paging were technically wrong.  But, KVM
-always allocates roots in a separate flow, e.g. it's impossible in the
-current implementation to actually need 5 new shadow pages in a single
-flow.  Use PT64_ROOT_MAX_LEVEL unmodified instead of subtracting 1, as
-the direct usage is likely more intuitive to uninformed readers, and the
-inflated minimum is unlikely to affect functionality in practice.
-
-Reviewed-by: Ben Gardon <bgardon@google.com>
-Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
----
- arch/x86/kvm/mmu/mmu.c | 9 ++++++---
- 1 file changed, 6 insertions(+), 3 deletions(-)
-
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index 3d0768e16463..cf02ad93c249 100644
---- a/arch/x86/kvm/mmu/mmu.c
-+++ b/arch/x86/kvm/mmu/mmu.c
-@@ -1103,14 +1103,17 @@ static int mmu_topup_memory_caches(struct kvm_vcpu *vcpu)
- {
- 	int r;
- 
-+	/* 1 rmap, 1 parent PTE per level, and the prefetched rmaps. */
- 	r = mmu_topup_memory_cache(&vcpu->arch.mmu_pte_list_desc_cache,
--				   8 + PTE_PREFETCH_NUM);
-+				   1 + PT64_ROOT_MAX_LEVEL + PTE_PREFETCH_NUM);
- 	if (r)
- 		return r;
--	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache, 8);
-+	r = mmu_topup_memory_cache(&vcpu->arch.mmu_page_cache,
-+				   2 * PT64_ROOT_MAX_LEVEL);
- 	if (r)
- 		return r;
--	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache, 4);
-+	return mmu_topup_memory_cache(&vcpu->arch.mmu_page_header_cache,
-+				      PT64_ROOT_MAX_LEVEL);
- }
- 
- static void mmu_free_memory_caches(struct kvm_vcpu *vcpu)
--- 
-2.26.0
+Cheers,
+Longman
