@@ -1,99 +1,56 @@
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: Re: [PATCH v2 0/2] arm64: tlb: add support for TLBI RANGE
- instructions
-Date: Tue, 14 Jul 2020 23:17:01 +0800
-Message-ID: <b0c1ae56-3c22-dafe-a145-305714b211eb@huawei.com>
-References: <20200710094420.517-1-yezhenyu2@huawei.com>
- <159440712962.27784.4664678472466095995.b4-ty@arm.com>
- <20200713122123.GC15829@gaia>
- <2edcf1ce-38d4-82b2-e500-51f742cae357@huawei.com>
- <20200713165903.GD15829@gaia>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH 4/6] uaccess: remove segment_eq
+Date: Tue, 14 Jul 2020 08:27:14 -0700
+Message-ID: <CAHk-=wgpYFEPMfYmNR-9SuPaeC432sC7nmZrismRHQEiR2GM4g@mail.gmail.com>
+References: <20200714105505.935079-1-hch@lst.de> <20200714105505.935079-5-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="gbk"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga06-in.huawei.com ([45.249.212.32]:43178 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1725876AbgGNPRN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jul 2020 11:17:13 -0400
-In-Reply-To: <20200713165903.GD15829@gaia>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34764 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725884AbgGNP1e (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jul 2020 11:27:34 -0400
+Received: from mail-lj1-x244.google.com (mail-lj1-x244.google.com [IPv6:2a00:1450:4864:20::244])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 28858C061755
+        for <linux-arch@vger.kernel.org>; Tue, 14 Jul 2020 08:27:34 -0700 (PDT)
+Received: by mail-lj1-x244.google.com with SMTP id r19so23258060ljn.12
+        for <linux-arch@vger.kernel.org>; Tue, 14 Jul 2020 08:27:34 -0700 (PDT)
+Received: from mail-lj1-f170.google.com (mail-lj1-f170.google.com. [209.85.208.170])
+        by smtp.gmail.com with ESMTPSA id a5sm5368081lfh.15.2020.07.14.08.27.30
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 14 Jul 2020 08:27:31 -0700 (PDT)
+Received: by mail-lj1-f170.google.com with SMTP id q7so23329988ljm.1
+        for <linux-arch@vger.kernel.org>; Tue, 14 Jul 2020 08:27:30 -0700 (PDT)
+In-Reply-To: <20200714105505.935079-5-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, will@kernel.org, olof@lixom.net, suzuki.poulose@arm.com, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, zhangshaokun@hisilicon.com, prime.zeng@hisilicon.com, linux-arch@vger.kernel.org, kuhn.chenqun@huawei.com, xiexiangyou@huawei.com, linux-mm@kvack.org, arm@kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>
 
-On 2020/7/14 0:59, Catalin Marinas wrote:
->> +config ARM64_TLBI_RANGE
->> +	bool "Enable support for tlbi range feature"
->> +	default y
->> +	depends on AS_HAS_TLBI_RANGE
->> +	help
->> +	  ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
->> +	  range of input addresses.
->> +
->> +	  The feature introduces new assembly instructions, and they were
->> +	  support when binutils >= 2.30.
-> 
-> It looks like 2.30. I tracked it down to this commit:
-> 
-> https://sourceware.org/git/?p=binutils-gdb.git;a=commitdiff;h=793a194839bc8add71fdc7429c58b10f0667a6f6;hp=1a7ed57c840dcb0401f1a67c6763a89f7d2686d2
-> 
->> +config AS_HAS_TLBI_RANGE
->> +	def_bool $(as-option, -Wa$(comma)-march=armv8.4-a)
->> +
->>  endmenu
-> 
-> The problem is that we don't pass -Wa,-march=armv8.4-a to gas. AFAICT,
-> we only set an 8.3 for PAC but I'm not sure how passing two such options
-> goes.
-> 
+Ack, just with a note:
 
-Pass the -march twice may not have bad impact.  Test in my toolchains
-and the newer one will be chosen.  Anyway, we can add judgment to avoid
-them be passed at the same time.
+On Tue, Jul 14, 2020 at 4:06 AM Christoph Hellwig <hch@lst.de> wrote:
+>
+> --- a/arch/x86/include/asm/uaccess.h
+> +++ b/arch/x86/include/asm/uaccess.h
+> @@ -33,7 +33,7 @@ static inline void set_fs(mm_segment_t fs)
+>         set_thread_flag(TIF_FSCHECK);
+>  }
+>
+> -#define segment_eq(a, b)       ((a).seg == (b).seg)
+> +#define uaccess_kernel() (get_fs().seg == KERNEL_DS.seg)
+>  #define user_addr_max() (current->thread.addr_limit.seg)
 
-> I'm slightly surprised that my toolchains (and yours) did not complain
-> about these instructions. Looking at the binutils code, I think it
-> should have complained if -march=armv8.4-a wasn't passed but works fine.
-> I thought gas doesn't enable the maximum arch feature by default.
->> An alternative would be to check for a specific instruction (untested):
-> 
-> 	def_bool $(as-instr,tlbi rvae1is, x0)
-> 
-> but we need to figure out whether gas not requiring -march=armv8.4-a is
-> a bug (which may be fixed) or that gas accepts all TLBI instructions.
-> 
+This "uaccess_kernel()" interface is a better model anyway, because at
+least on x86 (and from a quick glance at others), we might avoid the
+exact equality comparison, and instead do simpler/better things.
 
-As you say in another email, this is a bug.  So we should pass -march=
-armv8.4-a to gas if we use toolchains to generate tlbi range instructions.
+On x86-64, for example, checking whether the limit has the high bit
+set is not only more flexible and correct, it's much cheaper too.
 
-But this bug only affects the compilation (cause WARNING or ERROR if not
-pass -march-armv8.4-a when compiling) but not the judgment.
+Of course, trying to get rid of all this means that it doesn't matter
+so much, but it would probably have been good to do this part years
+ago regardless.
 
-> A safer bet may be to simply encode the instructions by hand:
-> 
-> #define SYS_TLBI_RVAE1IS(Rt) \
-> 	__emit_inst(0xd5000000 | sys_insn(1, 0, 8, 2, 1) | ((Rt) & 0x1f))
-> #define SYS_TLBI_RVALE1IS(Rt) \
-> 	__emit_inst(0xd5000000 | sys_insn(1, 0, 8, 2, 5) | ((Rt) & 0x1f))
-> 
-> (please check that they are correct)
-> 
-
-Currently in kernel, all tlbi instructions are passed through __tlbi()
-and __tlbi_user(). If we encode the range instructions by hand, we may
-should have to add a new mechanism for this:
-
-1. choose a register and save it;
-2. put the operations for tlbi range to the register;
-3. do tlbi range by asm(SYS_TLBI_RVAE1IS(x0));
-4. restore the value of the register.
-
-It's complicated and will only be used with tlbi range instructions.
-(Am I understand something wrong? )
-
-So I am prefer to pass -march=armv8.4-a to toolschains to support tlbi
-range instruction, just like what PAC does.
-
-Thanks,
-Zhenyu
+                  Linus
