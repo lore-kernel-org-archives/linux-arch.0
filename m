@@ -1,144 +1,172 @@
-Return-Path: <SRS0=9Vx7=A3=kvack.org=owner-linux-mm@kernel.org>
-Date: Thu, 16 Jul 2020 12:26:59 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [RFC PATCH 7/7] lazy tlb: shoot lazies, a non-refcounting lazy
- tlb option
-References: <1594708054.04iuyxuyb5.astroid@bobo.none>
-	<6D3D1346-DB1E-43EB-812A-184918CCC16A@amacapital.net>
-In-Reply-To: <6D3D1346-DB1E-43EB-812A-184918CCC16A@amacapital.net>
+Return-Path: <SRS0=Bqph=A2=kvack.org=owner-linux-mm@kernel.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: [PATCH v7 00/26]  arm64: Memory Tagging Extension user-space support
+Date: Wed, 15 Jul 2020 18:08:15 +0100
+Message-ID: <20200715170844.30064-1-catalin.marinas@arm.com>
 MIME-Version: 1.0
-Message-ID: <1594866023.tjwr7nhhg2.astroid@bobo.none>
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Peter Zijlstra <peterz@infradead.org>, X86 ML <x86@kernel.org>
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200716022659.RsUYoe8IOqNdScAY2gktYYtJlJ6blCPscrSwbGvEUkU@z>
+Message-ID: <20200715170815.ofKe9MOw4KgihUYbOgI1s3U-9y2-hFFgnfzkjnsRMwQ@z>
 
-Excerpts from Andy Lutomirski's message of July 14, 2020 10:46 pm:
->=20
->=20
->> On Jul 13, 2020, at 11:31 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
->>=20
->> =EF=BB=BFExcerpts from Nicholas Piggin's message of July 14, 2020 3:04 p=
-m:
->>> Excerpts from Andy Lutomirski's message of July 14, 2020 4:18 am:
->>>>=20
->>>>> On Jul 13, 2020, at 9:48 AM, Nicholas Piggin <npiggin@gmail.com> wrot=
-e:
->>>>>=20
->>>>> =EF=BB=BFExcerpts from Andy Lutomirski's message of July 14, 2020 1:5=
-9 am:
->>>>>>> On Thu, Jul 9, 2020 at 6:57 PM Nicholas Piggin <npiggin@gmail.com> =
-wrote:
->>>>>>>=20
->>>>>>> On big systems, the mm refcount can become highly contented when do=
-ing
->>>>>>> a lot of context switching with threaded applications (particularly
->>>>>>> switching between the idle thread and an application thread).
->>>>>>>=20
->>>>>>> Abandoning lazy tlb slows switching down quite a bit in the importa=
-nt
->>>>>>> user->idle->user cases, so so instead implement a non-refcounted sc=
-heme
->>>>>>> that causes __mmdrop() to IPI all CPUs in the mm_cpumask and shoot =
-down
->>>>>>> any remaining lazy ones.
->>>>>>>=20
->>>>>>> On a 16-socket 192-core POWER8 system, a context switching benchmar=
-k
->>>>>>> with as many software threads as CPUs (so each switch will go in an=
-d
->>>>>>> out of idle), upstream can achieve a rate of about 1 million contex=
-t
->>>>>>> switches per second. After this patch it goes up to 118 million.
->>>>>>>=20
->>>>>>=20
->>>>>> I read the patch a couple of times, and I have a suggestion that cou=
-ld
->>>>>> be nonsense.  You are, effectively, using mm_cpumask() as a sort of
->>>>>> refcount.  You're saying "hey, this mm has no more references, but i=
-t
->>>>>> still has nonempty mm_cpumask(), so let's send an IPI and shoot down
->>>>>> those references too."  I'm wondering whether you actually need the
->>>>>> IPI.  What if, instead, you actually treated mm_cpumask as a refcoun=
-t
->>>>>> for real?  Roughly, in __mmdrop(), you would only free the page tabl=
-es
->>>>>> if mm_cpumask() is empty.  And, in the code that removes a CPU from
->>>>>> mm_cpumask(), you would check if mm_users =3D=3D 0 and, if so, check=
- if
->>>>>> you just removed the last bit from mm_cpumask and potentially free t=
-he
->>>>>> mm.
->>>>>>=20
->>>>>> Getting the locking right here could be a bit tricky -- you need to
->>>>>> avoid two CPUs simultaneously exiting lazy TLB and thinking they
->>>>>> should free the mm, and you also need to avoid an mm with mm_users
->>>>>> hitting zero concurrently with the last remote CPU using it lazily
->>>>>> exiting lazy TLB.  Perhaps this could be resolved by having mm_count
->>>>>> =3D=3D 1 mean "mm_cpumask() is might contain bits and, if so, it own=
-s the
->>>>>> mm" and mm_count =3D=3D 0 meaning "now it's dead" and using some car=
-eful
->>>>>> cmpxchg or dec_return to make sure that only one CPU frees it.
->>>>>>=20
->>>>>> Or maybe you'd need a lock or RCU for this, but the idea would be to
->>>>>> only ever take the lock after mm_users goes to zero.
->>>>>=20
->>>>> I don't think it's nonsense, it could be a good way to avoid IPIs.
->>>>>=20
->>>>> I haven't seen much problem here that made me too concerned about IPI=
-s=20
->>>>> yet, so I think the simple patch may be good enough to start with
->>>>> for powerpc. I'm looking at avoiding/reducing the IPIs by combining t=
-he
->>>>> unlazying with the exit TLB flush without doing anything fancy with
->>>>> ref counting, but we'll see.
->>>>=20
->>>> I would be cautious with benchmarking here. I would expect that the
->>>> nasty cases may affect power consumption more than performance =E2=80=
-=94 the=20
->>>> specific issue is IPIs hitting idle cores, and the main effects are to=
-=20
->>>> slow down exit() a bit but also to kick the idle core out of idle.=20
->>>> Although, if the idle core is in a deep sleep, that IPI could be=20
->>>> *very* slow.
->>>=20
->>> It will tend to be self-limiting to some degree (deeper idle cores
->>> would tend to have less chance of IPI) but we have bigger issues on
->>> powerpc with that, like broadcast IPIs to the mm cpumask for THP
->>> management. Power hasn't really shown up as an issue but powerpc
->>> CPUs may have their own requirements and issues there, shall we say.
->>>=20
->>>> So I think it=E2=80=99s worth at least giving this a try.
->>>=20
->>> To be clear it's not a complete solution itself. The problem is of=20
->>> course that mm cpumask gives you false negatives, so the bits
->>> won't always clean up after themselves as CPUs switch away from their
->>> lazy tlb mms.
->>=20
->> ^^
->>=20
->> False positives: CPU is in the mm_cpumask, but is not using the mm
->> as a lazy tlb. So there can be bits left and never freed.
->>=20
->> If you closed the false positives, you're back to a shared mm cache
->> line on lazy mm context switches.
->=20
-> x86 has this exact problem. At least no more than 64*8 CPUs share the cac=
-he line :)
->=20
-> Can your share your benchmark?
+This is version 7 (6th version here [1]) of the series adding user-space
+support for the ARMv8.5 Memory Tagging Extension ([2], [3]). The patches
+are also available on this branch:
 
-It's just context_switch1_threads from will-it-scale, running with 1/2
-the number of CPUs, and core affinity with an SMT processor (so each
-thread from the switching pairs gets spread to their own CPU and so you
-get the task->idle->task switching.
+  git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux for-next/mte
 
-It's really just about the worst case, so I wouldn't say it's something
-to panic about.
+There have been no further ABI changes and still aiming for a 5.9 merge.
+I would be grateful for acks (or naks) on the following patches:
 
-Thanks,
-Nick
+mm:
+
+  [PATCH v7 06/29] mm: Add PG_arch_2 page flag
+  [PATCH v7 07/29] mm: Preserve the PG_arch_2 flag in __split_huge_page_t=
+ail()
+  [PATCH v7 13/29] mm: Introduce arch_calc_vm_flag_bits()
+
+fs:
+ =20
+  [PATCH v7 24/29] fs: Handle intra-page faults in copy_mount_options()
+
+arm64 KVM (small new addition in v7):
+
+  [PATCH v7 02/29] arm64: mte: CPU feature detection and initial sysreg c=
+onfiguration
+
+Changes in this version:
+
+- __split_huge_page_tail() function update to preserve the PG_arch_2
+  flag only. The PG_arch_1 will be submitted separately since s390 and
+  x86 may be affected.
+
+- ptrace NT_ARM_TAGGED_ADDR_CTRL regset for access to the tagged address
+  ABI and MTE configuration of a process, together with documentation
+  update.
+
+- Kconfig update to check for the presence of the STGM instruction in
+  addition to '.arch armv8.5-a+memtag'. A late architecture update
+  introduced the LDGM/STGM and there are binutils versions out there
+  that don't support it.
+
+- Re-ordering of the CNP and MTE initialisation to cater for late
+  secondary CPU bring-up (post the arch_initcall()).
+
+[1] https://lore.kernel.org/linux-arm-kernel/20200703153718.16973-1-catal=
+in.marinas@arm.com/
+[2] https://community.arm.com/developer/ip-products/processors/b/processo=
+rs-ip-blog/posts/enhancing-memory-safety
+[3] https://developer.arm.com/-/media/Arm%20Developer%20Community/PDF/Arm=
+_Memory_Tagging_Extension_Whitepaper.pdf
+[4] https://sourceware.org/pipermail/libc-alpha/2020-June/115039.html
+
+Catalin Marinas (17):
+  arm64: mte: Use Normal Tagged attributes for the linear map
+  mm: Preserve the PG_arch_2 flag in __split_huge_page_tail()
+  arm64: mte: Clear the tags when a page is mapped in user-space with
+    PROT_MTE
+  arm64: Avoid unnecessary clear_user_page() indirection
+  arm64: mte: Tags-aware aware memcmp_pages() implementation
+  arm64: mte: Handle the MAIR_EL1 changes for late CPU bring-up
+  arm64: mte: Add PROT_MTE support to mmap() and mprotect()
+  mm: Introduce arch_validate_flags()
+  arm64: mte: Validate the PROT_MTE request via arch_validate_flags()
+  mm: Allow arm64 mmap(PROT_MTE) on RAM-based files
+  arm64: mte: Allow user control of the tag check mode via prctl()
+  arm64: mte: Allow user control of the generated random tags via
+    prctl()
+  arm64: mte: Restore the GCR_EL1 register after a suspend
+  arm64: mte: Allow {set,get}_tagged_addr_ctrl() on non-current tasks
+  arm64: mte: ptrace: Add PTRACE_{PEEK,POKE}MTETAGS support
+  arm64: mte: ptrace: Add NT_ARM_TAGGED_ADDR_CTRL regset
+  fs: Handle intra-page faults in copy_mount_options()
+
+Kevin Brodsky (1):
+  mm: Introduce arch_calc_vm_flag_bits()
+
+Steven Price (4):
+  mm: Add PG_arch_2 page flag
+  mm: Add arch hooks for saving/restoring tags
+  arm64: mte: Enable swap of tagged pages
+  arm64: mte: Save tags when hibernating
+
+Vincenzo Frascino (7):
+  arm64: mte: system register definitions
+  arm64: mte: CPU feature detection and initial sysreg configuration
+  arm64: mte: Add specific SIGSEGV codes
+  arm64: mte: Handle synchronous and asynchronous tag check faults
+  arm64: mte: Tags-aware copy_{user_,}highpage() implementations
+  arm64: mte: Kconfig entry
+  arm64: mte: Add Memory Tagging Extension documentation
+
+ Documentation/arm64/cpu-feature-registers.rst |   2 +
+ Documentation/arm64/elf_hwcaps.rst            |   4 +
+ Documentation/arm64/index.rst                 |   1 +
+ .../arm64/memory-tagging-extension.rst        | 305 ++++++++++++++++
+ arch/arm64/Kconfig                            |  31 ++
+ arch/arm64/include/asm/cpucaps.h              |   5 +-
+ arch/arm64/include/asm/cpufeature.h           |   6 +
+ arch/arm64/include/asm/hwcap.h                |   1 +
+ arch/arm64/include/asm/kvm_arm.h              |   3 +-
+ arch/arm64/include/asm/memory.h               |  17 +-
+ arch/arm64/include/asm/mman.h                 |  56 ++-
+ arch/arm64/include/asm/mte.h                  |  86 +++++
+ arch/arm64/include/asm/page.h                 |  19 +-
+ arch/arm64/include/asm/pgtable-prot.h         |   2 +
+ arch/arm64/include/asm/pgtable.h              |  46 ++-
+ arch/arm64/include/asm/processor.h            |  12 +-
+ arch/arm64/include/asm/sysreg.h               |  61 ++++
+ arch/arm64/include/asm/thread_info.h          |   4 +-
+ arch/arm64/include/uapi/asm/hwcap.h           |   1 +
+ arch/arm64/include/uapi/asm/mman.h            |   1 +
+ arch/arm64/include/uapi/asm/ptrace.h          |   4 +
+ arch/arm64/kernel/Makefile                    |   1 +
+ arch/arm64/kernel/cpufeature.c                |  67 ++++
+ arch/arm64/kernel/cpuinfo.c                   |   1 +
+ arch/arm64/kernel/entry.S                     |  37 ++
+ arch/arm64/kernel/hibernate.c                 | 118 ++++++
+ arch/arm64/kernel/mte.c                       | 337 ++++++++++++++++++
+ arch/arm64/kernel/process.c                   |  45 ++-
+ arch/arm64/kernel/ptrace.c                    |  53 ++-
+ arch/arm64/kernel/signal.c                    |   9 +
+ arch/arm64/kernel/suspend.c                   |   4 +
+ arch/arm64/kernel/syscall.c                   |  10 +
+ arch/arm64/kvm/sys_regs.c                     |   2 +
+ arch/arm64/lib/Makefile                       |   2 +
+ arch/arm64/lib/mte.S                          | 151 ++++++++
+ arch/arm64/mm/Makefile                        |   1 +
+ arch/arm64/mm/copypage.c                      |  25 +-
+ arch/arm64/mm/dump.c                          |   4 +
+ arch/arm64/mm/fault.c                         |   9 +-
+ arch/arm64/mm/mmu.c                           |  22 +-
+ arch/arm64/mm/mteswap.c                       |  83 +++++
+ arch/arm64/mm/proc.S                          |   8 +-
+ arch/x86/kernel/signal_compat.c               |   2 +-
+ fs/namespace.c                                |  25 +-
+ fs/proc/page.c                                |   3 +
+ fs/proc/task_mmu.c                            |   4 +
+ include/linux/kernel-page-flags.h             |   1 +
+ include/linux/mm.h                            |   8 +
+ include/linux/mman.h                          |  23 +-
+ include/linux/page-flags.h                    |   3 +
+ include/linux/pgtable.h                       |  28 ++
+ include/trace/events/mmflags.h                |   9 +-
+ include/uapi/asm-generic/siginfo.h            |   4 +-
+ include/uapi/linux/elf.h                      |   1 +
+ include/uapi/linux/prctl.h                    |   9 +
+ mm/huge_memory.c                              |   3 +
+ mm/mmap.c                                     |   9 +
+ mm/mprotect.c                                 |   6 +
+ mm/page_io.c                                  |  10 +
+ mm/shmem.c                                    |   9 +
+ mm/swapfile.c                                 |   2 +
+ mm/util.c                                     |   2 +-
+ tools/vm/page-types.c                         |   2 +
+ 63 files changed, 1760 insertions(+), 59 deletions(-)
+ create mode 100644 Documentation/arm64/memory-tagging-extension.rst
+ create mode 100644 arch/arm64/include/asm/mte.h
+ create mode 100644 arch/arm64/kernel/mte.c
+ create mode 100644 arch/arm64/lib/mte.S
+ create mode 100644 arch/arm64/mm/mteswap.c
