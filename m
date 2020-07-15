@@ -1,100 +1,84 @@
-Return-Path: <SRS0=JYYx=A2=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from outpost1.zedat.fu-berlin.de ([130.133.4.66]:56651 "EHLO
-        outpost1.zedat.fu-berlin.de" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1726996AbgGOTqI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Jul 2020 15:46:08 -0400
-Subject: Re: [PATCH v6 10/18] sh/tlb: Convert SH to generic mmu_gather
-References: <20190219103148.192029670@infradead.org>
- <20190219103233.443069009@infradead.org>
- <CAMuHMdW3nwckjA9Bt-_Dmf50B__sZH+9E5s0_ziK1U_y9onN=g@mail.gmail.com>
- <20191204104733.GR2844@hirez.programming.kicks-ass.net>
- <CAMuHMdXs_Fm93t=O9jJPLxcREZy-T53Z_U_RtHcvaWyV+ESdjg@mail.gmail.com>
-From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Message-ID: <524b87c5-0e94-1578-4395-fd53226d02aa@physik.fu-berlin.de>
-Date: Wed, 15 Jul 2020 21:45:59 +0200
+Return-Path: <SRS0=Bqph=A2=kvack.org=owner-linux-mm@kernel.org>
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [PATCH v3 1/3] arm64: tlb: Detect the ARMv8.4 TLBI RANGE feature
+Date: Wed, 15 Jul 2020 15:19:43 +0800
+Message-ID: <20200715071945.897-2-yezhenyu2@huawei.com>
+In-Reply-To: <20200715071945.897-1-yezhenyu2@huawei.com>
+References: <20200715071945.897-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-In-Reply-To: <CAMuHMdXs_Fm93t=O9jJPLxcREZy-T53Z_U_RtHcvaWyV+ESdjg@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Heiko Carstens <heiko.carstens@de.ibm.com>, Rik van Riel <riel@surriel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, Guenter Roeck <linux@roeck-us.net>
-Message-ID: <20200715194559.t88LXVM6ER-2NsqllVHDHHgEKkVuzMnBTJcwOYpzmdE@z>
+Message-ID: <20200715071943.vsZsut8O6u5UIEbr2d7fu3RiZZLO-HdzA9mC-QdqkYg@z>
 
-Hi!
+ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
+range of input addresses. This patch detect this feature.
 
-On 12/4/19 1:32 PM, Geert Uytterhoeven wrote:
->>>> Cc: Will Deacon <will.deacon@arm.com>
->>>> Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
->>>> Cc: Andrew Morton <akpm@linux-foundation.org>
->>>> Cc: Nick Piggin <npiggin@gmail.com>
->>>> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
->>>> Cc: Rich Felker <dalias@libc.org>
->>>> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
->>>
->>> I got remote access to an SH7722-based Migo-R again, which spews a long
->>> sequence of BUGs during userspace startup.  I've bisected this to commit
->>> c5b27a889da92f4a ("sh/tlb: Convert SH to generic mmu_gather").
->>
->> Whoopsy.. also, is this really the first time anybody booted an SH
->> kernel in over a year ?!?
-> 
-> Nah, but the v5.4-rc3 I booted recently on qemu -M r2d had
-> CONFIG_PGTABLE_LEVELS=2, so it didn't show the problem.
-> 
->>> Do you have a clue?
->>
->> Does the below help?
-> 
-> Unfortunately not.
-> 
->> diff --git a/arch/sh/include/asm/pgalloc.h b/arch/sh/include/asm/pgalloc.h
->> index 22d968bfe9bb..73a2c00de6c5 100644
->> --- a/arch/sh/include/asm/pgalloc.h
->> +++ b/arch/sh/include/asm/pgalloc.h
->> @@ -36,9 +36,8 @@ do {                                                  \
->>  #if CONFIG_PGTABLE_LEVELS > 2
->>  #define __pmd_free_tlb(tlb, pmdp, addr)                        \
->>  do {                                                   \
->> -       struct page *page = virt_to_page(pmdp);         \
->> -       pgtable_pmd_page_dtor(page);                    \
->> -       tlb_remove_page((tlb), page);                   \
->> +       pgtable_pmd_page_dtor(pmdp);                    \
-> 
-> expected ‘struct page *’ but argument is of type ‘pmd_t * {aka struct
-> <anonymous> *}’
-> 
->> +       tlb_remove_page((tlb), (pmdp));                 \
-> 
-> likewise
-> 
->>  } while (0);
->>  #endif
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+Link: https://lore.kernel.org/r/20200710094420.517-2-yezhenyu2@huawei.com
+[catalin.marinas@arm.com: some renaming for consistency]
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/include/asm/cpucaps.h |  3 ++-
+ arch/arm64/include/asm/sysreg.h  |  3 +++
+ arch/arm64/kernel/cpufeature.c   | 10 ++++++++++
+ 3 files changed, 15 insertions(+), 1 deletion(-)
 
-Any chance we can have another go at this? The original change
-
-commit c5b27a889da92f4a969d61df77bd4f79ffce57c9 (refs/bisect/bad)
-Author: Peter Zijlstra <peterz@infradead.org>
-Date:   Tue Sep 4 14:45:04 2018 +0200
-
-    sh/tlb: Convert SH to generic mmu_gather
-    
-    Generic mmu_gather provides everything SH needs (range tracking and
-    cache coherency).
-
-breaks systemd for me on my SH-7785LCR [1].
-
-Adrian
-
-> [1] https://marc.info/?l=linux-kernel&m=159479951822677&w=2
-
-Adrian
-
--- 
- .''`.  John Paul Adrian Glaubitz
-: :' :  Debian Developer - glaubitz@debian.org
-`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
-  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
+diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cp=
+ucaps.h
+index d44ba903d11d..07b643a70710 100644
+--- a/arch/arm64/include/asm/cpucaps.h
++++ b/arch/arm64/include/asm/cpucaps.h
+@@ -63,7 +63,8 @@
+ #define ARM64_HAS_32BIT_EL1			53
+ #define ARM64_BTI				54
+ #define ARM64_HAS_ARMv8_4_TTL			55
++#define ARM64_HAS_TLB_RANGE			56
+=20
+-#define ARM64_NCAPS				56
++#define ARM64_NCAPS				57
+=20
+ #endif /* __ASM_CPUCAPS_H */
+diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sys=
+reg.h
+index 8c209aa17273..551f30ace4db 100644
+--- a/arch/arm64/include/asm/sysreg.h
++++ b/arch/arm64/include/asm/sysreg.h
+@@ -617,6 +617,9 @@
+ #define ID_AA64ISAR0_SHA1_SHIFT		8
+ #define ID_AA64ISAR0_AES_SHIFT		4
+=20
++#define ID_AA64ISAR0_TLB_RANGE_NI	0x0
++#define ID_AA64ISAR0_TLB_RANGE		0x2
++
+ /* id_aa64isar1 */
+ #define ID_AA64ISAR1_I8MM_SHIFT		52
+ #define ID_AA64ISAR1_DGH_SHIFT		48
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeatur=
+e.c
+index e877f56ff1ab..2f5adefef34d 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -1893,6 +1893,16 @@ static const struct arm64_cpu_capabilities arm64_f=
+eatures[] =3D {
+ 		.min_field_value =3D 1,
+ 		.matches =3D has_cpuid_feature,
+ 	},
++	{
++		.desc =3D "TLB range maintenance instructions",
++		.capability =3D ARM64_HAS_TLB_RANGE,
++		.type =3D ARM64_CPUCAP_SYSTEM_FEATURE,
++		.matches =3D has_cpuid_feature,
++		.sys_reg =3D SYS_ID_AA64ISAR0_EL1,
++		.field_pos =3D ID_AA64ISAR0_TLB_SHIFT,
++		.sign =3D FTR_UNSIGNED,
++		.min_field_value =3D ID_AA64ISAR0_TLB_RANGE,
++	},
+ #ifdef CONFIG_ARM64_HW_AFDBM
+ 	{
+ 		/*
+--=20
+2.19.1
