@@ -1,210 +1,354 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v7 03/29] arm64: mte: Use Normal Tagged attributes for the linear map
-Date: Wed, 15 Jul 2020 18:08:18 +0100
-Message-ID: <20200715170844.30064-4-catalin.marinas@arm.com>
+Subject: [PATCH v7 05/29] arm64: mte: Handle synchronous and asynchronous tag check faults
+Date: Wed, 15 Jul 2020 18:08:20 +0100
+Message-ID: <20200715170844.30064-6-catalin.marinas@arm.com>
 References: <20200715170844.30064-1-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:36756 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:36878 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726479AbgGORI4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Jul 2020 13:08:56 -0400
+        id S1726479AbgGORJB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Jul 2020 13:09:01 -0400
 In-Reply-To: <20200715170844.30064-1-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>, Suzuki K Poulose <Suzuki.Poulose@arm.com>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>
 
-Once user space is given access to tagged memory, the kernel must be
-able to clear/save/restore tags visible to the user. This is done via
-the linear mapping, therefore map it as such. The new MT_NORMAL_TAGGED
-index for MAIR_EL1 is initially mapped as Normal memory and later
-changed to Normal Tagged via the cpufeature infrastructure. From a
-mismatched attribute aliases perspective, the Tagged memory is
-considered a permission and it won't lead to undefined behaviour.
+From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 
+The Memory Tagging Extension has two modes of notifying a tag check
+fault at EL0, configurable through the SCTLR_EL1.TCF0 field:
+
+1. Synchronous raising of a Data Abort exception with DFSC 17.
+2. Asynchronous setting of a cumulative bit in TFSRE0_EL1.
+
+Add the exception handler for the synchronous exception and handling of
+the asynchronous TFSRE0_EL1.TF0 bit setting via a new TIF flag in
+do_notify_resume().
+
+On a tag check failure in user-space, whether synchronous or
+asynchronous, a SIGSEGV will be raised on the faulting thread.
+
+Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
+Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Will Deacon <will@kernel.org>
-Cc: Suzuki K Poulose <Suzuki.Poulose@arm.com>
 ---
 
 Notes:
-    v5:
-    - Move the clearing of the zero page since clear_page() to a later
-      patch.
+    v6:
+    - Fix sparse warning on the 0 used as pointer.
+    
+    v4:
+    - Use send_signal_fault() instead of fault_signal_inject() for
+      asynchronous tag check faults as execution can continue even if this
+      signal is masked.
+    - Add DSB ISH prior to writing TFSRE0_EL1 in the clear_mte_async_tcf
+      macro.
+    - Move clear_mte_async_tcf just after returning to user since
+      do_notify_resume() may still cause async tag faults via do_signal().
     
     v3:
-    - Restrict the safe attribute change in pgattr_change_is_safe() only to
-      Normal to/from Normal-Tagged (old version allow any other type as long
-      as old or new was Normal(-Tagged)).
+    - Asynchronous tag check faults during the uaccess routines in the
+      kernel are ignored.
+    - Fix check_mte_async_tcf calling site as it expects the first argument
+      to be the thread flags.
+    - Move the mte_thread_switch() definition and call to a later patch as
+      this became empty with the removal of async uaccess checking.
+    - Add dsb() and clearing of TFSRE0_EL1 in flush_mte_state(), in case
+      execve() triggered a asynchronous tag check fault.
+    - Clear TIF_MTE_ASYNC_FAULT in arch_dup_task_struct() so that the child
+      does not inherit any pending tag fault in the parent.
+    
+    v2:
+    - Clear PSTATE.TCO on exception entry (automatically set by the hardware).
+    - On syscall entry, for asynchronous tag check faults from user space,
+      generate the signal early via syscall restarting.
+    - Before context switch, save any potential async tag check fault
+      generated by the kernel to the TIF flag (this follows an architecture
+      update where the uaccess routines use the TCF0 mode).
+    - Moved the flush_mte_state() and mte_thread_switch() function to a new
+      mte.c file.
 
- arch/arm64/include/asm/memory.h       |  1 +
- arch/arm64/include/asm/pgtable-prot.h |  2 ++
- arch/arm64/kernel/cpufeature.c        | 24 ++++++++++++++++++++++++
- arch/arm64/mm/dump.c                  |  4 ++++
- arch/arm64/mm/mmu.c                   | 22 ++++++++++++++++++++--
- arch/arm64/mm/proc.S                  |  8 ++++++--
- 6 files changed, 57 insertions(+), 4 deletions(-)
+ arch/arm64/include/asm/mte.h         | 23 +++++++++++++++++
+ arch/arm64/include/asm/thread_info.h |  4 ++-
+ arch/arm64/kernel/Makefile           |  1 +
+ arch/arm64/kernel/entry.S            | 37 ++++++++++++++++++++++++++++
+ arch/arm64/kernel/mte.c              | 21 ++++++++++++++++
+ arch/arm64/kernel/process.c          |  5 ++++
+ arch/arm64/kernel/signal.c           |  9 +++++++
+ arch/arm64/kernel/syscall.c          | 10 ++++++++
+ arch/arm64/mm/fault.c                |  9 ++++++-
+ 9 files changed, 117 insertions(+), 2 deletions(-)
+ create mode 100644 arch/arm64/include/asm/mte.h
+ create mode 100644 arch/arm64/kernel/mte.c
 
-diff --git a/arch/arm64/include/asm/memory.h b/arch/arm64/include/asm/memory.h
-index a1871bb32bb1..472c77a68225 100644
---- a/arch/arm64/include/asm/memory.h
-+++ b/arch/arm64/include/asm/memory.h
-@@ -136,6 +136,7 @@
- #define MT_NORMAL_NC		3
- #define MT_NORMAL		4
- #define MT_NORMAL_WT		5
-+#define MT_NORMAL_TAGGED	6
- 
- /*
-  * Memory types for Stage-2 translation
-diff --git a/arch/arm64/include/asm/pgtable-prot.h b/arch/arm64/include/asm/pgtable-prot.h
-index 2e7e0f452301..292f1d58b96e 100644
---- a/arch/arm64/include/asm/pgtable-prot.h
-+++ b/arch/arm64/include/asm/pgtable-prot.h
-@@ -50,6 +50,7 @@ extern bool arm64_use_ng_mappings;
- #define PROT_NORMAL_NC		(PROT_DEFAULT | PTE_PXN | PTE_UXN | PTE_WRITE | PTE_ATTRINDX(MT_NORMAL_NC))
- #define PROT_NORMAL_WT		(PROT_DEFAULT | PTE_PXN | PTE_UXN | PTE_WRITE | PTE_ATTRINDX(MT_NORMAL_WT))
- #define PROT_NORMAL		(PROT_DEFAULT | PTE_PXN | PTE_UXN | PTE_WRITE | PTE_ATTRINDX(MT_NORMAL))
-+#define PROT_NORMAL_TAGGED	(PROT_DEFAULT | PTE_PXN | PTE_UXN | PTE_WRITE | PTE_ATTRINDX(MT_NORMAL_TAGGED))
- 
- #define PROT_SECT_DEVICE_nGnRE	(PROT_SECT_DEFAULT | PMD_SECT_PXN | PMD_SECT_UXN | PMD_ATTRINDX(MT_DEVICE_nGnRE))
- #define PROT_SECT_NORMAL	(PROT_SECT_DEFAULT | PMD_SECT_PXN | PMD_SECT_UXN | PMD_ATTRINDX(MT_NORMAL))
-@@ -59,6 +60,7 @@ extern bool arm64_use_ng_mappings;
- #define _HYP_PAGE_DEFAULT	_PAGE_DEFAULT
- 
- #define PAGE_KERNEL		__pgprot(PROT_NORMAL)
-+#define PAGE_KERNEL_TAGGED	__pgprot(PROT_NORMAL_TAGGED)
- #define PAGE_KERNEL_RO		__pgprot((PROT_NORMAL & ~PTE_WRITE) | PTE_RDONLY)
- #define PAGE_KERNEL_ROX		__pgprot((PROT_NORMAL & ~(PTE_WRITE | PTE_PXN)) | PTE_RDONLY)
- #define PAGE_KERNEL_EXEC	__pgprot(PROT_NORMAL & ~PTE_PXN)
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-index ccfdcb93d736..790b0e1da136 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -1662,13 +1662,37 @@ static void bti_enable(const struct arm64_cpu_capabilities *__unused)
- #ifdef CONFIG_ARM64_MTE
- static void cpu_enable_mte(struct arm64_cpu_capabilities const *cap)
- {
-+	u64 mair;
+diff --git a/arch/arm64/include/asm/mte.h b/arch/arm64/include/asm/mte.h
+new file mode 100644
+index 000000000000..a0bf310da74b
+--- /dev/null
++++ b/arch/arm64/include/asm/mte.h
+@@ -0,0 +1,23 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++#ifndef __ASM_MTE_H
++#define __ASM_MTE_H
 +
- 	/* all non-zero tags excluded by default */
- 	write_sysreg_s(SYS_GCR_EL1_RRND | SYS_GCR_EL1_EXCL_MASK, SYS_GCR_EL1);
- 	write_sysreg_s(0, SYS_TFSR_EL1);
- 	write_sysreg_s(0, SYS_TFSRE0_EL1);
++#ifndef __ASSEMBLY__
++
++#ifdef CONFIG_ARM64_MTE
++
++void flush_mte_state(void);
++
++#else
++
++static inline void flush_mte_state(void)
++{
++}
++
++#endif
++
++#endif /* __ASSEMBLY__ */
++#endif /* __ASM_MTE_H  */
+diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
+index 6ea8b6a26ae9..c91605faa9cb 100644
+--- a/arch/arm64/include/asm/thread_info.h
++++ b/arch/arm64/include/asm/thread_info.h
+@@ -67,6 +67,7 @@ void arch_release_task_struct(struct task_struct *tsk);
+ #define TIF_FOREIGN_FPSTATE	3	/* CPU's FP state is not current's */
+ #define TIF_UPROBE		4	/* uprobe breakpoint or singlestep */
+ #define TIF_FSCHECK		5	/* Check FS is USER_DS on return */
++#define TIF_MTE_ASYNC_FAULT	6	/* MTE Asynchronous Tag Check Fault */
+ #define TIF_SYSCALL_TRACE	8	/* syscall trace active */
+ #define TIF_SYSCALL_AUDIT	9	/* syscall auditing */
+ #define TIF_SYSCALL_TRACEPOINT	10	/* syscall tracepoint for ftrace */
+@@ -95,10 +96,11 @@ void arch_release_task_struct(struct task_struct *tsk);
+ #define _TIF_FSCHECK		(1 << TIF_FSCHECK)
+ #define _TIF_32BIT		(1 << TIF_32BIT)
+ #define _TIF_SVE		(1 << TIF_SVE)
++#define _TIF_MTE_ASYNC_FAULT	(1 << TIF_MTE_ASYNC_FAULT)
  
-+	/*
-+	 * Update the MT_NORMAL_TAGGED index in MAIR_EL1. Tag checking is
-+	 * disabled for the kernel, so there won't be any observable effect
-+	 * other than allowing the kernel to read and write tags.
-+	 */
-+	mair = read_sysreg_s(SYS_MAIR_EL1);
-+	mair &= ~MAIR_ATTRIDX(MAIR_ATTR_MASK, MT_NORMAL_TAGGED);
-+	mair |= MAIR_ATTRIDX(MAIR_ATTR_NORMAL_TAGGED, MT_NORMAL_TAGGED);
-+	write_sysreg_s(mair, SYS_MAIR_EL1);
+ #define _TIF_WORK_MASK		(_TIF_NEED_RESCHED | _TIF_SIGPENDING | \
+ 				 _TIF_NOTIFY_RESUME | _TIF_FOREIGN_FPSTATE | \
+-				 _TIF_UPROBE | _TIF_FSCHECK)
++				 _TIF_UPROBE | _TIF_FSCHECK | _TIF_MTE_ASYNC_FAULT)
+ 
+ #define _TIF_SYSCALL_WORK	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | \
+ 				 _TIF_SYSCALL_TRACEPOINT | _TIF_SECCOMP | \
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index a561cbb91d4d..5fb9b728459b 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -62,6 +62,7 @@ obj-$(CONFIG_ARM_SDE_INTERFACE)		+= sdei.o
+ obj-$(CONFIG_ARM64_SSBD)		+= ssbd.o
+ obj-$(CONFIG_ARM64_PTR_AUTH)		+= pointer_auth.o
+ obj-$(CONFIG_SHADOW_CALL_STACK)		+= scs.o
++obj-$(CONFIG_ARM64_MTE)			+= mte.o
+ 
+ obj-y					+= vdso/ probes/
+ obj-$(CONFIG_COMPAT_VDSO)		+= vdso32/
+diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
+index 5304d193c79d..cde127508e38 100644
+--- a/arch/arm64/kernel/entry.S
++++ b/arch/arm64/kernel/entry.S
+@@ -146,6 +146,32 @@ alternative_cb_end
+ #endif
+ 	.endm
+ 
++	/* Check for MTE asynchronous tag check faults */
++	.macro check_mte_async_tcf, flgs, tmp
++#ifdef CONFIG_ARM64_MTE
++alternative_if_not ARM64_MTE
++	b	1f
++alternative_else_nop_endif
++	mrs_s	\tmp, SYS_TFSRE0_EL1
++	tbz	\tmp, #SYS_TFSR_EL1_TF0_SHIFT, 1f
++	/* Asynchronous TCF occurred for TTBR0 access, set the TI flag */
++	orr	\flgs, \flgs, #_TIF_MTE_ASYNC_FAULT
++	str	\flgs, [tsk, #TSK_TI_FLAGS]
++	msr_s	SYS_TFSRE0_EL1, xzr
++1:
++#endif
++	.endm
 +
- 	isb();
- }
++	/* Clear the MTE asynchronous tag check faults */
++	.macro clear_mte_async_tcf
++#ifdef CONFIG_ARM64_MTE
++alternative_if ARM64_MTE
++	dsb	ish
++	msr_s	SYS_TFSRE0_EL1, xzr
++alternative_else_nop_endif
++#endif
++	.endm
 +
-+static int __init system_enable_mte(void)
+ 	.macro	kernel_entry, el, regsize = 64
+ 	.if	\regsize == 32
+ 	mov	w0, w0				// zero upper 32 bits of x0
+@@ -177,6 +203,8 @@ alternative_cb_end
+ 	ldr	x19, [tsk, #TSK_TI_FLAGS]
+ 	disable_step_tsk x19, x20
+ 
++	/* Check for asynchronous tag check faults in user space */
++	check_mte_async_tcf x19, x22
+ 	apply_ssbd 1, x22, x23
+ 
+ 	ptrauth_keys_install_kernel tsk, x20, x22, x23
+@@ -247,6 +275,13 @@ alternative_if ARM64_HAS_IRQ_PRIO_MASKING
+ 	str	x20, [sp, #S_PMR_SAVE]
+ alternative_else_nop_endif
+ 
++	/* Re-enable tag checking (TCO set on exception entry) */
++#ifdef CONFIG_ARM64_MTE
++alternative_if ARM64_MTE
++	SET_PSTATE_TCO(0)
++alternative_else_nop_endif
++#endif
++
+ 	/*
+ 	 * Registers that may be useful after this macro is invoked:
+ 	 *
+@@ -755,6 +790,8 @@ SYM_CODE_START_LOCAL(ret_to_user)
+ 	and	x2, x1, #_TIF_WORK_MASK
+ 	cbnz	x2, work_pending
+ finish_ret_to_user:
++	/* Ignore asynchronous tag check faults in the uaccess routines */
++	clear_mte_async_tcf
+ 	enable_step_tsk x1, x2
+ #ifdef CONFIG_GCC_PLUGIN_STACKLEAK
+ 	bl	stackleak_erase
+diff --git a/arch/arm64/kernel/mte.c b/arch/arm64/kernel/mte.c
+new file mode 100644
+index 000000000000..032016823957
+--- /dev/null
++++ b/arch/arm64/kernel/mte.c
+@@ -0,0 +1,21 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2020 ARM Ltd.
++ */
++
++#include <linux/thread_info.h>
++
++#include <asm/cpufeature.h>
++#include <asm/mte.h>
++#include <asm/sysreg.h>
++
++void flush_mte_state(void)
 +{
 +	if (!system_supports_mte())
-+		return 0;
++		return;
 +
-+	/* Ensure the TLB does not have stale MAIR attributes */
-+	flush_tlb_all();
-+
-+	return 0;
++	/* clear any pending asynchronous tag fault */
++	dsb(ish);
++	write_sysreg_s(0, SYS_TFSRE0_EL1);
++	clear_thread_flag(TIF_MTE_ASYNC_FAULT);
 +}
-+core_initcall(system_enable_mte);
- #endif /* CONFIG_ARM64_MTE */
- 
- /* Internal helper functions to match cpu capability type */
-diff --git a/arch/arm64/mm/dump.c b/arch/arm64/mm/dump.c
-index 0b8da1cc1c07..ba6d1d89f9b2 100644
---- a/arch/arm64/mm/dump.c
-+++ b/arch/arm64/mm/dump.c
-@@ -169,6 +169,10 @@ static const struct prot_bits pte_bits[] = {
- 		.mask	= PTE_ATTRINDX_MASK,
- 		.val	= PTE_ATTRINDX(MT_NORMAL),
- 		.set	= "MEM/NORMAL",
-+	}, {
-+		.mask	= PTE_ATTRINDX_MASK,
-+		.val	= PTE_ATTRINDX(MT_NORMAL_TAGGED),
-+		.set	= "MEM/NORMAL-TAGGED",
- 	}
- };
- 
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index 1df25f26571d..0bbe96c006ad 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -121,7 +121,7 @@ static bool pgattr_change_is_safe(u64 old, u64 new)
- 	 * The following mapping attributes may be updated in live
- 	 * kernel mappings without the need for break-before-make.
- 	 */
--	static const pteval_t mask = PTE_PXN | PTE_RDONLY | PTE_WRITE | PTE_NG;
-+	pteval_t mask = PTE_PXN | PTE_RDONLY | PTE_WRITE | PTE_NG;
- 
- 	/* creating or taking down mappings is always safe */
- 	if (old == 0 || new == 0)
-@@ -135,6 +135,19 @@ static bool pgattr_change_is_safe(u64 old, u64 new)
- 	if (old & ~new & PTE_NG)
- 		return false;
- 
-+	if (system_supports_mte()) {
-+		/*
-+		 * Changing the memory type between Normal and Normal-Tagged
-+		 * is safe since Tagged is considered a permission attribute
-+		 * from the mismatched attribute aliases perspective.
-+		 */
-+		if (((old & PTE_ATTRINDX_MASK) == PTE_ATTRINDX(MT_NORMAL) ||
-+		     (old & PTE_ATTRINDX_MASK) == PTE_ATTRINDX(MT_NORMAL_TAGGED)) &&
-+		    ((new & PTE_ATTRINDX_MASK) == PTE_ATTRINDX(MT_NORMAL) ||
-+		     (new & PTE_ATTRINDX_MASK) == PTE_ATTRINDX(MT_NORMAL_TAGGED)))
-+			mask |= PTE_ATTRINDX_MASK;
-+	}
-+
- 	return ((old ^ new) & ~mask) == 0;
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index 6089638c7d43..695705d1f8e5 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -52,6 +52,7 @@
+ #include <asm/exec.h>
+ #include <asm/fpsimd.h>
+ #include <asm/mmu_context.h>
++#include <asm/mte.h>
+ #include <asm/processor.h>
+ #include <asm/pointer_auth.h>
+ #include <asm/stacktrace.h>
+@@ -338,6 +339,7 @@ void flush_thread(void)
+ 	tls_thread_flush();
+ 	flush_ptrace_hw_breakpoint(current);
+ 	flush_tagged_addr_state();
++	flush_mte_state();
  }
  
-@@ -490,7 +503,12 @@ static void __init map_mem(pgd_t *pgdp)
- 		if (memblock_is_nomap(reg))
- 			continue;
+ void release_thread(struct task_struct *dead_task)
+@@ -370,6 +372,9 @@ int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
+ 	dst->thread.sve_state = NULL;
+ 	clear_tsk_thread_flag(dst, TIF_SVE);
  
--		__map_memblock(pgdp, start, end, PAGE_KERNEL, flags);
-+		/*
-+		 * The linear map must allow allocation tags reading/writing
-+		 * if MTE is present. Otherwise, it has the same attributes as
-+		 * PAGE_KERNEL.
-+		 */
-+		__map_memblock(pgdp, start, end, PAGE_KERNEL_TAGGED, flags);
++	/* clear any pending asynchronous tag fault raised by the parent */
++	clear_tsk_thread_flag(dst, TIF_MTE_ASYNC_FAULT);
++
+ 	return 0;
+ }
+ 
+diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+index 801d56cdf701..c2a14a2a0d8e 100644
+--- a/arch/arm64/kernel/signal.c
++++ b/arch/arm64/kernel/signal.c
+@@ -748,6 +748,9 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+ 		regs->pstate |= PSR_BTYPE_C;
  	}
  
- 	/*
-diff --git a/arch/arm64/mm/proc.S b/arch/arm64/mm/proc.S
-index 796e47a571e6..152d74f2cc9c 100644
---- a/arch/arm64/mm/proc.S
-+++ b/arch/arm64/mm/proc.S
-@@ -44,14 +44,18 @@
- #define TCR_KASAN_FLAGS 0
- #endif
++	/* TCO (Tag Check Override) always cleared for signal handlers */
++	regs->pstate &= ~PSR_TCO_BIT;
++
+ 	if (ka->sa.sa_flags & SA_RESTORER)
+ 		sigtramp = ka->sa.sa_restorer;
+ 	else
+@@ -939,6 +942,12 @@ asmlinkage void do_notify_resume(struct pt_regs *regs,
+ 			if (thread_flags & _TIF_UPROBE)
+ 				uprobe_notify_resume(regs);
  
--/* Default MAIR_EL1 */
-+/*
-+ * Default MAIR_EL1. MT_NORMAL_TAGGED is initially mapped as Normal memory and
-+ * changed later to Normal Tagged if the system supports MTE.
-+ */
- #define MAIR_EL1_SET							\
- 	(MAIR_ATTRIDX(MAIR_ATTR_DEVICE_nGnRnE, MT_DEVICE_nGnRnE) |	\
- 	 MAIR_ATTRIDX(MAIR_ATTR_DEVICE_nGnRE, MT_DEVICE_nGnRE) |	\
- 	 MAIR_ATTRIDX(MAIR_ATTR_DEVICE_GRE, MT_DEVICE_GRE) |		\
- 	 MAIR_ATTRIDX(MAIR_ATTR_NORMAL_NC, MT_NORMAL_NC) |		\
- 	 MAIR_ATTRIDX(MAIR_ATTR_NORMAL, MT_NORMAL) |			\
--	 MAIR_ATTRIDX(MAIR_ATTR_NORMAL_WT, MT_NORMAL_WT))
-+	 MAIR_ATTRIDX(MAIR_ATTR_NORMAL_WT, MT_NORMAL_WT) |		\
-+	 MAIR_ATTRIDX(MAIR_ATTR_NORMAL, MT_NORMAL_TAGGED))
++			if (thread_flags & _TIF_MTE_ASYNC_FAULT) {
++				clear_thread_flag(TIF_MTE_ASYNC_FAULT);
++				send_sig_fault(SIGSEGV, SEGV_MTEAERR,
++					       (void __user *)NULL, current);
++			}
++
+ 			if (thread_flags & _TIF_SIGPENDING)
+ 				do_signal(regs);
  
- #ifdef CONFIG_CPU_PM
- /**
+diff --git a/arch/arm64/kernel/syscall.c b/arch/arm64/kernel/syscall.c
+index 5f5b868292f5..e4b977e1cf0b 100644
+--- a/arch/arm64/kernel/syscall.c
++++ b/arch/arm64/kernel/syscall.c
+@@ -120,6 +120,16 @@ static void el0_svc_common(struct pt_regs *regs, int scno, int sc_nr,
+ 	local_daif_restore(DAIF_PROCCTX);
+ 	user_exit();
+ 
++	if (system_supports_mte() && (flags & _TIF_MTE_ASYNC_FAULT)) {
++		/*
++		 * Process the asynchronous tag check fault before the actual
++		 * syscall. do_notify_resume() will send a signal to userspace
++		 * before the syscall is restarted.
++		 */
++		regs->regs[0] = -ERESTARTNOINTR;
++		return;
++	}
++
+ 	if (has_syscall_work(flags)) {
+ 		/* set default errno for user-issued syscall(-1) */
+ 		if (scno == NO_SYSCALL)
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 8afb238ff335..5e832b3387f1 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -658,6 +658,13 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+ 	return 0;
+ }
+ 
++static int do_tag_check_fault(unsigned long addr, unsigned int esr,
++			      struct pt_regs *regs)
++{
++	do_bad_area(addr, esr, regs);
++	return 0;
++}
++
+ static const struct fault_info fault_info[] = {
+ 	{ do_bad,		SIGKILL, SI_KERNEL,	"ttbr address size fault"	},
+ 	{ do_bad,		SIGKILL, SI_KERNEL,	"level 1 address size fault"	},
+@@ -676,7 +683,7 @@ static const struct fault_info fault_info[] = {
+ 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 permission fault"	},
+ 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 3 permission fault"	},
+ 	{ do_sea,		SIGBUS,  BUS_OBJERR,	"synchronous external abort"	},
+-	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 17"			},
++	{ do_tag_check_fault,	SIGSEGV, SEGV_MTESERR,	"synchronous tag check fault"	},
+ 	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 18"			},
+ 	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 19"			},
+ 	{ do_sea,		SIGKILL, SI_KERNEL,	"level 0 (translation table walk)"	},
