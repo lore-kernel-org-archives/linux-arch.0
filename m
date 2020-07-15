@@ -1,50 +1,141 @@
-From: Waiman Long <longman@redhat.com>
-Subject: Re: [PATCH 2/2] locking/pvqspinlock: Optionally store lock holder cpu
- into lock
-Date: Wed, 15 Jul 2020 12:33:27 -0400
-Message-ID: <b16a2d2b-3c72-cb70-5b6c-2f02a0953e42@redhat.com>
-References: <20200711182128.29130-1-longman@redhat.com>
- <20200711182128.29130-3-longman@redhat.com>
- <20200712173452.GB10769@hirez.programming.kicks-ass.net>
- <bed22603-e347-8bff-f586-072a18987946@redhat.com>
- <1594613637.ds7pt1by9l.astroid@bobo.none>
- <e850b327-d747-fbe8-95db-4e2fbb1d7871@redhat.com>
- <20200714090126.GR10769@hirez.programming.kicks-ass.net>
-Mime-Version: 1.0
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Re: [PATCH] asm-generic/mmiowb: Get cpu in mmiowb_set_pending
+Date: Wed, 15 Jul 2020 09:41:50 -0700 (PDT)
+Message-ID: <mhng-d6287ba3-3b57-431e-b0e7-9d17b514748c@palmerdabbelt-glaptop1>
+References: <20200715144806.GA3443108@google.com>
+Mime-Version: 1.0 (MHng)
 Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:50166 "EHLO
-        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1725838AbgGOQdg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2020 12:33:36 -0400
-In-Reply-To: <20200714090126.GR10769@hirez.programming.kicks-ass.net>
-Content-Language: en-US
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43792 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725867AbgGOQlw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2020 12:41:52 -0400
+Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 46EC7C061755
+        for <linux-arch@vger.kernel.org>; Wed, 15 Jul 2020 09:41:52 -0700 (PDT)
+Received: by mail-pj1-x1043.google.com with SMTP id t15so3235162pjq.5
+        for <linux-arch@vger.kernel.org>; Wed, 15 Jul 2020 09:41:52 -0700 (PDT)
+In-Reply-To: <20200715144806.GA3443108@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Davidlohr Bueso <dave@stgolabs.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, x86@kernel.org
+To: Will Deacon <willdeacon@google.com>
+Cc: kernel@esmil.dk, guoren@kernel.org, linux-riscv@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, Paul Walmsley <paul.walmsley@sifive.com>, linux-arch@vger.kernel.org
 
-On 7/14/20 5:01 AM, Peter Zijlstra wrote:
-> On Mon, Jul 13, 2020 at 10:48:00PM -0400, Waiman Long wrote:
->> Storing the cpu number into the lock can be useful for other reason too. It
->> is not totally related to PPC support.
-> Well, the thing you did only works for 'small' (<253 CPU) systems.
-> There's a number of Power systems that's distinctly larger than that. So
-> it simply cannot work as anything other than a suggestion/hint. It must
-> not be a correctness thing.
+On Wed, 15 Jul 2020 07:48:06 PDT (-0700), Will Deacon wrote:
+> On Wed, Jul 15, 2020 at 07:03:49AM -0700, Palmer Dabbelt wrote:
+>> On Wed, 15 Jul 2020 03:42:46 PDT (-0700), Will Deacon wrote:
+>> > Hmm. Although I _think_ something like the diff below ought to work, are you
+>> > sure you want to be doing MMIO writes in preemptible context? Setting
+>> > '.disable_locking = true' in 'sifive_gpio_regmap_config' implies to me that
+>> > you should be handling the locking within the driver itself, and all the
+>> > other regmap writes are protected by '&gc->bgpio_lock'.
+>>
+>> I guess my goal here was to avoid fixing the drivers: it's one thing if it's
+>> just broken SiFive drivers, as they're all a bit crusty, but this is blowing up
+>> for me in the 8250 driver on QEMU as well.  At that point I figured there'd be
+>> an endless stream of bugs around this and I'd rather just.
 >
-Yes, there are limit on how much data one can put into the lock byte. So 
-it is not a sure way to find out who the lock holder is. There are 
-certainly large systems with hundreds or even thousands of cpus, but 
-they are the minority in the sea of Linux systems out there.
+> Right, and my patch should solve that.
+>
+>> > Given that riscv is one of the few architectures needing an implementation
+>> > of mmiowb(), doing MMIO in a preemptible section seems especially dangerous
+>> > as you have no way to ensure completion of the writes without adding an
+>> > mmiowb() to the CPU migration path (i.e. context switch).
+>>
+>> I was going to just stick one in our context switching code unconditionally.
+>> While we could go track cumulative writes outside the locks, the mmiowb is
+>> essentially free for us because the one RISC-V implementation treats all fences
+>> the same way so the subsequent store_release would hold all this up anyway.
+>>
+>> I think the right thing to do is to add some sort of arch hook right about here
+>>
+>> diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+>> index cfd71d61aa3c..14b4f8b7433f 100644
+>> --- a/kernel/sched/core.c
+>> +++ b/kernel/sched/core.c
+>> @@ -3212,6 +3212,7 @@ static struct rq *finish_task_switch(struct task_struct *prev)
+>> 	prev_state = prev->state;
+>> 	vtime_task_switch(prev);
+>> 	perf_event_task_sched_in(prev, current);
+>> +	finish_arch_pre_release(prev);
+>> 	finish_task(prev);
+>> 	finish_lock_switch(rq);
+>> 	finish_arch_post_lock_switch();
+>>
+>> but I was just going to stick it in switch_to for now... :).  I guess we could
+>> also roll the fence up into yet another one-off primitive for the scheduler,
+>> something like
+>
+> What does the above get you over switch_to()?
+>
+>> > diff --git a/include/asm-generic/mmiowb.h b/include/asm-generic/mmiowb.h
+>> > index 9439ff037b2d..5698fca3bf56 100644
+>> > --- a/include/asm-generic/mmiowb.h
+>> > +++ b/include/asm-generic/mmiowb.h
+>> > @@ -27,7 +27,7 @@
+>> >  #include <asm/smp.h>
+>> >
+>> >  DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
+>> > -#define __mmiowb_state()       this_cpu_ptr(&__mmiowb_state)
+>> > +#define __mmiowb_state()       raw_cpu_ptr(&__mmiowb_state)
+>> >  #else
+>> >  #define __mmiowb_state()       arch_mmiowb_state()
+>> >  #endif /* arch_mmiowb_state */
+>> > @@ -35,7 +35,9 @@ DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
+>> >  static inline void mmiowb_set_pending(void)
+>> >  {
+>> >         struct mmiowb_state *ms = __mmiowb_state();
+>> > -       ms->mmiowb_pending = ms->nesting_count;
+>> > +
+>> > +       if (likely(ms->nesting_count))
+>> > +               ms->mmiowb_pending = ms->nesting_count;
+>>
+>> Ya, that's one of the earlier ideas I had, but I decided it doesn't actually do
+>> anything: if we're scheduleable then we know that pending and count are zero,
+>> thus the check isn't necessary.  It made sense late last night and still does
+>> this morning, but I haven't had my coffee yet.
+>
+> What it does is prevent preemptible writeX() from trashing the state on
+> another CPU, so I think it's a valid fix. I agree that it doesn't help
+> you if you need mmiowb(), but then that _really_ should only be needed if
+> you're holding a spinlock. If you're doing concurrent lockless MMIO you
+> deserve all the pain you get.
+>
+> I don't get why you think the patch does nothing, as it will operate as
+> expected if writeX() is called with preemption disabled, which is the common
+> case.
 
-If the lock holder goes through the slowpath, the one behind it can save 
-its cpu number which can be used a hint of who the lock holder is though 
-it is not that reliable as lock stealing can happen.
+Aside from PREEMPT_RT, I don't understand how you can be scheduled onto a CPU
+that has a non-zero nesting_count.  Doesn't that mean that the CPU you're
+scheduled on to is itself holding a spinlock, and therefor can't be scheduled
+on?
 
-BTW, I did get the optimized PV unlock asm code working now. I will post 
-the updated unconditional patch later this week for further discussion.
+Sure, some interrupt could come in the middle, but it's still going to see the
+non-zero nesting_count left over from the spinlock being held and therefor will
+avoid trashing the accumulated mmiowb.  As far as I can tell everything then
+proceeds acceptably: when the interrupt unlocks it'll do an mmiowb (whether it
+did an IO or not), which is sufficient to ensure that the IO from the
+interrupted code is completed before the unlock from that code.
 
-Cheers,
-Longman
+I must be missing something here?
+
+>> I'm kind of tempted to just declare "mmiowb() is fast on RISC-V, so let's do it
+>> unconditionally everywhere it's necessary".  IIRC that's essentially true on
+>> the existing implementation, as it'll get rolled up to any upcoming fence
+>> anyway.  It seems like building any real machine that relies on the orderings
+>> provided by mmiowb is going to have an infinate rabbit hole of bugs anyway, so
+>> in that case we'd just rely on the hardware to elide the now unnecessary fences
+>> so we'd just be throwing static code size at this wacky memory model and then
+>> forgetting about it.
+>
+> If you can do that, that's obviously the best approach.
+>
+>> I'm going to send out a patch set that does all the work I think is necessary
+>> to avoid fixing up the various drivers, with the accounting code to avoid
+>> mmiowbs all over our port.  I'm not sure I'm going to like it, but I guess we
+>> can argue as to exactly how ugly it is :)
+>
+> Ok.
+>
+> Will
