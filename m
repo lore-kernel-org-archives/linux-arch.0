@@ -1,32 +1,97 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 4/5] arm64: Use the generic devmem_is_allowed()
-Date: Tue, 14 Jul 2020 19:14:15 +0100
-Message-ID: <20200714181415.GC10736@gaia>
-References: <20200709211925.1926557-1-palmer@dabbelt.com>
- <20200709211925.1926557-5-palmer@dabbelt.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v8 5/8] powerpc/vdso: Prepare for switching VDSO to generic C implementation.
+Date: Wed, 15 Jul 2020 11:04:26 +1000
+Message-ID: <878sflvbad.fsf@mpe.ellerman.id.au>
+References: <cover.1588079622.git.christophe.leroy@c-s.fr> <2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:57366 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727772AbgGNSO0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jul 2020 14:14:26 -0400
-Content-Disposition: inline
-In-Reply-To: <20200709211925.1926557-5-palmer@dabbelt.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: zong.li@sifive.com, linux-riscv@lists.infradead.org, rppt@linux.ibm.com, linux@armlinux.org.uk, will@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, aou@eecs.berkeley.edu, gxt@pku.edu.cn, Arnd Bergmann <arnd@arndb.de>, linus.walleij@linaro.org, akpm@linux-foundation.org, mchehab+samsung@kernel.org, gregory.0xf0@gmail.com, masahiroy@kernel.org, Nick Desaulniers <ndesaulniers@google.com>, bgolaszewski@baylibre.com, steve@sk2.org, tglx@linutronix.de, keescook@chromium.org, alex@ghiti.fr, mcgrof@kernel.org, mark.rutland@arm.com, james.morse@arm.com, alex.shi@linux.alibaba.com, andriy.shevchenko@linux.intel.com, broonie@kernel.org, rdunlap@infradead.org, davem@davemloft.net, rostedt@goodmis.org, dan.j.williams@intel.com, mhiramat@kernel.org, krzk@kernel.org, zaslonko@linux
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, nathanl@linux.ibm.com
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org, Tulio Magno Quites Machado Filho <tuliom@linux.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 09, 2020 at 02:19:24PM -0700, Palmer Dabbelt wrote:
-> From: Palmer Dabbelt <palmerdabbelt@google.com>
-> 
-> I recently copied this into lib/ for use by the RISC-V port.
-> 
-> [I haven't even build tested this.  The lib/ patch is on riscv/for-next,
-> which I'm targeting for 5.9, so this won't work alone.  See the cover
-> letter for more details.]
-> 
-> Signed-off-by: Palmer Dabbelt <palmerdabbelt@google.com>
+Christophe Leroy <christophe.leroy@c-s.fr> writes:
+> Prepare for switching VDSO to generic C implementation in following
+> patch. Here, we:
+> - Modify __get_datapage() to take an offset
+> - Prepare the helpers to call the C VDSO functions
+> - Prepare the required callbacks for the C VDSO functions
+> - Prepare the clocksource.h files to define VDSO_ARCH_CLOCKMODES
+> - Add the C trampolines to the generic C VDSO functions
+>
+> powerpc is a bit special for VDSO as well as system calls in the
+> way that it requires setting CR SO bit which cannot be done in C.
+> Therefore, entry/exit needs to be performed in ASM.
+>
+> Implementing __arch_get_vdso_data() would clobber the link register,
+> requiring the caller to save it. As the ASM calling function already
+> has to set a stack frame and saves the link register before calling
+> the C vdso function, retriving the vdso data pointer there is lighter.
+...
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+> diff --git a/arch/powerpc/include/asm/vdso/gettimeofday.h b/arch/powerpc/include/asm/vdso/gettimeofday.h
+> new file mode 100644
+> index 000000000000..4452897f9bd8
+> --- /dev/null
+> +++ b/arch/powerpc/include/asm/vdso/gettimeofday.h
+> @@ -0,0 +1,175 @@
+> +/* SPDX-License-Identifier: GPL-2.0 */
+> +#ifndef __ASM_VDSO_GETTIMEOFDAY_H
+> +#define __ASM_VDSO_GETTIMEOFDAY_H
+> +
+> +#include <asm/ptrace.h>
+> +
+> +#ifdef __ASSEMBLY__
+> +
+> +.macro cvdso_call funct
+> +  .cfi_startproc
+> +	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
+> +	mflr		r0
+> +  .cfi_register lr, r0
+> +	PPC_STL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
+
+This doesn't work for me on ppc64(le) with glibc.
+
+glibc doesn't create a stack frame before making the VDSO call, so the
+store of r0 (LR) goes into the caller's frame, corrupting the saved LR,
+leading to an infinite loop.
+
+This is an example from a statically built program that calls
+clock_gettime():
+
+0000000010030cb0 <__clock_gettime>:
+    10030cb0:   0e 10 40 3c     lis     r2,4110
+    10030cb4:   00 7a 42 38     addi    r2,r2,31232
+    10030cb8:   a6 02 08 7c     mflr    r0
+    10030cbc:   ff ff 22 3d     addis   r9,r2,-1
+    10030cc0:   58 6d 29 39     addi    r9,r9,27992
+    10030cc4:   f0 ff c1 fb     std     r30,-16(r1)			<-- redzone store
+    10030cc8:   78 23 9e 7c     mr      r30,r4
+    10030ccc:   f8 ff e1 fb     std     r31,-8(r1)			<-- redzone store
+    10030cd0:   78 1b 7f 7c     mr      r31,r3
+    10030cd4:   10 00 01 f8     std     r0,16(r1)			<-- save LR to caller's frame
+    10030cd8:   00 00 09 e8     ld      r0,0(r9)
+    10030cdc:   00 00 20 2c     cmpdi   r0,0
+    10030ce0:   50 00 82 41     beq     10030d30 <__clock_gettime+0x80>
+    10030ce4:   a6 03 09 7c     mtctr   r0
+    10030ce8:   21 04 80 4e     bctrl					<-- vdso call
+    10030cec:   26 00 00 7c     mfcr    r0
+    10030cf0:   00 10 09 74     andis.  r9,r0,4096
+    10030cf4:   78 1b 69 7c     mr      r9,r3
+    10030cf8:   28 00 82 40     bne     10030d20 <__clock_gettime+0x70>
+    10030cfc:   b4 07 23 7d     extsw   r3,r9
+    10030d00:   10 00 01 e8     ld      r0,16(r1)			<-- load saved LR, since clobbered by the VDSO
+    10030d04:   f0 ff c1 eb     ld      r30,-16(r1)
+    10030d08:   f8 ff e1 eb     ld      r31,-8(r1)
+    10030d0c:   a6 03 08 7c     mtlr    r0				<-- restore LR
+    10030d10:   20 00 80 4e     blr					<-- jumps to 10030cec
+
+
+I'm kind of confused how it worked for you on 32-bit.
+
+There's also no code to load/restore the TOC pointer on BE, which I
+think we'll need to handle.
+
+cheers
