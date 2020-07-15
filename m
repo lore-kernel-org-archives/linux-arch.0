@@ -1,33 +1,80 @@
-Return-Path: <SRS0=Q31O=AZ=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:57366 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1727772AbgGNSO0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 14 Jul 2020 14:14:26 -0400
-Date: Tue, 14 Jul 2020 19:14:15 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 4/5] arm64: Use the generic devmem_is_allowed()
-Message-ID: <20200714181415.GC10736@gaia>
-References: <20200709211925.1926557-1-palmer@dabbelt.com>
- <20200709211925.1926557-5-palmer@dabbelt.com>
+Return-Path: <SRS0=JYYx=A2=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from szxga05-in.huawei.com ([45.249.212.191]:7753 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1728883AbgGOHUF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Jul 2020 03:20:05 -0400
+From: Zhenyu Ye <yezhenyu2@huawei.com>
+Subject: [PATCH v3 2/3] arm64: enable tlbi range instructions
+Date: Wed, 15 Jul 2020 15:19:44 +0800
+Message-ID: <20200715071945.897-3-yezhenyu2@huawei.com>
+In-Reply-To: <20200715071945.897-1-yezhenyu2@huawei.com>
+References: <20200715071945.897-1-yezhenyu2@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200709211925.1926557-5-palmer@dabbelt.com>
+Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: zong.li@sifive.com, linux-riscv@lists.infradead.org, rppt@linux.ibm.com, linux@armlinux.org.uk, will@kernel.org, Paul Walmsley <paul.walmsley@sifive.com>, aou@eecs.berkeley.edu, gxt@pku.edu.cn, Arnd Bergmann <arnd@arndb.de>, linus.walleij@linaro.org, akpm@linux-foundation.org, mchehab+samsung@kernel.org, gregory.0xf0@gmail.com, masahiroy@kernel.org, Nick Desaulniers <ndesaulniers@google.com>, bgolaszewski@baylibre.com, steve@sk2.org, tglx@linutronix.de, keescook@chromium.org, alex@ghiti.fr, mcgrof@kernel.org, mark.rutland@arm.com, james.morse@arm.com, alex.shi@linux.alibaba.com, andriy.shevchenko@linux.intel.com, broonie@kernel.org, rdunlap@infradead.org, davem@davemloft.net, rostedt@goodmis.org, dan.j.williams@intel.com, mhiramat@kernel.org, krzk@kernel.org, zaslonko@linux.ibm.com, matti.vaittinen@fi.rohmeurope.com, uwe@kleine-koenig.org, clabbe@baylibre.com, changbin.du@intel.com, Greg KH <gregkh@linuxfoundation.org>, paulmck@kernel.org, pmladek@suse.com, brendanhiggins@google.com, glider@google.com, elver@google.com, davidgow@google.com, ardb@kernel.org, takahiro.akashi@linaro.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-team@android.com, Palmer Dabbelt <palmerdabbelt@google.com>
-Message-ID: <20200714181415.FqyLgW4DC_LEzNAIE1If7xzzBmprRa9flxVjQx6qZCI@z>
+To: catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
+Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+Message-ID: <20200715071944.rQvhBB3lpS0bgGxXNHJuXDjIozZfTShmluyyQ2m6FAQ@z>
 
-On Thu, Jul 09, 2020 at 02:19:24PM -0700, Palmer Dabbelt wrote:
-> From: Palmer Dabbelt <palmerdabbelt@google.com>
-> 
-> I recently copied this into lib/ for use by the RISC-V port.
-> 
-> [I haven't even build tested this.  The lib/ patch is on riscv/for-next,
-> which I'm targeting for 5.9, so this won't work alone.  See the cover
-> letter for more details.]
-> 
-> Signed-off-by: Palmer Dabbelt <palmerdabbelt@google.com>
+TLBI RANGE feature instoduces new assembly instructions and only
+support by binutils >= 2.30.  Add necessary Kconfig logic to allow
+this to be enabled and pass '-march=armv8.4-a' to KBUILD_CFLAGS.
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
+---
+ arch/arm64/Kconfig  | 14 ++++++++++++++
+ arch/arm64/Makefile |  7 +++++++
+ 2 files changed, 21 insertions(+)
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 66dc41fd49f2..e385361f8137 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -1596,6 +1596,20 @@ config ARM64_AMU_EXTN
+ 	  correctly reflect reality. Most commonly, the value read will be 0,
+ 	  indicating that the counter is not enabled.
+ 
++config ARM64_TLB_RANGE
++	bool "Enable support for tlbi range feature"
++	default y
++	depends on AS_HAS_ARMV8_4
++	help
++	  ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
++	  range of input addresses.
++
++	  The feature introduces new assembly instructions, and they were
++	  support when binutils >= 2.30.
++
++config AS_HAS_ARMV8_4
++	def_bool $(cc-option, -Wa$(comma)-march=armv8.4-a)
++
+ endmenu
+ 
+ menu "ARMv8.5 architectural features"
+diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
+index a0d94d063fa8..4e823b97c92e 100644
+--- a/arch/arm64/Makefile
++++ b/arch/arm64/Makefile
+@@ -82,11 +82,18 @@ endif
+ # compiler to generate them and consequently to break the single image contract
+ # we pass it only to the assembler. This option is utilized only in case of non
+ # integrated assemblers.
++ifneq ($(CONFIG_AS_HAS_ARMV8_4), y)
+ branch-prot-flags-$(CONFIG_AS_HAS_PAC) += -Wa,-march=armv8.3-a
+ endif
++endif
+ 
+ KBUILD_CFLAGS += $(branch-prot-flags-y)
+ 
++ifeq ($(CONFIG_AS_HAS_ARMV8_4), y)
++# make sure to pass the newest target architecture to -march.
++KBUILD_CFLAGS	+= -Wa,-march=armv8.4-a
++endif
++
+ ifeq ($(CONFIG_SHADOW_CALL_STACK), y)
+ KBUILD_CFLAGS	+= -ffixed-x18
+ endif
+-- 
+2.19.1
