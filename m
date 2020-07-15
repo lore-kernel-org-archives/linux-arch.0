@@ -1,217 +1,170 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v7 02/29] arm64: mte: CPU feature detection and initial sysreg configuration
-Date: Wed, 15 Jul 2020 18:08:17 +0100
-Message-ID: <20200715170844.30064-3-catalin.marinas@arm.com>
-References: <20200715170844.30064-1-catalin.marinas@arm.com>
+Subject: [PATCH v7 00/26]  arm64: Memory Tagging Extension user-space support
+Date: Wed, 15 Jul 2020 18:08:15 +0100
+Message-ID: <20200715170844.30064-1-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:36692 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:36512 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726479AbgGORIy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Jul 2020 13:08:54 -0400
-In-Reply-To: <20200715170844.30064-1-catalin.marinas@arm.com>
+        id S1725861AbgGORIt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Jul 2020 13:08:49 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>, Marc Zyngier <maz@kernel.org>, Suzuki K Poulose <Suzuki.Poulose@arm.com>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Dave P Martin <Dave.Martin@arm.com>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Kevin Brodsky <kevin.brodsky@arm.com>, Andrey Konovalov <andreyknvl@google.com>, Peter Collingbourne <pcc@google.com>, Andrew Morton <akpm@linux-foundation.org>
 
-From: Vincenzo Frascino <vincenzo.frascino@arm.com>
+This is version 7 (6th version here [1]) of the series adding user-space
+support for the ARMv8.5 Memory Tagging Extension ([2], [3]). The patches
+are also available on this branch:
 
-Add the cpufeature and hwcap entries to detect the presence of MTE on
-the boot CPUs (primary and secondary). Any late secondary CPU not
-supporting the feature, if detected during boot, will be parked.
+  git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux for-next/mte
 
-In addition, add the minimum SCTLR_EL1 and HCR_EL2 bits for enabling
-MTE. Without subsequent setting of MAIR, these bits do not have an
-effect on tag checking.
+There have been no further ABI changes and still aiming for a 5.9 merge.
+I would be grateful for acks (or naks) on the following patches:
 
-Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
-Co-developed-by: Catalin Marinas <catalin.marinas@arm.com>
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: Marc Zyngier <maz@kernel.org>
-Cc: Suzuki K Poulose <Suzuki.Poulose@arm.com>
----
+mm:
 
-Notes:
-    v7:
-    - Hide the MTE ID register field for guests until MTE gains support for KVM.
+  [PATCH v7 06/29] mm: Add PG_arch_2 page flag
+  [PATCH v7 07/29] mm: Preserve the PG_arch_2 flag in __split_huge_page_tail()
+  [PATCH v7 13/29] mm: Introduce arch_calc_vm_flag_bits()
 
- arch/arm64/include/asm/cpucaps.h    |  3 ++-
- arch/arm64/include/asm/cpufeature.h |  6 ++++++
- arch/arm64/include/asm/hwcap.h      |  1 +
- arch/arm64/include/asm/kvm_arm.h    |  2 +-
- arch/arm64/include/asm/sysreg.h     |  1 +
- arch/arm64/include/uapi/asm/hwcap.h |  1 +
- arch/arm64/kernel/cpufeature.c      | 30 +++++++++++++++++++++++++++++
- arch/arm64/kernel/cpuinfo.c         |  1 +
- arch/arm64/kvm/sys_regs.c           |  2 ++
- 9 files changed, 45 insertions(+), 2 deletions(-)
+fs:
+  
+  [PATCH v7 24/29] fs: Handle intra-page faults in copy_mount_options()
 
-diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cpucaps.h
-index d7b3bb0cb180..6bc3e21e5929 100644
---- a/arch/arm64/include/asm/cpucaps.h
-+++ b/arch/arm64/include/asm/cpucaps.h
-@@ -62,7 +62,8 @@
- #define ARM64_HAS_GENERIC_AUTH			52
- #define ARM64_HAS_32BIT_EL1			53
- #define ARM64_BTI				54
-+#define ARM64_MTE				55
- 
--#define ARM64_NCAPS				55
-+#define ARM64_NCAPS				56
- 
- #endif /* __ASM_CPUCAPS_H */
-diff --git a/arch/arm64/include/asm/cpufeature.h b/arch/arm64/include/asm/cpufeature.h
-index 5d1f4ae42799..c673283abd31 100644
---- a/arch/arm64/include/asm/cpufeature.h
-+++ b/arch/arm64/include/asm/cpufeature.h
-@@ -681,6 +681,12 @@ static inline bool system_uses_irq_prio_masking(void)
- 	       cpus_have_const_cap(ARM64_HAS_IRQ_PRIO_MASKING);
- }
- 
-+static inline bool system_supports_mte(void)
-+{
-+	return IS_ENABLED(CONFIG_ARM64_MTE) &&
-+		cpus_have_const_cap(ARM64_MTE);
-+}
-+
- static inline bool system_has_prio_mask_debugging(void)
- {
- 	return IS_ENABLED(CONFIG_ARM64_DEBUG_PRIORITY_MASKING) &&
-diff --git a/arch/arm64/include/asm/hwcap.h b/arch/arm64/include/asm/hwcap.h
-index d683bcbf1e7c..0d4a6741b6a5 100644
---- a/arch/arm64/include/asm/hwcap.h
-+++ b/arch/arm64/include/asm/hwcap.h
-@@ -95,6 +95,7 @@
- #define KERNEL_HWCAP_DGH		__khwcap2_feature(DGH)
- #define KERNEL_HWCAP_RNG		__khwcap2_feature(RNG)
- #define KERNEL_HWCAP_BTI		__khwcap2_feature(BTI)
-+#define KERNEL_HWCAP_MTE		__khwcap2_feature(MTE)
- 
- /*
-  * This yields a mask that user programs can use to figure out what
-diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
-index 8a1cbfd544d6..6c3b2fc922bb 100644
---- a/arch/arm64/include/asm/kvm_arm.h
-+++ b/arch/arm64/include/asm/kvm_arm.h
-@@ -78,7 +78,7 @@
- 			 HCR_AMO | HCR_SWIO | HCR_TIDCP | HCR_RW | HCR_TLOR | \
- 			 HCR_FMO | HCR_IMO)
- #define HCR_VIRT_EXCP_MASK (HCR_VSE | HCR_VI | HCR_VF)
--#define HCR_HOST_NVHE_FLAGS (HCR_RW | HCR_API | HCR_APK)
-+#define HCR_HOST_NVHE_FLAGS (HCR_RW | HCR_API | HCR_APK | HCR_ATA)
- #define HCR_HOST_VHE_FLAGS (HCR_RW | HCR_TGE | HCR_E2H)
- 
- /* TCR_EL2 Registers bits */
-diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
-index 97bc523882f3..2e12d8049d1c 100644
---- a/arch/arm64/include/asm/sysreg.h
-+++ b/arch/arm64/include/asm/sysreg.h
-@@ -613,6 +613,7 @@
- 			 SCTLR_EL1_SA0  | SCTLR_EL1_SED  | SCTLR_ELx_I    |\
- 			 SCTLR_EL1_DZE  | SCTLR_EL1_UCT                   |\
- 			 SCTLR_EL1_NTWE | SCTLR_ELx_IESB | SCTLR_EL1_SPAN |\
-+			 SCTLR_ELx_ITFSB| SCTLR_ELx_ATA  | SCTLR_EL1_ATA0 |\
- 			 ENDIAN_SET_EL1 | SCTLR_EL1_UCI  | SCTLR_EL1_RES1)
- 
- /* MAIR_ELx memory attributes (used by Linux) */
-diff --git a/arch/arm64/include/uapi/asm/hwcap.h b/arch/arm64/include/uapi/asm/hwcap.h
-index 2d6ba1c2592e..b8f41aa234ee 100644
---- a/arch/arm64/include/uapi/asm/hwcap.h
-+++ b/arch/arm64/include/uapi/asm/hwcap.h
-@@ -74,5 +74,6 @@
- #define HWCAP2_DGH		(1 << 15)
- #define HWCAP2_RNG		(1 << 16)
- #define HWCAP2_BTI		(1 << 17)
-+#define HWCAP2_MTE		(1 << 18)
- 
- #endif /* _UAPI__ASM_HWCAP_H */
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-index 9f63053a63a9..ccfdcb93d736 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -240,6 +240,8 @@ static const struct arm64_ftr_bits ftr_id_aa64pfr0[] = {
- static const struct arm64_ftr_bits ftr_id_aa64pfr1[] = {
- 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_MPAMFRAC_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_RASFRAC_SHIFT, 4, 0),
-+	ARM64_FTR_BITS(FTR_VISIBLE_IF_IS_ENABLED(CONFIG_ARM64_MTE),
-+		       FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_MTE_SHIFT, 4, ID_AA64PFR1_MTE_NI),
- 	ARM64_FTR_BITS(FTR_VISIBLE, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_SSBS_SHIFT, 4, ID_AA64PFR1_SSBS_PSTATE_NI),
- 	ARM64_FTR_BITS(FTR_VISIBLE_IF_IS_ENABLED(CONFIG_ARM64_BTI),
- 				    FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_BT_SHIFT, 4, 0),
-@@ -1657,6 +1659,18 @@ static void bti_enable(const struct arm64_cpu_capabilities *__unused)
- }
- #endif /* CONFIG_ARM64_BTI */
- 
-+#ifdef CONFIG_ARM64_MTE
-+static void cpu_enable_mte(struct arm64_cpu_capabilities const *cap)
-+{
-+	/* all non-zero tags excluded by default */
-+	write_sysreg_s(SYS_GCR_EL1_RRND | SYS_GCR_EL1_EXCL_MASK, SYS_GCR_EL1);
-+	write_sysreg_s(0, SYS_TFSR_EL1);
-+	write_sysreg_s(0, SYS_TFSRE0_EL1);
-+
-+	isb();
-+}
-+#endif /* CONFIG_ARM64_MTE */
-+
- /* Internal helper functions to match cpu capability type */
- static bool
- cpucap_late_cpu_optional(const struct arm64_cpu_capabilities *cap)
-@@ -2056,6 +2070,19 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
- 		.sign = FTR_UNSIGNED,
- 	},
- #endif
-+#ifdef CONFIG_ARM64_MTE
-+	{
-+		.desc = "Memory Tagging Extension",
-+		.capability = ARM64_MTE,
-+		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
-+		.matches = has_cpuid_feature,
-+		.sys_reg = SYS_ID_AA64PFR1_EL1,
-+		.field_pos = ID_AA64PFR1_MTE_SHIFT,
-+		.min_field_value = ID_AA64PFR1_MTE,
-+		.sign = FTR_UNSIGNED,
-+		.cpu_enable = cpu_enable_mte,
-+	},
-+#endif /* CONFIG_ARM64_MTE */
- 	{},
- };
- 
-@@ -2172,6 +2199,9 @@ static const struct arm64_cpu_capabilities arm64_elf_hwcaps[] = {
- 	HWCAP_MULTI_CAP(ptr_auth_hwcap_addr_matches, CAP_HWCAP, KERNEL_HWCAP_PACA),
- 	HWCAP_MULTI_CAP(ptr_auth_hwcap_gen_matches, CAP_HWCAP, KERNEL_HWCAP_PACG),
- #endif
-+#ifdef CONFIG_ARM64_MTE
-+	HWCAP_CAP(SYS_ID_AA64PFR1_EL1, ID_AA64PFR1_MTE_SHIFT, FTR_UNSIGNED, ID_AA64PFR1_MTE, CAP_HWCAP, KERNEL_HWCAP_MTE),
-+#endif /* CONFIG_ARM64_MTE */
- 	{},
- };
- 
-diff --git a/arch/arm64/kernel/cpuinfo.c b/arch/arm64/kernel/cpuinfo.c
-index 86637466daa8..5ce478c0b4b1 100644
---- a/arch/arm64/kernel/cpuinfo.c
-+++ b/arch/arm64/kernel/cpuinfo.c
-@@ -93,6 +93,7 @@ static const char *const hwcap_str[] = {
- 	"dgh",
- 	"rng",
- 	"bti",
-+	"mte",
- 	NULL
- };
- 
-diff --git a/arch/arm64/kvm/sys_regs.c b/arch/arm64/kvm/sys_regs.c
-index baf5ce9225ce..552a7d860a45 100644
---- a/arch/arm64/kvm/sys_regs.c
-+++ b/arch/arm64/kvm/sys_regs.c
-@@ -1104,6 +1104,8 @@ static u64 read_id_reg(const struct kvm_vcpu *vcpu,
- 		if (!vcpu_has_sve(vcpu))
- 			val &= ~(0xfUL << ID_AA64PFR0_SVE_SHIFT);
- 		val &= ~(0xfUL << ID_AA64PFR0_AMU_SHIFT);
-+	} else if (id == SYS_ID_AA64PFR1_EL1) {
-+		val &= ~(0xfUL << ID_AA64PFR1_MTE_SHIFT);
- 	} else if (id == SYS_ID_AA64ISAR1_EL1 && !vcpu_has_ptrauth(vcpu)) {
- 		val &= ~((0xfUL << ID_AA64ISAR1_APA_SHIFT) |
- 			 (0xfUL << ID_AA64ISAR1_API_SHIFT) |
+arm64 KVM (small new addition in v7):
+
+  [PATCH v7 02/29] arm64: mte: CPU feature detection and initial sysreg configuration
+
+Changes in this version:
+
+- __split_huge_page_tail() function update to preserve the PG_arch_2
+  flag only. The PG_arch_1 will be submitted separately since s390 and
+  x86 may be affected.
+
+- ptrace NT_ARM_TAGGED_ADDR_CTRL regset for access to the tagged address
+  ABI and MTE configuration of a process, together with documentation
+  update.
+
+- Kconfig update to check for the presence of the STGM instruction in
+  addition to '.arch armv8.5-a+memtag'. A late architecture update
+  introduced the LDGM/STGM and there are binutils versions out there
+  that don't support it.
+
+- Re-ordering of the CNP and MTE initialisation to cater for late
+  secondary CPU bring-up (post the arch_initcall()).
+
+[1] https://lore.kernel.org/linux-arm-kernel/20200703153718.16973-1-catalin.marinas@arm.com/
+[2] https://community.arm.com/developer/ip-products/processors/b/processors-ip-blog/posts/enhancing-memory-safety
+[3] https://developer.arm.com/-/media/Arm%20Developer%20Community/PDF/Arm_Memory_Tagging_Extension_Whitepaper.pdf
+[4] https://sourceware.org/pipermail/libc-alpha/2020-June/115039.html
+
+Catalin Marinas (17):
+  arm64: mte: Use Normal Tagged attributes for the linear map
+  mm: Preserve the PG_arch_2 flag in __split_huge_page_tail()
+  arm64: mte: Clear the tags when a page is mapped in user-space with
+    PROT_MTE
+  arm64: Avoid unnecessary clear_user_page() indirection
+  arm64: mte: Tags-aware aware memcmp_pages() implementation
+  arm64: mte: Handle the MAIR_EL1 changes for late CPU bring-up
+  arm64: mte: Add PROT_MTE support to mmap() and mprotect()
+  mm: Introduce arch_validate_flags()
+  arm64: mte: Validate the PROT_MTE request via arch_validate_flags()
+  mm: Allow arm64 mmap(PROT_MTE) on RAM-based files
+  arm64: mte: Allow user control of the tag check mode via prctl()
+  arm64: mte: Allow user control of the generated random tags via
+    prctl()
+  arm64: mte: Restore the GCR_EL1 register after a suspend
+  arm64: mte: Allow {set,get}_tagged_addr_ctrl() on non-current tasks
+  arm64: mte: ptrace: Add PTRACE_{PEEK,POKE}MTETAGS support
+  arm64: mte: ptrace: Add NT_ARM_TAGGED_ADDR_CTRL regset
+  fs: Handle intra-page faults in copy_mount_options()
+
+Kevin Brodsky (1):
+  mm: Introduce arch_calc_vm_flag_bits()
+
+Steven Price (4):
+  mm: Add PG_arch_2 page flag
+  mm: Add arch hooks for saving/restoring tags
+  arm64: mte: Enable swap of tagged pages
+  arm64: mte: Save tags when hibernating
+
+Vincenzo Frascino (7):
+  arm64: mte: system register definitions
+  arm64: mte: CPU feature detection and initial sysreg configuration
+  arm64: mte: Add specific SIGSEGV codes
+  arm64: mte: Handle synchronous and asynchronous tag check faults
+  arm64: mte: Tags-aware copy_{user_,}highpage() implementations
+  arm64: mte: Kconfig entry
+  arm64: mte: Add Memory Tagging Extension documentation
+
+ Documentation/arm64/cpu-feature-registers.rst |   2 +
+ Documentation/arm64/elf_hwcaps.rst            |   4 +
+ Documentation/arm64/index.rst                 |   1 +
+ .../arm64/memory-tagging-extension.rst        | 305 ++++++++++++++++
+ arch/arm64/Kconfig                            |  31 ++
+ arch/arm64/include/asm/cpucaps.h              |   5 +-
+ arch/arm64/include/asm/cpufeature.h           |   6 +
+ arch/arm64/include/asm/hwcap.h                |   1 +
+ arch/arm64/include/asm/kvm_arm.h              |   3 +-
+ arch/arm64/include/asm/memory.h               |  17 +-
+ arch/arm64/include/asm/mman.h                 |  56 ++-
+ arch/arm64/include/asm/mte.h                  |  86 +++++
+ arch/arm64/include/asm/page.h                 |  19 +-
+ arch/arm64/include/asm/pgtable-prot.h         |   2 +
+ arch/arm64/include/asm/pgtable.h              |  46 ++-
+ arch/arm64/include/asm/processor.h            |  12 +-
+ arch/arm64/include/asm/sysreg.h               |  61 ++++
+ arch/arm64/include/asm/thread_info.h          |   4 +-
+ arch/arm64/include/uapi/asm/hwcap.h           |   1 +
+ arch/arm64/include/uapi/asm/mman.h            |   1 +
+ arch/arm64/include/uapi/asm/ptrace.h          |   4 +
+ arch/arm64/kernel/Makefile                    |   1 +
+ arch/arm64/kernel/cpufeature.c                |  67 ++++
+ arch/arm64/kernel/cpuinfo.c                   |   1 +
+ arch/arm64/kernel/entry.S                     |  37 ++
+ arch/arm64/kernel/hibernate.c                 | 118 ++++++
+ arch/arm64/kernel/mte.c                       | 337 ++++++++++++++++++
+ arch/arm64/kernel/process.c                   |  45 ++-
+ arch/arm64/kernel/ptrace.c                    |  53 ++-
+ arch/arm64/kernel/signal.c                    |   9 +
+ arch/arm64/kernel/suspend.c                   |   4 +
+ arch/arm64/kernel/syscall.c                   |  10 +
+ arch/arm64/kvm/sys_regs.c                     |   2 +
+ arch/arm64/lib/Makefile                       |   2 +
+ arch/arm64/lib/mte.S                          | 151 ++++++++
+ arch/arm64/mm/Makefile                        |   1 +
+ arch/arm64/mm/copypage.c                      |  25 +-
+ arch/arm64/mm/dump.c                          |   4 +
+ arch/arm64/mm/fault.c                         |   9 +-
+ arch/arm64/mm/mmu.c                           |  22 +-
+ arch/arm64/mm/mteswap.c                       |  83 +++++
+ arch/arm64/mm/proc.S                          |   8 +-
+ arch/x86/kernel/signal_compat.c               |   2 +-
+ fs/namespace.c                                |  25 +-
+ fs/proc/page.c                                |   3 +
+ fs/proc/task_mmu.c                            |   4 +
+ include/linux/kernel-page-flags.h             |   1 +
+ include/linux/mm.h                            |   8 +
+ include/linux/mman.h                          |  23 +-
+ include/linux/page-flags.h                    |   3 +
+ include/linux/pgtable.h                       |  28 ++
+ include/trace/events/mmflags.h                |   9 +-
+ include/uapi/asm-generic/siginfo.h            |   4 +-
+ include/uapi/linux/elf.h                      |   1 +
+ include/uapi/linux/prctl.h                    |   9 +
+ mm/huge_memory.c                              |   3 +
+ mm/mmap.c                                     |   9 +
+ mm/mprotect.c                                 |   6 +
+ mm/page_io.c                                  |  10 +
+ mm/shmem.c                                    |   9 +
+ mm/swapfile.c                                 |   2 +
+ mm/util.c                                     |   2 +-
+ tools/vm/page-types.c                         |   2 +
+ 63 files changed, 1760 insertions(+), 59 deletions(-)
+ create mode 100644 Documentation/arm64/memory-tagging-extension.rst
+ create mode 100644 arch/arm64/include/asm/mte.h
+ create mode 100644 arch/arm64/kernel/mte.c
+ create mode 100644 arch/arm64/lib/mte.S
+ create mode 100644 arch/arm64/mm/mteswap.c
