@@ -1,97 +1,74 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v8 5/8] powerpc/vdso: Prepare for switching VDSO to generic C implementation.
-Date: Wed, 15 Jul 2020 11:04:26 +1000
-Message-ID: <878sflvbad.fsf@mpe.ellerman.id.au>
-References: <cover.1588079622.git.christophe.leroy@c-s.fr> <2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [PATCH 6/6] exec: use force_uaccess_begin during exec and exit
+Date: Tue, 14 Jul 2020 22:33:05 -0500
+Message-ID: <87v9ip4fm6.fsf@x220.int.ebiederm.org>
+References: <20200714105505.935079-1-hch@lst.de>
+        <20200714105505.935079-7-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <2a67c333893454868bbfda773ba4b01c20272a5d.1588079622.git.christophe.leroy@c-s.fr>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christophe Leroy <christophe.leroy@c-s.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, nathanl@linux.ibm.com
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, arnd@arndb.de, tglx@linutronix.de, vincenzo.frascino@arm.com, luto@kernel.org, linux-arch@vger.kernel.org, Tulio Magno Quites Machado Filho <tuliom@linux.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from out03.mta.xmission.com ([166.70.13.233]:42686 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726648AbgGODgB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jul 2020 23:36:01 -0400
+In-Reply-To: <20200714105505.935079-7-hch@lst.de> (Christoph Hellwig's message
+        of "Tue, 14 Jul 2020 12:55:05 +0200")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Christophe Leroy <christophe.leroy@c-s.fr> writes:
-> Prepare for switching VDSO to generic C implementation in following
-> patch. Here, we:
-> - Modify __get_datapage() to take an offset
-> - Prepare the helpers to call the C VDSO functions
-> - Prepare the required callbacks for the C VDSO functions
-> - Prepare the clocksource.h files to define VDSO_ARCH_CLOCKMODES
-> - Add the C trampolines to the generic C VDSO functions
+Christoph Hellwig <hch@lst.de> writes:
+
+> Both exec and exit want to ensure that the uaccess routines actually do
+> access user pointers.  Use the newly added force_uaccess_begin helper
+> instead of an open coded set_fs for that to prepare for kernel builds
+> where set_fs() does not exist.
+
+Acked-by: "Eric W. Biederman" <ebiederm@xmission.com>
+
+Have you played with a tree with all of your patches
+and placing force_uaccess_begin in init/main.c:start_kernel?
+
+Somewhere deep in the arch code we seem to have it all backwards
+and kernel threads are all set_fs(KERNEL_DS).  So just putting
+a force_uaccess_begin somewhere very early should be enough
+to switch things around.
+
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  fs/exec.c     | 7 ++++++-
+>  kernel/exit.c | 2 +-
+>  2 files changed, 7 insertions(+), 2 deletions(-)
 >
-> powerpc is a bit special for VDSO as well as system calls in the
-> way that it requires setting CR SO bit which cannot be done in C.
-> Therefore, entry/exit needs to be performed in ASM.
->
-> Implementing __arch_get_vdso_data() would clobber the link register,
-> requiring the caller to save it. As the ASM calling function already
-> has to set a stack frame and saves the link register before calling
-> the C vdso function, retriving the vdso data pointer there is lighter.
-...
-
-> diff --git a/arch/powerpc/include/asm/vdso/gettimeofday.h b/arch/powerpc/include/asm/vdso/gettimeofday.h
-> new file mode 100644
-> index 000000000000..4452897f9bd8
-> --- /dev/null
-> +++ b/arch/powerpc/include/asm/vdso/gettimeofday.h
-> @@ -0,0 +1,175 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +#ifndef __ASM_VDSO_GETTIMEOFDAY_H
-> +#define __ASM_VDSO_GETTIMEOFDAY_H
+> diff --git a/fs/exec.c b/fs/exec.c
+> index e6e8a9a7032784..769af470b69124 100644
+> --- a/fs/exec.c
+> +++ b/fs/exec.c
+> @@ -1380,7 +1380,12 @@ int begin_new_exec(struct linux_binprm * bprm)
+>  	if (retval)
+>  		goto out_unlock;
+>  
+> -	set_fs(USER_DS);
+> +	/*
+> +	 * Ensure that the uaccess routines can actually operate on userspace
+> +	 * pointers:
+> +	 */
+> +	force_uaccess_begin();
 > +
-> +#include <asm/ptrace.h>
-> +
-> +#ifdef __ASSEMBLY__
-> +
-> +.macro cvdso_call funct
-> +  .cfi_startproc
-> +	PPC_STLU	r1, -STACK_FRAME_OVERHEAD(r1)
-> +	mflr		r0
-> +  .cfi_register lr, r0
-> +	PPC_STL		r0, STACK_FRAME_OVERHEAD + PPC_LR_STKOFF(r1)
-
-This doesn't work for me on ppc64(le) with glibc.
-
-glibc doesn't create a stack frame before making the VDSO call, so the
-store of r0 (LR) goes into the caller's frame, corrupting the saved LR,
-leading to an infinite loop.
-
-This is an example from a statically built program that calls
-clock_gettime():
-
-0000000010030cb0 <__clock_gettime>:
-    10030cb0:   0e 10 40 3c     lis     r2,4110
-    10030cb4:   00 7a 42 38     addi    r2,r2,31232
-    10030cb8:   a6 02 08 7c     mflr    r0
-    10030cbc:   ff ff 22 3d     addis   r9,r2,-1
-    10030cc0:   58 6d 29 39     addi    r9,r9,27992
-    10030cc4:   f0 ff c1 fb     std     r30,-16(r1)			<-- redzone store
-    10030cc8:   78 23 9e 7c     mr      r30,r4
-    10030ccc:   f8 ff e1 fb     std     r31,-8(r1)			<-- redzone store
-    10030cd0:   78 1b 7f 7c     mr      r31,r3
-    10030cd4:   10 00 01 f8     std     r0,16(r1)			<-- save LR to caller's frame
-    10030cd8:   00 00 09 e8     ld      r0,0(r9)
-    10030cdc:   00 00 20 2c     cmpdi   r0,0
-    10030ce0:   50 00 82 41     beq     10030d30 <__clock_gettime+0x80>
-    10030ce4:   a6 03 09 7c     mtctr   r0
-    10030ce8:   21 04 80 4e     bctrl					<-- vdso call
-    10030cec:   26 00 00 7c     mfcr    r0
-    10030cf0:   00 10 09 74     andis.  r9,r0,4096
-    10030cf4:   78 1b 69 7c     mr      r9,r3
-    10030cf8:   28 00 82 40     bne     10030d20 <__clock_gettime+0x70>
-    10030cfc:   b4 07 23 7d     extsw   r3,r9
-    10030d00:   10 00 01 e8     ld      r0,16(r1)			<-- load saved LR, since clobbered by the VDSO
-    10030d04:   f0 ff c1 eb     ld      r30,-16(r1)
-    10030d08:   f8 ff e1 eb     ld      r31,-8(r1)
-    10030d0c:   a6 03 08 7c     mtlr    r0				<-- restore LR
-    10030d10:   20 00 80 4e     blr					<-- jumps to 10030cec
-
-
-I'm kind of confused how it worked for you on 32-bit.
-
-There's also no code to load/restore the TOC pointer on BE, which I
-think we'll need to handle.
-
-cheers
+>  	me->flags &= ~(PF_RANDOMIZE | PF_FORKNOEXEC | PF_KTHREAD |
+>  					PF_NOFREEZE | PF_NO_SETAFFINITY);
+>  	flush_thread();
+> diff --git a/kernel/exit.c b/kernel/exit.c
+> index 727150f2810338..17d486a20f0dc6 100644
+> --- a/kernel/exit.c
+> +++ b/kernel/exit.c
+> @@ -731,7 +731,7 @@ void __noreturn do_exit(long code)
+>  	 * mm_release()->clear_child_tid() from writing to a user-controlled
+>  	 * kernel address.
+>  	 */
+> -	set_fs(USER_DS);
+> +	force_uaccess_begin();
+>  
+>  	if (unlikely(in_atomic())) {
+>  		pr_info("note: %s[%d] exited with preempt_count %d\n",
