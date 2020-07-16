@@ -1,33 +1,132 @@
-From: Michael Ellerman <patch-notifications@ellerman.id.au>
-Subject: Re: [PATCH v8 0/8] powerpc: switch VDSO to C implementation
-Date: Thu, 16 Jul 2020 22:55:47 +1000 (AEST)
-Message-ID: <159490400799.3805857.1673818426986159282.b4-ty@ellerman.id.au>
-References: <cover.1588079622.git.christophe.leroy@c-s.fr>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bilbo.ozlabs.org ([203.11.71.1]:35969 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726537AbgGPMzv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Jul 2020 08:55:51 -0400
-In-Reply-To: <cover.1588079622.git.christophe.leroy@c-s.fr>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: nathanl@linux.ibm.com, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christophe Leroy <christophe.leroy@c-s.fr>, Paul Mackerras <paulus@samba.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, vincenzo.frascino@arm.com, tglx@linutronix.de, luto@kernel.org, arnd@arndb.de, linuxppc-dev@lists.ozlabs.org
+From: Steven Price <steven.price@arm.com>
+Subject: Re: [PATCH V5 1/4] mm/debug_vm_pgtable: Add tests validating arch
+ helpers for core MM features
+Date: Thu, 16 Jul 2020 15:14:06 +0100
+Message-ID: <2ff756c5-28e2-b64a-3788-260ba30c6409@arm.com>
+References: <1594610587-4172-1-git-send-email-anshuman.khandual@arm.com>
+ <1594610587-4172-2-git-send-email-anshuman.khandual@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1594610587-4172-2-git-send-email-anshuman.khandual@arm.com>
+Content-Language: en-GB
+Sender: linux-kernel-owner@vger.kernel.org
+To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, agordeev@linux.ibm.com, Will Deacon <will@kernel.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, christophe.leroy@csgroup.eu, Mike Rapoport <rppt@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, linux-arm-kernel@lists.infradead.org, ziy@nvidia.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-snps-arc@lists.infradead.org, Vasily Gorbik <gor@linux.ibm.com>, cai@lca.pw, Paul Walmsley <paul.walmsley@sifive.com>, "Kirill A . Shutemov" <kirill@shutemov.name>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 28 Apr 2020 13:16:46 +0000 (UTC), Christophe Leroy wrote:
-> This is the seventh version of a series to switch powerpc VDSO to
-> generic C implementation.
+On 13/07/2020 04:23, Anshuman Khandual wrote:
+> This adds new tests validating arch page table helpers for these following
+> core memory features. These tests create and test specific mapping types at
+> various page table levels.
 > 
-> Main changes since v7 are:
-> - Added gettime64 on PPC32
+> 1. SPECIAL mapping
+> 2. PROTNONE mapping
+> 3. DEVMAP mapping
+> 4. SOFTDIRTY mapping
+> 5. SWAP mapping
+> 6. MIGRATION mapping
+> 7. HUGETLB mapping
+> 8. THP mapping
 > 
-> This series applies on today's powerpc/merge branch.
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+> Cc: Christophe Leroy <christophe.leroy@c-s.fr>
+> Cc: Mike Rapoport <rppt@linux.ibm.com>
+> Cc: Vineet Gupta <vgupta@synopsys.com>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> Cc: Vasily Gorbik <gor@linux.ibm.com>
+> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Borislav Petkov <bp@alien8.de>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: Kirill A. Shutemov <kirill@shutemov.name>
+> Cc: Paul Walmsley <paul.walmsley@sifive.com>
+> Cc: Palmer Dabbelt <palmer@dabbelt.com>
+> Cc: linux-snps-arc@lists.infradead.org
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: linux-s390@vger.kernel.org
+> Cc: linux-riscv@lists.infradead.org
+> Cc: x86@kernel.org
+> Cc: linux-mm@kvack.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> Tested-by: Vineet Gupta <vgupta@synopsys.com>	#arc
+> Reviewed-by: Zi Yan <ziy@nvidia.com>
+> Suggested-by: Catalin Marinas <catalin.marinas@arm.com>
+> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
+> ---
+>   mm/debug_vm_pgtable.c | 302 +++++++++++++++++++++++++++++++++++++++++-
+>   1 file changed, 301 insertions(+), 1 deletion(-)
 > 
-> [...]
+> diff --git a/mm/debug_vm_pgtable.c b/mm/debug_vm_pgtable.c
+> index 61ab16fb2e36..2fac47db3eb7 100644
+> --- a/mm/debug_vm_pgtable.c
+> +++ b/mm/debug_vm_pgtable.c
+[...]
+> +
+> +static void __init pte_swap_tests(unsigned long pfn, pgprot_t prot)
+> +{
+> +	swp_entry_t swp;
+> +	pte_t pte;
+> +
+> +	pte = pfn_pte(pfn, prot);
+> +	swp = __pte_to_swp_entry(pte);
 
-Patch 1 applied to powerpc/next.
+Minor issue: this doesn't look necessarily valid - there's no reason a 
+normal PTE can be turned into a swp_entry. In practise this is likely to 
+work on all architectures because there's no reason not to use (at 
+least) all the PFN bits for the swap entry, but it doesn't exactly seem 
+correct.
 
-[1/8] powerpc/vdso64: Switch from __get_datapage() to get_datapage inline macro
-      https://git.kernel.org/powerpc/c/793d74a8c78e05d6833bfcf582e24e40bd92518f
+Can we start with a swp_entry_t (from __swp_entry()) and check the round 
+trip of that?
 
-cheers
+It would also seem sensible to have a check that 
+is_swap_pte(__swp_entry_to_pte(__swp_entry(x,y))) is true.
+
+> +	pte = __swp_entry_to_pte(swp);
+> +	WARN_ON(pfn != pte_pfn(pte));
+> +}
+> +
+> +#ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
+> +static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot)
+> +{
+> +	swp_entry_t swp;
+> +	pmd_t pmd;
+> +
+> +	pmd = pfn_pmd(pfn, prot);
+> +	swp = __pmd_to_swp_entry(pmd);
+> +	pmd = __swp_entry_to_pmd(swp);
+> +	WARN_ON(pfn != pmd_pfn(pmd));
+> +}
+> +#else  /* !CONFIG_ARCH_ENABLE_THP_MIGRATION */
+> +static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot) { }
+> +#endif /* CONFIG_ARCH_ENABLE_THP_MIGRATION */
+> +
+> +static void __init swap_migration_tests(void)
+> +{
+> +	struct page *page;
+> +	swp_entry_t swp;
+> +
+> +	if (!IS_ENABLED(CONFIG_MIGRATION))
+> +		return;
+> +	/*
+> +	 * swap_migration_tests() requires a dedicated page as it needs to
+> +	 * be locked before creating a migration entry from it. Locking the
+> +	 * page that actually maps kernel text ('start_kernel') can be real
+> +	 * problematic. Lets allocate a dedicated page explicitly for this
+
+NIT: s/Lets/Let's
+
+Otherwise looks good to me.
+
+Steve
