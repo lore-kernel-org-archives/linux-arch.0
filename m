@@ -1,80 +1,102 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47344 "EHLO
+Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33054 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727871AbgGaXST (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:18:19 -0400
-Received: from mail-pj1-x1043.google.com (mail-pj1-x1043.google.com [IPv6:2607:f8b0:4864:20::1043])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2DA2AC0617A0
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:18:19 -0700 (PDT)
-Received: by mail-pj1-x1043.google.com with SMTP id lx9so8528935pjb.2
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:18:19 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 23/36] arm/build: Explicitly keep .ARM.attributes sections
-Date: Fri, 31 Jul 2020 16:08:07 -0700
-Message-ID: <20200731230820.1742553-24-keescook@chromium.org>
-In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
-References: <20200731230820.1742553-1-keescook@chromium.org>
-MIME-Version: 1.0
+        with ESMTP id S1726986AbgGPTAD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:00:03 -0400
+Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 48420C061755
+        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 12:00:03 -0700 (PDT)
+Received: by mail-pj1-x1041.google.com with SMTP id mn17so5263438pjb.4
+        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 12:00:03 -0700 (PDT)
+Date: Thu, 16 Jul 2020 12:00:01 -0700 (PDT)
+Subject: Re: [PATCH] asm-generic/mmiowb: Allow mmiowb_set_pending() when preemptible()
+In-Reply-To: <20200716112816.7356-1-will@kernel.org>
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Message-ID: <mhng-6528b0ae-d92c-41b2-b0fd-3be58c80f280@palmerdabbelt-glaptop1>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200731230807.rKrb8vYMWGbVfTjFqLd9uVBPyQ-3W02IYX-K_f_DG9A@z>
+Cc: linux-kernel@vger.kernel.org, kernel-team@android.com, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, will@kernel.org, Arnd Bergmann <arnd@arndb.de>, Paul Walmsley <paul.walmsley@sifive.com>, guoren@kernel.org, mpe@ellerman.id.au
+Message-ID: <20200716190001.9-4ZRhFW7C7G89oZnKvtYQfkm06qhKqR8fkTaK8SCbM@z>
 
-In preparation for adding --orphan-handling=warn, explicitly keep the
-.ARM.attributes section by expanding the existing ELF_DETAILS macro into
-ARM_DETAILS.
+On Thu, 16 Jul 2020 04:28:16 PDT (-0700), will@kernel.org wrote:
+> Although mmiowb() is concerned only with serialising MMIO writes occuring
+> in contexts where a spinlock is held, the call to mmiowb_set_pending()
+> from the MMIO write accessors can occur in preemptible contexts, such
+> as during driver probe() functions where ordering between CPUs is not
+> usually a concern, assuming that the task migration path provides the
+> necessary ordering guarantees.
+>
+> Unfortunately, the default implementation of mmiowb_set_pending() is not
+> preempt-safe, as it makes use of a a per-cpu variable to track its
+> internal state. This has been reported to generate the following splat
+> on riscv:
+>
+>  | BUG: using smp_processor_id() in preemptible [00000000] code: swapper/0/1
+>  | caller is regmap_mmio_write32le+0x1c/0x46
+>  | CPU: 3 PID: 1 Comm: swapper/0 Not tainted 5.8.0-rc3-hfu+ #1
+>  | Call Trace:
+>  |  walk_stackframe+0x0/0x7a
+>  |  dump_stack+0x6e/0x88
+>  |  regmap_mmio_write32le+0x18/0x46
+>  |  check_preemption_disabled+0xa4/0xaa
+>  |  regmap_mmio_write32le+0x18/0x46
+>  |  regmap_mmio_write+0x26/0x44
+>  |  regmap_write+0x28/0x48
+>  |  sifive_gpio_probe+0xc0/0x1da
+>
+> Although it's possible to fix the driver in this case, other splats have
+> been seen from other drivers, including the infamous 8250 UART, and so
+> it's better to address this problem in the mmiowb core itself.
+>
+> Fix mmiowb_set_pending() by using the raw_cpu_ptr() to get at the mmiowb
+> state and then only updating the 'mmiowb_pending' field if we are not
+> preemptible (i.e. we have a non-zero nesting count).
+>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Paul Walmsley <paul.walmsley@sifive.com>
+> Cc: Guo Ren <guoren@kernel.org>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Reported-by: Palmer Dabbelt <palmer@dabbelt.com>
+> Signed-off-by: Will Deacon <will@kernel.org>
+> ---
+>
+> I can queue this in the arm64 tree as a fix, as I already have some other
+> fixes targetting -rc6.
+>
+>  include/asm-generic/mmiowb.h | 6 ++++--
+>  1 file changed, 4 insertions(+), 2 deletions(-)
+>
+> diff --git a/include/asm-generic/mmiowb.h b/include/asm-generic/mmiowb.h
+> index 9439ff037b2d..5698fca3bf56 100644
+> --- a/include/asm-generic/mmiowb.h
+> +++ b/include/asm-generic/mmiowb.h
+> @@ -27,7 +27,7 @@
+>  #include <asm/smp.h>
+>
+>  DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
+> -#define __mmiowb_state()	this_cpu_ptr(&__mmiowb_state)
+> +#define __mmiowb_state()	raw_cpu_ptr(&__mmiowb_state)
+>  #else
+>  #define __mmiowb_state()	arch_mmiowb_state()
+>  #endif	/* arch_mmiowb_state */
+> @@ -35,7 +35,9 @@ DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
+>  static inline void mmiowb_set_pending(void)
+>  {
+>  	struct mmiowb_state *ms = __mmiowb_state();
+> -	ms->mmiowb_pending = ms->nesting_count;
+> +
+> +	if (likely(ms->nesting_count))
+> +		ms->mmiowb_pending = ms->nesting_count;
+>  }
+>
+>  static inline void mmiowb_spin_lock(void)
 
-Suggested-by: Nick Desaulniers <ndesaulniers@google.com>
-Link: https://lore.kernel.org/lkml/CAKwvOdk-racgq5pxsoGS6Vtifbtrk5fmkmnoLxrQMaOvV0nPWw@mail.gmail.com/
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/arm/include/asm/vmlinux.lds.h | 4 ++++
- arch/arm/kernel/vmlinux-xip.lds.S  | 2 +-
- arch/arm/kernel/vmlinux.lds.S      | 2 +-
- 3 files changed, 6 insertions(+), 2 deletions(-)
+Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
+Reviewed-by: Palmer Dabbelt <palmerdabbelt@google.com>
 
-diff --git a/arch/arm/include/asm/vmlinux.lds.h b/arch/arm/include/asm/vmlinux.lds.h
-index a08f4301b718..c4af5182ab48 100644
---- a/arch/arm/include/asm/vmlinux.lds.h
-+++ b/arch/arm/include/asm/vmlinux.lds.h
-@@ -52,6 +52,10 @@
- 		ARM_MMU_DISCARD(*(__ex_table))				\
- 		COMMON_DISCARDS
- 
-+#define ARM_DETAILS							\
-+		ELF_DETAILS						\
-+		.ARM.attributes 0 : { *(.ARM.attributes) }
-+
- #define ARM_STUBS_TEXT							\
- 		*(.gnu.warning)						\
- 		*(.glue_7)						\
-diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
-index 904c31fa20ed..57fcbf55f913 100644
---- a/arch/arm/kernel/vmlinux-xip.lds.S
-+++ b/arch/arm/kernel/vmlinux-xip.lds.S
-@@ -150,7 +150,7 @@ SECTIONS
- 	_end = .;
- 
- 	STABS_DEBUG
--	ELF_DETAILS
-+	ARM_DETAILS
- }
- 
- /*
-diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
-index bb950c896a67..1d3d3b599635 100644
---- a/arch/arm/kernel/vmlinux.lds.S
-+++ b/arch/arm/kernel/vmlinux.lds.S
-@@ -149,7 +149,7 @@ SECTIONS
- 	_end = .;
- 
- 	STABS_DEBUG
--	ELF_DETAILS
-+	ARM_DETAILS
- }
- 
- #ifdef CONFIG_STRICT_KERNEL_RWX
--- 
-2.25.1
+The arm64 tree works for me.
+
+Thanks!
