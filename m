@@ -1,76 +1,93 @@
-From: Alex Bee <knaerzche@gmail.com>
-Subject: Re: [PATCH] linux: arm: vdso: nullpatch vdso_clock_gettime64 for
- non-virtual timers
-Date: Fri, 17 Jul 2020 01:25:53 +0200
-Message-ID: <2c4484bf-a127-6f07-75f2-e0f0a15fe257@gmail.com>
-References: <20200716150723.9389-1-knaerzche@gmail.com>
- <ac44a5a3-ca35-cd0a-f823-4b814c01c498@arm.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
+ membarrier_mm_sync_core_before_usermode
+Date: Fri, 17 Jul 2020 09:26:57 +1000
+Message-ID: <1594906688.ikv6r4gznx.astroid@bobo.none>
+References: <1594868476.6k5kvx8684.astroid@bobo.none>
+        <EFAD6E2F-EC08-4EB3-9ECC-2A963C023FC5@amacapital.net>
+        <20200716085032.GO10769@hirez.programming.kicks-ass.net>
+        <1594892300.mxnq3b9a77.astroid@bobo.none>
+        <20200716110038.GA119549@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46192 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46354 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726113AbgGPXZ7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 19:25:59 -0400
-Received: from mail-wr1-x441.google.com (mail-wr1-x441.google.com [IPv6:2a00:1450:4864:20::441])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 081A2C061755
-        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 16:25:58 -0700 (PDT)
-Received: by mail-wr1-x441.google.com with SMTP id f18so9010223wrs.0
-        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 16:25:58 -0700 (PDT)
-In-Reply-To: <ac44a5a3-ca35-cd0a-f823-4b814c01c498@arm.com>
-Content-Language: en-US
+        with ESMTP id S1726189AbgGPX1E (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 19:27:04 -0400
+In-Reply-To: <20200716110038.GA119549@hirez.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robin Murphy <robin.murphy@arm.com>, linux-arch@vger.kernel.org
-Cc: Florian Fainelli <f.fainelli@gmail.com>, Daniel Jordan <daniel.m.jordan@oracle.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@armlinux.org.uk>, Vincenzo Frascino <vincenzo.frascino@arm.com>, Vlastimil Babka <vbabka@suse.cz>
+To: peterz@infradead.org
+Cc: Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, x86 <x86@kernel.org>
 
-Hi Robin,
+Excerpts from peterz@infradead.org's message of July 16, 2020 9:00 pm:
+> On Thu, Jul 16, 2020 at 08:03:36PM +1000, Nicholas Piggin wrote:
+>> Excerpts from Peter Zijlstra's message of July 16, 2020 6:50 pm:
+>> > On Wed, Jul 15, 2020 at 10:18:20PM -0700, Andy Lutomirski wrote:
+>> >> > On Jul 15, 2020, at 9:15 PM, Nicholas Piggin <npiggin@gmail.com> wr=
+ote:
+>=20
+>> >> But I=E2=80=99m wondering if all this deferred sync stuff is wrong. I=
+n the
+>> >> brave new world of io_uring and such, perhaps kernel access matter
+>> >> too.  Heck, even:
+>> >=20
+>> > IIRC the membarrier SYNC_CORE use-case is about user-space
+>> > self-modifying code.
+>> >=20
+>> > Userspace re-uses a text address and needs to SYNC_CORE before it can =
+be
+>> > sure the old text is forgotten. Nothing the kernel does matters there.
+>> >=20
+>> > I suppose the manpage could be more clear there.
+>>=20
+>> True, but memory ordering of kernel stores from kernel threads for
+>> regular mem barrier is the concern here.
+>>=20
+>> Does io_uring update completion queue from kernel thread or interrupt,
+>> for example? If it does, then membarrier will not order such stores
+>> with user memory accesses.
+>=20
+> So we're talking about regular membarrier() then? Not the SYNC_CORE
+> variant per-se.
 
-Am 16.07.20 um 20:46 schrieb Robin Murphy:
-> Hi Alex,
->
-> On 2020-07-16 16:07, Alex Bee wrote:
->> Along with commit commit 74d06efb9c2f ("ARM: 8932/1: Add clock_gettime64
->> entry point") clock_gettime64 was added for ARM platform to solve the
->> y2k38 problem on 32-bit platforms. glibc from version 2.31 onwards
->> started using this vdso-call on ARM platforms.
->> However it was (probably) forgotten to "nullpatch" this call, when no
->> reliable timer source is available, for example when
->> "arm,cpu-registers-not-fw-configured" is defined in devicetree for
->> "arm,armv7-timer".
->> This results in erratic time jumps whenever "gettimeofday" gets called,
->> since the (non-working) vdso-call will be used instead of a syscall.
->>
->> This patch adds clock_gettime64 to get nullpatched as well. It has been
->> verified to work and solve this issue on Rockchip RK322x, RK3288 and
->> RPi4 (32-bit kernel build) platforms.
->
-> FYI, a version of this patch was already submitted, and is just 
-> waiting for Russell to apply it:
->
-> https://www.armlinux.org.uk/developer/patches/viewpatch.php?id=8987/1
->
-> Robin.
-OK - couldn't find this before. You can drop my patch than.
->
->> Signed-off-by: Alex Bee <knaerzche@gmail.com>
->> ---
->>   arch/arm/kernel/vdso.c | 1 +
->>   1 file changed, 1 insertion(+)
->>
->> diff --git a/arch/arm/kernel/vdso.c b/arch/arm/kernel/vdso.c
->> index 6bfdca4769a7..fddd08a6e063 100644
->> --- a/arch/arm/kernel/vdso.c
->> +++ b/arch/arm/kernel/vdso.c
->> @@ -184,6 +184,7 @@ static void __init patch_vdso(void *ehdr)
->>       if (!cntvct_ok) {
->>           vdso_nullpatch_one(&einfo, "__vdso_gettimeofday");
->>           vdso_nullpatch_one(&einfo, "__vdso_clock_gettime");
->> +        vdso_nullpatch_one(&einfo, "__vdso_clock_gettime64");
->>       }
->>   }
->>
-Regards,
+Well, both but Andy in this case was wondering about kernel writes
+vs user.
 
-Alex
+>=20
+> Even there, I'll argue we don't care, but perhaps Mathieu has a
+> different opinion. All we care about is that all other threads (or CPUs
+> for GLOBAL) observe an smp_mb() before it returns.
+>=20
+> Any serialization against whatever those other threads/CPUs are running
+> at the instant of the syscall is external to the syscall, we make no
+> gauarantees about that. That is, we can fundamentally not say what
+> another CPU is executing concurrently. Nor should we want to.
+>=20
+> So if you feel that your membarrier() ought to serialize against remote
+> execution, you need to arrange a quiecent state on the remote side
+> yourself.
+>=20
+> Now, normally membarrier() is used to implement userspace RCU like
+> things, and there all that matters is that the remote CPUs observe the
+> beginngin of the new grace-period, ie counter flip, and we observe their
+> read-side critical sections, or smething like that, it's been a while
+> since I looked at all that.
+>=20
+> It's always been the case that concurrent syscalls could change user
+> memory, io_uring doesn't change that, it just makes it even less well
+> defined when that would happen. If you want to serialize against that,
+> you need to arrange that externally.
+
+membarrier does replace barrier instructions on remote CPUs, which do
+order accesses performed by the kernel on the user address space. So
+membarrier should too I guess.
+
+Normal process context accesses like read(2) will do so because they
+don't get filtered out from IPIs, but kernel threads using the mm may
+not.
+
+Thanks,
+Nick
