@@ -1,113 +1,206 @@
-Return-Path: <SRS0=h896=BH=kvack.org=owner-linux-mm@kernel.org>
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 20/24] sparc: use asm-generic/mmu_context.h for no-op implementations
-Date: Tue, 28 Jul 2020 13:34:01 +1000
-Message-ID: <20200728033405.78469-21-npiggin@gmail.com>
-In-Reply-To: <20200728033405.78469-1-npiggin@gmail.com>
-References: <20200728033405.78469-1-npiggin@gmail.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Sender: owner-linux-mm@kvack.org
-To: linux-arch@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
+Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-delivery-1.mimecast.com ([207.211.31.120]:56399 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1729675AbgGPTbI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:31:08 -0400
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v2 3/5] locking/qspinlock: Pass lock value as function argument
+Date: Thu, 16 Jul 2020 15:29:25 -0400
+Message-ID: <20200716192927.12944-4-longman@redhat.com>
+In-Reply-To: <20200716192927.12944-1-longman@redhat.com>
+References: <20200716192927.12944-1-longman@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200728033401.Z_73dGJKt8Pb9Zg1IGvFK3ucnnx6CrRmxnMvnnAniTE@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Davidlohr Bueso <dave@stgolabs.net>, Waiman Long <longman@redhat.com>
+Message-ID: <20200716192925.6QXT8VDttg5UxARa5XoMnBVfiGMb5fkDiDsHovJMEhQ@z>
 
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: sparclinux@vger.kernel.org
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+Update the various internal qspinlock functions to pass in the lock
+value to be used as a function argument instead of hardcoding it to
+_Q_LOCKED_VAL. There is no functional change.
+
+Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- arch/sparc/include/asm/mmu_context_32.h | 10 ++++------
- arch/sparc/include/asm/mmu_context_64.h | 10 +++++-----
- 2 files changed, 9 insertions(+), 11 deletions(-)
+ kernel/locking/qspinlock.c          | 19 ++++++++++---------
+ kernel/locking/qspinlock_paravirt.h | 24 +++++++++++++-----------
+ 2 files changed, 23 insertions(+), 20 deletions(-)
 
-diff --git a/arch/sparc/include/asm/mmu_context_32.h b/arch/sparc/include=
-/asm/mmu_context_32.h
-index 7ddcb8badf70..509043f81560 100644
---- a/arch/sparc/include/asm/mmu_context_32.h
-+++ b/arch/sparc/include/asm/mmu_context_32.h
-@@ -6,13 +6,10 @@
-=20
- #include <asm-generic/mm_hooks.h>
-=20
--static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_stru=
-ct *tsk)
--{
--}
--
- /* Initialize a new mmu context.  This is invoked when a new
-  * address space instance (unique or shared) is instantiated.
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index b256e2d03817..527601eab7bf 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -158,9 +158,9 @@ static __always_inline void clear_pending(struct qspinlock *lock)
+  *
+  * Lock stealing is not allowed if this function is used.
   */
-+#define init_new_context init_new_context
- int init_new_context(struct task_struct *tsk, struct mm_struct *mm);
-=20
- /* Destroy a dead context.  This occurs when mmput drops the
-@@ -20,17 +17,18 @@ int init_new_context(struct task_struct *tsk, struct =
-mm_struct *mm);
-  * all the page tables have been flushed.  Our job is to destroy
-  * any remaining processor-specific state.
-  */
-+#define destroy_context destroy_context
- void destroy_context(struct mm_struct *mm);
-=20
- /* Switch the current MM context. */
- void switch_mm(struct mm_struct *old_mm, struct mm_struct *mm,
- 	       struct task_struct *tsk);
-=20
--#define deactivate_mm(tsk,mm)	do { } while (0)
--
- /* Activate a new MM instance for the current task. */
- #define activate_mm(active_mm, mm) switch_mm((active_mm), (mm), NULL)
-=20
-+#include <asm-generic/mmu_context.h>
-+
- #endif /* !(__ASSEMBLY__) */
-=20
- #endif /* !(__SPARC_MMU_CONTEXT_H) */
-diff --git a/arch/sparc/include/asm/mmu_context_64.h b/arch/sparc/include=
-/asm/mmu_context_64.h
-index 312fcee8df2b..7a8380c63aab 100644
---- a/arch/sparc/include/asm/mmu_context_64.h
-+++ b/arch/sparc/include/asm/mmu_context_64.h
-@@ -16,17 +16,16 @@
- #include <asm-generic/mm_hooks.h>
- #include <asm/percpu.h>
-=20
--static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_stru=
-ct *tsk)
--{
--}
--
- extern spinlock_t ctx_alloc_lock;
- extern unsigned long tlb_context_cache;
- extern unsigned long mmu_context_bmap[];
-=20
- DECLARE_PER_CPU(struct mm_struct *, per_cpu_secondary_mm);
- void get_new_mmu_context(struct mm_struct *mm);
-+
-+#define init_new_context init_new_context
- int init_new_context(struct task_struct *tsk, struct mm_struct *mm);
-+#define destroy_context destroy_context
- void destroy_context(struct mm_struct *mm);
-=20
- void __tsb_context_switch(unsigned long pgd_pa,
-@@ -136,7 +135,6 @@ static inline void switch_mm(struct mm_struct *old_mm=
-, struct mm_struct *mm, str
- 	spin_unlock_irqrestore(&mm->context.lock, flags);
+-static __always_inline void clear_pending_set_locked(struct qspinlock *lock)
++static __always_inline void clear_pending_set_locked(struct qspinlock *lock, const u8 lockval)
+ {
+-	WRITE_ONCE(lock->locked_pending, _Q_LOCKED_VAL);
++	WRITE_ONCE(lock->locked_pending, lockval);
  }
-=20
--#define deactivate_mm(tsk,mm)	do { } while (0)
- #define activate_mm(active_mm, mm) switch_mm(active_mm, mm, NULL)
-=20
- #define  __HAVE_ARCH_START_CONTEXT_SWITCH
-@@ -187,6 +185,8 @@ static inline void finish_arch_post_lock_switch(void)
+ 
+ /*
+@@ -202,9 +202,9 @@ static __always_inline void clear_pending(struct qspinlock *lock)
+  *
+  * *,1,0 -> *,0,1
+  */
+-static __always_inline void clear_pending_set_locked(struct qspinlock *lock)
++static __always_inline void clear_pending_set_locked(struct qspinlock *lock, const u8 lockval)
+ {
+-	atomic_add(-_Q_PENDING_VAL + _Q_LOCKED_VAL, &lock->val);
++	atomic_add(-_Q_PENDING_VAL + lockval, &lock->val);
+ }
+ 
+ /**
+@@ -258,9 +258,9 @@ static __always_inline u32 queued_fetch_set_pending_acquire(struct qspinlock *lo
+  *
+  * *,*,0 -> *,0,1
+  */
+-static __always_inline void set_locked(struct qspinlock *lock)
++static __always_inline void set_locked(struct qspinlock *lock, const u8 lockval)
+ {
+-	WRITE_ONCE(lock->locked, _Q_LOCKED_VAL);
++	WRITE_ONCE(lock->locked, lockval);
+ }
+ 
+ 
+@@ -317,6 +317,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	struct mcs_spinlock *prev, *next, *node;
+ 	u32 old, tail;
+ 	int idx;
++	const u8 lockval = _Q_LOCKED_VAL;
+ 
+ 	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
+ 
+@@ -386,7 +387,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	 *
+ 	 * 0,1,0 -> 0,0,1
+ 	 */
+-	clear_pending_set_locked(lock);
++	clear_pending_set_locked(lock, lockval);
+ 	lockevent_inc(lock_pending);
+ 	return;
+ 
+@@ -529,7 +530,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	 *       PENDING will make the uncontended transition fail.
+ 	 */
+ 	if ((val & _Q_TAIL_MASK) == tail) {
+-		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, _Q_LOCKED_VAL))
++		if (atomic_try_cmpxchg_relaxed(&lock->val, &val, lockval))
+ 			goto release; /* No contention */
  	}
- }
-=20
-+#include <asm-generic/mmu_context.h>
+ 
+@@ -538,7 +539,7 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	 * which will then detect the remaining tail and queue behind us
+ 	 * ensuring we'll see a @next.
+ 	 */
+-	set_locked(lock);
++	set_locked(lock, lockval);
+ 
+ 	/*
+ 	 * contended path; wait for next if not observed yet, release.
+diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
+index 17878e531f51..c8558876fc69 100644
+--- a/kernel/locking/qspinlock_paravirt.h
++++ b/kernel/locking/qspinlock_paravirt.h
+@@ -80,6 +80,8 @@ struct pv_node {
+ #define queued_spin_trylock(l)	pv_hybrid_queued_unfair_trylock(l)
+ static inline bool pv_hybrid_queued_unfair_trylock(struct qspinlock *lock)
+ {
++	const u8 lockval = _Q_LOCKED_VAL;
 +
- #endif /* !(__ASSEMBLY__) */
-=20
- #endif /* !(__SPARC64_MMU_CONTEXT_H) */
---=20
-2.23.0
+ 	/*
+ 	 * Stay in unfair lock mode as long as queued mode waiters are
+ 	 * present in the MCS wait queue but the pending bit isn't set.
+@@ -88,7 +90,7 @@ static inline bool pv_hybrid_queued_unfair_trylock(struct qspinlock *lock)
+ 		int val = atomic_read(&lock->val);
+ 
+ 		if (!(val & _Q_LOCKED_PENDING_MASK) &&
+-		   (cmpxchg_acquire(&lock->locked, 0, _Q_LOCKED_VAL) == 0)) {
++		   (cmpxchg_acquire(&lock->locked, 0, lockval) == 0)) {
+ 			lockevent_inc(pv_lock_stealing);
+ 			return true;
+ 		}
+@@ -112,15 +114,15 @@ static __always_inline void set_pending(struct qspinlock *lock)
+ }
+ 
+ /*
+- * The pending bit check in pv_queued_spin_steal_lock() isn't a memory
++ * The pending bit check in pv_hybrid_queued_unfair_trylock() isn't a memory
+  * barrier. Therefore, an atomic cmpxchg_acquire() is used to acquire the
+  * lock just to be sure that it will get it.
+  */
+-static __always_inline int trylock_clear_pending(struct qspinlock *lock)
++static __always_inline int trylock_clear_pending(struct qspinlock *lock, const u8 lockval)
+ {
+ 	return !READ_ONCE(lock->locked) &&
+ 	       (cmpxchg_acquire(&lock->locked_pending, _Q_PENDING_VAL,
+-				_Q_LOCKED_VAL) == _Q_PENDING_VAL);
++				lockval) == _Q_PENDING_VAL);
+ }
+ #else /* _Q_PENDING_BITS == 8 */
+ static __always_inline void set_pending(struct qspinlock *lock)
+@@ -128,7 +130,7 @@ static __always_inline void set_pending(struct qspinlock *lock)
+ 	atomic_or(_Q_PENDING_VAL, &lock->val);
+ }
+ 
+-static __always_inline int trylock_clear_pending(struct qspinlock *lock)
++static __always_inline int trylock_clear_pending(struct qspinlock *lock, const u8 lockval)
+ {
+ 	int val = atomic_read(&lock->val);
+ 
+@@ -142,7 +144,7 @@ static __always_inline int trylock_clear_pending(struct qspinlock *lock)
+ 		 * Try to clear pending bit & set locked bit
+ 		 */
+ 		old = val;
+-		new = (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
++		new = (val & ~_Q_PENDING_MASK) | lockval;
+ 		val = atomic_cmpxchg_acquire(&lock->val, old, new);
+ 
+ 		if (val == old)
+@@ -406,6 +408,7 @@ pv_wait_head_or_lock(struct qspinlock *lock, struct mcs_spinlock *node)
+ 	struct qspinlock **lp = NULL;
+ 	int waitcnt = 0;
+ 	int loop;
++	const u8 lockval = _Q_LOCKED_VAL;
+ 
+ 	/*
+ 	 * If pv_kick_node() already advanced our state, we don't need to
+@@ -432,7 +435,7 @@ pv_wait_head_or_lock(struct qspinlock *lock, struct mcs_spinlock *node)
+ 		 */
+ 		set_pending(lock);
+ 		for (loop = SPIN_THRESHOLD; loop; loop--) {
+-			if (trylock_clear_pending(lock))
++			if (trylock_clear_pending(lock, lockval))
+ 				goto gotlock;
+ 			cpu_relax();
+ 		}
+@@ -459,7 +462,7 @@ pv_wait_head_or_lock(struct qspinlock *lock, struct mcs_spinlock *node)
+ 				 * Change the lock value back to _Q_LOCKED_VAL
+ 				 * and unhash the table.
+ 				 */
+-				WRITE_ONCE(lock->locked, _Q_LOCKED_VAL);
++				WRITE_ONCE(lock->locked, lockval);
+ 				WRITE_ONCE(*lp, NULL);
+ 				goto gotlock;
+ 			}
+@@ -544,14 +547,13 @@ __pv_queued_spin_unlock_slowpath(struct qspinlock *lock, u8 locked)
+ #ifndef __pv_queued_spin_unlock
+ __visible void __pv_queued_spin_unlock(struct qspinlock *lock)
+ {
+-	u8 locked;
+-
+ 	/*
+ 	 * We must not unlock if SLOW, because in that case we must first
+ 	 * unhash. Otherwise it would be possible to have multiple @lock
+ 	 * entries, which would be BAD.
+ 	 */
+-	locked = cmpxchg_release(&lock->locked, _Q_LOCKED_VAL, 0);
++	u8 locked = cmpxchg_release(&lock->locked, _Q_LOCKED_VAL, 0);
++
+ 	if (likely(locked == _Q_LOCKED_VAL))
+ 		return;
+ 
+-- 
+2.18.1
