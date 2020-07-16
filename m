@@ -1,54 +1,87 @@
-Return-Path: <SRS0=Lhqp=BD=vger.kernel.org=linux-doc-owner@kernel.org>
-Message-ID: <d15816d6172ea770b63e52443aced5607f1e35c1.camel@intel.com>
-Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Date: Thu, 23 Jul 2020 20:40:33 -0700
-In-Reply-To: <f38b5b34-8432-9531-01b5-d0ae924ffafe@intel.com>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
-         <20200723162531.GF21891@linux.intel.com>
-         <2e9806a3-7485-a0d0-b63d-f112fcff954c@intel.com>
-         <20200723165649.GG21891@linux.intel.com>
-         <f38b5b34-8432-9531-01b5-d0ae924ffafe@intel.com>
-Content-Type: text/plain; charset="UTF-8"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Sender: linux-doc-owner@vger.kernel.org
-To: Dave Hansen <dave.hansen@intel.com>, Sean Christopherson <sean.j.christopherson@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
+Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-1.mimecast.com ([207.211.31.81]:59297 "EHLO
+        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1729136AbgGPTbA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Jul 2020 15:31:00 -0400
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v2 1/5] x86/smp: Add saturated +1/+2 1-byte cpu numbers
+Date: Thu, 16 Jul 2020 15:29:23 -0400
+Message-ID: <20200716192927.12944-2-longman@redhat.com>
+In-Reply-To: <20200716192927.12944-1-longman@redhat.com>
+References: <20200716192927.12944-1-longman@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200724034033.ISYxhmyMtML99jqkjhUQIXAi0MH14ipBWOOCxdjeGvw@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Davidlohr Bueso <dave@stgolabs.net>, Waiman Long <longman@redhat.com>
+Message-ID: <20200716192923.-QSygXLJf0P5jJd1teclwlOx41yxPEC1ULp1PThss34@z>
 
-On Thu, 2020-07-23 at 11:41 -0700, Dave Hansen wrote:
-> On 7/23/20 9:56 AM, Sean Christopherson wrote:
-> > On Thu, Jul 23, 2020 at 09:41:37AM -0700, Dave Hansen wrote:
-> > > On 7/23/20 9:25 AM, Sean Christopherson wrote:
-> > > > How would people feel about taking the above two patches (02 and 03 in the
-> > > > series) through the KVM tree to enable KVM virtualization of CET before the
-> > > > kernel itself gains CET support?  I.e. add the MSR and feature bits, along
-> > > > with the XSAVES context switching.  The feature definitons could use "" to
-> > > > suppress displaying them in /proc/cpuinfo to avoid falsely advertising CET
-> > > > to userspace.
-> > > > 
-> > > > AIUI, there are ABI issues that need to be sorted out, and that is likely
-> > > > going to drag on for some time. 
-> > > > 
-> > > > Is this a "hell no" sort of idea, or something that would be feasible if we
-> > > > can show that there are no negative impacts to the kernel?
-> > > Negative impacts like bloating every task->fpu with XSAVE state that
-> > > will never get used? ;)
-> > Gah, should have qualified that with "meaningful or measurable negative
-> > impacts".  E.g. the extra 40 bytes for CET XSAVE state seems like it would
-> > be acceptable overhead, but noticeably increasing the latency of XSAVES
-> > and/or XRSTORS would not be acceptable.
-> 
-> It's 40 bytes, but it's 40 bytes of just pure, unadulterated waste.  It
-> would have no *chance* of being used.  It's also quite precisely
-> measurable on a given system:
-> 
-> 	cat /proc/slabinfo | grep task_struct | awk '{print $3 * 40}'
+Both qspinlock and qrwlock use one whole byte to store the binary
+lock/unlock state. We can actually store more information in the
+lock byte like an encoded lock holder cpu number to aid debugging
+and crash dump analysis.
 
-If there is value in getting these two patches merged first, we can move
-XFEATURE_MASK_CET_USER to XFEATURE_MASK_SUPERVISOR_UNSUPPORTED for now, until
-CET is eventually merged.  That way, there is no space wasted.
+To make that possible, a saturated +1 and +2 1-byte per-cpu cpu numbers
+are added. The qrwlock can use the +1 number for the lock holding writer
+and the qspinlock can use the +2 number for the lock holder.
 
-Yu-cheng
+The new per-cpu numbers are placed right after the commonly used
+cpu_number (smp_processor_id()) which has more 1700 references in the
+kernel. Therefore these new cpu numbers are very likely to be located
+in the same hot cacheline as cpu_number.  As these numbers are before
+the unsigned long this_cpu_off, no additional percpu space will be
+consumed in x86-64.
+
+Signed-off-by: Waiman Long <longman@redhat.com>
+---
+ arch/x86/include/asm/spinlock.h |  5 +++++
+ arch/x86/kernel/setup_percpu.c  | 11 +++++++++++
+ 2 files changed, 16 insertions(+)
+
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index 5b6bc7016c22..319fa58caa9b 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -10,6 +10,11 @@
+ #include <asm/paravirt.h>
+ #include <asm/bitops.h>
+ 
++DECLARE_PER_CPU_READ_MOSTLY(u8, cpu_number_sadd1);
++DECLARE_PER_CPU_READ_MOSTLY(u8, cpu_number_sadd2);
++#define __cpu_number_sadd1	this_cpu_read(cpu_number_sadd1)
++#define __cpu_number_sadd2	this_cpu_read(cpu_number_sadd2)
++
+ /*
+  * Your basic SMP spinlocks, allowing only a single CPU anywhere
+  *
+diff --git a/arch/x86/kernel/setup_percpu.c b/arch/x86/kernel/setup_percpu.c
+index fd945ce78554..859c5b950d08 100644
+--- a/arch/x86/kernel/setup_percpu.c
++++ b/arch/x86/kernel/setup_percpu.c
+@@ -26,6 +26,14 @@
+ DEFINE_PER_CPU_READ_MOSTLY(int, cpu_number);
+ EXPORT_PER_CPU_SYMBOL(cpu_number);
+ 
++/*
++ * Saturated +1 and +2 1-byte cpu numbers
++ */
++DEFINE_PER_CPU_READ_MOSTLY(u8, cpu_number_sadd1); /* +1 saturated cpu# */
++DEFINE_PER_CPU_READ_MOSTLY(u8, cpu_number_sadd2); /* +2 saturated cpu# */
++EXPORT_PER_CPU_SYMBOL(cpu_number_sadd1);
++EXPORT_PER_CPU_SYMBOL(cpu_number_sadd2);
++
+ #ifdef CONFIG_X86_64
+ #define BOOT_PERCPU_OFFSET ((unsigned long)__per_cpu_load)
+ #else
+@@ -223,6 +231,9 @@ void __init setup_per_cpu_areas(void)
+ 		per_cpu_offset(cpu) = delta + pcpu_unit_offsets[cpu];
+ 		per_cpu(this_cpu_off, cpu) = per_cpu_offset(cpu);
+ 		per_cpu(cpu_number, cpu) = cpu;
++		per_cpu(cpu_number_sadd1, cpu) = (cpu + 1 < 0x100) ? cpu + 1 : 0xff;
++		per_cpu(cpu_number_sadd2, cpu) = (cpu + 2 < 0x100) ? cpu + 2 : 0xff;
++
+ 		setup_percpu_segment(cpu);
+ 		setup_stack_canary_segment(cpu);
+ 		/*
+-- 
+2.18.1
