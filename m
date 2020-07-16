@@ -1,126 +1,64 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [patch V3 01/13] entry: Provide generic syscall entry
- functionality
-Date: Thu, 16 Jul 2020 13:52:33 -0700
-Message-ID: <202007161336.B993ED938@keescook>
+Subject: Re: [patch V3 02/13] entry: Provide generic syscall exit function
+Date: Thu, 16 Jul 2020 13:55:11 -0700
+Message-ID: <202007161354.62030182F@keescook>
 References: <20200716182208.180916541@linutronix.de>
- <20200716185424.011950288@linutronix.de>
+ <20200716185424.116500611@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50502 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50918 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725933AbgGPUwg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 16:52:36 -0400
-Received: from mail-pl1-x642.google.com (mail-pl1-x642.google.com [IPv6:2607:f8b0:4864:20::642])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 05D53C08C5C0
-        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 13:52:36 -0700 (PDT)
-Received: by mail-pl1-x642.google.com with SMTP id q17so4381260pls.9
-        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 13:52:36 -0700 (PDT)
+        with ESMTP id S1725933AbgGPUzO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 16:55:14 -0400
+Received: from mail-pg1-x52e.google.com (mail-pg1-x52e.google.com [IPv6:2607:f8b0:4864:20::52e])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 96D53C08C5C0
+        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 13:55:13 -0700 (PDT)
+Received: by mail-pg1-x52e.google.com with SMTP id t6so5466149pgq.1
+        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 13:55:13 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <20200716185424.011950288@linutronix.de>
+In-Reply-To: <20200716185424.116500611@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
 
-On Thu, Jul 16, 2020 at 08:22:09PM +0200, Thomas Gleixner wrote:
+On Thu, Jul 16, 2020 at 08:22:10PM +0200, Thomas Gleixner wrote:
 > From: Thomas Gleixner <tglx@linutronix.de>
 > 
-> On syscall entry certain work needs to be done:
+> Like syscall entry all architectures have similar and pointlessly different
+> code to handle pending work before returning from a syscall to user space.
 > 
->    - Establish state (lockdep, context tracking, tracing)
->    - Conditional work (ptrace, seccomp, audit...)
+>   1) One-time syscall exit work:
+>       - rseq syscall exit
+>       - audit
+>       - syscall tracing
+>       - tracehook (single stepping)
 > 
-> This code is needlessly duplicated and  different in all
-> architectures.
+>   2) Preparatory work
+>       - Exit to user mode loop (common TIF handling).
+>       - Architecture specific one time work arch_exit_to_user_mode_prepare()
+>       - Address limit and lockdep checks
+>      
+>   3) Final transition (lockdep, tracing, context tracking, RCU). Invokes
+>      arch_exit_to_user_mode() to handle e.g. speculation mitigations
 > 
-> Provide a generic version based on the x86 implementation which has all the
-> RCU and instrumentation bits right.
+> Provide a generic version based on the x86 code which has all the RCU and
+> instrumentation protections right.
+> 
+> Provide a variant for interrupt return to user mode as well which shares
+> the above #2 and #3 work items.
+> 
+> After syscall_exit_to_user_mode() and irqentry_exit_to_user_mode() the
+> architecture code just has to return to user space. The code after
+> returning from these functions must not be instrumented.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 
-Ahh! You're reading my mind! I was just thinking about this while
-reviewing the proposed syscall redirection series[1], and pondering the
-lack of x86 TIF flags, and that nearly everything in the series (and for
-seccomp and other things) didn't need to be arch-specific. And now that
-series absolutely needs to be rebased and it'll magically work for every
-arch that switches to the generic entry code. :)
+This looks correct to me. Did you happen to run the seccomp selftests
+under this series?
 
-Notes below...
-
-[1] https://lore.kernel.org/lkml/20200716193141.4068476-2-krisman@collabora.com/
-
-> +/*
-> + * Define dummy _TIF work flags if not defined by the architecture or for
-> + * disabled functionality.
-> + */
-
-When I was thinking about this last week I was pondering having a split
-between the arch-agnositc TIF flags and the arch-specific TIF flags, and
-that each arch could have a single "there is agnostic work to be done"
-TIF in their thread_info, and the agnostic flags could live in
-task_struct or something. Anyway, I'll keep reading...
-
-> +/**
-> + * syscall_enter_from_user_mode - Check and handle work before invoking
-> + *				 a syscall
-> + * @regs:	Pointer to currents pt_regs
-> + * @syscall:	The syscall number
-> + *
-> + * Invoked from architecture specific syscall entry code with interrupts
-> + * disabled. The calling code has to be non-instrumentable. When the
-> + * function returns all state is correct and the subsequent functions can be
-> + * instrumented.
-> + *
-> + * Returns: The original or a modified syscall number
-> + *
-> + * If the returned syscall number is -1 then the syscall should be
-> + * skipped. In this case the caller may invoke syscall_set_error() or
-> + * syscall_set_return_value() first.  If neither of those are called and -1
-> + * is returned, then the syscall will fail with ENOSYS.
-
-There's been some recent confusion over "has the syscall changed,
-or did seccomp request it be skipped?" that was explored in arm64[2]
-(though I see Will and Keno in CC already). There might need to be a
-clearer way to distinguish between "wild userspace issued a -1 syscall"
-and "seccomp or ptrace asked for the syscall to be skipped". The
-difference is mostly about when ENOSYS gets set, with respect to calls
-to syscall_set_return_value(), but if the syscall gets changed, the arch
-may need to recheck the value and consider ENOSYS, etc. IIUC, what Will
-ended up with[3] was having syscall_trace_enter() return the syscall return
-value instead of the new syscall.
-
-[2] https://lore.kernel.org/lkml/20200704125027.GB21185@willie-the-truck/
-[3] https://lore.kernel.org/lkml/20200703083914.GA18516@willie-the-truck/
-
-> +static long syscall_trace_enter(struct pt_regs *regs, long syscall,
-> +				unsigned long ti_work)
-> +{
-> +	long ret = 0;
-> +
-> +	/* Handle ptrace */
-> +	if (ti_work & (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU)) {
-> +		ret = arch_syscall_enter_tracehook(regs);
-> +		if (ret || (ti_work & _TIF_SYSCALL_EMU))
-> +			return -1L;
-> +	}
-> +
-> +	/* Do seccomp after ptrace, to catch any tracer changes. */
-> +	if (ti_work & _TIF_SECCOMP) {
-> +		ret = arch_syscall_enter_seccomp(regs);
-> +		if (ret == -1L)
-> +			return ret;
-> +	}
-> +
-> +	if (unlikely(ti_work & _TIF_SYSCALL_TRACEPOINT))
-> +		trace_sys_enter(regs, syscall);
-> +
-> +	arch_syscall_enter_audit(regs);
-> +
-> +	return ret ? : syscall;
-> +}
-
-Modulo the notes about -1 vs syscall number above, this looks correct to
-me for ptrace and seccomp.
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
 -- 
 Kees Cook
