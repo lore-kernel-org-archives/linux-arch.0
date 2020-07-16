@@ -1,36 +1,42 @@
-Return-Path: <SRS0=Pkkz=BK=kvack.org=owner-linux-mm@kernel.org>
-Subject: Re: [RFC PATCH 0/5] madvise MADV_DOEXEC
-References: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
-From: Steven Sistare <steven.sistare@oracle.com>
-Message-ID: <389f79f9-f1a5-963e-dd05-4d0aaabb5346@oracle.com>
-Date: Fri, 31 Jul 2020 15:41:37 -0400
+Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51344 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726231AbgGPU55 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 16:57:57 -0400
+Received: from mail-pf1-x435.google.com (mail-pf1-x435.google.com [IPv6:2607:f8b0:4864:20::435])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 040ABC08C5CE
+        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 13:57:57 -0700 (PDT)
+Received: by mail-pf1-x435.google.com with SMTP id x72so4255342pfc.6
+        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 13:57:56 -0700 (PDT)
+Date: Thu, 16 Jul 2020 13:57:54 -0700
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [patch V3 07/13] x86/ptrace: Provide pt_regs helpers for
+ entry/exit
+Message-ID: <202007161357.70EF223F@keescook>
+References: <20200716182208.180916541@linutronix.de>
+ <20200716185424.658427667@linutronix.de>
 MIME-Version: 1.0
-In-Reply-To: <1595869887-23307-1-git-send-email-anthony.yznaga@oracle.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc: mhocko@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, keescook@chromium.org, gerg@linux-m68k.org, ktkhai@virtuozzo.com, christian.brauner@ubuntu.com, peterz@infradead.org, esyr@redhat.com, jgg@ziepe.ca, christian@kellner.me, areber@redhat.com, cyphar@cyphar.com
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200716185424.658427667@linutronix.de>
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200731194137.F1fdePFq5W0Sn318ISUL01m1lDKfjq83ZFG9Vvfl-eQ@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
+Message-ID: <20200716205754.zJuPZUVlJ4ie-DLSP4ZBo-AkjXk-Qv5yUY37ewgZOKw@z>
 
-On 7/27/2020 1:11 PM, Anthony Yznaga wrote:
-> This patchset adds support for preserving an anonymous memory range across
-> exec(3) using a new madvise MADV_DOEXEC argument.  The primary benefit for
-> sharing memory in this manner, as opposed to re-attaching to a named shared
-> memory segment, is to ensure it is mapped at the same virtual address in
-> the new process as it was in the old one.  An intended use for this is to
-> preserve guest memory for guests using vfio while qemu exec's an updated
-> version of itself.  By ensuring the memory is preserved at a fixed address,
-> vfio mappings and their associated kernel data structures can remain valid.
-> In addition, for the qemu use case, qemu instances that back guest RAM with
-> anonymous memory can be updated.
+On Thu, Jul 16, 2020 at 08:22:15PM +0200, Thomas Gleixner wrote:
+> As a preparatory step for moving the syscall and interrupt entry/exit
+> handling into generic code, provide pt_regs helpers which allow to:
+> 
+>   - Retrieve the syscall number from pt_regs
+>   - Retrieve the syscall return value from pt_regs
+>   - Retrieve the interrupt state from pt_regs to check whether interrupts
+>     are reenabled by return from interrupt/exception.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 
-I forgot to mention, our use case is not just theoretical.  It has been implemented
-and is pretty cool (but I am biased).  The pause time for the guest is in the
-100 - 200 msec range.  We submitted qemu patches for review based on the MADV_DOEXEC
-proposal.  In case you are curious:
-  https://lore.kernel.org/qemu-devel/1596122076-341293-1-git-send-email-steven.sistare@oracle.com/
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
-- Steve
+-- 
+Kees Cook
