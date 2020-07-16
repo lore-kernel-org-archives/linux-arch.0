@@ -1,240 +1,259 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45436 "EHLO
+Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41010 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729087AbgGUKae (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 06:30:34 -0400
-Received: from mail-wr1-x449.google.com (mail-wr1-x449.google.com [IPv6:2a00:1450:4864:20::449])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 78B56C0619D8
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 03:30:34 -0700 (PDT)
-Received: by mail-wr1-x449.google.com with SMTP id s16so12891438wrv.1
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 03:30:34 -0700 (PDT)
-Date: Tue, 21 Jul 2020 12:30:09 +0200
-In-Reply-To: <20200721103016.3287832-1-elver@google.com>
-Message-ID: <20200721103016.3287832-2-elver@google.com>
-Mime-Version: 1.0
-References: <20200721103016.3287832-1-elver@google.com>
-Subject: [PATCH 1/8] kcsan: Support compounded read-write instrumentation
-From: Marco Elver <elver@google.com>
-Content-Type: text/plain; charset="UTF-8"
+        with ESMTP id S1729682AbgGPTu6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:50:58 -0400
+Message-ID: <20200716185425.198080509@linutronix.de>
+Date: Thu, 16 Jul 2020 20:22:20 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V3 12/13] x86/entry: Cleanup idtentry_enter/exit
+References: <20200716182208.180916541@linutronix.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-transfer-encoding: 8-bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: elver@google.com, paulmck@kernel.org
-Cc: will@kernel.org, peterz@infradead.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200721103009.SLqya2PzYNeOE0LC9TSOiYUSUwn0wjCts9Fge3fNGnQ@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
+Message-ID: <20200716182220.dZp8OfdqnJme-ObmlDrj5JPBaRCbQ8A_Vo1e4Htw8O4@z>
 
-Add support for compounded read-write instrumentation if supported by
-the compiler. Adds the necessary instrumentation functions, and a new
-type which is used to generate a more descriptive report.
+Remove the temporary defines and fixup all references.
 
-Furthermore, such compounded memory access instrumentation is excluded
-from the "assume aligned writes up to word size are atomic" rule,
-because we cannot assume that the compiler emits code that is atomic for
-compound ops.
-
-LLVM/Clang added support for the feature in:
-https://github.com/llvm/llvm-project/commit/785d41a261d136b64ab6c15c5d35f2adc5ad53e3
-
-The new instrumentation is emitted for sets of memory accesses in the
-same basic block to the same address with at least one read appearing
-before a write. These typically result from compound operations such as
-++, --, +=, -=, |=, &=, etc. but also equivalent forms such as "var =
-var + 1". Where the compiler determines that it is equivalent to emit a
-call to a single __tsan_read_write instead of separate __tsan_read and
-__tsan_write, we can then benefit from improved performance and better
-reporting for such access patterns.
-
-The new reports now show that the ops are both reads and writes, for
-example:
-
-	read-write to 0xffffffff90548a38 of 8 bytes by task 143 on cpu 3:
-	 test_kernel_rmw_array+0x45/0xa0
-	 access_thread+0x71/0xb0
-	 kthread+0x21e/0x240
-	 ret_from_fork+0x22/0x30
-
-	read-write to 0xffffffff90548a38 of 8 bytes by task 144 on cpu 2:
-	 test_kernel_rmw_array+0x45/0xa0
-	 access_thread+0x71/0xb0
-	 kthread+0x21e/0x240
-	 ret_from_fork+0x22/0x30
-
-Signed-off-by: Marco Elver <elver@google.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- include/linux/kcsan-checks.h | 45 ++++++++++++++++++++++++------------
- kernel/kcsan/core.c          | 23 ++++++++++++++----
- kernel/kcsan/report.c        |  4 ++++
- scripts/Makefile.kcsan       |  2 +-
- 4 files changed, 53 insertions(+), 21 deletions(-)
+ arch/x86/entry/common.c         |    6 +++---
+ arch/x86/include/asm/idtentry.h |   33 ++++++++++++++-------------------
+ arch/x86/kernel/kvm.c           |    6 +++---
+ arch/x86/kernel/traps.c         |    6 +++---
+ arch/x86/mm/fault.c             |    6 +++---
+ 5 files changed, 26 insertions(+), 31 deletions(-)
 
-diff --git a/include/linux/kcsan-checks.h b/include/linux/kcsan-checks.h
-index 7b0b9c44f5f3..ab23b38ad93d 100644
---- a/include/linux/kcsan-checks.h
-+++ b/include/linux/kcsan-checks.h
-@@ -7,19 +7,13 @@
- #include <linux/compiler_attributes.h>
- #include <linux/types.h>
+--- a/arch/x86/entry/common.c
++++ b/arch/x86/entry/common.c
+@@ -248,9 +248,9 @@ static void __xen_pv_evtchn_do_upcall(vo
+ {
+ 	struct pt_regs *old_regs;
+ 	bool inhcall;
+-	idtentry_state_t state;
++	irqentry_state_t state;
  
--/*
-- * ACCESS TYPE MODIFIERS
-- *
-- *   <none>: normal read access;
-- *   WRITE : write access;
-- *   ATOMIC: access is atomic;
-- *   ASSERT: access is not a regular access, but an assertion;
-- *   SCOPED: access is a scoped access;
-- */
--#define KCSAN_ACCESS_WRITE  0x1
--#define KCSAN_ACCESS_ATOMIC 0x2
--#define KCSAN_ACCESS_ASSERT 0x4
--#define KCSAN_ACCESS_SCOPED 0x8
-+/* Access types -- if KCSAN_ACCESS_WRITE is not set, the access is a read. */
-+#define KCSAN_ACCESS_WRITE	(1 << 0) /* Access is a write. */
-+#define KCSAN_ACCESS_COMPOUND	(1 << 1) /* Compounded read-write instrumentation. */
-+#define KCSAN_ACCESS_ATOMIC	(1 << 2) /* Access is atomic. */
-+/* The following are special, and never due to compiler instrumentation. */
-+#define KCSAN_ACCESS_ASSERT	(1 << 3) /* Access is an assertion. */
-+#define KCSAN_ACCESS_SCOPED	(1 << 4) /* Access is a scoped access. */
+-	state = idtentry_enter(regs);
++	state = irqentry_enter(regs);
+ 	old_regs = set_irq_regs(regs);
  
- /*
-  * __kcsan_*: Always calls into the runtime when KCSAN is enabled. This may be used
-@@ -204,6 +198,15 @@ static inline void __kcsan_disable_current(void) { }
- #define __kcsan_check_write(ptr, size)                                         \
- 	__kcsan_check_access(ptr, size, KCSAN_ACCESS_WRITE)
+ 	instrumentation_begin();
+@@ -266,7 +266,7 @@ static void __xen_pv_evtchn_do_upcall(vo
+ 		instrumentation_end();
+ 		restore_inhcall(inhcall);
+ 	} else {
+-		idtentry_exit(regs, state);
++		irqentry_exit(regs, state);
+ 	}
+ }
+ #endif /* CONFIG_XEN_PV */
+--- a/arch/x86/include/asm/idtentry.h
++++ b/arch/x86/include/asm/idtentry.h
+@@ -11,11 +11,6 @@
  
-+/**
-+ * __kcsan_check_read_write - check regular read-write access for races
-+ *
-+ * @ptr: address of access
-+ * @size: size of access
-+ */
-+#define __kcsan_check_read_write(ptr, size)                                    \
-+	__kcsan_check_access(ptr, size, KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE)
-+
+ #include <asm/irq_stack.h>
+ 
+-/* Temporary defines */
+-typedef irqentry_state_t idtentry_state_t;
+-#define idtentry_enter irqentry_enter
+-#define idtentry_exit irqentry_exit
+-
  /**
-  * kcsan_check_read - check regular read access for races
+  * DECLARE_IDTENTRY - Declare functions for simple IDT entry points
+  *		      No error code pushed by hardware
+@@ -45,8 +40,8 @@ typedef irqentry_state_t idtentry_state_
+  * The macro is written so it acts as function definition. Append the
+  * body with a pair of curly brackets.
   *
-@@ -221,18 +224,30 @@ static inline void __kcsan_disable_current(void) { }
- #define kcsan_check_write(ptr, size)                                           \
- 	kcsan_check_access(ptr, size, KCSAN_ACCESS_WRITE)
- 
-+/**
-+ * kcsan_check_read_write - check regular read-write access for races
-+ *
-+ * @ptr: address of access
-+ * @size: size of access
-+ */
-+#define kcsan_check_read_write(ptr, size)                                      \
-+	kcsan_check_access(ptr, size, KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE)
-+
- /*
-  * Check for atomic accesses: if atomic accesses are not ignored, this simply
-  * aliases to kcsan_check_access(), otherwise becomes a no-op.
+- * idtentry_enter() contains common code which has to be invoked before
+- * arbitrary code in the body. idtentry_exit() contains common code
++ * irqentry_enter() contains common code which has to be invoked before
++ * arbitrary code in the body. irqentry_exit() contains common code
+  * which has to run before returning to the low level assembly code.
   */
- #ifdef CONFIG_KCSAN_IGNORE_ATOMICS
--#define kcsan_check_atomic_read(...)	do { } while (0)
--#define kcsan_check_atomic_write(...)	do { } while (0)
-+#define kcsan_check_atomic_read(...)		do { } while (0)
-+#define kcsan_check_atomic_write(...)		do { } while (0)
-+#define kcsan_check_atomic_read_write(...)	do { } while (0)
- #else
- #define kcsan_check_atomic_read(ptr, size)                                     \
- 	kcsan_check_access(ptr, size, KCSAN_ACCESS_ATOMIC)
- #define kcsan_check_atomic_write(ptr, size)                                    \
- 	kcsan_check_access(ptr, size, KCSAN_ACCESS_ATOMIC | KCSAN_ACCESS_WRITE)
-+#define kcsan_check_atomic_read_write(ptr, size)                               \
-+	kcsan_check_access(ptr, size, KCSAN_ACCESS_ATOMIC | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_COMPOUND)
- #endif
+ #define DEFINE_IDTENTRY(func)						\
+@@ -54,12 +49,12 @@ static __always_inline void __##func(str
+ 									\
+ __visible noinstr void func(struct pt_regs *regs)			\
+ {									\
+-	idtentry_state_t state = idtentry_enter(regs);			\
++	irqentry_state_t state = irqentry_enter(regs);			\
+ 									\
+ 	instrumentation_begin();					\
+ 	__##func (regs);						\
+ 	instrumentation_end();						\
+-	idtentry_exit(regs, state);					\
++	irqentry_exit(regs, state);					\
+ }									\
+ 									\
+ static __always_inline void __##func(struct pt_regs *regs)
+@@ -101,12 +96,12 @@ static __always_inline void __##func(str
+ __visible noinstr void func(struct pt_regs *regs,			\
+ 			    unsigned long error_code)			\
+ {									\
+-	idtentry_state_t state = idtentry_enter(regs);			\
++	irqentry_state_t state = irqentry_enter(regs);			\
+ 									\
+ 	instrumentation_begin();					\
+ 	__##func (regs, error_code);					\
+ 	instrumentation_end();						\
+-	idtentry_exit(regs, state);					\
++	irqentry_exit(regs, state);					\
+ }									\
+ 									\
+ static __always_inline void __##func(struct pt_regs *regs,		\
+@@ -161,7 +156,7 @@ static __always_inline void __##func(str
+  * body with a pair of curly brackets.
+  *
+  * Contrary to DEFINE_IDTENTRY_ERRORCODE() this does not invoke the
+- * idtentry_enter/exit() helpers before and after the body invocation. This
++ * irqentry_enter/exit() helpers before and after the body invocation. This
+  * needs to be done in the body itself if applicable. Use if extra work
+  * is required before the enter/exit() helpers are invoked.
+  */
+@@ -197,7 +192,7 @@ static __always_inline void __##func(str
+ __visible noinstr void func(struct pt_regs *regs,			\
+ 			    unsigned long error_code)			\
+ {									\
+-	idtentry_state_t state = idtentry_enter(regs);			\
++	irqentry_state_t state = irqentry_enter(regs);			\
+ 									\
+ 	instrumentation_begin();					\
+ 	irq_enter_rcu();						\
+@@ -205,7 +200,7 @@ static __always_inline void __##func(str
+ 	__##func (regs, (u8)error_code);				\
+ 	irq_exit_rcu();							\
+ 	instrumentation_end();						\
+-	idtentry_exit(regs, state);					\
++	irqentry_exit(regs, state);					\
+ }									\
+ 									\
+ static __always_inline void __##func(struct pt_regs *regs, u8 vector)
+@@ -229,7 +224,7 @@ static __always_inline void __##func(str
+  * DEFINE_IDTENTRY_SYSVEC - Emit code for system vector IDT entry points
+  * @func:	Function name of the entry point
+  *
+- * idtentry_enter/exit() and irq_enter/exit_rcu() are invoked before the
++ * irqentry_enter/exit() and irq_enter/exit_rcu() are invoked before the
+  * function body. KVM L1D flush request is set.
+  *
+  * Runs the function on the interrupt stack if the entry hit kernel mode
+@@ -239,7 +234,7 @@ static void __##func(struct pt_regs *reg
+ 									\
+ __visible noinstr void func(struct pt_regs *regs)			\
+ {									\
+-	idtentry_state_t state = idtentry_enter(regs);			\
++	irqentry_state_t state = irqentry_enter(regs);			\
+ 									\
+ 	instrumentation_begin();					\
+ 	irq_enter_rcu();						\
+@@ -247,7 +242,7 @@ static void __##func(struct pt_regs *reg
+ 	run_on_irqstack_cond(__##func, regs, regs);			\
+ 	irq_exit_rcu();							\
+ 	instrumentation_end();						\
+-	idtentry_exit(regs, state);					\
++	irqentry_exit(regs, state);					\
+ }									\
+ 									\
+ static noinline void __##func(struct pt_regs *regs)
+@@ -268,7 +263,7 @@ static __always_inline void __##func(str
+ 									\
+ __visible noinstr void func(struct pt_regs *regs)			\
+ {									\
+-	idtentry_state_t state = idtentry_enter(regs);			\
++	irqentry_state_t state = irqentry_enter(regs);			\
+ 									\
+ 	instrumentation_begin();					\
+ 	__irq_enter_raw();						\
+@@ -276,7 +271,7 @@ static __always_inline void __##func(str
+ 	__##func (regs);						\
+ 	__irq_exit_raw();						\
+ 	instrumentation_end();						\
+-	idtentry_exit(regs, state);					\
++	irqentry_exit(regs, state);					\
+ }									\
+ 									\
+ static __always_inline void __##func(struct pt_regs *regs)
+--- a/arch/x86/kernel/kvm.c
++++ b/arch/x86/kernel/kvm.c
+@@ -233,7 +233,7 @@ EXPORT_SYMBOL_GPL(kvm_read_and_reset_apf
+ noinstr bool __kvm_handle_async_pf(struct pt_regs *regs, u32 token)
+ {
+ 	u32 reason = kvm_read_and_reset_apf_flags();
+-	idtentry_state_t state;
++	irqentry_state_t state;
  
- /**
-diff --git a/kernel/kcsan/core.c b/kernel/kcsan/core.c
-index f8dd9b2b8068..fb52de2facf3 100644
---- a/kernel/kcsan/core.c
-+++ b/kernel/kcsan/core.c
-@@ -223,7 +223,7 @@ is_atomic(const volatile void *ptr, size_t size, int type, struct kcsan_ctx *ctx
+ 	switch (reason) {
+ 	case KVM_PV_REASON_PAGE_NOT_PRESENT:
+@@ -243,7 +243,7 @@ noinstr bool __kvm_handle_async_pf(struc
+ 		return false;
+ 	}
  
- 	if (IS_ENABLED(CONFIG_KCSAN_ASSUME_PLAIN_WRITES_ATOMIC) &&
- 	    (type & KCSAN_ACCESS_WRITE) && size <= sizeof(long) &&
--	    IS_ALIGNED((unsigned long)ptr, size))
-+	    !(type & KCSAN_ACCESS_COMPOUND) && IS_ALIGNED((unsigned long)ptr, size))
- 		return true; /* Assume aligned writes up to word size are atomic. */
+-	state = idtentry_enter(regs);
++	state = irqentry_enter(regs);
+ 	instrumentation_begin();
  
- 	if (ctx->atomic_next > 0) {
-@@ -771,7 +771,17 @@ EXPORT_SYMBOL(__kcsan_check_access);
- 	EXPORT_SYMBOL(__tsan_write##size);                                     \
- 	void __tsan_unaligned_write##size(void *ptr)                           \
- 		__alias(__tsan_write##size);                                   \
--	EXPORT_SYMBOL(__tsan_unaligned_write##size)
-+	EXPORT_SYMBOL(__tsan_unaligned_write##size);                           \
-+	void __tsan_read_write##size(void *ptr);                               \
-+	void __tsan_read_write##size(void *ptr)                                \
-+	{                                                                      \
-+		check_access(ptr, size,                                        \
-+			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE);      \
-+	}                                                                      \
-+	EXPORT_SYMBOL(__tsan_read_write##size);                                \
-+	void __tsan_unaligned_read_write##size(void *ptr)                      \
-+		__alias(__tsan_read_write##size);                              \
-+	EXPORT_SYMBOL(__tsan_unaligned_read_write##size)
+ 	/*
+@@ -264,7 +264,7 @@ noinstr bool __kvm_handle_async_pf(struc
+ 	}
  
- DEFINE_TSAN_READ_WRITE(1);
- DEFINE_TSAN_READ_WRITE(2);
-@@ -894,7 +904,8 @@ EXPORT_SYMBOL(__tsan_init);
- 	u##bits __tsan_atomic##bits##_##op(u##bits *ptr, u##bits v, int memorder);                 \
- 	u##bits __tsan_atomic##bits##_##op(u##bits *ptr, u##bits v, int memorder)                  \
- 	{                                                                                          \
--		check_access(ptr, bits / BITS_PER_BYTE, KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC); \
-+		check_access(ptr, bits / BITS_PER_BYTE,                                            \
-+			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);    \
- 		return __atomic_##op##suffix(ptr, v, memorder);                                    \
- 	}                                                                                          \
- 	EXPORT_SYMBOL(__tsan_atomic##bits##_##op)
-@@ -922,7 +933,8 @@ EXPORT_SYMBOL(__tsan_init);
- 	int __tsan_atomic##bits##_compare_exchange_##strength(u##bits *ptr, u##bits *exp,          \
- 							      u##bits val, int mo, int fail_mo)    \
- 	{                                                                                          \
--		check_access(ptr, bits / BITS_PER_BYTE, KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC); \
-+		check_access(ptr, bits / BITS_PER_BYTE,                                            \
-+			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);    \
- 		return __atomic_compare_exchange_n(ptr, exp, val, weak, mo, fail_mo);              \
- 	}                                                                                          \
- 	EXPORT_SYMBOL(__tsan_atomic##bits##_compare_exchange_##strength)
-@@ -933,7 +945,8 @@ EXPORT_SYMBOL(__tsan_init);
- 	u##bits __tsan_atomic##bits##_compare_exchange_val(u##bits *ptr, u##bits exp, u##bits val, \
- 							   int mo, int fail_mo)                    \
- 	{                                                                                          \
--		check_access(ptr, bits / BITS_PER_BYTE, KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC); \
-+		check_access(ptr, bits / BITS_PER_BYTE,                                            \
-+			     KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC);    \
- 		__atomic_compare_exchange_n(ptr, &exp, val, 0, mo, fail_mo);                       \
- 		return exp;                                                                        \
- 	}                                                                                          \
-diff --git a/kernel/kcsan/report.c b/kernel/kcsan/report.c
-index ac5f8345bae9..d05052c23261 100644
---- a/kernel/kcsan/report.c
-+++ b/kernel/kcsan/report.c
-@@ -228,6 +228,10 @@ static const char *get_access_type(int type)
- 		return "write";
- 	case KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC:
- 		return "write (marked)";
-+	case KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE:
-+		return "read-write";
-+	case KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC:
-+		return "read-write (marked)";
- 	case KCSAN_ACCESS_SCOPED:
- 		return "read (scoped)";
- 	case KCSAN_ACCESS_SCOPED | KCSAN_ACCESS_ATOMIC:
-diff --git a/scripts/Makefile.kcsan b/scripts/Makefile.kcsan
-index dd66206f4578..a20dd63dfd17 100644
---- a/scripts/Makefile.kcsan
-+++ b/scripts/Makefile.kcsan
-@@ -13,7 +13,7 @@ endif
- # of some options does not break KCSAN nor causes false positive reports.
- CFLAGS_KCSAN := -fsanitize=thread \
- 	$(call cc-option,$(call cc-param,tsan-instrument-func-entry-exit=0) -fno-optimize-sibling-calls) \
--	$(call cc-option,$(call cc-param,tsan-instrument-read-before-write=1)) \
-+	$(call cc-option,$(call cc-param,tsan-compound-read-before-write=1),$(call cc-option,$(call cc-param,tsan-instrument-read-before-write=1))) \
- 	$(call cc-param,tsan-distinguish-volatile=1)
+ 	instrumentation_end();
+-	idtentry_exit(regs, state);
++	irqentry_exit(regs, state);
+ 	return true;
+ }
  
- endif # CONFIG_KCSAN
--- 
-2.28.0.rc0.105.gf9edc3c819-goog
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -245,7 +245,7 @@ static noinstr bool handle_bug(struct pt
+ 
+ DEFINE_IDTENTRY_RAW(exc_invalid_op)
+ {
+-	idtentry_state_t state;
++	irqentry_state_t state;
+ 
+ 	/*
+ 	 * We use UD2 as a short encoding for 'CALL __WARN', as such
+@@ -255,11 +255,11 @@ DEFINE_IDTENTRY_RAW(exc_invalid_op)
+ 	if (!user_mode(regs) && handle_bug(regs))
+ 		return;
+ 
+-	state = idtentry_enter(regs);
++	state = irqentry_enter(regs);
+ 	instrumentation_begin();
+ 	handle_invalid_op(regs);
+ 	instrumentation_end();
+-	idtentry_exit(regs, state);
++	irqentry_exit(regs, state);
+ }
+ 
+ DEFINE_IDTENTRY(exc_coproc_segment_overrun)
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -1377,7 +1377,7 @@ handle_page_fault(struct pt_regs *regs,
+ DEFINE_IDTENTRY_RAW_ERRORCODE(exc_page_fault)
+ {
+ 	unsigned long address = read_cr2();
+-	idtentry_state_t state;
++	irqentry_state_t state;
+ 
+ 	prefetchw(&current->mm->mmap_lock);
+ 
+@@ -1412,11 +1412,11 @@ DEFINE_IDTENTRY_RAW_ERRORCODE(exc_page_f
+ 	 * code reenabled RCU to avoid subsequent wreckage which helps
+ 	 * debugability.
+ 	 */
+-	state = idtentry_enter(regs);
++	state = irqentry_enter(regs);
+ 
+ 	instrumentation_begin();
+ 	handle_page_fault(regs, error_code, address);
+ 	instrumentation_end();
+ 
+-	idtentry_exit(regs, state);
++	irqentry_exit(regs, state);
+ }
