@@ -1,81 +1,118 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch V3 08/13] x86/entry: Use generic syscall entry function
-Date: Thu, 16 Jul 2020 23:33:21 +0200
-Message-ID: <87ft9rtaam.fsf@nanos.tec.linutronix.de>
-References: <20200716182208.180916541@linutronix.de> <20200716185424.765294277@linutronix.de> <202007161359.AB211685@keescook>
+Subject: Re: [patch V3 01/13] entry: Provide generic syscall entry functionality
+Date: Thu, 16 Jul 2020 23:55:59 +0200
+Message-ID: <87d04vt98w.fsf@nanos.tec.linutronix.de>
+References: <20200716182208.180916541@linutronix.de> <20200716185424.011950288@linutronix.de> <202007161336.B993ED938@keescook>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:36106 "EHLO
+Received: from Galois.linutronix.de ([193.142.43.55]:36182 "EHLO
         galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725959AbgGPVdY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 17:33:24 -0400
-In-Reply-To: <202007161359.AB211685@keescook>
+        with ESMTP id S1726579AbgGPV4C (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 17:56:02 -0400
+In-Reply-To: <202007161336.B993ED938@keescook>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
 
 Kees Cook <keescook@chromium.org> writes:
-> On Thu, Jul 16, 2020 at 08:22:16PM +0200, Thomas Gleixner wrote:
->> +}
->> +#define arch_check_user_regs arch_check_user_regs
+> On Thu, Jul 16, 2020 at 08:22:09PM +0200, Thomas Gleixner wrote:
+>> This code is needlessly duplicated and  different in all
+>> architectures.
+>> 
+>> Provide a generic version based on the x86 implementation which has all the
+>> RCU and instrumentation bits right.
 >
-> Will architectures implement subsets of these functions? (i.e. instead
-> of each of the defines, is CONFIG_ENTRY_GENERIC sufficient for the
-> no-op inlines?)
+> Ahh! You're reading my mind!
 
-Yes, some of these are optional as far as my analysis of the
-architecture code went.
+I told you about that plan at the last conference over a beer :)
 
->> +}
->> +#define arch_syscall_enter_seccomp arch_syscall_enter_seccomp
+> I was just thinking about this while reviewing the proposed syscall
+> redirection series[1], and pondering the lack of x86 TIF flags, and
+> that nearly everything in the series (and for seccomp and other
+> things) didn't need to be arch-specific. And now that series
+> absolutely needs to be rebased and it'll magically work for every arch
+> that switches to the generic entry code. :)
+
+That's the plan. 
+
+> Notes below...
 >
-> Actually, I've been meaning to clean this up. It's not needed at all.
-> This was left over from the seccomp fast-path code that got ripped out a
-> while ago. seccomp already has everything it needs to do this work, so
-> just:
->
-> 	__secure_computing(NULL);
->
-> is sufficient for every architecture that supports seccomp. (See kernel/seccomp.c
-> populate_seccomp_data().)
+> [1] https://lore.kernel.org/lkml/20200716193141.4068476-2-krisman@collabora.com/
 
-Nice. Was not aware of these details. Trivial enough to fix :)
+Saw that fly by. *shudder*
 
-> And if you want more generalization work, note that the secure_computing()
-> macro performs a TIF test before calling __secure_computing(NULL). But
-> my point is, I think arch_syscall_enter_seccomp() is not needed.
-
-Cute. One horror gone.
-
->> +static inline void arch_syscall_enter_audit(struct pt_regs *regs)
->> +{
->> +#ifdef CONFIG_X86_64
->> +	if (in_ia32_syscall()) {
->> +		audit_syscall_entry(regs->orig_ax, regs->di,
->> +				    regs->si, regs->dx, regs->r10);
->> +	} else
->> +#endif
->> +	{
->> +		audit_syscall_entry(regs->orig_ax, regs->bx,
->> +				    regs->cx, regs->dx, regs->si);
->> +	}
->> +}
->> +#define arch_syscall_enter_audit arch_syscall_enter_audit
+>> +/*
+>> + * Define dummy _TIF work flags if not defined by the architecture or for
+>> + * disabled functionality.
+>> + */
 >
-> Similarly, I think these can be redefined in the generic case
-> using the existing accessors for syscall arguments, etc. e.g.
-> arch_syscall_enter_audit() is not needed for any architecture, and the
-> generic is:
->
-> 	unsigned long args[6];
->
->         syscall_get_arguments(task, regs, args);
-> 	audit_syscall_entry(syscall_get_nr(current, regs),
-> 			    args[0], args[1], args[2], args[3]);
+> When I was thinking about this last week I was pondering having a split
+> between the arch-agnositc TIF flags and the arch-specific TIF flags, and
+> that each arch could have a single "there is agnostic work to be done"
+> TIF in their thread_info, and the agnostic flags could live in
+> task_struct or something. Anyway, I'll keep reading...
 
-Nice. Another arch specific mess gone.
+That's going to be nasty. We rather go and expand the TIF storage to
+64bit. And then do the following in a generic header:
+
+#ifndef TIF_ARCH_SPECIFIC
+# define TIF_ARCH_SPECIFIC
+#endif
+
+enum tif_bits {
+	TIF_NEED_RESCHED = 0,
+        TIF_...,
+        TIF_LAST_GENERIC,
+        TIF_ARCH_SPECIFIC,
+};
+        
+and in the arch specific one:
+
+#define TIF_ARCH_SPECIFIC	\
+	TIF_ARCH_1,             \
+        TIF_ARCH_2,
+
+or something like that.
+
+>> +/**
+>> + * syscall_enter_from_user_mode - Check and handle work before invoking
+>> + *				 a syscall
+>> + * @regs:	Pointer to currents pt_regs
+>> + * @syscall:	The syscall number
+>> + *
+>> + * Invoked from architecture specific syscall entry code with interrupts
+>> + * disabled. The calling code has to be non-instrumentable. When the
+>> + * function returns all state is correct and the subsequent functions can be
+>> + * instrumented.
+>> + *
+>> + * Returns: The original or a modified syscall number
+>> + *
+>> + * If the returned syscall number is -1 then the syscall should be
+>> + * skipped. In this case the caller may invoke syscall_set_error() or
+>> + * syscall_set_return_value() first.  If neither of those are called and -1
+>> + * is returned, then the syscall will fail with ENOSYS.
+>
+> There's been some recent confusion over "has the syscall changed,
+> or did seccomp request it be skipped?" that was explored in arm64[2]
+> (though I see Will and Keno in CC already). There might need to be a
+> clearer way to distinguish between "wild userspace issued a -1 syscall"
+> and "seccomp or ptrace asked for the syscall to be skipped". The
+> difference is mostly about when ENOSYS gets set, with respect to calls
+> to syscall_set_return_value(), but if the syscall gets changed, the arch
+> may need to recheck the value and consider ENOSYS, etc. IIUC, what Will
+> ended up with[3] was having syscall_trace_enter() return the syscall return
+> value instead of the new syscall.
+
+I was chatting with Will about that yesterday. IIRC he plans to fix the
+immediate issue on arm64 first and then move arm64 over to the generic
+variant. That's the reason why I reshuffled the patch series so the
+generic parts are first which allows me to provide will a branch with
+just those. If there are any changes needed we can just feed them back
+into that branch and fixup the affected architecture trees.
+
+IOW, that should not block progress on this stuff.
 
 Thanks,
 
