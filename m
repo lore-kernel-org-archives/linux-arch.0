@@ -1,47 +1,26 @@
-Return-Path: <SRS0=xaua=A5=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:47236 "EHLO
+Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from Galois.linutronix.de ([193.142.43.55]:36068 "EHLO
         galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726574AbgGROQ3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 18 Jul 2020 10:16:29 -0400
+        with ESMTP id S1726090AbgGPV2h (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 17:28:37 -0400
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch V3 01/13] entry: Provide generic syscall entry functionality
-In-Reply-To: <CALCETrXz_vEySQJ=f3MTPG9XjZS7U0P-diJE9j_+0KRa_Kie=Q@mail.gmail.com>
-References: <20200716182208.180916541@linutronix.de> <20200716185424.011950288@linutronix.de> <202007161336.B993ED938@keescook> <87d04vt98w.fsf@nanos.tec.linutronix.de> <202007171045.FB4A586F1D@keescook> <87mu3yq6sf.fsf@nanos.tec.linutronix.de> <CALCETrXz_vEySQJ=f3MTPG9XjZS7U0P-diJE9j_+0KRa_Kie=Q@mail.gmail.com>
-Date: Sat, 18 Jul 2020 16:16:26 +0200
-Message-ID: <875zakq56t.fsf@nanos.tec.linutronix.de>
+Subject: Re: [patch V3 02/13] entry: Provide generic syscall exit function
+In-Reply-To: <202007161354.62030182F@keescook>
+References: <20200716182208.180916541@linutronix.de> <20200716185424.116500611@linutronix.de> <202007161354.62030182F@keescook>
+Date: Thu, 16 Jul 2020 23:28:35 +0200
+Message-ID: <87k0z3taik.fsf@nanos.tec.linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200718141626.ec1C4jMN5F_0h6eHz3ubHPX2RuXemtCvauNe0x_Ozn4@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
+Message-ID: <20200716212835.Ms0os0bsKB6lhVPkTOCN2VXyYwV20ZPhhpoOZrf-dmM@z>
 
-Andy Lutomirski <luto@kernel.org> writes:
-> On Fri, Jul 17, 2020 at 12:29 PM Thomas Gleixner <tglx@linutronix.de> wrote:
->> The alternative is to play nasty games with TIF_IA32, TIF_ADDR32 and
->> TIF_X32 to free up bits for 32bit and make the flags field 64 bit on 64
->> bit kernels, but I prefer to do the above seperation.
+Kees Cook <keescook@chromium.org> writes:
+> On Thu, Jul 16, 2020 at 08:22:10PM +0200, Thomas Gleixner wrote:
 >
-> I'm all for cleaning it up, but I don't think any nasty games would be
-> needed regardless.  IMO at least the following flags are nonsense and
-> don't belong in TIF_anything at all:
->
-> TIF_IA32, TIF_X32: can probably be deleted.  Someone would just need
-> to finish the work.
-> TIF_ADDR32: also probably removable, but I'm less confident.
-> TIF_FORCED_TF: This is purely a ptrace artifact and could easily go
-> somewhere else entirely.
->
-> So getting those five bits back would be straightforward.
->
-> FWIW, TIF_USER_RETURN_NOTIFY is a bit of an odd duck: it's an
-> entry/exit word *and* a context switch word.  The latter is because
-> it's logically a per-cpu flag, not a per-task flag, and the context
-> switch code moves it around so it's always set on the running task.
+> This looks correct to me. Did you happen to run the seccomp selftests
+> under this series?
 
-Gah, I missed the context switch thing of that. That stuff is hideous.
-
-Thanks,
-
-       tglx
+Yes, I threw the relevant self tests on it.
