@@ -1,54 +1,70 @@
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v2 0/5] x86, locking/qspinlock: Allow lock to store lock holder cpu number
-Date: Thu, 16 Jul 2020 15:29:22 -0400
-Message-ID: <20200716192927.12944-1-longman@redhat.com>
+Subject: [PATCH v2 2/5] locking/pvqspinlock: Make pvqsinlock code easier to read
+Date: Thu, 16 Jul 2020 15:29:24 -0400
+Message-ID: <20200716192927.12944-3-longman@redhat.com>
+References: <20200716192927.12944-1-longman@redhat.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20200716192927.12944-1-longman@redhat.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Davidlohr Bueso <dave@stgolabs.net>, Waiman Long <longman@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patchset modifies the x86 qspinlock and qrwlock code to allow it to
-store the lock holder cpu number (lock writer cpu number for qrwlock)
-in the lock itself if feasible.  This lock holder cpu information is 
-useful for debugging and crash dump analysis. It may also be useful to
-architectures like PowerPC that needs the lock holder cpu number for
-better paravirtual spinlock performance.
+The way that pv_wait_head_or_lock() gets invoked and the dummy oring
+of _Q_LOCKED_VAL to its returned value is a bit hard to read. Use
+the available pv_enabled() helper function to make the PV and native
+paths more explicit and easier to read. It can eliminate the dummy
+oring of the return value. There is no functional change.
 
-This capability is enabled on a per-architecture basis by defining
-the macros __cpu_number_sadd1 (for qrwlock) and __cpu_number_sadd2
-(for qspinlock). These macros define the architecture's way to get
-to a percpu saturated +1 and +2 cpu number that can be used in the
-lock byte of qspinlock and qrwlock.
+Signed-off-by: Waiman Long <longman@redhat.com>
+---
+ kernel/locking/qspinlock.c          | 12 ++++--------
+ kernel/locking/qspinlock_paravirt.h |  6 ++----
+ 2 files changed, 6 insertions(+), 12 deletions(-)
 
-This patchset enables it for the x86 architecture only. Additional
-patches can be submitted later on to enable other architectures,
-if desired.
-
-I have run some locking microbenchmark with and without this patch. I
-saw about 1% peformance degradation at low lock contention level, but
-about 1% performance gain at high lock contention level. That slight
-performance may be caused by a slight difference in the generated code
-and may not be entirely due to the access of the percpu variable. Anyway,
-that performance difference should be negligible for most real workloads.
-
-Waiman Long (5):
-  x86/smp: Add saturated +1/+2 1-byte cpu numbers
-  locking/pvqspinlock: Make pvqsinlock code easier to read
-  locking/qspinlock: Pass lock value as function argument
-  locking/qspinlock: Make qspinhlock store lock holder cpu number
-  locking/qrwlock: Make qrwlock store writer cpu number
-
- arch/x86/include/asm/qspinlock_paravirt.h | 42 +++++++++++------------
- arch/x86/include/asm/spinlock.h           |  5 +++
- arch/x86/kernel/setup_percpu.c            | 11 ++++++
- include/asm-generic/qrwlock.h             | 12 ++++++-
- include/asm-generic/qspinlock.h           | 10 ++++++
- include/asm-generic/qspinlock_types.h     |  2 +-
- kernel/locking/qrwlock.c                  | 11 +++---
- kernel/locking/qspinlock.c                | 31 ++++++++---------
- kernel/locking/qspinlock_paravirt.h       | 35 ++++++++++---------
- 9 files changed, 97 insertions(+), 62 deletions(-)
-
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index b9515fcc9b29..b256e2d03817 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -501,16 +501,12 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	 * been designated yet, there is no way for the locked value to become
+ 	 * _Q_SLOW_VAL. So both the set_locked() and the
+ 	 * atomic_cmpxchg_relaxed() calls will be safe.
+-	 *
+-	 * If PV isn't active, 0 will be returned instead.
+-	 *
+ 	 */
+-	if ((val = pv_wait_head_or_lock(lock, node)))
+-		goto locked;
+-
+-	val = atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_PENDING_MASK));
++	if (pv_enabled())
++		val = pv_wait_head_or_lock(lock, node);
++	else
++		val = atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_PENDING_MASK));
+ 
+-locked:
+ 	/*
+ 	 * claim the lock:
+ 	 *
+diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
+index e84d21aa0722..17878e531f51 100644
+--- a/kernel/locking/qspinlock_paravirt.h
++++ b/kernel/locking/qspinlock_paravirt.h
+@@ -477,12 +477,10 @@ pv_wait_head_or_lock(struct qspinlock *lock, struct mcs_spinlock *node)
+ 
+ 	/*
+ 	 * The cmpxchg() or xchg() call before coming here provides the
+-	 * acquire semantics for locking. The dummy ORing of _Q_LOCKED_VAL
+-	 * here is to indicate to the compiler that the value will always
+-	 * be nozero to enable better code optimization.
++	 * acquire semantics for locking.
+ 	 */
+ gotlock:
+-	return (u32)(atomic_read(&lock->val) | _Q_LOCKED_VAL);
++	return (u32)atomic_read(&lock->val);
+ }
+ 
+ /*
 -- 
 2.18.1
