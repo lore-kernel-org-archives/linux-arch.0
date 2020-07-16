@@ -1,7 +1,7 @@
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v2 2/5] locking/pvqspinlock: Make pvqsinlock code easier to read
-Date: Thu, 16 Jul 2020 15:29:24 -0400
-Message-ID: <20200716192927.12944-3-longman@redhat.com>
+Subject: [PATCH v2 4/5] locking/qspinlock: Make qspinhlock store lock holder cpu number
+Date: Thu, 16 Jul 2020 15:29:26 -0400
+Message-ID: <20200716192927.12944-5-longman@redhat.com>
 References: <20200716192927.12944-1-longman@redhat.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20200716192927.12944-1-longman@redhat.com>
@@ -10,61 +10,154 @@ To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will 
 Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Davidlohr Bueso <dave@stgolabs.net>, Waiman Long <longman@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-The way that pv_wait_head_or_lock() gets invoked and the dummy oring
-of _Q_LOCKED_VAL to its returned value is a bit hard to read. Use
-the available pv_enabled() helper function to make the PV and native
-paths more explicit and easier to read. It can eliminate the dummy
-oring of the return value. There is no functional change.
+Make the qspinlock code to store an encoded cpu number (+2 saturated)
+into the locked byte. The lock value of 1 is used by PV qspinlock to
+signal that the PV unlock slowpath has to be called.
 
 Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- kernel/locking/qspinlock.c          | 12 ++++--------
- kernel/locking/qspinlock_paravirt.h |  6 ++----
- 2 files changed, 6 insertions(+), 12 deletions(-)
+ arch/x86/include/asm/qspinlock_paravirt.h | 42 +++++++++++------------
+ include/asm-generic/qspinlock.h           | 10 ++++++
+ include/asm-generic/qspinlock_types.h     |  2 +-
+ kernel/locking/qspinlock_paravirt.h       |  7 ++--
+ 4 files changed, 36 insertions(+), 25 deletions(-)
 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index b9515fcc9b29..b256e2d03817 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -501,16 +501,12 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	 * been designated yet, there is no way for the locked value to become
- 	 * _Q_SLOW_VAL. So both the set_locked() and the
- 	 * atomic_cmpxchg_relaxed() calls will be safe.
--	 *
--	 * If PV isn't active, 0 will be returned instead.
--	 *
- 	 */
--	if ((val = pv_wait_head_or_lock(lock, node)))
--		goto locked;
--
--	val = atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_PENDING_MASK));
-+	if (pv_enabled())
-+		val = pv_wait_head_or_lock(lock, node);
-+	else
-+		val = atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_PENDING_MASK));
+diff --git a/arch/x86/include/asm/qspinlock_paravirt.h b/arch/x86/include/asm/qspinlock_paravirt.h
+index 159622ee0674..82128803569c 100644
+--- a/arch/x86/include/asm/qspinlock_paravirt.h
++++ b/arch/x86/include/asm/qspinlock_paravirt.h
+@@ -12,7 +12,6 @@
  
--locked:
- 	/*
- 	 * claim the lock:
- 	 *
-diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
-index e84d21aa0722..17878e531f51 100644
---- a/kernel/locking/qspinlock_paravirt.h
-+++ b/kernel/locking/qspinlock_paravirt.h
-@@ -477,12 +477,10 @@ pv_wait_head_or_lock(struct qspinlock *lock, struct mcs_spinlock *node)
- 
- 	/*
- 	 * The cmpxchg() or xchg() call before coming here provides the
--	 * acquire semantics for locking. The dummy ORing of _Q_LOCKED_VAL
--	 * here is to indicate to the compiler that the value will always
--	 * be nozero to enable better code optimization.
-+	 * acquire semantics for locking.
- 	 */
- gotlock:
--	return (u32)(atomic_read(&lock->val) | _Q_LOCKED_VAL);
-+	return (u32)atomic_read(&lock->val);
- }
+ PV_CALLEE_SAVE_REGS_THUNK(__pv_queued_spin_unlock_slowpath);
+ #define __pv_queued_spin_unlock	__pv_queued_spin_unlock
+-#define PV_UNLOCK		"__raw_callee_save___pv_queued_spin_unlock"
+ #define PV_UNLOCK_SLOWPATH	"__raw_callee_save___pv_queued_spin_unlock_slowpath"
  
  /*
+@@ -22,43 +21,44 @@ PV_CALLEE_SAVE_REGS_THUNK(__pv_queued_spin_unlock_slowpath);
+  *
+  * void __pv_queued_spin_unlock(struct qspinlock *lock)
+  * {
+- *	u8 lockval = cmpxchg(&lock->locked, _Q_LOCKED_VAL, 0);
++ *	const u8 lockval = _Q_LOCKED_VAL;
++ *	u8 locked = cmpxchg(&lock->locked, lockval, 0);
+  *
+- *	if (likely(lockval == _Q_LOCKED_VAL))
++ *	if (likely(locked == lockval))
+  *		return;
+- *	pv_queued_spin_unlock_slowpath(lock, lockval);
++ *	__pv_queued_spin_unlock_slowpath(lock, locked);
+  * }
+  *
+  * For x86-64,
+  *   rdi = lock              (first argument)
+  *   rsi = lockval           (second argument)
+- *   rdx = internal variable (set to 0)
+  */
+-asm    (".pushsection .text;"
+-	".globl " PV_UNLOCK ";"
+-	".type " PV_UNLOCK ", @function;"
+-	".align 4,0x90;"
+-	PV_UNLOCK ": "
+-	FRAME_BEGIN
++__visible void notrace
++__raw_callee_save___pv_queued_spin_unlock(struct qspinlock *lock)
++{
++	const u8 lockval = _Q_LOCKED_VAL;
++
++	asm volatile("or %0,%0" : : "a" (lockval));
++
++	asm volatile(
+ 	"push  %rdx;"
+-	"mov   $0x1,%eax;"
+-	"xor   %edx,%edx;"
+-	LOCK_PREFIX "cmpxchg %dl,(%rdi);"
+-	"cmp   $0x1,%al;"
++	"push  %rcx;"
++	"xor   %ecx,%ecx;"
++	"mov   %eax,%edx;"
++	LOCK_PREFIX "cmpxchg %cl,(%rdi);"
++	"pop   %rcx;"
++	"cmp   %dl,%al;"
+ 	"jne   .slowpath;"
+ 	"pop   %rdx;"
+ 	FRAME_END
+ 	"ret;"
+ 	".slowpath: "
++	"pop    %rdx;"
+ 	"push   %rsi;"
+ 	"movzbl %al,%esi;"
+ 	"call " PV_UNLOCK_SLOWPATH ";"
+-	"pop    %rsi;"
+-	"pop    %rdx;"
+-	FRAME_END
+-	"ret;"
+-	".size " PV_UNLOCK ", .-" PV_UNLOCK ";"
+-	".popsection");
++	"pop    %rsi;");
++}
+ 
+ #else /* CONFIG_64BIT */
+ 
+diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
+index fde943d180e0..7003fcc94a43 100644
+--- a/include/asm-generic/qspinlock.h
++++ b/include/asm-generic/qspinlock.h
+@@ -12,6 +12,16 @@
+ 
+ #include <asm-generic/qspinlock_types.h>
+ 
++/*
++ * If __cpu_number_sadd2 (+2 saturated cpu number) is defined, use it as the
++ * lock value. Otherwise, use 0xff instead. The lock value of 1 is reserved
++ * for PV qspinlock.
++ */
++#ifdef __cpu_number_sadd2
++#undef  _Q_LOCKED_VAL
++#define _Q_LOCKED_VAL		__cpu_number_sadd2
++#endif
++
+ /**
+  * queued_spin_is_locked - is the spinlock locked?
+  * @lock: Pointer to queued spinlock structure
+diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
+index 56d1309d32f8..f8b51bf42122 100644
+--- a/include/asm-generic/qspinlock_types.h
++++ b/include/asm-generic/qspinlock_types.h
+@@ -97,7 +97,7 @@ typedef struct qspinlock {
+ #define _Q_TAIL_OFFSET		_Q_TAIL_IDX_OFFSET
+ #define _Q_TAIL_MASK		(_Q_TAIL_IDX_MASK | _Q_TAIL_CPU_MASK)
+ 
+-#define _Q_LOCKED_VAL		(1U << _Q_LOCKED_OFFSET)
++#define _Q_LOCKED_VAL		(255U << _Q_LOCKED_OFFSET)
+ #define _Q_PENDING_VAL		(1U << _Q_PENDING_OFFSET)
+ 
+ #endif /* __ASM_GENERIC_QSPINLOCK_TYPES_H */
+diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
+index c8558876fc69..ffac1caabd7d 100644
+--- a/kernel/locking/qspinlock_paravirt.h
++++ b/kernel/locking/qspinlock_paravirt.h
+@@ -21,7 +21,7 @@
+  * native_queued_spin_unlock().
+  */
+ 
+-#define _Q_SLOW_VAL	(3U << _Q_LOCKED_OFFSET)
++#define _Q_SLOW_VAL	(1U << _Q_LOCKED_OFFSET)
+ 
+ /*
+  * Queue Node Adaptive Spinning
+@@ -552,9 +552,10 @@ __visible void __pv_queued_spin_unlock(struct qspinlock *lock)
+ 	 * unhash. Otherwise it would be possible to have multiple @lock
+ 	 * entries, which would be BAD.
+ 	 */
+-	u8 locked = cmpxchg_release(&lock->locked, _Q_LOCKED_VAL, 0);
++	const u8 lockval = _Q_LOCKED_VAL;
++	u8 locked = cmpxchg_release(&lock->locked, lockval, 0);
+ 
+-	if (likely(locked == _Q_LOCKED_VAL))
++	if (likely(locked == lockval))
+ 		return;
+ 
+ 	__pv_queued_spin_unlock_slowpath(lock, locked);
 -- 
 2.18.1
