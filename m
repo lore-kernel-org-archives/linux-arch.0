@@ -1,117 +1,76 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:52524 "EHLO
-        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733043AbgGVWLc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 18:11:32 -0400
-Message-ID: <20200722220519.943016204@linutronix.de>
-Date: Thu, 23 Jul 2020 00:00:00 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V5 06/15] x86/entry: Consolidate check_user_regs()
-References: <20200722215954.464281930@linutronix.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
+Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-1.mimecast.com ([205.139.110.61]:54413 "EHLO
+        us-smtp-delivery-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1729651AbgGPTbC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Jul 2020 15:31:02 -0400
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v2 2/5] locking/pvqspinlock: Make pvqsinlock code easier to read
+Date: Thu, 16 Jul 2020 15:29:24 -0400
+Message-ID: <20200716192927.12944-3-longman@redhat.com>
+In-Reply-To: <20200716192927.12944-1-longman@redhat.com>
+References: <20200716192927.12944-1-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>, Sean Christopherson <sean.j.christopherson@intel.com>
-Message-ID: <20200722220000.fC6VY0Y-wPUoYbLzuiIuz_IO-rPGEiDiMHsNLU0ndgk@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Davidlohr Bueso <dave@stgolabs.net>, Waiman Long <longman@redhat.com>
+Message-ID: <20200716192924.DH9ARvPDaEAqy78AmbIY8sdK8SOnl3KEnHgXl-TvIE8@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+The way that pv_wait_head_or_lock() gets invoked and the dummy oring
+of _Q_LOCKED_VAL to its returned value is a bit hard to read. Use
+the available pv_enabled() helper function to make the PV and native
+paths more explicit and easier to read. It can eliminate the dummy
+oring of the return value. There is no functional change.
 
-The user register sanity check is sprinkled all over the place. Move it
-into enter_from_user_mode().
-
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Reviewed-by: Kees Cook <keescook@chromium.org>
-
+Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- arch/x86/entry/common.c |   24 +++++++++---------------
- 1 file changed, 9 insertions(+), 15 deletions(-)
+ kernel/locking/qspinlock.c          | 12 ++++--------
+ kernel/locking/qspinlock_paravirt.h |  6 ++----
+ 2 files changed, 6 insertions(+), 12 deletions(-)
 
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -82,10 +82,11 @@ static noinstr void check_user_regs(stru
-  * 2) Invoke context tracking if enabled to reactivate RCU
-  * 3) Trace interrupts off state
-  */
--static noinstr void enter_from_user_mode(void)
-+static noinstr void enter_from_user_mode(struct pt_regs *regs)
- {
- 	enum ctx_state state = ct_state();
- 
-+	check_user_regs(regs);
- 	lockdep_hardirqs_off(CALLER_ADDR0);
- 	user_exit_irqoff();
- 
-@@ -95,8 +96,9 @@ static noinstr void enter_from_user_mode
- 	instrumentation_end();
- }
- #else
--static __always_inline void enter_from_user_mode(void)
-+static __always_inline void enter_from_user_mode(struct pt_regs *regs)
- {
-+	check_user_regs(regs);
- 	lockdep_hardirqs_off(CALLER_ADDR0);
- 	instrumentation_begin();
- 	trace_hardirqs_off_finish();
-@@ -369,9 +371,7 @@ static void __syscall_return_slowpath(st
- {
- 	struct thread_info *ti;
- 
--	check_user_regs(regs);
--
--	enter_from_user_mode();
-+	enter_from_user_mode(regs);
- 	instrumentation_begin();
- 
- 	local_irq_enable();
-@@ -434,9 +434,7 @@ static void do_syscall_32_irqs_on(struct
- /* Handles int $0x80 */
- __visible noinstr void do_int80_syscall_32(struct pt_regs *regs)
- {
--	check_user_regs(regs);
--
--	enter_from_user_mode();
-+	enter_from_user_mode(regs);
- 	instrumentation_begin();
- 
- 	local_irq_enable();
-@@ -487,8 +485,6 @@ static bool __do_fast_syscall_32(struct
- 					vdso_image_32.sym_int80_landing_pad;
- 	bool success;
- 
--	check_user_regs(regs);
--
- 	/*
- 	 * SYSENTER loses EIP, and even SYSCALL32 needs us to skip forward
- 	 * so that 'regs->ip -= 2' lands back on an int $0x80 instruction.
-@@ -496,7 +492,7 @@ static bool __do_fast_syscall_32(struct
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index b9515fcc9b29..b256e2d03817 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -501,16 +501,12 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	 * been designated yet, there is no way for the locked value to become
+ 	 * _Q_SLOW_VAL. So both the set_locked() and the
+ 	 * atomic_cmpxchg_relaxed() calls will be safe.
+-	 *
+-	 * If PV isn't active, 0 will be returned instead.
+-	 *
  	 */
- 	regs->ip = landing_pad;
+-	if ((val = pv_wait_head_or_lock(lock, node)))
+-		goto locked;
+-
+-	val = atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_PENDING_MASK));
++	if (pv_enabled())
++		val = pv_wait_head_or_lock(lock, node);
++	else
++		val = atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_PENDING_MASK));
  
--	enter_from_user_mode();
-+	enter_from_user_mode(regs);
- 	instrumentation_begin();
+-locked:
+ 	/*
+ 	 * claim the lock:
+ 	 *
+diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
+index e84d21aa0722..17878e531f51 100644
+--- a/kernel/locking/qspinlock_paravirt.h
++++ b/kernel/locking/qspinlock_paravirt.h
+@@ -477,12 +477,10 @@ pv_wait_head_or_lock(struct qspinlock *lock, struct mcs_spinlock *node)
  
- 	local_irq_enable();
-@@ -599,8 +595,7 @@ idtentry_state_t noinstr idtentry_enter(
- 	};
- 
- 	if (user_mode(regs)) {
--		check_user_regs(regs);
--		enter_from_user_mode();
-+		enter_from_user_mode(regs);
- 		return ret;
- 	}
- 
-@@ -733,8 +728,7 @@ void noinstr idtentry_exit(struct pt_reg
-  */
- void noinstr idtentry_enter_user(struct pt_regs *regs)
- {
--	check_user_regs(regs);
--	enter_from_user_mode();
-+	enter_from_user_mode(regs);
+ 	/*
+ 	 * The cmpxchg() or xchg() call before coming here provides the
+-	 * acquire semantics for locking. The dummy ORing of _Q_LOCKED_VAL
+-	 * here is to indicate to the compiler that the value will always
+-	 * be nozero to enable better code optimization.
++	 * acquire semantics for locking.
+ 	 */
+ gotlock:
+-	return (u32)(atomic_read(&lock->val) | _Q_LOCKED_VAL);
++	return (u32)atomic_read(&lock->val);
  }
  
- /**
+ /*
+-- 
+2.18.1
