@@ -1,53 +1,103 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57644 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726649AbgGVSH1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2020 14:07:27 -0400
-Received: from mail-ed1-x542.google.com (mail-ed1-x542.google.com [IPv6:2a00:1450:4864:20::542])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0ACADC0619E1
-        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 11:07:27 -0700 (PDT)
-Received: by mail-ed1-x542.google.com with SMTP id g20so2359659edm.4
-        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2020 11:07:26 -0700 (PDT)
-MIME-Version: 1.0
-References: <20200624203200.78870-1-samitolvanen@google.com>
- <20200624203200.78870-5-samitolvanen@google.com> <20200624212737.GV4817@hirez.programming.kicks-ass.net>
- <20200624214530.GA120457@google.com> <20200625074530.GW4817@hirez.programming.kicks-ass.net>
- <20200625161503.GB173089@google.com> <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
- <20200625224042.GA169781@google.com> <20200626112931.GF4817@hirez.programming.kicks-ass.net>
- <CABCJKucSM7gqWmUtiBPbr208wB0pc25afJXc6yBQzJDZf4LSWA@mail.gmail.com>
- <20200717133645.7816c0b6@oasis.local.home> <CABCJKuda0AFCZ-1J2NTLc-M0xax007a9u-fzOoxmU2z60jvzbA@mail.gmail.com>
- <20200717140545.6f008208@oasis.local.home> <CABCJKucDrS9wNZLjtmN5qMbZBTHLvB1Z7WqTwT3b11-K4kNcyg@mail.gmail.com>
- <20200722135829.7ca6fbc5@oasis.local.home>
-In-Reply-To: <20200722135829.7ca6fbc5@oasis.local.home>
-From: Sami Tolvanen <samitolvanen@google.com>
-Date: Wed, 22 Jul 2020 11:07:13 -0700
-Message-ID: <CABCJKucn5o+PgMnKwHOGRnhTdVk9Dnd2QZwy54wXYwQYNUNjBw@mail.gmail.com>
-Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:31604 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1729651AbgGPTbF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:31:05 -0400
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v2 5/5] locking/qrwlock: Make qrwlock store writer cpu number
+Date: Thu, 16 Jul 2020 15:29:27 -0400
+Message-ID: <20200716192927.12944-6-longman@redhat.com>
+In-Reply-To: <20200716192927.12944-1-longman@redhat.com>
+References: <20200716192927.12944-1-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux <clang-built-linux@googlegroups.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, X86 ML <x86@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>
-Message-ID: <20200722180713.BJaQ6EJFkmH8R8dcfwrYrNLBeKTnHW9XG7GRDUss6FU@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Davidlohr Bueso <dave@stgolabs.net>, Waiman Long <longman@redhat.com>
+Message-ID: <20200716192927.bonYYdV6gGS4VhCDLyYGtScWGXSQGYRvbkrTPVMclJM@z>
 
-On Wed, Jul 22, 2020 at 10:58 AM Steven Rostedt <rostedt@goodmis.org> wrote:
->
-> On Mon, 20 Jul 2020 09:52:37 -0700
-> Sami Tolvanen <samitolvanen@google.com> wrote:
->
-> > > Does x86 have a way to differentiate between the two that record mcount
-> > > can check?
-> >
-> > I'm not sure if looking at the relocation alone is sufficient on x86,
-> > we might also have to decode the instruction, which is what objtool
-> > does. Did you have any thoughts on Peter's patch, or my initial
-> > suggestion, which adds a __nomcount attribute to affected functions?
->
-> There's a lot of code in this thread. Can you give me the message-id of
-> Peter's patch in question.
+Make the qrwlock code to store an encoded cpu number (+1 saturated)
+for the writer that hold the write lock if desired.
 
-Sure, I was referring to the objtool patch in this message:
+Signed-off-by: Waiman Long <longman@redhat.com>
+---
+ include/asm-generic/qrwlock.h | 12 +++++++++++-
+ kernel/locking/qrwlock.c      | 11 ++++++-----
+ 2 files changed, 17 insertions(+), 6 deletions(-)
 
-https://lore.kernel.org/lkml/20200625200235.GQ4781@hirez.programming.kicks-ass.net/
-
-Sami
+diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+index 3aefde23dcea..1b1d5253e314 100644
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -15,11 +15,21 @@
+ 
+ #include <asm-generic/qrwlock_types.h>
+ 
++/*
++ * If __cpu_number_sadd1 (+2 saturated cpu number) is defined, use it as the
++ * writer lock value.
++ */
++#ifdef __cpu_number_sadd1
++#define _QW_LOCKED	__cpu_number_sadd1
++#else
++#define _QW_LOCKED	0xff
++#endif
++
+ /*
+  * Writer states & reader shift and bias.
+  */
+ #define	_QW_WAITING	0x100		/* A writer is waiting	   */
+-#define	_QW_LOCKED	0x0ff		/* A writer holds the lock */
++#define	_QW_LMASK	0x0ff		/* A writer lock byte mask */
+ #define	_QW_WMASK	0x1ff		/* Writer mask		   */
+ #define	_QR_SHIFT	9		/* Reader count shift	   */
+ #define _QR_BIAS	(1U << _QR_SHIFT)
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index fe9ca92faa2a..394f34db4b8f 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
+@@ -30,7 +30,7 @@ void queued_read_lock_slowpath(struct qrwlock *lock)
+ 		 * so spin with ACQUIRE semantics until the lock is available
+ 		 * without waiting in the queue.
+ 		 */
+-		atomic_cond_read_acquire(&lock->cnts, !(VAL & _QW_LOCKED));
++		atomic_cond_read_acquire(&lock->cnts, !(VAL & _QW_LMASK));
+ 		return;
+ 	}
+ 	atomic_sub(_QR_BIAS, &lock->cnts);
+@@ -46,7 +46,7 @@ void queued_read_lock_slowpath(struct qrwlock *lock)
+ 	 * that accesses can't leak upwards out of our subsequent critical
+ 	 * section in the case that the lock is currently held for write.
+ 	 */
+-	atomic_cond_read_acquire(&lock->cnts, !(VAL & _QW_LOCKED));
++	atomic_cond_read_acquire(&lock->cnts, !(VAL & _QW_LMASK));
+ 
+ 	/*
+ 	 * Signal the next one in queue to become queue head
+@@ -61,12 +61,14 @@ EXPORT_SYMBOL(queued_read_lock_slowpath);
+  */
+ void queued_write_lock_slowpath(struct qrwlock *lock)
+ {
++	const u8 lockval = _QW_LOCKED;
++
+ 	/* Put the writer into the wait queue */
+ 	arch_spin_lock(&lock->wait_lock);
+ 
+ 	/* Try to acquire the lock directly if no reader is present */
+ 	if (!atomic_read(&lock->cnts) &&
+-	    (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED) == 0))
++	    (atomic_cmpxchg_acquire(&lock->cnts, 0, lockval) == 0))
+ 		goto unlock;
+ 
+ 	/* Set the waiting flag to notify readers that a writer is pending */
+@@ -75,8 +77,7 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
+ 	/* When no more readers or writers, set the locked flag */
+ 	do {
+ 		atomic_cond_read_acquire(&lock->cnts, VAL == _QW_WAITING);
+-	} while (atomic_cmpxchg_relaxed(&lock->cnts, _QW_WAITING,
+-					_QW_LOCKED) != _QW_WAITING);
++	} while (atomic_cmpxchg_relaxed(&lock->cnts, _QW_WAITING, lockval) != _QW_WAITING);
+ unlock:
+ 	arch_spin_unlock(&lock->wait_lock);
+ }
+-- 
+2.18.1
