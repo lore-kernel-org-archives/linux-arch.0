@@ -1,61 +1,100 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0a-0016f401.pphosted.com ([67.231.148.174]:26294 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1728405AbgGVOrv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jul 2020 10:47:51 -0400
-From: Alex Belits <abelits@marvell.com>
-Subject: [PATCH v4 01/13] task_isolation: vmstat: add quiet_vmstat_sync
- function
-Date: Wed, 22 Jul 2020 14:47:11 +0000
-Message-ID: <f98f80b3da7e0b8c2b8719c33516e034e47b1807.camel@marvell.com>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
-In-Reply-To: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <71C0964DB92C2640A8A3A33709BD1768@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from Galois.linutronix.de ([193.142.43.55]:35274 "EHLO
+        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729718AbgGPTu4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:50:56 -0400
+Message-ID: <20200716185424.980336370@linutronix.de>
+Date: Thu, 16 Jul 2020 20:22:18 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V3 10/13] x86/entry: Cleanup idtentry_entry/exit_user
+References: <20200716182208.180916541@linutronix.de>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-transfer-encoding: 8-bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
-Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Message-ID: <20200722144711.bIN-b_qxkKYKSRBTmhIIvHTuODHEhUAf7hschG6hFeM@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
+Message-ID: <20200716182218._I6gHOk5oXeC8fCPQCVfHezH2p7Imjaq9x2Ij6ZV3Jk@z>
 
-SW4gY29tbWl0IGYwMWYxN2QzNzA1YiAoIm1tLCB2bXN0YXQ6IG1ha2UgcXVpZXRfdm1zdGF0IGxp
-Z2h0ZXIiKQ0KdGhlIHF1aWV0X3Ztc3RhdCgpIGZ1bmN0aW9uIGJlY2FtZSBhc3luY2hyb25vdXMs
-IGluIHRoZSBzZW5zZSB0aGF0DQp0aGUgdm1zdGF0IHdvcmsgd2FzIHN0aWxsIHNjaGVkdWxlZCB0
-byBydW4gb24gdGhlIGNvcmUgd2hlbiB0aGUNCmZ1bmN0aW9uIHJldHVybmVkLiAgRm9yIHRhc2sg
-aXNvbGF0aW9uLCB3ZSBuZWVkIGEgc3luY2hyb25vdXMNCnZlcnNpb24gb2YgdGhlIGZ1bmN0aW9u
-IHRoYXQgZ3VhcmFudGVlcyB0aGF0IHRoZSB2bXN0YXQgd29ya2VyDQp3aWxsIG5vdCBydW4gb24g
-dGhlIGNvcmUgb24gcmV0dXJuIGZyb20gdGhlIGZ1bmN0aW9uLiAgQWRkIGENCnF1aWV0X3Ztc3Rh
-dF9zeW5jKCkgZnVuY3Rpb24gd2l0aCB0aGF0IHNlbWFudGljLg0KDQpTaWduZWQtb2ZmLWJ5OiBD
-aHJpcyBNZXRjYWxmIDxjbWV0Y2FsZkBtZWxsYW5veC5jb20+DQpTaWduZWQtb2ZmLWJ5OiBBbGV4
-IEJlbGl0cyA8YWJlbGl0c0BtYXJ2ZWxsLmNvbT4NCi0tLQ0KIGluY2x1ZGUvbGludXgvdm1zdGF0
-LmggfCAyICsrDQogbW0vdm1zdGF0LmMgICAgICAgICAgICB8IDkgKysrKysrKysrDQogMiBmaWxl
-cyBjaGFuZ2VkLCAxMSBpbnNlcnRpb25zKCspDQoNCmRpZmYgLS1naXQgYS9pbmNsdWRlL2xpbnV4
-L3Ztc3RhdC5oIGIvaW5jbHVkZS9saW51eC92bXN0YXQuaA0KaW5kZXggYWE5NjEwODhjNTUxLi5k
-ZWQxNmRmZDIxZmEgMTAwNjQ0DQotLS0gYS9pbmNsdWRlL2xpbnV4L3Ztc3RhdC5oDQorKysgYi9p
-bmNsdWRlL2xpbnV4L3Ztc3RhdC5oDQpAQCAtMjcyLDYgKzI3Miw3IEBAIGV4dGVybiB2b2lkIF9f
-ZGVjX3pvbmVfc3RhdGUoc3RydWN0IHpvbmUgKiwgZW51bQ0Kem9uZV9zdGF0X2l0ZW0pOw0KIGV4
-dGVybiB2b2lkIF9fZGVjX25vZGVfc3RhdGUoc3RydWN0IHBnbGlzdF9kYXRhICosIGVudW0NCm5v
-ZGVfc3RhdF9pdGVtKTsNCiANCiB2b2lkIHF1aWV0X3Ztc3RhdCh2b2lkKTsNCit2b2lkIHF1aWV0
-X3Ztc3RhdF9zeW5jKHZvaWQpOw0KIHZvaWQgY3B1X3ZtX3N0YXRzX2ZvbGQoaW50IGNwdSk7DQog
-dm9pZCByZWZyZXNoX3pvbmVfc3RhdF90aHJlc2hvbGRzKHZvaWQpOw0KIA0KQEAgLTM3NCw2ICsz
-NzUsNyBAQCBzdGF0aWMgaW5saW5lIHZvaWQgX19kZWNfbm9kZV9wYWdlX3N0YXRlKHN0cnVjdA0K
-cGFnZSAqcGFnZSwNCiBzdGF0aWMgaW5saW5lIHZvaWQgcmVmcmVzaF96b25lX3N0YXRfdGhyZXNo
-b2xkcyh2b2lkKSB7IH0NCiBzdGF0aWMgaW5saW5lIHZvaWQgY3B1X3ZtX3N0YXRzX2ZvbGQoaW50
-IGNwdSkgeyB9DQogc3RhdGljIGlubGluZSB2b2lkIHF1aWV0X3Ztc3RhdCh2b2lkKSB7IH0NCitz
-dGF0aWMgaW5saW5lIHZvaWQgcXVpZXRfdm1zdGF0X3N5bmModm9pZCkgeyB9DQogDQogc3RhdGlj
-IGlubGluZSB2b2lkIGRyYWluX3pvbmVzdGF0KHN0cnVjdCB6b25lICp6b25lLA0KIAkJCXN0cnVj
-dCBwZXJfY3B1X3BhZ2VzZXQgKnBzZXQpIHsgfQ0KZGlmZiAtLWdpdCBhL21tL3Ztc3RhdC5jIGIv
-bW0vdm1zdGF0LmMNCmluZGV4IDNmYjIzYTIxZjZkZC4uOTM1MzRmODUzN2NhIDEwMDY0NA0KLS0t
-IGEvbW0vdm1zdGF0LmMNCisrKyBiL21tL3Ztc3RhdC5jDQpAQCAtMTg4OSw2ICsxODg5LDE1IEBA
-IHZvaWQgcXVpZXRfdm1zdGF0KHZvaWQpDQogCXJlZnJlc2hfY3B1X3ZtX3N0YXRzKGZhbHNlKTsN
-CiB9DQogDQorLyoNCisgKiBTeW5jaHJvbm91c2x5IHF1aWV0IHZtc3RhdCBzbyB0aGUgd29yayBp
-cyBndWFyYW50ZWVkIG5vdCB0byBydW4gb24NCnJldHVybi4NCisgKi8NCit2b2lkIHF1aWV0X3Zt
-c3RhdF9zeW5jKHZvaWQpDQorew0KKwljYW5jZWxfZGVsYXllZF93b3JrX3N5bmModGhpc19jcHVf
-cHRyKCZ2bXN0YXRfd29yaykpOw0KKwlyZWZyZXNoX2NwdV92bV9zdGF0cyhmYWxzZSk7DQorfQ0K
-Kw0KIC8qDQogICogU2hlcGhlcmQgd29ya2VyIHRocmVhZCB0aGF0IGNoZWNrcyB0aGUNCiAgKiBk
-aWZmZXJlbnRpYWxzIG9mIHByb2Nlc3NvcnMgdGhhdCBoYXZlIHRoZWlyIHdvcmtlcg0KLS0gDQoy
-LjI2LjINCg0K
+Cleanup the temporary defines and use irqentry_ instead of idtentry_.
+
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/x86/include/asm/idtentry.h |    4 ----
+ arch/x86/kernel/cpu/mce/core.c  |    4 ++--
+ arch/x86/kernel/traps.c         |   18 +++++++++---------
+ 3 files changed, 11 insertions(+), 15 deletions(-)
+
+--- a/arch/x86/include/asm/idtentry.h
++++ b/arch/x86/include/asm/idtentry.h
+@@ -11,10 +11,6 @@
+ 
+ #include <asm/irq_stack.h>
+ 
+-/* Temporary define */
+-#define idtentry_enter_user	irqentry_enter_from_user_mode
+-#define idtentry_exit_user	irqentry_exit_to_user_mode
+-
+ typedef struct idtentry_state {
+ 	bool exit_rcu;
+ } idtentry_state_t;
+--- a/arch/x86/kernel/cpu/mce/core.c
++++ b/arch/x86/kernel/cpu/mce/core.c
+@@ -1927,11 +1927,11 @@ static __always_inline void exc_machine_
+ 
+ static __always_inline void exc_machine_check_user(struct pt_regs *regs)
+ {
+-	idtentry_enter_user(regs);
++	irqentry_enter_from_user_mode(regs);
+ 	instrumentation_begin();
+ 	machine_check_vector(regs);
+ 	instrumentation_end();
+-	idtentry_exit_user(regs);
++	irqentry_exit_to_user_mode(regs);
+ }
+ 
+ #ifdef CONFIG_X86_64
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -638,18 +638,18 @@ DEFINE_IDTENTRY_RAW(exc_int3)
+ 		return;
+ 
+ 	/*
+-	 * idtentry_enter_user() uses static_branch_{,un}likely() and therefore
+-	 * can trigger INT3, hence poke_int3_handler() must be done
+-	 * before. If the entry came from kernel mode, then use nmi_enter()
+-	 * because the INT3 could have been hit in any context including
+-	 * NMI.
++	 * irqentry_enter_from_user_mode() uses static_branch_{,un}likely()
++	 * and therefore can trigger INT3, hence poke_int3_handler() must
++	 * be done before. If the entry came from kernel mode, then use
++	 * nmi_enter() because the INT3 could have been hit in any context
++	 * including NMI.
+ 	 */
+ 	if (user_mode(regs)) {
+-		idtentry_enter_user(regs);
++		irqentry_enter_from_user_mode(regs);
+ 		instrumentation_begin();
+ 		do_int3_user(regs);
+ 		instrumentation_end();
+-		idtentry_exit_user(regs);
++		irqentry_exit_to_user_mode(regs);
+ 	} else {
+ 		nmi_enter();
+ 		instrumentation_begin();
+@@ -901,12 +901,12 @@ static __always_inline void exc_debug_us
+ 	 */
+ 	WARN_ON_ONCE(!user_mode(regs));
+ 
+-	idtentry_enter_user(regs);
++	irqentry_enter_from_user_mode(regs);
+ 	instrumentation_begin();
+ 
+ 	handle_debug(regs, dr6, true);
+ 	instrumentation_end();
+-	idtentry_exit_user(regs);
++	irqentry_exit_to_user_mode(regs);
+ }
+ 
+ #ifdef CONFIG_X86_64
