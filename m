@@ -1,54 +1,59 @@
-Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37016 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726621AbgGWQM2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 12:12:28 -0400
-Date: Fri, 24 Jul 2020 02:12:21 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v3 0/6] powerpc: queued spinlocks and rwlocks
-References: <20200706043540.1563616-1-npiggin@gmail.com>
-        <24f75d2c-60cd-2766-4aab-1a3b1c80646e@redhat.com>
-        <1594101082.hfq9x5yact.astroid@bobo.none>
-        <20200708084106.GE597537@hirez.programming.kicks-ass.net>
-        <1595327263.lk78cqolxm.astroid@bobo.none>
-        <eaabf501-80fe-dd15-c03c-f75ce4f75877@redhat.com>
-        <1595510571.u39qfc8d1o.astroid@bobo.none>
-        <af825bce-ecf3-66e4-ad63-a844dbd2e775@redhat.com>
-In-Reply-To: <af825bce-ecf3-66e4-ad63-a844dbd2e775@redhat.com>
-MIME-Version: 1.0
-Message-ID: <1595520724.nzha5zvbid.astroid@bobo.none>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from us-smtp-delivery-1.mimecast.com ([205.139.110.120]:29128 "EHLO
+        us-smtp-1.mimecast.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1729609AbgGPTa7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:30:59 -0400
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v2 0/5] x86, locking/qspinlock: Allow lock to store lock holder cpu number
+Date: Thu, 16 Jul 2020 15:29:22 -0400
+Message-ID: <20200716192927.12944-1-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <longman@redhat.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: Anton Blanchard <anton@ozlabs.org>, Boqun Feng <boqun.feng@gmail.com>, kvm-ppc@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, virtualization@lists.linux-foundation.org, Will Deacon <will@kernel.org>
-Message-ID: <20200723161221.GPnu9_Z9DMDSsYh1GEsdeWkx8FXRJX_0tJ9Fe2VIL4I@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Davidlohr Bueso <dave@stgolabs.net>, Waiman Long <longman@redhat.com>
+Message-ID: <20200716192922.qwHpyJieKDrszzDhxg-RdCUEGuBiVqe5L0A7AhsPCRQ@z>
 
-Excerpts from Waiman Long's message of July 24, 2020 12:29 am:
-> On 7/23/20 9:30 AM, Nicholas Piggin wrote:
->>> I would prefer to extract out the pending bit handling code out into a
->>> separate helper function which can be overridden by the arch code
->>> instead of breaking the slowpath into 2 pieces.
->> You mean have the arch provide a queued_spin_lock_slowpath_pending
->> function that the slow path calls?
->>
->> I would actually prefer the pending handling can be made inline in
->> the queued_spin_lock function, especially with out-of-line locks it
->> makes sense to put it there.
->>
->> We could ifdef out queued_spin_lock_slowpath_queue if it's not used,
->> then __queued_spin_lock_slowpath_queue would be inlined into the
->> caller so there would be no split?
->=20
-> The pending code is an optimization for lightly contended locks. That is=20
-> why I think it is appropriate to extract it into a helper function and=20
-> mark it as such.
->=20
-> You can certainly put the code in the arch's spin_lock code, you just=20
-> has to override the generic pending code by a null function.
+This patchset modifies the x86 qspinlock and qrwlock code to allow it to
+store the lock holder cpu number (lock writer cpu number for qrwlock)
+in the lock itself if feasible.  This lock holder cpu information is 
+useful for debugging and crash dump analysis. It may also be useful to
+architectures like PowerPC that needs the lock holder cpu number for
+better paravirtual spinlock performance.
 
-I see what you mean. I guess that would work fine.
+This capability is enabled on a per-architecture basis by defining
+the macros __cpu_number_sadd1 (for qrwlock) and __cpu_number_sadd2
+(for qspinlock). These macros define the architecture's way to get
+to a percpu saturated +1 and +2 cpu number that can be used in the
+lock byte of qspinlock and qrwlock.
 
-Thanks,
-Nick
+This patchset enables it for the x86 architecture only. Additional
+patches can be submitted later on to enable other architectures,
+if desired.
+
+I have run some locking microbenchmark with and without this patch. I
+saw about 1% peformance degradation at low lock contention level, but
+about 1% performance gain at high lock contention level. That slight
+performance may be caused by a slight difference in the generated code
+and may not be entirely due to the access of the percpu variable. Anyway,
+that performance difference should be negligible for most real workloads.
+
+Waiman Long (5):
+  x86/smp: Add saturated +1/+2 1-byte cpu numbers
+  locking/pvqspinlock: Make pvqsinlock code easier to read
+  locking/qspinlock: Pass lock value as function argument
+  locking/qspinlock: Make qspinhlock store lock holder cpu number
+  locking/qrwlock: Make qrwlock store writer cpu number
+
+ arch/x86/include/asm/qspinlock_paravirt.h | 42 +++++++++++------------
+ arch/x86/include/asm/spinlock.h           |  5 +++
+ arch/x86/kernel/setup_percpu.c            | 11 ++++++
+ include/asm-generic/qrwlock.h             | 12 ++++++-
+ include/asm-generic/qspinlock.h           | 10 ++++++
+ include/asm-generic/qspinlock_types.h     |  2 +-
+ kernel/locking/qrwlock.c                  | 11 +++---
+ kernel/locking/qspinlock.c                | 31 ++++++++---------
+ kernel/locking/qspinlock_paravirt.h       | 35 ++++++++++---------
+ 9 files changed, 97 insertions(+), 62 deletions(-)
+
+-- 
+2.18.1
