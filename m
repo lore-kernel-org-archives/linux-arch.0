@@ -1,166 +1,232 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45474 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729240AbgGUKao (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 06:30:44 -0400
-Received: from mail-wm1-x349.google.com (mail-wm1-x349.google.com [IPv6:2a00:1450:4864:20::349])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BA559C0619D8
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 03:30:43 -0700 (PDT)
-Received: by mail-wm1-x349.google.com with SMTP id c81so833842wmd.2
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 03:30:43 -0700 (PDT)
-Date: Tue, 21 Jul 2020 12:30:13 +0200
-In-Reply-To: <20200721103016.3287832-1-elver@google.com>
-Message-ID: <20200721103016.3287832-6-elver@google.com>
-Mime-Version: 1.0
-References: <20200721103016.3287832-1-elver@google.com>
-Subject: [PATCH 5/8] kcsan: Test support for compound instrumentation
-From: Marco Elver <elver@google.com>
-Content-Type: text/plain; charset="UTF-8"
+Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from Galois.linutronix.de ([193.142.43.55]:35282 "EHLO
+        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729635AbgGPTut (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:50:49 -0400
+Message-ID: <20200716185424.333483453@linutronix.de>
+Date: Thu, 16 Jul 2020 20:22:12 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V3 04/13] entry: Provide infrastructure for work before
+ exiting to guest mode
+References: <20200716182208.180916541@linutronix.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-transfer-encoding: 8-bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: elver@google.com, paulmck@kernel.org
-Cc: will@kernel.org, peterz@infradead.org, arnd@arndb.de, mark.rutland@arm.com, dvyukov@google.com, glider@google.com, kasan-dev@googlegroups.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200721103013.Ee-jQlf8HTsoMlV9ft7uqnn28gX4XbKtLseHYbcQBZU@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
+Message-ID: <20200716182212.glZbuv9YwoKAWWSCybl_mGaL9ZYXQDSUsp63Ffb-jtY@z>
 
-Changes kcsan-test module to support checking reports that include
-compound instrumentation. Since we should not fail the test if this
-support is unavailable, we have to add a config variable that the test
-can use to decide what to check for.
+From: Thomas Gleixner <tglx@linutronix.de>
 
-Signed-off-by: Marco Elver <elver@google.com>
+Entering a guest is similar to exiting to user space. Pending work like
+handling signals, rescheduling, task work etc. needs to be handled before
+that.
+
+Provide generic infrastructure to avoid duplication of the same handling
+code all over the place.
+
+The exit to guest mode handling is different from the exit to usermode
+handling, e.g. vs. rseq and live patching, so a separate function is used.
+
+The initial list of work items handled is:
+
+    TIF_SIGPENDING, TIF_NEED_RESCHED, TIF_NOTIFY_RESUME
+
+Architecture specific TIF flags can be added via defines in the
+architecture specific include files.
+
+The calling convention is also different from the syscall/interrupt entry
+functions as KVM invokes this from the outer vcpu_run() loop with
+interrupts and preemption disabled. To prevent missing a pending work item
+it invokes a check for pending TIF work from interrupt disabled code right
+before exiting to guest mode. The lockdep, RCU and tracing state handling
+is also done directly around the switch to and from guest mode.
+
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Cc: kvm@vger.kernel.org
 ---
- kernel/kcsan/kcsan-test.c | 65 ++++++++++++++++++++++++++++++---------
- lib/Kconfig.kcsan         |  5 +++
- 2 files changed, 56 insertions(+), 14 deletions(-)
+V3: Reworked and simplified version adopted to recent X86 and KVM changes
+    
+V2: Moved KVM specific functions to kvm (Paolo)
+    Added lockdep assert (Andy)
+    Dropped live patching from enter guest mode work (Miroslav)
+---
+ include/linux/entry-kvm.h |   80 ++++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/kvm_host.h  |    8 ++++
+ kernel/entry/Makefile     |    3 +
+ kernel/entry/kvm.c        |   51 +++++++++++++++++++++++++++++
+ virt/kvm/Kconfig          |    3 +
+ 5 files changed, 144 insertions(+), 1 deletion(-)
 
-diff --git a/kernel/kcsan/kcsan-test.c b/kernel/kcsan/kcsan-test.c
-index 721180cbbab1..ebe7fd245104 100644
---- a/kernel/kcsan/kcsan-test.c
-+++ b/kernel/kcsan/kcsan-test.c
-@@ -27,6 +27,12 @@
- #include <linux/types.h>
- #include <trace/events/printk.h>
- 
-+#ifdef CONFIG_CC_HAS_TSAN_COMPOUND_READ_BEFORE_WRITE
-+#define __KCSAN_ACCESS_RW(alt) (KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE)
-+#else
-+#define __KCSAN_ACCESS_RW(alt) (alt)
+--- /dev/null
++++ b/include/linux/entry-kvm.h
+@@ -0,0 +1,80 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __LINUX_ENTRYKVM_H
++#define __LINUX_ENTRYKVM_H
++
++#include <linux/entry-common.h>
++
++/* Exit to guest mode work */
++#ifdef CONFIG_KVM_EXIT_TO_GUEST_WORK
++
++#ifndef ARCH_EXIT_TO_GUEST_MODE_WORK
++# define ARCH_EXIT_TO_GUEST_MODE_WORK	(0)
 +#endif
 +
- /* Points to current test-case memory access "kernels". */
- static void (*access_kernels[2])(void);
- 
-@@ -186,20 +192,21 @@ static bool report_matches(const struct expect_report *r)
- 
- 	/* Access 1 & 2 */
- 	for (i = 0; i < 2; ++i) {
-+		const int ty = r->access[i].type;
- 		const char *const access_type =
--			(r->access[i].type & KCSAN_ACCESS_ASSERT) ?
--				((r->access[i].type & KCSAN_ACCESS_WRITE) ?
--					 "assert no accesses" :
--					 "assert no writes") :
--				((r->access[i].type & KCSAN_ACCESS_WRITE) ?
--					 "write" :
--					 "read");
-+			(ty & KCSAN_ACCESS_ASSERT) ?
-+				      ((ty & KCSAN_ACCESS_WRITE) ?
-+					       "assert no accesses" :
-+					       "assert no writes") :
-+				      ((ty & KCSAN_ACCESS_WRITE) ?
-+					       ((ty & KCSAN_ACCESS_COMPOUND) ?
-+							"read-write" :
-+							"write") :
-+					       "read");
- 		const char *const access_type_aux =
--			(r->access[i].type & KCSAN_ACCESS_ATOMIC) ?
--				" (marked)" :
--				((r->access[i].type & KCSAN_ACCESS_SCOPED) ?
--					 " (scoped)" :
--					 "");
-+			(ty & KCSAN_ACCESS_ATOMIC) ?
-+				      " (marked)" :
-+				      ((ty & KCSAN_ACCESS_SCOPED) ? " (scoped)" : "");
- 
- 		if (i == 1) {
- 			/* Access 2 */
-@@ -277,6 +284,12 @@ static noinline void test_kernel_write_atomic(void)
- 	WRITE_ONCE(test_var, READ_ONCE_NOCHECK(test_sink) + 1);
- }
- 
-+static noinline void test_kernel_atomic_rmw(void)
++#define EXIT_TO_GUEST_MODE_WORK					\
++	(_TIF_NEED_RESCHED | _TIF_SIGPENDING |			\
++	 _TIF_NOTIFY_RESUME | ARCH_EXIT_TO_GUEST_MODE_WORK)
++
++struct kvm_vcpu;
++
++/**
++ * arch_exit_to_guest_mode_work - Architecture specific exit to guest mode
++ *				  work function.
++ * @vcpu:	Pointer to current's VCPU data
++ * @ti_work:	Cached TIF flags gathered in exit_to_guest_mode()
++ *
++ * Invoked from exit_to_guest_mode_work(). Defaults to NOOP. Can be
++ * replaced by architecture specific code.
++ */
++static inline int arch_exit_to_guest_mode_work(struct kvm_vcpu *vcpu,
++					      unsigned long ti_work);
++
++#ifndef arch_exit_to_guest_mode_work
++static inline int arch_exit_to_guest_mode_work(struct kvm_vcpu *vcpu,
++					       unsigned long ti_work)
 +{
-+	/* Use builtin, so we can set up the "bad" atomic/non-atomic scenario. */
-+	__atomic_fetch_add(&test_var, 1, __ATOMIC_RELAXED);
++	return 0;
++}
++#endif
++
++/**
++ * exit_to_guest_mode - Check and handle pending work which needs to be
++ *			handled before returning to guest mode
++ * @vcpu:	Pointer to current's VCPU data
++ *
++ * Returns: 0 or an error code
++ */
++int exit_to_guest_mode(struct kvm_vcpu *vcpu);
++
++/**
++ * __exit_to_guest_mode_work_pending - Check if work is pending
++ *
++ * Returns: True if work pending, False otherwise.
++ *
++ * Bare variant of exit_to_guest_mode_work_pending(). Can be called from
++ * interrupt enabled code for racy quick checks with care.
++ */
++static inline bool __exit_to_guest_mode_work_pending(void)
++{
++	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
++
++	return !!(ti_work & EXIT_TO_GUEST_MODE_WORK);
 +}
 +
- __no_kcsan
- static noinline void test_kernel_write_uninstrumented(void) { test_var++; }
- 
-@@ -439,8 +452,8 @@ static void test_concurrent_races(struct kunit *test)
- 	const struct expect_report expect = {
- 		.access = {
- 			/* NULL will match any address. */
--			{ test_kernel_rmw_array, NULL, 0, KCSAN_ACCESS_WRITE },
--			{ test_kernel_rmw_array, NULL, 0, 0 },
-+			{ test_kernel_rmw_array, NULL, 0, __KCSAN_ACCESS_RW(KCSAN_ACCESS_WRITE) },
-+			{ test_kernel_rmw_array, NULL, 0, __KCSAN_ACCESS_RW(0) },
- 		},
- 	};
- 	static const struct expect_report never = {
-@@ -629,6 +642,29 @@ static void test_read_plain_atomic_write(struct kunit *test)
- 	KUNIT_EXPECT_TRUE(test, match_expect);
- }
- 
-+/* Test that atomic RMWs generate correct report. */
-+__no_kcsan
-+static void test_read_plain_atomic_rmw(struct kunit *test)
++/**
++ * exit_to_guest_mode_work_pending - Check if work is pending which needs to be
++ *				     handled before returning to guest mode
++ *
++ * Returns: True if work pending, False otherwise.
++ *
++ * Has to be invoked with interrupts disabled before the transition to
++ * guest mode.
++ */
++static inline bool exit_to_guest_mode_work_pending(void)
 +{
-+	const struct expect_report expect = {
-+		.access = {
-+			{ test_kernel_read, &test_var, sizeof(test_var), 0 },
-+			{ test_kernel_atomic_rmw, &test_var, sizeof(test_var),
-+				KCSAN_ACCESS_COMPOUND | KCSAN_ACCESS_WRITE | KCSAN_ACCESS_ATOMIC },
-+		},
-+	};
-+	bool match_expect = false;
++	lockdep_assert_irqs_disabled();
++	return __exit_to_guest_mode_work_pending();
++}
++#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
 +
-+	if (IS_ENABLED(CONFIG_KCSAN_IGNORE_ATOMICS))
-+		return;
++#endif
+--- a/include/linux/kvm_host.h
++++ b/include/linux/kvm_host.h
+@@ -1439,4 +1439,12 @@ int kvm_vm_create_worker_thread(struct k
+ 				uintptr_t data, const char *name,
+ 				struct task_struct **thread_ptr);
+ 
++#ifdef CONFIG_KVM_EXIT_TO_GUEST_WORK
++static inline void kvm_handle_signal_exit(struct kvm_vcpu *vcpu)
++{
++	vcpu->run->exit_reason = KVM_EXIT_INTR;
++	vcpu->stat.signal_exits++;
++}
++#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
 +
-+	begin_test_checks(test_kernel_read, test_kernel_atomic_rmw);
+ #endif
+--- a/kernel/entry/Makefile
++++ b/kernel/entry/Makefile
+@@ -1,3 +1,4 @@
+ # SPDX-License-Identifier: GPL-2.0
+ 
+-obj-$(CONFIG_GENERIC_ENTRY) += common.o
++obj-$(CONFIG_GENERIC_ENTRY) 		+= common.o
++obj-$(CONFIG_KVM_EXIT_TO_GUEST_WORK)	+= kvm.o
+--- /dev/null
++++ b/kernel/entry/kvm.c
+@@ -0,0 +1,51 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#include <linux/entry-kvm.h>
++#include <linux/kvm_host.h>
++
++static int exit_to_guest_mode_work(struct kvm_vcpu *vcpu, unsigned long ti_work)
++{
 +	do {
-+		match_expect = report_matches(&expect);
-+	} while (!end_test_checks(match_expect));
-+	KUNIT_EXPECT_TRUE(test, match_expect);
++		int ret;
++
++		if (ti_work & _TIF_SIGPENDING) {
++			kvm_handle_signal_exit(vcpu);
++			return -EINTR;
++		}
++
++		if (ti_work & _TIF_NEED_RESCHED)
++			schedule();
++
++		if (ti_work & _TIF_NOTIFY_RESUME) {
++			clear_thread_flag(TIF_NOTIFY_RESUME);
++			tracehook_notify_resume(NULL);
++		}
++
++		ret = arch_exit_to_guest_mode_work(vcpu, ti_work);
++		if (ret)
++			return ret;
++
++		ti_work = READ_ONCE(current_thread_info()->flags);
++	} while (ti_work & EXIT_TO_GUEST_MODE_WORK || need_resched());
++	return 0;
 +}
 +
- /* Zero-sized accesses should never cause data race reports. */
- __no_kcsan
- static void test_zero_size_access(struct kunit *test)
-@@ -942,6 +978,7 @@ static struct kunit_case kcsan_test_cases[] = {
- 	KCSAN_KUNIT_CASE(test_write_write_struct_part),
- 	KCSAN_KUNIT_CASE(test_read_atomic_write_atomic),
- 	KCSAN_KUNIT_CASE(test_read_plain_atomic_write),
-+	KCSAN_KUNIT_CASE(test_read_plain_atomic_rmw),
- 	KCSAN_KUNIT_CASE(test_zero_size_access),
- 	KCSAN_KUNIT_CASE(test_data_race),
- 	KCSAN_KUNIT_CASE(test_assert_exclusive_writer),
-diff --git a/lib/Kconfig.kcsan b/lib/Kconfig.kcsan
-index 3d282d51849b..cde5b62b0a01 100644
---- a/lib/Kconfig.kcsan
-+++ b/lib/Kconfig.kcsan
-@@ -40,6 +40,11 @@ menuconfig KCSAN
- 
- if KCSAN
- 
-+# Compiler capabilities that should not fail the test if they are unavailable.
-+config CC_HAS_TSAN_COMPOUND_READ_BEFORE_WRITE
-+	def_bool (CC_IS_CLANG && $(cc-option,-fsanitize=thread -mllvm -tsan-compound-read-before-write=1)) || \
-+		 (CC_IS_GCC && $(cc-option,-fsanitize=thread --param -tsan-compound-read-before-write=1))
++int exit_to_guest_mode(struct kvm_vcpu *vcpu)
++{
++	unsigned long ti_work;
 +
- config KCSAN_VERBOSE
- 	bool "Show verbose reports with more information about system state"
- 	depends on PROVE_LOCKING
--- 
-2.28.0.rc0.105.gf9edc3c819-goog
++	/*
++	 * This is invoked from the outer guest loop with interrupts and
++	 * preemption enabled.
++	 *
++	 * KVM invokes exit_to_guest_mode_work_pending() with interrupts
++	 * disabled in the inner loop before going into guest mode. No need
++	 * to disable interrupts here.
++	 */
++	ti_work = READ_ONCE(current_thread_info()->flags);
++	if (!(ti_work & EXIT_TO_GUEST_MODE_WORK))
++		return 0;
++
++	return exit_to_guest_mode_work(vcpu, ti_work);
++}
++EXPORT_SYMBOL_GPL(exit_to_guest_mode);
+--- a/virt/kvm/Kconfig
++++ b/virt/kvm/Kconfig
+@@ -60,3 +60,6 @@ config HAVE_KVM_VCPU_RUN_PID_CHANGE
+ 
+ config HAVE_KVM_NO_POLL
+        bool
++
++config KVM_EXIT_TO_GUEST_WORK
++       bool
