@@ -1,19 +1,23 @@
 From: Nicholas Piggin <npiggin@gmail.com>
 Subject: Re: [RFC PATCH 7/7] lazy tlb: shoot lazies, a non-refcounting lazy
  tlb option
-Date: Thu, 16 Jul 2020 12:26:59 +1000
-Message-ID: <1594866023.tjwr7nhhg2.astroid@bobo.none>
+Date: Thu, 16 Jul 2020 12:35:12 +1000
+Message-ID: <1594866490.ultl891sgk.astroid@bobo.none>
 References: <1594708054.04iuyxuyb5.astroid@bobo.none>
         <6D3D1346-DB1E-43EB-812A-184918CCC16A@amacapital.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50254 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726479AbgGPCfU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2020 22:35:20 -0400
 In-Reply-To: <6D3D1346-DB1E-43EB-812A-184918CCC16A@amacapital.net>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Andy Lutomirski <luto@amacapital.net>
 Cc: Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Peter Zijlstra <peterz@infradead.org>, X86 ML <x86@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
 Excerpts from Andy Lutomirski's message of July 14, 2020 10:46 pm:
 >=20
@@ -131,13 +135,17 @@ he line :)
 >=20
 > Can your share your benchmark?
 
-It's just context_switch1_threads from will-it-scale, running with 1/2
-the number of CPUs, and core affinity with an SMT processor (so each
-thread from the switching pairs gets spread to their own CPU and so you
-get the task->idle->task switching.
+Just testing the IPI rates (on a smaller 176 CPU system), on a
+kernel compile, it causes about 300 shootdown interrupts (not
+300 broadcasts but total interrupts).
 
-It's really just about the worst case, so I wouldn't say it's something
-to panic about.
+And very short lived fork;exec;exit things like typical scripting
+commands doesn't typically generate any.
+
+So yeah the really high exit rate things self-limit pretty well.
+
+I documented the concern and added a few of the possible ways to
+further reduce IPIs in the comments though.
 
 Thanks,
 Nick
