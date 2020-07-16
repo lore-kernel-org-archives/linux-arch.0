@@ -1,135 +1,233 @@
-Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:50024 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726885AbgGQV5J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Jul 2020 17:57:09 -0400
-Received: from mail-wm1-f48.google.com (mail-wm1-f48.google.com [209.85.128.48])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 84E452080D
-        for <linux-arch@vger.kernel.org>; Fri, 17 Jul 2020 21:57:08 +0000 (UTC)
-Received: by mail-wm1-f48.google.com with SMTP id o2so19226600wmh.2
-        for <linux-arch@vger.kernel.org>; Fri, 17 Jul 2020 14:57:08 -0700 (PDT)
+Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from Galois.linutronix.de ([193.142.43.55]:35274 "EHLO
+        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1729614AbgGPTut (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:50:49 -0400
+Message-ID: <20200716185424.225286036@linutronix.de>
+Date: Thu, 16 Jul 2020 20:22:11 +0200
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch V3 03/13] entry: Provide generic interrupt entry/exit code
+References: <20200716182208.180916541@linutronix.de>
 MIME-Version: 1.0
-References: <20200716182208.180916541@linutronix.de> <20200716185424.011950288@linutronix.de>
- <202007161336.B993ED938@keescook> <87d04vt98w.fsf@nanos.tec.linutronix.de>
- <202007171045.FB4A586F1D@keescook> <87mu3yq6sf.fsf@nanos.tec.linutronix.de>
-In-Reply-To: <87mu3yq6sf.fsf@nanos.tec.linutronix.de>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Fri, 17 Jul 2020 14:56:55 -0700
-Message-ID: <CALCETrXz_vEySQJ=f3MTPG9XjZS7U0P-diJE9j_+0KRa_Kie=Q@mail.gmail.com>
-Subject: Re: [patch V3 01/13] entry: Provide generic syscall entry functionality
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
+Content-transfer-encoding: 8-bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Kees Cook <keescook@chromium.org>, LKML <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm list <kvm@vger.kernel.org>, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200717215655.NQk6d46qfiRAbwvSMpOztrBPT4Fjsy37Unh-A8WNQH0@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
+Message-ID: <20200716182211.1qs-qWopyxqbjD1D9bPn0IFx8vAtoL7HCzP8IfD73Ds@z>
 
-On Fri, Jul 17, 2020 at 12:29 PM Thomas Gleixner <tglx@linutronix.de> wrote:
->
-> Kees Cook <keescook@chromium.org> writes:
-> > On Thu, Jul 16, 2020 at 11:55:59PM +0200, Thomas Gleixner wrote:
-> >> Kees Cook <keescook@chromium.org> writes:
-> >> >> +/*
-> >> >> + * Define dummy _TIF work flags if not defined by the architecture or for
-> >> >> + * disabled functionality.
-> >> >> + */
-> >> >
-> >> > When I was thinking about this last week I was pondering having a split
-> >> > between the arch-agnositc TIF flags and the arch-specific TIF flags, and
-> >> > that each arch could have a single "there is agnostic work to be done"
-> >> > TIF in their thread_info, and the agnostic flags could live in
-> >> > task_struct or something. Anyway, I'll keep reading...
-> >>
-> >> That's going to be nasty. We rather go and expand the TIF storage to
-> >> 64bit. And then do the following in a generic header:
-> >
-> > I though the point was to make the TIF_WORK check as fast as possible,
-> > even on the 32-bit word systems. I mean it's not a huge performance hit,
-> > but *shrug*
->
-> For 64bit it's definitely faster to have 64bit flags.
->
-> For 32bit it's debatable whether having to fiddle with two words and
-> taking care about ordering is faster or not. It's a pain on 32bit in any
-> case.
->
-> But what we can do is distangle the flags into those which really need
-> to be grouped into a single 32bit TIF word and architecture specific
-> ones which can live in a different place.
->
-> Looking at x86 which has the most pressure on TIF bits:
->
-> Real TIF bits
-> TIF_SYSCALL_TRACE       Entry/exit
-> TIF_SYSCALL_TRACEPOINT  Entry/exit
-> TIF_NOTIFY_RESUME       Entry/exit
-> TIF_SIGPENDING          Entry/exit
-> TIF_NEED_RESCHED        Entry/exit
-> TIF_SINGLESTEP          Entry/exit
-> TIF_SYSCALL_EMU         Entry/exit
-> TIF_SYSCALL_AUDIT       Entry/exit
-> TIF_SECCOMP             Entry/exit
-> TIF_USER_RETURN_NOTIFY  Entry/exit      (x86 specific)
-> TIF_UPROBE              Entry/exit
-> TIF_PATCH_PENDING       Entry/exit
-> TIF_POLLING_NRFLAG      Scheduler (related to TIF_NEED_RESCHED)
-> TIF_MEMDIE              Historical, but not required to be a real one
-> TIF_FSCHECK             Historical, but not required to be a real one
->
-> Context switch group
-> TIF_NOCPUID             X86 Context switch
-> TIF_NOTSC               X86 Context switch
-> TIF_SLD                 X86 Context switch
-> TIF_BLOCKSTEP           X86 Context switch
-> TIF_IO_BITMAP           X86 Context switch + Entry/exit (see below)
-> TIF_NEED_FPU_LOAD       X86 Context switch + Entry/exit (see below)
-> TIF_SSBD                X86 Context switch
-> TIF_SPEC_IB             X86 Context switch
-> TIF_SPEC_FORCE_UPDATE   X86 Context switch
->
-> No group requirements
-> TIF_IA32                X86 random
-> TIF_FORCED_TF           X86 random
-> TIF_LAZY_MMU_UPDATES    X86 random
-> TIF_ADDR32              X86 random
-> TIF_X32                 X86 random
->
-> So the only interesting ones are TIF_IO_BITMAP and TIF_NEED_FPU_LOAD,
-> but those are really not required to be in the real TIF group because
-> they are independently evaluated _after_ the real TIF flags on exit to
-> user space and that requires a reread of the flags anyway. So if we put
-> the context switch and the random bits into a seperate word right after
-> thread_info->flags then the second word is in the same cacheline and it
-> wont matter. That way we gain plenty of free bits on 32 bit and have no
-> dependency between the two words at all.
->
-> The alternative is to play nasty games with TIF_IA32, TIF_ADDR32 and
-> TIF_X32 to free up bits for 32bit and make the flags field 64 bit on 64
-> bit kernels, but I prefer to do the above seperation.
+Like the syscall entry/exit code interrupt/exception entry after the real
+low level ASM bits should not be different accross architectures.
 
-I'm all for cleaning it up, but I don't think any nasty games would be
-needed regardless.  IMO at least the following flags are nonsense and
-don't belong in TIF_anything at all:
+Provide a generic version based on the x86 code.
 
-TIF_IA32, TIF_X32: can probably be deleted.  Someone would just need
-to finish the work.
-TIF_ADDR32: also probably removable, but I'm less confident.
-TIF_FORCED_TF: This is purely a ptrace artifact and could easily go
-somewhere else entirely.
+irqentry_enter() is called after the low level entry code and
+irqentry_exit() must be invoked right before returning to the low level
+code which just contains the actual return logic. The code before
+irqentry_enter() and irqentry_exit() must not be instrumented. Code after
+irqentry_enter() and before irqentry_exit() can be instrumented.
 
-So getting those five bits back would be straightforward.
+irqentry_enter() invokes irqentry_enter_from_user_mode() if the
+interrupt/exception came from user mode. If if entered from kernel mode it
+handles the kernel mode variant of establishing state for lockdep, RCU and
+tracing depending on the kernel context it interrupted (idle, non-idle).
 
-FWIW, TIF_USER_RETURN_NOTIFY is a bit of an odd duck: it's an
-entry/exit word *and* a context switch word.  The latter is because
-it's logically a per-cpu flag, not a per-task flag, and the context
-switch code moves it around so it's always set on the running task.
-TIF_NEED_RESCHED is sort of in this category, too.  We could introduce
-a percpu entry_exit_work field to simplify this at some small
-performance cost.  TIF_POLLING_NRFLAG would go along with it.  (The
-latter does not, strictly speaking, belong as a TIF_ flag at all, but
-it does need to be in the same atomic word as TIF_NEED_RESCHED.)
-Making this change would arguably be a decent cleanup.
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ include/linux/entry-common.h |   62 ++++++++++++++++++++++
+ kernel/entry/common.c        |  117 +++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 179 insertions(+)
 
---Andy
+--- a/include/linux/entry-common.h
++++ b/include/linux/entry-common.h
+@@ -346,4 +346,66 @@ void irqentry_enter_from_user_mode(struc
+  */
+ void irqentry_exit_to_user_mode(struct pt_regs *regs);
+ 
++#ifndef irqentry_state
++typedef struct irqentry_state {
++	bool	exit_rcu;
++} irqentry_state_t;
++#endif
++
++/**
++ * irqentry_enter - Handle state tracking on ordinary interrupt entries
++ * @regs:	Pointer to pt_regs of interrupted context
++ *
++ * Invokes:
++ *  - lockdep irqflag state tracking as low level ASM entry disabled
++ *    interrupts.
++ *
++ *  - Context tracking if the exception hit user mode.
++ *
++ *  - The hardirq tracer to keep the state consistent as low level ASM
++ *    entry disabled interrupts.
++ *
++ * As a precondition, this requires that the entry came from user mode,
++ * idle, or a kernel context in which RCU is watching.
++ *
++ * For kernel mode entries RCU handling is done conditional. If RCU is
++ * watching then the only RCU requirement is to check whether the tick has
++ * to be restarted. If RCU is not watching then rcu_irq_enter() has to be
++ * invoked on entry and rcu_irq_exit() on exit.
++ *
++ * Avoiding the rcu_irq_enter/exit() calls is an optimization but also
++ * solves the problem of kernel mode pagefaults which can schedule, which
++ * is not possible after invoking rcu_irq_enter() without undoing it.
++ *
++ * For user mode entries irqentry_enter_from_user_mode() is invoked to
++ * establish the proper context for NOHZ_FULL. Otherwise scheduling on exit
++ * would not be possible.
++ *
++ * Returns: An opaque object that must be passed to idtentry_exit()
++ */
++irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs);
++
++/**
++ * irqentry_exit_cond_resched - Conditionally reschedule on return from interrupt
++ *
++ * Conditional reschedule with additional sanity checks.
++ */
++void irqentry_exit_cond_resched(void);
++
++/**
++ * irqentry_exit - Handle return from exception that used irqentry_enter()
++ * @regs:	Pointer to pt_regs (exception entry regs)
++ * @state:	Return value from matching call to irqentry_enter()
++ *
++ * Depending on the return target (kernel/user) this runs the necessary
++ * preemption and work checks if possible and reguired and returns to
++ * the caller with interrupts disabled and no further work pending.
++ *
++ * This is the last action before returning to the low level ASM code which
++ * just needs to return to the appropriate context.
++ *
++ * Counterpart to irqentry_enter().
++ */
++void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state);
++
+ #endif
+--- a/kernel/entry/common.c
++++ b/kernel/entry/common.c
+@@ -245,3 +245,120 @@ noinstr void irqentry_exit_to_user_mode(
+ 	instrumentation_end();
+ 	exit_to_user_mode();
+ }
++
++irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs)
++{
++	irqentry_state_t ret = {
++		.exit_rcu = false,
++	};
++
++	if (user_mode(regs)) {
++		irqentry_enter_from_user_mode(regs);
++		return ret;
++	}
++
++	/*
++	 * If this entry hit the idle task invoke rcu_irq_enter() whether
++	 * RCU is watching or not.
++	 *
++	 * Interupts can nest when the first interrupt invokes softirq
++	 * processing on return which enables interrupts.
++	 *
++	 * Scheduler ticks in the idle task can mark quiescent state and
++	 * terminate a grace period, if and only if the timer interrupt is
++	 * not nested into another interrupt.
++	 *
++	 * Checking for __rcu_is_watching() here would prevent the nesting
++	 * interrupt to invoke rcu_irq_enter(). If that nested interrupt is
++	 * the tick then rcu_flavor_sched_clock_irq() would wrongfully
++	 * assume that it is the first interupt and eventually claim
++	 * quiescient state and end grace periods prematurely.
++	 *
++	 * Unconditionally invoke rcu_irq_enter() so RCU state stays
++	 * consistent.
++	 *
++	 * TINY_RCU does not support EQS, so let the compiler eliminate
++	 * this part when enabled.
++	 */
++	if (!IS_ENABLED(CONFIG_TINY_RCU) && is_idle_task(current)) {
++		/*
++		 * If RCU is not watching then the same careful
++		 * sequence vs. lockdep and tracing is required
++		 * as in irq_enter_from_user_mode().
++		 */
++		lockdep_hardirqs_off(CALLER_ADDR0);
++		rcu_irq_enter();
++		instrumentation_begin();
++		trace_hardirqs_off_finish();
++		instrumentation_end();
++
++		ret.exit_rcu = true;
++		return ret;
++	}
++
++	/*
++	 * If RCU is watching then RCU only wants to check whether it needs
++	 * to restart the tick in NOHZ mode. rcu_irq_enter_check_tick()
++	 * already contains a warning when RCU is not watching, so no point
++	 * in having another one here.
++	 */
++	instrumentation_begin();
++	rcu_irq_enter_check_tick();
++	/* Use the combo lockdep/tracing function */
++	trace_hardirqs_off();
++	instrumentation_end();
++
++	return ret;
++}
++
++void irqentry_exit_cond_resched(void)
++{
++	if (!preempt_count()) {
++		/* Sanity check RCU and thread stack */
++		rcu_irq_exit_check_preempt();
++		if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
++			WARN_ON_ONCE(!on_thread_stack());
++		if (need_resched())
++			preempt_schedule_irq();
++	}
++}
++
++void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state)
++{
++	lockdep_assert_irqs_disabled();
++
++	/* Check whether this returns to user mode */
++	if (user_mode(regs)) {
++		irqentry_exit_to_user_mode(regs);
++	} else if (!regs_irqs_disabled(regs)) {
++		/*
++		 * If RCU was not watching on entry this needs to be done
++		 * carefully and needs the same ordering of lockdep/tracing
++		 * and RCU as the return to user mode path.
++		 */
++		if (state.exit_rcu) {
++			instrumentation_begin();
++			/* Tell the tracer that IRET will enable interrupts */
++			trace_hardirqs_on_prepare();
++			lockdep_hardirqs_on_prepare(CALLER_ADDR0);
++			instrumentation_end();
++			rcu_irq_exit();
++			lockdep_hardirqs_on(CALLER_ADDR0);
++			return;
++		}
++
++		instrumentation_begin();
++		if (IS_ENABLED(CONFIG_PREEMPTION))
++			irqentry_exit_cond_resched();
++		/* Covers both tracing and lockdep */
++		trace_hardirqs_on();
++		instrumentation_end();
++	} else {
++		/*
++		 * IRQ flags state is correct already. Just tell RCU if it
++		 * was not watching on entry.
++		 */
++		if (state.exit_rcu)
++			rcu_irq_exit();
++	}
++}
