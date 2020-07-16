@@ -1,8 +1,7 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 04/13] entry: Provide infrastructure for work before
- exiting to guest mode
-Date: Thu, 16 Jul 2020 20:22:12 +0200
-Message-ID: <20200716185424.333483453@linutronix.de>
+Subject: [patch V3 03/13] entry: Provide generic interrupt entry/exit code
+Date: Thu, 16 Jul 2020 20:22:11 +0200
+Message-ID: <20200716185424.225286036@linutronix.de>
 References: <20200716182208.180916541@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -13,215 +12,217 @@ To: LKML <linux-kernel@vger.kernel.org>
 Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Thomas Gleixner <tglx@linutronix.de>
+Like the syscall entry/exit code interrupt/exception entry after the real
+low level ASM bits should not be different accross architectures.
 
-Entering a guest is similar to exiting to user space. Pending work like
-handling signals, rescheduling, task work etc. needs to be handled before
-that.
+Provide a generic version based on the x86 code.
 
-Provide generic infrastructure to avoid duplication of the same handling
-code all over the place.
+irqentry_enter() is called after the low level entry code and
+irqentry_exit() must be invoked right before returning to the low level
+code which just contains the actual return logic. The code before
+irqentry_enter() and irqentry_exit() must not be instrumented. Code after
+irqentry_enter() and before irqentry_exit() can be instrumented.
 
-The exit to guest mode handling is different from the exit to usermode
-handling, e.g. vs. rseq and live patching, so a separate function is used.
-
-The initial list of work items handled is:
-
-    TIF_SIGPENDING, TIF_NEED_RESCHED, TIF_NOTIFY_RESUME
-
-Architecture specific TIF flags can be added via defines in the
-architecture specific include files.
-
-The calling convention is also different from the syscall/interrupt entry
-functions as KVM invokes this from the outer vcpu_run() loop with
-interrupts and preemption disabled. To prevent missing a pending work item
-it invokes a check for pending TIF work from interrupt disabled code right
-before exiting to guest mode. The lockdep, RCU and tracing state handling
-is also done directly around the switch to and from guest mode.
+irqentry_enter() invokes irqentry_enter_from_user_mode() if the
+interrupt/exception came from user mode. If if entered from kernel mode it
+handles the kernel mode variant of establishing state for lockdep, RCU and
+tracing depending on the kernel context it interrupted (idle, non-idle).
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Paolo Bonzini <pbonzini@redhat.com>
-Cc: kvm@vger.kernel.org
 ---
-V3: Reworked and simplified version adopted to recent X86 and KVM changes
-    
-V2: Moved KVM specific functions to kvm (Paolo)
-    Added lockdep assert (Andy)
-    Dropped live patching from enter guest mode work (Miroslav)
----
- include/linux/entry-kvm.h |   80 ++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/kvm_host.h  |    8 ++++
- kernel/entry/Makefile     |    3 +
- kernel/entry/kvm.c        |   51 +++++++++++++++++++++++++++++
- virt/kvm/Kconfig          |    3 +
- 5 files changed, 144 insertions(+), 1 deletion(-)
+ include/linux/entry-common.h |   62 ++++++++++++++++++++++
+ kernel/entry/common.c        |  117 +++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 179 insertions(+)
 
---- /dev/null
-+++ b/include/linux/entry-kvm.h
-@@ -0,0 +1,80 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __LINUX_ENTRYKVM_H
-+#define __LINUX_ENTRYKVM_H
-+
-+#include <linux/entry-common.h>
-+
-+/* Exit to guest mode work */
-+#ifdef CONFIG_KVM_EXIT_TO_GUEST_WORK
-+
-+#ifndef ARCH_EXIT_TO_GUEST_MODE_WORK
-+# define ARCH_EXIT_TO_GUEST_MODE_WORK	(0)
-+#endif
-+
-+#define EXIT_TO_GUEST_MODE_WORK					\
-+	(_TIF_NEED_RESCHED | _TIF_SIGPENDING |			\
-+	 _TIF_NOTIFY_RESUME | ARCH_EXIT_TO_GUEST_MODE_WORK)
-+
-+struct kvm_vcpu;
-+
-+/**
-+ * arch_exit_to_guest_mode_work - Architecture specific exit to guest mode
-+ *				  work function.
-+ * @vcpu:	Pointer to current's VCPU data
-+ * @ti_work:	Cached TIF flags gathered in exit_to_guest_mode()
-+ *
-+ * Invoked from exit_to_guest_mode_work(). Defaults to NOOP. Can be
-+ * replaced by architecture specific code.
-+ */
-+static inline int arch_exit_to_guest_mode_work(struct kvm_vcpu *vcpu,
-+					      unsigned long ti_work);
-+
-+#ifndef arch_exit_to_guest_mode_work
-+static inline int arch_exit_to_guest_mode_work(struct kvm_vcpu *vcpu,
-+					       unsigned long ti_work)
-+{
-+	return 0;
-+}
-+#endif
-+
-+/**
-+ * exit_to_guest_mode - Check and handle pending work which needs to be
-+ *			handled before returning to guest mode
-+ * @vcpu:	Pointer to current's VCPU data
-+ *
-+ * Returns: 0 or an error code
-+ */
-+int exit_to_guest_mode(struct kvm_vcpu *vcpu);
-+
-+/**
-+ * __exit_to_guest_mode_work_pending - Check if work is pending
-+ *
-+ * Returns: True if work pending, False otherwise.
-+ *
-+ * Bare variant of exit_to_guest_mode_work_pending(). Can be called from
-+ * interrupt enabled code for racy quick checks with care.
-+ */
-+static inline bool __exit_to_guest_mode_work_pending(void)
-+{
-+	unsigned long ti_work = READ_ONCE(current_thread_info()->flags);
-+
-+	return !!(ti_work & EXIT_TO_GUEST_MODE_WORK);
-+}
-+
-+/**
-+ * exit_to_guest_mode_work_pending - Check if work is pending which needs to be
-+ *				     handled before returning to guest mode
-+ *
-+ * Returns: True if work pending, False otherwise.
-+ *
-+ * Has to be invoked with interrupts disabled before the transition to
-+ * guest mode.
-+ */
-+static inline bool exit_to_guest_mode_work_pending(void)
-+{
-+	lockdep_assert_irqs_disabled();
-+	return __exit_to_guest_mode_work_pending();
-+}
-+#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
-+
-+#endif
---- a/include/linux/kvm_host.h
-+++ b/include/linux/kvm_host.h
-@@ -1439,4 +1439,12 @@ int kvm_vm_create_worker_thread(struct k
- 				uintptr_t data, const char *name,
- 				struct task_struct **thread_ptr);
+--- a/include/linux/entry-common.h
++++ b/include/linux/entry-common.h
+@@ -346,4 +346,66 @@ void irqentry_enter_from_user_mode(struc
+  */
+ void irqentry_exit_to_user_mode(struct pt_regs *regs);
  
-+#ifdef CONFIG_KVM_EXIT_TO_GUEST_WORK
-+static inline void kvm_handle_signal_exit(struct kvm_vcpu *vcpu)
-+{
-+	vcpu->run->exit_reason = KVM_EXIT_INTR;
-+	vcpu->stat.signal_exits++;
-+}
-+#endif /* CONFIG_KVM_EXIT_TO_GUEST_WORK */
++#ifndef irqentry_state
++typedef struct irqentry_state {
++	bool	exit_rcu;
++} irqentry_state_t;
++#endif
++
++/**
++ * irqentry_enter - Handle state tracking on ordinary interrupt entries
++ * @regs:	Pointer to pt_regs of interrupted context
++ *
++ * Invokes:
++ *  - lockdep irqflag state tracking as low level ASM entry disabled
++ *    interrupts.
++ *
++ *  - Context tracking if the exception hit user mode.
++ *
++ *  - The hardirq tracer to keep the state consistent as low level ASM
++ *    entry disabled interrupts.
++ *
++ * As a precondition, this requires that the entry came from user mode,
++ * idle, or a kernel context in which RCU is watching.
++ *
++ * For kernel mode entries RCU handling is done conditional. If RCU is
++ * watching then the only RCU requirement is to check whether the tick has
++ * to be restarted. If RCU is not watching then rcu_irq_enter() has to be
++ * invoked on entry and rcu_irq_exit() on exit.
++ *
++ * Avoiding the rcu_irq_enter/exit() calls is an optimization but also
++ * solves the problem of kernel mode pagefaults which can schedule, which
++ * is not possible after invoking rcu_irq_enter() without undoing it.
++ *
++ * For user mode entries irqentry_enter_from_user_mode() is invoked to
++ * establish the proper context for NOHZ_FULL. Otherwise scheduling on exit
++ * would not be possible.
++ *
++ * Returns: An opaque object that must be passed to idtentry_exit()
++ */
++irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs);
++
++/**
++ * irqentry_exit_cond_resched - Conditionally reschedule on return from interrupt
++ *
++ * Conditional reschedule with additional sanity checks.
++ */
++void irqentry_exit_cond_resched(void);
++
++/**
++ * irqentry_exit - Handle return from exception that used irqentry_enter()
++ * @regs:	Pointer to pt_regs (exception entry regs)
++ * @state:	Return value from matching call to irqentry_enter()
++ *
++ * Depending on the return target (kernel/user) this runs the necessary
++ * preemption and work checks if possible and reguired and returns to
++ * the caller with interrupts disabled and no further work pending.
++ *
++ * This is the last action before returning to the low level ASM code which
++ * just needs to return to the appropriate context.
++ *
++ * Counterpart to irqentry_enter().
++ */
++void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state);
 +
  #endif
---- a/kernel/entry/Makefile
-+++ b/kernel/entry/Makefile
-@@ -1,3 +1,4 @@
- # SPDX-License-Identifier: GPL-2.0
- 
--obj-$(CONFIG_GENERIC_ENTRY) += common.o
-+obj-$(CONFIG_GENERIC_ENTRY) 		+= common.o
-+obj-$(CONFIG_KVM_EXIT_TO_GUEST_WORK)	+= kvm.o
---- /dev/null
-+++ b/kernel/entry/kvm.c
-@@ -0,0 +1,51 @@
-+// SPDX-License-Identifier: GPL-2.0
+--- a/kernel/entry/common.c
++++ b/kernel/entry/common.c
+@@ -245,3 +245,120 @@ noinstr void irqentry_exit_to_user_mode(
+ 	instrumentation_end();
+ 	exit_to_user_mode();
+ }
 +
-+#include <linux/entry-kvm.h>
-+#include <linux/kvm_host.h>
-+
-+static int exit_to_guest_mode_work(struct kvm_vcpu *vcpu, unsigned long ti_work)
++irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs)
 +{
-+	do {
-+		int ret;
++	irqentry_state_t ret = {
++		.exit_rcu = false,
++	};
 +
-+		if (ti_work & _TIF_SIGPENDING) {
-+			kvm_handle_signal_exit(vcpu);
-+			return -EINTR;
-+		}
-+
-+		if (ti_work & _TIF_NEED_RESCHED)
-+			schedule();
-+
-+		if (ti_work & _TIF_NOTIFY_RESUME) {
-+			clear_thread_flag(TIF_NOTIFY_RESUME);
-+			tracehook_notify_resume(NULL);
-+		}
-+
-+		ret = arch_exit_to_guest_mode_work(vcpu, ti_work);
-+		if (ret)
-+			return ret;
-+
-+		ti_work = READ_ONCE(current_thread_info()->flags);
-+	} while (ti_work & EXIT_TO_GUEST_MODE_WORK || need_resched());
-+	return 0;
-+}
-+
-+int exit_to_guest_mode(struct kvm_vcpu *vcpu)
-+{
-+	unsigned long ti_work;
++	if (user_mode(regs)) {
++		irqentry_enter_from_user_mode(regs);
++		return ret;
++	}
 +
 +	/*
-+	 * This is invoked from the outer guest loop with interrupts and
-+	 * preemption enabled.
++	 * If this entry hit the idle task invoke rcu_irq_enter() whether
++	 * RCU is watching or not.
 +	 *
-+	 * KVM invokes exit_to_guest_mode_work_pending() with interrupts
-+	 * disabled in the inner loop before going into guest mode. No need
-+	 * to disable interrupts here.
++	 * Interupts can nest when the first interrupt invokes softirq
++	 * processing on return which enables interrupts.
++	 *
++	 * Scheduler ticks in the idle task can mark quiescent state and
++	 * terminate a grace period, if and only if the timer interrupt is
++	 * not nested into another interrupt.
++	 *
++	 * Checking for __rcu_is_watching() here would prevent the nesting
++	 * interrupt to invoke rcu_irq_enter(). If that nested interrupt is
++	 * the tick then rcu_flavor_sched_clock_irq() would wrongfully
++	 * assume that it is the first interupt and eventually claim
++	 * quiescient state and end grace periods prematurely.
++	 *
++	 * Unconditionally invoke rcu_irq_enter() so RCU state stays
++	 * consistent.
++	 *
++	 * TINY_RCU does not support EQS, so let the compiler eliminate
++	 * this part when enabled.
 +	 */
-+	ti_work = READ_ONCE(current_thread_info()->flags);
-+	if (!(ti_work & EXIT_TO_GUEST_MODE_WORK))
-+		return 0;
++	if (!IS_ENABLED(CONFIG_TINY_RCU) && is_idle_task(current)) {
++		/*
++		 * If RCU is not watching then the same careful
++		 * sequence vs. lockdep and tracing is required
++		 * as in irq_enter_from_user_mode().
++		 */
++		lockdep_hardirqs_off(CALLER_ADDR0);
++		rcu_irq_enter();
++		instrumentation_begin();
++		trace_hardirqs_off_finish();
++		instrumentation_end();
 +
-+	return exit_to_guest_mode_work(vcpu, ti_work);
++		ret.exit_rcu = true;
++		return ret;
++	}
++
++	/*
++	 * If RCU is watching then RCU only wants to check whether it needs
++	 * to restart the tick in NOHZ mode. rcu_irq_enter_check_tick()
++	 * already contains a warning when RCU is not watching, so no point
++	 * in having another one here.
++	 */
++	instrumentation_begin();
++	rcu_irq_enter_check_tick();
++	/* Use the combo lockdep/tracing function */
++	trace_hardirqs_off();
++	instrumentation_end();
++
++	return ret;
 +}
-+EXPORT_SYMBOL_GPL(exit_to_guest_mode);
---- a/virt/kvm/Kconfig
-+++ b/virt/kvm/Kconfig
-@@ -60,3 +60,6 @@ config HAVE_KVM_VCPU_RUN_PID_CHANGE
- 
- config HAVE_KVM_NO_POLL
-        bool
 +
-+config KVM_EXIT_TO_GUEST_WORK
-+       bool
++void irqentry_exit_cond_resched(void)
++{
++	if (!preempt_count()) {
++		/* Sanity check RCU and thread stack */
++		rcu_irq_exit_check_preempt();
++		if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
++			WARN_ON_ONCE(!on_thread_stack());
++		if (need_resched())
++			preempt_schedule_irq();
++	}
++}
++
++void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state)
++{
++	lockdep_assert_irqs_disabled();
++
++	/* Check whether this returns to user mode */
++	if (user_mode(regs)) {
++		irqentry_exit_to_user_mode(regs);
++	} else if (!regs_irqs_disabled(regs)) {
++		/*
++		 * If RCU was not watching on entry this needs to be done
++		 * carefully and needs the same ordering of lockdep/tracing
++		 * and RCU as the return to user mode path.
++		 */
++		if (state.exit_rcu) {
++			instrumentation_begin();
++			/* Tell the tracer that IRET will enable interrupts */
++			trace_hardirqs_on_prepare();
++			lockdep_hardirqs_on_prepare(CALLER_ADDR0);
++			instrumentation_end();
++			rcu_irq_exit();
++			lockdep_hardirqs_on(CALLER_ADDR0);
++			return;
++		}
++
++		instrumentation_begin();
++		if (IS_ENABLED(CONFIG_PREEMPTION))
++			irqentry_exit_cond_resched();
++		/* Covers both tracing and lockdep */
++		trace_hardirqs_on();
++		instrumentation_end();
++	} else {
++		/*
++		 * IRQ flags state is correct already. Just tell RCU if it
++		 * was not watching on entry.
++		 */
++		if (state.exit_rcu)
++			rcu_irq_exit();
++	}
++}
