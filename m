@@ -1,132 +1,53 @@
-From: Steven Price <steven.price@arm.com>
-Subject: Re: [PATCH V5 1/4] mm/debug_vm_pgtable: Add tests validating arch
- helpers for core MM features
-Date: Thu, 16 Jul 2020 15:14:06 +0100
-Message-ID: <2ff756c5-28e2-b64a-3788-260ba30c6409@arm.com>
-References: <1594610587-4172-1-git-send-email-anshuman.khandual@arm.com>
- <1594610587-4172-2-git-send-email-anshuman.khandual@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1594610587-4172-2-git-send-email-anshuman.khandual@arm.com>
-Content-Language: en-GB
-Sender: linux-kernel-owner@vger.kernel.org
-To: Anshuman Khandual <anshuman.khandual@arm.com>, linux-mm@kvack.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, agordeev@linux.ibm.com, Will Deacon <will@kernel.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, christophe.leroy@csgroup.eu, Mike Rapoport <rppt@linux.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, linux-arm-kernel@lists.infradead.org, ziy@nvidia.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-snps-arc@lists.infradead.org, Vasily Gorbik <gor@linux.ibm.com>, cai@lca.pw, Paul Walmsley <paul.walmsley@sifive.com>, "Kirill A . Shutemov" <kirill@shutemov.name>
-List-Id: linux-arch.vger.kernel.org
+From: Alex Bee <knaerzche@gmail.com>
+Subject: [PATCH] linux: arm: vdso: nullpatch vdso_clock_gettime64 for non-virtual timers
+Date: Thu, 16 Jul 2020 17:07:23 +0200
+Message-ID: <20200716150723.9389-1-knaerzche@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53612 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728374AbgGPPHc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 11:07:32 -0400
+Received: from mail-wr1-x441.google.com (mail-wr1-x441.google.com [IPv6:2a00:1450:4864:20::441])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BA83EC061755
+        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 08:07:31 -0700 (PDT)
+Received: by mail-wr1-x441.google.com with SMTP id s10so7371527wrw.12
+        for <linux-arch@vger.kernel.org>; Thu, 16 Jul 2020 08:07:31 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
+Cc: Alex Bee <knaerzche@gmail.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@armlinux.org.uk>, Daniel Jordan <daniel.m.jordan@oracle.com>, Florian Fainelli <f.fainelli@gmail.com>, Vlastimil Babka <vbabka@suse.cz>, Vincenzo Frascino <vincenzo.frascino@arm.com>
 
-On 13/07/2020 04:23, Anshuman Khandual wrote:
-> This adds new tests validating arch page table helpers for these following
-> core memory features. These tests create and test specific mapping types at
-> various page table levels.
-> 
-> 1. SPECIAL mapping
-> 2. PROTNONE mapping
-> 3. DEVMAP mapping
-> 4. SOFTDIRTY mapping
-> 5. SWAP mapping
-> 6. MIGRATION mapping
-> 7. HUGETLB mapping
-> 8. THP mapping
-> 
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-> Cc: Christophe Leroy <christophe.leroy@c-s.fr>
-> Cc: Mike Rapoport <rppt@linux.ibm.com>
-> Cc: Vineet Gupta <vgupta@synopsys.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will@kernel.org>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Cc: Vasily Gorbik <gor@linux.ibm.com>
-> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Borislav Petkov <bp@alien8.de>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: Kirill A. Shutemov <kirill@shutemov.name>
-> Cc: Paul Walmsley <paul.walmsley@sifive.com>
-> Cc: Palmer Dabbelt <palmer@dabbelt.com>
-> Cc: linux-snps-arc@lists.infradead.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: linux-s390@vger.kernel.org
-> Cc: linux-riscv@lists.infradead.org
-> Cc: x86@kernel.org
-> Cc: linux-mm@kvack.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> Tested-by: Vineet Gupta <vgupta@synopsys.com>	#arc
-> Reviewed-by: Zi Yan <ziy@nvidia.com>
-> Suggested-by: Catalin Marinas <catalin.marinas@arm.com>
-> Signed-off-by: Anshuman Khandual <anshuman.khandual@arm.com>
-> ---
->   mm/debug_vm_pgtable.c | 302 +++++++++++++++++++++++++++++++++++++++++-
->   1 file changed, 301 insertions(+), 1 deletion(-)
-> 
-> diff --git a/mm/debug_vm_pgtable.c b/mm/debug_vm_pgtable.c
-> index 61ab16fb2e36..2fac47db3eb7 100644
-> --- a/mm/debug_vm_pgtable.c
-> +++ b/mm/debug_vm_pgtable.c
-[...]
-> +
-> +static void __init pte_swap_tests(unsigned long pfn, pgprot_t prot)
-> +{
-> +	swp_entry_t swp;
-> +	pte_t pte;
-> +
-> +	pte = pfn_pte(pfn, prot);
-> +	swp = __pte_to_swp_entry(pte);
+Along with commit commit 74d06efb9c2f ("ARM: 8932/1: Add clock_gettime64
+entry point") clock_gettime64 was added for ARM platform to solve the
+y2k38 problem on 32-bit platforms. glibc from version 2.31 onwards
+started using this vdso-call on ARM platforms.
+However it was (probably) forgotten to "nullpatch" this call, when no
+reliable timer source is available, for example when
+"arm,cpu-registers-not-fw-configured" is defined in devicetree for
+"arm,armv7-timer".
+This results in erratic time jumps whenever "gettimeofday" gets called,
+since the (non-working) vdso-call will be used instead of a syscall.
 
-Minor issue: this doesn't look necessarily valid - there's no reason a 
-normal PTE can be turned into a swp_entry. In practise this is likely to 
-work on all architectures because there's no reason not to use (at 
-least) all the PFN bits for the swap entry, but it doesn't exactly seem 
-correct.
+This patch adds clock_gettime64 to get nullpatched as well. It has been
+verified to work and solve this issue on Rockchip RK322x, RK3288 and
+RPi4 (32-bit kernel build) platforms.
 
-Can we start with a swp_entry_t (from __swp_entry()) and check the round 
-trip of that?
+Signed-off-by: Alex Bee <knaerzche@gmail.com>
+---
+ arch/arm/kernel/vdso.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-It would also seem sensible to have a check that 
-is_swap_pte(__swp_entry_to_pte(__swp_entry(x,y))) is true.
-
-> +	pte = __swp_entry_to_pte(swp);
-> +	WARN_ON(pfn != pte_pfn(pte));
-> +}
-> +
-> +#ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
-> +static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot)
-> +{
-> +	swp_entry_t swp;
-> +	pmd_t pmd;
-> +
-> +	pmd = pfn_pmd(pfn, prot);
-> +	swp = __pmd_to_swp_entry(pmd);
-> +	pmd = __swp_entry_to_pmd(swp);
-> +	WARN_ON(pfn != pmd_pfn(pmd));
-> +}
-> +#else  /* !CONFIG_ARCH_ENABLE_THP_MIGRATION */
-> +static void __init pmd_swap_tests(unsigned long pfn, pgprot_t prot) { }
-> +#endif /* CONFIG_ARCH_ENABLE_THP_MIGRATION */
-> +
-> +static void __init swap_migration_tests(void)
-> +{
-> +	struct page *page;
-> +	swp_entry_t swp;
-> +
-> +	if (!IS_ENABLED(CONFIG_MIGRATION))
-> +		return;
-> +	/*
-> +	 * swap_migration_tests() requires a dedicated page as it needs to
-> +	 * be locked before creating a migration entry from it. Locking the
-> +	 * page that actually maps kernel text ('start_kernel') can be real
-> +	 * problematic. Lets allocate a dedicated page explicitly for this
-
-NIT: s/Lets/Let's
-
-Otherwise looks good to me.
-
-Steve
+diff --git a/arch/arm/kernel/vdso.c b/arch/arm/kernel/vdso.c
+index 6bfdca4769a7..fddd08a6e063 100644
+--- a/arch/arm/kernel/vdso.c
++++ b/arch/arm/kernel/vdso.c
+@@ -184,6 +184,7 @@ static void __init patch_vdso(void *ehdr)
+ 	if (!cntvct_ok) {
+ 		vdso_nullpatch_one(&einfo, "__vdso_gettimeofday");
+ 		vdso_nullpatch_one(&einfo, "__vdso_clock_gettime");
++		vdso_nullpatch_one(&einfo, "__vdso_clock_gettime64");
+ 	}
+ }
+ 
+-- 
+2.17.1
