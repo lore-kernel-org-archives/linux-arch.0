@@ -1,84 +1,91 @@
-Return-Path: <SRS0=Bqph=A2=kvack.org=owner-linux-mm@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Subject: [PATCH v3 1/3] arm64: tlb: Detect the ARMv8.4 TLBI RANGE feature
-Date: Wed, 15 Jul 2020 15:19:43 +0800
-Message-ID: <20200715071945.897-2-yezhenyu2@huawei.com>
-In-Reply-To: <20200715071945.897-1-yezhenyu2@huawei.com>
-References: <20200715071945.897-1-yezhenyu2@huawei.com>
+Return-Path: <SRS0=9Vx7=A3=kvack.org=owner-linux-mm@kernel.org>
+Date: Thu, 16 Jul 2020 10:50:32 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
+ membarrier_mm_sync_core_before_usermode
+Message-ID: <20200716085032.GO10769@hirez.programming.kicks-ass.net>
+References: <1594868476.6k5kvx8684.astroid@bobo.none>
+ <EFAD6E2F-EC08-4EB3-9ECC-2A963C023FC5@amacapital.net>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <EFAD6E2F-EC08-4EB3-9ECC-2A963C023FC5@amacapital.net>
 Content-Transfer-Encoding: quoted-printable
 Sender: owner-linux-mm@kvack.org
-To: catalin.marinas@arm.com, will@kernel.org, suzuki.poulose@arm.com, maz@kernel.org, steven.price@arm.com, guohanjun@huawei.com, olof@lixom.net
-Cc: yezhenyu2@huawei.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com, prime.zeng@hisilicon.com, zhangshaokun@hisilicon.com, kuhn.chenqun@huawei.com
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@kernel.org>, x86 <x86@kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20200715071943.vsZsut8O6u5UIEbr2d7fu3RiZZLO-HdzA9mC-QdqkYg@z>
+Message-ID: <20200716085032.MitFC7ZViYEHXT7zFk-aCXfLDOkCae1WW8BiwtDjTMY@z>
 
-ARMv8.4-TLBI provides TLBI invalidation instruction that apply to a
-range of input addresses. This patch detect this feature.
+On Wed, Jul 15, 2020 at 10:18:20PM -0700, Andy Lutomirski wrote:
+> > On Jul 15, 2020, at 9:15 PM, Nicholas Piggin <npiggin@gmail.com> wrot=
+e:
 
-Signed-off-by: Zhenyu Ye <yezhenyu2@huawei.com>
-Link: https://lore.kernel.org/r/20200710094420.517-2-yezhenyu2@huawei.com
-[catalin.marinas@arm.com: some renaming for consistency]
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
----
- arch/arm64/include/asm/cpucaps.h |  3 ++-
- arch/arm64/include/asm/sysreg.h  |  3 +++
- arch/arm64/kernel/cpufeature.c   | 10 ++++++++++
- 3 files changed, 15 insertions(+), 1 deletion(-)
+> > CPU0                     CPU1
+> >                         1. user stuff
+> > a. membarrier()          2. enter kernel
+> > b. read rq->curr         3. rq->curr switched to kthread
+> > c. is kthread, skip IPI  4. switch_to kthread
+> > d. return to user        5. rq->curr switched to user thread
+> >                 6. switch_to user thread
+> >                 7. exit kernel
+> >                         8. more user stuff
 
-diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cp=
-ucaps.h
-index d44ba903d11d..07b643a70710 100644
---- a/arch/arm64/include/asm/cpucaps.h
-+++ b/arch/arm64/include/asm/cpucaps.h
-@@ -63,7 +63,8 @@
- #define ARM64_HAS_32BIT_EL1			53
- #define ARM64_BTI				54
- #define ARM64_HAS_ARMv8_4_TTL			55
-+#define ARM64_HAS_TLB_RANGE			56
-=20
--#define ARM64_NCAPS				56
-+#define ARM64_NCAPS				57
-=20
- #endif /* __ASM_CPUCAPS_H */
-diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sys=
-reg.h
-index 8c209aa17273..551f30ace4db 100644
---- a/arch/arm64/include/asm/sysreg.h
-+++ b/arch/arm64/include/asm/sysreg.h
-@@ -617,6 +617,9 @@
- #define ID_AA64ISAR0_SHA1_SHIFT		8
- #define ID_AA64ISAR0_AES_SHIFT		4
-=20
-+#define ID_AA64ISAR0_TLB_RANGE_NI	0x0
-+#define ID_AA64ISAR0_TLB_RANGE		0x2
-+
- /* id_aa64isar1 */
- #define ID_AA64ISAR1_I8MM_SHIFT		52
- #define ID_AA64ISAR1_DGH_SHIFT		48
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeatur=
-e.c
-index e877f56ff1ab..2f5adefef34d 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -1893,6 +1893,16 @@ static const struct arm64_cpu_capabilities arm64_f=
-eatures[] =3D {
- 		.min_field_value =3D 1,
- 		.matches =3D has_cpuid_feature,
- 	},
-+	{
-+		.desc =3D "TLB range maintenance instructions",
-+		.capability =3D ARM64_HAS_TLB_RANGE,
-+		.type =3D ARM64_CPUCAP_SYSTEM_FEATURE,
-+		.matches =3D has_cpuid_feature,
-+		.sys_reg =3D SYS_ID_AA64ISAR0_EL1,
-+		.field_pos =3D ID_AA64ISAR0_TLB_SHIFT,
-+		.sign =3D FTR_UNSIGNED,
-+		.min_field_value =3D ID_AA64ISAR0_TLB_RANGE,
-+	},
- #ifdef CONFIG_ARM64_HW_AFDBM
- 	{
- 		/*
---=20
-2.19.1
+> I find it hard to believe that this is x86 only. Why would thread
+> switch imply core sync on any architecture?  Is x86 unique in having a
+> stupid expensive core sync that is heavier than smp_mb()?
+
+smp_mb() is nowhere near the most expensive barrier we have in Linux,
+mb() might qualify, since that has some completion requirements since it
+needs to serialize against external actors.
+
+On x86_64 things are rather murky, we have:
+
+	LOCK prefix -- which implies smp_mb() before and after RmW
+	LFENCE -- which used to be rmb like, until Spectre, and now it
+		  is ISYNC like. Since ISYNC ensures an empty pipeline,
+		  it also implies all loads are retired (and therefore
+		  complete) it implies rmb.
+	MFENCE -- which is a memop completion barrier like, it makes
+		  sure all previously issued memops are complete.
+
+if you read that carefully, you'll note you'll have to use LFENCE +
+MFENCE to order against non-memops instructions.
+
+But none of them imply dumping the instruction decoder caches, that only
+happens on core serializing instructions like CR3 writes, IRET, CPUID
+and a few others, I think we recently got a SERIALIZE instruction to add
+to this list.
+
+
+On ARM64 there's something a whole different set of barriers, and again
+smp_mb() isn't nowhere near the top of the list. They have roughly 3
+classes:
+
+	ISB -- instruction sync barrier
+	DMB(x) -- memory ordering in domain x
+	DSB(x) -- memory completion in domain x
+
+And they have at least 3 domains (IIRC), system, outer, inner.
+
+The ARM64 __switch_to() includes a dsb(sy), just like PowerPC used to
+have a SYNC, but since PowerPC is rare for only having one rediculously
+heavy serializing instruction, we got to re-use the smp_mb() early in
+__schedule() instead, but ARM64 can't do that.
+
+
+So rather than say that x86 is special here, I'd say that PowerPC is
+special here.
+
+> But I=E2=80=99m wondering if all this deferred sync stuff is wrong. In =
+the
+> brave new world of io_uring and such, perhaps kernel access matter
+> too.  Heck, even:
+
+IIRC the membarrier SYNC_CORE use-case is about user-space
+self-modifying code.
+
+Userspace re-uses a text address and needs to SYNC_CORE before it can be
+sure the old text is forgotten. Nothing the kernel does matters there.
+
+I suppose the manpage could be more clear there.
