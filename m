@@ -1,93 +1,81 @@
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH] asm-generic/mmiowb: Allow mmiowb_set_pending() when preemptible()
-Date: Thu, 16 Jul 2020 12:00:01 -0700 (PDT)
-Message-ID: <mhng-6528b0ae-d92c-41b2-b0fd-3be58c80f280@palmerdabbelt-glaptop1>
-References: <20200716112816.7356-1-will@kernel.org>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v2 1/5] x86/smp: Add saturated +1/+2 1-byte cpu numbers
+Date: Thu, 16 Jul 2020 15:29:23 -0400
+Message-ID: <20200716192927.12944-2-longman@redhat.com>
+References: <20200716192927.12944-1-longman@redhat.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200716112816.7356-1-will@kernel.org>
+In-Reply-To: <20200716192927.12944-1-longman@redhat.com>
 Sender: linux-kernel-owner@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, kernel-team@android.com, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, will@kernel.org, Arnd Bergmann <arnd@arndb.de>, Paul Walmsley <paul.walmsley@sifive.com>, guoren@kernel.org, mpe@ellerman.id.au
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@alien8.de>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Davidlohr Bueso <dave@stgolabs.net>, Waiman Long <longman@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 16 Jul 2020 04:28:16 PDT (-0700), will@kernel.org wrote:
-> Although mmiowb() is concerned only with serialising MMIO writes occuring
-> in contexts where a spinlock is held, the call to mmiowb_set_pending()
-> from the MMIO write accessors can occur in preemptible contexts, such
-> as during driver probe() functions where ordering between CPUs is not
-> usually a concern, assuming that the task migration path provides the
-> necessary ordering guarantees.
->
-> Unfortunately, the default implementation of mmiowb_set_pending() is not
-> preempt-safe, as it makes use of a a per-cpu variable to track its
-> internal state. This has been reported to generate the following splat
-> on riscv:
->
->  | BUG: using smp_processor_id() in preemptible [00000000] code: swapper/0/1
->  | caller is regmap_mmio_write32le+0x1c/0x46
->  | CPU: 3 PID: 1 Comm: swapper/0 Not tainted 5.8.0-rc3-hfu+ #1
->  | Call Trace:
->  |  walk_stackframe+0x0/0x7a
->  |  dump_stack+0x6e/0x88
->  |  regmap_mmio_write32le+0x18/0x46
->  |  check_preemption_disabled+0xa4/0xaa
->  |  regmap_mmio_write32le+0x18/0x46
->  |  regmap_mmio_write+0x26/0x44
->  |  regmap_write+0x28/0x48
->  |  sifive_gpio_probe+0xc0/0x1da
->
-> Although it's possible to fix the driver in this case, other splats have
-> been seen from other drivers, including the infamous 8250 UART, and so
-> it's better to address this problem in the mmiowb core itself.
->
-> Fix mmiowb_set_pending() by using the raw_cpu_ptr() to get at the mmiowb
-> state and then only updating the 'mmiowb_pending' field if we are not
-> preemptible (i.e. we have a non-zero nesting count).
->
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Paul Walmsley <paul.walmsley@sifive.com>
-> Cc: Guo Ren <guoren@kernel.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Reported-by: Palmer Dabbelt <palmer@dabbelt.com>
-> Signed-off-by: Will Deacon <will@kernel.org>
-> ---
->
-> I can queue this in the arm64 tree as a fix, as I already have some other
-> fixes targetting -rc6.
->
->  include/asm-generic/mmiowb.h | 6 ++++--
->  1 file changed, 4 insertions(+), 2 deletions(-)
->
-> diff --git a/include/asm-generic/mmiowb.h b/include/asm-generic/mmiowb.h
-> index 9439ff037b2d..5698fca3bf56 100644
-> --- a/include/asm-generic/mmiowb.h
-> +++ b/include/asm-generic/mmiowb.h
-> @@ -27,7 +27,7 @@
->  #include <asm/smp.h>
->
->  DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
-> -#define __mmiowb_state()	this_cpu_ptr(&__mmiowb_state)
-> +#define __mmiowb_state()	raw_cpu_ptr(&__mmiowb_state)
->  #else
->  #define __mmiowb_state()	arch_mmiowb_state()
->  #endif	/* arch_mmiowb_state */
-> @@ -35,7 +35,9 @@ DECLARE_PER_CPU(struct mmiowb_state, __mmiowb_state);
->  static inline void mmiowb_set_pending(void)
->  {
->  	struct mmiowb_state *ms = __mmiowb_state();
-> -	ms->mmiowb_pending = ms->nesting_count;
-> +
-> +	if (likely(ms->nesting_count))
-> +		ms->mmiowb_pending = ms->nesting_count;
->  }
->
->  static inline void mmiowb_spin_lock(void)
+Both qspinlock and qrwlock use one whole byte to store the binary
+lock/unlock state. We can actually store more information in the
+lock byte like an encoded lock holder cpu number to aid debugging
+and crash dump analysis.
 
-Acked-by: Palmer Dabbelt <palmerdabbelt@google.com>
-Reviewed-by: Palmer Dabbelt <palmerdabbelt@google.com>
+To make that possible, a saturated +1 and +2 1-byte per-cpu cpu numbers
+are added. The qrwlock can use the +1 number for the lock holding writer
+and the qspinlock can use the +2 number for the lock holder.
 
-The arm64 tree works for me.
+The new per-cpu numbers are placed right after the commonly used
+cpu_number (smp_processor_id()) which has more 1700 references in the
+kernel. Therefore these new cpu numbers are very likely to be located
+in the same hot cacheline as cpu_number.  As these numbers are before
+the unsigned long this_cpu_off, no additional percpu space will be
+consumed in x86-64.
 
-Thanks!
+Signed-off-by: Waiman Long <longman@redhat.com>
+---
+ arch/x86/include/asm/spinlock.h |  5 +++++
+ arch/x86/kernel/setup_percpu.c  | 11 +++++++++++
+ 2 files changed, 16 insertions(+)
+
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index 5b6bc7016c22..319fa58caa9b 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -10,6 +10,11 @@
+ #include <asm/paravirt.h>
+ #include <asm/bitops.h>
+ 
++DECLARE_PER_CPU_READ_MOSTLY(u8, cpu_number_sadd1);
++DECLARE_PER_CPU_READ_MOSTLY(u8, cpu_number_sadd2);
++#define __cpu_number_sadd1	this_cpu_read(cpu_number_sadd1)
++#define __cpu_number_sadd2	this_cpu_read(cpu_number_sadd2)
++
+ /*
+  * Your basic SMP spinlocks, allowing only a single CPU anywhere
+  *
+diff --git a/arch/x86/kernel/setup_percpu.c b/arch/x86/kernel/setup_percpu.c
+index fd945ce78554..859c5b950d08 100644
+--- a/arch/x86/kernel/setup_percpu.c
++++ b/arch/x86/kernel/setup_percpu.c
+@@ -26,6 +26,14 @@
+ DEFINE_PER_CPU_READ_MOSTLY(int, cpu_number);
+ EXPORT_PER_CPU_SYMBOL(cpu_number);
+ 
++/*
++ * Saturated +1 and +2 1-byte cpu numbers
++ */
++DEFINE_PER_CPU_READ_MOSTLY(u8, cpu_number_sadd1); /* +1 saturated cpu# */
++DEFINE_PER_CPU_READ_MOSTLY(u8, cpu_number_sadd2); /* +2 saturated cpu# */
++EXPORT_PER_CPU_SYMBOL(cpu_number_sadd1);
++EXPORT_PER_CPU_SYMBOL(cpu_number_sadd2);
++
+ #ifdef CONFIG_X86_64
+ #define BOOT_PERCPU_OFFSET ((unsigned long)__per_cpu_load)
+ #else
+@@ -223,6 +231,9 @@ void __init setup_per_cpu_areas(void)
+ 		per_cpu_offset(cpu) = delta + pcpu_unit_offsets[cpu];
+ 		per_cpu(this_cpu_off, cpu) = per_cpu_offset(cpu);
+ 		per_cpu(cpu_number, cpu) = cpu;
++		per_cpu(cpu_number_sadd1, cpu) = (cpu + 1 < 0x100) ? cpu + 1 : 0xff;
++		per_cpu(cpu_number_sadd2, cpu) = (cpu + 2 < 0x100) ? cpu + 2 : 0xff;
++
+ 		setup_percpu_segment(cpu);
+ 		setup_stack_canary_segment(cpu);
+ 		/*
+-- 
+2.18.1
