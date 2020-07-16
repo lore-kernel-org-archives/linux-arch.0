@@ -1,63 +1,75 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59300 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1733285AbgGaMWM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 08:22:12 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 2/3] compat: add a compat_need_64bit_alignment_fixup() helper
-Date: Fri, 31 Jul 2020 14:22:01 +0200
-Message-ID: <20200731122202.213333-3-hch@lst.de>
-In-Reply-To: <20200731122202.213333-1-hch@lst.de>
-References: <20200731122202.213333-1-hch@lst.de>
+Return-Path: <SRS0=9Vx7=A3=kvack.org=owner-linux-mm@kernel.org>
+Date: Thu, 16 Jul 2020 13:00:38 +0200
+From: peterz@infradead.org
+Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
+ membarrier_mm_sync_core_before_usermode
+Message-ID: <20200716110038.GA119549@hirez.programming.kicks-ass.net>
+References: <1594868476.6k5kvx8684.astroid@bobo.none>
+ <EFAD6E2F-EC08-4EB3-9ECC-2A963C023FC5@amacapital.net>
+ <20200716085032.GO10769@hirez.programming.kicks-ass.net>
+ <1594892300.mxnq3b9a77.astroid@bobo.none>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <1594892300.mxnq3b9a77.astroid@bobo.none>
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, x86 <x86@kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, Jan Kara <jack@suse.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200731122201.wSIAW3YaKqXBavMcRklDWJFi_KFZ2PBMw8NcD3hGBOQ@z>
+Message-ID: <20200716110038.5uDwm_kN0kVMb_a6QdUO6ps0tkfMCqyIRvmoeNxpEPE@z>
 
-Add a helper to check if the calling syscall needs a fixup for
-non-natural 64-bit type alignment in the compat ABI.  This will only
-return true for i386 syscalls on x86_64.
+On Thu, Jul 16, 2020 at 08:03:36PM +1000, Nicholas Piggin wrote:
+> Excerpts from Peter Zijlstra's message of July 16, 2020 6:50 pm:
+> > On Wed, Jul 15, 2020 at 10:18:20PM -0700, Andy Lutomirski wrote:
+> >> > On Jul 15, 2020, at 9:15 PM, Nicholas Piggin <npiggin@gmail.com> w=
+rote:
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/x86/include/asm/compat.h | 1 +
- include/linux/compat.h        | 9 +++++++++
- 2 files changed, 10 insertions(+)
+> >> But I=E2=80=99m wondering if all this deferred sync stuff is wrong. =
+In the
+> >> brave new world of io_uring and such, perhaps kernel access matter
+> >> too.  Heck, even:
+> >=20
+> > IIRC the membarrier SYNC_CORE use-case is about user-space
+> > self-modifying code.
+> >=20
+> > Userspace re-uses a text address and needs to SYNC_CORE before it can=
+ be
+> > sure the old text is forgotten. Nothing the kernel does matters there=
+.
+> >=20
+> > I suppose the manpage could be more clear there.
+>=20
+> True, but memory ordering of kernel stores from kernel threads for
+> regular mem barrier is the concern here.
+>=20
+> Does io_uring update completion queue from kernel thread or interrupt,
+> for example? If it does, then membarrier will not order such stores
+> with user memory accesses.
 
-diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
-index bf547701f41f87..0e327a01f50fbb 100644
---- a/arch/x86/include/asm/compat.h
-+++ b/arch/x86/include/asm/compat.h
-@@ -209,6 +209,7 @@ static inline bool in_compat_syscall(void)
- 	return in_32bit_syscall();
- }
- #define in_compat_syscall in_compat_syscall	/* override the generic impl */
-+#define compat_need_64bit_alignment_fixup in_ia32_syscall
- #endif
- 
- struct compat_siginfo;
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index e90100c0de72e4..a195f90f156cf6 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -937,6 +937,15 @@ static inline bool in_compat_syscall(void) { return false; }
- 
- #endif /* CONFIG_COMPAT */
- 
-+/*
-+ * Some legacy ABIs like the i386 one use less than natural alignment for 64-bit
-+ * types, and will need special compat treatment for that.  Most architectures
-+ * don't need that special handling even for compat syscalls.
-+ */
-+#ifndef compat_need_64bit_alignment_fixup
-+#define compat_need_64bit_alignment_fixup()		false
-+#endif
-+
- /*
-  * A pointer passed in from user mode. This should not
-  * be used for syscall parameters, just declare them
--- 
-2.27.0
+So we're talking about regular membarrier() then? Not the SYNC_CORE
+variant per-se.
+
+Even there, I'll argue we don't care, but perhaps Mathieu has a
+different opinion. All we care about is that all other threads (or CPUs
+for GLOBAL) observe an smp_mb() before it returns.
+
+Any serialization against whatever those other threads/CPUs are running
+at the instant of the syscall is external to the syscall, we make no
+gauarantees about that. That is, we can fundamentally not say what
+another CPU is executing concurrently. Nor should we want to.
+
+So if you feel that your membarrier() ought to serialize against remote
+execution, you need to arrange a quiecent state on the remote side
+yourself.
+
+Now, normally membarrier() is used to implement userspace RCU like
+things, and there all that matters is that the remote CPUs observe the
+beginngin of the new grace-period, ie counter flip, and we observe their
+read-side critical sections, or smething like that, it's been a while
+since I looked at all that.
+
+It's always been the case that concurrent syscalls could change user
+memory, io_uring doesn't change that, it just makes it even less well
+defined when that would happen. If you want to serialize against that,
+you need to arrange that externally.
