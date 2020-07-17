@@ -1,235 +1,101 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51334 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729615AbgGULIk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2020 07:08:40 -0400
-Message-ID: <20200721110808.671110583@linutronix.de>
-Date: Tue, 21 Jul 2020 12:57:10 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V4 04/15] entry: Provide generic interrupt entry/exit code
-References: <20200721105706.030914876@linutronix.de>
+Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
+Message-ID: <20200717111349.650029395@infradead.org>
+Date: Fri, 17 Jul 2020 13:10:10 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v2 05/11] parisc/tlb: Fix __p*_free_tlb()
+References: <20200717111005.024867618@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
-Sender: linux-arch-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Gabriel Krisman Bertazi <krisman@collabora.com>
-Message-ID: <20200721105710.1Nctn3fzdDYw1vpS6DUTk9Z4s9EuBZRpbHu7j6zXseA@z>
+Message-ID: <20200717111010.ld9HCsBA5ln4gBHcYHyKNBcKOtGF5O0ePuwjU2pkacs@z>
 
-From: Thomas Gleixner <tglx@linutronix.de>
+Just like regular pages, page directories need to observe the
+following order:
 
-Like the syscall entry/exit code interrupt/exception entry after the real
-low level ASM bits should not be different accross architectures.
+ 1) unhook
+ 2) TLB invalidate
+ 3) free
 
-Provide a generic version based on the x86 code.
+to ensure it is safe against concurrent accesses.
 
-irqentry_enter() is called after the low level entry code and
-irqentry_exit() must be invoked right before returning to the low level
-code which just contains the actual return logic. The code before
-irqentry_enter() and irqentry_exit() must not be instrumented. Code after
-irqentry_enter() and before irqentry_exit() can be instrumented.
+Because PARISC has non-page-size PMDs, use a custom table freeer.
 
-irqentry_enter() invokes irqentry_enter_from_user_mode() if the
-interrupt/exception came from user mode. If if entered from kernel mode it
-handles the kernel mode variant of establishing state for lockdep, RCU and
-tracing depending on the kernel context it interrupted (idle, non-idle).
-
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- include/linux/entry-common.h |   62 ++++++++++++++++++++++
- kernel/entry/common.c        |  117 +++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 179 insertions(+)
+ arch/parisc/Kconfig               |    1 +
+ arch/parisc/include/asm/pgalloc.h |   23 ++++++++++++++++++++---
+ arch/parisc/include/asm/tlb.h     |    9 +++++----
+ 3 files changed, 26 insertions(+), 7 deletions(-)
 
---- a/include/linux/entry-common.h
-+++ b/include/linux/entry-common.h
-@@ -307,4 +307,66 @@ void irqentry_enter_from_user_mode(struc
-  */
- void irqentry_exit_to_user_mode(struct pt_regs *regs);
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -63,6 +63,7 @@ config PARISC
+ 	select HAVE_KPROBES_ON_FTRACE
+ 	select HAVE_DYNAMIC_FTRACE_WITH_REGS
+ 	select HAVE_COPY_THREAD_TLS
++	select MMU_GATHER_TABLE_FREE if PGTABLE_LEVELS >= 3
  
-+#ifndef irqentry_state
-+typedef struct irqentry_state {
-+	bool	exit_rcu;
-+} irqentry_state_t;
-+#endif
+ 	help
+ 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
+--- a/arch/parisc/include/asm/pgalloc.h
++++ b/arch/parisc/include/asm/pgalloc.h
+@@ -73,7 +73,7 @@ static inline pmd_t *pmd_alloc_one(struc
+ 	return pmd;
+ }
+ 
+-static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
++static inline bool __pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ {
+ 	if (pmd_flag(*pmd) & PxD_FLAG_ATTACHED) {
+ 		/*
+@@ -83,11 +83,28 @@ static inline void pmd_free(struct mm_st
+ 		 * done by generic mm code.
+ 		 */
+ 		mm_inc_nr_pmds(mm);
+-		return;
++		return false;
+ 	}
+-	free_pages((unsigned long)pmd, PMD_ORDER);
++	return true;
++}
 +
-+/**
-+ * irqentry_enter - Handle state tracking on ordinary interrupt entries
-+ * @regs:	Pointer to pt_regs of interrupted context
-+ *
-+ * Invokes:
-+ *  - lockdep irqflag state tracking as low level ASM entry disabled
-+ *    interrupts.
-+ *
-+ *  - Context tracking if the exception hit user mode.
-+ *
-+ *  - The hardirq tracer to keep the state consistent as low level ASM
-+ *    entry disabled interrupts.
-+ *
-+ * As a precondition, this requires that the entry came from user mode,
-+ * idle, or a kernel context in which RCU is watching.
-+ *
-+ * For kernel mode entries RCU handling is done conditional. If RCU is
-+ * watching then the only RCU requirement is to check whether the tick has
-+ * to be restarted. If RCU is not watching then rcu_irq_enter() has to be
-+ * invoked on entry and rcu_irq_exit() on exit.
-+ *
-+ * Avoiding the rcu_irq_enter/exit() calls is an optimization but also
-+ * solves the problem of kernel mode pagefaults which can schedule, which
-+ * is not possible after invoking rcu_irq_enter() without undoing it.
-+ *
-+ * For user mode entries irqentry_enter_from_user_mode() is invoked to
-+ * establish the proper context for NOHZ_FULL. Otherwise scheduling on exit
-+ * would not be possible.
-+ *
-+ * Returns: An opaque object that must be passed to idtentry_exit()
-+ */
-+irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs);
++static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
++{
++	if (__pmd_free(mm, pmd))
++		free_pages((unsigned long)pmd, PMD_ORDER);
+ }
+ 
++static inline void __tlb_remove_table(void *table)
++{
++	free_pages((unsigned long)table, PMD_ORDER);
++}
 +
-+/**
-+ * irqentry_exit_cond_resched - Conditionally reschedule on return from interrupt
-+ *
-+ * Conditional reschedule with additional sanity checks.
-+ */
-+void irqentry_exit_cond_resched(void);
-+
-+/**
-+ * irqentry_exit - Handle return from exception that used irqentry_enter()
-+ * @regs:	Pointer to pt_regs (exception entry regs)
-+ * @state:	Return value from matching call to irqentry_enter()
-+ *
-+ * Depending on the return target (kernel/user) this runs the necessary
-+ * preemption and work checks if possible and reguired and returns to
-+ * the caller with interrupts disabled and no further work pending.
-+ *
-+ * This is the last action before returning to the low level ASM code which
-+ * just needs to return to the appropriate context.
-+ *
-+ * Counterpart to irqentry_enter().
-+ */
-+void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state);
++#define __pmd_free_tlb(tlb, pmd, addr)		\
++do {						\
++	if (__pmd_free((tlb)->mm, (pmd)))	\
++		tlb_remove_table((tlb), (pmd));	\
++} while (0)
 +
  #endif
---- a/kernel/entry/common.c
-+++ b/kernel/entry/common.c
-@@ -255,3 +255,120 @@ noinstr void irqentry_exit_to_user_mode(
- 	instrumentation_end();
- 	exit_to_user_mode();
- }
-+
-+irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs)
-+{
-+	irqentry_state_t ret = {
-+		.exit_rcu = false,
-+	};
-+
-+	if (user_mode(regs)) {
-+		irqentry_enter_from_user_mode(regs);
-+		return ret;
-+	}
-+
-+	/*
-+	 * If this entry hit the idle task invoke rcu_irq_enter() whether
-+	 * RCU is watching or not.
-+	 *
-+	 * Interupts can nest when the first interrupt invokes softirq
-+	 * processing on return which enables interrupts.
-+	 *
-+	 * Scheduler ticks in the idle task can mark quiescent state and
-+	 * terminate a grace period, if and only if the timer interrupt is
-+	 * not nested into another interrupt.
-+	 *
-+	 * Checking for __rcu_is_watching() here would prevent the nesting
-+	 * interrupt to invoke rcu_irq_enter(). If that nested interrupt is
-+	 * the tick then rcu_flavor_sched_clock_irq() would wrongfully
-+	 * assume that it is the first interupt and eventually claim
-+	 * quiescient state and end grace periods prematurely.
-+	 *
-+	 * Unconditionally invoke rcu_irq_enter() so RCU state stays
-+	 * consistent.
-+	 *
-+	 * TINY_RCU does not support EQS, so let the compiler eliminate
-+	 * this part when enabled.
-+	 */
-+	if (!IS_ENABLED(CONFIG_TINY_RCU) && is_idle_task(current)) {
-+		/*
-+		 * If RCU is not watching then the same careful
-+		 * sequence vs. lockdep and tracing is required
-+		 * as in irq_enter_from_user_mode().
-+		 */
-+		lockdep_hardirqs_off(CALLER_ADDR0);
-+		rcu_irq_enter();
-+		instrumentation_begin();
-+		trace_hardirqs_off_finish();
-+		instrumentation_end();
-+
-+		ret.exit_rcu = true;
-+		return ret;
-+	}
-+
-+	/*
-+	 * If RCU is watching then RCU only wants to check whether it needs
-+	 * to restart the tick in NOHZ mode. rcu_irq_enter_check_tick()
-+	 * already contains a warning when RCU is not watching, so no point
-+	 * in having another one here.
-+	 */
-+	instrumentation_begin();
-+	rcu_irq_enter_check_tick();
-+	/* Use the combo lockdep/tracing function */
-+	trace_hardirqs_off();
-+	instrumentation_end();
-+
-+	return ret;
-+}
-+
-+void irqentry_exit_cond_resched(void)
-+{
-+	if (!preempt_count()) {
-+		/* Sanity check RCU and thread stack */
-+		rcu_irq_exit_check_preempt();
-+		if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
-+			WARN_ON_ONCE(!on_thread_stack());
-+		if (need_resched())
-+			preempt_schedule_irq();
-+	}
-+}
-+
-+void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state)
-+{
-+	lockdep_assert_irqs_disabled();
-+
-+	/* Check whether this returns to user mode */
-+	if (user_mode(regs)) {
-+		irqentry_exit_to_user_mode(regs);
-+	} else if (!regs_irqs_disabled(regs)) {
-+		/*
-+		 * If RCU was not watching on entry this needs to be done
-+		 * carefully and needs the same ordering of lockdep/tracing
-+		 * and RCU as the return to user mode path.
-+		 */
-+		if (state.exit_rcu) {
-+			instrumentation_begin();
-+			/* Tell the tracer that IRET will enable interrupts */
-+			trace_hardirqs_on_prepare();
-+			lockdep_hardirqs_on_prepare(CALLER_ADDR0);
-+			instrumentation_end();
-+			rcu_irq_exit();
-+			lockdep_hardirqs_on(CALLER_ADDR0);
-+			return;
-+		}
-+
-+		instrumentation_begin();
-+		if (IS_ENABLED(CONFIG_PREEMPTION))
-+			irqentry_exit_cond_resched();
-+		/* Covers both tracing and lockdep */
-+		trace_hardirqs_on();
-+		instrumentation_end();
-+	} else {
-+		/*
-+		 * IRQ flags state is correct already. Just tell RCU if it
-+		 * was not watching on entry.
-+		 */
-+		if (state.exit_rcu)
-+			rcu_irq_exit();
-+	}
-+}
+ 
+ static inline void
+--- a/arch/parisc/include/asm/tlb.h
++++ b/arch/parisc/include/asm/tlb.h
+@@ -4,9 +4,10 @@
+ 
+ #include <asm-generic/tlb.h>
+ 
+-#if CONFIG_PGTABLE_LEVELS == 3
+-#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
+-#endif
+-#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
++#define __pte_free_tlb(tlb,pte,addr)			\
++do {							\
++	pgtable_pte_page_dtor(pte);			\
++	tlb_remove_page((tlb), (pte));			\
++} while (0)
+ 
+ #endif
