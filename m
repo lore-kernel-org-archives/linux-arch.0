@@ -1,51 +1,55 @@
-Return-Path: <SRS0=7mXE=BA=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:59006 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1729107AbgGURZh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 21 Jul 2020 13:25:37 -0400
-Received: from mail-wr1-f43.google.com (mail-wr1-f43.google.com [209.85.221.43])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 1B01A22BEF
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 17:25:37 +0000 (UTC)
-Received: by mail-wr1-f43.google.com with SMTP id z2so22017089wrp.2
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jul 2020 10:25:37 -0700 (PDT)
+Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
+Message-ID: <20200717111349.942447764@infradead.org>
+Date: Fri, 17 Jul 2020 13:10:15 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v2 10/11] riscv/tlb: Fix __p*_free_tlb()
+References: <20200717111005.024867618@infradead.org>
 MIME-Version: 1.0
-References: <b754dad5-ee85-8a2f-f41a-8bdc56de42e8@kernel.dk>
- <8987E376-6B13-4798-BDBA-616A457447CF@amacapital.net> <20200721070709.GB11432@lst.de>
- <CALCETrXWZBXZuCeRYvYY8AWG51e_P3bOeNeqc8zXPLOTDTHY0g@mail.gmail.com> <20200721143412.GA8099@lst.de>
-In-Reply-To: <20200721143412.GA8099@lst.de>
-From: Andy Lutomirski <luto@kernel.org>
-Date: Tue, 21 Jul 2020 10:25:24 -0700
-Message-ID: <CALCETrWMQpKe7jqw2t39yn4HgGhGTSEFGK6MPR4wPs=tBBhjbg@mail.gmail.com>
-Subject: Re: io_uring vs in_compat_syscall()
-Content-Type: text/plain; charset="UTF-8"
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Andy Lutomirski <luto@kernel.org>, Jens Axboe <axboe@kernel.dk>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, io-uring@vger.kernel.org
-Message-ID: <20200721172524.FDAF2Wds9PkCA6xIKNmfUaomtrAqx8t_oFvVY9Y-xz0@z>
+Message-ID: <20200717111015.tGA7GK5P9cPzqywL1Wk565huSfCE9Xsw3zvzRCqr9qo@z>
 
-On Tue, Jul 21, 2020 at 7:34 AM Christoph Hellwig <hch@lst.de> wrote:
->
-> On Tue, Jul 21, 2020 at 07:31:02AM -0700, Andy Lutomirski wrote:
-> > > What do you mean with "properly wired up".  Do you really want to spread
-> > > ->compat_foo methods everywhere, including read and write?  I found
-> > > in_compat_syscall() a lot small and easier to maintain than all the
-> > > separate compat cruft.
-> >
-> > I was imagining using a flag.  Some of the net code uses
-> > MSG_CMSG_COMPAT for this purpose.
->
-> Killing that nightmarish monster is what actually got me into looking
-> io_uring and starting this thread.
+Just like regular pages, page directories need to observe the
+following order:
 
-I agree that MSG_CMSG_COMPAT is nasty, but I think the concept is
-sound -- rather than tracking whether we're compat by using a
-different function or a per-thread variable, actually explicitly
-tracking the mode seems sensible.
+ 1) unhook
+ 2) TLB invalidate
+ 3) free
 
-If we're going to play in_compat_syscall() games, let's please make
-io_uring_enter() return -EINVAL if in_compat_syscall() != ctx->compat.
+to ensure it is safe against concurrent accesses.
 
---Andy
+Since RISC-V has page based PMDs, no software walkers and IPI based
+TLB invalidation, it can use the simple tlb_remove_page() based
+freeer.
+
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ arch/riscv/include/asm/pgalloc.h |   11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
+
+--- a/arch/riscv/include/asm/pgalloc.h
++++ b/arch/riscv/include/asm/pgalloc.h
+@@ -73,14 +73,15 @@ static inline void pmd_free(struct mm_st
+ 	free_page((unsigned long)pmd);
+ }
+ 
+-#define __pmd_free_tlb(tlb, pmd, addr)  pmd_free((tlb)->mm, pmd)
++#define __pmd_free_tlb(tlb, pmd, addr)	\
++	tlb_remove_table((tlb), virt_to_page(pmd))
+ 
+ #endif /* __PAGETABLE_PMD_FOLDED */
+ 
+-#define __pte_free_tlb(tlb, pte, buf)   \
+-do {                                    \
+-	pgtable_pte_page_dtor(pte);     \
+-	tlb_remove_page((tlb), pte);    \
++#define __pte_free_tlb(tlb, pte, buf)	\
++do {					\
++	pgtable_pte_page_dtor(pte);	\
++	tlb_remove_table((tlb), (pte));	\
+ } while (0)
+ #endif /* CONFIG_MMU */
+ 
