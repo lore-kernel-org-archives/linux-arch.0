@@ -1,44 +1,159 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mx0b-0016f401.pphosted.com ([67.231.156.173]:13780 "EHLO
-        mx0b-0016f401.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1730465AbgGVPAZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jul 2020 11:00:25 -0400
-From: Alex Belits <abelits@marvell.com>
-Subject: [PATCH 13/13] task_isolation: kick_all_cpus_sync: don't kick isolated
- cpus
-Date: Wed, 22 Jul 2020 14:59:55 +0000
-Message-ID: <5d0088ffd762b266124dfa5da9bcef0d9ddbae96.camel@marvell.com>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
-In-Reply-To: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <7BED713CFA78E1408C46F0C24DF285EE@namprd18.prod.outlook.com>
-Content-Transfer-Encoding: base64
+Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
+Date: Fri, 17 Jul 2020 10:00:23 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
+ membarrier_mm_sync_core_before_usermode
+References: <20200710015646.2020871-1-npiggin@gmail.com>
+	<1594613902.1wzayj0p15.astroid@bobo.none>
+	<1594647408.wmrazhwjzb.astroid@bobo.none>
+	<284592761.9860.1594649601492.JavaMail.zimbra@efficios.com>
+	<1594868476.6k5kvx8684.astroid@bobo.none>
+	<1594873644.viept6os6j.astroid@bobo.none>
+	<1494299304.15894.1594914382695.JavaMail.zimbra@efficios.com>
+	<1370747990.15974.1594915396143.JavaMail.zimbra@efficios.com>
+	<595582123.17106.1594925921537.JavaMail.zimbra@efficios.com>
+In-Reply-To: <595582123.17106.1594925921537.JavaMail.zimbra@efficios.com>
 MIME-Version: 1.0
-Sender: linux-arch-owner@vger.kernel.org
+Message-ID: <1594942495.8qcz211iwc.astroid@bobo.none>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-linux-mm@kvack.org
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, paulmck <paulmck@kernel.org>, Alan Stern <stern@rowland.harvard.edu>
+Cc: Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, x86 <x86@kernel.org>
 List-ID: <linux-arch.vger.kernel.org>
-To: "frederic@kernel.org" <frederic@kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>
-Cc: Prasun Kapoor <pkapoor@marvell.com>, "mingo@kernel.org" <mingo@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "will@kernel.org" <will@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Message-ID: <20200722145955.cDaUaqJeVSLpnAR3CbQOpyJ9x1bDO1k3qSvKReBCCLg@z>
+Message-ID: <20200717000023.A3RKg7WTKxeNlaqDs_R13cOkyLpIb0I7mU43xVAuvrs@z>
 
-RnJvbTogWXVyaSBOb3JvdiA8eW5vcm92QG1hcnZlbGwuY29tPg0KDQpNYWtlIHN1cmUgdGhhdCBr
-aWNrX2FsbF9jcHVzX3N5bmMoKSBkb2VzIG5vdCBjYWxsIENQVXMgdGhhdCBhcmUgcnVubmluZw0K
-aXNvbGF0ZWQgdGFza3MuDQoNClNpZ25lZC1vZmYtYnk6IFl1cmkgTm9yb3YgPHlub3JvdkBtYXJ2
-ZWxsLmNvbT4NClthYmVsaXRzQG1hcnZlbGwuY29tOiB1c2Ugc2FmZSB0YXNrX2lzb2xhdGlvbl9j
-cHVtYXNrKCkgaW1wbGVtZW50YXRpb25dDQpTaWduZWQtb2ZmLWJ5OiBBbGV4IEJlbGl0cyA8YWJl
-bGl0c0BtYXJ2ZWxsLmNvbT4NCi0tLQ0KIGtlcm5lbC9zbXAuYyB8IDE0ICsrKysrKysrKysrKyst
-DQogMSBmaWxlIGNoYW5nZWQsIDEzIGluc2VydGlvbnMoKyksIDEgZGVsZXRpb24oLSkNCg0KZGlm
-ZiAtLWdpdCBhL2tlcm5lbC9zbXAuYyBiL2tlcm5lbC9zbXAuYw0KaW5kZXggNmE2ODQ5NzgzOTQ4
-Li5mZjBkOTVkYjMzYjMgMTAwNjQ0DQotLS0gYS9rZXJuZWwvc21wLmMNCisrKyBiL2tlcm5lbC9z
-bXAuYw0KQEAgLTgwMyw5ICs4MDMsMjEgQEAgc3RhdGljIHZvaWQgZG9fbm90aGluZyh2b2lkICp1
-bnVzZWQpDQogICovDQogdm9pZCBraWNrX2FsbF9jcHVzX3N5bmModm9pZCkNCiB7DQorCXN0cnVj
-dCBjcHVtYXNrIG1hc2s7DQorDQogCS8qIE1ha2Ugc3VyZSB0aGUgY2hhbmdlIGlzIHZpc2libGUg
-YmVmb3JlIHdlIGtpY2sgdGhlIGNwdXMgKi8NCiAJc21wX21iKCk7DQotCXNtcF9jYWxsX2Z1bmN0
-aW9uKGRvX25vdGhpbmcsIE5VTEwsIDEpOw0KKw0KKwlwcmVlbXB0X2Rpc2FibGUoKTsNCisjaWZk
-ZWYgQ09ORklHX1RBU0tfSVNPTEFUSU9ODQorCWNwdW1hc2tfY2xlYXIoJm1hc2spOw0KKwl0YXNr
-X2lzb2xhdGlvbl9jcHVtYXNrKCZtYXNrKTsNCisJY3B1bWFza19jb21wbGVtZW50KCZtYXNrLCAm
-bWFzayk7DQorI2Vsc2UNCisJY3B1bWFza19zZXRhbGwoJm1hc2spOw0KKyNlbmRpZg0KKwlzbXBf
-Y2FsbF9mdW5jdGlvbl9tYW55KCZtYXNrLCBkb19ub3RoaW5nLCBOVUxMLCAxKTsNCisJcHJlZW1w
-dF9lbmFibGUoKTsNCiB9DQogRVhQT1JUX1NZTUJPTF9HUEwoa2lja19hbGxfY3B1c19zeW5jKTsN
-CiANCi0tIA0KMi4yNi4yDQoNCg==
+Excerpts from Mathieu Desnoyers's message of July 17, 2020 4:58 am:
+> ----- On Jul 16, 2020, at 12:03 PM, Mathieu Desnoyers mathieu.desnoyers@e=
+fficios.com wrote:
+>=20
+>> ----- On Jul 16, 2020, at 11:46 AM, Mathieu Desnoyers
+>> mathieu.desnoyers@efficios.com wrote:
+>>=20
+>>> ----- On Jul 16, 2020, at 12:42 AM, Nicholas Piggin npiggin@gmail.com w=
+rote:
+>>>> I should be more complete here, especially since I was complaining
+>>>> about unclear barrier comment :)
+>>>>=20
+>>>>=20
+>>>> CPU0                     CPU1
+>>>> a. user stuff            1. user stuff
+>>>> b. membarrier()          2. enter kernel
+>>>> c. smp_mb()              3. smp_mb__after_spinlock(); // in __schedule
+>>>> d. read rq->curr         4. rq->curr switched to kthread
+>>>> e. is kthread, skip IPI  5. switch_to kthread
+>>>> f. return to user        6. rq->curr switched to user thread
+>>>> g. user stuff            7. switch_to user thread
+>>>>                         8. exit kernel
+>>>>                         9. more user stuff
+>>>>=20
+>>>> What you're really ordering is a, g vs 1, 9 right?
+>>>>=20
+>>>> In other words, 9 must see a if it sees g, g must see 1 if it saw 9,
+>>>> etc.
+>>>>=20
+>>>> Userspace does not care where the barriers are exactly or what kernel
+>>>> memory accesses might be being ordered by them, so long as there is a
+>>>> mb somewhere between a and g, and 1 and 9. Right?
+>>>=20
+>>> This is correct.
+>>=20
+>> Actually, sorry, the above is not quite right. It's been a while
+>> since I looked into the details of membarrier.
+>>=20
+>> The smp_mb() at the beginning of membarrier() needs to be paired with a
+>> smp_mb() _after_ rq->curr is switched back to the user thread, so the
+>> memory barrier is between store to rq->curr and following user-space
+>> accesses.
+>>=20
+>> The smp_mb() at the end of membarrier() needs to be paired with the
+>> smp_mb__after_spinlock() at the beginning of schedule, which is
+>> between accesses to userspace memory and switching rq->curr to kthread.
+>>=20
+>> As to *why* this ordering is needed, I'd have to dig through additional
+>> scenarios from https://lwn.net/Articles/573436/. Or maybe Paul remembers=
+ ?
+>=20
+> Thinking further about this, I'm beginning to consider that maybe we have=
+ been
+> overly cautious by requiring memory barriers before and after store to rq=
+->curr.
+>=20
+> If CPU0 observes a CPU1's rq->curr->mm which differs from its own process=
+ (current)
+> while running the membarrier system call, it necessarily means that CPU1 =
+had
+> to issue smp_mb__after_spinlock when entering the scheduler, between any =
+user-space
+> loads/stores and update of rq->curr.
+>=20
+> Requiring a memory barrier between update of rq->curr (back to current pr=
+ocess's
+> thread) and following user-space memory accesses does not seem to guarant=
+ee
+> anything more than what the initial barrier at the beginning of __schedul=
+e already
+> provides, because the guarantees are only about accesses to user-space me=
+mory.
+>=20
+> Therefore, with the memory barrier at the beginning of __schedule, just o=
+bserving that
+> CPU1's rq->curr differs from current should guarantee that a memory barri=
+er was issued
+> between any sequentially consistent instructions belonging to the current=
+ process on
+> CPU1.
+>=20
+> Or am I missing/misremembering an important point here ?
+
+I might have mislead you.
+
+ CPU0            CPU1
+ r1=3Dy            x=3D1
+ membarrier()    y=3D1
+ r2=3Dx
+
+membarrier provides if r1=3D=3D1 then r2=3D=3D1 (right?)
+
+ CPU0
+ r1=3Dy
+ membarrier()
+   smp_mb();
+   t =3D cpu_rq(1)->curr;
+   if (t->mm =3D=3D mm)
+     IPI(CPU1);
+   smp_mb()
+ r2=3Dx
+
+ vs
+
+ CPU1
+   ...
+   __schedule()
+     smp_mb__after_spinlock()
+     rq->curr =3D kthread
+   ...
+   __schedule()
+     smp_mb__after_spinlock()
+     rq->curr =3D user thread
+ exit kernel
+ x=3D1
+ y=3D1
+
+Now these last 3 stores are not ordered, so CPU0 might see y=3D=3D1 but
+rq->curr =3D=3D kthread, right? Then it will skip the IPI and stores to x=20
+and y will not be ordered.
+
+So we do need a mb after rq->curr store when mm is switching.
+
+I believe for the global membarrier PF_KTHREAD optimisation, we also=20
+need a barrier when switching from a kernel thread to user, for the
+same reason.
+
+So I think I was wrong to say the barrier is not necessary.
+
+I haven't quite worked out why two mb()s are required in membarrier(),
+but at least that's less of a performance concern.
+
+Thanks,
+Nick
