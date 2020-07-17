@@ -1,49 +1,126 @@
-Return-Path: <SRS0=g7wM=BF=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56642 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726998AbgGZQEH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2020 12:04:07 -0400
-From: Christoph Hellwig <hch@lst.de>
-Subject: improve compat handling for the i386 u64 alignment quirk
-Date: Sun, 26 Jul 2020 18:03:57 +0200
-Message-ID: <20200726160401.311569-1-hch@lst.de>
+Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
+Message-ID: <20200717111350.001250805@infradead.org>
+Date: Fri, 17 Jul 2020 13:10:16 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v2 11/11] m68k/tlb: Fix __p*_free_tlb()
+References: <20200717111005.024867618@infradead.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, Jan Kara <jack@suse.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20200726160357.CqKn8q4S7hDGssiKRRlmM84M0UBG1-MO4T-gRruLtWc@z>
+Message-ID: <20200717111016.6WtpxVTwi-VqyTs0nqUpvmOKYOdgvq72QP79Bv5aDz0@z>
 
-Hi all,
+Just like regular pages, page directories need to observe the
+following order:
 
-the i386 ABI is a little special in that it uses less than natural
-alignment for 64-bit integer types (u64 and s64), and a significant
-amount of our compat handlers deals with just that.  Unfortunately
-there is no good way to check for this specific quirk at runtime,
-similar how in_compat_syscall() checks for a compat syscall.  This
-series adds such a check, and then uses the quota code as an example
-of how this improves the compat handling.  I have a few other places
-in mind where this will also be useful going forward.
+ 1) unhook
+ 2) TLB invalidate
+ 3) free
 
-Diffstat:
- b/arch/arm64/include/asm/compat.h        |    2 
- b/arch/arm64/include/asm/stat.h          |    2 
- b/arch/arm64/kernel/process.c            |    1 
- b/arch/arm64/kernel/ptrace.c             |    1 
- b/arch/mips/include/asm/compat.h         |    2 
- b/arch/parisc/include/asm/compat.h       |    2 
- b/arch/powerpc/include/asm/compat.h      |    2 
- b/arch/s390/include/asm/compat.h         |    2 
- b/arch/sparc/include/asm/compat.h        |    3 
- b/arch/x86/entry/syscalls/syscall_32.tbl |    2 
- b/arch/x86/include/asm/compat.h          |    3 
- b/fs/quota/Kconfig                       |    5 -
- b/fs/quota/Makefile                      |    1 
- b/fs/quota/compat.h                      |   34 ++++++++
- b/fs/quota/quota.c                       |   73 +++++++++++++++---
- b/include/linux/compat.h                 |   17 ++++
- b/include/linux/quotaops.h               |    3 
- b/kernel/sys_ni.c                        |    1 
- fs/quota/compat.c                        |  120 -------------------------------
- 19 files changed, 114 insertions(+), 162 deletions(-)
+to ensure it is safe against concurrent accesses.
+
+The Motorola MMU has funny PMD stuff, so use a custom table freeer.
+
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ arch/m68k/Kconfig                        |    1 +
+ arch/m68k/include/asm/mcf_pgalloc.h      |   14 ++++++--------
+ arch/m68k/include/asm/motorola_pgalloc.h |   10 ++++++----
+ arch/m68k/mm/motorola.c                  |   17 +++++++++++++++++
+ 4 files changed, 30 insertions(+), 12 deletions(-)
+
+--- a/arch/m68k/Kconfig
++++ b/arch/m68k/Kconfig
+@@ -32,6 +32,7 @@ config M68K
+ 	select OLD_SIGSUSPEND3
+ 	select OLD_SIGACTION
+ 	select MMU_GATHER_NO_RANGE if MMU
++	select MMU_GATHER_TABLE_FREE if MMU_MOTOROLA
+ 
+ config CPU_BIG_ENDIAN
+ 	def_bool y
+--- a/arch/m68k/include/asm/mcf_pgalloc.h
++++ b/arch/m68k/include/asm/mcf_pgalloc.h
+@@ -34,14 +34,12 @@ extern inline pmd_t *pmd_alloc_kernel(pg
+ 
+ #define pmd_pgtable(pmd) pfn_to_virt(pmd_val(pmd) >> PAGE_SHIFT)
+ 
+-static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pgtable,
+-				  unsigned long address)
+-{
+-	struct page *page = virt_to_page(pgtable);
+-
+-	pgtable_pte_page_dtor(page);
+-	__free_page(page);
+-}
++#define __pte_free_tlb(tlb, pgtable, addr)		\
++do {							\
++	struct page *page = virt_to_page(pgtable);	\
++	pgtable_pte_page_dtor(page);			\
++	tlb_remove_page((tlb), page);			\
++} while (0)
+ 
+ static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
+ {
+--- a/arch/m68k/include/asm/motorola_pgalloc.h
++++ b/arch/m68k/include/asm/motorola_pgalloc.h
+@@ -14,6 +14,8 @@ enum m68k_table_types {
+ 	TABLE_PTE = 1,
+ };
+ 
++extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int type);
++extern void __tlb_remove_table(void *table);
+ extern void init_pointer_table(void *table, int type);
+ extern void *get_pointer_table(int type);
+ extern int free_pointer_table(void *table, int type);
+@@ -47,7 +49,7 @@ static inline void pte_free(struct mm_st
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pgtable,
+ 				  unsigned long address)
+ {
+-	free_pointer_table(pgtable, TABLE_PTE);
++	pgtable_free_tlb(tlb, pgtable, TABLE_PTE);
+ }
+ 
+ 
+@@ -61,10 +63,10 @@ static inline int pmd_free(struct mm_str
+ 	return free_pointer_table(pmd, TABLE_PMD);
+ }
+ 
+-static inline int __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
+-				 unsigned long address)
++static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
++				  unsigned long address)
+ {
+-	return free_pointer_table(pmd, TABLE_PMD);
++	pgtable_free_tlb(tlb, pmd, TABLE_PMD);
+ }
+ 
+ 
+--- a/arch/m68k/mm/motorola.c
++++ b/arch/m68k/mm/motorola.c
+@@ -215,6 +215,23 @@ int free_pointer_table(void *table, int
+ 	return 0;
+ }
+ 
++void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int type)
++{
++	unsigned long ptr = (unsigned long)table;
++	BUG_ON(type > 1);
++	BUG_ON(ptr  & 1);
++	ptr |= type;
++	tlb_remove_table(tlb, (void *)ptr);
++}
++
++void __tlb_remove_table(void *table)
++{
++	int type = (unsigned long)table & 1;
++	table = (void *)((unsigned long)table & ~1);
++
++	free_pointer_table(table, type);
++}
++
+ /* size of memory already mapped in head.S */
+ extern __initdata unsigned long m68k_init_mapped_size;
+ 
