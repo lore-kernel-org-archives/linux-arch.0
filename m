@@ -1,233 +1,281 @@
-Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from Galois.linutronix.de ([193.142.43.55]:35274 "EHLO
-        galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729614AbgGPTut (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:50:49 -0400
-Message-ID: <20200716185424.225286036@linutronix.de>
-Date: Thu, 16 Jul 2020 20:22:11 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 03/13] entry: Provide generic interrupt entry/exit code
-References: <20200716182208.180916541@linutronix.de>
+Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53900 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726166AbgGQGYK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:10 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 04/22] net: simplify cBPF setsockopt compat handling
+Date: Fri, 17 Jul 2020 08:23:13 +0200
+Message-ID: <20200717062331.691152-5-hch@lst.de>
+In-Reply-To: <20200717062331.691152-1-hch@lst.de>
+References: <20200717062331.691152-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
-Message-ID: <20200716182211.1qs-qWopyxqbjD1D9bPn0IFx8vAtoL7HCzP8IfD73Ds@z>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
+Message-ID: <20200717062313.SdnyV-v2EUQ9zEN1xU6LLaUg_nd4CvXwmNyh8jI46ic@z>
 
-Like the syscall entry/exit code interrupt/exception entry after the real
-low level ASM bits should not be different accross architectures.
+Add a helper that copies either a native or compat bpf_fprog from
+userspace after verifying the length, and remove the compat setsockopt
+handlers that now aren't required.
 
-Provide a generic version based on the x86 code.
-
-irqentry_enter() is called after the low level entry code and
-irqentry_exit() must be invoked right before returning to the low level
-code which just contains the actual return logic. The code before
-irqentry_enter() and irqentry_exit() must not be instrumented. Code after
-irqentry_enter() and before irqentry_exit() can be instrumented.
-
-irqentry_enter() invokes irqentry_enter_from_user_mode() if the
-interrupt/exception came from user mode. If if entered from kernel mode it
-handles the kernel mode variant of establishing state for lockdep, RCU and
-tracing depending on the kernel context it interrupted (idle, non-idle).
-
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- include/linux/entry-common.h |   62 ++++++++++++++++++++++
- kernel/entry/common.c        |  117 +++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 179 insertions(+)
+ include/linux/filter.h |  4 ++--
+ include/net/compat.h   |  1 -
+ net/compat.c           | 45 +-----------------------------------------
+ net/core/filter.c      | 23 +++++++++++++++++++++
+ net/core/sock.c        | 30 ++++++++++------------------
+ net/packet/af_packet.c | 33 ++++---------------------------
+ 6 files changed, 40 insertions(+), 96 deletions(-)
 
---- a/include/linux/entry-common.h
-+++ b/include/linux/entry-common.h
-@@ -346,4 +346,66 @@ void irqentry_enter_from_user_mode(struc
-  */
- void irqentry_exit_to_user_mode(struct pt_regs *regs);
+diff --git a/include/linux/filter.h b/include/linux/filter.h
+index 0b0144752d780a..4d049c8e1fbeaa 100644
+--- a/include/linux/filter.h
++++ b/include/linux/filter.h
+@@ -502,13 +502,11 @@ static inline bool insn_is_zext(const struct bpf_insn *insn)
+ 		offsetof(TYPE, MEMBER);						\
+ 	})
  
-+#ifndef irqentry_state
-+typedef struct irqentry_state {
-+	bool	exit_rcu;
-+} irqentry_state_t;
-+#endif
+-#ifdef CONFIG_COMPAT
+ /* A struct sock_filter is architecture independent. */
+ struct compat_sock_fprog {
+ 	u16		len;
+ 	compat_uptr_t	filter;	/* struct sock_filter * */
+ };
+-#endif
+ 
+ struct sock_fprog_kern {
+ 	u16			len;
+@@ -1278,4 +1276,6 @@ struct bpf_sockopt_kern {
+ 	s32		retval;
+ };
+ 
++int copy_bpf_fprog_from_user(struct sock_fprog *dst, void __user *src, int len);
 +
-+/**
-+ * irqentry_enter - Handle state tracking on ordinary interrupt entries
-+ * @regs:	Pointer to pt_regs of interrupted context
-+ *
-+ * Invokes:
-+ *  - lockdep irqflag state tracking as low level ASM entry disabled
-+ *    interrupts.
-+ *
-+ *  - Context tracking if the exception hit user mode.
-+ *
-+ *  - The hardirq tracer to keep the state consistent as low level ASM
-+ *    entry disabled interrupts.
-+ *
-+ * As a precondition, this requires that the entry came from user mode,
-+ * idle, or a kernel context in which RCU is watching.
-+ *
-+ * For kernel mode entries RCU handling is done conditional. If RCU is
-+ * watching then the only RCU requirement is to check whether the tick has
-+ * to be restarted. If RCU is not watching then rcu_irq_enter() has to be
-+ * invoked on entry and rcu_irq_exit() on exit.
-+ *
-+ * Avoiding the rcu_irq_enter/exit() calls is an optimization but also
-+ * solves the problem of kernel mode pagefaults which can schedule, which
-+ * is not possible after invoking rcu_irq_enter() without undoing it.
-+ *
-+ * For user mode entries irqentry_enter_from_user_mode() is invoked to
-+ * establish the proper context for NOHZ_FULL. Otherwise scheduling on exit
-+ * would not be possible.
-+ *
-+ * Returns: An opaque object that must be passed to idtentry_exit()
-+ */
-+irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs);
-+
-+/**
-+ * irqentry_exit_cond_resched - Conditionally reschedule on return from interrupt
-+ *
-+ * Conditional reschedule with additional sanity checks.
-+ */
-+void irqentry_exit_cond_resched(void);
-+
-+/**
-+ * irqentry_exit - Handle return from exception that used irqentry_enter()
-+ * @regs:	Pointer to pt_regs (exception entry regs)
-+ * @state:	Return value from matching call to irqentry_enter()
-+ *
-+ * Depending on the return target (kernel/user) this runs the necessary
-+ * preemption and work checks if possible and reguired and returns to
-+ * the caller with interrupts disabled and no further work pending.
-+ *
-+ * This is the last action before returning to the low level ASM code which
-+ * just needs to return to the appropriate context.
-+ *
-+ * Counterpart to irqentry_enter().
-+ */
-+void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state);
-+
- #endif
---- a/kernel/entry/common.c
-+++ b/kernel/entry/common.c
-@@ -245,3 +245,120 @@ noinstr void irqentry_exit_to_user_mode(
- 	instrumentation_end();
- 	exit_to_user_mode();
+ #endif /* __LINUX_FILTER_H__ */
+diff --git a/include/net/compat.h b/include/net/compat.h
+index f241666117d88c..745db0d605b62b 100644
+--- a/include/net/compat.h
++++ b/include/net/compat.h
+@@ -61,7 +61,6 @@ int __get_compat_msghdr(struct msghdr *kmsg, struct compat_msghdr __user *umsg,
+ 			compat_size_t *len);
+ int get_compat_msghdr(struct msghdr *, struct compat_msghdr __user *,
+ 		      struct sockaddr __user **, struct iovec **);
+-struct sock_fprog __user *get_compat_bpf_fprog(char __user *optval);
+ int put_cmsg_compat(struct msghdr*, int, int, int, void *);
+ 
+ int cmsghdr_from_user_compat_to_kern(struct msghdr *, struct sock *,
+diff --git a/net/compat.c b/net/compat.c
+index 5e3041a2c37d4d..3e6c2c5ff2609c 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -335,49 +335,6 @@ void scm_detach_fds_compat(struct msghdr *kmsg, struct scm_cookie *scm)
+ 	__scm_destroy(scm);
  }
-+
-+irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs)
+ 
+-/* allocate a 64-bit sock_fprog on the user stack for duration of syscall. */
+-struct sock_fprog __user *get_compat_bpf_fprog(char __user *optval)
+-{
+-	struct compat_sock_fprog __user *fprog32 = (struct compat_sock_fprog __user *)optval;
+-	struct sock_fprog __user *kfprog = compat_alloc_user_space(sizeof(struct sock_fprog));
+-	struct compat_sock_fprog f32;
+-	struct sock_fprog f;
+-
+-	if (copy_from_user(&f32, fprog32, sizeof(*fprog32)))
+-		return NULL;
+-	memset(&f, 0, sizeof(f));
+-	f.len = f32.len;
+-	f.filter = compat_ptr(f32.filter);
+-	if (copy_to_user(kfprog, &f, sizeof(struct sock_fprog)))
+-		return NULL;
+-
+-	return kfprog;
+-}
+-EXPORT_SYMBOL_GPL(get_compat_bpf_fprog);
+-
+-static int do_set_attach_filter(struct socket *sock, int level, int optname,
+-				char __user *optval, unsigned int optlen)
+-{
+-	struct sock_fprog __user *kfprog;
+-
+-	kfprog = get_compat_bpf_fprog(optval);
+-	if (!kfprog)
+-		return -EFAULT;
+-
+-	return sock_setsockopt(sock, level, optname, (char __user *)kfprog,
+-			      sizeof(struct sock_fprog));
+-}
+-
+-static int compat_sock_setsockopt(struct socket *sock, int level, int optname,
+-				char __user *optval, unsigned int optlen)
+-{
+-	if (optname == SO_ATTACH_FILTER ||
+-	    optname == SO_ATTACH_REUSEPORT_CBPF)
+-		return do_set_attach_filter(sock, level, optname,
+-					    optval, optlen);
+-	return sock_setsockopt(sock, level, optname, optval, optlen);
+-}
+-
+ static int __compat_sys_setsockopt(int fd, int level, int optname,
+ 				   char __user *optval, unsigned int optlen)
+ {
+@@ -396,7 +353,7 @@ static int __compat_sys_setsockopt(int fd, int level, int optname,
+ 		}
+ 
+ 		if (level == SOL_SOCKET)
+-			err = compat_sock_setsockopt(sock, level,
++			err = sock_setsockopt(sock, level,
+ 					optname, optval, optlen);
+ 		else if (sock->ops->compat_setsockopt)
+ 			err = sock->ops->compat_setsockopt(sock, level,
+diff --git a/net/core/filter.c b/net/core/filter.c
+index bdd2382e655d85..2bf6624796d86f 100644
+--- a/net/core/filter.c
++++ b/net/core/filter.c
+@@ -77,6 +77,29 @@
+ #include <net/transp_v6.h>
+ #include <linux/btf_ids.h>
+ 
++int copy_bpf_fprog_from_user(struct sock_fprog *dst, void __user *src, int len)
 +{
-+	irqentry_state_t ret = {
-+		.exit_rcu = false,
-+	};
++	if (in_compat_syscall()) {
++		struct compat_sock_fprog f32;
 +
-+	if (user_mode(regs)) {
-+		irqentry_enter_from_user_mode(regs);
-+		return ret;
-+	}
-+
-+	/*
-+	 * If this entry hit the idle task invoke rcu_irq_enter() whether
-+	 * RCU is watching or not.
-+	 *
-+	 * Interupts can nest when the first interrupt invokes softirq
-+	 * processing on return which enables interrupts.
-+	 *
-+	 * Scheduler ticks in the idle task can mark quiescent state and
-+	 * terminate a grace period, if and only if the timer interrupt is
-+	 * not nested into another interrupt.
-+	 *
-+	 * Checking for __rcu_is_watching() here would prevent the nesting
-+	 * interrupt to invoke rcu_irq_enter(). If that nested interrupt is
-+	 * the tick then rcu_flavor_sched_clock_irq() would wrongfully
-+	 * assume that it is the first interupt and eventually claim
-+	 * quiescient state and end grace periods prematurely.
-+	 *
-+	 * Unconditionally invoke rcu_irq_enter() so RCU state stays
-+	 * consistent.
-+	 *
-+	 * TINY_RCU does not support EQS, so let the compiler eliminate
-+	 * this part when enabled.
-+	 */
-+	if (!IS_ENABLED(CONFIG_TINY_RCU) && is_idle_task(current)) {
-+		/*
-+		 * If RCU is not watching then the same careful
-+		 * sequence vs. lockdep and tracing is required
-+		 * as in irq_enter_from_user_mode().
-+		 */
-+		lockdep_hardirqs_off(CALLER_ADDR0);
-+		rcu_irq_enter();
-+		instrumentation_begin();
-+		trace_hardirqs_off_finish();
-+		instrumentation_end();
-+
-+		ret.exit_rcu = true;
-+		return ret;
-+	}
-+
-+	/*
-+	 * If RCU is watching then RCU only wants to check whether it needs
-+	 * to restart the tick in NOHZ mode. rcu_irq_enter_check_tick()
-+	 * already contains a warning when RCU is not watching, so no point
-+	 * in having another one here.
-+	 */
-+	instrumentation_begin();
-+	rcu_irq_enter_check_tick();
-+	/* Use the combo lockdep/tracing function */
-+	trace_hardirqs_off();
-+	instrumentation_end();
-+
-+	return ret;
-+}
-+
-+void irqentry_exit_cond_resched(void)
-+{
-+	if (!preempt_count()) {
-+		/* Sanity check RCU and thread stack */
-+		rcu_irq_exit_check_preempt();
-+		if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
-+			WARN_ON_ONCE(!on_thread_stack());
-+		if (need_resched())
-+			preempt_schedule_irq();
-+	}
-+}
-+
-+void noinstr irqentry_exit(struct pt_regs *regs, irqentry_state_t state)
-+{
-+	lockdep_assert_irqs_disabled();
-+
-+	/* Check whether this returns to user mode */
-+	if (user_mode(regs)) {
-+		irqentry_exit_to_user_mode(regs);
-+	} else if (!regs_irqs_disabled(regs)) {
-+		/*
-+		 * If RCU was not watching on entry this needs to be done
-+		 * carefully and needs the same ordering of lockdep/tracing
-+		 * and RCU as the return to user mode path.
-+		 */
-+		if (state.exit_rcu) {
-+			instrumentation_begin();
-+			/* Tell the tracer that IRET will enable interrupts */
-+			trace_hardirqs_on_prepare();
-+			lockdep_hardirqs_on_prepare(CALLER_ADDR0);
-+			instrumentation_end();
-+			rcu_irq_exit();
-+			lockdep_hardirqs_on(CALLER_ADDR0);
-+			return;
-+		}
-+
-+		instrumentation_begin();
-+		if (IS_ENABLED(CONFIG_PREEMPTION))
-+			irqentry_exit_cond_resched();
-+		/* Covers both tracing and lockdep */
-+		trace_hardirqs_on();
-+		instrumentation_end();
++		if (len != sizeof(f32))
++			return -EINVAL;
++		if (copy_from_user(&f32, src, sizeof(f32)))
++			return -EFAULT;
++		memset(dst, 0, sizeof(*dst));
++		dst->len = f32.len;
++		dst->filter = compat_ptr(f32.filter);
 +	} else {
-+		/*
-+		 * IRQ flags state is correct already. Just tell RCU if it
-+		 * was not watching on entry.
-+		 */
-+		if (state.exit_rcu)
-+			rcu_irq_exit();
++		if (len != sizeof(*dst))
++			return -EINVAL;
++		if (copy_from_user(dst, src, sizeof(*dst)))
++			return -EFAULT;
 +	}
++
++	return 0;
 +}
++EXPORT_SYMBOL_GPL(copy_bpf_fprog_from_user);
++
+ /**
+  *	sk_filter_trim_cap - run a packet through a socket filter
+  *	@sk: sock associated with &sk_buff
+diff --git a/net/core/sock.c b/net/core/sock.c
+index 11d6f77dd56207..e085df79482520 100644
+--- a/net/core/sock.c
++++ b/net/core/sock.c
+@@ -1059,19 +1059,14 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
+ 		ret = sock_set_timeout(&sk->sk_sndtimeo, optval, optlen, optname == SO_SNDTIMEO_OLD);
+ 		break;
+ 
+-	case SO_ATTACH_FILTER:
+-		ret = -EINVAL;
+-		if (optlen == sizeof(struct sock_fprog)) {
+-			struct sock_fprog fprog;
+-
+-			ret = -EFAULT;
+-			if (copy_from_user(&fprog, optval, sizeof(fprog)))
+-				break;
++	case SO_ATTACH_FILTER: {
++		struct sock_fprog fprog;
+ 
++		ret = copy_bpf_fprog_from_user(&fprog, optval, optlen);
++		if (!ret)
+ 			ret = sk_attach_filter(&fprog, sk);
+-		}
+ 		break;
+-
++	}
+ 	case SO_ATTACH_BPF:
+ 		ret = -EINVAL;
+ 		if (optlen == sizeof(u32)) {
+@@ -1085,19 +1080,14 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
+ 		}
+ 		break;
+ 
+-	case SO_ATTACH_REUSEPORT_CBPF:
+-		ret = -EINVAL;
+-		if (optlen == sizeof(struct sock_fprog)) {
+-			struct sock_fprog fprog;
+-
+-			ret = -EFAULT;
+-			if (copy_from_user(&fprog, optval, sizeof(fprog)))
+-				break;
++	case SO_ATTACH_REUSEPORT_CBPF: {
++		struct sock_fprog fprog;
+ 
++		ret = copy_bpf_fprog_from_user(&fprog, optval, optlen);
++		if (!ret)
+ 			ret = sk_reuseport_attach_filter(&fprog, sk);
+-		}
+ 		break;
+-
++	}
+ 	case SO_ATTACH_REUSEPORT_EBPF:
+ 		ret = -EINVAL;
+ 		if (optlen == sizeof(u32)) {
+diff --git a/net/packet/af_packet.c b/net/packet/af_packet.c
+index 781fee93b7d5e3..35aee9e980536d 100644
+--- a/net/packet/af_packet.c
++++ b/net/packet/af_packet.c
+@@ -1545,10 +1545,10 @@ static int fanout_set_data_cbpf(struct packet_sock *po, char __user *data,
+ 
+ 	if (sock_flag(&po->sk, SOCK_FILTER_LOCKED))
+ 		return -EPERM;
+-	if (len != sizeof(fprog))
+-		return -EINVAL;
+-	if (copy_from_user(&fprog, data, len))
+-		return -EFAULT;
++
++	ret = copy_bpf_fprog_from_user(&fprog, data, len);
++	if (ret)
++		return ret;
+ 
+ 	ret = bpf_prog_create_from_user(&new, &fprog, NULL, false);
+ 	if (ret)
+@@ -4040,28 +4040,6 @@ static int packet_getsockopt(struct socket *sock, int level, int optname,
+ 	return 0;
+ }
+ 
+-
+-#ifdef CONFIG_COMPAT
+-static int compat_packet_setsockopt(struct socket *sock, int level, int optname,
+-				    char __user *optval, unsigned int optlen)
+-{
+-	struct packet_sock *po = pkt_sk(sock->sk);
+-
+-	if (level != SOL_PACKET)
+-		return -ENOPROTOOPT;
+-
+-	if (optname == PACKET_FANOUT_DATA &&
+-	    po->fanout && po->fanout->type == PACKET_FANOUT_CBPF) {
+-		optval = (char __user *)get_compat_bpf_fprog(optval);
+-		if (!optval)
+-			return -EFAULT;
+-		optlen = sizeof(struct sock_fprog);
+-	}
+-
+-	return packet_setsockopt(sock, level, optname, optval, optlen);
+-}
+-#endif
+-
+ static int packet_notifier(struct notifier_block *this,
+ 			   unsigned long msg, void *ptr)
+ {
+@@ -4549,9 +4527,6 @@ static const struct proto_ops packet_ops = {
+ 	.shutdown =	sock_no_shutdown,
+ 	.setsockopt =	packet_setsockopt,
+ 	.getsockopt =	packet_getsockopt,
+-#ifdef CONFIG_COMPAT
+-	.compat_setsockopt = compat_packet_setsockopt,
+-#endif
+ 	.sendmsg =	packet_sendmsg,
+ 	.recvmsg =	packet_recvmsg,
+ 	.mmap =		packet_mmap,
+-- 
+2.27.0
