@@ -1,106 +1,164 @@
-Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.efficios.com ([167.114.26.124]:37668 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1728374AbgGPPex (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 11:34:53 -0400
-Date: Thu, 16 Jul 2020 11:34:52 -0400 (EDT)
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Message-ID: <47821133.15875.1594913692220.JavaMail.zimbra@efficios.com>
-In-Reply-To: <20200716110038.GA119549@hirez.programming.kicks-ass.net>
-References: <1594868476.6k5kvx8684.astroid@bobo.none> <EFAD6E2F-EC08-4EB3-9ECC-2A963C023FC5@amacapital.net> <20200716085032.GO10769@hirez.programming.kicks-ass.net> <1594892300.mxnq3b9a77.astroid@bobo.none> <20200716110038.GA119549@hirez.programming.kicks-ass.net>
-Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
- membarrier_mm_sync_core_before_usermode
+Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53976 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727814AbgGQGYb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:31 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 16/22] net/ipv4: factor out mcast join/leave setsockopt helpers
+Date: Fri, 17 Jul 2020 08:23:25 +0200
+Message-ID: <20200717062331.691152-17-hch@lst.de>
+In-Reply-To: <20200717062331.691152-1-hch@lst.de>
+References: <20200717062331.691152-1-hch@lst.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@kernel.org>, x86 <x86@kernel.org>
-Message-ID: <20200716153452.oSsZgbSjF6rgZwY1JSq5Mtc_pLTZWswmcHM4HKfBpP4@z>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
+Message-ID: <20200717062325.s41RJTgk9YLRbsi6u9Pu6KiBOrqMRZWysMKTneHBNfE@z>
 
------ On Jul 16, 2020, at 7:00 AM, Peter Zijlstra peterz@infradead.org wrot=
-e:
+Factor out one helper each for setting the native and compat
+version of the MCAST_MSFILTER option.
 
-> On Thu, Jul 16, 2020 at 08:03:36PM +1000, Nicholas Piggin wrote:
->> Excerpts from Peter Zijlstra's message of July 16, 2020 6:50 pm:
->> > On Wed, Jul 15, 2020 at 10:18:20PM -0700, Andy Lutomirski wrote:
->> >> > On Jul 15, 2020, at 9:15 PM, Nicholas Piggin <npiggin@gmail.com> wr=
-ote:
->=20
->> >> But I=E2=80=99m wondering if all this deferred sync stuff is wrong. I=
-n the
->> >> brave new world of io_uring and such, perhaps kernel access matter
->> >> too.  Heck, even:
->> >=20
->> > IIRC the membarrier SYNC_CORE use-case is about user-space
->> > self-modifying code.
->> >=20
->> > Userspace re-uses a text address and needs to SYNC_CORE before it can =
-be
->> > sure the old text is forgotten. Nothing the kernel does matters there.
->> >=20
->> > I suppose the manpage could be more clear there.
->>=20
->> True, but memory ordering of kernel stores from kernel threads for
->> regular mem barrier is the concern here.
->>=20
->> Does io_uring update completion queue from kernel thread or interrupt,
->> for example? If it does, then membarrier will not order such stores
->> with user memory accesses.
->=20
-> So we're talking about regular membarrier() then? Not the SYNC_CORE
-> variant per-se.
->=20
-> Even there, I'll argue we don't care, but perhaps Mathieu has a
-> different opinion.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ net/ipv4/ip_sockglue.c | 109 +++++++++++++++++++++--------------------
+ 1 file changed, 56 insertions(+), 53 deletions(-)
 
-I agree with Peter that we don't care about accesses to user-space
-memory performed concurrently with membarrier.
-
-What we'd care about in terms of accesses to user-space memory from the
-kernel is something that would be clearly ordered as happening before
-or after the membarrier call, for instance a read(2) followed by
-membarrier(2) after the read returns, or a read(2) issued after return
-from membarrier(2). The other scenario we'd care about is with the compiler
-barrier paired with membarrier: e.g. read(2) returns, compiler barrier,
-followed by a store. Or load, compiler barrier, followed by write(2).
-
-All those scenarios imply before/after ordering wrt either membarrier or
-the compiler barrier. I notice that io_uring has a "completion" queue.
-Let's try to come up with realistic usage scenarios.
-
-So the dependency chain would be provided by e.g.:
-
-* Infrequent read / Frequent write, communicating read completion through v=
-ariable X
-
-wait for io_uring read request completion -> membarrier -> store X=3D1
-
-with matching
-
-load from X (waiting for X=3D=3D1) -> asm volatile (::: "memory") -> submit=
- io_uring write request
-
-or this other scenario:
-
-* Frequent read / Infrequent write, communicating read completion through v=
-ariable X
-
-load from X (waiting for X=3D=3D1) -> membarrier -> submit io_uring write r=
-equest
-
-with matching
-
-wait for io_uring read request completion -> asm volatile (::: "memory") ->=
- store X=3D1
-
-Thanks,
-
-Mathieu
-
-
---=20
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+diff --git a/net/ipv4/ip_sockglue.c b/net/ipv4/ip_sockglue.c
+index b587dee006f882..73bb88fbe54661 100644
+--- a/net/ipv4/ip_sockglue.c
++++ b/net/ipv4/ip_sockglue.c
+@@ -806,6 +806,60 @@ static int compat_ip_set_mcast_msfilter(struct sock *sk, void __user *optval,
+ }
+ #endif
+ 
++static int ip_mcast_join_leave(struct sock *sk, int optname,
++		void __user *optval, int optlen)
++{
++	struct ip_mreqn mreq = { };
++	struct sockaddr_in *psin;
++	struct group_req greq;
++
++	if (optlen < sizeof(struct group_req))
++		return -EINVAL;
++	if (copy_from_user(&greq, optval, sizeof(greq)))
++		return -EFAULT;
++
++	psin = (struct sockaddr_in *)&greq.gr_group;
++	if (psin->sin_family != AF_INET)
++		return -EINVAL;
++	mreq.imr_multiaddr = psin->sin_addr;
++	mreq.imr_ifindex = greq.gr_interface;
++	if (optname == MCAST_JOIN_GROUP)
++		return ip_mc_join_group(sk, &mreq);
++	return ip_mc_leave_group(sk, &mreq);
++}
++
++#ifdef CONFIG_COMPAT
++static int compat_ip_mcast_join_leave(struct sock *sk, int optname,
++		void __user *optval, int optlen)
++{
++	struct compat_group_req greq;
++	struct ip_mreqn mreq = { };
++	struct sockaddr_in *psin;
++	int err;
++
++	if (optlen < sizeof(struct compat_group_req))
++		return -EINVAL;
++	if (copy_from_user(&greq, optval, sizeof(greq)))
++		return -EFAULT;
++
++	psin = (struct sockaddr_in *)&greq.gr_group;
++	if (psin->sin_family != AF_INET)
++		return -EINVAL;
++	mreq.imr_multiaddr = psin->sin_addr;
++	mreq.imr_ifindex = greq.gr_interface;
++
++	rtnl_lock();
++	lock_sock(sk);
++	if (optname == MCAST_JOIN_GROUP)
++		err = ip_mc_join_group(sk, &mreq);
++	else
++		err = ip_mc_leave_group(sk, &mreq);
++	release_sock(sk);
++	rtnl_unlock();
++	return err;
++}
++#endif
++
+ static int do_ip_setsockopt(struct sock *sk, int level,
+ 			    int optname, char __user *optval, unsigned int optlen)
+ {
+@@ -1211,29 +1265,8 @@ static int do_ip_setsockopt(struct sock *sk, int level,
+ 	}
+ 	case MCAST_JOIN_GROUP:
+ 	case MCAST_LEAVE_GROUP:
+-	{
+-		struct group_req greq;
+-		struct sockaddr_in *psin;
+-		struct ip_mreqn mreq;
+-
+-		if (optlen < sizeof(struct group_req))
+-			goto e_inval;
+-		err = -EFAULT;
+-		if (copy_from_user(&greq, optval, sizeof(greq)))
+-			break;
+-		psin = (struct sockaddr_in *)&greq.gr_group;
+-		if (psin->sin_family != AF_INET)
+-			goto e_inval;
+-		memset(&mreq, 0, sizeof(mreq));
+-		mreq.imr_multiaddr = psin->sin_addr;
+-		mreq.imr_ifindex = greq.gr_interface;
+-
+-		if (optname == MCAST_JOIN_GROUP)
+-			err = ip_mc_join_group(sk, &mreq);
+-		else
+-			err = ip_mc_leave_group(sk, &mreq);
++		err = ip_mcast_join_leave(sk, optname, optval, optlen);
+ 		break;
+-	}
+ 	case MCAST_JOIN_SOURCE_GROUP:
+ 	case MCAST_LEAVE_SOURCE_GROUP:
+ 	case MCAST_BLOCK_SOURCE:
+@@ -1389,37 +1422,7 @@ int compat_ip_setsockopt(struct sock *sk, int level, int optname,
+ 	switch (optname) {
+ 	case MCAST_JOIN_GROUP:
+ 	case MCAST_LEAVE_GROUP:
+-	{
+-		struct compat_group_req __user *gr32 = (void __user *)optval;
+-		struct group_req greq;
+-		struct sockaddr_in *psin = (struct sockaddr_in *)&greq.gr_group;
+-		struct ip_mreqn mreq;
+-
+-		if (optlen < sizeof(struct compat_group_req))
+-			return -EINVAL;
+-
+-		if (get_user(greq.gr_interface, &gr32->gr_interface) ||
+-		    copy_from_user(&greq.gr_group, &gr32->gr_group,
+-				sizeof(greq.gr_group)))
+-			return -EFAULT;
+-
+-		if (psin->sin_family != AF_INET)
+-			return -EINVAL;
+-
+-		memset(&mreq, 0, sizeof(mreq));
+-		mreq.imr_multiaddr = psin->sin_addr;
+-		mreq.imr_ifindex = greq.gr_interface;
+-
+-		rtnl_lock();
+-		lock_sock(sk);
+-		if (optname == MCAST_JOIN_GROUP)
+-			err = ip_mc_join_group(sk, &mreq);
+-		else
+-			err = ip_mc_leave_group(sk, &mreq);
+-		release_sock(sk);
+-		rtnl_unlock();
+-		return err;
+-	}
++		return compat_ip_mcast_join_leave(sk, optname, optval, optlen);
+ 	case MCAST_JOIN_SOURCE_GROUP:
+ 	case MCAST_LEAVE_SOURCE_GROUP:
+ 	case MCAST_BLOCK_SOURCE:
+-- 
+2.27.0
