@@ -1,32 +1,42 @@
-From: Sedat Dilek <sedat.dilek@gmail.com>
-Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Date: Fri, 17 Jul 2020 07:49:02 +0200
-Message-ID: <CA+icZUVztkBRBhs_NQpTOg7rc34VkBQ1GCr5iXgw+P9XORwd9A@mail.gmail.com>
-References: <20200717044427.68747-1-ebiggers@kernel.org>
-Reply-To: sedat.dilek@gmail.com
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: clean up address limit helpers v2
+Date: Fri, 17 Jul 2020 08:06:18 +0200
+Message-ID: <20200717060618.GA9842@lst.de>
+References: <20200714105505.935079-1-hch@lst.de> <20200716164924.15e373f4dbb3071e9d4ee37c@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20200717044427.68747-1-ebiggers@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Eric Biggers <ebiggers@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from verein.lst.de ([213.95.11.211]:37283 "EHLO verein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1725904AbgGQGGW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Jul 2020 02:06:22 -0400
+Content-Disposition: inline
+In-Reply-To: <20200716164924.15e373f4dbb3071e9d4ee37c@linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Christoph Hellwig <hch@lst.de>, Nick Hu <nickhu@andestech.com>, Greentime Hu <green.hu@gmail.com>, Vincent Chen <deanbo422@gmail.com>, Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, Jul 17, 2020 at 6:48 AM Eric Biggers <ebiggers@kernel.org> wrote:
->
-> From: Eric Biggers <ebiggers@google.com>
-...
-> This is motivated by the discussion at
-> https://lkml.kernel.org/linux-fsdevel/20200713033330.205104-1-ebiggers@kernel.org/T/#u
-...
-> +In where cases where taking the mutex in the "already initialized" case
+On Thu, Jul 16, 2020 at 04:49:24PM -0700, Andrew Morton wrote:
+> On Tue, 14 Jul 2020 12:54:59 +0200 Christoph Hellwig <hch@lst.de> wrote:
+> 
+> > Hi all,
+> > 
+> > in preparation for eventually phasing out direct use of set_fs(), this
+> > series removes the segment_eq() arch helper that is only used to
+> > implement or duplicate the uaccess_kernel() API, and then adds
+> > descriptive helpers to force the kernel address limit.
+> > 
+> > 
+> > Changes since v1:
+> >  - drop to incorrect hunks
+> >  - fix a commit log typo
+> 
+> I think this *is* v1.  I can't find any differences in the patches and I
+> was unable to eyeball any changelog alterations?
 
-"In cases where..." (drop first "where")
+No, this actuall is v2.
 
-> +presents scalability concerns, the implementation can be optimized to
-> +check the 'inited' flag outside the mutex.  Unfortunately, this
-> +optimization is often implemented incorrectly by using a plain load.
-> +That violates the memory model and may result in unpredictable behavior.
-
-- Sedat -
+"[PATCH 5/6] uaccess: add force_uaccess_{begin,end} helpers" dropped
+two incorrect hunks in the m68k and sh arch code, and lost and "er"
+in the commit log.
