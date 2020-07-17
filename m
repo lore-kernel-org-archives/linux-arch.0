@@ -1,75 +1,76 @@
-Return-Path: <SRS0=5OOM=BG=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:8830 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1727032AbgG0Ovz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Jul 2020 10:51:55 -0400
-Subject: Re: [RESEND RFC PATCH v1] arm64: kvm: flush tlbs by range in
- unmap_stage2_range function
-References: <20200724134315.805-1-yezhenyu2@huawei.com>
- <5d54c860b3b4e7a98e4d53397e6424ae@kernel.org>
-From: Zhenyu Ye <yezhenyu2@huawei.com>
-Message-ID: <f74277fd-5af2-c46f-169f-c15a321165cd@huawei.com>
-Date: Mon, 27 Jul 2020 22:51:41 +0800
+Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53890 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726656AbgGQGYK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:10 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 03/22] net: streamline __sys_getsockopt
+Date: Fri, 17 Jul 2020 08:23:12 +0200
+Message-ID: <20200717062331.691152-4-hch@lst.de>
+In-Reply-To: <20200717062331.691152-1-hch@lst.de>
+References: <20200717062331.691152-1-hch@lst.de>
 MIME-Version: 1.0
-In-Reply-To: <5d54c860b3b4e7a98e4d53397e6424ae@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <maz@kernel.org>
-Cc: james.morse@arm.com, julien.thierry.kdev@gmail.com, suzuki.poulose@arm.com, catalin.marinas@arm.com, will@kernel.org, steven.price@arm.com, mark.rutland@arm.com, ascull@google.com, kvm@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, arm@kernel.org, xiexiangyou@huawei.com
-Message-ID: <20200727145141.uif4oX3fkb7QIIhcTz-_YZXlQFjAAwAI36lqCEf9oYo@z>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
+Message-ID: <20200717062312.0Gki7OTOosjRlDAU_M0C4ozRIxplk1ncVk1Hx6vQmUc@z>
 
-Hi Marc,
+Return early when sockfd_lookup_light fails to reduce a level of
+indentation for most of the function body.
 
-On 2020/7/26 1:40, Marc Zyngier wrote:
-> On 2020-07-24 14:43, Zhenyu Ye wrote:
->> Now in unmap_stage2_range(), we flush tlbs one by one just after the
->> corresponding pages cleared.  However, this may cause some performance
->> problems when the unmap range is very large (such as when the vm
->> migration rollback, this may cause vm downtime too loog).
-> 
-> You keep resending this patch, but you don't give any numbers
-> that would back your assertion.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ net/socket.c | 31 ++++++++++++++-----------------
+ 1 file changed, 14 insertions(+), 17 deletions(-)
 
-I have tested the downtime of vm migration rollback on arm64, and found
-the downtime could even take up to 7s.  Then I traced the cost of
-unmap_stage2_range() and found it could take a maximum of 1.2s.  The
-vm configuration is as follows (with high memory pressure, the dirty
-rate is about 500MB/s):
-
-  <memory unit='GiB'>192</memory>
-  <vcpu placement='static'>48</vcpu>
-  <memoryBacking>
-    <hugepages>
-      <page size='1' unit='GiB' nodeset='0'/>
-    </hugepages>
-  </memoryBacking>
-
-After this patch applied, the cost of unmap_stage2_range() can reduce to
-16ms, and VM downtime can be less than 1s.
-
-The following figure shows a clear comparison:
-
-	      |	vm downtime  |	cost of unmap_stage2_range()
---------------+--------------+----------------------------------
-before change |		7s   |		1200 ms
-after  change |		1s   |		  16 ms
---------------+--------------+----------------------------------
-
->> +
->> +    if ((end - start) >= 512 << (PAGE_SHIFT - 12)) {
->> +        __tlbi(vmalls12e1is);
-> 
-> And what is this magic value based on? You don't even mention in the
-> commit log that you are taking this shortcut.
-> 
-
-
-If the page num is bigger than 512, flush all tlbs of this vm to avoid
-soft lock-ups on large TLB flushing ranges.  Just like what the
-flush_tlb_range() does.
-
-
-Thanks,
-Zhenyu
+diff --git a/net/socket.c b/net/socket.c
+index 49a6daf0293b83..b79376b17b45b7 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -2163,28 +2163,25 @@ static int __sys_getsockopt(int fd, int level, int optname,
+ 	int max_optlen;
+ 
+ 	sock = sockfd_lookup_light(fd, &err, &fput_needed);
+-	if (sock != NULL) {
+-		err = security_socket_getsockopt(sock, level, optname);
+-		if (err)
+-			goto out_put;
++	if (!sock)
++		return err;
+ 
+-		max_optlen = BPF_CGROUP_GETSOCKOPT_MAX_OPTLEN(optlen);
++	err = security_socket_getsockopt(sock, level, optname);
++	if (err)
++		goto out_put;
+ 
+-		if (level == SOL_SOCKET)
+-			err =
+-			    sock_getsockopt(sock, level, optname, optval,
++	max_optlen = BPF_CGROUP_GETSOCKOPT_MAX_OPTLEN(optlen);
++
++	if (level == SOL_SOCKET)
++		err = sock_getsockopt(sock, level, optname, optval, optlen);
++	else
++		err = sock->ops->getsockopt(sock, level, optname, optval,
+ 					    optlen);
+-		else
+-			err =
+-			    sock->ops->getsockopt(sock, level, optname, optval,
+-						  optlen);
+ 
+-		err = BPF_CGROUP_RUN_PROG_GETSOCKOPT(sock->sk, level, optname,
+-						     optval, optlen,
+-						     max_optlen, err);
++	err = BPF_CGROUP_RUN_PROG_GETSOCKOPT(sock->sk, level, optname, optval,
++					     optlen, max_optlen, err);
+ out_put:
+-		fput_light(sock->file, fput_needed);
+-	}
++	fput_light(sock->file, fput_needed);
+ 	return err;
+ }
+ 
+-- 
+2.27.0
