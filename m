@@ -1,54 +1,84 @@
-Return-Path: <SRS0=VhQ8=BK=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45810 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727884AbgGaXIq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jul 2020 19:08:46 -0400
-Received: from mail-pj1-x1041.google.com (mail-pj1-x1041.google.com [IPv6:2607:f8b0:4864:20::1041])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E93D3C0617A1
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:45 -0700 (PDT)
-Received: by mail-pj1-x1041.google.com with SMTP id k1so8064030pjt.5
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jul 2020 16:08:45 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 21/36] arm64/build: Warn on orphan section placement
-Date: Fri, 31 Jul 2020 16:08:05 -0700
-Message-ID: <20200731230820.1742553-22-keescook@chromium.org>
-In-Reply-To: <20200731230820.1742553-1-keescook@chromium.org>
-References: <20200731230820.1742553-1-keescook@chromium.org>
+Return-Path: <SRS0=4F7u=A4=kvack.org=owner-linux-mm@kernel.org>
+Message-ID: <20200717111349.417688532@infradead.org>
+Date: Fri, 17 Jul 2020 13:10:06 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH v2 01/11] asm-generic/tlb: Fix MMU_GATHER_TABLE_FREE
+References: <20200717111005.024867618@infradead.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: linux-arch-owner@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ardb@kernel.org>, Peter Collingbourne <pcc@google.com>, James Morse <james.morse@arm.com>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@armlinux.org.uk>, Masahiro Yamada <masahiroy@kernel.org>, Arvind Sankar <nivedita@alum.mit.edu>, Nick Desaulniers <ndesaulniers@google.com>, Nathan Chancellor <natechancellor@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, clang-built-linux@googlegroups.com, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Message-ID: <20200731230805.PU1R-dOWPxBSQk27vHbIPhLOgmlVOzy7S6VhP_va7Lk@z>
+Message-ID: <20200717111006.nUvPrtmatkR7TxFznTwh6xFy4tCg1CXfe_1Kvur-ONo@z>
 
-We don't want to depend on the linker's orphan section placement
-heuristics as these can vary between linkers, and may change between
-versions. All sections need to be explicitly handled in the linker
-script.
+The first MMU_GATHER_TABLE_FREE user showed a logic error in the
+tlb_needs_table_invalidate() definition. Make sure any TABLE_FREE has
+it defined.
 
-With all sections now handled, enable orphan section warnings.
-
-Acked-by: Will Deacon <will@kernel.org>
-Signed-off-by: Kees Cook <keescook@chromium.org>
+Fixes: 0d6e24d430ef ("asm-generic/tlb: provide MMU_GATHER_TABLE_FREE")
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/arm64/Makefile | 4 ++++
- 1 file changed, 4 insertions(+)
+ include/asm-generic/tlb.h |   35 +++++++++++++++++++----------------
+ 1 file changed, 19 insertions(+), 16 deletions(-)
 
-diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
-index 35de43c29873..b8a3142db0dd 100644
---- a/arch/arm64/Makefile
-+++ b/arch/arm64/Makefile
-@@ -29,6 +29,10 @@ LDFLAGS_vmlinux	+= --fix-cortex-a53-843419
-   endif
- endif
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -172,6 +172,18 @@
+  *  various ptep_get_and_clear() functions.
+  */
  
-+# We never want expected sections to be placed heuristically by the
-+# linker. All sections should be explicitly named in the linker script.
-+LDFLAGS_vmlinux += --orphan-handling=warn
++#ifndef CONFIG_MMU_GATHER_RCU_TABLE_FREE
 +
- ifeq ($(CONFIG_ARM64_USE_LSE_ATOMICS), y)
-   ifneq ($(CONFIG_ARM64_LSE_ATOMICS), y)
- $(warning LSE atomics not supported by binutils)
--- 
-2.25.1
++/*
++ * Only RCU table free can override this; otherwise the TLBI is needed to
++ * provide existence guarantees for software walkers.
++ */
++#ifdef tlb_needs_table_invalidate
++#error tlb_needs_table_invalidate() requires MMU_GATHER_RCU_TABLE_FREE
++#endif
++
++#endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
++
+ #ifdef CONFIG_MMU_GATHER_TABLE_FREE
+ 
+ struct mmu_table_batch {
+@@ -187,17 +199,6 @@ struct mmu_table_batch {
+ 
+ extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
+ 
+-#else /* !CONFIG_MMU_GATHER_HAVE_TABLE_FREE */
+-
+-/*
+- * Without MMU_GATHER_TABLE_FREE the architecture is assumed to have page based
+- * page directories and we can use the normal page batching to free them.
+- */
+-#define tlb_remove_table(tlb, page) tlb_remove_page((tlb), (page))
+-
+-#endif /* CONFIG_MMU_GATHER_TABLE_FREE */
+-
+-#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
+ /*
+  * This allows an architecture that does not use the linux page-tables for
+  * hardware to skip the TLBI when freeing page tables.
+@@ -206,13 +207,15 @@ extern void tlb_remove_table(struct mmu_
+ #define tlb_needs_table_invalidate() (true)
+ #endif
+ 
+-#else
++#else /* !CONFIG_MMU_GATHER_HAVE_TABLE_FREE */
+ 
+-#ifdef tlb_needs_table_invalidate
+-#error tlb_needs_table_invalidate() requires MMU_GATHER_RCU_TABLE_FREE
+-#endif
++/*
++ * Without MMU_GATHER_TABLE_FREE the architecture is assumed to have page based
++ * page directories and we can use the normal page batching to free them.
++ */
++#define tlb_remove_table(tlb, page) tlb_remove_page((tlb), (page))
+ 
+-#endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
++#endif /* CONFIG_MMU_GATHER_TABLE_FREE */
+ 
+ 
+ #ifndef CONFIG_MMU_GATHER_NO_GATHER
