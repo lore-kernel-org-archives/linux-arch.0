@@ -1,47 +1,81 @@
-Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:65237 "EHLO mga05.intel.com"
+Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga18.intel.com ([134.134.136.126]:1883 "EHLO mga18.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726632AbgGWQZh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 23 Jul 2020 12:25:37 -0400
-Date: Thu, 23 Jul 2020 09:25:31 -0700
-From: Sean Christopherson <sean.j.christopherson@intel.com>
-Subject: Re: [PATCH v10 00/26] Control-flow Enforcement: Shadow Stack
-Message-ID: <20200723162531.GF21891@linux.intel.com>
-References: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+        id S1726938AbgGQRAx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Jul 2020 13:00:53 -0400
+From: Kristen Carlson Accardi <kristen@linux.intel.com>
+Subject: [PATCH v4 05/10] x86: Make sure _etext includes function sections
+Date: Fri, 17 Jul 2020 10:00:02 -0700
+Message-ID: <20200717170008.5949-6-kristen@linux.intel.com>
+In-Reply-To: <20200717170008.5949-1-kristen@linux.intel.com>
+References: <20200717170008.5949-1-kristen@linux.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20200429220732.31602-1-yu-cheng.yu@intel.com>
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yu-cheng Yu <yu-cheng.yu@intel.com>
-Cc: x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, Balbir Singh <bsingharora@gmail.com>, Borislav Petkov <bp@alien8.de>, Cyrill Gorcunov <gorcunov@gmail.com>, Dave Hansen <dave.hansen@linux.intel.com>, Eugene Syromiatnikov <esyr@redhat.com>, Florian Weimer <fweimer@redhat.com>, "H.J. Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, Kees Cook <keescook@chromium.org>, Mike Kravetz <mike.kravetz@oracle.com>, Nadav Amit <nadav.amit@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>, Peter Zijlstra <peterz@infradead.org>, Randy Dunlap <rdunlap@infradead.org>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Vedvyas Shanbhogue <vedvyas.shanbhogue@intel.com>, Dave Martin <Dave.Martin@arm.com>, Weijiang Yang <weijiang.yang@intel.com>
-Message-ID: <20200723162531.RedtLtM8Yzct9ahrbLY2us03bBoZPiIEsTFU8pXt5aQ@z>
+To: keescook@chromium.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: arjan@linux.intel.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, rick.p.edgecombe@intel.com, Kristen Carlson Accardi <kristen@linux.intel.com>, Tony Luck <tony.luck@intel.com>, linux-arch@vger.kernel.org
+Message-ID: <20200717170002.tHthxsoRbFL5BLuWpQV7tWg8gkkdmNGuNWwo_032cMo@z>
 
-On Wed, Apr 29, 2020 at 03:07:06PM -0700, Yu-cheng Yu wrote:
-> Control-flow Enforcement (CET) is a new Intel processor feature that blocks
-> return/jump-oriented programming attacks.  Details can be found in "Intel
-> 64 and IA-32 Architectures Software Developer's Manual" [1].
-> 
-> This series depends on the XSAVES supervisor state series that was split
-> out and submitted earlier [2].
+When using -ffunction-sections to place each function in
+it's own text section so it can be randomized at load time, the
+linker considers these .text.* sections "orphaned sections", and
+will place them after the first similar section (.text). In order
+to accurately represent the end of the text section and the
+orphaned sections, _etext must be moved so that it is after both
+.text and .text.* The text size must also be calculated to
+include .text AND .text.*
 
-...
+Signed-off-by: Kristen Carlson Accardi <kristen@linux.intel.com>
+Reviewed-by: Tony Luck <tony.luck@intel.com>
+Tested-by: Tony Luck <tony.luck@intel.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+---
+ arch/x86/kernel/vmlinux.lds.S     | 17 +++++++++++++++--
+ include/asm-generic/vmlinux.lds.h |  2 +-
+ 2 files changed, 16 insertions(+), 3 deletions(-)
 
-> Yu-cheng Yu (25):
->   x86/cpufeatures: Add CET CPU feature flags for Control-flow
->     Enforcement Technology (CET)
->   x86/fpu/xstate: Introduce CET MSR XSAVES supervisor states
-
-How would people feel about taking the above two patches (02 and 03 in the
-series) through the KVM tree to enable KVM virtualization of CET before the
-kernel itself gains CET support?  I.e. add the MSR and feature bits, along
-with the XSAVES context switching.  The feature definitons could use "" to
-suppress displaying them in /proc/cpuinfo to avoid falsely advertising CET
-to userspace.
-
-AIUI, there are ABI issues that need to be sorted out, and that is likely
-going to drag on for some time. 
-
-Is this a "hell no" sort of idea, or something that would be feasible if we
-can show that there are no negative impacts to the kernel?
+diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+index 3bfc8dd8a43d..e8da7eeb4d8d 100644
+--- a/arch/x86/kernel/vmlinux.lds.S
++++ b/arch/x86/kernel/vmlinux.lds.S
+@@ -146,9 +146,22 @@ SECTIONS
+ #endif
+ 	} :text =0xcccc
+ 
+-	/* End of text section, which should occupy whole number of pages */
+-	_etext = .;
++	/*
++	 * -ffunction-sections creates .text.* sections, which are considered
++	 * "orphan sections" and added after the first similar section (.text).
++	 * Placing this ALIGN statement before _etext causes the address of
++	 * _etext to be below that of all the .text.* orphaned sections
++	 */
+ 	. = ALIGN(PAGE_SIZE);
++	_etext = .;
++
++	/*
++	 * the size of the .text section is used to calculate the address
++	 * range for orc lookups. If we just use SIZEOF(.text), we will
++	 * miss all the .text.* sections. Calculate the size using _etext
++	 * and _stext and save the value for later.
++	 */
++	text_size = _etext - _stext;
+ 
+ 	X86_ALIGN_RODATA_BEGIN
+ 	RO_DATA(PAGE_SIZE)
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index a5552cf28d5d..34eab6513fdc 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -835,7 +835,7 @@
+ 	. = ALIGN(4);							\
+ 	.orc_lookup : AT(ADDR(.orc_lookup) - LOAD_OFFSET) {		\
+ 		orc_lookup = .;						\
+-		. += (((SIZEOF(.text) + LOOKUP_BLOCK_SIZE - 1) /	\
++		. += (((text_size + LOOKUP_BLOCK_SIZE - 1) /	\
+ 			LOOKUP_BLOCK_SIZE) + 1) * 4;			\
+ 		orc_lookup_end = .;					\
+ 	}
+-- 
+2.20.1
