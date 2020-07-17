@@ -1,199 +1,159 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 07/22] netfilter/arp_tables: clean up compat {get,set}sockopt handling
-Date: Fri, 17 Jul 2020 08:23:16 +0200
-Message-ID: <20200717062331.691152-8-hch@lst.de>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 11/22] netfilter: remove the compat_{get,set} methods
+Date: Fri, 17 Jul 2020 08:23:20 +0200
+Message-ID: <20200717062331.691152-12-hch@lst.de>
 References: <20200717062331.691152-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-bluetooth-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20200717062331.691152-1-hch-jcswGhMUV9g@public.gmane.org>
-Sender: linux-bluetooth-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
-Cc: Alexei Starovoitov <ast-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Daniel Borkmann <daniel-FeC+5ew28dpmcu3hnIyYJQ@public.gmane.org>, Chas Williams <3chas3-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Pablo Neira Ayuso <pablo-Cap9r6Oaw4JrovVCs/uTlw@public.gmane.org>, Jozsef Kadlecsik <kadlec-Cap9r6Oaw4JrovVCs/uTlw@public.gmane.org>, Florian Westphal <fw-HFFVJYpyMKqzQB+pC5nmwQ@public.gmane.org>, Alexey Kuznetsov <kuznet-v/Mj1YrvjDBInbfyfbPRSQ@public.gmane.org>, Hideaki YOSHIFUJI <yoshfuji-VfPWfsRibaP+Ru+s062T9g@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, bpf-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netfilter-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sctp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-bluetooth-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, bridge-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-can-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dccp-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-wpan-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, mptcp-hn68Rpc1hR1g9hUCZPvPmw@public.gmane.org
+Return-path: <netfilter-devel-owner@vger.kernel.org>
+In-Reply-To: <20200717062331.691152-1-hch@lst.de>
+Sender: netfilter-devel-owner@vger.kernel.org
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
 List-Id: linux-arch.vger.kernel.org
 
-Merge the native and compat {get,set}sockopt handlers using
-in_compat_syscall().
+All instances handle compat sockopts via in_compat_syscall() now, so
+remove the compat_{get,set} methods as well as the
+compat_nf_{get,set}sockopt wrappers.
 
-Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- net/ipv4/netfilter/arp_tables.c | 85 ++++++++-------------------------
- 1 file changed, 21 insertions(+), 64 deletions(-)
+ include/linux/netfilter.h  | 14 -------------
+ net/ipv4/ip_sockglue.c     |  5 ++---
+ net/ipv6/ipv6_sockglue.c   |  5 ++---
+ net/netfilter/nf_sockopt.c | 42 --------------------------------------
+ 4 files changed, 4 insertions(+), 62 deletions(-)
 
-diff --git a/net/ipv4/netfilter/arp_tables.c b/net/ipv4/netfilter/arp_tables.c
-index b167f4a5b68453..15807fb4a65f3e 100644
---- a/net/ipv4/netfilter/arp_tables.c
-+++ b/net/ipv4/netfilter/arp_tables.c
-@@ -787,8 +787,7 @@ static int compat_table_info(const struct xt_table_info *info,
- }
- #endif
- 
--static int get_info(struct net *net, void __user *user,
--		    const int *len, int compat)
-+static int get_info(struct net *net, void __user *user, const int *len)
- {
- 	char name[XT_TABLE_MAXNAMELEN];
- 	struct xt_table *t;
-@@ -802,7 +801,7 @@ static int get_info(struct net *net, void __user *user,
- 
- 	name[XT_TABLE_MAXNAMELEN-1] = '\0';
- #ifdef CONFIG_COMPAT
--	if (compat)
-+	if (in_compat_syscall())
- 		xt_compat_lock(NFPROTO_ARP);
- #endif
- 	t = xt_request_find_table_lock(net, NFPROTO_ARP, name);
-@@ -812,7 +811,7 @@ static int get_info(struct net *net, void __user *user,
- #ifdef CONFIG_COMPAT
- 		struct xt_table_info tmp;
- 
--		if (compat) {
-+		if (in_compat_syscall()) {
- 			ret = compat_table_info(private, &tmp);
- 			xt_compat_flush_offsets(NFPROTO_ARP);
- 			private = &tmp;
-@@ -837,7 +836,7 @@ static int get_info(struct net *net, void __user *user,
- 	} else
- 		ret = PTR_ERR(t);
- #ifdef CONFIG_COMPAT
--	if (compat)
-+	if (in_compat_syscall())
- 		xt_compat_unlock(NFPROTO_ARP);
- #endif
- 	return ret;
-@@ -998,7 +997,7 @@ static int do_replace(struct net *net, const void __user *user,
- }
- 
- static int do_add_counters(struct net *net, const void __user *user,
--			   unsigned int len, int compat)
-+			   unsigned int len)
- {
- 	unsigned int i;
- 	struct xt_counters_info tmp;
-@@ -1009,7 +1008,8 @@ static int do_add_counters(struct net *net, const void __user *user,
- 	struct arpt_entry *iter;
- 	unsigned int addend;
- 
--	paddc = xt_copy_counters_from_user(user, len, &tmp, compat);
-+	paddc = xt_copy_counters_from_user(user, len, &tmp,
-+					   in_compat_syscall());
- 	if (IS_ERR(paddc))
- 		return PTR_ERR(paddc);
- 
-@@ -1294,30 +1294,6 @@ static int compat_do_replace(struct net *net, void __user *user,
- 	return ret;
- }
- 
--static int compat_do_arpt_set_ctl(struct sock *sk, int cmd, void __user *user,
--				  unsigned int len)
--{
--	int ret;
--
--	if (!ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN))
--		return -EPERM;
--
--	switch (cmd) {
--	case ARPT_SO_SET_REPLACE:
--		ret = compat_do_replace(sock_net(sk), user, len);
--		break;
--
--	case ARPT_SO_SET_ADD_COUNTERS:
--		ret = do_add_counters(sock_net(sk), user, len, 1);
--		break;
--
--	default:
--		ret = -EINVAL;
--	}
--
--	return ret;
--}
--
- static int compat_copy_entry_to_user(struct arpt_entry *e, void __user **dstptr,
- 				     compat_uint_t *size,
- 				     struct xt_counters *counters,
-@@ -1425,29 +1401,6 @@ static int compat_get_entries(struct net *net,
- 	xt_compat_unlock(NFPROTO_ARP);
- 	return ret;
- }
--
--static int do_arpt_get_ctl(struct sock *, int, void __user *, int *);
--
--static int compat_do_arpt_get_ctl(struct sock *sk, int cmd, void __user *user,
--				  int *len)
--{
--	int ret;
--
--	if (!ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN))
--		return -EPERM;
--
--	switch (cmd) {
--	case ARPT_SO_GET_INFO:
--		ret = get_info(sock_net(sk), user, len, 1);
--		break;
--	case ARPT_SO_GET_ENTRIES:
--		ret = compat_get_entries(sock_net(sk), user, len);
--		break;
--	default:
--		ret = do_arpt_get_ctl(sk, cmd, user, len);
--	}
--	return ret;
--}
- #endif
- 
- static int do_arpt_set_ctl(struct sock *sk, int cmd, void __user *user, unsigned int len)
-@@ -1459,11 +1412,16 @@ static int do_arpt_set_ctl(struct sock *sk, int cmd, void __user *user, unsigned
- 
- 	switch (cmd) {
- 	case ARPT_SO_SET_REPLACE:
--		ret = do_replace(sock_net(sk), user, len);
-+#ifdef CONFIG_COMPAT
-+		if (in_compat_syscall())
-+			ret = compat_do_replace(sock_net(sk), user, len);
-+		else
-+#endif
-+			ret = do_replace(sock_net(sk), user, len);
- 		break;
- 
- 	case ARPT_SO_SET_ADD_COUNTERS:
--		ret = do_add_counters(sock_net(sk), user, len, 0);
-+		ret = do_add_counters(sock_net(sk), user, len);
- 		break;
- 
- 	default:
-@@ -1482,11 +1440,16 @@ static int do_arpt_get_ctl(struct sock *sk, int cmd, void __user *user, int *len
- 
- 	switch (cmd) {
- 	case ARPT_SO_GET_INFO:
--		ret = get_info(sock_net(sk), user, len, 0);
-+		ret = get_info(sock_net(sk), user, len);
- 		break;
- 
- 	case ARPT_SO_GET_ENTRIES:
--		ret = get_entries(sock_net(sk), user, len);
-+#ifdef CONFIG_COMPAT
-+		if (in_compat_syscall())
-+			ret = compat_get_entries(sock_net(sk), user, len);
-+		else
-+#endif
-+			ret = get_entries(sock_net(sk), user, len);
- 		break;
- 
- 	case ARPT_SO_GET_REVISION_TARGET: {
-@@ -1610,15 +1573,9 @@ static struct nf_sockopt_ops arpt_sockopts = {
- 	.set_optmin	= ARPT_BASE_CTL,
- 	.set_optmax	= ARPT_SO_SET_MAX+1,
- 	.set		= do_arpt_set_ctl,
+diff --git a/include/linux/netfilter.h b/include/linux/netfilter.h
+index eb312e7ca36ee5..711b4d4486f042 100644
+--- a/include/linux/netfilter.h
++++ b/include/linux/netfilter.h
+@@ -164,17 +164,9 @@ struct nf_sockopt_ops {
+ 	int set_optmin;
+ 	int set_optmax;
+ 	int (*set)(struct sock *sk, int optval, void __user *user, unsigned int len);
 -#ifdef CONFIG_COMPAT
--	.compat_set	= compat_do_arpt_set_ctl,
+-	int (*compat_set)(struct sock *sk, int optval,
+-			void __user *user, unsigned int len);
 -#endif
- 	.get_optmin	= ARPT_BASE_CTL,
- 	.get_optmax	= ARPT_SO_GET_MAX+1,
- 	.get		= do_arpt_get_ctl,
+ 	int get_optmin;
+ 	int get_optmax;
+ 	int (*get)(struct sock *sk, int optval, void __user *user, int *len);
 -#ifdef CONFIG_COMPAT
--	.compat_get	= compat_do_arpt_get_ctl,
+-	int (*compat_get)(struct sock *sk, int optval,
+-			void __user *user, int *len);
 -#endif
- 	.owner		= THIS_MODULE,
+ 	/* Use the module struct to lock set/get code in place */
+ 	struct module *owner;
  };
+@@ -350,12 +342,6 @@ int nf_setsockopt(struct sock *sk, u_int8_t pf, int optval, char __user *opt,
+ 		  unsigned int len);
+ int nf_getsockopt(struct sock *sk, u_int8_t pf, int optval, char __user *opt,
+ 		  int *len);
+-#ifdef CONFIG_COMPAT
+-int compat_nf_setsockopt(struct sock *sk, u_int8_t pf, int optval,
+-		char __user *opt, unsigned int len);
+-int compat_nf_getsockopt(struct sock *sk, u_int8_t pf, int optval,
+-		char __user *opt, int *len);
+-#endif
  
+ struct flowi;
+ struct nf_queue_entry;
+diff --git a/net/ipv4/ip_sockglue.c b/net/ipv4/ip_sockglue.c
+index 84ec3703c90916..95f4248c6fc5ed 100644
+--- a/net/ipv4/ip_sockglue.c
++++ b/net/ipv4/ip_sockglue.c
+@@ -1446,8 +1446,7 @@ int compat_ip_setsockopt(struct sock *sk, int level, int optname,
+ 			optname != IP_IPSEC_POLICY &&
+ 			optname != IP_XFRM_POLICY &&
+ 			!ip_mroute_opt(optname))
+-		err = compat_nf_setsockopt(sk, PF_INET, optname, optval,
+-					   optlen);
++		err = nf_setsockopt(sk, PF_INET, optname, optval, optlen);
+ #endif
+ 	return err;
+ }
+@@ -1821,7 +1820,7 @@ int compat_ip_getsockopt(struct sock *sk, int level, int optname,
+ 		if (get_user(len, optlen))
+ 			return -EFAULT;
+ 
+-		err = compat_nf_getsockopt(sk, PF_INET, optname, optval, &len);
++		err = nf_getsockopt(sk, PF_INET, optname, optval, &len);
+ 		if (err >= 0)
+ 			err = put_user(len, optlen);
+ 		return err;
+diff --git a/net/ipv6/ipv6_sockglue.c b/net/ipv6/ipv6_sockglue.c
+index 6ab44ec2c369da..6adfbdcb7979bd 100644
+--- a/net/ipv6/ipv6_sockglue.c
++++ b/net/ipv6/ipv6_sockglue.c
+@@ -1030,8 +1030,7 @@ int compat_ipv6_setsockopt(struct sock *sk, int level, int optname,
+ 	/* we need to exclude all possible ENOPROTOOPTs except default case */
+ 	if (err == -ENOPROTOOPT && optname != IPV6_IPSEC_POLICY &&
+ 	    optname != IPV6_XFRM_POLICY)
+-		err = compat_nf_setsockopt(sk, PF_INET6, optname, optval,
+-					   optlen);
++		err = nf_setsockopt(sk, PF_INET6, optname, optval, optlen);
+ #endif
+ 	return err;
+ }
+@@ -1531,7 +1530,7 @@ int compat_ipv6_getsockopt(struct sock *sk, int level, int optname,
+ 		if (get_user(len, optlen))
+ 			return -EFAULT;
+ 
+-		err = compat_nf_getsockopt(sk, PF_INET6, optname, optval, &len);
++		err = nf_getsockopt(sk, PF_INET6, optname, optval, &len);
+ 		if (err >= 0)
+ 			err = put_user(len, optlen);
+ 	}
+diff --git a/net/netfilter/nf_sockopt.c b/net/netfilter/nf_sockopt.c
+index 46cb3786e0ec5c..02870993d335c9 100644
+--- a/net/netfilter/nf_sockopt.c
++++ b/net/netfilter/nf_sockopt.c
+@@ -122,45 +122,3 @@ int nf_getsockopt(struct sock *sk, u_int8_t pf, int val, char __user *opt,
+ 	return nf_sockopt(sk, pf, val, opt, len, 1);
+ }
+ EXPORT_SYMBOL(nf_getsockopt);
+-
+-#ifdef CONFIG_COMPAT
+-static int compat_nf_sockopt(struct sock *sk, u_int8_t pf, int val,
+-			     char __user *opt, int *len, int get)
+-{
+-	struct nf_sockopt_ops *ops;
+-	int ret;
+-
+-	ops = nf_sockopt_find(sk, pf, val, get);
+-	if (IS_ERR(ops))
+-		return PTR_ERR(ops);
+-
+-	if (get) {
+-		if (ops->compat_get)
+-			ret = ops->compat_get(sk, val, opt, len);
+-		else
+-			ret = ops->get(sk, val, opt, len);
+-	} else {
+-		if (ops->compat_set)
+-			ret = ops->compat_set(sk, val, opt, *len);
+-		else
+-			ret = ops->set(sk, val, opt, *len);
+-	}
+-
+-	module_put(ops->owner);
+-	return ret;
+-}
+-
+-int compat_nf_setsockopt(struct sock *sk, u_int8_t pf,
+-		int val, char __user *opt, unsigned int len)
+-{
+-	return compat_nf_sockopt(sk, pf, val, opt, &len, 0);
+-}
+-EXPORT_SYMBOL(compat_nf_setsockopt);
+-
+-int compat_nf_getsockopt(struct sock *sk, u_int8_t pf,
+-		int val, char __user *opt, int *len)
+-{
+-	return compat_nf_sockopt(sk, pf, val, opt, len, 1);
+-}
+-EXPORT_SYMBOL(compat_nf_getsockopt);
+-#endif
 -- 
 2.27.0
