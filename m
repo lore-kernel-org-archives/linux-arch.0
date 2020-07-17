@@ -1,45 +1,32 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
- membarrier_mm_sync_core_before_usermode
-Date: Fri, 17 Jul 2020 09:42:43 -0400 (EDT)
-Message-ID: <1314561373.18530.1594993363050.JavaMail.zimbra@efficios.com>
-References: <1594868476.6k5kvx8684.astroid@bobo.none> <EFAD6E2F-EC08-4EB3-9ECC-2A963C023FC5@amacapital.net> <20200716085032.GO10769@hirez.programming.kicks-ass.net> <1594892300.mxnq3b9a77.astroid@bobo.none> <20200716110038.GA119549@hirez.programming.kicks-ass.net> <1594906688.ikv6r4gznx.astroid@bobo.none>
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Date: Fri, 17 Jul 2020 10:26:32 -0400
+Message-ID: <20200717142632.GA1147780@rowland.harvard.edu>
+References: <20200717044427.68747-1-ebiggers@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.26.124]:50558 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726079AbgGQNmo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 09:42:44 -0400
-In-Reply-To: <1594906688.ikv6r4gznx.astroid@bobo.none>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, x86 <x86@kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20200717044427.68747-1-ebiggers@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Eric Biggers <ebiggers@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
------ On Jul 16, 2020, at 7:26 PM, Nicholas Piggin npiggin@gmail.com wrote:
-[...]
-> 
-> membarrier does replace barrier instructions on remote CPUs, which do
-> order accesses performed by the kernel on the user address space. So
-> membarrier should too I guess.
-> 
-> Normal process context accesses like read(2) will do so because they
-> don't get filtered out from IPIs, but kernel threads using the mm may
-> not.
+On Thu, Jul 16, 2020 at 09:44:27PM -0700, Eric Biggers wrote:
 
-But it should not be an issue, because membarrier's ordering is only with respect
-to submit and completion of io_uring requests, which are performed through
-system calls from the context of user-space threads, which are called from the
-right mm.
+...
+> +Note that when the cmpxchg_release() fails due to another task already
+> +having done it, a second smp_load_acquire() is required, since we still
+> +need to acquire the data that the other task released.
 
-Thanks,
+When people talk about releasing data, they usually mean something 
+different from what you mean here (i.e., they usually mean 
+deallocating).  Likewise, acquiring data (to the extent that it means 
+anything) would generally be regarded as meaning a simple read.  I 
+recommend changing the last phrase above to:
 
-Mathieu
+	... since we still need a load-acquire of the data on which
+	the other task performed a store-release.
 
-
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+Alan Stern
