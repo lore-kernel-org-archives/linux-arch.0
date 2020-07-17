@@ -1,259 +1,146 @@
-Return-Path: <SRS0=SAVZ=A3=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41010 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1729682AbgGPTu6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2020 15:50:58 -0400
-Message-ID: <20200716185425.198080509@linutronix.de>
-Date: Thu, 16 Jul 2020 20:22:20 +0200
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch V3 12/13] x86/entry: Cleanup idtentry_enter/exit
-References: <20200716182208.180916541@linutronix.de>
+Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from mga12.intel.com ([192.55.52.136]:38516 "EHLO mga12.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1726938AbgGQRAq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Jul 2020 13:00:46 -0400
+From: Kristen Carlson Accardi <kristen@linux.intel.com>
+Subject: [PATCH v4 04/10] x86: Makefile: Add build and config option for CONFIG_FG_KASLR
+Date: Fri, 17 Jul 2020 10:00:01 -0700
+Message-ID: <20200717170008.5949-5-kristen@linux.intel.com>
+In-Reply-To: <20200717170008.5949-1-kristen@linux.intel.com>
+References: <20200717170008.5949-1-kristen@linux.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-transfer-encoding: 8-bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Keno Fischer <keno@juliacomputing.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org
-Message-ID: <20200716182220.dZp8OfdqnJme-ObmlDrj5JPBaRCbQ8A_Vo1e4Htw8O4@z>
+To: keescook@chromium.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, Masahiro Yamada <masahiroy@kernel.org>, Michal Marek <michal.lkml@markovi.net>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: arjan@linux.intel.com, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, rick.p.edgecombe@intel.com, Kristen Carlson Accardi <kristen@linux.intel.com>, Tony Luck <tony.luck@intel.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20200717170001.VD0_90EFN-jCe4kVV4Ih-CC5LvNSucpSEF6FoSTxg-o@z>
 
-Remove the temporary defines and fixup all references.
+Allow user to select CONFIG_FG_KASLR if dependencies are met. Change
+the make file to build with -ffunction-sections if CONFIG_FG_KASLR.
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+While the only architecture that supports CONFIG_FG_KASLR does not
+currently enable HAVE_LD_DEAD_CODE_DATA_ELIMINATION, make sure these
+2 features play nicely together for the future by ensuring that if
+CONFIG_LD_DEAD_CODE_DATA_ELIMINATION is selected when used with
+CONFIG_FG_KASLR the function sections will not be consolidated back
+into .text. Thanks to Kees Cook for the dead code elimination changes.
+
+Signed-off-by: Kristen Carlson Accardi <kristen@linux.intel.com>
+Reviewed-by: Tony Luck <tony.luck@intel.com>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Tested-by: Tony Luck <tony.luck@intel.com>
 ---
- arch/x86/entry/common.c         |    6 +++---
- arch/x86/include/asm/idtentry.h |   33 ++++++++++++++-------------------
- arch/x86/kernel/kvm.c           |    6 +++---
- arch/x86/kernel/traps.c         |    6 +++---
- arch/x86/mm/fault.c             |    6 +++---
- 5 files changed, 26 insertions(+), 31 deletions(-)
+ Makefile                          |  6 +++++-
+ arch/x86/Kconfig                  |  4 ++++
+ include/asm-generic/vmlinux.lds.h | 16 ++++++++++++++--
+ init/Kconfig                      | 14 ++++++++++++++
+ 4 files changed, 37 insertions(+), 3 deletions(-)
 
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -248,9 +248,9 @@ static void __xen_pv_evtchn_do_upcall(vo
- {
- 	struct pt_regs *old_regs;
- 	bool inhcall;
--	idtentry_state_t state;
-+	irqentry_state_t state;
+diff --git a/Makefile b/Makefile
+index 0b5f8538bde5..66427b12de53 100644
+--- a/Makefile
++++ b/Makefile
+@@ -872,7 +872,7 @@ KBUILD_CFLAGS += $(call cc-option, -fno-inline-functions-called-once)
+ endif
  
--	state = idtentry_enter(regs);
-+	state = irqentry_enter(regs);
- 	old_regs = set_irq_regs(regs);
+ ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+-KBUILD_CFLAGS_KERNEL += -ffunction-sections -fdata-sections
++KBUILD_CFLAGS_KERNEL += -fdata-sections
+ LDFLAGS_vmlinux += --gc-sections
+ endif
  
- 	instrumentation_begin();
-@@ -266,7 +266,7 @@ static void __xen_pv_evtchn_do_upcall(vo
- 		instrumentation_end();
- 		restore_inhcall(inhcall);
- 	} else {
--		idtentry_exit(regs, state);
-+		irqentry_exit(regs, state);
- 	}
- }
- #endif /* CONFIG_XEN_PV */
---- a/arch/x86/include/asm/idtentry.h
-+++ b/arch/x86/include/asm/idtentry.h
-@@ -11,11 +11,6 @@
+@@ -880,6 +880,10 @@ ifdef CONFIG_LIVEPATCH
+ KBUILD_CFLAGS += $(call cc-option, -flive-patching=inline-clone)
+ endif
  
- #include <asm/irq_stack.h>
++ifneq ($(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION)$(CONFIG_FG_KASLR),)
++KBUILD_CFLAGS += -ffunction-sections
++endif
++
+ ifdef CONFIG_SHADOW_CALL_STACK
+ CC_FLAGS_SCS	:= -fsanitize=shadow-call-stack
+ KBUILD_CFLAGS	+= $(CC_FLAGS_SCS)
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 883da0abf779..e7a2db3e270d 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -372,6 +372,10 @@ config CC_HAS_SANE_STACKPROTECTOR
+ 	   We have to make sure stack protector is unconditionally disabled if
+ 	   the compiler produces broken code.
  
--/* Temporary defines */
--typedef irqentry_state_t idtentry_state_t;
--#define idtentry_enter irqentry_enter
--#define idtentry_exit irqentry_exit
--
- /**
-  * DECLARE_IDTENTRY - Declare functions for simple IDT entry points
-  *		      No error code pushed by hardware
-@@ -45,8 +40,8 @@ typedef irqentry_state_t idtentry_state_
-  * The macro is written so it acts as function definition. Append the
-  * body with a pair of curly brackets.
-  *
-- * idtentry_enter() contains common code which has to be invoked before
-- * arbitrary code in the body. idtentry_exit() contains common code
-+ * irqentry_enter() contains common code which has to be invoked before
-+ * arbitrary code in the body. irqentry_exit() contains common code
-  * which has to run before returning to the low level assembly code.
++config ARCH_HAS_FG_KASLR
++	def_bool y
++	depends on RANDOMIZE_BASE && X86_64
++
+ menu "Processor type and features"
+ 
+ config ZONE_DMA
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index db600ef218d7..a5552cf28d5d 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -93,14 +93,12 @@
+  * sections to be brought in with rodata.
   */
- #define DEFINE_IDTENTRY(func)						\
-@@ -54,12 +49,12 @@ static __always_inline void __##func(str
- 									\
- __visible noinstr void func(struct pt_regs *regs)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	__##func (regs);						\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static __always_inline void __##func(struct pt_regs *regs)
-@@ -101,12 +96,12 @@ static __always_inline void __##func(str
- __visible noinstr void func(struct pt_regs *regs,			\
- 			    unsigned long error_code)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	__##func (regs, error_code);					\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static __always_inline void __##func(struct pt_regs *regs,		\
-@@ -161,7 +156,7 @@ static __always_inline void __##func(str
-  * body with a pair of curly brackets.
-  *
-  * Contrary to DEFINE_IDTENTRY_ERRORCODE() this does not invoke the
-- * idtentry_enter/exit() helpers before and after the body invocation. This
-+ * irqentry_enter/exit() helpers before and after the body invocation. This
-  * needs to be done in the body itself if applicable. Use if extra work
-  * is required before the enter/exit() helpers are invoked.
-  */
-@@ -197,7 +192,7 @@ static __always_inline void __##func(str
- __visible noinstr void func(struct pt_regs *regs,			\
- 			    unsigned long error_code)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	irq_enter_rcu();						\
-@@ -205,7 +200,7 @@ static __always_inline void __##func(str
- 	__##func (regs, (u8)error_code);				\
- 	irq_exit_rcu();							\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static __always_inline void __##func(struct pt_regs *regs, u8 vector)
-@@ -229,7 +224,7 @@ static __always_inline void __##func(str
-  * DEFINE_IDTENTRY_SYSVEC - Emit code for system vector IDT entry points
-  * @func:	Function name of the entry point
-  *
-- * idtentry_enter/exit() and irq_enter/exit_rcu() are invoked before the
-+ * irqentry_enter/exit() and irq_enter/exit_rcu() are invoked before the
-  * function body. KVM L1D flush request is set.
-  *
-  * Runs the function on the interrupt stack if the entry hit kernel mode
-@@ -239,7 +234,7 @@ static void __##func(struct pt_regs *reg
- 									\
- __visible noinstr void func(struct pt_regs *regs)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	irq_enter_rcu();						\
-@@ -247,7 +242,7 @@ static void __##func(struct pt_regs *reg
- 	run_on_irqstack_cond(__##func, regs, regs);			\
- 	irq_exit_rcu();							\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static noinline void __##func(struct pt_regs *regs)
-@@ -268,7 +263,7 @@ static __always_inline void __##func(str
- 									\
- __visible noinstr void func(struct pt_regs *regs)			\
- {									\
--	idtentry_state_t state = idtentry_enter(regs);			\
-+	irqentry_state_t state = irqentry_enter(regs);			\
- 									\
- 	instrumentation_begin();					\
- 	__irq_enter_raw();						\
-@@ -276,7 +271,7 @@ static __always_inline void __##func(str
- 	__##func (regs);						\
- 	__irq_exit_raw();						\
- 	instrumentation_end();						\
--	idtentry_exit(regs, state);					\
-+	irqentry_exit(regs, state);					\
- }									\
- 									\
- static __always_inline void __##func(struct pt_regs *regs)
---- a/arch/x86/kernel/kvm.c
-+++ b/arch/x86/kernel/kvm.c
-@@ -233,7 +233,7 @@ EXPORT_SYMBOL_GPL(kvm_read_and_reset_apf
- noinstr bool __kvm_handle_async_pf(struct pt_regs *regs, u32 token)
- {
- 	u32 reason = kvm_read_and_reset_apf_flags();
--	idtentry_state_t state;
-+	irqentry_state_t state;
+ #ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+-#define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
+ #define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..LPBX*
+ #define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
+ #define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]*
+ #define BSS_MAIN .bss .bss.[0-9a-zA-Z_]*
+ #define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
+ #else
+-#define TEXT_MAIN .text
+ #define DATA_MAIN .data
+ #define SDATA_MAIN .sdata
+ #define RODATA_MAIN .rodata
+@@ -108,6 +106,20 @@
+ #define SBSS_MAIN .sbss
+ #endif
  
- 	switch (reason) {
- 	case KVM_PV_REASON_PAGE_NOT_PRESENT:
-@@ -243,7 +243,7 @@ noinstr bool __kvm_handle_async_pf(struc
- 		return false;
- 	}
++/*
++ * Both LD_DEAD_CODE_DATA_ELIMINATION and CONFIG_FG_KASLR options enable
++ * -ffunction-sections, which produces separately named .text sections. In
++ * the case of CONFIG_FG_KASLR, they need to stay distict so they can be
++ * separately randomized. Without CONFIG_FG_KASLR, the separate .text
++ * sections can be collected back into a common section, which makes the
++ * resulting image slightly smaller
++ */
++#if defined(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION) && !defined(CONFIG_FG_KASLR)
++#define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
++#else
++#define TEXT_MAIN .text
++#endif
++
+ /*
+  * Align to a 32 byte boundary equal to the
+  * alignment gcc 4.5 uses for a struct
+diff --git a/init/Kconfig b/init/Kconfig
+index 0498af567f70..82f042a1062f 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1990,6 +1990,20 @@ config PROFILING
+ config TRACEPOINTS
+ 	bool
  
--	state = idtentry_enter(regs);
-+	state = irqentry_enter(regs);
- 	instrumentation_begin();
++config FG_KASLR
++	bool "Function Granular Kernel Address Space Layout Randomization"
++	depends on $(cc-option, -ffunction-sections)
++	depends on ARCH_HAS_FG_KASLR
++	default n
++	help
++	  This option improves the randomness of the kernel text
++	  over basic Kernel Address Space Layout Randomization (KASLR)
++	  by reordering the kernel text at boot time. This feature
++	  uses information generated at compile time to re-layout the
++	  kernel text section at boot time at function level granularity.
++
++	  If unsure, say N.
++
+ endmenu		# General setup
  
- 	/*
-@@ -264,7 +264,7 @@ noinstr bool __kvm_handle_async_pf(struc
- 	}
- 
- 	instrumentation_end();
--	idtentry_exit(regs, state);
-+	irqentry_exit(regs, state);
- 	return true;
- }
- 
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -245,7 +245,7 @@ static noinstr bool handle_bug(struct pt
- 
- DEFINE_IDTENTRY_RAW(exc_invalid_op)
- {
--	idtentry_state_t state;
-+	irqentry_state_t state;
- 
- 	/*
- 	 * We use UD2 as a short encoding for 'CALL __WARN', as such
-@@ -255,11 +255,11 @@ DEFINE_IDTENTRY_RAW(exc_invalid_op)
- 	if (!user_mode(regs) && handle_bug(regs))
- 		return;
- 
--	state = idtentry_enter(regs);
-+	state = irqentry_enter(regs);
- 	instrumentation_begin();
- 	handle_invalid_op(regs);
- 	instrumentation_end();
--	idtentry_exit(regs, state);
-+	irqentry_exit(regs, state);
- }
- 
- DEFINE_IDTENTRY(exc_coproc_segment_overrun)
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -1377,7 +1377,7 @@ handle_page_fault(struct pt_regs *regs,
- DEFINE_IDTENTRY_RAW_ERRORCODE(exc_page_fault)
- {
- 	unsigned long address = read_cr2();
--	idtentry_state_t state;
-+	irqentry_state_t state;
- 
- 	prefetchw(&current->mm->mmap_lock);
- 
-@@ -1412,11 +1412,11 @@ DEFINE_IDTENTRY_RAW_ERRORCODE(exc_page_f
- 	 * code reenabled RCU to avoid subsequent wreckage which helps
- 	 * debugability.
- 	 */
--	state = idtentry_enter(regs);
-+	state = irqentry_enter(regs);
- 
- 	instrumentation_begin();
- 	handle_page_fault(regs, error_code, address);
- 	instrumentation_end();
- 
--	idtentry_exit(regs, state);
-+	irqentry_exit(regs, state);
- }
+ source "arch/Kconfig"
+-- 
+2.20.1
