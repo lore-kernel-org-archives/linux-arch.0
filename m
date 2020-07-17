@@ -1,74 +1,132 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Date: Fri, 17 Jul 2020 13:35:43 +0100
-Message-ID: <20200717123543.GO12769@casper.infradead.org>
-References: <20200717044427.68747-1-ebiggers@kernel.org>
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: Re: [RFC PATCH 4/7] x86: use exit_lazy_tlb rather than
+ membarrier_mm_sync_core_before_usermode
+Date: Fri, 17 Jul 2020 09:39:25 -0400 (EDT)
+Message-ID: <1770378591.18523.1594993165391.JavaMail.zimbra@efficios.com>
+References: <20200710015646.2020871-1-npiggin@gmail.com> <284592761.9860.1594649601492.JavaMail.zimbra@efficios.com> <1594868476.6k5kvx8684.astroid@bobo.none> <1594873644.viept6os6j.astroid@bobo.none> <1494299304.15894.1594914382695.JavaMail.zimbra@efficios.com> <1370747990.15974.1594915396143.JavaMail.zimbra@efficios.com> <595582123.17106.1594925921537.JavaMail.zimbra@efficios.com> <20200716212416.GA1126458@rowland.harvard.edu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54682 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1726393AbgGQMfw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 08:35:52 -0400
-Content-Disposition: inline
-In-Reply-To: <20200717044427.68747-1-ebiggers@kernel.org>
+Received: from mail.efficios.com ([167.114.26.124]:49166 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1726079AbgGQNj1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 09:39:27 -0400
+In-Reply-To: <20200716212416.GA1126458@rowland.harvard.edu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric Biggers <ebiggers@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: Nicholas Piggin <npiggin@gmail.com>, paulmck <paulmck@kernel.org>, Anton Blanchard <anton@ozlabs.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, x86 <x86@kernel.org>
 
-On Thu, Jul 16, 2020 at 09:44:27PM -0700, Eric Biggers wrote:
-> +The simplest implementation just uses a mutex and an 'inited' flag.
+----- On Jul 16, 2020, at 5:24 PM, Alan Stern stern@rowland.harvard.edu wrote:
 
-There's a perfectly good real word "initialised" / initialized.
-https://chambers.co.uk/search/?query=inited&title=21st
+> On Thu, Jul 16, 2020 at 02:58:41PM -0400, Mathieu Desnoyers wrote:
+>> ----- On Jul 16, 2020, at 12:03 PM, Mathieu Desnoyers
+>> mathieu.desnoyers@efficios.com wrote:
+>> 
+>> > ----- On Jul 16, 2020, at 11:46 AM, Mathieu Desnoyers
+>> > mathieu.desnoyers@efficios.com wrote:
+>> > 
+>> >> ----- On Jul 16, 2020, at 12:42 AM, Nicholas Piggin npiggin@gmail.com wrote:
+>> >>> I should be more complete here, especially since I was complaining
+>> >>> about unclear barrier comment :)
+>> >>> 
+>> >>> 
+>> >>> CPU0                     CPU1
+>> >>> a. user stuff            1. user stuff
+>> >>> b. membarrier()          2. enter kernel
+>> >>> c. smp_mb()              3. smp_mb__after_spinlock(); // in __schedule
+>> >>> d. read rq->curr         4. rq->curr switched to kthread
+>> >>> e. is kthread, skip IPI  5. switch_to kthread
+>> >>> f. return to user        6. rq->curr switched to user thread
+>> >>> g. user stuff            7. switch_to user thread
+>> >>>                         8. exit kernel
+>> >>>                         9. more user stuff
+>> >>> 
+>> >>> What you're really ordering is a, g vs 1, 9 right?
+>> >>> 
+>> >>> In other words, 9 must see a if it sees g, g must see 1 if it saw 9,
+>> >>> etc.
+>> >>> 
+>> >>> Userspace does not care where the barriers are exactly or what kernel
+>> >>> memory accesses might be being ordered by them, so long as there is a
+>> >>> mb somewhere between a and g, and 1 and 9. Right?
+>> >> 
+>> >> This is correct.
+>> > 
+>> > Actually, sorry, the above is not quite right. It's been a while
+>> > since I looked into the details of membarrier.
+>> > 
+>> > The smp_mb() at the beginning of membarrier() needs to be paired with a
+>> > smp_mb() _after_ rq->curr is switched back to the user thread, so the
+>> > memory barrier is between store to rq->curr and following user-space
+>> > accesses.
+>> > 
+>> > The smp_mb() at the end of membarrier() needs to be paired with the
+>> > smp_mb__after_spinlock() at the beginning of schedule, which is
+>> > between accesses to userspace memory and switching rq->curr to kthread.
+>> > 
+>> > As to *why* this ordering is needed, I'd have to dig through additional
+>> > scenarios from https://lwn.net/Articles/573436/. Or maybe Paul remembers ?
+>> 
+>> Thinking further about this, I'm beginning to consider that maybe we have been
+>> overly cautious by requiring memory barriers before and after store to rq->curr.
+>> 
+>> If CPU0 observes a CPU1's rq->curr->mm which differs from its own process
+>> (current)
+>> while running the membarrier system call, it necessarily means that CPU1 had
+>> to issue smp_mb__after_spinlock when entering the scheduler, between any
+>> user-space
+>> loads/stores and update of rq->curr.
+>> 
+>> Requiring a memory barrier between update of rq->curr (back to current process's
+>> thread) and following user-space memory accesses does not seem to guarantee
+>> anything more than what the initial barrier at the beginning of __schedule
+>> already
+>> provides, because the guarantees are only about accesses to user-space memory.
+>> 
+>> Therefore, with the memory barrier at the beginning of __schedule, just
+>> observing that
+>> CPU1's rq->curr differs from current should guarantee that a memory barrier was
+>> issued
+>> between any sequentially consistent instructions belonging to the current
+>> process on
+>> CPU1.
+>> 
+>> Or am I missing/misremembering an important point here ?
+> 
+> Is it correct to say that the switch_to operations in 5 and 7 include
+> memory barriers?  If they do, then skipping the IPI should be okay.
+> 
+> The reason is as follows: The guarantee you need to enforce is that
+> anything written by CPU0 before the membarrier() will be visible to CPU1
+> after it returns to user mode.  Let's say that a writes to X and 9
+> reads from X.
+> 
+> Then we have an instance of the Store Buffer pattern:
+> 
+>	CPU0			CPU1
+>	a. Write X		6. Write rq->curr for user thread
+>	c. smp_mb()		7. switch_to memory barrier
+>	d. Read rq->curr	9. Read X
+> 
+> In this pattern, the memory barriers make it impossible for both reads
+> to miss their corresponding writes.  Since d does fail to read 6 (it
+> sees the earlier value stored by 4), 9 must read a.
+> 
+> The other guarantee you need is that g on CPU0 will observe anything
+> written by CPU1 in 1.  This is easier to see, using the fact that 3 is a
+> memory barrier and d reads from 4.
 
-> +For the single-pointer case, a further optimized implementation
-> +eliminates the mutex and instead uses compare-and-exchange:
-> +
-> +	static struct foo *foo;
-> +
-> +	int init_foo_if_needed(void)
-> +	{
-> +		struct foo *p;
-> +
-> +		/* pairs with successful cmpxchg_release() below */
-> +		if (smp_load_acquire(&foo))
-> +			return 0;
-> +
-> +		p = alloc_foo();
-> +		if (!p)
-> +			return -ENOMEM;
-> +
-> +		/* on success, pairs with smp_load_acquire() above and below */
-> +		if (cmpxchg_release(&foo, NULL, p) != NULL) {
-> +			free_foo(p);
-> +			/* pairs with successful cmpxchg_release() above */
-> +			smp_load_acquire(&foo);
-> +		}
-> +		return 0;
-> +	}
-> +
-> +Note that when the cmpxchg_release() fails due to another task already
-> +having done it, a second smp_load_acquire() is required, since we still
-> +need to acquire the data that the other task released.  You may be
-> +tempted to upgrade cmpxchg_release() to cmpxchg() with the goal of it
-> +acting as both ACQUIRE and RELEASE, but that doesn't work here because
-> +cmpxchg() only guarantees memory ordering if it succeeds.
-> +
-> +Because of the above subtlety, the version with the mutex instead of
-> +cmpxchg_release() should be preferred, except potentially in cases where
-> +it is difficult to provide anything other than a global mutex and where
-> +the one-time data is part of a frequently allocated structure.  In that
-> +case, a global mutex might present scalability concerns.
+Right, and Nick's reply involving pairs of loads/stores on each side
+clarifies the situation even further.
 
-There are concerns other than scalability where we might want to eliminate
-the mutex.  For example, if (likely) alloc_foo() needs to allocate memory
-and we would need foo to perform page writeback, then either we must
-allocate foo using GFP_NOFS or do without the mutex, lest we deadlock
-on this new mutex.
+Thanks,
 
-You might think this would argue for just using GFP_NOFS always, but
-GFP_NOFS is a big hammer which forbids reclaiming from any filesystem,
-whereas we might only need this foo to reclaim from a particular
-filesystem.
+Mathieu
+
+
+-- 
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
