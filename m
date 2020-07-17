@@ -1,103 +1,37 @@
-Return-Path: <SRS0=ngws=BB=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:49102 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1726535AbgGVRzq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Jul 2020 13:55:46 -0400
-Date: Wed, 22 Jul 2020 13:55:42 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFC][PATCH] objtool,x86_64: Replace recordmcount with objtool
-Message-ID: <20200722135542.41127cc4@oasis.local.home>
-In-Reply-To: <20200626112931.GF4817@hirez.programming.kicks-ass.net>
-References: <20200624203200.78870-1-samitolvanen@google.com>
-        <20200624203200.78870-5-samitolvanen@google.com>
-        <20200624212737.GV4817@hirez.programming.kicks-ass.net>
-        <20200624214530.GA120457@google.com>
-        <20200625074530.GW4817@hirez.programming.kicks-ass.net>
-        <20200625161503.GB173089@google.com>
-        <20200625200235.GQ4781@hirez.programming.kicks-ass.net>
-        <20200625224042.GA169781@google.com>
-        <20200626112931.GF4817@hirez.programming.kicks-ass.net>
+Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from netrider.rowland.org ([192.131.102.5]:58073 "HELO
+        netrider.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1726079AbgGQO0e (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 10:26:34 -0400
+Date: Fri, 17 Jul 2020 10:26:32 -0400
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
+Message-ID: <20200717142632.GA1147780@rowland.harvard.edu>
+References: <20200717044427.68747-1-ebiggers@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20200717044427.68747-1-ebiggers@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Sami Tolvanen <samitolvanen@google.com>, Masahiro Yamada <masahiroy@kernel.org>, Will Deacon <will@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Paul E. McKenney" <paulmck@kernel.org>, Kees Cook <keescook@chromium.org>, Nick Desaulniers <ndesaulniers@google.com>, clang-built-linux@googlegroups.com, kernel-hardening@lists.openwall.com, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>, mhelsley@vmware.com
-Message-ID: <20200722175542.MDdYq5k5dSJGOHXTMhDV3t6erlbE_qVgZw4U1GdR5_s@z>
+To: Eric Biggers <ebiggers@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
+Message-ID: <20200717142632.83kzd8_XyvNp0fZCo5D-JkrTRc9SFmwk6PmDgg5E7CU@z>
 
-On Fri, 26 Jun 2020 13:29:31 +0200
-Peter Zijlstra <peterz@infradead.org> wrote:
+On Thu, Jul 16, 2020 at 09:44:27PM -0700, Eric Biggers wrote:
 
-> On Thu, Jun 25, 2020 at 03:40:42PM -0700, Sami Tolvanen wrote:
-> 
-> > > Not boot tested, but it generates the required sections and they look
-> > > more or less as expected, ymmv.  
-> 
-> > > diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> > > index a291823f3f26..189575c12434 100644
-> > > --- a/arch/x86/Kconfig
-> > > +++ b/arch/x86/Kconfig
-> > > @@ -174,7 +174,6 @@ config X86
-> > >  	select HAVE_EXIT_THREAD
-> > >  	select HAVE_FAST_GUP
-> > >  	select HAVE_FENTRY			if X86_64 || DYNAMIC_FTRACE
-> > > -	select HAVE_FTRACE_MCOUNT_RECORD
-> > >  	select HAVE_FUNCTION_GRAPH_TRACER
-> > >  	select HAVE_FUNCTION_TRACER
-> > >  	select HAVE_GCC_PLUGINS  
-> > 
-> > This breaks DYNAMIC_FTRACE according to kernel/trace/ftrace.c:
-> > 
-> >   #ifndef CONFIG_FTRACE_MCOUNT_RECORD
-> >   # error Dynamic ftrace depends on MCOUNT_RECORD
-> >   #endif
-> > 
-> > And the build errors after that seem to confirm this. It looks like we might
-> > need another flag to skip recordmcount.  
-> 
-> Hurm, Steve, how you want to do that?
+...
+> +Note that when the cmpxchg_release() fails due to another task already
+> +having done it, a second smp_load_acquire() is required, since we still
+> +need to acquire the data that the other task released.
 
-That was added when we removed that dangerous daemon that did the
-updates, and was added to make sure it didn't come back.
+When people talk about releasing data, they usually mean something 
+different from what you mean here (i.e., they usually mean 
+deallocating).  Likewise, acquiring data (to the extent that it means 
+anything) would generally be regarded as meaning a simple read.  I 
+recommend changing the last phrase above to:
 
-We can probably just get rid of it.
+	... since we still need a load-acquire of the data on which
+	the other task performed a store-release.
 
-
-> 
-> > Anyway, since objtool is run before recordmcount, I just left this unchanged
-> > for testing and ignored the recordmcount warnings about __mcount_loc already
-> > existing. Something is a bit off still though, I see this at boot:
-> > 
-> >   ------------[ ftrace bug ]------------
-> >   ftrace failed to modify
-> >   [<ffffffff81000660>] __tracepoint_iter_initcall_level+0x0/0x40
-> >    actual:   0f:1f:44:00:00
-> >   Initializing ftrace call sites
-> >   ftrace record flags: 0
-> >    (0)
-> >    expected tramp: ffffffff81056500
-> >   ------------[ cut here ]------------
-> > 
-> > Otherwise, this looks pretty good.  
-> 
-> Ha! it is trying to convert the "CALL __fentry__" into a NOP and not
-> finding the CALL -- because objtool already made it a NOP...
-> 
-> Weird, I thought recordmcount would also write NOPs, it certainly has
-> code for that. I suppose we can use CC_USING_NOP_MCOUNT to avoid those,
-> but I'd rather Steve explain this before I wreck things further.
-
-The reason for not having recordmcount insert all the nops, is because
-x86 has more than one optimal nop which is determined by the machine it
-runs on, and not at compile time. So we figured just updated it then.
-
-We can change it to be a nop on boot, and just modify it if it's not
-the optimal nop already. 
-
-That said, Andi Kleen added an option to gcc called -mnop-mcount which
-will have gcc do both create the mcount section and convert the calls
-into nops. When doing so, it defines CC_USING_NOP_MCOUNT which will
-tell ftrace to expect the calls to already be converted.
-
--- Steve
+Alan Stern
