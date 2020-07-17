@@ -1,37 +1,188 @@
 Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48560 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53966 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1725909AbgGQFtO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 01:49:14 -0400
+        with ESMTP id S1727120AbgGQGY2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 02:24:28 -0400
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 14/22] net/ipv4: factor out MCAST_MSFILTER getsockopt helpers
+Date: Fri, 17 Jul 2020 08:23:23 +0200
+Message-ID: <20200717062331.691152-15-hch@lst.de>
+In-Reply-To: <20200717062331.691152-1-hch@lst.de>
+References: <20200717062331.691152-1-hch@lst.de>
 MIME-Version: 1.0
-References: <20200717044427.68747-1-ebiggers@kernel.org>
-In-Reply-To: <20200717044427.68747-1-ebiggers@kernel.org>
-Reply-To: sedat.dilek@gmail.com
-From: Sedat Dilek <sedat.dilek@gmail.com>
-Date: Fri, 17 Jul 2020 07:49:02 +0200
-Message-ID: <CA+icZUVztkBRBhs_NQpTOg7rc34VkBQ1GCr5iXgw+P9XORwd9A@mail.gmail.com>
-Subject: Re: [PATCH] tools/memory-model: document the "one-time init" pattern
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric Biggers <ebiggers@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E . McKenney" <paulmck@kernel.org>, linux-fsdevel@vger.kernel.org, Akira Yokosawa <akiyks@gmail.com>, Alan Stern <stern@rowland.harvard.edu>, Andrea Parri <parri.andrea@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, Daniel Lustig <dlustig@nvidia.com>, "Darrick J . Wong" <darrick.wong@oracle.com>, Dave Chinner <david@fromorbit.com>, David Howells <dhowells@redhat.com>, Jade Alglave <j.alglave@ucl.ac.uk>, Luc Maranget <luc.maranget@inria.fr>, Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>
-Message-ID: <20200717054902.ZkFLrpBB0GzCVMYwVkI6IJS18D3KfA5PcnIQ36kX9pI@z>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
+Message-ID: <20200717062323.Yi-kwyDojA_ZLuf6wscQBO2bz5C9lFrG3YOnyfSbiIU@z>
 
-On Fri, Jul 17, 2020 at 6:48 AM Eric Biggers <ebiggers@kernel.org> wrote:
->
-> From: Eric Biggers <ebiggers@google.com>
-...
-> This is motivated by the discussion at
-> https://lkml.kernel.org/linux-fsdevel/20200713033330.205104-1-ebiggers@kernel.org/T/#u
-...
-> +In where cases where taking the mutex in the "already initialized" case
+Factor out one helper each for getting the native and compat
+version of the MCAST_MSFILTER option.
 
-"In cases where..." (drop first "where")
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ net/ipv4/ip_sockglue.c | 131 ++++++++++++++++++++++-------------------
+ 1 file changed, 70 insertions(+), 61 deletions(-)
 
-> +presents scalability concerns, the implementation can be optimized to
-> +check the 'inited' flag outside the mutex.  Unfortunately, this
-> +optimization is often implemented incorrectly by using a plain load.
-> +That violates the memory model and may result in unpredictable behavior.
-
-- Sedat -
+diff --git a/net/ipv4/ip_sockglue.c b/net/ipv4/ip_sockglue.c
+index 95f4248c6fc5ed..70d32c9476a2e3 100644
+--- a/net/ipv4/ip_sockglue.c
++++ b/net/ipv4/ip_sockglue.c
+@@ -1468,6 +1468,74 @@ static bool getsockopt_needs_rtnl(int optname)
+ 	return false;
+ }
+ 
++static int ip_get_mcast_msfilter(struct sock *sk, void __user *optval,
++		int __user *optlen, int len)
++{
++	const int size0 = offsetof(struct group_filter, gf_slist);
++	struct group_filter __user *p = optval;
++	struct group_filter gsf;
++	int num;
++	int err;
++
++	if (len < size0)
++		return -EINVAL;
++	if (copy_from_user(&gsf, p, size0))
++		return -EFAULT;
++
++	num = gsf.gf_numsrc;
++	err = ip_mc_gsfget(sk, &gsf, p->gf_slist);
++	if (err)
++		return err;
++	if (gsf.gf_numsrc < num)
++		num = gsf.gf_numsrc;
++	if (put_user(GROUP_FILTER_SIZE(num), optlen) ||
++	    copy_to_user(p, &gsf, size0))
++		return -EFAULT;
++	return 0;
++}
++
++#ifdef CONFIG_COMPAT
++static int compat_ip_get_mcast_msfilter(struct sock *sk, void __user *optval,
++		int __user *optlen)
++{
++	const int size0 = offsetof(struct compat_group_filter, gf_slist);
++	struct compat_group_filter __user *p = optval;
++	struct compat_group_filter gf32;
++	struct group_filter gf;
++	int len, err;
++	int num;
++
++	if (get_user(len, optlen))
++		return -EFAULT;
++	if (len < size0)
++		return -EINVAL;
++
++	if (copy_from_user(&gf32, p, size0))
++		return -EFAULT;
++
++	gf.gf_interface = gf32.gf_interface;
++	gf.gf_fmode = gf32.gf_fmode;
++	num = gf.gf_numsrc = gf32.gf_numsrc;
++	gf.gf_group = gf32.gf_group;
++
++	rtnl_lock();
++	lock_sock(sk);
++	err = ip_mc_gsfget(sk, &gf, p->gf_slist);
++	release_sock(sk);
++	rtnl_unlock();
++	if (err)
++		return err;
++	if (gf.gf_numsrc < num)
++		num = gf.gf_numsrc;
++	len = GROUP_FILTER_SIZE(num) - (sizeof(gf) - sizeof(gf32));
++	if (put_user(len, optlen) ||
++	    put_user(gf.gf_fmode, &p->gf_fmode) ||
++	    put_user(gf.gf_numsrc, &p->gf_numsrc))
++		return -EFAULT;
++	return 0;
++}
++#endif
++
+ static int do_ip_getsockopt(struct sock *sk, int level, int optname,
+ 			    char __user *optval, int __user *optlen, unsigned int flags)
+ {
+@@ -1626,31 +1694,8 @@ static int do_ip_getsockopt(struct sock *sk, int level, int optname,
+ 		goto out;
+ 	}
+ 	case MCAST_MSFILTER:
+-	{
+-		struct group_filter __user *p = (void __user *)optval;
+-		struct group_filter gsf;
+-		const int size0 = offsetof(struct group_filter, gf_slist);
+-		int num;
+-
+-		if (len < size0) {
+-			err = -EINVAL;
+-			goto out;
+-		}
+-		if (copy_from_user(&gsf, p, size0)) {
+-			err = -EFAULT;
+-			goto out;
+-		}
+-		num = gsf.gf_numsrc;
+-		err = ip_mc_gsfget(sk, &gsf, p->gf_slist);
+-		if (err)
+-			goto out;
+-		if (gsf.gf_numsrc < num)
+-			num = gsf.gf_numsrc;
+-		if (put_user(GROUP_FILTER_SIZE(num), optlen) ||
+-		    copy_to_user(p, &gsf, size0))
+-			err = -EFAULT;
++		err = ip_get_mcast_msfilter(sk, optval, optlen, len);
+ 		goto out;
+-	}
+ 	case IP_MULTICAST_ALL:
+ 		val = inet->mc_all;
+ 		break;
+@@ -1762,45 +1807,9 @@ int compat_ip_getsockopt(struct sock *sk, int level, int optname,
+ 	int err;
+ 
+ 	if (optname == MCAST_MSFILTER) {
+-		const int size0 = offsetof(struct compat_group_filter, gf_slist);
+-		struct compat_group_filter __user *p = (void __user *)optval;
+-		struct compat_group_filter gf32;
+-		struct group_filter gf;
+-		int ulen, err;
+-		int num;
+-
+ 		if (level != SOL_IP)
+ 			return -EOPNOTSUPP;
+-
+-		if (get_user(ulen, optlen))
+-			return -EFAULT;
+-
+-		if (ulen < size0)
+-			return -EINVAL;
+-
+-		if (copy_from_user(&gf32, p, size0))
+-			return -EFAULT;
+-
+-		gf.gf_interface = gf32.gf_interface;
+-		gf.gf_fmode = gf32.gf_fmode;
+-		num = gf.gf_numsrc = gf32.gf_numsrc;
+-		gf.gf_group = gf32.gf_group;
+-
+-		rtnl_lock();
+-		lock_sock(sk);
+-		err = ip_mc_gsfget(sk, &gf, p->gf_slist);
+-		release_sock(sk);
+-		rtnl_unlock();
+-		if (err)
+-			return err;
+-		if (gf.gf_numsrc < num)
+-			num = gf.gf_numsrc;
+-		ulen = GROUP_FILTER_SIZE(num) - (sizeof(gf) - sizeof(gf32));
+-		if (put_user(ulen, optlen) ||
+-		    put_user(gf.gf_fmode, &p->gf_fmode) ||
+-		    put_user(gf.gf_numsrc, &p->gf_numsrc))
+-			return -EFAULT;
+-		return 0;
++		return compat_ip_get_mcast_msfilter(sk, optval, optlen);
+ 	}
+ 
+ 	err = do_ip_getsockopt(sk, level, optname, optval, optlen,
+-- 
+2.27.0
