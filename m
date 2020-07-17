@@ -1,75 +1,125 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH v2 03/11] sh/tlb: Fix __pmd_free_tlb()
-Date: Fri, 17 Jul 2020 13:10:08 +0200
-Message-ID: <20200717111349.533637732@infradead.org>
+Subject: [PATCH v2 11/11] m68k/tlb: Fix __p*_free_tlb()
+Date: Fri, 17 Jul 2020 13:10:16 +0200
+Message-ID: <20200717111350.001250805@infradead.org>
 References: <20200717111005.024867618@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-sh-owner@vger.kernel.org>
-Sender: linux-sh-owner@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul Burton <paulburton@kernel.org>, Tony Luck <tony.luck@intel.com>, Richard Henderson <rth@twiddle.net>, Nick Hu <nickhu@andestech.com>, Paul Walmsley <paul.walmsley@sifive.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, Christoph Hellwig <hch@lst.de>
 List-Id: linux-arch.vger.kernel.org
 
-SH violates the freeing order for it's PMD page directories. It's
-__pmd_free_tlb() does not ensure there is a TLB invalidation between
-itself and the eventualy freeing of the page.
+Just like regular pages, page directories need to observe the
+following order:
 
-Further complicating the situation is that SH uses non page based
-allocation for it's PMDs.
+ 1) unhook
+ 2) TLB invalidate
+ 3) free
 
-Use the shiny new HAVE_TABLE_FREE option to enable a custom page table
-freeer.
+to ensure it is safe against concurrent accesses.
 
-(SuperH uses IPI based TLB invalidation and therefore doesn't need
-HAVE_RCU_TABLE_FREE for its HAVE_FAST_GUP).
+The Motorola MMU has funny PMD stuff, so use a custom table freeer.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/sh/Kconfig               |    1 +
- arch/sh/include/asm/pgalloc.h |    3 ++-
- arch/sh/mm/pgtable.c          |    6 ++++++
- 3 files changed, 9 insertions(+), 1 deletion(-)
+ arch/m68k/Kconfig                        |    1 +
+ arch/m68k/include/asm/mcf_pgalloc.h      |   14 ++++++--------
+ arch/m68k/include/asm/motorola_pgalloc.h |   10 ++++++----
+ arch/m68k/mm/motorola.c                  |   17 +++++++++++++++++
+ 4 files changed, 30 insertions(+), 12 deletions(-)
 
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -14,6 +14,7 @@ config SUPERH
- 	select HAVE_PERF_EVENTS
- 	select HAVE_DEBUG_BUGVERBOSE
- 	select HAVE_FAST_GUP if MMU
-+	select MMU_GATHER_TABLE_FREE if X2TLB
- 	select ARCH_HAVE_CUSTOM_GPIO_H
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if (GUSA_RB || CPU_SH4A)
- 	select ARCH_HAS_GCOV_PROFILE_ALL
---- a/arch/sh/include/asm/pgalloc.h
-+++ b/arch/sh/include/asm/pgalloc.h
-@@ -12,7 +12,8 @@ extern void pgd_free(struct mm_struct *m
- extern void pud_populate(struct mm_struct *mm, pud_t *pudp, pmd_t *pmd);
- extern pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address);
- extern void pmd_free(struct mm_struct *mm, pmd_t *pmd);
--#define __pmd_free_tlb(tlb, pmdp, addr)		pmd_free((tlb)->mm, (pmdp))
-+extern void __tlb_remove_table(void *table);
-+#define __pmd_free_tlb(tlb, pmdp, addr)	tlb_remove_table((tlb), (pmdp))
- #endif
+--- a/arch/m68k/Kconfig
++++ b/arch/m68k/Kconfig
+@@ -32,6 +32,7 @@ config M68K
+ 	select OLD_SIGSUSPEND3
+ 	select OLD_SIGACTION
+ 	select MMU_GATHER_NO_RANGE if MMU
++	select MMU_GATHER_TABLE_FREE if MMU_MOTOROLA
  
- static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
---- a/arch/sh/mm/pgtable.c
-+++ b/arch/sh/mm/pgtable.c
-@@ -1,6 +1,7 @@
- // SPDX-License-Identifier: GPL-2.0
- #include <linux/mm.h>
- #include <linux/slab.h>
-+#include <asm/pgalloc.h>
+ config CPU_BIG_ENDIAN
+ 	def_bool y
+--- a/arch/m68k/include/asm/mcf_pgalloc.h
++++ b/arch/m68k/include/asm/mcf_pgalloc.h
+@@ -34,14 +34,12 @@ extern inline pmd_t *pmd_alloc_kernel(pg
  
- #define PGALLOC_GFP GFP_KERNEL | __GFP_ZERO
+ #define pmd_pgtable(pmd) pfn_to_virt(pmd_val(pmd) >> PAGE_SHIFT)
  
-@@ -55,4 +56,9 @@ void pmd_free(struct mm_struct *mm, pmd_
+-static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pgtable,
+-				  unsigned long address)
+-{
+-	struct page *page = virt_to_page(pgtable);
+-
+-	pgtable_pte_page_dtor(page);
+-	__free_page(page);
+-}
++#define __pte_free_tlb(tlb, pgtable, addr)		\
++do {							\
++	struct page *page = virt_to_page(pgtable);	\
++	pgtable_pte_page_dtor(page);			\
++	tlb_remove_page((tlb), page);			\
++} while (0)
+ 
+ static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
  {
- 	kmem_cache_free(pmd_cachep, pmd);
+--- a/arch/m68k/include/asm/motorola_pgalloc.h
++++ b/arch/m68k/include/asm/motorola_pgalloc.h
+@@ -14,6 +14,8 @@ enum m68k_table_types {
+ 	TABLE_PTE = 1,
+ };
+ 
++extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int type);
++extern void __tlb_remove_table(void *table);
+ extern void init_pointer_table(void *table, int type);
+ extern void *get_pointer_table(int type);
+ extern int free_pointer_table(void *table, int type);
+@@ -47,7 +49,7 @@ static inline void pte_free(struct mm_st
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pgtable,
+ 				  unsigned long address)
+ {
+-	free_pointer_table(pgtable, TABLE_PTE);
++	pgtable_free_tlb(tlb, pgtable, TABLE_PTE);
  }
+ 
+ 
+@@ -61,10 +63,10 @@ static inline int pmd_free(struct mm_str
+ 	return free_pointer_table(pmd, TABLE_PMD);
+ }
+ 
+-static inline int __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
+-				 unsigned long address)
++static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
++				  unsigned long address)
+ {
+-	return free_pointer_table(pmd, TABLE_PMD);
++	pgtable_free_tlb(tlb, pmd, TABLE_PMD);
+ }
+ 
+ 
+--- a/arch/m68k/mm/motorola.c
++++ b/arch/m68k/mm/motorola.c
+@@ -215,6 +215,23 @@ int free_pointer_table(void *table, int
+ 	return 0;
+ }
+ 
++void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int type)
++{
++	unsigned long ptr = (unsigned long)table;
++	BUG_ON(type > 1);
++	BUG_ON(ptr  & 1);
++	ptr |= type;
++	tlb_remove_table(tlb, (void *)ptr);
++}
 +
 +void __tlb_remove_table(void *table)
 +{
-+	pmd_free(NULL, table);
++	int type = (unsigned long)table & 1;
++	table = (void *)((unsigned long)table & ~1);
++
++	free_pointer_table(table, type);
 +}
- #endif /* PAGETABLE_LEVELS > 2 */
++
+ /* size of memory already mapped in head.S */
+ extern __initdata unsigned long m68k_init_mapped_size;
+ 
