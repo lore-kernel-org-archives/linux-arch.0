@@ -1,45 +1,197 @@
-Return-Path: <SRS0=uZ41=BC=vger.kernel.org=linux-arch-owner@kernel.org>
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33308 "EHLO
-        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1727108AbgGWPsd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2020 11:48:33 -0400
-Date: Thu, 23 Jul 2020 17:48:20 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [EXT] Re: [PATCH v4 00/13] "Task_isolation" mode
-Message-ID: <20200723154820.GA709@worktop.programming.kicks-ass.net>
-References: <04be044c1bcd76b7438b7563edc35383417f12c8.camel@marvell.com>
- <87imeextf3.fsf@nanos.tec.linutronix.de>
- <20200723142902.GT5523@worktop.programming.kicks-ass.net>
- <670609a91be23ebb4f179850601439fbed844479.camel@marvell.com>
+Return-Path: <SRS0=028w=A4=vger.kernel.org=linux-arch-owner@kernel.org>
+Received: from proxima.lasnet.de ([78.47.171.185]:53924 "EHLO
+        proxima.lasnet.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725932AbgGQJfX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2020 05:35:23 -0400
+Subject: Re: [PATCH 05/22] net: remove compat_sock_common_{get,set}sockopt
+References: <20200717062331.691152-1-hch@lst.de>
+ <20200717062331.691152-6-hch@lst.de>
+From: Stefan Schmidt <stefan@datenfreihafen.org>
+Message-ID: <52d031f9-70c2-89c1-941f-c8187a6a2b68@datenfreihafen.org>
+Date: Fri, 17 Jul 2020 11:26:34 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <670609a91be23ebb4f179850601439fbed844479.camel@marvell.com>
+In-Reply-To: <20200717062331.691152-6-hch@lst.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Belits <abelits@marvell.com>
-Cc: "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@kernel.org" <mingo@kernel.org>, Prasun Kapoor <pkapoor@marvell.com>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "rostedt@goodmis.org" <rostedt@goodmis.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will@kernel.org" <will@kernel.org>, "frederic@kernel.org" <frederic@kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20200723154820.MMWW1reANC8F5wem4jT18NR3AStncJPYGMwIzuykTkA@z>
+To: Christoph Hellwig <hch@lst.de>, "David S. Miller" <davem@davemloft.net>
+Cc: Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Chas Williams <3chas3@gmail.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Jozsef Kadlecsik <kadlec@netfilter.org>, Florian Westphal <fw@strlen.de>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, bpf@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-sctp@vger.kernel.org, linux-arch@vger.kernel.org, linux-bluetooth@vger.kernel.org, bridge@lists.linux-foundation.org, linux-can@vger.kernel.org, dccp@vger.kernel.org, linux-wpan@vger.kernel.org, mptcp@lists.01.org
+Message-ID: <20200717092634.3PMqDwY4Hd2dL5abmonf_PXkpG0uZwV4SjSdmXEnW68@z>
 
-On Thu, Jul 23, 2020 at 03:41:46PM +0000, Alex Belits wrote:
+Hello.
+
+On 17.07.20 08:23, Christoph Hellwig wrote:
+> Add the compat handling to sock_common_{get,set}sockopt instead,
+> keyed of in_compat_syscall().  This allow to remove the now unused
+> ->compat_{get,set}sockopt methods from struct proto_ops.
 > 
-> On Thu, 2020-07-23 at 16:29 +0200, Peter Zijlstra wrote:
-> > .
-> > 
-> > This.. as presented it is an absolutely unreviewable pile of junk. It
-> > presents code witout any coherent problem description and analysis.
-> > And
-> > the patches are not split sanely either.
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>   include/linux/net.h      |  6 ------
+>   include/net/sock.h       |  4 ----
+>   net/core/sock.c          | 30 ++++++------------------------
+>   net/dccp/ipv4.c          |  4 ----
+>   net/dccp/ipv6.c          |  2 --
+>   net/ieee802154/socket.c  |  8 --------
+>   net/ipv4/af_inet.c       |  6 ------
+>   net/ipv6/af_inet6.c      |  4 ----
+>   net/ipv6/ipv6_sockglue.c | 12 ++----------
+>   net/ipv6/raw.c           |  2 --
+>   net/l2tp/l2tp_ip.c       |  4 ----
+>   net/l2tp/l2tp_ip6.c      |  2 --
+>   net/mptcp/protocol.c     |  6 ------
+>   net/phonet/socket.c      |  8 --------
+>   net/sctp/ipv6.c          |  2 --
+>   net/sctp/protocol.c      |  4 ----
+>   16 files changed, 8 insertions(+), 96 deletions(-)
 > 
-> There is a more complete and slightly outdated description in the
-> previous version of the patch at 
-> https://lore.kernel.org/lkml/07c25c246c55012981ec0296eee23e68c719333a.camel@marvell.com/
+> diff --git a/include/linux/net.h b/include/linux/net.h
+> index 016a9c5faa3479..858ff1d981540d 100644
+> --- a/include/linux/net.h
+> +++ b/include/linux/net.h
+> @@ -165,12 +165,6 @@ struct proto_ops {
+>   				      int optname, char __user *optval, unsigned int optlen);
+>   	int		(*getsockopt)(struct socket *sock, int level,
+>   				      int optname, char __user *optval, int __user *optlen);
+> -#ifdef CONFIG_COMPAT
+> -	int		(*compat_setsockopt)(struct socket *sock, int level,
+> -				      int optname, char __user *optval, unsigned int optlen);
+> -	int		(*compat_getsockopt)(struct socket *sock, int level,
+> -				      int optname, char __user *optval, int __user *optlen);
+> -#endif
+>   	void		(*show_fdinfo)(struct seq_file *m, struct socket *sock);
+>   	int		(*sendmsg)   (struct socket *sock, struct msghdr *m,
+>   				      size_t total_len);
+> diff --git a/include/net/sock.h b/include/net/sock.h
+> index 4bf8841651486d..1fd7cf5fc7516c 100644
+> --- a/include/net/sock.h
+> +++ b/include/net/sock.h
+> @@ -1744,10 +1744,6 @@ int sock_common_recvmsg(struct socket *sock, struct msghdr *msg, size_t size,
+>   			int flags);
+>   int sock_common_setsockopt(struct socket *sock, int level, int optname,
+>   				  char __user *optval, unsigned int optlen);
+> -int compat_sock_common_getsockopt(struct socket *sock, int level,
+> -		int optname, char __user *optval, int __user *optlen);
+> -int compat_sock_common_setsockopt(struct socket *sock, int level,
+> -		int optname, char __user *optval, unsigned int optlen);
+>   
+>   void sk_common_release(struct sock *sk);
+>   
+> diff --git a/net/core/sock.c b/net/core/sock.c
+> index e085df79482520..018404d1762682 100644
+> --- a/net/core/sock.c
+> +++ b/net/core/sock.c
+> @@ -3199,23 +3199,14 @@ int sock_common_getsockopt(struct socket *sock, int level, int optname,
+>   {
+>   	struct sock *sk = sock->sk;
+>   
+> -	return sk->sk_prot->getsockopt(sk, level, optname, optval, optlen);
+> -}
+> -EXPORT_SYMBOL(sock_common_getsockopt);
+> -
+>   #ifdef CONFIG_COMPAT
+> -int compat_sock_common_getsockopt(struct socket *sock, int level, int optname,
+> -				  char __user *optval, int __user *optlen)
+> -{
+> -	struct sock *sk = sock->sk;
+> -
+> -	if (sk->sk_prot->compat_getsockopt != NULL)
+> +	if (in_compat_syscal() && sk->sk_prot->compat_getsockopt)
+>   		return sk->sk_prot->compat_getsockopt(sk, level, optname,
+>   						      optval, optlen);
+> +#endif
+>   	return sk->sk_prot->getsockopt(sk, level, optname, optval, optlen);
+>   }
+> -EXPORT_SYMBOL(compat_sock_common_getsockopt);
+> -#endif
+> +EXPORT_SYMBOL(sock_common_getsockopt);
+>   
+>   int sock_common_recvmsg(struct socket *sock, struct msghdr *msg, size_t size,
+>   			int flags)
+> @@ -3240,23 +3231,14 @@ int sock_common_setsockopt(struct socket *sock, int level, int optname,
+>   {
+>   	struct sock *sk = sock->sk;
+>   
+> -	return sk->sk_prot->setsockopt(sk, level, optname, optval, optlen);
+> -}
+> -EXPORT_SYMBOL(sock_common_setsockopt);
+> -
+>   #ifdef CONFIG_COMPAT
+> -int compat_sock_common_setsockopt(struct socket *sock, int level, int optname,
+> -				  char __user *optval, unsigned int optlen)
+> -{
+> -	struct sock *sk = sock->sk;
+> -
+> -	if (sk->sk_prot->compat_setsockopt != NULL)
+> +	if (in_compat_syscall() && sk->sk_prot->compat_setsockopt)
+>   		return sk->sk_prot->compat_setsockopt(sk, level, optname,
+>   						      optval, optlen);
+> +#endif
+>   	return sk->sk_prot->setsockopt(sk, level, optname, optval, optlen);
+>   }
+> -EXPORT_SYMBOL(compat_sock_common_setsockopt);
+> -#endif
+> +EXPORT_SYMBOL(sock_common_setsockopt);
+>   
+>   void sk_common_release(struct sock *sk)
+>   {
+> diff --git a/net/dccp/ipv4.c b/net/dccp/ipv4.c
+> index a7e989919c5307..316cc5ac0da72b 100644
+> --- a/net/dccp/ipv4.c
+> +++ b/net/dccp/ipv4.c
+> @@ -999,10 +999,6 @@ static const struct proto_ops inet_dccp_ops = {
+>   	.recvmsg	   = sock_common_recvmsg,
+>   	.mmap		   = sock_no_mmap,
+>   	.sendpage	   = sock_no_sendpage,
+> -#ifdef CONFIG_COMPAT
+> -	.compat_setsockopt = compat_sock_common_setsockopt,
+> -	.compat_getsockopt = compat_sock_common_getsockopt,
+> -#endif
+>   };
+>   
+>   static struct inet_protosw dccp_v4_protosw = {
+> diff --git a/net/dccp/ipv6.c b/net/dccp/ipv6.c
+> index 650187d688519c..b50f85a72cd5fc 100644
+> --- a/net/dccp/ipv6.c
+> +++ b/net/dccp/ipv6.c
+> @@ -1083,8 +1083,6 @@ static const struct proto_ops inet6_dccp_ops = {
+>   	.sendpage	   = sock_no_sendpage,
+>   #ifdef CONFIG_COMPAT
+>   	.compat_ioctl	   = inet6_compat_ioctl,
+> -	.compat_setsockopt = compat_sock_common_setsockopt,
+> -	.compat_getsockopt = compat_sock_common_getsockopt,
+>   #endif
+>   };
+>   
+> diff --git a/net/ieee802154/socket.c b/net/ieee802154/socket.c
+> index d93d4531aa9bc5..94ae9662133e30 100644
+> --- a/net/ieee802154/socket.c
+> +++ b/net/ieee802154/socket.c
+> @@ -423,10 +423,6 @@ static const struct proto_ops ieee802154_raw_ops = {
+>   	.recvmsg	   = sock_common_recvmsg,
+>   	.mmap		   = sock_no_mmap,
+>   	.sendpage	   = sock_no_sendpage,
+> -#ifdef CONFIG_COMPAT
+> -	.compat_setsockopt = compat_sock_common_setsockopt,
+> -	.compat_getsockopt = compat_sock_common_getsockopt,
+> -#endif
+>   };
+>   
+>   /* DGRAM Sockets (802.15.4 dataframes) */
+> @@ -986,10 +982,6 @@ static const struct proto_ops ieee802154_dgram_ops = {
+>   	.recvmsg	   = sock_common_recvmsg,
+>   	.mmap		   = sock_no_mmap,
+>   	.sendpage	   = sock_no_sendpage,
+> -#ifdef CONFIG_COMPAT
+> -	.compat_setsockopt = compat_sock_common_setsockopt,
+> -	.compat_getsockopt = compat_sock_common_getsockopt,
+> -#endif
 
-Not the point, you're mixing far too many things in one go. You also
-have the patches split like 'generic / arch-1 / arch-2' which is wrong
-per definition, as patches should be split per change and not care about
-sily boundaries.
+For the ieee802154 part:
 
-Also, if you want generic entry code, there's patches for that here:
+Acked-by: Stefan Schmidt <stefan@datenfreihafen.org>
 
-  https://lkml.kernel.org/r/20200722215954.464281930@linutronix.de
+regards
+Stefan Schmidt
